@@ -150,7 +150,8 @@ with five-second timeouts and schema/identity checks. It neither LOADs nor ARMs 
 job. Do not run a second monitor on the same WTP port. Record board, firmware
 SHA-256/revision, host OS, physical setup, inhibited engine, unsynchronized clock,
 no transmitting mode, and actual results. Flashing and RF operations are outside
-this procedure. This implementation turn performed no USB device operations.
+this procedure. The implementation record contains only host evidence; subsequent
+[bounded target validation](usb-target-validation.md) records actual USB observations.
 
 Next work is RF feasibility/engine selection and separately authorized hardware
 validation, then standalone encoding/configuration/time, WsprryPi integration,

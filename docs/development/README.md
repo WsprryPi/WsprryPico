@@ -8,8 +8,9 @@ target.
 
 The portable core uses C++20 and CMake 3.24 or later. The firmware build pins
 the Pico SDK, picotool and Arm toolchain and selects `pico2_w` explicitly. The
-SDK fetches the pinned picotool build dependency. No flashing command is
-supplied.
+SDK fetches the pinned picotool build dependency. The
+[bounded target USB record](usb-target-validation.md) supplies the separately
+authorized BOOTSEL and read-only validation procedure.
 
 Keep builds out of the source tree, normally under build/. Keep local SDK and
 toolchain paths in environment settings or ignored CMakeUserPresets.json.

@@ -3,7 +3,8 @@
 WsprryPico is a first-class standalone WSPR/QRSS transmitter application in the WsprryPi family. It targets Raspberry Pi Pico family hardware, with Pico 2 W / RP2350 as the defined hardware target, and also serves as a hardware transmitter backend for WsprryPi.
 
 Status: normative WTP/1 contract, host-tested portable core, and an RF-inhibited
-Pico 2 W WTP USB endpoint. No physical RF engine is implemented; target USB,
+Pico 2 W WTP USB endpoint. [Bounded target USB validation](docs/development/usb-target-validation.md)
+passes on the recorded board and Mac. No physical RF engine is implemented;
 timing and RF behavior remain unqualified.
 
 - [Accepted architecture](docs/architecture.md)

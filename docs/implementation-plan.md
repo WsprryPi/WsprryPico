@@ -51,7 +51,9 @@ Strict JSON request decoding, response/event encoding and typed job-service
 routing now run on the WTP CDC interface. Connection negotiation, replayed
 snapshots, logical closure and bounded ordered transmission are host-tested
 against normative fixtures, the independent schema validator and monitor decoder.
-An opt-in read-only probe is supplied; no target USB or RF qualification is claimed.
+An opt-in read-only probe is supplied. Bounded target USB checks pass for the
+[recorded board, image and host](development/usb-target-validation.md); general
+WTP conformance and RF qualification are not claimed.
 See the [endpoint guide](development/wtp-endpoint.md).
 
 ## Next slice: RF feasibility and engine selection
@@ -76,7 +78,8 @@ Sequence may evolve based on RF feasibility. Standalone operation remains a prod
 
 ## Current boundaries
 
-The firmware builds for Pico 2 W, but no hardware test or RF transmission has
-occurred. The portable core and WTP USB endpoint are host-tested; target USB behavior
-and timing remain unqualified. Target bands and an RF engine remain open. WTP/1 schemas are
+The firmware builds for Pico 2 W. The portable core and WTP USB endpoint are
+host-tested, and bounded target USB validation passes on the recorded Pico 2 W
+and Mac. No RF transmission or target timing qualification has occurred.
+Target bands and an RF engine remain open. WTP/1 schemas are
 normative; changes to them require an explicit protocol-contract revision.

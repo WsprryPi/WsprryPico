@@ -26,8 +26,9 @@ PIO/PLL/direct RF and an optional Si5351 engine remain investigation candidates.
 No band coverage, RF performance or WTP compliance is currently established.
 The Pico 2 W firmware provides an RF-inhibited WTP USB endpoint with separate
 Console and WTP CDC interfaces. Its protocol, service, transport and descriptor
-behavior is hardware-free host-tested; target USB behavior and timing remain
-unqualified.
+behavior is hardware-free host-tested. [Bounded target USB checks](docs/development/usb-target-validation.md)
+pass for the recorded board, firmware and host; general USB/WTP conformance,
+timing and RF behavior remain unqualified.
 
 Host tests, target execution and RF qualification are distinct evidence classes.
 A successful compile or simulated transmission establishes neither on-device
