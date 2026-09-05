@@ -1,4 +1,5 @@
 #include "wtp/frame_parser.hpp"
+#include "wtp/inhibited_rf_engine.hpp"
 #include "wtp/job_service.hpp"
 
 #include <algorithm>
@@ -647,6 +648,35 @@ void test_engine_completion_watchdog() {
     CHECK(service.status().terminal_records.front().error == ErrorCode::DeviceFault);
 }
 
+void test_inhibited_engine_never_reports_output() {
+    InhibitedRfEngine engine;
+    const auto job = sample_job();
+    CHECK(engine.prepare(job).accepted);
+    CHECK(!engine.output_active());
+    CHECK(engine.begin(job, 100));
+    CHECK(engine.poll(99).state == EngineState::Armed);
+    CHECK(!engine.poll(99).output_active);
+    CHECK(engine.poll(100).state == EngineState::Running);
+    CHECK(!engine.output_active());
+    CHECK(engine.poll(100 + job.total_duration_ns).state == EngineState::Complete);
+    CHECK(!engine.output_active());
+    CHECK(engine.disable(0));
+    CHECK(!engine.output_active());
+}
+
+void test_invalid_configuration_fails_without_exception() {
+    VirtualClock clock;
+    MockRfEngine engine;
+    TestIdentitySource identities;
+    ServiceConfig config;
+    config.max_events = 0;
+    JobService service(clock, engine, identities, config);
+    CHECK(service.status().state == State::Failed);
+    CHECK(engine.disable_calls == 1);
+    CHECK(!service.status().output_active);
+    CHECK(service.handle(request("HELLO", HelloBody{{"WTP/1"}})).error == ErrorCode::DeviceFault);
+}
+
 using Test = std::pair<const char*, void (*)()>;
 
 } // namespace
@@ -672,6 +702,9 @@ int main() {
         {"expired active lease and terminal retention",
          test_expired_active_lease_and_terminal_retention},
         {"engine completion watchdog", test_engine_completion_watchdog},
+        {"inhibited engine never reports output", test_inhibited_engine_never_reports_output},
+        {"invalid configuration fails without exception",
+         test_invalid_configuration_fails_without_exception},
     };
     std::size_t passed = 0;
     for (const auto& [name, test] : tests) {

@@ -1,13 +1,15 @@
 # Development baseline
 
 The defined hardware target is Pico 2 W / RP2350. The repository contains a
-portable WTP/1 core and deterministic host tests. It has no firmware target.
+portable WTP/1 core, deterministic host tests and an RF-inhibited firmware
+target.
 
 ## Build direction
 
-The portable core uses C++20 and CMake 3.24 or later. A firmware slice will pin
-the Pico SDK and target toolchain versions and select the board explicitly. No
-dependency download or flashing command is supplied.
+The portable core uses C++20 and CMake 3.24 or later. The firmware build pins
+the Pico SDK, picotool and Arm toolchain and selects `pico2_w` explicitly. The
+SDK fetches the pinned picotool build dependency. No flashing command is
+supplied.
 
 Keep builds out of the source tree, normally under build/. Keep local SDK and
 toolchain paths in environment settings or ignored CMakeUserPresets.json.
@@ -50,8 +52,20 @@ test.
 Review Markdown links and formatting for documentation changes. Once files are
 tracked, `git diff --check` checks whitespace in changes; it does not inspect
 untracked files. `clang-format` can check C/C++ files when they are introduced.
-There is no build/test command that validates firmware yet. See the
-[portable-core guide](portable-core.md) for boundaries and limitations.
+Build the target firmware with:
+
+```sh
+cmake --preset pico2-w
+cmake --build --preset pico2-w
+```
+
+VS Code recognizes the root through `CMakePresets.json` and the checked-in
+extension recommendations. Select the `pico2-w` configure preset. Configure
+local SDK paths in the environment or ignored `CMakeUserPresets.json`.
+
+See the [portable-core guide](portable-core.md) and
+[firmware-foundation guide](firmware-foundation.md) for boundaries and
+limitations.
 
 See the [implementation plan](../implementation-plan.md) and
 [WTP/1 contract](../protocol/WTP.md) for the next boundary.

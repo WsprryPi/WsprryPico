@@ -39,13 +39,18 @@ The authoritative specification lives at docs/protocol/WTP.md in WsprryPico. Wsp
 Browser handlers, standalone scheduler, USB WTP and TCP WTP submit work to one application job service. That service owns validation, transmitter ownership and state. A local execution layer controls interchangeable RF engines. Time synchronization estimates UTC relative to a monotonic device clock; RF frequency calibration is tracked separately.
 
 The portable frame parser and job service implement the transport-independent
-part of this boundary. Transport adapters, browser handlers, the standalone
-scheduler and target RF engines remain to be implemented.
+part of this boundary. The Pico 2 W foundation runs that service with an
+unsynchronized clock and RF-inhibited engine. Its dual CDC device separates
+console diagnostics from WTP framing. JSON dispatch, browser handlers, the
+standalone scheduler and target RF engines remain to be implemented.
 
 Standalone execution needs local encoding, persistent station/schedule configuration and time acquisition without WsprryPi. Host operation may accept already encoded jobs. Both paths converge before engine preparation.
 
 ## Open design choices
 
-UTC source and implementation-specific acceptable uncertainty; clock calibration; RF engine and pins; SDK/toolchain versions; licensing and exact source reuse; browser API schemas and storage limits remain to be designed. WTP/1 defines the interoperable protocol limits and policies without selecting those implementations.
+UTC source and implementation-specific acceptable uncertainty; clock
+calibration; RF engine and pins; browser API schemas and storage limits remain
+to be designed. WTP/1 defines the interoperable protocol limits and policies
+without selecting those implementations.
 
 Estimates of reusable code and expected spectral behavior remain hypotheses until verified.

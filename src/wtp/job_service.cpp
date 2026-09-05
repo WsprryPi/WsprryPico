@@ -3,8 +3,6 @@
 #include <algorithm>
 #include <array>
 #include <limits>
-#include <stdexcept>
-#include <unordered_set>
 
 namespace wsprrypico::wtp {
 namespace {
@@ -26,6 +24,15 @@ bool contains(const std::vector<std::string>& values, std::string_view expected)
     return std::find(values.begin(), values.end(), expected) != values.end();
 }
 
+bool unique(const std::vector<std::string>& values) {
+    for (auto current = values.begin(); current != values.end(); ++current) {
+        if (std::find(values.begin(), current, *current) != current) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool supported_mode(std::string_view mode) {
     constexpr std::array<std::string_view, 6> modes{"wspr", "qrss", "fskcw", "dfcw", "cw", "tone"};
     return std::find(modes.begin(), modes.end(), mode) != modes.end();
@@ -45,23 +52,25 @@ JobService::JobService(Clock& clock, RfEngine& engine, IdentitySource& identitie
                        ServiceConfig config)
     : clock_(clock), engine_(engine), identities_(identities), config_(config),
       boot_id_(identities_.new_boot_id()) {
-    if (config_.max_events == 0 || config_.max_events > 512 || config_.max_job_duration_ns == 0 ||
-        config_.max_job_duration_ns > 86'400'000'000'000ULL || config_.maximum_arm_ahead_ns == 0 ||
-        config_.maximum_arm_ahead_ns > kMaximumArmAheadNs ||
-        config_.minimum_arm_lead_ns > config_.maximum_arm_ahead_ns ||
-        config_.output_disable_timeout_ns == 0 ||
-        config_.output_disable_timeout_ns > kMaximumOutputDisableTimeoutNs ||
-        config_.response_cache_entries < 8 || config_.response_cache_ttl_ns < 300'000'000'000ULL ||
-        config_.terminal_record_entries < 8 ||
-        config_.terminal_record_ttl_ns < 3'600'000'000'000ULL) {
-        throw std::invalid_argument("ServiceConfig violates WTP/1 limits");
-    }
-    if (!valid_id(boot_id_)) {
-        throw std::invalid_argument("IdentitySource returned an invalid boot ID");
-    }
+    const bool configuration_valid =
+        config_.max_events > 0 && config_.max_events <= 512 && config_.max_job_duration_ns > 0 &&
+        config_.max_job_duration_ns <= 86'400'000'000'000ULL && config_.maximum_arm_ahead_ns > 0 &&
+        config_.maximum_arm_ahead_ns <= kMaximumArmAheadNs &&
+        config_.minimum_arm_lead_ns <= config_.maximum_arm_ahead_ns &&
+        config_.output_disable_timeout_ns > 0 &&
+        config_.output_disable_timeout_ns <= kMaximumOutputDisableTimeoutNs &&
+        config_.response_cache_entries >= 8 &&
+        config_.response_cache_ttl_ns >= 300'000'000'000ULL &&
+        config_.terminal_record_entries >= 8 &&
+        config_.terminal_record_ttl_ns >= 3'600'000'000'000ULL;
     const auto now = clock_.snapshot().monotonic_now_ns;
-    ready_ = engine_.disable(saturating_add(now, config_.output_disable_timeout_ns)) &&
-             !engine_.output_active();
+    const auto shutdown_timeout =
+        config_.output_disable_timeout_ns > 0 &&
+                config_.output_disable_timeout_ns <= kMaximumOutputDisableTimeoutNs
+            ? config_.output_disable_timeout_ns
+            : ServiceConfig{}.output_disable_timeout_ns;
+    ready_ = engine_.disable(saturating_add(now, shutdown_timeout)) && !engine_.output_active() &&
+             configuration_valid && valid_id(boot_id_);
     if (!ready_) {
         state_ = State::Failed;
     }
@@ -99,8 +108,7 @@ Response JobService::handle(const Request& request) {
         const auto* body = std::get_if<HelloBody>(&request.body);
         if (body == nullptr || body->versions.empty() || body->versions.size() > 16 ||
             !std::all_of(body->versions.begin(), body->versions.end(), valid_protocol_version) ||
-            std::unordered_set<std::string>(body->versions.begin(), body->versions.end()).size() !=
-                body->versions.size()) {
+            !unique(body->versions)) {
             return reject(ErrorCode::InvalidMessage);
         }
         if (!contains(body->versions, "WTP/1")) {
@@ -274,14 +282,18 @@ Response JobService::dispatch(const Request& request) {
         if (!body->allow_frequency_adjustment && !preparation.adjustments.empty()) {
             return reject(ErrorCode::FrequencyRejected);
         }
-        std::unordered_set<std::size_t> adjusted_events;
-        for (const auto& adjustment : preparation.adjustments) {
+        for (auto current = preparation.adjustments.begin();
+             current != preparation.adjustments.end(); ++current) {
+            const auto& adjustment = *current;
+            const bool duplicate = std::any_of(
+                preparation.adjustments.begin(), current, [&](const FrequencyAdjustment& prior) {
+                    return prior.event_index == adjustment.event_index;
+                });
             if (adjustment.event_index >= body->events.size() ||
                 !body->events[adjustment.event_index].frequency_nhz ||
                 *body->events[adjustment.event_index].frequency_nhz !=
                     adjustment.requested_frequency_nhz ||
-                adjustment.realized_frequency_nhz == 0 ||
-                !adjusted_events.insert(adjustment.event_index).second) {
+                adjustment.realized_frequency_nhz == 0 || duplicate) {
                 return reject(ErrorCode::DeviceFault);
             }
         }

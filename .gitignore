@@ -5,7 +5,9 @@
 Thumbs.db
 Desktop.ini
 .idea/
-.vscode/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 *.code-workspace
 *.swp
 *.swo

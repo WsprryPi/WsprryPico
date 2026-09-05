@@ -30,12 +30,20 @@ clock rejection, reconnect/reset behavior, cancellation, output-disable
 failure, and local execution without further requests. It is not target or RF
 evidence.
 
-## Next slice: Pico firmware shell and USB adapter
+## Completed Pico firmware foundation
 
-Pin the Pico SDK and target toolchain, add a reproducible Pico 2 W build, and
-adapt USB CDC to the portable frame and job-service boundaries. Add strict JSON
-request decoding, response/event encoding and a non-RF engine. Keep all target
-and USB device activity separately opt-in.
+The Pico SDK, Arm toolchain and picotool inputs are pinned. The Pico 2 W build
+links the portable service to an unsynchronized target clock, fresh boot
+identity, stable device identity and RF-inhibited engine. Two USB CDC interfaces
+separate text diagnostics from bounded WTP framing. CMake presets and VS Code
+metadata provide the same repository-root build.
+
+## Next slice: strict WTP USB adapter
+
+Add strict JSON request decoding, response/event encoding and typed job-service
+dispatch on the WTP CDC interface. Complete connection/session behavior and
+exercise it with the host monitor and normative fixtures. Keep all target and
+USB device activity separately opt-in.
 
 Before extracting encoder code, inspect WsprryPi licensing and dependencies and record source revision/attribution. Initial candidate files include src/scheduling.hpp, src/scheduling_runtime.cpp and src/tests/wspr_tone_regression_test.cpp; finding them is not a portability review.
 
@@ -53,7 +61,7 @@ Sequence may evolve based on RF feasibility. Standalone operation remains a prod
 
 ## Current boundaries
 
-No firmware build, hardware test or RF transmission has occurred. The portable
-core is host-tested but is not a complete WTP endpoint. Licensing, target bands
-and RF engine remain open. WTP/1 schemas are normative; changes to them require
-an explicit protocol-contract revision.
+The firmware builds for Pico 2 W, but no hardware test or RF transmission has
+occurred. The portable core is host-tested, and the target is not a complete WTP
+endpoint. Target bands and an RF engine remain open. WTP/1 schemas are
+normative; changes to them require an explicit protocol-contract revision.

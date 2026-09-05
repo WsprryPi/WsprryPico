@@ -1,0 +1,14 @@
+#pragma once
+
+namespace wsprrypico::firmware {
+
+inline constexpr char kProduct[] = "WsprryPico";
+inline constexpr char kFirmwareVersion[] = "@WSPRRY_PICO_FIRMWARE_VERSION@";
+inline constexpr char kBuildRevision[] = "@WSPRRY_PICO_GIT_REVISION@";
+inline constexpr char kBoard[] = "pico2_w";
+inline constexpr char kProcessor[] = "RP2350";
+inline constexpr char kPicoSdkVersion[] = "@PICO_SDK_VERSION_STRING@";
+inline constexpr char kPicoSdkCommit[] = "@WSPRRY_PICO_ACTUAL_SDK_COMMIT@";
+inline constexpr char kArmToolchainVersion[] = "@CMAKE_C_COMPILER_VERSION@";
+
+} // namespace wsprrypico::firmware

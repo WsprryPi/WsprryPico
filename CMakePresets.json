@@ -1,0 +1,51 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "host-debug",
+      "displayName": "Host tests (Debug)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/host-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "WSPRRY_PICO_BUILD_FIRMWARE": "OFF",
+        "WSPRRY_PICO_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "pico2-w",
+      "displayName": "Pico 2 W firmware (RP2350 Arm)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/pico2-w",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "WSPRRY_PICO_BUILD_FIRMWARE": "ON",
+        "WSPRRY_PICO_BUILD_TESTS": "OFF",
+        "PICO_BOARD": "pico2_w"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "host-debug",
+      "configurePreset": "host-debug"
+    },
+    {
+      "name": "pico2-w",
+      "configurePreset": "pico2-w",
+      "targets": ["WsprryPico"]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "host-debug",
+      "configurePreset": "host-debug",
+      "output": {"outputOnFailure": true}
+    }
+  ]
+}

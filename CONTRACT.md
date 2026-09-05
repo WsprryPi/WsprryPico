@@ -23,9 +23,9 @@ This contract summarizes durable boundaries. The normative WTP/1 contract is
 ## Evidence and implementation status
 
 PIO/PLL/direct RF and an optional Si5351 engine remain investigation candidates.
-No band coverage, RF performance, firmware build or WTP compliance is currently
-established. The host-tested portable core does not establish endpoint or
-target conformance.
+No band coverage, RF performance or WTP compliance is currently established.
+The firmware foundation builds for Pico 2 W with an inhibited engine; it does
+not establish endpoint or target conformance.
 
 Host tests, target execution and RF qualification are distinct evidence classes.
 A successful compile or simulated transmission establishes neither on-device
