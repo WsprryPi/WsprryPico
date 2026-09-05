@@ -62,23 +62,34 @@ The [hardware-free comparison](rf-feasibility.md) and
 [reproducible calculations](rf-calculations.md) compare static dividers,
 PLL retuning, PIO/DMA synthesis and Si5351. PIO/DMA packed-bit GPIO synthesis
 is selected for experimental implementation, initially at the 80 m study point,
-subject to generation-throughput, inhibition and spectral gates. Si5351 remains
+with generation throughput, job lifecycle behavior and spectra still to assess. Si5351 remains
 an alternative. This is candidate selection, not engine implementation or RF
 qualification. The [bounded measurement plan](development/rf-measurement-plan.md)
 is proposed and unexecuted.
 
-## Next slice: experimental RF engine
+## Completed first Step 8 software slice
 
-Design and implement the selected engine and output/inhibit circuit, beginning
-with deterministic host validation and resource budgeting. Hardware execution
-and RF measurements require separately explicit authorization for the exact
-setup. No RF authorization follows from this study.
+The [portable stream](development/rf-stream.md) implements bounded initial-tone
+planning, packed waveform generation and a streaming engine behind an abstract
+sink. Host tests cover sample accuracy, phase continuity, timing, ownership,
+faults and job-service integration; the library also cross-compiles for Arm.
+The [output/inhibit design](development/rf-output-design.md) is a proposal,
+with electrical/filter details and qualification still pending.
+
+## Next slice: physical adapter and target readiness
+
+Implement the PIO/DMA sink and precise local launch integration; finalize and
+review the output/inhibit circuit and filtering; verify memory and processing
+budgets on the exact target. Step 8 remains incomplete. The operator decides
+when to transmit and which hardware measurements to run. The portable library
+is not selected by the Pico firmware, and host tests/cross-builds do not establish
+physical RF behavior.
 
 Before extracting encoder code, inspect WsprryPi licensing and dependencies and record source revision/attribution. Initial candidate files include src/scheduling.hpp, src/scheduling_runtime.cpp and src/tests/wspr_tone_regression_test.cpp; finding them is not a portability review.
 
 ## Subsequent slices
 
-1. Implement and validate an RF engine under separately explicit hardware/RF authorization.
+1. Implement and validate the physical RF engine with operator-directed hardware testing.
 2. Add standalone encoding, station configuration, persistent schedules and device time acquisition. Verify autonomous operation without WsprryPi.
 3. Add WsprryPi client integration using the same conformance fixtures; plan changes in that repository independently.
 4. Add Wi-Fi/TCP, shared JSON API adapters and embedded browser assets, followed by SoftAP provisioning.
@@ -93,5 +104,6 @@ The firmware builds for Pico 2 W. The portable core and WTP USB endpoint are
 host-tested, and bounded target USB validation passes on the recorded Pico 2 W
 and Mac. No RF transmission or target timing qualification has occurred.
 Supported bands and final engine promotion remain open; the experimental
-PIO/DMA candidate has been selected but not implemented. WTP/1 schemas are
+PIO/DMA candidate has a portable implementation but no physical sink or target
+performance validation. WTP/1 schemas are
 normative; changes to them require an explicit protocol-contract revision.

@@ -33,6 +33,10 @@ descriptor test using the pinned local TinyUSB headers. The
 [strict WTP endpoint guide](wtp-endpoint.md) adds wire tests, sanitizer commands,
 image memory-layout checks and an opt-in read-only USB probe.
 
+The [portable RF stream guide](rf-stream.md) covers the experimental generator,
+streaming adapter, host benchmark, sanitizers and Arm library cross-build.
+The [output/inhibit design](rf-output-design.md) remains a hardware proposal.
+
 ## Current checks
 
 Reproduce and check the hardware-free RF study with:

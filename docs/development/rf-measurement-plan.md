@@ -1,13 +1,15 @@
 # Bounded conducted RF measurement plan
 
-Status: proposed procedure for Step 8 and later. **Not authorized for execution.**
+Status: suggested measurements for Step 8 and later. The operator decides when
+to transmit, selects the setup and can change the sequence or comparison targets.
+This document adds no transmission permission mechanism or mandatory interlock.
 No cable, SDR operation, flashing, GPIO action or RF output is needed to complete
 Step 7. The [feasibility decision](../rf-feasibility.md) selects an experimental
 PIO/DMA candidate; it does not establish a safe output circuit or qualified RF.
 
-## Required setup record before authorization
+## Setup record for interpreting results
 
-Bind the following in one run manifest, with no unspecified hardware fields:
+Record the following in the run manifest; identify unknowns as limitations:
 
 - Pico 2 W board identity/revision; RP2350 revision where readable; exact Git
   revision, firmware SHA-256, SDK/toolchain, configuration and engine version.
@@ -29,9 +31,9 @@ Bind the following in one run manifest, with no unspecified hardware fields:
 - Tested recovery procedure, output-off observation method and evidence paths.
   Record remaining instrument limitations before interpreting a pass/fail result.
 
-If any required identity, limit or authorization is missing, stay inhibited.
-Authorization must name flashing/target control and the bounded RF sequence
-separately as applicable. A prior USB validation does not authorize this plan.
+Missing identities or instrument limits affect what the evidence can establish.
+Report them to the operator without inventing values or turning this checklist
+into an additional approval process.
 
 ## Connection and level calculation
 
@@ -60,17 +62,17 @@ change attenuation only with output inhibited and verified off.
 
 ## Proposed finite sequence
 
-Execute each stage only within the approved manifest. Failed stages block later
-ones; no automatic retries, band expansion or continuing transmission.
+The following counts and durations define one reproducible suggested sequence.
+The operator chooses stages, changes, repetitions and whether to proceed after a
+finding. Preserve failed results when interpreting subsequent evidence.
 
 1. With output physically inhibited, verify the local timeout and stop path,
    including producer/DMA faults. Inspect boot/reset/abort behavior with appropriate
-   instruments. Target testing is opt-in even when RF remains inhibited.
+   instruments. Record the observed stop behavior.
 2. Verify the connection and source-power bound into a suitable termination,
-   using at most one 2 s tone at 3,570,100 Hz after RF authorization. Return to
-   verified off before connecting the SDR. This stage itself requires a safe,
-   independently bounded output path; it cannot bootstrap an unknown inhibit.
-3. Through the approved protected SDR path, acquire four separate 5 s tones at
+   using one 2 s tone at 3,570,100 Hz in this suggested sequence. Record output
+   power and the chosen stop method before interpreting receiver measurements.
+3. Through the chosen protected SDR path, acquire four separate 5 s tones at
    base+t*(375/256) Hz, t=0..3, each separated by at least 5 s verified off.
    Keep raw IQ, actual output start/stop observations and overload indicators.
 4. Acquire one 16-symbol job with repeated 0,3,1,2 ordering (10.922666667 s
@@ -81,28 +83,29 @@ ones; no automatic retries, band expansion or continuing transmission.
    Confirm completion without further USB data. Bound any induced load in the
    manifest; transport disconnect alone must not alter a running WTP job.
 6. Three separate 2 s maximum fault jobs: requested abort, producer starvation,
-   and engine reset. Verify the hardware inhibit prevents stale-buffer replay or
-   reactivation. Distinguish an intentional fault stop from job completion.
-7. After passing the above, one separately recorded repeat of stages 3..5 after
+   and engine reset. Observe whether the selected stop path prevents stale-buffer
+   replay or reactivation. Distinguish an intentional fault stop from job completion.
+7. One separately recorded repeat of stages 3..5 after
    15 minutes of powered, RF-off warm-up estimates drift. Any additional bands,
-   wireless load tests or long runs require another explicit bounded manifest.
+   wireless load tests or long runs can be recorded as operator-selected changes.
 
 Maximum RF-on time for this proposed sequence is 291.029333334 s, including the
 initial power check, three fault jobs and the warm repeat. Wall time is longer
 due to off intervals and warm-up. Each job must have its own local deadline;
-there is no unbounded carrier or autonomous follow-up. Abort immediately for
-unexpected RF, overload, missing samples, clock loss, deadline miss or inability
-to verify off. Isolate/power down through the reviewed stop method if software
-cannot establish off, record the failure, and do not resume automatically.
+these are ordinary finite-job semantics. Report unexpected RF, overload, missing
+samples, clock loss, deadline misses or inability to verify off. The operator
+decides the response and any subsequent testing; this plan does not add a
+separate permission policy.
 
-## Measurements and provisional engineering gates
+## Measurements and proposed comparison targets
 
 These are candidate screening budgets, not regulatory limits, WTP amendments or
-release qualification. Measurement uncertainty must fit within the budget:
+release qualification or transmission prerequisites. To compare a result with a
+chosen budget, include its measurement uncertainty:
 pass only when |measured error| plus its declared uncertainty is within the limit.
 If the instrument cannot resolve a quantity, mark it unqualified, not passed.
 
-| Quantity | Method and proposed gate |
+| Quantity | Method and proposed target |
 |---|---|
 | Mean frequency | Fit phase slope on each steady 5 s IQ segment with a calibrated independent reference. Error relative to the frozen accepted frequency <=0.1 Hz. Report requested-to-accepted quantization separately. |
 | Tone separation | Compare fitted tone differences with 375/256 Hz, error <=0.05 Hz; all four distinct. Receiver/reference error must be accounted for. |
@@ -120,21 +123,23 @@ length, effective noise bandwidth, integration and level calibration. Subtract
 frequency-dependent cable/filter loss when comparing upstream source emissions;
 clearly distinguish those from emissions measured after the filter. Repeat a
 suspected spur with more attenuation to distinguish receiver distortion from a
-source component, within the approved job count or a new authorization.
+source component, recording any operator-selected additional observations.
 
 The SDR's tuned bandwidth is not full harmonic coverage. Use separate bounded
 captures or a suitable spectrum analyzer when necessary; lack of coverage
-blocks that spectral gate. Start with the single initial frequency. High-band
+leaves that spectral result unqualified. This sequence uses the initial frequency.
+High-band
 folded images may be inside the passband and cannot be assumed removed by a
 low-pass filter. Characterize filter loss/rejection with appropriate equipment
 before claiming it fixes the model's spur risks.
 
 ## Closeout and promotion
 
-Force and independently verify off after each stage and at exit; record both
-commanded and observed state, including failed cleanup. Keep raw captures,
+Record commanded and observed output state at the end of each selected stage,
+including failed cleanup. Keep raw captures,
 manifest, analysis versions, checksums, uncertainty calculation and rejected
 runs together outside source control. A final record states pass/fail/unqualified
-for each gate and lists exact engine/mode/frequency/setup coverage. No evidence
+against each comparison target and lists exact engine/mode/frequency/setup coverage. No evidence
 transfers to another pin, clock, firmware, receiver or filter without assessment.
-Only a subsequent reviewed decision can promote the experimental candidate.
+The operator decides how to proceed; describe supported performance only to
+the extent established by the measurements.

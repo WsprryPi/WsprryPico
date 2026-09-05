@@ -48,7 +48,7 @@ f(t)=base+t*(375/256) Hz. All calculations initially assume ideal references.
 | Static PIO toggle loop | f=F*256/(2*q), integer q encodes D=q/256 | Reject this simple WSPR implementation: all four tones map to one divider at every study base. This does not reject GPIO synthesis. |
 | Static clock output | f=F*65536/q | Reject as a general four-tone solution across this matrix; several tones collapse and maximum errors reach tens of Hz. |
 | Retuned PLL plus GPOUT | Enumerate legal parents and nearest 16.16 divider independently per tone | Some combinations give small mean errors, but they do not prove phase continuity, lock time or a usable shared clock tree. Defer. |
-| PIO/DMA packed NCO bits | k=round(f*2^32/F); output MSB of an accumulating 32-bit phase at F | Select for experimental implementation. Fine mean resolution, continuous phase state and local timing; generation throughput and unwanted emissions are hard gates. |
+| PIO/DMA packed NCO bits | k=round(f*2^32/F); output MSB of an accumulating 32-bit phase at F | Select for experimental implementation. Fine mean resolution, continuous phase state and local timing; generation throughput and unwanted emissions remain to be measured. |
 | Si5351A alternative | Fixed 900 MHz PLL; fractional MultiSynth divisor approximates 900 MHz/f | Numerically strong, but needs additional hardware and measured update behavior. Retain as fallback, not an implemented engine. |
 
 The script chooses the closer output frequency of the two neighboring static
@@ -71,7 +71,7 @@ pointer, eight bytes, each with ACK): 225 us at 400 kbit/s or 900 us at
 100 kbit/s, excluding bus overhead, scheduling and settling. Updating an output
 divider without PLL reset does not establish atomic or phase-continuous tone
 changes. Reject a Si5351 WSPR implementation if intermediate register states,
-blanking, phase steps or settling violate the measurement gates.
+blanking, phase steps or settling miss the proposed measurement targets.
 
 ## GPIO phase, spectrum and resource model
 
@@ -139,8 +139,9 @@ SDK resource claims; fail preparation if unavailable. Do not assume wireless
 will leave particular resources free. PIO FIFO starvation may hold a pin level,
 and a circular DMA chain may repeat stale RF. Neither is a safe stop mechanism.
 The implementation must bound execution locally, stop DMA/PIO, clear queued
-work and force an inactive output; an independent hardware inhibit/watchdog
-must cover a stuck producer or CPU. Its circuit remains a Step 8 design gate.
+work and force an inactive output as part of normal job-end/cancel/fault handling.
+An independent hardware inhibit/watchdog is an optional response to a stuck
+producer or CPU, for the operator to select; it is not a transmission prerequisite.
 
 ## Timing and clock separation
 
@@ -180,19 +181,20 @@ the accepted adjustment; preserve that contract rather than silently rounding.
 | System/USB clocks | Keep nominal system 150 MHz and USB 48 MHz. Do not retune their PLLs per tone. Audit any future clock-tree change independently. |
 | Wireless / USB loads | Firmware currently uses USB; the SDK wireless driver also consumes PIO/DMA. First validate with USB, then repeat with wireless when implemented. |
 
-## Decision gates and next work
+## Candidate assessment and next work
 
 PIO/DMA is selected because it preserves direct GPIO operation, can retain phase
 across symbols and leaves the control clocks fixed. Selection is conditional
-on efficient local generation, reliable independent inhibition and measured
+on efficient local generation, reliable job lifecycle behavior and measured
 filterability. Initial scope is tone tests and four-tone transitions at the
 80 m study point. Higher frequencies, WSPR decoding and keyed modes follow
 only after their own checks; no supported modes or bands are added now.
 
-Step 8 must first design the output/inhibit circuit, implement and host-test the
-engine adapter and local generator, budget resources, and prepare an exact
-firmware/board setup. Target execution and RF tests require explicit permission
-for that setup. Use the [bounded measurement plan](development/rf-measurement-plan.md).
+Step 8 develops the output circuit, engine adapter and local generator, budgets
+resources, and records the firmware/board setup. The operator decides when to
+transmit and what hardware tests to run. The
+[measurement plan](development/rf-measurement-plan.md) supplies suggested tests,
+not additional authorization rules.
 If the generator misses its budget or filtered emissions fail, revisit synthesis
 or evaluate the Si5351 alternative. A different clock, sample rate, pin, filter
 or synthesis method invalidates the corresponding modeled/bench conclusions.

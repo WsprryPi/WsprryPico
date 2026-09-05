@@ -23,7 +23,9 @@ This contract summarizes durable boundaries. The normative WTP/1 contract is
 ## Evidence and implementation status
 
 The hardware-free RF study selects PIO/DMA GPIO synthesis for experimental
-implementation; an optional Si5351 engine remains an alternative.
+implementation; an optional Si5351 engine remains an alternative. A portable
+generator and abstract-sink adapter are host-tested and Arm-cross-compiled,
+but are not connected to the Pico firmware or physical output.
 No band coverage, RF performance or WTP compliance is currently established.
 The Pico 2 W firmware provides an RF-inhibited WTP USB endpoint with separate
 Console and WTP CDC interfaces. Its protocol, service, transport and descriptor
