@@ -37,6 +37,7 @@ target_include_directories(WsprryPico PRIVATE
 )
 target_compile_definitions(WsprryPico PRIVATE
     PICO_NO_BI_PROGRAM_BUILD_DATE=1
+    PICO_STACK_SIZE=0x4000
     WSPRRY_PICO_RF_OUTPUT_DISABLED=1
 )
 set_source_files_properties(main.cpp pico_adapters.cpp usb_descriptors.c ../src/usb/transport.cpp PROPERTIES
@@ -49,6 +50,15 @@ target_link_libraries(WsprryPico PRIVATE
     pico_time
     pico_unique_id
     tinyusb_device
+)
+
+# Reserve 16 KiB at the top of RP2350 main SRAM for the primary stack.
+# SDK linker symbols relocate SCRATCH_Y without overlapping the heap or core 1.
+# Recursive depth-16 JSON validation exceeds the default 2 KiB scratch stack.
+target_link_options(WsprryPico PRIVATE
+    "LINKER:--defsym=RAM_LENGTH=0x7c000"
+    "LINKER:--defsym=SCRATCH_Y_ORIGIN=0x2007c000"
+    "LINKER:--defsym=SCRATCH_Y_LENGTH=0x4000"
 )
 
 pico_enable_stdio_uart(WsprryPico 0)

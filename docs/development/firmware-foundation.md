@@ -90,10 +90,11 @@ tests. `InhibitedRfEngine` can model job duration but always reports output
 inactive. Both the engine adapter and firmware entry point require the
 `WSPRRY_PICO_RF_OUTPUT_DISABLED=1` compile definition.
 
-The WTP CDC path currently exercises bounded framing and reports parser status
-on the console. Strict target JSON decoding, response/event encoding and typed
-dispatch remain the next protocol-adapter slice. Consequently this image is
-not a complete WTP endpoint.
+The WTP CDC path now implements strict JSON request decoding, response/event
+encoding, typed dispatch and logical session handling through the
+[WTP endpoint](wtp-endpoint.md). The firmware still has no physical RF engine
+and cannot ARM with its unsynchronized clock. Endpoint host tests do not
+establish target USB conformance.
 
 Building the image is hardware-free. No target execution was recorded unless a
 report explicitly names the board, firmware digest, connection and observed

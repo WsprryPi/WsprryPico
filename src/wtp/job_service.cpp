@@ -38,6 +38,34 @@ bool supported_mode(std::string_view mode) {
     return std::find(modes.begin(), modes.end(), mode) != modes.end();
 }
 
+// Hash typed job values, independent of JSON member ordering/escaping. Retain
+// this compact identity instead of keeping eight complete 512-event jobs.
+PayloadDigest job_digest(const Job& job) {
+    std::vector<std::uint8_t> bytes;
+    auto number = [&](std::uint64_t n) {
+        for (unsigned i = 0; i < 8; ++i)
+            bytes.push_back(static_cast<std::uint8_t>(n >> (i * 8)));
+    };
+    auto text = [&](std::string_view value) {
+        number(value.size());
+        bytes.insert(bytes.end(), value.begin(), value.end());
+    };
+    text(job.job_id);
+    text(job.profile);
+    text(job.mode);
+    number(job.total_duration_ns);
+    number(job.allow_frequency_adjustment);
+    number(job.events.size());
+    for (const auto& event : job.events) {
+        number(event.offset_ns);
+        number(event.duration_ns);
+        number(event.rf_on);
+        number(event.frequency_nhz.has_value());
+        number(event.frequency_nhz.value_or(0));
+    }
+    return sha256(bytes);
+}
+
 bool valid_protocol_version(std::string_view version) {
     if (!version.starts_with("WTP/") || version.size() < 5 || version[4] == '0') {
         return false;
@@ -120,6 +148,8 @@ Response JobService::handle(const Request& request) {
             return reject(ErrorCode::AuthenticationRequired);
         }
         if (session == sessions_.end()) {
+            if (!request.body_valid)
+                return reject(ErrorCode::InvalidMessage);
             if (sessions_.size() >= kMaximumSessions) {
                 return reject(ErrorCode::Busy);
             }
@@ -154,6 +184,13 @@ Response JobService::handle(const Request& request) {
 
 Response JobService::dispatch(const Request& request) {
     const auto now = clock_.snapshot();
+    constexpr std::array<std::string_view, 11> operations{"HELLO",   "CAPS",      "CLAIM", "RENEW",
+                                                          "RELEASE", "LOAD",      "ARM",   "ABORT",
+                                                          "STATUS",  "GET_CLOCK", "PING"};
+    if (std::find(operations.begin(), operations.end(), request.operation) == operations.end())
+        return reject(ErrorCode::UnknownOperation);
+    if (!request.body_valid)
+        return reject(ErrorCode::InvalidMessage);
     if (request.operation == "HELLO" || request.operation == "CAPS" ||
         request.operation == "STATUS" || request.operation == "GET_CLOCK" ||
         request.operation == "PING") {
@@ -170,6 +207,10 @@ Response JobService::dispatch(const Request& request) {
         }
         auto response = success();
         response.boot_id = boot_id_;
+        if (request.operation == "STATUS")
+            response.status_snapshot = status();
+        if (request.operation == "GET_CLOCK")
+            response.clock_snapshot = now;
         if (ping != nullptr) {
             response.ping_token = ping->token;
         }
@@ -259,6 +300,16 @@ Response JobService::dispatch(const Request& request) {
         if (state_ == State::Failed) {
             return reject(ErrorCode::InvalidState);
         }
+        const auto retained =
+            std::find_if(retained_jobs_.begin(), retained_jobs_.end(),
+                         [&](const RetainedJob& item) { return item.job_id == body->job_id; });
+        if (retained != retained_jobs_.end()) {
+            if (retained->digest != job_digest(*body))
+                return reject(ErrorCode::JobIdConflict);
+            auto response = retained->load_response;
+            touch_terminal(body->job_id);
+            return response;
+        }
         if (job_ && job_->job_id == body->job_id) {
             if (*job_ == *body) {
                 auto response = success();
@@ -312,6 +363,17 @@ Response JobService::dispatch(const Request& request) {
         if (body == nullptr || !valid_id(body->job_id)) {
             return reject(ErrorCode::InvalidMessage);
         }
+        const auto retained =
+            std::find_if(retained_jobs_.begin(), retained_jobs_.end(),
+                         [&](const RetainedJob& item) { return item.job_id == body->job_id; });
+        if (retained != retained_jobs_.end()) {
+            if (!retained->arm || retained->arm->start_utc_ns != body->start_utc_ns ||
+                retained->arm->max_uncertainty_ns != body->max_start_uncertainty_ns)
+                return reject(ErrorCode::InvalidState);
+            auto response = retained->arm->response;
+            touch_terminal(body->job_id);
+            return response;
+        }
         if (arm_ && arm_->job_id == body->job_id) {
             if (arm_->start_utc_ns == body->start_utc_ns &&
                 arm_->max_uncertainty_ns == body->max_start_uncertainty_ns) {
@@ -340,6 +402,8 @@ Response JobService::dispatch(const Request& request) {
         response.state = state_;
         response.job_id = body->job_id;
         response.start_monotonic_ns = start_monotonic_ns;
+        response.start_utc_ns = body->start_utc_ns;
+        response.clock_snapshot = now;
         arm_ = ArmRecord{body->job_id, body->start_utc_ns, body->max_start_uncertainty_ns,
                          start_monotonic_ns, response};
         return response;
@@ -471,6 +535,7 @@ void JobService::reset() {
     arm_.reset();
     replay_cache_.clear();
     terminal_records_.clear();
+    retained_jobs_.clear();
     state_ = State::Empty;
     const auto previous_boot_id = boot_id_;
     boot_id_ = identities_.new_boot_id();
@@ -624,12 +689,32 @@ void JobService::record_terminal(State state, ErrorCode error, std::uint64_t now
     state_ = state;
     terminal_records_.push_front(TerminalRecord{job_ ? job_->job_id : std::string{}, state, now_ns,
                                                 engine_.output_active(), error});
+    if (job_) {
+        auto load = success();
+        load.state = State::Loaded;
+        load.job_id = job_->job_id;
+        load.adjustments = adjustments_;
+        retained_jobs_.push_front({job_->job_id, job_digest(*job_), std::move(load), arm_});
+    }
     while (terminal_records_.size() > config_.terminal_record_entries) {
+        const auto id = terminal_records_.back().job_id;
+        std::erase_if(retained_jobs_, [&](const RetainedJob& item) { return item.job_id == id; });
         terminal_records_.pop_back();
     }
     if (owner_ && owner_->release_after_terminal) {
         owner_.reset();
     }
+}
+
+void JobService::touch_terminal(std::string_view id) {
+    const auto record = std::find_if(terminal_records_.begin(), terminal_records_.end(),
+                                     [&](const TerminalRecord& item) { return item.job_id == id; });
+    if (record != terminal_records_.end())
+        std::rotate(terminal_records_.begin(), record, record + 1);
+    const auto job = std::find_if(retained_jobs_.begin(), retained_jobs_.end(),
+                                  [&](const RetainedJob& item) { return item.job_id == id; });
+    if (job != retained_jobs_.end())
+        std::rotate(retained_jobs_.begin(), job, job + 1);
 }
 
 void JobService::clear_job() {
@@ -655,6 +740,11 @@ void JobService::prune_terminals(std::uint64_t now_ns) {
             current_record_expired = true;
         }
         return expired;
+    });
+    std::erase_if(retained_jobs_, [&](const RetainedJob& item) {
+        return std::none_of(
+            terminal_records_.begin(), terminal_records_.end(),
+            [&](const TerminalRecord& record) { return record.job_id == item.job_id; });
     });
     if (current_record_expired &&
         (state_ == State::Complete || state_ == State::Aborted || state_ == State::Missed)) {

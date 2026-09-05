@@ -28,7 +28,9 @@ Do not store Wi-Fi credentials in maintained headers. Use ignored local config
 or device provisioning; sanitized configuration examples should be trackable.
 
 The [dual USB CDC guide](usb-cdc.md) documents the adapter and optional
-descriptor test using the pinned local TinyUSB headers.
+descriptor test using the pinned local TinyUSB headers. The
+[strict WTP endpoint guide](wtp-endpoint.md) adds wire tests, sanitizer commands,
+image memory-layout checks and an opt-in read-only USB probe.
 
 ## Current checks
 

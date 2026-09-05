@@ -29,6 +29,9 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
 endif()
 
 add_library(wsprrypico_core
+    src/wtp/json.cpp
+    src/wtp/codec.cpp
+    src/wtp/endpoint.cpp
     src/wtp/frame_parser.cpp
     src/wtp/inhibited_rf_engine.cpp
     src/wtp/job_service.cpp
@@ -43,6 +46,7 @@ endif()
 
 if(WSPRRY_PICO_BUILD_FIRMWARE)
     target_compile_options(wsprrypico_core PRIVATE
+        -fstack-usage
         -fno-exceptions
         -fno-rtti
         -fno-unwind-tables
@@ -58,6 +62,13 @@ if(WSPRRY_PICO_BUILD_TESTS)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         target_compile_options(wsprrypico_core_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     endif()
+    add_executable(endpoint_driver tests/endpoint_driver.cpp)
+    target_link_libraries(endpoint_driver PRIVATE wsprrypico_core)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(endpoint_driver PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+    add_test(NAME wtp_probe_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/wtp_probe_tests.py)
+    add_test(NAME endpoint_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/endpoint_tests.py $<TARGET_FILE:endpoint_driver>)
     add_executable(usb_transport_tests tests/usb_transport_tests.cpp src/usb/transport.cpp)
     target_include_directories(usb_transport_tests PRIVATE tests/usb_mock)
     target_link_libraries(usb_transport_tests PRIVATE wsprrypico_core)

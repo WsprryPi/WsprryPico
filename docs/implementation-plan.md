@@ -7,7 +7,8 @@ Status: proposed sequence.
 - Documented the accepted architectural decisions.
 - Established draft WTP and browser API boundaries.
 - Identified the static PIO divider resolution issue for a representative HF carrier.
-- Kept firmware, hardware support and protocol compliance explicitly unimplemented.
+- Recorded initial implementation and qualification boundaries; current status
+  is detailed below.
 
 ## Completed WTP/1 contract
 
@@ -38,30 +39,44 @@ identity, stable device identity and RF-inhibited engine. Two USB CDC interfaces
 separate text diagnostics from bounded WTP framing. CMake presets and VS Code
 metadata provide the same repository-root build.
 
-## Next slice: strict WTP USB adapter
+## Completed dual USB CDC transport
 
-Add strict JSON request decoding, response/event encoding and typed job-service
-dispatch on the WTP CDC interface. Complete connection/session behavior and
-exercise it with the host monitor and normative fixtures. Keep all target and
-USB device activity separately opt-in.
+Dedicated Console/WTP APIs provide bounded RX/TX, partial-write handling,
+connection resets, distinct descriptor identities and deterministic isolation
+checks. Hardware USB validation remains separately opt-in.
+
+## Completed strict WTP USB adapter
+
+Strict JSON request decoding, response/event encoding and typed job-service
+routing now run on the WTP CDC interface. Connection negotiation, replayed
+snapshots, logical closure and bounded ordered transmission are host-tested
+against normative fixtures, the independent schema validator and monitor decoder.
+An opt-in read-only probe is supplied; no target USB or RF qualification is claimed.
+See the [endpoint guide](development/wtp-endpoint.md).
+
+## Next slice: RF feasibility and engine selection
+
+Complete the mathematical RF feasibility comparison, select an implementation
+candidate and prepare a bounded measurement plan. Keep implementation evidence,
+hardware validation and RF qualification separate. No RF authorization follows
+from completing the USB endpoint.
 
 Before extracting encoder code, inspect WsprryPi licensing and dependencies and record source revision/attribution. Initial candidate files include src/scheduling.hpp, src/scheduling_runtime.cpp and src/tests/wspr_tone_regression_test.cpp; finding them is not a portability review.
 
 ## Subsequent slices
 
-1. Complete the mathematical RF feasibility comparison; prepare the selected engine and measurement plan.
-2. Implement and validate an RF engine under separately explicit hardware/RF authorization.
-3. Add standalone encoding, station configuration, persistent schedules and device time acquisition. Verify autonomous operation without WsprryPi.
-4. Add WsprryPi client integration using the same conformance fixtures; plan changes in that repository independently.
-5. Add Wi-Fi/TCP, shared JSON API adapters and embedded browser assets, followed by SoftAP provisioning.
-6. Add BLE provisioning/local management with a documented recovery path.
-7. Qualify supported engine/mode/band combinations and release WsprryPico-x.y.z.uf2 with reproducible build identity.
+1. Implement and validate an RF engine under separately explicit hardware/RF authorization.
+2. Add standalone encoding, station configuration, persistent schedules and device time acquisition. Verify autonomous operation without WsprryPi.
+3. Add WsprryPi client integration using the same conformance fixtures; plan changes in that repository independently.
+4. Add Wi-Fi/TCP, shared JSON API adapters and embedded browser assets, followed by SoftAP provisioning.
+5. Add BLE provisioning/local management with a documented recovery path.
+6. Qualify supported engine/mode/band combinations and release WsprryPico-x.y.z.uf2 with reproducible build identity.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 
 ## Current boundaries
 
 The firmware builds for Pico 2 W, but no hardware test or RF transmission has
-occurred. The portable core is host-tested, and the target is not a complete WTP
-endpoint. Target bands and an RF engine remain open. WTP/1 schemas are
+occurred. The portable core and WTP USB endpoint are host-tested; target USB behavior
+and timing remain unqualified. Target bands and an RF engine remain open. WTP/1 schemas are
 normative; changes to them require an explicit protocol-contract revision.

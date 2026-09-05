@@ -2,9 +2,9 @@
 
 Console = human-readable UTF-8 diagnostics only. WTP = WTP frame stream only.
 Never send logging, debug output, prompts or unframed JSON through WTP. The
-transport accepts binary bytes; the future protocol sender must supply valid
-WTP/1 frames. This image deliberately sends no WTP responses or events. It
-uses the existing portable frame parser and leaves JSON dispatch unimplemented.
+transport accepts binary bytes; the [strict WTP endpoint](wtp-endpoint.md)
+supplies valid WTP/1 frames, performs JSON dispatch and serializes responses and
+events. No unsolicited diagnostics are emitted on WTP.
 
 ## Identity and ownership
 
@@ -51,9 +51,10 @@ the existing portable parser can allocate and perform frame-sized work.
 - TinyUSB has independent 64-byte RX/TX FIFOs per function. Each WTP read/write
   call handles at most 64 bytes and returns the actual count. A zero write means
   no progress, not success. The caller owns the frame and must retain the suffix,
-  resume on a later iteration, and serialize complete frames without interleaving.
+  resume on a later iteration and serialize complete frames without interleaving.
   Never spin until a write succeeds. The main loop reads one chunk per iteration.
-- WTP has no extra application TX queue. Accepted bytes retain FIFO order while
+- The USB byte adapter has no extra WTP TX queue; the endpoint has its own
+  bounded frame queue. Accepted bytes retain FIFO order while
   the DTR-active USB connection is healthy; no application-level acknowledgment
   or endpoint compliance is implied. TinyUSB disables FIFO overwrite with DTR.
 - Both terminals must assert DTR. DTR deassertion aborts that port's stream and
@@ -64,7 +65,7 @@ the existing portable parser can allocate and perform frame-sized work.
   1200 baud does not invoke an application reset-to-bootloader handler.
 - Clearing a FIFO cannot retract a packet already submitted to a USB endpoint or
   delivered to a host buffer. A host must discard its old stream when reconnecting;
-  a future protocol adapter must establish a fresh session and handle framing
+  the endpoint requires a fresh HELLO exchange and clients must handle framing
   resynchronization. This foundation does not promise seamless frame delivery
   across disconnect, suspend, reset or host failure.
 - A parser closed by invalid input or timeout remains closed until a session reset.
@@ -135,22 +136,22 @@ python3 scripts/wtp_monitor.py /dev/ttyACM_WTP
 ```
 
 Console should show the complete startup diagnostics. The WTP monitor should
-receive no banners or diagnostic bytes; the foundation has no response encoder.
+receive no banners or diagnostic bytes; WTP responses require a negotiated
+request. Use the [opt-in probe](wtp-endpoint.md) for a read-only exchange.
 Close/reopen Console while leaving WTP open: the banner repeats only on Console.
 Close/reopen WTP: Console remains usable. The monitor rejects malformed input;
 its silence alone is not proof of raw-byte silence, so also capture raw WTP bytes
 with an authorized serial capture tool configured for DTR and a bounded timeout.
 Do not let the monitor and capture tool own the same port simultaneously.
 
-With an authorized bounded serial test driver, send an existing valid frame
-from the protocol vectors to WTP. Console should report frame receipt; WTP should
-remain silent. Send the same bytes to Console and confirm they do not enter the
-parser. Send a partial frame, close/reopen WTP, then send a complete frame; confirm
-fresh parsing. Pause Console reads while exercising bounded WTP RX, then resume;
-WTP parsing should progress and Console may lose later diagnostics under pressure.
-Record observed results rather than assuming hardware success from host tests.
-WTP TX pressure is covered by mocks; live TX validation needs a future valid-frame
-sender or a separately scoped test image, not an arbitrary echo protocol.
+With an authorized bounded serial test driver, negotiate HELLO and send existing
+valid requests from the protocol vectors to WTP. Verify framed, schema-valid
+responses and continued Console isolation. Bytes sent to Console must not enter
+the WTP parser. After a partial frame and WTP close/open, negotiate again before
+sending another request. Keep any mutation tests separately scoped and RF
+inhibited. Pause WTP reads and confirm Console remains usable; after the bounded
+TX timeout reopen WTP and use HELLO/STATUS to establish state. Pressure and
+reconnect are covered in host tests; record actual board observations separately.
 
 Future udev aliases may use the imported VID/PID, exact USB serial and interface
 properties to distinguish roles and boards. Such rules are host configuration,
@@ -164,7 +165,6 @@ Generated filenames vary. Substitute the identified Console port in `screen`
 and WTP port in the monitor. A normal terminal should assert DTR; a custom client
 must do so explicitly. Exit screen with Control-A, backslash, then `y`.
 
-Future work is strict target JSON decoding, WTP response/event encoding, serialized
-frame-send ownership and reconnect/session handling, typed dispatch and host
-discovery. This change neither implements a full WTP endpoint nor qualifies USB,
-timing or RF on hardware.
+The strict WTP endpoint now provides JSON decoding, response/event encoding,
+serialized frame-send ownership and logical session handling. Host discovery,
+physical RF engines and target USB/timing/RF qualification remain future work.

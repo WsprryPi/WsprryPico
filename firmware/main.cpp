@@ -3,7 +3,7 @@
 #include "pico_adapters.hpp"
 #include "tusb.h"
 #include "usb/transport.hpp"
-#include "wtp/frame_parser.hpp"
+#include "wtp/endpoint.hpp"
 #include "wtp/inhibited_rf_engine.hpp"
 
 #include <array>
@@ -39,32 +39,7 @@ void write_startup(const wsprrypico::firmware::PicoIdentitySource& identities,
     console_write("clock: unsynchronized\r\nengine: inhibited\r\nrf_output: false\r\n");
     console_write(status.state == wsprrypico::wtp::State::Empty ? "job_service: ready\r\n"
                                                                 : "job_service: fault\r\n");
-    console_write("wtp: framing active; JSON adapter unavailable\r\n");
-}
-
-void process_wtp(wsprrypico::wtp::FrameParser& parser) {
-    std::array<std::uint8_t, 64> input{};
-    if (!parser.closed()) {
-        const auto count = wsprrypico::usb::wtp_transport_read(input);
-        const auto now_ms = time_us_64() / 1000ULL;
-        for (const auto& event : parser.feed(std::span(input).first(count), now_ms)) {
-            if (event.kind == wsprrypico::wtp::FrameEventKind::Payload) {
-                console_write("wtp: valid frame received; request dispatch unavailable\r\n");
-            } else if (event.kind == wsprrypico::wtp::FrameEventKind::InvalidFrame) {
-                console_write("wtp: invalid frame\r\n");
-            } else {
-                console_write("wtp: parser closed\r\n");
-            }
-        }
-    }
-    if (!parser.closed()) {
-        const auto now_ms = time_us_64() / 1000ULL;
-        for (const auto& event : parser.check_timeout(now_ms)) {
-            if (event.kind == wsprrypico::wtp::FrameEventKind::Closed) {
-                console_write("wtp: partial-frame timeout\r\n");
-            }
-        }
-    }
+    console_write("wtp: WTP/1 endpoint; RF inhibited\r\n");
 }
 
 } // namespace
@@ -72,11 +47,14 @@ void process_wtp(wsprrypico::wtp::FrameParser& parser) {
 int main() {
     tud_init(0);
 
-    wsprrypico::firmware::PicoClock clock;
-    wsprrypico::wtp::InhibitedRfEngine engine;
-    wsprrypico::firmware::PicoIdentitySource identities;
-    wsprrypico::wtp::JobService service(clock, engine, identities);
-    wsprrypico::wtp::FrameParser parser;
+    static wsprrypico::firmware::PicoClock clock;
+    static wsprrypico::wtp::InhibitedRfEngine engine;
+    static wsprrypico::firmware::PicoIdentitySource identities;
+    static wsprrypico::wtp::JobService service(clock, engine, identities);
+    static wsprrypico::wtp::Endpoint endpoint(service, identities.device_id(),
+                                              wsprrypico::firmware::kFirmwareVersion);
+    std::array<std::uint8_t, 64> input{};
+    std::size_t input_offset = 0, input_size = 0;
     bool startup_written = false;
 
     while (true) {
@@ -93,12 +71,26 @@ int main() {
             startup_written = true;
         }
         if (wsprrypico::usb::take_wtp_reset()) {
-            parser = wsprrypico::wtp::FrameParser{};
+            input_offset = input_size = 0;
+            if (wsprrypico::usb::wtp_connected())
+                endpoint.connect("usb-physical");
+            else
+                endpoint.disconnect();
         }
+        const auto now_ms = time_us_64() / 1000ULL;
+        endpoint.poll(now_ms);
         if (wsprrypico::usb::wtp_connected()) {
-            process_wtp(parser);
+            if (endpoint.can_receive()) {
+                if (input_offset == input_size) {
+                    input_size = wsprrypico::usb::wtp_transport_read(input);
+                    input_offset = 0;
+                }
+                input_offset += endpoint.receive(
+                    std::span(input).subspan(input_offset, input_size - input_offset), now_ms);
+            }
+            endpoint.consume_output(wsprrypico::usb::wtp_transport_write(endpoint.output()),
+                                    now_ms);
         }
-        service.poll();
         if (engine.output_active()) {
             console_write("fatal: inhibited engine reported active output\r\n");
             while (true) {

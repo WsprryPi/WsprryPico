@@ -25,6 +25,7 @@ struct ClockSnapshot {
     std::uint64_t sync_age_ns = 0;
     LeapState leap = LeapState::Unknown;
     std::optional<std::uint64_t> leap_transition_utc_ns;
+    bool operator==(const ClockSnapshot&) const = default;
 };
 
 class Clock {
@@ -155,6 +156,26 @@ struct Request {
     std::string operation;
     PayloadDigest payload_digest{};
     RequestBody body;
+    bool body_valid = true; // Adapter schema result; checked after replay/operation recognition.
+};
+
+struct TerminalRecord {
+    std::string job_id;
+    State state;
+    std::uint64_t ended_monotonic_ns;
+    bool output_active;
+    ErrorCode error;
+    bool operator==(const TerminalRecord&) const = default;
+};
+
+struct ServiceStatus {
+    std::string boot_id;
+    State state;
+    bool output_active;
+    std::optional<std::string> owner_id;
+    std::optional<std::string> job_id;
+    std::vector<TerminalRecord> terminal_records;
+    bool operator==(const ServiceStatus&) const = default;
 };
 
 struct Response {
@@ -171,25 +192,11 @@ struct Response {
     bool close_connection = false;
     std::optional<std::string> ping_token;
     std::vector<FrequencyAdjustment> adjustments;
+    std::optional<ClockSnapshot> clock_snapshot;
+    std::optional<ServiceStatus> status_snapshot;
+    std::uint64_t start_utc_ns = 0;
 
     bool operator==(const Response&) const = default;
-};
-
-struct TerminalRecord {
-    std::string job_id;
-    State state;
-    std::uint64_t ended_monotonic_ns;
-    bool output_active;
-    ErrorCode error;
-};
-
-struct ServiceStatus {
-    std::string boot_id;
-    State state;
-    bool output_active;
-    std::optional<std::string> owner_id;
-    std::optional<std::string> job_id;
-    std::vector<TerminalRecord> terminal_records;
 };
 
 struct ServiceConfig {
@@ -242,6 +249,13 @@ class JobService {
         std::uint64_t start_monotonic_ns;
         Response response;
     };
+    struct RetainedJob {
+        std::string job_id;
+        PayloadDigest digest;
+        Response load_response;
+        std::optional<ArmRecord> arm;
+    };
+
     struct ReplayEntry {
         std::string session_id;
         std::string request_id;
@@ -262,6 +276,7 @@ class JobService {
     void expire_resources(std::uint64_t monotonic_now_ns);
     void record_terminal(State state, ErrorCode error, std::uint64_t now_ns);
     void clear_job();
+    void touch_terminal(std::string_view job_id);
     void prune_replay(std::uint64_t now_ns);
     void prune_terminals(std::uint64_t now_ns);
     void prune_sessions(std::uint64_t now_ns);
@@ -279,6 +294,7 @@ class JobService {
     std::optional<ArmRecord> arm_;
     std::deque<ReplayEntry> replay_cache_;
     std::deque<TerminalRecord> terminal_records_;
+    std::deque<RetainedJob> retained_jobs_;
     State state_ = State::Empty;
     std::string boot_id_;
     std::uint64_t lru_sequence_ = 0;
