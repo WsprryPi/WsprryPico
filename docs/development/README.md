@@ -27,6 +27,9 @@ Generated .pio.h headers are ignored; maintain the corresponding .pio source.
 Do not store Wi-Fi credentials in maintained headers. Use ignored local config
 or device provisioning; sanitized configuration examples should be trackable.
 
+The [dual USB CDC guide](usb-cdc.md) documents the adapter and optional
+descriptor test using the pinned local TinyUSB headers.
+
 ## Current checks
 
 Build and run the hardware-free core tests with:

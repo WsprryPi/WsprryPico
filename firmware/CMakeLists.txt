@@ -29,6 +29,7 @@ add_executable(WsprryPico
     main.cpp
     pico_adapters.cpp
     usb_descriptors.c
+    ../src/usb/transport.cpp
 )
 target_include_directories(WsprryPico PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
@@ -38,7 +39,7 @@ target_compile_definitions(WsprryPico PRIVATE
     PICO_NO_BI_PROGRAM_BUILD_DATE=1
     WSPRRY_PICO_RF_OUTPUT_DISABLED=1
 )
-set_source_files_properties(main.cpp pico_adapters.cpp usb_descriptors.c PROPERTIES
+set_source_files_properties(main.cpp pico_adapters.cpp usb_descriptors.c ../src/usb/transport.cpp PROPERTIES
     COMPILE_OPTIONS "-Wall;-Wextra;-Werror"
 )
 target_link_libraries(WsprryPico PRIVATE

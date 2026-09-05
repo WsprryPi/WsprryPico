@@ -49,6 +49,9 @@ The target clock reports monotonic microsecond hardware time converted to
 nanoseconds. UTC remains `unsynchronized`, with unknown leap state and maximum
 uncertainty, so the job service rejects `ARM`.
 
+See the [dual USB CDC guide](usb-cdc.md) for transport bounds, connection
+semantics, descriptor identity, Linux/macOS validation and focused tests.
+
 ## USB interfaces and monitoring
 
 The development USB identity uses TinyUSB's shared development VID `0xcafe`

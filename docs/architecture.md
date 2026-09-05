@@ -41,7 +41,8 @@ Browser handlers, standalone scheduler, USB WTP and TCP WTP submit work to one a
 The portable frame parser and job service implement the transport-independent
 part of this boundary. The Pico 2 W foundation runs that service with an
 unsynchronized clock and RF-inhibited engine. Its dual CDC device separates
-console diagnostics from WTP framing. JSON dispatch, browser handlers, the
+console diagnostics from WTP framing. The [USB adapter contract](development/usb-cdc.md)
+defines bounded servicing and connection semantics; logging must never enter WTP. JSON dispatch, browser handlers, the
 standalone scheduler and target RF engines remain to be implemented.
 
 Standalone execution needs local encoding, persistent station/schedule configuration and time acquisition without WsprryPi. Host operation may accept already encoded jobs. Both paths converge before engine preparation.

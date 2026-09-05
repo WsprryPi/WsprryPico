@@ -2,6 +2,7 @@
 #include "pico/time.h"
 #include "pico_adapters.hpp"
 #include "tusb.h"
+#include "usb/transport.hpp"
 #include "wtp/frame_parser.hpp"
 #include "wtp/inhibited_rf_engine.hpp"
 
@@ -19,16 +20,7 @@ static_assert(WSPRRY_PICO_RF_OUTPUT_DISABLED == 1);
 
 namespace {
 
-constexpr std::uint8_t kConsoleInterface = 0;
-constexpr std::uint8_t kWtpInterface = 1;
-
-void console_write(std::string_view text) {
-    if (!tud_cdc_n_connected(kConsoleInterface)) {
-        return;
-    }
-    tud_cdc_n_write(kConsoleInterface, text.data(), static_cast<std::uint32_t>(text.size()));
-    tud_cdc_n_write_flush(kConsoleInterface);
-}
+using wsprrypico::usb::console_write;
 
 void write_startup(const wsprrypico::firmware::PicoIdentitySource& identities,
                    const wsprrypico::wtp::ServiceStatus& status) {
@@ -50,17 +42,10 @@ void write_startup(const wsprrypico::firmware::PicoIdentitySource& identities,
     console_write("wtp: framing active; JSON adapter unavailable\r\n");
 }
 
-void drain_console_input() {
-    std::array<std::uint8_t, 64> ignored{};
-    while (tud_cdc_n_available(kConsoleInterface) != 0) {
-        tud_cdc_n_read(kConsoleInterface, ignored.data(), ignored.size());
-    }
-}
-
 void process_wtp(wsprrypico::wtp::FrameParser& parser) {
     std::array<std::uint8_t, 64> input{};
-    while (!parser.closed() && tud_cdc_n_available(kWtpInterface) != 0) {
-        const auto count = tud_cdc_n_read(kWtpInterface, input.data(), input.size());
+    if (!parser.closed()) {
+        const auto count = wsprrypico::usb::wtp_transport_read(input);
         const auto now_ms = time_us_64() / 1000ULL;
         for (const auto& event : parser.feed(std::span(input).first(count), now_ms)) {
             if (event.kind == wsprrypico::wtp::FrameEventKind::Payload) {
@@ -93,25 +78,24 @@ int main() {
     wsprrypico::wtp::JobService service(clock, engine, identities);
     wsprrypico::wtp::FrameParser parser;
     bool startup_written = false;
-    bool wtp_connected = false;
 
     while (true) {
         tud_task();
-        const bool console_connected = tud_cdc_n_connected(kConsoleInterface);
+        wsprrypico::usb::service();
+        const bool console_connected = wsprrypico::usb::console_connected();
+        if (wsprrypico::usb::take_console_reset()) {
+            startup_written = false;
+        }
         if (!console_connected) {
             startup_written = false;
         } else if (!startup_written) {
             write_startup(identities, service.status());
             startup_written = true;
         }
-        drain_console_input();
-        const bool now_wtp_connected = tud_cdc_n_connected(kWtpInterface);
-        if (now_wtp_connected != wtp_connected) {
+        if (wsprrypico::usb::take_wtp_reset()) {
             parser = wsprrypico::wtp::FrameParser{};
-            console_write(now_wtp_connected ? "wtp: connected\r\n" : "wtp: disconnected\r\n");
-            wtp_connected = now_wtp_connected;
         }
-        if (wtp_connected) {
+        if (wsprrypico::usb::wtp_connected()) {
             process_wtp(parser);
         }
         service.poll();
@@ -119,6 +103,7 @@ int main() {
             console_write("fatal: inhibited engine reported active output\r\n");
             while (true) {
                 tud_task();
+                wsprrypico::usb::service();
             }
         }
     }

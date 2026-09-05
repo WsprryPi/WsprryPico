@@ -25,11 +25,12 @@
 
 #include "pico/unique_id.h"
 #include "tusb.h"
+#include "usb/roles.h"
 
 #include <stddef.h>
 #include <string.h>
 
-enum { ITF_NUM_CONSOLE = 0, ITF_NUM_CONSOLE_DATA, ITF_NUM_WTP, ITF_NUM_WTP_DATA, ITF_NUM_TOTAL };
+_Static_assert(CFG_TUD_CDC == USB_CDC_COUNT, "CDC role/configuration mismatch");
 
 enum {
     STRID_LANGID = 0,
@@ -70,10 +71,10 @@ static tusb_desc_device_t const device_descriptor = {
 };
 
 static uint8_t const configuration_descriptor[] = {
-    TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, 0, 100),
-    TUD_CDC_DESCRIPTOR(ITF_NUM_CONSOLE, STRID_CONSOLE, EPNUM_CONSOLE_NOTIF, 8, EPNUM_CONSOLE_OUT,
+    TUD_CONFIG_DESCRIPTOR(1, USB_ITF_COUNT, 0, CONFIG_TOTAL_LEN, 0, 100),
+    TUD_CDC_DESCRIPTOR(USB_ITF_CONSOLE, STRID_CONSOLE, EPNUM_CONSOLE_NOTIF, 8, EPNUM_CONSOLE_OUT,
                        EPNUM_CONSOLE_IN, 64),
-    TUD_CDC_DESCRIPTOR(ITF_NUM_WTP, STRID_WTP, EPNUM_WTP_NOTIF, 8, EPNUM_WTP_OUT, EPNUM_WTP_IN, 64),
+    TUD_CDC_DESCRIPTOR(USB_ITF_WTP, STRID_WTP, EPNUM_WTP_NOTIF, 8, EPNUM_WTP_OUT, EPNUM_WTP_IN, 64),
 };
 
 uint8_t const* tud_descriptor_device_cb(void) {
