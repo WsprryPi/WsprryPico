@@ -9,9 +9,17 @@ Status: proposed sequence.
 - Identified the static PIO divider resolution issue for a representative HF carrier.
 - Kept firmware, hardware support and protocol compliance explicitly unimplemented.
 
-## Next slice: hardware-free job service and WTP contract
+## Completed WTP/1 contract
 
-First resolve the wire framing, exact job profile, state transitions, duplicate handling, ownership and clock policies listed in WTP.md. Implement a portable C/C++ job service with a virtual clock and mock RF engine. Use the same service for host-submitted and standalone-generated jobs.
+- Defined framing, exact representations, envelopes and operation schemas.
+- Defined finite job limits, state transitions, ownership and clock rules.
+- Defined retry, replay, reconnect, reset, error and transport behavior.
+- Added machine-readable contract data, normative vectors and a dependency-free
+  hardware-free validator.
+
+## Next slice: hardware-free job service
+
+Implement the WTP/1 contract in a portable C/C++ job service with a virtual clock and mock RF engine. Use the same service for host-submitted and standalone-generated jobs.
 
 Acceptance evidence must cover partial/malformed/oversized messages, unsupported versions and modes, duplicate ARM, concurrent owners, late starts, loss of clock validity, reconnect/reset, cancellation, and complete local timing without further transport traffic. This slice must not access RF hardware.
 
@@ -32,4 +40,4 @@ Sequence may evolve based on RF feasibility. Standalone operation remains a prod
 
 ## Current boundaries
 
-No firmware build, hardware test, RF transmission, commit, push or GitHub publication has occurred in this baseline. Licensing, target bands, RF engine and final protocol schemas remain open.
+No firmware build, hardware test, RF transmission or WTP implementation has occurred. Licensing, target bands and RF engine remain open. WTP/1 schemas are normative; changes to them require an explicit protocol-contract revision.

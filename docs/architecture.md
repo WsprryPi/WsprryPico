@@ -6,7 +6,7 @@ Status: accepted architecture.
 
 WsprryPico is a first-class standalone application, in its own repository, within the WsprryPi family. WsprryPi is not required for standalone operation. The same firmware must also support use as a WsprryPi hardware transmitter backend.
 
-Target the Raspberry Pi Pico family, beginning with Pico 2 W / RP2350. This does not promise immediate support for other Pico boards or RP2040.
+Target the Raspberry Pi Pico family, with Pico 2 W / RP2350 as the defined hardware target. This does not promise support for other Pico boards or RP2040.
 
 Use WsprryPico for project, repository and application naming; firmware artifacts may be named WsprryPico-x.y.z.uf2.
 
@@ -30,9 +30,9 @@ Reuse as much WsprryPi browser UI and UX as practical through a shared browser-f
 
 ## Protocol
 
-WTP means WsprryPi Transmitter Protocol. It is device-neutral and versioned independently of firmware, starting with a prospective WTP/1.
+WTP means WsprryPi Transmitter Protocol. It is device-neutral and versioned independently of firmware. WTP/1 is defined by the normative protocol contract.
 
-The authoritative specification lives initially at docs/protocol/WTP.md in WsprryPico. WsprryPico is the reference implementation; implementation accidents do not define the protocol. Do not create a third protocol repository now.
+The authoritative specification lives at docs/protocol/WTP.md in WsprryPico. WsprryPico is the reference implementation; implementation accidents do not define the protocol. WTP does not have a separate protocol repository.
 
 ## Proposed internal boundary
 
@@ -44,6 +44,6 @@ Standalone execution needs local encoding, persistent station/schedule configura
 
 ## Open design choices
 
-WTP encoding/framing, limits, authentication, ownership and disconnect policy; UTC source and acceptable uncertainty; clock calibration; RF engine and pins; SDK/toolchain versions; supported modulation profiles; licensing and exact source reuse; browser API schemas and storage limits remain to be designed.
+UTC source and implementation-specific acceptable uncertainty; clock calibration; RF engine and pins; SDK/toolchain versions; licensing and exact source reuse; browser API schemas and storage limits remain to be designed. WTP/1 defines the interoperable protocol limits and policies without selecting those implementations.
 
 Estimates of reusable code and expected spectral behavior remain hypotheses until verified.

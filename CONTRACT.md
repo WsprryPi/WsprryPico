@@ -4,10 +4,11 @@
 
 WsprryPico is a first-class application in the WsprryPi family, maintained in a
 separate repository. It must operate standalone and as a WsprryPi transmitter
-backend. The initial target is Pico 2 W / RP2350.
+backend. The defined hardware target is Pico 2 W / RP2350.
 
 The accepted architectural record is [docs/architecture.md](docs/architecture.md).
-This contract summarizes durable boundaries; it does not freeze draft APIs.
+This contract summarizes durable boundaries. The normative WTP/1 contract is
+[docs/protocol/WTP.md](docs/protocol/WTP.md); other draft APIs remain unfrozen.
 
 ## Timing and interoperability
 
@@ -23,7 +24,7 @@ This contract summarizes durable boundaries; it does not freeze draft APIs.
 
 PIO/PLL/direct RF and an optional Si5351 engine remain investigation candidates.
 No band coverage, RF performance, firmware build or WTP compliance is currently
-established. Documentation drafts must not be advertised as implemented behavior.
+established. A protocol contract does not establish an implementation.
 
 Host tests, target execution and RF qualification are distinct evidence classes.
 A successful compile or simulated transmission establishes neither on-device

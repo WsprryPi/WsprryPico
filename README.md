@@ -1,18 +1,18 @@
 # WsprryPico
 
-WsprryPico is a first-class standalone WSPR/QRSS transmitter application in the WsprryPi family. It targets the Raspberry Pi Pico family, beginning with Pico 2 W / RP2350, and also serves as a hardware transmitter backend for WsprryPi.
+WsprryPico is a first-class standalone WSPR/QRSS transmitter application in the WsprryPi family. It targets Raspberry Pi Pico family hardware, with Pico 2 W / RP2350 as the defined hardware target, and also serves as a hardware transmitter backend for WsprryPi.
 
-Status: architecture baseline and design drafts. No firmware or RF engine is implemented or qualified.
+Status: architecture baseline, normative WTP/1 contract and remaining design drafts. No firmware or RF engine is implemented or qualified.
 
 - [Accepted architecture](docs/architecture.md)
-- [WTP protocol draft](docs/protocol/WTP.md)
+- [WTP/1 protocol contract](docs/protocol/WTP.md)
 - [Browser API direction](docs/browser-api.md)
 - [RF feasibility investigation](docs/rf-feasibility.md)
 - [Implementation plan](docs/implementation-plan.md)
 
 Firmware release names will follow `WsprryPico-x.y.z.uf2`. WTP versions are independent of firmware versions. WTP is documented here, with WsprryPico as its reference implementation; there is no separate protocol repository.
 
-New design proposals are explicitly marked as drafts.
+Unresolved design proposals are explicitly marked as drafts.
 
 ## Development and contribution
 

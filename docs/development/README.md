@@ -1,6 +1,6 @@
 # Development baseline
 
-The initial target is Pico 2 W / RP2350. This repository currently contains
+The defined hardware target is Pico 2 W / RP2350. This repository currently contains
 architecture and repository support files, with no firmware or test targets.
 
 ## Build direction
@@ -28,10 +28,22 @@ or device provisioning; sanitized configuration examples should be trackable.
 
 ## Current checks
 
+Validate the WTP/1 contract with:
+
+```sh
+python3 scripts/validate_wtp_contract.py
+```
+
+The command uses only the Python standard library. It checks the schema,
+normative vectors, raw JSON rejection cases, framing bytes and checksums,
+semantic job invariants, state transitions, and agreement among the protocol
+artifacts. It is a contract-artifact check, not an implementation conformance
+test.
+
 Review Markdown links and formatting for documentation changes. Once files are
-tracked, git diff --check checks whitespace in changes; it does not inspect
-untracked files. clang-format can check C/C++ files when they are introduced.
+tracked, `git diff --check` checks whitespace in changes; it does not inspect
+untracked files. `clang-format` can check C/C++ files when they are introduced.
 There is no build/test command that validates firmware yet.
 
-Hardware-free job/protocol behavior is the next planned slice. See the
-[implementation plan](../implementation-plan.md) and [WTP draft](../protocol/WTP.md).
+Hardware-free job-service behavior is the next planned slice. See the
+[implementation plan](../implementation-plan.md) and [WTP/1 contract](../protocol/WTP.md).
