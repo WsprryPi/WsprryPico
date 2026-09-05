@@ -14,7 +14,8 @@
 ## Pico architecture
 
 - WsprryPico is a standalone application and a WsprryPi hardware backend.
-- Begin with Pico 2 W / RP2350. Do not port RP1 DKMS or Linux hardware access.
+- The defined target is Pico 2 W / RP2350. Do not port RP1 DKMS or Linux
+  hardware access.
 - Keep the portable job, protocol and encoder logic separate from Pico SDK,
   transport, storage and RF engine adapters.
 - USB CDC is the reference transport. RF timing is always local to RP2350;
