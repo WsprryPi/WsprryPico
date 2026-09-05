@@ -1,0 +1,37 @@
+# Project contract
+
+## Identity and scope
+
+WsprryPico is a first-class application in the WsprryPi family, maintained in a
+separate repository. It must operate standalone and as a WsprryPi transmitter
+backend. The initial target is Pico 2 W / RP2350.
+
+The accepted architectural record is [docs/architecture.md](docs/architecture.md).
+This contract summarizes durable boundaries; it does not freeze draft APIs.
+
+## Timing and interoperability
+
+- USB CDC is the canonical WTP transport; Wi-Fi/TCP adds network control.
+- BLE primarily serves provisioning/local management, with SoftAP fallback.
+- Transport loads and arms complete jobs. RP2350 owns execution and symbol timing.
+- WTP is device-neutral and independently versioned. Its specification stays
+  in WsprryPico initially, with WsprryPico as the reference implementation.
+- The browser uses a shared JSON API implemented by the relevant application.
+- Preserve WsprryPi scheduler/encoder concepts without porting RP1 DKMS.
+
+## Evidence and implementation status
+
+PIO/PLL/direct RF and an optional Si5351 engine remain investigation candidates.
+No band coverage, RF performance, firmware build or WTP compliance is currently
+established. Documentation drafts must not be advertised as implemented behavior.
+
+Host tests, target execution and RF qualification are distinct evidence classes.
+A successful compile or simulated transmission establishes neither on-device
+symbol timing nor spectral performance.
+
+## Licensing and release identity
+
+Original contributions use the MIT License in LICENSE.md. Dependencies and
+reused source retain their own notices and obligations. Firmware version and
+protocol version remain separate; release artifacts may use
+WsprryPico-x.y.z.uf2. No release number is assigned by this scaffold.

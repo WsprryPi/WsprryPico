@@ -1,0 +1,68 @@
+# Operating system and editor files
+.DS_Store
+._*
+.AppleDouble/
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.code-workspace
+*.swp
+*.swo
+*~
+
+# Local agent state
+.codex/
+.agents/
+.claude/
+
+# Out-of-tree CMake builds and generated files
+/build/
+/build-*/
+/cmake-build-*/
+/dist/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+compile_commands.json
+CMakeUserPresets.json
+
+# Compiled Pico firmware and intermediate outputs
+*.o
+*.obj
+*.a
+*.elf
+*.uf2
+*.hex
+*.bin
+*.map
+*.dis
+*.pio.h
+
+# Local SDK/toolchain checkouts; do not hide a future vendored dependency tree
+/pico-sdk/
+/pico-examples/
+/toolchains/
+
+# Local configuration and credentials; examples remain trackable
+.env
+.env.*
+!.env.example
+/config/local/
+/pico_config.local.h
+
+# Developer tools, generated documentation and browser dependencies
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+/docs/_build/
+node_modules/
+
+# Local scratch, logs and bench captures
+/work/
+/local/
+/captures/
+*.log
