@@ -22,7 +22,10 @@ Preserve WsprryPi encoder and scheduler concepts while adapting platform depende
 
 ## RF generation
 
-Investigate RP2350 PIO, PLL and direct-RF generation against an optional Si5351 engine. No engine, band range, pin assignment, spectral performance or clock arrangement has yet been selected or qualified.
+The [RF feasibility study](rf-feasibility.md) selects PIO/DMA packed-bit GPIO
+synthesis for experimental implementation, with Si5351 as an alternative.
+No production engine or band range is qualified. Pin and clock allocations in
+the study are proposals; the firmware remains RF-inhibited.
 
 ## Browser UI
 

@@ -35,6 +35,19 @@ image memory-layout checks and an opt-in read-only USB probe.
 
 ## Current checks
 
+Reproduce and check the hardware-free RF study with:
+
+```sh
+python3 scripts/analyze_rf_feasibility.py
+python3 tests/rf_feasibility_tests.py
+```
+
+The first command prints [the maintained calculation report](../rf-calculations.md).
+The second checks report freshness, tone representability, register arithmetic,
+absolute timing and analytical spectral coefficients against a direct DFT.
+These checks neither access hardware nor qualify RF. See the
+[proposed measurement plan](rf-measurement-plan.md) before planning target work.
+
 Build and run the hardware-free core tests with:
 
 ```sh

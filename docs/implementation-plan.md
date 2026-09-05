@@ -56,12 +56,23 @@ An opt-in read-only probe is supplied. Bounded target USB checks pass for the
 WTP conformance and RF qualification are not claimed.
 See the [endpoint guide](development/wtp-endpoint.md).
 
-## Next slice: RF feasibility and engine selection
+## Completed RF feasibility and candidate selection
 
-Complete the mathematical RF feasibility comparison, select an implementation
-candidate and prepare a bounded measurement plan. Keep implementation evidence,
-hardware validation and RF qualification separate. No RF authorization follows
-from completing the USB endpoint.
+The [hardware-free comparison](rf-feasibility.md) and
+[reproducible calculations](rf-calculations.md) compare static dividers,
+PLL retuning, PIO/DMA synthesis and Si5351. PIO/DMA packed-bit GPIO synthesis
+is selected for experimental implementation, initially at the 80 m study point,
+subject to generation-throughput, inhibition and spectral gates. Si5351 remains
+an alternative. This is candidate selection, not engine implementation or RF
+qualification. The [bounded measurement plan](development/rf-measurement-plan.md)
+is proposed and unexecuted.
+
+## Next slice: experimental RF engine
+
+Design and implement the selected engine and output/inhibit circuit, beginning
+with deterministic host validation and resource budgeting. Hardware execution
+and RF measurements require separately explicit authorization for the exact
+setup. No RF authorization follows from this study.
 
 Before extracting encoder code, inspect WsprryPi licensing and dependencies and record source revision/attribution. Initial candidate files include src/scheduling.hpp, src/scheduling_runtime.cpp and src/tests/wspr_tone_regression_test.cpp; finding them is not a portability review.
 
@@ -81,5 +92,6 @@ Sequence may evolve based on RF feasibility. Standalone operation remains a prod
 The firmware builds for Pico 2 W. The portable core and WTP USB endpoint are
 host-tested, and bounded target USB validation passes on the recorded Pico 2 W
 and Mac. No RF transmission or target timing qualification has occurred.
-Target bands and an RF engine remain open. WTP/1 schemas are
+Supported bands and final engine promotion remain open; the experimental
+PIO/DMA candidate has been selected but not implemented. WTP/1 schemas are
 normative; changes to them require an explicit protocol-contract revision.

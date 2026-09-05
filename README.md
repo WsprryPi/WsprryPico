@@ -5,7 +5,9 @@ WsprryPico is a first-class standalone WSPR/QRSS transmitter application in the 
 Status: normative WTP/1 contract, host-tested portable core, and an RF-inhibited
 Pico 2 W WTP USB endpoint. [Bounded target USB validation](docs/development/usb-target-validation.md)
 passes on the recorded board and Mac. No physical RF engine is implemented;
-timing and RF behavior remain unqualified.
+timing and RF behavior remain unqualified. The hardware-free RF study selects
+PIO/DMA GPIO synthesis as the next experimental candidate, with a proposed
+bounded measurement plan.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)
