@@ -156,9 +156,11 @@ When an ownership lease expires:
   connection or lease loss cannot alter event timing; ownership is then
   released after the terminal result is recorded.
 
-`RELEASE` succeeds only in `empty` or `loaded`; it clears a loaded job. A local,
-trusted safety control MAY initiate the same `ABORT` behavior without network
-ownership. It MUST still produce the normal terminal record and output checks.
+`RELEASE` succeeds in `empty`, `loaded`, `complete`, `aborted` or `missed`. It
+clears the current job while preserving retained terminal records. It is
+rejected in `armed`, `running` or `failed`. A local, trusted safety control MAY
+initiate the same `ABORT` behavior without network ownership. It MUST still
+produce the normal terminal record and output checks.
 
 ## 8. Job profile and limits
 
@@ -270,15 +272,16 @@ or loss of synchronization do not alter the monotonic event schedule.
 
 ## 11. Retries, replay and retained results
 
-For each resumable session, the response cache has a capacity of at least 64
+For each resumable session, the response cache has a capacity of at least eight
 entries and an expiry of at least 300 seconds. It MAY provide larger values.
 An entry expires at the configured age or may be evicted earlier when the
 advertised capacity is exhausted, using least-recently-used eviction.
-Repeating a `request_id` with an identical original JSON payload byte sequence
-returns the cached response without executing again. Reusing it with different
-payload bytes, including semantically equivalent JSON with different encoding,
-returns `REQUEST_ID_REUSE` and closes the connection. Resource-level
-idempotency for `LOAD` and `ARM` applies even after response-cache eviction.
+The server retains the SHA-256 digest of each original JSON payload rather than
+the payload itself. Repeating a `request_id` with the same digest returns the
+cached response without executing again. Reusing it with a different digest,
+including for semantically equivalent JSON with different encoding, returns
+`REQUEST_ID_REUSE` and closes the connection. Resource-level idempotency for
+`LOAD` and `ARM` applies even after response-cache eviction.
 
 Repeating `ARM` with the same `job_id`, start and uncertainty returns the
 original result without changing state, including while its terminal record is

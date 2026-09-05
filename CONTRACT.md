@@ -15,8 +15,8 @@ This contract summarizes durable boundaries. The normative WTP/1 contract is
 - USB CDC is the canonical WTP transport; Wi-Fi/TCP adds network control.
 - BLE primarily serves provisioning/local management, with SoftAP fallback.
 - Transport loads and arms complete jobs. RP2350 owns execution and symbol timing.
-- WTP is device-neutral and independently versioned. Its specification stays
-  in WsprryPico initially, with WsprryPico as the reference implementation.
+- WTP is device-neutral and independently versioned. Its specification is
+  maintained in WsprryPico, with WsprryPico as the reference implementation.
 - The browser uses a shared JSON API implemented by the relevant application.
 - Preserve WsprryPi scheduler/encoder concepts without porting RP1 DKMS.
 
@@ -24,7 +24,8 @@ This contract summarizes durable boundaries. The normative WTP/1 contract is
 
 PIO/PLL/direct RF and an optional Si5351 engine remain investigation candidates.
 No band coverage, RF performance, firmware build or WTP compliance is currently
-established. A protocol contract does not establish an implementation.
+established. The host-tested portable core does not establish endpoint or
+target conformance.
 
 Host tests, target execution and RF qualification are distinct evidence classes.
 A successful compile or simulated transmission establishes neither on-device

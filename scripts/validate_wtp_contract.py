@@ -346,6 +346,11 @@ def main() -> int:
         failures.append("schema and contract mode lists differ")
     if contract["clock"]["max_arm_ahead_ns"] != "604800000000000":
         failures.append("contract arm horizon differs from schema policy")
+    response_minimum = schema["$defs"]["capsResponse"]["properties"][
+        "response_cache_entries"
+    ]["minimum"]
+    if contract["retention"]["min_response_entries"] != response_minimum:
+        failures.append("contract and schema response-cache minima differ")
 
     if failures:
         for failure in failures:

@@ -56,7 +56,8 @@
     "max_lease_ms": 60000
   },
   "retention": {
-    "min_response_entries": 64,
+    "min_response_entries": 8,
+    "request_identity": "SHA-256",
     "min_response_ttl_seconds": 300,
     "min_terminal_entries": 8,
     "min_terminal_ttl_seconds": 3600

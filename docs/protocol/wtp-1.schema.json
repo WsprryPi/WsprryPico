@@ -194,7 +194,7 @@
         "max_job_duration_ns": { "allOf": [{ "$ref": "#/$defs/nonzeroU64" }, { "x-maximum": "86400000000000" }] }, "minimum_arm_lead_ns": { "$ref": "#/$defs/u64" },
         "maximum_arm_ahead_ns": { "allOf": [{ "$ref": "#/$defs/nonzeroU64" }, { "x-maximum": "604800000000000" }] }, "maximum_arm_uncertainty_ns": { "$ref": "#/$defs/u64" }, "maximum_holdover_age_ns": { "$ref": "#/$defs/u64" },
         "output_disable_timeout_ns": { "allOf": [{ "$ref": "#/$defs/nonzeroU64" }, { "x-maximum": "5000000000" }] }, "minimum_lease_ms": { "type": "integer", "maximum": 5000 },
-        "maximum_lease_ms": { "type": "integer", "minimum": 60000 }, "response_cache_entries": { "type": "integer", "minimum": 64 },
+        "maximum_lease_ms": { "type": "integer", "minimum": 60000 }, "response_cache_entries": { "type": "integer", "minimum": 8 },
         "response_cache_ttl_seconds": { "type": "integer", "minimum": 300 }, "terminal_record_entries": { "type": "integer", "minimum": 8 },
         "terminal_record_ttl_seconds": { "type": "integer", "minimum": 3600 }
       }, "additionalProperties": false

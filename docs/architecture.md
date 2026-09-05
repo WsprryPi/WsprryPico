@@ -34,11 +34,13 @@ WTP means WsprryPi Transmitter Protocol. It is device-neutral and versioned inde
 
 The authoritative specification lives at docs/protocol/WTP.md in WsprryPico. WsprryPico is the reference implementation; implementation accidents do not define the protocol. WTP does not have a separate protocol repository.
 
-## Proposed internal boundary
-
-This decomposition is a design proposal:
+## Internal boundary
 
 Browser handlers, standalone scheduler, USB WTP and TCP WTP submit work to one application job service. That service owns validation, transmitter ownership and state. A local execution layer controls interchangeable RF engines. Time synchronization estimates UTC relative to a monotonic device clock; RF frequency calibration is tracked separately.
+
+The portable frame parser and job service implement the transport-independent
+part of this boundary. Transport adapters, browser handlers, the standalone
+scheduler and target RF engines remain to be implemented.
 
 Standalone execution needs local encoding, persistent station/schedule configuration and time acquisition without WsprryPi. Host operation may accept already encoded jobs. Both paths converge before engine preparation.
 
