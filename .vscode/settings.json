@@ -2,5 +2,11 @@
   "cmake.configureOnOpen": false,
   "cmake.useCMakePresets": "always",
   "raspberry-pi-pico.cmakeAutoConfigure": false,
-  "raspberry-pi-pico.useCmakeTools": true
+  "raspberry-pi-pico.useCmakeTools": true,
+  "cSpell.words": [
+    "Pico",
+    "picotool",
+    "usbmodem",
+    "Wsprry"
+  ]
 }
