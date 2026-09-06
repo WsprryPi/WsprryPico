@@ -181,8 +181,10 @@ The [clock comparison](rf-clock-validation.md) adds build-selected 132/138 MHz
 experiments alongside the default 138 MHz profile. NCO increments, timestamp
 conversion, progress checks and sample bounds all use the selected rate. The
 150 MHz figures above remain tied to that profile. The engine permits at most
-100 microseconds for asynchronous zero-tail acknowledgement after the nominal
-end, only when all samples are generated/submitted and reported progress is
-one sample short of completion. Missing acknowledgement still fails and stops
+100 microseconds for asynchronous final-data/zero-tail acknowledgement after
+the nominal end, only when all samples are generated/submitted and no more than
+the final block remains unacknowledged. IRQ-driven sink reports snapshot time,
+state and output activity together, avoiding a stale pre-launch report being
+compared with post-launch GPIO activity. Missing acknowledgement still fails and stops
 the sink; it does not extend the planned waveform or change SDR diagnostic
 thresholds.

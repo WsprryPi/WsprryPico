@@ -123,15 +123,29 @@ wspr2 GPIO4. CPU activity before a frame did not materially improve settling
 in the tested protocol. Progress arithmetic, completion acknowledgement and
 capture storage checks were repaired and tested.
 
-## Next slice: close-in sidebands and stable frame timing
+## Completed seventh Step 8 slice: encoded WSPR and RF warmup
 
-Investigate the shared 120 Hz pattern with controlled power/ground and receiver
-comparisons, and resolve full-frame settling/transition diagnostics. Then
-verify an encoded WSPR message and integrate production UTC/job-service
-operation. No encoded message was tested in this slice. Step 8 remains open;
-the operator chooses hardware experiments and transmissions.
+The [encoded validation record](development/rf-wspr-validation.md) adds a
+portable Type 1 encoder, a complete-message bench command, and independent
+WSJT-X decoding of received RF from wspr5. Optional RF warmup improves the
+measured frame settling. The final-data/tail acknowledgement path has additional
+bounded recovery tests. Retained cold-frame diagnostic failures remain distinct
+from successful decodes and repaired-image evidence.
 
-Before extracting encoder code, inspect WsprryPi licensing and dependencies and record source revision/attribution. Initial candidate files include src/scheduling.hpp, src/scheduling_runtime.cpp and src/tests/wspr_tone_regression_test.cpp; finding them is not a portability review.
+The operator accepts better-than-WsprryPi close-in sidebands as a practical
+benchmark. The earlier comparison meets that criterion; eliminating those
+sidebands is not a prerequisite for further development. Planned output
+filtering remains part of the final hardware assessment.
+
+## Next slice: production time and RF job integration
+
+Step 8 remains open for production integration. Define and implement device
+UTC acquisition/uncertainty, connect the physical engine to the existing job
+service and validate scheduled encoded jobs against received RF. Retain the
+separate bench and its optional warmup experiment. Standalone station/storage
+configuration and scheduling follow; the Type 1 encoder is now available.
+Calibrated band/filter qualification remains separate from the successful
+bench decodes. The operator chooses hardware experiments and transmissions.
 
 ## Subsequent slices
 

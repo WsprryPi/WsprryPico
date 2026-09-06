@@ -33,11 +33,18 @@ def main():
     p.add_argument('--abort-after-ms', type=int, choices=range(1, 10001), metavar='1..10000')
     p.add_argument('--gpsdo-reference', action='store_true',
                    help='Enable wspr5 LBE-1421 output 1 at 3580000 Hz, then disable it')
+    p.add_argument('--rf-warmup', action='store_true',
+                   help='Transmit one complete frame before starting the measured capture')
+    p.add_argument('--wspr', nargs=3, metavar=('CALL', 'GRID', 'DBM'))
     p.add_argument('--frame', action='store_true', help='162-symbol local synthetic frame')
     p.add_argument('--tone', type=int, choices=range(4), default=0)
     p.add_argument('--duration-ms', type=int, choices=range(1, 10001), default=100, metavar='1..10000')
     args = p.parse_args()
-    if args.receive_only and (args.frame or args.abort_after_ms is not None):
+    if args.rf_warmup and (args.receive_only or args.abort_after_ms is not None or not (args.wspr or args.frame)):
+        p.error('RF warmup requires a complete encoded or synthetic frame')
+    if args.wspr and args.frame:
+        p.error('Choose encoded WSPR or synthetic frame')
+    if args.receive_only and (args.frame or args.wspr or args.abort_after_ms is not None):
         p.error('Receive-only cannot be combined with frame or abort')
     if args.receiver_host.startswith('-') or args.sdr_serial.startswith('-'):
         p.error('Invalid host or serial')
@@ -48,7 +55,7 @@ def main():
     args.output.mkdir(parents=True, exist_ok=False)
     run_id = 'pico-' + uuid.uuid4().hex
     directory = '/var/tmp/' + run_id
-    duration = (110.592 if args.frame else args.duration_ms / 1000) + 6
+    duration = (110.592 if (args.frame or args.wspr) else args.duration_ms / 1000) + 6
     if args.abort_after_ms is not None:
         duration = args.abort_after_ms / 1000 + 7
     count = round(duration * 250000)
@@ -64,6 +71,23 @@ def main():
         with (args.output / name).open('w') as log:
             remote(args.receiver_host, gpsdo + arguments, timeout=20,
                    stdout=log, stderr=subprocess.STDOUT)
+    def bench_command(output):
+        if args.receive_only:
+            action = ['status']
+        elif args.wspr:
+            action = ['wspr', '--call', args.wspr[0], '--grid', args.wspr[1],
+                      '--dbm', args.wspr[2], '--delay-ms', '1000']
+        elif args.frame:
+            action = ['frame', '--delay-ms', '1000']
+        else:
+            action = ['run', '--tone', str(args.tone), '--duration-ms',
+                      str(args.duration_ms), '--delay-ms', '1000']
+        return [sys.executable, str(Path(__file__).with_name('rf_bench.py')),
+                   '--port', args.port, '--serial', args.serial, '--revision', args.revision,
+                   '--firmware', str(args.firmware), '--output', str(output),
+                   *([] if args.correction_ppb is None else ['--correction-ppb', str(args.correction_ppb)]),
+                   *([] if args.abort_after_ms is None else ['--abort-after-ms', str(args.abort_after_ms)]),
+                   *action]
     try:
         remote(args.receiver_host, ['mkdir', directory], timeout=10)
         remote(args.receiver_host, ['python3', '-c',
@@ -79,6 +103,13 @@ def main():
             reference_command(['detail', '-s', '0673ED0FA107'], 'reference-active.log')
             manifest['reference'] = dict(serial='0673ED0FA107', output=1, frequency_hz=3580000,
                                          level='low', correction='offline simultaneous comparison')
+        if args.rf_warmup:
+            with (args.output / 'warmup.log').open('w') as log:
+                warmup = subprocess.run(bench_command(args.output / 'warmup'),
+                                        stdout=log, stderr=subprocess.STDOUT)
+            manifest['warmup_success'] = warmup.returncode == 0
+            if not manifest['warmup_success']:
+                raise RuntimeError('RF warmup failed; measured frame was not started')
         helper = [args.capture_helper, '--enable-physical-sdr', 'sdrplay', args.sdr_serial,
                   str(args.center_hz), str(count), str(args.gain_db), '250000', '200000', '0', 'false', 'false',
                   '100000', str(duration + 10), directory + '/capture.cf32',
@@ -94,14 +125,7 @@ def main():
             remote(args.receiver_host, ['python3', '-c', ready], timeout=12)
             if capture.poll() is not None:
                 raise RuntimeError('Receiver ended before tone command')
-            command = [sys.executable, str(Path(__file__).with_name('rf_bench.py')),
-                       '--port', args.port, '--serial', args.serial, '--revision', args.revision,
-                       '--firmware', str(args.firmware), '--output', str(args.output / 'transmitter'),
-                       *([] if args.correction_ppb is None else ['--correction-ppb', str(args.correction_ppb)]),
-                       *([] if args.abort_after_ms is None else ['--abort-after-ms', str(args.abort_after_ms)]),
-                       *(['status'] if args.receive_only else
-                         (['frame'] if args.frame else ['run', '--tone', str(args.tone),
-                          '--duration-ms', str(args.duration_ms)]) + ['--delay-ms', '1000'])]
+            command = bench_command(args.output / 'transmitter')
             with (args.output / 'transmitter.log').open('w') as txlog:
                 # The client always sends STOP on run failure or timeout.
                 tx = subprocess.run(command, stdout=txlog, stderr=subprocess.STDOUT)

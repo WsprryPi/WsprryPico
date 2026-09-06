@@ -161,16 +161,17 @@ SinkReport PioDmaSink::poll(std::uint64_t) {
         fault();
     }
     if (state_ == wtp::EngineState::Complete) {
-        return {state_, epoch_, submitted_, total_, now_ns};
+        return {state_, epoch_, submitted_, total_, now_ns, hw_.active()};
     }
     if (state_ != wtp::EngineState::Running) {
-        return {state_, epoch_, 0, 0, now_ns};
+        return {state_, epoch_, 0, 0, now_ns, hw_.active()};
     }
     const auto elapsed = now_ns > start_ ? std::min(now_ns - start_, max_duration_ns) : 0;
     // Conservative nominal-clock progress; DMA completion is FIFO delivery, not RF timing.
     const auto samples =
         std::min({elapsed * (sample_rate / 1000000) / 1000, dma_samples_, total_ - 1});
-    return {state_, epoch_, std::min(dma_blocks_, samples / block_samples), samples, now_ns};
+    return {state_,  epoch_, std::min(dma_blocks_, samples / block_samples),
+            samples, now_ns, hw_.active()};
 }
 
 } // namespace wsprrypico::rf

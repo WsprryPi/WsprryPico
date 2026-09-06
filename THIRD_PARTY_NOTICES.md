@@ -22,3 +22,14 @@ URL, exact version/revision, license, retained notice location, modifications
 and distribution requirements here. This applies to WsprryPi code, the Pico SDK,
 USB/network/Bluetooth libraries and any Si5351 implementation. Inspect the actual
 dependency tree rather than assuming the SDK's license covers every component.
+
+The portable Type 1 encoder packing and synchronization constants, and the
+AA0NT/EM18/20 and /37 test vectors, are adapted from WsprryPi WSPR-Reference at
+`3222b7eb7ad04cb8ddff6a012c4983164d7f206b`
+(<https://github.com/WsprryPi/WsprryPi>), files
+`src/WSPR-Reference/src/wspr/wspr_ref_encoder.cpp`, `wspr_constants.hpp` and
+`test_vectors/wspr_golden_vectors.json`. MIT, copyright 2024 Lee Bussy; retained
+notice: [WsprryPi license](src/encoding/WsprryPi-LICENSE.md). The adaptation uses
+strict bounded Type 1 validation and a stateless C++20 implementation. Types 2/3
+and upstream permissive normalization are not imported. Preserve this notice
+and the retained MIT license when distributing the encoder.

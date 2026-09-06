@@ -104,6 +104,8 @@ def execute(serial, command: str, timeout: float, serial_id: str, revision: str,
         raise ValueError('Unexpected bench interface')
     if command.startswith('FRAME ') and caps.get('frame') != 'cycle4-162':
         raise ValueError('Firmware does not support the synthetic frame')
+    if command.startswith('WSPR ') and caps.get('wspr') != 'type1':
+        raise ValueError('Firmware does not support Type 1 WSPR')
     if correction_ppb is not None:
         if caps.get('correction_ppb_range') != [-100000, 100000] or not -100000 <= correction_ppb <= 100000:
             raise ValueError('Unsupported correction')
@@ -115,7 +117,7 @@ def execute(serial, command: str, timeout: float, serial_id: str, revision: str,
         if configured.get('ok') is not True or configured.get('correction_ppb') != correction_ppb:
             raise RuntimeError('Correction not confirmed')
     result = {'info_before': info, 'caps': caps, 'command': command, 'completed': False}
-    starts_work = command.startswith(('RUN ', 'BENCH ', 'FRAME '))
+    starts_work = command.startswith(('RUN ', 'BENCH ', 'FRAME ', 'WSPR '))
     try:
         response = serial.exchange(command)
         if not response['ok']:
@@ -176,6 +178,11 @@ def parser():
     sub.add_parser('bootloader')
     benchmark = sub.add_parser('benchmark')
     benchmark.add_argument('--blocks', type=int, default=128, choices=range(1, 4097), metavar='1..4096')
+    wspr = sub.add_parser('wspr')
+    wspr.add_argument('--call', required=True)
+    wspr.add_argument('--grid', required=True)
+    wspr.add_argument('--dbm', required=True, type=int)
+    wspr.add_argument('--delay-ms', type=int, choices=range(100, 10001), default=1000)
     frame = sub.add_parser('frame')
     frame.add_argument('--delay-ms', type=int, choices=range(100, 10001), default=1000, metavar='100..10000')
     run = sub.add_parser('run')
@@ -187,14 +194,17 @@ def parser():
 
 def main():
     args = parser().parse_args()
-    if args.abort_after_ms is not None and args.action not in ('run', 'frame'):
+    if args.abort_after_ms is not None and args.action not in ('run', 'frame', 'wspr'):
         raise ValueError('Abort timing applies only to run/frame')
     if not 1 <= args.timeout <= 300:
         raise ValueError('Timeout must be 1..300 seconds')
     digest = hashlib.sha256(args.firmware.read_bytes()).hexdigest()
-    command = {'status': 'STATUS', 'stop': 'STOP', 'benchmark': 'BENCH', 'run': 'RUN', 'bootloader': 'BOOTSEL', 'frame': 'FRAME'}[args.action]
+    command = {'status': 'STATUS', 'stop': 'STOP', 'benchmark': 'BENCH', 'run': 'RUN', 'bootloader': 'BOOTSEL', 'frame': 'FRAME', 'wspr': 'WSPR'}[args.action]
     if args.action == 'benchmark':
         command += f' {args.blocks}'
+    elif args.action == 'wspr':
+        command += f' {args.call} {args.grid} {args.dbm} {args.delay_ms}'
+        args.timeout = max(args.timeout, 120 + args.delay_ms / 1000)
     elif args.action == 'frame':
         command += f' {args.delay_ms}'
         args.timeout = max(args.timeout, 120 + args.delay_ms / 1000)

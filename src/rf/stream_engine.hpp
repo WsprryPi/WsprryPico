@@ -19,6 +19,7 @@ struct SinkReport {
     std::uint64_t consumed_samples = 0;
     // IRQ-driven sinks sample time together with state after acquiring their lock.
     std::optional<std::uint64_t> observed_monotonic_ns = {};
+    std::optional<bool> observed_output_active = {};
 };
 
 // stop() must release all submitted spans

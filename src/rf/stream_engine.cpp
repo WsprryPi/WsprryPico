@@ -140,6 +140,9 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
         }
         now_ns = *report.observed_monotonic_ns;
     }
+    // Do not compare a locked pre-launch snapshot against post-unlock IRQ state.
+    const bool active =
+        report.observed_output_active ? *report.observed_output_active : output_active();
     if (now_ns < last_poll_ns_ || report.epoch != epoch_ || report.completed_blocks < completed_ ||
         report.completed_blocks > submitted_ || report.consumed_samples < consumed_ ||
         report.consumed_samples > plan_.total_samples ||
@@ -160,7 +163,7 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
     }
     last_poll_ns_ = now_ns;
     if (report.state == wtp::EngineState::Missed) {
-        if (report.consumed_samples != 0 || output_active()) {
+        if (report.consumed_samples != 0 || active) {
             return fail(now_ns);
         }
         state_ = wtp::EngineState::Missed;
@@ -169,20 +172,22 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
     if (report.state == wtp::EngineState::Complete) {
         if (now_ns < end_ns_ || report.consumed_samples != plan_.total_samples ||
             report.completed_blocks != submitted_ || waveform_.position() != plan_.total_samples ||
-            output_active()) {
+            active) {
             return fail(now_ns, "invalid_completion");
         }
         state_ = wtp::EngineState::Complete;
         return {state_, false};
     }
-    // DMA tail completion is asynchronous. Permit a bounded acknowledgement
-    // delay only after all data is submitted and nominal progress is at the end.
-    const bool awaiting_tail = report.state == wtp::EngineState::Running &&
-                               waveform_.position() == plan_.total_samples &&
-                               report.consumed_samples == plan_.total_samples - 1 &&
-                               now_ns >= end_ns_ && now_ns - end_ns_ <= 100'000;
-    if ((now_ns < start_ns_ && (report.state != wtp::EngineState::Armed ||
-                                report.consumed_samples != 0 || output_active())) ||
+    // Final data and zero-tail IRQ acknowledgements can both lag the hardware.
+    // Allow only the final submitted block to be unacknowledged, for at most
+    // 100 us after the nominal end. This does not generate extra RF samples.
+    const bool awaiting_tail =
+        report.state == wtp::EngineState::Running && waveform_.position() == plan_.total_samples &&
+        submitted_ == (plan_.total_samples + block_samples - 1) / block_samples &&
+        report.consumed_samples >= (submitted_ - 1) * block_samples && now_ns >= end_ns_ &&
+        now_ns - end_ns_ <= 100'000;
+    if ((now_ns < start_ns_ &&
+         (report.state != wtp::EngineState::Armed || report.consumed_samples != 0 || active)) ||
         (now_ns >= start_ns_ && report.state != wtp::EngineState::Running) ||
         (now_ns >= end_ns_ && !awaiting_tail) || report.completed_blocks == submitted_) {
         return fail(now_ns, now_ns >= end_ns_ ? "completion_deadline" : "sink_state");
@@ -197,7 +202,7 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
     completed_ = report.completed_blocks;
     consumed_ = report.consumed_samples;
     state_ = report.state;
-    return {state_, output_active()};
+    return {state_, active};
 }
 
 bool StreamEngine::disable(std::uint64_t deadline_monotonic_ns) {

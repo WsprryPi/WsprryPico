@@ -30,8 +30,8 @@ GP2 and a build-selected 132, 138 or 150 MHz sample clock (138 MHz default); the
 generation and an abstract-sink adapter separately from the firmware. The
 [PIO/DMA sink and local timer launch](development/pio-dma-driver.md) are
 implemented and integrated in the separate [RF bench](development/rf-bench.md).
-That runner accepts finite relative-time tones and CPU benchmarks over a named
-Commands CDC interface. It provides neither a WTP endpoint nor UTC synchronization.
+That runner accepts finite relative-time tones, synthetic frames, portable Type 1
+encoded WSPR messages and CPU benchmarks over a named Commands CDC interface. It provides neither a WTP endpoint nor UTC synchronization.
 Bounded target results exist; calibrated timing and spectral validation remain pending.
 
 ## Browser UI

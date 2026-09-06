@@ -42,7 +42,7 @@ python3 scripts/rf_bench.py \
   --output build/rf-target-evidence/new-benchmark benchmark --blocks 128
 ```
 
-Actions are `status`, `stop`, `benchmark`, `run` and `bootloader`. A run accepts
+Actions are `status`, `stop`, `benchmark`, `run`, `frame`, `wspr` and `bootloader`. A run accepts
 `--tone 0..3`, `--duration-ms 1..10000`, `--delay-ms 100..10000`. Each action verifies
 INFO/CAPS first. RUN and BENCH finish with STOP, including on errors/timeouts.
 The firmware also stops on Commands disconnect. Failure to confirm stop is an
@@ -56,6 +56,38 @@ maximum IRQ callback duration, last observed launch, allocator arena statistics
 and stack canary estimate. STATUS includes the last CPU benchmark metrics; they
 are not a measurement of RUN rendering. Timer observations resolve microseconds.
 The heap-free field is allocator arena space, not total available SRAM.
+
+
+## Encoded WSPR
+
+The portable `encoding::wspr_type1` encoder accepts uppercase ordinary Type 1
+callsigns (3–6 characters, with the digit normalized to position three), exactly
+four locator characters (`AA00`–`RR99`), and the standard powers 0–60 dBm ending
+in 0, 3 or 7. Unsupported inputs are rejected; Types 2/3, slashes, six-character
+locators and lowercase normalization are not implemented. The power is a
+message field, not a measurement or adjustment of GPIO output power.
+
+`WSPR <call> <grid> <dbm> <delay_ms>` prepares all 162 symbols before local launch.
+The host action is `wspr --call AA0NT --grid EM18 --dbm 20`, using the same
+identity/output arguments shown above. `FRAME <delay_ms>` remains the synthetic
+cycle4 workload. Both last 110.592 seconds and use the existing STOP, disconnect
+and error recovery paths. `CAPS` advertises `wspr: "type1"`.
+
+For capture, add `--wspr AA0NT EM18 20` to `capture_rf_bench.py` instead of
+`--frame`. Optional `--rf-warmup` transmits **one additional full frame** before
+starting the measured capture, retaining a separate warmup transcript. It is
+available only for complete frames and stops if that warmup fails. This is an
+operator-selected experiment, not automatic idle RF or a transmission condition.
+
+The offline `decode_rf_wspr.py IQ METADATA OUTPUT --wsprd PATH --expect CALL GRID
+DBM` command uses the existing Harness Python environment and independently
+installed WSJT-X decoder. It verifies capture hashes, completion, overflow and
+clipping; converts to 12 kHz mono audio; and requires an exact decoded message.
+Audio preserves captured elapsed time, frequency error and drift. The synthetic
+WAV slot name and trailing silence do not establish UTC alignment. For encoded
+frequency measurements, pass the 162 tone digits using `measure_rf_bench.py
+--symbols DIGITS`; equal adjacent symbols have no physical transition to test.
+See the [encoded validation record](rf-wspr-validation.md) for results.
 
 ## Flashing without the button
 

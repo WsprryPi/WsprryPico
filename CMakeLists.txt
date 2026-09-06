@@ -29,6 +29,7 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
 endif()
 
 add_library(wsprrypico_core
+    src/encoding/wspr.cpp
     src/wtp/json.cpp
     src/wtp/codec.cpp
     src/wtp/endpoint.cpp

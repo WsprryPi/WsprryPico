@@ -106,3 +106,7 @@ and identified sampled-square-wave alias.
 The [clock comparison](rf-clock-validation.md) records build-selected sample
 clocks, carrier-translation and Pi GPIO4 controls, remaining sidebands and
 settling, and disk-backed capture storage.
+
+The [encoded WSPR record](rf-wspr-validation.md) documents portable Type 1
+encoding, independent decoding of received RF, and an optional complete-frame
+RF warmup comparison.

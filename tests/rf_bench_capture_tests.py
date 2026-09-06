@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 import capture_rf_bench
@@ -33,6 +34,26 @@ class Tests(unittest.TestCase):
             manifest = json.loads((output / 'session.json').read_text())
             self.assertFalse(manifest['capture_success'])
             self.assertEqual(manifest['reference_disable_verified_by_cli'], not fail_final_status)
+    def test_warmup_failure_prevents_measured_frame_and_disables_reference(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            image = root / 'image.uf2'
+            image.write_bytes(b'fixture')
+            argv = ['capture_rf_bench.py', '--port', 'fake', '--serial', 'fake',
+                    '--revision', 'test', '--firmware', str(image), '--output', str(root/'out'),
+                    '--attenuation-db', '60', '--gpsdo-reference', '--wspr', 'AA0NT', 'EM18', '20', '--rf-warmup']
+            calls = []
+            with patch.object(sys, 'argv', argv), patch.object(capture_rf_bench, 'remote',
+                    side_effect=lambda host, args, **kwargs: calls.append(args)), \
+                    patch.object(capture_rf_bench.subprocess, 'run', return_value=SimpleNamespace(returncode=1)) as run, \
+                    patch.object(capture_rf_bench.subprocess, 'Popen') as capture:
+                with self.assertRaisesRegex(RuntimeError, 'RF warmup failed'):
+                    capture_rf_bench.main()
+                capture.assert_not_called()
+                self.assertIn('wspr', run.call_args.args[0])
+                self.assertIn(str(root/'out'/'warmup'), run.call_args.args[0])
+            self.assertEqual(sum('--disable1' in c for c in calls), 1)
+
     def test_disk_check_failure_prevents_device_work(self):
         with tempfile.TemporaryDirectory() as directory:
             image = Path(directory)/'image.uf2'
@@ -56,7 +77,7 @@ class Tests(unittest.TestCase):
         argv = ['capture_rf_bench.py', '--port', 'fake', '--serial', 'fake',
                 '--revision', 'test', '--firmware', 'missing', '--output', 'unused',
                 '--attenuation-db', '60', '--receive-only']
-        for extra in (['--frame'], ['--abort-after-ms', '100']):
+        for extra in (['--frame'], ['--wspr', 'AA0NT', 'EM18', '20'], ['--abort-after-ms', '100']):
             with patch.object(sys, 'argv', argv + extra), patch.object(capture_rf_bench, 'remote') as remote:
                 with self.assertRaises(SystemExit):
                     capture_rf_bench.main()

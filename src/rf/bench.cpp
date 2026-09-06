@@ -1,5 +1,7 @@
 #include "rf/bench.hpp"
 
+#include "encoding/wspr.hpp"
+
 #include <algorithm>
 #include <charconv>
 #include <limits>
@@ -62,7 +64,7 @@ std::string Bench::command(std::string_view line) {
                "\"clock\":\"monotonic-relative-only\",\"sample_rate_hz\":" +
                std::to_string(sample_rate) +
                ","
-               "\"gpio\":2,\"header_pin\":4,\"tones\":4,\"base_hz\":3570100,"
+               "\"wspr\":\"type1\",\"gpio\":2,\"header_pin\":4,\"tones\":4,\"base_hz\":3570100,"
                "\"spacing_hz\":1.46484375,\"duration_ms\":[1,10000],"
                "\"delay_ms\":[100,10000],\"benchmark_blocks\":[1,4096],"
                "\"correction_ppb_range\":[-100000,100000],\"frame\":\"cycle4-162\",\"frame_"
@@ -111,10 +113,30 @@ std::string Bench::command(std::string_view line) {
         state_ = "benchmarking";
         return status();
     }
-    const bool frame = line.starts_with("FRAME ");
+    const bool encoded = line.starts_with("WSPR ");
+    std::optional<encoding::Symbols> symbols;
+    const bool frame = line.starts_with("FRAME ") || encoded;
     unsigned index = 0, duration = 0;
     std::optional<unsigned> delay;
-    if (frame) {
+    if (encoded) {
+        auto rest = line.substr(5);
+        std::array<std::string_view, 4> fields{};
+        for (unsigned i = 0; i < 3; ++i) {
+            const auto space = rest.find(' ');
+            if (space == rest.npos)
+                return error("invalid_wspr");
+            fields[i] = rest.substr(0, space);
+            rest.remove_prefix(space + 1);
+        }
+        fields[3] = rest;
+        const auto power = number(fields[2]);
+        if (!power)
+            return error("invalid_wspr");
+        symbols = encoding::wspr_type1(fields[0], fields[1], *power);
+        if (!symbols)
+            return error("invalid_wspr");
+        delay = number(fields[3]);
+    } else if (frame) {
         delay = number(line.substr(6));
     } else {
         if (!line.starts_with("RUN "))
@@ -145,7 +167,10 @@ std::string Bench::command(std::string_view line) {
         state_ = "failed";
         return error("stop_failed");
     }
-    const auto job = frame ? diagnostic_frame() : tone(index, duration);
+    auto job = frame ? diagnostic_frame() : tone(index, duration);
+    if (symbols)
+        for (unsigned i = 0; i < symbols->size(); ++i)
+            job.events[i].frequency_nhz = base_nhz + (*symbols)[i] * spacing_nhz;
     if (!engine_.prepare(job).accepted)
         return error("prepare_failed");
     // Preparation can be expensive: choose the epoch only after it completes.

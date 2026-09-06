@@ -5,17 +5,20 @@ import unittest
 from pathlib import Path
 import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
+from decode_rf_wspr import audio_from_iq
 from measure_rf_bench import BASE, SPACING, SYMBOL, measure, phase_fit
 
 RATE = 10000
 CENTER = BASE - 2000
 
-def capture(frame=False, gap=False, wrong=False, duration=2, delayed_boundary=False):
+def capture(frame=False, gap=False, wrong=False, duration=2, delayed_boundary=False, symbols=None):
     length = 162 * SYMBOL if frame else duration
     n = round(length * RATE)
     rng = np.random.default_rng(9)
     iq = (rng.normal(size=n + 2 * RATE) + 1j * rng.normal(size=n + 2 * RATE)) * 1e-5
     tones = (np.floor(np.arange(n) / RATE / SYMBOL).astype(int) % 4) if frame else np.zeros(n)
+    if symbols is not None:
+        tones = np.array(symbols)[np.minimum(161, np.floor(np.arange(n) / RATE / SYMBOL).astype(int))]
     if delayed_boundary:
         tones[round(SYMBOL*RATE):round((SYMBOL+.02)*RATE)] = 0
     if wrong:
@@ -27,6 +30,19 @@ def capture(frame=False, gap=False, wrong=False, duration=2, delayed_boundary=Fa
     return iq
 
 class Tests(unittest.TestCase):
+    def test_decode_audio_preserves_frequency_and_time(self):
+        audio = audio_from_iq(capture(), RATE, CENTER)
+        self.assertEqual(len(audio), 120 * 12000)
+        segment = audio[14400:33600].astype(float)
+        # The capture's +7.25 Hz remains in audio; no reference subtraction.
+        spectrum = np.abs(np.fft.rfft(segment * np.hanning(len(segment))))
+        frequency = np.fft.rfftfreq(len(segment), 1/12000)[np.argmax(spectrum)]
+        self.assertAlmostEqual(frequency, 1507.25, delta=0.4)
+        self.assertLess(np.max(np.abs(audio[:6000])), 100)
+        self.assertEqual(np.max(np.abs(audio[60000:])), 0)
+        with self.assertRaises(ValueError):
+            audio_from_iq(np.zeros(20000, complex), RATE, CENTER)
+
     def test_tone_frequency(self):
         result = measure(capture(), RATE, CENTER, duration_s=2)
         self.assertTrue(result['relative_checks_passed'], result['issues'])
@@ -47,6 +63,15 @@ class Tests(unittest.TestCase):
         self.assertTrue(result['relative_checks_passed'], result['issues'])
         self.assertEqual(len(result['measurements']), 162)
         self.assertAlmostEqual(result['tone_spacing_hz'], SPACING, places=3)
+    def test_encoded_repeated_symbols(self):
+        symbols = np.random.default_rng(14).integers(0, 4, 162).tolist()
+        result = measure(capture(frame=True, symbols=symbols), RATE, CENTER, frame=True, symbols=symbols)
+        self.assertTrue(result['relative_checks_passed'], result['issues'])
+        self.assertEqual(len(result['transitions']), sum(a != b for a, b in zip(symbols, symbols[1:])))
+        self.assertAlmostEqual(result['tone_spacing_hz'], SPACING, places=3)
+        with self.assertRaises(ValueError):
+            measure(capture(), RATE, CENTER, frame=True, symbols=[0]*161)
+
     def test_delayed_symbol_boundary(self):
         result = measure(capture(frame=True, delayed_boundary=True), RATE, CENTER, frame=True)
         self.assertFalse(result['relative_checks_passed'])

@@ -11,7 +11,9 @@ on the Pico. The [clock comparison](docs/development/rf-clock-validation.md)
 selects a 138 MHz experimental clock with 1.530 ms measured refill. [Full synthetic frames, GPSDO
 comparison and abort/rearm](docs/development/rf-frame-validation.md) have been
 received on wspr5. Clock selection suppresses the original nearby alias;
-settling and close-in 120 Hz sidebands remain under investigation. The standard firmware retains its inhibited engine. Calibrated timing,
+[Encoded WSPR frames](docs/development/rf-wspr-validation.md) now decode
+independently from wspr5 captures. Optional RF warmup improves measured settling.
+The measured close-in sidebands meet the operator's better-than-WsprryPi benchmark. The standard firmware retains its inhibited engine. Calibrated timing,
 spectra and supported engine/mode/band qualification remain open.
 
 - [Accepted architecture](docs/architecture.md)

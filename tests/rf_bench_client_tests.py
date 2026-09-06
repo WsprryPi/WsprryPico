@@ -15,12 +15,12 @@ class Fake:
             return dict(ok=True, product='WsprryPico-RFBench', serial=self.identity,
                         utc_synchronized=False, revision='test')
         if command == 'CAPS':
-            return dict(ok=True, interface='pico-rf-bench/1', engine='pio-dma-gp2', frame='cycle4-162', correction_ppb_range=[-100000,100000])
+            return dict(ok=True, interface='pico-rf-bench/1', engine='pio-dma-gp2', wspr='type1', frame='cycle4-162', correction_ppb_range=[-100000,100000])
         if command.startswith('CORRECTION '):
             return dict(ok=True, correction_ppb=int(command.split()[1]), output_active=False)
         if command == 'STOP':
             return dict(ok=True, state=self.cleanup, output_active=False)
-        if command.startswith(('RUN ', 'FRAME ')):
+        if command.startswith(('RUN ', 'FRAME ', 'WSPR ')):
             if self.fail:
                 raise TimeoutError('lost response')
             return dict(ok=True, state='complete', output_active=False)
@@ -53,6 +53,15 @@ class Tests(unittest.TestCase):
         with self.assertRaises(ValueError):
             execute(fake, 'RUN 0 1 100', 2, 'abc', 'test', correction_ppb=100001)
         self.assertNotIn('RUN 0 1 100', fake.commands)
+    def test_encoded_success_and_timeout_cleanup(self):
+        fake = Fake()
+        self.assertTrue(execute(fake, 'WSPR AA0NT EM18 20 100', 120, 'abc', 'test')['completed'])
+        self.assertEqual(fake.commands[-1], 'STOP')
+        fake = Fake(fail=True)
+        with self.assertRaises(TimeoutError):
+            execute(fake, 'WSPR AA0NT EM18 20 100', 120, 'abc', 'test')
+        self.assertEqual(fake.commands[-1], 'STOP')
+
     def test_frame_success(self):
         fake = Fake()
         self.assertTrue(execute(fake, 'FRAME 100', 120, 'abc', 'test')['completed'])

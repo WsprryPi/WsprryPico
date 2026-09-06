@@ -17,6 +17,7 @@ class Hardware final : public rf::PioDmaHardware {
     Handler handler = nullptr;
     void* context = nullptr;
     std::uint64_t time = 1'000'000, epoch = 0, sequence = 0;
+    bool launch_on_unlock = false;
     bool enabled = false, busy = false, repeat = false, txstall = false;
     bool fail_open = false, fail_dma = false, fail_alarm = false, fail_halt = false;
     unsigned opened = 0, launches = 0, depth = 0;
@@ -35,6 +36,10 @@ class Hardware final : public rf::PioDmaHardware {
     void unlock(std::uint32_t previous) override {
         CHECK(depth == previous + 1);
         --depth;
+        if (depth == 0 && launch_on_unlock) {
+            launch_on_unlock = false;
+            alarm_event(1);
+        }
     }
     bool open(Handler h, void* c) override {
         CHECK(depth > 0);
@@ -353,7 +358,38 @@ void local_launch_test() {
         CHECK(!engine.output_active());
     }
 }
-void refill_test(bool missing_tail = false) {
+void launch_snapshot_test() {
+    Hardware hw;
+    rf::PioDmaSink sink(hw);
+    rf::StreamEngine engine(sink);
+    const auto payload = job(2 * rf::block_samples);
+    CHECK(engine.prepare(payload).accepted);
+    const auto start = hw.time + 1000000;
+    CHECK(engine.begin(payload, start));
+    hw.time = start - 1000;
+    hw.launch_on_unlock = true;
+    const auto snapshot = engine.poll(hw.time);
+    CHECK(hw.enabled); // Alarm fired as the sink released its snapshot lock.
+    CHECK(snapshot.state == wtp::EngineState::Armed && !snapshot.output_active);
+    CHECK(engine.poll(hw.time).state == wtp::EngineState::Running);
+    CHECK(engine.disable(hw.time));
+}
+void more_than_final_pending_test() {
+    Hardware hw;
+    rf::PioDmaSink sink(hw);
+    rf::StreamEngine engine(sink);
+    const auto payload = job(2 * rf::block_samples);
+    CHECK(engine.prepare(payload).accepted);
+    const auto start = hw.time + 1000000;
+    CHECK(engine.begin(payload, start));
+    hw.time = start;
+    hw.alarm_event(1);
+    hw.time = start + payload.total_duration_ns + 61000;
+    // Two outstanding blocks cannot use the final-acknowledgement allowance.
+    CHECK(engine.poll(hw.time).state == wtp::EngineState::Failed);
+    CHECK(!engine.output_active());
+}
+void refill_test(bool missing_tail = false, bool delayed_final_data = false) {
     Hardware hw;
     rf::PioDmaSink sink(hw);
     rf::StreamEngine engine(sink);
@@ -374,6 +410,19 @@ void refill_test(bool missing_tail = false) {
         const auto samples = oracle.render(expected);
         CHECK(hw.count == (samples + 31) / 32 && !hw.repeat);
         CHECK(std::equal(expected.begin(), expected.begin() + hw.count, hw.data));
+        if (block == 4 && delayed_final_data) {
+            // Hardware may already have drained the final block while its IRQ
+            // is still pending. Progress is conservative until that IRQ runs.
+            hw.time = start + payload.total_duration_ns + 61000;
+            CHECK(engine.poll(hw.time).state == wtp::EngineState::Running);
+            if (missing_tail) {
+                hw.time = start + payload.total_duration_ns + 100001;
+                CHECK(engine.poll(hw.time).state == wtp::EngineState::Failed);
+                CHECK(!engine.output_active());
+                CHECK(engine.disable(hw.time));
+                return;
+            }
+        }
         // DMA delivers a block slightly ahead of its last sample leaving the FIFO.
         hw.complete();
         if (block == 0) {
@@ -386,7 +435,7 @@ void refill_test(bool missing_tail = false) {
         }
     }
     CHECK(hw.repeat && hw.count == 10);
-    hw.time = start + ((payload.total_duration_ns + 999) / 1000) * 1000 + 1000;
+    hw.time = start + payload.total_duration_ns + 70000;
     CHECK(engine.poll(hw.time).state == wtp::EngineState::Running);
     if (missing_tail) {
         hw.time = start + payload.total_duration_ns + 100001;
@@ -406,8 +455,12 @@ int main() {
         queue_test();
         failures_test();
         local_launch_test();
+        launch_snapshot_test();
+        more_than_final_pending_test();
         refill_test();
         refill_test(true);
+        refill_test(false, true);
+        refill_test(true, true);
         std::cout << "PIO/DMA checks passed\n";
     } catch (const std::exception& e) {
         std::cerr << e.what() << '\n';
