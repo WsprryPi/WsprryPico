@@ -1,16 +1,17 @@
 # Portable experimental RF stream
 
-Status: first Step 8 software slice implemented and host-tested. The library
-also cross-compiles with the pinned Arm toolchain. **No physical sink, PIO
-program, DMA driver or live firmware connection exists.** RP2350 throughput,
-launch timing, electrical behavior and RF remain unqualified. The Pico firmware
-still uses `InhibitedRfEngine` and its existing unsynchronized clock.
+Status: portable Step 8 stream and [PIO/DMA sink](pio-dma-driver.md) implemented
+and host-tested; the SDK driver also cross-links with the pinned Arm toolchain.
+RP2350 throughput, launch timing, electrical behavior and RF remain unqualified.
+The standard Pico firmware still uses `InhibitedRfEngine` and its existing
+unsynchronized clock.
 
 ## Implemented scope
 
 `src/rf/waveform.*` plans and generates the four initial 80 m study tones.
 `src/rf/stream_engine.*` implements `RfEngine` using an abstract `BlockSink`;
-`tests/rf_stream_tests.cpp` supplies the only sink implementation, a host fake.
+`src/rf/pio_dma_sink.*` supplies its peripheral controller, with the Pico SDK
+port under `src/rf/pico/`. Tests also use deterministic fake hardware.
 The C++20 library is a separate CMake target, `wsprrypico_rf`. It is deliberately
 not linked into `WsprryPico`, and it adds no WTP capabilities or protocol changes.
 
@@ -76,11 +77,11 @@ must reject stale completions across stop/rearm at the sink boundary too.
 
 Use one serialized owner for all engine calls. Both engine and sink must remain
 alive until successful disable; destruction is not an output-stop mechanism.
-The interface is not an ISR-safe concurrency implementation. Future interrupt
-communication needs explicit atomic/ownership design. The current job service
-calls `begin` at the start epoch; that polling path does not establish precise
-hardware launch. A physical adapter will need reviewed prearming/local trigger
-integration before any start-time claim.
+The concrete PIO/DMA controller serializes same-core IRQ and foreground access.
+The job service prearms engines advertising local scheduling during ARM; the
+local alarm rechecks the immutable clock conditions before launch. Legacy and
+inhibited engines retain their foreground `begin` path. The clock snapshot must
+be IRQ-safe and outlive the active engine. Physical timing remains unmeasured.
 
 ## Memory and processing budget
 
@@ -89,7 +90,7 @@ For the pinned Arm GCC 15.3.1 ABI, the cross-build inspection gives:
 | Item | Bytes / boundary |
 |---|---:|
 | Two waveform buffers, included in engine | 131072 |
-| Complete `StreamEngine` object | 133896 |
+| Complete `StreamEngine` object | 133936 |
 | `Plan`, included in engine | 2608 |
 | Copied event payload at 162 events, additional heap | 6480 |
 | Generator's compiler-reported local stack frame | 80 |
@@ -171,9 +172,9 @@ honor the allocation and timing constraints.
 
 ## Remaining Step 8 work
 
-Review the [output/inhibit proposal](rf-output-design.md), implement the physical
-sink and precise local launch path, prove generation/resource budgets on the
-specified target. The operator decides when to transmit and which parts of the
+Integrate the driver in an experimental target runner, review the
+[output/inhibit proposal](rf-output-design.md), and measure generation, interrupt
+and memory budgets on the specified target. The operator decides when to transmit and which parts of the
 [conducted measurement plan](rf-measurement-plan.md) to use. Output circuitry,
 filtering and target timing remain engineering work; independent stop circuitry
 is an optional design choice, not a transmission prerequisite. This software slice

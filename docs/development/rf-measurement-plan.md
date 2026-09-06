@@ -7,6 +7,17 @@ No cable, SDR operation, flashing, GPIO action or RF output is needed to complet
 Step 7. The [feasibility decision](../rf-feasibility.md) selects an experimental
 PIO/DMA candidate; it does not establish a safe output circuit or qualified RF.
 
+## Selected receiver and reusable tooling
+
+The operator selected the SDR on `wspr5` for reception. Identify the actual
+receiver and current configuration when preparing the run. The Qualification
+Harness provides exact-count CF32 capture, capture metadata validation and
+RF-off/RF-on `analyze-carrier` comparison; its existing complete transmitter
+campaign does not implement Pico/WTP control. Reuse receiver capture and offline
+analysis with Pico job/firmware provenance recorded separately. Consult the
+installed CLI help for the actual capture invocation. No receiver operation has
+been performed as part of the driver software slice.
+
 ## Setup record for interpreting results
 
 Record the following in the run manifest; identify unknowns as limitations:

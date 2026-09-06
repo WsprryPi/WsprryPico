@@ -76,11 +76,21 @@ faults and job-service integration; the library also cross-compiles for Arm.
 The [output/inhibit design](development/rf-output-design.md) is a proposal,
 with electrical/filter details and qualification still pending.
 
-## Next slice: physical adapter and target readiness
+## Completed second Step 8 software slice
 
-Implement the PIO/DMA sink and precise local launch integration; finalize and
-review the output/inhibit circuit and filtering; verify memory and processing
-budgets on the exact target. Step 8 remains incomplete. The operator decides
+The [PIO/DMA driver](development/pio-dma-driver.md) implements GP2 output,
+finite buffer handoff, final zero clearing and local timer launch. The job service
+can prearm local engines while preserving existing WTP clock and missed-start
+semantics. Host fault/sequence tests pass and the actual SDK driver links for
+Pico 2 W. No physical transmission was performed for this slice.
+
+## Next slice: target integration and measurements
+
+Integrate an experimental target runner with truthful capabilities and clock
+handling; measure refill/IRQ latency and memory under load. Resolve the operator's
+output circuit and filtering. Use the SDR on `wspr5` for reception, reusing the
+Harness capture/offline analysis where applicable (its WsprryPi campaign does
+not currently control Pico/WTP). Step 8 remains incomplete. The operator decides
 when to transmit and which hardware measurements to run. The portable library
 is not selected by the Pico firmware, and host tests/cross-builds do not establish
 physical RF behavior.
@@ -104,6 +114,6 @@ The firmware builds for Pico 2 W. The portable core and WTP USB endpoint are
 host-tested, and bounded target USB validation passes on the recorded Pico 2 W
 and Mac. No RF transmission or target timing qualification has occurred.
 Supported bands and final engine promotion remain open; the experimental
-PIO/DMA candidate has a portable implementation but no physical sink or target
-performance validation. WTP/1 schemas are
+PIO/DMA candidate has a cross-linked physical driver but no target performance
+validation. WTP/1 schemas are
 normative; changes to them require an explicit protocol-contract revision.

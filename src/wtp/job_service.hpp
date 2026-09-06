@@ -60,7 +60,14 @@ struct Job {
     bool operator==(const Job&) const = default;
 };
 
-enum class EngineState { Idle, Armed, Running, Complete, Failed };
+enum class EngineState { Idle, Armed, Running, Complete, Failed, Missed };
+
+struct LocalStartConditions {
+    const Clock* clock = nullptr;
+    std::uint64_t start_utc_ns = 0;
+    std::uint64_t maximum_uncertainty_ns = 0;
+    std::uint64_t maximum_holdover_age_ns = 0;
+};
 
 struct EngineReport {
     EngineState state = EngineState::Idle;
@@ -84,6 +91,12 @@ class RfEngine {
   public:
     virtual ~RfEngine() = default;
     virtual PrepareResult prepare(const Job& job) = 0;
+    [[nodiscard]] virtual bool schedules_locally() const {
+        return false;
+    }
+    virtual bool schedule(const Job&, std::uint64_t, const LocalStartConditions&) {
+        return false;
+    }
     virtual bool begin(const Job& job, std::uint64_t start_monotonic_ns) = 0;
     [[nodiscard]] virtual EngineReport poll(std::uint64_t monotonic_now_ns) = 0;
     virtual bool disable(std::uint64_t deadline_monotonic_ns) = 0;
@@ -248,6 +261,7 @@ class JobService {
         std::uint64_t max_uncertainty_ns;
         std::uint64_t start_monotonic_ns;
         Response response;
+        bool scheduled_locally = false;
     };
     struct RetainedJob {
         std::string job_id;

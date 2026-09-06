@@ -404,8 +404,23 @@ Response JobService::dispatch(const Request& request) {
         response.start_monotonic_ns = start_monotonic_ns;
         response.start_utc_ns = body->start_utc_ns;
         response.clock_snapshot = now;
-        arm_ = ArmRecord{body->job_id, body->start_utc_ns, body->max_start_uncertainty_ns,
-                         start_monotonic_ns, response};
+        arm_ = ArmRecord{body->job_id,       body->start_utc_ns, body->max_start_uncertainty_ns,
+                         start_monotonic_ns, response,           engine_.schedules_locally()};
+        if (arm_->scheduled_locally &&
+            (!engine_.schedule(
+                 *job_, start_monotonic_ns,
+                 {&clock_, body->start_utc_ns,
+                  std::min(body->max_start_uncertainty_ns, config_.maximum_arm_uncertainty_ns),
+                  config_.maximum_holdover_age_ns}) ||
+             engine_.output_active())) {
+            arm_.reset();
+            const auto stopped = engine_.disable(
+                saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns));
+            const auto error = stopped && !engine_.output_active() ? ErrorCode::DeviceFault
+                                                                   : ErrorCode::OutputStateUnknown;
+            record_terminal(State::Failed, error, now.monotonic_now_ns);
+            return reject(error);
+        }
         return response;
     }
 
@@ -445,6 +460,17 @@ void JobService::poll() {
     expire_resources(now.monotonic_now_ns);
     prune_replay(now.monotonic_now_ns);
     prune_terminals(now.monotonic_now_ns);
+    std::optional<EngineReport> local_report;
+    if (state_ == State::Armed && arm_ && job_ && arm_->scheduled_locally) {
+        const auto report = engine_.poll(now.monotonic_now_ns);
+        local_report = report;
+        if (report.state == EngineState::Armed && !report.output_active) {
+            return;
+        }
+        // The local engine has launched, missed, or failed. Process its terminal
+        // report below; foreground polling is not the launch trigger.
+        state_ = State::Running;
+    }
     if (state_ == State::Armed && arm_ && job_) {
         if (now.monotonic_now_ns < arm_->start_monotonic_ns) {
             return;
@@ -496,8 +522,16 @@ void JobService::poll() {
     if (state_ != State::Running) {
         return;
     }
-    const auto report = engine_.poll(now.monotonic_now_ns);
-    if (report.state == EngineState::Failed) {
+    const auto report = local_report ? *local_report : engine_.poll(now.monotonic_now_ns);
+    if (report.state == EngineState::Missed) {
+        if (!engine_.disable(
+                saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) ||
+            engine_.output_active()) {
+            record_terminal(State::Failed, ErrorCode::OutputStateUnknown, now.monotonic_now_ns);
+        } else {
+            record_terminal(State::Missed, ErrorCode::MissedStart, now.monotonic_now_ns);
+        }
+    } else if (report.state == EngineState::Failed) {
         if (!engine_.disable(
                 saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) ||
             engine_.output_active()) {
@@ -528,6 +562,9 @@ void JobService::poll() {
 
 void JobService::reset() {
     const auto now = clock_.snapshot();
+    const auto stopped =
+        engine_.disable(saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) &&
+        !engine_.output_active();
     sessions_.clear();
     owner_.reset();
     job_.reset();
@@ -539,10 +576,7 @@ void JobService::reset() {
     state_ = State::Empty;
     const auto previous_boot_id = boot_id_;
     boot_id_ = identities_.new_boot_id();
-    ready_ =
-        valid_id(boot_id_) && boot_id_ != previous_boot_id &&
-        engine_.disable(saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) &&
-        !engine_.output_active();
+    ready_ = valid_id(boot_id_) && boot_id_ != previous_boot_id && stopped;
     if (!ready_) {
         state_ = State::Failed;
     }

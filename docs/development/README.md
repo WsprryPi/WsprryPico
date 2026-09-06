@@ -35,6 +35,8 @@ image memory-layout checks and an opt-in read-only USB probe.
 
 The [portable RF stream guide](rf-stream.md) covers the experimental generator,
 streaming adapter, host benchmark, sanitizers and Arm library cross-build.
+The [PIO/DMA driver guide](pio-dma-driver.md) covers the SDK port, local launch,
+resource ownership, host fault tests and the link-only target.
 The [output/inhibit design](rf-output-design.md) remains a hardware proposal.
 
 ## Current checks

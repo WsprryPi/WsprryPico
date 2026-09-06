@@ -4,14 +4,24 @@
 
 namespace wsprrypico::rf {
 
+struct LaunchGuard {
+    bool (*check)(void*) = nullptr;
+    void* context = nullptr;
+    [[nodiscard]] bool ready() const {
+        return !check || check(context);
+    }
+};
+
 struct SinkReport {
     wtp::EngineState state = wtp::EngineState::Idle;
     std::uint64_t epoch = 0;
     std::uint64_t completed_blocks = 0;
     std::uint64_t consumed_samples = 0;
+    // IRQ-driven sinks sample time together with state after acquiring their lock.
+    std::optional<std::uint64_t> observed_monotonic_ns = {};
 };
 
-// No physical implementation exists. stop() must release all submitted spans
+// stop() must release all submitted spans
 // synchronously on success. The owner must successfully disable before destroying
 // either engine or sink. Calls are serialized, not concurrent/ISR-safe. Progress is ordered,
 // epoch-bound and monotonic.
@@ -21,7 +31,11 @@ class BlockSink {
     virtual bool stop(std::uint64_t deadline_ns) = 0;
     virtual bool submit(std::uint64_t epoch, std::uint64_t sequence,
                         std::span<const std::uint32_t> words, std::uint64_t valid_samples) = 0;
-    virtual bool arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t total_samples) = 0;
+    [[nodiscard]] virtual bool schedules_locally() const {
+        return false;
+    }
+    virtual bool arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t total_samples,
+                     LaunchGuard guard = {}) = 0;
     virtual SinkReport poll(std::uint64_t now_ns) = 0;
     [[nodiscard]] virtual bool output_active() const = 0;
 };
@@ -32,6 +46,11 @@ class StreamEngine final : public wtp::RfEngine {
     StreamEngine(const StreamEngine&) = delete;
     StreamEngine& operator=(const StreamEngine&) = delete;
     wtp::PrepareResult prepare(const wtp::Job& job) override;
+    [[nodiscard]] bool schedules_locally() const override {
+        return sink_.schedules_locally();
+    }
+    bool schedule(const wtp::Job& job, std::uint64_t start_ns,
+                  const wtp::LocalStartConditions& conditions) override;
     bool begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) override;
     wtp::EngineReport poll(std::uint64_t monotonic_now_ns) override;
     bool disable(std::uint64_t deadline_monotonic_ns) override;
@@ -40,6 +59,8 @@ class StreamEngine final : public wtp::RfEngine {
     }
 
   private:
+    static bool check_clock(void* context);
+    wtp::LocalStartConditions start_conditions_{};
     bool submit_next(std::size_t slot);
     wtp::EngineReport fail(std::uint64_t now_ns);
     BlockSink& sink_;

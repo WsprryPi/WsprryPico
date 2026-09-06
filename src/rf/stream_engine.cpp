@@ -5,6 +5,51 @@
 
 namespace wsprrypico::rf {
 
+bool StreamEngine::schedule(const wtp::Job& job, std::uint64_t start_ns,
+                            const wtp::LocalStartConditions& conditions) {
+    if (!schedules_locally() || !conditions.clock || state_ != wtp::EngineState::Idle) {
+        return false;
+    }
+    start_conditions_ = conditions;
+    return begin(job, start_ns);
+}
+
+bool StreamEngine::check_clock(void* context) {
+    const auto& self = *static_cast<StreamEngine*>(context);
+    const auto& conditions = self.start_conditions_;
+    const auto now = conditions.clock->snapshot();
+    if (!self.job_ || now.monotonic_now_ns > self.start_ns_ ||
+        now.uncertainty_ns > conditions.maximum_uncertainty_ns ||
+        !(now.state == wtp::ClockState::Synchronized ||
+          (now.state == wtp::ClockState::Holdover && conditions.maximum_holdover_age_ns > 0 &&
+           now.sync_age_ns <= conditions.maximum_holdover_age_ns))) {
+        return false;
+    }
+    const auto lead = self.start_ns_ - now.monotonic_now_ns;
+    const auto limit = std::numeric_limits<std::uint64_t>::max();
+    if (now.utc_now_ns > limit - lead ||
+        conditions.start_utc_ns > limit - self.job_->total_duration_ns) {
+        return false;
+    }
+    const auto predicted = now.utc_now_ns + lead;
+    const auto error = predicted > conditions.start_utc_ns ? predicted - conditions.start_utc_ns
+                                                           : conditions.start_utc_ns - predicted;
+    const auto pending =
+        now.leap == wtp::LeapState::InsertPending || now.leap == wtp::LeapState::DeletePending;
+    if (error > now.uncertainty_ns || now.leap == wtp::LeapState::Unknown ||
+        pending != now.leap_transition_utc_ns.has_value()) {
+        return false;
+    }
+    if (now.leap_transition_utc_ns) {
+        const auto leap = *now.leap_transition_utc_ns;
+        const auto low = leap > 1'000'000'000 ? leap - 1'000'000'000 : 0;
+        const auto high = leap > limit - 1'000'000'000 ? limit : leap + 1'000'000'000;
+        return conditions.start_utc_ns > high ||
+               conditions.start_utc_ns + self.job_->total_duration_ns < low;
+    }
+    return true;
+}
+
 wtp::PrepareResult StreamEngine::prepare(const wtp::Job& job) {
     if (state_ != wtp::EngineState::Idle || output_active()) {
         return {};
@@ -57,7 +102,9 @@ bool StreamEngine::begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) 
     start_ns_ = start_monotonic_ns;
     end_ns_ = start_ns_ + job.total_duration_ns;
     last_poll_ns_ = 0;
-    if (!submit_next(0) || !submit_next(1) || !sink_.arm(epoch_, start_ns_, plan_.total_samples)) {
+    if (!submit_next(0) || !submit_next(1) ||
+        !sink_.arm(epoch_, start_ns_, plan_.total_samples,
+                   start_conditions_.clock ? LaunchGuard{check_clock, this} : LaunchGuard{})) {
         (void)fail(start_ns_);
         return false;
     }
@@ -77,6 +124,12 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
         return {state_, output_active()};
     }
     const auto report = sink_.poll(now_ns);
+    if (report.observed_monotonic_ns) {
+        if (*report.observed_monotonic_ns < now_ns) {
+            return fail(now_ns);
+        }
+        now_ns = *report.observed_monotonic_ns;
+    }
     if (now_ns < last_poll_ns_ || report.epoch != epoch_ || report.completed_blocks < completed_ ||
         report.completed_blocks > submitted_ || report.consumed_samples < consumed_ ||
         report.consumed_samples > plan_.total_samples ||
@@ -96,6 +149,13 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
         return fail(now_ns);
     }
     last_poll_ns_ = now_ns;
+    if (report.state == wtp::EngineState::Missed) {
+        if (report.consumed_samples != 0 || output_active()) {
+            return fail(now_ns);
+        }
+        state_ = wtp::EngineState::Missed;
+        return {state_, false};
+    }
     if (report.state == wtp::EngineState::Complete) {
         if (now_ns < end_ns_ || report.consumed_samples != plan_.total_samples ||
             report.completed_blocks != submitted_ || waveform_.position() != plan_.total_samples ||
@@ -131,6 +191,7 @@ bool StreamEngine::disable(std::uint64_t deadline_monotonic_ns) {
     }
     state_ = wtp::EngineState::Idle;
     job_.reset();
+    start_conditions_ = {};
     valid_ = {};
     return true;
 }

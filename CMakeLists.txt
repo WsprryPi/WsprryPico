@@ -55,7 +55,7 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
 endif()
 
 # Portable experimental RF library; not linked into the inhibited firmware.
-add_library(wsprrypico_rf src/rf/waveform.cpp src/rf/stream_engine.cpp)
+add_library(wsprrypico_rf src/rf/waveform.cpp src/rf/stream_engine.cpp src/rf/pio_dma_sink.cpp)
 target_link_libraries(wsprrypico_rf PUBLIC wsprrypico_core)
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(wsprrypico_rf PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -64,8 +64,28 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
     target_compile_options(wsprrypico_rf PRIVATE -fstack-usage -fno-exceptions -fno-rtti)
 endif()
 
+if(WSPRRY_PICO_BUILD_FIRMWARE)
+    add_library(wsprrypico_pico_rf src/rf/pico/pico_pio_dma.cpp)
+    target_link_libraries(wsprrypico_pico_rf PUBLIC wsprrypico_rf hardware_pio hardware_dma
+                          hardware_timer hardware_irq hardware_clocks pico_stdlib)
+    set_source_files_properties(src/rf/pico/pico_pio_dma.cpp PROPERTIES
+        COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;-Werror;-fno-exceptions;-fno-rtti;-fstack-usage")
+    pico_generate_pio_header(wsprrypico_pico_rf ${CMAKE_SOURCE_DIR}/src/rf/pico/packed_output.pio)
+    add_executable(rf_driver_linkcheck EXCLUDE_FROM_ALL tests/pico_driver_linkcheck.cpp)
+    target_link_libraries(rf_driver_linkcheck PRIVATE wsprrypico_pico_rf)
+    # SDK C sources require GNU asm extensions; owned C++ remains strict C++20.
+    set_target_properties(wsprrypico_pico_rf rf_driver_linkcheck PROPERTIES
+                          C_STANDARD 11 C_STANDARD_REQUIRED ON C_EXTENSIONS ON)
+endif()
+
 if(WSPRRY_PICO_BUILD_TESTS)
     enable_testing()
+    add_executable(pio_dma_tests tests/pio_dma_tests.cpp)
+    target_link_libraries(pio_dma_tests PRIVATE wsprrypico_rf)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(pio_dma_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+    add_test(NAME pio_dma_tests COMMAND pio_dma_tests)
     add_executable(rf_stream_tests tests/rf_stream_tests.cpp)
     target_link_libraries(rf_stream_tests PRIVATE wsprrypico_rf)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")

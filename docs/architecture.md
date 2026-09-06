@@ -24,11 +24,13 @@ Preserve WsprryPi encoder and scheduler concepts while adapting platform depende
 
 The [RF feasibility study](rf-feasibility.md) selects PIO/DMA packed-bit GPIO
 synthesis for experimental implementation, with Si5351 as an alternative.
-No production engine or band range is qualified. Pin and clock allocations in
-the study are proposals; the firmware remains RF-inhibited. The
+No production engine or band range is qualified. The experimental driver fixes
+GP2 and a 150 MHz sample clock; the standard firmware remains RF-inhibited. The
 [portable stream library](development/rf-stream.md) implements planning, waveform
 generation and an abstract-sink adapter separately from the firmware. The
-physical PIO/DMA sink and precise local launch integration remain pending.
+[PIO/DMA sink and local timer launch](development/pio-dma-driver.md) are
+implemented and cross-linked; firmware integration and target timing validation
+remain pending.
 
 ## Browser UI
 
@@ -51,7 +53,7 @@ console diagnostics from WTP framing. The [USB adapter contract](development/usb
 defines bounded servicing and connection semantics; logging must never enter WTP.
 The [strict WTP endpoint](development/wtp-endpoint.md) performs JSON validation,
 request dispatch and ordered response/event transmission. Browser handlers, the
-standalone scheduler and target RF engines remain to be implemented.
+standalone scheduler and target RF firmware integration remain to be implemented.
 
 Standalone execution needs local encoding, persistent station/schedule configuration and time acquisition without WsprryPi. Host operation may accept already encoded jobs. Both paths converge before engine preparation.
 

@@ -1,0 +1,5 @@
+.program packed_output
+; LSB-first packed samples, one OUT per clk_sys tick. Autopull supplies words.
+.wrap_target
+    out pins, 1
+.wrap

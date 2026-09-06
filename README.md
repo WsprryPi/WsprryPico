@@ -4,17 +4,17 @@ WsprryPico is a first-class standalone WSPR/QRSS transmitter application in the 
 
 Status: normative WTP/1 contract, host-tested portable core, and an RF-inhibited
 Pico 2 W WTP USB endpoint. [Bounded target USB validation](docs/development/usb-target-validation.md)
-passes on the recorded board and Mac. No physical RF engine is implemented;
-timing and RF behavior remain unqualified. The hardware-free RF study selects
-PIO/DMA GPIO synthesis as the experimental candidate. Its portable generator
-and streaming adapter are host-tested and Arm-cross-compiled; physical output
-and target performance remain pending.
+passes on the recorded board and Mac. The experimental GP2 PIO/DMA driver,
+portable waveform generator and local launch integration are host-tested and
+Arm-cross-linked. They are not selected by the standard firmware. Target refill
+performance, launch timing, electrical behavior and RF remain unqualified.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)
 - [Browser API direction](docs/browser-api.md)
 - [RF feasibility investigation](docs/rf-feasibility.md)
 - [Implementation plan](docs/implementation-plan.md)
+- [PIO/DMA driver](docs/development/pio-dma-driver.md)
 - [Portable RF stream](docs/development/rf-stream.md)
 - [Portable core development](docs/development/portable-core.md)
 - [Pico 2 W firmware foundation](docs/development/firmware-foundation.md)

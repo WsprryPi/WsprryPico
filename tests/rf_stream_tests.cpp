@@ -106,7 +106,8 @@ class TestSink final : public rf::BlockSink {
         report.epoch = epoch;
         return true;
     }
-    bool arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t samples) override {
+    bool arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t samples,
+             rf::LaunchGuard = {}) override {
         if (reject_arm) {
             return false;
         }
