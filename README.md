@@ -7,10 +7,11 @@ Pico 2 W WTP USB endpoint. [Bounded target USB validation](docs/development/usb-
 passes on the recorded board and Mac. The experimental GP2 PIO/DMA driver,
 portable waveform generator and local launch integration are host-tested and
 Arm-cross-linked. A separate [RF bench](docs/development/rf-bench.md) now runs
-on the Pico: measured refill is 1.507 ms. [Full synthetic frames, GPSDO
+on the Pico. The [clock comparison](docs/development/rf-clock-validation.md)
+selects a 138 MHz experimental clock with 1.530 ms measured refill. [Full synthetic frames, GPSDO
 comparison and abort/rearm](docs/development/rf-frame-validation.md) have been
-received on wspr5; measured offset, drift residual and an in-band feature remain
-to investigate. The standard firmware retains its inhibited engine. Calibrated timing,
+received on wspr5. Clock selection suppresses the original nearby alias;
+settling and close-in 120 Hz sidebands remain under investigation. The standard firmware retains its inhibited engine. Calibrated timing,
 spectra and supported engine/mode/band qualification remain open.
 
 - [Accepted architecture](docs/architecture.md)

@@ -1,6 +1,7 @@
 #include "rf/waveform.hpp"
 
 #include <algorithm>
+#include <numeric>
 
 namespace wsprrypico::rf {
 namespace {
@@ -9,9 +10,12 @@ std::optional<std::uint64_t> samples_at(std::uint64_t ns) {
     if (ns > max_duration_ns) {
         return std::nullopt;
     }
-    // Exact 150 MHz ratio: three samples per 20 ns. Multiplication is bounded.
-    const auto samples = (ns * 3 + 10) / 20;
-    if ((samples * 20 + 1) / 3 != ns) {
+    // Reduce before multiplication: bounded even for the maximum frame duration.
+    constexpr auto common = std::gcd(sample_rate, 1'000'000'000ULL);
+    constexpr auto numerator = sample_rate / common;
+    constexpr auto denominator = 1'000'000'000ULL / common;
+    const auto samples = (ns * numerator + denominator / 2) / denominator;
+    if ((samples * denominator + numerator / 2) / numerator != ns) {
         return std::nullopt;
     }
     return samples;

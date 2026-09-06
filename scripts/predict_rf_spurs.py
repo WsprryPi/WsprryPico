@@ -9,11 +9,14 @@ RATE = 150000000
 INCREMENT = 102223085
 
 
-def corrected_increment(ppb):
+def corrected_increment(ppb, rate=RATE):
+    if rate not in range(120000000, 150000001, 3000000):
+        raise ValueError('Unsupported study clock')
     if not -100000 <= ppb <= 100000:
         raise ValueError('Correction outside supported range')
     divisor = 1000000000 + ppb
-    return (INCREMENT * 1000000000 + divisor // 2) // divisor
+    increment = (3570100 * (1 << 32) + rate // 2) // rate
+    return (increment * 1000000000 + divisor // 2) // divisor
 
 
 def alias(increment, harmonic, rate=RATE):
@@ -21,10 +24,12 @@ def alias(increment, harmonic, rate=RATE):
     return min(phase, (1 << 32) - phase) * rate / (1 << 32)
 
 
-def simulate(ppb, duration=.1, center=3550000):
-    increment = corrected_increment(ppb)
-    factor = 500
-    count = round(duration * RATE / factor)
+def simulate(ppb, duration=.1, center=3550000, sample_rate=RATE, harmonics=(1, 41, 43)):
+    if sample_rate not in range(120000000, 150000001, 3000000):
+        raise ValueError('Unsupported study clock')
+    increment = corrected_increment(ppb, sample_rate)
+    factor = sample_rate // 300000
+    count = round(duration * sample_rate / factor)
     iq = np.empty(count, dtype=complex)
     weights = np.hanning(factor)
     weights /= weights.sum()
@@ -34,18 +39,18 @@ def simulate(ppb, duration=.1, center=3550000):
         # Independent per-sample oracle, as used to test the C++ packed generator.
         bits = ((indexes * np.uint64(increment)) & np.uint64(0xffffffff)) >> np.uint64(31)
         wave = 2*bits.astype(float)-1
-        mixed = wave * np.exp(-2j*np.pi*center*indexes.astype(float)/RATE)
+        mixed = wave * np.exp(-2j*np.pi*center*indexes.astype(float)/sample_rate)
         iq[block:last//factor] = mixed.reshape(-1, factor) @ weights
-    rate = RATE/factor
+    rate = sample_rate/factor
     power = np.abs(np.fft.fft(iq*np.hanning(count)))**2
     bins = center + np.fft.fftfreq(count, 1/rate)
-    main = alias(increment, 1)
+    main = alias(increment, 1, sample_rate)
     fundamental = float(power[np.abs(bins-main)<30].max())
-    result = dict(correction_ppb=ppb, increment=increment, nominal_sample_rate_hz=RATE,
+    result = dict(correction_ppb=ppb, increment=increment, nominal_sample_rate_hz=sample_rate,
                   duration_s=duration, bin_width_hz=rate/count, qualification=False,
                   model='MSB of 32-bit phase accumulator, plus Hann integrate/decimate', features=[])
-    for harmonic in (1, 41, 43):
-        frequency = alias(increment, harmonic)
+    for harmonic in harmonics:
+        frequency = alias(increment, harmonic, sample_rate)
         candidates = np.flatnonzero(np.abs(bins-frequency)<30)
         best = candidates[np.argmax(power[candidates])]
         result['features'].append(dict(harmonic=harmonic, predicted_hz=frequency,

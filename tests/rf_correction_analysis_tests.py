@@ -4,9 +4,27 @@ from pathlib import Path
 import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from analyze_rf_drift import fit_drift
+from compare_rf_clocks import compare
 from predict_rf_spurs import alias, corrected_increment, simulate
 
 class Tests(unittest.TestCase):
+    def test_clock_comparison(self):
+        rows = compare()['clocks']
+        for row in rows:
+            rate = row['sample_rate_hz']
+            self.assertEqual(12000000*row['feedback'], rate*np.prod(row['postdiv']))
+            self.assertEqual(row['symbol_samples']*12000, rate*8192)
+        old = next(r for r in rows if r['sample_rate_hz'] == 150000000)
+        new = next(r for r in rows if r['sample_rate_hz'] == 138000000)
+        self.assertLess(new['nearest_strong_aliases'][0]['ideal_coefficient_dbc'],
+                        old['nearest_strong_aliases'][0]['ideal_coefficient_dbc']-30)
+        model = simulate(2222, sample_rate=138000000, harmonics=(1, 2125, 2127))
+        for feature in model['features']:
+            self.assertLess(abs(feature['predicted_hz']-feature['simulated_peak_hz']), 10)
+        self.assertLess(model['features'][1]['simulated_peak_dbc'], -60)
+        with self.assertRaises(ValueError):
+            corrected_increment(0, 0)
+
     def test_spur_movement(self):
         raw, corrected = corrected_increment(0), corrected_increment(2222)
         self.assertAlmostEqual(alias(corrected,43)-alias(raw,43),

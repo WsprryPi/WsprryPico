@@ -47,7 +47,7 @@ def main():
         p.error('Firmware file does not exist')
     args.output.mkdir(parents=True, exist_ok=False)
     run_id = 'pico-' + uuid.uuid4().hex
-    directory = '/tmp/' + run_id
+    directory = '/var/tmp/' + run_id
     duration = (110.592 if args.frame else args.duration_ms / 1000) + 6
     if args.abort_after_ms is not None:
         duration = args.abort_after_ms / 1000 + 7
@@ -66,6 +66,11 @@ def main():
                    stdout=log, stderr=subprocess.STDOUT)
     try:
         remote(args.receiver_host, ['mkdir', directory], timeout=10)
+        remote(args.receiver_host, ['python3', '-c',
+               'import shutil,sys; free=shutil.disk_usage(sys.argv[1]).free; '
+               'required=int(sys.argv[2]); '
+               'sys.exit(0 if free >= required else \"Insufficient capture disk space\")',
+               directory, str(count * 8 + 32 * 1024 * 1024)], timeout=10)
         if args.gpsdo_reference:
             reference_command(['detail', '-s', '0673ED0FA107'], 'reference-before.log')
             reference_attempted = True

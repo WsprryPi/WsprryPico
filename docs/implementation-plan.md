@@ -113,13 +113,23 @@ controls support an intrinsic sampled-square-wave alias near -33 dBc. The full
 frame still fails the linear residual limit; a separate fit describes a roughly
 0.40 Hz settling transient. Neither finding is silently promoted to a pass.
 
-## Next slice: alias reduction and long-frame stability
+## Completed sixth Step 8 slice: clock and comparison experiments
 
-Investigate generator/clock changes that reduce the nearby alias and improve
-long-frame stability. Then verify an encoded WSPR frame and integrate RF
-capabilities and UTC timing into the production job service. Output/filter
-characterization and heavier load coverage remain open. Step 8 is incomplete;
-the operator chooses hardware measurements and transmissions.
+The [clock validation record](development/rf-clock-validation.md) adds tested
+132/138/150 MHz profiles and selects 138 MHz for the experimental bench. It
+removes the original roughly -33 dBc alias at the recorded frequency. The
+stronger +/-120 Hz sidebands follow a translated carrier and also occur on
+wspr2 GPIO4. CPU activity before a frame did not materially improve settling
+in the tested protocol. Progress arithmetic, completion acknowledgement and
+capture storage checks were repaired and tested.
+
+## Next slice: close-in sidebands and stable frame timing
+
+Investigate the shared 120 Hz pattern with controlled power/ground and receiver
+comparisons, and resolve full-frame settling/transition diagnostics. Then
+verify an encoded WSPR message and integrate production UTC/job-service
+operation. No encoded message was tested in this slice. Step 8 remains open;
+the operator chooses hardware experiments and transmissions.
 
 Before extracting encoder code, inspect WsprryPi licensing and dependencies and record source revision/attribution. Initial candidate files include src/scheduling.hpp, src/scheduling_runtime.cpp and src/tests/wspr_tone_regression_test.cpp; finding them is not a portability review.
 

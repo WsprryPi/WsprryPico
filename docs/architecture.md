@@ -25,7 +25,7 @@ Preserve WsprryPi encoder and scheduler concepts while adapting platform depende
 The [RF feasibility study](rf-feasibility.md) selects PIO/DMA packed-bit GPIO
 synthesis for experimental implementation, with Si5351 as an alternative.
 No production engine or band range is qualified. The experimental driver fixes
-GP2 and a 150 MHz sample clock; the standard firmware remains RF-inhibited. The
+GP2 and a build-selected 132, 138 or 150 MHz sample clock (138 MHz default); the standard firmware remains RF-inhibited. The
 [portable stream library](development/rf-stream.md) implements planning, waveform
 generation and an abstract-sink adapter separately from the firmware. The
 [PIO/DMA sink and local timer launch](development/pio-dma-driver.md) are

@@ -55,15 +55,17 @@ def local_contrast(iq, rate, center, frequency):
                               max(float(np.median(background)), 1e-300)))
 
 
-def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_hz=None):
-    if rate < 10000 or abs(BASE - center) > rate / 2 - 2000:
+def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_hz=None, base_hz=BASE):
+    if not np.isfinite(base_hz):
+        raise ValueError('Expected carrier must be finite')
+    if rate < 10000 or abs(base_hz - center) > rate / 2 - 2000:
         raise ValueError('Requested signal is outside usable capture span')
-    bb, brate = baseband(iq, rate, center)
+    bb, brate = baseband(iq, rate, center, base_hz)
     if len(bb) < brate:
         raise ValueError('Capture needs leading and trailing baseline')
     ref = None
     if reference_hz is not None:
-        if (not np.isfinite(reference_hz) or abs(reference_hz - BASE) < 2000 or
+        if (not np.isfinite(reference_hz) or abs(reference_hz - base_hz) < 2000 or
                 abs(reference_hz - center) > rate / 2 - 2000):
             raise ValueError('Reference is outside usable capture span')
         ref, _ = baseband(iq, rate, center, reference_hz)
@@ -77,7 +79,7 @@ def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_h
     expected = 162 * SYMBOL if frame else duration_s
     report = dict(version=1, qualification=False, calibration_applied=False,
                   workload='cycle4-162' if frame else 'tone', intervals_s=intervals,
-                  expected_duration_s=expected, issues=[], measurements=[],
+                  expected_duration_s=expected, expected_base_hz=base_hz, issues=[], measurements=[],
                   method='Hann integrate/decimate then per-interval linear unwrapped phase fit',
                   limitations=['Receiver clock and frequency axis are uncalibrated.',
                                'Decimator is diagnostic; adjacent interference can bias phase.',
@@ -102,7 +104,7 @@ def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_h
             report['issues'].append(f'Missing segment {index}')
             break
         data = bb[int(round(left * brate)):int(round(right * brate))]
-        result = phase_fit(data, brate)
+        result = phase_fit(data, brate, base_hz)
         if ref is not None:
             reference = phase_fit(ref[int(round(left * brate)):int(round(right * brate))],
                                   brate, reference_hz)
@@ -116,7 +118,7 @@ def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_h
         result.update(index=index, tone=index % 4 if frame else tone, interval_s=[left, right])
         report['measurements'].append(result)
         if (result['phase_residual_rms_rad'] > .15 or result['amplitude_min_ratio'] < .5 or
-                abs(result['indicated_hz'] - BASE) > 100):
+                abs(result['indicated_hz'] - base_hz) > 100):
             report['issues'].append(f'Incoherent, interrupted or out-of-range segment {index}')
     if frame and len(report['measurements']) == 162:
         field = 'reference_compared_hz' if ref is not None else 'indicated_hz'
@@ -130,7 +132,7 @@ def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_h
                       max_symbol_residual_hz=float(np.max(np.abs(residuals))))
         # Symmetric 20 ms phase difference locates each physical tone transition.
         lag = max(1, round(brate * .01))
-        instantaneous = BASE + np.angle(bb[2*lag:] * np.conj(bb[:-2*lag])) * brate / (4*np.pi*lag)
+        instantaneous = base_hz + np.angle(bb[2*lag:] * np.conj(bb[:-2*lag])) * brate / (4*np.pi*lag)
         boundaries = []
         for index in range(1, 162):
             expected_time = start + index * SYMBOL
@@ -169,7 +171,7 @@ def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_h
         frequencies = [m.get('reference_compared_hz', m['indicated_hz']) for m in report['measurements']]
         report['tone_frequency_summary'] = dict(mean_hz=float(np.mean(frequencies)),
             peak_to_peak_hz=float(np.ptp(frequencies)),
-            nominal_offset_hz=float(np.mean(frequencies) - (BASE + tone * SPACING)),
+            nominal_offset_hz=float(np.mean(frequencies) - (base_hz + tone * SPACING)),
             basis='reference_compared_hz' if ref is not None else 'indicated_hz')
         data = np.asarray(iq[round(left * rate):round(right * rate)])
         n = min(len(data), 2097152)
@@ -195,6 +197,7 @@ def main():
     p.add_argument('iq', type=Path)
     p.add_argument('metadata', type=Path)
     p.add_argument('output', type=Path)
+    p.add_argument('--base-hz', type=float, default=BASE, help='Expected carrier for an intentional frequency-translation experiment')
     p.add_argument('--reference-hz', type=float, help='Known simultaneously present reference frequency')
     p.add_argument('--frame', action='store_true')
     p.add_argument('--tone', type=int, choices=range(4), default=0)
@@ -205,7 +208,7 @@ def main():
     iq, meta, digest = load_capture(args.iq, args.metadata)
     settings = meta['actual_settings']
     result = measure(iq, settings['sample_rate_hz'], settings['center_frequency_hz'],
-                     frame=args.frame, tone=args.tone, duration_s=args.duration_s, reference_hz=args.reference_hz)
+                     frame=args.frame, tone=args.tone, duration_s=args.duration_s, reference_hz=args.reference_hz, base_hz=args.base_hz)
     if meta.get('overflow_count') != 0 or meta.get('clipping', {}).get('sample_count') != 0:
         result['issues'].append('Receiver overflow/clipping evidence is absent or nonzero')
         result['relative_checks_passed'] = False

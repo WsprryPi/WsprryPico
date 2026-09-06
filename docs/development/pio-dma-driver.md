@@ -21,7 +21,8 @@ on `wspr5`; return connects to the cable shield. The
 [measurement plan](rf-measurement-plan.md) describe the pending electrical work.
 The operator decides when to transmit and which measurements to perform.
 
-The driver requires a fixed 150 MHz system/sample clock and implements the
+The driver requires the system clock to match the build-selected sample clock
+(132, 138 or 150 MHz; default 138 MHz) and implements the
 [portable stream's](rf-stream.md) four initial 80 m tones, size limits and
 zero-padded final word. It does not configure UTC, encode WSPR, change the system
 clock, expose new WTP capabilities, or select itself in firmware.
@@ -44,7 +45,8 @@ buffer while hardware already consumes its successor; the foreground fills the
 released slot and queues it again. There is no circular descriptor or stale
 buffer replay. Missing data, DMA errors and observed starvation fail the run.
 
-Each full successor block gives approximately 3.495 ms for foreground refill.
+Each full successor block gives approximately 3.495 ms at 150 MHz, 3.799 ms at
+138 MHz or 3.972 ms at 132 MHz for foreground refill.
 The former single-channel interrupt handoff had at most 1.92 us of FIFO reserve;
 actual IRQ latency exceeded that reserve. Preloading the successor removes that
 IRQ handoff dependency. Observed target results are in the bench guide. A detected

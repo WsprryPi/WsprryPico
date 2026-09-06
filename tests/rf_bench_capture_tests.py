@@ -33,6 +33,25 @@ class Tests(unittest.TestCase):
             manifest = json.loads((output / 'session.json').read_text())
             self.assertFalse(manifest['capture_success'])
             self.assertEqual(manifest['reference_disable_verified_by_cli'], not fail_final_status)
+    def test_disk_check_failure_prevents_device_work(self):
+        with tempfile.TemporaryDirectory() as directory:
+            image = Path(directory)/'image.uf2'
+            image.write_bytes(b'fixture')
+            argv = ['capture_rf_bench.py', '--port', 'fake', '--serial', 'fake',
+                    '--revision', 'test', '--firmware', str(image), '--output', str(Path(directory)/'out'),
+                    '--attenuation-db', '60', '--gpsdo-reference']
+            calls = []
+            def remote(host, args, **kwargs):
+                calls.append(args)
+                if args[0] == 'python3':
+                    raise RuntimeError('Insufficient capture disk space')
+            with patch.object(sys, 'argv', argv), patch.object(capture_rf_bench, 'remote', remote), \
+                    patch.object(capture_rf_bench.subprocess, 'Popen') as capture:
+                with self.assertRaises(RuntimeError):
+                    capture_rf_bench.main()
+                capture.assert_not_called()
+            self.assertFalse(any('--enable1' in c for c in calls))
+
     def test_receive_only_conflicts_rejected_before_io(self):
         argv = ['capture_rf_bench.py', '--port', 'fake', '--serial', 'fake',
                 '--revision', 'test', '--firmware', 'missing', '--output', 'unused',

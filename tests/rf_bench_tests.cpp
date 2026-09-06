@@ -76,14 +76,17 @@ int main() {
         const auto frame = rf::diagnostic_frame();
         CHECK(frame.events.size() == 162 && frame.total_duration_ns == 110592000000ULL);
         const auto frame_plan = rf::plan_job(frame);
-        CHECK(frame_plan && frame_plan->total_samples == 16588800000ULL);
+        CHECK(frame_plan && frame_plan->total_samples == rf::sample_rate / 125 * 13824);
         for (unsigned i = 0; i < 162; ++i) {
-            CHECK(frame_plan->segments[i].end_sample == (std::uint64_t{i} + 1) * 102400000);
+            CHECK(frame_plan->segments[i].end_sample ==
+                  (std::uint64_t{i} + 1) * (rf::sample_rate / 375 * 256));
             CHECK(frame_plan->segments[i].increment == rf::increments[i % 4]);
         }
         Clock clock;
         Engine engine;
         rf::Bench bench(engine, clock);
+        CHECK(bench.command("CAPS").find("\"sample_rate_hz\":" + std::to_string(rf::sample_rate)) !=
+              std::string::npos);
         CHECK(ok(bench.command("CAPS")) && ok(bench.command("STATUS")));
         for (auto text : {"FRAME", "FRAME 99", "FRAME 10001", "FRAME 100 extra", "RUN",
                           "RUN -1 10 100", "RUN 4 10 100", "RUN 0 0 100", "RUN 0 10001 100",

@@ -9,15 +9,24 @@
 
 namespace wsprrypico::rf {
 
-inline constexpr std::uint64_t sample_rate = 150'000'000;
+#ifndef WSPRRY_PICO_RF_SAMPLE_RATE_HZ
+#define WSPRRY_PICO_RF_SAMPLE_RATE_HZ 138000000
+#endif
+inline constexpr std::uint64_t sample_rate = WSPRRY_PICO_RF_SAMPLE_RATE_HZ;
+static_assert(sample_rate == 132'000'000 || sample_rate == 138'000'000 ||
+              sample_rate == 150'000'000);
 inline constexpr std::uint64_t base_nhz = 3'570'100'000'000'000;
 inline constexpr std::uint64_t spacing_nhz = 1'464'843'750;
 inline constexpr std::size_t max_events = 162;
 inline constexpr std::uint64_t max_duration_ns = 110'592'000'000;
 inline constexpr std::size_t block_words = 16'384;
 inline constexpr std::uint64_t block_samples = block_words * 32;
-inline constexpr std::array<std::uint32_t, 4> increments{102223085, 102223127, 102223169,
-                                                         102223211};
+inline constexpr auto increments = [] {
+    std::array<std::uint32_t, 4> result{};
+    for (std::size_t i = 0; i < result.size(); ++i)
+        result[i] = ((3'570'100ULL << 32) + i * (375ULL << 24) + sample_rate / 2) / sample_rate;
+    return result;
+}();
 
 // WTP's integer nHz representation, rounded from the exact NCO rational.
 constexpr std::uint64_t realized_nhz(std::uint32_t increment) {

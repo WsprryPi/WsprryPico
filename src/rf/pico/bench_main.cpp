@@ -63,6 +63,8 @@ std::string info(wsprrypico::rf::PicoPioDma& hardware) {
 } // namespace
 
 int main() {
+    // Select the experimental RF clock before USB or peripheral ownership.
+    set_sys_clock_khz(wsprrypico::rf::sample_rate / 1000, true);
     paint_stack();
     tud_init(0);
     static Clock clock;

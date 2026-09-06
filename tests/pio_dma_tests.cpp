@@ -117,7 +117,7 @@ class Hardware final : public rf::PioDmaHardware {
 };
 
 std::uint64_t ns_at(std::uint64_t samples) {
-    return (samples * 20 + 1) / 3;
+    return (samples * 1000000000ULL + rf::sample_rate / 2) / rf::sample_rate;
 }
 wtp::Job job(std::uint64_t samples) {
     return {std::string(32, '3'),
@@ -353,7 +353,7 @@ void local_launch_test() {
         CHECK(!engine.output_active());
     }
 }
-void refill_test() {
+void refill_test(bool missing_tail = false) {
     Hardware hw;
     rf::PioDmaSink sink(hw);
     rf::StreamEngine engine(sink);
@@ -376,6 +376,10 @@ void refill_test() {
         CHECK(std::equal(expected.begin(), expected.begin() + hw.count, hw.data));
         // DMA delivers a block slightly ahead of its last sample leaving the FIFO.
         hw.complete();
+        if (block == 0) {
+            hw.time = start + 1000000;
+            CHECK(sink.poll(hw.time).consumed_samples == rf::sample_rate / 1000);
+        }
         if (block < 4) {
             hw.time = start + ((ns_at((block + 1) * rf::block_samples) + 999) / 1000) * 1000;
             CHECK(engine.poll(hw.time).state == wtp::EngineState::Running);
@@ -383,8 +387,16 @@ void refill_test() {
     }
     CHECK(hw.repeat && hw.count == 10);
     hw.time = start + ((payload.total_duration_ns + 999) / 1000) * 1000 + 1000;
-    hw.complete();
-    CHECK(engine.poll(hw.time).state == wtp::EngineState::Complete);
+    CHECK(engine.poll(hw.time).state == wtp::EngineState::Running);
+    if (missing_tail) {
+        hw.time = start + payload.total_duration_ns + 100001;
+        CHECK(engine.poll(hw.time).state == wtp::EngineState::Failed);
+        CHECK(!engine.output_active());
+    } else {
+        hw.time = start + payload.total_duration_ns + 75000;
+        hw.complete();
+        CHECK(engine.poll(hw.time).state == wtp::EngineState::Complete);
+    }
     CHECK(engine.disable(hw.time));
 }
 
@@ -395,6 +407,7 @@ int main() {
         failures_test();
         local_launch_test();
         refill_test();
+        refill_test(true);
         std::cout << "PIO/DMA checks passed\n";
     } catch (const std::exception& e) {
         std::cerr << e.what() << '\n';

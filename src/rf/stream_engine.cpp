@@ -155,7 +155,7 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
     const auto elapsed =
         now_ns > start_ns_ ? std::min(now_ns - start_ns_, job_->total_duration_ns) : 0;
     if (report.completed_blocks != expected_completed ||
-        report.consumed_samples > (elapsed * 3 + 10) / 20) {
+        report.consumed_samples > (elapsed * (sample_rate / 1000000) + 500) / 1000) {
         return fail(now_ns, "progress_time");
     }
     last_poll_ns_ = now_ns;
@@ -175,10 +175,16 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
         state_ = wtp::EngineState::Complete;
         return {state_, false};
     }
+    // DMA tail completion is asynchronous. Permit a bounded acknowledgement
+    // delay only after all data is submitted and nominal progress is at the end.
+    const bool awaiting_tail = report.state == wtp::EngineState::Running &&
+                               waveform_.position() == plan_.total_samples &&
+                               report.consumed_samples == plan_.total_samples - 1 &&
+                               now_ns >= end_ns_ && now_ns - end_ns_ <= 100'000;
     if ((now_ns < start_ns_ && (report.state != wtp::EngineState::Armed ||
                                 report.consumed_samples != 0 || output_active())) ||
-        (now_ns >= start_ns_ && report.state != wtp::EngineState::Running) || now_ns >= end_ns_ ||
-        report.completed_blocks == submitted_) {
+        (now_ns >= start_ns_ && report.state != wtp::EngineState::Running) ||
+        (now_ns >= end_ns_ && !awaiting_tail) || report.completed_blocks == submitted_) {
         return fail(now_ns, now_ns >= end_ns_ ? "completion_deadline" : "sink_state");
     }
     for (auto sequence = completed_; sequence < report.completed_blocks; ++sequence) {

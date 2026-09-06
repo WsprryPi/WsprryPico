@@ -35,7 +35,7 @@ void operator delete(void* memory, std::size_t) noexcept {
 
 namespace {
 std::uint64_t ns_at(std::uint64_t samples) {
-    return (samples * 20 + 1) / 3;
+    return (samples * 1000000000ULL + rf::sample_rate / 2) / rf::sample_rate;
 }
 
 wtp::Job job_for(std::span<const std::uint64_t> lengths) {
@@ -181,15 +181,19 @@ void oracle_test() {
 }
 
 void planner_test() {
-    // Independent exact-rational Python calculation of the four study frequencies.
-    constexpr std::array<std::uint64_t, 4> expected_nhz{3570100001525134ULL, 3570101468358189ULL,
-                                                        3570102935191244ULL, 3570104402024299ULL};
-    for (std::size_t i = 0; i < expected_nhz.size(); ++i) {
-        CHECK(rf::realized_nhz(rf::increments[i]) == expected_nhz[i]);
-    }
-    auto job = tone_job(102400000);
+    // Independent exact-rational Python fixtures for each supported clock.
+    constexpr std::array<std::array<std::uint64_t, 4>, 3> fixtures{
+        {{3570100014097989ULL, 3570101458579302ULL, 3570102933794260ULL, 3570104409009218ULL},
+         {3570100004319102ULL, 3570101450197399ULL, 3570102928206325ULL, 3570104406215250ULL},
+         {3570100001525134ULL, 3570101468358189ULL, 3570102935191244ULL, 3570104402024299ULL}}};
+    const auto& expected = fixtures[rf::sample_rate == 132000000   ? 0
+                                    : rf::sample_rate == 138000000 ? 1
+                                                                   : 2];
+    for (std::size_t i = 0; i < 4; ++i)
+        CHECK(rf::realized_nhz(rf::increments[i]) == expected[i]);
+    auto job = tone_job((rf::sample_rate / 375 * 256));
     auto plan = rf::plan_job(job);
-    CHECK(plan && plan->total_samples == 102400000);
+    CHECK(plan && plan->total_samples == (rf::sample_rate / 375 * 256));
     auto invalid = job;
     invalid.allow_frequency_adjustment = false;
     CHECK(!rf::plan_job(invalid));
@@ -238,9 +242,9 @@ void planner_test() {
         CHECK(!rf::plan_job(invalid));
     }
     std::array<std::uint64_t, 162> frame;
-    frame.fill(102400000);
+    frame.fill((rf::sample_rate / 375 * 256));
     plan = rf::plan_job(job_for(frame));
-    CHECK(plan && plan->total_samples == 16588800000ULL);
+    CHECK(plan && plan->total_samples == rf::sample_rate / 125 * 13824);
     invalid = job_for(frame);
     invalid.events.push_back(invalid.events.back());
     CHECK(!rf::plan_job(invalid));
@@ -482,7 +486,7 @@ void service_test() {
 
 void benchmark() {
     std::array<std::uint64_t, 162> lengths;
-    lengths.fill(102400000);
+    lengths.fill((rf::sample_rate / 375 * 256));
     const auto job = job_for(lengths);
     const auto plan = rf::plan_job(job);
     CHECK(plan);

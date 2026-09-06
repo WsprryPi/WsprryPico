@@ -56,6 +56,11 @@ endif()
 
 # Portable experimental RF library; not linked into the inhibited firmware.
 add_library(wsprrypico_rf src/rf/waveform.cpp src/rf/stream_engine.cpp src/rf/pio_dma_sink.cpp src/rf/bench.cpp)
+set(WSPRRY_PICO_RF_SAMPLE_RATE_HZ "138000000" CACHE STRING "Experimental bench clock: 132000000, 138000000 or 150000000")
+if(NOT WSPRRY_PICO_RF_SAMPLE_RATE_HZ MATCHES "^(132000000|138000000|150000000)$")
+    message(FATAL_ERROR "Unsupported experimental RF sample clock")
+endif()
+target_compile_definitions(wsprrypico_rf PUBLIC WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ})
 target_link_libraries(wsprrypico_rf PUBLIC wsprrypico_core)
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(wsprrypico_rf PRIVATE -Wall -Wextra -Wpedantic -Werror)

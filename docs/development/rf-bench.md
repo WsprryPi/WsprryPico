@@ -211,3 +211,7 @@ full-frame and abort/load coverage, and production UTC/WTP integration.
 The [frequency correction and alias investigation](rf-correction-validation.md) records the
 `CORRECTION` bench command, corrected measurements, remaining frame settling
 and identified sampled-square-wave alias.
+
+The [clock comparison](rf-clock-validation.md) records build-selected sample
+clocks, carrier-translation and Pi GPIO4 controls, remaining sidebands and
+settling, and disk-backed capture storage.

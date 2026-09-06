@@ -59,7 +59,9 @@ std::string Bench::command(std::string_view line) {
         return status();
     if (line == "CAPS") {
         return "{\"ok\":true,\"interface\":\"pico-rf-bench/1\",\"engine\":\"pio-dma-gp2\","
-               "\"clock\":\"monotonic-relative-only\",\"sample_rate_hz\":150000000,"
+               "\"clock\":\"monotonic-relative-only\",\"sample_rate_hz\":" +
+               std::to_string(sample_rate) +
+               ","
                "\"gpio\":2,\"header_pin\":4,\"tones\":4,\"base_hz\":3570100,"
                "\"spacing_hz\":1.46484375,\"duration_ms\":[1,10000],"
                "\"delay_ms\":[100,10000],\"benchmark_blocks\":[1,4096],"

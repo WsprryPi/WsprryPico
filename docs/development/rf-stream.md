@@ -21,19 +21,22 @@ The planner accepts `tone` and `wspr` event jobs, at most 162 events and
 job identity, frequency presence/absence and the existing profile. It does not
 encode or validate a WSPR message. Four nominal RF frequencies are
 3,570,100 Hz plus t*375/256 Hz, t=0..3. These map to the exact 32-bit NCO
-increments 102223085, 102223127, 102223169 and 102223211 at 150 MHz.
+increments 111112049, 111112094, 111112140 and 111112186 at the default
+138 MHz. The 150 MHz baseline uses 102223085, 102223127, 102223169 and 102223211.
 
 Nominal frequencies require `allow_frequency_adjustment=true`. Preparation
 reports each realized frequency rounded to integer nHz; the underlying waveform
 frequency remains the exact sample-rate/increment rational. Sub-nHz report
 rounding is below 0.5 nHz. A job requesting one of those realized nHz values
 already needs no further adjustment. All other frequencies are rejected.
-Calibration and configurable sample clocks are outside this fixed-clock slice.
+The bench supports volatile frequency correction and three explicit build-time
+clock profiles; production calibration and capability integration remain open.
 
 Event endpoints must encode an exact sample boundary rounded to the nearest
-nanosecond: sample=round(ns*3/20), then ns must equal round(sample*20/3).
+nanosecond: sample=round(ns*sample_rate/1e9), then ns must equal
+round(sample*1e9/sample_rate). Reduced integer ratios avoid overflow.
 The planner rejects positive events that collapse to zero samples. Endpoint
-error relative to the ideal sample boundary is at most 1/3 ns. This realizes
+error relative to the ideal sample boundary is at most 0.5 ns. This realizes
 nearest-nanosecond WSPR cumulative boundaries without inventing a timing
 adjustment response. Arbitrary nanosecond jobs may be rejected by this adapter;
 its smaller limits would need truthful capability integration before live use.
@@ -173,3 +176,13 @@ complete Step 8 or qualify an engine/mode/band combination.
 
 See the [correction and alias record](rf-correction-validation.md) for the
 volatile correction interface, measured effect and remaining settling/alias work.
+
+The [clock comparison](rf-clock-validation.md) adds build-selected 132/138 MHz
+experiments alongside the default 138 MHz profile. NCO increments, timestamp
+conversion, progress checks and sample bounds all use the selected rate. The
+150 MHz figures above remain tied to that profile. The engine permits at most
+100 microseconds for asynchronous zero-tail acknowledgement after the nominal
+end, only when all samples are generated/submitted and reported progress is
+one sample short of completion. Missing acknowledgement still fails and stops
+the sink; it does not extend the planned waveform or change SDR diagnostic
+thresholds.

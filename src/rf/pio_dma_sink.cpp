@@ -29,7 +29,7 @@ bool PioDmaSink::submit(std::uint64_t epoch, std::uint64_t sequence,
     if (epoch == 0 || sequence != submitted_ || (submitted_ && epoch != epoch_) || queued_ == 2 ||
         samples == 0 || samples > block_samples || words.size() != (samples + 31) / 32 ||
         (reinterpret_cast<std::uintptr_t>(words.data()) & 3U) != 0 ||
-        accepted_ > max_duration_ns * 3 / 20 - samples ||
+        accepted_ > max_duration_ns / 1000 * (sample_rate / 1000000) - samples ||
         (total_ && samples > total_ - accepted_) ||
         (submitted_ && accepted_ % block_samples != 0) ||
         (samples % 32 && (words.back() >> (samples % 32)) != 0)) {
@@ -66,7 +66,7 @@ bool PioDmaSink::arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t 
                      LaunchGuard guard) {
     Guard lock(hw_);
     if (state_ != wtp::EngineState::Idle || !opened_ || epoch != epoch_ || queued_ == 0 ||
-        total_samples == 0 || total_samples > max_duration_ns * 3 / 20 ||
+        total_samples == 0 || total_samples > max_duration_ns / 1000 * (sample_rate / 1000000) ||
         accepted_ > total_samples ||
         (accepted_ < total_samples && accepted_ % block_samples != 0) || start_ns % 1000 != 0 ||
         start_ns <= hw_.now_ns()) {
@@ -168,7 +168,8 @@ SinkReport PioDmaSink::poll(std::uint64_t) {
     }
     const auto elapsed = now_ns > start_ ? std::min(now_ns - start_, max_duration_ns) : 0;
     // Conservative nominal-clock progress; DMA completion is FIFO delivery, not RF timing.
-    const auto samples = std::min({elapsed * 3 / 20, dma_samples_, total_ - 1});
+    const auto samples =
+        std::min({elapsed * (sample_rate / 1000000) / 1000, dma_samples_, total_ - 1});
     return {state_, epoch_, std::min(dma_blocks_, samples / block_samples), samples, now_ns};
 }
 

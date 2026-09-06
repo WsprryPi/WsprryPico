@@ -32,6 +32,16 @@ class Tests(unittest.TestCase):
         self.assertTrue(result['relative_checks_passed'], result['issues'])
         self.assertAlmostEqual(result['measurements'][0]['indicated_hz'], BASE + 7.25, places=3)
         self.assertFalse(result['qualification'])
+    def test_translated_carrier(self):
+        iq = capture()
+        iq *= np.exp(2j*np.pi*300*np.arange(len(iq))/RATE)
+        self.assertFalse(measure(iq, RATE, CENTER, duration_s=2)['relative_checks_passed'])
+        result = measure(iq, RATE, CENTER, duration_s=2, base_hz=BASE+300)
+        self.assertTrue(result['relative_checks_passed'], result['issues'])
+        self.assertAlmostEqual(result['tone_frequency_summary']['mean_hz'], BASE+307.25, places=3)
+        with self.assertRaises(ValueError):
+            measure(iq, RATE, CENTER, base_hz=float('nan'))
+
     def test_frame(self):
         result = measure(capture(frame=True), RATE, CENTER, frame=True)
         self.assertTrue(result['relative_checks_passed'], result['issues'])

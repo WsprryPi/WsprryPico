@@ -102,3 +102,7 @@ See the [implementation plan](../implementation-plan.md) and
 The [frequency correction and alias investigation](rf-correction-validation.md) records the
 `CORRECTION` bench command, corrected measurements, remaining frame settling
 and identified sampled-square-wave alias.
+
+The [clock comparison](rf-clock-validation.md) records build-selected sample
+clocks, carrier-translation and Pi GPIO4 controls, remaining sidebands and
+settling, and disk-backed capture storage.
