@@ -65,7 +65,7 @@ is selected for experimental implementation, initially at the 80 m study point,
 with generation throughput, job lifecycle behavior and spectra still to assess. Si5351 remains
 an alternative. This is candidate selection, not engine implementation or RF
 qualification. The [bounded measurement plan](development/rf-measurement-plan.md)
-is proposed and unexecuted.
+remains broader than the initial bench measurements.
 
 ## Completed first Step 8 software slice
 
@@ -84,16 +84,23 @@ can prearm local engines while preserving existing WTP clock and missed-start
 semantics. Host fault/sequence tests pass and the actual SDK driver links for
 Pico 2 W. No physical transmission was performed for this slice.
 
-## Next slice: target integration and measurements
+## Completed third Step 8 slice: bench integration and initial measurements
 
-Integrate an experimental target runner with truthful capabilities and clock
-handling; measure refill/IRQ latency and memory under load. Resolve the operator's
-output circuit and filtering. Use the SDR on `wspr5` for reception, reusing the
-Harness capture/offline analysis where applicable (its WsprryPi campaign does
-not currently control Pico/WTP). Step 8 remains incomplete. The operator decides
-when to transmit and which hardware measurements to run. The portable library
-is not selected by the Pico firmware, and host tests/cross-builds do not establish
-physical RF behavior.
+The separate [RF bench](development/rf-bench.md) implements finite relative-time
+tones, CPU benchmarks, observed IRQ/stack metrics and software BOOTSEL. Exact word
+lookup reduced worst measured refill from 22.092 ms to 1.507 ms with the same
+checksum. Two preloaded data DMA channels and a dedicated final stop channel
+resolved observed underruns. Recorded 100 ms and 1 s tones completed and were
+received using the Harness capture helper on wspr5 through 60 dB attenuation.
+Coarse carrier analysis remains inconclusive for qualification.
+
+## Next slice: characterize the signal and expand target coverage
+
+Measure frequency with adequate resolution and a verified receiver reference;
+characterize spectra/output network and exercise full-frame, tone changes and
+abort/rearm under declared load. Then integrate truthful RF capabilities and
+UTC timing into the production job service. Step 8 remains incomplete. The
+operator decides when to transmit and which hardware measurements to run.
 
 Before extracting encoder code, inspect WsprryPi licensing and dependencies and record source revision/attribution. Initial candidate files include src/scheduling.hpp, src/scheduling_runtime.cpp and src/tests/wspr_tone_regression_test.cpp; finding them is not a portability review.
 
@@ -112,8 +119,7 @@ Sequence may evolve based on RF feasibility. Standalone operation remains a prod
 
 The firmware builds for Pico 2 W. The portable core and WTP USB endpoint are
 host-tested, and bounded target USB validation passes on the recorded Pico 2 W
-and Mac. No RF transmission or target timing qualification has occurred.
-Supported bands and final engine promotion remain open; the experimental
-PIO/DMA candidate has a cross-linked physical driver but no target performance
-validation. WTP/1 schemas are
+and Mac. Bounded RF bench transmissions and CPU timing measurements are now
+recorded. Supported bands, calibrated target timing and final engine promotion
+remain open. WTP/1 schemas are
 normative; changes to them require an explicit protocol-contract revision.

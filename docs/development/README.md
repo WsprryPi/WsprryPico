@@ -2,7 +2,7 @@
 
 The defined hardware target is Pico 2 W / RP2350. The repository contains a
 portable WTP/1 core, deterministic host tests and an RF-inhibited firmware
-target.
+target, plus a separately built experimental RF bench.
 
 ## Build direction
 
@@ -37,6 +37,8 @@ The [portable RF stream guide](rf-stream.md) covers the experimental generator,
 streaming adapter, host benchmark, sanitizers and Arm library cross-build.
 The [PIO/DMA driver guide](pio-dma-driver.md) covers the SDK port, local launch,
 resource ownership, host fault tests and the link-only target.
+The [RF bench guide](rf-bench.md) covers measured target refill, software BOOTSEL,
+and bounded reception using the Harness helper on wspr5.
 The [output/inhibit design](rf-output-design.md) remains a hardware proposal.
 
 ## Current checks

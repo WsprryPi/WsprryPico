@@ -22,6 +22,13 @@ class Hardware final : public rf::PioDmaHardware {
     unsigned opened = 0, launches = 0, depth = 0;
     const std::uint32_t* data = nullptr;
     std::uint32_t count = 0;
+    struct Pending {
+        const std::uint32_t* data;
+        std::uint32_t count;
+        bool increment;
+        std::uint64_t epoch, sequence;
+    };
+    std::optional<Pending> pending;
     std::uint32_t lock() override {
         return depth++;
     }
@@ -46,14 +53,19 @@ class Hardware final : public rf::PioDmaHardware {
             return false;
         }
         busy = false;
+        pending.reset();
         txstall = false;
         return true;
     }
     bool dma(const std::uint32_t* p, std::uint32_t n, bool increment, std::uint64_t e,
              std::uint64_t s) override {
-        CHECK(depth > 0 && !busy);
+        CHECK(depth > 0 && !pending);
         if (fail_dma) {
             return false;
+        }
+        if (busy) {
+            pending = Pending{p, n, increment, e, s};
+            return true;
         }
         data = p;
         count = n;
@@ -90,8 +102,17 @@ class Hardware final : public rf::PioDmaHardware {
     }
     void complete() {
         CHECK(busy);
-        busy = false;
-        handler(context, {rf::DriverEventKind::DmaComplete, epoch, sequence});
+        const auto done_epoch = epoch, done_sequence = sequence;
+        busy = pending.has_value();
+        if (pending) {
+            data = pending->data;
+            count = pending->count;
+            repeat = !pending->increment;
+            epoch = pending->epoch;
+            sequence = pending->sequence;
+            pending.reset();
+        }
+        handler(context, {rf::DriverEventKind::DmaComplete, done_epoch, done_sequence});
     }
 };
 
@@ -137,7 +158,7 @@ void queue_test() {
     auto progress = sink.poll(hw.time);
     CHECK(progress.completed_blocks == 1 && progress.consumed_samples == rf::block_samples);
     hw.complete();
-    CHECK(hw.repeat && hw.count == 9 && *hw.data == 0);
+    CHECK(hw.repeat && hw.count == 10 && *hw.data == 0);
     hw.time = start + ((ns_at(2 * rf::block_samples) + 999) / 1000) * 1000;
     hw.complete();
     progress = sink.poll(hw.time);
@@ -360,7 +381,7 @@ void refill_test() {
             CHECK(engine.poll(hw.time).state == wtp::EngineState::Running);
         }
     }
-    CHECK(hw.repeat && hw.count == 9);
+    CHECK(hw.repeat && hw.count == 10);
     hw.time = start + ((payload.total_duration_ns + 999) / 1000) * 1000 + 1000;
     hw.complete();
     CHECK(engine.poll(hw.time).state == wtp::EngineState::Complete);

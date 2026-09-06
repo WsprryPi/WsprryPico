@@ -91,6 +91,9 @@ class RfEngine {
   public:
     virtual ~RfEngine() = default;
     virtual PrepareResult prepare(const Job& job) = 0;
+    virtual std::string_view diagnostic() const {
+        return {};
+    }
     [[nodiscard]] virtual bool schedules_locally() const {
         return false;
     }

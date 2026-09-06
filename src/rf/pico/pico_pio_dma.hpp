@@ -6,6 +6,10 @@ namespace wsprrypico::rf {
 
 // Dedicated instance on one core. Constructing it does not access peripherals.
 // halt() before release()/destruction; a failed halt retains resource ownership.
+struct PicoDriverMetrics {
+    std::uint64_t dma_irqs = 0, max_irq_ns = 0, launch_ns = 0;
+};
+
 class PicoPioDma final : public PioDmaHardware {
   public:
     static constexpr unsigned rf_pin = 2;
@@ -22,6 +26,7 @@ class PicoPioDma final : public PioDmaHardware {
     bool alarm(std::uint64_t start_ns, std::uint64_t epoch) override;
     bool launch(std::uint64_t start_ns) override;
     std::uint64_t now_ns() const override;
+    PicoDriverMetrics metrics();
     bool stalled() const override;
     bool active() const override;
 
@@ -31,12 +36,20 @@ class PicoPioDma final : public PioDmaHardware {
     static PicoPioDma* instance_;
     PIO pio_ = nullptr;
     unsigned sm_ = 0, offset_ = 0;
-    int channel_ = -1, alarm_ = -1;
+    struct Channel {
+        int id = -1;
+        bool occupied = false;
+        std::uint64_t epoch = 0, sequence = 0;
+    };
+    std::array<Channel, 2> channels_{};
+    int alarm_ = -1, stop_channel_ = -1;
+    std::uint32_t stop_mask_ = 0;
     Handler handler_ = nullptr;
     void* context_ = nullptr;
-    std::uint64_t dma_epoch_ = 0, dma_sequence_ = 0, alarm_epoch_ = 0;
+    std::uint64_t alarm_epoch_ = 0;
     unsigned core_ = 0;
     bool installed_ = false;
+    PicoDriverMetrics metrics_{};
 };
 
 } // namespace wsprrypico::rf

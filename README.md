@@ -6,8 +6,10 @@ Status: normative WTP/1 contract, host-tested portable core, and an RF-inhibited
 Pico 2 W WTP USB endpoint. [Bounded target USB validation](docs/development/usb-target-validation.md)
 passes on the recorded board and Mac. The experimental GP2 PIO/DMA driver,
 portable waveform generator and local launch integration are host-tested and
-Arm-cross-linked. They are not selected by the standard firmware. Target refill
-performance, launch timing, electrical behavior and RF remain unqualified.
+Arm-cross-linked. A separate [RF bench](docs/development/rf-bench.md) now runs
+on the Pico: measured refill is 1.507 ms and 100 ms/1 s tones were received on
+wspr5. The standard firmware retains its inhibited engine. Calibrated timing,
+spectra and supported engine/mode/band qualification remain open.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)

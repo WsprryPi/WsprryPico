@@ -67,6 +67,7 @@ wtp::PrepareResult StreamEngine::prepare(const wtp::Job& job) {
             }
         }
     }
+    failure_ = "";
     job_ = job;
     plan_ = *candidate;
     waveform_.reset(plan_);
@@ -112,7 +113,8 @@ bool StreamEngine::begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) 
     return true;
 }
 
-wtp::EngineReport StreamEngine::fail(std::uint64_t now_ns) {
+wtp::EngineReport StreamEngine::fail(std::uint64_t now_ns, const char* reason) {
+    failure_ = reason;
     state_ = wtp::EngineState::Failed;
     // Even when stop fails, never recycle buffers or restart without successful disable.
     (void)sink_.stop(now_ns);
@@ -126,7 +128,7 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
     const auto report = sink_.poll(now_ns);
     if (report.observed_monotonic_ns) {
         if (*report.observed_monotonic_ns < now_ns) {
-            return fail(now_ns);
+            return fail(now_ns, "invalid_progress");
         }
         now_ns = *report.observed_monotonic_ns;
     }
@@ -137,7 +139,7 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
             std::min(report.completed_blocks * block_samples, plan_.total_samples) ||
         report.consumed_samples >
             std::min((report.completed_blocks + 1) * block_samples, plan_.total_samples)) {
-        return fail(now_ns);
+        return fail(now_ns, "progress_counters");
     }
     const auto expected_completed =
         report.consumed_samples / block_samples + (report.consumed_samples == plan_.total_samples &&
@@ -146,7 +148,7 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
         now_ns > start_ns_ ? std::min(now_ns - start_ns_, job_->total_duration_ns) : 0;
     if (report.completed_blocks != expected_completed ||
         report.consumed_samples > (elapsed * 3 + 10) / 20) {
-        return fail(now_ns);
+        return fail(now_ns, "progress_time");
     }
     last_poll_ns_ = now_ns;
     if (report.state == wtp::EngineState::Missed) {
@@ -160,7 +162,7 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
         if (now_ns < end_ns_ || report.consumed_samples != plan_.total_samples ||
             report.completed_blocks != submitted_ || waveform_.position() != plan_.total_samples ||
             output_active()) {
-            return fail(now_ns);
+            return fail(now_ns, "invalid_completion");
         }
         state_ = wtp::EngineState::Complete;
         return {state_, false};
@@ -169,7 +171,7 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
                                 report.consumed_samples != 0 || output_active())) ||
         (now_ns >= start_ns_ && report.state != wtp::EngineState::Running) || now_ns >= end_ns_ ||
         report.completed_blocks == submitted_) {
-        return fail(now_ns);
+        return fail(now_ns, now_ns >= end_ns_ ? "completion_deadline" : "sink_state");
     }
     for (auto sequence = completed_; sequence < report.completed_blocks; ++sequence) {
         const auto slot = static_cast<std::size_t>(sequence % 2);

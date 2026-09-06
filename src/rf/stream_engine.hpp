@@ -45,6 +45,9 @@ class StreamEngine final : public wtp::RfEngine {
     explicit StreamEngine(BlockSink& sink) : sink_(sink) {}
     StreamEngine(const StreamEngine&) = delete;
     StreamEngine& operator=(const StreamEngine&) = delete;
+    std::string_view diagnostic() const override {
+        return failure_;
+    }
     wtp::PrepareResult prepare(const wtp::Job& job) override;
     [[nodiscard]] bool schedules_locally() const override {
         return sink_.schedules_locally();
@@ -62,7 +65,8 @@ class StreamEngine final : public wtp::RfEngine {
     static bool check_clock(void* context);
     wtp::LocalStartConditions start_conditions_{};
     bool submit_next(std::size_t slot);
-    wtp::EngineReport fail(std::uint64_t now_ns);
+    wtp::EngineReport fail(std::uint64_t now_ns, const char* reason = "sink_rejected");
+    const char* failure_ = "";
     BlockSink& sink_;
     Plan plan_{};
     Waveform waveform_;

@@ -13,7 +13,7 @@ bool PioDmaSink::stop(std::uint64_t deadline_ns) {
     state_ = wtp::EngineState::Idle;
     queue_ = {};
     head_ = queued_ = 0;
-    tail_ = false;
+    tail_ = tail_submitted_ = false;
     guard_ = {};
     submitted_ = accepted_ = dma_blocks_ = dma_samples_ = total_ = 0;
     return !hw_.active();
@@ -46,16 +46,20 @@ bool PioDmaSink::submit(std::uint64_t epoch, std::uint64_t sequence,
     ++queued_;
     ++submitted_;
     accepted_ += samples;
+    if (state_ != wtp::EngineState::Idle &&
+        (!hw_.dma(words.data(), static_cast<std::uint32_t>(words.size()), true, epoch, sequence) ||
+         !queue_tail()))
+        return false;
     return true;
 }
 
-bool PioDmaSink::start_dma() {
-    if (queued_ == 0) {
-        return false;
+bool PioDmaSink::queue_tail() {
+    if (!tail_submitted_ && accepted_ == total_ && queued_ < 2) {
+        if (!hw_.dma(&zero_, 10, false, epoch_, submitted_))
+            return false;
+        tail_submitted_ = true;
     }
-    const auto& block = queue_[head_];
-    return hw_.dma(block.words.data(), static_cast<std::uint32_t>(block.words.size()), true, epoch_,
-                   block.sequence);
+    return true;
 }
 
 bool PioDmaSink::arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t total_samples,
@@ -72,7 +76,15 @@ bool PioDmaSink::arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t 
     total_ = total_samples;
     guard_ = guard;
     state_ = wtp::EngineState::Armed;
-    if (!start_dma() || !hw_.alarm(start_, epoch_)) {
+    for (std::size_t i = 0; i < queued_; ++i) {
+        const auto& block = queue_[(head_ + i) % 2];
+        if (!hw_.dma(block.words.data(), static_cast<std::uint32_t>(block.words.size()), true,
+                     epoch_, block.sequence)) {
+            fault();
+            return false;
+        }
+    }
+    if (!queue_tail() || !hw_.alarm(start_, epoch_)) {
         fault();
         return false;
     }
@@ -113,8 +125,9 @@ void PioDmaSink::event(DriverEvent event) {
         return;
     }
     if (tail_) {
-        // Nine zero words have entered an eight-word FIFO: every data word,
-        // including the OSR word, has drained. No frequency-bearing tail remains.
+        // Ten zero words have entered an eight-word FIFO: every data word,
+        // including the OSR word, has drained and a zero word has been emitted. No
+        // frequency-bearing tail remains.
         if (state_ != wtp::EngineState::Running || dma_samples_ != total_ ||
             !hw_.halt(hw_.now_ns())) {
             fault();
@@ -134,11 +147,10 @@ void PioDmaSink::event(DriverEvent event) {
     --queued_;
     if (dma_samples_ == total_) {
         tail_ = true;
-        if (!hw_.dma(&zero_, 9, false, epoch_, dma_blocks_)) {
+        if (!tail_submitted_)
             fault();
-        }
-    } else if (!start_dma()) {
-        fault(); // No circular re-triggering or stale-data replay.
+    } else if (queued_ == 0 || !queue_tail()) {
+        fault(); // Never chain into an unprepared or previously consumed buffer.
     }
 }
 

@@ -29,7 +29,7 @@ constexpr std::uint64_t realized_nhz(std::uint32_t increment) {
 struct Segment {
     std::uint64_t end_sample = 0;
     std::uint32_t increment = 0; // Zero means RF off; phase is frozen.
-    std::uint32_t reciprocal = 0;
+    std::uint32_t tone_index = 0;
 };
 
 struct Plan {
@@ -41,6 +41,10 @@ struct Plan {
 // Rejects outside the initial four-tone, tone/wspr, sample-aligned study slice.
 // Does not mutate a previously accepted plan or interact with an output device.
 [[nodiscard]] std::optional<Plan> plan_job(const wtp::Job& job);
+
+// Exact 32-sample packer for tone indexes 0..3; tables are initialized by reset.
+void prepare_word_tables();
+std::uint32_t packed_word(std::uint32_t phase, unsigned tone_index);
 
 class Waveform {
   public:

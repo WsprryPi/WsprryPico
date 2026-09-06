@@ -1,9 +1,9 @@
 # Experimental Pico PIO/DMA driver
 
-Status: implemented, host-tested and linked against the pinned Pico SDK for
-Pico 2 W. No flashing, GPIO operation or SDR capture was performed for this
-slice. The standard `WsprryPico` firmware still selects `InhibitedRfEngine`.
-This is the second Step 8 software slice, not completed target qualification.
+Status: implemented, host-tested and exercised by the separate
+[RF bench](rf-bench.md) on Pico 2 W with reception on wspr5. The standard
+`WsprryPico` firmware still selects `InhibitedRfEngine`. Bounded bench evidence
+does not complete Step 8 qualification.
 
 ## Wiring and scope
 
@@ -12,7 +12,9 @@ This is the second Step 8 software slice, not completed target qualification.
 | RF data | GP2 | 4 |
 | Return | GND | 3 |
 
-With USB at the top, these are the fourth and third pins down the left side.
+Viewed from the **component side**, USB at the top, these are the fourth and
+third pins down the left side. Viewed from the **underside**, they are on the
+right. Follow printed GP2/GND labels; the opposite row contains power pins.
 The RF data goes through the chosen output network and attenuation to the SDR
 on `wspr5`; return connects to the cable shield. The
 [output circuit proposal](rf-output-design.md) and
@@ -28,34 +30,36 @@ clock, expose new WTP capabilities, or select itself in firmware.
 
 `PioDmaSink` is a portable two-slot controller; `PicoPioDma` implements its
 peripheral boundary. Construction does not touch hardware. First submission
-claims one PIO state machine/program, one DMA channel, one hardware alarm and
+claims one PIO state machine/program, three DMA channels (two data/prefetch and one final PIO stop), one hardware alarm and
 exclusive DMA IRQ 3 on the owning core. Open rejects an occupied IRQ, wrong clock
 or unavailable resource and unwinds partial claims. Keep these objects on one
 core, reserve GP2 and IRQ 3 for their lifetime, and keep the clock fixed while
 armed or running. The same-core IRQ mask is not multicore synchronization.
 
 The PIO program executes one `out pins, 1` per cycle, shifts LSB-first and uses
-autopull at 32 bits with an eight-word joined TX FIFO. One non-chained DMA
-transfer feeds each block. Its completion IRQ starts the next queued block.
-There is no circular descriptor or automatic replay. Missing data, DMA errors
-and observed TX starvation produce failure and stop output.
+autopull at 32 bits with an eight-word joined TX FIFO. The disabled state machine's
+output shift register is primed before launch to avoid a startup TXSTALL.
+Two fresh data descriptors are preloaded and chained. Completion releases one
+buffer while hardware already consumes its successor; the foreground fills the
+released slot and queues it again. There is no circular descriptor or stale
+buffer replay. Missing data, DMA errors and observed starvation fail the run.
 
-The FIFO plus output shift register gives at most 288 sample cycles (1.92 us)
-of slack at a block handoff; the actual minimum is smaller and depends on DMA
-and interrupt latency. Cross-linking does not establish that the handler meets
-this deadline. Target interrupt/refill benchmarks are needed before claiming
-continuous output. A detected stall invalidates the run; it cannot undo samples
-already emitted. CPU hangs and missed interrupts have no independent watchdog
-in this implementation.
+Each full successor block gives approximately 3.495 ms for foreground refill.
+The former single-channel interrupt handoff had at most 1.92 us of FIFO reserve;
+actual IRQ latency exceeded that reserve. Preloading the successor removes that
+IRQ handoff dependency. Observed target results are in the bench guide. A detected
+stall invalidates the run but cannot undo samples already emitted. CPU hangs and
+missed interrupts have no independent watchdog in this implementation.
 
-After final data DMA, nine repeated zero words are pushed through the same FIFO.
-When that DMA completes, all preceding data has left both FIFO and shift
-register. The handler forces GP2 low, disables PIO and clears pending work.
-Padding/tail zeros carry no RF frequency. Output-active is the commanded PIO
-state, not an independent electrical measurement. Final IRQ latency and an
-end-boundary foreground poll can still fail the existing strict completion
-check; target testing must establish completion behavior as well as steady
-streaming. No timing tolerance was added to WTP.
+The final data descriptor is followed by ten repeated zero words. Their arrival
+ensures all valid data and at least one zero word have left the output shift
+register. The zero descriptor chains a dedicated DMA write to the PIO control
+clear alias, disabling that state machine before its remaining zeros drain.
+The completion handler retires the descriptors and forces GP2 low. This avoids
+relying on final IRQ latency to prevent a false underrun. Output-active reports
+PIO state, not an independent electrical measurement. No WTP timing tolerance
+was added. Finite completion was exercised at 100 ms and 1 s; other durations
+and full WSPR operation remain outside that physical evidence.
 
 Stop cancels the alarm, forces GP2 low, disables PIO and DMA interrupts, clears
 DMA EN before abort (RP2350-E5), waits within the caller's deadline for DMA to
@@ -110,8 +114,8 @@ a link-only ELF. It does not generate a test UF2 or run the image. Standard
 firmware construction remains separate. Original driver and PIO code are MIT;
 the SDK keeps its own licensing and attribution.
 
-Next work is an experimental target runner with honest capabilities and clock
-handling, measured generation/IRQ/stack/heap budgets, and operator-directed
-transmissions received on `wspr5`. Harness capture and offline analysis can help;
-its existing WsprryPi transmitter campaign is not a Pico adapter. Record the
-exact firmware, board, output path, receiver and job with those measurements.
+The [bench runner and target record](rf-bench.md) provide CPU measurements,
+software bootloader entry and operator-directed tones received on wspr5. Further
+work includes calibrated frequency/spectra, full-frame streaming and production
+clock/WTP integration. Harness capture and offline analysis are reused directly;
+its existing WsprryPi transmitter campaign is not a Pico adapter.

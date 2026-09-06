@@ -33,15 +33,22 @@ bool PicoPioDma::open(Handler handler, void* context) {
                                                           &offset_, rf_pin, 1, true)) {
         return false;
     }
-    channel_ = dma_claim_unused_channel(false);
-    if (channel_ >= 0) {
+    channels_[0].id = dma_claim_unused_channel(false);
+    if (channels_[0].id >= 0)
+        channels_[1].id = dma_claim_unused_channel(false);
+    if (channels_[1].id >= 0)
+        stop_channel_ = dma_claim_unused_channel(false);
+    if (stop_channel_ >= 0)
         alarm_ = hardware_alarm_claim_unused(false);
-    }
-    if (channel_ < 0 || alarm_ < 0) {
-        if (channel_ >= 0) {
-            dma_channel_unclaim(static_cast<unsigned>(channel_));
+    if (stop_channel_ < 0 || alarm_ < 0) {
+        for (auto& channel : channels_) {
+            if (channel.id >= 0)
+                dma_channel_unclaim(static_cast<unsigned>(channel.id));
+            channel.id = -1;
         }
-        channel_ = -1;
+        if (stop_channel_ >= 0)
+            dma_channel_unclaim(static_cast<unsigned>(stop_channel_));
+        stop_channel_ = -1;
         pio_remove_program_and_unclaim_sm(&packed_output_program, pio_, sm_, offset_);
         pio_ = nullptr;
         return false;
@@ -76,18 +83,32 @@ bool PicoPioDma::halt(std::uint64_t deadline_ns) {
     hardware_alarm_cancel(static_cast<unsigned>(alarm_));
     gpio_set_outover(rf_pin, GPIO_OVERRIDE_LOW);
     pio_sm_set_enabled(pio_, sm_, false);
-    const auto channel = static_cast<unsigned>(channel_);
-    dma_irqn_set_channel_enabled(3, channel, false);
-    // RP2350-E5: clear EN before abort. This driver never chains/re-triggers DMA.
-    hw_clear_bits(&dma_hw->ch[channel].ctrl_trig, DMA_CH0_CTRL_TRIG_EN_BITS);
-    dma_hw->abort = 1U << channel;
-    while (dma_channel_is_busy(channel)) {
-        if (now_ns() > deadline_ns) {
+    std::uint32_t abort_mask = 0;
+    // Clear both EN bits before aborting either channel (RP2350-E5).
+    for (const auto& slot : channels_) {
+        const auto channel = static_cast<unsigned>(slot.id);
+        dma_irqn_set_channel_enabled(3, channel, false);
+        hw_clear_bits(&dma_hw->ch[channel].ctrl_trig, DMA_CH0_CTRL_TRIG_EN_BITS);
+        abort_mask |= 1U << channel;
+    }
+    const auto stop_channel = static_cast<unsigned>(stop_channel_);
+    hw_clear_bits(&dma_hw->ch[stop_channel].ctrl_trig, DMA_CH0_CTRL_TRIG_EN_BITS);
+    dma_hw->abort = abort_mask | (1U << stop_channel);
+    while (dma_channel_is_busy(stop_channel)) {
+        if (now_ns() > deadline_ns)
             return false;
-        }
         tight_loop_contents();
     }
-    dma_irqn_acknowledge_channel(3, channel);
+    for (auto& slot : channels_) {
+        const auto channel = static_cast<unsigned>(slot.id);
+        while (dma_channel_is_busy(channel)) {
+            if (now_ns() > deadline_ns)
+                return false;
+            tight_loop_contents();
+        }
+        dma_irqn_acknowledge_channel(3, channel);
+        slot.occupied = false;
+    }
     pio_sm_clear_fifos(pio_, sm_);
     pio_sm_restart(pio_, sm_);
     pio_sm_set_pins_with_mask(pio_, sm_, 0, 1U << rf_pin);
@@ -107,13 +128,18 @@ bool PicoPioDma::release(std::uint64_t deadline_ns) {
         hardware_alarm_unclaim(static_cast<unsigned>(alarm_));
         irq_set_enabled(DMA_IRQ_3, false);
         irq_remove_handler(DMA_IRQ_3, dma_irq);
-        dma_channel_unclaim(static_cast<unsigned>(channel_));
+        for (auto& slot : channels_) {
+            dma_channel_unclaim(static_cast<unsigned>(slot.id));
+            slot.id = -1;
+        }
+        dma_channel_unclaim(static_cast<unsigned>(stop_channel_));
+        stop_channel_ = -1;
         pio_remove_program_and_unclaim_sm(&packed_output_program, pio_, sm_, offset_);
         gpio_set_function(rf_pin, GPIO_FUNC_NULL);
         instance_ = nullptr;
         installed_ = false;
         pio_ = nullptr;
-        channel_ = alarm_ = -1;
+        alarm_ = -1;
     }
     unlock(saved);
     return true;
@@ -121,22 +147,60 @@ bool PicoPioDma::release(std::uint64_t deadline_ns) {
 
 bool PicoPioDma::dma(const std::uint32_t* data, std::uint32_t words, bool increment,
                      std::uint64_t epoch, std::uint64_t sequence) {
-    if (!installed_ || get_core_num() != core_ ||
-        dma_channel_is_busy(static_cast<unsigned>(channel_))) {
+    if (!installed_ || get_core_num() != core_)
         return false;
+    Channel* free = nullptr;
+    Channel* previous = nullptr;
+    for (auto& slot : channels_) {
+        if (!slot.occupied)
+            free = &slot;
+        else
+            previous = &slot;
     }
-    const auto channel = static_cast<unsigned>(channel_);
+    if (!free)
+        return false;
+    const auto channel = static_cast<unsigned>(free->id);
     auto config = dma_channel_get_default_config(channel);
     channel_config_set_transfer_data_size(&config, DMA_SIZE_32);
     channel_config_set_read_increment(&config, increment);
     channel_config_set_write_increment(&config, false);
-    channel_config_set_chain_to(&config, channel);
+    channel_config_set_chain_to(&config, channel); // No successor until fresh data is queued.
+    if (!increment) {
+        const auto stop_channel = static_cast<unsigned>(stop_channel_);
+        auto stop_config = dma_channel_get_default_config(stop_channel);
+        channel_config_set_transfer_data_size(&stop_config, DMA_SIZE_32);
+        channel_config_set_read_increment(&stop_config, false);
+        channel_config_set_write_increment(&stop_config, false);
+        channel_config_set_chain_to(&stop_config, stop_channel);
+        stop_mask_ = 1U << sm_;
+        dma_channel_configure(stop_channel, &stop_config, hw_clear_alias_untyped(&pio_->ctrl),
+                              &stop_mask_, 1, false);
+        channel_config_set_chain_to(&config, stop_channel);
+    }
     channel_config_set_dreq(&config, pio_get_dreq(pio_, sm_, true));
-    dma_epoch_ = epoch;
-    dma_sequence_ = sequence;
+    free->epoch = epoch;
+    free->sequence = sequence;
+    free->occupied = true;
     dma_irqn_acknowledge_channel(3, channel);
     dma_irqn_set_channel_enabled(3, channel, true);
-    dma_channel_configure(channel, &config, &pio_->txf[sm_], data, words, true);
+    dma_channel_configure(channel, &config, &pio_->txf[sm_], data, words, false);
+    if (previous) {
+        // A completed predecessor must never be manually retriggered. If a late
+        // producer loses this chain race, TXSTALL invalidates the run instead.
+        const auto prior = static_cast<unsigned>(previous->id);
+        if (!dma_channel_is_busy(prior)) {
+            // A tiny prelaunch buffer may already be in the stopped FIFO.
+            // Start only this new descriptor, never the completed predecessor.
+            if (!dma_irqn_get_channel_status(3, prior))
+                return false;
+            dma_start_channel_mask(1U << channel);
+        } else {
+            hw_write_masked(&dma_hw->ch[prior].ctrl_trig, channel << DMA_CH0_CTRL_TRIG_CHAIN_TO_LSB,
+                            DMA_CH0_CTRL_TRIG_CHAIN_TO_BITS);
+        }
+    } else {
+        dma_start_channel_mask(1U << channel);
+    }
     return true;
 }
 
@@ -155,21 +219,34 @@ bool PicoPioDma::alarm(std::uint64_t start_ns, std::uint64_t epoch) {
 }
 
 bool PicoPioDma::launch(std::uint64_t start_ns) {
-    const auto now = now_ns();
-    if (!installed_ || start_ns % 1000 != 0 || now > start_ns || start_ns - now > 50'000 ||
-        pio_sm_is_tx_fifo_empty(pio_, sm_)) {
+    const auto target_us = start_ns / 1000;
+    auto observed_us = time_us_64();
+    if (!installed_ || start_ns % 1000 != 0 || observed_us > target_us ||
+        target_us - observed_us > 50 || pio_sm_is_tx_fifo_empty(pio_, sm_)) {
         return false;
     }
-    while (now_ns() < start_ns) {
-        tight_loop_contents();
-    }
-    if (now_ns() != start_ns) {
+    // Prime the output shift register while disabled. Autopull on the first
+    // OUT would otherwise record a startup TXSTALL despite a prefilled FIFO.
+    pio_sm_exec(pio_, sm_, pio_encode_pull(false, true));
+    observed_us = time_us_64();
+    // Reuse the sample that ended the wait. A second clock read can cross into
+    // the next microsecond and falsely reject an on-time observation.
+    while (observed_us < target_us)
+        observed_us = time_us_64();
+    if (observed_us != target_us)
         return false;
-    }
     pio_->fdebug = 1U << (PIO_FDEBUG_TXSTALL_LSB + sm_);
     gpio_set_outover(rf_pin, GPIO_OVERRIDE_NORMAL);
     pio_sm_set_enabled(pio_, sm_, true);
+    metrics_.launch_ns = now_ns();
     return true;
+}
+
+PicoDriverMetrics PicoPioDma::metrics() {
+    const auto saved = lock();
+    const auto value = metrics_;
+    unlock(saved);
+    return value;
 }
 
 bool PicoPioDma::stalled() const {
@@ -182,15 +259,29 @@ bool PicoPioDma::active() const {
 
 void PicoPioDma::dma_irq() {
     auto* self = instance_;
-    if (!self || !dma_irqn_get_channel_status(3, static_cast<unsigned>(self->channel_))) {
+    if (!self)
         return;
+    const auto before = self->now_ns();
+    Channel* next = nullptr;
+    for (auto& slot : self->channels_) {
+        if (slot.occupied && dma_irqn_get_channel_status(3, static_cast<unsigned>(slot.id)) &&
+            (!next || slot.sequence < next->sequence))
+            next = &slot;
     }
-    const auto channel = static_cast<unsigned>(self->channel_);
+    if (!next)
+        return;
+    const auto channel = static_cast<unsigned>(next->id);
     dma_irqn_acknowledge_channel(3, channel);
     const auto error = dma_hw->ch[channel].ctrl_trig & DMA_CH0_CTRL_TRIG_AHB_ERROR_BITS;
-    self->handler_(self->context_,
-                   {error ? DriverEventKind::DmaError : DriverEventKind::DmaComplete,
-                    self->dma_epoch_, self->dma_sequence_});
+    const auto epoch = next->epoch, sequence = next->sequence;
+    next->occupied = false;
+    self->handler_(
+        self->context_,
+        {error ? DriverEventKind::DmaError : DriverEventKind::DmaComplete, epoch, sequence});
+    const auto elapsed = self->now_ns() - before;
+    ++self->metrics_.dma_irqs;
+    if (elapsed > self->metrics_.max_irq_ns)
+        self->metrics_.max_irq_ns = elapsed;
 }
 
 void PicoPioDma::alarm_irq(unsigned alarm) {

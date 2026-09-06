@@ -91,7 +91,11 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
     static uint16_t descriptor[33];
     static char serial[(PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 2) + 1];
     static char const* const strings[] = {
+#ifdef WSPRRY_PICO_RF_BENCH
+        NULL, "WsprryPi", "WsprryPico-RFBench", serial, "RFBench Console", "RFBench Commands",
+#else
         NULL, "WsprryPi", "WsprryPico", serial, "WsprryPico Console", "WsprryPico WTP",
+#endif
     };
 
     if (index == STRID_LANGID) {

@@ -25,8 +25,10 @@ This contract summarizes durable boundaries. The normative WTP/1 contract is
 The hardware-free RF study selects PIO/DMA GPIO synthesis for experimental
 implementation; an optional Si5351 engine remains an alternative. A portable
 generator, PIO/DMA driver and local launch integration are host-tested and
-Arm-cross-linked, but are not selected by the standard Pico firmware. Physical
-output and target timing have not been measured.
+Arm-cross-linked, but are not selected by the standard Pico firmware. The
+separate [bench image](docs/development/rf-bench.md) has bounded CPU and conducted
+tone evidence from the Pico and the SDR on wspr5. Its relative monotonic timer
+is explicitly unsynchronized; it does not claim WTP timing conformance.
 No band coverage, RF performance or WTP compliance is currently established.
 The Pico 2 W firmware provides an RF-inhibited WTP USB endpoint with separate
 Console and WTP CDC interfaces. Its protocol, service, transport and descriptor

@@ -2,7 +2,8 @@
 
 Status: portable Step 8 stream and [PIO/DMA sink](pio-dma-driver.md) implemented
 and host-tested; the SDK driver also cross-links with the pinned Arm toolchain.
-RP2350 throughput, launch timing, electrical behavior and RF remain unqualified.
+Bounded RP2350 refill and conducted tone measurements are recorded in the
+[bench guide](rf-bench.md); general timing and RF qualification remain open.
 The standard Pico firmware still uses `InhibitedRfEngine` and its existing
 unsynchronized clock.
 
@@ -45,12 +46,15 @@ and freeze the phase; resuming uses the retained phase. That off policy is an
 explicit experimental choice, not qualification of keyed modes. The final word
 is zero-padded and the return value states the exact valid sample count.
 
-The generator advances equal-bit runs and segment boundaries. It computes the
-next phase crossing with a precomputed reciprocal, a 64-bit multiplication and
-one correction, rather than division per sample. The valid four increments
-bound this arithmetic. `Waveform::reset` takes a planner-produced `Plan` that
-must remain alive and immutable; arbitrary hand-built plans are not supported.
-The generator itself allocates no memory.
+The generator uses exact phase-indexed word tables. Each tone has 64 sorted
+phase boundaries and 1024 buckets containing a base word and its boundary range.
+Lookup applies XOR toggles for crossings inside the bucket. Full words advance
+phase in batches; partial words and event edges retain per-sample handling.
+The four shared tables consume 34,816 bytes of SRAM and initialize once in the
+serialized owner before rendering. There is no approximation of output bits.
+`Waveform::reset` takes a planner-produced `Plan` that must remain alive and
+immutable; arbitrary hand-built plans are unsupported. The generator allocates
+no heap memory. Tests compare all table/bucket edges against a per-sample oracle.
 
 Preparation validates before replacing accepted state, copies the immutable job,
 then generates the first two blocks. Rejected preparation preserves the previous
@@ -81,29 +85,18 @@ The concrete PIO/DMA controller serializes same-core IRQ and foreground access.
 The job service prearms engines advertising local scheduling during ARM; the
 local alarm rechecks the immutable clock conditions before launch. Legacy and
 inhibited engines retain their foreground `begin` path. The clock snapshot must
-be IRQ-safe and outlive the active engine. Physical timing remains unmeasured.
+be IRQ-safe and outlive the active engine. The bench timer observations do not establish physical pin-edge accuracy.
 
 ## Memory and processing budget
 
-For the pinned Arm GCC 15.3.1 ABI, the cross-build inspection gives:
-
-| Item | Bytes / boundary |
-|---|---:|
-| Two waveform buffers, included in engine | 131072 |
-| Complete `StreamEngine` object | 133936 |
-| `Plan`, included in engine | 2608 |
-| Copied event payload at 162 events, additional heap | 6480 |
-| Generator's compiler-reported local stack frame | 80 |
-| Planner / prepare local frames | 2688 / 2696 |
-
-Stack values are per function, not a maximum call-chain bound. Planner and
-prepare frames can coexist. Job strings, allocation overhead, frequency-adjustment
-vectors, retained service/replay data, driver descriptors, endpoint queues,
-other stacks and wireless memory are additional. Put a future engine in owned
-long-lived storage, not a small interrupt stack. Static assertions cap the
-engine object at 140 KiB and the plan at 4 KiB; these do not establish total
-firmware fit. The physical integration needs a final map and heap/stack
-high-water validation under the largest accepted job and replay load.
+The engine has two 64 KiB waveform buffers. Static assertions cap the complete
+engine object at 140 KiB and its plan at 4 KiB. The four shared lookup tables add
+34,816 bytes; the bench has another 64 KiB CPU-test buffer. Job copies, strings,
+USB queues, allocator overhead and stack are additional. The bench reserves a
+16 KiB primary stack and reports a canary estimate; its observed maximum was
+9,652 bytes in the recorded workload. This is not a maximum-job call-chain proof.
+`heap_free_bytes` is free space in the allocator arena, not all unallocated SRAM.
+The standard firmware's memory-layout checks remain separate.
 
 The stream needs 18.75 MB/s of packed data. Each half-buffer provides
 3.495253 ms. The proposed target generation budget remains <=1.747626 ms per
@@ -114,15 +107,14 @@ elapsed and maximum block-render time. Host wall-clock maxima include scheduling
 and cannot establish RP2350 deadlines. Cross-compilation establishes neither
 cycle counts nor hardware timing.
 
-## Recorded host workload
+## Recorded target workload
 
-On 2026-09-05, the macOS arm64 Release build with AppleClang 21.0.0 rendered
-31,641 blocks for the full four-tone job in 7.90991 s including checksum work.
-Maximum measured render-call time was 1800.67 us and the checksum was
-9349730822126155465. This host maximum is above the study's proposed 1747.626 us
-comparison target; it is neither a real-time guarantee nor a Pico result.
-The actual RP2350 refill performance remains unknown. Benchmark output is
-expected to vary with host load; use the command below to obtain a fresh result.
+On the recorded Pico 2 W at 150 MHz, `BENCH 128` changed from a worst render call
+of 22.092 ms with the original generator to 1.507 ms with exact word lookup and
+removal of redundant buffer clearing. Both produced checksum 4503602371141397.
+The latter is below the proposed 1.747626 ms half-buffer budget for this measured
+workload. It is not a maximum-load or full-frame guarantee. See the
+[image hashes, setup and limitations](rf-bench.md).
 
 ## Validation commands
 
@@ -172,10 +164,9 @@ honor the allocation and timing constraints.
 
 ## Remaining Step 8 work
 
-Integrate the driver in an experimental target runner, review the
-[output/inhibit proposal](rf-output-design.md), and measure generation, interrupt
-and memory budgets on the specified target. The operator decides when to transmit and which parts of the
-[conducted measurement plan](rf-measurement-plan.md) to use. Output circuitry,
-filtering and target timing remain engineering work; independent stop circuitry
-is an optional design choice, not a transmission prerequisite. This software slice
-does not complete Step 8 or qualify any engine/mode/band combination.
+The experimental target runner and initial measurements now exist. Remaining
+work includes calibrated frequency and spectra, full-frame/mode workloads,
+output circuit/filter characterization and UTC/WTP integration. The operator
+decides when to transmit and which measurements to perform. Independent stop
+circuitry remains an optional design choice. These bounded results do not
+complete Step 8 or qualify an engine/mode/band combination.
