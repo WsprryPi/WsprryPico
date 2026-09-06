@@ -1,6 +1,32 @@
 # Implementation plan
 
-Status: proposed sequence.
+Status: temporary development roadmap and progress record.
+
+This file is useful while implementation is active. Remove roadmap sequencing,
+completed-work narration and other progress material before the documentation is
+treated as long-term product documentation.
+
+## Current roadmap snapshot
+
+1. **Complete:** architecture and protocol boundaries.
+2. **Complete:** WTP/1 contract and validation fixtures.
+3. **Complete:** portable job service and RF lifecycle.
+4. **Complete:** Pico 2 W firmware foundation.
+5. **Complete:** dual USB CDC transport.
+6. **Complete:** strict USB WTP endpoint.
+7. **Complete:** RF feasibility study and PIO/DMA selection.
+8. **Complete:** physical RF engine and UTC-scheduled WTP integration, including
+   GP2 output, encoded WSPR, comparative spectrum work, USB UTC synchronization,
+   scheduled local execution, conducted SDR capture and independent decoding.
+9. **Next:** standalone configuration and timing, including station identity,
+   persistent schedules, an autonomous device time source and operation without
+   a per-job USB host.
+10. **Planned:** WsprryPi client/backend integration.
+11. **Planned:** Wi-Fi/TCP and the shared browser API.
+12. **Planned:** SoftAP and BLE provisioning.
+13. **Planned:** final hardware qualification and release, including the output
+    network and filters, calibrated GPIO-edge timing, supported mode/band
+    combinations and a reproducible release UF2.
 
 ## Completed baseline
 
