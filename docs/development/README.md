@@ -98,3 +98,7 @@ limitations.
 
 See the [implementation plan](../implementation-plan.md) and
 [WTP/1 contract](../protocol/WTP.md) for the next boundary.
+
+The [frequency correction and alias investigation](rf-correction-validation.md) records the
+`CORRECTION` bench command, corrected measurements, remaining frame settling
+and identified sampled-square-wave alias.

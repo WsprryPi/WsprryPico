@@ -15,7 +15,9 @@ class Fake:
             return dict(ok=True, product='WsprryPico-RFBench', serial=self.identity,
                         utc_synchronized=False, revision='test')
         if command == 'CAPS':
-            return dict(ok=True, interface='pico-rf-bench/1', engine='pio-dma-gp2', frame='cycle4-162')
+            return dict(ok=True, interface='pico-rf-bench/1', engine='pio-dma-gp2', frame='cycle4-162', correction_ppb_range=[-100000,100000])
+        if command.startswith('CORRECTION '):
+            return dict(ok=True, correction_ppb=int(command.split()[1]), output_active=False)
         if command == 'STOP':
             return dict(ok=True, state=self.cleanup, output_active=False)
         if command.startswith(('RUN ', 'FRAME ')):
@@ -35,6 +37,22 @@ class Tests(unittest.TestCase):
         fake = Fake()
         self.assertTrue(execute(fake, 'RUN 0 1 100', 2, 'abc', 'test')['completed'])
         self.assertEqual(fake.commands[-1], 'STOP')
+    def test_correction_verified_before_run(self):
+        fake = Fake()
+        self.assertTrue(execute(fake, 'RUN 0 1 100', 2, 'abc', 'test', correction_ppb=2222)['completed'])
+        self.assertLess(fake.commands.index('CORRECTION 2222'), fake.commands.index('RUN 0 1 100'))
+    def test_stale_stop_prevents_correction(self):
+        fake = Fake(cleanup='armed')
+        with self.assertRaises(RuntimeError):
+            execute(fake, 'RUN 0 1 100', 2, 'abc', 'test', correction_ppb=2222)
+        self.assertNotIn('CORRECTION 2222', fake.commands)
+        self.assertNotIn('RUN 0 1 100', fake.commands)
+
+    def test_bad_correction_never_runs(self):
+        fake = Fake()
+        with self.assertRaises(ValueError):
+            execute(fake, 'RUN 0 1 100', 2, 'abc', 'test', correction_ppb=100001)
+        self.assertNotIn('RUN 0 1 100', fake.commands)
     def test_frame_success(self):
         fake = Fake()
         self.assertTrue(execute(fake, 'FRAME 100', 120, 'abc', 'test')['completed'])

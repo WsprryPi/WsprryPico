@@ -33,6 +33,16 @@ class Tests(unittest.TestCase):
             manifest = json.loads((output / 'session.json').read_text())
             self.assertFalse(manifest['capture_success'])
             self.assertEqual(manifest['reference_disable_verified_by_cli'], not fail_final_status)
+    def test_receive_only_conflicts_rejected_before_io(self):
+        argv = ['capture_rf_bench.py', '--port', 'fake', '--serial', 'fake',
+                '--revision', 'test', '--firmware', 'missing', '--output', 'unused',
+                '--attenuation-db', '60', '--receive-only']
+        for extra in (['--frame'], ['--abort-after-ms', '100']):
+            with patch.object(sys, 'argv', argv + extra), patch.object(capture_rf_bench, 'remote') as remote:
+                with self.assertRaises(SystemExit):
+                    capture_rf_bench.main()
+                remote.assert_not_called()
+
     def test_capture_failure_disables_reference(self):
         self.exercise_failure(False)
     def test_status_failure_still_disables_reference(self):

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -245,6 +246,54 @@ void planner_test() {
     CHECK(!rf::plan_job(invalid));
 }
 
+void correction_test() {
+    CHECK(rf::corrected_increment(4, 0) == 0);
+    CHECK(rf::corrected_increment(0, -1000000000) == 0);
+    const auto job = job_for(std::array<std::uint64_t, 4>{100003, 100007, 100009, 100019});
+    const auto normal = rf::plan_job(job);
+    for (const auto ppb : {-100000, -2222, 0, 2222, 100000}) {
+        const auto plan = rf::plan_job(job, ppb);
+        CHECK(plan && plan->total_samples == normal->total_samples);
+        rf::Waveform corrected, independent;
+        corrected.reset(*plan);
+        independent.reset(*normal);
+        std::uint32_t phase = 0;
+        std::uint64_t position = 0;
+        std::size_t segment = 0;
+        std::array<std::uint32_t, 257> words{};
+        while (position < plan->total_samples) {
+            const auto count = corrected.render(words);
+            for (std::uint64_t bit = 0; bit < count; ++bit) {
+                CHECK(((words[bit / 32] >> (bit % 32)) & 1U) == phase >> 31);
+                phase += plan->segments[segment].increment;
+                if (++position == plan->segments[segment].end_sample)
+                    ++segment;
+            }
+            // Interleaved default rendering cannot replace corrected tables.
+            (void)independent.render(words);
+        }
+        for (unsigned tone = 0; tone < 4; ++tone) {
+            const auto exact = static_cast<long double>(rf::increments[tone]) * 1000000000.L /
+                               (1000000000.L + ppb);
+            CHECK(std::abs(static_cast<long double>(plan->tone_increments[tone]) - exact) <= .5L);
+        }
+    }
+    CHECK(!rf::plan_job(job, 100001) && !rf::plan_job(job, -100001));
+    auto strict = job;
+    strict.allow_frequency_adjustment = false;
+    CHECK(!rf::plan_job(strict, 2222));
+    TestSink sink;
+    rf::StreamEngine engine(sink);
+    CHECK(!engine.set_frequency_correction_ppb(100001));
+    CHECK(engine.set_frequency_correction_ppb(2222));
+    CHECK(engine.prepare(job).accepted);
+    CHECK(!engine.set_frequency_correction_ppb(0));
+    CHECK(engine.begin(job, 100));
+    CHECK(!engine.set_frequency_correction_ppb(0));
+    CHECK(engine.disable(200));
+    CHECK(engine.set_frequency_correction_ppb(0));
+}
+
 void lifecycle_test() {
     TestSink sink;
     rf::StreamEngine engine(sink);
@@ -472,6 +521,7 @@ int main(int argc, char** argv) {
         CHECK(argc == 1);
         oracle_test();
         planner_test();
+        correction_test();
         lifecycle_test();
         faults_test();
         service_test();

@@ -207,3 +207,7 @@ client timeout/STOP behavior and malformed captures. Hardware-free tests do not
 prove peripheral timing. The next work is adequate-resolution frequency analysis
 with a verified receiver reference, output spectra/filter characterization,
 full-frame and abort/load coverage, and production UTC/WTP integration.
+
+The [frequency correction and alias investigation](rf-correction-validation.md) records the
+`CORRECTION` bench command, corrected measurements, remaining frame settling
+and identified sampled-square-wave alias.

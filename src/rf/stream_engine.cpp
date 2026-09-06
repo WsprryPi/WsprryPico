@@ -50,11 +50,19 @@ bool StreamEngine::check_clock(void* context) {
     return true;
 }
 
+bool StreamEngine::set_frequency_correction_ppb(std::int32_t ppb) {
+    if (state_ != wtp::EngineState::Idle || job_ || output_active() || ppb < -max_correction_ppb ||
+        ppb > max_correction_ppb)
+        return false;
+    correction_ppb_ = ppb;
+    return true;
+}
+
 wtp::PrepareResult StreamEngine::prepare(const wtp::Job& job) {
     if (state_ != wtp::EngineState::Idle || output_active()) {
         return {};
     }
-    const auto candidate = plan_job(job);
+    const auto candidate = plan_job(job, correction_ppb_);
     if (!candidate) {
         return {};
     }

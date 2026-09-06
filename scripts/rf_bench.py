@@ -93,7 +93,7 @@ class Serial:
             return response
 
 
-def execute(serial, command: str, timeout: float, serial_id: str, revision: str, abort_after_s=None) -> dict:
+def execute(serial, command: str, timeout: float, serial_id: str, revision: str, abort_after_s=None, correction_ppb=None) -> dict:
     info = serial.exchange('INFO')
     if (info.get('product') != 'WsprryPico-RFBench' or
             info.get('serial', '').lower() != serial_id.lower() or
@@ -104,6 +104,16 @@ def execute(serial, command: str, timeout: float, serial_id: str, revision: str,
         raise ValueError('Unexpected bench interface')
     if command.startswith('FRAME ') and caps.get('frame') != 'cycle4-162':
         raise ValueError('Firmware does not support the synthetic frame')
+    if correction_ppb is not None:
+        if caps.get('correction_ppb_range') != [-100000, 100000] or not -100000 <= correction_ppb <= 100000:
+            raise ValueError('Unsupported correction')
+        stopped = serial.exchange('STOP')
+        if (stopped.get('ok') is not True or stopped.get('output_active') is not False
+                or stopped.get('state') != 'stopped'):
+            raise RuntimeError('Stop before correction not confirmed')
+        configured = serial.exchange(f'CORRECTION {correction_ppb}')
+        if configured.get('ok') is not True or configured.get('correction_ppb') != correction_ppb:
+            raise RuntimeError('Correction not confirmed')
     result = {'info_before': info, 'caps': caps, 'command': command, 'completed': False}
     starts_work = command.startswith(('RUN ', 'BENCH ', 'FRAME '))
     try:
@@ -157,6 +167,7 @@ def parser():
     p.add_argument('--revision', required=True, help='Expected firmware build revision')
     p.add_argument('--firmware', required=True, type=Path, help='Exact flashed UF2 for manifest')
     p.add_argument('--output', required=True, type=Path, help='New evidence directory')
+    p.add_argument('--correction-ppb', type=int, choices=range(-100000, 100001), metavar='-100000..100000')
     p.add_argument('--abort-after-ms', type=int, choices=range(1, 10001), metavar='1..10000')
     p.add_argument('--timeout', type=float, default=30)
     sub = p.add_subparsers(dest='action', required=True)
@@ -197,7 +208,7 @@ def main():
     try:
         serial = Serial(args.port, args.output)
         manifest.update(execute(serial, command, args.timeout, args.serial, args.revision,
-                                None if args.abort_after_ms is None else args.abort_after_ms / 1000))
+                                None if args.abort_after_ms is None else args.abort_after_ms / 1000, args.correction_ppb))
     except BaseException as error:
         manifest['error'] = str(error)
         raise

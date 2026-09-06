@@ -48,6 +48,7 @@ class StreamEngine final : public wtp::RfEngine {
     std::string_view diagnostic() const override {
         return failure_;
     }
+    bool set_frequency_correction_ppb(std::int32_t ppb) override;
     wtp::PrepareResult prepare(const wtp::Job& job) override;
     [[nodiscard]] bool schedules_locally() const override {
         return sink_.schedules_locally();
@@ -66,6 +67,7 @@ class StreamEngine final : public wtp::RfEngine {
     wtp::LocalStartConditions start_conditions_{};
     bool submit_next(std::size_t slot);
     wtp::EngineReport fail(std::uint64_t now_ns, const char* reason = "sink_rejected");
+    std::int32_t correction_ppb_ = 0;
     const char* failure_ = "";
     BlockSink& sink_;
     Plan plan_{};
@@ -83,7 +85,7 @@ class StreamEngine final : public wtp::RfEngine {
     std::uint64_t last_poll_ns_ = 0;
 };
 
-static_assert(sizeof(StreamEngine) <= 140 * 1024);
+static_assert(sizeof(StreamEngine) <= 180 * 1024);
 static_assert(sizeof(Plan) <= 4096);
 
 } // namespace wsprrypico::rf

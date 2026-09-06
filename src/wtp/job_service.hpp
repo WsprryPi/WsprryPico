@@ -91,6 +91,9 @@ class RfEngine {
   public:
     virtual ~RfEngine() = default;
     virtual PrepareResult prepare(const Job& job) = 0;
+    virtual bool set_frequency_correction_ppb(std::int32_t) {
+        return false;
+    }
     virtual std::string_view diagnostic() const {
         return {};
     }

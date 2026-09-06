@@ -22,6 +22,9 @@ class Engine final : public wtp::RfEngine {
     bool fail_stop = false, fail_prepare = false, fail_begin = false, active = false;
     std::uint64_t start = 0;
     wtp::EngineState state = wtp::EngineState::Idle;
+    bool set_frequency_correction_ppb(std::int32_t) override {
+        return !active;
+    }
     wtp::PrepareResult prepare(const wtp::Job& job) override {
         ++prepares;
         CHECK(rf::plan_job(job).has_value());
@@ -87,6 +90,11 @@ int main() {
                           "RUN 0 1 99", "RUN 0 1 10001", "RUN 0 1 100 extra", "RUN 0 1 100\nSTOP",
                           "RUN 9999999999999999999999 1 100", "BENCH 0", "BENCH 4097", "BENCH 2x"})
             CHECK(!ok(bench.command(text)));
+        CHECK(!ok(bench.command("CORRECTION 100001")));
+        CHECK(!ok(bench.command("CORRECTION NaN")));
+        CHECK(ok(bench.command("CORRECTION 2222")));
+        CHECK(bench.status().find("\"correction_ppb\":2222") != std::string::npos);
+        CHECK(ok(bench.command("CORRECTION 0")));
         CHECK(engine.begins == 0 && engine.prepares == 0);
         CHECK(ok(bench.command("BENCH 3")));
         CHECK(!ok(bench.command("RUN 0 100 100")));
@@ -105,6 +113,7 @@ int main() {
         clock.now = engine.start;
         bench.poll();
         CHECK(bench.busy());
+        CHECK(!ok(bench.command("CORRECTION 2222")));
         engine.state = wtp::EngineState::Complete;
         engine.active = false;
         clock.now += 100000000;

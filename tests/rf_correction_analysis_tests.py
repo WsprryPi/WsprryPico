@@ -1,0 +1,41 @@
+import sys
+import unittest
+from pathlib import Path
+import numpy as np
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
+from analyze_rf_drift import fit_drift
+from predict_rf_spurs import alias, corrected_increment, simulate
+
+class Tests(unittest.TestCase):
+    def test_spur_movement(self):
+        raw, corrected = corrected_increment(0), corrected_increment(2222)
+        self.assertAlmostEqual(alias(corrected,43)-alias(raw,43),
+                               43*(alias(corrected,1)-alias(raw,1)), places=6)
+        for ppb in (0,2222):
+            result = simulate(ppb)
+            for feature in result['features']:
+                self.assertLess(abs(feature['predicted_hz']-feature['simulated_peak_hz']), 10)
+            self.assertLess(result['features'][2]['simulated_peak_dbc'], -30)
+            self.assertGreater(result['features'][2]['simulated_peak_dbc'], -36)
+    def test_transient_fit_on_held_out_symbols(self):
+        time = np.arange(162)*8192/12000
+        tones = np.arange(162)%4
+        frequency = 3570100+tones*375/256+.35*np.exp(-time/19)
+        result = fit_drift(time,tones,frequency)
+        self.assertLess(result['held_out_max_residual_hz'], .001)
+        self.assertAlmostEqual(result['fitted_tau_s'], 19, delta=.1)
+    def test_fit_does_not_hide_irregular_error(self):
+        rng = np.random.default_rng(6)
+        time = np.arange(162)*8192/12000
+        result = fit_drift(time,np.arange(162)%4,3570100+rng.normal(0,.2,162))
+        self.assertGreater(result['held_out_max_residual_hz'], .1)
+    def test_bad_input(self):
+        with self.assertRaises(ValueError):
+            fit_drift([1]*30,[0]*30,[0]*30)
+        with self.assertRaises(ValueError):
+            fit_drift(np.arange(30),np.zeros(30),np.arange(30))
+        with self.assertRaises(ValueError):
+            corrected_increment(100001)
+
+if __name__ == '__main__':
+    unittest.main()

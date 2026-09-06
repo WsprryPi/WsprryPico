@@ -50,8 +50,8 @@ The generator uses exact phase-indexed word tables. Each tone has 64 sorted
 phase boundaries and 1024 buckets containing a base word and its boundary range.
 Lookup applies XOR toggles for crossings inside the bucket. Full words advance
 phase in batches; partial words and event edges retain per-sample handling.
-The four shared tables consume 34,816 bytes of SRAM and initialize once in the
-serialized owner before rendering. There is no approximation of output bits.
+Each waveform owns 34,816 bytes of tables, rebuilt during reset when its
+planned increments change; rendering never rebuilds them. There is no approximation of output bits.
 `Waveform::reset` takes a planner-produced `Plan` that must remain alive and
 immutable; arbitrary hand-built plans are unsupported. The generator allocates
 no heap memory. Tests compare all table/bucket edges against a per-sample oracle.
@@ -90,11 +90,11 @@ be IRQ-safe and outlive the active engine. The bench timer observations do not e
 ## Memory and processing budget
 
 The engine has two 64 KiB waveform buffers. Static assertions cap the complete
-engine object at 140 KiB and its plan at 4 KiB. The four shared lookup tables add
-34,816 bytes; the bench has another 64 KiB CPU-test buffer. Job copies, strings,
+engine object at 180 KiB (including its tables) and its plan at 4 KiB. The bench
+has another 64 KiB CPU-test buffer and a separate 34,816-byte table set. Job copies, strings,
 USB queues, allocator overhead and stack are additional. The bench reserves a
 16 KiB primary stack and reports a canary estimate; its observed maximum was
-9,652 bytes in the recorded workload. This is not a maximum-job call-chain proof.
+9,848 bytes in the latest recorded workload. This is not a maximum-job call-chain proof.
 `heap_free_bytes` is free space in the allocator arena, not all unallocated SRAM.
 The standard firmware's memory-layout checks remain separate.
 
@@ -170,3 +170,6 @@ output circuit/filter characterization and UTC/WTP integration. The operator
 decides when to transmit and which measurements to perform. Independent stop
 circuitry remains an optional design choice. These bounded results do not
 complete Step 8 or qualify an engine/mode/band combination.
+
+See the [correction and alias record](rf-correction-validation.md) for the
+volatile correction interface, measured effect and remaining settling/alias work.

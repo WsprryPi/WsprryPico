@@ -26,6 +26,10 @@ def main():
     p.add_argument('--capture-helper', default='/tmp/wsprrypico-capture-build/wspq-capture-soapy')
     p.add_argument('--sdr-serial', default='2404058C60')
     p.add_argument('--attenuation-db', type=float, required=True)
+    p.add_argument('--correction-ppb', type=int, choices=range(-100000, 100001), metavar='-100000..100000')
+    p.add_argument('--center-hz', type=int, default=3550000, choices=range(3490000, 3560001), metavar='3490000..3560000')
+    p.add_argument('--gain-db', type=int, default=20, choices=range(20, 49))
+    p.add_argument('--receive-only', action='store_true', help='Observe with Pico output inactive')
     p.add_argument('--abort-after-ms', type=int, choices=range(1, 10001), metavar='1..10000')
     p.add_argument('--gpsdo-reference', action='store_true',
                    help='Enable wspr5 LBE-1421 output 1 at 3580000 Hz, then disable it')
@@ -33,6 +37,8 @@ def main():
     p.add_argument('--tone', type=int, choices=range(4), default=0)
     p.add_argument('--duration-ms', type=int, choices=range(1, 10001), default=100, metavar='1..10000')
     args = p.parse_args()
+    if args.receive_only and (args.frame or args.abort_after_ms is not None):
+        p.error('Receive-only cannot be combined with frame or abort')
     if args.receiver_host.startswith('-') or args.sdr_serial.startswith('-'):
         p.error('Invalid host or serial')
     if not math.isfinite(args.attenuation_db) or args.attenuation_db < 0:
@@ -69,7 +75,7 @@ def main():
             manifest['reference'] = dict(serial='0673ED0FA107', output=1, frequency_hz=3580000,
                                          level='low', correction='offline simultaneous comparison')
         helper = [args.capture_helper, '--enable-physical-sdr', 'sdrplay', args.sdr_serial,
-                  '3550000', str(count), '20', '250000', '200000', '0', 'false', 'false',
+                  str(args.center_hz), str(count), str(args.gain_db), '250000', '200000', '0', 'false', 'false',
                   '100000', str(duration + 10), directory + '/capture.cf32',
                   directory + '/capture.json', run_id]
         manifest['capture_argv'] = helper
@@ -86,13 +92,20 @@ def main():
             command = [sys.executable, str(Path(__file__).with_name('rf_bench.py')),
                        '--port', args.port, '--serial', args.serial, '--revision', args.revision,
                        '--firmware', str(args.firmware), '--output', str(args.output / 'transmitter'),
+                       *([] if args.correction_ppb is None else ['--correction-ppb', str(args.correction_ppb)]),
                        *([] if args.abort_after_ms is None else ['--abort-after-ms', str(args.abort_after_ms)]),
-                       *(['frame'] if args.frame else ['run', '--tone', str(args.tone),
-                         '--duration-ms', str(args.duration_ms)]), '--delay-ms', '1000']
+                       *(['status'] if args.receive_only else
+                         (['frame'] if args.frame else ['run', '--tone', str(args.tone),
+                          '--duration-ms', str(args.duration_ms)]) + ['--delay-ms', '1000'])]
             with (args.output / 'transmitter.log').open('w') as txlog:
                 # The client always sends STOP on run failure or timeout.
                 tx = subprocess.run(command, stdout=txlog, stderr=subprocess.STDOUT)
             manifest['transmitter_success'] = tx.returncode == 0
+            manifest['receive_only'] = args.receive_only
+            if args.receive_only:
+                result = json.loads((args.output / 'transmitter/result.json').read_text())
+                if result.get('terminal', {}).get('output_active') is not False:
+                    raise RuntimeError('Receive-only observation has active or unknown Pico output')
             manifest['capture_returncode'] = capture.wait(timeout=duration + 15)
             manifest['capture_success'] = capture.returncode == 0
         if not manifest['capture_success']:
@@ -111,7 +124,7 @@ def main():
                 (args.output / 'capture.cf32').stat().st_size != count * 8 or
                 meta['resolved_device'] != dict(driver='sdrplay', serial=args.sdr_serial) or
                 meta['actual_settings'] != dict(format='CF32', sample_rate_hz=250000,
-                    bandwidth_hz=200000, center_frequency_hz=3550000, gain_db=20,
+                    bandwidth_hz=200000, center_frequency_hz=args.center_hz, gain_db=args.gain_db,
                     channel=0, agc=False, bias_tee=False)):
             raise RuntimeError('Capture identity/settings verification failed')
         manifest['capture_sha256'] = digest

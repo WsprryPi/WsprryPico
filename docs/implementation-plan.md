@@ -104,14 +104,22 @@ maximum estimated timing error was 0.5 ms. The compared carrier was about
 criterion at 0.123 Hz. An in-window feature measured about -32 dBc. These remain
 physical engineering findings; no WSPR message was encoded or decoded.
 
-## Next slice: frequency correction, drift and spur investigation
+## Completed fifth Step 8 slice: correction and alias diagnosis
 
-Investigate the measured frequency offset/nonlinear drift and in-window feature
-with controlled comparisons. Add and validate clock correction where justified,
-then verify an encoded WSPR frame and integrate RF capabilities and UTC timing
-into the production job service. Output/filter characterization and heavier
-load coverage remain open. Step 8 is incomplete; the operator chooses hardware
-measurements and transmissions.
+The [correction record](development/rf-correction-validation.md) validates
+volatile frequency correction: short-run mean error fell from +7.974 Hz to
+approximately +0.012 Hz with 2222 ppb correction. Retune, gain and reference-only
+controls support an intrinsic sampled-square-wave alias near -33 dBc. The full
+frame still fails the linear residual limit; a separate fit describes a roughly
+0.40 Hz settling transient. Neither finding is silently promoted to a pass.
+
+## Next slice: alias reduction and long-frame stability
+
+Investigate generator/clock changes that reduce the nearby alias and improve
+long-frame stability. Then verify an encoded WSPR frame and integrate RF
+capabilities and UTC timing into the production job service. Output/filter
+characterization and heavier load coverage remain open. Step 8 is incomplete;
+the operator chooses hardware measurements and transmissions.
 
 Before extracting encoder code, inspect WsprryPi licensing and dependencies and record source revision/attribution. Initial candidate files include src/scheduling.hpp, src/scheduling_runtime.cpp and src/tests/wspr_tone_regression_test.cpp; finding them is not a portability review.
 

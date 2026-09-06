@@ -17,17 +17,6 @@ std::optional<std::uint64_t> samples_at(std::uint64_t ns) {
     return samples;
 }
 
-struct Boundary {
-    std::uint32_t phase, toggle;
-};
-struct Bucket {
-    std::uint32_t word;
-    std::uint16_t first, last;
-};
-struct WordTable {
-    std::array<Boundary, 64> boundaries{};
-    std::array<Bucket, 1024> buckets{};
-};
 // SRAM tables, constructed once before execution. Single serialized owner.
 std::array<WordTable, 4> tables;
 bool tables_ready = false;
@@ -51,13 +40,12 @@ inline std::uint32_t lookup(const WordTable& table, std::uint32_t phase) {
 
 } // namespace
 
-void prepare_word_tables() {
-    if (tables_ready)
-        return;
+void build_tables(std::array<WordTable, 4>& destination,
+                  const std::array<std::uint32_t, 4>& values) {
     for (unsigned tone = 0; tone < 4; ++tone) {
-        auto& table = tables[tone];
+        auto& table = destination[tone];
         for (unsigned bit = 0; bit < 32; ++bit) {
-            const auto offset = std::uint32_t{0} - bit * increments[tone];
+            const auto offset = std::uint32_t{0} - bit * values[tone];
             table.boundaries[2 * bit] = {offset, 1U << bit};
             table.boundaries[2 * bit + 1] = {offset + 0x80000000U, 1U << bit};
         }
@@ -67,7 +55,7 @@ void prepare_word_tables() {
             const auto low = std::uint64_t{index} << 22;
             const auto high = low + (1U << 22);
             auto& bucket = table.buckets[index];
-            bucket.word = oracle_word(static_cast<std::uint32_t>(low), increments[tone]);
+            bucket.word = oracle_word(static_cast<std::uint32_t>(low), values[tone]);
             bucket.first = bucket.last = 0;
             while (bucket.first < 64 && table.boundaries[bucket.first].phase <= low)
                 ++bucket.first;
@@ -76,14 +64,23 @@ void prepare_word_tables() {
                 ++bucket.last;
         }
     }
-    tables_ready = true;
+}
+
+void prepare_word_tables() {
+    if (!tables_ready) {
+        build_tables(tables, increments);
+        tables_ready = true;
+    }
 }
 
 std::uint32_t packed_word(std::uint32_t phase, unsigned tone_index) {
     return lookup(tables[tone_index], phase);
 }
 
-std::optional<Plan> plan_job(const wtp::Job& job) {
+std::optional<Plan> plan_job(const wtp::Job& job, std::int32_t correction_ppb) {
+    if (correction_ppb < -max_correction_ppb || correction_ppb > max_correction_ppb ||
+        (correction_ppb != 0 && !job.allow_frequency_adjustment))
+        return std::nullopt;
     if (job.job_id.size() != 32 ||
         !std::all_of(job.job_id.begin(), job.job_id.end(),
                      [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); }) ||
@@ -97,6 +94,8 @@ std::optional<Plan> plan_job(const wtp::Job& job) {
         return std::nullopt;
     }
     Plan plan;
+    for (unsigned i = 0; i < 4; ++i)
+        plan.tone_increments[i] = corrected_increment(i, correction_ppb);
     std::uint64_t previous_ns = 0;
     std::uint64_t previous_sample = 0;
     for (const auto& event : job.events) {
@@ -120,7 +119,7 @@ std::optional<Plan> plan_job(const wtp::Job& job) {
                 const auto realized = realized_nhz(increments[tone]);
                 if (*event.frequency_nhz == realized ||
                     (*event.frequency_nhz == requested && job.allow_frequency_adjustment)) {
-                    increment = increments[tone];
+                    increment = plan.tone_increments[tone];
                     tone_index = static_cast<std::uint32_t>(tone);
                     found = true;
                     break;
@@ -143,7 +142,10 @@ std::optional<Plan> plan_job(const wtp::Job& job) {
 }
 
 void Waveform::reset(const Plan& plan) {
-    prepare_word_tables();
+    if (table_increments_ != plan.tone_increments) {
+        build_tables(tables_, plan.tone_increments);
+        table_increments_ = plan.tone_increments;
+    }
     plan_ = &plan;
     segment_ = 0;
     position_ = 0;
@@ -162,7 +164,7 @@ std::uint64_t Waveform::render(std::span<std::uint32_t> output) {
                                : 0;
         if (words) {
             if (segment.increment) {
-                const auto& table = tables[segment.tone_index];
+                const auto& table = tables_[segment.tone_index];
                 auto phase = phase_;
                 const auto advance = segment.increment * 32;
                 for (std::size_t i = 0; i < words; ++i) {

@@ -28,6 +28,7 @@ class Bench {
     wtp::RfEngine& engine_;
     const BenchClock& clock_;
     bool running_ = false, benchmarking_ = false;
+    std::int32_t correction_ppb_ = 0;
     std::string state_ = "idle";
     std::uint64_t start_ns_ = 0, ended_ns_ = 0, last_poll_ns_ = 0, max_poll_gap_ns_ = 0;
     std::uint64_t max_render_ns_ = 0, benchmark_ns_ = 0, checksum_ = 0;

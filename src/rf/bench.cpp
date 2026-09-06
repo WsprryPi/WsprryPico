@@ -44,6 +44,7 @@ std::string Bench::status() const {
     return "{\"ok\":true,\"diagnostic\":\"" + std::string(engine_.diagnostic()) +
            "\",\"state\":\"" + state_ +
            "\",\"output_active\":" + (engine_.output_active() ? "true" : "false") +
+           ",\"correction_ppb\":" + std::to_string(correction_ppb_) +
            ",\"start_ns\":" + std::to_string(start_ns_) +
            ",\"ended_ns\":" + std::to_string(ended_ns_) +
            ",\"max_poll_gap_ns\":" + std::to_string(max_poll_gap_ns_) +
@@ -62,7 +63,8 @@ std::string Bench::command(std::string_view line) {
                "\"gpio\":2,\"header_pin\":4,\"tones\":4,\"base_hz\":3570100,"
                "\"spacing_hz\":1.46484375,\"duration_ms\":[1,10000],"
                "\"delay_ms\":[100,10000],\"benchmark_blocks\":[1,4096],"
-               "\"frame\":\"cycle4-162\",\"frame_duration_ns\":110592000000}\n";
+               "\"correction_ppb_range\":[-100000,100000],\"frame\":\"cycle4-162\",\"frame_"
+               "duration_ns\":110592000000}\n";
     }
     if (line == "STOP") {
         benchmarking_ = running_ = false;
@@ -76,13 +78,25 @@ std::string Bench::command(std::string_view line) {
         return error("busy");
     if (state_ == "failed")
         return error("stop_required_after_failure");
+    if (line.starts_with("CORRECTION ")) {
+        const auto text = line.substr(11);
+        std::int32_t ppb = 0;
+        const auto parsed = std::from_chars(text.data(), text.data() + text.size(), ppb);
+        if (text.empty() || parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size() ||
+            ppb < -max_correction_ppb || ppb > max_correction_ppb)
+            return error("invalid_correction");
+        if (!engine_.set_frequency_correction_ppb(ppb))
+            return error("correction_rejected");
+        correction_ppb_ = ppb;
+        return status();
+    }
     if (line.starts_with("BENCH ")) {
         const auto count = number(line.substr(6));
         if (!count || *count == 0 || *count > 4096)
             return error("invalid_benchmark");
         if (engine_.output_active())
             return error("output_active");
-        plan_ = plan_job(tone(0, 10000));
+        plan_ = plan_job(tone(0, 10000), correction_ppb_);
         if (!plan_)
             return error("plan_failed");
         waveform_.reset(*plan_);

@@ -38,3 +38,7 @@ Unresolved design proposals are explicitly marked as drafts.
 
 Original contributions are licensed under [MIT](LICENSE.md). Firmware build
 inputs are pinned in the firmware-foundation documentation.
+
+The [frequency correction and alias investigation](docs/development/rf-correction-validation.md) records the
+`CORRECTION` bench command, corrected measurements, remaining frame settling
+and identified sampled-square-wave alias.
