@@ -70,11 +70,20 @@ int main() {
                 for (std::uint32_t delta : {0xffffffffU, 0U, 1U})
                     check((bucket << 22) + delta);
         }
+        const auto frame = rf::diagnostic_frame();
+        CHECK(frame.events.size() == 162 && frame.total_duration_ns == 110592000000ULL);
+        const auto frame_plan = rf::plan_job(frame);
+        CHECK(frame_plan && frame_plan->total_samples == 16588800000ULL);
+        for (unsigned i = 0; i < 162; ++i) {
+            CHECK(frame_plan->segments[i].end_sample == (std::uint64_t{i} + 1) * 102400000);
+            CHECK(frame_plan->segments[i].increment == rf::increments[i % 4]);
+        }
         Clock clock;
         Engine engine;
         rf::Bench bench(engine, clock);
         CHECK(ok(bench.command("CAPS")) && ok(bench.command("STATUS")));
-        for (auto text : {"RUN", "RUN -1 10 100", "RUN 4 10 100", "RUN 0 0 100", "RUN 0 10001 100",
+        for (auto text : {"FRAME", "FRAME 99", "FRAME 10001", "FRAME 100 extra", "RUN",
+                          "RUN -1 10 100", "RUN 4 10 100", "RUN 0 0 100", "RUN 0 10001 100",
                           "RUN 0 1 99", "RUN 0 1 10001", "RUN 0 1 100 extra", "RUN 0 1 100\nSTOP",
                           "RUN 9999999999999999999999 1 100", "BENCH 0", "BENCH 4097", "BENCH 2x"})
             CHECK(!ok(bench.command(text)));
@@ -113,6 +122,12 @@ int main() {
         CHECK(ok(bench.command("STOP")));
         CHECK(ok(bench.command("BENCH 4096")));
         CHECK(ok(bench.command("STOP")) && !bench.busy());
+        CHECK(ok(bench.command("FRAME 100")));
+        CHECK(bench.busy());
+        CHECK(!ok(bench.command("FRAME 100")));
+        CHECK(ok(bench.command("STOP")));
+        CHECK(ok(bench.command("FRAME 100")));
+        CHECK(ok(bench.command("STOP")));
         std::cout << "RF bench checks passed\n";
     } catch (const std::exception& error) {
         std::cerr << error.what() << '\n';

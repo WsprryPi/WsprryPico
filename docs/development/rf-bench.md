@@ -7,6 +7,10 @@ these commands neither change WTP nor establish UTC timing conformance. The
 standard `WsprryPico` build remains the inhibited WTP endpoint. The operator
 chooses transmissions and measurements.
 
+The subsequent [full-frame validation](rf-frame-validation.md) adds `FRAME`,
+intentional abort/rearm, higher-resolution analysis and simultaneous GPSDO
+comparison. The initial results below remain tied to their original images.
+
 ## Build and connection
 
 Follow the pinned inputs in [firmware foundation](firmware-foundation.md), then:

@@ -39,6 +39,8 @@ The [PIO/DMA driver guide](pio-dma-driver.md) covers the SDK port, local launch,
 resource ownership, host fault tests and the link-only target.
 The [RF bench guide](rf-bench.md) covers measured target refill, software BOOTSEL,
 and bounded reception using the Harness helper on wspr5.
+The [full-frame record](rf-frame-validation.md) adds synthetic frame, abort/rearm,
+simultaneous GPSDO comparison and optional offline measurement tests.
 The [output/inhibit design](rf-output-design.md) remains a hardware proposal.
 
 ## Current checks

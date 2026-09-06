@@ -94,13 +94,24 @@ resolved observed underruns. Recorded 100 ms and 1 s tones completed and were
 received using the Harness capture helper on wspr5 through 60 dB attenuation.
 Coarse carrier analysis remains inconclusive for qualification.
 
-## Next slice: characterize the signal and expand target coverage
+## Completed fourth Step 8 slice: frame and reference measurements
 
-Measure frequency with adequate resolution and a verified receiver reference;
-characterize spectra/output network and exercise full-frame, tone changes and
-abort/rearm under declared load. Then integrate truthful RF capabilities and
-UTC timing into the production job service. Step 8 remains incomplete. The
-operator decides when to transmit and which hardware measurements to run.
+The [frame validation record](development/rf-frame-validation.md) covers two
+complete 162-symbol synthetic frames, a ten-second tone against the GPSDO on
+the combiner, and intentional abort/rearm. All 161 transitions were located;
+maximum estimated timing error was 0.5 ms. The compared carrier was about
++7.85 Hz high, and frame frequency residual exceeded the 0.1 Hz diagnostic
+criterion at 0.123 Hz. An in-window feature measured about -32 dBc. These remain
+physical engineering findings; no WSPR message was encoded or decoded.
+
+## Next slice: frequency correction, drift and spur investigation
+
+Investigate the measured frequency offset/nonlinear drift and in-window feature
+with controlled comparisons. Add and validate clock correction where justified,
+then verify an encoded WSPR frame and integrate RF capabilities and UTC timing
+into the production job service. Output/filter characterization and heavier
+load coverage remain open. Step 8 is incomplete; the operator chooses hardware
+measurements and transmissions.
 
 Before extracting encoder code, inspect WsprryPi licensing and dependencies and record source revision/attribution. Initial candidate files include src/scheduling.hpp, src/scheduling_runtime.cpp and src/tests/wspr_tone_regression_test.cpp; finding them is not a portability review.
 

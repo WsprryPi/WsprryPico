@@ -26,6 +26,10 @@ def main():
     p.add_argument('--capture-helper', default='/tmp/wsprrypico-capture-build/wspq-capture-soapy')
     p.add_argument('--sdr-serial', default='2404058C60')
     p.add_argument('--attenuation-db', type=float, required=True)
+    p.add_argument('--abort-after-ms', type=int, choices=range(1, 10001), metavar='1..10000')
+    p.add_argument('--gpsdo-reference', action='store_true',
+                   help='Enable wspr5 LBE-1421 output 1 at 3580000 Hz, then disable it')
+    p.add_argument('--frame', action='store_true', help='162-symbol local synthetic frame')
     p.add_argument('--tone', type=int, choices=range(4), default=0)
     p.add_argument('--duration-ms', type=int, choices=range(1, 10001), default=100, metavar='1..10000')
     args = p.parse_args()
@@ -38,14 +42,32 @@ def main():
     args.output.mkdir(parents=True, exist_ok=False)
     run_id = 'pico-' + uuid.uuid4().hex
     directory = '/tmp/' + run_id
-    duration = args.duration_ms / 1000 + 6
+    duration = (110.592 if args.frame else args.duration_ms / 1000) + 6
+    if args.abort_after_ms is not None:
+        duration = args.abort_after_ms / 1000 + 7
     count = round(duration * 250000)
     manifest = dict(run_id=run_id, remote_directory=directory, receiver_host=args.receiver_host,
                     sdr_serial=args.sdr_serial, attenuation_db=args.attenuation_db,
                     capture_success=False, transmitter_success=False, qualification=False)
     capture = None
+    reference_attempted = False
+    manifest['reference_disable_verified_by_cli'] = False if args.gpsdo_reference else None
+    gpsdo = ['sudo', '-n', '/home/pi/lbgpsdo/.venv/bin/python',
+             '/home/pi/lbgpsdo/lbe142x.py']
+    def reference_command(arguments, name):
+        with (args.output / name).open('w') as log:
+            remote(args.receiver_host, gpsdo + arguments, timeout=20,
+                   stdout=log, stderr=subprocess.STDOUT)
     try:
         remote(args.receiver_host, ['mkdir', directory], timeout=10)
+        if args.gpsdo_reference:
+            reference_command(['detail', '-s', '0673ED0FA107'], 'reference-before.log')
+            reference_attempted = True
+            reference_command(['modify', '-s', '0673ED0FA107', '--f1', '3580000',
+                               '--level1-low', '--pps-disable', '--enable1'], 'reference-enable.log')
+            reference_command(['detail', '-s', '0673ED0FA107'], 'reference-active.log')
+            manifest['reference'] = dict(serial='0673ED0FA107', output=1, frequency_hz=3580000,
+                                         level='low', correction='offline simultaneous comparison')
         helper = [args.capture_helper, '--enable-physical-sdr', 'sdrplay', args.sdr_serial,
                   '3550000', str(count), '20', '250000', '200000', '0', 'false', 'false',
                   '100000', str(duration + 10), directory + '/capture.cf32',
@@ -64,8 +86,9 @@ def main():
             command = [sys.executable, str(Path(__file__).with_name('rf_bench.py')),
                        '--port', args.port, '--serial', args.serial, '--revision', args.revision,
                        '--firmware', str(args.firmware), '--output', str(args.output / 'transmitter'),
-                       'run', '--tone', str(args.tone), '--duration-ms', str(args.duration_ms),
-                       '--delay-ms', '1000']
+                       *([] if args.abort_after_ms is None else ['--abort-after-ms', str(args.abort_after_ms)]),
+                       *(['frame'] if args.frame else ['run', '--tone', str(args.tone),
+                         '--duration-ms', str(args.duration_ms)]), '--delay-ms', '1000']
             with (args.output / 'transmitter.log').open('w') as txlog:
                 # The client always sends STOP on run failure or timeout.
                 tx = subprocess.run(command, stdout=txlog, stderr=subprocess.STDOUT)
@@ -85,6 +108,7 @@ def main():
             raise RuntimeError('Capture hash/count/cleanup verification failed')
         if (meta['primary_outcome'] != 'success' or not meta['output']['complete'] or
                 meta['output']['size_bytes'] != count * 8 or
+                (args.output / 'capture.cf32').stat().st_size != count * 8 or
                 meta['resolved_device'] != dict(driver='sdrplay', serial=args.sdr_serial) or
                 meta['actual_settings'] != dict(format='CF32', sample_rate_hz=250000,
                     bandwidth_hz=200000, center_frequency_hz=3550000, gain_db=20,
@@ -106,7 +130,18 @@ def main():
                     capture.wait(timeout=5)
                     manifest['receiver_cleanup_unconfirmed'] = True
         finally:
-            (args.output / 'session.json').write_text(json.dumps(manifest, indent=2) + '\n')
+            try:
+                if reference_attempted:
+                    # Always attempt disable even if the final status read fails.
+                    try:
+                        reference_command(['detail', '-s', '0673ED0FA107'], 'reference-capture-end.log')
+                    finally:
+                        reference_command(['modify', '-s', '0673ED0FA107', '--disable1'],
+                                          'reference-disable.log')
+                    reference_command(['detail', '-s', '0673ED0FA107'], 'reference-after.log')
+                    manifest['reference_disable_verified_by_cli'] = True
+            finally:
+                (args.output / 'session.json').write_text(json.dumps(manifest, indent=2) + '\n')
     print(json.dumps(manifest, indent=2))
     return 0 if manifest['transmitter_success'] and manifest['capture_success'] else 1
 

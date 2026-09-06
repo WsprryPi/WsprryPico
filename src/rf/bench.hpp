@@ -4,6 +4,9 @@
 
 namespace wsprrypico::rf {
 
+// Deterministic 162-symbol 0,1,2,3 cycling workload; not an encoded WSPR message.
+[[nodiscard]] wtp::Job diagnostic_frame();
+
 // Diagnostic interface only. RUN uses a local relative epoch, never claimed UTC/WTP.
 class BenchClock {
   public:

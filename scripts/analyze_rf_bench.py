@@ -9,7 +9,7 @@ import numpy as np
 from wsprrypi_qualification.carrier import CarrierParameters, analyze_carrier
 
 
-def analyze(iq_path, metadata_path, output, tone=0):
+def load_capture(iq_path, metadata_path):
     metadata = json.loads(metadata_path.read_text())
     expected = metadata['output']
     with iq_path.open('rb') as capture:
@@ -24,10 +24,17 @@ def analyze(iq_path, metadata_path, output, tone=0):
         raise ValueError('Capture identity or cleanup mismatch')
     settings = metadata['actual_settings']
     rate, center = settings['sample_rate_hz'], settings['center_frequency_hz']
-    requested = 3570100.0 + tone * 1.46484375
     iq = np.memmap(iq_path, dtype='<c8', mode='r')
     if not np.isfinite(rate) or rate <= 0 or not np.isfinite(center) or not np.isfinite(iq).all():
         raise ValueError('Non-finite samples or invalid settings')
+    return iq, metadata, digest
+
+
+def analyze(iq_path, metadata_path, output, tone=0):
+    iq, metadata, digest = load_capture(iq_path, metadata_path)
+    settings = metadata['actual_settings']
+    rate, center = settings['sample_rate_hz'], settings['center_frequency_hz']
+    requested = 3570100.0 + tone * 1.46484375
     width = 4096
     bins = np.fft.fftfreq(width, 1 / rate) + center
     target = np.abs(bins - requested) <= 1000

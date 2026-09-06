@@ -93,7 +93,7 @@ class Serial:
             return response
 
 
-def execute(serial, command: str, timeout: float, serial_id: str, revision: str) -> dict:
+def execute(serial, command: str, timeout: float, serial_id: str, revision: str, abort_after_s=None) -> dict:
     info = serial.exchange('INFO')
     if (info.get('product') != 'WsprryPico-RFBench' or
             info.get('serial', '').lower() != serial_id.lower() or
@@ -102,14 +102,25 @@ def execute(serial, command: str, timeout: float, serial_id: str, revision: str)
     caps = serial.exchange('CAPS')
     if caps.get('interface') != 'pico-rf-bench/1' or caps.get('engine') != 'pio-dma-gp2':
         raise ValueError('Unexpected bench interface')
+    if command.startswith('FRAME ') and caps.get('frame') != 'cycle4-162':
+        raise ValueError('Firmware does not support the synthetic frame')
     result = {'info_before': info, 'caps': caps, 'command': command, 'completed': False}
-    starts_work = command.startswith(('RUN ', 'BENCH '))
+    starts_work = command.startswith(('RUN ', 'BENCH ', 'FRAME '))
     try:
         response = serial.exchange(command)
         if not response['ok']:
             raise RuntimeError(str(response))
         deadline = time.monotonic() + timeout
+        running_since = None
+        aborted = False
         while starts_work and response.get('state') in ('armed', 'running', 'benchmarking'):
+            if response.get('state') == 'running':
+                if running_since is None:
+                    running_since = time.monotonic()
+                if abort_after_s is not None and time.monotonic() - running_since >= abort_after_s:
+                    response = serial.exchange('STOP')
+                    aborted = True
+                    break
             if time.monotonic() >= deadline:
                 raise TimeoutError('Bench operation timed out')
             time.sleep(0.05)
@@ -117,10 +128,15 @@ def execute(serial, command: str, timeout: float, serial_id: str, revision: str)
             if not response['ok']:
                 raise RuntimeError(str(response))
         result['terminal'] = response
+        result['intentional_abort'] = aborted
+        if abort_after_s is not None and not aborted:
+            raise RuntimeError('Run ended before requested abort was exercised')
         if command != 'BOOTSEL':
             result['info_after'] = serial.exchange('INFO')
         result['completed'] = (response.get('state') in ('complete', 'benchmark_complete')
                                if starts_work else response['ok'])
+        if aborted:
+            result['completed'] = response.get('ok') is True and response.get('state') == 'stopped'
         if starts_work and response.get('output_active') is not False:
             result['completed'] = False
     finally:
@@ -141,6 +157,7 @@ def parser():
     p.add_argument('--revision', required=True, help='Expected firmware build revision')
     p.add_argument('--firmware', required=True, type=Path, help='Exact flashed UF2 for manifest')
     p.add_argument('--output', required=True, type=Path, help='New evidence directory')
+    p.add_argument('--abort-after-ms', type=int, choices=range(1, 10001), metavar='1..10000')
     p.add_argument('--timeout', type=float, default=30)
     sub = p.add_subparsers(dest='action', required=True)
     sub.add_parser('status')
@@ -148,6 +165,8 @@ def parser():
     sub.add_parser('bootloader')
     benchmark = sub.add_parser('benchmark')
     benchmark.add_argument('--blocks', type=int, default=128, choices=range(1, 4097), metavar='1..4096')
+    frame = sub.add_parser('frame')
+    frame.add_argument('--delay-ms', type=int, choices=range(100, 10001), default=1000, metavar='100..10000')
     run = sub.add_parser('run')
     run.add_argument('--tone', type=int, choices=range(4), default=0)
     run.add_argument('--duration-ms', type=int, choices=range(1, 10001), default=1000, metavar='1..10000')
@@ -157,12 +176,17 @@ def parser():
 
 def main():
     args = parser().parse_args()
+    if args.abort_after_ms is not None and args.action not in ('run', 'frame'):
+        raise ValueError('Abort timing applies only to run/frame')
     if not 1 <= args.timeout <= 300:
         raise ValueError('Timeout must be 1..300 seconds')
     digest = hashlib.sha256(args.firmware.read_bytes()).hexdigest()
-    command = {'status': 'STATUS', 'stop': 'STOP', 'benchmark': 'BENCH', 'run': 'RUN', 'bootloader': 'BOOTSEL'}[args.action]
+    command = {'status': 'STATUS', 'stop': 'STOP', 'benchmark': 'BENCH', 'run': 'RUN', 'bootloader': 'BOOTSEL', 'frame': 'FRAME'}[args.action]
     if args.action == 'benchmark':
         command += f' {args.blocks}'
+    elif args.action == 'frame':
+        command += f' {args.delay_ms}'
+        args.timeout = max(args.timeout, 120 + args.delay_ms / 1000)
     elif args.action == 'run':
         command += f' {args.tone} {args.duration_ms} {args.delay_ms}'
     args.output.mkdir(parents=True, exist_ok=False)
@@ -172,7 +196,8 @@ def main():
     serial = None
     try:
         serial = Serial(args.port, args.output)
-        manifest.update(execute(serial, command, args.timeout, args.serial, args.revision))
+        manifest.update(execute(serial, command, args.timeout, args.serial, args.revision,
+                                None if args.abort_after_ms is None else args.abort_after_ms / 1000))
     except BaseException as error:
         manifest['error'] = str(error)
         raise

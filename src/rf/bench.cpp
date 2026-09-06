@@ -29,6 +29,17 @@ std::string error(std::string_view reason) {
 }
 } // namespace
 
+wtp::Job diagnostic_frame() {
+    wtp::Job job{std::string(32, 'b'), "rf-events/1", "wspr", 110592000000ULL, {}, true};
+    job.events.reserve(162);
+    for (unsigned i = 0; i < 162; ++i) {
+        const auto start = (std::uint64_t{i} * 2048000000 + 1) / 3;
+        const auto end = (std::uint64_t{i + 1} * 2048000000 + 1) / 3;
+        job.events.push_back({start, end - start, true, base_nhz + (i % 4) * spacing_nhz});
+    }
+    return job;
+}
+
 std::string Bench::status() const {
     return "{\"ok\":true,\"diagnostic\":\"" + std::string(engine_.diagnostic()) +
            "\",\"state\":\"" + state_ +
@@ -50,7 +61,8 @@ std::string Bench::command(std::string_view line) {
                "\"clock\":\"monotonic-relative-only\",\"sample_rate_hz\":150000000,"
                "\"gpio\":2,\"header_pin\":4,\"tones\":4,\"base_hz\":3570100,"
                "\"spacing_hz\":1.46484375,\"duration_ms\":[1,10000],"
-               "\"delay_ms\":[100,10000],\"benchmark_blocks\":[1,4096]}\n";
+               "\"delay_ms\":[100,10000],\"benchmark_blocks\":[1,4096],"
+               "\"frame\":\"cycle4-162\",\"frame_duration_ns\":110592000000}\n";
     }
     if (line == "STOP") {
         benchmarking_ = running_ = false;
@@ -83,31 +95,41 @@ std::string Bench::command(std::string_view line) {
         state_ = "benchmarking";
         return status();
     }
-    if (!line.starts_with("RUN "))
-        return error("unknown_command");
-    auto rest = line.substr(4);
-    const auto first = rest.find(' ');
-    if (first == rest.npos)
-        return error("invalid_run");
-    const auto index = number(rest.substr(0, first));
-    rest.remove_prefix(first + 1);
-    const auto second = rest.find(' ');
-    if (second == rest.npos)
-        return error("invalid_run");
-    const auto duration = number(rest.substr(0, second));
-    const auto delay = number(rest.substr(second + 1));
-    if (!index || *index > 3 || !duration || *duration < 1 || *duration > 10000 || !delay ||
-        *delay < 100 || *delay > 10000)
-        return error("invalid_run");
+    const bool frame = line.starts_with("FRAME ");
+    unsigned index = 0, duration = 0;
+    std::optional<unsigned> delay;
+    if (frame) {
+        delay = number(line.substr(6));
+    } else {
+        if (!line.starts_with("RUN "))
+            return error("unknown_command");
+        auto rest = line.substr(4);
+        const auto first = rest.find(' ');
+        if (first == rest.npos)
+            return error("invalid_run");
+        const auto tone_index = number(rest.substr(0, first));
+        rest.remove_prefix(first + 1);
+        const auto second = rest.find(' ');
+        if (second == rest.npos)
+            return error("invalid_run");
+        const auto length = number(rest.substr(0, second));
+        delay = number(rest.substr(second + 1));
+        if (!tone_index || *tone_index > 3 || !length || *length < 1 || *length > 10000)
+            return error("invalid_run");
+        index = *tone_index;
+        duration = *length;
+    }
+    if (!delay || *delay < 100 || *delay > 10000)
+        return error("invalid_delay");
     const auto now = clock_.now_ns();
-    constexpr auto reserve = std::uint64_t{20'000'001'000};
+    constexpr auto reserve = std::uint64_t{121'000'001'000};
     if (now > std::numeric_limits<std::uint64_t>::max() - reserve)
         return error("clock_overflow");
     if (!engine_.disable(now + 10000000) || engine_.output_active()) {
         state_ = "failed";
         return error("stop_failed");
     }
-    const auto job = tone(*index, *duration);
+    const auto job = frame ? diagnostic_frame() : tone(index, duration);
     if (!engine_.prepare(job).accepted)
         return error("prepare_failed");
     // Preparation can be expensive: choose the epoch only after it completes.
