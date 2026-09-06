@@ -45,3 +45,18 @@ if(NOT CMAKE_C_COMPILER_ID STREQUAL "GNU" OR
     message(FATAL_ERROR
         "Arm GNU Toolchain ${WSPRRY_PICO_REQUIRED_ARM_GCC_VERSION} is required; found ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}")
 endif()
+
+# New linked networking components must match the SDK's recorded submodules.
+foreach(component lwip cyw43-driver)
+    if(component STREQUAL "lwip")
+        set(expected_revision "77dcd25a72509eb83f72b033d219b1d40cd8eb95")
+    else()
+        set(expected_revision "055d64274b014dd7b1c2fc94d26e8a18face7124")
+    endif()
+    execute_process(COMMAND git -C "${PICO_SDK_PATH}/lib/${component}" rev-parse HEAD
+        OUTPUT_VARIABLE actual_revision OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE revision_result)
+    if(NOT revision_result EQUAL 0 OR NOT actual_revision STREQUAL expected_revision)
+        message(FATAL_ERROR "The Pico SDK ${component} submodule does not match the pinned revision")
+    endif()
+endforeach()

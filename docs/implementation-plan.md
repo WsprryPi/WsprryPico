@@ -18,10 +18,11 @@ treated as long-term product documentation.
 8. **Complete:** physical RF engine and UTC-scheduled WTP integration, including
    GP2 output, encoded WSPR, comparative spectrum work, USB UTC synchronization,
    scheduled local execution, conducted SDR capture and independent decoding.
-9. **Next:** standalone configuration and timing, including station identity,
-   persistent schedules, an autonomous device time source and operation without
-   a per-job USB host.
-10. **Planned:** WsprryPi client/backend integration.
+9. **Software complete; target validation pending:** standalone station identity,
+   persistent schedules, Wi-Fi SNTP and local job submission without a per-job
+   USB host. Host/sanitizer tests and Arm cross-builds pass; physical autonomous
+   operation remains unverified.
+10. **Next:** WsprryPi client/backend integration.
 11. **Planned:** Wi-Fi/TCP and the shared browser API.
 12. **Planned:** SoftAP and BLE provisioning.
 13. **Planned:** final hardware qualification and release, including the output
@@ -172,17 +173,25 @@ per-symbol USB traffic and independently decoded from a complete wspr5 capture.
 The standard firmware remains inhibited. USB host time, receiver wall-clock
 onset, the output network and calibrated filter/band behavior are not qualified.
 
-## Next slice: standalone configuration and timing
+## Step 9: standalone software implemented
 
-Add persistent station configuration, schedules and an autonomous device time
-source, then verify operation without a WsprryPi or per-job USB host. Retain the
-separate bench and RF WTP integration image. Calibrated output-circuit and
-band/filter qualification remains a separate hardware gate. The operator chooses
-hardware experiments and transmissions.
+The [standalone guide](development/standalone.md) documents persistent station
+identity and recurring schedules, an independent no-repeat watermark, Wi-Fi
+SNTP acquisition and one-time Console provisioning. Standalone and USB WTP jobs
+share the same job service. The standard image is RF-inhibited; an explicit
+standalone RF image retains the experimental GP2 engine.
+
+Deterministic and sanitizer tests cover autonomous simulated completion,
+configuration/storage failures, restart/clock-step behavior, SNTP rejection and
+host ownership. All firmware targets cross-link. No Step 9 firmware was flashed,
+no device Wi-Fi was operated and no RF was transmitted. Physical autonomous
+validation, power-loss behavior and Wi-Fi/RF coexistence remain separately
+operator-authorized target work; calibrated output/filter qualification remains
+a later gate.
 
 ## Subsequent slices
 
-1. Add standalone encoding, station configuration, persistent schedules and device time acquisition. Verify autonomous operation without WsprryPi.
+1. Validate physical standalone operation without WsprryPi under separately authorized target conditions.
 2. Add WsprryPi client integration using the same conformance fixtures; plan changes in that repository independently.
 3. Add Wi-Fi/TCP, shared JSON API adapters and embedded browser assets, followed by SoftAP provisioning.
 4. Add BLE provisioning/local management with a documented recovery path.
@@ -195,6 +204,6 @@ Sequence may evolve based on RF feasibility. Standalone operation remains a prod
 The firmware builds for Pico 2 W. The portable core and WTP USB endpoint are
 host-tested, and bounded target USB validation passes on the recorded Pico 2 W
 and Mac. Bounded RF bench transmissions, UTC-scheduled WTP integration and CPU
-timing measurements are now recorded. Supported bands, autonomous time,
+timing measurements are now recorded. Supported bands, physical autonomous timing,
 calibrated target timing and final engine promotion remain open. WTP/1 schemas are
 normative; changes to them require an explicit protocol-contract revision.

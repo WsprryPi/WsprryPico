@@ -10,7 +10,7 @@ build do not qualify USB on a board, target timing, or RF.
 `src/wtp/json.*` validates bounded UTF-8 JSON and exposes non-owning value views.
 `codec.*` maps closed WTP envelopes/bodies to typed requests and serializes
 responses. `endpoint.*` owns the connection and frame queues. All are portable
-C++20. `firmware/main.cpp` supplies the existing USB adapter, device identity and
+C++20. `src/standalone/pico/main.cpp` supplies the existing USB adapter, device identity and
 clock. Console remains independent; generic USB stdio is disabled.
 
 USB supplies principal `usb-physical`: access to this CDC function is the trust

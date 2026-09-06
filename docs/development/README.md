@@ -2,7 +2,8 @@
 
 The defined hardware target is Pico 2 W / RP2350. The repository contains a
 portable WTP/1 core, deterministic host tests and an RF-inhibited firmware
-target, plus a separately built experimental RF bench.
+target with persistent standalone configuration and Wi-Fi SNTP, plus separately
+built experimental RF bench, USB-time RFWTP and standalone RF images.
 
 ## Build direction
 
@@ -114,3 +115,7 @@ RF warmup comparison.
 The [UTC and RF job integration record](utc-rf-job-validation.md) documents the
 sampled USB time source, explicit RF WTP image, scheduled local execution,
 complete conducted capture and independent decode.
+
+The [standalone guide](standalone.md) documents one-time Console configuration,
+recurring UTC schedules, CRC32 flash journals, autonomous SNTP policy, new
+hardware-free failure tests and the separately selected standalone RF image.

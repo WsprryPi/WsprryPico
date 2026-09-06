@@ -30,6 +30,11 @@ endif()
 
 add_library(wsprrypico_core
     src/encoding/wspr.cpp
+    src/standalone/dry_run_engine.cpp
+    src/standalone/config.cpp
+    src/standalone/storage.cpp
+    src/standalone/scheduler.cpp
+    src/time/sntp.cpp
     src/time/utc_discipline.cpp
     src/time/usb_time_source.cpp
     src/wtp/json.cpp
@@ -88,6 +93,10 @@ endif()
 
 if(WSPRRY_PICO_BUILD_TESTS)
     enable_testing()
+    add_executable(standalone_tests tests/standalone_tests.cpp)
+    target_link_libraries(standalone_tests PRIVATE wsprrypico_core)
+    target_compile_options(standalone_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME standalone_tests COMMAND standalone_tests)
     set(WSPRRY_PICO_HARNESS_PYTHON "" CACHE FILEPATH "Optional existing Harness Python for offline RF analysis tests")
     if(WSPRRY_PICO_HARNESS_PYTHON)
         add_test(NAME rf_correction_analysis_tests COMMAND ${WSPRRY_PICO_HARNESS_PYTHON} ${CMAKE_SOURCE_DIR}/tests/rf_correction_analysis_tests.py)

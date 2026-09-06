@@ -10,7 +10,8 @@
 #include <limits>
 #include <span>
 
-#if !defined(WSPRRY_PICO_RF_OUTPUT_DISABLED) && !defined(WSPRRY_PICO_RF_WTP)
+#if !defined(WSPRRY_PICO_RF_OUTPUT_DISABLED) && !defined(WSPRRY_PICO_RF_WTP) &&                    \
+    !defined(WSPRRY_PICO_STANDALONE_RF)
 #error "Pico adapters may only be linked by an explicitly classified firmware image"
 #endif
 

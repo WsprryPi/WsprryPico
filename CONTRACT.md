@@ -36,6 +36,13 @@ behavior is hardware-free host-tested. [Bounded target USB checks](docs/developm
 pass for the recorded board, firmware and host; general USB/WTP conformance,
 timing and RF behavior remain unqualified.
 
+The [standalone layer](docs/development/standalone.md) now persists station and
+schedule configuration and acquires UTC through Wi-Fi SNTP, with complete jobs
+submitted through the same service as USB WTP. The standard image simulates
+local job lifecycles with RF inhibited; the explicitly built standalone RF image
+uses the experimental engine. This integration is host-tested and Arm-linked,
+not physically qualified.
+
 Host tests, target execution and RF qualification are distinct evidence classes.
 A successful compile or simulated transmission establishes neither on-device
 symbol timing nor spectral performance.

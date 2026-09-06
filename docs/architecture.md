@@ -49,20 +49,25 @@ The authoritative specification lives at docs/protocol/WTP.md in WsprryPico. Wsp
 Browser handlers, standalone scheduler, USB WTP and TCP WTP submit work to one application job service. That service owns validation, transmitter ownership and state. A local execution layer controls interchangeable RF engines. Time synchronization estimates UTC relative to a monotonic device clock; RF frequency calibration is tracked separately.
 
 The portable frame parser and job service implement the transport-independent
-part of this boundary. The Pico 2 W foundation runs that service with an
-unsynchronized clock and RF-inhibited engine. Its dual CDC device separates
+part of this boundary. The Pico 2 W standard image runs that service with autonomous Wi-Fi SNTP and
+an RF-inhibited local lifecycle simulator; boot time remains unsynchronized
+until a usable observation arrives. Its dual CDC device separates
 console diagnostics from WTP framing. The [USB adapter contract](development/usb-cdc.md)
 defines bounded servicing and connection semantics; logging must never enter WTP.
 The [strict WTP endpoint](development/wtp-endpoint.md) performs JSON validation,
-request dispatch and ordered response/event transmission. Browser handlers, the
-standalone scheduler and production RF/WTP integration remain to be implemented.
+request dispatch and ordered response/event transmission. The [standalone scheduler](development/standalone.md) now shares this service
+with USB WTP. Browser handlers and production RF qualification remain open.
 
-Standalone execution needs local encoding, persistent station/schedule configuration and time acquisition without WsprryPi. Host operation may accept already encoded jobs. Both paths converge before engine preparation.
+Standalone execution uses local Type 1 encoding, versioned persistent station
+and schedule records, and Wi-Fi SNTP acquisition without WsprryPi. Host
+operation accepts already encoded jobs. Both paths converge before engine
+preparation. Physical autonomous validation is still pending.
 
 ## Open design choices
 
-UTC source and implementation-specific acceptable uncertainty; clock
-calibration; RF engine and pins; browser API schemas and storage limits remain
+The initial autonomous UTC source is a configured unicast SNTPv4 server with
+bounded uncertainty and an explicit age policy. Its trust/accuracy and physical
+autonomous behavior remain unqualified. Alternate UTC sources; clock calibration; RF engine and pins; browser API schemas and storage limits remain
 to be designed. WTP/1 defines the interoperable protocol limits and policies
 without selecting those implementations.
 

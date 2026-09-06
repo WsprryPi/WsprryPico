@@ -33,3 +33,23 @@ notice: [WsprryPi license](src/encoding/WsprryPi-LICENSE.md). The adaptation use
 strict bounded Type 1 validation and a stateless C++20 implementation. Types 2/3
 and upstream permissive normalization are not imported. Preserve this notice
 and the retained MIT license when distributing the encoder.
+
+Standalone Wi-Fi builds also link the pinned SDK's network dependencies:
+
+- [lwIP](https://git.savannah.nongnu.org/cgit/lwip.git/), 2.2.1 at
+  `77dcd25a72509eb83f72b033d219b1d40cd8eb95`, BSD-3-Clause. Retained upstream
+  [COPYING](docs/licenses/lwip.txt). The project supplies `lwipopts.h`; upstream
+  source is unchanged and remains in the external SDK checkout.
+- [cyw43-driver](https://github.com/georgerobotics/cyw43-driver), v1.1.1 at
+  `055d64274b014dd7b1c2fc94d26e8a18face7124`, including the SDK-selected
+  `firmware/w43439A0_7_95_49_00_combined.h` Wi-Fi/CLM resource. Source and
+  resources are unchanged, external SDK inputs. Retained upstream
+  [LICENSE.RP](docs/licenses/cyw43-driver-RP.txt) covers use with Raspberry Pi
+  semiconductor devices; the alternative upstream
+  [LICENSE](docs/licenses/cyw43-driver.txt) is retained too. These are distinct
+  from the project's MIT license. Preserve the applicable notices and
+  disclaimers in documentation/materials accompanying firmware distribution.
+
+No NTP implementation was copied from another project. The portable exchange
+parser is original project code based on the published packet format. Bluetooth,
+HTTP, TCP control and a browser implementation are not introduced by this slice.
