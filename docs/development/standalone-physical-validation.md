@@ -5,6 +5,8 @@ The [execution prompt](step9-physical-execution-prompt.md) defines acceptance.
 The user narrowed this turn to Wi-Fi validation and deferred conducted RF and
 separate-power operation. Those deferred items do not become passes from
 inhibited execution. The bounded Wi-Fi slice passed; final stability and review results follow.
+The later [RF/wall-power campaign](standalone-rf-power-validation.md) resumes and
+closes the deferred functional checks. This record retains the earlier run's scope.
 
 ## Device and setup
 

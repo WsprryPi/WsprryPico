@@ -18,10 +18,11 @@ treated as long-term product documentation.
 8. **Complete:** physical RF engine and UTC-scheduled WTP integration, including
    GP2 output, encoded WSPR, comparative spectrum work, USB UTC synchronization,
    scheduled local execution, conducted SDR capture and independent decoding.
-9. **Software and Wi-Fi bench complete; RF/power-only checks open:** persistent
-   station/schedules, device SNTP, inhibited local scheduling, retained watermark,
-   Wi-Fi loss/reconnection and recovery controls. Conducted standalone RF and
-   separate-power boot are deferred by the user.
+9. **Complete:** persistent station/schedules, device SNTP, retained watermark,
+   Wi-Fi loss/reconnection and recovery controls, plus recurring standalone RF
+   frames independently decoded after a wall-power boot without a USB host.
+   This is bounded functional acceptance; final RF/reliability qualification
+   remains in Phase 13.
 10. **Next:** WsprryPi client/backend integration.
 11. **Planned:** Wi-Fi/TCP and the shared browser API.
 12. **Planned:** SoftAP and BLE provisioning.
@@ -173,7 +174,7 @@ per-symbol USB traffic and independently decoded from a complete wspr5 capture.
 The standard firmware remains inhibited. USB host time, receiver wall-clock
 onset, the output network and calibrated filter/band behavior are not qualified.
 
-## Step 9: standalone software and inhibited Wi-Fi validation
+## Step 9: standalone configuration, timing and physical operation
 
 The [standalone guide](development/standalone.md) documents persistent station
 identity and recurring schedules, an independent no-repeat watermark, Wi-Fi
@@ -186,17 +187,20 @@ configuration/storage failures, restart/clock-step behavior, SNTP rejection and
 host ownership. All firmware targets cross-link. The later
 [inhibited bench record](development/standalone-physical-validation.md) adds real
 configuration retention, autonomous SNTP, scheduled local simulation, Wi-Fi
-outage/reconnection and watchdog recovery. The user deferred conducted standalone
-RF and separate-power boot; no standalone RF image was flashed in that run.
-Wi-Fi/RF coexistence and calibrated output/filter qualification remain open.
+outage/reconnection and watchdog recovery. The subsequent
+[RF and wall-power record](development/standalone-rf-power-validation.md) adds
+independently decoded recurring frames without USB job commands, a physical
+separate-power boot, USB-host absence, and retained configuration/watermark.
+This closes Phase 9's bounded functional acceptance. Calibrated timing,
+output/filter performance, wider network compatibility and endurance remain
+Phase 13 qualification work.
 
 ## Subsequent slices
 
-1. Validate physical standalone operation without WsprryPi under separately authorized target conditions.
-2. Add WsprryPi client integration using the same conformance fixtures; plan changes in that repository independently.
-3. Add Wi-Fi/TCP, shared JSON API adapters and embedded browser assets, followed by SoftAP provisioning.
-4. Add BLE provisioning/local management with a documented recovery path.
-5. Qualify supported engine/mode/band combinations and release WsprryPico-x.y.z.uf2 with reproducible build identity.
+1. Add WsprryPi client integration using the same conformance fixtures; plan changes in that repository independently.
+2. Add Wi-Fi/TCP, shared JSON API adapters and embedded browser assets, followed by SoftAP provisioning.
+3. Add BLE provisioning/local management with a documented recovery path.
+4. Qualify supported engine/mode/band combinations and release WsprryPico-x.y.z.uf2 with reproducible build identity.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 

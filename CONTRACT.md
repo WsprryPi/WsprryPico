@@ -42,8 +42,9 @@ submitted through the same service as USB WTP. The standard image simulates
 local job lifecycles with RF inhibited; the explicitly built standalone RF image
 uses the experimental engine. [Inhibited target Wi-Fi validation](docs/development/standalone-physical-validation.md)
 covers configuration retention, autonomous SNTP and outage/reconnection.
-Conducted standalone RF, separate-power operation and calibrated timing remain
-unqualified.
+[Bounded standalone RF and wall-power validation](docs/development/standalone-rf-power-validation.md)
+adds independent decoding of recurring frames without a USB host on the recorded
+setup. Calibrated timing and general RF/reliability qualification remain open.
 
 Host tests, target execution and RF qualification are distinct evidence classes.
 A successful compile or simulated transmission establishes neither on-device

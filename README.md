@@ -19,9 +19,11 @@ has completed a future-scheduled job and independent conducted decode. The
 standard firmware retains RF inhibition. [Standalone configuration and timing](docs/development/standalone.md)
 now provide persistent station/schedules, Wi-Fi SNTP and host-tested autonomous
 job submission. [Inhibited Wi-Fi bench validation](docs/development/standalone-physical-validation.md)
-adds device time acquisition, persistence and outage recovery. Conducted standalone
-RF, separate-power operation, calibrated timing, spectra and supported
-engine/mode/band qualification remain open.
+adds device time acquisition, persistence and outage recovery.
+[Standalone RF and wall-power validation](docs/development/standalone-rf-power-validation.md)
+adds complete scheduled frames and independent decoding after a power-only boot,
+without a USB host. Calibrated timing, spectra and supported engine/mode/band
+qualification remain open.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)

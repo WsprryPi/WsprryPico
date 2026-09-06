@@ -61,14 +61,18 @@ with USB WTP. Browser handlers and production RF qualification remain open.
 Standalone execution uses local Type 1 encoding, versioned persistent station
 and schedule records, and Wi-Fi SNTP acquisition without WsprryPi. Host
 operation accepts already encoded jobs. Both paths converge before engine
-preparation. Physical autonomous validation is still pending.
+preparation. [Bounded physical validation](development/standalone-rf-power-validation.md)
+now demonstrates recurring decoded frames after a separate-power boot without
+a USB host on the recorded setup.
 
 ## Open design choices
 
 The initial autonomous UTC source is a configured unicast SNTPv4 server with
-bounded uncertainty and an explicit age policy. Its trust/accuracy and physical
-autonomous behavior remain unqualified. Alternate UTC sources; clock calibration; RF engine and pins; browser API schemas and storage limits remain
-to be designed. WTP/1 defines the interoperable protocol limits and policies
+bounded uncertainty and an explicit age policy. Physical acquisition and
+standalone execution have bounded bench evidence; calibrated UTC accuracy,
+source authentication and long-duration reliability remain unqualified.
+Alternate UTC sources; clock calibration; RF engine and pins; browser API
+schemas and storage limits remain to be designed. WTP/1 defines the interoperable protocol limits and policies
 without selecting those implementations.
 
 Estimates of reusable code and expected spectral behavior remain hypotheses until verified.

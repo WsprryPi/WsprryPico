@@ -1,11 +1,13 @@
 # Standalone configuration and timing
 
-Status: Step 9 software and the [inhibited Wi-Fi bench slice](standalone-physical-validation.md)
-are validated on the recorded device. Conducted standalone operation, Wi-Fi
-reconnection under RF load, separate-power boot, flash brownout behavior and
-calibrated UTC/RF accuracy remain open. The original
-[execution prompt](step9-standalone-execution-prompt.md) defines the software;
-the [physical prompt](step9-physical-execution-prompt.md) records the later scope.
+Status: Step 9 software, the [inhibited Wi-Fi bench slice](standalone-physical-validation.md)
+and [standalone RF/wall-power operation](standalone-rf-power-validation.md) have
+bounded validation on the recorded device. Recurring frames decode without a USB
+host after a separate-power boot. Forced access-point loss during RF, flash
+brownouts, endurance and calibrated UTC/RF accuracy remain qualification work.
+The original [execution prompt](step9-standalone-execution-prompt.md) defines the
+software; the [RF/power prompt](step9-rf-power-execution-prompt.md) defines the
+final functional bench slice.
 
 ## Images and shared service
 
@@ -107,8 +109,18 @@ verify inactive output, then reset. The inhibited image additionally offers
 Use `scripts/standalone_console.py ACTION --port DEVICE --device-id ID --run`.
 Configuration also requires `--revision REV --config PRIVATE_JSON`; the tool
 checks device identity before issuing the command and never echoes credentials.
-Capture INFO and image hashes before a campaign. Closing a USB port proves no
-per-job commands, but is not evidence of physical power-only operation.
+Capture INFO and image hashes before a campaign. Closing this client leaves no
+per-job commands from it; physical USB absence is stronger evidence that no USB
+host can control the device.
+
+Direct live diagnostics currently require the USB Console. Wi-Fi supplies SNTP;
+this image has no network status page or remote console. With a separate USB
+power supply, a receiver can verify scheduled RF and independently decode the
+station message. After a power change back to the Mac, INFO can verify retained
+configuration and the schedule watermark, but the new boot resets live counters
+and terminal status. The watermark records a reservation, not proof that RF
+completed; pair it with receiver evidence. Network/browser management is a later
+implementation slice.
 
 An eight-second watchdog recovers foreground stalls into a boot that suspends
 local schedules and skips networking. Intentional Console reboot starts a normal
@@ -199,9 +211,10 @@ Foreground service refills RF before other work. Wi-Fi polling is suspended
 throughout an armed/running job, so networking cannot block DMA refill or the
 launch guard. The already accepted clock observation ages locally. USB WTP
 remains serviced, including ABORT. Wi-Fi resumes after the terminal state and
-can reacquire time before a later slot. Physical resource coexistence, access
-point behavior during that pause and underflow margins still require target
-measurement on the final image.
+can reacquire time before a later slot. The recorded RF/wall-power campaign
+observed this recurrence on one board/network. Broader access-point behavior,
+forced disassociation during RF, and worst-case underflow margins still require
+qualification on the final image.
 
 ## Reproduction and evidence
 

@@ -122,5 +122,7 @@ hardware-free failure tests and the separately selected standalone RF image.
 
 The [inhibited standalone bench record](standalone-physical-validation.md) adds
 physical Wi-Fi/SNTP acquisition, configuration/watermark retention, outage
-recovery and the repaired journal/boot-sector layout. Conducted standalone RF
-and separate-power operation remain deferred.
+recovery and the repaired journal/boot-sector layout. The later
+[standalone RF and wall-power record](standalone-rf-power-validation.md) adds
+complete recurring frames, independent decoding without a USB host, and retained
+configuration/watermark across power changes.
