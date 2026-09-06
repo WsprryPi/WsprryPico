@@ -13,8 +13,11 @@ comparison and abort/rearm](docs/development/rf-frame-validation.md) have been
 received on wspr5. Clock selection suppresses the original nearby alias;
 [Encoded WSPR frames](docs/development/rf-wspr-validation.md) now decode
 independently from wspr5 captures. Optional RF warmup improves measured settling.
-The measured close-in sidebands meet the operator's better-than-WsprryPi benchmark. The standard firmware retains its inhibited engine. Calibrated timing,
-spectra and supported engine/mode/band qualification remain open.
+The measured close-in sidebands meet the operator's better-than-WsprryPi benchmark.
+An explicit [UTC/RF WTP integration image](docs/development/utc-rf-job-validation.md)
+has completed a future-scheduled job and independent conducted decode. The
+standard firmware retains its inhibited engine. Autonomous UTC, calibrated
+timing, spectra and supported engine/mode/band qualification remain open.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)
@@ -23,6 +26,7 @@ spectra and supported engine/mode/band qualification remain open.
 - [Implementation plan](docs/implementation-plan.md)
 - [PIO/DMA driver](docs/development/pio-dma-driver.md)
 - [Portable RF stream](docs/development/rf-stream.md)
+- [UTC and RF job integration](docs/development/utc-rf-job-validation.md)
 - [Portable core development](docs/development/portable-core.md)
 - [Pico 2 W firmware foundation](docs/development/firmware-foundation.md)
 - [Strict WTP USB endpoint](docs/development/wtp-endpoint.md)

@@ -29,6 +29,9 @@ struct SinkReport {
 class BlockSink {
   public:
     virtual ~BlockSink() = default;
+    [[nodiscard]] virtual std::string_view diagnostic() const {
+        return {};
+    }
     virtual bool stop(std::uint64_t deadline_ns) = 0;
     virtual bool submit(std::uint64_t epoch, std::uint64_t sequence,
                         std::span<const std::uint32_t> words, std::uint64_t valid_samples) = 0;

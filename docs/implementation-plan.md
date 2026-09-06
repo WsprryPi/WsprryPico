@@ -137,24 +137,30 @@ benchmark. The earlier comparison meets that criterion; eliminating those
 sidebands is not a prerequisite for further development. Planned output
 filtering remains part of the final hardware assessment.
 
-## Next slice: production time and RF job integration
+## Completed eighth Step 8 slice: USB UTC and RF job integration
 
-Step 8 remains open for production integration. Define and implement device
-UTC acquisition/uncertainty, connect the physical engine to the existing job
-service and validate scheduled encoded jobs against received RF. Retain the
-separate bench and its optional warmup experiment. Standalone station/storage
-configuration and scheduling follow; the Type 1 encoder is now available.
-Calibrated band/filter qualification remains separate from the successful
-bench decodes. The operator chooses hardware experiments and transmissions.
+The [UTC/WTP integration record](development/utc-rf-job-validation.md) adds a
+portable bounded-uncertainty clock, a sampled USB time source and an explicitly
+selected RF-capable WTP image. A future UTC job completed locally without
+per-symbol USB traffic and independently decoded from a complete wspr5 capture.
+The standard firmware remains inhibited. USB host time, receiver wall-clock
+onset, the output network and calibrated filter/band behavior are not qualified.
+
+## Next slice: standalone configuration and timing
+
+Add persistent station configuration, schedules and an autonomous device time
+source, then verify operation without a WsprryPi or per-job USB host. Retain the
+separate bench and RF WTP integration image. Calibrated output-circuit and
+band/filter qualification remains a separate hardware gate. The operator chooses
+hardware experiments and transmissions.
 
 ## Subsequent slices
 
-1. Implement and validate the physical RF engine with operator-directed hardware testing.
-2. Add standalone encoding, station configuration, persistent schedules and device time acquisition. Verify autonomous operation without WsprryPi.
-3. Add WsprryPi client integration using the same conformance fixtures; plan changes in that repository independently.
-4. Add Wi-Fi/TCP, shared JSON API adapters and embedded browser assets, followed by SoftAP provisioning.
-5. Add BLE provisioning/local management with a documented recovery path.
-6. Qualify supported engine/mode/band combinations and release WsprryPico-x.y.z.uf2 with reproducible build identity.
+1. Add standalone encoding, station configuration, persistent schedules and device time acquisition. Verify autonomous operation without WsprryPi.
+2. Add WsprryPi client integration using the same conformance fixtures; plan changes in that repository independently.
+3. Add Wi-Fi/TCP, shared JSON API adapters and embedded browser assets, followed by SoftAP provisioning.
+4. Add BLE provisioning/local management with a documented recovery path.
+5. Qualify supported engine/mode/band combinations and release WsprryPico-x.y.z.uf2 with reproducible build identity.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 
@@ -162,7 +168,7 @@ Sequence may evolve based on RF feasibility. Standalone operation remains a prod
 
 The firmware builds for Pico 2 W. The portable core and WTP USB endpoint are
 host-tested, and bounded target USB validation passes on the recorded Pico 2 W
-and Mac. Bounded RF bench transmissions and CPU timing measurements are now
-recorded. Supported bands, calibrated target timing and final engine promotion
-remain open. WTP/1 schemas are
+and Mac. Bounded RF bench transmissions, UTC-scheduled WTP integration and CPU
+timing measurements are now recorded. Supported bands, autonomous time,
+calibrated target timing and final engine promotion remain open. WTP/1 schemas are
 normative; changes to them require an explicit protocol-contract revision.

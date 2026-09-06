@@ -93,6 +93,8 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
     static char const* const strings[] = {
 #ifdef WSPRRY_PICO_RF_BENCH
         NULL, "WsprryPi", "WsprryPico-RFBench", serial, "RFBench Console", "RFBench Commands",
+#elif defined(WSPRRY_PICO_RF_WTP)
+        NULL, "WsprryPi", "WsprryPico-RFWTP", serial, "RFWTP Time", "RFWTP WTP",
 #else
         NULL, "WsprryPi", "WsprryPico", serial, "WsprryPico Console", "WsprryPico WTP",
 #endif

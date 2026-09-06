@@ -35,6 +35,9 @@ class PioDmaSink final : public BlockSink {
     explicit PioDmaSink(PioDmaHardware& hardware) : hw_(hardware) {}
     PioDmaSink(const PioDmaSink&) = delete;
     PioDmaSink& operator=(const PioDmaSink&) = delete;
+    [[nodiscard]] std::string_view diagnostic() const override {
+        return failure_;
+    }
     bool stop(std::uint64_t deadline_ns) override;
     bool submit(std::uint64_t epoch, std::uint64_t sequence, std::span<const std::uint32_t> words,
                 std::uint64_t samples) override;
@@ -75,6 +78,7 @@ class PioDmaSink final : public BlockSink {
     std::uint64_t epoch_ = 0, submitted_ = 0, accepted_ = 0;
     std::uint64_t dma_blocks_ = 0, dma_samples_ = 0, total_ = 0, start_ = 0;
     std::uint32_t zero_ = 0;
+    const char* failure_ = "";
 };
 
 } // namespace wsprrypico::rf

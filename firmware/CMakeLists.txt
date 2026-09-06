@@ -92,3 +92,27 @@ pico_set_program_name(WsprryPico-RFBench "WsprryPico-RFBench")
 pico_set_program_version(WsprryPico-RFBench "${WSPRRY_PICO_FIRMWARE_VERSION}")
 pico_set_program_description(WsprryPico-RFBench "GP2 bench ${WSPRRY_PICO_GIT_REVISION}")
 pico_add_extra_outputs(WsprryPico-RFBench)
+
+# Explicit integration target: real RF remains absent from the default image.
+add_executable(WsprryPico-RFWTP EXCLUDE_FROM_ALL
+    rf_wtp_main.cpp pico_adapters.cpp usb_descriptors.c ../src/usb/transport.cpp)
+target_include_directories(WsprryPico-RFWTP PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated)
+target_compile_definitions(WsprryPico-RFWTP PRIVATE
+    WSPRRY_PICO_RF_WTP=1 PICO_NO_BI_PROGRAM_BUILD_DATE=1 PICO_STACK_SIZE=0x4000)
+target_link_libraries(WsprryPico-RFWTP PRIVATE
+    wsprrypico_pico_rf pico_rand pico_time pico_unique_id tinyusb_device)
+set_source_files_properties(rf_wtp_main.cpp PROPERTIES
+    COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-fstack-usage")
+set_target_properties(WsprryPico-RFWTP PROPERTIES
+    C_STANDARD 11 C_STANDARD_REQUIRED ON C_EXTENSIONS ON)
+target_link_options(WsprryPico-RFWTP PRIVATE
+    "LINKER:--defsym=RAM_LENGTH=0x7c000"
+    "LINKER:--defsym=SCRATCH_Y_ORIGIN=0x2007c000"
+    "LINKER:--defsym=SCRATCH_Y_LENGTH=0x4000")
+pico_enable_stdio_uart(WsprryPico-RFWTP 0)
+pico_enable_stdio_usb(WsprryPico-RFWTP 0)
+pico_set_program_name(WsprryPico-RFWTP "WsprryPico-RFWTP")
+pico_set_program_version(WsprryPico-RFWTP "${WSPRRY_PICO_FIRMWARE_VERSION}")
+pico_set_program_description(WsprryPico-RFWTP "WTP GP2 integration ${WSPRRY_PICO_GIT_REVISION}")
+pico_add_extra_outputs(WsprryPico-RFWTP)

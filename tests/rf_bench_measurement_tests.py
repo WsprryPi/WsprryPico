@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from decode_rf_wspr import audio_from_iq
+from decode_rf_wspr import audio_from_iq, decode_window
 from measure_rf_bench import BASE, SPACING, SYMBOL, measure, phase_fit
 
 RATE = 10000
@@ -42,6 +42,17 @@ class Tests(unittest.TestCase):
         self.assertEqual(np.max(np.abs(audio[60000:])), 0)
         with self.assertRaises(ValueError):
             audio_from_iq(np.zeros(20000, complex), RATE, CENTER)
+
+        iq = np.zeros(150 * RATE, complex)
+        selected, first, last = decode_window(iq, RATE, 20.0)
+        assert (first, last, len(selected)) == (20 * RATE, 140 * RATE, 120 * RATE)
+        for bad in (-1, float('nan'), 50):
+            try:
+                decode_window(iq, RATE, bad)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError('invalid decode window accepted')
 
     def test_tone_frequency(self):
         result = measure(capture(), RATE, CENTER, duration_s=2)

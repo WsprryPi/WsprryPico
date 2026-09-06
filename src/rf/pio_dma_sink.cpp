@@ -22,8 +22,10 @@ bool PioDmaSink::stop(std::uint64_t deadline_ns) {
 bool PioDmaSink::submit(std::uint64_t epoch, std::uint64_t sequence,
                         std::span<const std::uint32_t> words, std::uint64_t samples) {
     Guard lock(hw_);
+    failure_ = "";
     if (state_ != wtp::EngineState::Idle && state_ != wtp::EngineState::Armed &&
         state_ != wtp::EngineState::Running) {
+        failure_ = "state_changed";
         return false;
     }
     if (epoch == 0 || sequence != submitted_ || (submitted_ && epoch != epoch_) || queued_ == 2 ||
@@ -33,10 +35,12 @@ bool PioDmaSink::submit(std::uint64_t epoch, std::uint64_t sequence,
         (total_ && samples > total_ - accepted_) ||
         (submitted_ && accepted_ % block_samples != 0) ||
         (samples % 32 && (words.back() >> (samples % 32)) != 0)) {
+        failure_ = "submit_contract";
         return false;
     }
     if (!opened_) {
         if (!hw_.open(dispatch, this)) {
+            failure_ = "open_rejected";
             return false;
         }
         opened_ = true;
@@ -46,10 +50,17 @@ bool PioDmaSink::submit(std::uint64_t epoch, std::uint64_t sequence,
     ++queued_;
     ++submitted_;
     accepted_ += samples;
-    if (state_ != wtp::EngineState::Idle &&
-        (!hw_.dma(words.data(), static_cast<std::uint32_t>(words.size()), true, epoch, sequence) ||
-         !queue_tail()))
-        return false;
+    if (state_ != wtp::EngineState::Idle) {
+        if (!hw_.dma(words.data(), static_cast<std::uint32_t>(words.size()), true, epoch,
+                     sequence)) {
+            failure_ = "dma_rejected";
+            return false;
+        }
+        if (!queue_tail()) {
+            failure_ = "tail_rejected";
+            return false;
+        }
+    }
     return true;
 }
 

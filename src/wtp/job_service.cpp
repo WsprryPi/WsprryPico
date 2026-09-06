@@ -33,9 +33,11 @@ bool unique(const std::vector<std::string>& values) {
     return true;
 }
 
-bool supported_mode(std::string_view mode) {
-    constexpr std::array<std::string_view, 6> modes{"wspr", "qrss", "fskcw", "dfcw", "cw", "tone"};
-    return std::find(modes.begin(), modes.end(), mode) != modes.end();
+bool capability_text(std::string_view text) {
+    return !text.empty() && std::all_of(text.begin(), text.end(), [](char character) {
+        return (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') ||
+               character == '-';
+    });
 }
 
 // Hash typed job values, independent of JSON member ordering/escaping. Retain
@@ -81,7 +83,13 @@ JobService::JobService(Clock& clock, RfEngine& engine, IdentitySource& identitie
     : clock_(clock), engine_(engine), identities_(identities), config_(config),
       boot_id_(identities_.new_boot_id()) {
     const bool configuration_valid =
-        config_.max_events > 0 && config_.max_events <= 512 && config_.max_job_duration_ns > 0 &&
+        capability_text(config_.capability_engine) && !config_.supported_modes.empty() &&
+        unique(config_.supported_modes) &&
+        std::all_of(config_.supported_modes.begin(), config_.supported_modes.end(),
+                    capability_text) &&
+        config_.minimum_frequency_nhz > 0 &&
+        config_.minimum_frequency_nhz <= config_.maximum_frequency_nhz && config_.max_events > 0 &&
+        config_.max_events <= 512 && config_.max_job_duration_ns > 0 &&
         config_.max_job_duration_ns <= 86'400'000'000'000ULL && config_.maximum_arm_ahead_ns > 0 &&
         config_.maximum_arm_ahead_ns <= kMaximumArmAheadNs &&
         config_.minimum_arm_lead_ns <= config_.maximum_arm_ahead_ns &&
@@ -631,7 +639,7 @@ ErrorCode JobService::validate_job(const Job& job) const {
     if (job.profile != "rf-events/1") {
         return ErrorCode::UnsupportedProfile;
     }
-    if (!supported_mode(job.mode)) {
+    if (!contains(config_.supported_modes, job.mode)) {
         return ErrorCode::UnsupportedMode;
     }
     if (job.events.size() > config_.max_events ||
@@ -648,6 +656,9 @@ ErrorCode JobService::validate_job(const Job& job) const {
             (event.frequency_nhz && *event.frequency_nhz == 0)) {
             return ErrorCode::InvalidMessage;
         }
+        if (event.frequency_nhz && (*event.frequency_nhz < config_.minimum_frequency_nhz ||
+                                    *event.frequency_nhz > config_.maximum_frequency_nhz))
+            return ErrorCode::FrequencyRejected;
         expected_offset += event.duration_ns;
     }
     return expected_offset == job.total_duration_ns ? ErrorCode::None : ErrorCode::InvalidMessage;

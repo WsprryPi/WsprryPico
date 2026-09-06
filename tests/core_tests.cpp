@@ -1,3 +1,5 @@
+#include "time/usb_time_source.hpp"
+#include "time/utc_discipline.hpp"
 #include "wtp/frame_parser.hpp"
 #include "wtp/inhibited_rf_engine.hpp"
 #include "wtp/job_service.hpp"
@@ -7,6 +9,7 @@
 #include <exception>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <span>
 #include <sstream>
 #include <stdexcept>
@@ -677,6 +680,65 @@ void test_invalid_configuration_fails_without_exception() {
     CHECK(service.handle(request("HELLO", HelloBody{{"WTP/1"}})).error == ErrorCode::DeviceFault);
 }
 
+void test_utc_discipline_boundaries() {
+    std::uint64_t now = 1'000'000'000ULL;
+    auto monotonic = [](void* context) { return *static_cast<std::uint64_t*>(context); };
+    wsprrypico::time::DisciplineConfig config;
+    config.synchronized_for_ns = 100;
+    config.holdover_for_ns = 200;
+    config.max_observation_age_ns = 50;
+    config.max_uncertainty_ns = 20;
+    config.oscillator_drift_ppb = 10'000'000;
+    wsprrypico::time::UtcDiscipline clock(monotonic, &now, config);
+    CHECK(clock.snapshot().state == ClockState::Unsynchronized);
+    CHECK(!clock.observe(5'000, now + 1, 1, LeapState::Normal));
+    CHECK(!clock.observe(5'000, now - 51, 1, LeapState::Normal));
+    CHECK(!clock.observe(5'000, now, 21, LeapState::Normal));
+    CHECK(!clock.observe(5'000, now, 1, LeapState::Unknown));
+    CHECK(!clock.observe(5'000, now, 1, LeapState::InsertPending));
+    CHECK(!clock.observe(5'000, now, 1, LeapState::Normal, 6'000));
+    CHECK(clock.observe(5'000, now, 10, LeapState::Normal));
+    auto sample = clock.snapshot();
+    CHECK(sample.state == ClockState::Synchronized);
+    CHECK(sample.utc_now_ns == 5'000);
+    CHECK(sample.uncertainty_ns == 10);
+    now += 101;
+    sample = clock.snapshot();
+    CHECK(sample.state == ClockState::Holdover);
+    CHECK(sample.utc_now_ns == 5'101);
+    CHECK(sample.sync_age_ns == 101);
+    CHECK(sample.uncertainty_ns >= 12);
+    now += 100;
+    CHECK(clock.snapshot().state == ClockState::Unsynchronized);
+    clock.invalidate();
+    CHECK(clock.snapshot().leap == LeapState::Unknown);
+    now = 10;
+    CHECK(clock.observe(std::numeric_limits<std::uint64_t>::max(), now, 1, LeapState::Normal));
+    ++now;
+    CHECK(clock.snapshot().state == ClockState::Unsynchronized);
+}
+
+void test_usb_time_source_exchange() {
+    std::uint64_t now = 1000;
+    auto monotonic = [](void* context) { return *static_cast<std::uint64_t*>(context); };
+    wsprrypico::time::UtcDiscipline clock(monotonic, &now);
+    wsprrypico::time::UsbTimeSource source(clock);
+    CHECK(source.command("SET 1000 9000 10 NORMAL").find("invalid_observation") !=
+          std::string::npos);
+    CHECK(source.command("SAMPLE").find("1000") != std::string::npos);
+    CHECK(source.command("SET 999 9000 10 NORMAL").find("invalid_observation") !=
+          std::string::npos);
+    CHECK(source.command("SAMPLE").find("1000") != std::string::npos);
+    now += 10;
+    CHECK(source.command("SET 1000 9000 20 NORMAL").find("\"ok\":true") != std::string::npos);
+    CHECK(clock.snapshot().utc_now_ns == 9010);
+    CHECK(source.command("SET 1000 9000 20 NORMAL").find("invalid_observation") !=
+          std::string::npos);
+    CHECK(source.command("INVALIDATE").find("unsynchronized") != std::string::npos);
+    CHECK(clock.snapshot().state == ClockState::Unsynchronized);
+    CHECK(source.command("SAMPLE extra").find("unknown_command") != std::string::npos);
+}
+
 using Test = std::pair<const char*, void (*)()>;
 
 } // namespace
@@ -705,6 +767,8 @@ int main() {
         {"inhibited engine never reports output", test_inhibited_engine_never_reports_output},
         {"invalid configuration fails without exception",
          test_invalid_configuration_fails_without_exception},
+        {"UTC discipline boundaries", test_utc_discipline_boundaries},
+        {"USB time source exchange", test_usb_time_source_exchange},
     };
     std::size_t passed = 0;
     for (const auto& [name, test] : tests) {

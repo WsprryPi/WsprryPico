@@ -126,14 +126,16 @@ int main() {
     ports[1].delivered.assign(binary.begin(), binary.end());
     ports[0].capacity = 0;
     CHECK(console_write("discard on reconnect"));
-    // Console RX consumes at most one chunk and cannot consume the WTP frame.
+    // Console RX is available to an explicit source adapter and cannot consume the WTP frame.
     const std::array<std::uint8_t, 2> payload{'{', '}'};
     auto frame = wsprrypico::wtp::encode_frame(payload);
     ports[0].rx = std::deque<std::uint8_t>(200, 'c');
     ports[1].rx = {frame.begin(), frame.end()};
     service();
-    CHECK(ports[0].rx.size() == 200 - kServiceBytes);
+    CHECK(ports[0].rx.size() == 200);
     std::array<std::uint8_t, 256> input{};
+    CHECK(console_transport_read(input) == kServiceBytes);
+    CHECK(ports[0].rx.size() == 200 - kServiceBytes);
     auto count = wtp_transport_read(input);
     CHECK(count == frame.size());
     wsprrypico::wtp::FrameParser parser;

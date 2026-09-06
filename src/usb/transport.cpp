@@ -45,8 +45,6 @@ void service() {
             }
         }
     }
-    std::array<std::uint8_t, kServiceBytes> ignored{};
-    tud_cdc_n_read(USB_CDC_CONSOLE, ignored.data(), ignored.size());
     if (connected[USB_CDC_CONSOLE] && size != 0) {
         const auto count = std::min({size, console_queue.size() - head, kServiceBytes});
         const auto accepted = tud_cdc_n_write(USB_CDC_CONSOLE, console_queue.data() + head, count);
@@ -85,6 +83,11 @@ bool console_write(std::string_view text) {
         ++size;
     }
     return true;
+}
+std::size_t console_transport_read(std::span<std::uint8_t> bytes) {
+    if (!console_connected())
+        return 0;
+    return tud_cdc_n_read(USB_CDC_CONSOLE, bytes.data(), std::min(bytes.size(), kServiceBytes));
 }
 std::size_t wtp_transport_write(std::span<const std::uint8_t> bytes) {
     if (!wtp_connected()) {

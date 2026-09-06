@@ -60,6 +60,8 @@ int main() {
     while (true) {
         tud_task();
         wsprrypico::usb::service();
+        std::array<std::uint8_t, 64> ignored_console{};
+        (void)wsprrypico::usb::console_transport_read(ignored_console);
         const bool console_connected = wsprrypico::usb::console_connected();
         if (wsprrypico::usb::take_console_reset()) {
             startup_written = false;

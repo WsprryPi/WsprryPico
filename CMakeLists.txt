@@ -30,6 +30,8 @@ endif()
 
 add_library(wsprrypico_core
     src/encoding/wspr.cpp
+    src/time/utc_discipline.cpp
+    src/time/usb_time_source.cpp
     src/wtp/json.cpp
     src/wtp/codec.cpp
     src/wtp/endpoint.cpp
@@ -123,6 +125,7 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME rf_bench_client_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_bench_client_tests.py)
     add_test(NAME rf_feasibility_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_feasibility_tests.py)
     add_test(NAME wtp_probe_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/wtp_probe_tests.py)
+    add_test(NAME rf_wtp_client_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_wtp_client_tests.py)
     add_test(NAME endpoint_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/endpoint_tests.py $<TARGET_FILE:endpoint_driver>)
     add_executable(usb_transport_tests tests/usb_transport_tests.cpp src/usb/transport.cpp)
     target_include_directories(usb_transport_tests PRIVATE tests/usb_mock)

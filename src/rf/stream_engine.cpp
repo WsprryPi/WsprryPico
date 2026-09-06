@@ -90,6 +90,8 @@ bool StreamEngine::submit_next(std::size_t slot) {
     }
     const auto words = static_cast<std::size_t>((valid_[slot] + 31) / 32);
     if (!sink_.submit(epoch_, submitted_, std::span(buffers_[slot]).first(words), valid_[slot])) {
+        const auto reason = sink_.diagnostic();
+        failure_ = reason.empty() ? "sink_rejected" : reason.data();
         return false;
     }
     ++submitted_;
@@ -114,7 +116,7 @@ bool StreamEngine::begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) 
     if (!submit_next(0) || !submit_next(1) ||
         !sink_.arm(epoch_, start_ns_, plan_.total_samples,
                    start_conditions_.clock ? LaunchGuard{check_clock, this} : LaunchGuard{})) {
-        (void)fail(start_ns_);
+        (void)fail(start_ns_, failure_);
         return false;
     }
     state_ = wtp::EngineState::Armed;
@@ -196,7 +198,7 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
         const auto slot = static_cast<std::size_t>(sequence % 2);
         valid_[slot] = waveform_.render(buffers_[slot]);
         if (!submit_next(slot)) {
-            return fail(now_ns);
+            return fail(now_ns, failure_);
         }
     }
     completed_ = report.completed_blocks;

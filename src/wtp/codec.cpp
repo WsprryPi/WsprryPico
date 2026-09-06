@@ -154,12 +154,18 @@ bool body(Request& r, Value b) {
            json::fields(b, {});
 }
 std::string caps(const ServiceConfig& c) {
-    // This engine accepts numeric events for inhibited simulation only. These
-    // are input limits, never a claim of physical RF frequency coverage.
+    std::string modes;
+    for (const auto& mode : c.supported_modes) {
+        if (!modes.empty())
+            modes += ',';
+        modes += "\"" + mode + "\"";
+    }
     return "{\"profiles\":[\"rf-events/"
-           "1\"],\"modes\":[\"wspr\",\"qrss\",\"fskcw\",\"dfcw\",\"cw\",\"tone\"],"
-           "\"engine\":\"inhibited-no-rf\",\"frequency_ranges\":[{\"minimum_nhz\":\"1\",\"maximum_"
-           "nhz\":\"18446744073709551615\"}],"
+           "1\"],\"modes\":[" +
+           modes + "],\"engine\":\"" + c.capability_engine +
+           "\",\"frequency_ranges\":[{\"minimum_nhz\":" + ns(c.minimum_frequency_nhz) +
+           ",\"maximum_nhz\":" + ns(c.maximum_frequency_nhz) +
+           "}],"
            "\"max_payload_bytes\":65536,\"max_events\":" +
            std::to_string(c.max_events) + ",\"max_job_duration_ns\":" + ns(c.max_job_duration_ns) +
            ",\"minimum_arm_lead_ns\":" + ns(c.minimum_arm_lead_ns) +

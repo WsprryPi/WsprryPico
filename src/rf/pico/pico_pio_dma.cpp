@@ -214,7 +214,11 @@ bool PicoPioDma::alarm(std::uint64_t start_ns, std::uint64_t epoch) {
         return false;
     }
     alarm_epoch_ = epoch;
-    const auto target = start_us > now + 50 ? start_us - 50 : now + 1;
+    // Allow for bounded interrupt latency from foreground USB service. The
+    // callback still waits against the monotonic timer and enables PIO only at
+    // the requested microsecond.
+    constexpr std::uint64_t alarm_advance_us = 200;
+    const auto target = start_us > now + alarm_advance_us ? start_us - alarm_advance_us : now + 1;
     return !hardware_alarm_set_target(static_cast<unsigned>(alarm_), from_us_since_boot(target));
 }
 
@@ -222,7 +226,7 @@ bool PicoPioDma::launch(std::uint64_t start_ns) {
     const auto target_us = start_ns / 1000;
     auto observed_us = time_us_64();
     if (!installed_ || start_ns % 1000 != 0 || observed_us > target_us ||
-        target_us - observed_us > 50 || pio_sm_is_tx_fifo_empty(pio_, sm_)) {
+        target_us - observed_us > 250 || pio_sm_is_tx_fifo_empty(pio_, sm_)) {
         return false;
     }
     // Prime the output shift register while disabled. Autopull on the first

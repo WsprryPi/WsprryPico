@@ -110,3 +110,7 @@ settling, and disk-backed capture storage.
 The [encoded WSPR record](rf-wspr-validation.md) documents portable Type 1
 encoding, independent decoding of received RF, and an optional complete-frame
 RF warmup comparison.
+
+The [UTC and RF job integration record](utc-rf-job-validation.md) documents the
+sampled USB time source, explicit RF WTP image, scheduled local execution,
+complete conducted capture and independent decode.

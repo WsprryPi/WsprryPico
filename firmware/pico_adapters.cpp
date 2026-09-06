@@ -10,11 +10,9 @@
 #include <limits>
 #include <span>
 
-#ifndef WSPRRY_PICO_RF_OUTPUT_DISABLED
-#error "The firmware foundation requires RF output to be disabled"
+#if !defined(WSPRRY_PICO_RF_OUTPUT_DISABLED) && !defined(WSPRRY_PICO_RF_WTP)
+#error "Pico adapters may only be linked by an explicitly classified firmware image"
 #endif
-
-static_assert(WSPRRY_PICO_RF_OUTPUT_DISABLED == 1);
 
 namespace wsprrypico::firmware {
 namespace {

@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -219,6 +220,10 @@ struct Response {
 };
 
 struct ServiceConfig {
+    std::string capability_engine = "inhibited-no-rf";
+    std::vector<std::string> supported_modes{"wspr", "qrss", "fskcw", "dfcw", "cw", "tone"};
+    std::uint64_t minimum_frequency_nhz = 1;
+    std::uint64_t maximum_frequency_nhz = std::numeric_limits<std::uint64_t>::max();
     std::size_t max_events = 512;
     std::uint64_t max_job_duration_ns = 86'400'000'000'000ULL;
     std::uint64_t minimum_arm_lead_ns = 100'000'000ULL;

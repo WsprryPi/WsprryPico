@@ -20,6 +20,7 @@ bool take_wtp_reset();
 bool take_console_reset();
 // All-or-nothing enqueue; disconnected/full console drops the entire diagnostic.
 bool console_write(std::string_view text);
+std::size_t console_transport_read(std::span<std::uint8_t> bytes);
 // Non-blocking prefix acceptance. Caller retains/retries the unaccepted suffix.
 // A disconnect aborts the stream; accepted bytes are not delivery acknowledgments.
 std::size_t wtp_transport_write(std::span<const std::uint8_t> bytes);
