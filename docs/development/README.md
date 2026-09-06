@@ -119,3 +119,8 @@ complete conducted capture and independent decode.
 The [standalone guide](standalone.md) documents one-time Console configuration,
 recurring UTC schedules, CRC32 flash journals, autonomous SNTP policy, new
 hardware-free failure tests and the separately selected standalone RF image.
+
+The [inhibited standalone bench record](standalone-physical-validation.md) adds
+physical Wi-Fi/SNTP acquisition, configuration/watermark retention, outage
+recovery and the repaired journal/boot-sector layout. Conducted standalone RF
+and separate-power operation remain deferred.

@@ -18,8 +18,10 @@ An explicit [UTC/RF WTP integration image](docs/development/utc-rf-job-validatio
 has completed a future-scheduled job and independent conducted decode. The
 standard firmware retains RF inhibition. [Standalone configuration and timing](docs/development/standalone.md)
 now provide persistent station/schedules, Wi-Fi SNTP and host-tested autonomous
-job submission. Physical autonomous operation, calibrated timing, spectra and
-supported engine/mode/band qualification remain open.
+job submission. [Inhibited Wi-Fi bench validation](docs/development/standalone-physical-validation.md)
+adds device time acquisition, persistence and outage recovery. Conducted standalone
+RF, separate-power operation, calibrated timing, spectra and supported
+engine/mode/band qualification remain open.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)

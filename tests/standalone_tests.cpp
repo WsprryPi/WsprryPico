@@ -108,6 +108,21 @@ void storage_tests() {
     CHECK(store.load() && store.healthy() && !store.config());
     auto c = *standalone::parse_config(example);
     CHECK(store.save(c));
+    // A checksum-valid record from the overlapping layout must not be
+    // reinterpreted: its omitted newer watermark could permit replay.
+    auto legacy = flash;
+    legacy.bytes[7] = '1';
+    std::uint32_t crc = 0xffffffffU;
+    for (std::size_t i = 0; i < 2044; ++i) {
+        crc ^= legacy.bytes[i];
+        for (unsigned bit = 0; bit < 8; ++bit)
+            crc = (crc >> 1) ^ ((crc & 1) ? 0xedb88320U : 0);
+    }
+    crc = ~crc;
+    for (unsigned i = 0; i < 4; ++i)
+        legacy.bytes[2044 + i] = static_cast<std::uint8_t>(crc >> (8 * i));
+    standalone::Store old_layout(legacy);
+    CHECK(!old_layout.load() && !old_layout.save(c));
     CHECK(store.reserve(100));
     CHECK(!store.reserve(100) && !store.reserve(99));
     for (std::uint64_t i = 101; i < 180; ++i) {
@@ -151,7 +166,9 @@ void storage_tests() {
         broken.budget = -1;
         standalone::Store reboot(broken);
         if (reboot.load())
-            CHECK(reboot.watermark() == 100 && cut == 0);
+            // An unwritten trailing 0xff checksum byte may already match
+            // erased flash: a complete verified new record is also safe.
+            CHECK((reboot.watermark() == 100 && cut == 0) || reboot.watermark() == 200);
         else
             CHECK(!reboot.reserve(200));
     }
@@ -352,6 +369,8 @@ void scheduler_tests() {
     sched.poll();
     CHECK(e.prepared == 0 && s.watermark() == 0);
     CHECK(sched.command("CONFIG " + example).find("busy") != std::string::npos);
+    CHECK(sched.command("STOP").find("external_owner") != std::string::npos);
+    CHECK(svc.status().owner_id == std::string(32, 'b'));
 }
 void put(std::span<std::uint8_t> bytes, std::uint64_t value) {
     for (std::size_t i = 0; i < bytes.size(); ++i)
@@ -383,6 +402,17 @@ void sntp_tests() {
     CHECK(!source.receive(response, mono)); // One-shot response correlation.
     mono += 31'000'000'000ULL;
     CHECK(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    // A realistic Internet exchange is accepted; the inclusive 500 ms total
+    // uncertainty boundary still fails closed one nanosecond above it.
+    for (const auto uncertainty : {100'000'000ULL, 500'000'000ULL, 500'000'001ULL}) {
+        time::UtcDiscipline c(now, &mono);
+        time::Sntp sn(c);
+        (void)sn.request(mono, 987);
+        mono += uncertainty - 1'050'999ULL;
+        CHECK(sn.receive(reply(987, 1'800'000'000), mono) == (uncertainty <= 500'000'000ULL));
+        CHECK(sn.last_uncertainty_ns() == uncertainty);
+        CHECK(sn.last_rtt_ns() == uncertainty - 1'050'999ULL);
+    }
     // Era rollover works without a host-provided era hint.
     for (auto seconds : {2'085'978'495ULL, 2'085'978'496ULL, 4'102'444'799ULL}) {
         (void)source.request(mono, 456);
@@ -437,6 +467,37 @@ void sntp_tests() {
             CHECK(sn.denied());
     }
 }
+void campaign_controls_test() {
+    constexpr auto ns = 1'000'000'000ULL;
+    auto config = *standalone::parse_config(example);
+    config.expires_utc_s = time::sntp_min_utc_ns / ns + 231; // Too short for the 121-second slot.
+    CHECK(standalone::parse_config(standalone::serialize_config(config)) == config);
+    MemoryFlash flash;
+    standalone::Store store(flash);
+    CHECK(store.load() && store.save(config));
+    Clock clock;
+    clock.advance(116 * ns);
+    Engine engine;
+    Identity identity;
+    wtp::JobService service(clock, engine, identity);
+    standalone::Scheduler scheduler(store, service);
+    scheduler.poll();
+    CHECK(engine.prepared == 0 && store.watermark() == 0);
+    config.expires_utc_s += 1;
+    CHECK(store.save(config));
+    scheduler.poll();
+    CHECK(engine.prepared == 1 && service.status().state == wtp::State::Armed);
+    CHECK(scheduler.command("STOP").find("\"ok\":true") != std::string::npos);
+    CHECK(scheduler.idle());
+    clock.advance(120 * ns);
+    scheduler.poll();
+    CHECK(engine.prepared == 1);
+    CHECK(scheduler.status().find("\"suspended\":true") != std::string::npos);
+    standalone::Store reboot(flash);
+    CHECK(reboot.load() && reboot.config()->expires_utc_s == config.expires_utc_s);
+    config.expires_utc_s = std::numeric_limits<std::uint64_t>::max();
+    CHECK(!standalone::parse_config(standalone::serialize_config(config)));
+}
 void autonomous_test() {
     constexpr auto ns = 1'000'000'000ULL;
     std::uint64_t mono = 0;
@@ -452,7 +513,7 @@ void autonomous_test() {
     standalone::DryRunEngine engine;
     Identity identity;
     wtp::ServiceConfig capabilities;
-    capabilities.maximum_arm_uncertainty_ns = 20'000'000;
+    capabilities.maximum_arm_uncertainty_ns = time::standalone_max_uncertainty_ns;
     wtp::JobService service(clock, engine, identity, capabilities);
     standalone::Scheduler scheduler(store, service);
     scheduler.poll();
@@ -482,6 +543,26 @@ void autonomous_test() {
     CHECK(service.status().state == wtp::State::Complete);
     CHECK(store.watermark() == start_utc);
     CHECK(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    // Oscillator aging can cross the 500 ms budget after admission. Launch
+    // must recheck the aged observation instead of trusting the earlier ARM.
+    {
+        std::uint64_t tick = 0;
+        time::UtcDiscipline aged(now, &tick, config);
+        CHECK(aged.observe(time::sntp_min_utc_ns + 116 * ns, tick, 499'900'000,
+                           wtp::LeapState::Normal));
+        MemoryFlash memory;
+        standalone::Store persisted(memory);
+        CHECK(persisted.load() && persisted.save(*standalone::parse_config(example)));
+        standalone::DryRunEngine guarded;
+        wtp::JobService guarded_service(aged, guarded, identity, capabilities);
+        standalone::Scheduler local(persisted, guarded_service);
+        local.poll();
+        CHECK(guarded_service.status().state == wtp::State::Armed);
+        tick = 5 * ns;
+        local.poll();
+        CHECK(guarded_service.status().state == wtp::State::Missed);
+        CHECK(!guarded.output_active());
+    }
     // Before-launch source loss must suppress even the simulated execution.
     Clock fake;
     standalone::DryRunEngine dry;
@@ -498,5 +579,6 @@ int main() {
     scheduler_tests();
     sntp_tests();
     autonomous_test();
+    campaign_controls_test();
     std::cout << "standalone tests passed\n";
 }

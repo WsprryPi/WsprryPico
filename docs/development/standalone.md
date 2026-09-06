@@ -1,9 +1,11 @@
 # Standalone configuration and timing
 
-Status: Step 9 software implemented and hardware-free validated. Physical
-standalone operation, Wi-Fi reconnection under RF load, flash power-loss behavior
-and autonomous UTC/RF accuracy are **not yet target-validated**. The
-[execution prompt](step9-standalone-execution-prompt.md) defines this slice.
+Status: Step 9 software and the [inhibited Wi-Fi bench slice](standalone-physical-validation.md)
+are validated on the recorded device. Conducted standalone operation, Wi-Fi
+reconnection under RF load, separate-power boot, flash brownout behavior and
+calibrated UTC/RF accuracy remain open. The original
+[execution prompt](step9-standalone-execution-prompt.md) defines the software;
+the [physical prompt](step9-physical-execution-prompt.md) records the later scope.
 
 ## Images and shared service
 
@@ -31,7 +33,7 @@ remain later work; Wi-Fi here supplies DHCP and a UDP time client only.
 
 One-time configuration uses the **Console** CDC interface, not WTP. Send a single
 ASCII line `CONFIG ` followed by the complete JSON document and a newline.
-Only `STATUS` and `CONFIG` are accepted. Send one command at a time and wait for
+The administration commands below share this interface. Send one command at a time and wait for
 its JSON response; diagnostics use the bounded existing Console queue. A client
 must inspect `ok`, not assume a successful serial write saved anything.
 
@@ -72,18 +74,46 @@ zone or daylight-saving interpretation.
 
 A new/erased device has no configuration and cannot schedule. Saving requires
 an idle unowned service and verified flash writes. It returns `reboot_required`
-and suspends standalone admission until a normal power cycle applies the saved
+and suspends standalone admission until reboot applies the saved
 network settings. USB WTP remains usable. An enabled saved configuration in an
 RF-capable image can transmit after reboot as soon as its time and schedule
 conditions pass. Saving `enabled:false` prevents further standalone admissions;
 configuration changes do not abort an owned active job. Use its WTP owner to
-abort or wait for completion before editing configuration.
+abort or wait for completion before editing configuration. For a locally owned
+standalone job, Console `STOP` aborts it and suspends further local admissions
+until reboot. It does not abort an external WTP owner.
 
 `STATUS` reports saved station/schedules, enabled state, storage health, required
 reboot, latest reservation, clock state/uncertainty, engine, current service
 state, last admitted job ID and the last admission error. Runtime terminal
 reasons remain available through WTP STATUS and its retained terminal records.
 Wi-Fi credentials are omitted entirely.
+
+## Bounded administration and recovery
+
+Optional `expires_utc_s` is a UTC seconds integer in the supported era; omitted
+or zero preserves the unbounded schedule configuration. A nonzero expiry skips
+any occurrence whose nominal full WSPR frame would finish after that time.
+The bench client requires explicit `--enable-schedule` and an expiry within one
+hour before provisioning an enabled schedule.
+
+`INFO` adds device/build identity, recovery diagnostics, network link state,
+SNTP counters and latest correlated RTT/sample uncertainty. It includes the
+sanitized schedule status; RF images also report launch and DMA diagnostics.
+`REBOOT` and `BOOTSEL` first stop local scheduling, require unowned idle state,
+verify inactive output, then reset. The inhibited image additionally offers
+`WIFI OFF` and `WIFI ON` while idle for controlled network-loss testing.
+
+Use `scripts/standalone_console.py ACTION --port DEVICE --device-id ID --run`.
+Configuration also requires `--revision REV --config PRIVATE_JSON`; the tool
+checks device identity before issuing the command and never echoes credentials.
+Capture INFO and image hashes before a campaign. Closing a USB port proves no
+per-job commands, but is not evidence of physical power-only operation.
+
+An eight-second watchdog recovers foreground stalls into a boot that suspends
+local schedules and skips networking. Intentional Console reboot starts a normal
+boot. Recovery reports the failed stage and retained panic/processor diagnostic
+values; it does not automatically clear credentials, watermarks or faults.
 
 ## Time policy
 
@@ -109,14 +139,17 @@ processing. Its uncertainty includes the **full** local RTT, half the server's
 root delay, root dispersion, a local/drift margin and up to 999 ns of mapping
 quantization. The UTC-to-monotonic offset is on the RP2350 microsecond timer grid
 so an exact UTC WSPR slot produces a representable hardware alarm. Observations
-above 20 ms uncertainty are rejected. The assumed oscillator bound is 50,000 ppb,
+above 500 ms uncertainty are rejected. This user-selected budget replaces the
+initial 20 ms policy and retains margin against the approximately one-second
+clock guidance in the [WSPR description](https://wsjt.sourceforge.io/WSPR_QST_Nov_2010.pdf).
+Admission and launch both enforce 500 ms including oscillator aging. The assumed oscillator bound is 50,000 ppb,
 not a measured oscillator calibration; uncertainty grows with age.
 
 Network polling is foreground-only. Connection attempts are separated by 30 s;
 queries by 64 s. Startup requires neither a USB host nor a wall-clock seed. The
 clock is synchronized for at most 90 s and enters holdover through 180 s, but
 this image admits/launches jobs only with source age at most 90 s and uncertainty
-at most 20 ms. An outage can skip slots; no schedule is guaranteed to transmit.
+at most 500 ms. An outage can skip slots; no schedule is guaranteed to transmit.
 RF frequency correction is separate and is not inferred from SNTP observations.
 
 ## Scheduling, flash and failures
@@ -130,10 +163,17 @@ erroneous forward clock step can therefore suspend scheduling until UTC catches
 up or an operator deliberately resets storage; this favors no repeats over
 availability. This is an at-most-once attempt policy, not guaranteed delivery.
 
-Four 4 KiB sectors at flash offsets `0x3fc000`–`0x3fffff` are reserved in every
-maintained image. Two sectors hold 2,048-byte configuration records; two hold
+Four 4 KiB sectors at flash offsets `0x3fb000`–`0x3fefff` are reserved in every
+maintained image. The final sector (`0x3ff000`–`0x3fffff`) is separately
+reserved for the RP2350-E10 boot workaround, observed in its last page.
+The initial, physically unvalidated layout overlapped that page and failed
+closed on this board. It must not be used for persisted configuration.
+Two sectors hold 2,048-byte configuration records; two hold
 256-byte watermark records. Each contains a format magic, 64-bit sequence,
-length, payload and four-byte IEEE CRC32. The next bank is erased only when the
+length, payload and four-byte IEEE CRC32. Journal magic `WWPSTOR2` identifies
+the corrected layout independently of JSON configuration version 1. Old-layout
+records are rejected, even with valid checksums; no automatic migration can
+safely drop the old final watermark bank. The next bank is erased only when the
 current bank is full; a complete verified current record exists before that
 rotation. Writes are verified before acknowledgement and happen only outside
 armed/running jobs. Flash accesses use the SDK's single-core safe routines with
@@ -184,7 +224,7 @@ python3 scripts/check_standalone_image.py build/pico2-w/firmware/WsprryPico.elf
 python3 scripts/check_standalone_image.py build/pico2-w/firmware/WsprryPico-StandaloneRF.elf
 ```
 
-The validation run passed all 17 configured host tests (including the existing
+The initial software validation passed all 17 configured host tests (including the existing
 optional offline analysis/USB descriptor checks), all 13 sanitizer-build tests,
 and the WTP contract validator. All five named Arm targets cross-linked against
 the pinned SDK/toolchain. Image inspection checks the 16 KiB stack, heap
@@ -200,7 +240,7 @@ discipline and scheduler, verifies a microsecond-aligned launch mapping,
 completes an inhibited job without USB input, then skips further work on time
 loss. A simulated completion is not a conducted RF result.
 
-## Adversarial assessments
+## Initial software adversarial assessments
 
 The first assessment repaired the SDK linker-override invocation, replaced
 unnecessary SHA-256 storage hashing with CRC32, and made corruption inhibit
@@ -221,3 +261,7 @@ validation results here apply to software and build evidence only.
 After repairs and repeated affected checks, the final assessment found no
 remaining actionable software findings in this slice. Physical qualification
 items above remain open and were not reclassified as software passes.
+
+The later [physical validation record](standalone-physical-validation.md) documents
+the boot-page overlap, corrected journal identity, network alignment, recovery
+controls, expanded checks and the user-selected 500 ms UTC uncertainty budget.

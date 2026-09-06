@@ -13,6 +13,7 @@ struct Schedule {
 };
 struct Config {
     bool enabled = false;
+    std::uint64_t expires_utc_s = 0; // Zero preserves unbounded version-1 schedules.
     std::string callsign, locator;
     unsigned power_dbm = 0;
     std::string ssid, password, ntp_ipv4;

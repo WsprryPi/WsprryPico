@@ -40,8 +40,10 @@ The [standalone layer](docs/development/standalone.md) now persists station and
 schedule configuration and acquires UTC through Wi-Fi SNTP, with complete jobs
 submitted through the same service as USB WTP. The standard image simulates
 local job lifecycles with RF inhibited; the explicitly built standalone RF image
-uses the experimental engine. This integration is host-tested and Arm-linked,
-not physically qualified.
+uses the experimental engine. [Inhibited target Wi-Fi validation](docs/development/standalone-physical-validation.md)
+covers configuration retention, autonomous SNTP and outage/reconnection.
+Conducted standalone RF, separate-power operation and calibrated timing remain
+unqualified.
 
 Host tests, target execution and RF qualification are distinct evidence classes.
 A successful compile or simulated transmission establishes neither on-device

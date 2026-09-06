@@ -35,6 +35,8 @@ bool Sntp::receive(std::span<const std::uint8_t> packet, std::uint64_t now) {
         read(packet.subspan(24, 8)) != nonce_)
         return false;
     pending_ = false;
+    last_rtt_ns_ = now - sent_;
+    last_uncertainty_ns_.reset();
     if (packet[1] == 0) { // Conservatively stop this server for the boot on any KoD.
         denied_ = true;
         clock_.invalidate();
@@ -65,8 +67,9 @@ bool Sntp::receive(std::span<const std::uint8_t> packet, std::uint64_t now) {
     // server's root distance, oscillator growth in flight and 1 ms local margin.
     const auto uncertainty = elapsed + ((root_delay * 1'000'000'000ULL) >> 17) +
                              ((dispersion * 1'000'000'000ULL) >> 16) + 1'050'999ULL;
+    last_uncertainty_ns_ = uncertainty;
     const auto estimate = sent + (elapsed - (sent - received)) / 2;
-    if (estimate >= sntp_max_utc_ns || uncertainty > 20'000'000ULL)
+    if (estimate >= sntp_max_utc_ns || uncertainty > standalone_max_uncertainty_ns)
         return false;
     // Keep the UTC-to-monotonic offset on the RP2350's microsecond grid.
     // The added 999 ns uncertainty covers flooring this offset, so exact UTC

@@ -44,7 +44,8 @@ std::optional<Config> parse_config(std::string_view text) {
     if (text.size() > max_config_bytes)
         return {};
     auto root = parse(text);
-    if (!root || !fields(*root, {"version", "enabled", "station", "wifi", "schedules"}) ||
+    if (!root ||
+        !fields(*root, {"version", "enabled", "station", "wifi", "schedules"}, {"expires_utc_s"}) ||
         root->get("version")->raw != "1" ||
         (root->get("enabled")->raw != "true" && root->get("enabled")->raw != "false"))
         return {};
@@ -61,6 +62,16 @@ std::optional<Config> parse_config(std::string_view text) {
             return {};
     Config c;
     c.enabled = root->get("enabled")->boolean();
+    if (const auto expiry = root->get("expires_utc_s")) {
+        if (expiry->type() < '0' || expiry->type() > '9')
+            return {};
+        const auto result = std::from_chars(
+            expiry->raw.data(), expiry->raw.data() + expiry->raw.size(), c.expires_utc_s);
+        if (result.ec != std::errc{} || result.ptr != expiry->raw.data() + expiry->raw.size() ||
+            (c.expires_utc_s &&
+             (c.expires_utc_s < 1'735'689'600ULL || c.expires_utc_s >= 4'102'444'800ULL)))
+            return {};
+    }
     c.callsign = station.get("callsign")->string();
     c.locator = station.get("locator")->string();
     std::uint32_t power = 0;
@@ -106,6 +117,6 @@ std::string serialize_config(const Config& c) {
         result += "{\"period_s\":" + std::to_string(c.schedules[i].period_s) +
                   ",\"phase_s\":" + std::to_string(c.schedules[i].phase_s) + '}';
     }
-    return result + "]}";
+    return result + "],\"expires_utc_s\":" + std::to_string(c.expires_utc_s) + "}";
 }
 } // namespace wsprrypico::standalone

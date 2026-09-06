@@ -40,6 +40,7 @@ target_compile_definitions(WsprryPico PRIVATE
     PICO_NO_BI_PROGRAM_BUILD_DATE=1
     PICO_STACK_SIZE=0x4000
     WSPRRY_PICO_RF_OUTPUT_DISABLED=1
+    PICO_PANIC_FUNCTION=wsprrypico_panic
 )
 set_source_files_properties(pico_adapters.cpp usb_descriptors.c ../src/usb/transport.cpp PROPERTIES
     COMPILE_OPTIONS "-Wall;-Wextra;-Werror"
@@ -133,7 +134,8 @@ target_include_directories(WsprryPico-StandaloneRF PRIVATE
     ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated
     ${CMAKE_SOURCE_DIR}/src/standalone/pico)
 target_compile_definitions(WsprryPico-StandaloneRF PRIVATE
-    WSPRRY_PICO_STANDALONE_RF=1 PICO_NO_BI_PROGRAM_BUILD_DATE=1 PICO_STACK_SIZE=0x4000)
+    WSPRRY_PICO_STANDALONE_RF=1 PICO_NO_BI_PROGRAM_BUILD_DATE=1 PICO_STACK_SIZE=0x4000
+    PICO_PANIC_FUNCTION=wsprrypico_panic)
 target_link_libraries(WsprryPico-StandaloneRF PRIVATE
     wsprrypico_pico_rf pico_rand pico_time pico_unique_id hardware_flash
     pico_cyw43_arch_lwip_poll tinyusb_device)
@@ -150,7 +152,7 @@ pico_set_program_version(WsprryPico-StandaloneRF "${WSPRRY_PICO_FIRMWARE_VERSION
 pico_set_program_description(WsprryPico-StandaloneRF "Standalone GP2 integration ${WSPRRY_PICO_GIT_REVISION}")
 pico_add_extra_outputs(WsprryPico-StandaloneRF)
 
-# Reserve the last 16 KiB on every maintained image, including old entrypoints.
+# Reserve journals plus the RP2350-E10 boot sector on every maintained image.
 # Override only the linker region; PICO_FLASH_SIZE_BYTES retains physical capacity.
 foreach(image WsprryPico WsprryPico-RFBench WsprryPico-RFWTP WsprryPico-StandaloneRF rf_driver_linkcheck)
     pico_add_linker_script_override_path(${image} ${CMAKE_SOURCE_DIR}/cmake/standalone_link FILES memory_flash.incl)

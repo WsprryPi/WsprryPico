@@ -1,6 +1,7 @@
 #include "standalone/pico/adapters.hpp"
 
 #include "hardware/flash.h"
+#include "hardware/structs/watchdog.h"
 #include "hardware/sync.h"
 #include "pico/cyw43_arch.h"
 #include "pico/rand.h"
@@ -13,8 +14,11 @@
 namespace wsprrypico::standalone {
 namespace {
 constexpr std::size_t storage_size = 16 * 1024;
-constexpr std::size_t flash_base = PICO_FLASH_SIZE_BYTES - storage_size;
+// RP2350-E10 boot workaround occupies the final physical flash page. Keep
+// its entire erase sector outside both journals.
+constexpr std::size_t flash_base = PICO_FLASH_SIZE_BYTES - 4096 - storage_size;
 static_assert(PICO_FLASH_SIZE_BYTES == 4 * 1024 * 1024);
+static_assert(MEM_ALIGNMENT >= alignof(std::uint32_t));
 } // namespace
 bool PicoFlash::read(std::size_t offset, std::span<std::uint8_t> data) {
     if (offset > storage_size || data.size() > storage_size - offset)
@@ -44,10 +48,15 @@ bool PicoFlash::program(std::size_t offset, std::span<const std::uint8_t> page) 
     return true; // Journal independently verifies the complete record.
 }
 bool PicoNetwork::start(const Config& config) {
-    if (initialized_ || !ipaddr_aton(config.ntp_ipv4.c_str(), &server_) || cyw43_arch_init())
+    if (initialized_ || !ipaddr_aton(config.ntp_ipv4.c_str(), &server_))
+        return false;
+    watchdog_hw->scratch[1] = 10;
+    if (cyw43_arch_init())
         return false;
     initialized_ = true;
+    watchdog_hw->scratch[1] = 11;
     cyw43_arch_enable_sta_mode();
+    watchdog_hw->scratch[1] = 12;
     ssid_ = config.ssid;
     password_ = config.password;
     pcb_ = udp_new_ip_type(IPADDR_TYPE_V4);
@@ -62,21 +71,28 @@ void PicoNetwork::receive(void* context, udp_pcb*, pbuf* packet, const ip_addr_t
     const auto now = time_us_64() * 1000ULL;
     if (packet && port == 123 && ip_addr_cmp(address, &self.server_) && packet->tot_len == 48) {
         std::array<std::uint8_t, 48> bytes{};
-        if (pbuf_copy_partial(packet, bytes.data(), bytes.size(), 0) == bytes.size())
-            (void)self.sntp_.receive(bytes, now);
+        if (pbuf_copy_partial(packet, bytes.data(), bytes.size(), 0) == bytes.size()) {
+            if (self.sntp_.receive(bytes, now))
+                ++self.accepted_;
+            else
+                ++self.rejected_;
+        }
     }
     if (packet)
         pbuf_free(packet);
 }
 void PicoNetwork::poll() {
-    if (!initialized_ || !pcb_)
+    if (!initialized_ || !pcb_ || !enabled_)
         return;
+    watchdog_hw->scratch[1] = 13;
     cyw43_arch_poll();
+    watchdog_hw->scratch[1] = 14;
     const auto now = time_us_64();
     const auto link = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
     if (link != CYW43_LINK_UP) {
         sntp_.cancel();
         if (now >= next_connect_us_) {
+            watchdog_hw->scratch[1] = 15;
             (void)cyw43_arch_wifi_connect_async(ssid_.c_str(), password_.c_str(),
                                                 CYW43_AUTH_WPA2_AES_PSK);
             next_connect_us_ = now + 30'000'000ULL;
@@ -86,6 +102,7 @@ void PicoNetwork::poll() {
     if (now < next_query_us_ || sntp_.denied())
         return;
     next_query_us_ = now + 64'000'000ULL;
+    ++queries_;
     const auto bytes = sntp_.request(now * 1000ULL, get_rand_64());
     auto* packet = pbuf_alloc(PBUF_TRANSPORT, bytes.size(), PBUF_RAM);
     if (!packet) {
@@ -96,5 +113,32 @@ void PicoNetwork::poll() {
         udp_sendto(pcb_, packet, &server_, 123) != ERR_OK)
         sntp_.cancel();
     pbuf_free(packet);
+}
+bool PicoNetwork::set_enabled(bool enabled) {
+    if (!initialized_ || !pcb_)
+        return false;
+    if (enabled_ == enabled)
+        return true;
+    sntp_.cancel();
+    enabled_ = enabled;
+    if (enabled) {
+        cyw43_arch_enable_sta_mode();
+        next_connect_us_ = next_query_us_ = 0;
+    } else
+        cyw43_arch_disable_sta_mode();
+    return true;
+}
+std::string PicoNetwork::status() const {
+    const auto uncertainty = sntp_.last_uncertainty_ns();
+    return "{\"initialized\":" + std::string(initialized_ ? "true" : "false") +
+           ",\"enabled\":" + (enabled_ ? "true" : "false") + ",\"link_status\":" +
+           std::to_string(initialized_ ? cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA)
+                                       : -99) +
+           ",\"queries\":" + std::to_string(queries_) +
+           ",\"accepted\":" + std::to_string(accepted_) +
+           ",\"rejected\":" + std::to_string(rejected_) +
+           ",\"last_rtt_ns\":" + std::to_string(sntp_.last_rtt_ns()) +
+           ",\"last_sample_uncertainty_ns\":" +
+           (uncertainty ? std::to_string(*uncertainty) : "null") + "}";
 }
 } // namespace wsprrypico::standalone

@@ -42,7 +42,7 @@ bool Scheduler::idle() const {
 void Scheduler::poll() {
     service_.poll();
     if (!store_.healthy() || !store_.config() || !store_.config()->enabled || reboot_required_ ||
-        !idle())
+        suspended_ || !idle())
         return;
     const auto now = service_.clock_snapshot();
     if (now.state == wtp::ClockState::Unsynchronized || now.leap != wtp::LeapState::Normal ||
@@ -64,6 +64,9 @@ void Scheduler::poll() {
     }
     if (candidate <= now.utc_now_ns || candidate - now.utc_now_ns > 10 * ns ||
         candidate - now.utc_now_ns < 2 * ns)
+        return;
+    const auto expiry = store_.config()->expires_utc_s * ns;
+    if (expiry && (candidate >= expiry || expiry - candidate < 110'592'000'000ULL))
         return;
     if (!request("HELLO", wtp::HelloBody{{"WTP/1"}}).ok)
         return;
@@ -120,7 +123,13 @@ std::string Scheduler::status() const {
     }
     return "{\"ok\":true,\"configured\":" + std::string(store_.config() ? "true" : "false") +
            ",\"enabled\":" + (store_.config() && store_.config()->enabled ? "true" : "false") +
-           ",\"station\":" + station + ",\"schedules\":" + schedules +
+           ",\"suspended\":" + (suspended_ ? "true" : "false") + ",\"expires_utc_s\":" +
+           std::to_string(store_.config() ? store_.config()->expires_utc_s : 0) +
+           ",\"boot_id\":" + wtp::json::quote(s.boot_id) + ",\"utc_now_ns\":\"" +
+           std::to_string(clock.utc_now_ns) + "\"" + ",\"monotonic_now_ns\":\"" +
+           std::to_string(clock.monotonic_now_ns) + "\"" + ",\"sync_age_ns\":\"" +
+           std::to_string(clock.sync_age_ns) + "\"" + ",\"station\":" + station +
+           ",\"schedules\":" + schedules +
            ",\"engine\":" + wtp::json::quote(service_.config().capability_engine) +
            ",\"storage_healthy\":" + (store_.healthy() ? "true" : "false") +
            ",\"reboot_required\":" + (reboot_required_ ? "true" : "false") +
@@ -138,6 +147,24 @@ std::string Scheduler::status() const {
 std::string Scheduler::command(std::string_view line) {
     if (line == "STATUS")
         return status();
+    if (line == "STOP") {
+        suspended_ = true;
+        const auto current = service_.status();
+        if (current.owner_id) {
+            if (*current.owner_id != local_id || !current.job_id || *current.job_id != last_job_)
+                return error("external_owner");
+            if (current.state == wtp::State::Armed || current.state == wtp::State::Running ||
+                current.state == wtp::State::Loaded) {
+                const auto result = request("ABORT", wtp::AbortBody{last_job_});
+                if (!result.ok)
+                    return error("stop_failed");
+            }
+            (void)request("RELEASE");
+        }
+        if (!idle())
+            return error("not_idle");
+        return status();
+    }
     if (!line.starts_with("CONFIG "))
         return error("unknown_command");
     if (!idle())

@@ -11,6 +11,8 @@
 #define LWIP_RAW 0
 #define LWIP_NETIF_STATUS_CALLBACK 1
 #define LWIP_NETIF_LINK_CALLBACK 1
+// The RP2350 requires word-aligned lwIP heap blocks and packet pools.
+#define MEM_ALIGNMENT 4
 #define MEM_SIZE 8192
 #define PBUF_POOL_SIZE 8
 #define MEMP_NUM_UDP_PCB 3

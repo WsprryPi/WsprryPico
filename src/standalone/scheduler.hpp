@@ -18,6 +18,6 @@ class Scheduler {
     std::uint64_t sequence_ = 0;
     wtp::ErrorCode last_error_ = wtp::ErrorCode::None;
     std::string last_job_;
-    bool reboot_required_ = false;
+    bool reboot_required_ = false, suspended_ = false;
 };
 } // namespace wsprrypico::standalone

@@ -46,7 +46,7 @@ bool Journal::load() {
         const auto bytes = std::span(record);
         const auto checksum = crc32(bytes.first(size_ - 4));
         const auto seq = get(bytes.subspan(8, 8)), length = get(bytes.subspan(16, 4));
-        const bool valid = get(bytes.first(8)) == 0x31524f5453505757ULL && seq > 0 &&
+        const bool valid = get(bytes.first(8)) == 0x32524f5453505757ULL && seq > 0 &&
                            length <= size_ - 64 && get(bytes.last(4)) == checksum;
         if (!valid)
             return false; // Never resurrect an older enabled config or replay an ambiguous slot.
@@ -87,7 +87,7 @@ bool Journal::append(std::string_view data) {
     }
     std::fill(record.begin(), record.end(), 255);
     auto bytes = std::span(record);
-    put(bytes.first(8), 0x31524f5453505757ULL);
+    put(bytes.first(8), 0x32524f5453505757ULL);
     put(bytes.subspan(8, 8), sequence_ + 1);
     put(bytes.subspan(16, 4), data.size());
     std::copy(data.begin(), data.end(), record.begin() + 32);

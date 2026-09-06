@@ -18,10 +18,10 @@ treated as long-term product documentation.
 8. **Complete:** physical RF engine and UTC-scheduled WTP integration, including
    GP2 output, encoded WSPR, comparative spectrum work, USB UTC synchronization,
    scheduled local execution, conducted SDR capture and independent decoding.
-9. **Software complete; target validation pending:** standalone station identity,
-   persistent schedules, Wi-Fi SNTP and local job submission without a per-job
-   USB host. Host/sanitizer tests and Arm cross-builds pass; physical autonomous
-   operation remains unverified.
+9. **Software and Wi-Fi bench complete; RF/power-only checks open:** persistent
+   station/schedules, device SNTP, inhibited local scheduling, retained watermark,
+   Wi-Fi loss/reconnection and recovery controls. Conducted standalone RF and
+   separate-power boot are deferred by the user.
 10. **Next:** WsprryPi client/backend integration.
 11. **Planned:** Wi-Fi/TCP and the shared browser API.
 12. **Planned:** SoftAP and BLE provisioning.
@@ -173,7 +173,7 @@ per-symbol USB traffic and independently decoded from a complete wspr5 capture.
 The standard firmware remains inhibited. USB host time, receiver wall-clock
 onset, the output network and calibrated filter/band behavior are not qualified.
 
-## Step 9: standalone software implemented
+## Step 9: standalone software and inhibited Wi-Fi validation
 
 The [standalone guide](development/standalone.md) documents persistent station
 identity and recurring schedules, an independent no-repeat watermark, Wi-Fi
@@ -183,11 +183,12 @@ standalone RF image retains the experimental GP2 engine.
 
 Deterministic and sanitizer tests cover autonomous simulated completion,
 configuration/storage failures, restart/clock-step behavior, SNTP rejection and
-host ownership. All firmware targets cross-link. No Step 9 firmware was flashed,
-no device Wi-Fi was operated and no RF was transmitted. Physical autonomous
-validation, power-loss behavior and Wi-Fi/RF coexistence remain separately
-operator-authorized target work; calibrated output/filter qualification remains
-a later gate.
+host ownership. All firmware targets cross-link. The later
+[inhibited bench record](development/standalone-physical-validation.md) adds real
+configuration retention, autonomous SNTP, scheduled local simulation, Wi-Fi
+outage/reconnection and watchdog recovery. The user deferred conducted standalone
+RF and separate-power boot; no standalone RF image was flashed in that run.
+Wi-Fi/RF coexistence and calibrated output/filter qualification remain open.
 
 ## Subsequent slices
 
