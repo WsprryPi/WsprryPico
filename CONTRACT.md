@@ -29,7 +29,10 @@ Arm-cross-linked, but are not selected by the standard Pico firmware. The
 separate [bench image](docs/development/rf-bench.md) has bounded CPU and conducted
 tone evidence from the Pico and the SDR on wspr5. Its relative monotonic timer
 is explicitly unsynchronized; it does not claim WTP timing conformance.
-No band coverage, RF performance or WTP compliance is currently established.
+The [conducted PIO campaign](docs/development/band-campaign-results.md) records
+bounded operational results for an exact experimental image, clock and RF path.
+These do not establish production band coverage, calibrated RF performance or
+general WTP compliance.
 The Pico 2 W firmware provides an RF-inhibited WTP USB endpoint with separate
 Console and WTP CDC interfaces. Its protocol, service, transport and descriptor
 behavior is hardware-free host-tested. [Bounded target USB checks](docs/development/usb-target-validation.md)

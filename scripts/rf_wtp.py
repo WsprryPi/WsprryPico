@@ -13,7 +13,7 @@ import uuid
 from collections import deque
 from pathlib import Path
 
-from validate_wtp_contract import frame
+from validate_wtp_contract import frame, loads_strict
 from wtp_monitor import FrameDecoder, configure_raw
 
 GOLDEN37 = ("13220200302213120030232311300200223201230220201213223121020110322221321030323001023231"
@@ -29,8 +29,8 @@ def rounded_ratio(value, numerator, denominator):
 def make_job(symbols, frequency_hz):
     if len(symbols) != 162 or any(tone not in "0123" for tone in symbols):
         raise ValueError("symbols must be exactly 162 digits in range 0..3")
-    if frequency_hz != 3_570_100:
-        raise ValueError("this RF engine image is built for a 3570100 Hz base")
+    if type(frequency_hz) is not int or not 100_000 <= frequency_hz <= 68_999_994:
+        raise ValueError("frequency is outside the 138 MHz direct-synthesis profile")
     events = []
     for index, tone in enumerate(symbols):
         begin = rounded_ratio(index, SYMBOL_NS_NUMERATOR, SYMBOL_NS_DENOMINATOR)
@@ -104,9 +104,9 @@ def synchronize(time_fd, host_uncertainty_ns):
 
 
 class WtpPeer:
-    def __init__(self, fd):
+    def __init__(self, fd, *, session=None, sequence=0):
         self.fd, self.decoder = fd, FrameDecoder()
-        self.session, self.sequence = uuid.uuid4().hex, 0
+        self.session, self.sequence = session or uuid.uuid4().hex, sequence
         self.pending = deque()
 
     def _receive(self):
@@ -114,7 +114,11 @@ class WtpPeer:
         if not chunk:
             raise ConnectionError("serial device closed")
         for payload in self.decoder.feed(chunk):
-            message = json.loads(payload)
+            message = loads_strict(payload.decode("utf-8"))
+            if (not isinstance(message, dict) or message.get("protocol") != "WTP/1"
+                    or message.get("session_id") != self.session
+                    or message.get("type") not in ("response", "event")):
+                raise ValueError("WTP response protocol or session mismatch")
             print(json.dumps(message, separators=(",", ":")), flush=True)
             self.pending.append(message)
 
@@ -136,6 +140,8 @@ class WtpPeer:
         while time.monotonic() < deadline:
             message = self._take_response(request_id)
             if message is not None:
+                if message.get("op") != operation:
+                    raise ValueError("WTP response operation mismatch")
                 if not message.get("ok"):
                     raise RuntimeError(message["error"])
                 return message["body"]

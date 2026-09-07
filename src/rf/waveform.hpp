@@ -16,6 +16,8 @@ inline constexpr std::uint64_t sample_rate = WSPRRY_PICO_RF_SAMPLE_RATE_HZ;
 static_assert(sample_rate == 132'000'000 || sample_rate == 138'000'000 ||
               sample_rate == 150'000'000);
 inline constexpr std::uint64_t base_nhz = 3'570'100'000'000'000;
+inline constexpr std::uint64_t minimum_frequency_nhz = 100'000ULL * 1'000'000'000;
+inline constexpr std::uint64_t maximum_frequency_nhz = (sample_rate / 2 - 1) * 1'000'000'000;
 inline constexpr std::uint64_t spacing_nhz = 1'464'843'750;
 inline constexpr std::size_t max_events = 162;
 inline constexpr std::uint64_t max_duration_ns = 110'592'000'000;
@@ -69,8 +71,10 @@ struct Plan {
     std::uint64_t total_samples = 0;
 };
 
-// Rejects outside the initial four-tone, tone/wspr, sample-aligned study slice.
+// Direct baseband only; at most four distinct increments per complete event job.
 // Does not mutate a previously accepted plan or interact with an output device.
+[[nodiscard]] std::optional<std::uint32_t> frequency_increment(std::uint64_t frequency_nhz,
+                                                               std::int32_t correction_ppb = 0);
 [[nodiscard]] std::optional<Plan> plan_job(const wtp::Job& job, std::int32_t correction_ppb = 0);
 
 // Diagnostic default-increment packer for tone indexes 0..3.

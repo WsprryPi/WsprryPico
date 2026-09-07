@@ -215,7 +215,7 @@ void planner_test() {
             invalid.events[0].offset_ns = 1;
             break;
         case 4:
-            invalid.mode = "qrss";
+            invalid.mode = "unknown";
             break;
         case 5:
             invalid.events.clear();
@@ -250,6 +250,48 @@ void planner_test() {
     CHECK(!rf::plan_job(invalid));
 }
 
+void generalized_planner_test() {
+    for (const auto hz :
+         {137500ULL, 475700ULL, 1838100ULL, 5288700ULL, 7040100ULL, 10140200ULL, 14097100ULL,
+          18106100ULL, 21096100ULL, 24926100ULL, 28126100ULL, 50294500ULL}) {
+        for (const auto ppb : {-100000, 0, 100000}) {
+            const auto k = rf::frequency_increment(hz * 1000000000, ppb);
+            const auto exact = hz * 4294967296.L / (rf::sample_rate * (1.L + ppb * 1e-9L));
+            CHECK(k && std::abs(*k - exact) <= .5L);
+        }
+        for (const auto mode : {"tone", "wspr", "qrss", "fskcw", "dfcw"}) {
+            auto job = job_for(std::array<std::uint64_t, 4>{100003, 100007, 100009, 100019});
+            job.mode = mode;
+            for (auto& e : job.events)
+                *e.frequency_nhz += hz * 1000000000 - rf::base_nhz;
+            const auto plan = rf::plan_job(job);
+            CHECK(plan);
+            rf::Waveform wave;
+            wave.reset(*plan);
+            std::array<std::uint32_t, 1024> words{};
+            std::uint32_t phase = 0;
+            std::uint64_t cursor = 0;
+            std::size_t segment = 0;
+            while (cursor < plan->total_samples) {
+                const auto count = wave.render(words);
+                for (std::uint64_t bit = 0; bit < count; ++bit) {
+                    CHECK(((words[bit / 32] >> (bit % 32)) & 1U) == phase >> 31);
+                    phase += plan->segments[segment].increment;
+                    if (++cursor == plan->segments[segment].end_sample)
+                        ++segment;
+                }
+            }
+        }
+    }
+    CHECK(!rf::frequency_increment(rf::minimum_frequency_nhz - 1));
+    CHECK(!rf::frequency_increment(rf::maximum_frequency_nhz + 1));
+    CHECK(!rf::frequency_increment(rf::maximum_frequency_nhz, -100000));
+    CHECK(!rf::frequency_increment(144490500ULL * 1000000000));
+    auto job = job_for(std::array<std::uint64_t, 5>{1000, 1000, 1000, 1000, 1000});
+    *job.events.back().frequency_nhz += 4 * rf::spacing_nhz;
+    CHECK(!rf::plan_job(job));
+}
+
 void correction_test() {
     CHECK(rf::corrected_increment(4, 0) == 0);
     CHECK(rf::corrected_increment(0, -1000000000) == 0);
@@ -277,8 +319,8 @@ void correction_test() {
             (void)independent.render(words);
         }
         for (unsigned tone = 0; tone < 4; ++tone) {
-            const auto exact = static_cast<long double>(rf::increments[tone]) * 1000000000.L /
-                               (1000000000.L + ppb);
+            const auto exact = static_cast<long double>(rf::base_nhz + tone * rf::spacing_nhz) *
+                               4294967296.L / (rf::sample_rate * (1000000000.L + ppb));
             CHECK(std::abs(static_cast<long double>(plan->tone_increments[tone]) - exact) <= .5L);
         }
     }
@@ -525,6 +567,7 @@ int main(int argc, char** argv) {
         CHECK(argc == 1);
         oracle_test();
         planner_test();
+        generalized_planner_test();
         correction_test();
         lifecycle_test();
         faults_test();

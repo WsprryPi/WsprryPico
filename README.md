@@ -22,14 +22,17 @@ job submission. [Inhibited Wi-Fi bench validation](docs/development/standalone-p
 adds device time acquisition, persistence and outage recovery.
 [Standalone RF and wall-power validation](docs/development/standalone-rf-power-validation.md)
 adds complete scheduled frames and independent decoding after a power-only boot,
-without a USB host. Calibrated timing, spectra and supported engine/mode/band
-qualification remain open.
+without a USB host. The [conducted PIO band campaign](docs/development/band-campaign-results.md)
+records a five-mode matrix with eight narrowly qualified operational entries,
+RF failures and USB-related blockage. Calibrated timing, spectra and production
+engine/mode/band qualification remain open.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)
 - [Browser API direction](docs/browser-api.md)
 - [RF feasibility investigation](docs/rf-feasibility.md)
 - [Implementation plan](docs/implementation-plan.md)
+- [Experimental PIO band campaign](docs/development/band-campaign.md)
 - [PIO/DMA driver](docs/development/pio-dma-driver.md)
 - [Portable RF stream](docs/development/rf-stream.md)
 - [UTC and RF job integration](docs/development/utc-rf-job-validation.md)

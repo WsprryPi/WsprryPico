@@ -126,3 +126,11 @@ recovery and the repaired journal/boot-sector layout. The later
 [standalone RF and wall-power record](standalone-rf-power-validation.md) adds
 complete recurring frames, independent decoding without a USB host, and retained
 configuration/watermark across power changes.
+
+The [PIO band campaign](band-campaign.md) adds generalized frequency planning,
+five-mode WTP jobs and conducted qualification tooling using the Harness WTP
+controller and independent receiver/analysis capabilities.
+
+The [conducted campaign results](band-campaign-results.md) retain the complete
+75-entry disposition matrix, including failed measurements, interrupted-run
+cleanup blockage and the final verified return to RF inhibition.

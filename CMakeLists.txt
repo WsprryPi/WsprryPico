@@ -99,6 +99,16 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME standalone_tests COMMAND standalone_tests)
     set(WSPRRY_PICO_HARNESS_PYTHON "" CACHE FILEPATH "Optional existing Harness Python for offline RF analysis tests")
     if(WSPRRY_PICO_HARNESS_PYTHON)
+        add_test(NAME campaign_evidence_tests COMMAND ${WSPRRY_PICO_HARNESS_PYTHON}
+                 ${CMAKE_CURRENT_SOURCE_DIR}/tests/campaign_evidence_tests.py)
+        add_test(NAME campaign_adapter_tests COMMAND ${WSPRRY_PICO_HARNESS_PYTHON}
+                 ${CMAKE_CURRENT_SOURCE_DIR}/tests/campaign_adapter_tests.py)
+        add_test(NAME campaign_analysis_tests COMMAND ${WSPRRY_PICO_HARNESS_PYTHON}
+                 ${CMAKE_CURRENT_SOURCE_DIR}/tests/campaign_analysis_tests.py)
+        add_test(NAME campaign_plan_tests COMMAND ${WSPRRY_PICO_HARNESS_PYTHON}
+                 ${CMAKE_CURRENT_SOURCE_DIR}/tests/campaign_plan_tests.py)
+    endif()
+    if(WSPRRY_PICO_HARNESS_PYTHON)
         add_test(NAME rf_correction_analysis_tests COMMAND ${WSPRRY_PICO_HARNESS_PYTHON} ${CMAKE_SOURCE_DIR}/tests/rf_correction_analysis_tests.py)
         add_test(NAME rf_bench_analysis_tests COMMAND ${WSPRRY_PICO_HARNESS_PYTHON} ${CMAKE_SOURCE_DIR}/tests/rf_bench_analysis_tests.py)
         add_test(NAME rf_bench_measurement_tests COMMAND ${WSPRRY_PICO_HARNESS_PYTHON} ${CMAKE_SOURCE_DIR}/tests/rf_bench_measurement_tests.py)

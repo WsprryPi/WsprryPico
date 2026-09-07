@@ -136,7 +136,8 @@ def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_h
                       max_symbol_residual_hz=float(np.max(np.abs(residuals))))
         # Symmetric 20 ms phase difference locates each physical tone transition.
         lag = max(1, round(brate * .01))
-        instantaneous = base_hz + np.angle(bb[2*lag:] * np.conj(bb[:-2*lag])) * brate / (4*np.pi*lag)
+        phase = np.unwrap(np.angle(bb))
+        instantaneous = base_hz + (phase[2*lag:] - phase[:-2*lag]) * brate / (4*np.pi*lag)
         boundaries = []
         for index in range(1, 162):
             if tones[index-1] == tones[index]:
@@ -157,8 +158,10 @@ def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_h
             best = int(np.argmin(mse))
             observed = candidates[best]
             rms = float(np.sqrt(mse[best]))
-            if best in (0, 800) or rms > .15:
-                report['issues'].append(f'Ambiguous or missing transition {index}')
+            if best in (0, 800):
+                report['issues'].append(f'Transition boundary unresolved at symbol {index}')
+            if rms > .15:
+                report['issues'].append(f'Transition fit residual exceeds 0.15 Hz at symbol {index}')
             boundaries.append(dict(index=index, observed_s=float(observed),
                                    error_s=float(observed - expected_time), fit_rms_hz=rms))
         report['transitions'] = boundaries

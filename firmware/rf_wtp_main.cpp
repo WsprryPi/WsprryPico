@@ -39,10 +39,11 @@ int main() {
     static wsprrypico::firmware::PicoIdentitySource identities;
     wsprrypico::wtp::ServiceConfig service_config;
     service_config.capability_engine = "pio-dma-gp2";
-    service_config.supported_modes = {"wspr", "tone"};
-    service_config.minimum_frequency_nhz = wsprrypico::rf::base_nhz;
-    service_config.maximum_frequency_nhz =
-        wsprrypico::rf::base_nhz + 3 * wsprrypico::rf::spacing_nhz;
+    service_config.supported_modes = {"wspr", "tone", "qrss", "fskcw", "dfcw"};
+    service_config.minimum_frequency_nhz = wsprrypico::rf::minimum_frequency_nhz;
+    service_config.maximum_frequency_nhz = wsprrypico::rf::maximum_frequency_nhz;
+    service_config.max_events = wsprrypico::rf::max_events;
+    service_config.max_job_duration_ns = wsprrypico::rf::max_duration_ns;
     service_config.maximum_arm_uncertainty_ns = 20'000'000ULL;
     static wsprrypico::wtp::JobService service(clock, engine, identities, service_config);
     static wsprrypico::wtp::Endpoint endpoint(service, identities.device_id(),
@@ -89,18 +90,22 @@ int main() {
                     } else if (command == "INFO") {
                         const auto metrics = hardware.metrics();
                         const auto status = service.status();
-                        std::array<char, 384> response{};
-                        std::snprintf(response.data(), response.size(),
-                                      "{\"ok\":true,\"state\":\"%s\",\"output_active\":%s,"
-                                      "\"engine_diagnostic\":\"%s\",\"sink_diagnostic\":\"%s\","
-                                      "\"dma_irqs\":%llu,"
-                                      "\"max_dma_irq_ns\":%llu,\"launch_observed_ns\":%llu}\n",
-                                      wsprrypico::wtp::state_name(status.state).c_str(),
-                                      status.output_active ? "true" : "false",
-                                      engine.diagnostic().data(), sink.diagnostic().data(),
-                                      static_cast<unsigned long long>(metrics.dma_irqs),
-                                      static_cast<unsigned long long>(metrics.max_irq_ns),
-                                      static_cast<unsigned long long>(metrics.launch_ns));
+                        std::array<char, 640> response{};
+                        std::snprintf(
+                            response.data(), response.size(),
+                            "{\"ok\":true,\"device_id\":\"%s\",\"revision\":\"%s\",\"sample_rate_"
+                            "hz\":%llu,\"state\":\"%s\",\"output_active\":%s,"
+                            "\"engine_diagnostic\":\"%s\",\"sink_diagnostic\":\"%s\","
+                            "\"dma_irqs\":%llu,"
+                            "\"max_dma_irq_ns\":%llu,\"launch_observed_ns\":%llu}\n",
+                            identities.device_id().c_str(), wsprrypico::firmware::kBuildRevision,
+                            static_cast<unsigned long long>(wsprrypico::rf::sample_rate),
+                            wsprrypico::wtp::state_name(status.state).c_str(),
+                            status.output_active ? "true" : "false", engine.diagnostic().data(),
+                            sink.diagnostic().data(),
+                            static_cast<unsigned long long>(metrics.dma_irqs),
+                            static_cast<unsigned long long>(metrics.max_irq_ns),
+                            static_cast<unsigned long long>(metrics.launch_ns));
                         console_response(response.data());
                     } else
                         console_response(time_source.command(command));

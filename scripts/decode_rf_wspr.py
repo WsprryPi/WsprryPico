@@ -13,11 +13,11 @@ from analyze_rf_bench import load_capture
 from measure_rf_bench import baseband
 
 
-def audio_from_iq(iq, rate, center):
+def audio_from_iq(iq, rate, center, base_hz=3570100):
     # Keep received phase, frequency offset, drift and elapsed time unchanged.
-    if rate < 10000 or abs(3570100 - center) > rate / 2 - 2000:
+    if rate < 10000 or abs(base_hz - center) > rate / 2 - 2000:
         raise ValueError('WSPR signal is outside usable capture span')
-    bb, brate = baseband(iq, rate, center, 3570100)
+    bb, brate = baseband(iq, rate, center, base_hz)
     if brate != 1000:
         raise ValueError('Decoder conversion requires a 1000 Hz baseband rate')
     # Windowed-sinc interpolation using the existing NumPy dependency.

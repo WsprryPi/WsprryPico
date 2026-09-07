@@ -9,14 +9,18 @@ unsynchronized clock.
 
 ## Implemented scope
 
-`src/rf/waveform.*` plans and generates the four initial 80 m study tones.
+`src/rf/waveform.*` plans and generates direct-baseband tone/event jobs.
+The bench retains its original four-tone 80 m workload.
 `src/rf/stream_engine.*` implements `RfEngine` using an abstract `BlockSink`;
 `src/rf/pio_dma_sink.*` supplies its peripheral controller, with the Pico SDK
 port under `src/rf/pico/`. Tests also use deterministic fake hardware.
 The C++20 library is a separate CMake target, `wsprrypico_rf`. It is deliberately
-not linked into `WsprryPico`, and it adds no WTP capabilities or protocol changes.
+not linked into the inhibited `WsprryPico` image. The explicit `WsprryPico-RFWTP`
+image advertises the experimental frequency range and all five campaign modes;
+WTP/1 itself is unchanged.
 
-The planner accepts `tone` and `wspr` event jobs, at most 162 events and
+The planner accepts `tone`, `wspr`, `qrss`, `fskcw` and `dfcw` event jobs,
+with at most four distinct NCO increments, 162 events and
 110.592 seconds. It validates contiguous nonempty events, bounded arithmetic,
 job identity, frequency presence/absence and the existing profile. It does not
 encode or validate a WSPR message. Four nominal RF frequencies are
@@ -28,7 +32,12 @@ Nominal frequencies require `allow_frequency_adjustment=true`. Preparation
 reports each realized frequency rounded to integer nHz; the underlying waveform
 frequency remains the exact sample-rate/increment rational. Sub-nHz report
 rounding is below 0.5 nHz. A job requesting one of those realized nHz values
-already needs no further adjustment. All other frequencies are rejected.
+already needs no further adjustment. The generalized planner accepts requests
+from 100 kHz through one Hz below half the selected sample rate, rejecting any
+corrected increment at or above Nyquist. Binary long division calculates the
+rounded increment from requested nHz and corrected sample rate without 128-bit
+arithmetic. An adjustment-free job must match the reported realized frequency.
+The [band campaign](band-campaign.md) covers the new experimental range.
 The bench supports volatile frequency correction and three explicit build-time
 clock profiles; production calibration and capability integration remain open.
 

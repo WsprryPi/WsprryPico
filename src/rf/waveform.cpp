@@ -81,6 +81,31 @@ std::uint32_t packed_word(std::uint32_t phase, unsigned tone_index) {
     return lookup(tables[tone_index], phase);
 }
 
+std::optional<std::uint32_t> frequency_increment(std::uint64_t frequency_nhz,
+                                                 std::int32_t correction_ppb) {
+    if (frequency_nhz < minimum_frequency_nhz || frequency_nhz > maximum_frequency_nhz ||
+        correction_ppb < -max_correction_ppb || correction_ppb > max_correction_ppb)
+        return std::nullopt;
+    // Exact rounded (frequency_nhz * 2^32) / corrected_sample_rate_nhz.
+    // Binary long division avoids 128-bit arithmetic on the Arm target.
+    const auto divisor = sample_rate * static_cast<std::uint64_t>(1'000'000'000LL + correction_ppb);
+    auto remainder = frequency_nhz;
+    std::uint64_t quotient = 0;
+    for (unsigned bit = 0; bit < 32; ++bit) {
+        remainder *= 2;
+        quotient <<= 1;
+        if (remainder >= divisor) {
+            remainder -= divisor;
+            ++quotient;
+        }
+    }
+    if (remainder * 2 >= divisor)
+        ++quotient;
+    if (quotient == 0 || quotient >= (1ULL << 31))
+        return std::nullopt;
+    return static_cast<std::uint32_t>(quotient);
+}
+
 std::optional<Plan> plan_job(const wtp::Job& job, std::int32_t correction_ppb) {
     if (correction_ppb < -max_correction_ppb || correction_ppb > max_correction_ppb ||
         (correction_ppb != 0 && !job.allow_frequency_adjustment))
@@ -89,7 +114,9 @@ std::optional<Plan> plan_job(const wtp::Job& job, std::int32_t correction_ppb) {
         !std::all_of(job.job_id.begin(), job.job_id.end(),
                      [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); }) ||
         std::all_of(job.job_id.begin(), job.job_id.end(), [](char c) { return c == '0'; }) ||
-        job.profile != "rf-events/1" || (job.mode != "tone" && job.mode != "wspr") ||
+        job.profile != "rf-events/1" ||
+        (job.mode != "tone" && job.mode != "wspr" && job.mode != "qrss" && job.mode != "fskcw" &&
+         job.mode != "dfcw") ||
         job.events.empty() || job.events.size() > max_events || job.total_duration_ns == 0) {
         return std::nullopt;
     }
@@ -98,8 +125,8 @@ std::optional<Plan> plan_job(const wtp::Job& job, std::int32_t correction_ppb) {
         return std::nullopt;
     }
     Plan plan;
-    for (unsigned i = 0; i < 4; ++i)
-        plan.tone_increments[i] = corrected_increment(i, correction_ppb);
+    plan.tone_increments = {};
+    std::size_t tone_count = 0;
     std::uint64_t previous_ns = 0;
     std::uint64_t previous_sample = 0;
     for (const auto& event : job.events) {
@@ -117,21 +144,19 @@ std::optional<Plan> plan_job(const wtp::Job& job, std::int32_t correction_ppb) {
             if (!event.frequency_nhz) {
                 return std::nullopt;
             }
-            bool found = false;
-            for (std::size_t tone = 0; tone < increments.size(); ++tone) {
-                const auto requested = base_nhz + tone * spacing_nhz;
-                const auto realized = realized_nhz(increments[tone]);
-                if (*event.frequency_nhz == realized ||
-                    (*event.frequency_nhz == requested && job.allow_frequency_adjustment)) {
-                    increment = plan.tone_increments[tone];
-                    tone_index = static_cast<std::uint32_t>(tone);
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
+            const auto selected = frequency_increment(*event.frequency_nhz, correction_ppb);
+            if (!selected || (!job.allow_frequency_adjustment &&
+                              realized_nhz(*selected) != *event.frequency_nhz))
                 return std::nullopt;
+            increment = *selected;
+            auto found = std::find(plan.tone_increments.begin(),
+                                   plan.tone_increments.begin() + tone_count, increment);
+            if (found == plan.tone_increments.begin() + tone_count) {
+                if (tone_count == plan.tone_increments.size())
+                    return std::nullopt;
+                plan.tone_increments[tone_count++] = increment;
             }
+            tone_index = static_cast<std::uint32_t>(found - plan.tone_increments.begin());
         } else if (event.frequency_nhz) {
             return std::nullopt;
         }

@@ -74,6 +74,24 @@ class Tests(unittest.TestCase):
         self.assertTrue(result['relative_checks_passed'], result['issues'])
         self.assertEqual(len(result['measurements']), 162)
         self.assertAlmostEqual(result['tone_spacing_hz'], SPACING, places=3)
+    def test_frame_with_large_common_frequency_offset(self):
+        iq = capture(frame=True)
+        iq *= np.exp(2j * np.pi * 40 * np.arange(len(iq)) / RATE)
+        result = measure(iq, RATE, CENTER, frame=True)
+        self.assertTrue(result['relative_checks_passed'], result['issues'])
+        self.assertAlmostEqual(result['tone_spacing_hz'], SPACING, places=3)
+
+    def test_frequency_noise_is_not_reported_as_missing_transition(self):
+        iq = capture(frame=True)
+        iq *= np.exp(1j * .03 * np.sin(2 * np.pi * 25 * np.arange(len(iq)) / RATE))
+        result = measure(iq, RATE, CENTER, frame=True)
+        self.assertFalse(result['relative_checks_passed'])
+        self.assertTrue(result['issues'])
+        self.assertTrue(all(issue.startswith('Transition fit residual exceeds 0.15 Hz')
+                            for issue in result['issues']))
+        self.assertLess(result['max_transition_error_s'], .01)
+        self.assertGreater(max(t['fit_rms_hz'] for t in result['transitions']), .15)
+
     def test_encoded_repeated_symbols(self):
         symbols = np.random.default_rng(14).integers(0, 4, 162).tolist()
         result = measure(capture(frame=True, symbols=symbols), RATE, CENTER, frame=True, symbols=symbols)
