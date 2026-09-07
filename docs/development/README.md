@@ -134,3 +134,7 @@ controller and independent receiver/analysis capabilities.
 The [conducted campaign results](band-campaign-results.md) retain the complete
 75-entry disposition matrix, including failed measurements, interrupted-run
 cleanup blockage and the final verified return to RF inhibition.
+
+The [focused 2200 m investigation](2200m-investigation.md) records the later
+five-mode 138 MHz pass with QRSS3, repeated clock screens, and an unfiltered
+wspr5 GPIO4 tone/QRSS comparison with documented signal-quality criteria.

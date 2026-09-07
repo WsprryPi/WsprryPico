@@ -1,4 +1,4 @@
-"""Bounded 138 MHz PIO qualification plans; no device or process access."""
+"""Bounded clock-specific PIO qualification plans; no device or process access."""
 
 import copy
 import hashlib
@@ -44,6 +44,7 @@ BANDS = dict(
 )
 MODES = ("TONE", "WSPR", "QRSS", "FSKCW", "DFCW")
 RATE = 138000000
+CLOCKS = (132000000, RATE, 150000000)
 GOLDEN37 = (
     "13220200302213120030232311300200223201230220201213223121020110322221321030323001023231"
     "2023321232223022203021221110310011010221130002210302110202202112323320031202"
@@ -58,12 +59,16 @@ def digest(value):
     ).hexdigest()
 
 
-def make_job(mode, frequency):
+def make_job(mode, frequency, *, sample_rate_hz=RATE, keyed_dot_ns=700000000):
     """Canonical ETE keyed jobs, five-second carrier, or Type 1 WSPR AA0NT EM18 37."""
     if (
-        mode not in MODES
+        type(keyed_dot_ns) is not int
+        or keyed_dot_ns not in (700000000, 3000000000)
+        or type(sample_rate_hz) is not int
+        or sample_rate_hz not in CLOCKS
+        or mode not in MODES
         or type(frequency) is not int
-        or not 100005 <= frequency < RATE // 2 - 6
+        or not 100005 <= frequency < sample_rate_hz // 2 - 6
     ):
         raise ValueError("Unsupported mode or direct-baseband frequency")
     events = []
@@ -88,7 +93,7 @@ def make_job(mode, frequency):
     else:
         # E T E. FSKCW marks high and spaces low. DFCW uses equal-duration
         # dot/high and dash/low elements with one-dot inter-character silence.
-        dot = 700000000
+        dot = keyed_dot_ns
         emit(1000000000, None)
         for i, symbol in enumerate(".-."):
             emit(
@@ -112,7 +117,11 @@ def make_job(mode, frequency):
     return job
 
 
-def compose(bands=None):
+def compose(bands=None, *, sample_rate_hz=RATE, keyed_dot_ns=700000000):
+    if type(sample_rate_hz) is not int or sample_rate_hz not in CLOCKS:
+        raise ValueError("Unsupported PIO sample clock")
+    if type(keyed_dot_ns) is not int or keyed_dot_ns not in (700000000, 3000000000):
+        raise ValueError("Unsupported keyed dot duration")
     selected = list(BANDS) if bands is None else list(bands)
     if (
         not selected
@@ -122,9 +131,9 @@ def compose(bands=None):
         raise ValueError(
             "Bands must be a nonempty unique subset of the campaign band list"
         )
-    return dict(
-        version=1,
-        sample_rate_hz=RATE,
+    plan = dict(
+        version=1 if sample_rate_hz == RATE and keyed_dot_ns == 700000000 else 2,
+        sample_rate_hz=sample_rate_hz,
         engine="pio-dma-gp2",
         gpio=2,
         frequency_correction_ppb=0,
@@ -150,9 +159,17 @@ def compose(bands=None):
             dict(
                 band=b,
                 frequency_hz=BANDS[b],
-                supported=BANDS[b] < RATE // 2 - 6,
-                jobs={m: make_job(m, BANDS[b]) for m in MODES}
-                if BANDS[b] < RATE // 2 - 6
+                supported=BANDS[b] < sample_rate_hz // 2 - 6,
+                jobs={
+                    m: make_job(
+                        m,
+                        BANDS[b],
+                        sample_rate_hz=sample_rate_hz,
+                        keyed_dot_ns=keyed_dot_ns,
+                    )
+                    for m in MODES
+                }
+                if BANDS[b] < sample_rate_hz // 2 - 6
                 else {},
             )
             for b in selected
@@ -161,17 +178,25 @@ def compose(bands=None):
         scope="operational conducted criteria; spectrum diagnostic; no emissions, power or calibrated UTC qualification",
     )
 
+    if keyed_dot_ns != 700000000:
+        plan["keyed_dot_ns"] = keyed_dot_ns
+    return plan
+
 
 def validate(plan):
-    """Version 1 deliberately permits band selection only, not arbitrary live jobs."""
+    """Permit only supported clock and band selection, never arbitrary live jobs."""
     if not isinstance(plan, dict) or not isinstance(plan.get("bands"), list):
         raise ValueError("Invalid plan")
     try:
-        expected = compose([b["band"] for b in plan["bands"]])
+        expected = compose(
+            [b["band"] for b in plan["bands"]],
+            sample_rate_hz=plan.get("sample_rate_hz"),
+            keyed_dot_ns=plan.get("keyed_dot_ns", 700000000),
+        )
     except (KeyError, TypeError) as error:
         raise ValueError("Invalid band entries") from error
     if digest(plan) != digest(expected):
-        raise ValueError("Plan differs from the bounded version-1 contract")
+        raise ValueError("Plan differs from the bounded campaign contract")
     return copy.deepcopy(plan)
 
 
@@ -185,7 +210,7 @@ def initial_matrix(plan):
             status="blocked" if b["supported"] else "unsupported",
             reason="not yet measured"
             if b["supported"]
-            else "outside direct 138 MHz PIO baseband",
+            else f"outside direct {plan['sample_rate_hz'] // 1000000} MHz PIO baseband",
             observations=[],
         )
         for b in plan["bands"]

@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from campaign.plan import BANDS, compose, validate
+from campaign.plan import BANDS, CLOCKS, RATE, compose, validate
 
 
 def main():
@@ -16,6 +16,10 @@ def main():
     plan = sub.add_parser("plan", help="hardware-free canonical plan")
     plan.add_argument("output", type=Path)
     plan.add_argument("--band", action="append", choices=list(BANDS))
+    plan.add_argument("--sample-rate-hz", type=int, choices=CLOCKS, default=RATE)
+    plan.add_argument(
+        "--keyed-dot-seconds", type=float, choices=[0.7, 3.0], default=0.7
+    )
     check = sub.add_parser(
         "validate", help="read-only artifact and matrix verification"
     )
@@ -40,7 +44,11 @@ def main():
     run.add_argument("--screen-only", action="store_true")
     args = parser.parse_args()
     if args.action == "plan":
-        document = compose(args.band)
+        document = compose(
+            args.band,
+            sample_rate_hz=args.sample_rate_hz,
+            keyed_dot_ns=round(args.keyed_dot_seconds * 1e9),
+        )
         with args.output.open("x") as output:
             output.write(json.dumps(document, indent=2) + "\n")
     elif args.action == "validate":

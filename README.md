@@ -26,6 +26,9 @@ without a USB host. The [conducted PIO band campaign](docs/development/band-camp
 records a five-mode matrix with eight narrowly qualified operational entries,
 RF failures and USB-related blockage. Calibrated timing, spectra and production
 engine/mode/band qualification remain open.
+The later [focused 2200 m investigation](docs/development/2200m-investigation.md)
+passes all five operational modes at 138 MHz with QRSS3 workloads, compares
+132/138/150 MHz clocks and retains an unfiltered Pi GPIO4 benchmark.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)

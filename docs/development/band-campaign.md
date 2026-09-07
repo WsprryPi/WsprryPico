@@ -10,7 +10,7 @@ their existing 80 m profile. WTP/1 is unchanged.
 
 ## Plan and adapters
 
-`src/campaign/plan.py` creates the version-1 fixed campaign. `scripts/pio_campaign.py`
+`src/campaign/plan.py` creates a canonical bounded campaign. `scripts/pio_campaign.py`
 is its command-line entrypoint. The plan uses the WsprryPi family's nominal
 actual RF test frequencies, 137,500 Hz through 144,490,500 Hz, including 4 m.
 At the selected 138 MHz sample clock, 4 m and 2 m are unsupported direct
@@ -38,6 +38,21 @@ python3 scripts/pio_campaign.py plan build/pio-campaign-plan.json
 ```
 
 Use `--band` repeatedly to create a bounded subset. Omission selects all 15 bands.
+The default 138 MHz, 0.7-second-dot plan retains its original version-1 identity.
+Select an existing firmware clock with `--sample-rate-hz 132000000`, `138000000`
+or `150000000`, and select QRSS3 workloads with `--keyed-dot-seconds 3`.
+Any nondefault clock or dot duration produces a version-2 plan. The adapter
+rejects a connected image whose reported sample clock differs from the plan;
+these flags do not reclock the connected firmware. Build and flash the matching
+explicit image separately. Direct-range support is recomputed for that clock;
+150 MHz makes the 4 m test frequency representable, but does not qualify it.
+
+For example, a hardware-free focused QRSS3 plan is:
+
+```sh
+python3 scripts/pio_campaign.py plan build/2200m-qrss3.json --band 2200m --sample-rate-hz 138000000 --keyed-dot-seconds 3
+```
+
 `run --help` describes the explicit device, firmware, receiver, GPSDO and decoder
 inputs. Live execution requires `--enable-rf`. All runtime output belongs in a
 new ignored evidence directory. `--screen-only` is a diagnostic subset and never
@@ -69,7 +84,8 @@ transitions and silence. Encoded 37 dBm is message content, not measured power.
 WSPR and keyed jobs also retain averaged active-interval spectrum diagnostics
 with their receiver span and resolution.
 
-Three independent ETE jobs per keyed mode use 0.7-second dots and a 5 Hz shift.
+Three independent ETE jobs per keyed mode use the selected 0.7- or 3-second dots
+and a 5 Hz shift.
 QRSS keys the carrier off; FSKCW marks high and spaces low; DFCW uses equal-length
 high dots and low dashes with its reviewed one-dot inter-character gaps. The
 independent Harness reference generator checks the complete expected timelines
@@ -119,3 +135,8 @@ record all 75 band/mode dispositions: eight qualified, eleven failed, forty-six
 blocked and ten unsupported. Final band bundles completed with verified cleanup;
 earlier interrupted runs remain blocked. The standard inhibited image was
 restored and verified after the last RF observation.
+
+The [focused 2200 m investigation](2200m-investigation.md) separately records
+the subsequent QRSS3 retest, clock comparison and unfiltered Pi comparison.
+Its published protocol and visual-copy criteria are distinguished from the
+original strict engineering diagnostics; earlier campaign results are retained.

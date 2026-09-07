@@ -44,6 +44,46 @@ class PlanTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate(plan)
 
+    def test_clock_specific_limits_and_legacy_identity(self):
+        from campaign.plan import digest
+
+        legacy = compose(["2200m"])
+        self.assertEqual(legacy["version"], 1)
+        self.assertEqual(
+            digest(compose()),
+            "37106fcbc39e190e642992f5fa8220fb4641a83b4220db974bbe6fa59a1f754d",
+        )
+        for rate, unsupported in [(132000000, 10), (138000000, 10), (150000000, 5)]:
+            plan = validate(compose(sample_rate_hz=rate))
+            self.assertEqual(
+                sum(r["status"] == "unsupported" for r in initial_matrix(plan)),
+                unsupported,
+            )
+            self.assertEqual(plan["bands"][0]["jobs"], legacy["bands"][0]["jobs"])
+            altered = compose(["2200m"], sample_rate_hz=rate)
+            self.assertEqual(altered["version"], 1 if rate == 138000000 else 2)
+            if rate != 138000000:
+                self.assertNotEqual(digest(altered), digest(legacy))
+        for rate in (12000000, True, 138000000.0, 0):
+            with self.assertRaises(ValueError):
+                compose(sample_rate_hz=rate)
+            with self.assertRaises(ValueError):
+                make_job("TONE", 137500, sample_rate_hz=rate)
+
+    def test_qrss3_jobs_keep_standard_ratios_and_explicit_identity(self):
+        p = validate(compose(["2200m"], keyed_dot_ns=3000000000))
+        self.assertEqual(p["version"], 2)
+        for mode in ("QRSS", "FSKCW", "DFCW"):
+            job = p["bands"][0]["jobs"][mode]
+            lengths = [int(e["duration_ns"]) / 1e9 for e in job["events"]]
+            self.assertEqual(
+                lengths,
+                [1, 3, 3, 3, 3, 3, 1] if mode == "DFCW" else [1, 3, 9, 9, 9, 3, 1],
+            )
+        p["keyed_dot_ns"] = 700000000
+        with self.assertRaises(ValueError):
+            validate(p)
+
     def test_precedence(self):
         good = dict(cleanup_verified=True, fixture_ok=True, passed=True)
         self.assertEqual(classify([good] * 3, 3)[0], "qualified")

@@ -6,6 +6,7 @@ import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT / "scripts")]
@@ -13,6 +14,26 @@ from campaign.live import Rig, FixtureError
 
 
 class AdapterTests(unittest.TestCase):
+    def test_selected_clock_is_verified_against_live_identity(self):
+        rig = Rig.__new__(Rig)
+        rig.args = SimpleNamespace(device_id="test", revision="test-revision")
+        rig.sample_rate_hz = 132000000
+        rig.time_fd = -1
+        response = dict(
+            ok=True,
+            device_id="test",
+            revision="test-revision",
+            sample_rate_hz=132000000,
+        )
+        with (
+            patch("campaign.live.write_all"),
+            patch("campaign.live.read_line", return_value=response),
+        ):
+            self.assertEqual(rig.info()["sample_rate_hz"], 132000000)
+            response["sample_rate_hz"] = 138000000
+            with self.assertRaises(FixtureError):
+                rig.info()
+
     def rig(self, channel, state):
         rig = Rig.__new__(Rig)
         rig.args = SimpleNamespace(gpsdo_output=channel, gpsdo_serial="test")

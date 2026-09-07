@@ -35,8 +35,9 @@ class FixtureError(RuntimeError):
 
 
 class Rig:
-    def __init__(self, args, output):
+    def __init__(self, args, output, *, sample_rate_hz=RATE):
         self.args, self.output = args, output
+        self.sample_rate_hz = sample_rate_hz
         self.log = (output / "progress.jsonl").open("x", buffering=1)
         self.count = 0
         self.capture = None
@@ -138,7 +139,7 @@ class Rig:
             value.get("ok") is not True
             or value.get("device_id") != self.args.device_id
             or value.get("revision") != self.args.revision
-            or value.get("sample_rate_hz") != RATE
+            or value.get("sample_rate_hz") != self.sample_rate_hz
         ):
             raise FixtureError("Pico identity, source revision or clock mismatch")
         return value
@@ -407,7 +408,7 @@ def execute(plan, args):
         raise ValueError("Firmware and independent decoder files are required")
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
-    rig = Rig(args, output)
+    rig = Rig(args, output, sample_rate_hz=plan["sample_rate_hz"])
     matrix = initial_matrix(plan)
     result = dict(
         plan_sha256=digest(plan),
