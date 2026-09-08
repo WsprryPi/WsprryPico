@@ -34,7 +34,11 @@ treated as long-term product documentation.
     broader qualification retained in Phase 13. See the
     [target review](development/phase10-target-review.md) and
     [host acceptance guide](development/phase10-host-acceptance.md).
-11. **Planned:** Wi-Fi/TCP and the shared browser API.
+11. **Implemented; target acceptance open:** optional mutually authenticated
+    TLS WTP/TCP, browser API v1, embedded UI, network management and local
+    certificate lifecycle. Host tests and firmware cross-linking are recorded in
+    the [Phase 11 review](development/phase11-review.md). Physical TLS/RF
+    coexistence and companion WsprryPi TLS/API adoption remain open.
 12. **Planned:** SoftAP and BLE provisioning.
 13. **Planned:** final hardware qualification and release, including the output
     network and filters, calibrated GPIO-edge timing, supported mode/band
@@ -207,7 +211,9 @@ Phase 13 qualification work.
 
 ## Subsequent slices
 
-1. Add Wi-Fi/TCP, shared JSON API adapters, embedded browser assets and network status/management.
+1. Perform separately authorized Phase 11 inhibited target acceptance, then
+   evaluate RF/network coexistence and continuous browser availability. Coordinate
+   companion WsprryPi TLS transport/API adoption in that repository.
 2. Add SoftAP and BLE provisioning/local management with a documented recovery path.
 3. Qualify supported engine/mode/band combinations, timing, RF and reliability; finish output networks/filters and release a reproducible WsprryPico-x.y.z.uf2.
 

@@ -436,13 +436,17 @@ Response JobService::dispatch(const Request& request) {
     if (body == nullptr || !valid_id(body->job_id)) {
         return reject(ErrorCode::InvalidMessage);
     }
-    if (!job_ || job_->job_id != body->job_id) {
+    return abort_job(body->job_id);
+}
+Response JobService::abort_job(std::string_view job_id) {
+    const auto now = clock_.snapshot();
+    if (!job_ || job_->job_id != job_id) {
         return reject(ErrorCode::JobNotFound);
     }
     if (state_ == State::Aborted) {
         auto response = success();
         response.state = State::Aborted;
-        response.job_id = body->job_id;
+        response.job_id = std::string(job_id);
         return response;
     }
     if (state_ == State::Complete || state_ == State::Missed) {
@@ -459,7 +463,23 @@ Response JobService::dispatch(const Request& request) {
     record_terminal(State::Aborted, ErrorCode::None, now.monotonic_now_ns);
     auto response = success();
     response.state = State::Aborted;
-    response.job_id = body->job_id;
+    response.job_id = std::string(job_id);
+    return response;
+}
+
+Response JobService::local_abort() {
+    poll();
+    if (state_ == State::Failed || !ready_)
+        return reject(ErrorCode::OutputStateUnknown);
+    Response response;
+    if (job_ && state_ != State::Complete && state_ != State::Missed)
+        response = abort_job(job_->job_id);
+    else if (engine_.output_active())
+        response = reject(ErrorCode::OutputStateUnknown);
+    else
+        response = success();
+    if (response.ok)
+        owner_.reset();
     return response;
 }
 

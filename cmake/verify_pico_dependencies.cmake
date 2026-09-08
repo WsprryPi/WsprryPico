@@ -47,13 +47,25 @@ if(NOT CMAKE_C_COMPILER_ID STREQUAL "GNU" OR
 endif()
 
 # New linked networking components must match the SDK's recorded submodules.
-foreach(component lwip cyw43-driver)
+foreach(component lwip cyw43-driver mbedtls)
     if(component STREQUAL "lwip")
         set(expected_revision "77dcd25a72509eb83f72b033d219b1d40cd8eb95")
+    elseif(component STREQUAL "mbedtls")
+        set(expected_revision "0bebf8b8c7f07abe3571ded48a11aa907a1ffb20")
     else()
         set(expected_revision "055d64274b014dd7b1c2fc94d26e8a18face7124")
     endif()
-    execute_process(COMMAND git -C "${PICO_SDK_PATH}/lib/${component}" rev-parse HEAD
+    set(component_path "${PICO_SDK_PATH}/lib/${component}")
+    if(component STREQUAL "mbedtls")
+        # The SDK permits an environment/cache override. Verify the linked input.
+        set(component_path "${PICO_MBEDTLS_PATH}")
+        execute_process(COMMAND git -C "${component_path}" status --porcelain --untracked-files=no
+            OUTPUT_VARIABLE tls_status OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE tls_status_result)
+        if(NOT tls_status_result EQUAL 0 OR NOT tls_status STREQUAL "")
+            message(FATAL_ERROR "The linked Mbed TLS checkout contains local changes")
+        endif()
+    endif()
+    execute_process(COMMAND git -C "${component_path}" rev-parse HEAD
         OUTPUT_VARIABLE actual_revision OUTPUT_STRIP_TRAILING_WHITESPACE
         RESULT_VARIABLE revision_result)
     if(NOT revision_result EQUAL 0 OR NOT actual_revision STREQUAL expected_revision)

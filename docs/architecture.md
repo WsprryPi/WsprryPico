@@ -56,7 +56,11 @@ console diagnostics from WTP framing. The [USB adapter contract](development/usb
 defines bounded servicing and connection semantics; logging must never enter WTP.
 The [strict WTP endpoint](development/wtp-endpoint.md) performs JSON validation,
 request dispatch and ordered response/event transmission. The [standalone scheduler](development/standalone.md) now shares this service
-with USB WTP. Browser handlers and production RF qualification remain open.
+with USB WTP and the [HTTPS browser API](browser-api.md). Optional TLS 1.3
+network control uses certificate principals, ALPN dispatch and foreground
+cryptography above raw lwIP callbacks. USB, WTP/TCP, browser jobs and standalone
+schedules retain one ownership and execution authority. Network control defaults
+off; physical TLS/RF coexistence and production RF qualification remain open.
 
 Standalone execution uses local Type 1 encoding, versioned persistent station
 and schedule records, and Wi-Fi SNTP acquisition without WsprryPi. Host
@@ -71,8 +75,9 @@ The initial autonomous UTC source is a configured unicast SNTPv4 server with
 bounded uncertainty and an explicit age policy. Physical acquisition and
 standalone execution have bounded bench evidence; calibrated UTC accuracy,
 source authentication and long-duration reliability remain unqualified.
-Alternate UTC sources; clock calibration; RF engine and pins; browser API
-schemas and storage limits remain to be designed. WTP/1 defines the interoperable protocol limits and policies
+Alternate UTC sources, clock calibration, production RF engine/pins, runtime
+credential provisioning and shared WsprryPi adoption of browser API v1 remain open.
+The current Pico browser schemas and bounds are documented in the API contract. WTP/1 defines the interoperable protocol limits and policies
 without selecting those implementations.
 
 Estimates of reusable code and expected spectral behavior remain hypotheses until verified.

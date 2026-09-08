@@ -1,6 +1,6 @@
 # Security reporting
 
-There are no published releases or implemented firmware targets yet.
+There are no published production releases. Experimental firmware targets exist.
 A supported-version policy will accompany releases.
 
 Report a suspected vulnerability privately to the project maintainer. When
@@ -16,3 +16,7 @@ Security-sensitive areas include USB/TCP parsing, bounded job storage, ownership
 replay handling, Wi-Fi/BLE provisioning, browser mutations, firmware integrity,
 and failures that leave an output active. Reproduce hardware conditions only
 within an explicitly authorized, bounded setup.
+
+Network control defaults off. See [certificate management](docs/development/network-control.md)
+for local CA handling, renewal, compromise recovery and current provisioning
+limits. Never publish credential-bearing UF2 files or generated build headers.

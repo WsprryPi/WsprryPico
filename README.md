@@ -30,9 +30,15 @@ The later [focused 2200 m investigation](docs/development/2200m-investigation.md
 passes all five operational modes at 138 MHz with QRSS3 workloads, compares
 132/138/150 MHz clocks and retains an unfiltered Pi GPIO4 benchmark.
 
+Optional TLS 1.3 WTP/TCP, the HTTPS browser API and operator UI are implemented
+and host-tested. [Phase 11](docs/development/network-control.md) adds per-device
+certificate tooling and network management. Network control defaults off; target
+TLS/RF coexistence acceptance and companion WsprryPi TLS transport remain open.
+
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)
-- [Browser API direction](docs/browser-api.md)
+- [Browser API v1](docs/browser-api.md)
+- [Network control and certificate management](docs/development/network-control.md)
 - [RF feasibility investigation](docs/rf-feasibility.md)
 - [Implementation plan](docs/implementation-plan.md)
 - [WsprryPi host acceptance prerequisites](docs/development/phase10-host-acceptance.md)

@@ -1,6 +1,7 @@
 #include "firmware_identity.hpp"
 #include "hardware/structs/watchdog.h"
 #include "hardware/watchdog.h"
+#include "network/pico/server.hpp"
 #include "pico/bootrom.h"
 #include "pico/time.h"
 #include "pico_adapters.hpp"
@@ -9,6 +10,7 @@
 #include "standalone/wtp_profile.hpp"
 #include "tusb.h"
 #include "usb/transport.hpp"
+#include "wtp/codec.hpp"
 #include "wtp/endpoint.hpp"
 #include "wtp/json.hpp"
 #ifdef WSPRRY_PICO_STANDALONE_RF
@@ -103,6 +105,14 @@ int main() {
     watchdog_hw->scratch[1] = 2;
     if (!recovery && store.healthy() && store.config())
         (void)network.start(*store.config());
+    static wsprrypico::network::BrowserApi browser_api(service, store, scheduler, network,
+                                                       identities.device_id(),
+                                                       wsprrypico::firmware::kFirmwareVersion);
+    static wsprrypico::network::PicoServer server(service, browser_api, identities.device_id(),
+                                                  wsprrypico::firmware::kFirmwareVersion);
+    if (!recovery && network.initialized())
+        (void)server.start();
+    network.listener_status(server.configured(), server.listening());
     watchdog_hw->scratch[1] = 3;
     std::array<std::uint8_t, 64> input{};
     std::size_t offset = 0, size = 0;
@@ -152,6 +162,15 @@ int main() {
                 status.pop_back();
             return result + ",\"status\":" + status + "}\n";
         }
+        if (text == "ABORT") {
+            (void)scheduler.command(
+                "STOP"); // Suspend autonomous work before physical cancellation.
+            const auto result = service.local_abort();
+            return result.ok
+                       ? scheduler.status()
+                       : "{\"ok\":false,\"error\":" + wsprrypico::wtp::error_json(result.error) +
+                             "}\n";
+        }
         if (text == "REBOOT" || text == "BOOTSEL") {
             (void)scheduler.command("STOP");
             if (!scheduler.reset_permitted() ||
@@ -189,17 +208,23 @@ int main() {
             maximum(max_loop_us, last_loop_us);
         last_loop_us = measuring ? loop_us : 0;
 #endif
-        // Refill RF first; networking is deferred for the entire armed/frame interval.
+        // Refill RF before and after foreground networking. TLS handshakes are
+        // refused during armed/running intervals; packet arrival never times RF.
         scheduler.poll();
 #ifdef WSPRRY_PICO_STANDALONE_RF
         if (measuring)
             maximum(max_refill_us, loop_us);
 #endif
-        const auto state = service.status().state;
-        if (state != wsprrypico::wtp::State::Armed && state != wsprrypico::wtp::State::Running) {
-            watchdog_hw->scratch[1] = 4;
+        watchdog_hw->scratch[1] = 4;
+        const auto network_state = service.status().state;
+        if (server.listening() || (network_state != wsprrypico::wtp::State::Armed &&
+                                   network_state != wsprrypico::wtp::State::Running))
             network.poll();
-        }
+        service.poll();
+        server.poll(network.link_up(),
+                    network.ipv4() +
+                        (server.port() == 443 ? "" : ":" + std::to_string(server.port())));
+        service.poll();
         watchdog_hw->scratch[1] = 5;
 #ifdef WSPRRY_PICO_STANDALONE_RF
         const auto usb_us = time_us_64();

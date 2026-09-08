@@ -29,6 +29,7 @@ void Endpoint::connect(std::string principal) {
 }
 void Endpoint::disconnect() {
     parser_.end_of_stream();
+    parser_ = FrameParser{}; // Release retained frame storage between transport uses.
     output_.clear();
     offset_ = 0;
     queued_bytes_ = 0;

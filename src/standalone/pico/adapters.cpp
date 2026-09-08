@@ -3,9 +3,11 @@
 #include "hardware/flash.h"
 #include "hardware/structs/watchdog.h"
 #include "hardware/sync.h"
+#include "lwip/netif.h"
 #include "pico/cyw43_arch.h"
 #include "pico/rand.h"
 #include "pico/time.h"
+#include "wtp/json.hpp"
 
 #include <algorithm>
 #include <array>
@@ -116,6 +118,17 @@ void PicoNetwork::poll() {
         sntp_.cancel();
     pbuf_free(packet);
 }
+bool PicoNetwork::request_enabled(bool enabled) {
+    if (!initialized_ || !pcb_)
+        return false;
+    pending_enabled_ = enabled;
+    return true;
+}
+void PicoNetwork::finish_request(bool idle) {
+    if (pending_enabled_ && idle)
+        (void)set_enabled(*pending_enabled_);
+    pending_enabled_.reset();
+}
 bool PicoNetwork::set_enabled(bool enabled) {
     if (!initialized_ || !pcb_)
         return false;
@@ -131,12 +144,23 @@ bool PicoNetwork::set_enabled(bool enabled) {
         cyw43_arch_disable_sta_mode();
     return true;
 }
+bool PicoNetwork::link_up() const {
+    return initialized_ && enabled_ &&
+           cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA) == CYW43_LINK_UP;
+}
+std::string PicoNetwork::ipv4() const {
+    return link_up() && netif_default ? ip4addr_ntoa(netif_ip4_addr(netif_default)) : "";
+}
 std::string PicoNetwork::status() const {
     const auto uncertainty = sntp_.last_uncertainty_ns();
     return "{\"initialized\":" + std::string(initialized_ ? "true" : "false") +
            ",\"enabled\":" + (enabled_ ? "true" : "false") + ",\"link_status\":" +
            std::to_string(initialized_ ? cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA)
                                        : -99) +
+           ",\"ipv4\":" + wtp::json::quote(ipv4()) + ",\"requested_enabled\":" +
+           (pending_enabled_ ? (*pending_enabled_ ? "true" : "false") : "null") +
+           ",\"control_configured\":" + (configured_ ? "true" : "false") +
+           ",\"control_listening\":" + (listening_ ? "true" : "false") +
            ",\"queries\":" + std::to_string(queries_) +
            ",\"accepted\":" + std::to_string(accepted_) +
            ",\"rejected\":" + std::to_string(rejected_) +

@@ -158,3 +158,5 @@ pico_add_extra_outputs(WsprryPico-StandaloneRF)
 foreach(image WsprryPico WsprryPico-RFBench WsprryPico-RFWTP WsprryPico-StandaloneRF rf_driver_linkcheck)
     pico_add_linker_script_override_path(${image} ${CMAKE_SOURCE_DIR}/cmake/standalone_link FILES memory_flash.incl)
 endforeach()
+
+include(${CMAKE_SOURCE_DIR}/cmake/network.cmake)

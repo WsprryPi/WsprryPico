@@ -247,6 +247,8 @@ class JobService {
                ServiceConfig config = {});
 
     Response handle(const Request& request);
+    // Physical Console safety control only; never exposed as a network operation.
+    Response local_abort();
     void poll();
     void reset();
     [[nodiscard]] ServiceStatus status() const;
@@ -295,6 +297,7 @@ class JobService {
     };
 
     Response dispatch(const Request& request);
+    Response abort_job(std::string_view job_id);
     Response reject(ErrorCode code) const;
     Response success() const;
     bool valid_id(std::string_view value) const;

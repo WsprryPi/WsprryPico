@@ -28,7 +28,18 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
     include(cmake/verify_pico_dependencies.cmake)
 endif()
 
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    src/network/web/index.html src/network/web/style.css src/network/web/app.js
+    scripts/generate_web_assets.py)
+execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_web_assets.py
+    ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
+    COMMAND_ERROR_IS_FATAL ANY)
+
 add_library(wsprrypico_core
+    src/network/http.cpp
+    src/network/api.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
     src/encoding/wspr.cpp
     src/standalone/dry_run_engine.cpp
     src/standalone/config.cpp
@@ -93,6 +104,15 @@ endif()
 
 if(WSPRRY_PICO_BUILD_TESTS)
     enable_testing()
+    add_executable(network_tests tests/network_tests.cpp)
+    target_link_libraries(network_tests PRIVATE wsprrypico_core)
+    target_compile_options(network_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME network_tests COMMAND network_tests)
+    find_program(WSPRRY_PICO_NODE_EXECUTABLE node)
+    if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME network_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/network_browser_tests.js)
+    endif()
     add_executable(firmware_profile_tests tests/firmware_profile_tests.cpp)
     target_link_libraries(firmware_profile_tests PRIVATE wsprrypico_rf)
     target_compile_options(firmware_profile_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -136,6 +156,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME rf_stream_tests COMMAND rf_stream_tests)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     include(cmake/host_client_interop.cmake)
+    include(cmake/network_host_tests.cmake)
+    add_test(NAME network_certificate_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/network_certificate_tests.py)
     add_test(NAME standalone_image_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/standalone_image_tests.py)
     add_test(NAME standalone_console_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/standalone_console_tests.py)
     add_executable(wsprrypico_core_tests tests/core_tests.cpp)

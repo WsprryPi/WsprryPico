@@ -8,7 +8,7 @@ import time
 from check_usb_target import port, write_all
 from rf_wtp import read_line
 
-ACTIONS = {"info": "INFO", "status": "STATUS", "stop": "STOP", "reboot": "REBOOT",
+ACTIONS = {"info": "INFO", "status": "STATUS", "stop": "STOP", "abort": "ABORT", "reboot": "REBOOT",
            "bootsel": "BOOTSEL", "wifi-off": "WIFI OFF", "wifi-on": "WIFI ON"}
 
 

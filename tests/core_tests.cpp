@@ -787,12 +787,53 @@ void test_usb_time_source_exchange() {
     CHECK(source.command("SAMPLE extra").find("unknown_command") != std::string::npos);
 }
 
+void test_physical_console_abort() {
+    for (unsigned stage = 0; stage < 4; ++stage) {
+        VirtualClock clock;
+        MockRfEngine engine;
+        TestIdentitySource identities;
+        ServiceConfig config;
+        config.minimum_arm_lead_ns = 10;
+        JobService service(clock, engine, identities, config);
+        establish_owner(service);
+        CHECK(service.handle(request("LOAD", sample_job(), 'c')).ok);
+        if (stage)
+            CHECK(service
+                      .handle(
+                          request("ARM", ArmBody{id('3'), clock.value.utc_now_ns + 10, 1000}, 'd'))
+                      .ok);
+        if (stage >= 2) {
+            clock.advance(10);
+            service.poll();
+            CHECK(engine.output_active());
+        }
+        if (stage == 3)
+            engine.reject_disable = true;
+        // A remote principal remains unable to invoke the physical control.
+        CHECK(service.handle(request("LOCAL_ABORT", {}, 'e')).error == ErrorCode::UnknownOperation);
+        const auto result = service.local_abort();
+        if (stage == 3) {
+            CHECK(!result.ok && result.error == ErrorCode::OutputStateUnknown);
+            CHECK(service.status().state == State::Failed);
+            CHECK(service.status().owner_id.has_value());
+            CHECK(!service.local_abort().ok);
+        } else {
+            CHECK(result.ok && !engine.output_active());
+            CHECK(service.status().state == State::Aborted && !service.status().owner_id);
+            CHECK(service.status().terminal_records.front().job_id == id('3'));
+            CHECK(service.status().terminal_records.front().state == State::Aborted);
+            CHECK(service.local_abort().ok);
+        }
+    }
+}
+
 using Test = std::pair<const char*, void (*)()>;
 
 } // namespace
 
 int main() {
     const std::vector<Test> tests{
+        {"physical Console abort", test_physical_console_abort},
         {"crc and frame encoding", test_crc_and_frame_encoding},
         {"fragmented and combined frames", test_fragmented_and_combined_frames},
         {"frame recovery limits and timeout", test_frame_recovery_limits_and_timeout},

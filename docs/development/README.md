@@ -46,6 +46,11 @@ The [output/inhibit design](rf-output-design.md) remains a hardware proposal.
 
 ## Current checks
 
+The [Phase 11 network guide](network-control.md) documents optional TLS WTP/TCP,
+HTTPS/browser tests, device-specific certificate tooling, build inputs and
+recovery. The [review record](phase11-review.md) distinguishes hardware-free
+validation from the pending physical network acceptance gate.
+
 The [Phase 10 host acceptance guide](phase10-host-acceptance.md) describes the
 SNTP-enabled five-mode images, optional actual-WsprryPi-client interoperability
 test and the separately authorized joint target acceptance procedure.

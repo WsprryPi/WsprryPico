@@ -64,6 +64,11 @@ std::vector<FrameEvent> FrameParser::feed(std::span<const std::uint8_t> bytes,
     }
     for (std::size_t offset = 0; offset < bytes.size() && !closed_; offset += kChunkBytes) {
         const auto count = std::min(kChunkBytes, bytes.size() - offset);
+        // Geometric growth must not turn a 65,552-byte frame into a 128 KiB
+        // allocation on the target. One bounded feed chunk may follow a frame.
+        if (buffer_.size() + count > buffer_.capacity())
+            buffer_.reserve(std::min(kMaximumPayloadBytes + kFrameHeaderBytes + kChunkBytes,
+                                     std::max(buffer_.size() + count, buffer_.capacity() * 2)));
         buffer_.insert(buffer_.end(), bytes.begin() + static_cast<std::ptrdiff_t>(offset),
                        bytes.begin() + static_cast<std::ptrdiff_t>(offset + count));
         last_progress_ms_ = now_ms;
@@ -136,8 +141,17 @@ void FrameParser::process(std::vector<FrameEvent>& events) {
             }
             continue;
         }
-        events.push_back({FrameEventKind::Payload, {payload.begin(), payload.end()}});
-        buffer_.erase(buffer_.begin(), buffer_.begin() + static_cast<std::ptrdiff_t>(frame_size));
+        if (buffer_.size() == frame_size) {
+            // Endpoint feeds single bytes, so the complete frame can transfer
+            // storage to dispatch without a second maximum-sized allocation.
+            buffer_.erase(buffer_.begin(), buffer_.begin() + kFrameHeaderBytes);
+            events.push_back({FrameEventKind::Payload, std::move(buffer_)});
+            buffer_ = {};
+        } else {
+            events.push_back({FrameEventKind::Payload, {payload.begin(), payload.end()}});
+            buffer_.erase(buffer_.begin(),
+                          buffer_.begin() + static_cast<std::ptrdiff_t>(frame_size));
+        }
         consecutive_invalid_frames_ = 0;
         resync_discard_bytes_ = 0;
         partial_ = false;

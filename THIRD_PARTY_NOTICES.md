@@ -59,5 +59,14 @@ Standalone Wi-Fi builds also link the pinned SDK's network dependencies:
   disclaimers in documentation/materials accompanying firmware distribution.
 
 No NTP implementation was copied from another project. The portable exchange
-parser is original project code based on the published packet format. Bluetooth,
-HTTP, TCP control and a browser implementation are not introduced by this slice.
+parser is original project code based on the published packet format.
+
+Phase 11 links [Mbed TLS](https://github.com/Mbed-TLS/mbedtls), 3.6.6 at
+`0bebf8b8c7f07abe3571ded48a11aa907a1ffb20`, from the pinned SDK submodule.
+It is dual licensed Apache-2.0 OR GPL-2.0-or-later; this project selects
+Apache-2.0. The unmodified upstream [LICENSE](docs/licenses/mbedtls.txt) is
+retained. Upstream sources remain external and unchanged, including the PSA
+RNG source explicitly added to the SDK target. Preserve applicable upstream
+notices and the Apache license with distributed firmware/test binaries.
+The HTTP adapter, browser assets and certificate scripts are original MIT
+project contributions; no WsprryPi vendor browser assets are copied.

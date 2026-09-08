@@ -8,7 +8,8 @@ backend. The defined hardware target is Pico 2 W / RP2350.
 
 The accepted architectural record is [docs/architecture.md](docs/architecture.md).
 This contract summarizes durable boundaries. The normative WTP/1 contract is
-[docs/protocol/WTP.md](docs/protocol/WTP.md); other draft APIs remain unfrozen.
+[docs/protocol/WTP.md](docs/protocol/WTP.md); the independently versioned [browser API v1](docs/browser-api.md) records
+the implemented Pico surface. Shared WsprryPi adoption remains separate work.
 
 ## Timing and interoperability
 
@@ -48,6 +49,13 @@ covers configuration retention, autonomous SNTP and outage/reconnection.
 [Bounded standalone RF and wall-power validation](docs/development/standalone-rf-power-validation.md)
 adds independent decoding of recurring frames without a USB host on the recorded
 setup. Calibrated timing and general RF/reliability qualification remain open.
+
+Optional [TLS network control](docs/development/network-control.md) supplies
+mutually authenticated WTP/TCP and HTTPS handlers to the existing job service.
+Network status, persistent config and schedules share the standalone adapters.
+Host TLS/browser tests and cross-linking do not qualify physical network/RF
+coexistence. Credential installation currently requires an explicit local build;
+SoftAP/BLE and runtime provisioning remain planned.
 
 Host tests, target execution and RF qualification are distinct evidence classes.
 A successful compile or simulated transmission establishes neither on-device
