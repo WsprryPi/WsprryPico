@@ -375,3 +375,47 @@ hashes are retained in `evidence/receiver-retune-carrier/results.json` on wspr5.
 The receiver was closed after the final capture. No RF output, firmware change,
 physical wiring change or scheduling change was made in this check. The quiet
 baseline gate remains open.
+
+## Clear-channel closeout and WSPR timeline finding
+
+The user authorized completing the remaining acceptance at a nearby clear
+conducted-test frequency. The execution prompt was rewritten around final
+acceptance and closeout. A fresh inhibited capture found the 135500 Hz test
+channel approximately 62 dB below the old carrier in the diagnostic FFT screen.
+The wiring, receiver center/rate/bandwidth/gain and inactive reference sources
+remained unchanged. Identifying the QRM source is no longer a completion gate.
+
+On firmware 6c83982aca3a, final inhibited checks through the installed release
+passed clock-budget rejection, armed/running cancellation and exact-interface
+USB disconnect/reconciliation. These records have a `closeout-` prefix. The
+clear-channel five-second Tone (`rf-tone-6`) passed the real host lifecycle,
+authoritative cleanup and independent RF/carrier acceptance. IQ SHA-256:
+`c4b0fde9ed17638ea2e1b6e1bc6eaddd93a20184925754b15851be74e9a8ae2e`.
+This result remains bound to that pre-fix image and will be repeated after the
+WSPR timeline repair below.
+
+Source review then identified the real WsprryPi compiler's independently
+truncated 682666666 ns WSPR symbols. The original physical planner only accepted
+nanosecond encodings of exact sample endpoints. An added real-client admission
+regression reproduced LOAD rejection without hardware. This gap was masked by
+the earlier synthetic cumulative-boundary and inhibited tests.
+
+The planner now realizes each absolute endpoint at its nearest sample, retaining
+all events and rejecting any that collapse to zero samples. It does not round
+individual durations cumulatively. Boundary error is bounded by half a sample;
+frequency consent/adjustments and immutable WTP requests are unchanged. The
+terminal already-low marker retains upward padding. Tests check all 162 real-host
+symbol endpoints, both rounding directions and collapsed-event refusal.
+
+Adversarial assessment found two dependent checks to update: completion must
+use the realized sample endpoint, and the local leap guard must include that
+endpoint. Both are repaired, with lifecycle and leap-edge regressions. Local
+fault recovery, ownership, missed-start checks and output inhibition are retained.
+The hardware granularity is documented in rf-stream.md; it is not a calibrated
+GPIO timing claim. No host source change or protocol schema change is needed.
+
+The user's original host checkout advanced independently during this work.
+Pinned client validation correctly refused it. Tests now use a separate detached
+checkout of the original reviewed 2819f0b source, preserving the user's checkout
+and the installed e95932f host identity. This is test dependency isolation, not
+an upgrade or rollback of the installed application.

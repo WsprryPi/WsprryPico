@@ -217,6 +217,40 @@ void planner_test() {
     bad_tail.events.push_back({bad_tail.total_duration_ns, 1'000'000'000, true, rf::base_nhz});
     bad_tail.total_duration_ns += 1'000'000'000;
     CHECK(!rf::plan_job(bad_tail));
+    // Exact real-host WSPR duration shape, with independently truncated
+    // nanosecond symbols. Absolute sample rounding must not accumulate error.
+    auto host_wspr = job_for(std::array<std::uint64_t, 1>{rf::sample_rate});
+    host_wspr.events.clear();
+    host_wspr.total_duration_ns = 162ULL * 682'666'666;
+    for (unsigned i = 0; i < 162; ++i)
+        host_wspr.events.push_back(
+            {i * 682'666'666ULL, 682'666'666, true, rf::base_nhz + (i % 4) * rf::spacing_nhz});
+    auto rounded = rf::plan_job(host_wspr);
+    CHECK(rounded && rounded->count == 162);
+    std::uint64_t previous = 0;
+    for (unsigned i = 0; i < 162; ++i) {
+        const auto boundary_ns = (i + 1) * 682'666'666ULL;
+        const auto sample = rounded->segments[i].end_sample;
+        // Use a reduced rational comparison to avoid overflow in this oracle.
+        const auto actual = sample * 1000;
+        const auto requested = boundary_ns * (rf::sample_rate / 1'000'000);
+        const auto error = actual > requested ? actual - requested : requested - actual;
+        CHECK(error <= 500 && sample > previous);
+        previous = sample;
+    }
+    CHECK(rounded->total_samples == previous);
+    // Probe both sides of a sample boundary, and ensure no tiny event can
+    // disappear even if neighboring absolute boundaries are quantized.
+    for (std::uint64_t delta = 0; delta < 20; ++delta) {
+        auto boundary = tone_job(64);
+        boundary.events[0].duration_ns += delta;
+        boundary.total_duration_ns += delta;
+        auto candidate = rf::plan_job(boundary);
+        CHECK(candidate);
+        const auto actual = candidate->total_samples * 1000;
+        const auto requested = boundary.total_duration_ns * (rf::sample_rate / 1'000'000);
+        CHECK((actual > requested ? actual - requested : requested - actual) <= 500);
+    }
     auto invalid = job;
     invalid.allow_frequency_adjustment = false;
     CHECK(!rf::plan_job(invalid));
@@ -397,6 +431,27 @@ void lifecycle_test() {
     CHECK(engine.begin(job, 100));
     CHECK(engine.disable(101));
     CHECK(engine.poll(102).state == wtp::EngineState::Idle);
+}
+
+void quantized_lifecycle_test() {
+    for (std::int64_t adjustment = -3; adjustment <= 3; ++adjustment) {
+        TestSink sink;
+        rf::StreamEngine engine(sink);
+        auto job = tone_job(rf::block_samples * 2 + 17);
+        job.total_duration_ns += adjustment;
+        job.events[0].duration_ns = job.total_duration_ns;
+        CHECK(engine.prepare(job).accepted);
+        CHECK(engine.begin(job, 100));
+        CHECK(engine.poll(100).state == wtp::EngineState::Running);
+        while (sink.report.consumed_samples < sink.total) {
+            sink.consume();
+            const auto report = engine.poll(100 + ns_at(sink.report.consumed_samples));
+            CHECK(report.state == (sink.report.consumed_samples == sink.total
+                                       ? wtp::EngineState::Complete
+                                       : wtp::EngineState::Running));
+        }
+        CHECK(engine.disable(100 + job.total_duration_ns + 10));
+    }
 }
 
 void faults_test() {
@@ -595,6 +650,7 @@ int main(int argc, char** argv) {
         generalized_planner_test();
         correction_test();
         lifecycle_test();
+        quantized_lifecycle_test();
         faults_test();
         service_test();
         std::cout << "RF stream checks passed\n";

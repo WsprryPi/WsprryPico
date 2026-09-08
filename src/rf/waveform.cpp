@@ -16,14 +16,12 @@ std::optional<std::uint64_t> samples_at(std::uint64_t ns, bool terminal_off = fa
     constexpr auto denominator = 1'000'000'000ULL / common;
     // The end of a final RF-off interval is not an RF transition. Pad that
     // already-low tail to the next sample, including a host's 1 ns stop marker.
-    // Every RF transition still has to satisfy the exact boundary rule below.
     if (terminal_off)
         return (ns * numerator + denominator - 1) / denominator;
-    const auto samples = (ns * numerator + denominator / 2) / denominator;
-    if ((samples * denominator + numerator / 2) / numerator != ns) {
-        return std::nullopt;
-    }
-    return samples;
+    // WTP carries nanoseconds, not sample indexes. Realize each absolute
+    // boundary at its nearest sample, without accumulating per-event rounding.
+    // plan_job rejects collapsed events, including sub-sample RF-on/off gaps.
+    return (ns * numerator + denominator / 2) / denominator;
 }
 
 // SRAM tables, constructed once before execution. Single serialized owner.

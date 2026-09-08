@@ -121,6 +121,28 @@ void physical_admission() {
     CHECK(f.stream.peer->inactive());
 }
 
+void physical_host_wspr_admission() {
+    Fixture f;
+    f.stream.peer = host_test_endpoint(true);
+    f.stream.peer->synchronize();
+    f.connect();
+    f.claim();
+    auto j = job(Mode::Wspr, 'b');
+    // WsprryPi ExecutionPlanCompiler truncates each 8192/12000 s symbol
+    // independently to nanoseconds. Exercise that exact client job shape.
+    j.total_duration_ns = 162ULL * 682'666'666;
+    for (std::size_t i = 0; i < j.events.size(); ++i) {
+        j.events[i].offset_ns = i * 682'666'666ULL;
+        j.events[i].duration_ns = 682'666'666;
+    }
+    CHECK(f.request(Operation::Load, j).kind == ResultKind::Acknowledged);
+    CHECK(f.request(Operation::Arm,
+                    ArmRequest{j.job_id, f.stream.peer->utc_ns() + 1'000'000'123, 500'000'000})
+              .kind == ResultKind::Acknowledged);
+    CHECK(f.request(Operation::Abort, AbortRequest{j.job_id}).kind == ResultKind::Acknowledged);
+    CHECK(f.request(Operation::Release).kind == ResultKind::Acknowledged);
+}
+
 void five_modes() {
     Fixture f;
     f.connect();
@@ -204,6 +226,7 @@ int main() {
     try {
         five_modes();
         physical_admission();
+        physical_host_wspr_admission();
         recovery();
         std::cout << "Actual WsprryPi client/current Pico endpoint: five finite modes, SNTP clock "
                      "admission, disconnected completion, lost LOAD/ARM/ABORT recovery and "

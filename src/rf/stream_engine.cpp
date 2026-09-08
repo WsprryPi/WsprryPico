@@ -35,9 +35,9 @@ bool StreamEngine::check_clock(void* context) {
         return false;
     }
     const auto lead = self.start_ns_ - now.monotonic_now_ns;
+    const auto duration = self.end_ns_ - self.start_ns_;
     const auto limit = std::numeric_limits<std::uint64_t>::max();
-    if (now.utc_now_ns > limit - lead ||
-        conditions.start_utc_ns > limit - self.job_->total_duration_ns) {
+    if (now.utc_now_ns > limit - lead || conditions.start_utc_ns > limit - duration) {
         return false;
     }
     const auto predicted = now.utc_now_ns + lead;
@@ -58,8 +58,7 @@ bool StreamEngine::check_clock(void* context) {
         const auto earliest_start = conditions.start_utc_ns > conditions.start_adjustment_ns
                                         ? conditions.start_utc_ns - conditions.start_adjustment_ns
                                         : 0;
-        return earliest_start > high ||
-               conditions.start_utc_ns + self.job_->total_duration_ns < low;
+        return earliest_start > high || conditions.start_utc_ns + duration < low;
     }
     return true;
 }
@@ -113,9 +112,14 @@ bool StreamEngine::submit_next(std::size_t slot) {
 }
 
 bool StreamEngine::begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) {
+    // Compare lifecycle progress with the same realized sample timeline used
+    // by the sink, including nearest-sample RF boundaries and low tail padding.
+    const auto realized_duration_ns =
+        (plan_.total_samples * 1000 + sample_rate / 1'000'000 / 2) / (sample_rate / 1'000'000);
     if (state_ != wtp::EngineState::Idle || !job_ || *job_ != job ||
         epoch_ == std::numeric_limits<std::uint64_t>::max() ||
-        start_monotonic_ns > std::numeric_limits<std::uint64_t>::max() - job.total_duration_ns) {
+        start_monotonic_ns > std::numeric_limits<std::uint64_t>::max() -
+                                 std::max(job.total_duration_ns, realized_duration_ns)) {
         return false;
     }
     if (!sink_.stop(start_monotonic_ns) || output_active()) {
@@ -125,7 +129,7 @@ bool StreamEngine::begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) 
     ++epoch_;
     submitted_ = completed_ = consumed_ = 0;
     start_ns_ = start_monotonic_ns;
-    end_ns_ = start_ns_ + job.total_duration_ns;
+    end_ns_ = start_ns_ + realized_duration_ns;
     last_poll_ns_ = 0;
     if (!submit_next(0) || !submit_next(1) ||
         !sink_.arm(epoch_, start_ns_, plan_.total_samples,
@@ -171,13 +175,9 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
     const auto expected_completed =
         report.consumed_samples / block_samples + (report.consumed_samples == plan_.total_samples &&
                                                    plan_.total_samples % block_samples != 0);
-    const auto elapsed =
-        now_ns > start_ns_ ? std::min(now_ns - start_ns_, job_->total_duration_ns) : 0;
-    // A terminal RF-off tail can include one low padding sample. After the
-    // declared job end, permit that planned tail without relaxing RF-on timing.
-    const auto expected_samples = elapsed == job_->total_duration_ns
-                                      ? plan_.total_samples
-                                      : (elapsed * (sample_rate / 1000000) + 500) / 1000;
+    const auto elapsed = now_ns > start_ns_ ? std::min(now_ns - start_ns_, end_ns_ - start_ns_) : 0;
+    const auto expected_samples =
+        now_ns >= end_ns_ ? plan_.total_samples : (elapsed * (sample_rate / 1000000) + 500) / 1000;
     if (report.completed_blocks != expected_completed ||
         report.consumed_samples > expected_samples) {
         return fail(now_ns, "progress_time");

@@ -1,151 +1,122 @@
-# Phase 10 joint target acceptance and delivery prompt
+# Phase 10 acceptance closeout execution prompt
 
-Continue the authorized Phase 10 work across WsprryPico, WsprryPi and the
-separate Wsprry_Pi_Docs operator manual. Review current code and recent changes,
-execute the gates below, assess the result adversarially, repair findings, rerun
-affected checks and reassess. Commit and push reviewed changes without force.
-Do not promote incomplete physical evidence into a Phase 10 completion claim.
+Complete the remaining WsprryPi-to-WsprryPico acceptance, review the evidence
+adversarially, repair actionable findings, rerun affected checks and reassess.
+Commit and push the reviewed outcome to the existing devel branch without force.
+Mark Phase 10 complete only if the bounded joint acceptance below passes.
 
-## Starting identities and contracts
+## Current source and delivered work
 
-- Pico source: clean `eb6aa58d6e429218bbfdb824c82a8f5fd7f4e7c9` on `devel`.
-- Reviewed host feature: `2819f0b8ccb05f12d7f978a4cee2cac830997bbf` on
-  `codex/phase10-wtp-slice1`.
-- Host integration candidate: merge the feature into freshly fetched `devel`
-  (initially `a523904`) in an isolated checkout. Preserve the original feature
-  checkout. Record the resulting exact commit and executable identity.
-- Target: Linux `wspr5`, Pico 2 W / RP2350, USB serial `0BF4B4AEC9FFB344`,
-  WTP device `fd6127d11d6aca42a9905fa3fb1bf1d5`. Recheck the attached identity
-  and boot each time; never assume a tty number identifies the Pico.
+Read AGENTS.md, README.md, CONTRACT.md, docs/architecture.md, the WTP/1 contract,
+phase10-host-acceptance.md and the complete phase10-target-review.md first.
+Inspect Git state and preserve unrelated changes. Current Pico repository tip
+before this closeout is 08eef16871699d1f6d1503818fd9ebd25dd8eb91. The tested
+firmware source is 6c83982aca3a96582347cda770043e20d4f674df; subsequent changes
+are evidence documentation. The clean standard and StandaloneRF pair is staged
+with final-firmware-manifest.json in /home/pi/phase10-wtp-acceptance/ on wspr5.
+Keep exact source and artifact identity; rebuild only if source changes require it.
 
-Read each repository's AGENTS.md and relevant current development instructions.
-For Pico, read README.md, CONTRACT.md, architecture, WTP/1, standalone/SNTP,
-the shared WTP profiles and `phase10-host-acceptance.md`. For the host, review
-the client/session, USB adapter, scheduler, application/runtime bridge, status
-and recovery routes, installer and production integration documents. Review
-the changed paths shared with newer devel for merge regressions.
+WsprryPi devel e95932feebc44d84988c96df969c8f8203ed8c1c is installed on wspr5.
+Its isolated real checkout is /home/pi/phase10-wtp-acceptance/host-git. The
+operator manual is delivered at 5bbce2d8c46243cc910f663f56397a8f32fdd2fb.
+Host installation, Linux suites, UI/manual validation and earlier inhibited
+acceptance are already recorded; do not redo unrelated completed work.
 
-## Authorization and boundaries
+Physical findings already repaired: terminal RF-off sample padding, fractional
+host timestamp admission, leap-boundary accounting, first-fault diagnostics,
+guarded local recovery and RF servicing between WTP request-processing stages.
+The last real host Tone completed with authoritative cleanup. Its RF measurement
+was obscured by a continuous carrier near 137501 Hz that persisted with inhibited
+firmware and did not follow SDR tuning. Treat this as interference in the chosen
+measurement channel; identifying its source is not a Phase 10 gate.
 
-The user authorized the remaining Phase 10 target acceptance, applicable
-installation/services, host merge and operator-documentation work. Reversible
-preparation, inhibited firmware flashing and exact-device inspection may proceed.
-Confirm current physical routing and make every RF run concrete before starting:
-frequency, mode/message, duration/repeats, firmware/clock, output route,
-receiver/reference state and stopping procedure. A historical wiring description
-does not establish current connectivity. Request necessary cable moves as
-logistics, without asking again for the already authorized scope.
+## Authorized setup and boundaries
 
-Keep autonomous scheduling persistently disabled and preserve station/network
-configuration and journal history. Preserve wspr5 GPS/PPS/chrony and its RF state.
-Do not reboot the Pi, enable unrelated outputs, change RP1 routes, redesign
-firmware networking or start phases 11–13 as incidental acceptance work.
+The user explicitly authorized execution, bounded conducted RF, firmware loading,
+applicable host services, final review, repair, commit and push. The user also
+accepted choosing a nearby clear test frequency. Keep the confirmed physical
+wiring unchanged: Pico GP2, GPSDO Output 1 and wspr5 GPIO4 each have their own
+60 dB attenuation into the common SDR combiner, with no external filter/antenna.
+Keep the GPSDO outputs and RP1 output inactive. Do not reboot wspr5, change its
+GPS/PPS/chrony configuration, alter RP1 routes, or modify unrelated repositories.
 
-## Execute in order
+Use Pico 2 W/RP2350A2, USB serial 0BF4B4AEC9FFB344, WTP device
+fd6127d11d6aca42a9905fa3fb1bf1d5. Console is its if00 by-id node; WTP is if02.
+Verify exact device/boot/revision, disabled persisted scheduling and inactive
+output before each firmware change or campaign. Preserve station/network
+configuration and the no-repeat watermark. Only one process may own WTP CDC.
 
-1. Record clean/dirty source state, exact firmware ELF/UF2 hashes, existing pinned
-   SDK/toolchain, board/chip identity and source revision embedded in each image.
-   Build fresh inhibited and StandaloneRF images from the clean reviewed Pico
-   commit. Check flash/journal layout and absence of the physical RF engine from
-   the inhibited image. Never relabel an older dirty build as the current commit.
-2. Verify persisted scheduling disabled, ownership idle and output inactive.
-   Flash the standard inhibited image with exact serial/revision guards and
-   verification. Read the new boot identity and SNTP acquisition evidence.
-3. Run the merged host's documented Linux hardware-free suites in an isolated
-   real Git checkout, recording source identity and failed attempts. Validate
-   protocol, USB metadata/failure handling, application, production runtime,
-   scheduling and status/recovery. Build production using its documented profile.
-4. Connect Pico's USB to wspr5. Record Linux enumeration, by-id aliases, exact
-   serial/VID/PID and the dedicated WTP CDC function. Refuse Console and wrong
-   identities. Independently record Linux UTC readiness and Pico GET_CLOCK,
-   HELLO/STATUS/CAPS. Confirm inhibited engine and five-mode envelope.
-5. Use the real host application/encoders for finite inhibited jobs. Confirm the
-   default 1 ms budget rejects clock evidence that exceeds it, then explicitly
-   use at most 500 ms for bounded functional acceptance. Exercise WSPR and keyed
-   jobs within CAPS, repeated jobs, loaded/armed/running cancellation, connection
-   loss, reconnect and boot changes. Preserve job/session identities and terminal
-   evidence. No reload/rearm, foreign adoption or output-safe inference from a
-   lost connection. Record cases requiring unperformed physical actions as open.
-6. Only after inhibited acceptance succeeds, bind a small conducted RF campaign
-   to the actual setup. The prior setup had separate 60 dB branches from Pico
-   GP2, GPSDO Output 1 and wspr5 GPIO4 into one SDR combiner, without external
-   filtering. Verify it now and exclude unintended sources. Use the explicit
-   StandaloneRF image, finite requests, necessary frequency-rounding consent and
-   host unqualified-frequency opt-in. Retain independent decoding/keyed analysis,
-   start/end quiet, frequency/timing observations and authoritative shutdown.
-   WTP completion alone is insufficient; do not extend results to other modes,
-   bands, clocks, firmware or RF paths.
-7. Review the installer before deployment. Bind the installed binary, configuration,
-   service and HTTP proxy to the validated host commit. Preserve disabled TX and
-   startup policy. Use the installer completion marker outside the Git checkout,
-   creating it only on success. Validate status/recovery proxy and service
-   lifecycle without enabling output. Record any required unperformed reboot.
-8. Update the operator manual's CLI backend, INI and Transmitter-tab guidance.
-   Preserve the default-off browser-only development toggle and separate persisted
-   Pico selection. Explain exact endpoint identity, clock budgets, unsupported
-   continuous Tone, observations versus output proof, and explicit reconciliation.
-   Use Impeccable and the manual's existing Sphinx environment; render desktop,
-   tablet and mobile, repair broken links and misleading wording, and keep the
-   established visual design.
-9. Assess all changes and evidence adversarially. Focus on merge interactions,
-   source/build identity, preserved disabled state, GPIO/clock disturbance,
-   stale/unknown observations, ownership/boot changes, cleanup, and unsupported
-   qualification claims. Fix actionable findings and rerun affected checks before
-   a second assessment. Record unresolved physical gates separately from defects.
-10. Commit and push each repository's reviewed slice separately. Refresh remote
-    ancestry first and preserve user branches/work. Report exact commits, remote
-    parity, installed/device state, validation and remaining gates. Do not mark
-    all Phase 10 complete until joint target acceptance and delivery are evidenced.
+Use RSP1B 2404058C60 at center 112500 Hz, 250 ksps CF32, 200 kHz bandwidth,
+gain 20, AGC/bias tee off. Only one receiver process may own it. Screen the
+existing IQ and confirm the selected channel in a fresh inhibited baseline.
+Use 135500 Hz as the candidate conducted-only base, 2 kHz below the QRM; record
+any necessary alternative before transmitting. This is a finite integration
+experiment with explicit unqualified-frequency consent, not an on-air band claim.
+Retain the existing detector thresholds and original failed captures.
 
-## Evidence and stopping conditions
+## Execute
 
-Keep logs, captures, builds, private INI files and manifests outside tracked
-source. Maintain a committed review with exact commands and evidence locations,
-including failed attempts and repairs. Never expose network credentials.
+1. Record current source, installed executable/configuration hashes, firmware
+   hashes, device identity/state, receiver availability, RP1 idle predicate and
+   GPSDO disabled observations. Save a fresh receiver-only baseline. Verify the
+   selected channel has adequate quiet evidence for the unchanged analyzer.
+2. Adapt only private acceptance orchestration to the chosen frequency. The
+   host must still compile its real canonical jobs. Bind helper source/binary,
+   exact requests, mode/message, duration/count, receiver settings and firmware
+   into evidence. Preserve old helpers/captures or use distinct closeout names.
+   Do not change product protocol or weaken acceptance checks to obtain a pass.
+3. On the final inhibited build, repeat affected installed-release cancellation,
+   clock-budget and disconnect/reconciliation checks. Run through the private
+   acceptance INI and bounded supervisor, preserving the installed configuration.
+   Always restore the original service afterward. Recheck unknown output is
+   never treated as safe and failed jobs remain retained rather than auto-rearmed.
+4. Flash and verify the exact StandaloneRF image. Require usable device SNTP;
+   explicitly allow frequency adjustment and at most 500 ms start uncertainty
+   for this bounded functional test. Keep autonomous scheduling disabled.
+5. Complete a five-second Tone using the real host application/client and a
+   finite receiver capture with leading/trailing quiet. Require complete WTP
+   lifecycle, authoritative inactive cleanup, and independent burst/carrier
+   acceptance at the new base frequency before longer RF jobs.
+6. Through the installed release and private configuration, send one ETE job
+   each in QRSS, FSKCW and DFCW with three-second dots, canonical character gaps,
+   no fades and 5 Hz FSK/DFCW shift. Confirm exact canonical event semantics,
+   expected marks/spaces, duration, frequency separation and final silence.
+   Preserve readability as the operational criterion; diagnostic timing limits
+   are engineering checks, not published QRSS standards.
+7. Send exactly three finite WSPR frames through the installed release, using
+   AA0NT EM18 37 and no random frequency offset. Bind the host's actual RF base
+   semantics to the analyzer/decoder. Capture all frames with quiet intervals;
+   independently decode each with wsprd. Require unique completed job identities,
+   expected content, coherent frame timing and confirmed cleanup. Do not let a
+   fourth frame start. Use finite capture/process deadlines and a bounded daemon.
+8. Restore the standard inhibited image, confirm exact new boot/source, empty
+   inactive state, persisted schedule disabled, retained configuration/watermark,
+   original installed host service and unchanged installed/boot configuration.
+   Receiver cleanup must be verified; no acceptance worker may remain active.
+9. Perform an adversarial source/evidence review: frequency mapping, source and
+   binary identity, final-image coverage, actual installed-release path, canonical
+   jobs, SDR hash/size/settings and cleanup, leading/trailing silence, independent
+   decode, failure retention, ownership/recovery, and bounded-output enforcement.
+   Repair each actionable finding, rerun affected checks and assess again.
+10. Update the target review, execution checkpoint and roadmap with exact passed
+    scope and remaining limitations. Commit and push after checking ancestry;
+    verify clean state and origin parity. Report the actual result plainly.
 
-Missing physical connection or unconfirmed routing blocks dependent target work,
-not independent documentation/build/review. An unexpected identity, unknown
-output, foreign ownership, clock failure or failed cleanup blocks further RF.
-Leave the device inhibited and scheduling disabled when physical acceptance
-cannot continue; report the remaining user action precisely.
+## Completion and limits
 
-## Current execution checkpoint
+Success requires all five mode-specific conducted acceptance results plus the
+applicable final-build recovery checks and delivered host/manual work. A build,
+simulator result or WTP completion alone does not establish RF acceptance.
+Logs, IQ, private INIs, firmware binaries and credentials remain untracked;
+commit the concise evidence record and commands/identities needed to reproduce it.
 
-Read the latest section of `phase10-target-review.md` before resuming. Host
-integration and operator documentation are published, and the exact release is
-installed on wspr5. Earlier inhibited USB cases passed. Terminal-off padding,
-fractional timestamp admission, leap-boundary checking, first-fault diagnostics,
-guarded local recovery and cooperative WTP request servicing are repaired.
-Current firmware source is `6c83982aca3a96582347cda770043e20d4f674df`; both
-standard and StandaloneRF images are built and staged with their updated
-`final-firmware-manifest.json`. The earlier manifest is archived separately.
+Unexpected device identity, foreign ownership, active unrelated work, uncertain
+output, unacceptable clock state or failed cleanup blocks further RF. Resolve
+what can be resolved within existing authority, retain failures, and restore
+inhibited operation before reporting an external blocker. Ordinary QRM at the
+old frequency is addressed by the selected clear conducted-test channel.
 
-The real host's five-second Tone now completes with authoritative cleanup.
-Independent RF acceptance remains blocked: a strong continuous carrier near
-137501 Hz persists even with the Pico flashed to RF-inhibited firmware, GPSDO
-outputs reported off and RP1 idle. A receiver-only baseline confirms this. A subsequent SDR retuning check at
-102500, 112500 and 122500 Hz kept the carrier at approximately 137501 Hz; it
-did not follow tuning. Original tuning was restored and receiver cleanup verified.
-The user has been asked whether another source remains from the other test.
-Keep the wiring unchanged and do not resume RF acceptance until the baseline is
-understood and quiet. Do not relax the burst detector to manufacture a pass.
-
-Current Pico source is `6c83982aca3a`, boot
-`f16780943aa7cb3a4e5c8294a6b41098`, standard inhibited engine, empty/inactive,
-with persisted scheduling disabled. No new power cycle is pending. The installed
-host service remains running; the private installed-release acceptance supervisor
-has not been started. Recheck all identities, workload ownership and device clock
-before any further authorized target work.
-
-When the baseline is resolved, verify and flash the current StandaloneRF image,
-repeat the bounded Tone, then run installed-release QRSS/FSKCW/DFCW ETE jobs and
-three independently decoded WSPR frames. Restore inhibited firmware afterward.
-Retain every `rf-tone` through `rf-tone-5` record and `rf-inhibited-baseline`;
-use a fresh suffix `6` or later. The bounded helpers in
-`/home/pi/phase10-wtp-acceptance/` are test orchestration, not product code.
-Review their identities, engine guards, private daemon lifetime and cleanup
-before reuse. Only one owner may open the Pico WTP CDC interface at a time;
-only one receiver process may use RSP1B `2404058C60`. Finish adversarial review,
-repair any findings, rerun affected checks, update the roadmap truthfully, and
-commit/push the authorized changes. Phase 10 remains open until joint acceptance
-passes; Phases 11–13 remain planned.
+Phase 11 Wi-Fi/TCP/shared browser API, Phase 12 provisioning, and Phase 13
+calibrated timing/RF/reliability, output filters, supported mode/band coverage
+and reproducible production UF2 remain separate. Do not expand this closeout
+into those phases or claim general RF qualification.
