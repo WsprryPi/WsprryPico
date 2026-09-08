@@ -37,9 +37,13 @@ boot identity, schedule watermark, terminal diagnostics where available and
 inactive output. Confirm missed or previously reserved occurrences are not
 replayed. Retain failed attempts and qualify only the exact tested image/setup.
 
-Stop local execution, persist scheduling disabled and restore the RF-inhibited
-image. Verify final device and receiver states. Do not leave an indefinite RF
-schedule or background capture running.
+Stop local execution, persist scheduling disabled and verify inactive output and
+completed cleanup. Leave the tested RF-capable image installed after routine bench
+work; the former automatic reflash step was retired after Phase 10. Follow the
+[routine bench shutdown](phase10-host-acceptance.md#routine-bench-shutdown).
+Verify final device and receiver states. Do not leave an indefinite RF schedule
+or background capture running. The validation record retains the actual inhibited
+restoration performed during the original Phase 9 run.
 
 Perform an adversarial review of implementation, tooling, raw evidence and
 completion claims. Fix actionable findings, rerun affected validation and

@@ -137,9 +137,29 @@ software tests do not close Linux enumeration, permissions or deployment gates.
    leading/trailing quiet and confirmed shutdown. WTP completion is insufficient.
    If Pico/GPSDO share a combiner, verify reference-output state and source
    exclusion. Unknown output or cleanup failure blocks subsequent source activity.
-9. Record failed/blocked/skipped cases and final verified device/output state.
-   Any authorized restoration must identify actual firmware and stored scheduling
-   state. Do not infer connectivity or present state from historical records.
+9. Follow the routine bench shutdown below and record failed/blocked/skipped
+   cases and final verified device/output state. Any specifically requested image
+   change must identify actual firmware and stored scheduling state. Do not infer
+   connectivity or present state from historical records.
+
+## Routine bench shutdown
+
+The automatic post-test reflash requirement was retired after Phase 10 acceptance
+on 2026-09-08. Leave the tested RF-capable image installed after routine conducted
+bench work. Stop host transmission and local execution, persist autonomous
+scheduling disabled, and verify authoritative inactive output and completed
+cleanup. Preserve station/network configuration and the no-repeat watermark.
+Record the installed source/image and current boot identity, restore any temporarily
+changed host services, and release receiver and acceptance workers.
+
+Keep the inhibited image available for specific fault tests or a recovery action
+that requires it. An image change is a deliberate part of that test or recovery,
+not a routine shutdown step. Unknown output or failed cleanup still blocks further
+RF until resolved. Keeping the RF-capable image installed does not enable
+transmission, change the standard build default, or expand the accepted RF scope.
+
+Earlier validation records describe the images actually restored in those runs;
+those historical restorations do not impose a standing reflash requirement.
 
 Installation/service acceptance, host feature-branch merge, operator-manual
 publication and general hardware/RF/reliability qualification remain distinct

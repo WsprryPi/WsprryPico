@@ -89,10 +89,14 @@ Retain the existing detector thresholds and original failed captures.
    independently decode each with wsprd. Require unique completed job identities,
    expected content, coherent frame timing and confirmed cleanup. Do not let a
    fourth frame start. Use finite capture/process deadlines and a bounded daemon.
-8. Restore the standard inhibited image, confirm exact new boot/source, empty
-   inactive state, persisted schedule disabled, retained configuration/watermark,
-   original installed host service and unchanged installed/boot configuration.
-   Receiver cleanup must be verified; no acceptance worker may remain active.
+8. Leave the tested RF-capable image installed after routine bench work. Stop
+   host transmission and local execution, persist scheduling disabled, and confirm
+   authoritative inactive output and completed cleanup. Record the actual
+   source/image and current boot identity; preserve configuration/watermark,
+   restore the original installed host service, and verify unchanged installed/
+   boot configuration. Verify receiver cleanup and release acceptance workers.
+   Use an inhibited image only for a specific test or recovery requiring it;
+   follow the [routine bench shutdown](phase10-host-acceptance.md#routine-bench-shutdown).
 9. Perform an adversarial source/evidence review: frequency mapping, source and
    binary identity, final-image coverage, actual installed-release path, canonical
    jobs, SDR hash/size/settings and cleanup, leading/trailing silence, independent
@@ -112,9 +116,10 @@ commit the concise evidence record and commands/identities needed to reproduce i
 
 Unexpected device identity, foreign ownership, active unrelated work, uncertain
 output, unacceptable clock state or failed cleanup blocks further RF. Resolve
-what can be resolved within existing authority, retain failures, and restore
-inhibited operation before reporting an external blocker. Ordinary QRM at the
-old frequency is addressed by the selected clear conducted-test channel.
+what can be resolved within existing authority and retain failures. Report any
+unresolved output or cleanup state explicitly and keep further RF blocked;
+reflashing an inhibited image is not an automatic closeout step. Ordinary QRM at
+the old frequency is addressed by the selected clear conducted-test channel.
 
 Phase 11 Wi-Fi/TCP/shared browser API, Phase 12 provisioning, and Phase 13
 calibrated timing/RF/reliability, output filters, supported mode/band coverage
@@ -123,6 +128,9 @@ into those phases or claim general RF qualification.
 
 
 ## Executed outcome
+
+This historical run restored inhibited firmware. The subsequent routine bench
+policy above retires that mandatory restoration; it does not alter this record.
 
 Completed on firmware source a3ec67d059b3a5900fa4ff978661c50480ad2bec.
 Execution repaired real-host WSPR sample-boundary handling, bounded post-frame
