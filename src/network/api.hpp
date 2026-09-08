@@ -20,10 +20,25 @@ class BrowserApi {
         : service_(service), store_(store), scheduler_(scheduler), network_(network),
           device_(std::move(device)), firmware_(std::move(firmware)) {}
     HttpResponse handle(const HttpRequest& request, std::string_view principal,
-                        std::string_view authority);
+                        std::string_view authority, std::uint64_t transaction = 0);
     std::string revision() const;
-    void finish_request() {
-        network_.finish_request(scheduler_.idle());
+    // All calls are serialized by the application owner. Tokens are never reused.
+    void finish_request(std::uint64_t transaction = 0, bool apply = true) {
+        if (pending_transaction_ && *pending_transaction_ == transaction) {
+            network_.finish_request(apply && scheduler_.idle());
+            pending_transaction_.reset();
+        }
+    }
+    void set_active_job_connections(bool enabled) {
+        active_job_connections_ = enabled;
+    }
+    bool active_job_connections() const {
+        return active_job_connections_;
+    }
+    using TransportStatus = std::string (*)(void*);
+    void transport_status(TransportStatus callback, void* context) {
+        transport_ = callback;
+        transport_context_ = context;
     }
 
   private:
@@ -34,6 +49,10 @@ class BrowserApi {
     standalone::Scheduler& scheduler_;
     NetworkControl& network_;
     std::string device_, firmware_;
+    TransportStatus transport_ = nullptr;
+    void* transport_context_ = nullptr;
+    bool active_job_connections_ = false;
+    std::optional<std::uint64_t> pending_transaction_;
     std::uint64_t network_revision_ = 0;
 };
 } // namespace wsprrypico::network

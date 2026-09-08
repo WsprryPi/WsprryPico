@@ -27,6 +27,9 @@ class HttpParser {
     bool ready() const {
         return ready_;
     }
+    bool exhausted() const {
+        return exhausted_;
+    }
     bool failed() const {
         return failed_;
     }
@@ -39,6 +42,7 @@ class HttpParser {
     HttpRequest request_;
     std::string headers_;
     std::size_t content_length_ = 0;
+    bool exhausted_ = false;
     bool headers_done_ = false, ready_ = false, failed_ = false;
 };
 HttpResponse http_error(unsigned status, std::string_view code);

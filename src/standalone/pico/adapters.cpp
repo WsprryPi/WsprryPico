@@ -7,6 +7,9 @@
 #include "pico/cyw43_arch.h"
 #include "pico/rand.h"
 #include "pico/time.h"
+#ifdef WSPRRY_PICO_STANDALONE_RF
+#include "pico/flash.h"
+#endif
 #include "wtp/json.hpp"
 
 #include <algorithm>
@@ -32,11 +35,18 @@ bool PicoFlash::read(std::size_t offset, std::span<std::uint8_t> data) {
 bool PicoFlash::erase(std::size_t offset) {
     if (offset % FLASH_SECTOR_SIZE || offset > storage_size - FLASH_SECTOR_SIZE)
         return false;
-    // Single-core polling architecture; no second core or background CYW43 IRQ
-    // accesses XIP. Callers must exclude armed/running jobs before flash writes.
+#ifdef WSPRRY_PICO_STANDALONE_RF
+    // Authority excludes Armed/Running and unknown output before entering here.
+    auto erase = [](void* argument) {
+        flash_range_erase(flash_base + *static_cast<std::size_t*>(argument), FLASH_SECTOR_SIZE);
+    };
+    if (flash_safe_execute(erase, &offset, 100) != PICO_OK)
+        return false;
+#else
     const auto irq = save_and_disable_interrupts();
     flash_range_erase(flash_base + offset, FLASH_SECTOR_SIZE);
     restore_interrupts(irq);
+#endif
     const auto* bytes = reinterpret_cast<const std::uint8_t*>(XIP_BASE + flash_base + offset);
     return std::all_of(bytes, bytes + FLASH_SECTOR_SIZE, [](auto b) { return b == 255; });
 }
@@ -44,9 +54,22 @@ bool PicoFlash::program(std::size_t offset, std::span<const std::uint8_t> page) 
     if (offset % FLASH_PAGE_SIZE || page.size() != FLASH_PAGE_SIZE ||
         offset > storage_size - FLASH_PAGE_SIZE)
         return false;
+#ifdef WSPRRY_PICO_STANDALONE_RF
+    struct Write {
+        std::size_t offset;
+        const std::uint8_t* data;
+    } write{offset, page.data()};
+    auto program = [](void* argument) {
+        const auto& write = *static_cast<Write*>(argument);
+        flash_range_program(flash_base + write.offset, write.data, FLASH_PAGE_SIZE);
+    };
+    if (flash_safe_execute(program, &write, 100) != PICO_OK)
+        return false;
+#else
     const auto irq = save_and_disable_interrupts();
     flash_range_program(flash_base + offset, page.data(), page.size());
     restore_interrupts(irq);
+#endif
     return true; // Journal independently verifies the complete record.
 }
 bool PicoNetwork::start(const Config& config) {

@@ -2,6 +2,7 @@
 
 #include "network/assets.hpp"
 #include "wtp/codec.hpp"
+#include "wtp/memory_budget.hpp"
 
 namespace wsprrypico::network {
 using namespace wtp;
@@ -88,7 +89,9 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
             {}};
 }
 HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal,
-                                std::string_view authority) {
+                                std::string_view authority, std::uint64_t transaction) {
+    if (!wtp::memory_admitted(r.body.size() * 2 + 16384))
+        return http_error(503, "resource_exhausted");
     if (r.body.size() > max_http_body)
         return http_error(413, "body_too_large");
     if (principal.empty())
@@ -105,8 +108,11 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         return http_error(403, "cross_site_request");
     service_.poll();
     if (r.method == "GET") {
-        if (auto asset = web_asset(r.path))
+        if (auto asset = web_asset(r.path)) {
+            if (!memory_admitted(asset->body.size() * 3))
+                return http_error(503, "resource_exhausted");
             return {200, std::string(asset->body), std::string(asset->type), {}};
+        }
         if (r.path == "/api/v1/capabilities") {
             Request request;
             request.operation = "CAPS";
@@ -119,12 +125,15 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 "{\"api_version\":1,\"wtp\":" + std::string(value->get("body")->raw) +
                 ",\"features\":{\"config\":true,\"schedules\":true,\"jobs\":true,\"network\":true,"
                 "\"softap\":false,\"ble\":false},\"active_job_connections\":" +
-                (service_.config().capability_engine.starts_with("inhibited-") ? "true" : "false") +
-                ",\"max_network_connections\":1,\"max_body_bytes\":32768}");
+                (active_job_connections_ ? "true" : "false") +
+                ",\"max_network_connections\":2,\"max_wtp_connections\":1,\"max_pending_"
+                "connections\":1,\"max_handshakes\":1,\"max_body_bytes\":32768}");
         }
         if (r.path == "/api/v1/status" || r.path == "/api/v1/jobs")
-            return ok("{\"job\":" + status_json(service_.status()) + ",\"standalone\":" +
-                      scheduler_.status() + ",\"network\":" + network_.status() + "}");
+            return ok(
+                "{\"job\":" + status_json(service_.status()) +
+                ",\"standalone\":" + scheduler_.status() + ",\"network\":" + network_.status() +
+                ",\"transport\":" + (transport_ ? transport_(transport_context_) : "null") + "}");
         if (r.path == "/api/v1/config")
             return config();
         if (r.path == "/api/v1/network") {
@@ -159,8 +168,11 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         if (!json::fields(*root, {"enabled"}) ||
             (root->get("enabled")->raw != "true" && root->get("enabled")->raw != "false"))
             return http_error(400, "invalid_network");
+        if (pending_transaction_)
+            return http_error(409, "network_change_pending");
         if (!network_.request_enabled(root->get("enabled")->boolean()))
             return http_error(503, "network_unavailable");
+        pending_transaction_ = transaction;
         ++network_revision_;
         auto result = ok(network_.status());
         result.etag = revision();

@@ -1,6 +1,9 @@
 #include "network/http.hpp"
 #include "network_support.hpp"
 #include "wtp/codec.hpp"
+#include "wtp/endpoint.hpp"
+#include "wtp/frame_parser.hpp"
+#include "wtp/memory_budget.hpp"
 using namespace wsprrypico;
 using namespace network_test;
 namespace {
@@ -110,12 +113,59 @@ void api_checks() {
     auto off = request("PUT", "/api/v1/network", "{\"enabled\":false}");
     off.headers["if-match"] = f.api.revision();
     REQUIRE(call(off).status == 200);
+    REQUIRE(f.network.enabled);
+    f.api.finish_request();
     REQUIRE(!f.network.enabled);
     REQUIRE(call(off).status == 412);
     f.flash.fail = true;
     preserved.headers["if-match"] = f.api.revision();
     preserved.body = config;
     REQUIRE(call(preserved).status == 503);
+}
+void deferred() {
+    Fixture f;
+    auto off = request("PUT", "/api/v1/network", "{\"enabled\":false}");
+    off.headers["if-match"] = f.api.revision();
+    REQUIRE(f.api.handle(off, "cert-a", "127.0.0.1:8443", 17).status == 200);
+    f.api.finish_request(18); // Unrelated response, close and reused slot.
+    f.api.finish_request(16, false);
+    REQUIRE(f.network.enabled && f.network.pending && f.network.applied == 0);
+    f.api.finish_request(17, false); // Initiating link loss cancels, never applies.
+    REQUIRE(f.network.enabled && !f.network.pending);
+    off.headers["if-match"] = f.api.revision();
+    REQUIRE(f.api.handle(off, "cert-a", "127.0.0.1:8443", 19).status == 200);
+    // USB and browser share authority; claim arriving before ACK cancels change.
+    wtp::Request hello;
+    hello.principal = "usb-physical";
+    hello.session_id = std::string(32, '7');
+    hello.request_id = std::string(32, '8');
+    hello.operation = "HELLO";
+    hello.payload_digest[0] = 1;
+    hello.body = wtp::HelloBody{{"WTP/1"}};
+    REQUIRE(f.service.handle(hello).ok);
+    hello.request_id = std::string(32, '9');
+    hello.operation = "CLAIM";
+    hello.body = wtp::ClaimBody{std::string(32, '7'), 60000};
+    REQUIRE(f.service.handle(hello).ok);
+    wtp::available_memory = []() -> std::size_t { return 50000; };
+    hello.request_id = std::string(32, 'a');
+    hello.operation = "NOT_AN_OPERATION";
+    REQUIRE(f.service.handle(hello).error == wtp::ErrorCode::UnknownOperation);
+    hello.request_id = std::string(32, 'b');
+    hello.operation = "LOAD";
+    wtp::Job plan;
+    plan.job_id = std::string(32, 'c');
+    plan.mode = "tone";
+    plan.total_duration_ns = 1000000;
+    plan.events.push_back({0, 1000000, true, 1000000});
+    hello.body = plan;
+    REQUIRE(f.service.handle(hello).error == wtp::ErrorCode::InternalError);
+    REQUIRE(f.service.status().state == wtp::State::Empty);
+    wtp::available_memory = nullptr;
+    f.api.finish_request(19);
+    REQUIRE(f.network.enabled && !f.network.pending && f.network.applied == 0);
+    off.headers["if-match"] = f.api.revision();
+    REQUIRE(f.api.handle(off, "cert-a", "127.0.0.1:8443", 20).status == 409);
 }
 void jobs() {
     Fixture f;
@@ -161,5 +211,69 @@ int main() {
     framing();
     api_checks();
     jobs();
+    deferred();
+    // JSON scratch admission must not silently narrow WTP's body grammar.
+    std::string many_keys = "{";
+    for (unsigned i = 0; i < 40; ++i)
+        many_keys +=
+            (i ? "," : "") + wtp::json::quote(std::string(129, 'k') + std::to_string(i)) + ":0";
+    many_keys += '}';
+    REQUIRE(wtp::json::parse(many_keys));
+    const auto unknown_wire = "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":\"" +
+                              std::string(32, '1') + "\",\"request_id\":\"" + std::string(32, '2') +
+                              "\",\"op\":\"UNKNOWN\",\"body\":" + many_keys + "}";
+    const auto unknown = wtp::json::parse(unknown_wire);
+    REQUIRE(unknown);
+    const auto decoded = wtp::decode_request(*unknown, "cert-a", bytes(unknown->raw));
+    REQUIRE(decoded && decoded->operation == "UNKNOWN");
+    {
+        Fixture f;
+        wtp::Endpoint endpoint(f.service, std::string(32, 'a'), "test");
+        endpoint.connect("cert-a");
+        const auto hello = wtp::encode_frame(bytes(
+            R"({"type":"request","protocol":"WTP/1","session_id":"11111111111111111111111111111111","request_id":"22222222222222222222222222222222","op":"HELLO","body":{"versions":["WTP/1"],"client_name":"pressure","client_version":"1"}})"));
+        std::size_t offset = 0;
+        while (offset < hello.size()) {
+            const auto used = endpoint.receive(std::span(hello).subspan(offset), 0);
+            REQUIRE(used != 0);
+            offset += used;
+        }
+        while (!endpoint.output().empty())
+            endpoint.consume_output(endpoint.output().size(), 0);
+        wtp::Request claim;
+        claim.principal = "cert-a";
+        claim.session_id = std::string(32, '1');
+        claim.request_id = std::string(32, '3');
+        claim.operation = "CLAIM";
+        claim.payload_digest[0] = 1;
+        claim.body = wtp::ClaimBody{std::string(32, '1'), 60000};
+        REQUIRE(f.service.handle(claim).ok);
+        wtp::Job plan;
+        plan.job_id = std::string(32, '4');
+        plan.mode = "tone";
+        plan.total_duration_ns = 1000000;
+        plan.events.push_back({0, 1000000, true, 1000000});
+        claim.request_id = std::string(32, '4');
+        claim.operation = "LOAD";
+        claim.payload_digest[0] = 2;
+        claim.body = plan;
+        REQUIRE(f.service.handle(claim).ok);
+        wtp::available_memory = []() -> std::size_t { return 0; };
+        endpoint.poll(1); // Memory pressure drops advisory output, never authority.
+        REQUIRE(endpoint.output().empty() && !endpoint.closed());
+        REQUIRE(f.service.status().owner_id == std::string(32, '1'));
+        REQUIRE(f.service.status().state == wtp::State::Loaded);
+        wtp::available_memory = nullptr;
+    }
+    wtp::available_memory = []() -> std::size_t { return 0; };
+    network::HttpParser starved;
+    starved.receive(bytes("PUT / HTTP/1.1\r\nHost: x\r\nContent-Length: 32768\r\n\r\n"));
+    REQUIRE(starved.exhausted());
+    wtp::FrameParser frame;
+    frame.feed(bytes("W"), 0);
+    REQUIRE(frame.closed());
+    Fixture f;
+    REQUIRE(f.api.handle(request("GET", "/api/v1/status"), "cert", "127.0.0.1:8443").status == 503);
+    wtp::available_memory = nullptr;
     std::cout << "HTTP/API adversarial behavior checks passed\n";
 }

@@ -1,5 +1,7 @@
 #include "wtp/json.hpp"
 
+#include "wtp/memory_budget.hpp"
+
 #include <algorithm>
 #include <charconv>
 #include <limits>
@@ -158,6 +160,7 @@ bool value(std::string_view s, std::size_t& p, unsigned depth, bool validate) {
         whitespace(s, p);
         const char end = c == '{' ? '}' : ']';
         std::vector<std::string_view> keys;
+        std::size_t maximum_key_bytes = 0;
         if (p < s.size() && s[p] == end) {
             ++p;
             return true;
@@ -167,8 +170,21 @@ bool value(std::string_view s, std::size_t& p, unsigned depth, bool validate) {
                 const auto key_start = p;
                 if (!string_token(s, p))
                     return false;
-                if (validate)
+                if (validate) {
+                    // Bound allocation by available scratch, not a new JSON
+                    // schema limit: unknown operations still need WTP's error
+                    // precedence, even with many or long body keys.
+                    maximum_key_bytes = std::max(maximum_key_bytes, p - key_start);
+                    const auto capacity = keys.size() == keys.capacity()
+                                              ? std::max<std::size_t>(8, keys.capacity() * 2)
+                                              : 0;
+                    if (!memory_admitted(capacity * sizeof(std::string_view) +
+                                         2 * maximum_key_bytes + 1024))
+                        return false;
+                    if (capacity)
+                        keys.reserve(capacity);
                     keys.push_back(s.substr(key_start, p - key_start));
+                }
                 whitespace(s, p);
                 if (p == s.size() || s[p++] != ':')
                     return false;

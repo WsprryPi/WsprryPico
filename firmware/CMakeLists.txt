@@ -136,9 +136,10 @@ target_include_directories(WsprryPico-StandaloneRF PRIVATE
     ${CMAKE_SOURCE_DIR}/src/standalone/pico)
 target_compile_definitions(WsprryPico-StandaloneRF PRIVATE
     WSPRRY_PICO_STANDALONE_RF=1 PICO_NO_BI_PROGRAM_BUILD_DATE=1 PICO_STACK_SIZE=0x4000
-    PICO_PANIC_FUNCTION=wsprrypico_panic)
+    PICO_PANIC_FUNCTION=wsprrypico_panic PICO_CORE1_STACK_SIZE=0)
+target_sources(WsprryPico-StandaloneRF PRIVATE ../src/rf/pico/worker.cpp)
 target_link_libraries(WsprryPico-StandaloneRF PRIVATE
-    wsprrypico_pico_rf pico_rand pico_time pico_unique_id hardware_flash
+    wsprrypico_pico_rf pico_rand pico_time pico_unique_id hardware_flash pico_flash pico_multicore
     pico_cyw43_arch_lwip_poll tinyusb_device)
 set_target_properties(WsprryPico-StandaloneRF PROPERTIES
     C_STANDARD 11 C_STANDARD_REQUIRED ON C_EXTENSIONS ON)

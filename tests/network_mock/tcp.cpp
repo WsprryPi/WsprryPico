@@ -73,6 +73,8 @@ void tcp_sent(tcp_pcb* p, err_t (*f)(void*, tcp_pcb*, u16_t)) {
     p->sent = f;
 }
 void tcp_abort(tcp_pcb* p) {
+    if (listener == p)
+        listener = nullptr;
     close(p->fd);
     clients.erase(std::remove(clients.begin(), clients.end(), p), clients.end());
     delete p;
@@ -106,6 +108,14 @@ void pbuf_free(pbuf* p) {
     delete[] p->payload;
     delete p;
 }
+void mock_tcp_hold_last_ack() {
+    if (!clients.empty())
+        clients.back()->hold_ack = true;
+}
+void mock_tcp_release_acks() {
+    for (auto* pcb : clients)
+        pcb->hold_ack = false;
+}
 void mock_tcp_poll() {
     if (!listener)
         return;
@@ -119,7 +129,7 @@ void mock_tcp_poll() {
     }
     const auto copy = clients;
     for (auto* pcb : copy) {
-        if (pcb->pending && pcb->sent) {
+        if (pcb->pending && pcb->sent && !pcb->hold_ack) {
             const auto n = pcb->pending;
             pcb->pending = 0;
             pcb->sent(pcb->arg, pcb, n);
@@ -133,8 +143,17 @@ void mock_tcp_poll() {
             pcb->receive(pcb->arg, pcb, nullptr, ERR_OK);
             continue;
         }
-        if (n < 0)
+        if (n < 0) {
+            if (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) {
+                // MIT sibling Phase 11.1 lesson: lwIP frees PCB before err callback.
+                const auto callback = pcb->error;
+                auto* context = pcb->arg;
+                tcp_abort(pcb);
+                if (callback)
+                    callback(context, ERR_ABRT);
+            }
             continue;
+        }
         auto* packet = new pbuf{static_cast<u16_t>(n), new unsigned char[n]};
         std::copy_n(buffer.data(), n, packet->payload);
         const auto result = pcb->receive(pcb->arg, pcb, packet, ERR_OK);

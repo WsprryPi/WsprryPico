@@ -1,5 +1,6 @@
 #pragma once
-// Single-core foreground polling: DHCP, ARP, IPv4, SNTP and bounded TLS/TCP.
+// Core-0 foreground polling: DHCP, ARP, IPv4, SNTP and bounded TLS/TCP.
+// Physical RF owns core 1; it never calls lwIP/CYW43.
 #define NO_SYS 1
 #define LWIP_SOCKET 0
 #define LWIP_NETCONN 0

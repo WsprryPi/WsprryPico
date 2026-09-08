@@ -57,8 +57,14 @@ defines bounded servicing and connection semantics; logging must never enter WTP
 The [strict WTP endpoint](development/wtp-endpoint.md) performs JSON validation,
 request dispatch and ordered response/event transmission. The [standalone scheduler](development/standalone.md) now shares this service
 with USB WTP and the [HTTPS browser API](browser-api.md). Optional TLS 1.3
-network control uses certificate principals, ALPN dispatch and foreground
-cryptography above raw lwIP callbacks. USB, WTP/TCP, browser jobs and standalone
+network control uses certificate principals and ALPN dispatch above raw lwIP
+callbacks. Core 0 retains application/USB/network/storage ownership. The physical
+standalone image dedicates core 1 to the RF engine/sink/peripheral and local launch
+interrupts, using a one-command synchronous ownership-transfer mailbox. Two TLS
+contexts on core 0 allow a persistent WTP owner plus an independent HTTPS browser.
+An independently owned UTC discipline copy ages on the RF core; idle-only flash
+writes coordinate both cores using SDK lockout. See the
+[11.2 ownership and acceptance record](development/phase11-2-review.md). USB, WTP/TCP, browser jobs and standalone
 schedules retain one ownership and execution authority. Network control defaults
 off; physical TLS/RF coexistence and production RF qualification remain open.
 

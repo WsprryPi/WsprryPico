@@ -13,9 +13,15 @@
 #include "wtp/codec.hpp"
 #include "wtp/endpoint.hpp"
 #include "wtp/json.hpp"
+#include "wtp/memory_budget.hpp"
+
+#include <malloc.h>
+extern "C" char __HeapLimit, __end__, __StackLimit, __StackTop;
+#include "hardware/sync.h"
 #ifdef WSPRRY_PICO_STANDALONE_RF
 #include "hardware/clocks.h"
-#include "rf/pico/pico_pio_dma.hpp"
+#include "rf/pico/worker.hpp"
+#include "rf/waveform.hpp"
 #else
 #include "standalone/dry_run_engine.hpp"
 static_assert(WSPRRY_PICO_RF_OUTPUT_DISABLED == 1);
@@ -54,11 +60,36 @@ extern "C" [[noreturn]] void wsprrypico_panic(const char* format, ...) {
         tight_loop_contents();
 }
 namespace {
+constexpr std::uint32_t stack_pattern = 0xa59c37e1;
+__attribute__((noinline)) void paint_stack() {
+    const auto saved = save_and_disable_interrupts();
+    std::uintptr_t sp;
+    asm volatile("mov %0, sp" : "=r"(sp));
+    for (auto p = reinterpret_cast<std::uintptr_t>(&__StackLimit); p + 128 < sp; p += 4)
+        *reinterpret_cast<volatile std::uint32_t*>(p) = stack_pattern;
+    restore_interrupts(saved);
+}
+std::size_t stack_used() {
+    auto p = reinterpret_cast<std::uintptr_t>(&__StackLimit);
+    const auto top = reinterpret_cast<std::uintptr_t>(&__StackTop);
+    while (p < top && *reinterpret_cast<volatile std::uint32_t*>(p) == stack_pattern)
+        p += 4;
+    return top - p;
+}
+std::size_t heap_peak = 0;
 std::uint64_t monotonic_now(void*) {
     return time_us_64() * 1000ULL;
 }
 } // namespace
 int main() {
+    paint_stack();
+    wsprrypico::wtp::available_memory = []() -> std::size_t {
+        const auto capacity = reinterpret_cast<std::uintptr_t>(&__HeapLimit) -
+                              reinterpret_cast<std::uintptr_t>(&__end__);
+        const auto used = static_cast<std::size_t>(mallinfo().uordblks);
+        heap_peak = std::max(heap_peak, used);
+        return used < capacity ? capacity - used : 0;
+    };
     // SDK uses scratch 4..7 for reboot bookkeeping. Preserve a small diagnostic
     // in 1..2, and enter an unowned, network-free recovery boot after a stall.
     const bool recovery = watchdog_enable_caused_reboot();
@@ -83,9 +114,7 @@ int main() {
     (void)store.load();
     // Both adapters claim PIO/DMA resources through the SDK allocator.
 #ifdef WSPRRY_PICO_STANDALONE_RF
-    static wsprrypico::rf::PicoPioDma hardware;
-    static wsprrypico::rf::PioDmaSink sink(hardware);
-    static wsprrypico::rf::StreamEngine engine(sink);
+    auto& engine = wsprrypico::rf::start_worker(clock);
 #else
     static wsprrypico::standalone::DryRunEngine engine;
 #endif
@@ -110,6 +139,7 @@ int main() {
                                                        wsprrypico::firmware::kFirmwareVersion);
     static wsprrypico::network::PicoServer server(service, browser_api, identities.device_id(),
                                                   wsprrypico::firmware::kFirmwareVersion);
+    browser_api.set_active_job_connections(true);
     if (!recovery && network.initialized())
         (void)server.start();
     network.listener_status(server.configured(), server.listening());
@@ -143,19 +173,27 @@ int main() {
                 ",\"fault_hash\":" + std::to_string(fault_hash) +
                 ",\"fault_pc\":" + std::to_string(fault_pc) +
                 ",\"fault_status\":" + std::to_string(fault_status) +
-                ",\"network\":" + network.status();
+                ",\"network\":" + network.status() +
+                ",\"heap_allocated_bytes\":" + std::to_string(mallinfo().uordblks) +
+                ",\"heap_available_bytes\":" + std::to_string(wsprrypico::wtp::available_memory()) +
+                ",\"heap_sampled_peak_bytes\":" + std::to_string(heap_peak) +
+                ",\"core0_stack_used_bytes\":" + std::to_string(stack_used()) +
+                ",\"tls_peak_bytes\":" + std::to_string(server.tls_peak());
 #ifdef WSPRRY_PICO_STANDALONE_RF
-            const auto metrics = hardware.metrics();
-            result +=
-                ",\"launch_observed_ns\":\"" + std::to_string(metrics.launch_ns) +
-                "\",\"dma_irqs\":" + std::to_string(metrics.dma_irqs) +
-                ",\"max_dma_irq_ns\":" + std::to_string(metrics.max_irq_ns) +
-                ",\"max_loop_us\":" + std::to_string(max_loop_us) +
-                ",\"max_refill_us\":" + std::to_string(max_refill_us) +
-                ",\"max_usb_us\":" + std::to_string(max_usb_us) +
-                ",\"max_request_us\":" + std::to_string(max_request_us) +
-                ",\"engine_diagnostic\":" + wsprrypico::wtp::json::quote(engine.diagnostic()) +
-                ",\"sink_diagnostic\":" + wsprrypico::wtp::json::quote(sink.diagnostic());
+            const auto metrics = engine.metrics();
+            result += ",\"launch_observed_ns\":\"" + std::to_string(metrics.launch_ns) + "\"" +
+                      ",\"dma_irqs\":" + std::to_string(metrics.dma_irqs) +
+                      ",\"max_dma_irq_ns\":" + std::to_string(metrics.max_irq_ns) +
+                      ",\"core1_stack_used_bytes\":" + std::to_string(metrics.stack_used_bytes) +
+                      ",\"rf_worker_commands\":" + std::to_string(metrics.commands) +
+                      ",\"rf_max_service_gap_ns\":\"" + std::to_string(metrics.max_service_gap_ns) +
+                      "\",\"rf_max_poll_ns\":\"" + std::to_string(metrics.max_poll_ns) +
+                      "\",\"rf_max_roundtrip_ns\":\"" + std::to_string(metrics.max_roundtrip_ns) +
+                      "\"" + ",\"max_loop_us\":" + std::to_string(max_loop_us) +
+                      ",\"max_authority_poll_us\":" + std::to_string(max_refill_us) +
+                      ",\"max_usb_us\":" + std::to_string(max_usb_us) +
+                      ",\"max_request_us\":" + std::to_string(max_request_us) +
+                      ",\"engine_diagnostic\":" + wsprrypico::wtp::json::quote(engine.diagnostic());
 #endif
             auto status = scheduler.status();
             if (!status.empty() && status.back() == '\n')
@@ -208,8 +246,8 @@ int main() {
             maximum(max_loop_us, last_loop_us);
         last_loop_us = measuring ? loop_us : 0;
 #endif
-        // Refill RF before and after foreground networking. TLS handshakes are
-        // refused during armed/running intervals; packet arrival never times RF.
+        // Core 1 owns physical refills/launch. Core 0 reconciles authority and
+        // services all transports; packet arrival never times waveform events.
         scheduler.poll();
 #ifdef WSPRRY_PICO_STANDALONE_RF
         if (measuring)

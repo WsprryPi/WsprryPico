@@ -33,9 +33,11 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     add_executable(network_tls_driver tests/network_tls_driver.cpp tests/network_mock/tcp.cpp src/network/pico/server.cpp)
     target_include_directories(network_tls_driver PRIVATE tests/network_mock ${CMAKE_BINARY_DIR}/network-test-generated)
     target_compile_definitions(network_tls_driver PRIVATE MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}")
-    target_link_libraries(network_tls_driver PRIVATE wsprrypico_core mbedtls mbedx509 mbedcrypto)
+    target_link_libraries(network_tls_driver PRIVATE wsprrypico_core wsprrypico_rf Threads::Threads mbedtls mbedx509 mbedcrypto)
     target_compile_options(network_tls_driver PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME network_tls_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/network_tls_tests.py
         $<TARGET_FILE:network_tls_driver> ${WSPRRY_PICO_TEST_CREDENTIAL_DIR})
     set_tests_properties(network_tls_tests PROPERTIES TIMEOUT 90 RUN_SERIAL TRUE)
 endif()
+
+include(${CMAKE_SOURCE_DIR}/cmake/network_client_interop.cmake)

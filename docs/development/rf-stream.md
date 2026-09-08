@@ -214,3 +214,13 @@ Running even before the next foreground poll consumes the engine report. STATUS
 never combines that live output with an obsolete Armed state. Unexpected output
 in other states or a nonlocal engine remains visible; terminal success still
 requires the ordinary engine report and verified shutdown.
+
+## Concurrent management integration
+
+The standalone physical image now uses the [11.2 RF worker](phase11-2-review.md).
+StreamEngine, sink, peripheral and launch guard remain on one owning core (core 1).
+The portable algorithms and 16,384-word buffers are unchanged. Core 0 communicates
+through a single synchronous rendezvous and owns JobService. At 138 MHz, one
+buffer provides 3.799188 ms; a 1.530 ms historical refill leaves about 2.269 ms
+before detection/interrupt/contention costs. Historical results do not qualify
+this two-core image. The earlier 150 MHz budget above remains profile-specific.

@@ -134,3 +134,10 @@ compromise recovery rotates that device CA and reissues clients. SoftAP/BLE and
 runtime provisioning remain Phase 12. Continuous browser availability during RF,
 companion WsprryPi TLS/API adoption, final hardware/timing/RF/reliability coverage
 and reproducible public release UF2 remain open work.
+
+## Subsequent concurrency work
+
+This is the retained original single-connection acceptance record. Its physical
+handshake restriction is superseded by the [Phase 11.2 review](phase11-2-review.md)
+for the new standalone images. Earlier software and RF results are not target
+qualification of that execution architecture.

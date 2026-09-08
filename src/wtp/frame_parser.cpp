@@ -1,5 +1,7 @@
 #include "wtp/frame_parser.hpp"
 
+#include "wtp/memory_budget.hpp"
+
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -66,9 +68,16 @@ std::vector<FrameEvent> FrameParser::feed(std::span<const std::uint8_t> bytes,
         const auto count = std::min(kChunkBytes, bytes.size() - offset);
         // Geometric growth must not turn a 65,552-byte frame into a 128 KiB
         // allocation on the target. One bounded feed chunk may follow a frame.
-        if (buffer_.size() + count > buffer_.capacity())
-            buffer_.reserve(std::min(kMaximumPayloadBytes + kFrameHeaderBytes + kChunkBytes,
-                                     std::max(buffer_.size() + count, buffer_.capacity() * 2)));
+        if (buffer_.size() + count > buffer_.capacity()) {
+            const auto capacity =
+                std::min(kMaximumPayloadBytes + kFrameHeaderBytes + kChunkBytes,
+                         std::max(buffer_.size() + count, buffer_.capacity() * 2));
+            if (!memory_admitted(capacity)) {
+                close(events);
+                break;
+            }
+            buffer_.reserve(capacity);
+        }
         buffer_.insert(buffer_.end(), bytes.begin() + static_cast<std::ptrdiff_t>(offset),
                        bytes.begin() + static_cast<std::ptrdiff_t>(offset + count));
         last_progress_ms_ = now_ms;

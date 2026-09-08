@@ -17,6 +17,7 @@ struct tcp_pcb {
     err_t (*receive)(void*, tcp_pcb*, pbuf*, err_t) = nullptr;
     err_t (*sent)(void*, tcp_pcb*, u16_t) = nullptr;
     unsigned pending = 0;
+    bool hold_ack = false;
     void (*error)(void*, err_t) = nullptr;
 };
 tcp_pcb* tcp_new_ip_type(int);
@@ -36,3 +37,5 @@ void tcp_recved(tcp_pcb*, u16_t);
 u16_t pbuf_copy_partial(const pbuf*, void*, u16_t, u16_t);
 void pbuf_free(pbuf*);
 void mock_tcp_poll();
+void mock_tcp_hold_last_ack();
+void mock_tcp_release_acks();

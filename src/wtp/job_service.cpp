@@ -1,5 +1,7 @@
 #include "wtp/job_service.hpp"
 
+#include "wtp/memory_budget.hpp"
+
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -334,6 +336,10 @@ Response JobService::dispatch(const Request& request) {
         if (const auto error = validate_job(*body); error != ErrorCode::None) {
             return reject(error);
         }
+        // Preserve normative validation/ownership order, then reserve bounded
+        // preparation, retained response and serialization working space.
+        if (!memory_admitted(65536))
+            return reject(ErrorCode::InternalError);
         const auto preparation = engine_.prepare(*body);
         if (!preparation.accepted) {
             return reject(ErrorCode::FrequencyRejected);

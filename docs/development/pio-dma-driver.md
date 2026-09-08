@@ -136,3 +136,14 @@ uncertainty and mapping error against the original request/device ceiling.
 An uncertainty increase can therefore refuse a previously accepted ARM.
 This timer-resolution handling is not a calibrated launch-accuracy claim.
 The low-level bench sink still requires explicitly aligned timestamps.
+
+## Phase 11.2 ownership
+
+The physical standalone application now creates/uses the complete engine/sink/
+PicoPioDma execution chain on core 1 through a bounded
+[RF worker](phase11-2-review.md). Construction before launch does not access
+peripherals; first `open`, IRQ registration, DMA and hardware-alarm calls occur
+on core 1. The same-core interrupt mask is retained and is not used as multicore
+synchronization. USB, TLS and application ownership remain on core 0. Flash
+lockout is permitted only while the authority has excluded Armed/Running/unknown
+output. Bench/RFWTP entry points retain their existing one-core ownership.

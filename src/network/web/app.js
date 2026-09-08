@@ -1,7 +1,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const session = crypto.randomUUID().replaceAll('-', '');
-let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false;
+let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
 const notice = (text, error = false) => { $('notice').textContent = text; $('notice').classList.toggle('error', error); };
 async function api(path, method = 'GET', body, etag) {
   const headers = {};
@@ -34,13 +34,13 @@ function fill(c) {
   form.expiry.value = c?.expires_utc_s ? new Date(c.expires_utc_s * 1000).toISOString().slice(0,19) : '';
 }
 async function refresh(loadConfig = false) {
-  // The Pico accepts one TLS connection at a time: keep requests sequential.
+  // Keep this browser sequential so the other admitted client can progress.
   try {
     if (!capabilities) capabilities = (await api('capabilities')).data;
-    snapshot = (await api('status')).data; expectedPause = false;
+    snapshot = (await api('status')).data; expectedPause = false; observedAt = new Date().toLocaleTimeString();
     const s = snapshot.standalone, n = snapshot.network;
     $('state').textContent = snapshot.job.state;
-    $('job-result').textContent = snapshot.job.job_id ? `Job ${snapshot.job.job_id}: ${snapshot.job.state} · last observed` : 'No loaded job · last observed';
+    $('job-result').textContent = snapshot.job.job_id ? `Job ${snapshot.job.job_id}: ${snapshot.job.state} · observed ${observedAt}` : 'No loaded job · observed ' + observedAt;
     $('output').textContent = snapshot.job.output_active ? 'Active' : 'Inactive';
     $('clock').textContent = `${s.clock_state} · ±${(Number(s.uncertainty_ns)/1e6).toFixed(2)} ms`;
     $('owner').textContent = snapshot.job.owner_id === session ? 'This browser' : snapshot.job.owner_id || 'Available';
@@ -49,8 +49,8 @@ async function refresh(loadConfig = false) {
     $('recovery').textContent = !capabilities.active_job_connections ? 'Network connections pause while RF jobs are armed or running. The job owner can abort over an established WTP connection; physical USB Console ABORT can also stop a job. ' : '';
     $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Settings saved. Restart the device through USB Console to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
     if (loadConfig) { const c = await api('config'); revision = c.revision; fill(c.data.config); }
-    notice('Connected · Status updated ' + new Date().toLocaleTimeString()); controls(true);
-  } catch (e) { if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else notice('Connection unavailable: ' + e.message + '. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
+    notice('Connected · Status updated ' + observedAt); controls(true);
+  } catch (e) { snapshot = null; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network']) $(id).textContent = 'Unknown'; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
 }
 async function action(fn) {
   busy = true; controls(online);
@@ -98,6 +98,6 @@ $('release').onclick = () => action(async () => { await job('RELEASE'); await re
 $('wifi-off').onclick = () => action(async () => {
   if (!confirm('Disconnect Wi-Fi? Reconnect using USB Console or restart the device.')) return;
   const n = await api('network'); await api('network','PUT',{enabled:false},n.revision);
-  snapshot = null; controls(false); notice('Wi-Fi disconnected. Use USB Console or restart to reconnect.');
+  snapshot = null; controls(false); notice('Wi-Fi disconnect requested. Refresh to verify; use USB Console or restart if Wi-Fi is unavailable.');
 });
 action(() => refresh(true));

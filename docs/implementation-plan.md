@@ -38,7 +38,12 @@ treated as long-term product documentation.
     TLS WTP/TCP, browser API v1, embedded UI, network management and local
     certificate lifecycle. Host tests and firmware cross-linking are recorded in
     the [Phase 11 review](development/phase11-review.md). Physical TLS/RF
-    coexistence and companion WsprryPi TLS/API adoption remain open.
+    coexistence remains open. WsprryPi 11.1 host software is implemented independently.
+    [11.2 concurrent management](development/phase11-2-review.md) implements software
+    isolation and instrumentation; target timing acceptance remains pending.
+    Remaining: 11.3 DHCP/mDNS/hostname certificates and joint resolution; 11.4
+    inhibited physical acceptance; 11.5 target resource/contention measurements;
+    11.6 conducted RF acceptance; 11.7 final joint review and Phase 11 closure.
 12. **Planned:** SoftAP and BLE provisioning.
 13. **Planned:** final hardware qualification and release, including the output
     network and filters, calibrated GPIO-edge timing, supported mode/band

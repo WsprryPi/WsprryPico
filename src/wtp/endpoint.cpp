@@ -1,6 +1,7 @@
 #include "wtp/endpoint.hpp"
 
 #include "wtp/codec.hpp"
+#include "wtp/memory_budget.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -40,7 +41,8 @@ void Endpoint::disconnect() {
 }
 bool Endpoint::enqueue(std::string text, std::uint64_t now, bool advisory) {
     if (text.size() > kMaximumPayloadBytes || output_.size() >= 8 ||
-        queued_bytes_ + text.size() + kFrameHeaderBytes > 131072) {
+        queued_bytes_ + text.size() + kFrameHeaderBytes > 131072 ||
+        !memory_admitted(text.size() + kFrameHeaderBytes + 1024)) {
         if (!advisory)
             disconnect();
         return false;
@@ -157,6 +159,12 @@ std::size_t Endpoint::receive(std::span<const std::uint8_t> input, std::uint64_t
     return count;
 }
 void Endpoint::payload(std::span<const std::uint8_t> bytes, std::uint64_t now) {
+    // Refuse transport work before decoding/dispatch when competing contexts
+    // have consumed its working space. No new operation or replay entry exists.
+    if (!memory_admitted(16384)) {
+        close_after_output();
+        return;
+    }
     // A complete request can take longer than one RF refill interval. Keep
     // execution progressing between the independently bounded codec stages.
     service_.poll();

@@ -48,18 +48,34 @@ struct Clock : wtp::Clock {
 };
 struct Identity : wtp::IdentitySource {
     unsigned boot = 0;
+    explicit Identity(unsigned initial = 0) : boot(initial) {}
     std::string new_boot_id() override {
         return std::string(31, '0') + std::to_string(++boot);
     }
 };
 struct Network : network::NetworkControl {
     bool enabled = true;
+    std::optional<bool> pending;
+    unsigned applied = 0;
+    bool request_enabled(bool value) override {
+        pending = value;
+        return true;
+    }
+    void finish_request(bool idle) override {
+        if (pending && idle) {
+            enabled = *pending;
+            ++applied;
+        }
+        pending.reset();
+    }
     bool set_enabled(bool value) override {
         enabled = value;
         return true;
     }
     std::string status() const override {
         return std::string("{\"enabled\":") + (enabled ? "true" : "false") +
+               ",\"test_pending\":" + (pending ? "true" : "false") +
+               ",\"test_applied\":" + std::to_string(applied) +
                ",\"link_status\":3,\"ipv4\":\"127.0.0.1\"}";
     }
 };
@@ -69,11 +85,17 @@ struct Fixture {
     Clock clock;
     standalone::DryRunEngine engine;
     Identity identities;
-    wtp::JobService service{clock, engine, identities};
+    static wtp::ServiceConfig physical_policy() {
+        wtp::ServiceConfig config;
+        config.capability_engine = "pio-dma-simulated-worker";
+        return config;
+    }
+    wtp::JobService service{clock, engine, identities, physical_policy()};
     standalone::Scheduler scheduler{store, service};
     Network network;
-    network::BrowserApi api{service, store, scheduler, network, "test-device", "test-firmware"};
-    Fixture() {
+    network::BrowserApi api;
+    Fixture(unsigned boot = 0, std::string device = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        : identities(boot), api(service, store, scheduler, network, device, "test-firmware") {
         REQUIRE(store.load());
     }
 };

@@ -74,7 +74,7 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
 endif()
 
 # Portable experimental RF library; not linked into the inhibited firmware.
-add_library(wsprrypico_rf src/rf/waveform.cpp src/rf/stream_engine.cpp src/rf/pio_dma_sink.cpp src/rf/bench.cpp)
+add_library(wsprrypico_rf src/rf/waveform.cpp src/rf/stream_engine.cpp src/rf/pio_dma_sink.cpp src/rf/bench.cpp src/rf/worker.cpp)
 set(WSPRRY_PICO_RF_SAMPLE_RATE_HZ "138000000" CACHE STRING "Experimental bench clock: 132000000, 138000000 or 150000000")
 if(NOT WSPRRY_PICO_RF_SAMPLE_RATE_HZ MATCHES "^(132000000|138000000|150000000)$")
     message(FATAL_ERROR "Unsupported experimental RF sample clock")
@@ -85,7 +85,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(wsprrypico_rf PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
 if(WSPRRY_PICO_BUILD_FIRMWARE)
-    target_compile_options(wsprrypico_rf PRIVATE -fstack-usage -fno-exceptions -fno-rtti)
+    # Allow the SDK linker's --gc-sections to discard bench-only code/tables
+    # from the standalone image while retaining them in diagnostic targets.
+    target_compile_options(wsprrypico_rf PRIVATE -fstack-usage -fno-exceptions -fno-rtti
+                           -ffunction-sections -fdata-sections)
 endif()
 
 if(WSPRRY_PICO_BUILD_FIRMWARE)
@@ -104,6 +107,13 @@ endif()
 
 if(WSPRRY_PICO_BUILD_TESTS)
     enable_testing()
+    find_package(Threads REQUIRED)
+    add_executable(rf_worker_tests tests/rf_worker_tests.cpp)
+    target_link_libraries(rf_worker_tests PRIVATE wsprrypico_rf Threads::Threads)
+    target_compile_options(rf_worker_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME rf_worker_tests COMMAND rf_worker_tests)
+    add_test(NAME rf_worker_failure_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/rf_worker_failure_tests.py $<TARGET_FILE:rf_worker_tests>)
     add_executable(network_tests tests/network_tests.cpp)
     target_link_libraries(network_tests PRIVATE wsprrypico_core)
     target_compile_options(network_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)

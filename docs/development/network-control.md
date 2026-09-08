@@ -52,8 +52,9 @@ no script installs trust, modifies a keychain or bypasses browser certificate
 warnings. Browse to `https://<reserved-ip>:<configured-port>/` and select the
 appropriate client identity. For a WTP controller, issue a separate client bundle
 and supply its certificate/private key plus the device CA to its TLS transport.
-The current WsprryPi integration is USB: a shipped WsprryPi TLS transport and its
-settings are **not implemented in this repository**.
+WsprryPi Phase 11.1 provides the host TLS transport and settings in its own
+repository. This repository owns the Pico implementation; the pinned client
+interoperability check below exercises the companion sources unchanged.
 
 Build an inhibited network-enabled image using the generated server bundle:
 
@@ -125,16 +126,28 @@ only after verified shutdown. A disable failure remains a latched fault. `STOP`
 retains its earlier standalone-only meaning. No network operation grants this
 physical override.
 
-New TLS handshakes are refused throughout physical armed/running intervals. A
-browser cannot reconnect during such a job, including a long future arming lead;
-use physical Console ABORT if necessary. An already connected WTP owner can issue
-ABORT. The page announces this restriction before job submission and preserves
-successful ARM status instead of misdiagnosing the expected connection pause.
-When network control is disabled, the earlier armed/running deferral of Wi-Fi
-polling is preserved. When enabled, RF is serviced around foreground network
-work, but actual refill/handshake/network contention remains a target acceptance
-gate. This implementation does not establish continuous browser monitoring while
-an RF job or another WTP network client owns the active TLS connection.
+Phase 11.2 admits two isolated TLS clients, at most one WTP stream, one waiting
+TCP connection and one computing handshake. The persistent WTP controller can
+retain ownership while an independent browser reads status during Armed/Running.
+A browser can abort its own job through another authenticated HTTPS request;
+a foreign principal or session cannot. Slow/extra clients are bounded and cannot
+reset another endpoint, response or replay history. See [browser API bounds](../browser-api.md).
+
+The physical standalone image gives core 1 exclusive ownership of StreamEngine,
+PIO/DMA and launch interrupts. Core 0 owns JobService, scheduler, USB, storage,
+SNTP, lwIP/CYW43, TLS/PSA/RNG and HTTP. A single release/acquire rendezvous transfers
+immutable borrowed commands while the caller waits; there is no abandoned work
+queue. Core 1 continuously services RF when core 0 is in crypto or parsing. UTC
+is copied as a complete discipline state and ages locally on core 1. Flash writes
+remain idle-only and use SDK multicore flash lockout. No TLS step is described as
+a measured latency bound. XIP/SRAM/DMA contention and watchdog/flash behavior still
+require separately authorized target acceptance.
+
+Console `INFO` adds RF-worker service-gap/poll/roundtrip, command count, core stack
+canaries, sampled heap peak and TLS allocation peak. API `transport` diagnostics
+include TLS/session limits and progress observations. Network control remains off
+by default; the standard image is still RF-inhibited. The [11.2 record](phase11-2-review.md)
+contains budgets, tests and the unexecuted target procedure.
 
 ## Hardware-free validation
 
@@ -175,3 +188,44 @@ test, which uses the same loopback port. Stop it with Ctrl-C.
 See the [Phase 11 review record](phase11-review.md) for checks, repairs and current
 qualification limits, and the [execution prompt](phase11-execution-prompt.md) for
 the scope used in this change.
+
+## Phase 11.2 reproducibility
+
+Optional actual 11.1-client interoperability uses unmodified WsprryPi sources at
+`d333c69edc8a65bf59ae52603110996921f82ce1`. Use an explicit clean checkout of that
+revision; the option never fetches, edits or builds inside the companion checkout:
+
+```sh
+cmake -S . -B build-host \
+  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/pinned/WsprryPi \
+  -DWSPRRY_PICO_TEST_MBEDTLS_PATH=/path/to/pico-sdk/lib/mbedtls
+cmake --build build-host --parallel
+ctest --test-dir build-host --output-on-failure
+```
+
+The added `network_11_1_interop` test builds the existing client, application,
+scheduler and TLS/HTTP implementation; the companion's original Pico revision
+gate is neither edited nor bypassed. An isolated local source copy is useful
+when its working checkout is advancing. OpenSSL development files must already
+be installed; set `OPENSSL_ROOT_DIR` if CMake needs their location.
+
+ASan/UBSan applies to C and C++ (including Mbed TLS):
+
+```sh
+cmake -S . -B build/phase11-2-sanitize -DCMAKE_BUILD_TYPE=Debug \
+  -DWSPRRY_PICO_BUILD_TESTS=ON \
+  -DWSPRRY_PICO_TEST_MBEDTLS_PATH=/path/to/pico-sdk/lib/mbedtls \
+  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/pinned/WsprryPi \
+  -DCMAKE_C_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer' \
+  -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'
+cmake --build build/phase11-2-sanitize --parallel
+ctest --test-dir build/phase11-2-sanitize --output-on-failure
+```
+
+A separate ThreadSanitizer build can omit TLS and run `rf_worker_tests` and
+`rf_worker_failure_tests` with `-DCMAKE_CXX_FLAGS='-fsanitize=thread -fno-omit-frame-pointer'`.
+These test software synchronization, not Pico interrupt/flash latency. Optional
+actual desktop/mobile rendering uses an already installed Chrome and Node with
+built-in WebSocket support: `node tests/network_browser_render.js`. Set
+`CHROME_BIN` outside macOS. It starts an isolated local fixture server/profile,
+keeps credentials mocked and saves ignored images under `build/phase11-2-ui`.

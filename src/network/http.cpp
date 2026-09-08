@@ -2,6 +2,7 @@
 
 #include "network/assets.hpp"
 #include "wtp/json.hpp"
+#include "wtp/memory_budget.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -88,6 +89,10 @@ void HttpParser::parse_headers() {
     }
     if (request_.method == "GET" && content_length_) {
         failed_ = true;
+        return;
+    }
+    if (!wtp::memory_admitted(content_length_)) {
+        exhausted_ = failed_ = true;
         return;
     }
     request_.body.reserve(content_length_);

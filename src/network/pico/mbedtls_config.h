@@ -28,3 +28,8 @@
 #define MBEDTLS_PLATFORM_TIME_ALT
 
 #define MBEDTLS_PLATFORM_MS_TIME_ALT
+
+// Keep full inbound TLS records; writes are already chunked to 1024 bytes.
+#define MBEDTLS_SSL_OUT_CONTENT_LEN 2048
+
+#define MBEDTLS_PLATFORM_MEMORY

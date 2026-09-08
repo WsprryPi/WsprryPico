@@ -33,7 +33,10 @@ passes all five operational modes at 138 MHz with QRSS3 workloads, compares
 Optional TLS 1.3 WTP/TCP, the HTTPS browser API and operator UI are implemented
 and host-tested. [Phase 11](docs/development/network-control.md) adds per-device
 certificate tooling and network management. Network control defaults off; target
-TLS/RF coexistence acceptance and companion WsprryPi TLS transport remain open.
+TLS/RF coexistence acceptance remains open. [Phase 11.2](docs/development/phase11-2-review.md)
+isolates physical waveform servicing and permits concurrent controller/browser
+connections; target timing acceptance is pending. WsprryPi's host TLS integration
+is independently implemented.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)

@@ -4,8 +4,11 @@
 #include "network_credentials.hpp"
 #include "pico/time.h"
 #include "psa/crypto.h"
+#include "wtp/memory_budget.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdlib>
 #include <cstring>
 
 extern "C" mbedtls_ms_time_t mbedtls_ms_time(void) {
@@ -15,9 +18,48 @@ extern "C" mbedtls_ms_time_t mbedtls_ms_time(void) {
 namespace wsprrypico::network {
 namespace {
 wtp::JobService* time_service = nullptr;
+PicoServer* tls_owner = nullptr;
+// TLS is entirely core-0 owned, including PSA and this allocator. Exhaustion
+// fails the allocating handshake/session; no allocation can consume RF memory.
+constexpr std::size_t tls_budget = 80 * 1024;
+struct alignas(std::max_align_t) Allocation {
+    std::size_t bytes;
+};
+std::size_t tls_used = 0, tls_high = 0, tls_failed = 0;
+void* tls_calloc(std::size_t count, std::size_t size) {
+    if (size && count > (tls_budget - sizeof(Allocation)) / size) {
+        ++tls_failed;
+        return nullptr;
+    }
+    const auto bytes = count * size + sizeof(Allocation);
+    if (bytes > tls_budget - tls_used) {
+        ++tls_failed;
+        return nullptr;
+    }
+    if (!wtp::memory_admitted(bytes)) {
+        ++tls_failed;
+        return nullptr;
+    }
+    auto* allocation = static_cast<Allocation*>(std::calloc(1, bytes));
+    if (!allocation) {
+        ++tls_failed;
+        return nullptr;
+    }
+    allocation->bytes = bytes;
+    tls_used += bytes;
+    tls_high = std::max(tls_high, tls_used);
+    return allocation + 1;
+}
+void tls_free(void* pointer) {
+    if (!pointer)
+        return;
+    auto* allocation = static_cast<Allocation*>(pointer) - 1;
+    tls_used -= allocation->bytes;
+    std::free(allocation);
+}
 mbedtls_time_t tls_time(mbedtls_time_t* output) {
-    const auto value =
-        static_cast<mbedtls_time_t>(time_service->clock_snapshot().utc_now_ns / 1'000'000'000ULL);
+    const auto value = static_cast<mbedtls_time_t>(
+        time_service ? time_service->clock_snapshot().utc_now_ns / 1'000'000'000ULL : 0);
     if (output)
         *output = value;
     return value;
@@ -28,7 +70,23 @@ bool retry(int result) {
 } // namespace
 PicoServer::PicoServer(wtp::JobService& service, BrowserApi& api, std::string device,
                        std::string firmware)
-    : service_(service), api_(api), endpoint_(service, std::move(device), std::move(firmware)) {}
+    : service_(service), api_(api),
+      connections_{Connection(*this, device, firmware), Connection(*this, device, firmware)} {}
+PicoServer::Connection::Connection(PicoServer& owner, std::string device, std::string firmware)
+    : owner_(owner), service_(owner.service_), api_(owner.api_),
+      endpoint_(service_, std::move(device), std::move(firmware)) {}
+PicoServer::~PicoServer() {
+    stop();
+}
+std::size_t PicoServer::tls_allocated() {
+    return tls_used;
+}
+std::size_t PicoServer::tls_peak() {
+    return tls_high;
+}
+std::size_t PicoServer::tls_failures() {
+    return tls_failed;
+}
 unsigned PicoServer::port() {
     return credentials::port;
 }
@@ -38,16 +96,17 @@ bool PicoServer::configured() const {
 }
 bool PicoServer::busy() const {
     const auto state = service_.status().state;
-    return !service_.config().capability_engine.starts_with("inhibited-") &&
+    return !api_.active_job_connections() &&
            (state == wtp::State::Armed || state == wtp::State::Running);
 }
 bool PicoServer::start() {
-    if (!configured() || setup_)
+    if (!configured() || setup_ || tls_owner)
         return false;
     setup_ = true;
+    tls_owner = this;
     time_service = &service_;
     mbedtls_platform_set_time(tls_time);
-    mbedtls_ssl_init(&ssl_);
+    mbedtls_platform_set_calloc_free(tls_calloc, tls_free);
     mbedtls_ssl_config_init(&config_);
     mbedtls_x509_crt_init(&cert_);
     mbedtls_x509_crt_init(&ca_);
@@ -82,8 +141,7 @@ bool PicoServer::start() {
     mbedtls_ssl_conf_ca_chain(&config_, &ca_, nullptr);
     static const char* protocols[] = {"wtp/1", "http/1.1", nullptr};
     if (check(mbedtls_ssl_conf_alpn_protocols(&config_, protocols)) ||
-        check(mbedtls_ssl_conf_own_cert(&config_, &cert_, &key_)) ||
-        check(mbedtls_ssl_setup(&ssl_, &config_)))
+        check(mbedtls_ssl_conf_own_cert(&config_, &cert_, &key_)))
         return false;
     auto* pcb = tcp_new_ip_type(IPADDR_TYPE_V4);
     if (!pcb) {
@@ -102,6 +160,24 @@ bool PicoServer::start() {
     }
     tcp_arg(listener_, this);
     tcp_accept(listener_, accept);
+    api_.transport_status(
+        [](void* context) {
+            const auto& self = *static_cast<PicoServer*>(context);
+            unsigned active = 0;
+            for (const auto& c : self.connections_)
+                active += c.client_ != nullptr;
+            return "{\"active\":" + std::to_string(active) +
+                   ",\"pending\":" + (self.pending_ ? "1" : "0") +
+                   ",\"admitted\":" + std::to_string(self.metrics_.admitted) +
+                   ",\"rejected\":" + std::to_string(self.metrics_.rejected) +
+                   ",\"timeouts\":" + std::to_string(self.metrics_.timeouts) +
+                   ",\"max_handshake_us\":\"" + std::to_string(self.metrics_.max_handshake_us) +
+                   "\",\"max_poll_us\":\"" + std::to_string(self.metrics_.max_poll_us) +
+                   "\",\"tls_allocated_bytes\":" + std::to_string(tls_used) +
+                   ",\"tls_peak_bytes\":" + std::to_string(tls_high) +
+                   ",\"tls_allocation_failures\":" + std::to_string(tls_failed) + "}";
+        },
+        this);
     return true;
 }
 err_t PicoServer::accept(void* context, tcp_pcb* pcb, err_t err) {
@@ -109,26 +185,30 @@ err_t PicoServer::accept(void* context, tcp_pcb* pcb, err_t err) {
     const auto clock = self.service_.clock_snapshot();
     if (err != ERR_OK || self.pending_ || self.busy() ||
         clock.state == wtp::ClockState::Unsynchronized || clock.utc_now_ns == 0) {
+        ++self.metrics_.rejected;
         tcp_abort(pcb);
         return ERR_ABRT;
     }
-    if (self.client_) {
-        self.pending_ = pcb;
-        self.pending_since_ms_ = time_us_64() / 1000;
-        tcp_arg(pcb, &self);
-        tcp_recv(pcb, pending_receive);
-        tcp_err(pcb, pending_error);
-    } else
-        self.activate(pcb);
+    self.pending_ = pcb;
+    self.pending_since_ms_ = time_us_64() / 1000;
+    tcp_arg(pcb, &self);
+    tcp_recv(pcb, pending_receive);
+    tcp_err(pcb, pending_error);
     return ERR_OK;
 }
-void PicoServer::activate(tcp_pcb* pcb) {
+void PicoServer::Connection::activate(tcp_pcb* pcb) {
     client_ = pcb;
+    generation_ = ++owner_.generation_;
+    ++owner_.metrics_.admitted;
     accepted_ms_ = progress_ms_ = time_us_64() / 1000;
     tcp_arg(pcb, this);
     tcp_recv(pcb, receive);
     tcp_err(pcb, error);
     tcp_sent(pcb, sent);
+    mbedtls_ssl_init(&ssl_);
+    setup_ = true;
+    if (mbedtls_ssl_setup(&ssl_, &owner_.config_))
+        close(false);
 }
 err_t PicoServer::pending_receive(void* context, tcp_pcb* pcb, pbuf* packet, err_t) {
     if (packet)
@@ -141,8 +221,8 @@ err_t PicoServer::pending_receive(void* context, tcp_pcb* pcb, pbuf* packet, err
 void PicoServer::pending_error(void* context, err_t) {
     static_cast<PicoServer*>(context)->pending_ = nullptr;
 }
-err_t PicoServer::receive(void* context, tcp_pcb*, pbuf* packet, err_t err) {
-    auto& self = *static_cast<PicoServer*>(context);
+err_t PicoServer::Connection::receive(void* context, tcp_pcb*, pbuf* packet, err_t err) {
+    auto& self = *static_cast<Connection*>(context);
     if (!packet) {
         self.peer_closed_ = true;
         return ERR_OK;
@@ -160,18 +240,18 @@ err_t PicoServer::receive(void* context, tcp_pcb*, pbuf* packet, err_t err) {
     pbuf_free(packet);
     return ERR_OK;
 }
-err_t PicoServer::sent(void* context, tcp_pcb*, u16_t bytes) {
-    auto& self = *static_cast<PicoServer*>(context);
+err_t PicoServer::Connection::sent(void* context, tcp_pcb*, u16_t bytes) {
+    auto& self = *static_cast<Connection*>(context);
     self.pending_tcp_bytes_ -= std::min<std::size_t>(bytes, self.pending_tcp_bytes_);
     return ERR_OK;
 }
-void PicoServer::error(void* context, err_t) {
-    auto& self = *static_cast<PicoServer*>(context);
+void PicoServer::Connection::error(void* context, err_t) {
+    auto& self = *static_cast<Connection*>(context);
     self.client_ = nullptr;
     self.peer_closed_ = true;
 }
-int PicoServer::send_tls(void* context, const unsigned char* bytes, std::size_t count) {
-    auto& self = *static_cast<PicoServer*>(context);
+int PicoServer::Connection::send_tls(void* context, const unsigned char* bytes, std::size_t count) {
+    auto& self = *static_cast<Connection*>(context);
     if (!self.client_)
         return MBEDTLS_ERR_SSL_INTERNAL_ERROR;
     const auto n = std::min<std::size_t>(tcp_sndbuf(self.client_), count);
@@ -186,8 +266,8 @@ int PicoServer::send_tls(void* context, const unsigned char* bytes, std::size_t 
     (void)tcp_output(self.client_);
     return static_cast<int>(n);
 }
-int PicoServer::receive_tls(void* context, unsigned char* bytes, std::size_t count) {
-    auto& self = *static_cast<PicoServer*>(context);
+int PicoServer::Connection::receive_tls(void* context, unsigned char* bytes, std::size_t count) {
+    auto& self = *static_cast<Connection*>(context);
     if (!self.rx_size_)
         return MBEDTLS_ERR_SSL_WANT_READ;
     const auto n = std::min(count, self.rx_size_);
@@ -198,7 +278,7 @@ int PicoServer::receive_tls(void* context, unsigned char* bytes, std::size_t cou
         tcp_recved(self.client_, static_cast<u16_t>(n));
     return static_cast<int>(n);
 }
-void PicoServer::close() {
+void PicoServer::Connection::close(bool apply) {
     if (client_) {
         tcp_arg(client_, nullptr);
         tcp_recv(client_, nullptr);
@@ -213,44 +293,112 @@ void PicoServer::close() {
     }
     client_ = nullptr;
     if (setup_)
-        (void)mbedtls_ssl_session_reset(&ssl_);
+        mbedtls_ssl_free(&ssl_);
+    setup_ = false;
+    if (generation_)
+        ++owner_.metrics_.closed;
     endpoint_.disconnect();
     pending_tcp_bytes_ = 0;
-    api_.finish_request();
+    if (generation_)
+        api_.finish_request(generation_, apply);
+    generation_ = 0;
     rx_size_ = plain_size_ = plain_offset_ = response_offset_ = 0;
-    response_.clear();
+    std::string{}.swap(response_);
     principal_.clear();
     http_ = HttpParser{};
     handshake_ = wtp_ = peer_closed_ = responded_ = close_notify_ = false;
 }
-void PicoServer::poll(bool link_up, std::string authority) {
-    service_.poll();
-    const auto pending_now = time_us_64() / 1000;
-    if (pending_ && (!link_up || busy() || pending_now - pending_since_ms_ >= 10000)) {
-        tcp_arg(pending_, nullptr);
-        tcp_err(pending_, nullptr);
-        tcp_recv(pending_, nullptr);
-        tcp_abort(pending_);
-        pending_ = nullptr;
+void PicoServer::close_pending() {
+    if (!pending_)
+        return;
+    tcp_arg(pending_, nullptr);
+    tcp_err(pending_, nullptr);
+    tcp_recv(pending_, nullptr);
+    tcp_abort(pending_);
+    pending_ = nullptr;
+}
+void PicoServer::stop() {
+    if (tls_owner == this)
+        api_.transport_status(nullptr, nullptr);
+    close_pending();
+    for (auto& c : connections_)
+        c.close(false);
+    if (listener_) {
+        tcp_arg(listener_, nullptr);
+        tcp_accept(listener_, nullptr);
+        tcp_abort(listener_);
+        listener_ = nullptr;
     }
-    if (peer_closed_ || (!link_up && client_)) {
-        close();
+    if (setup_) {
+        mbedtls_ssl_config_free(&config_);
+        mbedtls_x509_crt_free(&cert_);
+        mbedtls_x509_crt_free(&ca_);
+        mbedtls_pk_free(&key_);
+        mbedtls_ctr_drbg_free(&rng_);
+        mbedtls_entropy_free(&entropy_);
+        mbedtls_psa_crypto_free();
+    }
+    setup_ = false;
+    if (tls_owner == this) {
+        time_service = nullptr;
+        tls_owner = nullptr;
+    }
+}
+void PicoServer::poll(bool link_up, std::string authority) {
+    const auto started = time_us_64();
+    service_.poll();
+    if (!link_up) {
+        close_pending();
+        for (auto& c : connections_)
+            c.close(false);
         return;
     }
-    if (!client_ && pending_) {
-        auto* next = pending_;
-        pending_ = nullptr;
-        activate(next);
+    if (pending_ && (busy() || started / 1000 - pending_since_ms_ >= 10000)) {
+        ++metrics_.timeouts;
+        close_pending();
+    }
+    bool handshaking = false;
+    for (const auto& c : connections_)
+        handshaking |= c.client_ && !c.handshake_;
+    if (pending_ && !handshaking && generation_ != UINT64_MAX) {
+        for (auto& c : connections_)
+            if (!c.client_ && !c.generation_) {
+                auto* next = pending_;
+                pending_ = nullptr;
+                c.activate(next);
+                break;
+            }
+    }
+    unsigned active = 0;
+    for (std::size_t i = 0; i < connections_.size(); ++i) {
+        auto& c = connections_[(turn_ + i) % connections_.size()];
+        c.poll(authority);
+        active += c.client_ != nullptr;
+    }
+    turn_ = (turn_ + 1) % connections_.size();
+    metrics_.peak_active = std::max(metrics_.peak_active, active);
+    metrics_.max_poll_us = std::max(metrics_.max_poll_us, time_us_64() - started);
+}
+void PicoServer::Connection::poll(std::string_view authority) {
+    if (peer_closed_) {
+        close();
+        return;
     }
     if (!client_)
         return;
     const auto now = time_us_64() / 1000;
-    if ((!handshake_ && (busy() || now - accepted_ms_ >= 10000)) ||
+    if ((!handshake_ && (owner_.busy() || now - accepted_ms_ >= 10000)) ||
         (handshake_ && !wtp_ && now - accepted_ms_ >= 15000) || now - progress_ms_ >= 30000) {
+        ++owner_.metrics_.timeouts;
         close();
         return;
     }
     if (!handshake_) {
+        const auto clock = service_.clock_snapshot();
+        if (clock.state == wtp::ClockState::Unsynchronized || !clock.utc_now_ns) {
+            close(false);
+            return;
+        }
         mbedtls_ssl_set_bio(&ssl_, this, send_tls, receive_tls, nullptr);
         const auto result = mbedtls_ssl_handshake_step(&ssl_);
         service_.poll();
@@ -274,8 +422,16 @@ void PicoServer::poll(bool link_up, std::string authority) {
             principal_ += "0123456789abcdef"[b & 15];
         }
         wtp_ = std::strcmp(protocol, "wtp/1") == 0;
-        if (wtp_)
+        if (wtp_) {
+            for (const auto& other : owner_.connections_)
+                if (&other != this && other.client_ && other.handshake_ && other.wtp_) {
+                    close();
+                    return;
+                }
             endpoint_.connect(principal_);
+        }
+        owner_.metrics_.max_handshake_us =
+            std::max(owner_.metrics_.max_handshake_us, time_us_64() - accepted_ms_ * 1000);
         handshake_ = true;
         progress_ms_ = now;
         return;
@@ -313,7 +469,7 @@ void PicoServer::poll(bool link_up, std::string authority) {
             else if (!retry(result))
                 close();
         } else if (pending_tcp_bytes_ == 0)
-            close();
+            close(true); // Only an acknowledged response can finish its mutation.
         return;
     }
     if (wtp_ && !endpoint_.can_receive())
@@ -336,8 +492,10 @@ void PicoServer::poll(bool link_up, std::string authority) {
     else {
         plain_offset_ += http_.receive(bytes);
         if (http_.failed() || http_.ready()) {
-            response_ = (http_.failed() ? http_error(400, "invalid_http")
-                                        : api_.handle(http_.request(), principal_, authority))
+            response_ = (http_.failed()
+                             ? http_error(http_.exhausted() ? 503 : 400,
+                                          http_.exhausted() ? "resource_exhausted" : "invalid_http")
+                             : api_.handle(http_.request(), principal_, authority, generation_))
                             .wire();
             responded_ = true;
         }

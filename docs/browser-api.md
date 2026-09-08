@@ -66,8 +66,10 @@ A byte-identical config has the same revision; persistence still returns an
 explicit reboot requirement. Failed storage never reports a successful save.
 Changes require no owner, no armed/running/output state, and no latched fault.
 
-A network enable/disable request is queued until its HTTP response is acknowledged
-or the connection terminates. It is applied only if the service is still idle;
+A network enable/disable request is queued until its HTTP response is acknowledged.
+Premature termination cancels it. A monotonically increasing connection
+transaction token binds completion; an unrelated response or close cannot apply
+or cancel it. Link loss/server shutdown cancels it. It is applied only if the service is still idle;
 a newly acquired owner cancels the queued change. `requested_enabled` describes
 the pending request, while `enabled` describes actual state. This is deliberately
 not a persistent Wi-Fi switch. Disabling Wi-Fi requires USB Console `WIFI ON` or
@@ -122,12 +124,24 @@ HTTP request and response and is then closed; later requests require a new
 connection. A complete request can be dispatched before future trailing bytes
 arrive, but trailing bytes can never dispatch a second request.
 
-One TLS session is active at a time; one TCP connection may wait up to 10 seconds
-for handoff. Additional connections are rejected. TLS handshake deadline is 10
-seconds, total HTTP deadline is 15 seconds from activation, and an authenticated
-WTP connection has a 30-second idle deadline in addition to WTP framing/write
-stall limits. WTP still accepts its normative 65,536-byte payload limit; the
-smaller browser limit is advertised separately.
+Two TLS sessions may be active, with at most one authenticated WTP stream. This
+leaves a slot for an independent HTTPS browser while a WTP controller retains
+its connection. Without WTP, two HTTPS requests may compete. One additional TCP
+connection may wait; at most one TLS handshake computes at a time. Further TCP
+connections and a second WTP stream are rejected without evicting the owner.
+Connections progress in rotating order. Pending/handshake deadlines are 10 seconds,
+total HTTP deadline is 15 seconds from activation, and an authenticated WTP
+connection has a 30-second progress deadline in addition to 5-second WTP
+framing/write stall limits. HTTP remains one request per connection.
+
+Capabilities add `max_wtp_connections:1`, `max_pending_connections:1` and
+`max_handshakes:1`; `max_network_connections` is now 2. Status adds `transport`
+with current/peak admission, timeout and TLS allocation/latency diagnostics.
+64-bit durations remain decimal strings. These are observations, not measured
+RP2350 timing guarantees. The full WTP 65,536-byte payload and separate HTTP
+32,768-byte body limits remain. Shared-heap admission can reject a request or
+connection under pressure before its individual maximum: body/frame bounds are
+not promises that every simultaneous maximum allocation will fit.
 
 Transport/API errors use `{"error":{"code":"..."}}`. Important HTTP statuses:
 400 malformed/schema failure; 401 missing transport principal (defensive adapter
@@ -136,9 +150,17 @@ service rejection; 412 stale revision; 413 oversized adapter body; 428 missing
 revision; 503 storage/network unavailability. Framing errors produce 400 when a
 response is possible; TLS authentication failures produce no application response.
 
-For physical RF images, new TLS handshakes are refused while armed/running;
-`active_job_connections:false` advertises this restriction. A pre-established WTP
-connection can continue servicing its owning controller. Browser ARM therefore
-pauses subsequent browser management until terminal state. Physical USB Console
-`ABORT` is the local recovery control. Inhibited images allow new connections
-through simulated jobs. Live TLS/RF latency and heap behavior remain unqualified.
+`active_job_connections` is now an explicit application policy. The maintained
+standalone images set it true: the physical image isolates waveform servicing
+on core 1, and the standard image remains RF-inhibited. The browser continues
+status refresh and owner-authorized abort after ARM. Configuration, persistent
+schedules and disruptive Wi-Fi changes remain idle-only. A different certificate
+or browser session cannot adopt or abort the controller's job. Refreshing the
+page creates a new session, even with the same client certificate.
+
+A failed read makes state/output/clock/owner/network unknown and disables controls;
+unsaved drafts remain. Capacity exhaustion may require retrying a read. No LOAD
+or ARM is automatically retried after an ambiguous outcome. Unsupported adapters
+leave `active_job_connections:false` and retain the existing pause/recovery UI.
+See the [11.2 review](development/phase11-2-review.md) for exact software evidence,
+resource admission and pending target timing/RF acceptance.
