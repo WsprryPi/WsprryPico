@@ -17,11 +17,16 @@ output. The simulator permits foreground observation of a scheduled start within
 the configured uncertainty; its completion is a software diagnostic, not evidence
 of physical timing. It advertises `inhibited-standalone-simulator`.
 
-Explicit target `WsprryPico-StandaloneRF` uses the existing experimental 138 MHz
+Explicit target `WsprryPico-StandaloneRF` uses the existing experimental (default 138 MHz)
 PIO/DMA GP2 engine. Only that image joins persistent schedules to physical RF.
-It advertises `pio-dma-gp2`; both images expose `wspr` and `tone` WTP jobs with the
-existing four tone requests starting at 3,570,100 Hz, spaced 1.464843750 Hz.
+It advertises `pio-dma-gp2`; both images now expose finite `wspr`, `tone`, `qrss`,
+`fskcw` and `dfcw` host jobs using the shared experimental profile: 162 events,
+110.592 seconds, and 100 kHz through one Hz below half the selected sample rate.
+Autonomous schedules retain the existing 80 m WSPR profile. The simulator's
+numeric acceptance does not establish physical waveform representability.
 This is experimental scope, not supported-band or output-power qualification.
+See [host acceptance prerequisites](phase10-host-acceptance.md) for image selection,
+frequency adjustment, clock budgets and the remaining joint target gates.
 The separate `WsprryPico-RFBench` and USB-time `WsprryPico-RFWTP` remain available.
 
 Standalone and USB WTP share one `JobService`. The scheduler claims a distinct

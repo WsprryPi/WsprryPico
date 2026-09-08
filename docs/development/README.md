@@ -46,6 +46,10 @@ The [output/inhibit design](rf-output-design.md) remains a hardware proposal.
 
 ## Current checks
 
+The [Phase 10 host acceptance guide](phase10-host-acceptance.md) describes the
+SNTP-enabled five-mode images, optional actual-WsprryPi-client interoperability
+test and the separately authorized joint target acceptance procedure.
+
 Reproduce and check the hardware-free RF study with:
 
 ```sh

@@ -40,6 +40,7 @@ target_compile_definitions(WsprryPico PRIVATE
     PICO_NO_BI_PROGRAM_BUILD_DATE=1
     PICO_STACK_SIZE=0x4000
     WSPRRY_PICO_RF_OUTPUT_DISABLED=1
+    WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ}
     PICO_PANIC_FUNCTION=wsprrypico_panic
 )
 set_source_files_properties(pico_adapters.cpp usb_descriptors.c ../src/usb/transport.cpp PROPERTIES

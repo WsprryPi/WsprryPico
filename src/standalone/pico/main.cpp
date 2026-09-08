@@ -6,6 +6,7 @@
 #include "pico_adapters.hpp"
 #include "standalone/pico/adapters.hpp"
 #include "standalone/scheduler.hpp"
+#include "standalone/wtp_profile.hpp"
 #include "tusb.h"
 #include "usb/transport.hpp"
 #include "wtp/endpoint.hpp"
@@ -73,9 +74,7 @@ int main() {
     set_sys_clock_khz(wsprrypico::rf::sample_rate / 1000, true);
 #endif
     tud_init(0);
-    wsprrypico::time::DisciplineConfig discipline;
-    discipline.synchronized_for_ns = 90'000'000'000ULL;
-    discipline.holdover_for_ns = 180'000'000'000ULL;
+    const auto discipline = wsprrypico::standalone::clock_profile();
     static wsprrypico::time::UtcDiscipline clock(monotonic_now, nullptr, discipline);
     static wsprrypico::standalone::PicoFlash flash;
     static wsprrypico::standalone::Store store(flash);
@@ -89,15 +88,10 @@ int main() {
     static wsprrypico::standalone::DryRunEngine engine;
 #endif
     static wsprrypico::firmware::PicoIdentitySource identities;
-    wsprrypico::wtp::ServiceConfig config;
-    config.supported_modes = {"wspr", "tone"};
-    config.capability_engine = "inhibited-standalone-simulator";
-    config.minimum_frequency_nhz = 3'570'100'000'000'000ULL;
-    config.maximum_frequency_nhz = config.minimum_frequency_nhz + 3 * 1'464'843'750ULL;
-    config.maximum_arm_uncertainty_ns = wsprrypico::time::standalone_max_uncertainty_ns;
-    config.maximum_holdover_age_ns = 90'000'000'000ULL;
 #ifdef WSPRRY_PICO_STANDALONE_RF
-    config.capability_engine = "pio-dma-gp2";
+    const auto config = wsprrypico::standalone::wtp_profile(true);
+#else
+    const auto config = wsprrypico::standalone::wtp_profile(false);
 #endif
     static wsprrypico::wtp::JobService service(clock, engine, identities, config);
     static wsprrypico::wtp::Endpoint endpoint(service, identities.device_id(),

@@ -3,6 +3,14 @@
 Original WsprryPico code and documentation are covered by [MIT](LICENSE.md).
 Third-party material retains its own license and attribution requirements.
 
+The optional Phase 10 host interoperability test compiles unmodified WTP-Client
+sources from [WsprryPi](https://github.com/WsprryPi/WsprryPi) at
+`2819f0b8ccb05f12d7f978a4cee2cac830997bbf`. The external component is MIT,
+copyright 2026 Lee Bussy; its notice remains in `src/WTP-Client/LICENSE.md`
+and source headers in that checkout. No client source is vendored here, no
+production dependency is added and no client code enters the firmware. Preserve
+the component's MIT notice if distributing the optional test executable.
+
 The firmware build uses these external components without vendoring them:
 
 - Raspberry Pi Pico SDK 2.3.0, commit

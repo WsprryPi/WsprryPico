@@ -1,5 +1,6 @@
 #include "standalone/dry_run_engine.hpp"
 #include "standalone/scheduler.hpp"
+#include "standalone/wtp_profile.hpp"
 #include "time/sntp.hpp"
 #include "wtp/inhibited_rf_engine.hpp"
 #include "wtp/json.hpp"
@@ -502,9 +503,7 @@ void autonomous_test() {
     constexpr auto ns = 1'000'000'000ULL;
     std::uint64_t mono = 0;
     auto now = [](void* p) { return *static_cast<std::uint64_t*>(p); };
-    time::DisciplineConfig config;
-    config.synchronized_for_ns = 90 * ns;
-    config.holdover_for_ns = 180 * ns;
+    const auto config = standalone::clock_profile();
     time::UtcDiscipline clock(now, &mono, config);
     time::Sntp sntp(clock);
     MemoryFlash flash;
@@ -512,8 +511,7 @@ void autonomous_test() {
     CHECK(store.load() && store.save(*standalone::parse_config(example)));
     standalone::DryRunEngine engine;
     Identity identity;
-    wtp::ServiceConfig capabilities;
-    capabilities.maximum_arm_uncertainty_ns = time::standalone_max_uncertainty_ns;
+    const auto capabilities = standalone::wtp_profile(false);
     wtp::JobService service(clock, engine, identity, capabilities);
     standalone::Scheduler scheduler(store, service);
     scheduler.poll();

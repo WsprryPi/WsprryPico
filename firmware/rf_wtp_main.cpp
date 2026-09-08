@@ -4,6 +4,7 @@
 #include "pico/time.h"
 #include "pico_adapters.hpp"
 #include "rf/pico/pico_pio_dma.hpp"
+#include "rf/wtp_profile.hpp"
 #include "time/usb_time_source.hpp"
 #include "tusb.h"
 #include "usb/transport.hpp"
@@ -37,13 +38,7 @@ int main() {
     static wsprrypico::rf::PioDmaSink sink(hardware);
     static wsprrypico::rf::StreamEngine engine(sink);
     static wsprrypico::firmware::PicoIdentitySource identities;
-    wsprrypico::wtp::ServiceConfig service_config;
-    service_config.capability_engine = "pio-dma-gp2";
-    service_config.supported_modes = {"wspr", "tone", "qrss", "fskcw", "dfcw"};
-    service_config.minimum_frequency_nhz = wsprrypico::rf::minimum_frequency_nhz;
-    service_config.maximum_frequency_nhz = wsprrypico::rf::maximum_frequency_nhz;
-    service_config.max_events = wsprrypico::rf::max_events;
-    service_config.max_job_duration_ns = wsprrypico::rf::max_duration_ns;
+    auto service_config = wsprrypico::rf::wtp_profile("pio-dma-gp2");
     service_config.maximum_arm_uncertainty_ns = 20'000'000ULL;
     static wsprrypico::wtp::JobService service(clock, engine, identities, service_config);
     static wsprrypico::wtp::Endpoint endpoint(service, identities.device_id(),

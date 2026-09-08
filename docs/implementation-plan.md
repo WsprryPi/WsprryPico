@@ -23,7 +23,11 @@ treated as long-term product documentation.
    frames independently decoded after a wall-power boot without a USB host.
    This is bounded functional acceptance; final RF/reliability qualification
    remains in Phase 13.
-10. **Next:** WsprryPi client/backend integration.
+10. **In progress:** WsprryPi client/backend software integration is delivered on
+    its feature branch. Pico SNTP-enabled five-mode host capabilities and
+    hardware-free current-client interoperability are implemented; joint Linux
+    USB and conducted RF target acceptance remain open. See the
+    [host acceptance prerequisites](development/phase10-host-acceptance.md).
 11. **Planned:** Wi-Fi/TCP and the shared browser API.
 12. **Planned:** SoftAP and BLE provisioning.
 13. **Planned:** final hardware qualification and release, including the output
@@ -197,7 +201,9 @@ Phase 13 qualification work.
 
 ## Subsequent slices
 
-1. Add WsprryPi client integration using the same conformance fixtures; plan changes in that repository independently.
+1. Complete joint target acceptance of the WsprryPi client integration using the
+   [firmware/clock acceptance procedure](development/phase10-host-acceptance.md).
+   Host delivery, operator documentation and merging remain independent repository work.
 2. Add Wi-Fi/TCP, shared JSON API adapters and embedded browser assets, followed by SoftAP provisioning.
 3. Add BLE provisioning/local management with a documented recovery path.
 4. Qualify supported engine/mode/band combinations and release WsprryPico-x.y.z.uf2 with reproducible build identity.

@@ -35,6 +35,7 @@ passes all five operational modes at 138 MHz with QRSS3 workloads, compares
 - [Browser API direction](docs/browser-api.md)
 - [RF feasibility investigation](docs/rf-feasibility.md)
 - [Implementation plan](docs/implementation-plan.md)
+- [WsprryPi host acceptance prerequisites](docs/development/phase10-host-acceptance.md)
 - [Experimental PIO band campaign](docs/development/band-campaign.md)
 - [PIO/DMA driver](docs/development/pio-dma-driver.md)
 - [Portable RF stream](docs/development/rf-stream.md)
