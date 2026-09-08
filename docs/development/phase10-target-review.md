@@ -1,9 +1,11 @@
 # Phase 10 joint target review
 
 Status: in progress. Host installation, operator documentation and inhibited
-USB acceptance are delivered. Source 23376c2 Tone, QRSS, FSKCW and DFCW conducted
-acceptance pass at 135500 Hz. Three-frame WSPR exposed a clock-refresh retry
-gap; its repair and final closeout checks are in progress; the old QRM channel is not a completion gate.
+USB acceptance are delivered. Source 23376c2 passed all four shorter conducted
+modes and one independently decoded WSPR frame. Consecutive WSPR exposed a
+clock-refresh retry gap; after that repair, DFCW exposed a local-launch STATUS
+race. The reviewed status repair needs final-source RF acceptance and restoration.
+The old QRM channel is not a completion gate.
 
 ## Physical interoperability finding
 
@@ -419,7 +421,7 @@ checkout of the original reviewed 2819f0b source, preserving the user's checkout
 and the installed e95932f host identity. This is test dependency isolation, not
 an upgrade or rollback of the installed application.
 
-## Final-source acceptance campaign
+## Source 23376c2 acceptance campaign
 
 Clean source `23376c296c7d4220bebe58763f9fe2f151439a76` passed 25 host tests,
 17 sanitizer tests and 16 tests at each of 132 and 150 MHz. Second adversarial
@@ -442,7 +444,7 @@ Tone uses the real host application/client and compiler through its separately
 built finite driver. Installed-release keyed/WSPR jobs use the private HTTP API.
 No product host source changes were made during this closeout.
 
-| Final-image mode | Independent result | Capture SHA-256 |
+| Source 23376c2 mode | Independent result | Capture SHA-256 |
 |---|---|---|
 | Tone | Pass; 5.000 s burst and carrier acquisition | `3336a090fcca3f95bdebadbc8c035ceeca4c7784a0d7dd796802f6afc34d8785` |
 | QRSS ETE | Pass; 3/9/3 s marks and 9 s character gaps | `b919caeea08bb9da62eb320f29451b8710724e423ff5a43b438b228def0c8d3b` |
@@ -490,3 +492,71 @@ the valid correlated response restores synchronization. The second assessment
 found no additional actionable issue. All 25 host and 17 sanitizer tests pass.
 Live acceptance must still establish that this policy recovers in the actual
 interframe window; the software regression alone does not close that gate.
+
+The retained first WSPR capture independently decoded with no measurement issues:
+SHA-256 `873898b1e79a0004e22e4ec5f61a586c0ef350eb112eb04c246d7c53fb9e3d0f`,
+interval 69.950–180.542 s. Its separate `partial-frame-analysis.json` explicitly
+marks the three-frame campaign failed. No passing retry replaces this evidence.
+
+## Clock-retry source acceptance
+
+Clean source `1ec70e7c891cfcb4d40ee1c929232989fce86db5` contains the reviewed
+retry policy. All 25 host and 17 sanitizer tests passed after the added real-SNTP
+correlation/recovery regression. All four firmware targets were explicitly built:
+
+```sh
+cmake -S . -B build/phase10-target-build
+cmake --build build/phase10-target-build --target WsprryPico WsprryPico-StandaloneRF WsprryPico-RFWTP WsprryPico-RFBench --parallel 6
+```
+
+The RF targets are excluded from the default build. A pre-flash artifact check
+caught that the first default-only build left their older binaries untouched;
+all were explicitly rebuilt and their embedded 1ec70e7c891c revision verified
+before flashing. ELF symbol inspection again confirmed physical launch is absent
+from the standard image and present in the three explicit RF targets. The final
+manifest replaced the preliminary mixed-build manifest before any RF flash/test.
+
+Standard UF2 SHA-256:
+`3704ab866d4a852fa82f47362a2f7b39ff30a99fce52a4db8d9debd64dde30d3`.
+StandaloneRF UF2 SHA-256:
+`0479f4b9dc97983fab3c55433ff791eef8b5bab1beb851ffb4df388859a0d189`.
+RF boot: `4bf3d65518da3fc4c1674ceafdfd6df5`. Station settings, disabled scheduling
+and watermark were retained. Source 23376c2's manifest is archived separately.
+All final-source captures use suffix `8`; exact receiver, path, installed host,
+mode settings and acceptance thresholds are unchanged from the preceding run.
+
+
+## Local launch STATUS race
+
+On 1ec70e7, Tone, QRSS and FSKCW passed again. DFCW emitted only 75 ms before
+the host latched a remote safety fault and aborted. Evidence remains in
+`evidence/rf-dfcw-8/` (IQ SHA-256
+`9e498e07454d0b19f38c09ba85812f716fe9da43cc562f96f244596baf331d9c`).
+This is failed acceptance, including the host's blocked cleanup. Console later
+confirmed output inactive, aborted state and no engine/sink fault. The bounded
+supervisor restored the original installed service; no subsequent RF was started.
+
+Source analysis identified another launch boundary race: the local timer can
+assert physical output after the foreground poll captured Armed/inactive, before
+STATUS separately reads live output. That mixed observation is Armed/active,
+which correctly latches the real host client's safety fault. The deterministic
+regression reproduces that exact ordering and failed on the old implementation.
+
+STATUS now reports Running when live output establishes launch of the current
+locally scheduled Armed job. It samples output once, retains actual output truth,
+and does not change job authority, launch timing, immutable ARM replies, terminal
+completion, shutdown or host safety checks. Nonlocal Armed/active and Failed/active
+observations remain visible. Terminal/fault processing still runs through the
+engine report and verified disable path. Tests cover both local/nonlocal engines,
+initial inactive Armed state, the interrupt gap, immutable STATUS responses and
+subsequent active/inactive failure observations. The existing real PIO sink test
+already fires its launch interrupt at snapshot-unlock and verifies a coherent
+engine report; this regression closes the additional job-service observation gap.
+
+
+Second adversarial assessment found no further actionable issue in the STATUS
+repair: it applies only to a retained locally scheduled Armed job with physically
+active output, cannot turn Failed into Running, and does not report inactive
+output or terminal success. The host remains unchanged. All 25 host and 17
+sanitizer tests pass after the active-failure regression; formatting and diff
+checks pass. Repeat target acceptance is required on this exact repaired source.

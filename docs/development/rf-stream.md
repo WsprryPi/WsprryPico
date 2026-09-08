@@ -206,3 +206,11 @@ state and output activity together, avoiding a stale pre-launch report being
 compared with post-launch GPIO activity. Missing acknowledgement still fails and stops
 the sink; it does not extend the planned waveform or change SDR diagnostic
 thresholds.
+
+
+A local launch may occur between a foreground service poll and a STATUS read.
+For the currently locally scheduled Armed job, observed active output establishes
+Running even before the next foreground poll consumes the engine report. STATUS
+never combines that live output with an obsolete Armed state. Unexpected output
+in other states or a nonlocal engine remains visible; terminal success still
+requires the ordinary engine report and verified shutdown.

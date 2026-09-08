@@ -77,11 +77,19 @@ class MockRfEngine final : public RfEngine {
     bool force_failure = false;
     bool stall_completion = false;
     bool active = false;
+    bool local_scheduling = false;
     std::size_t prepare_calls = 0;
     std::size_t begin_calls = 0;
     std::size_t disable_calls = 0;
     std::vector<AppliedEvent> applied;
     std::vector<FrequencyAdjustment> adjustments;
+
+    bool schedules_locally() const override {
+        return local_scheduling;
+    }
+    bool schedule(const Job& job, std::uint64_t start, const LocalStartConditions&) override {
+        return begin(job, start);
+    }
 
     PrepareResult prepare(const Job& job) override {
         ++prepare_calls;
@@ -446,6 +454,46 @@ void test_local_execution_and_duplicate_arm() {
     CHECK(engine.begin_calls == 1);
 }
 
+void test_local_launch_status_race() {
+    for (const bool local : {false, true}) {
+        VirtualClock clock;
+        MockRfEngine engine;
+        engine.local_scheduling = local;
+        ServiceConfig config;
+        config.minimum_arm_lead_ns = 10;
+        TestIdentitySource identities;
+        JobService service(clock, engine, identities, config);
+        establish_owner(service);
+        const auto job = sample_job();
+        CHECK(service.handle(request("LOAD", job, 'c')).ok);
+        CHECK(
+            service
+                .handle(request("ARM", ArmBody{job.job_id, clock.value.utc_now_ns + 10, 1000}, 'd'))
+                .ok);
+        service.poll();
+        CHECK(service.status().state == State::Armed && !service.status().output_active);
+        clock.advance(10);
+        // Local timer launches between the foreground poll and STATUS capture.
+        // A nonlocal engine has no such authority: its unexpected output must
+        // remain visible as an inconsistent armed/active safety observation.
+        engine.active = true;
+        const auto response = service.handle(request("STATUS", std::monostate{}, 'e'));
+        CHECK(response.ok && response.status_snapshot);
+        const auto snapshot = *response.status_snapshot;
+        CHECK(snapshot.output_active && snapshot.job_id == job.job_id);
+        CHECK(snapshot.state == (local ? State::Running : State::Armed));
+        service.poll();
+        CHECK(service.status().state == State::Running);
+        engine.force_failure = true;
+        service.poll();
+        CHECK(service.status().state == State::Failed && !service.status().output_active);
+        engine.active = true;
+        CHECK(service.status().state == State::Failed && service.status().output_active);
+        engine.active = false;
+        CHECK(response.status_snapshot->output_active); // Immutable observation.
+    }
+}
+
 void test_missed_start_and_abort_safety() {
     VirtualClock clock;
     MockRfEngine engine;
@@ -755,6 +803,7 @@ int main() {
         {"job validation and idempotency", test_job_validation_and_idempotency},
         {"clock and arm rejections", test_clock_and_arm_rejections},
         {"local execution and duplicate arm", test_local_execution_and_duplicate_arm},
+        {"local launch status race", test_local_launch_status_race},
         {"missed start and abort safety", test_missed_start_and_abort_safety},
         {"clock loss at start misses job", test_clock_loss_at_start_misses_job},
         {"disable failure is terminal fault", test_disable_failure_is_terminal_fault},

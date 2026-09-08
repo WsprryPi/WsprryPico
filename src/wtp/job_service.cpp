@@ -592,6 +592,14 @@ void JobService::reset() {
 
 ServiceStatus JobService::status() const {
     ServiceStatus result{boot_id_, state_, engine_.output_active(), std::nullopt, std::nullopt, {}};
+    // A local timer may launch after poll() captured an armed/inactive report.
+    // The live output observation then establishes that this locally scheduled
+    // job has started. Do not combine it with the stale foreground armed state.
+    // Unexpected output in other states/engines remains visible as a fault;
+    // terminal transitions still require poll() and verified engine shutdown.
+    if (result.state == State::Armed && result.output_active && job_ && arm_ &&
+        arm_->scheduled_locally)
+        result.state = State::Running;
     if (owner_) {
         result.owner_id = owner_->owner_id;
     }
