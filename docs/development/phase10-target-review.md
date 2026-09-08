@@ -167,7 +167,8 @@ Corrected observers were rerun; those attempts are not counted as passes.
 
 ## Repaired firmware and remaining target work
 
-The clean repaired source is `4c35aaaf7a66` (following `3bccf7339afa`). All four
+The clean repaired source is `8b26cad0fccbad838af8dc6f8412a6ba41a6cc37`
+(following `3bccf7339afa` and `4c35aaaf7a66`). All four
 firmware images built with Pico SDK 2.3.0 at
 `98a542c1a62fb549ffb5d66a3e5892b06276b670`, Arm toolchain 15.3.1, Release,
 Pico 2 W and 138 MHz physical clock. ELF symbol inspection confirms the standard
@@ -175,10 +176,10 @@ image contains no physical Pico PIO/DMA launch implementation.
 
 | Image | SHA-256 |
 |---|---|
-| Standard inhibited | `dc8478fe15e47fde18ef80386d2a79c2af8e1f0c3d31c429ff080b171863c7bf` |
-| StandaloneRF | `c6dc45f32b942d60377758a49f60da2837e523dacd07d8966628a4e7deb2ba0c` |
-| RFWTP | `6f3bb9d818f833e9ff67f2b6533aaefd2619b0c64f159eca8c036eb7faf77cee` |
-| RFBench | `fab32a65e9a8893e5d6e8bb983d185aec63096800ddbca1b43946e3bb58308ec` |
+| Standard inhibited | `0636397544da1b5dc950dc56b028ac7a7d61ee8d6466a661d8b6ea6cb227efa3` |
+| StandaloneRF | `2b24f7b184caf70687fa4ca89988e5ec04603b30276b306ea97b3a3e8d0c215d` |
+| RFWTP | `1728d8620cb40c848386aff971e7fa1f826c1232e6f7cbc4100c5278cc62093a` |
+| RFBench | `79452eff5fc42d375482af7470f85720ec3b7698c0fc8aa648d967811b766d4b` |
 
 The standard and StandaloneRF images are staged on wspr5 at
 `/home/pi/phase10-wtp-acceptance/`. Generated firmware and raw IQ are not tracked.
@@ -190,7 +191,7 @@ its fault latch through a remote ownership request. The user has been asked to
 reconnect only the Pico USB cable. RF acceptance is paused pending that action.
 
 After reconnection, recheck serial/device/boot and inactive disabled scheduling;
-flash and verify the staged `4c35aaaf7a66` StandaloneRF image. Repeat the bounded
+flash and verify the staged `8b26cad0fccb` StandaloneRF image. Repeat the bounded
 five-second Tone, real-host QRSS/FSKCW/DFCW ETE jobs and three WSPR frames at
 137500 Hz. Bind each run to Pico GP2, its confirmed 60 dB attenuation and common
 SDR combiner; keep GPSDO Output 1 and wspr5 GPIO4 inactive. The exact receiver is
@@ -212,5 +213,8 @@ That check is repaired. Regressions now cover the exclusion boundary at
 admission and after ARM, as well as budget growth and missed ticks. All 25 host,
 17 sanitizer and 16 tests per alternate profile passed again. Source
 reassessment found no further actionable defect in the changed paths.
-The next firmware build must include this last correction before target use;
-the preceding `4c35aaaf7a66` image table is retained until that build is recorded.
+All four final firmware images were then rebuilt from clean source
+`8b26cad0fccb`. The image table above contains their final hashes. A generated
+`final-firmware-manifest.json` under the local target-acceptance build directory
+and on wspr5 records source, UF2/ELF hashes and physical-engine symbol checks.
+No successful conducted run is claimed for this final image.

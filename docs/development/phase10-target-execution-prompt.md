@@ -108,3 +108,29 @@ not independent documentation/build/review. An unexpected identity, unknown
 output, foreign ownership, clock failure or failed cleanup blocks further RF.
 Leave the device inhibited and scheduling disabled when physical acceptance
 cannot continue; report the remaining user action precisely.
+
+## Current execution checkpoint
+
+Read `phase10-target-review.md` before resuming. Host integration and operator
+manual are published, and the exact release executable is installed on wspr5.
+The earlier inhibited USB cases passed. Two physical interoperability defects
+and a subsequent adversarial leap-boundary finding are repaired. Final source
+`8b26cad0fccb` passed the host/sanitizer/alternate-clock suites and all four
+firmware builds. Its standard and StandaloneRF UF2 files plus
+`final-firmware-manifest.json` are staged in `/home/pi/phase10-wtp-acceptance/`.
+
+The running `3bccf7339afa` image remains in a failed, independently verified
+RF-inactive state. Its Console idle guard blocks software reboot. A request is
+pending for the user to unplug/reconnect only the Pico USB cable. Wait for that
+confirmation before resuming device work. Then verify identity, new boot,
+disabled scheduling and inactive output, flash the final image, and continue
+finite Tone/keyed/three-frame WSPR acceptance. No successful RF acceptance is
+claimed for the repaired image. Use the installed release for applicable runtime
+checks and restore the standard inhibited image after RF work.
+
+Retain the failed `rf-tone` and `rf-tone-2` directories. Use a fresh capture
+suffix such as `3`; never overwrite failed attempts. The acceptance helpers in
+`/home/pi/phase10-wtp-acceptance/` are bounded test orchestration, not maintained
+product code. Recheck their identities, explicit engine guards, private daemon
+lifetime and cleanup before reuse. Only one owner may open the Pico WTP CDC
+interface at a time; only one receiver process may use RSP1B `2404058C60`.
