@@ -209,6 +209,11 @@ void failures_test() {
         } else if (fault == 4) {
             hw.complete(); // Missing next buffer: fail without replay.
             CHECK(sink.poll(hw.time).state == wtp::EngineState::Failed);
+            CHECK(sink.diagnostic() == "refill_starved");
+            CHECK(!sink.submit(1, 1, words, rf::block_samples));
+            CHECK(sink.diagnostic() == "refill_starved");
+            CHECK(sink.stop(hw.time));
+            CHECK(sink.diagnostic() == "refill_starved");
         } else if (fault == 5) {
             hw.txstall = true;
             CHECK(sink.poll(hw.time).state == wtp::EngineState::Failed);

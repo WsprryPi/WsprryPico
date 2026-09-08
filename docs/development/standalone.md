@@ -107,8 +107,11 @@ hour before provisioning an enabled schedule.
 `INFO` adds device/build identity, recovery diagnostics, network link state,
 SNTP counters and latest correlated RTT/sample uncertainty. It includes the
 sanitized schedule status; RF images also report launch and DMA diagnostics.
-`REBOOT` and `BOOTSEL` first stop local scheduling, require unowned idle state,
-verify inactive output, then reset. The inhibited image additionally offers
+`REBOOT` and `BOOTSEL` first stop local scheduling and require an unowned,
+inactive state. A latched failure is eligible only when storage is healthy and
+autonomous scheduling is persistently disabled. The engine must then disable
+successfully and confirm inactive output before reset. This explicit Console
+recovery does not let WTP requests clear a fault or steal an owner. The inhibited image additionally offers
 `WIFI OFF` and `WIFI ON` while idle for controlled network-loss testing.
 
 Use `scripts/standalone_console.py ACTION --port DEVICE --device-id ID --run`.

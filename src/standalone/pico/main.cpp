@@ -111,6 +111,15 @@ int main() {
     bool overflow = false;
     std::uint64_t reboot_at = 0;
     bool bootloader = false;
+#ifdef WSPRRY_PICO_STANDALONE_RF
+    std::uint64_t last_loop_us = 0, max_loop_us = 0, max_refill_us = 0;
+    std::uint64_t max_usb_us = 0, max_request_us = 0;
+    auto maximum = [](std::uint64_t& peak, std::uint64_t start) {
+        const auto elapsed = time_us_64() - start;
+        if (elapsed > peak)
+            peak = elapsed;
+    };
+#endif
     auto command = [&](std::string_view text) -> std::string {
         if (text == "INFO") {
             std::string result =
@@ -131,6 +140,10 @@ int main() {
                 ",\"launch_observed_ns\":\"" + std::to_string(metrics.launch_ns) +
                 "\",\"dma_irqs\":" + std::to_string(metrics.dma_irqs) +
                 ",\"max_dma_irq_ns\":" + std::to_string(metrics.max_irq_ns) +
+                ",\"max_loop_us\":" + std::to_string(max_loop_us) +
+                ",\"max_refill_us\":" + std::to_string(max_refill_us) +
+                ",\"max_usb_us\":" + std::to_string(max_usb_us) +
+                ",\"max_request_us\":" + std::to_string(max_request_us) +
                 ",\"engine_diagnostic\":" + wsprrypico::wtp::json::quote(engine.diagnostic()) +
                 ",\"sink_diagnostic\":" + wsprrypico::wtp::json::quote(sink.diagnostic());
 #endif
@@ -141,8 +154,8 @@ int main() {
         }
         if (text == "REBOOT" || text == "BOOTSEL") {
             (void)scheduler.command("STOP");
-            if (!scheduler.idle() || !engine.disable(monotonic_now(nullptr) + 100'000'000ULL) ||
-                engine.output_active())
+            if (!scheduler.reset_permitted() ||
+                !engine.disable(monotonic_now(nullptr) + 100'000'000ULL) || engine.output_active())
                 return "{\"ok\":false,\"error\":\"not_idle\"}\n";
             bootloader = text == "BOOTSEL";
             reboot_at = time_us_64() + 250'000;
@@ -169,16 +182,34 @@ int main() {
         }
         watchdog_update();
         watchdog_hw->scratch[1] = 3;
+#ifdef WSPRRY_PICO_STANDALONE_RF
+        const bool measuring = service.status().state == wsprrypico::wtp::State::Running;
+        const auto loop_us = time_us_64();
+        if (measuring && last_loop_us)
+            maximum(max_loop_us, last_loop_us);
+        last_loop_us = measuring ? loop_us : 0;
+#endif
         // Refill RF first; networking is deferred for the entire armed/frame interval.
         scheduler.poll();
+#ifdef WSPRRY_PICO_STANDALONE_RF
+        if (measuring)
+            maximum(max_refill_us, loop_us);
+#endif
         const auto state = service.status().state;
         if (state != wsprrypico::wtp::State::Armed && state != wsprrypico::wtp::State::Running) {
             watchdog_hw->scratch[1] = 4;
             network.poll();
         }
         watchdog_hw->scratch[1] = 5;
+#ifdef WSPRRY_PICO_STANDALONE_RF
+        const auto usb_us = time_us_64();
+#endif
         tud_task();
         wsprrypico::usb::service();
+#ifdef WSPRRY_PICO_STANDALONE_RF
+        if (measuring)
+            maximum(max_usb_us, usb_us);
+#endif
         if (wsprrypico::usb::take_console_reset()) {
             length = 0;
             overflow = false;
@@ -216,7 +247,14 @@ int main() {
                     size = wsprrypico::usb::wtp_transport_read(input);
                     offset = 0;
                 }
+#ifdef WSPRRY_PICO_STANDALONE_RF
+                const auto request_us = time_us_64();
+#endif
                 offset += endpoint.receive(std::span(input).subspan(offset, size - offset), now_ms);
+#ifdef WSPRRY_PICO_STANDALONE_RF
+                if (measuring)
+                    maximum(max_request_us, request_us);
+#endif
             }
             endpoint.consume_output(wsprrypico::usb::wtp_transport_write(endpoint.output()),
                                     now_ms);

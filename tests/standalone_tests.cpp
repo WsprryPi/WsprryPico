@@ -227,7 +227,7 @@ struct Identity : wtp::IdentitySource {
 struct Engine : wtp::RfEngine {
     wtp::InhibitedRfEngine backing;
     unsigned prepared = 0, began = 0;
-    bool reject = false;
+    bool reject = false, active = false;
     wtp::Job job;
     wtp::PrepareResult prepare(const wtp::Job& j) override {
         ++prepared;
@@ -245,9 +245,35 @@ struct Engine : wtp::RfEngine {
         return backing.disable(deadline);
     }
     bool output_active() const override {
-        return false;
+        return active;
     }
 };
+void reset_guard_tests() {
+    MemoryFlash flash;
+    standalone::Store store(flash);
+    CHECK(store.load());
+    auto config = *standalone::parse_config(example);
+    config.enabled = false;
+    CHECK(store.save(config));
+    Clock clock;
+    Engine engine;
+    Identity identity;
+    wtp::JobService service(clock, engine, identity);
+    standalone::Scheduler scheduler(store, service);
+    CHECK(scheduler.reset_permitted());
+    engine.active = true;
+    service.reset();
+    CHECK(service.status().state == wtp::State::Failed);
+    CHECK(!scheduler.reset_permitted());
+    engine.active = false;
+    CHECK(!scheduler.idle() && scheduler.reset_permitted());
+    // Merely querying eligibility must leave the WTP fault latched.
+    CHECK(service.status().state == wtp::State::Failed);
+    config.enabled = true;
+    CHECK(store.save(config));
+    CHECK(!scheduler.reset_permitted());
+}
+
 void scheduler_tests() {
     constexpr auto ns = 1'000'000'000ULL;
     MemoryFlash flash;
@@ -372,6 +398,10 @@ void scheduler_tests() {
     CHECK(sched.command("CONFIG " + example).find("busy") != std::string::npos);
     CHECK(sched.command("STOP").find("external_owner") != std::string::npos);
     CHECK(svc.status().owner_id == std::string(32, 'b'));
+    CHECK(!sched.reset_permitted());
+    clk.advance(61 * ns);
+    svc.poll();
+    CHECK(sched.reset_permitted());
 }
 void put(std::span<std::uint8_t> bytes, std::uint64_t value) {
     for (std::size_t i = 0; i < bytes.size(); ++i)
@@ -574,6 +604,7 @@ void autonomous_test() {
 int main() {
     config_tests();
     storage_tests();
+    reset_guard_tests();
     scheduler_tests();
     sntp_tests();
     autonomous_test();

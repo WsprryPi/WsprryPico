@@ -71,7 +71,7 @@ class PioDmaSink final : public BlockSink {
     static void dispatch(void* context, DriverEvent event);
     void event(DriverEvent event);
     bool queue_tail();
-    void fault();
+    void fault(const char* reason);
     PioDmaHardware& hw_;
     std::array<Block, 2> queue_{};
     std::size_t head_ = 0, queued_ = 0;

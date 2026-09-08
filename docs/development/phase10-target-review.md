@@ -218,3 +218,47 @@ All four final firmware images were then rebuilt from clean source
 `final-firmware-manifest.json` under the local target-acceptance build directory
 and on wspr5 records source, UF2/ELF hashes and physical-engine symbol checks.
 No successful conducted run is claimed for this final image.
+
+## Resumed target attempt on 2026-09-08
+
+After the user-confirmed power cycle, source `8b26cad0fccb` StandaloneRF was
+flashed and verified. New boot `fe39543cc9dcc0d698f11a2f12add15c` acquired SNTP
+within the unchanged 500 ms budget; scheduling remained disabled. GPSDO outputs
+were off, RP1 passed its maintained idle predicate, and the installed host
+release identity remained unchanged.
+
+The finite Tone now accepted LOAD and ARM, including the final-off marker and
+fractional timestamp. The device reported launch and 42 DMA IRQs, then latched
+a streaming failure. Host cleanup remained blocked; independent Console INFO
+confirmed output inactive. The requested five-second Tone did not complete.
+Receiver capture and cleanup succeeded with zero overflow/clipping, but offline
+acceptance found no complete uninterrupted five-second burst. The failed case
+is retained in `evidence/rf-tone-3/`; IQ SHA-256 is
+`59b4de0e24b18e9bdeaaf0cf595ed200f72f89e3bf8836ea34894349ea23569a`.
+
+The recorded `state_changed` sink diagnostic masked the preceding interrupt
+fault. The sink now preserves its first named cause through subsequent failed
+refill attempts and disable. Regressions cover that retention. StandaloneRF
+INFO adds maximum running-loop, refill, USB-service and request-processing
+times in microseconds; these are diagnostic observations, not calibrated timing.
+The streaming root cause is still under investigation and is not claimed fixed.
+
+Explicit Console REBOOT/BOOTSEL gains a guarded local recovery path for an
+unowned failed state with inactive output, healthy storage and persistently
+disabled scheduling. Engine disable and inactive verification remain mandatory.
+WTP remote fault semantics are unchanged. Tests cover active output, enabled
+scheduling, foreign ownership, lease expiry, and preservation of the fault latch
+when merely querying reset eligibility.
+
+A second Pico power cycle has been requested because the currently running
+`8b26cad0fccb` image cannot perform this local fault recovery. After that action,
+load the diagnostic build and repeat only the bounded Tone until its failure is
+understood. Do not proceed to keyed/WSPR acceptance or mark Phase 10 complete.
+
+The user confirmed that second power cycle. Boot
+`ad86ace3b53d0088a866547772c8b73c` was verified empty/inactive with scheduling
+disabled. The diagnostic/recovery changes passed all 25 host tests, 17 sanitizer
+tests and 16 tests at each alternate clock. Source adversarial review checked
+first-fault retention, owner/active/schedule guards and the delayed reset path;
+no further actionable issue was found in that slice. The streaming defect itself
+remains open pending target diagnosis.

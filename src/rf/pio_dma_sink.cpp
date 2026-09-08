@@ -22,10 +22,12 @@ bool PioDmaSink::stop(std::uint64_t deadline_ns) {
 bool PioDmaSink::submit(std::uint64_t epoch, std::uint64_t sequence,
                         std::span<const std::uint32_t> words, std::uint64_t samples) {
     Guard lock(hw_);
-    failure_ = "";
+    if (state_ == wtp::EngineState::Idle)
+        failure_ = "";
     if (state_ != wtp::EngineState::Idle && state_ != wtp::EngineState::Armed &&
         state_ != wtp::EngineState::Running) {
-        failure_ = "state_changed";
+        if (!*failure_)
+            failure_ = "state_changed";
         return false;
     }
     if (epoch == 0 || sequence != submitted_ || (submitted_ && epoch != epoch_) || queued_ == 2 ||
@@ -91,18 +93,20 @@ bool PioDmaSink::arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t 
         const auto& block = queue_[(head_ + i) % 2];
         if (!hw_.dma(block.words.data(), static_cast<std::uint32_t>(block.words.size()), true,
                      epoch_, block.sequence)) {
-            fault();
+            fault("arm_dma_rejected");
             return false;
         }
     }
     if (!queue_tail() || !hw_.alarm(start_, epoch_)) {
-        fault();
+        fault("arm_tail_or_alarm_rejected");
         return false;
     }
     return true;
 }
 
-void PioDmaSink::fault() {
+void PioDmaSink::fault(const char* reason) {
+    if (!*failure_)
+        failure_ = reason;
     state_ = wtp::EngineState::Failed;
     (void)hw_.halt(hw_.now_ns());
 }
@@ -132,7 +136,7 @@ void PioDmaSink::event(DriverEvent event) {
         return;
     }
     if (event.sequence != dma_blocks_ || event.kind == DriverEventKind::DmaError) {
-        fault();
+        fault(event.kind == DriverEventKind::DmaError ? "dma_error" : "dma_sequence");
         return;
     }
     if (tail_) {
@@ -141,14 +145,14 @@ void PioDmaSink::event(DriverEvent event) {
         // frequency-bearing tail remains.
         if (state_ != wtp::EngineState::Running || dma_samples_ != total_ ||
             !hw_.halt(hw_.now_ns())) {
-            fault();
+            fault("tail_completion");
             return;
         }
         state_ = wtp::EngineState::Complete;
         return;
     }
     if (queued_ == 0 || (state_ == wtp::EngineState::Running && hw_.stalled())) {
-        fault();
+        fault(queued_ == 0 ? "empty_dma_queue" : "pio_txstall");
         return;
     }
     dma_samples_ += queue_[head_].samples;
@@ -159,9 +163,10 @@ void PioDmaSink::event(DriverEvent event) {
     if (dma_samples_ == total_) {
         tail_ = true;
         if (!tail_submitted_)
-            fault();
+            fault("missing_zero_tail");
     } else if (queued_ == 0 || !queue_tail()) {
-        fault(); // Never chain into an unprepared or previously consumed buffer.
+        fault(queued_ == 0 ? "refill_starved" : "zero_tail_rejected");
+        // Never chain into an unprepared or previously consumed buffer.
     }
 }
 
@@ -169,7 +174,7 @@ SinkReport PioDmaSink::poll(std::uint64_t) {
     Guard lock(hw_);
     const auto now_ns = hw_.now_ns();
     if (state_ == wtp::EngineState::Running && !tail_ && hw_.stalled()) {
-        fault();
+        fault("pio_txstall");
     }
     if (state_ == wtp::EngineState::Complete) {
         return {state_, epoch_, submitted_, total_, now_ns, hw_.active()};

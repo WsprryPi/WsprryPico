@@ -8,6 +8,7 @@ class Scheduler {
     Scheduler(Store& store, wtp::JobService& service) : store_(store), service_(service) {}
     void poll();
     bool idle() const;
+    bool reset_permitted() const;
     std::string command(std::string_view line);
     std::string status() const;
 
