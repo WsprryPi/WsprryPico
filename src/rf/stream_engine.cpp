@@ -55,7 +55,10 @@ bool StreamEngine::check_clock(void* context) {
         const auto leap = *now.leap_transition_utc_ns;
         const auto low = leap > 1'000'000'000 ? leap - 1'000'000'000 : 0;
         const auto high = leap > limit - 1'000'000'000 ? limit : leap + 1'000'000'000;
-        return conditions.start_utc_ns > high ||
+        const auto earliest_start = conditions.start_utc_ns > conditions.start_adjustment_ns
+                                        ? conditions.start_utc_ns - conditions.start_adjustment_ns
+                                        : 0;
+        return earliest_start > high ||
                conditions.start_utc_ns + self.job_->total_duration_ns < low;
     }
     return true;

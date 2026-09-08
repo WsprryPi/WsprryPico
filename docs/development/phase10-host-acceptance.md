@@ -3,7 +3,10 @@
 The standard `WsprryPico` and explicit `WsprryPico-StandaloneRF` images provide
 SNTP time and the same finite host-job capability envelope. Host jobs share
 ownership and the job service with autonomous schedules. USB never supplies
-RF event timing. Joint physical target acceptance remains open.
+RF event timing. Bounded inhibited USB acceptance and host installation are
+delivered; conducted acceptance of the repaired physical image remains open.
+See the [joint target review](phase10-target-review.md) for exact evidence and
+the remaining power-cycle and RF gates.
 
 ## Image selection
 

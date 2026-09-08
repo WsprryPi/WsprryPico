@@ -279,8 +279,9 @@ wtp::Request request(std::string op, wtp::RequestBody body, char id) {
 }
 
 void fractional_start_test() {
-    for (unsigned action = 0; action < 4; ++action) {
+    for (unsigned action = 0; action < 6; ++action) {
         Hardware hw;
+        hw.time = 2'000'000'000;
         Clock clock(hw);
         clock.utc_offset = 333;
         clock.uncertainty = 100;
@@ -293,12 +294,17 @@ void fractional_start_test() {
         const auto payload = job(rf::block_samples * 2);
         CHECK(service.handle(request("LOAD", payload, 'c')).ok);
         const auto start = hw.time + 100'000'000;
+        if (action == 5) {
+            clock.leap = wtp::LeapState::InsertPending;
+            clock.transition = start - 1'000'000'000 + 500;
+        }
         // UTC request and clock mapping produce a monotonic target 562 ns
         // after a timer tick. Admission includes that early adjustment.
         const auto response = service.handle(request(
             "ARM", wtp::ArmBody{payload.job_id, start + 895, action == 1 ? 661ULL : 662ULL}, 'd'));
-        if (action == 1) {
-            CHECK(!response.ok && response.error == wtp::ErrorCode::ClockUncertain);
+        if (action == 1 || action == 5) {
+            CHECK(!response.ok && response.error == (action == 1 ? wtp::ErrorCode::ClockUncertain
+                                                                 : wtp::ErrorCode::LeapUnsafe));
             CHECK(service.status().state == wtp::State::Loaded && !hw.enabled);
         } else {
             CHECK(response.ok && response.start_monotonic_ns == start + 562);
@@ -307,6 +313,10 @@ void fractional_start_test() {
                 ++clock.uncertainty;
             if (action == 3)
                 hw.time = start + 1000;
+            if (action == 4) {
+                clock.leap = wtp::LeapState::InsertPending;
+                clock.transition = start - 1'000'000'000 + 500;
+            }
             hw.alarm_event(1);
             CHECK(hw.enabled == (action == 0));
             CHECK(hw.launches == (action == 0 ? 1U : 0U));

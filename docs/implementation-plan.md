@@ -23,10 +23,12 @@ treated as long-term product documentation.
    frames independently decoded after a wall-power boot without a USB host.
    This is bounded functional acceptance; final RF/reliability qualification
    remains in Phase 13.
-10. **In progress:** WsprryPi client/backend software integration is delivered on
-    its feature branch. Pico SNTP-enabled five-mode host capabilities and
-    hardware-free current-client interoperability are implemented; joint Linux
-    USB and conducted RF target acceptance remain open. See the
+10. **In progress:** WsprryPi client/backend integration and the operator manual
+    are published; the release is installed on wspr5 with bounded inhibited USB
+    acceptance. Physical Tone acceptance found terminal-off and timer-resolution
+    defects, now repaired and regression-tested. Conducted acceptance of the
+    repaired firmware awaits a Pico power cycle and remains open. See the
+    [target review](development/phase10-target-review.md) and
     [host acceptance prerequisites](development/phase10-host-acceptance.md).
 11. **Planned:** Wi-Fi/TCP and the shared browser API.
 12. **Planned:** SoftAP and BLE provisioning.
