@@ -38,7 +38,8 @@ isolates physical waveform servicing and permits concurrent controller/browser
 connections; target timing acceptance is pending. WsprryPi's host TLS integration
 is independently implemented. [Phase 11.3](docs/development/phase11-3-plan.md)
 adds DHCP with a stable certified mDNS hostname, optional explicit IP identity
-and a shared client/server authority contract; physical acceptance remains open.
+and a shared client/server authority contract. Its joint software/integration
+scope is closed; physical acceptance remains open.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)

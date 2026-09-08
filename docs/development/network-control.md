@@ -243,37 +243,39 @@ See the [Phase 11 review record](phase11-review.md) for checks, repairs and curr
 qualification limits, and the [execution prompt](phase11-execution-prompt.md) for
 the scope used in this change.
 
-## Phase 11.2 reproducibility
+## Companion interoperability and sanitizers
 
-Optional actual 11.1-client interoperability uses unmodified WsprryPi sources at
-`d333c69edc8a65bf59ae52603110996921f82ce1`. Use an explicit clean checkout of that
+Optional actual client interoperability uses unmodified reviewed WsprryPi sources at
+`2e47641f6ebdff104e32999f5194f2e0dc408e06`. Use an explicit clean checkout of that
 revision; the option never fetches, edits or builds inside the companion checkout:
 
 ```sh
 cmake -S . -B build-host \
-  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/pinned/WsprryPi \
+  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/clean/2e47641/WsprryPi \
   -DWSPRRY_PICO_TEST_MBEDTLS_PATH=/path/to/pico-sdk/lib/mbedtls
 cmake --build build-host --parallel
 ctest --test-dir build-host --output-on-failure
 ```
 
-The added `network_11_1_interop` test builds the existing client, application,
-scheduler and TLS/HTTP implementation; the companion's original Pico revision
-gate is neither edited nor bypassed. An isolated local source copy is useful
-when its working checkout is advancing. OpenSSL development files must already
+The test `network_11_1_interop` (historical target name) builds the existing client, application,
+scheduler and TLS/HTTP implementation; the companion's own harness independently
+enforces its Pico source pin. An isolated local source copy is useful
+when its working checkout is advancing. The tested pair is Pico runtime
+`d8cde03f8127b3c2aaf727f2c21c20960f658e84` and Pi `2e47641` (runtime unchanged from `efcc792`); the later Pico
+reference/test/documentation commit does not alter that runtime input. OpenSSL development files must already
 be installed; set `OPENSSL_ROOT_DIR` if CMake needs their location.
 
 ASan/UBSan applies to C and C++ (including Mbed TLS):
 
 ```sh
-cmake -S . -B build/phase11-2-sanitize -DCMAKE_BUILD_TYPE=Debug \
+cmake -S . -B build/phase11-3-sanitize -DCMAKE_BUILD_TYPE=Debug \
   -DWSPRRY_PICO_BUILD_TESTS=ON \
   -DWSPRRY_PICO_TEST_MBEDTLS_PATH=/path/to/pico-sdk/lib/mbedtls \
-  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/pinned/WsprryPi \
+  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/clean/2e47641/WsprryPi \
   -DCMAKE_C_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer' \
   -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'
-cmake --build build/phase11-2-sanitize --parallel
-ctest --test-dir build/phase11-2-sanitize --output-on-failure
+cmake --build build/phase11-3-sanitize --parallel
+ctest --test-dir build/phase11-3-sanitize --output-on-failure
 ```
 
 A separate ThreadSanitizer build can omit TLS and run `rf_worker_tests` and

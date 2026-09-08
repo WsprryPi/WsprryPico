@@ -1,6 +1,7 @@
 # Phase 11.3 execution plan and joint acceptance checklist
 
-Status: implementation in progress. Coordinator: this WsprryPico task. The
+Status: complete within the delivered software/integration scope.
+Coordinator: this WsprryPico task. The
 [shared identity contract](phase11-3-identity.md) is authoritative. No hardware,
 services, system resolver/trust, router or third-repository writes are authorized.
 
@@ -10,7 +11,7 @@ services, system resolver/trust, router or third-repository writes are authorize
 | --- | --- | --- | --- |
 | 11.1 | Network integration | WsprryPi | Closed software scope; physical limitations retained |
 | 11.2 | Concurrent browser management | WsprryPico | Closed software scope; physical limitations retained |
-| 11.3 | DHCP, mDNS and certificates | Both | In progress |
+| 11.3 | DHCP, mDNS and certificates | Both | Closed software/integration scope; physical gates open |
 | 11.4 | Inhibited device acceptance | Both | Open |
 | 11.5 | Resource and contention testing | Both | Open |
 | 11.6 | Conducted RF acceptance | Both | Open |
@@ -55,18 +56,23 @@ RF/filter/band qualification and reproducible public release UF2.
 | M2 | Link loss, disable/re-enable, latched conflict, no uncertified rename | Pico | Pico software pass |
 | M3 | Partial init/resource failure, repeated cleanup and actual malformed packet tests | Pico | Pico software pass |
 | M4 | Static/runtime resource costs, IPv4/core ownership/network-off policy | Pico | Pico software pass |
-| H1 | Host/Origin aliases, case/root dot, strict port, malformed/duplicate/cross-origin rejection | Pico + Pi | Pico pass; Pi joint evidence pending |
-| C1 | Fresh bounded resolution, named TLS, explicit IP plus name, IP SAN pass/fail | Pi + Pico | Pending |
-| C2 | Changed address with unchanged identity, failed resolution/handshake reconnect | Pi | Pending |
-| C3 | HELLO/device/boot, finite jobs, revisions, concurrent WTP/browser | Both | Pending |
-| C4 | Rotation, unknown outcomes, no duplicate LOAD/ARM, ownership/recovery | Both | Pending |
-| U1 | Config lifecycle, inactive settings/drafts, diagnostics and desktop/mobile states | Both | Pico pass; Pi joint evidence pending |
-| V1 | Full documented host/regression/contract commands | Both | Pico pass; Pi joint evidence pending |
-| V2 | Separate sanitizer builds and four firmware/layout checks | Both | Pico pass; Pi joint evidence pending |
-| R1 | Adversarial assessment, repairs and reassessment | Both | Pico pass; Pi joint evidence pending |
-| D1 | Operator examples, Linux NSS prerequisites, third-repo exact follow-up | Both | Pico pass; Pi joint evidence pending |
+| H1 | Host/Origin aliases, case/root dot, strict port, malformed/duplicate/cross-origin rejection | Pico + Pi | Joint software pass |
+| C1 | Fresh bounded resolution, named TLS, explicit IP plus name, IP SAN pass/fail | Pi + Pico | Joint software pass |
+| C2 | Changed address with unchanged identity, failed resolution/handshake reconnect | Pi | Joint software pass |
+| C3 | HELLO/device/boot, finite jobs, revisions, concurrent WTP/browser | Both | Joint software pass |
+| C4 | Rotation, unknown outcomes, no duplicate LOAD/ARM, ownership/recovery | Both | Joint software pass |
+| U1 | Config lifecycle, inactive settings/drafts, diagnostics and desktop/mobile states | Both | Joint software pass |
+| V1 | Full documented host/regression/contract commands | Both | Joint software pass |
+| V2 | Separate sanitizer builds and four firmware/layout checks | Both | Joint software pass |
+| R1 | Adversarial assessment, repairs and reassessment | Both | Joint software pass |
+| D1 | Operator examples, Linux NSS prerequisites, third-repo exact follow-up | Both | Joint software pass |
 | D2 | Executable opt-in 11.4 procedure, physical execution deferred | Pico | Prepared; physical execution deferred |
-| G1 | Clean tested pair/pins, commits/push/parity and CI states | Both | Pending |
+| G1 | Clean tested pair/pins, commits/push/parity and CI states | Both | Software reference gates pass; CI states recorded in review |
+
+Local normal/sanitizer integration covers C1–C4. Linux run 34285806646 passes
+the joint network job, including actual changed-IP TLS and rendered browser
+checks after the independently reviewed orchestration repair. The failed first
+run and each broader CI job disposition remain in the review record.
 
 Every pass must identify its evidence class and input revision. Injected resolver
 results are not system NSS/mDNS evidence; host responder packets are not physical

@@ -7,6 +7,7 @@
 #include <atomic>
 #include <chrono>
 #include <csignal>
+#include <cstdlib>
 #include <fcntl.h>
 #include <thread>
 #include <unistd.h>
@@ -85,6 +86,8 @@ int main(int argc, char** argv) {
     using namespace wsprrypico;
     std::signal(SIGPIPE, SIG_IGN);
     std::signal(SIGTERM, stop);
+    const auto* selected_address = std::getenv("WSPRRY_TEST_LISTEN_ADDRESS");
+    const std::string address = selected_address ? selected_address : "127.0.0.1";
     const std::string device(32, argc > 2 ? argv[2][0] : 'a');
     network_test::Flash flash;
     standalone::Store store(flash);
@@ -160,7 +163,7 @@ int main(int argc, char** argv) {
                 mock_tcp_release_acks();
         }
         mock_tcp_poll();
-        server.poll(link && network.enabled, "127.0.0.1:" + std::to_string(server.port()));
+        server.poll(link && network.enabled, address + ":" + std::to_string(server.port()));
         std::this_thread::sleep_for(std::chrono::microseconds(100));
     }
     server.stop();
