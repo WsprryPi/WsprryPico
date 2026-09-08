@@ -159,8 +159,13 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
                                                    plan_.total_samples % block_samples != 0);
     const auto elapsed =
         now_ns > start_ns_ ? std::min(now_ns - start_ns_, job_->total_duration_ns) : 0;
+    // A terminal RF-off tail can include one low padding sample. After the
+    // declared job end, permit that planned tail without relaxing RF-on timing.
+    const auto expected_samples = elapsed == job_->total_duration_ns
+                                      ? plan_.total_samples
+                                      : (elapsed * (sample_rate / 1000000) + 500) / 1000;
     if (report.completed_blocks != expected_completed ||
-        report.consumed_samples > (elapsed * (sample_rate / 1000000) + 500) / 1000) {
+        report.consumed_samples > expected_samples) {
         return fail(now_ns, "progress_time");
     }
     last_poll_ns_ = now_ns;

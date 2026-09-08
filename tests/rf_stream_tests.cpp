@@ -194,6 +194,29 @@ void planner_test() {
     auto job = tone_job((rf::sample_rate / 375 * 256));
     auto plan = rf::plan_job(job);
     CHECK(plan && plan->total_samples == (rf::sample_rate / 375 * 256));
+    // Actual WsprryPi finite Tone plans finish with a 1 ns RF-off marker.
+    // Padding an already-low terminal tail must not lengthen the RF-on event.
+    auto host_tone = tone_job(64);
+    const auto on_end_ns = host_tone.total_duration_ns;
+    host_tone.events.push_back({on_end_ns, 1, false, {}});
+    ++host_tone.total_duration_ns;
+    auto host_plan = rf::plan_job(host_tone);
+    CHECK(host_plan && host_plan->count == 2 && host_plan->total_samples == 65);
+    CHECK(host_plan->segments[0].end_sample == 64 && host_plan->segments[1].increment == 0);
+    rf::Waveform host_waveform;
+    host_waveform.reset(*host_plan);
+    std::array<std::uint32_t, 3> host_words{};
+    CHECK(host_waveform.render(host_words) == 65 && host_words.back() == 0);
+    auto bad_tail = host_tone;
+    bad_tail.events.back().frequency_nhz = rf::base_nhz;
+    CHECK(!rf::plan_job(bad_tail));
+    bad_tail.events.back().rf_on = true;
+    CHECK(!rf::plan_job(bad_tail));
+    // An interior sub-sample off gap still cannot disappear between RF events.
+    bad_tail = host_tone;
+    bad_tail.events.push_back({bad_tail.total_duration_ns, 1'000'000'000, true, rf::base_nhz});
+    bad_tail.total_duration_ns += 1'000'000'000;
+    CHECK(!rf::plan_job(bad_tail));
     auto invalid = job;
     invalid.allow_frequency_adjustment = false;
     CHECK(!rf::plan_job(invalid));
@@ -343,7 +366,9 @@ void correction_test() {
 void lifecycle_test() {
     TestSink sink;
     rf::StreamEngine engine(sink);
-    const auto job = tone_job(rf::block_samples * 4 + 17);
+    auto job = tone_job(rf::block_samples * 4 + 17);
+    job.events.push_back({job.total_duration_ns, 1, false, {}});
+    ++job.total_duration_ns;
     auto prepared = engine.prepare(job);
     CHECK(prepared.accepted && prepared.adjustments.size() == 1);
     CHECK(prepared.adjustments[0].realized_frequency_nhz == rf::realized_nhz(rf::increments[0]));

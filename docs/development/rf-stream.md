@@ -41,10 +41,15 @@ The [band campaign](band-campaign.md) covers the new experimental range.
 The bench supports volatile frequency correction and three explicit build-time
 clock profiles; production calibration and capability integration remain open.
 
-Event endpoints must encode an exact sample boundary rounded to the nearest
+RF transition endpoints must encode an exact sample boundary rounded to the nearest
 nanosecond: sample=round(ns*sample_rate/1e9), then ns must equal
 round(sample*1e9/sample_rate). Reduced integer ratios avoid overflow.
-The planner rejects positive events that collapse to zero samples. Endpoint
+The end of a final RF-off interval is padded to the next sample because it
+introduces no RF transition. This accepts WsprryPi's finite Tone stop marker
+(a 1 ns final RF-off event) without extending RF-on time. Padding adds less than
+one sample of low output; the WTP job and its declared duration remain intact.
+Interior off intervals and all RF-on endpoints retain the exact boundary rule.
+The planner rejects positive events that collapse to zero samples. RF transition endpoint
 error relative to the ideal sample boundary is at most 0.5 ns. This realizes
 nearest-nanosecond WSPR cumulative boundaries without inventing a timing
 adjustment response. Arbitrary nanosecond jobs may be rejected by this adapter;

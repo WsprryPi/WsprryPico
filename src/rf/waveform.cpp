@@ -6,7 +6,7 @@
 namespace wsprrypico::rf {
 namespace {
 
-std::optional<std::uint64_t> samples_at(std::uint64_t ns) {
+std::optional<std::uint64_t> samples_at(std::uint64_t ns, bool terminal_off = false) {
     if (ns > max_duration_ns) {
         return std::nullopt;
     }
@@ -14,6 +14,11 @@ std::optional<std::uint64_t> samples_at(std::uint64_t ns) {
     constexpr auto common = std::gcd(sample_rate, 1'000'000'000ULL);
     constexpr auto numerator = sample_rate / common;
     constexpr auto denominator = 1'000'000'000ULL / common;
+    // The end of a final RF-off interval is not an RF transition. Pad that
+    // already-low tail to the next sample, including a host's 1 ns stop marker.
+    // Every RF transition still has to satisfy the exact boundary rule below.
+    if (terminal_off)
+        return (ns * numerator + denominator - 1) / denominator;
     const auto samples = (ns * numerator + denominator / 2) / denominator;
     if ((samples * denominator + numerator / 2) / numerator != ns) {
         return std::nullopt;
@@ -120,7 +125,7 @@ std::optional<Plan> plan_job(const wtp::Job& job, std::int32_t correction_ppb) {
         job.events.empty() || job.events.size() > max_events || job.total_duration_ns == 0) {
         return std::nullopt;
     }
-    const auto total = samples_at(job.total_duration_ns);
+    const auto total = samples_at(job.total_duration_ns, !job.events.back().rf_on);
     if (!total || *total == 0) {
         return std::nullopt;
     }
@@ -135,7 +140,7 @@ std::optional<Plan> plan_job(const wtp::Job& job, std::int32_t correction_ppb) {
             return std::nullopt;
         }
         previous_ns += event.duration_ns;
-        const auto end = samples_at(previous_ns);
+        const auto end = samples_at(previous_ns, &event == &job.events.back() && !event.rf_on);
         if (!end || *end <= previous_sample) {
             return std::nullopt;
         }
