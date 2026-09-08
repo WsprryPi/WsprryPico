@@ -156,12 +156,17 @@ std::size_t Endpoint::receive(std::span<const std::uint8_t> input, std::uint64_t
     return count;
 }
 void Endpoint::payload(std::span<const std::uint8_t> bytes, std::uint64_t now) {
+    // A complete request can take longer than one RF refill interval. Keep
+    // execution progressing between the independently bounded codec stages.
+    service_.poll();
     auto root = json::parse({reinterpret_cast<const char*>(bytes.data()), bytes.size()});
+    service_.poll();
     if (!root) {
         close_after_output();
         return;
     }
-    auto request = decode_request(*root, principal_, bytes);
+    auto request = decode_request(std::move(*root), principal_, bytes);
+    service_.poll();
     if (!request) {
         close_after_output();
         return;
@@ -180,8 +185,11 @@ void Endpoint::payload(std::span<const std::uint8_t> bytes, std::uint64_t now) {
         response = service_.handle(*request);
     if (response.ok && request->operation == "HELLO")
         session_ = request->session_id;
-    enqueue(encode_response(*request, response, service_.config(), device_id_, firmware_version_),
-            now, false);
+    service_.poll();
+    auto encoded =
+        encode_response(*request, response, service_.config(), device_id_, firmware_version_);
+    service_.poll();
+    enqueue(std::move(encoded), now, false);
     observe(now, response.ok && request->operation == "RELEASE");
     if (response.close_connection)
         close_after_output();

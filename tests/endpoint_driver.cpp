@@ -110,7 +110,8 @@ int main() {
             auto bytes = unhex(get("hex").string());
             pending.insert(pending.end(), bytes.begin(), bytes.end());
         }
-        endpoint.poll(now);
+        if (get("poll").raw != "false")
+            endpoint.poll(now);
         const bool drain = get("drain").raw != "false";
         std::size_t budget =
             control->get("limit") ? static_cast<std::size_t>(get("limit").integer()) : 1'000'000;

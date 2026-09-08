@@ -128,8 +128,11 @@ arm_req=p.request("ARM",{"job_id":"3"*32,"start_utc_ns":"1002000000000","max_sta
 arm=p.send(arm_req)["messages"][0]; ok(arm)
 p.call(action="clock",synchronized=True,now_ns="2000000000")
 assert p.send(arm_req)["messages"][0] == arm
-p.call(action="clock",synchronized=True,now_ns="2001000000")
-assert ok(p.ask("STATUS"))["state"] == "complete"
+# A request must service an active engine even without an outer-loop poll.
+p.call(action="clock",synchronized=True,now_ns="2001000000",poll=False)
+received=p.send(p.request("STATUS"),poll=False)["messages"]
+assert ok(next(m for m in received if m["type"] == "response"))["state"] == "complete"
+assert any(m["type"] == "event" and m["body"].get("state") == "complete" for m in received)
 error(p.ask("ABORT",{"job_id":"3"*32}),"INVALID_STATE")
 ok(p.ask("RELEASE"))
 ok(p.ask("CLAIM",{"owner_id":"2"*32,"lease_ms":5000}))
