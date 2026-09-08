@@ -498,6 +498,61 @@ void sntp_tests() {
             CHECK(sn.denied());
     }
 }
+void sntp_poll_schedule_test() {
+    time::SntpPollSchedule schedule;
+    CHECK(schedule.due(0));
+    schedule.sent(0);
+    CHECK(!schedule.due(1'999'999) && schedule.due(2'000'000));
+    schedule.sent(2'000'000);
+    CHECK(!schedule.due(3'999'999) && schedule.due(4'000'000));
+    schedule.sent(4'000'000);
+    CHECK(!schedule.due(67'999'999) && schedule.due(68'000'000));
+    schedule.sent(68'000'000);
+    schedule.accepted(68'100'000);
+    CHECK(!schedule.due(132'099'999) && schedule.due(132'100'000));
+    // A long RF interval delays network polling. A lost first exchange after
+    // resumption must not force the following WSPR slot to wait another 64 s.
+    schedule.sent(200'000'000);
+    CHECK(schedule.due(202'000'000));
+    schedule.sent(202'000'000);
+    schedule.accepted(202'100'000);
+    CHECK(!schedule.due(203'000'000));
+    // Monotonic reversal and near-overflow cannot manufacture an early retry.
+    CHECK(!schedule.due(1));
+    const auto high = std::numeric_limits<std::uint64_t>::max();
+    schedule.sent(high - 1'000'000);
+    CHECK(!schedule.due(high));
+    schedule.reset();
+    CHECK(schedule.due(high));
+
+    // Exercise correlation and clock recovery with a delayed reply to the
+    // pre-RF request, followed by a lost first post-RF request. Only a valid
+    // reply to the retry can postpone the next poll.
+    std::uint64_t mono = 0;
+    auto now = [](void* p) { return *static_cast<std::uint64_t*>(p); };
+    time::UtcDiscipline clock(now, &mono);
+    time::Sntp source(clock);
+    time::SntpPollSchedule resumed;
+    resumed.sent(0);
+    (void)source.request(mono, 1);
+    mono = 200'000'000'000ULL;
+    CHECK(!source.receive(reply(1, 1'800'000'000), mono));
+    CHECK(resumed.due(mono / 1000));
+    resumed.sent(mono / 1000);
+    (void)source.request(mono, 2); // Lost after RF network polling resumes.
+    mono += 2'000'000'000ULL;
+    CHECK(resumed.due(mono / 1000));
+    resumed.sent(mono / 1000);
+    (void)source.request(mono, 3);
+    mono += 100'000'000ULL;
+    CHECK(!source.receive(reply(2, 1'800'000'002), mono));
+    CHECK(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    CHECK(source.receive(reply(3, 1'800'000'002), mono));
+    resumed.accepted(mono / 1000);
+    CHECK(clock.snapshot().state == wtp::ClockState::Synchronized);
+    CHECK(!resumed.due(204'000'000));
+}
+
 void campaign_controls_test() {
     constexpr auto ns = 1'000'000'000ULL;
     auto config = *standalone::parse_config(example);
@@ -607,6 +662,7 @@ int main() {
     reset_guard_tests();
     scheduler_tests();
     sntp_tests();
+    sntp_poll_schedule_test();
     autonomous_test();
     campaign_controls_test();
     std::cout << "standalone tests passed\n";

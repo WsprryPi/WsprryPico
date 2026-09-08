@@ -1,10 +1,9 @@
 # Phase 10 joint target review
 
-Status: in progress. Host installation, operator documentation and bounded
-inhibited USB acceptance are delivered. The real host now completes the finite Tone with confirmed cleanup, but
-independent RF acceptance is blocked by an unexplained continuous carrier near
-137501 Hz. The Pico is restored to RF-inhibited firmware. See the latest
-checkpoint at the end of this record.
+Status: in progress. Host installation, operator documentation and inhibited
+USB acceptance are delivered. Source 23376c2 Tone, QRSS, FSKCW and DFCW conducted
+acceptance pass at 135500 Hz. Three-frame WSPR exposed a clock-refresh retry
+gap; its repair and final closeout checks are in progress; the old QRM channel is not a completion gate.
 
 ## Physical interoperability finding
 
@@ -419,3 +418,75 @@ Pinned client validation correctly refused it. Tests now use a separate detached
 checkout of the original reviewed 2819f0b source, preserving the user's checkout
 and the installed e95932f host identity. This is test dependency isolation, not
 an upgrade or rollback of the installed application.
+
+## Final-source acceptance campaign
+
+Clean source `23376c296c7d4220bebe58763f9fe2f151439a76` passed 25 host tests,
+17 sanitizer tests and 16 tests at each of 132 and 150 MHz. Second adversarial
+assessment found no further actionable issue in the repaired boundary,
+completion and leap checks. All four firmware targets built with the same
+pinned inputs as earlier. Final standard image SHA-256:
+`b55a4944d4e7e012b74de764f409304aaba11162911f54e2f3ffccff2c77a988`.
+Final StandaloneRF image SHA-256:
+`337a5270a5627c12864a434f1a15a2306ce447de2193b5fbf3503dc51719bc3c`.
+The final four-image manifest records ELF hashes and physical-engine symbol
+checks; the preceding 6c83982 manifest is archived separately.
+
+The verified RF boot is `9a5146113f3a453b30cf40ca8b8e36b7`. It retained the
+configured station and disabled schedule. The actual installed release remains
+`e95932feebc44d84988c96df969c8f8203ed8c1c`, executable SHA-256
+`f5759b678b668caa9a639430fcd9b54066a06be0107a58e3e8e8d90d5dca1bfb`.
+The private bounded supervisor starts `/usr/local/bin/wsprrypi` directly using
+the isolated acceptance INI and restores the original service in its finalizer.
+Tone uses the real host application/client and compiler through its separately
+built finite driver. Installed-release keyed/WSPR jobs use the private HTTP API.
+No product host source changes were made during this closeout.
+
+| Final-image mode | Independent result | Capture SHA-256 |
+|---|---|---|
+| Tone | Pass; 5.000 s burst and carrier acquisition | `3336a090fcca3f95bdebadbc8c035ceeca4c7784a0d7dd796802f6afc34d8785` |
+| QRSS ETE | Pass; 3/9/3 s marks and 9 s character gaps | `b919caeea08bb9da62eb320f29451b8710724e423ff5a43b438b228def0c8d3b` |
+| FSKCW ETE | Pass; 33 s continuous envelope, 5.013 Hz separation | `e489f110ccf22d38b44822af7669593d68926b66c467110245c9e3fbc122c594` |
+| DFCW ETE | Pass; equal 3 s marks/gaps, 5.012 Hz separation | `51f4dd3511f4de678d15831601ed254f3bd3fd311fdbec519bc8c83f6fa67fca` |
+
+All four host lifecycles completed with authoritative inactive cleanup. Every
+capture passed exact receiver settings/device, sample count/hash, zero overflow
+and clipping, and verified cleanup. Independent analysis retained leading/trailing
+quiet and used unchanged acceptance thresholds. Evidence is in the respective
+`evidence/rf-<mode>-7/` directories; installed-release JSONL records sit beside
+them. These are operational results for this conducted frequency and exact build,
+not on-air band coverage or calibrated timing/power/emissions qualification.
+
+The WSPR host setting is dial 134000 Hz, which produces center 135500 Hz with
+its configured 1500 Hz offset. Canonical WSPR symbols are centered around that
+frequency, so independent analysis uses lowest tone 135497.802734375 Hz. This
+mapping was reviewed before capture; no post-hoc frequency or drift correction
+is applied to obtain decoding. Three-frame results and final restoration follow.
+
+## Consecutive WSPR clock-refresh finding
+
+The first full WSPR job on 23376c2 completed with authoritative inactive cleanup.
+The next job was refused before ARM with `WTP device clock is not admissible`;
+its report confirmed no ARM handoff and successful cleanup. This is a failed
+three-frame campaign, retained as `evidence/rf-wspr-7/` and its adjacent JSONL.
+The first job started at UTC nanoseconds 1788867121000000000; the refused next
+slot was 1788867241000000000. Console diagnostics showed no DMA/sink fault and
+an unsynchronized clock with a 221.6 s old sample. Subsequent ordinary polling
+recovered synchronization without a reset.
+
+RF deliberately defers network polling throughout a frame. Previously a lost
+first post-frame SNTP exchange waited another 64 s, missing the 9.408 s interframe
+refresh opportunity. The network adapter now retries twice at 2 s intervals,
+then backs off for 64 s. Only a correlated accepted observation restores the
+normal 64 s polling interval. Link restoration resets the retry schedule; a
+server's KoD denial remains effective for the boot. No clock uncertainty, age,
+RTT, leap or ARM gate is relaxed, and network polling remains deferred during RF.
+
+Adversarial assessment checked stale/replayed responses, sustained loss, send
+allocation failure, link recovery, monotonic reversal/overflow and server denial.
+The regression includes a delayed pre-frame response, a lost post-frame request
+and a stale response to that request followed by a valid retry response. Only
+the valid correlated response restores synchronization. The second assessment
+found no additional actionable issue. All 25 host and 17 sanitizer tests pass.
+Live acceptance must still establish that this policy recovers in the actual
+interframe window; the software regression alone does not close that gate.

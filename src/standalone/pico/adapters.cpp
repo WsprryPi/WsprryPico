@@ -72,9 +72,10 @@ void PicoNetwork::receive(void* context, udp_pcb*, pbuf* packet, const ip_addr_t
     if (packet && port == 123 && ip_addr_cmp(address, &self.server_) && packet->tot_len == 48) {
         std::array<std::uint8_t, 48> bytes{};
         if (pbuf_copy_partial(packet, bytes.data(), bytes.size(), 0) == bytes.size()) {
-            if (self.sntp_.receive(bytes, now))
+            if (self.sntp_.receive(bytes, now)) {
                 ++self.accepted_;
-            else
+                self.poll_schedule_.accepted(now / 1000);
+            } else
                 ++self.rejected_;
         }
     }
@@ -91,6 +92,7 @@ void PicoNetwork::poll() {
     const auto link = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
     if (link != CYW43_LINK_UP) {
         sntp_.cancel();
+        poll_schedule_.reset();
         if (now >= next_connect_us_) {
             watchdog_hw->scratch[1] = 15;
             (void)cyw43_arch_wifi_connect_async(ssid_.c_str(), password_.c_str(),
@@ -99,9 +101,9 @@ void PicoNetwork::poll() {
         }
         return;
     }
-    if (now < next_query_us_ || sntp_.denied())
+    if (!poll_schedule_.due(now) || sntp_.denied())
         return;
-    next_query_us_ = now + 64'000'000ULL;
+    poll_schedule_.sent(now);
     ++queries_;
     const auto bytes = sntp_.request(now * 1000ULL, get_rand_64());
     auto* packet = pbuf_alloc(PBUF_TRANSPORT, bytes.size(), PBUF_RAM);
@@ -123,7 +125,8 @@ bool PicoNetwork::set_enabled(bool enabled) {
     enabled_ = enabled;
     if (enabled) {
         cyw43_arch_enable_sta_mode();
-        next_connect_us_ = next_query_us_ = 0;
+        next_connect_us_ = 0;
+        poll_schedule_.reset();
     } else
         cyw43_arch_disable_sta_mode();
     return true;

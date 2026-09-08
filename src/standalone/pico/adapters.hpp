@@ -22,10 +22,11 @@ class PicoNetwork {
     static void receive(void* context, udp_pcb*, pbuf* packet, const ip_addr_t* address,
                         u16_t port);
     time::Sntp sntp_;
+    time::SntpPollSchedule poll_schedule_;
     udp_pcb* pcb_ = nullptr;
     ip_addr_t server_{};
     std::string ssid_, password_;
-    std::uint64_t next_connect_us_ = 0, next_query_us_ = 0;
+    std::uint64_t next_connect_us_ = 0;
     bool initialized_ = false, enabled_ = true;
     std::uint32_t queries_ = 0, accepted_ = 0, rejected_ = 0;
 };

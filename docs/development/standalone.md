@@ -166,7 +166,11 @@ Admission and launch both enforce 500 ms including oscillator aging. The assumed
 not a measured oscillator calibration; uncertainty grows with age.
 
 Network polling is foreground-only. Connection attempts are separated by 30 s;
-queries by 64 s. Startup requires neither a USB host nor a wall-clock seed. The
+successful observations by 64 s. Lost exchanges receive at most two retries
+spaced by 2 s, followed by a 64 s backoff; a correlated accepted response resets
+the normal interval. This allows clock refresh after a long RF interval without
+relaxing the one-second response-age or clock-admission limits. Any server KoD
+still disables that source for the boot. Startup requires neither a USB host nor a wall-clock seed. The
 clock is synchronized for at most 90 s and enters holdover through 180 s, but
 this image admits/launches jobs only with source age at most 90 s and uncertainty
 at most 500 ms. An outage can skip slots; no schedule is guaranteed to transmit.
