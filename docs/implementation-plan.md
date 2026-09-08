@@ -26,8 +26,10 @@ treated as long-term product documentation.
 10. **In progress:** WsprryPi client/backend integration and the operator manual
     are published; the release is installed on wspr5 with bounded inhibited USB
     acceptance. Physical Tone acceptance found terminal-off and timer-resolution
-    defects, now repaired and regression-tested. Conducted acceptance of the
-    repaired firmware awaits a Pico power cycle and remains open. See the
+    defects, now repaired and regression-tested. A streaming stall was repaired
+    and the real host now completes Tone with confirmed cleanup. Independent
+    RF acceptance remains blocked by an unexplained carrier in the inhibited
+    baseline; keyed modes and three-frame WSPR acceptance remain open. See the
     [target review](development/phase10-target-review.md) and
     [host acceptance prerequisites](development/phase10-host-acceptance.md).
 11. **Planned:** Wi-Fi/TCP and the shared browser API.

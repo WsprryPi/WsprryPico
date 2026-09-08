@@ -1,9 +1,10 @@
 # Phase 10 joint target review
 
 Status: in progress. Host installation, operator documentation and bounded
-inhibited USB acceptance are delivered. Conducted acceptance of the repaired
-firmware remains open; a Pico power cycle is needed to clear the previous
-firmware fault latch before flashing the next image.
+inhibited USB acceptance are delivered. The real host now completes the finite Tone with confirmed cleanup, but
+independent RF acceptance is blocked by an unexplained continuous carrier near
+137501 Hz. The Pico is restored to RF-inhibited firmware. See the latest
+checkpoint at the end of this record.
 
 ## Physical interoperability finding
 
@@ -165,7 +166,7 @@ Earlier observer/setup failures are retained, including attempted web editing
 of an INI-only experimental policy and cancelled reload/scheduling observations.
 Corrected observers were rerun; those attempts are not counted as passes.
 
-## Repaired firmware and remaining target work
+## Earlier repaired firmware checkpoint (superseded below)
 
 The clean repaired source is `8b26cad0fccbad838af8dc6f8412a6ba41a6cc37`
 (following `3bccf7339afa` and `4c35aaaf7a66`). All four
@@ -183,7 +184,7 @@ image contains no physical Pico PIO/DMA launch implementation.
 
 The standard and StandaloneRF images are staged on wspr5 at
 `/home/pi/phase10-wtp-acceptance/`. Generated firmware and raw IQ are not tracked.
-At the last verified target observation, source `3bccf7339afa` was still running
+At that earlier target observation, source `3bccf7339afa` was still running
 with state `failed`, output inactive, zero launch/DMA counters and persistently
 disabled autonomous scheduling. Its local STOP/reboot idle guard refuses that
 fault state. A physical Pico USB power cycle is required; do not clear or bypass
@@ -205,7 +206,7 @@ The current scope does not qualify calibrated UTC/GPIO timing, RF power or
 emissions, external output filters, all bands/clocks, broad reliability or a
 reproducible production release. Phases 11–13 remain planned.
 
-## Final source reassessment
+## Source reassessment before resumed target testing
 
 Adversarial inspection found that a leap transition announced after ARM also
 needed the early timer adjustment included in the prelaunch exclusion check.
@@ -262,3 +263,86 @@ tests and 16 tests at each alternate clock. Source adversarial review checked
 first-fault retention, owner/active/schedule guards and the delayed reset path;
 no further actionable issue was found in that slice. The streaming defect itself
 remains open pending target diagnosis.
+
+## Current checkpoint: request servicing and RF baseline
+
+Diagnostic source `6b413c156328` ran under boot
+`d2c60ccb0e9dfb6e0f1aef547bd3c3d4`. Attempt `rf-tone-4` retained the first
+failure as `pio_txstall` after 13 DMA IRQs, with output inactive. Maximum observed
+request handling was 2546 us and refill was 2238 us, against approximately
+3799 us per buffer. These maxima identify competing foreground work; they are
+not a calibrated worst-case execution-time bound. Independent burst acceptance
+also failed. The complete failed capture and device snapshot are retained.
+
+The endpoint had no service point inside complete request processing. Source
+`6c83982aca3a96582347cda770043e20d4f674df` polls the job service between JSON
+parsing, request decoding, dispatch and response encoding. The outer loop still
+services disconnected and backpressured execution. Immutable response snapshots,
+replay, ownership and fault handling remain unchanged. A wire regression advances
+an active job to completion through request receipt without an outer-loop poll
+and verifies both the response and terminal event.
+
+All 25 host tests, including actual WsprryPi client interoperability, and all
+17 sanitizer tests passed. Validation used the build/CTest commands above for
+`build/phase10-host` and `build/phase10-sanitize`; logs are retained under
+`/private/tmp/phase10-cooperative-*.log`. Formatting and diff checks passed.
+Adversarial reassessment checked clock progression between stages, replayed
+snapshots, terminal-event ordering, malformed requests, lost connections and
+local reset authority. No additional actionable source defect was found in this
+slice. Large/adversarial traffic and long-duration physical operation are not
+qualified by the finite Tone test.
+
+The guarded Console BOOTSEL recovery succeeded from the inactive failed state
+without another physical power cycle. Both current images were built from clean
+source `6c83982aca3a` with the pinned inputs recorded above:
+
+| Image | UF2 SHA-256 |
+|---|---|
+| Standard inhibited | `4299da07ef64556c007b40d2087c3f4dfc9511d8824fd1224c4fecea2a805a47` |
+| StandaloneRF | `1574bcefae34c85555d84b1d64b79fb788c17d84b5d57cf8295966df6b6bb8ca` |
+
+ELF symbol inspection confirms the physical engine is absent from the standard
+image and present in StandaloneRF. The updated `final-firmware-manifest.json`
+contains only these two current images; the earlier four-image manifest is
+retained as `firmware-manifest-8b26cad0fccb.json`. Both are in the local
+`build/phase10-target-acceptance/` directory and staged acceptance root on wspr5.
+
+Attempt `rf-tone-5`, boot `c121fbc98092a9b25a43eac96378e9bf`, completed the
+real host's five-second Tone and authoritative cleanup. Job ID was
+`fef5dc7fcd89f5ec0000000000000001`, requested start UTC
+`1788864169005494198` ns. The Pico recorded 1318 DMA IRQs, no engine/sink fault,
+maximum refill 1681 us and maximum request duration 6004 us (now including
+interleaved service calls). The source-bound host lifecycle passes; independent
+RF acceptance does not. Capture SHA-256:
+`ec69b490a2a1cbf38c977d8981e420140d8a172a1499f79059d67c9cac5bf449`.
+Receiver cleanup, sample count/hash and zero overflow/clipping checks passed.
+An initial analysis invocation preceded capture metadata completion and failed;
+its log is retained separately from the completed-capture analysis.
+
+The completed-capture analyzer found no qualifying uninterrupted burst. Offline
+spectra show a strong carrier near 137501 Hz both before and after the commanded
+job. The independent quiet-baseline gate was preserved; no threshold was relaxed.
+Read-only checks reported both GPSDO outputs disabled and the RP1 maintained idle
+predicate passed. No other transmitter/receiver process was found beyond the
+installed inactive host daemon. This does not identify the physical carrier source.
+
+The Pico was restored to the standard inhibited image and a ten-second
+receiver-only baseline captured with identical receiver settings. The carrier
+persisted near 137501 Hz at seconds 1, 4 and 8. Evidence is in
+`evidence/rf-inhibited-baseline/`, including `baseline-analysis.json`; IQ SHA-256:
+`06cc0982d5f5dc347ed32de0527fe99b2a83ac534c0899d42994ff370823fd17`.
+Cleanup and hash checks passed. Receiver frequency remains uncalibrated.
+Final Console observation is boot `f16780943aa7cb3a4e5c8294a6b41098`, source
+`6c83982aca3a`, engine `inhibited-standalone-simulator`, state empty, output
+inactive and autonomous scheduling disabled. Station configuration and watermark
+remain unchanged. The installed host service was left running; the separate
+installed-release acceptance supervisor was not started.
+
+Further RF cases are paused while the user identifies any remaining source from
+the other test. Do not change the confirmed wiring or substitute a passing retry
+for these records. Once the baseline is understood and quiet, repeat finite Tone,
+then run real installed-release QRSS/FSKCW/DFCW ETE cases and three independently
+decoded WSPR frames. Use new suffix `6` or later and recheck source/receiver/clock
+identity and exclusive ownership. Restore the inhibited image afterward and
+complete the final joint assessment. Phase 10 remains open; Phases 11–13 remain
+planned.

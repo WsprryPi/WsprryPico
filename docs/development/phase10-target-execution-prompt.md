@@ -111,26 +111,39 @@ cannot continue; report the remaining user action precisely.
 
 ## Current execution checkpoint
 
-Read `phase10-target-review.md` before resuming. Host integration and operator
-manual are published, and the exact release executable is installed on wspr5.
-The earlier inhibited USB cases passed. Two physical interoperability defects
-and a subsequent adversarial leap-boundary finding are repaired. Final source
-`8b26cad0fccb` passed the host/sanitizer/alternate-clock suites and all four
-firmware builds. Its standard and StandaloneRF UF2 files plus
-`final-firmware-manifest.json` are staged in `/home/pi/phase10-wtp-acceptance/`.
+Read the latest section of `phase10-target-review.md` before resuming. Host
+integration and operator documentation are published, and the exact release is
+installed on wspr5. Earlier inhibited USB cases passed. Terminal-off padding,
+fractional timestamp admission, leap-boundary checking, first-fault diagnostics,
+guarded local recovery and cooperative WTP request servicing are repaired.
+Current firmware source is `6c83982aca3a96582347cda770043e20d4f674df`; both
+standard and StandaloneRF images are built and staged with their updated
+`final-firmware-manifest.json`. The earlier manifest is archived separately.
 
-The running `3bccf7339afa` image remains in a failed, independently verified
-RF-inactive state. Its Console idle guard blocks software reboot. A request is
-pending for the user to unplug/reconnect only the Pico USB cable. Wait for that
-confirmation before resuming device work. Then verify identity, new boot,
-disabled scheduling and inactive output, flash the final image, and continue
-finite Tone/keyed/three-frame WSPR acceptance. No successful RF acceptance is
-claimed for the repaired image. Use the installed release for applicable runtime
-checks and restore the standard inhibited image after RF work.
+The real host's five-second Tone now completes with authoritative cleanup.
+Independent RF acceptance remains blocked: a strong continuous carrier near
+137501 Hz persists even with the Pico flashed to RF-inhibited firmware, GPSDO
+outputs reported off and RP1 idle. A receiver-only baseline confirms this.
+The user has been asked whether another source remains from the other test.
+Keep the wiring unchanged and do not resume RF acceptance until the baseline is
+understood and quiet. Do not relax the burst detector to manufacture a pass.
 
-Retain the failed `rf-tone` and `rf-tone-2` directories. Use a fresh capture
-suffix such as `3`; never overwrite failed attempts. The acceptance helpers in
-`/home/pi/phase10-wtp-acceptance/` are bounded test orchestration, not maintained
-product code. Recheck their identities, explicit engine guards, private daemon
-lifetime and cleanup before reuse. Only one owner may open the Pico WTP CDC
-interface at a time; only one receiver process may use RSP1B `2404058C60`.
+Current Pico source is `6c83982aca3a`, boot
+`f16780943aa7cb3a4e5c8294a6b41098`, standard inhibited engine, empty/inactive,
+with persisted scheduling disabled. No new power cycle is pending. The installed
+host service remains running; the private installed-release acceptance supervisor
+has not been started. Recheck all identities, workload ownership and device clock
+before any further authorized target work.
+
+When the baseline is resolved, verify and flash the current StandaloneRF image,
+repeat the bounded Tone, then run installed-release QRSS/FSKCW/DFCW ETE jobs and
+three independently decoded WSPR frames. Restore inhibited firmware afterward.
+Retain every `rf-tone` through `rf-tone-5` record and `rf-inhibited-baseline`;
+use a fresh suffix `6` or later. The bounded helpers in
+`/home/pi/phase10-wtp-acceptance/` are test orchestration, not product code.
+Review their identities, engine guards, private daemon lifetime and cleanup
+before reuse. Only one owner may open the Pico WTP CDC interface at a time;
+only one receiver process may use RSP1B `2404058C60`. Finish adversarial review,
+repair any findings, rerun affected checks, update the roadmap truthfully, and
+commit/push the authorized changes. Phase 10 remains open until joint acceptance
+passes; Phases 11–13 remain planned.
