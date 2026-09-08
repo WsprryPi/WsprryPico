@@ -120,3 +120,17 @@ Phase 11 Wi-Fi/TCP/shared browser API, Phase 12 provisioning, and Phase 13
 calibrated timing/RF/reliability, output filters, supported mode/band coverage
 and reproducible production UF2 remain separate. Do not expand this closeout
 into those phases or claim general RF qualification.
+
+
+## Executed outcome
+
+Completed on firmware source a3ec67d059b3a5900fa4ff978661c50480ad2bec.
+Execution repaired real-host WSPR sample-boundary handling, bounded post-frame
+SNTP retry and a local-launch STATUS race. Regressions, adversarial repair and
+reassessment passed. All five conducted modes passed on that exact final build,
+including three consecutive independently decoded WSPR frames. Final inhibited
+clock-loss, budget refusal, armed/running cancellation and USB reconciliation
+passed. Standard inhibited firmware, preserved configuration and original host
+services are restored; receiver and acceptance workers are released. The detailed
+record and evidence hashes are in phase10-target-review.md. Phase 10 is complete
+for bounded functional integration; the later phases above remain planned.

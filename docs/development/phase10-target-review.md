@@ -1,11 +1,11 @@
 # Phase 10 joint target review
 
-Status: in progress. Host installation, operator documentation and inhibited
-USB acceptance are delivered. Source 23376c2 passed all four shorter conducted
-modes and one independently decoded WSPR frame. Consecutive WSPR exposed a
-clock-refresh retry gap; after that repair, DFCW exposed a local-launch STATUS
-race. The reviewed status repair needs final-source RF acceptance and restoration.
-The old QRM channel is not a completion gate.
+Status: complete for Phase 10 bounded functional integration. Final source
+a3ec67d passed all five conducted modes, including three consecutive independently
+decoded WSPR frames, and final inhibited recovery checks. Original services and
+standard inhibited firmware are restored. Failed attempts and their repairs
+remain below. General hardware, calibrated timing/RF, reliability, mode/band
+coverage, filters and release qualification remain Phase 13.
 
 ## Physical interoperability finding
 
@@ -560,3 +560,106 @@ active output, cannot turn Failed into Running, and does not report inactive
 output or terminal success. The host remains unchanged. All 25 host and 17
 sanitizer tests pass after the active-failure regression; formatting and diff
 checks pass. Repeat target acceptance is required on this exact repaired source.
+
+
+## Source a3ec67d final acceptance campaign
+
+The status repair is clean source `a3ec67d059b3a5900fa4ff978661c50480ad2bec`.
+All four firmware targets were explicitly rebuilt with SDK 2.3.0, Arm 15.3.1,
+Pico 2 W and the 138 MHz RF profile. Each ELF contains revision a3ec67d059b3;
+physical-launch symbol checks match the image roles. Standard UF2 SHA-256:
+`568d9b9a5311391f72e1b8522c354ad4bd8b4b7c4fd00dad17e5fb48e68a708c`.
+StandaloneRF UF2 SHA-256:
+`818e114afc1032737e8b267f25d8435f4a35c72196a23be91ad0627e7fd7a924`.
+Full ELF/UF2 identities are retained in `final-firmware-manifest.json`; the
+preceding source manifests remain separate. The verified RF boot is
+`047256606029ac8b1540a12f39dc71ce`.
+
+Final captures use suffix `9`. The batch verifies exact Console revision, same
+boot, GP2 engine, empty inactive state and disabled scheduling before each mode.
+Each finite host/capture case must succeed, then pass unchanged independent
+analysis, before the next mode can start. Tone uses the real finite application
+client driver; QRSS/FSKCW/DFCW/WSPR use the installed e95932f release and private
+HTTP configuration. The finite supervisor restores the original service on exit.
+
+
+| Source a3ec67d mode | Independent result | Capture SHA-256 |
+|---|---|---|
+| Tone | Pass; 5 s burst and carrier acquisition | `a37bffcd3ef468dff845893c5bb47eb8d31d498f58752c7e057284eb6a3aac6b` |
+| QRSS ETE | Pass; 3/9/3 s marks, 9 s character gaps | `f637c5eccaf95259b3f8afdcd05940a0fce9729b6877802b50aef4455ee396c8` |
+| FSKCW ETE | Pass; 33 s continuous envelope, 5.013 Hz separation | `516f47467d8f863f816611426847c33643355dbb98283b54818f5f3b1a3ce267` |
+| DFCW ETE | Pass; equal 3 s marks/gaps, 5.012 Hz separation | `a9775237cc1ef8abf3da19ddcadcb3042aa8eba459e75b9bc4873a59774c9563` |
+
+Each passed host lifecycle, authoritative inactive cleanup, exact receiver
+settings/device, full sample count/hash, zero overflow/clipping and verified
+receiver cleanup. Independent analyses require leading/trailing quiet and retain
+the original thresholds. The DFCW retry is separate from the failed source
+1ec70e7 capture; it does not erase or relabel that failure.
+
+
+Three consecutive WSPR frames also passed on this source. Capture SHA-256:
+`2855d0ee9eb61092cc2900388e30e212d0bf4059ac1dda236e17227cad3aea06`.
+Job IDs end in `000a`, `000b`, `000c` under prefix `4ae26873025ca876000000000000`;
+full identities and immutable host reports are in `rf-wspr-9.jsonl`. Starts were
+1788869161000000000, 1788869281000000000 and 1788869401000000000 UTC ns,
+exactly 120 s apart in the requested schedule. Independently detected intervals
+were 61.878–172.469, 181.868–292.460 and 301.867–412.459 s. Every frame passed
+162-symbol/frequency checks and decoded `AA0NT EM18 37` with wsprd. No measurement
+issues were reported. The analyzer uses the previously documented center-to-lowest
+tone mapping, no frequency/drift correction and burst-relative decode alignment.
+The approximately 10 ms first interframe onset difference is retained; this is
+functional timing evidence under the explicit 500 ms budget, not calibrated UTC.
+
+Exactly three unique jobs completed with authoritative inactive cleanup; the
+host stopped before a fourth frame. The 510 s receiver capture retained both
+quiet margins, passed full metadata/hash/count/settings and zero overflow/clipping
+checks, and verified receiver cleanup. Final RF Console diagnostics showed empty
+inactive state, disabled scheduling, synchronized clock, 12 SNTP queries / 9 accepted
+/ 3 rejected, and no engine/sink fault. The installed-service supervisor restored
+the original service. These results close the mode-specific conducted gate for
+a3ec67d, GP2, 138 MHz and the recorded 135500 Hz setup only.
+
+
+## Final recovery, restoration and adversarial closeout
+
+On standard inhibited source a3ec67d, boot
+`2b655f956ecdaabdd2f204be0b3662d0`, all affected final checks passed:
+
+- `final-inhibited-clock-loss.jsonl`: Wi-Fi disabled until the device sample
+  exceeded 91 s; the real host refused before ARM. Wi-Fi and synchronized time
+  were restored in the finalizer.
+- `final-clock-budget.jsonl`: the normal 1 ms budget refused the looser SNTP
+  observation without silently raising the limit.
+- `final-cancel-armed.jsonl` and `final-cancel-running.jsonl`: cancelled with
+  authoritative inactive cleanup.
+- `final-inhibited-disconnect.jsonl`: exact WTP CDC detach latched unknown output;
+  explicit same-session reconciliation confirmed inactivity and retained the
+  blocked job, with no automatic rearm.
+
+The initial inhibited flash command ran before BOOTSEL re-enumerated and made
+no write. After exact serial enumeration, `final-inhibited-flash-2.log` records
+successful load/verification. `final-restoration.json` confirms exact source and
+inhibited engine, empty inactive state, healthy storage, unchanged AA0NT/EM18/37
+station and watermark, disabled persisted schedule, Wi-Fi and synchronized time.
+The installed executable, INI and boot configuration hashes match the preserved
+values above. WsprryPi, Apache, GPSD and chrony are active; PPS remains selected,
+stratum 1, normal leap. Acceptance ports are closed, no capture/acceptance workers
+remain, RP1 satisfies its maintained idle predicate, and both GPSDO outputs are
+disabled. No Pi reboot or wiring change was performed.
+
+The final independent evidence audit rehashed all five IQ captures and bound
+receiver metadata, mode analyses, host terminal/cleanup records, firmware/boot,
+actual installed executable, helper source/binaries and decoder identity.
+`final-acceptance-evidence.json` SHA-256:
+`1b3a55a256e1fdec6927776a6f18c85f32761fd6bac47c2972d9d42f12e57380`.
+All three decoder records match AA0NT EM18 37. No failed run was replaced or
+relabeled, no analysis threshold or clock gate was relaxed, and the final build's
+coverage is explicit. Source/tests, actual target evidence and qualification
+limits were reassessed after repairs; no actionable finding remains open for
+this slice.
+
+Final validation: 25 host tests, 17 sanitizer tests, 16 tests at each of 132 and
+150 MHz, all four explicit firmware targets, WTP contract validation and format/
+diff checks passed. Alternate-clock results are software evidence; final live RF
+acceptance is the recorded 138 MHz configuration. Phase 10 is complete within
+this bounded scope. Phases 11–13 remain planned.

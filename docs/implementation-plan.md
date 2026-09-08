@@ -23,15 +23,17 @@ treated as long-term product documentation.
    frames independently decoded after a wall-power boot without a USB host.
    This is bounded functional acceptance; final RF/reliability qualification
    remains in Phase 13.
-10. **In progress:** WsprryPi client/backend integration and the operator manual
-    are published; the release is installed on wspr5 with bounded inhibited USB
-    acceptance. Physical Tone acceptance found terminal-off and timer-resolution
-    defects, now repaired and regression-tested. A streaming stall was repaired
-    and the real host now completes Tone with confirmed cleanup. Independent
-    RF acceptance remains blocked by an unexplained carrier in the inhibited
-    baseline; keyed modes and three-frame WSPR acceptance remain open. See the
+10. **Complete:** WsprryPi client/backend integration, published operator manual,
+    installed Linux release and bounded joint USB/conducted acceptance. Repaired
+    physical timing, streaming, clock-refresh and launch-status findings were
+    regression-tested and reassessed. Final source a3ec67d passed Tone, QRSS,
+    FSKCW, DFCW and three consecutive independently decoded WSPR frames at the
+    recorded 135500 Hz conducted setup. Final inhibited clock-loss, cancellation
+    and USB reconciliation checks passed; inhibited firmware and original host
+    services are restored. This is functional integration acceptance, with
+    broader qualification retained in Phase 13. See the
     [target review](development/phase10-target-review.md) and
-    [host acceptance prerequisites](development/phase10-host-acceptance.md).
+    [host acceptance guide](development/phase10-host-acceptance.md).
 11. **Planned:** Wi-Fi/TCP and the shared browser API.
 12. **Planned:** SoftAP and BLE provisioning.
 13. **Planned:** final hardware qualification and release, including the output
@@ -205,12 +207,9 @@ Phase 13 qualification work.
 
 ## Subsequent slices
 
-1. Complete joint target acceptance of the WsprryPi client integration using the
-   [firmware/clock acceptance procedure](development/phase10-host-acceptance.md).
-   Host delivery, operator documentation and merging remain independent repository work.
-2. Add Wi-Fi/TCP, shared JSON API adapters and embedded browser assets, followed by SoftAP provisioning.
-3. Add BLE provisioning/local management with a documented recovery path.
-4. Qualify supported engine/mode/band combinations and release WsprryPico-x.y.z.uf2 with reproducible build identity.
+1. Add Wi-Fi/TCP, shared JSON API adapters, embedded browser assets and network status/management.
+2. Add SoftAP and BLE provisioning/local management with a documented recovery path.
+3. Qualify supported engine/mode/band combinations, timing, RF and reliability; finish output networks/filters and release a reproducible WsprryPico-x.y.z.uf2.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 

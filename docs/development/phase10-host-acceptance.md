@@ -4,9 +4,12 @@ The standard `WsprryPico` and explicit `WsprryPico-StandaloneRF` images provide
 SNTP time and the same finite host-job capability envelope. Host jobs share
 ownership and the job service with autonomous schedules. USB never supplies
 RF event timing. Bounded inhibited USB acceptance and host installation are
-delivered; conducted acceptance of the repaired physical image remains open.
-See the [joint target review](phase10-target-review.md) for exact evidence and
-the remaining quiet-baseline and conducted RF gates.
+delivered. Phase 10 bounded conducted acceptance passed on source a3ec67d:
+Tone, QRSS, FSKCW, DFCW and three consecutive independently decoded WSPR frames.
+Final inhibited recovery checks passed and the standard inhibited image and
+original host services are restored. See the
+[joint target review](phase10-target-review.md) for exact identities, failures,
+repairs, evidence and the limits of this functional acceptance.
 
 ## Image selection
 
@@ -52,10 +55,9 @@ Pico SNTP observation may exceed it. Neither side raises that budget silently.
 
 For a separately authorized bounded functional-acceptance run, explicitly select
 `500000000` (500 ms), the existing standalone admission/launch ceiling, and
-retain GET_CLOCK snapshots and the requested budget. This is a proposed test
-setting; this software change does not alter host configuration or device
-storage. A tighter requirement needs corresponding clock evidence or a better
-time source. Neither a 500 ms setting nor ARM success establishes calibrated
+retain GET_CLOCK snapshots and the requested budget. This was the explicitly
+selected bounded acceptance setting; it does not change the normal host default.
+A tighter requirement needs corresponding clock evidence or a better time source. Neither a 500 ms setting nor ARM success establishes calibrated
 accuracy. The separate USB-time RFWTP image retains its 20 ms uncertainty policy.
 
 SNTP requires usable UTC, normal leap state, source age at most 90 seconds and
@@ -64,8 +66,9 @@ existing assumed 50,000 ppb drift bound. The launch guard checks it again: ARM
 can succeed and later become MISSED_START. There is no late-start fallback.
 Networking is deferred while armed/running. A complete WSPR job can outlast the
 acquisition window without retiming its events; the next job needs an admissible
-clock snapshot. Host Linux `adjtimex` readiness is a separate check. SNTP does
-not calibrate RF frequency; the host WTP backend requires zero host PPM.
+clock snapshot. Lost SNTP exchanges receive two bounded 2 s retries, then a
+64 s backoff; accepted observations restore the normal 64 s interval. Host Linux
+`adjtimex` readiness is a separate check. SNTP does not calibrate RF frequency; the host WTP backend requires zero host PPM.
 
 ## Hardware-free interoperability
 
@@ -77,11 +80,12 @@ this checkout's endpoint, SNTP parser, UTC discipline, image profile and inhibit
 engine through fragmented in-memory streams. No USB, network, application/service
 or physical engine adapter is present.
 
-With that sibling checkout, run from WsprryPico:
+Use an isolated checkout at that exact pin. The validated local path below
+preserves a newer independent WsprryPi checkout. Run from WsprryPico:
 
 ```sh
 cmake -S . -B build/phase10-host -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-  -DWSPRRY_PICO_WSPRRYPI_SOURCE=/Users/lbussy/GitHub/WsprryPi
+  -DWSPRRY_PICO_WSPRRYPI_SOURCE=/private/tmp/wsprrypi-phase10-pinned-client
 cmake --build build/phase10-host --parallel 4
 ctest --test-dir build/phase10-host --output-on-failure
 python3 scripts/validate_wtp_contract.py
@@ -91,7 +95,7 @@ Without an explicit source, the ordinary suite stays independent. A newer host
 revision requires review and an explicit verifier-pin update. The WSPR fixture
 is synthetic: it exercises 162 events and lifecycle, not encoding or decoding.
 
-## Joint target procedure — not executed here
+## Joint target procedure
 
 Physical USB, flashing, host installation/services and RF require authorization
 for their exact scope. Use Linux for the production host USB adapter. macOS
