@@ -346,3 +346,32 @@ decoded WSPR frames. Use new suffix `6` or later and recheck source/receiver/clo
 identity and exclusive ownership. Restore the inhibited image afterward and
 complete the final joint assessment. Phase 10 remains open; Phases 11–13 remain
 planned.
+
+## Receiver retuning check
+
+At the user's request, the SDR center frequency was moved down and up by 10 kHz
+while the Pico remained on the same inhibited firmware and boot. Four sequential
+five-second captures used the unchanged receiver, rate, bandwidth, gain and RF
+wiring; the final capture restored the original center frequency.
+
+| Case | SDR center (Hz) | Carrier peak (Hz) | Offset from center (Hz) |
+|---|---:|---:|---:|
+| Baseline | 112500 | 137501 | 25001 |
+| Down 10 kHz | 102500 | 137501 | 35001 |
+| Up 10 kHz | 122500 | 137501 | 15001 |
+| Restored | 112500 | 137501 | 25001 |
+
+Peaks are from the average power of three one-second Hann-windowed FFTs per
+capture, with 1 Hz bin spacing on the uncalibrated receiver frequency axis.
+The strong carrier did not follow receiver tuning. At the shifted centers,
+the old +25 kHz offset contained only much weaker peaks, approximately 58–60 dB
+below the carrier in this diagnostic FFT comparison. This is consistent with a
+fixed RF-frequency signal and rules against a simple fixed-offset tuning spur;
+it does not identify its source or exclude every internal receiver artifact.
+
+All four captures passed exact settings/device checks, sample count and hash
+verification, zero overflow/clipping and verified cleanup. Evidence and per-file
+hashes are retained in `evidence/receiver-retune-carrier/results.json` on wspr5.
+The receiver was closed after the final capture. No RF output, firmware change,
+physical wiring change or scheduling change was made in this check. The quiet
+baseline gate remains open.

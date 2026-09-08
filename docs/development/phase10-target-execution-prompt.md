@@ -123,7 +123,9 @@ standard and StandaloneRF images are built and staged with their updated
 The real host's five-second Tone now completes with authoritative cleanup.
 Independent RF acceptance remains blocked: a strong continuous carrier near
 137501 Hz persists even with the Pico flashed to RF-inhibited firmware, GPSDO
-outputs reported off and RP1 idle. A receiver-only baseline confirms this.
+outputs reported off and RP1 idle. A receiver-only baseline confirms this. A subsequent SDR retuning check at
+102500, 112500 and 122500 Hz kept the carrier at approximately 137501 Hz; it
+did not follow tuning. Original tuning was restored and receiver cleanup verified.
 The user has been asked whether another source remains from the other test.
 Keep the wiring unchanged and do not resume RF acceptance until the baseline is
 understood and quiet. Do not relax the burst detector to manufacture a pass.
