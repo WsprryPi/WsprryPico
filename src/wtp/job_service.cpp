@@ -695,17 +695,33 @@ ErrorCode JobService::validate_arm(const ArmBody& arm, const ClockSnapshot& now,
          job_->total_duration_ns > std::numeric_limits<std::uint64_t>::max() - arm.start_utc_ns)) {
         return ErrorCode::InvalidMessage;
     }
+    const auto resolution = engine_.start_resolution_ns();
+    if (resolution == 0)
+        return ErrorCode::DeviceFault;
+    const auto nominal_start = now.monotonic_now_ns + ahead;
+    const auto adjustment = nominal_start % resolution;
+    const auto budget = std::min(arm.max_start_uncertainty_ns, config_.maximum_arm_uncertainty_ns);
+    if (adjustment > budget - now.uncertainty_ns)
+        return ErrorCode::ClockUncertain;
+    // Choose a representable instant no later than the requested mapping. The
+    // adjustment consumes uncertainty budget; a missed instant is never retried.
+    if (adjustment > ahead || ahead - adjustment < config_.minimum_arm_lead_ns)
+        return ErrorCode::ArmTooLate;
+    // WTP reports the exact sampled mapping. The local engine realizes this
+    // target at its earlier timer tick within the checked uncertainty budget.
+    start_monotonic_ns = nominal_start;
+    if (job_->total_duration_ns > std::numeric_limits<std::uint64_t>::max() - start_monotonic_ns)
+        return ErrorCode::InvalidMessage;
     if (now.leap_transition_utc_ns) {
         const auto transition = *now.leap_transition_utc_ns;
         const auto exclusion_start =
             transition > kLeapExclusionNs ? transition - kLeapExclusionNs : 0;
         const auto exclusion_end = saturating_add(transition, kLeapExclusionNs);
         const auto job_end = arm.start_utc_ns + job_->total_duration_ns;
-        if (arm.start_utc_ns <= exclusion_end && job_end >= exclusion_start) {
+        if (arm.start_utc_ns - adjustment <= exclusion_end && job_end >= exclusion_start) {
             return ErrorCode::LeapUnsafe;
         }
     }
-    start_monotonic_ns = now.monotonic_now_ns + ahead;
     return ErrorCode::None;
 }
 

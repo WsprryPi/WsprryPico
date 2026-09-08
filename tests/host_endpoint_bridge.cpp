@@ -1,5 +1,6 @@
 #include "host_endpoint_bridge.hpp"
 
+#include "rf/pio_dma_sink.hpp"
 #include "standalone/dry_run_engine.hpp"
 #include "standalone/wtp_profile.hpp"
 #include "wtp/endpoint.hpp"
@@ -16,6 +17,40 @@ struct Identity : wtp::IdentitySource {
         return std::string(32, ++boot == 1 ? '5' : '6');
     }
 };
+// Admission-only fake adapter: real waveform planning and sink validation, no
+// hardware and no launch execution. Physical launch is covered separately.
+struct AdmissionHardware : rf::PioDmaHardware {
+    std::uint64_t& now;
+    explicit AdmissionHardware(std::uint64_t& clock) : now(clock) {}
+    std::uint32_t lock() override {
+        return 0;
+    }
+    void unlock(std::uint32_t) override {}
+    bool open(Handler, void*) override {
+        return true;
+    }
+    bool halt(std::uint64_t) override {
+        return true;
+    }
+    bool dma(const std::uint32_t*, std::uint32_t, bool, std::uint64_t, std::uint64_t) override {
+        return true;
+    }
+    bool alarm(std::uint64_t start, std::uint64_t) override {
+        return start % 1000 == 0;
+    }
+    bool launch(std::uint64_t) override {
+        return false;
+    }
+    std::uint64_t now_ns() const override {
+        return now;
+    }
+    bool stalled() const override {
+        return false;
+    }
+    bool active() const override {
+        return false;
+    }
+};
 class Peer final : public HostTestEndpoint {
     std::uint64_t mono_ = 0;
     static std::uint64_t tick(void* p) {
@@ -25,10 +60,16 @@ class Peer final : public HostTestEndpoint {
     time::Sntp source_{clock_};
     Identity ids_;
     standalone::DryRunEngine engine_;
-    wtp::JobService service_{clock_, engine_, ids_, standalone::wtp_profile(false)};
+    AdmissionHardware hardware_{mono_};
+    rf::PioDmaSink sink_{hardware_};
+    rf::StreamEngine physical_engine_{sink_};
+    wtp::JobService service_;
     wtp::Endpoint endpoint_{service_, std::string(32, '4'), "phase10-software-test"};
 
   public:
+    explicit Peer(bool physical)
+        : service_(clock_, physical ? static_cast<wtp::RfEngine&>(physical_engine_) : engine_, ids_,
+                   standalone::wtp_profile(physical)) {}
     void connect() override {
         endpoint_.connect("usb-physical");
     }
@@ -95,6 +136,6 @@ class Peer final : public HostTestEndpoint {
     }
 };
 } // namespace
-std::unique_ptr<HostTestEndpoint> host_test_endpoint() {
-    return std::make_unique<Peer>();
+std::unique_ptr<HostTestEndpoint> host_test_endpoint(bool physical_planner) {
+    return std::make_unique<Peer>(physical_planner);
 }

@@ -278,6 +278,43 @@ wtp::Request request(std::string op, wtp::RequestBody body, char id) {
             std::move(body)};
 }
 
+void fractional_start_test() {
+    for (unsigned action = 0; action < 4; ++action) {
+        Hardware hw;
+        Clock clock(hw);
+        clock.utc_offset = 333;
+        clock.uncertainty = 100;
+        Identity identity;
+        rf::PioDmaSink sink(hw);
+        rf::StreamEngine engine(sink);
+        wtp::JobService service(clock, engine, identity);
+        CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
+        CHECK(service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
+        const auto payload = job(rf::block_samples * 2);
+        CHECK(service.handle(request("LOAD", payload, 'c')).ok);
+        const auto start = hw.time + 100'000'000;
+        // UTC request and clock mapping produce a monotonic target 562 ns
+        // after a timer tick. Admission includes that early adjustment.
+        const auto response = service.handle(request(
+            "ARM", wtp::ArmBody{payload.job_id, start + 895, action == 1 ? 661ULL : 662ULL}, 'd'));
+        if (action == 1) {
+            CHECK(!response.ok && response.error == wtp::ErrorCode::ClockUncertain);
+            CHECK(service.status().state == wtp::State::Loaded && !hw.enabled);
+        } else {
+            CHECK(response.ok && response.start_monotonic_ns == start + 562);
+            hw.time = start - 50'000;
+            if (action == 2)
+                ++clock.uncertainty;
+            if (action == 3)
+                hw.time = start + 1000;
+            hw.alarm_event(1);
+            CHECK(hw.enabled == (action == 0));
+            CHECK(hw.launches == (action == 0 ? 1U : 0U));
+        }
+        CHECK(engine.disable(hw.time));
+    }
+}
+
 void local_launch_test() {
     for (unsigned action = 0; action < 12; ++action) {
         Hardware hw;
@@ -454,6 +491,7 @@ int main() {
     try {
         queue_test();
         failures_test();
+        fractional_start_test();
         local_launch_test();
         launch_snapshot_test();
         more_than_final_pending_test();

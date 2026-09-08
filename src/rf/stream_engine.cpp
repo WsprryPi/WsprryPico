@@ -11,7 +11,16 @@ bool StreamEngine::schedule(const wtp::Job& job, std::uint64_t start_ns,
         return false;
     }
     start_conditions_ = conditions;
-    return begin(job, start_ns);
+    const auto resolution = start_resolution_ns();
+    if (resolution == 0)
+        return false;
+    start_conditions_.start_adjustment_ns = start_ns % resolution;
+    const auto now = conditions.clock->snapshot();
+    if (now.uncertainty_ns > conditions.maximum_uncertainty_ns ||
+        start_conditions_.start_adjustment_ns >
+            conditions.maximum_uncertainty_ns - now.uncertainty_ns)
+        return false;
+    return begin(job, start_ns - start_conditions_.start_adjustment_ns);
 }
 
 bool StreamEngine::check_clock(void* context) {
@@ -36,8 +45,10 @@ bool StreamEngine::check_clock(void* context) {
                                                            : conditions.start_utc_ns - predicted;
     const auto pending =
         now.leap == wtp::LeapState::InsertPending || now.leap == wtp::LeapState::DeletePending;
-    if (error > now.uncertainty_ns || now.leap == wtp::LeapState::Unknown ||
-        pending != now.leap_transition_utc_ns.has_value()) {
+    if (error > conditions.maximum_uncertainty_ns - now.uncertainty_ns ||
+        (error > now.uncertainty_ns &&
+         error - now.uncertainty_ns > conditions.start_adjustment_ns) ||
+        now.leap == wtp::LeapState::Unknown || pending != now.leap_transition_utc_ns.has_value()) {
         return false;
     }
     if (now.leap_transition_utc_ns) {

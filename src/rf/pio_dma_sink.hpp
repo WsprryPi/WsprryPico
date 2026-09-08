@@ -44,6 +44,9 @@ class PioDmaSink final : public BlockSink {
     [[nodiscard]] bool schedules_locally() const override {
         return true;
     }
+    [[nodiscard]] std::uint64_t start_resolution_ns() const override {
+        return 1000;
+    }
     bool arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t total_samples,
              LaunchGuard guard = {}) override;
     SinkReport poll(std::uint64_t now_ns) override;

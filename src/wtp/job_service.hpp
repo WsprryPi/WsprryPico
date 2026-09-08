@@ -68,6 +68,7 @@ struct LocalStartConditions {
     std::uint64_t start_utc_ns = 0;
     std::uint64_t maximum_uncertainty_ns = 0;
     std::uint64_t maximum_holdover_age_ns = 0;
+    std::uint64_t start_adjustment_ns = 0;
 };
 
 struct EngineReport {
@@ -100,6 +101,9 @@ class RfEngine {
     }
     [[nodiscard]] virtual bool schedules_locally() const {
         return false;
+    }
+    [[nodiscard]] virtual std::uint64_t start_resolution_ns() const {
+        return 1;
     }
     virtual bool schedule(const Job&, std::uint64_t, const LocalStartConditions&) {
         return false;

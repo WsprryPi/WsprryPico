@@ -100,6 +100,27 @@ Job job(Mode mode, char id) {
     }
     return j;
 }
+void physical_admission() {
+    Fixture f;
+    f.stream.peer = host_test_endpoint(true);
+    f.stream.peer->synchronize();
+    f.connect();
+    CHECK(f.session.capabilities()->engine == "pio-dma-gp2");
+    f.claim();
+    Job j{std::string(32, 'a'),
+          Mode::Tone,
+          5'000'000'001,
+          {{0, 5'000'000'000, true, 137'500'000'000'000ULL}, {5'000'000'000, 1, false, {}}},
+          true};
+    CHECK(f.request(Operation::Load, j).kind == ResultKind::Acknowledged);
+    const auto start = f.stream.peer->utc_ns() + 1'000'000'895;
+    CHECK(f.request(Operation::Arm, ArmRequest{j.job_id, start, 500'000'000}).kind ==
+          ResultKind::Acknowledged);
+    CHECK(f.request(Operation::Abort, AbortRequest{j.job_id}).kind == ResultKind::Acknowledged);
+    CHECK(f.request(Operation::Release).kind == ResultKind::Acknowledged);
+    CHECK(f.stream.peer->inactive());
+}
+
 void five_modes() {
     Fixture f;
     f.connect();
@@ -182,6 +203,7 @@ void recovery() {
 int main() {
     try {
         five_modes();
+        physical_admission();
         recovery();
         std::cout << "Actual WsprryPi client/current Pico endpoint: five finite modes, SNTP clock "
                      "admission, disconnected completion, lost LOAD/ARM/ABORT recovery and "

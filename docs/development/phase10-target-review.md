@@ -49,3 +49,31 @@ The failed physical attempt remains under
 `wspr5:/home/pi/phase10-wtp-acceptance/evidence/rf-tone/`, including exact wire
 requests, receiver metadata, IQ hash and verified receiver cleanup. It is a
 retained failed acceptance attempt, not an RF pass.
+
+## Physical start-resolution finding
+
+The next Tone attempt on `3bccf7339afa` accepted LOAD with its frequency
+adjustment, then rejected ARM as DEVICE_FAULT without launching. The sink's
+whole-microsecond requirement could not represent the real host's nanosecond
+start. Evidence is retained under `evidence/rf-tone-2/` on wspr5. The host
+correctly latched blocked cleanup; Console independently confirmed inactive RF.
+
+The physical adapter now realizes the target at the preceding timer tick and
+charges the sub-microsecond adjustment to the unchanged uncertainty ceiling.
+Admission checks actual lead time and the expanded leap interval; the local
+launch guard rechecks the combined error budget and refuses missed ticks.
+WTP's exact reported clock mapping, immutable ARM request and client validation
+remain unchanged. No protocol field or client acceptance check was relaxed.
+
+Adversarial regression checks include a fractional clock mapping and host
+request, exactly sufficient versus one-nanosecond-insufficient budgets,
+uncertainty growth before launch, and a missed timer tick. An actual host-client
+session now sends the captured finite Tone shape to the real physical waveform
+planner and PIO sink using an admission-only fake hardware adapter. It verifies
+LOAD, fractional ARM, ABORT and RELEASE; it cannot qualify target execution.
+This closes the simulator-only coverage gap behind the two target findings.
+
+The second source assessment checked overflow, minimum lead, leap exclusion,
+exact host response validation, strict missed-start behavior and unaffected
+inhibited defaults. All affected checks passed again: 25 host tests, 17 sanitizer tests and 16
+tests at each alternate clock profile. Target acceptance remains pending.

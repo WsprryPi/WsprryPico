@@ -38,6 +38,9 @@ class BlockSink {
     [[nodiscard]] virtual bool schedules_locally() const {
         return false;
     }
+    [[nodiscard]] virtual std::uint64_t start_resolution_ns() const {
+        return 1;
+    }
     virtual bool arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t total_samples,
                      LaunchGuard guard = {}) = 0;
     virtual SinkReport poll(std::uint64_t now_ns) = 0;
@@ -59,6 +62,9 @@ class StreamEngine final : public wtp::RfEngine {
     }
     bool schedule(const wtp::Job& job, std::uint64_t start_ns,
                   const wtp::LocalStartConditions& conditions) override;
+    [[nodiscard]] std::uint64_t start_resolution_ns() const override {
+        return sink_.start_resolution_ns();
+    }
     bool begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) override;
     wtp::EngineReport poll(std::uint64_t monotonic_now_ns) override;
     bool disable(std::uint64_t deadline_monotonic_ns) override;

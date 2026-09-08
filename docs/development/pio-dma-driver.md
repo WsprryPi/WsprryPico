@@ -121,3 +121,18 @@ software bootloader entry and operator-directed tones received on wspr5. Further
 work includes calibrated frequency/spectra, full-frame streaming and production
 clock/WTP integration. Harness capture and offline analysis are reused directly;
 its existing WsprryPi transmitter campaign is not a Pico adapter.
+
+## Host timestamp resolution
+
+WTP preserves the exact sampled UTC-to-monotonic mapping in ARM responses.
+The physical sink requires a whole-microsecond timer target. Its stream adapter
+realizes the requested target at the preceding timer tick, at most 999 ns early,
+and includes that adjustment in the admission uncertainty budget. It never
+rounds to a later tick or retries an already missed tick. Minimum lead time,
+monotonic end arithmetic and leap exclusion also cover the earlier target.
+
+The local launch guard checks both clock validity and the sum of current clock
+uncertainty and mapping error against the original request/device ceiling.
+An uncertainty increase can therefore refuse a previously accepted ARM.
+This timer-resolution handling is not a calibrated launch-accuracy claim.
+The low-level bench sink still requires explicitly aligned timestamps.
