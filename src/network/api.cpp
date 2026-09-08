@@ -1,6 +1,7 @@
 #include "network/api.hpp"
 
 #include "network/assets.hpp"
+#include "network/identity.hpp"
 #include "wtp/codec.hpp"
 #include "wtp/memory_budget.hpp"
 
@@ -96,12 +97,24 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         return http_error(413, "body_too_large");
     if (principal.empty())
         return http_error(401, "authentication_required");
-    if (authority.empty() || r.header("host") != authority)
+    const auto host = canonical_authority(r.header("host"));
+    const auto current = canonical_authority(authority);
+    const auto named = canonical_authority(hostname_authority_);
+    const auto allowed = [&](const std::optional<std::string>& value) {
+        return value && ((current && *value == *current) || (named && *value == *named));
+    };
+    if (!allowed(host))
         return http_error(403, "invalid_host");
     const bool mutation = r.method != "GET";
+    const auto origin = r.header("origin");
+    if (mutation || r.headers.contains("origin")) {
+        const auto origin_authority =
+            origin.starts_with("https://") ? canonical_authority(origin.substr(8)) : std::nullopt;
+        if (!allowed(origin_authority) || *origin_authority != *host)
+            return http_error(403, "origin_or_content_type");
+    }
     if (mutation &&
-        (r.header("origin") != "https://" + std::string(authority) ||
-         r.header("x-wsprrypico-request") != "1" || r.header("content-type") != "application/json"))
+        (r.header("x-wsprrypico-request") != "1" || r.header("content-type") != "application/json"))
         return http_error(403, "origin_or_content_type");
     if (!r.header("sec-fetch-site").empty() && r.header("sec-fetch-site") != "same-origin" &&
         r.header("sec-fetch-site") != "none")

@@ -1,6 +1,7 @@
 #pragma once
 #include "lwip/udp.h"
 #include "network/api.hpp"
+#include "network/mdns.hpp"
 #include "standalone/storage.hpp"
 #include "time/sntp.hpp"
 
@@ -11,9 +12,10 @@ class PicoFlash final : public Flash {
     bool erase(std::size_t sector_offset) override;
     bool program(std::size_t offset, std::span<const std::uint8_t> page) override;
 };
-class PicoNetwork : public network::NetworkControl {
+class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter {
   public:
-    explicit PicoNetwork(time::UtcDiscipline& clock) : sntp_(clock) {}
+    PicoNetwork(time::UtcDiscipline& clock, std::string_view device_id,
+                std::string_view configured_hostname);
     bool start(const Config& config);
     void poll();
     bool set_enabled(bool enabled) override;
@@ -25,15 +27,24 @@ class PicoNetwork : public network::NetworkControl {
     bool initialized() const {
         return initialized_;
     }
-    void listener_status(bool configured, bool listening) {
+    void listener_status(bool configured, bool listening, bool identity_matches = true) {
         configured_ = configured;
         listening_ = listening;
+        identity_matches_ = identity_matches;
+        if (!identity_matches)
+            mdns_.identity_failure();
     }
 
   private:
+    bool initialize() override;
+    bool add(std::string_view label) override;
+    void remove(bool goodbye) override;
+    static void mdns_result(struct netif*, u8_t result, s8_t slot);
     static void receive(void* context, udp_pcb*, pbuf* packet, const ip_addr_t* address,
                         u16_t port);
     time::Sntp sntp_;
+    network::Mdns mdns_;
+    std::string stable_hostname_;
     time::SntpPollSchedule poll_schedule_;
     udp_pcb* pcb_ = nullptr;
     ip_addr_t server_{};
@@ -42,6 +53,7 @@ class PicoNetwork : public network::NetworkControl {
     bool initialized_ = false, enabled_ = true;
     std::optional<bool> pending_enabled_;
     bool configured_ = false, listening_ = false;
+    bool identity_matches_ = true;
     std::uint32_t queries_ = 0, accepted_ = 0, rejected_ = 0;
 };
 } // namespace wsprrypico::standalone

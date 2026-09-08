@@ -1,13 +1,24 @@
 #!/usr/bin/env python3
 """Generate ephemeral local-test credentials, never deployment credentials."""
+import argparse
 import pathlib
+from network_certificates import write_manifest, validate_bundle
 import os
 import subprocess
 import sys
 
 os.umask(0o077)
-out = pathlib.Path(sys.argv[1]).resolve()
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('directory')
+parser.add_argument('--dns-only', action='store_true', help='Omit the optional loopback IPv4 SAN')
+args = parser.parse_args()
+out = pathlib.Path(args.directory).resolve()
+if out.exists() and any(out.iterdir()):
+    raise SystemExit('Refusing to overwrite a nonempty test credential directory; use a new directory')
 out.mkdir(mode=0o700, parents=True, exist_ok=True)
+out.chmod(0o700)
+identifier = 'a' * 32
+selected_hostname = 'wsprrypico-' + identifier + '.local'
 
 def openssl(*args):
     subprocess.run(['openssl', *args], cwd=out, check=True, capture_output=True)
@@ -18,8 +29,9 @@ openssl('req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', 
 for name, usage in [('server', 'serverAuth'), ('client', 'clientAuth'), ('other', 'clientAuth'), ('expired', 'clientAuth')]:
     openssl('req', '-new', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', '-nodes',
             '-keyout', name + '.key', '-out', name + '.csr', '-subj', '/CN=Ephemeral ' + name)
+    sans = 'DNS:' + selected_hostname + ('' if args.dns_only else ',IP:127.0.0.1') if name == 'server' else 'IP:127.0.0.1'
     (out / (name + '.ext')).write_text('basicConstraints=CA:FALSE\nextendedKeyUsage=' + usage +
-                                       '\nsubjectAltName=IP:127.0.0.1\nkeyUsage=digitalSignature\n')
+                                       '\nsubjectAltName=' + sans + '\nkeyUsage=digitalSignature\n')
     openssl('x509', '-req', '-in', name + '.csr', '-CA', 'client-ca.crt', '-CAkey', 'ca.key',
             '-CAcreateserial', '-out', name + '.crt', '-days', '1', '-extfile', name + '.ext')
 # Explicit historical validity works across OpenSSL versions via the CA command.
@@ -33,4 +45,6 @@ openssl('req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', 
         '-addext', 'extendedKeyUsage=clientAuth')
 for path in out.glob('*.key'):
     path.chmod(0o600)
+write_manifest(out, identifier, selected_hostname, [] if args.dns_only else ['127.0.0.1'])
+validate_bundle(out)
 print('Generated ephemeral TLS test credentials in', out)

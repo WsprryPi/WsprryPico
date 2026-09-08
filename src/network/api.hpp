@@ -22,6 +22,9 @@ class BrowserApi {
     HttpResponse handle(const HttpRequest& request, std::string_view principal,
                         std::string_view authority, std::uint64_t transaction = 0);
     std::string revision() const;
+    void hostname_authority(std::string authority) {
+        hostname_authority_ = std::move(authority);
+    }
     // All calls are serialized by the application owner. Tokens are never reused.
     void finish_request(std::uint64_t transaction = 0, bool apply = true) {
         if (pending_transaction_ && *pending_transaction_ == transaction) {
@@ -48,7 +51,7 @@ class BrowserApi {
     standalone::Store& store_;
     standalone::Scheduler& scheduler_;
     NetworkControl& network_;
-    std::string device_, firmware_;
+    std::string device_, firmware_, hostname_authority_;
     TransportStatus transport_ = nullptr;
     void* transport_context_ = nullptr;
     bool active_job_connections_ = false;

@@ -16,6 +16,19 @@
 #define LWIP_UDP 1
 #define LWIP_DHCP 1
 #define LWIP_DNS 0
+#define LWIP_IGMP 1
+#define LWIP_MDNS_RESPONDER 1
+#define LWIP_MDNS_SEARCH 0
+#define MDNS_MAX_SERVICES 1
+#define MDNS_MAX_STORED_PKTS 2
+#define MDNS_OUTPUT_PACKET_SIZE 512
+#define LWIP_NUM_NETIF_CLIENT_DATA 1
+#define LWIP_NETIF_EXT_STATUS_CALLBACK 1
+// Adapter quiesces immediately, then removes/reprobes from foreground polling.
+#define MDNS_RESP_USENETIF_EXTCALLBACK 0
+// Probe + two delayed replies + three cooldowns + two retained TC questions.
+#define MEMP_NUM_SYS_TIMEOUT (LWIP_NUM_SYS_TIMEOUT_INTERNAL + 8)
+#define MEMP_NUM_IGMP_GROUP 3
 #define LWIP_IPV6 0
 #define LWIP_RAW 0
 #define LWIP_NETIF_STATUS_CALLBACK 1

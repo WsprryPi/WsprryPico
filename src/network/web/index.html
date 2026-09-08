@@ -4,6 +4,7 @@
 <main><h1>Your station</h1><p id="notice" role="status" aria-live="polite">Connecting securely to the transmitter…</p>
 <section aria-labelledby="status-heading"><div class="section-title"><h2 id="status-heading">Transmitter status</h2><button id="refresh" type="button">Refresh</button></div>
 <dl><div><dt>Job</dt><dd id="state">Unavailable</dd></div><div><dt>RF output</dt><dd id="output">Unknown</dd></div><div><dt>Clock</dt><dd id="clock">Unavailable</dd></div><div><dt>Owner</dt><dd id="owner">Unavailable</dd></div><div><dt>Engine</dt><dd id="engine">Unavailable</dd></div><div><dt>Wi-Fi</dt><dd id="network">Unavailable</dd></div></dl>
+<dl class="identity"><div><dt>Device hostname</dt><dd id="hostname">Unavailable</dd></div><div><dt>Name discovery</dt><dd id="discovery">Unavailable</dd></div></dl><p id="discovery-help" class="muted"></p>
 <p id="recovery"></p><button id="abort" type="button" disabled>Abort my job</button><button id="release" type="button" disabled>Release control</button></section>
 <section aria-labelledby="config-heading"><div class="section-title"><h2 id="config-heading">Station &amp; network</h2><button id="reload-config" type="button">Reload saved settings</button></div><p>Saved settings take effect after a device restart. USB Console remains available for recovery.</p>
 <form id="config"><fieldset id="settings" disabled><div class="fields">

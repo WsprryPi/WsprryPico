@@ -56,14 +56,19 @@ foreach(component lwip cyw43-driver mbedtls)
         set(expected_revision "055d64274b014dd7b1c2fc94d26e8a18face7124")
     endif()
     set(component_path "${PICO_SDK_PATH}/lib/${component}")
-    if(component STREQUAL "mbedtls")
+    if(component STREQUAL "lwip")
+        # pico_lwip permits overriding the SDK submodule path. Verify the
+        # source actually linked by the responder wrapper and core stack.
+        set(component_path "${PICO_LWIP_PATH}")
+    elseif(component STREQUAL "mbedtls")
         # The SDK permits an environment/cache override. Verify the linked input.
         set(component_path "${PICO_MBEDTLS_PATH}")
-        execute_process(COMMAND git -C "${component_path}" status --porcelain --untracked-files=no
-            OUTPUT_VARIABLE tls_status OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE tls_status_result)
-        if(NOT tls_status_result EQUAL 0 OR NOT tls_status STREQUAL "")
-            message(FATAL_ERROR "The linked Mbed TLS checkout contains local changes")
-        endif()
+    endif()
+    execute_process(COMMAND git -C "${component_path}" status --porcelain
+        OUTPUT_VARIABLE component_status OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE component_status_result)
+    if(NOT component_status_result EQUAL 0 OR NOT component_status STREQUAL "")
+        message(FATAL_ERROR "The linked ${component} checkout contains local changes")
     endif()
     execute_process(COMMAND git -C "${component_path}" rev-parse HEAD
         OUTPUT_VARIABLE actual_revision OUTPUT_STRIP_TRAILING_WHITESPACE

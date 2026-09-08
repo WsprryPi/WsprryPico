@@ -35,8 +35,10 @@ def context(identity='client', protocols=('http/1.1',), tls12=False):
         ctx.set_alpn_protocols(list(protocols))
     return ctx
 
-def connect(ctx=None):
-    return (ctx or context()).wrap_socket(socket.create_connection(('127.0.0.1', 18443), timeout=5), server_hostname='127.0.0.1')
+HOSTNAME = "wsprrypico-" + "a" * 32 + ".local"
+
+def connect(ctx=None, hostname="127.0.0.1"):
+    return (ctx or context()).wrap_socket(socket.create_connection(('127.0.0.1', 18443), timeout=5), server_hostname=hostname)
 
 def http(path='/api/v1/status', method='GET', body=None, headers=None, fragment=False, identity="client", padding=0):
     text = '' if body is None else json.dumps(body, separators=(',', ':'))
@@ -63,6 +65,23 @@ def http(path='/api/v1/status', method='GET', body=None, headers=None, fragment=
 try:
     assert process.stdout.readline().startswith('READY'), process.stderr.read()
     assert http()[0] == 200
+    # Real DNS SAN verification over an explicit loopback destination; no NSS/mDNS claim.
+    with connect(hostname=HOSTNAME) as named:
+        named.sendall(f'GET /api/v1/status HTTP/1.1\r\nHost: {HOSTNAME}:18443\r\n\r\n'.encode())
+        assert b' 200 ' in named.recv(4096)
+    for mismatch in ('wrong.local', '127.0.0.2'):
+        try:
+            with connect(hostname=mismatch):
+                raise AssertionError('Mismatched TLS identity accepted')
+        except ssl.SSLCertVerificationError:
+            pass
+        time.sleep(.03)
+    authority = HOSTNAME + ':18443'
+    assert http(headers={'Host': authority, 'Origin': 'https://' + authority})[0] == 200
+    assert http(headers={'Host': authority.upper(), 'Origin': 'https://' + authority})[0] == 200
+    assert http(headers={'Host': authority, 'Origin': 'https://127.0.0.1:18443'})[0] == 403
+    assert http(headers={'Host': '127.0.0.1:18443', 'Origin': 'https://' + authority})[0] == 403
+    assert http(headers={'Origin': 'https://evil.local:18443'})[0] == 403
     caps = json.loads(http('/api/v1/capabilities')[2])
     assert caps['active_job_connections'] and caps['max_network_connections'] == 2
     assert caps['max_wtp_connections'] == 1

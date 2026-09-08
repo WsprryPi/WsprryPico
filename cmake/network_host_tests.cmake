@@ -1,5 +1,7 @@
 set(WSPRRY_PICO_TEST_MBEDTLS_PATH "" CACHE PATH "Optional pinned local Mbed TLS for actual TLS host tests")
 if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
+    # The test executable embeds its ephemeral server private key too.
+    file(CHMOD ${CMAKE_BINARY_DIR} PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)
     enable_language(C)
     execute_process(COMMAND git -C "${WSPRRY_PICO_TEST_MBEDTLS_PATH}" rev-parse HEAD
         OUTPUT_VARIABLE tls_revision OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE tls_result)
@@ -18,10 +20,18 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     set(USE_SHARED_MBEDTLS_LIBRARY OFF)
     set(DISABLE_PACKAGE_CONFIG_AND_INSTALL ON)
     add_subdirectory(${WSPRRY_PICO_TEST_MBEDTLS_PATH}/library ${CMAKE_BINARY_DIR}/mbedtls)
-    set(WSPRRY_PICO_TEST_CREDENTIAL_DIR "${CMAKE_BINARY_DIR}/network-test-credentials")
+    set(WSPRRY_PICO_TEST_CREDENTIAL_DIR "${CMAKE_BINARY_DIR}/network-test-credentials-v3")
     if(NOT EXISTS "${WSPRRY_PICO_TEST_CREDENTIAL_DIR}/server.key")
         execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_network_test_credentials.py
             "${WSPRRY_PICO_TEST_CREDENTIAL_DIR}" COMMAND_ERROR_IS_FATAL ANY)
+    endif()
+    execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/network_certificates.py
+        validate --directory "${WSPRRY_PICO_TEST_CREDENTIAL_DIR}"
+        OUTPUT_VARIABLE deployment COMMAND_ERROR_IS_FATAL ANY)
+    string(JSON WSPRRY_PICO_NETWORK_HOSTNAME GET "${deployment}" hostname)
+    string(JSON WSPRRY_PICO_NETWORK_DEVICE_ID GET "${deployment}" device_id)
+    if(NOT WSPRRY_PICO_NETWORK_DEVICE_ID STREQUAL "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        message(FATAL_ERROR "Named TLS tests require the generated Phase 11.3 deployment identity")
     endif()
     set(WSPRRY_PICO_NETWORK_PORT 18443)
     file(READ "${WSPRRY_PICO_TEST_CREDENTIAL_DIR}/server.crt" WSPRRY_PICO_CERTIFICATE)

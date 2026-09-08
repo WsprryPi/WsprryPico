@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(__dirname + '/../src/network/web/app.js','utf8');
 async function fixture(activeConnections = true) {
-    const ids = ['notice','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','recovery','job','job-result','job-file','start'];
+    const ids = ['notice','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start'];
     const elements = Object.fromEntries(ids.map(id => [id,{disabled:false,value:'',textContent:'',classList:{toggle(){}},files:[]}]));
     elements.config.elements = Object.fromEntries(['callsign','locator','power_dbm','ssid','password','ntp_ipv4','enabled','schedules','expiry'].map(id => [id,{value:'',checked:false}]));
     const config = {version:1,enabled:false,station:{callsign:'AA0NT',locator:'EM18',power_dbm:37},wifi:{ssid:'test',password:null,ntp_ipv4:'192.0.2.1'},schedules:[{period_s:120,phase_s:0}],expires_utc_s:0};
@@ -57,6 +57,15 @@ async function fixture(activeConnections = true) {
     f.confirm = false; await f.elements['reload-config'].onclick(); assert.equal(f.form.callsign.value,'N0NEW');
     f.failConfig = true; await f.elements.config.onsubmit({preventDefault(){}});
     assert.match(f.elements.notice.textContent,/edits are preserved/); assert.equal(f.form.password.value,'unsaved-test-password'); assert.equal(f.configReads(),1);
+    f.state.network.configured_hostname = 'wsprrypico-' + 'a'.repeat(32) + '.local';
+    for (const state of ['active','conflict','failed','probing','waiting_address']) {
+        f.state.network.mdns_state = state; await f.elements.refresh.onclick();
+        assert.equal(f.form.callsign.value,'N0NEW');
+        assert.equal(f.form.password.value,'unsaved-test-password');
+        assert.equal(f.elements.hostname.textContent,f.state.network.configured_hostname);
+    }
+    f.state.network.mdns_state = 'conflict'; await f.elements.refresh.onclick();
+    assert.match(f.elements['discovery-help'].textContent,/will not rename/);
     f.prepareJob(); f.failArm = true;
     await f.elements.job.onsubmit({preventDefault(){}});
     assert.equal(f.elements.abort.disabled,false); assert.equal(f.elements.release.disabled,false); assert.equal(f.elements['job-settings'].disabled,true);
@@ -66,7 +75,7 @@ async function fixture(activeConnections = true) {
     await f.elements.release.onclick(); assert.match(f.elements['job-result'].textContent,/aborted/);
     f.state.job.state = 'complete'; await f.elements.refresh.onclick(); assert.match(f.elements['job-result'].textContent,/complete/);
     f.state.job.state = 'failed'; await f.elements.refresh.onclick(); assert.equal(f.elements.release.disabled,true);
-    f.offline = true; await f.elements.refresh.onclick(); assert.equal(f.elements.settings.disabled,true); assert.equal(f.elements.abort.disabled,true);
+    f.offline = true; await f.elements.refresh.onclick(); assert.equal(f.elements.hostname.textContent,'Unknown'); assert.equal(f.elements.discovery.textContent,'Unknown'); assert.equal(f.elements.settings.disabled,true); assert.equal(f.elements.abort.disabled,true);
     const rf = await fixture(false); rf.prepareJob();
     const statusReads = rf.calls.filter(c=>c.path.endsWith('status')).length;
     await rf.elements.job.onsubmit({preventDefault(){}});

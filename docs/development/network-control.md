@@ -12,8 +12,8 @@ Phase 13 retains final RF/timing/reliability qualification.
 Network control is disabled by default (`WSPRRY_PICO_NETWORK_PORT=0`). Existing
 Wi-Fi/SNTP/USB and recovery behavior remains available. Use the existing Console
 configuration to join Wi-Fi; the TLS server requires usable device UTC before
-accepting clients. Reserve a stable IPv4 address in DHCP so it continues matching
-the device certificate. No cloud service, public domain or public certificate
+accepting clients. Use DHCP with the stable per-device `.local` hostname; no
+address reservation is required. No cloud service, public domain or public certificate
 authority is required.
 
 The helper uses locally installed OpenSSL and Python. It creates a **separate
@@ -25,19 +25,25 @@ credential-bearing build directories are private and generated credentials are
 owner-readable only. Such UF2 files are private deployment artifacts, never release
 artifacts or source-controlled files.
 
-Example commands use documentation-only IP `192.0.2.10`; substitute the reserved
-address and your device name. These commands only create local files:
+Obtain the stable 32-hex WTP device ID from an existing recorded INFO/HELLO result
+(or separately authorized USB inspection). The examples use the illustrative ID
+`aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`; replace it with the actual device ID. The
+helper derives `wsprrypico-<device-id>.local`. These commands create local files:
 
 ```sh
 python3 scripts/network_certificates.py init \
-  --directory config/local/network/pico-a --device pico-a --address 192.0.2.10
+  --directory config/local/network/pico-a --device-id aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 python3 scripts/network_certificates.py issue-client \
   --ca-directory config/local/network/pico-a --name operator-browser \
   --output config/local/network/pico-a/operator-browser
 python3 scripts/network_certificates.py export-browser \
   --client-directory config/local/network/pico-a/operator-browser \
   --output config/local/network/pico-a/operator-browser.p12
+python3 scripts/network_certificates.py issue-client \
+  --ca-directory config/local/network/pico-a --name wsprrypi-controller \
+  --output config/local/network/pico-a/wsprrypi-controller
 python3 scripts/network_certificates.py inspect --directory config/local/network/pico-a
+python3 scripts/network_certificates.py validate --directory config/local/network/pico-a/server
 ```
 
 Export prompts for a password of at least 12 characters without echoing it; no
@@ -49,7 +55,7 @@ Initial CA lifetime is ten years; server/client certificates last one year.
 Import the CA certificate into your chosen trust store and the password-protected
 PKCS#12 identity into your browser/keychain. This is an explicit operator action:
 no script installs trust, modifies a keychain or bypasses browser certificate
-warnings. Browse to `https://<reserved-ip>:<configured-port>/` and select the
+warnings. Browse to `https://wsprrypico-<device-id>.local:<configured-port>/` and select the
 appropriate client identity. For a WTP controller, issue a separate client bundle
 and supply its certificate/private key plus the device CA to its TLS transport.
 WsprryPi Phase 11.1 provides the host TLS transport and settings in its own
@@ -66,8 +72,12 @@ cmake --build --preset pico2-w
 ```
 
 The port is an explicit deployment choice, not a WTP-assigned default. Directory
-contents must be `server.crt`, `server.key` and `client-ca.crt`. Missing/invalid inputs
-fail closed; runtime TLS initialization must also parse and match the keypair.
+contents are `server.crt`, `server.key`, `client-ca.crt` and public `deployment.json`.
+The manifest is the sole build hostname/device-ID input. Configuration verifies
+its exact SANs, fingerprint, keypair, chain, purpose and validity against the
+actual certificate. Wrong-board images fail the runtime deployment identity gate.
+Manifest-less valid IP-only bundles retain legacy operation without mDNS.
+Missing/invalid inputs fail closed; runtime TLS initialization also checks the keypair.
 The SDK and Mbed TLS source revisions are verified. The SDK's pinned Mbed TLS
 3.6.6 requires its PSA RNG source, absent from the SDK's older source list; the
 firmware build explicitly links that existing source with its upstream license.
@@ -89,17 +99,61 @@ Create a replacement server bundle without overwriting the old one:
 
 ```sh
 python3 scripts/network_certificates.py renew-server \
-  --ca-directory config/local/network/pico-a --device pico-a --address 192.0.2.10 \
+  --ca-directory config/local/network/pico-a --device-id aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
   --output config/local/network/pico-a/server-renewed
 ```
 
 Rebuild using the replacement directory, then separately authorize flashing.
-Clients continue trusting the same CA. An address change also requires a new server
-certificate. There is no on-device CRL/OCSP service or runtime rotation yet. If a
+Clients continue trusting the same CA. DHCP address changes do not require renewal
+for hostname access. There is no on-device CRL/OCSP service or runtime rotation yet. If a
 client credential or the CA is compromised, create a new device CA with `init` in
 a new directory, reissue authorized clients, rebuild/reflash the device with the
 new trust chain and replace client trust. This invalidates **all** old clients for
 that device. Runtime credential installation/revocation remains Phase 12 work.
+
+### Explicit IP, deliberate hostname change and legacy migration
+
+Add `--address 192.0.2.10` to `init` or `renew-server` to include an optional IP
+SAN (repeat for up to four addresses). A literal-IP browser URL requires that
+exact IP SAN. WsprryPi can instead connect to an explicit IP with the expected
+hostname configured independently; its HTTP authority then uses that hostname.
+
+For a deliberate deployment alias, use the same device ID and an explicit
+`--hostname pico-workbench.local` when renewing into a new output directory:
+
+```sh
+python3 scripts/network_certificates.py renew-server \
+  --ca-directory config/local/network/pico-a --device-id aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+  --hostname pico-workbench.local --output config/local/network/pico-a/server-renamed
+```
+
+This requires a certificate update, explicit rebuild/reflash and corresponding
+client target/expected-identity update. It creates no runtime setting or schema
+migration. To migrate an existing IP-only CA directory, run the hostname-based
+`renew-server` command above without `--hostname`, using the actual device ID and
+a new output directory; rebuild with that bundle. Its existing valid client
+identities remain trusted. The old `init --device pico-a --address 192.0.2.10`
+workflow remains IP-only and has no advertisement.
+
+mDNS registration begins after Wi-Fi has a usable IPv4 address and the configured
+listener is available. Successful probing reports `active`. DHCP replacement
+reprobes and announces the new address with cache-flush semantics. Link loss
+removes local registration; only an orderly disable with a usable link attempts
+a goodbye. A conflict latches and never selects an uncertified automatic suffix.
+Resolve the duplicate device/name, then explicitly retry with idle Console
+`WIFI OFF`/`WIFI ON` or restart. Name discovery failure does not stop a finite job
+or establish inactive output. See the [shared identity contract](phase11-3-identity.md)
+and [responder implementation](mdns-responder.md).
+
+Linux clients need functioning system `.local` resolution, such as a properly
+configured Avahi/NSS mDNS integration or systemd-resolved mDNS on the active link.
+Check `getent ahostsv4 <hostname>` and, where installed, `resolvectl query <hostname>`
+or `avahi-resolve-host-name -4 <hostname>`. macOS can inspect with
+`dns-sd -G v4 <hostname>` (Ctrl-C to stop). These commands are for later authorized
+operational diagnosis. A successful unicast lookup or injected loopback test does
+not prove that local multicast/NSS is configured. No helper edits hosts/NSS,
+installs resolver services or changes trust stores. See WsprryPi's `docs/wtp-network.md`
+for connection settings and the [opt-in 11.4 procedure](phase11-4-acceptance.md).
 
 ## Runtime and recovery
 

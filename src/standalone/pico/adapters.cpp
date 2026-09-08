@@ -4,9 +4,11 @@
 #include "hardware/structs/watchdog.h"
 #include "hardware/sync.h"
 #include "lwip/netif.h"
+#include "network/identity.hpp"
 #include "pico/cyw43_arch.h"
 #include "pico/rand.h"
 #include "pico/time.h"
+#include "standalone/pico/mdns_lwip.h"
 #ifdef WSPRRY_PICO_STANDALONE_RF
 #include "pico/flash.h"
 #endif
@@ -24,6 +26,7 @@ constexpr std::size_t storage_size = 16 * 1024;
 constexpr std::size_t flash_base = PICO_FLASH_SIZE_BYTES - 4096 - storage_size;
 static_assert(PICO_FLASH_SIZE_BYTES == 4 * 1024 * 1024);
 static_assert(MEM_ALIGNMENT >= alignof(std::uint32_t));
+PicoNetwork* mdns_owner = nullptr;
 } // namespace
 bool PicoFlash::read(std::size_t offset, std::span<std::uint8_t> data) {
     if (offset > storage_size || data.size() > storage_size - offset)
@@ -72,6 +75,29 @@ bool PicoFlash::program(std::size_t offset, std::span<const std::uint8_t> page) 
 #endif
     return true; // Journal independently verifies the complete record.
 }
+PicoNetwork::PicoNetwork(time::UtcDiscipline& clock, std::string_view device_id,
+                         std::string_view configured_hostname)
+    : sntp_(clock), mdns_(*this, configured_hostname),
+      stable_hostname_(network::default_hostname(device_id)) {}
+bool PicoNetwork::initialize() {
+    if (mdns_owner && mdns_owner != this)
+        return false;
+    if (wsprry_mdns_init(mdns_result) != ERR_OK)
+        return false;
+    mdns_owner = this;
+    return true;
+}
+bool PicoNetwork::add(std::string_view label) {
+    const std::string owned(label);
+    return wsprry_mdns_add(&cyw43_state.netif[CYW43_ITF_STA], owned.c_str()) == ERR_OK;
+}
+void PicoNetwork::remove(bool goodbye) {
+    wsprry_mdns_remove(&cyw43_state.netif[CYW43_ITF_STA], goodbye);
+}
+void PicoNetwork::mdns_result(struct netif* interface, u8_t result, s8_t slot) {
+    if (mdns_owner && interface == &cyw43_state.netif[CYW43_ITF_STA] && slot == 0)
+        mdns_owner->mdns_.name_result(result == MDNS_PROBING_SUCCESSFUL);
+}
 bool PicoNetwork::start(const Config& config) {
     if (initialized_ || !ipaddr_aton(config.ntp_ipv4.c_str(), &server_))
         return false;
@@ -85,8 +111,12 @@ bool PicoNetwork::start(const Config& config) {
     ssid_ = config.ssid;
     password_ = config.password;
     pcb_ = udp_new_ip_type(IPADDR_TYPE_V4);
-    if (!pcb_)
+    if (!pcb_) {
+        cyw43_arch_disable_sta_mode();
+        cyw43_arch_deinit();
+        initialized_ = false;
         return false;
+    }
     udp_recv(pcb_, receive, this);
     return true;
 }
@@ -115,6 +145,11 @@ void PicoNetwork::poll() {
     watchdog_hw->scratch[1] = 14;
     const auto now = time_us_64();
     const auto link = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
+    const auto* station = &cyw43_state.netif[CYW43_ITF_STA];
+    if (wsprry_mdns_network_changed())
+        mdns_.network_changed();
+    mdns_.poll(enabled_ && listening_ && link_up(),
+               link_up() ? ip4_addr_get_u32(netif_ip4_addr(station)) : 0, now);
     if (link != CYW43_LINK_UP) {
         sntp_.cancel();
         poll_schedule_.reset();
@@ -160,11 +195,15 @@ bool PicoNetwork::set_enabled(bool enabled) {
     sntp_.cancel();
     enabled_ = enabled;
     if (enabled) {
+        mdns_.retry();
         cyw43_arch_enable_sta_mode();
         next_connect_us_ = 0;
         poll_schedule_.reset();
-    } else
+    } else {
+        // enabled_ was already changed; inspect the actual station before teardown.
+        mdns_.disable(cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA) == CYW43_LINK_UP);
         cyw43_arch_disable_sta_mode();
+    }
     return true;
 }
 bool PicoNetwork::link_up() const {
@@ -172,7 +211,7 @@ bool PicoNetwork::link_up() const {
            cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA) == CYW43_LINK_UP;
 }
 std::string PicoNetwork::ipv4() const {
-    return link_up() && netif_default ? ip4addr_ntoa(netif_ip4_addr(netif_default)) : "";
+    return link_up() ? ip4addr_ntoa(netif_ip4_addr(&cyw43_state.netif[CYW43_ITF_STA])) : "";
 }
 std::string PicoNetwork::status() const {
     const auto uncertainty = sntp_.last_uncertainty_ns();
@@ -184,6 +223,19 @@ std::string PicoNetwork::status() const {
            (pending_enabled_ ? (*pending_enabled_ ? "true" : "false") : "null") +
            ",\"control_configured\":" + (configured_ ? "true" : "false") +
            ",\"control_listening\":" + (listening_ ? "true" : "false") +
+           ",\"deployment_identity_matches\":" + (identity_matches_ ? "true" : "false") +
+           ",\"stable_hostname\":" + wtp::json::quote(stable_hostname_) +
+           ",\"configured_hostname\":" + wtp::json::quote(mdns_.hostname()) +
+           ",\"advertised_hostname\":" + wtp::json::quote(mdns_.advertised()) +
+           ",\"mdns_state\":" + wtp::json::quote(mdns_.state()) +
+           ",\"mdns_reason\":" + wtp::json::quote(mdns_.reason()) +
+           ",\"mdns_registrations\":" + std::to_string(mdns_.registrations()) +
+           ",\"mdns_conflicts\":" + std::to_string(mdns_.conflicts()) +
+           ",\"mdns_failures\":" + std::to_string(mdns_.failures()) +
+           ",\"mdns_address_changes\":" + std::to_string(mdns_.address_changes()) +
+           ",\"mdns_goodbye_attempts\":" + std::to_string(wsprry_mdns_goodbye_attempts()) +
+           ",\"mdns_goodbye_failures\":" + std::to_string(wsprry_mdns_goodbye_failures()) +
+           ",\"mdns_rejected_packets\":" + std::to_string(wsprry_mdns_rejected_packets()) +
            ",\"queries\":" + std::to_string(queries_) +
            ",\"accepted\":" + std::to_string(accepted_) +
            ",\"rejected\":" + std::to_string(rejected_) +

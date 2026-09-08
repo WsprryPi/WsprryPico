@@ -37,6 +37,7 @@ execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/genera
     COMMAND_ERROR_IS_FATAL ANY)
 
 add_library(wsprrypico_core
+    src/network/mdns.cpp
     src/network/http.cpp
     src/network/api.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
@@ -114,6 +115,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME rf_worker_tests COMMAND rf_worker_tests)
     add_test(NAME rf_worker_failure_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/rf_worker_failure_tests.py $<TARGET_FILE:rf_worker_tests>)
+    add_executable(mdns_tests tests/mdns_tests.cpp)
+    target_link_libraries(mdns_tests PRIVATE wsprrypico_core)
+    target_compile_options(mdns_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME mdns_tests COMMAND mdns_tests)
     add_executable(network_tests tests/network_tests.cpp)
     target_link_libraries(network_tests PRIVATE wsprrypico_core)
     target_compile_options(network_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -167,6 +172,7 @@ if(WSPRRY_PICO_BUILD_TESTS)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     include(cmake/host_client_interop.cmake)
     include(cmake/network_host_tests.cmake)
+    include(cmake/mdns_host_tests.cmake)
     add_test(NAME network_certificate_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/network_certificate_tests.py)
     add_test(NAME standalone_image_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/standalone_image_tests.py)
     add_test(NAME standalone_console_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/standalone_console_tests.py)

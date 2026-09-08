@@ -14,9 +14,14 @@ path. The authenticated principal is the SHA-256 fingerprint of the leaf client
 certificate. Device-specific credential setup and renewal are described in
 [network control](development/network-control.md).
 
-The authority is the current IPv4 address and configured port (omit `:443` for
-port 443). `Host` must match exactly, rejecting DNS rebinding aliases. Browser
-mutations require all of:
+Allowed authorities are the certified deployment hostname and the current IPv4
+address, each with the configured port (omit `:443` at port 443). DNS case and a
+single terminal root dot canonicalize before validation. Host and any supplied
+HTTPS Origin must each be allowed and must match one another; hostname/IP mixing
+is cross-origin and rejected. Legacy IP-only bundles admit only current IPv4.
+Literal-IP browser access additionally requires a matching IP SAN. See the
+[shared identity contract](development/phase11-3-identity.md).
+Browser mutations require all of:
 
 - `Origin: https://<authority>`;
 - `Content-Type: application/json`;
@@ -164,3 +169,14 @@ or ARM is automatically retried after an ambiguous outcome. Unsupported adapters
 leave `active_job_connections:false` and retain the existing pause/recovery UI.
 See the [11.2 review](development/phase11-2-review.md) for exact software evidence,
 resource admission and pending target timing/RF acceptance.
+
+## Discovery status
+
+`network` adds `stable_hostname`, `configured_hostname`, `advertised_hostname`,
+`deployment_identity_matches`, `mdns_state` and `mdns_reason`. Advertisement is
+empty until active. States are `unconfigured`, `waiting_address`, `probing`,
+`active`, `conflict` and `failed`. Reasons distinguish name conflict, initialization,
+registration, probe timeout and wrong-board deployment failures. Bounded counters
+report registrations, conflicts, failures, address changes, goodbye attempts/
+failures and rejected packets. A sent goodbye is not proof of peer receipt.
+Discovery failures neither alter WTP identity/ownership nor report inactive RF.

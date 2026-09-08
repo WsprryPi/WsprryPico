@@ -44,6 +44,11 @@ The [full-frame record](rf-frame-validation.md) adds synthetic frame, abort/rear
 simultaneous GPSDO comparison and optional offline measurement tests.
 The [output/inhibit design](rf-output-design.md) remains a hardware proposal.
 
+The [Phase 11.3 plan and joint checklist](phase11-3-plan.md) records DHCP/mDNS,
+hostname deployment certificates, HTTP authority and companion integration.
+The [shared identity contract](phase11-3-identity.md) is authoritative for both
+applications; [inhibited acceptance](phase11-4-acceptance.md) remains opt-in.
+
 ## Current checks
 
 The [Phase 11 network guide](network-control.md) documents optional TLS WTP/TCP,

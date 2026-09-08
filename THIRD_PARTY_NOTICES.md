@@ -70,3 +70,9 @@ RNG source explicitly added to the SDK target. Preserve applicable upstream
 notices and the Apache license with distributed firmware/test binaries.
 The HTTP adapter, browser assets and certificate scripts are original MIT
 project contributions; no WsprryPi vendor browser assets are copied.
+
+Phase 11.3 also links the exact pinned lwIP mDNS responder (`mdns.c`,
+`mdns_domain.c`, `mdns_out.c`). Its retained [BSD notice](docs/licenses/lwip-mdns.txt)
+and [integration record](docs/development/mdns-responder.md) describe the narrow
+project-owned lifecycle wrapper. SDK source is unmodified; no DNS-SD service
+registration or third-party application code is added.

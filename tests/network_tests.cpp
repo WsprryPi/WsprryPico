@@ -1,4 +1,5 @@
 #include "network/http.hpp"
+#include "network/identity.hpp"
 #include "network_support.hpp"
 #include "wtp/codec.hpp"
 #include "wtp/endpoint.hpp"
@@ -56,6 +57,61 @@ void framing() {
     const auto response = network::http_error(403, "forbidden").wire();
     REQUIRE(response.find("Connection: close\r\n") != response.npos);
     REQUIRE(response.find("Access-Control-Allow-Origin") == response.npos);
+}
+void identities() {
+    using network::canonical_local_hostname;
+    const auto name = network::default_hostname(std::string(32, 'a'));
+    REQUIRE(name == "wsprrypico-" + std::string(32, 'a') + ".local");
+    REQUIRE(network::deployment_identity_matches(std::string(32, 'a'), std::string(32, 'a'), name));
+    REQUIRE(network::deployment_identity_matches(std::string(32, 'a'), "", ""));
+    REQUIRE(
+        !network::deployment_identity_matches(std::string(32, 'b'), std::string(32, 'a'), name));
+    REQUIRE(!network::deployment_identity_matches(std::string(32, 'a'), "", name));
+    REQUIRE(!network::deployment_identity_matches("bad", "bad", name));
+    REQUIRE(network::default_hostname("bad").empty());
+    REQUIRE(network::default_hostname(std::string(32, 'g')).empty());
+    REQUIRE(canonical_local_hostname("PICO-A.LOCAL.") == "pico-a.local");
+    REQUIRE(canonical_local_hostname(std::string(63, 'a') + ".local"));
+    REQUIRE(!canonical_local_hostname(std::string(64, 'a') + ".local"));
+    for (const auto* bad : {"", "-a.local", "a-.local", "a..local", "a.local..", "*.local",
+                            "a.local.evil", "a_b.local", "a.local:443", "a\n.local"})
+        REQUIRE(!canonical_local_hostname(bad));
+    Fixture f;
+    f.api.hostname_authority("pico-a.local:8443");
+    auto r = request("GET", "/api/v1/status");
+    const auto call = [&] { return f.api.handle(r, "cert", "127.0.0.1:8443").status; };
+    for (const auto* host : {"pico-a.local:8443", "PICO-A.LOCAL.:8443", "127.0.0.1:8443"}) {
+        r.headers["host"] = host;
+        r.headers["origin"] = "https://" + std::string(host);
+        REQUIRE(call() == 200);
+    }
+    for (const auto* bad :
+         {"pico-b.local:8443", "pico-a.local", "pico-a.local:443", "pico-a.local:08443",
+          "pico-a.local:8443/", "127.0.0.2:8443", "user@pico-a.local:8443",
+          "pico-a.local.:8443.evil", "127.000.0.1:8443", "[::1]:8443"}) {
+        r.headers["host"] = bad;
+        r.headers["origin"] = "https://" + std::string(bad);
+        REQUIRE(call() == 403);
+    }
+    for (const auto* origin : {"https://127.0.0.1:8443", "http://pico-a.local:8443",
+                               "https://pico-a.local:8443/", "null", ""}) {
+        r.headers["host"] = "pico-a.local:8443";
+        r.headers["origin"] = origin;
+        REQUIRE(call() == 403);
+    }
+    r.headers.erase("origin");
+    REQUIRE(call() == 200);
+    r.method = "PUT";
+    REQUIRE(call() == 403);
+    r.headers["origin"] = "https://PICO-A.LOCAL.:8443";
+    r.path = "/api/v1/network";
+    r.body = "{\"enabled\":true}";
+    REQUIRE(call() == 428); // Passed authority, revision still required.
+    r.headers["host"] = "127.0.0.1:8443";
+    REQUIRE(call() == 403); // Both aliases allowed independently, never mixed.
+    REQUIRE(f.api.handle(request("GET", "/api/v1/status"), "cert", "127.0.0.2:8443").status == 403);
+    REQUIRE(network::canonical_authority("PICO-A.LOCAL.") == "pico-a.local");
+    REQUIRE(!network::canonical_authority("pico-a.local:443"));
 }
 void api_checks() {
     Fixture f;
@@ -208,6 +264,7 @@ void jobs() {
 }
 } // namespace
 int main() {
+    identities();
     framing();
     api_checks();
     jobs();

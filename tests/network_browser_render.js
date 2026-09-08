@@ -5,10 +5,10 @@ const fs = require('node:fs'), http = require('node:http'), path = require('node
 const {spawn} = require('node:child_process');
 const assert = require('node:assert/strict');
 const root = path.resolve(__dirname, '../src/network/web');
-const output = path.resolve(process.argv[2] || 'build/phase11-2-ui');
+const output = path.resolve(process.argv[2] || 'build/phase11-3-ui');
 const state = {job:{state:'empty',output_active:false,owner_id:null,job_id:null},
   standalone:{reboot_required:false,storage_healthy:true,uncertainty_ns:'1000000',clock_state:'synchronized',engine:'pio-dma-gp2'},
-  network:{enabled:true,link_status:3,ipv4:'192.0.2.10'}};
+  network:{enabled:true,link_status:3,ipv4:'192.0.2.10',configured_hostname:'wsprrypico-'+'a'.repeat(32)+'.local',mdns_state:'active',mdns_reason:''}};
 const config = {version:1,enabled:false,station:{callsign:'AA0NT',locator:'EM18',power_dbm:37},
   wifi:{ssid:'Test station',password:null,ntp_ipv4:'192.0.2.1'},schedules:[{period_s:120,phase_s:0}],expires_utc_s:0};
 let offline = false, chrome, socket;
@@ -46,7 +46,7 @@ async function until(fn) {for(let i=0;i<200;i++){if(await fn())return;await new 
   await new Promise((r,j)=>{socket.onopen=r;socket.onerror=j;});
   await send('Page.enable');
   for(const [name,width,height] of [['desktop',1280,900],['mobile',390,844]]) {
-    offline=false;state.job={state:'empty',output_active:false,owner_id:null,job_id:null};
+    offline=false;state.network.mdns_state='active';state.job={state:'empty',output_active:false,owner_id:null,job_id:null};
     await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:name==='mobile'});
     await send('Page.navigate',{url:'http://127.0.0.1:'+server.address().port+'/'});
     await until(()=>evaluate('typeof online !== "undefined" && online && !busy'));
@@ -61,6 +61,14 @@ async function until(fn) {for(let i=0;i<200;i++){if(await fn())return;await new 
     state.job={...state.job,state:'running',output_active:true,owner_id:'f'.repeat(32)};
     await evaluate('document.getElementById("refresh").click()');await until(()=>evaluate('!busy'));
     assert.equal(await evaluate('document.getElementById("abort").disabled'),true);
+    for(const discoveryState of ['conflict','failed']) {
+      state.network.mdns_state=discoveryState;
+      await evaluate('document.getElementById("refresh").click()');await until(()=>evaluate('!busy'));
+      assert.equal(await evaluate('document.querySelector("[name=password]").value'),'unsaved-draft');
+      assert.equal(await evaluate('document.documentElement.scrollWidth <= innerWidth'),true);
+      shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});
+      fs.writeFileSync(path.join(output,name+'-'+discoveryState+'.png'),Buffer.from(shot.data,'base64'));
+    }
     offline=true;await evaluate('document.getElementById("refresh").click()');await until(()=>evaluate('!busy'));
     assert.equal(await evaluate('document.getElementById("output").textContent'),'Unknown');
     assert.equal(await evaluate('document.querySelector("[name=password]").value'),'unsaved-draft');

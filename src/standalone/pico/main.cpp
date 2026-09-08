@@ -1,7 +1,9 @@
 #include "firmware_identity.hpp"
 #include "hardware/structs/watchdog.h"
 #include "hardware/watchdog.h"
+#include "network/identity.hpp"
 #include "network/pico/server.hpp"
+#include "network_credentials.hpp"
 #include "pico/bootrom.h"
 #include "pico/time.h"
 #include "pico_adapters.hpp"
@@ -128,7 +130,11 @@ int main() {
     static wsprrypico::wtp::Endpoint endpoint(service, identities.device_id(),
                                               wsprrypico::firmware::kFirmwareVersion);
     static wsprrypico::standalone::Scheduler scheduler(store, service);
-    static wsprrypico::standalone::PicoNetwork network(clock);
+    const bool deployment_matches = wsprrypico::network::deployment_identity_matches(
+        identities.device_id(), wsprrypico::network::credentials::device_id,
+        wsprrypico::network::credentials::hostname);
+    static wsprrypico::standalone::PicoNetwork network(clock, identities.device_id(),
+                                                       wsprrypico::network::credentials::hostname);
     if (recovery)
         (void)scheduler.command("STOP");
     watchdog_hw->scratch[1] = 2;
@@ -140,9 +146,9 @@ int main() {
     static wsprrypico::network::PicoServer server(service, browser_api, identities.device_id(),
                                                   wsprrypico::firmware::kFirmwareVersion);
     browser_api.set_active_job_connections(true);
-    if (!recovery && network.initialized())
+    if (!recovery && deployment_matches && network.initialized())
         (void)server.start();
-    network.listener_status(server.configured(), server.listening());
+    network.listener_status(server.configured(), server.listening(), deployment_matches);
     watchdog_hw->scratch[1] = 3;
     std::array<std::uint8_t, 64> input{};
     std::size_t offset = 0, size = 0;
@@ -168,6 +174,7 @@ int main() {
                 wsprrypico::wtp::json::quote(wsprrypico::firmware::kBuildRevision) +
                 ",\"firmware\":" +
                 wsprrypico::wtp::json::quote(wsprrypico::firmware::kFirmwareVersion) +
+                ",\"deployment_identity_matches\":" + (deployment_matches ? "true" : "false") +
                 ",\"recovery_boot\":" + (recovery ? "true" : "false") +
                 ",\"fault_stage\":" + std::to_string(fault_stage) +
                 ",\"fault_hash\":" + std::to_string(fault_hash) +

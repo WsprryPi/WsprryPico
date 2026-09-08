@@ -41,7 +41,8 @@ treated as long-term product documentation.
     coexistence remains open. WsprryPi 11.1 host software is implemented independently.
     [11.2 concurrent management](development/phase11-2-review.md) implements software
     isolation and instrumentation; target timing acceptance remains pending.
-    Remaining: 11.3 DHCP/mDNS/hostname certificates and joint resolution; 11.4
+    [11.3 DHCP/mDNS/hostname certificates](development/phase11-3-plan.md) is under
+    joint software acceptance. Remaining physical gates: 11.4
     inhibited physical acceptance; 11.5 target resource/contention measurements;
     11.6 conducted RF acceptance; 11.7 final joint review and Phase 11 closure.
 12. **Planned:** SoftAP and BLE provisioning.

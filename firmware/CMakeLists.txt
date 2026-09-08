@@ -161,3 +161,19 @@ foreach(image WsprryPico WsprryPico-RFBench WsprryPico-RFWTP WsprryPico-Standalo
 endforeach()
 
 include(${CMAKE_SOURCE_DIR}/cmake/network.cmake)
+
+# Immutable pinned lwIP responder plus a narrow lifecycle integration wrapper.
+# Do not also link pico_lwip_mdns: the wrapper includes its mdns.c translation unit.
+set_source_files_properties(
+    ${CMAKE_SOURCE_DIR}/src/standalone/pico/mdns_lwip.c
+    ${PICO_LWIP_PATH}/src/apps/mdns/mdns_domain.c
+    ${PICO_LWIP_PATH}/src/apps/mdns/mdns_out.c
+    PROPERTIES COMPILE_OPTIONS "-fstack-usage")
+foreach(image WsprryPico WsprryPico-StandaloneRF)
+    target_sources(${image} PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/standalone/pico/mdns_lwip.c
+        ${PICO_LWIP_PATH}/src/apps/mdns/mdns_domain.c
+        ${PICO_LWIP_PATH}/src/apps/mdns/mdns_out.c)
+    target_compile_definitions(${image} PRIVATE
+        WSPRRY_PICO_LWIP_MDNS_SOURCE="${PICO_LWIP_PATH}/src/apps/mdns/mdns.c")
+endforeach()

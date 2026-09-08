@@ -102,6 +102,10 @@ bool PicoServer::busy() const {
 bool PicoServer::start() {
     if (!configured() || setup_ || tls_owner)
         return false;
+    api_.hostname_authority(std::string(credentials::hostname).empty()
+                                ? ""
+                                : std::string(credentials::hostname) +
+                                      (port() == 443 ? "" : ":" + std::to_string(port())));
     setup_ = true;
     tls_owner = this;
     time_service = &service_;

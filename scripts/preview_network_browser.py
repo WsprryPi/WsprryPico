@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--build', type=Path, required=True)
 args = parser.parse_args()
 build = args.build.resolve()
-credentials = build / 'network-test-credentials'
+credentials = build / 'network-test-credentials-v3'
 context = ssl.create_default_context(cafile=str(credentials / 'client-ca.crt'))
 context.load_cert_chain(str(credentials / 'client.crt'), str(credentials / 'client.key'))
 context.minimum_version = ssl.TLSVersion.TLSv1_3
