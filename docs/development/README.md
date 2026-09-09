@@ -55,6 +55,9 @@ directories and performs no device or network operations.
 The [E2/E3 conflict record](phase11-4-e2-e3-results.md) adds the controlled-host
 alias conflict and same-name recovery observations. Its companion
 `scripts/audit_phase11_4_mdns_conflict.py` also operates only on private files.
+The [controlled same-SSID comparison](phase11-4-same-ssid-results.md) retains
+a goodbye failure with the host recovery service paused and verifies restoration
+of its active and boot-enabled state.
 The [second B2/D2 series](phase11-4-b2-d2-repeat-results.md) reproduces actual
 ARP/TCP/NSS and goodbye failures and retains the invalidated SSID comparison.
 The [B2/D2 repeat record](phase11-4-b2-d2-results.md) retains passing and

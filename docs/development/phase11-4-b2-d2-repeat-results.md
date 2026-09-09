@@ -1,5 +1,9 @@
 # Phase 11.4 B2/D2 repeat and failure diagnosis
 
+The later [controlled same-SSID repeat](phase11-4-same-ssid-results.md) pauses
+the recovery service, preserves boot enablement, and completes the previously
+invalidated comparison. It still reproduces the goodbye failure.
+
 The user requested another run because the [initial series](phase11-4-b2-d2-results.md)
 had incomplete packet evidence. This repeat **reproduced a real failure**, not
 merely a missing probe. The same firmware remained responsive through USB and

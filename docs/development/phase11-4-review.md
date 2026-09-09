@@ -1,5 +1,11 @@
 # Phase 11.4 inhibited device acceptance review
 
+The [controlled same-SSID repeat](phase11-4-same-ssid-results.md) pauses the
+Wi-Fi recovery service with reboot enablement preserved. USB wlan1 stays on
+Bohica-IoT throughout: goodbye delivery/early cache withdrawal still fails, while
+recovery succeeds in this bounded run. Original Bohica connectivity and active,
+boot-enabled recovery are restored. Earlier recovery failures remain open.
+
 The [B2/D2 second series and diagnosis](phase11-4-b2-d2-repeat-results.md)
 reproduces actual ARP/TCP/NSS recovery and goodbye-delivery failures. USB and NTP
 remain responsive; later peer recovery does not erase failed deadlines. The
