@@ -6,7 +6,9 @@ and concurrent Chrome Armed/Running/terminal observations. It exposed and fixed
 a WsprryPi scheduled-wait connection timeout and two Pico browser failure-state
 issues. Phase 11.4 remains open: Chrome did not capture the brief production
 Loaded state, and the previously recorded physical/network qualification gates
-remain outstanding.
+remain outstanding. The subsequent [C2 completion](phase11-4-c2-results.md)
+closes the Loaded observation and browser deployment limitations below; this
+record retains its original firmware and attempt boundaries.
 
 The [execution prompt](browser-production-coverage-prompt.md) records the scope.
 The user separately approved inhibited acceptance, installed-service pauses with
@@ -135,7 +137,9 @@ limitations, not inferred passes.
 - Standard inhibited firmware cross-build and
   `python3 scripts/check_standalone_image.py build/phase11-4-remote-settings-firmware/firmware/WsprryPico.elf`:
   pass, including stack/heap and reserved journal/UF2 boundaries. The new browser
-  source was **not flashed**; all physical cases above used installed `f88fa71`.
+  source was **not flashed in this continuation**; all physical cases above used
+  installed `f88fa71`. The later [C2 deployment](phase11-4-c2-results.md) verified
+  the reviewed safeguards on the device.
 - WsprryPi `make wtp-scheduler-test SUDO=`: 54,641 checks, normal and ASan/UBSan.
   `wtp-backend-test`, `wtp-status-test`, `wtp-application-test`: respectively
   5,472 / 20,959 / 38,957 checks passed.
@@ -177,6 +181,7 @@ C2/C3/G1/G2 matrix; the companion updates its scheduling contract and acceptance
 record. Existing WsprryPi operator backend guidance was considered unchanged:
 there is no new operator control or configuration option. No separate operator
 repository edit is required for this internal connection-liveness repair.
-The broader phase remains open for Chrome Loaded observation, device deployment
-of the new UI safeguards, DHCP/address faults, second-board trust, certificate
+At the end of this continuation, Chrome Loaded observation and new-UI deployment
+remained open; both were subsequently closed by [C2 completion](phase11-4-c2-results.md).
+The broader phase still includes DHCP/address faults, second-board trust, certificate
 rotation, long-running reliability, target resources and RF qualification.
