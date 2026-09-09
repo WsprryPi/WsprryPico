@@ -1,5 +1,10 @@
 # Phase 11.4 inhibited device acceptance review
 
+The [E2/E3 completion](phase11-4-e2-e3-results.md) records a controlled LAN alias
+conflict during a real inhibited job, unchanged completion and explicit recovery
+of the same certified name. Packet and peer observations pass. E1 still requires
+a second physical board; the host claimant does not establish independent trust.
+
 The [G4–G7 completion](phase11-4-g4-g7-results.md) records socket-level lost
 replies, real production reconnect failures, process nonadoption, actual boot
 and controlled-device identity latches, and USB versus Console recovery. Final

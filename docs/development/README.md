@@ -52,6 +52,9 @@ The [G4–G7 recovery acceptance record](phase11-4-g4-g7-results.md) includes
 single-board physical evidence, retained failures and the offline-only
 `scripts/audit_phase11_4_recovery.py` checker. The checker reads private evidence
 directories and performs no device or network operations.
+The [E2/E3 conflict record](phase11-4-e2-e3-results.md) adds the controlled-host
+alias conflict and same-name recovery observations. Its companion
+`scripts/audit_phase11_4_mdns_conflict.py` also operates only on private files.
 
 ## Current checks
 
