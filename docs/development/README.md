@@ -55,6 +55,10 @@ directories and performs no device or network operations.
 The [E2/E3 conflict record](phase11-4-e2-e3-results.md) adds the controlled-host
 alias conflict and same-name recovery observations. Its companion
 `scripts/audit_phase11_4_mdns_conflict.py` also operates only on private files.
+The [B2/D2 repeat record](phase11-4-b2-d2-results.md) retains passing and
+incomplete packet/peer cases and the goodbye-grace test repair. Its offline
+`scripts/audit_phase11_4_discovery_recovery.py` adds identity-bound HTTPS,
+recovery/stability bounds, decoded USB consistency and strict failure retention.
 The [D1–D3 record](phase11-4-d1-d3-results.md) adds orderly goodbye/cache evidence
 and retained reconnection failures. `scripts/audit_phase11_4_mdns_withdrawal.py`
 checks its private packet, USB and native resolver evidence offline; D1/D3

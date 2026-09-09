@@ -1,5 +1,12 @@
 # Phase 11.4 inhibited device acceptance review
 
+The [B2/D2 execution and repeated assessment](phase11-4-b2-d2-results.md)
+adds repeat observations, fixes a premature goodbye-cache assertion, and audits
+USB, packets, native callbacks and authenticated recovery independently. It
+retains a missing-probe capture and unexplained historical recovery failure.
+Normal Chrome navigation and in-page refresh were observed working with
+Anti-tracker enabled; the automated-navigation block is separate.
+
 The [D3 execution and review](phase11-4-d3-results.md) passes two bounded IoT
 link-loss/cache-removal cases, including finite inhibited-job continuity and
 automatic recovery. It retains the first job's non-overlap, a second recovery
@@ -11,13 +18,15 @@ The [D1 execution](phase11-4-d1-results.md) retains a failed real address-change
 attempt: Orbi LAN Apply returned HTTP 400. The temporary reservation was deleted;
 production hostname/TLS baseline and ordinary DHCP cleanup passed. D1 remains
 open. Fifteen negative evidence cases and repeated assessment passed for that
-bounded scope. Chrome now reports ERR_BLOCKED_BY_CLIENT; browser recovery and
-intermittent discovery remain unresolved.
+bounded scope. Chrome reported ERR_BLOCKED_BY_CLIENT; browser recovery and
+intermittent discovery remained unresolved at that attempt; see the newer B2/D2
+record for ordinary Chrome recovery.
 
 The [D1–D3 record](phase11-4-d1-d3-results.md) adds captured Pico goodbyes, native
 Mac cache removal/re-add and Linux negative lookups, with a complete final bounded
 D2 packet audit. Repeated recovery failed once and Chrome later returned an
-address error, so D2 remains partial. D3 needs the selective physical fault.
+address error, so D2 remains partial. The subsequent D3 record above covers
+the selective physical fault.
 Fifteen negative audit cases and the repeated adversarial assessment passed.
 
 The [E2/E3 completion](phase11-4-e2-e3-results.md) records a controlled LAN alias
