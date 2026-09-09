@@ -1,5 +1,13 @@
 # Phase 11.4 inhibited device acceptance review
 
+The [B2/D2 second series and diagnosis](phase11-4-b2-d2-repeat-results.md)
+reproduces actual ARP/TCP/NSS recovery and goodbye-delivery failures. USB and NTP
+remain responsive; later peer recovery does not erase failed deadlines. The
+SSID comparison was invalidated because the existing host Wi-Fi recovery service
+restored Bohica mid-test. Original USB connectivity and safeguards are restored.
+The offline checker now prioritizes original failures over secondary evidence
+gaps; two rounds of 21 negative cases and retained positive fixtures pass.
+
 The [B2/D2 execution and repeated assessment](phase11-4-b2-d2-results.md)
 adds repeat observations, fixes a premature goodbye-cache assertion, and audits
 USB, packets, native callbacks and authenticated recovery independently. It

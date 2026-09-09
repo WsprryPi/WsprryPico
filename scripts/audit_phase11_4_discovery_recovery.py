@@ -13,7 +13,6 @@ SERVER_SHA = "06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016"
 
 
 def audit(directory, mac_log):
-    result = withdrawal(directory, mac_log)
     # Observer records contain epoch nanoseconds and floating-point durations;
     # they are not WTP messages, whose numeric range is deliberately narrower.
     rows = [json.loads(line, object_pairs_hook=unique_object, parse_constant=reject_constant)
@@ -28,8 +27,11 @@ def audit(directory, mac_log):
         return found[0]
 
     require(not any(selected(k) for k in
-                    ("CASE_FAILURE", "PEER_RECOVERY_FAILURE", "https_failure", "cleanup_on_begin")),
+                    ("CASE_FAILURE", "PEER_RECOVERY_FAILURE", "OUTAGE_LOOKUP_FAILURE",
+                     "https_failure", "cleanup_on_begin")),
             "failed attempt cannot become a clean pass through recovery")
+    # Report a recorded failure before secondary missing-cleanup/capture gaps.
+    result = withdrawal(directory, mac_log)
     require(all(a["epoch_ns"] <= b["epoch_ns"] for a, b in zip(rows, rows[1:])),
             "nonmonotonic evidence timestamps")
     before = selected("console INFO")[0]["value"]

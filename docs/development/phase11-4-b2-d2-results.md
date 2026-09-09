@@ -1,5 +1,9 @@
 # Phase 11.4 B2/D2 execution and adversarial review
 
+The [later repeat and diagnosis](phase11-4-b2-d2-repeat-results.md) reproduces
+actual failures and supersedes the current-status conclusions below. This
+record retains the earlier attempts and evidence unchanged.
+
 B2/D2 remain **PARTIAL overall**. All three corrected physical cycles passed
 peer recovery; two pass the complete independent packet/peer audit. The first
 corrected capture missed one required probe. The historical intermittent TCP/NSS

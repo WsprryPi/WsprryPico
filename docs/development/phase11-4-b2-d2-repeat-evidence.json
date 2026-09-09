@@ -1,0 +1,639 @@
+{
+  "schema": "phase11-4-private-evidence/1",
+  "private_root": "build/phase11-4-b2-d2-repeat",
+  "source_start": "e0dda001f5e3217be94321d7293dfa6db0e1b4fd",
+  "status": "B2/D2 FAIL reproduced; same-SSID comparison invalidated by pi-wifi-recover.service; original connectivity restored",
+  "excluded_observation": "usb-ssid-mac.jsonl: sandbox resolver API failure and EOF loop; not LAN evidence",
+  "artifacts": [
+    {
+      "path": "analyze-failure-3.py",
+      "bytes": 2680,
+      "sha256": "debbbce736866e060fcd353ace18486ef095f06e6e3b900b4381db8fffd0b7d9"
+    },
+    {
+      "path": "analyze-failure.py",
+      "bytes": 2678,
+      "sha256": "bd370014018fa85d64153324c2540d485b269b71d911835a7b20639f3cbb2f20"
+    },
+    {
+      "path": "b2-d2-diag-20260909T195423Z/capture.log",
+      "bytes": 165,
+      "sha256": "0e03a5dec876868072f213307379567ae3aa6dda06aef16a5907060217b274ae"
+    },
+    {
+      "path": "b2-d2-diag-20260909T195423Z/diagnostic.pcap",
+      "bytes": 7398,
+      "sha256": "4f98184eb0f1e99eaed9ff192c592053b420841cc74ae466e8746dcba7a75f60"
+    },
+    {
+      "path": "b2-d2-diag-20260909T195423Z/events.jsonl",
+      "bytes": 30286,
+      "sha256": "0971288bcfefc38b2a3c0aa69d446684448cced0c16b61632861bcc6c20beddd"
+    },
+    {
+      "path": "b2-d2-diag-20260909T195423Z/usb-frames.jsonl",
+      "bytes": 3281,
+      "sha256": "6ef80c6c387df2f092e3d1ec1030782445ed81ce274f9c00896493e31a50c1fa"
+    },
+    {
+      "path": "b2-d2-diag-20260909T195423Z/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "b2-d2-dns-diag-20260909T195633Z/capture.log",
+      "bytes": 165,
+      "sha256": "7982d0a54624d73d249d362cc6ccc079f864b724edc3a950cd854e40d44ca11a"
+    },
+    {
+      "path": "b2-d2-dns-diag-20260909T195633Z/events.jsonl",
+      "bytes": 43044,
+      "sha256": "6fce11fcac0a64cef4279c5559cb0e590e9564d64224f77b8cc247835acc457f"
+    },
+    {
+      "path": "b2-d2-dns-diag-20260909T195633Z/mdns.pcap",
+      "bytes": 2800,
+      "sha256": "0f6dce1f4b31c39335091a1966e83be9341565eb707aedbc4a5b2c644ee71262"
+    },
+    {
+      "path": "b2-d2-dns-diag-20260909T195633Z/usb-frames.jsonl",
+      "bytes": 4190,
+      "sha256": "34defb3a6dc82af89b1bfb715b9bc057d2ea61a452ef6fc2074c465a263e4c68"
+    },
+    {
+      "path": "b2-d2-dns-diag-20260909T195633Z/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "b2-d2-observe-20260909T200821Z/capture.log",
+      "bytes": 167,
+      "sha256": "f154c6920644d3de07f570d96a7b207c1e1cda12fa690f3deeff183e39175e55"
+    },
+    {
+      "path": "b2-d2-observe-20260909T200821Z/events.jsonl",
+      "bytes": 52688,
+      "sha256": "e76f9bb7a0e9e8671049aca4f4fb960e44f7e2aa5d1ffbc39bbf6eea37731a53"
+    },
+    {
+      "path": "b2-d2-observe-20260909T200821Z/observation.pcap",
+      "bytes": 29267,
+      "sha256": "d265a6210fe7a61fbdc6939b2c2f59e750e9612060be6c0af97671395a41b834"
+    },
+    {
+      "path": "b2-d2-observe-20260909T200821Z/usb-frames.jsonl",
+      "bytes": 4796,
+      "sha256": "808384a01cbcc121fed3f4f0227ee430410495727c92bf85c88d6a5a02bd65ae"
+    },
+    {
+      "path": "b2-d2-observe-20260909T200821Z/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T194819Z/capture.log",
+      "bytes": 165,
+      "sha256": "0b84136bfa63388aaed5c66c9eb0733e2b16cf9d26bd3467fca44105f81706b5"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T194819Z/diagnostic-capture.log",
+      "bytes": 165,
+      "sha256": "48a66dfb5950d149113bdd81e79d6fe322ce51280a567c64742d0ed17638cfbf"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T194819Z/diagnostic.pcap",
+      "bytes": 10339,
+      "sha256": "19f9bda36dd5b5c27e48d34825b961dc1eee3b29261764e8b55f8a83ef94188e"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T194819Z/events.jsonl",
+      "bytes": 266523,
+      "sha256": "df5130d760de7bf327e9fb9f8bf947c6c8177526ae53f632612081ab36733605"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T194819Z/mdns.pcap",
+      "bytes": 18341,
+      "sha256": "1990fab4080e1b0ec5f182d2ca33841ce34302caba7e8337fc606362b4e29873"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T194819Z/usb-frames.jsonl",
+      "bytes": 26006,
+      "sha256": "bc9022555154d47584dc70acda8ef821c24a6f089d20f94bf6c1c5d7cb6aeb39"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T194819Z/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T195902Z/capture.log",
+      "bytes": 165,
+      "sha256": "bf2d8009df5b941ff26668340baaaf9003fcc52ac8189be38909c3268ae4def7"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T195902Z/diagnostic-capture.log",
+      "bytes": 165,
+      "sha256": "19371eceb08753def07335cc9ff7ccf56230931d4f1b2de6dbabd25c51545d1b"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T195902Z/diagnostic.pcap",
+      "bytes": 11541,
+      "sha256": "851a88464e69f0506e67d7702a4a31a8606faf30bad15aad7629b7328a0ca599"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T195902Z/events.jsonl",
+      "bytes": 38344,
+      "sha256": "9e5dcce95de4b7dd7b37c1b07d70e14c26c2b2f37cca0b10274afeeccf1be530"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T195902Z/mdns.pcap",
+      "bytes": 3420,
+      "sha256": "61e3577d191351a96d611ad901400d1ce448344e00e8ff63a592f613751e1494"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T195902Z/usb-frames.jsonl",
+      "bytes": 3887,
+      "sha256": "094f101bd8270e9424a2108c3d4e9c87f5cdaaf4319089056fb2ddac2a8639df"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T195902Z/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T200253Z/capture.log",
+      "bytes": 165,
+      "sha256": "0b84136bfa63388aaed5c66c9eb0733e2b16cf9d26bd3467fca44105f81706b5"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T200253Z/diagnostic-capture.log",
+      "bytes": 165,
+      "sha256": "8add230e7c56b156a01085bb9043fc117f5a452d00738cb10464aa2abfec7d0c"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T200253Z/diagnostic.pcap",
+      "bytes": 10966,
+      "sha256": "44e1ecc50e8cf3416f8ae29c65181dc27b56390edde43b67d541fb960109e14c"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T200253Z/events.jsonl",
+      "bytes": 277433,
+      "sha256": "f7b0340ac7f31ddd3060f09e7d3bf985faafa636fbb4ad1546e14acc648189f0"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T200253Z/mdns.pcap",
+      "bytes": 18743,
+      "sha256": "c75d3690a998ce4f03ddd73494746f2bfccd559a899545ef9cba3215cf2e3a3d"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T200253Z/usb-frames.jsonl",
+      "bytes": 26915,
+      "sha256": "59958efaf1eddd84be1ed5a330f3721dd606353bcbfc1564ffb779f2ab3cf4ad"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T200253Z/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T201730Z/capture.log",
+      "bytes": 165,
+      "sha256": "e08a40a60a62e632139811c54c11465617e85017cb9a72aa1783856d40904e6a"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T201730Z/diagnostic-capture.log",
+      "bytes": 167,
+      "sha256": "5756f2092cd2a86993aec2d7c5a5fc96566beaf0aa3a58a9044b58cc21f5c462"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T201730Z/diagnostic.pcap",
+      "bytes": 62559,
+      "sha256": "ed94e509fa240eb2e0f528728adbe7d6e3ace3f2e5cbda6d25aea10190e62972"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T201730Z/events.jsonl",
+      "bytes": 301711,
+      "sha256": "4f82421e35531c8b7ed658c1e3db44e3fe3c471f44abb113c0b11bc230760afa"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T201730Z/mdns.pcap",
+      "bytes": 13620,
+      "sha256": "96133f3705581af135b4939a41123628ee5c0be9f67a7ff490ecff634530283e"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T201730Z/usb-frames.jsonl",
+      "bytes": 27824,
+      "sha256": "b45298658d01cbbe3102de92a0a4953353d7563170ff7012b1fce063c6c710a9"
+    },
+    {
+      "path": "b2-d2-orderly-20260909T201730Z/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "case-1-audit.json",
+      "bytes": 263,
+      "sha256": "4d2eeb4da5fc1e3f8b1238ff8820811b82678878b73d36032125aba62125cc44"
+    },
+    {
+      "path": "case-1-initial-audit.json",
+      "bytes": 245,
+      "sha256": "262ef59cbb9ed6ac80727a0255050e09d6388484a56ef44af8265da74d12de59"
+    },
+    {
+      "path": "case-1.log",
+      "bytes": 357,
+      "sha256": "376037ee4b07dd187e35990b72e9cd9b887cfd57554c340caeaf37b429a101a9"
+    },
+    {
+      "path": "case-1.tar",
+      "bytes": 337920,
+      "sha256": "dbfdacfaf8193198627100227b97ccdecf9d82d138caf102f237dd2c169d825b"
+    },
+    {
+      "path": "case-2-audit.json",
+      "bytes": 263,
+      "sha256": "3ecee1b299de8471b654dd6e149902454e5bc2100aad5090c3e19b917a0d343b"
+    },
+    {
+      "path": "case-2.log",
+      "bytes": 357,
+      "sha256": "a1f3e9c3d71fe1e2da074d06c64f0bda564302a63b8ad9d450bff9528dd9541f"
+    },
+    {
+      "path": "case-2.tar",
+      "bytes": 71680,
+      "sha256": "34f5b8fed919e8432185ce10adab352eed45d495aec27467a7fc22c40cb1bd19"
+    },
+    {
+      "path": "case-3-audit.json",
+      "bytes": 263,
+      "sha256": "ae6e353d251eddb99c07192285c88b479f42a2288e8c06156b722b08cfb6ccda"
+    },
+    {
+      "path": "case-3.log",
+      "bytes": 357,
+      "sha256": "1f17f5bca6b0b0befb4c6209769b94704c0aaac68bad38c2f3a6b07776fa491b"
+    },
+    {
+      "path": "case-3.tar",
+      "bytes": 348160,
+      "sha256": "3729a1506e6703d615b905f0f784433754863fddf4b47c06fd1e693104e33705"
+    },
+    {
+      "path": "collect.py",
+      "bytes": 1375,
+      "sha256": "0cde36209596655cf699e8bf247497c8fc5392507e347d5a0ceef02473bcfe6f"
+    },
+    {
+      "path": "collection-1.log",
+      "bytes": 245,
+      "sha256": "262ef59cbb9ed6ac80727a0255050e09d6388484a56ef44af8265da74d12de59"
+    },
+    {
+      "path": "collection-2.log",
+      "bytes": 263,
+      "sha256": "3ecee1b299de8471b654dd6e149902454e5bc2100aad5090c3e19b917a0d343b"
+    },
+    {
+      "path": "collection-3.log",
+      "bytes": 263,
+      "sha256": "ae6e353d251eddb99c07192285c88b479f42a2288e8c06156b722b08cfb6ccda"
+    },
+    {
+      "path": "connect-iot.py",
+      "bytes": 3080,
+      "sha256": "c995348392089af84bdaf2ab7948b7b0a0fd5172bf056fd771f8d75488558edf"
+    },
+    {
+      "path": "contract-validation.log",
+      "bytes": 96,
+      "sha256": "34188e867e39fa621167ea4d65841d01102c5398e9ae9e30e6c19abe3541bf9c"
+    },
+    {
+      "path": "diagnostic-mdns.txt",
+      "bytes": 300,
+      "sha256": "e2d0bdef6bab2e6ed6f825f0fbe8d08583ff5a2329dbed8e93264f68b8dcfb0b"
+    },
+    {
+      "path": "diagnostic.log",
+      "bytes": 95,
+      "sha256": "22b9bc5b6c11eb4ab24e9988cd3eb2be9033669cbd2c3563cc8e46a39629b730"
+    },
+    {
+      "path": "diagnostic.py",
+      "bytes": 7886,
+      "sha256": "b6432421457667da7df385688f1e078e572757105bad51f6aeba79bc67609049"
+    },
+    {
+      "path": "diagnostic.tar",
+      "bytes": 51200,
+      "sha256": "39cdf51fc6d68ecb7dedb2db03996f46d0dfebbecaca8bf5e9ae96a843738dbc"
+    },
+    {
+      "path": "dns-diagnostic.log",
+      "bytes": 107,
+      "sha256": "1319edb81d145b72fc97e5cd01542dd67c3c0574f373df8780e0d6ab4d8020e6"
+    },
+    {
+      "path": "dns-diagnostic.py",
+      "bytes": 7761,
+      "sha256": "b1d9aef9e752eb6d062d5554f6c82d82471fad74c72b64fdd170c6344018198a"
+    },
+    {
+      "path": "dns-diagnostic.tar",
+      "bytes": 61440,
+      "sha256": "7d1b08dfc71f9e44fcb1b3770001a0b600791925b2bbc51778052f056959c223"
+    },
+    {
+      "path": "failure-analysis-3.json",
+      "bytes": 10875,
+      "sha256": "15090e7353d5e047fdbd989073f35e5853e8753d735a2a10e66e61f45c5c5b4c"
+    },
+    {
+      "path": "failure-analysis.json",
+      "bytes": 8724,
+      "sha256": "c5cd0511fb67e4c4867da99d6b4237df504bf5bb3418ee2cc6dcb52eb6e4aeda"
+    },
+    {
+      "path": "failure-arp.txt",
+      "bytes": 4673,
+      "sha256": "41632ee76e3c60a5f576e352aae632dfca3c2a3494f4fc0c0095ff362f54e40e"
+    },
+    {
+      "path": "final-audit-results.json",
+      "bytes": 3353,
+      "sha256": "1eb651155df7c914c3f6393ff3099c324983f511e04fef0367fd4891d313576f"
+    },
+    {
+      "path": "final-contract-validation.log",
+      "bytes": 96,
+      "sha256": "34188e867e39fa621167ea4d65841d01102c5398e9ae9e30e6c19abe3541bf9c"
+    },
+    {
+      "path": "final-host.json",
+      "bytes": 286,
+      "sha256": "71610f6bfad0cc26e7206d6921c336af6dfd13a7e16da76a45fba7a116e72b62"
+    },
+    {
+      "path": "final-negative-assessment.json",
+      "bytes": 1399,
+      "sha256": "72d44ba61812a89b52c58fb058622a895623581c88a958f63504f5a9d01e8dd4"
+    },
+    {
+      "path": "final-wifi-health.txt",
+      "bytes": 2007,
+      "sha256": "b3d2538ff8ecf6e889e3a5f4154212e4a16526a3ff8e83581b0a0624567e4fd3"
+    },
+    {
+      "path": "iot-connection.json",
+      "bytes": 797,
+      "sha256": "5431d55721bf3b04d762e16c5d55858590e6a435c15c02efcb28c171c70ff7aa"
+    },
+    {
+      "path": "mac-check-20260909T195237Z/mac-resolution.json",
+      "bytes": 800,
+      "sha256": "c8666f511dec39c89c19d3327ebeeed00d4973af4d1eefbba06f67b31a41a810"
+    },
+    {
+      "path": "mac-check-20260909T195453Z/direct-only.txt",
+      "bytes": 43,
+      "sha256": "99fa1f26e1086130f61b3373fa6bde0d3264c2270c1d7ede4562ca57a61ce55e"
+    },
+    {
+      "path": "mac-check-20260909T195453Z/mac-final.json",
+      "bytes": 3545,
+      "sha256": "4ecd8e8b18b99b905d4fbc253b4d49a8c94b724d28424c640224a38d6e6ea4c4"
+    },
+    {
+      "path": "mac-check-20260909T200659Z/direct-only.txt",
+      "bytes": 43,
+      "sha256": "99fa1f26e1086130f61b3373fa6bde0d3264c2270c1d7ede4562ca57a61ce55e"
+    },
+    {
+      "path": "mac-check-20260909T202458Z/mac-final.json",
+      "bytes": 3549,
+      "sha256": "d4555efb611d26891fcaff619f2b6c6e2bd6d8375e3e2f8ea063bf6963a1e98b"
+    },
+    {
+      "path": "mac-check-20260909T202458Z/mac-resolution.json",
+      "bytes": 139,
+      "sha256": "07ce9719fda1cff2ec6f72cfdda5f91736b12d459e43f66a8be0acd0723c6e10"
+    },
+    {
+      "path": "mac-check.py",
+      "bytes": 2275,
+      "sha256": "84dc675c1a902d4ae7c660c4f0e3e795588684ca488d6b12233396af1194ee60"
+    },
+    {
+      "path": "mac-direct-case-3.log",
+      "bytes": 658,
+      "sha256": "38ca40fa0862a91c3a7d297f57d75738847e8be6858723036ccc3a3b6d4d36a8"
+    },
+    {
+      "path": "mac-direct-during-failure.log",
+      "bytes": 78,
+      "sha256": "8a6407d24ce3f8951999ea0371de12d82963b590681c556c2616d942cc44129b"
+    },
+    {
+      "path": "mac-direct.py",
+      "bytes": 1875,
+      "sha256": "98abaab564f2453daa71be101c8f9770254f9727c9c66592b2d22b0d6ff5f7bf"
+    },
+    {
+      "path": "mac-during-failure.log",
+      "bytes": 534,
+      "sha256": "3daa9c6684fd14ef7ea99e8ed65326f39b0c41f9881eb7322adf85257362a277"
+    },
+    {
+      "path": "mac-observe.py",
+      "bytes": 2161,
+      "sha256": "cce26819837b525dc548c096f0e13a7e432aa3b6a40fa219efae06f90da57b37"
+    },
+    {
+      "path": "mac-recovery-observe.py",
+      "bytes": 1636,
+      "sha256": "99e484805be986bdab968d9b29d2ec2f878af4e283605df14d542691a7720b09"
+    },
+    {
+      "path": "mac-ssid-watch-initial.py",
+      "bytes": 695,
+      "sha256": "ee4d69ef164898532d40b8c3e140a477b696c5e8fb8aaab93da3d516f183905e"
+    },
+    {
+      "path": "mac-ssid-watch.py",
+      "bytes": 745,
+      "sha256": "537272679bfe4b8a934599b92246620221251f9d55fca681ec369378aeec3f9c"
+    },
+    {
+      "path": "negative-audit.py",
+      "bytes": 3240,
+      "sha256": "8d367c11c3060c06f7fcaef6df64a5c876c1b5ab6e33d404a749e9bdcd54eedd"
+    },
+    {
+      "path": "orderly-20260909T194818Z/linux-run.log",
+      "bytes": 155,
+      "sha256": "3fc9bcf8f2ceda50f6e8a705bb4c45c24d3ec57a39e5b5ed079bc1acc775fc3c"
+    },
+    {
+      "path": "orderly-20260909T194818Z/mac-dns-sd.jsonl",
+      "bytes": 583,
+      "sha256": "900a61aa8c508fbb16b65743340c8beeffc48f65527956995c8bdded3f31b4c4"
+    },
+    {
+      "path": "orderly-20260909T195901Z/linux-run.log",
+      "bytes": 1773,
+      "sha256": "f357d63cd14567f07746b0d85bf63fee330b9cb80e655d8aa4409ba852af7bb0"
+    },
+    {
+      "path": "orderly-20260909T195901Z/mac-dns-sd.jsonl",
+      "bytes": 411,
+      "sha256": "baacced115ac2827cfe9835f4b7f51d33ce977c4401ae6d7b37a48ce902ecb65"
+    },
+    {
+      "path": "orderly-20260909T200253Z/linux-run.log",
+      "bytes": 155,
+      "sha256": "32d219341a9c6da2a2fe736f1232e0a14c9659d5ecd15458ab6a8fb9336ccd9f"
+    },
+    {
+      "path": "orderly-20260909T200253Z/mac-dns-sd.jsonl",
+      "bytes": 583,
+      "sha256": "b01a77af5be700124afbd414d47a8f989164145ecb2b9ef8f39b3b2bfceb8bb8"
+    },
+    {
+      "path": "orderly-immediate-arp.py",
+      "bytes": 11738,
+      "sha256": "336eae5896961eea2c2dc28c1696ff8d9c3a7750a4a749aba4d33b365aa51155"
+    },
+    {
+      "path": "orderly-initial.py",
+      "bytes": 10765,
+      "sha256": "243607ccb778e257fbd49541e4b5ce3e068522ba23adca60ccbddf13542d5c4a"
+    },
+    {
+      "path": "orderly.py",
+      "bytes": 11801,
+      "sha256": "42ff6cb2cbe7b72353c831a03961da1d035c4b421a42f5246c4769610343faac"
+    },
+    {
+      "path": "phase11-4-usb-ssid-20260909T201711Z/case.log",
+      "bytes": 2223,
+      "sha256": "50d5f737acc5cb4ac8df811fedb2a3893b309f924aedbd9611af2fd0d6b80d13"
+    },
+    {
+      "path": "phase11-4-usb-ssid-20260909T201711Z/controller-events.jsonl",
+      "bytes": 6590,
+      "sha256": "2c5f8870bb60ee9459a92534ebd069b7f1757441b3f3e453e200ab60facb80cd"
+    },
+    {
+      "path": "phase11-4-usb-ssid-20260909T201711Z/controller.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "phase11-4-usb-ssid-20260909T201711Z/controller.py",
+      "bytes": 2998,
+      "sha256": "b3058184b756fb6a7513a95d0beba98c1c3880eaa2c8306bbc66eb54e8075b0d"
+    },
+    {
+      "path": "phase11-4-usb-ssid-20260909T201711Z/orderly.py",
+      "bytes": 11801,
+      "sha256": "42ff6cb2cbe7b72353c831a03961da1d035c4b421a42f5246c4769610343faac"
+    },
+    {
+      "path": "recovery-20260909T200820Z/linux-run.log",
+      "bytes": 111,
+      "sha256": "b1cda28e96e192e430408cd4eec76e3c86bbaa48bc3f59abb894d85bad682879"
+    },
+    {
+      "path": "recovery-20260909T200820Z/mac-dns-sd.jsonl",
+      "bytes": 411,
+      "sha256": "afb32a57e7ec49e50f7cd9d5d319f7b2b89187fea7e82d78e554c2a21cdf6de1"
+    },
+    {
+      "path": "recovery-observe.log",
+      "bytes": 94,
+      "sha256": "835c7c383f0772d333d060cd8038cd736311d16a6edb53515fd330b4c739cd22"
+    },
+    {
+      "path": "recovery-observe.py",
+      "bytes": 7395,
+      "sha256": "4f8c8acffd6778a6a0e7320cfdc8f3300e109d417fb7c224bc1d752d00e11b36"
+    },
+    {
+      "path": "review-round-1.json",
+      "bytes": 1399,
+      "sha256": "72d44ba61812a89b52c58fb058622a895623581c88a958f63504f5a9d01e8dd4"
+    },
+    {
+      "path": "review-round-2.json",
+      "bytes": 1399,
+      "sha256": "72d44ba61812a89b52c58fb058622a895623581c88a958f63504f5a9d01e8dd4"
+    },
+    {
+      "path": "ssid-and-observer.tar",
+      "bytes": 532480,
+      "sha256": "4fa3564eb532d27dadc336687fff0938367633d62e9687c4c5730175254b9f8e"
+    },
+    {
+      "path": "ssid-nm-journal.txt",
+      "bytes": 22196,
+      "sha256": "ee9ad59c2b269baf1ba8fbb3589cc652cc94734eda76c119fea19e0402afb773"
+    },
+    {
+      "path": "ssid-switch-system-journal.txt",
+      "bytes": 5960,
+      "sha256": "7e884d6707af2f57600fc01c316643f508da2af657408d43a771f0c250938d5a"
+    },
+    {
+      "path": "stage-usb-ssid.py",
+      "bytes": 1500,
+      "sha256": "1887d1f3a9757e40b74f66bb692ae45f4fcd646fec14def71d5be72fab51858f"
+    },
+    {
+      "path": "start.json",
+      "bytes": 244,
+      "sha256": "695d0f6952b3cdb5bf0f99f3268eb9c520476ffef86655e9fd9407b038e81c87"
+    },
+    {
+      "path": "stop-ssid-watch",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stop-ssid-watch-unsandboxed",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "usb-ssid-controller.py",
+      "bytes": 2998,
+      "sha256": "b3058184b756fb6a7513a95d0beba98c1c3880eaa2c8306bbc66eb54e8075b0d"
+    },
+    {
+      "path": "usb-ssid-dispatch.json",
+      "bytes": 73,
+      "sha256": "5e74dbe09382f187802bcf3f8429babc262c86a18d56c1211f45dd25fc772dff"
+    },
+    {
+      "path": "usb-ssid-mac-unsandboxed.jsonl",
+      "bytes": 411,
+      "sha256": "5f42b0f888762fc3208ba821e3002860e075eb7520bc181ead3b5951e60e7c29"
+    },
+    {
+      "path": "usb-ssid-mac.jsonl",
+      "bytes": 74718321,
+      "sha256": "eef1a124edc3dcc9be315412eaf63b5c58c98cc89ac9cbbb864ca15e7e30fc9c"
+    },
+    {
+      "path": "wifi-interface-inventory.json",
+      "bytes": 1715,
+      "sha256": "5b8cd77b72d798412451250f173f579a4eae38b4f81b831ad9fb96c51685aba7"
+    },
+    {
+      "path": "wlan0-failure-health.json",
+      "bytes": 10924,
+      "sha256": "0255da9456a52ca1014bea561b9533900e2d3a67ea854f4e64952029908d433b"
+    }
+  ]
+}
