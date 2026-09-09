@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "evidence_root": "build/phase11-4-single-board-evidence",
+  "evidence_class": "physical inhibited acceptance; see per-case limitations",
+  "files": [
+    {
+      "path": "jobs-attempt-1/events.jsonl",
+      "sha256": "fb603bdfe485bce82f10764585b7d163216cd1bd308355308c1b22767b42f0e3",
+      "bytes": 164785
+    },
+    {
+      "path": "browser-revision-observations.json",
+      "sha256": "729661b07991a2beb13ff9806017b24df568d7705b96903dd2b0444ad9605550",
+      "bytes": 691
+    },
+    {
+      "path": "production-finite-assessment.json",
+      "sha256": "d10d030d2cd1bad6598534e54fb2d5468820c6632ac4f89668114fec3ebacc65",
+      "bytes": 1552
+    },
+    {
+      "path": "production-final-pico.stdout",
+      "sha256": "ee4c26de5139693ce3828fdefe428aa99f1d38aa0ae0ca4bd72aa687d9223ef1",
+      "bytes": 4592
+    },
+    {
+      "path": "flash-renewal-1.stdout",
+      "sha256": "02b7ce31330a04378b90c0ecbd7abff51e63f8f6b9344baecd74e94623f79c9e",
+      "bytes": 19194
+    },
+    {
+      "path": "renewal-clients-1/events.jsonl",
+      "sha256": "1437514a9de722ac15385e7117cc213e421f9a6274c625c93137e6a2f2834f3e",
+      "bytes": 15714
+    },
+    {
+      "path": "flash-wrong-board-1.stdout",
+      "sha256": "233f98ddfb296411f5b45687092df7bf3ad7bb02a6cd8c34720a8f5e8a66357e",
+      "bytes": 18928
+    },
+    {
+      "path": "wrong-board-settled.stdout",
+      "sha256": "4e23b53410d98929ab05d724a2a0ce0a975b6245c340f25dee2e51bf5233a970",
+      "bytes": 4565
+    },
+    {
+      "path": "ip-san-clients-1/events.jsonl",
+      "sha256": "b18a919a2a39f44c788ab8d46b08df29c4a2c5616b143af1b3ffee3678795de3",
+      "bytes": 15640
+    },
+    {
+      "path": "flash-restore-1.stdout",
+      "sha256": "1dd48fa9bae6e6a81b22b13ff92b3f292b46d66cab5739640a5b94bb19866146",
+      "bytes": 18918
+    },
+    {
+      "path": "tls-attempt-2/tls-missing-client.json",
+      "sha256": "155ca117e27cca2e8a21696a05a6e707293eab56acbd0147f037ac3323b7117d",
+      "bytes": 622
+    },
+    {
+      "path": "tls-attempt-3/tls-expired-client.json",
+      "sha256": "581d1d47e2be098f717c49c1d69a52767b2cf8189425482f988237bdd2c78bbb",
+      "bytes": 919
+    },
+    {
+      "path": "console-wifi-capture-1.stdout",
+      "sha256": "8f1fe598042b9a1b56f8aba206be2a7c1fb7ca04c61c0d20a03a768ff800e6e1",
+      "bytes": 20453
+    },
+    {
+      "path": "lost-replies-linux-1.stderr",
+      "sha256": "b9ea5760d7781ca2d587d55eee35e2943be096aea20f7ef83346ad57dba54eb1",
+      "bytes": 723
+    },
+    {
+      "path": "final-state.stdout",
+      "sha256": "3aa5f69f1c965bc2502c46db081a5216db2db9691df64f97871cd11e088f0dad",
+      "bytes": 6501
+    },
+    {
+      "path": "network-evidence/network-diagnosis-1/packets.txt",
+      "sha256": "c6e65add931353f80189ee646f512bbd97f0ce69d509ce52c58c677f51171f5e",
+      "bytes": 8192
+    },
+    {
+      "path": "network-evidence/http-wifi-capture-1/packets.txt",
+      "sha256": "3b3c4ed8496332582ccedce7a9f44c7d19e45b27b50ad9e615dc03a8148526b2",
+      "bytes": 2604
+    },
+    {
+      "path": "network-evidence/console-wifi-capture-1/packets.txt",
+      "sha256": "255fa3fd77847881881338eb2b6403c291b5feedafa14b7f3fa86658b7069e16",
+      "bytes": 110
+    }
+  ]
+}

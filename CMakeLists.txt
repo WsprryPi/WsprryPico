@@ -174,6 +174,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
     include(cmake/network_host_tests.cmake)
     include(cmake/mdns_host_tests.cmake)
     add_test(NAME network_certificate_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/network_certificate_tests.py)
+    add_test(NAME inhibited_network_acceptance_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/inhibited_network_acceptance_tests.py)
     add_test(NAME standalone_image_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/standalone_image_tests.py)
     add_test(NAME standalone_console_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/standalone_console_tests.py)
     add_executable(wsprrypico_core_tests tests/core_tests.cpp)

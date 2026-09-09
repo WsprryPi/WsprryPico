@@ -1,11 +1,20 @@
 # Phase 11.4 inhibited device acceptance review
 
-Status: **OPEN**. The original inhibited baseline has USB, Mac/Linux resolution
-and real Chrome HTTPS/status evidence. The subsequently authorized shorter-name
-image passed flash/USB checks and authenticated Chrome operation after a Wi-Fi
-retry. Linux NSS failed again later; reliable peer discovery remains unresolved. Production operation, faults, DHCP, conflict, full lifecycle and
-the remaining joint matrix are not closed. Only one Pico is available. See [joint plan](phase11-4-plan.md) for
-the sole case matrix, exact identities, authorization ledger and pending steps.
+Status: **OPEN**. The single-board continuation completed actual production
+startup/finite execution, direct inhibited lifecycle/authority checks, Chrome
+revision/draft behavior, renewal, wrong-board rejection, literal-IP client checks
+and altered-value persistence. Intermittent ARP/NSS/TCP reachability, negative-client
+TLS alert discrepancies and unexecuted physical subcases remain open. Only one
+Pico is available. See the [current joint matrix](phase11-4-plan.md) and
+[execution/repeated adversarial record](phase11-4-single-board-run.md).
+
+The continuation adds an opt-in acceptance driver and deterministic refusal/recovery
+tests, with four affected CTest suites passing. It restores the original inhibited
+image/settings and installed service. No firmware/runtime/protocol/UI/SDK/component
+source or CI pin changes. Actual source, hashes, failed attempts, approval resolution
+and final state are recorded in the continuation. The sections below retain the
+historical baseline and shorter-name work; their earlier service/authorization
+statements describe that period, not the later specifically approved execution.
 
 ## Scope and source review
 
