@@ -33,8 +33,8 @@ Standalone and USB WTP share one `JobService`. The scheduler claims a distinct
 local principal, encodes a complete Type 1 WSPR job, then LOADs and ARMs it. It
 never steals an external ownership lease, depends on a USB connection, or sends
 per-symbol requests. USB disconnect does not invalidate SNTP time. WTP/1 itself
-is unchanged. HTTP, browser APIs, TCP control, DNS, SoftAP and BLE provisioning
-remain later work; Wi-Fi here supplies DHCP and a UDP time client only.
+is unchanged. Authenticated HTTPS/browser APIs and WTP/TCP now share this service; see
+[network control](network-control.md). SoftAP and BLE provisioning remain planned.
 
 ## Configuration
 
@@ -54,20 +54,26 @@ Sanitized document (replace all station/network fields before using it):
   "wifi": {
     "ssid": "YOUR-NETWORK",
     "password": "YOUR-PASSWORD",
-    "ntp_ipv4": "192.0.2.1"
+    "ntp_ipv4": "pool.ntp.org"
   },
   "schedules": [{"period_s": 600, "phase_s": 0}]
 }
 ```
 
-`192.0.2.1` is a documentation placeholder, not a public time service. Configure
-a trusted reachable numeric unicast IPv4 NTP server. Wi-Fi currently accepts a
+`pool.ntp.org` is the default for new configurations and for an omitted
+`wifi.ntp_ipv4` member. The browser prefills this default when no saved configuration
+exists. Explicitly saved servers are preserved; empty or invalid values are rejected.
+You can select another reachable NTP server by DNS hostname or canonical unicast IPv4 address.
+The version-1 JSON key `ntp_ipv4` is retained for stored/config-client compatibility,
+but now accepts either form (up to 253 ASCII characters; labels 1–63 characters,
+letters/digits/hyphens, no leading/trailing label hyphen). A terminal root dot
+and DNS case are normalized at runtime. `.local` uses a legacy unicast-response
+mDNS lookup. The browser labels this field **Time server**. Wi-Fi currently accepts a
 printable ASCII SSID (1–32 bytes) and WPA2 AES passphrase (8–63 bytes); open,
 enterprise, WPA3-only and raw hexadecimal PSK provisioning are not implemented.
 Keep local credentials in ignored `config/local/` or another private location.
 Credentials are stored in flash without encryption, but never returned by
-`STATUS` or included in maintained firmware build inputs. Configuration is
-physical-console administration, without a remote authentication protocol.
+`STATUS` or included in maintained firmware build inputs. Configuration is available through Console or authenticated browser management.
 
 The document is limited to 1,800 bytes and eight schedules. Station validation
 uses the existing strict uppercase callsign, four-character Maidenhead locator
@@ -81,9 +87,11 @@ zone or daylight-saving interpretation.
 
 A new/erased device has no configuration and cannot schedule. Saving requires
 an idle unowned service and verified flash writes. It returns `reboot_required`
-and suspends standalone admission until reboot applies the saved
-network settings. USB WTP remains usable. An enabled saved configuration in an
-RF-capable image can transmit after reboot as soon as its time and schedule
+only when saved network settings differ from those selected at boot. Station,
+power, enabled and schedule changes apply to subsequent admissions immediately;
+network changes suspend admission until restart. An already suspended STOP stays
+suspended. A network-enabled device can restart through the browser while idle. USB WTP remains usable. An enabled saved configuration in an
+RF-capable image can transmit after saving or reboot as soon as its time and schedule
 conditions pass. Saving `enabled:false` prevents further standalone admissions;
 configuration changes do not abort an owned active job. Use its WTP owner to
 abort or wait for completion before editing configuration. For a locally owned
@@ -113,6 +121,10 @@ autonomous scheduling is persistently disabled. The engine must then disable
 successfully and confirm inactive output before reset. This explicit Console
 recovery does not let WTP requests clear a fault or steal an owner. The inhibited image additionally offers
 `WIFI OFF` and `WIFI ON` while idle for controlled network-loss testing.
+The maintained images request and read back no-power-save mode at startup and
+Wi-Fi re-enable so a USB-powered network controller continuously receives LAN
+traffic. This trades radio power consumption for reachability; electrical power
+and RF timing effects require their own measurements.
 
 Use `scripts/standalone_console.py ACTION --port DEVICE --device-id ID --run`.
 Configuration also requires `--revision REV --config PRIVATE_JSON`; the tool
@@ -166,6 +178,15 @@ initial 20 ms policy and retains margin against the approximately one-second
 clock guidance in the [WSPR description](https://wsjt.sourceforge.io/WSPR_QST_Nov_2010.pdf).
 Admission and launch both enforce 500 ms including oscillator aging. The assumed oscillator bound is 50,000 ppb,
 not a measured oscillator calibration; uncertainty grows with age.
+
+Hostname lookup is asynchronous and foreground-only, with one outstanding request,
+two bounded cache entries and DHCP-provided DNS servers. Successful lookup is
+rechecked every 60 seconds through lwIP's TTL-aware cache; failure retries after
+five seconds and retains a previously resolved peer until a new valid result.
+Link changes invalidate pending results without reusing callback storage. A changed
+peer cancels its predecessor's outstanding SNTP exchange. DNS failure never
+synchronizes UTC or relaxes certificate/clock/ARM gates. KoD inhibition remains
+in force until reboot, including across DNS address changes.
 
 Network polling is foreground-only. Connection attempts are separated by 30 s;
 successful observations by 64 s. Lost exchanges receive at most two retries

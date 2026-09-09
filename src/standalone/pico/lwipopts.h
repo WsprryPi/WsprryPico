@@ -15,7 +15,10 @@
 #define TCP_LISTEN_BACKLOG 1
 #define LWIP_UDP 1
 #define LWIP_DHCP 1
-#define LWIP_DNS 0
+#define LWIP_DNS 1
+#define DNS_TABLE_SIZE 2
+#define DNS_MAX_REQUESTS 1
+#define LWIP_DNS_SUPPORT_MDNS_QUERIES 1
 #define LWIP_IGMP 1
 #define LWIP_MDNS_RESPONDER 1
 #define LWIP_MDNS_SEARCH 0
@@ -37,7 +40,11 @@
 #define MEM_ALIGNMENT 4
 #define MEM_SIZE 32768
 #define PBUF_POOL_SIZE 8
-#define MEMP_NUM_UDP_PCB 3
-#define LWIP_STATS 0
+#define MEMP_NUM_UDP_PCB 4 // DHCP, SNTP, mDNS responder and asynchronous DNS.
+#define LWIP_STATS 1
+#define LWIP_STATS_LARGE 1
+#define LWIP_STATS_DISPLAY 0
+#define MEM_STATS 1
+#define MEMP_STATS 1
 #define LWIP_DHCP_DOES_ACD_CHECK 0
 #define LWIP_TIMEVAL_PRIVATE 0

@@ -28,9 +28,20 @@ class BrowserApi {
     // All calls are serialized by the application owner. Tokens are never reused.
     void finish_request(std::uint64_t transaction = 0, bool apply = true) {
         if (pending_transaction_ && *pending_transaction_ == transaction) {
-            network_.finish_request(apply && scheduler_.idle());
+            const bool allowed = apply && scheduler_.idle();
+            if (pending_restart_) {
+                if (allowed && restart_)
+                    (void)restart_(restart_context_);
+            } else
+                network_.finish_request(allowed);
             pending_transaction_.reset();
+            pending_restart_ = false;
         }
+    }
+    using Restart = bool (*)(void*);
+    void restart_control(Restart callback, void* context) {
+        restart_ = callback;
+        restart_context_ = context;
     }
     void set_active_job_connections(bool enabled) {
         active_job_connections_ = enabled;
@@ -56,6 +67,9 @@ class BrowserApi {
     void* transport_context_ = nullptr;
     bool active_job_connections_ = false;
     std::optional<std::uint64_t> pending_transaction_;
+    bool pending_restart_ = false;
+    Restart restart_ = nullptr;
+    void* restart_context_ = nullptr;
     std::uint64_t network_revision_ = 0;
 };
 } // namespace wsprrypico::network

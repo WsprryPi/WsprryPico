@@ -43,11 +43,12 @@ credentials in browser storage nor prints Wi-Fi passwords.
 | POST `/api/v1/jobs` | Explicit HELLO, CLAIM, RENEW, LOAD, ARM, ABORT or RELEASE through the common service |
 | POST `/api/v1/jobs/{id}/abort` | ABORT only; URL ID must match the request body's job ID |
 | GET `/api/v1/config` | `{"config": <redacted config or null>}` and ETag |
-| PUT `/api/v1/config` | Replace the validated standalone config; requires If-Match; persists and reports `reboot_required:true` |
+| PUT `/api/v1/config` | Replace the validated standalone config; requires If-Match; persists and reports whether network changes require restart |
 | GET `/api/v1/schedules` | `{"schedules":[...]}` and ETag |
 | PUT `/api/v1/schedules` | Replace only schedules using the same config validator/journal; requires If-Match |
 | GET `/api/v1/network` | Initialized/enabled/link/IP, requested enable state, control availability and SNTP counters; ETag |
 | PUT `/api/v1/network` | `{"enabled":true|false}`; idle-only volatile change with If-Match |
+| POST `/api/v1/restart` | Empty object `{}`; idle-only, If-Match; returns 202 before deferred restart |
 
 Static `/`, `/style.css` and `/app.js` require the same authenticated transport.
 The document embeds styles and scripts so a browser does not need concurrent
@@ -56,6 +57,9 @@ asset connections. The individual asset paths remain available to tooling.
 ## Configuration and revisions
 
 The configuration schema is the existing [standalone version-1 schema](development/standalone.md).
+An omitted `wifi.ntp_ipv4` uses `pool.ntp.org`; an explicit hostname or IPv4
+address is preserved, and invalid/empty values are rejected. The browser prefills
+the same default for a new configuration.
 Passwords are returned as JSON null. A null password in PUT preserves the stored
 password; it is rejected when no stored config exists. Supplying a new password
 replaces it after full validation. Successful and failed responses never echo it.
@@ -64,22 +68,36 @@ force, including the fixed standalone WSPR frequency of 3,570,100 Hz. Broader
 mode/band configuration remains outside this phase.
 
 ETags are quoted opaque hashes of boot identity, persisted config and successful
-network-change revision. Send the exact ETag in `If-Match` for any configuration,
-schedule or network PUT. Missing revisions return 428; stale revisions return
+network-change/restart revision. Send the exact ETag in `If-Match` for any configuration,
+schedule or network PUT, and restart POST. Missing revisions return 428; stale revisions return
 412. Console config changes and reboot invalidate relevant saved revisions.
 A byte-identical config has the same revision; persistence still returns an
-explicit reboot requirement. Failed storage never reports a successful save.
+explicit reboot requirement. Station and schedule changes apply to subsequent
+admissions without reboot. A saved SSID, password or time-server difference from
+the boot configuration requires restart; subsequent station-only saves cannot
+hide that pending difference. STOP remains suspended and the watermark is preserved. Failed storage never reports a successful save.
 Changes require no owner, no armed/running/output state, and no latched fault.
 
 A network enable/disable request is queued until its HTTP response is acknowledged.
-Premature termination cancels it. A monotonically increasing connection
+Termination before the complete HTTP response is acknowledged cancels it. A
+FIN or reset after that acknowledgement does not undo the accepted action;
+acknowledgement of the later TLS close notification is not required. A monotonically increasing connection
 transaction token binds completion; an unrelated response or close cannot apply
 or cancel it. Link loss/server shutdown cancels it. It is applied only if the service is still idle;
 a newly acquired owner cancels the queued change. `requested_enabled` describes
 the pending request, while `enabled` describes actual state. This is deliberately
 not a persistent Wi-Fi switch. Disabling Wi-Fi requires USB Console `WIFI ON` or
 a restart to reconnect. SSID/password/time-server changes use config PUT and
-require a restart, preserving the established recovery behavior.
+require a restart. Adapters advertising `features.restart:true` accept a browser
+restart through the authenticated endpoint above, without USB access. Restart uses
+the same acknowledgement/transaction cancellation rules, consumes its revision
+and blocks other pending management mutations. The application stops local
+scheduling, verifies engine disable and rechecks unowned/inactive/nonfaulted state
+immediately before reset. Browser restart cannot recover a latched RF fault.
+The UI sends one restart request and waits up to 90 seconds for authenticated
+status with a different boot identity. An interrupted or unconfirmed request is
+never automatically repeated. Incorrect Wi-Fi or unreachable time-server settings
+can still require physical recovery if authenticated networking cannot return.
 
 ## Jobs and exact numbers
 
@@ -180,3 +198,18 @@ registration, probe timeout and wrong-board deployment failures. Bounded counter
 report registrations, conflicts, failures, address changes, goodbye attempts/
 failures and rejected packets. A sent goodbye is not proof of peer receipt.
 Discovery failures neither alter WTP identity/ownership nor report inactive RF.
+
+## Network memory and time lookup diagnostics
+
+`network.memory` reports lwIP's dedicated heap (bytes), TCP PCB/segment and packet
+pools (objects): `used`, `capacity`, `peak` and cumulative allocation `errors`.
+An uninitialized pool is null. These supplement general heap and TLS allocator
+measurements; a peak or occupied live connection is not by itself a leak.
+USB INFO exposes the same network counters plus current TLS allocation/failures.
+
+`ntp_server`, `ntp_address`, `ntp_resolution` and `ntp_resolution_failures` describe
+the configured/canonical name, selected IPv4 peer, lookup state and failed
+lookups. They do not certify clock synchronization; use the clock state and age.
+`power_save` reports read-back radio sleep mode (null if unavailable), and
+`packets` reports ARP/IPv4/TCP/UDP received, sent and dropped counters. Counters
+show lwIP activity; they do not prove that an access point forwarded a frame.

@@ -3,6 +3,7 @@
 #include "network/api.hpp"
 #include "network/mdns.hpp"
 #include "standalone/storage.hpp"
+#include "time/server_lookup.hpp"
 #include "time/sntp.hpp"
 
 namespace wsprrypico::standalone {
@@ -36,21 +37,30 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     }
 
   private:
+    bool disable_power_save();
     bool initialize() override;
     bool add(std::string_view label) override;
     void remove(bool goodbye) override;
     static void mdns_result(struct netif*, u8_t result, s8_t slot);
     static void receive(void* context, udp_pcb*, pbuf* packet, const ip_addr_t* address,
                         u16_t port);
+    static void resolved(const char* name, const ip_addr_t* address, void* context);
+    void resolve_server(std::uint64_t now);
     time::Sntp sntp_;
     network::Mdns mdns_;
     std::string stable_hostname_;
     time::SntpPollSchedule poll_schedule_;
     udp_pcb* pcb_ = nullptr;
     ip_addr_t server_{};
+    std::string time_server_;
+    time::ServerLookup lookup_;
+    std::uint64_t lookup_epoch_ = 0;
+    bool server_literal_ = false;
+    std::uint32_t resolution_failures_ = 0;
     std::string ssid_, password_;
     std::uint64_t next_connect_us_ = 0;
     bool initialized_ = false, enabled_ = true;
+    std::optional<bool> power_save_;
     std::optional<bool> pending_enabled_;
     bool configured_ = false, listening_ = false;
     bool identity_matches_ = true;

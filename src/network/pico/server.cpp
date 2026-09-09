@@ -247,6 +247,9 @@ err_t PicoServer::Connection::receive(void* context, tcp_pcb*, pbuf* packet, err
 err_t PicoServer::Connection::sent(void* context, tcp_pcb*, u16_t bytes) {
     auto& self = *static_cast<Connection*>(context);
     self.pending_tcp_bytes_ -= std::min<std::size_t>(bytes, self.pending_tcp_bytes_);
+    if (self.response_tcp_remaining_)
+        *self.response_tcp_remaining_ -=
+            std::min<std::size_t>(bytes, *self.response_tcp_remaining_);
     return ERR_OK;
 }
 void PicoServer::Connection::error(void* context, err_t) {
@@ -303,6 +306,7 @@ void PicoServer::Connection::close(bool apply) {
         ++owner_.metrics_.closed;
     endpoint_.disconnect();
     pending_tcp_bytes_ = 0;
+    response_tcp_remaining_.reset();
     if (generation_)
         api_.finish_request(generation_, apply);
     generation_ = 0;
@@ -385,7 +389,9 @@ void PicoServer::poll(bool link_up, std::string authority) {
 }
 void PicoServer::Connection::poll(std::string_view authority) {
     if (peer_closed_) {
-        close();
+        // FIN/RST after an acknowledged HTTP response must not cancel its action.
+        // TLS close_notify bytes are outside the HTTP acknowledgement boundary.
+        close(response_acknowledged());
         return;
     }
     if (!client_)
@@ -394,7 +400,7 @@ void PicoServer::Connection::poll(std::string_view authority) {
     if ((!handshake_ && (owner_.busy() || now - accepted_ms_ >= 10000)) ||
         (handshake_ && !wtp_ && now - accepted_ms_ >= 15000) || now - progress_ms_ >= 30000) {
         ++owner_.metrics_.timeouts;
-        close();
+        close(response_acknowledged());
         return;
     }
     if (!handshake_) {
@@ -459,8 +465,11 @@ void PicoServer::Connection::poll(std::string_view authority) {
             progress_ms_ = now;
             if (wtp_)
                 endpoint_.consume_output(static_cast<std::size_t>(result), now);
-            else
+            else {
                 response_offset_ += static_cast<std::size_t>(result);
+                if (response_offset_ == response_.size())
+                    response_tcp_remaining_ = pending_tcp_bytes_;
+            }
         } else if (!retry(result))
             close();
         return;
@@ -471,8 +480,8 @@ void PicoServer::Connection::poll(std::string_view authority) {
             if (result == 0)
                 close_notify_ = true;
             else if (!retry(result))
-                close();
-        } else if (pending_tcp_bytes_ == 0)
+                close(response_acknowledged());
+        } else if (response_acknowledged())
             close(true); // Only an acknowledged response can finish its mutation.
         return;
     }

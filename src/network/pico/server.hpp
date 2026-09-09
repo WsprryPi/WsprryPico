@@ -59,6 +59,10 @@ class PicoServer {
         mbedtls_ssl_context ssl_{};
         std::array<std::uint8_t, 4096> rx_{};
         std::size_t rx_size_ = 0, pending_tcp_bytes_ = 0;
+        std::optional<std::size_t> response_tcp_remaining_;
+        bool response_acknowledged() const {
+            return response_tcp_remaining_ && *response_tcp_remaining_ == 0;
+        }
         std::array<std::uint8_t, 1024> plain_{};
         std::size_t plain_size_ = 0, plain_offset_ = 0;
         HttpParser http_;

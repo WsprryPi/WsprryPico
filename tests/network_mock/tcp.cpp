@@ -121,6 +121,24 @@ void mock_tcp_release_acks() {
     for (auto* pcb : clients)
         pcb->hold_ack = false;
 }
+void mock_tcp_ack_and_close(bool reset) {
+    if (clients.empty())
+        return;
+    auto* pcb = clients.back();
+    if (pcb->pending && pcb->sent) {
+        const auto n = pcb->pending;
+        pcb->pending = 0;
+        pcb->sent(pcb->arg, pcb, n);
+    }
+    if (reset) {
+        const auto callback = pcb->error;
+        auto* context = pcb->arg;
+        tcp_abort(pcb);
+        if (callback)
+            callback(context, ERR_ABRT);
+    } else if (pcb->receive)
+        pcb->receive(pcb->arg, pcb, nullptr, ERR_OK);
+}
 void mock_tcp_poll() {
     if (!listener)
         return;

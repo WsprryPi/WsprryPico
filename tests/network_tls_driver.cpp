@@ -115,6 +115,13 @@ int main(int argc, char** argv) {
     standalone::Scheduler scheduler(store, service);
     network_test::Network network;
     network::BrowserApi api(service, store, scheduler, network, device, "test-worker-firmware");
+    unsigned restarts = 0;
+    api.restart_control(
+        [](void* context) {
+            ++*static_cast<unsigned*>(context);
+            return true;
+        },
+        &restarts);
     api.set_active_job_connections(true); // Same explicit policy as physical standalone image.
     network::PicoServer server(service, api, device, "test-worker-firmware");
     if (!server.start()) {
@@ -149,7 +156,9 @@ int main(int argc, char** argv) {
             const auto end = commands.find('\n');
             const auto command = commands.substr(0, end);
             commands.erase(0, end + 1);
-            if (command == "CLOCK OFF")
+            if (command == "RESTART COUNT")
+                std::cout << "RESTARTS " << restarts << std::endl;
+            else if (command == "CLOCK OFF")
                 clock.invalidate();
             else if (command == "CLOCK ON")
                 (void)clock.observe(utc + now(), now(), 1000, wtp::LeapState::Normal);
@@ -161,6 +170,10 @@ int main(int argc, char** argv) {
                 mock_tcp_hold_last_ack();
             else if (command == "ACK RELEASE")
                 mock_tcp_release_acks();
+            else if (command == "ACK FIN")
+                mock_tcp_ack_and_close(false);
+            else if (command == "ACK RESET")
+                mock_tcp_ack_and_close(true);
         }
         mock_tcp_poll();
         server.poll(link && network.enabled, address + ":" + std::to_string(server.port()));

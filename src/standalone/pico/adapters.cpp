@@ -3,7 +3,9 @@
 #include "hardware/flash.h"
 #include "hardware/structs/watchdog.h"
 #include "hardware/sync.h"
+#include "lwip/dns.h"
 #include "lwip/netif.h"
+#include "lwip/stats.h"
 #include "network/identity.hpp"
 #include "pico/cyw43_arch.h"
 #include "pico/rand.h"
@@ -27,6 +29,25 @@ constexpr std::size_t flash_base = PICO_FLASH_SIZE_BYTES - 4096 - storage_size;
 static_assert(PICO_FLASH_SIZE_BYTES == 4 * 1024 * 1024);
 static_assert(MEM_ALIGNMENT >= alignof(std::uint32_t));
 PicoNetwork* mdns_owner = nullptr;
+std::string memory_stats(const stats_mem* value) {
+    if (!value)
+        return "null";
+    return "{\"used\":" + std::to_string(value->used) +
+           ",\"capacity\":" + std::to_string(value->avail) +
+           ",\"peak\":" + std::to_string(value->max) + ",\"errors\":" + std::to_string(value->err) +
+           "}";
+}
+std::string packet_stats(const stats_proto& value) {
+    return "{\"received\":" + std::to_string(value.recv) +
+           ",\"sent\":" + std::to_string(value.xmit) +
+           ",\"dropped\":" + std::to_string(value.drop) + "}";
+}
+std::string network_memory() {
+    return "{\"heap\":" + memory_stats(&lwip_stats.mem) +
+           ",\"tcp_pcbs\":" + memory_stats(lwip_stats.memp[MEMP_TCP_PCB]) +
+           ",\"tcp_segments\":" + memory_stats(lwip_stats.memp[MEMP_TCP_SEG]) +
+           ",\"packet_pool\":" + memory_stats(lwip_stats.memp[MEMP_PBUF_POOL]) + "}";
+}
 } // namespace
 bool PicoFlash::read(std::size_t offset, std::span<std::uint8_t> data) {
     if (offset > storage_size || data.size() > storage_size - offset)
@@ -99,14 +120,28 @@ void PicoNetwork::mdns_result(struct netif* interface, u8_t result, s8_t slot) {
         mdns_owner->mdns_.name_result(result == MDNS_PROBING_SUCCESSFUL);
 }
 bool PicoNetwork::start(const Config& config) {
-    if (initialized_ || !ipaddr_aton(config.ntp_ipv4.c_str(), &server_))
+    if (initialized_ || !valid_time_server(config.ntp_ipv4))
         return false;
+    time_server_ = config.ntp_ipv4;
+    if (!time_server_.empty() && time_server_.back() == '.')
+        time_server_.pop_back();
+    for (auto& c : time_server_)
+        if (c >= 'A' && c <= 'Z')
+            c += 'a' - 'A'; // lwIP's .local selection is case-sensitive.
+    server_literal_ = ipaddr_aton(time_server_.c_str(), &server_) != 0;
     watchdog_hw->scratch[1] = 10;
     if (cyw43_arch_init())
         return false;
     initialized_ = true;
     watchdog_hw->scratch[1] = 11;
     cyw43_arch_enable_sta_mode();
+    // USB-powered network control needs continuous receive availability.
+    if (!disable_power_save()) {
+        cyw43_arch_disable_sta_mode();
+        cyw43_arch_deinit();
+        initialized_ = false;
+        return false;
+    }
     watchdog_hw->scratch[1] = 12;
     ssid_ = config.ssid;
     password_ = config.password;
@@ -119,6 +154,31 @@ bool PicoNetwork::start(const Config& config) {
     }
     udp_recv(pcb_, receive, this);
     return true;
+}
+void PicoNetwork::resolved(const char* name, const ip_addr_t* address, void* context) {
+    auto& self = *static_cast<PicoNetwork*>(context);
+    const bool valid = address && IP_IS_V4(address) && !ip_addr_isany(address) &&
+                       valid_time_server(ipaddr_ntoa(address)) && name && self.time_server_ == name;
+    if (!valid)
+        ++self.resolution_failures_;
+    if (self.lookup_.finish(self.lookup_epoch_, valid, time_us_64()) && valid) {
+        if (!ip_addr_cmp(&self.server_, address)) {
+            self.sntp_.cancel(); // Never accept an old peer's outstanding reply.
+            self.poll_schedule_.reset();
+        }
+        self.server_ = *address;
+    }
+}
+void PicoNetwork::resolve_server(std::uint64_t now) {
+    const auto epoch = lookup_.begin(now);
+    if (!epoch)
+        return;
+    lookup_epoch_ = *epoch;
+    ip_addr_t address{};
+    const auto result = dns_gethostbyname_addrtype(time_server_.c_str(), &address, resolved, this,
+                                                   LWIP_DNS_ADDRTYPE_IPV4);
+    if (result != ERR_INPROGRESS)
+        resolved(time_server_.c_str(), result == ERR_OK ? &address : nullptr, this);
 }
 void PicoNetwork::receive(void* context, udp_pcb*, pbuf* packet, const ip_addr_t* address,
                           u16_t port) {
@@ -145,6 +205,7 @@ void PicoNetwork::poll() {
     watchdog_hw->scratch[1] = 14;
     const auto now = time_us_64();
     const auto link = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
+    lookup_.link(link == CYW43_LINK_UP);
     const auto* station = &cyw43_state.netif[CYW43_ITF_STA];
     if (wsprry_mdns_network_changed())
         mdns_.network_changed();
@@ -160,6 +221,11 @@ void PicoNetwork::poll() {
             next_connect_us_ = now + 30'000'000ULL;
         }
         return;
+    }
+    if (!server_literal_) {
+        resolve_server(now);
+        if (!lookup_.ready())
+            return;
     }
     if (!poll_schedule_.due(now) || sntp_.denied())
         return;
@@ -187,6 +253,16 @@ void PicoNetwork::finish_request(bool idle) {
         (void)set_enabled(*pending_enabled_);
     pending_enabled_.reset();
 }
+bool PicoNetwork::disable_power_save() {
+    if (!initialized_ || !enabled_)
+        return false;
+    std::uint32_t observed = 0;
+    power_save_.reset();
+    if (cyw43_wifi_pm(&cyw43_state, CYW43_NONE_PM) || cyw43_wifi_get_pm(&cyw43_state, &observed))
+        return false;
+    power_save_ = (observed & 0xf) != CYW43_NO_POWERSAVE_MODE;
+    return !*power_save_;
+}
 bool PicoNetwork::set_enabled(bool enabled) {
     if (!initialized_ || !pcb_)
         return false;
@@ -197,9 +273,15 @@ bool PicoNetwork::set_enabled(bool enabled) {
     if (enabled) {
         mdns_.retry();
         cyw43_arch_enable_sta_mode();
+        if (!disable_power_save()) {
+            cyw43_arch_disable_sta_mode();
+            enabled_ = false;
+            return false;
+        }
         next_connect_us_ = 0;
         poll_schedule_.reset();
     } else {
+        lookup_.link(false);
         // enabled_ was already changed; inspect the actual station before teardown.
         mdns_.disable(cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA) == CYW43_LINK_UP);
         cyw43_arch_disable_sta_mode();
@@ -236,6 +318,18 @@ std::string PicoNetwork::status() const {
            ",\"mdns_goodbye_attempts\":" + std::to_string(wsprry_mdns_goodbye_attempts()) +
            ",\"mdns_goodbye_failures\":" + std::to_string(wsprry_mdns_goodbye_failures()) +
            ",\"mdns_rejected_packets\":" + std::to_string(wsprry_mdns_rejected_packets()) +
+           ",\"power_save\":" + (power_save_ ? (*power_save_ ? "true" : "false") : "null") +
+           ",\"packets\":{\"arp\":" + packet_stats(lwip_stats.etharp) +
+           ",\"ipv4\":" + packet_stats(lwip_stats.ip) + ",\"tcp\":" + packet_stats(lwip_stats.tcp) +
+           ",\"udp\":" + packet_stats(lwip_stats.udp) + "}" + ",\"memory\":" + network_memory() +
+           ",\"ntp_server\":" + wtp::json::quote(time_server_) + ",\"ntp_address\":" +
+           wtp::json::quote(server_literal_ || lookup_.ready() ? ipaddr_ntoa(&server_) : "") +
+           ",\"ntp_resolution\":" +
+           wtp::json::quote(server_literal_     ? "literal"
+                            : lookup_.pending() ? "resolving"
+                            : lookup_.ready()   ? "resolved"
+                                                : "unresolved") +
+           ",\"ntp_resolution_failures\":" + std::to_string(resolution_failures_) +
            ",\"queries\":" + std::to_string(queries_) +
            ",\"accepted\":" + std::to_string(accepted_) +
            ",\"rejected\":" + std::to_string(rejected_) +

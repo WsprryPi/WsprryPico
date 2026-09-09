@@ -3,11 +3,11 @@ const $ = id => document.getElementById(id);
 const session = crypto.randomUUID().replaceAll('-', '');
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
 const notice = (text, error = false) => { $('notice').textContent = text; $('notice').classList.toggle('error', error); };
-async function api(path, method = 'GET', body, etag) {
+async function api(path, method = 'GET', body, etag, timeout = 30000) {
   const headers = {};
   if (method !== 'GET') Object.assign(headers, {'Content-Type':'application/json','X-WsprryPico-Request':'1'});
   if (etag) headers['If-Match'] = etag;
-  const response = await fetch('/api/v1/' + path, {method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(12000), cache:'no-store'});
+  const response = await fetch('/api/v1/' + path, {method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(timeout), cache:'no-store'});
   const data = await response.json();
   if (!response.ok || data.ok === false) { const error = new Error(data.error?.code || 'Request rejected'); error.code = data.error?.code; throw error; }
   return {data, revision:response.headers.get('ETag')};
@@ -16,8 +16,9 @@ function controls(connected) {
   online = connected;
   $('refresh').disabled = busy;
   $('reload-config').disabled = busy || !online;
-  const idle = online && snapshot && !snapshot.job.owner_id && !snapshot.job.output_active && !['armed','running','failed'].includes(snapshot.job.state);
+  const idle = online && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
   $('settings').disabled = busy || !idle;
+  $('restart').disabled = busy || !idle || !capabilities?.features?.restart;
   $('wifi-off').disabled = busy || !idle || !snapshot.network.enabled;
   $('job-settings').disabled = busy || !online || !snapshot || !!snapshot.job.owner_id || snapshot.standalone.reboot_required;
   $('abort').disabled = busy || !online || snapshot?.job.owner_id !== session || !['loaded','armed','running'].includes(snapshot.job.state);
@@ -27,7 +28,8 @@ function fill(c) {
   currentConfig = c; dirty = false;
   const form = $('config').elements;
   for (const name of ['callsign','locator','power_dbm']) form[name].value = c?.station[name] ?? '';
-  for (const name of ['ssid','ntp_ipv4']) form[name].value = c?.wifi[name] ?? '';
+  form.ssid.value = c?.wifi.ssid ?? '';
+  form.ntp_ipv4.value = c?.wifi.ntp_ipv4 ?? 'pool.ntp.org';
   form.password.value = '';
   form.enabled.checked = c?.enabled ?? false;
   form.schedules.value = (c?.schedules || [{period_s:120,phase_s:0}]).map(s => `${s.period_s} / ${s.phase_s}`).join('\n');
@@ -41,7 +43,7 @@ async function refresh(loadConfig = false) {
     const s = snapshot.standalone, n = snapshot.network;
     $('state').textContent = snapshot.job.state;
     $('job-result').textContent = snapshot.job.job_id ? `Job ${snapshot.job.job_id}: ${snapshot.job.state} · observed ${observedAt}` : 'No loaded job · observed ' + observedAt;
-    $('output').textContent = snapshot.job.output_active ? 'Active' : 'Inactive';
+    $('output').textContent = snapshot.job.output_active === true ? 'Active' : snapshot.job.output_active === false ? 'Inactive' : 'Unknown';
     $('clock').textContent = `${s.clock_state} · ±${(Number(s.uncertainty_ns)/1e6).toFixed(2)} ms`;
     $('owner').textContent = snapshot.job.owner_id === session ? 'This browser' : snapshot.job.owner_id || 'Available';
     $('engine').textContent = s.engine;
@@ -51,7 +53,7 @@ async function refresh(loadConfig = false) {
     $('discovery').textContent = discovery[n.mdns_state] || 'Unavailable';
     $('discovery-help').textContent = n.mdns_state === 'conflict' ? 'Another device is using this hostname. Resolve the duplicate, then retry with USB Console WIFI OFF and WIFI ON while idle. The device will not rename itself.' : n.mdns_reason === 'device_identity_mismatch' ? 'Credentials belong to a different device. Rebuild with this device’s certificate bundle and recover through USB Console.' : n.mdns_state === 'failed' ? 'Name discovery failed. Check USB Console INFO; retry Wi-Fi while idle after resolving the reported cause.' : n.mdns_state === 'active' ? 'Use this hostname after DHCP address changes. An IP URL needs a matching certificate IP address.' : '';
     $('recovery').textContent = !capabilities.active_job_connections ? 'Network connections pause while RF jobs are armed or running. The job owner can abort over an established WTP connection; physical USB Console ABORT can also stop a job. ' : '';
-    $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Settings saved. Restart the device through USB Console to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
+    $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Network settings saved. Use Restart device to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
     if (loadConfig) { const c = await api('config'); revision = c.revision; fill(c.data.config); }
     notice('Connected · Status updated ' + observedAt); controls(true);
   } catch (e) { snapshot = null; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname','discovery']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
@@ -75,7 +77,7 @@ $('config').onsubmit = event => { event.preventDefault(); return action(async ()
   });
   const config = {version:1,enabled:f.enabled.checked,station:{callsign:f.callsign.value.trim().toUpperCase(),locator:f.locator.value.trim().toUpperCase(),power_dbm:Number(f.power_dbm.value)},wifi:{ssid:f.ssid.value,password:f.password.value || null,ntp_ipv4:f.ntp_ipv4.value.trim()},schedules,expires_utc_s:f.expiry.value ? Date.parse(f.expiry.value + 'Z') / 1000 : 0};
   const result = await api('config','PUT',config,revision); revision = result.revision; fill(result.data.config);
-  await refresh(); notice('Settings saved. Restart through USB Console to apply them.');
+  await refresh(); notice(result.data.reboot_required ? 'Settings saved. Use Restart device to apply network changes.' : 'Settings saved and applied.');
 }); };
 async function job(operation, body = {}) {
   const result = await api('jobs','POST',{session_id:session,request_id:crypto.randomUUID().replaceAll('-',''),operation,body});
@@ -99,6 +101,28 @@ $('job').onsubmit = event => { event.preventDefault(); return action(async () =>
 }); };
 $('abort').onclick = () => action(async () => { await job('ABORT',{job_id:snapshot.job.job_id}); await refresh(); });
 $('release').onclick = () => action(async () => { await job('RELEASE'); await refresh(); });
+$('restart').onclick = () => action(async () => {
+  if (!confirm(dirty ? 'Restart using saved settings? Your unsaved edits will be discarded after reconnection.' : 'Restart the device? This page will reconnect when it is ready.')) return;
+  const before = snapshot?.job.boot_id;
+  if (!before) throw new Error('Refresh status before restarting');
+  const saved = await api('config');
+  // Exactly one mutation; a lost acknowledgement must never trigger another reset.
+  await api('restart', 'POST', {}, saved.revision);
+  snapshot = null; controls(false); $('state').textContent = 'Restart requested'; $('output').textContent = 'Unknown during restart';
+  notice('Restart requested. Reconnecting…');
+  const deadline = Date.now() + 90000;
+  while (Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      const observed = await api('status', 'GET', undefined, undefined, Math.max(1, Math.min(20000, deadline - Date.now())));
+      if (observed.data.job.boot_id && observed.data.job.boot_id !== before) {
+        capabilities = null; await refresh(true);
+        if (online) { notice('Device restarted. Saved settings are active.'); return; }
+      }
+    } catch (_) { /* Remain unknown until an authenticated new boot is observed. */ }
+  }
+  throw new Error('Restart not confirmed. Refresh to check the device; another restart has not been sent');
+});
 $('wifi-off').onclick = () => action(async () => {
   if (!confirm('Disconnect Wi-Fi? Reconnect using USB Console or restart the device.')) return;
   const n = await api('network'); await api('network','PUT',{enabled:false},n.revision);

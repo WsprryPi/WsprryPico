@@ -223,6 +223,51 @@ void deferred() {
     off.headers["if-match"] = f.api.revision();
     REQUIRE(f.api.handle(off, "cert-a", "127.0.0.1:8443", 20).status == 409);
 }
+void restart_tests() {
+    Fixture f;
+    unsigned resets = 0;
+    f.api.restart_control(
+        [](void* context) {
+            ++*static_cast<unsigned*>(context);
+            return true;
+        },
+        &resets);
+    auto restart = request("POST", "/api/v1/restart", "{}");
+    REQUIRE(f.api.handle(restart, "cert-a", "127.0.0.1:8443", 31).status == 428);
+    restart.headers["if-match"] = f.api.revision();
+    REQUIRE(f.api.handle(restart, "", "127.0.0.1:8443", 31).status == 401);
+    REQUIRE(f.api.handle(restart, "cert-a", "127.0.0.1:8443", 31).status == 202);
+    REQUIRE(resets == 0);
+    f.api.finish_request(32);
+    REQUIRE(resets == 0);
+    auto changed = request("PUT", "/api/v1/config", config);
+    changed.headers["if-match"] = f.api.revision();
+    REQUIRE(f.api.handle(changed, "cert-a", "127.0.0.1:8443", 32).status == 409);
+    f.api.finish_request(31, false);
+    REQUIRE(resets == 0);
+    REQUIRE(f.api.handle(restart, "cert-a", "127.0.0.1:8443", 33).status == 412);
+    restart.headers["if-match"] = f.api.revision();
+    REQUIRE(f.api.handle(restart, "cert-a", "127.0.0.1:8443", 33).status == 202);
+    f.api.finish_request(33);
+    f.api.finish_request(33);
+    REQUIRE(resets == 1);
+    restart.headers["if-match"] = f.api.revision();
+    REQUIRE(f.api.handle(restart, "cert-a", "127.0.0.1:8443", 34).status == 202);
+    wtp::Request r;
+    r.payload_digest[0] = 1;
+    r.principal = "usb-physical";
+    r.session_id = std::string(32, '7');
+    r.request_id = std::string(32, '8');
+    r.operation = "HELLO";
+    r.body = wtp::HelloBody{{"WTP/1"}};
+    REQUIRE(f.service.handle(r).ok);
+    r.request_id = std::string(32, '9');
+    r.operation = "CLAIM";
+    r.body = wtp::ClaimBody{std::string(32, '7'), 60000};
+    REQUIRE(f.service.handle(r).ok);
+    f.api.finish_request(34);
+    REQUIRE(resets == 1);
+}
 void jobs() {
     Fixture f;
     unsigned seq = 0;
@@ -269,6 +314,7 @@ int main() {
     api_checks();
     jobs();
     deferred();
+    restart_tests();
     // JSON scratch admission must not silently narrow WTP's body grammar.
     std::string many_keys = "{";
     for (unsigned i = 0; i < 40; ++i)

@@ -1,6 +1,7 @@
 #include "standalone/dry_run_engine.hpp"
 #include "standalone/scheduler.hpp"
 #include "standalone/wtp_profile.hpp"
+#include "time/server_lookup.hpp"
 #include "time/sntp.hpp"
 #include "wtp/inhibited_rf_engine.hpp"
 #include "wtp/json.hpp"
@@ -61,9 +62,42 @@ struct MemoryFlash : standalone::Flash {
         return true;
     }
 };
+void lookup_tests() {
+    time::ServerLookup lookup;
+    CHECK(!lookup.begin(0));
+    lookup.link(true);
+    const auto old = lookup.begin(1);
+    CHECK(old && !lookup.begin(2));
+    lookup.link(false);
+    lookup.link(true);
+    CHECK(!lookup.begin(3)); // Old callback storage must not be reused.
+    CHECK(!lookup.finish(*old, true, 4));
+    CHECK(!lookup.ready());
+    const auto fresh = lookup.begin(5);
+    CHECK(fresh && *fresh != *old);
+    CHECK(!lookup.finish(*old, true, 6));
+    CHECK(lookup.pending());
+    CHECK(lookup.finish(*fresh, true, 7));
+    CHECK(lookup.ready());
+    CHECK(!lookup.begin(60'000'006));
+    const auto refresh = lookup.begin(60'000'007);
+    CHECK(refresh);
+    CHECK(!lookup.finish(*refresh, false, 60'000'008));
+    CHECK(lookup.ready()); // Temporary DNS loss preserves the last known address.
+    CHECK(!lookup.begin(65'000'007));
+    CHECK(lookup.begin(65'000'008));
+    lookup.link(false);
+    CHECK(!lookup.ready());
+}
 void config_tests() {
     const auto valid = standalone::parse_config(example);
     CHECK(valid);
+    auto omitted = example;
+    const std::string time_member = ",\"ntp_ipv4\":\"192.0.2.1\"";
+    omitted.erase(omitted.find(time_member), time_member.size());
+    const auto defaults = standalone::parse_config(omitted);
+    CHECK(defaults && defaults->ntp_ipv4 == "pool.ntp.org");
+    CHECK(standalone::parse_config(standalone::serialize_config(*defaults)) == defaults);
     CHECK(standalone::parse_config(standalone::serialize_config(*valid)) == valid);
     auto bad = [&](std::string from, std::string to) {
         auto text = example;
@@ -87,7 +121,17 @@ void config_tests() {
     bad("192.0.2.1", "224.0.0.1");
     bad("192.0.2.1", "192.000.2.1");
     bad("192.0.2.1", "192.0.2.999");
-    bad("192.0.2.1", "server.example");
+    for (const auto* literal : {"0x7f000001", "0xe0000001", "0xC0000201", "0xC0.0.2.1"})
+        bad("192.0.2.1", literal);
+    for (const auto* name : {"time.example.net", "wspr5.local", "time.example.net."}) {
+        auto named = *valid;
+        named.ntp_ipv4 = name;
+        CHECK(standalone::parse_config(standalone::serialize_config(named)) == named);
+    }
+    for (const auto* name : {"-bad.example", "bad-.example", "bad..example", "bad.example..",
+                             "https://time.example", "time.example:123", "bad name"})
+        bad("192.0.2.1", name);
+    bad("192.0.2.1", std::string(64, 'a') + ".example");
     bad(":120", ":0");
     bad(":120", ":121");
     bad(":120", ":3600000000");
@@ -248,6 +292,31 @@ struct Engine : wtp::RfEngine {
         return active;
     }
 };
+void live_config_tests() {
+    MemoryFlash flash;
+    standalone::Store store(flash);
+    CHECK(store.load() && store.save(*standalone::parse_config(example)));
+    Clock clock;
+    Engine engine;
+    Identity identities;
+    wtp::JobService service(clock, engine, identities);
+    standalone::Scheduler scheduler(store, service);
+    auto current = *store.config();
+    current.power_dbm = 20;
+    const auto save = [&] {
+        return scheduler.command("CONFIG " + standalone::serialize_config(current));
+    };
+    CHECK(save().find("\"reboot_required\":false") != std::string::npos);
+    CHECK(store.config()->power_dbm == 20);
+    current.ntp_ipv4 = "time.example.net";
+    CHECK(save().find("\"reboot_required\":true") != std::string::npos);
+    current.power_dbm = 23;
+    CHECK(save().find("\"reboot_required\":true") != std::string::npos);
+    (void)scheduler.command("STOP");
+    current.ntp_ipv4 = "192.0.2.1";
+    CHECK(save().find("\"reboot_required\":false") != std::string::npos);
+    CHECK(scheduler.status().find("\"suspended\":true") != std::string::npos);
+}
 void reset_guard_tests() {
     MemoryFlash flash;
     standalone::Store store(flash);
@@ -325,11 +394,11 @@ void scheduler_tests() {
     auto json = wtp::json::parse(reboot.status());
     CHECK(json);
     CHECK(reboot.status().find("test-password") == std::string::npos);
-    CHECK(reboot.command("CONFIG " + example).find("\"reboot_required\":true") !=
+    CHECK(reboot.command("CONFIG " + example).find("\"reboot_required\":false") !=
           std::string::npos);
     clock.advance(4 * ns);
     reboot.poll();
-    CHECK(other.prepared == 1);
+    CHECK(other.prepared == 2); // Saving unchanged network settings permits the next slot.
     // Every unavailable/unsafe source must leave flash and engine untouched.
     for (unsigned fault = 0; fault < 5; ++fault) {
         MemoryFlash f;
@@ -657,6 +726,8 @@ void autonomous_test() {
 }
 } // namespace
 int main() {
+    lookup_tests();
+    live_config_tests();
     config_tests();
     storage_tests();
     reset_guard_tests();

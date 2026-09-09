@@ -22,7 +22,16 @@ std::string id(std::uint64_t value) {
 std::string error(std::string_view why) {
     return "{\"ok\":false,\"error\":\"" + std::string(why) + "\"}\n";
 }
+wtp::PayloadDigest network_digest(const Config& config) {
+    const auto text = wtp::json::quote(config.ssid) + "," + wtp::json::quote(config.password) +
+                      "," + wtp::json::quote(config.ntp_ipv4);
+    return wtp::sha256(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
+}
 } // namespace
+Scheduler::Scheduler(Store& store, wtp::JobService& service) : store_(store), service_(service) {
+    if (store_.config())
+        active_network_ = network_digest(*store_.config());
+}
 wtp::Response Scheduler::request(std::string_view operation, wtp::RequestBody body) {
     wtp::Request r;
     r.principal = "standalone-local";
@@ -184,7 +193,10 @@ std::string Scheduler::command(std::string_view line) {
         return error("invalid_config");
     if (!store_.save(*config))
         return error("storage_fault");
-    reboot_required_ = true;
+    // The scheduler reads station/schedules from Store on each new job. Only
+    // network settings are boot-initialized. Compare with the active boot, not
+    // the previous save: a later station edit cannot conceal a pending change.
+    reboot_required_ = !active_network_ || *active_network_ != network_digest(*config);
     return status();
 }
 } // namespace wsprrypico::standalone

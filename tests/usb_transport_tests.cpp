@@ -88,7 +88,7 @@ int main() {
     const std::string banner = "WsprryPico\r\n" + std::string(600, 'x') + " UTF-8: π\r\n";
     ports[0].capacity = 7;
     CHECK(console_write(banner));
-    for (unsigned i = 0; i < 200; ++i)
+    for (unsigned i = 0; i < (kConsoleCapacity + 12) / 13 + 1; ++i)
         service();
     CHECK(std::string(ports[0].delivered.begin(), ports[0].delivered.end()) == banner);
     CHECK(ports[1].delivered.empty());
@@ -118,7 +118,7 @@ int main() {
     CHECK(ports[1].delivered.size() == 2 * binary.size());
     ports[1].capacity = 0;
     ports[0].capacity = 13;
-    for (unsigned i = 0; i < 200; ++i)
+    for (unsigned i = 0; i < (kConsoleCapacity + 12) / 13 + 1; ++i)
         service();
     CHECK(std::string(ports[0].delivered.begin(), ports[0].delivered.end()) ==
           banner + std::string(kConsoleCapacity, 'a'));

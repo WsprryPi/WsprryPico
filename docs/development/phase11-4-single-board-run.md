@@ -6,6 +6,10 @@ The [comprehensive execution prompt](phase11-4-single-board-prompt.md) was writt
 and executed at the user's request. Private raw evidence is under
 `build/phase11-4-single-board-evidence/`; generated credentials remain ignored.
 
+The subsequent [connectivity, memory and remote-settings investigation](connectivity-memory-remote-settings.md)
+records the 2026-09-09 diagnostics, corrected remote settings/restart behavior,
+current inhibited image and remaining packet-path/overnight reliability gates.
+
 ## Authorization and target
 
 The user subsequently authorized all tests and specifically authorized a bounded

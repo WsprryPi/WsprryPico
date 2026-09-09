@@ -156,7 +156,27 @@ int main() {
     std::size_t length = 0;
     bool overflow = false;
     std::uint64_t reboot_at = 0;
-    bool bootloader = false;
+    bool bootloader = false, browser_reboot = false;
+    struct RestartContext {
+        wsprrypico::standalone::Scheduler* scheduler;
+        wsprrypico::wtp::RfEngine* output_engine;
+        std::uint64_t* at;
+        bool* browser;
+    } restart_context{&scheduler, &engine, &reboot_at, &browser_reboot};
+    browser_api.restart_control(
+        [](void* context) {
+            auto& state = *static_cast<RestartContext*>(context);
+            if (*state.at || !state.scheduler->idle())
+                return false;
+            (void)state.scheduler->command("STOP");
+            if (!state.output_engine->disable(monotonic_now(nullptr) + 100'000'000ULL) ||
+                state.output_engine->output_active())
+                return false;
+            *state.browser = true;
+            *state.at = time_us_64() + 250'000;
+            return true;
+        },
+        &restart_context);
 #ifdef WSPRRY_PICO_STANDALONE_RF
     std::uint64_t last_loop_us = 0, max_loop_us = 0, max_refill_us = 0;
     std::uint64_t max_usb_us = 0, max_request_us = 0;
@@ -185,7 +205,9 @@ int main() {
                 ",\"heap_available_bytes\":" + std::to_string(wsprrypico::wtp::available_memory()) +
                 ",\"heap_sampled_peak_bytes\":" + std::to_string(heap_peak) +
                 ",\"core0_stack_used_bytes\":" + std::to_string(stack_used()) +
-                ",\"tls_peak_bytes\":" + std::to_string(server.tls_peak());
+                ",\"tls_peak_bytes\":" + std::to_string(server.tls_peak()) +
+                ",\"tls_allocated_bytes\":" + std::to_string(server.tls_allocated()) +
+                ",\"tls_allocation_failures\":" + std::to_string(server.tls_failures());
 #ifdef WSPRRY_PICO_STANDALONE_RF
             const auto metrics = engine.metrics();
             result += ",\"launch_observed_ns\":\"" + std::to_string(metrics.launch_ns) + "\"" +
@@ -218,9 +240,10 @@ int main() {
         }
         if (text == "REBOOT" || text == "BOOTSEL") {
             (void)scheduler.command("STOP");
-            if (!scheduler.reset_permitted() ||
+            if (!(browser_reboot ? scheduler.idle() : scheduler.reset_permitted()) ||
                 !engine.disable(monotonic_now(nullptr) + 100'000'000ULL) || engine.output_active())
                 return "{\"ok\":false,\"error\":\"not_idle\"}\n";
+            browser_reboot = false;
             bootloader = text == "BOOTSEL";
             reboot_at = time_us_64() + 250'000;
             return "{\"ok\":true,\"rebooting\":true}\n";
@@ -238,6 +261,16 @@ int main() {
     };
     while (true) {
         if (reboot_at && time_us_64() >= reboot_at) {
+            // Network ownership can change while the response/USB ACK drains.
+            // A new owner cancels reset rather than losing its accepted job.
+            if (!(browser_reboot ? scheduler.idle() : scheduler.reset_permitted()) ||
+                !engine.disable(monotonic_now(nullptr) + 100'000'000ULL) ||
+                engine.output_active()) {
+                reboot_at = 0;
+                bootloader = false;
+                browser_reboot = false;
+                continue;
+            }
             if (bootloader)
                 reset_usb_boot(0, 0);
             watchdog_reboot(0, 0, 0);
@@ -291,7 +324,9 @@ int main() {
             if (b == '\n') {
                 const auto response = overflow ? "{\"ok\":false,\"error\":\"line_too_long\"}\n"
                                                : command(std::string_view(line.data(), length));
-                (void)wsprrypico::usb::console_write(response);
+                if (!wsprrypico::usb::console_write(response))
+                    (void)wsprrypico::usb::console_write(
+                        "{\"ok\":false,\"error\":\"console_response_capacity\"}\n");
                 std::fill(line.begin(), line.end(), 0);
                 length = 0;
                 overflow = false;

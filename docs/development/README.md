@@ -155,3 +155,7 @@ cleanup blockage and the final verified return to RF inhibition.
 The [focused 2200 m investigation](2200m-investigation.md) records the later
 five-mode 138 MHz pass with QRSS3, repeated clock screens, and an unfiltered
 wspr5 GPIO4 tone/QRSS comparison with documented signal-quality criteria.
+
+The [connectivity, memory and remote settings record](connectivity-memory-remote-settings.md)
+tracks sandbox-separated observations, USB network-pool diagnostics, DNS time
+servers and authenticated browser restart acceptance.

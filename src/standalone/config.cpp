@@ -39,6 +39,48 @@ bool integer(wtp::json::Value value, std::uint32_t& n) {
     return result.ec == std::errc{} && result.ptr == value.raw.data() + value.raw.size();
 }
 } // namespace
+bool valid_time_server(std::string_view text) {
+    if (ipv4(text))
+        return true;
+    // lwIP also accepts legacy integer/octal/hex address spellings. Reject
+    // numeric-looking alternatives rather than bypassing canonical peer checks.
+    bool numeric = true;
+    for (auto rest = text; !rest.empty();) {
+        const auto dot = rest.find('.');
+        auto label = rest.substr(0, dot);
+        const bool hex = label.starts_with("0x") || label.starts_with("0X");
+        if (hex)
+            label.remove_prefix(2);
+        numeric =
+            numeric && !label.empty() && std::all_of(label.begin(), label.end(), [hex](char c) {
+                return (c >= '0' && c <= '9') ||
+                       (hex && ((c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')));
+            });
+        if (dot == rest.npos)
+            break;
+        rest.remove_prefix(dot + 1);
+    }
+    if (text.empty() || text.size() > 253 || numeric)
+        return false;
+    if (text.back() == '.')
+        text.remove_suffix(1);
+    while (!text.empty()) {
+        const auto dot = text.find('.');
+        const auto label = text.substr(0, dot);
+        if (label.empty() || label.size() > 63 || label.front() == '-' || label.back() == '-' ||
+            !std::all_of(label.begin(), label.end(), [](char c) {
+                return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+                       c == '-';
+            }))
+            return false;
+        if (dot == text.npos)
+            return true;
+        text.remove_prefix(dot + 1);
+        if (text.empty())
+            return false;
+    }
+    return false;
+}
 std::optional<Config> parse_config(std::string_view text) {
     using namespace wtp::json;
     if (text.size() > max_config_bytes)
@@ -52,12 +94,12 @@ std::optional<Config> parse_config(std::string_view text) {
     auto station = *root->get("station"), wifi = *root->get("wifi"),
          entries = *root->get("schedules");
     if (!fields(station, {"callsign", "locator", "power_dbm"}) ||
-        !fields(wifi, {"ssid", "password", "ntp_ipv4"}) || entries.type() != '[')
+        !fields(wifi, {"ssid", "password"}, {"ntp_ipv4"}) || entries.type() != '[')
         return {};
     for (auto name : {"callsign", "locator"})
         if (station.get(name)->type() != '"')
             return {};
-    for (auto name : {"ssid", "password", "ntp_ipv4"})
+    for (auto name : {"ssid", "password"})
         if (wifi.get(name)->type() != '"')
             return {};
     Config c;
@@ -81,8 +123,13 @@ std::optional<Config> parse_config(std::string_view text) {
     c.power_dbm = power;
     c.ssid = wifi.get("ssid")->string();
     c.password = wifi.get("password")->string();
-    c.ntp_ipv4 = wifi.get("ntp_ipv4")->string();
-    if (!printable(c.ssid, 1, 32) || !printable(c.password, 8, 63) || !ipv4(c.ntp_ipv4))
+    if (const auto time_server = wifi.get("ntp_ipv4")) {
+        if (time_server->type() != '"')
+            return {};
+        c.ntp_ipv4 = time_server->string();
+    }
+    if (!printable(c.ssid, 1, 32) || !printable(c.password, 8, 63) ||
+        !valid_time_server(c.ntp_ipv4))
         return {};
     const auto schedules = entries.elements(9);
     if (schedules.empty() || schedules.size() > 8)

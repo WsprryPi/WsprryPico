@@ -107,6 +107,27 @@ try:
     assert status == 200, body
     assert b'never-echo-me' not in body and json.loads(body)['config']['wifi']['password'] is None
     assert http('/api/v1/config','PUT',config,{'If-Match':headers['ETag']})[0] == 412
+    # A restart is dispatched only after its own complete response is acknowledged.
+    assert caps['features']['restart']
+    for expected, outcome in enumerate(('disconnect', 'apply', 'fin', 'reset')):
+        revision = http('/api/v1/config')[1]['ETag']
+        with connect() as management:
+            control('ACK HOLD')
+            management.sendall((f'POST /api/v1/restart HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n'
+                f'Origin: https://127.0.0.1:18443\r\nContent-Type: application/json\r\n'
+                f'X-WsprryPico-Request: 1\r\nIf-Match: {revision}\r\nContent-Length: 2\r\n\r\n{{}}').encode())
+            response = b''
+            while chunk := management.recv(4096): response += chunk
+            assert response.startswith(b'HTTP/1.1 202'), response
+            control('RESTART COUNT')
+            assert process.stdout.readline().strip() == f'RESTARTS {max(0, expected - 1)}'
+            if outcome == 'apply': control('ACK RELEASE')
+            elif outcome == 'fin': control('ACK FIN')
+            elif outcome == 'reset': control('ACK RESET')
+        time.sleep(.03)
+        control('RESTART COUNT')
+        assert process.stdout.readline().strip() == f'RESTARTS {expected}'
+        assert http('/api/v1/restart', 'POST', {}, {'If-Match':revision})[0] == 412
     # The generated inline assets must match the browser-enforced CSP hashes.
     status, root_headers, document = http('/')
     for tag in ('style', 'script'):

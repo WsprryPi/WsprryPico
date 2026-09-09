@@ -10,14 +10,14 @@ const state = {job:{state:'empty',output_active:false,owner_id:null,job_id:null}
   standalone:{reboot_required:false,storage_healthy:true,uncertainty_ns:'1000000',clock_state:'synchronized',engine:'pio-dma-gp2'},
   network:{enabled:true,link_status:3,ipv4:'192.0.2.10',configured_hostname:'wsprrypico-'+'a'.repeat(32)+'.local',mdns_state:'active',mdns_reason:''}};
 const config = {version:1,enabled:false,station:{callsign:'AA0NT',locator:'EM18',power_dbm:37},
-  wifi:{ssid:'Test station',password:null,ntp_ipv4:'192.0.2.1'},schedules:[{period_s:120,phase_s:0}],expires_utc_s:0};
+  wifi:{ssid:'Test station',password:null,ntp_ipv4:'time.example.net'},schedules:[{period_s:120,phase_s:0}],expires_utc_s:0};
 let offline = false, chrome, socket;
 const server = http.createServer((req,res) => {
   if (req.url.startsWith('/api/')) {
     res.setHeader('Content-Type','application/json'); res.setHeader('ETag','"one"');
     if (offline) {res.writeHead(503);res.end('{"error":{"code":"capacity"}}');return;}
     res.end(JSON.stringify(req.url.endsWith('status') ? state : req.url.endsWith('config') ? {config} :
-      {active_job_connections:true,wtp:{maximum_arm_uncertainty_ns:'1000000'}}));return;
+      {features:{restart:true},active_job_connections:true,wtp:{maximum_arm_uncertainty_ns:'1000000'}}));return;
   }
   const name = {'/':'index.html','/style.css':'style.css','/app.js':'app.js'}[req.url];
   if (!name) {res.writeHead(404);res.end();return;}
@@ -50,6 +50,13 @@ async function until(fn) {for(let i=0;i<200;i++){if(await fn())return;await new 
     await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:name==='mobile'});
     await send('Page.navigate',{url:'http://127.0.0.1:'+server.address().port+'/'});
     await until(()=>evaluate('typeof online !== "undefined" && online && !busy'));
+    state.standalone.reboot_required=true;
+    await evaluate('document.getElementById("refresh").click()');await until(()=>evaluate('!busy'));
+    assert.equal(await evaluate('document.getElementById("restart").disabled'),false);
+    assert.equal(await evaluate('document.documentElement.scrollWidth <= innerWidth'),true);
+    const restartShot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});
+    fs.writeFileSync(path.join(output,name+'-restart.png'),Buffer.from(restartShot.data,'base64'));
+    state.standalone.reboot_required=false;
     await evaluate('document.querySelector("[name=password]").value="unsaved-draft"; document.getElementById("config").dispatchEvent(new Event("input"))');
     state.job={state:'armed',output_active:false,owner_id:await evaluate('session'),job_id:'3'.repeat(32)};
     await evaluate('document.getElementById("refresh").click()');await until(()=>evaluate('!busy'));

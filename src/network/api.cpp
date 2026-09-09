@@ -137,8 +137,9 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return ok(
                 "{\"api_version\":1,\"wtp\":" + std::string(value->get("body")->raw) +
                 ",\"features\":{\"config\":true,\"schedules\":true,\"jobs\":true,\"network\":true,"
-                "\"softap\":false,\"ble\":false},\"active_job_connections\":" +
-                (active_job_connections_ ? "true" : "false") +
+                "\"softap\":false,\"ble\":false,\"restart\":" +
+                (restart_ ? "true" : "false") +
+                "},\"active_job_connections\":" + (active_job_connections_ ? "true" : "false") +
                 ",\"max_network_connections\":2,\"max_wtp_connections\":1,\"max_pending_"
                 "connections\":1,\"max_handshakes\":1,\"max_body_bytes\":32768}");
         }
@@ -165,8 +166,10 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     }
     if (r.method == "POST" && (r.path == "/api/v1/jobs" || r.path.starts_with("/api/v1/jobs/")))
         return job(r, principal);
-    if (r.method != "PUT" || (r.path != "/api/v1/config" && r.path != "/api/v1/schedules" &&
-                              r.path != "/api/v1/network"))
+    const bool restart = r.method == "POST" && r.path == "/api/v1/restart";
+    if (!restart &&
+        (r.method != "PUT" || (r.path != "/api/v1/config" && r.path != "/api/v1/schedules" &&
+                               r.path != "/api/v1/network")))
         return http_error(404, "not_found");
     if (r.header("if-match").empty())
         return http_error(428, "revision_required");
@@ -177,12 +180,25 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     auto root = json::parse(r.body);
     if (!root)
         return http_error(400, "invalid_json");
+    if (pending_transaction_)
+        return http_error(409, "network_change_pending");
+    if (restart) {
+        if (!json::fields(*root, {}))
+            return http_error(400, "invalid_restart");
+        if (!restart_)
+            return http_error(503, "restart_unavailable");
+        pending_restart_ = true;
+        pending_transaction_ = transaction;
+        ++network_revision_; // Consume the revision; never replay an ambiguous reset.
+        auto result = ok("{\"restart_requested\":true}");
+        result.status = 202;
+        result.etag = revision();
+        return result;
+    }
     if (r.path == "/api/v1/network") {
         if (!json::fields(*root, {"enabled"}) ||
             (root->get("enabled")->raw != "true" && root->get("enabled")->raw != "false"))
             return http_error(400, "invalid_network");
-        if (pending_transaction_)
-            return http_error(409, "network_change_pending");
         if (!network_.request_enabled(root->get("enabled")->boolean()))
             return http_error(503, "network_unavailable");
         pending_transaction_ = transaction;
@@ -219,7 +235,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         return http_error(503, "storage_fault");
     auto result = config();
     result.body.pop_back();
-    result.body += ",\"reboot_required\":true}";
+    result.body +=
+        std::string(",\"reboot_required\":") + (scheduler_.reboot_required() ? "true}" : "false}");
     return result;
 }
 } // namespace wsprrypico::network
