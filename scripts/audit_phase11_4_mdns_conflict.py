@@ -53,8 +53,12 @@ def dns(data):
             offset += 10
             require(offset + size <= len(data), "truncated record data")
             address = socket.inet_ntoa(data[offset:offset + size]) if kind == 1 and size == 4 else None
+            target = None
+            if kind == 12:
+                target, end = dns_name(data, offset)
+                require(end == offset + size, "invalid PTR record length")
             records.append(dict(name=name, type=kind, cls=cls, ttl=ttl,
-                                address=address, section=section))
+                                address=address, target=target, section=section))
             offset += size
     require(offset == len(data), "unparsed DNS trailing bytes")
     return dict(id=ident, flags=flags, questions=questions, records=records)
@@ -80,6 +84,7 @@ def pcap(path):
         sport, dport, length, _ = struct.unpack(">4H", udp[:8])
         require(length == len(udp) and (sport == 5353 or dport == 5353), "invalid mDNS UDP length/port")
         packets.append(dict(epoch_ns=sec * 10**9 + usec * 1000,
+                            source_mac=wire[6:12].hex(":"),
                             source=socket.inet_ntoa(ip[12:16]), destination=socket.inet_ntoa(ip[16:20]),
                             ttl=ip[8], sport=sport, dport=dport, dns=dns(udp[8:])))
     return packets

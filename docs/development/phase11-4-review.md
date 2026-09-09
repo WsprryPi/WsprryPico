@@ -1,5 +1,12 @@
 # Phase 11.4 inhibited device acceptance review
 
+The [D1–D3 record](phase11-4-d1-d3-results.md) adds captured Pico goodbyes, native
+Mac cache removal/re-add and Linux negative lookups, with a complete final bounded
+D2 packet audit. Repeated recovery failed once and Chrome later returned an
+address error, so D2 remains partial. D1 has an identified router but needs the
+scoped temporary-reservation exception; D3 needs the selective physical fault.
+Fifteen negative audit cases and the repeated adversarial assessment passed.
+
 The [E2/E3 completion](phase11-4-e2-e3-results.md) records a controlled LAN alias
 conflict during a real inhibited job, unchanged completion and explicit recovery
 of the same certified name. Packet and peer observations pass. E1 still requires
