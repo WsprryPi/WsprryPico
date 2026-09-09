@@ -107,6 +107,11 @@ standard target remains RF-inhibited; `WsprryPico-StandaloneRF` is separately bu
 and not qualified for TLS/RF coexistence. Restore the default build configuration
 with `-DWSPRRY_PICO_NETWORK_PORT=0` when producing a non-credential image.
 
+The [certificate-alert integration](tls-certificate-alerts.md) describes the
+hash-checked fixes applied when building the pinned Mbed TLS sources; the SDK
+checkout stays unchanged. [F2/F3/F6 acceptance](phase11-4-f2-f3-f6-results.md)
+records replacement-client and actual Chrome IP-SAN results.
+
 ### Renewal and compromised credentials
 
 Issue a replacement browser/controller identity into a **new** output directory,

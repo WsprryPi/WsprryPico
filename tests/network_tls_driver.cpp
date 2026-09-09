@@ -166,6 +166,12 @@ int main(int argc, char** argv) {
                 link = false;
             else if (command == "LINK ON")
                 link = true;
+            else if (command == "WRITE FRAGMENT")
+                mock_tcp_fragment_writes(true);
+            else if (command == "WRITE NORMAL")
+                mock_tcp_fragment_writes(false);
+            else if (command == "ACK HOLD NEXT")
+                mock_tcp_hold_next_ack();
             else if (command == "ACK HOLD")
                 mock_tcp_hold_last_ack();
             else if (command == "ACK RELEASE")

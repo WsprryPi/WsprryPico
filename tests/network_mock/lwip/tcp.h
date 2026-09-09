@@ -40,3 +40,6 @@ void mock_tcp_poll();
 void mock_tcp_hold_last_ack();
 void mock_tcp_release_acks();
 void mock_tcp_ack_and_close(bool reset);
+
+void mock_tcp_fragment_writes(bool enabled);
+void mock_tcp_hold_next_ack();

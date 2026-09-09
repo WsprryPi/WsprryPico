@@ -85,6 +85,39 @@ try:
     caps = json.loads(http('/api/v1/capabilities')[2])
     assert caps['active_job_connections'] and caps['max_network_connections'] == 2
     assert caps['max_wtp_connections'] == 1
+    for fragmented in (False, True):
+        control('WRITE FRAGMENT' if fragmented else 'WRITE NORMAL')
+        # Reach device-side certificate verification, not merely any TLS/TCP failure.
+        for identity, reason in [(None, 'TLSV13_ALERT_CERTIFICATE_REQUIRED'),
+                                 ('rogue', 'TLSV1_ALERT_UNKNOWN_CA'),
+                                 ('expired', 'SSLV3_ALERT_CERTIFICATE_EXPIRED')]:
+            try:
+                with connect(context(identity)) as stream:
+                    stream.sendall(b'GET /api/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n\r\n')
+                    stream.recv(1024)
+                raise AssertionError(f'{identity}: expected a certificate alert')
+            except ssl.SSLError as error:
+                assert error.reason == reason, (identity, error.reason, reason)
+            assert http()[0] == 200
+    control('WRITE NORMAL')
+    # An unacknowledged fatal alert cannot retain a rejected slot indefinitely.
+    # The host adapter holds ACK callbacks, not TLS bytes delivered to OpenSSL.
+    control('ACK HOLD NEXT')
+    with socket.create_connection(('127.0.0.1', 18443), timeout=5) as raw:
+        stream = None
+        try:
+            stream = context(None).wrap_socket(raw, server_hostname='127.0.0.1')
+            try:
+                stream.recv(1024)
+                raise AssertionError('Expected missing-client fatal alert')
+            except ssl.SSLError as error:
+                assert error.reason == 'TLSV13_ALERT_CERTIFICATE_REQUIRED', error
+            # Keep the rejected peer open; EOF cleanup must not fake the deadline.
+            assert http()[0] == 200, 'Rejected connection did not release its bounded slot'
+        finally:
+            if stream is not None:
+                stream.close()
+    control('ACK RELEASE')
     for identity, protocols, tls12 in [(None, ('http/1.1',), False), ('server', ('http/1.1',), False),
                                       ('rogue', ('http/1.1',), False), ('expired', ('http/1.1',), False),
                                       ('client', (), False), ('client', ('bogus',), False),

@@ -314,7 +314,7 @@ void PicoServer::Connection::close(bool apply) {
     std::string{}.swap(response_);
     principal_.clear();
     http_ = HttpParser{};
-    handshake_ = wtp_ = peer_closed_ = responded_ = close_notify_ = false;
+    handshake_ = wtp_ = peer_closed_ = responded_ = close_notify_ = handshake_failed_ = false;
 }
 void PicoServer::close_pending() {
     if (!pending_)
@@ -403,6 +403,14 @@ void PicoServer::Connection::poll(std::string_view authority) {
         close(response_acknowledged());
         return;
     }
+    // Fatal TLS alerts were copied into lwIP, not necessarily delivered. Keep
+    // the rejected connection inert until acknowledgement or a bounded deadline.
+    // Never retry a failed handshake or dispatch any application bytes from it.
+    if (handshake_failed_) {
+        if (!pending_tcp_bytes_ || now - progress_ms_ >= 1000)
+            close(false);
+        return;
+    }
     if (!handshake_) {
         const auto clock = service_.clock_snapshot();
         if (clock.state == wtp::ClockState::Unsynchronized || !clock.utc_now_ns) {
@@ -413,7 +421,10 @@ void PicoServer::Connection::poll(std::string_view authority) {
         const auto result = mbedtls_ssl_handshake_step(&ssl_);
         service_.poll();
         if (result && !retry(result)) {
-            close();
+            handshake_failed_ = true;
+            progress_ms_ = now;
+            if (!pending_tcp_bytes_)
+                close(false);
             return;
         }
         if (!mbedtls_ssl_is_handshake_over(&ssl_))

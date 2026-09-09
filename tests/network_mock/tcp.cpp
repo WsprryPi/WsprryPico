@@ -16,6 +16,14 @@
 #include <unistd.h>
 #include <vector>
 static tcp_pcb* listener;
+static bool fragment_writes = false, block_write = false, hold_next_ack = false;
+void mock_tcp_hold_next_ack() {
+    hold_next_ack = true;
+}
+void mock_tcp_fragment_writes(bool enabled) {
+    fragment_writes = enabled;
+    block_write = false;
+}
 static std::vector<tcp_pcb*> clients;
 std::uint64_t time_us_64() {
     static const auto origin = std::chrono::steady_clock::now();
@@ -89,9 +97,14 @@ err_t tcp_close(tcp_pcb* p) {
     return ERR_OK;
 }
 unsigned tcp_sndbuf(tcp_pcb*) {
-    return 1024;
+    return fragment_writes ? 7 : 1024;
 }
 err_t tcp_write(tcp_pcb* p, const void* b, u16_t n, int) {
+    if (fragment_writes) {
+        block_write = !block_write;
+        if (block_write)
+            return ERR_MEM;
+    }
     // Small writes on the local socket are atomic in this bounded test adapter.
     const auto sent = send(p->fd, b, n, 0);
     if (sent == n)
@@ -147,6 +160,8 @@ void mock_tcp_poll() {
         fcntl(fd, F_SETFL, O_NONBLOCK);
         auto* pcb = new tcp_pcb;
         pcb->fd = fd;
+        pcb->hold_ack = hold_next_ack;
+        hold_next_ack = false;
         clients.push_back(pcb);
         listener->accept(listener->arg, pcb, ERR_OK);
     }

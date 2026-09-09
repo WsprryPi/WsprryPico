@@ -1,5 +1,9 @@
 # Phase 11.4 inhibited device acceptance review
 
+The [F2/F3/F6 completion](phase11-4-f2-f3-f6-results.md) records actual client
+replacement, corrected certificate-rejection alerts, Chrome literal-IP acceptance
+and restoration of the hostname-only inhibited image. Other matrix gates remain open.
+
 Status: **OPEN**. The single-board continuation completed actual production
 startup/finite execution, direct inhibited lifecycle/authority checks, Chrome
 revision/draft behavior, renewal, wrong-board rejection, literal-IP client checks

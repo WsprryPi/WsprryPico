@@ -70,7 +70,7 @@ class PicoServer {
         std::size_t response_offset_ = 0;
         std::uint64_t accepted_ms_ = 0, progress_ms_ = 0;
         bool setup_ = false, handshake_ = false, wtp_ = false, peer_closed_ = false,
-             responded_ = false, close_notify_ = false;
+             responded_ = false, close_notify_ = false, handshake_failed_ = false;
     };
     static err_t accept(void*, tcp_pcb*, err_t);
     static err_t pending_receive(void*, tcp_pcb*, pbuf*, err_t);

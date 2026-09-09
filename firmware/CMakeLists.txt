@@ -160,6 +160,8 @@ foreach(image WsprryPico WsprryPico-RFBench WsprryPico-RFWTP WsprryPico-Standalo
     pico_add_linker_script_override_path(${image} ${CMAKE_SOURCE_DIR}/cmake/standalone_link FILES memory_flash.incl)
 endforeach()
 
+include(${CMAKE_SOURCE_DIR}/cmake/mbedtls_alert_overlay.cmake)
+wsprry_mbedtls_alert_overlay(pico_mbedtls_tls INTERFACE_SOURCES "${PICO_MBEDTLS_PATH}")
 include(${CMAKE_SOURCE_DIR}/cmake/network.cmake)
 
 # Immutable pinned lwIP responder plus a narrow lifecycle integration wrapper.

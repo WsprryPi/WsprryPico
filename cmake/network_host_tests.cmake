@@ -20,6 +20,8 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     set(USE_SHARED_MBEDTLS_LIBRARY OFF)
     set(DISABLE_PACKAGE_CONFIG_AND_INSTALL ON)
     add_subdirectory(${WSPRRY_PICO_TEST_MBEDTLS_PATH}/library ${CMAKE_BINARY_DIR}/mbedtls)
+    include(${CMAKE_SOURCE_DIR}/cmake/mbedtls_alert_overlay.cmake)
+    wsprry_mbedtls_alert_overlay(mbedtls SOURCES "${WSPRRY_PICO_TEST_MBEDTLS_PATH}")
     set(WSPRRY_PICO_TEST_CREDENTIAL_DIR "${CMAKE_BINARY_DIR}/network-test-credentials-v3")
     if(NOT EXISTS "${WSPRRY_PICO_TEST_CREDENTIAL_DIR}/server.key")
         execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_network_test_credentials.py

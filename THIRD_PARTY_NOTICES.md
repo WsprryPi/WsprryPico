@@ -65,8 +65,11 @@ Phase 11 links [Mbed TLS](https://github.com/Mbed-TLS/mbedtls), 3.6.6 at
 `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20`, from the pinned SDK submodule.
 It is dual licensed Apache-2.0 OR GPL-2.0-or-later; this project selects
 Apache-2.0. The unmodified upstream [LICENSE](docs/licenses/mbedtls.txt) is
-retained. Upstream sources remain external and unchanged, including the PSA
-RNG source explicitly added to the SDK target. Preserve applicable upstream
+retained. The SDK checkout remains external and unchanged, including the PSA
+RNG source explicitly added to the SDK target. The build compiles three generated,
+hash-checked modified Mbed TLS translation units for TLS 1.3 certificate alerts;
+see the [patch provenance](docs/development/tls-certificate-alerts.md). These
+derived files retain upstream headers and use Apache-2.0, not the project MIT license. Preserve applicable upstream
 notices and the Apache license with distributed firmware/test binaries.
 The HTTP adapter, browser assets and certificate scripts are original MIT
 project contributions; no WsprryPi vendor browser assets are copied.
