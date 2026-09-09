@@ -76,6 +76,13 @@ async function until(fn) {for(let i=0;i<200;i++){if(await fn())return;await new 
       shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});
       fs.writeFileSync(path.join(output,name+'-'+discoveryState+'.png'),Buffer.from(shot.data,'base64'));
     }
+    state.job={state:'empty',output_active:null,owner_id:null,job_id:null};
+    await evaluate('document.getElementById("refresh").click()');await until(()=>evaluate('!busy'));
+    assert.equal(await evaluate('document.getElementById("output").textContent'),'Unknown');
+    for (const id of ['job-settings','settings','release'])
+      assert.equal(await evaluate('document.getElementById('+JSON.stringify(id)+').disabled'),true);
+    shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});
+    fs.writeFileSync(path.join(output,name+'-unknown-output.png'),Buffer.from(shot.data,'base64'));
     offline=true;await evaluate('document.getElementById("refresh").click()');await until(()=>evaluate('!busy'));
     assert.equal(await evaluate('document.getElementById("output").textContent'),'Unknown');
     assert.equal(await evaluate('document.querySelector("[name=password]").value'),'unsaved-draft');

@@ -39,6 +39,10 @@ async function fixture(activeConnections = true, configured = true) {
                     else state.job.state = 'armed';
                 }
                 data ||= {ok:true,result:{}};
+                if (f.loseOperation === request.operation) {
+                    f.offline = !!f.offlineAfterLoss;
+                    throw new Error('lost ' + request.operation + ' response');
+                }
             } else throw new Error('Unexpected request ' + path);
             return {ok:status>=200&&status<300,json:async()=>data,headers:{get:()=> '"original-revision"'}};
         }});
@@ -54,6 +58,40 @@ async function fixture(activeConnections = true, configured = true) {
     return f;
 }
 (async () => {
+    for (const operation of ['CLAIM','LOAD','ARM']) {
+        for (const offline of [false,true]) {
+            const lost = await fixture(); lost.prepareJob();
+            lost.loseOperation = operation; lost.offlineAfterLoss = offline;
+            await lost.elements.job.onsubmit({preventDefault(){}});
+            const operations = lost.calls.filter(c=>c.path.endsWith('jobs')).map(c=>JSON.parse(c.options.body).operation);
+            assert.deepEqual(operations,['HELLO','CLAIM','LOAD','ARM'].slice(0,['CLAIM','LOAD','ARM'].indexOf(operation)+2));
+            assert.equal(lost.elements['job-settings'].disabled,true);
+            assert.match(lost.elements.notice.textContent,new RegExp('lost ' + operation));
+            if (offline) {
+                assert.equal(lost.elements.output.textContent,'Unknown');
+                assert.equal(lost.elements.abort.disabled,true);
+                assert.equal(lost.elements.release.disabled,true);
+                assert.match(lost.elements.notice.textContent,/Status remains unknown/);
+                assert.doesNotMatch(lost.elements.notice.textContent,/Status has been checked/);
+            }
+        }
+    }
+    const unknown = await fixture();
+    for (const output of [null,undefined,true]) {
+        unknown.state.job.output_active = output;
+        await unknown.elements.refresh.onclick();
+        assert.equal(unknown.elements['job-settings'].disabled,true);
+    }
+    const ownUnknown = await fixture(); ownUnknown.prepareJob(); ownUnknown.failArm = true;
+    await ownUnknown.elements.job.onsubmit({preventDefault(){}});
+    ownUnknown.state.job.output_active = null;
+    await ownUnknown.elements.refresh.onclick();
+    assert.equal(ownUnknown.elements.release.disabled,true);
+    for (const state of ['loaded','armed','running']) {
+        const foreign = await fixture(); foreign.state.job.owner_id = 'f'.repeat(32); foreign.state.job.state = state;
+        await foreign.elements.refresh.onclick();
+        for (const control of ['abort','release','job-settings','settings']) assert.equal(foreign.elements[control].disabled,true);
+    }
     const fresh = await fixture(true, false);
     assert.equal(fresh.form.ntp_ipv4.value,'pool.ntp.org');
     const f = await fixture();

@@ -20,9 +20,9 @@ function controls(connected) {
   $('settings').disabled = busy || !idle;
   $('restart').disabled = busy || !idle || !capabilities?.features?.restart;
   $('wifi-off').disabled = busy || !idle || !snapshot.network.enabled;
-  $('job-settings').disabled = busy || !online || !snapshot || !!snapshot.job.owner_id || snapshot.standalone.reboot_required;
+  $('job-settings').disabled = busy || !idle || snapshot.standalone.reboot_required;
   $('abort').disabled = busy || !online || snapshot?.job.owner_id !== session || !['loaded','armed','running'].includes(snapshot.job.state);
-  $('release').disabled = busy || !online || snapshot?.job.owner_id !== session || snapshot.job.output_active || ['armed','running','failed'].includes(snapshot.job.state);
+  $('release').disabled = busy || !online || snapshot?.job.owner_id !== session || snapshot.job.output_active !== false || ['armed','running','failed'].includes(snapshot.job.state);
 }
 function fill(c) {
   currentConfig = c; dirty = false;
@@ -60,7 +60,7 @@ async function refresh(loadConfig = false) {
 }
 async function action(fn) {
   busy = true; controls(online);
-  try { await fn(); } catch (e) { await refresh(); notice(e.code === 'revision_conflict' ? 'Saved settings changed. Your edits are preserved. Reload saved settings to discard edits and obtain the latest revision.' : e.message + '. Status has been checked; an interrupted request may already have completed.', true); }
+  try { await fn(); } catch (e) { await refresh(); notice(e.code === 'revision_conflict' ? 'Saved settings changed. Your edits are preserved. Reload saved settings to discard edits and obtain the latest revision.' : e.message + (online ? '. Status has been checked; an interrupted request may already have completed.' : '. Status remains unknown. Refresh to check whether the interrupted request completed.'), true); }
   finally { busy = false; controls(online); }
 }
 $('refresh').onclick = () => action(() => refresh());

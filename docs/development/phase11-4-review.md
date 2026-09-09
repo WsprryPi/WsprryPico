@@ -8,6 +8,14 @@ TLS alert discrepancies and unexecuted physical subcases remain open. Only one
 Pico is available. See the [current joint matrix](phase11-4-plan.md) and
 [execution/repeated adversarial record](phase11-4-single-board-run.md).
 
+The [2026-09-09 browser/production continuation](browser-production-coverage.md)
+adds actual Chrome completion/cancellation, production settings writes and
+concurrent Chrome Armed/Running evidence. It fixes the companion scheduler's
+silent-wait timeout and two browser unknown-output/error-feedback issues, with
+repeated adversarial assessment. Its new browser source is locally tested and
+cross-built; physical evidence remains bound to installed `f88fa71`. The earlier
+no-source-change statements below describe the earlier continuation only.
+
 The continuation adds an opt-in acceptance driver and deterministic refusal/recovery
 tests, with four affected CTest suites passing. It restores the original inhibited
 image/settings and installed service. No firmware/runtime/protocol/UI/SDK/component
