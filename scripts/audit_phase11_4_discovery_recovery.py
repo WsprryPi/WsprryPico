@@ -12,7 +12,7 @@ from validate_wtp_contract import loads_strict, reject_constant, unique_object
 SERVER_SHA = "06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016"
 
 
-def audit(directory, mac_log):
+def audit(directory, mac_log, expected_revision="5ee5bcf93c56-dirty"):
     # Observer records contain epoch nanoseconds and floating-point durations;
     # they are not WTP messages, whose numeric range is deliberately narrower.
     rows = [json.loads(line, object_pairs_hook=unique_object, parse_constant=reject_constant)
@@ -35,7 +35,7 @@ def audit(directory, mac_log):
     require(all(a["epoch_ns"] <= b["epoch_ns"] for a, b in zip(rows, rows[1:])),
             "nonmonotonic evidence timestamps")
     before = selected("console INFO")[0]["value"]
-    require(before["revision"] == "5ee5bcf93c56-dirty", "wrong reviewed firmware revision")
+    require(before["revision"] == expected_revision, "wrong reviewed firmware revision")
     boot = before["status"]["boot_id"]
     address = before["network"]["ipv4"]
     name = before["network"]["configured_hostname"]
@@ -120,7 +120,8 @@ def audit(directory, mac_log):
                 w["request_id"] == format(index, "032x") and
                 w["op"] == req["value"]["op"] == res["value"]["op"] and
                 w["body"] == res["value"]["body"], "raw USB response mismatch")
-    result.update(scope="bounded B2/D2 recovery repeat", recovered_checks=len(recovered),
+    result.update(scope="bounded B2/D2 recovery repeat", revision=expected_revision,
+                  recovered_checks=len(recovered),
                   stable_seconds=(pairs[-1]["epoch_ns"] - pairs[0]["epoch_ns"]) / 1e9,
                   local_active_seconds=active["value"]["seconds_after_on"],
                   final_memory=final["network"]["memory"],
@@ -132,5 +133,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
     parser.add_argument("mac_log", type=Path)
+    parser.add_argument("--revision", default="5ee5bcf93c56-dirty",
+                        help="Exact independently reviewed/approved firmware revision")
     args = parser.parse_args()
-    print(json.dumps(audit(args.directory, args.mac_log), indent=2))
+    print(json.dumps(audit(args.directory, args.mac_log, args.revision), indent=2))

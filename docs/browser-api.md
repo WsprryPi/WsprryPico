@@ -85,7 +85,16 @@ acknowledgement of the later TLS close notification is not required. A monotonic
 transaction token binds completion; an unrelated response or close cannot apply
 or cancel it. Link loss/server shutdown cancels it. It is applied only if the service is still idle;
 a newly acquired owner cancels the queued change. `requested_enabled` describes
-the pending request, while `enabled` describes actual state. This is deliberately
+the pending HTTP request, while `enabled` describes applied network availability.
+On an orderly disable, availability becomes false immediately.
+`withdrawal_pending:true` identifies a bounded one-second interval in which the
+station remains associated and polled so its already-submitted mDNS goodbye has
+a transmission opportunity. No mDNS replies or network reconnects are initiated
+during that interval; physical link loss can end it early. `link_status` can
+therefore still report the physical link up while `enabled` is false. A rapid
+Console ON sets `resume_after_withdrawal:true` and waits for the original deadline
+before recreating the station; repeated OFF cancels that resume without extending
+the interval. These diagnostics do not assert over-air delivery. This is deliberately
 not a persistent Wi-Fi switch. Disabling Wi-Fi requires USB Console `WIFI ON` or
 a restart to reconnect. SSID/password/time-server changes use config PUT and
 require a restart. Adapters advertising `features.restart:true` accept a browser
@@ -193,7 +202,7 @@ resource admission and pending target timing/RF acceptance.
 `network` adds `stable_hostname`, `configured_hostname`, `advertised_hostname`,
 `deployment_identity_matches`, `mdns_state` and `mdns_reason`. Advertisement is
 empty until active. States are `unconfigured`, `waiting_address`, `probing`,
-`active`, `conflict` and `failed`. Reasons distinguish name conflict, initialization,
+`active`, `withdrawing`, `conflict` and `failed`. Reasons distinguish name conflict, initialization,
 registration, probe timeout and wrong-board deployment failures. Bounded counters
 report registrations, conflicts, failures, address changes, goodbye attempts/
 failures and rejected packets. A sent goodbye is not proof of peer receipt.

@@ -18,6 +18,10 @@ struct Adapter : MdnsAdapter {
         registered = add_ok;
         return add_ok;
     }
+    void withdraw() override {
+        assert(registered);
+        ++goodbyes;
+    }
     void remove(bool goodbye) override {
         assert(registered);
         registered = false;
@@ -74,8 +78,14 @@ int main() {
     assert(a.removes == 1 && a.adds == 2 && a.goodbyes == 0);
     assert(m.address_changes() == 1 && m.advertised().empty());
     m.name_result(true);
-    m.disable(true);
-    assert(a.goodbyes == 1);
+    assert(m.withdraw(true));
+    assert(m.state() == "withdrawing" && m.advertised().empty() && a.registered);
+    m.name_result(true); // Neither a late callback nor polling may re-advertise.
+    m.poll(true, 2, 4);
+    assert(m.state() == "withdrawing" && a.goodbyes == 1);
+    assert(m.withdraw(true) && a.goodbyes == 1);
+    m.disable(false);
+    assert(!a.registered && a.goodbyes == 1);
     m.retry();
     m.poll(true, 3, 4);
     m.name_result(true);
@@ -84,7 +94,8 @@ int main() {
     m.poll(true, 4, 6);
     m.name_result(false);
     assert(m.state() == "conflict" && m.advertised().empty());
-    assert(a.registered); // Deferred callback teardown prevents upstream UAF.
+    assert(!m.withdraw(true)); // Conflicts never withdraw an unowned name.
+    assert(a.registered);      // Deferred callback teardown prevents upstream UAF.
     m.poll(true, 4, 7);
     assert(!a.registered);
     auto adds = a.adds;

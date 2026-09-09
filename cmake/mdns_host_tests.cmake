@@ -19,14 +19,24 @@ if(WSPRRY_PICO_TEST_LWIP_PATH)
     enable_language(C)
     set(lwip_src "${WSPRRY_PICO_TEST_LWIP_PATH}/src")
     file(GLOB lwip_core CONFIGURE_DEPENDS "${lwip_src}/core/*.c" "${lwip_src}/core/ipv4/*.c")
-    add_executable(mdns_lwip_tests tests/mdns_lwip/tests.c
+    add_library(mdns_test_stack STATIC
         src/standalone/pico/mdns_lwip.c ${lwip_core}
         ${lwip_src}/netif/ethernet.c
         ${lwip_src}/apps/mdns/mdns_domain.c ${lwip_src}/apps/mdns/mdns_out.c)
-    target_include_directories(mdns_lwip_tests PRIVATE tests/mdns_lwip src ${lwip_src}/include)
-    target_compile_definitions(mdns_lwip_tests PRIVATE
+    target_include_directories(mdns_test_stack PUBLIC tests/mdns_lwip src ${lwip_src}/include)
+    target_compile_definitions(mdns_test_stack PRIVATE
         WSPRRY_PICO_LWIP_MDNS_SOURCE="${lwip_src}/apps/mdns/mdns.c")
+    set_target_properties(mdns_test_stack PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
+    target_compile_options(mdns_test_stack PRIVATE -Wall -Wextra -Werror -UNDEBUG)
+    add_executable(mdns_lwip_tests tests/mdns_lwip/tests.c)
     set_target_properties(mdns_lwip_tests PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
+    target_link_libraries(mdns_lwip_tests PRIVATE mdns_test_stack)
     target_compile_options(mdns_lwip_tests PRIVATE -Wall -Wextra -Werror -UNDEBUG)
     add_test(NAME mdns_lwip_tests COMMAND mdns_lwip_tests)
+    add_executable(network_adapter_tests tests/network_adapter_tests.cpp
+        src/standalone/pico/adapters.cpp)
+    target_include_directories(network_adapter_tests BEFORE PRIVATE tests/network_adapter_mock)
+    target_link_libraries(network_adapter_tests PRIVATE mdns_test_stack wsprrypico_core)
+    target_compile_options(network_adapter_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME network_adapter_tests COMMAND network_adapter_tests)
 endif()

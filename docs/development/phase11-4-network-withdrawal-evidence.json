@@ -1,0 +1,1181 @@
+{
+  "schema": "phase11-4-private-evidence/1",
+  "private_root": "build/phase11-4-withdrawal",
+  "source_start": "e4ff40a561804cd90e9b823b659405fc7aa37275",
+  "status": "Development investigation checkpoint: B2/D2 reliability and original watchdog remain open; selected goodbye/cache evidence and bounded final cleanup pass; capture overrun and failed peer observations retained.",
+  "artifacts": [
+    {
+      "path": "audit-negatives.json",
+      "bytes": 1399,
+      "sha256": "72d44ba61812a89b52c58fb058622a895623581c88a958f63504f5a9d01e8dd4"
+    },
+    {
+      "path": "audit-old-positive.json",
+      "bytes": 1320,
+      "sha256": "e9b87483c0562dbf84ddd9f85614310adeaedc570fadf883402e22725b1a8149"
+    },
+    {
+      "path": "audit-wrong-revision.json",
+      "bytes": 48,
+      "sha256": "313d160afd5fb54fd7cc1af513f1dc3807786a6d2660d48c77b1a8592392c656"
+    },
+    {
+      "path": "bohica/b2-d2-orderly-20260909T212100Z/capture.log",
+      "bytes": 163,
+      "sha256": "91200b225ade3c0e39260de48c55c963df21036afcb168858d1d8eabdd0a462b"
+    },
+    {
+      "path": "bohica/b2-d2-orderly-20260909T212100Z/diagnostic-capture.log",
+      "bytes": 165,
+      "sha256": "7982d0a54624d73d249d362cc6ccc079f864b724edc3a950cd854e40d44ca11a"
+    },
+    {
+      "path": "bohica/b2-d2-orderly-20260909T212100Z/diagnostic.pcap",
+      "bytes": 8464,
+      "sha256": "1d3913f92d30b62c632145e919d8448a7b6a6802c733390f696e5b6eb062b86f"
+    },
+    {
+      "path": "bohica/b2-d2-orderly-20260909T212100Z/events.jsonl",
+      "bytes": 45755,
+      "sha256": "dc9acba82555fb277612744e4800242f3665f2ce15a42e1b7bcf199fbdcf8102"
+    },
+    {
+      "path": "bohica/b2-d2-orderly-20260909T212100Z/mdns.pcap",
+      "bytes": 430,
+      "sha256": "900d133e9cfd4d46e917bf6f64088531eae35f589157cecaa68f70fa0ac2be81"
+    },
+    {
+      "path": "bohica/b2-d2-orderly-20260909T212100Z/usb-frames.jsonl",
+      "bytes": 5099,
+      "sha256": "0546158f03d0416ee478f979abb8fc588e4d4b1cc406f5b6af3bbc875547bec8"
+    },
+    {
+      "path": "bohica/b2-d2-orderly-20260909T212100Z/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "bohica/first.tar",
+      "bytes": 71680,
+      "sha256": "e96e92f3e7fe6a08f2d031dd7fee979fe160dd3d581e26067ed4903a13a63c80"
+    },
+    {
+      "path": "bohica/mac-observe.py",
+      "bytes": 2236,
+      "sha256": "f8d2be206ec0847afb33a79a631aa2b61f526fedd0bb5be81ce02d485c2e9a8b"
+    },
+    {
+      "path": "bohica/orderly-20260909T212059Z/linux-run.log",
+      "bytes": 782,
+      "sha256": "fbaf53aea1373716aea36719cf80b5cc85ac5d15529019956fcd36b34d351e68"
+    },
+    {
+      "path": "bohica/orderly-20260909T212059Z/mac-dns-sd.jsonl",
+      "bytes": 583,
+      "sha256": "634a844d9e3684f712ce2400b3a7093ede67728fb3fbd1f1d4d1f4a6a4cad938"
+    },
+    {
+      "path": "bohica/orderly.py",
+      "bytes": 12035,
+      "sha256": "533fada281885306ac5305776a8e22ee994ec68b53e63fa0f9b23f0ebae99fe1"
+    },
+    {
+      "path": "build-2.log",
+      "bytes": 1094,
+      "sha256": "a7b89118d100551403c192dcb68283af2d97f7f018fa779f8ba470b7bb57a88b"
+    },
+    {
+      "path": "build-final.log",
+      "bytes": 815,
+      "sha256": "0cf9b508f17b11766048b38e8da75c15992539aec8f3be5c1e7349be09c9d6d2"
+    },
+    {
+      "path": "build.log",
+      "bytes": 6661,
+      "sha256": "d40d237820627ba43c3cb354a1f0c386f72625cc421de8c353fd90d4f9143279"
+    },
+    {
+      "path": "candidate-source-inputs.json",
+      "bytes": 13513,
+      "sha256": "499875c68ea5cfe86e5fc8a7c26446516399069b9fc9a71887fb215455160e2c"
+    },
+    {
+      "path": "candidate-source.diff",
+      "bytes": 12843,
+      "sha256": "e62fff5e6321249026fa43fa52aa55055357a3d217bb8a24809bb8708b0335fe"
+    },
+    {
+      "path": "checks-1.log",
+      "bytes": 541,
+      "sha256": "b3e208f25cdca832e2b61ba161f068878dc2b69e4286ed8f3b69346d8c02bef6"
+    },
+    {
+      "path": "checks-final.log",
+      "bytes": 541,
+      "sha256": "3c98bff1733b56385d23149596f3fcc91c48710b8b301f6c07143aa5818a2e73"
+    },
+    {
+      "path": "clock-comparison.json",
+      "bytes": 1585,
+      "sha256": "c4ea88e39fb36c932be6eb7fb01dcb7a8815bfc83229237b836bc94c6b85058d"
+    },
+    {
+      "path": "configure.log",
+      "bytes": 1039,
+      "sha256": "a8812e59f200ff6eab640dfae5cc7576da470b2a63506319e2c6ff963450afa2"
+    },
+    {
+      "path": "contract-validation.log",
+      "bytes": 96,
+      "sha256": "34188e867e39fa621167ea4d65841d01102c5398e9ae9e30e6c19abe3541bf9c"
+    },
+    {
+      "path": "diagnostic-524dd721/WsprryPico.elf",
+      "bytes": 14481308,
+      "sha256": "86d63c3c216a334c7d2aa4b44f989c85fda52d2c1f093247815c1e77a4d2e5b9"
+    },
+    {
+      "path": "diagnostic-524dd721/WsprryPico.uf2",
+      "bytes": 1968128,
+      "sha256": "524dd721ed6f67fbb21b1544546014fa174a4cb5d92d69d5fdfdbe5138f38664"
+    },
+    {
+      "path": "diagnostic-524dd721/flash.log",
+      "bytes": 20412,
+      "sha256": "a346d519a288122e326f3ca7fc0b3587d58cf9db0a0653fb9766acb3e4fb4d76"
+    },
+    {
+      "path": "diagnostic-524dd721/flash.py",
+      "bytes": 3307,
+      "sha256": "ca69bb491871535f6b089c9989d9c011196aa2c016864345114e75cd01919134"
+    },
+    {
+      "path": "diagnostic-524dd721/identity.json",
+      "bytes": 297,
+      "sha256": "556fa2eb32d586bd665d7d71dc10b56893b6a18babcedd513ff7375f6277967f"
+    },
+    {
+      "path": "diagnostic-524dd721/source.diff",
+      "bytes": 12972,
+      "sha256": "1c971102a24ce47348f842264da8af993df71894c9cec336a3066027425b1356"
+    },
+    {
+      "path": "diagnostic-case/analysis.json",
+      "bytes": 609,
+      "sha256": "8c2e3ede19a484d66e053b9b3b8e8f8bf9893334882a5997148496981f5efa68"
+    },
+    {
+      "path": "diagnostic-case/b2-d2-orderly-20260909T214308Z/capture.log",
+      "bytes": 165,
+      "sha256": "4669dde6946b214d76b051bacbed5b23ea48fe3c5975d35118a33679b79d5c0a"
+    },
+    {
+      "path": "diagnostic-case/b2-d2-orderly-20260909T214308Z/diagnostic-capture.log",
+      "bytes": 165,
+      "sha256": "73bcbbe1e2d804188b8575454522ed9073367129a7b67403b57fd8803a82666c"
+    },
+    {
+      "path": "diagnostic-case/b2-d2-orderly-20260909T214308Z/diagnostic.pcap",
+      "bytes": 11163,
+      "sha256": "2a86e0933999f9e1e53f20fdfbe62665765926b35376b5757335520f45c44146"
+    },
+    {
+      "path": "diagnostic-case/b2-d2-orderly-20260909T214308Z/events.jsonl",
+      "bytes": 315159,
+      "sha256": "ceeac9a6d9b8e9fbca9754d9fa1e0517dab79c91d5117d5b1608eb00917904b3"
+    },
+    {
+      "path": "diagnostic-case/b2-d2-orderly-20260909T214308Z/mdns.pcap",
+      "bytes": 18692,
+      "sha256": "a165bec4f7ae9d128f2284694fdeba12e7b883ed64919e915a4bf43f334fb6f8"
+    },
+    {
+      "path": "diagnostic-case/b2-d2-orderly-20260909T214308Z/usb-frames.jsonl",
+      "bytes": 30248,
+      "sha256": "0f3c9f945ed67a159b4509b28064ca00dca3da2dbfd34ab853718b866a323fa7"
+    },
+    {
+      "path": "diagnostic-case/b2-d2-orderly-20260909T214308Z/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "diagnostic-case/events-progress.jsonl",
+      "bytes": 287606,
+      "sha256": "3a86c67308af0a4ca682cbe84c2944d90d267a5e071c520959999ae7d6b2ba80"
+    },
+    {
+      "path": "diagnostic-case/evidence.tar",
+      "bytes": 389120,
+      "sha256": "8c24de5a131cb8fc5b34d9ba2ceb0658cf31997457ed5bcbe5cf9860c2182a58"
+    },
+    {
+      "path": "diagnostic-case/mac-observe.py",
+      "bytes": 3026,
+      "sha256": "36642486c225c8928c8393d44f8f023c3ad008e4941c3b35507bccaf18905313"
+    },
+    {
+      "path": "diagnostic-case/orderly-20260909T214308Z/linux-run.log",
+      "bytes": 155,
+      "sha256": "6aa0b66243f53b7dedef3e1b5564ab250a73695722d95fc0d859b8c3483da797"
+    },
+    {
+      "path": "diagnostic-case/orderly-20260909T214308Z/mac-capture.log",
+      "bytes": 29,
+      "sha256": "9b3a3b7a78f239c4473bb193476b1a860c91f1c2b4fab9c7639eceea414a60fb"
+    },
+    {
+      "path": "diagnostic-case/orderly-20260909T214308Z/mac-dns-sd.jsonl",
+      "bytes": 583,
+      "sha256": "b85f15bf2fb4506de5dae8521348c34f314b1907dd49a18d68a9e48bab6de026"
+    },
+    {
+      "path": "diagnostic-case/orderly.py",
+      "bytes": 12035,
+      "sha256": "533fada281885306ac5305776a8e22ee994ec68b53e63fa0f9b23f0ebae99fe1"
+    },
+    {
+      "path": "diagnostic-case/progress-2.jsonl",
+      "bytes": 3117,
+      "sha256": "de9b7603cd79b55508307c066a7dbc43d960b0bb575e99084241d2f93a31e48c"
+    },
+    {
+      "path": "diagnostic-case/progress.jsonl",
+      "bytes": 3073,
+      "sha256": "56f22f35afac2e1bee9d754c4b39073b947e13faf09d5a00848aba92dfac0d51"
+    },
+    {
+      "path": "diagnostic-firmware-build.log",
+      "bytes": 2539,
+      "sha256": "592cc9a320dcbf336a209805abb4d12ab7a2d58522c8361a3623921bcb27f193"
+    },
+    {
+      "path": "diagnostic-host-build.log",
+      "bytes": 504,
+      "sha256": "35a7af643c803520499bdb39ab185ff8c29b575648ba2498af67f3b14eb1ca15"
+    },
+    {
+      "path": "diagnostic-host-tests.log",
+      "bytes": 248,
+      "sha256": "5318deec1e3db4f92f81ace4d17150f338c36fe6b50fed72a72bab8a1ec66c3f"
+    },
+    {
+      "path": "diagnostic-image-check.log",
+      "bytes": 147,
+      "sha256": "44ede08ad45243766b93ff7d69490001d18721cbc999d2a450185027e0d90fd8"
+    },
+    {
+      "path": "diagnostic-mac-check.py",
+      "bytes": 2273,
+      "sha256": "3ab1ee3532ae2bf6d2473211408184352da4ed76db896ea03cb8b7d57233bef1"
+    },
+    {
+      "path": "diagnostic-repeat/mac-observe.py",
+      "bytes": 3028,
+      "sha256": "fc02fa947a4aea9cd1e6c0a1e8276759fed947cf29d6159938c3447ecc2414a0"
+    },
+    {
+      "path": "diagnostic-repeat/orderly.py",
+      "bytes": 12056,
+      "sha256": "72779cef9f1512013eb82ee05a100af0a235a6d87bcde7896a8a7105036dd0f5"
+    },
+    {
+      "path": "diagnostic-repeat/repeat.py",
+      "bytes": 234,
+      "sha256": "bc7a0b707b93b7ed58010cacb00003a76319f34f1bf61b859fc3dd265ef41d8d"
+    },
+    {
+      "path": "diagnostic-sanitize-build.log",
+      "bytes": 634,
+      "sha256": "efc91b3122797177fb53e14114e4c97bcb29ca89393ba999b8eed0faf084cc75"
+    },
+    {
+      "path": "diagnostic-sanitize-tests.log",
+      "bytes": 252,
+      "sha256": "bcdd6d78841724b0ca7adbee872a9c2af8c71778642aa454db3e3e5474eec40d"
+    },
+    {
+      "path": "failed-target-audit.json",
+      "bytes": 159,
+      "sha256": "0b529ce40d549f3e228c08c5d9520584843fb3a83223aee946a5335d50bf16b0"
+    },
+    {
+      "path": "final-audit-refusals.json",
+      "bytes": 238,
+      "sha256": "4d773ca7d864dbb2ce4f5fd4a14418ae0a823a46c43850ffb71204d24989f2a8"
+    },
+    {
+      "path": "final-host-after-power.log",
+      "bytes": 286,
+      "sha256": "a056ee317eb6df4d1e9ce5ae72e22492b5e48cd51ac52321ea3d73851f968fce"
+    },
+    {
+      "path": "final-host.json",
+      "bytes": 286,
+      "sha256": "8f33cd6b0aac46a63e8a9ec7d9e7c35c4e58d4af5d86bf86892230f1d0c94236"
+    },
+    {
+      "path": "final-linux-after-power.log",
+      "bytes": 2853,
+      "sha256": "917c834f5f0c16c04dc18a0a2736cfc342318e5a0bbb6652c91774d1fd30286e"
+    },
+    {
+      "path": "final-linux-peer.log",
+      "bytes": 2849,
+      "sha256": "7b317a56c660b0181c96a90c2eab39d605da358d0e3f5a6b6ed3d05c12f4dfae"
+    },
+    {
+      "path": "final-linux-peer.py",
+      "bytes": 1789,
+      "sha256": "040f81cb48356682c879aeb53db6602a57f9eef0ba8fe40838468207b3b4e5d6"
+    },
+    {
+      "path": "final-mac-after-power.log",
+      "bytes": 83,
+      "sha256": "a54e6bf3c6ac43d545bc8c9cd470f1e57e9aec4cf76574b7f04856af8e7d1487"
+    },
+    {
+      "path": "final-mac-check.log",
+      "bytes": 83,
+      "sha256": "a54e6bf3c6ac43d545bc8c9cd470f1e57e9aec4cf76574b7f04856af8e7d1487"
+    },
+    {
+      "path": "final-runtime-inputs.json",
+      "bytes": 13516,
+      "sha256": "1b2ad3ea87c84ff16e557dc8612ea9484ece0e46ff8982eb65a49514fc62f988"
+    },
+    {
+      "path": "final-source-comparison.json",
+      "bytes": 189,
+      "sha256": "a9824068741cb4239550814dd4fd43a69ac8ac2434e2fd53d7967f16dc70998d"
+    },
+    {
+      "path": "final-usb-after-power.log",
+      "bytes": 4066,
+      "sha256": "85bca1a902767bb7b082756ff848239fbde864aa146031d74091848c67fda113"
+    },
+    {
+      "path": "final-usb-inspection.log",
+      "bytes": 4065,
+      "sha256": "0b9c92dee694df1ab735deacdcbd9a64bf4ba90ec1484855f64e0bbc9b4736e2"
+    },
+    {
+      "path": "final-wifi-state.txt",
+      "bytes": 377,
+      "sha256": "b58a46d66e1123b99a191089cb941750c54ef5112adb789ba4850e129ae9fe7c"
+    },
+    {
+      "path": "final-wlan1-link.txt",
+      "bytes": 350,
+      "sha256": "b169855fe51888b929a490fd2742dc95bd37777a026e01a16e722fafd94254e2"
+    },
+    {
+      "path": "firmware-build.log",
+      "bytes": 96,
+      "sha256": "183a24ca292a33b5892e8776370fbc41c0cd52ec819f7abfc755a73a5872de5f"
+    },
+    {
+      "path": "firmware-configure.log",
+      "bytes": 2532,
+      "sha256": "2da6e0e78e8df1189ace5d266e2840a4f59c98c7d632aa232a13460ade646789"
+    },
+    {
+      "path": "firmware-ninja-build.log",
+      "bytes": 44176,
+      "sha256": "8728b5ac43094874fbf4653e16c32da0c476050786ff964481567a179e879150"
+    },
+    {
+      "path": "firmware-ninja-configure.log",
+      "bytes": 2334,
+      "sha256": "6376d925a4d61edfb683c9a743af014cc7e3ecd9a6f46edb96360e4af7575a08"
+    },
+    {
+      "path": "first-watchdog-analysis.json",
+      "bytes": 1125,
+      "sha256": "93193c18e03e9aeea0ef1f718f5eaab1a091836a9daa4ea06993cf87d78db9ab"
+    },
+    {
+      "path": "flash.log",
+      "bytes": 23101,
+      "sha256": "2e53993772cc051cf33cb3acdb3da0aacdc3758c11d4903c7bdc3347c8558ecb"
+    },
+    {
+      "path": "flash.py",
+      "bytes": 3220,
+      "sha256": "0adaf0cd55a5b80e3557affe3d10bd811c8363d1c83415fd6057b8bda2a75ed5"
+    },
+    {
+      "path": "host-reconfigure.log",
+      "bytes": 239,
+      "sha256": "4340a822a8c71abf039284b92ba36dbbd4ce3d26671319e19c11f7831fe65277"
+    },
+    {
+      "path": "host-restoration.json",
+      "bytes": 286,
+      "sha256": "400f9877b24bdb723d2cc15dbcff1051834838f5854d764b42f7027d2cef2e04"
+    },
+    {
+      "path": "image-check.log",
+      "bytes": 147,
+      "sha256": "44ede08ad45243766b93ff7d69490001d18721cbc999d2a450185027e0d90fd8"
+    },
+    {
+      "path": "inflight-diagnostic-analysis.json",
+      "bytes": 343,
+      "sha256": "749af0c63729a37e701ff9732d4ac881129f52c71dcafa01b79c3c9d602fad2f"
+    },
+    {
+      "path": "inflight-diagnostic.log",
+      "bytes": 438451,
+      "sha256": "53cb67e53b93ddaf667769dd7b9439f84f9c72317bbe2dc59aedfad9d363e8a9"
+    },
+    {
+      "path": "inflight-diagnostic.py",
+      "bytes": 6395,
+      "sha256": "bc11699860fa3ae0f6b1c25c1dcfc327812b124392319f4ca386e4d9612d8c0f"
+    },
+    {
+      "path": "iot-case/audit-controller.py",
+      "bytes": 1879,
+      "sha256": "72754765490e5e5705966ae6271546b204365d119a8f9e00c38cf4d2520fed2c"
+    },
+    {
+      "path": "iot-case/b2-d2-orderly-20260909T211759Z/capture.log",
+      "bytes": 165,
+      "sha256": "790c21e1b3eb2d6b668613c3a3f80a9eb641543796f42a429a5b16d9bff9fbc6"
+    },
+    {
+      "path": "iot-case/b2-d2-orderly-20260909T211759Z/diagnostic-capture.log",
+      "bytes": 163,
+      "sha256": "7d7bdecf54afdf68ebd917ac7d47e4a82fcf18b1ba55e1fa84e164b9d5e8bf2d"
+    },
+    {
+      "path": "iot-case/b2-d2-orderly-20260909T211759Z/diagnostic.pcap",
+      "bytes": 24,
+      "sha256": "704e5e5b3234433c01fcfd1b20a306e77e985038120492dc53965c3edd38a4ea"
+    },
+    {
+      "path": "iot-case/b2-d2-orderly-20260909T211759Z/events.jsonl",
+      "bytes": 18297,
+      "sha256": "78376594ad557ca08a27604640206abbf5bfe7db205a1902a73c538d28b24e61"
+    },
+    {
+      "path": "iot-case/b2-d2-orderly-20260909T211759Z/mdns.pcap",
+      "bytes": 2886,
+      "sha256": "94eef1045f2cb9f30955923e914c4bedf84342024ae83a64123e7114bd61b34e"
+    },
+    {
+      "path": "iot-case/b2-d2-orderly-20260909T211759Z/usb-frames.jsonl",
+      "bytes": 2675,
+      "sha256": "2a7abfb52185925d4728b73a78102e28555d94b5915e2f6a2f41e5745dc743c1"
+    },
+    {
+      "path": "iot-case/b2-d2-orderly-20260909T211759Z/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "iot-case/case.log",
+      "bytes": 426,
+      "sha256": "f5ca0e209b835e4de87294be4bd5bce8fcb2534620cb1ea2b1fbf860e47aeb61"
+    },
+    {
+      "path": "iot-case/controller-audit.json",
+      "bytes": 231,
+      "sha256": "c0c88758fb4a75569a840357c2e6562259057021cbf1b053161441c2a41ec8eb"
+    },
+    {
+      "path": "iot-case/controller.py",
+      "bytes": 3942,
+      "sha256": "d3a3489eef33c6a016f1da816ad6de43dddefc786c1af29d575168c0f3132439"
+    },
+    {
+      "path": "iot-case/dispatch.json",
+      "bytes": 146,
+      "sha256": "fdd0aae189e8c470051fd75d5b13c0ebc2178f22ddacfcedf65d9f90fd5f2fcb"
+    },
+    {
+      "path": "iot-case/evidence.tar",
+      "bytes": 92160,
+      "sha256": "4a2475e1131d6c454cd8a7a8bb2c31b38fb8f0469455e01acafd6fd1d52f00d9"
+    },
+    {
+      "path": "iot-case/mac-dns-sd.jsonl",
+      "bytes": 411,
+      "sha256": "e4d499124686b2605f3e3232036ccfe7dee98ab9259e6c1e2aec52359379816b"
+    },
+    {
+      "path": "iot-case/mac-watch.py",
+      "bytes": 719,
+      "sha256": "1c2bf7360380e5948fa02feaa1869145a31650f8a918b964179673a99c666859"
+    },
+    {
+      "path": "iot-case/orderly.py",
+      "bytes": 12035,
+      "sha256": "533fada281885306ac5305776a8e22ee994ec68b53e63fa0f9b23f0ebae99fe1"
+    },
+    {
+      "path": "iot-case/phase11-4-withdrawal-iot-20260909T211740Z/RESTORED",
+      "bytes": 32,
+      "sha256": "e1bbbd8b5aa3e946fa8e6e7ea881b06444766326e8c2a6a1e87c199d4721c68b"
+    },
+    {
+      "path": "iot-case/phase11-4-withdrawal-iot-20260909T211740Z/case.log",
+      "bytes": 426,
+      "sha256": "f5ca0e209b835e4de87294be4bd5bce8fcb2534620cb1ea2b1fbf860e47aeb61"
+    },
+    {
+      "path": "iot-case/phase11-4-withdrawal-iot-20260909T211740Z/controller-events.jsonl",
+      "bytes": 25906,
+      "sha256": "03b45b3e60d0a957154754e6c3727620f560e03a5c69a2bbe065373eca9a8821"
+    },
+    {
+      "path": "iot-case/phase11-4-withdrawal-iot-20260909T211740Z/controller.py",
+      "bytes": 3942,
+      "sha256": "d3a3489eef33c6a016f1da816ad6de43dddefc786c1af29d575168c0f3132439"
+    },
+    {
+      "path": "iot-case/phase11-4-withdrawal-iot-20260909T211740Z/orderly.py",
+      "bytes": 12035,
+      "sha256": "533fada281885306ac5305776a8e22ee994ec68b53e63fa0f9b23f0ebae99fe1"
+    },
+    {
+      "path": "iot-case/phase11-4-withdrawal-iot-20260909T211740Z/restore-events.jsonl",
+      "bytes": 1846,
+      "sha256": "88328226b1947208e4c722e977232a2db57fc9dbd9165e2e56b461d59a8053d6"
+    },
+    {
+      "path": "iot-case/phase11-4-withdrawal-iot-20260909T211740Z/restore.lock",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "iot-case/phase11-4-withdrawal-iot-20260909T211740Z/restore.py",
+      "bytes": 1357,
+      "sha256": "93e6e4b751811e98b1398d3bad8b52e355a75089dc22dbc364e93165ef8ffa6b"
+    },
+    {
+      "path": "iot-case/phase11-4-withdrawal-iot-20260909T211740Z/trial-uuid",
+      "bytes": 36,
+      "sha256": "2c3bea1bd1a371b87e79b4ec901e3a531499e57c6a37c34abb00ea393ec480e4"
+    },
+    {
+      "path": "iot-case/restore.py",
+      "bytes": 1357,
+      "sha256": "93e6e4b751811e98b1398d3bad8b52e355a75089dc22dbc364e93165ef8ffa6b"
+    },
+    {
+      "path": "iot-case/stage.py",
+      "bytes": 1950,
+      "sha256": "d647361b5c30fd906fb655aaec69629e535a5a3974269cd1aa29e5a96c6ecd20"
+    },
+    {
+      "path": "iot-case/stop-mac",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "iot-case-2/audit-controller.py",
+      "bytes": 1879,
+      "sha256": "72754765490e5e5705966ae6271546b204365d119a8f9e00c38cf4d2520fed2c"
+    },
+    {
+      "path": "iot-case-2/b2-d2-orderly-20260909T221033Z/capture.log",
+      "bytes": 163,
+      "sha256": "7ccb15b44a8e82dea020195d0bd1f5a3593551e3e03716fbbe8a324f7e70305c"
+    },
+    {
+      "path": "iot-case-2/b2-d2-orderly-20260909T221033Z/diagnostic-capture.log",
+      "bytes": 165,
+      "sha256": "89b424ef83ff526d1e949f99de1a5ef4af70fe1831d4e71b7229dd57131ae75d"
+    },
+    {
+      "path": "iot-case-2/b2-d2-orderly-20260909T221033Z/diagnostic.pcap",
+      "bytes": 604,
+      "sha256": "c7c0ea5294b6df6b10d9d61baec4bea821f1a90fea98c9f12275db537c631ab5"
+    },
+    {
+      "path": "iot-case-2/b2-d2-orderly-20260909T221033Z/events.jsonl",
+      "bytes": 29899,
+      "sha256": "b9f58f5d35d762fff2cba7d8d9e595d8f0e713e3d2690a4b4f2a2bb89b57e581"
+    },
+    {
+      "path": "iot-case-2/b2-d2-orderly-20260909T221033Z/mdns.pcap",
+      "bytes": 853,
+      "sha256": "1af43318d0d3b09fa2f7b19f27e51f33ee3a4f8116a7f013954b4748b6fb5bec"
+    },
+    {
+      "path": "iot-case-2/b2-d2-orderly-20260909T221033Z/usb-frames.jsonl",
+      "bytes": 3584,
+      "sha256": "a2a470bafb14016dccc5cb3acfdc9271a1d8dbe71f9a42d02e3efcc9deba796f"
+    },
+    {
+      "path": "iot-case-2/b2-d2-orderly-20260909T221033Z/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "iot-case-2/controller-audit.json",
+      "bytes": 231,
+      "sha256": "1c2bfd0e97f7999da0c99d641684939218eb183c3acb7107e44c4c21d2e570c1"
+    },
+    {
+      "path": "iot-case-2/controller-progress.log",
+      "bytes": 795,
+      "sha256": "0f9633331e77d5f985788895233bde78a0f5976a7d3006f1910dec41b6865ed0"
+    },
+    {
+      "path": "iot-case-2/controller.py",
+      "bytes": 3942,
+      "sha256": "d3a3489eef33c6a016f1da816ad6de43dddefc786c1af29d575168c0f3132439"
+    },
+    {
+      "path": "iot-case-2/dispatch.json",
+      "bytes": 146,
+      "sha256": "86ced1b65294d3eabd7a95e76b913a5b169007e1357b58079aa5a298c98937cc"
+    },
+    {
+      "path": "iot-case-2/evidence.tar",
+      "bytes": 102400,
+      "sha256": "42c72b5649da470089005f95bf4fd1118ed3a8aea24d75e04b8137afeac9a7bf"
+    },
+    {
+      "path": "iot-case-2/mac-dns-sd.jsonl",
+      "bytes": 411,
+      "sha256": "c62e6a33fac76f768979adf51ef84436dbfe34b36ca76d7ac54a552207832426"
+    },
+    {
+      "path": "iot-case-2/mac-watch.py",
+      "bytes": 721,
+      "sha256": "01a07448fe975bf54eac820fec13ffcda79c6fa9d8fe075f6be286ee3f096143"
+    },
+    {
+      "path": "iot-case-2/orderly.py",
+      "bytes": 12269,
+      "sha256": "4f9a9e7a353e8f70db3b5f826cc94f6084a983baa6b3d0b4230b146fae30ae6b"
+    },
+    {
+      "path": "iot-case-2/phase11-4-withdrawal-iot-20260909T221014Z/RESTORED",
+      "bytes": 32,
+      "sha256": "a9a8ed2ca0965f649ac61f0eb1403088f303971ac1d8a7a68aa243d6231c540f"
+    },
+    {
+      "path": "iot-case-2/phase11-4-withdrawal-iot-20260909T221014Z/case.log",
+      "bytes": 426,
+      "sha256": "4cfdb1fdf9f62531d1f1a2c9f3dded5896297f3388082bd7b097b74f52a7af91"
+    },
+    {
+      "path": "iot-case-2/phase11-4-withdrawal-iot-20260909T221014Z/controller-events.jsonl",
+      "bytes": 32262,
+      "sha256": "d1017d88abdbd1f5103fe888da845ea02eb3a525fa608a9af494a0a894f910e7"
+    },
+    {
+      "path": "iot-case-2/phase11-4-withdrawal-iot-20260909T221014Z/controller.py",
+      "bytes": 3942,
+      "sha256": "d3a3489eef33c6a016f1da816ad6de43dddefc786c1af29d575168c0f3132439"
+    },
+    {
+      "path": "iot-case-2/phase11-4-withdrawal-iot-20260909T221014Z/orderly.py",
+      "bytes": 12269,
+      "sha256": "4f9a9e7a353e8f70db3b5f826cc94f6084a983baa6b3d0b4230b146fae30ae6b"
+    },
+    {
+      "path": "iot-case-2/phase11-4-withdrawal-iot-20260909T221014Z/restore-events.jsonl",
+      "bytes": 1846,
+      "sha256": "65e6bf6db3f63e9e594f4ba14852639420729a43b85e1c3b4855690d0761e163"
+    },
+    {
+      "path": "iot-case-2/phase11-4-withdrawal-iot-20260909T221014Z/restore.lock",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "iot-case-2/phase11-4-withdrawal-iot-20260909T221014Z/restore.py",
+      "bytes": 1357,
+      "sha256": "93e6e4b751811e98b1398d3bad8b52e355a75089dc22dbc364e93165ef8ffa6b"
+    },
+    {
+      "path": "iot-case-2/phase11-4-withdrawal-iot-20260909T221014Z/trial-uuid",
+      "bytes": 36,
+      "sha256": "0016947851ba3ac52267d8c40b2bb1a35b08240ac74f1efedf3324125a09eb22"
+    },
+    {
+      "path": "iot-case-2/restore.py",
+      "bytes": 1357,
+      "sha256": "93e6e4b751811e98b1398d3bad8b52e355a75089dc22dbc364e93165ef8ffa6b"
+    },
+    {
+      "path": "iot-case-2/stage.py",
+      "bytes": 1952,
+      "sha256": "29d1acb0e6e8e0d1854e133d59ac6cfdfc14629be47f6ebf7e4db7a0a00fb643"
+    },
+    {
+      "path": "iot-case-2/stop-mac",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "iot-no-powersave/audit-controller.py",
+      "bytes": 1879,
+      "sha256": "72754765490e5e5705966ae6271546b204365d119a8f9e00c38cf4d2520fed2c"
+    },
+    {
+      "path": "iot-no-powersave/b2-d2-orderly-20260909T221844Z/capture.log",
+      "bytes": 163,
+      "sha256": "7ccb15b44a8e82dea020195d0bd1f5a3593551e3e03716fbbe8a324f7e70305c"
+    },
+    {
+      "path": "iot-no-powersave/b2-d2-orderly-20260909T221844Z/diagnostic-capture.log",
+      "bytes": 163,
+      "sha256": "f94aac7428986069c81eff53e1f17eab2b57f28f4454364eeca8d68f7f1920b2"
+    },
+    {
+      "path": "iot-no-powersave/b2-d2-orderly-20260909T221844Z/diagnostic.pcap",
+      "bytes": 546,
+      "sha256": "34ab07119a4623369cd673dcea9503524fbd1cb0fa1fd2b5ecf2806fa21730e4"
+    },
+    {
+      "path": "iot-no-powersave/b2-d2-orderly-20260909T221844Z/events.jsonl",
+      "bytes": 29899,
+      "sha256": "428c3c366f47dbc8290b2bfce57c505890b056dd27e274a406e98b5cdab17f6d"
+    },
+    {
+      "path": "iot-no-powersave/b2-d2-orderly-20260909T221844Z/mdns.pcap",
+      "bytes": 847,
+      "sha256": "b68840ea3403cf67f0fbac23154893bbf53fc60eb8836afbf44a4b2691e1fb6f"
+    },
+    {
+      "path": "iot-no-powersave/b2-d2-orderly-20260909T221844Z/usb-frames.jsonl",
+      "bytes": 3584,
+      "sha256": "5cafd2997c9a041f73ffed3afc044da46f9f75992a51a6ba7af192ac81d5b4f1"
+    },
+    {
+      "path": "iot-no-powersave/b2-d2-orderly-20260909T221844Z/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "iot-no-powersave/controller-audit.json",
+      "bytes": 231,
+      "sha256": "1927ac66bbe2bf2f170e442e69b49821ef47c0a7ed931f5a145eda0d24bf4fd5"
+    },
+    {
+      "path": "iot-no-powersave/controller-progress.log",
+      "bytes": 795,
+      "sha256": "96c91d6653d31aeb6a52cbc81079f2651c0b2f5489f39b29dae715e68ea902e6"
+    },
+    {
+      "path": "iot-no-powersave/controller.py",
+      "bytes": 4316,
+      "sha256": "c35ae7f11e53cc1e21090d86a96bb8165c14dd8ceb4b83719a09aa6985b450c7"
+    },
+    {
+      "path": "iot-no-powersave/dispatch.json",
+      "bytes": 146,
+      "sha256": "425835ce47c6ac5bb8fcb93e9fdd2cc988e7a5811b1a0573d7bdd610c9f50c36"
+    },
+    {
+      "path": "iot-no-powersave/evidence.tar",
+      "bytes": 112640,
+      "sha256": "b7f86e6e178a3bf8d1efa9b7810ced554494b2e7526feb5bed4bc07408ce8271"
+    },
+    {
+      "path": "iot-no-powersave/mac-dns-sd.jsonl",
+      "bytes": 411,
+      "sha256": "7f9bee0c11b0e77faa6884dcd50eb488918713d7d9ac5d315d0d16cb9d925327"
+    },
+    {
+      "path": "iot-no-powersave/mac-watch.py",
+      "bytes": 727,
+      "sha256": "3bae000ca005d70735356128a7c16c8b4c0729085092c522c49bce7979853c49"
+    },
+    {
+      "path": "iot-no-powersave/orderly.py",
+      "bytes": 12269,
+      "sha256": "4f9a9e7a353e8f70db3b5f826cc94f6084a983baa6b3d0b4230b146fae30ae6b"
+    },
+    {
+      "path": "iot-no-powersave/phase11-4-withdrawal-iot-20260909T221825Z/RESTORED",
+      "bytes": 32,
+      "sha256": "e23aa22ef0438073a72dc06189822d0e329ac9566a26693778f72ba33aa424d5"
+    },
+    {
+      "path": "iot-no-powersave/phase11-4-withdrawal-iot-20260909T221825Z/case.log",
+      "bytes": 426,
+      "sha256": "1fba53e68a2866646d0247e0e3ed1c835585e591338ee45cd1d0732862c03a6a"
+    },
+    {
+      "path": "iot-no-powersave/phase11-4-withdrawal-iot-20260909T221825Z/controller-events.jsonl",
+      "bytes": 36766,
+      "sha256": "74d6f1544e1ae30f855e0b3291633e7769ae03b182d47cf277280a504b3566b1"
+    },
+    {
+      "path": "iot-no-powersave/phase11-4-withdrawal-iot-20260909T221825Z/controller.py",
+      "bytes": 4316,
+      "sha256": "c35ae7f11e53cc1e21090d86a96bb8165c14dd8ceb4b83719a09aa6985b450c7"
+    },
+    {
+      "path": "iot-no-powersave/phase11-4-withdrawal-iot-20260909T221825Z/orderly.py",
+      "bytes": 12269,
+      "sha256": "4f9a9e7a353e8f70db3b5f826cc94f6084a983baa6b3d0b4230b146fae30ae6b"
+    },
+    {
+      "path": "iot-no-powersave/phase11-4-withdrawal-iot-20260909T221825Z/restore-events.jsonl",
+      "bytes": 2182,
+      "sha256": "cdafd841fda178f7c7f710f12991b2d3de15236195fc197829c441ec22f0d28e"
+    },
+    {
+      "path": "iot-no-powersave/phase11-4-withdrawal-iot-20260909T221825Z/restore.lock",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "iot-no-powersave/phase11-4-withdrawal-iot-20260909T221825Z/restore.py",
+      "bytes": 1506,
+      "sha256": "ea4de884021c77f7c6d94ee4468ab974a7fb219da08013ab09adeaa67ed01dcc"
+    },
+    {
+      "path": "iot-no-powersave/phase11-4-withdrawal-iot-20260909T221825Z/trial-uuid",
+      "bytes": 36,
+      "sha256": "5d2bc5c8387a620a9d688c00816c31f44a7bdc9c81bff99b45c72ad6b2fa488e"
+    },
+    {
+      "path": "iot-no-powersave/power-audit.json",
+      "bytes": 112,
+      "sha256": "0c4aa0d8ec34a81807120d5eda53f74d38e39f6b47522d908b2a165210318f65"
+    },
+    {
+      "path": "iot-no-powersave/restore.py",
+      "bytes": 1506,
+      "sha256": "ea4de884021c77f7c6d94ee4468ab974a7fb219da08013ab09adeaa67ed01dcc"
+    },
+    {
+      "path": "iot-no-powersave/stage.py",
+      "bytes": 1958,
+      "sha256": "d5533e35ce3c61aa892b73cba13aaa31f1c5cd9ce97affa4d4f8220cfd6a3997"
+    },
+    {
+      "path": "iot-no-powersave/stop-mac",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "mac-admin-capture/READY",
+      "bytes": 19,
+      "sha256": "0dafb90a16e3c9acea3755a4420c95badb32a61b3270dab4ecee02078c178140"
+    },
+    {
+      "path": "mac-admin-capture/STOPPED",
+      "bytes": 50,
+      "sha256": "10430ecdce4c78a210b4d0538cb424f2157299d83c9070375ba59687a015b3c3"
+    },
+    {
+      "path": "mac-admin-capture/authorization.log",
+      "bytes": 963,
+      "sha256": "522267ccc75f488fc66fddee48e18ad88ef6e8a0b53ea5c9811819f611f29b3e"
+    },
+    {
+      "path": "mac-admin-capture/capture-fixed.py",
+      "bytes": 1076,
+      "sha256": "a6610a75587c997d0ff5fe4d67d16d76379e1521fc984ecf8213607735bc55d6"
+    },
+    {
+      "path": "mac-admin-capture/capture-original.py",
+      "bytes": 941,
+      "sha256": "8dda698cd62b7618cff4715ffbf4873bdd6694cf1750fde99fd448aec1122ab6"
+    },
+    {
+      "path": "mac-admin-capture/capture.log",
+      "bytes": 85,
+      "sha256": "8c375ea6cf2072e2a5d877601eb2d9509e50650fc186dd2d91cbc32e9822ed8a"
+    },
+    {
+      "path": "mac-admin-capture/capture.py",
+      "bytes": 941,
+      "sha256": "8dda698cd62b7618cff4715ffbf4873bdd6694cf1750fde99fd448aec1122ab6"
+    },
+    {
+      "path": "mac-admin-capture/cleanup-kill-test.json",
+      "bytes": 118,
+      "sha256": "299949386a4c6cd888d2e85f4ca5c3a3a0553e78b745a4b11e2efa57a5aa5aaa"
+    },
+    {
+      "path": "mac-admin-capture/cleanup-test.json",
+      "bytes": 98,
+      "sha256": "48e5a702bffe4b5bc5447d5c4b4a97d1ee118fc190bbe5b902ecfdf4a820f348"
+    },
+    {
+      "path": "mac-admin-capture/mac-mdns.pcap",
+      "bytes": 48471,
+      "sha256": "f4af6ea5b5faafe368c3ab8f194d1bcdad8c649a7b1ee4602f6306a0469ab16f"
+    },
+    {
+      "path": "mac-admin-capture/mac.pcap",
+      "bytes": 48895,
+      "sha256": "f3ac9e0a95f6287c45779a195542128441399cc78f2125443fa3969632a0f995"
+    },
+    {
+      "path": "mac-admin-capture/stop.log",
+      "bytes": 1,
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "path": "mac-admin-capture/stop.py",
+      "bytes": 869,
+      "sha256": "fcf9bc7fd7c11d24a8a5e36fb5b5a50cc4aa469800c09dfa15f99bf84af17bf2"
+    },
+    {
+      "path": "mac-check-20260909T211722Z/mac-final.json",
+      "bytes": 3602,
+      "sha256": "8d7c4820f7fa0cffada4323416a9f88bce89804f90741254b8e10a6b38d20c04"
+    },
+    {
+      "path": "mac-check-20260909T211722Z/mac-resolution.json",
+      "bytes": 139,
+      "sha256": "471fe3b71aa937e4e7854cadb68fdec1cf7166137c485b2e2da6f7c47e30b747"
+    },
+    {
+      "path": "mac-check-20260909T212043Z/mac-final.json",
+      "bytes": 3607,
+      "sha256": "a123c0b1ce52d48690295f687ceb939e336cb5e102d5471326c79bd5dd56f900"
+    },
+    {
+      "path": "mac-check-20260909T212043Z/mac-resolution.json",
+      "bytes": 139,
+      "sha256": "d9ee268bb41d305de658d32ba57486ce1190a909afe322e1746e14b80563f652"
+    },
+    {
+      "path": "mac-check-20260909T215152Z/mac-final.json",
+      "bytes": 3615,
+      "sha256": "284ef7ab27102f171df56c632084efd253705ca0dd4dc91b3049e499521b16fc"
+    },
+    {
+      "path": "mac-check-20260909T215152Z/mac-resolution.json",
+      "bytes": 139,
+      "sha256": "8bb15688c0dce78c344180b141d5900d9f314b44fd4aa0e6fc4253d8f14cec43"
+    },
+    {
+      "path": "mac-check-20260909T221416Z/mac-final.json",
+      "bytes": 3625,
+      "sha256": "8fe4f3969b3b918c3392c176aecd0982386810d6a9e1cf2ae8fc1ff8c9d92379"
+    },
+    {
+      "path": "mac-check-20260909T221416Z/mac-resolution.json",
+      "bytes": 139,
+      "sha256": "3f492776e1c33c112c55adf11e392907c0f7ec69199d0f82ea5072978653b93b"
+    },
+    {
+      "path": "mac-check-20260909T222410Z/mac-final.json",
+      "bytes": 3627,
+      "sha256": "93518420b4df6c7c30da919c835203c4b75df95ae25b97e69e2deb9431b8dbf7"
+    },
+    {
+      "path": "mac-check-20260909T222410Z/mac-resolution.json",
+      "bytes": 139,
+      "sha256": "d4795a7b7cb151b51ef202eecb118b17f09a6ead50d56321c6604f0b4b8a1bd5"
+    },
+    {
+      "path": "mac-check.py",
+      "bytes": 2273,
+      "sha256": "6188bc6aed873fab1a99e7a20b1b1536ef67bb6eed8cc03cf41a2e729d54e2a6"
+    },
+    {
+      "path": "mac-paired-case/b2-d2-orderly-20260909T215705Z/capture.log",
+      "bytes": 165,
+      "sha256": "2dccbcd6737874e8eb32be347175d2c5cab98e7871c48a74c27fac979157275c"
+    },
+    {
+      "path": "mac-paired-case/b2-d2-orderly-20260909T215705Z/diagnostic-capture.log",
+      "bytes": 167,
+      "sha256": "3aa1edfac4f9f9938b348aaa14e7576dd309cc488c50fb0b3620b23c18604702"
+    },
+    {
+      "path": "mac-paired-case/b2-d2-orderly-20260909T215705Z/diagnostic-mdns.pcap",
+      "bytes": 24,
+      "sha256": "704e5e5b3234433c01fcfd1b20a306e77e985038120492dc53965c3edd38a4ea"
+    },
+    {
+      "path": "mac-paired-case/b2-d2-orderly-20260909T215705Z/diagnostic.pcap",
+      "bytes": 31361,
+      "sha256": "a1a257cd8dda8ad0753b5cf8796433b811f0572d93ecb503ccb61bb2b5aaf674"
+    },
+    {
+      "path": "mac-paired-case/b2-d2-orderly-20260909T215705Z/events.jsonl",
+      "bytes": 110508,
+      "sha256": "fdf61889991c5fe4f2b9550f4fbacfe62deb2ae21e08797d1d4dfb0e67996b18"
+    },
+    {
+      "path": "mac-paired-case/b2-d2-orderly-20260909T215705Z/mdns.pcap",
+      "bytes": 5118,
+      "sha256": "0a5869b11115b9335de42b3c633703de533325c81abe7f72d5ffd1d0dda14ea9"
+    },
+    {
+      "path": "mac-paired-case/b2-d2-orderly-20260909T215705Z/usb-frames.jsonl",
+      "bytes": 10250,
+      "sha256": "d4135625f29228c1be3d3d4a739259bccfb349ff4dcef44dc62e143692576690"
+    },
+    {
+      "path": "mac-paired-case/b2-d2-orderly-20260909T215705Z/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "mac-paired-case/evidence.tar",
+      "bytes": 174080,
+      "sha256": "f28814ebba0ffd1ad8fddce3a647b207ca758e077ceda39754430501064a04dc"
+    },
+    {
+      "path": "mac-paired-case/mac-observe.py",
+      "bytes": 2245,
+      "sha256": "f3a4d0015651adc7921eb1b8ecb5c4fb2881824c8766eeca01218acfbc74afb1"
+    },
+    {
+      "path": "mac-paired-case/orderly-20260909T215704Z/linux-run.log",
+      "bytes": 1942,
+      "sha256": "2eb55a4747a4951d99d4f4d8030764b6d76d1732632b0f6bf5785fa667da68e1"
+    },
+    {
+      "path": "mac-paired-case/orderly-20260909T215704Z/mac-dns-sd.jsonl",
+      "bytes": 757,
+      "sha256": "bde86f97822b1719ca6a6f5ee6d727006a9c8c44eec69173e5299294d94794f1"
+    },
+    {
+      "path": "mac-paired-case/orderly.py",
+      "bytes": 12056,
+      "sha256": "72779cef9f1512013eb82ee05a100af0a235a6d87bcde7896a8a7105036dd0f5"
+    },
+    {
+      "path": "mac-paired-case/packet-analysis.json",
+      "bytes": 262646,
+      "sha256": "2605fed113dfc22ec8112c006ec60d84067114233a42f6fb8de48214a333ca03"
+    },
+    {
+      "path": "mutation-results.json",
+      "bytes": 924,
+      "sha256": "c48d5a68f0ada6af9350d481af8196f32251a46f45afdcf1538d41ae9fda25dc"
+    },
+    {
+      "path": "mutation-review.py",
+      "bytes": 2288,
+      "sha256": "03220fa8cba18741bd9973ccd3a9058f42b4e113a0d4bf833204bf96457c3b5e"
+    },
+    {
+      "path": "original-99ecfb665b0e.uf2",
+      "bytes": 1968128,
+      "sha256": "99ecfb665b0ed28137b660407fe0bb2e1276b67bcc3f607192c96a1e9ab62954"
+    },
+    {
+      "path": "post-failure-inspection.log",
+      "bytes": 2343,
+      "sha256": "6d163c29064fa197ff863649b5860c85acd849fe4c20d71192c301630a0bd7f7"
+    },
+    {
+      "path": "preflash-inspection.log",
+      "bytes": 4004,
+      "sha256": "6ae19574fb07b1f31eb8ebfd3e637daa54fcf324ad8e3b9d061e3d3101b3c7dd"
+    },
+    {
+      "path": "recovery-authority.log",
+      "bytes": 3824,
+      "sha256": "e80c26b18cda4f91bd58a628a91199793ddc95bd4ae9513ac14f26a06e6e17da"
+    },
+    {
+      "path": "recovery-inspect.py",
+      "bytes": 1855,
+      "sha256": "459519523be82bddfe6201597f2831ec4001a658242fd0c4cbc88375dff38fd9"
+    },
+    {
+      "path": "sanitize-build.log",
+      "bytes": 6674,
+      "sha256": "bbf06a384cf949997ad2eacf1a4fb36f135fbb14a3974a2818b99d46880f6be5"
+    },
+    {
+      "path": "sanitize-configure.log",
+      "bytes": 1043,
+      "sha256": "e4466ccff681f200cbae57cef561549d1871f98d765ce272ab955c32ee08af49"
+    },
+    {
+      "path": "sanitize-send-error-build.log",
+      "bytes": 324,
+      "sha256": "e8625b18ff673ca81145872fe01eb1d7e937c00ba9efc41123cbf86590c83219"
+    },
+    {
+      "path": "sanitize-tests-final.log",
+      "bytes": 545,
+      "sha256": "00c12615946c2df9238f2d192bc748e8242b6bbd32643c3623565b7997976f57"
+    },
+    {
+      "path": "sanitize-tests.log",
+      "bytes": 545,
+      "sha256": "2579b8ae1e8db0135bf6141147bde0178fadbc1bdc8c376c89b5b73a94f5f493"
+    },
+    {
+      "path": "send-error-build.log",
+      "bytes": 324,
+      "sha256": "e8625b18ff673ca81145872fe01eb1d7e937c00ba9efc41123cbf86590c83219"
+    },
+    {
+      "path": "send-error-checks.log",
+      "bytes": 541,
+      "sha256": "bdfd4371427b3d26c803dd18a62ab142c60bc5ecb102bca15892f496a087fd6a"
+    },
+    {
+      "path": "short-diagnostic-analysis.json",
+      "bytes": 254,
+      "sha256": "937421f9020120bbb1e1afce1608dad31d14ff9ed9954283b85a49a48335b4ee"
+    },
+    {
+      "path": "short-diagnostic.log",
+      "bytes": 415807,
+      "sha256": "dfbcf558bfb836945e1257b8ac3f6aedde1bc297b2f6780d8eb3afc9d19156f0"
+    },
+    {
+      "path": "short-diagnostic.py",
+      "bytes": 3767,
+      "sha256": "293edc7716f59d0a4031113cef8773d50d74e07f9440e3c77875fec93e66ee48"
+    },
+    {
+      "path": "staging.log",
+      "bytes": 54,
+      "sha256": "0a36aa1ffdca908bf35f12f80c633c0241e8a7b1c229f0d091dc29ac7a0e4b63"
+    },
+    {
+      "path": "traffic-diagnostic-analysis.json",
+      "bytes": 343,
+      "sha256": "243bd08c7ba383ada6dedf0259a870d91941eb8c08fad80d818d918a51fc60be"
+    },
+    {
+      "path": "traffic-diagnostic.log",
+      "bytes": 865274,
+      "sha256": "1ad55665e6ddd5953fb8bab2d93e6eb9b857e30cc21df81a93f682045953b7ca"
+    },
+    {
+      "path": "traffic-diagnostic.py",
+      "bytes": 5939,
+      "sha256": "8044db53a3a8784246baa4f0e978456f63fcddc7301d3f4618ef35066982ca5a"
+    },
+    {
+      "path": "wifi-restoration.txt",
+      "bytes": 52,
+      "sha256": "fe92c2c3b53570f06d8fe213cfbf028899eec77c279e6d32bfab3fb80a5fb4cc"
+    }
+  ],
+  "deployments": [
+    {
+      "uf2_sha256": "99ecfb665b0ed28137b660407fe0bb2e1276b67bcc3f607192c96a1e9ab62954",
+      "elf_sha256": "cc62297928a489c371682c226c219f93b63b376f66f0161746ef53a1c56cb4cd",
+      "boot": "bcde01522c73ad8e847b003104432cf6",
+      "watchdog_recovery_boot": "a076840ce0ec6f1887e86eb025e52ac9",
+      "fault_stage": 14,
+      "revision": "e4ff40a56180-dirty"
+    },
+    {
+      "uf2_sha256": "524dd721ed6f67fbb21b1544546014fa174a4cb5d92d69d5fdfdbe5138f38664",
+      "elf_sha256": "86d63c3c216a334c7d2aa4b44f989c85fda52d2c1f093247815c1e77a4d2e5b9",
+      "boot": "f40c48f2e8b61b0da9743f1504ae4f2e",
+      "revision": "e4ff40a56180-dirty",
+      "source_ledger": "final-runtime-inputs.json",
+      "status": "currently installed; normal boot; 22 subsequent OFF cycles without reproduced watchdog; reliability not accepted"
+    }
+  ]
+}

@@ -382,3 +382,41 @@ retained as current user evidence without assuming its client. One prompted
 wspr5 recheck (`user-resolution-recheck.*`) again returned exit 2; this is specific
 to the tested Linux NSS path, alongside successful Mac resolution and Chrome
 operation. It is not evidence that the hostname fails for every client.
+
+
+## Network-withdrawal investigation, 2026-09-09
+
+The [investigation record](phase11-4-network-withdrawal-results.md) supersedes
+older current-state claims while retaining their historical evidence. Initial
+source review identified immediate teardown after radio submission and added
+bounded withdrawal with actual-adapter/pinned-lwIP tests. Four compiled mutations
+were rejected. The next adversarial assessment retained a failed IoT baseline
+and a physical watchdog failure, and corrected an overstatement: native Mac
+removal is not decoded Linux goodbye evidence. A 21-case negative evidence audit,
+wrong-revision refusal and both failed-target refusals pass. Target teardown is
+not closed. The user subsequently reaffirmed deployment authorization, and the
+diagnostic image was installed. The final assessment below supersedes that
+initial pending-deployment state.
+
+The final source assessment found no further actionable deterministic defect in
+the withdrawal repair. The original watchdog remains unexplained after 22 OFF
+cycles on the diagnostic image without a reboot. Full-duration testing captured
+TTL-zero A/PTR and all six negative lookups but failed peer recovery; a shorter
+paired capture proved goodbye arrival at both Mac and Linux and captured actual
+gratuitous ARP on Mac. That shorter success does not satisfy the full stability
+window. Three controlled IoT baselines failed, including a runtime USB-adapter
+power-saving-OFF control. Failed observations remain in the evidence index.
+
+Recorder startup and stop defects were also found: an early child failure was
+mistaken for capture readiness, and a Mac capture exceeded its duration before
+explicit process cleanup. Startup verification and bounded TERM/KILL cleanup
+were repaired and exercised locally; no successful target retest of the revised
+Mac recorder is claimed. Missing Mac drop statistics remain a limitation.
+
+Final native Mac and Linux resolution/authenticated HTTPS and USB identity/status
+checks passed on diagnostic boot `f40c48f2e8b61b0da9743f1504ae4f2e`.
+Output is inactive/unowned, schedules are disabled, and saved configuration and
+journals are preserved. wspr5 returned to Bohica, original USB power saving and
+active boot-enabled recovery; its installed transmitter binary/configuration
+are unchanged and provider output remains disabled. No capture remains running.
+This is a reviewed development checkpoint, not closure of B2/D2 or Phase 11.4.

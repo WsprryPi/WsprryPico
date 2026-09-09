@@ -26,8 +26,12 @@ Initial review found three API gaps in this exact source:
   timers and every retained question/answer for that interface before freeing.
 - Goodbye packets are an upstream TODO. Controlled disable uses upstream packet
   generation for the same A/PTR records, sets their TTLs to zero, then sends
-  before disconnect. Diagnostics count attempts and local send errors; they do
-  not assert reception by another host.
+  before disconnect. The later Phase 11.4 investigation splits submission from
+  teardown: replies/timers and retained questions are quiesced immediately, while
+  membership and the station remain until a nonblocking one-second withdrawal
+  interval finishes. CYW43 bus-write success does not establish radio completion.
+  Diagnostics count attempts and local send errors; they do not assert reception
+  by another host.
 
 `src/standalone/pico/mdns_lwip.c` includes the immutable pinned responder
 translation unit to access that private state. It compiles the other two source
@@ -59,6 +63,13 @@ Initialization/registration/probe-timeout errors latch `failed`; normal polling
 does not retry. Explicit idle-only off/on retries the same name. Wrong-board
 identity failure is permanent until a corrected build/reflash or reboot with
 correct credentials. None of these failures modifies a WTP owner or finite job.
+
+During orderly withdrawal, `withdrawing` has an empty advertised name. The
+foreground loop continues driver polling and USB/job servicing without rejoining
+or answering mDNS queries. Final removal releases retained registration/membership
+before station teardown. Repeated OFF does not extend the bound; rapid ON waits
+for final teardown before recreating/reprobing. The one-second interval is an
+engineering transmission opportunity, not a protocol delivery guarantee.
 
 Physical loss removes local state without pretending a goodbye was sent.
 Already cached remote records can remain until their TTL expires. Recovery boot
@@ -131,8 +142,8 @@ admission remain unchanged; static-pool growth reduces the linker heap span.
 cmake -S . -B build-host -DCMAKE_BUILD_TYPE=Debug \
   -DWSPRRY_PICO_BUILD_TESTS=ON \
   -DWSPRRY_PICO_TEST_LWIP_PATH=/path/to/pico-sdk/lib/lwip
-cmake --build build-host --target mdns_tests mdns_lwip_tests --parallel
-ctest --test-dir build-host -R '^mdns' --output-on-failure
+cmake --build build-host --target mdns_tests mdns_lwip_tests network_adapter_tests --parallel
+ctest --test-dir build-host -R '^(mdns_tests|mdns_lwip_tests|network_adapter_tests)$' --output-on-failure
 ```
 
 The actual responder target also derives the lwIP sibling when the pinned
@@ -143,6 +154,11 @@ replacement, zero-TTL A/PTR goodbyes, established conflicts, truncated retention
 PCB/bind/heap/IGMP failures, malformed/cyclic-compression/oversized packets,
 immediate link/address quiescence, 100 full registration/cleanup cycles and ten
 real lwIP netif removal/recreation cycles matching station disable/re-enable.
+The `network_adapter_tests` target links the actual PicoNetwork implementation
+and pinned lwIP with mocked SDK operations. It models delayed radio delivery,
+checks continued polling and retained multicast membership, and exercises rapid
+ON/OFF, cancelled HTTP changes, link loss and 50 resource-stable cycles. It does
+not model real synchronous driver IOCTL timing or establish target reliability.
 Portable tests cover disabled/legacy/identity failure, 30-second probing limits,
 conflict deferral, explicit retry and address-change accounting.
 

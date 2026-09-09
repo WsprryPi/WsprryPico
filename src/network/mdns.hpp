@@ -10,6 +10,7 @@ class MdnsAdapter {
     virtual ~MdnsAdapter() = default;
     virtual bool initialize() = 0;
     virtual bool add(std::string_view label) = 0;
+    virtual void withdraw() = 0;
     virtual void remove(bool goodbye) = 0;
 };
 class Mdns {
@@ -17,6 +18,9 @@ class Mdns {
     Mdns(MdnsAdapter& adapter, std::string_view hostname);
     void poll(bool enabled, std::uint32_t address, std::uint64_t now_us);
     void name_result(bool success);
+    // Retain registration resources while the caller services a bounded drain.
+    // Returns false when no active, usable announcement needs withdrawal.
+    bool withdraw(bool link_usable);
     void disable(bool link_usable);
     void retry();
     void identity_failure();
@@ -45,7 +49,7 @@ class Mdns {
     }
 
   private:
-    enum class State { Unconfigured, Waiting, Probing, Active, Conflict, Failed };
+    enum class State { Unconfigured, Waiting, Probing, Active, Withdrawing, Conflict, Failed };
     void stop(bool goodbye);
     void fail(std::string_view reason);
     MdnsAdapter& adapter_;

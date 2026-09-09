@@ -40,6 +40,7 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     bool disable_power_save();
     bool initialize() override;
     bool add(std::string_view label) override;
+    void withdraw() override;
     void remove(bool goodbye) override;
     static void mdns_result(struct netif*, u8_t result, s8_t slot);
     static void receive(void* context, udp_pcb*, pbuf* packet, const ip_addr_t* address,
@@ -62,6 +63,8 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     bool initialized_ = false, enabled_ = true;
     std::optional<bool> power_save_;
     std::optional<bool> pending_enabled_;
+    std::optional<std::uint64_t> withdrawal_started_us_;
+    bool resume_after_withdrawal_ = false;
     bool configured_ = false, listening_ = false;
     bool identity_matches_ = true;
     std::uint32_t queries_ = 0, accepted_ = 0, rejected_ = 0;

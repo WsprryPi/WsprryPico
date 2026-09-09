@@ -143,18 +143,8 @@ done:
         pbuf_free(packet.pbuf);
     return result;
 }
-void wsprry_mdns_remove(struct netif* interface, int send_goodbye) {
-    struct mdns_packet** current;
-    if (!started || !interface || !NETIF_TO_HOST(interface))
-        return;
-    if (send_goodbye && netif_is_up(interface) && netif_is_link_up(interface) &&
-        !ip4_addr_isany_val(*netif_ip4_addr(interface))) {
-        increment(&goodbye_attempts);
-        if (goodbye(interface) != ERR_OK)
-            increment(&goodbye_failures);
-    }
-    quiesce(interface);
-    current = &pending_tc_questions;
+static void release_questions(struct netif* interface) {
+    struct mdns_packet** current = &pending_tc_questions;
     while (*current) {
         struct mdns_packet* packet = *current;
         if (packet->pbuf->if_idx != netif_get_index(interface)) {
@@ -172,6 +162,29 @@ void wsprry_mdns_remove(struct netif* interface, int send_goodbye) {
         pbuf_free(packet->pbuf);
         LWIP_MEMPOOL_FREE(MDNS_PKTS, packet);
     }
+}
+err_t wsprry_mdns_withdraw(struct netif* interface) {
+    err_t result;
+    if (!started || !interface || !NETIF_TO_HOST(interface))
+        return ERR_VAL;
+    quiesce(interface);
+    release_questions(interface);
+    if (!netif_is_up(interface) || !netif_is_link_up(interface) ||
+        ip4_addr_isany_val(*netif_ip4_addr(interface)))
+        return ERR_IF;
+    increment(&goodbye_attempts);
+    result = goodbye(interface);
+    if (result != ERR_OK)
+        increment(&goodbye_failures);
+    return result;
+}
+void wsprry_mdns_remove(struct netif* interface, int send_goodbye) {
+    if (!started || !interface || !NETIF_TO_HOST(interface))
+        return;
+    if (send_goodbye)
+        (void)wsprry_mdns_withdraw(interface);
+    quiesce(interface);
+    release_questions(interface);
     (void)mdns_resp_remove_netif(interface);
 }
 int wsprry_mdns_network_changed(void) {

@@ -44,6 +44,12 @@ void Mdns::poll(bool enabled, std::uint32_t address, std::uint64_t now_us) {
     }
     if (state_ == State::Unconfigured || state_ == State::Failed || state_ == State::Conflict)
         return;
+    if (state_ == State::Withdrawing) {
+        // An explicit finish/cancel owns teardown. Never re-advertise during drain.
+        if (!enabled || !address || restart_)
+            disable(false);
+        return;
+    }
     if (!enabled || !address) {
         stop(false);
         restart_ = false;
@@ -90,10 +96,19 @@ void Mdns::name_result(bool success) {
         count(conflicts_);
     }
 }
+bool Mdns::withdraw(bool link_usable) {
+    if (state_ == State::Withdrawing)
+        return true;
+    if (!registered_ || state_ != State::Active || !link_usable)
+        return false;
+    state_ = State::Withdrawing;
+    adapter_.withdraw();
+    return true;
+}
 void Mdns::disable(bool link_usable) {
     stop(link_usable && state_ == State::Active);
     pending_conflict_ = false;
-    if (state_ == State::Probing || state_ == State::Active)
+    if (state_ == State::Probing || state_ == State::Active || state_ == State::Withdrawing)
         state_ = State::Waiting;
 }
 void Mdns::retry() {
@@ -118,6 +133,8 @@ std::string_view Mdns::state() const {
         return "probing";
     case State::Active:
         return "active";
+    case State::Withdrawing:
+        return "withdrawing";
     case State::Conflict:
         return "conflict";
     case State::Failed:

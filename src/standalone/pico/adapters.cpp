@@ -115,6 +115,9 @@ bool PicoNetwork::add(std::string_view label) {
 void PicoNetwork::remove(bool goodbye) {
     wsprry_mdns_remove(&cyw43_state.netif[CYW43_ITF_STA], goodbye);
 }
+void PicoNetwork::withdraw() {
+    (void)wsprry_mdns_withdraw(&cyw43_state.netif[CYW43_ITF_STA]);
+}
 void PicoNetwork::mdns_result(struct netif* interface, u8_t result, s8_t slot) {
     if (mdns_owner && interface == &cyw43_state.netif[CYW43_ITF_STA] && slot == 0)
         mdns_owner->mdns_.name_result(result == MDNS_PROBING_SUCCESSFUL);
@@ -198,13 +201,31 @@ void PicoNetwork::receive(void* context, udp_pcb*, pbuf* packet, const ip_addr_t
         pbuf_free(packet);
 }
 void PicoNetwork::poll() {
-    if (!initialized_ || !pcb_ || !enabled_)
+    if (!initialized_ || !pcb_ || (!enabled_ && !withdrawal_started_us_))
         return;
     watchdog_hw->scratch[1] = 13;
     cyw43_arch_poll();
     watchdog_hw->scratch[1] = 14;
     const auto now = time_us_64();
     const auto link = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
+    if (withdrawal_started_us_) {
+        // CYW43 send success means a bus transfer, not an over-air completion.
+        // Service the driver without mDNS replies/reconnects for one second.
+        // This is a bounded transmission opportunity, never a delivery guarantee.
+        if (link != CYW43_LINK_UP || now - *withdrawal_started_us_ >= 1'000'000ULL) {
+            watchdog_hw->scratch[1] = 15;
+            mdns_.disable(false);
+            watchdog_hw->scratch[1] = 16;
+            cyw43_arch_disable_sta_mode();
+            watchdog_hw->scratch[1] = 17;
+            withdrawal_started_us_.reset();
+            const bool resume = resume_after_withdrawal_;
+            resume_after_withdrawal_ = false;
+            if (resume)
+                (void)set_enabled(true);
+        }
+        return;
+    }
     lookup_.link(link == CYW43_LINK_UP);
     const auto* station = &cyw43_state.netif[CYW43_ITF_STA];
     if (wsprry_mdns_network_changed())
@@ -266,6 +287,12 @@ bool PicoNetwork::disable_power_save() {
 bool PicoNetwork::set_enabled(bool enabled) {
     if (!initialized_ || !pcb_)
         return false;
+    if (withdrawal_started_us_) {
+        // Repeated OFF never extends the deadline. Rapid ON waits for teardown
+        // before recreating the netif; it cannot resurrect the old registration.
+        resume_after_withdrawal_ = enabled;
+        return true;
+    }
     if (enabled_ == enabled)
         return true;
     sntp_.cancel();
@@ -283,8 +310,12 @@ bool PicoNetwork::set_enabled(bool enabled) {
     } else {
         lookup_.link(false);
         // enabled_ was already changed; inspect the actual station before teardown.
-        mdns_.disable(cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA) == CYW43_LINK_UP);
-        cyw43_arch_disable_sta_mode();
+        if (mdns_.withdraw(cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA) == CYW43_LINK_UP))
+            withdrawal_started_us_ = time_us_64();
+        else {
+            mdns_.disable(false);
+            cyw43_arch_disable_sta_mode();
+        }
     }
     return true;
 }
@@ -303,6 +334,8 @@ std::string PicoNetwork::status() const {
                                        : -99) +
            ",\"ipv4\":" + wtp::json::quote(ipv4()) + ",\"requested_enabled\":" +
            (pending_enabled_ ? (*pending_enabled_ ? "true" : "false") : "null") +
+           ",\"withdrawal_pending\":" + (withdrawal_started_us_ ? "true" : "false") +
+           ",\"resume_after_withdrawal\":" + (resume_after_withdrawal_ ? "true" : "false") +
            ",\"control_configured\":" + (configured_ ? "true" : "false") +
            ",\"control_listening\":" + (listening_ ? "true" : "false") +
            ",\"deployment_identity_matches\":" + (identity_matches_ ? "true" : "false") +

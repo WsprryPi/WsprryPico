@@ -19,6 +19,7 @@ static unsigned successes, conflicts, packets, answers, zero_ttl;
 static unsigned char last_address[4];
 static unsigned char dns_packet[1500];
 static size_t dns_size;
+static int fail_mdns_output;
 u32_t sys_now(void) {
     return now_ms;
 }
@@ -49,6 +50,8 @@ static err_t output(struct netif* interface, struct pbuf* p, const ip4_addr_t* d
     offset = (bytes[0] & 15) * 4;
     if (read16(bytes + offset + 2) != 5353)
         return ERR_OK;
+    if (fail_mdns_output)
+        return ERR_IF;
     assert(bytes[8] == 255); // RFC multicast IP TTL.
     offset += 8;
     dns_size = p->tot_len - offset;
@@ -183,7 +186,13 @@ int main(void) {
     receive(&interface, data, count);
     receive(&interface, data, count);
     before = packets;
-    wsprry_mdns_remove(&interface, 1);
+    assert(wsprry_mdns_withdraw(&interface) == ERR_OK);
+    assert(mdns_resp_netif_active(&interface)); // Helper and membership stay alive.
+    before = packets;
+    receive(&interface, data, count); // Neither new nor retained TC queries may answer.
+    advance(1000);
+    assert(packets == before);
+    wsprry_mdns_remove(&interface, 0);
     assert(zero_ttl == 2 && wsprry_mdns_goodbye_attempts() == 1);
     assert(lwip_stats.mem.used == memory);
     assert(lwip_stats.memp[MEMP_SYS_TIMEOUT]->used == timeout_count);
@@ -294,6 +303,22 @@ int main(void) {
         assert(lwip_stats.mem.used == memory);
         assert(lwip_stats.memp[MEMP_SYS_TIMEOUT]->used == timeout_count);
     }
+    // Local send failure is observable and does not leak retained registration.
+    assert(wsprry_mdns_add(&interface, "pico-a") == ERR_OK);
+    advance(2000);
+    before = wsprry_mdns_goodbye_attempts();
+    count = wsprry_mdns_goodbye_failures();
+    fail_mdns_output = 1;
+    assert(wsprry_mdns_withdraw(&interface) == ERR_IF);
+    assert(wsprry_mdns_goodbye_attempts() == before + 1);
+    assert(wsprry_mdns_goodbye_failures() == count + 1);
+    before = packets;
+    advance(1000);
+    assert(packets == before);
+    wsprry_mdns_remove(&interface, 0);
+    assert(lwip_stats.mem.used == memory);
+    assert(lwip_stats.memp[MEMP_SYS_TIMEOUT]->used == timeout_count);
+    fail_mdns_output = 0;
     printf("actual pinned lwIP mDNS passed: host=%zu packet=%zu, heap peak=%u, timers peak=%u, "
            "UDP=%u\n",
            wsprry_mdns_host_bytes(), wsprry_mdns_packet_bytes(), lwip_stats.mem.max,
