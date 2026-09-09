@@ -48,6 +48,10 @@ The [Phase 11.3 plan and joint checklist](phase11-3-plan.md) records DHCP/mDNS,
 hostname deployment certificates, HTTP authority and companion integration.
 The [shared identity contract](phase11-3-identity.md) is authoritative for both
 applications; [inhibited acceptance](phase11-4-acceptance.md) remains opt-in.
+The [G4–G7 recovery acceptance record](phase11-4-g4-g7-results.md) includes
+single-board physical evidence, retained failures and the offline-only
+`scripts/audit_phase11_4_recovery.py` checker. The checker reads private evidence
+directories and performs no device or network operations.
 
 ## Current checks
 

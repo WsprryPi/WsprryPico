@@ -1,5 +1,11 @@
 # Phase 11.4 inhibited device acceptance review
 
+The [G4–G7 completion](phase11-4-g4-g7-results.md) records socket-level lost
+replies, real production reconnect failures, process nonadoption, actual boot
+and controlled-device identity latches, and USB versus Console recovery. Final
+Mac/Linux reads pass; intermittent reliability and the remaining D/E cases are
+still open. The controlled endpoint does not replace two physical boards.
+
 The [F2/F3/F6 completion](phase11-4-f2-f3-f6-results.md) records actual client
 replacement, corrected certificate-rejection alerts, Chrome literal-IP acceptance
 and restoration of the hostname-only inhibited image. Other matrix gates remain open.
@@ -7,8 +13,8 @@ and restoration of the hostname-only inhibited image. Other matrix gates remain 
 Status: **OPEN**. The single-board continuation completed actual production
 startup/finite execution, direct inhibited lifecycle/authority checks, Chrome
 revision/draft behavior, renewal, wrong-board rejection, literal-IP client checks
-and altered-value persistence. Intermittent ARP/NSS/TCP reachability, negative-client
-TLS alert discrepancies and unexecuted physical subcases remain open. Only one
+and altered-value persistence. Intermittent ARP/NSS/TCP reliability and
+unexecuted physical subcases remain open. Only one
 Pico is available. See the [current joint matrix](phase11-4-plan.md) and
 [execution/repeated adversarial record](phase11-4-single-board-run.md).
 
