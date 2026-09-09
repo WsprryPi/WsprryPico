@@ -23,6 +23,9 @@ def main():
     p.add_argument('--output', required=True, type=Path)
     p.add_argument('--credentials', required=True, type=Path)
     p.add_argument('--boot', required=True)
+    p.add_argument('--revision', default='e4ff40a56180-dirty')
+    p.add_argument('--trace', action='store_true')
+    p.add_argument('--diagnose', action='store_true', help='read-only capture even if Mac baseline fails')
     p.add_argument('--ssh', default='wspr5')
     p.add_argument('--ssh-address', default='192.168.1.117')
     p.add_argument('--max-cases', default=8, type=int)
@@ -117,7 +120,7 @@ def main():
                 if observer_errors:
                     raise RuntimeError(str(observer_errors))
                 time.sleep(.2)
-            if not (native_ready.is_set() and peer_ready.is_set()):
+            if not a.diagnose and not (native_ready.is_set() and peer_ready.is_set()):
                 raise RuntimeError('Mac baseline or observer readiness failed; no target mutation')
             runner_log = remote + f'/runner-{number:02}.log'
             remote_case = remote + f'/case-{number:02}'
@@ -127,7 +130,8 @@ def main():
                          '--property=StandardOutput=append:' + runner_log,
                          '--property=StandardError=append:' + runner_log,
                          '/usr/bin/python3', '-B', remote + '/phase11_4_loop_target.py',
-                         'orderly', '--run', '--output', remote_case, '--boot', a.boot],
+                         'diagnose' if a.diagnose else 'orderly', '--run', '--output', remote_case, '--boot', a.boot,
+                         '--revision', a.revision] + (['--trace'] if a.trace else []),
                         capture_output=True)
             dispatched = True
             print(json.dumps({'case': number, 'event': 'STARTED', 'unit': unit}), flush=True)
@@ -193,7 +197,15 @@ def main():
                 except Exception as e:
                     observer_errors.append('test unit bookkeeping cleanup: ' + str(e))
         from phase11_4_loop_audit import assess_case
-        assessment = assess_case(case, a.boot)
+        assessment = assess_case(case, a.boot, a.revision)
+        if a.trace:
+            try:
+                from phase11_4_trace_audit import assess_trace
+                assessment['trace'] = assess_trace(case / f'case-{number:02}', a.boot, a.revision)
+                if not assessment['observer_failure'] and assessment['trace']['failure_boundary']:
+                    assessment['failure_point'] = assessment['trace']['failure_boundary']
+            except Exception as e:
+                observer_errors.append('trace audit: ' + str(e))
         assessment['observer_failure'] = bool(observer_errors) or assessment['observer_failure']
         assessment['observer_errors'] = observer_errors
         if assessment['observer_failure']:

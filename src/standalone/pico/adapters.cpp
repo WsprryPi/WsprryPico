@@ -100,6 +100,11 @@ PicoNetwork::PicoNetwork(time::UtcDiscipline& clock, std::string_view device_id,
                          std::string_view configured_hostname)
     : sntp_(clock), mdns_(*this, configured_hostname),
       stable_hostname_(network::default_hostname(device_id)) {}
+#ifndef WSPRRY_PICO_STANDALONE_RF
+void PicoNetwork::trace_install() {
+    (void)trace_.install(&cyw43_state.netif[CYW43_ITF_STA]);
+}
+#endif
 bool PicoNetwork::initialize() {
     if (mdns_owner && mdns_owner != this)
         return false;
@@ -116,7 +121,9 @@ void PicoNetwork::remove(bool goodbye) {
     wsprry_mdns_remove(&cyw43_state.netif[CYW43_ITF_STA], goodbye);
 }
 void PicoNetwork::withdraw() {
+    trace_mark(2); // Before goodbye submission.
     (void)wsprry_mdns_withdraw(&cyw43_state.netif[CYW43_ITF_STA]);
+    trace_mark(3); // After goodbye submission.
 }
 void PicoNetwork::mdns_result(struct netif* interface, u8_t result, s8_t slot) {
     if (mdns_owner && interface == &cyw43_state.netif[CYW43_ITF_STA] && slot == 0)
@@ -138,9 +145,12 @@ bool PicoNetwork::start(const Config& config) {
     initialized_ = true;
     watchdog_hw->scratch[1] = 11;
     cyw43_arch_enable_sta_mode();
+    trace_install();
     // USB-powered network control needs continuous receive availability.
     if (!disable_power_save()) {
+        trace_mark(4); // Before station disable.
         cyw43_arch_disable_sta_mode();
+        trace_mark(5); // After station disable.
         cyw43_arch_deinit();
         initialized_ = false;
         return false;
@@ -150,7 +160,9 @@ bool PicoNetwork::start(const Config& config) {
     password_ = config.password;
     pcb_ = udp_new_ip_type(IPADDR_TYPE_V4);
     if (!pcb_) {
+        trace_mark(4); // Before station disable.
         cyw43_arch_disable_sta_mode();
+        trace_mark(5); // After station disable.
         cyw43_arch_deinit();
         initialized_ = false;
         return false;
@@ -216,7 +228,9 @@ void PicoNetwork::poll() {
             watchdog_hw->scratch[1] = 15;
             mdns_.disable(false);
             watchdog_hw->scratch[1] = 16;
+            trace_mark(4); // Before station disable.
             cyw43_arch_disable_sta_mode();
+            trace_mark(5); // After station disable.
             watchdog_hw->scratch[1] = 17;
             withdrawal_started_us_.reset();
             const bool resume = resume_after_withdrawal_;
@@ -300,8 +314,11 @@ bool PicoNetwork::set_enabled(bool enabled) {
     if (enabled) {
         mdns_.retry();
         cyw43_arch_enable_sta_mode();
+        trace_install();
         if (!disable_power_save()) {
+            trace_mark(4); // Before station disable.
             cyw43_arch_disable_sta_mode();
+            trace_mark(5); // After station disable.
             enabled_ = false;
             return false;
         }
@@ -314,7 +331,9 @@ bool PicoNetwork::set_enabled(bool enabled) {
             withdrawal_started_us_ = time_us_64();
         else {
             mdns_.disable(false);
+            trace_mark(4); // Before station disable.
             cyw43_arch_disable_sta_mode();
+            trace_mark(5); // After station disable.
         }
     }
     return true;

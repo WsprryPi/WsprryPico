@@ -29,6 +29,7 @@ extern "C" char __HeapLimit, __end__, __StackLimit, __StackTop;
 static_assert(WSPRRY_PICO_RF_OUTPUT_DISABLED == 1);
 #endif
 #include <array>
+#include <charconv>
 
 // Capture the exception's PC without allocating or relying on USB. The
 // watchdog performs the reset; the next boot inhibits autonomous operation.
@@ -249,6 +250,17 @@ int main() {
             return "{\"ok\":true,\"rebooting\":true}\n";
         }
 #ifndef WSPRRY_PICO_STANDALONE_RF
+        if (text.starts_with("NETTRACE ")) {
+            std::uint64_t after = 0;
+            const auto cursor = text.substr(9);
+            const auto parsed = std::from_chars(cursor.data(), cursor.data() + cursor.size(), after);
+            if (parsed.ec != std::errc{} || parsed.ptr != cursor.data() + cursor.size())
+                return "{\"ok\":false,\"error\":\"trace_cursor\"}\n";
+            return "{\"ok\":true,\"device_id\":" + wsprrypico::wtp::json::quote(identities.device_id()) +
+                ",\"revision\":" + wsprrypico::wtp::json::quote(wsprrypico::firmware::kBuildRevision) +
+                ",\"boot_id\":" + wsprrypico::wtp::json::quote(service.status().boot_id) +
+                ",\"trace\":" + network.trace_page(after) + "}\n";
+        }
         if (text == "WIFI OFF" || text == "WIFI ON") {
             if (!scheduler.idle())
                 return "{\"ok\":false,\"error\":\"busy\"}\n";

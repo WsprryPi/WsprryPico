@@ -438,3 +438,22 @@ Ten grouped tests and eleven corruptions of real evidence pass/refuse as intende
 Final Mac/Linux peer checks and USB authority passed; host service/configuration
 and original Wi-Fi/recovery settings remain intact. B2/D2 remain open, and no
 firmware/RF acceptance is inferred from the harness publication.
+
+
+## Packet-boundary diagnostics review, 2026-09-09
+
+The [packet trace record](phase11-4-packet-trace-results.md) is the current B2/D2
+investigation checkpoint. A fixed, USB-readable ring preserves RX metadata and
+actual station linkoutput returns. The read-only failure capture proves a matched
+ARP request reached the Pico and its reply was submitted successfully without
+appearing at the Linux client during the failed probe window. The next orderly
+cycle delivered its goodbye, then watchdog-reset in the station-disable section
+(stage 16). Neither is a completed repair or general network qualification.
+
+Review corrected crash/partial-trace classification, strengthened packet matching
+and added malformed chained-packet and evidence-corruption checks. All 28 host
+checks pass; affected sanitizer tests and both image link checks pass. Original
+failed/invalid assessments remain available beside corrected offline assessments.
+The campaign stopped at the watchdog boundary. One authorized recovery reboot
+restored normal inhibited operation; final peer/output/host checks pass. No SSID
+comparison or overnight soak was executed after that stop; B2/D2 remain open.

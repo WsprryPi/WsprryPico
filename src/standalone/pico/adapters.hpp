@@ -1,5 +1,8 @@
 #pragma once
 #include "lwip/udp.h"
+#ifndef WSPRRY_PICO_STANDALONE_RF
+#include "standalone/pico/net_trace.hpp"
+#endif
 #include "network/api.hpp"
 #include "network/mdns.hpp"
 #include "standalone/storage.hpp"
@@ -18,6 +21,9 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     PicoNetwork(time::UtcDiscipline& clock, std::string_view device_id,
                 std::string_view configured_hostname);
     bool start(const Config& config);
+#ifndef WSPRRY_PICO_STANDALONE_RF
+    std::string trace_page(std::uint64_t after) const { return trace_.page(after); }
+#endif
     void poll();
     bool set_enabled(bool enabled) override;
     bool request_enabled(bool enabled) override;
@@ -37,6 +43,14 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     }
 
   private:
+#ifndef WSPRRY_PICO_STANDALONE_RF
+    NetTrace trace_;
+    void trace_mark(unsigned code) { trace_.mark(code); }
+    void trace_install();
+#else
+    void trace_mark(unsigned) {}
+    void trace_install() {}
+#endif
     bool disable_power_save();
     bool initialize() override;
     bool add(std::string_view label) override;

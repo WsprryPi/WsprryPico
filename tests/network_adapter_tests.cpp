@@ -52,7 +52,9 @@ static err_t output(netif*, pbuf* packet, const ip4_addr_t*) {
     }
     return ERR_OK; // Submitted to simulated radio, not delivered yet.
 }
+static err_t ethernet_output_stub(netif*, pbuf*) { return ERR_OK; }
 static err_t setup(netif* n) {
+    n->linkoutput = ethernet_output_stub;
     n->name[0] = 'w';
     n->name[1] = '0';
     n->output = output;
@@ -139,6 +141,8 @@ int main() {
     assert(network.set_enabled(false) && disables == 1);
     assert(network.set_enabled(true));
     active(network);
+    assert(network.trace_page(0).find("\"install_errors\":0") != std::string::npos);
+    assert(network.trace_page(0).find("\"intact\":true") != std::string::npos);
     const auto before = now_us;
     const auto down = disables;
     const auto polls = driver_polls;

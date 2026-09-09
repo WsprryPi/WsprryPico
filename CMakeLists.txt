@@ -174,6 +174,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
     include(cmake/network_host_tests.cmake)
     include(cmake/mdns_host_tests.cmake)
     add_test(NAME network_certificate_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/network_certificate_tests.py)
+    add_test(NAME phase11_4_trace_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase11_4_trace_tests.py)
     add_test(NAME phase11_4_loop_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_4_loop_tests.py)
     add_test(NAME inhibited_network_acceptance_tests COMMAND ${Python3_EXECUTABLE}

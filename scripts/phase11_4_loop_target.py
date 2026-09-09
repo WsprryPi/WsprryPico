@@ -13,10 +13,12 @@ def main():
     signal.signal(signal.SIGINT, interrupted)
     signal.signal(signal.SIGTERM, interrupted)
     p = argparse.ArgumentParser()
-    p.add_argument('mode', choices=['orderly', 'inspect'])
+    p.add_argument('mode', choices=['orderly', 'inspect', 'diagnose'])
     p.add_argument('--run', action='store_true')
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--boot', required=True)
+    p.add_argument('--revision', default='e4ff40a56180-dirty')
+    p.add_argument('--trace', action='store_true')
     a = p.parse_args()
     require(a.run and __debug__, 'Explicit --run and nonoptimized Python required')
     os.umask(0o077)
@@ -43,7 +45,7 @@ def main():
             _note(kind, value)
     C = '/dev/serial/by-id/usb-WsprryPi_WsprryPico_0BF4B4AEC9FFB344-if00'
     DEVICE = 'fd6127d11d6aca42a9905fa3fb1bf1d5'
-    REV = 'e4ff40a56180-dirty'
+    REV = a.revision
     NAME = 'wsprrypico-0a60df.local'
     SERVER_SHA = '06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016'
 
@@ -265,10 +267,39 @@ def main():
         tcp_check()
         note('fault_arp_end', {})
 
+    trace_cursor = 0
+    def trace_pages():
+        nonlocal trace_cursor
+        # Bounded work per sample, cursor reads are non-destructive.
+        with console_lock:
+            with port(C) as f:
+                for _ in range(8):
+                    write_all(f, ('NETTRACE ' + str(trace_cursor) + '\n').encode())
+                    value = read_line(f, time.monotonic() + 5)
+                    note('NETTRACE', value)
+                    require(value.get('ok') and value.get('device_id') == DEVICE and
+                            value.get('revision') == REV and value.get('boot_id') == boot,
+                            'trace identity mismatch')
+                    trace = value['trace']
+                    require(trace['install_errors'] == 0 and trace['intact'], 'trace hooks invalid')
+                    events = trace['events']
+                    if events:
+                        # Initial ring may have overwritten pre-observer startup only.
+                        if trace_cursor == 0:
+                            trace_cursor = events[0]['seq'] - 1
+                        require(events[0]['seq'] == trace_cursor + 1 and all(
+                            y['seq'] == x['seq'] + 1 for x, y in zip(events, events[1:])),
+                            'trace coverage gap')
+                        trace_cursor = events[-1]['seq']
+                    if trace_cursor == trace['latest']:
+                        break
+
     def monitor_usb():
         while not monitor_stop.is_set():
             try:
                 v = console()
+                if a.trace:
+                    trace_pages()
                 for key in ['station', 'schedules', 'watermark_utc_ns', 'expires_utc_s', 'enabled', 'suspended']:
                     assert v['status'][key] == before['status'][key], 'saved state changed: ' + key
             except BaseException as e:
@@ -295,6 +326,8 @@ def main():
                 break
             time.sleep(0.1)
         assert all(((root / n).exists() and (root / n).stat().st_size >= 24 for n in ['mdns.pcap', 'diagnostic.pcap'])), 'missing PCAP headers'
+        if a.trace:
+            trace_pages()
         monitor = threading.Thread(target=monitor_usb, name='USB observer', daemon=True)
         monitor.start()
         note('OBSERVERS_READY', {})
@@ -307,6 +340,16 @@ def main():
             mdns.sendto(struct.pack('>6H', 0, 0, 1, 0, 0, 0) + labels + struct.pack('>HH', 1, 1), ('224.0.0.251', 5353))
         note('seed_socket_closed', {})
         wait_observed(3)
+        if a.mode == 'diagnose':
+            note('READ_ONLY_DIAGNOSTIC', {})
+            fault_arp_diagnostic()
+            wait_observed(30)
+            nss('diagnostic')
+            try:
+                https()
+            except Exception as e:
+                note('https_failure', {'type': type(e).__name__, 'message': str(e)})
+            raise RuntimeError('read-only diagnostic completed; no OFF/ON requested')
         r = nss('before')
         if not (r['exit'] == 0 and {l.split()[0] for l in r['stdout'].splitlines()} == {IP}):
             note('BASELINE_FAILURE', r)
@@ -388,6 +431,8 @@ def main():
         if monitor:
             monitor.join(timeout=7)
         try:
+            if a.trace and not monitor_faults:
+                trace_pages()
             if off:
                 snapshot()
                 note('cleanup_on_begin', {})

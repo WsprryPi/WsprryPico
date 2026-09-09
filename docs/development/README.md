@@ -55,6 +55,9 @@ directories and performs no device or network operations.
 The [E2/E3 conflict record](phase11-4-e2-e3-results.md) adds the controlled-host
 alias conflict and same-name recovery observations. Its companion
 `scripts/audit_phase11_4_mdns_conflict.py` also operates only on private files.
+The [packet-boundary investigation](phase11-4-packet-trace-results.md) adds a fixed
+USB trace, locates a failed ARP exchange after successful driver submission, and
+reproduces the station-disable watchdog. Both acceptance items remain open.
 The [repeated B2/D2 harness](phase11-4-loop-plan.md) defines opt-in independent
 USB/packet/native-client observation and bounded stop rules. Its
 [execution/review record](phase11-4-loop-results.md) reproduces both original

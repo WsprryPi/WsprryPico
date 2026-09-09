@@ -1,0 +1,420 @@
+{
+  "scope": "private Phase 11.4 packet trace evidence; contents are not published",
+  "artifacts": [
+    {
+      "path": "build/phase11-4-packet-trace/WsprryPico.elf",
+      "bytes": 14767632,
+      "sha256": "8ca0f3baa1719257f7fb1ce056f295dd748b3fc81af8a96ac25b309b1e811327"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/WsprryPico.elf.map",
+      "bytes": 2483084,
+      "sha256": "e2a1f4d9e3136b3b2df95eff2623c2295f901db9da82f490e92f3adefbc59dde"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/WsprryPico.uf2",
+      "bytes": 1989632,
+      "sha256": "0483dbee2063b57c0f2564d991a3bbf2f465e24d48daae57fe2daed3143edb3c"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/adversarial-replay.json",
+      "bytes": 816,
+      "sha256": "e3c1ffa28b50ab667d1e5223c47d0f1e76153a957c604a4a9bcb18e4b5318974"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/adversarial-replay.py",
+      "bytes": 2464,
+      "sha256": "1aa74f5aacaa01a6adea91e6d576440d5e1bb682a7afa42392521e87aa2f7471"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/arp-boundary.json",
+      "bytes": 1154,
+      "sha256": "1cb387e1978a3fc79e242456e3826263b5a034b41a9adfe6af921467d9ca48d9"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/build-final.log",
+      "bytes": 2539,
+      "sha256": "6d440e297fd10ef6fe11ea576d12f1aa7bd7dc6a6db92d6df692e833df5a5e79"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/build.log",
+      "bytes": 39545,
+      "sha256": "cfff38f668232d47824076aa0cd88ba2b726fab3cbf65f5dfb34f1a7e8f9fce5"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-1/campaign.json",
+      "bytes": 713,
+      "sha256": "ea6a5c41221af0aca6b2ffb94e8b0b8b6af6288f889d71eb2d97d1ff5ef22ce9"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-1/case-01/assessment.json",
+      "bytes": 426,
+      "sha256": "699cee00efcb61c8abe4237c18b5beed334f4cde6388656793c9c05ba3a0ae96"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-1/case-01/mac-dns-sd.jsonl",
+      "bytes": 109,
+      "sha256": "31635af63579bd39e90af1c278b55e260acf16015d6c1870f9338ae5e706fc22"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-1/case-01/mac-dns-stop.json",
+      "bytes": 70,
+      "sha256": "9bb64b922ebbc72521b33112f578b5a6384adefd81e42e26c315dd378ae102ea"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-1/case-01/mac-peer.jsonl",
+      "bytes": 1870,
+      "sha256": "40120c8e0eec9966c8380f3637bef87dd500f6a7cdd68ab76586c996d61e31ea"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-1/deployment.json",
+      "bytes": 1042,
+      "sha256": "e5301057dc1239f9c9e54c9100b6c7e89658c93f2b8e45bb65b4584f44802d2b"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-1.log",
+      "bytes": 91,
+      "sha256": "60c62c2bb576b68798e38307dd399db0ad89f73026fa4b8382baa6feaa46b4bc"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/campaign.json",
+      "bytes": 5149,
+      "sha256": "25ddff6aadcca5889686207368324a7579ddd026e19b208d5fdffc0a3fd18612"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/assessment.json",
+      "bytes": 4262,
+      "sha256": "e8045d172201ebde1db8a757612b4e8167d2ef14f3a2fddc186c54b349b548f8"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/case-01/capture.log",
+      "bytes": 163,
+      "sha256": "a04457904b9f4dca67fce43babf64d09f89fd00ad68d041bc52c0fb64cbb65c1"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/case-01/diagnostic-capture.log",
+      "bytes": 165,
+      "sha256": "3b31588fb38116ce2d39999bfd8e9c978a491c3418f51359c63869308cea2f20"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/case-01/diagnostic.pcap",
+      "bytes": 8365,
+      "sha256": "a4db42ad94332d944f00646f9bef4c69b63ec711ccf52c9ef0e7527811dee591"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/case-01/events.jsonl",
+      "bytes": 191075,
+      "sha256": "e4f437ea58914ed24184347b6fad9b98f9aa9d0336a33a2ae51ceb15a048e9f3"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/case-01/mdns.pcap",
+      "bytes": 677,
+      "sha256": "9404d245630ffbfc92a56426122d196c8cf43847d26841868511bb23cfffe6f5"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/case-01/usb-frames.jsonl",
+      "bytes": 5161,
+      "sha256": "d3a8ff8bee1945a1513abb120ba5f90f02c0e3299a95cc36ffe67f3304e3bb22"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/case-01/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/case-01/usb-wire.bin",
+      "bytes": 5006,
+      "sha256": "0c64c76774fee80d43b13716933bc606de67084f13300e90ff48f600d52fa525"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/inspect-01/events.jsonl",
+      "bytes": 2456,
+      "sha256": "7df48cd3335e1d3601893f6478ac202b6b8bd484aed5b5f2bb48f69f49eccafe"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/linux.tar",
+      "bytes": 327680,
+      "sha256": "d1d9827c9127b3e36b0b6e858f1ac1b66898a1531a35eae4b6b67fdbb7713f79"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/mac-dns-sd.jsonl",
+      "bytes": 629,
+      "sha256": "3661fd2b9b3e57c74111cd1664d338124949c903b9a40ac2e071e62b4a52e32a"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/mac-dns-stop.json",
+      "bytes": 69,
+      "sha256": "25614d7e8420da64b340f73c9ba065eee59152415eb1e8252596efc6f0ec8a6d"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/mac-peer.jsonl",
+      "bytes": 3753,
+      "sha256": "ccff30f7ca41704c3c713fbd2c438bdb281ec3bdf99a5e63fe89fafa5dbca132"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/reassessment.json",
+      "bytes": 5007,
+      "sha256": "1613c0e355c0a2ba2790e1d4721ae1d53021f8658f475864ea446d1a60632e40"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/runner-01.log",
+      "bytes": 101408,
+      "sha256": "75bc7f87f85b69638fe25ee5e6affa27a5879804d25f9418cde5ee98778f590c"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/service-state.txt",
+      "bytes": 69,
+      "sha256": "34a96f3d9b4f03039916c7268172810e74bc25b4b3df3189bea806fbb8fccf7f"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/case-01/unit-failed-state-cleared",
+      "bytes": 31,
+      "sha256": "f2f4e38d2474fd239c791813018050c4f135cbf5a649ce019f590d2cf91e2992"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2/deployment.json",
+      "bytes": 1042,
+      "sha256": "4886707a7c608ad6653d9281b9017a69bf6166bbe1d4b2ae2bca5e1525041177"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/campaign-2.log",
+      "bytes": 194,
+      "sha256": "d6146cf7dd40038a2076ea8372d6cfdcf4bd900c0070fa30564e4076f9c6919c"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/candidate.diff",
+      "bytes": 6770,
+      "sha256": "f0f662ebe6b3478df5cdf110c0841945073be8c74b6c9c48cad649b9a1b423ea"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/candidate.json",
+      "bytes": 777,
+      "sha256": "b112b308b8f0ef7cc156eef5a0d8033b201830fde77d84ccd07f515c06c6c910"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/configure.log",
+      "bytes": 1121,
+      "sha256": "aa566d30ea1901fcdaa1a408fddcb05a6b9e0505b9f4451da2bc431ee295da5a"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/final-configure.log",
+      "bytes": 239,
+      "sha256": "4340a822a8c71abf039284b92ba36dbbd4ce3d26671319e19c11f7831fe65277"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/final-host-build.log",
+      "bytes": 2889,
+      "sha256": "bf75f2bfbab1b18101517565f63f69ff93b63e3311ceefbfe7f236c7b9b98200"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/final-host-tests.log",
+      "bytes": 3274,
+      "sha256": "e54a0559a169c543ae5a743ab08927610ab87f31a365edf1f7b59f3f48e34d69"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/final-linux-host.log",
+      "bytes": 6298,
+      "sha256": "ffd25e0d6de9ebd93665520ed24b3752b81539195907d7e39acfa81b81930fe9"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/final-linux-host.py",
+      "bytes": 4307,
+      "sha256": "be621529cfbfcf789323a2a2909d04de0dac0f7988d8edc8750e865bf1e89836"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/final-mac.json",
+      "bytes": 2812,
+      "sha256": "dd7ba5d39d96d28c7c7d0727f58b5502a125507bbd42152c4878c3ddfbb2705c"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/flash.log",
+      "bytes": 20657,
+      "sha256": "711805685ded4f32696b86aeeca0bdbe987a5a6b26869386a6e631e21678f1c9"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/flash.py",
+      "bytes": 3239,
+      "sha256": "245839e7ef80c1d93bafd2e023b61e8ab8a2665b109e6e057372d759d6ae7cb4"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/host-build.log",
+      "bytes": 1202,
+      "sha256": "f9eb3fa24b365e484ddb85df5671849790e5c8cc9569b35e495c655f02352d8b"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/host-tests.log",
+      "bytes": 553,
+      "sha256": "066a636119eea6459c3174461ec14b7a928b97fe64be08e81f59d8160a4857c2"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/image-check.log",
+      "bytes": 147,
+      "sha256": "44ede08ad45243766b93ff7d69490001d18721cbc999d2a450185027e0d90fd8"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/preflight.log",
+      "bytes": 2771,
+      "sha256": "60f4cb9d694aa5ea4b60abd96812414ab9f8b988c8168016d402add5c259458c"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/reassessment-decision.json",
+      "bytes": 141,
+      "sha256": "36f1ff6c72a11080f63df90612f4a6e8100aceae0b70bcc80575c7262b36a85e"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/recover.log",
+      "bytes": 12961,
+      "sha256": "ffbc876c36df064fac532d848bbe009b61f587291fbf1632f026de253c4ec16e"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/recover.py",
+      "bytes": 2688,
+      "sha256": "0e149e43f62a971672d8fcd58bc755eb1190a69a321ebc4eb355c88cfb5a6eb9"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/rf-exclusion-linkcheck.log",
+      "bytes": 53704,
+      "sha256": "578860dd436c57ec4f2a496ef82dc073e6dcdb252c0f65deed9604b925b51063"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/runtime-inputs-unchanged.json",
+      "bytes": 140,
+      "sha256": "63c95bca5db1ad124adc997f897d4fc3615e74e0c0e7eda6ed1309a02ad9a122"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/sanitize-build.log",
+      "bytes": 1049,
+      "sha256": "98aa7ad83080939bb9598ef032321392cc6343f8cb918c94c2e53b4bdac4b5f2"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/sanitize-configure.log",
+      "bytes": 243,
+      "sha256": "b3c7578519e332f8ed443710b90ccf39a2502c45712b641e48df781dea0ab0fe"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/sanitize-review-build.log",
+      "bytes": 366,
+      "sha256": "0baefd75419084045611cfa6200ad5067bfef8c307b56f1988c7516387b3a1df"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/sanitize-review-tests.log",
+      "bytes": 246,
+      "sha256": "3296b6b41f7d66b72f6ce859e1ebf1c37c81d56f73dd8d5affb407776a24da33"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/sanitize-tests.log",
+      "bytes": 352,
+      "sha256": "b379ef11914ef688246488b55d6a2a9dd7a58a6f5f4c894c8cf163405042a268"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/source.tar",
+      "bytes": 71680,
+      "sha256": "a97d4cba51a67025a3e2fe7c19775f49616a6ef690076a1d51faa2503f4c1ccb"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/stage.tar",
+      "bytes": 2007040,
+      "sha256": "981fd688d6498aefe0ba6f11ab39758c7a4a38aa077706bfc3c3fb89d33eb822"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/campaign.json",
+      "bytes": 216986,
+      "sha256": "3261d82f2ade16c6f3e842d747be73aa6952b3189f7503e6b7dbcddbaff32d81"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/assessment.json",
+      "bytes": 190694,
+      "sha256": "813b6227c6e4acafef3eb2889c7f49a75da31ef1b3e049a9f65b3e2f54aa0377"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/case-01/capture.log",
+      "bytes": 165,
+      "sha256": "5b2fcaacf8e7e01e613fac7ede92acf41dc8a8fc330ecdf65f37e7284778bb81"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/case-01/diagnostic-capture.log",
+      "bytes": 165,
+      "sha256": "b12a53e8ca111915949d7739b1d29f54645957667c478a4ef968126053ecd6fb"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/case-01/diagnostic.pcap",
+      "bytes": 14364,
+      "sha256": "366a31578276f7f815c4af5b3a0cf9be29db2278f8bfc27d8d9e44dba7110e7f"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/case-01/events.jsonl",
+      "bytes": 755098,
+      "sha256": "71759cae2b348bf5b774e4eb46933c4944d7a18594dc7c0f2c40d8aa1dc21c5e"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/case-01/mdns.pcap",
+      "bytes": 3844,
+      "sha256": "cd953e00277e40b41792b2e9761f5a617002617b4391950f9b51ae386eadfa82"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/case-01/usb-frames.jsonl",
+      "bytes": 7123,
+      "sha256": "854a4c0602a5738a3bbcc79f93e704c8db223745fa3719bbde40b412eed7ac10"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/case-01/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/case-01/usb-wire.bin",
+      "bytes": 6914,
+      "sha256": "cf85dbb019be6ed9e53aa3445c77aa4744c32fdbf5dd364903cdc08131673e17"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/inspect-01/events.jsonl",
+      "bytes": 2681,
+      "sha256": "65e1d694fbba8f870917d1fec7b87ef372c52a99aa0abb670c8f20a135d3b864"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/linux.tar",
+      "bytes": 1044480,
+      "sha256": "60dbca0349025e88798aa5fd0e0d0cb6d7c19a6847a90ea691dbd713ff4e21cb"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/mac-dns-sd.jsonl",
+      "bytes": 411,
+      "sha256": "230574582bff773e9fc151399e6eb244eda08f7530d3c8e0c10b4d8bcb78d51c"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/mac-dns-stop.json",
+      "bytes": 69,
+      "sha256": "f0d3d3ab8bd522896f6363728d554af77a261700a084cdbffa349ffeb03bee20"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/mac-peer.jsonl",
+      "bytes": 10030,
+      "sha256": "1a30672735dac4ca11c13cebe28687d2595af988196f281b996f6b79cce09046"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/runner-01.log",
+      "bytes": 236180,
+      "sha256": "766e2672ccd13684ad7ada44abfba887a650d183522ec3f0df327d6a4960ee43"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/service-state.txt",
+      "bytes": 69,
+      "sha256": "34a96f3d9b4f03039916c7268172810e74bc25b4b3df3189bea806fbb8fccf7f"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/case-01/unit-failed-state-cleared",
+      "bytes": 31,
+      "sha256": "e529d4fbfdf04bbd60e143993bded027ea1ef6e3b0d4f664f5fb1a407443750a"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic/deployment.json",
+      "bytes": 1068,
+      "sha256": "7684a1a2f730341297cc1d32890fb13f7cdc469eaf97d22cffa9153742c82c74"
+    },
+    {
+      "path": "build/phase11-4-packet-trace/startup-diagnostic.log",
+      "bytes": 151,
+      "sha256": "bad719d49995f53e602c79f1bba6c99474ea8ac2b89406aef0eaca412642403a"
+    }
+  ]
+}

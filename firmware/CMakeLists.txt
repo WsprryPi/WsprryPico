@@ -28,6 +28,7 @@ configure_file(
 add_executable(WsprryPico
     ../src/standalone/pico/main.cpp
     ../src/standalone/pico/adapters.cpp
+    ../src/standalone/pico/net_trace.cpp
     pico_adapters.cpp
     usb_descriptors.c
     ../src/usb/transport.cpp

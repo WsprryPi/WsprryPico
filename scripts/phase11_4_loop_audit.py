@@ -106,7 +106,7 @@ def clock_gate_evidence(rows, packets):
     return matches
 
 
-def assess_case(case, boot):
+def assess_case(case, boot, revision='e4ff40a56180-dirty'):
     result = {'result': 'FAIL', 'observer_failure': False, 'failure_point': None,
               'failure_messages': [], 'scope': 'bounded B2/D2 physical case'}
     folders = sorted(case.glob('case-*/events.jsonl'))
@@ -128,7 +128,7 @@ def assess_case(case, boot):
             if row['kind'] == 'RECOVERY_INFO':
                 v = row['value']
                 result['final_info'] = v
-                if (v.get('device_id') == DEVICE and v.get('revision') == 'e4ff40a56180-dirty'
+                if (v.get('device_id') == DEVICE and v.get('revision') == revision
                         and v.get('recovery_boot') and v['status']['boot_id'] != boot
                         and v.get('fault_stage') in (15, 16)):
                     result['failure_point'] = {15: 'watchdog during final mDNS removal',
@@ -137,7 +137,7 @@ def assess_case(case, boot):
         # Failed cases still require authentic, complete observers before localization.
         for v in infos:
             if not v['value'].get('recovery_boot'):
-                validate_info(v['value'], boot)
+                validate_info(v['value'], boot, revision)
         expected = read_rows(directory / 'usb-frames.jsonl')
         result['raw_usb_frames'] = strict_usb((directory / 'usb-wire.bin').read_bytes(), expected)
         packets = pcap(directory / 'mdns.pcap')
@@ -201,7 +201,7 @@ def assess_case(case, boot):
                 for pool in r['value']['network']['memory'].values()),
         }
         if selected('CASE_PASS'):
-            result['acceptance'] = acceptance_audit(directory, case / 'mac-dns-sd.jsonl', 'e4ff40a56180-dirty')
+            result['acceptance'] = acceptance_audit(directory, case / 'mac-dns-sd.jsonl', revision)
             state = (case / 'service-state.txt').read_text().splitlines()
             active = selected('local_active')[0]['epoch_ns']
             result['mac_recovered_checks'] = validate_completed_observers(state, mac, active)
