@@ -257,8 +257,16 @@ int main(void) {
     }
     netif_set_link_down(&interface);
     assert(wsprry_mdns_network_changed());
+    before = packets;
     wsprry_mdns_remove(&interface, 1);
     assert(wsprry_mdns_goodbye_attempts() == 1);
+    assert(packets == before && zero_ttl == 2);
+    assert(!mdns_resp_netif_active(&interface) && lwip_stats.mem.used == memory);
+    assert(lwip_stats.memp[MEMP_SYS_TIMEOUT]->used == timeout_count);
+    advance(150000);
+    assert(packets == before && wsprry_mdns_goodbye_attempts() == 1);
+    assert(lwip_stats.mem.used == memory);
+    assert(lwip_stats.memp[MEMP_SYS_TIMEOUT]->used == timeout_count);
     netif_set_link_up(&interface);
     for (i = 0; i < 100; ++i) {
         assert(wsprry_mdns_add(&interface, "pico-a") == ERR_OK);

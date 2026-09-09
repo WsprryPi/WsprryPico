@@ -25,7 +25,39 @@ struct Adapter : MdnsAdapter {
         goodbyes += goodbye;
     }
 };
+static void unexpected_link_loss() {
+    Adapter adapter;
+    Mdns mdns(adapter, "pico-a.local");
+    mdns.poll(true, 1, 0);
+    mdns.name_result(true);
+    assert(mdns.advertised() == "pico-a.local");
+
+    // Link loss wins even if the caller still holds the previous DHCP address.
+    mdns.poll(false, 1, 1);
+    assert(!adapter.registered && adapter.removes == 1 && adapter.goodbyes == 0);
+    assert(mdns.state() == "waiting_address" && mdns.advertised().empty());
+    mdns.name_result(true); // A late callback must not resurrect the old name.
+    mdns.name_result(false);
+    mdns.network_changed();
+    mdns.poll(false, 1, 150'000'000);
+    assert(adapter.adds == 1 && adapter.removes == 1 && mdns.conflicts() == 0);
+    assert(mdns.state() == "waiting_address" && mdns.advertised().empty());
+
+    // Automatic recovery must reprobe the certified name, without an idle retry.
+    mdns.poll(true, 2, 150'000'001);
+    assert(adapter.inits == 1 && adapter.adds == 2 && adapter.label == "pico-a");
+    assert(mdns.state() == "probing" && mdns.advertised().empty());
+    // Another loss during probing cancels its deadline as well as registration.
+    mdns.poll(false, 0, 150'000'002);
+    mdns.poll(false, 0, 200'000'002);
+    assert(mdns.failures() == 0 && adapter.goodbyes == 0);
+    mdns.poll(true, 2, 200'000'003);
+    mdns.name_result(true);
+    assert(mdns.advertised() == "pico-a.local" && mdns.registrations() == 3);
+    assert(adapter.inits == 1 && adapter.removes == 2 && adapter.goodbyes == 0);
+}
 int main() {
+    unexpected_link_loss();
     Adapter a;
     Mdns m(a, "Pico-A.LOCAL.");
     m.poll(false, 0, 0);

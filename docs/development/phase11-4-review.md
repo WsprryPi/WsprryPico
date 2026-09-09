@@ -1,5 +1,12 @@
 # Phase 11.4 inhibited device acceptance review
 
+The [D3 execution and review](phase11-4-d3-results.md) passes two bounded IoT
+link-loss/cache-removal cases, including finite inhibited-job continuity and
+automatic recovery. It retains the first job's non-overlap, a second recovery
+observation gap, TTL timing limits and Chrome blocking. Original IoT settings
+and inactive/unowned device state were restored. Strengthened host tests,
+four compiled mutation refusals and 19 altered-evidence refusals passed review.
+
 The [D1 execution](phase11-4-d1-results.md) retains a failed real address-change
 attempt: Orbi LAN Apply returned HTTP 400. The temporary reservation was deleted;
 production hostname/TLS baseline and ordinary DHCP cleanup passed. D1 remains
