@@ -1,0 +1,666 @@
+{
+  "schema": "phase11-4-private-evidence/1",
+  "private_root": "build/phase11-4-loop",
+  "source_start": "59c01ed35797adecfbe96f1832e6681cde599ed7",
+  "firmware_uf2_sha256": "524dd721ed6f67fbb21b1544546014fa174a4cb5d92d69d5fdfdbe5138f38664",
+  "firmware_revision": "e4ff40a56180-dirty",
+  "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+  "boot_id": "f40c48f2e8b61b0da9743f1504ae4f2e",
+  "automated_stop": "HARNESS_INEFFECTIVE at three failed cases; raw outcomes retained",
+  "review_conclusion": "Both original faults reproduced but not localized; one additional transient TLS reset annotated as the unsynchronized-clock admission gate; B2/D2 remain open.",
+  "physical_cases": 5,
+  "physical_passes": 2,
+  "retained_physical_failures": 3,
+  "artifacts": [
+    {
+      "path": "campaign-1/campaign.json",
+      "bytes": 4872,
+      "sha256": "cb1c6b2e889210d852e5093c00b36003f58b179076c69b5905c5c807b735cf50"
+    },
+    {
+      "path": "campaign-1/case-01/assessment.json",
+      "bytes": 4025,
+      "sha256": "b79e17c04d1a2957efdd2a2847c404604a277cc1afdb43333f357c190df3b244"
+    },
+    {
+      "path": "campaign-1/case-01/case-01/events.jsonl",
+      "bytes": 7662,
+      "sha256": "4c00ffb548dfd75597271646b961b0c34ba0ea2e1fa755f219c25efa2bc63e94"
+    },
+    {
+      "path": "campaign-1/case-01/case-01/usb-frames.jsonl",
+      "bytes": 1564,
+      "sha256": "b3c9bda2e96686be112fa934ac5f190943cf24edd2d9d772b0ab08367774ca1a"
+    },
+    {
+      "path": "campaign-1/case-01/case-01/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "campaign-1/case-01/case-01/usb-wire.bin",
+      "bytes": 1508,
+      "sha256": "935ca726b8ffd205d670c56cfe19c46bc39505684ffe2ac9b923de52c30af285"
+    },
+    {
+      "path": "campaign-1/case-01/inspect-01/events.jsonl",
+      "bytes": 2700,
+      "sha256": "761cf71f2b67b57c2c8371487c217fa545be18382d650c260ec6fc2ab516a98b"
+    },
+    {
+      "path": "campaign-1/case-01/linux.tar",
+      "bytes": 30720,
+      "sha256": "d9f1abf2a1ba15150d1a7210b2aed2aa168a1b5f031fed5eb63e5c1c4e6df3a2"
+    },
+    {
+      "path": "campaign-1/case-01/mac-dns-sd.jsonl",
+      "bytes": 411,
+      "sha256": "a9bfb7a1cd8e3b8ab36725728464cf87769c431ce2c1553736fd4ab71ceec795"
+    },
+    {
+      "path": "campaign-1/case-01/mac-dns-stop.json",
+      "bytes": 70,
+      "sha256": "5fdac3f8c77d83c5fbb814b92da42ce4b0a1b7a68b7070f76bfed706f441d51a"
+    },
+    {
+      "path": "campaign-1/case-01/mac-peer.jsonl",
+      "bytes": 2835,
+      "sha256": "9b395635e05de3e9fc571c9959e25bebea2cda5a38372e17f704f8777ab3c85d"
+    },
+    {
+      "path": "campaign-1/case-01/runner-01.log",
+      "bytes": 3622,
+      "sha256": "839cc28105c0ce037807b0c98653ed64fcf0038e353aeab5b6f2c98836d0a615"
+    },
+    {
+      "path": "campaign-1/case-01/service-state.txt",
+      "bytes": 69,
+      "sha256": "34a96f3d9b4f03039916c7268172810e74bc25b4b3df3189bea806fbb8fccf7f"
+    },
+    {
+      "path": "campaign-1/deployment.json",
+      "bytes": 947,
+      "sha256": "e6050b5ad5af70d590ccff19da5378e2adc68cac4394f0608c6355c28696c3ae"
+    },
+    {
+      "path": "campaign-1/target-source.tar",
+      "bytes": 71680,
+      "sha256": "b323987f83d65a739e4c8406c43c1a69bb69d0029b08e74c194a3f2432ac2cc9"
+    },
+    {
+      "path": "campaign-1.log",
+      "bytes": 162,
+      "sha256": "4fe0218f4640d29dd3937291df1248e0b73329e59244012cc21412d00d825949"
+    },
+    {
+      "path": "campaign-2/campaign.json",
+      "bytes": 9009,
+      "sha256": "a311c8ffcfeafc5c43196563635790a68d6f0cc07fb9797d19d618e7fffe69a3"
+    },
+    {
+      "path": "campaign-2/case-01/assessment.json",
+      "bytes": 7618,
+      "sha256": "cabb6fa4c77c0b3453db478dc4057988f228de2a311cf5dfe4befd0e839cefdf"
+    },
+    {
+      "path": "campaign-2/case-01/case-01/capture.log",
+      "bytes": 165,
+      "sha256": "6b0262229b47c94b56d2293caf6b06189b23ed013e9e9ce9b324e7675c629ba5"
+    },
+    {
+      "path": "campaign-2/case-01/case-01/diagnostic-capture.log",
+      "bytes": 167,
+      "sha256": "264dfdaf194208fd40dd9beaa33c0b8a43c351aea5ae17edd881ae0e7a2dedd9"
+    },
+    {
+      "path": "campaign-2/case-01/case-01/diagnostic.pcap",
+      "bytes": 62262,
+      "sha256": "af01d1fe0f51a2f96eac472924f7824c0b8550386f49bfb0ee26983d2bd908ce"
+    },
+    {
+      "path": "campaign-2/case-01/case-01/events.jsonl",
+      "bytes": 2206528,
+      "sha256": "82852871397ac288d6384ae868259f7f4c0b020a6195ed3f02da3371b3dc8c7b"
+    },
+    {
+      "path": "campaign-2/case-01/case-01/mdns.pcap",
+      "bytes": 11035,
+      "sha256": "32a0839c48da8e4889b7b1dc92181f5bf3e43b27132b443eaa068b80c3876ee8"
+    },
+    {
+      "path": "campaign-2/case-01/case-01/usb-frames.jsonl",
+      "bytes": 27724,
+      "sha256": "521c0ce2a5a3241e91b93a068db8e124b0cc1a8845fa757363b0294f07febd9a"
+    },
+    {
+      "path": "campaign-2/case-01/case-01/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "campaign-2/case-01/case-01/usb-wire.bin",
+      "bytes": 26948,
+      "sha256": "de5c3a6c7f28d779c10034ea6c7f35f3dd425974ffd7f9c7fa061297ee74b5cc"
+    },
+    {
+      "path": "campaign-2/case-01/inspect-01/events.jsonl",
+      "bytes": 2697,
+      "sha256": "4d5675b38877a71299bce947cb915fb6f15d66cbc822470ecb7b5b8ce4b8a30f"
+    },
+    {
+      "path": "campaign-2/case-01/linux.tar",
+      "bytes": 2396160,
+      "sha256": "1ee16836d16e602d01d567ea5236df457158f3ab657159525f5301c3e7e9091b"
+    },
+    {
+      "path": "campaign-2/case-01/mac-dns-sd.jsonl",
+      "bytes": 757,
+      "sha256": "bc07665dc67008c657ee0bbf3d4bbc05730ebd75874e16f1b270e7656ab2b9ac"
+    },
+    {
+      "path": "campaign-2/case-01/mac-dns-stop.json",
+      "bytes": 70,
+      "sha256": "90004355136b738ef32c4a2a47fb388b9750bd8de56fcda2b23f9da219b5ae7d"
+    },
+    {
+      "path": "campaign-2/case-01/mac-peer.jsonl",
+      "bytes": 26064,
+      "sha256": "41ec316b00a0b18da0e75458e84635e10700cab619c7aae598d7ffd8a87a9cca"
+    },
+    {
+      "path": "campaign-2/case-01/runner-01.log",
+      "bytes": 49013,
+      "sha256": "0a91d3546ea97cce313c89badc34081ee0cc0d78deb5856722ad3aef365be3f8"
+    },
+    {
+      "path": "campaign-2/case-01/service-state.txt",
+      "bytes": 67,
+      "sha256": "90343b47204208f05a4441ef870547afa0188dc6122f79e6e692c5f94691b843"
+    },
+    {
+      "path": "campaign-2/deployment.json",
+      "bytes": 947,
+      "sha256": "100205c19a5b3d84477e37900c4e1c9da70ddd216c8106d25171585058587391"
+    },
+    {
+      "path": "campaign-2/target-source.tar",
+      "bytes": 71680,
+      "sha256": "85a490b02682f35f43b8725ba6a245f8a5421abafc3a2dfea5645e9127a35619"
+    },
+    {
+      "path": "campaign-2.log",
+      "bytes": 162,
+      "sha256": "2db9dbb05f0fd866c442a91c24719a9bd0ad83faa4ae2de4eff21de9aecba3a5"
+    },
+    {
+      "path": "campaign-3/campaign.json",
+      "bytes": 30451,
+      "sha256": "0b5aaf1d06ba2a2feba244e3e9491968db45f1ef68f3b7d7075f5dc4706a2dcb"
+    },
+    {
+      "path": "campaign-3/case-01/assessment.json",
+      "bytes": 6812,
+      "sha256": "922a9091f284d8f179001f37c6dfa8262f8a9b0c138199832b84f6aba9e5e7d2"
+    },
+    {
+      "path": "campaign-3/case-01/case-01/capture.log",
+      "bytes": 165,
+      "sha256": "5ff945f9e9fdd61b2fcd9cfcbbdbd8979d30e02913e761d1564f2a7c5d751076"
+    },
+    {
+      "path": "campaign-3/case-01/case-01/diagnostic-capture.log",
+      "bytes": 167,
+      "sha256": "99477ca1d1e2233713720c30c39308aa8a66556b1e6ab23b7ccc250041a5b664"
+    },
+    {
+      "path": "campaign-3/case-01/case-01/diagnostic.pcap",
+      "bytes": 62840,
+      "sha256": "b24ef6f751d2614e889cb0823633e16d3783d2759464398f9cd34084bf652495"
+    },
+    {
+      "path": "campaign-3/case-01/case-01/events.jsonl",
+      "bytes": 2254293,
+      "sha256": "420e43c6cc230a49abf3ea25241035cd2dd0893f45e7e1fc674ed7daa030eb80"
+    },
+    {
+      "path": "campaign-3/case-01/case-01/mdns.pcap",
+      "bytes": 13649,
+      "sha256": "35c0911423bdb32a24019dc665310cb56a5952eac2e84ca219ea60cc0c9c6969"
+    },
+    {
+      "path": "campaign-3/case-01/case-01/usb-frames.jsonl",
+      "bytes": 28378,
+      "sha256": "5e0e4f14f204853e9981404a171f64bddb88791079e30e79e87f592bc52a19fd"
+    },
+    {
+      "path": "campaign-3/case-01/case-01/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "campaign-3/case-01/case-01/usb-wire.bin",
+      "bytes": 27584,
+      "sha256": "bde22920e6bd2a15d26d3e68418df1e9a11588326cfacd1e265a2275ac570e4b"
+    },
+    {
+      "path": "campaign-3/case-01/inspect-01/events.jsonl",
+      "bytes": 2704,
+      "sha256": "60e4694de24786e26bd34139369d9a8de9bbea9443b0e936c86e518d1d41136a"
+    },
+    {
+      "path": "campaign-3/case-01/linux.tar",
+      "bytes": 2457600,
+      "sha256": "65ed74a0d7c3cf2eb9cc676af1c73ffa55aa759a5734c67624ce4992bc6900a6"
+    },
+    {
+      "path": "campaign-3/case-01/mac-dns-sd.jsonl",
+      "bytes": 757,
+      "sha256": "5eaea8ef94d61996e32203754c5e49bbab2a284b76164f23e898751a3d544344"
+    },
+    {
+      "path": "campaign-3/case-01/mac-dns-stop.json",
+      "bytes": 70,
+      "sha256": "1a5791ab7d0f01d89bfb636f66a796d2dd91275ad623ed84a6dbe347da8cf02d"
+    },
+    {
+      "path": "campaign-3/case-01/mac-peer.jsonl",
+      "bytes": 26386,
+      "sha256": "eedf4ddaa75e556d442ca0bd48e6517c0d61c561da671fab342ae81c47d34156"
+    },
+    {
+      "path": "campaign-3/case-01/runner-01.log",
+      "bytes": 50207,
+      "sha256": "b41de9826f09c0faebbb2bc1670281867810381c5cb00f93681016a8e35709f3"
+    },
+    {
+      "path": "campaign-3/case-01/service-state.txt",
+      "bytes": 67,
+      "sha256": "90343b47204208f05a4441ef870547afa0188dc6122f79e6e692c5f94691b843"
+    },
+    {
+      "path": "campaign-3/case-02/assessment.json",
+      "bytes": 5956,
+      "sha256": "d3b14368aefaec025e70d461ef7f4664ffc764fa9f8c175949252898483a67e0"
+    },
+    {
+      "path": "campaign-3/case-02/case-02/capture.log",
+      "bytes": 165,
+      "sha256": "59673f80ed397ee79db809e13b8d43560b2a1d7a12ff822894e6f57d63243014"
+    },
+    {
+      "path": "campaign-3/case-02/case-02/diagnostic-capture.log",
+      "bytes": 165,
+      "sha256": "fcada3500acff679de0957e56ed9a1a9a25484bc06efe41e1f9135eec71fc2ff"
+    },
+    {
+      "path": "campaign-3/case-02/case-02/diagnostic.pcap",
+      "bytes": 12056,
+      "sha256": "e9b097293e5326835ca83fafb4bc24ed141b526a37ea799890ac99d4e550ac02"
+    },
+    {
+      "path": "campaign-3/case-02/case-02/events.jsonl",
+      "bytes": 3238077,
+      "sha256": "01581efd2fbc6ce2f572b25ce3b7c362d07f6340e1d1b2dc00f1d18759190a11"
+    },
+    {
+      "path": "campaign-3/case-02/case-02/mdns.pcap",
+      "bytes": 16169,
+      "sha256": "5db5c54276040eb9ec9a652f656f07c3df0b041fb353bb41cafa08215c24c297"
+    },
+    {
+      "path": "campaign-3/case-02/case-02/usb-frames.jsonl",
+      "bytes": 31975,
+      "sha256": "92ea98932debd9fef5c327bf06be8a193082e0b0c042ab6d3c9c969b5b073a3b"
+    },
+    {
+      "path": "campaign-3/case-02/case-02/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "campaign-3/case-02/case-02/usb-wire.bin",
+      "bytes": 31082,
+      "sha256": "bf4f5f4c9a45fa689a29b2b403f2eae34503ebde85729e0139af53f4f785dbd2"
+    },
+    {
+      "path": "campaign-3/case-02/inspect-02/events.jsonl",
+      "bytes": 2702,
+      "sha256": "7133344a07f23378b123435323f2a712b48a5e7598445c8990596a0dcbf10e4c"
+    },
+    {
+      "path": "campaign-3/case-02/linux.tar",
+      "bytes": 3389440,
+      "sha256": "a92bf45fd6fb265b7c2d4023265e810ba84af8580cccd46c9fd34d63627c8888"
+    },
+    {
+      "path": "campaign-3/case-02/mac-dns-sd.jsonl",
+      "bytes": 583,
+      "sha256": "b4175bda80f9216b7afd38bcdb0cbc1458c3880646946d85762853252055c238"
+    },
+    {
+      "path": "campaign-3/case-02/mac-dns-stop.json",
+      "bytes": 70,
+      "sha256": "3ea4ff1e3d1d55f85e958ed381bc2f7b56b7bc8a9213f82ca31fda0c49ec2197"
+    },
+    {
+      "path": "campaign-3/case-02/mac-peer.jsonl",
+      "bytes": 20631,
+      "sha256": "8bfa98ad166327b6deac46148c005be654211e1b61211b16b41e52846ce41e07"
+    },
+    {
+      "path": "campaign-3/case-02/runner-02.log",
+      "bytes": 47050,
+      "sha256": "a6d0642fd2fb2ce5f0175c99fcbb4cfc5596915ab35c3ba28b3e593a6c6e06ab"
+    },
+    {
+      "path": "campaign-3/case-02/service-state.txt",
+      "bytes": 69,
+      "sha256": "34a96f3d9b4f03039916c7268172810e74bc25b4b3df3189bea806fbb8fccf7f"
+    },
+    {
+      "path": "campaign-3/case-03/assessment.json",
+      "bytes": 5707,
+      "sha256": "5e023cf08bbb28faf6b82507b4131cc74064f4c3ceff2c2054f62d61e057e98b"
+    },
+    {
+      "path": "campaign-3/case-03/case-03/capture.log",
+      "bytes": 165,
+      "sha256": "a5d6d7bc7318861799f4e34a1252b2e82a6f4a639087254b933796c3b9f87015"
+    },
+    {
+      "path": "campaign-3/case-03/case-03/diagnostic-capture.log",
+      "bytes": 167,
+      "sha256": "d775f8cee48fe214bc2d5266516ac89fbd7299be2a608f4fa75993b16d488778"
+    },
+    {
+      "path": "campaign-3/case-03/case-03/diagnostic.pcap",
+      "bytes": 65558,
+      "sha256": "c66ba26503262456c59a9ef1e2f48a53dc04b160665d1be5001e9d34fe862087"
+    },
+    {
+      "path": "campaign-3/case-03/case-03/events.jsonl",
+      "bytes": 2319529,
+      "sha256": "173cbef1ac8257f7fe835d69d91da4e2e367969149931876b78c10e05a4b93d4"
+    },
+    {
+      "path": "campaign-3/case-03/case-03/mdns.pcap",
+      "bytes": 12046,
+      "sha256": "9d050e6548481b32d9a9822fe3b8e84c6ab16d71a4416f6db2b2763d88496da2"
+    },
+    {
+      "path": "campaign-3/case-03/case-03/usb-frames.jsonl",
+      "bytes": 30340,
+      "sha256": "1b267716c7380af510c843e05aa00d12e48525c4704ca1c9bc924c62f9c2e570"
+    },
+    {
+      "path": "campaign-3/case-03/case-03/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "campaign-3/case-03/case-03/usb-wire.bin",
+      "bytes": 29492,
+      "sha256": "5be18def41f92e137570aee3900a2b1736db1b1b423c1d25b39b816271ee40c7"
+    },
+    {
+      "path": "campaign-3/case-03/inspect-03/events.jsonl",
+      "bytes": 2703,
+      "sha256": "dae0e6d491d218a4f40c9ddf5c62112f624ca4856e1e34d1f660250af7481dad"
+    },
+    {
+      "path": "campaign-3/case-03/linux.tar",
+      "bytes": 2529280,
+      "sha256": "795c386de5c284039887e61424024d446e4e04ab606cf903a9934c49605a3acd"
+    },
+    {
+      "path": "campaign-3/case-03/mac-dns-sd.jsonl",
+      "bytes": 757,
+      "sha256": "9faf2129747126355f47c0b6c98ef61af0a6571ad7bc8abf007b6765da4b15c3"
+    },
+    {
+      "path": "campaign-3/case-03/mac-dns-stop.json",
+      "bytes": 68,
+      "sha256": "fca129b512f2fdf4095a40c9fe1dae2938c5762db626a83fe48f5ac9bc934ca5"
+    },
+    {
+      "path": "campaign-3/case-03/mac-peer.jsonl",
+      "bytes": 25115,
+      "sha256": "89330ff511512104488c20ed6c92915640ced937ec804323a498304f549eed63"
+    },
+    {
+      "path": "campaign-3/case-03/runner-03.log",
+      "bytes": 53829,
+      "sha256": "3f850f020d365546a2298b8fed2f8de92b7436772a48a72a634cf577b0445a67"
+    },
+    {
+      "path": "campaign-3/case-03/service-state.txt",
+      "bytes": 69,
+      "sha256": "34a96f3d9b4f03039916c7268172810e74bc25b4b3df3189bea806fbb8fccf7f"
+    },
+    {
+      "path": "campaign-3/case-04/assessment.json",
+      "bytes": 7686,
+      "sha256": "6df9ea46386d4c30a485457939d0ad4b465258d09805a30f5b1ae6153ba1e6fa"
+    },
+    {
+      "path": "campaign-3/case-04/case-04/capture.log",
+      "bytes": 165,
+      "sha256": "48a66dfb5950d149113bdd81e79d6fe322ce51280a567c64742d0ed17638cfbf"
+    },
+    {
+      "path": "campaign-3/case-04/case-04/diagnostic-capture.log",
+      "bytes": 167,
+      "sha256": "8e1af073f2c8b6fb75f64b4f72de0799036a5906bec8cce8a6cf383ad5bc4193"
+    },
+    {
+      "path": "campaign-3/case-04/case-04/diagnostic.pcap",
+      "bytes": 66325,
+      "sha256": "b81c22a9791d27fc6e538e2c88a3daf234c87dbacf467d8f28a10b7f3243b25a"
+    },
+    {
+      "path": "campaign-3/case-04/case-04/events.jsonl",
+      "bytes": 2334426,
+      "sha256": "f4f4f0b52b155c82d162c10e4fc67cfae87a05994fce66e07ac78bbd9187c4fd"
+    },
+    {
+      "path": "campaign-3/case-04/case-04/mdns.pcap",
+      "bytes": 12184,
+      "sha256": "535b9de296b5566c043a2d7761dd9649d64ffccff2153a542415e72b687bcb4f"
+    },
+    {
+      "path": "campaign-3/case-04/case-04/usb-frames.jsonl",
+      "bytes": 29686,
+      "sha256": "b17a14519b911e5780230fb91e24c28f6d6c61e0386d23e857de8371b8867c75"
+    },
+    {
+      "path": "campaign-3/case-04/case-04/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "campaign-3/case-04/case-04/usb-wire.bin",
+      "bytes": 28856,
+      "sha256": "56bbc13ed5a6cac2e080e9f16143b9c16d9d239038a3ac60d16ac3faa0c50d08"
+    },
+    {
+      "path": "campaign-3/case-04/inspect-04/events.jsonl",
+      "bytes": 2704,
+      "sha256": "cb904a4f315c522119fedf0091b184cfd67ba4b63c57e57d499069fa3556bf61"
+    },
+    {
+      "path": "campaign-3/case-04/linux.tar",
+      "bytes": 2539520,
+      "sha256": "b7dcc1824c9502a3bb6e6ac0b28bf21cb0a761fd4765d4f56ba660205adcefe1"
+    },
+    {
+      "path": "campaign-3/case-04/mac-dns-sd.jsonl",
+      "bytes": 757,
+      "sha256": "fbbcc86615e36b36ef311ca7e327329ded0f4c2740680b22d12373204f36906b"
+    },
+    {
+      "path": "campaign-3/case-04/mac-dns-stop.json",
+      "bytes": 69,
+      "sha256": "910295f10626e2b0c220708ae04d2f4da1954bd4bd726f0e2b820b37b7169b4d"
+    },
+    {
+      "path": "campaign-3/case-04/mac-peer.jsonl",
+      "bytes": 26380,
+      "sha256": "f7c03710ce120ddf0445b1e3c26f02cde059b9e72d765300cba42e903bcde9d9"
+    },
+    {
+      "path": "campaign-3/case-04/runner-04.log",
+      "bytes": 54774,
+      "sha256": "fc2ec4ca6e6e1d29d711fe642e7ba21dd99967dab9c008f2fc5e5c8f86d669f9"
+    },
+    {
+      "path": "campaign-3/case-04/service-state.txt",
+      "bytes": 69,
+      "sha256": "34a96f3d9b4f03039916c7268172810e74bc25b4b3df3189bea806fbb8fccf7f"
+    },
+    {
+      "path": "campaign-3/deployment.json",
+      "bytes": 947,
+      "sha256": "c08251d28a8ed6016dd51f2d41ed5984d7f78fcebb9c5aa7ebdb29c11a1a29da"
+    },
+    {
+      "path": "campaign-3/target-source.tar",
+      "bytes": 71680,
+      "sha256": "a75cfc1f6c2a57cf5cde83a0b402aa30303afa3011e6e10eb9372a8cda94fff2"
+    },
+    {
+      "path": "campaign-3.log",
+      "bytes": 615,
+      "sha256": "143421b8af6b67f9f7326a9d0fbe1f51110662c8c69c481727a21d08f50f9b7c"
+    },
+    {
+      "path": "cmake-check.log",
+      "bytes": 239,
+      "sha256": "4340a822a8c71abf039284b92ba36dbbd4ce3d26671319e19c11f7831fe65277"
+    },
+    {
+      "path": "completed-test-units.json",
+      "bytes": 179,
+      "sha256": "f2e2f5dea344d069423ee7f3229dbc5763a85e6da81641125a41d4e3eabf12f2"
+    },
+    {
+      "path": "coordinator-help.txt",
+      "bytes": 479,
+      "sha256": "406c5b2d3f651ac983a701a1bbeb1c586b97e1dca056d18ef34459a3342f0fa8"
+    },
+    {
+      "path": "ctest.log",
+      "bytes": 247,
+      "sha256": "04de8e8efcee95dddef522cd95aca728c34887a8b7ecb833550db070acac7df6"
+    },
+    {
+      "path": "final-ctest.log",
+      "bytes": 247,
+      "sha256": "3c75f4951d0a2ee4a40683396d2a79dc004735b67fe7ec61a1ab2828b97bb7b8"
+    },
+    {
+      "path": "final-host-path-after-reset.json",
+      "bytes": 918,
+      "sha256": "4991fb6a682253ba13c7e9272e82ccc8e487e2509fd26ac7c993bb52da4e85b2"
+    },
+    {
+      "path": "final-host-path.json",
+      "bytes": 2149,
+      "sha256": "77ae7cb1ee99015d43ff57d7519fef6eed6365c3c7f5c7f676d67c8536322522"
+    },
+    {
+      "path": "final-host-path.py",
+      "bytes": 1169,
+      "sha256": "c0693f63b8e02ffbc04b159fd5524190bffcacf3f9cfb13de02f64dd1673b92d"
+    },
+    {
+      "path": "final-host.json",
+      "bytes": 286,
+      "sha256": "e2388c1c69902b69c8396e1bd19a2b8368a4addf141e7ae56d1729952bc683e3"
+    },
+    {
+      "path": "final-linux.log",
+      "bytes": 2857,
+      "sha256": "734650eb1c8f0bdadd1838fbb8d0033b5f00ed0643cb4bec43b2db1d01994d85"
+    },
+    {
+      "path": "final-mac.json",
+      "bytes": 2838,
+      "sha256": "108646cf3aac40fb8afd21a051022de802ed2016ccfecc2e52263ac815d48a87"
+    },
+    {
+      "path": "final-reassessment.json",
+      "bytes": 39455,
+      "sha256": "1ea06d180514890b166e024b3e2c21d0d48a60b26587c29da7dc12b52b5ba20e"
+    },
+    {
+      "path": "final-tests.log",
+      "bytes": 109,
+      "sha256": "26df1f9693cabb2c3cd7646f6c89c3ad0ba876e8853977f0999c8acc200f4ab5"
+    },
+    {
+      "path": "final-usb.log",
+      "bytes": 4068,
+      "sha256": "4af71fd5b247871cc6629d3009571f6febaeb132acfdc8366d7964f4ca4eab41"
+    },
+    {
+      "path": "harness-tests-review-2.log",
+      "bytes": 107,
+      "sha256": "928a4bbc5eb569d09d6f9890be77f4bbf7667ba260386cab74447fbce1b0e75d"
+    },
+    {
+      "path": "harness-tests-review-3.log",
+      "bytes": 107,
+      "sha256": "7e65fa019e2da5770d779277e3a4a63df5752c28269b8b2c657bbd3361ac6e61"
+    },
+    {
+      "path": "harness-tests-review.log",
+      "bytes": 106,
+      "sha256": "efcb8baa36462cfe02745cf73e813ed4ae0988afc776e1673280bfba6bda0baa"
+    },
+    {
+      "path": "harness-tests-v2.log",
+      "bytes": 106,
+      "sha256": "efcb8baa36462cfe02745cf73e813ed4ae0988afc776e1673280bfba6bda0baa"
+    },
+    {
+      "path": "harness-tests.log",
+      "bytes": 105,
+      "sha256": "5b636c55785396258430eb3f9f39ee834e4f00536f0ac9271aadb7221f83892b"
+    },
+    {
+      "path": "preflight-usb.log",
+      "bytes": 4064,
+      "sha256": "d39455b1dd6073276e1599e9741e22ae0ad22b90b607617ad39afc92a8914540"
+    },
+    {
+      "path": "recovery-service-journal.jsonl",
+      "bytes": 75278,
+      "sha256": "28dd78f0a38ebe216d5832abcda751e3d9a34d9c8adec339231e29f79ac029b8"
+    },
+    {
+      "path": "replay-review.json",
+      "bytes": 1487,
+      "sha256": "3c9ca706abceb89a27090f1c9d65f71f4ecbee68f81f63d7277fc95d7a6bb7dd"
+    },
+    {
+      "path": "replay-review.py",
+      "bytes": 2552,
+      "sha256": "45ea57985f369650e8ac9a46a8889fb1590fe3b76fcb2a10b5a479fe289ebf30"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 2686,
+      "sha256": "be94b409ab6fd28d3a19c96caead36a97501ab5fb4be7930bdd3db37c712566e"
+    },
+    {
+      "path": "target-help.txt",
+      "bytes": 269,
+      "sha256": "dfc4c7f8d7118ae5ee4862426b8f3d5fa359e5b2f80239349d00630ad7c90e8f"
+    },
+    {
+      "path": "test-unit-reset.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

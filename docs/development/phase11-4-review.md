@@ -420,3 +420,21 @@ journals are preserved. wspr5 returned to Bohica, original USB power saving and
 active boot-enabled recovery; its installed transmitter binary/configuration
 are unchanged and provider output remains disabled. No capture remains running.
 This is a reviewed development checkpoint, not closure of B2/D2 or Phase 11.4.
+
+
+## Repeated B2/D2 harness review, 2026-09-09
+
+The [new execution/review record](phase11-4-loop-results.md) supersedes current
+B2/D2 and cleanup observations while preserving the withdrawal investigation.
+Independent USB sampling survived failed network calls. Five full cycles gave
+two passes, a prolonged peer-recovery failure, missing goodbye/stale-cache failure,
+and a brief TLS reset later explained by the unsynchronized-clock admission gate.
+Neither original network failure has a proven root cause. The automated campaign
+stopped at its localization limit; no new watchdog or allocation error occurred.
+
+Host metadata, completed-unit cleanup, failed-unit bookkeeping, recorded-path
+validation and clock-gate classification findings were addressed and reassessed.
+Ten grouped tests and eleven corruptions of real evidence pass/refuse as intended.
+Final Mac/Linux peer checks and USB authority passed; host service/configuration
+and original Wi-Fi/recovery settings remain intact. B2/D2 remain open, and no
+firmware/RF acceptance is inferred from the harness publication.

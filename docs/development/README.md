@@ -55,6 +55,12 @@ directories and performs no device or network operations.
 The [E2/E3 conflict record](phase11-4-e2-e3-results.md) adds the controlled-host
 alias conflict and same-name recovery observations. Its companion
 `scripts/audit_phase11_4_mdns_conflict.py` also operates only on private files.
+The [repeated B2/D2 harness](phase11-4-loop-plan.md) defines opt-in independent
+USB/packet/native-client observation and bounded stop rules. Its
+[execution/review record](phase11-4-loop-results.md) reproduces both original
+faults, distinguishes a clock-gated TLS reset and retains localization limits.
+`python3 -B tests/phase11_4_loop_tests.py` is hardware-free; the coordinator and
+target runners require explicit `--run` authorization and are never run by CI.
 The [withdrawal investigation](phase11-4-network-withdrawal-results.md) records
 the reviewed lifecycle repair, deterministic/mutation checks, a target watchdog
 failure and diagnostic repetitions; acceptance remains open.
