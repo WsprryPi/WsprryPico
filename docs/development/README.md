@@ -58,7 +58,10 @@ alias conflict and same-name recovery observations. Its companion
 The [D1–D3 record](phase11-4-d1-d3-results.md) adds orderly goodbye/cache evidence
 and retained reconnection failures. `scripts/audit_phase11_4_mdns_withdrawal.py`
 checks its private packet, USB and native resolver evidence offline; D1/D3
-physical prerequisites and D2 repeatability remain open.
+physical prerequisites and D2 repeatability remain open. The later
+[D1 execution](phase11-4-d1-results.md) records the router HTTP 400 blocker,
+production baseline, removal of the temporary reservation and ordinary DHCP
+cleanup; its [prompt](phase11-4-d1-prompt.md) defines the remaining new-address case.
 
 ## Current checks
 
