@@ -26,6 +26,26 @@ with tempfile.TemporaryDirectory() as temporary:
     run('export-browser','--client-directory',client,'--output',root/'browser.p12','--password-file',password)
     run('export-browser','--client-directory',client,'--output',root/'browser.p12','--password-file',password,success=False)
     assert (root/'browser.p12').stat().st_mode & 0o077 == 0
+    # Exercise actual password-protected packages, not just file creation.
+    # The opt-in Keychain profile must preserve the same client certificate.
+    macos = root/'browser-macos.p12'
+    run('export-browser','--client-directory',client,'--output',macos,
+        '--password-file',password,'--macos-keychain')
+    run('export-browser','--client-directory',client,'--output',macos,
+        '--password-file',password,'--macos-keychain',success=False)
+    assert macos.stat().st_mode & 0o077 == 0
+    for package in (root/'browser.p12', macos):
+        result = subprocess.run(['openssl','pkcs12','-in',str(package),
+            '-passin','file:'+str(password),'-clcerts','-nokeys'], capture_output=True)
+        assert result.returncode == 0
+        exported = subprocess.run(['openssl','x509','-outform','DER'],
+            input=result.stdout, capture_output=True, check=True).stdout
+        expected = subprocess.run(['openssl','x509','-in',str(client/'client.crt'),
+            '-outform','DER'], capture_output=True, check=True).stdout
+        assert exported == expected
+        rejected = subprocess.run(['openssl','pkcs12','-in',str(package),
+            '-passin','stdin','-noout'], input=b'wrong-test-password\n', capture_output=True)
+        assert rejected.returncode != 0
     info = json.loads(run('inspect','--directory',ca))
     assert len(info) == 3 and all(not item['renew_within_30_days'] for item in info)
     assert all('PRIVATE KEY' not in item['certificate'] for item in info)
@@ -59,6 +79,15 @@ with tempfile.TemporaryDirectory() as temporary:
     run('renew-server', '--ca-directory', dns_ca, '--device-id', identifier,
         '--hostname', 'Different-Pico.LOCAL.', '--output', alias)
     assert json.loads(run('validate', '--directory', alias))['hostname'] == 'different-pico.local'
+    mac_alias = root/'mac-alias'
+    run('renew-server', '--ca-directory', dns_ca, '--device-id', identifier,
+        '--hostname', 'wsprrypico-0a60df.local', '--output', mac_alias)
+    mac_manifest = json.loads(run('validate', '--directory', mac_alias))
+    assert mac_manifest['hostname'] == 'wsprrypico-0a60df.local'
+    assert mac_manifest['device_id'] == identifier
+    verify_identity(mac_alias, '-verify_hostname', 'wsprrypico-0a60df.local')
+    verify_identity(mac_alias, '-verify_hostname', selected, success=False)
+    assert (mac_alias/'client-ca.crt').read_bytes() == (bundle/'client-ca.crt').read_bytes()
     browser2, controller = root/'browser2', root/'controller'
     for destination in (browser2, controller):
         run('issue-client', '--ca-directory', dns_ca, '--name', destination.name, '--output', destination)

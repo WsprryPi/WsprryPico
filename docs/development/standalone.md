@@ -121,14 +121,16 @@ Capture INFO and image hashes before a campaign. Closing this client leaves no
 per-job commands from it; physical USB absence is stronger evidence that no USB
 host can control the device.
 
-Direct live diagnostics currently require the USB Console. Wi-Fi supplies SNTP;
-this image has no network status page or remote console. With a separate USB
+USB Console remains the physical administration/recovery path. Optional
+[network control](network-control.md) now supplies authenticated HTTPS status and
+management alongside WTP/TCP; it does not expose the physical Console override.
+Wi-Fi also supplies SNTP. With a separate USB
 power supply, a receiver can verify scheduled RF and independently decode the
 station message. After a power change back to the Mac, INFO can verify retained
 configuration and the schedule watermark, but the new boot resets live counters
 and terminal status. The watermark records a reservation, not proof that RF
-completed; pair it with receiver evidence. Network/browser management is a later
-implementation slice.
+completed; pair it with receiver evidence for conducted RF work. Inhibited
+network acceptance uses authoritative WTP results without an RF claim.
 
 An eight-second watchdog recovers foreground stalls into a boot that suspends
 local schedules and skips networking. Intentional Console reboot starts a normal
@@ -200,8 +202,9 @@ records are rejected, even with valid checksums; no automatic migration can
 safely drop the old final watermark bank. The next bank is erased only when the
 current bank is full; a complete verified current record exists before that
 rotation. Writes are verified before acknowledgement and happen only outside
-armed/running jobs. Flash accesses use the SDK's single-core safe routines with
-interrupts masked; core 1 and background Wi-Fi servicing are not used.
+armed/running jobs. Flash accesses use the SDK's safe routines with interrupts
+masked; the physical image additionally coordinates its RF worker through SDK
+multicore lockout. See the [11.2 ownership record](phase11-2-review.md).
 
 CRC32 detects torn writes and accidental corruption; it is not a security MAC.
 A non-erased invalid record in **either** journal latches a storage fault. The
@@ -219,14 +222,13 @@ reservations per erase, rather than one erase per job. Flash endurance and
 brownout behavior need device-specific qualification; no lifetime claim is made.
 Configuration writes are administrative, not performed on each network sample.
 
-Foreground service refills RF before other work. Wi-Fi polling is suspended
-throughout an armed/running job, so networking cannot block DMA refill or the
-launch guard. The already accepted clock observation ages locally. USB WTP
-remains serviced, including ABORT. Wi-Fi resumes after the terminal state and
-can reacquire time before a later slot. The recorded RF/wall-power campaign
-observed this recurrence on one board/network. Broader access-point behavior,
-forced disassociation during RF, and worst-case underflow margins still require
-qualification on the final image.
+The current physical image services RF on core 1; core 0 owns authority and
+transports. When the TLS listener is available, Wi-Fi remains polled through
+Armed/Running for network control. Without a listener, the earlier armed/running
+Wi-Fi deferral remains. The accepted clock observation ages locally and USB WTP
+remains serviced, including ABORT. The earlier RF/wall-power campaign qualified
+only its recorded image/path; it does not qualify this concurrent network image.
+Physical contention and conducted RF acceptance remain Phase 11.5/11.6 gates.
 
 ## Reproduction and evidence
 

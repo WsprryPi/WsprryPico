@@ -195,6 +195,8 @@ def main(argv=None):
     export.add_argument('--client-directory', required=True)
     export.add_argument('--output', required=True)
     export.add_argument('--password-file', help='Optional private file; otherwise prompt without echo')
+    export.add_argument('--macos-keychain', action='store_true',
+                        help='Use explicit legacy PKCS#12 wrapping for macOS Keychain import; TLS policy is unchanged')
     inspect = commands.add_parser('inspect', help='Show identities and expiration; does not print private keys')
     inspect.add_argument('--directory', required=True)
     args = parser.parse_args(argv)
@@ -246,8 +248,15 @@ def main(argv=None):
         with output.open('xb'):
             pass
         try:
+            # Keychain rejects the OpenSSL 3 default PBES2/AES/SHA-256 package
+            # on the physically tested Mac. Keep the modern default elsewhere;
+            # this opt-in changes only password wrapping, not certificate/TLS
+            # algorithms, identities, validity, trust or private-file policy.
+            wrapping = (['-keypbe', 'PBE-SHA1-3DES', '-certpbe', 'PBE-SHA1-3DES',
+                         '-macalg', 'sha1'] if args.macos_keychain else [])
             openssl('pkcs12', '-export', '-in', directory / 'client.crt', '-inkey', directory / 'client.key',
-                    '-certfile', directory / 'client-ca.crt', '-out', output, '-passout', 'stdin', data=(password+'\n').encode())
+                    '-certfile', directory / 'client-ca.crt', '-out', output, *wrapping,
+                    '-passout', 'stdin', data=(password+'\n').encode())
         except Exception:
             output.unlink()
             raise

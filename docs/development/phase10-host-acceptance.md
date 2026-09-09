@@ -64,7 +64,10 @@ SNTP requires usable UTC, normal leap state, source age at most 90 seconds and
 uncertainty within device and request limits. Uncertainty grows using the
 existing assumed 50,000 ppb drift bound. The launch guard checks it again: ARM
 can succeed and later become MISSED_START. There is no late-start fallback.
-Networking is deferred while armed/running. A complete WSPR job can outlast the
+Without a TLS listener, Wi-Fi polling is deferred while armed/running. The current
+network-enabled standalone image services network control concurrently; see
+[Phase 11.2](phase11-2-review.md) for ownership and pending target gates.
+A complete WSPR job can outlast the
 acquisition window without retiming its events; the next job needs an admissible
 clock snapshot. Lost SNTP exchanges receive two bounded 2 s retries, then a
 64 s backoff; accepted observations restore the normal 64 s interval. Host Linux

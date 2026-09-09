@@ -3,8 +3,9 @@
 The implementation provides optional TLS WTP/TCP, HTTPS browser API v1, embedded
 operator assets, network status/management and local certificate tooling. Host
 TLS/API/browser tests and firmware cross-linking are distinct from physical
-network/RF acceptance. No Phase 11 image has been flashed or operated on hardware
-by this execution. Phase 12 retains SoftAP/BLE and runtime credential provisioning;
+network/RF acceptance. The [Phase 11.4 record](phase11-4-review.md) identifies the
+inhibited images actually operated and the remaining physical gates.
+Phase 12 retains SoftAP/BLE and runtime credential provisioning;
 Phase 13 retains final RF/timing/reliability qualification.
 
 ## Operator setup and certificates
@@ -51,6 +52,24 @@ password appears in the command line. An optional private `--password-file` supp
 local automation. Commands refuse to overwrite previous identity bundles. `inspect`
 shows public identities, SHA-256 fingerprints, expiration and a 30-day renewal flag.
 Initial CA lifetime is ten years; server/client certificates last one year.
+
+For the macOS Keychain importer, add `--macos-keychain` to `export-browser` and
+choose a new output filename. On the Phase 11.4 Mac, OpenSSL's default modern
+PKCS#12 package was readable by OpenSSL but Keychain rejected it with MAC
+verification failure. The explicit compatibility profile uses SHA-1/3DES package
+wrapping and SHA-1 MAC; the default remains modern OpenSSL wrapping. Both retain
+password protection, private file permissions and refusal to overwrite. This
+only packages the existing client identity: certificate signatures, TLS 1.3,
+mTLS, validity and server identity checks are unchanged. Keep compatibility
+packages private and use a strong export password. A host decode alone is not
+evidence of browser/keychain import.
+
+Chrome's macOS trust integration does not accept a hostname-specific keychain
+trust-policy entry. The separately authorized device CA needs SSL trust in the
+chosen keychain; Chrome still validates each server's DNS/IP SAN. Approve that
+trust scope explicitly. Do not bypass an authority warning or install a global
+fleet CA. The [11.4 record](phase11-4-review.md) retains the initial rejected
+package and hostname-scoped-trust attempts and their dispositions.
 
 Import the CA certificate into your chosen trust store and the password-protected
 PKCS#12 identity into your browser/keychain. This is an explicit operator action:
@@ -129,7 +148,21 @@ python3 scripts/network_certificates.py renew-server \
 
 This requires a certificate update, explicit rebuild/reflash and corresponding
 client target/expected-identity update. It creates no runtime setting or schema
-migration. To migrate an existing IP-only CA directory, run the hostname-based
+migration. For a shorter name, an operator may use the final three bytes of the
+board's observed Wi-Fi station MAC, lowercase without separators: for example,
+`88:a2:9e:0a:60:df` gives `wsprrypico-0a60df.local`. Supply that name through
+`--hostname` on both initial issuance and later renewals. Omitting `--hostname`
+selects the full WTP-ID default; renewal does not infer an alias from old files.
+
+Six MAC hex characters are a convenient LAN label, not a uniqueness guarantee:
+different MAC prefixes can share the same suffix. Normal probing/conflict handling
+still applies. The full 32-hex WTP device ID remains in the deployment manifest
+and is checked against the board independently of the short name. No MAC suffix
+is used as an authentication identity. Firmware's `stable_hostname` diagnostic
+continues to report its full-ID default; `configured_hostname` and, once active,
+`advertised_hostname` report the certified alias actually used by clients.
+
+To migrate an existing IP-only CA directory, run the hostname-based
 `renew-server` command above without `--hostname`, using the actual device ID and
 a new output directory; rebuild with that bundle. Its existing valid client
 identities remain trusted. The old `init --device pico-a --address 192.0.2.10`
