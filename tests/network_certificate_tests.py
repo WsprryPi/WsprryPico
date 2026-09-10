@@ -50,9 +50,10 @@ with tempfile.TemporaryDirectory() as temporary:
     assert len(info) == 3 and all(not item['renew_within_30_days'] for item in info)
     assert all('PRIVATE KEY' not in item['certificate'] for item in info)
     identifier = 'a' * 32
-    selected = 'wsprrypico-' + identifier + '.local'
+    selected = 'wsprrypico-000001.local'
     dns_ca, dns_renewed, migrated = root/'dns-device', root/'dns-renewed', root/'migrated'
-    run('init', '--directory', dns_ca, '--device-id', identifier.upper())
+    run('init', '--directory', dns_ca, '--device-id', identifier.upper(),
+        '--mac-address', '02:AA:BB:00:00:01')
     bundle = dns_ca/'server'
     manifest = json.loads((bundle/'deployment.json').read_text())
     assert manifest['hostname'] == selected and manifest['device_id'] == identifier
@@ -73,7 +74,7 @@ with tempfile.TemporaryDirectory() as temporary:
     assert json.loads(run('validate', '--directory', dns_renewed))['hostname'] == selected
     assert (bundle/'server.crt').read_bytes() != (dns_renewed/'server.crt').read_bytes()
     run('renew-server', '--ca-directory', ca, '--device-id', identifier,
-        '--address', '192.0.2.10', '--output', migrated)
+        '--mac-address', '02:aa:bb:00:00:01', '--address', '192.0.2.10', '--output', migrated)
     assert json.loads(run('validate', '--directory', migrated))['ipv4_sans'] == ['192.0.2.10']
     alias = root/'alias'
     run('renew-server', '--ca-directory', dns_ca, '--device-id', identifier,
@@ -88,6 +89,27 @@ with tempfile.TemporaryDirectory() as temporary:
     verify_identity(mac_alias, '-verify_hostname', 'wsprrypico-0a60df.local')
     verify_identity(mac_alias, '-verify_hostname', selected, success=False)
     assert (mac_alias/'client-ca.crt').read_bytes() == (bundle/'client-ca.crt').read_bytes()
+    short_renewed = root/'short-renewed'
+    run('renew-server', '--ca-directory', dns_ca, '--device-id', identifier,
+        '--mac-address', '02:AA:BB:00:00:01', '--output', short_renewed)
+    assert json.loads(run('validate', '--directory', short_renewed))['hostname'] == selected
+    legacy_name = 'wsprrypico-' + identifier + '.local'
+    legacy_alias = root/'legacy-alias'
+    run('renew-server', '--ca-directory', dns_ca, '--device-id', identifier,
+        '--hostname', legacy_name, '--output', legacy_alias)
+    verify_identity(legacy_alias, '-verify_hostname', legacy_name)
+    for invalid_mac in ('00:00:00:00:00:00', 'ff:ff:ff:ff:ff:ff', '89:a2:9e:0a:60:df',
+                        '88-a2-9e-0a-60-df', '88:a2:9e:0a:60:dg', '88:a2:9e:0a:60:df\n'):
+        run('init', '--directory', root/'invalid', '--device-id', identifier,
+            '--mac-address', invalid_mac, success=False)
+        assert not (root/'invalid').exists()
+    run('init', '--directory', root/'invalid', '--device-id', identifier, success=False)
+    assert not (root/'invalid').exists()
+    run('renew-server', '--ca-directory', dns_ca, '--device-id', identifier,
+        '--output', root/'invalid', success=False)
+    assert not (root/'invalid').exists()
+    run('init', '--directory', root/'invalid', '--device', 'test',
+        '--mac-address', '88:a2:9e:0a:60:df', success=False)
     browser2, controller = root/'browser2', root/'controller'
     for destination in (browser2, controller):
         run('issue-client', '--ca-directory', dns_ca, '--name', destination.name, '--output', destination)

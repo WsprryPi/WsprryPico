@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "case": "E1",
+  "status": "PASS bounded two-board identity and trust",
+  "date": "2026-09-10",
+  "source_head": "54753341c6d63dc210f4e0941a469d4a028bab0b",
+  "source_dirty": true,
+  "private_local_root": "/Users/lbussy/GitHub/WsprryPico/build/phase11-4-e1",
+  "private_remote_root": "/home/pi/phase11-4-e1",
+  "boards": {
+    "a": {
+      "identity": {
+        "device": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+        "hostname": "wsprrypico-0a60df.local",
+        "fingerprint": "06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016",
+        "address": "192.168.1.47",
+        "boot": "fce01d70d37fea213202037759ef682c"
+      },
+      "serial": "0BF4B4AEC9FFB344",
+      "station_mac": "88:a2:9e:0a:60:df",
+      "revision": "677ec7fde236-dirty",
+      "reported_stable_hostname": "wsprrypico-fd6127d11d6aca42a9905fa3fb1bf1d5.local",
+      "engine": "inhibited-standalone-simulator",
+      "output_active": false,
+      "scheduling_enabled": false,
+      "final_observed_utc": "2026-09-10T11:55:27.093435+00:00",
+      "ca_sha256": "2ef7ec890d48e9283286ee09c6b549756f3d3cff530e5cb030ced6ae4c40442b"
+    },
+    "b": {
+      "identity": {
+        "device": "29f20b7342051ef947aa56cb9d4fab42",
+        "hostname": "wsprrypico-0a9d89.local",
+        "fingerprint": "9cc4967f0a263b4aa94069674837ddcdb8c1946f5a5b407584ce7eee6298cfac",
+        "address": "192.168.1.53",
+        "boot": "b32ed414cac5fd055929413f21e62c4a"
+      },
+      "serial": "CDDBF8767C506C07",
+      "station_mac": "88:a2:9e:0a:9d:89",
+      "revision": "54753341c6d6-dirty",
+      "reported_stable_hostname": "wsprrypico-0a9d89.local",
+      "engine": "inhibited-standalone-simulator",
+      "output_active": false,
+      "scheduling_enabled": false,
+      "final_observed_utc": "2026-09-10T11:55:27.253650+00:00",
+      "ca_sha256": "04661a2a7737f947a13d360e91c7c2a7edfd55488d4d37595a89947bde69a408"
+    }
+  },
+  "physical_checks": {
+    "hosts": [
+      "macOS en0 on user-confirmed Bohica-IoT",
+      "wspr5 wlan1, Bohica-IoT, BSSID 42:98:b5:fe:36:a1, 2432 MHz"
+    ],
+    "rounds_per_board_per_host": 3,
+    "wtp_sessions": 12,
+    "https_positive_controls": 48,
+    "negative_rejections": 36,
+    "negative_layers": [
+      "wrong client: TLS unknown_ca alert 48",
+      "wrong server CA: verification code 20",
+      "wrong DNS identity: verification code 62"
+    ],
+    "jobs_submitted": 0
+  },
+  "software_checks": {
+    "host_tests_passed": 33,
+    "native_tls_rerun": true,
+    "mutation_rejections": 7,
+    "contract_validation": true
+  },
+  "retained_limitations": [
+    "Initial B bootstrap watchdog recovery, stage 13; cause unresolved, not a recurrence of the historical D2 shutdown proven by this record.",
+    "Initial Mac B mDNS window had no answer; later window passed; B2 reliability remains open.",
+    "Initial Linux trust attempt rejected an incorrectly selected historical A fingerprint; authenticated inspection matched the retained server-mac-suffix bundle before retry.",
+    "A retains its old full-ID stable_hostname diagnostic and existing certified short name; only B received the new firmware.",
+    "Windows guided/runtime credential provisioning is unimplemented; E1 does not qualify end-user setup."
+  ],
+  "files_sha256": {
+    "build/phase11-4-e1/remote-final/linux-trust-1.jsonl": "43abe0998b99c347e82288caca1f3d4df9694f1a261d600d62f38923b900522a",
+    "build/phase11-4-e1/remote-final/linux-trust-2.jsonl": "8d93f2cd5c3ca3a99aeda507a3d4c44726a226c3e1288196254810401d67e224",
+    "build/phase11-4-e1/mac-trust-1.jsonl": "edb287a122be6d084b8328f7b7f15089898d07d0f5c2c448f08b146b5d2882e3",
+    "build/phase11-4-e1/audit.py": "0c99f80d38021eb5fc15d8326e48a4101bdf9452feffc499a9bf4613cb624a55",
+    "build/phase11-4-e1/adversarial-audit-1.log": "725029f24bc5171e755496fd655dc5ce5d7fc016dfe807200d48a54a32b20c58",
+    "build/phase11-4-e1/host-tests.log": "651d60db3c758c8d502f520e00d07454382f6fce66ba4c0f838850de86cf644e",
+    "build/phase11-4-e1/host-tls-native.log": "fcc4dd1881bd2a9cac16a04d70c8ccba2ea702e5d905c79b9a93d79ce7573a81",
+    "build/phase11-4-e1/network-inhibition.txt": "d4420dd92c71ba012ceb4a6417107bb931e97d53fcbc965533dfbf6aa0ab7790",
+    "build/phase11-4-e1/network/firmware/WsprryPico.elf": "6154b1ff557aa9bfa229dbdebdec885844e621e1bdd8f67153d99497dcc8cb11",
+    "build/phase11-4-e1/network/firmware/WsprryPico.uf2": "d6e037d0729b4c70aa609458811c9f6c9815add164f1025ba580b6707c0a40c3",
+    "build/phase11-4-e1/remote-final/b-trace.json": "57e849f57890b44618fa54a5e4eb7a4605eb7ee3b16fad06d48c7a51555b2478",
+    "build/phase11-4-e1/remote-final/b-network-flash.log": "96b1b18577b7f7b85449a5e57917e200e44b6a42dfae7c2617b91ea2206862cd",
+    "build/phase11-4-e1/remote-final/b-bootstrap-short-flash.log": "1ff184e2c8f9456f9502b24fb0cfab97d9803031baa50324e45c7c91917d4512",
+    "build/phase11-4-e1/remote-final/b-backup.log": "2833201ccf440cc53d0627c55bc84c39332d7011c6114aa1882c22297b792996",
+    "build/phase11-4-e1/remote-final/b-backup-range.log": "71b029845b75648e872574821eda8126071d295b36db23011b9f2aca83f00640",
+    "build/phase11-4-e1/remote-final/a-certificate-inspect.json": "42c9190e15813fe29473a72dab0def7aaa8bab3a7891621bbb3476ea61f6e4df",
+    "build/phase11-4-e1/remote-final/a-final-info.json": "bbdb4ce911b20ba6fd5cfd0abb00f1118ddcd98553ddd7098e0c26ef201488bf",
+    "build/phase11-4-e1/remote-final/a-final-wtp.json": "e6874d647e565fd3a01812b4fc717b471ce86f81520639358b2b28abe205a50b",
+    "build/phase11-4-e1/remote-final/b-final-info.json": "6a6b5996e39d306e2057693fc525fb8d3d57d2dfa218a1834ed6c1b8f487620a",
+    "build/phase11-4-e1/remote-final/b-final-wtp.json": "13aa4f2376f374935dbff1baf3b97ad005d2952dba78e1a0ca36b478cdd1f2ef",
+    "build/phase11-4-e1/remote-final/final-host.json": "3c69db93d7cc5dcbccf95b966011d175cc5c9061908204f73929ccaffb6d867a",
+    "build/phase11-4-e1/mac-dns-a.json": "be4b059580d6bed52c42ef307450bf8484a0db9fcf8cfb48eef752778cafd67d",
+    "build/phase11-4-e1/mac-dns-b.json": "7a943cfe44921f929cb52e814762d87750e94fb8b17bba583495608375b9e42f",
+    "build/phase11-4-e1/mac-dns-repeat-a.json": "13b3fdf1b12c8ecabfb39cb827bb43009310f6c36bc49d0a8ff8e7410b8d5636",
+    "build/phase11-4-e1/mac-dns-repeat-b.json": "793c27c9da5dc01e16812923f7a17d4f2eb838341f5f0e6538fea15230ba053d",
+    "build/phase11-4-e1/remote-final/linux-dns-a.txt": "ccd328815ce45aa8437193fb17111abd94f71275af547b69c957641d60de8027",
+    "build/phase11-4-e1/remote-final/linux-dns-b.txt": "8bcc23504eec068bf8599fec456f04cae3e4881706a58ec1c497d653f24f5d77",
+    "build/phase11-4-e1/remote-final/trust-matrix.py": "eb609ee3c00f81096107d3d24a944eec5a27493b149ce0445213fdbb6befff79",
+    "build/phase11-4-e1/adversarial-audit-2.log": "725029f24bc5171e755496fd655dc5ce5d7fc016dfe807200d48a54a32b20c58"
+  },
+  "naming_source_sha256": {
+    "scripts/network_certificates.py": "e903645f547c97fd723755cfcaa48e682a77b33fa0e466e0e15e33a0735259cf",
+    "src/network/identity.hpp": "86e7c0ec77ce59b677de257ae915e51f09e771c744955b52d6925b64717800ea",
+    "src/standalone/pico/adapters.cpp": "61ef0e580c8ae7525bb191bb936eb53904fa02313bddc6e6050410fc7c84ad4c",
+    "src/standalone/pico/adapters.hpp": "27079bcf92fd359abcb7b7c56e9aecf83955041cdaa6e92b63bce6784b869650",
+    "src/standalone/pico/main.cpp": "17321ee8297a053900d954c209b767a7e79c875d602208577915cf841184b7ea"
+  }
+}

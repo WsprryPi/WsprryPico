@@ -96,10 +96,8 @@ bool PicoFlash::program(std::size_t offset, std::span<const std::uint8_t> page) 
 #endif
     return true; // Journal independently verifies the complete record.
 }
-PicoNetwork::PicoNetwork(time::UtcDiscipline& clock, std::string_view device_id,
-                         std::string_view configured_hostname)
-    : sntp_(clock), mdns_(*this, configured_hostname),
-      stable_hostname_(network::default_hostname(device_id)) {}
+PicoNetwork::PicoNetwork(time::UtcDiscipline& clock, std::string_view configured_hostname)
+    : sntp_(clock), mdns_(*this, configured_hostname) {}
 #ifndef WSPRRY_PICO_STANDALONE_RF
 void PicoNetwork::trace_install() {
     (void)trace_.install(&cyw43_state.netif[CYW43_ITF_STA]);
@@ -145,6 +143,21 @@ bool PicoNetwork::start(const Config& config) {
     initialized_ = true;
     watchdog_hw->scratch[1] = 11;
     cyw43_arch_enable_sta_mode();
+    std::array<std::uint8_t, 6> mac{};
+    station_mac_.clear();
+    stable_hostname_.clear();
+    if (cyw43_wifi_get_mac(&cyw43_state, CYW43_ITF_STA, mac.data()) == 0) {
+        constexpr char digits[] = "0123456789abcdef";
+        for (auto byte : mac) {
+            if (!station_mac_.empty())
+                station_mac_ += ':';
+            station_mac_ += digits[byte >> 4];
+            station_mac_ += digits[byte & 15];
+        }
+        stable_hostname_ = network::default_hostname(station_mac_);
+        if (stable_hostname_.empty())
+            station_mac_.clear();
+    }
     trace_install();
     // USB-powered network control needs continuous receive availability.
     if (!disable_power_save()) {
@@ -358,6 +371,7 @@ std::string PicoNetwork::status() const {
            ",\"control_configured\":" + (configured_ ? "true" : "false") +
            ",\"control_listening\":" + (listening_ ? "true" : "false") +
            ",\"deployment_identity_matches\":" + (identity_matches_ ? "true" : "false") +
+           ",\"station_mac\":" + wtp::json::quote(station_mac_) +
            ",\"stable_hostname\":" + wtp::json::quote(stable_hostname_) +
            ",\"configured_hostname\":" + wtp::json::quote(mdns_.hostname()) +
            ",\"advertised_hostname\":" + wtp::json::quote(mdns_.advertised()) +

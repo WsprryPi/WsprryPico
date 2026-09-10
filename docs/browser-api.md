@@ -199,9 +199,12 @@ resource admission and pending target timing/RF acceptance.
 
 ## Discovery status
 
-`network` adds `stable_hostname`, `configured_hostname`, `advertised_hostname`,
+`network` adds `station_mac`, `stable_hostname`, `configured_hostname`, `advertised_hostname`,
 `deployment_identity_matches`, `mdns_state` and `mdns_reason`. Advertisement is
-empty until active. States are `unconfigured`, `waiting_address`, `probing`,
+empty until active. `station_mac` is the station address read by the device
+after Wi-Fi initialization; `stable_hostname` uses its last six hex digits. Both
+are empty before a valid read and do not change the certified deployment name.
+States are `unconfigured`, `waiting_address`, `probing`,
 `active`, `withdrawing`, `conflict` and `failed`. Reasons distinguish name conflict, initialization,
 registration, probe timeout and wrong-board deployment failures. Bounded counters
 report registrations, conflicts, failures, address changes, goodbye attempts/

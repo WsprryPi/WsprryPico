@@ -134,7 +134,7 @@ int main() {
     const bool deployment_matches = wsprrypico::network::deployment_identity_matches(
         identities.device_id(), wsprrypico::network::credentials::device_id,
         wsprrypico::network::credentials::hostname);
-    static wsprrypico::standalone::PicoNetwork network(clock, identities.device_id(),
+    static wsprrypico::standalone::PicoNetwork network(clock,
                                                        wsprrypico::network::credentials::hostname);
     if (recovery)
         (void)scheduler.command("STOP");

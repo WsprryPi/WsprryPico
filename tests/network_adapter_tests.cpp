@@ -21,6 +21,8 @@ watchdog_hw_t* watchdog_hw = &watchdog;
 static std::uint64_t now_us;
 static unsigned enables, disables, driver_polls, delivered_goodbyes, lost_goodbyes;
 static bool power_failure;
+static int mac_result;
+static bool invalid_mac;
 static std::optional<std::uint64_t> queued_goodbye;
 std::uint64_t time_us_64() {
     return now_us;
@@ -103,6 +105,13 @@ int cyw43_wifi_get_pm(cyw43_t*, std::uint32_t* pm) {
     *pm = 0;
     return 0;
 }
+int cyw43_wifi_get_mac(cyw43_t*, int interface, std::uint8_t* mac) {
+    assert(interface == CYW43_ITF_STA);
+    const std::uint8_t station[] = {0x88, 0xa2, 0x9e, 0x0a, 0x60, 0xdf};
+    for (unsigned i = 0; i < 6; ++i)
+        mac[i] = invalid_mac ? 0 : station[i];
+    return mac_result;
+}
 void cyw43_arch_poll() {
     ++driver_polls;
     sys_check_timeouts();
@@ -129,13 +138,28 @@ static void active(PicoNetwork& network) {
     advance(network, 3'000'000);
     assert(network.status().find("\"mdns_state\":\"active\"") != std::string::npos);
 }
-int main() {
+int main(int argc, char** argv) {
+    if (argc == 2) {
+        const std::string mode(argv[1]);
+        assert(mode == "mac-error" || mode == "mac-invalid");
+        mac_result = mode == "mac-error" ? -1 : 0;
+        invalid_mac = mode == "mac-invalid";
+    }
     wsprrypico::time::UtcDiscipline clock([](void*) { return now_us * 1000; }, nullptr);
-    PicoNetwork network(clock, "0123456789abcdef0123456789abcdef", "pico-a.local");
+    PicoNetwork network(clock, "pico-a.local");
     wsprrypico::standalone::Config config;
     config.ntp_ipv4 = "192.0.2.1";
     assert(!network.set_enabled(false));
+    assert(network.status().find("\"stable_hostname\":\"\"") != std::string::npos);
     assert(network.start(config));
+    if (argc == 2) {
+        assert(network.status().find("\"station_mac\":\"\"") != std::string::npos);
+        assert(network.status().find("\"stable_hostname\":\"\"") != std::string::npos);
+        return 0;
+    }
+    assert(network.status().find("\"station_mac\":\"88:a2:9e:0a:60:df\"") != std::string::npos);
+    assert(network.status().find("\"stable_hostname\":\"wsprrypico-0a60df.local\"") != std::string::npos);
+    assert(network.status().find("\"configured_hostname\":\"pico-a.local\"") != std::string::npos);
     network.listener_status(true, true);
     // OFF before association/probing needs no drain.
     assert(network.set_enabled(false) && disables == 1);

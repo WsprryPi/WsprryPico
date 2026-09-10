@@ -18,8 +18,7 @@ class PicoFlash final : public Flash {
 };
 class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter {
   public:
-    PicoNetwork(time::UtcDiscipline& clock, std::string_view device_id,
-                std::string_view configured_hostname);
+    PicoNetwork(time::UtcDiscipline& clock, std::string_view configured_hostname);
     bool start(const Config& config);
 #ifndef WSPRRY_PICO_STANDALONE_RF
     std::string trace_page(std::uint64_t after) const { return trace_.page(after); }
@@ -63,7 +62,7 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     void resolve_server(std::uint64_t now);
     time::Sntp sntp_;
     network::Mdns mdns_;
-    std::string stable_hostname_;
+    std::string station_mac_, stable_hostname_;
     time::SntpPollSchedule poll_schedule_;
     udp_pcb* pcb_ = nullptr;
     ip_addr_t server_{};

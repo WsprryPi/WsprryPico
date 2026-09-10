@@ -29,11 +29,18 @@ artifacts or source-controlled files.
 Obtain the stable 32-hex WTP device ID from an existing recorded INFO/HELLO result
 (or separately authorized USB inspection). The examples use the illustrative ID
 `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`; replace it with the actual device ID. The
-helper derives `wsprrypico-<device-id>.local`. These commands create local files:
+helper derives `wsprrypico-<last-six-MAC-hex>.local` from the observed Wi-Fi
+station MAC. The Pico reads its own MAC when the driver initializes at boot;
+Console INFO exposes `network.station_mac` and the derived `stable_hostname`.
+Before first credential provisioning, use an authorized inhibited bootstrap with
+Wi-Fi configuration to obtain that MAC. Do not substitute a USB serial or WTP ID.
+The following MAC is illustrative; replace it with the board's actual value.
+These commands create local files:
 
 ```sh
 python3 scripts/network_certificates.py init \
-  --directory config/local/network/pico-a --device-id aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  --directory config/local/network/pico-a --device-id aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+  --mac-address 88:a2:9e:0a:60:df
 python3 scripts/network_certificates.py issue-client \
   --ca-directory config/local/network/pico-a --name operator-browser \
   --output config/local/network/pico-a/operator-browser
@@ -74,7 +81,7 @@ package and hostname-scoped-trust attempts and their dispositions.
 Import the CA certificate into your chosen trust store and the password-protected
 PKCS#12 identity into your browser/keychain. This is an explicit operator action:
 no script installs trust, modifies a keychain or bypasses browser certificate
-warnings. Browse to `https://wsprrypico-<device-id>.local:<configured-port>/` and select the
+warnings. Browse to `https://wsprrypico-<last-six-MAC-hex>.local:<configured-port>/` and select the
 appropriate client identity. For a WTP controller, issue a separate client bundle
 and supply its certificate/private key plus the device CA to its TLS transport.
 WsprryPi Phase 11.1 provides the host TLS transport and settings in its own
@@ -112,6 +119,16 @@ hash-checked fixes applied when building the pinned Mbed TLS sources; the SDK
 checkout stays unchanged. [F2/F3/F6 acceptance](phase11-4-f2-f3-f6-results.md)
 records replacement-client and actual Chrome IP-SAN results.
 
+### End-user provisioning limitation
+
+These commands are developer provisioning, not a finished Windows setup flow.
+The current firmware embeds credentials at build time and has no runtime USB
+credential installer or guided Windows provisioning application. A proposed
+end-user flow would flash a generic UF2, identify the board over USB, collect
+Wi-Fi settings, generate/install its independent credentials and verify the
+short URL without asking the user to compile firmware. That flow is not yet
+implemented. E1 identity/trust acceptance does not qualify end-user setup.
+
 ### Renewal and compromised credentials
 
 Issue a replacement browser/controller identity into a **new** output directory,
@@ -124,7 +141,7 @@ Create a replacement server bundle without overwriting the old one:
 ```sh
 python3 scripts/network_certificates.py renew-server \
   --ca-directory config/local/network/pico-a --device-id aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
-  --output config/local/network/pico-a/server-renewed
+  --mac-address 88:a2:9e:0a:60:df --output config/local/network/pico-a/server-renewed
 ```
 
 Rebuild using the replacement directory, then separately authorize flashing.
@@ -153,25 +170,33 @@ python3 scripts/network_certificates.py renew-server \
 
 This requires a certificate update, explicit rebuild/reflash and corresponding
 client target/expected-identity update. It creates no runtime setting or schema
-migration. For a shorter name, an operator may use the final three bytes of the
-board's observed Wi-Fi station MAC, lowercase without separators: for example,
-`88:a2:9e:0a:60:df` gives `wsprrypico-0a60df.local`. Supply that name through
-`--hostname` on both initial issuance and later renewals. Omitting `--hostname`
-selects the full WTP-ID default; renewal does not infer an alias from old files.
+migration. The default uses the final three bytes of the observed Wi-Fi station
+MAC, lowercase without separators: `88:a2:9e:0a:60:df` produces
+`wsprrypico-0a60df.local`. Supply `--mac-address` on initial issuance and renewal;
+without it or an explicit `--hostname`, hostname provisioning fails before writing
+credentials. It never falls back to a full-ID name. Renewal does not infer an
+existing alias; preserve deliberate aliases explicitly with `--hostname`.
 
 Six MAC hex characters are a convenient LAN label, not a uniqueness guarantee:
 different MAC prefixes can share the same suffix. Normal probing/conflict handling
 still applies. The full 32-hex WTP device ID remains in the deployment manifest
-and is checked against the board independently of the short name. No MAC suffix
-is used as an authentication identity. Firmware's `stable_hostname` diagnostic
-continues to report its full-ID default; `configured_hostname` and, once active,
-`advertised_hostname` report the certified alias actually used by clients.
+and is checked independently of the short name. TLS authenticates the certified
+DNS SAN and CA; knowing a MAC grants no trust. Existing explicit full-ID names
+remain valid aliases and are not automatically renamed.
 
-To migrate an existing IP-only CA directory, run the hostname-based
-`renew-server` command above without `--hostname`, using the actual device ID and
-a new output directory; rebuild with that bundle. Its existing valid client
-identities remain trusted. The old `init --device pico-a --address 192.0.2.10`
-workflow remains IP-only and has no advertisement.
+Firmware reads the station MAC after Wi-Fi driver initialization at boot and
+reports it as `station_mac`; `stable_hostname` is its derived short default.
+Both are empty before a successful valid MAC read, including network-free
+recovery boots. They remain the last observed board identity during ordinary
+Wi-Fi disable. `configured_hostname` and `advertised_hostname` report the
+certificate-bound deployment actually used. Derivation does not rewrite the
+certificate or select an uncertified name.
+
+To migrate an existing IP-only CA directory, renew using the actual device ID,
+observed `--mac-address` and a new output directory; rebuild with that bundle.
+Its existing valid client identities remain trusted. The old
+`init --device pico-a --address 192.0.2.10` workflow remains IP-only and has no
+advertisement.
 
 mDNS registration begins after Wi-Fi has a usable IPv4 address and the configured
 listener is available. Successful probing reports `active`. DHCP replacement

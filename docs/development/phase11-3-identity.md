@@ -14,9 +14,10 @@ origin refreshed). See [execution and acceptance](phase11-3-plan.md).
 | HTTP authority | Canonical TLS reference identity plus listener port; server admits its certified deployment hostname and current IPv4 only |
 | WTP device identity | Existing stable 32 lowercase hexadecimal device ID; HELLO/device/boot/session checks remain independent |
 
-Normal deployment uses DHCP and `wsprrypico-<full-device-id>.local`. The label is
-43 ASCII bytes, derived from the existing board-backed WTP identity, never boot
-ID or address. No DHCP reservation is required. mDNS supplies address information,
+Normal deployment uses DHCP and `wsprrypico-<last-six-MAC-hex>.local`. The label
+is 17 ASCII bytes, derived from the station MAC read at Wi-Fi initialization,
+never a boot ID, USB serial, WTP-ID truncation or DHCP address. Suffix collisions
+remain subject to ordinary conflict handling; no automatic suffix is added. No DHCP reservation is required. mDNS supplies address information,
 not trust. A client must verify the configured DNS SAN and the WTP device ID.
 
 Hostnames are one 1–63-byte ASCII LDH label followed by `.local`, with no leading
@@ -30,8 +31,13 @@ dot canonicalization at connection time and preserves saved/draft spelling.
 
 The server bundle's public `deployment.json` schema 1 carries `device_id`,
 `hostname`, `ipv4_sans` and `certificate_sha256`. The certificate helper derives
-the default hostname from `--device-id`; an optional explicit `--hostname` is a
-build-time deployment alias. There is no runtime hostname editor or stored-config
+the short default hostname from required observed `--mac-address`, while
+`--device-id` remains the full independent board identity. Without a MAC or
+explicit `--hostname`, issuance fails; full-ID names remain supported only as
+explicit aliases. Firmware exposes the observed `station_mac` and derives the
+same short `stable_hostname` at boot after driver initialization. Both diagnostics
+are empty until a valid read; they never override the certified configured name.
+An explicit `--hostname` is a build-time deployment alias. There is no runtime hostname editor or stored-config
 migration. A deliberate alias change requires a new bundle/certificate and an
 explicit local build/reflash. It does not change the board's WTP identity.
 

@@ -3,8 +3,11 @@
 The [shared identity contract](phase11-3-identity.md) selects one certified IPv4
 station hostname. Discovery runs only on core 0 in the existing foreground
 CYW43/lwIP context. There is no DNS-SD service advertisement or discovery client.
-The stable default derives from all 32 hexadecimal digits of the existing WTP
-device ID. Legacy IP-only builds report that default but do not advertise it.
+The stable default uses the final six hexadecimal digits of the station MAC
+read by the Pico after Wi-Fi initialization: `wsprrypico-0a60df.local`, for
+example. It is empty before a valid MAC read. The full WTP ID independently
+binds deployment credentials. Legacy IP-only builds report the short default
+after initialization but do not advertise it.
 
 ## Pinned implementation and narrow wrapper
 

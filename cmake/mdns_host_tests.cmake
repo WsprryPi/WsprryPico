@@ -39,6 +39,8 @@ if(WSPRRY_PICO_TEST_LWIP_PATH)
     target_link_libraries(network_adapter_tests PRIVATE mdns_test_stack wsprrypico_core)
     target_compile_options(network_adapter_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME network_adapter_tests COMMAND network_adapter_tests)
+    add_test(NAME network_adapter_mac_error COMMAND network_adapter_tests mac-error)
+    add_test(NAME network_adapter_mac_invalid COMMAND network_adapter_tests mac-invalid)
 endif()
 
 if(TARGET mdns_test_stack)

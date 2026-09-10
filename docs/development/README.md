@@ -52,6 +52,10 @@ The [G4–G7 recovery acceptance record](phase11-4-g4-g7-results.md) includes
 single-board physical evidence, retained failures and the offline-only
 `scripts/audit_phase11_4_recovery.py` checker. The checker reads private evidence
 directories and performs no device or network operations.
+The [E1 two-board record](phase11-4-e1-results.md) adds independent physical
+identities/CAs, bidirectional Mac/Linux trust checks and the boot-derived
+MAC-suffix naming default. It retains bootstrap/discovery failures and the
+unimplemented end-user provisioning flow.
 The [E2/E3 conflict record](phase11-4-e2-e3-results.md) adds the controlled-host
 alias conflict and same-name recovery observations. Its companion
 `scripts/audit_phase11_4_mdns_conflict.py` also operates only on private files.

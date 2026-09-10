@@ -44,6 +44,15 @@ def hostname(value):
     return value
 
 
+def mac_address(value):
+    if not re.fullmatch(r'(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}', value):
+        raise argparse.ArgumentTypeError('MAC address must contain six colon-separated hex bytes')
+    octets = bytes.fromhex(value.replace(':', ''))
+    if octets[0] & 1 or not any(octets):
+        raise argparse.ArgumentTypeError('MAC address must be a nonzero unicast station address')
+    return value.lower()
+
+
 def certificate_sans(path):
     public = openssl('x509', '-in', path, '-noout', '-ext', 'subjectAltName')
     lines = public.strip().splitlines()
@@ -130,9 +139,12 @@ def server_identity(args):
     addresses = args.address or []
     if len(addresses) > 4 or len(set(addresses)) != len(addresses):
         raise ValueError('Use at most four distinct IPv4 SANs')
-    if args.hostname and not args.device_id:
-        raise ValueError('--hostname requires the stable WTP --device-id')
-    selected = args.hostname or ('wsprrypico-' + args.device_id + '.local' if args.device_id else None)
+    if (args.hostname or args.mac_address) and not args.device_id:
+        raise ValueError('--hostname and --mac-address require the stable WTP --device-id')
+    if args.device_id and not args.hostname and not args.mac_address:
+        raise ValueError('Default hostname requires observed --mac-address; use --hostname for an explicit alias')
+    selected = args.hostname or ('wsprrypico-' + args.mac_address.replace(':', '')[-6:] + '.local'
+                                 if args.mac_address else None)
     if not args.device and not args.device_id:
         raise ValueError('Provide --device-id for hostname deployment or --device for legacy IP deployment')
     if not selected and not addresses:
@@ -188,6 +200,7 @@ def main(argv=None):
     for command in (init, renew):
         command.add_argument('--device-id', type=device_id, help='Stable WTP device identity from existing INFO/HELLO')
         command.add_argument('--hostname', type=hostname, help='Optional deliberate build-time .local alias')
+        command.add_argument('--mac-address', type=mac_address, help='Observed Wi-Fi station MAC; required for the default short hostname')
         command.add_argument('--address', type=ipaddress.IPv4Address, action='append', help='Optional explicit IPv4 SAN; repeat up to four times')
     validate = commands.add_parser('validate', help='Validate actual server credentials and public deployment identity for builds')
     validate.add_argument('--directory', required=True)

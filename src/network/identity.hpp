@@ -25,19 +25,48 @@ inline std::optional<std::string> canonical_local_hostname(std::string_view inpu
             return {};
     return name;
 }
-inline std::string default_hostname(std::string_view device) {
+inline bool valid_device_id(std::string_view device) {
     if (device.size() != 32)
-        return {};
+        return false;
     for (auto c : device)
         if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
+            return false;
+    return true;
+}
+inline std::string default_hostname(std::string_view mac) {
+    if (mac.size() != 17)
+        return {};
+    std::string hex;
+    unsigned first = 0;
+    bool nonzero = false;
+    for (unsigned i = 0; i < 6; ++i) {
+        const auto part = mac.substr(i * 3, 2);
+        unsigned octet = 0;
+        for (auto c : part)
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
+                return {};
+        const auto parsed = std::from_chars(part.data(), part.data() + 2, octet, 16);
+        if (parsed.ec != std::errc{} || parsed.ptr != part.data() + 2 ||
+            (i < 5 && mac[i * 3 + 2] != ':'))
             return {};
-    return "wsprrypico-" + std::string(device) + ".local";
+        if (i == 0)
+            first = octet;
+        nonzero = nonzero || octet != 0;
+        if (i >= 3) {
+            constexpr char digits[] = "0123456789abcdef";
+            hex += digits[octet >> 4];
+            hex += digits[octet & 15];
+        }
+    }
+    if (!nonzero || (first & 1))
+        return {};
+    return "wsprrypico-" + hex + ".local";
 }
 inline bool deployment_identity_matches(std::string_view actual, std::string_view configured,
                                         std::string_view hostname) {
     if (configured.empty() && hostname.empty())
         return true; // Legacy IP-only or disabled network build.
-    return !default_hostname(actual).empty() && actual == configured &&
+    return valid_device_id(actual) && actual == configured &&
            canonical_local_hostname(hostname).has_value();
 }
 inline bool canonical_ipv4(std::string_view address) {

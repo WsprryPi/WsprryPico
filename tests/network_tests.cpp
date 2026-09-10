@@ -60,16 +60,23 @@ void framing() {
 }
 void identities() {
     using network::canonical_local_hostname;
-    const auto name = network::default_hostname(std::string(32, 'a'));
-    REQUIRE(name == "wsprrypico-" + std::string(32, 'a') + ".local");
+    const auto name = network::default_hostname("88:A2:9E:0A:60:DF");
+    REQUIRE(name == "wsprrypico-0a60df.local");
+    REQUIRE(network::default_hostname("02:00:00:00:00:01") == "wsprrypico-000001.local");
+    // A suffix collision must not collapse independent full WTP identities.
+    REQUIRE(network::default_hostname("02:00:00:0a:60:df") == name);
     REQUIRE(network::deployment_identity_matches(std::string(32, 'a'), std::string(32, 'a'), name));
     REQUIRE(network::deployment_identity_matches(std::string(32, 'a'), "", ""));
     REQUIRE(
         !network::deployment_identity_matches(std::string(32, 'b'), std::string(32, 'a'), name));
     REQUIRE(!network::deployment_identity_matches(std::string(32, 'a'), "", name));
     REQUIRE(!network::deployment_identity_matches("bad", "bad", name));
-    REQUIRE(network::default_hostname("bad").empty());
-    REQUIRE(network::default_hostname(std::string(32, 'g')).empty());
+    for (const auto* bad :
+         {"bad", "00:00:00:00:00:00", "ff:ff:ff:ff:ff:ff", "89:a2:9e:0a:60:df", "88-a2-9e-0a-60-df",
+          "88:a2:9e:0a:60:dg", "88:a2:9e:0a:60:df\n", "88:a2:9e:0a:60:+f"})
+        REQUIRE(network::default_hostname(bad).empty());
+    REQUIRE(
+        !network::deployment_identity_matches(std::string(32, 'g'), std::string(32, 'g'), name));
     REQUIRE(canonical_local_hostname("PICO-A.LOCAL.") == "pico-a.local");
     REQUIRE(canonical_local_hostname(std::string(63, 'a') + ".local"));
     REQUIRE(!canonical_local_hostname(std::string(64, 'a') + ".local"));
