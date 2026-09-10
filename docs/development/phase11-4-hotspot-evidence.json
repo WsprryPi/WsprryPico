@@ -88,7 +88,10 @@
     "host_later_unreachable": true,
     "user_shut_down_then_power_cycled_host": true,
     "picos_may_have_power_cycled": true,
-    "post_reboot_host_and_pico_verification": "pending management access"
+    "post_reboot_host_and_pico_verification": "verified over Ethernet and fresh USB INFO/WTP",
+    "ethernet_address": "192.168.1.54",
+    "post_reboot_pico_boot_ids_match_pre_reboot_samples": true,
+    "wifi_management_recovery_verified": false
   },
   "limitations": [
     "No Mac/Chrome new-address acceptance",
@@ -197,6 +200,36 @@
       "path_relative_to_private_evidence": "remote/production-corrected/observe.so",
       "sha256": "43bf1c2ade2c370bc17fb629cb34fc9db8c28c03044a0382c2fe5f843cf14b41",
       "bytes": 70896
+    },
+    {
+      "path_relative_to_private_evidence": "post-reboot.json",
+      "sha256": "9b007cbd9bf0571c2ca02f09d74230ef7a7cfd166454d4581af71685e1b9220f",
+      "bytes": 15286
+    },
+    {
+      "path_relative_to_private_evidence": "post-reboot-wifi.txt",
+      "sha256": "fe2344e63544bf5dfba5d1339e27cdbbeff808e9678d22cdbff480a2e26899f6",
+      "bytes": 4975
+    },
+    {
+      "path_relative_to_private_evidence": "post-reboot-network-journal.txt",
+      "sha256": "3edd22a202e30ce9dc70153e894fa97685b61ddaf19e29434a30962851a016b3",
+      "bytes": 15550
     }
-  ]
+  ],
+  "post_reboot_wifi": {
+    "ssid": "Bohica-IoT",
+    "frequency_mhz": 2432,
+    "address": "192.168.1.117",
+    "previous_bssid": "7a:cd:d6:f2:f6:c5",
+    "current_bssid": "42:98:b5:fe:36:a1",
+    "previous_ap_lost_local_time": "2026-09-10 10:41:40 CDT",
+    "gateway_ping_replies": 2,
+    "gateway_ping_sent": 2,
+    "mac_ping_replies": 0,
+    "mac_ping_sent": 2,
+    "wifi_ssh_succeeded": false,
+    "ethernet_ssh_succeeded": true,
+    "cause_proven": false
+  }
 }

@@ -144,9 +144,26 @@ The user then shut down the Pi with its Pi 5 button, waited for the red LED and
 power-cycled it. Both attached Picos may also have power-cycled. Subsequent SSH
 attempts at the hostname, `.117`, and the known adapter addresses `.94` and `.77`
 failed. Those addresses came from a neighbor cache and are not fresh lease proof.
-Fresh host state and Pico boot/status verification remain pending management
-access. A temporary Ethernet connection or local console is the recovery path;
-no post-reboot Pico state is inferred from earlier inactive samples.
+Those failed attempts did not establish the Picos' post-reboot state.
+
+The user subsequently connected Ethernet. Native mDNS then advertised
+`192.168.1.54`, and SSH succeeded there. Fresh USB INFO and WTP HELLO/CAPS/STATUS
+matched both serial/device identities, reported healthy storage, synchronized
+clocks, disabled scheduling and empty/unowned/inactive state. A and B reported
+the same boot IDs as their pre-host-reboot cleanup samples; these are fresh
+observations, not an assumption that USB power survived. Neither reported a
+recovery boot. wsprrypi.service and pi-wifi-recover.timer were active. No hotspot
+units, network namespace or test route remained; chronyd denied the test subnet.
+
+The retained kernel journal provides a specific lead: at 10:41:40 CDT wlan1
+lost AP `7a:cd:d6:f2:f6:c5`, then associated with `42:98:b5:fe:36:a1` at 10:41:41.
+This coincides with the management outage. After reboot, wlan1 remained on the
+latter BSSID, SSID Bohica-IoT, 2432 MHz, address `.117`. Interface-bound probes
+reached the gateway twice but received no Mac reply in two attempts; SSH to
+`.117` still failed while Ethernet SSH succeeded. These observations do not
+establish the AP's physical identity or prove client isolation. Wi-Fi management
+recovery remains unverified. Ethernet is the retained management path, and no
+Wi-Fi profile, routing policy or router setting was changed in this follow-up.
 
 ## Adversarial review
 
@@ -187,7 +204,7 @@ eight-hour soak is incomplete.
 
 The next useful experiment is a synchronized capture including the Pico's own
 packet boundary trace, focused on the missing ACK/ClientHello segment. The controlled rig demonstrated the required real DHCP event; restore and
-verify management access before using it again. Repeating router UI operations or
+verify a stable management path before using it again. Repeating router UI operations or
 changing application deadlines is unnecessary.
 
 The [sanitized evidence manifest](phase11-4-hotspot-evidence.json) binds the
