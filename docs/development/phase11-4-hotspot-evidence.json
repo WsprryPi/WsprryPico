@@ -1,0 +1,202 @@
+{
+  "schema": "wsprrypico.phase11-4-controlled-hotspot/1",
+  "date": "2026-09-10",
+  "base_revision": "b06b2e5c1d3dd0451b5868d8f967720b919a91a9",
+  "gate": "D1 remains open",
+  "firmware": {
+    "runtime_revision": "dbf1d86f0885-dirty",
+    "sdk": "2.3.1",
+    "sdk_revision": "079c6f39023649b154152db30f1d781e884879bc",
+    "clock_hz": 150000000,
+    "engine": "inhibited-standalone-simulator",
+    "uf2_sha256": "06d18600a3605e874f71c8fa4e7e7df1a1ef5983b5e1dcf6d0b1e695f01716e5",
+    "elf_sha256": "59a2253844f18e80a5d938133956bd4a2f63b407c8d26d7b46c2195cdaef88dd",
+    "flashed_in_this_run": false
+  },
+  "pico_a": {
+    "serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "mac": "88:a2:9e:0a:60:df",
+    "hostname": "wsprrypico-0a60df.local",
+    "test_boot": "81651dd109dc10c739abb37563c6556c",
+    "pre_host_power_cycle_restored_boot": "3c0a9c410301287ab5e9cf8500a9b418"
+  },
+  "pico_b": {
+    "serial": "CDDBF8767C506C07",
+    "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+    "pre_host_power_cycle_sample_boot": "4e2fb851c08b278dd4b977104d2c2aaa"
+  },
+  "production": {
+    "version": "3.2.0-devel+48a9b92",
+    "embedded_revision": "48a9b92b4dfc553b61a19bdbc274d3550df6e854",
+    "binary_sha256": "c19461bc6d2ebe7cae61798ad9acae8d43dfbec3ee57c288e4ef41e9c82b8273",
+    "new_address_authenticated_later": true,
+    "zero_load_arm": true
+  },
+  "dhcp_audit": {
+    "cases": [
+      {
+        "case": 1,
+        "hardware": "onboard AP / USB client",
+        "real_dhcp_change": true,
+        "same_boot": "81651dd109dc10c739abb37563c6556c",
+        "new_ack": {
+          "epoch_ns": 1789053910192053000,
+          "type": 5,
+          "xid": "b44bc5fc",
+          "yiaddr": "10.77.14.20",
+          "ciaddr": "0.0.0.0",
+          "requested": null,
+          "source_mac": "2c:cf:67:62:76:66",
+          "source": "10.77.14.1"
+        },
+        "new_positive_a_records": 4,
+        "independent_client_complete": false,
+        "recovery_seconds_from_binding": null,
+        "retained_command_failures": 1
+      },
+      {
+        "case": 2,
+        "hardware": "USB AP / onboard client",
+        "real_dhcp_change": true,
+        "same_boot": "81651dd109dc10c739abb37563c6556c",
+        "new_ack": {
+          "epoch_ns": 1789054389758745000,
+          "type": 5,
+          "xid": "2ce7d1fa",
+          "yiaddr": "10.77.14.20",
+          "ciaddr": "0.0.0.0",
+          "requested": null,
+          "source_mac": "e8:4e:06:ae:d7:09",
+          "source": "10.77.14.1"
+        },
+        "new_positive_a_records": 6,
+        "independent_client_complete": false,
+        "recovery_seconds_from_binding": null,
+        "retained_command_failures": 3
+      }
+    ],
+    "scope": "Controlled DHCP and independent Linux client; not Mac/Chrome or RF acceptance"
+  },
+  "validation": {
+    "adversarial_cases_passed": 16,
+    "existing_trace_tests_passed": 4,
+    "final_fixture_refinements_hardware_reexecuted": false
+  },
+  "restoration": {
+    "pre_outage_cleanup_assessment_passed": true,
+    "host_later_unreachable": true,
+    "user_shut_down_then_power_cycled_host": true,
+    "picos_may_have_power_cycled": true,
+    "post_reboot_host_and_pico_verification": "pending management access"
+  },
+  "limitations": [
+    "No Mac/Chrome new-address acceptance",
+    "No RF qualification",
+    "Immediate authenticated recovery failed in both cases",
+    "No demonstrated repeatability",
+    "Post-cleanup management outage cause unresolved"
+  ],
+  "private_artifacts": [
+    {
+      "path_relative_to_private_evidence": "audit.json",
+      "sha256": "6d917d73c5af0c728a51ce4ba6c42b0b1dc6d6a264c4fc9941957ce100c13b05",
+      "bytes": 1314
+    },
+    {
+      "path_relative_to_private_evidence": "production-audit.json",
+      "sha256": "af98651cbb65256f891002bee7d6e306855519bb8a1aeea858483acd0ea83b67",
+      "bytes": 3683
+    },
+    {
+      "path_relative_to_private_evidence": "delivery-comparison.json",
+      "sha256": "dccfe72f2908f84ff05a695c3f77e8673f6c37971b27b21990922b92ef2611b9",
+      "bytes": 287
+    },
+    {
+      "path_relative_to_private_evidence": "helpers.tar.gz",
+      "sha256": "f06124568994c88d9bc1ab20d12b4f681f989b351a01f6622782fd1e28dd712c",
+      "bytes": 380849
+    },
+    {
+      "path_relative_to_private_evidence": "remote/events.jsonl",
+      "sha256": "d6502fcec6d807e45da62db1a3e820310e43c58f5ba6c7f5a21b4fab54f32829",
+      "bytes": 542560
+    },
+    {
+      "path_relative_to_private_evidence": "remote/onboard-ap/ap.pcap",
+      "sha256": "89d030ebfcfe1710d7a3f23264bf8434887c4d0a97c2cf26b1f93a4f92533b07",
+      "bytes": 65205
+    },
+    {
+      "path_relative_to_private_evidence": "remote/onboard-ap/peer.pcap",
+      "sha256": "194b4bf615a8ded6a39c424b20bb7759b82062e7fcb204628ab741d250f97682",
+      "bytes": 45805
+    },
+    {
+      "path_relative_to_private_evidence": "remote/ap.pcap",
+      "sha256": "5f2b5a247f435438cb8b76379d398871c36d6e81ce76304ef75e2122e9449ccd",
+      "bytes": 47345
+    },
+    {
+      "path_relative_to_private_evidence": "remote/peer.pcap",
+      "sha256": "9f59dafeec55c33834a759a103411e4881fc13910f7e71037fdf7023e2e1fba6",
+      "bytes": 38887
+    },
+    {
+      "path_relative_to_private_evidence": "remote/pico-before.json",
+      "sha256": "6a7d6780fb973ab6ffb45ba9af530f93542a2a6a32751694a5b07c27d2207175",
+      "bytes": 3245
+    },
+    {
+      "path_relative_to_private_evidence": "remote/pico-restored.json",
+      "sha256": "c5e440cfa15891fa36b6fa04552dc59bdae4e8153c6c23d1c2634f3febe09ed1",
+      "bytes": 3211
+    },
+    {
+      "path_relative_to_private_evidence": "remote/final-b.jsonl",
+      "sha256": "e6e4ac1cd8d3002ec1110ef7223dfe4f87450db9435da8e37b7a47cda8d8e6b2",
+      "bytes": 7951
+    },
+    {
+      "path_relative_to_private_evidence": "remote/cleanup-initial-result.json",
+      "sha256": "96c974eebebed71b8e0a94bf3ff3b5b8b1ab0b9bc1091f1edf8149bcb72acb5d",
+      "bytes": 45
+    },
+    {
+      "path_relative_to_private_evidence": "remote/cleanup-result.json",
+      "sha256": "796c4c14e96a550c0a864f3ea98bceabdd5dec430e60f965354d02a6da03fcd0",
+      "bytes": 21
+    },
+    {
+      "path_relative_to_private_evidence": "remote/host-before.json",
+      "sha256": "71cc253453edc3c55127d717aa386a3e85e44c20090fac1f0632389c3c36b1fb",
+      "bytes": 1479
+    },
+    {
+      "path_relative_to_private_evidence": "remote/host-restored.json",
+      "sha256": "b3fda21b42e39c19d1c6861294f29a3c6f59de38fbdc5d7766261238f4a99601",
+      "bytes": 1511
+    },
+    {
+      "path_relative_to_private_evidence": "remote/production-corrected/PASS.json",
+      "sha256": "c7fe24b59a5fc189d444ec1353bf6937a129222ef2e90f6f123080f7a486089a",
+      "bytes": 3155
+    },
+    {
+      "path_relative_to_private_evidence": "remote/production-corrected/invocation.json",
+      "sha256": "9fc0f0126a997ec69b7c7faaacf0c6721d3e94aef97eb944c09b64e43d2c5e1f",
+      "bytes": 772
+    },
+    {
+      "path_relative_to_private_evidence": "remote/production-corrected/exit.json",
+      "sha256": "bfdedf06596faa2042b0fedd9653ec1023d2e96ed56dc40b607985bc8438c1d5",
+      "bytes": 11
+    },
+    {
+      "path_relative_to_private_evidence": "remote/production-corrected/observe.so",
+      "sha256": "43bf1c2ade2c370bc17fb629cb34fc9db8c28c03044a0382c2fe5f843cf14b41",
+      "bytes": 70896
+    }
+  ]
+}

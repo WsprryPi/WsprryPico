@@ -111,6 +111,13 @@ The [SDK 2.3.1 D1 assessment](phase11-4-d1-sdk231-results.md) adds automatic
 adapter address-change coverage after a current-code review. Native Chrome
 reproduced the router Apply failure in two form contexts; cleanup was verified
 without cycling either Pico, and the physical new-address gate remains open.
+The [controlled-hotspot D1 record](phase11-4-hotspot-results.md) captures two real
+DHCP changes independent of Orbi and a later production-client success, while
+retaining immediate client failures and the post-cleanup management outage. Its
+[sanitized manifest](phase11-4-hotspot-evidence.json) identifies private evidence.
+`scripts/phase11_4_hotspot.py` is an opt-in, wspr5-specific engineering fixture;
+`scripts/audit_phase11_4_hotspot.py` audits local evidence without device access.
+Run its refusal tests with `python3 tests/phase11_4_hotspot_audit_tests.py`.
 [D3 execution](phase11-4-d3-results.md) passes bounded actual link loss, native
 cache removal, inhibited-job continuity and automatic recovery, with timing gaps
 and Chrome failure retained. Its [Orbi report](phase11-4-d3-orbi-research.md)
