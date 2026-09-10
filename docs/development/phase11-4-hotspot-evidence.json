@@ -88,10 +88,10 @@
     "host_later_unreachable": true,
     "user_shut_down_then_power_cycled_host": true,
     "picos_may_have_power_cycled": true,
-    "post_reboot_host_and_pico_verification": "verified over Ethernet and fresh USB INFO/WTP",
+    "post_reboot_host_and_pico_verification": "verified again after repair; no additional reboot",
     "ethernet_address": "192.168.1.54",
     "post_reboot_pico_boot_ids_match_pre_reboot_samples": true,
-    "wifi_management_recovery_verified": false
+    "wifi_management_recovery_verified": true
   },
   "limitations": [
     "No Mac/Chrome new-address acceptance",
@@ -215,6 +215,36 @@
       "path_relative_to_private_evidence": "post-reboot-network-journal.txt",
       "sha256": "3edd22a202e30ce9dc70153e894fa97685b61ddaf19e29434a30962851a016b3",
       "bytes": 15550
+    },
+    {
+      "path_relative_to_private_evidence": "arp-assessment.json",
+      "sha256": "83189c31b36cbc493d7874e2f53e8d0282c0c78654e95bbdd996a2a00c5de4c7",
+      "bytes": 917
+    },
+    {
+      "path_relative_to_private_evidence": "arp-review.json",
+      "sha256": "991ccfa902f5e4050ea98b7460dcc0c5f85384d313209dcd4b96a2a14273c361",
+      "bytes": 40462
+    },
+    {
+      "path_relative_to_private_evidence": "repair-final-state.json",
+      "sha256": "671f4fc6ca7cd9e1000471cf7fa079e201248c3411f97898a910826dbbe4bbd6",
+      "bytes": 14451
+    },
+    {
+      "path_relative_to_private_evidence": "repair-wifi-validation.json",
+      "sha256": "18698f459248c6267cd2dbd88081249d6c4e665430848d9a7a99a40761d2df50",
+      "bytes": 3174
+    },
+    {
+      "path_relative_to_private_evidence": "restore-path-capture.txt",
+      "sha256": "c67b775cbaa44290b605a7b6f697b229540cf7d53caafcd4d37d016d60089552",
+      "bytes": 15336
+    },
+    {
+      "path_relative_to_private_evidence": "restore-inspection.txt",
+      "sha256": "d2a91653c33ece2ddac2376f3cfee3ebc5562cec9d2adbf62d6a2f13af1db16e",
+      "bytes": 110538
     }
   ],
   "post_reboot_wifi": {
@@ -231,5 +261,54 @@
     "wifi_ssh_succeeded": false,
     "ethernet_ssh_succeeded": true,
     "cause_proven": false
-  }
+  },
+  "host_repair": {
+    "ap_bssid": "7a:cd:d6:f2:f6:c5",
+    "ssid": "Bohica-IoT",
+    "persisted_profile_change": "BSSID binding; timestamp updated by NetworkManager",
+    "arp_settings": {
+      "eth0": {
+        "arp_ignore": 1,
+        "arp_announce": 2
+      },
+      "wlan1": {
+        "arp_ignore": 1,
+        "arp_announce": 2
+      }
+    },
+    "sysctl_file": "/etc/sysctl.d/90-wspr5-interface-arp.conf",
+    "wifi_ssh_passes": 6,
+    "wifi_in_and_out_capture_verified": true,
+    "ethernet_ipv4_ssh_passed": true,
+    "ethernet_left_connected": true,
+    "rollback_timer_stopped_after_validation": true,
+    "reboot_performed": false,
+    "reboot_persistence_tested": false,
+    "picos_reconfigured": false,
+    "alternate_ap_failure_cause_proven": false
+  },
+  "client_arp_assessment": [
+    {
+      "case": 1,
+      "arp_request_epoch": 1789053912.4147441,
+      "arp_reply_epoch": 1789053912.7961001,
+      "resolution_ms": 381.356,
+      "resolved_mac": "88:a2:9e:0a:60:df",
+      "first_new_address_tcp_epoch": 1789053912.796109,
+      "all_captured_new_address_client_tcp_frames_use_correct_mac": true,
+      "client_tcp_frames": 30,
+      "scope": "Initial client resolution and observed frame addressing; not a live cache dump or proof about every hop"
+    },
+    {
+      "case": 2,
+      "arp_request_epoch": 1789054391.5579488,
+      "arp_reply_epoch": 1789054391.6839669,
+      "resolution_ms": 126.018,
+      "resolved_mac": "88:a2:9e:0a:60:df",
+      "first_new_address_tcp_epoch": 1789054391.683975,
+      "all_captured_new_address_client_tcp_frames_use_correct_mac": true,
+      "client_tcp_frames": 24,
+      "scope": "Initial client resolution and observed frame addressing; not a live cache dump or proof about every hop"
+    }
+  ]
 }

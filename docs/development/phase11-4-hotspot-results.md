@@ -76,6 +76,18 @@ TCP retransmissions were present in both failures; this is not evidence that the
 stack lacks TCP retry behavior. No retransmission or application deadline was
 relaxed.
 
+### Explicit client ARP assessment
+
+The subsequent review tested the user's stale-ARP hypothesis against both
+independent-client captures. Case 1 received the `.20` reply from the correct
+Pico MAC in 381.356 ms; case 2 did so in 126.018 ms. In each case the first TCP
+packet for the new address followed that reply. All 30/24 captured outgoing
+client TCP frames for `.20` used `88:a2:9e:0a:60:df` as their destination MAC.
+Thus waiting for the client's initial ARP resolution, or a wrong destination
+MAC in these observed frames, does not explain the later full timeout. This is
+not a cache dump or a proof about every ARP state or forwarding hop. It also
+does not erase the separately observed ARP failures elsewhere in the captures.
+
 ## Actual production-client result
 
 The installed `/usr/local/bin/wsprrypi`, version `3.2.0-devel+48a9b92`, embedded
@@ -161,9 +173,57 @@ This coincides with the management outage. After reboot, wlan1 remained on the
 latter BSSID, SSID Bohica-IoT, 2432 MHz, address `.117`. Interface-bound probes
 reached the gateway twice but received no Mac reply in two attempts; SSH to
 `.117` still failed while Ethernet SSH succeeded. These observations do not
-establish the AP's physical identity or prove client isolation. Wi-Fi management
-recovery remains unverified. Ethernet is the retained management path, and no
-Wi-Fi profile, routing policy or router setting was changed in this follow-up.
+establish the AP's physical identity or prove client isolation. At that stage
+Wi-Fi management recovery remained unverified and Ethernet was the retained
+management path. No Wi-Fi profile, routing policy or router setting had been
+changed in that initial verification; the subsequent repair is recorded below.
+
+## Host repair and independent Wi-Fi verification
+
+When the user challenged the incomplete restoration, D1 experiments stopped.
+The Mac's neighbor entry for Ethernet `.54` had changed from Ethernet MAC
+`2c:cf:67:62:76:64` to wlan1 MAC `90:de:80:47:b9:da`; IPv4 Ethernet SSH also
+became unreliable. SSH to Ethernet's link-local IPv6 address provided a stable
+repair connection. No host/Pico reboot, Pico configuration change or router
+operation was performed during the repair.
+
+Two bounded corrections were applied:
+
+- wlan1 was constrained to the original, freshly scanned Bohica-IoT BSSID
+  `7a:cd:d6:f2:f6:c5`. A one-time AP selection did not hold: the interface joined
+  another BSSID, so an explicit temporary profile binding was tested first.
+  Wi-Fi SSH then recovered. The binding was saved after validation; only the
+  BSSID and NetworkManager's timestamp differ from the saved original profile.
+  This deliberately trades roaming across this SSID's APs for the verified AP.
+- `arp_ignore=1` and `arp_announce=2` were set specifically for eth0 and wlan1,
+  then saved in `/etc/sysctl.d/90-wspr5-interface-arp.conf`. A gratuitous Ethernet
+  ARP announcement restored the Mac's `.54` entry to the Ethernet MAC. These
+  settings restrict cross-interface address replies/announcements as documented
+  by the [Linux kernel](https://docs.kernel.org/networking/ip-sysctl.html#arp-ignore-integer).
+
+The corrections began with a ten-minute rollback timer. The original saved
+management profile is protected on wspr5 at
+`/home/pi/phase11-4-host-repair/original-management.nmconnection`; it contains
+credentials and is not a repository artifact. The private
+`/home/pi/phase11-4-host-repair/rollback-arp.sh` restores the original ARP values,
+removes the owned sysctl file, restores that profile and reloads it. The timer
+was stopped after validation; the script remains available for explicit rollback.
+
+Six separate Mac-to-`.117` SSH sessions passed over approximately one minute,
+each confirming the original BSSID. A targeted capture shows the SSH flow in
+both directions on wlan1, so this Wi-Fi check did not silently use Ethernet.
+Ordinary Ethernet IPv4 SSH also passed. Ethernet remained connected as a recovery
+path. Fresh USB checks on both Picos again showed the same boot IDs, healthy
+storage, no recovery boot, disabled scheduling and empty/unowned/inactive status.
+WsprryPi and the Wi-Fi recovery timer remained active; chronyd was synchronized
+to PPS. No test namespace or hotspot unit remained.
+
+This restores bounded working Wi-Fi management and preserves the saved repair.
+It is not a reboot-persistence test or proof of indefinite availability. The
+alternate BSSIDs' physical identities and failed forwarding behavior remain
+unresolved. In particular, the post-Ethernet ARP conflict cannot retrospectively
+explain the original outage before Ethernet was connected. The capture evidence
+still does not close D1's authenticated recovery or Mac/Chrome acceptance gates.
 
 ## Adversarial review
 
@@ -202,10 +262,11 @@ repeatability and native Mac/Chrome remain open. B2/D2 delivery and shutdown
 repeatability remain separate open gates; bounded E1 status is unchanged and the
 eight-hour soak is incomplete.
 
-The next useful experiment is a synchronized capture including the Pico's own
-packet boundary trace, focused on the missing ACK/ClientHello segment. The controlled rig demonstrated the required real DHCP event; restore and
-verify a stable management path before using it again. Repeating router UI operations or
-changing application deadlines is unnecessary.
+After host restoration, the next D1 diagnostic would be a synchronized capture
+including the Pico's own packet boundary trace, focused on the missing
+ACK/ClientHello segment. The controlled rig demonstrated the required real DHCP
+event. Future runs must preserve the repaired management path. Repeating router
+UI operations or changing application deadlines is unnecessary.
 
 The [sanitized evidence manifest](phase11-4-hotspot-evidence.json) binds the
 observations to captured artifact hashes. Raw captures, credentials, local paths

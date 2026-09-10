@@ -113,7 +113,9 @@ reproduced the router Apply failure in two form contexts; cleanup was verified
 without cycling either Pico, and the physical new-address gate remains open.
 The [controlled-hotspot D1 record](phase11-4-hotspot-results.md) captures two real
 DHCP changes independent of Orbi and a later production-client success, while
-retaining immediate client failures and the post-cleanup management outage. Its
+retaining immediate client failures and the post-cleanup management outage.
+The follow-up records verified Wi-Fi restoration, the saved AP/ARP correction
+and an explicit assessment of the client ARP timing. Its
 [sanitized manifest](phase11-4-hotspot-evidence.json) identifies private evidence.
 `scripts/phase11_4_hotspot.py` is an opt-in, wspr5-specific engineering fixture;
 `scripts/audit_phase11_4_hotspot.py` audits local evidence without device access.
