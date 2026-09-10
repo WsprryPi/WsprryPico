@@ -96,6 +96,10 @@ The [B2/D2 repeat record](phase11-4-b2-d2-results.md) retains passing and
 incomplete packet/peer cases and the goodbye-grace test repair. Its offline
 `scripts/audit_phase11_4_discovery_recovery.py` adds identity-bound HTTPS,
 recovery/stability bounds, decoded USB consistency and strict failure retention.
+The [released-SDK D2 assessment](phase11-4-d2-sdk231-results.md) separates
+shutdown completion from goodbye/cache delivery and recovery. It retains failed
+cases, fixes clock-readiness admission in the observer and adds the offline
+`scripts/audit_phase11_4_d2_shutdown.py` sub-assessment; D2 remains open.
 The [D1–D3 record](phase11-4-d1-d3-results.md) adds orderly goodbye/cache evidence
 and retained reconnection failures. `scripts/audit_phase11_4_mdns_withdrawal.py`
 checks its private packet, USB and native resolver evidence offline; D1/D3

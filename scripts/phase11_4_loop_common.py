@@ -29,6 +29,14 @@ def validate_info(info, boot, revision=REVISION):
     require(status['storage_healthy'] is True, 'unhealthy storage')
 
 
+def recovery_tls_ready(info):
+    """Match the firmware's clock admission prerequisite without bypassing TLS."""
+    status = info.get('status', {})
+    utc = status.get('utc_now_ns')
+    return (status.get('clock_state') in ('synchronized', 'holdover') and
+            isinstance(utc, str) and utc.isascii() and utc.isdecimal() and int(utc) > 0)
+
+
 def validate_https(value, boot):
     require(value['http'] == 200 and value['server_sha256'] == SERVER_SHA,
             'HTTP status or server fingerprint mismatch')

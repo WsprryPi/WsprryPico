@@ -9,12 +9,24 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from phase11_4_loop_common import campaign_decision, stop_process, validate_info, validate_host, DEVICE, captured_baseline, ADDRESS, NAME
+from phase11_4_loop_common import campaign_decision, stop_process, validate_info, validate_host, DEVICE, captured_baseline, ADDRESS, NAME, recovery_tls_ready
 from phase11_4_loop_audit import strict_usb, validate_completed_observers, clock_gate_evidence, shutdown_reset
 from validate_wtp_contract import frame
 
 
 class HarnessTests(unittest.TestCase):
+    def test_tls_recovery_waits_for_firmware_clock_admission(self):
+        for state in ('synchronized', 'holdover'):
+            self.assertTrue(recovery_tls_ready({'status': {'clock_state': state, 'utc_now_ns': '123'}}))
+        for status in ({}, {'clock_state': 'unsynchronized', 'utc_now_ns': '123'},
+                       {'clock_state': 'synchronized', 'utc_now_ns': '0'},
+                       {'clock_state': 'synchronized', 'utc_now_ns': None},
+                       {'clock_state': 'synchronized', 'utc_now_ns': '-1'},
+                       {'clock_state': 'synchronized', 'utc_now_ns': '1.5'},
+                       {'clock_state': 'unexpected', 'utc_now_ns': '123'}):
+            with self.subTest(status=status):
+                self.assertFalse(recovery_tls_ready({'status': status}))
+
     def test_current_iot_override_cannot_enable_a_cycle(self):
         runner = Path(__file__).resolve().parents[1] / 'scripts/phase11_4_loop_target.py'
         for flags, message in [

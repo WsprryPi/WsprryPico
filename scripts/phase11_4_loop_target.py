@@ -4,7 +4,7 @@
 def main():
     import argparse, atexit, contextlib, datetime, fcntl, hashlib, json, os, select, signal, socket, ssl, struct, subprocess, sys, termios, time, uuid, threading
     from pathlib import Path
-    from phase11_4_loop_common import stop_process, validate_info, validate_https, validate_host, require
+    from phase11_4_loop_common import stop_process, validate_info, validate_https, validate_host, require, recovery_tls_ready
     from check_usb_target import port, write_all
     from rf_wtp import read_line, WtpPeer, open_port
 
@@ -428,6 +428,11 @@ def main():
             if first_active is None:
                 first_active = time.monotonic()
                 note('local_active', {'seconds_after_on': first_active - on})
+            if not recovery_tls_ready(v):
+                note('RECOVERY_CLOCK_WAIT', {'clock_state': v['status']['clock_state'],
+                     'utc_now_ns': v['status']['utc_now_ns'], 'seconds_after_on': time.monotonic() - on})
+                wait_observed(1)
+                continue
             r = nss('restored' if successes == 0 and (not failures) else 'recovery-' + str(time.time_ns()))
             good = r['exit'] == 0 and {l.split()[0] for l in r['stdout'].splitlines()} == {IP}
             if good:
@@ -448,7 +453,7 @@ def main():
                 if stable_start is None:
                     stable_start = time.monotonic()
                 successes += 1
-                if successes >= 5 and time.monotonic() - stable_start >= 30:
+                if successes >= 5 and time.monotonic() - stable_start >= 30 and time.monotonic() - on < 120:
                     recovered = True
                     break
             wait_observed(5)

@@ -1,0 +1,1003 @@
+{
+  "schema": "phase11-4-d2-sdk231-evidence/1",
+  "date": "2026-09-10",
+  "source_base": "ea053f8c4bd922545e66efb964deb8d9d3a9e166",
+  "status": "D2 OPEN",
+  "scope": "Four inhibited A shutdown cases; first three failed, separate observer verification passed. No causal repair or eight-case acceptance.",
+  "sdk": "079c6f39023649b154152db30f1d781e884879bc",
+  "runtime_revision": "dbf1d86f0885-dirty",
+  "firmware_changed": false,
+  "rf_authorized_or_executed": false,
+  "network": "Bohica-IoT",
+  "host_profile": "921301fe-cdfd-4965-8ac7-c96e9d908ea6",
+  "host_interface": "wlan1",
+  "devices": {
+    "a": {
+      "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+      "boot": "3bb4bd7cb18af1e396fa4bf3ad5e5da6",
+      "hostname": "wsprrypico-0a60df.local",
+      "mac": "88:a2:9e:0a:60:df",
+      "address": "192.168.1.47",
+      "final_bssid": "7a:cd:d6:f2:f6:c5",
+      "uf2_sha256": "06d18600a3605e874f71c8fa4e7e7df1a1ef5983b5e1dcf6d0b1e695f01716e5",
+      "elf_sha256": "59a2253844f18e80a5d938133956bd4a2f63b407c8d26d7b46c2195cdaef88dd",
+      "final_saved_state": {
+        "station": {
+          "callsign": "AA0NT",
+          "locator": "EM18",
+          "power_dbm": 20
+        },
+        "schedules": [
+          {
+            "period_s": 120,
+            "phase_s": 0
+          }
+        ],
+        "watermark_utc_ns": "1788714601000000000",
+        "expires_utc_s": 0,
+        "enabled": false,
+        "suspended": false,
+        "engine": "inhibited-standalone-simulator",
+        "storage_healthy": true,
+        "state": "empty",
+        "output_active": false
+      }
+    },
+    "b": {
+      "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+      "boot": "6a0eca7714ee24db9aff824dd8ffb11b",
+      "hostname": "wsprrypico-0a9d89.local",
+      "mac": "88:a2:9e:0a:9d:89",
+      "address": "192.168.1.53",
+      "final_bssid": "7a:cd:d6:f2:f6:c5",
+      "uf2_sha256": "93a8db32967db004ef26a8bd85fb9efb52e86802c8861976032622f77d293183",
+      "elf_sha256": "8d245a321a90a80bdf1b6db4edeeef8870bbcbb6eb7f5d9fdd3db1d211954685",
+      "final_saved_state": {
+        "station": {
+          "callsign": "AA0NT",
+          "locator": "EM18",
+          "power_dbm": 20
+        },
+        "schedules": [
+          {
+            "period_s": 120,
+            "phase_s": 0
+          }
+        ],
+        "watermark_utc_ns": "0",
+        "expires_utc_s": 0,
+        "enabled": false,
+        "suspended": false,
+        "engine": "inhibited-standalone-simulator",
+        "storage_healthy": true,
+        "state": "empty",
+        "output_active": false
+      }
+    }
+  },
+  "cases": [
+    {
+      "case": 1,
+      "series": "initial",
+      "result": "FAIL",
+      "runner": "d2-target.py",
+      "shutdown": {
+        "result": "NO_WATCHDOG_IN_OBSERVED_WINDOW",
+        "boot_id": "3bb4bd7cb18af1e396fa4bf3ad5e5da6",
+        "off_seconds": 150.139495273,
+        "usb_samples": 1018,
+        "maximum_usb_gap_seconds": 3.029088574,
+        "trace_events": 708,
+        "goodbye_call_us": 636,
+        "goodbye_return_to_disable_entry_us": 1052846,
+        "station_disable_call_us": 51815,
+        "idle_client_window_verified": true
+      },
+      "delivery": {
+        "captured_baseline": 0,
+        "captured_matching_goodbyes": 0,
+        "captured_recovery_positives": 1,
+        "capture_packets": 35
+      },
+      "recovery": {
+        "first_active_seconds": 35.547611848996894,
+        "peer_failures": [],
+        "successful_checks": 6,
+        "stable_seconds": 31.844974512998306,
+        "recovered_in_bound": true
+      },
+      "retained_failure_kinds": [
+        "BASELINE_FAILURE",
+        "BASELINE_FAILURE",
+        "OUTAGE_LOOKUP_FAILURE",
+        "OUTAGE_LOOKUP_FAILURE",
+        "OUTAGE_LOOKUP_FAILURE",
+        "CASE_FAILURE"
+      ],
+      "clock_wait_events": 0
+    },
+    {
+      "case": 2,
+      "series": "initial",
+      "result": "FAIL",
+      "runner": "d2-target-v2.py",
+      "shutdown": {
+        "result": "NO_WATCHDOG_IN_OBSERVED_WINDOW",
+        "boot_id": "3bb4bd7cb18af1e396fa4bf3ad5e5da6",
+        "off_seconds": 150.077962333,
+        "usb_samples": 811,
+        "maximum_usb_gap_seconds": 3.028765093,
+        "trace_events": 611,
+        "goodbye_call_us": 648,
+        "goodbye_return_to_disable_entry_us": 1052895,
+        "station_disable_call_us": 51779,
+        "idle_client_window_verified": false
+      },
+      "delivery": {
+        "captured_baseline": 1,
+        "captured_matching_goodbyes": 1,
+        "captured_recovery_positives": 2,
+        "capture_packets": 27
+      },
+      "recovery": {
+        "first_active_seconds": 6.570796177002194,
+        "peer_failures": [
+          {
+            "seconds_after_on": 6.629462215998501,
+            "nss": {
+              "exit": 0,
+              "stdout": "192.168.1.47    STREAM wsprrypico-0a60df.local\n192.168.1.47    DGRAM  \n192.168.1.47    RAW    \n",
+              "stderr": "",
+              "label": "restored",
+              "started_ns": 1789047996528930532,
+              "ended_ns": 1789047996563913774
+            }
+          }
+        ],
+        "successful_checks": 6,
+        "stable_seconds": 33.12852190100239,
+        "recovered_in_bound": true
+      },
+      "retained_failure_kinds": [
+        "https_failure",
+        "PEER_RECOVERY_FAILURE",
+        "CASE_FAILURE"
+      ],
+      "clock_wait_events": 0
+    },
+    {
+      "case": 3,
+      "series": "initial",
+      "result": "FAIL",
+      "runner": "d2-target-v2.py",
+      "shutdown": {
+        "result": "NO_WATCHDOG_IN_OBSERVED_WINDOW",
+        "boot_id": "3bb4bd7cb18af1e396fa4bf3ad5e5da6",
+        "off_seconds": 150.096553436,
+        "usb_samples": 1137,
+        "maximum_usb_gap_seconds": 3.034552968,
+        "trace_events": 825,
+        "goodbye_call_us": 649,
+        "goodbye_return_to_disable_entry_us": 1052852,
+        "station_disable_call_us": 51778,
+        "idle_client_window_verified": false
+      },
+      "delivery": {
+        "captured_baseline": 1,
+        "captured_matching_goodbyes": 1,
+        "captured_recovery_positives": 0,
+        "capture_packets": 77
+      },
+      "recovery": {
+        "first_active_seconds": 5.550259192001249,
+        "peer_failures": [
+          {
+            "seconds_after_on": 10.63616288099729,
+            "nss": {
+              "exit": 2,
+              "stdout": "",
+              "stderr": "",
+              "label": "restored",
+              "started_ns": 1789048226271765348,
+              "ended_ns": 1789048231349580039
+            }
+          },
+          {
+            "seconds_after_on": 20.81176587099617,
+            "nss": {
+              "exit": 2,
+              "stdout": "",
+              "stderr": "",
+              "label": "recovery-1789048236392717779",
+              "started_ns": 1789048236392720316,
+              "ended_ns": 1789048241528243931
+            }
+          },
+          {
+            "seconds_after_on": 30.907967597995594,
+            "nss": {
+              "exit": 2,
+              "stdout": "",
+              "stderr": "",
+              "label": "recovery-1789048246566846687",
+              "started_ns": 1789048246566849113,
+              "ended_ns": 1789048251623046475
+            }
+          },
+          {
+            "seconds_after_on": 40.99720305099618,
+            "nss": {
+              "exit": 2,
+              "stdout": "",
+              "stderr": "",
+              "label": "recovery-1789048256663756945",
+              "started_ns": 1789048256663758686,
+              "ended_ns": 1789048261712241966
+            }
+          },
+          {
+            "seconds_after_on": 51.088371200996335,
+            "nss": {
+              "exit": 2,
+              "stdout": "",
+              "stderr": "",
+              "label": "recovery-1789048266751091337",
+              "started_ns": 1789048266751092504,
+              "ended_ns": 1789048271803494116
+            }
+          },
+          {
+            "seconds_after_on": 61.18198121599562,
+            "nss": {
+              "exit": 2,
+              "stdout": "",
+              "stderr": "",
+              "label": "recovery-1789048276844575408",
+              "started_ns": 1789048276844579056,
+              "ended_ns": 1789048281897043687
+            }
+          },
+          {
+            "seconds_after_on": 71.27098899699922,
+            "nss": {
+              "exit": 2,
+              "stdout": "",
+              "stderr": "",
+              "label": "recovery-1789048286936697638",
+              "started_ns": 1789048286936699249,
+              "ended_ns": 1789048291986084857
+            }
+          },
+          {
+            "seconds_after_on": 81.37443257899577,
+            "nss": {
+              "exit": 2,
+              "stdout": "",
+              "stderr": "",
+              "label": "recovery-1789048297026368696",
+              "started_ns": 1789048297026370622,
+              "ended_ns": 1789048302089534235
+            }
+          },
+          {
+            "seconds_after_on": 91.49592417199892,
+            "nss": {
+              "exit": 2,
+              "stdout": "",
+              "stderr": "",
+              "label": "recovery-1789048307130698379",
+              "started_ns": 1789048307130699879,
+              "ended_ns": 1789048312212405528
+            }
+          },
+          {
+            "seconds_after_on": 101.58648965699831,
+            "nss": {
+              "exit": 2,
+              "stdout": "",
+              "stderr": "",
+              "label": "recovery-1789048317249704340",
+              "started_ns": 1789048317249706043,
+              "ended_ns": 1789048322301594313
+            }
+          },
+          {
+            "seconds_after_on": 111.79832753699884,
+            "nss": {
+              "exit": 2,
+              "stdout": "",
+              "stderr": "",
+              "label": "recovery-1789048327341959246",
+              "started_ns": 1789048327341961043,
+              "ended_ns": 1789048332513502323
+            }
+          },
+          {
+            "seconds_after_on": 121.99192669399781,
+            "nss": {
+              "exit": 2,
+              "stdout": "",
+              "stderr": "",
+              "label": "recovery-1789048337554302847",
+              "started_ns": 1789048337554304643,
+              "ended_ns": 1789048342708486957
+            }
+          }
+        ],
+        "successful_checks": 0,
+        "stable_seconds": 0,
+        "recovered_in_bound": false
+      },
+      "retained_failure_kinds": [
+        "PEER_RECOVERY_FAILURE",
+        "PEER_RECOVERY_FAILURE",
+        "PEER_RECOVERY_FAILURE",
+        "PEER_RECOVERY_FAILURE",
+        "PEER_RECOVERY_FAILURE",
+        "PEER_RECOVERY_FAILURE",
+        "PEER_RECOVERY_FAILURE",
+        "PEER_RECOVERY_FAILURE",
+        "PEER_RECOVERY_FAILURE",
+        "PEER_RECOVERY_FAILURE",
+        "PEER_RECOVERY_FAILURE",
+        "PEER_RECOVERY_FAILURE",
+        "CASE_FAILURE"
+      ],
+      "clock_wait_events": 0
+    },
+    {
+      "case": 4,
+      "series": "observer verification",
+      "result": "PASS bounded case",
+      "runner": "d2-target-v3.py",
+      "shutdown": {
+        "result": "NO_WATCHDOG_IN_OBSERVED_WINDOW",
+        "boot_id": "3bb4bd7cb18af1e396fa4bf3ad5e5da6",
+        "off_seconds": 150.09027815,
+        "usb_samples": 780,
+        "maximum_usb_gap_seconds": 3.029184592,
+        "trace_events": 565,
+        "goodbye_call_us": 607,
+        "goodbye_return_to_disable_entry_us": 1052158,
+        "station_disable_call_us": 51882,
+        "idle_client_window_verified": false
+      },
+      "delivery": {
+        "captured_baseline": 1,
+        "captured_matching_goodbyes": 1,
+        "captured_recovery_positives": 2,
+        "capture_packets": 33
+      },
+      "recovery": {
+        "first_active_seconds": 5.526027947998955,
+        "peer_failures": [],
+        "successful_checks": 6,
+        "stable_seconds": 31.590794292998908,
+        "recovered_in_bound": true
+      },
+      "retained_failure_kinds": [],
+      "clock_wait_events": 0,
+      "full_audit": {
+        "result": "PASS",
+        "scope": "bounded B2/D2 recovery repeat",
+        "boot_id": "3bb4bd7cb18af1e396fa4bf3ad5e5da6",
+        "capture_packets": 33,
+        "goodbye_epoch_ns": 1789048514763407000,
+        "outage_seconds": 150.090278132,
+        "probes": 3,
+        "announcements": 2,
+        "mac_callbacks": [
+          [
+            "Add",
+            120,
+            1789048503806184000
+          ],
+          [
+            "Rmv",
+            0,
+            1789048514603845000
+          ],
+          [
+            "Add",
+            120,
+            1789048670342542000
+          ]
+        ],
+        "linux_first_negative": {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "",
+          "label": "off-3",
+          "started_ns": 1789048517735309013,
+          "ended_ns": 1789048522786778314
+        },
+        "limitation": "Does not explain historical intermittent failures or establish overnight stability",
+        "revision": "dbf1d86f0885-dirty",
+        "recovered_checks": 6,
+        "stable_seconds": 31.589736667,
+        "local_active_seconds": 5.526027947998955,
+        "final_memory": {
+          "heap": {
+            "used": 200,
+            "capacity": 32768,
+            "peak": 4504,
+            "errors": 0
+          },
+          "tcp_pcbs": {
+            "used": 1,
+            "capacity": 4,
+            "peak": 3,
+            "errors": 0
+          },
+          "tcp_segments": {
+            "used": 0,
+            "capacity": 32,
+            "peak": 3,
+            "errors": 0
+          },
+          "packet_pool": {
+            "used": 0,
+            "capacity": 8,
+            "peak": 2,
+            "errors": 0
+          }
+        }
+      }
+    }
+  ],
+  "initial_series_failed_cases": 3,
+  "initial_series_stop": "three unresolved failed cases",
+  "verification_cases": 1,
+  "full_campaign_accepted": false,
+  "final_peers": "Both Linux and Mac passed native discovery and verified WTP/HTTPS for A and B",
+  "checks": {
+    "ctest_targets_passed": 8,
+    "adversarial_mutations": [
+      {
+        "mutation": "unexpected USB mutation",
+        "result": "rejected",
+        "reason": "unexpected USB operation or response"
+      },
+      {
+        "mutation": "unexpected Console mutation",
+        "result": "rejected",
+        "reason": "unexpected or failed controls"
+      },
+      {
+        "mutation": "watchdog boot change",
+        "result": "classified physical reset; never passed"
+      },
+      {
+        "mutation": "kernel drops hidden as 100",
+        "result": "rejected",
+        "reason": "capture loss or absent statistics"
+      },
+      {
+        "mutation": "capture count mismatch",
+        "result": "rejected",
+        "reason": "capture count mismatch"
+      },
+      {
+        "mutation": "corrupt USB CRC",
+        "result": "rejected",
+        "reason": "USB checksum mismatch"
+      }
+    ],
+    "image_checks": "Both unchanged images passed stack/journal, shutdown interception and SDK synchronization checks",
+    "clock_wait_validation": "Deterministic tests and replay of case 2; case 4 clock was already ready at local activation"
+  },
+  "preexisting_user_files_unchanged": {
+    "docs/development/phase11-4-shutdown-results.md": "4d5f5f01f7bc0494438d939c04c3a2e9b21a5c48ff5767adca5b42d6ac71d61c",
+    "docs/development/phase11-4-soak-run.md": "18429e46a55feb9c5d87b2eb1cf68c1db3bdcdac0d865f1336f3aa1cbba69e99",
+    "scripts/phase11_4_soak.py": "c11489c3b88f4d5a42548414df2ac3a9e48eb414490822404ba3964b0b3742fa"
+  },
+  "authoritative_derived_reports": "Use shutdown-audit-final.json; earlier audit versions retained but superseded marker-4 timing interpretation",
+  "private_evidence": {
+    "adversarial-final.log": {
+      "sha256": "79a00c99242f360b615b91cf827060a414feff6d9e5e69f4759f653cba98bbca",
+      "bytes": 722
+    },
+    "adversarial-mutations.json": {
+      "sha256": "79a00c99242f360b615b91cf827060a414feff6d9e5e69f4759f653cba98bbca",
+      "bytes": 722
+    },
+    "adversarial-mutations.py": {
+      "sha256": "2f4a47d59e5d12aedefc96f47efd0a4df4d92c84b4f44270fbe1c66a58ac6ddc",
+      "bytes": 2053
+    },
+    "campaign-summary.json": {
+      "sha256": "3983c5f9eb24abf11ec25477c43efc06f6a2d872ad3e39b706b0cd2fd6fb9e3f",
+      "bytes": 21733
+    },
+    "case-01/case-01/capture.log": {
+      "sha256": "a0e19b9899ae9981bf063f0c23dfba1751d548ece30a30ad793df73638f10d75",
+      "bytes": 165
+    },
+    "case-01/case-01/diagnostic-capture.log": {
+      "sha256": "547d3a9dc957e0a233ef5ac6ce7146ec8a520f4688cbde1f519d5ae82756fd24",
+      "bytes": 167
+    },
+    "case-01/case-01/diagnostic.pcap": {
+      "sha256": "3a689928717981e71283ec1373fcf1c72c2078710a90024a93458e5cdd64042f",
+      "bytes": 58122
+    },
+    "case-01/case-01/events.jsonl": {
+      "sha256": "a8202d387c2ac9af91b1e957603743a1e98dd9dea8baa80addd386cfe28ca9b5",
+      "bytes": 3389781
+    },
+    "case-01/case-01/mdns.pcap": {
+      "sha256": "cc124189cf85a5ed375584220dd6c2fa1cf875f7acbed766bdc768b7254704a7",
+      "bytes": 4511
+    },
+    "case-01/case-01/usb-frames.jsonl": {
+      "sha256": "1cddc619268e12fdf12fe1472b3e07a8654eafafe7edfe0c47cd94e82aa3b5da",
+      "bytes": 41785
+    },
+    "case-01/case-01/usb-pre-hello.bin": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "case-01/case-01/usb-wire.bin": {
+      "sha256": "cb083ba5c05d8a9f06b81f49e47b7c498ad691f0f6b0a7eec985c8ade6aa9239",
+      "bytes": 40622
+    },
+    "case-01/case-01-state.txt": {
+      "sha256": "f3960f40bf71cd243c2b7cc32e2484a1f2ad9acb92ae03ccd89aabb58d2724f9",
+      "bytes": 53
+    },
+    "case-01/case-01.log": {
+      "sha256": "6c00fda857ce8bc0c786a76b23c5400e1559014c73686e90e06a05708f3cd722",
+      "bytes": 609402
+    },
+    "case-01/linux.tar": {
+      "sha256": "fbcf0540794c8acff3fe6a3f05b6eba554ab100d8fcbbbb9fb08ede58b6edeb2",
+      "bytes": 4188160
+    },
+    "case-01/mac-baseline.json": {
+      "sha256": "49b8249521553f9ef0b29634b4f579dff19ced8f4c45d51cf7fd6d6b425de422",
+      "bytes": 365
+    },
+    "case-01/mac-dns-sd.jsonl": {
+      "sha256": "a039031331e3062b14b0208c5337ec8201cd938a326447b2cb232af169e420ad",
+      "bytes": 803
+    },
+    "case-01/mac-final.json": {
+      "sha256": "705a2e268e53d5628d0d5115fdae805fe4c9cf15a99a894eb95b2bc30e139a1c",
+      "bytes": 3211
+    },
+    "case-01/mac-ready": {
+      "sha256": "cf44dc76509f55204c3319bd9d626457b8ad40aaff2500de67fa2ccd02085740",
+      "bytes": 19
+    },
+    "case-01/mac-stopped.json": {
+      "sha256": "377ee13545f31edcdbb1d395785a9a0a4dbe9381ac3b16f2f3fd4ea0d9278ead",
+      "bytes": 36
+    },
+    "case-01/post-case-01-a.jsonl": {
+      "sha256": "7d00ef8435b936040c8ed0660b6a0519934cf00077968730c2893b53c12f14b0",
+      "bytes": 8003
+    },
+    "case-01/preflight-a.jsonl": {
+      "sha256": "e50b7f992597b726706aa4232e203dd41d472b07b12ae36e1f05074dcdd88083",
+      "bytes": 7992
+    },
+    "case-01/preflight-b.jsonl": {
+      "sha256": "d8027d1e3d8555843c11c8702fbe7afcb2934963b9484eae2c2f30dd1d54d6b2",
+      "bytes": 7965
+    },
+    "case-01/shutdown-audit-final.json": {
+      "sha256": "cbfa96856071ea2b911ca9fcf2203204bff9a0a55c2f40c0be3d279b27871f96",
+      "bytes": 3151
+    },
+    "case-01/shutdown-audit-reviewed-2.json": {
+      "sha256": "04fd8080f564360f6e5a769663db2cf4cd57bc4ea44fa1f579ed19feadd12e3f",
+      "bytes": 3099
+    },
+    "case-01/shutdown-audit-reviewed-3.json": {
+      "sha256": "cbfa96856071ea2b911ca9fcf2203204bff9a0a55c2f40c0be3d279b27871f96",
+      "bytes": 3151
+    },
+    "case-01/shutdown-audit-reviewed.json": {
+      "sha256": "04fd8080f564360f6e5a769663db2cf4cd57bc4ea44fa1f579ed19feadd12e3f",
+      "bytes": 3099
+    },
+    "case-01/shutdown-audit.json": {
+      "sha256": "04fd8080f564360f6e5a769663db2cf4cd57bc4ea44fa1f579ed19feadd12e3f",
+      "bytes": 3099
+    },
+    "case-01/stop": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "case-02/case-02/capture.log": {
+      "sha256": "cd0fb38f33d3249a421bfef86ae79d44abd965aa127ce216aec25c1c1a39cdff",
+      "bytes": 165
+    },
+    "case-02/case-02/diagnostic-capture.log": {
+      "sha256": "929c4ccc8e59e2f0d86cc74276f50ae50b80d00aedd19cc547b49af8839ad598",
+      "bytes": 167
+    },
+    "case-02/case-02/diagnostic.pcap": {
+      "sha256": "bb73ec609d3aba545e19a62c2db576fc593a8c15604bc98b10995cadab4fbb8d",
+      "bytes": 68710
+    },
+    "case-02/case-02/events.jsonl": {
+      "sha256": "fa1fd398c45ed006240c96bd7806f6c8a8871969552e07b122e3c91fad27fd69",
+      "bytes": 2730939
+    },
+    "case-02/case-02/mdns.pcap": {
+      "sha256": "19fca4d90552c7a695dd89f2e4b413c58aff407d9f0373248d20803282cfd730",
+      "bytes": 3164
+    },
+    "case-02/case-02/usb-frames.jsonl": {
+      "sha256": "0bbd4782d759a8fec4d44f54028e1aa1aed0c418b3497f3abc344e6ebecaaf24",
+      "bytes": 29686
+    },
+    "case-02/case-02/usb-pre-hello.bin": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "case-02/case-02/usb-wire.bin": {
+      "sha256": "a5416b16a89a37c08e1c52e72e0da6954f4c584946249c6d3285ed74c82dc4b1",
+      "bytes": 28856
+    },
+    "case-02/case-02.log": {
+      "sha256": "f5097a955dfb45aab436e54b3d9b1cf5d07f564ae7e1253406526c0e35444c5a",
+      "bytes": 518006
+    },
+    "case-02/clock-gate-audit.json": {
+      "sha256": "08b3a7dac45c57055fbe147295dbb9a8b99eab48d05d3e96c28c066a309fed72",
+      "bytes": 322
+    },
+    "case-02/linux.tar": {
+      "sha256": "18f2c2046976a7fc7c71eb4c3a45fb83bca3d9b577389c29034857ac8a1a2220",
+      "bytes": 3399680
+    },
+    "case-02/mac-baseline.json": {
+      "sha256": "d381c685f21357a1a3e3d58888d1fd70ac550677a3745070fdbcb64cc0c60cde",
+      "bytes": 3212
+    },
+    "case-02/mac-dns-sd.jsonl": {
+      "sha256": "d356a66a1a19752614699691f8a644d0501ae66f8fbf9a07c2b00441e3dee9f7",
+      "bytes": 757
+    },
+    "case-02/mac-final.json": {
+      "sha256": "1465dd8e6c9b6ef683def030679ef27162b398363e68c671a312502f5df3833c",
+      "bytes": 3214
+    },
+    "case-02/mac-ready": {
+      "sha256": "093d15ee77942e63abc886d2ee7988a9a2cb512a1160435e94797f79def5e3d9",
+      "bytes": 19
+    },
+    "case-02/mac-stopped.json": {
+      "sha256": "377ee13545f31edcdbb1d395785a9a0a4dbe9381ac3b16f2f3fd4ea0d9278ead",
+      "bytes": 36
+    },
+    "case-02/post-case-02-a.jsonl": {
+      "sha256": "e17eba4d1c3c31b5652e31a36b57f739018227183c55b1e1e556e492a37067e5",
+      "bytes": 8007
+    },
+    "case-02/service-state.txt": {
+      "sha256": "f3960f40bf71cd243c2b7cc32e2484a1f2ad9acb92ae03ccd89aabb58d2724f9",
+      "bytes": 53
+    },
+    "case-02/shutdown-audit-final.json": {
+      "sha256": "9b6fe2f7e1c50ca0671167b40fbdaa95b228e4e70ac0bdc1962711a29c98828a",
+      "bytes": 10560
+    },
+    "case-02/shutdown-audit-reviewed.json": {
+      "sha256": "9b6fe2f7e1c50ca0671167b40fbdaa95b228e4e70ac0bdc1962711a29c98828a",
+      "bytes": 10560
+    },
+    "case-02/shutdown-audit.json": {
+      "sha256": "48622cb8442d6ba652d2506753213cc471c52e80cc64ee76b3479f6d04d6e903",
+      "bytes": 10508
+    },
+    "case-02/stop": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "case-03/case-03/capture.log": {
+      "sha256": "ad8507620a79713fbe5e2f9318a6136e3f66c57e08a1c87010e1484f85da8b27",
+      "bytes": 165
+    },
+    "case-03/case-03/diagnostic-capture.log": {
+      "sha256": "cd0fb38f33d3249a421bfef86ae79d44abd965aa127ce216aec25c1c1a39cdff",
+      "bytes": 165
+    },
+    "case-03/case-03/diagnostic.pcap": {
+      "sha256": "3252227e1440c8efb6c08446a85f6908296f80c18792ee2210a4ff5252877e55",
+      "bytes": 8696
+    },
+    "case-03/case-03/events.jsonl": {
+      "sha256": "13359e2cea10d15624f073303a033f686e704c50987549f0b239952a4ca23ae4",
+      "bytes": 3801120
+    },
+    "case-03/case-03/mdns.pcap": {
+      "sha256": "1ca52663dd55d49f015ee010e0fdb8de823b0b2997cab85d2e697a1c11b85c63",
+      "bytes": 8683
+    },
+    "case-03/case-03/usb-frames.jsonl": {
+      "sha256": "7f50979fa5aee07aa1dd8c915d83564be6b3ae4d703ddf69b286f0a8baa84a61",
+      "bytes": 35245
+    },
+    "case-03/case-03/usb-pre-hello.bin": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "case-03/case-03/usb-wire.bin": {
+      "sha256": "d6a630d5f37d6cd8eafcb85d9aad06a3b9e97cb77696c88d69cbc084286792f2",
+      "bytes": 34262
+    },
+    "case-03/case-03.log": {
+      "sha256": "6e6792bde80965f0412733a62925a374fd22feb6b091bcb5ee46ffcaad46fc67",
+      "bytes": 697521
+    },
+    "case-03/linux.tar": {
+      "sha256": "510f63ce00e224be865aaad198645a463c39c16b9e53f36ad93653b49cf628fc",
+      "bytes": 4608000
+    },
+    "case-03/mac-baseline.json": {
+      "sha256": "5fb2779738c7570e8ff6058275e26a683a2bfc3a15412e0389a5ec5db84d76e0",
+      "bytes": 3214
+    },
+    "case-03/mac-dns-sd.jsonl": {
+      "sha256": "b047871aafd3391cf7d01702daa40f31bbe59ebbddcbcb6d5585c5fd25f0e01d",
+      "bytes": 583
+    },
+    "case-03/mac-final.json": {
+      "sha256": "011231866a39ced963b80a53ddb9703b0417d89e9e87a31a7424162b66c2b205",
+      "bytes": 1026
+    },
+    "case-03/mac-ready": {
+      "sha256": "6bd4a4143605d0ae518becb2af4176decb8b50ded2ba88447928b7fc1d7f6eb1",
+      "bytes": 19
+    },
+    "case-03/mac-stopped.json": {
+      "sha256": "377ee13545f31edcdbb1d395785a9a0a4dbe9381ac3b16f2f3fd4ea0d9278ead",
+      "bytes": 36
+    },
+    "case-03/post-case-03-a.jsonl": {
+      "sha256": "0f0bd93d548c375d035468eae0682dff3ef3c380872ef469550aeb5b7e9cc247",
+      "bytes": 8007
+    },
+    "case-03/service-state.txt": {
+      "sha256": "f3960f40bf71cd243c2b7cc32e2484a1f2ad9acb92ae03ccd89aabb58d2724f9",
+      "bytes": 53
+    },
+    "case-03/shutdown-audit-final.json": {
+      "sha256": "e6adf3ce90154f478fe7e3928a432fc8f7d314f08be3f45bbf728993280b255d",
+      "bytes": 16206
+    },
+    "case-03/shutdown-audit.json": {
+      "sha256": "a180a0ced5813a24015c652bee64845c75d166c9c8fca351cede83a7dfe95254",
+      "bytes": 16154
+    },
+    "case-03/stop": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "case-04/case-04/capture.log": {
+      "sha256": "614c2a4529e6f915a2a671fc1f71f5edea810e7d222addd99d62fdc20817ffde",
+      "bytes": 165
+    },
+    "case-04/case-04/diagnostic-capture.log": {
+      "sha256": "ca376c7e8311458e28782d71da14eb4636b7b57b294b1e01bb2f956f24520e90",
+      "bytes": 167
+    },
+    "case-04/case-04/diagnostic.pcap": {
+      "sha256": "4631b1320f21b8903cd81a2cd89d5d357e5e30f31aa5a684014372735ff2325c",
+      "bytes": 70884
+    },
+    "case-04/case-04/events.jsonl": {
+      "sha256": "28e187ad6133a63b18070cb9cc3798b37ac26af1ac3da6d25f4fdf22c0f3615d",
+      "bytes": 2624030
+    },
+    "case-04/case-04/mdns.pcap": {
+      "sha256": "ca4b0b5fcf715d91145ced2f5a70ae7df0ab6082c55fe44fea60ed11212cda9d",
+      "bytes": 4051
+    },
+    "case-04/case-04/usb-frames.jsonl": {
+      "sha256": "d05e873faf337304a70c0963ada52b9b7ed55d7e1699efc3b3fb6893ed436f3d",
+      "bytes": 28378
+    },
+    "case-04/case-04/usb-pre-hello.bin": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "case-04/case-04/usb-wire.bin": {
+      "sha256": "fcc86cccec8b24215d474aa63d36a901172f024f709d4276cf37c5f7458cf3f7",
+      "bytes": 27584
+    },
+    "case-04/case-04.log": {
+      "sha256": "d4187afc89d6cc3b748641b79f0ff9da87ee3e213d5c12f1d16f11730d9a7e81",
+      "bytes": 494554
+    },
+    "case-04/full-audit-final.json": {
+      "sha256": "25ecb5317b618ece423a0e3e17ea41b8f03265fdf8b3e72631258ac64caa6a52",
+      "bytes": 1320
+    },
+    "case-04/full-audit.json": {
+      "sha256": "25ecb5317b618ece423a0e3e17ea41b8f03265fdf8b3e72631258ac64caa6a52",
+      "bytes": 1320
+    },
+    "case-04/linux.tar": {
+      "sha256": "dcaa6497f502032379a30047db7a9572bb78fafa9e22db3d74beb22b06f067cf",
+      "bytes": 3266560
+    },
+    "case-04/mac-baseline.json": {
+      "sha256": "48a360271b15ef53f3fd6388532cab4ee2de93f72f26a1d56e4877a44059994c",
+      "bytes": 3215
+    },
+    "case-04/mac-dns-sd.jsonl": {
+      "sha256": "9326d724a01bd412baeb4ea153156b4e334c42fd68e410b5fa7d578ffe8c7ed0",
+      "bytes": 757
+    },
+    "case-04/mac-final.json": {
+      "sha256": "1fad5cdd00949c4dbc707c4428fc3c548e07fc15122fc216870fca83f4dc2ee5",
+      "bytes": 3219
+    },
+    "case-04/mac-ready": {
+      "sha256": "40ad321a4427a0f6abe57a263e32994ef0802641b73c0561d8e74ae84bd40794",
+      "bytes": 19
+    },
+    "case-04/mac-stopped.json": {
+      "sha256": "377ee13545f31edcdbb1d395785a9a0a4dbe9381ac3b16f2f3fd4ea0d9278ead",
+      "bytes": 36
+    },
+    "case-04/post-case-04-a.jsonl": {
+      "sha256": "9b069b655e113e97d24d2d2829e3ddae0cb2632c8865064333ab1b2292f429fd",
+      "bytes": 8017
+    },
+    "case-04/service-state.txt": {
+      "sha256": "61460ef8400e5aafadff59d2cd67f4a91ecf4c2220f46347316d4d4c8e975b8f",
+      "bytes": 53
+    },
+    "case-04/shutdown-audit-final.json": {
+      "sha256": "7002fd772d4bdbf163c6600260ebd3af8a87f4d1e23214cf7b7a3ed274ddba63",
+      "bytes": 9413
+    },
+    "case-04/shutdown-audit.json": {
+      "sha256": "7002fd772d4bdbf163c6600260ebd3af8a87f4d1e23214cf7b7a3ed274ddba63",
+      "bytes": 9413
+    },
+    "case-04/stop": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "continue-campaign.py": {
+      "sha256": "9a7857655b81c2f4a8668b0e814c700103fd80fc99e4cc077d06e205340f531f",
+      "bytes": 5781
+    },
+    "coordinator.jsonl": {
+      "sha256": "e7904cb4ca03c9a43f0e2da41151e5fbe8bab950686c435524d918a1da6136c2",
+      "bytes": 60322
+    },
+    "d2-final-linux.jsonl": {
+      "sha256": "b683af7d674fbff5ec832cba25c6a3da43c0d2ddd9b4ee520cd3497de9d67736",
+      "bytes": 15274
+    },
+    "d2-final-mac.jsonl": {
+      "sha256": "a6803351474ef835db884aebd1592bac2ba0590689f5dcb3193c17334ec30bf1",
+      "bytes": 15822
+    },
+    "d2-target-v2.py": {
+      "sha256": "68cfce01d63c0fc2de89ed9da06c8389a9ab90e0936669b65bf4666f8017625e",
+      "bytes": 24756
+    },
+    "d2-target-v3.py": {
+      "sha256": "d941e929dc6f9865e6365d122af81d2c06e6b6c757721f2d4f5540f3773c2ae1",
+      "bytes": 25192
+    },
+    "d2-target.py": {
+      "sha256": "bfb754d2695168c56fc766575050bf5c3a5dfe77cd9e054f7f24d30f90cc67d1",
+      "bytes": 24240
+    },
+    "device.py": {
+      "sha256": "754c486e304378226989807f39b4b7a8f294031f7ddbf1fae856441f9eb06545",
+      "bytes": 3004
+    },
+    "final-a.jsonl": {
+      "sha256": "ee98066b03e8f3e6df19a1634cd8367f9efb809c096cf7dafdf1dcca8df2d7a8",
+      "bytes": 8019
+    },
+    "final-b.jsonl": {
+      "sha256": "d8fa89bfb9e32f92b0495deb29a8a1c303c4174f20ecf6e64f01e149e6c572dc",
+      "bytes": 7971
+    },
+    "final-host.txt": {
+      "sha256": "00a105acfb11fb07562d48b8250a90c4457af221bc1dbba94ee1a705e446a364",
+      "bytes": 461
+    },
+    "final-units.txt": {
+      "sha256": "8daf23443cb4bf881be991bf2e4519b11de8b19dc7b3f0fd8d757dea1a34fbad",
+      "bytes": 125
+    },
+    "finalize-evidence.py": {
+      "sha256": "93beea2563705519fb945188559723b9ba9701e3c3c3fbccd0a2ff8b5282d5ce",
+      "bytes": 5773
+    },
+    "helpers.tar.gz": {
+      "sha256": "2c7d7df531a554fdaeaf35960cc9d70a988e57fca663a91df113542e086d23a3",
+      "bytes": 43172
+    },
+    "host-build.log": {
+      "sha256": "503b51d8404c68072f022d0d5a5ac246f77ede42917084c0fbc7affb1c516953",
+      "bytes": 377
+    },
+    "host-final.log": {
+      "sha256": "8c176e6c3e9beb3592b4023f97c6da2d7bd2170817e015ab3549883f6e6a607b",
+      "bytes": 1053
+    },
+    "host-focused.log": {
+      "sha256": "dd6a4676ecb70f4ded936279690429290fd5415d402162b1598a880ac8cdaffe",
+      "bytes": 1053
+    },
+    "host-readiness-tests.log": {
+      "sha256": "1a358454f2b517b62adad32e383b90963b035c839f3dbb237a1f1e3eb22faed8",
+      "bytes": 115
+    },
+    "host-reviewed-audit-tests.log": {
+      "sha256": "0f22aedeb8280d747451123485858b24df392d4b1ade1cc0fe36880d3b44f9e2",
+      "bytes": 258
+    },
+    "image-checks.log": {
+      "sha256": "a85c43cca44d5998edc6ed4d94f365855da227f499ea52567a7dde6e90afac6a",
+      "bytes": 1192
+    },
+    "mac-observe.py": {
+      "sha256": "5bbb7f6242ab3513d228c5dd44a0eb62e9edce24f1c2d9b0886535da087251a2",
+      "bytes": 1879
+    },
+    "mac-peer.py": {
+      "sha256": "bab7a2d5392b5f9e7457a29f4a466ca93b77407febcab8e33410b348ca9a580f",
+      "bytes": 3467
+    },
+    "no-run-gate-corrected.log": {
+      "sha256": "0bda51053f7e5dd817314e2b734fcfee8b62d0ffb2767e0820ea61d867a417ef",
+      "bytes": 637
+    },
+    "no-run-gate.log": {
+      "sha256": "d9abb6b79659b404651ff367cd7cb6074aa29cbc3f4bbf650323b85a21a06004",
+      "bytes": 425
+    },
+    "readiness-regression.json": {
+      "sha256": "2ed12dc28a3db0338e2c19db0c2cdca6cef7b0aa78c6e81a9f12386156a7384c",
+      "bytes": 183
+    },
+    "restore-case.py": {
+      "sha256": "4f36da1ad1ff5b81e16d0a13e155f31da8b9df187d093409b02e22fb1d3a6b47",
+      "bytes": 560
+    },
+    "user-state.json": {
+      "sha256": "7cf0081fe3f296db2c17ff22a897021cab3652cc87ffd71a669cbcf3226f89e6",
+      "bytes": 334
+    },
+    "verification-coordinator.jsonl": {
+      "sha256": "f1572e3b4ce0ec0153b32923c0557cfe3ee903c3669b2beb2ccc9bbcf9dbb904",
+      "bytes": 26732
+    },
+    "verification-summary.json": {
+      "sha256": "b2215d05c2b818b28fb429eed049fe5653a573ba28229439c4191826ba2f9314",
+      "bytes": 10445
+    },
+    "verify-readiness.py": {
+      "sha256": "2cc6650c1c38374abbcca2779a13d4aa66af2dcbf910aef5919f569d7ed31697",
+      "bytes": 5797
+    }
+  },
+  "source_files": {
+    "CMakeLists.txt": "b2b3521b213d85f3dd23537e2c917b920acc2e68bd604f1e036ffd30af03d65f",
+    "scripts/phase11_4_loop_common.py": "0710101c112b8028b09874f9df0cc01652585c2f75eef913e0d8c97ad6fd73a9",
+    "scripts/phase11_4_loop_target.py": "b83678f4e2b076626dbe1ecad3c56601925e8c6a93b3faa7b176be5e0b46297c",
+    "scripts/audit_phase11_4_d2_shutdown.py": "be2289c824ac710ee1c3a76c73b8684da3b9ec459817c4e03c766c8a79e920c4",
+    "scripts/audit_phase11_4_discovery_recovery.py": "5ab46f9279790236c6614c815c23e9bc6b049538e9a3e5b8f423c10267ed0935",
+    "scripts/phase11_4_loop_audit.py": "44fb8d4ca673ac44a1439d9f11483ed97f52608795e10fb1206163145f2a38e0",
+    "scripts/phase11_4_trace_audit.py": "72fdb302cfb8658fa98894c09878b1f6f3e3471e2fbc8273ca3a9ad77e3e1a6a",
+    "tests/phase11_4_loop_tests.py": "fe8a33e2f50e40616764a03de5f1449b643a1cf03502432b883b890159d64495",
+    "tests/d2_shutdown_audit_tests.py": "71a0471415ec3025714dcb964e39dd65a128ed9256195458fec2c9b60fb7eced",
+    "docs/development/phase11-4-d2-sdk231-prompt.md": "60c4d6b41cd1d469b23d145a486806005c89a5ff71b4cdc59c713400dfd9494e",
+    "docs/development/phase11-4-d2-sdk231-results.md": "619a7b826e349acdf3960e5d82f50c772b560b5f18a91b5c2a399bda1d15f52b",
+    "docs/development/README.md": "ceb4c80afa4b6cb50b4bb27eafdcb5bcd37ee6c6535e93f6fd213f7843c6e9d9"
+  }
+}
