@@ -5,8 +5,9 @@ client, and a passive radio capture. A real same-boot DHCP reassignment and
 authenticated production connections at both addresses are verified. The
 firmware correction below passes host regression and image checks. After the
 user approved the exact inhibited image, Pico A was flashed and passed the
-bounded new-address Linux reference and production-client checks. Full D1
-remains open for native Mac/Chrome acceptance.
+bounded new-address Linux reference and production-client checks. The later
+[native Chromium completion](phase11-4-browser-d1-results.md) closes D1 for the
+user-selected Linux browser scope; macOS compatibility remains untested.
 
 The [execution prompt](phase11-4-radio-diagnostic-prompt.md) defines the scope.
 The [sanitized manifest](phase11-4-radio-evidence.json) identifies the private
@@ -82,9 +83,10 @@ image containing source correction commit
 - Firmware identity, stored station/schedule/watermark values, disabled state,
   healthy storage and inactive output remained consistent through the change.
 
-This closes the bounded Linux reference/production part of D1 on the corrected
-firmware. Native Mac/Chrome on the controlled network was not exercised; the
-Mac kept its ordinary network connection. This single transition does not
+This record closes the bounded Linux reference/production part of D1 on the
+corrected firmware. The subsequent native Chromium case completes the browser
+part on the user-selected Linux platform. Native Mac/Chrome was not exercised;
+the Mac kept its ordinary network connection. This single transition does not
 establish B2/D2 repeatability or the eight-hour soak.
 
 ## Firmware correction and review
@@ -156,7 +158,7 @@ restoration timer is cancelled after verification.
 | Item | Status | Remaining work |
 | --- | --- | --- |
 | B2 — Linux discovery/reconnection | Open; one corrected DHCP recovery passed | Verify repeatability for the broader discovery/reconnection cases. |
-| D1 — DHCP address change | Linux reference and production PASS; full item open | Native Mac/Chrome new-address acceptance remains. |
+| D1 — DHCP address change | PASS for user-selected native Linux/Chromium scope | [Browser completion](phase11-4-browser-d1-results.md); macOS compatibility untested. |
 | D2 — Orderly withdrawal/recovery | Open | Existing orderly-withdrawal and repeatability acceptance remains. |
 | E1 — Two-board identity/trust | Bounded pass retained | No new E1 work required by this slice. |
 | Eight-hour memory/connectivity soak | Incomplete | Complete the uninterrupted eight-hour acceptance run. |

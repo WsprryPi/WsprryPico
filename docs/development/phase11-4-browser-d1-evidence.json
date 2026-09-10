@@ -1,0 +1,481 @@
+{
+  "status": "D1 PASS for user-selected native Linux/Chromium scope",
+  "date": "2026-09-10",
+  "evidence_root": "build/phase11-4-browser-d1/evidence (private, ignored)",
+  "source_commit": "ca62733f258a202fdabd5bf203a5c9c0d31b3b36",
+  "firmware_uf2_sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10",
+  "firmware_source_correction": "2f68f374e8054a34e21c978bcf39bfd15a0f6324",
+  "assessment": {
+    "status": "D1 PASS for user-selected native Linux/Chromium scope",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "boot_id": "9483d97a80991b23e49c9cec413a27b3",
+    "dhcp": {
+      "case": 1,
+      "hardware": "onboard AP / USB client",
+      "real_dhcp_change": true,
+      "same_boot": "9483d97a80991b23e49c9cec413a27b3",
+      "new_ack": {
+        "epoch_ns": 1789064457720020000,
+        "type": 5,
+        "xid": "387b1291",
+        "yiaddr": "10.77.14.20",
+        "ciaddr": "0.0.0.0",
+        "requested": null,
+        "source_mac": "2c:cf:67:62:76:66",
+        "source": "10.77.14.1"
+      },
+      "new_positive_a_records": 2,
+      "independent_client_complete": true,
+      "recovery_seconds_from_binding": 15.93862908,
+      "retained_command_failures": 0
+    },
+    "browser": {
+      "baseline": {
+        "address": "10.77.14.10",
+        "boot_id": "9483d97a80991b23e49c9cec413a27b3",
+        "version": "Chrome/151.0.7922.137",
+        "elapsed_ms": 5023,
+        "page_id": "CA47A59349810D6DE07F89D70DED3796",
+        "secure_fresh_status_rendered": true,
+        "read_only": true
+      },
+      "changed": {
+        "address": "10.77.14.20",
+        "boot_id": "9483d97a80991b23e49c9cec413a27b3",
+        "version": "Chrome/151.0.7922.137",
+        "elapsed_ms": 2802,
+        "page_id": "CA47A59349810D6DE07F89D70DED3796",
+        "secure_fresh_status_rendered": true,
+        "read_only": true
+      }
+    },
+    "same_browser_process_and_tab": true,
+    "server_fingerprint": "06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016",
+    "production": {
+      "baseline": {
+        "address": "10.77.14.10",
+        "read_only_wtp_responses": 5,
+        "load": 0,
+        "arm": 0
+      },
+      "changed": {
+        "address": "10.77.14.20",
+        "read_only_wtp_responses": 5,
+        "load": 0,
+        "arm": 0
+      }
+    },
+    "final_devices": {
+      "a": {
+        "boot_id": "1e4d80cfd9dbe41a50ff433d6d1811e2",
+        "address": "192.168.1.47",
+        "runtime_revision": "802c91a7b86e-dirty",
+        "inhibited_empty_unowned": true
+      },
+      "b": {
+        "boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+        "address": "192.168.1.53",
+        "runtime_revision": "dbf1d86f0885-dirty",
+        "inhibited_empty_unowned": true
+      }
+    },
+    "host_restored": true,
+    "limits": [
+      "macOS compatibility not exercised",
+      "Browser evidence covers secure live status rendering; capture ends while configuration-form read is still pending",
+      "No B2/D2 repeatability or soak qualification"
+    ]
+  },
+  "adversarial_review": {
+    "checks": [
+      {
+        "case": "wrong Pico boot",
+        "rejected": true
+      },
+      {
+        "case": "active output",
+        "rejected": true
+      },
+      {
+        "case": "wrong browser destination",
+        "rejected": true
+      },
+      {
+        "case": "different browser tab",
+        "rejected": true
+      },
+      {
+        "case": "wrong browser fingerprint",
+        "rejected": true
+      },
+      {
+        "case": "missing secure status response",
+        "rejected": true
+      },
+      {
+        "case": "different browser process",
+        "rejected": true
+      },
+      {
+        "case": "wrong production certificate",
+        "rejected": true
+      },
+      {
+        "case": "truncated AP capture",
+        "rejected": true
+      },
+      {
+        "case": "truncated peer capture",
+        "rejected": true
+      },
+      {
+        "case": "incomplete cleanup",
+        "rejected": true
+      },
+      {
+        "case": "browser home not removed",
+        "rejected": true
+      },
+      {
+        "case": "optimized Python",
+        "rejected": true
+      }
+    ],
+    "final_reassessment": "PASS within documented native Linux browser-status scope",
+    "new_actionable_findings": 0
+  },
+  "final_wifi_management": [
+    {
+      "exit": 0,
+      "reply": "restored",
+      "elapsed_s": 6.221975916996598
+    },
+    {
+      "exit": 0,
+      "reply": "restored",
+      "elapsed_s": 0.5919167500105686
+    },
+    {
+      "exit": 0,
+      "reply": "restored",
+      "elapsed_s": 0.7137137909885496
+    }
+  ],
+  "files": [
+    {
+      "path": "events.jsonl",
+      "bytes": 111485,
+      "sha256": "ffbf1f6b463d1c1415fdab3501bf5481023f70576a8efc1fb9146c71866af44e"
+    },
+    {
+      "path": "ap.pcap",
+      "bytes": 176018,
+      "sha256": "a169992f44a8b4dec7a35946357d1ece7cca608802895b99c8dc3fe4dedc99e4"
+    },
+    {
+      "path": "peer.pcap",
+      "bytes": 171982,
+      "sha256": "b2af94a32ed84a785a1e1f102789019b1f589c7f18f2447169f1bfb7b168ef40"
+    },
+    {
+      "path": "roles.json",
+      "bytes": 34,
+      "sha256": "f9ef2d63534feab84e353d22713c480be29b98425885afa9e8723d0a5127494d"
+    },
+    {
+      "path": "host-before.json",
+      "bytes": 1651,
+      "sha256": "b7ae23182723b1e59bcd21bf3baca228e1306239f490a0437949feabe351a55d"
+    },
+    {
+      "path": "host-ready.json",
+      "bytes": 1782,
+      "sha256": "c80d9a143c8496d096f93b3c706b3d613195b1ea54519a3a2ad03ca24df94c1d"
+    },
+    {
+      "path": "host-restored.json",
+      "bytes": 1621,
+      "sha256": "e9844a34ed03beba3729bed3c5354de630bf2f00aacf6064e69de64fbeedf489"
+    },
+    {
+      "path": "radio-before.json",
+      "bytes": 161,
+      "sha256": "e24e7a387629e8f00887d50444b89ae764cfd989285c0ba66de4e952363c55e6"
+    },
+    {
+      "path": "client-link.json",
+      "bytes": 479,
+      "sha256": "29eb0c754dd248d8adb2f18369704d64058316ce96ef9f1ac4133a91c6df610c"
+    },
+    {
+      "path": "hotspot-baseline.json",
+      "bytes": 3202,
+      "sha256": "8355cc4a1d65f7a362ac8fd8a92f72b9119c7530c1ab48f8037b5f1346bb4914"
+    },
+    {
+      "path": "hotspot-changed.json",
+      "bytes": 3214,
+      "sha256": "adc0ad120b319b1002a830819748731e9e2d5f40ed0a057847df1a86524e813e"
+    },
+    {
+      "path": "reference-baseline.json",
+      "bytes": 57,
+      "sha256": "67f74c02d822a973cbc336f022aca85a3f23642b96df651e8beb16c5ab49c28b"
+    },
+    {
+      "path": "pico-restored.json",
+      "bytes": 3211,
+      "sha256": "89bc044c850c88ec6567a90ac4c89a45c3228fc9833d51cb24473ab532dfca78"
+    },
+    {
+      "path": "final-a.jsonl",
+      "bytes": 5074,
+      "sha256": "4e19a268c98cbae126911d27d8bbf5efa817384eac8d478180565982bfa30e17"
+    },
+    {
+      "path": "final-b.jsonl",
+      "bytes": 5081,
+      "sha256": "bf21498d5db3d0cd461f728798dc778119e09c3a0a8ffcac77500ee4409c79d2"
+    },
+    {
+      "path": "final-host.json",
+      "bytes": 1877,
+      "sha256": "1444aa6fa6c2b9f1fba5c0c635174974eb854205135af10752652d4f530a60b6"
+    },
+    {
+      "path": "cleanup-result.json",
+      "bytes": 21,
+      "sha256": "796c4c14e96a550c0a864f3ea98bceabdd5dec430e60f965354d02a6da03fcd0"
+    },
+    {
+      "path": "browser-home-cleanup.json",
+      "bytes": 108,
+      "sha256": "ef1e983ec0d4c524f9d6a30e83f71793de2e4dabed1466b741e41c2e7ebb085e"
+    },
+    {
+      "path": "assessment.json",
+      "bytes": 2428,
+      "sha256": "ac4942a344c3d9a9515349e5685172cb967a417ef1627993a2a36a6e2a26f1c0"
+    },
+    {
+      "path": "fixture.py",
+      "bytes": 2391,
+      "sha256": "11e74a3e2dbcfa7e15b16a75e99bc7b47e81cb0a64f72c187090803ede485a3e"
+    },
+    {
+      "path": "launch-browser.py",
+      "bytes": 728,
+      "sha256": "66ded427e77827dbffd18e9f30924be06fc92cb8770b386d16c663e9ff76bb53"
+    },
+    {
+      "path": "browser-observe.js",
+      "bytes": 5017,
+      "sha256": "1e96fe418363917c5c54a95ca02beee07c12c5dbe4e98c9cb208948bd9a2c78e"
+    },
+    {
+      "path": "production.py",
+      "bytes": 3622,
+      "sha256": "aec99f9c88ebafd5255dd3aff79cb1e0794c615ad4fc28f01d6aeace8f252519"
+    },
+    {
+      "path": "observe.c",
+      "bytes": 3272,
+      "sha256": "99c596c8c067cf8be94d2ab2b35e37f8334b5fd618a4e79154f8c8c90e89ff53"
+    },
+    {
+      "path": "run-browser.py",
+      "bytes": 1079,
+      "sha256": "87b37f12fa82424753456e3065c8a9708f951368612b24f1ff620fba4b5b0d40"
+    },
+    {
+      "path": "run-production.py",
+      "bytes": 1117,
+      "sha256": "a31a2ac036cbc9869cb648a1c922cae960fdaf08aa10b615fa7567d898091e22"
+    },
+    {
+      "path": "complete-browser.py",
+      "bytes": 609,
+      "sha256": "d0f7975cd8b25c3be7e213211e588beed232acbffd869205ebee2689c3e06010"
+    },
+    {
+      "path": "finalize.py",
+      "bytes": 1557,
+      "sha256": "4cfc2809449dbda8a0bb1228a49a6b730fa6973c179ed5424f025a0910451101"
+    },
+    {
+      "path": "chromium-etc/policies/managed/pico-d1.json",
+      "bytes": 156,
+      "sha256": "80dd531adfafea2e79a7636ecfd6eab72d4c56bc9260b7787f8d6c0377710d6e"
+    },
+    {
+      "path": "browser-baseline/PASS.json",
+      "bytes": 13613,
+      "sha256": "21bbc92054d785d02448616ee6bbd9e8546cae29b1c0528077f807dc4f456bd2"
+    },
+    {
+      "path": "browser-baseline/dom.json",
+      "bytes": 1899,
+      "sha256": "f0f064f38aeda44db391732894a4b0f9db4782b6d8af4448fde9df2bde3c87ec"
+    },
+    {
+      "path": "browser-baseline/page.png",
+      "bytes": 34692,
+      "sha256": "9b74ec1dcbda5d55fcd12229e2ef77751f28c5c8406d69b9767bf3d216070861"
+    },
+    {
+      "path": "browser-baseline/events.jsonl",
+      "bytes": 31008,
+      "sha256": "cedacb4ae8d8dd9337959fcc192840f33ab6f8393e722ee44d7316cb9b1910ce"
+    },
+    {
+      "path": "production-baseline/PASS.json",
+      "bytes": 3150,
+      "sha256": "5dda3fcd65d2ae0597cdb339e263065b03fc3bfc897548c055b17f74983cc007"
+    },
+    {
+      "path": "production-baseline/audit.json",
+      "bytes": 96,
+      "sha256": "c7bcdc7c4a3adc17774ac2d1dfcc28cbfa83510df5ec2707e08a4f2915611566"
+    },
+    {
+      "path": "production-baseline/invocation.json",
+      "bytes": 785,
+      "sha256": "14c9d9373a317efd00872ac6d7ed3756220d936c98b91d87d8b3b45bf101f6aa"
+    },
+    {
+      "path": "production-baseline/exit.json",
+      "bytes": 11,
+      "sha256": "bfdedf06596faa2042b0fedd9653ec1023d2e96ed56dc40b607985bc8438c1d5"
+    },
+    {
+      "path": "production-baseline/tls-write.bin",
+      "bytes": 958,
+      "sha256": "468a27dc648b9461efdaa22b8ab6c1504a386ce962c612657143f1fa526510d7"
+    },
+    {
+      "path": "production-baseline/tls-read.bin",
+      "bytes": 2164,
+      "sha256": "566891bf5287678f53b853155f578e16c8f6508e86627ba4b5436dd396f48c0e"
+    },
+    {
+      "path": "production-baseline/peer-certificate-sha256.bin",
+      "bytes": 36,
+      "sha256": "484d4787104ff2844bf3abf3a80fe978d9c4da5bb57658d9b7b8566b1581e2bc"
+    },
+    {
+      "path": "browser-changed/PASS.json",
+      "bytes": 13578,
+      "sha256": "fdfa2cab745da3def9f6dbf18b4a0bd023c9a86c894eded3000d370111088913"
+    },
+    {
+      "path": "browser-changed/dom.json",
+      "bytes": 1899,
+      "sha256": "95dc8b5082c51bbadbd28dbae506fca7d28b7883f686508a9477914384a2734a"
+    },
+    {
+      "path": "browser-changed/page.png",
+      "bytes": 34886,
+      "sha256": "20db026f9aaae0045877ee63814ca0d758ef3a3afc3e8b399448946955ab4e0b"
+    },
+    {
+      "path": "browser-changed/events.jsonl",
+      "bytes": 33671,
+      "sha256": "e9e980724d39008bed7a6e1f83e58233314e363196726000556717e88ebb49dd"
+    },
+    {
+      "path": "production-changed/PASS.json",
+      "bytes": 3150,
+      "sha256": "33285abe7ba03c7e6171a63f7750776f7ee67c09ab6288d8650e392658eb834a"
+    },
+    {
+      "path": "production-changed/audit.json",
+      "bytes": 96,
+      "sha256": "c7bcdc7c4a3adc17774ac2d1dfcc28cbfa83510df5ec2707e08a4f2915611566"
+    },
+    {
+      "path": "production-changed/invocation.json",
+      "bytes": 785,
+      "sha256": "72b4c180a233ad22fa3146def9f97247752f6e2903bbd20e31a8d18fbcff12d9"
+    },
+    {
+      "path": "production-changed/exit.json",
+      "bytes": 11,
+      "sha256": "bfdedf06596faa2042b0fedd9653ec1023d2e96ed56dc40b607985bc8438c1d5"
+    },
+    {
+      "path": "production-changed/tls-write.bin",
+      "bytes": 958,
+      "sha256": "0bcc6ede9f996b003174f92dd1d230ba73f5a38d7ef61353f48c230a968f9543"
+    },
+    {
+      "path": "production-changed/tls-read.bin",
+      "bytes": 2164,
+      "sha256": "c7a988960b7548d616a1c13ddc9ef3d867dc103b826d239e8d7e175b02660d74"
+    },
+    {
+      "path": "production-changed/peer-certificate-sha256.bin",
+      "bytes": 36,
+      "sha256": "484d4787104ff2844bf3abf3a80fe978d9c4da5bb57658d9b7b8566b1581e2bc"
+    }
+  ],
+  "private_companions_sha256": {
+    "build/phase11-4-browser-d1/audit.py": "c8c95bd2f5769102af8e26d2c8c688d968141ef1da49ec0d84ca42c929fed3af",
+    "build/phase11-4-browser-d1/adversarial.py": "0ac7f6b04e67a8dbf67a183043a398f292aa708ea56e4de561b072819885c0dc",
+    "build/phase11-4-browser-d1/adversarial-assessment.json": "c8dd788224a3418a421549a468fea3aa5869e5586b6f20144467cec4594af3ff",
+    "build/phase11-4-browser-d1/final-wifi.json": "95383f2afae311897d8b740e7efd4deeb82514e10f7d2284698c11ddaf9995c8",
+    "build/phase11-4-browser-d1/private-setup-index.json": "02cd49dee3a764f1909073484d6740ac9e465ebb747e88eb5dbcf43f81c1c7a9",
+    "build/phase11-4-browser-d1/finalize-output.log": "98551a3fdaa4e9ec8d9c8905ca2d2d0ab92c20f78ae1d8d9b4b74f4367d9acdd"
+  },
+  "private_setup_diagnostics": [
+    {
+      "path": "/home/pi/phase11-4-browser-d1/events.jsonl",
+      "bytes": 474141,
+      "sha256": "5f5d88d44db2780e265fac49d0bbc7300c36b3a0141deb24c4bb266902516d7e"
+    },
+    {
+      "path": "/home/pi/phase11-4-browser-d1/baseline.log",
+      "bytes": 486,
+      "sha256": "78343b5731979c9c46649c6350a2caf44ba6d79674b1c279286cb47c6e37176a"
+    },
+    {
+      "path": "/home/pi/phase11-4-browser-d1/monitor.pcap",
+      "bytes": 618043,
+      "sha256": "b21e08ac200274a4f54aa84180a355334e4c503a9fee2a287b5671ad549239fc"
+    },
+    {
+      "path": "/home/pi/phase11-4-browser-d1/cleanup-result.json",
+      "bytes": 21,
+      "sha256": "796c4c14e96a550c0a864f3ea98bceabdd5dec430e60f965354d02a6da03fcd0"
+    },
+    {
+      "path": "/home/pi/phase11-4-browser-d1/radio-cleanup-result.json",
+      "bytes": 49,
+      "sha256": "1d01dfcd4f2a3db9f2dc8c8ca40d44e11ec7f2b26be97a800bd9f102dd9545eb"
+    },
+    {
+      "path": "/home/pi/phase11-4-browser-d1/final-restoration.json",
+      "bytes": 1650,
+      "sha256": "2a487ef353ffd6d4981385fcd8df52eb510f2be041b820f79598d01da20aa518"
+    },
+    {
+      "path": "/home/pi/phase11-4-browser-d1/phase11-hotspot-client.log",
+      "bytes": 4073,
+      "sha256": "c1e7619568b41d147cd2c394f7e4ff65c50edc96acc937ba24f1fc6665e4e4d3"
+    },
+    {
+      "path": "/home/pi/phase11-4-browser-d1-onboard/events.jsonl",
+      "bytes": 5283,
+      "sha256": "c9a0afe5f9e7039f19d2cc3b9efa39f1ec7135106aecef7f6cdb4c82e7c607d2"
+    },
+    {
+      "path": "/home/pi/phase11-4-browser-d1-onboard/cleanup-result.json",
+      "bytes": 21,
+      "sha256": "796c4c14e96a550c0a864f3ea98bceabdd5dec430e60f965354d02a6da03fcd0"
+    },
+    {
+      "path": "/home/pi/phase11-4-browser-d1-onboard/phase11-hotspot-client.log",
+      "bytes": 1234,
+      "sha256": "94668756cfa379aaa914aee68be3c38ec40f0a8aa07f26b7615828bc257a459e"
+    }
+  ]
+}

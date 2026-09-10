@@ -124,11 +124,16 @@ The [working three-radio setup](phase11-4-radio-results.md) adds independent
 radio observation and the DHCP `NOIP` reconnect correction, with a regression
 against the actual adapter. It records the verified management power setting,
 approved inhibited A flash, and passing same-boot DHCP recovery with native
-Linux WTP/HTTPS and the actual production client. Native Mac/Chrome acceptance
-and broader repeatability remain open; radio association coverage is explicitly
-bounded. The joint matrix links this current D1 result.
+Linux WTP/HTTPS and the actual production client. That record left native
+browser acceptance for the completion below; broader repeatability remains open
+and radio association coverage is explicitly bounded.
 Run `python3 tests/phase11_4_radio_diagnostic_tests.py` for its hardware-free
 capture/refusal/restoration checks.
+The [native Chromium completion](phase11-4-browser-d1-results.md) closes D1 for
+the user-selected Linux browser scope: same-tab secure status reload after a
+real same-boot DHCP change, alongside reference and actual production passes.
+It records the working onboard-AP/USB-client arrangement, restoration and
+explicit macOS/configuration-form coverage limits.
 [D3 execution](phase11-4-d3-results.md) passes bounded actual link loss, native
 cache removal, inhibited-job continuity and automatic recovery, with timing gaps
 and Chrome failure retained. Its [Orbi report](phase11-4-d3-orbi-research.md)
