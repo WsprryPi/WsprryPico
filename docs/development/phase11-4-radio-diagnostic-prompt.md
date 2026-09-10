@@ -126,3 +126,18 @@ afterward. Repeat the admitted baseline and same-boot DHCP transition on the
 same controlled setup, with unchanged client deadlines. Restore Bohica-IoT and
 host management before concluding. Physical improvement remains unverified
 until that execution is complete; source tests alone cannot establish it.
+
+
+## Approved execution outcome, 2026-09-10
+
+The user approved the exact UF2 above. Verified serial-specific loading on Pico A
+completed; Pico B remained unchanged. The corrected image passed baseline and
+same-boot `.10` to `.20` DHCP recovery, native Linux resolution, authenticated
+WTP/HTTPS and actual production-client connections with unchanged deadlines.
+Restore to Bohica-IoT and final A/B USB checks completed, followed by three
+successful ordinary Wi-Fi management checks. The offline adversarial assessment
+passed eleven refusal checks and reassessed the original evidence. Radio
+association coverage was not established; no absence-of-reassociation claim is
+made. Native Mac/Chrome D1 acceptance and broader repeatability remain open.
+See the [working results](phase11-4-radio-results.md) and
+[sanitized evidence manifest](phase11-4-radio-evidence.json).
