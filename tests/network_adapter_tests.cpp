@@ -23,6 +23,9 @@ static unsigned enables, disables, driver_polls, delivered_goodbyes, lost_goodby
 static bool power_failure;
 static int mac_result;
 static bool invalid_mac;
+static int bssid_result;
+static bool association_link_loss, invalid_bssid;
+static unsigned bssid_queries;
 static std::optional<std::uint64_t> queued_goodbye;
 std::uint64_t time_us_64() {
     return now_us;
@@ -112,6 +115,16 @@ int cyw43_wifi_get_mac(cyw43_t*, int interface, std::uint8_t* mac) {
         mac[i] = invalid_mac ? 0 : station[i];
     return mac_result;
 }
+int cyw43_wifi_get_bssid(cyw43_t* state, std::uint8_t* bssid) {
+    assert(state == &cyw43_state && watchdog_hw->scratch[1] == 26);
+    ++bssid_queries;
+    const std::uint8_t ap[] = {0x42, 0x98, 0xb5, 0xfe, 0x36, 0xa1};
+    for (unsigned i = 0; i < 6; ++i)
+        bssid[i] = invalid_bssid ? 0 : ap[i];
+    if (association_link_loss)
+        netif_set_link_down(&cyw43_state.netif[0]);
+    return bssid_result;
+}
 void cyw43_arch_poll() {
     ++driver_polls;
     sys_check_timeouts();
@@ -150,6 +163,8 @@ int main(int argc, char** argv) {
     wsprrypico::standalone::Config config;
     config.ntp_ipv4 = "192.0.2.1";
     assert(!network.set_enabled(false));
+    assert(network.association().find("not_connected") != std::string::npos);
+    assert(bssid_queries == 0);
     assert(network.status().find("\"stable_hostname\":\"\"") != std::string::npos);
     assert(network.start(config));
     if (argc == 2) {
@@ -165,6 +180,24 @@ int main(int argc, char** argv) {
     assert(network.set_enabled(false) && disables == 1);
     assert(network.set_enabled(true));
     active(network);
+    watchdog_hw->scratch[1] = 5;
+    assert(network.association() == "{\"valid\":true,\"bssid\":\"42:98:b5:fe:36:a1\"}");
+    assert(watchdog_hw->scratch[1] == 5);
+    bssid_result = -7;
+    assert(network.association().find("\"code\":-7") != std::string::npos);
+    assert(watchdog_hw->scratch[1] == 5);
+    bssid_result = 0;
+    invalid_bssid = true;
+    assert(network.association().find("invalid_bssid") != std::string::npos);
+    invalid_bssid = false;
+    association_link_loss = true;
+    assert(network.association().find("link_changed") != std::string::npos);
+    association_link_loss = false;
+    assert(network.association().find("not_connected") != std::string::npos);
+    netif_set_link_up(&cyw43_state.netif[0]);
+    const auto queries_before_status = bssid_queries;
+    (void)network.status();
+    assert((bssid_queries == queries_before_status));
     assert(network.trace_page(0).find("\"install_errors\":0") != std::string::npos);
     assert(network.trace_page(0).find("\"intact\":true") != std::string::npos);
     const auto before = now_us;
@@ -229,6 +262,7 @@ int main(int argc, char** argv) {
         assert(lwip_stats.memp[MEMP_SYS_TIMEOUT]->used == clean_timers);
     }
     assert(lost_goodbyes == expected_lost);
+    assert((bssid_queries == queries_before_status));
     power_failure = true;
     assert(!network.set_enabled(true) && !network.link_up());
     assert(network.status().find("\"withdrawal_pending\":false") != std::string::npos);

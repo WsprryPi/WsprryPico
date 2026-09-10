@@ -21,7 +21,12 @@ def main():
     p.add_argument('--trace', action='store_true')
     p.add_argument('--idle-before-off', action='store_true')
     p.add_argument('--diagnostic-iot-profile')
+    p.add_argument('--iot-profile', help='Read-only Bohica-IoT diagnostic; recovery stays active')
+    p.add_argument('--controller', type=Path, default=Path('/home/pi/phase11-4-acceptance/controller'))
     a = p.parse_args()
+    require(not (a.iot_profile and a.diagnostic_iot_profile), 'conflicting host profiles')
+    require(not a.iot_profile or a.mode == 'diagnose',
+            'current IoT profile override is read-only diagnostic only')
     require(not a.diagnostic_iot_profile or a.mode == 'diagnose',
             'host-path override is read-only diagnostic only')
     require(a.run and __debug__, 'Explicit --run and nonoptimized Python required')
@@ -160,7 +165,7 @@ def main():
         value.update(label=label, started_ns=start, ended_ns=time.time_ns())
         note('nss', value)
         return value
-    ca = Path('/home/pi/phase11-4-acceptance/controller')
+    ca = a.controller
 
     def https():
         import http.client, io
@@ -213,8 +218,13 @@ def main():
             assert result.returncode == expected_exit, 'host metadata failure: ' + key
         value['mac'] = Path('/sys/class/net/wlan1/address').read_text().strip()
         note('HOST_PATH', value)
-        fingerprint = validate_host(value, profile=a.diagnostic_iot_profile,
-                ssid='Bohica-IoT', recovery_active='inactive') if a.diagnostic_iot_profile else validate_host(value)
+        if a.iot_profile:
+            fingerprint = validate_host(value, profile=a.iot_profile, ssid='Bohica-IoT')
+        elif a.diagnostic_iot_profile:
+            fingerprint = validate_host(value, profile=a.diagnostic_iot_profile,
+                                        ssid='Bohica-IoT', recovery_active='inactive')
+        else:
+            fingerprint = validate_host(value)
         if host_baseline is None:
             host_baseline = fingerprint
         assert fingerprint == host_baseline, 'host association changed during case'

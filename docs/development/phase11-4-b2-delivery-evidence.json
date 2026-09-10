@@ -1,0 +1,1105 @@
+{
+  "schema": "wsprrypico-phase11.4-b2-delivery/1",
+  "scope": "Inhibited two-board B2 diagnostics and SDK update; no RF qualification",
+  "base_revision": "dbf1d86f088536a4c6adebd180f2e51ca7f83976",
+  "runtime_revision": "dbf1d86f0885-dirty",
+  "status": {
+    "B2": "OPEN",
+    "D1": "OPEN",
+    "D2": "OPEN",
+    "E1": "PASS, bounded",
+    "eight_hour_soak": "INCOMPLETE"
+  },
+  "sdk": {
+    "version": "2.3.1",
+    "commit": "079c6f39023649b154152db30f1d781e884879bc",
+    "verified_fix_ancestor": "48a5de2ddec1b7859ac59388cd8d024ef4161825",
+    "release": "https://github.com/raspberrypi/pico-sdk/releases/tag/2.3.1",
+    "compiler": "Arm GNU 15.3.1",
+    "picotool": "6f6458d792b93685a11423b244a585eaa99eafcf",
+    "synchronization_override": null,
+    "system_clock_hz_source_default": 150000000,
+    "physical_rf_tested": false,
+    "original_sibling_sdk_unchanged": true,
+    "linked_submodules": {
+      "tinyusb": "86ad6e56c1700e85f1c5678607a762cfe3aa2f47",
+      "cyw43-driver": "055d64274b014dd7b1c2fc94d26e8a18face7124",
+      "lwip": "77dcd25a72509eb83f72b033d219b1d40cd8eb95",
+      "mbedtls": "0bebf8b8c7f07abe3571ded48a11aa907a1ffb20"
+    }
+  },
+  "identities": {
+    "a": {
+      "device": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+      "hostname": "wsprrypico-0a60df.local",
+      "fingerprint": "06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016",
+      "address": "192.168.1.47",
+      "boot": "3bb4bd7cb18af1e396fa4bf3ad5e5da6"
+    },
+    "b": {
+      "device": "29f20b7342051ef947aa56cb9d4fab42",
+      "hostname": "wsprrypico-0a9d89.local",
+      "fingerprint": "9cc4967f0a263b4aa94069674837ddcdb8c1946f5a5b407584ce7eee6298cfac",
+      "address": "192.168.1.53",
+      "boot": "6a0eca7714ee24db9aff824dd8ffb11b"
+    }
+  },
+  "final_images": {
+    "a": {
+      "elf": {
+        "path": "build/phase11-4-b2-delivery/firmware-a-sdk231/firmware/WsprryPico.elf",
+        "sha256": "59a2253844f18e80a5d938133956bd4a2f63b407c8d26d7b46c2195cdaef88dd"
+      },
+      "uf2": {
+        "path": "build/phase11-4-b2-delivery/firmware-a-sdk231/firmware/WsprryPico.uf2",
+        "sha256": "06d18600a3605e874f71c8fa4e7e7df1a1ef5983b5e1dcf6d0b1e695f01716e5"
+      }
+    },
+    "b": {
+      "elf": {
+        "path": "build/phase11-4-b2-delivery/firmware-b-sdk231/firmware/WsprryPico.elf",
+        "sha256": "8d245a321a90a80bdf1b6db4edeeef8870bbcbb6eb7f5d9fdd3db1d211954685"
+      },
+      "uf2": {
+        "path": "build/phase11-4-b2-delivery/firmware-b-sdk231/firmware/WsprryPico.uf2",
+        "sha256": "93a8db32967db004ef26a8bd85fb9efb52e86802c8861976032622f77d293183"
+      }
+    }
+  },
+  "initial_sdk231_images": {
+    "a": {
+      "elf": {
+        "sha256": "3ae2b69574a09d03b8740cabf7bdbd45f37ed480565411169c0bd15d86e3468b",
+        "artifact_retained": false,
+        "note": "Superseded debug ELF; final checked ELF produces the identical retained deployed UF2."
+      },
+      "uf2": {
+        "path": "build/phase11-4-b2-delivery/firmware-a-sdk231/firmware/WsprryPico.uf2",
+        "sha256": "06d18600a3605e874f71c8fa4e7e7df1a1ef5983b5e1dcf6d0b1e695f01716e5"
+      }
+    },
+    "b": {
+      "elf": {
+        "sha256": "fe48ac7c0d919440095b74fbdecc9988f1e7d47453bebda7bd8b25e5c067df59",
+        "artifact_retained": false,
+        "note": "Superseded debug ELF; final checked ELF produces the identical retained deployed UF2."
+      },
+      "uf2": {
+        "path": "build/phase11-4-b2-delivery/firmware-b-sdk231/firmware/WsprryPico.uf2",
+        "sha256": "93a8db32967db004ef26a8bd85fb9efb52e86802c8861976032622f77d293183"
+      }
+    }
+  },
+  "elf_rebuild_note": "Formatting changed ELF debug metadata; final UF2 bytes match the exact deployed images. Initial ELF hashes retained as superseded records.",
+  "earlier_images": {
+    "images.json": {
+      "build/phase11-4-b2-delivery/firmware-a/firmware/WsprryPico.elf": "1067a159ed5c424cb639a0116ac1927d603cc17a7bcb0d735e9dd484ad51babc",
+      "build/phase11-4-b2-delivery/firmware-a/firmware/WsprryPico.uf2": "31d5850b4228bd79cf5ca2262efd5eb7d41a831e57db4e4c0b6761176a533fd0",
+      "build/phase11-4-b2-delivery/firmware-b/firmware/WsprryPico.elf": "f7ce17f0c3014e2b9ea0fe07591b8f68c8497ea164c20b51b7ba9a3fd2e412af",
+      "build/phase11-4-b2-delivery/firmware-b/firmware/WsprryPico.uf2": "4cea4c46026dddce47cee8f208111d2366f7855026f15805d25cc3cab4d4a667"
+    },
+    "bssid-images.json": {
+      "build/phase11-4-b2-delivery/firmware-a-bssid/firmware/WsprryPico.elf": "bb590c3f3a60abc30decae48b3b356e3203a4ad9f7abe9840aef993a07b20507",
+      "build/phase11-4-b2-delivery/firmware-a-bssid/firmware/WsprryPico.uf2": "77c8cf9af36b8cdd86b041caa38d7769811f0e24c0011aeda8c56a0178b4928c",
+      "build/phase11-4-b2-delivery/firmware-b-bssid/firmware/WsprryPico.elf": "07bb7468a35c3f74fbfd3ced17f3cede62af469700e6ed5b340fa9417ec68e8e",
+      "build/phase11-4-b2-delivery/firmware-b-bssid/firmware/WsprryPico.uf2": "2fc8931d551330a79011bcf53834095e0858154ee1b80c364aa4696f4c3091d6"
+    },
+    "sync-images.json": {
+      "build/phase11-4-b2-delivery/firmware-a-sync/firmware/WsprryPico.elf": "add06a6b647b27bbdde6d002f42703b8248555d3bacb22e936e440565e3d12ac",
+      "build/phase11-4-b2-delivery/firmware-a-sync/firmware/WsprryPico.uf2": "9eb0dfda354de2fa17679efe8d0601a72b6f464c05e2269427eca6e0fe1686c5",
+      "build/phase11-4-b2-delivery/firmware-b-sync/firmware/WsprryPico.elf": "68950c8bc85c69a6b55904bd8432c2f184102b8d106a6408f2f7ddbab110f3bc",
+      "build/phase11-4-b2-delivery/firmware-b-sync/firmware/WsprryPico.uf2": "e68b4078a63007c241fa3f8e12a7f37f049246d1c75686a6e69c1dd3c25986e7"
+    }
+  },
+  "comparison": {
+    "result": "PASS evidence consistency; B2 remains OPEN",
+    "phases": [
+      {
+        "phase": "before",
+        "start_epoch_ns": 1789045405429965742,
+        "end_epoch_ns": 1789045426128669220,
+        "host_bssid": "7a:cd:d6:f2:f6:c5",
+        "pico_bssids": {
+          "a": "42:98:b5:fe:36:a1",
+          "b": "7a:cd:d6:f2:f6:c5"
+        },
+        "reachable": "b",
+        "failures": [
+          {
+            "target": "a",
+            "probe": "native_nss"
+          },
+          {
+            "target": "a",
+            "probe": "wtp",
+            "error": "OSError: [Errno 113] No route to host"
+          },
+          {
+            "target": "a",
+            "probe": "https",
+            "error": "OSError: [Errno 113] No route to host"
+          }
+        ],
+        "arp_probes": [
+          {
+            "address": "192.168.1.47",
+            "sent": 3,
+            "received": 0,
+            "exit": 1
+          },
+          {
+            "address": "192.168.1.53",
+            "sent": 3,
+            "received": 2,
+            "exit": 1
+          }
+        ],
+        "packets": 53,
+        "kernel_drops": 0,
+        "tcp": [
+          {
+            "source": "192.168.1.117",
+            "destination": "192.168.1.53",
+            "flags": "0x2",
+            "count": 2
+          },
+          {
+            "source": "192.168.1.117",
+            "destination": "192.168.1.53",
+            "flags": "0x10",
+            "count": 7
+          },
+          {
+            "source": "192.168.1.117",
+            "destination": "192.168.1.53",
+            "flags": "0x11",
+            "count": 1
+          },
+          {
+            "source": "192.168.1.117",
+            "destination": "192.168.1.53",
+            "flags": "0x18",
+            "count": 7
+          },
+          {
+            "source": "192.168.1.53",
+            "destination": "192.168.1.117",
+            "flags": "0x10",
+            "count": 6
+          },
+          {
+            "source": "192.168.1.53",
+            "destination": "192.168.1.117",
+            "flags": "0x12",
+            "count": 2
+          },
+          {
+            "source": "192.168.1.53",
+            "destination": "192.168.1.117",
+            "flags": "0x14",
+            "count": 1
+          },
+          {
+            "source": "192.168.1.53",
+            "destination": "192.168.1.117",
+            "flags": "0x18",
+            "count": 7
+          }
+        ]
+      },
+      {
+        "phase": "same-a",
+        "start_epoch_ns": 1789045440296149656,
+        "end_epoch_ns": 1789045460824272108,
+        "host_bssid": "42:98:b5:fe:36:a1",
+        "pico_bssids": {
+          "a": "42:98:b5:fe:36:a1",
+          "b": "7a:cd:d6:f2:f6:c5"
+        },
+        "reachable": "a",
+        "failures": [
+          {
+            "target": "b",
+            "probe": "native_nss"
+          },
+          {
+            "target": "b",
+            "probe": "wtp",
+            "error": "OSError: [Errno 113] No route to host"
+          },
+          {
+            "target": "b",
+            "probe": "https",
+            "error": "OSError: [Errno 113] No route to host"
+          }
+        ],
+        "arp_probes": [
+          {
+            "address": "192.168.1.47",
+            "sent": 3,
+            "received": 3,
+            "exit": 0
+          },
+          {
+            "address": "192.168.1.53",
+            "sent": 3,
+            "received": 0,
+            "exit": 1
+          }
+        ],
+        "packets": 84,
+        "kernel_drops": 0,
+        "tcp": [
+          {
+            "source": "192.168.1.117",
+            "destination": "192.168.1.47",
+            "flags": "0x2",
+            "count": 2
+          },
+          {
+            "source": "192.168.1.117",
+            "destination": "192.168.1.47",
+            "flags": "0x10",
+            "count": 11
+          },
+          {
+            "source": "192.168.1.117",
+            "destination": "192.168.1.47",
+            "flags": "0x11",
+            "count": 2
+          },
+          {
+            "source": "192.168.1.117",
+            "destination": "192.168.1.47",
+            "flags": "0x18",
+            "count": 11
+          },
+          {
+            "source": "192.168.1.47",
+            "destination": "192.168.1.117",
+            "flags": "0x10",
+            "count": 12
+          },
+          {
+            "source": "192.168.1.47",
+            "destination": "192.168.1.117",
+            "flags": "0x11",
+            "count": 1
+          },
+          {
+            "source": "192.168.1.47",
+            "destination": "192.168.1.117",
+            "flags": "0x12",
+            "count": 2
+          },
+          {
+            "source": "192.168.1.47",
+            "destination": "192.168.1.117",
+            "flags": "0x14",
+            "count": 1
+          },
+          {
+            "source": "192.168.1.47",
+            "destination": "192.168.1.117",
+            "flags": "0x18",
+            "count": 12
+          }
+        ]
+      },
+      {
+        "phase": "restored",
+        "start_epoch_ns": 1789045479693889102,
+        "end_epoch_ns": 1789045505687069239,
+        "host_bssid": "7a:cd:d6:f2:f6:c5",
+        "pico_bssids": {
+          "a": "42:98:b5:fe:36:a1",
+          "b": "7a:cd:d6:f2:f6:c5"
+        },
+        "reachable": "b",
+        "failures": [
+          {
+            "target": "a",
+            "probe": "wtp",
+            "error": "TimeoutError: timed out"
+          },
+          {
+            "target": "a",
+            "probe": "https",
+            "error": "TimeoutError: timed out"
+          }
+        ],
+        "arp_probes": [
+          {
+            "address": "192.168.1.47",
+            "sent": 3,
+            "received": 3,
+            "exit": 0
+          },
+          {
+            "address": "192.168.1.53",
+            "sent": 3,
+            "received": 3,
+            "exit": 0
+          }
+        ],
+        "packets": 77,
+        "kernel_drops": 0,
+        "tcp": [
+          {
+            "source": "192.168.1.117",
+            "destination": "192.168.1.47",
+            "flags": "0x2",
+            "count": 14
+          },
+          {
+            "source": "192.168.1.117",
+            "destination": "192.168.1.53",
+            "flags": "0x2",
+            "count": 2
+          },
+          {
+            "source": "192.168.1.117",
+            "destination": "192.168.1.53",
+            "flags": "0x10",
+            "count": 8
+          },
+          {
+            "source": "192.168.1.117",
+            "destination": "192.168.1.53",
+            "flags": "0x11",
+            "count": 1
+          },
+          {
+            "source": "192.168.1.117",
+            "destination": "192.168.1.53",
+            "flags": "0x18",
+            "count": 7
+          },
+          {
+            "source": "192.168.1.53",
+            "destination": "192.168.1.117",
+            "flags": "0x10",
+            "count": 7
+          },
+          {
+            "source": "192.168.1.53",
+            "destination": "192.168.1.117",
+            "flags": "0x12",
+            "count": 2
+          },
+          {
+            "source": "192.168.1.53",
+            "destination": "192.168.1.117",
+            "flags": "0x14",
+            "count": 1
+          },
+          {
+            "source": "192.168.1.53",
+            "destination": "192.168.1.117",
+            "flags": "0x18",
+            "count": 8
+          }
+        ]
+      }
+    ]
+  },
+  "superseded_single_case": {
+    "directory": "build/phase11-4-b2-delivery/remote-sdk231/candidate-case-02",
+    "result": "PASS bounded B2 physical case; not D2",
+    "boot": "0a1ad3ddcce2540825fad179ac9b7180",
+    "summary": {
+      "first_active_seconds": 6.5479255949976505,
+      "peer_failures": [],
+      "successful_checks": 6,
+      "stable_seconds": 33.75431823499821
+    },
+    "elapsed_recovery_seconds": 44.779291223,
+    "off_seconds": 2.027767376,
+    "usb_info_samples": 222,
+    "usb_frames": 44,
+    "trace_events": 652,
+    "host": [
+      "Connected to 7a:cd:d6:f2:f6:c5 (on wlan1)",
+      "921301fe-cdfd-4965-8ac7-c96e9d908ea6"
+    ],
+    "mdns_packets": 11,
+    "diagnostic_packets": 195
+  },
+  "earlier_read_only_audit": {
+    "01": {
+      "scope": "bounded positive ARP window only; no reconnection acceptance",
+      "trace_events": 328,
+      "trace_first": 457,
+      "trace_last": 784,
+      "usb_info_samples": 135,
+      "alignment_spread_ns": 970435,
+      "arp_pairs": [
+        {
+          "request_seq": 721,
+          "reply_seq": 722,
+          "driver_result": 0,
+          "request_epoch_ns": 1789042541677663418,
+          "captured_reply_epoch_ns": 1789042541670124000,
+          "submission_us": 83
+        },
+        {
+          "request_seq": 725,
+          "reply_seq": 726,
+          "driver_result": 0,
+          "request_epoch_ns": 1789042542668743418,
+          "captured_reply_epoch_ns": 1789042542661762000,
+          "submission_us": 84
+        },
+        {
+          "request_seq": 729,
+          "reply_seq": 730,
+          "driver_result": 0,
+          "request_epoch_ns": 1789042543686904418,
+          "captured_reply_epoch_ns": 1789042543679515000,
+          "submission_us": 85
+        }
+      ],
+      "host_path": [
+        "Connected to 7a:cd:d6:f2:f6:c5 (on wlan1)",
+        "921301fe-cdfd-4965-8ac7-c96e9d908ea6"
+      ],
+      "failures": [
+        {
+          "type": "TimeoutError",
+          "message": "serial response timeout"
+        }
+      ],
+      "cleanup_verified": true,
+      "captured_mdns_packets": 2
+    },
+    "02": {
+      "scope": "bounded positive ARP window only; no reconnection acceptance",
+      "trace_events": 429,
+      "trace_first": 1320,
+      "trace_last": 1748,
+      "usb_info_samples": 163,
+      "alignment_spread_ns": 440551,
+      "arp_pairs": [
+        {
+          "request_seq": 1601,
+          "reply_seq": 1602,
+          "driver_result": 0,
+          "request_epoch_ns": 1789042757269373547,
+          "captured_reply_epoch_ns": 1789042757261787000,
+          "submission_us": 85
+        },
+        {
+          "request_seq": 1605,
+          "reply_seq": 1606,
+          "driver_result": 0,
+          "request_epoch_ns": 1789042758273066547,
+          "captured_reply_epoch_ns": 1789042758266947000,
+          "submission_us": 86
+        },
+        {
+          "request_seq": 1609,
+          "reply_seq": 1610,
+          "driver_result": 0,
+          "request_epoch_ns": 1789042759309730547,
+          "captured_reply_epoch_ns": 1789042759303033000,
+          "submission_us": 89
+        }
+      ],
+      "host_path": [
+        "Connected to 7a:cd:d6:f2:f6:c5 (on wlan1)",
+        "921301fe-cdfd-4965-8ac7-c96e9d908ea6"
+      ],
+      "failures": [
+        {
+          "type": "ConnectionError",
+          "message": "serial device closed"
+        },
+        {
+          "type": "RuntimeError",
+          "message": "read-only diagnostic completed; no OFF/ON requested"
+        }
+      ],
+      "cleanup_verified": false,
+      "captured_mdns_packets": 3
+    },
+    "03": {
+      "scope": "bounded positive ARP window only; no reconnection acceptance",
+      "trace_events": 440,
+      "trace_first": 1706,
+      "trace_last": 2145,
+      "usb_info_samples": 167,
+      "alignment_spread_ns": 3596889,
+      "arp_pairs": [
+        {
+          "request_seq": 1975,
+          "reply_seq": 1976,
+          "driver_result": 0,
+          "request_epoch_ns": 1789042843665259776,
+          "captured_reply_epoch_ns": 1789042843656890000,
+          "submission_us": 87
+        },
+        {
+          "request_seq": 1977,
+          "reply_seq": 1978,
+          "driver_result": 0,
+          "request_epoch_ns": 1789042844664301776,
+          "captured_reply_epoch_ns": 1789042844683454000,
+          "submission_us": 87
+        },
+        {
+          "request_seq": 1979,
+          "reply_seq": 1980,
+          "driver_result": 0,
+          "request_epoch_ns": 1789042845663693776,
+          "captured_reply_epoch_ns": 1789042845655483000,
+          "submission_us": 86
+        }
+      ],
+      "host_path": [
+        "Connected to 7a:cd:d6:f2:f6:c5 (on wlan1)",
+        "921301fe-cdfd-4965-8ac7-c96e9d908ea6"
+      ],
+      "failures": [
+        {
+          "type": "RuntimeError",
+          "message": "read-only diagnostic completed; no OFF/ON requested"
+        }
+      ],
+      "cleanup_verified": true,
+      "captured_mdns_packets": 2
+    }
+  },
+  "failures_retained": [
+    "Diagnostic B stage-14 startup watchdog; recorded recovery",
+    "Read-only 01 lost NETLINK response",
+    "Read-only 02 invalidated by overlapping USB reader",
+    "Initial Mac B native discovery failure; later observations separate",
+    "Linux B pre-TLS delivery failure at 12:24 UTC",
+    "First same-radio preflight aborted in A RSSI marker 27 before host reassociation",
+    "BSSID-only A stage-14 startup watchdog before NETLINK; recorded recovery",
+    "Fallback candidate runner missing import before hardware admission",
+    "Initial event-drain checker parser consumed next line after operandless WFE; fixed horizontal whitespace",
+    "Wrong old host directory contained expired test certificates; fresh directory generated valid fixtures",
+    "SDK231 B initially disconnected, later automatic retry succeeded without intervention",
+    "SDK231 baseline A native discovery and pre-TLS connection failures on Mac and Linux",
+    "SDK231 controlled comparison retained inaccessible opposite-radio peer in all three phases",
+    "Audit first used Console INFO as WTP STATUS; corrected schemas and independently checked USB WTP frames",
+    "Final Mac A TCP timeout despite native name resolution"
+  ],
+  "checks": {
+    "fresh_host_non_tls": 34,
+    "fresh_host_tls": 1,
+    "total_fresh_host_passes": 35,
+    "firmware_targets_built": [
+      "WsprryPico",
+      "WsprryPico-RFBench",
+      "WsprryPico-RFWTP",
+      "WsprryPico-StandaloneRF"
+    ],
+    "both_inhibited_images": [
+      "flash_journal_and_stack_layout",
+      "shutdown_call_interception",
+      "event_drain_irq_order",
+      "RF_symbols_absent"
+    ],
+    "actual_old_sdk_image_rejected": true,
+    "second_adversarial_assessment": "No remaining actionable implementation or evidence-consistency finding; B2 external delivery boundary remains unresolved"
+  },
+  "final_usb": {
+    "a": {
+      "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+      "boot_id": "3bb4bd7cb18af1e396fa4bf3ad5e5da6",
+      "recovery_boot": false,
+      "engine": "inhibited-standalone-simulator",
+      "state": "empty",
+      "output_active": false,
+      "scheduling_enabled": false,
+      "storage_healthy": true,
+      "clock_state": "synchronized",
+      "station": {
+        "callsign": "AA0NT",
+        "locator": "EM18",
+        "power_dbm": 20
+      },
+      "schedules": [
+        {
+          "period_s": 120,
+          "phase_s": 0
+        }
+      ],
+      "watermark_utc_ns": "1788714601000000000",
+      "usb_evidence": "build/phase11-4-b2-delivery/remote-sdk231/final-sdk231-a.jsonl"
+    },
+    "b": {
+      "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+      "boot_id": "6a0eca7714ee24db9aff824dd8ffb11b",
+      "recovery_boot": false,
+      "engine": "inhibited-standalone-simulator",
+      "state": "empty",
+      "output_active": false,
+      "scheduling_enabled": false,
+      "storage_healthy": true,
+      "clock_state": "synchronized",
+      "station": {
+        "callsign": "AA0NT",
+        "locator": "EM18",
+        "power_dbm": 20
+      },
+      "schedules": [
+        {
+          "period_s": 120,
+          "phase_s": 0
+        }
+      ],
+      "watermark_utc_ns": "0",
+      "usb_evidence": "build/phase11-4-b2-delivery/remote-sdk231/final-sdk231-b.jsonl"
+    }
+  },
+  "final_mac": {
+    "utc": "2026-09-10T13:11:07.666434+00:00",
+    "kind": "complete",
+    "value": {
+      "scope": "read-only peer observations",
+      "failures": [
+        {
+          "target": "a",
+          "probe": "wtp",
+          "error": "TimeoutError: timed out"
+        },
+        {
+          "target": "a",
+          "probe": "https",
+          "error": "TimeoutError: timed out"
+        }
+      ]
+    }
+  },
+  "final_host_evidence": "build/phase11-4-b2-delivery/remote-sdk231/final-host-sdk231.json",
+  "historical_e1_files_verified": true,
+  "source_sha256": {
+    "CMakeLists.txt": "edf7834af434ea83fe3975e3b859d9a72a9782f8dc9900312511ae4b57fabd44",
+    "cmake/host_client_interop.cmake": "7f1e18a14ea57fe7efaa10f42c61fb6ad1ec58b6c882b0f1db6aa2446506cfa3",
+    "cmake/mbedtls_alert_overlay.cmake": "7ba7459c20f9ae2715fcb9981e7cf03382f96bf36d85a531dee42f0807e87917",
+    "cmake/mdns_host_tests.cmake": "ff489a420c78e77ce12f1137d89ef75df2c21344d3c02c95ba5c99b59d0fe702",
+    "cmake/network.cmake": "42d441a663e8e0de6eda40ac3edfa0d8e95aa6049c80e64825fcc0d1f0d90c8b",
+    "cmake/network_client_interop.cmake": "bf0c466ef348d7addb7702061e83d554b485f70744c4f72428422b9fab9767e6",
+    "cmake/network_credentials.hpp.in": "258bddcd71778837f5a9f3378d12aaaa1cabdc958ab0d0bad9f8ec6f310ceff4",
+    "cmake/network_host_tests.cmake": "c2d4a3d72f7199f46ca2d0198cd3b515a3b5a8673463072a130d3877a4e23fa9",
+    "cmake/pico_sdk_import.cmake": "ba280ce6f03f851ce469f27f042a0dc5882738fa67c29061b67406382ddfcce8",
+    "cmake/standalone_link/memory_flash.incl": "1dfdda5d91dc8dfab0a01f794593b5e559524103f5c58ed58b6fc33fc35037b8",
+    "cmake/verify_pico_dependencies.cmake": "3827a051af57dc4eabdcbe6e11425a8348994d96c896ded8c655a1cd0a25e3cc",
+    "firmware/CMakeLists.txt": "5e1bcf669a5c4fb3abd38977d723f92f264098a2faa12c0a8e1187d7709d7aa4",
+    "firmware/firmware_identity.hpp.in": "53f276bf530053f8da40d1fd7369dff542630f4d682b8f6128f59f43113aeb40",
+    "firmware/pico_adapters.cpp": "35551340d86ecb06d4a08869c0e128581c11c65f4f295822a5745bda9e700a8b",
+    "firmware/pico_adapters.hpp": "026db4ac9c1eb0d5aa2fca2e59ba6c0c3e452ec8d6d87101f5bd270018bbb42d",
+    "firmware/rf_wtp_main.cpp": "e79bb7aa3a9754098edd280e65b8e19c0be76ec93df90a44950e5041a69ed4c7",
+    "firmware/tusb_config.h": "1885059c9773b63372f70cb9a483495ac5e42ea72ebddad7a0e06eec8c158928",
+    "firmware/usb_descriptors.c": "785314b45443f4f460eb0242777b689467329398a704305b12d93c97a30f7b05",
+    "scripts/analyze_rf_bench.py": "f851c1fd78a0e6a941984a128483441e3f5d70e6e9f28ad91debf2007fb929a8",
+    "scripts/analyze_rf_drift.py": "b2be796320e09f482d37b78e484bca8117b564dcf0fe1c9642f6b67009cc236e",
+    "scripts/analyze_rf_feasibility.py": "4d3bca64810796fe7ffe6129b75a6693c9fa6b4470476fee0fceb05d0342122a",
+    "scripts/audit_phase11_4_discovery_recovery.py": "5ab46f9279790236c6614c815c23e9bc6b049538e9a3e5b8f423c10267ed0935",
+    "scripts/audit_phase11_4_mdns_conflict.py": "2ff129ca62ace0ae400233648d3790c5c281c9dccfc7442fd391ea57c1c1e678",
+    "scripts/audit_phase11_4_mdns_withdrawal.py": "f6c97040e585975ddf971b3a3c65e3658d9adf56044551651c5a040bf43538c5",
+    "scripts/audit_phase11_4_recovery.py": "fe9b3b1d21cc369d8663bf459e612312a2fd7cede38c0fff508332bfb882b16d",
+    "scripts/capture_rf_bench.py": "8b6b80ecccc9c2204bad735eec7500ead534bde4f3c2abf204d36566e194be8e",
+    "scripts/check_endpoint_image.py": "e44f78c0796ae437a00425696af449bcacf19163cf7b49b20c976503e01b78a6",
+    "scripts/check_inhibited_sync_image.py": "b0139fc8d43c480dfe2de0cf6f230ebeb244596f764da500ff8b6c85e7865884",
+    "scripts/check_shutdown_image.py": "b1269095ec1847d98ccd380d1910b273ace29bc031a04391fe5f1ab4b07848ac",
+    "scripts/check_standalone_image.py": "b32a975ef419df93e3aa270791d726c33223bbce048a43ce96e093be1bb3e669",
+    "scripts/check_usb_target.py": "51fcd12c14f9fc012554249378721a9ecb6cb01b11bb11152c746e9228a5fbf7",
+    "scripts/compare_rf_clocks.py": "688aec0e3f58617a24b9654e84565d7dcb623126b77570fd6e28bbfb98a78cd0",
+    "scripts/decode_rf_wspr.py": "a498c9c5009eb15c9568a2d4da58e3de0e1ca9ae8d404194a614e6e26d423b21",
+    "scripts/generate_network_test_credentials.py": "86efac6c0a624c89805906a95782777ecb1f727cdac49dff73b48b2e4f5cbd63",
+    "scripts/generate_web_assets.py": "e63a0952bfbca61df29cf3852a3c47f8e30968b14137f2252d507f7089caad4f",
+    "scripts/inhibited_network_acceptance.py": "088904c352c9891e73de871bf717b53ae34955cc2e9d7a854d47c0c2c7a3e043",
+    "scripts/measure_rf_bench.py": "f75e8e8fbd148a1a7407297710bcf7bc80ad7ff22e2b6fadf23b4bebeb8fd9e3",
+    "scripts/network_certificates.py": "e903645f547c97fd723755cfcaa48e682a77b33fa0e466e0e15e33a0735259cf",
+    "scripts/phase11_4_loop.py": "9f077fe9bae2833caf7d2713a404a2e9de0926f12740edc0e9fd9d42953bf476",
+    "scripts/phase11_4_loop_audit.py": "44fb8d4ca673ac44a1439d9f11483ed97f52608795e10fb1206163145f2a38e0",
+    "scripts/phase11_4_loop_common.py": "b9a848a12bbd2f4c65bbaa2d048d1a0f4dc022841945e0cebde22a2d69574931",
+    "scripts/phase11_4_loop_peer.py": "1ea086758a9373be877083ae2edb0471816c5c50a04204eac1ce0f8be760174c",
+    "scripts/phase11_4_loop_target.py": "5c637d7debee289e7d3ae0294d1142b98dbb2d6845c6f160851f62813dcad73b",
+    "scripts/phase11_4_trace_audit.py": "72fdb302cfb8658fa98894c09878b1f6f3e3471e2fbc8273ca3a9ad77e3e1a6a",
+    "scripts/pio_campaign.py": "284b45d888ab58f7162080a9273aa47f4d6f6ef6d5a90425bde1bb5ab4786e3c",
+    "scripts/predict_rf_spurs.py": "9afab5b31391b41dced8333c4727ed347d842dc1c14204480a152d238f86cfb5",
+    "scripts/prepare_mbedtls_alert_overlay.py": "b3a98b5fef5153a77d9f6fce54218797f652150a8294ec83a1cd33f0c53bd953",
+    "scripts/preview_network_browser.py": "793c8f3613288dc930accefdcc906eb5aff04a05a499fd70651cfd130b89195d",
+    "scripts/rf_bench.py": "ff828bcf382776ffcf0f8eabd86288542dbfbbb8c7a43528e866106486e76ba8",
+    "scripts/rf_wtp.py": "d815043f8b4876c71c6bb1e1c5ad95451608b97dcfdcfb2d726b021deef99017",
+    "scripts/standalone_console.py": "9a22ff8cd5ddbc3a91bd58edca4e8d4c1e45b46a89268a33c79624b1f02d5bc7",
+    "scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+    "scripts/verify_wsprrypi_client.py": "978be24e938d562f4b31975a4d060582aa9a2e2732ef021cd06e271d7e1f5431",
+    "scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9",
+    "scripts/wtp_probe.py": "5d55c242869875ce01e8495b85ee6f5cef5dbb700c1760098a5057dda030a260",
+    "src/campaign/analysis.py": "2bf05a16de11b1543d5d6aed4d0f342cd24d7416f84050f0d090f74fd89a44be",
+    "src/campaign/evidence.py": "e0e3886fe6ca14c988298b03bcaf1cb98ad5a6b8ce285044dccf45267b044b06",
+    "src/campaign/live.py": "9b804a2e4694152384a7a664ccd9b2087ffad83ff7974c4c96d7ecf90b27b657",
+    "src/campaign/plan.py": "13f7f1181dc4e04a81077b4b2e9d66d881310aabbcafae907fdd74b226ae4923",
+    "src/encoding/WsprryPi-LICENSE.md": "74a6a0315224e3b49a3148fd3f8252b92c6aac18b2567925109664e46661ea53",
+    "src/encoding/wspr.cpp": "04a86a0f425da9acca3b37f7f1464fa8ed3d1fd057d073b36347258d935b0bb9",
+    "src/encoding/wspr.hpp": "eea31df63890407e8a9844d2c7cebd1dd96d237b6af3097c44f25c79a764418c",
+    "src/network/api.cpp": "928ac76a02ad052589aef2fad972e0379caadfc2a08ac03f7d8602bea11ab690",
+    "src/network/api.hpp": "77d406eb4042167f4b776feac10dd35eed495d348028b28ed3615fa129dc4ce7",
+    "src/network/assets.hpp": "24c6eda1bba65db7379c00a5fe0797b0228d248d8f48e419bb25614d71aa1be2",
+    "src/network/http.cpp": "f5844ed00e712b5891a8fd7d71f25e2e4d76c2c94c5b1dc16290053d808a7a37",
+    "src/network/http.hpp": "29124cb3a174a733666cf5a99a0281cbc24dbcb6997782c2b1b458a4636b5e31",
+    "src/network/identity.hpp": "86e7c0ec77ce59b677de257ae915e51f09e771c744955b52d6925b64717800ea",
+    "src/network/mdns.cpp": "4b86158e302b49cfbcfdcdc1933903fcc7b7045502625349ac022e930e775cef",
+    "src/network/mdns.hpp": "a36f237bbb71501a2dc3fd04986cc1138cc101cc8f5961d9ee69e6a842797f31",
+    "src/network/pico/mbedtls_config.h": "4b8957521015618035e695c5731cf3fa3e871e99d0549aba0fdd6e47f9b8e51e",
+    "src/network/pico/server.cpp": "7e45d295f40aa3f35ce1504a2dc54c3281166a7926a123f0790d7c315c4517bc",
+    "src/network/pico/server.hpp": "d7a9c97c75da3055a0fcdbbec9c4f2d150156ade607a69a071569c4e2a00643c",
+    "src/network/web/app.js": "764dbc97bb652aecb05121a32a2662e3fb78ce00c6eda01a37010798f75f2439",
+    "src/network/web/index.html": "bb72dd363fe55d09c66a1b5bbf55e8a9353295e1e21026c3d2c44486f42cace7",
+    "src/network/web/style.css": "6a27cfbcd44420ae55125a8ac81008418a95948d82587c8f50ba067cba17b7a2",
+    "src/rf/bench.cpp": "c20cef1c48fc50718dea4278cfb6f30dc7f5f9c349fd18166920daa562b9662e",
+    "src/rf/bench.hpp": "1fa5d98174093a3db4f32f558e96ceba9e68f01739cf618b38ee57016974011e",
+    "src/rf/pico/bench_main.cpp": "a6289734158c84cc9fbdfe97698e9cfe3a0b338036633af14f630efd83d013b8",
+    "src/rf/pico/packed_output.pio": "2c5a7d317cb6d6fbf6d82ade6515eb330b79abd528cd5c9fcd6113d7137b06ce",
+    "src/rf/pico/pico_pio_dma.cpp": "358d3f7a23758adecfaaa017aaf02bb173c4dd9cdc495edecb2598cf121cdbd3",
+    "src/rf/pico/pico_pio_dma.hpp": "2191624513a2817050b62d4c9e1971e641170a7adbe8f1972b90c221e1d6bd15",
+    "src/rf/pico/worker.cpp": "caeb1518cb666b327fb8ba6325f26ea2becce4db575b186d3766e36e3b40b207",
+    "src/rf/pico/worker.hpp": "417a0131c0eaf5e7b28fac34b6f039d4297f4bb725351b358cbe00681ec14576",
+    "src/rf/pio_dma_sink.cpp": "bc7aca0483051543966286b068ffe2d1ac8b6f0ebc0d43242aa275359d17ce75",
+    "src/rf/pio_dma_sink.hpp": "4fd5a6cadd0694955ae608ab8e2b38c61a2d25e1e13cbafabe42d2539b7881e1",
+    "src/rf/stream_engine.cpp": "42588a3c08aa6fa0782ec4c0c6a06720cac47fb4dfd17295841a8c15c29cd918",
+    "src/rf/stream_engine.hpp": "82c433d9d179feeef3454e6cd907eddc9afb4f7130f91592e5bad197cbea8793",
+    "src/rf/waveform.cpp": "715880494407e41ea03edbaa841ec98ee17ed3cfdc76b1c2b74217ce5f0b77b9",
+    "src/rf/waveform.hpp": "d7c8ceca7ec4b848b5d989ef342736cbc6f4cf5ce8d374b845af5e6fa342fe6b",
+    "src/rf/worker.cpp": "55f0456ae3c0bba3e68fa83a29b2dff1d95c1dd7bc8d9ebd4d3fc44de91d9259",
+    "src/rf/worker.hpp": "460a135bc76867711dd963a99f2d501f507feeb3c72e7fef0f5a1d89d8ad1ca4",
+    "src/rf/wtp_profile.hpp": "7ef4defde1bf23082b0f91e698f80d7d1dc6833f8d1c6b2e980ae73b92fcac35",
+    "src/standalone/config.cpp": "24610543138d79d282d5550597607d4e147184baa0137d17479ffb60c3fb122d",
+    "src/standalone/config.hpp": "803450ea6b2ad2f36054bafc6b70e50d175bf2c19976d07fcb39c422f1e07501",
+    "src/standalone/dry_run_engine.cpp": "20f6bca0439a24eb70bfbf4777321489fa298252cd7c862dc1294c8cddc030b4",
+    "src/standalone/dry_run_engine.hpp": "1a60acb3596b6750493bf25870d3f4472e6f4af4de5ec4b67ad206e3a3203b4b",
+    "src/standalone/pico/adapters.cpp": "973fb0971accafc5b6bcaaed60a5e387bd4c93717c3c672631461f72af2b1cb4",
+    "src/standalone/pico/adapters.hpp": "b2b64f3bb0c962e89333e9a1f2a46bffc44fd934d9c0fe04c15f5c2bb6c99217",
+    "src/standalone/pico/lwipopts.h": "1787c2b326fa4b702340c959e33c21c99c89cf2b5fa0bacf749d833300378110",
+    "src/standalone/pico/main.cpp": "f91969c38bf4687ba0d153e9452c2f57cb12f287575f9a66fa002e06825c5c99",
+    "src/standalone/pico/mdns_lwip.c": "40c0ff4a43856b55c066086628fea741e3fc8fdf81d99ff399b3e1a39fc5c3ee",
+    "src/standalone/pico/mdns_lwip.h": "caa1bb32e8d6378b8b13f7b52df80baa9049cd0349c7fd999e97581a08431820",
+    "src/standalone/pico/net_trace.cpp": "b0f4a4dbb3c2f0778ea033221ccf712d51e68d42eee98fd590249ff64b1d7e9a",
+    "src/standalone/pico/net_trace.hpp": "4e4d6ec3afe3c313c33655ae6d36d85178af17352acade4cc0c7f58f5e5f65fd",
+    "src/standalone/pico/shutdown_trace.cpp": "7cb755b4ae7320742c7ecf544f781b4e4415e6e8670bd20b4a3d7f14ce01522f",
+    "src/standalone/scheduler.cpp": "d5b57bf89a7b7d071cc9b5a8eaafd09b8dab292b079d87fe92b4c45521dc36b6",
+    "src/standalone/scheduler.hpp": "a20b469af4687fb41b1f1b5136e91935e69b8eda81b32e26f6ff41bf10d1ba4b",
+    "src/standalone/storage.cpp": "15d7e70c7be727c6b83126c4b2310a3b91a0e7a2c75eb5c60904df4f159c3fed",
+    "src/standalone/storage.hpp": "e6adc52241a62568878138ca08d241b5a5a9cbc57e6532445dc016b52d4bb5a9",
+    "src/standalone/wtp_profile.hpp": "6b64b9295050d4b325a33535eaa3c24307e1f6463c0a21fec85d5adcf6129549",
+    "src/time/server_lookup.hpp": "e2553e6bb394b8496b917aa289003a17d9ab8e6086a9ee7ba24195553064660b",
+    "src/time/sntp.cpp": "c469b23f686c8e185059e9c9abe67878449d6058a03c5f2c86df8b350aa849c9",
+    "src/time/sntp.hpp": "4f12584cebfb01bc9e809ebb37ae69d6b3794f915ab7a3a7bcf18024205df7fe",
+    "src/time/usb_time_source.cpp": "904db1bdf26b6a6e4e9e4b71ff85d30d5a923f63ec0a7df447d7480f540b217b",
+    "src/time/usb_time_source.hpp": "1bba9493fe68e7427f9ddb67b0fd49f81dad284aa490738e3775032e8b0aa5df",
+    "src/time/utc_discipline.cpp": "af5d0fe05c8a3aaf4b65caedb55c813d342b03c85f2bc9d06568cc4cdafaba2c",
+    "src/time/utc_discipline.hpp": "4e6253321f185726e781c5d38e3035bd15fee44c102dbb294adddd803be39f1f",
+    "src/usb/roles.h": "0bb8c4123b9b11e98c861e47c4ece10eba327e0d2a2f587863ad3875c24d61ba",
+    "src/usb/transport.cpp": "9d31d7e0b378f0a631c3e7cbd544226713803eb5bc7246606dcf8c318513639f",
+    "src/usb/transport.hpp": "94eaa73dac965577a5ee9adb88035295f945c2d1a3fa1639a8e473596317ac1d",
+    "src/wtp/codec.cpp": "5109bde0de2b36e0f80fe9d5ceb1d4a0ed29c1048ab0b8ae9e11760ad961ec32",
+    "src/wtp/codec.hpp": "e0de3c15a30d18ff827059ab0efc3d8c0e59045990e6ea2e98c03668bb379f25",
+    "src/wtp/endpoint.cpp": "1f51a62e1a02385e692bbfa76f9bf2b633a340daa57a9078af731646b818377f",
+    "src/wtp/endpoint.hpp": "31ca0f838b8b467a8bd9e4579e597626952494fda92e4d5ac29c422b9eb1a0b0",
+    "src/wtp/frame_parser.cpp": "1b0b581c6162314737f559c95d35bf3fb7deadeafcd7a35dc2939aa076414d27",
+    "src/wtp/frame_parser.hpp": "510ab9969d7ee66557673e8cca44eb8c1bfbc155d4f1005446efdb4d0b99261d",
+    "src/wtp/inhibited_rf_engine.cpp": "410c8904c2b7223bc416e7acda716af61eea5ff722c33a7724c3e16f19852e0c",
+    "src/wtp/inhibited_rf_engine.hpp": "e97f55acb94e7006f1fe36016275dce6adcf649c962709a7d6d3c4b1df5a2aaf",
+    "src/wtp/job_service.cpp": "f382bddc2d0f151c2a6729741e526bb843e3390061cb3a7da13519329cf87b81",
+    "src/wtp/job_service.hpp": "75305591d3c0296bde6c6863f083d54f7c90dc52ae223ff99941ba982d39f857",
+    "src/wtp/json.cpp": "e9f0d73653ca4cb70e53bb77d1c6960ff7fd2f92381d05d04fd2fe10216c4390",
+    "src/wtp/json.hpp": "7e4caa3e596490d0c7856e96d386c06020c116df5610c7f123c295a5c7031003",
+    "src/wtp/memory_budget.hpp": "fa0af6857cef288a07c06494abb58adc9ea6b262067d2b7609c83988f532e898",
+    "src/wtp/sha256.cpp": "7a91e340cbf7cafd0371b7d5853c0a8c5eb255bc923e860aecc85a9e1cde3fb8",
+    "src/wtp/sha256.hpp": "d614dc1efaad134251f0b2cba29a820921e8e9da8af3b45a82ebe6c72d02aaa6",
+    "tests/campaign_adapter_tests.py": "50cea994e6a0bfb26af81b3a8f3e16cbc992b85ba62820d1a70d9478f553c03b",
+    "tests/campaign_analysis_tests.py": "36897b2db51efe4223355db8974bd64216140c67fe11ced51f803d1f75c91bbc",
+    "tests/campaign_evidence_tests.py": "82e2c2b19971a75a93b739704bcbe7ebb557be950def6a9cf31cf7d5d1310de9",
+    "tests/campaign_plan_tests.py": "d3d1400645dae4cfc66ad21d1140ab611f84daf29a5e04c6fb6833140ef31e3a",
+    "tests/core_tests.cpp": "86d83132d067847224a64a9e58ec221c221efb2f68e39a4b0f355cf2ef70c598",
+    "tests/descriptor_mock/pico/unique_id.h": "59458d0d87849d8fd00f1769260036f3dbdf9727c1f99ee159b844d146bf1ef5",
+    "tests/endpoint_driver.cpp": "d63485e359fbb21e324ffc66fd1ead4fec849c92955d1c10de33f6c405e2ca1a",
+    "tests/endpoint_tests.py": "444d4012e5aca2c81fea2a9b86c83921d9be69d6ec96d8d421a72a3287e0f1b2",
+    "tests/firmware_profile_tests.cpp": "fd7b945fd39d25dcf61ec4d29d874b76a9fc6069c031b433a064d45e8381c0c2",
+    "tests/host_client_interop_tests.cpp": "40a9e636500aaab96f34f4999ee0a6a4941b5880a71821deefdd689e95cba561",
+    "tests/host_endpoint_bridge.cpp": "fd78b9884cbd3360b619f3c48f4eb0dd4c57615c3f8fb8eaf68eddd51db25b7b",
+    "tests/host_endpoint_bridge.hpp": "018460de556ee1c24f486b0262e3c7ed9ff59b28adf8caa673a039f83644a9cc",
+    "tests/inhibited_network_acceptance_tests.py": "c80e765bcace9c008ba5ed1f8991aeeaee008dca680e341ae0aeff64242e3ca6",
+    "tests/inhibited_sync_image_checker_tests.py": "16393bcc6027fd62b11b25b437d5b15a6f251a607a54af75857119322118cd8d",
+    "tests/mdns_lwip/arch/cc.h": "2f3da44747fda12ac40de67972d5a0eea75fa963ae5772dff587958033a02059",
+    "tests/mdns_lwip/lwipopts.h": "b978569ac4b822291c881ba6fddd20e1cf3c94f52ed1a9c0f4d58d71bddf95d9",
+    "tests/mdns_lwip/tests.c": "d8dfddec05f929aa5baa459230f8b2d173d3b691155d053c9767b072c81df990",
+    "tests/mdns_tests.cpp": "ecaa140bead0e178f024a4fdaf93127a0842f81f06a74b09732ca8aae21c4263",
+    "tests/net_trace_tests.cpp": "a1a220162d751d8428f2378f0ab568b1d955eaf27f5613e2dc88017494f2df1a",
+    "tests/network_adapter_mock/hardware/flash.h": "3ed9e28f87dd8aa99e3f91d7a4c2601f232d65b44a51f487089bd76360e1a63e",
+    "tests/network_adapter_mock/hardware/structs/watchdog.h": "920674b40e88466c2848afa446f7e072c02270474a8934717020cc5c7af3db0e",
+    "tests/network_adapter_mock/hardware/sync.h": "af00f7168640364d86c8166ad5893f38c3014767815c249646a0b2266a8d33e1",
+    "tests/network_adapter_mock/pico/cyw43_arch.h": "6a8dbf77e9c6f9d210de1e1fccfe2747701986b94c4c801ff35e76a89b49b04e",
+    "tests/network_adapter_mock/pico/rand.h": "0c044e3d739fc028837a59b579c6279533b602004eebf0ab47fb4265cbf565d2",
+    "tests/network_adapter_mock/pico/time.h": "f78db2e3de0c468496b25e7e11db79103abaac05f8fa35486f20c45d07294d5d",
+    "tests/network_adapter_tests.cpp": "305ba54f91284318244f2d6934f9f3fc1d97a14098a649038a4923fc016c1a86",
+    "tests/network_browser_render.js": "197dcc4c90f0e0593847e2c86fecb8c535007a628121f1e66ec5a8907e7f3228",
+    "tests/network_browser_tests.js": "a87a8fe61fbec90f557ca140b72ca6972494a6be328bfaf03e84cdb0fa02a35c",
+    "tests/network_certificate_tests.py": "f50257e0e660e5f091afc4dc14332fc5d1ea723c28ebb027413a1db09181be04",
+    "tests/network_mock/lwip/tcp.h": "80320443a58d02e3bda7df520d54a645c3456c50b7e7c0a7c4c16edf8cf5ea1d",
+    "tests/network_mock/pico/time.h": "f78db2e3de0c468496b25e7e11db79103abaac05f8fa35486f20c45d07294d5d",
+    "tests/network_mock/tcp.cpp": "afac23f26d8fcadf00cb945e361fa7269e0e9328c16af128be6af4bf42f32b7c",
+    "tests/network_support.hpp": "8ba3df067cd8660de1a4793eb554c4585ae0da02bbc092c6ddd51721c98d2c6c",
+    "tests/network_tests.cpp": "9fdd6f72b39a46a95a5f30441281c1dd8d8ee45fefbb7fea247c32b2694ca5ac",
+    "tests/network_tls_driver.cpp": "d94b2aaa0c2d62eb8d810eb57c0d429471438e77ace01328f9244f68287abd1c",
+    "tests/network_tls_tests.py": "bf694edd31e47578907692345f70474c98a578213f908eb7b3b5202e9189a6de",
+    "tests/phase11_4_loop_tests.py": "2b430299c17e8ef2a535483c1f46b3c1af687039c56e66dd3baecb7caff1b9a9",
+    "tests/phase11_4_trace_tests.py": "a1002472e5296130cc8cb8a94ff18780f78ebbce7ad48413d82d9d8861784f99",
+    "tests/pico_driver_linkcheck.cpp": "9a7f699234147313844755f7e4d7f925e79914ad8a0a3794ca86a6e680d9f5f6",
+    "tests/pio_dma_tests.cpp": "638781e813d3bdfecf91adca0b1910f5b3df9a0014b3146a478877fbaf5f232d",
+    "tests/rf_bench_analysis_tests.py": "ed32e1112dfd2610be566fb89a6e6a41da66f7c2ae4feaba324177f3aefb0a24",
+    "tests/rf_bench_capture_tests.py": "9392f69e74dcecbaed0632d9ad29aea3cdc59f795622aaba3cad81f69d232296",
+    "tests/rf_bench_client_tests.py": "7889c9b9d8e12286e250e66aee675843194651df24d7ddd48703dd34c9b63fc9",
+    "tests/rf_bench_measurement_tests.py": "2e931568e31dc7f65cc772c191da5f8290ad4b5112aa13cc24d0c62dea655e4d",
+    "tests/rf_bench_tests.cpp": "966930b80e756a2ba0eeda82644d23a9bd35a62af09394b9f89c560a3c7ba774",
+    "tests/rf_correction_analysis_tests.py": "53af4526b6b8789f40c9dd9510eb4df674a6060d73ea5ea067af778ee710df81",
+    "tests/rf_feasibility_tests.py": "30242e79511a48e0780ddad32ed33321b09379331519b0b3ac9e8301943a2c6a",
+    "tests/rf_stream_tests.cpp": "aa2106c34acd15d28ba1ed732610f280f99d7aef3e95d4aa36929fcc9f7ec287",
+    "tests/rf_worker_failure_tests.py": "9c2346ead595ca2e95e63dc06c669fbe5aa7725871806d25da9dc9dc823e0ac0",
+    "tests/rf_worker_tests.cpp": "f3bd5533fea0471c2f2d138781346fe9b5833ed76f6191ba0ca5b2adf2752264",
+    "tests/rf_wtp_client_tests.py": "d677c92589aa84a080ac52e0dd6f700edff4a56e1489196ef6c6b00f47ef73ae",
+    "tests/shutdown_image_tests.py": "b960d786a5d3d260d19cfe2410007415da19cbbff2ebab0105c4cb3a8e127a0e",
+    "tests/shutdown_trace_tests.cpp": "86e5ebaee96a30a3f85643a91b4365db4c96c23843ccf369b8983dbd7351b5ae",
+    "tests/standalone_console_tests.py": "9f0d37930bca4f122d69a176f32fccee96583b5f6c68bf7ba3deb39724cde5c8",
+    "tests/standalone_image_tests.py": "fabd53bff257f5161880b6ee3936e9603f8065641c188cd220e1468f3c4299bd",
+    "tests/standalone_tests.cpp": "ba1a8f62cb60e73cf9f3d2f9d56c06fe3f68b211275b7b0b8ee55336d563463f",
+    "tests/usb_descriptor_tests.c": "7a837bd9b0efafd3dd7f86d075095e19324f313d6b4a53bc5a25ef221054d433",
+    "tests/usb_mock/tusb.h": "ad17504a3827d482178fae12ec5e5c96f418e97f0969fb3bac3c2d3cc639e9a0",
+    "tests/usb_transport_tests.cpp": "90e4bab5523aa7cbfce86586f718c3e048f2782b197ce5ce1a42d2f7fe0e1564",
+    "tests/wtp_monitor_tests.py": "88d71812cbcdca92927471ca6684882294603fbf7d9aa55182d0d2fe7f451893",
+    "tests/wtp_probe_tests.py": "3538ccf18f683f73309a8872a70bea22ac9bd9fddaa14675cb67cc0df2d1612f"
+  },
+  "files_sha256": {
+    "build/phase11-4-b2-delivery/after-read-only-01-a.jsonl": "0bd6e87b1c433b5b2feb754d39b4c700e8399a8e1168dc1acdb5e8925783ff15",
+    "build/phase11-4-b2-delivery/after-read-only-01-b.jsonl": "ba73e4f993b4d1bdcf446cf5281d50504124c1facbfd46f89341b267c1dc8217",
+    "build/phase11-4-b2-delivery/association-a-2.jsonl": "99459330d00f30959c52d0a6e10fcfdfbd656b1d921333234f002d5400edb418",
+    "build/phase11-4-b2-delivery/association-a.jsonl": "5102890a782d8a7ced5bc03454f070671bb82df0c250889885568608f3435ac8",
+    "build/phase11-4-b2-delivery/association-b-2.jsonl": "86bc202b0022bd074960bd557698b48c3db2f4493f4756eeaf5d21c81ce5d84a",
+    "build/phase11-4-b2-delivery/association-b-after-recovery.jsonl": "9f76b382bcad775f23c04136c22af4d927abc6d33aa748c35936d8fe6fd012c6",
+    "build/phase11-4-b2-delivery/association-b.jsonl": "0257cbe237b9c1cde62f0557af47be56f1bd6682043a08e5f78547814bbd4957",
+    "build/phase11-4-b2-delivery/association-compare-sdk231.py": "af5ca1efc28efcf5edf382eda35b70da9cf91cbe16f3e58a418e3b2cfe0b00ef",
+    "build/phase11-4-b2-delivery/association-compare.py": "e62ed8d2c8427ce1061f72e5007bac2c20ee44a4bbcbdcb43a39b3295f6aea88",
+    "build/phase11-4-b2-delivery/audit-sdk231-comparison.py": "7f82c0dfc69760101d99e8d2a78caebb0e409d4420a08aa902a040c362c60af6",
+    "build/phase11-4-b2-delivery/audit.json": "021678be6b6ecdea323220df2f2c4f0f4e04075cda26f7149e25a20c66595bb8",
+    "build/phase11-4-b2-delivery/audit.py": "59d086bec47e90860a2c22f6151d2528f6c488fcd3f6cd16f8cfde9d25cbe888",
+    "build/phase11-4-b2-delivery/b2-case.py": "118f62fddbc5431807325a113df50f4d085ed138cc947ef35063ffc5d6b5a748",
+    "build/phase11-4-b2-delivery/bssid-image-checks.log": "2b53e18fa3824b63dc1848895dc2734d45abb64a654cd83886eba4ba8cc652b2",
+    "build/phase11-4-b2-delivery/bssid-images.json": "7db0489376505668e50f225a5bbb43c566ec1ff93977fab16851630ff1e7f5a0",
+    "build/phase11-4-b2-delivery/build-a-bssid.log": "73d3194d4c1348a506af97518ce08884adde75698da90101978307e0003defda",
+    "build/phase11-4-b2-delivery/build-a-sdk231.log": "932f98d857bc15f705b83d7725f5ee17fd5c22659318b074f71c0e66f3e534b0",
+    "build/phase11-4-b2-delivery/build-a-sync.log": "d64494e290dc40c492aeeb38af6f04aff9848b5c4eb1013b36b1f38596102bb9",
+    "build/phase11-4-b2-delivery/build-a.log": "5161b61b5ac8e0e8426ad2cf216d127dd622068969d700b0dfedb63d5c057b30",
+    "build/phase11-4-b2-delivery/build-b-bssid.log": "19f34968e2b957a7ff68400bc278489a29b3b3afe7e400ebc41f4fddcbab81d5",
+    "build/phase11-4-b2-delivery/build-b-sdk231.log": "e1a4c454f61006710fd1bb208842556aadc156ecd4d6c7ed7b63f3f314bf6794",
+    "build/phase11-4-b2-delivery/build-b-sync.log": "de97e20b03bec281d77c176c4e56b8bfeedbe5115e12842a72b067fd0e8bf5b3",
+    "build/phase11-4-b2-delivery/build-b.log": "f26c555d63a1c848eca3876f7c100f63f5176f735109d060364bb5056eab620b",
+    "build/phase11-4-b2-delivery/build-variants-sdk231.log": "75f386aa82dfe57a339bd9c23c31e3bf7ba218d143b60994aaff4ff6747895e0",
+    "build/phase11-4-b2-delivery/candidate-audit-sdk231.py": "3d44e0ad5ab6d2a5a6a57fab743896f16e5fb9d0e875be554f6c8441b0b2e1ec",
+    "build/phase11-4-b2-delivery/candidate-audit.py": "f77e96e6cf114da53de7e8cb5ee0dc6a99bf6eea26c0fb37a751d797ebdc8d73",
+    "build/phase11-4-b2-delivery/check_sdk230_fallback_image.py": "c281e569dfae2118b1d0c029abcf97b1fa5b1e720828cce052abcd17de81cc48",
+    "build/phase11-4-b2-delivery/comparator-b-01.jsonl": "532341adce4650097a8190b551728821c2830094ab85c292bcbe26242f01707b",
+    "build/phase11-4-b2-delivery/comparison-audit-final.json": "252f0cc0c2a11db7ef31e73af36cbb267a22190e01053e6babd5cc897cc255a9",
+    "build/phase11-4-b2-delivery/comparison-audit.json": "252f0cc0c2a11db7ef31e73af36cbb267a22190e01053e6babd5cc897cc255a9",
+    "build/phase11-4-b2-delivery/configure-a-bssid.log": "42378680789c8090e894b73439e5fa1af391360e6033fd85860c2b40322717d7",
+    "build/phase11-4-b2-delivery/configure-a-sdk231.log": "772f91be2a9c2239194ef9e8b6db26b48bbbd2792111e7bdc4ff3e20bea173a4",
+    "build/phase11-4-b2-delivery/configure-a-sync.log": "ffa8ced360cc476967107b06b9015fedfea651e238168ea085fd3db9f9284fd7",
+    "build/phase11-4-b2-delivery/configure-a.log": "4c6da33c069061519663ae4f5a3de4326910ab7fcc8ffb2a7c9e2bddd4697425",
+    "build/phase11-4-b2-delivery/configure-b-bssid.log": "6e61cdf283453c17757ed46dcb418d17a9abdf411ea35739118b1c23bacb7686",
+    "build/phase11-4-b2-delivery/configure-b-sdk231.log": "c609c83c91be6f446624e2d0c6c98c35309244d82d7e0bccb023d64bb7d4a600",
+    "build/phase11-4-b2-delivery/configure-b-sync.log": "ef23ea1b8b4f473807d9e8281542f20f1f38a7fb14215d18f87808334b78632c",
+    "build/phase11-4-b2-delivery/configure-b.log": "d0a5a1d04d0503fbcc7605d01a37d0076e375c67c43594ac606b3e6e622322ee",
+    "build/phase11-4-b2-delivery/device.py": "754c486e304378226989807f39b4b7a8f294031f7ddbf1fae856441f9eb06545",
+    "build/phase11-4-b2-delivery/e1-restored-final-hashes.log": "0b29e076ef5d8b528f0f3a4f8d8d94835b46e1dbee50c7f32d68e896004b59b9",
+    "build/phase11-4-b2-delivery/final-build-a-sdk231.log": "7a451111e7a1bcaf2f39a49911d29164d7e98d1c9debc9a85e82d43aff3deedd",
+    "build/phase11-4-b2-delivery/final-build-b-sdk231.log": "267843283bb89947fd27e4dd2de45460d855e77aa6b90c3df4a1b2f1a7370499",
+    "build/phase11-4-b2-delivery/final-sdk231-image-checks.log": "aa703c06d6fdaaa3f0c613364150b4687deb9594453ae7cb7edc2c0899c79a2f",
+    "build/phase11-4-b2-delivery/finalize-evidence.py": "ed930732f6717fe2a5aece8ec6c938c1f454d1d033f137453cc5ac503ccfbb7d",
+    "build/phase11-4-b2-delivery/flash-a.jsonl": "d3070f9dae49eb843807261c4db43403af0dac4b40ce3b783ed7ca8d10d69421",
+    "build/phase11-4-b2-delivery/flash-b.jsonl": "8bb9b49e5e3baed70ca8ad7639ed19a4832a5fd02d6209ec41f657bb3e0493d4",
+    "build/phase11-4-b2-delivery/format-review.log": "0abdfd3b410f325b09ae082f76cdf10c83031393bbf0c014924341c1fd6faa8f",
+    "build/phase11-4-b2-delivery/host-bssid-build.log": "87b9fa70597845ef2131b745044bee33dac0a644dc93ab9433aed31e7e81a11e",
+    "build/phase11-4-b2-delivery/host-bssid-tests.log": "7d44d0f32d8ee2e3984fcbc72c18181e9d34d382c01da6d39cae62197f9d95f2",
+    "build/phase11-4-b2-delivery/host-build.log": "62e7caf71e024aed676c404b34c8152f682c4c311e9b0c111d4aac1906b965ea",
+    "build/phase11-4-b2-delivery/host-focused.log": "da989fe02aaee401e99c070ba057130aa3f905573e0d58aa8255be1fa254cd1f",
+    "build/phase11-4-b2-delivery/host-fresh-build.log": "52740e843cccec1b86d6e6e66f761d9ef6bf2727d3a6550a03bf87cd3b09559a",
+    "build/phase11-4-b2-delivery/host-fresh-configure.log": "26d9f107d47c51906422a737a7112d845adbd945d4369269abc295d4d854c2d0",
+    "build/phase11-4-b2-delivery/host-fresh-tests.log": "ce8036e1d4bc12f6dbd217f7bd633462d61c590fcab3109be401a316850f1cbd",
+    "build/phase11-4-b2-delivery/host-fresh-tls-native.log": "01143f0044a656fb45255ef790387c5be0c260532a230be1de2b58a8e48a432e",
+    "build/phase11-4-b2-delivery/host-full.log": "486e4e7e751ea804ca37af2475cc320836e55d32932394a2e85d08e8836f180c",
+    "build/phase11-4-b2-delivery/host-review-build-2.log": "c888ad52aefd89c85ad3199c09ff2b4f76d22f2d157982f28ca47aa1243d4263",
+    "build/phase11-4-b2-delivery/host-review-build.log": "31fc296f4d6789196026d69e5a3513a2d30c18f24797562a3dd74e6f745f1880",
+    "build/phase11-4-b2-delivery/host-review-tests-2.log": "7b3e81693a613c4bb34451b32e1f60b450f0c7a09f6e7c2619344a0ee9b12c9f",
+    "build/phase11-4-b2-delivery/host-review-tests.log": "374e712a61d479df9adc2dc5518e001262480aab5ac29ee7792470721188e4d5",
+    "build/phase11-4-b2-delivery/host-sdk231-build.log": "0732318fd27ed36b79397be54033431c8e0d947ad8b1fc7ddfe55db46e6b557e",
+    "build/phase11-4-b2-delivery/host-sdk231-tls-native.log": "7ebe6eb65edcccc989c4475d65160a690682c9abe97d179420b52f8e27ec7b7e",
+    "build/phase11-4-b2-delivery/host-sync-build.log": "c3b22b3fadf8324446e5e252441ee12cdda0174e90aa13b06ad3b1b61d09c30d",
+    "build/phase11-4-b2-delivery/host-sync-tests.log": "06814f41deb0c02191f42cb0c1b1e164d63cdfb3c0e75f46b8bbe1af8fc99fde",
+    "build/phase11-4-b2-delivery/host-tls-native.log": "bab03d2abe09644960d2608f9ef871cfe41c842fd3ea498fabc3d67b796f473f",
+    "build/phase11-4-b2-delivery/images.json": "b1a48ce3be45cddf7662b7ba5752a6fc2281134601039daecaab357bdbb7b936",
+    "build/phase11-4-b2-delivery/linux-final-peers.jsonl": "ade37f0dfc76ce9e4eb941b5683eba3b68e0805288d546b960c4e861efb60389",
+    "build/phase11-4-b2-delivery/linux-peer.py": "6928d29476803a256e5907aaa6e741479c3a3e29c5655c3c8d996d436f978f6b",
+    "build/phase11-4-b2-delivery/linux-sdk231.py": "65703249029c1316d93af137f46c614085b14f34d8bc092f6403f7e998b5a78d",
+    "build/phase11-4-b2-delivery/mac-baseline-01.jsonl": "5c313ea27aeab7816e72ac0ff9f8e93ca2fbe6c00c67ed735cf453ad5dbd7bc4",
+    "build/phase11-4-b2-delivery/mac-baseline-02.jsonl": "3d11a173314efb0eb29b074d89022e454ef508b032a5d15ebcace898087300a4",
+    "build/phase11-4-b2-delivery/mac-baseline.py": "ddbd7f84e514c51d39e4f31f168429d80dc6144fdda65c350063cbe471c453d6",
+    "build/phase11-4-b2-delivery/mac-sdk231-baseline.jsonl": "db7c506361fc84afa609c8a12c03c23ade32107afe9fe563b5fc69279cf9ecc2",
+    "build/phase11-4-b2-delivery/mac-sdk231-final.jsonl": "11f5bdecc69777820a4b69de43e87aba9c80ddc65694d90623c9f010d5fcb516",
+    "build/phase11-4-b2-delivery/mac-sdk231.py": "1be3ffb2a2e899dd72ee129be1645fac03aded74f85bf71369ad35d5582e04d0",
+    "build/phase11-4-b2-delivery/mac-sync-01.jsonl": "9fb84163af18e32e138c03c242ef24d91a7078180a505e2fc078bd3f53f0e780",
+    "build/phase11-4-b2-delivery/mac-sync.py": "f133eea468e719921a8877a3e743223f1b28308fa3b823b79535a597b024be61",
+    "build/phase11-4-b2-delivery/old-sync-image-check.log": "133be8b0c97716613d678fa7df5fadeb78c0e9b6b5e4ede45b760bc175654f33",
+    "build/phase11-4-b2-delivery/post-read-only-02-a.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/phase11-4-b2-delivery/post-read-only-03-a.jsonl": "a031d89c2a31b56cf61561da4aa2da617f427fa60c2714751387484897733460",
+    "build/phase11-4-b2-delivery/post-read-only-03-b.jsonl": "64cd45258e526b03dc6c5e015bd02a6d26f19273e36ae18dbbb7fb84cf6bba3e",
+    "build/phase11-4-b2-delivery/pre-read-only-02-a.jsonl": "7b125af8a9689b14a14cf11b77d3c64a3b1051fb1a09ce881583ed0ed81a730a",
+    "build/phase11-4-b2-delivery/pre-read-only-03-a.jsonl": "9cfeb719e6f6cd321f3c4a85ac3e755b50b114879be4d0beaca429048793af0f",
+    "build/phase11-4-b2-delivery/read-only-01/capture.log": "26315637e239b196fe0eecded91127d9147e85e88ef3abd58c86b1065f2b3fdc",
+    "build/phase11-4-b2-delivery/read-only-01/diagnostic-capture.log": "f13c8bde493b755d4c7723c4c4a7a25f77be514272cdf03c212ada27560533b0",
+    "build/phase11-4-b2-delivery/read-only-01/diagnostic.pcap": "b629ef35e43f2710f0cc10e5a68b74d58ece3d1014f6bb622e2a83b47540b992",
+    "build/phase11-4-b2-delivery/read-only-01/events.jsonl": "02b84f6a1659e9cbe700fe065da6aec40543625bc14f87c8b6d298296315cfd2",
+    "build/phase11-4-b2-delivery/read-only-01/mdns.pcap": "1879a9e5d4bc5593355dc638e7fe142ee7e9e98607a00ea01382da91af5ca39c",
+    "build/phase11-4-b2-delivery/read-only-01/usb-frames.jsonl": "00da73787fdfcdcc0d9df4addc095af9f37551d7fc8d81a52778243463f1165e",
+    "build/phase11-4-b2-delivery/read-only-01/usb-pre-hello.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/phase11-4-b2-delivery/read-only-01/usb-wire.bin": "e65c2dcdd6dcfcb9ee0d6a3752eeefe66de688a05ace40d078ea309d10f7a7e7",
+    "build/phase11-4-b2-delivery/read-only-01.log": "7c845c8705220567e0ab10fa2df3b08eab3de70301480c028ff44df8df55b250",
+    "build/phase11-4-b2-delivery/read-only-02/capture.log": "9196f158a2b878a2bbc628110b78488d52a5b3016eead959248a1c910955c9a9",
+    "build/phase11-4-b2-delivery/read-only-02/diagnostic-capture.log": "e5f7e03a1154adcdbd1e521accb3379b71c6751302c45fe01442e4165d41f674",
+    "build/phase11-4-b2-delivery/read-only-02/diagnostic.pcap": "5d9760530c00c3d489cd9467c04442ebd3fbe828fdaa5ddf88c68cd4bf046ccf",
+    "build/phase11-4-b2-delivery/read-only-02/events.jsonl": "e06ac0add8e16cfad0bc1fdc122d0a0e7564fdad0b8e1ac36613fbaef0497d12",
+    "build/phase11-4-b2-delivery/read-only-02/mdns.pcap": "d2fbfa99b30dc8669afc17132a7610b8075bb8696850f02617b3385205b7aeb2",
+    "build/phase11-4-b2-delivery/read-only-02/usb-frames.jsonl": "3a156c765e5b835a6fbc8a93c6ab7d935b950fc26215350d1123797e2c9eeade",
+    "build/phase11-4-b2-delivery/read-only-02/usb-pre-hello.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/phase11-4-b2-delivery/read-only-02/usb-wire.bin": "25611eefbe28a95e0fd8ff782ba018d00fc047fa4ec01be92fdc153ba943cc13",
+    "build/phase11-4-b2-delivery/read-only-02.log": "7817db4ca54c4efdd398f7ab21241bc9283e04e84287a31c6ff50fae4b19aed7",
+    "build/phase11-4-b2-delivery/read-only-03/capture.log": "26315637e239b196fe0eecded91127d9147e85e88ef3abd58c86b1065f2b3fdc",
+    "build/phase11-4-b2-delivery/read-only-03/diagnostic-capture.log": "d3ca679515bdb15076b5d6411a3317b950aca777a006f198daac2f5f54146a36",
+    "build/phase11-4-b2-delivery/read-only-03/diagnostic.pcap": "3b854326bd110e7115cc885ca8d8ca33c9ae3d57d4678d5dbe49fd4fff15cd73",
+    "build/phase11-4-b2-delivery/read-only-03/events.jsonl": "803a17f094311b6a7828e7c11968b26fc08eaeae294fa18fae6f6e1effb01382",
+    "build/phase11-4-b2-delivery/read-only-03/mdns.pcap": "9f2db3a574a1f96156ba49fd5e9cd6ded31df93652fc99b971f8339f74f35d9a",
+    "build/phase11-4-b2-delivery/read-only-03/usb-frames.jsonl": "f31d937ec2b25f260ec96eb7533969091d0ed93acda465648f6cc1a0f4f8ba27",
+    "build/phase11-4-b2-delivery/read-only-03/usb-pre-hello.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/phase11-4-b2-delivery/read-only-03/usb-wire.bin": "71ad7c2c01699069743fbe848da4e9c921a112c492f26a541575b11cb8255d71",
+    "build/phase11-4-b2-delivery/read-only-03.log": "6e2f0d8eaf69bd412a9b54d495fbfa96f9e75545ddae184193e8dffc1bbfd204",
+    "build/phase11-4-b2-delivery/recovery-b.jsonl": "700c86c9bfe5624447fa6aca6748435cb0d0298ca47b4229c6ea88fd411f2672",
+    "build/phase11-4-b2-delivery/remote-sdk231/after-comparison-a.jsonl": "accecc06ba574c32aba7d90b8032202ee9ec2ed6ea6e7c7db889b5959b8487b5",
+    "build/phase11-4-b2-delivery/remote-sdk231/after-comparison-b.jsonl": "63e333a856aac20c5579d588e94879686e1f5c0c8490abf973ce53939f66c7c3",
+    "build/phase11-4-b2-delivery/remote-sdk231/after-read-only-01-a.jsonl": "0bd6e87b1c433b5b2feb754d39b4c700e8399a8e1168dc1acdb5e8925783ff15",
+    "build/phase11-4-b2-delivery/remote-sdk231/after-read-only-01-b.jsonl": "ba73e4f993b4d1bdcf446cf5281d50504124c1facbfd46f89341b267c1dc8217",
+    "build/phase11-4-b2-delivery/remote-sdk231/association-a-2.jsonl": "99459330d00f30959c52d0a6e10fcfdfbd656b1d921333234f002d5400edb418",
+    "build/phase11-4-b2-delivery/remote-sdk231/association-a-sdk231.jsonl": "54b44958e997e0795e4ae956d141197ff7434def75bc1bf0d53afdaf0aaf8e90",
+    "build/phase11-4-b2-delivery/remote-sdk231/association-a.jsonl": "5102890a782d8a7ced5bc03454f070671bb82df0c250889885568608f3435ac8",
+    "build/phase11-4-b2-delivery/remote-sdk231/association-b-2.jsonl": "86bc202b0022bd074960bd557698b48c3db2f4493f4756eeaf5d21c81ce5d84a",
+    "build/phase11-4-b2-delivery/remote-sdk231/association-b-after-recovery.jsonl": "9f76b382bcad775f23c04136c22af4d927abc6d33aa748c35936d8fe6fd012c6",
+    "build/phase11-4-b2-delivery/remote-sdk231/association-b-sdk231-retry.jsonl": "b47069692a488940a108123826b0ffcb6b0d7df9ab6949014f52acebfe76a363",
+    "build/phase11-4-b2-delivery/remote-sdk231/association-b-sdk231.jsonl": "194255f1b0641661dadf453a0097b69855dd58be5abddd7be741e7797707796a",
+    "build/phase11-4-b2-delivery/remote-sdk231/association-b.jsonl": "0257cbe237b9c1cde62f0557af47be56f1bd6682043a08e5f78547814bbd4957",
+    "build/phase11-4-b2-delivery/remote-sdk231/bssid-only-a-01.jsonl": "c93125f74458e1a7209434a792e7b30b954012f05c060077b58a18fd3f6df2dd",
+    "build/phase11-4-b2-delivery/remote-sdk231/bssid-only-a-02.jsonl": "cde860c2b1fb3fe37b27c427538ab790ee9989c8d67b691ce1600b5945254df5",
+    "build/phase11-4-b2-delivery/remote-sdk231/bssid-only-b-02.jsonl": "47a0bcb86afc77ccf3f1b496af41c2af55967c84a3a4e2f4827618f767641a8d",
+    "build/phase11-4-b2-delivery/remote-sdk231/bssid-only-b-inspect.jsonl": "0cd3c77ed81fff8e99db53a89f2e2d8d84119d137c0e75b8ab446062a475541f",
+    "build/phase11-4-b2-delivery/remote-sdk231/candidate-case-01.log": "866713bb8530fd31847b82b592bcda3915d3b79221862a0f3bf0f498c718d0c1",
+    "build/phase11-4-b2-delivery/remote-sdk231/candidate-case-02/capture.log": "bf2d8009df5b941ff26668340baaaf9003fcc52ac8189be38909c3268ae4def7",
+    "build/phase11-4-b2-delivery/remote-sdk231/candidate-case-02/diagnostic-capture.log": "7d7512b4c2ff75d63e7582f1167db4aeb15aecb0d59804c4311e9caf8b9d1752",
+    "build/phase11-4-b2-delivery/remote-sdk231/candidate-case-02/diagnostic.pcap": "d9a3d64a3a045dc2f5179794da0d2129baf8fb353143f746064c6c827c74a7f0",
+    "build/phase11-4-b2-delivery/remote-sdk231/candidate-case-02/events.jsonl": "0fdd97fa0f676d99b3c80b36dfaff9daf48a6f166f0b1a8699555088c5672bb0",
+    "build/phase11-4-b2-delivery/remote-sdk231/candidate-case-02/mdns.pcap": "61dd05eba63fd643d86911208ffe0f34a1dd2ad0fe999fe375684aab496cdbfe",
+    "build/phase11-4-b2-delivery/remote-sdk231/candidate-case-02/usb-frames.jsonl": "c60cb18519602ccbf6fab76ec98066ea7d6a145198dd312c01230b0ac57886b4",
+    "build/phase11-4-b2-delivery/remote-sdk231/candidate-case-02/usb-pre-hello.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/phase11-4-b2-delivery/remote-sdk231/candidate-case-02/usb-wire.bin": "da8fef97fc9afed6ae7b7b5fc76ab919f9a1445db1e4e098367f3bb4c527c2ce",
+    "build/phase11-4-b2-delivery/remote-sdk231/candidate-case-02.log": "858e859b0eadb8398bbe49d93a521c3f73addf4f440280583cd77651bb6ad8b8",
+    "build/phase11-4-b2-delivery/remote-sdk231/comparator-b-01.jsonl": "532341adce4650097a8190b551728821c2830094ab85c292bcbe26242f01707b",
+    "build/phase11-4-b2-delivery/remote-sdk231/compare-1789043293880027024.jsonl": "a1d166eb6da57a27a61aaa48f59ea792d4f68d03c69598b5aa7eac0fabaa21a6",
+    "build/phase11-4-b2-delivery/remote-sdk231/compare-before-a-after.jsonl": "e6fc6cfe4c149cb6a885aa801198cc4f80e043d1f681ad8ab7d074cacf058327",
+    "build/phase11-4-b2-delivery/remote-sdk231/compare-before-a-before.jsonl": "353edf462375ac90c77c71d6d19b39b897c18683e10cd4c74cdc756075d8ee82",
+    "build/phase11-4-b2-delivery/remote-sdk231/compare-before-b-before.jsonl": "4ffca2a622709a673d61a7dded89db023b3f8c5255163549b1747a8949a44c5b",
+    "build/phase11-4-b2-delivery/remote-sdk231/compare-before-capture.log": "ffbd2a1d65cb3652e966890f1ba13ddbd3a15bbd328449b885c4f20cd8da1fff",
+    "build/phase11-4-b2-delivery/remote-sdk231/compare-before-peers.jsonl": "f59682be93907174da94157704da0c785dd5e50dcfe76ef720055e6e0d0fb60b",
+    "build/phase11-4-b2-delivery/remote-sdk231/compare-before.pcap": "748a3325a17a9c14a80c5df7b3f59f115515a42f96660af257218d36d56c048b",
+    "build/phase11-4-b2-delivery/remote-sdk231/compare-controller.log": "4ed3d33bd3738e38534ccdacfaa6ec17d13b534d0bf8a79a4803d7480f5e8e05",
+    "build/phase11-4-b2-delivery/remote-sdk231/e1-helper-preflight/a-final-info.json": "fab17f3d2de146e5b6b7a006d5ff1ec85142bf9cfff3a46a9f29a7474d100c82",
+    "build/phase11-4-b2-delivery/remote-sdk231/e1-helper-preflight/a-final-wtp.json": "da00a960a255337e2298902865272b6517fae13165787cab5cbe16cd1b0f40a8",
+    "build/phase11-4-b2-delivery/remote-sdk231/e1-helper-preflight/b-final-info.json": "a7862e372de3271f9f3f033b198907db02cbce86e9667246612dc5458f2de765",
+    "build/phase11-4-b2-delivery/remote-sdk231/e1-helper-preflight/b-final-wtp.json": "8c62a51507dce76a955a9aa69ec4cef077d04bd9a79b102c244eba7daa755e12",
+    "build/phase11-4-b2-delivery/remote-sdk231/e1-helper-preflight/final-host.json": "0f3867b1f60b5f90c7862248390db7c75b3640accfecd569c47f032b62675413",
+    "build/phase11-4-b2-delivery/remote-sdk231/final-host-sdk231.json": "dca359f37787a9ba17e8172470c4b61687639e7e594f74b6ce4a97024de923c4",
+    "build/phase11-4-b2-delivery/remote-sdk231/final-sdk231-a.jsonl": "86efcf2a0a5fc7c30c77a3ca3081f2d5828237950c46571fca86e9de4369d706",
+    "build/phase11-4-b2-delivery/remote-sdk231/final-sdk231-b.jsonl": "2acb498c5bc1ae81bc413090d28c92331939d908c80f08853dcf1ffd80b50693",
+    "build/phase11-4-b2-delivery/remote-sdk231/flash-a-bssid.jsonl": "6ef0b1d4b2c425c9119c9b6b572ddc8464fdb2abce6adf21a9a24345627b10ce",
+    "build/phase11-4-b2-delivery/remote-sdk231/flash-a-sdk231.jsonl": "16fbbcf7d5331557a95d2141f8fde9c0d2295e36503cbaef2de95966fbc65aca",
+    "build/phase11-4-b2-delivery/remote-sdk231/flash-a-sync.jsonl": "c5cb8fefcbdbbf7ce06095cb684c27e5b4d5ad6a4974d59b6019149b87b60a4f",
+    "build/phase11-4-b2-delivery/remote-sdk231/flash-a.jsonl": "d3070f9dae49eb843807261c4db43403af0dac4b40ce3b783ed7ca8d10d69421",
+    "build/phase11-4-b2-delivery/remote-sdk231/flash-b-bssid.jsonl": "4cb37c1f7272a33bf320aad615654a2d16a9d17d72ff95a0850bc2a5df305aa2",
+    "build/phase11-4-b2-delivery/remote-sdk231/flash-b-sdk231.jsonl": "de7dc3e695b696717d9cd022f92ab7a4e25368740b0003be950dcbcf1c8320a4",
+    "build/phase11-4-b2-delivery/remote-sdk231/flash-b-sync.jsonl": "9c622ca61aa268747a110054e108d564ffbb5307f085687997550c2e6733d249",
+    "build/phase11-4-b2-delivery/remote-sdk231/flash-b.jsonl": "8bb9b49e5e3baed70ca8ad7639ed19a4832a5fd02d6209ec41f657bb3e0493d4",
+    "build/phase11-4-b2-delivery/remote-sdk231/linux-final-peers.jsonl": "ade37f0dfc76ce9e4eb941b5683eba3b68e0805288d546b960c4e861efb60389",
+    "build/phase11-4-b2-delivery/remote-sdk231/linux-sdk231-baseline.jsonl": "bec54ec70be0b39fe145f1c3cd61d7a5ae34dc510f48fdaf30534fa2e31d912a",
+    "build/phase11-4-b2-delivery/remote-sdk231/post-read-only-02-a.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/phase11-4-b2-delivery/remote-sdk231/post-read-only-03-a.jsonl": "a031d89c2a31b56cf61561da4aa2da617f427fa60c2714751387484897733460",
+    "build/phase11-4-b2-delivery/remote-sdk231/post-read-only-03-b.jsonl": "64cd45258e526b03dc6c5e015bd02a6d26f19273e36ae18dbbb7fb84cf6bba3e",
+    "build/phase11-4-b2-delivery/remote-sdk231/postflash-a-sdk231.jsonl": "841f9da711d318b81561b036bed710c6a2cbbce189de0feddb47d3f4d2993887",
+    "build/phase11-4-b2-delivery/remote-sdk231/postflash-b-sdk231.jsonl": "04139e3a77094aa707cf4fb7d4e95e3fcb4a85f831bcd1868058cedb8ad78097",
+    "build/phase11-4-b2-delivery/remote-sdk231/pre-read-only-02-a.jsonl": "7b125af8a9689b14a14cf11b77d3c64a3b1051fb1a09ce881583ed0ed81a730a",
+    "build/phase11-4-b2-delivery/remote-sdk231/pre-read-only-03-a.jsonl": "9cfeb719e6f6cd321f3c4a85ac3e755b50b114879be4d0beaca429048793af0f",
+    "build/phase11-4-b2-delivery/remote-sdk231/read-only-01.log": "7c845c8705220567e0ab10fa2df3b08eab3de70301480c028ff44df8df55b250",
+    "build/phase11-4-b2-delivery/remote-sdk231/read-only-02.log": "7817db4ca54c4efdd398f7ab21241bc9283e04e84287a31c6ff50fae4b19aed7",
+    "build/phase11-4-b2-delivery/remote-sdk231/read-only-03.log": "6e2f0d8eaf69bd412a9b54d495fbfa96f9e75545ddae184193e8dffc1bbfd204",
+    "build/phase11-4-b2-delivery/remote-sdk231/recovery-a-bssid.jsonl": "f1f273144ac59110301c84620495db0d250947c5456d80d559c43e389f67c5c5",
+    "build/phase11-4-b2-delivery/remote-sdk231/recovery-b.jsonl": "700c86c9bfe5624447fa6aca6748435cb0d0298ca47b4229c6ea88fd411f2672",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-1789045405358051183.jsonl": "cf88129b5888b5a5c26891f3cef3da8cab13d19cb3e48b85ad6b62550f2583ab",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-before-a-after.jsonl": "39bb10e35eeaed9b8ddf7d30a0d321eea0cb14db387ebc185e57df7b458a27cf",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-before-a-before.jsonl": "5bad1e0c3b163bdf8383b5fe0699f36309840aee19951f8d73da7bf53ec140a6",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-before-b-after.jsonl": "c9758154fb69bcf33fcf1fd2c07550156b5483a2d1676d01b8187ff1b7ea6a0b",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-before-b-before.jsonl": "8fb063cdfacb38bf8728d77e5cb14fda276f57c6f127386ec6d9264b280325ca",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-before-capture.log": "d0133a02a2b47529890574c8b06c10e6274940903ff319eb3a825822a47db854",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-before-peers.jsonl": "6e8eac7ecb84ffebc69e909a834762ea831d0aadf8cc0ee586b6c00b026c7ff0",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-before.pcap": "7845b8abc9dd7b7f5bfb0c2127d1b8deaa9457b7ddc7b229a3a1a0951d9fd2be",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-restored-a-after.jsonl": "df32cb635e374a6386dad06aa5be605fdfb489c492f120d9fa3efccc06234f4d",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-restored-a-before.jsonl": "6d5010ff6b62a4f79090243d798f7d823cd8e1115f273ac9e481c74af4e2d611",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-restored-b-after.jsonl": "6810e4eca7e9bc9b74ae523f15ae8eb770e2795aeb0c42c90ba8dbdcd283e7fa",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-restored-b-before.jsonl": "df7832896f9988b4ee98dc056b2573c44ed6f6405eb318e0a956578358dce946",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-restored-capture.log": "1f6603d11879ba02c482534a952a657562527ebc7f4e637963e02f3c79fb2667",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-restored-peers.jsonl": "ee8026bc6a32ea2c8c8b8c5b36244c90c311698388581fadd3910f6ab3918f68",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-restored.pcap": "bf9ed4e523bfd388de8ca3292e54338594e21e9d831dff6d3c195e0c7f339ece",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-same-a-a-after.jsonl": "e7038f34a92cfb5abf8c399aefd375c8258a2a3b10dd2158b2343c0d2deb5a31",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-same-a-a-before.jsonl": "688ec9a970016bdae7374d2c515a55555aee063eb388c8c3ad510b2b4fae9c36",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-same-a-b-after.jsonl": "e68bc112d79b1037fe05be779cf2d4cde1a36387cf3ec5a31da7ca719b8f8fc3",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-same-a-b-before.jsonl": "ff2baa16f18c93b9cfee4add189143f7fba03f5486d3997a3ff256f2be24db32",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-same-a-capture.log": "5f8ac0b7e874ded0233c00e6c077e07de6c5b728e3bc596c3cfbc51ed4201d68",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-same-a-peers.jsonl": "c815e570622f34f6fe8fa0dc09c8794a35983db5c2e75e9ee0d07209734560c1",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-compare-same-a.pcap": "7d6d24647d1a29223c8954659ddd88936651805f28d1ea6a7770692912e97d40",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-failed-path-a.jsonl": "b672218ed9755ff458b3149368d5d60f7b03923cfc8be196291a66e23e5f13d6",
+    "build/phase11-4-b2-delivery/remote-sdk231/sdk231-failed-path-b.jsonl": "9c8d3193448b822caf5e9948d8de6476741a1b1fc8d3e41bc791661ec4957e40",
+    "build/phase11-4-b2-delivery/remote-sdk231/sync-a-01.jsonl": "e56322771c9ec5602dee0e88c049400c5b8cc0e1b29fdad393f6281b90d41812",
+    "build/phase11-4-b2-delivery/remote-sdk231/sync-b-01.jsonl": "9a19ae82836f4b0613c9f4b8c39323db0f4372b7c113dda2288b16407b79f7b7",
+    "build/phase11-4-b2-delivery/remote-sdk231/targets-sdk231.json": "b4ae5f345ec4aee7ee1cc8322d43361cb18959871b468552dcb6a57c8f7435a6",
+    "build/phase11-4-b2-delivery/remote-sdk231/targets.json": "3cce59ddb094d65fefcf10f8b8c82a322bd903444a8e6b33b36073f7acd7ab7d",
+    "build/phase11-4-b2-delivery/restore-case.py": "4568b56978a86a1174add104beca6e87bb4bd4dd0bf8507d93b801c43cd1ba26",
+    "build/phase11-4-b2-delivery/sdk-3078-comments.json": "438bfdcc29dfb6d2826d3bd971385eef49745ef82a857f206b35d5efbbc2ad18",
+    "build/phase11-4-b2-delivery/sdk-3078-events.json": "cbf2017252016443f753ab6720a8238127252b6eae8fff55a7feb6f538f76ca9",
+    "build/phase11-4-b2-delivery/sdk-latest-release.json": "e0ae137c4a2c29bf0fe0a1cc6ce02029ceaa72e1bc984d19403e6d4583e37471",
+    "build/phase11-4-b2-delivery/sdk-sleep-fix.json": "b0cb7599841c18befbad6cad80efc494224f21dd82066f602fe533c677ef824c",
+    "build/phase11-4-b2-delivery/sdk-time-commits.json": "1f6172505e6f03371dec1cb91f850abc5974ef6e6b331d0a03fee1f09f609c0e",
+    "build/phase11-4-b2-delivery/sdk230-superseded-case-audit.json": "85a1977abe085f43ca191b8e3c4b31e0ba4c8f74087341f7d611f148ca317563",
+    "build/phase11-4-b2-delivery/sdk231-final-images.json": "bb2ebe9e2f00261e13632ba54d93e2b0328b6e45fc0f10a130f680f3e5a0905c",
+    "build/phase11-4-b2-delivery/sdk231-image-checks.log": "b89178ee367cef6df86dc57bf3875659b0c8d4d3617dbdc6dd29ed0c51c890a8",
+    "build/phase11-4-b2-delivery/sdk231-images.json": "a77ef1f2b1d11e2e171b07838ae69d2864a3d3f171ca41a5073a7581c4e2c405",
+    "build/phase11-4-b2-delivery/source-final-sha256.json": "e70646cff231890a11fe607bd5d63c7511e9910d9485934c62a7769d30ab9683",
+    "build/phase11-4-b2-delivery/source-sha256.json": "14e69c3e3de7517f914f7ae4a0e057ba32008af5359e4bcafe1d2d1771eb71e1",
+    "build/phase11-4-b2-delivery/symbols-a-sdk231.txt": "563678a011d65607608699d0c62f6b26f2072631fc16e31226c1abe5b7a9d643",
+    "build/phase11-4-b2-delivery/symbols-a.txt": "9c4b163e004d6c3442b42eb17f641b8f325c981a5cf244bd3ac7d8b4bffabd0e",
+    "build/phase11-4-b2-delivery/symbols-b-sdk231.txt": "563678a011d65607608699d0c62f6b26f2072631fc16e31226c1abe5b7a9d643",
+    "build/phase11-4-b2-delivery/symbols-b.txt": "9c4b163e004d6c3442b42eb17f641b8f325c981a5cf244bd3ac7d8b4bffabd0e",
+    "build/phase11-4-b2-delivery/sync-image-checks.log": "4b0b41c41909fe6b0b94ba96c74506bd6e88fc0f601cc69c7faea02e9730b8a5",
+    "build/phase11-4-b2-delivery/sync-images.json": "e4974552b841169b3e2e40441b0e63576a821d635bb1f8873a76fd4f538c6281",
+    "build/phase11-4-b2-delivery/targets-sdk231.json": "b4ae5f345ec4aee7ee1cc8322d43361cb18959871b468552dcb6a57c8f7435a6",
+    "build/phase11-4-b2-delivery/targets-sync.json": "556ac5e32173174fa4f181e46f12f41194c1e6ddedd1928abfff62fe537c8e53",
+    "build/phase11-4-b2-delivery/targets.json": "3cce59ddb094d65fefcf10f8b8c82a322bd903444a8e6b33b36073f7acd7ab7d"
+  }
+}

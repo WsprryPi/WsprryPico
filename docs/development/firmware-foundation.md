@@ -8,8 +8,8 @@ configured, but never initializes an RF output pin or synthesizer. See the
 
 ## Pinned build inputs
 
-- Raspberry Pi Pico SDK 2.3.0 at
-  `98a542c1a62fb549ffb5d66a3e5892b06276b670`.
+- Raspberry Pi Pico SDK 2.3.1 at
+  `079c6f39023649b154152db30f1d781e884879bc`.
 - Arm GNU Toolchain 15.3.Rel1, compiler version 15.3.1.
 - picotool 2.3.0 at
   `6f6458d792b93685a11423b244a585eaa99eafcf`.
@@ -19,6 +19,11 @@ CMake rejects a different SDK commit or compiler version. Set `PICO_SDK_PATH`
 to the pinned checkout. A sibling checkout at `../pico-sdk` is also detected.
 The SDK fetches the pinned picotool source into the ignored build directory,
 even when another picotool is installed.
+
+SDK 2.3.1 includes upstream RP2350 synchronization and alarm-wait repairs.
+Use a fresh build directory when upgrading from 2.3.0; existing caches retain
+SDK paths and generated files. Preserve previous qualification artifacts. The
+project does not override the SDK synchronization defaults.
 
 Configure and build from the repository root:
 

@@ -11,12 +11,14 @@ import standalone_console
 
 class ConsoleTests(unittest.TestCase):
     def test_no_device_io_without_opt_in(self):
-        result = subprocess.run([sys.executable, standalone_console.__file__, 'info',
-                                 '--port', '/missing-device', '--device-id', 'test'],
-                                text=True, capture_output=True)
-        self.assertEqual(result.returncode, 2)
-        self.assertIn('--run is required', result.stderr)
-        self.assertNotIn('Traceback', result.stderr)
+        for action in ('info', 'netlink'):
+            with self.subTest(action=action):
+                result = subprocess.run([sys.executable, standalone_console.__file__, action,
+                                         '--port', '/missing-device', '--device-id', 'test'],
+                                        text=True, capture_output=True)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn('--run is required', result.stderr)
+                self.assertNotIn('Traceback', result.stderr)
 
     def test_private_configuration_gate_and_redaction(self):
         with tempfile.TemporaryDirectory() as folder:

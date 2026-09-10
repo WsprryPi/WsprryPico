@@ -37,9 +37,7 @@ configure_file(${CMAKE_SOURCE_DIR}/cmake/network_credentials.hpp.in
                ${CMAKE_CURRENT_BINARY_DIR}/generated/network_credentials.hpp @ONLY)
 file(CHMOD ${CMAKE_CURRENT_BINARY_DIR}/generated/network_credentials.hpp PERMISSIONS OWNER_READ OWNER_WRITE)
 foreach(image WsprryPico WsprryPico-StandaloneRF)
-    # SDK 2.3.0's source list predates the pinned 3.6.6 PSA RNG split.
-    target_sources(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/network/pico/server.cpp
-        ${PICO_MBEDTLS_PATH}/library/psa_crypto_random.c)
+    target_sources(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/network/pico/server.cpp)
     target_include_directories(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/network/pico)
     target_link_libraries(${image} PRIVATE pico_mbedtls)
 endforeach()

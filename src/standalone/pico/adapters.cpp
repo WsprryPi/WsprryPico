@@ -102,6 +102,31 @@ PicoNetwork::PicoNetwork(time::UtcDiscipline& clock, std::string_view configured
 void PicoNetwork::trace_install() {
     (void)trace_.install(&cyw43_state.netif[CYW43_ITF_STA]);
 }
+std::string PicoNetwork::association() {
+    if (!initialized_ || !link_up())
+        return "{\"valid\":false,\"error\":\"not_connected\"}";
+    std::array<std::uint8_t, 6> bssid{};
+    const auto enclosing = watchdog_hw->scratch[1];
+    watchdog_hw->scratch[1] = 26;
+    const auto bssid_result = cyw43_wifi_get_bssid(&cyw43_state, bssid.data());
+    watchdog_hw->scratch[1] = enclosing;
+    if (bssid_result)
+        return "{\"valid\":false,\"error\":\"bssid_query\",\"code\":" +
+               std::to_string(bssid_result) + "}";
+    if (!link_up())
+        return "{\"valid\":false,\"error\":\"link_changed\"}";
+    std::string address;
+    constexpr char digits[] = "0123456789abcdef";
+    for (auto byte : bssid) {
+        if (!address.empty())
+            address += ':';
+        address += digits[byte >> 4];
+        address += digits[byte & 15];
+    }
+    if (network::default_hostname(address).empty())
+        return "{\"valid\":false,\"error\":\"invalid_bssid\"}";
+    return "{\"valid\":true,\"bssid\":" + wtp::json::quote(address) + "}";
+}
 #endif
 bool PicoNetwork::initialize() {
     if (mdns_owner && mdns_owner != this)

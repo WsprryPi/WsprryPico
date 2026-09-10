@@ -250,6 +250,13 @@ int main() {
             return "{\"ok\":true,\"rebooting\":true}\n";
         }
 #ifndef WSPRRY_PICO_STANDALONE_RF
+        if (text == "NETLINK") {
+            return "{\"ok\":true,\"device_id\":" +
+                   wsprrypico::wtp::json::quote(identities.device_id()) + ",\"revision\":" +
+                   wsprrypico::wtp::json::quote(wsprrypico::firmware::kBuildRevision) +
+                   ",\"boot_id\":" + wsprrypico::wtp::json::quote(service.status().boot_id) +
+                   ",\"association\":" + network.association() + "}\n";
+        }
         if (text.starts_with("NETTRACE ")) {
             std::uint64_t after = 0;
             const auto cursor = text.substr(9);

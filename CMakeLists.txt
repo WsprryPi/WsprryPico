@@ -176,6 +176,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME network_certificate_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/network_certificate_tests.py)
     add_test(NAME shutdown_image_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/shutdown_image_tests.py)
+    add_test(NAME inhibited_sync_image_checker_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/inhibited_sync_image_checker_tests.py)
     add_test(NAME phase11_4_trace_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_4_trace_tests.py)
     add_test(NAME phase11_4_loop_tests COMMAND ${Python3_EXECUTABLE}

@@ -15,6 +15,19 @@ from validate_wtp_contract import frame
 
 
 class HarnessTests(unittest.TestCase):
+    def test_current_iot_override_cannot_enable_a_cycle(self):
+        runner = Path(__file__).resolve().parents[1] / 'scripts/phase11_4_loop_target.py'
+        for flags, message in [
+                (['orderly', '--iot-profile', 'current'], 'read-only diagnostic only'),
+                (['diagnose', '--iot-profile', 'current', '--diagnostic-iot-profile', 'old'],
+                 'conflicting host profiles')]:
+            result = subprocess.run([sys.executable, str(runner), *flags,
+                                     '--output', '/missing-output', '--boot', 'a' * 32],
+                                    capture_output=True, text=True, timeout=5)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(message, result.stderr)
+            self.assertNotIn('FileNotFoundError', result.stderr)
+
     def test_packet_baseline_identity_and_ttl(self):
         record = {'type': 1, 'name': NAME, 'address': ADDRESS, 'ttl': 120, 'cls': 0x8001}
         packet = {'source': ADDRESS, 'source_mac': '88:a2:9e:0a:60:df', 'sport': 5353,
@@ -87,6 +100,11 @@ class HarnessTests(unittest.TestCase):
                  'profile': '921301fe-cdfd-4965-8ac7-c96e9d908ea6',
                  'recovery_active': 'active', 'recovery_enabled': 'enabled'}
         validate_host(value)
+        current = dict(value, link=value['link'].replace('SSID: Bohica', 'SSID: Bohica-IoT'))
+        validate_host(current, profile=value['profile'], ssid='Bohica-IoT')
+        with self.assertRaises(ValueError):
+            validate_host(dict(current, recovery_active='inactive'),
+                          profile=value['profile'], ssid='Bohica-IoT')
         iot = dict(value, profile='temporary', recovery_active='inactive',
                    link=value['link'].replace('SSID: Bohica', 'SSID: Bohica-IoT'))
         validate_host(iot, profile='temporary', ssid='Bohica-IoT', recovery_active='inactive')

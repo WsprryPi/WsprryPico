@@ -22,6 +22,7 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     bool start(const Config& config);
 #ifndef WSPRRY_PICO_STANDALONE_RF
     std::string trace_page(std::uint64_t after) const { return trace_.page(after); }
+    std::string association();
 #endif
     void poll();
     bool set_enabled(bool enabled) override;

@@ -9,7 +9,9 @@ built experimental RF bench, USB-time RFWTP and standalone RF images.
 
 The portable core uses C++20 and CMake 3.24 or later. The firmware build pins
 the Pico SDK, picotool and Arm toolchain and selects `pico2_w` explicitly. The
-SDK fetches the pinned picotool build dependency. The
+SDK 2.3.1 (`079c6f39023649b154152db30f1d781e884879bc`) includes the
+upstream RP2350 synchronization fixes; use a fresh build directory after an
+SDK update. The SDK fetches the pinned picotool build dependency. The
 [bounded target USB record](usb-target-validation.md) supplies the separately
 authorized BOOTSEL and read-only validation procedure.
 
@@ -56,6 +58,13 @@ The [E1 two-board record](phase11-4-e1-results.md) adds independent physical
 identities/CAs, bidirectional Mac/Linux trust checks and the boot-derived
 MAC-suffix naming default. It retains bootstrap/discovery failures and the
 unimplemented end-user provisioning flow.
+The [B2 association and delivery record](phase11-4-b2-delivery-results.md) retains
+the diagnostic watchdog, observer failures and exact AP association evidence.
+Standard inhibited images expose opt-in USB `NETLINK` for the current BSSID;
+ordinary INFO and polling do not query it. The failed RSSI query was removed.
+The read-only target diagnostic accepts `--iot-profile <current-uuid>` with
+active boot-enabled recovery and `--controller <private-client-directory>`;
+it cannot run a reconnection cycle through that override. B2 remains open.
 The [E2/E3 conflict record](phase11-4-e2-e3-results.md) adds the controlled-host
 alias conflict and same-name recovery observations. Its companion
 `scripts/audit_phase11_4_mdns_conflict.py` also operates only on private files.

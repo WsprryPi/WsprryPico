@@ -18,3 +18,4 @@ int cyw43_arch_wifi_connect_async(const char*, const char*, int);
 int cyw43_wifi_pm(cyw43_t*, std::uint32_t);
 int cyw43_wifi_get_pm(cyw43_t*, std::uint32_t*);
 int cyw43_wifi_get_mac(cyw43_t*, int, std::uint8_t*);
+int cyw43_wifi_get_bssid(cyw43_t*, std::uint8_t*);
