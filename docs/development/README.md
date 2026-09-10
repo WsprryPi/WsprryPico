@@ -5,6 +5,14 @@ portable WTP/1 core, deterministic host tests and an RF-inhibited firmware
 target with persistent standalone configuration and Wi-Fi SNTP, plus separately
 built experimental RF bench, USB-time RFWTP and standalone RF images.
 
+Current Phase 11.4 acceptance: [B2 and D2 pass the eight-case controlled native
+Linux campaign](phase11-4-three-radio-results.md), using one onboard AP and two
+independent USB Wi-Fi clients. The eight-hour soak remains open. This result
+supersedes the open B2/D2 status in earlier investigation records below. The
+[execution prompt](phase11-4-three-radio-prompt.md) describes the opt-in fixture;
+`phase11_4_three_radio_campaign_audit.py` checks a complete private series, and
+`phase11_4_three_radio_adversarial.py` checks per-case evidence mutations offline.
+
 ## Build direction
 
 The portable core uses C++20 and CMake 3.24 or later. The firmware build pins

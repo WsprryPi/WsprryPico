@@ -1,0 +1,382 @@
+{
+  "date": "2026-09-10",
+  "result": "PASS",
+  "scope": "Eight clean cycles on one inhibited Pico boot, controlled onboard AP, two independent native Linux clients",
+  "reviewed_repository_base": "62bc1b9c532cb73a6d2e8304ab5b5bb604746169",
+  "firmware_uf2_sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10",
+  "firmware_source_correction": "2f68f374e8054a34e21c978bcf39bfd15a0f6324",
+  "server_certificate_sha256": "06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016",
+  "topology": {
+    "management": "wspr5 Ethernet 2c:cf:67:62:76:64",
+    "ap": "wlan0 2c:cf:67:62:76:66 channel 11 WPA2/CCMP 10.77.14.1",
+    "peer1": "wlan2 e8:4e:06:ae:d7:09 10.77.14.2",
+    "peer2": "wlan1 90:de:80:47:b9:da 10.77.14.3",
+    "native_clients": "Independent network/mount namespaces and native Avahi/NSS daemons"
+  },
+  "campaign": {
+    "result": "PASS",
+    "B2": "PASS",
+    "D2": "PASS",
+    "cases": 8,
+    "boot": "fff66c8831bc91a6bed56a57e27f68db",
+    "authenticated_checks": 96,
+    "max_local_active_seconds": 4.414353398,
+    "max_first_authenticated_seconds": 9.125889495,
+    "max_cache_absent_by_seconds": 8.062448755,
+    "max_usb_gap_seconds": 1.672543343,
+    "unique_peer_sessions": 2,
+    "unique_peer_requests": 288,
+    "per_case": [
+      {
+        "result": "PASS",
+        "B2": "PASS",
+        "D2": "PASS",
+        "boot": "fff66c8831bc91a6bed56a57e27f68db",
+        "revision": "802c91a7b86e-dirty",
+        "local_active_seconds": 4.414353398,
+        "usb_max_gap_seconds": 1.202534844,
+        "usb_frames": 7,
+        "trace_events": 954,
+        "mdns_packets": {
+          "ap": 43,
+          "peer1": 41,
+          "peer2": 41
+        },
+        "peers": {
+          "1": {
+            "checks": 5,
+            "stable_seconds": 46.759800611,
+            "cache_absent_by_seconds": 8.06109903,
+            "first_authenticated_seconds": 6.165990337,
+            "sessions": [
+              "28e23f39971846759a83fda114e7c516"
+            ]
+          },
+          "2": {
+            "checks": 5,
+            "stable_seconds": 46.859793764,
+            "cache_absent_by_seconds": 8.061888454,
+            "first_authenticated_seconds": 7.863203976,
+            "sessions": [
+              "a9b96e05fef84b9b94875e946991871b"
+            ]
+          }
+        },
+        "scope": "Controlled wlan0 AP and two independent native Linux peers; one bounded OFF/ON case"
+      },
+      {
+        "result": "PASS",
+        "B2": "PASS",
+        "D2": "PASS",
+        "boot": "fff66c8831bc91a6bed56a57e27f68db",
+        "revision": "802c91a7b86e-dirty",
+        "local_active_seconds": 4.402822319,
+        "usb_max_gap_seconds": 1.617544192,
+        "usb_frames": 7,
+        "trace_events": 968,
+        "mdns_packets": {
+          "ap": 40,
+          "peer1": 37,
+          "peer2": 37
+        },
+        "peers": {
+          "1": {
+            "checks": 5,
+            "stable_seconds": 47.850267695,
+            "cache_absent_by_seconds": 8.062405627,
+            "first_authenticated_seconds": 6.851894404,
+            "sessions": [
+              "28e23f39971846759a83fda114e7c516"
+            ]
+          },
+          "2": {
+            "checks": 5,
+            "stable_seconds": 47.796057114,
+            "cache_absent_by_seconds": 8.0591088,
+            "first_authenticated_seconds": 8.564825967,
+            "sessions": [
+              "a9b96e05fef84b9b94875e946991871b"
+            ]
+          }
+        },
+        "scope": "Controlled wlan0 AP and two independent native Linux peers; one bounded OFF/ON case"
+      },
+      {
+        "result": "PASS",
+        "B2": "PASS",
+        "D2": "PASS",
+        "boot": "fff66c8831bc91a6bed56a57e27f68db",
+        "revision": "802c91a7b86e-dirty",
+        "local_active_seconds": 4.401033642,
+        "usb_max_gap_seconds": 1.288037813,
+        "usb_frames": 7,
+        "trace_events": 948,
+        "mdns_packets": {
+          "ap": 39,
+          "peer1": 36,
+          "peer2": 37
+        },
+        "peers": {
+          "1": {
+            "checks": 5,
+            "stable_seconds": 48.215618769,
+            "cache_absent_by_seconds": 8.062315077,
+            "first_authenticated_seconds": 6.207588727,
+            "sessions": [
+              "28e23f39971846759a83fda114e7c516"
+            ]
+          },
+          "2": {
+            "checks": 5,
+            "stable_seconds": 48.248806454,
+            "cache_absent_by_seconds": 8.060177656,
+            "first_authenticated_seconds": 8.466975604,
+            "sessions": [
+              "a9b96e05fef84b9b94875e946991871b"
+            ]
+          }
+        },
+        "scope": "Controlled wlan0 AP and two independent native Linux peers; one bounded OFF/ON case"
+      },
+      {
+        "result": "PASS",
+        "B2": "PASS",
+        "D2": "PASS",
+        "boot": "fff66c8831bc91a6bed56a57e27f68db",
+        "revision": "802c91a7b86e-dirty",
+        "local_active_seconds": 4.401429638,
+        "usb_max_gap_seconds": 1.215707774,
+        "usb_frames": 7,
+        "trace_events": 958,
+        "mdns_packets": {
+          "ap": 39,
+          "peer1": 37,
+          "peer2": 37
+        },
+        "peers": {
+          "1": {
+            "checks": 5,
+            "stable_seconds": 48.469313435,
+            "cache_absent_by_seconds": 8.062089873,
+            "first_authenticated_seconds": 6.840300358,
+            "sessions": [
+              "28e23f39971846759a83fda114e7c516"
+            ]
+          },
+          "2": {
+            "checks": 5,
+            "stable_seconds": 48.534256145,
+            "cache_absent_by_seconds": 8.059972026,
+            "first_authenticated_seconds": 9.125889495,
+            "sessions": [
+              "a9b96e05fef84b9b94875e946991871b"
+            ]
+          }
+        },
+        "scope": "Controlled wlan0 AP and two independent native Linux peers; one bounded OFF/ON case"
+      },
+      {
+        "result": "PASS",
+        "B2": "PASS",
+        "D2": "PASS",
+        "boot": "fff66c8831bc91a6bed56a57e27f68db",
+        "revision": "802c91a7b86e-dirty",
+        "local_active_seconds": 4.402569331,
+        "usb_max_gap_seconds": 1.672543343,
+        "usb_frames": 7,
+        "trace_events": 981,
+        "mdns_packets": {
+          "ap": 40,
+          "peer1": 37,
+          "peer2": 37
+        },
+        "peers": {
+          "1": {
+            "checks": 5,
+            "stable_seconds": 48.277763073,
+            "cache_absent_by_seconds": 8.059766121,
+            "first_authenticated_seconds": 6.17554057,
+            "sessions": [
+              "28e23f39971846759a83fda114e7c516"
+            ]
+          },
+          "2": {
+            "checks": 5,
+            "stable_seconds": 48.795246139,
+            "cache_absent_by_seconds": 8.057978014,
+            "first_authenticated_seconds": 7.978995277,
+            "sessions": [
+              "a9b96e05fef84b9b94875e946991871b"
+            ]
+          }
+        },
+        "scope": "Controlled wlan0 AP and two independent native Linux peers; one bounded OFF/ON case"
+      },
+      {
+        "result": "PASS",
+        "B2": "PASS",
+        "D2": "PASS",
+        "boot": "fff66c8831bc91a6bed56a57e27f68db",
+        "revision": "802c91a7b86e-dirty",
+        "local_active_seconds": 4.409287428,
+        "usb_max_gap_seconds": 1.616099063,
+        "usb_frames": 7,
+        "trace_events": 957,
+        "mdns_packets": {
+          "ap": 42,
+          "peer1": 40,
+          "peer2": 40
+        },
+        "peers": {
+          "1": {
+            "checks": 5,
+            "stable_seconds": 47.157784746,
+            "cache_absent_by_seconds": 8.059652616,
+            "first_authenticated_seconds": 6.140564139,
+            "sessions": [
+              "28e23f39971846759a83fda114e7c516"
+            ]
+          },
+          "2": {
+            "checks": 5,
+            "stable_seconds": 47.735801665,
+            "cache_absent_by_seconds": 8.060377096,
+            "first_authenticated_seconds": 7.838649978,
+            "sessions": [
+              "a9b96e05fef84b9b94875e946991871b"
+            ]
+          }
+        },
+        "scope": "Controlled wlan0 AP and two independent native Linux peers; one bounded OFF/ON case"
+      },
+      {
+        "result": "PASS",
+        "B2": "PASS",
+        "D2": "PASS",
+        "boot": "fff66c8831bc91a6bed56a57e27f68db",
+        "revision": "802c91a7b86e-dirty",
+        "local_active_seconds": 4.402767987,
+        "usb_max_gap_seconds": 1.206004323,
+        "usb_frames": 7,
+        "trace_events": 965,
+        "mdns_packets": {
+          "ap": 42,
+          "peer1": 40,
+          "peer2": 40
+        },
+        "peers": {
+          "1": {
+            "checks": 5,
+            "stable_seconds": 47.682355734,
+            "cache_absent_by_seconds": 8.060634166,
+            "first_authenticated_seconds": 6.138399388,
+            "sessions": [
+              "28e23f39971846759a83fda114e7c516"
+            ]
+          },
+          "2": {
+            "checks": 5,
+            "stable_seconds": 47.644242889,
+            "cache_absent_by_seconds": 8.062448755,
+            "first_authenticated_seconds": 8.420975354,
+            "sessions": [
+              "a9b96e05fef84b9b94875e946991871b"
+            ]
+          }
+        },
+        "scope": "Controlled wlan0 AP and two independent native Linux peers; one bounded OFF/ON case"
+      },
+      {
+        "result": "PASS",
+        "B2": "PASS",
+        "D2": "PASS",
+        "boot": "fff66c8831bc91a6bed56a57e27f68db",
+        "revision": "802c91a7b86e-dirty",
+        "local_active_seconds": 4.400520235,
+        "usb_max_gap_seconds": 1.216229163,
+        "usb_frames": 7,
+        "trace_events": 968,
+        "mdns_packets": {
+          "ap": 42,
+          "peer1": 40,
+          "peer2": 39
+        },
+        "peers": {
+          "1": {
+            "checks": 5,
+            "stable_seconds": 48.033912143,
+            "cache_absent_by_seconds": 8.061338214,
+            "first_authenticated_seconds": 6.711160616,
+            "sessions": [
+              "28e23f39971846759a83fda114e7c516"
+            ]
+          },
+          "2": {
+            "checks": 5,
+            "stable_seconds": 49.379786092,
+            "cache_absent_by_seconds": 8.061794954,
+            "first_authenticated_seconds": 8.432376712,
+            "sessions": [
+              "a9b96e05fef84b9b94875e946991871b"
+            ]
+          }
+        },
+        "scope": "Controlled wlan0 AP and two independent native Linux peers; one bounded OFF/ON case"
+      }
+    ],
+    "scope": "Eight clean cycles on one inhibited Pico boot, controlled onboard AP, two independent native Linux clients",
+    "limitation": "Does not qualify other infrastructure, macOS, or overnight stability; historical evidence remains retained"
+  },
+  "campaign_seconds": 1758.415022321,
+  "restoration": {
+    "devices": {
+      "a": {
+        "device": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+        "revision": "802c91a7b86e-dirty",
+        "boot_before": "1e4d80cfd9dbe41a50ff433d6d1811e2",
+        "boot_after": "9bcab75c38e37699fac74075cb64ffc9",
+        "address": "192.168.1.47",
+        "inactive_unowned": true,
+        "saved_state_preserved": true
+      },
+      "b": {
+        "device": "29f20b7342051ef947aa56cb9d4fab42",
+        "revision": "dbf1d86f0885-dirty",
+        "boot_before": "4e2fb851c08b278dd4b977104d2c2aaa",
+        "boot_after": "4e2fb851c08b278dd4b977104d2c2aaa",
+        "address": "192.168.1.53",
+        "inactive_unowned": true,
+        "saved_state_preserved": true
+      }
+    },
+    "host": "PASS; exact routes, original Wi-Fi profile/BSSID/power, radio power settings and services restored",
+    "wifi_ssh_seconds": [
+      0.6313911249744706,
+      0.5828111250302754,
+      2.8907815840211697
+    ],
+    "ethernet_verified": true,
+    "owned_running_services": 0,
+    "owned_namespaces": 0
+  },
+  "validation": {
+    "hardware_free_checks": 55,
+    "case_mutation_refusals": 216,
+    "campaign_mutation_refusals": 6,
+    "final_reassessment": "PASS",
+    "remaining_actionable_findings": 0
+  },
+  "private_evidence": {
+    "remote": "/home/pi/phase11-4-three-radio-1",
+    "local": "/Users/lbussy/GitHub/WsprryPico/build/phase11-4-three-radio/evidence",
+    "index_file": "/Users/lbussy/GitHub/WsprryPico/build/phase11-4-three-radio/evidence-index.json",
+    "index_sha256": "7c08970f1f473cce9db5164084bd2ec0e44119ff0996d9b19eba62c8336d9cf2",
+    "indexed_files": 399
+  },
+  "deployed_helpers": {
+    "phase11_4_three_radio.py": "fbe02540a85ff9e4bc234b918196b925252ec886e6160fd909d2d4d7822ee1e0",
+    "phase11_4_three_radio_audit.py": "31309f34b71bea2cf13d9fd637f55569fc3d235ad08c1f3cbbb204d2025dc9f3",
+    "phase11_4_hotspot.py": "20253c0ab455f023bc360b7b9f10fba5b6b719ffffddce79c0c7128a4e7712ee"
+  },
+  "remaining": "Eight-hour uninterrupted memory/connectivity soak; other infrastructure and macOS compatibility are outside this bounded closure"
+}

@@ -130,7 +130,8 @@ def in_client(args, timeout=40, check=True):
     return cmd(['nsenter', '-t', str(pid), '-m', '-n', *args], timeout=timeout, check=check)
 
 
-def setup(cleanup_entrypoint=None, prepare_network=None, cleanup_unit='phase11-hotspot-cleanup'):
+def setup(cleanup_entrypoint=None, prepare_network=None, cleanup_unit='phase11-hotspot-cleanup',
+          cleanup_after='20m'):
     assert not (ROOT / 'setup-started').exists(), 'Use cleanup before another setup'
     before = host_check()
     assert SUBNET.split('/')[0] not in before['routes']
@@ -158,7 +159,7 @@ def setup(cleanup_entrypoint=None, prepare_network=None, cleanup_unit='phase11-h
                     schedules=s['schedules'], expires_utc_s=s['expires_utc_s'])
     save('restore.json', original)
     # Independent recovery starts before any network or device mutation.
-    cmd(['systemd-run', '--quiet', '--unit=' + cleanup_unit, '--on-active=20m',
+    cmd(['systemd-run', '--quiet', '--unit=' + cleanup_unit, '--on-active=' + cleanup_after,
          '--property=WorkingDirectory=' + str(ROOT), '--property=UMask=0077',
          '--property=StandardOutput=append:' + str(ROOT / 'cleanup.log'),
          '--property=StandardError=append:' + str(ROOT / 'cleanup.log'),
@@ -229,7 +230,7 @@ def verify():
     print('FIXTURE READY: AP and independent wireless client; management unchanged', flush=True)
 
 
-def client():
+def client(address='10.77.14.2'):
     cmd(['mount', '-t', 'tmpfs', '-o', 'mode=755', 'tmpfs', '/run'])
     children = []
     try:
@@ -241,7 +242,7 @@ def client():
             time.sleep(.5)
         assert 'wpa_state=COMPLETED' in cmd(['wpa_cli', '-i', CLIENT_IF, 'status']).stdout
         cmd(['iw', 'dev', CLIENT_IF, 'set', 'power_save', 'off'])
-        cmd(['ip', 'address', 'add', '10.77.14.2/24', 'dev', CLIENT_IF])
+        cmd(['ip', 'address', 'add', address + '/24', 'dev', CLIENT_IF])
         children.append(subprocess.Popen(['/usr/sbin/avahi-daemon', '--no-drop-root', '--no-chroot',
                                          '--no-rlimits', '--debug', '-f', str(ROOT / 'avahi.conf')]))
         deadline = time.monotonic() + 10
@@ -270,6 +271,13 @@ def probe(address, boot):
         device_id=DEVICE, boot_id=boot, server_sha256=cfg['fingerprint'],
         ca=credentials / 'ca.crt', cert=credentials / 'client.crt', key=credentials / 'client.key')
     peer = Peer(args, Evidence())
+    # A repeated observer is one logical client. Reconnect with its session and
+    # fresh request IDs instead of consuming a retained server session per poll.
+    if 'session_id' in cfg:
+        session = cfg['session_id']
+        if not isinstance(session, str) or len(session) != 32 or any(c not in '0123456789abcdef' for c in session):
+            raise ValueError('Invalid observer session identity')
+        peer.session = session
     try:
         peer.open()
         check_status(peer.request('STATUS', {}), boot, unowned=True)

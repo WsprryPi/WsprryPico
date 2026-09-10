@@ -100,6 +100,10 @@ power-saving setting are retained. Three ordinary Wi-Fi SSH checks passed in
 0.59–6.22 seconds. The restoration timer was stopped after verified cleanup.
 Existing shutdown and soak work remains untouched.
 
+The table below records the D1 checkpoint. The later
+[three-radio campaign](phase11-4-three-radio-results.md) closes B2/D2 for the
+controlled native Linux scope; the eight-hour soak remains open.
+
 | Still open | Remaining work |
 | --- | --- |
 | B2 | Broader repeatable discovery/reconnection acceptance |
