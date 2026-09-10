@@ -457,3 +457,41 @@ failed/invalid assessments remain available beside corrected offline assessments
 The campaign stopped at the watchdog boundary. One authorized recovery reboot
 restored normal inhibited operation; final peer/output/host checks pass. No SSID
 comparison or overnight soak was executed after that stop; B2/D2 remain open.
+
+
+## Shutdown-marker and path-comparison review, 2026-09-09/10
+
+The [shutdown investigation](phase11-4-shutdown-results.md) preserves the original
+stage-16 watchdog and missing-goodbye failures. Standard-image-only forwarding
+wrappers add nested scratch markers without changing SDK source, watchdog limits,
+arguments, results or ownership. Actual linked calls, nested restoration,
+negative returns and out-of-scope behavior are checked. Instrumentation can
+change timing; no recurrence alone cannot establish a repair.
+
+Adversarial review corrected late packet-baseline qualification, idle-window
+coverage, assertion/HardFault misclassification and paused-recovery status handling.
+A host-path override is restricted to read-only diagnosis and remains exact-profile,
+SSID, MAC, address and boot-recovery-enable bound. Real evidence replays retain
+three received ARP requests and three successfully submitted replies absent from
+Linux capture. The separate IoT observation retains lost requests before Pico
+input while concurrent Mac reads continue; its sequential path changes do not
+isolate SSID from AP/band/reassociation. Restored-Bohica clock alignment was too
+loose for precise RX correlation, so that claim is withheld. Local restoration
+and external host reachability remain distinct, including the management outage.
+
+All 30 host checks pass after these corrections, with the wrapper/adapter sanitizer
+checks and standard linked-image/stack/journal checks retained. Firmware source
+inputs still match the deployed image; subsequent edits are harness/audit/docs.
+Final physical outcomes and cleanup are recorded in the linked execution report.
+No RF qualification or eight-hour soak result is claimed.
+
+
+Final reassessment retains 3 PASS, 3 FAIL and 2 INVALID shutdown attempts, all on
+the same inhibited boot. Corrected gate and trace-confirmed idle mode were
+physically exercised. The old shared marker-15 label and an overly strict
+zero-TLS quiet-sampler criterion were also corrected and reviewed. Quiet samples
+stabilized at 18,812/4,396/200 heap/TLS/lwIP bytes with no connection/pool resources
+in use; this remains a bounded baseline. Final authoritative USB, native Mac/Linux
+peers, original host Wi-Fi/recovery and installed provider integrity pass.
+B2/D2, D1, E1 and the unstarted post-repair soak remain open as described in the
+execution report. The second Pico was left untouched for later E1.

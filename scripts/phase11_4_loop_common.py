@@ -84,14 +84,24 @@ def campaign_decision(attempts, clean_required=8, unresolved_limit=3):
     return 'CONTINUE'
 
 
-def validate_host(value):
+def validate_host(value, profile='921301fe-cdfd-4965-8ac7-c96e9d908ea6',
+                  ssid='Bohica', recovery_active='active'):
     addresses = json.loads(value['address'])
     require(value['mac'] == '90:de:80:47:b9:da', 'wrong USB dongle')
     require(len(addresses) == 1 and addresses[0]['ifname'] == 'wlan1' and
             any(i.get('family') == 'inet' and i.get('local') == '192.168.1.117'
                 for i in addresses[0]['addr_info']), 'host address/interface changed')
-    require(value['profile'] == '921301fe-cdfd-4965-8ac7-c96e9d908ea6', 'host profile changed')
-    require('\n\tSSID: Bohica\n' in '\n' + value['link'] + '\n', 'host SSID changed')
-    require(value['recovery_active'] == 'active' and value['recovery_enabled'] == 'enabled',
+    require(value['profile'] == profile, 'host profile changed')
+    require('\n\tSSID: ' + ssid + '\n' in '\n' + value['link'] + '\n', 'host SSID changed')
+    require(value['recovery_active'] == recovery_active and value['recovery_enabled'] == 'enabled',
             'host recovery changed')
     return (value['link'].splitlines()[0], value['profile'])
+
+
+def captured_baseline(packets):
+    return any(p.get('source') == ADDRESS and p.get('source_mac') == '88:a2:9e:0a:60:df' and
+               p.get('sport') == p.get('dport') == 5353 and p.get('ttl') == 255 and
+               p.get('dns', {}).get('flags') == 0x8400 and
+               any(r.get('type') == 1 and r.get('name') == NAME and r.get('address') == ADDRESS and
+                   r.get('ttl') == 120 and r.get('cls') == 0x8001
+                   for r in p.get('dns', {}).get('records', [])) for p in packets)

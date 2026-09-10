@@ -55,6 +55,13 @@ directories and performs no device or network operations.
 The [E2/E3 conflict record](phase11-4-e2-e3-results.md) adds the controlled-host
 alias conflict and same-name recovery observations. Its companion
 `scripts/audit_phase11_4_mdns_conflict.py` also operates only on private files.
+The [shutdown-marker investigation](phase11-4-shutdown-results.md) adds verified
+nested reset breadcrumbs, idle/normal client trials and a read-only host SSID
+comparison. `scripts/check_shutdown_image.py <standard-inhibited.elf>` verifies
+actual linked call interception. `--idle-clients` controls the opt-in loop's
+status traffic; its packet-baseline gate must pass before WIFI OFF. Diagnostic
+`--diagnostic-iot-profile` is read-only, requires externally supervised host
+restoration and cannot be used to qualify a shutdown control case.
 The [packet-boundary investigation](phase11-4-packet-trace-results.md) adds a fixed
 USB trace, locates a failed ARP exchange after successful driver submission, and
 reproduces the station-disable watchdog. Both acceptance items remain open.

@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'scripts'))
-from phase11_4_trace_audit import trace_events, fingerprint
+from phase11_4_trace_audit import trace_events, fingerprint, idle_window
 from phase11_4_loop_common import DEVICE
 
 class TraceTests(unittest.TestCase):
@@ -29,6 +29,20 @@ class TraceTests(unittest.TestCase):
         r=self.fixture();r[0]['value']['trace']['events'].pop();variants.append(r)
         for r in variants:
             with self.subTest(r=r), self.assertRaises(ValueError):trace_events(r,'boot','candidate')
+    def test_idle_requires_full_coverage_and_no_tcp(self):
+        mark = {'kind':3, 'us':0, 'header':''}
+        header = bytearray(34);header[12:14]=b'\x08\x00';header[23]=6
+        tcp = {'kind':1,'us':3_000_000,'header':header.hex()}
+        check = lambda events:idle_window(events,10_000_000)['idle_client_window_verified']
+        self.assertTrue(check([mark]))
+        self.assertFalse(check([]))
+        self.assertFalse(check([dict(mark,us=2_000_001)]))
+        self.assertFalse(check([mark,tcp]))
+        self.assertFalse(check([mark,dict(tcp,kind=2,us=2_000_000)]))
+        self.assertTrue(check([mark,dict(tcp,us=1_999_999)]))
+        self.assertTrue(check([mark,dict(tcp,us=10_000_000)]))
+        header[23]=17
+        self.assertTrue(check([mark,dict(tcp,header=header.hex())]))
     def test_cross_page_gap_refused(self):
         rows=self.fixture();second=copy.deepcopy(rows[0]);second['value']['trace'].update(latest=4)
         second['value']['trace']['events']=[dict(rows[0]['value']['trace']['events'][0],seq=4)]

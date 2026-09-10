@@ -106,6 +106,20 @@ def clock_gate_evidence(rows, packets):
     return matches
 
 
+def shutdown_reset(value, boot, revision):
+    stages = {15: 'watchdog at shared mDNS-removal/Wi-Fi-connect marker', 16: 'watchdog during station disable',
+              20: 'watchdog during netif deinitialization', 21: 'watchdog during DHCP stop',
+              22: 'watchdog during netif removal', 23: 'watchdog during IGMP stop',
+              24: 'watchdog during multicast filter programming', 25: 'watchdog during radio disassociation'}
+    status = value.get('status', {})
+    if (value.get('device_id') == DEVICE and value.get('revision') == revision and
+            value.get('recovery_boot') is True and status.get('boot_id') and status['boot_id'] != boot and
+            status.get('engine') == 'inhibited-standalone-simulator' and status.get('output_active') is False and
+            all(value.get(key) == 0 for key in ('fault_hash', 'fault_pc', 'fault_status'))):
+        return stages.get(value.get('fault_stage'))
+    return None
+
+
 def assess_case(case, boot, revision='e4ff40a56180-dirty'):
     result = {'result': 'FAIL', 'observer_failure': False, 'failure_point': None,
               'failure_messages': [], 'scope': 'bounded B2/D2 physical case'}
@@ -128,11 +142,7 @@ def assess_case(case, boot, revision='e4ff40a56180-dirty'):
             if row['kind'] == 'RECOVERY_INFO':
                 v = row['value']
                 result['final_info'] = v
-                if (v.get('device_id') == DEVICE and v.get('revision') == revision
-                        and v.get('recovery_boot') and v['status']['boot_id'] != boot
-                        and v.get('fault_stage') in (15, 16)):
-                    result['failure_point'] = {15: 'watchdog during final mDNS removal',
-                                               16: 'watchdog during station disable'}[v['fault_stage']]
+                result['failure_point'] = shutdown_reset(v, boot, revision)
     try:
         # Failed cases still require authentic, complete observers before localization.
         for v in infos:

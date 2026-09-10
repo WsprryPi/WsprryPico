@@ -180,3 +180,12 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
     target_compile_definitions(${image} PRIVATE
         WSPRRY_PICO_LWIP_MDNS_SOURCE="${PICO_LWIP_PATH}/src/apps/mdns/mdns.c")
 endforeach()
+
+# Reset-surviving nested shutdown breadcrumbs; never patch SDK or physical RF images.
+target_sources(WsprryPico PRIVATE ../src/standalone/pico/shutdown_trace.cpp)
+foreach(operation cyw43_cb_tcpip_deinit dhcp_stop netif_remove igmp_stop
+                  cyw43_wifi_update_multicast_filter cyw43_wifi_leave)
+    target_link_options(WsprryPico PRIVATE "LINKER:--wrap=${operation}")
+endforeach()
+set_source_files_properties(../src/standalone/pico/shutdown_trace.cpp PROPERTIES
+    COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-fstack-usage")

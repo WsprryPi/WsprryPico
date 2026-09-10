@@ -56,6 +56,20 @@ def trace_events(rows, boot, revision):
     return events
 
 
+def idle_window(events, shutdown_us):
+    """Require eight seconds of trace coverage and no TCP through shutdown."""
+    cutoff = shutdown_us - 8_000_000
+    tcp = []
+    for event in events:
+        header = bytes.fromhex(event['header'])
+        if (event['kind'] in (1, 2) and len(header) >= 34 and
+                header[12:14] == b'\x08\x00' and header[23] == 6 and
+                cutoff <= event['us'] < shutdown_us):
+            tcp.append(event)
+    return {'idle_client_window_verified': bool(events) and not tcp and events[0]['us'] <= cutoff,
+            'tcp_during_idle_window': tcp}
+
+
 def assess_trace(directory, boot, revision):
     rows = [json.loads(s) for s in (directory/'events.jsonl').read_text().splitlines()]
     events = trace_events(rows, boot, revision)
@@ -102,6 +116,8 @@ def assess_trace(directory, boot, revision):
               'recovery_tx_errors':[e for e in recovery if e['kind']==2 and e['result']!=0],
               'max_recorded_tx_us':max((e['end_us']-e['us'] for e in events if e['kind']==2),default=0),
               'failure_boundary':None}
+    if any(r['kind']=='IDLE_CLIENT_WINDOW' for r in rows):
+        result.update(idle_window(events, goodbye_start['us']))
     if any(r['kind']=='OUTAGE_LOOKUP_FAILURE' for r in rows) and submitted and not result['goodbye_fingerprints_observed']:
         if all(e['result']==0 for e in submitted):
             result['failure_boundary']='Goodbye submitted successfully through station linkoutput; no matching frame in client capture'

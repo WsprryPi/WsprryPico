@@ -19,7 +19,11 @@ def main():
     p.add_argument('--boot', required=True)
     p.add_argument('--revision', default='e4ff40a56180-dirty')
     p.add_argument('--trace', action='store_true')
+    p.add_argument('--idle-before-off', action='store_true')
+    p.add_argument('--diagnostic-iot-profile')
     a = p.parse_args()
+    require(not a.diagnostic_iot_profile or a.mode == 'diagnose',
+            'host-path override is read-only diagnostic only')
     require(a.run and __debug__, 'Explicit --run and nonoptimized Python required')
     os.umask(0o077)
     root = a.output
@@ -205,10 +209,12 @@ def main():
         }.items():
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=3)
             value[key] = result.stdout.strip()
-            assert result.returncode == 0, 'host metadata failure: ' + key
+            expected_exit = 3 if key == 'recovery_active' and a.diagnostic_iot_profile else 0
+            assert result.returncode == expected_exit, 'host metadata failure: ' + key
         value['mac'] = Path('/sys/class/net/wlan1/address').read_text().strip()
         note('HOST_PATH', value)
-        fingerprint = validate_host(value)
+        fingerprint = validate_host(value, profile=a.diagnostic_iot_profile,
+                ssid='Bohica-IoT', recovery_active='inactive') if a.diagnostic_iot_profile else validate_host(value)
         if host_baseline is None:
             host_baseline = fingerprint
         assert fingerprint == host_baseline, 'host association changed during case'
@@ -337,7 +343,21 @@ def main():
             mdns.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton('192.168.1.117'))
             mdns.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 255)
             labels = b''.join((bytes([len(x)]) + x.encode() for x in NAME.split('.'))) + b'\x00'
-            mdns.sendto(struct.pack('>6H', 0, 0, 1, 0, 0, 0) + labels + struct.pack('>HH', 1, 1), ('224.0.0.251', 5353))
+            from phase11_4_loop_common import captured_baseline
+            from audit_phase11_4_mdns_conflict import pcap
+            baseline_captured = False
+            for attempt in range(4):
+                # First multicast, then bounded direct unicast questions if necessary.
+                destination = '224.0.0.251' if attempt == 0 else IP
+                mdns.sendto(struct.pack('>6H', 0, 0, 1, 0, 0, 0) + labels + struct.pack('>HH', 1, 0x8001), (destination, 5353))
+                wait_observed(2)
+                try:
+                    baseline_captured = captured_baseline(pcap(root / 'mdns.pcap'))
+                except ValueError:
+                    # tcpdump may be between record/header writes; retry within the bound.
+                    baseline_captured = False
+                if baseline_captured or a.mode == 'diagnose':
+                    break
         note('seed_socket_closed', {})
         wait_observed(3)
         if a.mode == 'diagnose':
@@ -358,6 +378,11 @@ def main():
         https()
         neighbor()
         snapshot()
+        if a.idle_before_off:
+            note('IDLE_CLIENT_WINDOW', {'seconds': 10})
+            wait_observed(10)
+        require(baseline_captured, 'no captured baseline A response; no OFF issued')
+        note('BASELINE_PACKET_VERIFIED', {})
         note('off_begin', {})
         off = True
         console('WIFI OFF')

@@ -1,0 +1,1290 @@
+{
+  "scope": "Private Phase 11.4 shutdown/path evidence; only names, sizes and hashes are published",
+  "artifacts": [
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/campaign.json",
+      "bytes": 50099,
+      "sha256": "3a949048a593edbc8db7c32cd81661e32a210299342f8d010b65e64aa2ec5e8a"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/assessment.json",
+      "bytes": 8203,
+      "sha256": "8b116e0f0686d4627341066e6df071728283fa714eb5c31c9f2381566a42cd95"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/case-01/capture.log",
+      "bytes": 165,
+      "sha256": "5ff945f9e9fdd61b2fcd9cfcbbdbd8979d30e02913e761d1564f2a7c5d751076"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/case-01/diagnostic-capture.log",
+      "bytes": 167,
+      "sha256": "8b4801d02f170222a370544ab95bdf0010c6eaaa7f60e1aec899c57baf71d62d"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/case-01/diagnostic.pcap",
+      "bytes": 69219,
+      "sha256": "8f19a2d46eea62384c194d5881b556983ec9a14f65f4bb7027c15cee0d66fc98"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/case-01/events.jsonl",
+      "bytes": 2574889,
+      "sha256": "19859d45ffdf3c12061fb35c52e85137064d41b5aad7354aeca31eec2ccd5e33"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/case-01/mdns.pcap",
+      "bytes": 13749,
+      "sha256": "a8258f3cceb89eb3f120dbb42004a96f2dc5a041c305d760a3ad471b72aef3ae"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/case-01/usb-frames.jsonl",
+      "bytes": 27724,
+      "sha256": "a0be28af90e131a53342ecfdbf7d4347fe809159e2da9cba187e2842f72b6d23"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/case-01/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/case-01/usb-wire.bin",
+      "bytes": 26948,
+      "sha256": "5933ae937eec7ab2797842a011bf7d19fd14b46ff4c8168b1e404e8408bba002"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/inspect-01/events.jsonl",
+      "bytes": 2688,
+      "sha256": "465aff88b2332369c4effb88735c7dc3ecb30edfba350449632b0e5204e14894"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/linux.tar",
+      "bytes": 3225600,
+      "sha256": "69cc4d85b2f49e7bcde79bf6ab83ff5043600af303db03f92b4ea1ba8e8fca38"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/mac-dns-sd.jsonl",
+      "bytes": 757,
+      "sha256": "ebdb55603517d21e347f5293c8aee715b9606e919636f02c5141eaed6e22711d"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/mac-dns-stop.json",
+      "bytes": 70,
+      "sha256": "ef7cf06e6a0cb6e22ff0bc85af27e424822dbd4131d549366c00e78556962d04"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/mac-peer.jsonl",
+      "bytes": 23469,
+      "sha256": "8c025b3c6036843cc3ae0783ecde11ab22dd6340cd385c075bc5036b98d31e57"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/reassessment.json",
+      "bytes": 8178,
+      "sha256": "c200b54bc9d98b515aadcb51e202a36e9bc8428d668471498995a9c0ae68d922"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/runner-01.log",
+      "bytes": 495144,
+      "sha256": "e30f3a1fb65fa5c74f4910da9d77f58927c554146540edaa619828270a8ef558"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-01/service-state.txt",
+      "bytes": 67,
+      "sha256": "90343b47204208f05a4441ef870547afa0188dc6122f79e6e692c5f94691b843"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/arp-window.json",
+      "bytes": 2604,
+      "sha256": "4298029ea62e7886f277c4afaaa59aa6010c4bab6219148d7ca5bca684d57ec6"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/assessment.json",
+      "bytes": 28690,
+      "sha256": "f714e277b2da2e5672526f23916d890fa03c5ea0a90983f74b209e51fc82bd5c"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/case-02/capture.log",
+      "bytes": 165,
+      "sha256": "e9ac8fe67cdbcad0f7849a25f3bb0d4f5ef67eac44975d275955d7447fc2585a"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/case-02/diagnostic-capture.log",
+      "bytes": 165,
+      "sha256": "7049360c8eb01d21fff5cd7b413117e1279bfd666e6ac2986ffb1566030b79f5"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/case-02/diagnostic.pcap",
+      "bytes": 11768,
+      "sha256": "bf22a23dd0af01099b282b54dce0c88e526a692ef931c0951b8e3d22025497c2"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/case-02/events.jsonl",
+      "bytes": 3739080,
+      "sha256": "f43aff45da11baa9869dd62a740b548ed852684877d5e8504c5213e59df50836"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/case-02/mdns.pcap",
+      "bytes": 23412,
+      "sha256": "f901a7e1c0d51ac80c810088aec9bd6cac3ef164e8d56cf285e8efb7110bc939"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/case-02/usb-frames.jsonl",
+      "bytes": 32302,
+      "sha256": "5dfeff68eb0ba7ed5a7aca983147da353645851b3c677411bf1cd7a5447b7fcc"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/case-02/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/case-02/usb-wire.bin",
+      "bytes": 31400,
+      "sha256": "070d564702f327c8c9d3a7d35b751b3321a5412e559d06db05893115efc0f690"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/inspect-02/events.jsonl",
+      "bytes": 2689,
+      "sha256": "08ec04d7e9860415c3e341ef815539037e8346f4f98fd417e852a7997909eb71"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/linux.tar",
+      "bytes": 4505600,
+      "sha256": "e000280e0ab014ceb416919e95285b2726418e36d3025d9e265aa7cbac5e0fbc"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/mac-dns-sd.jsonl",
+      "bytes": 583,
+      "sha256": "96bf9a3af1b5b567192b167cf4560b9a2a6a35599029371142e1459942145918"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/mac-dns-stop.json",
+      "bytes": 70,
+      "sha256": "15d680e4270888a35332769fb1cbb067e8a13c7fe8bb03f461663273b52c166b"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/mac-peer.jsonl",
+      "bytes": 20615,
+      "sha256": "08175e841a5ebd913ffa80b2541801715b5721bdbcbf8fede7f83a774c0e0d0a"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/reassessment.json",
+      "bytes": 28665,
+      "sha256": "67de4a6cd376d9643ec45cbe13c0162d469dd474b76ff44ec8c71a9dab36f88c"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/runner-02.log",
+      "bytes": 649656,
+      "sha256": "8172ce8e45a150d01b0efaf2bca6f646d578d08b88f6349a08814141867bdc57"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/service-state.txt",
+      "bytes": 69,
+      "sha256": "34a96f3d9b4f03039916c7268172810e74bc25b4b3df3189bea806fbb8fccf7f"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-02/unit-failed-state-cleared",
+      "bytes": 31,
+      "sha256": "cf80648cfab983143f89b04235fe4435a818047104daeb855d41f12f8cd3087a"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/assessment.json",
+      "bytes": 6449,
+      "sha256": "8a2f78951ed6d19eb1c6e71258f75c92ccd77f489264f6ae26e254c9048506ef"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/case-03/capture.log",
+      "bytes": 165,
+      "sha256": "66a15eeef2bdacbc0ae4be5d5ee6ef4b2533486b22bb27ade4009846b1522037"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/case-03/diagnostic-capture.log",
+      "bytes": 167,
+      "sha256": "fb1cac91c0fc280033fd26183899b7e60105666ebae37678c7c3efbdf5a306aa"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/case-03/diagnostic.pcap",
+      "bytes": 65054,
+      "sha256": "d430d86d11437eee03a4a7c2363ebb95be1781197f5dfcf1daa0f6d9a31d8b88"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/case-03/events.jsonl",
+      "bytes": 2614932,
+      "sha256": "521a8e40d1f16b30ee2d18b17de3be96635bbec83bd70567d56bbdce42ef78d0"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/case-03/mdns.pcap",
+      "bytes": 11154,
+      "sha256": "682e6b4a4964b50fc6dda4fdaac782f2244cbfab4ec81f30d8f7e9299d85f9cb"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/case-03/usb-frames.jsonl",
+      "bytes": 27724,
+      "sha256": "699defa002da0a1896429e45a44200d1f99f20ab887a78fc514b062fd128d49a"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/case-03/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/case-03/usb-wire.bin",
+      "bytes": 26948,
+      "sha256": "2d6a88d09ed2880b6105ef5777207061a69dc8261d2f8f7f0c6fc0c90266e861"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/inspect-03/events.jsonl",
+      "bytes": 2691,
+      "sha256": "143b5dc790790df7bf149549b7a5b00b052cd797d499555a56df2d0207ba0a83"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/linux.tar",
+      "bytes": 3307520,
+      "sha256": "7d8212cc0b97d20fb99e94894cfdd2ea6418d4e4948ac2e0c050cf5d34214ec9"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/mac-dns-sd.jsonl",
+      "bytes": 757,
+      "sha256": "f2e05351af57432775bb370b67f1357590f3cf2146f1cd50b3951fa2d52700ac"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/mac-dns-stop.json",
+      "bytes": 70,
+      "sha256": "cfc213f6b7a3e88ba13d1b0eb6aa8bbabd9ff7c3938545701a822c97ea525caf"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/mac-peer.jsonl",
+      "bytes": 26022,
+      "sha256": "7a73e6b153919f894590e30c0963b0eb993d7bc2651cd3ba816cf56c95a7ee17"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/reassessment.json",
+      "bytes": 6424,
+      "sha256": "8e71a5e330dbebabfd85eabfbea53653f5418819ca62c28db110128c72706e42"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/runner-03.log",
+      "bytes": 539255,
+      "sha256": "c37604cafe752a06cc2ff9926f436596ea21e137112612c67aad78e02ea37f81"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/case-03/service-state.txt",
+      "bytes": 67,
+      "sha256": "90343b47204208f05a4441ef870547afa0188dc6122f79e6e692c5f94691b843"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign/deployment.json",
+      "bytes": 1043,
+      "sha256": "dc923bd0d366aeb023a008a913d15753de88365f5b1e1c9f66e53c9db838343e"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-campaign.log",
+      "bytes": 467,
+      "sha256": "c7c4a8515690173e399bb3b16a9f4f831e7b00605098fff9baac1de916993c67"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/campaign.json",
+      "bytes": 56477,
+      "sha256": "6be957a830b0a9cc908d419cbb11729833a32969e6d9f681d7544d94370ce1a3"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/assessment.json",
+      "bytes": 8472,
+      "sha256": "75e6b74a2504750e99990a584267ac2c6e6bfe0929f73aac364ca92e826cb43e"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/case-01/capture.log",
+      "bytes": 165,
+      "sha256": "66a15eeef2bdacbc0ae4be5d5ee6ef4b2533486b22bb27ade4009846b1522037"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/case-01/diagnostic-capture.log",
+      "bytes": 167,
+      "sha256": "ac74a9298686b8cc4f4be139702357d1a29a326f18f80a75de1e779726474ac1"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/case-01/diagnostic.pcap",
+      "bytes": 65724,
+      "sha256": "13b9eb68da2c13e7a03b3ba16fd4f644d79ab390e49f65afc9afe668bbdc18b9"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/case-01/events.jsonl",
+      "bytes": 2618695,
+      "sha256": "a1b9577bc517d38b5d8dd625a7cbb22380fe9a4f025b84e20e76a06591e14a50"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/case-01/mdns.pcap",
+      "bytes": 12846,
+      "sha256": "2ef118248e18aeb7fa0be3168da14c3e28c2c98e20ce1582d525e3797fe7c8a9"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/case-01/usb-frames.jsonl",
+      "bytes": 28051,
+      "sha256": "89016e0614b6a20c77d5acb33e81f038d992248e8e0e7475f74d487c2cf7f6a6"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/case-01/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/case-01/usb-wire.bin",
+      "bytes": 27266,
+      "sha256": "aaf81bee7279c18d0380af2e8287e6f1714e8f175202755098e9f2b89f843a42"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/inspect-01/events.jsonl",
+      "bytes": 2700,
+      "sha256": "f927d5d06ba5dce9796574586bff278b8b09a3edd439c5921efaef17a82eea93"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/linux.tar",
+      "bytes": 3297280,
+      "sha256": "53111d8f6f17bc0562a434aaae51bd682bdd2027547160909b447456e90c0c5b"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/mac-dns-sd.jsonl",
+      "bytes": 757,
+      "sha256": "b824e6a623056a33aab32be3fa28dc9086744caabe48ca3dd526fb86302df2ca"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/mac-dns-stop.json",
+      "bytes": 69,
+      "sha256": "bca597e67032fa782b6858b5241ff228368a4208968773131747db337df9e9ac"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/mac-peer.jsonl",
+      "bytes": 23531,
+      "sha256": "a94523608363d8f1454b4bd4ce02e12998f4a85198259472ac52ec26f5adf43e"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/reassessment.json",
+      "bytes": 8447,
+      "sha256": "8f6b55191cf6e73328fe358c6f543dc8eb5c56bd163a0268b61577573c3e7c83"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/runner-01.log",
+      "bytes": 527939,
+      "sha256": "74a56cff6138ab4b81151761e92a7a22e71b15edf6271d18beb87a9b68c47fa4"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-01/service-state.txt",
+      "bytes": 67,
+      "sha256": "90343b47204208f05a4441ef870547afa0188dc6122f79e6e692c5f94691b843"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/arp-window.json",
+      "bytes": 1888,
+      "sha256": "2f5e0658fb17bfd4ebb03f917acebd4194a223e9a3c2585912f61ddbd9d0c777"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/assessment.json",
+      "bytes": 32126,
+      "sha256": "eb992da7c0cd0f953adba56560eb2c36f59c36705e78596f36e67411872957b1"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/case-02/capture.log",
+      "bytes": 165,
+      "sha256": "d5e8432c743c02a1473393b70afa2c826b59f43adeb0d281d95e607567ef1107"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/case-02/diagnostic-capture.log",
+      "bytes": 165,
+      "sha256": "e4b8f0c4e2a3424e805573b82ec3088770daf193cf93c19c14daf365de81d419"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/case-02/diagnostic.pcap",
+      "bytes": 11649,
+      "sha256": "9ce8991d0304d02d0e3ca5bf605a1eb4e7c2ab52a6a56ef39566f5ef889d1619"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/case-02/events.jsonl",
+      "bytes": 3785263,
+      "sha256": "1c4cf5e31b1eed41a10268bac6cb11950cd3819369af2d7dc15fffde7603e978"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/case-02/mdns.pcap",
+      "bytes": 22678,
+      "sha256": "e99a8cac69e6a5b2daa1f1e01ae42def610cb104fd113758c1d4492206b76949"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/case-02/usb-frames.jsonl",
+      "bytes": 32629,
+      "sha256": "d910eeb9b08293ecae5abeba2aafcefbe7764eff0fc92f651cb55213abfba7dc"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/case-02/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/case-02/usb-wire.bin",
+      "bytes": 31718,
+      "sha256": "eb6a0f4a1c00ad8fff7cf9b2e4597ff19e574e35e1cb3bd701dcdfb19931189e"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/inspect-02/events.jsonl",
+      "bytes": 2699,
+      "sha256": "9693e8cf06b422529c4f31ec3258f0911022783b88c697682acaabfa38042b64"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/linux.tar",
+      "bytes": 4556800,
+      "sha256": "be1c297d5dcf66fd711983e2309f1b18422f4f5f46d32790d2cc343f2aef59ca"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/mac-dns-sd.jsonl",
+      "bytes": 583,
+      "sha256": "0d43858f6b00c4f6ce167e58e89b13f3befc5f117888a17eee5e5b26fc45af4e"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/mac-dns-stop.json",
+      "bytes": 69,
+      "sha256": "85835c66aff415adaf768efd77faeac5adc6012f02dbc3887cbaa237de8d062e"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/mac-peer.jsonl",
+      "bytes": 20628,
+      "sha256": "127c2152b71e32a1b9123aee80f6cc920b755363d21a8cf7e337381c14c8cf85"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/reassessment.json",
+      "bytes": 32101,
+      "sha256": "6529e7b5b72934a55a27a0a12e96fc3c19c1fbb18a4065a1dca0dc005e361243"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/runner-02.log",
+      "bytes": 658593,
+      "sha256": "5e272b2854b44592990af40a776ac2a102581cbb92f0ac11915c64e1991f6756"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/service-state.txt",
+      "bytes": 69,
+      "sha256": "34a96f3d9b4f03039916c7268172810e74bc25b4b3df3189bea806fbb8fccf7f"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-02/unit-failed-state-cleared",
+      "bytes": 31,
+      "sha256": "f8c4d45f4872e3e54c4c047d0f6a2c3687f30767b7088d8d9c2f224c3d53c2a5"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/assessment.json",
+      "bytes": 8221,
+      "sha256": "9963b695f1cbf90aff2d2eb2238b69b1a07eb0ccc6b6025e8c9010d7a9d7db64"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/case-03/capture.log",
+      "bytes": 165,
+      "sha256": "66a15eeef2bdacbc0ae4be5d5ee6ef4b2533486b22bb27ade4009846b1522037"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/case-03/diagnostic-capture.log",
+      "bytes": 167,
+      "sha256": "c75d15fb24cbd423c782b568abbadf83d634e2e61c01c1fd63750f6777df7dde"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/case-03/diagnostic.pcap",
+      "bytes": 63837,
+      "sha256": "541c3dad7181ecdab45b6081fe54daa5e932ef575659873c0c9e1e17ed56454f"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/case-03/events.jsonl",
+      "bytes": 2608879,
+      "sha256": "9400e54bce55ca188115da07eb73b32b8f90ae6686636fd9d07214bd2f3877bd"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/case-03/mdns.pcap",
+      "bytes": 12144,
+      "sha256": "f72c6c438c3c6cbd0af6ee95291f37d9784b68cd09259ba154ef480c32619dc0"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/case-03/usb-frames.jsonl",
+      "bytes": 28051,
+      "sha256": "0d706d992a6e1a474fa803d753556ea86858787db4968cb79af16d46cf622cef"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/case-03/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/case-03/usb-wire.bin",
+      "bytes": 27266,
+      "sha256": "d2d8e3a00420f4c0e3a57b3e13377fb1197ae333b5084662fd858a33704bbc57"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/inspect-03/events.jsonl",
+      "bytes": 2700,
+      "sha256": "2a9eb6ccd717214849a5d9efae5978c1d0c982ca6abe1e0f4da5ce955f329d40"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/linux.tar",
+      "bytes": 3246080,
+      "sha256": "53d3212cc7856cdd0322ebadb68407c2fc92eb3bac0a6195a8751dc8177b148d"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/mac-dns-sd.jsonl",
+      "bytes": 757,
+      "sha256": "ca1a794a03f8a2079e88ba5da95f61112b550f2514aa14d5060459c42a7e9f01"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/mac-dns-stop.json",
+      "bytes": 68,
+      "sha256": "67c39566480ab1b3c556a3bc33943053e07855c96ea7c20334f7aae49b539de8"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/mac-peer.jsonl",
+      "bytes": 23223,
+      "sha256": "4e49c3d2482d46258bded9dcd9e5953f61fad680b64568ebb4ed8fd54331c748"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/reassessment.json",
+      "bytes": 8196,
+      "sha256": "5c364bde95c3fa8a1c56fe94db87484d11b7383b9758e31461b58b70766d9d1c"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/runner-03.log",
+      "bytes": 491974,
+      "sha256": "db94506c1bff02d5877909808791ff62d67fa6fa20269c985283d746607a8b02"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/case-03/service-state.txt",
+      "bytes": 67,
+      "sha256": "90343b47204208f05a4441ef870547afa0188dc6122f79e6e692c5f94691b843"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated/deployment.json",
+      "bytes": 1148,
+      "sha256": "fd02ed260fc81ce67707d84ae83eebc3a05494ae262be5173ecba684fdbd8c47"
+    },
+    {
+      "path": "build/phase11-4-shutdown/active-gated.log",
+      "bytes": 453,
+      "sha256": "db3c0e4380a19d8f0559f7bf3ce0353913374d9c6e958b294088a50e6bde6d39"
+    },
+    {
+      "path": "build/phase11-4-shutdown/aggregate.json",
+      "bytes": 5964,
+      "sha256": "b91522270c4bfc1dc709489181356c65b085c48b2c4a9c6bf6f08048d878045e"
+    },
+    {
+      "path": "build/phase11-4-shutdown/aggregate.py",
+      "bytes": 2471,
+      "sha256": "fed29c388ef964c1607ad8e6ac5a4b1df8e63c309476512177c3961fb5f868ec"
+    },
+    {
+      "path": "build/phase11-4-shutdown/build-fixed.log",
+      "bytes": 39384,
+      "sha256": "a4c873fb01fbf3dadccc923d05eb07872cecd8703d47c76602feb69a44cf24ba"
+    },
+    {
+      "path": "build/phase11-4-shutdown/build.log",
+      "bytes": 12479,
+      "sha256": "d41823332371e54067d49a8207bd822e115bfcfc229abb3d19059196c848a86c"
+    },
+    {
+      "path": "build/phase11-4-shutdown/configure.log",
+      "bytes": 1121,
+      "sha256": "082ae04446fd47c5fb4ee4cbb3de0316ae72727985968f16181049cff18d4e52"
+    },
+    {
+      "path": "build/phase11-4-shutdown/diagnostic/WsprryPico.elf",
+      "bytes": 14779460,
+      "sha256": "0852892029dc3aff38c18a34237c9518b0aa741a19fafd7cbdb5fc18e061670f"
+    },
+    {
+      "path": "build/phase11-4-shutdown/diagnostic/WsprryPico.elf.map",
+      "bytes": 2486172,
+      "sha256": "8deeee51ece62284cac059d49f09b8fecdcea5bd91883562dd1410a15086024d"
+    },
+    {
+      "path": "build/phase11-4-shutdown/diagnostic/WsprryPico.uf2",
+      "bytes": 1990144,
+      "sha256": "b1921701ccffee8ca630cbf719f8328ddfa417c86e707f960ea84148862b79b3"
+    },
+    {
+      "path": "build/phase11-4-shutdown/diagnostic/boot.txt",
+      "bytes": 33,
+      "sha256": "8d2565a838d5d4a1ad9a73fbec98fc99bb3225b8bfe6608bf25f7591a43de31c"
+    },
+    {
+      "path": "build/phase11-4-shutdown/diagnostic/flash.log",
+      "bytes": 23142,
+      "sha256": "430df42e49def5c3026a1c075198577ff8c0a08cf4aacdb2d337e1e7b1c47822"
+    },
+    {
+      "path": "build/phase11-4-shutdown/diagnostic/flash.py",
+      "bytes": 3239,
+      "sha256": "8df17505cf363331a70299fc2c3ef311eb2475ab79ccda9d62d6f13adb7fdec6"
+    },
+    {
+      "path": "build/phase11-4-shutdown/diagnostic/identity.json",
+      "bytes": 651,
+      "sha256": "652450717c893eb5a307ecc9d0b349389e8e9ba8b037573ee10368b96c32866c"
+    },
+    {
+      "path": "build/phase11-4-shutdown/diagnostic/source.tar",
+      "bytes": 61440,
+      "sha256": "7ce6bc784ea7c35252b64e6c04287b5d44a8e914075611774d24842ee0fe2556"
+    },
+    {
+      "path": "build/phase11-4-shutdown/diagnostic/stage.tar",
+      "bytes": 2007040,
+      "sha256": "c143b24801f7d3114fa2665e1b01c5464c3084324b0058bb24679d9bdcef47d4"
+    },
+    {
+      "path": "build/phase11-4-shutdown/disassembly.txt",
+      "bytes": 11770070,
+      "sha256": "05e2004db88196467f786a7f6b6e7679e2b609802dfbe26beb9696474cbc09e0"
+    },
+    {
+      "path": "build/phase11-4-shutdown/final-linux-host.jsonl",
+      "bytes": 7172,
+      "sha256": "7f108398d79792f8e8fb7f360b1d49d3290738164c156a9ab57d0228c297f4d7"
+    },
+    {
+      "path": "build/phase11-4-shutdown/final-linux-host.py",
+      "bytes": 5025,
+      "sha256": "5f423b8e433a18bb154a7a5e38c7c2686a9d362332fd49a98d7b6b74cf036c8d"
+    },
+    {
+      "path": "build/phase11-4-shutdown/final-linux-host.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/final-mac.json",
+      "bytes": 2833,
+      "sha256": "70a8f8e4aee74f6b268b90e190ded72fbfb44da266c6f456fe69bc6c7e61765a"
+    },
+    {
+      "path": "build/phase11-4-shutdown/final-mac.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/final-usb.jsonl",
+      "bytes": 4063,
+      "sha256": "db6d190b535eeb297780401d58bec0aaa81563478cf86c259385bfbe0cbe8381"
+    },
+    {
+      "path": "build/phase11-4-shutdown/final-usb.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/host-all-tests.log",
+      "bytes": 3500,
+      "sha256": "f939d4697fd6f85c3c097eb51fd35c1c64d1645d3c0c77783e56ca5f5e9a11c7"
+    },
+    {
+      "path": "build/phase11-4-shutdown/host-build.log",
+      "bytes": 364,
+      "sha256": "14947caace0d49aadf0b9309809e5cf98568e95bf3fef3cac8ef453c0d4e9d24"
+    },
+    {
+      "path": "build/phase11-4-shutdown/host-configure.log",
+      "bytes": 239,
+      "sha256": "aace29207faad9d1320eb018fb8b6d55973bcd41b022ebc4efa1c301b10783a3"
+    },
+    {
+      "path": "build/phase11-4-shutdown/host-final-build.log",
+      "bytes": 820,
+      "sha256": "02e84ec0c3b455ac9fc9e079b8d849bd5c19d776a93de75f37cdeaf64f4e1cfe"
+    },
+    {
+      "path": "build/phase11-4-shutdown/host-final-configure.log",
+      "bytes": 239,
+      "sha256": "4340a822a8c71abf039284b92ba36dbbd4ce3d26671319e19c11f7831fe65277"
+    },
+    {
+      "path": "build/phase11-4-shutdown/host-final-reassessment.log",
+      "bytes": 3500,
+      "sha256": "0971b9faea06f317bfaac635e11627f8f452adb0cdececeed4c0693346ed938c"
+    },
+    {
+      "path": "build/phase11-4-shutdown/host-final-tests.log",
+      "bytes": 3500,
+      "sha256": "1a94afffddbb28e75b6034ea9d5c395d841fb3d09ad559e00ec02e083070a402"
+    },
+    {
+      "path": "build/phase11-4-shutdown/host-reassessment.log",
+      "bytes": 3500,
+      "sha256": "db762d59a72372d9c2dcecec336ec184ecdd55a3fd250413bb203f211f5736b2"
+    },
+    {
+      "path": "build/phase11-4-shutdown/host-reviewed-tests.log",
+      "bytes": 3500,
+      "sha256": "aae900f0c31a0f064c827099507e8070aa4d4b41059aa77276b5ceac08046cb9"
+    },
+    {
+      "path": "build/phase11-4-shutdown/host-tests.log",
+      "bytes": 247,
+      "sha256": "2ee6e20d1b47c00e6c7c7e1143c46c91c0a34c1526b9ec1efe00719567e7e3e6"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/campaign.json",
+      "bytes": 8103,
+      "sha256": "7e34c766dbafdabd1f1b5b0363f0fab03e8e5580b1915418843562ea16ff8a0a"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/assessment.json",
+      "bytes": 6840,
+      "sha256": "b0b2c9608c154e760b08d055754e5785aa750afc5a48afbea66eb3f6d619621d"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/case-01/capture.log",
+      "bytes": 165,
+      "sha256": "4d0da946c4a771e069003189955543c2eedaa2005a3af99e034cedba3ee44fa2"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/case-01/diagnostic-capture.log",
+      "bytes": 167,
+      "sha256": "7ab189f91e72d4d102186827f14c1d3d0acf8fd503188b827d43ef1d3579bef0"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/case-01/diagnostic.pcap",
+      "bytes": 62603,
+      "sha256": "143b9155e4c7844c268711962babe6f58dec1c748e6cac3ae843b78c8071f5c5"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/case-01/events.jsonl",
+      "bytes": 2720173,
+      "sha256": "bea65a05d872713024500a0d8cea1ae9800812d65ac0c956ad931974c41aa220"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/case-01/mdns.pcap",
+      "bytes": 14298,
+      "sha256": "924bd4f4d610b7aa9f42a208465c8a0decf9b914a9534e5ce25609c486d91a92"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/case-01/usb-frames.jsonl",
+      "bytes": 29032,
+      "sha256": "901e035c35d8648f9d59f5ab1c939374c25ba692569092901723de8814987476"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/case-01/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/case-01/usb-wire.bin",
+      "bytes": 28220,
+      "sha256": "4ca7f69361251e6be03bb2e33146d81897a2852d00a17438b4774306d26015e5"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/inspect-01/events.jsonl",
+      "bytes": 2684,
+      "sha256": "ab31784b31db6e021c6794fdef9dca2ebf6dff7dea6b502419df7289b99e5496"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/linux.tar",
+      "bytes": 3379200,
+      "sha256": "d8568a5c56bbfdd85e7a9e6e79d49032ab3dba5d7a09553262cb902a2c35fbc7"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/mac-dns-sd.jsonl",
+      "bytes": 757,
+      "sha256": "f77a27413a095221554d2b8ea50496a1c99243cb7ed422beeabc8773592ef7e4"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/mac-dns-stop.json",
+      "bytes": 70,
+      "sha256": "695732641ddc11808119f81cc6b77c810865f1134a8fcf877249aac782b51e19"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/mac-peer.jsonl",
+      "bytes": 8445,
+      "sha256": "b6e34ab009716572bf3b09756c54891e7af2c4604902bff5dfa7937874686980"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/reassessment.json",
+      "bytes": 6815,
+      "sha256": "7a16403045dca403f7258e99566f856ff63d6ce68b025cbf7910e49d43621c4b"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/runner-01.log",
+      "bytes": 509717,
+      "sha256": "a74a7ed4af1702bae48e5ca6f8b09e521e89a4ee13ad55bb21491944d4adea94"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/case-01/service-state.txt",
+      "bytes": 67,
+      "sha256": "90343b47204208f05a4441ef870547afa0188dc6122f79e6e692c5f94691b843"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign/deployment.json",
+      "bytes": 1063,
+      "sha256": "7406ad5670b8da8498c2ed155544f09a6e0a52e5eecbeeb77668744b9d611970"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-campaign.log",
+      "bytes": 165,
+      "sha256": "5dab36f2965da7407e436f2a632390f9419a8e091adf4eb226908189439e1385"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/campaign.json",
+      "bytes": 26067,
+      "sha256": "1178e94df083e343513428001daf823b46eec29de68ad288a18d11b8a9eab20c"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/arp-window.json",
+      "bytes": 2616,
+      "sha256": "c30641b2c85d37c1ef227e40aca4ca08e00d1b71c30b789da7ecb1a0c6397d22"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/assessment.json",
+      "bytes": 22431,
+      "sha256": "15dcf849bb0e6a85488399de511faa75937b7102c8f64f9ce187a5e50fc10010"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/case-01/capture.log",
+      "bytes": 165,
+      "sha256": "07fc8ce8ed5a7cbd6391e434b53f2690a323680d81018b7ecd48a00c7778fa96"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/case-01/diagnostic-capture.log",
+      "bytes": 165,
+      "sha256": "54ca852e2ace527d5db3aff074b2fb7d39d4d5fc898491719b502ebf5cc90b12"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/case-01/diagnostic.pcap",
+      "bytes": 10880,
+      "sha256": "f051655d7b2b34d827f99122a101cce83a2f582ad4cf52dffcaa88398a6350a8"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/case-01/events.jsonl",
+      "bytes": 3771685,
+      "sha256": "c15bce0e7911daf8ded0b4b1f3cfc96341cf42f318daf433b7785961862dd10d"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/case-01/mdns.pcap",
+      "bytes": 18702,
+      "sha256": "7550c2a20b81735d9963a9c3b05a2e8a3bbc415e190fe9017ce6043e6a3426cc"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/case-01/usb-frames.jsonl",
+      "bytes": 33610,
+      "sha256": "bae5e1aa2b873195800c44bfb219bac62524e427d3f4b29333108afe9196c55a"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/case-01/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/case-01/usb-wire.bin",
+      "bytes": 32672,
+      "sha256": "93f6bca142952387c03e4a4677ae2f5d99b17b5febe844fa7d079dcc335c44a0"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/inspect-01/events.jsonl",
+      "bytes": 2699,
+      "sha256": "b8bdcf773b517379aa466a763fd9f053911e6f12292f6b7e0106a3ff897490c1"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/linux.tar",
+      "bytes": 4526080,
+      "sha256": "6f40af2f4e7811e03b832ad7662a617c395e363d3c87300650399b02466ceb9f"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/mac-dns-sd.jsonl",
+      "bytes": 629,
+      "sha256": "4b8133f0d46386ea843b637742764737a7fa978c96dbe9e92c0eac7344e74292"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/mac-dns-stop.json",
+      "bytes": 69,
+      "sha256": "c8df60a270a2feba860c3e1f49c86af6b756ea4a458787ea125eabbd9e3f0c0c"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/mac-peer.jsonl",
+      "bytes": 6602,
+      "sha256": "e9dc30aefa3e226bebb8deef2555ed35064ae8ae4476115fe2262112509ca225"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/reassessment.json",
+      "bytes": 22406,
+      "sha256": "255ea30fb4705153e1fc927538057193d53c0e4d7a5a135df9808dd70f197149"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/runner-01.log",
+      "bytes": 645209,
+      "sha256": "d1fa0a9f22d3ee51bd72401475f88538f07debf072184668641c99acc38c78bb"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/service-state.txt",
+      "bytes": 69,
+      "sha256": "34a96f3d9b4f03039916c7268172810e74bc25b4b3df3189bea806fbb8fccf7f"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/case-01/unit-failed-state-cleared",
+      "bytes": 31,
+      "sha256": "ef8bdd5d2e228eef91d933201e64d71b7c66f9ce47b9fabbf8c9cf153f7d7b94"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated/deployment.json",
+      "bytes": 1168,
+      "sha256": "4de24c27bd5b5f7eb204a4db25826156c67ecfdb66a2c3c730230093547642c6"
+    },
+    {
+      "path": "build/phase11-4-shutdown/idle-gated.log",
+      "bytes": 151,
+      "sha256": "01c03cc86573fbfcd67395810e59d6739e5886cb79dd777bbdee28ff5b03ce35"
+    },
+    {
+      "path": "build/phase11-4-shutdown/image-check.log",
+      "bytes": 147,
+      "sha256": "44ede08ad45243766b93ff7d69490001d18721cbc999d2a450185027e0d90fd8"
+    },
+    {
+      "path": "build/phase11-4-shutdown/linked-markers-final.json",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/linked-markers-verified.json",
+      "bytes": 351,
+      "sha256": "a6661f27520f8806875893ef4ef9c980d3030e99aba76ed02256f206c4cd878e"
+    },
+    {
+      "path": "build/phase11-4-shutdown/linked-markers.json",
+      "bytes": 351,
+      "sha256": "a6661f27520f8806875893ef4ef9c980d3030e99aba76ed02256f206c4cd878e"
+    },
+    {
+      "path": "build/phase11-4-shutdown/old-image-refused.json",
+      "bytes": 553,
+      "sha256": "0441858025ceafedba3a3f0fcc58390dab3f0c228c4ce4cf88111cd5481f56fc"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/audit.json",
+      "bytes": 2594,
+      "sha256": "bbcb8241814b2c94de2e8a73a97c7124bf39d4adbb9e05a90ca2a6f0ed89f7d4"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/audit.py",
+      "bytes": 4296,
+      "sha256": "3eccb1238f5f04e111c5cec2610671168695ad8b4923b92708132a0f18b94be9"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/controller.py",
+      "bytes": 4533,
+      "sha256": "baacf199b9344ce28eb871315420b391cc58d09f1ab8d934a3c566355595e24c"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/dispatch.json",
+      "bytes": 144,
+      "sha256": "21f316ea3a5cb6557f0610f472be4228cd3dfeb429c40f0e9b0f5ab44893524a"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/evidence.tar",
+      "bytes": 3328000,
+      "sha256": "e7d3a9659a8246bd72b0813f83f77cea17e29b8e99c461a4c33d0f845c5d7e40"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/mac-peer.jsonl",
+      "bytes": 158268,
+      "sha256": "39d85dadbf88f0ad971643e391e24ba266ae4d3fd83dcd798420d33d3d06cb52"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/mac-watch.py",
+      "bytes": 631,
+      "sha256": "c922c7e9c95179d57cbfc8776e99f7241e3928e06809e32d30dffb5495a912ce"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/RESTORED",
+      "bytes": 32,
+      "sha256": "64ac04600191899b918904180802da876f34e055117646db01e3e30bd2a29258"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/after/capture.log",
+      "bytes": 165,
+      "sha256": "bf2d8009df5b941ff26668340baaaf9003fcc52ac8189be38909c3268ae4def7"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/after/diagnostic-capture.log",
+      "bytes": 165,
+      "sha256": "26bf98c94a02aa4ec7598e8b3da905bcd679608ef4509137fc7afa4e55f4da60"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/after/diagnostic.pcap",
+      "bytes": 14098,
+      "sha256": "b0a784a212284527d257bd3716c2e730dab77baa3cb08d5223cb586b03ba0388"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/after/events.jsonl",
+      "bytes": 683805,
+      "sha256": "1e733320c7be856f4737bcca389b6589f70bff6430d9e4826394a58e93beac16"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/after/mdns.pcap",
+      "bytes": 3940,
+      "sha256": "1e3c88e598a10c48caebbfce1c43a296a9509da7729dd4d1422d3c9e6229d1d2"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/after/trace-audit.json",
+      "bytes": 180448,
+      "sha256": "3beb95e4404889fdde1f11cabfc853bfac1e3bb978ab684162786c4db3fff90a"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/after/usb-frames.jsonl",
+      "bytes": 7450,
+      "sha256": "55c9dfe98a69592f23b779441c25635c407e038e29f34b46c1c08fc5a43baafd"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/after/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/after/usb-wire.bin",
+      "bytes": 7232,
+      "sha256": "a86c0082098fa5215216a6d35eeebaa822dfcd06b7a3ed8ad72fc847d26e5ced"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/after.log",
+      "bytes": 233812,
+      "sha256": "8a0db70ac155440798439195ce7c3ecbb7af8db15889451500d038d4bf2b5791"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/audit_phase11_4_mdns_conflict.py",
+      "bytes": 10804,
+      "sha256": "2ff129ca62ace0ae400233648d3790c5c281c9dccfc7442fd391ea57c1c1e678"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/before/capture.log",
+      "bytes": 163,
+      "sha256": "f94aac7428986069c81eff53e1f17eab2b57f28f4454364eeca8d68f7f1920b2"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/before/diagnostic-capture.log",
+      "bytes": 165,
+      "sha256": "c59b130c1a502f17540df16312d997f4b831875072e6d9e340bfe20d2ce43a0f"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/before/diagnostic.pcap",
+      "bytes": 11181,
+      "sha256": "2055bdd69c950fc611f6076fd188f83749a55a9a7cab20da58af6f64120e7139"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/before/events.jsonl",
+      "bytes": 721745,
+      "sha256": "e82645a6d466535cfece9283bbb479e0a28bb16d39bd761036d3b01afcd1a17e"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/before/mdns.pcap",
+      "bytes": 3408,
+      "sha256": "5c297db5c7c3e35d78264496c482c2953148400a78bb23b30ad256c330fe6710"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/before/trace-audit.json",
+      "bytes": 213808,
+      "sha256": "df91237b4762d01a1f32d317c9e0fd885dba65b5c4f873f30f99cb169cbb9922"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/before/usb-frames.jsonl",
+      "bytes": 7450,
+      "sha256": "9c59287e053af0edd18885ccac75d0d7da38f66f1ad167114d8dc46f771f530c"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/before/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/before/usb-wire.bin",
+      "bytes": 7232,
+      "sha256": "90590d6f75809415a0325734b8a4cd6abb1a1f706b272899f57ff01c252f368e"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/before.log",
+      "bytes": 266752,
+      "sha256": "dd7576a79d9ba6376f700814c8b56008cbfc05841cb0743c71caca87941f87df"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/check_usb_target.py",
+      "bytes": 8094,
+      "sha256": "51fcd12c14f9fc012554249378721a9ecb6cb01b11bb11152c746e9228a5fbf7"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/controller-events.jsonl",
+      "bytes": 108383,
+      "sha256": "daae0bbad4709b83cb6c6a13bf91b5c678ea1aab5bc2ff1cf7d5a5deae2ac225"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/controller.py",
+      "bytes": 4533,
+      "sha256": "baacf199b9344ce28eb871315420b391cc58d09f1ab8d934a3c566355595e24c"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/iot/capture.log",
+      "bytes": 165,
+      "sha256": "7982d0a54624d73d249d362cc6ccc079f864b724edc3a950cd854e40d44ca11a"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/iot/diagnostic-capture.log",
+      "bytes": 165,
+      "sha256": "a7753c15b31b623c42e24d8bac8de9f8dd793e9affff544563cdbb7318e839fe"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/iot/diagnostic.pcap",
+      "bytes": 720,
+      "sha256": "501a63ad42b4c510ec02b8dc5732235699cea800b2c2e0774c2466b7584ccdf6"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/iot/events.jsonl",
+      "bytes": 820203,
+      "sha256": "1db75112777862b0b3d9b0fdf5db2ffb7092a63a6636b77ebacb5d4678ba657b"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/iot/mdns.pcap",
+      "bytes": 6185,
+      "sha256": "7b23702a38e486bb3d24bc57af4f244680068d5d63b014414633fdad0a2014a4"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/iot/trace-audit.json",
+      "bytes": 223908,
+      "sha256": "9a4ad9b5e01c1c18621eeff0429ec2e9b51921e90999a604724df50922039c4f"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/iot/usb-frames.jsonl",
+      "bytes": 7450,
+      "sha256": "6d10e726991b1afefb33cc4c74372c97dc672bf71da8acb300b5541fee44c1cb"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/iot/usb-pre-hello.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/iot/usb-wire.bin",
+      "bytes": 7232,
+      "sha256": "f17fd4aa1319d4c5b4b6809c8720db51d3d019856e249da0261867e1cb7358dd"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/iot.log",
+      "bytes": 279431,
+      "sha256": "e5b473c2fa77b8838317023ad2fa0751b3f0cb141e97561821c2f83d447ec802"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/phase11_4_loop_common.py",
+      "bytes": 4870,
+      "sha256": "b9a848a12bbd2f4c65bbaa2d048d1a0f4dc022841945e0cebde22a2d69574931"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/phase11_4_loop_target.py",
+      "bytes": 23026,
+      "sha256": "381d12bdb980a7c70941f9c3464fabd9d830567910cfde9ee98430bf5ef801f3"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/restore-events.jsonl",
+      "bytes": 3748,
+      "sha256": "ef7ef680a197578a5d3fad1a95a322337e2bdbc5e1539ba0fa3985e0f6109c91"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/restore.lock",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/restore.py",
+      "bytes": 1357,
+      "sha256": "93e6e4b751811e98b1398d3bad8b52e355a75089dc22dbc364e93165ef8ffa6b"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/rf_wtp.py",
+      "bytes": 10996,
+      "sha256": "d815043f8b4876c71c6bb1e1c5ad95451608b97dcfdcfb2d726b021deef99017"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/trial-uuid",
+      "bytes": 36,
+      "sha256": "4258708fb57bed58f83330f45898e4563b33173f1adb9ef18c1371cc1a3a9a3b"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/validate_wtp_contract.py",
+      "bytes": 15493,
+      "sha256": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/phase11-4-shutdown-path-20260910T003259Z/wtp_monitor.py",
+      "bytes": 4016,
+      "sha256": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/restore.py",
+      "bytes": 1357,
+      "sha256": "93e6e4b751811e98b1398d3bad8b52e355a75089dc22dbc364e93165ef8ffa6b"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/sources.json",
+      "bytes": 838,
+      "sha256": "565c00b0abb1c15d24a33692658d1f6526c32c7836552fbc63651011a4ec3dba"
+    },
+    {
+      "path": "build/phase11-4-shutdown/path-comparison/stage.py",
+      "bytes": 2346,
+      "sha256": "52aaa58164f4a43f9aae5c8d2996c96c7afe3affe4f468fd6c2cc1b5225b078e"
+    },
+    {
+      "path": "build/phase11-4-shutdown/preflight.log",
+      "bytes": 4053,
+      "sha256": "39ebbfed737d7adce0963a51d250bf3e61eed8825258f0c15f59e9a5f3fe8bee"
+    },
+    {
+      "path": "build/phase11-4-shutdown/quiet-memory-corrected.jsonl",
+      "bytes": 8101,
+      "sha256": "09a469bdd725eb6648c421f36572a77d6153fd23401426066048e2a51ada6ca8"
+    },
+    {
+      "path": "build/phase11-4-shutdown/quiet-memory-corrected.py",
+      "bytes": 1621,
+      "sha256": "4a12b300d688bef02f743ac122551ca0be510580fefabf524972da2cd50627dc"
+    },
+    {
+      "path": "build/phase11-4-shutdown/quiet-memory-corrected.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/quiet-memory.jsonl",
+      "bytes": 78685,
+      "sha256": "adaea0d679a5571cbe4785c043ab3c97d3109bd469b9c920e48a4ddd494d078e"
+    },
+    {
+      "path": "build/phase11-4-shutdown/quiet-memory.py",
+      "bytes": 1285,
+      "sha256": "89a6334ba3223a79395cd02c7cd2607e1c6e0621d555e607bd7a07e9bb3403f8"
+    },
+    {
+      "path": "build/phase11-4-shutdown/quiet-memory.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/phase11-4-shutdown/replay-review.json",
+      "bytes": 273,
+      "sha256": "2bfe2307ca408606f8f27134e7a028b87c61fd01d2991806184a649d6c633948"
+    },
+    {
+      "path": "build/phase11-4-shutdown/replay-review.py",
+      "bytes": 1919,
+      "sha256": "d51cc19d454530320f167ee741937ed7d8cc538be527bc932063e9a0c49eb23e"
+    },
+    {
+      "path": "build/phase11-4-shutdown/sanitize-build.log",
+      "bytes": 478,
+      "sha256": "458f27bc70c29749ee96ab0110112b993beb39a1540ca152421f2b814e35e489"
+    },
+    {
+      "path": "build/phase11-4-shutdown/sanitize-configure.log",
+      "bytes": 243,
+      "sha256": "b3c7578519e332f8ed443710b90ccf39a2502c45712b641e48df781dea0ab0fe"
+    },
+    {
+      "path": "build/phase11-4-shutdown/sanitize-tests.log",
+      "bytes": 357,
+      "sha256": "d0976931b8491d6a1b12fedbca74d569d24dc682dc7edc37f946cc128d38ef84"
+    }
+  ]
+}

@@ -9,12 +9,41 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from phase11_4_loop_common import campaign_decision, stop_process, validate_info, validate_host, DEVICE
-from phase11_4_loop_audit import strict_usb, validate_completed_observers, clock_gate_evidence
+from phase11_4_loop_common import campaign_decision, stop_process, validate_info, validate_host, DEVICE, captured_baseline, ADDRESS, NAME
+from phase11_4_loop_audit import strict_usb, validate_completed_observers, clock_gate_evidence, shutdown_reset
 from validate_wtp_contract import frame
 
 
 class HarnessTests(unittest.TestCase):
+    def test_packet_baseline_identity_and_ttl(self):
+        record = {'type': 1, 'name': NAME, 'address': ADDRESS, 'ttl': 120, 'cls': 0x8001}
+        packet = {'source': ADDRESS, 'source_mac': '88:a2:9e:0a:60:df', 'sport': 5353,
+                  'dport': 5353, 'ttl': 255, 'dns': {'flags': 0x8400, 'records': [record]}}
+        self.assertTrue(captured_baseline([packet]))
+        self.assertFalse(captured_baseline([]))
+        for key, value in [('source', '192.168.1.99'), ('source_mac', '00:00:00:00:00:00'), ('ttl', 1)]:
+            changed = copy.deepcopy(packet); changed[key] = value
+            self.assertFalse(captured_baseline([changed]))
+        for key, value in [('name', 'wrong.local'), ('address', '192.168.1.99'), ('ttl', 0), ('cls', 1)]:
+            changed = copy.deepcopy(packet); changed['dns']['records'][0][key] = value
+            self.assertFalse(captured_baseline([changed]))
+
+    def test_watchdog_marker_identity_and_fault_refusal(self):
+        value = {'device_id':DEVICE, 'revision':'candidate', 'recovery_boot':True,
+                 'fault_stage':24, 'fault_hash':0, 'fault_pc':0, 'fault_status':0,
+                 'status':{'boot_id':'new', 'engine':'inhibited-standalone-simulator','output_active':False}}
+        self.assertEqual(shutdown_reset(value,'old','candidate'),'watchdog during multicast filter programming')
+        self.assertEqual(shutdown_reset(dict(value,fault_stage=15),'old','candidate'),
+                         'watchdog at shared mDNS-removal/Wi-Fi-connect marker')
+        for stage in (15,16,20,21,22,23,24,25):
+            self.assertIsNotNone(shutdown_reset(dict(value,fault_stage=stage),'old','candidate'))
+        for key, bad in [('device_id','wrong'),('revision','wrong'),('recovery_boot',False),
+                         ('fault_stage',99),('fault_hash',1),('fault_pc',123),('fault_status',1)]:
+            self.assertIsNone(shutdown_reset(dict(value,**{key:bad}),'old','candidate'))
+        for key,bad in [('boot_id','old'),('engine','rf'),('output_active',True)]:
+            changed=copy.deepcopy(value);changed['status'][key]=bad
+            self.assertIsNone(shutdown_reset(changed,'old','candidate'))
+
     def test_clean_threshold(self):
         clean = {'result': 'PASS'}
         self.assertEqual(campaign_decision([clean] * 7), 'CONTINUE')
@@ -58,6 +87,14 @@ class HarnessTests(unittest.TestCase):
                  'profile': '921301fe-cdfd-4965-8ac7-c96e9d908ea6',
                  'recovery_active': 'active', 'recovery_enabled': 'enabled'}
         validate_host(value)
+        iot = dict(value, profile='temporary', recovery_active='inactive',
+                   link=value['link'].replace('SSID: Bohica', 'SSID: Bohica-IoT'))
+        validate_host(iot, profile='temporary', ssid='Bohica-IoT', recovery_active='inactive')
+        with self.assertRaises(ValueError):validate_host(iot)
+        for key in ('profile', 'link', 'recovery_active', 'recovery_enabled'):
+            changed=dict(iot);changed[key]='wrong'
+            with self.assertRaises(ValueError):
+                validate_host(changed, profile='temporary', ssid='Bohica-IoT', recovery_active='inactive')
         for key in value:
             bad = dict(value)
             bad[key] = '[]' if key == 'address' else 'wrong'
@@ -132,6 +169,22 @@ class HarnessTests(unittest.TestCase):
                 child.kill()
                 child.wait(timeout=2)
             child.stdout.close()
+
+    def test_idle_mode_requires_trace_before_staging(self):
+        script = Path(__file__).resolve().parents[1] / 'scripts/phase11_4_loop.py'
+        r = subprocess.run([sys.executable, str(script), '--run', '--idle-clients',
+                            '--output', '/not-created-by-harness-test', '--boot', 'a' * 32,
+                            '--credentials', '/not-read-by-harness-test'], capture_output=True, text=True, timeout=3)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn('requires --trace', r.stderr)
+
+    def test_iot_override_refused_for_control(self):
+        script = Path(__file__).resolve().parents[1] / 'scripts/phase11_4_loop_target.py'
+        r = subprocess.run([sys.executable, str(script), 'orderly', '--run',
+                            '--output', '/not-created-by-harness-test', '--boot', 'a' * 32,
+                            '--diagnostic-iot-profile', 'temporary'], capture_output=True, text=True, timeout=3)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn('read-only diagnostic only', r.stderr)
 
     def test_no_optimization_bypass(self):
         script = Path(__file__).resolve().parents[1] / 'scripts/phase11_4_loop_target.py'

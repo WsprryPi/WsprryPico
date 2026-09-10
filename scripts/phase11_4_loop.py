@@ -25,6 +25,7 @@ def main():
     p.add_argument('--boot', required=True)
     p.add_argument('--revision', default='e4ff40a56180-dirty')
     p.add_argument('--trace', action='store_true')
+    p.add_argument('--idle-clients', action='store_true', help='pause Mac status polling after baseline; idle 10s before OFF')
     p.add_argument('--diagnose', action='store_true', help='read-only capture even if Mac baseline fails')
     p.add_argument('--ssh', default='wspr5')
     p.add_argument('--ssh-address', default='192.168.1.117')
@@ -33,6 +34,8 @@ def main():
     a = p.parse_args()
     if not a.run or not 1 <= a.max_cases <= 8:
         p.error('Explicit --run and 1..8 cases required')
+    if a.idle_clients and not a.trace:
+        p.error('--idle-clients requires --trace to verify the quiet interval')
     os.umask(0o077)
     a.output.mkdir(mode=0o700, parents=True, exist_ok=False)
     sources = Path(__file__).resolve().parent
@@ -46,7 +49,7 @@ def main():
 
     remote_call(['mkdir', '-m', '700', remote], capture_output=True)
     names = ['phase11_4_loop_target.py', 'phase11_4_loop_common.py', 'check_usb_target.py',
-             'rf_wtp.py', 'wtp_monitor.py', 'validate_wtp_contract.py']
+             'rf_wtp.py', 'wtp_monitor.py', 'validate_wtp_contract.py', 'audit_phase11_4_mdns_conflict.py']
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode='w') as archive:
         for name in names:
@@ -104,6 +107,9 @@ def main():
                         os.fsync(log.fileno())
                         if row['dns_ok'] and row['https_ok']:
                             peer_ready.set()
+                            if a.idle_clients:
+                                stop.wait()
+                                return
                         stop.wait(8)
             except Exception as e:
                 observer_errors.append('Mac peer: ' + str(e))
@@ -131,7 +137,7 @@ def main():
                          '--property=StandardError=append:' + runner_log,
                          '/usr/bin/python3', '-B', remote + '/phase11_4_loop_target.py',
                          'diagnose' if a.diagnose else 'orderly', '--run', '--output', remote_case, '--boot', a.boot,
-                         '--revision', a.revision] + (['--trace'] if a.trace else []),
+                         '--revision', a.revision] + (['--trace'] if a.trace else []) + (['--idle-before-off'] if a.idle_clients else []),
                         capture_output=True)
             dispatched = True
             print(json.dumps({'case': number, 'event': 'STARTED', 'unit': unit}), flush=True)
@@ -165,6 +171,21 @@ def main():
                 observer_errors.append('observer thread did not stop')
             (case / 'mac-dns-stop.json').write_text(json.dumps(stop_process(dns)) + '\n')
             os.close(master)
+        if dispatched and completed and a.idle_clients:
+            # Resume bounded Mac observations only after the target cycle has ended.
+            with (case / 'mac-peer.jsonl').open('a') as log:
+                for i in range(2):
+                    try:
+                        r = subprocess.run([sys.executable, '-B', str(sources / 'phase11_4_loop_peer.py'),
+                                            '--run', '--credentials', str(a.credentials.resolve()),
+                                            '--boot', a.boot], capture_output=True, text=True, timeout=22, check=True)
+                        log.write(json.dumps(json.loads(r.stdout)) + '\n')
+                        log.flush()
+                        os.fsync(log.fileno())
+                    except Exception as e:
+                        observer_errors.append('post-idle Mac read: ' + str(e))
+                    if i == 0:
+                        time.sleep(5)
         if dispatched:
             evidence_fetched = False
             try:
@@ -202,6 +223,9 @@ def main():
             try:
                 from phase11_4_trace_audit import assess_trace
                 assessment['trace'] = assess_trace(case / f'case-{number:02}', a.boot, a.revision)
+                if (a.idle_clients and assessment['off_commands'] > 0 and
+                        assessment['trace'].get('idle_client_window_verified') is not True):
+                    observer_errors.append('idle client interval was not verified by trace')
                 if not assessment['observer_failure'] and assessment['trace']['failure_boundary']:
                     assessment['failure_point'] = assessment['trace']['failure_boundary']
             except Exception as e:
