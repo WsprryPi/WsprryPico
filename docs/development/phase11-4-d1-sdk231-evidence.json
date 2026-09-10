@@ -1,0 +1,211 @@
+{
+  "schema": "phase11-4-d1-sdk231-evidence/1",
+  "date": "2026-09-10",
+  "source_base": "f11e2166e8de79d77540ec3e59df110f0e76d892",
+  "status": "D1 OPEN: router admission blocked",
+  "firmware_changed": false,
+  "pico_wifi_cycles": 0,
+  "new_address_observed": false,
+  "production_client_new_address_test": "not run; prerequisite absent",
+  "rf_executed": false,
+  "sdk": "079c6f39023649b154152db30f1d781e884879bc",
+  "runtime_revision": "dbf1d86f0885-dirty",
+  "board": "Pico 2 W / RP2350",
+  "system_clock_mhz": 150,
+  "toolchain": "GCC 15.3.1",
+  "network": "Bohica-IoT",
+  "host_interface": "wlan1",
+  "host_profile": "921301fe-cdfd-4965-8ac7-c96e9d908ea6",
+  "devices": {
+    "a": {
+      "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+      "boot": "3bb4bd7cb18af1e396fa4bf3ad5e5da6",
+      "hostname": "wsprrypico-0a60df.local",
+      "mac": "88:a2:9e:0a:60:df",
+      "address": "192.168.1.47",
+      "final_bssid": "7a:cd:d6:f2:f6:c5",
+      "uf2_sha256": "06d18600a3605e874f71c8fa4e7e7df1a1ef5983b5e1dcf6d0b1e695f01716e5",
+      "elf_sha256": "59a2253844f18e80a5d938133956bd4a2f63b407c8d26d7b46c2195cdaef88dd",
+      "saved_state": {
+        "station": {
+          "callsign": "AA0NT",
+          "locator": "EM18",
+          "power_dbm": 20
+        },
+        "schedules": [
+          {
+            "period_s": 120,
+            "phase_s": 0
+          }
+        ],
+        "watermark_utc_ns": "1788714601000000000",
+        "expires_utc_s": 0,
+        "enabled": false,
+        "suspended": false,
+        "engine": "inhibited-standalone-simulator",
+        "storage_healthy": true,
+        "state": "empty",
+        "output_active": false
+      },
+      "usb_serial": "0BF4B4AEC9FFB344",
+      "final_usb_wtp_status": {
+        "boot_id": "3bb4bd7cb18af1e396fa4bf3ad5e5da6",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      }
+    },
+    "b": {
+      "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+      "boot": "6a0eca7714ee24db9aff824dd8ffb11b",
+      "hostname": "wsprrypico-0a9d89.local",
+      "mac": "88:a2:9e:0a:9d:89",
+      "address": "192.168.1.53",
+      "final_bssid": "7a:cd:d6:f2:f6:c5",
+      "uf2_sha256": "93a8db32967db004ef26a8bd85fb9efb52e86802c8861976032622f77d293183",
+      "elf_sha256": "8d245a321a90a80bdf1b6db4edeeef8870bbcbb6eb7f5d9fdd3db1d211954685",
+      "saved_state": {
+        "station": {
+          "callsign": "AA0NT",
+          "locator": "EM18",
+          "power_dbm": 20
+        },
+        "schedules": [
+          {
+            "period_s": 120,
+            "phase_s": 0
+          }
+        ],
+        "watermark_utc_ns": "0",
+        "expires_utc_s": 0,
+        "enabled": false,
+        "suspended": false,
+        "engine": "inhibited-standalone-simulator",
+        "storage_healthy": true,
+        "state": "empty",
+        "output_active": false
+      },
+      "usb_serial": "CDDBF8767C506C07",
+      "final_usb_wtp_status": {
+        "boot_id": "6a0eca7714ee24db9aff824dd8ffb11b",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      }
+    }
+  },
+  "router": {
+    "initial_cached_page": {
+      "router": "RBR850",
+      "firmware": "V7.2.8.2_5.1.18",
+      "lan": "192.168.1.1/24",
+      "pool": [
+        "192.168.1.2",
+        "192.168.1.254"
+      ],
+      "reservations": []
+    },
+    "fresh_authentication": {
+      "initial_failure": "ERR_INVALID_AUTH_CREDENTIALS",
+      "user_provided_sign_in_authority": true,
+      "subsequent_authenticated_page": true,
+      "credentials_recorded": false
+    },
+    "attached_table": {
+      "proposed_address": "192.168.1.247",
+      "proposed_address_present": false,
+      "a_address": "192.168.1.47",
+      "a_mac": "88:a2:9e:0a:60:df",
+      "a_existing_label": "phase11-4-d1-temporary",
+      "b_address": "192.168.1.53",
+      "b_mac": "88:a2:9e:0a:9d:89"
+    },
+    "native_add": {
+      "saved_exact_row": true,
+      "address": "192.168.1.247",
+      "mac": "88:A2:9E:0A:60:DF",
+      "label": "phase11-4-d1-temporary"
+    },
+    "apply_attempts": [
+      {
+        "context": "native Chrome form returned after Add",
+        "result": "HTTP 400 Bad Request",
+        "message": "This server does not support the operation requested by your client."
+      },
+      {
+        "context": "native Chrome fresh direct LAN Setup GET",
+        "result": "HTTP 400 Bad Request",
+        "message": "This server does not support the operation requested by your client."
+      }
+    ],
+    "cleanup": {
+      "exact_temporary_row_deleted": true,
+      "fresh_direct_get_reservations": [],
+      "lan": "192.168.1.1/24",
+      "pool": [
+        "192.168.1.2",
+        "192.168.1.254"
+      ],
+      "dhcp_enabled": true,
+      "router_restart_performed": false,
+      "pico_wifi_cycles": 0
+    }
+  },
+  "capture": {
+    "scope": "Router admission only; no DHCP transition requested",
+    "packets": 801,
+    "first_epoch_ns": 1789050570889316000,
+    "last_epoch_ns": 1789050726660326000,
+    "kernel_drops": 0,
+    "unit_final": "inactive; Result=success; ExecMainStatus=0"
+  },
+  "validation": {
+    "ctest_passed": 7,
+    "compiled_mutants": [
+      {
+        "mutation": "cached_address",
+        "rejected": true,
+        "exit": -6,
+        "failure": "Assertion failed: (network.status().find(\"\\\"mdns_state\\\":\\\"probing\\\"\") != std::string::npos), function main, file network_adapter_tests.cpp, line 252."
+      },
+      {
+        "mutation": "zero_address_not_removed",
+        "rejected": true,
+        "exit": -6,
+        "failure": "Assertion failed: (network.status().find(\"\\\"mdns_state\\\":\\\"waiting_address\\\"\") != std::string::npos), function main, file network_adapter_tests.cpp, line 261."
+      }
+    ],
+    "user_files_preserved": true,
+    "firmware_hashes_match_previous_deployment": true
+  },
+  "private_evidence_root": "build/phase11-4-d1-sdk231",
+  "private_files_sha256": {
+    "router-observations.json": "b9154329db761947586aa5f5301389468958e3487d811d86b9cbd1366f0e3141",
+    "chrome-observations.json": "e3a9103b942de6995716276f83c4c64eaa529e1e4497249919a237c5dec119de",
+    "mac-baseline.json": "35fa83a2b8b5aa76211021c8400a713c9a4d5a14c46e588a5072721555598ebc",
+    "d1-baseline-linux.jsonl": "47f279ec184d2c6a02879255db66130f90c88a8d6182951404a0e650303473b6",
+    "d1-final-linux.jsonl": "fc6a654300e6260e820a2dec54757b8735208e60fdbed1e9b8de53df4322cd95",
+    "host-final-build.log": "c888ad52aefd89c85ad3199c09ff2b4f76d22f2d157982f28ca47aa1243d4263",
+    "host-final.log": "0a62a7a1e8365cad1d7f32a17f7d4ac4a4be469c83863bed6671a5bbcebf4ffd",
+    "mutation-review.json": "a6a30c40e594867e070a5b991b6bc7e608ce85084f3c2c5e7d3374428d6b5e7d",
+    "mutation-review.py": "88607be53ab38d6ba78f3a59547e2eb749d36925dab19ee179e8883c73410658",
+    "mutation-initial-failure.txt": "523077a1e6380de31f8bea56ba833ca604c913e5ef24009da49b02793c519e35",
+    "user-state.json": "7cf0081fe3f296db2c17ff22a897021cab3652cc87ffd71a669cbcf3226f89e6",
+    "remote/admission-capture.log": "e5520c429f2051e7e155bd9f5045902a711ae893480be274fbebeddd9c2eb162",
+    "remote/admission.pcap": "a5c8c782d693e71dc38f2dc0566e60cd879e11798c9899ccbbf33283335706e0",
+    "remote/capture-state-after-stop.txt": "61460ef8400e5aafadff59d2cd67f4a91ecf4c2220f46347316d4d4c8e975b8f",
+    "remote/capture-state-before-stop.txt": "1ba3b594f68e8610c58195473d15936072aab6045c7d03760fb7509e68f3c471",
+    "remote/duplicate-address.json": "704c9f413f012764b8bf19ef0ca3b29d7b455fb5506468550a6b283261ffbfef",
+    "remote/final-a.jsonl": "87b1ccac9508706e9e003c3160ea4662d6eebac7cd0fccd22f55be0aa0d5e4ac",
+    "remote/final-b.jsonl": "12b3476a9636e5a6c8ceb6e81fca9d90959f405c0c2c80e188b9d1f7a029e2ef",
+    "remote/host-before.txt": "a6a4c1e0a468701d0279f758bc9a4eca1da655aae6c7d62ddc04fd1b5e5d62b6",
+    "remote/host-final.txt": "57f76e9b12a11de71d657d046eb39e31a0704010473856e40e7f08167f6b00e2",
+    "remote/preflight-a.jsonl": "e2be90496908aa0d431506c1eb6ad6207940a08ec834f71bf8d0796852201582",
+    "remote/preflight-b.jsonl": "cd8aba864d9a3a6388974abc816ad785e2b2a213cef152c501bdbf862e4b0fec"
+  },
+  "test_source_sha256": "21523c1844a336dd047b52f3d10b39c946a55627e8f8778018661aa42a901218"
+}

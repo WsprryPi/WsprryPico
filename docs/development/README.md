@@ -107,6 +107,10 @@ physical prerequisites and D2 repeatability remain open. The later
 [D1 execution](phase11-4-d1-results.md) records the router HTTP 400 blocker,
 production baseline, removal of the temporary reservation and ordinary DHCP
 cleanup; its [prompt](phase11-4-d1-prompt.md) defines the remaining new-address case.
+The [SDK 2.3.1 D1 assessment](phase11-4-d1-sdk231-results.md) adds automatic
+adapter address-change coverage after a current-code review. Native Chrome
+reproduced the router Apply failure in two form contexts; cleanup was verified
+without cycling either Pico, and the physical new-address gate remains open.
 [D3 execution](phase11-4-d3-results.md) passes bounded actual link loss, native
 cache removal, inhibited-job continuity and automatic recovery, with timing gaps
 and Chrome failure retained. Its [Orbi report](phase11-4-d3-orbi-research.md)

@@ -1,5 +1,6 @@
 // Actual PicoNetwork + pinned lwIP, with a delayed radio boundary. No hardware.
 #include "hardware/structs/watchdog.h"
+#include "lwip/apps/mdns_domain.h"
 #include "lwip/igmp.h"
 #include "lwip/init.h"
 #include "lwip/ip.h"
@@ -9,6 +10,7 @@
 #include "standalone/pico/adapters.hpp"
 #include "standalone/pico/mdns_lwip.h"
 
+#include <array>
 #include <cassert>
 #include <iostream>
 #include <optional>
@@ -21,6 +23,7 @@ watchdog_hw_t* watchdog_hw = &watchdog;
 static std::uint64_t now_us;
 static unsigned enables, disables, driver_polls, delivered_goodbyes, lost_goodbyes;
 static bool power_failure;
+static std::vector<std::array<unsigned char, 4>> positive_addresses;
 static int mac_result;
 static bool invalid_mac;
 static int bssid_result;
@@ -39,25 +42,50 @@ static unsigned read16(const unsigned char* p) {
 static err_t output(netif*, pbuf* packet, const ip4_addr_t*) {
     std::vector<unsigned char> bytes(packet->tot_len);
     pbuf_copy_partial(packet, bytes.data(), bytes.size(), 0);
+    assert(bytes.size() >= 20 && (bytes[0] >> 4) == 4);
     if (bytes[9] != 17)
         return ERR_OK;
     const unsigned udp = (bytes[0] & 15) * 4;
+    assert(udp >= 20 && udp + 8 <= bytes.size());
     if (read16(bytes.data() + udp + 2) != 5353)
         return ERR_OK;
     const auto* dns = bytes.data() + udp + 8;
-    if (!read16(dns + 6))
-        return ERR_OK;
-    unsigned record = 12;
-    while (dns[record])
-        record += dns[record] + 1;
-    ++record;
-    if (!(dns[record + 4] | dns[record + 5] | dns[record + 6] | dns[record + 7])) {
+    const auto dns_size = bytes.size() - udp - 8;
+    assert(dns_size >= 12);
+    if (!(dns[2] & 0x80))
+        return ERR_OK; // Queries/probes do not advertise an address.
+    assert(read16(dns + 4) == 0);
+    const auto records = read16(dns + 6) + read16(dns + 8) + read16(dns + 10);
+    auto* message = pbuf_alloc(PBUF_RAW, dns_size, PBUF_RAM);
+    assert(message && pbuf_take(message, dns, dns_size) == ERR_OK);
+    unsigned offset = 12;
+    bool goodbye = false;
+    for (unsigned i = 0; i < records; ++i) {
+        mdns_domain name{};
+        const auto end = mdns_readname(message, offset, &name);
+        assert(end != MDNS_READNAME_ERROR && end + 10 <= dns_size);
+        const auto length = read16(dns + end + 8);
+        assert(end + 10 + length <= dns_size);
+        const bool positive = dns[end + 4] | dns[end + 5] | dns[end + 6] | dns[end + 7];
+        if (read16(dns + end) == 1 && positive) {
+            assert(length == 4 && read16(dns + end + 2) == 0x8001);
+            positive_addresses.push_back(
+                {dns[end + 10], dns[end + 11], dns[end + 12], dns[end + 13]});
+        }
+        goodbye |= !positive;
+        offset = end + 10 + length;
+    }
+    assert(offset == dns_size);
+    pbuf_free(message);
+    if (goodbye) {
         assert(!queued_goodbye);
         queued_goodbye = now_us;
     }
     return ERR_OK; // Submitted to simulated radio, not delivered yet.
 }
-static err_t ethernet_output_stub(netif*, pbuf*) { return ERR_OK; }
+static err_t ethernet_output_stub(netif*, pbuf*) {
+    return ERR_OK;
+}
 static err_t setup(netif* n) {
     n->linkoutput = ethernet_output_stub;
     n->name[0] = 'w';
@@ -173,7 +201,8 @@ int main(int argc, char** argv) {
         return 0;
     }
     assert(network.status().find("\"station_mac\":\"88:a2:9e:0a:60:df\"") != std::string::npos);
-    assert(network.status().find("\"stable_hostname\":\"wsprrypico-0a60df.local\"") != std::string::npos);
+    assert(network.status().find("\"stable_hostname\":\"wsprrypico-0a60df.local\"") !=
+           std::string::npos);
     assert(network.status().find("\"configured_hostname\":\"pico-a.local\"") != std::string::npos);
     network.listener_status(true, true);
     // OFF before association/probing needs no drain.
@@ -200,6 +229,42 @@ int main(int argc, char** argv) {
     assert((bssid_queries == queries_before_status));
     assert(network.trace_page(0).find("\"install_errors\":0") != std::string::npos);
     assert(network.trace_page(0).find("\"intact\":true") != std::string::npos);
+    // D1 composition: an address event must reach the actual adapter state
+    // machine and reprobe automatically, without manually rebuilding mDNS.
+    active(network);
+    const auto radio_disables = disables;
+    const auto expect_address = [&](unsigned char last) {
+        const std::array<unsigned char, 4> expected{192, 0, 2, last};
+        assert(!positive_addresses.empty());
+        for (const auto& address : positive_addresses)
+            assert(address == expected);
+        assert(network.status().find("\"advertised_hostname\":\"pico-a.local\"") !=
+               std::string::npos);
+        assert(network.status().find("\"configured_hostname\":\"pico-a.local\"") !=
+               std::string::npos);
+        assert(disables == radio_disables);
+    };
+    positive_addresses.clear();
+    ip4_addr_t changed_address{};
+    IP4_ADDR(&changed_address, 192, 0, 2, 11);
+    netif_set_ipaddr(&cyw43_state.netif[0], &changed_address);
+    network.poll();
+    assert(network.status().find("\"mdns_state\":\"probing\"") != std::string::npos);
+    assert(network.status().find("\"advertised_hostname\":\"\"") != std::string::npos);
+    assert(network.status().find("\"mdns_address_changes\":1,") != std::string::npos);
+    active(network);
+    expect_address(11);
+    positive_addresses.clear();
+    ip4_addr_set_zero(&changed_address);
+    netif_set_ipaddr(&cyw43_state.netif[0], &changed_address);
+    network.poll();
+    assert(network.status().find("\"mdns_state\":\"waiting_address\"") != std::string::npos);
+    advance(network, 3'000'000);
+    assert(positive_addresses.empty());
+    IP4_ADDR(&changed_address, 192, 0, 2, 12);
+    netif_set_ipaddr(&cyw43_state.netif[0], &changed_address);
+    active(network);
+    expect_address(12);
     const auto before = now_us;
     const auto down = disables;
     const auto polls = driver_polls;
