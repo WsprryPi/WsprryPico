@@ -287,7 +287,9 @@ void PicoNetwork::poll() {
     if (link != CYW43_LINK_UP) {
         sntp_.cancel();
         poll_schedule_.reset();
-        if (now >= next_connect_us_) {
+        // NOIP still has a working Wi-Fi association. DHCP may temporarily
+        // clear the address after a NAK; rejoining here disrupts that exchange.
+        if (link != CYW43_LINK_NOIP && now >= next_connect_us_) {
             watchdog_hw->scratch[1] = 15;
             (void)cyw43_arch_wifi_connect_async(ssid_.c_str(), password_.c_str(),
                                                 CYW43_AUTH_WPA2_AES_PSK);

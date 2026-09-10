@@ -60,7 +60,7 @@ def cmd(args, check=True, timeout=35):
 
 
 def system_unit(name, args, seconds=1200):
-    return cmd(['systemd-run', '--quiet', '--unit=' + name,
+    return cmd(['systemd-run', '--quiet', '--collect', '--unit=' + name,
                 '--property=RuntimeMaxSec=' + str(seconds), '--property=UMask=0077',
                 '--property=KillSignal=SIGINT', '--property=TimeoutStopSec=10',
                 '--property=WorkingDirectory=' + str(ROOT),
@@ -130,7 +130,7 @@ def in_client(args, timeout=40, check=True):
     return cmd(['nsenter', '-t', str(pid), '-m', '-n', *args], timeout=timeout, check=check)
 
 
-def setup():
+def setup(cleanup_entrypoint=None, prepare_network=None, cleanup_unit='phase11-hotspot-cleanup'):
     assert not (ROOT / 'setup-started').exists(), 'Use cleanup before another setup'
     before = host_check()
     assert SUBNET.split('/')[0] not in before['routes']
@@ -158,12 +158,15 @@ def setup():
                     schedules=s['schedules'], expires_utc_s=s['expires_utc_s'])
     save('restore.json', original)
     # Independent recovery starts before any network or device mutation.
-    cmd(['systemd-run', '--quiet', '--unit=phase11-hotspot-cleanup', '--on-active=20m',
+    cmd(['systemd-run', '--quiet', '--unit=' + cleanup_unit, '--on-active=20m',
          '--property=WorkingDirectory=' + str(ROOT), '--property=UMask=0077',
          '--property=StandardOutput=append:' + str(ROOT / 'cleanup.log'),
          '--property=StandardError=append:' + str(ROOT / 'cleanup.log'),
-         '/usr/bin/python3', ROOT / 'scripts/phase11_4_hotspot.py', 'cleanup', '--root', ROOT, '--run'])
+         '/usr/bin/python3', cleanup_entrypoint or ROOT / 'scripts/phase11_4_hotspot.py',
+         'cleanup', '--root', ROOT, '--run'])
     (ROOT / 'setup-started').touch()
+    if prepare_network is not None:
+        prepare_network()
     psk = secrets.token_hex(16)
     ssid = 'WsprryPico-Test'
     cfg = json.loads(json.dumps(original))
@@ -392,6 +395,8 @@ def cleanup():
             failures.append('Pico restore: ' + str(e))
     for name in ('capture-ap', 'capture-peer', 'client', 'dhcp'):
         cmd(['systemctl', 'stop', 'phase11-hotspot-' + name], check=False)
+        # Older runs lacked --collect; clear only our stopped transient units.
+        cmd(['systemctl', 'reset-failed', 'phase11-hotspot-' + name], check=False)
     cmd(['chronyc', 'deny', SUBNET], check=False)
     # Destroying the final namespace reference returns its physical radio.
     cmd(['ip', 'netns', 'delete', NETNS], check=False)

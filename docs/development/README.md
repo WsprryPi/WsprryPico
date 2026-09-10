@@ -120,6 +120,12 @@ and an explicit assessment of the client ARP timing. Its
 `scripts/phase11_4_hotspot.py` is an opt-in, wspr5-specific engineering fixture;
 `scripts/audit_phase11_4_hotspot.py` audits local evidence without device access.
 Run its refusal tests with `python3 tests/phase11_4_hotspot_audit_tests.py`.
+The [working three-radio setup](phase11-4-radio-results.md) adds independent
+radio observation and the DHCP `NOIP` reconnect correction, with a regression
+against the actual adapter. It records the verified management power setting,
+reviewed inhibited candidate and explicit physical-verification boundary.
+Run `python3 tests/phase11_4_radio_diagnostic_tests.py` for its hardware-free
+capture/refusal/restoration checks.
 [D3 execution](phase11-4-d3-results.md) passes bounded actual link loss, native
 cache removal, inhibited-job continuity and automatic recovery, with timing gaps
 and Chrome failure retained. Its [Orbi report](phase11-4-d3-orbi-research.md)

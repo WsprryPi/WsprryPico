@@ -6,7 +6,8 @@ struct cyw43_t {
     struct netif netif[1];
 };
 extern cyw43_t cyw43_state;
-constexpr int CYW43_ITF_STA = 0, CYW43_LINK_UP = 3, CYW43_AUTH_WPA2_AES_PSK = 1;
+constexpr int CYW43_ITF_STA = 0, CYW43_LINK_DOWN = 0, CYW43_LINK_NOIP = 2, CYW43_LINK_UP = 3,
+              CYW43_AUTH_WPA2_AES_PSK = 1;
 constexpr int CYW43_NONE_PM = 0, CYW43_NO_POWERSAVE_MODE = 0;
 int cyw43_arch_init();
 void cyw43_arch_deinit();

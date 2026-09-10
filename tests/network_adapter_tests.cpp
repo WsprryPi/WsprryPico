@@ -22,6 +22,7 @@ static watchdog_hw_t watchdog{};
 watchdog_hw_t* watchdog_hw = &watchdog;
 static std::uint64_t now_us;
 static unsigned enables, disables, driver_polls, delivered_goodbyes, lost_goodbyes;
+static unsigned connect_calls;
 static bool power_failure;
 static std::vector<std::array<unsigned char, 4>> positive_addresses;
 static int mac_result;
@@ -120,6 +121,7 @@ void cyw43_arch_disable_sta_mode() {
     ip4_addr_set_zero(ip_2_ip4(&cyw43_state.netif[0].ip_addr));
 }
 int cyw43_arch_wifi_connect_async(const char*, const char*, int) {
+    ++connect_calls;
     ip4_addr_t address{};
     IP4_ADDR(&address, 192, 0, 2, 10);
     netif_set_ipaddr(&cyw43_state.netif[0], &address);
@@ -127,7 +129,10 @@ int cyw43_arch_wifi_connect_async(const char*, const char*, int) {
     return 0;
 }
 int cyw43_tcpip_link_status(cyw43_t*, int) {
-    return netif_is_up(&cyw43_state.netif[0]) && netif_is_link_up(&cyw43_state.netif[0]) ? 3 : 0;
+    const auto* station = &cyw43_state.netif[0];
+    if (!netif_is_up(station) || !netif_is_link_up(station))
+        return CYW43_LINK_DOWN;
+    return ip4_addr_isany_val(*netif_ip4_addr(station)) ? CYW43_LINK_NOIP : CYW43_LINK_UP;
 }
 int cyw43_wifi_pm(cyw43_t*, std::uint32_t) {
     return power_failure ? -1 : 0;
@@ -254,17 +259,29 @@ int main(int argc, char** argv) {
     assert(network.status().find("\"mdns_address_changes\":1,") != std::string::npos);
     active(network);
     expect_address(11);
+    // A real DHCP NAK clears the address while association remains intact.
+    // Exercise it after the reconnect deadline, unlike a direct IP replacement.
+    advance(network, 31'000'000);
+    const auto joins_before_dhcp = connect_calls;
     positive_addresses.clear();
     ip4_addr_set_zero(&changed_address);
     netif_set_ipaddr(&cyw43_state.netif[0], &changed_address);
     network.poll();
     assert(network.status().find("\"mdns_state\":\"waiting_address\"") != std::string::npos);
-    advance(network, 3'000'000);
+    advance(network, 61'000'000);
     assert(positive_addresses.empty());
+    assert(connect_calls == joins_before_dhcp);
+    assert(cyw43_tcpip_link_status(nullptr, 0) == CYW43_LINK_NOIP);
     IP4_ADDR(&changed_address, 192, 0, 2, 12);
     netif_set_ipaddr(&cyw43_state.netif[0], &changed_address);
     active(network);
     expect_address(12);
+    assert(connect_calls == joins_before_dhcp);
+    // Actual association loss must still reconnect once its deadline is due.
+    netif_set_link_down(&cyw43_state.netif[0]);
+    network.poll();
+    assert(connect_calls == joins_before_dhcp + 1);
+    active(network);
     const auto before = now_us;
     const auto down = disables;
     const auto polls = driver_polls;

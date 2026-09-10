@@ -1,0 +1,254 @@
+{
+  "evidence_root": "build/phase11-4-radio/radio-4 (private, ignored)",
+  "assessment": {
+    "scope": "One pre-correction controlled physical diagnostic; fixed firmware physical verification pending authorization",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "boot_id": "02b19ddb0fce76afe3f525566ae8728d",
+    "runtime_revision": "dbf1d86f0885-dirty",
+    "old_address": "10.77.14.10",
+    "new_address": "10.77.14.20",
+    "dhcp_transaction": "653b90fa",
+    "same_boot_dhcp": true,
+    "native_name": "wsprrypico-0a60df.local",
+    "trace": {
+      "events": 152,
+      "first_sequence": 1,
+      "last_sequence": 152,
+      "intact": true,
+      "clock_alignment_spread_ns": 118134038,
+      "clock_limit": "No sub-100ms cross-clock ordering claim"
+    },
+    "radio": {
+      "valid_frames": 7742,
+      "pico_authentication_requests_during_transition": 2,
+      "pico_reassociation_requests_during_transition": 1
+    },
+    "tcp": {
+      "pico_receive_to_reply_submission_us": 339,
+      "successful_synack_submissions": 3,
+      "client_syn_to_first_ap_synack_ns": 8785835000,
+      "client_syn_to_first_client_synack_ns": 8788987000,
+      "interpretation": "Pico stack generated and retried SYN-ACK; later AP/client observation is not identified with an individual radio emission"
+    },
+    "production": {
+      "baseline": {
+        "tx_ops": [
+          "HELLO",
+          "STATUS",
+          "CAPS",
+          "STATUS",
+          "STATUS"
+        ],
+        "rx_frames": 5,
+        "load": 0,
+        "arm": 0,
+        "fingerprint": "06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016"
+      },
+      "changed": {
+        "tx_ops": [
+          "HELLO",
+          "STATUS",
+          "CAPS",
+          "STATUS",
+          "STATUS"
+        ],
+        "rx_frames": 5,
+        "load": 0,
+        "arm": 0,
+        "fingerprint": "06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016"
+      }
+    },
+    "restoration": {
+      "failures": []
+    }
+  },
+  "files": [
+    {
+      "path": "events.jsonl",
+      "bytes": 7772654,
+      "sha256": "e8e9353c36f3545cdc94bc3d793dbd3cf4985e971ff5a62be55529c15144daa0"
+    },
+    {
+      "path": "ap.pcap",
+      "bytes": 48542,
+      "sha256": "2c2de25a80fbe28be3827ab3face9326c63afa14eb93e4a2bc2b034f4900f1e5"
+    },
+    {
+      "path": "peer.pcap",
+      "bytes": 39018,
+      "sha256": "7dca81c84f5b2c673347df0b839fcbaa12be7b0fd97603828e579c6c9bffc46c"
+    },
+    {
+      "path": "monitor.pcap",
+      "bytes": 1777430,
+      "sha256": "1703a83a2c92ba0047e70ee9d183fff3f3135260817e8f268502cc08e3b647f8"
+    },
+    {
+      "path": "hotspot-baseline.json",
+      "bytes": 3206,
+      "sha256": "3a52310b8a848b5ca6ba5f79db582cdacf8a288942c474733fd9b1fe4e6b9665"
+    },
+    {
+      "path": "hotspot-changed.json",
+      "bytes": 3214,
+      "sha256": "ccf47e3e70e9c891f6ae345bfc8555884a6d2fbbe940dfba7c352d86d54a2da0"
+    },
+    {
+      "path": "monitor-admission.json",
+      "bytes": 136,
+      "sha256": "b8c891a5da298add1a5dc006cd3d07138228c9a716d2661fb8e26437eaf6ba13"
+    },
+    {
+      "path": "reference-baseline.json",
+      "bytes": 73,
+      "sha256": "eda51bb0e2603513364a4f07f4eff02595a8fd739560449a9f3dd718f3c2c0d7"
+    },
+    {
+      "path": "reference-changed.json",
+      "bytes": 936,
+      "sha256": "2d3813a07295ccb39f9d7b13c92dabee255374ce7f09b9e5f84338d21f18b177"
+    },
+    {
+      "path": "pico-restored.json",
+      "bytes": 3213,
+      "sha256": "02620d982745aec102932d75cf7e5988295b9125a76d633f2d67b60759c6a221"
+    },
+    {
+      "path": "management-restored.json",
+      "bytes": 1678,
+      "sha256": "d9a7a9955e3492e78088c54551048b98f848e3f2d00b715a3d1858de1737323d"
+    },
+    {
+      "path": "radio-cleanup-result.json",
+      "bytes": 21,
+      "sha256": "796c4c14e96a550c0a864f3ea98bceabdd5dec430e60f965354d02a6da03fcd0"
+    },
+    {
+      "path": "production-baseline/PASS.json",
+      "bytes": 3150,
+      "sha256": "2988706ecdf7332bffaa5b7a9812232b1df1f6949c35a190e2b98e320b3cdb1c"
+    },
+    {
+      "path": "production-baseline/audit.json",
+      "bytes": 179,
+      "sha256": "754eb7c844ab46d4a9fb4d44663a48e30f0d40272b03929c3767039e293930f6"
+    },
+    {
+      "path": "production-baseline/invocation.json",
+      "bytes": 772,
+      "sha256": "2f9d84558a9eff6e255640fb57f42c81201c090f132f28e930c73c5a7345a7c7"
+    },
+    {
+      "path": "production-baseline/tls-write.bin",
+      "bytes": 958,
+      "sha256": "ffda6d8372a2ae58e01fc06f1260959119423f3b5f4a98eb9c680936070c2699"
+    },
+    {
+      "path": "production-baseline/tls-read.bin",
+      "bytes": 2164,
+      "sha256": "4e1246179cf1532a0a84a564e783dc905e79d835f1baf008e838463bc5657999"
+    },
+    {
+      "path": "production-baseline/peer-certificate-sha256.bin",
+      "bytes": 36,
+      "sha256": "484d4787104ff2844bf3abf3a80fe978d9c4da5bb57658d9b7b8566b1581e2bc"
+    },
+    {
+      "path": "production-changed/PASS.json",
+      "bytes": 3150,
+      "sha256": "99eefbe714457514c57dc9588fffb751b96d26b0522c8b26cae00fcb17c518bd"
+    },
+    {
+      "path": "production-changed/audit.json",
+      "bytes": 179,
+      "sha256": "754eb7c844ab46d4a9fb4d44663a48e30f0d40272b03929c3767039e293930f6"
+    },
+    {
+      "path": "production-changed/invocation.json",
+      "bytes": 772,
+      "sha256": "8bd5c1a1af572ab62b579890d7b98abbb3ba123bd3d99c02d1b545dd1c28c656"
+    },
+    {
+      "path": "production-changed/tls-write.bin",
+      "bytes": 958,
+      "sha256": "83bb4093c67ea493c404c1d9e42babdf5504cdb6a0e7f44b73cb3fce1d152432"
+    },
+    {
+      "path": "production-changed/tls-read.bin",
+      "bytes": 2164,
+      "sha256": "a24ee16979fd29b12ac691c4778b46836dc178a550d9b79db53b5b7545823793"
+    },
+    {
+      "path": "production-changed/peer-certificate-sha256.bin",
+      "bytes": 36,
+      "sha256": "484d4787104ff2844bf3abf3a80fe978d9c4da5bb57658d9b7b8566b1581e2bc"
+    },
+    {
+      "path": "final-a.jsonl",
+      "bytes": 5085,
+      "sha256": "dc488402ba06f10d171b69d986f7f627376707e556d7f5fee5bf0b2deefe76e6"
+    },
+    {
+      "path": "final-b.jsonl",
+      "bytes": 5081,
+      "sha256": "850e617859bf0839cbc4687e26a1e8586ea40f09d18874e09e03a3f2f4fcf8c2"
+    },
+    {
+      "path": "working-management-power.json",
+      "bytes": 337,
+      "sha256": "bf4124610b9eaa9a2cfa0ee76720248725aaaff251f4c096b5f782d156816148"
+    },
+    {
+      "path": "scripts/phase11_4_radio_diagnostic.py",
+      "bytes": 15360,
+      "sha256": "7ca73f7542bbcdb2d96ee262e7b6e891b70535271eb0e5ac687f98231b9073db"
+    },
+    {
+      "path": "scripts/phase11_4_hotspot.py",
+      "bytes": 23906,
+      "sha256": "50287d177799198584f063ca36248bf6e5097572ae1559dcc4f7e9625f6ed772"
+    }
+  ],
+  "working_management_power": {
+    "profile": "921301fe-cdfd-4965-8ac7-c96e9d908ea6",
+    "power_save": "Power save: off",
+    "profile_setting": "disable",
+    "previous_setting": "default",
+    "changed_fields": [
+      [
+        "wifi",
+        "powersave"
+      ],
+      [
+        "connection",
+        "timestamp"
+      ]
+    ],
+    "backup": "management-before-power-setting.nmconnection"
+  },
+  "validation": {
+    "host_cases": 34,
+    "sanitized_adapter_cases": 3,
+    "radio_cases": 17,
+    "hotspot_cases": 16,
+    "physical_candidate_flash": "awaiting explicit authorization",
+    "candidate_uf2_sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10",
+    "candidate_elf_sha256": "500996b4db93dd280ea917ee462db7e0ccf3235d2b1196b3175751f02d6c0529"
+  },
+  "source_sha256": {
+    "src/standalone/pico/adapters.cpp": "4a8402481c0ff57454bfdf3dc8d7dcd5e5099368c80829098d38be3da9bfffb2",
+    "tests/network_adapter_tests.cpp": "09e795d80370f6227d11881cfcea75ce4e882285b1671dfe4534e03e407f1639",
+    "tests/network_adapter_mock/pico/cyw43_arch.h": "49910b41b9147c9c98a41ae2d0bf16948aecc04a8cf5ee40e8fb6c3c957ad5af",
+    "scripts/phase11_4_radio_diagnostic.py": "f700e4a18e6a60e14ac9076220fcf2c41df478efa323cc072f3a5c3a5bb205c0",
+    "scripts/phase11_4_hotspot.py": "50287d177799198584f063ca36248bf6e5097572ae1559dcc4f7e9625f6ed772",
+    "tests/phase11_4_radio_diagnostic_tests.py": "e49cba566478ab39991c9f2ae0a15c97aa2ca4b5719471da738836ef202f21b8"
+  },
+  "private_companions_sha256": {
+    "build/phase11-4-radio/assess.py": "018434668b1bf4d0ce3285b9c97415d4c8537c8a7f9476d44ae59ee40e78c3fb",
+    "build/phase11-4-radio/assessment.json": "9783c7bcdecd8b0e7b92bb9144fe7f782bfaaa46dbe67aef9c212bf4d8fcbdbd",
+    "build/phase11-4-radio/regression-before.log": "0c995d24eed13f1c8c77e80f9e20a0f60e5a73e96e448fc3c83ec2418dcadefe",
+    "build/phase11-4-radio/host-tests.log": "dbedb92f5f20c0cdea0a649002bcdc989ad3cafdc58cc8488ccb0a62c42222cf",
+    "build/phase11-4-radio/sanitize-tests.log": "2be4fdfc9000a51d57452c48cd641ccaf30a70bc360dddab151579aa3fc5e428",
+    "build/phase11-4-radio/final-wifi-power-off.json": "1c3843013836482523d5b0f775415516b5411d0a90ef8804b733fe15c56f8283"
+  }
+}
