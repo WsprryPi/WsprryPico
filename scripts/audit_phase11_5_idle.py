@@ -35,6 +35,8 @@ def audit(path, baseline_path, rf_packet=None):
     baseline=finished(baseline_path,'READ_ONLY_INVENTORY')['info']
     if rf_packet is not None:
         from phase11_5_rf_observer import validate_info as rf_info, validate_status as rf_status
+        from phase11_5_f1_plan import validate_rf_packet,SCHEMA as F1_SCHEMA
+        validate_rf_packet(rf_packet)
     require(hashlib.sha256(baseline_path.read_bytes()).hexdigest()==rows[0]['value']['baseline_sha256']
             and baseline['status']['boot_id']==boot,'Baseline hash/boot binding')
     require(rows[-1]['monotonic_ns']-rows[0]['monotonic_ns']>=seconds*1e9,'Interval truncated')
@@ -143,7 +145,9 @@ def audit(path, baseline_path, rf_packet=None):
         require(samples['status'][-1]['value']['value']['state']=='empty' and
                 samples['status'][-1]['value']['value']['owner_id'] is None,'Final RF job not released')
         terminal=samples['status'][-1]['value']['value']['terminal_records']
-        require(len(terminal)==len(coverage) and {r['job_id'] for r in terminal}==set(coverage) and
+        expected_jobs=rf_packet['jobs'][-8:] if rf_packet['schema']==F1_SCHEMA else rf_packet['jobs']
+        require(len(terminal)==len(expected_jobs) and
+                {r['job_id'] for r in terminal}=={j['job_id'] for j in expected_jobs} and
                 all(r['state']=='complete' and r['output_active'] is False and 'error' not in r
                     for r in terminal),'Finite terminal history differs')
         result['job_coverage']=coverage

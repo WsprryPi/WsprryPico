@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Opt-in three finite A3 Tone jobs through the real authenticated browser API.
+"""Opt-in finite A3 Tone or F1 mode jobs through the real authenticated browser API.
 
 No flash, configuration, retries, automatic abort, recovery, or fault clearing.
 An independent RF observer and normal production/browser load must already run.
@@ -17,7 +17,8 @@ import threading
 import time
 import uuid
 from phase11_5_inventory import require,inventory_session
-from phase11_5_pilot import validate_packet,DEVICE
+from phase11_5_pilot import DEVICE
+from phase11_5_f1_plan import validate_rf_packet as validate_packet,SCHEMA as F1_SCHEMA,NOMINAL_SECONDS
 from phase11_5_rf_observer import validate_info,validate_status
 from phase11_5_pilot_supervisor import finished
 from validate_wtp_contract import SchemaValidator,loads_strict
@@ -56,7 +57,9 @@ def checked_reply(request, code, data):
         require(result['start_utc_ns']==request['body']['start_utc_ns'] and
                 result['clock']['state']=='synchronized' and result['clock']['leap']=='normal',
                 'Response ARM timing changed')
-    if operation=='CLAIM':require(result['owner_id']==request['body']['owner_id'],'Response owner changed')
+    if operation in ('CLAIM','RENEW'):
+        require(result['owner_id']==request['body']['owner_id'] and
+                result['granted_lease_ms']==request['body']['lease_ms'],'Response owner or lease changed')
     return result
 
 
@@ -68,15 +71,17 @@ def main():
     root=args.root.resolve(strict=True);require(root.stat().st_mode & 0o077==0,'Private case root')
     os.umask(0o077)
     packet_path=root/'jobs.json';packet=json.loads(packet_path.read_text());validate_packet(packet)
+    f1=packet['schema']==F1_SCHEMA
+    load_seconds=NOMINAL_SECONDS if f1 else 180
     require(packet['revision']=='8fb3894253ef' and packet['uf2_sha256']==
             '75b26e3fa2fc74e517fbfe9cdbe8ee7b9c0e6eabfc13708827d48d978ea0ba9f','Exact physical candidate')
     owner=inventory_session(packet['owner_id']);session=inventory_session(packet['browser_session_id'])
     plan=json.loads((root/'load.json').read_text())
     ready=json.loads((root/'ready.json').read_text())
-    require(ready['boot_id']==packet['boot_id'] and plan['seconds']==180 and
+    require(ready['boot_id']==packet['boot_id'] and plan['seconds']==load_seconds and
             0<=time.monotonic_ns()-ready['start_monotonic_ns']<5_000_000_000,
-            'Fresh frozen N180 load required')
-    load_end_ns=ready['start_monotonic_ns']+180_000_000_000
+            'Fresh frozen nominal load required')
+    load_end_ns=ready['start_monotonic_ns']+load_seconds*1_000_000_000
     require(plan['boot_id']==packet['boot_id'] and plan['device_id']==DEVICE and
             plan['browser'] is True and plan['address']=='10.77.15.10' and
             os.readlink('/proc/self/ns/net')==plan['netns'] and
@@ -88,7 +93,8 @@ def main():
     require(Path(plan['browser_lock'])==root/'browser.lock' and plan['browser_control_lane'] is True,
             'Shared browser lane path/policy')
     packet_sha=hashlib.sha256(packet_path.read_bytes()).hexdigest()
-    deadline=time.monotonic()+200;sequence=0
+    deadline=load_end_ns/1e9;sequence=0
+    coverage={job['job_id']:dict(states=set(),active=False) for job in packet['jobs']}
     with (root/'browser-jobs.jsonl').open('x') as log:
         def note(kind,value):
             nonlocal sequence
@@ -96,7 +102,7 @@ def main():
                 monotonic_ns=time.monotonic_ns(),utc_ns=time.time_ns()))+'\n')
             log.flush();os.fsync(log.fileno());sequence+=1
         def checkpoint():
-            require(time.monotonic()<deadline,'Finite A3 actor deadline')
+            require(time.monotonic()<deadline,'Finite actor deadline')
             require(not (root/'observer-failure.json').exists() and
                     not (root/'observer-finish.json').exists(),'Independent observer ended or failed')
             snapshot=json.loads((root/'observer-info.json').read_text())
@@ -107,6 +113,17 @@ def main():
             require(stat.read_text().rsplit(')',1)[1].split()[19]==snapshot['pid_start_ticks'],
                     'Observer process identity changed')
             info=snapshot['value']['value'];validate_info(info,baseline)
+            if f1:
+                # Keep observing the independent STATUS snapshots while a
+                # renewal waits for its browser permit; no extra USB request.
+                observed=json.loads((root/'observer-status.json').read_text())
+                require(observed['packet_sha256']==packet_sha and
+                        0<=time.monotonic_ns()-observed['monotonic_ns']<=6_000_000_000,
+                        'Stale authoritative USB STATUS')
+                value=observed['value']['value'];validate_status(value,packet['boot_id'],packet)
+                if value['job_id'] in coverage:
+                    recorded=coverage[value['job_id']];recorded['states'].add(value['state'])
+                    recorded['active']|=value['state']=='running' and value['output_active']
             return info
         def status():
             checkpoint();snapshot=json.loads((root/'observer-status.json').read_text())
@@ -149,6 +166,7 @@ def main():
                                        int(job['total_duration_ns']))
                     value['body']={**body,'start_utc_ns':str(start)}
                 payload=json.dumps(value,separators=(',',':')).encode()
+                require(len(payload)<=32768,'Browser job request body exceeds endpoint limit')
                 wire=(f'POST /api/v1/jobs HTTP/1.1\r\nHost: {NAME}:18443\r\n'
                       f'Origin: https://{NAME}:18443\r\nX-WsprryPico-Request: 1\r\n'
                       'Sec-Fetch-Site: same-origin\r\nContent-Type: application/json\r\n'
@@ -177,10 +195,11 @@ def main():
         note('start',dict(packet=packet,helper_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()))
         try:
             info=checkpoint();require(info['status']['state']=='empty','Initial idle required')
-            hello=request('HELLO',dict(versions=['WTP/1'],client_name='phase11-5-A3',client_version='1'))
+            hello=request('HELLO',dict(versions=['WTP/1'],client_name='phase11-5-F1' if f1 else 'phase11-5-A3',client_version='1'))
             require(hello['device_id']==DEVICE and hello['boot_id']==packet['boot_id'],'HELLO identity')
+            renewals=0
             for job in packet['jobs']:
-                request('CLAIM',dict(owner_id=owner,lease_ms=60000));request('LOAD',job)
+                lease=request('CLAIM',dict(owner_id=owner,lease_ms=60000));request('LOAD',job)
                 # Wait for an independent Loaded observation before ARM.
                 end=time.monotonic()+6
                 while time.monotonic()<end:
@@ -191,13 +210,28 @@ def main():
                 pause(2)
                 armed=request('ARM',dict(job_id=job['job_id'],max_start_uncertainty_ns='500000000'))
                 note('armed_job',dict(job=job,start_utc_ns=armed['start_utc_ns']))
-                end=time.monotonic()+30;seen=set();active=False
+                # A renewal can cross the finite completion while awaiting its
+                # permit. This observation allowance cannot extend RF duration
+                # or the overall frozen load window.
+                end=time.monotonic()+int(job['total_duration_ns'])/1e9+(55 if f1 else 20)
+                seen=set();active=False
                 while time.monotonic()<end:
                     observed=status()
                     if observed['job_id']==job['job_id']:
                         seen.add(observed['state']);active|=observed['state']=='running' and observed['output_active']
                         if observed['state']=='complete':break
+                    if f1:
+                        info=checkpoint()
+                        # A permit may take thirty seconds and its request five.
+                        # Renew with forty seconds remaining, before expiry can
+                        # release a finite job that has just completed.
+                        remaining=int(lease['expires_monotonic_ns'])-int(info['status']['monotonic_now_ns'])
+                        if remaining<=40_000_000_000:
+                            require(renewals<packet['maximum_renewals'],'Finite renewal budget')
+                            lease=request('RENEW',dict(owner_id=owner,lease_ms=60000))
+                            renewals+=1
                     pause(.1)
+                if f1:seen=coverage[job['job_id']]['states'];active=coverage[job['job_id']]['active']
                 require(observed['state']=='complete' and {'armed','running','complete'}<=seen and active,
                         'Missing finite completion or state/output coverage')
                 request('RELEASE',{})

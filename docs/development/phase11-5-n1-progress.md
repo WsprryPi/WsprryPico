@@ -229,3 +229,25 @@ passed, leaving the installed `wsprrypi.service` active at unchanged PID 1957,
 wlan1 unchanged and the Wi-Fi recovery timer active. AP/client captures contain
 8,806/8,199 packets respectively, with zero kernel drops on both. A2 remains
 failed; A3 through G1 remain unrun. Only compile-only A1 is closed.
+
+## N1t inhibited reference passed; physical baseline pending
+
+Clean allocator-cost candidate `8fb3894253ef45adc3aad28f25a684168487490f`
+completed the one declared N180 conditioning interval and the full inhibited
+Q360/controller180/N180/Q360 family on boot
+`e66f436249fefe24d2c1d15131f65b33`, clock 150 MHz. Both load intervals passed
+independent raw TLS and USB audits. Each had all 180 production STATUS requests;
+the browser interval also had all 36 STATUS requests and six copies of each of
+its three assets. Its maximum measured native TLS write-to-response delay was
+1.063045669 seconds. The quiet heap was 17,004 bytes before and after (delta 0).
+The maximum observed allocator peak was 123,596 bytes; allocation-failure and
+stack-guard checks passed. This is inhibited reference evidence only.
+
+The complete family result was independently re-audited against raw logs before
+physical admission. Its SHA-256 is
+`60fa790be6f257c578ec9a468876bf4b9a60d4a5be457446a762afefad68eaeb`;
+private remote path is
+`/home/pi/phase11-5-n1t-8fb3894/a2-inhibited-browser-priority-family-result.json`.
+The local result copy is `build/phase11-5-closure/n1t-inhibited-a2-reviewed.json`.
+A2 is not closed until the exact 138 MHz physical candidate passes its family.
+No RF job was submitted in this reference run; prior failures remain retained.

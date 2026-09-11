@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Opt-in A3 physical observer; read-only USB and health for three separately authorized Tone jobs."""
+"""Opt-in physical observer; read-only USB and health for frozen A3 or F1 jobs."""
 import argparse
 import hashlib
 import json
@@ -10,7 +10,8 @@ import subprocess
 import threading
 import time
 
-from phase11_5_pilot import check_rf_observation, validate_packet
+from phase11_5_pilot import check_rf_observation
+from phase11_5_f1_plan import validate_rf_packet as validate_packet,SCHEMA as F1_SCHEMA,NOMINAL_SECONDS
 from phase11_5_inventory import exclusive_port, exchange, require, inventory_session
 from phase11_5_network_fixture import HOST_BOOT
 from phase11_5_pilot import DEVICE, SERIAL, Peer, check_status
@@ -84,7 +85,7 @@ def main():
     parser.add_argument('--seconds', type=int, required=True)
     parser.add_argument('--run', action='store_true')
     args = parser.parse_args()
-    require(1 <= args.seconds <= 1800, 'Bounded interval required')
+    require(1 <= args.seconds <= NOMINAL_SECONDS+60, 'Bounded interval required')
     session = inventory_session(args.session_id)
     if not args.run:
         print('Plan only; no host or device accessed.')
@@ -93,10 +94,11 @@ def main():
             == HOST_BOOT, 'Expected wspr5 root and boot required')
     os.umask(0o077)
     packet=json.loads(args.packet.read_text());validate_packet(packet)
+    require(args.seconds==(NOMINAL_SECONDS+60 if packet['schema']==F1_SCHEMA else 240),'Frozen RF observation interval')
     packet_sha=hashlib.sha256(args.packet.read_bytes()).hexdigest()
     pid_start=Path('/proc/self/stat').read_text().rsplit(')',1)[1].split()[19]
     require(packet['revision']=='8fb3894253ef' and inventory_session(packet['owner_id'])==packet['owner_id'],
-            'Frozen A3 packet identity')
+            'Frozen RF packet identity')
     baseline = finished(args.baseline, 'READ_ONLY_INVENTORY')
     validate_info(baseline['info'], baseline)
     boot = baseline['info']['status']['boot_id']

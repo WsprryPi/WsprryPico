@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Offline exact-three-job A3 audit; no hardware or network access."""
+"""Offline exact-job A3/F1 audit; no hardware or network access."""
 import argparse
 import hashlib
 import json
 from pathlib import Path
 from phase11_5_inventory import require
-from phase11_5_pilot import validate_packet
+from phase11_5_f1_plan import validate_rf_packet as validate_packet,SCHEMA as F1_SCHEMA
 from phase11_5_browser_jobs import checked_reply,NAME
 from audit_phase11_5_idle import audit as audit_usb
 from audit_phase11_5_load import audit as audit_load
@@ -13,15 +13,16 @@ from phase11_5_pilot_supervisor import finished
 
 
 def dma_coverage(packet, baseline, final):
-    # A3's validated packet contains exactly three ten-second, single-event
-    # Tones. Check cumulative hardware counters against the complete jobs,
-    # including the final short data buffer and the separate zero tail.
+    # Check each complete finite job, including all keyed-off samples, its
+    # final short data buffer and the separate zero tail. A3 and F1 packets
+    # have independent exact-job validators and cannot expand each other.
     validate_packet(packet)
-    samples=packet['system_clock_hz']*10
-    blocks=(samples+524287)//524288
+    samples=[packet['system_clock_hz']*int(job['total_duration_ns']) for job in packet['jobs']]
+    require(all(value%1_000_000_000==0 for value in samples),'Nonintegral finite sample count')
+    blocks=[(value//1_000_000_000+524287)//524288 for value in samples]
     count=len(packet['jobs'])
-    expected=dict(dma_irqs=count*(blocks+1),tail_irqs=count,alarm_irqs=count,
-                  running_successor_links=count*(blocks-1))
+    expected=dict(dma_irqs=sum(b+1 for b in blocks),tail_irqs=count,alarm_irqs=count,
+                  running_successor_links=sum(b-1 for b in blocks))
     observed={key:final[key]-baseline[key] for key in expected}
     require(observed==expected,'Missing complete-job DMA/launch/tail coverage')
     return observed
@@ -29,6 +30,7 @@ def dma_coverage(packet, baseline, final):
 
 def audit(root,decoder):
     packet=json.loads((root/'jobs.json').read_text());validate_packet(packet)
+    f1=packet['schema']==F1_SCHEMA
     text=(root/'browser-jobs.jsonl').read_text();require(text.endswith('\n'),'Truncated actor log')
     rows=[json.loads(line) for line in text.splitlines()]
     require(rows[0]['kind']=='start' and rows[0]['value']['packet']==packet and
@@ -51,7 +53,9 @@ def audit(root,decoder):
             requests.add(request['request_id']);operations.append(request['operation'])
             pending=(request,row['monotonic_ns'])
             op=request['operation']
-            if op=='CLAIM':require(request['body']==dict(owner_id=packet['owner_id'],lease_ms=60000),'CLAIM differs')
+            if op in ('CLAIM','RENEW'):
+                require((op=='CLAIM' or f1) and request['body']==dict(owner_id=packet['owner_id'],lease_ms=60000),
+                        'Lease operation differs')
             elif op=='LOAD':loads.append(request['body'])
             elif op=='ARM':arms.append(request['body'])
             elif op=='RELEASE':require(request['body']=={},'RELEASE differs')
@@ -65,8 +69,11 @@ def audit(root,decoder):
             latencies.append(row['monotonic_ns']-value['began_monotonic_ns'])
         elif kind=='armed_job':arm_notes.append(value)
         else:raise ValueError('Unexpected actor event or failure')
-    require(pending is None and operations==['HELLO']+['CLAIM','LOAD','ARM','RELEASE']*3 and
-            loads==packet['jobs'] and len(arms)==len(arm_notes)==3,'Missing/extra operations or changed jobs')
+    ordinary=[op for op in operations if op!='RENEW']
+    require(pending is None and ordinary==['HELLO']+['CLAIM','LOAD','ARM','RELEASE']*len(packet['jobs']) and
+            operations.count('RENEW')<=(packet['maximum_renewals'] if f1 else 0) and
+            loads==packet['jobs'] and len(arms)==len(arm_notes)==len(packet['jobs']),
+            'Missing/extra operations or changed jobs')
     for job,arm,note in zip(packet['jobs'],arms,arm_notes):
         require(arm['job_id']==job['job_id'] and arm['max_start_uncertainty_ns']=='500000000' and
                 note==dict(job=job,start_utc_ns=arm['start_utc_ns']),'ARM differs from frozen job')
