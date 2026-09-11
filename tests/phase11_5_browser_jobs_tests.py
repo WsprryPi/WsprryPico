@@ -3,15 +3,51 @@ import copy
 import json
 from pathlib import Path
 import sys
+import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 from phase11_5_browser_jobs import checked_reply,finite_start,admit_snapshot,main
 from audit_phase11_5_a3 import dma_coverage
 from phase11_5_pilot_tests import packet
+import phase11_5_a3 as coordinator
 
 
 class BrowserJobsTests(unittest.TestCase):
+    def test_prerequisite_names_do_not_replace_the_new_case(self):
+        class ReachedAdmission(Exception):pass
+        for family in ('A3','F1'):
+            with self.subTest(family=family),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);(root/'packet.json').write_text('{}')
+                manifest=dict(family=family,case=family.lower()+'-physical-reviewed',
+                    lifecycle_packet_sha256=coordinator.sha(root/'packet.json'),helper_sha256={},a2_result_sha256={})
+                for kind in ('inhibited','physical'):
+                    name='a2-'+kind+'-browser-priority'
+                    result=dict(status='CAPTURED_REQUIRES_FINAL_REVIEW',intervals={
+                        'quiet-before':{},'controller':{},'nominal':{},'quiet-after':dict(boot='a'*32)})
+                    p=root/(name+'-family-result.json');p.write_text(json.dumps(result))
+                    manifest['a2_result_sha256'][kind]=coordinator.sha(p)
+                    (root/(name+'-packet.json')).write_text(json.dumps(dict(
+                        source='8fb3894253ef45adc3aad28f25a684168487490f',
+                        clock_hz=138000000 if kind=='physical' else 150000000)))
+                if family=='F1':
+                    prior=root/'a3-physical';prior.mkdir();(prior/'jobs.json').write_text('{}')
+                    (prior/'audit.json').write_text(json.dumps(dict(status='CAPTURED_REQUIRES_FINAL_REVIEW',
+                        packet_sha256=coordinator.sha(prior/'jobs.json'),usb=dict(boot='a'*32,terminal_records=[]))))
+                    manifest['a3_result_sha256']=coordinator.sha(prior/'audit.json')
+                p=root/'manifest.json';p.write_text(json.dumps(manifest));labels=[]
+                def current(label):labels.append(label);raise ReachedAdmission()
+                device=SimpleNamespace(state=dict(kind='physical',pending=None,boot='a'*32,
+                    deadline_monotonic_ns=10**30),verify_helpers=lambda:None,check_current=current)
+                with patch.object(coordinator,'DeviceFixture',return_value=device), \
+                     patch.object(coordinator,'Fixture',return_value=SimpleNamespace(verify=lambda:None)), \
+                     patch.object(sys,'platform','linux'),patch.object(coordinator.os,'geteuid',return_value=0), \
+                     patch.object(coordinator.os,'umask'),patch.object(sys,'argv',['coordinator','--root',str(root),
+                         '--manifest',str(p),'--family',family,'--attempt','reviewed','--run']):
+                    with self.assertRaises(ReachedAdmission):coordinator.main()
+                self.assertEqual(labels,[family.lower()+'-physical-reviewed-admission'])
+
     def test_inflight_read_is_not_a_stale_completed_snapshot(self):
         old=dict(packet_sha256='a'*64,pid=42,pid_start_ticks='123',monotonic_ns=112630589628633)
         pending={**old,'monotonic_ns':112631498791352,'value':{'hex':b'INFO\n'.hex()}}

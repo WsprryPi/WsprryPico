@@ -48,12 +48,12 @@ def main():
             time.monotonic_ns()+(seconds+300 if f1 else 600)*1_000_000_000<d.state['deadline_monotonic_ns'],
             'Physical lifecycle/time admission')
     for kind in ('inhibited','physical'):
-        name=manifest.get('a2_cases',{}).get(kind,f'a2-{kind}-browser-priority')
-        require(re.fullmatch('a2-'+kind+'-[a-z0-9-]{1,32}',name),'A2 prerequisite name')
-        path=root/(name+'-family-result.json')
+        a2_name=manifest.get('a2_cases',{}).get(kind,f'a2-{kind}-browser-priority')
+        require(re.fullmatch('a2-'+kind+'-[a-z0-9-]{1,32}',a2_name),'A2 prerequisite name')
+        path=root/(a2_name+'-family-result.json')
         require(sha(path)==manifest['a2_result_sha256'][kind],'Reviewed A2 result changed')
         result=json.loads(path.read_text())
-        prerequisite=json.loads((root/(name+'-packet.json')).read_text())
+        prerequisite=json.loads((root/(a2_name+'-packet.json')).read_text())
         require(prerequisite['source']=='8fb3894253ef45adc3aad28f25a684168487490f' and
                 prerequisite['clock_hz']==(138000000 if kind=='physical' else 150000000),
                 'A2 firmware/clock identity')

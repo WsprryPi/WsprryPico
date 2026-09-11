@@ -315,3 +315,13 @@ A2 is not repeated because neither firmware nor its idle workload changed.
 The follow-up source review checked strict ARM freshness, bounded in-flight
 reads, default no-access entry points, retained-history admission and unchanged
 sampling/RF thresholds. The affected tests and both scheduling models pass.
+
+
+The first corrected coordinator invocation stopped before its admission inventory
+or any RF job: a prerequisite-loop variable replaced the new case name with the
+A2 name, and exclusive file creation rejected the existing A2 evidence path.
+No evidence was overwritten. The original supervisor log is preserved. A new
+regression exercises actual A3 and F1 prerequisite admission and reproduces both
+wrong labels before the repair; both pass with distinct prerequisite/case names.
+The corrected attempt uses a fresh supervisor/manifest. Firmware, boot, retained
+history and A2 evidence remain unchanged.
