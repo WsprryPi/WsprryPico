@@ -162,3 +162,24 @@ and were never flashed; clean artifacts and physical evidence remain required.
 An adversarial recheck found no remaining actionable guard or idle-poll finding.
 The guard is an enforced MSP reserve for this Arm target, not a measurement of
 worst-case call depth or qualification of a different image.
+
+## Lifecycle review before full-load admission
+
+Both directions of actual-client interoperability passed against the reviewed
+Pi idle-poll fix (`fb0a2eb50c1ea1792324139412990341592db452`). Pico's 46 other
+checks passed on the reciprocal build; its two loopback tests initially could
+not start servers inside the sandbox and then passed outside it. The original
+startup-failure log is retained.
+
+Review found physical firmware excluded the idle USB WIFI OFF/ON controls even
+though HTTPS could disable that same network. Exposing the existing idle-only
+Console branch in both images supplies the necessary local re-enable path for
+D4. It does not change the scheduler's idle gate or expose inhibited packet
+tracing in the physical image. The `598a5ad7fa82` four-image build is retained;
+the new route requires another clean artifact identity before acceptance.
+
+A guarded management helper and candidate lifecycle are being prepared. Their
+state keeps ambiguous writes and unexpected boots blocked, reserves the final
+configuration write for original restoration, checks both core guards, and
+requires a separately armed owned restoration timer. They have not been staged
+or executed. The N0 host-only authorization does not configure a Pico.

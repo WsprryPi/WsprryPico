@@ -2,7 +2,7 @@
 set(WSPRRY_PICO_NETWORK_CLIENT_SOURCE "" CACHE PATH "Pinned WsprryPi client checkout")
 if(WSPRRY_PICO_NETWORK_CLIENT_SOURCE AND TARGET network_tls_driver)
     set(parent "${WSPRRY_PICO_NETWORK_CLIENT_SOURCE}")
-    set(pin 76fd1018868551b93ca46bef2e7c2ef28fb75993)
+    set(pin fb0a2eb50c1ea1792324139412990341592db452)
     execute_process(COMMAND git -C "${parent}" rev-parse HEAD OUTPUT_VARIABLE revision
         OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
     execute_process(COMMAND git -C "${parent}" status --porcelain --untracked-files=no

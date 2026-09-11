@@ -390,6 +390,8 @@ int main() {
                    ",\"boot_id\":" + wsprrypico::wtp::json::quote(service.status().boot_id) +
                    ",\"trace\":" + network.trace_page(after) + "}\n";
         }
+#endif
+        // USB remains available after an idle Wi-Fi shutdown on either image.
         if (text == "WIFI OFF" || text == "WIFI ON") {
             if (!scheduler.idle())
                 return "{\"ok\":false,\"error\":\"busy\"}\n";
@@ -397,7 +399,6 @@ int main() {
                        ? "{\"ok\":true}\n"
                        : "{\"ok\":false,\"error\":\"network_unavailable\"}\n";
         }
-#endif
         return scheduler.command(text);
     };
     while (true) {
