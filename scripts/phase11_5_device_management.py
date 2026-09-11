@@ -22,7 +22,7 @@ from phase11_5_inventory import exclusive_port, exchange, require, inventory_ses
 from phase11_5_pilot import DEVICE, SERIAL
 from phase11_5_pilot_supervisor import finished, idle
 
-SOURCE = '4ca44943e844465e6109719ad91b900159f9d84f'
+SOURCE = '8fb3894253ef45adc3aad28f25a684168487490f'
 MAX_WRITES = 32
 MAX_PROBES = 64
 

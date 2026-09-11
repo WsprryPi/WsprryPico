@@ -1,0 +1,94 @@
+{
+  "schema": "phase11.5-device-fixture-v1",
+  "status": "ALLOCATOR_COST_REPAIR_CONTINUATION",
+  "attempt": "n1t8fb3894",
+  "root": "/home/pi/phase11-5-n1t-8fb3894",
+  "network_root": "/home/pi/phase11-5-n1t-8fb3894",
+  "time_server_dns": true,
+  "source_revision": "8fb3894253ef45adc3aad28f25a684168487490f",
+  "runtime_seconds": 6900,
+  "device_restoration_seconds": 600,
+  "network_runtime_seconds": 8400,
+  "network_restoration_seconds": 600,
+  "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+  "serial": "0BF4B4AEC9FFB344",
+  "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+  "initial_a_boot_id": "495e4183764e31261d631d957d49f3a1",
+  "initial_b_boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+  "images": {
+    "inhibited": {
+      "file": "inhibited.uf2",
+      "sha256": "cb93246be2844b11d9200562ef23244f0d3bd5705d12fa9d71487e5b61259698"
+    },
+    "physical": {
+      "file": "physical.uf2",
+      "sha256": "75b26e3fa2fc74e517fbfe9cdbe8ee7b9c0e6eabfc13708827d48d978ea0ba9f"
+    },
+    "original": {
+      "file": "original.uf2",
+      "sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10"
+    }
+  },
+  "selected_physical_clock_hz": 138000000,
+  "pio_divider": 1,
+  "rf_render_in_ram": true,
+  "max_configuration_writes": 32,
+  "max_idle_heap_probes": 64,
+  "wifi_cycles": {
+    "count": 3,
+    "off_seconds": 150,
+    "recovery_seconds": 120
+  },
+  "external_link_loss": {
+    "count": 1,
+    "seconds": 15,
+    "independent_return_after_seconds": 20
+  },
+  "dhcp_change": {
+    "count": 1,
+    "from": "10.77.15.10",
+    "to": "10.77.15.20"
+  },
+  "time_server_dns_name": "clock.phase115.test",
+  "time_server_address": "10.77.15.1",
+  "helper_sha256": {
+    "docs/protocol/wtp-1.schema.json": "fae1a7f94adb875733f47f22438a0811a3ab7fd9e4b8477780aea77cad62c8a8",
+    "scripts/phase11_4_hotspot.py": "20253c0ab455f023bc360b7b9f10fba5b6b719ffffddce79c0c7128a4e7712ee",
+    "scripts/phase11_5_device_fixture.py": "ca2a334f248b71926f1638921002f90ad00415e7d5bb8fde25d3d83d96c776ab",
+    "scripts/phase11_5_device_management.py": "7b4d5dd6daa001ccf0c3334603a6d65ac6463fc81bacb4281849aa1fad93f9d3",
+    "scripts/phase11_5_inventory.py": "89a90a6b2514dedc893b588ac3ea46ffc45d42c91113f559230540667e537b20",
+    "scripts/phase11_5_network_fault.py": "68b05dbea6b033cbb09d1d997e52e3d73207576b291d79f1330c4efbb042e041",
+    "scripts/phase11_5_network_fixture.py": "e9bb863cc735befb73be0e4e652840df507ed115e5538484ada5f7eab7e3d868",
+    "scripts/phase11_5_pilot.py": "bb91dc6fea9fb10e7564252810b534979a1f28b36de132745d100f388c3003c4",
+    "scripts/phase11_5_pilot_supervisor.py": "dbf97a316ebe02eb27f90d838ce70c468b75abc38749a7af3f6911beab8dd9e7",
+    "scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+    "scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9"
+  },
+  "production_source_revision": "6f65d5c7d202569102459ab68d7c9ea079b96f35",
+  "production_binary": "/home/pi/phase11-5-closure-6f65d5c/source/src/build/bin/phase115-pi-6f65d5c",
+  "production_binary_sha256": "122ed0e4bd752e457419c4df5433c3fca1a4a88677a3db3ebd7e60e783ba5d1c",
+  "production_observer_sha256": "fd70cde276b04aa08e771e12b83335a89aae24e050e2f2c5e56ed6848eb1a7bc",
+  "production_ini_sha256": "c5c331810997faaede2195410f4840fe0353d7649f11e37cb1788c978b50fe0f",
+  "production_helper_sha256": {
+    "pi/phase115_production_load.py": "b49a89d610724e9d9224d54600b23cd0378693bd14cbccb74132c208002e9f53",
+    "pi/phase115_tls_observer.c": "7c6a4afba6f414b9ef6a92ee223b0c0863219311e9c472a0d32a92f45f7e4a1d",
+    "pi/phase115_tls_observer_test.py": "5cf410758c48e05bc35f04f394b486f0b210b93e7ab785cedaf1bc7dd689162d"
+  },
+  "rf_jobs": [],
+  "rf_authorization": "Continuing user authorization is separate; lifecycle helpers submit no RF jobs",
+  "accepted_configurations": [],
+  "administration_session_policy": "one persistent logical session per DUT boot sequence; unique request IDs",
+  "absolute_host_deadline_monotonic_ns": 118796902517795,
+  "prior_restored_attempt": {
+    "root": "/home/pi/phase11-5-n1s-4ca4494",
+    "device_state_sha256": "428ebd8fd2792ad1d89dfdd6563bf52e5d310c41226eaefee7571d08ec5bb612",
+    "management_state_sha256": "2825981391441c199e367d0539642af7294c552d53dfa9ab6ba03bcef7f9be61"
+  },
+  "production_observer": "/home/pi/phase11-5-n1t-8fb3894/pi/phase115_tls_observer.so",
+  "production_driver": "/home/pi/phase11-5-n1t-8fb3894/pi/phase115_production_load.py",
+  "conditioning_intervals": {
+    "inhibited": 180,
+    "physical": 180
+  },
+  "conditioning_policy": "Exactly one N180 plus 240-second USB observation per image before its matched A2 quiet baseline; any failure stops dependent work; no RF jobs."
+}

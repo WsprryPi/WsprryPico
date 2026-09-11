@@ -55,8 +55,8 @@ def main():
     root=args.root.resolve(strict=True);require(root.stat().st_mode & 0o077==0,'Private case root')
     os.umask(0o077)
     packet_path=root/'jobs.json';packet=json.loads(packet_path.read_text());validate_packet(packet)
-    require(packet['revision']=='4ca44943e844' and packet['uf2_sha256']==
-            '7235bcd8ea1e54c09c894a23558232d83c538d8cc2c1ffc78dd6b4a809c81ef5','Exact physical candidate')
+    require(packet['revision']=='8fb3894253ef' and packet['uf2_sha256']==
+            '75b26e3fa2fc74e517fbfe9cdbe8ee7b9c0e6eabfc13708827d48d978ea0ba9f','Exact physical candidate')
     owner=inventory_session(packet['owner_id']);session=inventory_session(packet['browser_session_id'])
     plan=json.loads((root/'load.json').read_text())
     require(plan['boot_id']==packet['boot_id'] and plan['device_id']==DEVICE and
