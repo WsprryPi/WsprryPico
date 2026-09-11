@@ -1,0 +1,118 @@
+[
+  {
+    "network": "on",
+    "target": "WsprryPico",
+    "revision": "ce1c339a976e795e90c38c4a57578f9c8ed75615",
+    "system_clock_hz": 150000000,
+    "artifacts": {
+      "elf": {
+        "sha256": "62632d70c3f48079b3b9d99fa007815076a72f332d3868254fe25bbd60ef8a28",
+        "bytes": 14992220
+      },
+      "uf2": {
+        "sha256": "371579f889181cc3706c661c9a8ba93b85c2a6f3fde8305075f5c33c1c19ebd2",
+        "bytes": 2011136
+      },
+      "map": {
+        "sha256": "6ce52057ebb67535d7a7acfab33f68b2e0ab6521a2bb0a56bad5613e8a9c8bbf",
+        "bytes": 2577767
+      }
+    },
+    "symbols": {
+      "__end__": "0x2001fc18",
+      "__bss_start__": "0x20002d38",
+      "__bss_end__": "0x2001fc18",
+      "__HeapLimit": "0x2007c000",
+      "__StackBottom": "0x2007c000",
+      "__StackTop": "0x20080000"
+    },
+    "heap_capacity": 377832
+  },
+  {
+    "network": "on",
+    "target": "WsprryPico-StandaloneRF",
+    "revision": "ce1c339a976e795e90c38c4a57578f9c8ed75615",
+    "system_clock_hz": 138000000,
+    "artifacts": {
+      "elf": {
+        "sha256": "8a6985ec803b86c59fd89b8272286c50316d5ef6ba0de22038e51b95f48b6a6f",
+        "bytes": 15228504
+      },
+      "uf2": {
+        "sha256": "b9af965a012e1dcbad6310b36285fe386a89218ccf2fe9c263afaf84bfec356c",
+        "bytes": 2033152
+      },
+      "map": {
+        "sha256": "f9967b35ff0bd1d3d11b0f4ad59b16def0968d99cb2ce7af99a9d228e8e47cf9",
+        "bytes": 2716484
+      }
+    },
+    "symbols": {
+      "__end__": "0x200466e4",
+      "__bss_start__": "0x20003008",
+      "__bss_end__": "0x200466e4",
+      "__HeapLimit": "0x2007c000",
+      "__StackBottom": "0x2007c000",
+      "__StackTop": "0x20080000"
+    },
+    "heap_capacity": 219420
+  },
+  {
+    "network": "off",
+    "target": "WsprryPico",
+    "revision": "ce1c339a976e795e90c38c4a57578f9c8ed75615",
+    "system_clock_hz": 150000000,
+    "artifacts": {
+      "elf": {
+        "sha256": "4829dfeca4fa657524f2f3a579ae000a57b0242c6a5fd3d5b78595e592420ba8",
+        "bytes": 14712652
+      },
+      "uf2": {
+        "sha256": "3e3cfcd55615067f4b318dcbe980dfcdf22b0492f496de463c1df832457b97bb",
+        "bytes": 1964032
+      },
+      "map": {
+        "sha256": "1cea5b13fc7358066441e65e776e0083dae1cb55edfd5ce60c209d843246d31e",
+        "bytes": 2568989
+      }
+    },
+    "symbols": {
+      "__end__": "0x2001fbdc",
+      "__bss_start__": "0x20002d28",
+      "__bss_end__": "0x2001fbdc",
+      "__HeapLimit": "0x2007c000",
+      "__StackBottom": "0x2007c000",
+      "__StackTop": "0x20080000"
+    },
+    "heap_capacity": 377892
+  },
+  {
+    "network": "off",
+    "target": "WsprryPico-StandaloneRF",
+    "revision": "ce1c339a976e795e90c38c4a57578f9c8ed75615",
+    "system_clock_hz": 138000000,
+    "artifacts": {
+      "elf": {
+        "sha256": "bbee7ab4a9d50ea571119f4faaeb2959854f2c257689b53d8798250546396190",
+        "bytes": 14947336
+      },
+      "uf2": {
+        "sha256": "6838549951fa9b2c9dc0feedc2a0f4b8d5fa9d1b311632e3f18f98017eabab99",
+        "bytes": 1986048
+      },
+      "map": {
+        "sha256": "5544e8cb02de911910112fe37b7ef18f82fd7ad055911e47df0d2d2cb44a2dec",
+        "bytes": 2707277
+      }
+    },
+    "symbols": {
+      "__end__": "0x200466b0",
+      "__bss_start__": "0x20003000",
+      "__bss_end__": "0x200466b0",
+      "__HeapLimit": "0x2007c000",
+      "__StackBottom": "0x2007c000",
+      "__StackTop": "0x20080000"
+    },
+    "heap_capacity": 219472
+  }
+]

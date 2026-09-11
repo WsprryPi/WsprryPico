@@ -118,3 +118,28 @@ After measured acceptance, Wsprry_Pi_Docs needs the supported combinations in
 `docs/User_Interface/Operations/index.md`, `docs/Advanced_Operations/rest_api.md`
 and `docs/User_Interface/Maintenance/network_safety.md`. That repository was
 read only in this task; no unmeasured operating envelope is ready to publish.
+
+
+## Frozen preflight evidence
+
+Clean firmware source `ce1c339a976e795e90c38c4a57578f9c8ed75615` built all four
+network-control on/off standard/physical images with SDK 2.3.1. All four linked
+stack/heap separation, flash reservation and UF2 payload checks passed. The
+[image records](phase11-5-images.json) contain exact hashes and linker symbols.
+The physical network-on image leaves 219,420 bytes between `__end__` and the
+heap limit; this is linked capacity, not measured free heap or largest block.
+Network control off leaves 219,472 bytes. Standard images leave 377,832/377,892
+bytes and remain separate 150 MHz inhibited evidence.
+
+The changed-source host suite passed 40 non-TLS cases; the local TLS listener
+was denied by the sandbox and its native run passed. That retained failure is
+an environment limitation, not a device result. The affected ASan/UBSan eight
+cases and TSan three cases passed. Earlier broader sanitizer checks remain in
+the retained logs. Pi's actual-server interop was repeated successfully against
+clean ce1c339, retaining the macOS second-address skip. The initial invocation
+from the Pi repository root found no Make target; the documented src invocation
+ran the test. Neither attempt opened hardware.
+
+The exact P1 bundle passed image/packet validation on wspr5 without `--run`.
+This staging result is not physical acceptance. All nine acceptance gates remain
+open and the accepted clock/configuration list remains empty.

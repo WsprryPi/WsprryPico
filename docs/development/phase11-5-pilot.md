@@ -1,11 +1,11 @@
 # Phase 11.5 P1 instrumentation pilot
 
-Status: **PREPARING; not authorized or executed.** This packet establishes an
+Status: **READY FOR AUTHORIZATION; not authorized or executed.** This packet establishes an
 initial physical instrumentation observation before the full A-G campaign. It
 does not accept a clock configuration, heap envelope or conducted RF quality.
 The [joint plan](phase11-5-plan.md) and [register](phase11-5-register.json) remain
-OPEN. The final packet must bind the clean source, exact candidate hash and
-helper hashes before authorization. No change to the 11.5/11.6/13 division.
+OPEN. The [frozen packet](phase11-5-pilot.json) binds the clean source, exact
+candidate hash, host boot, job IDs and all six helper/schema hashes. No change to the 11.5/11.6/13 division.
 
 ## Frozen operation limits
 
@@ -123,3 +123,33 @@ use the separately authorized read-only reconciliation and report actual board
 state. If USB authority cannot be recovered, output remains unknown. Conditional
 restoration can therefore remain blocked after an unexpected failure; successful
 SSH return, process exit or USB disappearance never proves inactivity.
+
+
+## Frozen artifacts and prepared command
+
+Clean source: `ce1c339a976e795e90c38c4a57578f9c8ed75615` (runtime
+`ce1c339a976e`). Candidate UF2 SHA-256:
+`b9af965a012e1dcbad6310b36285fe386a89218ccf2fe9c263afaf84bfec356c`.
+Candidate ELF SHA-256:
+`8a6985ec803b86c59fd89b8272286c50316d5ef6ba0de22038e51b95f48b6a6f`.
+Packet SHA-256:
+`377bddc6554563ecdef36f72c8378abf1173a904a78cd8ee6d9d64c263f6ce87`.
+All four build identities/layouts are in [image records](phase11-5-images.json).
+Later documentation commits do not change this frozen firmware identity.
+
+Private wspr5 directory: `/tmp/phase11-5-p1-ce1c339`. Its exact packet and images
+passed the supervisor's default validation without `--run`; no device was opened.
+Management Ethernet was up at 192.168.1.54, host boot matched the packet and the
+installed transmitter service remained active. Before execution, check every
+helper hash again and require that the new unit/evidence path does not exist.
+
+The prepared launch is one `sudo -n systemd-run` for unit
+`phase11-5-p1-ce1c339`, with the properties above and this ExecStopPost:
+
+`/usr/bin/python3 /tmp/phase11-5-p1-ce1c339/scripts/phase11_5_pilot_supervisor.py restore --packet /tmp/phase11-5-p1-ce1c339/packet.json --candidate /tmp/phase11-5-p1-ce1c339/candidate.uf2 --restoration /tmp/phase11-5-p1-ce1c339/restoration.uf2 --evidence /tmp/phase11-5-p1-ce1c339/evidence --run`
+
+ExecStart uses the identical arguments with `start` replacing `restore`.
+No command containing `--run` has been executed for P1. Authorization must cover
+both guarded flash operations, the three finite RF jobs, read-only inventories,
+flash backup, and this new bounded transient supervisor. P0 readback approval
+alone does not authorize P1.
