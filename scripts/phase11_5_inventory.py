@@ -24,6 +24,14 @@ def require(condition, message):
         raise ValueError(message)
 
 
+def inventory_session(value):
+    if value is None:
+        return uuid.uuid4().hex
+    require(len(value) == 32 and value != '0' * 32 and
+            all(c in '0123456789abcdef' for c in value), 'Invalid logical inventory session')
+    return value
+
+
 def validate_inventory(info, responses, device):
     require(info.get('ok') is True and info.get('device_id') == device, 'Console identity')
     require(set(responses) == {'HELLO', 'CAPS', 'GET_CLOCK', 'STATUS', 'PING'},
@@ -101,6 +109,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--serial', required=True)
     parser.add_argument('--device-id', required=True)
+    parser.add_argument('--session-id', help='Reuse one explicitly recorded logical administration session')
     parser.add_argument('--run', action='store_true')
     args = parser.parse_args()
     if not args.run:
@@ -111,6 +120,7 @@ def main():
             'Invalid USB serial')
     require(len(args.device_id) == 32 and all(c in '0123456789abcdef' for c in args.device_id),
             'Invalid device identity')
+    session = inventory_session(args.session_id)
     schema = loads_strict((Path(__file__).resolve().parents[1] /
                           'docs/protocol/wtp-1.schema.json').read_text())
     validator = SchemaValidator(schema)
@@ -131,7 +141,7 @@ def main():
             info = exchange(fd, b'INFO\n', min(end, time.monotonic() + 5), emit, False)
             require(info.get('device_id') == args.device_id, 'Console device mismatch')
             emit('info', info)
-        session, responses = uuid.uuid4().hex, {}
+        responses = {}
         with exclusive_port(Path(base + '-if02')) as fd:
             for op in ('HELLO', 'CAPS', 'GET_CLOCK', 'STATUS', 'PING'):
                 request = dict(type='request', protocol='WTP/1', session_id=session,

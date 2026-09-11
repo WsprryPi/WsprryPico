@@ -29,6 +29,7 @@ AP_ADDRESS = '10.77.15.1'
 CLIENT_ADDRESS = '10.77.15.2'
 DUT_ADDRESS = '10.77.15.10'
 DUT_MAC = '88:a2:9e:0a:60:df'
+TIME_NAME = 'clock.phase115.test'
 RADIOS = {'wlan0': '2c:cf:67:62:76:66', 'wlan2': 'e8:4e:06:ae:d7:09'}
 MANAGEMENT = '90:de:80:47:b9:da'
 ETHERNET = '2c:cf:67:62:76:64'
@@ -166,8 +167,12 @@ class Fixture:
     def setup(self):
         self.deadline = time.monotonic() + 300
         before, radio = self.preflight()
+        packet = json.loads((self.root / 'packet.json').read_text())
+        dns_fixture = packet.get('time_server_dns', False)
+        require(type(dns_fixture) is bool, 'Explicit DNS fixture selection required')
         self.state = {'version': 1, 'token': 'Phase115 fixture ' + secrets.token_hex(16),
-                      'host_boot': HOST_BOOT, 'before': before, 'radio': radio, 'units': []}
+                      'host_boot': HOST_BOOT, 'before': before, 'radio': radio, 'units': [],
+                      'time_server_dns': dns_fixture}
         self.save()
         # Arm cleanup before pausing the timer or touching a radio. Cleanup owns
         # only host resources, and cannot erase/reboot an unknown Pico state.
@@ -184,7 +189,7 @@ class Fixture:
         psk = secrets.token_hex(16)
         ssid = 'WsprryPico-Phase115'
         (self.root / 'pico-wifi.json').write_text(json.dumps(
-            {'ssid': ssid, 'password': psk, 'ntp_ipv4': AP_ADDRESS}) + '\n')
+            {'ssid': ssid, 'password': psk, 'ntp_ipv4': TIME_NAME if dns_fixture else AP_ADDRESS}) + '\n')
         self.intent('ap_profile')
         self.cmd(['nmcli', 'connection', 'add', 'save', 'no', 'type', 'wifi', 'ifname', 'wlan0',
             'con-name', PROFILE, 'ssid', ssid, '802-11-wireless.mode', 'ap',
@@ -198,11 +203,15 @@ class Fixture:
         self.cmd(['iw', 'dev', 'wlan0', 'set', 'power_save', 'off'])
         (self.root / 'dhcp-hosts').write_text(DUT_MAC + ',' + DUT_ADDRESS + ',60s\n')
         (self.root / 'dnsmasq.conf').write_text('\n'.join([
-            'port=0', 'interface=wlan0', 'bind-interfaces', 'dhcp-authoritative',
+            'port=53' if dns_fixture else 'port=0', 'interface=wlan0', 'bind-interfaces', 'dhcp-authoritative',
             'dhcp-range=10.77.15.0,static,255.255.255.0,60s',
             'dhcp-hostsfile=' + str(self.root / 'dhcp-hosts'),
-            'dhcp-leasefile=' + str(self.root / 'leases'), 'dhcp-option=3', 'dhcp-option=6',
-            'log-dhcp', 'log-facility=-', 'user=root', 'group=root']) + '\n')
+            'dhcp-leasefile=' + str(self.root / 'leases'), 'dhcp-option=3',
+            'dhcp-option=6,' + AP_ADDRESS if dns_fixture else 'dhcp-option=6',
+            'log-dhcp', 'log-facility=-', 'user=root', 'group=root'] +
+            (['except-interface=lo', 'listen-address=' + AP_ADDRESS, 'no-hosts', 'no-resolv',
+              'local=/phase115.test/', 'address=/' + TIME_NAME + '/' + AP_ADDRESS,
+              'local-ttl=30', 'log-queries'] if dns_fixture else [])) + '\n')
         self.cmd(['/usr/sbin/dnsmasq', '--test', '--conf-file=' + str(self.root / 'dnsmasq.conf')])
         self.unit('dhcp', ['/usr/sbin/dnsmasq', '--keep-in-foreground',
                             '--conf-file=' + str(self.root / 'dnsmasq.conf')])
@@ -262,6 +271,17 @@ class Fixture:
                 self.state['token'], 'Refusing to stop a unit with changed ownership: ' + name)
         self.cmd(['systemctl', 'stop', name])
 
+    def settle(self, observation, message, seconds=20):
+        # NetworkManager's method reply can precede address removal and the
+        # final disconnected state. Observe convergence without replaying a
+        # mutation or treating a transient state as completed restoration.
+        deadline = time.monotonic() + seconds
+        while True:
+            if observation():
+                return
+            require(time.monotonic() < deadline, message)
+            time.sleep(.2)
+
     def cleanup(self):
         self.deadline = None
         if not self.state or self.state.get('restored'):
@@ -302,17 +322,22 @@ class Fixture:
                 self.cmd(['nmcli', 'device', 'set', found[RADIOS['wlan2']], 'managed', 'yes'])
             for mac, before in self.state['radio'].items():
                 self.cmd(['iw', 'dev', found[mac], 'set', 'power_save', before['power_save']])
-                require(self.value('nmcli', '-g', 'GENERAL.STATE', 'device', 'show', found[mac]).startswith('30 '),
-                        'Restored radio is not disconnected')
+                self.settle(lambda: self.value('nmcli', '-g', 'GENERAL.STATE', 'device', 'show',
+                                               found[mac]).startswith('30 '),
+                            'Restored radio is not disconnected')
         if self.state.get('ap_profile') or self.state.get('client_unmanaged'):
             attempt('radios', restore_radios)
         if self.state.get('timer_paused'):
             attempt('recovery timer', lambda: self.cmd(['systemctl', 'start', 'pi-wifi-recover.timer']))
         def verify_host():
-            current = self.host()
-            require(current['installed_pid'] == self.state['before']['installed_pid'],
-                    'Installed service restarted')
-            require('10.77.15.' not in current['interfaces'] + current['routes'], 'Fixture subnet remains')
+            current = None
+            def converged():
+                nonlocal current
+                current = self.host()
+                require(current['installed_pid'] == self.state['before']['installed_pid'],
+                        'Installed service restarted')
+                return '10.77.15.' not in current['interfaces'] + current['routes']
+            self.settle(converged, 'Fixture subnet remains')
             require(NETNS not in self.value('ip', 'netns', 'list'), 'Namespace remains')
             require('Access denied' in self.value('chronyc', 'accheck', DUT_ADDRESS), 'Chrony ACL remains')
             self.note('host_restored', current)

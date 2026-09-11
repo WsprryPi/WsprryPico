@@ -8,6 +8,10 @@ remains open. Both boards' final P3 reads were inhibited and inactive. See the
 [joint plan](phase11-5-plan.md), [failed result](phase11-5-pilot-attempt2.json) and
 [recovery result](phase11-5-recovery-result.json). No configuration is accepted.
 Phase 11.4 remains closed within its bounded inhibited matrix.
+The [current continuation record](phase11-5-closure-work.md) and
+[N1 preparation](phase11-5-device-fixture.md) cover the later guard, production
+idle-session, physical USB Wi-Fi and fixture repairs. N0 is restored; no new
+physical image has been accepted.
 
 ## Initial review, September 11, 2026
 

@@ -12,7 +12,7 @@
         69
       ],
       "evidence": "phase11-5-allocator-result.json",
-      "disposition": "P3 allocator-instrumented SRAM candidate passed three finite Tone diagnostics; P1b failure and P2 diagnostic retained; full resource acceptance remains OPEN"
+      "disposition": "P3 diagnostic retained. Current clean 6e2ddc9 guard/Wi-Fi candidate has four linked artifacts; no target execution or full resource acceptance."
     },
     {
       "sample_clock_hz": 132000000,
@@ -64,6 +64,7 @@
     "Phase 13 owns systematic band x mode x clock comparison and release qualification.",
     "P1b submitted one 10-second Tone job at 138 MHz; it failed frozen reserve/service-gap limits and ended DEVICE_FAULT with authoritative output false. Full A-G cases remain not run.",
     "P2 0d9bb44 SRAM renderer passed three 10-second 135.5 kHz Tone diagnostics at 138 MHz and restored inhibited A. This does not close full A-G or accept a configuration.",
-    "P3 3eac6ec allocator image passed three finite Tone diagnostics and restored inhibited A. The subsequent stack-guard candidate and full A-G matrix require their own exact-image evidence."
+    "P3 3eac6ec allocator image passed three finite Tone diagnostics and restored inhibited A. The subsequent stack-guard candidate and full A-G matrix require their own exact-image evidence.",
+    "N0 host fixture restored after a retained asynchronous-cleanup failure; current 6e2ddc9 physical image and full A-G matrix remain untested. N1 lifecycle/management authorization is pending."
   ]
 }

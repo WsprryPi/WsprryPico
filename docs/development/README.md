@@ -22,6 +22,10 @@ track resource/contention acceptance for the selected 138 MHz PIO candidate.
 clock during 11.6 requires affected 11.5 acceptance before using its results.
 The [remediation execution and adversarial review](phase11-5-remediation-review.md)
 records the SRAM candidate and the remaining physical failure gates.
+The [current continuation](phase11-5-closure-work.md) records the later allocator,
+stack guard and production-session fixes. [N0 is restored](phase11-5-network-fixture-result.json);
+[N1 is prepared pending authorization](phase11-5-device-fixture.md). No 11.5
+configuration is accepted.
 
 ## Build direction
 

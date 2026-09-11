@@ -1,0 +1,64 @@
+{
+  "result": "N0_RESTORED_AFTER_RECONCILIATION",
+  "setup_verifications": 4,
+  "cleanup_attempts": 2,
+  "retained_cleanup_failures": [
+    [
+      {
+        "step": "radios",
+        "type": "ValueError",
+        "message": "Restored radio is not disconnected"
+      },
+      {
+        "step": "final host",
+        "type": "ValueError",
+        "message": "Fixture subnet remains"
+      }
+    ]
+  ],
+  "boards": [
+    {
+      "serial": "0BF4B4AEC9FFB344",
+      "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+      "revision": "802c91a7b86e-dirty",
+      "boot_id": "e3634081a2c5844524ab64eb2afeab71",
+      "state": "empty",
+      "output_active": false,
+      "owner_id": null,
+      "job_id": null
+    },
+    {
+      "serial": "CDDBF8767C506C07",
+      "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+      "revision": "dbf1d86f0885-dirty",
+      "boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+      "state": "empty",
+      "output_active": false,
+      "owner_id": null,
+      "job_id": null
+    }
+  ],
+  "phase11_5": "OPEN",
+  "accepted_configurations": [],
+  "scope": "Host fixture and final inhibited USB state only; no A-G contention acceptance",
+  "schema": "phase11.5-network-fixture-result-v1",
+  "packet_sha256": "3e76c147bcf1b4bffdac6f67520dc17c8369a33099c7962b6d23999f736954a1",
+  "raw_archive_sha256": "c61eaa08ee67a216aaedd74196ac8f24d1f9c7dacc51872c1d1c7a8d918d593c",
+  "final_host_sha256": "860a48bc9dbcdb734c00973e078a0149143d428c20576ba2257d06d3edf2428a",
+  "final_inventory_sha256": {
+    "a": "ea3c1e869ae638278412693d9520fab5a97b1298f09fea69175b0f322abb971d",
+    "b": "753ceae7b31daba3f629b0c29274918c95ca44a413bbcedba80567731e540f9b"
+  },
+  "adversarial_mutations_rejected": 7,
+  "restoration_disposition": "Initial cleanup observed asynchronous NetworkManager transition before convergence and left wlan2 power saving off. Read-only reconciliation established disconnected radios and cleared addresses; the unchanged frozen helper then completed authorized restoration, restoring both power-save settings. Original failure retained. Future helper waits at most 20 seconds for convergence without replaying mutations.",
+  "host": {
+    "boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+    "installed_pid": 1957,
+    "recovery_timer": "active and enabled",
+    "test_radios": "disconnected, power save on",
+    "namespace": "removed",
+    "chrony_fixture_access": "denied",
+    "ordinary_management": "wlan1 unchanged; Ethernet IPv6 used"
+  },
+  "pico_or_gp2_mutations_in_n0": false
+}

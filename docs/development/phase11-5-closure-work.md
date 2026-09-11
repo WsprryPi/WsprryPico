@@ -3,6 +3,9 @@
 Status: IN PROGRESS. Selected configuration remains physical PIO/DMA at 138 MHz,
 SRAM renderer. P3 passed its allocator-instrumented diagnostic; full A-G acceptance remains open.
 The accepted list is empty. This continuation does not erase any prior attempt.
+Current state: N0 is restored; the clean 6e2ddc9 candidate and
+[N1 lifecycle/management packet](phase11-5-device-fixture.md) are prepared.
+N1 authorization and full A-G execution/evidence review remain outstanding.
 
 ## Initial findings
 
@@ -183,3 +186,67 @@ state keeps ambiguous writes and unexpected boots blocked, reserves the final
 configuration write for original restoration, checks both core guards, and
 requires a separately armed owned restoration timer. They have not been staged
 or executed. The N0 host-only authorization does not configure a Pico.
+
+## Current source, fixture and adversarial disposition
+
+The final runtime pair is Pico `6e2ddc9e476986046de74d18cbcc3a2f6b64d142` and
+Pi application `fb0a2eb50c1ea1792324139412990341592db452`. Clean detached source
+snapshots avoid circular metadata-only pin changes. Both actual interoperability
+directions passed, including the eight-second idle session, unchanged 60-second
+scheduled wait, partial I/O, lost-reply replay, ownership and identity recovery.
+The Linux application built cleanly with ancillary GPIO excluded; its SHA-256
+is `08af5ad6dd21592a7ff90d898dd971a1e740cbb3836f65e74ba3816b960f4507`.
+It remains uninstalled and has not connected to a Pico in this stage.
+
+The [four final linked records](phase11-5-lifecycle-images.json) preserve ELF,
+map and UF2 identities. Physical network-on linker heap capacity is 218,408
+bytes; each stack reserves 16 KiB with a 4 KiB enforced reserve. Capacity and
+linked checks are not measured target headroom or contention acceptance. The
+prior 3eac6ec and 598a5ad artifacts remain private and are not substituted for
+this candidate. All 51 current host tests pass; earlier separate ASan/UBSan
+stack/worker and TSan worker runs pass. No runtime C/C++ change followed the
+final image freeze.
+
+N0 setup and four independent verifications succeeded. Its first cleanup
+checked NetworkManager before disconnected/address-removal convergence, then
+skipped the second radio's power-save restoration. Read-only reconciliation
+confirmed the transient state had settled and identified that remaining power
+setting. The unchanged frozen helper then completed the already-authorized
+restoration. Final independent checks show both test radios disconnected with
+power saving on, test namespace/addresses removed, chrony access denied, recovery
+timer active/enabled, and installed WsprryPi PID 1957/binary/INI unchanged. The
+future helper waits at most twenty seconds for convergence without replaying a
+mutation. Its cleanup/ownership/deadline/DNS tests pass.
+
+The [N0 result](phase11-5-network-fixture-result.json) retains both attempts.
+An independent auditor reconstructs final P0 Console and WTP bytes, frame CRCs,
+request/response identities and state. It also checks staged helper hashes and
+separate final host evidence. Seven corrupted evidence variants were rejected.
+A and B retain inhibited boots `e3634081a2c5844524ab64eb2afeab71` and
+`4e2fb851c08b278dd4b977104d2c2aaa`, respectively, empty/unowned/output false.
+No Pico configuration, firmware or GP2 operation occurred during N0.
+
+The next lifecycle restores only a known safe boot and original configuration;
+ambiguous writes and preserved firmware/RF faults block reset. Its journal
+verifier was repaired to reject a corrupt record instead of selecting an older
+configuration. Management now reuses one logical session, preserving the
+separate deliberate exhaustion case. The next fixture explicitly supplies
+`clock.phase115.test` without upstream DNS so time-server resolution is actually
+part of the workload; completed N0 used a numeric address.
+
+Pi's opt-in TLS observer passed eight concurrent mutual-TLS streams, complete
+plaintext reconstruction and six malformed-log variants. Its first loopback
+fixture omitted mutual client authentication and stopped at the required peer
+certificate check; the corrected mutual-TLS fixture passed. The production load
+driver was repaired so a raised exception cannot become a successful finish
+merely because its child exits zero. Scope/INI and exception-path regressions
+pass. Logging adds synchronous host work and remains part of the measured
+workload; a clean capture still requires independent rate and WTP wire audit.
+
+Repeat adversarial assessment found no further actionable source/evidence
+finding within this prepared scope. Physical N1 admission, exact per-case
+workload coordination, all A-G resource/contention results and their adversarial
+assessment remain open. Section 5 of the original request requires missing
+network/USB-management authorization; N0 explicitly excluded Pico control.
+The consolidated N1 packet is prepared locally and has not been staged/run.
+Existing flashing/RF authorization remains recorded.

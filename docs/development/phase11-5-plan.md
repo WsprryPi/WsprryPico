@@ -286,9 +286,11 @@ GP2 production output must execute the real PIO program, chained data DMA,
 finite zero-tail DMA and actual dual-core memory path. A pin override or dummy
 sink cannot qualify that path. No wspr5 GPIO4, GPSDO or comparator RF activation.
 
-Closure network fixture (N0 authorized and active; distinct from completed P2):
+Closure network fixture (N0 completed and restored; N1 authorization pending):
 the [bounded host fixture](phase11-5-network-fixture.md) has verified isolated AP/client
-setup and armed cleanup. The device/load campaign remains separate. Stage reviewed helpers and separately built production executable
+setup and completed cleanup after a retained failure and reconciliation. The
+[next N1 packet](phase11-5-device-fixture.md) uses a fresh bounded window and
+adds explicit device management and isolated clock DNS. The device/load campaign remains separate. Stage reviewed helpers and separately built production executable
 under a new private wspr5 directory. AP wlan0/client wlan2 with separate network
 and mount namespaces, NSS and Avahi; wlan1 remains ordinary management. Bind
 roles by MAC and verify Ethernet route before mutation. No NAT, forwarding or
@@ -296,7 +298,7 @@ test default route into the LAN. A second independent radio/cache case may
 temporarily move wlan1 only under its explicit packet. Save and restore the
 Wi-Fi recovery service/timer active state and original boot enablement.
 
-Closure production controller (not ready): use the actual Pi application with ancillary GPIO excluded,
+Closure production controller (clean binary and opt-in load driver prepared; target execution pending): use the actual Pi application with ancillary GPIO excluded,
 explicit WTP selection, separate INI and ports. Preserve singleton 1234. Either
 use the existing approved isolation arrangement after reinspection, or request
 a bounded installed-service pause only after authoritative provider inactivity

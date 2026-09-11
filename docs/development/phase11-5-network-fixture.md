@@ -1,6 +1,8 @@
 # Phase 11.5 N0 host network fixture
 
-Status: AUTHORIZED AND RUNNING; AP/client isolation and cleanup timer verified.
+Status: COMPLETED AND RESTORED after a preserved cleanup failure and reconciliation.
+The [audited result](phase11-5-network-fixture-result.json) includes both attempts,
+independent final host state and reconstructed final USB inventories.
 The frozen JSON packet retains its preparation-time status; current execution
 is recorded here and in the closure work log.
 This packet supplies the host fixture for the A-G matrix in
@@ -62,3 +64,8 @@ foreign-unit rejection, absent-unit handling, command deadlines and credential
 redaction. Actual setup and independent verification passed: AP/client routes,
 different namespace inodes, active cleanup timer, and unchanged installed service
 PID 1957 and INI hash. Final restoration evidence remains pending.
+
+N0 used a numeric NTP address and did not supply DNS. The next N1 packet
+explicitly opts into an isolated DNS record for the clock, with no upstream
+resolver, and uses a fresh six-hour fixture window. That option does not change
+the historical N0 packet or turn N0 into device-contention evidence.

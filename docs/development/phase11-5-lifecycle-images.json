@@ -1,0 +1,147 @@
+{
+  "schema": "phase11.5-linked-images-v1",
+  "source_revision": "6e2ddc9e476986046de74d18cbcc3a2f6b64d142",
+  "source_state": "clean at configure and build",
+  "accepted_configurations": [],
+  "scope": "Four linked artifacts; no target execution or resource/contention acceptance",
+  "images": [
+    {
+      "name": "WsprryPico",
+      "network_control": true,
+      "engine": "inhibited-standalone-simulator",
+      "system_clock_hz": 150000000,
+      "pio_divider": null,
+      "physical_execution": "NOT_RUN",
+      "files": [
+        {
+          "file": "WsprryPico.elf",
+          "sha256": "81cbf80c9c06760231a5f72b7b4a20370d9f20f8fcdb801c899973538d8f6263",
+          "bytes": 15027040
+        },
+        {
+          "file": "WsprryPico.elf.map",
+          "sha256": "00eb22aebbb99549f74936970e631d5e614b1d70c3ec1c84abc5c3c5deafd373",
+          "bytes": 2583988
+        },
+        {
+          "file": "WsprryPico.uf2",
+          "sha256": "822a7c28617592c28f4f03996b009a66ee32199816a467756b314abf63e41a71",
+          "bytes": 2016768
+        }
+      ],
+      "heap_capacity_bytes": 377540,
+      "core0_stack_reserved_bytes": 16384,
+      "core1_stack_reserved_bytes": 0,
+      "stack_reserve_bytes_per_active_core": 4096,
+      "linked_checks": {
+        "check_standalone_image.py": "RP2350: 16 KiB primary stack; heap and core-1 stack do not overlap it\nLinked FLASH ends at 0x103fb000; journals end below the reserved boot sector",
+        "check_heap_hooks.py": "{\"__wrap__calloc_r\": [\"calloc\", \"wsprry_heap_try_calloc\"], \"__wrap__free_r\": [\"__sflush_r\", \"__sfvwrite_r\", \"__swsetup_r\", \"_fclose_r\", \"_malloc_r\", \"_realloc_r\", \"free\", \"wsprry_heap_probe\"], \"__wrap__malloc_r\": [\"__sfvwrite_r\", \"__smakebuf_r\", \"_calloc_r\", \"_realloc_r\", \"malloc\", \"wsprry_heap_probe\"], \"__wrap__realloc_r\": [\"__sfvwrite_r\", \"realloc\"], \"_calloc_r\": [\"__wrap__calloc_r\"], \"_free_r\": [\"__wrap__free_r\"], \"_malloc_r\": [\"__wrap__malloc_r\"], \"_realloc_r\": [\"__wrap__realloc_r\"], \"mallinfo\": [\"__wrap__free_r\", \"__wrap_mallinfo\", \"leave\", \"wsprry_heap_snapshot\"]}",
+        "check_stack_guards.py": "{\"msplim_writers\": [\"runtime_init_per_core_install_stack_guard\"], \"scope\": \"Linked startup/readback routes only; inspect constants and target evidence separately\", \"startup_callers\": [\"runtime_init\"]}"
+      }
+    },
+    {
+      "name": "WsprryPico-StandaloneRF",
+      "network_control": true,
+      "engine": "pio-dma-gp2",
+      "system_clock_hz": 138000000,
+      "pio_divider": 1,
+      "physical_execution": "NOT_RUN",
+      "files": [
+        {
+          "file": "WsprryPico-StandaloneRF.elf",
+          "sha256": "2f45da4da39ec163330de3519f5e762e09a4c559061bdee8816e5b268379b6bd",
+          "bytes": 15270436
+        },
+        {
+          "file": "WsprryPico-StandaloneRF.elf.map",
+          "sha256": "0eb76120825acbbaf4bd18de37af7be12e83dad4d822d01164823ba2cb6df6c1",
+          "bytes": 2724011
+        },
+        {
+          "file": "WsprryPico-StandaloneRF.uf2",
+          "sha256": "ba74b33ec7fd7530a56cc679799d9f452f08d896d22930903ef8bba132387a4d",
+          "bytes": 2040320
+        }
+      ],
+      "heap_capacity_bytes": 218408,
+      "core0_stack_reserved_bytes": 16384,
+      "core1_stack_reserved_bytes": 16384,
+      "stack_reserve_bytes_per_active_core": 4096,
+      "linked_checks": {
+        "check_standalone_image.py": "RF worker: dedicated aligned 16 KiB BSS stack below the heap\nRP2350: 16 KiB primary stack; heap and core-1 stack do not overlap it\nLinked FLASH ends at 0x103fb000; journals end below the reserved boot sector",
+        "check_heap_hooks.py": "{\"__wrap__calloc_r\": [\"calloc\", \"wsprry_heap_try_calloc\"], \"__wrap__free_r\": [\"__sflush_r\", \"__sfvwrite_r\", \"__swsetup_r\", \"_fclose_r\", \"_malloc_r\", \"_realloc_r\", \"free\", \"wsprry_heap_probe\"], \"__wrap__malloc_r\": [\"__sfvwrite_r\", \"__smakebuf_r\", \"_calloc_r\", \"_realloc_r\", \"malloc\", \"wsprry_heap_probe\"], \"__wrap__realloc_r\": [\"__sfvwrite_r\", \"realloc\"], \"_calloc_r\": [\"__wrap__calloc_r\"], \"_free_r\": [\"__wrap__free_r\"], \"_malloc_r\": [\"__wrap__malloc_r\"], \"_realloc_r\": [\"__wrap__realloc_r\"], \"mallinfo\": [\"__wrap__free_r\", \"__wrap_mallinfo\", \"leave\", \"wsprry_heap_snapshot\"]}",
+        "check_stack_guards.py": "{\"msplim_writers\": [\"runtime_init_per_core_install_stack_guard\"], \"scope\": \"Linked startup/readback routes only; inspect constants and target evidence separately\", \"startup_callers\": [\"core1_wrapper\", \"runtime_init\"]}",
+        "check_rf_renderer.py": "{\"address\": \"0x200012d8\", \"bytes\": 670, \"checked_instructions\": 240, \"initialized_data_bytes\": 12904, \"placement\": \"ram\", \"worker_address\": \"0x2000b798\", \"worker_bytes\": 168800}"
+      }
+    },
+    {
+      "name": "WsprryPico",
+      "network_control": false,
+      "engine": "inhibited-standalone-simulator",
+      "system_clock_hz": 150000000,
+      "pio_divider": null,
+      "physical_execution": "NOT_RUN",
+      "files": [
+        {
+          "file": "WsprryPico.elf",
+          "sha256": "111a80123654eab545b19bee7cca0ff902dcbfe9fae7c03ed4223e80d43ca9a4",
+          "bytes": 14747392
+        },
+        {
+          "file": "WsprryPico.elf.map",
+          "sha256": "a97dc82e3b0abdbce5378f3e4d95e36ac1309d3d5762ffc71e0792ac83655ef0",
+          "bytes": 2575184
+        },
+        {
+          "file": "WsprryPico.uf2",
+          "sha256": "ce38198e6b23abf37110f8b6bf4d66f7ba558fdb841bc82cca31258a4eb9be96",
+          "bytes": 1969664
+        }
+      ],
+      "heap_capacity_bytes": 377600,
+      "core0_stack_reserved_bytes": 16384,
+      "core1_stack_reserved_bytes": 0,
+      "stack_reserve_bytes_per_active_core": 4096,
+      "linked_checks": {
+        "check_standalone_image.py": "RP2350: 16 KiB primary stack; heap and core-1 stack do not overlap it\nLinked FLASH ends at 0x103fb000; journals end below the reserved boot sector",
+        "check_heap_hooks.py": "{\"__wrap__calloc_r\": [\"calloc\"], \"__wrap__free_r\": [\"__sflush_r\", \"__sfvwrite_r\", \"__swsetup_r\", \"_fclose_r\", \"_malloc_r\", \"_realloc_r\", \"free\", \"wsprry_heap_probe\"], \"__wrap__malloc_r\": [\"__sfvwrite_r\", \"__smakebuf_r\", \"_calloc_r\", \"_realloc_r\", \"malloc\", \"wsprry_heap_probe\"], \"__wrap__realloc_r\": [\"__sfvwrite_r\", \"realloc\"], \"_calloc_r\": [\"__wrap__calloc_r\"], \"_free_r\": [\"__wrap__free_r\"], \"_malloc_r\": [\"__wrap__malloc_r\"], \"_realloc_r\": [\"__wrap__realloc_r\"], \"mallinfo\": [\"__wrap__free_r\", \"__wrap_mallinfo\", \"leave\", \"wsprry_heap_snapshot\"]}",
+        "check_stack_guards.py": "{\"msplim_writers\": [\"runtime_init_per_core_install_stack_guard\"], \"scope\": \"Linked startup/readback routes only; inspect constants and target evidence separately\", \"startup_callers\": [\"runtime_init\"]}"
+      }
+    },
+    {
+      "name": "WsprryPico-StandaloneRF",
+      "network_control": false,
+      "engine": "pio-dma-gp2",
+      "system_clock_hz": 138000000,
+      "pio_divider": 1,
+      "physical_execution": "NOT_RUN",
+      "files": [
+        {
+          "file": "WsprryPico-StandaloneRF.elf",
+          "sha256": "7d105af89a9f6a7af10aba8e76843ee58ec9f2098bd6a124f8396295639f587d",
+          "bytes": 14989180
+        },
+        {
+          "file": "WsprryPico-StandaloneRF.elf.map",
+          "sha256": "cc1e336c6f9fe3ac78bd63adb438fbadb19ad4e4a741250b085ade29d81287db",
+          "bytes": 2714856
+        },
+        {
+          "file": "WsprryPico-StandaloneRF.uf2",
+          "sha256": "909543fff257bd39d5a9f21b2f900359c9216b45a5c2747bfd8bda4ce41682d1",
+          "bytes": 1993216
+        }
+      ],
+      "heap_capacity_bytes": 218460,
+      "core0_stack_reserved_bytes": 16384,
+      "core1_stack_reserved_bytes": 16384,
+      "stack_reserve_bytes_per_active_core": 4096,
+      "linked_checks": {
+        "check_standalone_image.py": "RF worker: dedicated aligned 16 KiB BSS stack below the heap\nRP2350: 16 KiB primary stack; heap and core-1 stack do not overlap it\nLinked FLASH ends at 0x103fb000; journals end below the reserved boot sector",
+        "check_heap_hooks.py": "{\"__wrap__calloc_r\": [\"calloc\"], \"__wrap__free_r\": [\"__sflush_r\", \"__sfvwrite_r\", \"__swsetup_r\", \"_fclose_r\", \"_malloc_r\", \"_realloc_r\", \"free\", \"wsprry_heap_probe\"], \"__wrap__malloc_r\": [\"__sfvwrite_r\", \"__smakebuf_r\", \"_calloc_r\", \"_realloc_r\", \"malloc\", \"wsprry_heap_probe\"], \"__wrap__realloc_r\": [\"__sfvwrite_r\", \"realloc\"], \"_calloc_r\": [\"__wrap__calloc_r\"], \"_free_r\": [\"__wrap__free_r\"], \"_malloc_r\": [\"__wrap__malloc_r\"], \"_realloc_r\": [\"__wrap__realloc_r\"], \"mallinfo\": [\"__wrap__free_r\", \"__wrap_mallinfo\", \"leave\", \"wsprry_heap_snapshot\"]}",
+        "check_stack_guards.py": "{\"msplim_writers\": [\"runtime_init_per_core_install_stack_guard\"], \"scope\": \"Linked startup/readback routes only; inspect constants and target evidence separately\", \"startup_callers\": [\"core1_wrapper\", \"runtime_init\"]}",
+        "check_rf_renderer.py": "{\"address\": \"0x200012d8\", \"bytes\": 670, \"checked_instructions\": 240, \"initialized_data_bytes\": 12896, \"placement\": \"ram\", \"worker_address\": \"0x2000b790\", \"worker_bytes\": 168800}"
+      }
+    }
+  ]
+}

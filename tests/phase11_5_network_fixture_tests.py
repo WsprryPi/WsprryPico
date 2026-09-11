@@ -75,6 +75,7 @@ class FixtureTests(unittest.TestCase):
                 self.assertNotIn('secret-PSK', (self.root / 'fixture.jsonl').read_text())
 
     def test_cleanup_is_armed_and_intent_durable_before_first_mutation(self):
+        (self.root / 'packet.json').write_text('{}')
         commands = []
         def command(args, **kwargs):
             commands.append(args)
@@ -133,6 +134,53 @@ class FixtureTests(unittest.TestCase):
                 self.subject.cleanup()
         command.assert_any_call(['systemctl', 'start', 'pi-wifi-recover.timer'])
         self.assertFalse(self.subject.state.get('restored', False))
+
+    def test_network_manager_convergence_does_not_replay_mutations(self):
+        with patch.object(fixture.time, 'monotonic', side_effect=[0,1,2]), \
+                patch.object(fixture.time, 'sleep') as sleep, \
+                patch.object(self.subject, 'cmd') as command:
+            observations = iter([False,False,True])
+            self.subject.settle(lambda: next(observations), 'not restored')
+        self.assertEqual(sleep.call_count,2)
+        command.assert_not_called()
+
+    def test_failed_convergence_has_a_deadline(self):
+        with patch.object(fixture.time, 'monotonic', side_effect=[0,21]), \
+                patch.object(fixture.time, 'sleep') as sleep:
+            with self.assertRaisesRegex(ValueError,'not restored'):
+                self.subject.settle(lambda: False, 'not restored')
+        sleep.assert_not_called()
+
+    def test_dns_requires_opt_in_and_has_no_upstream_or_lan_route(self):
+        for enabled in (False,True):
+            with self.subTest(enabled=enabled),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);(root/'packet.json').write_text(json.dumps({'time_server_dns':enabled}))
+                subject=fixture.Fixture(root)
+                with patch.object(subject,'preflight',return_value=({'installed_pid':'1957'},{})), \
+                     patch.object(subject,'cmd',return_value=subprocess.CompletedProcess([],0,'','')), \
+                     patch.object(subject,'unit',side_effect=RuntimeError('stop before daemon activation')):
+                    with self.assertRaisesRegex(RuntimeError,'before daemon'):subject.setup()
+                lines=(root/'dnsmasq.conf').read_text().splitlines()
+                wifi=json.loads((root/'pico-wifi.json').read_text())
+                self.assertIn('dhcp-option=3',lines)
+                if enabled:
+                    self.assertIn('port=53',lines)
+                    self.assertIn('dhcp-option=6,10.77.15.1',lines)
+                    self.assertIn('no-hosts',lines);self.assertIn('no-resolv',lines)
+                    self.assertIn('except-interface=lo',lines)
+                    self.assertIn('address=/clock.phase115.test/10.77.15.1',lines)
+                    self.assertEqual(wifi['ntp_ipv4'],'clock.phase115.test')
+                else:
+                    self.assertIn('port=0',lines);self.assertIn('dhcp-option=6',lines)
+                    self.assertNotIn('no-resolv',lines)
+                    self.assertEqual(wifi['ntp_ipv4'],'10.77.15.1')
+
+    def test_dns_flag_must_be_boolean_before_first_mutation(self):
+        (self.root/'packet.json').write_text('{"time_server_dns":"yes"}')
+        with patch.object(self.subject,'preflight',return_value=({},{})), \
+             patch.object(self.subject,'cmd') as command:
+            with self.assertRaises(ValueError):self.subject.setup()
+            command.assert_not_called()
 
 
 if __name__ == '__main__':
