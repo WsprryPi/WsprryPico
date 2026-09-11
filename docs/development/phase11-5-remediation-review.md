@@ -118,6 +118,26 @@ passed three tests in 98.28 seconds, including the actual scheduled wait.
 The macOS actual second-address rebind skip remains a Linux gate.
 Clean artifact/control builds and companion results are recorded separately.
 
+Clean source `0d9bb44a6b91679bd174c39ac068d5d9cc74e9c5` then built all four
+standard/physical network variants and a network-off flash-renderer control.
+All five passed linked layout checks. The physical SRAM variants passed complete
+renderer checks; the flash control passed its flash expectation and correctly
+failed a RAM expectation. [Exact hashes](phase11-5-remediation-images.json) bind
+all ELF/UF2/map artifacts, preserved privately under
+`build/phase11-5/artifacts/0d9bb44a6b91` before build-directory reuse.
+
+Physical linked heap capacity is 218,732 bytes with networking and 218,784
+without it. Compared with 713cb16's matching SRAM-data footprint, the renderer
+adds 672 bytes including alignment; this is linked capacity, not measured free
+heap. Standard inhibited images remain 377,832/377,892 bytes. The 670-byte
+renderer and its 112-byte compiler frame still require target resource checks.
+
+Pi's actual-server fixture passed against clean Pico 0d9bb44, including its
+60-second wait. Its first invocation used the repository root and found no Make
+target; the documented src invocation passed. The macOS address-rebind skip is
+retained. Companion production code did not change. The [P2 packet](phase11-5-remediation-pilot.md)
+is frozen and awaits separate authorization; repository approval is not RF authority.
+
 Fresh P0 reads verified A revision 802c91a7b86e-dirty, boot
 4571042e06f139bc185e862482082291, and B revision dbf1d86f0885-dirty, boot
 4e2fb851c08b278dd4b977104d2c2aaa. Both were empty, unowned, output false, without

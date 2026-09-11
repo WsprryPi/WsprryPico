@@ -1,0 +1,67 @@
+{
+  "schema": "phase11.5-pilot-v2",
+  "serial": "0BF4B4AEC9FFB344",
+  "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+  "system_clock_hz": 138000000,
+  "revision": "0d9bb44a6b91",
+  "source_revision": "0d9bb44a6b91679bd174c39ac068d5d9cc74e9c5",
+  "uf2_sha256": "abb92721dbcdb0c96909b4f5c23aa680733ba4509aaf02ee9d7214c4af8f1247",
+  "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+  "helper_sha256": {
+    "docs/protocol/wtp-1.schema.json": "fae1a7f94adb875733f47f22438a0811a3ab7fd9e4b8477780aea77cad62c8a8",
+    "scripts/phase11_5_inventory.py": "b29862b1acfdbcedb0704036b201a6ba8605af695aeff1f887e598b22aee4afd",
+    "scripts/phase11_5_pilot.py": "bb91dc6fea9fb10e7564252810b534979a1f28b36de132745d100f388c3003c4",
+    "scripts/phase11_5_pilot_supervisor.py": "dbf97a316ebe02eb27f90d838ce70c468b75abc38749a7af3f6911beab8dd9e7",
+    "scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+    "scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9"
+  },
+  "jobs": [
+    {
+      "job_id": "75ea80a046594a909168b3c8af0b711d",
+      "profile": "rf-events/1",
+      "mode": "tone",
+      "total_duration_ns": "10000000000",
+      "allow_frequency_adjustment": true,
+      "events": [
+        {
+          "offset_ns": "0",
+          "duration_ns": "10000000000",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        }
+      ]
+    },
+    {
+      "job_id": "ea0d5a2b06e74806a8500e96705a539f",
+      "profile": "rf-events/1",
+      "mode": "tone",
+      "total_duration_ns": "10000000000",
+      "allow_frequency_adjustment": true,
+      "events": [
+        {
+          "offset_ns": "0",
+          "duration_ns": "10000000000",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        }
+      ]
+    },
+    {
+      "job_id": "bf691b6fdf6841798c36d6734b93a273",
+      "profile": "rf-events/1",
+      "mode": "tone",
+      "total_duration_ns": "10000000000",
+      "allow_frequency_adjustment": true,
+      "events": [
+        {
+          "offset_ns": "0",
+          "duration_ns": "10000000000",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        }
+      ]
+    }
+  ],
+  "helper_source_revision": "0d9bb44a6b91679bd174c39ac068d5d9cc74e9c5",
+  "rf_render_in_ram": true
+}

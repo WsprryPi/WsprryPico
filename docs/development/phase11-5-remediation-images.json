@@ -1,0 +1,140 @@
+[
+  {
+    "source_revision": "0d9bb44a6b91679bd174c39ac068d5d9cc74e9c5",
+    "network_control": "on",
+    "target": "WsprryPico",
+    "configured_system_clock_hz": 150000000,
+    "rf_render_in_ram": null,
+    "heap_capacity_bytes": 377832,
+    "physical_status": "NOT_FLASHED_NOT_ACCEPTED",
+    "artifacts": {
+      "elf": {
+        "sha256": "c1999adf874156936695b8339f012a6253050cde7c7daed28aa8856ac9b03727",
+        "bytes": 14990608
+      },
+      "uf2": {
+        "sha256": "c6debe63a03eacc61dea78fbd4eb88f6a7ea9457d1300a85104eaa5a05d5cbca",
+        "bytes": 2011136
+      },
+      "map": {
+        "sha256": "508c5f2e55525983f3abca299890a3038c170809a1a8ce9682aeb9307b8e8f56",
+        "bytes": 2578293
+      }
+    }
+  },
+  {
+    "source_revision": "0d9bb44a6b91679bd174c39ac068d5d9cc74e9c5",
+    "network_control": "on",
+    "target": "WsprryPico-StandaloneRF",
+    "configured_system_clock_hz": 138000000,
+    "rf_render_in_ram": true,
+    "heap_capacity_bytes": 218732,
+    "physical_status": "NOT_FLASHED_NOT_ACCEPTED",
+    "artifacts": {
+      "elf": {
+        "sha256": "cef162c360ba20be2f96c6943a20d1067f0f1989f626ab20c5a20a9dcae87ce9",
+        "bytes": 15228948
+      },
+      "uf2": {
+        "sha256": "abb92721dbcdb0c96909b4f5c23aa680733ba4509aaf02ee9d7214c4af8f1247",
+        "bytes": 2033664
+      },
+      "map": {
+        "sha256": "d42a393a9cc52dd5278156a8be5cd079fc0ab82af95d80360ef31d8795856406",
+        "bytes": 2717372
+      }
+    },
+    "renderer": {
+      "placement": "ram",
+      "address": "0x20001200",
+      "bytes": 670,
+      "initialized_data_bytes": 12680,
+      "worker_address": "0x2000b698",
+      "worker_bytes": 168800,
+      "checked_instructions": 240
+    }
+  },
+  {
+    "source_revision": "0d9bb44a6b91679bd174c39ac068d5d9cc74e9c5",
+    "network_control": "off",
+    "target": "WsprryPico",
+    "configured_system_clock_hz": 150000000,
+    "rf_render_in_ram": null,
+    "heap_capacity_bytes": 377892,
+    "physical_status": "NOT_FLASHED_NOT_ACCEPTED",
+    "artifacts": {
+      "elf": {
+        "sha256": "2e03e33f714c4ad7354a4f3bd38b5108f0ff7d3fbd74344c4902e39bb0146f89",
+        "bytes": 14711056
+      },
+      "uf2": {
+        "sha256": "7a42af4e7cc70b84d46fed192cadefcd0028ff27a93a5bb68b103371d54df3dc",
+        "bytes": 1964544
+      },
+      "map": {
+        "sha256": "afed52c195edd98385482abcb2905723a193d2933bb556e10c1b3b5ef2aa27ed",
+        "bytes": 2569515
+      }
+    }
+  },
+  {
+    "source_revision": "0d9bb44a6b91679bd174c39ac068d5d9cc74e9c5",
+    "network_control": "off",
+    "target": "WsprryPico-StandaloneRF",
+    "configured_system_clock_hz": 138000000,
+    "rf_render_in_ram": true,
+    "heap_capacity_bytes": 218784,
+    "physical_status": "NOT_FLASHED_NOT_ACCEPTED",
+    "artifacts": {
+      "elf": {
+        "sha256": "3e274634636d1fe8a99a8f7c6ba133a812c99038be0bab66d20538c3815f8b55",
+        "bytes": 14947796
+      },
+      "uf2": {
+        "sha256": "b7e2400dbc07f900428c14dbd72dec10345ca97eb86918b7ec7eb961e5071e46",
+        "bytes": 1986560
+      },
+      "map": {
+        "sha256": "2800e198efa88cb578ef600311c1b2397f616941f26cbd9e230bfbb56a3b985d",
+        "bytes": 2708165
+      }
+    },
+    "renderer": {
+      "placement": "ram",
+      "address": "0x20001200",
+      "bytes": 670,
+      "initialized_data_bytes": 12672,
+      "worker_address": "0x2000b690",
+      "worker_bytes": 168800,
+      "checked_instructions": 240
+    }
+  },
+  {
+    "source_revision": "0d9bb44a6b91679bd174c39ac068d5d9cc74e9c5",
+    "network_control": "off",
+    "target": "WsprryPico-StandaloneRF",
+    "configured_system_clock_hz": 138000000,
+    "rf_render_in_ram": false,
+    "heap_capacity_bytes": 219456,
+    "physical_status": "NOT_FLASHED_NOT_ACCEPTED",
+    "artifacts": {
+      "elf": {
+        "sha256": "bb80471335278337fc38ea6c3412363310a1e1526bd4ff2b3f0006a55ed7a6cc",
+        "bytes": 14946980
+      },
+      "uf2": {
+        "sha256": "9b32181f37758af6f75f48340638407ba7cc0731db35e0c4d0226831f04aa093",
+        "bytes": 1986560
+      },
+      "map": {
+        "sha256": "e0ed2f7c3ad94f02d684ee9661658680eaf59aff0c2bb99c2d2b3c6b1e69a7d4",
+        "bytes": 2708159
+      }
+    },
+    "renderer": {
+      "placement": "flash",
+      "address": "0x1005a4d4",
+      "bytes": 564
+    }
+  }
+]
