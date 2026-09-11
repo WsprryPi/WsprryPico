@@ -1,5 +1,6 @@
 #include "tusb.h"
 #include "usb/roles.h"
+#include "usb/reply_priority.hpp"
 #include "usb/transport.hpp"
 #include "wtp/frame_parser.hpp"
 
@@ -42,6 +43,9 @@ void open(unsigned port) {
 extern "C" bool tud_cdc_n_connected(std::uint8_t p) {
     return ports.at(p).connected;
 }
+extern "C" std::uint32_t tud_cdc_n_write_available(std::uint8_t p) {
+    return CFG_TUD_CDC_TX_BUFSIZE - ports.at(p).pending.size();
+}
 extern "C" std::uint32_t tud_cdc_n_write(std::uint8_t p, const void* data, std::uint32_t n) {
     auto& port = ports.at(p);
     auto count = std::min<std::size_t>(n, port.capacity - port.pending.size());
@@ -77,6 +81,21 @@ extern "C" void tud_cdc_n_read_flush(std::uint8_t p) {
 int main() {
     using namespace wsprrypico::usb;
     reset();
+    ReplyPriority priority;
+    CHECK(!priority.defer_handshake(0, false));
+    CHECK(priority.defer_handshake(1, true));
+    CHECK(priority.defer_handshake(100'000, true));
+    CHECK(!priority.defer_handshake(100'001, true));
+    CHECK(!priority.defer_handshake(900'000, false));
+    CHECK(!priority.defer_handshake(900'001, true));
+    CHECK(priority.defer_handshake(1'000'001, true));
+    CHECK(!priority.defer_handshake(1'100'001, true));
+    ReplyPriority wrapped;
+    CHECK(wrapped.defer_handshake(UINT64_MAX - 50'000, true));
+    CHECK(wrapped.defer_handshake(0, true));
+    CHECK(!wrapped.defer_handshake(50'000, true));
+    CHECK(wrapped.defer_handshake(1'000'000, true));
+    CHECK(!console_output_pending());
     const std::array<std::uint8_t, 5> binary{0, 255, 10, 13, 128};
     CHECK(!console_write("offline"));
     CHECK(wtp_transport_write(binary) == 0);
@@ -88,10 +107,16 @@ int main() {
     const std::string banner = "WsprryPico\r\n" + std::string(600, 'x') + " UTF-8: π\r\n";
     ports[0].capacity = 7;
     CHECK(console_write(banner));
+    CHECK(console_output_pending());
     for (unsigned i = 0; i < (kConsoleCapacity + 12) / 13 + 1; ++i)
         service();
     CHECK(std::string(ports[0].delivered.begin(), ports[0].delivered.end()) == banner);
     CHECK(ports[1].delivered.empty());
+    CHECK(!console_output_pending());
+    // Software queue empty, but TinyUSB still has a packet to drain.
+    ports[0].pending.push_back('x');
+    CHECK(console_output_pending());
+    ports[0].pending.clear();
     ports[1].capacity = 2;
     std::size_t sent = 0;
     while (sent < binary.size()) {

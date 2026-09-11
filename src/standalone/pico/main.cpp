@@ -15,6 +15,7 @@
 #include "standalone/heap_probe.hpp"
 #include "standalone/wtp_profile.hpp"
 #include "tusb.h"
+#include "usb/reply_priority.hpp"
 #include "usb/transport.hpp"
 #include "wtp/codec.hpp"
 #include "wtp/endpoint.hpp"
@@ -441,9 +442,13 @@ int main() {
                                    network_state != wsprrypico::wtp::State::Running))
             network.poll();
         service.poll();
+        static wsprrypico::usb::ReplyPriority reply_priority;
+        const bool allow_handshake_steps = !reply_priority.defer_handshake(
+            time_us_64(), wsprrypico::usb::console_output_pending());
         server.poll(network.link_up(),
                     network.ipv4() +
-                        (server.port() == 443 ? "" : ":" + std::to_string(server.port())));
+                        (server.port() == 443 ? "" : ":" + std::to_string(server.port())),
+                    allow_handshake_steps);
         service.poll();
         watchdog_hw->scratch[1] = 5;
 #ifdef WSPRRY_PICO_STANDALONE_RF

@@ -16,6 +16,7 @@ constexpr std::size_t kServiceBytes = 64;
 // Never call from IRQ, another core, or timing-critical code.
 void service();
 bool console_connected();
+bool console_output_pending();
 bool wtp_connected();
 // Consume a session-reset notification, including a close/open between polls.
 bool take_wtp_reset();

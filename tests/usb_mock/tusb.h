@@ -1,7 +1,9 @@
 #pragma once
 #include <cstdint>
+#define CFG_TUD_CDC_TX_BUFSIZE 64
 extern "C" {
 bool tud_cdc_n_connected(std::uint8_t);
+std::uint32_t tud_cdc_n_write_available(std::uint8_t);
 std::uint32_t tud_cdc_n_write(std::uint8_t, const void*, std::uint32_t);
 std::uint32_t tud_cdc_n_read(std::uint8_t, void*, std::uint32_t);
 std::uint32_t tud_cdc_n_write_flush(std::uint8_t);

@@ -61,6 +61,10 @@ void service() {
 bool console_connected() {
     return connected[USB_CDC_CONSOLE];
 }
+bool console_output_pending() {
+    return console_connected() &&
+           (size != 0 || tud_cdc_n_write_available(USB_CDC_CONSOLE) < CFG_TUD_CDC_TX_BUFSIZE);
+}
 bool wtp_connected() {
     return connected[USB_CDC_WTP];
 }

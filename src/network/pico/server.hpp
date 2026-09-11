@@ -18,7 +18,7 @@ class PicoServer {
     PicoServer& operator=(const PicoServer&) = delete;
     bool start();
     void stop();
-    void poll(bool link_up, std::string authority);
+    void poll(bool link_up, std::string authority, bool allow_handshake_steps = true);
     bool listening() const {
         return listener_ != nullptr;
     }
@@ -43,7 +43,7 @@ class PicoServer {
     struct Connection {
         Connection(PicoServer&, std::string device, std::string firmware);
         void activate(tcp_pcb*);
-        void poll(std::string_view authority);
+        void poll(std::string_view authority, bool allow_handshake_steps);
         void close(bool apply = false);
         static err_t receive(void*, tcp_pcb*, pbuf*, err_t);
         static void error(void*, err_t);

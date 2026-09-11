@@ -232,6 +232,16 @@ try:
                     if response.get('request_id') == request_id: return response
         ask.sequence = 0
         assert ask('HELLO',{'versions':['WTP/1'],'client_name':'TLS test','client_version':'1'})['ok']
+        # Deferring expensive handshake steps leaves the established WTP owner
+        # responsive, and the paused handshake resumes without a reconnect.
+        control('HANDSHAKE PAUSE')
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            waiting = pool.submit(http)
+            time.sleep(.1)
+            assert not waiting.done(), 'Handshake progressed while paused'
+            assert ask('STATUS')['ok']
+            control('HANDSHAKE RESUME')
+            assert waiting.result(timeout=5)[0] == 200
         # Persistent WTP remains negotiated while independent certificates read HTTP.
         for _ in range(8):
             assert http(identity='other')[0] == 200
