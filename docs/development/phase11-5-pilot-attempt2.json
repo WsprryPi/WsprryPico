@@ -1,0 +1,101 @@
+{
+  "schema": "phase11.5-pilot-attempt-v1",
+  "attempt": "P1b",
+  "result": "FAIL_REFILL_RESERVE_AND_DEVICE_FAULT",
+  "clock_hz": 138000000,
+  "firmware_revision": "ce1c339a976e795e90c38c4a57578f9c8ed75615",
+  "uf2_sha256": "b9af965a012e1dcbad6310b36285fe386a89218ccf2fe9c263afaf84bfec356c",
+  "packet_sha256": "2ce6fc5e63b835efe120f3dd8c106d6e6a3a0d211fcddd44a7584e2886c8dd7d",
+  "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+  "boot_id": "dd156859a9a87dc6d0fcd161bb30518d",
+  "job_id": "ec30945b745c408d950b46d48f0cbd38",
+  "load_commands": 1,
+  "arm_commands": 1,
+  "nominal_job_duration_ns": "10000000000",
+  "rf_duration_measurement": "No independent electrical measurement; failed finite job and tail telemetry only",
+  "remaining_jobs_not_submitted": 2,
+  "full_buffer_period_ns": [
+    262144000,
+    69
+  ],
+  "full_reserve": {
+    "measured": true,
+    "observations": 2631,
+    "epoch": "1",
+    "successor_sequence": "230",
+    "observed_ns": "19581593000",
+    "remaining_words": 1910,
+    "total_words": 16384
+  },
+  "short_reserve": {
+    "measured": true,
+    "observations": 1,
+    "epoch": "1",
+    "successor_sequence": "2633",
+    "observed_ns": "28707734000",
+    "remaining_words": 2109,
+    "total_words": 2312
+  },
+  "metrics": {
+    "dma_irqs": 2634,
+    "tail_irqs": 1,
+    "alarm_irqs": 1,
+    "dma_errors": 0,
+    "refill_irq_pairs": 2632,
+    "refill_irq_unpaired": 0,
+    "refill_invalid_reserves": 0,
+    "running_successor_links": 2632,
+    "exhausted_successor_links": 0,
+    "max_refill_irq_to_ready_ns": "3352000",
+    "max_dma_irq_ns": 66000,
+    "max_alarm_irq_ns": "192000",
+    "rf_max_service_gap_ns": "3577000",
+    "rf_max_poll_ns": "3342000",
+    "rf_max_probe_ns": "285000",
+    "core0_stack_used_bytes": 7504,
+    "core1_stack_used_bytes": 5568,
+    "heap_allocated_bytes": 20612,
+    "heap_sampled_peak_bytes": 20612,
+    "heap_capacity_bytes": 219420,
+    "launch_observed_ns": "18708224000",
+    "launch_target_ns": "18708218000"
+  },
+  "status": {
+    "boot_id": "dd156859a9a87dc6d0fcd161bb30518d",
+    "state": "failed",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": "ec30945b745c408d950b46d48f0cbd38",
+    "terminal_records": [
+      {
+        "job_id": "ec30945b745c408d950b46d48f0cbd38",
+        "state": "failed",
+        "ended_monotonic_ns": "28708219000",
+        "output_active": false,
+        "error": {
+          "code": "DEVICE_FAULT",
+          "message": "DEVICE_FAULT",
+          "retryable": false
+        }
+      }
+    ]
+  },
+  "comparator": {
+    "revision": "dbf1d86f0885-dirty",
+    "status": {
+      "boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+      "state": "empty",
+      "output_active": false,
+      "owner_id": null,
+      "job_id": null,
+      "terminal_records": []
+    }
+  },
+  "evidence_sha256": {
+    "p1b-evidence.tar": "91a3584161e1e9d23388b1368afba29c74e023fb4a3dc92d28b906b9cb90e4e1",
+    "p1b-reconcile-a.jsonl": "d7ae5db4945eeabca5b017cddffd8f4cbfc2f92362c829f921230a09be5d64ed",
+    "p1b-reconcile-b.jsonl": "2b5588ad2f74239c2ce6091602a551aef2fad53de57c941fefc337e84bb8956c"
+  },
+  "restoration": "BLOCKED_BY_PRESERVED_FAILED_STATE; separate recovery packet pending",
+  "acceptance": "NONE"
+}

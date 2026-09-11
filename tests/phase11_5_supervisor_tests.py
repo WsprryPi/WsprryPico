@@ -11,6 +11,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from phase11_5_pilot_supervisor import finished, restoration_admitted, verify_application_backup
+from phase11_5_recover import admission, BOOT, JOB
 
 
 def inventory(boot, revision, engine):
@@ -25,6 +26,29 @@ def inventory(boot, revision, engine):
 
 
 class SupervisorTests(unittest.TestCase):
+    def test_fault_recovery_requires_exact_preserved_inactive_fault(self):
+        original = inventory("a" * 32, "original", "inhibited-standalone-simulator")
+        comparator = inventory("b" * 32, "comparator", "inhibited-standalone-simulator")
+        current = inventory(BOOT, "ce1c339a976e", "pio-dma-gp2")
+        current["info"]["device_id"] = "fd6127d11d6aca42a9905fa3fb1bf1d5"
+        current["info"]["status"].update(boot_id=BOOT, state="failed")
+        current["wtp"]["STATUS"].update(state="failed", job_id=JOB, terminal_records=[
+            dict(job_id=JOB, state="failed", output_active=False, error=dict(code="DEVICE_FAULT"))])
+        admission(current, original, comparator, comparator)
+        for path, value in ((('wtp', 'STATUS', 'output_active'), True),
+                            (('wtp', 'STATUS', 'state'), 'running'),
+                            (('wtp', 'STATUS', 'owner_id'), 'd' * 32),
+                            (('wtp', 'STATUS', 'boot_id'), 'e' * 32),
+                            (('wtp', 'STATUS', 'job_id'), 'f' * 32),
+                            (('info', 'system_clock_hz'), 150000000),
+                            (('info', 'status', 'enabled'), True)):
+            altered = copy.deepcopy(current)
+            target = altered
+            for key in path[:-1]: target = target[key]
+            target[path[-1]] = value
+            with self.assertRaises(ValueError):
+                admission(altered, original, comparator, comparator)
+
     def test_host_evidence_uses_64_bit_timestamps_and_complete_records(self):
         rows = [dict(sequence=i, kind=kind, utc_ns=1789130169102617537 + i,
                      monotonic_ns=74669953165628 + i, value=dict(result="DONE"))

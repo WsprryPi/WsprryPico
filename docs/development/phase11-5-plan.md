@@ -1,6 +1,8 @@
 # Phase 11.5 target resources and contention
 
-Status: **OPEN; instrumentation and campaign preparation. P0 read-only inventory completed; no flash, jobs or RF campaign executed.**
+Status: **OPEN; the 138 MHz P1b physical pilot failed.** See the
+[preserved result](phase11-5-pilot-attempt2.json). P0 reconciliation confirms
+inactive output; Pico A's failed state awaits separately authorized restoration.
 This is the joint implementation and acceptance plan, coordinated by Pico.
 The [review](phase11-5-review.md) records findings and executed checks. Phase 11.4
 is [closed within its inhibited matrix](phase11-4-controlled-soak-run.md).
@@ -23,7 +25,7 @@ User-confirmed division on September 11, 2026:
 
 | PIO clock | Selection for this campaign | 11.5 accepted configurations |
 | --- | --- | --- |
-| 138 MHz | Selected candidate for 11.6 | None yet; physical checks pending |
+| 138 MHz | Selected candidate for 11.6 | None; P1b pilot failed, full checks pending |
 | 132 MHz | Not selected | Untested for 11.5 |
 | 150 MHz | Not selected | Untested for physical 11.5; inhibited 150 MHz evidence is separate |
 

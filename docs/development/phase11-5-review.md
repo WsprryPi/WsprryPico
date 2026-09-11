@@ -165,3 +165,45 @@ also accepted the actual completed inventory and rejected both failed stage logs
 The unchanged firmware and finite jobs need no rebuild for this host-only repair.
 A revised helper-hash packet and a new unit/evidence directory are required; the
 original frozen packet will not be rerun automatically. No clock is accepted.
+
+
+## P1b physical failure, 138 MHz
+
+The tested host-only repair continued the still-unperformed authorized P1
+operations with the same firmware and three job IDs. Full flash backup matched
+the original application payload; the candidate loaded and read back clean
+ce1c339a976e, 138 MHz and pio-dma-gp2, with preserved configuration.
+
+Exactly one LOAD and ARM were submitted. INFO stopped the controller when
+full-block reserve fell to 1,910/16,384 words (11.6577%), below the frozen 25%
+requirement. This represents about 442,898.6 ns of DMA-word reserve at 138 MHz,
+excluding FIFO/OSR and observation delay. The other two jobs were never submitted.
+After the finite execution, P0 readback reported the same boot, Failed with
+DEVICE_FAULT, no owner and explicit output false. Pico B remained on its original
+inhibited image and boot, empty/unowned/inactive.
+
+Final target counters show 2,634 DMA IRQs, one launch, one tail IRQ, 2,632 matched
+running refills, no unpaired/invalid/exhausted links and no DMA error flag. The
+maximum service gap was 3,577,000 ns versus the frozen 2,849,391 ns limit; maximum
+poll was 3,342,000 ns and matched IRQ-to-ready maximum 3,352,000 ns. These overlap
+and are not added. Short predecessor reserve was 2,109/2,312 words. Zero DMA error
+flags and a tail IRQ do not override the failed terminal state or prove RF
+continuity. Independent observer coverage ended at the threshold failure.
+
+Canary readbacks were 7,504 bytes on core 0 and 5,568 bytes on core 1; sampled heap
+peak 20,612 of 219,420 linked bytes. These are limited observations, not stack
+allowances, allocator transient peaks or an accepted memory envelope. The core-1
+metric probe maximum was 285,000 ns.
+
+Launch register observation was 6,000 ns after its requested local target. The
+terminal fault timestamp was only 1,000 ns after nominal job end. Source review
+finds that StreamEngine permits 100 microseconds for final IRQ acknowledgement,
+while JobService forces failure at nominal end. This is a plausible terminal
+race requiring a deterministic regression; it is not yet proven to be the sole
+physical fault cause, and it does not explain away the refill-margin failure.
+
+All raw evidence and backup remain private and hashed in
+[attempt 2](phase11-5-pilot-attempt2.json). The successful-pilot-only restorer
+correctly refused flashing. A separate [recovery packet](phase11-5-recovery.md)
+requires authorization for the exact preserved inactive fault. No fault was
+cleared, no job retried and no threshold relaxed. Phase 11.5 remains OPEN.
