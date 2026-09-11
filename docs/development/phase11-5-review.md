@@ -143,3 +143,25 @@ ran the test. Neither attempt opened hardware.
 The exact P1 bundle passed image/packet validation on wspr5 without `--run`.
 This staging result is not physical acceptance. All nine acceptance gates remain
 open and the accepted clock/configuration list remains empty.
+
+
+## P1 host failure and repair
+
+The user authorized the frozen P1 packet. Its unit started but failed after the
+first successful read-only Pico A inventory: `finished()` applied WTP's signed
+32-bit JSON-number rule to host nanosecond timestamps. ExecStopPost rejected the
+same envelope. Neither stage reached BOOTSEL, backup, flashing or a job request.
+The original files, unit failure and hashes are preserved in the
+[attempt record](phase11-5-pilot-attempt1.json); this was not a physical test pass.
+
+Fresh P0 reconciliation confirmed both original firmware revisions and boots,
+empty/unowned state, no terminal jobs and explicit output false. The corrected
+host reader accepts unsigned 64-bit envelope timestamps while retaining
+duplicate-key, float/nonfinite, start/finish, sequence, timestamp-order and final
+newline checks. WTP frame parsing is unchanged. Four supervisor tests and six
+pilot tests passed, including the original wide timestamp. The repaired reader
+also accepted the actual completed inventory and rejected both failed stage logs.
+
+The unchanged firmware and finite jobs need no rebuild for this host-only repair.
+A revised helper-hash packet and a new unit/evidence directory are required; the
+original frozen packet will not be rerun automatically. No clock is accepted.

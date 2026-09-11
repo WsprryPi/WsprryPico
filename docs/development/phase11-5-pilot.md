@@ -1,6 +1,6 @@
 # Phase 11.5 P1 instrumentation pilot
 
-Status: **READY FOR AUTHORIZATION; not authorized or executed.** This packet establishes an
+Status: **P1 FAILED BEFORE FLASH; revised helper packet pending.** This packet establishes an
 initial physical instrumentation observation before the full A-G campaign. It
 does not accept a clock configuration, heap envelope or conducted RF quality.
 The [joint plan](phase11-5-plan.md) and [register](phase11-5-register.json) remain
@@ -149,7 +149,8 @@ The prepared launch is one `sudo -n systemd-run` for unit
 `/usr/bin/python3 /tmp/phase11-5-p1-ce1c339/scripts/phase11_5_pilot_supervisor.py restore --packet /tmp/phase11-5-p1-ce1c339/packet.json --candidate /tmp/phase11-5-p1-ce1c339/candidate.uf2 --restoration /tmp/phase11-5-p1-ce1c339/restoration.uf2 --evidence /tmp/phase11-5-p1-ce1c339/evidence --run`
 
 ExecStart uses the identical arguments with `start` replacing `restore`.
-No command containing `--run` has been executed for P1. Authorization must cover
+The original P1 unit ran and failed before BOOTSEL or RF; see the preserved
+[attempt record](phase11-5-pilot-attempt1.json). Any revised authorization covers
 both guarded flash operations, the three finite RF jobs, read-only inventories,
 flash backup, and this new bounded transient supervisor. P0 readback approval
 alone does not authorize P1.

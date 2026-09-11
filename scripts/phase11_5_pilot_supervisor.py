@@ -17,7 +17,7 @@ import time
 
 from phase11_5_inventory import exclusive_port, exchange, require
 from phase11_5_pilot import DEVICE, SERIAL, validate_packet
-from validate_wtp_contract import loads_strict
+from validate_wtp_contract import loads_strict, unique_object, reject_float, reject_constant
 
 B_SERIAL = "CDDBF8767C506C07"
 B_DEVICE = "29f20b7342051ef947aa56cb9d4fab42"
@@ -55,7 +55,19 @@ def verify_application_backup(uf2, backup):
 
 
 def finished(path, result):
-    rows = [loads_strict(line) for line in path.read_text().splitlines()]
+    # Host evidence envelopes contain 64-bit nanosecond timestamps. WTP's
+    # signed-32-bit JSON integer rule applies to wire messages, not these logs.
+    source = path.read_text()
+    require(source.endswith("\n"), "truncated evidence record")
+    rows = [json.loads(line, object_pairs_hook=unique_object, parse_float=reject_float,
+                       parse_constant=reject_constant) for line in source.splitlines()]
+    require(rows and rows[0]["kind"] == "start", "missing evidence start")
+    for row in rows:
+        require(type(row["sequence"]) is int and all(type(row[key]) is int and
+                0 <= row[key] < 1 << 64 for key in ("utc_ns", "monotonic_ns")),
+                "invalid host evidence envelope")
+    require(all(a["monotonic_ns"] <= b["monotonic_ns"] for a, b in zip(rows, rows[1:])),
+            "host evidence time reversed")
     require(rows and rows[-1]["kind"] == "finish" and rows[-1]["value"]["result"] == result,
             "missing successful finish marker")
     require([row["sequence"] for row in rows] == list(range(len(rows))), "incomplete log sequence")
