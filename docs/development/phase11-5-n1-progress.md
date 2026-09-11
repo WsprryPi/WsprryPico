@@ -325,3 +325,23 @@ regression exercises actual A3 and F1 prerequisite admission and reproduces both
 wrong labels before the repair; both pass with distinct prerequisite/case names.
 The corrected attempt uses a fresh supervisor/manifest. Firmware, boot, retained
 history and A2 evidence remain unchanged.
+
+
+The `observer-progress-v2` A3 attempt reached Running, then stopped because the
+browser load exceeded its existing one-second status lateness bound. At 48.861
+seconds into N, it started a 2.508-second asset request with 1.139 seconds before
+the next poll. Earlier requests had already demonstrated asset costs up to
+2.934 seconds. This is a load-scheduler failure, distinct from the prior INFO
+freshness guard. One new job, `414173f362488c61a76db612847f4ff6`, completed;
+authoritative reads confirmed inactive output, no owner and no firmware fault.
+Maximum worker service gap was 2,060,000 ns, full reserve 7,485/16,384 and short
+reserve 2,103/2,312. The exact completed job was released after reconciliation,
+retaining both terminal records. The original failure logs remain preserved.
+
+Pi source `6703818` repairs asset admission using measured cost and the unchanged
+one-second scheduling allowance. Its measured-sequence regression fails the old
+runner and passes the repair with every required status/asset request retained.
+All eight Pi driver tests and both finite-job scheduling models pass. The
+production binary, firmware, clock and A2 request mix/thresholds are unchanged;
+the next case records its new driver hash rather than relabeling the old A2
+trace. No failed A3 attempt is promoted to PASS.
