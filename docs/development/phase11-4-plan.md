@@ -1,8 +1,11 @@
 # Phase 11.4 joint inhibited acceptance plan
 
-Status: **OPEN — eight-hour soak remains**. B2 and D2 now pass the bounded
-[controlled native Linux campaign](phase11-4-three-radio-results.md). Physical
-results belong to the single matrix below; software checks cannot close its gates. This plan coordinates WsprryPico and WsprryPi.
+Status: **CLOSED within the bounded inhibited acceptance scope**. B2 and D2 pass
+the [controlled native Linux campaign](phase11-4-three-radio-results.md), and the
+[full eight-hour soak](phase11-4-controlled-soak-run.md) passed with reviewed
+continuity, stable memory and verified restoration. Physical results belong to
+the single matrix below; software checks cannot close its gates. Phase 11.5–11.7
+remain separate. This plan coordinates WsprryPico and WsprryPi.
 See [procedure](phase11-4-acceptance.md), [Pico review](phase11-4-review.md) and
 the companion WsprryPi `docs/development/phase11-4-review.md`.
 
@@ -171,11 +174,12 @@ substituted for earlier attempts.
 
 | ID / requirement | Equipment / authorization | Procedure and expected observation | Evidence / status | Defect / retest |
 | --- | --- | --- | --- | --- |
+| Eight-hour soak | Inhibited Pico A; onboard AP and independent USB Linux client; Ethernet management | Full uninterrupted interval, stable comparable memory, authenticated reads and verified restoration | PASS: 5,593 USB INFO, 467 WTP checks, 740 DNS/HTTPS checks; no recorded failures; stable post-warm-up memory | [Reviewed soak](phase11-4-controlled-soak-run.md); all observers closed cleanly, both captures zero drops, host/Picos restored |
 | A0 current state | Sole board + authorized read-only USB | Cross-check Console INFO/STATUS with HELLO/CAPS/clock/STATUS; matching device/boot, explicit inactive/unowned and saved scheduling | `usb-authorized.*`; PASS for old image | SSH sandbox failures retained in `usb-initial*`; explicit-IP SSH succeeded, not mDNS acceptance |
 | A1 candidate inhibition/identity | Approved exact image, flash/reboot and USB | Check CMake/ELF/UF2, transfer hash, flash selected serial, fresh INFO/HELLO/CAPS/STATUS; correct revision/engine and deployment match, inactive/unowned, journals retained | `postflash.*`, `flash.*`, `mac-postflash.*`, `mac-flash.*`, `final-usb.*`; PASS both approved images | Exact programmed data verified by picotool; preserve original image evidence |
 | A2 device UTC gating | Candidate + USB/network reads | Record SNTP and GET_CLOCK before TLS, reject unsynchronized or excessive-uncertainty dependent jobs; no time falsification | PASS bounded device scope: synchronized 1 ns rejection, expired-holdover and naturally unsynchronized ARM rejection; real SNTP recovery and finite positive completion | [A2 completion](phase11-4-a2-results.md) binds same-boot USB evidence; earlier `jobs-attempt-1` and boot-unsynchronized observations retained; no clock falsification |
 | B1 Mac system mDNS | Candidate + Mac LAN resolution | Bound `dns-sd -G v4` to 15 s, record interface/current address and failures; corroborate no hosts entry | `mac-dns-sd.*`, `mac-wifi-recovered-dns.*`; PASS observed baseline and recovered short name | Real interface 14/en0 answer; 15 s bound; initial short-name failures retained, no sustained-discovery claim |
-| B2 Linux NSS mDNS | Candidate + two independent wspr5 native Linux clients | Bound native lookup and authenticated recovery across repeated cycles | PASS controlled Linux scope: eight consecutive same-boot cases, two independent resolver caches, five authenticated recovery checks per peer/case | [Three-radio acceptance](phase11-4-three-radio-results.md); historical infrastructure evidence retained; eight-hour soak remains |
+| B2 Linux NSS mDNS | Candidate + two independent wspr5 native Linux clients | Bound native lookup and authenticated recovery across repeated cycles | PASS controlled Linux scope: eight consecutive same-boot cases, two independent resolver caches, five authenticated recovery checks per peer/case | [Three-radio acceptance](phase11-4-three-radio-results.md); historical infrastructure evidence retained; [eight-hour soak passed](phase11-4-controlled-soak-run.md) |
 | B3 production integration | Approved isolated Linux build/config/invocation | Hash real executable, configure exact endpoint/CA/controller/device; observe fresh resolved/authenticated/WTP identities and startup inspection | PASS exact isolated application hostname and IP+DNS startup/management; `host-production-attempt-{2,3,5}.*` | Service pause specifically approved and restored; retained build/wrapper failures in single-board record |
 | C1 real browser trust | Approved CA/browser identity/keychain import | Chrome hostname HTTPS, inspect SAN/issuer/validity/fingerprint and client selection; no bypass/proxy | PASS short-name Chrome status, client selection, SAN, issuer, validity, exact fingerprint and TLS 1.3; `browser-short-name-observation.json` + task UI record | Default PKCS#12 and scoped trust failed; compatibility export and explicitly approved CA SSL trust passed |
 | C2 concurrent status/authority | C1+B3+approved finite jobs | Persistent WTP plus browser reads in Loaded/Armed/Running; foreign mutation rejected, owner accurate; failed read becomes unknown | PASS bounded scope: actual Chrome Loaded with a controlled production pause, prior Armed and current Running/Complete; foreign HTTPS `NOT_OWNER`; deployed failed read becomes Unknown | [C2 completion](phase11-4-c2-results.md) binds deployed `23ac5b1` and timing limits; [prior coverage](browser-production-coverage.md) preserves original attempts |

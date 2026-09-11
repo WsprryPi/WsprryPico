@@ -218,7 +218,13 @@ The unresolved physical faults below are not declared closed by these checks.
 | D2 shutdown/goodbye reliability | OPEN: historical missing-goodbye and watchdog causes remain unexplained; nested watchdog markers are available for recurrence |
 | D1 DHCP change | OPEN: actual new lease/address with unchanged identity and trust remains unexecuted |
 | E1 two real boards | NOT RUN: second Pico is now reported available on wspr5; identify/provision it and test independent names and trust separately |
-| Memory/connectivity soak | NOT RUN: post-repair eight-hour qualification prerequisites remain unmet |
+| Memory/connectivity soak | INCOMPLETE: the later diagnostic run collected about 2h15m of USB/memory evidence before a user-confirmed power outage; repeat an uninterrupted eight-hour run. Further outage diagnosis is closed. See [soak results](phase11-4-soak-run.md). |
+
+There are four remaining formal acceptance cases: B2, D1, D2 and E1. The
+previously requested soak is incomplete. Clock-related HTTPS failures and
+separate handshake timeouts are findings within the existing connectivity/soak
+investigation, not additional acceptance cases or independent closure gates.
+The user-confirmed power outage requires no further diagnosis.
 
 Private images, source snapshots, captures, failed/invalid attempts, comparison
 controller/restoration logs, quiet-sampler correction and final checks are indexed

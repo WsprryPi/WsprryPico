@@ -42,8 +42,9 @@ treated as long-term product documentation.
     [11.2 concurrent management](development/phase11-2-review.md) implements software
     isolation and instrumentation; target timing acceptance remains pending.
     [11.3 DHCP/mDNS/hostname certificates](development/phase11-3-plan.md) is closed
-    within its joint software/integration scope. Remaining physical gates: 11.4
-    inhibited physical acceptance; 11.5 target resource/contention measurements;
+    within its joint software/integration scope. [11.4 inhibited physical acceptance](development/phase11-4-plan.md)
+    is closed within its bounded matrix, including the reviewed eight-hour soak.
+    Remaining physical gates: 11.5 target resource/contention measurements;
     11.6 conducted RF acceptance; 11.7 final joint review and Phase 11 closure.
 12. **Planned:** SoftAP and BLE provisioning.
 13. **Planned:** final hardware qualification and release, including the output
