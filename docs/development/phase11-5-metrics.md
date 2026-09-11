@@ -79,26 +79,52 @@ until the remaining observations and overhead are reviewed on the actual target.
 
 ## Application heap and stack
 
-The linked Arm GNU 15.3.1 newlib allocator uses `_malloc_r`/`_free_r`, `_sbrk` and
-the SDK's mutex-protected allocation wrappers. INFO takes one `mallinfo` sample
-before formatting: allocated bytes, allocator arena, arena-free bytes, free-chunk
-count and top releasable space. Capacity is `__HeapLimit - __end__`; available
-remains capacity minus allocated, clamped to zero. This estimate includes
-uncommitted linker heap and is **not** the largest allocatable block.
+The linked Arm GNU 15.3.1 newlib allocator uses `_malloc_r`/`_free_r` and
+`_sbrk`. The SDK outer malloc/calloc/realloc/free wrappers retain their mutex and
+panic-on-null policy. Newlib stdio and nested calloc/realloc can call reentrant
+entries directly; the linked newlib retarget lock hooks are no-ops. The closure
+candidate therefore serializes all four inner entry points and mallinfo under a
+project-owned recursive SDK mutex. No allocator implementation is replaced.
+`check_heap_hooks.py` rejects direct-call bypasses in the actual ELF, including
+nested realloc and stdio paths. It does not prove arbitrary function-pointer
+provenance or hardware timing. These hooks are not an interrupt allocation API.
 
-`heap_sample_observed_us` marks the end of that sample; `heap_sample_cost_us`
-measures its cost. `heap_sampled_peak_bytes` includes memory-admission and INFO
-samples only, not every allocation or transient peak. Neither free-chunk count
-nor top releasable space proves a largest usable block. TLS counters include
-their wrapper metadata and are a subset of this heap. Fixed lwIP pools, static
-RF buffers and reserved stacks must be accounted for separately.
+INFO still takes one `mallinfo` sample before formatting: allocated bytes,
+allocator arena, arena-free bytes, free-chunk count and top releasable space.
+Capacity is `__HeapLimit - __end__`; available remains capacity minus allocated,
+clamped to zero. This includes uncommitted linker heap and is **not** the largest
+allocatable block. `heap_sample_observed_us` and `heap_sample_cost_us` identify
+that sample. The legacy `heap_sampled_peak_bytes` remains a sampled lower bound.
 
-SDK `PICO_MALLOC_PANIC` remains enabled. A real allocator failure can panic before
-TLS's null-return branch executes; C++ allocation paths also need independent
-review. Admission/TLS-budget rejection tests do not prove recovery from arbitrary
-allocator exhaustion. Consequently transient peak, fragmentation, maximum
-necessary allocation and real allocation-failure recovery gates remain OPEN.
-No allocation probe has been added or run on a device.
+The closure candidate additionally reports `allocator_live_bytes` and
+`allocator_peak_bytes` from every instrumented entry's post-state, including the
+nested malloc-before-free in moving realloc. `allocator_entries` and
+`allocator_failures` count entry invocations, including nested invocations; they
+are not independent application requests. `allocator_largest_request_bytes`
+includes failed requests, whereas `allocator_largest_successful_request_bytes`
+excludes them. Both include deliberate probes, so necessary workload allocations
+must be distinguished using the campaign's probe intervals and raw records.
+`allocator_sample_time_us` sums individual mallinfo observation costs;
+`allocator_max_sample_us` and `allocator_max_entry_us` retain maxima. Nested
+entry times overlap and must not be summed. `allocator_max_depth` exposes nesting.
+Entry duration starts after lock acquisition and does not include lock waiting.
+These instrumentation costs are part of the candidate image's contention load.
+
+TLS's existing null-handling path uses a separately named nullable inner calloc
+entry, with the same lock and observation coverage. Ordinary SDK/C++ allocation
+still has fail-fast behavior. Host null/overflow/concurrency tests do not qualify
+arbitrary exhaustion recovery on the board. TLS counters include their wrapper
+metadata and are a subset of the general heap. Fixed lwIP pools, static RF
+buffers and reserved stacks are separate.
+
+`HEAP PROBE <bytes>` performs one nullable allocation/free only after idle
+admission, for 1 through linked capacity plus one byte. It reports an allocation
+result, retains no block, and rejects malformed, oversized or non-idle requests
+before invoking the allocator. It can change allocator arena/bin state; compare
+quiet windows after matched warm-up. An oversized failure probe is distinct from
+a successful largest-necessary-allocation probe. No such probe has yet run on a
+device. Transient peak, fragmentation, necessary allocation, actual failure
+recovery and measured overhead gates remain OPEN until target evidence passes.
 
 Both physical stacks reserve 16 KiB. Core-0 canaries are sampled before INFO
 serialization; `core0_stack_scan_us` exposes that scan's cost. The explicit

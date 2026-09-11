@@ -1,4 +1,5 @@
 #include "standalone/dry_run_engine.hpp"
+#include "standalone/heap_probe.hpp"
 #include "standalone/scheduler.hpp"
 #include "standalone/wtp_profile.hpp"
 #include "time/server_lookup.hpp"
@@ -726,6 +727,17 @@ void autonomous_test() {
 }
 } // namespace
 int main() {
+    unsigned calls = 0;
+    auto probe = [&](std::size_t bytes) { ++calls; return bytes <= 1024; };
+    for (const auto value : {"", "0", "-1", "+1", "1 ", " 1", "1026", "18446744073709551616"})
+        CHECK(standalone::heap_probe_command(value, 1024, true, probe).find("probe_range") != std::string::npos);
+    CHECK(calls == 0);
+    CHECK(standalone::heap_probe_command("1024", 1024, false, probe).find("not_idle") != std::string::npos);
+    CHECK(calls == 0);
+    CHECK(standalone::heap_probe_command("1024", 1024, true, probe).find("allocated\":true") != std::string::npos);
+    CHECK(standalone::heap_probe_command("1025", 1024, true, probe).find("allocated\":false") != std::string::npos);
+    CHECK(calls == 2);
+
     lookup_tests();
     live_config_tests();
     config_tests();

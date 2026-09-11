@@ -8,8 +8,10 @@
 #include "pico/bootrom.h"
 #include "pico/time.h"
 #include "pico_adapters.hpp"
+#include "runtime/pico/heap_metrics.h"
 #include "standalone/pico/adapters.hpp"
 #include "standalone/scheduler.hpp"
+#include "standalone/heap_probe.hpp"
 #include "standalone/wtp_profile.hpp"
 #include "tusb.h"
 #include "usb/transport.hpp"
@@ -262,6 +264,18 @@ int main() {
             number_field(result, "heap_sample_observed_us", heap_observed_us, true);
             number_field(result, "heap_sample_cost_us", heap_observed_us - heap_before);
             number_field(result, "heap_sampled_peak_bytes", heap_peak);
+            const auto allocator = wsprry_heap_snapshot();
+            number_field(result, "allocator_entries", allocator.entries, true);
+            number_field(result, "allocator_failures", allocator.failures, true);
+            number_field(result, "allocator_live_bytes", allocator.live_bytes);
+            number_field(result, "allocator_peak_bytes", allocator.peak_bytes);
+            number_field(result, "allocator_largest_request_bytes", allocator.largest_request_bytes);
+            number_field(result, "allocator_largest_successful_request_bytes",
+                         allocator.largest_successful_request_bytes);
+            number_field(result, "allocator_sample_time_us", allocator.sample_time_us, true);
+            number_field(result, "allocator_max_sample_us", allocator.max_sample_us);
+            number_field(result, "allocator_max_entry_us", allocator.max_entry_us);
+            number_field(result, "allocator_max_depth", allocator.max_depth);
             number_field(result, "core0_stack_used_bytes", core0_stack_used);
             number_field(result, "core0_stack_scan_us", core0_stack_scan_us);
             number_field(result, "tls_peak_bytes", server.tls_peak());
@@ -318,6 +332,12 @@ int main() {
             if (!status.empty() && status.back() == '\n')
                 status.pop_back();
             return result + ",\"status\":" + status + "}\n";
+        }
+        if (text.starts_with("HEAP PROBE ")) {
+            const auto capacity = reinterpret_cast<std::uintptr_t>(&__HeapLimit) -
+                                  reinterpret_cast<std::uintptr_t>(&__end__);
+            return wsprrypico::standalone::heap_probe_command(
+                text.substr(11), capacity, scheduler.idle(), wsprry_heap_probe);
         }
         if (text == "ABORT") {
             (void)scheduler.command(

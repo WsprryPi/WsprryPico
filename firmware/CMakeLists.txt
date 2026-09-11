@@ -154,6 +154,21 @@ pico_set_program_name(WsprryPico-StandaloneRF "WsprryPico-StandaloneRF")
 pico_set_program_version(WsprryPico-StandaloneRF "${WSPRRY_PICO_FIRMWARE_VERSION}")
 pico_set_program_description(WsprryPico-StandaloneRF "Standalone GP2 integration ${WSPRRY_PICO_GIT_REVISION}")
 pico_add_extra_outputs(WsprryPico-StandaloneRF)
+foreach(image WsprryPico WsprryPico-StandaloneRF)
+    target_sources(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/runtime/pico/heap_metrics.c)
+    target_compile_definitions(${image} PRIVATE WSPRRY_PICO_HEAP_METRICS=1)
+    target_compile_options(${image} PRIVATE -fstack-usage)
+    foreach(function _malloc_r _calloc_r _realloc_r _free_r mallinfo)
+        target_link_options(${image} PRIVATE "LINKER:--wrap=${function}")
+    endforeach()
+    add_custom_command(TARGET ${image} POST_BUILD
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_heap_hooks.py
+                $<TARGET_FILE:${image}> VERBATIM)
+    set_property(TARGET ${image} APPEND PROPERTY LINK_DEPENDS
+                 ${CMAKE_SOURCE_DIR}/scripts/check_heap_hooks.py)
+endforeach()
+set_source_files_properties(${CMAKE_SOURCE_DIR}/src/runtime/pico/heap_metrics.c PROPERTIES
+    COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-fstack-usage")
 if(WSPRRY_PICO_RF_RENDER_IN_RAM)
     set(rf_renderer_placement ram)
 else()

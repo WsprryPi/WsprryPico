@@ -27,7 +27,7 @@ User-confirmed division on September 11, 2026:
 
 | PIO clock | Selection for this campaign | 11.5 accepted configurations |
 | --- | --- | --- |
-| 138 MHz | Selected candidate for 11.6 | None; P1b pilot failed, full checks pending |
+| 138 MHz | Selected candidate for 11.6 | None; P2 diagnostic passed, full checks pending |
 | 132 MHz | Not selected | Untested for 11.5 |
 | 150 MHz | Not selected | Untested for physical 11.5; inhibited 150 MHz evidence is separate |
 
@@ -280,7 +280,7 @@ GP2 production output must execute the real PIO program, chained data DMA,
 finite zero-tail DMA and actual dual-core memory path. A pin override or dummy
 sink cannot qualify that path. No wspr5 GPIO4, GPSDO or comparator RF activation.
 
-P2 (not ready): stage reviewed helpers and separately built production executable
+Closure network fixture (not ready; distinct from completed P2): stage reviewed helpers and separately built production executable
 under a new private wspr5 directory. AP wlan0/client wlan2 with separate network
 and mount namespaces, NSS and Avahi; wlan1 remains ordinary management. Bind
 roles by MAC and verify Ethernet route before mutation. No NAT, forwarding or
@@ -288,7 +288,7 @@ test default route into the LAN. A second independent radio/cache case may
 temporarily move wlan1 only under its explicit packet. Save and restore the
 Wi-Fi recovery service/timer active state and original boot enablement.
 
-P3 (not ready): use the actual Pi application with ancillary GPIO excluded,
+Closure production controller (not ready): use the actual Pi application with ancillary GPIO excluded,
 explicit WTP selection, separate INI and ports. Preserve singleton 1234. Either
 use the existing approved isolation arrangement after reinspection, or request
 a bounded installed-service pause only after authoritative provider inactivity

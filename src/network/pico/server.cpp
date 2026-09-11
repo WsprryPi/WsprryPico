@@ -5,6 +5,9 @@
 #include "pico/time.h"
 #include "psa/crypto.h"
 #include "wtp/memory_budget.hpp"
+#ifdef WSPRRY_PICO_HEAP_METRICS
+#include "runtime/pico/heap_metrics.h"
+#endif
 
 #include <algorithm>
 #include <cstddef>
@@ -40,7 +43,11 @@ void* tls_calloc(std::size_t count, std::size_t size) {
         ++tls_failed;
         return nullptr;
     }
+#ifdef WSPRRY_PICO_HEAP_METRICS
+    auto* allocation = static_cast<Allocation*>(wsprry_heap_try_calloc(1, bytes));
+#else
     auto* allocation = static_cast<Allocation*>(std::calloc(1, bytes));
+#endif
     if (!allocation) {
         ++tls_failed;
         return nullptr;
