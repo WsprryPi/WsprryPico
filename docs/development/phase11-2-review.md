@@ -174,6 +174,11 @@ diagnostics remain. Metrics are cumulative observations: sampled heap peaks can
 miss short-lived allocations, stack canaries are estimates, and there is no
 durable multi-reboot watchdog counter or claim of instrumentation completeness.
 
+The current [11.5 metric definitions](phase11-5-metrics.md) supersede measurement
+interpretations here: service-gap time already includes the prior poll; core-1
+canary scanning is now explicit-metrics-only. Historical numerical results and
+the old SDK identity below remain evidence of those historical images only.
+
 ## Software validation
 
 Inputs: Pico SDK 2.3.0 at `98a542c1a62fb549ffb5d66a3e5892b06276b670`,

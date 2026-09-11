@@ -1,0 +1,64 @@
+{
+  "schema": "wsprrypico-phase11.5-v1",
+  "phase_status": "OPEN",
+  "clock_model": "RP2350 clk_sys equals PIO sample clock; PIO divider 1; 32 samples per word; 16384 words per full buffer",
+  "clocks": [
+    {
+      "sample_clock_hz": 138000000,
+      "selected_for_11_6": true,
+      "physical_status": "UNTESTED",
+      "full_buffer_period_ns": [
+        262144000,
+        69
+      ]
+    },
+    {
+      "sample_clock_hz": 132000000,
+      "selected_for_11_6": false,
+      "physical_status": "UNTESTED",
+      "full_buffer_period_ns": [
+        131072000,
+        33
+      ]
+    },
+    {
+      "sample_clock_hz": 150000000,
+      "selected_for_11_6": false,
+      "physical_status": "UNTESTED",
+      "full_buffer_period_ns": [
+        10485760,
+        3
+      ]
+    }
+  ],
+  "accepted_configurations": [],
+  "cases": {
+    "A1": "PARTIAL",
+    "A2": "NOT_RUN",
+    "A3": "NOT_RUN",
+    "B1": "NOT_RUN",
+    "B2": "NOT_RUN",
+    "B3": "NOT_RUN",
+    "B4": "NOT_RUN",
+    "C1": "NOT_RUN",
+    "C2": "NOT_RUN",
+    "C3": "NOT_RUN",
+    "C4": "NOT_RUN",
+    "D1": "NOT_RUN",
+    "D2": "NOT_RUN",
+    "D3": "NOT_RUN",
+    "D4": "NOT_RUN",
+    "E1": "NOT_RUN",
+    "E2": "NOT_RUN",
+    "F1": "NOT_RUN",
+    "F2": "NOT_RUN",
+    "G1": "NOT_RUN"
+  },
+  "limitations": [
+    "A1 builds have linked; final artifact and stack analysis remain pending.",
+    "P0 read-only inventory completed on both inhibited boards. It does not qualify physical resource or contention checks.",
+    "150 MHz inhibited evidence does not qualify the physical PIO configuration.",
+    "A newly selected clock in 11.6 repeats all affected 11.5 checks before acceptance.",
+    "Phase 13 owns systematic band x mode x clock comparison and release qualification."
+  ]
+}

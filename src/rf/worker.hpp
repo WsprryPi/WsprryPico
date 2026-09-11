@@ -1,4 +1,5 @@
 #pragma once
+#include "rf/refill_metrics.hpp"
 #include "time/utc_discipline.hpp"
 
 #include <atomic>
@@ -37,9 +38,13 @@ class WorkerEngine final : public wtp::RfEngine {
         return diagnostic_;
     }
     struct Metrics {
+        // Start-to-start gap already includes preceding poll and command/probe work.
         std::uint64_t commands = 0, max_service_gap_ns = 0, max_poll_ns = 0;
         std::uint64_t max_roundtrip_ns = 0;
+        std::uint64_t probes = 0, max_probe_ns = 0;
         std::uint64_t dma_irqs = 0, max_irq_ns = 0, launch_ns = 0;
+        std::uint64_t alarm_irqs = 0, max_alarm_irq_ns = 0, tail_irqs = 0, dma_errors = 0;
+        RefillMetrics::Snapshot refill;
         std::size_t stack_used_bytes = 0;
     };
     Metrics metrics();
@@ -49,7 +54,7 @@ class WorkerEngine final : public wtp::RfEngine {
     }
 
   private:
-    enum class Op { Inspect, Prepare, Schedule, Disable, Correct };
+    enum class Op { Inspect, Metrics, Prepare, Schedule, Disable, Correct };
     void call(Op) const;
     wtp::RfEngine& engine_;
     time::UtcDiscipline& clock_;

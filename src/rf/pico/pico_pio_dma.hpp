@@ -1,6 +1,7 @@
 #pragma once
 #include "hardware/pio.h"
 #include "rf/pio_dma_sink.hpp"
+#include "rf/refill_metrics.hpp"
 
 namespace wsprrypico::rf {
 
@@ -8,6 +9,8 @@ namespace wsprrypico::rf {
 // halt() before release()/destruction; a failed halt retains resource ownership.
 struct PicoDriverMetrics {
     std::uint64_t dma_irqs = 0, max_irq_ns = 0, launch_ns = 0;
+    std::uint64_t alarm_irqs = 0, max_alarm_irq_ns = 0, tail_irqs = 0, dma_errors = 0;
+    RefillMetrics::Snapshot refill;
 };
 
 class PicoPioDma final : public PioDmaHardware {
@@ -39,6 +42,7 @@ class PicoPioDma final : public PioDmaHardware {
     struct Channel {
         int id = -1;
         bool occupied = false;
+        bool tail = false;
         std::uint64_t epoch = 0, sequence = 0;
     };
     std::array<Channel, 2> channels_{};
@@ -49,6 +53,8 @@ class PicoPioDma final : public PioDmaHardware {
     std::uint64_t alarm_epoch_ = 0;
     unsigned core_ = 0;
     bool installed_ = false;
+    bool launched_ = false;
+    RefillMetrics refill_metrics_;
     PicoDriverMetrics metrics_{};
 };
 

@@ -1,5 +1,10 @@
 # B2/D2 three-radio acceptance
 
+Current status: **Phase 11.4 CLOSED within its bounded inhibited matrix**, including
+the [reviewed eight-hour soak](phase11-4-controlled-soak-run.md). Earlier OPEN
+statements below preserve historical attempts and are superseded by that result.
+[Phase 11.5](phase11-5-plan.md) owns the separate target resource/contention gates.
+
 **B2 and D2 pass the controlled native Linux acceptance scope.** Eight consecutive
 full OFF/ON cases passed on 2026-09-10, using all three wspr5 Wi-Fi radios and
 Ethernet management. The Pico retained one boot through the entire

@@ -48,6 +48,11 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock) {
             result.dma_irqs = driver.dma_irqs;
             result.max_irq_ns = driver.max_irq_ns;
             result.launch_ns = driver.launch_ns;
+            result.alarm_irqs = driver.alarm_irqs;
+            result.max_alarm_irq_ns = driver.max_alarm_irq_ns;
+            result.tail_irqs = driver.tail_irqs;
+            result.dma_errors = driver.dma_errors;
+            result.refill = driver.refill;
             std::size_t free = 0;
             while (free < std::size(worker_stack) && worker_stack[free] == 0xa59c37e1U)
                 ++free;

@@ -83,6 +83,7 @@ bool PicoPioDma::halt(std::uint64_t deadline_ns) {
     hardware_alarm_cancel(static_cast<unsigned>(alarm_));
     gpio_set_outover(rf_pin, GPIO_OVERRIDE_LOW);
     pio_sm_set_enabled(pio_, sm_, false);
+    launched_ = false;
     std::uint32_t abort_mask = 0;
     // Clear both EN bits before aborting either channel (RP2350-E5).
     for (const auto& slot : channels_) {
@@ -181,6 +182,7 @@ bool PicoPioDma::dma(const std::uint32_t* data, std::uint32_t words, bool increm
     free->epoch = epoch;
     free->sequence = sequence;
     free->occupied = true;
+    free->tail = !increment;
     dma_irqn_acknowledge_channel(3, channel);
     dma_irqn_set_channel_enabled(3, channel, true);
     dma_channel_configure(channel, &config, &pio_->txf[sm_], data, words, false);
@@ -200,6 +202,13 @@ bool PicoPioDma::dma(const std::uint32_t* data, std::uint32_t words, bool increm
         }
     } else {
         dma_start_channel_mask(1U << channel);
+    }
+    if (previous && launched_) {
+        // Read only after successor configuration/chain installation. A zero
+        // count records an exhausted predecessor, even if FIFO reserve hid it.
+        const auto remaining = dma_hw->ch[static_cast<unsigned>(previous->id)].transfer_count &
+                               DMA_CH0_TRANS_COUNT_COUNT_BITS;
+        refill_metrics_.ready(epoch, sequence, now_ns(), true, !increment, remaining);
     }
     return true;
 }
@@ -243,11 +252,13 @@ bool PicoPioDma::launch(std::uint64_t start_ns) {
     gpio_set_outover(rf_pin, GPIO_OVERRIDE_NORMAL);
     pio_sm_set_enabled(pio_, sm_, true);
     metrics_.launch_ns = now_ns();
+    launched_ = true;
     return true;
 }
 
 PicoDriverMetrics PicoPioDma::metrics() {
     const auto saved = lock();
+    metrics_.refill = refill_metrics_.snapshot();
     const auto value = metrics_;
     unlock(saved);
     return value;
@@ -278,12 +289,18 @@ void PicoPioDma::dma_irq() {
     dma_irqn_acknowledge_channel(3, channel);
     const auto error = dma_hw->ch[channel].ctrl_trig & DMA_CH0_CTRL_TRIG_AHB_ERROR_BITS;
     const auto epoch = next->epoch, sequence = next->sequence;
+    const auto tail = next->tail;
     next->occupied = false;
+    self->refill_metrics_.completed(epoch, sequence, before);
     self->handler_(
         self->context_,
         {error ? DriverEventKind::DmaError : DriverEventKind::DmaComplete, epoch, sequence});
     const auto elapsed = self->now_ns() - before;
     ++self->metrics_.dma_irqs;
+    if (tail)
+        ++self->metrics_.tail_irqs;
+    if (error)
+        ++self->metrics_.dma_errors;
     if (elapsed > self->metrics_.max_irq_ns)
         self->metrics_.max_irq_ns = elapsed;
 }
@@ -291,7 +308,12 @@ void PicoPioDma::dma_irq() {
 void PicoPioDma::alarm_irq(unsigned alarm) {
     auto* self = instance_;
     if (self && alarm == static_cast<unsigned>(self->alarm_)) {
+        const auto before = self->now_ns();
         self->handler_(self->context_, {DriverEventKind::Alarm, self->alarm_epoch_, 0});
+        const auto elapsed = self->now_ns() - before;
+        ++self->metrics_.alarm_irqs;
+        if (elapsed > self->metrics_.max_alarm_irq_ns)
+            self->metrics_.max_alarm_irq_ns = elapsed;
     }
 }
 

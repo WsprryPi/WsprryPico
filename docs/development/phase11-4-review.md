@@ -1,5 +1,10 @@
 # Phase 11.4 inhibited device acceptance review
 
+Current status: **Phase 11.4 CLOSED within its bounded inhibited matrix**, including
+the [reviewed eight-hour soak](phase11-4-controlled-soak-run.md). Earlier OPEN
+statements below preserve historical attempts and are superseded by that result.
+[Phase 11.5](phase11-5-plan.md) owns the separate target resource/contention gates.
+
 The [controlled same-SSID repeat](phase11-4-same-ssid-results.md) pauses the
 Wi-Fi recovery service with reboot enablement preserved. USB wlan1 stays on
 Bohica-IoT throughout: goodbye delivery/early cache withdrawal still fails, while

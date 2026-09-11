@@ -100,6 +100,13 @@ int main(int argc, char** argv) {
         return 1;
     }
     std::atomic<bool> stop{false};
+    std::atomic<unsigned> probes{0};
+    proxy.set_probe(
+        [](rf::WorkerEngine::Metrics& metrics, void* context) {
+            ++*static_cast<std::atomic<unsigned>*>(context);
+            metrics.stack_used_bytes = 1234;
+        },
+        &probes);
     std::thread owner([&] {
         while (!stop.load())
             proxy.step();
@@ -127,7 +134,18 @@ int main(int argc, char** argv) {
     CHECK(proxy.disable(now() + 100000000));
     for (unsigned i = 0; i < 1000; ++i)
         CHECK(proxy.prepare(job).accepted);
-    CHECK(proxy.metrics().commands >= 1000);
+    // The normal lifecycle, output inspection and 1,000 reused commands must
+    // not invoke the expensive target probe. Explicit snapshots remain coherent.
+    CHECK(!proxy.output_active());
+    CHECK(probes == 0);
+    const auto first = proxy.metrics();
+    CHECK(first.commands >= 1000 && first.probes == 1 && first.stack_used_bytes == 1234);
+    CHECK(probes == 1);
+    (void)proxy.poll(now());
+    CHECK(probes == 1);
+    const auto second = proxy.metrics();
+    CHECK(second.probes == 2 && second.commands == first.commands + 2);
+    CHECK(second.max_probe_ns >= first.max_probe_ns);
     stop = true;
     owner.join();
     std::cout << "RF rendezvous ownership, delayed producer, local completion, clock invalidation "

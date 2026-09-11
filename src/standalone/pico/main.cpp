@@ -1,4 +1,5 @@
 #include "firmware_identity.hpp"
+#include "hardware/clocks.h"
 #include "hardware/structs/watchdog.h"
 #include "hardware/watchdog.h"
 #include "network/identity.hpp"
@@ -21,7 +22,6 @@
 extern "C" char __HeapLimit, __end__, __StackLimit, __StackTop;
 #include "hardware/sync.h"
 #ifdef WSPRRY_PICO_STANDALONE_RF
-#include "hardware/clocks.h"
 #include "rf/pico/worker.hpp"
 #include "rf/waveform.hpp"
 #else
@@ -78,6 +78,24 @@ std::size_t stack_used() {
     while (p < top && *reinterpret_cast<volatile std::uint32_t*>(p) == stack_pattern)
         p += 4;
     return top - p;
+}
+// Serialize one field at a time: a single giant operator+ expression retains
+// many string temporaries, inflating the very heap and stack INFO observes.
+__attribute__((noinline)) void number_field(std::string& result, std::string_view name,
+                                            std::uint64_t value, bool quoted = false,
+                                            bool present = true) {
+    result.append(",\"").append(name).append("\":");
+    if (!present) {
+        result.append("null");
+        return;
+    }
+    char digits[20]; // Maximum decimal width of uint64_t.
+    const auto converted = std::to_chars(std::begin(digits), std::end(digits), value);
+    if (quoted)
+        result.push_back('"');
+    result.append(digits, converted.ptr);
+    if (quoted)
+        result.push_back('"');
 }
 std::size_t heap_peak = 0;
 std::uint64_t monotonic_now(void*) {
@@ -189,6 +207,18 @@ int main() {
 #endif
     auto command = [&](std::string_view text) -> std::string {
         if (text == "INFO") {
+            // One allocator snapshot before response formatting. These are arena
+            // statistics, not a destructive largest-allocation probe or a peak
+            // covering every intervening allocation. TLS is part of this heap.
+            const auto heap_before = time_us_64();
+            const auto heap = mallinfo();
+            const auto heap_observed_us = time_us_64();
+            const auto heap_capacity = reinterpret_cast<std::uintptr_t>(&__HeapLimit) -
+                                       reinterpret_cast<std::uintptr_t>(&__end__);
+            heap_peak = std::max(heap_peak, static_cast<std::size_t>(heap.uordblks));
+            const auto stack_before = time_us_64();
+            const auto core0_stack_used = stack_used();
+            const auto core0_stack_scan_us = time_us_64() - stack_before;
             std::string result =
                 "{\"ok\":true,\"device_id\":" +
                 wsprrypico::wtp::json::quote(identities.device_id()) + ",\"revision\":" +
@@ -196,34 +226,65 @@ int main() {
                 ",\"firmware\":" +
                 wsprrypico::wtp::json::quote(wsprrypico::firmware::kFirmwareVersion) +
                 ",\"deployment_identity_matches\":" + (deployment_matches ? "true" : "false") +
-                ",\"recovery_boot\":" + (recovery ? "true" : "false") +
-                ",\"fault_stage\":" + std::to_string(fault_stage) +
-                ",\"fault_hash\":" + std::to_string(fault_hash) +
-                ",\"fault_pc\":" + std::to_string(fault_pc) +
-                ",\"fault_status\":" + std::to_string(fault_status) +
-                ",\"network\":" + network.status() +
-                ",\"heap_allocated_bytes\":" + std::to_string(mallinfo().uordblks) +
-                ",\"heap_available_bytes\":" + std::to_string(wsprrypico::wtp::available_memory()) +
-                ",\"heap_sampled_peak_bytes\":" + std::to_string(heap_peak) +
-                ",\"core0_stack_used_bytes\":" + std::to_string(stack_used()) +
-                ",\"tls_peak_bytes\":" + std::to_string(server.tls_peak()) +
-                ",\"tls_allocated_bytes\":" + std::to_string(server.tls_allocated()) +
-                ",\"tls_allocation_failures\":" + std::to_string(server.tls_failures());
+                ",\"recovery_boot\":" + (recovery ? "true" : "false");
+            number_field(result, "fault_stage", fault_stage);
+            number_field(result, "fault_hash", fault_hash);
+            number_field(result, "fault_pc", fault_pc);
+            number_field(result, "fault_status", fault_status);
+            result += ",\"network\":" + network.status();
+            number_field(result, "system_clock_hz", clock_get_hz(clk_sys));
+            number_field(result, "heap_allocated_bytes", heap.uordblks);
+            number_field(result, "heap_available_bytes",
+                         heap.uordblks < heap_capacity ? heap_capacity - heap.uordblks : 0);
+            number_field(result, "heap_capacity_bytes", heap_capacity);
+            number_field(result, "heap_arena_bytes", heap.arena);
+            number_field(result, "heap_arena_free_bytes", heap.fordblks);
+            number_field(result, "heap_free_chunks", heap.ordblks);
+            number_field(result, "heap_top_releasable_bytes", heap.keepcost);
+            number_field(result, "heap_sample_observed_us", heap_observed_us, true);
+            number_field(result, "heap_sample_cost_us", heap_observed_us - heap_before);
+            number_field(result, "heap_sampled_peak_bytes", heap_peak);
+            number_field(result, "core0_stack_used_bytes", core0_stack_used);
+            number_field(result, "core0_stack_scan_us", core0_stack_scan_us);
+            number_field(result, "tls_peak_bytes", server.tls_peak());
+            number_field(result, "tls_allocated_bytes", server.tls_allocated());
+            number_field(result, "tls_allocation_failures", server.tls_failures());
 #ifdef WSPRRY_PICO_STANDALONE_RF
             const auto metrics = engine.metrics();
-            result += ",\"launch_observed_ns\":\"" + std::to_string(metrics.launch_ns) + "\"" +
-                      ",\"dma_irqs\":" + std::to_string(metrics.dma_irqs) +
-                      ",\"max_dma_irq_ns\":" + std::to_string(metrics.max_irq_ns) +
-                      ",\"core1_stack_used_bytes\":" + std::to_string(metrics.stack_used_bytes) +
-                      ",\"rf_worker_commands\":" + std::to_string(metrics.commands) +
-                      ",\"rf_max_service_gap_ns\":\"" + std::to_string(metrics.max_service_gap_ns) +
-                      "\",\"rf_max_poll_ns\":\"" + std::to_string(metrics.max_poll_ns) +
-                      "\",\"rf_max_roundtrip_ns\":\"" + std::to_string(metrics.max_roundtrip_ns) +
-                      "\"" + ",\"max_loop_us\":" + std::to_string(max_loop_us) +
-                      ",\"max_authority_poll_us\":" + std::to_string(max_refill_us) +
-                      ",\"max_usb_us\":" + std::to_string(max_usb_us) +
-                      ",\"max_request_us\":" + std::to_string(max_request_us) +
-                      ",\"engine_diagnostic\":" + wsprrypico::wtp::json::quote(engine.diagnostic());
+            number_field(result, "launch_observed_ns", metrics.launch_ns, true);
+            number_field(result, "dma_irqs", metrics.dma_irqs);
+            number_field(result, "max_dma_irq_ns", metrics.max_irq_ns);
+            number_field(result, "alarm_irqs", metrics.alarm_irqs);
+            number_field(result, "max_alarm_irq_ns", metrics.max_alarm_irq_ns, true);
+            number_field(result, "tail_irqs", metrics.tail_irqs);
+            number_field(result, "dma_errors", metrics.dma_errors);
+            number_field(result, "refill_irq_pairs", metrics.refill.pairs);
+            number_field(result, "refill_irq_unpaired", metrics.refill.unpaired);
+            number_field(result, "max_refill_irq_to_ready_ns", metrics.refill.max_irq_to_ready_ns,
+                         true);
+            number_field(result, "running_successor_links", metrics.refill.running_links);
+            number_field(result, "exhausted_successor_links", metrics.refill.exhausted_links);
+            number_field(result, "running_tail_links", metrics.refill.tail_links);
+            number_field(result, "min_data_successor_ready_words",
+                         metrics.refill.min_data_remaining_words, false,
+                         metrics.refill.running_links > metrics.refill.tail_links);
+            number_field(result, "min_tail_successor_ready_words",
+                         metrics.refill.min_tail_remaining_words, false,
+                         metrics.refill.tail_links != 0);
+            number_field(result, "min_successor_ready_words", metrics.refill.min_remaining_words,
+                         false, metrics.refill.running_links != 0);
+            number_field(result, "core1_stack_used_bytes", metrics.stack_used_bytes);
+            number_field(result, "rf_worker_commands", metrics.commands);
+            number_field(result, "rf_metric_probes", metrics.probes);
+            number_field(result, "rf_max_probe_ns", metrics.max_probe_ns, true);
+            number_field(result, "rf_max_service_gap_ns", metrics.max_service_gap_ns, true);
+            number_field(result, "rf_max_poll_ns", metrics.max_poll_ns, true);
+            number_field(result, "rf_max_roundtrip_ns", metrics.max_roundtrip_ns, true);
+            number_field(result, "max_loop_us", max_loop_us);
+            number_field(result, "max_authority_poll_us", max_refill_us);
+            number_field(result, "max_usb_us", max_usb_us);
+            number_field(result, "max_request_us", max_request_us);
+            result += ",\"engine_diagnostic\":" + wsprrypico::wtp::json::quote(engine.diagnostic());
 #endif
             auto status = scheduler.status();
             if (!status.empty() && status.back() == '\n')
@@ -260,13 +321,15 @@ int main() {
         if (text.starts_with("NETTRACE ")) {
             std::uint64_t after = 0;
             const auto cursor = text.substr(9);
-            const auto parsed = std::from_chars(cursor.data(), cursor.data() + cursor.size(), after);
+            const auto parsed =
+                std::from_chars(cursor.data(), cursor.data() + cursor.size(), after);
             if (parsed.ec != std::errc{} || parsed.ptr != cursor.data() + cursor.size())
                 return "{\"ok\":false,\"error\":\"trace_cursor\"}\n";
-            return "{\"ok\":true,\"device_id\":" + wsprrypico::wtp::json::quote(identities.device_id()) +
-                ",\"revision\":" + wsprrypico::wtp::json::quote(wsprrypico::firmware::kBuildRevision) +
-                ",\"boot_id\":" + wsprrypico::wtp::json::quote(service.status().boot_id) +
-                ",\"trace\":" + network.trace_page(after) + "}\n";
+            return "{\"ok\":true,\"device_id\":" +
+                   wsprrypico::wtp::json::quote(identities.device_id()) + ",\"revision\":" +
+                   wsprrypico::wtp::json::quote(wsprrypico::firmware::kBuildRevision) +
+                   ",\"boot_id\":" + wsprrypico::wtp::json::quote(service.status().boot_id) +
+                   ",\"trace\":" + network.trace_page(after) + "}\n";
         }
         if (text == "WIFI OFF" || text == "WIFI ON") {
             if (!scheduler.idle())

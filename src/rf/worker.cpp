@@ -49,6 +49,7 @@ void WorkerEngine::step() {
     restore_(saved);
     switch (op_) {
     case Op::Inspect:
+    case Op::Metrics:
         break;
     case Op::Prepare:
         prepared_ = engine_.prepare(*job_);
@@ -64,12 +65,19 @@ void WorkerEngine::step() {
         result_ = engine_.set_frequency_correction_ppb(correction_);
         break;
     }
-    report_ = op_ == Op::Inspect ? observed : engine_.poll(now_());
+    report_ = op_ == Op::Inspect || op_ == Op::Metrics ? observed : engine_.poll(now_());
     diagnostic_ = engine_.diagnostic(); // Engine diagnostics are static immutable literals.
     ++worker_metrics_.commands;
-    if (probe_)
+    // Stack scans and driver snapshots are diagnostic work, not ordinary RPC work.
+    // Execute only on an explicit metrics request, retaining single-core ownership.
+    if (op_ == Op::Metrics && probe_) {
+        const auto before = now_();
         probe_(worker_metrics_, probe_context_);
-    reply_metrics_ = worker_metrics_;
+        worker_metrics_.max_probe_ns = std::max(worker_metrics_.max_probe_ns, now_() - before);
+        ++worker_metrics_.probes;
+    }
+    if (op_ == Op::Metrics)
+        reply_metrics_ = worker_metrics_;
     phase_.store(2, std::memory_order_release);
 }
 wtp::PrepareResult WorkerEngine::prepare(const wtp::Job& job) {
@@ -108,7 +116,7 @@ bool WorkerEngine::output_active() const {
     return report_.output_active;
 }
 WorkerEngine::Metrics WorkerEngine::metrics() {
-    call(Op::Inspect);
+    call(Op::Metrics);
     auto result = reply_metrics_;
     result.max_roundtrip_ns = max_roundtrip_;
     return result;

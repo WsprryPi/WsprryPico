@@ -78,7 +78,7 @@ unclaims the peripherals. Destruction alone is not an output stop.
 
 `JobService` calls `schedule` during ARM for a local engine. The engine submits
 its prefilled buffers, loads the stopped FIFO and arms the hardware timer.
-Foreground USB polling does not trigger output. The alarm runs up to 50 us early,
+Foreground USB polling does not trigger output. The alarm runs up to 200 us early,
 rechecks synchronized/holdover state, uncertainty, UTC mapping and leap exclusion,
 then waits briefly for the aligned microsecond before enabling PIO. An already
 late callback or failed clock check becomes `Missed`; it does not catch up.
