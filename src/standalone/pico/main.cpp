@@ -9,6 +9,7 @@
 #include "pico/time.h"
 #include "pico_adapters.hpp"
 #include "runtime/pico/heap_metrics.h"
+#include "runtime/pico/stack_guard.h"
 #include "standalone/pico/adapters.hpp"
 #include "standalone/scheduler.hpp"
 #include "standalone/heap_probe.hpp"
@@ -277,6 +278,12 @@ int main() {
             number_field(result, "allocator_max_entry_us", allocator.max_entry_us);
             number_field(result, "allocator_max_depth", allocator.max_depth);
             number_field(result, "core0_stack_used_bytes", core0_stack_used);
+            const auto core0_guard = wsprry_stack_guard_snapshot();
+            number_field(result, "core0_stack_guard_bottom", core0_guard.bottom);
+            number_field(result, "core0_stack_guard_limit", core0_guard.limit);
+            number_field(result, "core0_stack_fault_status", core0_guard.fault_status);
+            number_field(result, "core0_stack_guard_valid", core0_guard.valid &&
+                core0_guard.bottom == reinterpret_cast<std::uintptr_t>(&__StackLimit));
             number_field(result, "core0_stack_scan_us", core0_stack_scan_us);
             number_field(result, "tls_peak_bytes", server.tls_peak());
             number_field(result, "tls_allocated_bytes", server.tls_allocated());
@@ -316,6 +323,10 @@ int main() {
             number_field(result, "min_successor_ready_words", metrics.refill.min_remaining_words,
                          false, metrics.refill.running_links != 0);
             number_field(result, "core1_stack_used_bytes", metrics.stack_used_bytes);
+            number_field(result, "core1_stack_guard_bottom", metrics.stack_guard_bottom);
+            number_field(result, "core1_stack_guard_limit", metrics.stack_guard_limit);
+            number_field(result, "core1_stack_fault_status", metrics.stack_fault_status);
+            number_field(result, "core1_stack_guard_valid", metrics.stack_guard_valid);
             number_field(result, "rf_worker_commands", metrics.commands);
             number_field(result, "rf_metric_probes", metrics.probes);
             number_field(result, "rf_max_probe_ns", metrics.max_probe_ns, true);

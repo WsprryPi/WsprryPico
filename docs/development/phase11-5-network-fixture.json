@@ -1,0 +1,17 @@
+{
+  "schema": "phase11.5-network-fixture-v1",
+  "status": "PREPARED_NOT_EXECUTED",
+  "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+  "root": "/home/pi/phase11-5-n0-3eac6ec",
+  "runtime_seconds": 21000,
+  "cleanup_seconds": 600,
+  "helper_sha256": {
+    "scripts/phase11_5_network_fixture.py": "1d46024f69f9291bead6efd9e873603817912437803f34c6f5d16838979ac460",
+    "scripts/phase11_4_hotspot.py": "20253c0ab455f023bc360b7b9f10fba5b6b719ffffddce79c0c7128a4e7712ee",
+    "scripts/phase11_5_inventory.py": "b29862b1acfdbcedb0704036b201a6ba8605af695aeff1f887e598b22aee4afd",
+    "scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+    "scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9"
+  },
+  "pico_control": false,
+  "rf_jobs": []
+}

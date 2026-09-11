@@ -134,3 +134,40 @@ compiler frames, reachable call chains, IRQ/exception nesting and justified
 allowances. Append numeric INFO fields one at a time to avoid retaining scores
 of temporary strings while observing memory. This reduces compiler frame size;
 it does not establish measured headroom or target timing by itself.
+
+### Guarded stack reserve for the closure candidate
+
+The linked audit found that compiler reports cannot be treated as exact stack
+pointer bounds: `PioDmaSink::dispatch` reports 56 bytes in `.su`, while its linked
+prologue subtracts 8, pushes 36 and subtracts 20 bytes (64 total). Incoming
+argument homes and library/assembly paths need accounting beyond a simple sum
+of compiler reports. P3's touched extents therefore remain lower bounds.
+
+The next closure candidate uses the SDK's existing RP2350 Arm stack-guard entry
+points to install **MSPLIM = allocation bottom + 4,096 bytes**, on core 0 before
+the runtime initializers/C++ constructors and on core 1 before its runtime and
+RF worker. This retains each 16 KiB allocation and enforces the predeclared
+4 KiB reserve for normal privileged MSP execution, including normal interrupt
+stacking and unwritten stack-pointer reservations. It does not add a poll or
+instrumentation call to the waveform loop. `check_stack_guards.py` verifies both
+linked startup routes, the sole MSPLIM writer and register readbacks. The source
+and linked constant must also be reviewed; that checker is not a hardware test.
+
+INFO's `core0_stack_guard_bottom`, `core0_stack_guard_limit`,
+`core0_stack_guard_valid` and `core0_stack_fault_status` report the local register
+check. The explicit worker probe supplies the corresponding `core1_*` fields
+from core 1. Validity is numeric 0/1 and requires privileged MSP selection, the
+exact allocation bottom, a 4,096-byte limit offset, SP above that limit and no
+sticky CFSR.STKOF flag. These readbacks do not clear fault status. Setup failure
+retains `STGD` in watchdog scratch and cannot continue into application work.
+
+For this new image, the stack acceptance predicate is valid guard readback on
+both executing cores throughout the full matrix, unchanged admitted boots, no
+stack fault/reset, and canary/frame/call-path evidence reported alongside it.
+This replaces a guessed additive allowance with an enforced numerical reserve;
+it does not reduce the 4 KiB requirement or turn unexecuted cases into passes.
+The hardware limit is not an MPU memory-corruption guard and does not qualify
+HardFault/NMI recovery paths, foreign PSP execution, other images or other clock
+configurations. Any guard failure, unexpected boot or missed observation fails
+admission/acceptance and blocks dependent actions. Target validation of this
+candidate remains pending; P3 does not contain these guard observations.

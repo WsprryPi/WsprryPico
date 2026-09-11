@@ -6,6 +6,7 @@
 #include "pico/multicore.h"
 #include "pico/time.h"
 #include "rf/pico/pico_pio_dma.hpp"
+#include "runtime/pico/stack_guard.h"
 
 #include <algorithm>
 
@@ -26,6 +27,8 @@ void wait() {
         tight_loop_contents(); // Existing watchdog enters inhibited recovery.
 }
 void run() {
+    if (!wsprry_stack_guard_snapshot().valid)
+        failure();
     if (!flash_safe_execute_core_init())
         failure();
     ready.store(1, std::memory_order_release);
@@ -59,6 +62,12 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock) {
             while (free < std::size(worker_stack) && worker_stack[free] == 0xa59c37e1U)
                 ++free;
             result.stack_used_bytes = sizeof(worker_stack) - free * sizeof(worker_stack[0]);
+            const auto guard = wsprry_stack_guard_snapshot();
+            result.stack_guard_bottom = guard.bottom;
+            result.stack_guard_limit = guard.limit;
+            result.stack_fault_status = guard.fault_status;
+            result.stack_guard_valid = guard.valid &&
+                guard.bottom == reinterpret_cast<std::uintptr_t>(worker_stack);
         },
         &hardware);
     worker = &proxy;

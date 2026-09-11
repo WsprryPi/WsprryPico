@@ -1,7 +1,7 @@
 # Phase 11.5 closure execution
 
 Status: IN PROGRESS. Selected configuration remains physical PIO/DMA at 138 MHz,
-SRAM renderer. P2 passed its bounded diagnostic; full A-G acceptance remains open.
+SRAM renderer. P3 passed its allocator-instrumented diagnostic; full A-G acceptance remains open.
 The accepted list is empty. This continuation does not erase any prior attempt.
 
 ## Initial findings
@@ -40,12 +40,12 @@ Armed, Running or Failed state. Failed requests use the nullable allocator and
 must leave the board available for subsequent authoritative operations. Its
 actual target execution belongs in a frozen closure packet.
 
-Host tests cover transient realloc overlap, failed realloc retaining its original
+At the first source milestone, host tests covered transient realloc overlap, failed realloc retaining its original
 block, overflow, zero-size realloc, nullable failure, released probes and concurrent
 recursive calls. An initial firmware link failed because SDK pico_wrap_function
 sets INTERFACE options, which do not apply to the executable itself; explicit
-PRIVATE linker wrap options fixed the build. No image has been flashed in this
-continuation.
+PRIVATE linker wrap options fixed the build. No image had been flashed at that
+source milestone; the later authorized P3 execution is recorded below.
 
 ## Remaining execution sequence
 
@@ -97,5 +97,68 @@ under `/home/pi/phase11-5-closure-8a4f01f/source` on wspr5. Its isolated release
 build uses `BACKENDS=simulated ANCILLARY_GPIO=0 SUDO=`; it has not been run or
 installed. The previously documented Phase 11.4 source directory is absent on
 the current host and was not assumed reusable. Host boot and picotool hash still
-match the preserved campaign identities. No USB, flashing, RF, radio, service or
-GPSDO action has occurred in this continuation.
+matched the preserved campaign identities. Hardware execution had not yet begun
+at that milestone. The subsequent stages below retain their own identities.
+
+## P3 and N0 execution
+
+Clean allocator-instrumented source `3eac6ec030963a5318515ce5f4683acf6fa88506`
+passed three 10-second 135.5 kHz Tone jobs under the continuing flashing/RF
+authorization. The [P3 result](phase11-5-allocator-result.json) binds its exact
+138 MHz SRAM image, boot, jobs, raw evidence hashes and inhibited restoration.
+The full/short minimum remaining-word reserves were 7,339/16,384 and 2,030/2,312;
+maximum worker service gap was 2,060,000 ns against 2,849,391 ns. All three local
+launch/tail/completion sequences passed with no DMA errors. The allocator peak
+was 42,640 bytes versus a 27,496-byte sampled peak; no allocation failed.
+Mallinfo sampling accumulated 23,888,402 microseconds in a 79.28-second diagnostic,
+including timer quantization/interruption effects. Its full-contention cost
+remains a gate. P3 is not full N, A3, stack, fragmentation or RF qualification.
+
+Independent final reads confirmed A restored to inhibited `802c91a7b86e-dirty`,
+boot `e3634081a2c5844524ab64eb2afeab71`, and B unchanged, inhibited and inactive.
+wspr5 remained on its original boot and installed service PID 1957. Ethernet lost
+its IPv4 lease after P3; NetworkManager reported a duplicate involving wspr5's
+own wlan1 MAC. Read-only investigation verified working Ethernet IPv6 SSH.
+No ordinary-LAN repair or sysctl change was made.
+
+The separately authorized [N0 host fixture](phase11-5-network-fixture.md) is now
+up: wlan0 AP at 10.77.15.1 and wlan2 independent client at 10.77.15.2, with distinct
+network/mount namespaces and no client default route. Its independent six-hour
+cleanup is armed, the Wi-Fi recovery timer is temporarily paused, and installed
+WsprryPi PID/binary/INI and ordinary wlan1 management remain unchanged. N0 opens
+no Pico endpoints and is not evidence that a device joined the fixture.
+
+## Stack-reserve and production idle review
+
+The linked stack review found a concrete `.su` limitation: PioDmaSink dispatch's
+56-byte report omits eight bytes visible in its 64-byte linked prologue. The next
+candidate installs the SDK's RP2350 Arm MSPLIM mechanism before each core's
+runtime work, with an exact 4,096-byte reserve inside each 16 KiB stack. It
+reports register/stack identity and sticky stack-fault state from the owning
+core. Readbacks, startup routes and constants require exact-image validation;
+the [metric contract](phase11-5-metrics.md) does not transfer P3 evidence to this
+changed image or claim target execution from source tests.
+
+N0's first adversarial pass found that a namespace-listing exception could skip
+timer restoration. Cleanup now catches that failure independently and still
+attempts to restore the recovery timer. Ten hardware-free ownership/deadline/
+cleanup tests pass. Both linked network-on guard images pass startup/readback,
+allocator-route and SRAM-renderer checks; guard policy and five image-mutation
+test methods pass. Remaining image/host checks are recorded at the final freeze.
+
+The actual Pi idle application had no periodic STATUS after startup, allowing
+the Pico's five-second WTP idle timeout to expire. A scoped read-only poll now
+uses the existing parent event loop and application serialization, at most once
+per second while Idle/Ready. It does not poll during pending/active jobs, mutate
+foreign ownership, reconnect a disconnected session or recover unresolved work.
+Application and production regressions pass; the actual native TLS idle test
+and final clean executable identity remain to be recorded.
+
+The final guard source checks passed all 47 host tests, the separate ASan/UBSan
+stack-policy and RF-worker tests, and the separate worker TSan test. All four
+network-on/off standard/physical development images passed linked endpoint,
+layout, allocator and stack-guard checks. Those development images were dirty
+and were never flashed; clean artifacts and physical evidence remain required.
+An adversarial recheck found no remaining actionable guard or idle-poll finding.
+The guard is an enforced MSP reserve for this Arm target, not a measurement of
+worst-case call depth or qualification of a different image.

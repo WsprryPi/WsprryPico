@@ -1,0 +1,142 @@
+{
+  "source_revision": "3eac6ec030963a5318515ce5f4683acf6fa88506",
+  "status": "LINKED_LAYOUTS_ONLY_NOT_PHASE_ACCEPTANCE",
+  "images": [
+    {
+      "network_control": true,
+      "image": "WsprryPico",
+      "clock_hz": 150000000,
+      "source_revision": "3eac6ec030963a5318515ce5f4683acf6fa88506",
+      "symbols": {
+        "__end__": "0x2001fd34",
+        "__HeapLimit": "0x2007c000",
+        "__StackBottom": "0x2007c000",
+        "__StackTop": "0x20080000",
+        "__bss_start__": "0x20002e18",
+        "__bss_end__": "0x2001fd34"
+      },
+      "heap_capacity_bytes": 377548,
+      "core0_stack_bytes": 16384,
+      "core1_worker_stack_bytes": null,
+      "artifacts": [
+        {
+          "file": "WsprryPico.elf",
+          "sha256": "bc079f236e870c6e9f285fd2265f399bb48cfa22eda0c4702e9e5c9f9c25781c",
+          "bytes": 15021332
+        },
+        {
+          "file": "WsprryPico.elf.map",
+          "sha256": "e55001819f151d82bd17af23ccb8909a457be0746b32b37aaafe3548f7e438b4",
+          "bytes": 2582841
+        },
+        {
+          "file": "WsprryPico.uf2",
+          "sha256": "ad5b4df886a80890e8c1353c67c4f5a367f0c4eb289f81eeef4f30dbd09d592c",
+          "bytes": 2015232
+        }
+      ]
+    },
+    {
+      "network_control": true,
+      "image": "WsprryPico-StandaloneRF",
+      "clock_hz": 138000000,
+      "source_revision": "3eac6ec030963a5318515ce5f4683acf6fa88506",
+      "symbols": {
+        "__end__": "0x20046ab0",
+        "__HeapLimit": "0x2007c000",
+        "__StackBottom": "0x2007c000",
+        "__StackTop": "0x20080000",
+        "__bss_start__": "0x20003388",
+        "__bss_end__": "0x20046ab0"
+      },
+      "heap_capacity_bytes": 218448,
+      "core0_stack_bytes": 16384,
+      "core1_worker_stack_bytes": 16384,
+      "artifacts": [
+        {
+          "file": "WsprryPico-StandaloneRF.elf",
+          "sha256": "8ad6c963a4e4286b307189a514a96556cde8dd3eda27a9088d199f54e14c711a",
+          "bytes": 15247284
+        },
+        {
+          "file": "WsprryPico-StandaloneRF.elf.map",
+          "sha256": "d735c77030bf9572c41b8678808d7c391530a156706e4cfbbceae44e7dcb53b7",
+          "bytes": 2722441
+        },
+        {
+          "file": "WsprryPico-StandaloneRF.uf2",
+          "sha256": "6b90e34843de1e7b0845f3585f966714521207e9010430bfad76c58e42281054",
+          "bytes": 2037248
+        }
+      ]
+    },
+    {
+      "network_control": false,
+      "image": "WsprryPico",
+      "clock_hz": 150000000,
+      "source_revision": "3eac6ec030963a5318515ce5f4683acf6fa88506",
+      "symbols": {
+        "__end__": "0x2001fcf8",
+        "__HeapLimit": "0x2007c000",
+        "__StackBottom": "0x2007c000",
+        "__StackTop": "0x20080000",
+        "__bss_start__": "0x20002e08",
+        "__bss_end__": "0x2001fcf8"
+      },
+      "heap_capacity_bytes": 377608,
+      "core0_stack_bytes": 16384,
+      "core1_worker_stack_bytes": null,
+      "artifacts": [
+        {
+          "file": "WsprryPico.elf",
+          "sha256": "b6347508b548c2a68f7debff2db4cb2512a7663cba40e800dbac997eb4382731",
+          "bytes": 14741684
+        },
+        {
+          "file": "WsprryPico.elf.map",
+          "sha256": "4075712eb9512bf9691ae2861da84e406af56c901d3d21b6cdc6acaed64721b2",
+          "bytes": 2574037
+        },
+        {
+          "file": "WsprryPico.uf2",
+          "sha256": "f5683d852e596a6844998b33963d997733f9ca7a4b220ec2c554d41ed11a16b7",
+          "bytes": 1968128
+        }
+      ]
+    },
+    {
+      "network_control": false,
+      "image": "WsprryPico-StandaloneRF",
+      "clock_hz": 138000000,
+      "source_revision": "3eac6ec030963a5318515ce5f4683acf6fa88506",
+      "symbols": {
+        "__end__": "0x20046a7c",
+        "__HeapLimit": "0x2007c000",
+        "__StackBottom": "0x2007c000",
+        "__StackTop": "0x20080000",
+        "__bss_start__": "0x20003380",
+        "__bss_end__": "0x20046a7c"
+      },
+      "heap_capacity_bytes": 218500,
+      "core0_stack_bytes": 16384,
+      "core1_worker_stack_bytes": 16384,
+      "artifacts": [
+        {
+          "file": "WsprryPico-StandaloneRF.elf",
+          "sha256": "b7612e5fdd9af6365d65016641c3c6a14bb60adbbeb041452e1328e09d58ea13",
+          "bytes": 14966012
+        },
+        {
+          "file": "WsprryPico-StandaloneRF.elf.map",
+          "sha256": "ec9d240a34f0554a684d250c728a1c1d2bfbd29e41a5541351a3e0e05de51416",
+          "bytes": 2713130
+        },
+        {
+          "file": "WsprryPico-StandaloneRF.uf2",
+          "sha256": "57acabc531a2bdb66ba999024e9e21653c8b2295d3effc7580f09780d8ff9809",
+          "bytes": 1990144
+        }
+      ]
+    }
+  ]
+}

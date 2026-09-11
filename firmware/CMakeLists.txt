@@ -155,8 +155,11 @@ pico_set_program_version(WsprryPico-StandaloneRF "${WSPRRY_PICO_FIRMWARE_VERSION
 pico_set_program_description(WsprryPico-StandaloneRF "Standalone GP2 integration ${WSPRRY_PICO_GIT_REVISION}")
 pico_add_extra_outputs(WsprryPico-StandaloneRF)
 foreach(image WsprryPico WsprryPico-StandaloneRF)
-    target_sources(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/runtime/pico/heap_metrics.c)
-    target_compile_definitions(${image} PRIVATE WSPRRY_PICO_HEAP_METRICS=1)
+    target_sources(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/runtime/pico/heap_metrics.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/pico/stack_guard.c)
+    target_compile_definitions(${image} PRIVATE WSPRRY_PICO_HEAP_METRICS=1
+        PICO_RUNTIME_SKIP_INIT_PER_CORE_INSTALL_STACK_GUARD=0
+        PICO_RUNTIME_NO_INIT_PER_CORE_INSTALL_STACK_GUARD=1)
     target_compile_options(${image} PRIVATE -fstack-usage)
     foreach(function _malloc_r _calloc_r _realloc_r _free_r mallinfo)
         target_link_options(${image} PRIVATE "LINKER:--wrap=${function}")
@@ -166,8 +169,19 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
                 $<TARGET_FILE:${image}> VERBATIM)
     set_property(TARGET ${image} APPEND PROPERTY LINK_DEPENDS
                  ${CMAKE_SOURCE_DIR}/scripts/check_heap_hooks.py)
+    if(image STREQUAL "WsprryPico-StandaloneRF")
+        set(stack_guard_arguments --physical)
+    else()
+        set(stack_guard_arguments)
+    endif()
+    add_custom_command(TARGET ${image} POST_BUILD
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_stack_guards.py
+                $<TARGET_FILE:${image}> ${stack_guard_arguments} VERBATIM)
+    set_property(TARGET ${image} APPEND PROPERTY LINK_DEPENDS
+                 ${CMAKE_SOURCE_DIR}/scripts/check_stack_guards.py)
 endforeach()
-set_source_files_properties(${CMAKE_SOURCE_DIR}/src/runtime/pico/heap_metrics.c PROPERTIES
+set_source_files_properties(${CMAKE_SOURCE_DIR}/src/runtime/pico/heap_metrics.c
+    ${CMAKE_SOURCE_DIR}/src/runtime/pico/stack_guard.c PROPERTIES
     COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-fstack-usage")
 if(WSPRRY_PICO_RF_RENDER_IN_RAM)
     set(rf_renderer_placement ram)

@@ -1,0 +1,141 @@
+{
+  "schema": "phase11.5-pilot-attempt-v1",
+  "attempt": "P3",
+  "result": "PASS_BOUNDED_DIAGNOSTIC_NOT_PHASE_ACCEPTANCE",
+  "clock_hz": 138000000,
+  "pio_divider": [
+    1,
+    1
+  ],
+  "rf_render_in_ram": true,
+  "firmware_revision": "3eac6ec030963a5318515ce5f4683acf6fa88506",
+  "uf2_sha256": "6b90e34843de1e7b0845f3585f966714521207e9010430bfad76c58e42281054",
+  "packet_sha256": "a6a78dfc0c4b433c7a540584f87bf3dcb283ba10f42166a684a365a340578143",
+  "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+  "boot_id": "914c90a7b2cefddbd0173e0b49d7cb35",
+  "job_ids": [
+    "8154ec228c344cc4bb4abd5388fce826",
+    "9bc08af201f3442296a2450e129db321",
+    "0ccfc13089c44a588fc683649459e0cd"
+  ],
+  "load_commands": 3,
+  "arm_commands": 3,
+  "release_commands": 3,
+  "nominal_job_duration_ns": "10000000000",
+  "rf_duration_measurement": "No independent electrical measurement; finite job, local launch/tail and authoritative WTP completion telemetry",
+  "full_buffer_period_ns": [
+    262144000,
+    69
+  ],
+  "full_reserve": {
+    "measured": true,
+    "observations": 7893,
+    "epoch": "2",
+    "successor_sequence": "73",
+    "observed_ns": "38574943000",
+    "remaining_words": 7339,
+    "total_words": 16384
+  },
+  "short_reserve": {
+    "measured": true,
+    "observations": 3,
+    "epoch": "3",
+    "successor_sequence": "2633",
+    "observed_ns": "68026701000",
+    "remaining_words": 2030,
+    "total_words": 2312
+  },
+  "metrics": {
+    "dma_irqs": 7902,
+    "tail_irqs": 3,
+    "alarm_irqs": 3,
+    "dma_errors": 0,
+    "refill_irq_pairs": 7896,
+    "refill_irq_unpaired": 0,
+    "refill_invalid_reserves": 0,
+    "running_successor_links": 7896,
+    "exhausted_successor_links": 0,
+    "max_refill_irq_to_ready_ns": "2097000",
+    "max_dma_irq_ns": 100000,
+    "max_alarm_irq_ns": "202000",
+    "rf_max_service_gap_ns": "2060000",
+    "rf_max_poll_ns": "2003000",
+    "rf_max_probe_ns": "286000",
+    "core0_stack_used_bytes": 7640,
+    "core1_stack_used_bytes": 5568,
+    "heap_sampled_peak_bytes": 27496,
+    "heap_capacity_bytes": 218448,
+    "allocator_entries": "1695567",
+    "allocator_failures": "0",
+    "allocator_live_bytes": 27552,
+    "allocator_peak_bytes": 42640,
+    "allocator_largest_request_bytes": 6997,
+    "allocator_largest_successful_request_bytes": 6997,
+    "allocator_sample_time_us": "23888402",
+    "allocator_max_sample_us": 146,
+    "allocator_max_entry_us": 177,
+    "allocator_max_depth": 2
+  },
+  "info_samples": 80,
+  "audit": {
+    "result": "PASS",
+    "wire_requests": 73,
+    "wire_events": 18,
+    "mutations_rejected": 6,
+    "allocator_checks": "zero failures, coherent live/peak/capacity relationships, monotonic counters, successful-size bound, transient peak exceeds sampled peak"
+  },
+  "restoration_result": {
+    "result": "RESTORED_INHIBITED",
+    "output_active": false,
+    "restoration_sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10"
+  },
+  "final_boards": {
+    "a": {
+      "revision": "802c91a7b86e-dirty",
+      "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+      "status": {
+        "boot_id": "e3634081a2c5844524ab64eb2afeab71",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      }
+    },
+    "b": {
+      "revision": "dbf1d86f0885-dirty",
+      "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+      "status": {
+        "boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      }
+    }
+  },
+  "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+  "transient_unit": "phase11-5-p3-3eac6ec.service",
+  "unit_result": "success",
+  "limitations": [
+    "Bounded USB diagnostic only; no full normal N or A-G acceptance.",
+    "Only 138 MHz selected; 132/150 MHz physical acceptance remains untested.",
+    "No largest-block/failure probe, fragmentation stress or completed stack allowance yet.",
+    "Allocator mallinfo sampling cost is measured and included in this image; its effect under network contention is untested.",
+    "No independent electrical RF timing, per-band/mode conducted RF or spectral/filter qualification.",
+    "Original P1 failure and P2 diagnostic remain retained."
+  ],
+  "evidence": {
+    "build/phase11-5-closure/p3-complete.tar": "92f2443a24f2eee87815634a5e3562f66399d7e75ff06dd7c6fe61ace3672b0f",
+    "build/phase11-5-closure/audit_p3.py": "1e672eff3e51f57f835a5fe17e61526f824f2b97d3f1a395260c1f0ac33eeb0b",
+    "build/phase11-5-closure/p3-audit.json": "9d4c0c3b37d3d3c4f245bc945cb9e38daab9cc661d8483620597a29e8736c058",
+    "build/phase11-5-closure/p3-complete/evidence/start.jsonl": "500ce1606f0bf342cf16e0a0d8b2dca55578c9c12f5356030f7157860b619be5",
+    "build/phase11-5-closure/p3-complete/evidence/restore.jsonl": "53099d75f22e1dbf778b34384945e66321ebfbf9f0e245e61b23c396e16c849b",
+    "build/phase11-5-closure/p3-complete/evidence/pilot/events.jsonl": "770c65e4517ea7fb73d5996caa76d9cc3f822896e44ac877f8b39a8f00113580",
+    "build/phase11-5-closure/phase11-5-p3-final-a.jsonl": "c34c9335e3f2196fe157a43c3b7a5d39f8ed8a235878e71001cdebe76c1da2ee",
+    "build/phase11-5-closure/phase11-5-p3-final-b.jsonl": "de3e97281e75a1a7b012057d24447cb96adbee4957a8bcf22aea5c2f51ec83d1",
+    "build/phase11-5-closure/p3-final-host-wifi.txt": "1275b00e6b5cd8b1ec4c166f63f078016d02c6f567fed8ca622e4d6fbc48c27f"
+  },
+  "host_final_confirmation": "P3 supervisor inactive/success; original host boot, installed service PID 1957, binary and INI hashes unchanged; recovery timer active/enabled at P3 final confirmation; wlan0/wlan2 down and wlan1 at .117. Ethernet retained carrier and its verified IPv6 SSH path after losing IPv4; NetworkManager reported a duplicate involving the host own wlan1 MAC. No LAN repair was made. Independent final USB reads confirmed both boards inhibited/inactive. Later N0 fixture changes are a separate authorized stage."
+}

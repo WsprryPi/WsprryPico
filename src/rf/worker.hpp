@@ -50,6 +50,9 @@ class WorkerEngine final : public wtp::RfEngine {
         std::uint64_t alarm_irqs = 0, max_alarm_irq_ns = 0, tail_irqs = 0, dma_errors = 0;
         RefillMetrics::Snapshot refill;
         std::size_t stack_used_bytes = 0;
+        std::uint32_t stack_guard_bottom = 0, stack_guard_limit = 0;
+        std::uint32_t stack_fault_status = 0;
+        bool stack_guard_valid = false;
     };
     Metrics metrics();
     void set_probe(void (*probe)(Metrics&, void*), void* context) {

@@ -1,7 +1,8 @@
 # Phase 11.5 target resources and contention
 
-Status: **OPEN; the P2 SRAM candidate passed its bounded three-job diagnostic.**
-See the [P2 result and restoration](phase11-5-remediation-result.json).
+Status: **OPEN; P3 passed its allocator-instrumented three-job diagnostic.**
+See the [P3 result and restoration](phase11-5-allocator-result.json) and the
+earlier [P2 result](phase11-5-remediation-result.json).
 The original [P1b failure](phase11-5-pilot-attempt2.json) remains preserved.
 Final independent reads confirm both boards inhibited and inactive. Full
 resource/contention acceptance remains open, with no accepted configuration.
@@ -27,7 +28,7 @@ User-confirmed division on September 11, 2026:
 
 | PIO clock | Selection for this campaign | 11.5 accepted configurations |
 | --- | --- | --- |
-| 138 MHz | Selected candidate for 11.6 | None; P2 diagnostic passed, full checks pending |
+| 138 MHz | Selected candidate for 11.6 | None; P2/P3 diagnostics passed, full checks pending |
 | 132 MHz | Not selected | Untested for 11.5 |
 | 150 MHz | Not selected | Untested for physical 11.5; inhibited 150 MHz evidence is separate |
 
@@ -226,9 +227,14 @@ Freeze before running, with reviewed instrumentation and actual artifact identit
   This is an engineering margin, not WCET. Matched reserve observations must
   additionally pass for short blocks and tail preparation. Separate maxima may
   only be used as a documented conservative bound with overlap accounted for.
-- Both stacks: measured touched extent plus reviewed unobserved/IRQ allowance
-  must leave at least 4,096 bytes. The allowance cannot be zero or an invented
-  fixed number; derive it from the linked call chains before admission.
+- Both stacks must retain at least 4,096 bytes. The initial measurement method
+  requires touched extent plus a derived unobserved/IRQ allowance, never a
+  guessed fixed number. The new closure candidate instead enforces that same
+  reserve with RP2350 MSPLIM on both cores; require exact register/stack identity,
+  valid readbacks, unchanged boot and zero stack faults throughout each case,
+  with canary and linked-frame/call-path evidence alongside it. This stronger
+  method is frozen before new physical admission; see the
+  [guarded-reserve contract](phase11-5-metrics.md#guarded-stack-reserve-for-the-closure-candidate).
 - General heap: preserve the existing 32,768-byte recovery reserve; demonstrate
   the largest necessary allocation for each accepted combination and allocation
   failure recovery. TLS counts are a subset of that heap, never an extra arena.
@@ -280,7 +286,9 @@ GP2 production output must execute the real PIO program, chained data DMA,
 finite zero-tail DMA and actual dual-core memory path. A pin override or dummy
 sink cannot qualify that path. No wspr5 GPIO4, GPSDO or comparator RF activation.
 
-Closure network fixture (not ready; distinct from completed P2): stage reviewed helpers and separately built production executable
+Closure network fixture (N0 authorized and active; distinct from completed P2):
+the [bounded host fixture](phase11-5-network-fixture.md) has verified isolated AP/client
+setup and armed cleanup. The device/load campaign remains separate. Stage reviewed helpers and separately built production executable
 under a new private wspr5 directory. AP wlan0/client wlan2 with separate network
 and mount namespaces, NSS and Avahi; wlan1 remains ordinary management. Bind
 roles by MAC and verify Ethernet route before mutation. No NAT, forwarding or

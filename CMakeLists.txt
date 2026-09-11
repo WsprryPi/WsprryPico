@@ -124,6 +124,12 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(heap_metrics_tests PRIVATE Threads::Threads)
     target_compile_options(heap_metrics_tests PRIVATE -Wall -Wextra -Werror -UNDEBUG)
     add_test(NAME heap_metrics_tests COMMAND heap_metrics_tests)
+    add_executable(stack_bounds_tests tests/stack_bounds_tests.c)
+    target_include_directories(stack_bounds_tests PRIVATE src)
+    target_compile_options(stack_bounds_tests PRIVATE -Wall -Wextra -Werror -UNDEBUG)
+    add_test(NAME stack_bounds_tests COMMAND stack_bounds_tests)
+    add_test(NAME stack_guard_image_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/stack_guard_image_tests.py)
     add_test(NAME heap_hook_image_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/heap_hook_image_tests.py)
     add_executable(refill_metrics_tests tests/refill_metrics_tests.cpp)
@@ -138,6 +144,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_pilot_tests.py)
     add_test(NAME phase11_5_supervisor_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_supervisor_tests.py)
+    add_test(NAME phase11_5_network_fixture_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase11_5_network_fixture_tests.py)
     add_executable(rf_worker_tests tests/rf_worker_tests.cpp)
     target_link_libraries(rf_worker_tests PRIVATE wsprrypico_rf Threads::Threads)
     target_compile_options(rf_worker_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
