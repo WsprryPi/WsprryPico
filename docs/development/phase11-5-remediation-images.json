@@ -29,7 +29,7 @@
     "configured_system_clock_hz": 138000000,
     "rf_render_in_ram": true,
     "heap_capacity_bytes": 218732,
-    "physical_status": "NOT_FLASHED_NOT_ACCEPTED",
+    "physical_status": "BOUNDED_P2_PASS_NOT_ACCEPTED",
     "artifacts": {
       "elf": {
         "sha256": "cef162c360ba20be2f96c6943a20d1067f0f1989f626ab20c5a20a9dcae87ce9",
@@ -52,7 +52,8 @@
       "worker_address": "0x2000b698",
       "worker_bytes": 168800,
       "checked_instructions": 240
-    }
+    },
+    "physical_evidence": "phase11-5-remediation-result.json"
   },
   {
     "source_revision": "0d9bb44a6b91679bd174c39ac068d5d9cc74e9c5",

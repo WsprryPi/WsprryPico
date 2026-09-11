@@ -1,8 +1,10 @@
 # Phase 11.5 target resources and contention
 
-Status: **OPEN; the 138 MHz P1b physical pilot failed.** See the
-[preserved result](phase11-5-pilot-attempt2.json). P0 reconciliation confirms
-both boards inhibited and inactive after [authorized restoration](phase11-5-recovery-result.json).
+Status: **OPEN; the P2 SRAM candidate passed its bounded three-job diagnostic.**
+See the [P2 result and restoration](phase11-5-remediation-result.json).
+The original [P1b failure](phase11-5-pilot-attempt2.json) remains preserved.
+Final independent reads confirm both boards inhibited and inactive. Full
+resource/contention acceptance remains open, with no accepted configuration.
 This is the joint implementation and acceptance plan, coordinated by Pico.
 The [review](phase11-5-review.md) records findings and executed checks. Phase 11.4
 is [closed within its inhibited matrix](phase11-4-controlled-soak-run.md).

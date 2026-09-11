@@ -1,0 +1,125 @@
+{
+  "schema": "phase11.5-pilot-attempt-v1",
+  "attempt": "P2",
+  "result": "PASS_BOUNDED_DIAGNOSTIC_NOT_PHASE_ACCEPTANCE",
+  "clock_hz": 138000000,
+  "pio_divider": [
+    1,
+    1
+  ],
+  "rf_render_in_ram": true,
+  "firmware_revision": "0d9bb44a6b91679bd174c39ac068d5d9cc74e9c5",
+  "uf2_sha256": "abb92721dbcdb0c96909b4f5c23aa680733ba4509aaf02ee9d7214c4af8f1247",
+  "packet_sha256": "ab49bd3c3309c8767f43fb474473c58036efa2af6ac2fe383c124f1139e658ff",
+  "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+  "boot_id": "1d2366afcc2a37d459f1844394eea2e5",
+  "job_ids": [
+    "75ea80a046594a909168b3c8af0b711d",
+    "ea0d5a2b06e74806a8500e96705a539f",
+    "bf691b6fdf6841798c36d6734b93a273"
+  ],
+  "load_commands": 3,
+  "arm_commands": 3,
+  "release_commands": 3,
+  "nominal_job_duration_ns": "10000000000",
+  "rf_duration_measurement": "No independent electrical measurement; finite job, local launch/tail and authoritative WTP completion telemetry",
+  "full_buffer_period_ns": [
+    262144000,
+    69
+  ],
+  "full_reserve": {
+    "measured": true,
+    "observations": 7893,
+    "epoch": "2",
+    "successor_sequence": "2048",
+    "observed_ns": "45655277000",
+    "remaining_words": 7674,
+    "total_words": 16384
+  },
+  "short_reserve": {
+    "measured": true,
+    "observations": 3,
+    "epoch": "2",
+    "successor_sequence": "2633",
+    "observed_ns": "47875841000",
+    "remaining_words": 2060,
+    "total_words": 2312
+  },
+  "metrics": {
+    "dma_irqs": 7902,
+    "tail_irqs": 3,
+    "alarm_irqs": 3,
+    "dma_errors": 0,
+    "refill_irq_pairs": 7896,
+    "refill_irq_unpaired": 0,
+    "refill_invalid_reserves": 0,
+    "running_successor_links": 7896,
+    "exhausted_successor_links": 0,
+    "max_refill_irq_to_ready_ns": "2016000",
+    "max_dma_irq_ns": 98000,
+    "max_alarm_irq_ns": "199000",
+    "rf_max_service_gap_ns": "2176000",
+    "rf_max_poll_ns": "1942000",
+    "rf_max_probe_ns": "288000",
+    "core0_stack_used_bytes": 7556,
+    "core1_stack_used_bytes": 5568,
+    "heap_sampled_peak_bytes": 27476,
+    "heap_capacity_bytes": 218732
+  },
+  "info_samples": 79,
+  "audit": {
+    "result": "PASS",
+    "wire_requests": 73,
+    "wire_events": 18,
+    "mutations_rejected": 6
+  },
+  "restoration_result": {
+    "result": "RESTORED_INHIBITED",
+    "output_active": false,
+    "restoration_sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10"
+  },
+  "final_boards": {
+    "a": {
+      "revision": "802c91a7b86e-dirty",
+      "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+      "status": {
+        "boot_id": "0b1cb103440c63757e5f326660be75d2",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      }
+    },
+    "b": {
+      "revision": "dbf1d86f0885-dirty",
+      "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+      "status": {
+        "boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      }
+    }
+  },
+  "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+  "transient_unit": "phase11-5-p2-0d9bb44.service",
+  "unit_result": "success",
+  "private_evidence_sha256": {
+    "p2-evidence.tar": "b37495b248ea03c43cf506752c17b590b5146d0490c81b8a91d63ceedad36772",
+    "p2-audit.json": "f34c216992208590140083c3d64018e10e057797c30185a7d95b72a5623c3b79",
+    "audit_p2.py": "95fc5639061065df4963dc0029cdf47b22e18c56f7833603a87d9edbf5a05d95",
+    "p2-final-a.jsonl": "1ad58fccde4af32308ad4d326e5e8823fd0783d0af5fd4ef393567c01d9f8540",
+    "p2-final-b.jsonl": "aacc8223f536ea4250200f790523c355da859683b8c18f25a08056181e8d9f6c",
+    "p2-final-host.txt": "a98c0d33d7f13826efa3b3d911a8be708d855075d0cad016cdabe66899a277f3"
+  },
+  "limitations": [
+    "Original failed P1b evidence remains retained; P2 is a new image and three new jobs, not erasure or automatic retry.",
+    "Passing is limited to Pico A, this firmware and SRAM placement, 138 MHz, three 135500 Hz Tone jobs and the frozen observer workload.",
+    "No clock/configuration is fully accepted; full A-G, memory/stack margins, observer parity, sustained load and resource-sensitive patterns remain open.",
+    "No RF spectrum, filter, frequency accuracy, other band/mode/clock or Pico B physical qualification is claimed.",
+    "The improvement supports using the SRAM candidate; this is not an isolated causal XIP experiment because P2 also includes the terminal acknowledgement repair."
+  ]
+}

@@ -1,7 +1,8 @@
 # Phase 11.5 refill remediation execution and adversarial review
 
-Status: software candidate prepared; physical verification OPEN. No clock is
-accepted. The [execution prompt](phase11-5-remediation-prompt.md) was rendered to
+Status: P2 physical diagnostic PASS; full resource acceptance remains OPEN.
+No clock is accepted. See [the exact result](phase11-5-remediation-result.json).
+The [execution prompt](phase11-5-remediation-prompt.md) was rendered to
 `build/phase11-5/render/phase11-5-remediation-prompt.pdf`; all three pages were
 visually checked. Private logs are in `build/phase11-5-remediation`.
 
@@ -16,7 +17,8 @@ The terminal acknowledgement repair in 713cb16 is unchanged. Expanded tests
 exercise zero, 100 us and excessive 1 ms allowances, local/nonlocal scheduling,
 delayed completion, retained ownership and a stuck engine at the inclusive
 100 us bound and one nanosecond beyond. Existing shutdown-failure tests remain
-applicable. There is still no changed-image physical terminal pass.
+applicable. At software freeze there was no changed-image physical terminal pass;
+P2 subsequently supplied the bounded pass recorded below.
 
 The preserved 713cb16 ELF places the renderer in XIP at 0x1005f054, with a
 564-byte symbol. Its active full-block loop is inline; RF-off/padding paths call
@@ -103,9 +105,10 @@ Seven pilot and five supervisor tests passed after repair.
 Reviewed the final diff and reran the packet, linked-image and supervisor guards
 after the second assessment's repairs. The baseline ELF passed an explicit flash
 expectation; missing instruction coverage and alternate-address dependencies
-remain rejected. No remaining actionable software defect was found. Physical
-reserve, service-gap and terminal closure remain OPEN until authorized changed
-hardware passes. Stack/heap capacity changes need affected resource checks. A
+remain rejected. No remaining actionable software defect was found. At that
+pre-execution assessment, physical reserve, service-gap and terminal closure
+awaited an authorized changed-image run. Stack/heap capacity changes need
+affected resource checks. A
 short pilot cannot close A-G, allocator transient/fragmentation coverage,
 observer effects, sustained load or actual Linux address-rebind acceptance.
 
@@ -136,9 +139,9 @@ Pi's actual-server fixture passed against clean Pico 0d9bb44, including its
 60-second wait. Its first invocation used the repository root and found no Make
 target; the documented src invocation passed. The macOS address-rebind skip is
 retained. Companion production code did not change. The [P2 packet](phase11-5-remediation-pilot.md)
-is frozen and awaits separate authorization; repository approval is not RF authority.
+was frozen before separate authorization; its completed execution is recorded below.
 
-Fresh P0 reads verified A revision 802c91a7b86e-dirty, boot
+Pre-P2 P0 reads verified A revision 802c91a7b86e-dirty, boot
 4571042e06f139bc185e862482082291, and B revision dbf1d86f0885-dirty, boot
 4e2fb851c08b278dd4b977104d2c2aaa. Both were empty, unowned, output false, without
 terminal records. No new flash/RF operation occurred. wspr5 boot/Ethernet matched;
@@ -158,3 +161,64 @@ Phase 11.5 owns exact firmware/clock resource acceptance: 138 MHz selected but
 unaccepted, 132/150 MHz physically untested. Phase 11.6 owns per-band/per-mode
 conducted tests, repeating affected 11.5 checks when selection changes. Phase 13
 owns systematic band x mode x clock, filters, spectra and release configurations.
+
+## Authorized P2 execution and evidence review
+
+The user explicitly authorized flashing/RF for the frozen P2 packet. Bundle,
+packet, helper and image hashes matched before the one new wspr5 transient unit
+started. Its pre-registered conditional restoration completed successfully.
+No helper, image, threshold, clock or job was changed during execution.
+
+All three 10-second 135.5 kHz Tone jobs completed on Pico A with clean
+0d9bb44a6b91, SRAM renderer, 138 MHz and PIO divider 1, boot
+1d2366afcc2a37d459f1844394eea2e5. There were exactly three LOAD, ARM and RELEASE
+requests, each job followed Loaded/Armed/Running/Complete, and no fault event,
+retry or ABORT occurred. Seventy-nine INFO samples covered the 78.44-second pilot.
+
+| Observation | Original P1b failure | P2 result | Frozen criterion |
+| --- | --- | --- | --- |
+| Full predecessor reserve | 1910/16384 (11.66%) | 7674/16384 (46.84%) | At least 25% |
+| Short predecessor reserve | 2109/2312 (91.22%) | 2060/2312 (89.10%) | At least 25% of actual length |
+| Maximum worker service gap | 3.577 ms | 2.176 ms | At most 2.849391 ms |
+| Maximum poll | 3.342 ms | 1.942 ms | Component timing, not added to service gap |
+| Maximum matched IRQ-to-ready | 3.352 ms | 2.016 ms | Matched diagnostic, not added to service gap |
+| Terminal completion | DEVICE_FAULT, first job | Complete, all three jobs | No unexplained failure |
+
+P2 recorded 7,902 DMA IRQs, three launches, three tail completions, 7,896 matched
+running refills (7,893 full and three short), and zero DMA errors, unpaired
+refills, invalid reserves or exhausted successor links. Sampled stack usage
+was 7,556 bytes on core 0 and 5,568 on core 1; sampled heap peak was 27,476 of
+218,732 linked bytes. These remain sampled observations, not worst-case stack,
+allocator or fragmentation acceptance. IRQ/probe and other metrics remain in
+the [exact result](phase11-5-remediation-result.json).
+
+Adversarial evidence assessment independently reconstructed all 73 transmitted
+WTP requests and 91 received messages from raw framed bytes, including CRC,
+request/reply identity and the 18 ordered lifecycle/owner events. It reconstructed
+all Console JSON from raw receive bytes and matched the 79 emitted INFO values,
+checked every frozen threshold and clock/placement/boot identity, command-output
+hashes, full backup/application match, restoration admission and final independent
+readbacks. Six mutated copies (missing record, wrong clock, false placement,
+lost tail, false completion and corrupted wire bytes) were rejected. The second
+assessment checked the result manifest against preserved raw evidence and
+verified the acceptance register still contains zero accepted configurations.
+No actionable finding remained; no repeated physical run was needed.
+
+The local private audit script, output and complete raw evidence are hash-bound
+in the result manifest. Original P1/P1b failures and their units/logs remain
+untouched. P2 establishes that the observed failures did not recur within this
+bounded changed-image diagnostic; it does not isolate a causal XIP effect,
+because the image also includes the terminal acknowledgement repair.
+
+Final independent reads verified A back on 802c91a7b86e-dirty inhibited firmware,
+new boot 0b1cb103440c63757e5f326660be75d2, empty/unowned/output false. B remains
+on dbf1d86f0885-dirty, original boot 4e2fb851c08b278dd4b977104d2c2aaa, likewise
+empty/unowned/output false. Host boot, Ethernet and wlan1 addresses, installed
+transmitter PID 1957, recovery timer and throttle state matched preflight. The
+P2 unit is inactive/dead with Result=success and ExecMainStatus=0.
+
+Remaining: exact-image full A-G resource/contention matrix, worst-case memory
+and stack margins, diagnostic observer parity, resource-sensitive lookup and
+short-tail patterns, sustained operation and native Linux rebind. No additional
+clock is selected or accepted; no conducted RF spectrum/frequency/filter or
+other band/mode qualification is claimed.

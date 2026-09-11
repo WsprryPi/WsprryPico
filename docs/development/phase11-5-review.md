@@ -1,7 +1,9 @@
 # Phase 11.5 code and evidence review
 
-Status: **OPEN**. The 138 MHz physical pilot failed refill margin and terminal
-completion; both boards are now restored/inhibited and inactive. See the
+Status: **OPEN**. The original 138 MHz pilot failed refill margin and terminal
+completion. The [P2 SRAM remediation](phase11-5-remediation-result.json) passed
+three bounded Tone jobs and restored inhibited A; full resource acceptance remains
+open. Both boards are now inhibited and inactive. See the
 [joint plan](phase11-5-plan.md), [failed result](phase11-5-pilot-attempt2.json) and
 [recovery result](phase11-5-recovery-result.json). No configuration is accepted.
 Phase 11.4 remains closed within its bounded inhibited matrix.

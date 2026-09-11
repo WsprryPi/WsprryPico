@@ -1,6 +1,9 @@
 # P2 SRAM renderer verification packet
 
-Status: PREPARED; NOT AUTHORIZED OR EXECUTED. This is a new physical packet,
+Status: AUTHORIZED AND COMPLETED; bounded diagnostic PASS and inhibited
+restoration verified. See [the exact result](phase11-5-remediation-result.json).
+This records a completed packet and does not authorize repeating it.
+This is a new physical packet,
 not continuation authority from the failed P1 or completed fault recovery.
 
 Purpose: check whether the unchanged 25% refill reserve, 2,849,391 ns worker

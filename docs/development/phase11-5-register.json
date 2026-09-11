@@ -11,8 +11,8 @@
         262144000,
         69
       ],
-      "evidence": "phase11-5-pilot-attempt2.json",
-      "disposition": "Pilot failed refill reserve and terminal DEVICE_FAULT; not accepted"
+      "evidence": "phase11-5-remediation-result.json",
+      "disposition": "P2 SRAM candidate passed three finite Tone diagnostics; original P1b failure retained in phase11-5-pilot-attempt2.json; full resource acceptance remains OPEN"
     },
     {
       "sample_clock_hz": 132000000,
@@ -62,6 +62,7 @@
     "150 MHz inhibited evidence does not qualify the physical PIO configuration.",
     "A newly selected clock in 11.6 repeats all affected 11.5 checks before acceptance.",
     "Phase 13 owns systematic band x mode x clock comparison and release qualification.",
-    "P1b submitted one 10-second Tone job at 138 MHz; it failed frozen reserve/service-gap limits and ended DEVICE_FAULT with authoritative output false. Full A-G cases remain not run."
+    "P1b submitted one 10-second Tone job at 138 MHz; it failed frozen reserve/service-gap limits and ended DEVICE_FAULT with authoritative output false. Full A-G cases remain not run.",
+    "P2 0d9bb44 SRAM renderer passed three 10-second 135.5 kHz Tone diagnostics at 138 MHz and restored inhibited A. This does not close full A-G or accept a configuration."
   ]
 }
