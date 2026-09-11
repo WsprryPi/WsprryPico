@@ -1,0 +1,49 @@
+{
+  "schema": "phase11.5-recovery-v1",
+  "result": "RESTORED_INHIBITED",
+  "helper_sha256": "2b806e11030867c0187a319b7116a97c81800bca4e979fcb3e89de8c9cd635ec",
+  "restoration_sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10",
+  "unit": "phase11-5-p1-recovery",
+  "unit_result": "success",
+  "additional_rf_jobs": 0,
+  "boards": {
+    "a": {
+      "revision": "802c91a7b86e-dirty",
+      "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+      "status": {
+        "boot_id": "4571042e06f139bc185e862482082291",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      }
+    },
+    "b": {
+      "revision": "dbf1d86f0885-dirty",
+      "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+      "status": {
+        "boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      }
+    }
+  },
+  "host_boot": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+  "installed_executable_sha256": "c19461bc6d2ebe7cae61798ad9acae8d43dfbec3ee57c288e4ef41e9c82b8273",
+  "host_interfaces_and_routes_match_preflight": true,
+  "installed_service_pid": 1957,
+  "wifi_recovery_timer": "active/enabled",
+  "owned_failed_pilot_units_retained": [
+    "phase11-5-p1-ce1c339",
+    "phase11-5-p1b-ce1c339"
+  ],
+  "evidence_sha256": {
+    "recovery-evidence.tar": "a27de52b7c01b60c41ea5ab622b4d477ff9647a3b576ec14a83009da4f138520",
+    "host-after-recovery.json": "525f04ac68a269104d3a68b87c3340e9e06aeec7538a41df51697decd162a982"
+  },
+  "acceptance": "NONE; prior failures retained"
+}

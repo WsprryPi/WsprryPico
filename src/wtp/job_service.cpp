@@ -584,6 +584,15 @@ void JobService::poll() {
     } else if (arm_ && job_ &&
                now.monotonic_now_ns >=
                    saturating_add(arm_->start_monotonic_ns, job_->total_duration_ns)) {
+        const auto acknowledgement_ns =
+            arm_->scheduled_locally ? std::min(engine_.completion_acknowledgement_ns(),
+                                               RfEngine::maximum_completion_acknowledgement_ns)
+                                    : 0;
+        const auto nominal_end = saturating_add(arm_->start_monotonic_ns, job_->total_duration_ns);
+        if (report.state == EngineState::Running && acknowledgement_ns &&
+            now.monotonic_now_ns <= saturating_add(nominal_end, acknowledgement_ns)) {
+            return; // Keep authority/state until the bounded final acknowledgement.
+        }
         if (!engine_.disable(
                 saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) ||
             engine_.output_active()) {

@@ -207,3 +207,41 @@ All raw evidence and backup remain private and hashed in
 correctly refused flashing. A separate [recovery packet](phase11-5-recovery.md)
 requires authorization for the exact preserved inactive fault. No fault was
 cleared, no job retried and no threshold relaxed. Phase 11.5 remains OPEN.
+
+
+## Authorized recovery and local terminal-race repair
+
+The user separately authorized exact failed-state recovery. The recovery unit
+verified the preserved inactive/unowned fault, used guarded Console BOOTSEL and
+loaded the original inhibited image once. Both boards passed final identity,
+configuration and explicit empty/unowned/inactive checks. Pico A now has boot
+4571042e06f139bc185e862482082291; Pico B retains its original boot. Ethernet,
+radio addresses/roles, routes, host boot, installed binary hash and transmitter
+PID 1957 match preflight. The Wi-Fi recovery timer remains active/enabled.
+Both failed pilot units and all original evidence remain preserved; the recovery
+unit exited successfully. No further RF job was submitted. See the
+[recovery result](phase11-5-recovery-result.json).
+
+The initial unprivileged recovery dry validation could not read the root-private
+baseline logs; root default validation passed before the authorized unit ran.
+The earlier automatic staging rejection and this file-permission failure remain
+separate host preparation records, not physical results.
+
+A deterministic host regression reproduces the service/engine completion race:
+the original JobService fails a locally scheduled Running report one microsecond
+after nominal end, although StreamEngine already allows 100 microseconds for
+finite-tail IRQ acknowledgement. The repair exposes that existing bounded
+acknowledgement allowance through the internal RF adapter, copies the immutable
+value before launching core 1, and keeps the service owner/state until either
+Complete or its capped deadline. It permits no additional waveform samples.
+Only Running reports from locally scheduled engines can use the allowance; other
+engines retain the original watchdog. Excessive adapter requests are capped at
+100 microseconds, and a stalled engine still fails immediately beyond the bound.
+
+The new regression failed against the original JobService and passes after the
+repair, including timely completion, stuck completion, excessive allowance and
+nonlocal-engine cases. This source defect is consistent with the pilot terminal
+timestamp; it does not prove that all physical fault causes are resolved. The
+25% refill reserve and 2,849,391 ns service-gap requirements are unchanged.
+The repair has not been flashed or physically accepted. Refilling, observer
+contention, memory/stack coverage and all remaining A-G gates remain open.

@@ -7,7 +7,8 @@ namespace wsprrypico::rf {
 WorkerEngine::WorkerEngine(wtp::RfEngine& engine, time::UtcDiscipline& clock, Now now, Wait wait,
                            Failure failure, Mask mask, Restore restore)
     : engine_(engine), clock_(clock), staged_clock_(clock), worker_clock_(clock), now_(now),
-      wait_(wait), failure_(failure), mask_(mask), restore_(restore) {}
+      wait_(wait), failure_(failure), mask_(mask), restore_(restore),
+      completion_acknowledgement_ns_(engine.completion_acknowledgement_ns()) {}
 void WorkerEngine::call(Op op) const {
     // No reentrancy, no queue overwrite, no retry after ambiguous completion.
     if (phase_.load(std::memory_order_acquire) != 0) {

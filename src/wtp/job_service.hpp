@@ -91,6 +91,7 @@ struct PrepareResult {
 
 class RfEngine {
   public:
+    static constexpr std::uint64_t maximum_completion_acknowledgement_ns = 100'000;
     virtual ~RfEngine() = default;
     virtual PrepareResult prepare(const Job& job) = 0;
     virtual bool set_frequency_correction_ppb(std::int32_t) {
@@ -104,6 +105,11 @@ class RfEngine {
     }
     [[nodiscard]] virtual std::uint64_t start_resolution_ns() const {
         return 1;
+    }
+    // Finite locally scheduled hardware may finish its IRQ acknowledgement just
+    // after nominal RF end. This never authorizes additional waveform samples.
+    [[nodiscard]] virtual std::uint64_t completion_acknowledgement_ns() const {
+        return 0;
     }
     virtual bool schedule(const Job&, std::uint64_t, const LocalStartConditions&) {
         return false;

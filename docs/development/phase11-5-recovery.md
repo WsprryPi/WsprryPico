@@ -1,6 +1,7 @@
 # Phase 11.5 fault restoration packet
 
-Status: READY FOR SEPARATE AUTHORIZATION; not executed.
+Status: AUTHORIZED AND COMPLETED. See [final evidence](phase11-5-recovery-result.json).
+The limits below describe the completed recovery, not authority to repeat it.
 Restore the original inhibited firmware after preserving the failed P1b evidence.
 Do not resume the campaign or submit either remaining RF job.
 

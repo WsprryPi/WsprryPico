@@ -206,7 +206,7 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
         report.state == wtp::EngineState::Running && waveform_.position() == plan_.total_samples &&
         submitted_ == (plan_.total_samples + block_samples - 1) / block_samples &&
         report.consumed_samples >= (submitted_ - 1) * block_samples && now_ns >= end_ns_ &&
-        now_ns - end_ns_ <= 100'000;
+        now_ns - end_ns_ <= maximum_completion_acknowledgement_ns;
     if ((now_ns < start_ns_ &&
          (report.state != wtp::EngineState::Armed || report.consumed_samples != 0 || active)) ||
         (now_ns >= start_ns_ && report.state != wtp::EngineState::Running) ||

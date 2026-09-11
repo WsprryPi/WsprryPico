@@ -2,7 +2,7 @@
 
 Status: **OPEN; the 138 MHz P1b physical pilot failed.** See the
 [preserved result](phase11-5-pilot-attempt2.json). P0 reconciliation confirms
-inactive output; Pico A's failed state awaits separately authorized restoration.
+both boards inhibited and inactive after [authorized restoration](phase11-5-recovery-result.json).
 This is the joint implementation and acceptance plan, coordinated by Pico.
 The [review](phase11-5-review.md) records findings and executed checks. Phase 11.4
 is [closed within its inhibited matrix](phase11-4-controlled-soak-run.md).

@@ -96,6 +96,6 @@
     "p1b-reconcile-a.jsonl": "d7ae5db4945eeabca5b017cddffd8f4cbfc2f92362c829f921230a09be5d64ed",
     "p1b-reconcile-b.jsonl": "2b5588ad2f74239c2ce6091602a551aef2fad53de57c941fefc337e84bb8956c"
   },
-  "restoration": "BLOCKED_BY_PRESERVED_FAILED_STATE; separate recovery packet pending",
+  "restoration": "Original automatic restoration blocked; separately authorized recovery succeeded. See phase11-5-recovery-result.json",
   "acceptance": "NONE"
 }

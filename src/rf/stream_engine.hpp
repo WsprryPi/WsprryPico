@@ -65,6 +65,9 @@ class StreamEngine final : public wtp::RfEngine {
     [[nodiscard]] std::uint64_t start_resolution_ns() const override {
         return sink_.start_resolution_ns();
     }
+    [[nodiscard]] std::uint64_t completion_acknowledgement_ns() const override {
+        return schedules_locally() ? maximum_completion_acknowledgement_ns : 0;
+    }
     bool begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) override;
     wtp::EngineReport poll(std::uint64_t monotonic_now_ns) override;
     bool disable(std::uint64_t deadline_monotonic_ns) override;

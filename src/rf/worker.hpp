@@ -27,6 +27,9 @@ class WorkerEngine final : public wtp::RfEngine {
     std::uint64_t start_resolution_ns() const override {
         return 1000;
     }
+    std::uint64_t completion_acknowledgement_ns() const override {
+        return completion_acknowledgement_ns_;
+    }
     bool schedule(const wtp::Job&, std::uint64_t, const wtp::LocalStartConditions&) override;
     bool begin(const wtp::Job&, std::uint64_t) override {
         return false;
@@ -66,6 +69,7 @@ class WorkerEngine final : public wtp::RfEngine {
     Failure failure_;
     Mask mask_;
     Restore restore_;
+    const std::uint64_t completion_acknowledgement_ns_;
     // 0: producer owns payload, 1: consumer owns it, 2: completed.
     mutable std::atomic<unsigned> phase_{0};
     mutable Op op_ = Op::Inspect;

@@ -78,6 +78,7 @@ class MockRfEngine final : public RfEngine {
     bool stall_completion = false;
     bool active = false;
     bool local_scheduling = false;
+    std::uint64_t acknowledgement_ns = 0;
     std::size_t prepare_calls = 0;
     std::size_t begin_calls = 0;
     std::size_t disable_calls = 0;
@@ -86,6 +87,9 @@ class MockRfEngine final : public RfEngine {
 
     bool schedules_locally() const override {
         return local_scheduling;
+    }
+    std::uint64_t completion_acknowledgement_ns() const override {
+        return acknowledgement_ns;
     }
     bool schedule(const Job& job, std::uint64_t start, const LocalStartConditions&) override {
         return begin(job, start);
@@ -699,6 +703,52 @@ void test_engine_completion_watchdog() {
     CHECK(service.status().terminal_records.front().error == ErrorCode::DeviceFault);
 }
 
+void test_bounded_local_completion_acknowledgement() {
+    for (const bool local : {false, true}) {
+        for (const bool finishes : {false, true}) {
+            VirtualClock clock;
+            MockRfEngine engine;
+            engine.local_scheduling = local;
+            engine.acknowledgement_ns = 1'000'000; // Service must cap an excessive request.
+            engine.stall_completion = true;
+            TestIdentitySource identities;
+            ServiceConfig config;
+            config.minimum_arm_lead_ns = 10;
+            JobService service(clock, engine, identities, config);
+            establish_owner(service);
+            const auto job = sample_job();
+            CHECK(service.handle(request("LOAD", job, 'c')).ok);
+            CHECK(service
+                      .handle(request("ARM", ArmBody{job.job_id, clock.value.utc_now_ns + 10, 1000},
+                                      'd'))
+                      .ok);
+            clock.advance(10);
+            service.poll();
+            clock.advance(job.total_duration_ns + 1000); // The physical failure offset.
+            service.poll();
+            CHECK(service.status().state == (local ? State::Running : State::Failed));
+            if (!local)
+                continue;
+            CHECK(service.status().owner_id.has_value());
+            if (finishes) {
+                clock.advance(5000); // Delayed launch/tail acknowledgement, no new job.
+                engine.stall_completion = false;
+                service.poll();
+                CHECK(service.status().state == State::Complete);
+            } else {
+                clock.advance(99'000);
+                service.poll();
+                CHECK(service.status().state == State::Running);
+                clock.advance(1);
+                service.poll();
+                CHECK(service.status().state == State::Failed);
+                CHECK(service.status().terminal_records.front().error == ErrorCode::DeviceFault);
+            }
+            CHECK(!service.status().output_active);
+        }
+    }
+}
+
 void test_inhibited_engine_never_reports_output() {
     InhibitedRfEngine engine;
     const auto job = sample_job();
@@ -854,6 +904,7 @@ int main() {
         {"expired active lease and terminal retention",
          test_expired_active_lease_and_terminal_retention},
         {"engine completion watchdog", test_engine_completion_watchdog},
+        {"bounded local completion acknowledgement", test_bounded_local_completion_acknowledgement},
         {"inhibited engine never reports output", test_inhibited_engine_never_reports_output},
         {"invalid configuration fails without exception",
          test_invalid_configuration_fails_without_exception},
