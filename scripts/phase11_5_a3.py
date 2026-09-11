@@ -30,11 +30,15 @@ def main():
     p.add_argument('--root',type=Path,required=True)
     p.add_argument('--manifest',type=Path,required=True)
     p.add_argument('--family',choices=('A3','F1'),default='A3')
+    p.add_argument('--attempt',default='')
     p.add_argument('--run',action='store_true');a=p.parse_args()
     if not a.run:print('Plan only; no hardware or file access');return
     require(sys.platform=='linux' and os.geteuid()==0,'wspr5 root required')
     os.umask(0o077);root=a.root.resolve(strict=True);manifest=json.loads(a.manifest.read_text())
     f1=a.family=='F1';name='f1-physical' if f1 else 'a3-physical'
+    require(not a.attempt or re.fullmatch('[a-z0-9-]{1,32}',a.attempt),'Invalid attempt name')
+    if a.attempt:name+='-'+a.attempt
+    require(manifest.get('case',name)==name,'Frozen attempt identity')
     seconds=NOMINAL_SECONDS if f1 else 180
     require(manifest.get('family','A3')==a.family,'Frozen family identity')
     require(sha(root/'packet.json')==manifest['lifecycle_packet_sha256'],'Lifecycle packet changed')
@@ -57,17 +61,22 @@ def main():
                 set(result['intervals'])=={'quiet-before','controller','nominal','quiet-after'},'A2 prerequisite')
         if kind=='physical':require(result['intervals']['quiet-after']['boot']==d.state['boot'],'A2 physical boot changed')
     if f1:
-        prior=root/'a3-physical/audit.json'
+        a3_case=manifest.get('a3_case','a3-physical')
+        require(re.fullmatch('a3-physical(?:-[a-z0-9-]{1,32})?',a3_case),'Invalid A3 prerequisite case')
+        prior=root/a3_case/'audit.json'
         require(sha(prior)==manifest['a3_result_sha256'],'Reviewed A3 result changed')
-        previous=json.loads(prior.read_text());prior_jobs=root/'a3-physical/jobs.json'
+        previous=json.loads(prior.read_text());prior_jobs=root/a3_case/'jobs.json'
         require(previous['status']=='CAPTURED_REQUIRES_FINAL_REVIEW' and
                 previous['usb']['boot']==d.state['boot'] and
                 previous['packet_sha256']==sha(prior_jobs),'A3 prerequisite identity')
-        expected_history={j['job_id'] for j in json.loads(prior_jobs.read_text())['jobs']}
-    else:expected_history=set()
+        expected_records=previous['usb']['terminal_records']
+    else:expected_records=manifest.get('prior_terminal_records',[])
+    for relative,expected in manifest.get('preserved_attempt_sha256',{}).items():
+        path=(root/relative).resolve(strict=True)
+        require(path.is_relative_to(root) and sha(path)==expected,'Preserved failed attempt changed')
     current=d.check_current(name+'-admission')
     history=current['wtp']['STATUS']['terminal_records']
-    require(len(history)==len(expected_history) and {j['job_id'] for j in history}==expected_history and
+    require(history==expected_records and
             all(j['state']=='complete' and j['output_active'] is False and 'error' not in j for j in history),
             'Initial terminal history differs from reviewed prerequisite')
     baseline=root/(name+'-admission.stdout')
@@ -78,6 +87,7 @@ def main():
         uf2_sha256='75b26e3fa2fc74e517fbfe9cdbe8ee7b9c0e6eabfc13708827d48d978ea0ba9f',
         host_boot_id=d.state['host_boot'],rf_render_in_ram=True,boot_id=d.state['boot'],
         baseline=str(baseline),owner_id=secrets.token_hex(16),browser_session_id=secrets.token_hex(16),
+        prior_terminal_records=history,
         jobs=[dict(job_id=secrets.token_hex(16),profile='rf-events/1',mode='tone',
             total_duration_ns='10000000000',allow_frequency_adjustment=True,
             events=[dict(offset_ns='0',duration_ns='10000000000',rf_on=True,

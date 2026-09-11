@@ -1,0 +1,290 @@
+{
+  "schema": "phase11.5-a2-reviewed-v1",
+  "case": "A2",
+  "status": "PASS",
+  "source_revision": "8fb3894253ef45adc3aad28f25a684168487490f",
+  "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+  "serial": "0BF4B4AEC9FFB344",
+  "rf_jobs": [],
+  "accepted_configurations": [],
+  "families": {
+    "inhibited": {
+      "clock_hz": 150000000,
+      "uf2_sha256": "cb93246be2844b11d9200562ef23244f0d3bd5705d12fa9d71487e5b61259698",
+      "result_sha256": "60fa790be6f257c578ec9a468876bf4b9a60d4a5be457446a762afefad68eaeb",
+      "private_remote_root": "/home/pi/phase11-5-n1t-8fb3894",
+      "result": {
+        "case": "a2-inhibited-browser-priority",
+        "status": "CAPTURED_REQUIRES_FINAL_REVIEW",
+        "intervals": {
+          "quiet-before": {
+            "info": {
+              "samples": 360,
+              "max_gap_seconds": 1.000077632
+            },
+            "status": {
+              "samples": 72,
+              "max_gap_seconds": 5.000074397
+            },
+            "health": {
+              "samples": 72,
+              "max_gap_seconds": 5.00009401
+            },
+            "boot": "e66f436249fefe24d2c1d15131f65b33",
+            "seconds": 360,
+            "raw_wire_verified": true,
+            "max_allocator_peak_bytes": 118268,
+            "last_heap_allocated_bytes": 17004
+          },
+          "controller": {
+            "usb": {
+              "info": {
+                "samples": 240,
+                "max_gap_seconds": 1.000089222
+              },
+              "status": {
+                "samples": 48,
+                "max_gap_seconds": 5.000397895
+              },
+              "health": {
+                "samples": 48,
+                "max_gap_seconds": 5.0000888
+              },
+              "boot": "e66f436249fefe24d2c1d15131f65b33",
+              "seconds": 240,
+              "raw_wire_verified": true,
+              "max_allocator_peak_bytes": 118268,
+              "last_heap_allocated_bytes": 24804
+            },
+            "load": {
+              "boot": "e66f436249fefe24d2c1d15131f65b33",
+              "seconds": 180,
+              "production_connections": 1,
+              "logical_sessions": 1,
+              "operations": {
+                "HELLO": 1,
+                "STATUS": 183,
+                "CAPS": 1
+              },
+              "nominal_status_count": 180,
+              "nominal_status_hz": 1.0,
+              "browser_counts": {},
+              "max_observed_write_to_response_seconds": 0.577911276,
+              "timing_origin": "SSL_write_ex entry",
+              "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+              "plaintext_sha256": "4132dbe1c1c52a1399766047ba23f7915eb949af3e0be6911b8f6c8620db2d39"
+            }
+          },
+          "nominal": {
+            "usb": {
+              "info": {
+                "samples": 240,
+                "max_gap_seconds": 1.000085473
+              },
+              "status": {
+                "samples": 48,
+                "max_gap_seconds": 5.000070718
+              },
+              "health": {
+                "samples": 48,
+                "max_gap_seconds": 5.000088959
+              },
+              "boot": "e66f436249fefe24d2c1d15131f65b33",
+              "seconds": 240,
+              "raw_wire_verified": true,
+              "max_allocator_peak_bytes": 123596,
+              "last_heap_allocated_bytes": 26740
+            },
+            "load": {
+              "boot": "e66f436249fefe24d2c1d15131f65b33",
+              "seconds": 180,
+              "production_connections": 1,
+              "logical_sessions": 1,
+              "operations": {
+                "HELLO": 1,
+                "STATUS": 183,
+                "CAPS": 1
+              },
+              "nominal_status_count": 180,
+              "nominal_status_hz": 1.0,
+              "browser_counts": {
+                "/api/v1/status": 36,
+                "/": 6,
+                "/style.css": 6,
+                "/app.js": 6
+              },
+              "max_observed_write_to_response_seconds": 1.063045669,
+              "timing_origin": "SSL_write_ex entry",
+              "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+              "plaintext_sha256": "6f2972dbe406c7e6bfad9ef24b2e927257519369c48de424cdcfe472de3080f2"
+            }
+          },
+          "quiet-after": {
+            "info": {
+              "samples": 360,
+              "max_gap_seconds": 1.000073652
+            },
+            "status": {
+              "samples": 72,
+              "max_gap_seconds": 5.000067783
+            },
+            "health": {
+              "samples": 72,
+              "max_gap_seconds": 5.000080153
+            },
+            "boot": "e66f436249fefe24d2c1d15131f65b33",
+            "seconds": 360,
+            "raw_wire_verified": true,
+            "max_allocator_peak_bytes": 123596,
+            "last_heap_allocated_bytes": 17004
+          }
+        },
+        "workload_manifest_sha256": "b1b1e1364bdcfca2e737c68e275ed25cc55e7529c465f71929d6b2de043dc635",
+        "current_interval": "quiet-after",
+        "quiet_heap_delta_bytes": 0
+      }
+    },
+    "physical": {
+      "clock_hz": 138000000,
+      "uf2_sha256": "75b26e3fa2fc74e517fbfe9cdbe8ee7b9c0e6eabfc13708827d48d978ea0ba9f",
+      "result_sha256": "fee5cbd581825dd8e1fa52aca05d251c5d4505473fa2a2493ec1f0cc18a54dfa",
+      "private_remote_root": "/home/pi/phase11-5-n1t-8fb3894",
+      "result": {
+        "case": "a2-physical-browser-priority",
+        "status": "CAPTURED_REQUIRES_FINAL_REVIEW",
+        "intervals": {
+          "quiet-before": {
+            "info": {
+              "samples": 360,
+              "max_gap_seconds": 1.000083091
+            },
+            "status": {
+              "samples": 72,
+              "max_gap_seconds": 5.000074174
+            },
+            "health": {
+              "samples": 72,
+              "max_gap_seconds": 5.000084489
+            },
+            "boot": "c282a09bdc59600f588a7abe5675e633",
+            "seconds": 360,
+            "raw_wire_verified": true,
+            "max_allocator_peak_bytes": 118216,
+            "last_heap_allocated_bytes": 16928
+          },
+          "controller": {
+            "usb": {
+              "info": {
+                "samples": 240,
+                "max_gap_seconds": 1.000094844
+              },
+              "status": {
+                "samples": 48,
+                "max_gap_seconds": 5.000045279
+              },
+              "health": {
+                "samples": 48,
+                "max_gap_seconds": 5.000085761
+              },
+              "boot": "c282a09bdc59600f588a7abe5675e633",
+              "seconds": 240,
+              "raw_wire_verified": true,
+              "max_allocator_peak_bytes": 118216,
+              "last_heap_allocated_bytes": 24736
+            },
+            "load": {
+              "boot": "c282a09bdc59600f588a7abe5675e633",
+              "seconds": 180,
+              "production_connections": 1,
+              "logical_sessions": 1,
+              "operations": {
+                "HELLO": 1,
+                "STATUS": 183,
+                "CAPS": 1
+              },
+              "nominal_status_count": 180,
+              "nominal_status_hz": 1.0,
+              "browser_counts": {},
+              "max_observed_write_to_response_seconds": 0.688488665,
+              "timing_origin": "SSL_write_ex entry",
+              "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+              "plaintext_sha256": "6e126a8b4d395fe11cc4ec998a61c5fee10d37ca64b5f07be4b69c1e20f75276"
+            }
+          },
+          "nominal": {
+            "usb": {
+              "info": {
+                "samples": 240,
+                "max_gap_seconds": 1.068335666
+              },
+              "status": {
+                "samples": 48,
+                "max_gap_seconds": 5.000075003
+              },
+              "health": {
+                "samples": 48,
+                "max_gap_seconds": 5.000086836
+              },
+              "boot": "c282a09bdc59600f588a7abe5675e633",
+              "seconds": 240,
+              "raw_wire_verified": true,
+              "max_allocator_peak_bytes": 123512,
+              "last_heap_allocated_bytes": 26656
+            },
+            "load": {
+              "boot": "c282a09bdc59600f588a7abe5675e633",
+              "seconds": 180,
+              "production_connections": 1,
+              "logical_sessions": 1,
+              "operations": {
+                "HELLO": 1,
+                "STATUS": 183,
+                "CAPS": 1
+              },
+              "nominal_status_count": 180,
+              "nominal_status_hz": 1.0,
+              "browser_counts": {
+                "/api/v1/status": 36,
+                "/": 6,
+                "/style.css": 6,
+                "/app.js": 6
+              },
+              "max_observed_write_to_response_seconds": 0.678320638,
+              "timing_origin": "SSL_write_ex entry",
+              "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+              "plaintext_sha256": "4c894bca1c59370855c37c31ee31711e4c8d5816fd530ccc457cd32526b48d22"
+            }
+          },
+          "quiet-after": {
+            "info": {
+              "samples": 360,
+              "max_gap_seconds": 1.000072332
+            },
+            "status": {
+              "samples": 72,
+              "max_gap_seconds": 5.000048606
+            },
+            "health": {
+              "samples": 72,
+              "max_gap_seconds": 5.000088791
+            },
+            "boot": "c282a09bdc59600f588a7abe5675e633",
+            "seconds": 360,
+            "raw_wire_verified": true,
+            "max_allocator_peak_bytes": 123512,
+            "last_heap_allocated_bytes": 16928
+          }
+        },
+        "workload_manifest_sha256": "b1b1e1364bdcfca2e737c68e275ed25cc55e7529c465f71929d6b2de043dc635",
+        "current_interval": "quiet-after",
+        "quiet_heap_delta_bytes": 0
+      }
+    }
+  },
+  "limitations": [
+    "A2 idle baseline acceptance only; this is not an accepted physical clock configuration.",
+    "Prior failed attempts remain preserved; this result applies only to these two exact 8fb3894 images and boots.",
+    "Native TLS write-to-response timing excludes scheduler queue time.",
+    "Other physical clocks remain untested; Phase 11.6 and Phase 13 retain their defined RF scope."
+  ]
+}

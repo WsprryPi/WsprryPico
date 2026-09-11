@@ -69,5 +69,13 @@ class F1PlanTests(unittest.TestCase):
                        dict(frequency_ranges=[dict(minimum_nhz='140000000000000',maximum_nhz='150000000000000')])):
             with self.subTest(change=change),self.assertRaises(ValueError):plan.admit_caps(packet,{**caps,**change})
 
+    def test_preserved_completed_history_is_distinct_from_new_jobs(self):
+        packet=self.packet()
+        prior=dict(job_id='1'*32,state='complete',output_active=False,ended_monotonic_ns='123')
+        packet['prior_terminal_records']=[prior];plan.validate_rf_packet(packet)
+        for change in (dict(state='failed'),dict(output_active=True),dict(job_id=packet['jobs'][0]['job_id'])):
+            with self.subTest(change=change),self.assertRaises(ValueError):
+                plan.validate_rf_packet({**packet,'prior_terminal_records':[{**prior,**change}]})
+
 
 if __name__=='__main__':unittest.main()

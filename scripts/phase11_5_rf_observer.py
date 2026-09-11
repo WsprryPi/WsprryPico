@@ -115,7 +115,7 @@ def main():
                 log.write(json.dumps(dict(sequence=sequence, kind=kind, value=value,
                     monotonic_ns=time.monotonic_ns(), utc_ns=time.time_ns())) + '\n')
                 log.flush(); os.fsync(log.fileno()); sequence += 1
-                if kind in ('info','status','failure','finish'):
+                if kind in ('info','status','failure','finish','console_tx','wtp_tx'):
                     save(args.output.parent/('observer-'+kind+'.json'),dict(
                         value=value,monotonic_ns=time.monotonic_ns(),pid=os.getpid(),
                         pid_start_ticks=pid_start,packet_sha256=packet_sha))

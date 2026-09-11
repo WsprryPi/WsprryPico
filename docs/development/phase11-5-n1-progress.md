@@ -251,3 +251,67 @@ private remote path is
 The local result copy is `build/phase11-5-closure/n1t-inhibited-a2-reviewed.json`.
 A2 is not closed until the exact 138 MHz physical candidate passes its family.
 No RF job was submitted in this reference run; prior failures remain retained.
+
+
+## A2 closed on N1t; 2 of 20 cases closed
+
+The exact 138 MHz physical candidate completed its declared conditioning interval
+and Q360/controller180/N180/Q360 family on boot
+`c282a09bdc59600f588a7abe5675e633`. Independent raw USB/TLS re-audit passed every
+interval. Both load intervals contained all 180 scheduled production requests;
+the nominal interval contained all 36 browser status requests and 18 assets.
+Maximum measured native TLS write-to-response delays were 0.688488665 seconds
+(controller) and 0.678320638 seconds (nominal). The quiet heap was 16,928 bytes
+before and after, delta zero. The allocator peak reached 123,512 bytes with
+unchanged zero allocation-failure counts and valid stack guards.
+
+Together with the reviewed inhibited reference, this closes A2. The sanitized
+[exact-image result](phase11-5-a2-result.json) retains both full family summaries
+and their hashes. A1 and A2 are PASS: 2 of 20 cases. No clock configuration is
+accepted and the prior failed attempts remain retained. A3 was then admitted
+under the continuing explicit RF authorization, using the separately reviewed
+`3a39cc2` helper supplement; its frozen manifest SHA-256 is
+`b44481ec398036b8052df27e3556ddacebda8c15212fae0cd1f5cdf45d00f58c`.
+It submits exactly three ten-second 135.5 kHz Tone jobs under N180.
+
+
+## First A3 attempt: observer freshness guard failure
+
+A3 is FAIL for its first attempt, while A1/A2 remain PASS (2 of 20). Only job
+`926a539c60a48ccda6960d7b3781d707` was armed; the other two jobs were not
+submitted. The actor stopped at host monotonic 112632597786459 ns because the
+previous completed INFO was 2.008 seconds old. A read had started on schedule at
+112631498791352 ns and completed at 112632981002224 ns: 1.482210872 seconds,
+within its five-second response deadline. Its predecessor began at
+112630498783800 ns. No INFO start-to-start sampling limit had been exceeded.
+The later observer/driver failures followed the coordinator's termination.
+
+Authoritative reconciliation found the same physical boot, completed job, no
+owner, output false and no firmware fault. Counters were 2,634 DMA IRQs, one
+launch, one tail and 2,632 successor links. Full/short predecessor reserves were
+7,485/16,384 and 2,155/2,312 words; maximum worker service gap was 2,004,000 ns.
+These are one-job observations, not an A3 pass. A guarded CLAIM/RELEASE returned
+the completed current job to Empty and preserved its exact terminal record.
+No flash, journal erasure, configuration change or additional RF occurred.
+
+The archive `phase115-n1t-a2-a3-first-preserved.tar.gz`, SHA-256
+`e5a16cb262baa649ef23bea691dfae4643b2964f46cdb8459f09a3341cdcbb0f`, is retained
+under both `/home/pi/` and local `build/phase11-5-closure/`. It includes A2,
+the failed A3, reconciliation, cleanup and their helper/manifest records.
+
+The harness repair recognizes a same-process, same-packet read already in
+flight within its five-second response deadline. The ordinary actor does not
+mistake that read for an abandoned completed snapshot. Sampling limits remain
+unchanged: INFO start gaps at most two seconds, STATUS gaps at most six, and
+five-second request bounds. ARM still requires a completed INFO no older than
+two seconds. The independent observer publishes the pending read's identity;
+expired reads, wrong operations, changed process identity and stale pre-ARM
+INFO are rejected by regression, including the exact measured failure timing.
+
+A separately named corrected A3 attempt may retain the prior completed record.
+It must perform three new finite jobs with complete state and hardware-counter
+coverage, and its audit must preserve the prior terminal record unchanged.
+A2 is not repeated because neither firmware nor its idle workload changed.
+The follow-up source review checked strict ARM freshness, bounded in-flight
+reads, default no-access entry points, retained-history admission and unchanged
+sampling/RF thresholds. The affected tests and both scheduling models pass.

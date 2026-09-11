@@ -25,7 +25,7 @@ three-asset reloads every thirty seconds remain required. The lifecycle must
 have at least 1,800 seconds remaining. A separately hashed helper/production
 manifest and at-most-1,800-second supervisor are required; existing lifecycle
 and host deadlines are not extended. The helper supplement must include the
-pure `src/campaign/plan.py` and its package initializer. It does not run the
+pure `src/campaign/plan.py` in its namespace-package directory. It does not run the
 general band/clock campaign.
 
 Each job uses CLAIM/LOAD/ARM/observed completion/RELEASE. Long jobs renew the

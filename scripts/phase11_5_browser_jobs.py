@@ -29,6 +29,20 @@ PEER='06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016'
 ARM_LEAD_NS=10_000_000_000
 
 
+def admit_snapshot(snapshot,now_ns,max_age_ns,packet_sha,inflight=None,operation='INFO'):
+    """Fresh completed evidence or a same-observer read within its five-second deadline."""
+    require(snapshot['packet_sha256']==packet_sha and now_ns>=snapshot['monotonic_ns'],
+            'Observer snapshot identity/time')
+    if now_ns-snapshot['monotonic_ns']<=max_age_ns:return
+    require(inflight is not None and
+            all(inflight[k]==snapshot[k] for k in ('packet_sha256','pid','pid_start_ticks')) and
+            snapshot['monotonic_ns']<inflight['monotonic_ns']<=now_ns and
+            now_ns-inflight['monotonic_ns']<=5_000_000_000,'Stale observer without bounded read in flight')
+    value=inflight['value']
+    require(value.get('hex')==b'INFO\n'.hex() if operation=='INFO' else
+            value.get('request',{}).get('op')=='STATUS','Unexpected pending observer operation')
+
+
 def finite_start(clock,now_ns,load_end_ns,duration_ns):
     """Admit a finite job with time for completion and observed release under load."""
     require(clock['clock_state']=='synchronized' and
@@ -101,36 +115,36 @@ def main():
             log.write(json.dumps(dict(sequence=sequence,kind=kind,value=value,
                 monotonic_ns=time.monotonic_ns(),utc_ns=time.time_ns()))+'\n')
             log.flush();os.fsync(log.fileno());sequence+=1
-        def checkpoint():
+        def snapshot(kind,budget,strict=False):
+            value=json.loads((root/('observer-'+kind+'.json')).read_text())
+            pending_path=root/('observer-'+('console_tx' if kind=='info' else 'wtp_tx')+'.json')
+            pending=json.loads(pending_path.read_text()) if pending_path.exists() and not strict else None
+            admit_snapshot(value,time.monotonic_ns(),budget,packet_sha,pending,
+                           'INFO' if kind=='info' else 'STATUS')
+            return value
+        def checkpoint(strict_info=False):
             require(time.monotonic()<deadline,'Finite actor deadline')
             require(not (root/'observer-failure.json').exists() and
                     not (root/'observer-finish.json').exists(),'Independent observer ended or failed')
-            snapshot=json.loads((root/'observer-info.json').read_text())
-            require(snapshot['packet_sha256']==packet_sha==hashlib.sha256(packet_path.read_bytes()).hexdigest() and
-                    0<=time.monotonic_ns()-snapshot['monotonic_ns']<=2_000_000_000,'Stale INFO observer')
-            os.kill(snapshot['pid'],0)
-            stat=Path('/proc')/str(snapshot['pid'])/'stat'
-            require(stat.read_text().rsplit(')',1)[1].split()[19]==snapshot['pid_start_ticks'],
+            observed_info=snapshot('info',2_000_000_000,strict_info)
+            require(packet_sha==hashlib.sha256(packet_path.read_bytes()).hexdigest(),'RF packet changed')
+            os.kill(observed_info['pid'],0)
+            stat=Path('/proc')/str(observed_info['pid'])/'stat'
+            require(stat.read_text().rsplit(')',1)[1].split()[19]==observed_info['pid_start_ticks'],
                     'Observer process identity changed')
-            info=snapshot['value']['value'];validate_info(info,baseline)
+            info=observed_info['value']['value'];validate_info(info,baseline)
             if f1:
                 # Keep observing the independent STATUS snapshots while a
                 # renewal waits for its browser permit; no extra USB request.
-                observed=json.loads((root/'observer-status.json').read_text())
-                require(observed['packet_sha256']==packet_sha and
-                        0<=time.monotonic_ns()-observed['monotonic_ns']<=6_000_000_000,
-                        'Stale authoritative USB STATUS')
+                observed=snapshot('status',6_000_000_000)
                 value=observed['value']['value'];validate_status(value,packet['boot_id'],packet)
                 if value['job_id'] in coverage:
                     recorded=coverage[value['job_id']];recorded['states'].add(value['state'])
                     recorded['active']|=value['state']=='running' and value['output_active']
             return info
         def status():
-            checkpoint();snapshot=json.loads((root/'observer-status.json').read_text())
-            require(snapshot['packet_sha256']==packet_sha and
-                    0<=time.monotonic_ns()-snapshot['monotonic_ns']<=6_000_000_000,
-                    'Stale authoritative USB STATUS')
-            value=snapshot['value']['value'];validate_status(value,packet['boot_id'],packet)
+            checkpoint();observed=snapshot('status',6_000_000_000)
+            value=observed['value']['value'];validate_status(value,packet['boot_id'],packet)
             return value
         def pause(seconds):
             end=time.monotonic()+seconds
@@ -157,7 +171,7 @@ def main():
                     try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB);break
                     except BlockingIOError:
                         require(time.monotonic()<until,'Browser control lane deadline');pause(.02)
-                info=checkpoint();started=time.monotonic_ns()
+                info=checkpoint(strict_info=operation=='ARM');started=time.monotonic_ns()
                 if operation=='ARM':
                     # The browser slot may take seconds to become available.
                     # Choose the finite start from fresh device time only now.

@@ -6,12 +6,25 @@ import sys
 import unittest
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
-from phase11_5_browser_jobs import checked_reply,finite_start,main
+from phase11_5_browser_jobs import checked_reply,finite_start,admit_snapshot,main
 from audit_phase11_5_a3 import dma_coverage
 from phase11_5_pilot_tests import packet
 
 
 class BrowserJobsTests(unittest.TestCase):
+    def test_inflight_read_is_not_a_stale_completed_snapshot(self):
+        old=dict(packet_sha256='a'*64,pid=42,pid_start_ticks='123',monotonic_ns=112630589628633)
+        pending={**old,'monotonic_ns':112631498791352,'value':{'hex':b'INFO\n'.hex()}}
+        now=112632597786459
+        admit_snapshot(old,now,2_000_000_000,'a'*64,pending)
+        # ARM still requires a fresh completed INFO, with no in-flight exception.
+        with self.assertRaises(ValueError):admit_snapshot(old,now,2_000_000_000,'a'*64)
+        for changed in ({**pending,'pid':43},{**pending,'monotonic_ns':old['monotonic_ns']},
+                        {**pending,'value':{'hex':b'BOOTSEL\n'.hex()}}):
+            with self.assertRaises(ValueError):admit_snapshot(old,now,2_000_000_000,'a'*64,changed)
+        with self.assertRaises(ValueError):
+            admit_snapshot(old,pending['monotonic_ns']+5_000_000_001,2_000_000_000,'a'*64,pending)
+
     def test_late_arm_stops_before_emission_and_preserves_release_allowance(self):
         clock=dict(clock_state='synchronized',uncertainty_ns='500000000',utc_now_ns='100000000001')
         self.assertEqual(finite_start(clock,145_000_000_000,180_000_000_000,10_000_000_000),

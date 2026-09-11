@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import secrets
 import subprocess
 import sys
@@ -35,6 +36,8 @@ def main():
     require(sys.platform=='linux' and os.geteuid()==0,'wspr5 root required')
     os.umask(0o077);root=a.root.resolve(strict=True)
     manifest=json.loads(a.manifest.read_text())
+    a3_case=manifest.get('a3_case','a3-physical')
+    require(re.fullmatch('a3-physical(?:-[a-z0-9-]{1,32})?',a3_case),'Invalid reviewed A3 case')
     require(sha(root/'packet.json')==manifest['lifecycle_packet_sha256'],'Lifecycle packet changed')
     for path,expected in manifest['helper_sha256'].items():
         require(sha(Path(path))==expected,'Frozen helper changed')
@@ -42,11 +45,11 @@ def main():
         path=(root/relative).resolve(strict=True)
         require(path.is_relative_to(root) and sha(path)==expected,'Reviewed prerequisite changed')
     require(set(manifest['prerequisite_sha256'])=={
-        'a2-physical-browser-priority-family-result.json','a3-physical/audit.json'},
+        'a2-physical-browser-priority-family-result.json',a3_case+'/audit.json'},
         'Both reviewed physical prerequisites required')
     require(json.loads((root/'a2-physical-browser-priority-family-result.json').read_text())['status']==
             'CAPTURED_REQUIRES_FINAL_REVIEW' and
-            json.loads((root/'a3-physical/audit.json').read_text())['status']==
+            json.loads((root/a3_case/'audit.json').read_text())['status']==
             'CAPTURED_REQUIRES_FINAL_REVIEW','Unfinished physical prerequisite')
     fixture=Fixture(root);fixture.verify()
     d=DeviceFixture(root);d.verify_helpers()
@@ -54,7 +57,7 @@ def main():
             time.monotonic_ns()+2100_000_000_000<d.state['deadline_monotonic_ns'],
             'B1 physical lifecycle/time admission')
     a2=json.loads((root/'a2-physical-browser-priority-family-result.json').read_text())
-    a3=json.loads((root/'a3-physical/audit.json').read_text())
+    a3=json.loads((root/a3_case/'audit.json').read_text())
     require(a2['intervals']['quiet-after']['boot']==a3['usb']['boot']==d.state['boot'],
             'Reviewed prerequisite boot changed')
     result_path=root/'b1-family-result.json'

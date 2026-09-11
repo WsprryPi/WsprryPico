@@ -145,14 +145,18 @@ def audit(path, baseline_path, rf_packet=None):
         require(samples['status'][-1]['value']['value']['state']=='empty' and
                 samples['status'][-1]['value']['value']['owner_id'] is None,'Final RF job not released')
         terminal=samples['status'][-1]['value']['value']['terminal_records']
-        expected_jobs=rf_packet['jobs'][-8:] if rf_packet['schema']==F1_SCHEMA else rf_packet['jobs']
+        expected_jobs=(rf_packet.get('prior_terminal_records',[])+rf_packet['jobs'])[-8:]
         require(len(terminal)==len(expected_jobs) and
                 {r['job_id'] for r in terminal}=={j['job_id'] for j in expected_jobs} and
                 all(r['state']=='complete' and r['output_active'] is False and 'error' not in r
                     for r in terminal),'Finite terminal history differs')
+        for prior in rf_packet.get('prior_terminal_records',[]):
+            retained=next((r for r in terminal if r['job_id']==prior['job_id']),None)
+            require(retained is None or retained==prior,'Preserved terminal record changed')
         result['job_coverage']=coverage
         result['max_rf_service_gap_ns']=max(int(i['rf_max_service_gap_ns']) for i in infos)
         result['rf_last_observation']=infos[-1]
+        result['terminal_records']=terminal
     return result
 
 

@@ -21,9 +21,16 @@ NOMINAL_SECONDS=1500
 
 def validate_rf_packet(packet):
     if packet.get('schema')==SCHEMA:
-        return validate(packet)
-    from phase11_5_pilot import validate_packet
-    validate_packet(packet)
+        validate(packet)
+    else:
+        from phase11_5_pilot import validate_packet
+        validate_packet(packet)
+    prior=packet.get('prior_terminal_records',[])
+    require(isinstance(prior,list) and len(prior)<=8 and
+            len({r['job_id'] for r in prior})==len(prior) and
+            not {r['job_id'] for r in prior}&{j['job_id'] for j in packet['jobs']} and
+            all(r['state']=='complete' and r['output_active'] is False and 'error' not in r
+                for r in prior),'Invalid preserved terminal history')
     return packet
 
 
