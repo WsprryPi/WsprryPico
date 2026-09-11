@@ -102,9 +102,10 @@ bool PicoServer::configured() const {
            sizeof(credentials::key) > 1 && sizeof(credentials::ca) > 1;
 }
 bool PicoServer::busy() const {
+    if (api_.active_job_connections())
+        return false;
     const auto state = service_.status().state;
-    return !api_.active_job_connections() &&
-           (state == wtp::State::Armed || state == wtp::State::Running);
+    return state == wtp::State::Armed || state == wtp::State::Running;
 }
 bool PicoServer::start() {
     if (!configured() || setup_ || tls_owner)

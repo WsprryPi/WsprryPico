@@ -19,9 +19,13 @@ from audit_phase11_5_load import audit as audit_load
 
 def resume_stages(previous):
     stage=previous.get('current_interval')
-    expected={'controller':{'quiet-before'},'nominal':{'quiet-before','controller'}}
+    expected={'controller':{'quiet-before'},'nominal':{'quiet-before','controller'},
+              'quiet-after':{'quiet-before','controller','nominal','quiet-after'}}
     require(previous.get('status')=='FAILED' and stage in expected and
             set(previous.get('intervals',{}))==expected[stage],'Invalid preserved-stage boundary')
+    if stage=='quiet-after':
+        require(previous.get('error')=='ValueError: Unexplained matched quiet retained heap' and
+                abs(previous.get('quiet_heap_delta_bytes',0))>1024,'Only retained-heap comparison may repeat')
     return ('controller','nominal','quiet-after') if stage=='controller' else ('nominal','quiet-after')
 
 
@@ -81,11 +85,14 @@ def main():
             require(all(old_packet[k]==packet[k] for k in ('boot','source','clock_hz','observer_sha256')),
                     'Previous observer or firmware identity changed')
             packet['observer_session_id']=old_packet['observer_session_id']
-            q=audit_idle(root/(old_name+'-quiet-before.jsonl'),root/(old_name+'-admission.stdout'))
+            warm=old['current_interval']=='quiet-after'
+            quiet='quiet-after' if warm else 'quiet-before'
+            q=audit_idle(root/(old_name+'-'+quiet+'.jsonl'),
+                         root/(old_name+('-quiet-after-admission' if warm else '-admission')+'.stdout'))
             previous=root/(old_name+'-controller')
-            require(q==old['intervals']['quiet-before'] and q['boot']==d.state['boot'],
+            require(q==old['intervals'][quiet] and q['boot']==d.state['boot'],
                     'Previous quiet evidence changed')
-            if old['current_interval']=='nominal':
+            if old['current_interval'] in ('nominal','quiet-after'):
                 control=dict(usb=audit_idle(previous/'usb-health.jsonl',root/(old_name+'-controller-admission.stdout')),
                              load=audit_load(previous,decoder))
                 require(control==old['intervals']['controller'] and control['usb']['boot']==d.state['boot'],
@@ -95,6 +102,14 @@ def main():
                     old_load['binary_sha256']==amendment['production']['production_binary_sha256'],
                     'Controller artifact changed; full family required')
             result['intervals']=dict(old['intervals'])
+            if warm:
+                prior=root/(old_name+'-nominal')
+                nominal=dict(usb=audit_idle(prior/'usb-health.jsonl',root/(old_name+'-nominal-admission.stdout')),
+                             load=audit_load(prior,decoder))
+                require(nominal==old['intervals']['nominal'],'Previous nominal evidence changed')
+                result['intervals']={'quiet-before':q,'controller':control}
+                result['initial_retained_difference_bytes']=old['quiet_heap_delta_bytes']
+                result['quiet_baseline_is_post_load']=True
             result['preserved_failed_attempt']=str(old_path)
             result['preserved_failed_attempt_sha256']=hashlib.sha256(old_path.read_bytes()).hexdigest()
         with (root/(name+'-packet.json')).open('x') as stream:json.dump(packet,stream,indent=2)

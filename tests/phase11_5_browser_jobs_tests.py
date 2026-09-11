@@ -7,9 +7,22 @@ import unittest
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 from phase11_5_browser_jobs import checked_reply,main
+from audit_phase11_5_a3 import dma_coverage
+from phase11_5_pilot_tests import packet
 
 
 class BrowserJobsTests(unittest.TestCase):
+    def test_completed_labels_do_not_replace_full_job_hardware_coverage(self):
+        before=dict(dma_irqs=20,tail_irqs=2,alarm_irqs=2,running_successor_links=14)
+        # 1,380,000,000 samples require 2,633 data blocks per ten-second job.
+        delta=dict(dma_irqs=7902,tail_irqs=3,alarm_irqs=3,running_successor_links=7896)
+        after={key:before[key]+value for key,value in delta.items()}
+        self.assertEqual(dma_coverage(packet(),before,after),delta)
+        for key in after:
+            for missed in (-1,1):
+                with self.subTest(key=key,missed=missed),self.assertRaises(ValueError):
+                    dma_coverage(packet(),before,{**after,key:after[key]+missed})
+
     def test_claim_response_requires_matching_owner_and_request(self):
         request=dict(session_id='a'*32,request_id='b'*32,operation='CLAIM',body=dict(owner_id='c'*32))
         reply=dict(ok=True,request_id='b'*32,result=dict(owner_id='c'*32,

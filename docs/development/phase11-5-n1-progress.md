@@ -146,3 +146,86 @@ with a 1.173683358-second maximum native write-entry-to-response interval;
 The A3 gate now takes explicit reviewed A2 case names and result digests and
 checks the exact prerequisite firmware/clock. This permits preserving a failed
 attempt beside its corrected continuation without relabeling or overwriting it.
+
+The first revised-image quiet comparison failed: 16,916 bytes after load versus
+15,492 at startup, a 1,424-byte retained difference. Every controller, browser,
+USB and quiet interval completed and passed its wire/timing checks. The failure
+is retained; it is not evidence of repeated growth or a proven leak by itself.
+The same-boot `warm` continuation uses the measured post-load quiet window,
+re-audits the earlier controller/nominal evidence, and repeats identical N180
+plus Q360 at the unchanged 1,024-byte comparison limit. Its manifest SHA-256 is
+`2657ac4956fa2d1364a0b5930e894bf978578ec76aaab061c33f0ca2edcee70b`.
+No flash, configuration change, fault clearing or deadline extension occurs.
+
+Before the fresh physical A2 baseline, execute at most one explicitly recorded
+N180 conditioning interval with the existing 240-second USB observer. This
+preserves initial allocations separately and exercises the previously failed
+USB/TLS path before the matched Q/controller/N/Q comparison. It submits no RF
+jobs. It must pass the same wire, rate, memory-reserve and USB limits; failure
+stops dependent work. Do not repeatedly condition until a result passes. Initial
+retained allocations and later equal-state comparisons remain separately visible.
+
+The repeated nominal interval passed 179 controller STATUS reads, 36 browser
+status requests, all 18 asset requests, and all 240 INFO/48 USB STATUS samples.
+Maximum controller write-to-response time was 0.660180073 seconds. The final
+Q360 passed with 16,916 allocated bytes, **zero growth** from its measured
+post-load reference. The initial 1,424-byte startup difference remains retained;
+this bounded repeat does not prove absence of every leak or close the broader
+allocator/sustained-load gates. Inhibited A2 on 4ca4494 is reviewed as passed.
+Result SHA-256:
+`c0004144d4310f3c9353ab27a0a4c6ca7d71ba12304a13de0c2ddd4676708c5a`.
+The guarded switch to the selected 138 MHz physical image completed. Physical
+boot is `8a415fd18156fd20abfc2c7dadcbb973`; the UF2 is the published
+`7235bcd8ea1e54c09c894a23558232d83c538d8cc2c1ffc78dd6b4a809c81ef5`.
+
+The single predeclared physical conditioning interval passed independent raw
+USB/TLS audit: 180 nominal controller STATUS requests, 36 browser status
+requests, six each for page/style/script, 240 INFO and 48 USB STATUS samples.
+Maximum INFO sampling gap was 1.000090468 seconds; maximum native TLS
+write-entry-to-response interval was 0.849392831 seconds. Allocator peak was
+118,544 bytes against 218,392 bytes of heap capacity. It submitted no RF jobs.
+The subsequent full physical A2 quiet-before window passed with 16,928 bytes
+retained, 360 INFO samples and 72 USB STATUS samples. Controller, nominal and
+final quiet comparison remain required before closing A2.
+
+Pre-execution adversarial review of A3 found that its audit checked terminal
+states and matched refill counters but did not require the complete expected
+DMA/launch/tail totals. The audit now compares counter deltas against all three
+ten-second jobs: 7,902 DMA IRQs, three launches, three tails and 7,896 running
+successor links. Missing or extra counts are rejected by hardware-free tests.
+This strengthens the audit without changing the image or the finite jobs.
+
+B1 execution support is prepared for the original Q360 / three N300 / Q360
+workload. It reuses the existing load driver, preserves one USB observer session,
+checks reviewed A2/A3 hashes and current boot, and compares equal terminal
+history. The load helper rejects a duration or workload that differs from the
+frozen packet. B1 has not run; no case count or clock acceptance follows from
+this preparation. The original independent restoration deadlines were unchanged.
+
+Physical A2 subsequently failed in nominal browser load after the controller
+interval passed all 180 nominal STATUS reads and 240 INFO/48 USB STATUS samples.
+The first browser status request took 6.013358513 seconds and the following
+page fetch took 2.103315077 seconds; the next five-second browser sampling slot
+was missed. The observer was then stopped by the coordinator; its signal-15
+finish is a consequence of the load failure, not the original USB timing fault.
+No RF job was submitted. Passive captures preserve TCP retransmissions and
+multi-second gaps; these do not by themselves attribute the delay to a specific
+firmware routine or to the radio link. Status reported a 4,454,740-microsecond
+maximum handshake and an 811,423-microsecond maximum server poll.
+
+The failed interval spent 3.414361 of 13.285770064 seconds in allocator sampling
+(25.7%). The proposed repair eliminates free-only heap walks while preserving
+all allocation/reallocation post-state peaks and refreshed public snapshots. It
+also avoids materializing a full status when active-job connections are already
+permitted. All 54 hardware-free tests and the pinned native TLS regression passed
+(11.50 seconds). This is a measured source of overhead, not proof that the repair
+resolves the physical browser failure. New exact-image baselines remain required.
+
+Authoritative reconciliation found A empty, unowned, inactive and fault-free on
+the same physical boot. Guarded original-image restoration then passed; A is
+inhibited on boot `495e4183764e31261d631d957d49f3a1`, B retains its original boot,
+and cumulative configuration writes are six including restoration. Host cleanup
+passed, leaving the installed `wsprrypi.service` active at unchanged PID 1957,
+wlan1 unchanged and the Wi-Fi recovery timer active. AP/client captures contain
+8,806/8,199 packets respectively, with zero kernel drops on both. A2 remains
+failed; A3 through G1 remain unrun. Only compile-only A1 is closed.

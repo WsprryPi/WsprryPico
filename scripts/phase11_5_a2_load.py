@@ -18,12 +18,19 @@ from phase11_5_device_fixture import DeviceFixture
 def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def validate_interval(case, seconds, browser):
+    require(seconds in (180, 300), 'Only frozen A2/B1 interval lengths are supported')
+    require(['nominal' if browser else 'controller', seconds] in case['intervals'],
+            'Load duration differs from frozen case packet')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root',type=Path,required=True)
     parser.add_argument('--kind',choices=('inhibited','physical'),required=True)
     parser.add_argument('--browser',action='store_true')
     parser.add_argument('--attempt',default='')
+    parser.add_argument('--seconds',type=int,choices=(180,300),default=180)
     parser.add_argument('--workload-manifest',type=Path)
     parser.add_argument('--run',action='store_true')
     args = parser.parse_args()
@@ -36,11 +43,12 @@ def main():
     fixture=Fixture(root);fixture.verify()
     device=DeviceFixture(root);device.verify_helpers()
     require(device.state['kind']==args.kind and not device.state.get('pending') and
-            time.monotonic_ns()+270_000_000_000 < device.state['deadline_monotonic_ns'],
+            time.monotonic_ns()+(args.seconds+90)*1_000_000_000 < device.state['deadline_monotonic_ns'],
             'Device lifecycle admission')
     require(not args.attempt or re.fullmatch('[a-z0-9-]{1,32}',args.attempt),'Invalid attempt label')
     prefix=f'a2-{args.kind}'+('-'+args.attempt if args.attempt else '')
     case=json.loads((root/(prefix+'-packet.json')).read_text())
+    validate_interval(case,args.seconds,args.browser)
     require(case['boot']==device.state['boot'] and
             digest(root/'scripts/phase11_5_idle_observer.py')==case['observer_sha256'],
             'A2 identity changed')
@@ -63,7 +71,7 @@ def main():
     pid=fixture.value('systemctl','show',PREFIX+'-client','-p','MainPID','--value')
     namespaces={key:fixture.in_client(['readlink',path]).stdout.strip()
                 for key,path in [('netns','/proc/self/ns/net'),('mountns','/proc/self/ns/mnt')]}
-    plan=dict(boot_id=case['boot'],device_id=packet['device_id'],seconds=180,
+    plan=dict(boot_id=case['boot'],device_id=packet['device_id'],seconds=args.seconds,
         browser=args.browser,address='10.77.15.10',**namespaces,
         binary=packet['production_binary'],binary_sha256=packet['production_binary_sha256'],ini=str(root/'production.ini'),
         ini_sha256=packet['production_ini_sha256'],observer=str(observer),
@@ -74,11 +82,11 @@ def main():
     (target/'load.json').write_text(json.dumps(plan,indent=2)+'\n')
     observer_cmd=['python3',str(root/'scripts/phase11_5_idle_observer.py'),
         '--baseline',str(root/(baseline_name+'.stdout')),'--output',str(target/'usb-health.jsonl'),
-        '--session-id',case['observer_session_id'],'--seconds','240','--run']
+        '--session-id',case['observer_session_id'],'--seconds',str(args.seconds+60),'--run']
     load_cmd=['nsenter','-t',pid,'-m','-n','python3',packet.get('production_driver',str(root/'pi/phase115_production_load.py')),
-        '--root',str(target),'--seconds','180','--boot',case['boot'],
+        '--root',str(target),'--seconds',str(args.seconds),'--boot',case['boot'],
         *(['--browser'] if args.browser else []),'--run']
-    frozen=dict(case=case,load=plan,observer_seconds=240,
+    frozen=dict(case=case,load=plan,observer_seconds=args.seconds+60,
         coordinator_sha256=digest(Path(__file__)),observer_cmd=observer_cmd,load_cmd=load_cmd)
     (target/'execution.json').write_text(json.dumps(frozen,indent=2)+'\n')
     observed=loaded=None
@@ -89,7 +97,7 @@ def main():
             time.sleep(1)
             require(observed.poll() is None,'Observer startup failed')
             loaded=subprocess.Popen(load_cmd,stdout=l,stderr=subprocess.STDOUT)
-            end=time.monotonic()+255
+            end=time.monotonic()+args.seconds+75
             while time.monotonic()<end:
                 if observed.poll() is not None:
                     require(observed.returncode==0,'Independent observation failed')

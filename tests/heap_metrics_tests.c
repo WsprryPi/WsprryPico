@@ -13,6 +13,7 @@ struct _reent test_reent;
 static unsigned char blocks[16][4096];
 static size_t lengths[16];
 static atomic_uint_fast64_t ticks;
+static atomic_uint mallinfo_calls;
 uint64_t time_us_64(void) {
     return atomic_fetch_add(&ticks, 1);
 }
@@ -59,6 +60,7 @@ void* __real__realloc_r(struct _reent* c, void* p, size_t size) {
     return next;
 }
 struct mallinfo __real_mallinfo(void) {
+    atomic_fetch_add(&mallinfo_calls, 1);
     int total = 0;
     for (unsigned i = 0; i < 16; ++i)
         if (lengths[i])
@@ -77,6 +79,15 @@ static void* concurrent(void* unused) {
 }
 int main(void) {
     assert(wsprry_heap_snapshot().live_bytes == 0);
+    void* transient = __wrap__malloc_r(_REENT, 64);
+    assert(transient);
+    const unsigned walks = atomic_load(&mallinfo_calls);
+    __wrap__free_r(_REENT, transient);
+    __wrap__free_r(_REENT, NULL);
+    assert(atomic_load(&mallinfo_calls) == walks);
+    wsprry_heap_metrics fresh = wsprry_heap_snapshot();
+    assert(fresh.live_bytes == 0 && fresh.peak_bytes == 80);
+    assert(atomic_load(&mallinfo_calls) == walks + 1);
     unsigned char* p = wsprry_heap_try_calloc(1, 100);
     assert(p);
     assert(p[0] == 0 && p[99] == 0);

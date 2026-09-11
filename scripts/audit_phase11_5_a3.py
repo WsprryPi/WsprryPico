@@ -9,6 +9,22 @@ from phase11_5_pilot import validate_packet
 from phase11_5_browser_jobs import checked_reply,NAME
 from audit_phase11_5_idle import audit as audit_usb
 from audit_phase11_5_load import audit as audit_load
+from phase11_5_pilot_supervisor import finished
+
+
+def dma_coverage(packet, baseline, final):
+    # A3's validated packet contains exactly three ten-second, single-event
+    # Tones. Check cumulative hardware counters against the complete jobs,
+    # including the final short data buffer and the separate zero tail.
+    validate_packet(packet)
+    samples=packet['system_clock_hz']*10
+    blocks=(samples+524287)//524288
+    count=len(packet['jobs'])
+    expected=dict(dma_irqs=count*(blocks+1),tail_irqs=count,alarm_irqs=count,
+                  running_successor_links=count*(blocks-1))
+    observed={key:final[key]-baseline[key] for key in expected}
+    require(observed==expected,'Missing complete-job DMA/launch/tail coverage')
+    return observed
 
 
 def audit(root,decoder):
@@ -55,6 +71,8 @@ def audit(root,decoder):
         require(arm['job_id']==job['job_id'] and arm['max_start_uncertainty_ns']=='500000000' and
                 note==dict(job=job,start_utc_ns=arm['start_utc_ns']),'ARM differs from frozen job')
     usb=audit_usb(root/'usb-health.jsonl',Path(packet['baseline']),packet)
+    counters=dma_coverage(packet,finished(Path(packet['baseline']),'READ_ONLY_INVENTORY')['info'],
+                          usb['rf_last_observation'])
     load=audit_load(root,decoder,packet)
     load_events=[json.loads(line) for line in (root/'load-events.jsonl').read_text().splitlines()]
     begin=next(r['monotonic_ns'] for r in load_events if r['kind']=='nominal_begin')
@@ -72,6 +90,7 @@ def audit(root,decoder):
     require(json.loads((root/'actor-result.json').read_text())==dict(exit=0),'Actor exit')
     return dict(status='CAPTURED_REQUIRES_FINAL_REVIEW',packet_sha256=hashlib.sha256(
         (root/'jobs.json').read_bytes()).hexdigest(),usb=usb,load=load,
+        dma_coverage=counters,
         browser_operations=operations,max_browser_job_seconds=max(latencies)/1e9,
         limitation='Retained-history heap comparison remains separate; this is not conducted RF spectral acceptance')
 

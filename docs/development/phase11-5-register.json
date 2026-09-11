@@ -12,7 +12,7 @@
         69
       ],
       "evidence": "phase11-5-allocator-result.json",
-      "disposition": "Clean 6e2ddc9 inhibited A2 passed; physical 138 MHz A2 failed USB INFO delivery during nominal TLS load. Original inhibited image and host fixture restored. Repair 4ca4494 requires new exact-image target baselines. No accepted configuration."
+      "disposition": "Physical 4ca4494 A2 failed browser polling cadence after passing conditioning, quiet-before and controller-only intervals. Original inhibited image and host fixture restored. Allocator observation cost repair passes software tests but requires new exact-image target baselines. No accepted configuration."
     },
     {
       "sample_clock_hz": 132000000,
@@ -36,7 +36,7 @@
   "accepted_configurations": [],
   "cases": {
     "A1": "PASS",
-    "A2": "PARTIAL",
+    "A2": "FAIL",
     "A3": "NOT_RUN",
     "B1": "NOT_RUN",
     "B2": "NOT_RUN",
@@ -65,6 +65,6 @@
     "P1b submitted one 10-second Tone job at 138 MHz; it failed frozen reserve/service-gap limits and ended DEVICE_FAULT with authoritative output false. Full A-G cases remain not run.",
     "P2 0d9bb44 SRAM renderer passed three 10-second 135.5 kHz Tone diagnostics at 138 MHz and restored inhibited A. This does not close full A-G or accept a configuration.",
     "P3 3eac6ec allocator image passed three finite Tone diagnostics and restored inhibited A. The subsequent stack-guard candidate and full A-G matrix require their own exact-image evidence.",
-    "N1/N1r preserve INI, controller cadence, browser scheduling and physical USB delivery failures. Inhibited 6e2ddc9 A2 passed; physical A2 failed. Repair 4ca4494 software checks passed; target repetition pending. A3 through G1 remain unrun."
+    "N1/N1r/N1s preserve all failed attempts. 4ca4494 inhibited A2 passed its bounded post-load repeat; physical A2 failed browser cadence. A3 through G1 remain unrun. Allocator-cost repair is software-validated only."
   ]
 }

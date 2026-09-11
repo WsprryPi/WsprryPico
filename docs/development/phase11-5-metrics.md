@@ -96,9 +96,16 @@ clamped to zero. This includes uncommitted linker heap and is **not** the larges
 allocatable block. `heap_sample_observed_us` and `heap_sample_cost_us` identify
 that sample. The legacy `heap_sampled_peak_bytes` remains a sampled lower bound.
 
-The closure candidate additionally reports `allocator_live_bytes` and
-`allocator_peak_bytes` from every instrumented entry's post-state, including the
-nested malloc-before-free in moving realloc. `allocator_entries` and
+The allocator observation cost repair samples after every instrumented malloc,
+calloc and realloc, including the nested malloc-before-free in moving realloc.
+Free cannot increase allocated occupancy and no longer triggers a redundant
+free-list walk. `allocator_peak_bytes` retains those allocation post-states;
+every public snapshot refreshes `allocator_live_bytes` under the same recursive
+lock, including after frees. The previous 4ca4494 image sampled after free too;
+its failed physical browser interval spent 3.414361 of 13.285770064 seconds in
+allocator sampling. The repair requires its own exact-image target evidence;
+the measured cost does not prove that this change resolves the browser failure.
+`allocator_entries` and
 `allocator_failures` count entry invocations, including nested invocations; they
 are not independent application requests. `allocator_largest_request_bytes`
 includes failed requests, whereas `allocator_largest_successful_request_bytes`

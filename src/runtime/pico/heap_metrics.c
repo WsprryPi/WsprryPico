@@ -42,10 +42,15 @@ static uint64_t enter(size_t requested) {
     metrics.largest_request_bytes = maximum(metrics.largest_request_bytes, bounded(requested));
     return time_us_64();
 }
-static void leave(uint64_t start, bool failed, size_t successful_bytes) {
+static void leave(uint64_t start, bool failed, size_t successful_bytes, bool may_grow) {
     metrics.largest_successful_request_bytes =
         maximum(metrics.largest_successful_request_bytes, bounded(successful_bytes));
-    sample();
+    // Free cannot raise allocated occupancy. Walking the complete free list
+    // after it adds contention without finding a new high-water mark. Every
+    // allocation/reallocation still samples, including nested moving realloc;
+    // the public snapshot always refreshes live_bytes under this same lock.
+    if (may_grow)
+        sample();
     if (failed)
         ++metrics.failures;
     metrics.max_entry_us = maximum(metrics.max_entry_us, bounded(time_us_64() - start));
@@ -55,7 +60,7 @@ static void leave(uint64_t start, bool failed, size_t successful_bytes) {
 void* __wrap__malloc_r(struct _reent* context, size_t size) {
     const uint64_t start = enter(size);
     void* result = __real__malloc_r(context, size);
-    leave(start, !result && size != 0, result ? size : 0);
+    leave(start, !result && size != 0, result ? size : 0, true);
     return result;
 }
 void* __wrap__calloc_r(struct _reent* context, size_t count, size_t size) {
@@ -66,19 +71,19 @@ void* __wrap__calloc_r(struct _reent* context, size_t count, size_t size) {
         context->_errno = ENOMEM;
     else
         result = __real__calloc_r(context, count, size);
-    leave(start, !result && (overflow || (count && size)), result ? count * size : 0);
+    leave(start, !result && (overflow || (count && size)), result ? count * size : 0, true);
     return result;
 }
 void* __wrap__realloc_r(struct _reent* context, void* pointer, size_t size) {
     const uint64_t start = enter(size);
     void* result = __real__realloc_r(context, pointer, size);
-    leave(start, !result && size != 0, result ? size : 0);
+    leave(start, !result && size != 0, result ? size : 0, true);
     return result;
 }
 void __wrap__free_r(struct _reent* context, void* pointer) {
     const uint64_t start = enter(0);
     __real__free_r(context, pointer);
-    leave(start, false, 0);
+    leave(start, false, 0, false);
 }
 struct mallinfo __wrap_mallinfo(void) {
     recursive_mutex_enter_blocking(&heap_mutex);

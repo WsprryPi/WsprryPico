@@ -8,9 +8,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from phase11_5_idle_observer import main, validate_info
 from phase11_5_device_management_tests import baseline
 from phase11_5_a2_family import resume_stages
+from phase11_5_a2_load import validate_interval
 
 
 class IdleObserverTests(unittest.TestCase):
+    def test_load_cannot_shorten_or_change_the_frozen_workload(self):
+        case=dict(intervals=[['nominal',300]])
+        validate_interval(case,300,True)
+        for seconds,browser in ((180,True),(300,False),(301,True)):
+            with self.subTest(seconds=seconds,browser=browser), self.assertRaises(ValueError):
+                validate_interval(case,seconds,browser)
+
     def test_resume_preserves_only_completed_stage_boundaries(self):
         old=dict(status='FAILED',current_interval='controller',intervals={'quiet-before':{}})
         self.assertEqual(resume_stages(old),('controller','nominal','quiet-after'))
@@ -19,6 +27,12 @@ class IdleObserverTests(unittest.TestCase):
             with self.assertRaises(ValueError):resume_stages({**old,**change})
         self.assertEqual(resume_stages(dict(status='FAILED',current_interval='nominal',
             intervals={'quiet-before':{},'controller':{}})),('nominal','quiet-after'))
+        warmed=dict(status='FAILED',current_interval='quiet-after',intervals={k:{} for k in
+            ['quiet-before','controller','nominal','quiet-after']},quiet_heap_delta_bytes=1424,
+            error='ValueError: Unexplained matched quiet retained heap')
+        self.assertEqual(resume_stages(warmed),('nominal','quiet-after'))
+        for change in [dict(error='USB failed'),dict(quiet_heap_delta_bytes=0)]:
+            with self.assertRaises(ValueError):resume_stages({**warmed,**change})
 
     def test_resource_and_current_info_faults_are_not_hidden_by_idle_baseline(self):
         old = baseline()
