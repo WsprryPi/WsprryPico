@@ -1,11 +1,13 @@
 # Preserve the clean SDK pin; compile hash-checked generated copies of three files.
 function(wsprry_mbedtls_alert_overlay target property source)
+    # Also used by the companion's read-only, pinned Pico-server build.
+    get_filename_component(pico_source "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.." ABSOLUTE)
     set(output "${CMAKE_BINARY_DIR}/mbedtls-alert-overlay")
     execute_process(COMMAND ${Python3_EXECUTABLE}
-        "${CMAKE_SOURCE_DIR}/scripts/prepare_mbedtls_alert_overlay.py" "${source}" "${output}"
+        "${pico_source}/scripts/prepare_mbedtls_alert_overlay.py" "${source}" "${output}"
         COMMAND_ERROR_IS_FATAL ANY)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-        "${CMAKE_SOURCE_DIR}/scripts/prepare_mbedtls_alert_overlay.py"
+        "${pico_source}/scripts/prepare_mbedtls_alert_overlay.py"
         "${source}/library/ssl_msg.c" "${source}/library/ssl_tls13_generic.c"
         "${source}/library/ssl_tls.c")
     get_target_property(sources ${target} ${property})
