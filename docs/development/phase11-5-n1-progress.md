@@ -122,3 +122,27 @@ before waiting for a browser slot could consume the intended launch lead. The
 actor now chooses the finite start from a fresh device clock snapshot after
 acquiring the slot, then verifies and records the returned exact start. This
 prepared path has not executed on a target; it does not close A3.
+
+A1 is now **PASS**, within its original compile-only definition: network control
+off/on and inhibited/physical layouts, all four exact 4ca4494 images. The image
+record includes linked heap/stack/section limits, archive hashes, compiler hash
+and pinned dependency revisions. Runtime gates remain open. The case count is
+**1 of 20**, with no accepted physical configuration.
+
+N1s retained a staging failure after its passed quiet interval: the actual Pi
+controller refused the copied TLS key's file ownership before readiness. No TLS
+connection or RF job resulted. Credential contents were unchanged; ownership
+was corrected to the executing root account with owner-only permissions, and
+prior metadata was recorded privately. Future root extraction uses
+`tar --no-same-owner` and checks credential ownership before any timed case.
+The `file-owner` continuation re-audits the same-boot quiet trace, retains its
+observer session and the failed process record, and repeats only affected
+stages. Its manifest SHA-256 is
+`e5f25409b4090ab5c891b394ba142e36bc6b833c3cdb97d36eb7e0658cdfe3d4`.
+The corrected controller interval passed 180 nominal STATUS reads in 180 seconds,
+with a 1.173683358-second maximum native write-entry-to-response interval;
+240 INFO and 48 USB STATUS observations passed. Combined browser load is running.
+
+The A3 gate now takes explicit reviewed A2 case names and result digests and
+checks the exact prerequisite firmware/clock. This permits preserving a failed
+attempt beside its corrected continuation without relabeling or overwriting it.

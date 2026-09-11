@@ -8,6 +8,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import secrets
 import subprocess
@@ -37,7 +38,15 @@ def main():
     require(d.state['kind']=='physical' and not d.state.get('pending') and
             time.monotonic_ns()+600_000_000_000<d.state['deadline_monotonic_ns'],'Physical lifecycle/time admission')
     for kind in ('inhibited','physical'):
-        result=json.loads((root/f'a2-{kind}-browser-priority-family-result.json').read_text())
+        name=manifest.get('a2_cases',{}).get(kind,f'a2-{kind}-browser-priority')
+        require(re.fullmatch('a2-'+kind+'-[a-z0-9-]{1,32}',name),'A2 prerequisite name')
+        path=root/(name+'-family-result.json')
+        require(sha(path)==manifest['a2_result_sha256'][kind],'Reviewed A2 result changed')
+        result=json.loads(path.read_text())
+        prerequisite=json.loads((root/(name+'-packet.json')).read_text())
+        require(prerequisite['source']=='4ca44943e844465e6109719ad91b900159f9d84f' and
+                prerequisite['clock_hz']==(138000000 if kind=='physical' else 150000000),
+                'A2 firmware/clock identity')
         require(result['status']=='CAPTURED_REQUIRES_FINAL_REVIEW' and
                 set(result['intervals'])=={'quiet-before','controller','nominal','quiet-after'},'A2 prerequisite')
         if kind=='physical':require(result['intervals']['quiet-after']['boot']==d.state['boot'],'A2 physical boot changed')

@@ -17,13 +17,21 @@ from audit_phase11_5_idle import audit as audit_idle
 from audit_phase11_5_load import audit as audit_load
 
 
+def resume_stages(previous):
+    stage=previous.get('current_interval')
+    expected={'controller':{'quiet-before'},'nominal':{'quiet-before','controller'}}
+    require(previous.get('status')=='FAILED' and stage in expected and
+            set(previous.get('intervals',{}))==expected[stage],'Invalid preserved-stage boundary')
+    return ('controller','nominal','quiet-after') if stage=='controller' else ('nominal','quiet-after')
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--root',type=Path,required=True)
     p.add_argument('--kind',choices=('inhibited','physical'),required=True)
     p.add_argument('--attempt',default='')
     p.add_argument('--workload-manifest',type=Path)
-    p.add_argument('--resume-nominal-from',type=Path)
+    p.add_argument('--resume-from','--resume-nominal-from',dest='resume_from',type=Path)
     p.add_argument('--run',action='store_true');args=p.parse_args()
     if not args.run:print('Plan only; no host or device access');return
     require(sys.platform=='linux' and os.geteuid()==0,'wspr5 root required')
@@ -62,21 +70,26 @@ def main():
             observer_sha256=hashlib.sha256((root/'scripts/phase11_5_idle_observer.py').read_bytes()).hexdigest(),
             intervals=[['quiet-before',360],['controller',180],['nominal',180],['quiet-after',360]],
             rf_jobs=[],family_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
-        with (root/(name+'-packet.json')).open('x') as stream:json.dump(packet,stream,indent=2)
         stages=('quiet-before','controller','nominal','quiet-after')
-        if args.resume_nominal_from:
-            old_path=args.resume_nominal_from.resolve(strict=True)
+        if args.resume_from:
+            old_path=args.resume_from.resolve(strict=True)
             require(old_path.parent==root,'Resume evidence must be in the same lifecycle root')
             old=json.loads(old_path.read_text());old_name=old['case']
-            require(re.fullmatch('a2-'+args.kind+'-[a-z0-9-]{1,32}',old_name) and
-                    old['status']=='FAILED' and old['current_interval']=='nominal' and
-                    set(old['intervals'])=={'quiet-before','controller'},'Only failed nominal interval may resume')
+            require(re.fullmatch('a2-'+args.kind+'-[a-z0-9-]{1,32}',old_name),'Invalid previous case')
+            stages=resume_stages(old)
+            old_packet=json.loads((root/(old_name+'-packet.json')).read_text())
+            require(all(old_packet[k]==packet[k] for k in ('boot','source','clock_hz','observer_sha256')),
+                    'Previous observer or firmware identity changed')
+            packet['observer_session_id']=old_packet['observer_session_id']
             q=audit_idle(root/(old_name+'-quiet-before.jsonl'),root/(old_name+'-admission.stdout'))
             previous=root/(old_name+'-controller')
-            control=dict(usb=audit_idle(previous/'usb-health.jsonl',root/(old_name+'-controller-admission.stdout')),
-                         load=audit_load(previous,decoder))
-            require(q==old['intervals']['quiet-before'] and control==old['intervals']['controller'] and
-                    q['boot']==control['usb']['boot']==d.state['boot'],'Previous passing evidence changed')
+            require(q==old['intervals']['quiet-before'] and q['boot']==d.state['boot'],
+                    'Previous quiet evidence changed')
+            if old['current_interval']=='nominal':
+                control=dict(usb=audit_idle(previous/'usb-health.jsonl',root/(old_name+'-controller-admission.stdout')),
+                             load=audit_load(previous,decoder))
+                require(control==old['intervals']['controller'] and control['usb']['boot']==d.state['boot'],
+                        'Previous controller evidence changed')
             old_load=json.loads((previous/'load.json').read_text())
             require(args.workload_manifest and old_load['binary']==amendment['production']['production_binary'] and
                     old_load['binary_sha256']==amendment['production']['production_binary_sha256'],
@@ -84,7 +97,7 @@ def main():
             result['intervals']=dict(old['intervals'])
             result['preserved_failed_attempt']=str(old_path)
             result['preserved_failed_attempt_sha256']=hashlib.sha256(old_path.read_bytes()).hexdigest()
-            stages=('nominal','quiet-after')
+        with (root/(name+'-packet.json')).open('x') as stream:json.dump(packet,stream,indent=2)
         for stage in stages:
             result['current_interval']=stage;write_result()
             if stage.startswith('quiet'):

@@ -7,9 +7,19 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from phase11_5_idle_observer import main, validate_info
 from phase11_5_device_management_tests import baseline
+from phase11_5_a2_family import resume_stages
 
 
 class IdleObserverTests(unittest.TestCase):
+    def test_resume_preserves_only_completed_stage_boundaries(self):
+        old=dict(status='FAILED',current_interval='controller',intervals={'quiet-before':{}})
+        self.assertEqual(resume_stages(old),('controller','nominal','quiet-after'))
+        for change in [dict(status='RUNNING'),dict(current_interval='quiet-after'),
+                       dict(intervals={}),dict(intervals={'quiet-before':{},'nominal':{}})]:
+            with self.assertRaises(ValueError):resume_stages({**old,**change})
+        self.assertEqual(resume_stages(dict(status='FAILED',current_interval='nominal',
+            intervals={'quiet-before':{},'controller':{}})),('nominal','quiet-after'))
+
     def test_resource_and_current_info_faults_are_not_hidden_by_idle_baseline(self):
         old = baseline()
         old['info'].update(heap_capacity_bytes=218408, allocator_peak_bytes=42640,

@@ -35,7 +35,7 @@
   ],
   "accepted_configurations": [],
   "cases": {
-    "A1": "PARTIAL",
+    "A1": "PASS",
     "A2": "PARTIAL",
     "A3": "NOT_RUN",
     "B1": "NOT_RUN",
@@ -57,7 +57,7 @@
     "G1": "NOT_RUN"
   },
   "limitations": [
-    "A1 four exact linked image records are published; physical stack/call-chain acceptance remains open.",
+    "A1 PASS is compile-only: four exact 4ca4494 linked layouts and dependency/toolchain identities are published in phase11-5-usb-priority-images.json. Runtime stack, allocator and contention gates remain open.",
     "P0 read-only inventory completed on both inhibited boards. It does not qualify physical resource or contention checks.",
     "150 MHz inhibited evidence does not qualify the physical PIO configuration.",
     "A newly selected clock in 11.6 repeats all affected 11.5 checks before acceptance.",

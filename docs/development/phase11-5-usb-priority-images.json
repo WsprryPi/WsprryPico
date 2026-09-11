@@ -1,9 +1,9 @@
 {
   "schema": "phase11.5-linked-images-v1",
   "source_revision": "4ca44943e844465e6109719ad91b900159f9d84f",
-  "source_state": "clean at configure and build",
+  "source_state": "clean at configure, build and final verification",
   "accepted_configurations": [],
-  "scope": "Four linked reply-priority artifacts; target A2 repetition running, no resource/contention acceptance",
+  "scope": "A1 PASS: four exact linked layouts; compile-only acceptance. A2 target repetition running; no accepted physical configuration.",
   "images": [
     {
       "name": "WsprryPico",
@@ -36,7 +36,52 @@
       "linked_checks": {
         "log": "build/phase11-5-closure/usb-priority-firmware-build.log",
         "result": "PASS"
-      }
+      },
+      "linked_heap": {
+        "begin": "0x2001fd4c",
+        "limit": "0x2007c000",
+        "capacity_bytes": 377524
+      },
+      "linked_primary_stack": {
+        "bottom": "0x2007c000",
+        "top": "0x20080000",
+        "capacity_bytes": 16384
+      },
+      "flash_application_limit": "0x103fb000",
+      "journal_end_exclusive": "0x103ff000",
+      "boot_sector_reserved_bytes": 4096,
+      "sections_bytes": {
+        ".text": 642364,
+        ".rodata": 353392,
+        ".data": 11512,
+        ".bss": 118580
+      },
+      "linked_archives": [
+        {
+          "name": "libc.a",
+          "sha256": "e28085cef709ee0ef3eeaf39d8058364f17f3dbcc9ef069135453f5fa2c502d9"
+        },
+        {
+          "name": "libg.a",
+          "sha256": "e28085cef709ee0ef3eeaf39d8058364f17f3dbcc9ef069135453f5fa2c502d9"
+        },
+        {
+          "name": "libm.a",
+          "sha256": "ce9ec5307eec619ee9a9535119198654e9cb2a1733ea444c65cf39641625fcb4"
+        },
+        {
+          "name": "libstdc++.a",
+          "sha256": "7a6ba8377e786ea7a1484c2b2e32b48bd36992933a34b1251d84ace4eb6edbe9"
+        },
+        {
+          "name": "libgcc.a",
+          "sha256": "1337a4b0e23b0bc12b3d49ac6882454b20863686c3eb409358663d4dd9964b90"
+        },
+        {
+          "name": "libwsprrypico_core.a",
+          "sha256": "69ccbd057319282af4f35049ba7e669dcdcb0598ff22c4c3a00f959a783c9f68"
+        }
+      ]
     },
     {
       "name": "WsprryPico-StandaloneRF",
@@ -69,7 +114,60 @@
       "linked_checks": {
         "log": "build/phase11-5-closure/usb-priority-firmware-build.log",
         "result": "PASS"
-      }
+      },
+      "linked_heap": {
+        "begin": "0x20046ae8",
+        "limit": "0x2007c000",
+        "capacity_bytes": 218392
+      },
+      "linked_primary_stack": {
+        "bottom": "0x2007c000",
+        "top": "0x20080000",
+        "capacity_bytes": 16384
+      },
+      "flash_application_limit": "0x103fb000",
+      "journal_end_exclusive": "0x103ff000",
+      "boot_sector_reserved_bytes": 4096,
+      "sections_bytes": {
+        ".text": 651736,
+        ".rodata": 354432,
+        ".data": 12904,
+        ".bss": 276320
+      },
+      "linked_archives": [
+        {
+          "name": "libc.a",
+          "sha256": "e28085cef709ee0ef3eeaf39d8058364f17f3dbcc9ef069135453f5fa2c502d9"
+        },
+        {
+          "name": "libg.a",
+          "sha256": "e28085cef709ee0ef3eeaf39d8058364f17f3dbcc9ef069135453f5fa2c502d9"
+        },
+        {
+          "name": "libm.a",
+          "sha256": "ce9ec5307eec619ee9a9535119198654e9cb2a1733ea444c65cf39641625fcb4"
+        },
+        {
+          "name": "libstdc++.a",
+          "sha256": "7a6ba8377e786ea7a1484c2b2e32b48bd36992933a34b1251d84ace4eb6edbe9"
+        },
+        {
+          "name": "libgcc.a",
+          "sha256": "1337a4b0e23b0bc12b3d49ac6882454b20863686c3eb409358663d4dd9964b90"
+        },
+        {
+          "name": "libwsprrypico_core.a",
+          "sha256": "69ccbd057319282af4f35049ba7e669dcdcb0598ff22c4c3a00f959a783c9f68"
+        },
+        {
+          "name": "libwsprrypico_pico_rf.a",
+          "sha256": "e437f9e29da742153e9706f690bc0f1ff7f81fd7ca94c2ddccfac9380c03f28f"
+        },
+        {
+          "name": "libwsprrypico_rf.a",
+          "sha256": "9d78ee13a0f55258e16af7da93fa5a0394c9a16347dcb04a3b8e07ac2edb7ace"
+        }
+      ]
     },
     {
       "name": "WsprryPico",
@@ -102,7 +200,52 @@
       "linked_checks": {
         "log": "build/phase11-5-closure/usb-priority-off-build.log",
         "result": "PASS"
-      }
+      },
+      "linked_heap": {
+        "begin": "0x2001fd10",
+        "limit": "0x2007c000",
+        "capacity_bytes": 377584
+      },
+      "linked_primary_stack": {
+        "bottom": "0x2007c000",
+        "top": "0x20080000",
+        "capacity_bytes": 16384
+      },
+      "flash_application_limit": "0x103fb000",
+      "journal_end_exclusive": "0x103ff000",
+      "boot_sector_reserved_bytes": 4096,
+      "sections_bytes": {
+        ".text": 623052,
+        ".rodata": 349176,
+        ".data": 11496,
+        ".bss": 118536
+      },
+      "linked_archives": [
+        {
+          "name": "libc.a",
+          "sha256": "e28085cef709ee0ef3eeaf39d8058364f17f3dbcc9ef069135453f5fa2c502d9"
+        },
+        {
+          "name": "libg.a",
+          "sha256": "e28085cef709ee0ef3eeaf39d8058364f17f3dbcc9ef069135453f5fa2c502d9"
+        },
+        {
+          "name": "libm.a",
+          "sha256": "ce9ec5307eec619ee9a9535119198654e9cb2a1733ea444c65cf39641625fcb4"
+        },
+        {
+          "name": "libstdc++.a",
+          "sha256": "7a6ba8377e786ea7a1484c2b2e32b48bd36992933a34b1251d84ace4eb6edbe9"
+        },
+        {
+          "name": "libgcc.a",
+          "sha256": "1337a4b0e23b0bc12b3d49ac6882454b20863686c3eb409358663d4dd9964b90"
+        },
+        {
+          "name": "libwsprrypico_core.a",
+          "sha256": "7549485d4046e15cdb1c1ccacb9fb3901fa1e6cfe7a8d541563917d346710e3f"
+        }
+      ]
     },
     {
       "name": "WsprryPico-StandaloneRF",
@@ -135,7 +278,69 @@
       "linked_checks": {
         "log": "build/phase11-5-closure/usb-priority-off-build.log",
         "result": "PASS"
-      }
+      },
+      "linked_heap": {
+        "begin": "0x20046ab4",
+        "limit": "0x2007c000",
+        "capacity_bytes": 218444
+      },
+      "linked_primary_stack": {
+        "bottom": "0x2007c000",
+        "top": "0x20080000",
+        "capacity_bytes": 16384
+      },
+      "flash_application_limit": "0x103fb000",
+      "journal_end_exclusive": "0x103ff000",
+      "boot_sector_reserved_bytes": 4096,
+      "sections_bytes": {
+        ".text": 632384,
+        ".rodata": 350216,
+        ".data": 12896,
+        ".bss": 276276
+      },
+      "linked_archives": [
+        {
+          "name": "libc.a",
+          "sha256": "e28085cef709ee0ef3eeaf39d8058364f17f3dbcc9ef069135453f5fa2c502d9"
+        },
+        {
+          "name": "libg.a",
+          "sha256": "e28085cef709ee0ef3eeaf39d8058364f17f3dbcc9ef069135453f5fa2c502d9"
+        },
+        {
+          "name": "libm.a",
+          "sha256": "ce9ec5307eec619ee9a9535119198654e9cb2a1733ea444c65cf39641625fcb4"
+        },
+        {
+          "name": "libstdc++.a",
+          "sha256": "7a6ba8377e786ea7a1484c2b2e32b48bd36992933a34b1251d84ace4eb6edbe9"
+        },
+        {
+          "name": "libgcc.a",
+          "sha256": "1337a4b0e23b0bc12b3d49ac6882454b20863686c3eb409358663d4dd9964b90"
+        },
+        {
+          "name": "libwsprrypico_core.a",
+          "sha256": "7549485d4046e15cdb1c1ccacb9fb3901fa1e6cfe7a8d541563917d346710e3f"
+        },
+        {
+          "name": "libwsprrypico_pico_rf.a",
+          "sha256": "17312a3be44533c36486fe3f43e08bd67a78e41aaae37084b10a4b405c333c32"
+        },
+        {
+          "name": "libwsprrypico_rf.a",
+          "sha256": "83873c77b6432751de7deb6e974998785ce12d34b97a4a25b90cc47dec8b81fa"
+        }
+      ]
     }
-  ]
+  ],
+  "dependencies": {
+    "pico_sdk": "079c6f39023649b154152db30f1d781e884879bc",
+    "tinyusb": "86ad6e56c1700e85f1c5678607a762cfe3aa2f47",
+    "lwip": "77dcd25a72509eb83f72b033d219b1d40cd8eb95",
+    "mbedtls": "0bebf8b8c7f07abe3571ded48a11aa907a1ffb20",
+    "cyw43_driver": "055d64274b014dd7b1c2fc94d26e8a18face7124"
+  },
+  "compiler_version": "15.3.1",
+  "compiler_sha256": "dac496c4536a93e3eccc560271c300ccb2540b96fd5d56fcc18c9d8556793b72"
 }
