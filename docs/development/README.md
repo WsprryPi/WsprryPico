@@ -24,7 +24,8 @@ The [remediation execution and adversarial review](phase11-5-remediation-review.
 records the SRAM candidate and the remaining physical failure gates.
 The [current continuation](phase11-5-closure-work.md) records the later allocator,
 stack guard and production-session fixes. [N0 is restored](phase11-5-network-fixture-result.json);
-[N1 is prepared pending authorization](phase11-5-device-fixture.md). No 11.5
+[N1/N1r results and the failed physical A2 baseline](phase11-5-n1-progress.md)
+are preserved; the [USB delivery repair](phase11-5-usb-priority.md) requires target repetition. No 11.5
 configuration is accepted.
 
 ## Build direction

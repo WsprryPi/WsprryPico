@@ -1,0 +1,55 @@
+{
+  "schema": "phase11.5-n1-attempt-v1",
+  "phase_status": "OPEN",
+  "result": "FAILED_HOST_FIXTURE_INPUT_RESTORED",
+  "accepted_configurations": [],
+  "firmware_source": "6e2ddc9e476986046de74d18cbcc3a2f6b64d142",
+  "physical_candidate_hz": 138000000,
+  "physical_candidate_executed": false,
+  "inhibited_clock_hz": 150000000,
+  "boot": "0bee3ac42a18010fd91edf03e4686a34",
+  "quiet_baseline": {
+    "info": {
+      "samples": 360,
+      "max_gap_seconds": 1.000081069
+    },
+    "status": {
+      "samples": 72,
+      "max_gap_seconds": 5.000073199
+    },
+    "health": {
+      "samples": 72,
+      "max_gap_seconds": 5.000086774
+    },
+    "boot": "0bee3ac42a18010fd91edf03e4686a34",
+    "seconds": 360,
+    "raw_wire_verified": true,
+    "max_allocator_peak_bytes": 31404,
+    "last_heap_allocated_bytes": 15484
+  },
+  "failed_interval": "A2 inhibited controller startup",
+  "failure": "Private INI generator lowercased canonical keys; case-insensitive Python preflight missed production parser mismatch. Application exited before readiness with Pico requires a 32 lowercase hex device ID.",
+  "rf_jobs_submitted": 0,
+  "device_restored": true,
+  "restored_a_boot": "d5e4c7d45e3c25b1aeb74d9d4e0853ed",
+  "comparator_boot": "4e2fb851c08b278dd4b977104d2c2aaa",
+  "host_restored": true,
+  "cumulative_management_counts": {
+    "config": 2,
+    "wifi-off": 0,
+    "wifi-on": 0,
+    "heap-probe": 0
+  },
+  "archive_sha256": "2ebc508c1489b2f6350d7ee4023e6e864077137d4da0e596a67b73d54418aa59",
+  "adversarial": {
+    "missing_finish": "REJECTED",
+    "raw_crc": "REJECTED",
+    "info_summary": "REJECTED",
+    "status_summary": "REJECTED",
+    "sequence_gap": "REJECTED",
+    "guard_valid": "REJECTED",
+    "short_interval": "REJECTED"
+  },
+  "correction": "Canonical INI spelling; case-sensitive preflight; actual Linux executable config round-trip with simulated backend in isolated loopback passed. Failed regression harness attempts retained.",
+  "continuation": "Separate corrected attempt carries prior write counts and original absolute six-hour deadline; no failed result overwritten."
+}

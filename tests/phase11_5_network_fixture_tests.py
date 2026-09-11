@@ -102,6 +102,25 @@ class FixtureTests(unittest.TestCase):
         command.assert_not_called()
         self.assertFalse(self.subject.state_path.exists())
 
+    def test_continuation_cannot_extend_original_window(self):
+        for packet in ({'network_runtime_seconds':21001},
+                       {'network_runtime_seconds':True},
+                       {'network_runtime_seconds':18000,'absolute_host_deadline_monotonic_ns':100}):
+            (self.root/'packet.json').write_text(json.dumps(packet))
+            with patch.object(self.subject,'preflight',return_value=({},{})), \
+                 patch.object(self.subject,'cmd') as command:
+                with self.assertRaises(ValueError):self.subject.setup()
+                command.assert_not_called()
+                self.assertFalse(self.subject.state_path.exists())
+
+    def test_shorter_runtime_reaches_the_independent_cleanup_timer(self):
+        (self.root/'packet.json').write_text(json.dumps({'network_runtime_seconds':18900}))
+        with patch.object(self.subject,'preflight',return_value=({},{})), \
+             patch.object(self.subject,'cmd',side_effect=RuntimeError('stop before mutation')) as command:
+            with self.assertRaises(RuntimeError):self.subject.setup()
+            self.assertIn('--on-active=18900s',command.call_args.args[0])
+            self.assertEqual(self.subject.state['runtime_seconds'],18900)
+
     def test_units_have_durable_ownership_before_launch(self):
         self.subject.state = {'token': 'ours', 'units': []}
         def command(args, **kwargs):

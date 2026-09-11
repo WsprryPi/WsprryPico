@@ -1,0 +1,87 @@
+{
+  "schema": "phase11.5-device-fixture-v1",
+  "status": "CORRECTED_CONTINUATION_WITHIN_N1_LIMITS",
+  "attempt": "n1r6e2ddc9",
+  "root": "/home/pi/phase11-5-n1r-6e2ddc9",
+  "network_root": "/home/pi/phase11-5-n1r-6e2ddc9",
+  "time_server_dns": true,
+  "source_revision": "6e2ddc9e476986046de74d18cbcc3a2f6b64d142",
+  "runtime_seconds": 17400,
+  "device_restoration_seconds": 600,
+  "network_runtime_seconds": 18900,
+  "network_restoration_seconds": 600,
+  "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+  "serial": "0BF4B4AEC9FFB344",
+  "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+  "initial_a_boot_id": "d5e4c7d45e3c25b1aeb74d9d4e0853ed",
+  "initial_b_boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+  "images": {
+    "inhibited": {
+      "file": "inhibited.uf2",
+      "sha256": "822a7c28617592c28f4f03996b009a66ee32199816a467756b314abf63e41a71"
+    },
+    "physical": {
+      "file": "physical.uf2",
+      "sha256": "ba74b33ec7fd7530a56cc679799d9f452f08d896d22930903ef8bba132387a4d"
+    },
+    "original": {
+      "file": "original.uf2",
+      "sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10"
+    }
+  },
+  "selected_physical_clock_hz": 138000000,
+  "pio_divider": 1,
+  "rf_render_in_ram": true,
+  "max_configuration_writes": 32,
+  "max_idle_heap_probes": 64,
+  "wifi_cycles": {
+    "count": 3,
+    "off_seconds": 150,
+    "recovery_seconds": 120
+  },
+  "external_link_loss": {
+    "count": 1,
+    "seconds": 15,
+    "independent_return_after_seconds": 20
+  },
+  "dhcp_change": {
+    "count": 1,
+    "from": "10.77.15.10",
+    "to": "10.77.15.20"
+  },
+  "time_server_dns_name": "clock.phase115.test",
+  "time_server_address": "10.77.15.1",
+  "helper_sha256": {
+    "docs/protocol/wtp-1.schema.json": "fae1a7f94adb875733f47f22438a0811a3ab7fd9e4b8477780aea77cad62c8a8",
+    "scripts/phase11_4_hotspot.py": "20253c0ab455f023bc360b7b9f10fba5b6b719ffffddce79c0c7128a4e7712ee",
+    "scripts/phase11_5_device_fixture.py": "dc985b093b4b737cce012508e3f2150a2282de7b308855cf63cba87cec6454e6",
+    "scripts/phase11_5_device_management.py": "59bed8c9d1f6189fe1ccf8311572b1c7d6c2c77bc7e90fc41b48604d0a1526e7",
+    "scripts/phase11_5_inventory.py": "89a90a6b2514dedc893b588ac3ea46ffc45d42c91113f559230540667e537b20",
+    "scripts/phase11_5_network_fault.py": "68b05dbea6b033cbb09d1d997e52e3d73207576b291d79f1330c4efbb042e041",
+    "scripts/phase11_5_network_fixture.py": "e9bb863cc735befb73be0e4e652840df507ed115e5538484ada5f7eab7e3d868",
+    "scripts/phase11_5_pilot.py": "bb91dc6fea9fb10e7564252810b534979a1f28b36de132745d100f388c3003c4",
+    "scripts/phase11_5_pilot_supervisor.py": "dbf97a316ebe02eb27f90d838ce70c468b75abc38749a7af3f6911beab8dd9e7",
+    "scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+    "scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9"
+  },
+  "production_source_revision": "fb0a2eb50c1ea1792324139412990341592db452",
+  "production_binary": "/home/pi/phase11-5-closure-fb0a2eb/source/src/build/bin/phase115-pi-fb0a2eb",
+  "production_binary_sha256": "08af5ad6dd21592a7ff90d898dd971a1e740cbb3836f65e74ba3816b960f4507",
+  "production_observer_sha256": "4e9586fbe7be90936c503359bd7fdd6355247aff264323df74a3653d9bb9adc0",
+  "production_ini_sha256": "b25f6a6ad305c89ae6f75a851aa7734139fa9a4c66cabe7a2379e933847e4d97",
+  "production_helper_sha256": {
+    "pi/phase115_tls_observer.c": "9c72a9728433cc0b9aeafdcea27e44b81a3a3a9f25466896efcddca84ab058e2",
+    "pi/phase115_tls_observer_test.py": "1a9798c0664a832804d29418f6cdc030ec84e0d986e73cc3d4f95c78bb29e685",
+    "pi/phase115_production_load.py": "2ac20d8925aa8146502d8d99c5b04adb6986c0a5cf67dca05931570c12d2cd9d"
+  },
+  "rf_jobs": [],
+  "rf_authorization": "Continuing user authorization is separate; lifecycle helpers submit no RF jobs",
+  "accepted_configurations": [],
+  "administration_session_policy": "one persistent logical session per DUT boot sequence; unique request IDs",
+  "absolute_host_deadline_monotonic_ns": 118796902517795,
+  "prior_restored_attempt": {
+    "root": "/home/pi/phase11-5-n1-6e2ddc9",
+    "device_state_sha256": "b033842bc32566062af2f9fe116b636dab18447f864ec38c0d4003be2e6a7fac",
+    "management_state_sha256": "c639a099ec96c053a49bb1d5ec130a67dbfe2fcf47442bef3dbd4c45f7aa1f5e"
+  }
+}

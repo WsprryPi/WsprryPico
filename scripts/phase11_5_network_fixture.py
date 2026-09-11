@@ -159,7 +159,7 @@ class Fixture:
         self.save()  # Intent is durable even if systemd starts it then the caller disconnects.
         self.cmd(['systemd-run', '--quiet', '--collect', '--unit=' + name,
             '--description=' + self.state['token'], '--property=UMask=0077',
-            '--property=RuntimeMaxSec=' + str(RUN_SECONDS), '--property=TimeoutStopSec=10',
+            '--property=RuntimeMaxSec=' + str(self.state.get('runtime_seconds', RUN_SECONDS)), '--property=TimeoutStopSec=10',
             '--property=KillSignal=SIGINT', '--property=WorkingDirectory=' + str(self.root),
             '--property=StandardOutput=append:' + str(self.root / (suffix + '.log')),
             '--property=StandardError=append:' + str(self.root / (suffix + '.log')), *args])
@@ -170,14 +170,20 @@ class Fixture:
         packet = json.loads((self.root / 'packet.json').read_text())
         dns_fixture = packet.get('time_server_dns', False)
         require(type(dns_fixture) is bool, 'Explicit DNS fixture selection required')
+        runtime = packet.get('network_runtime_seconds', RUN_SECONDS)
+        require(type(runtime) is int and 0 < runtime <= RUN_SECONDS, 'Bounded host runtime')
+        absolute = packet.get('absolute_host_deadline_monotonic_ns')
+        if absolute is not None:
+            require(type(absolute) is int and time.monotonic_ns() + (runtime+600)*1_000_000_000
+                    <= absolute, 'Original host restoration deadline would be exceeded')
         self.state = {'version': 1, 'token': 'Phase115 fixture ' + secrets.token_hex(16),
                       'host_boot': HOST_BOOT, 'before': before, 'radio': radio, 'units': [],
-                      'time_server_dns': dns_fixture}
+                      'time_server_dns': dns_fixture, 'runtime_seconds': runtime}
         self.save()
         # Arm cleanup before pausing the timer or touching a radio. Cleanup owns
         # only host resources, and cannot erase/reboot an unknown Pico state.
         self.cmd(['systemd-run', '--quiet', '--unit=' + PREFIX + '-cleanup',
-            '--description=' + self.state['token'], '--on-active=' + str(RUN_SECONDS) + 's',
+            '--description=' + self.state['token'], '--on-active=' + str(runtime) + 's',
             '--property=UMask=0077', '--property=RuntimeMaxSec=600',
             '--property=TimeoutStartSec=600', '--property=WorkingDirectory=' + str(self.root),
             '--property=StandardOutput=append:' + str(self.root / 'cleanup.log'),
@@ -238,7 +244,7 @@ class Fixture:
         require((self.root / 'client-ready').exists(), 'Independent client did not start')
         self.verify()
         self.intent('ready')
-        self.note('ready', {'host_only': True, 'expires_after_seconds': RUN_SECONDS})
+        self.note('ready', {'host_only': True, 'expires_after_seconds': runtime})
         self.deadline = None
 
     def in_client(self, args, timeout=35):

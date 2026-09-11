@@ -1,0 +1,89 @@
+{
+  "schema": "phase11.5-device-fixture-v1",
+  "status": "USB_REPLY_REPAIR_CONTINUATION",
+  "attempt": "n1s4ca4494",
+  "root": "/home/pi/phase11-5-n1s-4ca4494",
+  "network_root": "/home/pi/phase11-5-n1s-4ca4494",
+  "time_server_dns": true,
+  "source_revision": "4ca44943e844465e6109719ad91b900159f9d84f",
+  "runtime_seconds": 9000,
+  "device_restoration_seconds": 600,
+  "network_runtime_seconds": 10500,
+  "network_restoration_seconds": 600,
+  "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+  "serial": "0BF4B4AEC9FFB344",
+  "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+  "initial_a_boot_id": "e5a4bc355fe7898a1e0b6d06be36fe9f",
+  "initial_b_boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+  "images": {
+    "inhibited": {
+      "file": "inhibited.uf2",
+      "sha256": "a0adb5f02b28838a2cdf33cf89748a0b80debcf01468f1cb5a4e416b5e0e3588"
+    },
+    "physical": {
+      "file": "physical.uf2",
+      "sha256": "7235bcd8ea1e54c09c894a23558232d83c538d8cc2c1ffc78dd6b4a809c81ef5"
+    },
+    "original": {
+      "file": "original.uf2",
+      "sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10"
+    }
+  },
+  "selected_physical_clock_hz": 138000000,
+  "pio_divider": 1,
+  "rf_render_in_ram": true,
+  "max_configuration_writes": 32,
+  "max_idle_heap_probes": 64,
+  "wifi_cycles": {
+    "count": 3,
+    "off_seconds": 150,
+    "recovery_seconds": 120
+  },
+  "external_link_loss": {
+    "count": 1,
+    "seconds": 15,
+    "independent_return_after_seconds": 20
+  },
+  "dhcp_change": {
+    "count": 1,
+    "from": "10.77.15.10",
+    "to": "10.77.15.20"
+  },
+  "time_server_dns_name": "clock.phase115.test",
+  "time_server_address": "10.77.15.1",
+  "helper_sha256": {
+    "docs/protocol/wtp-1.schema.json": "fae1a7f94adb875733f47f22438a0811a3ab7fd9e4b8477780aea77cad62c8a8",
+    "scripts/phase11_4_hotspot.py": "20253c0ab455f023bc360b7b9f10fba5b6b719ffffddce79c0c7128a4e7712ee",
+    "scripts/phase11_5_device_fixture.py": "4550a82112e6d40cb432ebc310a55efb1c0490e99114decfbea1e74054abfb90",
+    "scripts/phase11_5_device_management.py": "abc17cd89ba02d1fd79b02832406c9d6b587e8a402700a7de80893159fb7a15b",
+    "scripts/phase11_5_inventory.py": "89a90a6b2514dedc893b588ac3ea46ffc45d42c91113f559230540667e537b20",
+    "scripts/phase11_5_network_fault.py": "68b05dbea6b033cbb09d1d997e52e3d73207576b291d79f1330c4efbb042e041",
+    "scripts/phase11_5_network_fixture.py": "e9bb863cc735befb73be0e4e652840df507ed115e5538484ada5f7eab7e3d868",
+    "scripts/phase11_5_pilot.py": "bb91dc6fea9fb10e7564252810b534979a1f28b36de132745d100f388c3003c4",
+    "scripts/phase11_5_pilot_supervisor.py": "dbf97a316ebe02eb27f90d838ce70c468b75abc38749a7af3f6911beab8dd9e7",
+    "scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+    "scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9"
+  },
+  "production_source_revision": "6f65d5c7d202569102459ab68d7c9ea079b96f35",
+  "production_binary": "/home/pi/phase11-5-closure-6f65d5c/source/src/build/bin/phase115-pi-6f65d5c",
+  "production_binary_sha256": "122ed0e4bd752e457419c4df5433c3fca1a4a88677a3db3ebd7e60e783ba5d1c",
+  "production_observer_sha256": "df545660a0226aa8b79210467e56dae27da5f444cadbcdc63647df28c214e34b",
+  "production_ini_sha256": "420d7916659a4a824bc1379abb8f93134d3a2cd8c00b3ccbbde37a086859ed40",
+  "production_helper_sha256": {
+    "pi/phase115_production_load.py": "6bf9821dd9d1a2057621971f693f70704cf086a0cd283f79b997ae6ac691360a",
+    "pi/phase115_tls_observer.c": "dc89355a68f6b75ed89d722f88bd26353226061b24f505172476f857feac81ef",
+    "pi/phase115_tls_observer_test.py": "5cf410758c48e05bc35f04f394b486f0b210b93e7ab785cedaf1bc7dd689162d"
+  },
+  "rf_jobs": [],
+  "rf_authorization": "Continuing user authorization is separate; lifecycle helpers submit no RF jobs",
+  "accepted_configurations": [],
+  "administration_session_policy": "one persistent logical session per DUT boot sequence; unique request IDs",
+  "absolute_host_deadline_monotonic_ns": 118796902517795,
+  "prior_restored_attempt": {
+    "root": "/home/pi/phase11-5-n1r-6e2ddc9",
+    "device_state_sha256": "8ea3e23df670a52cfd2a978b73eabc7cca4f3c621adde57afae2619db6dfa1ef",
+    "management_state_sha256": "2cb4a2d8f09c33c4786d5b618d10c254d1fa8bd1a35f66f19d8b973191f0dae0"
+  },
+  "production_observer": "/home/pi/phase11-5-n1r-6e2ddc9/cadence/phase115_tls_observer.so",
+  "production_driver": "/home/pi/phase11-5-n1s-4ca4494/pi/phase115_production_load.py"
+}

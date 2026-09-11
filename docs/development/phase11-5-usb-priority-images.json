@@ -1,0 +1,141 @@
+{
+  "schema": "phase11.5-linked-images-v1",
+  "source_revision": "4ca44943e844465e6109719ad91b900159f9d84f",
+  "source_state": "clean at configure and build",
+  "accepted_configurations": [],
+  "scope": "Four linked reply-priority artifacts; target A2 repetition running, no resource/contention acceptance",
+  "images": [
+    {
+      "name": "WsprryPico",
+      "network_control": true,
+      "engine": "inhibited-standalone-simulator",
+      "system_clock_hz": 150000000,
+      "pio_divider": null,
+      "physical_execution": "A2_INHIBITED_RUNNING",
+      "files": [
+        {
+          "file": "WsprryPico.elf",
+          "sha256": "d48029fcbb3379a9ad73d31ba85caa1ee79ed37f636881a3acc9b1c369c44681",
+          "bytes": 15028636
+        },
+        {
+          "file": "WsprryPico.elf.map",
+          "sha256": "f152bcf9da3c31331892c410fe7976f46406a90199292863bdba54851fe284ec",
+          "bytes": 2798652
+        },
+        {
+          "file": "WsprryPico.uf2",
+          "sha256": "a0adb5f02b28838a2cdf33cf89748a0b80debcf01468f1cb5a4e416b5e0e3588",
+          "bytes": 2016768
+        }
+      ],
+      "heap_capacity_bytes": 377524,
+      "core0_stack_reserved_bytes": 16384,
+      "core1_stack_reserved_bytes": 0,
+      "stack_reserve_bytes_per_active_core": 4096,
+      "linked_checks": {
+        "log": "build/phase11-5-closure/usb-priority-firmware-build.log",
+        "result": "PASS"
+      }
+    },
+    {
+      "name": "WsprryPico-StandaloneRF",
+      "network_control": true,
+      "engine": "pio-dma-gp2",
+      "system_clock_hz": 138000000,
+      "pio_divider": 1,
+      "physical_execution": "NOT_RUN",
+      "files": [
+        {
+          "file": "WsprryPico-StandaloneRF.elf",
+          "sha256": "e8c33cdbdce4b393f69b13885d85ef178c5c359c880fb2a0196963ddf1e5be05",
+          "bytes": 15271788
+        },
+        {
+          "file": "WsprryPico-StandaloneRF.elf.map",
+          "sha256": "b7aca53c7bc4ce32bb4f37403c6caa457ebc24e2ea7e15c8904283da05838687",
+          "bytes": 2939794
+        },
+        {
+          "file": "WsprryPico-StandaloneRF.uf2",
+          "sha256": "7235bcd8ea1e54c09c894a23558232d83c538d8cc2c1ffc78dd6b4a809c81ef5",
+          "bytes": 2040832
+        }
+      ],
+      "heap_capacity_bytes": 218392,
+      "core0_stack_reserved_bytes": 16384,
+      "core1_stack_reserved_bytes": 16384,
+      "stack_reserve_bytes_per_active_core": 4096,
+      "linked_checks": {
+        "log": "build/phase11-5-closure/usb-priority-firmware-build.log",
+        "result": "PASS"
+      }
+    },
+    {
+      "name": "WsprryPico",
+      "network_control": false,
+      "engine": "inhibited-standalone-simulator",
+      "system_clock_hz": 150000000,
+      "pio_divider": null,
+      "physical_execution": "NOT_RUN",
+      "files": [
+        {
+          "file": "WsprryPico.elf",
+          "sha256": "e24a7780fab78f639249631c358bcd3b0f44dfd061cca9b595a235a1ce33056b",
+          "bytes": 14748852
+        },
+        {
+          "file": "WsprryPico.elf.map",
+          "sha256": "3d1050ecc395e14bd8019a6c83042de8f40ddacc9542f55915032c5497bc2352",
+          "bytes": 2789692
+        },
+        {
+          "file": "WsprryPico.uf2",
+          "sha256": "1aee8d0694a63219652fbf6661096c7a774a27296660bee6413d6c6977e01f14",
+          "bytes": 1970176
+        }
+      ],
+      "heap_capacity_bytes": 377584,
+      "core0_stack_reserved_bytes": 16384,
+      "core1_stack_reserved_bytes": 0,
+      "stack_reserve_bytes_per_active_core": 4096,
+      "linked_checks": {
+        "log": "build/phase11-5-closure/usb-priority-off-build.log",
+        "result": "PASS"
+      }
+    },
+    {
+      "name": "WsprryPico-StandaloneRF",
+      "network_control": false,
+      "engine": "pio-dma-gp2",
+      "system_clock_hz": 138000000,
+      "pio_divider": 1,
+      "physical_execution": "NOT_RUN",
+      "files": [
+        {
+          "file": "WsprryPico-StandaloneRF.elf",
+          "sha256": "df83483490bd15cb55a146c38cd1d378de4851e3b186098cd234511c6e199e9c",
+          "bytes": 14990476
+        },
+        {
+          "file": "WsprryPico-StandaloneRF.elf.map",
+          "sha256": "8a2f72cfb26cbba05632a8a2152dd615879b035b90bd123bedce732639c8d0e4",
+          "bytes": 2930717
+        },
+        {
+          "file": "WsprryPico-StandaloneRF.uf2",
+          "sha256": "f77093e85fa221dbf7524f8f1b7c24dd4bc87d55f2416d142ff261c4dd905281",
+          "bytes": 1993216
+        }
+      ],
+      "heap_capacity_bytes": 218444,
+      "core0_stack_reserved_bytes": 16384,
+      "core1_stack_reserved_bytes": 16384,
+      "stack_reserve_bytes_per_active_core": 4096,
+      "linked_checks": {
+        "log": "build/phase11-5-closure/usb-priority-off-build.log",
+        "result": "PASS"
+      }
+    }
+  ]
+}

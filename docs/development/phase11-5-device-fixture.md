@@ -1,6 +1,8 @@
 # Phase 11.5 N1 device and management packet
 
-Status: **PREPARED; NOT AUTHORIZED OR EXECUTED.** The existing flashing/RF
+Status: **AUTHORIZED AND EXECUTED; first attempt restored after an INI failure.**
+See the [current continuation record](phase11-5-n1-progress.md). The body below
+is the historical frozen N1 packet; its initial identities are not current state. The existing flashing/RF
 authorization remains recorded. This packet consolidates the remaining network,
 USB management and isolated-process operations required by section 5 of the
 original request. It does not accept a configuration or close an A-G case.
@@ -9,8 +11,7 @@ The [frozen packet](phase11-5-device-fixture.json), SHA-256
 `fa146299a79664c17b67385494950a3a326936062639a8e5848c37152a88cc87`,
 binds the helper closure,
 private input digest, exact images and separately built production executable.
-The private prepared directory is `build/phase11-5-closure/n1-stage`; it has not
-been staged to wspr5. Remote root: `/home/pi/phase11-5-n1-6e2ddc9`.
+The private prepared directory is `build/phase11-5-closure/n1-stage`; it was staged to wspr5 for the first attempt. Remote root: `/home/pi/phase11-5-n1-6e2ddc9`.
 
 ## Exact identities and limits
 

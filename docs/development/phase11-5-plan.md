@@ -4,7 +4,8 @@ Status: **OPEN; P3 passed its allocator-instrumented three-job diagnostic.**
 See the [P3 result and restoration](phase11-5-allocator-result.json) and the
 earlier [P2 result](phase11-5-remediation-result.json).
 The original [P1b failure](phase11-5-pilot-attempt2.json) remains preserved.
-Final independent reads confirm both boards inhibited and inactive. Full
+Historical P3 final independent reads confirmed both boards inhibited and inactive.
+The [current N1 progress record](phase11-5-n1-progress.md) supersedes that live-state snapshot. Full
 resource/contention acceptance remains open, with no accepted configuration.
 This is the joint implementation and acceptance plan, coordinated by Pico.
 The [review](phase11-5-review.md) records findings and executed checks. Phase 11.4
@@ -286,7 +287,7 @@ GP2 production output must execute the real PIO program, chained data DMA,
 finite zero-tail DMA and actual dual-core memory path. A pin override or dummy
 sink cannot qualify that path. No wspr5 GPIO4, GPSDO or comparator RF activation.
 
-Closure network fixture (N0 completed and restored; N1 authorization pending):
+Closure network fixture (N0 completed and restored; N1 authorized; execution in progress):
 the [bounded host fixture](phase11-5-network-fixture.md) has verified isolated AP/client
 setup and completed cleanup after a retained failure and reconciliation. The
 [next N1 packet](phase11-5-device-fixture.md) uses a fresh bounded window and
@@ -298,7 +299,7 @@ test default route into the LAN. A second independent radio/cache case may
 temporarily move wlan1 only under its explicit packet. Save and restore the
 Wi-Fi recovery service/timer active state and original boot enablement.
 
-Closure production controller (clean binary and opt-in load driver prepared; target execution pending): use the actual Pi application with ancillary GPIO excluded,
+Closure production controller (corrected controller interval passed; full contention acceptance pending): use the actual Pi application with ancillary GPIO excluded,
 explicit WTP selection, separate INI and ports. Preserve singleton 1234. Either
 use the existing approved isolation arrangement after reinspection, or request
 a bounded installed-service pause only after authoritative provider inactivity

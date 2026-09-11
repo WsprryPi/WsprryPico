@@ -3,9 +3,10 @@
 Status: IN PROGRESS. Selected configuration remains physical PIO/DMA at 138 MHz,
 SRAM renderer. P3 passed its allocator-instrumented diagnostic; full A-G acceptance remains open.
 The accepted list is empty. This continuation does not erase any prior attempt.
-Current state: N0 is restored; the clean 6e2ddc9 candidate and
-[N1 lifecycle/management packet](phase11-5-device-fixture.md) are prepared.
-N1 authorization and full A-G execution/evidence review remain outstanding.
+Current state: N1 is authorized and executing. The corrected inhibited A2 baseline
+passed; the clean 6e2ddc9 physical image is admitted at 138 MHz and its A2 baseline
+is underway. See [current N1 progress](phase11-5-n1-progress.md). Full A-G
+execution/evidence review remains outstanding.
 
 ## Initial findings
 

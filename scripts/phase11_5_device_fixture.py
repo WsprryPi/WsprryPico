@@ -31,8 +31,8 @@ from phase11_5_device_management import SOURCE, admit, digest, save
 from phase11_5_network_fixture import Fixture, HOST_BOOT, PREFIX as HOST_PREFIX, RUN_SECONDS
 
 IMAGES = {
-    'inhibited': ('inhibited.uf2', '822a7c28617592c28f4f03996b009a66ee32199816a467756b314abf63e41a71'),
-    'physical': ('physical.uf2', 'ba74b33ec7fd7530a56cc679799d9f452f08d896d22930903ef8bba132387a4d'),
+    'inhibited': ('inhibited.uf2', 'a0adb5f02b28838a2cdf33cf89748a0b80debcf01468f1cb5a4e416b5e0e3588'),
+    'physical': ('physical.uf2', '7235bcd8ea1e54c09c894a23558232d83c538d8cc2c1ffc78dd6b4a809c81ef5'),
     'original': ('original.uf2', RESTORE_SHA),
 }
 ORIGINAL_CONFIG_SHA = '2978a00337f174286085251ec12ea15d0e524652738e009af3eb64e3be4ca0bf'
@@ -179,7 +179,8 @@ class DeviceFixture:
         require(Path(__file__).resolve() == self.root/'scripts/phase11_5_device_fixture.py',
                 'Run only the staged lifecycle helper')
         packet = json.loads((self.root/'packet.json').read_text())
-        require(packet['source_revision'] == SOURCE and packet['runtime_seconds'] == SECONDS and
+        require(packet['source_revision'] == SOURCE and type(packet['runtime_seconds']) is int and
+                0 < packet['runtime_seconds'] <= SECONDS and
                 packet['serial'] == SERIAL and packet['device_id'] == DEVICE and
                 packet['root'] == packet['network_root'] == str(self.root), 'Lifecycle packet')
         require(packet['host_boot_id'] == HOST_BOOT ==
@@ -199,14 +200,35 @@ class DeviceFixture:
     def start(self):
         require(not self.state, 'Fresh lifecycle required')
         packet = self.verify_helpers()
+        seconds = packet['runtime_seconds']
+        counts = {'config':0,'wifi-off':0,'wifi-on':0,'heap-probe':0}
+        prior = packet.get('prior_restored_attempt')
+        if prior:
+            old_root = Path(prior['root'])
+            old_device = old_root/'device-state.json'
+            old_management = old_root/'management-state.json'
+            require(digest(old_device) == prior['device_state_sha256'] and
+                    digest(old_management) == prior['management_state_sha256'], 'Prior evidence changed')
+            previous = json.loads(old_device.read_text())
+            management = json.loads(old_management.read_text())
+            require(previous.get('restored') is True and not previous.get('pending') and
+                    not management.get('pending') and not management.get('blocked') and
+                    previous['boot'] == packet['initial_a_boot_id'] and
+                    previous['host_boot'] == HOST_BOOT, 'Prior attempt not reconciled/restored')
+            counts = management['counts']
+            require(set(counts) == {'config','wifi-off','wifi-on','heap-probe'} and
+                    all(type(n) is int and n >= 0 for n in counts.values()) and
+                    counts['config'] <= 30 and counts['wifi-off'] <= 3 and
+                    counts['wifi-on'] <= 3 and counts['heap-probe'] <= 64,
+                    'Prior operation budgets do not admit continuation/restoration')
         host = Fixture(Path(packet['network_root']))
         host.verify()
         # Require the host fixture to outlive device restoration by ten minutes.
         stamp = subprocess.check_output(['systemctl','show',HOST_PREFIX+'-cleanup.timer',
             '-p','ActiveEnterTimestampMonotonic','--value'], text=True, timeout=5).strip()
-        host_deadline = int(stamp)*1000 + RUN_SECONDS*1_000_000_000
+        host_deadline = int(stamp)*1000 + host.state.get('runtime_seconds', RUN_SECONDS)*1_000_000_000
         now = time.monotonic_ns()
-        require(host_deadline >= now+(SECONDS+1200)*1_000_000_000,
+        require(host_deadline >= now+(seconds+1200)*1_000_000_000,
                 'Insufficient remaining host-fixture time; do not touch device')
         space = os.statvfs(self.root)
         require(space.f_bavail*space.f_frsize >= 2 << 30, 'Less than two GiB evidence space')
@@ -228,19 +250,19 @@ class DeviceFixture:
             require(load == 'not-found', 'Restoration unit already exists')
         token = 'Phase115 device '+secrets.token_hex(16)
         self.remember(host_boot=HOST_BOOT, token=token, unit=unit,
-                      deadline_monotonic_ns=now+SECONDS*1_000_000_000, pending=None,
+                      deadline_monotonic_ns=now+seconds*1_000_000_000, pending=None,
                       cleanup_intent=True, inventory_session_id=secrets.token_hex(16))
         shutil.copyfile(Path(packet['network_root'])/'pico-wifi.json', self.root/'test-wifi.json')
         save(self.root/'management-state.json', dict(host_boot=HOST_BOOT,
-            deadline_monotonic_ns=now+SECONDS*1_000_000_000,
-            restoration_deadline_monotonic_ns=now+(SECONDS+600)*1_000_000_000,
+            deadline_monotonic_ns=now+seconds*1_000_000_000,
+            restoration_deadline_monotonic_ns=now+(seconds+600)*1_000_000_000,
             restoration_unit=unit+'.timer', restoration_token=token,
             inventory_session_id=self.state['inventory_session_id'],
             original_config_sha256=ORIGINAL_CONFIG_SHA,
             test_wifi_sha256=digest(self.root/'test-wifi.json'),
-            pending=None, blocked=False, counts={'config':0,'wifi-off':0,'wifi-on':0,'heap-probe':0}))
+            pending=None, blocked=False, counts=counts))
         self.run('arm-restoration', ['systemd-run','--quiet','--unit='+unit,
-            '--description='+token,'--on-active='+str(SECONDS)+'s','--property=UMask=0077',
+            '--description='+token,'--on-active='+str(seconds)+'s','--property=UMask=0077',
             '--property=RuntimeMaxSec=600','--property=TimeoutStartSec=600',
             '--property=StandardOutput=append:'+str(self.root/'automatic-restoration.log'),
             '--property=StandardError=append:'+str(self.root/'automatic-restoration.log'),
