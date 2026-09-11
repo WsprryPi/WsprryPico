@@ -20,6 +20,8 @@ Current [Phase 11.5 plan](phase11-5-plan.md) and [review](phase11-5-review.md),
 track resource/contention acceptance for the selected 138 MHz PIO candidate.
 132/150 MHz physical configurations are untested in 11.5. Selecting another
 clock during 11.6 requires affected 11.5 acceptance before using its results.
+The [remediation execution and adversarial review](phase11-5-remediation-review.md)
+records the SRAM candidate and the remaining physical failure gates.
 
 ## Build direction
 

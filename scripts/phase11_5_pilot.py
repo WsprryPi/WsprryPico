@@ -31,7 +31,11 @@ FREQUENCY = 135500_000_000_000
 
 
 def validate_packet(packet):
-    require(packet["schema"] == "phase11.5-pilot-v1", "packet schema")
+    require(packet["schema"] in ("phase11.5-pilot-v1", "phase11.5-pilot-v2"), "packet schema")
+    if packet["schema"] == "phase11.5-pilot-v2":
+        require(type(packet.get("rf_render_in_ram")) is bool, "explicit renderer placement")
+        require(re.fullmatch(r"[0-9a-f]{40}", packet.get("source_revision", "")) is not None and
+                packet["source_revision"][:12] == packet["revision"], "full source identity")
     require(packet["serial"] == SERIAL and packet["device_id"] == DEVICE, "pilot DUT")
     require(type(packet["system_clock_hz"]) is int and packet["system_clock_hz"] == CLOCK,
             "pilot clock")
@@ -44,6 +48,7 @@ def validate_packet(packet):
     require(len({job["job_id"] for job in jobs}) == 3, "unique finite jobs")
     for job in jobs:
         require(re.fullmatch(r"[0-9a-f]{32}", job["job_id"]) is not None, "job identity")
+        require(job["job_id"] != "0" * 32, "nonzero job identity")
         require(job == dict(job_id=job["job_id"], profile="rf-events/1", mode="tone",
                             total_duration_ns=str(DURATION), allow_frequency_adjustment=True,
                             events=[dict(offset_ns="0", duration_ns=str(DURATION),
@@ -51,6 +56,13 @@ def validate_packet(packet):
                 "pilot job differs from reviewed 135500 Hz / 10-second Tone")
         require(job["allow_frequency_adjustment"] is True and job["events"][0]["rf_on"] is True,
                 "pilot boolean fields")
+
+
+def check_renderer(packet, info):
+    # Old frozen v1 packets predate placement telemetry. New campaigns use v2.
+    if packet["schema"] == "phase11.5-pilot-v2":
+        require(type(info.get("rf_render_in_ram")) is bool and
+                info["rf_render_in_ram"] is packet["rf_render_in_ram"], "renderer placement changed")
 
 
 class Decoder:
@@ -241,6 +253,7 @@ def main():
                     while not stop.is_set():
                         before = time.monotonic()
                         info = exchange(fd, b"INFO\n", before + 5, emit, False)
+                        check_renderer(packet, info)
                         require(info["device_id"] == DEVICE and info["revision"] == packet["revision"]
                                 and info["system_clock_hz"] == CLOCK and
                                 info["status"]["engine"] == "pio-dma-gp2" and

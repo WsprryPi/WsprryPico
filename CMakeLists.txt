@@ -86,6 +86,14 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(wsprrypico_rf PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
 if(WSPRRY_PICO_BUILD_FIRMWARE)
+    option(WSPRRY_PICO_RF_RENDER_IN_RAM "Execute the finite waveform renderer from SRAM" ON)
+    if(WSPRRY_PICO_RF_RENDER_IN_RAM)
+        target_compile_definitions(wsprrypico_rf PUBLIC WSPRRY_PICO_RF_RENDER_IN_RAM=1)
+        # Keep zero-fill loops inside the SRAM renderer instead of synthesizing
+        # calls to a flash-resident memset. The linked-image checker verifies it.
+        set_property(SOURCE src/rf/waveform.cpp APPEND PROPERTY COMPILE_OPTIONS
+                     -fno-tree-loop-distribute-patterns)
+    endif()
     # Allow the SDK linker's --gc-sections to discard bench-only code/tables
     # from the standalone image while retaining them in diagnostic targets.
     target_compile_options(wsprrypico_rf PRIVATE -fstack-usage -fno-exceptions -fno-rtti
@@ -199,6 +207,7 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME inhibited_network_acceptance_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/inhibited_network_acceptance_tests.py)
     add_test(NAME standalone_image_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/standalone_image_tests.py)
+    add_test(NAME rf_renderer_image_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_renderer_image_tests.py)
     add_test(NAME standalone_console_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/standalone_console_tests.py)
     add_executable(wsprrypico_core_tests tests/core_tests.cpp)
     target_link_libraries(wsprrypico_core_tests PRIVATE wsprrypico_core)

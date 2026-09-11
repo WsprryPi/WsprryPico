@@ -143,6 +143,51 @@ class TestSink final : public rf::BlockSink {
     }
 };
 
+void adversarial_renderer_test() {
+    // Dense boundary buckets occur near DC/Nyquist. These are algorithm tests,
+    // not hardware frequency acceptance or a substitute for target deadlines.
+    for (const auto increment : {1U, 0x003fffffU, 0x00400000U, 0x00400001U,
+                                 0x12345678U, 0x40000000U, 0x7fffffffU}) {
+        rf::Plan plan;
+        plan.tone_increments = {increment, increment + 1, increment - 1, 0};
+        plan.count = 5;
+        plan.segments[0] = {33, increment, 0};
+        plan.segments[1] = {1058, increment + 1, 1};
+        plan.segments[2] = {33827, 0, 3}; // A full zero-fill loop across refills.
+        plan.segments[3] = {33876, increment, 0};
+        plan.segments[4] = {34133, increment - 1, 2};
+        plan.total_samples = 34133;
+        for (const auto chunk : {1U, 7U, 16384U}) {
+            rf::Waveform generator;
+            generator.reset(plan);
+            std::vector<std::uint32_t> words(chunk, 0xffffffffU);
+            CHECK(generator.render({}) == 0 && generator.position() == 0);
+            std::uint32_t phase = 0;
+            std::size_t segment = 0;
+            std::uint64_t cursor = 0;
+            const auto before = allocations;
+            while (cursor < plan.total_samples) {
+                const auto count = generator.render(words);
+                CHECK(count > 0);
+                for (std::uint64_t i = 0; i < count; ++i) {
+                    const auto advance = plan.segments[segment].increment;
+                    CHECK(((words[i / 32] >> (i % 32)) & 1U) ==
+                          (advance ? phase >> 31 : 0));
+                    phase += advance;
+                    if (++cursor == plan.segments[segment].end_sample)
+                        ++segment;
+                }
+                for (auto i = count; i < words.size() * 32; ++i)
+                    CHECK(((words[i / 32] >> (i % 32)) & 1U) == 0);
+                CHECK(generator.phase() == phase);
+            }
+            CHECK(generator.render(words) == 0);
+            CHECK(std::all_of(words.begin(), words.end(), [](auto word) { return word == 0; }));
+            CHECK(allocations == before);
+        }
+    }
+}
+
 void oracle_test() {
     const std::array<std::uint64_t, 12> lengths{1,      31, 33,    524291, 97,    13,
                                                 524300, 41, 65537, 65539,  65541, 65543};
@@ -646,6 +691,7 @@ int main(int argc, char** argv) {
         }
         CHECK(argc == 1);
         oracle_test();
+        adversarial_renderer_test();
         planner_test();
         generalized_planner_test();
         correction_test();

@@ -705,46 +705,54 @@ void test_engine_completion_watchdog() {
 
 void test_bounded_local_completion_acknowledgement() {
     for (const bool local : {false, true}) {
-        for (const bool finishes : {false, true}) {
-            VirtualClock clock;
-            MockRfEngine engine;
-            engine.local_scheduling = local;
-            engine.acknowledgement_ns = 1'000'000; // Service must cap an excessive request.
-            engine.stall_completion = true;
-            TestIdentitySource identities;
-            ServiceConfig config;
-            config.minimum_arm_lead_ns = 10;
-            JobService service(clock, engine, identities, config);
-            establish_owner(service);
-            const auto job = sample_job();
-            CHECK(service.handle(request("LOAD", job, 'c')).ok);
-            CHECK(service
-                      .handle(request("ARM", ArmBody{job.job_id, clock.value.utc_now_ns + 10, 1000},
-                                      'd'))
-                      .ok);
-            clock.advance(10);
-            service.poll();
-            clock.advance(job.total_duration_ns + 1000); // The physical failure offset.
-            service.poll();
-            CHECK(service.status().state == (local ? State::Running : State::Failed));
-            if (!local)
-                continue;
-            CHECK(service.status().owner_id.has_value());
-            if (finishes) {
-                clock.advance(5000); // Delayed launch/tail acknowledgement, no new job.
-                engine.stall_completion = false;
+        for (const auto allowance : {0ULL, 100'000ULL, 1'000'000ULL}) {
+            for (const bool finishes : {false, true}) {
+                VirtualClock clock;
+                MockRfEngine engine;
+                engine.local_scheduling = local;
+                engine.acknowledgement_ns = allowance; // Includes zero and excessive requests.
+                engine.stall_completion = true;
+                TestIdentitySource identities;
+                ServiceConfig config;
+                config.minimum_arm_lead_ns = 10;
+                JobService service(clock, engine, identities, config);
+                establish_owner(service);
+                const auto job = sample_job();
+                CHECK(service.handle(request("LOAD", job, 'c')).ok);
+                CHECK(service
+                          .handle(request(
+                              "ARM", ArmBody{job.job_id, clock.value.utc_now_ns + 10, 1000}, 'd'))
+                          .ok);
+                clock.advance(10);
                 service.poll();
-                CHECK(service.status().state == State::Complete);
-            } else {
-                clock.advance(99'000);
+                clock.advance(job.total_duration_ns + 1000); // The physical failure offset.
                 service.poll();
-                CHECK(service.status().state == State::Running);
-                clock.advance(1);
-                service.poll();
-                CHECK(service.status().state == State::Failed);
-                CHECK(service.status().terminal_records.front().error == ErrorCode::DeviceFault);
+                const bool grace = local && allowance;
+                CHECK(service.status().state == (grace ? State::Running : State::Failed));
+                if (!grace) {
+                    CHECK(!service.status().output_active);
+                    CHECK(service.status().terminal_records.front().error ==
+                          ErrorCode::DeviceFault);
+                    continue;
+                }
+                CHECK(service.status().owner_id.has_value());
+                if (finishes) {
+                    clock.advance(5000); // Delayed launch/tail acknowledgement, no new job.
+                    engine.stall_completion = false;
+                    service.poll();
+                    CHECK(service.status().state == State::Complete);
+                } else {
+                    clock.advance(99'000);
+                    service.poll();
+                    CHECK(service.status().state == State::Running);
+                    clock.advance(1);
+                    service.poll();
+                    CHECK(service.status().state == State::Failed);
+                    CHECK(service.status().terminal_records.front().error ==
+                          ErrorCode::DeviceFault);
+                }
+                CHECK(!service.status().output_active);
             }
-            CHECK(!service.status().output_active);
         }
     }
 }

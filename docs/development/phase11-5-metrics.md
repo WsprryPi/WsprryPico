@@ -6,6 +6,12 @@ The [plan](phase11-5-plan.md) defines selected clocks and remaining gates.
 
 ## RF owner and timer
 
+The [SRAM remediation candidate](phase11-5-remediation-review.md) reports
+`rf_render_in_ram` in Console INFO. Bind that setting with the exact image and
+clock; RAM/flash variants are different unaccepted configurations. The linked
+renderer check establishes placement, not timing. Other RF/IRQ code can remain
+in XIP, and the configured clock is not a measured oscillator calibration.
+
 The physical core owns the driver and its fixed two-entry completion tracker.
 Descriptor submission and driver snapshots run under its IRQ mask. An explicit
 worker metrics RPC copies a coherent snapshot to core 0. Ordinary poll, output,

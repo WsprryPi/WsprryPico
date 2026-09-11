@@ -184,6 +184,11 @@ void Waveform::reset(const Plan& plan) {
     phase_ = 0;
 }
 
+#ifdef WSPRRY_PICO_RF_RENDER_IN_RAM
+// Build-selected placement only: the algorithm remains independent of the SDK.
+// The Pico linker copies .time_critical.* into SRAM before the worker starts.
+__attribute__((section(".time_critical.wsprry_rf_render"), noinline))
+#endif
 std::uint64_t Waveform::render(std::span<std::uint32_t> output) {
     const auto start = position_;
     std::size_t index = 0;

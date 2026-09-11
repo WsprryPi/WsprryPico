@@ -11,7 +11,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from phase11_5_pilot import (CLOCK, DEVICE, DURATION, FREQUENCY, SERIAL, Decoder,
-                             check_rf_observation, check_status, run_jobs, validate_packet)
+                             check_renderer, check_rf_observation, check_status, run_jobs, validate_packet)
 from validate_wtp_contract import frame
 
 
@@ -54,6 +54,33 @@ class FakePeer:
 
 
 class PilotTests(unittest.TestCase):
+    def test_explicit_placement_and_strict_readback(self):
+        value = packet()
+        value["schema"] = "phase11.5-pilot-v2"
+        value["source_revision"] = "a" * 40
+        with self.assertRaises(ValueError):
+            validate_packet(value)
+        for placement in (True, False):
+            value["rf_render_in_ram"] = placement
+            validate_packet(value)
+            check_renderer(value, dict(rf_render_in_ram=placement))
+            for wrong in (None, 1, 0, "true", not placement):
+                with self.assertRaises(ValueError):
+                    check_renderer(value, dict(rf_render_in_ram=wrong))
+        for wrong in (None, 0, 1, "true"):
+            value["rf_render_in_ram"] = wrong
+            with self.assertRaises(ValueError):
+                validate_packet(value)
+        value["rf_render_in_ram"] = True
+        for wrong in ("b" * 40, "a" * 12, "a" * 40 + "-dirty"):
+            value["source_revision"] = wrong
+            with self.assertRaises(ValueError):
+                validate_packet(value)
+        value["source_revision"] = "a" * 40
+        value["jobs"][0]["job_id"] = "0" * 32
+        with self.assertRaises(ValueError):
+            validate_packet(value)
+
     def test_exact_packet_and_no_default_io(self):
         value = packet()
         validate_packet(value)

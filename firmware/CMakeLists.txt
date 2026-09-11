@@ -154,6 +154,17 @@ pico_set_program_name(WsprryPico-StandaloneRF "WsprryPico-StandaloneRF")
 pico_set_program_version(WsprryPico-StandaloneRF "${WSPRRY_PICO_FIRMWARE_VERSION}")
 pico_set_program_description(WsprryPico-StandaloneRF "Standalone GP2 integration ${WSPRRY_PICO_GIT_REVISION}")
 pico_add_extra_outputs(WsprryPico-StandaloneRF)
+if(WSPRRY_PICO_RF_RENDER_IN_RAM)
+    set(rf_renderer_placement ram)
+else()
+    set(rf_renderer_placement flash)
+endif()
+add_custom_command(TARGET WsprryPico-StandaloneRF POST_BUILD
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_rf_renderer.py
+            $<TARGET_FILE:WsprryPico-StandaloneRF> --expect ${rf_renderer_placement}
+    VERBATIM)
+set_property(TARGET WsprryPico-StandaloneRF APPEND PROPERTY LINK_DEPENDS
+             ${CMAKE_SOURCE_DIR}/scripts/check_rf_renderer.py)
 
 # Reserve journals plus the RP2350-E10 boot sector on every maintained image.
 # Override only the linker region; PICO_FLASH_SIZE_BYTES retains physical capacity.

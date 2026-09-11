@@ -16,7 +16,7 @@ import sys
 import time
 
 from phase11_5_inventory import exclusive_port, exchange, require
-from phase11_5_pilot import DEVICE, SERIAL, validate_packet
+from phase11_5_pilot import DEVICE, SERIAL, check_renderer, validate_packet
 from validate_wtp_contract import loads_strict, unique_object, reject_float, reject_constant
 
 B_SERIAL = "CDDBF8767C506C07"
@@ -217,6 +217,7 @@ def main():
                                        "--ser", SERIAL], 60)
                 wait_application()
                 candidate = inventory("candidate")
+                check_renderer(packet, candidate["info"])
                 idle(candidate)
                 require(candidate["info"]["revision"] == packet["revision"] and
                         candidate["info"]["system_clock_hz"] == packet["system_clock_hz"] and

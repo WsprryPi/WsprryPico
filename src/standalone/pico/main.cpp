@@ -269,6 +269,11 @@ int main() {
             number_field(result, "tls_allocation_failures", server.tls_failures());
 #ifdef WSPRRY_PICO_STANDALONE_RF
             const auto metrics = engine.metrics();
+#ifdef WSPRRY_PICO_RF_RENDER_IN_RAM
+            result += ",\"rf_render_in_ram\":true";
+#else
+            result += ",\"rf_render_in_ram\":false";
+#endif
             number_field(result, "launch_observed_ns", metrics.launch_ns, true);
             number_field(result, "launch_epoch", metrics.launch_epoch, true);
             number_field(result, "launch_target_ns", metrics.launch_target_ns, true);
