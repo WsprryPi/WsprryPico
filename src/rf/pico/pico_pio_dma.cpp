@@ -10,6 +10,7 @@
 #include "pico/platform.h"
 
 namespace wsprrypico::rf {
+static_assert(RefillMetrics::full_words == block_words);
 PicoPioDma* PicoPioDma::instance_ = nullptr;
 
 std::uint32_t PicoPioDma::lock() {
@@ -183,6 +184,7 @@ bool PicoPioDma::dma(const std::uint32_t* data, std::uint32_t words, bool increm
     free->sequence = sequence;
     free->occupied = true;
     free->tail = !increment;
+    free->words = words;
     dma_irqn_acknowledge_channel(3, channel);
     dma_irqn_set_channel_enabled(3, channel, true);
     dma_channel_configure(channel, &config, &pio_->txf[sm_], data, words, false);
@@ -208,7 +210,8 @@ bool PicoPioDma::dma(const std::uint32_t* data, std::uint32_t words, bool increm
         // count records an exhausted predecessor, even if FIFO reserve hid it.
         const auto remaining = dma_hw->ch[static_cast<unsigned>(previous->id)].transfer_count &
                                DMA_CH0_TRANS_COUNT_COUNT_BITS;
-        refill_metrics_.ready(epoch, sequence, now_ns(), true, !increment, remaining);
+        refill_metrics_.ready(epoch, sequence, now_ns(), true, !increment, remaining,
+                              previous->words);
     }
     return true;
 }
@@ -252,6 +255,8 @@ bool PicoPioDma::launch(std::uint64_t start_ns) {
     gpio_set_outover(rf_pin, GPIO_OVERRIDE_NORMAL);
     pio_sm_set_enabled(pio_, sm_, true);
     metrics_.launch_ns = now_ns();
+    metrics_.launch_epoch = alarm_epoch_;
+    metrics_.launch_target_ns = start_ns;
     launched_ = true;
     return true;
 }

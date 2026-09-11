@@ -48,6 +48,8 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock) {
             result.dma_irqs = driver.dma_irqs;
             result.max_irq_ns = driver.max_irq_ns;
             result.launch_ns = driver.launch_ns;
+            result.launch_epoch = driver.launch_epoch;
+            result.launch_target_ns = driver.launch_target_ns;
             result.alarm_irqs = driver.alarm_irqs;
             result.max_alarm_irq_ns = driver.max_alarm_irq_ns;
             result.tail_irqs = driver.tail_irqs;

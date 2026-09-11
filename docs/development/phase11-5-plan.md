@@ -260,8 +260,10 @@ at most 60 s each; exclusive endpoint access, no mutations or inherited fixture
 empty-state assumptions. Record firmware, boot, clocks, saved-state digest and
 explicit output authority. Reuse read-only inspection for final confirmation.
 
-P1 (not ready): wiring and P0 are now recorded. Select A as the candidate DUT;
-preserve B as comparator. Resolve the measurement gates in
+P1 begins with the separately bounded [instrumentation pilot](phase11-5-pilot.md),
+which has its own exact packet and requires new authorization. It does not admit
+the full A-G campaign. Wiring and P0 are now recorded. Select A as the candidate DUT;
+preserve B as comparator. Resolve the remaining measurement gates in
 [metric definitions](phase11-5-metrics.md), then build exact candidate and inhibited-restoration images,
 hash them and define the finite jobs before requesting flash/RF permission.
 GP2 production output must execute the real PIO program, chained data DMA,

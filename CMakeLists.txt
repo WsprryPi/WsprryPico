@@ -117,6 +117,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_inventory_tests.py)
     add_test(NAME phase11_5_register_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_register_tests.py)
+    add_test(NAME phase11_5_pilot_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase11_5_pilot_tests.py)
+    add_test(NAME phase11_5_supervisor_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase11_5_supervisor_tests.py)
     add_executable(rf_worker_tests tests/rf_worker_tests.cpp)
     target_link_libraries(rf_worker_tests PRIVATE wsprrypico_rf Threads::Threads)
     target_compile_options(rf_worker_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)

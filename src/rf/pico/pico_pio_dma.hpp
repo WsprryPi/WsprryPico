@@ -9,6 +9,7 @@ namespace wsprrypico::rf {
 // halt() before release()/destruction; a failed halt retains resource ownership.
 struct PicoDriverMetrics {
     std::uint64_t dma_irqs = 0, max_irq_ns = 0, launch_ns = 0;
+    std::uint64_t launch_epoch = 0, launch_target_ns = 0;
     std::uint64_t alarm_irqs = 0, max_alarm_irq_ns = 0, tail_irqs = 0, dma_errors = 0;
     RefillMetrics::Snapshot refill;
 };
@@ -43,6 +44,7 @@ class PicoPioDma final : public PioDmaHardware {
         int id = -1;
         bool occupied = false;
         bool tail = false;
+        std::uint32_t words = 0;
         std::uint64_t epoch = 0, sequence = 0;
     };
     std::array<Channel, 2> channels_{};

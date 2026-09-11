@@ -44,6 +44,8 @@ Adversarial compiler review found the expanded chained INFO expression used a
 4,504-byte physical command-lambda frame. Appending numeric fields individually
 reduced the linked frame to 1,040 bytes; its numeric helper is at most 304 bytes.
 These are compiler frames from the candidate build, not measured stack peaks.
+The subsequent full/short reserve fields increase that frame to 1,144 bytes,
+with an 80-byte reserve-formatting helper. Physical stack acceptance remains open.
 
 The acceptance register publishes 138 MHz as selected and physically untested,
 with an empty accepted list; 132 and 150 MHz remain untested for physical 11.5.
@@ -66,13 +68,53 @@ Completed checks so far: host portable/worker/stream/PIO and negative inventory
 checks; ASan/UBSan non-TLS suite; worker TSan; native loopback TLS; four SDK 2.3.1
 standard/physical network on/off builds; Pi production, TLS/runtime, API/process
 and portable simulated semantics. Final changed-source checks and exact artifact
-records are still being collected; current-pair interop is a separate open gate.
+records are still being collected. Actual interoperability passed in both
+directions: Pi's server gate used clean Pico ab87031 and its pinned TLS overlay;
+Pico's two client gates used clean Pi 76fd101 (85.98 seconds total). The actual
+60-second scheduled wait passed. macOS could not bind the second IPv4 loopback
+address, so the actual address-rebind subcase remains open for native Linux;
+the separately injected address checks ran. These are host integration results.
+
+## Bounded pilot follow-up
+
+Refill reserve minima now retain full/short predecessor length, worst exact
+fraction, epoch, sequence, observation time and coverage count. Invalid reserve
+length/count observations cannot certify coverage. Launch observations retain
+their epoch and requested target. Regression tests cover partial-block fraction
+ordering, impossible reserves and stale or unmatched completions.
+
+The opt-in [P1 pilot](phase11-5-pilot.md) has separate packet, finite-job and
+restoration guards. Hardware-free negative tests reject broader jobs, duplicate
+IDs, dirty firmware identities, changed clock/boot/owner/configuration, truncated
+or mismatched preimage backups and incomplete pilot evidence. Lost ARM replies
+cause no retry, abort, release or automatic reflash. No P1 hardware action has
+been authorized or executed. Final image and helper hashes are frozen separately.
+
+The 135.5 kHz workload does not bound all NCO lookup costs or extremely short
+final blocks. Those resource-sensitive patterns still need selection and checks
+before accepting a clock for 11.6; this is not a request for a band/clock RF sweep.
 
 ## Remaining gates
 
 Actual allocator transient/fragmentation coverage; physical dual-core stack and
 IRQ/call-chain headroom; matched RF deadline/tail/launch observations; observer
-overhead/parity; clean-pinned current-pair integration; final repeat identity
+overhead/parity; actual Linux address-rebind integration; final repeat identity
 inspection; frozen image/job/radio/service/restoration packets;
 all A-G physical cases; sustained-load and adversarial evidence assessment.
 Phase 11.6 conducted RF and Phase 11.7 final joint review remain independent.
+
+## Documentation Impact
+
+Updated: joint plan, metrics, pilot procedure, acceptance register, development
+index, implementation-plan scope and historical 11.2/11.4 supersession pointers.
+The companion review and network guidance record host ownership and source pins.
+Normative WTP, browser API, architecture and UI remain unchanged because this
+slice changes diagnostics and qualification tooling, not their interfaces.
+
+After measured acceptance, Wsprry_Pi_Docs needs the supported combinations in
+`docs/Advanced_Operations/ini_configuration/transmitter_backends.md`,
+`docs/Command_Line_Operations/transmitter_backends.md`,
+`docs/User_Interface/Setup/Transmitter/index.md`,
+`docs/User_Interface/Operations/index.md`, `docs/Advanced_Operations/rest_api.md`
+and `docs/User_Interface/Maintenance/network_safety.md`. That repository was
+read only in this task; no unmeasured operating envelope is ready to publish.

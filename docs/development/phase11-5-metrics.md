@@ -44,19 +44,30 @@ blocks can precede either class; a minimum without the exact job/block lengths
 does not justify applying a full-block budget. Prelaunch-only and no-predecessor
 paths are not counted as running links. Absent observations serialize as null.
 
+`refill_full_predecessor` and `refill_short_predecessor` additionally retain the
+worst fractional reserve in each class: remaining and original total words,
+observation count, epoch, successor sequence and sample time. Fraction comparison
+uses integer cross-products; fewer remaining words need not be a worse fraction.
+Each short predecessor has its own interval `total_words * 32 / sample_clock`.
+Zero/oversized predecessor lengths or impossible remaining counts increment
+`refill_invalid_reserves` without certifying a reserve. The full-word constant
+is compile-time checked against the stream buffer size.
+
 `dma_irqs`, `tail_irqs` and `dma_errors` count handled events. The maximum DMA IRQ
 interval starts at handler entry and ends after the sink callback, before final
 metric bookkeeping and exception return. `alarm_irqs` and `max_alarm_irq_ns`
 likewise cover the alarm callback, including its launch guard and timer wait.
 The launch alarm is requested up to 200 microseconds early. `launch_observed_ns`
-is sampled after enabling PIO; it is not the first electrical edge. Counters
+is sampled after enabling PIO; it is not the first electrical edge.
+`launch_epoch` and `launch_target_ns` bind that successful launch to the driver's
+epoch and requested monotonic timer target, allowing host job/epoch correlation. Counters
 remain cumulative across jobs on a boot; compare authoritative per-job deltas.
 Internal evidence does not replace Phase 11.6 conducted acceptance.
 
 These aggregates have no allocated event log or intentional sampling drops.
 They still have explicit coverage gaps: delayed IRQ entry, simultaneous pending
-completions, failed submission, unobserved electrical output, and the association
-of lifetime minima with particular jobs. Preserve external start/end identities,
+completions, failed submission, unobserved electrical output, and independent correlation
+of those epoch/sequence minima with host job identities. Preserve external start/end identities,
 all failed attempts and coverage limitations. No accepted margin is published
 until the remaining observations and overhead are reviewed on the actual target.
 

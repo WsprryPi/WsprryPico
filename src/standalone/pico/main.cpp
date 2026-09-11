@@ -97,6 +97,24 @@ __attribute__((noinline)) void number_field(std::string& result, std::string_vie
     if (quoted)
         result.push_back('"');
 }
+#ifdef WSPRRY_PICO_STANDALONE_RF
+void reserve_field(std::string& result, std::string_view name,
+                   const wsprrypico::rf::RefillMetrics::Reserve& reserve) {
+    result.append(",\"").append(name).append("\":");
+    if (!reserve.observations) {
+        result.append("null");
+        return;
+    }
+    result.append("{\"measured\":true");
+    number_field(result, "observations", reserve.observations);
+    number_field(result, "epoch", reserve.epoch, true);
+    number_field(result, "successor_sequence", reserve.sequence, true);
+    number_field(result, "observed_ns", reserve.observed_ns, true);
+    number_field(result, "remaining_words", reserve.remaining_words);
+    number_field(result, "total_words", reserve.total_words);
+    result.push_back('}');
+}
+#endif
 std::size_t heap_peak = 0;
 std::uint64_t monotonic_now(void*) {
     return time_us_64() * 1000ULL;
@@ -252,6 +270,8 @@ int main() {
 #ifdef WSPRRY_PICO_STANDALONE_RF
             const auto metrics = engine.metrics();
             number_field(result, "launch_observed_ns", metrics.launch_ns, true);
+            number_field(result, "launch_epoch", metrics.launch_epoch, true);
+            number_field(result, "launch_target_ns", metrics.launch_target_ns, true);
             number_field(result, "dma_irqs", metrics.dma_irqs);
             number_field(result, "max_dma_irq_ns", metrics.max_irq_ns);
             number_field(result, "alarm_irqs", metrics.alarm_irqs);
@@ -260,6 +280,9 @@ int main() {
             number_field(result, "dma_errors", metrics.dma_errors);
             number_field(result, "refill_irq_pairs", metrics.refill.pairs);
             number_field(result, "refill_irq_unpaired", metrics.refill.unpaired);
+            number_field(result, "refill_invalid_reserves", metrics.refill.invalid_reserves);
+            reserve_field(result, "refill_full_predecessor", metrics.refill.full);
+            reserve_field(result, "refill_short_predecessor", metrics.refill.short_block);
             number_field(result, "max_refill_irq_to_ready_ns", metrics.refill.max_irq_to_ready_ns,
                          true);
             number_field(result, "running_successor_links", metrics.refill.running_links);

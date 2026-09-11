@@ -14,7 +14,9 @@ supersedes the open B2/D2 status in earlier investigation records below. The
 `phase11_4_three_radio_campaign_audit.py` checks a complete private series, and
 `phase11_4_three_radio_adversarial.py` checks per-case evidence mutations offline.
 
-Current [Phase 11.5 plan](phase11-5-plan.md) and [review](phase11-5-review.md)
+Current [Phase 11.5 plan](phase11-5-plan.md) and [review](phase11-5-review.md),
+[metric definitions](phase11-5-metrics.md) and the bounded
+[instrumentation pilot](phase11-5-pilot.md)
 track resource/contention acceptance for the selected 138 MHz PIO candidate.
 132/150 MHz physical configurations are untested in 11.5. Selecting another
 clock during 11.6 requires affected 11.5 acceptance before using its results.

@@ -43,6 +43,7 @@ class WorkerEngine final : public wtp::RfEngine {
         std::uint64_t max_roundtrip_ns = 0;
         std::uint64_t probes = 0, max_probe_ns = 0;
         std::uint64_t dma_irqs = 0, max_irq_ns = 0, launch_ns = 0;
+        std::uint64_t launch_epoch = 0, launch_target_ns = 0;
         std::uint64_t alarm_irqs = 0, max_alarm_irq_ns = 0, tail_irqs = 0, dma_errors = 0;
         RefillMetrics::Snapshot refill;
         std::size_t stack_used_bytes = 0;
