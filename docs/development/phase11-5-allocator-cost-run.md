@@ -62,3 +62,32 @@ addition to job-state observations. B1's three N300 repetitions are prepared but
 unrun. Other matrix cases remain open. Selecting another clock during Phase
 11.6 requires repeating affected Phase 11.5 checks. Phase 13 retains systematic
 band × mode × clock comparison, filters, spectral qualification and release.
+
+## A3 scheduling review before execution
+
+The unexecuted A3 actor's twelve-second launch lead left the last RELEASE beyond
+N180 in five of fifteen deterministic scheduling scenarios. The scenarios use
+the actual Pi browser scheduler, three status/asset/control latency profiles and
+all five integer-second USB STATUS phases. The correction uses a ten-second
+lead, calculated only after the browser permit and lock are acquired. Fresh
+INFO is at most two seconds old and a control request is bounded to five
+seconds. All independent Loaded/Armed/Running/Complete observations remain
+required; this calculation does not replace target state coverage.
+
+Before ARM, the actor now refuses a finite job unless its launch lead, complete
+duration and fifteen seconds for release/observation fit within the frozen N180
+window. The offline audit also requires the entire actor lifecycle, including
+its final independently observed release, inside the actual nominal interval.
+Four browser-job regression methods pass, including late-ARM rejection before
+any request. Against Pi driver SHA-256
+`b49a89d610724e9d9224d54600b23cd0378693bd14cbccb74132c208002e9f53`,
+`validate_phase11_5_a3_schedule.py` reproduces the old five failures and completes
+all fifteen corrected scenarios; the latest final observation is at 164 seconds.
+These are hardware-free feasibility checks, not target acceptance. A3 remains
+unrun and requires reviewed exact-image A2 results and a separately hashed
+helper supplement. The active A2 helpers and workload manifest are unchanged.
+
+The follow-up adversarial assessment checked pre-ARM rejection, preservation of
+all 36 browser STATUS requests and 18 assets, full-job hardware-counter coverage,
+unchanged observer/state/deadline requirements, and no-access defaults. No
+remaining actionable finding was identified in that bounded A3 source review.

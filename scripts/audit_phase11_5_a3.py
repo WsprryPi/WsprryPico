@@ -77,8 +77,8 @@ def audit(root,decoder):
     load_events=[json.loads(line) for line in (root/'load-events.jsonl').read_text().splitlines()]
     begin=next(r['monotonic_ns'] for r in load_events if r['kind']=='nominal_begin')
     end=next(r['monotonic_ns'] for r in load_events if r['kind']=='nominal_finish')
-    require(all(begin<=r['monotonic_ns']<=end for r in rows if r['kind']=='armed_job'),
-            'RF ARM occurred outside nominal workload')
+    require(all(begin<=r['monotonic_ns']<=end for r in rows),
+            'Browser job lifecycle or observed release occurred outside nominal workload')
     status_rows=[json.loads(line) for line in (root/'usb-health.jsonl').read_text().splitlines()]
     for job in packet['jobs']:
         require(any(r['kind']=='status' and begin<=r['monotonic_ns']<=end and

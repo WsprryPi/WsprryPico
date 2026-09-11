@@ -25,6 +25,19 @@ from phase11_5_device_management import save
 
 NAME='wsprrypico-0a60df.local'
 PEER='06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016'
+ARM_LEAD_NS=10_000_000_000
+
+
+def finite_start(clock,now_ns,load_end_ns,duration_ns):
+    """Admit a finite job with time for completion and observed release under load."""
+    require(clock['clock_state']=='synchronized' and
+            int(clock['uncertainty_ns'])<=500000000,'Clock admission before ARM')
+    # INFO is at most two seconds old; the control request has a five-second
+    # deadline. Ten seconds retains at least three seconds of launch lead.
+    # Reserve another fifteen seconds after completion for RELEASE/USB sampling.
+    require(now_ns+ARM_LEAD_NS+duration_ns+15_000_000_000<=load_end_ns,
+            'Finite job would outlast nominal load and release allowance')
+    return ((int(clock['utc_now_ns'])+ARM_LEAD_NS+999)//1000)*1000
 
 
 def checked_reply(request, code, data):
@@ -59,6 +72,11 @@ def main():
             '75b26e3fa2fc74e517fbfe9cdbe8ee7b9c0e6eabfc13708827d48d978ea0ba9f','Exact physical candidate')
     owner=inventory_session(packet['owner_id']);session=inventory_session(packet['browser_session_id'])
     plan=json.loads((root/'load.json').read_text())
+    ready=json.loads((root/'ready.json').read_text())
+    require(ready['boot_id']==packet['boot_id'] and plan['seconds']==180 and
+            0<=time.monotonic_ns()-ready['start_monotonic_ns']<5_000_000_000,
+            'Fresh frozen N180 load required')
+    load_end_ns=ready['start_monotonic_ns']+180_000_000_000
     require(plan['boot_id']==packet['boot_id'] and plan['device_id']==DEVICE and
             plan['browser'] is True and plan['address']=='10.77.15.10' and
             os.readlink('/proc/self/ns/net')==plan['netns'] and
@@ -126,10 +144,9 @@ def main():
                 if operation=='ARM':
                     # The browser slot may take seconds to become available.
                     # Choose the finite start from fresh device time only now.
-                    clock=info['status']
-                    require(clock['clock_state']=='synchronized' and
-                            int(clock['uncertainty_ns'])<=500000000,'Clock admission before ARM')
-                    start=((int(clock['utc_now_ns'])+12_000_000_000+999)//1000)*1000
+                    job=next(j for j in packet['jobs'] if j['job_id']==body['job_id'])
+                    start=finite_start(info['status'],started,load_end_ns,
+                                       int(job['total_duration_ns']))
                     value['body']={**body,'start_utc_ns':str(start)}
                 payload=json.dumps(value,separators=(',',':')).encode()
                 wire=(f'POST /api/v1/jobs HTTP/1.1\r\nHost: {NAME}:18443\r\n'

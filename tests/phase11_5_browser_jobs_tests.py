@@ -6,12 +6,21 @@ import sys
 import unittest
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
-from phase11_5_browser_jobs import checked_reply,main
+from phase11_5_browser_jobs import checked_reply,finite_start,main
 from audit_phase11_5_a3 import dma_coverage
 from phase11_5_pilot_tests import packet
 
 
 class BrowserJobsTests(unittest.TestCase):
+    def test_late_arm_stops_before_emission_and_preserves_release_allowance(self):
+        clock=dict(clock_state='synchronized',uncertainty_ns='500000000',utc_now_ns='100000000001')
+        self.assertEqual(finite_start(clock,145_000_000_000,180_000_000_000,10_000_000_000),
+                         110_000_001_000)
+        for now,clock_value in [(145_000_000_001,clock),
+                (0,{**clock,'clock_state':'holdover'}),(0,{**clock,'uncertainty_ns':'500000001'})]:
+            with self.subTest(now=now,clock=clock_value),self.assertRaises(ValueError):
+                finite_start(clock_value,now,180_000_000_000,10_000_000_000)
+
     def test_completed_labels_do_not_replace_full_job_hardware_coverage(self):
         before=dict(dma_irqs=20,tail_irqs=2,alarm_irqs=2,running_successor_links=14)
         # 1,380,000,000 samples require 2,633 data blocks per ten-second job.
