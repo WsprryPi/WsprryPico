@@ -1,0 +1,90 @@
+[
+  {
+    "source_revision": "713cb16749c5647b6ac1326c18d97add9c975935",
+    "network_control": "on",
+    "target": "WsprryPico",
+    "configured_system_clock_hz": 150000000,
+    "artifacts": {
+      "elf": {
+        "sha256": "4fe8f931a74d304585e3ae27da8457df71a518ff7c770bd531d0d9044795be92",
+        "bytes": 14990600
+      },
+      "uf2": {
+        "sha256": "28eafb42bb849b786dc6ba98132d49d066c497fdc0faaaaffcfb63783419567d",
+        "bytes": 2011136
+      },
+      "map": {
+        "sha256": "05cdd276906c8d4a368b201b504b44c2efc0e3ef5e67689a0a5c0142d999d22c",
+        "bytes": 2578293
+      }
+    },
+    "heap_capacity_bytes": 377832,
+    "physical_status": "NOT_FLASHED_NOT_ACCEPTED"
+  },
+  {
+    "source_revision": "713cb16749c5647b6ac1326c18d97add9c975935",
+    "network_control": "on",
+    "target": "WsprryPico-StandaloneRF",
+    "configured_system_clock_hz": 138000000,
+    "artifacts": {
+      "elf": {
+        "sha256": "3929b96e0a358f4c9c1c0df9d64354d721b290ace4f9750aeac5bc9ba7c5494b",
+        "bytes": 15227932
+      },
+      "uf2": {
+        "sha256": "3c212db7393af240c7aa590c6792dda7e529db735deb1ff599d8d57f2dc32246",
+        "bytes": 2033664
+      },
+      "map": {
+        "sha256": "07cab4aaa6144824d07c7dfba1d6029dcd2a1c3042d2f855a59ac64f2ed15059",
+        "bytes": 2717405
+      }
+    },
+    "heap_capacity_bytes": 219404,
+    "physical_status": "NOT_FLASHED_NOT_ACCEPTED"
+  },
+  {
+    "source_revision": "713cb16749c5647b6ac1326c18d97add9c975935",
+    "network_control": "off",
+    "target": "WsprryPico",
+    "configured_system_clock_hz": 150000000,
+    "artifacts": {
+      "elf": {
+        "sha256": "40570417836017579a16abf5e7314beaf9877f08ffae94c57d29bbafc9311fa8",
+        "bytes": 14711048
+      },
+      "uf2": {
+        "sha256": "02be22ce91da663496508d151491af8a7f1709eac18ba063080ef89ea3e51842",
+        "bytes": 1964544
+      },
+      "map": {
+        "sha256": "24551b665cb7b894315e08dadcc284db60a67211ccb91a14868da631f7417741",
+        "bytes": 2569515
+      }
+    },
+    "heap_capacity_bytes": 377892,
+    "physical_status": "NOT_FLASHED_NOT_ACCEPTED"
+  },
+  {
+    "source_revision": "713cb16749c5647b6ac1326c18d97add9c975935",
+    "network_control": "off",
+    "target": "WsprryPico-StandaloneRF",
+    "configured_system_clock_hz": 138000000,
+    "artifacts": {
+      "elf": {
+        "sha256": "9e1f4577520f61683a50535282517953d7168885860e6a17ecbd95f9d629e9f6",
+        "bytes": 14946772
+      },
+      "uf2": {
+        "sha256": "5745905cc34b389aaf773e14c2f0414bae1f099abcd56c612c602b35e2da5fe0",
+        "bytes": 1986560
+      },
+      "map": {
+        "sha256": "24b2ebfc1f542817557cd80a38c91a2d34ee422218574d6dea8f6231466328d2",
+        "bytes": 2708198
+      }
+    },
+    "heap_capacity_bytes": 219456,
+    "physical_status": "NOT_FLASHED_NOT_ACCEPTED"
+  }
+]

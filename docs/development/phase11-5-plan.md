@@ -256,6 +256,12 @@ are recovery bounds, never RF timing margins.
 
 ## Authorization packets and restoration
 
+P1/P1b and exact fault restoration were separately authorized and executed.
+One finite job failed; its two remaining jobs were not submitted. Both boards
+are now inhibited/inactive. The [review](phase11-5-review.md) records completed
+work and open gates; the original packet descriptions below do not authorize
+repetition or another candidate flash.
+
 P0 (authorized and completed; final repeat authorized): on wspr5, serial-bound Console INFO and WTP
 HELLO/CAPS/GET_CLOCK/STATUS/PING on A and B, one bounded inspection per board,
 at most 60 s each; exclusive endpoint access, no mutations or inherited fixture

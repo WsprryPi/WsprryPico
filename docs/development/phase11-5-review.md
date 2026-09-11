@@ -1,7 +1,9 @@
 # Phase 11.5 code and evidence review
 
-Status: **OPEN**. See the [joint plan](phase11-5-plan.md). Physical resource,
-deadline and mixed-workload evidence is not yet available for this candidate.
+Status: **OPEN**. The 138 MHz physical pilot failed refill margin and terminal
+completion; both boards are now restored/inhibited and inactive. See the
+[joint plan](phase11-5-plan.md), [failed result](phase11-5-pilot-attempt2.json) and
+[recovery result](phase11-5-recovery-result.json). No configuration is accepted.
 Phase 11.4 remains closed within its bounded inhibited matrix.
 
 ## Initial review, September 11, 2026
@@ -245,3 +247,44 @@ timestamp; it does not prove that all physical fault causes are resolved. The
 25% refill reserve and 2,849,391 ns service-gap requirements are unchanged.
 The repair has not been flashed or physically accepted. Refilling, observer
 contention, memory/stack coverage and all remaining A-G gates remain open.
+
+
+## Final software validation and next physical gate
+
+Clean repaired firmware source 713cb16749c5647b6ac1326c18d97add9c975935 built all
+four standard/physical network-control on/off images; all linked stack/heap,
+flash reservation and UF2 payload checks passed. Complete repaired artifact sets
+remain private, with hashes in [the image record](phase11-5-terminal-repair-images.json).
+These images were not flashed. The failed pilot's exact candidate UF2 and full
+pre-flash backup remain preserved in their private bundles.
+
+Final validation: 40 non-TLS host cases plus native TLS passed; focused post-review
+core/worker/PIO/stream checks passed, ASan/UBSan nine affected cases passed with
+the final core retest, and worker TSan passed both cases. The original terminal
+watchdog failed the new regression (23/24 internal core cases); the repaired
+implementation passed. Hardware-free recovery tests cover five supervisor/guard
+cases and the six pilot cases. No test result is physical timing acceptance.
+
+Both actual interoperability directions passed again: repaired Pico 713cb16 and
+clean Pi 76fd101 client, with the actual 60-second scheduled wait. The companion
+main checkout's subsequent changes are only evidence/test-pin metadata; its
+production sources are unchanged from 76fd101. The strict client pin is tested
+from /tmp/phase11-5-pi-client-76fd101. An attempted build against the advanced
+main checkout correctly failed its source gate before that clean fixture was
+created. An overlapping actual-server invocation failed TLS initialization; the
+two fixtures share a fixed loopback port. Its isolated rerun passed and the
+original failure remains retained. The actual second-IPv4 rebind remains skipped
+on macOS; injected address checks passed.
+
+The worst full reserve was observed at target time 19,581,593,000 ns, inside the
+first Running INFO handler's observed interval 19,577,961,000 to 19,584,228,000 ns.
+This points to observer/foreground contention as a testable hypothesis, not a
+proven cause. Separate formatting, stack-probe, XIP and SRAM effects before
+proposing another finite RF packet. Do not loosen the frozen reserve/service-gap
+budgets or attribute the failure solely to the terminal race.
+
+The acceptance list remains empty. Next gates are refill/observer contention,
+true allocator/failure/fragmentation coverage, justified dual-core stack
+allowances, representative short-tail and mode resource patterns, full A-G
+contention and sustained recovery, and physical validation of every changed
+firmware configuration. No band/clock sweep or 11.6/13 RF qualification occurred.
