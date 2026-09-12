@@ -14,7 +14,15 @@ supersedes the open B2/D2 status in earlier investigation records below. The
 `phase11_4_three_radio_campaign_audit.py` checks a complete private series, and
 `phase11_4_three_radio_adversarial.py` checks per-case evidence mutations offline.
 
-Current [Phase 11.5 plan](phase11-5-plan.md) and [review](phase11-5-review.md),
+Current [Phase 11.5 plan](phase11-5-plan.md) organizes six acceptance families
+with realistic normal traffic separated from stress and overload. The
+[current ledger](phase11-5-acceptance-ledger.md) records **0 of 6 revised families
+closed**, useful existing evidence and an empty accepted-configuration list.
+The [documentation reorganization review](phase11-5-test-reorganization-review.md)
+maps all 20 legacy cases without changing code, runners or historical results.
+The revised executable campaign still needs a separately code-authorized slice.
+
+Historical [Phase 11.5 review](phase11-5-review.md),
 [metric definitions](phase11-5-metrics.md) and the bounded
 [instrumentation pilot](phase11-5-pilot.md)
 track resource/contention acceptance for the selected 138 MHz PIO candidate.
@@ -22,12 +30,13 @@ track resource/contention acceptance for the selected 138 MHz PIO candidate.
 clock during 11.6 requires affected 11.5 acceptance before using its results.
 The [remediation execution and adversarial review](phase11-5-remediation-review.md)
 records the SRAM candidate and the remaining physical failure gates.
-The [current continuation](phase11-5-closure-work.md) records the later allocator,
+The [historical continuation](phase11-5-closure-work.md) records the later allocator,
 stack guard and production-session fixes. [N0 is restored](phase11-5-network-fixture-result.json);
 [N1 diagnostic results](phase11-5-n1-progress.md) preserve the earlier failures.
 N1t closed exact-image A2 for `8fb3894`; A3 failed browser cadence under RF load.
-[The final restored state](phase11-5-n1t-result.json) records **2 of 20 cases
-closed**, with no accepted configuration.
+[That attempt's final restored state](phase11-5-n1t-result.json) records **2 of
+20 historical cases closed on 8fb3894**, with no accepted configuration. This
+does not count current-image or revised-family acceptance.
 The [activity candidate retest](phase11-5-activity-run.md) has four checked images.
 Its authorized N1u run failed inhibited conditioning at the production STATUS
 cadence gate and restored the setup; its full A2/A3 cases remain unrun.

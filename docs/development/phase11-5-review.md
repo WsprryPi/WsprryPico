@@ -1,5 +1,11 @@
 # Phase 11.5 code and evidence review
 
+Current planning, September 12: use the [six-family plan](phase11-5-plan.md),
+[current readiness ledger](phase11-5-acceptance-ledger.md) and
+[documentation reorganization review](phase11-5-test-reorganization-review.md).
+No revised family or clock configuration is accepted. The chronological code
+and hardware observations below are historical; their failures remain preserved.
+
 Status: **OPEN**. The original 138 MHz pilot failed refill margin and terminal
 completion. The [P2 SRAM remediation](phase11-5-remediation-result.json) passed
 three bounded Tone jobs. The [P3 allocator candidate](phase11-5-allocator-result.json)

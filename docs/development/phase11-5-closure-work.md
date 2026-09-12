@@ -1,5 +1,11 @@
 # Phase 11.5 closure execution
 
+Historical execution record. September 12's [revised plan](phase11-5-plan.md)
+and [current ledger](phase11-5-acceptance-ledger.md) supersede the live-state and
+execution-order statements below. The latest bounded diagnostic restored its
+fixture; no campaign is running as part of the documentation reorganization.
+Do not interpret an old authorized window below as a current execution grant.
+
 Status: IN PROGRESS. Selected configuration remains physical PIO/DMA at 138 MHz,
 SRAM renderer. P3 passed its allocator-instrumented diagnostic; full A-G acceptance remains open.
 The accepted list is empty. This continuation does not erase any prior attempt.

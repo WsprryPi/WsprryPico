@@ -1,8 +1,11 @@
 # Phase 11.5 measurement definitions
 
 These are diagnostic observations, not accepted limits. The
-[register](phase11-5-register.json) currently accepts no physical configuration.
-The [plan](phase11-5-plan.md) defines selected clocks and remaining gates.
+[current ledger](phase11-5-acceptance-ledger.md) accepts no physical configuration;
+the [legacy register](phase11-5-register.json) retains historical 20-case records.
+The [plan](phase11-5-plan.md) defines selected clocks and remaining gates. Its
+six-family reorganization does not change these measurement meanings or convert
+older candidate-specific limitations below into current evidence.
 
 ## RF owner and timer
 

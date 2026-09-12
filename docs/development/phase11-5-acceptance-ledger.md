@@ -1,0 +1,80 @@
+# Phase 11.5 current acceptance ledger
+
+Status on September 12, 2026: **OPEN; 0 of 6 revised families closed; no accepted
+configuration.** This is readiness accounting for the [revised plan](phase11-5-plan.md),
+not a reset or relabeling of historical evidence. No hardware ran during the
+documentation reorganization. The six families contain multiple mandatory
+assertions; reporting 0/6 is not a claim that no useful work has been completed.
+
+## Evidence that already exists
+
+| Evidence | Exact scope | Reuse boundary |
+| --- | --- | --- |
+| [N1t A1/A2](phase11-5-n1t-result.json) | Two of the historical 20 cases passed on `8fb3894253ef45adc3aad28f25a684168487490f`; A3 failed | Preserve 2/20 as a historical count. Do not transfer its physical baselines to another firmware. |
+| [Later single attempt](phase11-5-single-attempt-result.json) | `4058d3a4a95110326006a7db6e37eb4b562a500c`: inhibited A2 passed; physical conditioning failed | Preserve both the successful restricted evidence and the failed STATUS cadence. |
+| [Current candidate builds](phase11-5-status-delivery-result.json) | `e20ae8bea2d5237af017dbd5f73bfe9332ce144e`: four clean linked ELF/UF2 records, host/source regression and linked checks | R1 inputs available. Builds alone do not close R1's physical comparisons or any RF gate. |
+| [Current 138 MHz RF-idle diagnostic](phase11-5-status-delivery-repair.md) | Same `e20ae8b` candidate; 300-second controller/browser load and 360-second USB observation passed; boot `0fa996a26d9319f64385b23f3b6c62bf` | Reuse only measured idle/resource assertions. No full matched quiet/controller baseline or active RF. Credit wait/preservation/timeouts all zero; historical-stall causation remains unproven. |
+
+The physical candidate UF2 SHA-256 is
+`7a7306b8ad9dab694903434b86aec18e249c79dad0443645cd04ca857e9d4a04`;
+its ELF SHA-256 is
+`2f5c5ce29c659ca9ffbbd5698c58fe96b0376578f4669b15d808a28584d42d5d`.
+The inhibited companion UF2 is
+`d4564a5c28db81e6e000542632cae3a4ae00f7a0263ecb4b2061f3f477c7e6e8`.
+Actual tested production source is
+`6f65d5c7d202569102459ab68d7c9ea079b96f35`, executable SHA-256
+`122ed0e4bd752e457419c4df5433c3fca1a4a88677a3db3ebd7e60e783ba5d1c`.
+Neither a later Mac checkout nor the installed wspr5 executable is implicitly
+this tested binary. Full dependencies, helper identities and archives remain
+in the linked immutable results.
+
+## Revised family readiness
+
+| Family | Status | Existing input | Required next evidence |
+| --- | --- | --- | --- |
+| R1 | PARTIAL | Four builds and bounded physical-idle diagnostic | Current-image matched baseline, allocator/necessary-allocation and observer-cost assessment; change-directed inhibited regression |
+| R2 | NOT RUN | Earlier mode/RF investigations identify paths, not acceptance of this candidate | Actual current-image state/mode/launch/refill/tail execution with normal traffic |
+| R3 | NOT RUN | Existing functional tests and prior inhibited results | Distinct physical resource-boundary and reclamation assertions |
+| R4 | NOT RUN | Existing ownership/replay/recovery semantics | Current-image physical authority, owner abort and interrupted-operation checks |
+| R5 | NOT RUN | Prior network/storage/standalone evidence | Targeted physical lifecycle, journal rotation and autonomous scheduling under contention |
+| R6 | NOT RUN | Prior inhibited soak is contextual only | Mixed physical workload after mandatory R1-R5 gates pass |
+
+For each future packet, record its family/assertion IDs, exact inputs, prior
+evidence reused with rationale, and `passed / failed / not run` counts. A failed
+assertion stays failed even if later independent assertions pass. A family closes
+only when every mandatory assertion has current applicable evidence. Report
+historical 20-case counts and revised family counts separately; do not add them.
+
+## Clock and device boundary
+
+- 138 MHz, divider 1, RAM renderer: selected for 11.6, **not accepted**.
+- Physical 132/150 MHz: **untested** in 11.5. Inhibited 150 MHz is separate.
+- Selecting another clock during 11.6 requires the affected 11.5 checks and
+  recalculated timing budgets; broad clock/band/spectral qualification is Phase 13.
+
+Last recorded restoration, not a fresh live inventory: Pico A USB
+`0BF4B4AEC9FFB344` returned to inhibited `802c91a7b86e-dirty`, boot
+`69bb9cafe6d99d4f7caca78996e3f5f0`; B USB `CDDBF8767C506C07` remained inhibited
+`dbf1d86f0885-dirty`, boot `4e2fb851c08b278dd4b977104d2c2aaa`. Both were
+authoritatively empty, inactive and unowned. Host networking was restored and
+installed WsprryPi PID 1957 remained unchanged. Refresh identity and state before
+future hardware work; this documentation task performs no live checks.
+
+Recorded cumulative configuration writes are **22 of 32**. Reserve restoration
+and R5 schedule/rotation writes before more setup. Historical restoration inputs
+and finite authorization windows are not permission to silently restart an old
+campaign or reset its budget.
+
+## Tooling readiness and historical register
+
+The unchanged `phase11-5-register.json` retains its 20-case schema, older
+`pending_candidate` snapshot and original PASS/FAIL entries. It remains valid
+for that historical format; its `pending_candidate` is not today's selected
+candidate. The current candidate and prospective readiness are recorded here.
+Do not repin historical results or edit them into six-family passes.
+
+Existing helpers still hardcode old sources/boots/images, A2/A3 ordering and the
+synthetic browser workload. They do not implement the new profiles or family
+closure. A later code-authorized slice must adapt and test the runner/validator
+contract, then freeze a concrete packet. That is outstanding implementation,
+not a reason to silently run old helpers or claim documentation changed them.

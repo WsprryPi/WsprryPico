@@ -1,5 +1,10 @@
 # Phase 11.5 N1 execution
 
+Historical N1 series. For current prospective scope, use the
+[six-family plan](phase11-5-plan.md) and [readiness ledger](phase11-5-acceptance-ledger.md).
+The 2/20 counts and runtime identities below belong to their named attempts;
+they are not current-image acceptance or active authorization windows.
+
 Status: **OPEN; no accepted physical clock.** This September 11, 2026 record
 supersedes the original packet's pending-authorization and live-state wording.
 The user authorized N1 and directed continuation. The original six-hour host
