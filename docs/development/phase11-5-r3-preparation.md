@@ -1,5 +1,10 @@
 # R3 preparation and source review — September 12, 2026
 
+This is the preserved preparation snapshot. The subsequently authorized P0
+packet [completed 4/4 captures](phase11-5-r3-preflight-review.md), with no R3
+physical acceptance credit. Its initial staging rejection was resolved by the
+user's explicit authorization; the historical preparation result remains intact.
+
 Phase 11.5 remains **OPEN, 2/6 families closed**. R1 remains 5/5 and R2 remains
 7/7 under the existing [impact review](phase11-5-r2-continuation-review.md).
 R3 has **zero accepted physical assertions**. Preparation does not close a gate.

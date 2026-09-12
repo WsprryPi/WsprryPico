@@ -1,0 +1,257 @@
+{
+  "schema": "phase11.5-r3-preflight-result-v1",
+  "status": "PREFLIGHT_COMPLETE_NOT_RF_ACCEPTANCE",
+  "blockers": [],
+  "boards": {
+    "A": {
+      "boot_id": "587c672d4267e467649bb43765542284",
+      "revision": "802c91a7b86e-dirty",
+      "caps": {
+        "profiles": [
+          "rf-events/1"
+        ],
+        "modes": [
+          "wspr",
+          "tone",
+          "qrss",
+          "fskcw",
+          "dfcw"
+        ],
+        "engine": "inhibited-standalone-simulator",
+        "frequency_ranges": [
+          {
+            "minimum_nhz": "100000000000000",
+            "maximum_nhz": "68999999000000000"
+          }
+        ],
+        "max_payload_bytes": 65536,
+        "max_events": 162,
+        "max_job_duration_ns": "110592000000",
+        "minimum_arm_lead_ns": "100000000",
+        "maximum_arm_ahead_ns": "604800000000000",
+        "maximum_arm_uncertainty_ns": "500000000",
+        "maximum_holdover_age_ns": "90000000000",
+        "output_disable_timeout_ns": "100000000",
+        "minimum_lease_ms": 5000,
+        "maximum_lease_ms": 60000,
+        "response_cache_entries": 8,
+        "response_cache_ttl_seconds": 300,
+        "terminal_record_entries": 8,
+        "terminal_record_ttl_seconds": 3600
+      },
+      "final_status": {
+        "boot_id": "587c672d4267e467649bb43765542284",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "system_clock_hz": null,
+      "clock_observation_note": "Original inhibited INFO does not expose system_clock_hz; no fresh clock measurement claimed.",
+      "engine": "inhibited-standalone-simulator",
+      "visible_configuration_unchanged_during_preflight": true,
+      "full_private_configuration_byte_parity_established": false
+    },
+    "B": {
+      "boot_id": "feffcd075ab6cb0b74e7e0c2fde6c87f",
+      "revision": "dbf1d86f0885-dirty",
+      "caps": {
+        "profiles": [
+          "rf-events/1"
+        ],
+        "modes": [
+          "wspr",
+          "tone",
+          "qrss",
+          "fskcw",
+          "dfcw"
+        ],
+        "engine": "inhibited-standalone-simulator",
+        "frequency_ranges": [
+          {
+            "minimum_nhz": "100000000000000",
+            "maximum_nhz": "68999999000000000"
+          }
+        ],
+        "max_payload_bytes": 65536,
+        "max_events": 162,
+        "max_job_duration_ns": "110592000000",
+        "minimum_arm_lead_ns": "100000000",
+        "maximum_arm_ahead_ns": "604800000000000",
+        "maximum_arm_uncertainty_ns": "500000000",
+        "maximum_holdover_age_ns": "90000000000",
+        "output_disable_timeout_ns": "100000000",
+        "minimum_lease_ms": 5000,
+        "maximum_lease_ms": 60000,
+        "response_cache_entries": 8,
+        "response_cache_ttl_seconds": 300,
+        "terminal_record_entries": 8,
+        "terminal_record_ttl_seconds": 3600
+      },
+      "final_status": {
+        "boot_id": "feffcd075ab6cb0b74e7e0c2fde6c87f",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "system_clock_hz": null,
+      "clock_observation_note": "Original inhibited INFO does not expose system_clock_hz; no fresh clock measurement claimed.",
+      "engine": "inhibited-standalone-simulator",
+      "visible_configuration_unchanged_during_preflight": true,
+      "full_private_configuration_byte_parity_established": false
+    }
+  },
+  "management_counts": {
+    "config": 34,
+    "heap-probe": 6,
+    "wifi-off": 0,
+    "wifi-on": 0
+  },
+  "R3_acceptance_assertions_completed": 0,
+  "rf_jobs_completed": 0,
+  "accepted_configurations": [],
+  "limitations": [
+    "Restored inhibited CAPS are not physical candidate CAPS.",
+    "INFO cannot establish private configuration byte parity or journal position.",
+    "Preflight does not authorize flashing, fixture activation or RF."
+  ],
+  "packet_sha256": "6695194cae5fbbf0611a2480e70074761be218da7e749f6c9f4b319fcf766119",
+  "raw_sha256": {
+    "before-A.jsonl": "1e8893b0ebe835855fa9d452fa9936451eab0bf0e9a0a2d3c1c66d203f648c60",
+    "before-B.jsonl": "0691c1e57d379e3815e7ba2b729a9274897336ac2fb314afcde496736599eab1",
+    "after-A.jsonl": "802399a01007ee1b0c27c0bfed7bcfc799a711ea73e34a2d6cf21efc3e4abc85",
+    "after-B.jsonl": "b2c36d06fab90d9d5dd6628d33df079ea511a0893943c612c66bac07b3a1812e",
+    "packet.json": "6695194cae5fbbf0611a2480e70074761be218da7e749f6c9f4b319fcf766119",
+    "run-intent.json": "b420a8a9f497a17ef0628bf94486c19b50153f60d056cc8769d62a2dfb614297",
+    "preflight-result.json": "87b334a60e021752125a77fea249e96d9a904af1a8303cf7e5481a89a96c131d"
+  },
+  "captures_completed": 4,
+  "captures_required": 4,
+  "elapsed_seconds": 0.641234699,
+  "closed_families": 2,
+  "total_families": 6,
+  "read_only_requests": {
+    "INFO": 4,
+    "WTP": 20
+  },
+  "rf_jobs": 0,
+  "configuration_writes_added": 0,
+  "heap_probes_added": 0,
+  "fixture_activated": false,
+  "flashing_performed": false,
+  "authorization": "User explicitly approved staging the reviewed packet and five files to wspr5 and executing its four read-only inventories.",
+  "source_revision_selected": "2e43110f05304efdc2ae25c298baa0ef6426955b",
+  "selected_physical_configuration": {
+    "system_clock_hz": 138000000,
+    "pio_divider": 1,
+    "rf_render_in_ram": true,
+    "listener_enabled": true,
+    "installed_by_this_packet": false
+  },
+  "adversarial_review": {
+    "intact_passed": true,
+    "rejected_mutations": [
+      {
+        "mutation": "truncated-envelope",
+        "rejection": "Truncated inventory envelope"
+      },
+      {
+        "mutation": "missing-record",
+        "rejection": "Inventory sequence/serial/timestamps"
+      },
+      {
+        "mutation": "summary-forged",
+        "rejection": "Hidden traffic or final summary differs from wire"
+      },
+      {
+        "mutation": "wrong-board",
+        "rejection": "Inventory sequence/serial/timestamps"
+      },
+      {
+        "mutation": "wrong-source",
+        "rejection": "Inventory boundaries/source"
+      },
+      {
+        "mutation": "console-write",
+        "rejection": "Truncated WTP header"
+      },
+      {
+        "mutation": "wire-crc",
+        "rejection": "Incomplete, corrupt or extra WTP frame"
+      },
+      {
+        "mutation": "missing-finish",
+        "rejection": "Inventory boundaries/source"
+      },
+      {
+        "mutation": "capture-order",
+        "rejection": "Inventories overlap, are reordered, stale or exceed packet deadline"
+      },
+      {
+        "mutation": "wrong-host",
+        "rejection": "Missing run/packet/host binding"
+      },
+      {
+        "mutation": "wrong-packet",
+        "rejection": "Missing run/packet/host binding"
+      },
+      {
+        "mutation": "outside-runtime",
+        "rejection": "Inventories overlap, are reordered, stale or exceed packet deadline"
+      }
+    ],
+    "intact_after_mutations_passed": true,
+    "windows": [
+      {
+        "capture": "before-A",
+        "start_monotonic_ns": 197142979158157,
+        "end_monotonic_ns": 197143057597529,
+        "seconds": 0.078439372,
+        "info_requests": 1,
+        "wtp_requests": 5
+      },
+      {
+        "capture": "before-B",
+        "start_monotonic_ns": 197143153267004,
+        "end_monotonic_ns": 197143227876960,
+        "seconds": 0.074609956,
+        "info_requests": 1,
+        "wtp_requests": 5
+      },
+      {
+        "capture": "after-A",
+        "start_monotonic_ns": 197143326608224,
+        "end_monotonic_ns": 197143403995006,
+        "seconds": 0.077386782,
+        "info_requests": 1,
+        "wtp_requests": 5
+      },
+      {
+        "capture": "after-B",
+        "start_monotonic_ns": 197143499826611,
+        "end_monotonic_ns": 197143574672048,
+        "seconds": 0.074845437,
+        "info_requests": 1,
+        "wtp_requests": 5
+      }
+    ],
+    "elapsed_seconds": 0.641234699
+  },
+  "evidence_root": "/home/pi/phase11-5-r3-preflight-20260912",
+  "host_after": {
+    "boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+    "installed_wsprrypi_pid": 1957,
+    "chrony_gpsd_avahi_active": true,
+    "radio_mac_roles_unchanged": true,
+    "usb_endpoint_users_remaining": false,
+    "host_configuration_mutated": false
+  },
+  "historical_staging_rejection": {
+    "preserved": true,
+    "resolved_by_explicit_user_authorization": true
+  },
+  "documentation_impact": "Current ledger and development pointers, new P0 result/review, and companion report. Firmware, protocol, UI, operator manuals and historical results unchanged."
+}

@@ -1,7 +1,9 @@
 # Execute R3 P0 — bounded read-only admission
 
-Status: **PREPARED; USB AUTHORIZATION PENDING.** No new hardware operations have
-run. This packet is preparation for R3, not a physical acceptance test. The
+Status: **EXECUTED; 4/4 READ-ONLY CAPTURES COMPLETE. DO NOT REPLAY.** The
+[result and review](phase11-5-r3-preflight-review.md) record the subsequently
+authorized execution. The prompt below is retained as the exact bounded request.
+This packet is preparation for R3, not a physical acceptance test. The
 [source review](phase11-5-r3-preparation.md) records what is ready and what remains.
 
 Resume Phase 11.5 from R1 5/5 and R2 7/7 closed, using the current acceptance

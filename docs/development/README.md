@@ -7,8 +7,9 @@ Devices and host were restored; CONFIG writes are 34/34. R3–R6 remain open and
 full accepted configurations remain empty. Original failed assessments are retained.
 
 Next: [R3 source review](phase11-5-r3-preparation.md) and
-[bounded read-only admission packet](phase11-5-r3-preflight-prompt.md), prepared
-but awaiting USB authorization. No new physical acceptance credit is recorded.
+[bounded read-only admission packet](phase11-5-r3-preflight-prompt.md), now
+[complete at 4/4 captures](phase11-5-r3-preflight-review.md). Both boards remain
+inhibited, Empty/inactive/unowned. No R3 physical acceptance credit is recorded.
 
 The defined hardware target is Pico 2 W / RP2350. The repository contains a
 portable WTP/1 core, deterministic host tests and an RF-inhibited firmware

@@ -19,9 +19,12 @@ packets. Future fixes invalidate affected assertions, not automatically all R1.
 R3 [source review and tranche preparation](phase11-5-r3-preparation.md) now
 identify the actual target boundaries, including the global 110.592-second
 duration restriction that also affects QRSS. The next
-[read-only admission packet](phase11-5-r3-preflight-prompt.md) is prepared,
-with **0/4 fresh inventory captures** and **zero R3 physical assertions passed**.
-It adds no configuration-write allowance and is awaiting new USB authorization.
+[read-only admission packet](phase11-5-r3-preflight-prompt.md) completed
+**4/4 fresh inventory captures** with **zero R3 physical assertions passed**;
+the [P0 review](phase11-5-r3-preflight-review.md) records exact raw evidence and
+twelve rejected mutations. Both boards retain their original inhibited images,
+unchanged boots, and authoritative Empty/inactive/unowned state. CONFIG remains
+34/34 and probes remain six. The P0 staging/USB grant is consumed.
 The R3 RF executors and concrete fixture/RF grant remain outstanding.
 
 ## Evidence that already exists
