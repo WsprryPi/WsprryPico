@@ -1,0 +1,64 @@
+{
+  "family": "R2",
+  "status": "FAILED_MISSED_START_NEW_POLICY_TARGET_VALIDATION_PENDING",
+  "completed_jobs": 0,
+  "required_minimum_jobs": 7,
+  "missed_jobs": 1,
+  "not_run_jobs": 6,
+  "family_closed": false,
+  "phase11_5_closed_families": 1,
+  "phase11_5_required_families": 6,
+  "accepted_configurations": [],
+  "source_revision": "e20ae8bea2d5237af017dbd5f73bfe9332ce144e",
+  "physical_clock_hz": 138000000,
+  "pio_divider": 1,
+  "rf_render_in_ram": true,
+  "listener_enabled": true,
+  "executed_packet_sha256": "e0c01e66189f2d295a38d6e1a294b32e1c2c5e78c56088a1371db9038d48b2e2",
+  "evidence_archive_sha256": "f90efb97baef7101c1483d605790309ffe532f83c2c21c9ecee3f129a0dfddcc",
+  "preserved_evidence_root": "/home/pi/phase11-5-r2-tone-20260912",
+  "missed_job_id": "ba324fb4e892e8dbf57200aee89fe7ff",
+  "physical_boot_id": "0da88dc334efa649cbc097ed6dd48c63",
+  "alarm_callback_duration_ns": 293000,
+  "electrical_start_delay_ns": null,
+  "launch_epoch": 0,
+  "dma_irqs": 0,
+  "tail_irqs": 0,
+  "configuration_writes": 28,
+  "configuration_write_limit": 32,
+  "fixture_activated": true,
+  "flashed": true,
+  "device_restored": true,
+  "host_restored": true,
+  "permanent_time_local_preserved": true,
+  "final_a_boot": "f2b9d8477c33c856884485e87394e8fe",
+  "final_b_boot": "feffcd075ab6cb0b74e7e0c2fde6c87f",
+  "launch_policy_update": {
+    "request": "Allow late launch within the requested UTC second; report delay; miss at the next-second boundary.",
+    "implemented_in_source": true,
+    "target_tested": false,
+    "firmware_installed": false,
+    "callback_budget_is_diagnostic": true,
+    "full_waveform_duration_preserved": true
+  },
+  "remaining": [
+    "Build and freeze a clean identified launch-policy candidate; repeat affected R1 checks.",
+    "Fresh bounded R2 Tone gate and remaining QRSS/FSKCW/DFCW/WSPR jobs with production/browser/USB submission coverage.",
+    "Keep cumulative write accounting and reserve restoration/R5 writes; do not reset the existing 28/32 count."
+  ],
+  "validation": {
+    "pico_python_tests": 123,
+    "pi_helper_tests": 11,
+    "ctest_groups": 59,
+    "raw_failure_mutations_rejected": 12,
+    "cross_linked_targets": [
+      "WsprryPico",
+      "WsprryPico-StandaloneRF"
+    ],
+    "cross_link_is_target_execution": false,
+    "development_elf_sha256": {
+      "WsprryPico": "faeafa6f1a3f57786d8d8e3c06270c3496ad465c411a3de4eb22c6d70a1a2f87",
+      "WsprryPico-StandaloneRF": "dcf930d4f9edc4cf0b596a1142d8ea2a89b31153e786521b63390b49b81b821b"
+    }
+  }
+}

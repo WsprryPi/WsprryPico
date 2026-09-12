@@ -7,6 +7,7 @@ namespace wsprrypico::rf {
 struct LaunchGuard {
     bool (*check)(void*) = nullptr;
     void* context = nullptr;
+    std::uint64_t deadline_ns = 0; // Exclusive; zero retains strict relative bench launch.
     [[nodiscard]] bool ready() const {
         return !check || check(context);
     }
@@ -20,6 +21,7 @@ struct SinkReport {
     // IRQ-driven sinks sample time together with state after acquiring their lock.
     std::optional<std::uint64_t> observed_monotonic_ns = {};
     std::optional<bool> observed_output_active = {};
+    std::optional<std::uint64_t> launch_monotonic_ns = {};
 };
 
 // stop() must release all submitted spans
@@ -96,6 +98,8 @@ class StreamEngine final : public wtp::RfEngine {
     std::uint64_t start_ns_ = 0;
     std::uint64_t end_ns_ = 0;
     std::uint64_t last_poll_ns_ = 0;
+    std::uint64_t launch_deadline_ns_ = 0;
+    std::optional<std::uint64_t> launch_ns_ = {};
 };
 
 static_assert(sizeof(StreamEngine) <= 180 * 1024);

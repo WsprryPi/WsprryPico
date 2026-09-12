@@ -265,10 +265,28 @@ than that advertised horizon.
 
 A successful `ARM` returns the sampled clock mapping and computed
 `start_monotonic_ns`. Immediately before enabling output, the server MUST
-recheck clock state and uncertainty. If the check fails or the start instant is
-already past by any amount, it enters `missed`, keeps output disabled and emits
-`MISSED_START`. It MUST never begin a job late. Once `running`, UTC corrections
-or loss of synchronization do not alter the monotonic event schedule.
+recheck clock state and uncertainty. It MUST aim for the requested instant and
+MUST NOT deliberately start before it. A delayed launch is permitted only before
+the end of the UTC second containing `start_utc_ns`: the exclusive deadline is
+`start_utc_ns + (1,000,000,000 - start_utc_ns % 1,000,000,000)`, mapped to the
+same monotonic clock at ARM. This is not a rolling one-second lateness allowance.
+If the clock check fails or this deadline has been reached, it enters `missed`,
+keeps output disabled and emits `MISSED_START`; it MUST NOT retry automatically.
+The clock uncertainty limit remains independent of scheduling delay. Timer
+quantization MUST round the requested target upward, within that same second.
+
+The server MUST expose its target and observed launch timestamps and scheduling
+delay in diagnostic telemetry; a software observation is not an electrical edge
+measurement. This revision uses implementation diagnostics rather than adding
+fields to WTP/1 envelopes. Pico Console INFO supplies `launch_target_ns`,
+`launch_observed_ns`, `launch_delay_ns`, and `launch_epoch`; delay is the
+post-enable observation minus the quantized target. No launch is represented by
+zero epoch, not a measured zero delay. The unrounded requested mapping remains
+in the ARM reply. The complete event sequence and its duration MUST be preserved,
+anchored to the actual launch. The permitted launch window plus full job duration
+MUST be safe from arithmetic overflow and pending leap exclusions. Once
+`running`, UTC corrections or loss of synchronization do not alter this monotonic
+event schedule.
 
 ## 11. Retries, replay and retained results
 
@@ -331,7 +349,7 @@ The stable codes are:
 | `LEAP_UNSAFE` | leap status or overlap is unsafe |
 | `ARM_TOO_LATE` | required preparation lead time is unavailable |
 | `ARM_TOO_FAR` | requested start exceeds the advertised future horizon |
-| `MISSED_START` | local pre-start checks did not permit an on-time start |
+| `MISSED_START` | local clock checks failed or the requested UTC second expired |
 | `OUTPUT_STATE_UNKNOWN` | output could not be confirmed inactive |
 | `DEVICE_FAULT` | a diagnosed device or engine fault prevents the request |
 | `INTERNAL_ERROR` | bounded internal failure without a more precise code |

@@ -20,7 +20,10 @@ NOMINAL_SECONDS=1500
 
 
 def validate_rf_packet(packet):
-    if packet.get('schema')==SCHEMA:
+    if packet.get('schema') == 'phase11.5-r2-tone-v1':
+        from phase11_5_r2_plan import validate as validate_r2
+        validate_r2(packet)
+    elif packet.get('schema')==SCHEMA:
         validate(packet)
     else:
         from phase11_5_pilot import validate_packet

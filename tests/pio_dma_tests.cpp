@@ -83,12 +83,15 @@ class Hardware final : public rf::PioDmaHardware {
     bool alarm(std::uint64_t, std::uint64_t) override {
         return !fail_alarm;
     }
-    bool launch(std::uint64_t start) override {
+    std::uint64_t launch_observed_ns() const override {
+        return time;
+    }
+    bool launch(std::uint64_t start, std::uint64_t deadline) override {
         CHECK(depth > 0);
-        if (time > start || start - time > 50000) {
+        if (time >= deadline || (time < start && start - time > 250000)) {
             return false;
         }
-        time = start;
+        time = std::max(time, start);
         enabled = true;
         ++launches;
         return true;
@@ -301,12 +304,12 @@ void fractional_start_test() {
         const auto start = hw.time + 100'000'000;
         if (action == 5) {
             clock.leap = wtp::LeapState::InsertPending;
-            clock.transition = start - 1'000'000'000 + 500;
+            clock.transition = start - 1'000'000'000 + 1000;
         }
         // UTC request and clock mapping produce a monotonic target 562 ns
-        // after a timer tick. Admission includes that early adjustment.
+        // after a timer tick. Admission includes the upward timer adjustment.
         const auto response = service.handle(request(
-            "ARM", wtp::ArmBody{payload.job_id, start + 895, action == 1 ? 661ULL : 662ULL}, 'd'));
+            "ARM", wtp::ArmBody{payload.job_id, start + 895, action == 1 ? 537ULL : 538ULL}, 'd'));
         if (action == 1 || action == 5) {
             CHECK(!response.ok && response.error == (action == 1 ? wtp::ErrorCode::ClockUncertain
                                                                  : wtp::ErrorCode::LeapUnsafe));
@@ -317,14 +320,16 @@ void fractional_start_test() {
             if (action == 2)
                 ++clock.uncertainty;
             if (action == 3)
-                hw.time = start + 1000;
+                hw.time = 3'000'000'000;
             if (action == 4) {
                 clock.leap = wtp::LeapState::InsertPending;
-                clock.transition = start - 1'000'000'000 + 500;
+                clock.transition = start - 1'000'000'000 + 1000;
             }
             hw.alarm_event(1);
             CHECK(hw.enabled == (action == 0));
             CHECK(hw.launches == (action == 0 ? 1U : 0U));
+            if (action == 0)
+                CHECK(hw.time == start + 1000); // Rounded up, never the earlier tick.
         }
         CHECK(engine.disable(hw.time));
     }
@@ -392,7 +397,7 @@ void local_launch_test() {
             clock.synchronized = false;
         }
         if (action == 2) {
-            hw.time = start + 1000;
+            hw.time = 1'000'000'000;
         }
         if (action == 5)
             clock.uncertainty = 1001;
@@ -433,6 +438,69 @@ void local_launch_test() {
         CHECK(!engine.output_active());
     }
 }
+void late_launch_window_test() {
+    // UTC mapping is deliberately offset from the hardware timer. The cutoff
+    // comes from the requested UTC second, not a monotonic second or +1 s.
+    for (const auto delay : {0ULL, 293'000ULL, 249'999'000ULL, 250'000'000ULL}) {
+        Hardware hw;
+        Clock clock(hw);
+        const auto start = hw.time + 100'000'000;
+        clock.utc_offset = 1'750'000'000 - start;
+        clock.uncertainty = 100;
+        Identity identity;
+        rf::PioDmaSink sink(hw);
+        rf::StreamEngine engine(sink);
+        wtp::JobService service(clock, engine, identity);
+        CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
+        CHECK(service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
+        const auto payload = job(2 * rf::block_samples);
+        CHECK(service.handle(request("LOAD", payload, 'c')).ok);
+        CHECK(service.handle(request("ARM", wtp::ArmBody{payload.job_id, 1'750'000'000, 1000}, 'd'))
+                  .ok);
+        // A delayed foreground read must not reject an otherwise valid alarm.
+        hw.time = start + std::min(delay, 249'999'000ULL);
+        service.poll();
+        CHECK(service.status().state == wtp::State::Armed);
+        hw.time = start + delay;
+        hw.alarm_event(1);
+        service.poll();
+        if (delay == 250'000'000) {
+            CHECK(service.status().state == wtp::State::Missed);
+            CHECK(!hw.enabled && hw.launches == 0);
+        } else {
+            CHECK(service.status().state == wtp::State::Running && hw.launches == 1);
+            CHECK(engine.poll(hw.time).launch_monotonic_ns == start + delay);
+            const auto actual = start + delay;
+            hw.complete();
+            hw.time = actual + ((ns_at(rf::block_samples) + 999) / 1000) * 1000;
+            service.poll();
+            CHECK(service.status().state == wtp::State::Running);
+            hw.complete();
+            hw.time = actual + payload.total_duration_ns;
+            hw.complete();
+            service.poll();
+            CHECK(service.status().state == wtp::State::Complete && !hw.enabled);
+        }
+    }
+    CHECK(wtp::start_window_ns(2'000'000'000) == 1'000'000'000);
+    CHECK(wtp::start_window_ns(2'999'999'999) == 1);
+    Hardware hw;
+    Clock clock(hw);
+    clock.utc_offset = 1;
+    Identity identity;
+    rf::PioDmaSink sink(hw);
+    rf::StreamEngine engine(sink);
+    wtp::JobService service(clock, engine, identity);
+    CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
+    CHECK(service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
+    const auto payload = job(2 * rf::block_samples);
+    CHECK(service.handle(request("LOAD", payload, 'c')).ok);
+    // No representable microsecond remains inside this one-nanosecond window.
+    const auto reply =
+        service.handle(request("ARM", wtp::ArmBody{payload.job_id, 1'999'999'999, 1000}, 'd'));
+    CHECK(!reply.ok && reply.error == wtp::ErrorCode::InvalidMessage && !hw.enabled);
+}
+
 void launch_snapshot_test() {
     Hardware hw;
     rf::PioDmaSink sink(hw);
@@ -532,6 +600,7 @@ int main() {
         fractional_start_test();
         quantized_end_leap_test();
         local_launch_test();
+        late_launch_window_test();
         launch_snapshot_test();
         more_than_final_pending_test();
         refill_test();

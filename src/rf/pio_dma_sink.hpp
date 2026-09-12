@@ -23,8 +23,9 @@ class PioDmaHardware {
     virtual bool dma(const std::uint32_t* data, std::uint32_t words, bool increment,
                      std::uint64_t epoch, std::uint64_t sequence) = 0;
     virtual bool alarm(std::uint64_t start_ns, std::uint64_t epoch) = 0;
-    // Waits only inside the short prelaunch window; rejects an already-past instant.
-    virtual bool launch(std::uint64_t start_ns) = 0;
+    // Waits only inside the short prelaunch window; deadline is exclusive.
+    virtual bool launch(std::uint64_t start_ns, std::uint64_t deadline_ns) = 0;
+    [[nodiscard]] virtual std::uint64_t launch_observed_ns() const = 0;
     [[nodiscard]] virtual std::uint64_t now_ns() const = 0;
     [[nodiscard]] virtual bool stalled() const = 0;
     [[nodiscard]] virtual bool active() const = 0;
@@ -81,6 +82,7 @@ class PioDmaSink final : public BlockSink {
     std::uint64_t epoch_ = 0, submitted_ = 0, accepted_ = 0;
     std::uint64_t dma_blocks_ = 0, dma_samples_ = 0, total_ = 0, start_ = 0;
     std::uint32_t zero_ = 0;
+    std::optional<std::uint64_t> launch_ns_ = {};
     const char* failure_ = "";
 };
 

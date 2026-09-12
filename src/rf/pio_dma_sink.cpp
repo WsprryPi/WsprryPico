@@ -15,6 +15,7 @@ bool PioDmaSink::stop(std::uint64_t deadline_ns) {
     head_ = queued_ = 0;
     tail_ = tail_submitted_ = false;
     guard_ = {};
+    launch_ns_.reset();
     submitted_ = accepted_ = dma_blocks_ = dma_samples_ = total_ = 0;
     return !hw_.active();
 }
@@ -125,9 +126,12 @@ void PioDmaSink::event(DriverEvent event) {
         if (state_ != wtp::EngineState::Armed) {
             return;
         }
-        if (!guard_.ready() || !hw_.launch(start_)) {
+        const auto deadline = guard_.deadline_ns ? guard_.deadline_ns : start_ + 1;
+        if (!guard_.ready() || !hw_.launch(start_, deadline)) {
             state_ = hw_.halt(hw_.now_ns()) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
         } else {
+            launch_ns_ = hw_.launch_observed_ns();
+            start_ = *launch_ns_;
             state_ = wtp::EngineState::Running;
         }
         return;
@@ -177,17 +181,18 @@ SinkReport PioDmaSink::poll(std::uint64_t) {
         fault("pio_txstall");
     }
     if (state_ == wtp::EngineState::Complete) {
-        return {state_, epoch_, submitted_, total_, now_ns, hw_.active()};
+        return {state_, epoch_, submitted_, total_, now_ns, hw_.active(), launch_ns_};
     }
     if (state_ != wtp::EngineState::Running) {
-        return {state_, epoch_, 0, 0, now_ns, hw_.active()};
+        return {state_, epoch_, 0, 0, now_ns, hw_.active(), launch_ns_};
     }
     const auto elapsed = now_ns > start_ ? std::min(now_ns - start_, max_duration_ns) : 0;
     // Conservative nominal-clock progress; DMA completion is FIFO delivery, not RF timing.
     const auto samples =
         std::min({elapsed * (sample_rate / 1000000) / 1000, dma_samples_, total_ - 1});
-    return {state_,  epoch_, std::min(dma_blocks_, samples / block_samples),
-            samples, now_ns, hw_.active()};
+    return {state_,    epoch_, std::min(dma_blocks_, samples / block_samples),
+            samples,   now_ns, hw_.active(),
+            launch_ns_};
 }
 
 } // namespace wsprrypico::rf

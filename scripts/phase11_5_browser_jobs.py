@@ -86,9 +86,11 @@ def main():
     os.umask(0o077)
     packet_path=root/'jobs.json';packet=json.loads(packet_path.read_text());validate_packet(packet)
     f1=packet['schema']==F1_SCHEMA
-    load_seconds=NOMINAL_SECONDS if f1 else 180
-    require(packet['revision']=='4058d3a4a951' and packet['uf2_sha256']==
-            'cb91912f7915db7828c5f58ea2a35c714c22728ee71f9ce04c7d034d22598154','Exact physical candidate')
+    r2=packet['schema']=='phase11.5-r2-tone-v1'
+    load_seconds=packet['nominal_seconds'] if r2 else (NOMINAL_SECONDS if f1 else 180)
+    if not r2:
+        require(packet['revision']=='4058d3a4a951' and packet['uf2_sha256']==
+                'cb91912f7915db7828c5f58ea2a35c714c22728ee71f9ce04c7d034d22598154','Exact physical candidate')
     owner=inventory_session(packet['owner_id']);session=inventory_session(packet['browser_session_id'])
     plan=json.loads((root/'load.json').read_text())
     ready=json.loads((root/'ready.json').read_text())

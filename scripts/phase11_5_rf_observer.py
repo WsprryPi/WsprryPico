@@ -22,7 +22,7 @@ from phase11_5_device_management import save
 def validate_info(info, baseline):
     old=baseline['info']
     require(info['ok'] is True and info['device_id']==old['device_id']==DEVICE and
-            info['revision']==old['revision']=='4058d3a4a951' and
+            info['revision']==old['revision'] and old['revision'] in ('4058d3a4a951', 'e20ae8bea2d5') and
             info['system_clock_hz']==138000000 and
             info['status']['boot_id']==old['status']['boot_id'] and
             info['status']['engine']=='pio-dma-gp2' and info['rf_render_in_ram'] is True,
@@ -94,10 +94,10 @@ def main():
             == HOST_BOOT, 'Expected wspr5 root and boot required')
     os.umask(0o077)
     packet=json.loads(args.packet.read_text());validate_packet(packet)
-    require(args.seconds==(NOMINAL_SECONDS+60 if packet['schema']==F1_SCHEMA else 240),'Frozen RF observation interval')
+    require(args.seconds==((packet['nominal_seconds']+60) if packet['schema']=='phase11.5-r2-tone-v1' else (NOMINAL_SECONDS+60 if packet['schema']==F1_SCHEMA else 240)),'Frozen RF observation interval')
     packet_sha=hashlib.sha256(args.packet.read_bytes()).hexdigest()
     pid_start=Path('/proc/self/stat').read_text().rsplit(')',1)[1].split()[19]
-    require(packet['revision']=='4058d3a4a951' and inventory_session(packet['owner_id'])==packet['owner_id'],
+    require(packet['revision'] in ('4058d3a4a951', 'e20ae8bea2d5') and inventory_session(packet['owner_id'])==packet['owner_id'],
             'Frozen RF packet identity')
     baseline = finished(args.baseline, 'READ_ONLY_INVENTORY')
     validate_info(baseline['info'], baseline)

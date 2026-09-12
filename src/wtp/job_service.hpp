@@ -63,6 +63,11 @@ struct Job {
 
 enum class EngineState { Idle, Armed, Running, Complete, Failed, Missed };
 
+// The requested UTC second supplies an exclusive latest-start boundary.
+constexpr std::uint64_t start_window_ns(std::uint64_t utc_ns) {
+    return 1'000'000'000 - utc_ns % 1'000'000'000;
+}
+
 struct LocalStartConditions {
     const Clock* clock = nullptr;
     std::uint64_t start_utc_ns = 0;
@@ -74,6 +79,7 @@ struct LocalStartConditions {
 struct EngineReport {
     EngineState state = EngineState::Idle;
     bool output_active = false;
+    std::optional<std::uint64_t> launch_monotonic_ns = {};
 };
 
 struct FrequencyAdjustment {
@@ -294,6 +300,7 @@ class JobService {
         std::uint64_t start_monotonic_ns;
         Response response;
         bool scheduled_locally = false;
+        std::optional<std::uint64_t> launch_monotonic_ns = {};
     };
     struct RetainedJob {
         std::string job_id;

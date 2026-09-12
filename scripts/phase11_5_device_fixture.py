@@ -267,8 +267,13 @@ class DeviceFixture:
                     counts['wifi-on'] <= 3 and counts['heap-probe'] <= 64,
                     'Prior operation budgets do not admit continuation/restoration')
         if packet.get('time_server_mdns'):
-            require(counts == packet['initial_management_counts'] and counts['heap-probe'] == 0,
-                    'R1 carried operation counts changed')
+            require(counts == packet['initial_management_counts'], 'Carried operation counts changed')
+            if packet.get('family') == 'R2':
+                require(counts == {'config':26,'wifi-off':0,'wifi-on':0,'heap-probe':3},
+                        'R2 requires restored R1 operation counts')
+            else:
+                require(packet.get('family') == 'R1' and counts['heap-probe'] == 0,
+                        'R1 carried operation counts changed')
         host = Fixture(Path(packet['network_root']))
         host.verify()
         # Require the host fixture to outlive device restoration by ten minutes.

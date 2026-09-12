@@ -234,25 +234,28 @@ bool PicoPioDma::alarm(std::uint64_t start_ns, std::uint64_t epoch) {
     return !hardware_alarm_set_target(static_cast<unsigned>(alarm_), from_us_since_boot(target));
 }
 
-bool PicoPioDma::launch(std::uint64_t start_ns) {
+bool PicoPioDma::launch(std::uint64_t start_ns, std::uint64_t deadline_ns) {
     const auto target_us = start_ns / 1000;
     auto observed_us = time_us_64();
-    if (!installed_ || start_ns % 1000 != 0 || observed_us > target_us ||
-        target_us - observed_us > 250 || pio_sm_is_tx_fifo_empty(pio_, sm_)) {
+    if (!installed_ || start_ns % 1000 != 0 || deadline_ns <= start_ns ||
+        observed_us * 1000 >= deadline_ns ||
+        (observed_us < target_us && target_us - observed_us > 250) ||
+        pio_sm_is_tx_fifo_empty(pio_, sm_)) {
         return false;
     }
     // Prime the output shift register while disabled. Autopull on the first
     // OUT would otherwise record a startup TXSTALL despite a prefilled FIFO.
     pio_sm_exec(pio_, sm_, pio_encode_pull(false, true));
     observed_us = time_us_64();
-    // Reuse the sample that ended the wait. A second clock read can cross into
-    // the next microsecond and falsely reject an on-time observation.
+    // Aim for the target; scheduler/guard latency is telemetry within the
+    // requested UTC second. Never wait a whole second in this interrupt.
     while (observed_us < target_us)
         observed_us = time_us_64();
-    if (observed_us != target_us)
+    if (observed_us * 1000 >= deadline_ns)
         return false;
     pio_->fdebug = 1U << (PIO_FDEBUG_TXSTALL_LSB + sm_);
     gpio_set_outover(rf_pin, GPIO_OVERRIDE_NORMAL);
+    launch_boundary_ns_ = observed_us * 1000;
     pio_sm_set_enabled(pio_, sm_, true);
     metrics_.launch_ns = now_ns();
     metrics_.launch_epoch = alarm_epoch_;

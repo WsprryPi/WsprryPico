@@ -686,7 +686,7 @@ void autonomous_test() {
     mono = start_mono + 1000; // Inhibited lifecycle simulation permits a late poll.
     scheduler.poll();
     CHECK(service.status().state == wtp::State::Running);
-    mono = start_mono + 110'592'000'000ULL;
+    mono = start_mono + 1000 + 110'592'000'000ULL;
     scheduler.poll();
     CHECK(service.status().state == wtp::State::Complete && !engine.output_active());
     CHECK(clock.snapshot().state == wtp::ClockState::Holdover);
@@ -728,14 +728,21 @@ void autonomous_test() {
 } // namespace
 int main() {
     unsigned calls = 0;
-    auto probe = [&](std::size_t bytes) { ++calls; return bytes <= 1024; };
+    auto probe = [&](std::size_t bytes) {
+        ++calls;
+        return bytes <= 1024;
+    };
     for (const auto value : {"", "0", "-1", "+1", "1 ", " 1", "1026", "18446744073709551616"})
-        CHECK(standalone::heap_probe_command(value, 1024, true, probe).find("probe_range") != std::string::npos);
+        CHECK(standalone::heap_probe_command(value, 1024, true, probe).find("probe_range") !=
+              std::string::npos);
     CHECK(calls == 0);
-    CHECK(standalone::heap_probe_command("1024", 1024, false, probe).find("not_idle") != std::string::npos);
+    CHECK(standalone::heap_probe_command("1024", 1024, false, probe).find("not_idle") !=
+          std::string::npos);
     CHECK(calls == 0);
-    CHECK(standalone::heap_probe_command("1024", 1024, true, probe).find("allocated\":true") != std::string::npos);
-    CHECK(standalone::heap_probe_command("1025", 1024, true, probe).find("allocated\":false") != std::string::npos);
+    CHECK(standalone::heap_probe_command("1024", 1024, true, probe).find("allocated\":true") !=
+          std::string::npos);
+    CHECK(standalone::heap_probe_command("1025", 1024, true, probe).find("allocated\":false") !=
+          std::string::npos);
     CHECK(calls == 2);
 
     lookup_tests();

@@ -10,9 +10,9 @@
 #include "pico_adapters.hpp"
 #include "runtime/pico/heap_metrics.h"
 #include "runtime/pico/stack_guard.h"
+#include "standalone/heap_probe.hpp"
 #include "standalone/pico/adapters.hpp"
 #include "standalone/scheduler.hpp"
-#include "standalone/heap_probe.hpp"
 #include "standalone/wtp_profile.hpp"
 #include "tusb.h"
 #include "usb/reply_priority.hpp"
@@ -271,7 +271,8 @@ int main() {
             number_field(result, "allocator_failures", allocator.failures, true);
             number_field(result, "allocator_live_bytes", allocator.live_bytes);
             number_field(result, "allocator_peak_bytes", allocator.peak_bytes);
-            number_field(result, "allocator_largest_request_bytes", allocator.largest_request_bytes);
+            number_field(result, "allocator_largest_request_bytes",
+                         allocator.largest_request_bytes);
             number_field(result, "allocator_largest_successful_request_bytes",
                          allocator.largest_successful_request_bytes);
             number_field(result, "allocator_sample_time_us", allocator.sample_time_us, true);
@@ -283,8 +284,9 @@ int main() {
             number_field(result, "core0_stack_guard_bottom", core0_guard.bottom);
             number_field(result, "core0_stack_guard_limit", core0_guard.limit);
             number_field(result, "core0_stack_fault_status", core0_guard.fault_status);
-            number_field(result, "core0_stack_guard_valid", core0_guard.valid &&
-                core0_guard.bottom == reinterpret_cast<std::uintptr_t>(&__StackLimit));
+            number_field(result, "core0_stack_guard_valid",
+                         core0_guard.valid &&
+                             core0_guard.bottom == reinterpret_cast<std::uintptr_t>(&__StackLimit));
             number_field(result, "core0_stack_scan_us", core0_stack_scan_us);
             number_field(result, "tls_peak_bytes", server.tls_peak());
             number_field(result, "tls_allocated_bytes", server.tls_allocated());
@@ -299,6 +301,11 @@ int main() {
             number_field(result, "launch_observed_ns", metrics.launch_ns, true);
             number_field(result, "launch_epoch", metrics.launch_epoch, true);
             number_field(result, "launch_target_ns", metrics.launch_target_ns, true);
+            number_field(result, "launch_delay_ns",
+                         metrics.launch_ns >= metrics.launch_target_ns
+                             ? metrics.launch_ns - metrics.launch_target_ns
+                             : 0,
+                         true);
             number_field(result, "dma_irqs", metrics.dma_irqs);
             number_field(result, "max_dma_irq_ns", metrics.max_irq_ns);
             number_field(result, "alarm_irqs", metrics.alarm_irqs);
@@ -348,8 +355,8 @@ int main() {
         if (text.starts_with("HEAP PROBE ")) {
             const auto capacity = reinterpret_cast<std::uintptr_t>(&__HeapLimit) -
                                   reinterpret_cast<std::uintptr_t>(&__end__);
-            return wsprrypico::standalone::heap_probe_command(
-                text.substr(11), capacity, scheduler.idle(), wsprry_heap_probe);
+            return wsprrypico::standalone::heap_probe_command(text.substr(11), capacity,
+                                                              scheduler.idle(), wsprry_heap_probe);
         }
         if (text == "ABORT") {
             (void)scheduler.command(

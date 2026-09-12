@@ -14,33 +14,46 @@ bool StreamEngine::schedule(const wtp::Job& job, std::uint64_t start_ns,
     const auto resolution = start_resolution_ns();
     if (resolution == 0)
         return false;
-    start_conditions_.start_adjustment_ns = start_ns % resolution;
+    start_conditions_.start_adjustment_ns = (resolution - start_ns % resolution) % resolution;
+    const auto window = wtp::start_window_ns(conditions.start_utc_ns);
+    const auto limit = std::numeric_limits<std::uint64_t>::max();
+    const auto realized_duration =
+        (plan_.total_samples * 1000 + sample_rate / 1'000'000 / 2) / (sample_rate / 1'000'000);
+    const auto duration = std::max(job.total_duration_ns, realized_duration);
+    if (start_ns > limit - window || conditions.start_utc_ns > limit - window ||
+        start_conditions_.start_adjustment_ns >= window || duration > limit - (start_ns + window) ||
+        duration > limit - (conditions.start_utc_ns + window))
+        return false;
+    launch_deadline_ns_ = start_ns + window;
     const auto now = conditions.clock->snapshot();
     if (now.uncertainty_ns > conditions.maximum_uncertainty_ns ||
         start_conditions_.start_adjustment_ns >
             conditions.maximum_uncertainty_ns - now.uncertainty_ns)
         return false;
-    return begin(job, start_ns - start_conditions_.start_adjustment_ns);
+    return begin(job, start_ns + start_conditions_.start_adjustment_ns);
 }
 
 bool StreamEngine::check_clock(void* context) {
     const auto& self = *static_cast<StreamEngine*>(context);
     const auto& conditions = self.start_conditions_;
     const auto now = conditions.clock->snapshot();
-    if (!self.job_ || now.monotonic_now_ns > self.start_ns_ ||
+    if (!self.job_ || now.monotonic_now_ns >= self.launch_deadline_ns_ ||
         now.uncertainty_ns > conditions.maximum_uncertainty_ns ||
         !(now.state == wtp::ClockState::Synchronized ||
           (now.state == wtp::ClockState::Holdover && conditions.maximum_holdover_age_ns > 0 &&
            now.sync_age_ns <= conditions.maximum_holdover_age_ns))) {
         return false;
     }
-    const auto lead = self.start_ns_ - now.monotonic_now_ns;
+    const auto early = now.monotonic_now_ns <= self.start_ns_;
+    const auto delta =
+        early ? self.start_ns_ - now.monotonic_now_ns : now.monotonic_now_ns - self.start_ns_;
     const auto duration = self.end_ns_ - self.start_ns_;
     const auto limit = std::numeric_limits<std::uint64_t>::max();
-    if (now.utc_now_ns > limit - lead || conditions.start_utc_ns > limit - duration) {
+    if ((early && now.utc_now_ns > limit - delta) || (!early && now.utc_now_ns < delta) ||
+        conditions.start_utc_ns > limit - duration) {
         return false;
     }
-    const auto predicted = now.utc_now_ns + lead;
+    const auto predicted = early ? now.utc_now_ns + delta : now.utc_now_ns - delta;
     const auto error = predicted > conditions.start_utc_ns ? predicted - conditions.start_utc_ns
                                                            : conditions.start_utc_ns - predicted;
     const auto pending =
@@ -55,10 +68,10 @@ bool StreamEngine::check_clock(void* context) {
         const auto leap = *now.leap_transition_utc_ns;
         const auto low = leap > 1'000'000'000 ? leap - 1'000'000'000 : 0;
         const auto high = leap > limit - 1'000'000'000 ? limit : leap + 1'000'000'000;
-        const auto earliest_start = conditions.start_utc_ns > conditions.start_adjustment_ns
-                                        ? conditions.start_utc_ns - conditions.start_adjustment_ns
-                                        : 0;
-        return earliest_start > high || conditions.start_utc_ns + duration < low;
+        const auto latest_start =
+            conditions.start_utc_ns + wtp::start_window_ns(conditions.start_utc_ns) - 1;
+        return conditions.start_utc_ns > high ||
+               (latest_start <= limit - duration && latest_start + duration < low);
     }
     return true;
 }
@@ -131,9 +144,11 @@ bool StreamEngine::begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) 
     start_ns_ = start_monotonic_ns;
     end_ns_ = start_ns_ + realized_duration_ns;
     last_poll_ns_ = 0;
+    launch_ns_.reset();
     if (!submit_next(0) || !submit_next(1) ||
         !sink_.arm(epoch_, start_ns_, plan_.total_samples,
-                   start_conditions_.clock ? LaunchGuard{check_clock, this} : LaunchGuard{})) {
+                   start_conditions_.clock ? LaunchGuard{check_clock, this, launch_deadline_ns_}
+                                           : LaunchGuard{})) {
         (void)fail(start_ns_, failure_);
         return false;
     }
@@ -160,6 +175,21 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
         }
         now_ns = *report.observed_monotonic_ns;
     }
+    if (report.launch_monotonic_ns) {
+        if ((launch_ns_ && launch_ns_ != report.launch_monotonic_ns) ||
+            *report.launch_monotonic_ns < start_ns_ || *report.launch_monotonic_ns > now_ns ||
+            (!launch_ns_ && start_conditions_.clock &&
+             *report.launch_monotonic_ns >= launch_deadline_ns_))
+            return fail(now_ns, "invalid_launch_observation");
+        if (!launch_ns_) {
+            const auto duration = end_ns_ - start_ns_;
+            if (*report.launch_monotonic_ns > std::numeric_limits<std::uint64_t>::max() - duration)
+                return fail(now_ns, "launch_end_overflow");
+            launch_ns_ = report.launch_monotonic_ns;
+            start_ns_ = *launch_ns_;
+            end_ns_ = start_ns_ + duration;
+        }
+    }
     // Do not compare a locked pre-launch snapshot against post-unlock IRQ state.
     const bool active =
         report.observed_output_active ? *report.observed_output_active : output_active();
@@ -171,6 +201,18 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
         report.consumed_samples >
             std::min((report.completed_blocks + 1) * block_samples, plan_.total_samples)) {
         return fail(now_ns, "progress_counters");
+    }
+    // An alarm may be serviced late within the accepted second. A finite
+    // waveform's duration is measured only once its launch is observed.
+    if (report.state == wtp::EngineState::Armed && start_conditions_.clock &&
+        report.consumed_samples == 0 && report.completed_blocks == 0 && !active) {
+        last_poll_ns_ = now_ns;
+        if (now_ns < launch_deadline_ns_)
+            return {wtp::EngineState::Armed, false};
+        if (!sink_.stop(now_ns) || output_active())
+            return fail(now_ns, "missed_disable_failed");
+        state_ = wtp::EngineState::Missed;
+        return {state_, false};
     }
     const auto expected_completed =
         report.consumed_samples / block_samples + (report.consumed_samples == plan_.total_samples &&
@@ -188,7 +230,7 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
             return fail(now_ns);
         }
         state_ = wtp::EngineState::Missed;
-        return {state_, false};
+        return {state_, false, launch_ns_};
     }
     if (report.state == wtp::EngineState::Complete) {
         if (now_ns < end_ns_ || report.consumed_samples != plan_.total_samples ||
@@ -197,7 +239,7 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
             return fail(now_ns, "invalid_completion");
         }
         state_ = wtp::EngineState::Complete;
-        return {state_, false};
+        return {state_, false, launch_ns_};
     }
     // Final data and zero-tail IRQ acknowledgements can both lag the hardware.
     // Allow only the final submitted block to be unacknowledged, for at most
@@ -223,7 +265,7 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
     completed_ = report.completed_blocks;
     consumed_ = report.consumed_samples;
     state_ = report.state;
-    return {state_, active};
+    return {state_, active, launch_ns_};
 }
 
 bool StreamEngine::disable(std::uint64_t deadline_monotonic_ns) {

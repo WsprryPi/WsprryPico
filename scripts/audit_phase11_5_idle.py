@@ -37,13 +37,16 @@ def audit(path, baseline_path, rf_packet=None):
         from phase11_5_rf_observer import validate_info as rf_info, validate_status as rf_status
         from phase11_5_f1_plan import validate_rf_packet,SCHEMA as F1_SCHEMA
         validate_rf_packet(rf_packet)
+        require(baseline['revision']==rf_packet['revision'] and
+                baseline['system_clock_hz']==rf_packet['system_clock_hz'] and
+                baseline['device_id']==rf_packet['device_id'], 'RF packet/baseline identity mismatch')
     require(hashlib.sha256(baseline_path.read_bytes()).hexdigest()==rows[0]['value']['baseline_sha256']
             and baseline['status']['boot_id']==boot,'Baseline hash/boot binding')
     require(rows[-1]['monotonic_ns']-rows[0]['monotonic_ns']>=seconds*1e9,'Interval truncated')
     schema=json.loads((Path(__file__).resolve().parents[1]/'docs/protocol/wtp-1.schema.json').read_text())
     validator=SchemaValidator(schema)
     wire=b'';console=b'';console_pending=False;console_value=None;messages=[];requests={};samples={}
-    latest_status=None;event_id=-1
+    latest_status=None;event_id=-1;seen_request_ids=set()
     for row in rows:
         kind,value=row['kind'],row['value']
         require(kind in ('start','finish','console_tx','console_rx','wtp_tx','wtp_rx','wtp_message',
@@ -63,7 +66,8 @@ def audit(path, baseline_path, rf_packet=None):
             require(not left and decoded==[value['request']],'Reported request differs from wire')
             request=decoded[0];require(not validator.errors(request,schema),'Request schema')
             require(request['session_id']==session and request['op'] in ('HELLO','STATUS') and
-                    request['request_id'] not in requests,'Unexpected request/session/replay')
+                    request['request_id'] not in seen_request_ids,'Unexpected request/session/replay')
+            seen_request_ids.add(request['request_id'])
             requests[request['request_id']]=request
         elif kind=='wtp_rx':
             decoded,wire=frames(wire+bytes.fromhex(value['hex']));messages.extend(decoded)

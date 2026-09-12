@@ -1,5 +1,9 @@
 # Development baseline
 
+R2: [executed Tone, launch-policy repair and review](phase11-5-r2-review.md);
+0/7 jobs complete, one missed, six not run. Devices and host restored. The new
+UTC-second launch policy is software-tested; target acceptance remains open.
+
 The defined hardware target is Pico 2 W / RP2350. The repository contains a
 portable WTP/1 core, deterministic host tests and an RF-inhibited firmware
 target with persistent standalone configuration and Wi-Fi SNTP, plus separately

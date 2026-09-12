@@ -530,7 +530,7 @@ void test_missed_start_and_abort_safety() {
     CHECK(
         service.handle(request("ARM", ArmBody{job.job_id, clock.value.utc_now_ns + 10, 1000}, 'd'))
             .ok);
-    clock.advance(11);
+    clock.advance(start_window_ns(clock.value.utc_now_ns + 10) + 10);
     service.poll();
     CHECK(service.status().state == State::Missed);
     CHECK(engine.begin_calls == 0);

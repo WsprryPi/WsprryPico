@@ -195,7 +195,7 @@ ok(p.ask("CLAIM",{"owner_id":"2"*32,"lease_ms":5000})); ok(p.ask("LOAD",job("4"*
 error(p.ask("ARM",{"job_id":"4"*32,"start_utc_ns":"1006000000000","max_start_uncertainty_ns":"100"}),"CLOCK_UNSYNCHRONIZED")
 p.call(action="clock",synchronized=True)
 ok(p.ask("ARM",{"job_id":"4"*32,"start_utc_ns":"1006000000000","max_start_uncertainty_ns":"100"}))
-p.call(action="clock",synchronized=True,now_ns="6000000001")
+p.call(action="clock",synchronized=True,now_ns="7000000000")
 assert any(e["event"]=="MISSED_START" for e in p.events)
 error(p.ask("NOT_AN_OPERATION",{"extra":True}),"UNKNOWN_OPERATION")
 p.close()

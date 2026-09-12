@@ -522,16 +522,18 @@ void JobService::poll() {
             const auto exclusion_start =
                 transition > kLeapExclusionNs ? transition - kLeapExclusionNs : 0;
             const auto exclusion_end = saturating_add(transition, kLeapExclusionNs);
-            const auto job_end = arm_->start_utc_ns + job_->total_duration_ns;
+            const auto job_end = arm_->start_utc_ns + start_window_ns(arm_->start_utc_ns) - 1 +
+                                 job_->total_duration_ns;
             leap_ok = arm_->start_utc_ns > exclusion_end || job_end < exclusion_start;
         }
-        const auto utc_error = now.utc_now_ns > arm_->start_utc_ns
-                                   ? now.utc_now_ns - arm_->start_utc_ns
-                                   : arm_->start_utc_ns - now.utc_now_ns;
+        const auto delay = now.monotonic_now_ns - arm_->start_monotonic_ns;
+        const auto mapped = now.utc_now_ns >= delay ? now.utc_now_ns - delay : 0;
+        const auto utc_error =
+            mapped > arm_->start_utc_ns ? mapped - arm_->start_utc_ns : arm_->start_utc_ns - mapped;
         const bool clock_ok = clock_state_ok && now.uncertainty_ns <= arm_->max_uncertainty_ns &&
                               now.uncertainty_ns <= config_.maximum_arm_uncertainty_ns &&
                               utc_error <= now.uncertainty_ns && leap_ok;
-        if (now.monotonic_now_ns != arm_->start_monotonic_ns || !clock_ok) {
+        if (delay >= start_window_ns(arm_->start_utc_ns) || !clock_ok) {
             if (!engine_.disable(
                     saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) ||
                 engine_.output_active()) {
@@ -541,7 +543,7 @@ void JobService::poll() {
             }
             return;
         }
-        if (!engine_.begin(*job_, arm_->start_monotonic_ns)) {
+        if (!engine_.begin(*job_, now.monotonic_now_ns)) {
             if (!engine_.disable(
                     saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) ||
                 engine_.output_active()) {
@@ -551,12 +553,15 @@ void JobService::poll() {
             }
             return;
         }
+        arm_->launch_monotonic_ns = now.monotonic_now_ns;
         state_ = State::Running;
     }
     if (state_ != State::Running) {
         return;
     }
     const auto report = local_report ? *local_report : engine_.poll(now.monotonic_now_ns);
+    if (arm_ && report.launch_monotonic_ns)
+        arm_->launch_monotonic_ns = report.launch_monotonic_ns;
     if (report.state == EngineState::Missed) {
         if (!engine_.disable(
                 saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) ||
@@ -583,12 +588,14 @@ void JobService::poll() {
         }
     } else if (arm_ && job_ &&
                now.monotonic_now_ns >=
-                   saturating_add(arm_->start_monotonic_ns, job_->total_duration_ns)) {
+                   saturating_add(arm_->launch_monotonic_ns.value_or(arm_->start_monotonic_ns),
+                                  job_->total_duration_ns)) {
         const auto acknowledgement_ns =
             arm_->scheduled_locally ? std::min(engine_.completion_acknowledgement_ns(),
                                                RfEngine::maximum_completion_acknowledgement_ns)
                                     : 0;
-        const auto nominal_end = saturating_add(arm_->start_monotonic_ns, job_->total_duration_ns);
+        const auto nominal_end = saturating_add(
+            arm_->launch_monotonic_ns.value_or(arm_->start_monotonic_ns), job_->total_duration_ns);
         if (report.state == EngineState::Running && acknowledgement_ns &&
             now.monotonic_now_ns <= saturating_add(nominal_end, acknowledgement_ns)) {
             return; // Keep authority/state until the bounded final acknowledgement.
@@ -749,16 +756,19 @@ ErrorCode JobService::validate_arm(const ArmBody& arm, const ClockSnapshot& now,
     if (resolution == 0)
         return ErrorCode::DeviceFault;
     const auto nominal_start = now.monotonic_now_ns + ahead;
-    const auto adjustment = nominal_start % resolution;
+    const auto adjustment = (resolution - nominal_start % resolution) % resolution;
+    const auto window = start_window_ns(arm.start_utc_ns);
+    const auto limit = std::numeric_limits<std::uint64_t>::max();
+    if (nominal_start > limit - window || arm.start_utc_ns > limit - window ||
+        adjustment >= window || job_->total_duration_ns > limit - (nominal_start + window) ||
+        job_->total_duration_ns > limit - (arm.start_utc_ns + window))
+        return ErrorCode::InvalidMessage;
     const auto budget = std::min(arm.max_start_uncertainty_ns, config_.maximum_arm_uncertainty_ns);
     if (adjustment > budget - now.uncertainty_ns)
         return ErrorCode::ClockUncertain;
-    // Choose a representable instant no later than the requested mapping. The
-    // adjustment consumes uncertainty budget; a missed instant is never retried.
-    if (adjustment > ahead || ahead - adjustment < config_.minimum_arm_lead_ns)
-        return ErrorCode::ArmTooLate;
-    // WTP reports the exact sampled mapping. The local engine realizes this
-    // target at its earlier timer tick within the checked uncertainty budget.
+    // WTP reports the exact mapping. Round the hardware target upward so timer
+    // quantization never requests an early launch. Clock uncertainty remains
+    // independent of permitted scheduling delay within the requested UTC second.
     start_monotonic_ns = nominal_start;
     if (job_->total_duration_ns > std::numeric_limits<std::uint64_t>::max() - start_monotonic_ns)
         return ErrorCode::InvalidMessage;
@@ -767,8 +777,8 @@ ErrorCode JobService::validate_arm(const ArmBody& arm, const ClockSnapshot& now,
         const auto exclusion_start =
             transition > kLeapExclusionNs ? transition - kLeapExclusionNs : 0;
         const auto exclusion_end = saturating_add(transition, kLeapExclusionNs);
-        const auto job_end = arm.start_utc_ns + job_->total_duration_ns;
-        if (arm.start_utc_ns - adjustment <= exclusion_end && job_end >= exclusion_start) {
+        const auto job_end = arm.start_utc_ns + window - 1 + job_->total_duration_ns;
+        if (arm.start_utc_ns <= exclusion_end && job_end >= exclusion_start) {
             return ErrorCode::LeapUnsafe;
         }
     }

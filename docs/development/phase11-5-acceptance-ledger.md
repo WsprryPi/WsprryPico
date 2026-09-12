@@ -4,7 +4,9 @@ Status on September 12, 2026: **OPEN; 1 of 6 revised families closed; no accepte
 configuration.** The [R1 time.local execution](phase11-5-r1-review.md) closes
 **5 of 5 R1 assertions** on the exact physical 138 MHz candidate below, with
 150 MHz inhibited shared-path regression. Both devices and the host were
-restored. No RF jobs ran. The [earlier DNS failures](phase11-5-r1-dns-failure-review.md)
+restored. No RF jobs ran in R1. The subsequent [R2 attempt](phase11-5-r2-review.md)
+missed its first Tone; 0/7 R2 jobs completed, six did not run. The amended
+launch policy is software-tested only; a new candidate needs affected R1 checks. The [earlier DNS failures](phase11-5-r1-dns-failure-review.md)
 remain preserved; this count does not relabel historical evidence or accept
 R2–R6. The six families contain multiple mandatory assertions.
 
@@ -36,7 +38,7 @@ in the linked immutable results.
 | Family | Status | Existing input | Required next evidence |
 | --- | --- | --- | --- |
 | R1 | CLOSED — 5/5 | Four rechecked layouts; six target intervals; exactly three idle probes; [R1 result](phase11-5-r1-result.json) | Reuse only for the exact firmware/clock/layout scope; repeat affected checks if those inputs change |
-| R2 | NOT RUN | Earlier mode/RF investigations identify paths, not acceptance of this candidate | Actual current-image state/mode/launch/refill/tail execution with normal traffic |
+| R2 | OPEN — 0/7 complete; 1 missed, 6 not run | [Executed Tone and launch-policy repair](phase11-5-r2-review.md); restored | Freeze the new policy candidate, repeat affected R1 checks, then new Tone/mode/submission evidence |
 | R3 | NOT RUN | Existing functional tests and prior inhibited results | Distinct physical resource-boundary and reclamation assertions |
 | R4 | NOT RUN | Existing ownership/replay/recovery semantics | Current-image physical authority, owner abort and interrupted-operation checks |
 | R5 | NOT RUN | Prior network/storage/standalone evidence | Targeted physical lifecycle, journal rotation and autonomous scheduling under contention |
@@ -66,7 +68,10 @@ installed WsprryPi PID 1957 remained unchanged. Refresh identity and state befor
 future hardware work. The historical first R1 admission preserved a boot mismatch; the user
 confirmed rebooting both Picos between campaigns.
 
-Recorded cumulative configuration writes are **26 of 32**. Reserve restoration
+Latest R2 restoration returned A to boot `f2b9d8477c33c856884485e87394e8fe`;
+B retained its R1 boot. Both were empty, inactive and unowned; original
+configurations matched. Host and permanent time.local/GPS-PPS were restored.
+Recorded cumulative configuration writes are **28 of 32**. Reserve restoration
 and R5 schedule/rotation writes before more setup. Historical restoration inputs
 and finite authorization windows are not permission to silently restart an old
 campaign or reset its budget.

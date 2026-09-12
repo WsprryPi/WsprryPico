@@ -8,6 +8,12 @@ bool DryRunEngine::schedule(const wtp::Job& job, std::uint64_t start,
     if (state_ != wtp::EngineState::Idle || !conditions.clock || job.total_duration_ns == 0 ||
         job.total_duration_ns > std::numeric_limits<std::uint64_t>::max() - start)
         return false;
+    const auto window = wtp::start_window_ns(conditions.start_utc_ns);
+    const auto limit = std::numeric_limits<std::uint64_t>::max();
+    if (start > limit - window || conditions.start_utc_ns > limit - window ||
+        job.total_duration_ns > limit - (start + window) ||
+        job.total_duration_ns > limit - (conditions.start_utc_ns + window))
+        return false;
     start_ = start;
     duration_ = job.total_duration_ns;
     conditions_ = conditions;
@@ -25,17 +31,21 @@ wtp::EngineReport DryRunEngine::poll(std::uint64_t now) {
         const auto mapped = clock.utc_now_ns >= elapsed ? clock.utc_now_ns - elapsed : 0;
         const auto error = mapped > conditions_.start_utc_ns ? mapped - conditions_.start_utc_ns
                                                              : conditions_.start_utc_ns - mapped;
-        // This simulator accepts bounded foreground latency. Real RF uses the
-        // PIO/DMA alarm guard and never uses this approximation.
+        // Model the shared UTC-second policy; this is not physical launch evidence.
         state_ = usable && clock.leap == wtp::LeapState::Normal &&
                          clock.uncertainty_ns <= conditions_.maximum_uncertainty_ns &&
-                         elapsed <= conditions_.maximum_uncertainty_ns &&
+                         elapsed < wtp::start_window_ns(conditions_.start_utc_ns) &&
                          error <= clock.uncertainty_ns
                      ? wtp::EngineState::Running
                      : wtp::EngineState::Missed;
+        if (state_ == wtp::EngineState::Running)
+            start_ = now;
     }
     if (state_ == wtp::EngineState::Running && now >= start_ && now - start_ >= duration_)
         state_ = wtp::EngineState::Complete;
-    return {state_, false};
+    return {state_, false,
+            (state_ == wtp::EngineState::Running || state_ == wtp::EngineState::Complete)
+                ? std::optional<std::uint64_t>{start_}
+                : std::nullopt};
 }
 } // namespace wsprrypico::standalone

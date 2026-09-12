@@ -28,7 +28,10 @@ class PicoPioDma final : public PioDmaHardware {
     bool dma(const std::uint32_t* data, std::uint32_t words, bool increment, std::uint64_t epoch,
              std::uint64_t sequence) override;
     bool alarm(std::uint64_t start_ns, std::uint64_t epoch) override;
-    bool launch(std::uint64_t start_ns) override;
+    bool launch(std::uint64_t start_ns, std::uint64_t deadline_ns) override;
+    std::uint64_t launch_observed_ns() const override {
+        return launch_boundary_ns_;
+    }
     std::uint64_t now_ns() const override;
     PicoDriverMetrics metrics();
     bool stalled() const override;
@@ -53,6 +56,7 @@ class PicoPioDma final : public PioDmaHardware {
     Handler handler_ = nullptr;
     void* context_ = nullptr;
     std::uint64_t alarm_epoch_ = 0;
+    std::uint64_t launch_boundary_ns_ = 0;
     unsigned core_ = 0;
     bool installed_ = false;
     bool launched_ = false;
