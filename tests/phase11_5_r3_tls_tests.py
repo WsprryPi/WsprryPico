@@ -9,14 +9,14 @@ import sys
 import tarfile
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from phase11_5_r3_tls_plan import (SCHEMA, SOURCE, PHYSICAL, COUNTS, MANAGEMENT_SCOPE,
                                   CASES, jobs, validate, validate_allowance)
 from phase11_5_device_management import authorize, digest
 from phase11_5_r2_usb_jobs import USBJobs
-from phase11_5_r3_tls_pressure import Pressure, response, NAME, PEER
+from phase11_5_r3_tls_pressure import Pressure, response, running_epoch, NAME, PEER
 from audit_phase11_5_r3_tls import audit_pressure
 
 
@@ -32,6 +32,14 @@ def packet():
 def status(p, job):
     return dict(boot_id=p['boot_id'], owner_id=p['owner_id'], job_id=job['job_id'],
                 state='running', output_active=True)
+
+
+def info(p, job, epoch=1):
+    console = status(p, job)
+    del console['job_id']
+    del console['owner_id']
+    console['last_job'] = ''  # Standalone scheduler field; it is not the USB job ID.
+    return dict(status=console, launch_epoch=str(epoch))
 
 
 def http_bytes(p, job, transport):
@@ -57,15 +65,15 @@ def evidence():
         for label in CASES[index]:
             began = now
             for kind in ('info', 'status'):
-                value = status(p, job)
+                value = info(p, job, index + 1) if kind == 'info' else status(p, job)
                 usb.append(dict(kind=kind, monotonic_ns=began,
-                                value=dict(value=dict(status=value) if kind == 'info' else value)))
-            add('case_begin', dict(label=label, job_id=job['job_id']))
+                                value=dict(value=value)))
+            add('case_begin', dict(label=label, job_id=job['job_id'], launch_epoch=index + 1))
             labels = ['slot-active', 'slot-pending', 'slot-excess'] if label == 'slot-excess' else [label]
             for name in labels:
                 add('tcp_open', dict(label=name, began_ns=now, peer=['10.77.15.10', 18443],
                                      local=['10.77.15.2', 40000 + len(rows)]))
-            value = dict(label=label, job_id=job['job_id'], began_ns=began)
+            value = dict(label=label, job_id=job['job_id'], began_ns=began, launch_epoch=index + 1)
             if label not in ('silent-handshake', 'slot-excess', 'missing-certificate'):
                 add('tls', dict(label=label, peer_sha256=PEER, version='TLSv1.3',
                                 alpn='wtp/1' if label == 'duplicate-wtp' else 'http/1.1'))
@@ -85,9 +93,9 @@ def evidence():
                     value['client_closed_supported_slots'] = True
             add('case_finish', value)
             for kind in ('info', 'status'):
-                v = status(p, job)
+                v = info(p, job, index + 1) if kind == 'info' else status(p, job)
                 usb.append(dict(kind=kind, monotonic_ns=now + 10_000_000,
-                                value=dict(value=dict(status=v) if kind == 'info' else v)))
+                                value=dict(value=v)))
             now += 500_000_000
     add('finish', dict(status='CAPTURED_REQUIRES_AUDIT', connections=12))
     return p, rows, usb
@@ -228,6 +236,7 @@ class R3Tests(unittest.TestCase):
     def test_missing_certificate_requires_exact_alert_not_generic_disconnect(self):
         p = object.__new__(Pressure)
         p.job = packet()['jobs'][0]
+        p.launch_epoch = 1
         p.emit = lambda *args: None
         p.checkpoint = lambda: None
         p.pause = lambda seconds: None
@@ -246,6 +255,7 @@ class R3Tests(unittest.TestCase):
     def test_recovery_counter_failure_prevents_pass_marker(self):
         p = object.__new__(Pressure)
         p.job = packet()['jobs'][0]
+        p.launch_epoch = 1
         emitted = []
         p.emit = lambda kind, value: emitted.append(kind)
         p.last_transport = dict(admitted=2, rejected=0, timeouts=0, tls_allocation_failures=0)
@@ -263,11 +273,12 @@ class R3Tests(unittest.TestCase):
             probe = object.__new__(Pressure)
             probe.root, probe.packet, probe.packet_path = root, p, packet_path
             probe.sha, probe.observer, probe.job, probe.deadline = digest(packet_path), None, p['jobs'][0], 20
+            probe.launch_epoch = 1
             originals = {}
             for kind in ('info', 'status'):
-                value = status(p, p['jobs'][0])
+                value = info(p, p['jobs'][0]) if kind == 'info' else status(p, p['jobs'][0])
                 originals[kind] = dict(packet_sha256=probe.sha, pid=123, pid_start_ticks='567',
-                                       monotonic_ns=10**9, value=dict(value=dict(status=value) if kind == 'info' else value))
+                                       monotonic_ns=10**9, value=dict(value=value))
 
             def restore():
                 probe.observer = None
@@ -287,7 +298,7 @@ class R3Tests(unittest.TestCase):
                              lambda v: v.update(pid_start_ticks='568'),
                              lambda v: v['value']['value']['status'].update(boot_id='4' * 32),
                              lambda v: v['value']['value']['status'].update(output_active=False),
-                             lambda v: v['value']['value']['status'].update(owner_id=None)]
+                             lambda v: v['value']['value'].update(launch_epoch='2')]
                 for mutation in mutations:
                     restore()
                     value = copy.deepcopy(originals['info'])
@@ -299,6 +310,57 @@ class R3Tests(unittest.TestCase):
                 (root / 'observer-failure.json').write_text('{}')
                 with self.assertRaises(ValueError):
                     probe.checkpoint()
+
+    def test_recorded_console_and_wtp_shapes_remain_distinct(self):
+        fixture = json.loads((Path(__file__).parent / 'fixtures/phase11_5_r3_observer_shapes.json').read_text())
+        samples = fixture['samples']
+        running = samples['running']['status']['value']
+        p = dict(boot_id=running['boot_id'], owner_id=running['owner_id'], jobs=[dict(job_id=running['job_id'])])
+        job = p['jobs'][0]
+        for state, sample in samples.items():
+            console, wtp = sample['info']['value'], sample['status']['value']
+            self.assertNotIn('job_id', console['status'])
+            self.assertNotIn('owner_id', console['status'])
+            if state == 'running':
+                self.assertEqual(running_epoch(console, wtp, p, job), int(console['launch_epoch']))
+                for changes in ({'owner_id': None}, {'job_id': 'f' * 32}, {'boot_id': 'f' * 32}):
+                    with self.assertRaises(ValueError):
+                        running_epoch(console, dict(wtp, **changes), p, job)
+            else:
+                self.assertIsNone(running_epoch(console, wtp, p, job))
+
+    def test_pressure_run_waits_through_recorded_idle_shape_then_binds_each_epoch(self):
+        fixture = json.loads((Path(__file__).parent / 'fixtures/phase11_5_r3_observer_shapes.json').read_text())
+        p = packet()
+        with tempfile.TemporaryDirectory() as temp:
+            actor = object.__new__(Pressure)
+            actor.root, actor.packet, actor.sha = Path(temp), p, 'a' * 64
+            actor.plan = dict(boot_id=p['boot_id'], device_id=p['device_id'], seconds=300,
+                              browser=False, address='10.77.15.10', netns='net', mountns='mnt',
+                              ca='ca', browser_cert='bc', browser_key='bk', controller_cert='cc', controller_key='ck')
+            actor.emit = lambda *args: None
+            actor.connections = 0
+            calls = []
+            actor.run_case = lambda label, *args: calls.append((actor.job['job_id'], actor.launch_epoch, label))
+
+            def sample(state, index=0):
+                console = copy.deepcopy(fixture['samples'][state]['info']['value'])
+                wtp = copy.deepcopy(fixture['samples'][state]['status']['value'])
+                console['status']['boot_id'] = wtp['boot_id'] = p['boot_id']
+                if state == 'running':
+                    console['launch_epoch'] = str(index + 1)
+                    wtp.update(job_id=p['jobs'][index]['job_id'], owner_id=p['owner_id'])
+                return [dict(value=dict(value=console)), dict(value=dict(value=wtp))]
+
+            actor.checkpoint = MagicMock(side_effect=[sample('empty'), sample('empty'), sample('running'),
+                                                       sample('running'), sample('running', 1)])
+            with patch('phase11_5_r3_tls_pressure.ssl.create_default_context', return_value=MagicMock()), \
+                    patch('phase11_5_r3_tls_pressure.os.readlink', side_effect=['net', 'mnt']), \
+                    patch('phase11_5_r3_tls_pressure.time.sleep'):
+                actor.run()
+            self.assertEqual(calls, [(job['job_id'], index + 1, label)
+                                    for index, job in enumerate(p['jobs']) for label in CASES[index]])
+            self.assertEqual(json.loads((actor.root / 'pressure-job-1.json').read_text())['status'], 'PASS')
 
     def test_stager_checks_all_bytes_before_creating_root_and_refuses_replay(self):
         from phase11_5_r3_tls_stage import unpack

@@ -7,6 +7,36 @@ The [plan](phase11-5-plan.md) defines selected clocks and remaining gates. Its
 six-family reorganization does not change these measurement meanings or convert
 older candidate-specific limitations below into current evidence.
 
+## Console INFO and WTP STATUS are different interfaces
+
+Console `INFO` is implementation diagnostic JSON, not a WTP `STATUS` response.
+Its nested `status` comes from `standalone::Scheduler::status()`. WTP `STATUS`
+comes from `wtp::ServiceStatus` through `status_json()` and the versioned WTP
+response schema. Similar field names do not make these objects interchangeable.
+The field map below is verified against candidate source `2e43110f0530` and its
+recorded responses; it is not an extension to device-neutral WTP/1.
+
+| Evidence | Fields and authority |
+| --- | --- |
+| Console INFO | `device_id`, `revision`, resource counters and `launch_epoch` are top-level fields. Nested `status` supplies `boot_id`, `state`, `output_active`, clock and standalone scheduler state. It supplies **neither `job_id` nor `owner_id`**, including during Running RF. |
+| WTP STATUS response body | Supplies `boot_id`, `state`, `output_active`, nullable `job_id` and `owner_id`, and `terminal_records`. Use this interface for current job/owner authority. |
+| HTTPS GET `/api/v1/status` | Its `job` object uses the WTP service-status representation. Its separate `standalone` object uses scheduler status. Neither is the complete Console INFO envelope. |
+| Console `status.last_job` | Identifies the standalone scheduler's last job. It may remain empty throughout a USB-owned or network-owned job and is **not** a substitute for WTP `job_id`. |
+
+To correlate contention with a job, require fresh matching boots and Running /
+active state in both Console and WTP observations. Bind job and owner through
+WTP STATUS and the raw LOAD/ARM lifecycle. Bind Console counters through the
+current nonzero `launch_epoch`, require it to advance for the next job and remain
+unchanged throughout that job's pressure cases, and verify the epoch against the
+per-job timing audit. Missing Console job/owner fields must never be filled with
+assumed IDs or treated as evidence of unowned output.
+
+Observer files add their own envelope: `observer-info.json.value.value` is the
+Console INFO object; `observer-status.json.value.value` is the WTP STATUS body.
+Their packet hash, timestamp and observer PID/start time must also match.
+Tests must exercise recorded response shapes, including idle and externally
+owned Running states, rather than constructing both interfaces from one schema.
+
 ## RF owner and timer
 
 The [SRAM remediation candidate](phase11-5-remediation-review.md) reports

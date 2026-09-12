@@ -1,0 +1,170 @@
+{
+  "provenance": {
+    "source": "build/phase11-5-closure/r2-modes-evidence/phase11-5-r2-upload-2e43110/usb/usb-health.jsonl",
+    "sha256": "6a1d0dfb7000eb5840a447157f5b1f09fdca3273114337e55a954238572e425f",
+    "firmware": "2e43110f0530",
+    "note": "Verbatim selected STATUS and INFO status/launch_epoch fields from preserved R2 raw-audited observations; no synthetic Console job/owner fields."
+  },
+  "samples": {
+    "empty": {
+      "info": {
+        "sequence": 18,
+        "value": {
+          "status": {
+            "ok": true,
+            "configured": true,
+            "enabled": false,
+            "suspended": false,
+            "expires_utc_s": 0,
+            "boot_id": "757e37c9681bd12e8065073f513914b1",
+            "utc_now_ns": "1789248818268040000",
+            "monotonic_now_ns": "7458212000",
+            "sync_age_ns": "3489584000",
+            "station": {
+              "callsign": "AA0NT",
+              "locator": "EM18",
+              "power_dbm": 20
+            },
+            "schedules": [
+              {
+                "period_s": 120,
+                "phase_s": 0
+              }
+            ],
+            "engine": "pio-dma-gp2",
+            "storage_healthy": true,
+            "reboot_required": false,
+            "watermark_utc_ns": "1788714601000000000",
+            "clock_state": "synchronized",
+            "uncertainty_ns": "16053625",
+            "state": "empty",
+            "last_error": null,
+            "last_job": "",
+            "output_active": false
+          },
+          "launch_epoch": "0"
+        }
+      },
+      "status": {
+        "sequence": 23,
+        "value": {
+          "boot_id": "757e37c9681bd12e8065073f513914b1",
+          "state": "empty",
+          "output_active": false,
+          "owner_id": null,
+          "job_id": null,
+          "terminal_records": []
+        }
+      }
+    },
+    "running": {
+      "info": {
+        "sequence": 645,
+        "value": {
+          "status": {
+            "ok": true,
+            "configured": true,
+            "enabled": false,
+            "suspended": false,
+            "expires_utc_s": 0,
+            "boot_id": "757e37c9681bd12e8065073f513914b1",
+            "utc_now_ns": "1789248839271827000",
+            "monotonic_now_ns": "28461999000",
+            "sync_age_ns": "24493371000",
+            "station": {
+              "callsign": "AA0NT",
+              "locator": "EM18",
+              "power_dbm": 20
+            },
+            "schedules": [
+              {
+                "period_s": 120,
+                "phase_s": 0
+              }
+            ],
+            "engine": "pio-dma-gp2",
+            "storage_healthy": true,
+            "reboot_required": false,
+            "watermark_utc_ns": "1788714601000000000",
+            "clock_state": "synchronized",
+            "uncertainty_ns": "17103814",
+            "state": "running",
+            "last_error": null,
+            "last_job": "",
+            "output_active": true
+          },
+          "launch_epoch": "1"
+        }
+      },
+      "status": {
+        "sequence": 787,
+        "value": {
+          "boot_id": "757e37c9681bd12e8065073f513914b1",
+          "state": "running",
+          "output_active": true,
+          "owner_id": "029bd8a65f8d4d8ab37f85de705fb819",
+          "job_id": "1a6c10d7cef0d7a3c4753d0c326adf5e",
+          "terminal_records": []
+        }
+      }
+    },
+    "complete": {
+      "info": {
+        "sequence": 1967,
+        "value": {
+          "status": {
+            "ok": true,
+            "configured": true,
+            "enabled": false,
+            "suspended": false,
+            "expires_utc_s": 0,
+            "boot_id": "757e37c9681bd12e8065073f513914b1",
+            "utc_now_ns": "1789248874270214000",
+            "monotonic_now_ns": "63460386000",
+            "sync_age_ns": "59491758000",
+            "station": {
+              "callsign": "AA0NT",
+              "locator": "EM18",
+              "power_dbm": 20
+            },
+            "schedules": [
+              {
+                "period_s": 120,
+                "phase_s": 0
+              }
+            ],
+            "engine": "pio-dma-gp2",
+            "storage_healthy": true,
+            "reboot_required": false,
+            "watermark_utc_ns": "1788714601000000000",
+            "clock_state": "synchronized",
+            "uncertainty_ns": "18853733",
+            "state": "complete",
+            "last_error": null,
+            "last_job": "",
+            "output_active": false
+          },
+          "launch_epoch": "1"
+        }
+      },
+      "status": {
+        "sequence": 2113,
+        "value": {
+          "boot_id": "757e37c9681bd12e8065073f513914b1",
+          "state": "complete",
+          "output_active": false,
+          "owner_id": "029bd8a65f8d4d8ab37f85de705fb819",
+          "job_id": "1a6c10d7cef0d7a3c4753d0c326adf5e",
+          "terminal_records": [
+            {
+              "job_id": "1a6c10d7cef0d7a3c4753d0c326adf5e",
+              "state": "complete",
+              "ended_monotonic_ns": "62570511000",
+              "output_active": false
+            }
+          ]
+        }
+      }
+    }
+  }
+}

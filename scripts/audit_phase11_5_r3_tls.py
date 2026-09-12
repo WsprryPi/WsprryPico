@@ -34,11 +34,19 @@ def audit_pressure(packet, rows, usb):
     expected = [(job, label) for job, labels in zip(packet['jobs'], CASES) for label in labels]
     result = []
     last_transport = None
+    epochs = {}
     previous_end = None
     for group, (job, label) in zip(groups, expected):
         first, last = group[0], group[-1]
         begin, end = first['monotonic_ns'], last['monotonic_ns']
-        require(first['value'] == dict(label=label, job_id=job['job_id'])
+        epoch = first['value']['launch_epoch']
+        require(type(epoch) is int and epoch > 0 and last['value']['launch_epoch'] == epoch,
+                'Pressure launch epoch binding')
+        if job['job_id'] not in epochs:
+            require(epoch > max(epochs.values(), default=0), 'Job reused an earlier launch epoch')
+            epochs[job['job_id']] = epoch
+        require(epochs[job['job_id']] == epoch, 'Launch epoch changed during pressure cases')
+        require(first['value'] == dict(label=label, job_id=job['job_id'], launch_epoch=epoch)
                 and last['value']['label'] == label and last['value']['job_id'] == job['job_id']
                 and 0 <= begin - last['value']['began_ns'] <= 100_000_000,
                 'Pressure case identity/start')
@@ -63,9 +71,13 @@ def audit_pressure(packet, rows, usb):
             for row in observed:
                 value = row['value']['value']
                 s = value['status'] if kind == 'info' else value
-                require(s['boot_id'] == packet['boot_id'] and s['job_id'] == job['job_id']
-                        and s['owner_id'] == packet['owner_id'] and s['state'] == 'running'
+                require(s['boot_id'] == packet['boot_id'] and s['state'] == 'running'
                         and s['output_active'] is True, 'Pressure lost independent Running overlap')
+                if kind == 'info':
+                    require(int(value['launch_epoch']) == epoch, 'Pressure INFO launch epoch changed')
+                else:
+                    require(s['job_id'] == job['job_id'] and s['owner_id'] == packet['owner_id'],
+                            'Pressure WTP job or owner changed')
         opens = [r for r in group if r['kind'] == 'tcp_open']
         labels = ['slot-active', 'slot-pending', 'slot-excess'] if label == 'slot-excess' else [label]
         require([r['value']['label'] for r in opens] == labels, 'Missing/extra network attempt')
@@ -112,7 +124,7 @@ def audit_pressure(packet, rows, usb):
                 require(transport == last['value']['transport'], 'Reported transport differs from HTTP bytes')
                 check_transport(last_transport, transport, label)
                 last_transport = transport
-        result.append(dict(job_id=job['job_id'], case=label, duration_ns=end - begin))
+        result.append(dict(job_id=job['job_id'], launch_epoch=epoch, case=label, duration_ns=end - begin))
     return dict(status='PASS', cases=result, tcp_connections=12, https_controls=6,
                 limitation='Pending retention and bounded excess only; no pending-expiry or failed-alert-wait claim')
 
@@ -131,5 +143,8 @@ def audit(root, decoder):
     usb = [json.loads(line) for line in (root / 'usb-health.jsonl').read_text().splitlines()]
     require(usb[0]['value']['seconds'] == 360, 'R3 full observation window required')
     result['pressure'] = audit_pressure(packet, rows, usb)
+    epochs = {v['job_id']: v['epoch'] for v in result['timing']}
+    require(all(epochs[v['job_id']] == v['launch_epoch'] for v in result['pressure']['cases']),
+            'Pressure epoch does not match raw-ARM per-job timing audit')
     result.update(family='R3', tranche='A1', family_closed=False)
     return result

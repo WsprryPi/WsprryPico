@@ -1,5 +1,10 @@
 # R3 A1 execution packet — prepared, not authorized or executed
 
+**Historical packet/preparation record:** the user approved this packet and it
+[failed before RF submission, then restored successfully](phase11-5-r3-tls-failure-review.md).
+The packet is consumed; CONFIG is now 36/36. Do not replay it. The preparation
+assessment below missed the documented observer-shape defect.
+
 This is the next bounded packet after the completed P0 inventory. Approving it
 would authorize the exact staging, fixture and Pico A operations below once.
 The P0 and R1/R2 grants are consumed; none is reused here. The packet is

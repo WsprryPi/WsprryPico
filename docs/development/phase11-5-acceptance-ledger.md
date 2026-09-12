@@ -12,8 +12,8 @@ old measurements. Inhibited 150 MHz is regression evidence only.
 The [closure result](phase11-5-r2-closure-result.json) records the explicitly accepted
 administrative STATUS amendment and preserves the original strict-gap failure.
 The earlier WSPR LOAD OOM, recovery and superseded unflashed images remain
-recorded. Both boards/configurations and host services were restored; CONFIG
-writes are **34/34**, with six cumulative probes. R3–R6 require new bounded
+recorded. At R2 closure both boards/configurations and host services were restored;
+CONFIG writes were **34/34**, with six cumulative probes. R3–R6 require new bounded
 packets. Future fixes invalidate affected assertions, not automatically all R1.
 
 R3 [source review and tranche preparation](phase11-5-r3-preparation.md) now
@@ -22,12 +22,17 @@ duration restriction that also affects QRSS. The next
 [read-only admission packet](phase11-5-r3-preflight-prompt.md) completed
 **4/4 fresh inventory captures** with **zero R3 physical assertions passed**;
 the [P0 review](phase11-5-r3-preflight-review.md) records exact raw evidence and
-twelve rejected mutations. Both boards retain their original inhibited images,
-unchanged boots, and authoritative Empty/inactive/unowned state. CONFIG remains
-34/34 and probes remain six. The P0 staging/USB grant is consumed.
-The [A1 TLS/slot executor and audit](phase11-5-r3-tls-review.md) are now prepared.
-The [concrete A1 execution packet](phase11-5-r3-tls-execution.md) awaits a new
-fixture/RF grant and CONFIG allowance 34→36. No A1 physical assertion has run.
+twelve rejected mutations. At P0 completion both boards retained their original
+inhibited images, unchanged boots and authoritative Empty/inactive/unowned state.
+CONFIG was 34/34 and probes six. The P0 staging/USB grant is consumed.
+The approved A1 attempt [failed before RF submission](phase11-5-r3-tls-failure-review.md)
+because the pressure driver assumed Console INFO had WTP job/owner fields.
+No job or pressure connection was submitted. A/B and the host were restored;
+CONFIG is now **36/36**, probes six. A is back on original inhibited firmware,
+boot `7a772a4eb283b23afdd1e25acbc449cd`; B's boot remains unchanged.
+The failed packet is consumed. The driver/audit and recorded-response tests are
+repaired locally, with no new physical acceptance credit. A further attempt
+requires a fresh packet and cumulative allowance.
 
 ## Evidence that already exists
 

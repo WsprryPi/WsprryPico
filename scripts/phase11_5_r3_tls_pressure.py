@@ -17,6 +17,24 @@ from phase11_5_browser_jobs import NAME, PEER, admit_snapshot
 from phase11_5_r3_tls_plan import CASES, validate
 
 
+def running_epoch(info, status, packet, job):
+    """Join distinct Console and WTP shapes without inventing Console owner/job fields."""
+    console = info['status']
+    require(console['boot_id'] == status['boot_id'] == packet['boot_id'], 'Pressure boot changed')
+    if console['state'] != 'running' or status['state'] != 'running':
+        return None
+    require(console['output_active'] is True and status['output_active'] is True,
+            'Running observation lacks active output')
+    if status['job_id'] != job['job_id']:
+        require(status['job_id'] in {j['job_id'] for j in packet['jobs']}
+                and status['owner_id'] == packet['owner_id'], 'Foreign Running job')
+        return None  # A previous finite job may still be finishing during the next wait.
+    require(status['owner_id'] == packet['owner_id'], 'Pressure owner changed')
+    epoch = int(info['launch_epoch'])
+    require(epoch > 0, 'Running INFO has no launch epoch')
+    return epoch
+
+
 def check_transport(previous, current, label):
     expected = {'recover-certificate': ((2, 2), 0, 0),
                 'recover-handshake': ((2, 2), 0, 1),
@@ -65,6 +83,7 @@ class Pressure:
         self.plan = json.loads((root / 'load.json').read_text())
         self.observer = None
         self.job = None
+        self.launch_epoch = None
         self.connections = 0
         self.last_transport = None
         self.recover_until = None
@@ -89,11 +108,12 @@ class Pressure:
             value = item['value']['value']
             status = value['status'] if kind == 'info' else value
             require(status['boot_id'] == self.packet['boot_id'], 'Pressure boot changed')
-            if self.job is not None:
-                require(status['job_id'] == self.job['job_id'] and status['owner_id'] == self.packet['owner_id']
-                        and status['state'] == 'running' and status['output_active'] is True,
-                        'Pressure requires fresh Running RF through both observers')
             snapshots.append(item)
+        if self.job is not None:
+            epoch = running_epoch(snapshots[0]['value']['value'], snapshots[1]['value']['value'],
+                                  self.packet, self.job)
+            require(epoch is not None and epoch == self.launch_epoch,
+                    'Pressure requires fresh Running RF in the bound launch epoch')
         return snapshots
 
     def pause(self, seconds):
@@ -188,7 +208,7 @@ class Pressure:
 
     def run_case(self, label, context, missing, wtp):
         began = time.monotonic_ns()
-        self.emit('case_begin', dict(label=label, job_id=self.job['job_id']))
+        self.emit('case_begin', dict(label=label, job_id=self.job['job_id'], launch_epoch=self.launch_epoch))
         if label == 'positive' or label.startswith('recover-'):
             transport = self.positive(label, context)
             check_transport(self.last_transport, transport, label)
@@ -232,7 +252,8 @@ class Pressure:
         self.checkpoint()
         if label not in ('positive',) and not label.startswith('recover-'):
             self.recover_until = time.monotonic() + 15
-        self.emit('case_finish', dict(label=label, job_id=self.job['job_id'], began_ns=began, **result))
+        self.emit('case_finish', dict(label=label, job_id=self.job['job_id'], launch_epoch=self.launch_epoch,
+                                     began_ns=began, **result))
         self.pause(.5)  # Bounded server cleanup before the next fresh connection.
 
     def run(self):
@@ -249,24 +270,28 @@ class Pressure:
             if role:
                 ctx.load_cert_chain(p[role + '_cert'], p[role + '_key'])
             contexts.append(ctx)
-        self.checkpoint()
+        initial = self.checkpoint()
+        previous_epoch = int(initial[0]['value']['value']['launch_epoch'])
         save(self.root / 'pressure-ready.json', dict(packet_sha256=self.sha))
         for index, job in enumerate(self.packet['jobs']):
             limit = time.monotonic() + 160
             while True:
                 values = self.checkpoint()
-                statuses = [values[0]['value']['value']['status'], values[1]['value']['value']]
-                if all(v['job_id'] == job['job_id'] and v['state'] == 'running' and v['output_active']
-                       for v in statuses):
+                epoch = running_epoch(values[0]['value']['value'], values[1]['value']['value'],
+                                      self.packet, job)
+                if epoch is not None:
+                    require(epoch > previous_epoch, 'RF job did not advance launch epoch')
                     break
                 require(time.monotonic() < limit, 'RF job did not reach observed Running')
                 time.sleep(.05)
             self.job = job
+            self.launch_epoch = previous_epoch = epoch
             for label in CASES[index]:
                 self.run_case(label, *contexts)
             save(self.root / f'pressure-job-{index}.json', dict(status='PASS', packet_sha256=self.sha,
                                                               job_id=job['job_id']))
             self.job = None
+            self.launch_epoch = None
         self.emit('finish', dict(status='CAPTURED_REQUIRES_AUDIT', connections=self.connections))
 
 

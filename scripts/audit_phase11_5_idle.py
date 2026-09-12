@@ -24,11 +24,20 @@ def frames(buffer):
     return result,buffer
 
 
-def audit(path, baseline_path, rf_packet=None):
+def audit(path, baseline_path, rf_packet=None, *, expected_prejob_failure=False):
     text=path.read_text();require(text.endswith('\n'),'Truncated envelope')
     rows=[json.loads(line) for line in text.splitlines()]
+    failure = dict(worker='wtp', type='ValueError', error='Remaining USB jobs did not finish')
+    ending = {'result':'CAPTURED_REQUIRES_AUDIT','faults':[]}
+    if expected_prejob_failure:
+        # Classify a failed pre-job run only. All normal idle/raw-wire checks
+        # below still apply, including prohibiting every WTP mutation.
+        require(rf_packet is None and len(rows) >= 2 and rows[-2]['kind'] == 'failure'
+                and rows[-2]['value'] == failure and sum(r['kind'] == 'failure' for r in rows) == 1,
+                'Different or additional observer failure')
+        ending = dict(result='FAILED', faults=['wtp: Remaining USB jobs did not finish'])
     require(rows and rows[0]['kind']=='start' and rows[-1]['kind']=='finish' and
-            rows[-1]['value']=={'result':'CAPTURED_REQUIRES_AUDIT','faults':[]},'Missing clean finish')
+            rows[-1]['value']==ending,'Missing expected finish')
     require([r['sequence'] for r in rows]==list(range(len(rows))) and
             all(a['monotonic_ns']<=b['monotonic_ns'] for a,b in zip(rows,rows[1:])),'Envelope ordering')
     seconds=rows[0]['value']['seconds'];boot=rows[0]['value']['boot'];session=rows[0]['value']['session_id']
@@ -53,7 +62,7 @@ def audit(path, baseline_path, rf_packet=None):
         kind,value=row['kind'],row['value']
         require(kind in ('start','finish','console_tx','console_rx','wtp_tx','wtp_rx','wtp_message',
                          'info','status','health','info_finish','status_finish','health_finish') +
-                         (('armed_job',) if usb_actor else ()),
+                         (('armed_job',) if usb_actor else ()) + (('failure',) if expected_prejob_failure else ()),
                 'Unexpected event or failure')
         if kind=='console_tx':
             require(not console_pending and not console and console_value is None and
@@ -138,6 +147,8 @@ def audit(path, baseline_path, rf_packet=None):
     result.update(boot=boot,seconds=seconds,raw_wire_verified=True,
         max_allocator_peak_bytes=max(i['allocator_peak_bytes'] for i in infos),
         last_heap_allocated_bytes=infos[-1]['heap_allocated_bytes'])
+    if expected_prejob_failure:
+        result['classification'] = 'FAILED_PREJOB_READ_ONLY_OBSERVATION_VERIFIED'
     if rf_packet is not None:
         coverage={j['job_id']:dict(states=set(),active=False) for j in rf_packet['jobs']}
         for row in samples['status']:

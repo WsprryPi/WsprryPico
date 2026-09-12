@@ -1,5 +1,10 @@
 # R3 A1 TLS/slot preparation review — September 12, 2026
 
+**Historical packet/preparation record:** the user approved this packet and it
+[failed before RF submission, then restored successfully](phase11-5-r3-tls-failure-review.md).
+The packet is consumed; CONFIG is now 36/36. Do not replay it. The preparation
+assessment below missed the documented observer-shape defect.
+
 The [next concrete execution packet](phase11-5-r3-tls-execution.md) is prepared.
 R3 A1 now has an executor, pressure driver, independent observer integration,
 offline audit, staging helper and deterministic tests. **No A1 hardware run or

@@ -288,6 +288,12 @@ MUST be safe from arithmetic overflow and pending leap exclusions. Once
 `running`, UTC corrections or loss of synchronization do not alter this monotonic
 event schedule.
 
+Console INFO is not a WTP STATUS response. Its nested scheduler status does not
+include WTP's job/owner identity fields. The implementation diagnostic
+[field and correlation reference](../development/phase11-5-metrics.md#console-info-and-wtp-status-are-different-interfaces)
+defines how to join Console launch counters with authoritative WTP job status;
+this distinction does not change the WTP/1 response schema.
+
 ## 11. Retries, replay and retained results
 
 For each resumable session, the response cache has a capacity of at least eight

@@ -3,15 +3,14 @@
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).
 R2 is **7/7 jobs**; R1 remains **5/5** through documented affected-check reuse.
 The selected candidate is 2e43110 at physical 138 MHz/divider 1/RAM/listener on.
-Devices and host were restored; CONFIG writes are 34/34. R3–R6 remain open and
+At R2 closure devices and host were restored with CONFIG 34/34. R3–R6 remain open and
 full accepted configurations remain empty. Original failed assessments are retained.
 
-Next: [R3 A1 TLS/slot execution packet](phase11-5-r3-tls-execution.md), prepared
-with [source review and deterministic validation](phase11-5-r3-tls-review.md).
-It awaits a new hardware/fixture grant and CONFIG 34→36 allowance. The
-[P0 inventory](phase11-5-r3-preflight-review.md) is complete at 4/4 captures;
-A1 physical acceptance remains unrun. Both boards were last verified in their
-original inhibited state; the earlier P0 grant is consumed.
+Current: [R3 A1 failed before RF submission and was restored](phase11-5-r3-tls-failure-review.md).
+The INFO/STATUS field-binding defect is repaired with recorded-response tests.
+CONFIG is **36/36**, probes six; no R3 physical assertion passed. The consumed
+packet cannot be replayed. A further hardware attempt needs a fresh packet and
+cumulative allowance.
 
 The defined hardware target is Pico 2 W / RP2350. The repository contains a
 portable WTP/1 core, deterministic host tests and an RF-inhibited firmware

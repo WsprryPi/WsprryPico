@@ -1,0 +1,65 @@
+{
+  "classification": "FAILED_PREJOB_NO_RF_RESTORED",
+  "accepted_assertions": 0,
+  "completed_jobs": 0,
+  "submitted_jobs": 0,
+  "pressure_connections": 0,
+  "packet_sha256": "cab1abf2afffa27d79992b1d84bf393a2f1059ad3a4615829407485d695ca7a4",
+  "candidate_boot": "57893aeefa99a6a3f19bcc5b4cabf773",
+  "restored_a_boot": "7a772a4eb283b23afdd1e25acbc449cd",
+  "unchanged_b_boot": "feffcd075ab6cb0b74e7e0c2fde6c87f",
+  "management_counts": {
+    "config": 36,
+    "wifi-off": 0,
+    "wifi-on": 0,
+    "heap-probe": 6
+  },
+  "host_restored": true,
+  "installed_pid": "1957",
+  "observer": {
+    "info": {
+      "samples": 360,
+      "max_gap_seconds": 1.000086669
+    },
+    "status": {
+      "samples": 72,
+      "max_gap_seconds": 5.00007137
+    },
+    "health": {
+      "samples": 72,
+      "max_gap_seconds": 5.000091127
+    },
+    "boot": "57893aeefa99a6a3f19bcc5b4cabf773",
+    "seconds": 360,
+    "raw_wire_verified": true,
+    "max_allocator_peak_bytes": 64028,
+    "last_heap_allocated_bytes": 16428,
+    "classification": "FAILED_PREJOB_READ_ONLY_OBSERVATION_VERIFIED"
+  },
+  "schema": "phase11.5-r3-tls-failure-result-v1",
+  "status": "FAILED_PREJOB_NO_RF_RESTORED",
+  "cause": "Pressure driver assumed Console INFO status contained WTP job_id; synthetic tests repeated that incorrect shape.",
+  "evidence_archive_sha256": "f2cf8e58f9c5748853c906bf831de23021568596eb251ee36bf7abccb87ab05a",
+  "original_packet_consumed": true,
+  "corrected_tooling_hardware_run": false,
+  "phase11_5_families_closed": 2,
+  "accepted_configurations": [],
+  "tests": {
+    "discovered": 172,
+    "passed": 170,
+    "private_skipped": 2,
+    "r3_tooling_passed": 14,
+    "failure_mutations_rejected": 11
+  },
+  "raw_hashes": {
+    "r3-result.json": "742296e36f98555c5c73a83c3410499ad318fb87a123c987cc48826716afca56",
+    "device-state.json": "a829e043586516b1e57ce81412a7b01cbff19bbdbcbdef2bd5378b5ae76239d1",
+    "management-state.json": "15b688377275ed671a2363ac1163ae92020aafb52151effc5881d556604450ad",
+    "fixture-state.json": "3d30df0413beecab3e13a57023995000f10c6d3f4dd8a5405d3b68933680f177",
+    "fixture.jsonl": "fdbb80be669cc8f544f9464659cdb2ed0462c0df1bc3e7723822f49de3ed53ac",
+    "tls-a1/pressure.jsonl": "c6748e5de7b791236216ba58ee1570924cb193bee51f840c1db00d23f879092f",
+    "tls-a1/usb-health.jsonl": "e4379d8dcfde8c42cf25b0a2d6155e4a964eeee07777bc303aab6bd3ed964979",
+    "restored-original-boot.stdout": "8be9ba5394c80c73e454f11cfa323ffd8c7a5552517c1a6b68b716e5d3e52af5",
+    "after-b.stdout": "f1e503b832c7d7fae045f41fa33f97f6a489ac4aab8f475d985790aa954bda9e"
+  }
+}
