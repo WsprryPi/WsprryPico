@@ -8,13 +8,22 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
-from phase11_5_browser_jobs import checked_reply,finite_start,admit_snapshot,main
+from phase11_5_browser_jobs import checked_reply,finite_start,admit_snapshot,main,completed_launch_info
 from audit_phase11_5_a3 import dma_coverage
 from phase11_5_pilot_tests import packet
 import phase11_5_a3 as coordinator
 
 
 class BrowserJobsTests(unittest.TestCase):
+    def test_complete_status_waits_for_current_launch_info(self):
+        value=dict(status=dict(state='complete',output_active=False),launch_epoch='2')
+        self.assertTrue(completed_launch_info(value,1))
+        for change in (lambda v:v['status'].update(state='running'),
+                       lambda v:v['status'].update(output_active=True),
+                       lambda v:v.update(launch_epoch='1')):
+            changed=copy.deepcopy(value);change(changed)
+            self.assertFalse(completed_launch_info(changed,1))
+
     def test_prerequisite_names_do_not_replace_the_new_case(self):
         class ReachedAdmission(Exception):pass
         for family in ('A3','F1'):

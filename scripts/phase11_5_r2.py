@@ -30,7 +30,10 @@ def tone_packet(root, packet, d, f):
     current=d.check_current('r2-tone-admission')
     require(current['wtp']['STATUS']['terminal_records']==[], 'R2 first gate requires empty history')
     target=root/'r2-tone';target.mkdir(mode=0o700)
-    rf=dict(schema=SCHEMA,source_revision=SOURCE,revision=SOURCE[:12],uf2_sha256=IMAGE,
+    source=packet['source_revision']
+    from phase11_5_r2_plan import AMENDED_SCHEMA, AMENDED_SOURCE, AMENDED_IMAGE
+    rf=dict(schema=AMENDED_SCHEMA if source==AMENDED_SOURCE else SCHEMA,
+        source_revision=source,revision=source[:12],uf2_sha256=AMENDED_IMAGE if source==AMENDED_SOURCE else IMAGE,
         serial=packet['serial'],device_id=packet['device_id'],system_clock_hz=138000000,
         pio_divider=1,listener_enabled=True,rf_render_in_ram=True,boot_id=d.state['boot'],
         host_boot_id=packet['host_boot_id'],nonce=packet['rf_nonce'],jobs=packet['rf_jobs'],

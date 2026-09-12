@@ -55,6 +55,13 @@ def finite_start(clock,now_ns,load_end_ns,duration_ns):
     return ((int(clock['utc_now_ns'])+ARM_LEAD_NS+999)//1000)*1000
 
 
+def completed_launch_info(info, previous_epoch):
+    """Keep ownership until INFO records this completed launch's counters."""
+    return (info['status']['state']=='complete' and
+            info['status']['output_active'] is False and
+            int(info['launch_epoch'])>previous_epoch)
+
+
 def checked_reply(request, code, data):
     require(code==200 and len(data)<=32768,'HTTP job response status/size')
     reply=loads_strict(data.decode())
@@ -86,7 +93,7 @@ def main():
     os.umask(0o077)
     packet_path=root/'jobs.json';packet=json.loads(packet_path.read_text());validate_packet(packet)
     f1=packet['schema']==F1_SCHEMA
-    r2=packet['schema']=='phase11.5-r2-tone-v1'
+    r2=packet['schema'] in ('phase11.5-r2-tone-v1','phase11.5-r2-tone-v2')
     load_seconds=packet['nominal_seconds'] if r2 else (NOMINAL_SECONDS if f1 else 180)
     if not r2:
         require(packet['revision']=='4058d3a4a951' and packet['uf2_sha256']==
@@ -215,6 +222,7 @@ def main():
             require(hello['device_id']==DEVICE and hello['boot_id']==packet['boot_id'],'HELLO identity')
             renewals=0
             for job in packet['jobs']:
+                previous_epoch=int(checkpoint()['launch_epoch']) if packet['schema']=='phase11.5-r2-tone-v2' else None
                 lease=request('CLAIM',dict(owner_id=owner,lease_ms=60000));request('LOAD',job)
                 # Wait for an independent Loaded observation before ARM.
                 end=time.monotonic()+6
@@ -250,6 +258,11 @@ def main():
                 if f1:seen=coverage[job['job_id']]['states'];active=coverage[job['job_id']]['active']
                 require(observed['state']=='complete' and {'armed','running','complete'}<=seen and active,
                         'Missing finite completion or state/output coverage')
+                if previous_epoch is not None:
+                    end=time.monotonic()+2
+                    while not completed_launch_info(checkpoint(strict_info=True),previous_epoch):
+                        require(time.monotonic()<end,'Completed launch INFO not captured before release')
+                        pause(.05)
                 request('RELEASE',{})
                 end=time.monotonic()+6
                 while time.monotonic()<end:

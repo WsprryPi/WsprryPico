@@ -27,7 +27,8 @@ from phase11_5_inventory import exclusive_port, exchange, require, inventory_ses
 from phase11_5_pilot import SERIAL, DEVICE
 from phase11_5_pilot_supervisor import (B_SERIAL, B_DEVICE, PICOTOOL, PICOTOOL_SHA,
     RESTORE_SHA, RESTORE_REVISION, finished, idle, configuration, verify_application_backup)
-from phase11_5_device_management import SOURCE, R1_SOURCE, admit, digest, save
+from phase11_5_device_management import SOURCE, R1_SOURCE, AMENDED_SOURCE, admit, digest, save
+from phase11_5_r2_amended_plan import INHIBITED, PHYSICAL, INITIAL_COUNTS
 from phase11_5_network_fixture import Fixture, HOST_BOOT, PREFIX as HOST_PREFIX, RUN_SECONDS
 
 IMAGES = {
@@ -38,7 +39,9 @@ IMAGES = {
 
 
 def candidate_images(source):
-    require(source in (SOURCE, R1_SOURCE), 'Unreviewed candidate images')
+    require(source in (SOURCE, R1_SOURCE, AMENDED_SOURCE), 'Unreviewed candidate images')
+    if source == AMENDED_SOURCE:
+        return dict(IMAGES, inhibited=('inhibited.uf2',INHIBITED), physical=('physical.uf2',PHYSICAL))
     if source == SOURCE:
         return dict(IMAGES)
     return dict(IMAGES,
@@ -52,7 +55,7 @@ HELPERS = {'scripts/'+name+'.py' for name in (
     'phase11_5_device_fixture', 'phase11_5_device_management', 'phase11_5_inventory',
     'phase11_5_pilot', 'phase11_5_pilot_supervisor', 'phase11_5_network_fixture',
     'phase11_4_hotspot', 'phase11_5_network_fault', 'validate_wtp_contract',
-    'wtp_monitor')} | {'docs/protocol/wtp-1.schema.json'}
+    'wtp_monitor','phase11_5_r2_amended_plan')} | {'docs/protocol/wtp-1.schema.json'}
 
 
 def reconciled_boots(packet, prior_root):
@@ -268,7 +271,10 @@ class DeviceFixture:
                     'Prior operation budgets do not admit continuation/restoration')
         if packet.get('time_server_mdns'):
             require(counts == packet['initial_management_counts'], 'Carried operation counts changed')
-            if packet.get('family') == 'R2':
+            if self.source == AMENDED_SOURCE:
+                require(packet.get('family') == 'R1' and packet.get('amended_r2') is True and
+                        counts == INITIAL_COUNTS, 'Amended R1/R2 exact carried counts')
+            elif packet.get('family') == 'R2':
                 require(counts == {'config':26,'wifi-off':0,'wifi-on':0,'heap-probe':3},
                         'R2 requires restored R1 operation counts')
             else:

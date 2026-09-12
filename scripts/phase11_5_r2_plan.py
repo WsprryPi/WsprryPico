@@ -12,6 +12,8 @@ SCHEMA = 'phase11.5-r2-tone-v1'
 SOURCE = 'e20ae8bea2d5237af017dbd5f73bfe9332ce144e'
 IMAGE = '7a7306b8ad9dab694903434b86aec18e249c79dad0443645cd04ca857e9d4a04'
 SECONDS = 300
+from phase11_5_r2_amended_plan import SOURCE as AMENDED_SOURCE, PHYSICAL as AMENDED_IMAGE
+AMENDED_SCHEMA='phase11.5-r2-tone-v2'
 
 
 def jobs(nonce):
@@ -23,8 +25,9 @@ def jobs(nonce):
 
 
 def validate(packet):
-    require(packet['schema'] == SCHEMA and packet['source_revision'] == SOURCE and
-            packet['revision'] == SOURCE[:12] and packet['uf2_sha256'] == IMAGE and
+    source,image=(AMENDED_SOURCE,AMENDED_IMAGE) if packet['schema']==AMENDED_SCHEMA else (SOURCE,IMAGE)
+    require(packet['schema'] in (SCHEMA,AMENDED_SCHEMA) and packet['source_revision'] == source and
+            packet['revision'] == source[:12] and packet['uf2_sha256'] == image and
             type(packet['system_clock_hz']) is int and packet['system_clock_hz'] == 138000000 and
             packet['rf_render_in_ram'] is True and type(packet['pio_divider']) is int and packet['pio_divider'] == 1 and
             packet['listener_enabled'] is True, 'R2 firmware/clock/renderer/listener')

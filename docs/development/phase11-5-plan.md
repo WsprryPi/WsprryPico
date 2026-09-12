@@ -12,7 +12,9 @@ and [review](phase11-5-test-reorganization-review.md) record this documentation-
 No runner, test, validator, firmware, protocol or operational configuration was
 changed by that documentation revision. The subsequent [R1 execution](phase11-5-r1-review.md)
 closes R1 for the exact e20ae8b physical 138 MHz/divider-1/RAM/listener-on
-configuration, while preserving the earlier failed attempts. R2–R6 remain open.
+configuration, while preserving the earlier failed attempts. The later
+[049cc929 amended campaign](phase11-5-r2-amended-review.md) also closes R1 5/5
+and passes three Tone jobs; R2 is 3/7 jobs complete. R2–R6 remain open.
 No hardware execution is authorized by this document. Future packets
 must reconcile available tools with this plan before obtaining any missing
 bounded hardware/network authority. Old supervisors must not be run under new
@@ -249,6 +251,35 @@ wire records to summaries and explicitly report measurement perturbation.
 
 Prepare and audit one bounded packet at a time. Suggested sequence:
 
+### Reuse evidence between fixes
+
+Do not restart R1 or earlier families automatically after a fix. Before another
+hardware packet, record the source/configuration difference, the specific
+assertion IDs invalidated by that difference, and the evidence retained with a
+reason. A new firmware revision requires this impact assessment, not an automatic
+full-family replay. Preserve exact original evidence identities when documenting
+why an unaffected assertion remains applicable.
+
+- Documentation, offline auditors and host helper changes retain the existing
+  frozen firmware. Run affected deterministic tests and re-audit existing raw
+  evidence; repeat target measurements only if the measurement itself changed
+  or the existing evidence is insufficient.
+- Static firmware state/layout changes require new linked layout/headroom checks
+  and affected guard/address or measurement checks. They do not automatically
+  invalidate every idle interval, TLS allocation probe or unchanged network path.
+- Allocation-path, library, stack-use or resource-lifetime changes require the
+  corresponding physical R1 assertions. Reuse unaffected R1 assertions explicitly.
+- RF launch/refill changes require the affected R2 timing/lifecycle evidence.
+  Revalidate resource assertions only where the source/layout impact warrants it.
+- A new selected clock requires recalculated deadlines and affected resource and
+  contention checks bound to that clock; never transfer timing results by label.
+
+The full R1 repeat during the 049cc929 amended launch campaign was a conservative
+execution choice, broader than the requirement to repeat affected checks. It
+does not establish a rule to rerun R1 after every firmware or tooling fix.
+
+### Packet order
+
 1. R1 artifact/measurement admission, then a physical baseline packet. Reuse the
    latest idle diagnostic only for the assertions it actually measured; it lacks
    matched quiet/controller-only comparisons and active RF evidence.
@@ -269,7 +300,7 @@ subcase counts after each packet, separately from family completion counts.
 A test packet is not necessarily a fresh fixture session. Neighboring packets
 may share a bounded authorized session and unchanged boot with safe explicit
 handoffs and sufficient restoration time. Last recorded configuration count is
-24/32; reserve R5 rotation, schedule changes and final restoration before further
+30/32; reserve R5 rotation, schedule changes and final restoration before further
 writes. Separate setup/restoration per packet would exhaust this budget. Never
 reset an administrative counter to manufacture capacity. Preserve prior attempts.
 

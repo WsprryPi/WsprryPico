@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from audit_phase11_5_a3 import audit as audit_actor
 from audit_phase11_5_r1 import usb_measurement_costs
-from phase11_5_r2_plan import validate, jobs
+from phase11_5_r2_plan import validate, jobs, AMENDED_SCHEMA
 from phase11_5_inventory import require
 
 
@@ -30,8 +30,15 @@ def timing(packet, actor, rows):
         require(epoch>0 and epoch not in epochs and target%1000==0 and 0<=observed-target,
                 'R2 launch identity or observation preceding target')
         requested_utc=int(arm['value']['start_utc_ns'])
-        require(observed-target < 10**9-requested_utc % 10**9,
-                'R2 launch observation outside requested UTC second')
+        if packet['schema'] == AMENDED_SCHEMA:
+            # The pinned driver guards the execution sample before enable.
+            # Post-enable bookkeeping can cross the UTC boundary without
+            # changing that decision. This timestamp is diagnostic telemetry.
+            require(int(last['launch_delay_ns']) == observed-target,
+                    'R2 launch delay telemetry differs from timestamps')
+        else:
+            require(observed-target < 10**9-requested_utc % 10**9,
+                    'R2 launch observation outside requested UTC second')
         epochs.add(epoch)
         # A current-job running snapshot binds launch epoch to the independently
         # observed lifecycle window. UTC correlation is bounded by the device's

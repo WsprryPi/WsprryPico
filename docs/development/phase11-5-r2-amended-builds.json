@@ -1,0 +1,85 @@
+{
+  "source_revision": "049cc929143bdec6ec32817f6df0c73a9637cdf5",
+  "sdk_version": "2.3.1",
+  "picotool_revision": "6f6458d792b93685a11423b244a585eaa99eafcf",
+  "physical_clock_hz": 138000000,
+  "inhibited_clock_hz": 150000000,
+  "pio_divider": 1,
+  "rf_render_in_ram": true,
+  "builds": {
+    "on-WsprryPico": {
+      "elf_sha256": "f539c85cd192cc633abef62362f7bea406d126faa5febfdc2a6193ce8d70a99d",
+      "uf2_sha256": "3e6341f4190b5c7c39f7003bbded071e1d55353ac54cacca18a0c5cea299191c",
+      "layout": {
+        "__end__": 537001320,
+        "__HeapLimit": 537378816,
+        "__StackLimit": 537378816,
+        "__StackTop": 537395200,
+        "__StackBottom": 537378816,
+        "__StackOneBottom": 537399296,
+        "__StackOneTop": 537399296
+      },
+      "heap_capacity_bytes": 377496,
+      "core0_stack_bytes": 16384
+    },
+    "on-WsprryPico-StandaloneRF": {
+      "elf_sha256": "45efd99aecd65487ffc83aa334c34d1ff263152a0e7376a00dfc6b4e9e3b3a67",
+      "uf2_sha256": "908fbe87a326366710ca0b4be4541e71d26e46b9e439f2d0257a9bfcd1490192",
+      "layout": {
+        "__end__": 537160532,
+        "__HeapLimit": 537378816,
+        "__StackLimit": 537378816,
+        "__StackTop": 537395200,
+        "__StackBottom": 537378816,
+        "__StackOneBottom": 537399296,
+        "__StackOneTop": 537399296
+      },
+      "heap_capacity_bytes": 218284,
+      "core1_worker_stack": {
+        "bottom": 536884368,
+        "top": 536900752,
+        "bytes": 16384,
+        "guard_limit": 536888464
+      },
+      "core0_stack_bytes": 16384
+    },
+    "off-WsprryPico": {
+      "elf_sha256": "91c4b38be72d5257edef14c63dc2772b63621ac362c6322e95ea842730e44992",
+      "uf2_sha256": "0608942d5c2252c7624eb311b055239144008e1174ff63e40a31b29a22bcfd92",
+      "layout": {
+        "__end__": 537001260,
+        "__HeapLimit": 537378816,
+        "__StackLimit": 537378816,
+        "__StackTop": 537395200,
+        "__StackBottom": 537378816,
+        "__StackOneBottom": 537399296,
+        "__StackOneTop": 537399296
+      },
+      "heap_capacity_bytes": 377556,
+      "core0_stack_bytes": 16384
+    },
+    "off-WsprryPico-StandaloneRF": {
+      "elf_sha256": "676e8769b89fd7c50a03c6e9e927fa8b11576d2d0b7ee3b3a85320814f0ea8e0",
+      "uf2_sha256": "bee539e44c3f16eb435f3e9a03537a898f1bf5858e541a843a4e6db63e5e065a",
+      "layout": {
+        "__end__": 537160480,
+        "__HeapLimit": 537378816,
+        "__StackLimit": 537378816,
+        "__StackTop": 537395200,
+        "__StackBottom": 537378816,
+        "__StackOneBottom": 537399296,
+        "__StackOneTop": 537399296
+      },
+      "heap_capacity_bytes": 218336,
+      "core1_worker_stack": {
+        "bottom": 536884360,
+        "top": 536900744,
+        "bytes": 16384,
+        "guard_limit": 536888456
+      },
+      "core0_stack_bytes": 16384
+    }
+  },
+  "accepted_configurations": [],
+  "layout_note": "SDK __StackOneBottom/__StackOneTop are unused zero-size defaults. Physical Core 1 uses the separately recorded 16384-byte worker_stack allocation."
+}

@@ -1,8 +1,9 @@
 # Development baseline
 
-R2: [executed Tone, launch-policy repair and review](phase11-5-r2-review.md);
-0/7 jobs complete, one missed, six not run. Devices and host restored. The new
-UTC-second launch policy is software-tested; target acceptance remains open.
+R2: [amended firmware, three-Tone result and review](phase11-5-r2-amended-review.md).
+Three of seven jobs completed; four modes and production/USB submission remain
+open. R1 is 5/5 on 049cc929 at physical 138 MHz; devices/host restored. Reuse
+unaffected assertions after fixes; do not automatically restart R1.
 
 The defined hardware target is Pico 2 W / RP2350. The repository contains a
 portable WTP/1 core, deterministic host tests and an RF-inhibited firmware
@@ -24,7 +25,7 @@ with realistic normal traffic separated from stress and overload. The
 closed**, useful existing evidence and an empty accepted-configuration list.
 The [documentation reorganization review](phase11-5-test-reorganization-review.md)
 maps all 20 legacy cases without changing code, runners or historical results.
-The [R1 executor and review](phase11-5-r1-review.md) close **5 of 5 assertions**:
+The historical e20ae8b [R1 executor and review](phase11-5-r1-review.md) close **5 of 5 assertions**:
 four frozen layouts, six target intervals, three bounded idle allocation probes,
 matched quiet retention, stack guards and observer costs. This covers the exact
 `e20ae8b` physical 138 MHz/divider-1/RAM/listener-on candidate, with inhibited

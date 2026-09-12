@@ -24,7 +24,8 @@ from phase11_5_pilot_supervisor import finished, idle
 
 SOURCE = '4058d3a4a95110326006a7db6e37eb4b562a500c'
 R1_SOURCE = 'e20ae8bea2d5237af017dbd5f73bfe9332ce144e'
-CANDIDATES = (SOURCE, R1_SOURCE)
+from phase11_5_r2_amended_plan import SOURCE as AMENDED_SOURCE, INITIAL_COUNTS
+CANDIDATES = (SOURCE, R1_SOURCE, AMENDED_SOURCE)
 MAX_WRITES = 32
 MAX_PROBES = 64
 
@@ -171,7 +172,9 @@ def main():
                 'Independent restoration is not armed with matching ownership')
         authorize(state, args.action, args.variant)
         if packet.get('time_server_mdns') and packet.get('family') == 'R1' and args.action == 'heap-probe':
-            require(packet['max_idle_heap_probes'] == 3 and state['counts']['heap-probe'] < 3,
+            initial_probes = 3 if packet['source_revision'] == AMENDED_SOURCE else 0
+            require(packet['max_idle_heap_probes'] == 3 and
+                    initial_probes <= state['counts']['heap-probe'] < initial_probes+3,
                     'R1 permits exactly three bounded idle probes')
         require(digest(args.baseline) == state['baseline_sha256'], 'Baseline file changed')
         baseline = finished(args.baseline, 'READ_ONLY_INVENTORY')

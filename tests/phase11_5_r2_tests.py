@@ -79,6 +79,19 @@ class R2Tests(unittest.TestCase):
             rows.append(dict(kind='info',monotonic_ns=begin+2,value=dict(value=copy.deepcopy(info))))
             base=info
         self.assertEqual(len(timing(p,actor,rows)),3)
+        from phase11_5_r2_plan import AMENDED_SCHEMA, AMENDED_SOURCE, AMENDED_IMAGE
+        amended=dict(p,schema=AMENDED_SCHEMA,source_revision=AMENDED_SOURCE,
+                     revision=AMENDED_SOURCE[:12],uf2_sha256=AMENDED_IMAGE)
+        telemetry=copy.deepcopy(rows)
+        for row in telemetry:
+            value=row['value']['value']
+            if 'launch_target_ns' in value:
+                value['launch_delay_ns']=str(int(value['launch_observed_ns'])-int(value['launch_target_ns']))
+        telemetry[-1]['value']['value'].update(launch_observed_ns='301000000000',launch_delay_ns='1000000000')
+        self.assertEqual(timing(amended,actor,telemetry)[-1]['post_enable_observation_lateness_ns'],1000000000)
+        inconsistent=copy.deepcopy(telemetry)
+        inconsistent[-1]['value']['value']['launch_delay_ns']='1'
+        with self.assertRaises(ValueError):timing(amended,actor,inconsistent)
         diagnostic=copy.deepcopy(rows)
         diagnostic[-1]['value']['value']['max_alarm_irq_ns']='293000'
         self.assertEqual(timing(p,actor,diagnostic)[-1]['max_alarm_callback_ns'],293000)

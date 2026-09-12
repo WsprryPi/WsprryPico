@@ -1,0 +1,141 @@
+{
+  "firmware": "049cc929143bdec6ec32817f6df0c73a9637cdf5",
+  "physical_clock_hz": 138000000,
+  "pio_divider": 1,
+  "rf_render_in_ram": true,
+  "listener_enabled": true,
+  "r1_assertions_passed": 5,
+  "r1_assertions_total": 5,
+  "r1_quiet_delta_bytes": 8,
+  "r2_jobs_completed": 3,
+  "r2_jobs_required": 7,
+  "r2_family_closed": false,
+  "phase_families_closed": 1,
+  "phase_families_total": 6,
+  "accepted_configurations": [],
+  "remaining_r2": [
+    "QRSS",
+    "FSKCW",
+    "DFCW",
+    "WSPR",
+    "production-owned submission",
+    "USB-reference submission"
+  ],
+  "r1_packet_sha256": "0c880ce75a0eec23dbbf12ff6103fc5632fb9c310a30684fa5e5ffa29ea5802f",
+  "r2_packet_sha256": "11c3125e459083031e2756c09e053e16efb5744732ca8345529fc2e709873791",
+  "r1_audit_sha256": "7b9862c09e719d04136349011fd79ff71409b0e0a0e7b6bc6f5f167bcee0b37e",
+  "r2_audit_sha256": "9914947da78125baa6228783f4d017d9bc4392e7f91bfa5305b8498dc1a14b7b",
+  "launches": [
+    {
+      "job_id": "33d189f66d99b48f456e4fbebfc319ed",
+      "epoch": 1,
+      "launch_target_ns": 1643091789000,
+      "post_enable_observation_lateness_ns": 15000,
+      "max_alarm_callback_ns": 209000,
+      "counter_deltas": {
+        "dma_irqs": 2634,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 2632,
+        "refill_irq_pairs": 2632,
+        "running_tail_links": 1
+      },
+      "short_interval_ns": 536115.9420289855
+    },
+    {
+      "job_id": "07306a6f7f55e47ab64ef7797647bb28",
+      "epoch": 2,
+      "launch_target_ns": 1678091722000,
+      "post_enable_observation_lateness_ns": 8000,
+      "max_alarm_callback_ns": 209000,
+      "counter_deltas": {
+        "dma_irqs": 2634,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 2632,
+        "refill_irq_pairs": 2632,
+        "running_tail_links": 1
+      },
+      "short_interval_ns": 536115.9420289855
+    },
+    {
+      "job_id": "29b4990e6179b591d351a6b5bc8b1657",
+      "epoch": 3,
+      "launch_target_ns": 1718092388000,
+      "post_enable_observation_lateness_ns": 8000,
+      "max_alarm_callback_ns": 209000,
+      "counter_deltas": {
+        "dma_irqs": 2634,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 2632,
+        "refill_irq_pairs": 2632,
+        "running_tail_links": 1
+      },
+      "short_interval_ns": 536115.9420289855
+    }
+  ],
+  "management_counts": {
+    "config": 30,
+    "wifi-off": 0,
+    "wifi-on": 0,
+    "heap-probe": 6
+  },
+  "restoration": {
+    "configurations_match": true,
+    "device_restored": true,
+    "host_restored": true,
+    "a_revision": "802c91a7b86e-dirty",
+    "a_boot": "8aadfedf02a066b47cb0ffb3c4068695",
+    "b_revision": "dbf1d86f0885-dirty",
+    "b_boot": "feffcd075ab6cb0b74e7e0c2fde6c87f",
+    "a_output_active": false,
+    "b_output_active": false,
+    "a_owner": null,
+    "b_owner": null,
+    "installed_wsprrypi_pid": 1957,
+    "permanent_time_local_restored": true,
+    "chrony_stratum": 1,
+    "chrony_reference": "PPS"
+  },
+  "private_evidence_archive_sha256": "e32cab6667ed39855e3d0268f7a1d497c57d531725e3621f3756cc8ba23bfc87",
+  "measurements": {
+    "heap_capacity_bytes": 218284,
+    "allocator_peak_bytes": 136060,
+    "minimum_heap_reserve_bytes": 82224,
+    "largest_successful_request_bytes": 18364,
+    "core0_stack_used_bytes": 8248,
+    "core1_stack_used_bytes": 5616,
+    "each_stack_bytes": 16384,
+    "each_stack_guard_bytes": 4096,
+    "max_dma_irq_ns": 141000,
+    "max_refill_irq_to_ready_ns": 2051000,
+    "max_rf_service_gap_ns": 2119000,
+    "full_predecessor_remaining_words": 7515,
+    "full_predecessor_total_words": 16384,
+    "short_predecessor_remaining_words": 1938,
+    "short_predecessor_total_words": 2312,
+    "production_nominal_status_count": 317,
+    "production_max_status_gap_ns": 1913519319,
+    "production_max_write_to_reply_seconds": 1.796476708,
+    "max_browser_job_seconds": 3.133076551,
+    "browser_actions": 8,
+    "browser_gets": 14,
+    "observer_cost": {
+      "max_usb_roundtrip_seconds": {
+        "INFO": 1.704116907,
+        "STATUS": 0.863327271,
+        "HELLO": 0.03099632
+      },
+      "host_max_loadavg_1m": 0.52,
+      "host_max_temperature_c": 56.75,
+      "note": "Load average is system-wide runnable/uninterruptible load, not CPU utilization. Costs overlap."
+    }
+  },
+  "review": {
+    "completed_evidence_mutations_rejected": 9,
+    "intact_before_and_after": true,
+    "legacy_failure_mutations_rejected": 12,
+    "revalidation_policy": "Invalidate assertions by demonstrated change impact; do not automatically repeat R1."
+  }
+}

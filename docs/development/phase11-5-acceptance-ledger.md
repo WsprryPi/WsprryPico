@@ -1,14 +1,15 @@
 # Phase 11.5 current acceptance ledger
 
-Status on September 12, 2026: **OPEN; 1 of 6 revised families closed; no accepted
-configuration.** The [R1 time.local execution](phase11-5-r1-review.md) closes
-**5 of 5 R1 assertions** on the exact physical 138 MHz candidate below, with
-150 MHz inhibited shared-path regression. Both devices and the host were
-restored. No RF jobs ran in R1. The subsequent [R2 attempt](phase11-5-r2-review.md)
-missed its first Tone; 0/7 R2 jobs completed, six did not run. The amended
-launch policy is software-tested only; a new candidate needs affected R1 checks. The [earlier DNS failures](phase11-5-r1-dns-failure-review.md)
-remain preserved; this count does not relabel historical evidence or accept
-R2–R6. The six families contain multiple mandatory assertions.
+Status on September 12, 2026: **OPEN; 1 of 6 families closed; no accepted
+configuration.** The [amended campaign](phase11-5-r2-amended-review.md) closes
+R1 **5/5** on clean `049cc929143bdec6ec32817f6df0c73a9637cdf5`, physical
+138 MHz/divider 1/RAM/listener on, with inhibited 150 MHz regression. Its three
+browser-owned Tone jobs passed; **R2 is 3/7 jobs complete and remains open**.
+The four other modes and production-owned/USB-reference paths did not run.
+Boards, original configurations and host services were restored; counts are
+30/32 configuration writes and six cumulative probes. The e20ae8b R1 closure,
+its later MISSED_START, and earlier DNS failures retain their original scope.
+Future fixes invalidate specific assertions, not automatically all of R1.
 
 ## Evidence that already exists
 
@@ -16,11 +17,11 @@ R2–R6. The six families contain multiple mandatory assertions.
 | --- | --- | --- |
 | [N1t A1/A2](phase11-5-n1t-result.json) | Two of the historical 20 cases passed on `8fb3894253ef45adc3aad28f25a684168487490f`; A3 failed | Preserve 2/20 as a historical count. Do not transfer its physical baselines to another firmware. |
 | [Later single attempt](phase11-5-single-attempt-result.json) | `4058d3a4a95110326006a7db6e37eb4b562a500c`: inhibited A2 passed; physical conditioning failed | Preserve both the successful restricted evidence and the failed STATUS cadence. |
-| [Current candidate builds](phase11-5-status-delivery-result.json) | `e20ae8bea2d5237af017dbd5f73bfe9332ce144e`: four clean linked ELF/UF2 records, host/source regression and linked checks | R1 inputs available. Builds alone do not close R1's physical comparisons or any RF gate. |
+| [Historical e20ae8b builds](phase11-5-status-delivery-result.json) | `e20ae8bea2d5237af017dbd5f73bfe9332ce144e`: four clean linked ELF/UF2 records, host/source regression and linked checks | R1 inputs available. Builds alone do not close R1's physical comparisons or any RF gate. |
 | [Current 138 MHz RF-idle diagnostic](phase11-5-status-delivery-repair.md) | Same `e20ae8b` candidate; 300-second controller/browser load and 360-second USB observation passed; boot `0fa996a26d9319f64385b23f3b6c62bf` | Reuse only measured idle/resource assertions. No full matched quiet/controller baseline or active RF. Credit wait/preservation/timeouts all zero; historical-stall causation remains unproven. |
-| [Current R1 time.local campaign](phase11-5-r1-review.md) | `e20ae8b`: four layouts and six target intervals; physical 138 MHz/divider 1/RAM/listener on; inhibited 150 MHz regression | R1 5/5 only. No RF jobs or R2–R6 acceptance. |
+| [Historical e20ae8b R1 time.local campaign](phase11-5-r1-review.md) | `e20ae8b`: four layouts and six target intervals; physical 138 MHz/divider 1/RAM/listener on; inhibited 150 MHz regression | R1 5/5 only. No RF jobs or R2–R6 acceptance. |
 
-The physical candidate UF2 SHA-256 is
+The historical e20ae8b physical candidate UF2 SHA-256 is
 `7a7306b8ad9dab694903434b86aec18e249c79dad0443645cd04ca857e9d4a04`;
 its ELF SHA-256 is
 `2f5c5ce29c659ca9ffbbd5698c58fe96b0376578f4669b15d808a28584d42d5d`.
@@ -33,12 +34,16 @@ Neither a later Mac checkout nor the installed wspr5 executable is implicitly
 this tested binary. Full dependencies, helper identities and archives remain
 in the linked immutable results.
 
+Current amended image hashes and all four layouts are in
+[049cc929 build identities](phase11-5-r2-amended-builds.json). The physical UF2 is
+`908fbe87a326366710ca0b4be4541e71d26e46b9e439f2d0257a9bfcd1490192`.
+
 ## Revised family readiness
 
 | Family | Status | Existing input | Required next evidence |
 | --- | --- | --- | --- |
-| R1 | CLOSED — 5/5 | Four rechecked layouts; six target intervals; exactly three idle probes; [R1 result](phase11-5-r1-result.json) | Reuse only for the exact firmware/clock/layout scope; repeat affected checks if those inputs change |
-| R2 | OPEN — 0/7 complete; 1 missed, 6 not run | [Executed Tone and launch-policy repair](phase11-5-r2-review.md); restored | Freeze the new policy candidate, repeat affected R1 checks, then new Tone/mode/submission evidence |
+| R1 | CLOSED — 5/5 on 049cc929 | Four layouts; six intervals; three new probes; [amended result](phase11-5-r2-amended-result.json) | Reuse unaffected assertions; invalidate only demonstrated impacts of a future change |
+| R2 | OPEN — 3/7 complete; 4 not run on 049cc929 | Three browser Tones passed; [review](phase11-5-r2-amended-review.md); restored | Remaining modes plus actual production-owned and USB-reference submission |
 | R3 | NOT RUN | Existing functional tests and prior inhibited results | Distinct physical resource-boundary and reclamation assertions |
 | R4 | NOT RUN | Existing ownership/replay/recovery semantics | Current-image physical authority, owner abort and interrupted-operation checks |
 | R5 | NOT RUN | Prior network/storage/standalone evidence | Targeted physical lifecycle, journal rotation and autonomous scheduling under contention |
@@ -68,10 +73,12 @@ installed WsprryPi PID 1957 remained unchanged. Refresh identity and state befor
 future hardware work. The historical first R1 admission preserved a boot mismatch; the user
 confirmed rebooting both Picos between campaigns.
 
-Latest R2 restoration returned A to boot `f2b9d8477c33c856884485e87394e8fe`;
+The preserved e20ae8b R2 restoration returned A to boot `f2b9d8477c33c856884485e87394e8fe`;
 B retained its R1 boot. Both were empty, inactive and unowned; original
 configurations matched. Host and permanent time.local/GPS-PPS were restored.
-Recorded cumulative configuration writes are **28 of 32**. Reserve restoration
+That attempt ended at 28/32 writes. The amended campaign restored A to boot
+`8aadfedf02a066b47cb0ffb3c4068695`, with B unchanged and both inactive/unowned.
+Current cumulative configuration writes are **30 of 32**. Reserve restoration
 and R5 schedule/rotation writes before more setup. Historical restoration inputs
 and finite authorization windows are not permission to silently restart an old
 campaign or reset its budget.

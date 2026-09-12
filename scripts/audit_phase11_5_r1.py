@@ -3,7 +3,7 @@
 import argparse
 import json
 from pathlib import Path
-from phase11_5_device_management import R1_SOURCE, digest
+from phase11_5_device_management import R1_SOURCE, AMENDED_SOURCE, digest
 from phase11_5_device_fixture import candidate_images
 from phase11_5_inventory import require, loads_console
 from phase11_5_pilot_supervisor import finished
@@ -12,7 +12,7 @@ from audit_phase11_5_idle import audit as audit_idle
 from audit_phase11_5_load import audit as audit_load
 
 
-def probe_exchange(path, size, outcome, boot):
+def probe_exchange(path, size, outcome, boot, source=R1_SOURCE):
     text=path.read_text();require(text.endswith('\n'),'Truncated probe exchange')
     rows=[json.loads(line) for line in text.splitlines()]
     require(rows and all(a['monotonic_ns']<=b['monotonic_ns'] for a,b in zip(rows,rows[1:])),
@@ -34,7 +34,7 @@ def probe_exchange(path, size, outcome, boot):
     require(not buffer and commands==[b'INFO\n',f'HEAP PROBE {size}\n'.encode()] and
             len(responses)==2,'Incomplete/unexpected probe operation')
     info,reply=responses
-    require(info['revision']==R1_SOURCE[:12] and info['status']['boot_id']==boot and
+    require(source in (R1_SOURCE,AMENDED_SOURCE) and info['revision']==source[:12] and info['status']['boot_id']==boot and
             info['status']['state']=='empty' and info['status']['output_active'] is False and
             reply.get('ok') is True and reply.get('allocated') is outcome,'Probe authority/outcome')
     return reply
@@ -102,11 +102,12 @@ def target_time_wire(root, kind):
 def audit(root):
     root = root.resolve(strict=True)
     packet=json.loads((root/'packet.json').read_text());result=json.loads((root/'r1-result.json').read_text())
-    require(packet['family']=='R1' and packet['source_revision']==R1_SOURCE and packet['rf_jobs']==[] and
-            result['source']==R1_SOURCE and result['status']=='CAPTURED_REQUIRES_FINAL_REVIEW' and
+    source=packet['source_revision']
+    require(packet['family']=='R1' and source in (R1_SOURCE,AMENDED_SOURCE) and packet['rf_jobs']==[] and
+            result['source']==source and result['status']=='CAPTURED_REQUIRES_FINAL_REVIEW' and
             result['rf_jobs']==[] and result.get('device_restored') is True,'R1 incomplete or scope changed')
     require(packet['images'] == {kind:dict(file=name,sha256=sha)
-            for kind,(name,sha) in candidate_images(R1_SOURCE).items()} and
+            for kind,(name,sha) in candidate_images(source).items()} and
             packet['selected_physical_clock_hz'] == 138000000 and packet['pio_divider'] == 1 and
             packet['rf_render_in_ram'] is True, 'Frozen R1 image/clock/layout identity differs')
     require(set(packet['case_helper_sha256'])==R1_HELPERS, 'Incomplete R1 helper identity set')
@@ -178,7 +179,7 @@ def audit(root):
         expected=probe['management_result']
         candidates=[p for p in root.glob('management-*-exchange.jsonl') if digest(p)==expected['evidence_sha256']]
         require(len(candidates)==1,'Missing/ambiguous raw probe')
-        require(probe_exchange(candidates[0],size,outcome,pre['status']['boot_id'])==expected['reply'],
+        require(probe_exchange(candidates[0],size,outcome,pre['status']['boot_id'],source)==expected['reply'],
                 'Probe summary differs from raw Console')
     for label in ('r1-quiet-before','r1-controller','r1-normal','r1-quiet-after'):
         value=intervals[label]['resources']
@@ -207,7 +208,7 @@ def audit(root):
     time_wire = ({kind:target_time_wire(root,kind) for kind in ('inhibited','physical')}
                  if packet.get('time_server_mdns') else {})
     return dict(family='R1',target_assertions='PASS',measurement_details=costs,target_time_wire=time_wire,quiet_delta_bytes=delta,
-                firmware=R1_SOURCE,physical_clock_hz=138000000,intervals=intervals,
+                firmware=source,physical_clock_hz=138000000,intervals=intervals,
                 packet_sha256=digest(root/'packet.json'),rf_jobs=[])
 
 

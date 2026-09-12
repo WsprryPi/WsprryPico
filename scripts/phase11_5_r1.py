@@ -14,7 +14,7 @@ import time
 
 from phase11_5_inventory import require
 from phase11_5_device_fixture import DeviceFixture
-from phase11_5_device_management import R1_SOURCE, digest
+from phase11_5_device_management import R1_SOURCE, AMENDED_SOURCE, digest
 from phase11_5_network_fixture import Fixture
 from audit_phase11_5_idle import audit as audit_idle
 from audit_phase11_5_load import audit as audit_load
@@ -101,7 +101,10 @@ def main():
     os.umask(0o077);root=args.root.resolve(strict=True)
     require(digest(root/'packet.json')==args.packet_sha256,'Frozen R1 packet changed')
     packet=json.loads((root/'packet.json').read_text())
-    require(packet['family']=='R1' and packet['source_revision']==R1_SOURCE and packet['rf_jobs']==[] and
+    source=packet['source_revision']
+    amended=source==AMENDED_SOURCE
+    require(not amended or packet.get('amended_r2') is True, 'Explicit amended campaign required')
+    require(packet['family']=='R1' and source in (R1_SOURCE,AMENDED_SOURCE) and packet['rf_jobs']==[] and
             packet['runtime_seconds'] in (2400,2700) and type(packet['network_runtime_seconds']) is int and 0 < packet['network_runtime_seconds'] <= 4200,
             'Frozen R1 scope/bounds')
     require(set(packet['case_helper_sha256'])==R1_HELPERS, 'Incomplete R1 helper identity set')
@@ -109,7 +112,7 @@ def main():
         require((root/path).resolve().is_relative_to(root) and digest(root/path)==expected,'R1 helper changed')
     result_path=root/'r1-result.json';require(not result_path.exists(),'No R1 rerun')
     f=Fixture(Path(packet['network_root']))
-    result=dict(family='R1',source=R1_SOURCE,status='RUNNING',intervals={},rf_jobs=[])
+    result=dict(family='R1',source=source,status='RUNNING',intervals={},rf_jobs=[])
     def save():result_path.write_text(json.dumps(result,indent=2)+'\n')
     def run(label,argv,timeout):
         result['current_stage']=label;save()
@@ -143,7 +146,7 @@ def main():
             fixture_dns(f, root)
     def load(d,label,seconds,browser):
         kind=d.state['kind'];name='a2-'+kind+'-'+label
-        case=dict(case=name,boot=d.state['boot'],source=R1_SOURCE,
+        case=dict(case=name,boot=d.state['boot'],source=source,
             clock_hz=138000000 if kind=='physical' else 150000000,
             observer_session_id=session,observer_sha256=digest(root/'scripts/phase11_5_idle_observer.py'),
             intervals=[['nominal' if browser else 'controller',seconds]],rf_jobs=[],browser_profile='N')
@@ -204,7 +207,22 @@ def main():
         require(normal['resources']['allocator_largest_successful_request_bytes']<=needed,
                 'Normal workload needs an allocation larger than the successful probe')
         result['quiet_delta_bytes']=matched_quiet(before['resources'],after['resources'])
-        result['status']='CAPTURED_REQUIRES_FINAL_REVIEW'
+        result['status']='CAPTURED_REQUIRES_FINAL_REVIEW';save()
+        if amended:
+            # The independent restoration timer remains armed. R2 is separately
+            # frozen and supervised; failure or deadline proceeds to restoration.
+            save_ready=dict(source=source,boot=d.state['boot'],deadline_monotonic_ns=d.state['deadline_monotonic_ns'],
+                packet_sha256=digest(root/'packet.json'),r1_result_sha256=digest(result_path),
+                largest_successful_request_bytes=needed)
+            (root/'r1-ready-for-r2.json').write_text(json.dumps(save_ready,indent=2)+'\n')
+            while not (root/'r2-completion.json').exists():
+                require(time.monotonic_ns()+30*10**9 < d.state['deadline_monotonic_ns'],
+                        'R2 handoff deadline; restore independently')
+                time.sleep(.2)
+            outcome=json.loads((root/'r2-completion.json').read_text())
+            require(outcome.get('source')==source and outcome.get('boot')==d.state['boot'], 'R2 completion identity')
+            result['r2_disposition']=outcome
+
     except BaseException as error:
         result['status']='FAILED';result['error']=type(error).__name__+': '+str(error);result['failed_stage']=result.get('current_stage')
     finally:

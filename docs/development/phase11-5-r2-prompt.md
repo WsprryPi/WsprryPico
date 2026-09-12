@@ -1,5 +1,10 @@
 # Phase 11.5 R2 execution prompt
 
+The clean amended-candidate execution is specified in
+[R2 amended execution](phase11-5-r2-amended-execution.md), with separately
+preserved historical inputs below. Use its exact candidate, cumulative counts
+and R1-to-R2 handoff; do not replay the original e20ae8b packet.
+
 **Execution record and subsequent amendment:** the original frozen e20ae8b
 attempt below ran with explicit R2 fixture/wiring authorization. Its first Tone
 became MISSED_START; six jobs did not run. Both boards and the host were restored.
