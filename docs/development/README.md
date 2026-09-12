@@ -43,6 +43,10 @@ reproduces outgoing-frame corruption in the pinned CYW43 driver and preserves
 frames across receive polling. Its [execution prompt](phase11-5-status-delivery-prompt.md)
 and [bounded target check](phase11-5-status-delivery-check.md) cover this issue
 only; they do not restart the full acceptance matrix.
+The single 138 MHz RF-idle check passed 300 seconds of nominal traffic and
+360 seconds of USB observation, then restored the setup. No TX credit wait
+occurred, so target exercise of the repaired path and historical-stall causation
+remain unproven. Phase 11.5 acceptance counts and clock status are unchanged.
 
 ## Build direction
 

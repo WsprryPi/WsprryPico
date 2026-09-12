@@ -47,8 +47,8 @@
   },
   "schema": "phase11.5-status-delivery-repair-v1",
   "scope": "Pinned CYW43 TX corruption repair only",
-  "target_status": "NOT_RUN_PENDING_EMBEDDED_KEY_UPLOAD_AUTHORIZATION",
-  "target_state_changed": false,
+  "target_status": "PASS_NOMINAL_RF_IDLE_REPAIR_PATH_NOT_EXERCISED",
+  "target_state_changed": true,
   "deterministic_validation": {
     "original_real_source_corruption_reproduced": true,
     "overlay_regressions": 5,
@@ -62,9 +62,161 @@
   "target_packet_sha256": "6842eed7b6e7a891e22f4163eeb44f9caa8238ae0827b021f50b6ed29f53cb30",
   "target_supervisor_sha256": "470ecd63e9795769511be2b2f29234601788192378e56a692a0840298feac55b",
   "limitations": [
-    "No new target timing or RF acceptance",
+    "This run exercised no TX credit wait; it does not establish the cause of historical STATUS stalls",
+    "No active RF refill/launch timing or contention acceptance",
     "Historical STATUS cadence failures remain failed",
-    "The added 2120-byte stack frame still requires target reserve observation",
-    "Firmware upload automatic approval review requires explicit embedded-private-key payload and wspr5 destination authorization"
-  ]
+    "No accepted Phase 11.5 configuration; physical 132/150 MHz remain untested",
+    "Another clock selected in Phase 11.6 requires the affected Phase 11.5 checks"
+  ],
+  "target_restored": true,
+  "target": {
+    "firmware_source_revision": "e20ae8bea2d5237af017dbd5f73bfe9332ce144e",
+    "usb": {
+      "info": {
+        "samples": 360,
+        "max_gap_seconds": 1.022013083
+      },
+      "status": {
+        "samples": 72,
+        "max_gap_seconds": 5.000073937
+      },
+      "health": {
+        "samples": 72,
+        "max_gap_seconds": 5.000087234
+      },
+      "boot": "0fa996a26d9319f64385b23f3b6c62bf",
+      "seconds": 360,
+      "raw_wire_verified": true,
+      "max_allocator_peak_bytes": 118532,
+      "last_heap_allocated_bytes": 21796
+    },
+    "load": {
+      "boot": "0fa996a26d9319f64385b23f3b6c62bf",
+      "seconds": 300,
+      "production_connections": 1,
+      "logical_sessions": 1,
+      "operations": {
+        "HELLO": 1,
+        "STATUS": 303,
+        "CAPS": 1
+      },
+      "nominal_status_count": 300,
+      "nominal_status_hz": 1.0,
+      "nominal_max_status_start_gap_ns": 1093777547,
+      "worst_status_start_gap_requests": [
+        {
+          "request_id": "00000000000000000000000000000102",
+          "started_ns": 166777808477300,
+          "write_completed_ns": 166777812466309
+        },
+        {
+          "request_id": "00000000000000000000000000000103",
+          "started_ns": 166778902254847,
+          "write_completed_ns": 166778905941727
+        }
+      ],
+      "browser_counts": {
+        "/api/v1/status": 60,
+        "/": 10,
+        "/style.css": 10,
+        "/app.js": 10
+      },
+      "max_observed_write_to_response_seconds": 0.650341288,
+      "timing_origin": "SSL_write_ex entry",
+      "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+      "plaintext_sha256": "5cc5166785a743c82ba5f5940822dfdf30ef1b8e839f91edcfd4ff9fb0e409b8"
+    },
+    "credit_counters": {
+      "first": {
+        "waits": 0,
+        "preserved": 0,
+        "timeouts": 0
+      },
+      "last": {
+        "waits": 0,
+        "preserved": 0,
+        "timeouts": 0
+      },
+      "delta": {
+        "waits": 0,
+        "preserved": 0,
+        "timeouts": 0
+      }
+    },
+    "resources": {
+      "info_samples": 360,
+      "heap_capacity_bytes": 218380,
+      "allocator_peak_bytes": 118532,
+      "minimum_heap_reserve_bytes": 99848,
+      "core0_max_stack_used_bytes": 8248,
+      "core1_max_stack_used_bytes": 544,
+      "allocator_failures": 0,
+      "tls_allocation_failures": 0
+    },
+    "restored_a": {
+      "revision": "802c91a7b86e-dirty",
+      "boot": "69bb9cafe6d99d4f7caca78996e3f5f0",
+      "output_active": false,
+      "state": "empty",
+      "configuration_matches": true
+    },
+    "restored_b": {
+      "revision": "dbf1d86f0885-dirty",
+      "boot": "4e2fb851c08b278dd4b977104d2c2aaa",
+      "output_active": false,
+      "state": "empty",
+      "configuration_matches": true
+    },
+    "configuration_counts": {
+      "config": 22,
+      "wifi-off": 0,
+      "wifi-on": 0,
+      "heap-probe": 0
+    },
+    "host_restored": true,
+    "evidence_sha256": {
+      "packet.json": "6842eed7b6e7a891e22f4163eeb44f9caa8238ae0827b021f50b6ed29f53cb30",
+      "status-diagnostic.py": "470ecd63e9795769511be2b2f29234601788192378e56a692a0840298feac55b",
+      "diagnostic-result.json": "08011a75635441dc39ecf24cef9b11cff90a6cea7f54782e4a1f509fee3bfc24",
+      "device-state.json": "e629ac13043d508458ec52c25c9f20f2e7d3f26b59f63df1288b5b4b1109795a",
+      "management-state.json": "8077bed6c6fb63d14b2c6cd059ca1a9b7f80e30f545efc6a5374951d2f45f57c",
+      "fixture-state.json": "c9b934344958cc170707934a00d9ce5281bec66ef9e749e6717464e4416f8555",
+      "a2-physical-tx-guard-nominal/usb-health.jsonl": "8155a149c3388eac61cbacae703c7eece58c2fdd8b50f302a020e0204a4e8e0a",
+      "a2-physical-tx-guard-nominal/production-tls.bin": "5cc5166785a743c82ba5f5940822dfdf30ef1b8e839f91edcfd4ff9fb0e409b8",
+      "capture-ap.pcap": "c351a8c9c11ba6c1034fe18185079e26806bac4a074ff2a4fa47aa31a060c36f",
+      "capture-client.pcap": "26071574ec858d919255af96143fd276e0af184f777a61f223c2fff481d46a43"
+    },
+    "serial": "0BF4B4AEC9FFB344",
+    "clock_hz": 138000000,
+    "engine": "pio-dma-gp2",
+    "output_active": false,
+    "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+    "fixture_started_utc": "2026-09-12T14:05:34.644334Z",
+    "host_restored_utc": "2026-09-12T14:13:47.838985Z",
+    "capture_packets": {
+      "ap": 3756,
+      "client": 3760,
+      "kernel_drops_ap": 0,
+      "kernel_drops_client": 0
+    },
+    "production_source_revision": "6f65d5c7d202569102459ab68d7c9ea079b96f35",
+    "production_binary_sha256": "122ed0e4bd752e457419c4df5433c3fca1a4a88677a3db3ebd7e60e783ba5d1c",
+    "restoration_wire_audit": "PASS: reconstructed final A and B Console/WTP exchanges",
+    "adversarial_evidence_checks": [
+      "Fabricated preservation count rejected against raw Console bytes",
+      "Truncated interval rejected",
+      "Repeated raw USB and TLS audits agree with supervisor",
+      "All allocation-failure counters verified numerically as zero"
+    ]
+  },
+  "evidence_archives": {
+    "full_private_on_wspr5": {
+      "path": "/home/pi/phase115-tx-guard-preserved-final.tar.gz",
+      "sha256": "aa1d7828358fd7b24b33201fcfb22e7d2719a63945a97b42eb42c192216f02e2"
+    },
+    "filtered_local": {
+      "path": "build/phase11-5-closure/tx-guard-evidence.tar.gz",
+      "sha256": "9f17fcd6bbe592dca6a153abaf3c69891234dd838503b05688fa2c63723086f5"
+    }
+  }
 }

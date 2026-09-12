@@ -1,7 +1,8 @@
 # Focused TX preservation target check
 
-Status: authorized by the user's explicit reply to this bounded packet;
-exact clean artifacts and helper hashes must be frozen before activation.
+Status: EXECUTED ONCE, PASSED AND RESTORED on 2026-09-12.
+See the [reviewed result](phase11-5-status-delivery-repair.md) and
+[exact evidence identities](phase11-5-status-delivery-result.json).
 This is a single diagnostic of the STATUS delivery repair, not A2/A3 or phase
 acceptance. No RF jobs, alternative clocks, GPSDO changes or full phase matrix.
 
@@ -17,7 +18,10 @@ resolver, NAT, forwarding or test default route. Preserve wlan1, installed
 `wsprrypi.service` PID 1957, and current Ethernet management including the
 newly observed `192.168.1.54/24` address and link-local IPv6. Never restore an
 older host snapshot over current state. Capture and restore current radio state.
-Reuse existing wspr5 credentials; no private-key transfer.
+Reuse standalone credential files already on wspr5. After automatic approval
+review initially rejected the UF2 upload, the user explicitly authorized both
+frozen firmware images, including their embedded test server private key, to
+this private wspr5 directory. That upload is within the confirmed scope.
 
 The separately authorized device lifecycle will bind clean source, exact UF2
 hashes and helper hashes before activation. Verify A USB `0BF4B4AEC9FFB344`,
