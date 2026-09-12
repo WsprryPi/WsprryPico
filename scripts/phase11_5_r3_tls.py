@@ -15,7 +15,8 @@ from phase11_5_network_fixture import Fixture, PREFIX
 from phase11_5_time_local import fixture_admission
 from phase11_5_f1_plan import admit_caps
 from phase11_5_r2_modes import CASE_HELPERS
-from phase11_5_r3_tls_plan import SCHEMA, SOURCE, PHYSICAL, CASES, jobs, validate, validate_allowance
+from phase11_5_r3_tls_plan import (SCHEMA, SOURCE, PHYSICAL, CASES, jobs, validate,
+                                  validate_allowance, validate_prior_failure)
 from audit_phase11_5_r3_tls import audit
 
 
@@ -162,6 +163,7 @@ def main():
     previous = json.loads((Path(prior['root']) / 'management-state.json').read_text())
     require(previous['counts'] == packet['initial_management_counts'] and not previous.get('pending')
             and not previous.get('blocked'), 'R3 inherited management state')
+    prior_failure = validate_prior_failure(packet)
     # Validate the controller's RF-off contract before any fixture or USB action.
     import importlib.util
     spec = importlib.util.spec_from_file_location('r3_pi_load', root / 'pi/phase115_production_load.py')
@@ -172,6 +174,8 @@ def main():
     module.validate_ini(root / 'production.ini')
     result = dict(status='RUNNING', family='R3', tranche='A1', family_closed=False,
                   completed_jobs=0, packet_sha256=args.packet_sha256)
+    if prior_failure is not None:
+        result['prior_failure_reconciliation'] = prior_failure
 
     def run(label, argv, timeout):
         result['stage'] = label
@@ -203,6 +207,8 @@ def main():
             time.sleep(5)
         require(time.monotonic_ns() + 450_000_000_000 < dut.state['deadline_monotonic_ns'],
                 'R3 observation and restoration reserve')
+        result['stage'] = 'tls-pressure-observation'
+        save(root / 'r3-result.json', result)
         result['a1'] = run_packet(root, packet, dut, fixture)
         result.update(status='PASS_REQUIRES_FINAL_REVIEW', completed_jobs=2)
     except BaseException as error:
@@ -214,7 +220,8 @@ def main():
                 counts = json.loads((root / 'management-state.json').read_text())['counts']
                 result['final_management_counts'] = counts
                 if result['completed_jobs'] == 2:
-                    require(counts == dict(config=36, **{'wifi-off': 0, 'wifi-on': 0, 'heap-probe': 6}),
+                    require(counts == packet['initial_management_counts'] |
+                            {'config': packet['max_configuration_writes']},
                             'R3 final cumulative counts')
                 result['device_restored'] = True
             except BaseException as error:

@@ -103,8 +103,7 @@ def authorize(state, action, argument):
     require(set(counts) == {'config', 'wifi-off', 'wifi-on', 'heap-probe'} and
             all(type(v) is int and v >= 0 for v in counts.values()), 'Invalid operation counters')
     if state.get('management_scope') is not None:
-        from phase11_5_r3_tls_plan import MANAGEMENT_SCOPE, authorize_management
-        require(state['management_scope'] == MANAGEMENT_SCOPE, 'Unknown management extension')
+        from phase11_5_r3_tls_plan import authorize_management
         authorize_management(state, action, argument)
         return
     if action == 'config':

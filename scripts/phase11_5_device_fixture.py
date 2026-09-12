@@ -255,6 +255,11 @@ class DeviceFixture:
         require(not self.state, 'Fresh lifecycle required')
         packet = self.verify_helpers()
         seconds = packet['runtime_seconds']
+        if packet.get('r3_scope'):
+            from phase11_5_r3_tls_plan import initial_config
+            prior_config_limit = initial_config(packet['management_scope'])
+        else:
+            prior_config_limit = 32 if self.source == UPLOAD_SOURCE else 30
         counts = {'config':0,'wifi-off':0,'wifi-on':0,'heap-probe':0}
         prior = packet.get('prior_restored_attempt')
         if prior:
@@ -273,7 +278,7 @@ class DeviceFixture:
             counts = management['counts']
             require(set(counts) == {'config','wifi-off','wifi-on','heap-probe'} and
                     all(type(n) is int and n >= 0 for n in counts.values()) and
-                    counts['config'] <= (34 if packet.get('r3_scope') else (32 if self.source == UPLOAD_SOURCE else 30)) and counts['wifi-off'] <= 3 and
+                    counts['config'] <= prior_config_limit and counts['wifi-off'] <= 3 and
                     counts['wifi-on'] <= 3 and counts['heap-probe'] <= 64,
                     'Prior operation budgets do not admit continuation/restoration')
         if packet.get('time_server_mdns'):

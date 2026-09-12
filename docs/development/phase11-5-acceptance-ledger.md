@@ -31,8 +31,12 @@ No job or pressure connection was submitted. A/B and the host were restored;
 CONFIG is now **36/36**, probes six. A is back on original inhibited firmware,
 boot `7a772a4eb283b23afdd1e25acbc449cd`; B's boot remains unchanged.
 The failed packet is consumed. The driver/audit and recorded-response tests are
-repaired locally, with no new physical acceptance credit. A further attempt
-requires a fresh packet and cumulative allowance.
+repaired, with no new physical acceptance credit. The fresh
+[A1b packet](phase11-5-r3-tls-a1b-execution.md) and
+[review](phase11-5-r3-tls-a1b-review.md) freeze the corrected helpers, two new job
+IDs and a specific proposed CONFIG 36→38 allowance. The supervisor re-audits
+the failed attempt before host setup. A1b is prepared, awaiting approval;
+actual counters remain 36 and six, with no new physical run or staging.
 
 ## Evidence that already exists
 

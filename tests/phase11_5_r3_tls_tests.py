@@ -13,7 +13,8 @@ from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from phase11_5_r3_tls_plan import (SCHEMA, SOURCE, PHYSICAL, COUNTS, MANAGEMENT_SCOPE,
-                                  CASES, jobs, validate, validate_allowance)
+                                  CONTINUATION_SCOPE, CONTINUATION_PRIOR, CASES, jobs,
+                                  validate, validate_allowance, validate_prior_failure)
 from phase11_5_device_management import authorize, digest
 from phase11_5_r2_usb_jobs import USBJobs
 from phase11_5_r3_tls_pressure import Pressure, response, running_epoch, NAME, PEER
@@ -165,6 +166,58 @@ class R3Tests(unittest.TestCase):
             with patch.object(sys, 'argv', ['r3', '--root', '/absent'] + args), \
                     patch.object(module.Path, 'resolve', side_effect=AssertionError('file access')):
                 module.main()
+
+    def test_continuation_carries_counts_without_reopening_old_allowance(self):
+        state = dict(source_revision=SOURCE, pending=None, blocked=False,
+                     counts=COUNTS | {'config': 36}, management_scope=CONTINUATION_SCOPE,
+                     deadline_monotonic_ns=2_000_000_000)
+        with patch('phase11_5_device_management.time.monotonic_ns', return_value=10**9):
+            authorize(state, 'config', 'test')
+            for scope in (None, MANAGEMENT_SCOPE, 'R3-A1b-config-36-to-40-v1'):
+                with self.assertRaises(ValueError):
+                    authorize(dict(state, management_scope=scope), 'config', 'test')
+            for action, argument in (('heap-probe', None), ('wifi-off', None),
+                                     ('wifi-on', None), ('config', 'schedule-variant')):
+                with self.assertRaises(ValueError):
+                    authorize(state, action, argument)
+            state['counts']['config'] = 37
+            with self.assertRaises(ValueError):
+                authorize(state, 'config', 'test')
+            authorize(state, 'config', 'original')
+            for changes in ({'pending': {'unknown': True}}, {'blocked': True},
+                            {'counts': COUNTS | {'config': 38}},
+                            {'counts': COUNTS | {'config': 37, 'heap-probe': 7}}):
+                with self.assertRaises(ValueError):
+                    authorize(dict(state, **changes), 'config', 'original')
+
+    def test_continuation_requires_exact_prior_failure_and_reaudits_before_setup(self):
+        p = dict(family='R3', r3_scope=SCHEMA, source_revision=SOURCE,
+                 management_scope=CONTINUATION_SCOPE, initial_management_counts=COUNTS | {'config': 36},
+                 max_configuration_writes=38, max_idle_heap_probes=0, time_server_mdns=True,
+                 prior_restored_attempt=CONTINUATION_PRIOR,
+                 initial_a_boot_id='7a772a4eb283b23afdd1e25acbc449cd',
+                 initial_b_boot_id='feffcd075ab6cb0b74e7e0c2fde6c87f')
+        validate_allowance(p)
+        for key, value in [('initial_management_counts', COUNTS), ('max_configuration_writes', 40),
+                           ('prior_restored_attempt', {}), ('initial_a_boot_id', 'f' * 32),
+                           ('initial_b_boot_id', 'f' * 32)]:
+            with self.assertRaises(ValueError):
+                validate_allowance(dict(p, **{key: value}))
+        for key in CONTINUATION_PRIOR:
+            with self.assertRaises(ValueError):
+                validate_allowance(dict(p, prior_restored_attempt=CONTINUATION_PRIOR | {key: 'changed'}))
+        result = dict(management_counts=p['initial_management_counts'],
+                      restored_a_boot=p['initial_a_boot_id'], unchanged_b_boot=p['initial_b_boot_id'])
+        with patch('audit_phase11_5_r3_failure.audit', return_value=result) as audit:
+            self.assertEqual(validate_prior_failure(p), result)
+            audit.assert_called_once_with(Path(CONTINUATION_PRIOR['root']))
+        with patch('audit_phase11_5_r3_failure.audit', side_effect=ValueError('Raw failure changed')):
+            with self.assertRaises(ValueError):
+                validate_prior_failure(p)
+        for key in result:
+            with patch('audit_phase11_5_r3_failure.audit', return_value=result | {key: None}):
+                with self.assertRaises(ValueError):
+                    validate_prior_failure(p)
 
     def test_usb_waits_for_matching_pressure_gate(self):
         with tempfile.TemporaryDirectory() as temp:
