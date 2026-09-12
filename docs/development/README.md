@@ -6,6 +6,10 @@ The selected candidate is 2e43110 at physical 138 MHz/divider 1/RAM/listener on.
 Devices and host were restored; CONFIG writes are 34/34. R3–R6 remain open and
 full accepted configurations remain empty. Original failed assessments are retained.
 
+Next: [R3 source review](phase11-5-r3-preparation.md) and
+[bounded read-only admission packet](phase11-5-r3-preflight-prompt.md), prepared
+but awaiting USB authorization. No new physical acceptance credit is recorded.
+
 The defined hardware target is Pico 2 W / RP2350. The repository contains a
 portable WTP/1 core, deterministic host tests and an RF-inhibited firmware
 target with persistent standalone configuration and Wi-Fi SNTP, plus separately

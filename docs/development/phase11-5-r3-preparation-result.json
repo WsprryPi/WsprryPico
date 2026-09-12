@@ -1,0 +1,79 @@
+{
+  "schema": "phase11.5-r3-preparation-v1",
+  "status": "PREPARED_AWAITING_USB_AUTHORIZATION",
+  "closed_families": 2,
+  "total_families": 6,
+  "R1_assertions_passed": 5,
+  "R2_jobs_passed": 7,
+  "R3_physical_assertions_passed": 0,
+  "preflight_captures_completed": 0,
+  "preflight_captures_required": 4,
+  "accepted_configurations": [],
+  "source_revision": "2e43110f05304efdc2ae25c298baa0ef6426955b",
+  "source_sha256": {
+    "src/network/pico/server.cpp": "bdd8118fb031dc164614d10c14dc509b81a0f7ab0446f6efb389c4300b28b927",
+    "src/network/pico/server.hpp": "03d964f7e2deac8d787ea54b1be2a4f42c3849510ed7a10bec35fb05c24a557e",
+    "src/network/pico/mbedtls_config.h": "4b8957521015618035e695c5731cf3fa3e871e99d0549aba0fdd6e47f9b8e51e",
+    "src/standalone/pico/main.cpp": "7e93bf6dc405382918dc7197beb792a15e3e61dbb1faa10f44ac1c5760b8f9c2",
+    "src/rf/waveform.hpp": "d7c8ceca7ec4b848b5d989ef342736cbc6f4cf5ce8d374b845af5e6fa342fe6b",
+    "src/rf/waveform.cpp": "32d9697dc8d4c5b52435f01988ed3d8c8feb88f3e20d11dedf17fef8a980a40b",
+    "src/rf/wtp_profile.hpp": "7ef4defde1bf23082b0f91e698f80d7d1dc6833f8d1c6b2e980ae73b92fcac35",
+    "src/rf/pio_dma_sink.cpp": "6ebc6797daf2625bb21d4c4cef7eb83ffe234ebdea308c014128f7665c73d676",
+    "src/wtp/job_service.hpp": "0db66bc02bc291816887cdd98eecc08a8903459165eae80838a87b2317e18c3e",
+    "src/wtp/job_service.cpp": "f4b34802c507a1e7e2058f7e771d72727b97f2d26157186a91cd4d5debc4fc16",
+    "src/network/http.hpp": "29124cb3a174a733666cf5a99a0281cbc24dbcb6997782c2b1b458a4636b5e31",
+    "src/network/web/app.js": "764dbc97bb652aecb05121a32a2662e3fb78ce00c6eda01a37010798f75f2439",
+    "src/standalone/storage.cpp": "15d7e70c7be727c6b83126c4b2310a3b91a0e7a2c75eb5c60904df4f159c3fed"
+  },
+  "packet_sha256": "6695194cae5fbbf0611a2480e70074761be218da7e749f6c9f4b319fcf766119",
+  "packet_root": "/home/pi/phase11-5-r3-preflight-20260912",
+  "helper_sha256": {
+    "scripts/phase11_5_r3_preflight.py": "637741fa271719beb4c3a764af2d88ea0ca4cd0b8cda3094f86167e0f64822e7",
+    "scripts/phase11_5_inventory.py": "ba3512651faccd72fea5d092fe9fc6bc69559a460d166d689cc5b48bd658eb21",
+    "scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+    "scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9",
+    "docs/protocol/wtp-1.schema.json": "fae1a7f94adb875733f47f22438a0811a3ab7fd9e4b8477780aea77cad62c8a8"
+  },
+  "management_counts": {
+    "config": 34,
+    "heap-probe": 6,
+    "wifi-off": 0,
+    "wifi-on": 0
+  },
+  "additional_configuration_writes": 0,
+  "additional_heap_probes": 0,
+  "hardware_operations_run": false,
+  "host_read_only_verification": {
+    "boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+    "installed_wsprrypi_pid": 1957,
+    "chrony_gpsd_avahi_active": true,
+    "radio_macs_matched": true
+  },
+  "validation": {
+    "preflight_tests_passed": 10,
+    "existing_inventory_tests_passed": 5,
+    "raw_negative_mutations_rejected": 14,
+    "cross_capture_negative_mutations_rejected": 4,
+    "historical_raw_inventories_reaudited": 4,
+    "physical_images_rebuilt": false
+  },
+  "review_findings_repaired": [
+    "Bind raw request and response to reported summaries and schema",
+    "Enforce cross-capture order, no replay, packet/host identity and total deadline"
+  ],
+  "open_findings": [
+    "Selected firmware restricts all modes including QRSS to 110.592 seconds; expanded envelope undecided",
+    "R3 RF executor, observation and evidence adapters are not yet implemented",
+    "New bounded fixture/flashing/RF/configuration authorization remains required"
+  ],
+  "documentation_impact": [
+    "R3 preparation and prompt, ledger, development index, companion report",
+    "No firmware, UI, protocol, operator-manual or historical evidence changes"
+  ],
+  "staging": {
+    "status": "BLOCKED_BY_AUTOMATIC_APPROVAL_REVIEW",
+    "executed": false,
+    "reason": "Exact packet transfer and destination require explicit user authorization",
+    "destination": "/home/pi/phase11-5-r3-preflight-20260912"
+  }
+}
