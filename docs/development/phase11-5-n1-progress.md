@@ -408,3 +408,49 @@ source change. All 55 host tests passed, the final affected core/scheduler tests
 passed, and native TLS passed in 11.14 s. Target performance is still unmeasured:
 new linked images and affected A2/A3 checks are required before accepting the
 repair. Earlier A1/A2 results remain bound to `8fb3894`.
+
+## N1u: activity candidate conditioning failed; setup restored
+
+The user approved the separate two-hour activity-candidate network window.
+The exact inhibited `4058d3a4a951` image ran one N180 conditioning interval with
+USB240. [The unchanged audit failed](phase11-5-n1u-result.json): 179 production
+STATUS requests fell within N, with one 2,696,718,780 ns gap exceeding the frozen
+2,000,000,000 ns bound. The slowest native TLS write-entry-to-response interval
+was 2,592,628,676 ns. There was one production connection and one logical session;
+its complete replies retained the expected boot and inactive/unowned state.
+
+The independent raw USB audit passed all 240 INFO, 48 STATUS and 48 health
+samples. Maximum INFO request-start gap was 1.000108 s; allocator peak was
+118,572 bytes, with no nominal allocation failure. The browser completed all
+36 status requests and six requests for each of root/style/script, with HTTP
+200, correct boot and a maximum observed request duration of 1.702419 s.
+These passing diagnostics do not waive the failed production cadence gate.
+
+Dependent testing stopped: neither full A2 family nor A3 ran, the physical image
+was not flashed, and no RF jobs were submitted. Pico A returned to original
+inhibited revision `802c91a7b86e-dirty`, boot
+`340fe3681621d5c9f112890160e3a826`, with its original configuration and inactive
+output. Pico B retained its boot/configuration and inactive state. Normal host
+interfaces/routes, installed service PID 1957 and the active recovery timer were
+verified restored. The cumulative configuration-write count is ten.
+
+The complete private archive `phase115-n1u-preserved-final.tar.gz` has SHA-256
+`636cf62e56264d3856bfe0202772b907e793ba5c28453c7f1800b4e409624d69`.
+Its copy was hash-verified locally, then the unchanged USB and production
+auditors independently reproduced PASS and FAIL respectively. The production
+auditor was not modified. Remaining browser checks were evaluated separately;
+the aggregate result remains FAIL. Restoration review compared both original
+configurations, comparator boot and exact pre/post host state.
+
+There is no demonstrated root cause yet. Native TLS and USB timing show the
+stall, but the run contains no packet-level capture to distinguish retransmission
+from firmware/network servicing delay. A diagnostic follow-up needs correlated
+packet evidence before selecting another repair; an unchanged acceptance retry
+would not close that finding. No further live test ran after this failure.
+
+Adversarial evidence review found and corrected stale documentation saying the
+new window was unapproved/unexecuted. It also kept the older `8fb3894` A1/A2
+passes separate from this candidate's failed conditioning. The follow-up review
+found no further reporting inconsistency. The unresolved timing failure remains
+open, rather than being described as repaired. **Zero cases closed in N1u;
+the historical count remains 2/20 and no configuration is accepted.**

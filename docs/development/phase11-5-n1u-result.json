@@ -1,0 +1,137 @@
+{
+  "schema": "phase11.5-n1u-result-v1",
+  "result": "FAIL_STOPPED_AND_RESTORED",
+  "authorization": "User explicitly approved the new two-hour A2/A3 network window in chat. Existing serial-specific flashing/RF authority retained.",
+  "source_revision": "4058d3a4a95110326006a7db6e37eb4b562a500c",
+  "inhibited_uf2_sha256": "0a7d54673e7171ee10275272701de5fbb3cecdc91c097a18eeae496c0922c7b9",
+  "inhibited_system_clock_hz": 150000000,
+  "physical_candidate_clock_hz": 138000000,
+  "physical_candidate_execution": "NOT_RUN",
+  "newly_closed_cases": 0,
+  "historical_closed_cases": {
+    "count": 2,
+    "total": 20,
+    "cases": [
+      "A1",
+      "A2"
+    ],
+    "source_revision": "8fb3894253ef45adc3aad28f25a684168487490f"
+  },
+  "accepted_configurations": [],
+  "conditioning": {
+    "case": "inhibited-conditioning",
+    "result": "FAIL",
+    "firmware_revision": "4058d3a4a95110326006a7db6e37eb4b562a500c",
+    "usb": {
+      "info": {
+        "samples": 240,
+        "max_gap_seconds": 1.000107811
+      },
+      "status": {
+        "samples": 48,
+        "max_gap_seconds": 5.000075705
+      },
+      "health": {
+        "samples": 48,
+        "max_gap_seconds": 5.000085074
+      },
+      "boot": "0e180cc46a16f6b542466d515c329cac",
+      "seconds": 240,
+      "raw_wire_verified": true,
+      "max_allocator_peak_bytes": 118572,
+      "last_heap_allocated_bytes": 26444
+    },
+    "load": {
+      "result": "FAIL",
+      "failed_gate": "Nominal production STATUS rate absent/reduced",
+      "status_count": 179,
+      "max_status_start_gap_ns": 2696718780,
+      "max_write_to_response_ns": 2592628676,
+      "production_connections": 1,
+      "logical_sessions": 1,
+      "operations": {
+        "HELLO": 1,
+        "STATUS": 182,
+        "CAPS": 1
+      }
+    },
+    "browser": {
+      "counts": {
+        "/api/v1/status": 36,
+        "/": 6,
+        "/style.css": 6,
+        "/app.js": 6
+      },
+      "max_request_ns": 1702418564,
+      "http_status_and_boot_checks": "PASS"
+    },
+    "limitations": [
+      "The unchanged audit still fails; these diagnostics do not waive its cadence bound.",
+      "No packet-level capture was taken; the isolated slow reply is not yet attributed to packet loss or firmware.",
+      "Full A2 and A3 were not run; no RF jobs submitted."
+    ]
+  },
+  "remaining_retest": {
+    "A2_inhibited_full_family": "NOT_RUN",
+    "A2_physical_full_family": "NOT_RUN",
+    "A3": "NOT_RUN"
+  },
+  "rf_jobs_submitted": 0,
+  "restoration": {
+    "pico_a": {
+      "serial": "0BF4B4AEC9FFB344",
+      "revision": "802c91a7b86e-dirty",
+      "boot_id": "340fe3681621d5c9f112890160e3a826",
+      "engine": "inhibited-standalone-simulator",
+      "output_active": false,
+      "original_configuration_matches": true,
+      "uf2_sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10"
+    },
+    "pico_b": {
+      "serial": "CDDBF8767C506C07",
+      "revision": "dbf1d86f0885-dirty",
+      "boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+      "engine": "inhibited-standalone-simulator",
+      "output_active": false,
+      "boot_and_configuration_unchanged": true
+    },
+    "host": {
+      "interfaces": "lo               UNKNOWN        127.0.0.1/8 ::1/128 \neth0             UP             fe80::2ecf:67ff:fe62:7664/64 \nwlan0            DOWN           \nwlan1            UP             192.168.1.117/24 \nwlan2            DOWN",
+      "routes": "default via 192.168.1.1 dev wlan1 proto dhcp src 192.168.1.117 metric 100 \n192.168.1.0/24 dev wlan1 proto kernel scope link src 192.168.1.117 metric 100",
+      "installed_pid": "1957"
+    },
+    "network_cleanup_failures": [],
+    "recovery_timer": "active, independently read after cleanup",
+    "cumulative_management_counts": {
+      "config": 10,
+      "wifi-off": 0,
+      "wifi-on": 0,
+      "heap-probe": 0
+    }
+  },
+  "evidence": {
+    "remote_root": "/home/pi/phase11-5-n1u-4058d3a",
+    "archive": "phase115-n1u-preserved-final.tar.gz",
+    "archive_sha256": "636cf62e56264d3856bfe0202772b907e793ba5c28453c7f1800b4e409624d69",
+    "archive_verified_locally": true,
+    "unchanged_audit_failure_reproduced_locally": true,
+    "files": {
+      "packet.json": "19c0161697bf0febfd9a459f2d0402aac8161aa6272d4853db485c6b982ac8d1",
+      "workload.json": "6dee90b7f63d4b367f1a0b9101f6964045493c517c2e1632be9cc51015357b2b",
+      "conditioning-inhibited-audit-failure.json": "84b26e8d37872c5f180e87f5180f575b1027d1df1d3a53fc8db539d72bc49843",
+      "a2-inhibited-conditioning-nominal/production-tls.bin": "7b303bd74845d157062236965d1632196b0a8a9f6b438d0543324918fbd4aaa9",
+      "a2-inhibited-conditioning-nominal/usb-health.jsonl": "5d3c0e76aebe1fa34f11552c6516428818dbdfd677e9f0b6c0a6479896e06024",
+      "a2-inhibited-conditioning-nominal/load-events.jsonl": "12225c8f2658e7d40a897c9fa0a8dae26c6664266ce0a9ae66250117e63b864c",
+      "device-fixture.jsonl": "fee50541cbe093d11d5c12fcb3dd5a338b24a8559e199ee6506efc48aebb33ea",
+      "fixture.jsonl": "1930500d8ab6b3597b691994d568f2bfbf8c3268887ddbec123e222908f40526",
+      "before-a.stdout": "51110680fcaef73182859f75e62f9f8006d4f3f67906c06f89419ee7b7ab63e9",
+      "before-b.stdout": "dfaedb94fc5552a1fb68d44383432fc5fefebfb3030ceeb20e28bbc819d9950e",
+      "restored-original-boot.stdout": "994c16ceea125351da30fe97e99a7a5ba0f8ba3f46c400fa1eea413a42723bfd",
+      "after-b.stdout": "5ad4bac715e2f86458e48da9f796155c61a37d4f0d22b123ebeedfcc14352d2b",
+      "device-state.json": "7af5c3fb275695ee97cf7f3e064fd6e18b28840b580d237a02d768c7bf430bf2",
+      "management-state.json": "d4a9718ad4ab2e0e4d3181dce427441aaaf6f0bc5693d294deed03668e281599",
+      "fixture-state.json": "c82be38d83bd6a4f0de99ff872d7ef82a7b2c09ee8f287659173ffb279af4d41"
+    }
+  },
+  "unresolved": "One production STATUS stall exceeded the frozen cadence bound. Existing evidence does not distinguish transport retransmission from firmware delay; no packet-level capture was taken. No root-cause repair or target pass is claimed."
+}

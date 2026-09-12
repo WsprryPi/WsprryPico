@@ -1,9 +1,11 @@
 # Activity snapshot candidate: bounded A2/A3 retest
 
-Status: prepared, not executed. This packet requires a **new two-hour network
-window**. It does not extend the earlier six-hour N0 authorization or its frozen
-absolute deadline. Existing serial-specific flashing/RF authorization is
-recorded; the missing authorization concerns reopening the restored host fixture.
+Outcome: the user explicitly authorized the new two-hour network window and N1u
+executed. Its inhibited conditioning interval failed the production STATUS
+cadence audit; dependent A2/A3 work stopped and both device/host restoration
+completed. [Exact result and evidence](phase11-5-n1u-result.json). No RF jobs
+were submitted and no new acceptance case closed. The frozen plan below records
+the approved scope; the earlier six-hour N0 deadline was not extended.
 
 The source repair is clean `4058d3a4a95110326006a7db6e37eb4b562a500c`.
 [All four linked images](phase11-5-activity-images.json) passed allocator routing,
@@ -76,8 +78,8 @@ Use only reviewed archive `n1u-stage-reviewed.tar.gz`, SHA-256
 `889e1c014032eb23544ad4c16038612111927219e43f2a3c9ad00059c1c3a6fa`.
 Its workload manifest SHA-256 is
 `6dee90b7f63d4b367f1a0b9101f6964045493c517c2e1632be9cc51015357b2b`.
-The eventual remote root is `/home/pi/phase11-5-n1u-4058d3a`; no setup has run.
-Preserve the existing private roots and their failed attempts.
+The remote root is `/home/pi/phase11-5-n1u-4058d3a`; its failed conditioning and
+restoration evidence are preserved. Retain all prior private roots and failures.
 
 Preparation review corrected relative workload helper paths to absolute remote
 paths, verified all staged hashes, and exercised default no-access entry points
