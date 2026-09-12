@@ -104,7 +104,7 @@ bool PicoServer::configured() const {
 bool PicoServer::busy() const {
     if (api_.active_job_connections())
         return false;
-    const auto state = service_.status().state;
+    const auto state = service_.activity().state;
     return state == wtp::State::Armed || state == wtp::State::Running;
 }
 bool PicoServer::start() {

@@ -423,7 +423,7 @@ int main() {
         watchdog_update();
         watchdog_hw->scratch[1] = 3;
 #ifdef WSPRRY_PICO_STANDALONE_RF
-        const bool measuring = service.status().state == wsprrypico::wtp::State::Running;
+        const bool measuring = service.activity().state == wsprrypico::wtp::State::Running;
         const auto loop_us = time_us_64();
         if (measuring && last_loop_us)
             maximum(max_loop_us, last_loop_us);
@@ -437,7 +437,7 @@ int main() {
             maximum(max_refill_us, loop_us);
 #endif
         watchdog_hw->scratch[1] = 4;
-        const auto network_state = service.status().state;
+        const auto network_state = service.activity().state;
         if (server.listening() || (network_state != wsprrypico::wtp::State::Armed &&
                                    network_state != wsprrypico::wtp::State::Running))
             network.poll();

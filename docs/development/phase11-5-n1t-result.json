@@ -1,0 +1,167 @@
+{
+  "schema": "phase11.5-n1t-final-v1",
+  "phase_status": "OPEN",
+  "closed_cases": 2,
+  "total_cases": 20,
+  "case_results": {
+    "A1": "PASS_COMPILE_ONLY_8fb3894",
+    "A2": "PASS_IDLE_ONLY_8fb3894",
+    "A3": "FAIL"
+  },
+  "accepted_configurations": [],
+  "source_revision": "8fb3894253ef45adc3aad28f25a684168487490f",
+  "physical_uf2_sha256": "75b26e3fa2fc74e517fbfe9cdbe8ee7b9c0e6eabfc13708827d48d978ea0ba9f",
+  "system_clock_hz": 138000000,
+  "pio_divider": 1,
+  "rf_render_in_ram": true,
+  "physical_boot_id": "c282a09bdc59600f588a7abe5675e633",
+  "attempts": [
+    {
+      "case": "a3-physical",
+      "result": "FAIL",
+      "failure": "Actor INFO freshness guard rejected an in-flight on-time read",
+      "completed_job": "926a539c60a48ccda6960d7b3781d707"
+    },
+    {
+      "case": "a3-physical-observer-progress-v2",
+      "result": "FAIL",
+      "failure": "Browser status polling exceeded one-second lateness allowance",
+      "completed_job": "414173f362488c61a76db612847f4ff6"
+    },
+    {
+      "case": "a3-physical-asset-slack",
+      "result": "FAIL",
+      "failure": "Browser status polling exceeded one-second lateness allowance after an asset response took longer than the previous measured maximum",
+      "completed_job": "271b9b4489e43bebf1f87e8ac5acaa03"
+    }
+  ],
+  "attempt_limits": {
+    "planned_jobs_per_attempt": 3,
+    "armed_jobs_per_attempt": 1,
+    "duration_seconds_per_job": 10,
+    "frequency_hz": 135500,
+    "remaining_jobs_per_attempt": "NOT_SUBMITTED"
+  },
+  "final_reconciliation": {
+    "status": {
+      "boot_id": "c282a09bdc59600f588a7abe5675e633",
+      "state": "complete",
+      "output_active": false,
+      "owner_id": null,
+      "job_id": "271b9b4489e43bebf1f87e8ac5acaa03",
+      "terminal_records": [
+        {
+          "job_id": "271b9b4489e43bebf1f87e8ac5acaa03",
+          "state": "complete",
+          "ended_monotonic_ns": "3601244403000",
+          "output_active": false
+        },
+        {
+          "job_id": "414173f362488c61a76db612847f4ff6",
+          "state": "complete",
+          "ended_monotonic_ns": "2858189974000",
+          "output_active": false
+        },
+        {
+          "job_id": "926a539c60a48ccda6960d7b3781d707",
+          "state": "complete",
+          "ended_monotonic_ns": "1682208671000",
+          "output_active": false
+        }
+      ]
+    },
+    "metrics": {
+      "dma_irqs": 7902,
+      "tail_irqs": 3,
+      "launch_epoch": "3",
+      "running_successor_links": 7896,
+      "rf_max_service_gap_ns": "2060000",
+      "refill_full_predecessor": {
+        "measured": true,
+        "observations": 7893,
+        "epoch": "1",
+        "successor_sequence": "303",
+        "observed_ns": "1673358014000",
+        "remaining_words": 7485,
+        "total_words": 16384
+      },
+      "refill_short_predecessor": {
+        "measured": true,
+        "observations": 3,
+        "epoch": "2",
+        "successor_sequence": "2633",
+        "observed_ns": "2858189265000",
+        "remaining_words": 2103,
+        "total_words": 2312
+      },
+      "fault_stage": 0,
+      "fault_status": 0,
+      "fault_hash": 0,
+      "fault_pc": 0
+    },
+    "guarded_release": "Empty/inactive/unowned, exact three terminal records retained before restoration"
+  },
+  "restoration": {
+    "pico_a": {
+      "serial": "0BF4B4AEC9FFB344",
+      "revision": "802c91a7b86e-dirty",
+      "boot_id": "5b336cccde0e8ce1389a333755cb84f3",
+      "engine": "inhibited-standalone-simulator",
+      "output_active": false,
+      "original_configuration_matches": true,
+      "uf2_sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10"
+    },
+    "pico_b": {
+      "serial": "CDDBF8767C506C07",
+      "revision": "dbf1d86f0885-dirty",
+      "boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+      "engine": "inhibited-standalone-simulator",
+      "output_active": false,
+      "boot_and_configuration_unchanged": true
+    },
+    "host": {
+      "interfaces": "lo               UNKNOWN        127.0.0.1/8 ::1/128 \neth0             UP             fe80::2ecf:67ff:fe62:7664/64 \nwlan0            DOWN           \nwlan1            UP             192.168.1.117/24 \nwlan2            DOWN",
+      "routes": "default via 192.168.1.1 dev wlan1 proto dhcp src 192.168.1.117 metric 100 \n192.168.1.0/24 dev wlan1 proto kernel scope link src 192.168.1.117 metric 100",
+      "installed_pid": "1957"
+    },
+    "network_cleanup_failures": [],
+    "recovery_timer": "active, independently read after cleanup",
+    "management_counts": {
+      "config": 8,
+      "wifi-off": 0,
+      "wifi-on": 0,
+      "heap-probe": 0
+    }
+  },
+  "private_evidence": {
+    "remote_root": "/home/pi/phase11-5-n1t-8fb3894",
+    "archive": "phase115-n1t-preserved-final.tar.gz",
+    "archive_sha256": "e13a5388017d2a2065e1028c823abd509a0f7028b07ed5192014c660a50b8cb6",
+    "archive_verified_locally": true,
+    "files": {
+      "before-a.stdout": "4b8dd4e20ac6619fc44b7aab9c21566d043cf807323afe6a35f98b516f175bb9",
+      "before-b.stdout": "a231b267b4404f92fa7dd48a6bfa77bac18732a5a044d096cd233649b099018c",
+      "restored-original-boot.stdout": "a4bc26bb616aa550b52d1e25af0c01eb36f3d446ea693a3e17c09ddbbf2130b4",
+      "after-b.stdout": "6fff8d812135715a1e8ff7f1f2073c63863320705ae363124afe02ca47bd1716",
+      "a3-asset-slack-reconcile.stdout": "852ad6fba3e37a7807c04f959d980cd4834617a702a3ec79441e24f6969d25a0",
+      "completed-release-asset-slack-after.stdout": "081cbc6feecfd99467fe964c2cc44af87500073c8fe14a99ff89dcb8ca6f60a3",
+      "completed-release-asset-slack.jsonl": "7cbe70151374484d68e876989baa7c71327256cee9a3c2570339d467cdb9d8b1",
+      "device-fixture.jsonl": "86e6d5a741c4fbd9a8dffa5c2ceb819ba8e24b0b0d96acf0c989b05f731c3e00",
+      "fixture.jsonl": "58c8de874e6da087243462a4d63b3aa88d392829127a139edcf29f63a7fac1af",
+      "device-state.json": "653411e15c57671f75029167fd34938c92daa6678d852572fae6171afffb6820",
+      "management-state.json": "00954af5ad6a4e73a0a05a0bf095937a5545fc6d6453d60d034509de426facab",
+      "fixture-state.json": "d5c6980a1d22df1765acef292b6faf919d13745d6c60474f2348d75b4e2d871c",
+      "a3-asset-slack-manifest.json": "811f8bf9cdfab6aa6a46877c1c2059c7dfa0570a1b364709096934ae4d4d15d9",
+      "a3-physical-asset-slack/load-events.jsonl": "c5748b5d8d2bc271073b1cc2d86b55979a7ec6932c5c6a26f5c63b533984d1ae",
+      "a3-physical-asset-slack/usb-health.jsonl": "86deb741db94f455b6cc08452282d753fe05f244f932067f3b03577c176270db",
+      "a3-physical-asset-slack/production-tls.bin": "246fe5463644547c8fed039d4e36257dadb02a5731219ef19b4fab21b0518008"
+    }
+  },
+  "limitations": [
+    "Three individually completed jobs from three failed attempts do not close A3.",
+    "A2 remains evidence for its exact older image and boot; a firmware change requires affected checks again.",
+    "The activity snapshot source repair has not run on target. Its effect on contention remains unmeasured.",
+    "132 MHz and 150 MHz physical configurations remain untested.",
+    "Phase 11.6 band/mode RF acceptance and Phase 13 systematic clock/spectral work remain separate."
+  ]
+}

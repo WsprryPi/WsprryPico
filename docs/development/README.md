@@ -24,9 +24,11 @@ The [remediation execution and adversarial review](phase11-5-remediation-review.
 records the SRAM candidate and the remaining physical failure gates.
 The [current continuation](phase11-5-closure-work.md) records the later allocator,
 stack guard and production-session fixes. [N0 is restored](phase11-5-network-fixture-result.json);
-[N1/N1r results and the failed physical A2 baseline](phase11-5-n1-progress.md)
-are preserved; the [USB delivery repair](phase11-5-usb-priority.md) requires target repetition. No 11.5
-configuration is accepted.
+[N1 through N1t results](phase11-5-n1-progress.md) preserve the earlier failures.
+N1t closed exact-image A2 for `8fb3894`; A3 failed browser cadence under RF load.
+[The final restored state](phase11-5-n1t-result.json) records **2 of 20 cases
+closed**, with no accepted configuration. The activity snapshot source repair
+requires new linked-image and affected target checks.
 
 ## Build direction
 

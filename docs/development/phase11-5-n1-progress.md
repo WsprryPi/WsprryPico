@@ -345,3 +345,66 @@ All eight Pi driver tests and both finite-job scheduling models pass. The
 production binary, firmware, clock and A2 request mix/thresholds are unchanged;
 the next case records its new driver hash rather than relabeling the old A2
 trace. No failed A3 attempt is promoted to PASS.
+
+## N1t final disposition and restored state
+
+The `asset-slack` attempt also failed browser cadence. Its last stylesheet
+request began at N+42.899 s and took 3.260 s; the next status poll, due at
+N+45 s, therefore exceeded the unchanged one-second allowance. The measured
+previous asset maximum did not bound the next response. This remains an open
+contention failure; further scheduling guesses are not acceptance evidence.
+The third job, `271b9b4489e43bebf1f87e8ac5acaa03`, completed. Authoritative
+reconciliation confirmed inactive output, no owner and no firmware fault.
+Only one of the three planned jobs was armed in each failed attempt.
+
+[The final machine-readable result](phase11-5-n1t-result.json) binds all three
+attempts to physical image `75b26e3f…`, source `8fb3894253ef`, 138 MHz, divider 1
+and SRAM rendering. The count remains **2/20 closed: A1 and A2; A3 FAIL; the
+other 17 cases NOT_RUN**. Three separately completed jobs from failed attempts
+cannot be combined into an A3 pass. No clock configuration is accepted.
+
+After exact completed-job reconciliation, guarded CLAIM/RELEASE retained all
+three terminal records. The original inhibited image and configuration were
+then restored to Pico A, boot `5b336cccde0e8ce1389a333755cb84f3`. Pico B retained
+boot `4e2fb851c08b278dd4b977104d2c2aaa` and its configuration. Both authoritative
+inventories report Empty, inactive and unowned. The test namespace/AP and chrony
+ACL were removed, wlan0/wlan2 returned down, wlan1 retained its ordinary address,
+the Wi-Fi recovery timer is active, and installed `wsprrypi.service` retained
+PID 1957. The cumulative configuration-write count is eight.
+
+The full private archive `phase115-n1t-preserved-final.tar.gz`, SHA-256
+`e13a5388017d2a2065e1028c823abd509a0f7028b07ed5192014c660a50b8cb6`,
+is retained on wspr5 and hash-verified in the ignored local evidence directory.
+It includes both A2 families, all three A3 failures, the coordinator admission
+failure, guarded cleanup and restoration evidence. Original failures remain
+unchanged. This closes the temporary fixture, not Phase 11.5.
+
+## Activity snapshot repair and adversarial review
+
+Source review found repeated full `JobService::status()` construction in the
+physical main loop merely to read its state. Every construction copies the
+boot ID and any owner/job IDs and retained terminal history. The cost therefore
+grows as completed jobs accumulate. This is a concrete source inefficiency;
+the traces alone do not establish that it accounts for all browser delay.
+
+`JobService::activity()` now supplies state, live engine output and ownership
+presence without copying identities/history. The main loop, connection busy
+check and scheduler idle/reset checks use it. Full external STATUS still copies
+and returns its complete history. Both paths share the existing local-launch
+race handling and query current engine output; no output result is cached.
+Allocator peak measurement and all acceptance thresholds remain unchanged.
+
+The new regression proves allocation-free observations across Empty, Loaded,
+Armed, Running, Complete and Failed, owner expiry and up to eight retained
+records. A full status read in the same test demonstrates the previous allocation
+cost. Further checks preserve unexpected output and distinguish a local IRQ
+launch from an inconsistent nonlocal Armed/active report.
+
+Adversarial review checked output freshness, owner expiry, failed-state reset
+exclusion, terminal-history preservation and unchanged wire serialization.
+The review added explicit failed-state/expired-owner coverage; those affected
+tests passed. A second review found no further actionable issue in this bounded
+source change. All 55 host tests passed, the final affected core/scheduler tests
+passed, and native TLS passed in 11.14 s. Target performance is still unmeasured:
+new linked images and affected A2/A3 checks are required before accepting the
+repair. Earlier A1/A2 results remain bound to `8fb3894`.

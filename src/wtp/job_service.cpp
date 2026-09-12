@@ -625,8 +625,8 @@ void JobService::reset() {
     }
 }
 
-ServiceStatus JobService::status() const {
-    ServiceStatus result{boot_id_, state_, engine_.output_active(), std::nullopt, std::nullopt, {}};
+ServiceActivity JobService::activity() const {
+    ServiceActivity result{state_, engine_.output_active(), owner_.has_value()};
     // A local timer may launch after poll() captured an armed/inactive report.
     // The live output observation then establishes that this locally scheduled
     // job has started. Do not combine it with the stale foreground armed state.
@@ -635,6 +635,13 @@ ServiceStatus JobService::status() const {
     if (result.state == State::Armed && result.output_active && job_ && arm_ &&
         arm_->scheduled_locally)
         result.state = State::Running;
+    return result;
+}
+
+ServiceStatus JobService::status() const {
+    const auto current = activity();
+    ServiceStatus result{boot_id_,     current.state, current.output_active,
+                         std::nullopt, std::nullopt,  {}};
     if (owner_) {
         result.owner_id = owner_->owner_id;
     }

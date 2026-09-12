@@ -198,6 +198,14 @@ struct TerminalRecord {
     bool operator==(const TerminalRecord&) const = default;
 };
 
+// Internal activity observation: no identity/history copies or retained views.
+// Each observation still queries the engine's live output state.
+struct ServiceActivity {
+    State state;
+    bool output_active;
+    bool owned;
+};
+
 struct ServiceStatus {
     std::string boot_id;
     State state;
@@ -257,6 +265,7 @@ class JobService {
     Response local_abort();
     void poll();
     void reset();
+    [[nodiscard]] ServiceActivity activity() const;
     [[nodiscard]] ServiceStatus status() const;
     [[nodiscard]] ClockSnapshot clock_snapshot() const {
         return clock_.snapshot();

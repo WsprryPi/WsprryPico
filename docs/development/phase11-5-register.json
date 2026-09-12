@@ -66,6 +66,7 @@
     "P2 0d9bb44 SRAM renderer passed three 10-second 135.5 kHz Tone diagnostics at 138 MHz and restored inhibited A. This does not close full A-G or accept a configuration.",
     "P3 3eac6ec allocator image passed three finite Tone diagnostics and restored inhibited A. The subsequent stack-guard candidate and full A-G matrix require their own exact-image evidence.",
     "N1/N1r/N1s preserve all failed attempts. N1t 8fb3894 A2 passed both inhibited and 138 MHz physical full families with independently re-audited raw evidence. A3 and remaining cases require their own results; no clock configuration is accepted.",
-    "N1t first A3 attempt failed a browser actor freshness guard while an INFO read was in flight. The first job completed with output inactive and no firmware fault; the other two jobs were not submitted. Its terminal record and full evidence remain preserved. A2 remains PASS on the unchanged firmware/boot."
+    "N1t first A3 attempt failed a browser actor freshness guard while an INFO read was in flight. The first job completed with output inactive and no firmware fault; the other two jobs were not submitted. Its terminal record and full evidence remain preserved. A2 remains PASS on the unchanged firmware/boot.",
+    "N1t final result phase11-5-n1t-result.json retains three failed A3 attempts and all three completed-job records. The last two attempts failed browser cadence under RF load. Original inhibited A, unchanged B and normal host networking are restored. New activity-snapshot firmware requires affected exact-image checks; no new physical pass is inferred."
   ]
 }

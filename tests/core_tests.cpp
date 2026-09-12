@@ -6,10 +6,12 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <exception>
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <new>
 #include <span>
 #include <sstream>
 #include <stdexcept>
@@ -19,6 +21,20 @@
 #include <vector>
 
 using namespace wsprrypico::wtp;
+
+static std::size_t allocations = 0;
+void* operator new(std::size_t size) {
+    ++allocations;
+    if (auto* result = std::malloc(size ? size : 1))
+        return result;
+    throw std::bad_alloc();
+}
+void operator delete(void* memory) noexcept {
+    std::free(memory);
+}
+void operator delete(void* memory, std::size_t) noexcept {
+    std::free(memory);
+}
 
 namespace {
 
@@ -481,6 +497,9 @@ void test_local_launch_status_race() {
         // A nonlocal engine has no such authority: its unexpected output must
         // remain visible as an inconsistent armed/active safety observation.
         engine.active = true;
+        const auto activity = service.activity();
+        CHECK(activity.output_active && activity.owned);
+        CHECK(activity.state == (local ? State::Running : State::Armed));
         const auto response = service.handle(request("STATUS", std::monostate{}, 'e'));
         CHECK(response.ok && response.status_snapshot);
         const auto snapshot = *response.status_snapshot;
@@ -885,12 +904,80 @@ void test_physical_console_abort() {
     }
 }
 
+void test_activity_with_retained_history() {
+    VirtualClock clock;
+    MockRfEngine engine;
+    TestIdentitySource identities;
+    ServiceConfig config;
+    config.minimum_arm_lead_ns = 10;
+    JobService service(clock, engine, identities, config);
+    unsigned sequence = 0;
+    auto invoke = [&](std::string operation, RequestBody body = std::monostate{}) {
+        auto r = request(std::move(operation), std::move(body));
+        std::ostringstream identity;
+        identity << std::hex << std::setw(32) << std::setfill('0') << ++sequence;
+        r.request_id = identity.str();
+        r.payload_digest = sha256(std::span(
+            reinterpret_cast<const std::uint8_t*>(r.request_id.data()), r.request_id.size()));
+        return service.handle(r);
+    };
+    auto observe = [&](State state, bool output, bool owned, std::size_t history) {
+        const auto before_status = allocations;
+        const auto status = service.status();
+        CHECK(allocations > before_status); // Reproduces the former hot-loop cost.
+        CHECK(status.state == state && status.output_active == output);
+        CHECK(status.owner_id.has_value() == owned && status.terminal_records.size() == history);
+        const auto before_activity = allocations;
+        for (unsigned i = 0; i < 100; ++i) {
+            const auto activity = service.activity();
+            CHECK(activity.state == state && activity.output_active == output);
+            CHECK(activity.owned == owned);
+        }
+        CHECK(allocations == before_activity);
+        CHECK(service.status() == status); // Observation never prunes or changes history.
+    };
+    observe(State::Empty, false, false, 0);
+    engine.active = true;
+    observe(State::Empty, true, false, 0); // Unexpected output is never hidden.
+    engine.active = false;
+    CHECK(invoke("HELLO", HelloBody{{"WTP/1"}}).ok);
+    for (unsigned i = 0; i < 8; ++i) {
+        CHECK(invoke("CLAIM", ClaimBody{id('2'), 10'000}).ok);
+        const auto job = sample_job("3456789a"[i]);
+        CHECK(invoke("LOAD", job).ok);
+        observe(State::Loaded, false, true, i);
+        CHECK(invoke("ARM", ArmBody{job.job_id, clock.value.utc_now_ns + 10, 1000}).ok);
+        observe(State::Armed, false, true, i);
+        clock.advance(10);
+        service.poll();
+        observe(State::Running, true, true, i);
+        clock.advance(job.total_duration_ns);
+        service.poll();
+        observe(State::Complete, false, true, i + 1);
+        CHECK(invoke("RELEASE").ok);
+        observe(State::Empty, false, false, i + 1);
+    }
+    CHECK(invoke("CLAIM", ClaimBody{id('2'), 10'000}).ok);
+    const auto job = sample_job('b');
+    CHECK(invoke("LOAD", job).ok);
+    CHECK(invoke("ARM", ArmBody{job.job_id, clock.value.utc_now_ns + 10, 1000}).ok);
+    clock.advance(10);
+    service.poll();
+    engine.force_failure = true;
+    service.poll();
+    observe(State::Failed, false, true, 8);
+    clock.advance(10'000'000'000ULL);
+    service.poll();
+    observe(State::Failed, false, false, 8);
+}
+
 using Test = std::pair<const char*, void (*)()>;
 
 } // namespace
 
 int main() {
     const std::vector<Test> tests{
+        {"allocation-free activity with retained history", test_activity_with_retained_history},
         {"physical Console abort", test_physical_console_abort},
         {"crc and frame encoding", test_crc_and_frame_encoding},
         {"fragmented and combined frames", test_fragmented_and_combined_frames},
