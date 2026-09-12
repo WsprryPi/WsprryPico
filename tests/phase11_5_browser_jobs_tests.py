@@ -29,7 +29,7 @@ class BrowserJobsTests(unittest.TestCase):
                     p=root/(name+'-family-result.json');p.write_text(json.dumps(result))
                     manifest['a2_result_sha256'][kind]=coordinator.sha(p)
                     (root/(name+'-packet.json')).write_text(json.dumps(dict(
-                        source='8fb3894253ef45adc3aad28f25a684168487490f',
+                        source='4058d3a4a95110326006a7db6e37eb4b562a500c',
                         clock_hz=138000000 if kind=='physical' else 150000000)))
                 if family=='F1':
                     prior=root/'a3-physical';prior.mkdir();(prior/'jobs.json').write_text('{}')

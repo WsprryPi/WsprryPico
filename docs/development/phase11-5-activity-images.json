@@ -1,0 +1,350 @@
+{
+  "schema": "phase11.5-linked-images-v1",
+  "source_revision": "4058d3a4a95110326006a7db6e37eb4b562a500c",
+  "source_state": "clean at configure, build and final verification",
+  "accepted_configurations": [],
+  "scope": "Four clean activity-snapshot images: compile-only checks; all target activity-snapshot cases NOT_RUN. Earlier A1/A2 evidence remains bound to 8fb3894.",
+  "dependencies": {
+    "pico_sdk": "079c6f39023649b154152db30f1d781e884879bc",
+    "tinyusb": "86ad6e56c1700e85f1c5678607a762cfe3aa2f47",
+    "lwip": "77dcd25a72509eb83f72b033d219b1d40cd8eb95",
+    "mbedtls": "0bebf8b8c7f07abe3571ded48a11aa907a1ffb20",
+    "cyw43_driver": "055d64274b014dd7b1c2fc94d26e8a18face7124"
+  },
+  "compiler_version": "15.3.1",
+  "compiler_sha256": "dac496c4536a93e3eccc560271c300ccb2540b96fd5d56fcc18c9d8556793b72",
+  "images": [
+    {
+      "name": "WsprryPico",
+      "network_control": true,
+      "engine": "inhibited-standalone-simulator",
+      "system_clock_hz": 150000000,
+      "pio_divider": null,
+      "physical_execution": "NOT_RUN",
+      "files": [
+        {
+          "file": "WsprryPico.elf",
+          "sha256": "d20a97a9b2827849724542a4d8697f3bb1cac5c8705cc60d1a2bbc2c2dd733ec",
+          "bytes": 15013224
+        },
+        {
+          "file": "WsprryPico.elf.map",
+          "sha256": "7a6630df11f614f67da234e89232944aa274f1365a6a83d254e88dc99696ea5d",
+          "bytes": 2798423
+        },
+        {
+          "file": "WsprryPico.uf2",
+          "sha256": "0a7d54673e7171ee10275272701de5fbb3cecdc91c097a18eeae496c0922c7b9",
+          "bytes": 2016768
+        }
+      ],
+      "heap_capacity_bytes": 377524,
+      "core0_stack_reserved_bytes": 16384,
+      "core1_stack_reserved_bytes": 0,
+      "stack_reserve_bytes_per_active_core": 4096,
+      "linked_checks": {
+        "log": "build/phase11-5-closure/activity-on-build.log",
+        "result": "PASS",
+        "layout_log": "build/phase11-5-closure/activity-on-WsprryPico-layout-v2.log"
+      },
+      "linked_heap": {
+        "begin": "0x2001fd4c",
+        "limit": "0x2007c000",
+        "capacity_bytes": 377524
+      },
+      "linked_primary_stack": {
+        "bottom": "0x2007c000",
+        "top": "0x20080000",
+        "capacity_bytes": 16384
+      },
+      "flash_application_limit": "0x103fb000",
+      "journal_end_exclusive": "0x103ff000",
+      "boot_sector_reserved_bytes": 4096,
+      "sections_bytes": {
+        ".text": 642292,
+        ".rodata": 353392,
+        ".data": 11512,
+        ".bss": 118580
+      },
+      "linked_archives": [
+        {
+          "name": "libwsprrypico_core.a",
+          "sha256": "f33917a2d42bd8b80c3f3caec175c856182b0d8296200cc1268ed00ac43b7d33"
+        },
+        {
+          "name": "libstdc++.a",
+          "sha256": "7a6ba8377e786ea7a1484c2b2e32b48bd36992933a34b1251d84ace4eb6edbe9"
+        },
+        {
+          "name": "libm.a",
+          "sha256": "ce9ec5307eec619ee9a9535119198654e9cb2a1733ea444c65cf39641625fcb4"
+        },
+        {
+          "name": "libgcc.a",
+          "sha256": "1337a4b0e23b0bc12b3d49ac6882454b20863686c3eb409358663d4dd9964b90"
+        },
+        {
+          "name": "libg.a",
+          "sha256": "e28085cef709ee0ef3eeaf39d8058364f17f3dbcc9ef069135453f5fa2c502d9"
+        },
+        {
+          "name": "libc.a",
+          "sha256": "e28085cef709ee0ef3eeaf39d8058364f17f3dbcc9ef069135453f5fa2c502d9"
+        }
+      ]
+    },
+    {
+      "name": "WsprryPico-StandaloneRF",
+      "network_control": true,
+      "engine": "pio-dma-gp2",
+      "system_clock_hz": 138000000,
+      "pio_divider": 1,
+      "physical_execution": "NOT_RUN",
+      "files": [
+        {
+          "file": "WsprryPico-StandaloneRF.elf",
+          "sha256": "5a8f094fbe7d4776aed9a5e59036a6adba34ba1b8dffdc5cb7bcf9bacffc52c5",
+          "bytes": 15245476
+        },
+        {
+          "file": "WsprryPico-StandaloneRF.elf.map",
+          "sha256": "9461c62b263b3e44c895125b5324e8d075c9d8593b603d1716178fc0a6326544",
+          "bytes": 2939558
+        },
+        {
+          "file": "WsprryPico-StandaloneRF.uf2",
+          "sha256": "cb91912f7915db7828c5f58ea2a35c714c22728ee71f9ce04c7d034d22598154",
+          "bytes": 2039808
+        }
+      ],
+      "heap_capacity_bytes": 218392,
+      "core0_stack_reserved_bytes": 16384,
+      "core1_stack_reserved_bytes": 16384,
+      "stack_reserve_bytes_per_active_core": 4096,
+      "linked_checks": {
+        "log": "build/phase11-5-closure/activity-on-build.log",
+        "result": "PASS",
+        "layout_log": "build/phase11-5-closure/activity-on-WsprryPico-StandaloneRF-layout-v2.log"
+      },
+      "linked_heap": {
+        "begin": "0x20046ae8",
+        "limit": "0x2007c000",
+        "capacity_bytes": 218392
+      },
+      "linked_primary_stack": {
+        "bottom": "0x2007c000",
+        "top": "0x20080000",
+        "capacity_bytes": 16384
+      },
+      "flash_application_limit": "0x103fb000",
+      "journal_end_exclusive": "0x103ff000",
+      "boot_sector_reserved_bytes": 4096,
+      "sections_bytes": {
+        ".text": 651448,
+        ".rodata": 354432,
+        ".data": 12904,
+        ".bss": 276320
+      },
+      "linked_archives": [
+        {
+          "name": "libwsprrypico_pico_rf.a",
+          "sha256": "9b1444cd6d649ab3b8b7fde7a7e0c7cd4d1b4285aa7496d0bf19659abaae91aa"
+        },
+        {
+          "name": "libwsprrypico_rf.a",
+          "sha256": "8c718173e0e33a806424fd34837dd540f24926dd6b251cd248a8e92aeafff5e9"
+        },
+        {
+          "name": "libwsprrypico_core.a",
+          "sha256": "f33917a2d42bd8b80c3f3caec175c856182b0d8296200cc1268ed00ac43b7d33"
+        },
+        {
+          "name": "libstdc++.a",
+          "sha256": "7a6ba8377e786ea7a1484c2b2e32b48bd36992933a34b1251d84ace4eb6edbe9"
+        },
+        {
+          "name": "libm.a",
+          "sha256": "ce9ec5307eec619ee9a9535119198654e9cb2a1733ea444c65cf39641625fcb4"
+        },
+        {
+          "name": "libgcc.a",
+          "sha256": "1337a4b0e23b0bc12b3d49ac6882454b20863686c3eb409358663d4dd9964b90"
+        },
+        {
+          "name": "libg.a",
+          "sha256": "e28085cef709ee0ef3eeaf39d8058364f17f3dbcc9ef069135453f5fa2c502d9"
+        },
+        {
+          "name": "libc.a",
+          "sha256": "e28085cef709ee0ef3eeaf39d8058364f17f3dbcc9ef069135453f5fa2c502d9"
+        }
+      ]
+    },
+    {
+      "name": "WsprryPico",
+      "network_control": false,
+      "engine": "inhibited-standalone-simulator",
+      "system_clock_hz": 150000000,
+      "pio_divider": null,
+      "physical_execution": "NOT_RUN",
+      "files": [
+        {
+          "file": "WsprryPico.elf",
+          "sha256": "a488d7cc6c0a6da563d0ed9b8cfa7c2331e2b135c877f70f4af5fb24e784c1fd",
+          "bytes": 14733544
+        },
+        {
+          "file": "WsprryPico.elf.map",
+          "sha256": "b12ac0056bdabecd88c55d7867d8e2e1dfab5a487e2b47450eb7c4c0b22e73e1",
+          "bytes": 2789463
+        },
+        {
+          "file": "WsprryPico.uf2",
+          "sha256": "cc5c680e331fc5b94ec0266d0953ff7682678a46da691880b7e6f0114ceab36d",
+          "bytes": 1969664
+        }
+      ],
+      "heap_capacity_bytes": 377584,
+      "core0_stack_reserved_bytes": 16384,
+      "core1_stack_reserved_bytes": 0,
+      "stack_reserve_bytes_per_active_core": 4096,
+      "linked_checks": {
+        "log": "build/phase11-5-closure/activity-off-build.log",
+        "result": "PASS",
+        "layout_log": "build/phase11-5-closure/activity-off-WsprryPico-layout-v2.log"
+      },
+      "linked_heap": {
+        "begin": "0x2001fd10",
+        "limit": "0x2007c000",
+        "capacity_bytes": 377584
+      },
+      "linked_primary_stack": {
+        "bottom": "0x2007c000",
+        "top": "0x20080000",
+        "capacity_bytes": 16384
+      },
+      "flash_application_limit": "0x103fb000",
+      "journal_end_exclusive": "0x103ff000",
+      "boot_sector_reserved_bytes": 4096,
+      "sections_bytes": {
+        ".text": 622980,
+        ".rodata": 349176,
+        ".data": 11496,
+        ".bss": 118536
+      },
+      "linked_archives": [
+        {
+          "name": "libwsprrypico_core.a",
+          "sha256": "fbcf4c523618d6c32980a619d12092d423f75fd00db0a8e24d0068a9b98ad19c"
+        },
+        {
+          "name": "libstdc++.a",
+          "sha256": "7a6ba8377e786ea7a1484c2b2e32b48bd36992933a34b1251d84ace4eb6edbe9"
+        },
+        {
+          "name": "libm.a",
+          "sha256": "ce9ec5307eec619ee9a9535119198654e9cb2a1733ea444c65cf39641625fcb4"
+        },
+        {
+          "name": "libgcc.a",
+          "sha256": "1337a4b0e23b0bc12b3d49ac6882454b20863686c3eb409358663d4dd9964b90"
+        },
+        {
+          "name": "libg.a",
+          "sha256": "e28085cef709ee0ef3eeaf39d8058364f17f3dbcc9ef069135453f5fa2c502d9"
+        },
+        {
+          "name": "libc.a",
+          "sha256": "e28085cef709ee0ef3eeaf39d8058364f17f3dbcc9ef069135453f5fa2c502d9"
+        }
+      ]
+    },
+    {
+      "name": "WsprryPico-StandaloneRF",
+      "network_control": false,
+      "engine": "pio-dma-gp2",
+      "system_clock_hz": 138000000,
+      "pio_divider": 1,
+      "physical_execution": "NOT_RUN",
+      "files": [
+        {
+          "file": "WsprryPico-StandaloneRF.elf",
+          "sha256": "425c22bf01343d9058744fadf9208e32cab68c9f7e4e874f5f2970a674bd77a2",
+          "bytes": 14963860
+        },
+        {
+          "file": "WsprryPico-StandaloneRF.elf.map",
+          "sha256": "c49a9fd9377ad2bbe3a3901931660068d0ed8c564adda107f86a89a2a20e0d71",
+          "bytes": 2930442
+        },
+        {
+          "file": "WsprryPico-StandaloneRF.uf2",
+          "sha256": "3f2c8508603d7c62efd8a4beddcee69b649601132911f3e70aa02ffb19072337",
+          "bytes": 1992704
+        }
+      ],
+      "heap_capacity_bytes": 218444,
+      "core0_stack_reserved_bytes": 16384,
+      "core1_stack_reserved_bytes": 16384,
+      "stack_reserve_bytes_per_active_core": 4096,
+      "linked_checks": {
+        "log": "build/phase11-5-closure/activity-off-build.log",
+        "result": "PASS",
+        "layout_log": "build/phase11-5-closure/activity-off-WsprryPico-StandaloneRF-layout-v2.log"
+      },
+      "linked_heap": {
+        "begin": "0x20046ab4",
+        "limit": "0x2007c000",
+        "capacity_bytes": 218444
+      },
+      "linked_primary_stack": {
+        "bottom": "0x2007c000",
+        "top": "0x20080000",
+        "capacity_bytes": 16384
+      },
+      "flash_application_limit": "0x103fb000",
+      "journal_end_exclusive": "0x103ff000",
+      "boot_sector_reserved_bytes": 4096,
+      "sections_bytes": {
+        ".text": 632064,
+        ".rodata": 350216,
+        ".data": 12896,
+        ".bss": 276276
+      },
+      "linked_archives": [
+        {
+          "name": "libwsprrypico_pico_rf.a",
+          "sha256": "8a3e6784a23a6c84011d71ef587115d5e0394405f9e52c70c2735bb6348959f0"
+        },
+        {
+          "name": "libwsprrypico_rf.a",
+          "sha256": "2dd47d36d7f759610755e434a8cf83410b2c55cf9dc072b73e539820706ea156"
+        },
+        {
+          "name": "libwsprrypico_core.a",
+          "sha256": "fbcf4c523618d6c32980a619d12092d423f75fd00db0a8e24d0068a9b98ad19c"
+        },
+        {
+          "name": "libstdc++.a",
+          "sha256": "7a6ba8377e786ea7a1484c2b2e32b48bd36992933a34b1251d84ace4eb6edbe9"
+        },
+        {
+          "name": "libm.a",
+          "sha256": "ce9ec5307eec619ee9a9535119198654e9cb2a1733ea444c65cf39641625fcb4"
+        },
+        {
+          "name": "libgcc.a",
+          "sha256": "1337a4b0e23b0bc12b3d49ac6882454b20863686c3eb409358663d4dd9964b90"
+        },
+        {
+          "name": "libg.a",
+          "sha256": "e28085cef709ee0ef3eeaf39d8058364f17f3dbcc9ef069135453f5fa2c502d9"
+        },
+        {
+          "name": "libc.a",
+          "sha256": "e28085cef709ee0ef3eeaf39d8058364f17f3dbcc9ef069135453f5fa2c502d9"
+        }
+      ]
+    }
+  ]
+}

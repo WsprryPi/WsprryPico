@@ -31,8 +31,8 @@ from phase11_5_device_management import SOURCE, admit, digest, save
 from phase11_5_network_fixture import Fixture, HOST_BOOT, PREFIX as HOST_PREFIX, RUN_SECONDS
 
 IMAGES = {
-    'inhibited': ('inhibited.uf2', 'cb93246be2844b11d9200562ef23244f0d3bd5705d12fa9d71487e5b61259698'),
-    'physical': ('physical.uf2', '75b26e3fa2fc74e517fbfe9cdbe8ee7b9c0e6eabfc13708827d48d978ea0ba9f'),
+    'inhibited': ('inhibited.uf2', '0a7d54673e7171ee10275272701de5fbb3cecdc91c097a18eeae496c0922c7b9'),
+    'physical': ('physical.uf2', 'cb91912f7915db7828c5f58ea2a35c714c22728ee71f9ce04c7d034d22598154'),
     'original': ('original.uf2', RESTORE_SHA),
 }
 ORIGINAL_CONFIG_SHA = '2978a00337f174286085251ec12ea15d0e524652738e009af3eb64e3be4ca0bf'

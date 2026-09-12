@@ -87,8 +87,8 @@ def main():
     packet_path=root/'jobs.json';packet=json.loads(packet_path.read_text());validate_packet(packet)
     f1=packet['schema']==F1_SCHEMA
     load_seconds=NOMINAL_SECONDS if f1 else 180
-    require(packet['revision']=='8fb3894253ef' and packet['uf2_sha256']==
-            '75b26e3fa2fc74e517fbfe9cdbe8ee7b9c0e6eabfc13708827d48d978ea0ba9f','Exact physical candidate')
+    require(packet['revision']=='4058d3a4a951' and packet['uf2_sha256']==
+            'cb91912f7915db7828c5f58ea2a35c714c22728ee71f9ce04c7d034d22598154','Exact physical candidate')
     owner=inventory_session(packet['owner_id']);session=inventory_session(packet['browser_session_id'])
     plan=json.loads((root/'load.json').read_text())
     ready=json.loads((root/'ready.json').read_text())

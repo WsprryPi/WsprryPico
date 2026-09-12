@@ -54,7 +54,7 @@ def main():
         require(sha(path)==manifest['a2_result_sha256'][kind],'Reviewed A2 result changed')
         result=json.loads(path.read_text())
         prerequisite=json.loads((root/(a2_name+'-packet.json')).read_text())
-        require(prerequisite['source']=='8fb3894253ef45adc3aad28f25a684168487490f' and
+        require(prerequisite['source']=='4058d3a4a95110326006a7db6e37eb4b562a500c' and
                 prerequisite['clock_hz']==(138000000 if kind=='physical' else 150000000),
                 'A2 firmware/clock identity')
         require(result['status']=='CAPTURED_REQUIRES_FINAL_REVIEW' and
@@ -83,8 +83,8 @@ def main():
     target=root/name;target.mkdir(mode=0o700)
     packet=dict(schema='phase11.5-pilot-v2',serial='0BF4B4AEC9FFB344',
         device_id='fd6127d11d6aca42a9905fa3fb1bf1d5',system_clock_hz=138000000,
-        revision='8fb3894253ef',source_revision='8fb3894253ef45adc3aad28f25a684168487490f',
-        uf2_sha256='75b26e3fa2fc74e517fbfe9cdbe8ee7b9c0e6eabfc13708827d48d978ea0ba9f',
+        revision='4058d3a4a951',source_revision='4058d3a4a95110326006a7db6e37eb4b562a500c',
+        uf2_sha256='cb91912f7915db7828c5f58ea2a35c714c22728ee71f9ce04c7d034d22598154',
         host_boot_id=d.state['host_boot'],rf_render_in_ram=True,boot_id=d.state['boot'],
         baseline=str(baseline),owner_id=secrets.token_hex(16),browser_session_id=secrets.token_hex(16),
         prior_terminal_records=history,

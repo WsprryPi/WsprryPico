@@ -1,8 +1,13 @@
 # Prepared F1 finite-mode resource case
 
-F1 is NOT RUN. It accepts resource and contention behavior only. It does not
-qualify per-band RF, filters, spectra or other clocks. The selected image is
-clean `8fb3894253ef45adc3aad28f25a684168487490f`, physical PIO at 138 MHz,
+F1 is NOT RUN. Current helpers are pinned to the activity-snapshot candidate
+`4058d3a4a951`; its images are in `phase11-5-activity-images.json`. F1 is excluded
+from the prepared A2/A3-only activity retest packet. The earlier preparation
+record below remains historical and does not authorize a stale image/helper.
+
+F1 accepts resource and contention behavior only. It does not
+qualify per-band RF, filters, spectra or other clocks. The initial preparation
+selected clean `8fb3894253ef45adc3aad28f25a684168487490f`, physical PIO at 138 MHz,
 divider 1, SRAM renderer, UF2 SHA-256
 `75b26e3fa2fc74e517fbfe9cdbe8ee7b9c0e6eabfc13708827d48d978ea0ba9f`.
 Pico A remains USB `0BF4B4AEC9FFB344`, WTP

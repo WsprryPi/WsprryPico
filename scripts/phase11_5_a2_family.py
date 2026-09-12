@@ -69,7 +69,7 @@ def main():
         current=d.check_current(baseline_name)
         require(current['info']['network']['ipv4']=='10.77.15.10' and
                 current['info']['network']['ntp_address']=='10.77.15.1','Fixture network not ready')
-        packet=dict(case=name,boot=d.state['boot'],source='8fb3894253ef45adc3aad28f25a684168487490f',
+        packet=dict(case=name,boot=d.state['boot'],source='4058d3a4a95110326006a7db6e37eb4b562a500c',
             clock_hz=current['info']['system_clock_hz'],observer_session_id=secrets.token_hex(16),
             observer_sha256=hashlib.sha256((root/'scripts/phase11_5_idle_observer.py').read_bytes()).hexdigest(),
             intervals=[['quiet-before',360],['controller',180],['nominal',180],['quiet-after',360]],

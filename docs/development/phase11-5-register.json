@@ -68,5 +68,14 @@
     "N1/N1r/N1s preserve all failed attempts. N1t 8fb3894 A2 passed both inhibited and 138 MHz physical full families with independently re-audited raw evidence. A3 and remaining cases require their own results; no clock configuration is accepted.",
     "N1t first A3 attempt failed a browser actor freshness guard while an INFO read was in flight. The first job completed with output inactive and no firmware fault; the other two jobs were not submitted. Its terminal record and full evidence remain preserved. A2 remains PASS on the unchanged firmware/boot.",
     "N1t final result phase11-5-n1t-result.json retains three failed A3 attempts and all three completed-job records. The last two attempts failed browser cadence under RF load. Original inhibited A, unchanged B and normal host networking are restored. New activity-snapshot firmware requires affected exact-image checks; no new physical pass is inferred."
-  ]
+  ],
+  "pending_candidate": {
+    "source_revision": "4058d3a4a95110326006a7db6e37eb4b562a500c",
+    "image_record": "phase11-5-activity-images.json",
+    "linked_checks": "PASS_COMPILE_ONLY",
+    "target_checks": "NOT_RUN",
+    "retest_packet": "phase11-5-activity-packet.json",
+    "network_window": "REQUIRES_NEW_AUTHORIZATION",
+    "earlier_case_results_apply_to": "8fb3894253ef45adc3aad28f25a684168487490f"
+  }
 }

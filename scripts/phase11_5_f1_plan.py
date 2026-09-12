@@ -11,8 +11,8 @@ from campaign.plan import make_job
 from phase11_5_inventory import require
 from phase11_5_network_fixture import HOST_BOOT
 
-SOURCE='8fb3894253ef45adc3aad28f25a684168487490f'
-IMAGE='75b26e3fa2fc74e517fbfe9cdbe8ee7b9c0e6eabfc13708827d48d978ea0ba9f'
+SOURCE='4058d3a4a95110326006a7db6e37eb4b562a500c'
+IMAGE='cb91912f7915db7828c5f58ea2a35c714c22728ee71f9ce04c7d034d22598154'
 SCHEMA='phase11.5-f1-v1'
 MODES=('TONE','QRSS','FSKCW','DFCW','WSPR')
 MAX_RENEWALS=60

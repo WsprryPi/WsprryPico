@@ -29,6 +29,8 @@ N1t closed exact-image A2 for `8fb3894`; A3 failed browser cadence under RF load
 [The final restored state](phase11-5-n1t-result.json) records **2 of 20 cases
 closed**, with no accepted configuration. The activity snapshot source repair
 requires new linked-image and affected target checks.
+The [activity candidate retest](phase11-5-activity-run.md) has four checked images
+and a prepared A2/A3 packet; its new network window is not yet authorized.
 
 ## Build direction
 

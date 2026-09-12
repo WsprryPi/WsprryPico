@@ -77,9 +77,9 @@ def main():
     try:
         current=d.check_current('b1-admission')
         require(current['info']['system_clock_hz']==138000000 and
-                current['info']['revision']=='8fb3894253ef' and
+                current['info']['revision']=='4058d3a4a951' and
                 current['info']['network']['ipv4']=='10.77.15.10','B1 identity')
-        result.update(boot=d.state['boot'],source='8fb3894253ef45adc3aad28f25a684168487490f',
+        result.update(boot=d.state['boot'],source='4058d3a4a95110326006a7db6e37eb4b562a500c',
                       clock_hz=138000000)
         terminal=current['wtp']['STATUS']['terminal_records']
         for stage in ('quiet-before','repeat-1','repeat-2','repeat-3','quiet-after'):
