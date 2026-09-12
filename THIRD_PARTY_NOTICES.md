@@ -50,8 +50,10 @@ Standalone Wi-Fi builds also link the pinned SDK's network dependencies:
   source is unchanged and remains in the external SDK checkout.
 - [cyw43-driver](https://github.com/georgerobotics/cyw43-driver), v1.1.1 at
   `055d64274b014dd7b1c2fc94d26e8a18face7124`, including the SDK-selected
-  `firmware/w43439A0_7_95_49_00_combined.h` Wi-Fi/CLM resource. Source and
-  resources are unchanged, external SDK inputs. Retained upstream
+  `firmware/w43439A0_7_95_49_00_combined.h` Wi-Fi/CLM resource. The external SDK source and
+  resources remain unchanged. A hash-verified build overlay of `cyw43_ll.c`
+  preserves outgoing frames across shared-buffer receive polling; generated
+  copies retain the original header and identify the modification. Retained upstream
   [LICENSE.RP](docs/licenses/cyw43-driver-RP.txt) covers use with Raspberry Pi
   semiconductor devices; the alternative upstream
   [LICENSE](docs/licenses/cyw43-driver.txt) is retained too. These are distinct

@@ -60,6 +60,9 @@ foreach(component lwip cyw43-driver mbedtls)
         # pico_lwip permits overriding the SDK submodule path. Verify the
         # source actually linked by the responder wrapper and core stack.
         set(component_path "${PICO_LWIP_PATH}")
+    elseif(component STREQUAL "cyw43-driver")
+        # Verify the actual override compiled by the generated TX overlay too.
+        set(component_path "${PICO_CYW43_DRIVER_PATH}")
     elseif(component STREQUAL "mbedtls")
         # The SDK permits an environment/cache override. Verify the linked input.
         set(component_path "${PICO_MBEDTLS_PATH}")

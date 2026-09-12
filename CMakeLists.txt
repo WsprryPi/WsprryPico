@@ -29,6 +29,10 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
 endif()
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
+if(WSPRRY_PICO_BUILD_FIRMWARE)
+    include(cmake/cyw43_tx_overlay.cmake)
+    wsprry_cyw43_tx_overlay()
+endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/index.html src/network/web/style.css src/network/web/app.js
     scripts/generate_web_assets.py)
@@ -230,6 +234,17 @@ if(WSPRRY_PICO_BUILD_TESTS)
     include(cmake/host_client_interop.cmake)
     include(cmake/network_host_tests.cmake)
     include(cmake/mdns_host_tests.cmake)
+    set(WSPRRY_PICO_TEST_CYW43_PATH "" CACHE PATH "Optional installed pinned CYW43 for TX regression")
+    if(NOT WSPRRY_PICO_TEST_CYW43_PATH AND WSPRRY_PICO_TEST_LWIP_PATH)
+        get_filename_component(sdk_lib "${WSPRRY_PICO_TEST_LWIP_PATH}" DIRECTORY)
+        if(EXISTS "${sdk_lib}/cyw43-driver/src/cyw43_ll.c")
+            set(WSPRRY_PICO_TEST_CYW43_PATH "${sdk_lib}/cyw43-driver")
+        endif()
+    endif()
+    if(WSPRRY_PICO_TEST_CYW43_PATH)
+        add_test(NAME cyw43_tx_overlay_tests COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/cyw43_tx_overlay_tests.py ${WSPRRY_PICO_TEST_CYW43_PATH})
+    endif()
     add_test(NAME network_certificate_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/network_certificate_tests.py)
     add_test(NAME shutdown_image_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/shutdown_image_tests.py)

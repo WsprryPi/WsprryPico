@@ -1,5 +1,8 @@
 #include "standalone/pico/adapters.hpp"
 
+#ifdef WSPRRY_PICO_CYW43_TX_GUARD
+#include "standalone/pico/cyw43_tx_guard.h"
+#endif
 #include "hardware/flash.h"
 #include "hardware/structs/watchdog.h"
 #include "hardware/sync.h"
@@ -387,6 +390,14 @@ std::string PicoNetwork::ipv4() const {
 }
 std::string PicoNetwork::status() const {
     const auto uncertainty = sntp_.last_uncertainty_ns();
+    std::string tx_guard;
+#ifdef WSPRRY_PICO_CYW43_TX_GUARD
+    std::uint32_t waits, preserved, timeouts;
+    wsprry_cyw43_tx_diagnostics(&waits, &preserved, &timeouts);
+    tx_guard = ",\"tx_credit\":{\"waits\":" + std::to_string(waits) +
+               ",\"preserved\":" + std::to_string(preserved) +
+               ",\"timeouts\":" + std::to_string(timeouts) + "}";
+#endif
     return "{\"initialized\":" + std::string(initialized_ ? "true" : "false") +
            ",\"enabled\":" + (enabled_ ? "true" : "false") + ",\"link_status\":" +
            std::to_string(initialized_ ? cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA)
@@ -415,7 +426,7 @@ std::string PicoNetwork::status() const {
            ",\"packets\":{\"arp\":" + packet_stats(lwip_stats.etharp) +
            ",\"ipv4\":" + packet_stats(lwip_stats.ip) + ",\"tcp\":" + packet_stats(lwip_stats.tcp) +
            ",\"udp\":" + packet_stats(lwip_stats.udp) + "}" + ",\"memory\":" + network_memory() +
-           ",\"ntp_server\":" + wtp::json::quote(time_server_) + ",\"ntp_address\":" +
+           tx_guard + ",\"ntp_server\":" + wtp::json::quote(time_server_) + ",\"ntp_address\":" +
            wtp::json::quote(server_literal_ || lookup_.ready() ? ipaddr_ntoa(&server_) : "") +
            ",\"ntp_resolution\":" +
            wtp::json::quote(server_literal_     ? "literal"

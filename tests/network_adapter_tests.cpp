@@ -8,6 +8,7 @@
 #include "lwip/timeouts.h"
 #include "pico/cyw43_arch.h"
 #include "standalone/pico/adapters.hpp"
+#include "standalone/pico/cyw43_tx_guard.h"
 #include "standalone/pico/mdns_lwip.h"
 
 #include <array>
@@ -15,6 +16,13 @@
 #include <iostream>
 #include <optional>
 #include <vector>
+
+extern "C" void wsprry_cyw43_tx_diagnostics(uint32_t* waits, uint32_t* preserved,
+                                            uint32_t* timeouts) {
+    *waits = 7;
+    *preserved = 5;
+    *timeouts = 1;
+}
 
 using wsprrypico::standalone::PicoNetwork;
 cyw43_t cyw43_state{};
@@ -195,6 +203,8 @@ int main(int argc, char** argv) {
     PicoNetwork network(clock, "pico-a.local");
     wsprrypico::standalone::Config config;
     config.ntp_ipv4 = "192.0.2.1";
+    assert(network.status().find("\"tx_credit\":{\"waits\":7,\"preserved\":5,\"timeouts\":1}") !=
+           std::string::npos);
     assert(!network.set_enabled(false));
     assert(network.association().find("not_connected") != std::string::npos);
     assert(bssid_queries == 0);
