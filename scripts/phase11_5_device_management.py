@@ -23,6 +23,8 @@ from phase11_5_pilot import DEVICE, SERIAL
 from phase11_5_pilot_supervisor import finished, idle
 
 SOURCE = '4058d3a4a95110326006a7db6e37eb4b562a500c'
+R1_SOURCE = 'e20ae8bea2d5237af017dbd5f73bfe9332ce144e'
+CANDIDATES = (SOURCE, R1_SOURCE)
 MAX_WRITES = 32
 MAX_PROBES = 64
 
@@ -31,12 +33,13 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def admit(current, baseline):
+def admit(current, baseline, source=SOURCE):
+    require(source in CANDIDATES, 'Unreviewed candidate')
     idle(current)
     idle(baseline)
     info, old = current['info'], baseline['info']
     require(info['device_id'] == old['device_id'] == DEVICE, 'DUT identity')
-    require(info['revision'] == old['revision'] == SOURCE[:12], 'Candidate revision')
+    require(info['revision'] == old['revision'] == source[:12], 'Candidate revision')
     require(info['status']['boot_id'] == old['status']['boot_id'], 'Boot changed')
     require(info['system_clock_hz'] == old['system_clock_hz'], 'Clock changed')
     physical = info['status']['engine'] == 'pio-dma-gp2'
@@ -180,7 +183,7 @@ def main():
             stream.flush()
             os.fsync(stream.fileno())
         current = finished(inventory, 'READ_ONLY_INVENTORY')
-        admit(current, baseline)
+        admit(current, baseline, packet['source_revision'])
         if args.action == 'config':
             require(args.variant is not None, 'Missing configuration variant')
             original_path, wifi_path = root / 'original-config.json', root / 'test-wifi.json'
@@ -207,7 +210,7 @@ def main():
             with exclusive_port(Path(f'/dev/serial/by-id/usb-WsprryPi_WsprryPico_{SERIAL}-if00')) as fd:
                 info = exchange(fd, b'INFO\n', time.monotonic() + 5, emit, False)
                 fresh = dict(current, info=info)
-                admit(fresh, baseline)
+                admit(fresh, baseline, packet['source_revision'])
                 state['pending'] = {'action': args.action, 'variant': args.variant,
                                     'bytes': args.bytes, 'evidence': evidence.name,
                                     'command_sha256': hashlib.sha256(command).hexdigest()}

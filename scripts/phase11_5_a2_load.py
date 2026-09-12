@@ -40,7 +40,8 @@ def main():
     os.umask(0o077)
     root=args.root.resolve(strict=True)
     require(root.stat().st_mode & 0o077 == 0,'Private root required')
-    fixture=Fixture(root);fixture.verify()
+    lifecycle=json.loads((root/'packet.json').read_text())
+    fixture=Fixture(Path(lifecycle['network_root']));fixture.verify()
     device=DeviceFixture(root);device.verify_helpers()
     require(device.state['kind']==args.kind and not device.state.get('pending') and
             time.monotonic_ns()+(args.seconds+90)*1_000_000_000 < device.state['deadline_monotonic_ns'],
@@ -72,7 +73,7 @@ def main():
     namespaces={key:fixture.in_client(['readlink',path]).stdout.strip()
                 for key,path in [('netns','/proc/self/ns/net'),('mountns','/proc/self/ns/mnt')]}
     plan=dict(boot_id=case['boot'],device_id=packet['device_id'],seconds=args.seconds,
-        browser=args.browser,address='10.77.15.10',**namespaces,
+        browser=args.browser,**({'browser_profile':case['browser_profile']} if 'browser_profile' in case else {}),address='10.77.15.10',**namespaces,
         binary=packet['production_binary'],binary_sha256=packet['production_binary_sha256'],ini=str(root/'production.ini'),
         ini_sha256=packet['production_ini_sha256'],observer=str(observer),
         observer_sha256=packet['production_observer_sha256'],

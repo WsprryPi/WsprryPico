@@ -20,7 +20,10 @@ with realistic normal traffic separated from stress and overload. The
 closed**, useful existing evidence and an empty accepted-configuration list.
 The [documentation reorganization review](phase11-5-test-reorganization-review.md)
 maps all 20 legacy cases without changing code, runners or historical results.
-The revised executable campaign still needs a separately code-authorized slice.
+The [R1 executor and review](phase11-5-r1-review.md) now exist: four artifact
+layouts pass, but inhibited DNS/time readiness blocked the target intervals.
+R1 has 1/5 assertions passed, 1 blocked and 3 not run; both boards and host were
+restored. R2-R6 execution adaptation remains outstanding.
 
 Historical [Phase 11.5 review](phase11-5-review.md),
 [metric definitions](phase11-5-metrics.md) and the bounded

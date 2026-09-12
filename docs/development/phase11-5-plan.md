@@ -10,7 +10,8 @@ closure mechanism. The [reorganization prompt](phase11-5-test-reorganization-pro
 and [review](phase11-5-test-reorganization-review.md) record this documentation-only change.
 
 No runner, test, validator, firmware, protocol or operational configuration was
-changed. No hardware execution is authorized by this document. Future packets
+changed by that documentation revision. The subsequent [R1 execution](phase11-5-r1-review.md)
+adds scoped tooling and records a blocked readiness attempt; R1 remains open. No hardware execution is authorized by this document. Future packets
 must reconcile available tools with this plan before obtaining any missing
 bounded hardware/network authority. Old supervisors must not be run under new
 labels or modified implicitly to implement this plan.
@@ -266,7 +267,7 @@ subcase counts after each packet, separately from family completion counts.
 A test packet is not necessarily a fresh fixture session. Neighboring packets
 may share a bounded authorized session and unchanged boot with safe explicit
 handoffs and sufficient restoration time. Last recorded configuration count is
-22/32; reserve R5 rotation, schedule changes and final restoration before further
+24/32; reserve R5 rotation, schedule changes and final restoration before further
 writes. Separate setup/restoration per packet would exhaust this budget. Never
 reset an administrative counter to manufacture capacity. Preserve prior attempts.
 
@@ -293,7 +294,9 @@ No six-family pass count is a substitute for that assertion checklist. Publish
 accepted configurations only with source/ELF/UF2, board/boot/clock, workload and
 gate evidence. **The accepted configuration list is currently empty.**
 
-Current runners implement the old matrix and stress workload, and the existing
+R1 now has an explicit executor, N workload and raw auditor; its target run was
+blocked before workload admission, as recorded in the [R1 review](phase11-5-r1-review.md).
+Other family runners still implement the old matrix, and the existing
 validator requires all 20 legacy cases PASS. A later explicitly code-authorized
 slice must support N/S/O/M profiles, independent subcase reporting/reuse, standalone
 coverage and the revised ledger/closure predicate without weakening safeguards.

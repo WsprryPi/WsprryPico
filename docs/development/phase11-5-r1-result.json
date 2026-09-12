@@ -1,0 +1,252 @@
+{
+  "schema": "phase11.5-r1-result-v1",
+  "status": "BLOCKED",
+  "family": "R1",
+  "family_closed": false,
+  "firmware_source": "e20ae8bea2d5237af017dbd5f73bfe9332ce144e",
+  "selected_physical_clock_hz": 138000000,
+  "accepted_configurations": [],
+  "rf_jobs": [],
+  "physical_image_executed_this_attempt": false,
+  "assertions": {
+    "R1.1": "PASS",
+    "R1.2": "BLOCKED",
+    "R1.3": "NOT_RUN",
+    "R1.4": "NOT_RUN",
+    "R1.5": "NOT_RUN"
+  },
+  "counts": {
+    "passed": 1,
+    "blocked": 1,
+    "not_run": 3,
+    "total": 5
+  },
+  "revised_families_closed": 0,
+  "attempts": [
+    {
+      "root": "/home/pi/phase11-5-r1-e20ae8b",
+      "packet_sha256": "a835cb6e1b05abbe88884cd9fc2b22e9e10d716d63ef8220ec95a8dd18a3b91c",
+      "result": {
+        "family": "R1",
+        "source": "e20ae8bea2d5237af017dbd5f73bfe9332ce144e",
+        "status": "FAILED",
+        "intervals": {},
+        "rf_jobs": [],
+        "current_stage": "r1-device-start",
+        "error": "ValueError: r1-device-start failed; stop dependent tests"
+      },
+      "device_mutations": false,
+      "disposition": "User confirmed between-campaign reboots; reconciled original idle configurations before fresh attempt"
+    },
+    {
+      "root": "/home/pi/phase11-5-r1b-e20ae8b",
+      "packet_sha256": "e2fc004e5ab124bb4a232dd1b9c107efe449d7415ccc393d267abe3843e5a855",
+      "result": {
+        "family": "R1",
+        "source": "e20ae8bea2d5237af017dbd5f73bfe9332ce144e",
+        "status": "FAILED",
+        "intervals": {},
+        "rf_jobs": [],
+        "current_stage": "r1-device-restore",
+        "error": "ValueError: R1 network/time readiness deadline",
+        "device_restored": true
+      },
+      "device_mutations": true
+    }
+  ],
+  "readiness": {
+    "boot": "8f7f208c8eaf639c18f78b7e1feedd2d",
+    "clock_hz": 150000000,
+    "clock": {
+      "state": "unsynchronized",
+      "utc_now_ns": "0",
+      "monotonic_now_ns": "64376732000",
+      "uncertainty_ns": "18446744073709551615",
+      "sync_age_ns": "18446744073709551615",
+      "leap": "unknown"
+    },
+    "network": {
+      "ipv4": "10.77.15.10",
+      "ntp_server": "clock.phase115.test",
+      "ntp_address": "",
+      "ntp_resolution": "resolving",
+      "ntp_resolution_failures": 2,
+      "packets": {
+        "arp": {
+          "received": 8,
+          "sent": 9,
+          "dropped": 0
+        },
+        "ipv4": {
+          "received": 3,
+          "sent": 23,
+          "dropped": 0
+        },
+        "tcp": {
+          "received": 0,
+          "sent": 0,
+          "dropped": 0
+        },
+        "udp": {
+          "received": 3,
+          "sent": 20,
+          "dropped": 1
+        }
+      },
+      "tx_credit": {
+        "waits": 0,
+        "preserved": 0,
+        "timeouts": 0
+      }
+    },
+    "inventory_sha256": "36cb075d8674704e92f931f2eba8f01fcc122de96d61026f499cf37d3d69fb40"
+  },
+  "diagnosis": {
+    "pico_readiness": "DHCP acquired; time-server DNS unresolved after 64.376732 seconds uptime; two resolution failures",
+    "native_query_1234": "Timed out after three seconds; no packet capture for this query",
+    "captured_query_1235": "Host-local and isolated-client positive controls returned 10.77.15.1; AP/client captures preserved",
+    "causation": "Unresolved intermittent readiness failure; later success does not pass the failed attempt"
+  },
+  "artifacts": {
+    "off-inhibited": {
+      "elf_sha256": "be032dd7e327c25abe1cdeda6cde65f39eb8c48e3ff7fbabe4c006ece361b55f",
+      "uf2_sha256": "ddb91dd441256e813514567536e1e3a41d870dd97b273f7cd91ddd7ea62e6682",
+      "checks": {
+        "check_standalone_image.py": "RP2350: 16 KiB primary stack; heap and core-1 stack do not overlap it\nLinked FLASH ends at 0x103fb000; journals end below the reserved boot sector",
+        "check_heap_hooks.py": "{\"__wrap__calloc_r\": [\"calloc\"], \"__wrap__free_r\": [\"__sflush_r\", \"__sfvwrite_r\", \"__swsetup_r\", \"_fclose_r\", \"_malloc_r\", \"_realloc_r\", \"free\", \"wsprry_heap_probe\"], \"__wrap__malloc_r\": [\"__sfvwrite_r\", \"__smakebuf_r\", \"_calloc_r\", \"_realloc_r\", \"malloc\", \"wsprry_heap_probe\"], \"__wrap__realloc_r\": [\"__sfvwrite_r\", \"realloc\"], \"_calloc_r\": [\"__wrap__calloc_r\"], \"_free_r\": [\"__wrap__free_r\"], \"_malloc_r\": [\"__wrap__malloc_r\"], \"_realloc_r\": [\"__wrap__realloc_r\"], \"mallinfo\": [\"__wrap__calloc_r\", \"__wrap__malloc_r\", \"__wrap__realloc_r\", \"__wrap_mallinfo\", \"wsprry_heap_snapshot\"]}",
+        "check_stack_guards.py": "{\"msplim_writers\": [\"runtime_init_per_core_install_stack_guard\"], \"scope\": \"Linked startup/readback routes only; inspect constants and target evidence separately\", \"startup_callers\": [\"runtime_init\"]}"
+      },
+      "symbols": [
+        "2001fd1c B __end__",
+        "2007c000 B __HeapLimit",
+        "2007c000 R __StackLimit",
+        "20080000 R __StackTop",
+        "20081000 A __StackOneBottom",
+        "20081000 R __StackOneTop"
+      ],
+      "elf_map_sha256": "00d458214f472162664f83ea96b1f72375416c6052b258ae600a1e5e1ebe71e9",
+      "heap_capacity_bytes": 377572,
+      "clock_hz": 150000000,
+      "network_control_port": 0,
+      "linked_checks": "PASS"
+    },
+    "off-physical": {
+      "elf_sha256": "13d380f58d37991a0b6132de9663a572b284fcb9ca05b9b633c72db77effb4ed",
+      "uf2_sha256": "0fb4055b6accc162e86335dbf66a01f3a977bef37c90b64c98b34a3b8964ea9f",
+      "checks": {
+        "check_standalone_image.py": "RF worker: dedicated aligned 16 KiB BSS stack below the heap\nRP2350: 16 KiB primary stack; heap and core-1 stack do not overlap it\nLinked FLASH ends at 0x103fb000; journals end below the reserved boot sector",
+        "check_heap_hooks.py": "{\"__wrap__calloc_r\": [\"calloc\"], \"__wrap__free_r\": [\"__sflush_r\", \"__sfvwrite_r\", \"__swsetup_r\", \"_fclose_r\", \"_malloc_r\", \"_realloc_r\", \"free\", \"wsprry_heap_probe\"], \"__wrap__malloc_r\": [\"__sfvwrite_r\", \"__smakebuf_r\", \"_calloc_r\", \"_realloc_r\", \"malloc\", \"wsprry_heap_probe\"], \"__wrap__realloc_r\": [\"__sfvwrite_r\", \"realloc\"], \"_calloc_r\": [\"__wrap__calloc_r\"], \"_free_r\": [\"__wrap__free_r\"], \"_malloc_r\": [\"__wrap__malloc_r\"], \"_realloc_r\": [\"__wrap__realloc_r\"], \"mallinfo\": [\"__wrap__calloc_r\", \"__wrap__malloc_r\", \"__wrap__realloc_r\", \"__wrap_mallinfo\", \"wsprry_heap_snapshot\"]}",
+        "check_stack_guards.py": "{\"msplim_writers\": [\"runtime_init_per_core_install_stack_guard\"], \"scope\": \"Linked startup/readback routes only; inspect constants and target evidence separately\", \"startup_callers\": [\"core1_wrapper\", \"runtime_init\"]}"
+      },
+      "symbols": [
+        "20046ac0 B __end__",
+        "2007c000 B __HeapLimit",
+        "2007c000 R __StackLimit",
+        "20080000 R __StackTop",
+        "20081000 A __StackOneBottom",
+        "20081000 R __StackOneTop"
+      ],
+      "elf_map_sha256": "164a39ef1a526618f5d3e8588c14c986406618e67b1b7cdf751157247baba372",
+      "heap_capacity_bytes": 218432,
+      "clock_hz": 138000000,
+      "network_control_port": 0,
+      "linked_checks": "PASS"
+    },
+    "on-inhibited": {
+      "elf_sha256": "bafd84755c639102ea065c53af63246541431197a55e498472e4acd5b58fce0b",
+      "uf2_sha256": "d4564a5c28db81e6e000542632cae3a4ae00f7a0263ecb4b2061f3f477c7e6e8",
+      "checks": {
+        "check_standalone_image.py": "RP2350: 16 KiB primary stack; heap and core-1 stack do not overlap it\nLinked FLASH ends at 0x103fb000; journals end below the reserved boot sector",
+        "check_heap_hooks.py": "{\"__wrap__calloc_r\": [\"calloc\", \"wsprry_heap_try_calloc\"], \"__wrap__free_r\": [\"__sflush_r\", \"__sfvwrite_r\", \"__swsetup_r\", \"_fclose_r\", \"_malloc_r\", \"_realloc_r\", \"free\", \"wsprry_heap_probe\"], \"__wrap__malloc_r\": [\"__sfvwrite_r\", \"__smakebuf_r\", \"_calloc_r\", \"_realloc_r\", \"malloc\", \"wsprry_heap_probe\"], \"__wrap__realloc_r\": [\"__sfvwrite_r\", \"realloc\"], \"_calloc_r\": [\"__wrap__calloc_r\"], \"_free_r\": [\"__wrap__free_r\"], \"_malloc_r\": [\"__wrap__malloc_r\"], \"_realloc_r\": [\"__wrap__realloc_r\"], \"mallinfo\": [\"__wrap__calloc_r\", \"__wrap__malloc_r\", \"__wrap__realloc_r\", \"__wrap_mallinfo\", \"wsprry_heap_snapshot\"]}",
+        "check_stack_guards.py": "{\"msplim_writers\": [\"runtime_init_per_core_install_stack_guard\"], \"scope\": \"Linked startup/readback routes only; inspect constants and target evidence separately\", \"startup_callers\": [\"runtime_init\"]}"
+      },
+      "symbols": [
+        "2001fd58 B __end__",
+        "2007c000 B __HeapLimit",
+        "2007c000 R __StackLimit",
+        "20080000 R __StackTop",
+        "20081000 A __StackOneBottom",
+        "20081000 R __StackOneTop"
+      ],
+      "elf_map_sha256": "0088d08427a187e14db971bebc274f181eff8ea5192b23d5d528910f96f15451",
+      "heap_capacity_bytes": 377512,
+      "clock_hz": 150000000,
+      "network_control_port": 18443,
+      "linked_checks": "PASS"
+    },
+    "on-physical": {
+      "elf_sha256": "2f5c5ce29c659ca9ffbbd5698c58fe96b0376578f4669b15d808a28584d42d5d",
+      "uf2_sha256": "7a7306b8ad9dab694903434b86aec18e249c79dad0443645cd04ca857e9d4a04",
+      "checks": {
+        "check_standalone_image.py": "RF worker: dedicated aligned 16 KiB BSS stack below the heap\nRP2350: 16 KiB primary stack; heap and core-1 stack do not overlap it\nLinked FLASH ends at 0x103fb000; journals end below the reserved boot sector",
+        "check_heap_hooks.py": "{\"__wrap__calloc_r\": [\"calloc\", \"wsprry_heap_try_calloc\"], \"__wrap__free_r\": [\"__sflush_r\", \"__sfvwrite_r\", \"__swsetup_r\", \"_fclose_r\", \"_malloc_r\", \"_realloc_r\", \"free\", \"wsprry_heap_probe\"], \"__wrap__malloc_r\": [\"__sfvwrite_r\", \"__smakebuf_r\", \"_calloc_r\", \"_realloc_r\", \"malloc\", \"wsprry_heap_probe\"], \"__wrap__realloc_r\": [\"__sfvwrite_r\", \"realloc\"], \"_calloc_r\": [\"__wrap__calloc_r\"], \"_free_r\": [\"__wrap__free_r\"], \"_malloc_r\": [\"__wrap__malloc_r\"], \"_realloc_r\": [\"__wrap__realloc_r\"], \"mallinfo\": [\"__wrap__calloc_r\", \"__wrap__malloc_r\", \"__wrap__realloc_r\", \"__wrap_mallinfo\", \"wsprry_heap_snapshot\"]}",
+        "check_stack_guards.py": "{\"msplim_writers\": [\"runtime_init_per_core_install_stack_guard\"], \"scope\": \"Linked startup/readback routes only; inspect constants and target evidence separately\", \"startup_callers\": [\"core1_wrapper\", \"runtime_init\"]}"
+      },
+      "symbols": [
+        "20046af4 B __end__",
+        "2007c000 B __HeapLimit",
+        "2007c000 R __StackLimit",
+        "20080000 R __StackTop",
+        "20081000 A __StackOneBottom",
+        "20081000 R __StackOneTop"
+      ],
+      "elf_map_sha256": "0b77c7722a1b0b66a937a07cc30b7fa2e69f3d022f7b2929b24645c59a2a8fdb",
+      "heap_capacity_bytes": 218380,
+      "clock_hz": 138000000,
+      "network_control_port": 18443,
+      "linked_checks": "PASS"
+    }
+  },
+  "restoration": {
+    "boards": {
+      "A": {
+        "serial": "0BF4B4AEC9FFB344",
+        "revision": "802c91a7b86e-dirty",
+        "status": {
+          "boot_id": "36889c374d905eb63896157976503614",
+          "state": "empty",
+          "output_active": false,
+          "owner_id": null,
+          "job_id": null,
+          "terminal_records": []
+        },
+        "inventory_sha256": "1641d6a8af7ae9076e83797d8f0d4ea18584ab52baa5ec3c6a0c026b947c878f"
+      },
+      "B": {
+        "serial": "CDDBF8767C506C07",
+        "revision": "dbf1d86f0885-dirty",
+        "status": {
+          "boot_id": "feffcd075ab6cb0b74e7e0c2fde6c87f",
+          "state": "empty",
+          "output_active": false,
+          "owner_id": null,
+          "job_id": null,
+          "terminal_records": []
+        },
+        "inventory_sha256": "3e372b07c7a5a2f969ef58b08069b29a9400a47427afa9984dc4968128ebd257"
+      }
+    },
+    "host_restored": true,
+    "installed_wsprrypi_pid": 1957,
+    "management_counts": {
+      "config": 24,
+      "wifi-off": 0,
+      "wifi-on": 0,
+      "heap-probe": 0
+    },
+    "device_state_sha256": "7bea98e03a38a86be613eec8aff30e8ba42f9046968012806cf688f9c5be31ce",
+    "management_state_sha256": "f2c6ed466ab43ae78a3ec57522888886c0ed995ba1e1e526b1c79c3f45c6cba7",
+    "host_state_sha256": "3f72bf7e1d9045b5cb71791d59ca3c2c0a2bc0c6b0dbe336f0163aa28d1d1dca",
+    "host_fixture_deadline_extended": false
+  },
+  "archives": {
+    "remote_full": {
+      "path": "/home/pi/phase115-r1-preserved-final.tar.gz",
+      "sha256": "5e302a7eeff4cd86a5d8961acbe982d12b780d9d7d4bf17d35a0558579110d1d"
+    },
+    "filtered": {
+      "path": "build/phase11-5-closure/r1-evidence.tar.gz",
+      "sha256": "27d866af411ee8e7af6d4cb5afef22ad6f54072374ca9e148d8deba6848d6780"
+    }
+  }
+}

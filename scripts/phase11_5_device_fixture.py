@@ -27,7 +27,7 @@ from phase11_5_inventory import exclusive_port, exchange, require, inventory_ses
 from phase11_5_pilot import SERIAL, DEVICE
 from phase11_5_pilot_supervisor import (B_SERIAL, B_DEVICE, PICOTOOL, PICOTOOL_SHA,
     RESTORE_SHA, RESTORE_REVISION, finished, idle, configuration, verify_application_backup)
-from phase11_5_device_management import SOURCE, admit, digest, save
+from phase11_5_device_management import SOURCE, R1_SOURCE, admit, digest, save
 from phase11_5_network_fixture import Fixture, HOST_BOOT, PREFIX as HOST_PREFIX, RUN_SECONDS
 
 IMAGES = {
@@ -35,6 +35,17 @@ IMAGES = {
     'physical': ('physical.uf2', 'cb91912f7915db7828c5f58ea2a35c714c22728ee71f9ce04c7d034d22598154'),
     'original': ('original.uf2', RESTORE_SHA),
 }
+
+
+def candidate_images(source):
+    require(source in (SOURCE, R1_SOURCE), 'Unreviewed candidate images')
+    if source == SOURCE:
+        return dict(IMAGES)
+    return dict(IMAGES,
+        inhibited=('inhibited.uf2', 'd4564a5c28db81e6e000542632cae3a4ae00f7a0263ecb4b2061f3f477c7e6e8'),
+        physical=('physical.uf2', '7a7306b8ad9dab694903434b86aec18e249c79dad0443645cd04ca857e9d4a04'))
+
+
 ORIGINAL_CONFIG_SHA = '2978a00337f174286085251ec12ea15d0e524652738e009af3eb64e3be4ca0bf'
 SECONDS = 18000
 HELPERS = {'scripts/'+name+'.py' for name in (
@@ -42,6 +53,29 @@ HELPERS = {'scripts/'+name+'.py' for name in (
     'phase11_5_pilot', 'phase11_5_pilot_supervisor', 'phase11_5_network_fixture',
     'phase11_4_hotspot', 'phase11_5_network_fault', 'validate_wtp_contract',
     'wtp_monitor')} | {'docs/protocol/wtp-1.schema.json'}
+
+
+def reconciled_boots(packet, prior_root):
+    """Admit operator-confirmed between-campaign reboots, never an in-run reset."""
+    value = packet.get('prior_boot_reconciliation')
+    require(type(value) is dict, 'Changed prior boot requires explicit reconciliation')
+    require(value['reason'] == 'User confirmed rebooting both Picos between campaigns',
+            'Missing operator reboot reconciliation')
+    for label, original, revision, boot_key in (
+        ('a', 'restored-original-boot.stdout', RESTORE_REVISION, 'initial_a_boot_id'),
+        ('b', 'after-b.stdout', 'dbf1d86f0885-dirty', 'initial_b_boot_id')):
+        path = Path(value[label+'_inventory'])
+        require(digest(path) == value[label+'_sha256'], 'Reconciliation inventory changed')
+        current = finished(path, 'READ_ONLY_INVENTORY')
+        old = finished(prior_root/original, 'READ_ONLY_INVENTORY')
+        idle(current); idle(old)
+        require(current['wtp']['STATUS']['boot_id'] == packet[boot_key] and
+                current['info']['revision'] == old['info']['revision'] == revision and
+                current['info']['status']['engine'] == 'inhibited-standalone-simulator' and
+                configuration(current) == configuration(old) and
+                all(current['info'][key] == 0 for key in
+                    ('fault_stage', 'fault_hash', 'fault_pc', 'fault_status')),
+                'Reboot reconciliation requires original idle configuration and no fault')
 
 
 def journal_config(backup):
@@ -67,6 +101,9 @@ def journal_config(backup):
 class DeviceFixture:
     def __init__(self, root):
         self.root = root
+        packet_path = root / 'packet.json'
+        self.source = json.loads(packet_path.read_text())['source_revision'] if packet_path.exists() else SOURCE
+        self.images = candidate_images(self.source)
         self.path = root / 'device-state.json'
         self.state = json.loads(self.path.read_text()) if self.path.exists() else {}
 
@@ -107,7 +144,7 @@ class DeviceFixture:
             return reply
 
     def flash(self, kind, label):
-        filename, expected = IMAGES[kind]
+        filename, expected = self.images[kind]
         require(digest(self.root/filename) == expected, 'Firmware artifact changed')
         self.remember(pending='BOOTSEL for '+kind)
         reply = self.console('BOOTSEL')
@@ -140,12 +177,12 @@ class DeviceFixture:
         self.wait_application()
         current = self.inventory(label+'-boot')
         idle(current)
-        expected_revision = RESTORE_REVISION if kind == 'original' else SOURCE[:12]
+        expected_revision = RESTORE_REVISION if kind == 'original' else self.source[:12]
         require(current['info']['revision'] == expected_revision and
                 current['info']['status']['engine'] == ('pio-dma-gp2' if kind == 'physical'
                     else 'inhibited-standalone-simulator'), 'Flashed image admission')
         require(current['info']['status']['boot_id'] != self.state.get('boot'), 'Boot did not change')
-        if kind != 'original': admit(current, current)
+        if kind != 'original': admit(current, current, self.source)
         self.remember(pending=None, kind=kind, baseline=label+'-boot.stdout',
                       boot=current['info']['status']['boot_id'])
         return current
@@ -172,17 +209,21 @@ class DeviceFixture:
         require(not self.state.get('pending'), 'Pending device transition; reconciliation required')
         old = finished(self.root/self.state['baseline'], 'READ_ONLY_INVENTORY')
         current = self.inventory(label)
-        admit(current, old)
+        admit(current, old, self.source)
         return current
 
     def verify_helpers(self):
         require(Path(__file__).resolve() == self.root/'scripts/phase11_5_device_fixture.py',
                 'Run only the staged lifecycle helper')
         packet = json.loads((self.root/'packet.json').read_text())
-        require(packet['source_revision'] == SOURCE and type(packet['runtime_seconds']) is int and
+        require(packet['source_revision'] == self.source and type(packet['runtime_seconds']) is int and
                 0 < packet['runtime_seconds'] <= SECONDS and
                 packet['serial'] == SERIAL and packet['device_id'] == DEVICE and
-                packet['root'] == packet['network_root'] == str(self.root), 'Lifecycle packet')
+                packet['root'] == str(self.root), 'Lifecycle packet')
+        if packet['network_root'] != str(self.root):
+            require(self.source == R1_SOURCE and packet.get('family') == 'R1' and
+                    digest(Path(packet['network_root'])/'packet.json') == packet['network_packet_sha256'],
+                    'Shared R1 host fixture identity changed')
         require(packet['host_boot_id'] == HOST_BOOT ==
                 Path('/proc/sys/kernel/random/boot_id').read_text().strip(), 'Host boot changed')
         require(set(packet['helper_sha256']) == HELPERS, 'Incomplete helper identity set')
@@ -190,7 +231,7 @@ class DeviceFixture:
             path = self.root/relative
             require(path.resolve().is_relative_to(self.root) and digest(path) == expected,
                     'Helper identity changed')
-        for filename, expected in IMAGES.values():
+        for filename, expected in self.images.values():
             require(digest(self.root/filename) == expected, 'Firmware identity changed')
         require(digest(PICOTOOL) == PICOTOOL_SHA and
                 digest(self.root/'original-config.json') == ORIGINAL_CONFIG_SHA,
@@ -211,9 +252,10 @@ class DeviceFixture:
                     digest(old_management) == prior['management_state_sha256'], 'Prior evidence changed')
             previous = json.loads(old_device.read_text())
             management = json.loads(old_management.read_text())
+            if previous['boot'] != packet['initial_a_boot_id']:
+                reconciled_boots(packet, old_root)
             require(previous.get('restored') is True and not previous.get('pending') and
                     not management.get('pending') and not management.get('blocked') and
-                    previous['boot'] == packet['initial_a_boot_id'] and
                     previous['host_boot'] == HOST_BOOT, 'Prior attempt not reconciled/restored')
             counts = management['counts']
             require(set(counts) == {'config','wifi-off','wifi-on','heap-probe'} and
@@ -279,7 +321,7 @@ class DeviceFixture:
         require(not path.exists(), 'Reboot disappearance not observed')
         self.wait_application()
         current = self.inventory('inhibited-network-boot')
-        idle(current); admit(current,current)
+        idle(current); admit(current,current,self.source)
         require(current['info']['status']['boot_id'] != self.state['boot'], 'Reboot did not change boot')
         self.remember(pending=None, baseline='inhibited-network-boot.stdout',
                       boot=current['info']['status']['boot_id'])

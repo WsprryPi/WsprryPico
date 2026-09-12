@@ -10,7 +10,7 @@ import subprocess
 import threading
 import time
 
-from phase11_5_device_management import admit
+from phase11_5_device_management import admit, CANDIDATES
 from phase11_5_inventory import exclusive_port, exchange, require, inventory_session
 from phase11_5_network_fixture import HOST_BOOT
 from phase11_5_pilot import DEVICE, SERIAL, Peer, check_status
@@ -20,7 +20,9 @@ from phase11_5_pilot_supervisor import finished
 def validate_info(info, baseline):
     # Retain independently sampled WTP baseline only for admission of unchanged
     # identity and guards. Current WTP authority is checked by its own worker.
-    admit(dict(info=info, wtp=baseline['wtp']), baseline)
+    candidates = [source for source in CANDIDATES if source[:12] == baseline['info']['revision']]
+    require(len(candidates) == 1, 'Unreviewed observer candidate')
+    admit(dict(info=info, wtp=baseline['wtp']), baseline, candidates[0])
     require(info['status']['state'] == 'empty' and not info['status']['output_active'],
             'A2 is idle only')
     require(info['heap_capacity_bytes'] - info['allocator_peak_bytes'] >= 32768,

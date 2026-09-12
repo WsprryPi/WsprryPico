@@ -2,8 +2,10 @@
 
 Status on September 12, 2026: **OPEN; 0 of 6 revised families closed; no accepted
 configuration.** This is readiness accounting for the [revised plan](phase11-5-plan.md),
-not a reset or relabeling of historical evidence. No hardware ran during the
-documentation reorganization. The six families contain multiple mandatory
+not a reset or relabeling of historical evidence. The later [R1 execution](phase11-5-r1-review.md)
+passed artifact checks but stopped at inhibited DNS/time readiness: **1/5 R1
+assertions passed, 1 blocked, 3 not run**. Both devices and the host were restored.
+No hardware ran during the earlier documentation reorganization. The six families contain multiple mandatory
 assertions; reporting 0/6 is not a claim that no useful work has been completed.
 
 ## Evidence that already exists
@@ -32,7 +34,7 @@ in the linked immutable results.
 
 | Family | Status | Existing input | Required next evidence |
 | --- | --- | --- | --- |
-| R1 | PARTIAL | Four builds and bounded physical-idle diagnostic | Current-image matched baseline, allocator/necessary-allocation and observer-cost assessment; change-directed inhibited regression |
+| R1 | BLOCKED | Four rechecked layouts; prior physical-idle diagnostic; [R1 result](phase11-5-r1-result.json) | Resolve intermittent readiness; execute inhibited regression, physical matched baseline, idle allocation/recovery probes and observer-cost assessment |
 | R2 | NOT RUN | Earlier mode/RF investigations identify paths, not acceptance of this candidate | Actual current-image state/mode/launch/refill/tail execution with normal traffic |
 | R3 | NOT RUN | Existing functional tests and prior inhibited results | Distinct physical resource-boundary and reclamation assertions |
 | R4 | NOT RUN | Existing ownership/replay/recovery semantics | Current-image physical authority, owner abort and interrupted-operation checks |
@@ -52,15 +54,16 @@ historical 20-case counts and revised family counts separately; do not add them.
 - Selecting another clock during 11.6 requires the affected 11.5 checks and
   recalculated timing budgets; broad clock/band/spectral qualification is Phase 13.
 
-Last recorded restoration, not a fresh live inventory: Pico A USB
+Final R1 read-only inventories after restoration: Pico A USB
 `0BF4B4AEC9FFB344` returned to inhibited `802c91a7b86e-dirty`, boot
-`69bb9cafe6d99d4f7caca78996e3f5f0`; B USB `CDDBF8767C506C07` remained inhibited
-`dbf1d86f0885-dirty`, boot `4e2fb851c08b278dd4b977104d2c2aaa`. Both were
+`36889c374d905eb63896157976503614`; B USB `CDDBF8767C506C07` remained inhibited
+`dbf1d86f0885-dirty`, boot `feffcd075ab6cb0b74e7e0c2fde6c87f`. Both were
 authoritatively empty, inactive and unowned. Host networking was restored and
 installed WsprryPi PID 1957 remained unchanged. Refresh identity and state before
-future hardware work; this documentation task performs no live checks.
+future hardware work. The first R1 admission preserved a boot mismatch; the user
+confirmed rebooting both Picos between campaigns.
 
-Recorded cumulative configuration writes are **22 of 32**. Reserve restoration
+Recorded cumulative configuration writes are **24 of 32**. Reserve restoration
 and R5 schedule/rotation writes before more setup. Historical restoration inputs
 and finite authorization windows are not permission to silently restart an old
 campaign or reset its budget.
@@ -73,8 +76,10 @@ for that historical format; its `pending_candidate` is not today's selected
 candidate. The current candidate and prospective readiness are recorded here.
 Do not repin historical results or edit them into six-family passes.
 
-Existing helpers still hardcode old sources/boots/images, A2/A3 ordering and the
-synthetic browser workload. They do not implement the new profiles or family
-closure. A later code-authorized slice must adapt and test the runner/validator
-contract, then freeze a concrete packet. That is outstanding implementation,
-not a reason to silently run old helpers or claim documentation changed them.
+The R1 slice adds an explicit e20ae8b registry, normal browser workload, bounded
+executor, raw auditor and guarded reconciliation for user-confirmed reboots.
+Historical defaults and the synthetic S workload remain intact. The R1 attempt
+failed readiness before its workload intervals; the current executor adds a
+native-client DNS admission check before future flashing. This is not evidence
+that intermittent DNS is repaired. R2-R6 runner/closure adaptation remains outside
+this slice; freeze new packets without modifying or rerunning preserved attempts.
