@@ -1,0 +1,395 @@
+{
+  "schema": "phase11.5-r2-remaining-result-v1",
+  "source_revision": "049cc929143bdec6ec32817f6df0c73a9637cdf5",
+  "clock_hz": 138000000,
+  "pio_divider": 1,
+  "rf_render_in_ram": true,
+  "listener_enabled": true,
+  "completed_jobs": 4,
+  "required_jobs": 7,
+  "family_closed": false,
+  "accepted_configurations": [],
+  "production_qrss": {
+    "status": "PASS",
+    "source_revision": "049cc929143bdec6ec32817f6df0c73a9637cdf5",
+    "boot": "04aa04ade8232652055f5409d4e9d006",
+    "submission_path": "production",
+    "completed_jobs": 1,
+    "timing": [
+      {
+        "job_id": "5ad286923dd906190000000000000001",
+        "mode": "qrss",
+        "epoch": 1,
+        "expected_counter_deltas": {
+          "dma_irqs": 8688,
+          "alarm_irqs": 1,
+          "tail_irqs": 1,
+          "running_successor_links": 8686,
+          "refill_irq_pairs": 8686,
+          "running_tail_links": 1
+        },
+        "duration_ns": 33000000000,
+        "launch_target_ns": 96976169000,
+        "post_enable_delay_ns": 8000,
+        "short_words": 1076,
+        "short_interval_ns": 249507.24637681158,
+        "short_75_percent_budget_ns": 187130.4347826087,
+        "cumulative_worst_short": {
+          "measured": true,
+          "observations": 1,
+          "epoch": "1",
+          "successor_sequence": "8687",
+          "observed_ns": "129975972000",
+          "remaining_words": 875,
+          "total_words": 1076
+        }
+      }
+    ],
+    "usb": {
+      "info": {
+        "samples": 360,
+        "max_gap_seconds": 1.000076222
+      },
+      "status": {
+        "samples": 72,
+        "max_gap_seconds": 5.000074923
+      },
+      "health": {
+        "samples": 72,
+        "max_gap_seconds": 5.000089108
+      },
+      "boot": "04aa04ade8232652055f5409d4e9d006",
+      "seconds": 360,
+      "raw_wire_verified": true,
+      "max_allocator_peak_bytes": 121836,
+      "last_heap_allocated_bytes": 25340,
+      "job_coverage": {
+        "5ad286923dd906190000000000000001": {
+          "states": [
+            "armed",
+            "running"
+          ],
+          "active": true
+        }
+      },
+      "max_rf_service_gap_ns": 2128000,
+      "rf_last_observation": {
+        "ok": true,
+        "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+        "revision": "049cc929143b",
+        "firmware": "0.0.0-devel",
+        "deployment_identity_matches": true,
+        "recovery_boot": false,
+        "fault_stage": 0,
+        "fault_hash": 0,
+        "fault_pc": 0,
+        "fault_status": 0,
+        "network": {
+          "initialized": true,
+          "enabled": true,
+          "link_status": 3,
+          "ipv4": "10.77.15.10",
+          "requested_enabled": null,
+          "withdrawal_pending": false,
+          "resume_after_withdrawal": false,
+          "control_configured": true,
+          "control_listening": true,
+          "deployment_identity_matches": true,
+          "station_mac": "88:a2:9e:0a:60:df",
+          "stable_hostname": "wsprrypico-0a60df.local",
+          "configured_hostname": "wsprrypico-0a60df.local",
+          "advertised_hostname": "wsprrypico-0a60df.local",
+          "mdns_state": "active",
+          "mdns_reason": "",
+          "mdns_registrations": 1,
+          "mdns_conflicts": 0,
+          "mdns_failures": 0,
+          "mdns_address_changes": 0,
+          "mdns_goodbye_attempts": 0,
+          "mdns_goodbye_failures": 0,
+          "mdns_rejected_packets": 0,
+          "power_save": false,
+          "packets": {
+            "arp": {
+              "received": 10,
+              "sent": 11,
+              "dropped": 0
+            },
+            "ipv4": {
+              "received": 901,
+              "sent": 941,
+              "dropped": 0
+            },
+            "tcp": {
+              "received": 880,
+              "sent": 913,
+              "dropped": 3
+            },
+            "udp": {
+              "received": 21,
+              "sent": 26,
+              "dropped": 0
+            }
+          },
+          "memory": {
+            "heap": {
+              "used": 200,
+              "capacity": 32768,
+              "peak": 7504,
+              "errors": 0
+            },
+            "tcp_pcbs": {
+              "used": 0,
+              "capacity": 4,
+              "peak": 3,
+              "errors": 0
+            },
+            "tcp_segments": {
+              "used": 0,
+              "capacity": 32,
+              "peak": 5,
+              "errors": 0
+            },
+            "packet_pool": {
+              "used": 0,
+              "capacity": 8,
+              "peak": 2,
+              "errors": 0
+            }
+          },
+          "tx_credit": {
+            "waits": 0,
+            "preserved": 0,
+            "timeouts": 0
+          },
+          "ntp_server": "time.local",
+          "ntp_address": "10.77.15.1",
+          "ntp_resolution": "resolved",
+          "ntp_resolution_failures": 0,
+          "queries": 6,
+          "accepted": 6,
+          "rejected": 0,
+          "last_rtt_ns": 5113000,
+          "last_sample_uncertainty_ns": 6202145
+        },
+        "system_clock_hz": 138000000,
+        "heap_allocated_bytes": 25340,
+        "heap_available_bytes": 192944,
+        "heap_capacity_bytes": 218284,
+        "heap_arena_bytes": 144556,
+        "heap_arena_free_bytes": 119216,
+        "heap_free_chunks": 43,
+        "heap_top_releasable_bytes": 69184,
+        "heap_sample_observed_us": "368627684",
+        "heap_sample_cost_us": 22,
+        "heap_sampled_peak_bytes": 89060,
+        "allocator_entries": "5536995",
+        "allocator_failures": "0",
+        "allocator_live_bytes": 28484,
+        "allocator_peak_bytes": 121836,
+        "allocator_largest_request_bytes": 18364,
+        "allocator_largest_successful_request_bytes": 18364,
+        "allocator_sample_time_us": "46650266",
+        "allocator_max_sample_us": 178,
+        "allocator_max_entry_us": 189,
+        "allocator_max_depth": 2,
+        "core0_stack_used_bytes": 8248,
+        "core0_stack_guard_bottom": 537378816,
+        "core0_stack_guard_limit": 537382912,
+        "core0_stack_fault_status": 0,
+        "core0_stack_guard_valid": 1,
+        "core0_stack_scan_us": 116,
+        "tls_peak_bytes": 61868,
+        "tls_allocated_bytes": 4396,
+        "tls_allocation_failures": 0,
+        "rf_render_in_ram": true,
+        "launch_observed_ns": "96976177000",
+        "launch_epoch": "1",
+        "launch_target_ns": "96976169000",
+        "launch_delay_ns": "8000",
+        "dma_irqs": 8688,
+        "max_dma_irq_ns": 133000,
+        "alarm_irqs": 1,
+        "max_alarm_irq_ns": "179000",
+        "tail_irqs": 1,
+        "dma_errors": 0,
+        "refill_irq_pairs": 8686,
+        "refill_irq_unpaired": 0,
+        "refill_invalid_reserves": 0,
+        "refill_full_predecessor": {
+          "measured": true,
+          "observations": 8685,
+          "epoch": "1",
+          "successor_sequence": "478",
+          "observed_ns": "98790401000",
+          "remaining_words": 7703,
+          "total_words": 16384
+        },
+        "refill_short_predecessor": {
+          "measured": true,
+          "observations": 1,
+          "epoch": "1",
+          "successor_sequence": "8687",
+          "observed_ns": "129975972000",
+          "remaining_words": 875,
+          "total_words": 1076
+        },
+        "max_refill_irq_to_ready_ns": "1996000",
+        "running_successor_links": 8686,
+        "exhausted_successor_links": 0,
+        "running_tail_links": 1,
+        "min_data_successor_ready_words": 7703,
+        "min_tail_successor_ready_words": 875,
+        "min_successor_ready_words": 875,
+        "core1_stack_used_bytes": 5620,
+        "core1_stack_guard_bottom": 536884368,
+        "core1_stack_guard_limit": 536888464,
+        "core1_stack_fault_status": 0,
+        "core1_stack_guard_valid": 1,
+        "rf_worker_commands": 1998901,
+        "rf_metric_probes": 364,
+        "rf_max_probe_ns": "312000",
+        "rf_max_service_gap_ns": "2128000",
+        "rf_max_poll_ns": "1979000",
+        "rf_max_roundtrip_ns": "27571000",
+        "max_loop_us": 711444,
+        "max_authority_poll_us": 1866,
+        "max_usb_us": 253,
+        "max_request_us": 10152,
+        "engine_diagnostic": "",
+        "status": {
+          "ok": true,
+          "configured": true,
+          "enabled": false,
+          "suspended": false,
+          "expires_utc_s": 0,
+          "boot_id": "04aa04ade8232652055f5409d4e9d006",
+          "utc_now_ns": "1789246732656023000",
+          "monotonic_now_ns": "368632080000",
+          "sync_age_ns": "44691746000",
+          "station": {
+            "callsign": "AA0NT",
+            "locator": "EM18",
+            "power_dbm": 20
+          },
+          "schedules": [
+            {
+              "period_s": 120,
+              "phase_s": 0
+            }
+          ],
+          "engine": "pio-dma-gp2",
+          "storage_healthy": true,
+          "reboot_required": false,
+          "watermark_utc_ns": "1788714601000000000",
+          "clock_state": "synchronized",
+          "uncertainty_ns": "8436733",
+          "state": "empty",
+          "last_error": null,
+          "last_job": "",
+          "output_active": false
+        }
+      },
+      "terminal_records": [
+        {
+          "job_id": "5ad286923dd906190000000000000001",
+          "state": "complete",
+          "ended_monotonic_ns": "129976726000",
+          "output_active": false
+        }
+      ]
+    },
+    "load": {
+      "boot": "04aa04ade8232652055f5409d4e9d006",
+      "seconds": 300,
+      "production_connections": 1,
+      "logical_sessions": 1,
+      "operations": {
+        "HELLO": 1,
+        "STATUS": 547,
+        "CAPS": 1,
+        "CLAIM": 1,
+        "LOAD": 1,
+        "GET_CLOCK": 1,
+        "ARM": 1,
+        "RENEW": 1,
+        "RELEASE": 1
+      },
+      "nominal_status_count": 544,
+      "nominal_max_status_start_gap_ns": 5311804446,
+      "executing_status_count": 486,
+      "scheduler_policy": "Waiting: response plus 5 s; Executing: response plus 10 ms and bounded renewals",
+      "browser_counts": {
+        "/": 2,
+        "/api/v1/capabilities": 2,
+        "/api/v1/status": 8,
+        "/api/v1/config": 2
+      },
+      "normal_browser": {
+        "actions": 8,
+        "refresh_actions": 6,
+        "action_latencies_seconds": [
+          7.207035301,
+          1.657613437,
+          2.17917582,
+          2.109604442,
+          7.415836911,
+          1.710751989,
+          1.799088431,
+          1.702716238
+        ]
+      },
+      "max_observed_write_to_response_seconds": 1.322843127,
+      "timing_origin": "SSL_write_ex entry",
+      "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+      "plaintext_sha256": "787b0f743ab3fd44c4b92fd40b5ddd772ed10488075c576cf28eb7b782c50536"
+    },
+    "observer_cost": {
+      "max_usb_roundtrip_seconds": {
+        "INFO": 0.732943502,
+        "STATUS": 0.341656559,
+        "HELLO": 0.038075099
+      },
+      "host_max_loadavg_1m": 0.65,
+      "host_max_temperature_c": 56.75,
+      "note": "Load average is system-wide runnable/uninterruptible load, not CPU utilization. Costs overlap."
+    }
+  },
+  "remaining_usb": "FSKCW and DFCW reached Complete but shared interval failed; WSPR LOAD OOM before ARM, unaccepted",
+  "recovery": {
+    "result": "RESTORED_INHIBITED",
+    "original_uf2_sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10",
+    "original_config_sha256": "2978a00337f174286085251ec12ea15d0e524652738e009af3eb64e3be4ca0bf",
+    "a_boot": "03800628f67b8a96a251147b319b2772",
+    "b_boot": "feffcd075ab6cb0b74e7e0c2fde6c87f",
+    "counts": {
+      "config": 32,
+      "wifi-off": 0,
+      "wifi-on": 0,
+      "heap-probe": 6
+    },
+    "output_active": false,
+    "resumed_jobs": false
+  },
+  "host_restored": true,
+  "evidence_root": "/home/pi/phase11-5-r2-modes-049cc92",
+  "evidence_sha256": {
+    "packet.json": "3bb5b7f640477062a9fc9e51866aaddd9c5d055e84f17ca7eb122304304e2a62",
+    "modes-result.json": "d9ca6c9e97e45b36cbd5d3b52c003580f02d29bf9f2a7164e7d9a06e964afc7a",
+    "production/jobs.json": "32cbda74edafe689e93add7e07d171e2cc5b402706a815275cadd37cdc0fd3f4",
+    "production/audit.json": "ba56ac373b051b607e957dc8ba934dfe279ff0b5f7ec37fa37814ad9168d4792",
+    "production/usb-health.jsonl": "c339928508d27d8242a2c0bc8b750fab66a290f07a2540ad2b517d10c6c45cd4",
+    "production/load-events.jsonl": "dd0496d943bdbc30c0b1e206729f59aab0fb1c61069e7f82e278f385bf958077",
+    "usb/jobs.json": "a057d42d56dddb1b4a3e54c1fc319ad6549fca2401bfcdb7a02109e1e708f9f0",
+    "usb/result.json": "1103110c86fc5709f1fa2f76bf10d4cd1e2daecdbbb800a20902a5c5fcacdabd",
+    "usb/usb-health.jsonl": "e0ef104362b034dc9e9a335cd201a8df0b95790dcaa2055e66d61657378cfa21",
+    "usb/load-events.jsonl": "bb030edae113e843a46a2d15a94006f338de4c4a77f7b01f652edcdf6cefb13d",
+    "reconcile-a.stdout": "2cd20ab415b6865800b31c28348ff046d5ecc379a17176a55e9c1a491cf16586",
+    "oom-recovery-result.json": "f7142ce58108aab2cbed1ad455153290713c3c337362bd21069dd126ca9f858c",
+    "recovered-original-boot.stdout": "d2e9176076138d3e684e0dc20e1a872995a33b17cb7cf6cfe18f84e10d265456",
+    "oom-recovery-after-b.stdout": "b8a7702d602164d79b76a93c6f9293b27171f6c78ed7836493a7df36be07eff4",
+    "fixture-state.json": "ca217d4b91fdf0b2243f058c55b68f07f640812e172ea398a7af438339e5b628",
+    "device-state.json": "c153d0dc804ff2bd60e12f356e2f5f96f873cb6ec0a08428d5c4818fa8875d19",
+    "management-state.json": "f09257148903f5e00d307e36a25fde02e40524089aec6faea5c3a1402168ee08"
+  }
+}

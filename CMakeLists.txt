@@ -265,6 +265,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME standalone_image_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/standalone_image_tests.py)
     add_test(NAME rf_renderer_image_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_renderer_image_tests.py)
     add_test(NAME standalone_console_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/standalone_console_tests.py)
+    add_test(NAME phase11_5_r2_modes_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase11_5_r2_modes_tests.py)
+    add_test(NAME phase11_5_r2_oom_recovery_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase11_5_r2_oom_recovery_tests.py)
     add_executable(wsprrypico_core_tests tests/core_tests.cpp)
     target_link_libraries(wsprrypico_core_tests PRIVATE wsprrypico_core)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")

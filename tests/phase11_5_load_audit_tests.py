@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from audit_phase11_5_load import audit, status_cadence
+from audit_phase11_5_load import audit, status_cadence, single_flight_status_cadence
 from validate_wtp_contract import frame
 
 
@@ -105,6 +105,67 @@ class CadenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'requires native TLS write-entry timestamps'):
             self.audit_writes([(0, 1), (1_000_000_000, 1_000_000_001)], 'P115TLS1')
 
+
+
+class AdministrativeCadenceTests(unittest.TestCase):
+    def check(self, intervals, seconds=6, begin=0):
+        requests = [request(i, start) for i, (start, _) in enumerate(intervals)]
+        exchanges = [dict(request=dict(request_id=str(i), op='STATUS'),
+                          started_ns=start, finished_ns=finish)
+                     for i, (start, finish) in enumerate(intervals)]
+        return single_flight_status_cadence(requests, exchanges, begin, seconds)
+
+    def test_pending_reply_gap_is_retained_as_telemetry(self):
+        rows = [(0, 2_218_080_153), (2_322_236_389, 2_400_000_000),
+                (3_322_236_389, 3_400_000_000),
+                (4_322_236_389, 4_400_000_000),
+                (5_322_236_389, 5_400_000_000)]
+        result = self.check(rows)
+        self.assertEqual(result['nominal_max_status_start_gap_ns'], 2_322_236_389)
+        self.assertEqual(result['max_eligible_offer_delay_ns'], 104_156_236)
+        self.assertEqual(result['in_flight_time_beyond_poll_period_ns'], 1_218_080_153)
+        with self.assertRaisesRegex(ValueError, 'absent/reduced'):
+            status_cadence([request(i, s) for i, (s, _) in enumerate(rows)], 0, 6)
+
+    def test_fast_reply_does_not_excuse_late_next_offer(self):
+        with self.assertRaisesRegex(ValueError, 'poll late while eligible'):
+            self.check([(0, 1), (2_100_000_000, 2_100_000_001),
+                        (3_000_000_000, 3_000_000_001)], seconds=4)
+
+    def test_response_deadline_still_fails(self):
+        with self.assertRaisesRegex(ValueError, 'response deadline'):
+            self.check([(0, 5_000_000_001)])
+
+    def test_overlap_and_missing_reply_fail(self):
+        with self.assertRaisesRegex(ValueError, 'single flight'):
+            self.check([(0, 2_000_000_000), (1_000_000_000, 1_000_000_001)])
+        with self.assertRaisesRegex(ValueError, 'Incomplete'):
+            single_flight_status_cadence([request(1, 0)], [], 0, 6)
+
+    def test_empty_interval_and_sparse_sampling_fail(self):
+        with self.assertRaisesRegex(ValueError, 'Incomplete'):
+            self.check([])
+        with self.assertRaisesRegex(ValueError, 'Reduced eligible'):
+            self.check([(0, 1), (1_000_000_000, 1_000_000_001)], seconds=300)
+
+    def test_boundary_coverage_cannot_disappear(self):
+        with self.assertRaisesRegex(ValueError, 'Late first'):
+            self.check([(2_100_000_000, 2_100_000_001),
+                        (3_000_000_000, 3_000_000_001)], seconds=4)
+        with self.assertRaisesRegex(ValueError, 'poll late while eligible'):
+            self.check([(0, 1), (1_000_000_000, 1_000_000_001)], seconds=4)
+
+    def test_in_flight_time_adjusts_eligible_count(self):
+        result = self.check([(0, 5_000_000_000),
+                             (5_100_000_000, 5_100_000_001)])
+        self.assertEqual(result['minimum_eligible_status_count'], 1)
+        self.assertEqual(result['in_flight_time_beyond_poll_period_ns'], 4_000_000_000)
+
+    def test_amendment_cannot_apply_to_other_families(self):
+        with self.assertRaisesRegex(ValueError, 'scoped to R2 USB'):
+            audit(Path('/unused'), Path('/unused'), cadence_policy='single-flight-admin-v1')
+        with self.assertRaisesRegex(ValueError, 'Unknown cadence'):
+            audit(Path('/unused'), Path('/unused'), cadence_policy='anything')
 
 if __name__ == '__main__':
     unittest.main()

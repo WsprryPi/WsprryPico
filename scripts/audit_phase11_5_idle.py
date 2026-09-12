@@ -45,12 +45,15 @@ def audit(path, baseline_path, rf_packet=None):
     require(rows[-1]['monotonic_ns']-rows[0]['monotonic_ns']>=seconds*1e9,'Interval truncated')
     schema=json.loads((Path(__file__).resolve().parents[1]/'docs/protocol/wtp-1.schema.json').read_text())
     validator=SchemaValidator(schema)
+    modes=rf_packet is not None and rf_packet.get('schema')=='phase11.5-r2-modes-v1'
+    usb_actor=modes and rf_packet['submission_path']=='usb'
     wire=b'';console=b'';console_pending=False;console_value=None;messages=[];requests={};samples={}
     latest_status=None;event_id=-1;seen_request_ids=set()
     for row in rows:
         kind,value=row['kind'],row['value']
         require(kind in ('start','finish','console_tx','console_rx','wtp_tx','wtp_rx','wtp_message',
-                         'info','status','health','info_finish','status_finish','health_finish'),
+                         'info','status','health','info_finish','status_finish','health_finish') +
+                         (('armed_job',) if usb_actor else ()),
                 'Unexpected event or failure')
         if kind=='console_tx':
             require(not console_pending and not console and console_value is None and
@@ -65,7 +68,7 @@ def audit(path, baseline_path, rf_packet=None):
             decoded,left=frames(bytes.fromhex(value['hex']))
             require(not left and decoded==[value['request']],'Reported request differs from wire')
             request=decoded[0];require(not validator.errors(request,schema),'Request schema')
-            require(request['session_id']==session and request['op'] in ('HELLO','STATUS') and
+            require(request['session_id']==session and request['op'] in (('HELLO','STATUS','GET_CLOCK','CLAIM','LOAD','ARM','RENEW','RELEASE') if usb_actor else ('HELLO','STATUS')) and
                     request['request_id'] not in seen_request_ids,'Unexpected request/session/replay')
             seen_request_ids.add(request['request_id'])
             requests[request['request_id']]=request
@@ -83,7 +86,7 @@ def audit(path, baseline_path, rf_packet=None):
             request=requests.pop(value['request_id'],None)
             require(request and request['op']==value['op'] and value['session_id']==session,'Response binding')
             if value['op']=='STATUS':latest_status=value['body']
-            else:require(value['body']['boot_id']==boot,'HELLO boot changed')
+            elif value['op']=='HELLO':require(value['body']['boot_id']==boot,'HELLO boot changed')
         elif kind in ('info','status','health'):
             samples.setdefault(kind,[]).append(row)
             if kind=='info':
@@ -143,7 +146,7 @@ def audit(path, baseline_path, rf_packet=None):
                 v=coverage[status['job_id']];v['states'].add(status['state'])
                 v['active'] |= status['state']=='running' and status['output_active']
         for v in coverage.values():
-            require({'loaded','armed','running','complete'}<=v['states'] and v['active'],
+            require((({'armed','running'}<=v['states']) if modes and rf_packet['submission_path']=='production' else {'loaded','armed','running','complete'}<=v['states']) and v['active'],
                     'Missing independent RF state/output coverage')
             v['states']=sorted(v['states'])
         require(samples['status'][-1]['value']['value']['state']=='empty' and

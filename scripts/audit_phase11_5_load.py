@@ -26,6 +26,54 @@ def status_cadence(requests, begin, seconds):
     return result
 
 
+
+def single_flight_status_cadence(requests, exchanges, begin, seconds):
+    """R2 administrative polling: preserve 5 s replies and measure eligible offers.
+
+    One-second polling plus the existing one-second offer tolerance applies
+    once no STATUS is outstanding. In-flight time beyond the nominal second
+    is reported separately, never hidden as a short actual start gap.
+    """
+    end = begin + seconds * 10**9
+    replies = {e['request']['request_id']: e for e in exchanges
+               if e['request']['op'] == 'STATUS'}
+    require(len(replies) == len(requests) and requests, 'Incomplete STATUS reply binding')
+    ordered = []
+    for request in requests:
+        response = replies[request['request_id']]
+        start, finish = request['started_ns'], response['finished_ns']
+        require(response['started_ns'] == start and 0 <= finish-start <= 5_000_000_000,
+                'Administrative STATUS response deadline')
+        ordered.append((start, finish, request['request_id']))
+    require(all(a[1] <= b[0] for a,b in zip(ordered,ordered[1:])),
+            'Administrative STATUS must remain single flight and ordered')
+    nominal = [r for r in ordered if begin <= r[0] <= end]
+    require(nominal, 'No nominal administrative STATUS')
+    blocked = sum(max(0, min(finish,end)-max(start+10**9,begin))
+                  for start,finish,_ in ordered)
+    eligible_ns = seconds*10**9-blocked
+    minimum = max(1,(eligible_ns+10**9-1)//10**9-2)
+    require(len(nominal) >= minimum, 'Reduced eligible administrative polling rate')
+    delays = []
+    for a,b in zip(ordered,ordered[1:]):
+        if b[0] < begin or a[0] > end: continue
+        ready = max(a[0]+10**9,a[1],begin)
+        delays.append(max(0,min(b[0],end)-ready))
+    before = [r for r in ordered if r[0] < begin]
+    first_ready = max(begin, before[-1][1]) if before else begin
+    require(nominal[0][0]-first_ready <= 2_000_000_000, 'Late first administrative STATUS')
+    last = nominal[-1]
+    delays.append(max(0,end-max(last[0]+10**9,last[1])))
+    require(max(delays,default=0) <= 10**9, 'Administrative poll late while eligible')
+    gaps = [b[0]-a[0] for a,b in zip(nominal,nominal[1:])]
+    return dict(status_cadence_policy='single-flight-admin-v1',
+                nominal_status_count=len(nominal), nominal_status_hz=len(nominal)/seconds,
+                nominal_max_status_start_gap_ns=max(gaps,default=0),
+                in_flight_time_beyond_poll_period_ns=blocked,
+                minimum_eligible_status_count=minimum,
+                max_eligible_offer_delay_ns=max(delays,default=0),
+                administrative_response_deadline_ns=5_000_000_000)
+
 def audit_normal_browser(events, seconds, start):
     require(seconds in (180, 300), 'Unfrozen normal browser interval')
     refresh = (20, 40, 60, 100, 130, 160) if seconds == 180 else (30, 70, 110, 190, 230, 270)
@@ -93,7 +141,11 @@ def normal_response(path, body, boot, idle=True):
         raise ValueError('Unfrozen normal browser resource')
 
 
-def audit(root, observer_decoder, rf_packet=None):
+def audit(root, observer_decoder, rf_packet=None, *, cadence_policy='strict-start-gap-v1'):
+    require(cadence_policy in ('strict-start-gap-v1','single-flight-admin-v1'), 'Unknown cadence policy')
+    if cadence_policy == 'single-flight-admin-v1':
+        require(rf_packet is not None and rf_packet.get('schema') == 'phase11.5-r2-modes-v1' and
+                rf_packet.get('submission_path') == 'usb', 'Administrative amendment is scoped to R2 USB contention')
     spec=importlib.util.spec_from_file_location('phase115_observer_decoder',observer_decoder)
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     plan=json.loads((root/'load.json').read_text())
@@ -118,6 +170,8 @@ def audit(root, observer_decoder, rf_packet=None):
             'Production STATUS start cadence requires native TLS write-entry timestamps (P115TLS2)')
     schema=json.loads((Path(__file__).resolve().parents[1]/'docs/protocol/wtp-1.schema.json').read_text())
     validator=SchemaValidator(schema)
+    production_modes=rf_packet is not None and rf_packet.get('schema')=='phase11.5-r2-modes-v1' and rf_packet['submission_path']=='production'
+    exchanges=[];mode_events=[]
     sessions=set();buffers={};pending={};responses=[];status_requests=[];connections=set();op_counts={}
     write_started={};write_times={};buffer_stamps={};event_id=-1
     for row in rows:
@@ -137,7 +191,7 @@ def audit(root, observer_decoder, rf_packet=None):
             require(not validator.errors(message,schema),'Actual production wire schema')
             sessions.add(message['session_id'])
             if kind==3:
-                require(message['type']=='request' and message['op'] in ('HELLO','CAPS','STATUS','GET_CLOCK','PING'),
+                require(message['type']=='request' and message['op'] in (('HELLO','CAPS','STATUS','GET_CLOCK','PING','CLAIM','LOAD','ARM','RENEW','RELEASE') if production_modes else ('HELLO','CAPS','STATUS','GET_CLOCK','PING')),
                         'Idle load sent mutation or unexpected operation')
                 token=(message['session_id'],message['request_id'])
                 require(token not in pending,'Duplicate pending request')
@@ -151,12 +205,13 @@ def audit(root, observer_decoder, rf_packet=None):
                     from phase11_5_rf_observer import validate_event
                     validate_event(message,plan['boot_id'],rf_packet)
                     require(int(message['event_id'])==event_id+1,'Production RF event gap')
-                    event_id=int(message['event_id']);continue
+                    event_id=int(message['event_id']);mode_events.append(message);continue
                 require(message['type']=='response' and message['ok'] is True,'Unexpected response/event/error')
                 request,stamp=pending.pop((message['session_id'],message['request_id']))
                 require(message['op']==request['op'],'Response operation mismatch')
                 delta=row['monotonic_ns']-stamp;require(0<=delta<=5e9,'Observed write-to-response delay')
                 responses.append(delta)
+                exchanges.append(dict(request=request,response=message,started_ns=stamp,finished_ns=row['monotonic_ns']))
                 if message['op'] in ('HELLO','STATUS'):
                     require(message['body']['boot_id']==plan['boot_id'],'Production boot changed')
                 if message['op']=='STATUS':
@@ -170,7 +225,30 @@ def audit(root, observer_decoder, rf_packet=None):
         if not buffers[key]:buffer_stamps.pop(key,None)
     require(len(connections)==len(sessions)==1 and not pending and not write_started and not any(buffers.values()),
             'Production reconnected, changed session or has incomplete I/O')
-    cadence=status_cadence(status_requests,begin,plan['seconds'])
+    if production_modes:
+        from audit_phase11_5_r2_modes import transactions
+        arms=transactions(rf_packet,exchanges,mode_events)
+        # The pinned production scheduler waits five seconds AFTER a completed
+        # STATUS while Waiting. During execution it polls after response + 10 ms.
+        # Retain native five-second transaction limits; do not impose idle 1 Hz.
+        nominal=[r for r in status_requests if begin<=r['started_ns']<=end]
+        gaps=[b['started_ns']-a['started_ns'] for a,b in zip(nominal,nominal[1:])]
+        require(len(nominal)>=plan['seconds']//11 and gaps and max(gaps)<=11_000_000_000,
+                'Production Waiting/Executing STATUS coverage')
+        arm_at=arms[0]['monotonic_ns']
+        release_at=next(v['started_ns'] for v in exchanges if v['request']['op']=='RELEASE')
+        active=[v for v in exchanges if v['request']['op']=='STATUS' and arm_at<=v['started_ns']<=release_at]
+        require(len(active)>=int(rf_packet['jobs'][0]['total_duration_ns'])//6_000_000_000,
+                'Production execution observation absent')
+        require(all(b['started_ns']-a['started_ns']<=6_000_000_000 for a,b in zip(active,active[1:])),
+                'Production executing STATUS gap')
+        cadence=dict(nominal_status_count=len(nominal),nominal_max_status_start_gap_ns=max(gaps),
+                     executing_status_count=len(active),mode_arms=arms,
+                     scheduler_policy='Waiting: response plus 5 s; Executing: response plus 10 ms and bounded renewals')
+    else:
+        cadence = (single_flight_status_cadence(status_requests,exchanges,begin,plan['seconds'])
+                   if cadence_policy == 'single-flight-admin-v1' else
+                   status_cadence(status_requests,begin,plan['seconds']))
     browser=[r for r in events if r['kind']=='browser_get']
     browser_counts={}
     for row in browser:

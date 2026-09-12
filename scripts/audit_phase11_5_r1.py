@@ -50,7 +50,7 @@ def usb_measurement_costs(path):
             pending[value['request']['request_id']] = (value['request']['op'], row['monotonic_ns'])
         elif row['kind'] == 'wtp_message' and value['type'] == 'response':
             operation, start = pending.pop(value['request_id'])
-            costs[operation].append((row['monotonic_ns']-start)/1e9)
+            costs.setdefault(operation, []).append((row['monotonic_ns']-start)/1e9)
         elif row['kind'] == 'info':
             costs['INFO'].append((row['monotonic_ns']-value['began_monotonic_ns'])/1e9)
         elif row['kind'] == 'health':

@@ -1,9 +1,10 @@
 # Development baseline
 
-R2: [amended firmware, three-Tone result and review](phase11-5-r2-amended-review.md).
-Three of seven jobs completed; four modes and production/USB submission remain
-open. R1 is 5/5 on 049cc929 at physical 138 MHz; devices/host restored. Reuse
-unaffected assertions after fixes; do not automatically restart R1.
+R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).
+R2 is **7/7 jobs**; R1 remains **5/5** through documented affected-check reuse.
+The selected candidate is 2e43110 at physical 138 MHz/divider 1/RAM/listener on.
+Devices and host were restored; CONFIG writes are 34/34. R3–R6 remain open and
+full accepted configurations remain empty. Original failed assessments are retained.
 
 The defined hardware target is Pico 2 W / RP2350. The repository contains a
 portable WTP/1 core, deterministic host tests and an RF-inhibited firmware
@@ -21,7 +22,7 @@ supersedes the open B2/D2 status in earlier investigation records below. The
 
 Current [Phase 11.5 plan](phase11-5-plan.md) organizes six acceptance families
 with realistic normal traffic separated from stress and overload. The
-[current ledger](phase11-5-acceptance-ledger.md) records **1 of 6 revised families
+[current ledger](phase11-5-acceptance-ledger.md) records **2 of 6 revised families
 closed**, useful existing evidence and an empty accepted-configuration list.
 The [documentation reorganization review](phase11-5-test-reorganization-review.md)
 maps all 20 legacy cases without changing code, runners or historical results.
@@ -31,7 +32,8 @@ matched quiet retention, stack guards and observer costs. This covers the exact
 `e20ae8b` physical 138 MHz/divider-1/RAM/listener-on candidate, with inhibited
 150 MHz regression. Both boards and host were restored, including permanent
 time.local. Earlier DNS failures and a later unlocalized Mac NTP timeout remain
-preserved. No RF jobs ran; R2–R6 execution adaptation remains outstanding.
+preserved. No RF jobs ran in that historical R1 campaign; the later R2 closure
+is recorded above. R3–R6 execution remains outstanding.
 
 Historical [Phase 11.5 review](phase11-5-review.md),
 [metric definitions](phase11-5-metrics.md) and the bounded

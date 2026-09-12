@@ -1,0 +1,33 @@
+{
+  "source_revision": "2e43110f05304efdc2ae25c298baa0ef6426955b",
+  "embedded_revision": "2e43110f0530",
+  "source_clean": true,
+  "system_clock_hz": 138000000,
+  "pio_divider": 1,
+  "rf_render_in_ram": true,
+  "listener_enabled": true,
+  "compiler": "arm-none-eabi-g++ (Arm GNU Toolchain 15.3.Rel1 (Build arm-15.149)) 15.3.1 20260627",
+  "elf_sha256": {
+    "WsprryPico.elf": "ee45de760f290f592d61096218b91c6fa9e5a5da5cd9beb31f2a32bd80c1ab00",
+    "WsprryPico-StandaloneRF.elf": "01799db4cb67da0eb1b4c351b122b7b0d93023da3566635943644fb591210268"
+  },
+  "uf2_sha256": {
+    "physical": "7e6e732cc7a9e196609413dfe228781a725ece56bed1b4a99a96d1cc8741baf6",
+    "inhibited": "c9069bdd3dea14fef205ae38f8780d7e798442420b6738baa44f8c1e585a2938"
+  },
+  "static_frames_bytes": {
+    "049cc929": {
+      "sha256": 360,
+      "decode_request": 560,
+      "encode_response": 752,
+      "frame_feed": 96
+    },
+    "2e43110": {
+      "sha256": 448,
+      "decode_request": 848,
+      "encode_response": 760,
+      "frame_feed": 96
+    }
+  },
+  "scope": "Individual compiler static frames, not whole call-chain or target stack high-water; physical guard/headroom acceptance required."
+}

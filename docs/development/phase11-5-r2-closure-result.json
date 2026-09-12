@@ -1,0 +1,342 @@
+{
+  "schema": "phase11.5-r2-closure-v1",
+  "status": "PASS_WITH_EXPLICIT_ADMINISTRATIVE_AMENDMENT",
+  "family": "R2",
+  "family_closed": true,
+  "completed_jobs": 7,
+  "required_jobs": 7,
+  "closed_families": 2,
+  "total_families": 6,
+  "selected_configuration": {
+    "source_revision": "2e43110f05304efdc2ae25c298baa0ef6426955b",
+    "system_clock_hz": 138000000,
+    "pio_divider": 1,
+    "rf_render_in_ram": true,
+    "listener_enabled": true,
+    "frequency_hz": 135500
+  },
+  "accepted_configurations": [],
+  "untested_physical_clocks_hz": [
+    132000000,
+    150000000
+  ],
+  "evidence_reuse": [
+    {
+      "result": "phase11-5-r2-amended-result.json",
+      "source_revision": "049cc929143bdec6ec32817f6df0c73a9637cdf5",
+      "R1_assertions": 5,
+      "browser_tone_jobs": 3
+    },
+    {
+      "result": "phase11-5-r2-remaining-result.json",
+      "source_revision": "049cc929143bdec6ec32817f6df0c73a9637cdf5",
+      "production_qrss_jobs": 1
+    }
+  ],
+  "reuse_impact_assessment": "phase11-5-r2-continuation-review.md",
+  "new_image_completed_jobs": 3,
+  "new_image_boot": "757e37c9681bd12e8065073f513914b1",
+  "timing": [
+    {
+      "job_id": "1a6c10d7cef0d7a3c4753d0c326adf5e",
+      "mode": "fskcw",
+      "epoch": 1,
+      "expected_counter_deltas": {
+        "dma_irqs": 9214,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 9212,
+        "refill_irq_pairs": 9212,
+        "running_tail_links": 1
+      },
+      "duration_ns": 35000000000,
+      "launch_target_ns": 27570256000,
+      "post_enable_delay_ns": 8000,
+      "short_words": 8092,
+      "short_interval_ns": 1876405.7971014492,
+      "short_75_percent_budget_ns": 1407304.347826087,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 1,
+        "epoch": "1",
+        "successor_sequence": "9213",
+        "observed_ns": "62568458000",
+        "remaining_words": 7775,
+        "total_words": 8092
+      }
+    },
+    {
+      "job_id": "499926080112cd669b534482a4e78621",
+      "mode": "dfcw",
+      "epoch": 2,
+      "expected_counter_deltas": {
+        "dma_irqs": 4476,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 4474,
+        "refill_irq_pairs": 4474,
+        "running_tail_links": 1
+      },
+      "duration_ns": 17000000000,
+      "launch_target_ns": 92577394000,
+      "post_enable_delay_ns": 26000,
+      "short_words": 10484,
+      "short_interval_ns": 2431072.4637681157,
+      "short_75_percent_budget_ns": 1823304.347826087,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 2,
+        "epoch": "1",
+        "successor_sequence": "9213",
+        "observed_ns": "62568458000",
+        "remaining_words": 7775,
+        "total_words": 8092
+      }
+    },
+    {
+      "job_id": "69fccb33c5217017cba8345ab4945fec",
+      "mode": "wspr",
+      "epoch": 3,
+      "expected_counter_deltas": {
+        "dma_irqs": 29111,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 29109,
+        "refill_irq_pairs": 29109,
+        "running_tail_links": 1
+      },
+      "duration_ns": 110592000000,
+      "launch_target_ns": 137583464000,
+      "post_enable_delay_ns": 10000,
+      "short_words": 6144,
+      "short_interval_ns": 1424695.652173913,
+      "short_75_percent_budget_ns": 1068521.7391304348,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 3,
+        "epoch": "1",
+        "successor_sequence": "9213",
+        "observed_ns": "62568458000",
+        "remaining_words": 7775,
+        "total_words": 8092
+      }
+    }
+  ],
+  "resource_metrics": {
+    "heap_capacity_bytes": 218284,
+    "allocator_peak_bytes": 146716,
+    "allocator_largest_successful_request_bytes": 18364,
+    "allocator_failures": "0",
+    "tls_allocation_failures": 0,
+    "core0_stack_used_bytes": 8248,
+    "core1_stack_used_bytes": 5620,
+    "core0_stack_guard_valid": 1,
+    "core1_stack_guard_valid": 1,
+    "max_refill_irq_to_ready_ns": "2121000",
+    "max_dma_irq_ns": 139000,
+    "refill_full_predecessor": {
+      "measured": true,
+      "observations": 42792,
+      "epoch": "3",
+      "successor_sequence": "20763",
+      "observed_ns": "216464346000",
+      "remaining_words": 7224,
+      "total_words": 16384
+    },
+    "refill_short_predecessor": {
+      "measured": true,
+      "observations": 3,
+      "epoch": "1",
+      "successor_sequence": "9213",
+      "observed_ns": "62568458000",
+      "remaining_words": 7775,
+      "total_words": 8092
+    },
+    "tail_irqs": 3,
+    "dma_errors": 0
+  },
+  "minimum_heap_reserve_bytes": 71568,
+  "load": {
+    "boot": "757e37c9681bd12e8065073f513914b1",
+    "seconds": 300,
+    "production_connections": 1,
+    "logical_sessions": 1,
+    "operations": {
+      "HELLO": 1,
+      "STATUS": 320,
+      "CAPS": 1
+    },
+    "status_cadence_policy": "single-flight-admin-v1",
+    "nominal_status_count": 317,
+    "nominal_status_hz": 1.0566666666666666,
+    "nominal_max_status_start_gap_ns": 2322236389,
+    "in_flight_time_beyond_poll_period_ns": 2166565878,
+    "minimum_eligible_status_count": 296,
+    "max_eligible_offer_delay_ns": 105183828,
+    "administrative_response_deadline_ns": 5000000000,
+    "browser_counts": {
+      "/": 2,
+      "/api/v1/capabilities": 2,
+      "/api/v1/status": 8,
+      "/api/v1/config": 2
+    },
+    "normal_browser": {
+      "actions": 8,
+      "refresh_actions": 6,
+      "action_latencies_seconds": [
+        7.622068479,
+        1.89750938,
+        1.790597533,
+        1.77200092,
+        8.572385471,
+        2.491513362,
+        2.498228729,
+        1.812231032
+      ]
+    },
+    "max_observed_write_to_response_seconds": 2.218080153,
+    "timing_origin": "SSL_write_ex entry",
+    "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+    "plaintext_sha256": "600ded527534687302634a85467eadd7400ea7bcb440bbedfe8b8219d2d76b17"
+  },
+  "observer_cost": {
+    "max_usb_roundtrip_seconds": {
+      "INFO": 1.735453595,
+      "STATUS": 0.617103611,
+      "HELLO": 0.029003521,
+      "CLAIM": 0.030601798,
+      "LOAD": 0.870244451,
+      "GET_CLOCK": 0.030624706,
+      "ARM": 0.038627668,
+      "RENEW": 0.057541182,
+      "RELEASE": 0.026685733
+    },
+    "host_max_loadavg_1m": 0.34,
+    "host_max_temperature_c": 55.65,
+    "note": "Load average is system-wide runnable/uninterruptible load, not CPU utilization. Costs overlap."
+  },
+  "administrative_amendment": {
+    "policy": "single-flight-admin-v1",
+    "authorization": "User accepted the explanation of the five-second response deadline and one-Hz polling while no request is pending: That sounds fine.",
+    "original_assessment": {
+      "status": "FAILED",
+      "source_revision": "2e43110f05304efdc2ae25c298baa0ef6426955b",
+      "completed_jobs": 4,
+      "required_jobs": 7,
+      "family_closed": false,
+      "packet_sha256": "f80e6cfa67f841310e8be7c8044bd279ffed991fc51513c9d799266976f46c09",
+      "reused_R1": true,
+      "reused_Tone": true,
+      "stage": "host-cleanup",
+      "error": "ValueError: Nominal production STATUS rate absent/reduced: {\"nominal_max_status_start_gap_ns\": 2322236389, \"nominal_status_count\": 317, \"nominal_status_hz\": 1.0566666666666666, \"worst_status_start_gap_requests\": [{\"request_id\": \"00000000000000000000000000000105\", \"started_ns\": 193561165942255, \"write_completed_ns\": 193561168125935}, {\"request_id\": \"00000000000000000000000000000106\", \"started_ns\": 193563488178644, \"write_completed_ns\": 193563492143616}]}",
+      "device_restored": true,
+      "host_restored": true
+    },
+    "original_failure_preserved": true,
+    "no_additional_hardware_run": true
+  },
+  "restoration": {
+    "boards": {
+      "A": {
+        "revision": "802c91a7b86e-dirty",
+        "status": {
+          "boot_id": "587c672d4267e467649bb43765542284",
+          "state": "empty",
+          "output_active": false,
+          "owner_id": null,
+          "job_id": null,
+          "terminal_records": []
+        },
+        "original_configuration_matched": true
+      },
+      "B": {
+        "revision": "dbf1d86f0885-dirty",
+        "status": {
+          "boot_id": "feffcd075ab6cb0b74e7e0c2fde6c87f",
+          "state": "empty",
+          "output_active": false,
+          "owner_id": null,
+          "job_id": null,
+          "terminal_records": []
+        },
+        "original_configuration_matched": true
+      }
+    },
+    "host_restored": true,
+    "permanent_time_local_files_matched": true,
+    "permanent_services_active": true,
+    "chrony_reference": "PPS",
+    "chrony_stratum": 1,
+    "installed_wsprrypi_pid": "1957",
+    "counts": {
+      "config": 34,
+      "wifi-off": 0,
+      "wifi-on": 0,
+      "heap-probe": 6
+    },
+    "configuration_write_limit": 34
+  },
+  "adversarial_review": {
+    "usb": {
+      "intact_passed": true,
+      "rejected": 9,
+      "rejected_mutations": [
+        "jobs.json",
+        "jobs.json",
+        "jobs.json",
+        "jobs.json",
+        "result.json",
+        "tail_irqs",
+        "launch_delay_ns",
+        "allocator_failures",
+        "core1_stack_guard_valid"
+      ],
+      "intact_after_mutations_passed": true,
+      "original_strict_failure": "Nominal production STATUS rate absent/reduced: {\"nominal_max_status_start_gap_ns\": 2322236389, \"nominal_status_count\": 317, \"nominal_status_hz\": 1.0566666666666666, \"worst_status_start_gap_requests\": [{\"request_id\": \"00000000000000000000000000000105\", \"started_ns\": 193561165942255, \"write_completed_ns\": 193561168125935}, {\"request_id\": \"00000000000000000000000000000106\", \"started_ns\": 193563488178644, \"write_completed_ns\": 193563492143616}]}"
+    }
+  },
+  "validation": {
+    "ctest_groups_passed": 53,
+    "core_assertions_passed": 29,
+    "phase115_python_discovered": 147,
+    "phase115_python_passed": 146,
+    "phase115_python_skipped": 1,
+    "pi_helper_tests_passed": 12
+  },
+  "evidence_root": "/home/pi/phase11-5-r2-upload-2e43110",
+  "raw_evidence_sha256": {
+    "packet.json": "f80e6cfa67f841310e8be7c8044bd279ffed991fc51513c9d799266976f46c09",
+    "modes-result.json": "715ddc9babfdc98715f0ce5a79e3b19408a31aa2ea1af8b482afba18ade0f551",
+    "management-state.json": "cf4cd124663a12f4632f88beef70ecbeeb2dea8e39f32c948e2699f6101a5aa8",
+    "device-state.json": "5877473b381ae46eb22d91d2c62dd5766dd2e115baaee035fbbd46539e2d31a1",
+    "fixture-state.json": "61233ee6efe02bea04b7b36f38f6b90f976f5c07eb1e11ba723d5d53b56b8e48",
+    "fixture.jsonl": "8d20e242ff95638a595745bd5b45b44d0705edecb3542e21e0b468f881958ee7",
+    "device-fixture.jsonl": "7ff7352f95a329028732bc9fc56046e1cf93be87ba7590dc6f56a78711b15ad0",
+    "restored-original-boot.stdout": "887da5147cc67fc7fecbb9a34417ad73e7efa6e085a22e818ef630e79ba4c804",
+    "after-b.stdout": "b0c4a2cbad55cd5eb2e4701e96d06e4bdff82c417252abf8fff0e47d5d4f5ab0",
+    "before-a.stdout": "b26d0f9621413937629c66ad525213369c8958a507cdfdd6892ecaea272b3cd1",
+    "before-b.stdout": "e7a90bd1002c557a0cb873f08b1e13c79b395a3b6106890192f7ea891da1e56d",
+    "usb-admission.stdout": "6cb259544abc30729292bf003d79b68452d65b14ed8594d52a7b62e79dcdbdc7",
+    "usb/jobs.json": "a01f24562e981498ee1d0dd144c3f2387950ab48622e596f8f72b18ac8975aa5",
+    "usb/load.json": "f4b7b4a8576ab945352aabf51750f69b35d9a2d994fcf42a57b49d8c00011066",
+    "usb/load-events.jsonl": "07cb28786dcd0a768aa9314ebaac28f3fbbe96927bede413246da263630bde01",
+    "usb/result.json": "55363237235d1d6f0f9fda5366da23aaf7171e79cee9cd5675a0a9c3dd36e18a",
+    "usb/usb-health.jsonl": "6a1d0dfb7000eb5840a447157f5b1f09fdca3273114337e55a954238572e425f",
+    "usb/production-tls.bin": "600ded527534687302634a85467eadd7400ea7bcb440bbedfe8b8219d2d76b17",
+    "usb/amended-audit.json": "4b01469617d23d9287dec5c04906a1ca93667fa9b6015f05d14b51b2c2c80d86",
+    "usb/amended-adversarial-review.json": "d5f3143d3232e3a6cc032cecb7cb956931ff05723bdfbc85a655179d3f7c8eee",
+    "usb/diagnostic-audit.json": "81b4d62e2d8995235731a870be0e14a455b45d2bddf65f6e99989869bffd3943"
+  },
+  "audit_source_sha256": {
+    "scripts/audit_phase11_5_load.py": "9f62795dac996dc2381d3fe1497542b943d1c53f20e6f8eda793e07b54512f2f",
+    "scripts/audit_phase11_5_r2_modes.py": "11b50643588a7def47bb46306ac779b815276d7f5b80e1a471bf5e3907a14ef6",
+    "scripts/phase11_5_r2_admin_review.py": "077e58ced27f48f02999f9e78de6bad975dc0337facc9c6d979cc26c6bf14eef"
+  },
+  "limitations": [
+    "Source-impact reuse does not relabel older Tone/QRSS/R1 measurements as measured on 2e43110.",
+    "Original OOM and original strict STATUS-cadence failures remain preserved.",
+    "Post-enable software observations do not measure electrical-edge UTC accuracy.",
+    "No SDR calibration, decoding, per-band RF or spectral qualification.",
+    "R3-R6 remain open; a different clock requires affected Phase 11.5 checks and new deadlines."
+  ]
+}

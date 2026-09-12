@@ -25,7 +25,8 @@ from phase11_5_pilot_supervisor import finished, idle
 SOURCE = '4058d3a4a95110326006a7db6e37eb4b562a500c'
 R1_SOURCE = 'e20ae8bea2d5237af017dbd5f73bfe9332ce144e'
 from phase11_5_r2_amended_plan import SOURCE as AMENDED_SOURCE, INITIAL_COUNTS
-CANDIDATES = (SOURCE, R1_SOURCE, AMENDED_SOURCE)
+from phase11_5_r2_upload_plan import SOURCE as UPLOAD_SOURCE
+CANDIDATES = (SOURCE, R1_SOURCE, AMENDED_SOURCE, UPLOAD_SOURCE)
 MAX_WRITES = 32
 MAX_PROBES = 64
 
@@ -103,7 +104,8 @@ def authorize(state, action, argument):
             all(type(v) is int and v >= 0 for v in counts.values()), 'Invalid operation counters')
     if action == 'config':
         # Always retain one successful-write allowance for original restoration.
-        require(counts['config'] < (MAX_WRITES if argument == 'original' else MAX_WRITES - 1),
+        limit = 34 if state.get('source_revision') == UPLOAD_SOURCE else MAX_WRITES
+        require(counts['config'] < (limit if argument == 'original' else limit - 1),
                 'Configuration write budget exhausted')
     elif action in ('wifi-off', 'wifi-on'):
         require(counts[action] < 3, 'Wi-Fi cycle budget exhausted')
@@ -159,6 +161,8 @@ def main():
     with (root / 'management.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         state = json.loads(state_path.read_text())
+        require(state.get('source_revision', packet['source_revision']) == packet['source_revision'],
+                'Management allowance source differs from frozen packet')
         require(state['host_boot'] == Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
                 'Host boot changed')
         unit = state['restoration_unit']

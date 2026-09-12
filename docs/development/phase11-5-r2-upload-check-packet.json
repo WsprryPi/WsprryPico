@@ -1,0 +1,1118 @@
+{
+  "schema": "phase11.5-r2-upload-check-v1",
+  "status": "AUTHORIZED_SOURCE_AND_SCOPE_CORRECTED_IMAGE_IDENTITIES",
+  "source_revision": "2e43110f05304efdc2ae25c298baa0ef6426955b",
+  "serial": "0BF4B4AEC9FFB344",
+  "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+  "initial_a_boot_id": "03800628f67b8a96a251147b319b2772",
+  "initial_b_boot_id": "feffcd075ab6cb0b74e7e0c2fde6c87f",
+  "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+  "system_clock_hz": 138000000,
+  "pio_divider": 1,
+  "rf_render_in_ram": true,
+  "listener_enabled": true,
+  "images": {
+    "physical": "7e6e732cc7a9e196609413dfe228781a725ece56bed1b4a99a96d1cc8741baf6",
+    "inhibited": "c9069bdd3dea14fef205ae38f8780d7e798442420b6738baa44f8c1e585a2938",
+    "original": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10"
+  },
+  "original_config_sha256": "2978a00337f174286085251ec12ea15d0e524652738e009af3eb64e3be4ca0bf",
+  "initial_management_counts": {
+    "config": 32,
+    "wifi-off": 0,
+    "wifi-on": 0,
+    "heap-probe": 6
+  },
+  "proposed_additional_config_writes": 2,
+  "proposed_cumulative_config_limit": 34,
+  "nominal_seconds": 300,
+  "usb_observation_seconds": 360,
+  "expected_total_minutes": 20,
+  "independent_cleanup_limit_minutes": 80,
+  "accepted_configurations": [],
+  "execution_authorized": true,
+  "nonce": "c5a6417ac680fbe5195668ec4af9b2e9",
+  "finite_jobs": [
+    {
+      "profile": "rf-events/1",
+      "mode": "fskcw",
+      "events": [
+        {
+          "offset_ns": "0",
+          "duration_ns": "1000000000",
+          "rf_on": false
+        },
+        {
+          "offset_ns": "1000000000",
+          "duration_ns": "3000000000",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "4000000000",
+          "duration_ns": "9000000000",
+          "rf_on": true,
+          "frequency_nhz": "135495000000000"
+        },
+        {
+          "offset_ns": "13000000000",
+          "duration_ns": "9000000000",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "22000000000",
+          "duration_ns": "9000000000",
+          "rf_on": true,
+          "frequency_nhz": "135495000000000"
+        },
+        {
+          "offset_ns": "31000000000",
+          "duration_ns": "3000000000",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "34000000000",
+          "duration_ns": "1000000000",
+          "rf_on": false
+        }
+      ],
+      "total_duration_ns": "35000000000",
+      "allow_frequency_adjustment": true,
+      "job_id": "1a6c10d7cef0d7a3c4753d0c326adf5e"
+    },
+    {
+      "profile": "rf-events/1",
+      "mode": "dfcw",
+      "events": [
+        {
+          "offset_ns": "0",
+          "duration_ns": "1000000000",
+          "rf_on": false
+        },
+        {
+          "offset_ns": "1000000000",
+          "duration_ns": "3000000000",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "4000000000",
+          "duration_ns": "3000000000",
+          "rf_on": false
+        },
+        {
+          "offset_ns": "7000000000",
+          "duration_ns": "3000000000",
+          "rf_on": true,
+          "frequency_nhz": "135495000000000"
+        },
+        {
+          "offset_ns": "10000000000",
+          "duration_ns": "3000000000",
+          "rf_on": false
+        },
+        {
+          "offset_ns": "13000000000",
+          "duration_ns": "3000000000",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "16000000000",
+          "duration_ns": "1000000000",
+          "rf_on": false
+        }
+      ],
+      "total_duration_ns": "17000000000",
+      "allow_frequency_adjustment": true,
+      "job_id": "499926080112cd669b534482a4e78621"
+    },
+    {
+      "profile": "rf-events/1",
+      "mode": "wspr",
+      "events": [
+        {
+          "offset_ns": "0",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "682666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "1365333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "2048000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "2730666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "3413333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "4096000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "4778666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "5461333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "6144000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "6826666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "7509333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "8192000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "8874666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "9557333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "10240000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "10922666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "11605333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "12288000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "12970666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "13653333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "14336000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "15018666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "15701333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "16384000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "17066666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "17749333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "18432000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "19114666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "19797333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "20480000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "21162666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "21845333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "22528000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "23210666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "23893333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "24576000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "25258666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "25941333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "26624000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "27306666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "27989333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "28672000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "29354666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "30037333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "30720000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "31402666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "32085333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "32768000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "33450666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "34133333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "34816000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "35498666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "36181333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "36864000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "37546666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "38229333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "38912000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "39594666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "40277333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "40960000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "41642666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "42325333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "43008000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "43690666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "44373333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "45056000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "45738666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "46421333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "47104000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "47786666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "48469333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "49152000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "49834666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "50517333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "51200000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "51882666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "52565333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "53248000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "53930666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "54613333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "55296000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "55978666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "56661333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "57344000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "58026666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "58709333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "59392000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "60074666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "60757333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "61440000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "62122666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "62805333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "63488000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "64170666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "64853333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "65536000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "66218666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "66901333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "67584000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "68266666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "68949333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "69632000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "70314666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "70997333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "71680000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "72362666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "73045333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "73728000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "74410666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "75093333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "75776000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "76458666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "77141333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "77824000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "78506666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "79189333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "79872000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "80554666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "81237333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "81920000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "82602666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "83285333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "83968000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "84650666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "85333333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "86016000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "86698666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "87381333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "88064000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "88746666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "89429333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "90112000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "90794666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "91477333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "92160000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "92842666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "93525333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "94208000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "94890666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "95573333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "96256000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "96938666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "97621333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "98304000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "98986666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "99669333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "100352000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "101034666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "101717333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "102400000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "103082666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "103765333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "104448000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "105130666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "105813333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "106496000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "107178666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135504394531250"
+        },
+        {
+          "offset_ns": "107861333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135501464843750"
+        },
+        {
+          "offset_ns": "108544000000",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        },
+        {
+          "offset_ns": "109226666667",
+          "duration_ns": "682666666",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        },
+        {
+          "offset_ns": "109909333333",
+          "duration_ns": "682666667",
+          "rf_on": true,
+          "frequency_nhz": "135502929687500"
+        }
+      ],
+      "total_duration_ns": "110592000000",
+      "allow_frequency_adjustment": true,
+      "job_id": "69fccb33c5217017cba8345ab4945fec"
+    }
+  ],
+  "scope": "Only remaining FSKCW, DFCW and WSPR under normal production/browser contention; change-directed physical memory/stack checks; no full R1 repeat, new bands/clocks or GPSDO changes.",
+  "fixture": "Same temporary wlan0 AP/wlan2 client, owned recovery-timer pause, temporary chrony ACL and time.local publication; Ethernet/wlan1/installed WsprryPi unchanged; restore original host/device settings.",
+  "superseded_packet_sha256": "852a781b657014be4f385f50659332de1e0c3200921080244a275a1000c85c93",
+  "identity_correction": "Explicit reconfigure regenerated stale embedded revision. Source remains 2e43110; jobs, devices, fixtures and 32 to 34 write allowance unchanged. Superseded images never flashed."
+}

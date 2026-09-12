@@ -337,7 +337,9 @@ class Fixture:
         if self.state.get('ap_profile'):
             attempt('AP profile', remove_ap)
         def restore_radios():
-            deadline = time.monotonic() + 20
+            # Namespace teardown can return its radio asynchronously after 20 s.
+            # Keep this inside the independently bounded ten-minute cleanup.
+            deadline = time.monotonic() + 60
             found = {}
             while time.monotonic() < deadline:
                 found = {p.read_text().strip(): p.parent.name

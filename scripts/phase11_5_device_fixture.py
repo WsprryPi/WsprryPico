@@ -27,7 +27,7 @@ from phase11_5_inventory import exclusive_port, exchange, require, inventory_ses
 from phase11_5_pilot import SERIAL, DEVICE
 from phase11_5_pilot_supervisor import (B_SERIAL, B_DEVICE, PICOTOOL, PICOTOOL_SHA,
     RESTORE_SHA, RESTORE_REVISION, finished, idle, configuration, verify_application_backup)
-from phase11_5_device_management import SOURCE, R1_SOURCE, AMENDED_SOURCE, admit, digest, save
+from phase11_5_device_management import SOURCE, R1_SOURCE, AMENDED_SOURCE, UPLOAD_SOURCE, admit, digest, save
 from phase11_5_r2_amended_plan import INHIBITED, PHYSICAL, INITIAL_COUNTS
 from phase11_5_network_fixture import Fixture, HOST_BOOT, PREFIX as HOST_PREFIX, RUN_SECONDS
 
@@ -39,7 +39,10 @@ IMAGES = {
 
 
 def candidate_images(source):
-    require(source in (SOURCE, R1_SOURCE, AMENDED_SOURCE), 'Unreviewed candidate images')
+    require(source in (SOURCE, R1_SOURCE, AMENDED_SOURCE, UPLOAD_SOURCE), 'Unreviewed candidate images')
+    if source == UPLOAD_SOURCE:
+        from phase11_5_r2_upload_plan import INHIBITED as inhibited, PHYSICAL as physical
+        return dict(IMAGES, inhibited=('inhibited.uf2',inhibited), physical=('physical.uf2',physical))
     if source == AMENDED_SOURCE:
         return dict(IMAGES, inhibited=('inhibited.uf2',INHIBITED), physical=('physical.uf2',PHYSICAL))
     if source == SOURCE:
@@ -55,7 +58,7 @@ HELPERS = {'scripts/'+name+'.py' for name in (
     'phase11_5_device_fixture', 'phase11_5_device_management', 'phase11_5_inventory',
     'phase11_5_pilot', 'phase11_5_pilot_supervisor', 'phase11_5_network_fixture',
     'phase11_4_hotspot', 'phase11_5_network_fault', 'validate_wtp_contract',
-    'wtp_monitor','phase11_5_r2_amended_plan')} | {'docs/protocol/wtp-1.schema.json'}
+    'wtp_monitor','phase11_5_r2_amended_plan','phase11_5_r2_upload_plan')} | {'docs/protocol/wtp-1.schema.json'}
 
 
 def reconciled_boots(packet, prior_root):
@@ -229,7 +232,7 @@ class DeviceFixture:
                     'Shared R1 host fixture identity changed')
         require(packet['host_boot_id'] == HOST_BOOT ==
                 Path('/proc/sys/kernel/random/boot_id').read_text().strip(), 'Host boot changed')
-        expected_helpers = HELPERS | ({'scripts/phase11_5_time_local.py'} if packet.get('time_server_mdns') else set())
+        expected_helpers = HELPERS | ({'scripts/phase11_5_r2_modes_plan.py', 'scripts/phase11_5_f1_plan.py', 'src/campaign/plan.py'} if packet.get('remaining_modes') else set()) | ({'scripts/phase11_5_time_local.py'} if packet.get('time_server_mdns') else set())
         require(set(packet['helper_sha256']) == expected_helpers, 'Incomplete helper identity set')
         for relative, expected in packet['helper_sha256'].items():
             path = self.root/relative
@@ -266,12 +269,20 @@ class DeviceFixture:
             counts = management['counts']
             require(set(counts) == {'config','wifi-off','wifi-on','heap-probe'} and
                     all(type(n) is int and n >= 0 for n in counts.values()) and
-                    counts['config'] <= 30 and counts['wifi-off'] <= 3 and
+                    counts['config'] <= (32 if self.source == UPLOAD_SOURCE else 30) and counts['wifi-off'] <= 3 and
                     counts['wifi-on'] <= 3 and counts['heap-probe'] <= 64,
                     'Prior operation budgets do not admit continuation/restoration')
         if packet.get('time_server_mdns'):
             require(counts == packet['initial_management_counts'], 'Carried operation counts changed')
-            if self.source == AMENDED_SOURCE:
+            if self.source == UPLOAD_SOURCE:
+                from phase11_5_r2_upload_plan import COUNTS as upload_counts
+                require(packet.get('family') == 'R2' and packet.get('upload_check') is True and
+                        packet['max_configuration_writes'] == 34 and counts == upload_counts,
+                        'Upload repair exact authorized counts')
+            elif self.source == AMENDED_SOURCE and packet.get('family')=='R2' and packet.get('remaining_modes') is True:
+                from phase11_5_r2_modes_plan import COUNTS
+                require(counts==COUNTS, 'Remaining R2 exact cumulative counts')
+            elif self.source == AMENDED_SOURCE:
                 require(packet.get('family') == 'R1' and packet.get('amended_r2') is True and
                         counts == INITIAL_COUNTS, 'Amended R1/R2 exact carried counts')
             elif packet.get('family') == 'R2':
@@ -319,7 +330,7 @@ class DeviceFixture:
             inventory_session_id=self.state['inventory_session_id'],
             original_config_sha256=ORIGINAL_CONFIG_SHA,
             test_wifi_sha256=digest(self.root/'test-wifi.json'),
-            pending=None, blocked=False, counts=counts))
+            pending=None, blocked=False, counts=counts, source_revision=self.source))
         self.run('arm-restoration', ['systemd-run','--quiet','--unit='+unit,
             '--description='+token,'--on-active='+str(seconds)+'s','--property=UMask=0077',
             '--property=RuntimeMaxSec=600','--property=TimeoutStartSec=600',

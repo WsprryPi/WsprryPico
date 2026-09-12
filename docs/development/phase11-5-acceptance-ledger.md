@@ -1,15 +1,20 @@
 # Phase 11.5 current acceptance ledger
 
-Status on September 12, 2026: **OPEN; 1 of 6 families closed; no accepted
-configuration.** The [amended campaign](phase11-5-r2-amended-review.md) closes
-R1 **5/5** on clean `049cc929143bdec6ec32817f6df0c73a9637cdf5`, physical
-138 MHz/divider 1/RAM/listener on, with inhibited 150 MHz regression. Its three
-browser-owned Tone jobs passed; **R2 is 3/7 jobs complete and remains open**.
-The four other modes and production-owned/USB-reference paths did not run.
-Boards, original configurations and host services were restored; counts are
-30/32 configuration writes and six cumulative probes. The e20ae8b R1 closure,
-its later MISSED_START, and earlier DNS failures retain their original scope.
-Future fixes invalidate specific assertions, not automatically all of R1.
+Status on September 12, 2026: **OPEN; 2 of 6 families closed; no accepted
+configuration.** [R2 closure and review](phase11-5-r2-continuation-review.md)
+close **7/7 jobs**. R1 remains **5/5**, with explicit change-directed reuse.
+The selected firmware is `2e43110f05304efdc2ae25c298baa0ef6426955b`, physical
+138 MHz/divider 1/RAM/listener on. Three browser Tone jobs and native production
+QRSS retain their 049cc929 identities; FSKCW, DFCW and WSPR passed on 2e43110.
+The review identifies reused and newly measured assertions rather than relabeling
+old measurements. Inhibited 150 MHz is regression evidence only.
+
+The [closure result](phase11-5-r2-closure-result.json) records the explicitly accepted
+administrative STATUS amendment and preserves the original strict-gap failure.
+The earlier WSPR LOAD OOM, recovery and superseded unflashed images remain
+recorded. Both boards/configurations and host services were restored; CONFIG
+writes are **34/34**, with six cumulative probes. R3–R6 require new bounded
+packets. Future fixes invalidate affected assertions, not automatically all R1.
 
 ## Evidence that already exists
 
@@ -34,7 +39,7 @@ Neither a later Mac checkout nor the installed wspr5 executable is implicitly
 this tested binary. Full dependencies, helper identities and archives remain
 in the linked immutable results.
 
-Current amended image hashes and all four layouts are in
+Historical 049cc929 image hashes and all four layouts are in
 [049cc929 build identities](phase11-5-r2-amended-builds.json). The physical UF2 is
 `908fbe87a326366710ca0b4be4541e71d26e46b9e439f2d0257a9bfcd1490192`.
 
@@ -42,8 +47,8 @@ Current amended image hashes and all four layouts are in
 
 | Family | Status | Existing input | Required next evidence |
 | --- | --- | --- | --- |
-| R1 | CLOSED — 5/5 on 049cc929 | Four layouts; six intervals; three new probes; [amended result](phase11-5-r2-amended-result.json) | Reuse unaffected assertions; invalidate only demonstrated impacts of a future change |
-| R2 | OPEN — 3/7 complete; 4 not run on 049cc929 | Three browser Tones passed; [review](phase11-5-r2-amended-review.md); restored | Remaining modes plus actual production-owned and USB-reference submission |
+| R1 | CLOSED — 5/5 applicable to 2e43110 through impact review | Earlier 049cc929 layouts/intervals/probes plus affected new-image layout, heap and stack checks; [review](phase11-5-r2-continuation-review.md) | Reuse unaffected assertions; invalidate demonstrated impacts of future changes |
+| R2 | CLOSED — 7/7 jobs | Three browser Tones, native production QRSS and USB FSKCW/DFCW/WSPR; [result](phase11-5-r2-closure-result.json) | Repeat affected paths only if later changes invalidate this evidence |
 | R3 | NOT RUN | Existing functional tests and prior inhibited results | Distinct physical resource-boundary and reclamation assertions |
 | R4 | NOT RUN | Existing ownership/replay/recovery semantics | Current-image physical authority, owner abort and interrupted-operation checks |
 | R5 | NOT RUN | Prior network/storage/standalone evidence | Targeted physical lifecycle, journal rotation and autonomous scheduling under contention |
@@ -58,12 +63,12 @@ historical 20-case counts and revised family counts separately; do not add them.
 ## Clock and device boundary
 
 - 138 MHz, divider 1, RAM renderer, network listener on: **R1 closed**; selected
-  for 11.6, **not accepted for full Phase 11.5**.
+  for 11.6; **R2 also closed**, but **not accepted for full Phase 11.5**.
 - Physical 132/150 MHz: **untested** in 11.5. Inhibited 150 MHz is separate.
 - Selecting another clock during 11.6 requires the affected 11.5 checks and
   recalculated timing budgets; broad clock/band/spectral qualification is Phase 13.
 
-Final R1 read-only inventories after restoration: Pico A USB
+Historical R1 read-only inventories after restoration: Pico A USB
 `0BF4B4AEC9FFB344` returned to inhibited `802c91a7b86e-dirty`, boot
 `a4e5c91e63bf3a3e40e8e311d378a076`; B USB `CDDBF8767C506C07` remained inhibited
 `dbf1d86f0885-dirty`, boot `feffcd075ab6cb0b74e7e0c2fde6c87f`. Both were
@@ -78,8 +83,10 @@ B retained its R1 boot. Both were empty, inactive and unowned; original
 configurations matched. Host and permanent time.local/GPS-PPS were restored.
 That attempt ended at 28/32 writes. The amended campaign restored A to boot
 `8aadfedf02a066b47cb0ffb3c4068695`, with B unchanged and both inactive/unowned.
-Current cumulative configuration writes are **30 of 32**. Reserve restoration
-and R5 schedule/rotation writes before more setup. Historical restoration inputs
+That campaign ended at **30 of 32** writes. The continuation/recovery then
+reached 32/32, and the separately authorized repair run ended at **34 of 34**.
+Reserve restoration and R5 schedule/rotation writes in a new bounded allowance
+before more setup. Historical restoration inputs
 and finite authorization windows are not permission to silently restart an old
 campaign or reset its budget.
 
@@ -100,5 +107,11 @@ flashing and audits the target's own exchanges. All six intervals passed;
 −8 bytes support scoped R1 closure. Both guards and observer costs were reviewed.
 Permanent time.local and GPS/PPS services were preserved and verified after
 cleanup. The original DNS failures and one later unlocalized Mac NTP timeout
-remain explicit in the review. R2–R6 runner/closure adaptation remains outside
-this slice; freeze new packets without modifying or rerunning preserved attempts.
+remain explicit in the review. That historical R1 slice did not adapt R2–R6. R2 is now closed above; freeze new packets without modifying or rerunning preserved attempts.
+
+Latest final inventories: A boot `587c672d4267e467649bb43765542284`, original
+inhibited `802c91a7b86e-dirty`; B boot `feffcd075ab6cb0b74e7e0c2fde6c87f`,
+inhibited `dbf1d86f0885-dirty`, unchanged. Both Empty/inactive/unowned and original
+configurations matched. Host and permanent time.local/GPS-PPS were restored.
+The selected 2e43110 [build record](phase11-5-r2-upload-builds.json) binds physical
+and inhibited listener-on images; it does not claim new listener-off layouts.

@@ -1,6 +1,6 @@
 # Phase 11.5 target resources and contention
 
-Status: **OPEN; 1 of 6 acceptance families closed (R1: 5 of 5 assertions).** This
+Status: **OPEN; 2 of 6 acceptance families closed (R1: 5/5; R2: 7/7 jobs).** This
 September 12, 2026 documentation revision supersedes the execution organization
 of the [preserved original plan](phase11-5-plan-legacy.md). It does not supersede
 old measurements, failed limits or evidence identities. The [current ledger](phase11-5-acceptance-ledger.md)
@@ -14,7 +14,8 @@ changed by that documentation revision. The subsequent [R1 execution](phase11-5-
 closes R1 for the exact e20ae8b physical 138 MHz/divider-1/RAM/listener-on
 configuration, while preserving the earlier failed attempts. The later
 [049cc929 amended campaign](phase11-5-r2-amended-review.md) also closes R1 5/5
-and passes three Tone jobs; R2 is 3/7 jobs complete. R2–R6 remain open.
+and passes three Tone jobs. The [R2 continuation](phase11-5-r2-continuation-review.md)
+closes R2 7/7 with affected-check R1 reuse on 2e43110. R3–R6 remain open.
 No hardware execution is authorized by this document. Future packets
 must reconcile available tools with this plan before obtaining any missing
 bounded hardware/network authority. Old supervisors must not be run under new
@@ -52,12 +53,14 @@ the changed path and its physical interaction, not the entire earlier matrix.
 | 132 MHz | Not selected | Untested in physical 11.5 |
 | 150 MHz | Not selected | Untested in physical 11.5; inhibited evidence is separate |
 
-The current candidate is `e20ae8bea2d5237af017dbd5f73bfe9332ce144e`, divider 1,
-RAM renderer, with exact images in the [repair result](phase11-5-status-delivery-result.json).
-Its 138 MHz nominal RF-idle diagnostic passed; TX credit-wait/preservation
-counters stayed zero. It neither qualifies active RF nor establishes the cause
-of historical STATUS stalls. Freeze this candidate unless a demonstrated defect
-requires a change. Documentation-only commits do not change its firmware identity.
+The current candidate is `2e43110f05304efdc2ae25c298baa0ef6426955b`, divider 1,
+RAM renderer and listener enabled, with exact images in the
+[upload-repair build record](phase11-5-r2-upload-builds.json). R1 5/5 and R2 7/7
+have applicable evidence through the [explicit impact review](phase11-5-r2-continuation-review.md).
+The three browser Tone jobs and native QRSS retain their older 049cc929 identities;
+FSKCW/DFCW/WSPR have new-image measurements. Preserve original failed attempts.
+Freeze this candidate unless a demonstrated defect requires a change. Helper and
+documentation changes do not change its firmware identity.
 
 A full 16,384-word block represents 524,288 samples. Its interval is
 3,799,188.406 ns at 138 MHz; the existing conservative 75% execution budget is
@@ -94,8 +97,16 @@ fresh HTTPS requests including handshake within 15 seconds. These are campaign
 service targets; authoritative output-disable requirements remain separate and
 unchanged. Record whole user-action latency as well as each constituent request.
 
-Keep the 1 Hz offered idle-controller profile's at-least `seconds − 2` requests
-and maximum 2-second request-start gap. Future-start scheduler waits have a
+The legacy idle-controller audit retains its at-least `seconds − 2` requests
+and maximum two-second request-start gap. The explicit R2 USB-contention
+amendment `single-flight-admin-v1` instead offers one-Hz STATUS while no request
+is outstanding, retains the five-second response deadline, and records longer
+in-flight gaps as telemetry. It keeps the existing one-second offer tolerance,
+checks interval boundaries and discounts only measured in-flight time beyond
+the poll period from the minimum count. The [amended review](phase11-5-r2-continuation-review.md)
+records user acceptance, exact calculations and the preserved original failure.
+Future packets must explicitly select their policy; legacy defaults do not change.
+Future-start scheduler waits have a
 different existing policy (the reviewed Pi path sends five-second keepalives);
 freeze and verify the actual source-bound state policy rather than imposing
 idle cadence on every state. A packet must state the maximum permitted start gap
@@ -300,8 +311,8 @@ subcase counts after each packet, separately from family completion counts.
 A test packet is not necessarily a fresh fixture session. Neighboring packets
 may share a bounded authorized session and unchanged boot with safe explicit
 handoffs and sufficient restoration time. Last recorded configuration count is
-30/32; reserve R5 rotation, schedule changes and final restoration before further
-writes. Separate setup/restoration per packet would exhaust this budget. Never
+34/34; obtain a new bounded allowance that reserves R5 rotation, schedule
+changes and final restoration before further writes. Separate setup/restoration per packet would exhaust this budget. Never
 reset an administrative counter to manufacture capacity. Preserve prior attempts.
 
 Every future session binds actual board/boot/image, radio MAC/roles, finite RF
