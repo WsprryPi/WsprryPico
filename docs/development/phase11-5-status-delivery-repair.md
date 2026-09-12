@@ -72,3 +72,18 @@ credit remains unchanged. A target pass cannot eliminate every packet-loss
 cause, and an idle workload cannot qualify active RF contention. The bounded
 target check and its result are recorded separately. No clock configuration or
 Phase 11.5 closure is accepted by this repair alone.
+
+## Current completion state
+
+Source repair is committed as `e20ae8bea2d5237af017dbd5f73bfe9332ce144e`.
+The [machine-readable result](phase11-5-status-delivery-result.json) binds all
+four clean ELF/UF2 identities and the completed checks. The final repeated host
+suite passed 58/58 and the affected native suite passed 5/5.
+
+The user authorized the fresh bounded network fixture. Automatic approval
+review then rejected the firmware upload because the UF2 files contain the
+existing test server private key and it requires explicit authorization for
+that payload and the wspr5 destination. A concrete request with both UF2 hashes
+is pending. No fixture, USB control, flashing or RF action occurred in this
+repair task. The target interval and runtime stack reserve remain unverified;
+the prepared packet must not be described as an executed target result.

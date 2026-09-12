@@ -38,6 +38,11 @@ The [single A2/A3 attempt](phase11-5-single-attempt.md) subsequently passed the
 complete inhibited matrix, then failed 138 MHz conditioning on production STATUS
 cadence. It stopped and restored both device and host; no RF jobs or new full
 acceptance cases followed.
+The focused [STATUS delivery repair](phase11-5-status-delivery-repair.md)
+reproduces outgoing-frame corruption in the pinned CYW43 driver and preserves
+frames across receive polling. Its [execution prompt](phase11-5-status-delivery-prompt.md)
+and [bounded target check](phase11-5-status-delivery-check.md) cover this issue
+only; they do not restart the full acceptance matrix.
 
 ## Build direction
 

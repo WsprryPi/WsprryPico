@@ -1,0 +1,70 @@
+{
+  "firmware_source_revision": "e20ae8bea2d5237af017dbd5f73bfe9332ce144e",
+  "arm_compiler": "15.3.1",
+  "images": {
+    "on/WsprryPico": {
+      "elf": "bafd84755c639102ea065c53af63246541431197a55e498472e4acd5b58fce0b",
+      "uf2": "d4564a5c28db81e6e000542632cae3a4ae00f7a0263ecb4b2061f3f477c7e6e8",
+      "checks": [
+        "RP2350: 16 KiB primary stack; heap and core-1 stack do not overlap it",
+        "Linked FLASH ends at 0x103fb000; journals end below the reserved boot sector"
+      ],
+      "common_send_static_stack_bytes": 2120,
+      "system_clock_hz": 150000000
+    },
+    "on/WsprryPico-StandaloneRF": {
+      "elf": "2f5c5ce29c659ca9ffbbd5698c58fe96b0376578f4669b15d808a28584d42d5d",
+      "uf2": "7a7306b8ad9dab694903434b86aec18e249c79dad0443645cd04ca857e9d4a04",
+      "checks": [
+        "RF worker: dedicated aligned 16 KiB BSS stack below the heap",
+        "RP2350: 16 KiB primary stack; heap and core-1 stack do not overlap it",
+        "Linked FLASH ends at 0x103fb000; journals end below the reserved boot sector"
+      ],
+      "common_send_static_stack_bytes": 2120,
+      "system_clock_hz": 138000000
+    },
+    "off/WsprryPico": {
+      "elf": "be032dd7e327c25abe1cdeda6cde65f39eb8c48e3ff7fbabe4c006ece361b55f",
+      "uf2": "ddb91dd441256e813514567536e1e3a41d870dd97b273f7cd91ddd7ea62e6682",
+      "checks": [
+        "RP2350: 16 KiB primary stack; heap and core-1 stack do not overlap it",
+        "Linked FLASH ends at 0x103fb000; journals end below the reserved boot sector"
+      ],
+      "common_send_static_stack_bytes": 2120,
+      "system_clock_hz": 150000000
+    },
+    "off/WsprryPico-StandaloneRF": {
+      "elf": "13d380f58d37991a0b6132de9663a572b284fcb9ca05b9b633c72db77effb4ed",
+      "uf2": "0fb4055b6accc162e86335dbf66a01f3a977bef37c90b64c98b34a3b8964ea9f",
+      "checks": [
+        "RF worker: dedicated aligned 16 KiB BSS stack below the heap",
+        "RP2350: 16 KiB primary stack; heap and core-1 stack do not overlap it",
+        "Linked FLASH ends at 0x103fb000; journals end below the reserved boot sector"
+      ],
+      "common_send_static_stack_bytes": 2120,
+      "system_clock_hz": 138000000
+    }
+  },
+  "schema": "phase11.5-status-delivery-repair-v1",
+  "scope": "Pinned CYW43 TX corruption repair only",
+  "target_status": "NOT_RUN_PENDING_EMBEDDED_KEY_UPLOAD_AUTHORIZATION",
+  "target_state_changed": false,
+  "deterministic_validation": {
+    "original_real_source_corruption_reproduced": true,
+    "overlay_regressions": 5,
+    "host_ctest_passed": 58,
+    "affected_native_ctest_passed": 5,
+    "wtp_contract": "PASS",
+    "adversarial_review": "Repeated; no remaining actionable source finding"
+  },
+  "accepted_configurations": [],
+  "rf_jobs": [],
+  "target_packet_sha256": "6842eed7b6e7a891e22f4163eeb44f9caa8238ae0827b021f50b6ed29f53cb30",
+  "target_supervisor_sha256": "470ecd63e9795769511be2b2f29234601788192378e56a692a0840298feac55b",
+  "limitations": [
+    "No new target timing or RF acceptance",
+    "Historical STATUS cadence failures remain failed",
+    "The added 2120-byte stack frame still requires target reserve observation",
+    "Firmware upload automatic approval review requires explicit embedded-private-key payload and wspr5 destination authorization"
+  ]
+}

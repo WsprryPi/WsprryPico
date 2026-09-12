@@ -40,3 +40,22 @@ admission, verify B unchanged, then restore the host immediately. Independent
 cleanup survives SSH loss. Preserve failure or output uncertainty if restoration
 admission fails. Cumulative configuration writes start at twenty, maximum 32.
 The original setup remains 50 ohm/60 dB/unfiltered; no RF operation is needed.
+
+## Frozen artifacts
+
+- Clean source: `e20ae8bea2d5237af017dbd5f73bfe9332ce144e`.
+- Network-enabled inhibited UF2 SHA-256:
+  `d4564a5c28db81e6e000542632cae3a4ae00f7a0263ecb4b2061f3f477c7e6e8`.
+- Network-enabled physical 138 MHz UF2 SHA-256:
+  `7a7306b8ad9dab694903434b86aec18e249c79dad0443645cd04ca857e9d4a04`.
+- Private lifecycle packet SHA-256:
+  `6842eed7b6e7a891e22f4163eeb44f9caa8238ae0827b021f50b6ed29f53cb30`.
+- Single-interval supervisor SHA-256:
+  `470ecd63e9795769511be2b2f29234601788192378e56a692a0840298feac55b`.
+
+Staged lifecycle helpers change only the candidate source/image bindings from
+the maintained predecessor helpers; their exact hashes are frozen in the
+packet. The ordinary INFO observer and production binary remain unchanged.
+The bounded supervisor switches to physical firmware before its single
+N300/USB360 interval, independently audits the raw USB and production evidence,
+then attempts guarded restoration. No earlier failed interval is overwritten.
