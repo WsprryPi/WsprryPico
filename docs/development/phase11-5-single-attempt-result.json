@@ -1,0 +1,635 @@
+{
+  "schema": "phase11.5-single-attempt-result-v1",
+  "status": "FAILED_RESTORED",
+  "attempt": "N1z",
+  "firmware_source": "4058d3a4a95110326006a7db6e37eb4b562a500c",
+  "tooling_source": "3e62d268dde759121727c0f2f74bf412e66a5c5a",
+  "production_source": "6f65d5c7d202569102459ab68d7c9ea079b96f35",
+  "production_binary_sha256": "122ed0e4bd752e457419c4df5433c3fca1a4a88677a3db3ebd7e60e783ba5d1c",
+  "images": {
+    "inhibited": {
+      "file": "inhibited.uf2",
+      "sha256": "0a7d54673e7171ee10275272701de5fbb3cecdc91c097a18eeae496c0922c7b9"
+    },
+    "physical": {
+      "file": "physical.uf2",
+      "sha256": "cb91912f7915db7828c5f58ea2a35c714c22728ee71f9ce04c7d034d22598154"
+    },
+    "original": {
+      "file": "original.uf2",
+      "sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10"
+    }
+  },
+  "physical_configuration": {
+    "clock_hz": 138000000,
+    "pio_divider": 1,
+    "rf_render_in_ram": true,
+    "full_buffer_period_ns": "262144000/69",
+    "maximum_75_percent_service_ns": 2849391
+  },
+  "inhibited_baseline_clock_hz": 150000000,
+  "accepted_configurations": [],
+  "untested_physical_clocks_hz": [
+    132000000,
+    150000000
+  ],
+  "rf_jobs_submitted": 0,
+  "case_outcomes": {
+    "inhibited_A2": "PASS_EXACT_IMAGE",
+    "physical_conditioning": "FAIL_STATUS_CADENCE",
+    "physical_A2": "NOT_RUN",
+    "A3": "NOT_RUN"
+  },
+  "counts": {
+    "new_full_acceptance_cases_closed": 0,
+    "historical_full_cases_closed": 2,
+    "total_full_cases": 20,
+    "completed_A2_intervals_this_attempt": 4,
+    "total_A2_intervals_planned": 8
+  },
+  "first_failure": {
+    "type": "ValueError",
+    "message": "Nominal production STATUS rate absent/reduced: {\"nominal_max_status_start_gap_ns\": 2684961482, \"nominal_status_count\": 177, \"nominal_status_hz\": 0.9833333333333333, \"worst_status_start_gap_requests\": [{\"request_id\": \"0000000000000000000000000000006b\", \"started_ns\": 123791490728649, \"write_completed_ns\": 123791493253197}, {\"request_id\": \"0000000000000000000000000000006c\", \"started_ns\": 123794175690131, \"write_completed_ns\": 123794179550138}]}",
+    "stage": "conditioning-physical"
+  },
+  "inhibited_a2": {
+    "case": "a2-inhibited-single",
+    "status": "CAPTURED_REQUIRES_FINAL_REVIEW",
+    "intervals": {
+      "quiet-before": {
+        "info": {
+          "samples": 360,
+          "max_gap_seconds": 1.000077593
+        },
+        "status": {
+          "samples": 72,
+          "max_gap_seconds": 5.000275958
+        },
+        "health": {
+          "samples": 72,
+          "max_gap_seconds": 5.000084266
+        },
+        "boot": "941e0abe32082ef7d303aa15e32b1d83",
+        "seconds": 360,
+        "raw_wire_verified": true,
+        "max_allocator_peak_bytes": 118404,
+        "last_heap_allocated_bytes": 16996
+      },
+      "controller": {
+        "usb": {
+          "info": {
+            "samples": 240,
+            "max_gap_seconds": 1.000094873
+          },
+          "status": {
+            "samples": 48,
+            "max_gap_seconds": 5.000325895
+          },
+          "health": {
+            "samples": 48,
+            "max_gap_seconds": 5.000086845
+          },
+          "boot": "941e0abe32082ef7d303aa15e32b1d83",
+          "seconds": 240,
+          "raw_wire_verified": true,
+          "max_allocator_peak_bytes": 118404,
+          "last_heap_allocated_bytes": 24796
+        },
+        "load": {
+          "boot": "941e0abe32082ef7d303aa15e32b1d83",
+          "seconds": 180,
+          "production_connections": 1,
+          "logical_sessions": 1,
+          "operations": {
+            "HELLO": 1,
+            "STATUS": 183,
+            "CAPS": 1
+          },
+          "nominal_status_count": 180,
+          "nominal_status_hz": 1.0,
+          "nominal_max_status_start_gap_ns": 1678380948,
+          "worst_status_start_gap_requests": [
+            {
+              "request_id": "00000000000000000000000000000060",
+              "started_ns": 122909242298754,
+              "write_completed_ns": 122909244813635
+            },
+            {
+              "request_id": "00000000000000000000000000000061",
+              "started_ns": 122910920679702,
+              "write_completed_ns": 122910924577153
+            }
+          ],
+          "browser_counts": {},
+          "max_observed_write_to_response_seconds": 1.574338352,
+          "timing_origin": "SSL_write_ex entry",
+          "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+          "plaintext_sha256": "9e79fcd8a59a354e3150688707ef50a2eab3ede02c1bff01751f5b19c402b5e5"
+        }
+      },
+      "nominal": {
+        "usb": {
+          "info": {
+            "samples": 240,
+            "max_gap_seconds": 1.000087463
+          },
+          "status": {
+            "samples": 48,
+            "max_gap_seconds": 5.000115175
+          },
+          "health": {
+            "samples": 48,
+            "max_gap_seconds": 5.000090306
+          },
+          "boot": "941e0abe32082ef7d303aa15e32b1d83",
+          "seconds": 240,
+          "raw_wire_verified": true,
+          "max_allocator_peak_bytes": 123964,
+          "last_heap_allocated_bytes": 26732
+        },
+        "load": {
+          "boot": "941e0abe32082ef7d303aa15e32b1d83",
+          "seconds": 180,
+          "production_connections": 1,
+          "logical_sessions": 1,
+          "operations": {
+            "HELLO": 1,
+            "STATUS": 183,
+            "CAPS": 1
+          },
+          "nominal_status_count": 180,
+          "nominal_status_hz": 1.0,
+          "nominal_max_status_start_gap_ns": 1327742457,
+          "worst_status_start_gap_requests": [
+            {
+              "request_id": "00000000000000000000000000000038",
+              "started_ns": 123110089614956,
+              "write_completed_ns": 123110093488796
+            },
+            {
+              "request_id": "00000000000000000000000000000039",
+              "started_ns": 123111417357413,
+              "write_completed_ns": 123111421261587
+            }
+          ],
+          "browser_counts": {
+            "/api/v1/status": 36,
+            "/": 6,
+            "/style.css": 6,
+            "/app.js": 6
+          },
+          "max_observed_write_to_response_seconds": 1.223751711,
+          "timing_origin": "SSL_write_ex entry",
+          "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+          "plaintext_sha256": "462e49d39361608b71d76151041add90585f8d47bf9ad01d1422b939f822b865"
+        }
+      },
+      "quiet-after": {
+        "info": {
+          "samples": 360,
+          "max_gap_seconds": 1.000078439
+        },
+        "status": {
+          "samples": 72,
+          "max_gap_seconds": 5.000075121
+        },
+        "health": {
+          "samples": 72,
+          "max_gap_seconds": 5.00008588
+        },
+        "boot": "941e0abe32082ef7d303aa15e32b1d83",
+        "seconds": 360,
+        "raw_wire_verified": true,
+        "max_allocator_peak_bytes": 123964,
+        "last_heap_allocated_bytes": 17012
+      }
+    },
+    "workload_manifest_sha256": "64e5efdb20787250ec2ba8bdd78e05a61699f597f2745c5ce1cf9efc1b4b80c2",
+    "current_interval": "quiet-after",
+    "quiet_heap_delta_bytes": 16
+  },
+  "load_interval_audits": {
+    "a2-inhibited-conditioning-nominal": {
+      "usb": {
+        "info": {
+          "samples": 240,
+          "max_gap_seconds": 1.000104015
+        },
+        "status": {
+          "samples": 48,
+          "max_gap_seconds": 5.000191426
+        },
+        "health": {
+          "samples": 48,
+          "max_gap_seconds": 5.000090036
+        },
+        "boot": "941e0abe32082ef7d303aa15e32b1d83",
+        "seconds": 240,
+        "raw_wire_verified": true,
+        "max_allocator_peak_bytes": 118404,
+        "last_heap_allocated_bytes": 26444
+      },
+      "load": {
+        "boot": "941e0abe32082ef7d303aa15e32b1d83",
+        "seconds": 180,
+        "production_connections": 1,
+        "logical_sessions": 1,
+        "operations": {
+          "HELLO": 1,
+          "STATUS": 183,
+          "CAPS": 1
+        },
+        "nominal_status_count": 180,
+        "nominal_status_hz": 1.0,
+        "nominal_max_status_start_gap_ns": 1095024787,
+        "worst_status_start_gap_requests": [
+          {
+            "request_id": "00000000000000000000000000000073",
+            "started_ns": 122326991452658,
+            "write_completed_ns": 122326995445754
+          },
+          {
+            "request_id": "00000000000000000000000000000074",
+            "started_ns": 122328086477445,
+            "write_completed_ns": 122328089075993
+          }
+        ],
+        "browser_counts": {
+          "/api/v1/status": 36,
+          "/": 6,
+          "/style.css": 6,
+          "/app.js": 6
+        },
+        "max_observed_write_to_response_seconds": 1.201503069,
+        "timing_origin": "SSL_write_ex entry",
+        "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+        "plaintext_sha256": "85085d2e1b59d6ee4937f9698afb6a4e464b881353397e153dcbb1ce8958b28a"
+      }
+    },
+    "a2-inhibited-single-controller": {
+      "usb": {
+        "info": {
+          "samples": 240,
+          "max_gap_seconds": 1.000094873
+        },
+        "status": {
+          "samples": 48,
+          "max_gap_seconds": 5.000325895
+        },
+        "health": {
+          "samples": 48,
+          "max_gap_seconds": 5.000086845
+        },
+        "boot": "941e0abe32082ef7d303aa15e32b1d83",
+        "seconds": 240,
+        "raw_wire_verified": true,
+        "max_allocator_peak_bytes": 118404,
+        "last_heap_allocated_bytes": 24796
+      },
+      "load": {
+        "boot": "941e0abe32082ef7d303aa15e32b1d83",
+        "seconds": 180,
+        "production_connections": 1,
+        "logical_sessions": 1,
+        "operations": {
+          "HELLO": 1,
+          "STATUS": 183,
+          "CAPS": 1
+        },
+        "nominal_status_count": 180,
+        "nominal_status_hz": 1.0,
+        "nominal_max_status_start_gap_ns": 1678380948,
+        "worst_status_start_gap_requests": [
+          {
+            "request_id": "00000000000000000000000000000060",
+            "started_ns": 122909242298754,
+            "write_completed_ns": 122909244813635
+          },
+          {
+            "request_id": "00000000000000000000000000000061",
+            "started_ns": 122910920679702,
+            "write_completed_ns": 122910924577153
+          }
+        ],
+        "browser_counts": {},
+        "max_observed_write_to_response_seconds": 1.574338352,
+        "timing_origin": "SSL_write_ex entry",
+        "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+        "plaintext_sha256": "9e79fcd8a59a354e3150688707ef50a2eab3ede02c1bff01751f5b19c402b5e5"
+      }
+    },
+    "a2-inhibited-single-nominal": {
+      "usb": {
+        "info": {
+          "samples": 240,
+          "max_gap_seconds": 1.000087463
+        },
+        "status": {
+          "samples": 48,
+          "max_gap_seconds": 5.000115175
+        },
+        "health": {
+          "samples": 48,
+          "max_gap_seconds": 5.000090306
+        },
+        "boot": "941e0abe32082ef7d303aa15e32b1d83",
+        "seconds": 240,
+        "raw_wire_verified": true,
+        "max_allocator_peak_bytes": 123964,
+        "last_heap_allocated_bytes": 26732
+      },
+      "load": {
+        "boot": "941e0abe32082ef7d303aa15e32b1d83",
+        "seconds": 180,
+        "production_connections": 1,
+        "logical_sessions": 1,
+        "operations": {
+          "HELLO": 1,
+          "STATUS": 183,
+          "CAPS": 1
+        },
+        "nominal_status_count": 180,
+        "nominal_status_hz": 1.0,
+        "nominal_max_status_start_gap_ns": 1327742457,
+        "worst_status_start_gap_requests": [
+          {
+            "request_id": "00000000000000000000000000000038",
+            "started_ns": 123110089614956,
+            "write_completed_ns": 123110093488796
+          },
+          {
+            "request_id": "00000000000000000000000000000039",
+            "started_ns": 123111417357413,
+            "write_completed_ns": 123111421261587
+          }
+        ],
+        "browser_counts": {
+          "/api/v1/status": 36,
+          "/": 6,
+          "/style.css": 6,
+          "/app.js": 6
+        },
+        "max_observed_write_to_response_seconds": 1.223751711,
+        "timing_origin": "SSL_write_ex entry",
+        "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+        "plaintext_sha256": "462e49d39361608b71d76151041add90585f8d47bf9ad01d1422b939f822b865"
+      }
+    },
+    "a2-physical-conditioning-nominal": {
+      "usb": {
+        "info": {
+          "samples": 240,
+          "max_gap_seconds": 1.092791018
+        },
+        "status": {
+          "samples": 48,
+          "max_gap_seconds": 5.000071205
+        },
+        "health": {
+          "samples": 48,
+          "max_gap_seconds": 5.000090649
+        },
+        "boot": "1567d060c8c59174ab36443700517c2d",
+        "seconds": 240,
+        "raw_wire_verified": true,
+        "max_allocator_peak_bytes": 118520,
+        "last_heap_allocated_bytes": 26416
+      },
+      "load_error": "Nominal production STATUS rate absent/reduced: {\"nominal_max_status_start_gap_ns\": 2684961482, \"nominal_status_count\": 177, \"nominal_status_hz\": 0.9833333333333333, \"worst_status_start_gap_requests\": [{\"request_id\": \"0000000000000000000000000000006b\", \"started_ns\": 123791490728649, \"write_completed_ns\": 123791493253197}, {\"request_id\": \"0000000000000000000000000000006c\", \"started_ns\": 123794175690131, \"write_completed_ns\": 123794179550138}]}"
+    }
+  },
+  "physical_browser": {
+    "status_requests": 36,
+    "counts": {
+      "/api/v1/status": 36,
+      "/": 6,
+      "/style.css": 6,
+      "/app.js": 6
+    },
+    "maximum_status_lateness_ns": 2445141,
+    "maximum_request_ns": 2457858061,
+    "all_http_200": true
+  },
+  "packet_capture": {
+    "ap_packets": 7307,
+    "client_packets": 7310,
+    "kernel_drops_each": 0,
+    "ap_only_normalized_packets": 0,
+    "client_only_normalized_packets": 3,
+    "slow_status_exchanges": [
+      {
+        "request_id_suffix": "6b",
+        "client_port": 36888,
+        "native_write_entry_to_reply_ns": 2580980615,
+        "client_request_sequence": 1557054910,
+        "server_reply_sequence": 44175,
+        "server_reply_length": 341,
+        "early_server_ack_sequence": 44516,
+        "early_server_ack_after_first_ap_request_ns": 1323688000,
+        "first_reply_after_first_ap_request_ns": 2576005000,
+        "ack_to_first_reply_ns": 1252317000,
+        "first_reply_packet_matches_in_client_capture": true
+      },
+      {
+        "request_id_suffix": "a9",
+        "client_port": 36888,
+        "native_write_entry_to_reply_ns": 2470447572,
+        "client_request_sequence": 1557067000,
+        "server_reply_sequence": 65317,
+        "server_reply_length": 341,
+        "early_server_ack_sequence": 65658,
+        "early_server_ack_after_first_ap_request_ns": 1129143000,
+        "first_reply_after_first_ap_request_ns": 2450988000,
+        "ack_to_first_reply_ns": 1321845000,
+        "first_reply_packet_matches_in_client_capture": true
+      }
+    ],
+    "inference": "Delayed reply segments with advanced server sequence before first captured payload are consistent with TCP retransmission recovery. Without device NETTRACE, original submission and exact driver/radio loss boundary are unproven. This does not establish the cause of historical N1u."
+  },
+  "restoration": {
+    "boards": {
+      "A": {
+        "serial": "0BF4B4AEC9FFB344",
+        "revision": "802c91a7b86e-dirty",
+        "boot_id": "5b1ae867c8b6888a7a671b7170d66aba",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "configuration_restored": true,
+        "evidence_sha256": "1c08dd6325ac85c87f58ced34ebaccb9ebe2088299e641ee791061b2b8acf7d4"
+      },
+      "B": {
+        "serial": "CDDBF8767C506C07",
+        "revision": "dbf1d86f0885-dirty",
+        "boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "configuration_restored": true,
+        "evidence_sha256": "bd30fe786f78b61037be58ae38e5d98b048e70f2ea38a66de0a31ec6ad1e6f86"
+      }
+    },
+    "host_cleanup_failures": [],
+    "fixture_journal_sha256": "5b8b7ce88982714ec216ec1e75964fc3baa3e67e0be28412a892f7da3a644320",
+    "installed_service_pid": 1957,
+    "recovery_timer": "active",
+    "wlan0": "down",
+    "wlan2": "down",
+    "wlan1_address": "192.168.1.117",
+    "test_namespace_absent": true,
+    "cumulative_config_writes": 20,
+    "gpsdo_settings_changed": false
+  },
+  "artifacts": {
+    "remote_full_archive": {
+      "path": "/home/pi/phase115-n1z-preserved-final.tar.gz",
+      "sha256": "c77e802e6eb8ea1f0dc5d9534681459d83de8c45c73caa6a7384754a71da0974"
+    },
+    "local_evidence_archive": {
+      "path": "build/phase11-5-closure/phase115-n1z-evidence.tar.gz",
+      "sha256": "fd4b374995daf8b13b65b907c427b317ef43cd9ae1ea67628b758d67aa485f68"
+    },
+    "uploaded_code_only_archive_sha256": "7ef9aefe117dac6c2fcec72936c72338320b056622f5527a4d104351e953b3ba",
+    "supervisor_sha256": "75aab9733a1a1a9e5001c673e2ac89429597d8480a43ba6a9c9c6ca4d78236bc",
+    "packet_sha256": "6c340c5b5d6581f7fe83d215e007fb0081eed6728b2ffd4a36e7005614eca029",
+    "evidence_sha256": {
+      "a2-inhibited-conditioning-nominal/driver.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-conditioning-nominal/execution.json": "01aa847ad0134ada6c8632205e33f5efdab6498e71ee2dc2a4357e594d632a9d",
+      "a2-inhibited-conditioning-nominal/load-events.jsonl": "d5be5191c2c33504f2e6e6f09aaccd2aa005dd53cb549c9b8fcd15b8f1d52ed3",
+      "a2-inhibited-conditioning-nominal/load.json": "3f1695b5ede8ef1c4ea37c225ebee1440525d8978906b245d4bd6fbcc5631943",
+      "a2-inhibited-conditioning-nominal/observer.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-conditioning-nominal/production-tls.bin": "85085d2e1b59d6ee4937f9698afb6a4e464b881353397e153dcbb1ce8958b28a",
+      "a2-inhibited-conditioning-nominal/production.log": "3804dae0f185d8568678ad4868260f05adac9783cbed6f20aa4522f47c355fce",
+      "a2-inhibited-conditioning-nominal/ready.json": "a571207c8c5f185af4ffa2960e20a9c559758c0a2e8d0b8e69b0c3a83d786b18",
+      "a2-inhibited-conditioning-nominal/result.json": "55363237235d1d6f0f9fda5366da23aaf7171e79cee9cd5675a0a9c3dd36e18a",
+      "a2-inhibited-conditioning-nominal/usb-health.jsonl": "e67e10f2ca75da32c7d567474899f57e3fc4a42f128d5f98e1057b47ce398247",
+      "a2-inhibited-conditioning-nominal-admission.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-conditioning-nominal-admission.stdout": "1755dac6d67dd41ce0e59553a1b179754031c3e9364b45b0cdec473ff51dc797",
+      "a2-inhibited-conditioning-packet.json": "026eaf73814ad174bac275eb4a57939c9c4c47e3144ef41c3c6cdd22b85f43ed",
+      "a2-inhibited-single-admission.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-single-admission.stdout": "3641ca7a09bc28f31e43ad4ffb45acec9d2d19ed099c0dee1d34c497a4b5226e",
+      "a2-inhibited-single-controller/driver.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-single-controller/execution.json": "3bfcf3fc393710fd43bd4883e4512190b26212ff5b8d58ce48e7f6100ab9c2ff",
+      "a2-inhibited-single-controller/load-events.jsonl": "d0fadf7a487cf4d9716ad638ba3c3fbd0ff4187f750fd91933b0da4b3d4b5ec5",
+      "a2-inhibited-single-controller/load.json": "3dc0f652c6082fd73c17000833bd3568f9fd6561a3a091032bb4313ac4456c98",
+      "a2-inhibited-single-controller/observer.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-single-controller/production-tls.bin": "9e79fcd8a59a354e3150688707ef50a2eab3ede02c1bff01751f5b19c402b5e5",
+      "a2-inhibited-single-controller/production.log": "3804dae0f185d8568678ad4868260f05adac9783cbed6f20aa4522f47c355fce",
+      "a2-inhibited-single-controller/ready.json": "1b722a80f7059d7c399cfde74904d192302b914a3fb7accfd1f6ef00237167b3",
+      "a2-inhibited-single-controller/result.json": "55363237235d1d6f0f9fda5366da23aaf7171e79cee9cd5675a0a9c3dd36e18a",
+      "a2-inhibited-single-controller/usb-health.jsonl": "9c840e7216d3da78fe13864a41be785e1219a3e9a2003492e1293a9e06469c14",
+      "a2-inhibited-single-controller-admission.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-single-controller-admission.stdout": "4ec3735c67c2546f7d2c3c1f6a9f60f244ca8fb9068b90b4ccdcb389ecf08c66",
+      "a2-inhibited-single-controller.driver.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-single-controller.driver.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-single-family-result.json": "5fdb3f532d5488a695e0e99fe2d91507e5f4e567fd9a74708f28d07acdbfa1c1",
+      "a2-inhibited-single-nominal/driver.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-single-nominal/execution.json": "d3c4f1f1883d3c95c6da988be6a8769670b9b487d6efe2bb7bb43399828934da",
+      "a2-inhibited-single-nominal/load-events.jsonl": "c0a7a408e76e272fdfa5b086c8c86d7f8b9ea94b6032b108e7047b449eaf2b3d",
+      "a2-inhibited-single-nominal/load.json": "3f1695b5ede8ef1c4ea37c225ebee1440525d8978906b245d4bd6fbcc5631943",
+      "a2-inhibited-single-nominal/observer.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-single-nominal/production-tls.bin": "462e49d39361608b71d76151041add90585f8d47bf9ad01d1422b939f822b865",
+      "a2-inhibited-single-nominal/production.log": "3804dae0f185d8568678ad4868260f05adac9783cbed6f20aa4522f47c355fce",
+      "a2-inhibited-single-nominal/ready.json": "2099bf6975ca2710bbe1ee8b9822fd3a0109427041d2fc73afdaac934f1ae5a9",
+      "a2-inhibited-single-nominal/result.json": "55363237235d1d6f0f9fda5366da23aaf7171e79cee9cd5675a0a9c3dd36e18a",
+      "a2-inhibited-single-nominal/usb-health.jsonl": "13e09ca8294470064fb8dd7d57f12c7cfe09f9f7fbf943169e65bd9739585976",
+      "a2-inhibited-single-nominal-admission.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-single-nominal-admission.stdout": "7254213e652af217dce89762534ea2d9236f02fcab577f00be67e13e265f2bc8",
+      "a2-inhibited-single-nominal.driver.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-single-nominal.driver.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-single-packet.json": "766fd18b5a74cc34ba50218857bb4cd4bfd0952ccb3f9cb189bb77c9f5a8b527",
+      "a2-inhibited-single-quiet-after-admission.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-single-quiet-after-admission.stdout": "86b8d1de842fb5651f132cc305c1846fb00c0d84bf81b175a21626b26883f8c2",
+      "a2-inhibited-single-quiet-after.driver.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-single-quiet-after.driver.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-single-quiet-after.jsonl": "f324aa743c7ae34d50c6bb6488c0cb92166e412044f65285dd5b19e0ccbd036e",
+      "a2-inhibited-single-quiet-before.driver.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-single-quiet-before.driver.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-inhibited-single-quiet-before.jsonl": "55ce473a1399d239829f21704f65394d9c1e95055f5eae9f6e124f7f88a6fb1f",
+      "a2-physical-conditioning-nominal/driver.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-physical-conditioning-nominal/execution.json": "c7eac91bff6b260d6a1fa2ad639cce7b2e6704fb59c0deda1670a12d842842c6",
+      "a2-physical-conditioning-nominal/load-events.jsonl": "5cf22cf3368ac235cbdb12135b2c47249592e0d8c7113f0c34882bdcd33db61d",
+      "a2-physical-conditioning-nominal/load.json": "91c37e218ae7dbf2f87992b8132e418a997c98bf26eaec2a8316dc2d54b70605",
+      "a2-physical-conditioning-nominal/observer.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-physical-conditioning-nominal/production-tls.bin": "82bad64ecdaac5a16097938ca06573fb55032bc7e72e8169284cbf026798d1fb",
+      "a2-physical-conditioning-nominal/production.log": "3804dae0f185d8568678ad4868260f05adac9783cbed6f20aa4522f47c355fce",
+      "a2-physical-conditioning-nominal/ready.json": "7fc955b28340b05f72f606f6660953d3a52ccd3a0ad298949a4c66230e1a81b2",
+      "a2-physical-conditioning-nominal/result.json": "55363237235d1d6f0f9fda5366da23aaf7171e79cee9cd5675a0a9c3dd36e18a",
+      "a2-physical-conditioning-nominal/usb-health.jsonl": "12ebf8863a7fdedb7905fcfb0fb2e7eaf1b0149cb08e7432436c8c59072f9630",
+      "a2-physical-conditioning-nominal-admission.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "a2-physical-conditioning-nominal-admission.stdout": "397cfa7a9b72275f510caa2738b1c6e395971e03909aaff9acd96158064bc800",
+      "a2-physical-conditioning-packet.json": "209a9312c85e3e2bd05fbc68dce0eae388eb0e8ef2354c4190fc43d476629f1b",
+      "after-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after-b.stdout": "bd30fe786f78b61037be58ae38e5d98b048e70f2ea38a66de0a31ec6ad1e6f86",
+      "after-restore-config.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after-restore-config.stdout": "9268a39471ace1894571824da6a26bbb1073a30318cee054f19f7b4311118598",
+      "arm-restoration.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "arm-restoration.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "attempt-result.json": "550300c86155692d16734f052c28d48cefc961c8a1b877ce83c13d7f7c6aa12c",
+      "before-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before-a.stdout": "030dfe6675e108579f180b568530672d7f614fe7be1f23e3ca48aca5821341d6",
+      "before-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before-b.stdout": "9a67e71064317bd0ac7dc4597db5ab0feef657c2fcd0507ae6c61fe8343e7a07",
+      "before-network-reboot.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before-network-reboot.stdout": "10b35ad92e3548e977020156c2994bc596dc0aac69d3a56a69454aa6adee1b02",
+      "before-physical-switch.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before-physical-switch.stdout": "48b02b21bfb2c652e7c7ba4b396c8a05aad93e4bfceb4eb5044667fb64eb3ff3",
+      "campaign.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "candidate-inhibited-boot.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "candidate-inhibited-boot.stdout": "5d7649cfa4969d6b74223e83ec49eb7c659752a216d6271a50dee42521b2d427",
+      "candidate-inhibited-load.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "candidate-inhibited-load.stdout": "e38f761c7516a5d9f1c16d9c3b3fd3aa39b276d3640da07520ad68ebe8f583bb",
+      "candidate-physical-boot.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "candidate-physical-boot.stdout": "d777f34492efe36a59437f1fda980c8d591e65d86b8efa96290213d85ef4e3a6",
+      "candidate-physical-load.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "candidate-physical-load.stdout": "3965f9a0e396155ee840b518a0ee0c5779953ad63e2a3dab439253f41497d217",
+      "capture-ap.log": "f3c56a105ef8046bf678d60090bc98ef5b9cdce51e513ccbecf2a132ea467f00",
+      "capture-ap.pcap": "97c744dfc47d0b6454c696a1374b0dc34cf3306383f98f1b24560569df9471b0",
+      "capture-client.log": "831c6df42bf679d2cc11d533000c17b868bf9cf37dc2a1d3aa2d157a2ce686c8",
+      "capture-client.pcap": "78a51879142983124e8442a05404da60c236fc3dbe2fcb2908a813fa3f485cee",
+      "configure-test.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "configure-test.stdout": "bb81967f2fe65007234c7c97cc74ac9388f75d03c7133e4dc42961a28f6384d6",
+      "device-fixture.jsonl": "ccbe62ddf9654124b48537fd2d16af5df6feeaf5139ec4a6c916cb01962c913c",
+      "device-state.json": "2cce145ed6a132c0d1af234af337da103f8b6cf6af54442bb014aeb7b112c1b8",
+      "final-host-verification.json": "429f69d3eaab94cf843dc3db11dd607913762e7b2d832f93e3e6c4de396f8571",
+      "fixture-state.json": "5c412dc22155098dfbc18eca560962bb0b88845a6794a4aca4b541cbb06fe590",
+      "inhibited-clock-admission-0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inhibited-clock-admission-0.stdout": "893a004a6926949244f5d0035a3a3a47f5c51e5b68f5bdf770dc88e4db687dd1",
+      "inhibited-clock-admission-1.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inhibited-clock-admission-1.stdout": "89361045bd4e0bf1b60cd548c5b2ef6245de837f039aca2d0b072c7ac9313306",
+      "inhibited-network-boot.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "inhibited-network-boot.stdout": "f36eaea623c3619b7a8a1536a7dadc9a4796026a1451e3b4cba46d93e3417159",
+      "management-state.json": "8a043dde1d1665223c69368d1b524e15db099dc95f72ab14b0391db17256d0fe",
+      "original-backup.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original-backup.stdout": "c1ecb0e52b91ab0570ea2268fc9a694d28758d1636ab85f77b700b4a9bee7f4d",
+      "packet-clock-bridge.jsonl": "2db79bd8974c3bf719a12382fab3d9f65a6bc054182a60948b62245133cf8b82",
+      "packet.json": "6c340c5b5d6581f7fe83d215e007fb0081eed6728b2ffd4a36e7005614eca029",
+      "physical-clock-admission-0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "physical-clock-admission-0.stdout": "61d7a82d03cde84b0a2cabcf624d85359d1cfc21c5db0d9dde7ad16cd2791fc5",
+      "physical-clock-admission-1.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "physical-clock-admission-1.stdout": "c31feece31b546c7e0f5d424ffac5068fed4d5c7d51c66362934a930de4fdd83",
+      "physical-clock-admission-2.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "physical-clock-admission-2.stdout": "6a350f092c3c231d7ca54af427a8aec3b4fe928f92c92695c4fc0bba0046eb62",
+      "restore-admission-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "restore-admission-a.stdout": "e07b894889d4c8a758c3e65b5ad7592de6f254a7d02b1c6a5511576029a322f2",
+      "restore-admission-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "restore-admission-b.stdout": "f04f6805f9b258044be67b3b6de745704dbb56b2e20695da30c5a27454bff264",
+      "restore-config.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "restore-config.stdout": "bb81967f2fe65007234c7c97cc74ac9388f75d03c7133e4dc42961a28f6384d6",
+      "restored-original-boot.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "restored-original-boot.stdout": "1c08dd6325ac85c87f58ced34ebaccb9ebe2088299e641ee791061b2b8acf7d4",
+      "restored-original-load.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "restored-original-load.stdout": "2c6f01543e02fea68bea3dffc4d5e2e5bce5d94b02f17a19bb83999130ed540f",
+      "stop-restoration-timer.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stop-restoration-timer.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "workload.json": "64e5efdb20787250ec2ba8bdd78e05a61699f597f2745c5ce1cf9efc1b4b80c2"
+    }
+  },
+  "validation": {
+    "host_tests_passed": 57,
+    "host_test_seconds": 19.26,
+    "firmware_changed": false,
+    "thresholds_changed": false,
+    "additional_NETTRACE_reads": false
+  }
+}

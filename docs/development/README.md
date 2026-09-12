@@ -34,6 +34,10 @@ cadence gate and restored the setup; its full A2/A3 cases remain unrun.
 The [STATUS investigation](phase11-5-status-stall-review.md) records corrected
 request-start auditing, Console integer decoding, bounded internal trace reads
 and evidence of packet delivery loss. The original N1u STATUS stall remains open.
+The [single A2/A3 attempt](phase11-5-single-attempt.md) subsequently passed the
+complete inhibited matrix, then failed 138 MHz conditioning on production STATUS
+cadence. It stopped and restored both device and host; no RF jobs or new full
+acceptance cases followed.
 
 ## Build direction
 

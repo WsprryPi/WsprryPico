@@ -487,3 +487,21 @@ The 57-test host suite and affected follow-up tests pass. Corrected auditing
 preserves all six historical N1t load passes and N1u's failure. **Zero new
 acceptance cases closed; historical A1/A2 remain 2/20 and no configuration is
 accepted.** Full affected A2/A3 and the remaining Phase 11.5 cases stay open.
+
+
+## N1z: single acceptance attempt after diagnostics
+
+The [single-attempt result](phase11-5-single-attempt.md) records the fresh bounded
+fixture and first-failure stop. On unchanged `4058d3a`, all four inhibited A2
+intervals passed with +16 bytes retained heap. The 138 MHz conditioning interval
+then failed production STATUS cadence: 177 nominal requests and a 2.685-second
+maximum request-start gap. USB and browser checks passed. Physical A2 and A3
+were not run; no RF jobs were submitted. Packet captures include the failing
+production exchanges and are consistent with delayed TCP retransmission recovery,
+with the exact loss/submission boundary still unproven.
+
+A, B and normal host networking were verified restored. Zero new full acceptance
+cases closed; historical 2/20 remains, with no accepted physical clock. This
+reproduction does not establish the cause of the older N1u event. The next work
+must address the identified STATUS delivery blocker before another acceptance
+attempt; no retry or speculative firmware repair was performed here.
