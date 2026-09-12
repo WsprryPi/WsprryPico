@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import secrets
+import shutil
 import subprocess
 import struct
 import sys
@@ -101,18 +102,18 @@ def main():
     require(digest(root/'packet.json')==args.packet_sha256,'Frozen R1 packet changed')
     packet=json.loads((root/'packet.json').read_text())
     require(packet['family']=='R1' and packet['source_revision']==R1_SOURCE and packet['rf_jobs']==[] and
-            packet['runtime_seconds'] in (2400,2700) and packet['network_runtime_seconds']==4200,
+            packet['runtime_seconds'] in (2400,2700) and type(packet['network_runtime_seconds']) is int and 0 < packet['network_runtime_seconds'] <= 4200,
             'Frozen R1 scope/bounds')
     require(set(packet['case_helper_sha256'])==R1_HELPERS, 'Incomplete R1 helper identity set')
     for path,expected in packet['case_helper_sha256'].items():
         require((root/path).resolve().is_relative_to(root) and digest(root/path)==expected,'R1 helper changed')
     result_path=root/'r1-result.json';require(not result_path.exists(),'No R1 rerun')
-    f=Fixture(Path(packet['network_root']));f.verify()
+    f=Fixture(Path(packet['network_root']))
     result=dict(family='R1',source=R1_SOURCE,status='RUNNING',intervals={},rf_jobs=[])
     def save():result_path.write_text(json.dumps(result,indent=2)+'\n')
     def run(label,argv,timeout):
         result['current_stage']=label;save()
-        if (root/'device-state.json').exists() and label!='r1-device-restore':
+        if (root/'device-state.json').exists() and label not in ('r1-device-restore','r1-host-cleanup'):
             state=json.loads((root/'device-state.json').read_text())
             require(time.monotonic_ns()+(timeout+180)*10**9 < state['deadline_monotonic_ns'],
                     'R1 interval would consume restoration reserve')
@@ -131,6 +132,15 @@ def main():
                 current['info']['network']['ntp_address']=='10.77.15.1':return d
             require(index<12,'R1 network/time readiness deadline');time.sleep(5)
     session=secrets.token_hex(16)
+    def time_admission(label):
+        if packet.get('time_server_mdns'):
+            from phase11_5_time_local import fixture_admission
+            require(packet.get('time_server_dns') is False and
+                    packet.get('time_server_dns_name') == 'time.local' and
+                    packet.get('time_server_address') == '10.77.15.1', 'R1 mDNS packet identity')
+            fixture_admission(f, root, label)
+        else:
+            fixture_dns(f, root)
     def load(d,label,seconds,browser):
         kind=d.state['kind'];name='a2-'+kind+'-'+label
         case=dict(case=name,boot=d.state['boot'],source=R1_SOURCE,
@@ -154,8 +164,22 @@ def main():
         value=dict(usb=audit_idle(path,root/(baseline+'.stdout')),resources=resources(path))
         result['intervals'][label]=value;save();return value
     try:
-        result['current_stage']='fixture-dns-admission';save();fixture_dns(f,root)
+        if packet.get('time_server_mdns'):
+            DeviceFixture(root).verify_helpers()
+            for path, expected in packet['production_helper_sha256'].items():
+                require(digest(root/path) == expected, 'Production helper changed before fixture')
+            for path_key, hash_key in (('production_binary','production_binary_sha256'),
+                    ('production_observer','production_observer_sha256')):
+                require(digest(Path(packet[path_key])) == packet[hash_key], 'Production artifact changed')
+            require(digest(root/'production.ini') == packet['production_ini_sha256'], 'Production INI changed')
+            require(packet['network_root'] == str(root), 'Fresh R1 mDNS fixture must share the new root')
+            run('r1-host-setup', ['python3', str(root/'scripts/phase11_5_network_fixture.py'),
+                'setup', '--root', str(root), '--run'], 330)
+            f = Fixture(root)
+        f.verify()
+        result['current_stage']='fixture-time-admission';save();time_admission('fixture-time-inhibited')
         device('start');d=ready('inhibited');load(d,'r1-inhibited',180,True)
+        if packet.get('time_server_mdns'): time_admission('fixture-time-physical')
         device('switch');d=ready('physical');warm=load(d,'r1-warm',180,True)
         current=d.check_current('r1-before-probes');initial=int(current['info']['allocator_failures'])
         needed=max(warm['resources']['allocator_largest_successful_request_bytes'],
@@ -182,13 +206,22 @@ def main():
         result['quiet_delta_bytes']=matched_quiet(before['resources'],after['resources'])
         result['status']='CAPTURED_REQUIRES_FINAL_REVIEW'
     except BaseException as error:
-        result['status']='FAILED';result['error']=type(error).__name__+': '+str(error)
+        result['status']='FAILED';result['error']=type(error).__name__+': '+str(error);result['failed_stage']=result.get('current_stage')
     finally:
         if (root/'device-state.json').exists():
             try:device('restore');result['device_restored']=True
             except BaseException as error:result['restore_error']=type(error).__name__+': '+str(error)
+        if packet.get('time_server_mdns') and (root/'fixture-state.json').exists():
+            try:
+                run('r1-host-cleanup', ['python3', str(root/'scripts/phase11_5_network_fixture.py'),
+                    'cleanup', '--root', str(root), '--run'], 600)
+                shutil.copyfile(root/'fixture-state.json', root/'host-fixture-state.json')
+                result['host_restored'] = True
+            except BaseException as error:
+                result['host_restore_error'] = type(error).__name__+': '+str(error)
         save()
-    require(result['status']=='CAPTURED_REQUIRES_FINAL_REVIEW' and result.get('device_restored'),
+    require(result['status']=='CAPTURED_REQUIRES_FINAL_REVIEW' and result.get('device_restored') and
+            (not packet.get('time_server_mdns') or result.get('host_restored')),
             'R1 incomplete; preserve evidence')
 
 

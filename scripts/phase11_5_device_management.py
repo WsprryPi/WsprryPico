@@ -67,12 +67,13 @@ def admit(current, baseline, source=SOURCE):
     return physical
 
 
-def configuration(original, test_wifi, variant):
+def configuration(original, test_wifi, variant, time_server='clock.phase115.test'):
     require(type(original) is dict and original.get('enabled') is False and
             original.get('expires_utc_s') == 0, 'Original schedules must remain disabled')
     require(set(test_wifi) == {'ssid', 'password', 'ntp_ipv4'} and
             test_wifi['ssid'] == 'WsprryPico-Phase115' and
-            test_wifi['ntp_ipv4'] == 'clock.phase115.test' and
+            time_server in ('clock.phase115.test', 'time.local') and
+            test_wifi['ntp_ipv4'] == time_server and
             type(test_wifi['password']) is str and 8 <= len(test_wifi['password']) <= 63,
             'Unexpected isolated network configuration')
     value = json.loads(json.dumps(original))
@@ -169,6 +170,9 @@ def main():
                 'Description=' + state['restoration_token'] + '\n' in result.stdout,
                 'Independent restoration is not armed with matching ownership')
         authorize(state, args.action, args.variant)
+        if packet.get('time_server_mdns') and packet.get('family') == 'R1' and args.action == 'heap-probe':
+            require(packet['max_idle_heap_probes'] == 3 and state['counts']['heap-probe'] < 3,
+                    'R1 permits exactly three bounded idle probes')
         require(digest(args.baseline) == state['baseline_sha256'], 'Baseline file changed')
         baseline = finished(args.baseline, 'READ_ONLY_INVENTORY')
         require(type(state['inventory_session_id']) is str, 'Missing persistent administration session')
@@ -190,7 +194,8 @@ def main():
             require(digest(original_path) == state['original_config_sha256'] and
                     digest(wifi_path) == state['test_wifi_sha256'], 'Private input changed')
             value, command = configuration(json.loads(original_path.read_text()),
-                                            json.loads(wifi_path.read_text()), args.variant)
+                                            json.loads(wifi_path.read_text()), args.variant,
+                                            'time.local' if packet.get('time_server_mdns') else 'clock.phase115.test')
         elif args.action == 'heap-probe':
             require(type(args.bytes) is int and 1 <= args.bytes <=
                     current['info']['heap_capacity_bytes'] + 1, 'Heap probe bound')

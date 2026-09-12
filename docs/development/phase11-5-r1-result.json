@@ -1,111 +1,34 @@
 {
-  "schema": "phase11.5-r1-result-v1",
-  "status": "BLOCKED",
-  "family": "R1",
-  "family_closed": false,
-  "firmware_source": "e20ae8bea2d5237af017dbd5f73bfe9332ce144e",
-  "selected_physical_clock_hz": 138000000,
-  "accepted_configurations": [],
-  "rf_jobs": [],
-  "physical_image_executed_this_attempt": false,
+  "schema": "phase11.5-r1-time-local-result-v1",
+  "status": "PASS",
+  "assertions_passed": 5,
+  "assertions_total": 5,
   "assertions": {
     "R1.1": "PASS",
-    "R1.2": "BLOCKED",
-    "R1.3": "NOT_RUN",
-    "R1.4": "NOT_RUN",
-    "R1.5": "NOT_RUN"
+    "R1.2": "PASS",
+    "R1.3": "PASS",
+    "R1.4": "PASS",
+    "R1.5": "PASS"
   },
-  "counts": {
-    "passed": 1,
-    "blocked": 1,
-    "not_run": 3,
-    "total": 5
+  "families_closed": 1,
+  "families_total": 6,
+  "accepted_configurations": [],
+  "rf_jobs": [],
+  "source_revision": "e20ae8bea2d5237af017dbd5f73bfe9332ce144e",
+  "physical_scope": {
+    "serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "boot_id": "af7ff450b2d9218c787efdc5c0d40c05",
+    "clock_hz": 138000000,
+    "pio_divider": 1,
+    "rf_render_in_ram": true,
+    "network_control_port": 18443
   },
-  "revised_families_closed": 0,
-  "attempts": [
-    {
-      "root": "/home/pi/phase11-5-r1-e20ae8b",
-      "packet_sha256": "a835cb6e1b05abbe88884cd9fc2b22e9e10d716d63ef8220ec95a8dd18a3b91c",
-      "result": {
-        "family": "R1",
-        "source": "e20ae8bea2d5237af017dbd5f73bfe9332ce144e",
-        "status": "FAILED",
-        "intervals": {},
-        "rf_jobs": [],
-        "current_stage": "r1-device-start",
-        "error": "ValueError: r1-device-start failed; stop dependent tests"
-      },
-      "device_mutations": false,
-      "disposition": "User confirmed between-campaign reboots; reconciled original idle configurations before fresh attempt"
-    },
-    {
-      "root": "/home/pi/phase11-5-r1b-e20ae8b",
-      "packet_sha256": "e2fc004e5ab124bb4a232dd1b9c107efe449d7415ccc393d267abe3843e5a855",
-      "result": {
-        "family": "R1",
-        "source": "e20ae8bea2d5237af017dbd5f73bfe9332ce144e",
-        "status": "FAILED",
-        "intervals": {},
-        "rf_jobs": [],
-        "current_stage": "r1-device-restore",
-        "error": "ValueError: R1 network/time readiness deadline",
-        "device_restored": true
-      },
-      "device_mutations": true
-    }
-  ],
-  "readiness": {
-    "boot": "8f7f208c8eaf639c18f78b7e1feedd2d",
+  "inhibited_scope": {
+    "boot_id": "a70c0c290d172d2ccd3a5bf8f71a427d",
     "clock_hz": 150000000,
-    "clock": {
-      "state": "unsynchronized",
-      "utc_now_ns": "0",
-      "monotonic_now_ns": "64376732000",
-      "uncertainty_ns": "18446744073709551615",
-      "sync_age_ns": "18446744073709551615",
-      "leap": "unknown"
-    },
-    "network": {
-      "ipv4": "10.77.15.10",
-      "ntp_server": "clock.phase115.test",
-      "ntp_address": "",
-      "ntp_resolution": "resolving",
-      "ntp_resolution_failures": 2,
-      "packets": {
-        "arp": {
-          "received": 8,
-          "sent": 9,
-          "dropped": 0
-        },
-        "ipv4": {
-          "received": 3,
-          "sent": 23,
-          "dropped": 0
-        },
-        "tcp": {
-          "received": 0,
-          "sent": 0,
-          "dropped": 0
-        },
-        "udp": {
-          "received": 3,
-          "sent": 20,
-          "dropped": 1
-        }
-      },
-      "tx_credit": {
-        "waits": 0,
-        "preserved": 0,
-        "timeouts": 0
-      }
-    },
-    "inventory_sha256": "36cb075d8674704e92f931f2eba8f01fcc122de96d61026f499cf37d3d69fb40"
-  },
-  "diagnosis": {
-    "pico_readiness": "DHCP acquired; time-server DNS unresolved after 64.376732 seconds uptime; two resolution failures",
-    "native_query_1234": "Timed out after three seconds; no packet capture for this query",
-    "captured_query_1235": "Host-local and isolated-client positive controls returned 10.77.15.1; AP/client captures preserved",
-    "causation": "Unresolved intermittent readiness failure; later success does not pass the failed attempt"
+    "network_control_port": 18443,
+    "physical_acceptance": false
   },
   "artifacts": {
     "off-inhibited": {
@@ -197,56 +120,2413 @@
       "linked_checks": "PASS"
     }
   },
+  "production": {
+    "production_source_revision": "6f65d5c7d202569102459ab68d7c9ea079b96f35",
+    "production_binary": "/home/pi/phase11-5-closure-6f65d5c/source/src/build/bin/phase115-pi-6f65d5c",
+    "production_binary_sha256": "122ed0e4bd752e457419c4df5433c3fca1a4a88677a3db3ebd7e60e783ba5d1c",
+    "production_observer_sha256": "fd70cde276b04aa08e771e12b83335a89aae24e050e2f2c5e56ed6848eb1a7bc",
+    "production_ini_sha256": "c5c331810997faaede2195410f4840fe0353d7649f11e37cb1788c978b50fe0f",
+    "production_helper_sha256": {
+      "pi/phase115_production_load.py": "95965103741c4920b9477a918587de945e7dcd370ebb5cbb428b6a45dd38f0af",
+      "pi/phase115_tls_observer.c": "7c6a4afba6f414b9ef6a92ee223b0c0863219311e9c472a0d32a92f45f7e4a1d",
+      "pi/phase115_tls_observer_test.py": "5cf410758c48e05bc35f04f394b486f0b210b93e7ab785cedaf1bc7dd689162d"
+    },
+    "production_observer": "/home/pi/phase11-5-r1-time-local-c-20260912/pi/phase115_tls_observer.so",
+    "production_driver": "/home/pi/phase11-5-r1-time-local-c-20260912/pi/phase115_production_load.py"
+  },
+  "intervals": {
+    "r1-inhibited": {
+      "usb": {
+        "info": {
+          "samples": 240,
+          "max_gap_seconds": 1.000097892
+        },
+        "status": {
+          "samples": 48,
+          "max_gap_seconds": 5.000067384
+        },
+        "health": {
+          "samples": 48,
+          "max_gap_seconds": 5.000087587
+        },
+        "boot": "a70c0c290d172d2ccd3a5bf8f71a427d",
+        "seconds": 240,
+        "raw_wire_verified": true,
+        "max_allocator_peak_bytes": 118544,
+        "last_heap_allocated_bytes": 26408
+      },
+      "load": {
+        "boot": "a70c0c290d172d2ccd3a5bf8f71a427d",
+        "seconds": 180,
+        "production_connections": 1,
+        "logical_sessions": 1,
+        "operations": {
+          "HELLO": 1,
+          "STATUS": 183,
+          "CAPS": 1
+        },
+        "nominal_status_count": 179,
+        "nominal_status_hz": 0.9944444444444445,
+        "nominal_max_status_start_gap_ns": 1061911353,
+        "worst_status_start_gap_requests": [
+          {
+            "request_id": "00000000000000000000000000000007",
+            "started_ns": 175565292674611,
+            "write_completed_ns": 175565295159754
+          },
+          {
+            "request_id": "00000000000000000000000000000008",
+            "started_ns": 175566354585964,
+            "write_completed_ns": 175566357123626
+          }
+        ],
+        "browser_counts": {
+          "/": 2,
+          "/api/v1/capabilities": 2,
+          "/api/v1/status": 8,
+          "/api/v1/config": 2
+        },
+        "normal_browser": {
+          "actions": 8,
+          "refresh_actions": 6,
+          "action_latencies_seconds": [
+            5.002393772,
+            1.172685054,
+            1.182127101,
+            1.205257369,
+            5.071178623,
+            1.192555795,
+            1.118075604,
+            1.421571513
+          ]
+        },
+        "max_observed_write_to_response_seconds": 0.527596721,
+        "timing_origin": "SSL_write_ex entry",
+        "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+        "plaintext_sha256": "9f75b466aef26a4f4b04af9b2981cdf0f7dcf1556a22b9f047a746e7934bec4a"
+      },
+      "resources": {
+        "allocator_peak_bytes": 118544,
+        "allocator_largest_successful_request_bytes": 18364,
+        "allocator_max_sample_us": 34,
+        "allocator_max_entry_us": 136,
+        "core0_stack_used_bytes": 8192,
+        "core0_stack_scan_us": 110,
+        "heap_sample_cost_us": 26,
+        "boot": "a70c0c290d172d2ccd3a5bf8f71a427d",
+        "clock_hz": 150000000,
+        "heap_capacity_bytes": 377512,
+        "allocator_sample_delta_us": 34213958,
+        "sampled_interval_seconds": 238.996589,
+        "allocator_sampling_fraction": 0.143156679110596,
+        "max_info_roundtrip_seconds": 0.522244968,
+        "last": {
+          "heap_allocated_bytes": 26408,
+          "heap_arena_bytes": 131752,
+          "heap_arena_free_bytes": 105344,
+          "heap_free_chunks": 33,
+          "heap_top_releasable_bytes": 56160,
+          "allocator_failures": "0",
+          "tls_allocation_failures": 0
+        },
+        "network": {
+          "initialized": true,
+          "enabled": true,
+          "link_status": 3,
+          "ipv4": "10.77.15.10",
+          "requested_enabled": null,
+          "withdrawal_pending": false,
+          "resume_after_withdrawal": false,
+          "control_configured": true,
+          "control_listening": true,
+          "deployment_identity_matches": true,
+          "station_mac": "88:a2:9e:0a:60:df",
+          "stable_hostname": "wsprrypico-0a60df.local",
+          "configured_hostname": "wsprrypico-0a60df.local",
+          "advertised_hostname": "wsprrypico-0a60df.local",
+          "mdns_state": "active",
+          "mdns_reason": "",
+          "mdns_registrations": 1,
+          "mdns_conflicts": 0,
+          "mdns_failures": 0,
+          "mdns_address_changes": 0,
+          "mdns_goodbye_attempts": 0,
+          "mdns_goodbye_failures": 0,
+          "mdns_rejected_packets": 0,
+          "power_save": false,
+          "packets": {
+            "arp": {
+              "received": 7,
+              "sent": 8,
+              "dropped": 0
+            },
+            "ipv4": {
+              "received": 632,
+              "sent": 487,
+              "dropped": 0
+            },
+            "tcp": {
+              "received": 617,
+              "sent": 465,
+              "dropped": 3
+            },
+            "udp": {
+              "received": 15,
+              "sent": 20,
+              "dropped": 0
+            }
+          },
+          "memory": {
+            "heap": {
+              "used": 200,
+              "capacity": 32768,
+              "peak": 7504,
+              "errors": 0
+            },
+            "tcp_pcbs": {
+              "used": 0,
+              "capacity": 4,
+              "peak": 2,
+              "errors": 0
+            },
+            "tcp_segments": {
+              "used": 0,
+              "capacity": 32,
+              "peak": 5,
+              "errors": 0
+            },
+            "packet_pool": {
+              "used": 0,
+              "capacity": 8,
+              "peak": 2,
+              "errors": 0
+            }
+          },
+          "tx_credit": {
+            "waits": 0,
+            "preserved": 0,
+            "timeouts": 0
+          },
+          "ntp_server": "time.local",
+          "ntp_address": "10.77.15.1",
+          "ntp_resolution": "resolved",
+          "ntp_resolution_failures": 0,
+          "queries": 4,
+          "accepted": 4,
+          "rejected": 0,
+          "last_rtt_ns": 5121000,
+          "last_sample_uncertainty_ns": 6210145
+        },
+        "terminal_records": []
+      }
+    },
+    "r1-warm": {
+      "usb": {
+        "info": {
+          "samples": 240,
+          "max_gap_seconds": 1.066473119
+        },
+        "status": {
+          "samples": 48,
+          "max_gap_seconds": 5.000069484
+        },
+        "health": {
+          "samples": 48,
+          "max_gap_seconds": 5.000088706
+        },
+        "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+        "seconds": 240,
+        "raw_wire_verified": true,
+        "max_allocator_peak_bytes": 118500,
+        "last_heap_allocated_bytes": 26348
+      },
+      "load": {
+        "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+        "seconds": 180,
+        "production_connections": 1,
+        "logical_sessions": 1,
+        "operations": {
+          "HELLO": 1,
+          "STATUS": 183,
+          "CAPS": 1
+        },
+        "nominal_status_count": 180,
+        "nominal_status_hz": 1.0,
+        "nominal_max_status_start_gap_ns": 1081411160,
+        "worst_status_start_gap_requests": [
+          {
+            "request_id": "00000000000000000000000000000065",
+            "started_ns": 175929439035543,
+            "write_completed_ns": 175929442978220
+          },
+          {
+            "request_id": "00000000000000000000000000000066",
+            "started_ns": 175930520446703,
+            "write_completed_ns": 175930523975954
+          }
+        ],
+        "browser_counts": {
+          "/": 2,
+          "/api/v1/capabilities": 2,
+          "/api/v1/status": 8,
+          "/api/v1/config": 2
+        },
+        "normal_browser": {
+          "actions": 8,
+          "refresh_actions": 6,
+          "action_latencies_seconds": [
+            6.233034302,
+            1.427940462,
+            1.427763684,
+            1.439419052,
+            5.983474669,
+            1.940985804,
+            1.846601148,
+            1.429037372
+          ]
+        },
+        "max_observed_write_to_response_seconds": 0.638690422,
+        "timing_origin": "SSL_write_ex entry",
+        "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+        "plaintext_sha256": "f9ad5613c4cddf2312cff9a1c420367275a2ab900e01a83e046d4375b5532f36"
+      },
+      "resources": {
+        "allocator_peak_bytes": 118500,
+        "allocator_largest_successful_request_bytes": 18364,
+        "allocator_max_sample_us": 49,
+        "allocator_max_entry_us": 148,
+        "core0_stack_used_bytes": 8248,
+        "core0_stack_scan_us": 124,
+        "heap_sample_cost_us": 35,
+        "core1_stack_used_bytes": 544,
+        "rf_max_probe_ns": 316000,
+        "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+        "clock_hz": 138000000,
+        "heap_capacity_bytes": 218380,
+        "allocator_sample_delta_us": 33089878,
+        "sampled_interval_seconds": 238.999551,
+        "allocator_sampling_fraction": 0.13845163248863174,
+        "max_info_roundtrip_seconds": 1.063876366,
+        "last": {
+          "heap_allocated_bytes": 26348,
+          "heap_arena_bytes": 124172,
+          "heap_arena_free_bytes": 97824,
+          "heap_free_chunks": 28,
+          "heap_top_releasable_bytes": 47104,
+          "allocator_failures": "0",
+          "tls_allocation_failures": 0
+        },
+        "network": {
+          "initialized": true,
+          "enabled": true,
+          "link_status": 3,
+          "ipv4": "10.77.15.10",
+          "requested_enabled": null,
+          "withdrawal_pending": false,
+          "resume_after_withdrawal": false,
+          "control_configured": true,
+          "control_listening": true,
+          "deployment_identity_matches": true,
+          "station_mac": "88:a2:9e:0a:60:df",
+          "stable_hostname": "wsprrypico-0a60df.local",
+          "configured_hostname": "wsprrypico-0a60df.local",
+          "advertised_hostname": "wsprrypico-0a60df.local",
+          "mdns_state": "active",
+          "mdns_reason": "",
+          "mdns_registrations": 1,
+          "mdns_conflicts": 0,
+          "mdns_failures": 0,
+          "mdns_address_changes": 0,
+          "mdns_goodbye_attempts": 0,
+          "mdns_goodbye_failures": 0,
+          "mdns_rejected_packets": 0,
+          "power_save": false,
+          "packets": {
+            "arp": {
+              "received": 7,
+              "sent": 8,
+              "dropped": 0
+            },
+            "ipv4": {
+              "received": 636,
+              "sent": 490,
+              "dropped": 0
+            },
+            "tcp": {
+              "received": 621,
+              "sent": 468,
+              "dropped": 3
+            },
+            "udp": {
+              "received": 15,
+              "sent": 20,
+              "dropped": 0
+            }
+          },
+          "memory": {
+            "heap": {
+              "used": 200,
+              "capacity": 32768,
+              "peak": 6360,
+              "errors": 0
+            },
+            "tcp_pcbs": {
+              "used": 0,
+              "capacity": 4,
+              "peak": 2,
+              "errors": 0
+            },
+            "tcp_segments": {
+              "used": 0,
+              "capacity": 32,
+              "peak": 4,
+              "errors": 0
+            },
+            "packet_pool": {
+              "used": 0,
+              "capacity": 8,
+              "peak": 2,
+              "errors": 0
+            }
+          },
+          "tx_credit": {
+            "waits": 0,
+            "preserved": 0,
+            "timeouts": 0
+          },
+          "ntp_server": "time.local",
+          "ntp_address": "10.77.15.1",
+          "ntp_resolution": "resolved",
+          "ntp_resolution_failures": 0,
+          "queries": 4,
+          "accepted": 4,
+          "rejected": 0,
+          "last_rtt_ns": 3963000,
+          "last_sample_uncertainty_ns": 5052145
+        },
+        "terminal_records": []
+      }
+    },
+    "r1-controller": {
+      "usb": {
+        "info": {
+          "samples": 240,
+          "max_gap_seconds": 1.000095034
+        },
+        "status": {
+          "samples": 48,
+          "max_gap_seconds": 5.000072581
+        },
+        "health": {
+          "samples": 48,
+          "max_gap_seconds": 5.000086507
+        },
+        "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+        "seconds": 240,
+        "raw_wire_verified": true,
+        "max_allocator_peak_bytes": 118500,
+        "last_heap_allocated_bytes": 24636
+      },
+      "load": {
+        "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+        "seconds": 180,
+        "production_connections": 1,
+        "logical_sessions": 1,
+        "operations": {
+          "HELLO": 1,
+          "STATUS": 183,
+          "CAPS": 1
+        },
+        "nominal_status_count": 180,
+        "nominal_status_hz": 1.0,
+        "nominal_max_status_start_gap_ns": 1040652426,
+        "worst_status_start_gap_requests": [
+          {
+            "request_id": "00000000000000000000000000000073",
+            "started_ns": 176546900889810,
+            "write_completed_ns": 176546905882613
+          },
+          {
+            "request_id": "00000000000000000000000000000074",
+            "started_ns": 176547941542236,
+            "write_completed_ns": 176547945534171
+          }
+        ],
+        "browser_counts": {},
+        "max_observed_write_to_response_seconds": 0.6484157,
+        "timing_origin": "SSL_write_ex entry",
+        "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+        "plaintext_sha256": "f74e6088a5c92a67779b72d5e7ca3f7e2048e78f9dfdac20f961179179cd7a8e"
+      },
+      "resources": {
+        "allocator_peak_bytes": 118500,
+        "allocator_largest_successful_request_bytes": 18364,
+        "allocator_max_sample_us": 51,
+        "allocator_max_entry_us": 148,
+        "core0_stack_used_bytes": 8248,
+        "core0_stack_scan_us": 117,
+        "heap_sample_cost_us": 35,
+        "core1_stack_used_bytes": 544,
+        "rf_max_probe_ns": 316000,
+        "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+        "clock_hz": 138000000,
+        "heap_capacity_bytes": 218380,
+        "allocator_sample_delta_us": 31674032,
+        "sampled_interval_seconds": 239.002336,
+        "allocator_sampling_fraction": 0.13252603522670173,
+        "max_info_roundtrip_seconds": 0.242444174,
+        "last": {
+          "heap_allocated_bytes": 24636,
+          "heap_arena_bytes": 124172,
+          "heap_arena_free_bytes": 99536,
+          "heap_free_chunks": 37,
+          "heap_top_releasable_bytes": 48488,
+          "allocator_failures": "1",
+          "tls_allocation_failures": 0
+        },
+        "network": {
+          "initialized": true,
+          "enabled": true,
+          "link_status": 3,
+          "ipv4": "10.77.15.10",
+          "requested_enabled": null,
+          "withdrawal_pending": false,
+          "resume_after_withdrawal": false,
+          "control_configured": true,
+          "control_listening": true,
+          "deployment_identity_matches": true,
+          "station_mac": "88:a2:9e:0a:60:df",
+          "stable_hostname": "wsprrypico-0a60df.local",
+          "configured_hostname": "wsprrypico-0a60df.local",
+          "advertised_hostname": "wsprrypico-0a60df.local",
+          "mdns_state": "active",
+          "mdns_reason": "",
+          "mdns_registrations": 1,
+          "mdns_conflicts": 0,
+          "mdns_failures": 0,
+          "mdns_address_changes": 0,
+          "mdns_goodbye_attempts": 0,
+          "mdns_goodbye_failures": 0,
+          "mdns_rejected_packets": 0,
+          "power_save": false,
+          "packets": {
+            "arp": {
+              "received": 18,
+              "sent": 19,
+              "dropped": 0
+            },
+            "ipv4": {
+              "received": 1046,
+              "sent": 748,
+              "dropped": 0
+            },
+            "tcp": {
+              "received": 1000,
+              "sent": 695,
+              "dropped": 3
+            },
+            "udp": {
+              "received": 46,
+              "sent": 51,
+              "dropped": 0
+            }
+          },
+          "memory": {
+            "heap": {
+              "used": 200,
+              "capacity": 32768,
+              "peak": 6360,
+              "errors": 0
+            },
+            "tcp_pcbs": {
+              "used": 0,
+              "capacity": 4,
+              "peak": 2,
+              "errors": 0
+            },
+            "tcp_segments": {
+              "used": 0,
+              "capacity": 32,
+              "peak": 4,
+              "errors": 0
+            },
+            "packet_pool": {
+              "used": 0,
+              "capacity": 8,
+              "peak": 2,
+              "errors": 0
+            }
+          },
+          "tx_credit": {
+            "waits": 0,
+            "preserved": 0,
+            "timeouts": 0
+          },
+          "ntp_server": "time.local",
+          "ntp_address": "10.77.15.1",
+          "ntp_resolution": "resolved",
+          "ntp_resolution_failures": 0,
+          "queries": 14,
+          "accepted": 14,
+          "rejected": 0,
+          "last_rtt_ns": 5445000,
+          "last_sample_uncertainty_ns": 6534145
+        },
+        "terminal_records": []
+      }
+    },
+    "r1-normal": {
+      "usb": {
+        "info": {
+          "samples": 360,
+          "max_gap_seconds": 1.167120932
+        },
+        "status": {
+          "samples": 72,
+          "max_gap_seconds": 5.000076238
+        },
+        "health": {
+          "samples": 72,
+          "max_gap_seconds": 5.000089702
+        },
+        "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+        "seconds": 360,
+        "raw_wire_verified": true,
+        "max_allocator_peak_bytes": 121780,
+        "last_heap_allocated_bytes": 21764
+      },
+      "load": {
+        "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+        "seconds": 300,
+        "production_connections": 1,
+        "logical_sessions": 1,
+        "operations": {
+          "HELLO": 1,
+          "STATUS": 303,
+          "CAPS": 1
+        },
+        "nominal_status_count": 300,
+        "nominal_status_hz": 1.0,
+        "nominal_max_status_start_gap_ns": 1089477505,
+        "worst_status_start_gap_requests": [
+          {
+            "request_id": "000000000000000000000000000000dd",
+            "started_ns": 176894003880821,
+            "write_completed_ns": 176894007498998
+          },
+          {
+            "request_id": "000000000000000000000000000000de",
+            "started_ns": 176895093358326,
+            "write_completed_ns": 176895097343040
+          }
+        ],
+        "browser_counts": {
+          "/": 2,
+          "/api/v1/capabilities": 2,
+          "/api/v1/status": 8,
+          "/api/v1/config": 2
+        },
+        "normal_browser": {
+          "actions": 8,
+          "refresh_actions": 6,
+          "action_latencies_seconds": [
+            6.079368682,
+            1.466207546,
+            2.874800303,
+            1.47042261,
+            6.482998276,
+            1.47479465,
+            1.454303915,
+            1.656987665
+          ]
+        },
+        "max_observed_write_to_response_seconds": 0.648101796,
+        "timing_origin": "SSL_write_ex entry",
+        "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+        "plaintext_sha256": "03a20f950dc3441aa10f897cee04ac1b3ff8c9be6276ebe3b6860ab64b6d388e"
+      },
+      "resources": {
+        "allocator_peak_bytes": 121780,
+        "allocator_largest_successful_request_bytes": 18364,
+        "allocator_max_sample_us": 56,
+        "allocator_max_entry_us": 153,
+        "core0_stack_used_bytes": 8248,
+        "core0_stack_scan_us": 117,
+        "heap_sample_cost_us": 35,
+        "core1_stack_used_bytes": 544,
+        "rf_max_probe_ns": 316000,
+        "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+        "clock_hz": 138000000,
+        "heap_capacity_bytes": 218380,
+        "allocator_sample_delta_us": 49354788,
+        "sampled_interval_seconds": 359.000597,
+        "allocator_sampling_fraction": 0.13747828948596427,
+        "max_info_roundtrip_seconds": 1.164636882,
+        "last": {
+          "heap_allocated_bytes": 21764,
+          "heap_arena_bytes": 165132,
+          "heap_arena_free_bytes": 143368,
+          "heap_free_chunks": 34,
+          "heap_top_releasable_bytes": 89448,
+          "allocator_failures": "1",
+          "tls_allocation_failures": 0
+        },
+        "network": {
+          "initialized": true,
+          "enabled": true,
+          "link_status": 3,
+          "ipv4": "10.77.15.10",
+          "requested_enabled": null,
+          "withdrawal_pending": false,
+          "resume_after_withdrawal": false,
+          "control_configured": true,
+          "control_listening": true,
+          "deployment_identity_matches": true,
+          "station_mac": "88:a2:9e:0a:60:df",
+          "stable_hostname": "wsprrypico-0a60df.local",
+          "configured_hostname": "wsprrypico-0a60df.local",
+          "advertised_hostname": "wsprrypico-0a60df.local",
+          "mdns_state": "active",
+          "mdns_reason": "",
+          "mdns_registrations": 1,
+          "mdns_conflicts": 0,
+          "mdns_failures": 0,
+          "mdns_address_changes": 0,
+          "mdns_goodbye_attempts": 0,
+          "mdns_goodbye_failures": 0,
+          "mdns_rejected_packets": 0,
+          "power_save": false,
+          "packets": {
+            "arp": {
+              "received": 26,
+              "sent": 27,
+              "dropped": 0
+            },
+            "ipv4": {
+              "received": 1916,
+              "sent": 1364,
+              "dropped": 0
+            },
+            "tcp": {
+              "received": 1852,
+              "sent": 1293,
+              "dropped": 5
+            },
+            "udp": {
+              "received": 64,
+              "sent": 69,
+              "dropped": 0
+            }
+          },
+          "memory": {
+            "heap": {
+              "used": 200,
+              "capacity": 32768,
+              "peak": 7504,
+              "errors": 0
+            },
+            "tcp_pcbs": {
+              "used": 0,
+              "capacity": 4,
+              "peak": 2,
+              "errors": 0
+            },
+            "tcp_segments": {
+              "used": 0,
+              "capacity": 32,
+              "peak": 5,
+              "errors": 0
+            },
+            "packet_pool": {
+              "used": 0,
+              "capacity": 8,
+              "peak": 2,
+              "errors": 0
+            }
+          },
+          "tx_credit": {
+            "waits": 0,
+            "preserved": 0,
+            "timeouts": 0
+          },
+          "ntp_server": "time.local",
+          "ntp_address": "10.77.15.1",
+          "ntp_resolution": "resolved",
+          "ntp_resolution_failures": 0,
+          "queries": 19,
+          "accepted": 19,
+          "rejected": 0,
+          "last_rtt_ns": 5327000,
+          "last_sample_uncertainty_ns": 6416145
+        },
+        "terminal_records": []
+      }
+    },
+    "r1-quiet-before": {
+      "usb": {
+        "info": {
+          "samples": 360,
+          "max_gap_seconds": 1.000076314
+        },
+        "status": {
+          "samples": 72,
+          "max_gap_seconds": 5.000071143
+        },
+        "health": {
+          "samples": 72,
+          "max_gap_seconds": 5.000089329
+        },
+        "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+        "seconds": 360,
+        "raw_wire_verified": true,
+        "max_allocator_peak_bytes": 118500,
+        "last_heap_allocated_bytes": 16844
+      },
+      "resources": {
+        "allocator_peak_bytes": 118500,
+        "allocator_largest_successful_request_bytes": 18364,
+        "allocator_max_sample_us": 50,
+        "allocator_max_entry_us": 148,
+        "core0_stack_used_bytes": 8248,
+        "core0_stack_scan_us": 117,
+        "heap_sample_cost_us": 34,
+        "core1_stack_used_bytes": 544,
+        "rf_max_probe_ns": 316000,
+        "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+        "clock_hz": 138000000,
+        "heap_capacity_bytes": 218380,
+        "allocator_sample_delta_us": 48901741,
+        "sampled_interval_seconds": 358.998607,
+        "allocator_sampling_fraction": 0.1362170772991328,
+        "max_info_roundtrip_seconds": 0.06334545,
+        "last": {
+          "heap_allocated_bytes": 16844,
+          "heap_arena_bytes": 124172,
+          "heap_arena_free_bytes": 107328,
+          "heap_free_chunks": 21,
+          "heap_top_releasable_bytes": 48488,
+          "allocator_failures": "1",
+          "tls_allocation_failures": 0
+        },
+        "network": {
+          "initialized": true,
+          "enabled": true,
+          "link_status": 3,
+          "ipv4": "10.77.15.10",
+          "requested_enabled": null,
+          "withdrawal_pending": false,
+          "resume_after_withdrawal": false,
+          "control_configured": true,
+          "control_listening": true,
+          "deployment_identity_matches": true,
+          "station_mac": "88:a2:9e:0a:60:df",
+          "stable_hostname": "wsprrypico-0a60df.local",
+          "configured_hostname": "wsprrypico-0a60df.local",
+          "advertised_hostname": "wsprrypico-0a60df.local",
+          "mdns_state": "active",
+          "mdns_reason": "",
+          "mdns_registrations": 1,
+          "mdns_conflicts": 0,
+          "mdns_failures": 0,
+          "mdns_address_changes": 0,
+          "mdns_goodbye_attempts": 0,
+          "mdns_goodbye_failures": 0,
+          "mdns_rejected_packets": 0,
+          "power_save": false,
+          "packets": {
+            "arp": {
+              "received": 13,
+              "sent": 14,
+              "dropped": 0
+            },
+            "ipv4": {
+              "received": 654,
+              "sent": 508,
+              "dropped": 0
+            },
+            "tcp": {
+              "received": 621,
+              "sent": 468,
+              "dropped": 3
+            },
+            "udp": {
+              "received": 33,
+              "sent": 38,
+              "dropped": 0
+            }
+          },
+          "memory": {
+            "heap": {
+              "used": 200,
+              "capacity": 32768,
+              "peak": 6360,
+              "errors": 0
+            },
+            "tcp_pcbs": {
+              "used": 0,
+              "capacity": 4,
+              "peak": 2,
+              "errors": 0
+            },
+            "tcp_segments": {
+              "used": 0,
+              "capacity": 32,
+              "peak": 4,
+              "errors": 0
+            },
+            "packet_pool": {
+              "used": 0,
+              "capacity": 8,
+              "peak": 2,
+              "errors": 0
+            }
+          },
+          "tx_credit": {
+            "waits": 0,
+            "preserved": 0,
+            "timeouts": 0
+          },
+          "ntp_server": "time.local",
+          "ntp_address": "10.77.15.1",
+          "ntp_resolution": "resolved",
+          "ntp_resolution_failures": 0,
+          "queries": 10,
+          "accepted": 10,
+          "rejected": 0,
+          "last_rtt_ns": 5015000,
+          "last_sample_uncertainty_ns": 6104145
+        },
+        "terminal_records": []
+      }
+    },
+    "r1-quiet-after": {
+      "usb": {
+        "info": {
+          "samples": 360,
+          "max_gap_seconds": 1.000074999
+        },
+        "status": {
+          "samples": 72,
+          "max_gap_seconds": 5.000085925
+        },
+        "health": {
+          "samples": 72,
+          "max_gap_seconds": 5.000088921
+        },
+        "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+        "seconds": 360,
+        "raw_wire_verified": true,
+        "max_allocator_peak_bytes": 121780,
+        "last_heap_allocated_bytes": 16836
+      },
+      "resources": {
+        "allocator_peak_bytes": 121780,
+        "allocator_largest_successful_request_bytes": 18364,
+        "allocator_max_sample_us": 56,
+        "allocator_max_entry_us": 153,
+        "core0_stack_used_bytes": 8248,
+        "core0_stack_scan_us": 118,
+        "heap_sample_cost_us": 35,
+        "core1_stack_used_bytes": 544,
+        "rf_max_probe_ns": 316000,
+        "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+        "clock_hz": 138000000,
+        "heap_capacity_bytes": 218380,
+        "allocator_sample_delta_us": 48853112,
+        "sampled_interval_seconds": 359.002083,
+        "allocator_sampling_fraction": 0.13608030235300891,
+        "max_info_roundtrip_seconds": 0.064666627,
+        "last": {
+          "heap_allocated_bytes": 16836,
+          "heap_arena_bytes": 165132,
+          "heap_arena_free_bytes": 148296,
+          "heap_free_chunks": 21,
+          "heap_top_releasable_bytes": 89448,
+          "allocator_failures": "1",
+          "tls_allocation_failures": 0
+        },
+        "network": {
+          "initialized": true,
+          "enabled": true,
+          "link_status": 3,
+          "ipv4": "10.77.15.10",
+          "requested_enabled": null,
+          "withdrawal_pending": false,
+          "resume_after_withdrawal": false,
+          "control_configured": true,
+          "control_listening": true,
+          "deployment_identity_matches": true,
+          "station_mac": "88:a2:9e:0a:60:df",
+          "stable_hostname": "wsprrypico-0a60df.local",
+          "configured_hostname": "wsprrypico-0a60df.local",
+          "advertised_hostname": "wsprrypico-0a60df.local",
+          "mdns_state": "active",
+          "mdns_reason": "",
+          "mdns_registrations": 1,
+          "mdns_conflicts": 0,
+          "mdns_failures": 0,
+          "mdns_address_changes": 0,
+          "mdns_goodbye_attempts": 0,
+          "mdns_goodbye_failures": 0,
+          "mdns_rejected_packets": 0,
+          "power_save": false,
+          "packets": {
+            "arp": {
+              "received": 32,
+              "sent": 33,
+              "dropped": 0
+            },
+            "ipv4": {
+              "received": 1934,
+              "sent": 1382,
+              "dropped": 0
+            },
+            "tcp": {
+              "received": 1852,
+              "sent": 1293,
+              "dropped": 5
+            },
+            "udp": {
+              "received": 82,
+              "sent": 87,
+              "dropped": 0
+            }
+          },
+          "memory": {
+            "heap": {
+              "used": 200,
+              "capacity": 32768,
+              "peak": 7504,
+              "errors": 0
+            },
+            "tcp_pcbs": {
+              "used": 0,
+              "capacity": 4,
+              "peak": 2,
+              "errors": 0
+            },
+            "tcp_segments": {
+              "used": 0,
+              "capacity": 32,
+              "peak": 5,
+              "errors": 0
+            },
+            "packet_pool": {
+              "used": 0,
+              "capacity": 8,
+              "peak": 2,
+              "errors": 0
+            }
+          },
+          "tx_credit": {
+            "waits": 0,
+            "preserved": 0,
+            "timeouts": 0
+          },
+          "ntp_server": "time.local",
+          "ntp_address": "10.77.15.1",
+          "ntp_resolution": "resolved",
+          "ntp_resolution_failures": 0,
+          "queries": 25,
+          "accepted": 25,
+          "rejected": 0,
+          "last_rtt_ns": 5432000,
+          "last_sample_uncertainty_ns": 6521145
+        },
+        "terminal_records": []
+      }
+    }
+  },
+  "measurement_details": {
+    "r1-inhibited": {
+      "max_usb_roundtrip_seconds": {
+        "INFO": 0.522244968,
+        "STATUS": 0.375411042,
+        "HELLO": 0.02380682
+      },
+      "host_max_loadavg_1m": 0.53,
+      "host_max_temperature_c": 56.2,
+      "note": "Load average is system-wide runnable/uninterruptible load, not CPU utilization. Costs overlap."
+    },
+    "r1-warm": {
+      "max_usb_roundtrip_seconds": {
+        "INFO": 1.063876366,
+        "STATUS": 0.320825819,
+        "HELLO": 0.03323385
+      },
+      "host_max_loadavg_1m": 0.26,
+      "host_max_temperature_c": 55.65,
+      "note": "Load average is system-wide runnable/uninterruptible load, not CPU utilization. Costs overlap."
+    },
+    "r1-controller": {
+      "max_usb_roundtrip_seconds": {
+        "INFO": 0.242444174,
+        "STATUS": 0.027297457,
+        "HELLO": 0.031069189
+      },
+      "host_max_loadavg_1m": 1.18,
+      "host_max_temperature_c": 56.2,
+      "note": "Load average is system-wide runnable/uninterruptible load, not CPU utilization. Costs overlap."
+    },
+    "r1-normal": {
+      "max_usb_roundtrip_seconds": {
+        "INFO": 1.164636882,
+        "STATUS": 0.265863327,
+        "HELLO": 0.0313008
+      },
+      "host_max_loadavg_1m": 1.53,
+      "host_max_temperature_c": 55.65,
+      "note": "Load average is system-wide runnable/uninterruptible load, not CPU utilization. Costs overlap."
+    },
+    "r1-quiet-before": {
+      "max_usb_roundtrip_seconds": {
+        "INFO": 0.06334545,
+        "STATUS": 0.024294,
+        "HELLO": 0.03239926
+      },
+      "host_max_loadavg_1m": 0.2,
+      "host_max_temperature_c": 56.75,
+      "note": "Load average is system-wide runnable/uninterruptible load, not CPU utilization. Costs overlap."
+    },
+    "r1-quiet-after": {
+      "max_usb_roundtrip_seconds": {
+        "INFO": 0.064666627,
+        "STATUS": 0.021190842,
+        "HELLO": 0.030493577
+      },
+      "host_max_loadavg_1m": 0.18,
+      "host_max_temperature_c": 56.2,
+      "note": "Load average is system-wide runnable/uninterruptible load, not CPU utilization. Costs overlap."
+    }
+  },
+  "target_time_wire": {
+    "inhibited": {
+      "start_utc_ns": 1789231052320543015,
+      "end_utc_ns": 1789231059593796313,
+      "mdns_queries": 1,
+      "mdns_answers": 1,
+      "ntp_matched_exchanges": 1,
+      "target": "10.77.15.10",
+      "server": "10.77.15.1",
+      "name": "time.local"
+    },
+    "physical": {
+      "start_utc_ns": 1789231302214335928,
+      "end_utc_ns": 1789231329482451033,
+      "mdns_queries": 1,
+      "mdns_answers": 1,
+      "ntp_matched_exchanges": 1,
+      "target": "10.77.15.10",
+      "server": "10.77.15.1",
+      "name": "time.local"
+    }
+  },
+  "probes": [
+    {
+      "bytes": 18364,
+      "allocated": true,
+      "management_result": {
+        "action": "heap-probe",
+        "reply": {
+          "ok": true,
+          "allocated": true
+        },
+        "evidence_sha256": "25ecd06549f461b0906e6a36e9ae09cbf07437c714c009b18924612d6652fe1f"
+      }
+    },
+    {
+      "bytes": 218381,
+      "allocated": false,
+      "management_result": {
+        "action": "heap-probe",
+        "reply": {
+          "ok": true,
+          "allocated": false
+        },
+        "evidence_sha256": "dc29c9d108bfd4f87753fb5c62aff5640bb026004cdb3174573e87dad40c2887"
+      }
+    },
+    {
+      "bytes": 18364,
+      "allocated": true,
+      "management_result": {
+        "action": "heap-probe",
+        "reply": {
+          "ok": true,
+          "allocated": true
+        },
+        "evidence_sha256": "33c13cc2238023d4fd07ec245e7200ee651e6965586292af0864e760e2faa45b"
+      }
+    }
+  ],
+  "allocatable_block_demonstrated_lower_bound_bytes": 18364,
+  "quiet_delta_bytes": -8,
+  "allocation_probe_limitation": "Demonstrated successful block size, not exact largest block or fragmentation. No later observed successful request exceeded it.",
   "restoration": {
     "boards": {
-      "A": {
+      "a": {
         "serial": "0BF4B4AEC9FFB344",
+        "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
         "revision": "802c91a7b86e-dirty",
-        "status": {
-          "boot_id": "36889c374d905eb63896157976503614",
-          "state": "empty",
-          "output_active": false,
-          "owner_id": null,
-          "job_id": null,
-          "terminal_records": []
-        },
-        "inventory_sha256": "1641d6a8af7ae9076e83797d8f0d4ea18584ab52baa5ec3c6a0c026b947c878f"
+        "boot_id": "a4e5c91e63bf3a3e40e8e311d378a076",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "configuration_matches": true
       },
-      "B": {
+      "b": {
         "serial": "CDDBF8767C506C07",
+        "device_id": "29f20b7342051ef947aa56cb9d4fab42",
         "revision": "dbf1d86f0885-dirty",
-        "status": {
-          "boot_id": "feffcd075ab6cb0b74e7e0c2fde6c87f",
-          "state": "empty",
-          "output_active": false,
-          "owner_id": null,
-          "job_id": null,
-          "terminal_records": []
-        },
-        "inventory_sha256": "3e372b07c7a5a2f969ef58b08069b29a9400a47427afa9984dc4968128ebd257"
+        "boot_id": "feffcd075ab6cb0b74e7e0c2fde6c87f",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "configuration_matches": true
       }
     },
     "host_restored": true,
-    "installed_wsprrypi_pid": 1957,
+    "installed_pid": "1957",
     "management_counts": {
-      "config": 24,
+      "config": 26,
       "wifi-off": 0,
       "wifi-on": 0,
-      "heap-probe": 0
+      "heap-probe": 3
     },
-    "device_state_sha256": "7bea98e03a38a86be613eec8aff30e8ba42f9046968012806cf688f9c5be31ce",
-    "management_state_sha256": "f2c6ed466ab43ae78a3ec57522888886c0ed995ba1e1e526b1c79c3f45c6cba7",
-    "host_state_sha256": "3f72bf7e1d9045b5cb71791d59ca3c2c0a2bc0c6b0dbe336f0163aa28d1d1dca",
-    "host_fixture_deadline_extended": false
+    "permanent_files_unchanged": true,
+    "permanent_service_states": {
+      "time-local": {
+        "ActiveState": "active",
+        "UnitFileState": "enabled",
+        "MainPID": "299289"
+      },
+      "chrony": {
+        "ActiveState": "active",
+        "UnitFileState": "enabled",
+        "MainPID": "813"
+      },
+      "gpsd": {
+        "ActiveState": "active",
+        "UnitFileState": "enabled",
+        "MainPID": "863"
+      },
+      "avahi-daemon": {
+        "ActiveState": "active",
+        "UnitFileState": "enabled",
+        "MainPID": "727"
+      }
+    },
+    "time_local": "time.local\t192.168.1.54",
+    "temporary_publication_removed": true,
+    "late_verification_utc_ns": 1789233116526622101,
+    "mac_lan_active": {
+      "query_hex": "23000000000000000000000000000000000000000000000000000000000000000000000000000000ee4fffc880570824",
+      "address": "192.168.1.54",
+      "utc_ns": 1789231432501328000,
+      "reply_hex": "240100e7000000010000000250505300ee4fffb8e0d8e698ee4fffc880570824ee4fffc899d99433ee4fffc899dd229e",
+      "local_address": "192.168.1.56",
+      "peer": [
+        "192.168.1.54",
+        123
+      ],
+      "elapsed_ns": 4648583,
+      "wspr5_native_address": "192.168.1.54"
+    },
+    "mac_lan_final_timeout": {
+      "result": "FAILED",
+      "error": "TimeoutError: timed out",
+      "ntp_timeout_seconds": 3,
+      "resolved_address_recorded": false,
+      "packet_capture": false,
+      "source": "Final Mac verification tool exception; later bounded recheck is separate evidence"
+    },
+    "mac_lan_final_recheck": {
+      "utc_ns": 1789233283679029000,
+      "addresses": [
+        "192.168.1.54"
+      ],
+      "ntp": {
+        "query_hex": "23000000000000000000000000000000000000000000000000000000000000000000000000000000ee500703af38b47c",
+        "address": "192.168.1.54",
+        "utc_ns": 1789233283684459000,
+        "reply_hex": "240100e7000000010000000150505300ee5006fabfa6fdf4ee500703af38b47cee500703c4bbd2b5ee500703c4bd784c",
+        "local_address": "192.168.1.56",
+        "peer": [
+          "192.168.1.54",
+          123
+        ],
+        "elapsed_ns": 69375416
+      },
+      "result": "PASS"
+    }
+  },
+  "attempts": [
+    {
+      "label": "first",
+      "root": "/home/pi/phase11-5-r1-time-local-20260912",
+      "status": "FAILED_BEFORE_DEVICE_MUTATION",
+      "packet_sha256": "5998c9861ae5d6e75023ac8cd84036ef7e42851a457d2b500c580f007e3af5b6",
+      "result": {
+        "family": "R1",
+        "source": "e20ae8bea2d5237af017dbd5f73bfe9332ce144e",
+        "status": "FAILED",
+        "intervals": {},
+        "rf_jobs": [],
+        "current_stage": "r1-host-cleanup",
+        "error": "ValueError: Native mDNS/NTP admission failed; inspect preserved response/captures",
+        "failed_stage": "fixture-time-admission",
+        "host_restored": true
+      }
+    },
+    {
+      "label": "unexecuted",
+      "root": "/home/pi/phase11-5-r1-time-local-b-20260912",
+      "status": "NOT_STARTED_LAN_RESOLVER_CHECK_FAILED",
+      "packet_sha256": "597eceae2a07519d43f26bcfc605eba728dcc3c782b00138445b9daf1de287b8",
+      "result": null
+    },
+    {
+      "label": "completed",
+      "root": "/home/pi/phase11-5-r1-time-local-c-20260912",
+      "status": "PASS_AFTER_FINAL_REVIEW",
+      "packet_sha256": "68d642643847c26c9be7cf2f9efb06801e2d73cf9b15a5801f697f2010f209a4",
+      "result": {
+        "family": "R1",
+        "source": "e20ae8bea2d5237af017dbd5f73bfe9332ce144e",
+        "status": "CAPTURED_REQUIRES_FINAL_REVIEW",
+        "intervals": {
+          "r1-inhibited": {
+            "usb": {
+              "info": {
+                "samples": 240,
+                "max_gap_seconds": 1.000097892
+              },
+              "status": {
+                "samples": 48,
+                "max_gap_seconds": 5.000067384
+              },
+              "health": {
+                "samples": 48,
+                "max_gap_seconds": 5.000087587
+              },
+              "boot": "a70c0c290d172d2ccd3a5bf8f71a427d",
+              "seconds": 240,
+              "raw_wire_verified": true,
+              "max_allocator_peak_bytes": 118544,
+              "last_heap_allocated_bytes": 26408
+            },
+            "load": {
+              "boot": "a70c0c290d172d2ccd3a5bf8f71a427d",
+              "seconds": 180,
+              "production_connections": 1,
+              "logical_sessions": 1,
+              "operations": {
+                "HELLO": 1,
+                "STATUS": 183,
+                "CAPS": 1
+              },
+              "nominal_status_count": 179,
+              "nominal_status_hz": 0.9944444444444445,
+              "nominal_max_status_start_gap_ns": 1061911353,
+              "worst_status_start_gap_requests": [
+                {
+                  "request_id": "00000000000000000000000000000007",
+                  "started_ns": 175565292674611,
+                  "write_completed_ns": 175565295159754
+                },
+                {
+                  "request_id": "00000000000000000000000000000008",
+                  "started_ns": 175566354585964,
+                  "write_completed_ns": 175566357123626
+                }
+              ],
+              "browser_counts": {
+                "/": 2,
+                "/api/v1/capabilities": 2,
+                "/api/v1/status": 8,
+                "/api/v1/config": 2
+              },
+              "normal_browser": {
+                "actions": 8,
+                "refresh_actions": 6,
+                "action_latencies_seconds": [
+                  5.002393772,
+                  1.172685054,
+                  1.182127101,
+                  1.205257369,
+                  5.071178623,
+                  1.192555795,
+                  1.118075604,
+                  1.421571513
+                ]
+              },
+              "max_observed_write_to_response_seconds": 0.527596721,
+              "timing_origin": "SSL_write_ex entry",
+              "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+              "plaintext_sha256": "9f75b466aef26a4f4b04af9b2981cdf0f7dcf1556a22b9f047a746e7934bec4a"
+            },
+            "resources": {
+              "allocator_peak_bytes": 118544,
+              "allocator_largest_successful_request_bytes": 18364,
+              "allocator_max_sample_us": 34,
+              "allocator_max_entry_us": 136,
+              "core0_stack_used_bytes": 8192,
+              "core0_stack_scan_us": 110,
+              "heap_sample_cost_us": 26,
+              "boot": "a70c0c290d172d2ccd3a5bf8f71a427d",
+              "clock_hz": 150000000,
+              "heap_capacity_bytes": 377512,
+              "allocator_sample_delta_us": 34213958,
+              "sampled_interval_seconds": 238.996589,
+              "allocator_sampling_fraction": 0.143156679110596,
+              "max_info_roundtrip_seconds": 0.522244968,
+              "last": {
+                "heap_allocated_bytes": 26408,
+                "heap_arena_bytes": 131752,
+                "heap_arena_free_bytes": 105344,
+                "heap_free_chunks": 33,
+                "heap_top_releasable_bytes": 56160,
+                "allocator_failures": "0",
+                "tls_allocation_failures": 0
+              },
+              "network": {
+                "initialized": true,
+                "enabled": true,
+                "link_status": 3,
+                "ipv4": "10.77.15.10",
+                "requested_enabled": null,
+                "withdrawal_pending": false,
+                "resume_after_withdrawal": false,
+                "control_configured": true,
+                "control_listening": true,
+                "deployment_identity_matches": true,
+                "station_mac": "88:a2:9e:0a:60:df",
+                "stable_hostname": "wsprrypico-0a60df.local",
+                "configured_hostname": "wsprrypico-0a60df.local",
+                "advertised_hostname": "wsprrypico-0a60df.local",
+                "mdns_state": "active",
+                "mdns_reason": "",
+                "mdns_registrations": 1,
+                "mdns_conflicts": 0,
+                "mdns_failures": 0,
+                "mdns_address_changes": 0,
+                "mdns_goodbye_attempts": 0,
+                "mdns_goodbye_failures": 0,
+                "mdns_rejected_packets": 0,
+                "power_save": false,
+                "packets": {
+                  "arp": {
+                    "received": 7,
+                    "sent": 8,
+                    "dropped": 0
+                  },
+                  "ipv4": {
+                    "received": 632,
+                    "sent": 487,
+                    "dropped": 0
+                  },
+                  "tcp": {
+                    "received": 617,
+                    "sent": 465,
+                    "dropped": 3
+                  },
+                  "udp": {
+                    "received": 15,
+                    "sent": 20,
+                    "dropped": 0
+                  }
+                },
+                "memory": {
+                  "heap": {
+                    "used": 200,
+                    "capacity": 32768,
+                    "peak": 7504,
+                    "errors": 0
+                  },
+                  "tcp_pcbs": {
+                    "used": 0,
+                    "capacity": 4,
+                    "peak": 2,
+                    "errors": 0
+                  },
+                  "tcp_segments": {
+                    "used": 0,
+                    "capacity": 32,
+                    "peak": 5,
+                    "errors": 0
+                  },
+                  "packet_pool": {
+                    "used": 0,
+                    "capacity": 8,
+                    "peak": 2,
+                    "errors": 0
+                  }
+                },
+                "tx_credit": {
+                  "waits": 0,
+                  "preserved": 0,
+                  "timeouts": 0
+                },
+                "ntp_server": "time.local",
+                "ntp_address": "10.77.15.1",
+                "ntp_resolution": "resolved",
+                "ntp_resolution_failures": 0,
+                "queries": 4,
+                "accepted": 4,
+                "rejected": 0,
+                "last_rtt_ns": 5121000,
+                "last_sample_uncertainty_ns": 6210145
+              },
+              "terminal_records": []
+            }
+          },
+          "r1-warm": {
+            "usb": {
+              "info": {
+                "samples": 240,
+                "max_gap_seconds": 1.066473119
+              },
+              "status": {
+                "samples": 48,
+                "max_gap_seconds": 5.000069484
+              },
+              "health": {
+                "samples": 48,
+                "max_gap_seconds": 5.000088706
+              },
+              "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+              "seconds": 240,
+              "raw_wire_verified": true,
+              "max_allocator_peak_bytes": 118500,
+              "last_heap_allocated_bytes": 26348
+            },
+            "load": {
+              "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+              "seconds": 180,
+              "production_connections": 1,
+              "logical_sessions": 1,
+              "operations": {
+                "HELLO": 1,
+                "STATUS": 183,
+                "CAPS": 1
+              },
+              "nominal_status_count": 180,
+              "nominal_status_hz": 1.0,
+              "nominal_max_status_start_gap_ns": 1081411160,
+              "worst_status_start_gap_requests": [
+                {
+                  "request_id": "00000000000000000000000000000065",
+                  "started_ns": 175929439035543,
+                  "write_completed_ns": 175929442978220
+                },
+                {
+                  "request_id": "00000000000000000000000000000066",
+                  "started_ns": 175930520446703,
+                  "write_completed_ns": 175930523975954
+                }
+              ],
+              "browser_counts": {
+                "/": 2,
+                "/api/v1/capabilities": 2,
+                "/api/v1/status": 8,
+                "/api/v1/config": 2
+              },
+              "normal_browser": {
+                "actions": 8,
+                "refresh_actions": 6,
+                "action_latencies_seconds": [
+                  6.233034302,
+                  1.427940462,
+                  1.427763684,
+                  1.439419052,
+                  5.983474669,
+                  1.940985804,
+                  1.846601148,
+                  1.429037372
+                ]
+              },
+              "max_observed_write_to_response_seconds": 0.638690422,
+              "timing_origin": "SSL_write_ex entry",
+              "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+              "plaintext_sha256": "f9ad5613c4cddf2312cff9a1c420367275a2ab900e01a83e046d4375b5532f36"
+            },
+            "resources": {
+              "allocator_peak_bytes": 118500,
+              "allocator_largest_successful_request_bytes": 18364,
+              "allocator_max_sample_us": 49,
+              "allocator_max_entry_us": 148,
+              "core0_stack_used_bytes": 8248,
+              "core0_stack_scan_us": 124,
+              "heap_sample_cost_us": 35,
+              "core1_stack_used_bytes": 544,
+              "rf_max_probe_ns": 316000,
+              "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+              "clock_hz": 138000000,
+              "heap_capacity_bytes": 218380,
+              "allocator_sample_delta_us": 33089878,
+              "sampled_interval_seconds": 238.999551,
+              "allocator_sampling_fraction": 0.13845163248863174,
+              "max_info_roundtrip_seconds": 1.063876366,
+              "last": {
+                "heap_allocated_bytes": 26348,
+                "heap_arena_bytes": 124172,
+                "heap_arena_free_bytes": 97824,
+                "heap_free_chunks": 28,
+                "heap_top_releasable_bytes": 47104,
+                "allocator_failures": "0",
+                "tls_allocation_failures": 0
+              },
+              "network": {
+                "initialized": true,
+                "enabled": true,
+                "link_status": 3,
+                "ipv4": "10.77.15.10",
+                "requested_enabled": null,
+                "withdrawal_pending": false,
+                "resume_after_withdrawal": false,
+                "control_configured": true,
+                "control_listening": true,
+                "deployment_identity_matches": true,
+                "station_mac": "88:a2:9e:0a:60:df",
+                "stable_hostname": "wsprrypico-0a60df.local",
+                "configured_hostname": "wsprrypico-0a60df.local",
+                "advertised_hostname": "wsprrypico-0a60df.local",
+                "mdns_state": "active",
+                "mdns_reason": "",
+                "mdns_registrations": 1,
+                "mdns_conflicts": 0,
+                "mdns_failures": 0,
+                "mdns_address_changes": 0,
+                "mdns_goodbye_attempts": 0,
+                "mdns_goodbye_failures": 0,
+                "mdns_rejected_packets": 0,
+                "power_save": false,
+                "packets": {
+                  "arp": {
+                    "received": 7,
+                    "sent": 8,
+                    "dropped": 0
+                  },
+                  "ipv4": {
+                    "received": 636,
+                    "sent": 490,
+                    "dropped": 0
+                  },
+                  "tcp": {
+                    "received": 621,
+                    "sent": 468,
+                    "dropped": 3
+                  },
+                  "udp": {
+                    "received": 15,
+                    "sent": 20,
+                    "dropped": 0
+                  }
+                },
+                "memory": {
+                  "heap": {
+                    "used": 200,
+                    "capacity": 32768,
+                    "peak": 6360,
+                    "errors": 0
+                  },
+                  "tcp_pcbs": {
+                    "used": 0,
+                    "capacity": 4,
+                    "peak": 2,
+                    "errors": 0
+                  },
+                  "tcp_segments": {
+                    "used": 0,
+                    "capacity": 32,
+                    "peak": 4,
+                    "errors": 0
+                  },
+                  "packet_pool": {
+                    "used": 0,
+                    "capacity": 8,
+                    "peak": 2,
+                    "errors": 0
+                  }
+                },
+                "tx_credit": {
+                  "waits": 0,
+                  "preserved": 0,
+                  "timeouts": 0
+                },
+                "ntp_server": "time.local",
+                "ntp_address": "10.77.15.1",
+                "ntp_resolution": "resolved",
+                "ntp_resolution_failures": 0,
+                "queries": 4,
+                "accepted": 4,
+                "rejected": 0,
+                "last_rtt_ns": 3963000,
+                "last_sample_uncertainty_ns": 5052145
+              },
+              "terminal_records": []
+            }
+          },
+          "r1-quiet-before": {
+            "usb": {
+              "info": {
+                "samples": 360,
+                "max_gap_seconds": 1.000076314
+              },
+              "status": {
+                "samples": 72,
+                "max_gap_seconds": 5.000071143
+              },
+              "health": {
+                "samples": 72,
+                "max_gap_seconds": 5.000089329
+              },
+              "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+              "seconds": 360,
+              "raw_wire_verified": true,
+              "max_allocator_peak_bytes": 118500,
+              "last_heap_allocated_bytes": 16844
+            },
+            "resources": {
+              "allocator_peak_bytes": 118500,
+              "allocator_largest_successful_request_bytes": 18364,
+              "allocator_max_sample_us": 50,
+              "allocator_max_entry_us": 148,
+              "core0_stack_used_bytes": 8248,
+              "core0_stack_scan_us": 117,
+              "heap_sample_cost_us": 34,
+              "core1_stack_used_bytes": 544,
+              "rf_max_probe_ns": 316000,
+              "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+              "clock_hz": 138000000,
+              "heap_capacity_bytes": 218380,
+              "allocator_sample_delta_us": 48901741,
+              "sampled_interval_seconds": 358.998607,
+              "allocator_sampling_fraction": 0.1362170772991328,
+              "max_info_roundtrip_seconds": 0.06334545,
+              "last": {
+                "heap_allocated_bytes": 16844,
+                "heap_arena_bytes": 124172,
+                "heap_arena_free_bytes": 107328,
+                "heap_free_chunks": 21,
+                "heap_top_releasable_bytes": 48488,
+                "allocator_failures": "1",
+                "tls_allocation_failures": 0
+              },
+              "network": {
+                "initialized": true,
+                "enabled": true,
+                "link_status": 3,
+                "ipv4": "10.77.15.10",
+                "requested_enabled": null,
+                "withdrawal_pending": false,
+                "resume_after_withdrawal": false,
+                "control_configured": true,
+                "control_listening": true,
+                "deployment_identity_matches": true,
+                "station_mac": "88:a2:9e:0a:60:df",
+                "stable_hostname": "wsprrypico-0a60df.local",
+                "configured_hostname": "wsprrypico-0a60df.local",
+                "advertised_hostname": "wsprrypico-0a60df.local",
+                "mdns_state": "active",
+                "mdns_reason": "",
+                "mdns_registrations": 1,
+                "mdns_conflicts": 0,
+                "mdns_failures": 0,
+                "mdns_address_changes": 0,
+                "mdns_goodbye_attempts": 0,
+                "mdns_goodbye_failures": 0,
+                "mdns_rejected_packets": 0,
+                "power_save": false,
+                "packets": {
+                  "arp": {
+                    "received": 13,
+                    "sent": 14,
+                    "dropped": 0
+                  },
+                  "ipv4": {
+                    "received": 654,
+                    "sent": 508,
+                    "dropped": 0
+                  },
+                  "tcp": {
+                    "received": 621,
+                    "sent": 468,
+                    "dropped": 3
+                  },
+                  "udp": {
+                    "received": 33,
+                    "sent": 38,
+                    "dropped": 0
+                  }
+                },
+                "memory": {
+                  "heap": {
+                    "used": 200,
+                    "capacity": 32768,
+                    "peak": 6360,
+                    "errors": 0
+                  },
+                  "tcp_pcbs": {
+                    "used": 0,
+                    "capacity": 4,
+                    "peak": 2,
+                    "errors": 0
+                  },
+                  "tcp_segments": {
+                    "used": 0,
+                    "capacity": 32,
+                    "peak": 4,
+                    "errors": 0
+                  },
+                  "packet_pool": {
+                    "used": 0,
+                    "capacity": 8,
+                    "peak": 2,
+                    "errors": 0
+                  }
+                },
+                "tx_credit": {
+                  "waits": 0,
+                  "preserved": 0,
+                  "timeouts": 0
+                },
+                "ntp_server": "time.local",
+                "ntp_address": "10.77.15.1",
+                "ntp_resolution": "resolved",
+                "ntp_resolution_failures": 0,
+                "queries": 10,
+                "accepted": 10,
+                "rejected": 0,
+                "last_rtt_ns": 5015000,
+                "last_sample_uncertainty_ns": 6104145
+              },
+              "terminal_records": []
+            }
+          },
+          "r1-controller": {
+            "usb": {
+              "info": {
+                "samples": 240,
+                "max_gap_seconds": 1.000095034
+              },
+              "status": {
+                "samples": 48,
+                "max_gap_seconds": 5.000072581
+              },
+              "health": {
+                "samples": 48,
+                "max_gap_seconds": 5.000086507
+              },
+              "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+              "seconds": 240,
+              "raw_wire_verified": true,
+              "max_allocator_peak_bytes": 118500,
+              "last_heap_allocated_bytes": 24636
+            },
+            "load": {
+              "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+              "seconds": 180,
+              "production_connections": 1,
+              "logical_sessions": 1,
+              "operations": {
+                "HELLO": 1,
+                "STATUS": 183,
+                "CAPS": 1
+              },
+              "nominal_status_count": 180,
+              "nominal_status_hz": 1.0,
+              "nominal_max_status_start_gap_ns": 1040652426,
+              "worst_status_start_gap_requests": [
+                {
+                  "request_id": "00000000000000000000000000000073",
+                  "started_ns": 176546900889810,
+                  "write_completed_ns": 176546905882613
+                },
+                {
+                  "request_id": "00000000000000000000000000000074",
+                  "started_ns": 176547941542236,
+                  "write_completed_ns": 176547945534171
+                }
+              ],
+              "browser_counts": {},
+              "max_observed_write_to_response_seconds": 0.6484157,
+              "timing_origin": "SSL_write_ex entry",
+              "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+              "plaintext_sha256": "f74e6088a5c92a67779b72d5e7ca3f7e2048e78f9dfdac20f961179179cd7a8e"
+            },
+            "resources": {
+              "allocator_peak_bytes": 118500,
+              "allocator_largest_successful_request_bytes": 18364,
+              "allocator_max_sample_us": 51,
+              "allocator_max_entry_us": 148,
+              "core0_stack_used_bytes": 8248,
+              "core0_stack_scan_us": 117,
+              "heap_sample_cost_us": 35,
+              "core1_stack_used_bytes": 544,
+              "rf_max_probe_ns": 316000,
+              "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+              "clock_hz": 138000000,
+              "heap_capacity_bytes": 218380,
+              "allocator_sample_delta_us": 31674032,
+              "sampled_interval_seconds": 239.002336,
+              "allocator_sampling_fraction": 0.13252603522670173,
+              "max_info_roundtrip_seconds": 0.242444174,
+              "last": {
+                "heap_allocated_bytes": 24636,
+                "heap_arena_bytes": 124172,
+                "heap_arena_free_bytes": 99536,
+                "heap_free_chunks": 37,
+                "heap_top_releasable_bytes": 48488,
+                "allocator_failures": "1",
+                "tls_allocation_failures": 0
+              },
+              "network": {
+                "initialized": true,
+                "enabled": true,
+                "link_status": 3,
+                "ipv4": "10.77.15.10",
+                "requested_enabled": null,
+                "withdrawal_pending": false,
+                "resume_after_withdrawal": false,
+                "control_configured": true,
+                "control_listening": true,
+                "deployment_identity_matches": true,
+                "station_mac": "88:a2:9e:0a:60:df",
+                "stable_hostname": "wsprrypico-0a60df.local",
+                "configured_hostname": "wsprrypico-0a60df.local",
+                "advertised_hostname": "wsprrypico-0a60df.local",
+                "mdns_state": "active",
+                "mdns_reason": "",
+                "mdns_registrations": 1,
+                "mdns_conflicts": 0,
+                "mdns_failures": 0,
+                "mdns_address_changes": 0,
+                "mdns_goodbye_attempts": 0,
+                "mdns_goodbye_failures": 0,
+                "mdns_rejected_packets": 0,
+                "power_save": false,
+                "packets": {
+                  "arp": {
+                    "received": 18,
+                    "sent": 19,
+                    "dropped": 0
+                  },
+                  "ipv4": {
+                    "received": 1046,
+                    "sent": 748,
+                    "dropped": 0
+                  },
+                  "tcp": {
+                    "received": 1000,
+                    "sent": 695,
+                    "dropped": 3
+                  },
+                  "udp": {
+                    "received": 46,
+                    "sent": 51,
+                    "dropped": 0
+                  }
+                },
+                "memory": {
+                  "heap": {
+                    "used": 200,
+                    "capacity": 32768,
+                    "peak": 6360,
+                    "errors": 0
+                  },
+                  "tcp_pcbs": {
+                    "used": 0,
+                    "capacity": 4,
+                    "peak": 2,
+                    "errors": 0
+                  },
+                  "tcp_segments": {
+                    "used": 0,
+                    "capacity": 32,
+                    "peak": 4,
+                    "errors": 0
+                  },
+                  "packet_pool": {
+                    "used": 0,
+                    "capacity": 8,
+                    "peak": 2,
+                    "errors": 0
+                  }
+                },
+                "tx_credit": {
+                  "waits": 0,
+                  "preserved": 0,
+                  "timeouts": 0
+                },
+                "ntp_server": "time.local",
+                "ntp_address": "10.77.15.1",
+                "ntp_resolution": "resolved",
+                "ntp_resolution_failures": 0,
+                "queries": 14,
+                "accepted": 14,
+                "rejected": 0,
+                "last_rtt_ns": 5445000,
+                "last_sample_uncertainty_ns": 6534145
+              },
+              "terminal_records": []
+            }
+          },
+          "r1-normal": {
+            "usb": {
+              "info": {
+                "samples": 360,
+                "max_gap_seconds": 1.167120932
+              },
+              "status": {
+                "samples": 72,
+                "max_gap_seconds": 5.000076238
+              },
+              "health": {
+                "samples": 72,
+                "max_gap_seconds": 5.000089702
+              },
+              "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+              "seconds": 360,
+              "raw_wire_verified": true,
+              "max_allocator_peak_bytes": 121780,
+              "last_heap_allocated_bytes": 21764
+            },
+            "load": {
+              "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+              "seconds": 300,
+              "production_connections": 1,
+              "logical_sessions": 1,
+              "operations": {
+                "HELLO": 1,
+                "STATUS": 303,
+                "CAPS": 1
+              },
+              "nominal_status_count": 300,
+              "nominal_status_hz": 1.0,
+              "nominal_max_status_start_gap_ns": 1089477505,
+              "worst_status_start_gap_requests": [
+                {
+                  "request_id": "000000000000000000000000000000dd",
+                  "started_ns": 176894003880821,
+                  "write_completed_ns": 176894007498998
+                },
+                {
+                  "request_id": "000000000000000000000000000000de",
+                  "started_ns": 176895093358326,
+                  "write_completed_ns": 176895097343040
+                }
+              ],
+              "browser_counts": {
+                "/": 2,
+                "/api/v1/capabilities": 2,
+                "/api/v1/status": 8,
+                "/api/v1/config": 2
+              },
+              "normal_browser": {
+                "actions": 8,
+                "refresh_actions": 6,
+                "action_latencies_seconds": [
+                  6.079368682,
+                  1.466207546,
+                  2.874800303,
+                  1.47042261,
+                  6.482998276,
+                  1.47479465,
+                  1.454303915,
+                  1.656987665
+                ]
+              },
+              "max_observed_write_to_response_seconds": 0.648101796,
+              "timing_origin": "SSL_write_ex entry",
+              "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+              "plaintext_sha256": "03a20f950dc3441aa10f897cee04ac1b3ff8c9be6276ebe3b6860ab64b6d388e"
+            },
+            "resources": {
+              "allocator_peak_bytes": 121780,
+              "allocator_largest_successful_request_bytes": 18364,
+              "allocator_max_sample_us": 56,
+              "allocator_max_entry_us": 153,
+              "core0_stack_used_bytes": 8248,
+              "core0_stack_scan_us": 117,
+              "heap_sample_cost_us": 35,
+              "core1_stack_used_bytes": 544,
+              "rf_max_probe_ns": 316000,
+              "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+              "clock_hz": 138000000,
+              "heap_capacity_bytes": 218380,
+              "allocator_sample_delta_us": 49354788,
+              "sampled_interval_seconds": 359.000597,
+              "allocator_sampling_fraction": 0.13747828948596427,
+              "max_info_roundtrip_seconds": 1.164636882,
+              "last": {
+                "heap_allocated_bytes": 21764,
+                "heap_arena_bytes": 165132,
+                "heap_arena_free_bytes": 143368,
+                "heap_free_chunks": 34,
+                "heap_top_releasable_bytes": 89448,
+                "allocator_failures": "1",
+                "tls_allocation_failures": 0
+              },
+              "network": {
+                "initialized": true,
+                "enabled": true,
+                "link_status": 3,
+                "ipv4": "10.77.15.10",
+                "requested_enabled": null,
+                "withdrawal_pending": false,
+                "resume_after_withdrawal": false,
+                "control_configured": true,
+                "control_listening": true,
+                "deployment_identity_matches": true,
+                "station_mac": "88:a2:9e:0a:60:df",
+                "stable_hostname": "wsprrypico-0a60df.local",
+                "configured_hostname": "wsprrypico-0a60df.local",
+                "advertised_hostname": "wsprrypico-0a60df.local",
+                "mdns_state": "active",
+                "mdns_reason": "",
+                "mdns_registrations": 1,
+                "mdns_conflicts": 0,
+                "mdns_failures": 0,
+                "mdns_address_changes": 0,
+                "mdns_goodbye_attempts": 0,
+                "mdns_goodbye_failures": 0,
+                "mdns_rejected_packets": 0,
+                "power_save": false,
+                "packets": {
+                  "arp": {
+                    "received": 26,
+                    "sent": 27,
+                    "dropped": 0
+                  },
+                  "ipv4": {
+                    "received": 1916,
+                    "sent": 1364,
+                    "dropped": 0
+                  },
+                  "tcp": {
+                    "received": 1852,
+                    "sent": 1293,
+                    "dropped": 5
+                  },
+                  "udp": {
+                    "received": 64,
+                    "sent": 69,
+                    "dropped": 0
+                  }
+                },
+                "memory": {
+                  "heap": {
+                    "used": 200,
+                    "capacity": 32768,
+                    "peak": 7504,
+                    "errors": 0
+                  },
+                  "tcp_pcbs": {
+                    "used": 0,
+                    "capacity": 4,
+                    "peak": 2,
+                    "errors": 0
+                  },
+                  "tcp_segments": {
+                    "used": 0,
+                    "capacity": 32,
+                    "peak": 5,
+                    "errors": 0
+                  },
+                  "packet_pool": {
+                    "used": 0,
+                    "capacity": 8,
+                    "peak": 2,
+                    "errors": 0
+                  }
+                },
+                "tx_credit": {
+                  "waits": 0,
+                  "preserved": 0,
+                  "timeouts": 0
+                },
+                "ntp_server": "time.local",
+                "ntp_address": "10.77.15.1",
+                "ntp_resolution": "resolved",
+                "ntp_resolution_failures": 0,
+                "queries": 19,
+                "accepted": 19,
+                "rejected": 0,
+                "last_rtt_ns": 5327000,
+                "last_sample_uncertainty_ns": 6416145
+              },
+              "terminal_records": []
+            }
+          },
+          "r1-quiet-after": {
+            "usb": {
+              "info": {
+                "samples": 360,
+                "max_gap_seconds": 1.000074999
+              },
+              "status": {
+                "samples": 72,
+                "max_gap_seconds": 5.000085925
+              },
+              "health": {
+                "samples": 72,
+                "max_gap_seconds": 5.000088921
+              },
+              "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+              "seconds": 360,
+              "raw_wire_verified": true,
+              "max_allocator_peak_bytes": 121780,
+              "last_heap_allocated_bytes": 16836
+            },
+            "resources": {
+              "allocator_peak_bytes": 121780,
+              "allocator_largest_successful_request_bytes": 18364,
+              "allocator_max_sample_us": 56,
+              "allocator_max_entry_us": 153,
+              "core0_stack_used_bytes": 8248,
+              "core0_stack_scan_us": 118,
+              "heap_sample_cost_us": 35,
+              "core1_stack_used_bytes": 544,
+              "rf_max_probe_ns": 316000,
+              "boot": "af7ff450b2d9218c787efdc5c0d40c05",
+              "clock_hz": 138000000,
+              "heap_capacity_bytes": 218380,
+              "allocator_sample_delta_us": 48853112,
+              "sampled_interval_seconds": 359.002083,
+              "allocator_sampling_fraction": 0.13608030235300891,
+              "max_info_roundtrip_seconds": 0.064666627,
+              "last": {
+                "heap_allocated_bytes": 16836,
+                "heap_arena_bytes": 165132,
+                "heap_arena_free_bytes": 148296,
+                "heap_free_chunks": 21,
+                "heap_top_releasable_bytes": 89448,
+                "allocator_failures": "1",
+                "tls_allocation_failures": 0
+              },
+              "network": {
+                "initialized": true,
+                "enabled": true,
+                "link_status": 3,
+                "ipv4": "10.77.15.10",
+                "requested_enabled": null,
+                "withdrawal_pending": false,
+                "resume_after_withdrawal": false,
+                "control_configured": true,
+                "control_listening": true,
+                "deployment_identity_matches": true,
+                "station_mac": "88:a2:9e:0a:60:df",
+                "stable_hostname": "wsprrypico-0a60df.local",
+                "configured_hostname": "wsprrypico-0a60df.local",
+                "advertised_hostname": "wsprrypico-0a60df.local",
+                "mdns_state": "active",
+                "mdns_reason": "",
+                "mdns_registrations": 1,
+                "mdns_conflicts": 0,
+                "mdns_failures": 0,
+                "mdns_address_changes": 0,
+                "mdns_goodbye_attempts": 0,
+                "mdns_goodbye_failures": 0,
+                "mdns_rejected_packets": 0,
+                "power_save": false,
+                "packets": {
+                  "arp": {
+                    "received": 32,
+                    "sent": 33,
+                    "dropped": 0
+                  },
+                  "ipv4": {
+                    "received": 1934,
+                    "sent": 1382,
+                    "dropped": 0
+                  },
+                  "tcp": {
+                    "received": 1852,
+                    "sent": 1293,
+                    "dropped": 5
+                  },
+                  "udp": {
+                    "received": 82,
+                    "sent": 87,
+                    "dropped": 0
+                  }
+                },
+                "memory": {
+                  "heap": {
+                    "used": 200,
+                    "capacity": 32768,
+                    "peak": 7504,
+                    "errors": 0
+                  },
+                  "tcp_pcbs": {
+                    "used": 0,
+                    "capacity": 4,
+                    "peak": 2,
+                    "errors": 0
+                  },
+                  "tcp_segments": {
+                    "used": 0,
+                    "capacity": 32,
+                    "peak": 5,
+                    "errors": 0
+                  },
+                  "packet_pool": {
+                    "used": 0,
+                    "capacity": 8,
+                    "peak": 2,
+                    "errors": 0
+                  }
+                },
+                "tx_credit": {
+                  "waits": 0,
+                  "preserved": 0,
+                  "timeouts": 0
+                },
+                "ntp_server": "time.local",
+                "ntp_address": "10.77.15.1",
+                "ntp_resolution": "resolved",
+                "ntp_resolution_failures": 0,
+                "queries": 25,
+                "accepted": 25,
+                "rejected": 0,
+                "last_rtt_ns": 5432000,
+                "last_sample_uncertainty_ns": 6521145
+              },
+              "terminal_records": []
+            }
+          }
+        },
+        "rf_jobs": [],
+        "current_stage": "r1-host-cleanup",
+        "probes": [
+          {
+            "bytes": 18364,
+            "allocated": true,
+            "management_result": {
+              "action": "heap-probe",
+              "reply": {
+                "ok": true,
+                "allocated": true
+              },
+              "evidence_sha256": "25ecd06549f461b0906e6a36e9ae09cbf07437c714c009b18924612d6652fe1f"
+            }
+          },
+          {
+            "bytes": 218381,
+            "allocated": false,
+            "management_result": {
+              "action": "heap-probe",
+              "reply": {
+                "ok": true,
+                "allocated": false
+              },
+              "evidence_sha256": "dc29c9d108bfd4f87753fb5c62aff5640bb026004cdb3174573e87dad40c2887"
+            }
+          },
+          {
+            "bytes": 18364,
+            "allocated": true,
+            "management_result": {
+              "action": "heap-probe",
+              "reply": {
+                "ok": true,
+                "allocated": true
+              },
+              "evidence_sha256": "33c13cc2238023d4fd07ec245e7200ee651e6965586292af0864e760e2faa45b"
+            }
+          }
+        ],
+        "quiet_delta_bytes": -8,
+        "device_restored": true,
+        "host_restored": true
+      }
+    }
+  ],
+  "prior_dns_failures": "phase11-5-r1-dns-failure-result.json",
+  "validation": {
+    "python_phase115_tests": 115,
+    "affected_ctest_groups": 7,
+    "pi_production_helper_tests": 10,
+    "frozen_raw_audit": "PASS",
+    "strengthened_raw_audit": "PASS",
+    "adversarial": {
+      "original": "PASS",
+      "rejected_mutations": [
+        "failed supervisor",
+        "missing quiet interval",
+        "false retention summary",
+        "changed probe size",
+        "wrong image",
+        "wrong clock",
+        "wrong native address",
+        "wrong NTP peer",
+        "unsynchronized NTP",
+        "false operation count",
+        "unrestored host",
+        "missing mDNS/NTP capture",
+        "incomplete final capture record",
+        "missing target time exchanges",
+        "truncated USB interval",
+        "changed staged helper"
+      ],
+      "repeated_original": "PASS",
+      "hardware_access": false
+    },
+    "initial_host_configure": "Failed: old build-host ephemeral certificates expired. Fresh hardware-free build directory configured and affected CTests passed."
+  },
+  "review_corrections": [
+    "Native namespace resolution uses NSS/Avahi socket rather than unavailable D-Bus CLI.",
+    "Immediate capture mode retains short failed exchanges.",
+    "Restore original publisher after radio teardown; preserve initial stale-success restoration and subsequent alias failure/recheck.",
+    "Audit raw USB round-trip deadlines and target mDNS/NTP exchanges bound to the admitted boot.",
+    "Normalize offline audit root, validate declared image/clock registry and require host cleanup for new runner success.",
+    "Reject partial final pcap records while permitting append-in-progress tails only during live admission; import mDNS helper only for explicit mDNS execution."
+  ],
+  "review_tool_sha256": {
+    "scripts/audit_phase11_5_r1.py": "ee2c2a4c20709850836da8b39530caf8035fba895a62129e1398bb9bc102aa17",
+    "scripts/phase11_5_r1_adversarial.py": "a06d3aee2ab599904ef15286b5435a11dbd601acb6245315fb4bf186fb613331",
+    "scripts/phase11_5_time_local.py": "ac26b85628f05990905e86b236a1a6bd6f8cba84ea6729dcdf750f0aed928783",
+    "scripts/phase11_5_r1.py": "af735d511d5d0797032fd52adb0ca514b7a3ff56185922b05ba30aea80c1aef0",
+    "scripts/phase11_5_device_fixture.py": "f2b1cebcd8bf6c6b6b85afe23a75170f3ae4c6a630c93415fe410634ff0e5b18"
   },
   "archives": {
-    "remote_full": {
-      "path": "/home/pi/phase115-r1-preserved-final.tar.gz",
-      "sha256": "5e302a7eeff4cd86a5d8961acbe982d12b780d9d7d4bf17d35a0558579110d1d"
+    "full_private_on_wspr5": {
+      "path": "/home/pi/phase115-r1-time-local-preserved-final.tar.gz",
+      "sha256": "becc94d457ef7f368c1b638c9a427c6865f506823c64067f00f3b2c301f6a01f"
     },
-    "filtered": {
-      "path": "build/phase11-5-closure/r1-evidence.tar.gz",
-      "sha256": "27d866af411ee8e7af6d4cb5afef22ad6f54072374ca9e148d8deba6848d6780"
+    "filtered_local": {
+      "path": "build/phase11-5-r1-time-local/evidence.tar.gz",
+      "sha256": "d060d83514e44582b9f037385e8df614b0f6ecc5d8a956393ab25086b3b40e8b"
     }
-  }
+  },
+  "local_review_artifacts": {
+    "build/phase11-5-r1-time-local/reviewed-audit.json": "b731410be9df0d4848590bb1329d700ee46412bd741b5424536e99da97b67ecd",
+    "build/phase11-5-r1-time-local/adversarial-review.json": "f0bfcede252195aae0ea9328712a7cb70d03746be344f95cedad66ccbcee5c6e",
+    "build/phase11-5-r1-time-local/artifact-reuse.json": "7418560333fcc78ea199a6b897e521807729ad76a31a2d3b9f28e923310d6bba",
+    "build/phase11-5-r1-time-local/permanent-late-verification.json": "d645af0e761a606f35ab637e7c6133797c7ce13065a5f5c9b44302b7ea67df25"
+  },
+  "evidence_sha256": {
+    "packet.json": "68d642643847c26c9be7cf2f9efb06801e2d73cf9b15a5801f697f2010f209a4",
+    "r1-result.json": "6ce6b0bf0387e9661f67452f753e781ea76a1dde1473135cc5c73a2f3c8bcbea",
+    "device-state.json": "4e62f8af8aef9295d60f3d6877f9d71bf9ac6eee7c378f76c342408da164b8d1",
+    "management-state.json": "e3c39a62c7f6a67695c7e01111e64e97cc11215b35155a1cfda3f5f301153527",
+    "fixture-state.json": "14ddcfd004d411e57bbbf3a1bc91e874b417b9525b4737f66c7e968a3261a3e5",
+    "capture-ap.pcap": "349e35dc9d8bd9eafbd3ab98f9cedeb8ad55e867f23a1e5b8b15e367de7cb767",
+    "capture-client.pcap": "97d30d34a93c64ec908ee9365994c90de6c5e7668c98702faec482c3b6e279e9",
+    "final-a.stdout": "28780468099a18275056077a117064ff826639e9fcf7509eb38df7d0e68321a6",
+    "final-b.stdout": "6f3306d1487624085ae614c3d50a0ac5347fca3439e5d09321cee9ef4d1bb230",
+    "final-restoration.json": "25f6e1911bd083caa4a6d3563becf9e3c84735052e27f6ccdfaffd87f37b48a8"
+  },
+  "limitations": [
+    "No R2-R6 or RF jobs; no RF timing, spectral, SDR frequency or full Phase 11.5 acceptance.",
+    "Physical 132 and 150 MHz remain untested. Selecting another clock requires affected Phase 11.5 checks.",
+    "Earlier intermittent UDP/53 DNS failure remains unexplained; time.local success does not repair its root cause.",
+    "One later Mac LAN NTP timeout remains unlocalized; a subsequent bounded check passed. No loss-free LAN or GPS-loss-failover claim.",
+    "All TX credit-wait/preservation/timeout counters stayed zero; no target exercise or causation claim for that repaired path.",
+    "Canaries are touched-stack lower bounds; MSPLIM readbacks enforce the declared 4096-byte reserve within their defined scope."
+  ],
+  "documentation_impact": "Updated R1 prompt, distinct attempt packets, results, review, ledger, plan, metrics and development index. No firmware, operator UI, WTP/browser contract or sibling-repository edits."
 }

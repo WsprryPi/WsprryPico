@@ -1,174 +1,187 @@
-# R1 execution and adversarial review
+# R1 time.local execution and adversarial review
 
-**R1 remains BLOCKED: 1 of 5 assertions passed, 1 blocked, 3 not run.** The
-[execution prompt](phase11-5-r1-prompt.md) was implemented and executed within
-R1. The [machine-readable result](phase11-5-r1-result.json) preserves both
-attempts, exact images, raw evidence hashes and restoration. No RF job ran;
-Phase 11.5 remains 0/6 revised families closed, with no accepted configuration.
+**R1 CLOSED: 5 of 5 assertions passed. Phase 11.5 remains OPEN: 1 of 6 revised
+families closed; the full accepted-configuration list is empty.** The
+[result](phase11-5-r1-result.json) binds the raw audits, packet hashes, clocks,
+boards, configuration, observer and restoration. No RF job ran.
 
-## What ran and what failed
+## Exact scope and assertions
 
-The first attempt stopped before any device mutation because both Picos had
-new boot IDs. The user confirmed rebooting them between campaigns. Read-only
-inventories showed their original inhibited firmware/configuration, empty and
-unowned state, inactive output and zero reported firmware faults. A fresh
-attempt used those exact boots, preserved the first failure, and shared the
-existing host fixture without extending its cleanup deadline.
+Frozen firmware source is `e20ae8bea2d5237af017dbd5f73bfe9332ce144e`.
+The physical resource result covers Pico A USB `0BF4B4AEC9FFB344`, device
+`fd6127d11d6aca42a9905fa3fb1bf1d5`, boot `af7ff450b2d9218c787efdc5c0d40c05`,
+138 MHz system/PIO clock, divider 1, RAM renderer and network control listener
+port 18443. Inhibited boot `a70c0c290d172d2ccd3a5bf8f71a427d` ran at 150 MHz;
+it supplies shared-path regression only. Physical 132/150 MHz remain untested.
+R1 alone does not accept this clock for all of Phase 11.5. Phase 11.6 owns
+per-band/mode conducted acceptance; Phase 13 owns the systematic clock/band/mode,
+filter, spectral and release matrix.
 
-The second attempt backed up A, installed the exact inhibited e20ae8b image,
-wrote the isolated Wi-Fi settings and performed the planned configuration
-reboot. A associated and obtained `10.77.15.10`, but time-server name resolution
-did not complete within the frozen readiness interval. At 64.376732 seconds
-uptime it reported two resolution failures, `ntp_address:""`,
-`ntp_resolution:"resolving"`, and an unsynchronized clock. The inhibited boot
-was `8f7f208c8eaf639c18f78b7e1feedd2d` at 150 MHz. There were no allocator or RF
-workload intervals. The physical image and three allocation probes were not run.
-
-The dnsmasq log records A's queries and its configured `10.77.15.1` answer. A
-subsequent native Linux client query also timed out after three seconds; that
-query had no packet capture. A later bounded capture showed host-local and
-native-client queries succeeding, with matching DNS IDs, valid UDP checksums
-and the correct answer on AP/client captures. Host filtering had no nftables
-rules and the reply route used wlan0. These observations establish an
-**intermittent DNS/readiness failure with unresolved cause**. They do not prove
-whether the earlier replies left the AP or reached the Pico, or establish a
-firmware defect. The later success does not pass the earlier failed attempt.
-
-The host fixture existed approximately 15:19:51–15:34:43 UTC on September 12,
-2026. Device work in the second attempt ran approximately 15:25:40–15:27:37 UTC.
-The original 80-minute outer cleanup bound was not extended.
-
-## Assertion accounting
-
-| Assertion | Result | Evidence or remaining work |
+| Assertion | Result | Evidence |
 | --- | --- | --- |
-| R1.1: four exact layouts | PASS | Reused and rechecked all four e20ae8b ELF/UF2 pairs; allocator hooks, stack startup/readbacks, heap separation and reserved flash passed. |
-| R1.2: changed-path inhibited regression | BLOCKED | Readiness failed before N180/USB240. Source regressions pass, but do not replace the missing target workload. |
-| R1.3: necessary allocation/failure recovery | NOT RUN | No heap probe executed. |
-| R1.4: matched physical Q/controller/N/Q | NOT RUN | No physical boot or comparison in this attempt. |
-| R1.5: observer cost in the matched baseline | NOT RUN | Earlier exact-image stress evidence is contextual; the new baseline did not run. |
+| R1.1 layout/instrumentation | PASS | Rehashed all four frozen ELF/UF2 pairs and reused their identity-bound linked layout/hook/guard checks; no firmware rebuild. |
+| R1.2 inhibited regression | PASS | N180/USB240, 179 nominal STATUS responses, eight actions/fourteen GETs, synchronized target time.local before admission. |
+| R1.3 allocation feasibility/recovery | PASS | Physical warm N180/USB240; idle probes 18,364 success → 218,381 NULL → 18,364 success; exactly one intentional failure, no TLS failure or reset; allocations released. Later demand never exceeded the successful probe. |
+| R1.4 same-boot retention | PASS | Q360 → controller180/USB240 → N300/USB360 → Q360. Same physical boot and persistent logical observer session; terminal histories empty. Final heap 16,836 versus 16,844 bytes: −8 bytes, within 1,024. |
+| R1.5 measurement cost/stacks | PASS | Raw request deadlines, allocation sampling, stack scan/probe costs, host load and both guards reviewed across all six intervals. All declared service/resource gates coexist with instrumentation. |
 
-"Blocked" describes R1 readiness. Both raw supervisor attempts remain `FAILED`;
-their results have not been rewritten as successful tests.
+The successful probe demonstrates an **18,364-byte lower bound on allocatable
+block size**, not an exact largest-block or fragmentation measurement. The
+capacity-plus-one failure is intentional and retained. No other allocation
+failure occurred. Heap peaks reached 121,780 bytes on the physical image,
+leaving at least 96,600 bytes against the required 32,768-byte reserve.
+TLS is a subset of the general heap; static lwIP storage is accounted separately.
 
-## Artifact and measurement boundaries
+## Workload and observer evidence
 
-The unchanged firmware source is
-`e20ae8bea2d5237af017dbd5f73bfe9332ce144e`. Public hashes and map checks are in
-[the result](phase11-5-r1-result.json). The four variants are **network control
-listener off/on** (`WSPRRY_PICO_NETWORK_PORT=0/18443`), not removal of all Wi-Fi
-or SNTP code. Linked general-heap capacities are:
+Both N profiles used the frozen initialization, six refreshes and reload:
+eight actions and fourteen sequential GETs. No legacy S CSS/JS cadence or
+browser configuration write was introduced. Production used source
+`6f65d5c7d202569102459ab68d7c9ea079b96f35` and executable SHA-256
+`122ed0e4bd752e457419c4df5433c3fca1a4a88677a3db3ebd7e60e783ba5d1c`,
+separately verified from the Mac checkout and installed service. Each load
+interval used one actual production persistent connection and logical session.
 
-| Image | Listener off | Listener on |
-| --- | ---: | ---: |
-| Inhibited, 150 MHz | 377,572 bytes | 377,512 bytes |
-| Physical, 138 MHz | 218,432 bytes | 218,380 bytes |
+| Interval | USB seconds | Nominal STATUS count | Final allocated bytes | Peak bytes | Allocator sampling / observed time |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| r1-inhibited | 240 | 179 | 26,408 | 118,544 | 14.316% |
+| r1-warm | 240 | 180 | 26,348 | 118,500 | 13.845% |
+| r1-quiet-before | 360 | — | 16,844 | 118,500 | 13.622% |
+| r1-controller | 240 | 180 | 24,636 | 118,500 | 13.253% |
+| r1-normal | 360 | 300 | 21,764 | 121,780 | 13.748% |
+| r1-quiet-after | 360 | — | 16,836 | 121,780 | 13.608% |
 
-Core 0 reserves 16 KiB; the physical worker has its own aligned 16 KiB BSS
-stack below the heap. Both physical startup routes enforce a 4,096-byte MSPLIM
-reserve. The changed CYW43 common-send frame is 2,120 bytes in the frozen linked
-image. Preserve the previously reviewed SDK 2.3.1/Arm GNU 15.3.1 and dependency
-identities bound to these exact artifacts; no firmware was rebuilt here.
+Physical allocation sampling consumed 13.253–13.845% of each observed interval.
+Its maximum single sample/entry costs were 56/153 µs; core-0 scan cost was at
+most 124 µs and core-1 probing at most 316 µs. These are overlapping observations,
+not independently additive elapsed times or a full CPU profile. Both physical
+16 KiB stack allocations retained valid 4 KiB MSPLIM reserves and zero stack
+faults. Canary touched extents peaked at 8,248/544 bytes; they are lower bounds,
+not exact maximum stack-pointer use. The pinned CYW43 linked frame remains
+2,120 bytes. TX credit wait/preservation/timeout counts stayed zero.
 
-Physical selection remains 138 MHz, divider 1, RAM renderer. Its full-block
-interval is 3,799,188.406 ns and the existing 75% budget is 2,849,391 ns. R1 does
-not test refill/launch deadlines. Physical 132/150 MHz remain untested; selecting
-another clock during 11.6 requires the affected 11.5 checks.
+The maximum USB round trip was 1.165 seconds, below five seconds. Production
+STATUS gaps and native-write-to-response times passed the frozen 2/5-second
+limits; HTTPS and complete page actions passed 15/60-second bounds. INFO,
+USB STATUS and host-health coverage passed their count and gap requirements.
+Maximum observed host one-minute load average was 1.53 and temperature 56.75°C;
+load average is not CPU utilization. No host throttling was reported.
 
-Re-analysis of the earlier e20ae8b stress diagnostic gives 58.150913 seconds
-summed allocator sample time over 359.000921 observed seconds (16.198% of that
-elapsed interval), maximum sample/entry times 57/158 microseconds, core-0 scan
-136 microseconds and core-1 probe 315 microseconds. These overlapping observer
-metrics are reported separately, not summed into an RF timing budget or described
-as an exact CPU profile. Its 118,532-byte allocator peak and canary touched
-extents of 8,248/544 bytes remain limited to that earlier idle stress run.
-They are not new R1 normal-workload results or exact stack-pointer maxima.
+The 138 MHz full-block reference remains 3,799,188.406 ns and its 75% deadline
+2,849,391 ns. These R1 idle measurements do not qualify refill/launch timing.
 
-## Tooling implemented and review iterations
+## Native time.local admission and retained failures
 
-- Added a distinct N profile in the Pi load driver. For 180 seconds, Refresh
-  offsets are 20/40/60/100/130/160 and reload is at 90. For 300 seconds, Refresh
-  offsets are 30/70/110/190/230/270 and reload is at 150. Both begin with the
-  actual embedded page and capabilities/status/config initialization. Each has
-  eight actions and fourteen sequential GETs. Legacy S remains unchanged.
-- Recorded action start/finish, constituent responses, per-request deadlines and
-  whole-action latency. N permits at most 15 seconds action-start lateness,
-  15 seconds per request, and 60 seconds for four-request initialization/reload;
-  every action must finish within the declared interval. This is source-matched
-  HTTP load, not visual browser-UI qualification.
-- Added an explicit closed candidate registry for e20ae8b while preserving the
-  old candidate. Original-image/config, boot, guard, endpoint exclusivity,
-  operation budgets and restoration checks remain in force. Shared R1 host
-  fixtures require their original packet hash and unchanged cleanup deadline.
-- Added an explicit reconciliation path for user-confirmed between-campaign
-  reboots. It requires hash-bound original idle configurations and zero reported
-  faults; an in-run boot change still stops the campaign.
-- Added the bounded R1 executor, resource comparisons and offline raw audit.
-  The historical 20-case register/validator remain unchanged.
+The permanent wspr5 installation was inspected before mutation. Its files,
+chrony/GPSD/Avahi processes, LAN ACL and DHCP-refresh dispatcher were preserved.
+A temporary, ownership-checked systemd runtime override restricted the permanent
+alias publisher to eth0/wlan1; a separate Avahi entry advertised 10.77.15.1 only
+on wlan0. The original publisher was restored after radio teardown. No NAT,
+routing, hosts-file alias or synthetic unicast `.local` DNS was introduced.
+The Pico saved field was `wifi.ntp_ipv4: "time.local"`.
 
-Adversarial iteration 1 caught an INFO/WTP distinction in resource aggregation:
-terminal history is available in independent WTP STATUS, not Console INFO.
-The aggregator was repaired before device execution, replayed against preserved
-raw evidence, and covered by a regression that rejects nonempty history.
+Before each candidate flash, the independent wlan2 namespace performed native
+NSS/Avahi resolution, an mDNS query/response and a fresh matched-origin NTPv4
+exchange. Both AP/client captures bind these checks to 10.77.15.1 and normal
+leap, stratum 1/PPS replies. AP captures also contain Pico A's own mDNS and
+matched NTP exchanges on both candidate boots; target INFO and GET_CLOCK show
+resolved time.local and synchronized clocks before workload admission.
 
-Iteration 2 exercised missing/extra/reordered/late actions, wrong firmware and
-boot identities, foreign ownership, changed saved configuration, guard admission,
-quiet-state differences and retained growth. It also exposed missing validation
-of browser initialization response content; the offline auditor now checks page
-assets, API initialization, idle authority and browser peer identity. These
-post-attempt audit checks do not claim that the blocked workload executed.
+Preserved attempts:
 
-Iteration 3 addressed the readiness discovery: future R1 executions now perform
-one recorded native-client DNS positive control **before any device mutation**.
-Wrong transaction IDs, answers, source addresses, error responses, truncation
-and deadline violations are rejected without retry. This closes the missing
-preflight check; it does **not** fix or close the intermittent DNS cause, and
-has only hardware-free validation in the committed R1 executor. A fresh reviewed
-packet is required for another execution; the preserved packet hashes describe
-what actually ran.
+1. The [historical DNS result](phase11-5-r1-dns-failure-result.json) and
+   [review](phase11-5-r1-dns-failure-review.md) retain both earlier failures and
+   their original packets. The old intermittent UDP/53 failure remains unexplained.
+2. The [first time.local packet](phase11-5-r1-time-local-packet.json) stopped
+   before any device mutation: the wire mDNS query returned 10.77.15.1, but
+   `avahi-resolve-host-name` required D-Bus, disabled in the existing client
+   namespace. Buffered captures omitted that short exchange; its raw probe
+   response is retained and is not credited as complete admission.
+3. The [second packet](phase11-5-r1-time-local-b-packet.json) was frozen but
+   never launched: its normal-LAN resolver check failed. An initial cleanup
+   success snapshot had been followed by alias-resolution failure after radio
+   teardown. Refreshing the verified original publisher restored resolution.
+4. The [completed packet](phase11-5-r1-time-local-c-packet.json) uses native
+   `getent -s mdns4 ahostsv4`, immediate capture delivery and publisher restoration
+   after radio teardown. All R1 intervals and final audits passed. The previous
+   directories, packet bytes and failures were not overwritten.
 
-Final adversarial disposition: no remaining actionable tooling finding was found
-in this scoped review. The unresolved live readiness failure is explicitly open,
-and the full R1 auditor rejects these failed attempts rather than awarding a pass.
+A later Mac LAN NTP verification timed out once. Its resolved address and wire
+packets were not recorded for that failed request. A subsequent bounded check
+resolved 192.168.1.54 and received valid stratum-1/PPS NTP. Delayed wspr5 checks
+also passed. This retained timeout remains unlocalized; no loss-free LAN,
+GPS-loss fallback, oscillator or SDR frequency-calibration claim is made.
 
-## Validation
+## Bounds and restoration
 
-- `python3 -m unittest discover -s tests -p 'phase11_5_*tests.py'`: 102 pass.
-- Five affected CTest groups, including the registered R1 suite: all pass.
-- Pi `python3 src/tests/phase115_production_load_tests.py`: 10 pass.
-- Five pinned real-source CYW43 regressions: all pass; original corruption is
-  reproduced and the fixed source preserves payloads and error semantics.
-- All four unchanged ELF/UF2 pairs match prior hashes and pass linked image,
-  allocator-hook and stack-guard checks.
-- The complete R1 auditor rejects the actual failed R1 evidence. Public packets
-  match archived execution bytes; result counts, JSON, relative links and diff
-  whitespace checks pass. A successful end-to-end R1 audit still requires the
-  missing target run.
+The original host lifetime began conservatively at 16:30:29 UTC and retained
+its 80-minute absolute bound. The completed fixture ran approximately
+16:36:30–17:08:49 UTC; it used a shortened 3,819-second host work allowance and
+2,400-second device work allowance, each retaining its cleanup reserve. No
+deadline was extended. The device sequence and subsequent final read-only
+inventories completed within those bounds.
 
-## Restoration and next action
-
-Fresh final USB inventories confirmed:
+Fresh final reconstructed USB records confirm:
 
 - A: original inhibited `802c91a7b86e-dirty`, boot
-  `36889c374d905eb63896157976503614`, empty/inactive/unowned.
-- B: original inhibited `dbf1d86f0885-dirty`, boot
-  `feffcd075ab6cb0b74e7e0c2fde6c87f`, empty/inactive/unowned; unchanged during R1.
-- Both original configurations were preserved. Cumulative counts are config
-  **24/32**, Wi-Fi OFF/ON **0/0**, heap probes **0**. Eight configuration writes
-  remain; reserve future schedule/rotation and restoration writes.
+  `a4e5c91e63bf3a3e40e8e311d378a076`, empty/inactive/unowned; original configuration
+  matches and restoration image SHA-256 remains
+  `25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10`.
+- B: unchanged inhibited `dbf1d86f0885-dirty`, boot
+  `feffcd075ab6cb0b74e7e0c2fde6c87f`, empty/inactive/unowned with matching configuration.
+- Configuration writes: **26/32**; Wi-Fi OFF/ON: **0/0**; heap probes: **3**.
+  Six configuration writes remain; future packets must reserve restoration.
+- wlan0/wlan2 returned to their prior disconnected/power states; the namespace,
+  AP profile, temporary chrony grant and publisher files were removed. Ethernet,
+  wlan1, permanent time.local, GPS/PPS configuration and installed WsprryPi
+  PID 1957 were preserved. Native LAN discovery and PPS NTP were checked during
+  the fixture and after cleanup, including a delayed verification.
 
-Host cleanup restored wlan0/wlan2 to disconnected state, removed the fixture
-subnet/namespace and chrony ACL, resumed the recovery timer and preserved Ethernet,
-wlan1 and installed WsprryPi PID 1957. GPSDO and RF settings were unchanged.
+## Validation and adversarial review
 
-Next: diagnose the intermittent startup reply failure with simultaneous AP/client
-capture and a native DNS positive control before admitting another device packet.
-Keep firmware e20ae8b frozen unless target evidence demonstrates a defect. Once
-readiness is established, execute the still-missing inhibited and physical R1
-intervals/probes. Do not expand into R2-R6 or a band/clock sweep.
+- `python3 -m unittest discover -s tests -p 'phase11_5_*tests.py'`: **115 pass**.
+- Seven affected CTest groups in a fresh hardware-free build: **all pass**.
+  Initial configuration of the old build-host directory failed on expired
+  ephemeral test certificates; fresh configuration resolved that test-environment issue.
+- Unchanged Pi `python3 src/tests/phase115_production_load_tests.py`: **10 pass**.
+- Frozen full raw audit and strengthened local raw audit: **PASS**.
+- `python3 scripts/phase11_5_r1_adversarial.py <private-evidence-root>`:
+  **16 corruptions rejected**, with intact evidence passing before and after.
+  Mutations cover failed/incomplete intervals, false retention/probes, wrong
+  image/clock, wrong mDNS/NTP peer/quality, missing client/target packet evidence,
+  wrong counts, unrestored host, truncated USB/captures and changed helpers.
 
-Documentation Impact: updated the R1 prompt/packets/result/review, coordinating
-plan/ledger/development index and Pi companion review. Operator workflows,
-firmware, WTP/browser API contracts and third-party documentation repositories
-were not changed. All captures, credential-bearing firmware, keys and private
-configuration remain outside Git; archive hashes are in the result.
+Review corrections also normalized offline relative paths, made image/clock
+registry checks explicit, checked individual raw USB deadlines and required
+host restoration for a successful new runner exit. Final capture parsing now
+rejects partial trailing records; only live admission permits an in-progress
+append. Legacy execution imports the mDNS helper only when explicitly selected.
+Running helper files and
+frozen packets were not changed. Final auditors are separately hashed in the
+result. No actionable in-scope tooling finding remains; retained network failures
+and untested RF families remain explicit.
+
+Reproduce the hardware-free checks with:
+
+```sh
+python3 -m unittest discover -s tests -p 'phase11_5_*tests.py'
+cmake -S . -B build/phase11-5-r1-time-local/host -DCMAKE_BUILD_TYPE=Debug -DWSPRRY_PICO_BUILD_TESTS=ON
+ctest --test-dir build/phase11-5-r1-time-local/host -R 'phase11_5_(r1|time_local|network_fixture|device_fixture|device_management|idle|load)' --output-on-failure
+```
+
+The raw auditor and adversarial script take the private completed evidence root;
+they perform no device/network actions and require the preserved archive.
+
+Avahi's supported interface-specific publication and native resolver behavior
+were checked against its [0.8 entry implementation](https://github.com/avahi/avahi/blob/v0.8/avahi-core/entry.c)
+and installed D-Bus interface definitions. The namespace uses its existing
+Avahi resolver socket through NSS, preserving its D-Bus-disabled configuration.
+
+## Artifacts and documentation impact
+
+The result identifies the full private archive on wspr5 and filtered local
+capture archive by SHA-256. Credentials, firmware and captures stay outside Git.
+The durable prompt, distinct packets, current result/review, historical DNS
+copies, acceptance ledger, metrics, plan and development index are updated.
+No firmware, WTP/browser contract, operator UI or sibling repository was changed.
+R2–R6 and per-band/mode RF acceptance remain the next separate gates.

@@ -1,6 +1,6 @@
 # Phase 11.5 target resources and contention
 
-Status: **OPEN; six prospective acceptance families, none closed.** This
+Status: **OPEN; 1 of 6 acceptance families closed (R1: 5 of 5 assertions).** This
 September 12, 2026 documentation revision supersedes the execution organization
 of the [preserved original plan](phase11-5-plan-legacy.md). It does not supersede
 old measurements, failed limits or evidence identities. The [current ledger](phase11-5-acceptance-ledger.md)
@@ -11,7 +11,9 @@ and [review](phase11-5-test-reorganization-review.md) record this documentation-
 
 No runner, test, validator, firmware, protocol or operational configuration was
 changed by that documentation revision. The subsequent [R1 execution](phase11-5-r1-review.md)
-adds scoped tooling and records a blocked readiness attempt; R1 remains open. No hardware execution is authorized by this document. Future packets
+closes R1 for the exact e20ae8b physical 138 MHz/divider-1/RAM/listener-on
+configuration, while preserving the earlier failed attempts. R2–R6 remain open.
+No hardware execution is authorized by this document. Future packets
 must reconcile available tools with this plan before obtaining any missing
 bounded hardware/network authority. Old supervisors must not be run under new
 labels or modified implicitly to implement this plan.
@@ -294,16 +296,16 @@ No six-family pass count is a substitute for that assertion checklist. Publish
 accepted configurations only with source/ELF/UF2, board/boot/clock, workload and
 gate evidence. **The accepted configuration list is currently empty.**
 
-R1 now has an explicit executor, N workload and raw auditor; its target run was
-blocked before workload admission, as recorded in the [R1 review](phase11-5-r1-review.md).
+R1 now has an explicit executor, N workload and raw auditor; all five assertions
+passed the bounded time.local campaign, as recorded in the [R1 review](phase11-5-r1-review.md).
 Other family runners still implement the old matrix, and the existing
 validator requires all 20 legacy cases PASS. A later explicitly code-authorized
 slice must support N/S/O/M profiles, independent subcase reporting/reuse, standalone
 coverage and the revised ledger/closure predicate without weakening safeguards.
 Specify source-bound controller cadence and freeze concrete executable packets
-there. Until then, this is the authoritative prospective test plan, not an
-implemented executable campaign. Do not bypass the old validator or mark deferred
-breadth PASS. Keep it available for historical records and compatibility review.
+there. R1 is executable and closed in its recorded scope; the remaining families
+are prospective requirements, not an implemented six-family campaign. Do not
+bypass the old validator or mark deferred breadth PASS. Keep it available for historical records and compatibility review.
 
 Documentation Impact: coordinating plan, current ledger, development/review
 pointers and companion development review change. WTP, browser API, architecture,

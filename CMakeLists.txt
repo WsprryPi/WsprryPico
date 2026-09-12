@@ -162,6 +162,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_idle_observer_tests.py)
     add_test(NAME phase11_5_load_audit_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_load_audit_tests.py)
+    add_test(NAME phase11_5_time_local_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase11_5_time_local_tests.py)
     add_test(NAME phase11_5_r1_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_r1_tests.py)
     add_test(NAME phase11_5_trace_reader_tests COMMAND ${Python3_EXECUTABLE}

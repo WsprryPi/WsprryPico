@@ -1,0 +1,129 @@
+{
+  "schema": "phase11.5-device-fixture-v2",
+  "status": "FROZEN_R1_TIME_LOCAL",
+  "attempt": "r1ctime20260912",
+  "root": "/home/pi/phase11-5-r1-time-local-20260912",
+  "network_root": "/home/pi/phase11-5-r1-time-local-20260912",
+  "time_server_dns": false,
+  "source_revision": "e20ae8bea2d5237af017dbd5f73bfe9332ce144e",
+  "runtime_seconds": 2700,
+  "device_restoration_seconds": 600,
+  "network_runtime_seconds": 4200,
+  "network_restoration_seconds": 600,
+  "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+  "serial": "0BF4B4AEC9FFB344",
+  "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+  "initial_a_boot_id": "36889c374d905eb63896157976503614",
+  "initial_b_boot_id": "feffcd075ab6cb0b74e7e0c2fde6c87f",
+  "images": {
+    "inhibited": {
+      "file": "inhibited.uf2",
+      "sha256": "d4564a5c28db81e6e000542632cae3a4ae00f7a0263ecb4b2061f3f477c7e6e8"
+    },
+    "physical": {
+      "file": "physical.uf2",
+      "sha256": "7a7306b8ad9dab694903434b86aec18e249c79dad0443645cd04ca857e9d4a04"
+    },
+    "original": {
+      "file": "original.uf2",
+      "sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10"
+    }
+  },
+  "selected_physical_clock_hz": 138000000,
+  "pio_divider": 1,
+  "rf_render_in_ram": true,
+  "max_configuration_writes": 32,
+  "max_idle_heap_probes": 3,
+  "time_server_dns_name": "time.local",
+  "time_server_address": "10.77.15.1",
+  "helper_sha256": {
+    "docs/protocol/wtp-1.schema.json": "fae1a7f94adb875733f47f22438a0811a3ab7fd9e4b8477780aea77cad62c8a8",
+    "scripts/phase11_4_hotspot.py": "20253c0ab455f023bc360b7b9f10fba5b6b719ffffddce79c0c7128a4e7712ee",
+    "scripts/phase11_5_device_fixture.py": "3adb3ea5cd44bba9d261d96b6abfad7f0bd6ca61fefb1196a47ef78e73ee8a4e",
+    "scripts/phase11_5_device_management.py": "b8c7ace42aee597f9e71a21fada8d2c8a3efd1b572b864a8fbdc994706290c31",
+    "scripts/phase11_5_inventory.py": "ba3512651faccd72fea5d092fe9fc6bc69559a460d166d689cc5b48bd658eb21",
+    "scripts/phase11_5_network_fault.py": "68b05dbea6b033cbb09d1d997e52e3d73207576b291d79f1330c4efbb042e041",
+    "scripts/phase11_5_network_fixture.py": "a63c360c5aa9b68c3b9cd2e572b37e33c2e0a1c6ee2c4147cc3db7f7fd8836d8",
+    "scripts/phase11_5_pilot.py": "bb91dc6fea9fb10e7564252810b534979a1f28b36de132745d100f388c3003c4",
+    "scripts/phase11_5_pilot_supervisor.py": "dbf97a316ebe02eb27f90d838ce70c468b75abc38749a7af3f6911beab8dd9e7",
+    "scripts/phase11_5_time_local.py": "3c92c263517aa763441dc24598926f917f04827e440ef695b916202ddb3f29c9",
+    "scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+    "scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9"
+  },
+  "production_source_revision": "6f65d5c7d202569102459ab68d7c9ea079b96f35",
+  "production_binary": "/home/pi/phase11-5-closure-6f65d5c/source/src/build/bin/phase115-pi-6f65d5c",
+  "production_binary_sha256": "122ed0e4bd752e457419c4df5433c3fca1a4a88677a3db3ebd7e60e783ba5d1c",
+  "production_observer_sha256": "fd70cde276b04aa08e771e12b83335a89aae24e050e2f2c5e56ed6848eb1a7bc",
+  "production_ini_sha256": "c5c331810997faaede2195410f4840fe0353d7649f11e37cb1788c978b50fe0f",
+  "production_helper_sha256": {
+    "pi/phase115_production_load.py": "95965103741c4920b9477a918587de945e7dcd370ebb5cbb428b6a45dd38f0af",
+    "pi/phase115_tls_observer.c": "7c6a4afba6f414b9ef6a92ee223b0c0863219311e9c472a0d32a92f45f7e4a1d",
+    "pi/phase115_tls_observer_test.py": "5cf410758c48e05bc35f04f394b486f0b210b93e7ab785cedaf1bc7dd689162d"
+  },
+  "rf_jobs": [],
+  "rf_authorization": "No RF jobs in this packet",
+  "accepted_configurations": [],
+  "administration_session_policy": "one persistent logical session per DUT boot sequence; unique request IDs",
+  "prior_restored_attempt": {
+    "root": "/home/pi/phase11-5-r1b-e20ae8b",
+    "device_state_sha256": "7bea98e03a38a86be613eec8aff30e8ba42f9046968012806cf688f9c5be31ce",
+    "management_state_sha256": "f2c6ed466ab43ae78a3ec57522888886c0ed995ba1e1e526b1c79c3f45c6cba7"
+  },
+  "production_observer": "/home/pi/phase11-5-r1-time-local-20260912/pi/phase115_tls_observer.so",
+  "production_driver": "/home/pi/phase11-5-r1-time-local-20260912/pi/phase115_production_load.py",
+  "authorization_boundary": "User explicitly said Execute that prompt; bounded R1 only, no RF jobs, frozen images, three idle probes, scoped temporary network and time.local publication, guarded restoration, commit and push.",
+  "execution_scope": [
+    "R1 inhibited N180/USB240",
+    "R1 physical warm N180/USB240",
+    "three idle heap probes: necessary, capacity+1 failure, necessary recovery",
+    "physical Q360/controller180/USB240/N300/USB360/Q360",
+    "guarded original A and host restoration"
+  ],
+  "case_helper_sha256": {
+    "scripts/audit_phase11_5_idle.py": "57f1b44a7b292c19631f3f843f42daddbf10beaeb3c2dd6be8c2fe83408e7e5a",
+    "scripts/audit_phase11_5_load.py": "24899ff1145a7311c731343594c1573c1b7e5dcf68887575e1ae53c960d8e4be",
+    "scripts/audit_phase11_5_r1.py": "1ede660c7f196b1a4e3767b643961ad85fe053b883dc79048a1fec076bc9d20b",
+    "scripts/phase11_5_a2_load.py": "41249ccc8c9c11c75bbe3d4fe6a031cb74e60b1735229ae2b50330699bfbaad1",
+    "scripts/phase11_5_idle_observer.py": "b5c29a66cb92349476946d0e78a56c32a8ca1d8234cc396da1c3a5c69774f97c",
+    "scripts/phase11_5_r1.py": "3d01fa15aa49828663b93937887137f02c3d11fa0d69ef6efa0095c0c2231c2e"
+  },
+  "extra_NETTRACE_reads": false,
+  "family": "R1",
+  "tooling_provenance": {
+    "Pico": {
+      "base_commit": "58ba01d7d251b3943b99de01d0971a704b900202",
+      "scope": "R1 time.local fixture, guards, runner and auditor; exact helper hashes above"
+    },
+    "Pi": {
+      "checkout_commit": "2250ca3dd687979b9967372bc8b763351c67a447",
+      "changed": false
+    }
+  },
+  "time_server_mdns": true,
+  "initial_management_counts": {
+    "config": 24,
+    "wifi-off": 0,
+    "wifi-on": 0,
+    "heap-probe": 0
+  },
+  "preflight_inventory_sha256": {
+    "a": "8a8c29f558ff14025ce55c197a8ccbe6f3a83cc8f0691b21f16ff6ae46048aec",
+    "b": "6e7bdec5bb676ecf2a93928e2566e5fe1b6e3d540dbf658fddaf028381e49830"
+  },
+  "time_local_permanent_baseline_sha256": "8cb499ee269e41f46d1f4ec9832f4c21f80e2719bdc7eae72551dc214d9acab0",
+  "time_local_policy": {
+    "native_avahi": true,
+    "mdns_address": "10.77.15.1",
+    "ntp_stratum": 1,
+    "ntp_reference": "PPS",
+    "ntp_leap": 0,
+    "mdns_deadline_seconds": 3,
+    "ntp_deadline_seconds": 3,
+    "native_resolution_deadline_seconds": 10,
+    "captures": [
+      "capture-ap.pcap",
+      "capture-client.pcap"
+    ],
+    "publication": "Owned temporary runtime override restricts permanent publisher to eth0/wlan1; separate Avahi wlan0 address entry; restore original publisher during cleanup"
+  }
+}

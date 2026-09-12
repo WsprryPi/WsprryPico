@@ -38,7 +38,7 @@ MANAGEMENT_PROFILE = '921301fe-cdfd-4965-8ac7-c96e9d908ea6'
 INSTALLED_SHA = 'c19461bc6d2ebe7cae61798ad9acae8d43dfbec3ee57c288e4ef41e9c82b8273'
 RUN_SECONDS = 21000  # 5 h 50 min; last ten minutes reserved for host restoration.
 UNIT_SUFFIXES = ('cleanup.timer', 'cleanup.service', 'client.service', 'dhcp.service',
-                 'capture-ap.service', 'capture-client.service', 'campaign.service')
+                 'capture-ap.service', 'capture-client.service', 'campaign.service', 'time-local.service')
 
 
 class Fixture:
@@ -170,6 +170,14 @@ class Fixture:
         packet = json.loads((self.root / 'packet.json').read_text())
         dns_fixture = packet.get('time_server_dns', False)
         require(type(dns_fixture) is bool, 'Explicit DNS fixture selection required')
+        mdns_fixture = packet.get('time_server_mdns', False)
+        require(type(mdns_fixture) is bool and not (mdns_fixture and dns_fixture),
+                'Select native mDNS or legacy DNS, never both')
+        permanent = None
+        if mdns_fixture:
+            from phase11_5_time_local import baseline, DROPIN, RUNTIME
+            require(not DROPIN.exists() and not RUNTIME.exists(), 'Temporary time.local owner exists')
+            permanent = baseline()
         runtime = packet.get('network_runtime_seconds', RUN_SECONDS)
         require(type(runtime) is int and 0 < runtime <= RUN_SECONDS, 'Bounded host runtime')
         absolute = packet.get('absolute_host_deadline_monotonic_ns')
@@ -178,7 +186,8 @@ class Fixture:
                     <= absolute, 'Original host restoration deadline would be exceeded')
         self.state = {'version': 1, 'token': 'Phase115 fixture ' + secrets.token_hex(16),
                       'host_boot': HOST_BOOT, 'before': before, 'radio': radio, 'units': [],
-                      'time_server_dns': dns_fixture, 'runtime_seconds': runtime}
+                      'time_server_dns': dns_fixture, 'runtime_seconds': runtime,
+                      'time_server_mdns': mdns_fixture, 'time_local_before': permanent}
         self.save()
         # Arm cleanup before pausing the timer or touching a radio. Cleanup owns
         # only host resources, and cannot erase/reboot an unknown Pico state.
@@ -195,7 +204,7 @@ class Fixture:
         psk = secrets.token_hex(16)
         ssid = 'WsprryPico-Phase115'
         (self.root / 'pico-wifi.json').write_text(json.dumps(
-            {'ssid': ssid, 'password': psk, 'ntp_ipv4': TIME_NAME if dns_fixture else AP_ADDRESS}) + '\n')
+            {'ssid': ssid, 'password': psk, 'ntp_ipv4': 'time.local' if mdns_fixture else TIME_NAME if dns_fixture else AP_ADDRESS}) + '\n')
         self.intent('ap_profile')
         self.cmd(['nmcli', 'connection', 'add', 'save', 'no', 'type', 'wifi', 'ifname', 'wlan0',
             'con-name', PROFILE, 'ssid', ssid, '802-11-wireless.mode', 'ap',
@@ -242,17 +251,30 @@ class Fixture:
         while not (self.root / 'client-ready').exists() and time.monotonic() < deadline:
             time.sleep(.2)
         require((self.root / 'client-ready').exists(), 'Independent client did not start')
+        if mdns_fixture:
+            from phase11_5_time_local import install
+            install(self)
+            time.sleep(3)  # Avahi probe/announcement settling; no acceptance from this wait.
+            self.unit('capture-ap', ['/usr/bin/tcpdump', '--immediate-mode', '-i', 'wlan0', '-U', '-s', '0',
+                '-w', str(self.root/'capture-ap.pcap'), 'udp port 5353 or udp port 123'])
+            pid = self.value('systemctl', 'show', '-p', 'MainPID', '--value', PREFIX+'-client')
+            self.unit('capture-client', ['nsenter', '-t', pid, '-m', '-n', '/usr/bin/tcpdump', '--immediate-mode',
+                '-i', 'wlan2', '-U', '-s', '0', '-w', str(self.root/'capture-client.pcap'),
+                'udp port 5353 or udp port 123'])
+            time.sleep(1)
+            for side in ('ap', 'client'):
+                require((self.root/('capture-'+side+'.pcap')).exists(), 'Capture not started')
         self.verify()
         self.intent('ready')
         self.note('ready', {'host_only': True, 'expires_after_seconds': runtime})
         self.deadline = None
 
-    def in_client(self, args, timeout=35):
+    def in_client(self, args, timeout=35, check=True):
         pid = int(self.value('systemctl', 'show', '-p', 'MainPID', '--value', PREFIX + '-client'))
         require(pid > 1, 'Client namespace supervisor absent')
         require(self.value('systemctl', 'show', '-p', 'Description', '--value', PREFIX + '-client') ==
                 self.state['token'], 'Client unit ownership changed')
-        return self.cmd(['nsenter', '-t', str(pid), '-m', '-n', *args], timeout=timeout)
+        return self.cmd(['nsenter', '-t', str(pid), '-m', '-n', *args], timeout=timeout, check=check)
 
     def verify(self):
         current = self.host(paused=True)
@@ -333,6 +355,9 @@ class Fixture:
                             'Restored radio is not disconnected')
         if self.state.get('ap_profile') or self.state.get('client_unmanaged'):
             attempt('radios', restore_radios)
+        if self.state.get('time_local_override'):
+            from phase11_5_time_local import restore
+            attempt('time.local publisher', lambda: restore(self))
         if self.state.get('timer_paused'):
             attempt('recovery timer', lambda: self.cmd(['systemctl', 'start', 'pi-wifi-recover.timer']))
         def verify_host():
@@ -346,6 +371,11 @@ class Fixture:
             self.settle(converged, 'Fixture subnet remains')
             require(NETNS not in self.value('ip', 'netns', 'list'), 'Namespace remains')
             require('Access denied' in self.value('chronyc', 'accheck', DUT_ADDRESS), 'Chrony ACL remains')
+            if self.state.get('time_server_mdns'):
+                from phase11_5_time_local import baseline, validate_preserved
+                after = baseline()
+                self.note('time_local_after', after)
+                validate_preserved(self.state['time_local_before'], after)
             self.note('host_restored', current)
         attempt('final host', verify_host)
         self.note('cleanup', {'failures': failures, 'pico_state': 'not inspected or changed by host cleanup'})

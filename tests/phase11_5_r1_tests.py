@@ -112,6 +112,25 @@ class R1Tests(unittest.TestCase):
             path.write_text(''.join(json.dumps(r)+'\n' for r in rows))
             with self.assertRaises(ValueError):resources(path)
 
+    def test_usb_measurement_deadlines_are_independently_enforced(self):
+        from audit_phase11_5_r1 import usb_measurement_costs
+        rows=[]
+        for index,op in enumerate(('HELLO','STATUS')):
+            request=dict(request_id=str(index),op=op)
+            rows.extend([dict(kind='wtp_tx',monotonic_ns=index*10**9,value=dict(request=request)),
+                         dict(kind='wtp_message',monotonic_ns=index*10**9+100,
+                              value=dict(type='response',request_id=str(index)))])
+        rows.extend([dict(kind='info',monotonic_ns=200,value=dict(began_monotonic_ns=0)),
+                     dict(kind='health',value=dict(value=dict(loadavg='1.0 0.5 0.2 1/100 123',temperature='50000')))])
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'log'
+            def write():path.write_text(''.join(json.dumps(row)+'\n' for row in rows))
+            write();self.assertEqual(usb_measurement_costs(path)['host_max_temperature_c'],50)
+            rows[-2]['monotonic_ns']=5_000_000_001;write()
+            with self.assertRaisesRegex(ValueError,'deadline'):usb_measurement_costs(path)
+            rows[-2]['monotonic_ns']=200;rows[3]['monotonic_ns']=7_000_000_000;write()
+            with self.assertRaisesRegex(ValueError,'deadline'):usb_measurement_costs(path)
+
     def test_candidate_registry_is_closed_and_preserves_legacy(self):
         self.assertEqual(candidate_images(SOURCE),IMAGES)
         self.assertEqual(candidate_images(R1_SOURCE)['original'],IMAGES['original'])

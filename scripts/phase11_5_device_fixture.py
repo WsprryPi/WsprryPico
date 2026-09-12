@@ -226,11 +226,14 @@ class DeviceFixture:
                     'Shared R1 host fixture identity changed')
         require(packet['host_boot_id'] == HOST_BOOT ==
                 Path('/proc/sys/kernel/random/boot_id').read_text().strip(), 'Host boot changed')
-        require(set(packet['helper_sha256']) == HELPERS, 'Incomplete helper identity set')
+        expected_helpers = HELPERS | ({'scripts/phase11_5_time_local.py'} if packet.get('time_server_mdns') else set())
+        require(set(packet['helper_sha256']) == expected_helpers, 'Incomplete helper identity set')
         for relative, expected in packet['helper_sha256'].items():
             path = self.root/relative
             require(path.resolve().is_relative_to(self.root) and digest(path) == expected,
                     'Helper identity changed')
+        require(packet['images'] == {kind:dict(file=name,sha256=sha)
+                for kind,(name,sha) in self.images.items()}, 'Packet firmware identity differs')
         for filename, expected in self.images.values():
             require(digest(self.root/filename) == expected, 'Firmware identity changed')
         require(digest(PICOTOOL) == PICOTOOL_SHA and
@@ -263,6 +266,9 @@ class DeviceFixture:
                     counts['config'] <= 30 and counts['wifi-off'] <= 3 and
                     counts['wifi-on'] <= 3 and counts['heap-probe'] <= 64,
                     'Prior operation budgets do not admit continuation/restoration')
+        if packet.get('time_server_mdns'):
+            require(counts == packet['initial_management_counts'] and counts['heap-probe'] == 0,
+                    'R1 carried operation counts changed')
         host = Fixture(Path(packet['network_root']))
         host.verify()
         # Require the host fixture to outlive device restoration by ten minutes.

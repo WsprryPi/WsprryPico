@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 from phase11_5_device_management import R1_SOURCE, digest
+from phase11_5_device_fixture import candidate_images
 from phase11_5_inventory import require, loads_console
 from phase11_5_pilot_supervisor import finished
 from phase11_5_r1 import resources, matched_quiet, validate_fixture_dns, R1_HELPERS
@@ -39,13 +40,107 @@ def probe_exchange(path, size, outcome, boot):
     return reply
 
 
+def usb_measurement_costs(path):
+    """Raw audit is prerequisite; validate deadlines and report costs separately."""
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    pending = {}; costs = {'INFO': [], 'STATUS': [], 'HELLO': []}; loads = []; temperatures = []
+    for row in rows:
+        value = row['value']
+        if row['kind'] == 'wtp_tx':
+            pending[value['request']['request_id']] = (value['request']['op'], row['monotonic_ns'])
+        elif row['kind'] == 'wtp_message' and value['type'] == 'response':
+            operation, start = pending.pop(value['request_id'])
+            costs[operation].append((row['monotonic_ns']-start)/1e9)
+        elif row['kind'] == 'info':
+            costs['INFO'].append((row['monotonic_ns']-value['began_monotonic_ns'])/1e9)
+        elif row['kind'] == 'health':
+            loads.append(float(value['value']['loadavg'].split()[0]))
+            temperatures.append(int(value['value']['temperature'])/1000)
+    require(not pending and all(values and all(0 <= n <= 5 for n in values) for values in costs.values()),
+            'USB individual round-trip deadline or completeness')
+    require(loads and temperatures, 'Missing host measurement-cost context')
+    return dict(max_usb_roundtrip_seconds={key:max(values) for key,values in costs.items()},
+                host_max_loadavg_1m=max(loads), host_max_temperature_c=max(temperatures),
+                note='Load average is system-wide runnable/uninterruptible load, not CPU utilization. Costs overlap.')
+
+
+def target_time_wire(root, kind):
+    from phase11_5_time_local import capture_packets, dns_name, mdns_addresses
+    start_name = 'before-network-reboot.stdout' if kind == 'inhibited' else 'before-physical-switch.stdout'
+    start = json.loads((root/start_name).read_text().splitlines()[0])['utc_ns']
+    ready = sorted(root.glob('r1-'+kind+'-ready-*.stdout'),key=lambda p:int(p.stem.split('-')[-1]))[-1]
+    end = json.loads(ready.read_text().splitlines()[-1])['utc_ns']
+    queries = []; answers = []; ntp_queries = []; ntp_replies = []
+    for packet in capture_packets(root/'capture-ap.pcap'):
+        if not start <= packet['utc_ns'] <= end: continue
+        data = bytes.fromhex(packet['payload'])
+        if packet['dport'] == 5353 and packet['source'] == '10.77.15.10' and len(data)>12 and not data[2]&128:
+            name, _ = dns_name(data,12)
+            if name == 'time.local': queries.append(packet)
+        if packet['sport'] == 5353 and packet['source'] == '10.77.15.1' and len(data)>12 and data[2]&128:
+            if '10.77.15.1' in mdns_addresses(data): answers.append(packet)
+        if packet['dport'] == 123 and packet['source'] == '10.77.15.10' and packet['destination'] == '10.77.15.1':
+            ntp_queries.append(packet)
+        if packet['sport'] == 123 and packet['source'] == '10.77.15.1' and packet['destination'] == '10.77.15.10':
+            ntp_replies.append(packet)
+    require(queries and answers and any(q['utc_ns'] <= a['utc_ns'] for q in queries for a in answers),
+            'Target mDNS wire exchange missing')
+    matched = 0
+    for query in ntp_queries:
+        q = bytes.fromhex(query['payload'])
+        for reply in ntp_replies:
+            r = bytes.fromhex(reply['payload'])
+            if (len(q) == len(r) == 48 and q[0] == 0x23 and r[0] == 0x24 and r[1] == 1 and
+                r[12:16] == b'PPS\0' and r[24:32] == q[40:48] and any(r[40:48]) and
+                query['sport'] == reply['dport'] and 0 <= reply['utc_ns']-query['utc_ns'] <= 3_000_000_000):
+                matched += 1
+    require(matched, 'Target matched-origin stratum 1/PPS NTP exchange missing')
+    return dict(start_utc_ns=start,end_utc_ns=end,mdns_queries=len(queries),mdns_answers=len(answers),
+                ntp_matched_exchanges=matched,target='10.77.15.10',server='10.77.15.1',name='time.local')
+
+
 def audit(root):
+    root = root.resolve(strict=True)
     packet=json.loads((root/'packet.json').read_text());result=json.loads((root/'r1-result.json').read_text())
     require(packet['family']=='R1' and packet['source_revision']==R1_SOURCE and packet['rf_jobs']==[] and
             result['source']==R1_SOURCE and result['status']=='CAPTURED_REQUIRES_FINAL_REVIEW' and
             result['rf_jobs']==[] and result.get('device_restored') is True,'R1 incomplete or scope changed')
+    require(packet['images'] == {kind:dict(file=name,sha256=sha)
+            for kind,(name,sha) in candidate_images(R1_SOURCE).items()} and
+            packet['selected_physical_clock_hz'] == 138000000 and packet['pio_divider'] == 1 and
+            packet['rf_render_in_ram'] is True, 'Frozen R1 image/clock/layout identity differs')
     require(set(packet['case_helper_sha256'])==R1_HELPERS, 'Incomplete R1 helper identity set')
-    validate_fixture_dns(json.loads((root/'fixture-dns-admission.json').read_text()))
+    if packet.get('time_server_mdns'):
+        from phase11_5_time_local import validate_admission, validate_capture, validate_preserved
+        require(packet.get('time_server_dns') is False and packet['time_server_dns_name'] == 'time.local',
+                'R1 native mDNS packet changed')
+        for side in ('ap', 'client'):
+            require('0 packets dropped by kernel' in (root/('capture-'+side+'.log')).read_text(),
+                    'Capture loss or missing capture stop record')
+        for kind in ('inhibited', 'physical'):
+            value = json.loads((root/('fixture-time-'+kind+'.stdout')).read_text())
+            validate_admission(value)
+            for side in ('ap', 'client'):
+                validate_capture(root/('capture-'+side+'.pcap'), value)
+            ready = sorted(root.glob('r1-'+kind+'-ready-*.stdout'),
+                           key=lambda path: int(path.stem.split('-')[-1]))
+            require(ready, 'Target time readiness evidence missing')
+            observed = finished(ready[-1], 'READ_ONLY_INVENTORY')
+            require(observed['wtp']['GET_CLOCK']['state'] == 'synchronized' and
+                    observed['info']['network']['ntp_address'] == '10.77.15.1' and
+                    observed['info']['network']['ntp_server'] == 'time.local' and
+                    observed['info']['network']['ntp_resolution'] == 'resolved' and
+                    observed['info']['network']['accepted'] > 0 and
+                    observed['wtp']['STATUS']['boot_id'] == result['intervals'][
+                        'r1-inhibited' if kind == 'inhibited' else 'r1-warm']['resources']['boot'],
+                    'Target time.local readiness or workload boot differs')
+        events = [json.loads(line) for line in (root/'fixture.jsonl').read_text().splitlines()]
+        restored = [e['value'] for e in events if e['kind'] == 'time_local_after']
+        host_state = json.loads((root/'host-fixture-state.json').read_text())
+        require(restored, 'Permanent time.local restoration missing')
+        validate_preserved(host_state['time_local_before'], restored[-1])
+    else:
+        validate_fixture_dns(json.loads((root/'fixture-dns-admission.json').read_text()))
     for relative,expected in {**packet['helper_sha256'],**packet['case_helper_sha256'],
                              **packet['production_helper_sha256']}.items():
         require((root/relative).resolve().is_relative_to(root) and digest(root/relative)==expected,
@@ -96,13 +191,22 @@ def audit(root):
     device=json.loads((root/'device-state.json').read_text())
     management=json.loads((root/'management-state.json').read_text())
     host=json.loads((root/'host-fixture-state.json').read_text())
+    initial = packet.get('initial_management_counts', {'config':22,'wifi-off':0,'wifi-on':0,'heap-probe':0})
+    expected_counts = dict(initial, config=initial['config']+2, **{'heap-probe':initial['heap-probe']+3})
     require(device.get('restored') is True and not device.get('pending') and
             not management.get('pending') and not management.get('blocked') and
-            management['counts']=={'config':24,'wifi-off':0,'wifi-on':0,'heap-probe':3},
+            management['counts']==expected_counts,
             'Device restoration/operation budget differs')
     # Host restoration uses its own saved state and independent verification log.
     require(host.get('restored') is True,'Host fixture not restored')
-    return dict(family='R1',target_assertions='PASS',quiet_delta_bytes=delta,
+    paths = {label: root/('a2-'+kind+'-'+label+('-nominal' if browser else '-controller'))/'usb-health.jsonl'
+             for kind,label,browser in (('inhibited','r1-inhibited',True),('physical','r1-warm',True),
+                                       ('physical','r1-controller',False),('physical','r1-normal',True))}
+    paths.update({label:root/(label+'.jsonl') for label in ('r1-quiet-before','r1-quiet-after')})
+    costs = {label:usb_measurement_costs(path) for label,path in paths.items()}
+    time_wire = ({kind:target_time_wire(root,kind) for kind in ('inhibited','physical')}
+                 if packet.get('time_server_mdns') else {})
+    return dict(family='R1',target_assertions='PASS',measurement_details=costs,target_time_wire=time_wire,quiet_delta_bytes=delta,
                 firmware=R1_SOURCE,physical_clock_hz=138000000,intervals=intervals,
                 packet_sha256=digest(root/'packet.json'),rf_jobs=[])
 

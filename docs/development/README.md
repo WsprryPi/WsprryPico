@@ -16,14 +16,17 @@ supersedes the open B2/D2 status in earlier investigation records below. The
 
 Current [Phase 11.5 plan](phase11-5-plan.md) organizes six acceptance families
 with realistic normal traffic separated from stress and overload. The
-[current ledger](phase11-5-acceptance-ledger.md) records **0 of 6 revised families
+[current ledger](phase11-5-acceptance-ledger.md) records **1 of 6 revised families
 closed**, useful existing evidence and an empty accepted-configuration list.
 The [documentation reorganization review](phase11-5-test-reorganization-review.md)
 maps all 20 legacy cases without changing code, runners or historical results.
-The [R1 executor and review](phase11-5-r1-review.md) now exist: four artifact
-layouts pass, but inhibited DNS/time readiness blocked the target intervals.
-R1 has 1/5 assertions passed, 1 blocked and 3 not run; both boards and host were
-restored. R2-R6 execution adaptation remains outstanding.
+The [R1 executor and review](phase11-5-r1-review.md) close **5 of 5 assertions**:
+four frozen layouts, six target intervals, three bounded idle allocation probes,
+matched quiet retention, stack guards and observer costs. This covers the exact
+`e20ae8b` physical 138 MHz/divider-1/RAM/listener-on candidate, with inhibited
+150 MHz regression. Both boards and host were restored, including permanent
+time.local. Earlier DNS failures and a later unlocalized Mac NTP timeout remain
+preserved. No RF jobs ran; R2–R6 execution adaptation remains outstanding.
 
 Historical [Phase 11.5 review](phase11-5-review.md),
 [metric definitions](phase11-5-metrics.md) and the bounded

@@ -132,9 +132,9 @@ admission, for 1 through linked capacity plus one byte. It reports an allocation
 result, retains no block, and rejects malformed, oversized or non-idle requests
 before invoking the allocator. It can change allocator arena/bin state; compare
 quiet windows after matched warm-up. An oversized failure probe is distinct from
-a successful largest-necessary-allocation probe. No such probe has yet run on a
-device. Transient peak, fragmentation, necessary allocation, actual failure
-recovery and measured overhead gates remain OPEN until target evidence passes.
+a successful largest-necessary-allocation probe. The later R1 target evidence
+below supplies bounded idle feasibility/recovery and cost measurements; it does
+not measure exact fragmentation or qualify active-RF resource behavior.
 
 Both physical stacks reserve 16 KiB. Core-0 canaries are sampled before INFO
 serialization; `core0_stack_scan_us` exposes that scan's cost. The explicit
@@ -179,5 +179,29 @@ it does not reduce the 4 KiB requirement or turn unexecuted cases into passes.
 The hardware limit is not an MPU memory-corruption guard and does not qualify
 HardFault/NMI recovery paths, foreign PSP execution, other images or other clock
 configurations. Any guard failure, unexpected boot or missed observation fails
-admission/acceptance and blocks dependent actions. Target validation of this
-candidate remains pending; P3 does not contain these guard observations.
+admission/acceptance and blocks dependent actions. P3 does not contain these
+guard observations. The later exact-image R1 campaign validates guards in its
+idle workload scope; the remaining active-RF matrix is still open.
+
+
+### R1 target measurements on September 12, 2026
+
+The [R1 result and review](phase11-5-r1-review.md) close 5/5 assertions on source
+`e20ae8bea2d5237af017dbd5f73bfe9332ce144e`, physical 138 MHz, divider 1, RAM
+renderer and listener on. Inhibited 150 MHz supplies regression only. Four
+frozen linked layouts were rechecked and six idle target intervals passed.
+
+Exactly three idle probes returned 18,364-byte success, 218,381-byte NULL, then
+18,364-byte success. The successful size is a demonstrated allocatable-block
+lower bound, not an exact largest block. Matched quiet heap changed from 16,844
+to 16,836 bytes (−8); physical peak 121,780 left at least 96,600 bytes of reserve.
+Both 16 KiB stacks maintained valid 4 KiB guards; canary touched extents peaked
+at 8,248/544 bytes, with the canary limitations above unchanged.
+
+Physical allocator sampling occupied 13.253–13.845% of observed intervals.
+Maximum sample/entry times were 56/153 µs, core-0 scan 124 µs and core-1 probe
+316 µs. These costs overlap and are not a full CPU profile. Service timing gates
+passed with that instrumentation; the largest USB round trip was 1.165 seconds.
+No RF job ran. R2–R6, physical refill/launch acceptance, other clocks and the full
+accepted-configuration list remain open/empty. See the review for exact identities,
+raw audit hashes, retained failed attempts and restoration evidence.
