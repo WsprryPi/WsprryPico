@@ -10,9 +10,9 @@ from audit_phase11_5_load import audit as audit_load
 from audit_phase11_5_r1 import usb_measurement_costs
 
 
-def transactions(packet, exchanges, events):
+def transactions(packet, exchanges, events, *, packet_validator=validate):
     """Bind actual production or USB wire mutations to the frozen event list."""
-    validate(packet)
+    packet_validator(packet)
     requests=[v['request'] for v in exchanges]
     mut=[q for q in requests if q['op'] not in ('HELLO','CAPS','STATUS','GET_CLOCK','PING','RENEW')]
     require([q['op'] for q in mut]==['CLAIM','LOAD','ARM','RELEASE']*len(packet['jobs']),
@@ -99,8 +99,8 @@ def timing(packet, arms, rows):
     return result
 
 
-def audit(root,decoder,*,cadence_policy='strict-start-gap-v1'):
-    packet=json.loads((root/'jobs.json').read_text());validate(packet)
+def audit(root,decoder,*,cadence_policy='strict-start-gap-v1',packet_validator=validate):
+    packet=json.loads((root/'jobs.json').read_text());packet_validator(packet)
     first=json.loads((root/'usb-health.jsonl').read_text().splitlines()[0])
     require(first['kind']=='start' and first['value']['packet_sha256']==hashlib.sha256((root/'jobs.json').read_bytes()).hexdigest(),
             'Mode packet is not the observer-frozen packet')
@@ -118,7 +118,7 @@ def audit(root,decoder,*,cadence_policy='strict-start-gap-v1'):
                 require(0<=r['monotonic_ns']-start<=5*10**9,'USB transaction deadline')
                 exchanges.append(dict(request=req,response=msg,started_ns=start,finished_ns=r['monotonic_ns']))
         require(not pending,'Unfinished USB wire')
-        arms=transactions(packet,exchanges,events)
+        arms=transactions(packet,exchanges,events,packet_validator=packet_validator)
     else:arms=load.pop('mode_arms')
     mode_timing=timing(packet,arms,rows)
     nominal=[json.loads(s) for s in (root/'load-events.jsonl').read_text().splitlines()]

@@ -233,6 +233,10 @@ class DeviceFixture:
         require(packet['host_boot_id'] == HOST_BOOT ==
                 Path('/proc/sys/kernel/random/boot_id').read_text().strip(), 'Host boot changed')
         expected_helpers = HELPERS | ({'scripts/phase11_5_r2_modes_plan.py', 'scripts/phase11_5_f1_plan.py', 'src/campaign/plan.py'} if packet.get('remaining_modes') else set()) | ({'scripts/phase11_5_time_local.py'} if packet.get('time_server_mdns') else set())
+        if packet.get('r3_scope') is not None:
+            from phase11_5_r3_tls_plan import validate_allowance
+            validate_allowance(packet)
+            expected_helpers |= {'scripts/phase11_5_r3_tls_plan.py', 'scripts/phase11_5_f1_plan.py', 'src/campaign/plan.py'}
         require(set(packet['helper_sha256']) == expected_helpers, 'Incomplete helper identity set')
         for relative, expected in packet['helper_sha256'].items():
             path = self.root/relative
@@ -269,12 +273,15 @@ class DeviceFixture:
             counts = management['counts']
             require(set(counts) == {'config','wifi-off','wifi-on','heap-probe'} and
                     all(type(n) is int and n >= 0 for n in counts.values()) and
-                    counts['config'] <= (32 if self.source == UPLOAD_SOURCE else 30) and counts['wifi-off'] <= 3 and
+                    counts['config'] <= (34 if packet.get('r3_scope') else (32 if self.source == UPLOAD_SOURCE else 30)) and counts['wifi-off'] <= 3 and
                     counts['wifi-on'] <= 3 and counts['heap-probe'] <= 64,
                     'Prior operation budgets do not admit continuation/restoration')
         if packet.get('time_server_mdns'):
             require(counts == packet['initial_management_counts'], 'Carried operation counts changed')
-            if self.source == UPLOAD_SOURCE:
+            if packet.get('r3_scope') is not None:
+                from phase11_5_r3_tls_plan import validate_allowance
+                validate_allowance(packet)
+            elif self.source == UPLOAD_SOURCE:
                 from phase11_5_r2_upload_plan import COUNTS as upload_counts
                 require(packet.get('family') == 'R2' and packet.get('upload_check') is True and
                         packet['max_configuration_writes'] == 34 and counts == upload_counts,
@@ -330,7 +337,8 @@ class DeviceFixture:
             inventory_session_id=self.state['inventory_session_id'],
             original_config_sha256=ORIGINAL_CONFIG_SHA,
             test_wifi_sha256=digest(self.root/'test-wifi.json'),
-            pending=None, blocked=False, counts=counts, source_revision=self.source))
+            pending=None, blocked=False, counts=counts, source_revision=self.source,
+            **({'management_scope':packet['management_scope']} if packet.get('r3_scope') else {})))
         self.run('arm-restoration', ['systemd-run','--quiet','--unit='+unit,
             '--description='+token,'--on-active='+str(seconds)+'s','--property=UMask=0077',
             '--property=RuntimeMaxSec=600','--property=TimeoutStartSec=600',

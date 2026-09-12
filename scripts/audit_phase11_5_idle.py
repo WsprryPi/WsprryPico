@@ -46,7 +46,7 @@ def audit(path, baseline_path, rf_packet=None):
     schema=json.loads((Path(__file__).resolve().parents[1]/'docs/protocol/wtp-1.schema.json').read_text())
     validator=SchemaValidator(schema)
     modes=rf_packet is not None and rf_packet.get('schema')=='phase11.5-r2-modes-v1'
-    usb_actor=modes and rf_packet['submission_path']=='usb'
+    usb_actor=rf_packet is not None and rf_packet.get('schema') in ('phase11.5-r2-modes-v1','phase11.5-r3-tls-a1-v1') and rf_packet['submission_path']=='usb'
     wire=b'';console=b'';console_pending=False;console_value=None;messages=[];requests={};samples={}
     latest_status=None;event_id=-1;seen_request_ids=set()
     for row in rows:

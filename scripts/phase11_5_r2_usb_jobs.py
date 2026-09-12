@@ -31,6 +31,16 @@ class USBJobs:
         now=time.monotonic_ns()
         require(now<end, 'USB actor outlived nominal load')
         if self.phase=='idle':
+            if self.packet.get('schema') == 'phase11.5-r3-tls-a1-v1':
+                from phase11_5_device_management import digest
+                gate = self.root / ('pressure-ready.json' if self.index == 0 else
+                                    f'pressure-job-{self.index-1}.json')
+                if not gate.exists():return
+                value = json.loads(gate.read_text())
+                require(value['packet_sha256'] == digest(self.root/'jobs.json'), 'R3 pressure gate identity')
+                if self.index:
+                    require(value['status'] == 'PASS' and value['job_id'] ==
+                            self.packet['jobs'][self.index-1]['job_id'], 'R3 previous pressure did not pass')
             require(status['state']=='empty' and status['owner_id'] is None and not status['output_active'],
                     'USB next job requires authoritative released idle')
             require(now+int(job['total_duration_ns'])+40_000_000_000<end,'USB finite-job time reserve')

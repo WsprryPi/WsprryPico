@@ -1,0 +1,196 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "packet_sha256": "cab1abf2afffa27d79992b1d84bf393a2f1059ad3a4615829407485d695ca7a4",
+  "archive_sha256": "7fbc07f5d787f5f71ee4e491dfcda296b26f19b724ec8b5f445fe8bf7984ca6e",
+  "archive_bytes": 4689920,
+  "stage_helper_sha256": "788fb4c6595506916763229e900b6c9ccb0f7f941b0192eb282e1b2ad4e6830f",
+  "archived_files": 60,
+  "private_copies": 9,
+  "remote_root": "/home/pi/phase11-5-r3-tls-a1-20260912",
+  "jobs": [
+    {
+      "profile": "rf-events/1",
+      "mode": "tone",
+      "events": [
+        {
+          "offset_ns": "0",
+          "duration_ns": "100000000000",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        }
+      ],
+      "total_duration_ns": "100000000000",
+      "allow_frequency_adjustment": true,
+      "job_id": "80a8779729a90e0b7a3230b6198a7a9d"
+    },
+    {
+      "profile": "rf-events/1",
+      "mode": "tone",
+      "events": [
+        {
+          "offset_ns": "0",
+          "duration_ns": "100000000000",
+          "rf_on": true,
+          "frequency_nhz": "135500000000000"
+        }
+      ],
+      "total_duration_ns": "100000000000",
+      "allow_frequency_adjustment": true,
+      "job_id": "f3eba63a34a27811116c09d7b14ae1c3"
+    }
+  ],
+  "schema": "phase11.5-r3-tls-prepared-v1",
+  "physical_acceptance_assertions_passed": 0,
+  "phase11_5_families_closed": 2,
+  "accepted_configurations": [],
+  "firmware_source": "2e43110f05304efdc2ae25c298baa0ef6426955b",
+  "images": {
+    "inhibited": {
+      "file": "inhibited.uf2",
+      "sha256": "c9069bdd3dea14fef205ae38f8780d7e798442420b6738baa44f8c1e585a2938"
+    },
+    "physical": {
+      "file": "physical.uf2",
+      "sha256": "7e6e732cc7a9e196609413dfe228781a725ece56bed1b4a99a96d1cc8741baf6"
+    },
+    "original": {
+      "file": "original.uf2",
+      "sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10"
+    }
+  },
+  "initial_management_counts": {
+    "config": 34,
+    "wifi-off": 0,
+    "wifi-on": 0,
+    "heap-probe": 6
+  },
+  "proposed_max_configuration_writes": 36,
+  "scope": [
+    [
+      "positive",
+      "missing-certificate",
+      "recover-certificate",
+      "silent-handshake",
+      "recover-handshake"
+    ],
+    [
+      "positive",
+      "slot-excess",
+      "recover-slots",
+      "duplicate-wtp",
+      "recover-wtp"
+    ]
+  ],
+  "new_hardware_authorization_received": false,
+  "validation": {
+    "pico_tests_discovered": 169,
+    "pico_tests_passed": 167,
+    "pico_private_tests_skipped": 2,
+    "new_r3_tests_passed": 12,
+    "pressure_evidence_mutations_rejected": 14,
+    "observer_mutations_rejected": 6,
+    "pi_helper_tests_passed": 12,
+    "reused_r2_usb_jobs_audit": "PASS: 3 jobs",
+    "firmware_implementation_changed": false
+  },
+  "packet_local_path": "build/phase11-5-r3-tls-a1/stage/packet.json",
+  "stage_manifest": {
+    "docs/protocol/wtp-1.schema.json": "fae1a7f94adb875733f47f22438a0811a3ab7fd9e4b8477780aea77cad62c8a8",
+    "inhibited.uf2": "c9069bdd3dea14fef205ae38f8780d7e798442420b6738baa44f8c1e585a2938",
+    "physical.uf2": "7e6e732cc7a9e196609413dfe228781a725ece56bed1b4a99a96d1cc8741baf6",
+    "pi/phase115_production_load.py": "5d854540d9369173f1ec13a5a489c2045a7ace634da6aa10a8c42f0529b1ed0d",
+    "pi/phase115_tls_observer.c": "7c6a4afba6f414b9ef6a92ee223b0c0863219311e9c472a0d32a92f45f7e4a1d",
+    "pi/phase115_tls_observer_test.py": "5cf410758c48e05bc35f04f394b486f0b210b93e7ab785cedaf1bc7dd689162d",
+    "production.ini": "8046a72b228aa52c23a794ac6cdeb8d0d3f3740c2d74874b26f722827bac4960",
+    "scripts/audit_phase11_5_a3.py": "9b2f3c66ed42e15afed75513fe369327f9bea8020b4c961df4eeb247a3e7ce25",
+    "scripts/audit_phase11_5_idle.py": "332551cca95b7782971f0d5d3a65add3b1ee42bdfa34d75b853ae02a237d6a96",
+    "scripts/audit_phase11_5_load.py": "9f62795dac996dc2381d3fe1497542b943d1c53f20e6f8eda793e07b54512f2f",
+    "scripts/audit_phase11_5_network_fixture.py": "927633e9abd3a69bde4c50da750eb62238d6f088fa4d56666e3642ed456d7722",
+    "scripts/audit_phase11_5_r1.py": "e9bb9d1d687949e82cfafd365eb7944b97c5d7530f546e0520240eed05dbb817",
+    "scripts/audit_phase11_5_r2.py": "8196d8b0d7cb02a9c857fffc3b36e4e79ed913f4908ed2f4f9ee00104234c927",
+    "scripts/audit_phase11_5_r2_failure.py": "899ece7f59dd46af9740ca9966e9e06f1297797c02c18cc00fb4255922d74a04",
+    "scripts/audit_phase11_5_r2_modes.py": "fe5fd462c965e94738fe0877b5208e419ebbf3641590f66bab9cee66d90d51f7",
+    "scripts/audit_phase11_5_r3_tls.py": "4cf56ac37f40df383a141adc3628437dfb066885834a6000388d49b7f8cfe7e2",
+    "scripts/phase11_4_hotspot.py": "20253c0ab455f023bc360b7b9f10fba5b6b719ffffddce79c0c7128a4e7712ee",
+    "scripts/phase11_5_a2_family.py": "dd30c56b9f102674ac04c7dc20ce63158d2d88833608fb8985e4442b7d7cd935",
+    "scripts/phase11_5_a2_load.py": "41249ccc8c9c11c75bbe3d4fe6a031cb74e60b1735229ae2b50330699bfbaad1",
+    "scripts/phase11_5_a3.py": "21823842959eba1d7e9501c1dd268d52fd97e12596d8a919478f0d476d6eb909",
+    "scripts/phase11_5_b1.py": "5479a7dcd2d40ae552ae5ed849a12e5b28d0eb23dd473d0e9fe6352eec08a0d3",
+    "scripts/phase11_5_browser_jobs.py": "868e8376a05eabfad382517a4b951a9f177b51c50619e55c06578e90fe23a575",
+    "scripts/phase11_5_device_fixture.py": "34289b544893a129d36d7e6e903faca40f2a524f78a3379430ddb46d07bbda30",
+    "scripts/phase11_5_device_management.py": "1c9aa0aa59653823d685a853d5795dbd402b3c04a9e6f573c52568c3e11c7662",
+    "scripts/phase11_5_f1_plan.py": "99b6ffcdf166f62ee7c28098f90599d5c63b3868a5e2f8ea2ddd9f3ca71b8bac",
+    "scripts/phase11_5_idle_observer.py": "b5c29a66cb92349476946d0e78a56c32a8ca1d8234cc396da1c3a5c69774f97c",
+    "scripts/phase11_5_inventory.py": "ba3512651faccd72fea5d092fe9fc6bc69559a460d166d689cc5b48bd658eb21",
+    "scripts/phase11_5_network_fault.py": "68b05dbea6b033cbb09d1d997e52e3d73207576b291d79f1330c4efbb042e041",
+    "scripts/phase11_5_network_fixture.py": "533b71e38f544ca74451bfc4562482642c0bb32211045a5c6bafc79edb83d9f0",
+    "scripts/phase11_5_pilot.py": "bb91dc6fea9fb10e7564252810b534979a1f28b36de132745d100f388c3003c4",
+    "scripts/phase11_5_pilot_supervisor.py": "dbf97a316ebe02eb27f90d838ce70c468b75abc38749a7af3f6911beab8dd9e7",
+    "scripts/phase11_5_r1.py": "e171de2f85387a808046b661b138e86935e8d4befd86b07ff169c170cc37aa32",
+    "scripts/phase11_5_r1_adversarial.py": "a06d3aee2ab599904ef15286b5435a11dbd601acb6245315fb4bf186fb613331",
+    "scripts/phase11_5_r2.py": "4c138e336e48853c4e918c6d8e94fa2e649c6ae14e8fc54af2a9bc578bc9fff2",
+    "scripts/phase11_5_r2_admin_review.py": "077e58ced27f48f02999f9e78de6bad975dc0337facc9c6d979cc26c6bf14eef",
+    "scripts/phase11_5_r2_amended.py": "f6136234cf9db340d5c20d3b5e1366adc39b8eaa7ec0c906c4118372ba4faa92",
+    "scripts/phase11_5_r2_amended_plan.py": "a28672abb2703ee1fee2a49e5dfb5ed81347a6d3172584966c4ba4d568a5f679",
+    "scripts/phase11_5_r2_modes.py": "9558a5d34bc12f15b9fab592d0546cfdde00e0673a69f125b34eaaa073a66be8",
+    "scripts/phase11_5_r2_modes_plan.py": "2ed53fc77b80cbbee9d7fa53bf8ba3d96928bc2a5229104cc0fc7317ccbb1d0b",
+    "scripts/phase11_5_r2_oom_recovery.py": "d09906bdadd7b16150097f64934d9e8873fc987504b5468e3063aa9726353f98",
+    "scripts/phase11_5_r2_plan.py": "e7b9157ca65f7abc1fd509f070467d908ad5808a4d408772d61e4df71f509bbc",
+    "scripts/phase11_5_r2_upload_plan.py": "734d86758b7870aea761f9637a3861904b755e6e333b2a8855377815aeed969a",
+    "scripts/phase11_5_r2_usb_jobs.py": "b5c1f3f02b6d20d0858e3d9ac96f9457f7928842144c557cebf0e794671519d9",
+    "scripts/phase11_5_r3_preflight.py": "637741fa271719beb4c3a764af2d88ea0ca4cd0b8cda3094f86167e0f64822e7",
+    "scripts/phase11_5_r3_tls.py": "48f077cc226e95258c7691cb323bd2943fa3bd75a0b73427e083b109be0a605b",
+    "scripts/phase11_5_r3_tls_plan.py": "cb9dd2ef86b2c3b9bfdad9d40f107cb853bf7313f1373dfdcb9f73e7954ebd68",
+    "scripts/phase11_5_r3_tls_pressure.py": "092f6cbe58d83679591eee376f193a813b2eb489bd9cedc26ee214be7bf905c6",
+    "scripts/phase11_5_r3_tls_stage.py": "788fb4c6595506916763229e900b6c9ccb0f7f941b0192eb282e1b2ad4e6830f",
+    "scripts/phase11_5_recover.py": "2b806e11030867c0187a319b7116a97c81800bca4e979fcb3e89de8c9cd635ec",
+    "scripts/phase11_5_release_completed.py": "a24658cfeab1426ff3f8cc7bf04122126a9fcee45ac580902da1b72477493681",
+    "scripts/phase11_5_release_missed.py": "40d8eba2324a7f367d8edaeeba714bcda758776bfd679eb2636dc5c7a2814510",
+    "scripts/phase11_5_rf_observer.py": "d1afac4842d91f1f1032aa9723eba9c1484c43f11224cb06c3d78838bb0b7e3c",
+    "scripts/phase11_5_time_local.py": "ac26b85628f05990905e86b236a1a6bd6f8cba84ea6729dcdf750f0aed928783",
+    "scripts/phase11_5_trace_reader.py": "92d30c24532880aa0ff01474514e919e414710e3e0121c886db3558bbf227efe",
+    "scripts/validate_phase11_5_a3_schedule.py": "7c85c0bbea52c2d3698f51b5b7989d9fbf778401905b781bab9b7cb6ad43654b",
+    "scripts/validate_phase11_5_f1_schedule.py": "a94d3a48dedc2640fbbaa93dc69e46369ec7360868847f3078be9caf97a49736",
+    "scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+    "scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9",
+    "src/campaign/plan.py": "13f7f1181dc4e04a81077b4b2e9d66d881310aabbcafae907fdd74b226ae4923"
+  },
+  "private_copy_inputs": {
+    "original-config.json": {
+      "path": "/home/pi/phase11-5-r2-upload-2e43110/original-config.json",
+      "sha256": "2978a00337f174286085251ec12ea15d0e524652738e009af3eb64e3be4ca0bf"
+    },
+    "original.uf2": {
+      "path": "/home/pi/phase11-5-r2-upload-2e43110/original.uf2",
+      "sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10"
+    },
+    "pi/phase115_tls_observer.so": {
+      "path": "/home/pi/phase11-5-r2-upload-2e43110/pi/phase115_tls_observer.so",
+      "sha256": "fd70cde276b04aa08e771e12b83335a89aae24e050e2f2c5e56ed6848eb1a7bc"
+    },
+    "credentials/controller/client-ca.crt": {
+      "path": "/home/pi/phase11-5-r2-upload-2e43110/credentials/controller/client-ca.crt",
+      "sha256": "cda60b730367129165b43aef6ff129dc0107ad878cd95e4ecedf9243327f847e"
+    },
+    "credentials/controller/client.crt": {
+      "path": "/home/pi/phase11-5-r2-upload-2e43110/credentials/controller/client.crt",
+      "sha256": "6eff58d32983f47cd0d94ff265bb391168b7a066074d939bf7deafc13a70e99e"
+    },
+    "credentials/controller/client.key": {
+      "path": "/home/pi/phase11-5-r2-upload-2e43110/credentials/controller/client.key",
+      "sha256": "d978ee5b5b8276498a06811983e466ee050fac7a012fae1b2a7caeb4c050c972"
+    },
+    "credentials/browser/client-ca.crt": {
+      "path": "/home/pi/phase11-5-r2-upload-2e43110/credentials/browser/client-ca.crt",
+      "sha256": "cda60b730367129165b43aef6ff129dc0107ad878cd95e4ecedf9243327f847e"
+    },
+    "credentials/browser/client.crt": {
+      "path": "/home/pi/phase11-5-r2-upload-2e43110/credentials/browser/client.crt",
+      "sha256": "d33d28277bc58a49e723b4736c04899efe566a5e5aeda542679d703bed378b7c"
+    },
+    "credentials/browser/client.key": {
+      "path": "/home/pi/phase11-5-r2-upload-2e43110/credentials/browser/client.key",
+      "sha256": "76ecdbaa15ac322a4c16b9bfa3c5c05942a3417ec2c271105ad89bfb0fb335bd"
+    }
+  }
+}

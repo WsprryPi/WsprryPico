@@ -102,6 +102,11 @@ def authorize(state, action, argument):
     counts = state['counts']
     require(set(counts) == {'config', 'wifi-off', 'wifi-on', 'heap-probe'} and
             all(type(v) is int and v >= 0 for v in counts.values()), 'Invalid operation counters')
+    if state.get('management_scope') is not None:
+        from phase11_5_r3_tls_plan import MANAGEMENT_SCOPE, authorize_management
+        require(state['management_scope'] == MANAGEMENT_SCOPE, 'Unknown management extension')
+        authorize_management(state, action, argument)
+        return
     if action == 'config':
         # Always retain one successful-write allowance for original restoration.
         limit = 34 if state.get('source_revision') == UPLOAD_SOURCE else MAX_WRITES
@@ -163,6 +168,11 @@ def main():
         state = json.loads(state_path.read_text())
         require(state.get('source_revision', packet['source_revision']) == packet['source_revision'],
                 'Management allowance source differs from frozen packet')
+        require(state.get('management_scope') == packet.get('management_scope'),
+                'Management extension differs from frozen packet')
+        if packet.get('management_scope') is not None:
+            from phase11_5_r3_tls_plan import validate_allowance
+            validate_allowance(packet)
         require(state['host_boot'] == Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
                 'Host boot changed')
         unit = state['restoration_unit']

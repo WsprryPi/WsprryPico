@@ -25,7 +25,9 @@ the [P0 review](phase11-5-r3-preflight-review.md) records exact raw evidence and
 twelve rejected mutations. Both boards retain their original inhibited images,
 unchanged boots, and authoritative Empty/inactive/unowned state. CONFIG remains
 34/34 and probes remain six. The P0 staging/USB grant is consumed.
-The R3 RF executors and concrete fixture/RF grant remain outstanding.
+The [A1 TLS/slot executor and audit](phase11-5-r3-tls-review.md) are now prepared.
+The [concrete A1 execution packet](phase11-5-r3-tls-execution.md) awaits a new
+fixture/RF grant and CONFIG allowance 34→36. No A1 physical assertion has run.
 
 ## Evidence that already exists
 

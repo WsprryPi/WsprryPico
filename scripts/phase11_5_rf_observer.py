@@ -94,7 +94,7 @@ def main():
             == HOST_BOOT, 'Expected wspr5 root and boot required')
     os.umask(0o077)
     packet=json.loads(args.packet.read_text());validate_packet(packet)
-    require(args.seconds==((packet['nominal_seconds']+60) if packet['schema'] in ('phase11.5-r2-tone-v1','phase11.5-r2-tone-v2','phase11.5-r2-modes-v1') else (NOMINAL_SECONDS+60 if packet['schema']==F1_SCHEMA else 240)),'Frozen RF observation interval')
+    require(args.seconds==((packet['nominal_seconds']+60) if packet['schema'] in ('phase11.5-r2-tone-v1','phase11.5-r2-tone-v2','phase11.5-r2-modes-v1','phase11.5-r3-tls-a1-v1') else (NOMINAL_SECONDS+60 if packet['schema']==F1_SCHEMA else 240)),'Frozen RF observation interval')
     packet_sha=hashlib.sha256(args.packet.read_bytes()).hexdigest()
     pid_start=Path('/proc/self/stat').read_text().rsplit(')',1)[1].split()[19]
     require(packet['revision'] in ('4058d3a4a951', 'e20ae8bea2d5', '049cc929143b', '2e43110f0530') and inventory_session(packet['owner_id'])==packet['owner_id'],
@@ -161,7 +161,7 @@ def main():
                 def read():
                     value = peer.request('STATUS'); validate_status(value, boot, packet)
                     return value
-                if packet.get('submission_path')=='usb' and packet['schema']=='phase11.5-r2-modes-v1':
+                if packet.get('submission_path')=='usb' and packet['schema'] in ('phase11.5-r2-modes-v1','phase11.5-r3-tls-a1-v1'):
                     from phase11_5_r2_usb_jobs import USBJobs
                     actor=USBJobs(packet,args.output.parent,peer,emit,checkpoint)
                     def read_and_act():
