@@ -23,8 +23,10 @@
 using namespace wsprrypico::wtp;
 
 static std::size_t allocations = 0;
+static std::size_t largest_allocation = 0;
 void* operator new(std::size_t size) {
     ++allocations;
+    largest_allocation = std::max(largest_allocation, size);
     if (auto* result = std::malloc(size ? size : 1))
         return result;
     throw std::bad_alloc();
@@ -242,6 +244,76 @@ void test_crc_and_frame_encoding() {
     CHECK(encode_frame({}).empty());
     std::vector<std::uint8_t> oversized(kMaximumPayloadBytes + 1, 0);
     CHECK(encode_frame(oversized).empty());
+}
+
+void test_wspr_sized_frame_allocation() {
+    // The failed target USB LOAD was 16,684 framed bytes. Its proven R1
+    // single-request lower bound was 18,364 bytes, not the geometric 32 KiB.
+    const std::vector<std::uint8_t> payload(16668, 'x');
+    const auto wire = encode_frame(payload);
+    FrameParser parser;
+    largest_allocation = 0;
+    std::vector<FrameEvent> completed;
+    for (const auto& byte : wire) {
+        auto events = parser.feed(std::span(&byte, 1), 0);
+        if (!events.empty())
+            completed = std::move(events);
+    }
+    CHECK(completed.size() == 1);
+    CHECK(completed[0].payload == payload);
+    CHECK(largest_allocation <= 18364);
+}
+
+void test_large_frames_across_feed_boundaries() {
+    for (const std::size_t length : {16668U, 65536U}) {
+        std::vector<std::uint8_t> payload(length);
+        for (std::size_t i = 0; i < length; ++i)
+            payload[i] = static_cast<std::uint8_t>(i * 37);
+        const auto frame = encode_frame(payload);
+        const std::vector<std::uint8_t> suffix_payload{1, 2, 3};
+        const auto suffix = encode_frame(suffix_payload);
+        auto wire = std::vector<std::uint8_t>{'x', 'W', 'T'};
+        wire.insert(wire.end(), frame.begin(), frame.end());
+        wire.insert(wire.end(), suffix.begin(), suffix.end());
+        for (const std::size_t chunk : {1U, 15U, 16U, 17U, 4096U, 65536U}) {
+            FrameParser parser;
+            std::vector<std::vector<std::uint8_t>> decoded;
+            largest_allocation = 0;
+            for (std::size_t offset = 0; offset < wire.size(); offset += chunk) {
+                for (auto& event : parser.feed(
+                         std::span(wire).subspan(offset, std::min(chunk, wire.size() - offset)),
+                         0)) {
+                    CHECK(event.kind == FrameEventKind::Payload);
+                    decoded.push_back(std::move(event.payload));
+                }
+            }
+            CHECK(!parser.closed());
+            CHECK(parser.buffered_bytes() == 0);
+            CHECK(decoded.size() == 2);
+            CHECK(decoded[0] == payload && decoded[1] == suffix_payload);
+            CHECK(largest_allocation <= length + kFrameHeaderBytes + 4096);
+        }
+    }
+}
+
+void test_sha256_allocation_free_padding_boundaries() {
+    const std::vector<std::uint8_t> input(65536, 'a');
+    const std::array<std::pair<std::size_t, std::string_view>, 8> vectors{{
+        {0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+        {55, "9f4390f8d30c2dd92ec9f095b65e2b9ae9b0a925a5258e241c9f1e910f734318"},
+        {56, "b35439a4ac6f0948b6d6f9e3c6af0f5f590ce20f1bde7090ef7970686ec6738a"},
+        {63, "7d3e74a05d7db15bce4ad9ec0658ea98e3f06eeecf16b4c6fff2da457ddc2f34"},
+        {64, "ffe054fe7ae0cb6dc65c3af9b61d5209f439851db43d0ba5997337df154668eb"},
+        {65, "635361c48bb9eab14198e76ea8ab7f1a41685d6ad62aa9146d301d4f17eb0ae0"},
+        {16668, "a3a7dab3c4f7b8eefe13d2bccb1dfd819bf26a71b1d4828bd4ec36a39d7876b8"},
+        {65536, "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a"},
+    }};
+    for (const auto& [length, expected] : vectors) {
+        const auto before = allocations;
+        const auto digest = sha256(std::span(input).first(length));
+        CHECK(allocations == before);
+        CHECK(hex(digest) == expected);
+    }
 }
 
 void test_fragmented_and_combined_frames() {
@@ -980,6 +1052,9 @@ int main() {
         {"allocation-free activity with retained history", test_activity_with_retained_history},
         {"physical Console abort", test_physical_console_abort},
         {"crc and frame encoding", test_crc_and_frame_encoding},
+        {"WSPR-sized frame allocation", test_wspr_sized_frame_allocation},
+        {"allocation-free SHA padding", test_sha256_allocation_free_padding_boundaries},
+        {"large frame feed boundaries", test_large_frames_across_feed_boundaries},
         {"fragmented and combined frames", test_fragmented_and_combined_frames},
         {"frame recovery limits and timeout", test_frame_recovery_limits_and_timeout},
         {"negotiation sessions and unknown operations",

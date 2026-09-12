@@ -1,9 +1,9 @@
 #include "wtp/sha256.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <vector>
 
 namespace wsprrypico::wtp {
 namespace {
@@ -33,22 +33,12 @@ std::uint32_t read_u32_be(const std::uint8_t* input) {
 } // namespace
 
 PayloadDigest sha256(std::span<const std::uint8_t> bytes) {
-    std::vector<std::uint8_t> padded(bytes.begin(), bytes.end());
-    const auto bit_length = static_cast<std::uint64_t>(bytes.size()) * 8U;
-    padded.push_back(0x80U);
-    while (padded.size() % 64 != 56) {
-        padded.push_back(0);
-    }
-    for (int shift = 56; shift >= 0; shift -= 8) {
-        padded.push_back(static_cast<std::uint8_t>(bit_length >> static_cast<unsigned>(shift)));
-    }
-
     std::array<std::uint32_t, 8> hash{0x6a09e667U, 0xbb67ae85U, 0x3c6ef372U, 0xa54ff53aU,
                                       0x510e527fU, 0x9b05688cU, 0x1f83d9abU, 0x5be0cd19U};
-    for (std::size_t offset = 0; offset < padded.size(); offset += 64) {
+    const auto compress = [&hash](const std::uint8_t* block) {
         std::array<std::uint32_t, 64> words{};
         for (std::size_t index = 0; index < 16; ++index) {
-            words[index] = read_u32_be(padded.data() + offset + index * 4);
+            words[index] = read_u32_be(block + index * 4);
         }
         for (std::size_t index = 16; index < words.size(); ++index) {
             const auto s0 = rotate_right(words[index - 15], 7) ^
@@ -89,7 +79,27 @@ PayloadDigest sha256(std::span<const std::uint8_t> bytes) {
         hash[5] += f;
         hash[6] += g;
         hash[7] += h;
+    };
+    std::size_t offset = 0;
+    while (bytes.size() - offset >= 64) {
+        compress(bytes.data() + offset);
+        offset += 64;
     }
+    // Keep only the partial block and padding on the stack. In particular,
+    // hashing a LOAD must not copy and geometrically grow its entire payload.
+    std::array<std::uint8_t, 64> tail{};
+    const auto remaining = bytes.size() - offset;
+    std::copy(bytes.begin() + static_cast<std::ptrdiff_t>(offset), bytes.end(), tail.begin());
+    tail[remaining] = 0x80U;
+    if (remaining >= 56) {
+        compress(tail.data());
+        tail.fill(0);
+    }
+    const auto bit_length = static_cast<std::uint64_t>(bytes.size()) * 8U;
+    for (std::size_t index = 0; index < 8; ++index) {
+        tail[63 - index] = static_cast<std::uint8_t>(bit_length >> (index * 8));
+    }
+    compress(tail.data());
 
     PayloadDigest digest{};
     for (std::size_t index = 0; index < hash.size(); ++index) {

@@ -69,9 +69,17 @@ std::vector<FrameEvent> FrameParser::feed(std::span<const std::uint8_t> bytes,
         // Geometric growth must not turn a 65,552-byte frame into a 128 KiB
         // allocation on the target. One bounded feed chunk may follow a frame.
         if (buffer_.size() + count > buffer_.capacity()) {
-            const auto capacity =
-                std::min(kMaximumPayloadBytes + kFrameHeaderBytes + kChunkBytes,
-                         std::max(buffer_.size() + count, buffer_.capacity() * 2));
+            auto capacity = std::min(kMaximumPayloadBytes + kFrameHeaderBytes + kChunkBytes,
+                                     std::max(buffer_.size() + count, buffer_.capacity() * 2));
+            // process() leaves a complete header only for an incomplete,
+            // validated frame. Size its next allocation to that frame instead
+            // of rounding a WSPR upload up to 32 KiB. A batched feed can also
+            // include following frames, so retain room for the current chunk.
+            if (buffer_.size() >= kFrameHeaderBytes) {
+                const auto frame_size =
+                    kFrameHeaderBytes + static_cast<std::size_t>(read_u32_be(buffer_.data() + 8));
+                capacity = std::max(buffer_.size() + count, frame_size);
+            }
             if (!memory_admitted(capacity)) {
                 close(events);
                 break;
