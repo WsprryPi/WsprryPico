@@ -61,3 +61,12 @@ stack tail; it performs no heap allocations. Digest semantics are unchanged.
 Both new allocation assertions failed on the old code and pass after the repair.
 The target panic itself is not yet demonstrated fixed. Host tests qualify these
 source behaviors, not target allocator fragmentation, Wi-Fi contention or RF.
+
+Adversarial review found a third spike: the LOAD acknowledgement assembled a
+separate adjustments body and grew its string geometrically. A 162-adjustment
+regression exceeded the demonstrated 18,364-byte single-request bound. The
+encoder now sizes and appends the final LOAD response once, including decimal
+widths and punctuation. The regression passes and its wire digest matches an
+independently constructed JSON fixture. The requested allocation bound applies
+to this WSPR case; it does not redefine the protocol's maximum frame/job limits.
+The final host run passed all 51 CTest groups, including 29 core assertions.

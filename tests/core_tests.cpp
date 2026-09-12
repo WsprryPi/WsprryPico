@@ -1,5 +1,6 @@
 #include "time/usb_time_source.hpp"
 #include "time/utc_discipline.hpp"
+#include "wtp/codec.hpp"
 #include "wtp/frame_parser.hpp"
 #include "wtp/inhibited_rf_engine.hpp"
 #include "wtp/job_service.hpp"
@@ -262,6 +263,28 @@ void test_wspr_sized_frame_allocation() {
     CHECK(completed.size() == 1);
     CHECK(completed[0].payload == payload);
     CHECK(largest_allocation <= 18364);
+}
+
+void test_wspr_adjustment_response_allocation() {
+    Request r;
+    r.operation = "LOAD";
+    r.session_id = std::string(32, '1');
+    r.request_id = std::string(32, '2');
+    Response response;
+    response.ok = true;
+    response.job_id = std::string(32, '3');
+    for (std::size_t n = 0; n < 162; ++n)
+        response.adjustments.push_back({n, 135500000000000ULL, 135500000000001ULL});
+    largest_allocation = 0;
+    const auto encoded = encode_response(r, response, ServiceConfig{}, "device", "firmware");
+    CHECK(largest_allocation <= 18364);
+    CHECK(encoded.size() == 17466);
+    const auto parsed = json::parse(encoded);
+    CHECK(parsed.has_value());
+    CHECK(parsed->get("body")->get("adjustments")->elements().size() == 162);
+    CHECK(hex(sha256(
+              std::span(reinterpret_cast<const std::uint8_t*>(encoded.data()), encoded.size()))) ==
+          "f636c031c226c26495c0dd23e89db1033e97f80da876957c064f466dd326caa9");
 }
 
 void test_large_frames_across_feed_boundaries() {
@@ -1055,6 +1078,7 @@ int main() {
         {"WSPR-sized frame allocation", test_wspr_sized_frame_allocation},
         {"allocation-free SHA padding", test_sha256_allocation_free_padding_boundaries},
         {"large frame feed boundaries", test_large_frames_across_feed_boundaries},
+        {"WSPR adjustment response allocation", test_wspr_adjustment_response_allocation},
         {"fragmented and combined frames", test_fragmented_and_combined_frames},
         {"frame recovery limits and timeout", test_frame_recovery_limits_and_timeout},
         {"negotiation sessions and unknown operations",

@@ -24,6 +24,14 @@ bool operation(std::string_view v) {
                return (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
            });
 }
+std::size_t decimal_width(std::uint64_t value) {
+    std::size_t width = 1;
+    while (value >= 10) {
+        value /= 10;
+        ++width;
+    }
+    return width;
+}
 std::string ns(std::uint64_t n) {
     return quote(std::to_string(n));
 }
@@ -285,17 +293,32 @@ std::string encode_response(const Request& r, const Response& s, const ServiceCo
             ",\"granted_lease_ms\":" + std::to_string(s.granted_lease_ms) +
             ",\"expires_monotonic_ns\":" + ns(s.expires_monotonic_ns) + '}';
     else if (r.operation == "LOAD") {
-        b = "{\"job_id\":" + quote(s.job_id) + ",\"state\":\"loaded\",\"adjustments\":[";
+        out +=
+            ",\"body\":{\"job_id\":" + quote(s.job_id) + ",\"state\":\"loaded\",\"adjustments\":[";
+        // LOAD can return hundreds of adjustments. Size the final response
+        // once, without a second full body or geometric string growth.
+        constexpr auto punctuation = std::string_view(
+            "{\"event_index\":,\"requested_frequency_nhz\":\"\",\"realized_frequency_nhz\":\"\"}");
+        auto bytes = out.size() + 3;
         bool first = true;
         for (const auto& a : s.adjustments) {
-            if (!first)
-                b += ',';
+            bytes += (first ? 0 : 1) + punctuation.size() + decimal_width(a.event_index) +
+                     decimal_width(a.requested_frequency_nhz) +
+                     decimal_width(a.realized_frequency_nhz);
             first = false;
-            b += "{\"event_index\":" + std::to_string(a.event_index) +
-                 ",\"requested_frequency_nhz\":" + ns(a.requested_frequency_nhz) +
-                 ",\"realized_frequency_nhz\":" + ns(a.realized_frequency_nhz) + '}';
         }
-        b += "]}";
+        out.reserve(bytes);
+        first = true;
+        for (const auto& a : s.adjustments) {
+            if (!first)
+                out += ',';
+            first = false;
+            out += "{\"event_index\":" + std::to_string(a.event_index) +
+                   ",\"requested_frequency_nhz\":" + ns(a.requested_frequency_nhz) +
+                   ",\"realized_frequency_nhz\":" + ns(a.realized_frequency_nhz) + '}';
+        }
+        out += "]}}";
+        return out;
     } else if (r.operation == "ARM" && s.clock_snapshot)
         b = "{\"job_id\":" + quote(s.job_id) +
             ",\"state\":\"armed\",\"start_utc_ns\":" + ns(s.start_utc_ns) +
