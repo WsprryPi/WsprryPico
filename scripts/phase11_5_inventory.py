@@ -15,13 +15,27 @@ import termios
 import time
 import uuid
 
-from validate_wtp_contract import SchemaValidator, crc32c, frame, loads_strict
+from validate_wtp_contract import (SchemaValidator, crc32c, frame, loads_strict,
+    unique_object, reject_float, reject_constant, json_depth, validate_unicode)
 from wtp_monitor import configure_raw
 
 
 def require(condition, message):
     if not condition:
         raise ValueError(message)
+
+
+def loads_console(source):
+    """Console diagnostics include native uint32 hashes and uint64 counters."""
+    def integer(text):
+        value = int(text)
+        require(-(1 << 63) <= value <= (1 << 64) - 1, 'Console integer exceeds 64-bit range')
+        return value
+    value = json.loads(source, object_pairs_hook=unique_object, parse_int=integer,
+                       parse_float=reject_float, parse_constant=reject_constant)
+    require(json_depth(value) <= 16, 'Console JSON nesting exceeds 16')
+    validate_unicode(value)
+    return value
 
 
 def inventory_session(value):
@@ -93,7 +107,7 @@ def exchange(fd, data, deadline, emit, framed):
         if not framed and b'\n' in received:
             require(received.endswith(b'\n') and received.count(b'\n') == 1, 'Console framing')
             require(not pending, 'Response before request completed')
-            return loads_strict(received.decode().strip())
+            return loads_console(received.decode().strip())
         if framed and len(received) >= 16:
             magic, version, encoding, flags, size, crc = struct.unpack('>4sBBHII', received[:16])
             require((magic, version, encoding, flags) == (b'WTPF', 1, 1, 0) and

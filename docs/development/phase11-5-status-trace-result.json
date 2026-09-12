@@ -1,0 +1,186 @@
+{
+  "schema": "phase11.5-status-trace-result-v1",
+  "result": "DIAGNOSTIC_COMPLETED_STALL_NOT_REPRODUCED",
+  "firmware_revision": "4058d3a4a95110326006a7db6e37eb4b562a500c",
+  "inhibited_clock_hz": 150000000,
+  "inhibited_uf2_sha256": "0a7d54673e7171ee10275272701de5fbb3cecdc91c097a18eeae496c0922c7b9",
+  "physical_clock_candidate_hz": 138000000,
+  "physical_execution": "NOT_RUN",
+  "rf_jobs_submitted": 0,
+  "newly_closed_acceptance_cases": 0,
+  "historical_closed_acceptance_cases": 2,
+  "total_acceptance_cases": 20,
+  "accepted_configurations": [],
+  "load": {
+    "boot": "e37db75401c4f7d3b01bc2ee0195d51f",
+    "seconds": 300,
+    "production_connections": 1,
+    "logical_sessions": 1,
+    "operations": {
+      "HELLO": 1,
+      "STATUS": 303,
+      "CAPS": 1
+    },
+    "nominal_status_count": 300,
+    "nominal_status_hz": 1.0,
+    "nominal_max_status_start_gap_ns": 1090124856,
+    "worst_status_start_gap_requests": [
+      {
+        "request_id": "00000000000000000000000000000044",
+        "started_ns": 120242152201062,
+        "write_completed_ns": 120242155850367
+      },
+      {
+        "request_id": "00000000000000000000000000000045",
+        "started_ns": 120243242325918,
+        "write_completed_ns": 120243246340130
+      }
+    ],
+    "browser_counts": {
+      "/api/v1/status": 60,
+      "/": 10,
+      "/style.css": 10,
+      "/app.js": 10
+    },
+    "max_observed_write_to_response_seconds": 0.82101669,
+    "timing_origin": "SSL_write_ex entry",
+    "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+    "plaintext_sha256": "c40174e53271415df3b6f9e8c4759aba27dadde855f0ed651d8fa5ef025e40fd"
+  },
+  "usb": {
+    "info": {
+      "samples": 360,
+      "max_gap_seconds": 1.186896401
+    },
+    "status": {
+      "samples": 72,
+      "max_gap_seconds": 5.000192751
+    },
+    "health": {
+      "samples": 72,
+      "max_gap_seconds": 5.000087812
+    },
+    "boot": "e37db75401c4f7d3b01bc2ee0195d51f",
+    "seconds": 360,
+    "raw_wire_verified": true,
+    "max_allocator_peak_bytes": 118572,
+    "last_heap_allocated_bytes": 21836
+  },
+  "browser_max_request_ns": 3033977811,
+  "packet_captures": {
+    "ap_packets": 3816,
+    "client_packets": 3820,
+    "ap_kernel_capture_drops": 0,
+    "client_kernel_capture_drops": 0,
+    "ap_only_packets": 0,
+    "client_only_packets": 4,
+    "limitation": "Four client-output packets are absent from the AP capture and continuous DUT input trace; captures do not identify the responsible radio/driver component."
+  },
+  "n1u_reaudit": {
+    "result": "FAIL",
+    "nominal_status_count": 179,
+    "original_write_return_gap_ns": 2696718780,
+    "corrected_write_entry_gap_ns": 2696674577,
+    "original_max_write_entry_to_response_ns": 2592628676
+  },
+  "restoration": {
+    "pico_a": {
+      "serial": "0BF4B4AEC9FFB344",
+      "boot_id": "bbabf4bdffb92c6bb0f04f11929c2262",
+      "revision": "802c91a7b86e-dirty",
+      "status": {
+        "boot_id": "bbabf4bdffb92c6bb0f04f11929c2262",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "original_configuration_verified": true
+    },
+    "pico_b": {
+      "serial": "CDDBF8767C506C07",
+      "boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+      "revision": "dbf1d86f0885-dirty",
+      "status": {
+        "boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      }
+    },
+    "host_restored": true,
+    "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+    "installed_service_pid": "1957",
+    "cumulative_management_counts": {
+      "config": 18,
+      "wifi-off": 0,
+      "wifi-on": 0,
+      "heap-probe": 0
+    }
+  },
+  "archive_sha256": "b7308d25a27ee1abd511120a18a33201961a9667bb261c823df0964749570269",
+  "evidence_sha256": {
+    "packet.json": "0370444f29b93340fec09358d4e2b554627162682bf8273a128eddb168df3407",
+    "status-diagnostic.py": "4ca5c9c66e54b8e30f3cb1f01facf7bb49c2d191edc2f0cb798b8644fc9330f3",
+    "scripts/phase11_5_trace_reader.py": "92d30c24532880aa0ff01474514e919e414710e3e0121c886db3558bbf227efe",
+    "scripts/phase11_5_idle_observer.py": "d3406dc91240efd084d292b699565ac571e12bf2e88f27fa445b52c29a9b2fdf",
+    "scripts/phase11_5_inventory.py": "ba3512651faccd72fea5d092fe9fc6bc69559a460d166d689cc5b48bd658eb21",
+    "capture-ap.pcap": "a0ba8e34c98ba7fa03f0b64f06a35165bcf20519f5b8e5ab785fe1d2cd7b8139",
+    "capture-client.pcap": "d53739c2fbae625fd02031403e57ab23b6b20cbebd4ac5a4a7cbbc40853e02fe",
+    "capture-ap.log": "47896f82621c81afb9743370328fc2a13cbf7ecda72e64061989b8e164fbe571",
+    "capture-client.log": "7ba760fa2be122af7ffd8865dd44fb4dc0ce37a40b20bce570cca9d6ac70745a",
+    "packet-clock-bridge.jsonl": "844b12055a24ecd7fa03b79d3ae18cd59ede35c68cbaa4cb5e2ddac4b06a6dbb",
+    "a2-inhibited-tcp-diagnostic-nominal/production-tls.bin": "c40174e53271415df3b6f9e8c4759aba27dadde855f0ed651d8fa5ef025e40fd",
+    "a2-inhibited-tcp-diagnostic-nominal/usb-health.jsonl": "59b0ca61c7ceba8184fb7b3c0b20dc86f3f4cfca6421102c100eeaffc9fab562",
+    "a2-inhibited-tcp-diagnostic-nominal/device-nettrace.jsonl": "a66f29122e7ee2aa8a910851a1e4dfc2f4fd23634e1ab1b28cec93156da3934f",
+    "a2-inhibited-tcp-diagnostic-nominal/load-events.jsonl": "b5c0c2fb09a8970952d29bf60bccfe5a6de54a2f0d78c0f264e04a3859ebb786",
+    "device-state.json": "071cd34ab42f80673eb332321cfb135e943eea23cb9f78529ab75176b6ab48d6",
+    "fixture-state.json": "0b15b6700e9a1d11fa4c72bf7230e482f1f1f341b356865ca501774f3bf7beaf",
+    "management-state.json": "b215bf98bd6c3e1a70d8c0675b69ddedb47dda6b824e63af303ab79f558f6417",
+    "station-counters-during-load.txt": "8f2e833665f359af57014603625e3ceb29cc1a10b0132ddb6aaa6036ac1937ec"
+  },
+  "unresolved": "The repaired diagnostic completes with continuous trace and unchanged timing bounds. Delivery gaps after successful device submission are observed, but the original N1u STATUS stall remains unattributed; no firmware repair, A2/A3 acceptance or accepted clock configuration is claimed.",
+  "device_trace": {
+    "events": 3846,
+    "first_sequence": 1,
+    "last_sequence": 3846,
+    "continuous": true,
+    "complete_to_reported_latest": true,
+    "tcp_events": 3817,
+    "tcp_events_matched_at_ap": 3814,
+    "additional_observer_traffic": true
+  },
+  "observed_delivery_gaps": [
+    {
+      "client_port": 54096,
+      "first_trace_sequence": 1077,
+      "first_submission_us": 86639585,
+      "first_ipv4_id": 518,
+      "tcp_sequence": 11633,
+      "tcp_payload_bytes": 315,
+      "first_submission_result": 0,
+      "first_packet_absent_at_ap_and_client": true,
+      "retransmission_trace_sequence": 1082,
+      "retransmission_us": 88104721,
+      "retransmission_ipv4_id": 521,
+      "resubmission_gap_us": 1465136
+    },
+    {
+      "client_port": 41190,
+      "first_trace_sequence": 1168,
+      "first_submission_us": 96677053,
+      "first_ipv4_id": 561,
+      "tcp_sequence": 11934,
+      "tcp_payload_bytes": 315,
+      "first_submission_result": 0,
+      "first_packet_absent_at_ap_and_client": true,
+      "retransmission_trace_sequence": 1172,
+      "retransmission_us": 98121816,
+      "retransmission_ipv4_id": 563,
+      "resubmission_gap_us": 1444763
+    }
+  ]
+}

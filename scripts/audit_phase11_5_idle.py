@@ -5,7 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import struct
-from phase11_5_inventory import require
+from phase11_5_inventory import require, loads_console
 from validate_wtp_contract import crc32c, loads_strict, SchemaValidator
 from phase11_5_network_fixture import HOST_BOOT
 from phase11_5_pilot_supervisor import finished
@@ -57,7 +57,7 @@ def audit(path, baseline_path, rf_packet=None):
             require(console_pending,'Unsolicited Console bytes');console+=bytes.fromhex(value['hex'])
             if b'\n' in console:
                 require(console.endswith(b'\n') and console.count(b'\n')==1,'Console suffix')
-                console_value=loads_strict(console.decode().strip());console=b'';console_pending=False
+                console_value=loads_console(console.decode().strip());console=b'';console_pending=False
         elif kind=='wtp_tx':
             decoded,left=frames(bytes.fromhex(value['hex']))
             require(not left and decoded==[value['request']],'Reported request differs from wire')

@@ -10,6 +10,22 @@ from phase11_5_inventory import require
 from validate_wtp_contract import SchemaValidator
 
 
+def status_cadence(requests, begin, seconds):
+    """Audit request starts, not TLS write completion or response timestamps."""
+    nominal = [r for r in requests if begin <= r['started_ns'] <= begin + seconds * 10**9]
+    require(all(a['started_ns'] <= b['started_ns'] for a, b in zip(requests, requests[1:])),
+            'Production STATUS starts out of order')
+    gaps = [(b['started_ns'] - a['started_ns'], a, b) for a, b in zip(nominal, nominal[1:])]
+    worst = max(gaps, key=lambda item: item[0]) if gaps else None
+    result = dict(nominal_status_count=len(nominal),
+                  nominal_status_hz=len(nominal) / seconds,
+                  nominal_max_status_start_gap_ns=worst[0] if worst else None,
+                  worst_status_start_gap_requests=[worst[1], worst[2]] if worst else [])
+    require(len(nominal) >= seconds - 2 and worst is not None and worst[0] <= 2_000_000_000,
+            'Nominal production STATUS rate absent/reduced: ' + json.dumps(result, sort_keys=True))
+    return result
+
+
 def audit(root, observer_decoder, rf_packet=None):
     spec=importlib.util.spec_from_file_location('phase115_observer_decoder',observer_decoder)
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
@@ -31,9 +47,11 @@ def audit(root, observer_decoder, rf_packet=None):
     begin,end=begins[0]['monotonic_ns'],ends[0]['monotonic_ns']
     require(end-begin>=plan['seconds']*1e9,'Shortened nominal load')
     rows=module.decode((root/'production-tls.bin').read_bytes())
+    require(rows and all(row.get('version')=='P115TLS2' for row in rows),
+            'Production STATUS start cadence requires native TLS write-entry timestamps (P115TLS2)')
     schema=json.loads((Path(__file__).resolve().parents[1]/'docs/protocol/wtp-1.schema.json').read_text())
     validator=SchemaValidator(schema)
-    sessions=set();buffers={};pending={};responses=[];status_times=[];connections=set();op_counts={}
+    sessions=set();buffers={};pending={};responses=[];status_requests=[];connections=set();op_counts={}
     write_started={};write_times={};buffer_stamps={};event_id=-1
     for row in rows:
         kind,cid=row['kind'],row['connection_id']
@@ -58,8 +76,9 @@ def audit(root, observer_decoder, rf_packet=None):
                 require(token not in pending,'Duplicate pending request')
                 pending[token]=(message,buffer_stamps[key])
                 op_counts[message['op']]=op_counts.get(message['op'],0)+1
-                if message['op']=='STATUS' and begin<=row['monotonic_ns']<=begin+plan['seconds']*1e9:
-                    status_times.append(row['monotonic_ns'])
+                if message['op']=='STATUS':
+                    status_requests.append(dict(request_id=message['request_id'],
+                        started_ns=buffer_stamps[key],write_completed_ns=row['monotonic_ns']))
             else:
                 if message['type']=='event' and rf_packet is not None:
                     from phase11_5_rf_observer import validate_event
@@ -84,9 +103,7 @@ def audit(root, observer_decoder, rf_packet=None):
         if not buffers[key]:buffer_stamps.pop(key,None)
     require(len(connections)==len(sessions)==1 and not pending and not write_started and not any(buffers.values()),
             'Production reconnected, changed session or has incomplete I/O')
-    require(status_times and len(status_times)>=plan['seconds']-2 and
-            max((b-a)/1e9 for a,b in zip(status_times,status_times[1:]))<=2,
-            'Nominal production STATUS rate absent/reduced')
+    cadence=status_cadence(status_requests,begin,plan['seconds'])
     browser=[r for r in events if r['kind']=='browser_get']
     browser_counts={}
     for row in browser:
@@ -102,10 +119,9 @@ def audit(root, observer_decoder, rf_packet=None):
                 'Missing browser status/page/assets workload')
     else:require(not browser,'Unexpected browser workload')
     return dict(boot=plan['boot_id'],seconds=plan['seconds'],production_connections=len(connections),
-        logical_sessions=len(sessions),operations=op_counts,nominal_status_count=len(status_times),
-        nominal_status_hz=len(status_times)/plan['seconds'],browser_counts=browser_counts,
+        logical_sessions=len(sessions),operations=op_counts,**cadence,browser_counts=browser_counts,
         max_observed_write_to_response_seconds=max(responses)/1e9,
-        timing_origin='SSL_write_ex entry' if rows[0].get('version')=='P115TLS2' else 'successful SSL_write_ex return',
+        timing_origin='SSL_write_ex entry',
         limitation='Measurement begins at native TLS write; scheduler queue time is outside this metric',
         plaintext_sha256=hashlib.sha256((root/'production-tls.bin').read_bytes()).hexdigest())
 

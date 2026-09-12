@@ -1,0 +1,109 @@
+{
+  "schema": "phase11.5-device-fixture-v1",
+  "status": "FROZEN_DIAGNOSTIC_WITHIN_AUTHORIZED_N1U_DEADLINE",
+  "attempt": "n1x4058d3a",
+  "root": "/home/pi/phase11-5-n1x-4058d3a",
+  "network_root": "/home/pi/phase11-5-n1x-4058d3a",
+  "time_server_dns": true,
+  "source_revision": "4058d3a4a95110326006a7db6e37eb4b562a500c",
+  "runtime_seconds": 900,
+  "device_restoration_seconds": 600,
+  "network_runtime_seconds": 2400,
+  "network_restoration_seconds": 600,
+  "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+  "serial": "0BF4B4AEC9FFB344",
+  "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+  "initial_a_boot_id": "5bdde6480aedb5ffa5e130faa82b7f8c",
+  "initial_b_boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+  "images": {
+    "inhibited": {
+      "file": "inhibited.uf2",
+      "sha256": "0a7d54673e7171ee10275272701de5fbb3cecdc91c097a18eeae496c0922c7b9"
+    },
+    "physical": {
+      "file": "physical.uf2",
+      "sha256": "cb91912f7915db7828c5f58ea2a35c714c22728ee71f9ce04c7d034d22598154"
+    },
+    "original": {
+      "file": "original.uf2",
+      "sha256": "25e177071f770976f8f5877a6c008e226f6bd776be859fde74f2f9f98c332e10"
+    }
+  },
+  "selected_physical_clock_hz": 138000000,
+  "pio_divider": 1,
+  "rf_render_in_ram": true,
+  "max_configuration_writes": 32,
+  "max_idle_heap_probes": 64,
+  "wifi_cycles": {
+    "count": 3,
+    "off_seconds": 150,
+    "recovery_seconds": 120
+  },
+  "external_link_loss": {
+    "count": 1,
+    "seconds": 15,
+    "independent_return_after_seconds": 20
+  },
+  "dhcp_change": {
+    "count": 1,
+    "from": "10.77.15.10",
+    "to": "10.77.15.20"
+  },
+  "time_server_dns_name": "clock.phase115.test",
+  "time_server_address": "10.77.15.1",
+  "helper_sha256": {
+    "docs/protocol/wtp-1.schema.json": "fae1a7f94adb875733f47f22438a0811a3ab7fd9e4b8477780aea77cad62c8a8",
+    "scripts/phase11_4_hotspot.py": "20253c0ab455f023bc360b7b9f10fba5b6b719ffffddce79c0c7128a4e7712ee",
+    "scripts/phase11_5_device_fixture.py": "98d85f4375b3473f018f905ed4ecae09c270105c509f7330beca8c00d40834f3",
+    "scripts/phase11_5_device_management.py": "5e4a360d9d092a9a337c179825bcbd8e0a622e374cf73c2d2187948db2209204",
+    "scripts/phase11_5_inventory.py": "ba3512651faccd72fea5d092fe9fc6bc69559a460d166d689cc5b48bd658eb21",
+    "scripts/phase11_5_network_fault.py": "68b05dbea6b033cbb09d1d997e52e3d73207576b291d79f1330c4efbb042e041",
+    "scripts/phase11_5_network_fixture.py": "e9bb863cc735befb73be0e4e652840df507ed115e5538484ada5f7eab7e3d868",
+    "scripts/phase11_5_pilot.py": "bb91dc6fea9fb10e7564252810b534979a1f28b36de132745d100f388c3003c4",
+    "scripts/phase11_5_pilot_supervisor.py": "dbf97a316ebe02eb27f90d838ce70c468b75abc38749a7af3f6911beab8dd9e7",
+    "scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+    "scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9"
+  },
+  "production_source_revision": "6f65d5c7d202569102459ab68d7c9ea079b96f35",
+  "production_binary": "/home/pi/phase11-5-closure-6f65d5c/source/src/build/bin/phase115-pi-6f65d5c",
+  "production_binary_sha256": "122ed0e4bd752e457419c4df5433c3fca1a4a88677a3db3ebd7e60e783ba5d1c",
+  "production_observer_sha256": "fd70cde276b04aa08e771e12b83335a89aae24e050e2f2c5e56ed6848eb1a7bc",
+  "production_ini_sha256": "c5c331810997faaede2195410f4840fe0353d7649f11e37cb1788c978b50fe0f",
+  "production_helper_sha256": {
+    "pi/phase115_production_load.py": "0cb03296bb22f0b37df93a23d6a3b2afee45cc9cebcb2a44bca767ddd16851a1",
+    "pi/phase115_tls_observer.c": "7c6a4afba6f414b9ef6a92ee223b0c0863219311e9c472a0d32a92f45f7e4a1d",
+    "pi/phase115_tls_observer_test.py": "5cf410758c48e05bc35f04f394b486f0b210b93e7ab785cedaf1bc7dd689162d"
+  },
+  "rf_jobs": [],
+  "rf_authorization": "Continuing user authorization is separate; lifecycle helpers submit no RF jobs",
+  "accepted_configurations": [],
+  "administration_session_policy": "one persistent logical session per DUT boot sequence; unique request IDs",
+  "prior_restored_attempt": {
+    "root": "/home/pi/phase11-5-n1w-4058d3a",
+    "device_state_sha256": "7b4239ac1c61f1a1d1016238cf2cae35698ad5c9e461de0d672702eb6eca9997",
+    "management_state_sha256": "b84457496f93c058ef49ca4f99c6516b2e0c429fcc348e06e68bbbbcdfc8c6e8"
+  },
+  "production_observer": "/home/pi/phase11-5-n1x-4058d3a/pi/phase115_tls_observer.so",
+  "production_driver": "/home/pi/phase11-5-n1x-4058d3a/pi/phase115_production_load.py",
+  "conditioning_intervals": {},
+  "conditioning_policy": "One diagnostic only; no acceptance-family retry or dependent RF jobs.",
+  "authorization_boundary": "Current repair execution and continuing hardware authority; same network roles with absolute cleanup no later than the prior N1u two-hour window. No deadline extension.",
+  "execution_scope": [
+    "one inhibited N300 plus USB360, two packet captures and bounded existing NETTRACE reads",
+    "restore original inhibited A and host networking"
+  ],
+  "case_helper_sha256": {
+    "scripts/phase11_5_a2_family.py": "dd30c56b9f102674ac04c7dc20ce63158d2d88833608fb8985e4442b7d7cd935",
+    "scripts/phase11_5_a2_load.py": "dcd1928a15f24479312cad2c4443ffeee4e58eb906518e84be51ea92ef71b4b1",
+    "scripts/phase11_5_idle_observer.py": "4dd470db1bd38608959351e3e980422f8683e0caade29338a4fb43ee6ca440cb",
+    "scripts/audit_phase11_5_idle.py": "a7883a9c65e88cc878de13f81117059849eac8c3012593db33ac9060492a7fa7",
+    "scripts/audit_phase11_5_load.py": "c0db6081121a0f509eea5ef5b7cc8eb4fa10910e7948d05a3378e6811871491b",
+    "scripts/phase11_5_a3.py": "21823842959eba1d7e9501c1dd268d52fd97e12596d8a919478f0d476d6eb909",
+    "scripts/phase11_5_browser_jobs.py": "94a97dc9ded6162b378e302e310c254887afdc713c8398f5562fee6c10e0d206",
+    "scripts/phase11_5_rf_observer.py": "32865c954c9ac6d888c00a214145fcf7ffbd70b45836f9cb1d970b3ab632eb1a",
+    "scripts/phase11_5_f1_plan.py": "8c2a42d20d76bf3a08153f01d00e8937baef70e0767b7206ba8d116e94bf2094",
+    "scripts/audit_phase11_5_a3.py": "9b2f3c66ed42e15afed75513fe369327f9bea8020b4c961df4eeb247a3e7ce25",
+    "src/campaign/plan.py": "13f7f1181dc4e04a81077b4b2e9d66d881310aabbcafae907fdd74b226ae4923"
+  },
+  "absolute_host_deadline_monotonic_ns": 123801490692568
+}

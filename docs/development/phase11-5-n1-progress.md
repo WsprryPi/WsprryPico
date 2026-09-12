@@ -454,3 +454,36 @@ passes separate from this candidate's failed conditioning. The follow-up review
 found no further reporting inconsistency. The unresolved timing failure remains
 open, rather than being described as repaired. **Zero cases closed in N1u;
 the historical count remains 2/20 and no configuration is accepted.**
+
+## N1v–N1y: corrected audits and packet-delivery diagnostics
+
+The [execution prompt and review](phase11-5-status-stall-review.md) record three
+closed tooling defects: STATUS cadence used TLS write-return timestamps, Console
+trace hashes were subjected to WTP integer limits, and the diagnostic trace
+reader could consume INFO's sampling time while draining a burst.
+
+N1v completed N300/USB360 with dual captures. N1w failed before load startup on
+the Console integer mismatch; N1x collected a continuous trace but stopped on
+INFO cadence after an unbudgeted trace burst. Both failures and restorations
+are retained. The repaired N1y diagnostic completed N300/USB360 and 3846
+continuous trace events; independent load and USB audits passed. The
+[final result](phase11-5-status-trace-result.json) binds exact identities and
+hashes. These diagnostics used inhibited source `4058d3a4a951` at 150 MHz and
+submitted no RF jobs; they do not close A2/A3 or qualify a physical clock.
+
+Three captured browser delays across N1x/N1y include response segments absent
+from both host captures after successful device submission, then delivered on
+retransmission. This identifies delivery gaps between observed boundaries.
+It does not establish the precise driver/radio/AP cause or retroactively
+attribute N1u's uncaptured STATUS stall. No firmware repair is claimed.
+
+Final A boot is `bbabf4bdffb92c6bb0f04f11929c2262`, original inhibited image and
+configuration restored, Empty/inactive/unowned. B is unchanged; normal host
+networking and the recovery timer are restored, installed service PID 1957 is
+unchanged, and cumulative configuration writes are eighteen. All diagnostic
+fixtures respected N1u's original absolute cleanup deadline.
+
+The 57-test host suite and affected follow-up tests pass. Corrected auditing
+preserves all six historical N1t load passes and N1u's failure. **Zero new
+acceptance cases closed; historical A1/A2 remain 2/20 and no configuration is
+accepted.** Full affected A2/A3 and the remaining Phase 11.5 cases stay open.

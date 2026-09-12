@@ -1,0 +1,156 @@
+{
+  "schema": "phase11.5-status-diagnostic-result-v1",
+  "result": "DIAGNOSTIC_COMPLETED_STALL_NOT_REPRODUCED",
+  "firmware_revision": "4058d3a4a95110326006a7db6e37eb4b562a500c",
+  "inhibited_clock_hz": 150000000,
+  "inhibited_uf2_sha256": "0a7d54673e7171ee10275272701de5fbb3cecdc91c097a18eeae496c0922c7b9",
+  "physical_clock_candidate_hz": 138000000,
+  "physical_execution": "NOT_RUN",
+  "rf_jobs_submitted": 0,
+  "newly_closed_acceptance_cases": 0,
+  "historical_closed_acceptance_cases": 2,
+  "total_acceptance_cases": 20,
+  "accepted_configurations": [],
+  "load": {
+    "boot": "63b8e9bf5fa2f5fa3be928f1738327af",
+    "seconds": 300,
+    "production_connections": 1,
+    "logical_sessions": 1,
+    "operations": {
+      "HELLO": 1,
+      "STATUS": 303,
+      "CAPS": 1
+    },
+    "nominal_status_count": 300,
+    "nominal_status_hz": 1.0,
+    "nominal_max_status_start_gap_ns": 1093768320,
+    "worst_status_start_gap_requests": [
+      {
+        "request_id": "00000000000000000000000000000048",
+        "started_ns": 118361177930153,
+        "write_completed_ns": 118361181859661
+      },
+      {
+        "request_id": "00000000000000000000000000000049",
+        "started_ns": 118362271698473,
+        "write_completed_ns": 118362275396704
+      }
+    ],
+    "browser_counts": {
+      "/api/v1/status": 60,
+      "/": 10,
+      "/style.css": 10,
+      "/app.js": 10
+    },
+    "max_observed_write_to_response_seconds": 0.569649056,
+    "timing_origin": "SSL_write_ex entry",
+    "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+    "plaintext_sha256": "d5f3b681a9b24d7caacf066bd9705b16d78c3e7506e2865b2234ab666a0a76e3"
+  },
+  "usb": {
+    "info": {
+      "samples": 360,
+      "max_gap_seconds": 1.000090124
+    },
+    "status": {
+      "samples": 72,
+      "max_gap_seconds": 5.000068749
+    },
+    "health": {
+      "samples": 72,
+      "max_gap_seconds": 5.000086321
+    },
+    "boot": "63b8e9bf5fa2f5fa3be928f1738327af",
+    "seconds": 360,
+    "raw_wire_verified": true,
+    "max_allocator_peak_bytes": 118580,
+    "last_heap_allocated_bytes": 21844
+  },
+  "browser_max_request_ns": 3982752259,
+  "packet_captures": {
+    "ap_packets": 3727,
+    "client_packets": 3727,
+    "ap_kernel_capture_drops": 0,
+    "client_kernel_capture_drops": 0,
+    "normalized_packet_multisets_equal": true,
+    "normalized_identity_fields": [
+      "source_ip",
+      "destination_ip",
+      "source_port",
+      "destination_port",
+      "sequence",
+      "acknowledgement",
+      "flags",
+      "window",
+      "ip_id",
+      "ciphertext"
+    ],
+    "max_matched_ap_client_timestamp_difference_ns": 150712000,
+    "flow_count": 91,
+    "production_client_port": 52816,
+    "production_repeated_195_byte_payload_sequence_packets": 6,
+    "limitation": "Capture drops are distinct from network loss. These are host Ethernet-boundary captures; they do not observe DUT Wi-Fi reception or firmware dispatch."
+  },
+  "n1u_reaudit": {
+    "result": "FAIL",
+    "nominal_status_count": 179,
+    "original_write_return_gap_ns": 2696718780,
+    "corrected_write_entry_gap_ns": 2696674577,
+    "original_max_write_entry_to_response_ns": 2592628676
+  },
+  "restoration": {
+    "pico_a": {
+      "serial": "0BF4B4AEC9FFB344",
+      "boot_id": "9e5c43eb460df5b08ec2b15affee5134",
+      "revision": "802c91a7b86e-dirty",
+      "status": {
+        "boot_id": "9e5c43eb460df5b08ec2b15affee5134",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "original_configuration_verified": true
+    },
+    "pico_b": {
+      "serial": "CDDBF8767C506C07",
+      "boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+      "revision": "dbf1d86f0885-dirty",
+      "status": {
+        "boot_id": "4e2fb851c08b278dd4b977104d2c2aaa",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      }
+    },
+    "host_restored": true,
+    "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+    "installed_service_pid": "1957",
+    "cumulative_management_counts": {
+      "config": 12,
+      "wifi-off": 0,
+      "wifi-on": 0,
+      "heap-probe": 0
+    }
+  },
+  "archive_sha256": "da75bb226615736e16eb23e415d72db5de0232c9abd2e6c8a9b77bff6bbc4c48",
+  "evidence_sha256": {
+    "packet.json": "ce6829f5af89076cb403e466bddc900220c6225eb57d142bf1afc18ad3dc08a8",
+    "status-diagnostic.py": "d4b2bb1426f7b4e0bd1bac07a83c31ec887ecbfe6b17586de1af57b8dff4c249",
+    "capture-ap.pcap": "bb47810074b95d95b1953d418296aaa34a122c273d74ce99b621885276a8121b",
+    "capture-client.pcap": "25196922c07db654b23e5b534a68c606550dc94c3d40063b8aff4ae21e21a4dd",
+    "capture-ap.log": "1b5aca227c13d66e237f9f2ffa07731bc2de2efd02952fe423778ceaae87404e",
+    "capture-client.log": "a96c7c003754e257ca3193c62c76648b19172a9be3c556df04fa159319bfbd02",
+    "packet-clock-bridge.jsonl": "5d4bd1cb3ba85a06b41687b1f063f3ca9e4162d79793d19860b4d4a27c9e41ba",
+    "a2-inhibited-tcp-diagnostic-nominal/production-tls.bin": "d5f3b681a9b24d7caacf066bd9705b16d78c3e7506e2865b2234ab666a0a76e3",
+    "a2-inhibited-tcp-diagnostic-nominal/usb-health.jsonl": "5a9266b2a918f9bbc100ce72785a3584836d7b4a302a579d346626c6ebd0949b",
+    "a2-inhibited-tcp-diagnostic-nominal/load-events.jsonl": "f0654dd3a446c34edc80c95625bc1672c2df29c6a42b467b774989fe05d54035",
+    "device-state.json": "a2027e433479d7dfdf0ddbc62964fa511bba8dd76f11395edd5bd79f6aa5550e",
+    "fixture-state.json": "8c8fc7a99d8293a5e8a9f502215b98f6dd9329894acb8a5b7a029cef0938e3d5",
+    "management-state.json": "7540dbb8fbafe19a3c869be34a048b35368d728fd8ad6fbba1493c3a74c89637"
+  },
+  "unresolved": "N1u remains failed. This distinct bounded diagnostic did not reproduce its multi-second stall; no root-cause firmware repair, full A2/A3 pass or accepted clock configuration is claimed."
+}
