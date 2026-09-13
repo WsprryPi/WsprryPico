@@ -1,0 +1,40 @@
+{
+  "checkpoint": "v2-020",
+  "recorded_utc": "2026-09-13T21:50:36.257829+00:00",
+  "status": "SOFTWARE_PASS_PHYSICAL_REPAIR_PENDING",
+  "physical_r3_groups_newly_closed": 0,
+  "source_base": "48ef82c7dedfa5b073c486dd0620afde33f71ab6",
+  "validated_assertions": [
+    "All 62 host CTest groups pass",
+    "Maximum 512-adjustment WTP and browser replies succeed with an allocator rejecting every request above 4096 bytes",
+    "Exact WTP wire bytes and CRC survive seven-byte partial consumption across page boundaries",
+    "Partial page-allocation failure releases pages and preserves reconcilable inactive Loaded job",
+    "BF0, BF1 and BF2 independently verified; 29 altered evidence cases rejected"
+  ],
+  "evidence_artifacts": {
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/r3-bf2-paged-build.log": "01833902cdf9fb267ea8f33c7fdbb2334f3928bd7ac9d5ed98de7d92b65ad916",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/r3-bf2-paged-final-build.log": "73f8a9f2d0ebec67d897e6f0dd4695da16e2196d953cf6ec5ac6ad815678f315",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/r3-bf2-paged-focused-tests.log": "c364d9c8570de6b27537b7f36fbc2354ce60c9add75c51c08c77a902177c0c99",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/r3-bf2-paged-full-tests.log": "80b78fa197694f713caaae23a5b65311fec70d56a51c86d43160dea8536623af",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/r3-bf2-stopped-mutations.log": "0b5fccd1351743900c1b02b8a8900cfc706c514a15eac8f0f7e9b6e4dceed25d",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/src/network/api.cpp": "15cc2769e26729f529775a2b9afcd78071e9a58bccc1487f3887e3d7e970304f",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/src/network/http.cpp": "94b5d8a98c40e2f60a7210953866fea9d31b5e0aa138532bdc9c0e27e4373f02",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/src/network/http.hpp": "1431398effbd81804832cfedec8fa636e738ff1c1dc65d97b49cdf84e0bf4be1",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/src/network/pico/server.cpp": "06d9c7e40b55bac0c62de6b0fa1fc9b0b5aa832a09a732f25e865158054738a5",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/src/network/pico/server.hpp": "abcc309b269290baebac09f44dde0eae54a9d3c3cb35362366a8b094345a4ff6",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/src/wtp/codec.cpp": "c0bc841f1f74222685b54a184fa2f5383934929ba8b33d0067210aad60c4f5d3",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/src/wtp/codec.hpp": "e36ac50e1b5b9dbfed9166fd323b75a9c41ef12cc2279e31cca28d400484c537",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/src/wtp/endpoint.cpp": "17324122eacff805ef07ae09d00d754b8b312cb4ee96b74153982f12aba81211",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/src/wtp/endpoint.hpp": "54b6c25fdf84bc7838c4e9909754c1896ceb25db23561fb3bb8ac31cb40ca368",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/src/wtp/frame_parser.cpp": "28ae3a5175c02b43a3ebe1143fb765400e7f201fecfb26874ff3cec83a1ae950",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/src/wtp/frame_parser.hpp": "5200f638e28d30be99a8ea10b8f563f79de5104d4fa8a4c8643e30636936ceb8",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/src/wtp/input_buffer.hpp": "1da9c6d07872a4075c2b62d6d89deb350b731a67dd8493981dabfa99485143b9",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/src/wtp/output_buffer.hpp": "12a6c2144af769d4432183586cbcfebf17d20350d21ac373945e7bcb086f4509",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/tests/core_tests.cpp": "8041823287741b3d1e90ce49ece8593f5da873a64b66a3601895939fbff50326",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/tests/fixtures/phase11_5_r3_http_serializer.json": "082997b7a5ec7ae84dac6822f30b0a3d60b93b544315c7a07ed2444412c24165",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/tests/network_tests.cpp": "4261396261e19c332fb03cdcdca5752747df0eba19946bbf7942c9003ba17894",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/tests/phase11_5_r3_v2_b_stopped_tests.py": "b3376efb72931d24d7d38f7f93154445317b858eb9ea9f284aa4caa14c251c0b",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-020/tests/phase11_5_r3_v2_parallel_b_audit_tests.py": "fa4724a977cad4e83bfaacef767e792f22cad59f343e3fc950692d933a02c5f9"
+  },
+  "reuse_rule": "Preserve source-bound host passes. Maximum physical LOAD and final-image R3 remain open."
+}

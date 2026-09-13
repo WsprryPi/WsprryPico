@@ -1,5 +1,5 @@
 #pragma once
-#include "wtp/input_buffer.hpp"
+#include "wtp/output_buffer.hpp"
 
 #include <cstdint>
 #include <map>
@@ -20,13 +20,18 @@ struct HttpResponse {
     std::string body;
     std::string type = "application/json";
     std::string etag;
-    wtp::InputBuffer buffered_body{};
-    std::string_view body_view() const {
-        return buffered_body.empty()
-                   ? std::string_view(body)
-                   : std::string_view(reinterpret_cast<const char*>(buffered_body.data()),
-                                      buffered_body.size());
+    wtp::OutputBuffer buffered_body{};
+    std::size_t body_size() const {
+        return buffered_body.empty() ? body.size() : buffered_body.size();
     }
+    std::span<const std::uint8_t> body_at(std::size_t offset) const {
+        if (!buffered_body.empty())
+            return buffered_body.at(offset);
+        return std::span(reinterpret_cast<const std::uint8_t*>(body.data()), body.size())
+            .subspan(offset);
+    }
+    // Convenience for host consumers. Target transport streams body_at pages.
+    std::string body_text() const;
     std::string wire_headers() const;
     std::string wire() const;
 };

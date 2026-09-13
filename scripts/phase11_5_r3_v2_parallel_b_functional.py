@@ -106,7 +106,7 @@ def run(root, packet):
             monotonic_ns=time.monotonic_ns(),utc_ns=time.time_ns()))+'\n')
         log.flush();os.fsync(log.fileno());sequence+=1
     def checkpoint():require(time.monotonic()<deadline,'B finite functional deadline')
-    def inventory(label,cleanup=False):
+    def inventory(label,cleanup=False,enforce_candidate=True):
         require(time.monotonic()+65<(cleanup_deadline if cleanup else deadline),'B inventory deadline')
         with (root/(label+'.stdout')).open('xb') as out,(root/(label+'.stderr')).open('xb') as err:
             code=subprocess.run(['python3',str(root/'scripts/phase11_5_inventory.py'),'--serial',B_SERIAL,
@@ -114,7 +114,8 @@ def run(root, packet):
                 stdout=out,stderr=err,timeout=65).returncode
         require(code==0,'B inventory failed: '+label)
         value=finished(root/(label+'.stdout'),'READ_ONLY_INVENTORY')
-        candidate(value,packet,boot=packet['boot_id']);return value
+        if enforce_candidate:candidate(value,packet,boot=packet['boot_id'])
+        return value
     before=None
     try:
         emit('start',dict(packet_sha256=digest(root/'packet.json')))
@@ -154,9 +155,18 @@ def run(root, packet):
         emit('failure',result['error'])
     finally:
         try:
-            final=inventory('final-b',cleanup=True)
+            final=inventory('final-b',cleanup=True,enforce_candidate=False)
             require(before is not None and saved_configuration(final)==saved_configuration(before),'B final config')
+            info=final['info'];status=final['wtp']['STATUS']
+            require(info['device_id']==B_DEVICE and info['revision']==packet['source_revision'][:12] and
+                info['status']['boot_id']==status['boot_id'] and
+                info['status']['state']==status['state'] and
+                info['status']['output_active'] is status['output_active'] is False,
+                'B final inactive authority not established')
             result['final_b']=final['wtp']['STATUS']
+            try:candidate(final,packet,boot=packet['boot_id'])
+            except ValueError as error:
+                result.update(status='STOPPED_REQUIRES_DIAGNOSIS',final_b_admission_error=str(error))
         except BaseException as error:
             result.update(status='STOPPED_FINAL_STATE_UNVERIFIED',final_b_error=str(error))
         emit('finish',result);save(root/'functional-result.json',result);log.close()

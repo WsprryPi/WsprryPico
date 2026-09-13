@@ -1,7 +1,9 @@
 #pragma once
 #include "wtp/frame_parser.hpp"
 #include "wtp/job_service.hpp"
+#include "wtp/output_buffer.hpp"
 
+#include <type_traits>
 #include <variant>
 
 namespace wsprrypico::wtp {
@@ -28,7 +30,7 @@ class Endpoint {
     void payload(InputBuffer bytes, std::uint64_t now_ms);
     void frame_events(std::vector<FrameEvent> events, std::uint64_t now_ms);
     bool enqueue(std::string payload, std::uint64_t now_ms, bool advisory);
-    bool enqueue(InputBuffer payload, std::uint64_t now_ms);
+    bool enqueue(OutputBuffer payload, std::uint64_t now_ms);
     void event(std::string_view name, std::string body, std::uint64_t now_ms);
     void observe(std::uint64_t now_ms, bool released = false);
     void close_after_output();
@@ -37,17 +39,22 @@ class Endpoint {
     FrameParser parser_;
     struct OutputFrame {
         std::array<std::uint8_t, kFrameHeaderBytes> header;
-        std::variant<std::string, InputBuffer> payload;
-        std::span<const std::uint8_t> bytes() const {
+        std::variant<std::string, OutputBuffer> payload;
+        std::span<const std::uint8_t> bytes(std::size_t offset = 0) const {
             return std::visit(
-                [](const auto& value) {
-                    return std::span(reinterpret_cast<const std::uint8_t*>(value.data()),
-                                     value.size());
+                [offset](const auto& value) -> std::span<const std::uint8_t> {
+                    if constexpr (std::is_same_v<std::decay_t<decltype(value)>, OutputBuffer>)
+                        return value.at(offset);
+                    else
+                        return std::span(reinterpret_cast<const std::uint8_t*>(value.data()),
+                                         value.size())
+                            .subspan(offset);
                 },
                 payload);
         }
         std::size_t size() const {
-            return header.size() + bytes().size();
+            return header.size() +
+                   std::visit([](const auto& value) { return value.size(); }, payload);
         }
     };
     std::deque<OutputFrame> output_;

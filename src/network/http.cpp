@@ -18,7 +18,7 @@ HttpResponse http_error(unsigned status, std::string_view code) {
 }
 std::string HttpResponse::wire_headers() const {
     return "HTTP/1.1 " + std::to_string(status) + " Response\r\nContent-Type: " + type +
-           "\r\nContent-Length: " + std::to_string(body_view().size()) +
+           "\r\nContent-Length: " + std::to_string(body_size()) +
            "\r\nConnection: close\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\n"
            "Content-Security-Policy: " +
            std::string(web_csp()) + "\r\nReferrer-Policy: no-referrer\r\n" +
@@ -26,7 +26,20 @@ std::string HttpResponse::wire_headers() const {
 }
 std::string HttpResponse::wire() const {
     auto out = wire_headers();
-    out += body_view();
+    for (std::size_t offset = 0; offset < body_size();) {
+        const auto page = body_at(offset);
+        out.append(reinterpret_cast<const char*>(page.data()), page.size());
+        offset += page.size();
+    }
+    return out;
+}
+std::string HttpResponse::body_text() const {
+    std::string out;
+    for (std::size_t offset = 0; offset < body_size();) {
+        const auto page = body_at(offset);
+        out.append(reinterpret_cast<const char*>(page.data()), page.size());
+        offset += page.size();
+    }
     return out;
 }
 void HttpParser::parse_headers() {

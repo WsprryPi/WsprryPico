@@ -55,21 +55,6 @@ class InputBuffer {
     void clear() {
         size_ = 0;
     }
-    bool shorten(std::size_t size) {
-        if (size > size_)
-            return false;
-        size_ = size;
-        return true;
-    }
-    bool replace_prefix(std::size_t count, std::span<const std::uint8_t> prefix) {
-        if (count > size_ || prefix.size() > count)
-            return false;
-        std::memmove(data_ + prefix.size(), data_ + count, size_ - count);
-        if (!prefix.empty())
-            std::memcpy(data_, prefix.data(), prefix.size());
-        size_ -= count - prefix.size();
-        return true;
-    }
     std::uint8_t* data() {
         return data_;
     }

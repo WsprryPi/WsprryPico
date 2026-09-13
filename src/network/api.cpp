@@ -120,26 +120,12 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
     auto response = service_.handle(*request);
     request->body = std::monostate{};
     if (response.ok && request->operation == "LOAD") {
-        auto encoded = encode_load_response_buffer(*request, response);
+        auto encoded = encode_load_response_buffer(*request, response, true);
         if (encoded.empty())
             return http_error(503, "resource_exhausted");
-        const auto result =
-            json::parse({reinterpret_cast<const char*>(encoded.data()), encoded.size()});
-        if (!result || !result->get("body"))
-            return http_error(500, "invalid_response");
-        const auto value = result->get("body")->raw;
-        const auto offset =
-            static_cast<std::size_t>(value.data() - reinterpret_cast<const char*>(encoded.data()));
-        const auto prefix =
-            "{\"ok\":true,\"request_id\":" + json::quote(request->request_id) + ",\"result\":";
-        if (!encoded.shorten(offset + value.size()) ||
-            !encoded.replace_prefix(
-                offset, {reinterpret_cast<const std::uint8_t*>(prefix.data()), prefix.size()}))
-            return http_error(500, "invalid_response");
-        const std::uint8_t closing = '}';
-        encoded.append({&closing, 1});
         return {200, {}, "application/json", {}, std::move(encoded)};
     }
+
     auto encoded = encode_response(*request, response, service_.config(), device_, firmware_);
     const auto result = json::parse(encoded);
     const auto value = result->get(response.ok ? "body" : "error")->raw;

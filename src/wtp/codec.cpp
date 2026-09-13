@@ -48,8 +48,11 @@ std::string response_prefix(const Request& r, const Response& s) {
            ",\"request_id\":" + quote(r.request_id) + ",\"op\":" + quote(r.operation) +
            ",\"ok\":" + boolean(s.ok);
 }
+std::string load_fields(const Response& s) {
+    return "{\"job_id\":" + quote(s.job_id) + ",\"state\":\"loaded\",\"adjustments\":[";
+}
 std::string load_body_prefix(const Response& s) {
-    return ",\"body\":{\"job_id\":" + quote(s.job_id) + ",\"state\":\"loaded\",\"adjustments\":[";
+    return ",\"body\":" + load_fields(s);
 }
 std::size_t load_response_bytes(std::size_t prefix, const Response& s) {
     constexpr auto punctuation = std::string_view(
@@ -340,19 +343,26 @@ std::string encode_response(const Request& r, const Response& s, const ServiceCo
         b = "{\"job_id\":" + quote(s.job_id) + ",\"state\":\"aborted\",\"output_active\":false}";
     return out + ",\"body\":" + b + '}';
 }
-InputBuffer encode_load_response_buffer(const Request& r, const Response& s) {
-    InputBuffer result;
+OutputBuffer encode_load_response_buffer(const Request& r, const Response& s, bool browser) {
+    OutputBuffer result;
     if (!s.ok || r.operation != "LOAD" || s.adjustments.size() > 512)
         return result;
-    const auto prefix = response_prefix(r, s) + load_body_prefix(s);
+    const auto fields = load_fields(s);
+    const auto prefix =
+        browser ? "{\"ok\":true,\"request_id\":" + quote(r.request_id) + ",\"result\":" + fields
+                : response_prefix(r, s) + ",\"body\":" + fields;
     const auto bytes = load_response_bytes(prefix.size(), s);
     if (bytes > 65536 || !memory_admitted(bytes + 1024) || !result.reserve(bytes))
         return result;
+    bool complete = true;
     auto append = [&](std::string_view part) {
-        result.append({reinterpret_cast<const std::uint8_t*>(part.data()), part.size()});
+        complete = complete &&
+                   result.append({reinterpret_cast<const std::uint8_t*>(part.data()), part.size()});
     };
     append(prefix);
     append_load_adjustments(s, append);
+    if (!complete || result.size() != bytes)
+        return {};
     return result;
 }
 } // namespace wsprrypico::wtp

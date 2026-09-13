@@ -10,6 +10,7 @@ class ParallelBAuditTests(unittest.TestCase):
         if not value:self.skipTest('Private B '+kind+' evidence required')
         source=Path(value);sha=os.environ['PHASE115_R3_V2_B_'+kind+'_PACKET']
         intact=audit(source,sha)
+        revision=json.loads((source/'packet.json').read_text())['source_revision'][:12]
         logname='deployment.jsonl' if kind=='DEPLOY' else 'functional.jsonl'
         def edit(root,fn):
             path=root/logname;rows=[json.loads(l) for l in path.read_text().splitlines()]
@@ -22,7 +23,7 @@ class ParallelBAuditTests(unittest.TestCase):
             lambda r:(r/'packet.json').write_text('{}'),
             lambda r:edit(r,lambda rows:rows.pop(2)),
             lambda r:edit(r,undeclared),
-            lambda r:(r/'final-b.stdout').write_text((r/'final-b.stdout').read_text().replace('c5f00b6109cc','deadbeefdead'))]
+            lambda r:(r/'final-b.stdout').write_text((r/'final-b.stdout').read_text().replace(revision,'deadbeefdead'))]
         if kind=='DEPLOY':
             mutations += [lambda r:(r/'flash.stdout').write_text('Not verified'),
                 lambda r:edit(r,lambda rows:first(rows,'flash_pending')['value'].update(sha256='0'*64)),

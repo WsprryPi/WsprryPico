@@ -385,8 +385,11 @@ void test_large_endpoint_reply_has_one_payload_allocation() {
     measured_reply_bytes = expected.size();
     measured_reply_allocations = 0;
     send("LOAD", body, 'c', true);
-    // One nullable wire allocation, no throwing string/framing allocation.
-    CHECK(large_allocations == 0 && measured_reply_allocations == 1);
+    // The reply can use separated 4 KiB holes, with no large contiguous
+    // string or framed copy. Its externally visible frame remains identical.
+    CHECK(large_allocations == 0 &&
+          measured_reply_allocations ==
+              (expected.size() + OutputBuffer::page_bytes - 1) / OutputBuffer::page_bytes);
     CHECK(service.status().state == State::Loaded && !service.status().output_active);
     FrameParser parser;
     const auto frames = parser.feed(received, 0);
@@ -397,9 +400,32 @@ void test_large_endpoint_reply_has_one_payload_allocation() {
                                    frames.front().payload.size()});
     CHECK(root && root->get("ok")->boolean());
     CHECK(root->get("body")->get("adjustments")->elements().size() == 512);
+    const auto normal_allocator = allocate_input;
+    allocate_input = [](std::size_t bytes) -> void* {
+        return bytes <= OutputBuffer::page_bytes ? std::malloc(bytes) : nullptr;
+    };
+    for (const bool browser : {false, true}) {
+        auto paged = encode_load_response_buffer(expected_request, expected_response, browser);
+        CHECK(!paged.empty());
+        std::string text;
+        for (std::size_t offset = 0; offset < paged.size();) {
+            const auto part = paged.at(offset);
+            CHECK(!part.empty() && part.size() <= OutputBuffer::page_bytes);
+            text.append(reinterpret_cast<const char*>(part.data()), part.size());
+            offset += part.size();
+        }
+        if (!browser)
+            CHECK(text == expected);
+        const auto value = json::parse(text);
+        CHECK(value &&
+              value->get(browser ? "result" : "body")->get("adjustments")->elements().size() ==
+                  512);
+    }
+    allocate_input = normal_allocator;
     // Repeat the LOAD with a fresh request id, failing only its output buffer.
     // The accepted inactive job remains reconcilable; allocation failure does
     // not reset the service, fabricate an error for an accepted operation, or ARM.
+    measured_reply_allocations = 0;
     reject_reply_allocation = true;
     send("LOAD", body, 'd', false, true);
     reject_reply_allocation = false;
@@ -1268,9 +1294,10 @@ using Test = std::pair<const char*, void (*)()>;
 
 int main() {
     allocate_input = [](std::size_t size) -> void* {
-        if (size == measured_reply_bytes) {
+        if (measured_reply_bytes && (size == OutputBuffer::page_bytes ||
+                                     size == measured_reply_bytes % OutputBuffer::page_bytes)) {
             ++measured_reply_allocations;
-            if (reject_reply_allocation)
+            if (reject_reply_allocation && measured_reply_allocations == 7)
                 return nullptr;
         }
         ++allocations;

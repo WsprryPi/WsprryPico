@@ -30,8 +30,8 @@ void write_u32_be(std::uint8_t* output, std::uint32_t value) {
 
 } // namespace
 
-std::uint32_t crc32c(std::span<const std::uint8_t> bytes) {
-    std::uint32_t crc = 0xffffffffU;
+std::uint32_t crc32c(std::span<const std::uint8_t> bytes, std::uint32_t previous) {
+    std::uint32_t crc = previous ^ 0xffffffffU;
     for (const auto byte : bytes) {
         crc ^= byte;
         for (unsigned bit = 0; bit < 8; ++bit) {
@@ -45,9 +45,15 @@ std::array<std::uint8_t, kFrameHeaderBytes>
 encode_frame_header(std::span<const std::uint8_t> payload) {
     if (payload.empty() || payload.size() > kMaximumPayloadBytes)
         return {};
+    return encode_frame_header(payload.size(), crc32c(payload));
+}
+std::array<std::uint8_t, kFrameHeaderBytes> encode_frame_header(std::size_t payload_bytes,
+                                                                std::uint32_t checksum) {
+    if (!payload_bytes || payload_bytes > kMaximumPayloadBytes)
+        return {};
     std::array<std::uint8_t, kFrameHeaderBytes> header{'W', 'T', 'P', 'F', 1, 1, 0, 0};
-    write_u32_be(header.data() + 8, static_cast<std::uint32_t>(payload.size()));
-    write_u32_be(header.data() + 12, crc32c(payload));
+    write_u32_be(header.data() + 8, static_cast<std::uint32_t>(payload_bytes));
+    write_u32_be(header.data() + 12, checksum);
     return header;
 }
 

@@ -1,10 +1,10 @@
 {
   "provenance": {
     "source": "src/network/http.cpp",
-    "source_sha256": "e54a97ec626359b69b70ab59916886a2baabeeed372f58293531acbc443181dd",
+    "source_sha256": "94b5d8a98c40e2f60a7210953866fea9d31b5e0aa138532bdc9c0e27e4373f02",
     "generator": "#include \"network/http.hpp\"\n#include <iostream>\n#include <iterator>\nint main() {\n    std::string body(std::istreambuf_iterator<char>{std::cin}, {});\n    std::cout << wsprrypico::network::HttpResponse{200, body, \"application/json\", {}}.wire();\n}\n",
-    "command": "c++ -std=c++20 -Isrc /tmp/r3-http-serializer.cpp src/network/http.cpp src/wtp/json.cpp build/phase11-5-closure/6db650d-on/generated/web_assets.cpp -o /tmp/r3-http-serializer-repaired",
-    "note": "Actual firmware HTTP serializer output on the host with a synthetic Running test body; not captured hardware traffic. Rebuilt against the nullable reply repair; exact serialized bytes are unchanged."
+    "command": "c++ -std=c++20 -Isrc /tmp/r3-http-serializer.cpp src/network/http.cpp src/wtp/json.cpp build/phase11-5-closure/6db650d-on/generated/web_assets.cpp -o /tmp/r3-http-serializer-paged",
+    "note": "Actual firmware HTTP serializer output on the host with a synthetic Running test body; not captured hardware traffic. Rebuilt against the nullable reply repair; exact serialized bytes are unchanged. Paged-output source also reproduces exactly the same wire bytes."
   },
   "packet": {
     "schema": "phase11.5-r3-tls-a1-v1",

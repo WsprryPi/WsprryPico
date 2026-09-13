@@ -479,11 +479,11 @@ void PicoServer::Connection::poll(std::string_view authority, bool allow_handsha
     }
     auto output = endpoint_.output();
     if (!wtp_) {
-        const auto text =
-            response_offset_ < response_headers_.size()
-                ? std::string_view(response_headers_).substr(response_offset_)
-                : response_.body_view().substr(response_offset_ - response_headers_.size());
-        output = {reinterpret_cast<const std::uint8_t*>(text.data()), text.size()};
+        if (response_offset_ < response_headers_.size()) {
+            const auto text = std::string_view(response_headers_).substr(response_offset_);
+            output = {reinterpret_cast<const std::uint8_t*>(text.data()), text.size()};
+        } else
+            output = response_.body_at(response_offset_ - response_headers_.size());
     }
     if (!output.empty()) {
         const auto result =

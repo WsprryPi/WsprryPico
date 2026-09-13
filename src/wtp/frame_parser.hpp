@@ -13,10 +13,12 @@ namespace wsprrypico::wtp {
 constexpr std::size_t kFrameHeaderBytes = 16;
 constexpr std::size_t kMaximumPayloadBytes = 65'536;
 
-std::uint32_t crc32c(std::span<const std::uint8_t> bytes);
+std::uint32_t crc32c(std::span<const std::uint8_t> bytes, std::uint32_t previous = 0);
 // Invalid payload lengths return a zero header, which is never a valid frame.
 std::array<std::uint8_t, kFrameHeaderBytes>
 encode_frame_header(std::span<const std::uint8_t> payload);
+std::array<std::uint8_t, kFrameHeaderBytes> encode_frame_header(std::size_t payload_bytes,
+                                                                std::uint32_t checksum);
 std::vector<std::uint8_t> encode_frame(std::span<const std::uint8_t> payload);
 
 enum class FrameEventKind { Payload, InvalidFrame, Closed };

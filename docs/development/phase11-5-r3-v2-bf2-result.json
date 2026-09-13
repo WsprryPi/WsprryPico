@@ -1,0 +1,45 @@
+{
+  "status": "STOPPED_B_COMPONENTS_VERIFIED",
+  "packet_sha256": "e72a6130cf014515af75601b762c8df3cd93faa2d64440d22eef0f55137e17d5",
+  "source_revision": "48ef82c7dedfa5b073c486dd0620afde33f71ab6",
+  "boot_id": "f4f3670094e95d3d143e4d4b20aefc24",
+  "http_assertions": [
+    "http-32768",
+    "http-replay",
+    "http-conflict",
+    "http-32769-header",
+    "http-malformed",
+    "http-recovery"
+  ],
+  "original_result_status": "STOPPED_FINAL_STATE_UNVERIFIED",
+  "rf_jobs": 0,
+  "full_functional_pass": false,
+  "classification": "FIRMWARE_OUTPUT_ALLOCATION_REJECTED_WITHOUT_RESET",
+  "maximum_load_frame_bytes": 53413,
+  "loaded_state": {
+    "boot_id": "f4f3670094e95d3d143e4d4b20aefc24",
+    "state": "loaded",
+    "output_active": false,
+    "owner_id": "4816827df5caa114c2318707f1554b18",
+    "job_id": "07e4c8c8afcf74edc039ecc130ac0218",
+    "terminal_records": []
+  },
+  "final_state": {
+    "boot_id": "f4f3670094e95d3d143e4d4b20aefc24",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": [
+      {
+        "job_id": "07e4c8c8afcf74edc039ecc130ac0218",
+        "state": "aborted",
+        "ended_monotonic_ns": "305902315000",
+        "output_active": false
+      }
+    ]
+  },
+  "allocator_failures": 1,
+  "panic_protection_verified": true,
+  "maximum_load_reply_pass": false
+}

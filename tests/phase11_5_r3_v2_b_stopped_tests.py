@@ -8,7 +8,7 @@ class StoppedBTests(unittest.TestCase):
     def test_stopped_components_and_failure_mutations(self):
         value=os.environ.get('PHASE115_R3_V2_B_STOPPED_BUILD')
         if not value:self.skipTest('Private stopped B archives required')
-        for label,sha in zip(('bf0','bf1'),PACKETS):
+        for label,sha in zip(('bf0','bf1','bf2'),PACKETS):
             source=Path(value)/('phase11-5-r3-v2-parallel-b-functional-'+label)/'evidence'
             intact=audit(source,sha)
             def edit(root,kind,fn):

@@ -1,7 +1,7 @@
 #pragma once
-#include "wtp/input_buffer.hpp"
 #include "wtp/job_service.hpp"
 #include "wtp/json.hpp"
+#include "wtp/output_buffer.hpp"
 
 namespace wsprrypico::wtp {
 // Invalid envelope has no safely echoable identity and closes without a response.
@@ -12,7 +12,8 @@ std::string encode_response(const Request& request, const Response& response,
                             std::string_view firmware_version);
 // A maximum LOAD reply uses the nullable wire-buffer allocator. Empty means
 // insufficient working space; the endpoint must close and permit reconciliation.
-InputBuffer encode_load_response_buffer(const Request& request, const Response& response);
+OutputBuffer encode_load_response_buffer(const Request& request, const Response& response,
+                                         bool browser = false);
 std::string error_json(ErrorCode code);
 std::string status_json(const ServiceStatus& status);
 std::string state_name(State state);

@@ -56,13 +56,19 @@ bool Endpoint::enqueue(std::string text, std::uint64_t now, bool advisory) {
     output_.push_back(std::move(frame));
     return true;
 }
-bool Endpoint::enqueue(InputBuffer text, std::uint64_t now) {
+bool Endpoint::enqueue(OutputBuffer text, std::uint64_t now) {
     if (text.empty() || text.size() > kMaximumPayloadBytes || output_.size() >= 8 ||
         queued_bytes_ + text.size() + kFrameHeaderBytes > 131072 || !memory_admitted(1024)) {
         disconnect();
         return false;
     }
-    OutputFrame frame{encode_frame_header(text), std::move(text)};
+    std::uint32_t checksum = 0;
+    for (std::size_t offset = 0; offset < text.size();) {
+        const auto page = text.at(offset);
+        checksum = crc32c(page, checksum);
+        offset += page.size();
+    }
+    OutputFrame frame{encode_frame_header(text.size(), checksum), std::move(text)};
     if (output_.empty())
         last_tx_progress_ms_ = now;
     queued_bytes_ += frame.size();
@@ -234,7 +240,7 @@ std::span<const std::uint8_t> Endpoint::output() const {
     const auto& frame = output_.front();
     if (offset_ < frame.header.size())
         return std::span(frame.header).subspan(offset_);
-    return frame.bytes().subspan(offset_ - frame.header.size());
+    return frame.bytes(offset_ - frame.header.size());
 }
 void Endpoint::consume_output(std::size_t count, std::uint64_t now) {
     if (count > output().size()) {

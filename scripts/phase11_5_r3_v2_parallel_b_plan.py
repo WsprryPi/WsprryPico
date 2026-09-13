@@ -6,6 +6,7 @@ from phase11_5_r3_v2_admission import maximum_job, DURATION
 from phase11_5_r3_capacity_plan import identity, http_capacity_body, wtp_capacity_frame
 from validate_wtp_contract import frame
 from phase11_5_r3_v2_parallel_b_deploy import B_SERIAL, B_DEVICE, SOURCE, AUTHORIZATION, IMAGE
+from phase11_5_r3_v2_parallel_b_repair import SOURCE as REPAIR_SOURCE, IMAGE as REPAIR_IMAGE
 
 SCHEMA='phase11.5-r3-v2-parallel-b-functional-v1'
 NAME='wsprrypico-0a9d89.local'
@@ -57,7 +58,7 @@ def stimuli(seed):
 
 def validate(packet):
     require(packet['schema']==packet['r3_scope']==SCHEMA and packet['serial']==B_SERIAL and packet['device_id']==B_DEVICE and
-            packet['source_revision']==SOURCE and packet['image_sha256']==IMAGE and
+            (packet['source_revision'],packet['image_sha256']) in ((SOURCE,IMAGE),(REPAIR_SOURCE,REPAIR_IMAGE)) and
             packet['authorization_sha256']==AUTHORIZATION,
             'B-only functional identity')
     identity(packet['seed']);identity(packet['boot_id']);identity(packet['inventory_session'])

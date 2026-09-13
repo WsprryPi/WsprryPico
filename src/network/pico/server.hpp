@@ -69,7 +69,7 @@ class PicoServer {
         HttpResponse response_;
         std::string response_headers_, principal_;
         std::size_t response_size() const {
-            return response_headers_.size() + response_.body_view().size();
+            return response_headers_.size() + response_.body_size();
         }
         std::size_t response_offset_ = 0;
         std::uint64_t accepted_ms_ = 0, progress_ms_ = 0;

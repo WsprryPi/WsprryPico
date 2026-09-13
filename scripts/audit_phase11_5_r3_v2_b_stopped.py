@@ -12,6 +12,7 @@ from phase11_5_r3_v2_parallel_b_plan import stimuli, B_DEVICE, B_SERIAL, SOURCE,
 PACKETS={
  'd9b6db99ad6d491c780a00c6f34a50a47c2be02de5665bab28c78ee0a5af59dd':4,
  '87032853b769c077555d6869aac10c642d1442c8205809d8b7ac299bddab9bb3':6,
+ 'e72a6130cf014515af75601b762c8df3cd93faa2d64440d22eef0f55137e17d5':6,
 }
 
 def audit(root, expected_packet):
@@ -51,7 +52,7 @@ def audit(root, expected_packet):
         sum(r['kind']=='failure' for r in trace)==1 and result['rf_jobs']==result['arm_commands']==0,
         'Original failure retained')
     summary=dict(status='STOPPED_B_COMPONENTS_VERIFIED',packet_sha256=expected_packet,
-        source_revision=SOURCE,boot_id=packet['boot_id'],http_assertions=[c['label'] for c in plan['http_cases'][:len(responses)]],
+        source_revision=packet['source_revision'],boot_id=packet['boot_id'],http_assertions=[c['label'] for c in plan['http_cases'][:len(responses)]],
         original_result_status=result['status'],rf_jobs=0,full_functional_pass=False)
     if len(responses)==4:
         require(result['error']=='ValueError: B HTTP outcome' and result['status']=='STOPPED_REQUIRES_DIAGNOSIS' and
@@ -73,9 +74,33 @@ def audit(root, expected_packet):
                 v=row['value'];require(0<v['bytes']<=4096 and v['total_written']==count+v['bytes'],'BF1 full write accounting');count+=v['bytes']
         require(count==len(wire) and not any(r['kind']=='usb_message' and
             r['monotonic_ns']>last['monotonic_ns'] for r in trace),'BF1 full write with no response')
+        safe_failure=expected_packet=='e72a6130cf014515af75601b762c8df3cd93faa2d64440d22eef0f55137e17d5'
         final=audit_inventory(root/'diagnostic-b.stdout',dict(serial=B_SERIAL,device_id=B_DEVICE),
-            '63a026c0202c0574b144fc3d4a8c544d',packet['stage_sha256']['scripts/phase11_5_inventory.py'])
+            '6fbf946122e21cee9ab6dfcd0c38aff7' if safe_failure else '63a026c0202c0574b144fc3d4a8c544d',
+            packet['stage_sha256']['scripts/phase11_5_inventory.py'])
         info=final['info'];status=final['wtp']['STATUS']
+        if safe_failure:
+            loaded=audit_inventory(root/'final-b.stdout',dict(serial=B_SERIAL,device_id=B_DEVICE),
+                packet['inventory_session'],packet['stage_sha256']['scripts/phase11_5_inventory.py'])
+            observed=loaded['wtp']['STATUS']
+            require(observed['boot_id']==packet['boot_id'] and observed['state']=='loaded' and
+                observed['output_active'] is False and observed['job_id']==plan['job_id'] and
+                observed['owner_id']==plan['owner_id'],'BF2 known inactive Loaded state')
+            for i in (info,loaded['info']):
+                require(i['revision']==packet['source_revision'][:12]=='48ef82c7dedf' and
+                    i['recovery_boot'] is False and i['fault_stage']==i['fault_hash']==0 and
+                    i['fault_allocation_recorded'] is False and int(i['allocator_failures'])==1,
+                    'BF2 nullable failure without panic')
+            require(not (root/'diagnostic-b.stderr').read_bytes() and not (root/'final-b.stderr').read_bytes() and
+                status['boot_id']==packet['boot_id'] and status['state']=='empty' and
+                status['output_active'] is False and status['owner_id'] is status['job_id'] is None and
+                len(status['terminal_records'])==1 and status['terminal_records'][0]['job_id']==plan['job_id'] and
+                status['terminal_records'][0]['state']=='aborted' and
+                status['terminal_records'][0]['output_active'] is False,'BF2 same-boot final inactive state')
+            summary.update(classification='FIRMWARE_OUTPUT_ALLOCATION_REJECTED_WITHOUT_RESET',
+                maximum_load_frame_bytes=count,loaded_state=observed,final_state=status,
+                allocator_failures=1,panic_protection_verified=True,maximum_load_reply_pass=False)
+            return summary
         require(not (root/'diagnostic-b.stderr').read_bytes() and info['revision']==SOURCE[:12] and
             info['recovery_boot'] is True and info['fault_stage']==5 and info['fault_hash']==3833354787 and
             info['fault_allocation_recorded'] is True and info['fault_allocation_request_bytes']==54917 and

@@ -10,6 +10,8 @@ from audit_phase11_5_r3_capacity_probe import rows
 from audit_phase11_5_r3_v2_admission import decode_requests
 from phase11_5_r3_v2_parallel_b_plan import B_SERIAL, B_DEVICE, SOURCE, PEER_SHA, stimuli
 from validate_wtp_contract import SchemaValidator
+from phase11_5_r3_v2_parallel_b_deploy import validate as validate_deployment
+from phase11_5_r3_v2_parallel_b_repair import validate as validate_repair, SCHEMA as REPAIR_SCHEMA
 
 
 def inventory(root, packet, name, deployed=True):
@@ -23,7 +25,7 @@ def inventory(root, packet, name, deployed=True):
             info['status']['storage_healthy'] is True and info['status']['last_error'] is None,
             'B inactive/scheduling authority')
     if deployed:
-        require(info['revision']==SOURCE[:12] and info['status']['engine']=='pio-dma-gp2' and
+        require(info['revision']==packet['source_revision'][:12] and info['status']['engine']=='pio-dma-gp2' and
                 info['system_clock_hz']==138000000 and info['rf_render_in_ram'] is True and
                 info['recovery_boot'] is False and
                 all(info[k]==0 for k in ('fault_stage','fault_hash','fault_pc','fault_status')) and
@@ -50,13 +52,19 @@ def saved(value):
 def deployment(root, expected_packet):
     require(digest(root/'packet.json')==expected_packet,'Frozen B deployment packet')
     packet=json.loads((root/'packet.json').read_text())
+    (validate_repair if packet['schema']==REPAIR_SCHEMA else validate_deployment)(packet)
     before=inventory(root,packet,'before-b',False)
     after=inventory(root,packet,'after-flash-b');final=inventory(root,packet,'final-b')
     boot=after['wtp']['STATUS']['boot_id']
-    require(before['info']['revision']==packet['prior_revision']=='dbf1d86f0885-dirty' and
+    require(before['info']['revision']==packet['prior_revision'] and
             before['wtp']['STATUS']['boot_id']==packet['prior_boot'] and boot!=packet['prior_boot'] and
             final['wtp']['STATUS']['boot_id']==boot and saved(before)==saved(after)==saved(final),
             'B deployment boot/configuration')
+    if packet['schema']==REPAIR_SCHEMA:
+        info=before['info']
+        require(info['recovery_boot'] is True and info['fault_stage']==5 and info['fault_hash']==3833354787 and
+            info['fault_allocation_recorded'] is True and info['fault_allocation_request_bytes']==54917 and
+            info['fault_allocation_returned_null'] is True,'B repair starts from confirmed BF1 fault')
     trace=rows(root/'deployment.jsonl');kinds=[r['kind'] for r in trace]
     require(trace[0]['kind']=='start' and trace[0]['value']==dict(packet_sha256=expected_packet) and
             trace[-1]['kind']=='finish' and 'failure' not in kinds and
@@ -82,7 +90,7 @@ def deployment(root, expected_packet):
             result['flashes_started']==result['bootsel_commands']==1 and result['boot_id']==boot and
             all(result[k]==0 for k in ('rf_jobs','arm_commands','loads','configuration_writes','wifi_cycles')),
             'B deployment result')
-    return dict(status='B_DEPLOYMENT_VERIFIED',packet_sha256=expected_packet,source_revision=SOURCE,
+    return dict(status='B_DEPLOYMENT_VERIFIED',packet_sha256=expected_packet,source_revision=packet['source_revision'],
                 image_sha256=packet['image_sha256'],boot_id=boot,rf_jobs=0,rf_acceptance=False)
 
 
@@ -178,6 +186,6 @@ def functional(root, expected_packet):
     require(result==trace[-1]['value'] and result['status']=='OBSERVED_REQUIRES_INDEPENDENT_AUDIT' and
             result['passed_cases']==[c['label'] for c in plan['http_cases']+plan['usb_cases']] and
             result['accepted_loads']==1 and result['rf_jobs']==result['arm_commands']==0,'B result claims')
-    return dict(status='B_IDLE_FUNCTIONAL_VERIFIED',packet_sha256=expected_packet,source_revision=SOURCE,
+    return dict(status='B_IDLE_FUNCTIONAL_VERIFIED',packet_sha256=expected_packet,source_revision=packet['source_revision'],
         image_sha256=packet['image_sha256'],boot_id=boot,passed_cases=result['passed_cases'],
         accepted_loads=1,rf_jobs=0,a_under_rf_acceptance=False)
