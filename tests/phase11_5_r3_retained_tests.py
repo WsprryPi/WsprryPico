@@ -62,6 +62,41 @@ class RetainedTests(unittest.TestCase):
                 self.assertEqual(state['on'], 0 if failed else 1)
                 self.assertEqual(state.get('pending'), 'off' if failed else None)
 
+    def test_transient_recovery_wait_does_not_cycle_or_misclassify_progress(self):
+        import phase11_5_r3_retained as module
+        from phase11_5_join_diagnostics import POLICY
+        template = json.loads((Path(__file__).parent/'fixtures/phase11_5_r3_terminal_baseline.json').read_text())['inventory']
+        def state(link):
+            v = copy.deepcopy(template)
+            v['info']['network'].update(enabled=True, link_status=link, ipv4='')
+            return v
+        packet=dict(schema=module.SCHEMA_RETAINED, family='R3', configuration_writes=0,
+                    network_join_diagnostics=POLICY, wifi_recovery={'scope':'test'})
+        for links, failure in (([1,2,3],None),([1]*30,'did not settle'),([1,0],'Unexpected recovery')):
+            with tempfile.TemporaryDirectory() as temp:
+                dut=object.__new__(module.RetainedDUT);dut.root=Path(temp);dut.packet=packet
+                dut.check_current=Mock(side_effect=[state(n) for n in links])
+                with patch.object(module.time,'sleep'),patch.object(module,'exclusive_port',side_effect=AssertionError('mutation')):
+                    if failure:
+                        with self.assertRaisesRegex(ValueError,failure):dut.recover_wifi()
+                        self.assertFalse((dut.root/'wifi-recovery.json').exists())
+                    else:
+                        dut.recover_wifi()
+                        self.assertEqual(json.loads((dut.root/'wifi-recovery.json').read_text()),dict(status='NOT_NEEDED',off=0,on=0))
+                self.assertEqual(dut.check_current.call_count,len(links))
+
+    def test_late_admission_reply_cannot_authorize_recovery(self):
+        import phase11_5_r3_retained as module
+        from phase11_5_join_diagnostics import POLICY
+        dut=object.__new__(module.RetainedDUT)
+        dut.packet=dict(schema=module.SCHEMA_RETAINED,family='R3',configuration_writes=0,
+                        network_join_diagnostics=POLICY,wifi_recovery={'scope':'test'})
+        values=[dict(info=dict(network=dict(link_status=n,enabled=True,ipv4=''))) for n in (1,-3)]
+        dut.check_current=Mock(side_effect=values)
+        with patch.object(module.time,'monotonic',side_effect=[0,0,31]),patch.object(module.time,'sleep'), \
+             patch.object(module,'exclusive_port',side_effect=AssertionError('mutation')):
+            with self.assertRaisesRegex(ValueError,'reply exceeded'):dut.recover_wifi()
+
     def test_retained_wifi_requires_exact_input_without_generating_password(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

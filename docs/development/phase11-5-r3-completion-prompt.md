@@ -14,15 +14,16 @@ Work in `/Users/lbussy/GitHub/WsprryPico`, branch `devel`, initially
 repository's applicable instructions. Do not touch `Wsprry_Pi_Docs`.
 
 Complete R3 saturation/reclamation under the current Phase 11.5 plan. R1 remains
-5/5 and R2 7/7 under their existing change-impact review. R3 has zero accepted
-physical assertions; A1 and A1b failed in tooling. Preserve both attempts,
+5/5 and R2 7/7 under their existing change-impact review. At the initial start,
+R3 had zero accepted physical assertions; A1 and A1b had failed in tooling. Preserve both attempts,
 including missing A1b HTTP bytes and the incomplete observation. Do not call
 those target failures or acceptance passes. R4–R6, Phase 11.6 and Phase 13 are
 outside this work. No automatic expansion of QRSS duration is included.
 
 The initial-state descriptions below are historical admission inputs, not live
 device status. The [current review](phase11-5-r3-completion-review.md) records
-A1c/A1e/A1f execution and the unexecuted A1g proposal. R3 remains incomplete.
+A1c through A1h2 execution, including the approved observation rule, network
+diagnosis and retained failed attempts. R3 remains incomplete.
 
 Current source candidate: `2e43110f05304efdc2ae25c298baa0ef6426955b`, embedded
 `2e43110f0530`, physical 138 MHz/divider 1/RAM/listener on, GP2 PIO/DMA. Physical
@@ -63,8 +64,12 @@ Automatic approval review initially rejected the added hardware action. The
 user then explicitly approved A1e; its one OFF/ON cycle was executed and consumed.
 A1e completed one Tone before a harness failure. A1f subsequently completed two
 Tones but failed its frozen audit; neither attempt supplies acceptance. The
-[A1g proposal](phase11-5-r3-retained-a1g-execution.md) requires agreement on its
-explicit prospective observer criterion before execution. It adds no Wi-Fi cycle.
+[A1g rule](phase11-5-r3-retained-a1g-execution.md) was subsequently approved;
+A1g failed network admission before RF and ran no Wi-Fi cycle. The user approved
+one additional idle OFF/ON and two conditional Tones for A1h. A1h rejected a
+transient JOINING sample before any command or RF. A1h2 continued the unused
+allowance with a bounded read-only admission wait. The current review owns its
+outcome; old failed assessments receive no retrospective credit.
 
 ## Physical envelope and authorization handling
 

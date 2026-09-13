@@ -16,7 +16,9 @@ A1B = '590da5a47dc37c1d4c8addea4713ca0cfcb25872a3daaff46a4c9abb9702b218'
 A1C = '3167ff5d4c9e58b908ed0d5fcb64a278454a236857f5442ec0662e1e66fc5156'
 A1E = '27cd914815b8af8933fb134b44a923add1f09c8748afd0082115e4b1f202a518'
 A1F = 'cc557f977c655ac974c60c8343f1e8ba52dbd40b7837fdac9eb8561a63910236'
+A1G = 'e512fac77302ee21f6fe7f9536d5c3215dcd997565770684906d4409cbdb0ed4'
 
+A1H = 'e59ee91202eb01622fa0185fb0cb2102612ba428edd2a616eeabd82b799e89a9'
 
 def base(packet):
     return dict(schema='phase11.5-diagnosis-v1', packet_sha256=packet,
@@ -141,6 +143,36 @@ def diagnose(root):
             result['uncertainties'] = ['No firmware timing or resource contract violation is established by this observation miss.']
             result['next_actions'] = ['Review and prospectively freeze consistent observer cadence and response bounds before further hardware execution.',
                 'Replay complete raw captures through the entire audit integration before another run.']
+        elif packet == A1G:
+            from audit_phase11_5_r3_a1g_failure import audit
+            verified = audit(root)
+            result.update(execution='BLOCKED_BEFORE_RF', fault_domain='DEVICE_JOIN_STATE_DISAGREES_WITH_AP',
+                          root_cause=verified['root_cause'], completed_rf_jobs=0,
+                          authoritative_final_output='INACTIVE', acceptance='PRESSURE_NOT_EXERCISED',
+                          readiness=readiness(verified['readiness']))
+            result['facts'] = ['Twenty-five raw readiness inventories failed address/clock admission; no RF or Wi-Fi cycle ran.',
+                'The AP recorded a completed WPA four-way handshake with Pico A before the first failed readiness inventory.',
+                'No AP disassociation was logged until host cleanup, while Pico A continued reporting no address and BADAUTH.',
+                'An older terminal record expired at the advertised 3600-second target age; the other records were preserved.',
+                'Final A was Empty/inactive/unowned; B and host cleanup passed.']
+            result['uncertainties'] = verified['limitations']
+            result['next_actions'] = ['Capture DHCP/ARP before AP activation and retain live AP diagnostics before cleanup.',
+                'Use an additional idle Wi-Fi cycle only after explicit approval; no such action was authorized by A1g.',
+                'Do not label a station-table read taken after cleanup as live association evidence.']
+        elif packet == A1H:
+            from audit_phase11_5_r3_a1h_failure import audit
+            verified = audit(root)
+            result.update(execution='BLOCKED_BEFORE_RECOVERY_AND_RF', fault_domain='ASSISTANT_HARNESS',
+                          root_cause=verified['root_cause'], completed_rf_jobs=0,
+                          assistant_tooling_defect_confirmed=True,
+                          authoritative_final_output='INACTIVE', acceptance='PRESSURE_NOT_EXERCISED',
+                          readiness=readiness(verified['readiness']))
+            result['facts'] = ['Seven passive inventories included BADAUTH and JOINING; the single recovery admission rejected JOINING.',
+                'No Wi-Fi command or RF job was submitted; final A/B and host restoration passed.',
+                'The AP authenticated Pico A and its live station table reported authorized/authenticated/associated before cleanup.']
+            result['uncertainties'] = verified['limitations']
+            result['next_actions'] = ['Handle transient admission states with a bounded read-only wait; keep the original mutation gates and unused allowance.',
+                'Preserve this original failure; it does not identify the underlying target network cause.']
         else:
             result.update(execution='UNCLASSIFIED_ATTEMPT', uncertainties=[
                 'No independent raw auditor is registered for this packet. An exception string or a generic FAILED summary cannot establish fault attribution.'])

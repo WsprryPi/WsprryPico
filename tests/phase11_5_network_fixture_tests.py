@@ -15,6 +15,32 @@ import phase11_5_network_fixture as fixture
 
 
 class FixtureTests(unittest.TestCase):
+    def test_join_capture_is_ready_before_ap_activation(self):
+        from phase11_5_join_diagnostics import POLICY, CAPTURE_FILTER
+        p=dict(schema='phase11.5-r3-retained-fixture-v1',family='R3',configuration_writes=0,
+               network_join_diagnostics=POLICY,network_runtime_seconds=1800)
+        (self.root/'packet.json').write_text(json.dumps(p))
+        actions=[]
+        def unit(label,args):
+            actions.append(('capture',label,args))
+            (self.root/'capture-ap.pcap').write_bytes(b'capture header')
+        def command(args,**kwargs):
+            actions.append(('command',args))
+            if args[:6]==['nmcli','--wait','25','connection','up',fixture.PROFILE]:
+                self.assertTrue(self.subject.state['cleanup_armed'])
+                self.assertTrue((self.root/'capture-ap.pcap').exists())
+                self.assertTrue(any(a[0]=='capture' and a[1]=='capture-ap' and a[2][-1]==CAPTURE_FILTER for a in actions))
+                raise RuntimeError('stop before AP activation')
+            return subprocess.CompletedProcess(args,0,'active\n' if list(args[:2])==['systemctl','is-active'] else '','')
+        with patch.object(self.subject,'preflight',return_value=({'installed_pid':'1957'},{})), \
+             patch.object(self.subject,'cmd',side_effect=command),patch.object(self.subject,'unit',side_effect=unit):
+            with self.assertRaisesRegex(RuntimeError,'before AP activation'):self.subject.setup()
+
+    def test_dead_diagnostic_capture_is_rejected(self):
+        with patch.object(self.subject, 'value', return_value='inactive'):
+            with self.assertRaisesRegex(ValueError, 'capture is not active'):
+                self.subject.verify_join_capture()
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)

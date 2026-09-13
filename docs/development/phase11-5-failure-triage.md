@@ -15,11 +15,13 @@ through their raw auditors before assigning fault. Its current
 | A1b | One 100-second Tone completed; pressure unverified and observation incomplete | Confirmed assistant parser/observer defects. The failing HTTP bytes are missing, so the exact response and any concurrent target problem remain unknown. |
 | A1c | No new RF; prior job reconciled; network prerequisite not established; cleanup passed | Authentication failure observed, underlying cause unresolved. Neither firmware nor assistant code is proved responsible for the rejoin failure. |
 | A1d | Staged, never launched | Automatic approval review blocked the added Wi-Fi cycle. The user did not decline it. |
-
 | A1e | One approved Wi-Fi cycle restored readiness; one Tone and full observation completed, second job unsubmitted | Confirmed assistant freshness bug: an INFO read was validly in flight. Load interruption and missing second job followed that stop. |
 | A1f | Two Tones and all traffic completed; frozen audit failed | Three confirmed audit integration errors plus a separate completion-bracket miss. The read met its five-second deadline; a firmware timing violation is not established. |
 
-There is no confirmed firmware defect in these six records. That statement does
+| A1g | No RF; 25 readiness failures despite AP handshake completion; normal terminal expiry verified | Device join state disagrees with AP. Underlying firmware/driver/radio cause remains unlocalized. |
+| A1h | No recovery command or RF; live AP authenticated/associated the DUT; recovery admission sampled JOINING | Confirmed harness defect: transient progress was rejected without a bounded wait. |
+
+There is no confirmed firmware defect in these eight records. That statement does
 not assert that the candidate is defect-free or that R3 passed.
 
 ## Read-only diagnostic command
@@ -33,7 +35,7 @@ python3 scripts/diagnose_phase11_5.py \
 
 Use `--output` with a new path to retain a diagnosis without overwriting an older
 one. The command opens no device, socket, fixture or credential file and never
-retries hardware. A1/A1b/A1c/A1e/A1f raw auditors are its evidence adapters. An unregistered packet remains unclassified; its exception
+retries hardware. A1/A1b/A1c/A1e/A1f/A1g/A1h raw auditors are its evidence adapters. An unregistered packet remains unclassified; its exception
 message cannot assign blame. If raw audit fails, safety and attribution return to
 unknown: an audit mismatch can be damaged evidence **or a different real outcome**,
 so the tool does not automatically blame collection code either.
@@ -104,3 +106,18 @@ criterion, but cannot grant old evidence acceptance. See the [prospective packet
 Before another run, replay the complete observer, actual native production TLS
 wire and pressure trace through the integrated audit, not just isolated helper
 tests. Do not spend another RF run merely to discover an offline adapter error.
+
+## Rejoin and retention evidence
+
+The [network diagnosis](phase11-5-r3-network-diagnosis.md) records the AP/DUT
+chronology and its limits. Distinguish AP authentication, target IP readiness and
+clock synchronization. A positive AP handshake does not prove IP readiness; a
+DUT BADAUTH label alone does not prove a wrong password. Capture DHCP/ARP before
+AP activation and save live AP state before cleanup. A JOINING/NOIP sample is a
+progress state: wait within a declared read-only bound, then apply the original
+recovery gates. Never cycle on an unknown state or retry an uncertain ACK.
+
+Retained terminal expiry uses the target clock and CAPS lifetime. A record that
+has reached its advertised age is not a failed transmission or a reboot. Preserve
+exact unexpired records and refuse certainty when expiry falls inside the
+observation bracket. Earlier evidence files retain their original end timestamps.

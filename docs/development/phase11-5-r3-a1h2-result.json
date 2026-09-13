@@ -1,0 +1,485 @@
+{
+  "status": "PASS_A1_SUBSET",
+  "packet_sha256": "474e315dee1d7ba7527105a8c34b572508536224be010d9133ec2aaf8998b0d3",
+  "accepted_a1_pressure_cases": 10,
+  "family_closed": false,
+  "completed_jobs": 2,
+  "completed_rf_seconds": 200,
+  "wifi_off": 1,
+  "wifi_on": 1,
+  "configuration_writes": 0,
+  "flashes": 0,
+  "host_restored": true,
+  "b_unchanged": true,
+  "final_status": {
+    "boot_id": "9c5aec394269e0b57ca16d73ad3d12b6",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": [
+      {
+        "job_id": "e1b42cb55884f841dc0d2a0d37bf7615",
+        "state": "complete",
+        "ended_monotonic_ns": "10393169288000",
+        "output_active": false
+      },
+      {
+        "job_id": "1ec3120039f0efeb5809df863a75eb75",
+        "state": "complete",
+        "ended_monotonic_ns": "10263158860000",
+        "output_active": false
+      }
+    ]
+  },
+  "raw_a1": {
+    "status": "PASS",
+    "source_revision": "2e43110f05304efdc2ae25c298baa0ef6426955b",
+    "boot": "9c5aec394269e0b57ca16d73ad3d12b6",
+    "submission_path": "usb",
+    "completed_jobs": 2,
+    "timing": [
+      {
+        "job_id": "1ec3120039f0efeb5809df863a75eb75",
+        "mode": "tone",
+        "epoch": 5,
+        "expected_counter_deltas": {
+          "dma_irqs": 26323,
+          "alarm_irqs": 1,
+          "tail_irqs": 1,
+          "running_successor_links": 26321,
+          "refill_irq_pairs": 26321,
+          "running_tail_links": 1
+        },
+        "duration_ns": 100000000000,
+        "launch_target_ns": 10163158687000,
+        "post_enable_delay_ns": 8000,
+        "short_words": 6736,
+        "short_interval_ns": 1561971.0144927537,
+        "short_75_percent_budget_ns": 1171478.2608695652,
+        "cumulative_worst_short": {
+          "measured": true,
+          "observations": 5,
+          "epoch": "2",
+          "successor_sequence": "26322",
+          "observed_ns": "4525229741000",
+          "remaining_words": 6319,
+          "total_words": 6736
+        }
+      },
+      {
+        "job_id": "e1b42cb55884f841dc0d2a0d37bf7615",
+        "mode": "tone",
+        "epoch": 6,
+        "expected_counter_deltas": {
+          "dma_irqs": 26323,
+          "alarm_irqs": 1,
+          "tail_irqs": 1,
+          "running_successor_links": 26321,
+          "refill_irq_pairs": 26321,
+          "running_tail_links": 1
+        },
+        "duration_ns": 100000000000,
+        "launch_target_ns": 10293169150000,
+        "post_enable_delay_ns": 8000,
+        "short_words": 6736,
+        "short_interval_ns": 1561971.0144927537,
+        "short_75_percent_budget_ns": 1171478.2608695652,
+        "cumulative_worst_short": {
+          "measured": true,
+          "observations": 6,
+          "epoch": "2",
+          "successor_sequence": "26322",
+          "observed_ns": "4525229741000",
+          "remaining_words": 6319,
+          "total_words": 6736
+        }
+      }
+    ],
+    "usb": {
+      "info": {
+        "samples": 360,
+        "max_gap_seconds": 1.740548273
+      },
+      "status": {
+        "samples": 72,
+        "max_gap_seconds": 5.000308957
+      },
+      "health": {
+        "samples": 72,
+        "max_gap_seconds": 5.000087707
+      },
+      "boot": "9c5aec394269e0b57ca16d73ad3d12b6",
+      "seconds": 360,
+      "raw_wire_verified": true,
+      "max_allocator_peak_bytes": 109972,
+      "last_heap_allocated_bytes": 27436,
+      "expired_prior_terminal_jobs": [],
+      "job_coverage": {
+        "1ec3120039f0efeb5809df863a75eb75": {
+          "states": [
+            "armed",
+            "complete",
+            "loaded",
+            "running"
+          ],
+          "active": true
+        },
+        "e1b42cb55884f841dc0d2a0d37bf7615": {
+          "states": [
+            "armed",
+            "complete",
+            "loaded",
+            "running"
+          ],
+          "active": true
+        }
+      },
+      "max_rf_service_gap_ns": 2161000,
+      "rf_last_observation": {
+        "ok": true,
+        "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+        "revision": "2e43110f0530",
+        "firmware": "0.0.0-devel",
+        "deployment_identity_matches": true,
+        "recovery_boot": false,
+        "fault_stage": 0,
+        "fault_hash": 0,
+        "fault_pc": 0,
+        "fault_status": 0,
+        "network": {
+          "initialized": true,
+          "enabled": true,
+          "link_status": 3,
+          "ipv4": "10.77.15.10",
+          "requested_enabled": null,
+          "withdrawal_pending": false,
+          "resume_after_withdrawal": false,
+          "control_configured": true,
+          "control_listening": true,
+          "deployment_identity_matches": true,
+          "station_mac": "88:a2:9e:0a:60:df",
+          "stable_hostname": "wsprrypico-0a60df.local",
+          "configured_hostname": "wsprrypico-0a60df.local",
+          "advertised_hostname": "wsprrypico-0a60df.local",
+          "mdns_state": "active",
+          "mdns_reason": "",
+          "mdns_registrations": 4,
+          "mdns_conflicts": 0,
+          "mdns_failures": 0,
+          "mdns_address_changes": 0,
+          "mdns_goodbye_attempts": 0,
+          "mdns_goodbye_failures": 0,
+          "mdns_rejected_packets": 0,
+          "power_save": false,
+          "packets": {
+            "arp": {
+              "received": 34,
+              "sent": 38,
+              "dropped": 0
+            },
+            "ipv4": {
+              "received": 1828,
+              "sent": 1289,
+              "dropped": 0
+            },
+            "tcp": {
+              "received": 1748,
+              "sent": 1172,
+              "dropped": 2
+            },
+            "udp": {
+              "received": 80,
+              "sent": 104,
+              "dropped": 2
+            }
+          },
+          "memory": {
+            "heap": {
+              "used": 200,
+              "capacity": 32768,
+              "peak": 5120,
+              "errors": 0
+            },
+            "tcp_pcbs": {
+              "used": 0,
+              "capacity": 4,
+              "peak": 4,
+              "errors": 0
+            },
+            "tcp_segments": {
+              "used": 0,
+              "capacity": 32,
+              "peak": 4,
+              "errors": 0
+            },
+            "packet_pool": {
+              "used": 0,
+              "capacity": 8,
+              "peak": 2,
+              "errors": 0
+            }
+          },
+          "tx_credit": {
+            "waits": 0,
+            "preserved": 0,
+            "timeouts": 0
+          },
+          "ntp_server": "time.local",
+          "ntp_address": "10.77.15.1",
+          "ntp_resolution": "resolved",
+          "ntp_resolution_failures": 0,
+          "queries": 22,
+          "accepted": 21,
+          "rejected": 0,
+          "last_rtt_ns": 5578000,
+          "last_sample_uncertainty_ns": 6651886
+        },
+        "system_clock_hz": 138000000,
+        "heap_allocated_bytes": 27436,
+        "heap_available_bytes": 190848,
+        "heap_capacity_bytes": 218284,
+        "heap_arena_bytes": 132268,
+        "heap_arena_free_bytes": 104832,
+        "heap_free_chunks": 40,
+        "heap_top_releasable_bytes": 49408,
+        "heap_sample_observed_us": "10502042975",
+        "heap_sample_cost_us": 26,
+        "heap_sampled_peak_bytes": 93164,
+        "allocator_entries": "173908515",
+        "allocator_failures": "0",
+        "allocator_live_bytes": 30596,
+        "allocator_peak_bytes": 109972,
+        "allocator_largest_request_bytes": 16693,
+        "allocator_largest_successful_request_bytes": 16693,
+        "allocator_sample_time_us": "1342839878",
+        "allocator_max_sample_us": 184,
+        "allocator_max_entry_us": 222,
+        "allocator_max_depth": 2,
+        "core0_stack_used_bytes": 8248,
+        "core0_stack_guard_bottom": 537378816,
+        "core0_stack_guard_limit": 537382912,
+        "core0_stack_fault_status": 0,
+        "core0_stack_guard_valid": 1,
+        "core0_stack_scan_us": 115,
+        "tls_peak_bytes": 61872,
+        "tls_allocated_bytes": 4396,
+        "tls_allocation_failures": 0,
+        "rf_render_in_ram": true,
+        "launch_observed_ns": "10293169158000",
+        "launch_epoch": "6",
+        "launch_target_ns": "10293169150000",
+        "launch_delay_ns": "8000",
+        "dma_irqs": 157938,
+        "max_dma_irq_ns": 138000,
+        "alarm_irqs": 6,
+        "max_alarm_irq_ns": "205000",
+        "tail_irqs": 6,
+        "dma_errors": 0,
+        "refill_irq_pairs": 157926,
+        "refill_irq_unpaired": 0,
+        "refill_invalid_reserves": 0,
+        "refill_full_predecessor": {
+          "measured": true,
+          "observations": 157920,
+          "epoch": "3",
+          "successor_sequence": "6911",
+          "observed_ns": "5257422571000",
+          "remaining_words": 7199,
+          "total_words": 16384
+        },
+        "refill_short_predecessor": {
+          "measured": true,
+          "observations": 6,
+          "epoch": "2",
+          "successor_sequence": "26322",
+          "observed_ns": "4525229741000",
+          "remaining_words": 6319,
+          "total_words": 6736
+        },
+        "max_refill_irq_to_ready_ns": "2120000",
+        "running_successor_links": 157926,
+        "exhausted_successor_links": 0,
+        "running_tail_links": 6,
+        "min_data_successor_ready_words": 7199,
+        "min_tail_successor_ready_words": 6319,
+        "min_successor_ready_words": 6319,
+        "core1_stack_used_bytes": 5620,
+        "core1_stack_guard_bottom": 536884368,
+        "core1_stack_guard_limit": 536888464,
+        "core1_stack_fault_status": 0,
+        "core1_stack_guard_valid": 1,
+        "rf_worker_commands": 79875506,
+        "rf_metric_probes": 1312,
+        "rf_max_probe_ns": "311000",
+        "rf_max_service_gap_ns": "2161000",
+        "rf_max_poll_ns": "2040000",
+        "rf_max_roundtrip_ns": "27491000",
+        "max_loop_us": 645295,
+        "max_authority_poll_us": 1916,
+        "max_usb_us": 267,
+        "max_request_us": 10624,
+        "engine_diagnostic": "",
+        "status": {
+          "ok": true,
+          "configured": true,
+          "enabled": false,
+          "suspended": false,
+          "expires_utc_s": 0,
+          "boot_id": "9c5aec394269e0b57ca16d73ad3d12b6",
+          "utc_now_ns": "1789268258906683000",
+          "monotonic_now_ns": "10502047402000",
+          "sync_age_ns": "42010757000",
+          "station": {
+            "callsign": "AA0NT",
+            "locator": "EM18",
+            "power_dbm": 20
+          },
+          "schedules": [
+            {
+              "period_s": 120,
+              "phase_s": 0
+            }
+          ],
+          "engine": "pio-dma-gp2",
+          "storage_healthy": true,
+          "reboot_required": false,
+          "watermark_utc_ns": "1788714601000000000",
+          "clock_state": "synchronized",
+          "uncertainty_ns": "8752424",
+          "state": "empty",
+          "last_error": null,
+          "last_job": "",
+          "output_active": false
+        }
+      },
+      "terminal_records": [
+        {
+          "job_id": "e1b42cb55884f841dc0d2a0d37bf7615",
+          "state": "complete",
+          "ended_monotonic_ns": "10393169288000",
+          "output_active": false
+        },
+        {
+          "job_id": "1ec3120039f0efeb5809df863a75eb75",
+          "state": "complete",
+          "ended_monotonic_ns": "10263158860000",
+          "output_active": false
+        }
+      ]
+    },
+    "load": {
+      "boot": "9c5aec394269e0b57ca16d73ad3d12b6",
+      "seconds": 300,
+      "production_connections": 1,
+      "logical_sessions": 1,
+      "operations": {
+        "HELLO": 1,
+        "STATUS": 313,
+        "CAPS": 1
+      },
+      "status_cadence_policy": "single-flight-admin-v1",
+      "nominal_status_count": 310,
+      "nominal_status_hz": 1.0333333333333334,
+      "nominal_max_status_start_gap_ns": 1090146400,
+      "in_flight_time_beyond_poll_period_ns": 0,
+      "minimum_eligible_status_count": 298,
+      "max_eligible_offer_delay_ns": 122601310,
+      "administrative_response_deadline_ns": 5000000000,
+      "browser_counts": {},
+      "max_observed_write_to_response_seconds": 0.773262535,
+      "timing_origin": "SSL_write_ex entry",
+      "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+      "plaintext_sha256": "7b6846763b93c9157317430352800f6eed33b270c6c30b4517b0b2a9a27394b6"
+    },
+    "observer_cost": {
+      "max_usb_roundtrip_seconds": {
+        "INFO": 1.732411484,
+        "STATUS": 0.308743056,
+        "HELLO": 0.029192555,
+        "CLAIM": 0.024781236,
+        "LOAD": 0.040079317,
+        "GET_CLOCK": 0.027002655,
+        "ARM": 0.040927055,
+        "RENEW": 0.048069095,
+        "RELEASE": 0.028043007
+      },
+      "host_max_loadavg_1m": 0.8,
+      "host_max_temperature_c": 50.7,
+      "note": "Load average is system-wide runnable/uninterruptible load, not CPU utilization. Costs overlap."
+    },
+    "pressure": {
+      "status": "PASS",
+      "cases": [
+        {
+          "job_id": "1ec3120039f0efeb5809df863a75eb75",
+          "launch_epoch": 5,
+          "case": "positive",
+          "duration_ns": 2310918637
+        },
+        {
+          "job_id": "1ec3120039f0efeb5809df863a75eb75",
+          "launch_epoch": 5,
+          "case": "missing-certificate",
+          "duration_ns": 959339414
+        },
+        {
+          "job_id": "1ec3120039f0efeb5809df863a75eb75",
+          "launch_epoch": 5,
+          "case": "recover-certificate",
+          "duration_ns": 2001246851
+        },
+        {
+          "job_id": "1ec3120039f0efeb5809df863a75eb75",
+          "launch_epoch": 5,
+          "case": "silent-handshake",
+          "duration_ns": 10018078337
+        },
+        {
+          "job_id": "1ec3120039f0efeb5809df863a75eb75",
+          "launch_epoch": 5,
+          "case": "recover-handshake",
+          "duration_ns": 1695498969
+        },
+        {
+          "job_id": "e1b42cb55884f841dc0d2a0d37bf7615",
+          "launch_epoch": 6,
+          "case": "positive",
+          "duration_ns": 3188502360
+        },
+        {
+          "job_id": "e1b42cb55884f841dc0d2a0d37bf7615",
+          "launch_epoch": 6,
+          "case": "slot-excess",
+          "duration_ns": 1043075405
+        },
+        {
+          "job_id": "e1b42cb55884f841dc0d2a0d37bf7615",
+          "launch_epoch": 6,
+          "case": "recover-slots",
+          "duration_ns": 2348010385
+        },
+        {
+          "job_id": "e1b42cb55884f841dc0d2a0d37bf7615",
+          "launch_epoch": 6,
+          "case": "duplicate-wtp",
+          "duration_ns": 2537323798
+        },
+        {
+          "job_id": "e1b42cb55884f841dc0d2a0d37bf7615",
+          "launch_epoch": 6,
+          "case": "recover-wtp",
+          "duration_ns": 2375968264
+        }
+      ],
+      "tcp_connections": 12,
+      "https_controls": 6,
+      "observer_bracket_policy": "request-cadence-and-roundtrip-v1",
+      "limitation": "Pending retention and bounded excess only; no pending-expiry or failed-alert-wait claim"
+    },
+    "family": "R3",
+    "tranche": "A1",
+    "family_closed": false
+  },
+  "limitation": "Pending retention and bounded excess only; no pending-expiry or failed-alert-wait claim"
+}

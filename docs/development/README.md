@@ -7,13 +7,13 @@ At R2 closure devices and host were restored with CONFIG 34/34. R3–R6 remain o
 full accepted configurations remain empty. Original failed assessments are retained.
 
 Current: [R3 execution and adversarial review](phase11-5-r3-completion-review.md).
-The user-approved A1e Wi-Fi recovery ran, then a harness freshness bug stopped
-pressure after one completed Tone. A1f completed two Tones and all traffic, but
-its frozen audit failed; three audit integration defects and a separate INFO
-completion-bracket miss were reconstructed. A was last verified Empty/inactive/
-unowned, B unchanged and the host restored; the test configuration stays in place.
-No R3 acceptance is awarded. The [A1g proposal](phase11-5-r3-retained-a1g-execution.md)
-is prepared locally and awaits agreement on a prospective observation criterion.
+A1g's observation rule was approved; network admission then failed before RF.
+The [network diagnosis](phase11-5-r3-network-diagnosis.md) distinguishes AP/DUT
+state disagreement, normal terminal expiry and A1h's transient-state harness bug.
+The user approved one additional idle Wi-Fi cycle and two conditional Tones;
+[A1h2](phase11-5-r3-retained-a1h2-execution.md) continued the unused allowance.
+The current review records its independently audited outcome and remaining R3
+work. The retained test configuration remains the baseline.
 The [comprehensive prompt](phase11-5-r3-completion-prompt.md) remains unfinished.
 [Failure triage](phase11-5-failure-triage.md) separates confirmed harness defects,
 observation misses, unresolved prerequisites and administrative approval history.

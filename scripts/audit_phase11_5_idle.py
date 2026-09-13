@@ -41,7 +41,8 @@ def audit(path, baseline_path, rf_packet=None, *, expected_prejob_failure=False)
     require([r['sequence'] for r in rows]==list(range(len(rows))) and
             all(a['monotonic_ns']<=b['monotonic_ns'] for a,b in zip(rows,rows[1:])),'Envelope ordering')
     seconds=rows[0]['value']['seconds'];boot=rows[0]['value']['boot'];session=rows[0]['value']['session_id']
-    baseline=finished(baseline_path,'READ_ONLY_INVENTORY')['info']
+    baseline_inventory=finished(baseline_path,'READ_ONLY_INVENTORY')
+    baseline=baseline_inventory['info']
     if rf_packet is not None:
         from phase11_5_rf_observer import validate_info as rf_info, validate_status as rf_status
         from phase11_5_f1_plan import validate_rf_packet,SCHEMA as F1_SCHEMA
@@ -169,6 +170,22 @@ def audit(path, baseline_path, rf_packet=None, *, expected_prejob_failure=False)
                 samples['status'][-1]['value']['value']['owner_id'] is None,'Final RF job not released')
         terminal=samples['status'][-1]['value']['value']['terminal_records']
         expected_jobs=(rf_packet.get('prior_terminal_records',[])+rf_packet['jobs'])[-8:]
+        if rf_packet.get('schema')=='phase11.5-r3-tls-a1-v1':
+            from phase11_5_terminal_history import retained_prior
+            final_sample=samples['status'][-1]
+            before=[r for r in samples['info'] if r['monotonic_ns']<=final_sample['value']['began_monotonic_ns']]
+            after=[r for r in samples['info'] if r['value']['began_monotonic_ns']>=final_sample['monotonic_ns']]
+            require(before and after, 'Final terminal history lacks target clock brackets')
+            kept,expired=retained_prior(rf_packet.get('prior_terminal_records',[]),baseline_inventory['wtp']['CAPS'],
+                int(before[-1]['value']['value']['status']['monotonic_now_ns']),
+                int(after[0]['value']['value']['status']['monotonic_now_ns']))
+            # Source orders new records newest-first, evicts at capacity and
+            # expires them on target monotonic age. Retained baseline jobs do
+            # not acquire a new lifetime when an observation starts.
+            expected_jobs=(list(reversed(rf_packet['jobs']))+kept)[:8]
+            require([r['job_id'] for r in terminal]==[j['job_id'] for j in expected_jobs],
+                    'R3 terminal order/capacity/expiry differs')
+            result['expired_prior_terminal_jobs']=[r['job_id'] for r in expired]
         require(len(terminal)==len(expected_jobs) and
                 {r['job_id'] for r in terminal}=={j['job_id'] for j in expected_jobs} and
                 all(r['state']=='complete' and r['output_active'] is False and 'error' not in r

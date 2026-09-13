@@ -1,9 +1,10 @@
 # R3 A1g proposal: separate observer cadence from reply latency
 
-**Prepared locally, not staged or executed. Approval is pending.** This is a
-prospective change to the observation criterion, plus a new bounded TLS/slot
-attempt. A1f remains failed under its original criterion and receives no credit.
-The earlier approval for the A1e Wi-Fi recovery has been consumed.
+**Approved and executed; failed before RF.** The user approved the prospective
+observation rule and conditional two Tones. No RF or Wi-Fi cycle occurred because
+network/clock admission failed. The rule is approved for future packets; A1f
+retains its original failed scoring. See the [raw network diagnosis](phase11-5-r3-network-diagnosis.md).
+The specification below preserves the original prospective wording and hashes.
 
 ## Criterion requiring agreement
 

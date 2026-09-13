@@ -23,6 +23,8 @@ PRIOR_JOB = '91bd2c3d57e3e74f7de183203796f463'
 
 
 def validate(packet):
+    from phase11_5_join_diagnostics import selected
+    selected(packet)
     from phase11_5_r3_tls_plan import BRACKET_POLICY
     require(packet.get('observer_bracket_policy') in (None, BRACKET_POLICY), 'Unknown observer bracket policy')
     for name in ('nonce', 'owner_id', 'inventory_session_id', 'b_inventory_session_id', 'cleanup_owner_id'):
@@ -124,6 +126,22 @@ class RetainedDUT:
         """One explicitly frozen volatile OFF/ON cycle; no flash, CONFIG or RF."""
         require(self.packet.get('wifi_recovery') is not None, 'No Wi-Fi recovery scope')
         value = self.check_current('wifi-recovery-admission')
+        from phase11_5_join_diagnostics import selected
+        if selected(self.packet):
+            # JOINING/NOIP are progress states, not permission to cycle and not
+            # a failed attempt. Observe until an existing admission state appears.
+            deadline = time.monotonic() + 30
+            for index in range(30):
+                network = value['info']['network']
+                if network['link_status'] not in (1, 2):
+                    break
+                require(network['enabled'] is True and not network['ipv4'],
+                        'Unexpected transient recovery state')
+                require(time.monotonic() + 1 < deadline and index < 29,
+                        'Recovery admission did not settle within 30 seconds')
+                time.sleep(1)
+                value = self.check_current('wifi-recovery-wait-' + str(index))
+                require(time.monotonic() < deadline, 'Recovery admission reply exceeded its 30-second window')
         if value['info']['network']['link_status'] == 3:
             save(self.root / 'wifi-recovery.json', dict(status='NOT_NEEDED', off=0, on=0))
             return
@@ -204,6 +222,15 @@ def main():
                                'connection', 'show', 'phase115-closure-ap')
         require(actual == wifi['password'], 'Active AP differs from retained Wi-Fi input')
         save(root / 'retained-ap-identity.json', dict(psk_matches_retained=True))
+        from phase11_5_join_diagnostics import selected, capture
+        if selected(packet):
+            for index in range(7):
+                current = dut.check_current('diagnostic-ready-' + str(index))
+                if current['info']['network']['link_status'] == 3:
+                    break
+                if index < 6:
+                    time.sleep(5)
+            capture(fixture, 'before-recovery')
         if packet.get('wifi_recovery') is not None:
             dut.recover_wifi()
         for index in range(25):
@@ -227,6 +254,12 @@ def main():
                 result['b_unchanged'] = True
         except BaseException as error: result['device_cleanup_error'] = str(error)
         if (root / 'fixture-state.json').exists():
+            from phase11_5_join_diagnostics import selected, capture
+            if selected(packet):
+                try:
+                    capture(Fixture(root), 'before-host-cleanup')
+                except BaseException as error:
+                    result['diagnostic_capture_error'] = type(error).__name__ + ': ' + str(error)
             try:
                 with (root / 'host-cleanup.log').open('x') as log:
                     code = subprocess.run(['python3', str(root / 'scripts/phase11_5_network_fixture.py'), 'cleanup',
@@ -234,7 +267,7 @@ def main():
                 require(code == 0, 'Host cleanup failed'); result['host_restored'] = True
             except BaseException as error: result['host_cleanup_error'] = str(error)
         result['configuration_writes'] = result['flashes'] = 0
-        if not (result.get('device_inactive_unowned') and result.get('b_unchanged') and result.get('host_restored')):
+        if not (result.get('device_inactive_unowned') and result.get('b_unchanged') and result.get('host_restored')) or result.get('diagnostic_capture_error'):
             result['status'] = 'FAILED'
         save(root / 'retained-result.json', result)
     require(result['status'] == 'PASS_REQUIRES_FINAL_REVIEW' and result.get('device_inactive_unowned')

@@ -1,8 +1,8 @@
 {
   "schema": "phase11.5-r3-completion-progress-v1",
-  "status": "OPEN_AWAITING_PROSPECTIVE_OBSERVATION_POLICY_AGREEMENT",
+  "status": "OPEN_A1_TLS_SLOT_SUBSET_PASSED",
   "family_closed": false,
-  "accepted_assertions": 0,
+  "accepted_assertions": 10,
   "phase11_5_closed_families": 2,
   "phase11_5_total_families": 6,
   "accepted_configurations": [],
@@ -13,10 +13,10 @@
   "heap_probes_this_effort": 0,
   "cumulative_configuration_writes": 37,
   "cumulative_heap_probes": 6,
-  "wifi_off_this_effort": 1,
-  "wifi_on_this_effort": 1,
-  "completed_jobs_this_effort": 3,
-  "completed_rf_seconds_this_effort": 300,
+  "wifi_off_this_effort": 2,
+  "wifi_on_this_effort": 2,
+  "completed_jobs_this_effort": 5,
+  "completed_rf_seconds_this_effort": 500,
   "attempts": {
     "A1": {
       "packet_sha256": "cab1abf2afffa27d79992b1d84bf393a2f1059ad3a4615829407485d695ca7a4",
@@ -59,6 +59,27 @@
       "acceptance": "FROZEN_OBSERVATION_GATE_FAILED",
       "fault_domain": "ASSISTANT_HARNESS_AND_OBSERVATION_GATE",
       "completed_rf_jobs": 2
+    },
+    "A1g": {
+      "packet_sha256": "e512fac77302ee21f6fe7f9536d5c3215dcd997565770684906d4409cbdb0ed4",
+      "execution": "BLOCKED_BEFORE_RF",
+      "acceptance": "PRESSURE_NOT_EXERCISED",
+      "fault_domain": "DEVICE_JOIN_STATE_DISAGREES_WITH_AP",
+      "completed_rf_jobs": 0
+    },
+    "A1h": {
+      "packet_sha256": "e59ee91202eb01622fa0185fb0cb2102612ba428edd2a616eeabd82b799e89a9",
+      "execution": "BLOCKED_BEFORE_RECOVERY_AND_RF",
+      "acceptance": "PRESSURE_NOT_EXERCISED",
+      "fault_domain": "ASSISTANT_HARNESS",
+      "completed_rf_jobs": 0
+    },
+    "A1h2": {
+      "packet_sha256": "474e315dee1d7ba7527105a8c34b572508536224be010d9133ec2aaf8998b0d3",
+      "execution": "RF_AND_TRAFFIC_COMPLETED",
+      "acceptance": "A1_SUBSET_PASS_10_OF_10",
+      "fault_domain": "NO_FAILURE_OBSERVED_IN_ACCEPTED_SUBSET",
+      "completed_rf_jobs": 2
     }
   },
   "final_status": {
@@ -69,21 +90,15 @@
     "job_id": null,
     "terminal_records": [
       {
-        "job_id": "04973b6fde7ea85c37075ffe60dacead",
+        "job_id": "e1b42cb55884f841dc0d2a0d37bf7615",
         "state": "complete",
-        "ended_monotonic_ns": "5461175002000",
+        "ended_monotonic_ns": "10393169288000",
         "output_active": false
       },
       {
-        "job_id": "7f0198663d01009631fb2c4f16c1249c",
+        "job_id": "1ec3120039f0efeb5809df863a75eb75",
         "state": "complete",
-        "ended_monotonic_ns": "5331168388000",
-        "output_active": false
-      },
-      {
-        "job_id": "d27689688f2f3e519a3836b775b3092b",
-        "state": "complete",
-        "ended_monotonic_ns": "4525231417000",
+        "ended_monotonic_ns": "10263158860000",
         "output_active": false
       }
     ]
@@ -110,64 +125,16 @@
       "following_roundtrip_ns": 1606318998
     }
   ],
-  "proposed_next_packet": {
-    "status": "PREPARED_NOT_EXECUTED",
-    "packet_sha256": "e512fac77302ee21f6fe7f9536d5c3215dcd997565770684906d4409cbdb0ed4",
-    "archive_sha256": "23ba61adddb5f6fe39fcef4ced0a168855b1747e96b455fc0488b41d56009468",
-    "archive_bytes": 706560,
-    "stage_helper_sha256": "788fb4c6595506916763229e900b6c9ccb0f7f941b0192eb282e1b2ad4e6830f",
-    "archived_files": 64,
-    "private_copies": 9,
-    "remote_root": "/home/pi/phase11-5-r3-retained-a1g-20260912",
-    "jobs": [
-      {
-        "profile": "rf-events/1",
-        "mode": "tone",
-        "events": [
-          {
-            "offset_ns": "0",
-            "duration_ns": "100000000000",
-            "rf_on": true,
-            "frequency_nhz": "135500000000000"
-          }
-        ],
-        "total_duration_ns": "100000000000",
-        "allow_frequency_adjustment": true,
-        "job_id": "ac093064beb6a416e510d30f674d0aa6"
-      },
-      {
-        "profile": "rf-events/1",
-        "mode": "tone",
-        "events": [
-          {
-            "offset_ns": "0",
-            "duration_ns": "100000000000",
-            "rf_on": true,
-            "frequency_nhz": "135500000000000"
-          }
-        ],
-        "total_duration_ns": "100000000000",
-        "allow_frequency_adjustment": true,
-        "job_id": "adf8d7cc233060c87a409a7ff06082f7"
-      }
-    ]
-  },
-  "proposed_policy": "request-cadence-and-roundtrip-v1",
-  "proposed_policy_approved": false,
-  "proposed_packet_staged": false,
-  "proposed_packet_executed": false,
   "validation": {
-    "discovered": 198,
-    "passed": 196,
+    "discovered": 210,
+    "passed": 208,
     "skipped": 2,
-    "private_r3_attempts_supplied": 5,
+    "private_r3_attempts_supplied": 8,
     "firmware_tests_rerun": false,
     "pi_runtime_tests_rerun": false
   },
   "remaining_register": [
-    "TLS-VALID",
     "TLS-FAIL",
-    "TLS-SLOW",
     "SLOT",
     "HTTP-PARTIAL",
     "PROGRESS",
@@ -180,5 +147,25 @@
     "RETAINED",
     "RECLAIM"
   ],
-  "limitation": "Component checks and diagnostic-only alternate-policy evaluations do not close R3 or replace frozen failed assessments."
+  "limitation": "Only the initial ten A1 pressure cases passed. R3 remains open; historical failed attempts retain zero credit. Recovery does not isolate the underlying rejoin cause.",
+  "accepted_assertion_unit": "initial A1 pressure case",
+  "accepted_a1_pressure_cases": 10,
+  "completed_register_groups": [
+    "TLS-VALID",
+    "TLS-SLOW"
+  ],
+  "partial_register_groups": [
+    "TLS-FAIL",
+    "SLOT"
+  ],
+  "observation_policy": "request-cadence-and-roundtrip-v1",
+  "observation_policy_approved": true,
+  "latest_execution": {
+    "attempt": "A1h2",
+    "packet_sha256": "474e315dee1d7ba7527105a8c34b572508536224be010d9133ec2aaf8998b0d3",
+    "archive_sha256": "6c6c34d81048bdd07a970899dfbff845711d3c52f924d373ae00756785fe63f3",
+    "status": "PASS_A1_SUBSET",
+    "staged": true,
+    "executed": true
+  }
 }

@@ -58,9 +58,17 @@ audit failed on harness integration errors and a separate INFO completion-bracke
 miss. Component evidence is retained without promoting it to acceptance.
 Final A was Empty/inactive/unowned, B unchanged and host restored. The retained
 test configuration remains in place; CONFIG saves remain 37 and probes six.
-The [A1g proposal](phase11-5-r3-retained-a1g-execution.md) is prepared locally,
-unexecuted, and requires agreement on its explicit prospective observation rule.
-R3 remains OPEN with zero accepted complete pressure assertions.
+The user approved [A1g](phase11-5-r3-retained-a1g-execution.md)'s prospective
+observation rule; network admission then failed before RF. A1h exposed a transient
+JOINING admission bug before consuming its separately approved recovery/RF
+allowance. [A1h2](phase11-5-r3-a1h2-result.json) completed that allowance and
+passed the initial TLS/slot subset **10/10** under independent raw audit. Both
+100-second Tones, 300-second production load and 360-second observation passed;
+A was Empty/inactive/unowned, B unchanged and host restored. Configuration remains
+37 saves and six cumulative probes. R3 is OPEN: TLS-FAIL/SLOT are partial, and the
+remaining maximum-allocation, timeout, USB, retained-state and reclamation paths
+still need physical acceptance. The [current review](phase11-5-r3-completion-review.md)
+preserves all failures and exact scope. Phase 11.5 remains 2/6 families closed.
 
 ## Evidence that already exists
 

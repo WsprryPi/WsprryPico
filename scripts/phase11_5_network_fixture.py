@@ -187,6 +187,8 @@ class Fixture:
         self.deadline = time.monotonic() + 300
         before, radio = self.preflight()
         packet = json.loads((self.root / 'packet.json').read_text())
+        from phase11_5_join_diagnostics import selected, CAPTURE_FILTER
+        join_diagnostics = selected(packet)
         dns_fixture = packet.get('time_server_dns', False)
         require(type(dns_fixture) is bool, 'Explicit DNS fixture selection required')
         mdns_fixture = packet.get('time_server_mdns', False)
@@ -232,6 +234,17 @@ class Fixture:
             'ipv4.never-default', 'yes', 'ipv6.method', 'disabled',
             'wifi-sec.key-mgmt', 'wpa-psk', 'wifi-sec.proto', 'rsn',
             'wifi-sec.pairwise', 'ccmp', 'wifi-sec.psk', psk])
+        if join_diagnostics:
+            # Start before AP activation: a later capture can miss the entire
+            # association/DHCP attempt while the fixture is still being built.
+            self.unit('capture-ap', ['/usr/bin/tcpdump', '--immediate-mode', '-i', 'wlan0', '-U', '-s', '0',
+                '-w', str(self.root/'capture-ap.pcap'), CAPTURE_FILTER])
+            end = time.monotonic() + 5
+            while not (self.root/'capture-ap.pcap').exists() and time.monotonic() < end:
+                time.sleep(.1)
+            require((self.root/'capture-ap.pcap').exists(), 'Early diagnostic capture did not start')
+            self.verify_join_capture()
+            self.note('join_capture_before_ap', dict(filter=CAPTURE_FILTER))
         self.cmd(['nmcli', '--wait', '25', 'connection', 'up', PROFILE])
         self.cmd(['iw', 'dev', 'wlan0', 'set', 'power_save', 'off'])
         (self.root / 'dhcp-hosts').write_text(DUT_MAC + ',' + DUT_ADDRESS + ',60s\n')
@@ -273,8 +286,9 @@ class Fixture:
             from phase11_5_time_local import install
             install(self)
             time.sleep(3)  # Avahi probe/announcement settling; no acceptance from this wait.
-            self.unit('capture-ap', ['/usr/bin/tcpdump', '--immediate-mode', '-i', 'wlan0', '-U', '-s', '0',
-                '-w', str(self.root/'capture-ap.pcap'), 'udp port 5353 or udp port 123'])
+            if not join_diagnostics:
+                self.unit('capture-ap', ['/usr/bin/tcpdump', '--immediate-mode', '-i', 'wlan0', '-U', '-s', '0',
+                    '-w', str(self.root/'capture-ap.pcap'), 'udp port 5353 or udp port 123'])
             pid = self.value('systemctl', 'show', '-p', 'MainPID', '--value', PREFIX+'-client')
             self.unit('capture-client', ['nsenter', '-t', pid, '-m', '-n', '/usr/bin/tcpdump', '--immediate-mode',
                 '-i', 'wlan2', '-U', '-s', '0', '-w', str(self.root/'capture-client.pcap'),
@@ -294,7 +308,14 @@ class Fixture:
                 self.state['token'], 'Client unit ownership changed')
         return self.cmd(['nsenter', '-t', str(pid), '-m', '-n', *args], timeout=timeout, check=check)
 
+    def verify_join_capture(self):
+        require(self.value('systemctl', 'is-active', PREFIX + '-capture-ap.service') == 'active',
+                'Diagnostic capture is not active')
+
     def verify(self):
+        from phase11_5_join_diagnostics import selected
+        if selected(json.loads((self.root/'packet.json').read_text())):
+            self.verify_join_capture()
         current = self.host(paused=True)
         require(current['installed_pid'] == self.state['before']['installed_pid'],
                 'Installed application restarted')

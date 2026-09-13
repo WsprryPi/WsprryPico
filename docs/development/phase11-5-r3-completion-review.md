@@ -1,5 +1,119 @@
 # R3 execution, causal diagnosis and adversarial assessment
 
+R3 remains **OPEN**, with the initial A1 TLS/slot subset now **10/10 passed**.
+[A1h2's independently reconstructed result](phase11-5-r3-a1h2-result.json) matches
+the frozen on-host audit. Both 100-second Tones at 135,500 Hz completed on unchanged
+physical 2e43110, 138 MHz/divider 1/RAM/listener on. The 300-second RF-off production
+load and 360.008917069-second USB observation completed. Final A was Empty,
+inactive and unowned on the same boot, B unchanged and host restored. The test
+configuration stays in place; zero CONFIG saves, flashes, reboots or heap probes
+occurred in this effort. Phase 11.5 remains 2/6 families closed; R1 5/5, R2 7/7,
+no full accepted configuration.
+
+The [comprehensive prompt](phase11-5-r3-completion-prompt.md) remains unfinished:
+initial TLS acceptance does not close the saturation/reclamation register.
+Historical failed attempts remain failed. A1g's observation rule was explicitly
+approved before A1g ran and before this accepted A1h2 measurement.
+
+## Current evidence and attribution
+
+| Attempt | Work actually executed | Reviewed disposition |
+| --- | --- | --- |
+| A1g | No RF or Wi-Fi cycle; 25 readiness samples | AP handshake succeeded while DUT reported no address/BADAUTH. Network cause remains unlocalized. Normal target-age terminal expiry verified. |
+| A1h | No Wi-Fi command or RF; early capture and live AP diagnostics | Confirmed harness defect: a JOINING admission sample was immediately rejected. AP reported DUT authenticated and associated. Cleanup passed. |
+| A1h2 | One approved idle OFF/ON, two Tones, all ten pressure cases, full load/observation | Initial A1 subset PASS. Independent raw replay and final device/host checks agree. |
+
+[The network diagnosis](phase11-5-r3-network-diagnosis.md) preserves AP/DUT
+chronology, source inspection, capture limits and A1g/A1h archive identities.
+The [A1h2 packet](phase11-5-r3-retained-a1h2-execution.md) continued the unused
+allowance after A1h's zero-command/zero-RF stop. It did not repeat a consumed
+cycle. A1e and A1h2 each used one cycle; A1c/A1f/A1g/A1h used none.
+Across the completion effort A1e/A1f/A1h2 completed five Tones (500 seconds);
+the earlier A1b Tone remains separate historical evidence.
+
+## Accepted scope and limits
+
+Ten predeclared pressure cases passed: two positive HTTPS controls, missing
+client certificate and recovery, activated silent handshake and recovery, held
+active/pending slots with excess rejection and recovery, and duplicate WTP
+rejection and recovery. There were twelve pressure TCP connections and six
+successful authenticated HTTPS controls, including the recoveries.
+
+The silent connection closed after 10.018078337 seconds. Every authenticated
+recovery met its 15-second bound. INFO/STATUS/host samples were 360/72/72;
+maximum request-start gaps were 1.740548273/5.000308957/5.000087707 seconds.
+The native TLS production trace reconstructed one connection, one logical session,
+313 STATUS operations overall and 310 in the nominal load interval. Maximum
+native write-to-response time was 0.773262535 seconds against five seconds;
+this metric excludes controller scheduler queue time.
+
+Each job had exactly 26,323 DMA IRQs, 26,321 running successor links, one alarm
+and one tail. Both post-enable launch delays were 8,000 ns. Minimum sampled heap
+availability was 128,264 bytes, above the 32 KiB reserve; allocator peak was
+109,972 bytes. Both stack guards and all declared unexpected-failure checks
+passed. Full/short predecessor checks retain their original bounds. Cumulative
+worst timing and reserve values retain their original epochs; they are not
+presented as new per-job worst measurements or added together.
+
+These cases complete TLS-VALID and TLS-SLOW at the stated scope. TLS-FAIL and
+SLOT remain partial: this packet does not establish failed-alert acknowledgement/
+wait lifetimes or pending expiry. HTTP partial/progress paths, maximum job/WTP/
+HTTP/browser boundaries, combined overload, USB pressure, retained capacities/
+expiry/reuse and three equivalent measured reclamation cycles remain outstanding.
+No SDR spectral, per-band Phase 11.6 or broad Phase 13 qualification is claimed.
+
+## Adversarial iterations
+
+Review repaired terminal retention accounting to use target-clock brackets,
+CAPS TTL/capacity and exact record order. It also required the early diagnostic
+capture service active before AP activation and after setup. The A1h failure
+then exposed immediate rejection of JOINING; A1h2 added a bounded read-only wait
+while preserving the original mutation gates. A later source review added a
+post-read deadline check so a late reply cannot authorize recovery. That last
+check is host-tested, not a new physical claim: A1h2 admitted directly on BADAUTH
+and has no `wifi-recovery-wait-*` captures. Executed helpers remain frozen.
+
+Raw mutation tests reject changed disposition, AP/boot identities, RF counters,
+terminal expiry, worker outcomes, TLS version/alert, case timing, truncated USB
+bytes and false host restoration. A1g and A1h each reject thirteen mutations;
+A1h2 rejects twelve. The intact A1h2 archive passes again after mutation tests.
+Repeated review found no further actionable defect in the changed paths; it
+cannot establish correctness of the unexecuted remainder of R3.
+
+Validation: **210 Phase 11.5 tests, 208 passed, two unrelated private evidence
+tests skipped**. All eight available R3 execution archives were supplied.
+JSON, links, whitespace, source identity and staged/evidence archive hashes were
+checked. No firmware/C++ or Pi runtime implementation changed, so no firmware
+build, CTest or Pi runtime suite was rerun. The AP/DUT rejoin cause remains
+unlocalized despite successful recovery.
+
+## Evidence identity and publication boundary
+
+A1h2 packet SHA-256:
+`474e315dee1d7ba7527105a8c34b572508536224be010d9133ec2aaf8998b0d3`.
+RF subpacket SHA-256:
+`c3fb66d5f55dcffcb35eb24ef6e3802e90ca259ee8973dc1a1ef1d23eb9c14fe`.
+Archive: 154 files, 9,922,560 bytes, SHA-256
+`6c6c34d81048bdd07a970899dfbff845711d3c52f924d373ae00756785fe63f3`.
+Raw evidence remains ignored under `build/phase11-5-r3-retained-a1h2/evidence`;
+private credential/configuration inputs were excluded from collection and Git.
+The initial staging review mistakenly inferred that uploaded tooling contained
+Wi-Fi credentials. Archive inspection proved private inputs absent; re-review
+approved the same staging design. No sensitive-payload workaround was used.
+
+Documentation Impact: updated the completion prompt, execution packets, failure
+triage, diagnosis/results, acceptance ledger and development index, plus the Pi
+companion development report. Runtime/operator behavior and `Wsprry_Pi_Docs`
+remain unchanged; the remaining requirement is new development evidence for the
+unexecuted R3 register. No operator-documentation update is required for these
+qualification tools and evidence reports.
+
+## Historical A1c–A1f assessment
+
+The following preserves the earlier assessment and its then-pending A1g proposal.
+Its status and validation counts are historical; the current disposition above
+supersedes them without changing the old failed evidence.
+
 R3 remains **OPEN, zero accepted complete physical pressure assertions**.
 The [comprehensive prompt](phase11-5-r3-completion-prompt.md) was rendered and
 execution proceeded through A1c, A1e and A1f. The approved A1e Wi-Fi recovery was
