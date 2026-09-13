@@ -66,20 +66,37 @@ def exclusive_port(path):
     require(observed.returncode == 1 and not observed.stdout and not observed.stderr,
             'Endpoint occupied or ownership check unavailable')
     fd = os.open(path, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+    primary_error = None
+    exclusive = dtr_attempted = False
     try:
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         fcntl.ioctl(fd, termios.TIOCEXCL)
+        exclusive = True
         configure_raw(fd)
+        dtr_attempted = True
         fcntl.ioctl(fd, termios.TIOCMBIS, struct.pack('I', termios.TIOCM_DTR))
         yield fd
+    except BaseException as error:
+        primary_error = error
+        raise
     finally:
-        try:
-            fcntl.ioctl(fd, termios.TIOCMBIC, struct.pack('I', termios.TIOCM_DTR))
-        finally:
+        cleanup_errors = []
+        operations = []
+        if dtr_attempted:
+            operations.append(lambda: fcntl.ioctl(fd, termios.TIOCMBIC, struct.pack('I', termios.TIOCM_DTR)))
+        if exclusive:
+            operations.append(lambda: fcntl.ioctl(fd, termios.TIOCNXCL))
+        operations.append(lambda: os.close(fd))
+        for operation in operations:
             try:
-                fcntl.ioctl(fd, termios.TIOCNXCL)
-            finally:
-                os.close(fd)
+                operation()
+            except OSError as error:
+                cleanup_errors.append(error)
+        if cleanup_errors:
+            if primary_error is None:
+                raise cleanup_errors[0]
+            for error in cleanup_errors:
+                primary_error.add_note('USB cleanup also failed: ' + repr(error))
 
 
 def exchange(fd, data, deadline, emit, framed):

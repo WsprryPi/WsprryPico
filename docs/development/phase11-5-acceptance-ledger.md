@@ -1,6 +1,6 @@
 # Phase 11.5 current acceptance ledger
 
-Status on September 12, 2026: **OPEN; 2 of 6 families closed; no accepted
+Status on September 13, 2026: **OPEN; 2 of 6 families closed; no accepted
 configuration.** [R2 closure and review](phase11-5-r2-continuation-review.md)
 close **7/7 jobs**. R1 remains **5/5**, with explicit change-directed reuse.
 The selected firmware is `2e43110f05304efdc2ae25c298baa0ef6426955b`, physical
@@ -15,6 +15,17 @@ The earlier WSPR LOAD OOM, recovery and superseded unflashed images remain
 recorded. At R2 closure both boards/configurations and host services were restored;
 CONFIG writes were **34/34**, with six cumulative probes. R3–R6 require new bounded
 packets. Future fixes invalidate affected assertions, not automatically all R1.
+
+Current R3: A1h2 and B2 passed 24 TLS/transport pressure cases on 2e43110; C0
+then confirmed an allocation panic during idle maximum WTP admission. R3 remains
+OPEN. Current A is Empty/inactive/unowned in recovery boot
+`bccea7c09794539c4f64bc22b0e76c56`; B is unchanged. See the
+[current review](phase11-5-r3-completion-review.md) and
+[machine register](phase11-5-r3-completion-result.json). Nine jobs/900 seconds
+have completed in this effort; CONFIG remains 37, heap probes six. A prospective
+diagnostic image is not a repaired or accepted configuration.
+
+The following R3 preparation/attempt history retains its original chronology.
 
 R3 [source review and tranche preparation](phase11-5-r3-preparation.md) now
 identify the actual target boundaries, including the global 110.592-second

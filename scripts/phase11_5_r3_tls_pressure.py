@@ -77,10 +77,16 @@ def response(raw, packet, job):
 
 
 class Pressure:
+    cases = CASES
+
     def __init__(self, root, emit):
         self.root, self.emit = root, emit
         self.packet_path = root / 'jobs.json'
-        self.packet = validate(json.loads(self.packet_path.read_text()))
+        packet=json.loads(self.packet_path.read_text())
+        validator=validate
+        if packet.get('schema')in ('phase11.5-r3-transport-b1-v1', 'phase11.5-r3-transport-b2-v1'):
+            from phase11_5_r3_transport_plan import validate as validator
+        self.packet = validator(packet)
         self.sha = digest(self.packet_path)
         self.plan = json.loads((root / 'load.json').read_text())
         self.observer = None
@@ -130,7 +136,8 @@ class Pressure:
     def tcp(self, label):
         self.checkpoint()
         self.connections += 1
-        require(self.connections <= 12, 'R3 connection budget')
+        limit = 15 if self.packet['schema'] in ('phase11.5-r3-transport-b1-v1', 'phase11.5-r3-transport-b2-v1') else 12
+        require(self.connections <= limit, 'R3 connection budget')
         began = time.monotonic_ns()
         stream = socket.create_connection(('10.77.15.10', 18443), timeout=2)
         stream.setblocking(False)
@@ -291,7 +298,7 @@ class Pressure:
                 time.sleep(.05)
             self.job = job
             self.launch_epoch = previous_epoch = epoch
-            for label in CASES[index]:
+            for label in self.cases[index]:
                 self.run_case(label, *contexts)
             save(self.root / f'pressure-job-{index}.json', dict(status='PASS', packet_sha256=self.sha,
                                                               job_id=job['job_id']))
@@ -300,7 +307,7 @@ class Pressure:
         self.emit('finish', dict(status='CAPTURED_REQUIRES_AUDIT', connections=self.connections))
 
 
-def main():
+def main(pressure_class=Pressure):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--run', action='store_true')
@@ -323,7 +330,7 @@ def main():
             sequence += 1
 
         try:
-            pressure = Pressure(root, emit)
+            pressure = pressure_class(root, emit)
             emit('start', dict(packet_sha256=pressure.sha, load_sha256=digest(root / 'load.json')))
             pressure.run()
         except BaseException as error:

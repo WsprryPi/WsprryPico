@@ -269,6 +269,9 @@ if(WSPRRY_PICO_BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_r2_modes_tests.py)
     add_test(NAME phase11_5_r2_oom_recovery_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_r2_oom_recovery_tests.py)
+    add_test(NAME phase11_5_r3_tests COMMAND ${Python3_EXECUTABLE} -m unittest discover
+        -s ${CMAKE_SOURCE_DIR}/tests -p "phase11_5_r3*tests.py")
+    set_tests_properties(phase11_5_r3_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_executable(wsprrypico_core_tests tests/core_tests.cpp)
     target_link_libraries(wsprrypico_core_tests PRIVATE wsprrypico_core)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")

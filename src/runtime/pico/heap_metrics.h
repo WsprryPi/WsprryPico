@@ -20,6 +20,10 @@ typedef struct {
 } wsprry_heap_metrics;
 
 wsprry_heap_metrics wsprry_heap_snapshot(void);
+// Panic-only snapshot of this core's last completed allocation attempt. No allocation,
+// lock or free-list walk; the SDK calls its panic after its wrapper returns.
+// Output 0 is the requested byte count, output 1 tags NULL versus non-NULL.
+void wsprry_heap_panic_attempt(uint32_t record[2]);
 // Nullable newlib allocation, serialized with every instrumented allocator
 // entry. Only callers which already handle NULL may use this bypass of the
 // SDK's panic-on-null wrapper. Free through the ordinary allocator.

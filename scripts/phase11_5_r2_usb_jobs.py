@@ -14,7 +14,7 @@ class USBJobs:
 
     def info(self):
         value=json.loads((self.root/'observer-info.json').read_text())
-        if self.packet.get('schema') == 'phase11.5-r3-tls-a1-v1':
+        if self.packet.get('schema') in ('phase11.5-r3-tls-a1-v1', 'phase11.5-r3-transport-b1-v1','phase11.5-r3-transport-b2-v1'):
             from phase11_5_device_management import digest
             pending=self.root/'observer-console_tx.json'
             admit_snapshot(value,time.monotonic_ns(),2_000_000_000,digest(self.root/'jobs.json'),
@@ -37,7 +37,7 @@ class USBJobs:
         now=time.monotonic_ns()
         require(now<end, 'USB actor outlived nominal load')
         if self.phase=='idle':
-            if self.packet.get('schema') == 'phase11.5-r3-tls-a1-v1':
+            if self.packet.get('schema') in ('phase11.5-r3-tls-a1-v1', 'phase11.5-r3-transport-b1-v1','phase11.5-r3-transport-b2-v1'):
                 from phase11_5_device_management import digest
                 gate = self.root / ('pressure-ready.json' if self.index == 0 else
                                     f'pressure-job-{self.index-1}.json')
@@ -69,7 +69,7 @@ class USBJobs:
                     'USB finite lifecycle')
             if status['state']=='complete':
                 require(not status['output_active'],'USB completed output active')
-                if self.packet.get('schema') == 'phase11.5-r3-tls-a1-v1':
+                if self.packet.get('schema') in ('phase11.5-r3-tls-a1-v1', 'phase11.5-r3-transport-b1-v1','phase11.5-r3-transport-b2-v1'):
                     info=self.info()
                     if not (info['status']['state']=='complete' and
                             int(info['launch_epoch'])>self.baseline_epoch):

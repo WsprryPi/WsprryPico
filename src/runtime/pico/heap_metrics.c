@@ -3,7 +3,9 @@
 #include "runtime/pico/heap_metrics.h"
 
 #include "pico/mutex.h"
+#include "pico/platform.h"
 #include "pico/time.h"
+#include "runtime/allocation_fault.h"
 
 #include <errno.h>
 #include <malloc.h>
@@ -12,6 +14,8 @@
 auto_init_recursive_mutex(heap_mutex);
 static wsprry_heap_metrics metrics;
 static uint32_t depth;
+static volatile uint32_t last_attempt_bytes[2];
+static volatile uint32_t last_attempt_tag[2];
 
 extern void* __real__malloc_r(struct _reent*, size_t);
 extern void* __real__calloc_r(struct _reent*, size_t, size_t);
@@ -42,7 +46,8 @@ static uint64_t enter(size_t requested) {
     metrics.largest_request_bytes = maximum(metrics.largest_request_bytes, bounded(requested));
     return time_us_64();
 }
-static void leave(uint64_t start, bool failed, size_t successful_bytes, bool may_grow) {
+static void leave(uint64_t start, bool failed, size_t requested_bytes, size_t successful_bytes,
+                  bool may_grow, bool returned_null) {
     metrics.largest_successful_request_bytes =
         maximum(metrics.largest_successful_request_bytes, bounded(successful_bytes));
     // Free cannot raise allocated occupancy. Walking the complete free list
@@ -53,6 +58,11 @@ static void leave(uint64_t start, bool failed, size_t successful_bytes, bool may
         sample();
     if (failed)
         ++metrics.failures;
+    if (may_grow) {
+        const unsigned core = get_core_num();
+        last_attempt_bytes[core] = bounded(requested_bytes);
+        last_attempt_tag[core] = WSPRRY_ALLOCATION_FAULT_TAG | (returned_null ? 1U : 0U);
+    }
     metrics.max_entry_us = maximum(metrics.max_entry_us, bounded(time_us_64() - start));
     --depth;
     recursive_mutex_exit(&heap_mutex);
@@ -60,7 +70,7 @@ static void leave(uint64_t start, bool failed, size_t successful_bytes, bool may
 void* __wrap__malloc_r(struct _reent* context, size_t size) {
     const uint64_t start = enter(size);
     void* result = __real__malloc_r(context, size);
-    leave(start, !result && size != 0, result ? size : 0, true);
+    leave(start, !result && size != 0, size, result ? size : 0, true, result == NULL);
     return result;
 }
 void* __wrap__calloc_r(struct _reent* context, size_t count, size_t size) {
@@ -71,19 +81,25 @@ void* __wrap__calloc_r(struct _reent* context, size_t count, size_t size) {
         context->_errno = ENOMEM;
     else
         result = __real__calloc_r(context, count, size);
-    leave(start, !result && (overflow || (count && size)), result ? count * size : 0, true);
+    leave(start, !result && (overflow || (count && size)), overflow ? SIZE_MAX : count * size,
+          result ? count * size : 0, true, result == NULL);
     return result;
 }
 void* __wrap__realloc_r(struct _reent* context, void* pointer, size_t size) {
     const uint64_t start = enter(size);
     void* result = __real__realloc_r(context, pointer, size);
-    leave(start, !result && size != 0, result ? size : 0, true);
+    leave(start, !result && size != 0, size, result ? size : 0, true, result == NULL);
     return result;
 }
 void __wrap__free_r(struct _reent* context, void* pointer) {
     const uint64_t start = enter(0);
     __real__free_r(context, pointer);
-    leave(start, false, 0, false);
+    leave(start, false, 0, 0, false, false);
+}
+void wsprry_heap_panic_attempt(uint32_t record[2]) {
+    const unsigned core = get_core_num();
+    record[0] = last_attempt_bytes[core];
+    record[1] = last_attempt_tag[core];
 }
 struct mallinfo __wrap_mallinfo(void) {
     recursive_mutex_enter_blocking(&heap_mutex);

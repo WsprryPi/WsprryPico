@@ -20,7 +20,10 @@ NOMINAL_SECONDS=1500
 
 
 def validate_rf_packet(packet):
-    if packet.get('schema') == 'phase11.5-r3-tls-a1-v1':
+    if packet.get('schema') in ('phase11.5-r3-transport-b1-v1', 'phase11.5-r3-transport-b2-v1'):
+        from phase11_5_r3_transport_plan import validate as validate_b1
+        validate_b1(packet)
+    elif packet.get('schema') == 'phase11.5-r3-tls-a1-v1':
         from phase11_5_r3_tls_plan import validate as validate_r3
         validate_r3(packet)
     elif packet.get('schema') == 'phase11.5-r2-modes-v1':

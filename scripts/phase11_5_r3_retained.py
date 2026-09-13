@@ -23,6 +23,9 @@ PRIOR_JOB = '91bd2c3d57e3e74f7de183203796f463'
 
 
 def validate(packet):
+    if packet.get('r3_scope') in ('phase11.5-r3-transport-b1-v1', 'phase11.5-r3-transport-b2-v1'):
+        from phase11_5_r3_transport_plan import validate_retained
+        return validate_retained(packet)
     from phase11_5_join_diagnostics import selected
     selected(packet)
     from phase11_5_r3_tls_plan import BRACKET_POLICY
@@ -239,7 +242,8 @@ def main():
             require(index < 24, 'Retained network/clock did not converge'); time.sleep(5)
         require(time.monotonic() + 375 < host_started + packet['network_runtime_seconds'],
                 'Insufficient fixture lifetime for the complete RF observation')
-        result['a1'] = run_packet(root, packet, dut, fixture)
+        result['a1'] = run_packet(root, packet, dut, fixture, transport=packet['r3_scope'] in
+                                 ('phase11.5-r3-transport-b1-v1', 'phase11.5-r3-transport-b2-v1'))
         result['status'] = 'PASS_REQUIRES_FINAL_REVIEW'
     except BaseException as error:
         result['error'] = type(error).__name__ + ': ' + str(error)

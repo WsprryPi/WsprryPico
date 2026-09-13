@@ -6,7 +6,11 @@ The selected candidate is 2e43110 at physical 138 MHz/divider 1/RAM/listener on.
 At R2 closure devices and host were restored with CONFIG 34/34. R3–R6 remain open and
 full accepted configurations remain empty. Original failed assessments are retained.
 
-Current: [R3 execution and adversarial review](phase11-5-r3-completion-review.md).
+Current: R3 is OPEN after B2 passed fourteen further transport cases and C0
+confirmed a target allocation panic during idle 65,536-byte admission. A is
+reconciled inactive/unowned in recovery; diagnostic firmware requires new flash
+authority. See the [full remaining-work prompt](phase11-5-r3-final-completion-prompt.md)
+and [R3 execution and adversarial review](phase11-5-r3-completion-review.md).
 A1g's observation rule was approved; network admission then failed before RF.
 The [network diagnosis](phase11-5-r3-network-diagnosis.md) distinguishes AP/DUT
 state disagreement, normal terminal expiry and A1h's transient-state harness bug.

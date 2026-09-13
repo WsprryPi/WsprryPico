@@ -121,3 +121,27 @@ Retained terminal expiry uses the target clock and CAPS lifetime. A record that
 has reached its advertised age is not a failed transmission or a reboot. Preserve
 exact unexpired records and refuse certainty when expiry falls inside the
 observation bracket. Earlier evidence files retain their original end timestamps.
+
+## September 13: B1/B2 transport and C0 allocation triage
+
+B1's early ACK filter is a confirmed harness defect; B2's prospective correction
+passed all fourteen transport cases. C0 is different: a fresh inventory after USB
+re-enumeration records an actual recovery boot and SDK allocation-panic hash
+3833354787 in stage 5. That is a target fault, even though its exact failed
+allocation remains unknown. The attempted 65,536-byte frame is preserved, but
+without per-write progress the original capture cannot prove full delivery.
+See the [raw-derived C0 result](phase11-5-r3-c0-failure-result.json).
+
+The inventory context manager now preserves the original transfer exception and
+adds cleanup errors as notes; cleanup cannot replace a timeout with an unrelated
+DTR failure. Final A and B observations are independent. Future capacity traces
+record accepted host-write counts. A tagged allocation-attempt record is being
+prepared for the next diagnostic image; it does not turn the C0 failure into a
+pass or prove an OOM repair. No automatic recovery/reflash followed the fault.
+
+A separate local build reconfiguration found expired **ephemeral host-test**
+certificates. The old build directory was preserved, and a fresh directory
+generated new test credentials. Its TLS test could not bind inside the sandbox;
+the same test passed with localhost access. These are test-environment failures,
+not target firmware or conducted RF results. Production/target certificates and
+verification rules were not changed.

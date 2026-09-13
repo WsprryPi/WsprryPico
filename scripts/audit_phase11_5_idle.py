@@ -56,7 +56,7 @@ def audit(path, baseline_path, rf_packet=None, *, expected_prejob_failure=False)
     schema=json.loads((Path(__file__).resolve().parents[1]/'docs/protocol/wtp-1.schema.json').read_text())
     validator=SchemaValidator(schema)
     modes=rf_packet is not None and rf_packet.get('schema')=='phase11.5-r2-modes-v1'
-    usb_actor=rf_packet is not None and rf_packet.get('schema') in ('phase11.5-r2-modes-v1','phase11.5-r3-tls-a1-v1') and rf_packet['submission_path']=='usb'
+    usb_actor=rf_packet is not None and rf_packet.get('schema') in ('phase11.5-r2-modes-v1','phase11.5-r3-tls-a1-v1','phase11.5-r3-transport-b1-v1','phase11.5-r3-transport-b2-v1') and rf_packet['submission_path']=='usb'
     wire=b'';console=b'';console_pending=False;console_value=None;messages=[];requests={};samples={}
     latest_status=None;event_id=None;seen_request_ids=set()
     for row in rows:
@@ -170,7 +170,7 @@ def audit(path, baseline_path, rf_packet=None, *, expected_prejob_failure=False)
                 samples['status'][-1]['value']['value']['owner_id'] is None,'Final RF job not released')
         terminal=samples['status'][-1]['value']['value']['terminal_records']
         expected_jobs=(rf_packet.get('prior_terminal_records',[])+rf_packet['jobs'])[-8:]
-        if rf_packet.get('schema')=='phase11.5-r3-tls-a1-v1':
+        if rf_packet.get('schema')in ('phase11.5-r3-tls-a1-v1', 'phase11.5-r3-transport-b1-v1','phase11.5-r3-transport-b2-v1'):
             from phase11_5_terminal_history import retained_prior
             final_sample=samples['status'][-1]
             before=[r for r in samples['info'] if r['monotonic_ns']<=final_sample['value']['began_monotonic_ns']]

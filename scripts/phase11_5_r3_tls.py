@@ -35,11 +35,17 @@ def validate_scope(packet):
             'R3 cannot reuse spent R2 authority')
 
 
-def run_packet(root, packet, device, fixture):
+def run_packet(root, packet, device, fixture, *, transport=False):
     current = device.check_current('r3-a1-admission')
     target = root / 'tls-a1'
     target.mkdir(mode=0o700)
-    rf = dict(schema=SCHEMA, source_revision=SOURCE, revision=SOURCE[:12], uf2_sha256=PHYSICAL,
+    schema, validator, auditor, pressure_script = SCHEMA, validate, audit, 'phase11_5_r3_tls_pressure.py'
+    if transport:
+        from phase11_5_r3_transport_plan import SCHEMA as schema, validate as validator
+        from audit_phase11_5_r3_transport import audit as auditor
+        pressure_script = 'phase11_5_r3_transport_pressure.py'
+        schema = packet['r3_scope']
+    rf = dict(schema=schema, source_revision=SOURCE, revision=SOURCE[:12], uf2_sha256=PHYSICAL,
               serial=packet['serial'], device_id=packet['device_id'], system_clock_hz=138000000,
               pio_divider=1, listener_enabled=True, rf_render_in_ram=True, boot_id=device.state['boot'],
               host_boot_id=packet['host_boot_id'], nonce=packet['nonce'], owner_id=packet['owner_id'],
@@ -49,7 +55,11 @@ def run_packet(root, packet, device, fixture):
               prior_terminal_records=current['wtp']['STATUS']['terminal_records'])
     if 'observer_bracket_policy' in packet:
         rf['observer_bracket_policy'] = packet['observer_bracket_policy']
-    validate(rf)
+    if transport:
+        rf['maximum_tcp_connections']=packet['maximum_tcp_connections']
+        if packet['r3_scope'] == 'phase11.5-r3-transport-b2-v1':
+            rf['ack_filter_policy'] = packet['ack_filter_scope']
+    validator(rf)
     admit_caps(rf, current['wtp']['CAPS'])
     save(target / 'jobs.json', rf)
     namespaces = {key: fixture.in_client(['readlink', path]).stdout.strip() for key, path in
@@ -72,10 +82,11 @@ def run_packet(root, packet, device, fixture):
                   '--session-id', secrets.token_hex(16), '--seconds', '360', '--run'],
         load=['nsenter', '-t', pid, '-m', '-n', 'python3', packet['production_driver'],
               '--root', str(target), '--seconds', '300', '--boot', device.state['boot'], '--run'],
-        pressure=['nsenter', '-t', pid, '-m', '-n', 'python3', str(root / 'scripts/phase11_5_r3_tls_pressure.py'),
+        pressure=['nsenter', '-t', pid, '-m', '-n', 'python3', str(root / 'scripts'/pressure_script),
                   '--root', str(target), '--run'])
     save(target / 'execution.json', commands)
     processes, streams = {}, []
+    capture = None
     result = dict(status='FAILED')
 
     def start(label):
@@ -91,6 +102,17 @@ def run_packet(root, packet, device, fixture):
             time.sleep(.05)
 
     try:
+        if transport:
+            save(target / 'tcp-clock-start.json', dict(monotonic_ns=time.monotonic_ns(), realtime_ns=time.time_ns()))
+            capture_log = (target / 'tcp-capture.log').open('x')
+            streams.append(capture_log)
+            capture = subprocess.Popen(['nsenter', '-t', pid, '-m', '-n', '/usr/bin/tcpdump',
+                '--immediate-mode', '-i', 'wlan2', '-U', '-s', '0', '-w', str(target / 'transport.pcap'),
+                'host 10.77.15.10 and tcp port 18443'], stdout=capture_log, stderr=subprocess.STDOUT)
+            capture_deadline = time.monotonic() + 5
+            while not (target / 'transport.pcap').exists() or (target / 'transport.pcap').stat().st_size < 24:
+                require(capture.poll() is None and time.monotonic() < capture_deadline, 'B1 capture readiness')
+                time.sleep(.05)
         start('observer')
         wait_file('observer-info.json', 'observer', 5)
         wait_file('observer-status.json', 'observer', 5)
@@ -99,6 +121,7 @@ def run_packet(root, packet, device, fixture):
         start('pressure')
         limit = time.monotonic() + 375
         while any(p.poll() is None for p in processes.values()):
+            require(capture is None or capture.poll() is None, 'B1 capture stopped early')
             require(time.monotonic() < limit, 'R3 worker deadline')
             failed = [label for label, p in processes.items() if p.poll() not in (None, 0)]
             if failed:
@@ -123,10 +146,20 @@ def run_packet(root, packet, device, fixture):
                     process.kill()
                     process.wait(timeout=5)
             result[label + '_exit'] = process.returncode
+        if capture is not None:
+            import signal
+            capture.send_signal(signal.SIGINT)
+            try:
+                capture.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                capture.kill()
+                capture.wait(timeout=5)
+            result['capture_exit'] = capture.returncode
+            save(target / 'tcp-clock-end.json', dict(monotonic_ns=time.monotonic_ns(), realtime_ns=time.time_ns()))
         for stream in streams:
             stream.close()
         save(target / 'result.json', result)
-    value = audit(target, root / 'pi/phase115_tls_observer_test.py')
+    value = auditor(target, root / 'pi/phase115_tls_observer_test.py')
     save(target / 'audit.json', value)
     return value
 

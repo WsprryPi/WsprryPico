@@ -1,5 +1,6 @@
 #include "malloc.h"
 #include "reent.h"
+#include "runtime/allocation_fault.h"
 #include "runtime/pico/heap_metrics.h"
 
 #include <assert.h>
@@ -10,6 +11,7 @@
 #include <string.h>
 
 struct _reent test_reent;
+_Thread_local unsigned test_core_num;
 static unsigned char blocks[16][4096];
 static size_t lengths[16];
 static atomic_uint_fast64_t ticks;
@@ -78,6 +80,17 @@ static void* concurrent(void* unused) {
     return NULL;
 }
 int main(void) {
+    uint32_t attempt[2];
+    wsprry_heap_panic_attempt(attempt);
+    assert(!wsprry_allocation_fault_valid(true, WSPRRY_ALLOCATION_FAULT_HASH, attempt[1]));
+    for (uint32_t tag = WSPRRY_ALLOCATION_FAULT_TAG; tag <= WSPRRY_ALLOCATION_FAULT_TAG + 1;
+         ++tag) {
+        assert(wsprry_allocation_fault_valid(true, WSPRRY_ALLOCATION_FAULT_HASH, tag));
+        assert(!wsprry_allocation_fault_valid(false, WSPRRY_ALLOCATION_FAULT_HASH, tag));
+        assert(!wsprry_allocation_fault_valid(true, 0, tag));
+    }
+    assert(!wsprry_allocation_fault_valid(true, WSPRRY_ALLOCATION_FAULT_HASH,
+                                          WSPRRY_ALLOCATION_FAULT_TAG + 2));
     assert(wsprry_heap_snapshot().live_bytes == 0);
     void* transient = __wrap__malloc_r(_REENT, 64);
     assert(transient);
@@ -85,9 +98,21 @@ int main(void) {
     __wrap__free_r(_REENT, transient);
     __wrap__free_r(_REENT, NULL);
     assert(atomic_load(&mallinfo_calls) == walks);
+    wsprry_heap_panic_attempt(attempt);
+    assert(attempt[0] == 64 && attempt[1] == WSPRRY_ALLOCATION_FAULT_TAG);
+    assert(atomic_load(&mallinfo_calls) == walks); // Panic capture does not walk the heap.
+    test_core_num = 1;
+    void* other_core = __wrap__malloc_r(_REENT, 33);
+    assert(other_core);
+    __wrap__free_r(_REENT, other_core);
+    wsprry_heap_panic_attempt(attempt);
+    assert(attempt[0] == 33 && attempt[1] == WSPRRY_ALLOCATION_FAULT_TAG);
+    test_core_num = 0;
+    wsprry_heap_panic_attempt(attempt);
+    assert(attempt[0] == 64 && attempt[1] == WSPRRY_ALLOCATION_FAULT_TAG);
     wsprry_heap_metrics fresh = wsprry_heap_snapshot();
     assert(fresh.live_bytes == 0 && fresh.peak_bytes == 80);
-    assert(atomic_load(&mallinfo_calls) == walks + 1);
+    assert(atomic_load(&mallinfo_calls) == walks + 2);
     unsigned char* p = wsprry_heap_try_calloc(1, 100);
     assert(p);
     assert(p[0] == 0 && p[99] == 0);
@@ -97,14 +122,20 @@ int main(void) {
     wsprry_heap_metrics m = wsprry_heap_snapshot();
     assert(m.live_bytes == 316 && m.peak_bytes == 432 && m.max_depth >= 2);
     assert(!__wrap__realloc_r(_REENT, p, 4097) && p[0] == 42);
+    wsprry_heap_panic_attempt(attempt);
+    assert(attempt[0] == 4097 && attempt[1] == (WSPRRY_ALLOCATION_FAULT_TAG | 1U));
     assert(wsprry_heap_snapshot().live_bytes == 316);
     assert(!wsprry_heap_try_calloc(SIZE_MAX, 2) && test_reent._errno == ENOMEM);
+    wsprry_heap_panic_attempt(attempt);
+    assert(attempt[0] == UINT32_MAX && attempt[1] == (WSPRRY_ALLOCATION_FAULT_TAG | 1U));
     assert(!wsprry_heap_probe(4097));
     assert(wsprry_heap_snapshot().largest_successful_request_bytes == 300);
     assert(wsprry_heap_probe(4000));
     assert(wsprry_heap_snapshot().largest_successful_request_bytes == 4000);
     assert(wsprry_heap_snapshot().live_bytes == 316);
     assert(!__wrap__realloc_r(_REENT, p, 0));
+    wsprry_heap_panic_attempt(attempt);
+    assert(attempt[0] == 0 && attempt[1] == (WSPRRY_ALLOCATION_FAULT_TAG | 1U));
     const uint64_t failures = wsprry_heap_snapshot().failures;
     assert(failures >= 3 && wsprry_heap_snapshot().live_bytes == 0);
     pthread_t a, b;

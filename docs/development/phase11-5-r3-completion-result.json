@@ -1,8 +1,8 @@
 {
   "schema": "phase11.5-r3-completion-progress-v1",
-  "status": "OPEN_A1_TLS_SLOT_SUBSET_PASSED",
+  "status": "OPEN_CONFIRMED_C0_TARGET_ALLOCATION_PANIC",
   "family_closed": false,
-  "accepted_assertions": 10,
+  "accepted_assertions": 24,
   "phase11_5_closed_families": 2,
   "phase11_5_total_families": 6,
   "accepted_configurations": [],
@@ -13,10 +13,10 @@
   "heap_probes_this_effort": 0,
   "cumulative_configuration_writes": 37,
   "cumulative_heap_probes": 6,
-  "wifi_off_this_effort": 2,
-  "wifi_on_this_effort": 2,
-  "completed_jobs_this_effort": 5,
-  "completed_rf_seconds_this_effort": 500,
+  "wifi_off_this_effort": 4,
+  "wifi_on_this_effort": 4,
+  "completed_jobs_this_effort": 9,
+  "completed_rf_seconds_this_effort": 900,
   "attempts": {
     "A1": {
       "packet_sha256": "cab1abf2afffa27d79992b1d84bf393a2f1059ad3a4615829407485d695ca7a4",
@@ -80,28 +80,36 @@
       "acceptance": "A1_SUBSET_PASS_10_OF_10",
       "fault_domain": "NO_FAILURE_OBSERVED_IN_ACCEPTED_SUBSET",
       "completed_rf_jobs": 2
+    },
+    "B1": {
+      "packet_sha256": "b5359002368fbe2ff4db1dc4b101734f40145887f03ac767e9a01d6634ce7b0b",
+      "execution": "TWO_RF_JOBS_COMPLETED_PRESSURE_STOPPED",
+      "acceptance": "NO_CREDIT",
+      "fault_domain": "ASSISTANT_HARNESS_EARLY_ACK_FILTER",
+      "completed_rf_jobs": 2
+    },
+    "B2": {
+      "packet_sha256": "b41cca02d4f6f34e773eed5e5d04b292104b184a2e30c318e5713d1c529a33a0",
+      "execution": "RF_AND_TRAFFIC_COMPLETED",
+      "acceptance": "B2_SUBSET_PASS_14_OF_14",
+      "fault_domain": "NO_FAILURE_OBSERVED_IN_ACCEPTED_SUBSET",
+      "completed_rf_jobs": 2
+    },
+    "C0": {
+      "packet_sha256": "e5b9d24bea51101d3344e4c86c56a4128c03c8d317fca47914da8834dc41493c",
+      "execution": "IDLE_CAPACITY_ATTEMPT_TARGET_RECOVERY_REBOOT",
+      "acceptance": "FAILED",
+      "fault_domain": "FIRMWARE_ALLOCATION_PANIC",
+      "completed_rf_jobs": 0
     }
   },
   "final_status": {
-    "boot_id": "9c5aec394269e0b57ca16d73ad3d12b6",
+    "boot_id": "bccea7c09794539c4f64bc22b0e76c56",
     "state": "empty",
     "output_active": false,
     "owner_id": null,
     "job_id": null,
-    "terminal_records": [
-      {
-        "job_id": "e1b42cb55884f841dc0d2a0d37bf7615",
-        "state": "complete",
-        "ended_monotonic_ns": "10393169288000",
-        "output_active": false
-      },
-      {
-        "job_id": "1ec3120039f0efeb5809df863a75eb75",
-        "state": "complete",
-        "ended_monotonic_ns": "10263158860000",
-        "output_active": false
-      }
-    ]
+    "terminal_records": []
   },
   "host_restored": true,
   "b_unchanged": true,
@@ -126,17 +134,22 @@
     }
   ],
   "validation": {
-    "discovered": 210,
-    "passed": 208,
+    "discovered": 239,
+    "passed": 237,
     "skipped": 2,
-    "private_r3_attempts_supplied": 8,
-    "firmware_tests_rerun": false,
-    "pi_runtime_tests_rerun": false
+    "private_r3_attempts_supplied": 11,
+    "firmware_tests_rerun": true,
+    "host_ctest_tests": 62,
+    "host_ctest_passed": 62,
+    "host_tls_localhost_permission_required": true,
+    "pi_runtime_tests_rerun": false,
+    "adversarial_mutations": {
+      "B1": 8,
+      "B2": 16,
+      "C0": 8
+    }
   },
   "remaining_register": [
-    "TLS-FAIL",
-    "SLOT",
-    "HTTP-PARTIAL",
     "PROGRESS",
     "JOB-MAX",
     "WTP-MAX",
@@ -147,25 +160,34 @@
     "RETAINED",
     "RECLAIM"
   ],
-  "limitation": "Only the initial ten A1 pressure cases passed. R3 remains open; historical failed attempts retain zero credit. Recovery does not isolate the underlying rejoin cause.",
-  "accepted_assertion_unit": "initial A1 pressure case",
+  "limitation": "A1h2 and B2 passed 24 pressure cases on 2e43110. C0 confirmed an allocation panic during idle maximum-payload admission; no capacity acceptance. Current A is in recovery, inactive/unowned. Exact failing allocation remains unknown; a diagnostic candidate requires a newly approved flash.",
+  "accepted_assertion_unit": "predeclared TLS/transport pressure case; not register group",
   "accepted_a1_pressure_cases": 10,
   "completed_register_groups": [
     "TLS-VALID",
-    "TLS-SLOW"
+    "TLS-SLOW",
+    "TLS-FAIL",
+    "SLOT",
+    "HTTP-PARTIAL"
   ],
   "partial_register_groups": [
-    "TLS-FAIL",
-    "SLOT"
+    "PROGRESS"
   ],
   "observation_policy": "request-cadence-and-roundtrip-v1",
   "observation_policy_approved": true,
   "latest_execution": {
-    "attempt": "A1h2",
-    "packet_sha256": "474e315dee1d7ba7527105a8c34b572508536224be010d9133ec2aaf8998b0d3",
-    "archive_sha256": "6c6c34d81048bdd07a970899dfbff845711d3c52f924d373ae00756785fe63f3",
-    "status": "PASS_A1_SUBSET",
+    "attempt": "C0",
+    "packet_sha256": "e5b9d24bea51101d3344e4c86c56a4128c03c8d317fca47914da8834dc41493c",
+    "archive_sha256": "7fea4b144454fc7c4ffe909dc61450f1078f2753f564ad4916229047602cd06d",
+    "status": "FAILED_CONFIRMED_TARGET_ALLOCATION_PANIC",
     "staged": true,
     "executed": true
+  },
+  "accepted_b2_pressure_cases": 14,
+  "unexpected_target_reboots_this_effort": 1,
+  "current_boot_recovery": true,
+  "remaining_rf_budget": {
+    "jobs": 31,
+    "seconds": 3523.68
   }
 }

@@ -1,0 +1,46 @@
+{
+  "status": "FAILED_CONFIRMED_TARGET_ALLOCATION_PANIC",
+  "family_closed": false,
+  "packet_sha256": "e5b9d24bea51101d3344e4c86c56a4128c03c8d317fca47914da8834dc41493c",
+  "fault_domain": "FIRMWARE_ALLOCATION_PANIC",
+  "panic_format": "Out of memory",
+  "panic_hash": 3833354787,
+  "fault_stage": 5,
+  "original_boot": "9c5aec394269e0b57ca16d73ad3d12b6",
+  "recovery_boot": "bccea7c09794539c4f64bc22b0e76c56",
+  "attempted_payload_bytes": 65536,
+  "complete_host_write_proven": false,
+  "exact_failed_allocation_known": false,
+  "firmware_remediation_verified": false,
+  "rf_jobs": 0,
+  "rf_seconds": 0,
+  "configuration_writes": 0,
+  "wifi_cycles": 0,
+  "flashes": 0,
+  "final_status": {
+    "boot_id": "bccea7c09794539c4f64bc22b0e76c56",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": []
+  },
+  "b_unchanged": true,
+  "test_configuration_retained": true,
+  "evidence_archive_sha256": "7fea4b144454fc7c4ffe909dc61450f1078f2753f564ad4916229047602cd06d",
+  "evidence_archive_bytes": 1085440,
+  "evidence_archive_files": 84,
+  "diagnostic_sha256": {
+    "reconcile-a.stdout": "263d72181b3dfdb6d61b10d9db6f61b316c3cba664b7bfc6f6bdb936c2610ce9",
+    "reconcile-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "reconcile-b.stdout": "14ef5a4ef7ea3d390bbd6c3e9f8f934d71411a71831a9e1dd6f0192f489a23a4",
+    "reconcile-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "host-diagnostics.json": "6682a8a33c5a15e611dd031dc6a6dc1a266efa1e0b5cc14d3daa836bc45b5af0"
+  },
+  "harness_findings": [
+    "Original transfer did not record partial-write progress",
+    "USB cleanup could mask the primary exception",
+    "Original final inventory stopped before B when A failed"
+  ],
+  "limitation": "Valid maximum-request attempt reached a target allocation panic; the exact allocation and full delivery are not established. No oversized request or RF was sent."
+}

@@ -1,4 +1,74 @@
-# R3 execution, causal diagnosis and adversarial assessment
+# R3 execution and adversarial review — September 13, 2026
+
+R3 remains **OPEN**. A1h2 and B2 passed 24 predeclared pressure cases on physical
+2e43110, but the subsequent idle C0 maximum-payload probe caused a confirmed
+target allocation panic and recovery reboot. The [machine register](phase11-5-r3-completion-result.json)
+separates those accepted cases from the failed capacity attempt. No complete
+configuration is accepted; Phase 11.5 remains 2/6 families closed.
+
+| Attempt | Actual work | Independent disposition |
+| --- | --- | --- |
+| B1 | Two 100-second Tones; twelve case finishes; complete 360-second observation | Harness enabled its ACK filter too early. No acceptance credit. [Failure reconstruction](phase11-5-r3-b1-failure-result.json). |
+| B2 | Two 100-second Tones; all fourteen cases; 300-second production traffic and 360-second observation | PASS for alert ACK/wait, pending expiry, partial HTTP header/body and stalled-reader recovery. [Result](phase11-5-r3-b2-result.json). |
+| C0 | HELLO and attempted valid 65,536-byte STATUS, no RF | Confirmed SDK allocation panic, USB re-enumeration and changed recovery boot. No maximum-request response or oversized test. [Failure reconstruction](phase11-5-r3-c0-failure-result.json). |
+
+The [comprehensive execution prompt](phase11-5-r3-final-completion-prompt.md) was
+rendered and executed through C0. This effort has consumed nine jobs/900 RF
+seconds, including failures; 31 jobs/3,523.68 seconds remain. B1 and B2 each used
+one declared idle Wi-Fi cycle, bringing this effort to four. CONFIG stays 37,
+heap probes six. No commanded flash/reboot or CONFIG save occurred in this effort;
+C0's watchdog reboot was an unexpected target fault.
+
+B2's independent audit matched its on-host result. Adversarial review required
+checking actual installed nft rule fields, not just intended text and aggregate
+counters. The unchanged raw capture passes that stronger check; sixteen mutations
+are rejected and a repeat intact audit agrees. B1 remains failed, including its
+original filter policy and frozen observations.
+
+C0's fresh A inventory now proves Empty/inactive/unowned on boot
+`bccea7c09794539c4f64bc22b0e76c56`, recovery=true, fault stage 5, panic hash
+3833354787. That hash matches the pinned SDK's `Out of memory` format. The exact
+failed allocation is not retained. The original writer also lacked per-write
+progress records, so complete delivery of the intended request is not claimed.
+B remained unchanged and inactive/unowned. Saved station/schedule/watermark and
+hostname fields match; recovery intentionally leaves the network uninitialized
+and therefore its live station MAC empty. No host fixture was used by C0.
+
+C0 review fixed primary-error masking during USB cleanup and ensures B's final
+inventory is attempted even if A fails. Future capacity probes record every
+partial write. Eight evidence mutations fail; repeat intact classification agrees.
+The target diagnostic change retains the current core's latest completed allocation size and
+NULL/non-NULL result in tagged watchdog scratch only when the SDK allocation
+panic occurs. Per-core records prevent the other core from overwriting the failing core's evidence; cross-core isolation is host-tested. It preserves normal
+allocator/panic/recovery behavior. It is
+**diagnostic instrumentation, not a verified OOM repair**. Its new image requires
+explicit flash authority before further target work, as required by the user's
+original execution boundaries. No automatic retry or recovery was performed. The prospective D0 runner verifies saved
+configuration across flashing and final reconciliation. An acknowledged BOOTSEL
+may legitimately disconnect during USB cleanup; only EIO/ENODEV after that ACK
+is tolerated, followed by a mandatory serial-specific ROM identity check. Missing
+ACKs and unrelated cleanup errors still stop. These boundaries are host-tested.
+
+TLS-VALID, TLS-SLOW, TLS-FAIL, SLOT and HTTP-PARTIAL are complete at their recorded
+old-image scope. PROGRESS is partial. JOB-MAX, WTP-MAX, HTTP-MAX, BROWSER-MAX,
+COMBINED, USB, RETAINED and RECLAIM remain open. Three equivalent measured
+reclamation cycles and target retention expiry are still required. Historical
+R1/R2 evidence is preserved; a new image needs explicit affected-check review.
+
+Validation: 239 Phase 11.5 Python tests, 237 passed and two unrelated private
+fixtures skipped; eleven R3 archives were supplied. All 62 current host CTests
+passed, including the pinned TLS endpoint test run with localhost permission.
+WTP schema/raw/framing/transition validation passed. Ephemeral certificates in
+the old host build had expired; that directory was preserved and a fresh build
+generated fresh test-only credentials. A sandbox listener restriction was
+separately confirmed by the same TLS test passing with localhost access. Neither
+condition is counted as a firmware failure. R3 tooling tests are now registered in CTest so future builds run them
+automatically. Target image checks are recorded in
+the forthcoming diagnostic packet; no Pi runtime implementation changed.
+
+The earlier accepted A1h2 review follows as historical evidence.
+
+# Historical A1h2 review (September 12)
 
 R3 remains **OPEN**, with the initial A1 TLS/slot subset now **10/10 passed**.
 [A1h2's independently reconstructed result](phase11-5-r3-a1h2-result.json) matches

@@ -1,0 +1,121 @@
+{
+  "classification": "HARNESS_ACK_SUPPRESSION_BEFORE_SERVER_FLIGHT",
+  "accepted_assertions": 0,
+  "packet_sha256": "b5359002368fbe2ff4db1dc4b101734f40145887f03ac767e9a01d6634ce7b0b",
+  "completed_jobs": 2,
+  "rf_seconds": 200,
+  "preliminary_cases": [
+    "positive",
+    "partial-header",
+    "recover-header",
+    "partial-body",
+    "recover-body",
+    "pending-expiry",
+    "recover-pending",
+    "positive",
+    "stalled-http-reader",
+    "recover-reader",
+    "failed-alert-ack",
+    "recover-alert-ack"
+  ],
+  "incomplete_case": "failed-alert-wait",
+  "unrun_case": "recover-alert-wait",
+  "dropped": {
+    "packets": 3,
+    "bytes": 1580
+  },
+  "observation_seconds": 360.015835891,
+  "samples": {
+    "health": 72,
+    "info": 360,
+    "status": 72
+  },
+  "timing_diagnostic": [
+    {
+      "job_id": "c085bb2b51029e6e15819d225487bc7f",
+      "mode": "tone",
+      "epoch": 7,
+      "expected_counter_deltas": {
+        "dma_irqs": 26323,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 26321,
+        "refill_irq_pairs": 26321,
+        "running_tail_links": 1
+      },
+      "duration_ns": 100000000000,
+      "launch_target_ns": 13987391228000,
+      "post_enable_delay_ns": 8000,
+      "short_words": 6736,
+      "short_interval_ns": 1561971.0144927537,
+      "short_75_percent_budget_ns": 1171478.2608695652,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 7,
+        "epoch": "2",
+        "successor_sequence": "26322",
+        "observed_ns": "4525229741000",
+        "remaining_words": 6319,
+        "total_words": 6736
+      }
+    },
+    {
+      "job_id": "86e506329e09ce353abac5c2ab9ce3dc",
+      "mode": "tone",
+      "epoch": 8,
+      "expected_counter_deltas": {
+        "dma_irqs": 26323,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 26321,
+        "refill_irq_pairs": 26321,
+        "running_tail_links": 1
+      },
+      "duration_ns": 100000000000,
+      "launch_target_ns": 14117391159000,
+      "post_enable_delay_ns": 8000,
+      "short_words": 6736,
+      "short_interval_ns": 1561971.0144927537,
+      "short_75_percent_budget_ns": 1171478.2608695652,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 8,
+        "epoch": "2",
+        "successor_sequence": "26322",
+        "observed_ns": "4525229741000",
+        "remaining_words": 6319,
+        "total_words": 6736
+      }
+    }
+  ],
+  "final_status": {
+    "boot_id": "9c5aec394269e0b57ca16d73ad3d12b6",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": [
+      {
+        "job_id": "86e506329e09ce353abac5c2ab9ce3dc",
+        "state": "complete",
+        "ended_monotonic_ns": "14217391407000",
+        "output_active": false
+      },
+      {
+        "job_id": "c085bb2b51029e6e15819d225487bc7f",
+        "state": "complete",
+        "ended_monotonic_ns": "14087391397000",
+        "output_active": false
+      }
+    ]
+  },
+  "host_restored": true,
+  "wifi_off": 1,
+  "wifi_on": 1,
+  "configuration_writes": 0,
+  "flashes": 0,
+  "conclusion": "Early ACK suppression stalls ServerHello before the intended fatal alert. The PSH-based rule also cannot prove zero payload. No firmware failure is established. Full acceptance remains failed.",
+  "evidence_sha256": "412c493b11eddfc8a5e51c7870f1917986ae0977eca40751f5565dbb78b507b2",
+  "evidence_bytes": 9881600,
+  "evidence_files": 167
+}

@@ -27,7 +27,9 @@ def unpack(archive, packet_sha, root, own_sha):
         data = {m.name: tar.extractfile(m).read() for m in members}
     require(hashlib.sha256(data['packet.json']).hexdigest() == packet_sha, 'Unapproved packet bytes')
     packet = json.loads(data['packet.json'])
-    require(packet['root'] == str(root) and packet['r3_scope'] == 'phase11.5-r3-tls-a1-v1', 'R3 staging root/scope')
+    require(packet['root'] == str(root) and packet['r3_scope'] in
+            ('phase11.5-r3-tls-a1-v1', 'phase11.5-r3-transport-b1-v1','phase11.5-r3-transport-b2-v1',
+             'phase11.5-r3-capacity-probe-v1','phase11.5-r3-allocation-diagnostic-d0-v1'), 'R3 staging root/scope')
     require(set(data) == {'packet.json'} | set(packet['stage_sha256']), 'Archive manifest differs')
     require(packet['stage_sha256']['scripts/phase11_5_r3_tls_stage.py'] == own_sha,
             'Uploaded staging helper differs')

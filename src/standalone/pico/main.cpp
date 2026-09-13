@@ -32,6 +32,8 @@ extern "C" char __HeapLimit, __end__, __StackLimit, __StackTop;
 #include "standalone/dry_run_engine.hpp"
 static_assert(WSPRRY_PICO_RF_OUTPUT_DISABLED == 1);
 #endif
+#include "runtime/allocation_fault.h"
+
 #include <array>
 #include <charconv>
 
@@ -63,6 +65,12 @@ extern "C" [[noreturn]] void wsprrypico_panic(const char* format, ...) {
         for (unsigned i = 0; i < 192 && format[i]; ++i)
             hash = (hash ^ static_cast<unsigned char>(format[i])) * 16777619U;
     watchdog_hw->scratch[2] = hash;
+    if (hash == WSPRRY_ALLOCATION_FAULT_HASH) {
+        std::uint32_t attempt[2];
+        wsprry_heap_panic_attempt(attempt);
+        watchdog_hw->scratch[0] = attempt[0];
+        watchdog_hw->scratch[3] = attempt[1];
+    }
     while (true)
         tight_loop_contents();
 }
@@ -134,12 +142,15 @@ int main() {
         return used < capacity ? capacity - used : 0;
     };
     // SDK uses scratch 4..7 for reboot bookkeeping. Preserve a small diagnostic
-    // in 1..2, and enter an unowned, network-free recovery boot after a stall.
+    // in 0..3, and enter an unowned, network-free recovery boot after a stall.
     const bool recovery = watchdog_enable_caused_reboot();
     const auto fault_stage = recovery ? watchdog_hw->scratch[1] : 0;
     const auto fault_hash = recovery ? watchdog_hw->scratch[2] : 0;
-    const auto fault_pc = recovery ? watchdog_hw->scratch[3] : 0;
-    const auto fault_status = recovery ? watchdog_hw->scratch[0] : 0;
+    const auto saved_pc = recovery ? watchdog_hw->scratch[3] : 0;
+    const auto saved_status = recovery ? watchdog_hw->scratch[0] : 0;
+    const bool allocation_fault = wsprry_allocation_fault_valid(recovery, fault_hash, saved_pc);
+    const auto fault_pc = allocation_fault ? 0 : saved_pc;
+    const auto fault_status = allocation_fault ? 0 : saved_status;
     watchdog_hw->scratch[0] = 0;
     watchdog_hw->scratch[2] = 0;
     watchdog_hw->scratch[3] = 0;
@@ -253,6 +264,12 @@ int main() {
             number_field(result, "fault_hash", fault_hash);
             number_field(result, "fault_pc", fault_pc);
             number_field(result, "fault_status", fault_status);
+            result += ",\"fault_allocation_recorded\":";
+            result += allocation_fault ? "true" : "false";
+            number_field(result, "fault_allocation_request_bytes",
+                         allocation_fault ? saved_status : 0);
+            result += ",\"fault_allocation_returned_null\":";
+            result += allocation_fault ? ((saved_pc & 1U) ? "true" : "false") : "null";
             result += ",\"network\":" + network.status();
             number_field(result, "system_clock_hz", clock_get_hz(clk_sys));
             number_field(result, "heap_allocated_bytes", heap.uordblks);

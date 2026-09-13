@@ -1,0 +1,574 @@
+{
+  "status": "PASS_B2_TRANSPORT_SUBSET",
+  "packet_sha256": "b41cca02d4f6f34e773eed5e5d04b292104b184a2e30c318e5713d1c529a33a0",
+  "accepted_b2_pressure_cases": 14,
+  "family_closed": false,
+  "completed_jobs": 2,
+  "completed_rf_seconds": 200,
+  "wifi_off": 1,
+  "wifi_on": 1,
+  "configuration_writes": 0,
+  "flashes": 0,
+  "host_restored": true,
+  "b_unchanged": true,
+  "final_status": {
+    "boot_id": "9c5aec394269e0b57ca16d73ad3d12b6",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": [
+      {
+        "job_id": "66c4c8c3068375966ccdfdc67459514c",
+        "state": "complete",
+        "ended_monotonic_ns": "15799017726000",
+        "output_active": false
+      },
+      {
+        "job_id": "7caa0cd278ce2ed860c8ca14b135e783",
+        "state": "complete",
+        "ended_monotonic_ns": "15669012771000",
+        "output_active": false
+      },
+      {
+        "job_id": "86e506329e09ce353abac5c2ab9ce3dc",
+        "state": "complete",
+        "ended_monotonic_ns": "14217391407000",
+        "output_active": false
+      },
+      {
+        "job_id": "c085bb2b51029e6e15819d225487bc7f",
+        "state": "complete",
+        "ended_monotonic_ns": "14087391397000",
+        "output_active": false
+      }
+    ]
+  },
+  "raw_b2": {
+    "status": "PASS",
+    "source_revision": "2e43110f05304efdc2ae25c298baa0ef6426955b",
+    "boot": "9c5aec394269e0b57ca16d73ad3d12b6",
+    "submission_path": "usb",
+    "completed_jobs": 2,
+    "timing": [
+      {
+        "job_id": "7caa0cd278ce2ed860c8ca14b135e783",
+        "mode": "tone",
+        "epoch": 9,
+        "expected_counter_deltas": {
+          "dma_irqs": 26323,
+          "alarm_irqs": 1,
+          "tail_irqs": 1,
+          "running_successor_links": 26321,
+          "refill_irq_pairs": 26321,
+          "running_tail_links": 1
+        },
+        "duration_ns": 100000000000,
+        "launch_target_ns": 15569012540000,
+        "post_enable_delay_ns": 8000,
+        "short_words": 6736,
+        "short_interval_ns": 1561971.0144927537,
+        "short_75_percent_budget_ns": 1171478.2608695652,
+        "cumulative_worst_short": {
+          "measured": true,
+          "observations": 9,
+          "epoch": "2",
+          "successor_sequence": "26322",
+          "observed_ns": "4525229741000",
+          "remaining_words": 6319,
+          "total_words": 6736
+        }
+      },
+      {
+        "job_id": "66c4c8c3068375966ccdfdc67459514c",
+        "mode": "tone",
+        "epoch": 10,
+        "expected_counter_deltas": {
+          "dma_irqs": 26323,
+          "alarm_irqs": 1,
+          "tail_irqs": 1,
+          "running_successor_links": 26321,
+          "refill_irq_pairs": 26321,
+          "running_tail_links": 1
+        },
+        "duration_ns": 100000000000,
+        "launch_target_ns": 15699017254000,
+        "post_enable_delay_ns": 8000,
+        "short_words": 6736,
+        "short_interval_ns": 1561971.0144927537,
+        "short_75_percent_budget_ns": 1171478.2608695652,
+        "cumulative_worst_short": {
+          "measured": true,
+          "observations": 10,
+          "epoch": "2",
+          "successor_sequence": "26322",
+          "observed_ns": "4525229741000",
+          "remaining_words": 6319,
+          "total_words": 6736
+        }
+      }
+    ],
+    "usb": {
+      "info": {
+        "samples": 360,
+        "max_gap_seconds": 1.782835391
+      },
+      "status": {
+        "samples": 72,
+        "max_gap_seconds": 5.000342442
+      },
+      "health": {
+        "samples": 72,
+        "max_gap_seconds": 5.00008891
+      },
+      "boot": "9c5aec394269e0b57ca16d73ad3d12b6",
+      "seconds": 360,
+      "raw_wire_verified": true,
+      "max_allocator_peak_bytes": 121844,
+      "last_heap_allocated_bytes": 32908,
+      "expired_prior_terminal_jobs": [],
+      "job_coverage": {
+        "7caa0cd278ce2ed860c8ca14b135e783": {
+          "states": [
+            "armed",
+            "complete",
+            "loaded",
+            "running"
+          ],
+          "active": true
+        },
+        "66c4c8c3068375966ccdfdc67459514c": {
+          "states": [
+            "armed",
+            "complete",
+            "loaded",
+            "running"
+          ],
+          "active": true
+        }
+      },
+      "max_rf_service_gap_ns": 2211000,
+      "rf_last_observation": {
+        "ok": true,
+        "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+        "revision": "2e43110f0530",
+        "firmware": "0.0.0-devel",
+        "deployment_identity_matches": true,
+        "recovery_boot": false,
+        "fault_stage": 0,
+        "fault_hash": 0,
+        "fault_pc": 0,
+        "fault_status": 0,
+        "network": {
+          "initialized": true,
+          "enabled": true,
+          "link_status": 3,
+          "ipv4": "10.77.15.10",
+          "requested_enabled": null,
+          "withdrawal_pending": false,
+          "resume_after_withdrawal": false,
+          "control_configured": true,
+          "control_listening": true,
+          "deployment_identity_matches": true,
+          "station_mac": "88:a2:9e:0a:60:df",
+          "stable_hostname": "wsprrypico-0a60df.local",
+          "configured_hostname": "wsprrypico-0a60df.local",
+          "advertised_hostname": "wsprrypico-0a60df.local",
+          "mdns_state": "active",
+          "mdns_reason": "",
+          "mdns_registrations": 6,
+          "mdns_conflicts": 0,
+          "mdns_failures": 0,
+          "mdns_address_changes": 0,
+          "mdns_goodbye_attempts": 0,
+          "mdns_goodbye_failures": 0,
+          "mdns_rejected_packets": 0,
+          "power_save": false,
+          "packets": {
+            "arp": {
+              "received": 54,
+              "sent": 60,
+              "dropped": 0
+            },
+            "ipv4": {
+              "received": 3318,
+              "sent": 2376,
+              "dropped": 0
+            },
+            "tcp": {
+              "received": 3194,
+              "sent": 2195,
+              "dropped": 13
+            },
+            "udp": {
+              "received": 124,
+              "sent": 162,
+              "dropped": 2
+            }
+          },
+          "memory": {
+            "heap": {
+              "used": 200,
+              "capacity": 32768,
+              "peak": 8288,
+              "errors": 0
+            },
+            "tcp_pcbs": {
+              "used": 0,
+              "capacity": 4,
+              "peak": 4,
+              "errors": 0
+            },
+            "tcp_segments": {
+              "used": 0,
+              "capacity": 32,
+              "peak": 13,
+              "errors": 0
+            },
+            "packet_pool": {
+              "used": 0,
+              "capacity": 8,
+              "peak": 2,
+              "errors": 0
+            }
+          },
+          "tx_credit": {
+            "waits": 0,
+            "preserved": 0,
+            "timeouts": 0
+          },
+          "ntp_server": "time.local",
+          "ntp_address": "10.77.15.1",
+          "ntp_resolution": "resolved",
+          "ntp_resolution_failures": 0,
+          "queries": 36,
+          "accepted": 33,
+          "rejected": 0,
+          "last_rtt_ns": 6873000,
+          "last_sample_uncertainty_ns": 7946886
+        },
+        "system_clock_hz": 138000000,
+        "heap_allocated_bytes": 32908,
+        "heap_available_bytes": 185376,
+        "heap_capacity_bytes": 218284,
+        "heap_arena_bytes": 165036,
+        "heap_arena_free_bytes": 132128,
+        "heap_free_chunks": 56,
+        "heap_top_releasable_bytes": 32720,
+        "heap_sample_observed_us": "15907879825",
+        "heap_sample_cost_us": 26,
+        "heap_sampled_peak_bytes": 105260,
+        "allocator_entries": "269402716",
+        "allocator_failures": "0",
+        "allocator_live_bytes": 36076,
+        "allocator_peak_bytes": 121844,
+        "allocator_largest_request_bytes": 16693,
+        "allocator_largest_successful_request_bytes": 16693,
+        "allocator_sample_time_us": "2078702690",
+        "allocator_max_sample_us": 188,
+        "allocator_max_entry_us": 222,
+        "allocator_max_depth": 2,
+        "core0_stack_used_bytes": 8248,
+        "core0_stack_guard_bottom": 537378816,
+        "core0_stack_guard_limit": 537382912,
+        "core0_stack_fault_status": 0,
+        "core0_stack_guard_valid": 1,
+        "core0_stack_scan_us": 113,
+        "tls_peak_bytes": 61872,
+        "tls_allocated_bytes": 4396,
+        "tls_allocation_failures": 0,
+        "rf_render_in_ram": true,
+        "launch_observed_ns": "15699017262000",
+        "launch_epoch": "10",
+        "launch_target_ns": "15699017254000",
+        "launch_delay_ns": "8000",
+        "dma_irqs": 263230,
+        "max_dma_irq_ns": 138000,
+        "alarm_irqs": 10,
+        "max_alarm_irq_ns": "205000",
+        "tail_irqs": 10,
+        "dma_errors": 0,
+        "refill_irq_pairs": 263210,
+        "refill_irq_unpaired": 0,
+        "refill_invalid_reserves": 0,
+        "refill_full_predecessor": {
+          "measured": true,
+          "observations": 263200,
+          "epoch": "3",
+          "successor_sequence": "6911",
+          "observed_ns": "5257422571000",
+          "remaining_words": 7199,
+          "total_words": 16384
+        },
+        "refill_short_predecessor": {
+          "measured": true,
+          "observations": 10,
+          "epoch": "2",
+          "successor_sequence": "26322",
+          "observed_ns": "4525229741000",
+          "remaining_words": 6319,
+          "total_words": 6736
+        },
+        "max_refill_irq_to_ready_ns": "2120000",
+        "running_successor_links": 263210,
+        "exhausted_successor_links": 0,
+        "running_tail_links": 10,
+        "min_data_successor_ready_words": 7199,
+        "min_tail_successor_ready_words": 6319,
+        "min_successor_ready_words": 6319,
+        "core1_stack_used_bytes": 5620,
+        "core1_stack_guard_bottom": 536884368,
+        "core1_stack_guard_limit": 536888464,
+        "core1_stack_fault_status": 0,
+        "core1_stack_guard_valid": 1,
+        "rf_worker_commands": 114994500,
+        "rf_metric_probes": 2071,
+        "rf_max_probe_ns": "311000",
+        "rf_max_service_gap_ns": "2211000",
+        "rf_max_poll_ns": "2049000",
+        "rf_max_roundtrip_ns": "27491000",
+        "max_loop_us": 660293,
+        "max_authority_poll_us": 1924,
+        "max_usb_us": 280,
+        "max_request_us": 10912,
+        "engine_diagnostic": "",
+        "status": {
+          "ok": true,
+          "configured": true,
+          "enabled": false,
+          "suspended": false,
+          "expires_utc_s": 0,
+          "boot_id": "9c5aec394269e0b57ca16d73ad3d12b6",
+          "utc_now_ns": "1789273664733563000",
+          "monotonic_now_ns": "15907884331000",
+          "sync_age_ns": "42108632000",
+          "station": {
+            "callsign": "AA0NT",
+            "locator": "EM18",
+            "power_dbm": 20
+          },
+          "schedules": [
+            {
+              "period_s": 120,
+              "phase_s": 0
+            }
+          ],
+          "engine": "pio-dma-gp2",
+          "storage_healthy": true,
+          "reboot_required": false,
+          "watermark_utc_ns": "1788714601000000000",
+          "clock_state": "synchronized",
+          "uncertainty_ns": "10052318",
+          "state": "empty",
+          "last_error": null,
+          "last_job": "",
+          "output_active": false
+        }
+      },
+      "terminal_records": [
+        {
+          "job_id": "66c4c8c3068375966ccdfdc67459514c",
+          "state": "complete",
+          "ended_monotonic_ns": "15799017726000",
+          "output_active": false
+        },
+        {
+          "job_id": "7caa0cd278ce2ed860c8ca14b135e783",
+          "state": "complete",
+          "ended_monotonic_ns": "15669012771000",
+          "output_active": false
+        },
+        {
+          "job_id": "86e506329e09ce353abac5c2ab9ce3dc",
+          "state": "complete",
+          "ended_monotonic_ns": "14217391407000",
+          "output_active": false
+        },
+        {
+          "job_id": "c085bb2b51029e6e15819d225487bc7f",
+          "state": "complete",
+          "ended_monotonic_ns": "14087391397000",
+          "output_active": false
+        }
+      ]
+    },
+    "load": {
+      "boot": "9c5aec394269e0b57ca16d73ad3d12b6",
+      "seconds": 300,
+      "production_connections": 1,
+      "logical_sessions": 1,
+      "operations": {
+        "HELLO": 1,
+        "STATUS": 315,
+        "CAPS": 1
+      },
+      "status_cadence_policy": "single-flight-admin-v1",
+      "nominal_status_count": 311,
+      "nominal_status_hz": 1.0366666666666666,
+      "nominal_max_status_start_gap_ns": 1090802546,
+      "in_flight_time_beyond_poll_period_ns": 0,
+      "minimum_eligible_status_count": 298,
+      "max_eligible_offer_delay_ns": 219860117,
+      "administrative_response_deadline_ns": 5000000000,
+      "browser_counts": {},
+      "max_observed_write_to_response_seconds": 0.779126938,
+      "timing_origin": "SSL_write_ex entry",
+      "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+      "plaintext_sha256": "a65a4c923d01860ac5c602b2a3ef5d3b9dfad1b8f9eaf671cecf1fc3d7190bc6"
+    },
+    "observer_cost": {
+      "max_usb_roundtrip_seconds": {
+        "INFO": 1.774843671,
+        "STATUS": 0.615713018,
+        "HELLO": 0.031633202,
+        "CLAIM": 0.026341885,
+        "LOAD": 0.044170332,
+        "GET_CLOCK": 0.028281911,
+        "ARM": 0.03970493,
+        "RENEW": 0.180630223,
+        "RELEASE": 0.027095691
+      },
+      "host_max_loadavg_1m": 0.26,
+      "host_max_temperature_c": 50.7,
+      "note": "Load average is system-wide runnable/uninterruptible load, not CPU utilization. Costs overlap."
+    },
+    "pressure": {
+      "status": "PASS",
+      "cases": [
+        {
+          "case": "positive",
+          "job_id": "7caa0cd278ce2ed860c8ca14b135e783",
+          "launch_epoch": 9,
+          "duration_ns": 2347474648,
+          "flow": null
+        },
+        {
+          "case": "partial-header",
+          "job_id": "7caa0cd278ce2ed860c8ca14b135e783",
+          "launch_epoch": 9,
+          "duration_ns": 15028100918,
+          "flow": {
+            "port": 58532,
+            "target_close_after_syn_seconds": 15.023397
+          }
+        },
+        {
+          "case": "recover-header",
+          "job_id": "7caa0cd278ce2ed860c8ca14b135e783",
+          "launch_epoch": 9,
+          "duration_ns": 2087739184,
+          "flow": null
+        },
+        {
+          "case": "partial-body",
+          "job_id": "7caa0cd278ce2ed860c8ca14b135e783",
+          "launch_epoch": 9,
+          "duration_ns": 15292643424,
+          "flow": {
+            "port": 57204,
+            "target_close_after_syn_seconds": 15.288253
+          }
+        },
+        {
+          "case": "recover-body",
+          "job_id": "7caa0cd278ce2ed860c8ca14b135e783",
+          "launch_epoch": 9,
+          "duration_ns": 2113965728,
+          "flow": null
+        },
+        {
+          "case": "pending-expiry",
+          "job_id": "7caa0cd278ce2ed860c8ca14b135e783",
+          "launch_epoch": 9,
+          "duration_ns": 11773328644,
+          "flow": {
+            "port": 38404,
+            "target_close_after_syn_seconds": 10.798115
+          }
+        },
+        {
+          "case": "recover-pending",
+          "job_id": "7caa0cd278ce2ed860c8ca14b135e783",
+          "launch_epoch": 9,
+          "duration_ns": 2705748273,
+          "flow": null
+        },
+        {
+          "case": "positive",
+          "job_id": "66c4c8c3068375966ccdfdc67459514c",
+          "launch_epoch": 10,
+          "duration_ns": 2685957508,
+          "flow": null
+        },
+        {
+          "case": "stalled-http-reader",
+          "job_id": "66c4c8c3068375966ccdfdc67459514c",
+          "launch_epoch": 10,
+          "duration_ns": 17442670870,
+          "flow": {
+            "port": 54534,
+            "held_unread_until_monotonic_ns": 217982257400421,
+            "proof": "fresh slot reuse and timeout counter; no client EOF deadline claim"
+          }
+        },
+        {
+          "case": "recover-reader",
+          "job_id": "66c4c8c3068375966ccdfdc67459514c",
+          "launch_epoch": 10,
+          "duration_ns": 2724712525,
+          "flow": null
+        },
+        {
+          "case": "failed-alert-ack",
+          "job_id": "66c4c8c3068375966ccdfdc67459514c",
+          "launch_epoch": 10,
+          "duration_ns": 1311031845,
+          "flow": {
+            "port": 58038,
+            "target_close_after_syn_seconds": 1.305269
+          }
+        },
+        {
+          "case": "recover-alert-ack",
+          "job_id": "66c4c8c3068375966ccdfdc67459514c",
+          "launch_epoch": 10,
+          "duration_ns": 2284339951,
+          "flow": null
+        },
+        {
+          "case": "failed-alert-wait",
+          "job_id": "66c4c8c3068375966ccdfdc67459514c",
+          "launch_epoch": 10,
+          "duration_ns": 3612271811,
+          "flow": {
+            "port": 58050,
+            "target_close_after_syn_seconds": 3.579897
+          }
+        },
+        {
+          "case": "recover-alert-wait",
+          "job_id": "66c4c8c3068375966ccdfdc67459514c",
+          "launch_epoch": 10,
+          "duration_ns": 2802703942,
+          "flow": null
+        }
+      ],
+      "tcp_connections": 15,
+      "https_controls": 8
+    },
+    "family": "R3",
+    "tranche": "B2",
+    "family_closed": false
+  },
+  "limitation": "TLS alert, pending expiry and HTTP partial/reader paths only; remaining R3 register stays open",
+  "evidence_archive": {
+    "sha256": "b2359326fe3faa870ec800e2f5f2a5a24fd709c25a5e073a4cff6c435de39c44",
+    "bytes": 10854400,
+    "files": 168
+  },
+  "adversarial_review": {
+    "mutations_rejected": 16,
+    "repeat_intact_audit": "PASS",
+    "repair": "Verify actual installed nft rules independently"
+  }
+}
