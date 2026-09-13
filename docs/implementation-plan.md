@@ -47,6 +47,9 @@ treated as long-term product documentation.
     Remaining physical gates: [11.5 target resource/contention acceptance](development/phase11-5-plan.md)
     for each PIO clock selected for 11.6; 11.6 per-band/per-mode conducted RF
     acceptance at those clocks; 11.7 final joint review and Phase 11 closure.
+    Implement the [selected QRSS-group limits](#planned-qrss-group-message-and-duration-limits)
+    before 11.6 acceptance of the extended jobs, with affected 11.5 resource
+    checks assessed against the implementation changes.
     An alternative clock selected during 11.6 must repeat affected 11.5 checks.
     The systematic band x mode x clock comparison, final supported configurations,
     filters, spectral qualification and release firmware belong to Phase 13.
@@ -54,6 +57,37 @@ treated as long-term product documentation.
 13. **Planned:** final hardware qualification and release, including the output
     network and filters, calibrated GPIO-edge timing, supported mode/band
     combinations and a reproducible release UF2.
+
+## Planned QRSS-group message and duration limits
+
+Decision: selected by the user on 2026-09-13; implementation and acceptance
+remain planned.
+
+- Apply one uniform maximum message length of **32 characters, including
+  spaces**, to QRSS, FSKCW and DFCW. Every supported character counts equally;
+  do not expose a different character limit based on Morse complexity or mode.
+- Allow complete finite transmission jobs of up to **60 minutes (3,600 seconds)**,
+  including any repetitions and gaps within the job. Message length and total
+  duration are independent limits; show the calculated transmission duration.
+- Preserve WSPR framing and the existing supported Morse alphabet. This decision
+  selects neither a new alphabet nor additional punctuation or prosigns.
+- Budget internal event capacity for the worst-case supported 32-character
+  message in every QRSS-group mode, plus required job-boundary events. Resolve
+  repeated-message representation separately within the finite-job, advertised
+  event and payload limits; do not assume the character cap bounds expanded
+  repetitions or introduce per-symbol transport delivery.
+- Retain fixed waveform buffers and local RP2350 execution. Assess peak memory
+  across parsing, job copies and RF planning; audit duration/sample arithmetic,
+  advertised capabilities and companion client validation. WsprryPi changes
+  remain independently scoped in that repository.
+- Validate 32/33-character and 60-minute duration boundaries, worst-case Morse
+  expansion, completion, cancellation, disconnect handling and sustained resource
+  use. Hardware-free checks precede separately authorized physical acceptance;
+  long-duration endurance qualification remains in Phase 13.
+
+The current RF profile still limits jobs to 162 events and 110.592 seconds.
+These selected product limits do not claim implemented firmware support or
+physical qualification.
 
 ## Completed baseline
 
