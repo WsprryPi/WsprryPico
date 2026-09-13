@@ -9,7 +9,8 @@ full accepted configurations remain empty. Original failed assessments are retai
 Current: R3 is OPEN after B2 passed fourteen further transport cases and C0
 confirmed a target allocation panic during idle 65,536-byte admission. A is
 reconciled inactive/unowned in recovery; diagnostic firmware requires new flash
-authority. See the [full remaining-work prompt](phase11-5-r3-final-completion-prompt.md)
+authority. The exact [D0 diagnostic packet](phase11-5-r3-allocation-d0-execution.md)
+is prepared and awaiting approval. See the [full remaining-work prompt](phase11-5-r3-final-completion-prompt.md)
 and [R3 execution and adversarial review](phase11-5-r3-completion-review.md).
 A1g's observation rule was approved; network admission then failed before RF.
 The [network diagnosis](phase11-5-r3-network-diagnosis.md) distinguishes AP/DUT

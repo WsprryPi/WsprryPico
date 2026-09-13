@@ -189,5 +189,16 @@
   "remaining_rf_budget": {
     "jobs": 31,
     "seconds": 3523.68
+  },
+  "prepared_diagnostic": {
+    "status": "PREPARED_NOT_APPROVED_NOT_STAGED_NOT_EXECUTED",
+    "source_revision": "481da3c3ff171bae53d6c7d1d2e30525ae748f4b",
+    "packet_sha256": "349634192b03f8a79bc8ef72c43eb30b6da201b35a79d3cc35067380de70c25c",
+    "image_sha256": "5589b165b3cce03f2dc2f351088c88f08d7a5ebbf6c10702c17d0d38424bc534",
+    "archive_sha256": "1bf25435cccbf03ba61d58c01fb6b7abb27723b1490576e0702f5cf3205e3527",
+    "document": "phase11-5-r3-allocation-d0-execution.md",
+    "approved": false,
+    "staged": false,
+    "executed": false
   }
 }

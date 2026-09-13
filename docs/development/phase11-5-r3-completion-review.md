@@ -64,7 +64,10 @@ generated fresh test-only credentials. A sandbox listener restriction was
 separately confirmed by the same TLS test passing with localhost access. Neither
 condition is counted as a firmware failure. R3 tooling tests are now registered in CTest so future builds run them
 automatically. Target image checks are recorded in
-the forthcoming diagnostic packet; no Pi runtime implementation changed.
+the [prepared D0 diagnostic packet](phase11-5-r3-allocation-d0-execution.md).
+Both clean-source firmware variants built and passed linked placement/allocator/
+stack and UF2 journal-reservation checks. D0 awaits explicit approval; no image
+has been staged or flashed. No Pi runtime implementation changed.
 
 The earlier accepted A1h2 review follows as historical evidence.
 
