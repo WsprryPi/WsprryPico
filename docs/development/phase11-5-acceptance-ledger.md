@@ -114,7 +114,7 @@ Historical 049cc929 image hashes and all four layouts are in
 | --- | --- | --- | --- |
 | R1 | CLOSED — 5/5 applicable to 2e43110 through impact review | Earlier 049cc929 layouts/intervals/probes plus affected new-image layout, heap and stack checks; [review](phase11-5-r2-continuation-review.md) | Reuse unaffected assertions; invalidate demonstrated impacts of future changes |
 | R2 | CLOSED — 7/7 jobs | Three browser Tones, native production QRSS and USB FSKCW/DFCW/WSPR; [result](phase11-5-r2-closure-result.json) | Repeat affected paths only if later changes invalidate this evidence |
-| R3 | OPEN — attempted, zero accepted assertions | Preserved A1/A1b tooling failures and A1c pre-RF rejoin failure | Approved bounded rejoin recovery, corrected TLS/slot execution, remaining boundary and reclamation assertions |
+| R3 | OPEN — 5/14 register groups complete; PROGRESS partial | A1h2 and B2 passed 24 pressure cases; C0 confirmed a target allocation panic; all failed attempts preserved | Prepared D0 diagnostic flash awaits approval; diagnose and repair the allocation failure, then complete the nine remaining groups and affected checks |
 | R4 | NOT RUN | Existing ownership/replay/recovery semantics | Current-image physical authority, owner abort and interrupted-operation checks |
 | R5 | NOT RUN | Prior network/storage/standalone evidence | Targeted physical lifecycle, journal rotation and autonomous scheduling under contention |
 | R6 | NOT RUN | Prior inhibited soak is contextual only | Mixed physical workload after mandatory R1-R5 gates pass |
@@ -174,7 +174,7 @@ Permanent time.local and GPS/PPS services were preserved and verified after
 cleanup. The original DNS failures and one later unlocalized Mac NTP timeout
 remain explicit in the review. That historical R1 slice did not adapt R2–R6. R2 is now closed above; freeze new packets without modifying or rerunning preserved attempts.
 
-Latest final inventories: A boot `587c672d4267e467649bb43765542284`, original
+Historical R2 final inventories: A boot `587c672d4267e467649bb43765542284`, original
 inhibited `802c91a7b86e-dirty`; B boot `feffcd075ab6cb0b74e7e0c2fde6c87f`,
 inhibited `dbf1d86f0885-dirty`, unchanged. Both Empty/inactive/unowned and original
 configurations matched. Host and permanent time.local/GPS-PPS were restored.
