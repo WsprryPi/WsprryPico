@@ -146,6 +146,74 @@ Nanosecond timestamps, durations, frequencies in nanohertz and other WTP 64-bit
 quantities remain decimal strings. JavaScript must use BigInt for exact arithmetic.
 Configuration seconds are bounded below 2100 and are safe JSON integers.
 
+### QRSS, FSKCW and DFCW messages
+
+Firmware advertising `message_jobs.operation: "LOAD_MESSAGE"` in browser
+capabilities accepts compact message bodies through the same jobs route.
+The capability also declares `max_characters:32`, `tail_ns:"1000"`,
+`max_repeat_count:512` and the three supported mode names. This is an additive
+browser operation; WTP/1 continues to use complete `rf-events/1` LOAD jobs.
+Older firmware without this capability keeps the message form disabled.
+
+Example body for `operation: "LOAD_MESSAGE"`:
+
+```json
+{
+  "job_id": "33333333333333333333333333333333",
+  "mode": "qrss",
+  "message": "TEST",
+  "frequency_nhz": "135500000000000",
+  "space_frequency_nhz": "0",
+  "timing": {
+    "dot_ns": "3000000000",
+    "dash_ns": "9000000000",
+    "intra_gap_ns": "3000000000",
+    "character_gap_ns": "9000000000",
+    "word_gap_ns": "21000000000"
+  },
+  "repeat_count": 1,
+  "repeat_gap_ns": "0",
+  "allow_frequency_adjustment": true
+}
+```
+
+The limit is 32 ASCII characters including spaces; no silent truncation or
+splitting occurs. Alphabet: A–Z, 0–9 and `/?.,-+=`, with ASCII case folding.
+ASCII whitespace counts toward length; consecutive whitespace forms one word
+gap, and leading/trailing whitespace produces no extra RF interval. A message
+must contain a Morse character. Timing fields are positive integer nanoseconds.
+FSKCW uses `frequency_nhz` for marks and a lower positive
+`space_frequency_nhz` for spaces. DFCW uses those two distinct frequencies for
+dots and dashes; both marks have `dot_ns` duration. QRSS and DFCW gaps are RF-off.
+
+The server expands the complete finite message before ordinary LOAD validation;
+it does not emit RF until the subsequent ARM succeeds. HELLO, CLAIM, ownership,
+lease, replay and ABORT rules apply unchanged. Replay identity binds the entire
+original compact request, including text, timing and repetition.
+
+The maximum total duration is the smaller of advertised WTP CAPS and 3,600
+seconds, including repetitions, inter-message RF-off gaps and a final 1,000 ns
+RF-off tail. A repeat count above one requires a positive repeat gap. Expanded
+events must fit both actual CAPS and the 512-event profile ceiling; 512 repeats
+is a count bound, not a promise that every message can repeat that many times.
+The worst supported single 32-character message uses 384 events including its
+tail. The raw job-file path separately permits at most 30,000 file bytes and
+checks actual event/duration CAPS; arbitrary raw jobs have no inferred text limit.
+
+Message compilation errors return HTTP 400. Duration and event errors include
+`calculated_duration_ns`, `max_job_duration_ns`, `calculated_events` and
+`max_events`, allowing the interface to explain the actual exceeded bound.
+Memory admission can return HTTP 503 without loading or arming a job.
+
+The browser calculates duration before submission. For a job it armed in this
+session, it refreshes status every five seconds while connected and shows
+estimated elapsed progress from device UTC. Only authoritative job status
+establishes completion: reaching 100% does not override Running, an unavailable
+connection leaves output unknown, and a different boot/job clears old progress.
+Timer throttling or closing the page cannot change the Pico's local job timing.
+These product changes have host/browser validation; final long-job physical
+acceptance remains open in Phase 11.5 R3.
+
 ## Bounds and errors
 
 HTTP/1.1 accepts GET/PUT/POST, at most 2,048 header bytes and 32,768 body bytes.

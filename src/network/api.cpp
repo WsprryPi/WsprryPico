@@ -2,7 +2,9 @@
 
 #include "network/assets.hpp"
 #include "network/identity.hpp"
+#include "network/message_job.hpp"
 #include "wtp/codec.hpp"
+#include "wtp/frame_parser.hpp"
 #include "wtp/memory_budget.hpp"
 
 namespace wsprrypico::network {
@@ -56,17 +58,21 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
             return http_error(400, "job_id_mismatch");
     }
     if (operation != "HELLO" && operation != "CLAIM" && operation != "RENEW" &&
-        operation != "RELEASE" && operation != "LOAD" && operation != "ARM" && operation != "ABORT")
+        operation != "RELEASE" && operation != "LOAD" && operation != "LOAD_MESSAGE" &&
+        operation != "ARM" && operation != "ABORT")
         return http_error(400, "unsupported_operation");
+    const bool message_job = operation == "LOAD_MESSAGE";
     // Browser schema is versioned by the URL. WTP envelope/codec stays internal.
     std::string payload;
     payload.reserve(r.body.size() + 128);
-    payload = "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":" +
-              std::string(body->get("session_id")->raw) +
-              ",\"request_id\":" + std::string(body->get("request_id")->raw) +
-              ",\"op\":" + std::string(body->get("operation")->raw) +
-              ",\"body\":" + std::string(body->get("body")->raw) + "}";
-    if (payload.size() > max_http_body)
+    payload =
+        "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":" +
+        std::string(body->get("session_id")->raw) +
+        ",\"request_id\":" + std::string(body->get("request_id")->raw) + ",\"op\":" +
+        (message_job ? std::string("\"PING\"") : std::string(body->get("operation")->raw)) +
+        ",\"body\":" + (message_job ? std::string("{}") : std::string(body->get("body")->raw)) +
+        "}";
+    if (payload.size() > kMaximumPayloadBytes)
         return http_error(413, "job_too_large");
     auto root = json::parse(payload);
     if (!root)
@@ -77,17 +83,55 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
     service_.poll();
     if (!request)
         return http_error(400, "invalid_job_request");
+    if (message_job) {
+        const auto message = decode_message_job(*body->get("body"));
+        if (!message)
+            return http_error(400, "invalid_message_job");
+        if (!memory_admitted(512 * sizeof(RfEvent) + 16384))
+            return http_error(503, "resource_exhausted");
+        auto compiled = encoding::compile_message(*message, service_.config().max_events,
+                                                  service_.config().max_job_duration_ns);
+        if (!compiled.job) {
+            auto response = http_error(400, std::string(compiled.error));
+            response.body.pop_back();
+            response.body +=
+                ",\"calculated_duration_ns\":" +
+                json::quote(std::to_string(compiled.calculated_duration_ns)) +
+                ",\"max_job_duration_ns\":" +
+                json::quote(std::to_string(std::min(service_.config().max_job_duration_ns,
+                                                    encoding::max_message_duration_ns))) +
+                ",\"calculated_events\":" + std::to_string(compiled.calculated_events) +
+                ",\"max_events\":" +
+                std::to_string(std::min<std::size_t>(service_.config().max_events, 512)) + "}";
+            return response;
+        }
+        request->operation = "LOAD";
+        request->body = std::move(*compiled.job);
+        // Replay identity binds the complete original compact browser request,
+        // including operation, message, timing and repeat inputs.
+        request->payload_digest =
+            sha256({reinterpret_cast<const std::uint8_t*>(r.body.data()), r.body.size()});
+    }
+    // All decoded fields own their storage; the internal envelope need not
+    // coexist with RF preparation and a maximum adjustment response.
+    root.reset();
+    std::string{}.swap(payload);
     auto response = service_.handle(*request);
-    const auto encoded = encode_response(*request, response, service_.config(), device_, firmware_);
+    request->body = std::monostate{};
+    auto encoded = encode_response(*request, response, service_.config(), device_, firmware_);
     const auto result = json::parse(encoded);
-    return {response.ok ? 200U : 409U,
-            "{\"ok\":" + std::string(response.ok ? "true" : "false") +
-                ",\"request_id\":" + json::quote(request->request_id) +
-                (response.ok ? ",\"result\":" + std::string(result->get("body")->raw)
-                             : ",\"error\":" + std::string(result->get("error")->raw)) +
-                "}",
-            "application/json",
-            {}};
+    const auto value = result->get(response.ok ? "body" : "error")->raw;
+    const auto offset = static_cast<std::size_t>(value.data() - encoded.data());
+    const auto length = value.size();
+    const auto prefix = "{\"ok\":" + std::string(response.ok ? "true" : "false") +
+                        ",\"request_id\":" + json::quote(request->request_id) +
+                        (response.ok ? ",\"result\":" : ",\"error\":");
+    // The browser prefix is shorter than the WTP envelope. Reuse its storage
+    // rather than retaining several full adjustment-response string copies.
+    encoded.resize(offset + length);
+    encoded.replace(0, offset, prefix);
+    encoded += '}';
+    return {response.ok ? 200U : 409U, std::move(encoded), "application/json", {}};
 }
 HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal,
                                 std::string_view authority, std::uint64_t transaction) {
@@ -136,6 +180,9 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             auto value = json::parse(caps);
             return ok(
                 "{\"api_version\":1,\"wtp\":" + std::string(value->get("body")->raw) +
+                ",\"message_jobs\":{\"operation\":\"LOAD_MESSAGE\",\"max_characters\":32,"
+                "\"tail_ns\":\"1000\",\"max_repeat_count\":512,\"modes\":[\"qrss\",\"fskcw\","
+                "\"dfcw\"]}"
                 ",\"features\":{\"config\":true,\"schedules\":true,\"jobs\":true,\"network\":true,"
                 "\"softap\":false,\"ble\":false,\"restart\":" +
                 (restart_ ? "true" : "false") +

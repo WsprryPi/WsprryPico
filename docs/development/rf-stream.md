@@ -20,8 +20,11 @@ image advertises the experimental frequency range and all five campaign modes;
 WTP/1 itself is unchanged.
 
 The planner accepts `tone`, `wspr`, `qrss`, `fskcw` and `dfcw` event jobs,
-with at most four distinct NCO increments, 162 events and
-110.592 seconds. It validates contiguous nonempty events, bounded arithmetic,
+with at most four distinct NCO increments, 512 events and
+3,600 seconds, including boundary and tail intervals. The earlier physical
+acceptance used 162 events / 110.592 seconds; the expanded limits are implemented
+and host-tested, with final physical acceptance still open in Phase 11.5 R3.
+It validates contiguous nonempty events, bounded arithmetic,
 job identity, frequency presence/absence and the existing profile. It does not
 encode or validate a WSPR message. Four nominal RF frequencies are
 3,570,100 Hz plus t*375/256 Hz, t=0..3. These map to the exact 32-bit NCO
@@ -77,8 +80,10 @@ planned increments change; rendering never rebuilds them. There is no approximat
 immutable; arbitrary hand-built plans are unsupported. The generator allocates
 no heap memory. Tests compare all table/bucket edges against a per-sample oracle.
 
-Preparation validates before replacing accepted state, copies the immutable job,
-then generates the first two blocks. Rejected preparation preserves the previous
+Preparation validates before replacing accepted state, stores a digest of the
+immutable job and a heap-backed vector of at most 512 planned segments,
+then generates the first two blocks. Job hashing streams its canonical fields
+without allocating a serialized job copy. Rejected preparation preserves the previous
 plan and prefilled data. `begin` requires the identical job; it does not allocate
 or regenerate the initial buffers. It stops/releases prior sink work, submits
 prefilled blocks and arms with a new epoch and the fixed sample count.

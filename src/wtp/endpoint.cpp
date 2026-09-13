@@ -40,15 +40,16 @@ void Endpoint::disconnect() {
     closing_ = false;
 }
 bool Endpoint::enqueue(std::string text, std::uint64_t now, bool advisory) {
-    if (text.size() > kMaximumPayloadBytes || output_.size() >= 8 ||
-        queued_bytes_ + text.size() + kFrameHeaderBytes > 131072 ||
-        !memory_admitted(text.size() + kFrameHeaderBytes + 1024)) {
+    if (text.empty() || text.size() > kMaximumPayloadBytes || output_.size() >= 8 ||
+        queued_bytes_ + text.size() + kFrameHeaderBytes > 131072 || !memory_admitted(1024)) {
         if (!advisory)
             disconnect();
         return false;
     }
     const auto bytes = std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size());
-    auto frame = encode_frame(bytes);
+    // Keep the already encoded payload. Framing must not allocate another
+    // maximum-sized buffer while the job and its adjustment response coexist.
+    OutputFrame frame{encode_frame_header(bytes), std::move(text)};
     if (output_.empty())
         last_tx_progress_ms_ = now;
     queued_bytes_ += frame.size();
@@ -140,10 +141,10 @@ void Endpoint::close_after_output() {
     if (output_.empty())
         closed_ = true;
 }
-void Endpoint::frame_events(const std::vector<FrameEvent>& events, std::uint64_t now) {
-    for (const auto& e : events) {
+void Endpoint::frame_events(std::vector<FrameEvent> events, std::uint64_t now) {
+    for (auto& e : events) {
         if (e.kind == FrameEventKind::Payload)
-            payload(e.payload, now);
+            payload(std::move(e.payload), now);
         else if (e.kind == FrameEventKind::InvalidFrame)
             event("INVALID_FRAME", "{\"error\":" + error_json(ErrorCode::InvalidFrame) + '}', now);
         else
@@ -158,7 +159,7 @@ std::size_t Endpoint::receive(std::span<const std::uint8_t> input, std::uint64_t
     }
     return count;
 }
-void Endpoint::payload(std::span<const std::uint8_t> bytes, std::uint64_t now) {
+void Endpoint::payload(InputBuffer bytes, std::uint64_t now) {
     // Refuse transport work before decoding/dispatch when competing contexts
     // have consumed its working space. No new operation or replay entry exists.
     if (!memory_admitted(16384)) {
@@ -175,6 +176,10 @@ void Endpoint::payload(std::span<const std::uint8_t> bytes, std::uint64_t now) {
         return;
     }
     auto request = decode_request(std::move(*root), principal_, bytes);
+    // Decoded requests own their fields and digest. Release raw input before
+    // preparing a maximum job or serializing its independently bounded reply.
+    root.reset();
+    bytes = {};
     service_.poll();
     if (!request) {
         close_after_output();
@@ -194,6 +199,7 @@ void Endpoint::payload(std::span<const std::uint8_t> bytes, std::uint64_t now) {
         response = service_.handle(*request);
     if (response.ok && request->operation == "HELLO")
         session_ = request->session_id;
+    request->body = std::monostate{};
     service_.poll();
     auto encoded =
         encode_response(*request, response, service_.config(), device_id_, firmware_version_);
@@ -206,7 +212,12 @@ void Endpoint::payload(std::span<const std::uint8_t> bytes, std::uint64_t now) {
 std::span<const std::uint8_t> Endpoint::output() const {
     if (output_.empty())
         return {};
-    return std::span(output_.front()).subspan(offset_);
+    const auto& frame = output_.front();
+    if (offset_ < frame.header.size())
+        return std::span(frame.header).subspan(offset_);
+    return std::span(reinterpret_cast<const std::uint8_t*>(frame.payload.data()),
+                     frame.payload.size())
+        .subspan(offset_ - frame.header.size());
 }
 void Endpoint::consume_output(std::size_t count, std::uint64_t now) {
     if (count > output().size()) {

@@ -42,17 +42,29 @@ bool capability_text(std::string_view text) {
     });
 }
 
+bool valid_protocol_version(std::string_view version) {
+    if (!version.starts_with("WTP/") || version.size() < 5 || version[4] == '0') {
+        return false;
+    }
+    return std::all_of(version.begin() + 4, version.end(),
+                       [](char character) { return character >= '0' && character <= '9'; });
+}
+
+} // namespace
+
 // Hash typed job values, independent of JSON member ordering/escaping. Retain
 // this compact identity instead of keeping eight complete 512-event jobs.
 PayloadDigest job_digest(const Job& job) {
-    std::vector<std::uint8_t> bytes;
+    Sha256 digest;
     auto number = [&](std::uint64_t n) {
+        std::array<std::uint8_t, 8> bytes{};
         for (unsigned i = 0; i < 8; ++i)
-            bytes.push_back(static_cast<std::uint8_t>(n >> (i * 8)));
+            bytes[i] = static_cast<std::uint8_t>(n >> (i * 8));
+        digest.update(bytes);
     };
     auto text = [&](std::string_view value) {
         number(value.size());
-        bytes.insert(bytes.end(), value.begin(), value.end());
+        digest.update({reinterpret_cast<const std::uint8_t*>(value.data()), value.size()});
     };
     text(job.job_id);
     text(job.profile);
@@ -67,18 +79,8 @@ PayloadDigest job_digest(const Job& job) {
         number(event.frequency_nhz.has_value());
         number(event.frequency_nhz.value_or(0));
     }
-    return sha256(bytes);
+    return digest.finish();
 }
-
-bool valid_protocol_version(std::string_view version) {
-    if (!version.starts_with("WTP/") || version.size() < 5 || version[4] == '0') {
-        return false;
-    }
-    return std::all_of(version.begin() + 4, version.end(),
-                       [](char character) { return character >= '0' && character <= '9'; });
-}
-
-} // namespace
 
 JobService::JobService(Clock& clock, RfEngine& engine, IdentitySource& identities,
                        ServiceConfig config)

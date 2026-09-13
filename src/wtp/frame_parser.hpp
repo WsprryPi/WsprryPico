@@ -1,5 +1,8 @@
 #pragma once
 
+#include "wtp/input_buffer.hpp"
+
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -11,13 +14,16 @@ constexpr std::size_t kFrameHeaderBytes = 16;
 constexpr std::size_t kMaximumPayloadBytes = 65'536;
 
 std::uint32_t crc32c(std::span<const std::uint8_t> bytes);
+// Invalid payload lengths return a zero header, which is never a valid frame.
+std::array<std::uint8_t, kFrameHeaderBytes>
+encode_frame_header(std::span<const std::uint8_t> payload);
 std::vector<std::uint8_t> encode_frame(std::span<const std::uint8_t> payload);
 
 enum class FrameEventKind { Payload, InvalidFrame, Closed };
 
 struct FrameEvent {
     FrameEventKind kind;
-    std::vector<std::uint8_t> payload;
+    InputBuffer payload;
 };
 
 class FrameParser {
@@ -39,7 +45,7 @@ class FrameParser {
     void invalid_frame(std::vector<FrameEvent>& events);
     void close(std::vector<FrameEvent>& events);
 
-    std::vector<std::uint8_t> buffer_;
+    InputBuffer buffer_;
     std::size_t consecutive_invalid_frames_ = 0;
     std::size_t resync_discard_bytes_ = 0;
     std::uint64_t last_progress_ms_ = 0;

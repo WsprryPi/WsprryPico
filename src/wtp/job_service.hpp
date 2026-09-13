@@ -61,6 +61,9 @@ struct Job {
     bool operator==(const Job&) const = default;
 };
 
+// Stable typed identity, streamed without retaining a serialized event copy.
+PayloadDigest job_digest(const Job& job);
+
 enum class EngineState { Idle, Armed, Running, Complete, Failed, Missed };
 
 // The requested UTC second supplies an exclusive latest-start boundary.

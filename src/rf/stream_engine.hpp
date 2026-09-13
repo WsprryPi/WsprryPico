@@ -87,7 +87,7 @@ class StreamEngine final : public wtp::RfEngine {
     BlockSink& sink_;
     Plan plan_{};
     Waveform waveform_;
-    std::optional<wtp::Job> job_;
+    std::optional<wtp::PayloadDigest> job_;
     alignas(4) std::array<std::array<std::uint32_t, block_words>, 2> buffers_{};
     std::array<std::uint64_t, 2> valid_{};
     wtp::EngineState state_ = wtp::EngineState::Idle;

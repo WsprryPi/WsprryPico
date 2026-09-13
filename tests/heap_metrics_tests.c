@@ -69,6 +69,13 @@ struct mallinfo __real_mallinfo(void) {
             total += (int)lengths[i] + 16;
     return (struct mallinfo){total};
 }
+static unsigned trim_calls;
+int _malloc_trim_r(struct _reent* context, size_t pad) {
+    (void)context;
+    assert(pad == 0);
+    ++trim_calls;
+    return 1;
+}
 static void* concurrent(void* unused) {
     (void)unused;
     for (unsigned i = 0; i < 1000; ++i) {
@@ -138,13 +145,21 @@ int main(void) {
     assert(attempt[0] == 0 && attempt[1] == (WSPRRY_ALLOCATION_FAULT_TAG | 1U));
     const uint64_t failures = wsprry_heap_snapshot().failures;
     assert(failures >= 3 && wsprry_heap_snapshot().live_bytes == 0);
+    const unsigned previous_trims = trim_calls;
+    void* input = wsprry_heap_try_input(100);
+    assert(input && trim_calls == previous_trims);
+    __wrap__free_r(_REENT, input);
+    assert(!wsprry_heap_try_input(65552));
+    assert(trim_calls == previous_trims + 1);
+    assert(wsprry_heap_snapshot().input_trim_attempts == 1);
+    assert(wsprry_heap_snapshot().input_trim_releases == 1);
     pthread_t a, b;
     assert(!pthread_create(&a, NULL, concurrent, NULL));
     assert(!pthread_create(&b, NULL, concurrent, NULL));
     pthread_join(a, NULL);
     pthread_join(b, NULL);
     m = wsprry_heap_snapshot();
-    assert(m.live_bytes == 0 && m.failures == failures && m.entries >= 6000);
+    assert(m.live_bytes == 0 && m.failures == failures + 1 && m.entries >= 6000);
     assert(m.max_sample_us && m.sample_time_us && m.max_entry_us);
     puts("Heap hooks: transient realloc peak, failed realloc retention, overflow, nullable "
          "recovery, probe release and concurrent recursion passed");

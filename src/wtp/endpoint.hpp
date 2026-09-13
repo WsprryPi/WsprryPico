@@ -23,8 +23,8 @@ class Endpoint {
     }
 
   private:
-    void payload(std::span<const std::uint8_t> bytes, std::uint64_t now_ms);
-    void frame_events(const std::vector<FrameEvent>& events, std::uint64_t now_ms);
+    void payload(InputBuffer bytes, std::uint64_t now_ms);
+    void frame_events(std::vector<FrameEvent> events, std::uint64_t now_ms);
     bool enqueue(std::string payload, std::uint64_t now_ms, bool advisory);
     void event(std::string_view name, std::string body, std::uint64_t now_ms);
     void observe(std::uint64_t now_ms, bool released = false);
@@ -32,7 +32,14 @@ class Endpoint {
     JobService& service_;
     std::string device_id_, firmware_version_, principal_, session_, boot_;
     FrameParser parser_;
-    std::deque<std::vector<std::uint8_t>> output_;
+    struct OutputFrame {
+        std::array<std::uint8_t, kFrameHeaderBytes> header;
+        std::string payload;
+        std::size_t size() const {
+            return header.size() + payload.size();
+        }
+    };
+    std::deque<OutputFrame> output_;
     std::size_t offset_ = 0, queued_bytes_ = 0;
     std::uint64_t last_tx_progress_ms_ = 0, event_id_ = 0;
     bool closed_ = true, closing_ = false;

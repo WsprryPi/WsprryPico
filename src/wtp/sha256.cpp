@@ -32,83 +32,92 @@ std::uint32_t read_u32_be(const std::uint8_t* input) {
 
 } // namespace
 
-PayloadDigest sha256(std::span<const std::uint8_t> bytes) {
-    std::array<std::uint32_t, 8> hash{0x6a09e667U, 0xbb67ae85U, 0x3c6ef372U, 0xa54ff53aU,
-                                      0x510e527fU, 0x9b05688cU, 0x1f83d9abU, 0x5be0cd19U};
-    const auto compress = [&hash](const std::uint8_t* block) {
-        std::array<std::uint32_t, 64> words{};
-        for (std::size_t index = 0; index < 16; ++index) {
-            words[index] = read_u32_be(block + index * 4);
-        }
-        for (std::size_t index = 16; index < words.size(); ++index) {
-            const auto s0 = rotate_right(words[index - 15], 7) ^
-                            rotate_right(words[index - 15], 18) ^ (words[index - 15] >> 3U);
-            const auto s1 = rotate_right(words[index - 2], 17) ^
-                            rotate_right(words[index - 2], 19) ^ (words[index - 2] >> 10U);
-            words[index] = words[index - 16] + s0 + words[index - 7] + s1;
-        }
-        auto a = hash[0];
-        auto b = hash[1];
-        auto c = hash[2];
-        auto d = hash[3];
-        auto e = hash[4];
-        auto f = hash[5];
-        auto g = hash[6];
-        auto h = hash[7];
-        for (std::size_t index = 0; index < words.size(); ++index) {
-            const auto sum1 = rotate_right(e, 6) ^ rotate_right(e, 11) ^ rotate_right(e, 25);
-            const auto choose = (e & f) ^ (~e & g);
-            const auto temporary1 = h + sum1 + choose + kRoundConstants[index] + words[index];
-            const auto sum0 = rotate_right(a, 2) ^ rotate_right(a, 13) ^ rotate_right(a, 22);
-            const auto majority = (a & b) ^ (a & c) ^ (b & c);
-            const auto temporary2 = sum0 + majority;
-            h = g;
-            g = f;
-            f = e;
-            e = d + temporary1;
-            d = c;
-            c = b;
-            b = a;
-            a = temporary1 + temporary2;
-        }
-        hash[0] += a;
-        hash[1] += b;
-        hash[2] += c;
-        hash[3] += d;
-        hash[4] += e;
-        hash[5] += f;
-        hash[6] += g;
-        hash[7] += h;
-    };
-    std::size_t offset = 0;
-    while (bytes.size() - offset >= 64) {
-        compress(bytes.data() + offset);
-        offset += 64;
+void Sha256::compress(const std::uint8_t* block) {
+    std::array<std::uint32_t, 64> words{};
+    for (std::size_t index = 0; index < 16; ++index) {
+        words[index] = read_u32_be(block + index * 4);
     }
-    // Keep only the partial block and padding on the stack. In particular,
-    // hashing a LOAD must not copy and geometrically grow its entire payload.
-    std::array<std::uint8_t, 64> tail{};
-    const auto remaining = bytes.size() - offset;
-    std::copy(bytes.begin() + static_cast<std::ptrdiff_t>(offset), bytes.end(), tail.begin());
-    tail[remaining] = 0x80U;
-    if (remaining >= 56) {
-        compress(tail.data());
-        tail.fill(0);
+    for (std::size_t index = 16; index < words.size(); ++index) {
+        const auto s0 = rotate_right(words[index - 15], 7) ^ rotate_right(words[index - 15], 18) ^
+                        (words[index - 15] >> 3U);
+        const auto s1 = rotate_right(words[index - 2], 17) ^ rotate_right(words[index - 2], 19) ^
+                        (words[index - 2] >> 10U);
+        words[index] = words[index - 16] + s0 + words[index - 7] + s1;
     }
-    const auto bit_length = static_cast<std::uint64_t>(bytes.size()) * 8U;
-    for (std::size_t index = 0; index < 8; ++index) {
-        tail[63 - index] = static_cast<std::uint8_t>(bit_length >> (index * 8));
+    auto a = hash_[0];
+    auto b = hash_[1];
+    auto c = hash_[2];
+    auto d = hash_[3];
+    auto e = hash_[4];
+    auto f = hash_[5];
+    auto g = hash_[6];
+    auto h = hash_[7];
+    for (std::size_t index = 0; index < words.size(); ++index) {
+        const auto sum1 = rotate_right(e, 6) ^ rotate_right(e, 11) ^ rotate_right(e, 25);
+        const auto choose = (e & f) ^ (~e & g);
+        const auto temporary1 = h + sum1 + choose + kRoundConstants[index] + words[index];
+        const auto sum0 = rotate_right(a, 2) ^ rotate_right(a, 13) ^ rotate_right(a, 22);
+        const auto majority = (a & b) ^ (a & c) ^ (b & c);
+        const auto temporary2 = sum0 + majority;
+        h = g;
+        g = f;
+        f = e;
+        e = d + temporary1;
+        d = c;
+        c = b;
+        b = a;
+        a = temporary1 + temporary2;
     }
-    compress(tail.data());
+    hash_[0] += a;
+    hash_[1] += b;
+    hash_[2] += c;
+    hash_[3] += d;
+    hash_[4] += e;
+    hash_[5] += f;
+    hash_[6] += g;
+    hash_[7] += h;
+}
 
-    PayloadDigest digest{};
-    for (std::size_t index = 0; index < hash.size(); ++index) {
-        digest[index * 4] = static_cast<std::uint8_t>(hash[index] >> 24U);
-        digest[index * 4 + 1] = static_cast<std::uint8_t>(hash[index] >> 16U);
-        digest[index * 4 + 2] = static_cast<std::uint8_t>(hash[index] >> 8U);
-        digest[index * 4 + 3] = static_cast<std::uint8_t>(hash[index]);
+void Sha256::update(std::span<const std::uint8_t> bytes) {
+    bytes_ += bytes.size();
+    while (!bytes.empty()) {
+        if (!pending_ && bytes.size() >= 64) {
+            compress(bytes.data());
+            bytes = bytes.subspan(64);
+            continue;
+        }
+        const auto count = std::min(bytes.size(), tail_.size() - pending_);
+        std::copy_n(bytes.begin(), count, tail_.begin() + pending_);
+        pending_ += count;
+        bytes = bytes.subspan(count);
+        if (pending_ == 64) {
+            compress(tail_.data());
+            pending_ = 0;
+        }
     }
+}
+PayloadDigest Sha256::finish() const {
+    auto state = *this;
+    state.tail_[state.pending_++] = 0x80;
+    std::fill(state.tail_.begin() + state.pending_, state.tail_.end(), 0);
+    if (state.pending_ > 56) {
+        state.compress(state.tail_.data());
+        state.tail_.fill(0);
+    }
+    const auto bits = bytes_ * 8;
+    for (std::size_t i = 0; i < 8; ++i)
+        state.tail_[63 - i] = static_cast<std::uint8_t>(bits >> (i * 8));
+    state.compress(state.tail_.data());
+    PayloadDigest digest{};
+    for (std::size_t i = 0; i < state.hash_.size(); ++i)
+        for (std::size_t j = 0; j < 4; ++j)
+            digest[i * 4 + j] = static_cast<std::uint8_t>(state.hash_[i] >> (24 - j * 8));
     return digest;
+}
+PayloadDigest sha256(std::span<const std::uint8_t> bytes) {
+    Sha256 state;
+    state.update(bytes);
+    return state.finish();
 }
 
 } // namespace wsprrypico::wtp

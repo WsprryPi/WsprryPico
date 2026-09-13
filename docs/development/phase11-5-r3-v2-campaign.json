@@ -1,0 +1,41 @@
+{
+  "prompt_id": "R3-COMPLETE-20260913-v2",
+  "prompt_sha256": "8339283a873f93c8d0343132d0039781956bb7c30902bb9f8b2f65e5475065b5",
+  "accepted_on": "2026-09-13",
+  "acceptance": "I accept R3-COMPLETE-20260913-v2, including the 32-character and 60-minute implementation, finite RF tests, and the complete work/recovery scope described. The documented 60 dB conducted wiring remains unchanged.",
+  "status": "AUTHORIZED_IN_PROGRESS",
+  "historical_counters": {
+    "rf_jobs": 9,
+    "rf_planned_seconds": 900,
+    "wifi_cycles": 4,
+    "configuration_write_watermark": 37,
+    "heap_probes": 6,
+    "commanded_flashes": 0,
+    "commanded_reboots": 0,
+    "unexpected_watchdog_reboots": 1
+  },
+  "first_packet": {
+    "id": "D0",
+    "hashes": {
+      "build/phase11-5-r3-allocation-d0/stage/packet.json": "349634192b03f8a79bc8ef72c43eb30b6da201b35a79d3cc35067380de70c25c",
+      "build/phase11-5-r3-allocation-d0/public-tooling.tar": "1bf25435cccbf03ba61d58c01fb6b7abb27723b1490576e0702f5cf3205e3527",
+      "build/phase11-5-r3-allocation-d0/diagnostic.uf2": "5589b165b3cce03f2dc2f351088c88f08d7a5ebbf6c10702c17d0d38424bc534",
+      "scripts/phase11_5_r3_tls_stage.py": "7f39dadffe7ad22071db41b3db66da85d6136575f6bc688e2d93651cd322e4cb"
+    },
+    "review": "Exact frozen packet and helper closure reviewed; one diagnostic flash and one idle maximum request, no RF. Fresh host boot and service PID match; no competing campaign process; exact A/B enumeration; new root absent. Runner independently gates live A/B authority before BOOTSEL."
+  },
+  "d0": {
+    "status": "D0_FRESH_BOOT_MAXIMUM_RESPONSE_VERIFIED",
+    "evidence_archive_sha256": "f0ecb9cdd32377100a24d9970f9473a2a49026f349819d5965eceddbd3b5d3f2",
+    "bootsel_commands": 1,
+    "flashes_started": 1,
+    "rf_jobs": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 0,
+    "heap_probes": 0,
+    "final_a_boot": "1271822b30097b5539961a7a2fe49302",
+    "final_a_revision": "481da3c3ff17",
+    "final_a_state": "empty/inactive/unowned",
+    "b_unchanged": true
+  }
+}

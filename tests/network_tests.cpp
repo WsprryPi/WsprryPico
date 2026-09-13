@@ -314,12 +314,84 @@ void jobs() {
     REQUIRE(!f.service.status().output_active);
     REQUIRE(send("RELEASE", "{}").status == 200);
 }
+void maximum_http_job() {
+    Fixture f;
+    std::string body = "{\"session_id\":\"" + std::string(32, '5') + "\",\"request_id\":\"" +
+                       std::string(32, '6') +
+                       "\",\"operation\":\"HELLO\",\"body\":{\"versions\":[\"WTP/1\"],"
+                       "\"client_name\":\"maximum\",\"client_version\":\"1\"}}";
+    // Padding inside the operation body survives the internal WTP envelope.
+    body.insert(body.size() - 2, network::max_http_body - body.size(), ' ');
+    REQUIRE(body.size() == 32768);
+    const auto header = [&](std::size_t size) {
+        return "POST /api/v1/jobs HTTP/1.1\r\nHost: 127.0.0.1:8443\r\n"
+               "Origin: https://127.0.0.1:8443\r\nX-WsprryPico-Request: 1\r\n"
+               "Content-Type: application/json\r\nContent-Length: " +
+               std::to_string(size) + "\r\n\r\n";
+    };
+    network::HttpParser parser;
+    const auto wire = header(body.size()) + body;
+    REQUIRE(parser.receive(bytes(wire)) == wire.size());
+    REQUIRE(parser.ready() && !parser.failed());
+    REQUIRE(f.api.handle(parser.request(), "cert-a", "127.0.0.1:8443").status == 200);
+    REQUIRE(f.service.status().state == wtp::State::Empty);
+    network::HttpParser oversized;
+    oversized.receive(bytes(header(body.size() + 1)));
+    REQUIRE(oversized.failed() && !oversized.ready());
+    body.insert(body.size() - 2, 1, ' ');
+    REQUIRE(
+        f.api.handle(request("POST", "/api/v1/jobs", body), "cert-a", "127.0.0.1:8443").status ==
+        413);
+    REQUIRE(f.service.status().state == wtp::State::Empty);
+}
+void message_jobs() {
+    Fixture f;
+    unsigned sequence = 1000;
+    const std::string session(32, '3');
+    auto send = [&](std::string op, std::string body, unsigned id = 0) {
+        if (!id)
+            id = ++sequence;
+        return f.api.handle(request("POST", "/api/v1/jobs",
+                                    "{\"session_id\":\"" + session + "\",\"request_id\":\"" +
+                                        std::string(28, '0') + std::to_string(id) +
+                                        "\",\"operation\":\"" + op + "\",\"body\":" + body + "}"),
+                            "cert-a", "127.0.0.1:8443");
+    };
+    auto body = [&](std::string message) {
+        return "{\"job_id\":\"" + std::string(32, '4') +
+               "\",\"mode\":\"fskcw\",\"message\":" + wtp::json::quote(message) +
+               ",\"frequency_nhz\":\"135500000000000\",\"space_frequency_nhz\":\"135495000000000\","
+               "\"timing\":{\"dot_ns\":\"1000000000\",\"dash_ns\":\"3000000000\","
+               "\"intra_gap_ns\":\"1000000000\",\"character_gap_ns\":\"3000000000\",\"word_gap_"
+               "ns\":\"7000000000\"},"
+               "\"repeat_count\":1,\"repeat_gap_ns\":\"0\",\"allow_frequency_adjustment\":true}";
+    };
+    const auto maximum = body(std::string(32, '?'));
+    REQUIRE(maximum.size() < 1024);
+    REQUIRE(send("LOAD_MESSAGE", maximum).status == 409); // HELLO and ownership still required.
+    REQUIRE(f.service.status().state == wtp::State::Empty);
+    REQUIRE(send("HELLO",
+                 "{\"versions\":[\"WTP/1\"],\"client_name\":\"test\",\"client_version\":\"1\"}")
+                .status == 200);
+    REQUIRE(send("CLAIM", "{\"owner_id\":\"" + session + "\",\"lease_ms\":5000}").status == 200);
+    REQUIRE(send("LOAD_MESSAGE", body(std::string(33, '?'))).status == 400);
+    REQUIRE(f.service.status().state == wtp::State::Empty);
+    const auto loaded = send("LOAD_MESSAGE", maximum, 1998);
+    REQUIRE(loaded.status == 200 && f.service.status().state == wtp::State::Loaded);
+    REQUIRE(send("LOAD_MESSAGE", maximum, 1998).body == loaded.body);
+    REQUIRE(send("LOAD_MESSAGE", body("E"), 1998).status == 409);
+    REQUIRE(f.service.status().state == wtp::State::Loaded);
+    REQUIRE(send("ABORT", "{\"job_id\":\"" + std::string(32, '4') + "\"}").status == 200);
+    REQUIRE(send("RELEASE", "{}").status == 200);
+}
 } // namespace
 int main() {
     identities();
     framing();
     api_checks();
     jobs();
+    maximum_http_job();
+    message_jobs();
     deferred();
     restart_tests();
     // JSON scratch admission must not silently narrow WTP's body grammar.

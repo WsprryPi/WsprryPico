@@ -128,6 +128,7 @@ std::optional<Plan> plan_job(const wtp::Job& job, std::int32_t correction_ppb) {
         return std::nullopt;
     }
     Plan plan;
+    plan.segments.resize(job.events.size());
     plan.tone_increments = {};
     std::size_t tone_count = 0;
     std::uint64_t previous_ns = 0;

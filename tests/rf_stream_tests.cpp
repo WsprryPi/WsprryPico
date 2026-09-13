@@ -146,11 +146,12 @@ class TestSink final : public rf::BlockSink {
 void adversarial_renderer_test() {
     // Dense boundary buckets occur near DC/Nyquist. These are algorithm tests,
     // not hardware frequency acceptance or a substitute for target deadlines.
-    for (const auto increment : {1U, 0x003fffffU, 0x00400000U, 0x00400001U,
-                                 0x12345678U, 0x40000000U, 0x7fffffffU}) {
+    for (const auto increment :
+         {1U, 0x003fffffU, 0x00400000U, 0x00400001U, 0x12345678U, 0x40000000U, 0x7fffffffU}) {
         rf::Plan plan;
         plan.tone_increments = {increment, increment + 1, increment - 1, 0};
         plan.count = 5;
+        plan.segments.resize(plan.count);
         plan.segments[0] = {33, increment, 0};
         plan.segments[1] = {1058, increment + 1, 1};
         plan.segments[2] = {33827, 0, 3}; // A full zero-fill loop across refills.
@@ -171,8 +172,7 @@ void adversarial_renderer_test() {
                 CHECK(count > 0);
                 for (std::uint64_t i = 0; i < count; ++i) {
                     const auto advance = plan.segments[segment].increment;
-                    CHECK(((words[i / 32] >> (i % 32)) & 1U) ==
-                          (advance ? phase >> 31 : 0));
+                    CHECK(((words[i / 32] >> (i % 32)) & 1U) == (advance ? phase >> 31 : 0));
                     phase += advance;
                     if (++cursor == plan.segments[segment].end_sample)
                         ++segment;
@@ -681,6 +681,31 @@ void benchmark() {
               << " sizeof_engine=" << sizeof(rf::StreamEngine)
               << "\nNo RP2350 timing qualification.\n";
 }
+void extended_plan_limits() {
+    wtp::Job job;
+    job.job_id = std::string(32, 'a');
+    job.mode = "qrss";
+    job.allow_frequency_adjustment = true;
+    for (std::int64_t delta : {-1, 0, 1}) {
+        job.total_duration_ns = 3'600'000'000'000ULL + delta;
+        job.events = {{0, job.total_duration_ns, true, 135500000000000ULL}};
+        const auto plan = rf::plan_job(job);
+        CHECK(plan.has_value() == (delta <= 0));
+        if (!delta)
+            CHECK(plan->total_samples == rf::sample_rate * 3600);
+    }
+    job.events.clear();
+    for (std::size_t i = 0; i < 512; ++i)
+        job.events.push_back({i * 1000ULL, 1000, false, {}});
+    job.total_duration_ns = 512000;
+    const auto maximum = rf::plan_job(job);
+    CHECK(maximum && maximum->count == 512);
+    job.events.push_back({512000, 1000, false, {}});
+    job.total_duration_ns += 1000;
+    CHECK(!rf::plan_job(job));
+    CHECK(sizeof(rf::Plan) < 128);
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -694,6 +719,7 @@ int main(int argc, char** argv) {
         adversarial_renderer_test();
         planner_test();
         generalized_planner_test();
+        extended_plan_limits();
         correction_test();
         lifecycle_test();
         quantized_lifecycle_test();

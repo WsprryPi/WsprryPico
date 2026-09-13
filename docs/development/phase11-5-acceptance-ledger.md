@@ -18,12 +18,45 @@ packets. Future fixes invalidate affected assertions, not automatically all R1.
 
 Current R3: A1h2 and B2 passed 24 TLS/transport pressure cases on 2e43110; C0
 then confirmed an allocation panic during idle maximum WTP admission. R3 remains
-OPEN. Current A is Empty/inactive/unowned in recovery boot
-`bccea7c09794539c4f64bc22b0e76c56`; B is unchanged. See the
+OPEN. That C0 attempt ended with A Empty/inactive/unowned in recovery boot
+`bccea7c09794539c4f64bc22b0e76c56`; B was unchanged. See the
 [current review](phase11-5-r3-completion-review.md) and
 [machine register](phase11-5-r3-completion-result.json). Nine jobs/900 seconds
 have completed in this effort; CONFIG remains 37, heap probes six. A prospective
 diagnostic image is not a repaired or accepted configuration.
+
+The user subsequently accepted **R3-COMPLETE-20260913-v2**, including the
+32-character / 60-minute implementation and complete bounded execution/recovery
+scope. D0 is now completed: one diagnostic flash, a full maximum STATUS request
+and valid response, no RF, CONFIG writes, Wi-Fi cycles or heap probes. Its
+[audited result](phase11-5-r3-d0-result.json) establishes fresh-boot maximum-input
+success only. Last observed A is non-recovery, Empty/inactive/unowned in boot
+`1271822b30097b5539961a7a2fe49302`, source `481da3c3ff17`; B is unchanged.
+This does not establish a C0 fix or close another R3 group.
+
+## Incremental v2 validation
+
+The user explicitly requires preservation of passing tests as work proceeds.
+Record each completed assertion before the next source or fixture change,
+including evidence hashes, actual tested source/binary/device identities,
+applicability and outstanding limits. Later failures do not erase independent
+passes. Review each change for affected dependencies and runtime/layout impact;
+rerun affected assertions, retain unaffected credit, and record the reason.
+Keep earlier results immutable when adding a superseding result. A final-image
+claim requires current applicable evidence for every mandatory assertion.
+
+| Checkpoint | Preserved validation | Remaining boundary |
+| --- | --- | --- |
+| [v2-001](phase11-5-r3-v2-validation-001.json) | 41 host CTest groups; updated heap-checker seven-test pass; Pi plan 1,073 checks and 1,937 independent frequency vectors; local desktop/mobile browser checks; both provisional images linked and passed linked checks | Software/build evidence only. New Pi limit UI cases, parent request-builder checks, final image admission and physical extended-job/R3 acceptance remain outstanding. |
+| [v2-002](phase11-5-r3-v2-validation-002.json) | 62 host CTest groups; Pi plan 1,085 checks and 1,937 independent frequency vectors; 6,871 production configuration/runtime checks; virtual-hour backend lifecycle checks; eight reviewed desktop/mobile browser captures with exact duration and numerical event ceilings | Software and local browser evidence only. A later HTTP-envelope boundary repair has a focused follow-up; current physical image admission and extended-job/R3 acceptance remain outstanding. |
+
+Raw logs and tested binaries are retained under
+`build/phase11-5-r3-v2-checkpoints/checkpoint-NNN/`; each public checkpoint binds
+its hashes. The source snapshots are explicitly dirty checkpoints, not a clean
+firmware deployment identity. D0 and all historical physical passes retain their
+recorded image scope. Progress is tracked in
+[the campaign record](phase11-5-r3-v2-campaign.json) and
+[execution progress](phase11-5-r3-v2-progress.md).
 
 The following R3 preparation/attempt history retains its original chronology.
 
@@ -114,7 +147,7 @@ Historical 049cc929 image hashes and all four layouts are in
 | --- | --- | --- | --- |
 | R1 | CLOSED — 5/5 applicable to 2e43110 through impact review | Earlier 049cc929 layouts/intervals/probes plus affected new-image layout, heap and stack checks; [review](phase11-5-r2-continuation-review.md) | Reuse unaffected assertions; invalidate demonstrated impacts of future changes |
 | R2 | CLOSED — 7/7 jobs | Three browser Tones, native production QRSS and USB FSKCW/DFCW/WSPR; [result](phase11-5-r2-closure-result.json) | Repeat affected paths only if later changes invalidate this evidence |
-| R3 | OPEN — 5/14 register groups complete; PROGRESS partial | A1h2 and B2 passed 24 pressure cases; C0 confirmed a target allocation panic; all failed attempts preserved | Prepared D0 diagnostic flash awaits approval; diagnose and repair the allocation failure, then complete the nine remaining groups and affected checks |
+| R3 | OPEN — 5/14 historical-image groups complete; PROGRESS partial | A1h2 and B2 passed 24 pressure cases; C0 allocation panic preserved; D0 fresh-boot maximum response passed | Execute accepted v2: finish extended-job implementation and allocation repair; retain applicable assertions and complete outstanding final-image groups and affected checks |
 | R4 | NOT RUN | Existing ownership/replay/recovery semantics | Current-image physical authority, owner abort and interrupted-operation checks |
 | R5 | NOT RUN | Prior network/storage/standalone evidence | Targeted physical lifecycle, journal rotation and autonomous scheduling under contention |
 | R6 | NOT RUN | Prior inhibited soak is contextual only | Mixed physical workload after mandatory R1-R5 gates pass |

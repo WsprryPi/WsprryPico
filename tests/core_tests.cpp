@@ -1,6 +1,8 @@
+#include "encoding/morse.hpp"
 #include "time/usb_time_source.hpp"
 #include "time/utc_discipline.hpp"
 #include "wtp/codec.hpp"
+#include "wtp/endpoint.hpp"
 #include "wtp/frame_parser.hpp"
 #include "wtp/inhibited_rf_engine.hpp"
 #include "wtp/job_service.hpp"
@@ -25,9 +27,12 @@ using namespace wsprrypico::wtp;
 
 static std::size_t allocations = 0;
 static std::size_t largest_allocation = 0;
+static std::size_t large_allocations = 0;
 void* operator new(std::size_t size) {
     ++allocations;
     largest_allocation = std::max(largest_allocation, size);
+    if (size >= 40000)
+        ++large_allocations;
     if (auto* result = std::malloc(size ? size : 1))
         return result;
     throw std::bad_alloc();
@@ -247,6 +252,31 @@ void test_crc_and_frame_encoding() {
     CHECK(encode_frame(oversized).empty());
 }
 
+void test_input_allocation_failure_closes_without_dispatch() {
+    const auto normal = allocate_input;
+    const std::vector<std::uint8_t> bytes(65536, ' ');
+    const auto wire = encode_frame(bytes);
+    allocate_input = [](std::size_t n) -> void* {
+        largest_allocation = std::max(largest_allocation, n);
+        return n >= 65536 ? nullptr : std::malloc(n);
+    };
+    FrameParser parser;
+    std::vector<FrameEvent> events;
+    for (const auto& byte : wire) {
+        auto part = parser.feed(std::span(&byte, 1), 0);
+        for (auto& event : part)
+            events.push_back(std::move(event));
+    }
+    allocate_input = normal;
+    CHECK(parser.closed());
+    CHECK(parser.buffered_bytes() == 0);
+    CHECK(events.size() == 1 && events[0].kind == FrameEventKind::Closed);
+    CHECK(parser.feed(wire, 1).empty());
+    FrameParser recovered;
+    auto good = recovered.feed(wire, 2);
+    CHECK(!recovered.closed() && good.size() == 1 && good[0].payload == bytes);
+}
+
 void test_wspr_sized_frame_allocation() {
     // The failed target USB LOAD was 16,684 framed bytes. Its proven R1
     // single-request lower bound was 18,364 bytes, not the geometric 32 KiB.
@@ -287,6 +317,67 @@ void test_wspr_adjustment_response_allocation() {
           "f636c031c226c26495c0dd23e89db1033e97f80da876957c064f466dd326caa9");
 }
 
+void test_large_endpoint_reply_has_one_payload_allocation() {
+    VirtualClock clock;
+    TestIdentitySource identities;
+    MockRfEngine engine;
+    JobService service(clock, engine, identities);
+    Endpoint endpoint(service, id('d'), "test");
+    endpoint.connect("local");
+    std::vector<std::uint8_t> received;
+    received.reserve(131072);
+    auto send = [&](const std::string& op, const std::string& body, char digit, bool measured) {
+        const auto text = "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":\"" +
+                          id('1') + "\",\"request_id\":\"" + id(digit) + "\",\"op\":\"" + op +
+                          "\",\"body\":" + body + "}";
+        const auto wire =
+            encode_frame({reinterpret_cast<const std::uint8_t*>(text.data()), text.size()});
+        CHECK(!wire.empty());
+        if (measured)
+            large_allocations = 0;
+        received.clear();
+        std::size_t offset = 0;
+        while (offset < wire.size() || !endpoint.output().empty()) {
+            if (endpoint.can_receive() && offset < wire.size())
+                offset += endpoint.receive(std::span(wire).subspan(offset), 0);
+            while (!endpoint.output().empty()) {
+                const auto chunk =
+                    endpoint.output().first(std::min<std::size_t>(7, endpoint.output().size()));
+                received.insert(received.end(), chunk.begin(), chunk.end());
+                endpoint.consume_output(chunk.size(), 0);
+            }
+            CHECK(!endpoint.closed());
+        }
+    };
+    send("HELLO", "{\"versions\":[\"WTP/1\"],\"client_name\":\"test\",\"client_version\":\"1\"}",
+         'a', false);
+    send("CLAIM", "{\"owner_id\":\"" + id('2') + "\",\"lease_ms\":10000}", 'b', false);
+    std::string body = "{\"job_id\":\"" + id('3') +
+                       "\",\"profile\":\"rf-events/"
+                       "1\",\"mode\":\"qrss\",\"total_duration_ns\":\"512\",\"allow_frequency_"
+                       "adjustment\":true,\"events\":[";
+    for (std::size_t n = 0; n < 512; ++n) {
+        if (n)
+            body += ',';
+        body += "{\"offset_ns\":\"" + std::to_string(n) +
+                "\",\"duration_ns\":\"1\",\"rf_on\":true,\"frequency_nhz\":\"135500000000000\"}";
+        engine.adjustments.push_back({n, 135500000000000ULL, 135500000000001ULL});
+    }
+    body += "]}";
+    send("LOAD", body, 'c', true);
+    // The encoded reply owns one >40 KB allocation. A second framed copy
+    // would violate this gate, even though all ordinary protocol tests pass.
+    CHECK(large_allocations == 1);
+    CHECK(service.status().state == State::Loaded && !service.status().output_active);
+    FrameParser parser;
+    const auto frames = parser.feed(received, 0);
+    CHECK(!frames.empty());
+    const auto root = json::parse({reinterpret_cast<const char*>(frames.front().payload.data()),
+                                   frames.front().payload.size()});
+    CHECK(root && root->get("ok")->boolean());
+    CHECK(root->get("body")->get("adjustments")->elements().size() == 512);
+}
+
 void test_large_frames_across_feed_boundaries() {
     for (const std::size_t length : {16668U, 65536U}) {
         std::vector<std::uint8_t> payload(length);
@@ -307,7 +398,7 @@ void test_large_frames_across_feed_boundaries() {
                          std::span(wire).subspan(offset, std::min(chunk, wire.size() - offset)),
                          0)) {
                     CHECK(event.kind == FrameEventKind::Payload);
-                    decoded.push_back(std::move(event.payload));
+                    decoded.emplace_back(event.payload.begin(), event.payload.end());
                 }
             }
             CHECK(!parser.closed());
@@ -336,6 +427,77 @@ void test_sha256_allocation_free_padding_boundaries() {
         const auto digest = sha256(std::span(input).first(length));
         CHECK(allocations == before);
         CHECK(hex(digest) == expected);
+        for (std::size_t chunk : {1U, 55U, 64U, 137U}) {
+            Sha256 incremental;
+            const auto start_allocations = allocations;
+            for (std::size_t offset = 0; offset < length; offset += chunk)
+                incremental.update(
+                    std::span(input).subspan(offset, std::min(chunk, length - offset)));
+            const auto first = incremental.finish();
+            CHECK(allocations == start_allocations);
+            CHECK(first == digest && incremental.finish() == first);
+        }
+    }
+}
+
+void test_extended_morse_message_boundaries() {
+    using namespace wsprrypico::encoding;
+    MorseMessage m;
+    m.job_id = std::string(32, 'a');
+    m.mark_frequency_nhz = 135500000000000ULL;
+    m.space_frequency_nhz = 135495000000000ULL;
+    m.dot_ns = m.intra_gap_ns = 1000000000;
+    m.dash_ns = m.character_gap_ns = 3000000000;
+    m.word_gap_ns = 7000000000;
+    m.allow_frequency_adjustment = true;
+    for (auto mode : {"qrss", "fskcw", "dfcw"}) {
+        m.mode = mode;
+        for (char worst : {'?', '.', ',', '-'}) {
+            for (std::size_t n : {31U, 32U, 33U}) {
+                m.text = std::string(n, worst);
+                auto r = compile_message(m);
+                CHECK(r.job.has_value() == (n <= 32));
+                if (r.job) {
+                    CHECK(r.job->events.size() == n * 12);
+                    CHECK(r.job->events.back().duration_ns == message_tail_ns);
+                    CHECK(!r.job->events.back().rf_on);
+                    CHECK(r.job->events.back().offset_ns + message_tail_ns ==
+                          r.job->total_duration_ns);
+                }
+            }
+        }
+        m.text = std::string(30, ' ') + "Ee";
+        CHECK(compile_message(m).job.has_value());
+        m.text += " ";
+        CHECK(compile_message(m).error == "message_length_limit_32");
+        m.text = std::string(32, '?');
+        CHECK(compile_message(m, 383).error == "message_event_limit_exceeded");
+        CHECK(compile_message(m, 384).job.has_value());
+        m.text = "E";
+        const auto old_dot = m.dot_ns;
+        for (int delta : {-1, 0, 1}) {
+            m.dot_ns = max_message_duration_ns - message_tail_ns + delta;
+            auto r = compile_message(m);
+            CHECK(r.job.has_value() == (delta <= 0));
+            CHECK(r.calculated_duration_ns == max_message_duration_ns + delta);
+        }
+        CHECK(compile_message(m, 512, 110592000000).error == "message_duration_limit_exceeded");
+        m.dot_ns = old_dot;
+        m.repeat_count = 256;
+        m.repeat_gap_ns = 1000000000;
+        auto repeated = compile_message(m);
+        CHECK(repeated.job && repeated.job->events.size() == 512);
+        m.repeat_count = 257;
+        CHECK(compile_message(m).error == "message_event_limit_exceeded");
+        m.repeat_count = 2;
+        m.repeat_gap_ns = std::numeric_limits<std::uint64_t>::max();
+        CHECK(compile_message(m).error == "message_duration_overflow");
+        m.repeat_count = 1;
+        m.repeat_gap_ns = 0;
+        m.text = "   ";
+        CHECK(compile_message(m).error == "message_has_no_marks");
+        m.text = "E@E";
+        CHECK(compile_message(m).error == "unsupported_message_character");
     }
 }
 
@@ -1071,6 +1233,11 @@ using Test = std::pair<const char*, void (*)()>;
 } // namespace
 
 int main() {
+    allocate_input = [](std::size_t size) -> void* {
+        ++allocations;
+        largest_allocation = std::max(largest_allocation, size);
+        return std::malloc(size);
+    };
     const std::vector<Test> tests{
         {"allocation-free activity with retained history", test_activity_with_retained_history},
         {"physical Console abort", test_physical_console_abort},
@@ -1078,7 +1245,11 @@ int main() {
         {"WSPR-sized frame allocation", test_wspr_sized_frame_allocation},
         {"allocation-free SHA padding", test_sha256_allocation_free_padding_boundaries},
         {"large frame feed boundaries", test_large_frames_across_feed_boundaries},
+        {"large endpoint response allocation",
+         test_large_endpoint_reply_has_one_payload_allocation},
         {"WSPR adjustment response allocation", test_wspr_adjustment_response_allocation},
+        {"input allocation failure", test_input_allocation_failure_closes_without_dispatch},
+        {"extended Morse boundaries", test_extended_morse_message_boundaries},
         {"fragmented and combined frames", test_fragmented_and_combined_frames},
         {"frame recovery limits and timeout", test_frame_recovery_limits_and_timeout},
         {"negotiation sessions and unknown operations",

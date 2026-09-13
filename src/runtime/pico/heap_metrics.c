@@ -22,6 +22,7 @@ extern void* __real__calloc_r(struct _reent*, size_t, size_t);
 extern void* __real__realloc_r(struct _reent*, void*, size_t);
 extern void __real__free_r(struct _reent*, void*);
 extern struct mallinfo __real_mallinfo(void);
+extern int _malloc_trim_r(struct _reent*, size_t);
 
 static uint32_t maximum(uint32_t a, uint32_t b) {
     return a > b ? a : b;
@@ -123,4 +124,19 @@ bool wsprry_heap_probe(size_t bytes) {
         return false;
     _free_r(_REENT, pointer);
     return true;
+}
+
+void* wsprry_heap_try_input(size_t bytes) {
+    recursive_mutex_enter_blocking(&heap_mutex);
+    const uint64_t start = time_us_64();
+    if (bytes >= 4096) {
+        ++metrics.input_trim_attempts;
+        if (_malloc_trim_r(_REENT, 0))
+            ++metrics.input_trim_releases;
+    }
+    void* result = _malloc_r(_REENT, bytes);
+    // Include trimming in the serialized allocator critical-section bound.
+    metrics.max_entry_us = maximum(metrics.max_entry_us, bounded(time_us_64() - start));
+    recursive_mutex_exit(&heap_mutex);
+    return result;
 }

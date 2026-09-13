@@ -136,6 +136,7 @@ bool body(Request& r, Value b) {
         auto events = get(b, "events").elements();
         if (events.empty() || events.size() > 512)
             return false;
+        j.events.reserve(events.size());
         for (auto e : events) {
             RfEvent event;
             if (!json::fields(e, {"offset_ns", "duration_ns", "rf_on"}, {"frequency_nhz"}) ||

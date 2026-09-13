@@ -134,6 +134,7 @@ std::uint64_t monotonic_now(void*) {
 } // namespace
 int main() {
     paint_stack();
+    wsprrypico::wtp::allocate_input = wsprry_heap_try_input;
     wsprrypico::wtp::available_memory = []() -> std::size_t {
         const auto capacity = reinterpret_cast<std::uintptr_t>(&__HeapLimit) -
                               reinterpret_cast<std::uintptr_t>(&__end__);
@@ -293,6 +294,8 @@ int main() {
             number_field(result, "allocator_largest_successful_request_bytes",
                          allocator.largest_successful_request_bytes);
             number_field(result, "allocator_sample_time_us", allocator.sample_time_us, true);
+            number_field(result, "input_trim_attempts", allocator.input_trim_attempts, true);
+            number_field(result, "input_trim_releases", allocator.input_trim_releases, true);
             number_field(result, "allocator_max_sample_us", allocator.max_sample_us);
             number_field(result, "allocator_max_entry_us", allocator.max_entry_us);
             number_field(result, "allocator_max_depth", allocator.max_depth);

@@ -88,7 +88,7 @@ wtp::PrepareResult StreamEngine::prepare(const wtp::Job& job) {
     if (state_ != wtp::EngineState::Idle || output_active()) {
         return {};
     }
-    const auto candidate = plan_job(job, correction_ppb_);
+    auto candidate = plan_job(job, correction_ppb_);
     if (!candidate) {
         return {};
     }
@@ -102,8 +102,8 @@ wtp::PrepareResult StreamEngine::prepare(const wtp::Job& job) {
         }
     }
     failure_ = "";
-    job_ = job;
-    plan_ = *candidate;
+    job_ = wtp::job_digest(job);
+    plan_ = std::move(*candidate);
     waveform_.reset(plan_);
     valid_[0] = waveform_.render(buffers_[0]);
     valid_[1] = waveform_.render(buffers_[1]);
@@ -129,7 +129,7 @@ bool StreamEngine::begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) 
     // by the sink, including nearest-sample RF boundaries and low tail padding.
     const auto realized_duration_ns =
         (plan_.total_samples * 1000 + sample_rate / 1'000'000 / 2) / (sample_rate / 1'000'000);
-    if (state_ != wtp::EngineState::Idle || !job_ || *job_ != job ||
+    if (state_ != wtp::EngineState::Idle || !job_ || *job_ != wtp::job_digest(job) ||
         epoch_ == std::numeric_limits<std::uint64_t>::max() ||
         start_monotonic_ns > std::numeric_limits<std::uint64_t>::max() -
                                  std::max(job.total_duration_ns, realized_duration_ns)) {
@@ -275,6 +275,7 @@ bool StreamEngine::disable(std::uint64_t deadline_monotonic_ns) {
     }
     state_ = wtp::EngineState::Idle;
     job_.reset();
+    plan_ = {};
     start_conditions_ = {};
     valid_ = {};
     return true;

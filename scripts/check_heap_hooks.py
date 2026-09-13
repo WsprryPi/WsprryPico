@@ -57,7 +57,9 @@ def validate(disassembly):
         raise ValueError("missing direct stdio allocation coverage")
     for internal, owners in {"_mallinfo_r": {"mallinfo"},
                              "__malloc_update_mallinfo": {"_mallinfo_r"},
-                             "_malloc_trim_r": {"_free_r"}}.items():
+                             # The input allocator holds the same recursive heap
+                             # lock across trimming and its observed allocation.
+                             "_malloc_trim_r": {"_free_r", "wsprry_heap_try_input"}}.items():
         if internal in symbols and edges.get(internal) != owners:
             raise ValueError("internal allocator bypass: " + internal)
     permitted = {"__wrap_mallinfo", "sample", "leave", "wsprry_heap_snapshot",

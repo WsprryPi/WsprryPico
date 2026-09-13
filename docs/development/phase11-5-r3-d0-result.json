@@ -1,0 +1,14 @@
+{
+  "status": "D0_FRESH_BOOT_MAXIMUM_RESPONSE_VERIFIED",
+  "family_closed": false,
+  "packet_sha256": "349634192b03f8a79bc8ef72c43eb30b6da201b35a79d3cc35067380de70c25c",
+  "source_revision": "481da3c3ff171bae53d6c7d1d2e30525ae748f4b",
+  "boot_id": "1271822b30097b5539961a7a2fe49302",
+  "complete_request_bytes": 65552,
+  "rf_jobs": 0,
+  "flashes": 1,
+  "b_unchanged": true,
+  "historical_c0_cause_proven": false,
+  "firmware_remediation_verified": false,
+  "evidence_archive_sha256": "f0ecb9cdd32377100a24d9970f9473a2a49026f349819d5965eceddbd3b5d3f2"
+}

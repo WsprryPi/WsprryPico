@@ -1,0 +1,107 @@
+{
+  "checkpoint": "v2-001",
+  "recorded_utc": "2026-09-13T15:44:36.137975+00:00",
+  "status": "PASS_WITH_RECORDED_SCOPE",
+  "physical_r3_groups_newly_closed": 0,
+  "source_snapshot_sha256": "3a656fcab8d4da52e2996bd42e49efbc6d8ff80b0a9b3cf0306fd23c3802a115",
+  "provenance_note": "Snapshot recorded after these runs. The heap-call checker and its test changed after the 41-group suite and have their own seven-test rerun. Existing binaries and logs are retained; no claim of a clean final-source physical image.",
+  "evidence_artifacts": {
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/r3-extended-ctest.log": "ef54c19ea8db386bf128b9cf6f85d0bfe908951ea7c28843af218a5f28b8a2ed",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/r3-pi-wtp-plan.log": "2378f7dca1de87569ea6a1447dcd1962d06f8f36123e83bbfd1f4b55d107394a",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/r3-pico-ui-render.log": "d2d58e7526d310023fe1855e4a918355f7b01917d207691fe81a3b5685d5ee6b",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/r3-pi-ui-integration.log": "0a667898815b0e20eea66b0c16d9ecaf46f18465aac59a0d43c737bea0b75820",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/r3-v2-heap-hook-tests.log": "83166b089fbcb82fac63f22522fa6ae99bb5e46368cd35d756277fd463dd6346",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/r3-v2-firmware-build.log": "306c7f0bfdfa6e229639c2e53e4707d2828b8425b1574b8f86681f8f05ff0961",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/source-snapshot.json": "3a656fcab8d4da52e2996bd42e49efbc6d8ff80b0a9b3cf0306fd23c3802a115"
+  },
+  "binary_sha256": {
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/network_adapter_tests": "d2957f9a7f33d79953e73412b154e553f68874b540a916f91628e38bb0a16d01",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/network_tests": "309b250d280058687f0cf71bf2575e831cbfbe2f1012704528a22bf10ae08e35",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/usb_transport_tests": "c7b35517a72755ba89d8d8777c50599f73925053ce336acd6a36ce39d736caa9",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/net_trace_tests": "ab4123b25a780a6d38a010097dcda141f40cbe2b880a57dd9ff603d2ec1e410f",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/heap_metrics_tests": "8be2cf199d06992e1fed0e45ff258ce4d0b328dcb136f3ed34292daf6338fc3a",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/shutdown_trace_tests": "2a26880defc32a04f39b61927843528b3b99130c41a12118e12a0629c3a7a58e",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/pio_dma_tests": "23c529dd6b605cf3aeb6468c2fabe7ab6a871b3b2839b96227908981b67c43f9",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/firmware_profile_tests": "9a67fbaae363acaf72140075f83f03e558864a212e7d385262033f18dcac829a",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/stack_bounds_tests": "0d46c2d313f5efd094a84863e9bf3d94d5109a88c31c35e85200c43688bb718e",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/rf_stream_tests": "b6fc78648ab14bc8f7ae9f1c1ed7a3b4a150064b43e95869e947c5c15c837c19",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/mdns_tests": "bf68517b1c08ab233425e427c7e4fb1426e29ebc73691561e4ed18e668b2d63d",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/wsprrypico_core_tests": "2be32a2a95e489b2c6a4f1f495d102d0036d4e0603a630c4bc5cde16898bf1bb",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/refill_metrics_tests": "a9e5ee834e3317e3d6c0a255a8185fe8523c9e47f2be5baf64f35c9ba019c257",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/mdns_lwip_tests": "05af3e4e5fe6fecb17d92e071efe22620bc11fb6b6a9008a62604e3272f17a8f",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/standalone_tests": "8868010fe77d74e59eafb134e3f43f2bd02086e7dfe1da0ca11126fe25c24b5e",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/rf_worker_tests": "785b739f7cc1fe896c958c98b70373a4c15de277f40b71335e94065cf38a2e60",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/host-binaries/rf_bench_tests": "7341590769a803cc57a8041f1a95fbbd3dacff889855b2f6da399ed25c290358",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-001/wtp_execution_plan_test": "1133d726c7e099b67dad9989f1d5fc3754fd3e098dcb908c4102ae755069242d",
+    "build/phase11-5-r3-v2-firmware/firmware/WsprryPico.elf": "45cfe56f380aef73d13424509142cfaefd3d18f2f21a3c9ecf087ae96a176e6c",
+    "build/phase11-5-r3-v2-firmware/firmware/WsprryPico-StandaloneRF.elf": "719a84509e078aec29a5419783c295a49142eaa36e50c92f5231ad12e0ac4bf2"
+  },
+  "validation": {
+    "host_ctest": {
+      "passed_groups": [
+        "firmware_profile_tests",
+        "cyw43_tx_overlay_tests",
+        "rf_feasibility_tests",
+        "standalone_tests",
+        "network_adapter_tests",
+        "mdns_lwip_tests",
+        "endpoint_tests",
+        "rf_bench_tests",
+        "pio_dma_tests",
+        "phase11_4_loop_tests",
+        "rf_worker_failure_tests",
+        "shutdown_trace_tests",
+        "refill_metrics_tests",
+        "stack_bounds_tests",
+        "rf_worker_tests",
+        "mdns_tests",
+        "net_trace_tests",
+        "usb_transport_tests",
+        "inhibited_network_acceptance_tests",
+        "standalone_console_tests",
+        "network_tests",
+        "network_browser_tests",
+        "network_adapter_mac_error",
+        "wsprrypico_core_tests",
+        "rf_stream_tests",
+        "rf_bench_capture_tests",
+        "wtp_probe_tests",
+        "d2_shutdown_audit_tests",
+        "rf_bench_client_tests",
+        "heap_hook_image_tests",
+        "rf_wtp_client_tests",
+        "stack_guard_image_tests",
+        "network_adapter_mac_invalid",
+        "shutdown_image_tests",
+        "phase11_4_trace_tests",
+        "wtp_monitor_tests",
+        "inhibited_sync_image_checker_tests",
+        "standalone_image_tests",
+        "rf_renderer_image_tests",
+        "heap_metrics_tests",
+        "network_certificate_tests"
+      ],
+      "count": 41,
+      "scope": "Hardware-free behavior on retained binaries; no live target or TLS integration credit."
+    },
+    "heap_hook_rerun": {
+      "passed_tests": 7,
+      "scope": "Exact trim-owner routing and rejected bypass mutations after checker update."
+    },
+    "pi_plan": {
+      "checks": 1073,
+      "independent_frequency_vectors": 1937,
+      "scope": "WTP compiler and plan conversion only; does not compile parent request builder."
+    },
+    "pico_browser_render": {
+      "scope": "Actual local Chromium desktop/mobile, message 32/33 previews and existing owner/failure layouts; simulated responses, no device acceptance."
+    },
+    "pi_browser_integration": {
+      "scope": "Existing CW duration and latch scenarios in local PHP/Chromium; new Pico limit cases still outstanding."
+    },
+    "provisional_firmware": {
+      "scope": "Both images linked and passed allocator-route, stack-route and RAM-render checks. Dirty source; not admitted for deployment."
+    }
+  },
+  "reuse_rule": "Preserve this checkpoint permanently. Review changed dependency paths and actual image/layout/runtime impact per assertion. Add an affected-retest or superseding result without deleting previous passes or failures. Unaffected evidence remains applicable; hash equality alone does not prove physical applicability."
+}

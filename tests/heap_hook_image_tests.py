@@ -20,7 +20,9 @@ def fixture():
         "calloc": ["__wrap__calloc_r"],
         "realloc": ["__wrap__realloc_r"],
         "free": ["__wrap__free_r"],
-        "_malloc_r": [], "_free_r": [],
+        "_malloc_r": [], "_free_r": ["_malloc_trim_r"],
+        "_malloc_trim_r": [],
+        "wsprry_heap_try_input": ["_malloc_trim_r", "__wrap__malloc_r"],
         "_calloc_r": ["__wrap__malloc_r"],
         "_realloc_r": ["__wrap__malloc_r", "__wrap__free_r"],
         "__smakebuf_r": ["__wrap__malloc_r"],
@@ -56,6 +58,13 @@ class RoutingTests(unittest.TestCase):
     def test_mallinfo_bypass(self):
         with self.assertRaises(ValueError):
             checker.validate(fixture().replace("<__wrap_mallinfo>:", "<foreign>:"))
+
+    def test_trim_owner_is_exact(self):
+        for owner in ("_free_r", "wsprry_heap_try_input"):
+            with self.subTest(owner=owner), self.assertRaises(ValueError):
+                checker.validate(fixture().replace("<" + owner + ">:", "<foreign>:"))
+        with self.assertRaises(ValueError):
+            checker.validate(fixture() + "\n10000000 <foreign>:\n10000000: f000 f800\tbl\t10000004 <_malloc_trim_r>")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,26 @@
+{
+  "checkpoint": "v2-003",
+  "recorded_utc": "2026-09-13T16:15:56.501861+00:00",
+  "status": "PASS_WITH_RECORDED_SCOPE",
+  "physical_r3_groups_newly_closed": 0,
+  "changed_source_sha256": {
+    "src/network/api.cpp": "0e69dc1743c7ff1b562ae67d481fa4f9c6a9b36d80d1cc34cd746c6c4260db04",
+    "src/runtime/pico/heap_metrics.c": "b8b083de080f53f4fade5e23cd4184f4564e817841c0ff21aff95c30676d659f",
+    "tests/network_tests.cpp": "76a7c3224ec037ae742306e836afda3c8e4f08ae8ae55d32c0a1f0768799ede9"
+  },
+  "evidence_artifacts": {
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-003/r3-v2-http-boundary-tests.log": "41e32c3f829479031ad05143bad96b073af26b52d66ae9840e6f1806b285dcb3",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-003/r3-v2-http-boundary-build.log": "bbd0f11db130f80e702190c6ffc6fbf6bdff93f637aaff9e2c73a2ac875d27ec"
+  },
+  "validation": {
+    "affected_ctest_groups": [
+      "network_tests",
+      "network_adapter_tests",
+      "heap_metrics_tests",
+      "heap_hook_image_tests"
+    ],
+    "count": 4,
+    "scope": "HTTP 32768-byte valid HELLO including expanded internal envelope accepted; 32769 rejected by HTTP parser and API independently. Allocator maximum entry duration now includes trim. Hardware-free only."
+  },
+  "reuse": "v2-002 compiler, RF arithmetic, WTP, browser, Pi and historical harness results retain their measured scope. Only HTTP envelope and allocator measurement assertions are superseded by this focused rerun. Physical memory/timing/HTTP admission still outstanding."
+}

@@ -72,7 +72,7 @@ struct Fixture {
 void limits() {
     const auto config = standalone::wtp_profile(true);
     CHECK(config.capability_engine == "pio-dma-gp2");
-    CHECK(config.max_events == 162 && config.max_job_duration_ns == 110'592'000'000);
+    CHECK(config.max_events == 512 && config.max_job_duration_ns == 3'600'000'000'000);
     CHECK(config.minimum_frequency_nhz == 100'000'000'000'000ULL);
     CHECK(config.maximum_frequency_nhz == (rf::sample_rate / 2 - 1) * 1'000'000'000ULL);
     CHECK(config.maximum_arm_uncertainty_ns == 500'000'000);
@@ -85,11 +85,11 @@ void limits() {
     bad.mode = "cw";
     CHECK(f.request("LOAD", bad).error == wtp::ErrorCode::UnsupportedMode);
     bad.mode = "tone";
-    bad.events.assign(163, {0, 1, false, {}});
+    bad.events.assign(513, {0, 1, false, {}});
     CHECK(f.request("LOAD", bad).error == wtp::ErrorCode::JobLimitExceeded);
     bad = good;
     bad.job_id = std::string(32, 'd');
-    bad.total_duration_ns = bad.events[0].duration_ns = 110'592'000'001;
+    bad.total_duration_ns = bad.events[0].duration_ns = 3'600'000'000'001;
     CHECK(f.request("LOAD", bad).error == wtp::ErrorCode::JobLimitExceeded);
     bad = good;
     bad.job_id = std::string(32, 'd');

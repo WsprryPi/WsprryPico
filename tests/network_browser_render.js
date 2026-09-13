@@ -17,7 +17,7 @@ const server = http.createServer((req,res) => {
     res.setHeader('Content-Type','application/json'); res.setHeader('ETag','"one"');
     if (offline) {res.writeHead(503);res.end('{"error":{"code":"capacity"}}');return;}
     res.end(JSON.stringify(req.url.endsWith('status') ? state : req.url.endsWith('config') ? {config} :
-      {features:{restart:true},active_job_connections:true,wtp:{maximum_arm_uncertainty_ns:'1000000'}}));return;
+      {features:{restart:true},message_jobs:{max_characters:32},active_job_connections:true,wtp:{maximum_arm_uncertainty_ns:'1000000',max_job_duration_ns:'3600000000000',max_events:512}}));return;
   }
   const name = {'/':'index.html','/style.css':'style.css','/app.js':'app.js'}[req.url];
   if (!name) {res.writeHead(404);res.end();return;}
@@ -50,6 +50,17 @@ async function until(fn) {for(let i=0;i<200;i++){if(await fn())return;await new 
     await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:name==='mobile'});
     await send('Page.navigate',{url:'http://127.0.0.1:'+server.address().port+'/'});
     await until(()=>evaluate('typeof online !== "undefined" && online && !busy'));
+    await evaluate('document.getElementById("message-text").value="?".repeat(32); document.getElementById("message-frequency").value="135500"; document.getElementById("message-mode").value="fskcw"; messagePreview()');
+    assert.match(await evaluate('document.getElementById("message-preview").textContent'),/28 min 39\.000001 s.*384 \/ 512 events.*32 \/ 32 characters/);
+    assert.equal(await evaluate('document.getElementById("message-settings").disabled'),false);
+    assert.equal(await evaluate('document.documentElement.scrollWidth <= innerWidth'),true);
+    let messageShot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});
+    fs.writeFileSync(path.join(output,name+'-message-32.png'),Buffer.from(messageShot.data,'base64'));
+    await evaluate('document.getElementById("message-text").value="?".repeat(33); messagePreview()');
+    assert.equal(await evaluate('document.getElementById("message-text").value.length'),33);
+    assert.match(await evaluate('document.getElementById("message-preview").textContent'),/1–32 characters/);
+    messageShot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});
+    fs.writeFileSync(path.join(output,name+'-message-33.png'),Buffer.from(messageShot.data,'base64'));
     state.standalone.reboot_required=true;
     await evaluate('document.getElementById("refresh").click()');await until(()=>evaluate('!busy'));
     assert.equal(await evaluate('document.getElementById("restart").disabled'),false);

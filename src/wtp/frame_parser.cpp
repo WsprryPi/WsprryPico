@@ -21,11 +21,11 @@ std::uint32_t read_u32_be(const std::uint8_t* bytes) {
            (static_cast<std::uint32_t>(bytes[2]) << 8U) | static_cast<std::uint32_t>(bytes[3]);
 }
 
-void append_u32_be(std::vector<std::uint8_t>& output, std::uint32_t value) {
-    output.push_back(static_cast<std::uint8_t>(value >> 24U));
-    output.push_back(static_cast<std::uint8_t>(value >> 16U));
-    output.push_back(static_cast<std::uint8_t>(value >> 8U));
-    output.push_back(static_cast<std::uint8_t>(value));
+void write_u32_be(std::uint8_t* output, std::uint32_t value) {
+    output[0] = static_cast<std::uint8_t>(value >> 24U);
+    output[1] = static_cast<std::uint8_t>(value >> 16U);
+    output[2] = static_cast<std::uint8_t>(value >> 8U);
+    output[3] = static_cast<std::uint8_t>(value);
 }
 
 } // namespace
@@ -41,19 +41,24 @@ std::uint32_t crc32c(std::span<const std::uint8_t> bytes) {
     return crc ^ 0xffffffffU;
 }
 
+std::array<std::uint8_t, kFrameHeaderBytes>
+encode_frame_header(std::span<const std::uint8_t> payload) {
+    if (payload.empty() || payload.size() > kMaximumPayloadBytes)
+        return {};
+    std::array<std::uint8_t, kFrameHeaderBytes> header{'W', 'T', 'P', 'F', 1, 1, 0, 0};
+    write_u32_be(header.data() + 8, static_cast<std::uint32_t>(payload.size()));
+    write_u32_be(header.data() + 12, crc32c(payload));
+    return header;
+}
+
 std::vector<std::uint8_t> encode_frame(std::span<const std::uint8_t> payload) {
     if (payload.empty() || payload.size() > kMaximumPayloadBytes) {
         return {};
     }
     std::vector<std::uint8_t> frame;
     frame.reserve(kFrameHeaderBytes + payload.size());
-    frame.insert(frame.end(), kMagic.begin(), kMagic.end());
-    frame.push_back(1);
-    frame.push_back(1);
-    frame.push_back(0);
-    frame.push_back(0);
-    append_u32_be(frame, static_cast<std::uint32_t>(payload.size()));
-    append_u32_be(frame, crc32c(payload));
+    const auto header = encode_frame_header(payload);
+    frame.insert(frame.end(), header.begin(), header.end());
     frame.insert(frame.end(), payload.begin(), payload.end());
     return frame;
 }
@@ -80,20 +85,19 @@ std::vector<FrameEvent> FrameParser::feed(std::span<const std::uint8_t> bytes,
                     kFrameHeaderBytes + static_cast<std::size_t>(read_u32_be(buffer_.data() + 8));
                 capacity = std::max(buffer_.size() + count, frame_size);
             }
-            if (!memory_admitted(capacity)) {
+            if (!memory_admitted(capacity) || !buffer_.reserve(capacity)) {
                 close(events);
                 break;
             }
-            buffer_.reserve(capacity);
         }
-        buffer_.insert(buffer_.end(), bytes.begin() + static_cast<std::ptrdiff_t>(offset),
-                       bytes.begin() + static_cast<std::ptrdiff_t>(offset + count));
+        buffer_.append(bytes.subspan(offset, count));
         last_progress_ms_ = now_ms;
         process(events);
     }
     if (bytes.empty()) {
         auto timeout_events = check_timeout(now_ms);
-        events.insert(events.end(), timeout_events.begin(), timeout_events.end());
+        events.insert(events.end(), std::make_move_iterator(timeout_events.begin()),
+                      std::make_move_iterator(timeout_events.end()));
     }
     return events;
 }
@@ -108,7 +112,7 @@ std::vector<FrameEvent> FrameParser::check_timeout(std::uint64_t now_ms) {
 }
 
 void FrameParser::end_of_stream() {
-    buffer_.clear();
+    buffer_ = {};
     partial_ = false;
     closed_ = true;
 }
@@ -153,21 +157,25 @@ void FrameParser::process(std::vector<FrameEvent>& events) {
         if (crc32c(payload) != expected_crc) {
             invalid_frame(events);
             if (!closed_) {
-                buffer_.erase(buffer_.begin(),
-                              buffer_.begin() + static_cast<std::ptrdiff_t>(frame_size));
+                buffer_.discard(frame_size);
             }
             continue;
         }
         if (buffer_.size() == frame_size) {
             // Endpoint feeds single bytes, so the complete frame can transfer
             // storage to dispatch without a second maximum-sized allocation.
-            buffer_.erase(buffer_.begin(), buffer_.begin() + kFrameHeaderBytes);
+            buffer_.discard(kFrameHeaderBytes);
             events.push_back({FrameEventKind::Payload, std::move(buffer_)});
             buffer_ = {};
         } else {
-            events.push_back({FrameEventKind::Payload, {payload.begin(), payload.end()}});
-            buffer_.erase(buffer_.begin(),
-                          buffer_.begin() + static_cast<std::ptrdiff_t>(frame_size));
+            InputBuffer delivered;
+            if (!memory_admitted(length) || !delivered.reserve(length)) {
+                close(events);
+                return;
+            }
+            delivered.append(payload);
+            events.push_back({FrameEventKind::Payload, std::move(delivered)});
+            buffer_.discard(frame_size);
         }
         consecutive_invalid_frames_ = 0;
         resync_discard_bytes_ = 0;
@@ -179,7 +187,7 @@ void FrameParser::discard_prefix(std::size_t count, std::vector<FrameEvent>& eve
     if (count == 0) {
         return;
     }
-    buffer_.erase(buffer_.begin(), buffer_.begin() + static_cast<std::ptrdiff_t>(count));
+    buffer_.discard(count);
     if (count >
         kMaximumResyncDiscardBytes - std::min(resync_discard_bytes_, kMaximumResyncDiscardBytes)) {
         resync_discard_bytes_ = kMaximumResyncDiscardBytes;
@@ -202,7 +210,7 @@ void FrameParser::invalid_frame(std::vector<FrameEvent>& events) {
 void FrameParser::close(std::vector<FrameEvent>& events) {
     if (!closed_) {
         closed_ = true;
-        buffer_.clear();
+        buffer_ = {};
         partial_ = false;
         events.push_back({FrameEventKind::Closed, {}});
     }

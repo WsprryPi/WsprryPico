@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <vector>
 
 namespace wsprrypico::rf {
 
@@ -19,8 +20,8 @@ inline constexpr std::uint64_t base_nhz = 3'570'100'000'000'000;
 inline constexpr std::uint64_t minimum_frequency_nhz = 100'000ULL * 1'000'000'000;
 inline constexpr std::uint64_t maximum_frequency_nhz = (sample_rate / 2 - 1) * 1'000'000'000;
 inline constexpr std::uint64_t spacing_nhz = 1'464'843'750;
-inline constexpr std::size_t max_events = 162;
-inline constexpr std::uint64_t max_duration_ns = 110'592'000'000;
+inline constexpr std::size_t max_events = 512;
+inline constexpr std::uint64_t max_duration_ns = 3'600'000'000'000;
 inline constexpr std::size_t block_words = 16'384;
 inline constexpr std::uint64_t block_samples = block_words * 32;
 inline constexpr auto increments = [] {
@@ -66,7 +67,7 @@ constexpr std::uint32_t corrected_increment(unsigned tone, std::int32_t ppb) {
 
 struct Plan {
     std::array<std::uint32_t, 4> tone_increments = increments;
-    std::array<Segment, max_events> segments{};
+    std::vector<Segment> segments; // Reserved during prepare; immutable during RF.
     std::size_t count = 0;
     std::uint64_t total_samples = 0;
 };

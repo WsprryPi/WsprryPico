@@ -10,6 +10,8 @@ typedef struct {
     uint64_t entries;
     uint64_t failures;
     uint64_t sample_time_us;
+    uint64_t input_trim_attempts;
+    uint64_t input_trim_releases;
     uint32_t live_bytes;
     uint32_t peak_bytes;
     uint32_t largest_request_bytes;
@@ -28,6 +30,9 @@ void wsprry_heap_panic_attempt(uint32_t record[2]);
 // entry. Only callers which already handle NULL may use this bypass of the
 // SDK's panic-on-null wrapper. Free through the ordinary allocator.
 void* wsprry_heap_try_calloc(size_t count, size_t size);
+// Checked transport input allocation. Return unused top pages before large
+// requests: pinned newlib otherwise asks sbrk for the entire rounded request.
+void* wsprry_heap_try_input(size_t bytes);
 // One allocation/free, never a retained block. Caller must establish idle
 // authority and enforce the requested byte limit before entering.
 bool wsprry_heap_probe(size_t bytes);

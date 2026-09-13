@@ -16,6 +16,16 @@
 <button type="submit" class="primary">Save settings</button></fieldset></form>
 <button id="restart" type="button" disabled>Restart device</button>
 <button id="wifi-off" type="button" disabled>Disconnect Wi-Fi</button><p class="muted">Disconnecting closes this page’s connection. Re-enable Wi-Fi through USB Console or restart the device. SoftAP and BLE setup are planned.</p></section>
-<section aria-labelledby="job-heading"><h2 id="job-heading">Complete job</h2><p>Load a complete rf-events/1 job file, then choose a UTC start. The device owns all event timing.</p>
+<section aria-labelledby="job-heading"><h2 id="job-heading">Send a message</h2><p>QRSS, FSKCW or DFCW · Up to 32 characters and 60 minutes, including repeats and gaps.</p>
+<form id="message-form"><fieldset id="message-settings" disabled>
+<label>Message<input id="message-text" autocomplete="off" required aria-describedby="message-help"><small id="message-help">Letters, numbers, spaces and / ? . , - + =. Spaces count toward the 32-character limit.</small></label>
+<div class="fields"><label>Mode<select id="message-mode"><option value="qrss">QRSS</option><option value="fskcw">FSKCW</option><option value="dfcw">DFCW</option></select></label>
+<label>Mark / dot frequency (Hz)<input id="message-frequency" inputmode="decimal" required></label><label>Frequency shift (Hz)<input id="message-shift" inputmode="decimal" value="5"><small>Space / dash frequency is this much lower. Unused in QRSS.</small></label>
+<label>Dot length (seconds)<input id="message-dot" inputmode="decimal" value="3" required></label><label>Repeat count<input id="message-repeats" type="number" min="1" max="512" value="1" required></label><label>Gap between repeats (seconds)<input id="message-gap" inputmode="decimal" value="3" required></label></div>
+<details><summary>Timing settings</summary><p>Gap values are multiples of the dot length. DFCW uses one dot length for every mark.</p><div class="fields"><label>Dash length<input id="message-dash" inputmode="decimal" value="3" required></label><label>Within a character<input id="message-intra" inputmode="decimal" value="1" required></label><label>Between characters<input id="message-character" inputmode="decimal" value="3" required></label><label>Between words<input id="message-word" inputmode="decimal" value="7" required></label></div></details>
+<p id="message-preview" role="status" aria-live="polite">Enter a message and frequency to calculate its duration.</p>
+<label>Start time (UTC)<input id="message-start" type="datetime-local" step="1" required></label><button type="submit" class="primary">Load and arm message</button>
+</fieldset></form>
+<details><summary>Load a job file</summary><p>Choose a complete rf-events/1 JSON file of at most 30,000 bytes. The device owns all event timing.</p>
 <form id="job"><fieldset id="job-settings" disabled><label>Job JSON file<input id="job-file" type="file" accept=".json,application/json" required></label><label>Start time (UTC)<input id="start" type="datetime-local" step="1" required></label><button type="submit" class="primary">Load and arm job</button></fieldset></form>
-<p id="job-result" role="status"></p></section></main><footer>WsprryPico · Browser API v1 · Pico 2 W</footer></body></html>
+</details><p id="job-result" role="status"></p><p id="job-progress" role="status"></p></section></main><footer>WsprryPico · Browser API v1 · Pico 2 W</footer></body></html>
