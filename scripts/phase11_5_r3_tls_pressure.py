@@ -100,7 +100,10 @@ class Pressure:
         snapshots = []
         for kind, budget in (('info', 2_000_000_000), ('status', 6_000_000_000)):
             item = json.loads((self.root / f'observer-{kind}.json').read_text())
-            admit_snapshot(item, time.monotonic_ns(), budget, self.sha)
+            pending_path = self.root / ('observer-' + ('console_tx' if kind == 'info' else 'wtp_tx') + '.json')
+            pending = json.loads(pending_path.read_text()) if pending_path.exists() else None
+            admit_snapshot(item, time.monotonic_ns(), budget, self.sha, pending,
+                           'INFO' if kind == 'info' else 'STATUS')
             identity = (item['pid'], item['pid_start_ticks'])
             if self.observer is None:
                 self.observer = identity

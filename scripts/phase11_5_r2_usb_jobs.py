@@ -14,7 +14,13 @@ class USBJobs:
 
     def info(self):
         value=json.loads((self.root/'observer-info.json').read_text())
-        require(time.monotonic_ns()-value['monotonic_ns']<=2_000_000_000,'USB actor INFO freshness')
+        if self.packet.get('schema') == 'phase11.5-r3-tls-a1-v1':
+            from phase11_5_device_management import digest
+            pending=self.root/'observer-console_tx.json'
+            admit_snapshot(value,time.monotonic_ns(),2_000_000_000,digest(self.root/'jobs.json'),
+                           json.loads(pending.read_text()) if pending.exists() else None,'INFO')
+        else:
+            require(time.monotonic_ns()-value['monotonic_ns']<=2_000_000_000,'USB actor INFO freshness')
         return value['value']['value']
 
     def observe(self,status):
@@ -63,6 +69,17 @@ class USBJobs:
                     'USB finite lifecycle')
             if status['state']=='complete':
                 require(not status['output_active'],'USB completed output active')
+                if self.packet.get('schema') == 'phase11.5-r3-tls-a1-v1':
+                    info=self.info()
+                    if not (info['status']['state']=='complete' and
+                            int(info['launch_epoch'])>self.baseline_epoch):
+                        # Do not turn a legitimate in-flight INFO into a 1.5 s
+                        # timeout or block the sole STATUS observer. Keep owned
+                        # Complete and revisit on the next scheduled sample.
+                        return
+                    self.peer.request('RELEASE')
+                    self.phase='released'
+                    return
                 limit=time.monotonic()+1.5
                 while True:
                     info=self.info()

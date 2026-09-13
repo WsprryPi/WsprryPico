@@ -81,6 +81,14 @@ def validate_event(value,boot,packet):
                 (body['state']=='running' or body['output_active'] is False),'Unexpected job event')
 
 
+def publish_sample(name, began, read, emit, after_sample=None):
+    """Publish the authoritative read before an optional actor changes state."""
+    value = read()
+    emit(name, dict(began_monotonic_ns=int(began * 1e9), value=value))
+    if after_sample is not None:
+        after_sample(value)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--packet', type=Path, required=True)
@@ -134,7 +142,7 @@ def main():
         signal.signal(signal.SIGTERM, interrupted)
         signal.signal(signal.SIGINT, interrupted)
 
-        def periodic(name, interval, read):
+        def periodic(name, interval, read, after_sample=None):
             count = 0
             next_at = time.monotonic()
             last = None
@@ -142,8 +150,7 @@ def main():
                 began = time.monotonic()
                 require(began - next_at <= 1, name + ' sampling fell behind')
                 require(last is None or began - last <= interval + 1, name + ' gap')
-                value = read()
-                emit(name, dict(began_monotonic_ns=int(began * 1e9), value=value))
+                publish_sample(name, began, read, emit, after_sample)
                 last = began; count += 1; next_at += interval
                 stop.wait(max(0, min(next_at, end) - time.monotonic()))
             emit(name + '_finish', dict(samples=count, completed=not stop.is_set()))
@@ -176,7 +183,10 @@ def main():
                         # Preserve the sampled STATUS before any following mutation.
                         actor.observe(value)
                         return value
-                    periodic('status',5,read_and_act)
+                    if packet['schema']=='phase11.5-r3-tls-a1-v1':
+                        periodic('status',5,read,actor.observe)
+                    else:
+                        periodic('status',5,read_and_act)
                     require(actor.complete,'Remaining USB jobs did not finish')
                 else:
                     periodic('status', 5, read)

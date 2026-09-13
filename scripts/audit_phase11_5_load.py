@@ -144,13 +144,17 @@ def normal_response(path, body, boot, idle=True):
 def audit(root, observer_decoder, rf_packet=None, *, cadence_policy='strict-start-gap-v1'):
     require(cadence_policy in ('strict-start-gap-v1','single-flight-admin-v1'), 'Unknown cadence policy')
     if cadence_policy == 'single-flight-admin-v1':
-        require(rf_packet is not None and rf_packet.get('schema') == 'phase11.5-r2-modes-v1' and
-                rf_packet.get('submission_path') == 'usb', 'Administrative amendment is scoped to R2 USB contention')
+        require(rf_packet is not None and rf_packet.get('schema') in
+                ('phase11.5-r2-modes-v1', 'phase11.5-r3-tls-a1-v1') and
+                rf_packet.get('submission_path') == 'usb', 'Administrative amendment is scoped to R2 USB or R3 A1 USB contention')
     spec=importlib.util.spec_from_file_location('phase115_observer_decoder',observer_decoder)
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     plan=json.loads((root/'load.json').read_text())
     result=json.loads((root/'result.json').read_text())
-    require(result==dict(result='CAPTURED_REQUIRES_AUDIT',observer_exit=0,load_exit=0),
+    r3 = rf_packet is not None and rf_packet.get('schema') == 'phase11.5-r3-tls-a1-v1'
+    expected_result = (dict(status='CAPTURED_REQUIRES_AUDIT',observer_exit=0,load_exit=0,pressure_exit=0)
+                       if r3 else dict(result='CAPTURED_REQUIRES_AUDIT',observer_exit=0,load_exit=0))
+    require(result==expected_result,
             'Coordinator did not complete cleanly')
     text=(root/'load-events.jsonl').read_text();require(text.endswith('\n'),'Truncated load events')
     events=[json.loads(line) for line in text.splitlines()]
@@ -173,7 +177,7 @@ def audit(root, observer_decoder, rf_packet=None, *, cadence_policy='strict-star
     production_modes=rf_packet is not None and rf_packet.get('schema')=='phase11.5-r2-modes-v1' and rf_packet['submission_path']=='production'
     exchanges=[];mode_events=[]
     sessions=set();buffers={};pending={};responses=[];status_requests=[];connections=set();op_counts={}
-    write_started={};write_times={};buffer_stamps={};event_id=-1
+    write_started={};write_times={};buffer_stamps={};event_id=None
     for row in rows:
         kind,cid=row['kind'],row['connection_id']
         if kind==7:
@@ -204,7 +208,8 @@ def audit(root, observer_decoder, rf_packet=None, *, cadence_policy='strict-star
                 if message['type']=='event' and rf_packet is not None:
                     from phase11_5_rf_observer import validate_event
                     validate_event(message,plan['boot_id'],rf_packet)
-                    require(int(message['event_id'])==event_id+1,'Production RF event gap')
+                    # Event IDs are boot-scoped, not reset by a new connection.
+                    require(event_id is None or int(message['event_id'])==event_id+1,'Production RF event gap')
                     event_id=int(message['event_id']);mode_events.append(message);continue
                 require(message['type']=='response' and message['ok'] is True,'Unexpected response/event/error')
                 request,stamp=pending.pop((message['session_id'],message['request_id']))

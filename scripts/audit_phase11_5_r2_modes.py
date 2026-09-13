@@ -99,12 +99,14 @@ def timing(packet, arms, rows):
     return result
 
 
-def audit(root,decoder,*,cadence_policy='strict-start-gap-v1',packet_validator=validate):
+def audit(root,decoder,*,cadence_policy='strict-start-gap-v1',packet_validator=validate,baseline_path=None):
     packet=json.loads((root/'jobs.json').read_text());packet_validator(packet)
     first=json.loads((root/'usb-health.jsonl').read_text().splitlines()[0])
     require(first['kind']=='start' and first['value']['packet_sha256']==hashlib.sha256((root/'jobs.json').read_bytes()).hexdigest(),
             'Mode packet is not the observer-frozen packet')
-    usb=audit_usb(root/'usb-health.jsonl',Path(packet['baseline']),packet)
+    # Collected evidence may live away from the execution host. audit_usb
+    # still verifies the baseline's frozen content hash before using it.
+    usb=audit_usb(root/'usb-health.jsonl',Path(packet['baseline']) if baseline_path is None else baseline_path,packet)
     load=audit_load(root,decoder,packet,cadence_policy=cadence_policy)
     rows=[json.loads(s) for s in (root/'usb-health.jsonl').read_text().splitlines()]
     if packet['submission_path']=='usb':

@@ -1,0 +1,184 @@
+{
+  "schema": "phase11.5-r3-completion-progress-v1",
+  "status": "OPEN_AWAITING_PROSPECTIVE_OBSERVATION_POLICY_AGREEMENT",
+  "family_closed": false,
+  "accepted_assertions": 0,
+  "phase11_5_closed_families": 2,
+  "phase11_5_total_families": 6,
+  "accepted_configurations": [],
+  "source_revision": "2e43110f05304efdc2ae25c298baa0ef6426955b",
+  "system_clock_hz": 138000000,
+  "configuration_writes_this_effort": 0,
+  "flashes_this_effort": 0,
+  "heap_probes_this_effort": 0,
+  "cumulative_configuration_writes": 37,
+  "cumulative_heap_probes": 6,
+  "wifi_off_this_effort": 1,
+  "wifi_on_this_effort": 1,
+  "completed_jobs_this_effort": 3,
+  "completed_rf_seconds_this_effort": 300,
+  "attempts": {
+    "A1": {
+      "packet_sha256": "cab1abf2afffa27d79992b1d84bf393a2f1059ad3a4615829407485d695ca7a4",
+      "execution": "STOPPED_BEFORE_RF",
+      "acceptance": "PRESSURE_NOT_EXERCISED",
+      "fault_domain": "ASSISTANT_HARNESS",
+      "completed_rf_jobs": 0
+    },
+    "A1b": {
+      "packet_sha256": "590da5a47dc37c1d4c8addea4713ca0cfcb25872a3daaff46a4c9abb9702b218",
+      "execution": "PARTIAL_RF_COMPLETED",
+      "acceptance": "PRESSURE_UNVERIFIED_OBSERVATION_INCOMPLETE",
+      "fault_domain": "ASSISTANT_HARNESS",
+      "completed_rf_jobs": 1
+    },
+    "A1c": {
+      "packet_sha256": "3167ff5d4c9e58b908ed0d5fcb64a278454a236857f5442ec0662e1e66fc5156",
+      "execution": "BLOCKED_BEFORE_RF",
+      "acceptance": "PRESSURE_NOT_EXERCISED",
+      "fault_domain": "UNLOCALIZED_NETWORK_PREREQUISITE",
+      "completed_rf_jobs": 0
+    },
+    "A1d": {
+      "packet_sha256": null,
+      "execution": "NOT_STARTED",
+      "acceptance": "NOT_RUN",
+      "fault_domain": "AUTHORIZATION",
+      "completed_rf_jobs": 0
+    },
+    "A1e": {
+      "packet_sha256": "27cd914815b8af8933fb134b44a923add1f09c8748afd0082115e4b1f202a518",
+      "execution": "PARTIAL_RF_COMPLETED",
+      "acceptance": "PRESSURE_INCOMPLETE",
+      "fault_domain": "ASSISTANT_HARNESS",
+      "completed_rf_jobs": 1
+    },
+    "A1f": {
+      "packet_sha256": "cc557f977c655ac974c60c8343f1e8ba52dbd40b7837fdac9eb8561a63910236",
+      "execution": "RF_AND_TRAFFIC_COMPLETED_AUDIT_FAILED",
+      "acceptance": "FROZEN_OBSERVATION_GATE_FAILED",
+      "fault_domain": "ASSISTANT_HARNESS_AND_OBSERVATION_GATE",
+      "completed_rf_jobs": 2
+    }
+  },
+  "final_status": {
+    "boot_id": "9c5aec394269e0b57ca16d73ad3d12b6",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": [
+      {
+        "job_id": "04973b6fde7ea85c37075ffe60dacead",
+        "state": "complete",
+        "ended_monotonic_ns": "5461175002000",
+        "output_active": false
+      },
+      {
+        "job_id": "7f0198663d01009631fb2c4f16c1249c",
+        "state": "complete",
+        "ended_monotonic_ns": "5331168388000",
+        "output_active": false
+      },
+      {
+        "job_id": "d27689688f2f3e519a3836b775b3092b",
+        "state": "complete",
+        "ended_monotonic_ns": "4525231417000",
+        "output_active": false
+      }
+    ]
+  },
+  "host_restored": true,
+  "b_unchanged": true,
+  "test_configuration_retained": true,
+  "a1e_causal_timing": {
+    "pressure_failure_ns": 206694063600406,
+    "load_failure_ns": 206694189757690,
+    "previous_info_age_ns": 2045480670,
+    "inflight_elapsed_at_failure_ns": 1338980126,
+    "replacement_info_roundtrip_ns": 1739071744,
+    "max_info_start_gap_ns": 1752339449
+  },
+  "a1f_observation_misses": [
+    {
+      "case": "recover-slots",
+      "sample": "info",
+      "preceding_age_ns": 606507137,
+      "following_lag_ns": 2262550925,
+      "frozen_limit_ns": 2000000000,
+      "following_request_offset_ns": 656231927,
+      "following_roundtrip_ns": 1606318998
+    }
+  ],
+  "proposed_next_packet": {
+    "status": "PREPARED_NOT_EXECUTED",
+    "packet_sha256": "e512fac77302ee21f6fe7f9536d5c3215dcd997565770684906d4409cbdb0ed4",
+    "archive_sha256": "23ba61adddb5f6fe39fcef4ced0a168855b1747e96b455fc0488b41d56009468",
+    "archive_bytes": 706560,
+    "stage_helper_sha256": "788fb4c6595506916763229e900b6c9ccb0f7f941b0192eb282e1b2ad4e6830f",
+    "archived_files": 64,
+    "private_copies": 9,
+    "remote_root": "/home/pi/phase11-5-r3-retained-a1g-20260912",
+    "jobs": [
+      {
+        "profile": "rf-events/1",
+        "mode": "tone",
+        "events": [
+          {
+            "offset_ns": "0",
+            "duration_ns": "100000000000",
+            "rf_on": true,
+            "frequency_nhz": "135500000000000"
+          }
+        ],
+        "total_duration_ns": "100000000000",
+        "allow_frequency_adjustment": true,
+        "job_id": "ac093064beb6a416e510d30f674d0aa6"
+      },
+      {
+        "profile": "rf-events/1",
+        "mode": "tone",
+        "events": [
+          {
+            "offset_ns": "0",
+            "duration_ns": "100000000000",
+            "rf_on": true,
+            "frequency_nhz": "135500000000000"
+          }
+        ],
+        "total_duration_ns": "100000000000",
+        "allow_frequency_adjustment": true,
+        "job_id": "adf8d7cc233060c87a409a7ff06082f7"
+      }
+    ]
+  },
+  "proposed_policy": "request-cadence-and-roundtrip-v1",
+  "proposed_policy_approved": false,
+  "proposed_packet_staged": false,
+  "proposed_packet_executed": false,
+  "validation": {
+    "discovered": 198,
+    "passed": 196,
+    "skipped": 2,
+    "private_r3_attempts_supplied": 5,
+    "firmware_tests_rerun": false,
+    "pi_runtime_tests_rerun": false
+  },
+  "remaining_register": [
+    "TLS-VALID",
+    "TLS-FAIL",
+    "TLS-SLOW",
+    "SLOT",
+    "HTTP-PARTIAL",
+    "PROGRESS",
+    "JOB-MAX",
+    "WTP-MAX",
+    "HTTP-MAX",
+    "BROWSER-MAX",
+    "COMBINED",
+    "USB",
+    "RETAINED",
+    "RECLAIM"
+  ],
+  "limitation": "Component checks and diagnostic-only alternate-policy evaluations do not close R3 or replace frozen failed assessments."
+}

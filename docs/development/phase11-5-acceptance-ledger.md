@@ -48,6 +48,20 @@ and unchanged B. The [result](phase11-5-r3-tls-a1b-result.json) preserves the fa
 attempt and the separate final-retention evidence. Future packets must reconcile
 this state rather than reusing a spent packet or assuming original restoration.
 
+The subsequent [A1c/A1e/A1f execution review](phase11-5-r3-completion-review.md)
+retains zero acceptance. A1c failed network readiness before RF. A1d was staged
+but never launched; automatic approval review required explicit permission for
+its added Wi-Fi cycle. The user then approved A1e: one OFF/ON restored readiness,
+and one Tone completed before a confirmed harness freshness failure. A1f used
+no further cycle and completed two Tones and all ten traffic cases, but its frozen
+audit failed on harness integration errors and a separate INFO completion-bracket
+miss. Component evidence is retained without promoting it to acceptance.
+Final A was Empty/inactive/unowned, B unchanged and host restored. The retained
+test configuration remains in place; CONFIG saves remain 37 and probes six.
+The [A1g proposal](phase11-5-r3-retained-a1g-execution.md) is prepared locally,
+unexecuted, and requires agreement on its explicit prospective observation rule.
+R3 remains OPEN with zero accepted complete pressure assertions.
+
 ## Evidence that already exists
 
 | Evidence | Exact scope | Reuse boundary |
@@ -81,7 +95,7 @@ Historical 049cc929 image hashes and all four layouts are in
 | --- | --- | --- | --- |
 | R1 | CLOSED — 5/5 applicable to 2e43110 through impact review | Earlier 049cc929 layouts/intervals/probes plus affected new-image layout, heap and stack checks; [review](phase11-5-r2-continuation-review.md) | Reuse unaffected assertions; invalidate demonstrated impacts of future changes |
 | R2 | CLOSED — 7/7 jobs | Three browser Tones, native production QRSS and USB FSKCW/DFCW/WSPR; [result](phase11-5-r2-closure-result.json) | Repeat affected paths only if later changes invalidate this evidence |
-| R3 | NOT RUN | Existing functional tests and prior inhibited results | Distinct physical resource-boundary and reclamation assertions |
+| R3 | OPEN — attempted, zero accepted assertions | Preserved A1/A1b tooling failures and A1c pre-RF rejoin failure | Approved bounded rejoin recovery, corrected TLS/slot execution, remaining boundary and reclamation assertions |
 | R4 | NOT RUN | Existing ownership/replay/recovery semantics | Current-image physical authority, owner abort and interrupted-operation checks |
 | R5 | NOT RUN | Prior network/storage/standalone evidence | Targeted physical lifecycle, journal rotation and autonomous scheduling under contention |
 | R6 | NOT RUN | Prior inhibited soak is contextual only | Mixed physical workload after mandatory R1-R5 gates pass |

@@ -3,12 +3,34 @@ import copy
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import Mock
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 from phase11_5_device_management_tests import baseline
-from phase11_5_rf_observer import validate_info,validate_status,validate_event
+from phase11_5_rf_observer import validate_info,validate_status,validate_event,publish_sample
 
 
 class RFObserverTests(unittest.TestCase):
+    def test_status_is_published_before_mutation_even_if_actor_fails(self):
+        state=dict(state='complete',output_active=False)
+        captured=[]
+        def actor(value):
+            self.assertEqual(captured,[dict(began_monotonic_ns=1000000000,value=state)])
+            state['state']='empty'
+            raise ValueError('RELEASE response lost')
+        with self.assertRaisesRegex(ValueError,'RELEASE response lost'):
+            publish_sample('status',1,lambda:state,lambda name,value:captured.append(copy.deepcopy(value)),actor)
+        self.assertEqual(captured[0]['value']['state'],'complete')
+        self.assertEqual(state['state'],'empty')
+
+    def test_failed_read_or_publication_cannot_trigger_a_mutation(self):
+        actor=Mock();emit=Mock()
+        with self.assertRaises(ValueError):
+            publish_sample('status',1,Mock(side_effect=ValueError('read failed')),emit,actor)
+        emit.assert_not_called();actor.assert_not_called()
+        with self.assertRaises(ValueError):
+            publish_sample('status',1,lambda:{},Mock(side_effect=ValueError('log failed')),actor)
+        actor.assert_not_called()
+
     def test_foreign_job_and_fault_events_are_rejected(self):
         packet=dict(owner_id='b'*32,jobs=[dict(job_id='c'*32)])
         value=dict(boot_id='a'*32,event='JOB_STATE',body=dict(job_id='c'*32,state='complete',output_active=False))

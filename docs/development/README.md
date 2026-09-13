@@ -6,14 +6,17 @@ The selected candidate is 2e43110 at physical 138 MHz/divider 1/RAM/listener on.
 At R2 closure devices and host were restored with CONFIG 34/34. R3–R6 remain open and
 full accepted configurations remain empty. Original failed assessments are retained.
 
-Current: [A1b failed at its first HTTP check](phase11-5-r3-tls-a1b-failure-review.md).
-One 100-second Tone completed; the second job never ran. A is authoritatively
-inactive/unowned with the completed job retained. The user chose to **keep the
-test configuration** between runs; its restoration timer is stopped, and the
-physical 2e43110 image remains present. B is unchanged and the host is restored.
-The parser, response logging and failed-load terminal observation are repaired
-locally. No R3 physical acceptance is claimed. Future packets must reconcile the
-retained job and use the test configuration as their baseline.
+Current: [R3 execution and adversarial review](phase11-5-r3-completion-review.md).
+The user-approved A1e Wi-Fi recovery ran, then a harness freshness bug stopped
+pressure after one completed Tone. A1f completed two Tones and all traffic, but
+its frozen audit failed; three audit integration defects and a separate INFO
+completion-bracket miss were reconstructed. A was last verified Empty/inactive/
+unowned, B unchanged and the host restored; the test configuration stays in place.
+No R3 acceptance is awarded. The [A1g proposal](phase11-5-r3-retained-a1g-execution.md)
+is prepared locally and awaits agreement on a prospective observation criterion.
+The [comprehensive prompt](phase11-5-r3-completion-prompt.md) remains unfinished.
+[Failure triage](phase11-5-failure-triage.md) separates confirmed harness defects,
+observation misses, unresolved prerequisites and administrative approval history.
 
 The defined hardware target is Pico 2 W / RP2350. The repository contains a
 portable WTP/1 core, deterministic host tests and an RF-inhibited firmware

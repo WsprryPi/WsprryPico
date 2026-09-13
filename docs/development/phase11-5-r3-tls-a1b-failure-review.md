@@ -130,10 +130,10 @@ replay the consumed A1b packet or assume the old original-restoration helpers fi
 the user's new baseline choice. Longer QRSS support remains unresolved.
 
 Updated the Pico plan, current ledger/index, this report/result and historical A1b
-status notices. The Pi companion update is prepared as
-`build/phase11-5-r3-tls-a1b/pi-companion-report.patch` but remains unapplied:
-automatic approval review rejected the cross-repository edit, including after
-the attached handoff's authorization was cited. Direct confirmation is now
-needed for that companion edit and publication. Protocol contracts, firmware, installed
+status notices. The Pi companion update was subsequently explicitly approved, applied, committed
+and pushed to `origin/devel` as `2350eb402cd91dff1296371e60ff7162e07a35d1`.
+The earlier approval rejection is resolved. See the newer
+[R3 execution report](phase11-5-r3-completion-review.md) for retained-baseline
+cleanup and the current recovery approval boundary. Protocol contracts, firmware, installed
 Pi application, UI and separate operator manuals are unchanged. Operator limits
 still require accepted measurements; the user excluded `Wsprry_Pi_Docs`.

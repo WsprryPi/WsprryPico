@@ -57,7 +57,7 @@ def audit(path, baseline_path, rf_packet=None, *, expected_prejob_failure=False)
     modes=rf_packet is not None and rf_packet.get('schema')=='phase11.5-r2-modes-v1'
     usb_actor=rf_packet is not None and rf_packet.get('schema') in ('phase11.5-r2-modes-v1','phase11.5-r3-tls-a1-v1') and rf_packet['submission_path']=='usb'
     wire=b'';console=b'';console_pending=False;console_value=None;messages=[];requests={};samples={}
-    latest_status=None;event_id=-1;seen_request_ids=set()
+    latest_status=None;event_id=None;seen_request_ids=set()
     for row in rows:
         kind,value=row['kind'],row['value']
         require(kind in ('start','finish','console_tx','console_rx','wtp_tx','wtp_rx','wtp_message',
@@ -89,7 +89,12 @@ def audit(path, baseline_path, rf_packet=None, *, expected_prejob_failure=False)
             if value['type']=='event' and rf_packet is not None:
                 from phase11_5_rf_observer import validate_event
                 validate_event(value,boot,rf_packet)
-                require(value['session_id']==session and int(value['event_id'])==event_id+1,'RF event identity/gap')
+                # Endpoint::connect retains the boot-scoped counter. A capture
+                # may start after earlier sessions; only subsequent IDs must
+                # be consecutive. Raw STATUS and lifecycle checks establish
+                # authority independently of these advisory events.
+                require(value['session_id']==session and
+                        (event_id is None or int(value['event_id'])==event_id+1),'RF event identity/gap')
                 event_id=int(value['event_id']);continue
             require(value['type']=='response' and value['ok'] is True,'Unexpected event/rejection')
             request=requests.pop(value['request_id'],None)

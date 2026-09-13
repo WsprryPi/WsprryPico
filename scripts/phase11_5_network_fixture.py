@@ -41,6 +41,25 @@ UNIT_SUFFIXES = ('cleanup.timer', 'cleanup.service', 'client.service', 'dhcp.ser
                  'capture-ap.service', 'capture-client.service', 'campaign.service', 'time-local.service')
 
 
+def fixture_wifi(root, packet, mdns, dns):
+    """Select credentials before host mutation; retained inputs never rewrite the DUT."""
+    expected_ntp = 'time.local' if mdns else TIME_NAME if dns else AP_ADDRESS
+    retained = packet.get('retained_wifi_sha256')
+    if retained is None:
+        return dict(ssid='WsprryPico-Phase115', password=secrets.token_hex(16), ntp_ipv4=expected_ntp)
+    require(packet.get('schema') == 'phase11.5-r3-retained-fixture-v1' and packet.get('family') == 'R3'
+            and packet.get('configuration_writes') == 0 and mdns and not dns,
+            'Retained Wi-Fi requires the explicit no-write R3 lifecycle')
+    raw = (root / 'retained-wifi.json').read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == retained, 'Retained Wi-Fi input changed')
+    value = json.loads(raw)
+    require(set(value) == {'ssid', 'password', 'ntp_ipv4'} and value['ssid'] == 'WsprryPico-Phase115'
+            and value['ntp_ipv4'] == expected_ntp and isinstance(value['password'], str)
+            and len(value['password']) == 32 and all(c in '0123456789abcdef' for c in value['password']),
+            'Unexpected retained Wi-Fi configuration')
+    return value
+
+
 class Fixture:
     def __init__(self, root):
         self.root = root
@@ -173,6 +192,7 @@ class Fixture:
         mdns_fixture = packet.get('time_server_mdns', False)
         require(type(mdns_fixture) is bool and not (mdns_fixture and dns_fixture),
                 'Select native mDNS or legacy DNS, never both')
+        wifi = fixture_wifi(self.root, packet, mdns_fixture, dns_fixture)
         permanent = None
         if mdns_fixture:
             from phase11_5_time_local import baseline, DROPIN, RUNTIME
@@ -201,10 +221,8 @@ class Fixture:
         self.intent('cleanup_armed')
         self.intent('timer_paused')
         self.cmd(['systemctl', 'stop', 'pi-wifi-recover.timer', 'pi-wifi-recover.service'])
-        psk = secrets.token_hex(16)
-        ssid = 'WsprryPico-Phase115'
-        (self.root / 'pico-wifi.json').write_text(json.dumps(
-            {'ssid': ssid, 'password': psk, 'ntp_ipv4': 'time.local' if mdns_fixture else TIME_NAME if dns_fixture else AP_ADDRESS}) + '\n')
+        psk, ssid = wifi['password'], wifi['ssid']
+        (self.root / 'pico-wifi.json').write_text(json.dumps(wifi) + '\n')
         self.intent('ap_profile')
         self.cmd(['nmcli', 'connection', 'add', 'save', 'no', 'type', 'wifi', 'ifname', 'wlan0',
             'con-name', PROFILE, 'ssid', ssid, '802-11-wireless.mode', 'ap',

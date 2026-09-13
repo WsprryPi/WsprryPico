@@ -4,11 +4,41 @@ from pathlib import Path
 from phase11_5_inventory import require
 from phase11_5_device_management import digest
 from phase11_5_browser_jobs import NAME, PEER
-from phase11_5_r3_tls_plan import CASES, validate
+from phase11_5_r3_tls_plan import CASES, validate, BRACKET_POLICY
 from phase11_5_r3_tls_pressure import response, check_transport
 
 
-def audit_pressure(packet, rows, usb):
+def pressure_bracket(series, begin, end, budget, policy):
+    preceding = [r for r in series if r['monotonic_ns'] <= begin]
+    ending = [r for r in series if r['monotonic_ns'] >= end]
+    require(preceding and ending, 'Missing independent pressure bracket')
+    observed = [r for r in series if preceding[-1]['monotonic_ns'] <= r['monotonic_ns'] <= ending[0]['monotonic_ns']]
+    if policy is None:
+        require(begin - preceding[-1]['monotonic_ns'] <= budget and
+                ending[0]['monotonic_ns'] - end <= budget, 'Missing independent pressure bracket')
+    else:
+        require(policy == BRACKET_POLICY, 'Unknown observer bracket policy')
+        # Prospective policy only: each request still has its original five
+        # second deadline and starts retain the original cadence. A response
+        # completion is not a request start. Frozen older packets stay strict.
+        for row in observed:
+            require(0 <= row['monotonic_ns'] - row['value']['began_monotonic_ns'] <= 5_000_000_000,
+                    'Pressure observer read deadline')
+        require(all(0 <= b['value']['began_monotonic_ns'] - a['value']['began_monotonic_ns'] <= budget
+                    for a,b in zip(observed,observed[1:])), 'Pressure observer request cadence')
+        for boundary in (begin, end):
+            prior = [r for r in series if r['monotonic_ns'] <= boundary][-1]
+            if boundary - prior['monotonic_ns'] > budget:
+                following = next(r for r in series if r['monotonic_ns'] > boundary)
+                require(prior['monotonic_ns'] < following['value']['began_monotonic_ns'] <= boundary and
+                        following['monotonic_ns'] - following['value']['began_monotonic_ns'] <= 5_000_000_000,
+                        'Stale pressure boundary without valid in-flight read')
+        require(ending[0]['value']['began_monotonic_ns'] <= end + budget,
+                'Late pressure follow-up request')
+    return observed
+
+
+def audit_pressure(packet, rows, usb, *, diagnostic_bracket_policy=None):
     validate(packet)
     require(rows and rows[0]['kind'] == 'start' and rows[-1]['kind'] == 'finish'
             and rows[-1]['value'] == dict(status='CAPTURED_REQUIRES_AUDIT', connections=12),
@@ -62,12 +92,8 @@ def audit_pressure(packet, rows, usb):
         # A stale copied snapshot cannot manufacture overlap or current RF ownership.
         for kind, budget in (('info', 2_000_000_000), ('status', 6_000_000_000)):
             series = [r for r in usb if r['kind'] == kind]
-            preceding = [r for r in series if r['monotonic_ns'] <= begin]
-            ending = [r for r in series if r['monotonic_ns'] >= end]
-            require(preceding and ending and begin - preceding[-1]['monotonic_ns'] <= budget
-                    and ending[0]['monotonic_ns'] - end <= budget, 'Missing independent pressure bracket')
-            observed = [r for r in series if preceding[-1]['monotonic_ns'] <= r['monotonic_ns']
-                        <= ending[0]['monotonic_ns']]
+            observed = pressure_bracket(series, begin, end, budget,
+                    diagnostic_bracket_policy or packet.get('observer_bracket_policy'))
             for row in observed:
                 value = row['value']['value']
                 s = value['status'] if kind == 'info' else value
@@ -125,11 +151,12 @@ def audit_pressure(packet, rows, usb):
                 check_transport(last_transport, transport, label)
                 last_transport = transport
         result.append(dict(job_id=job['job_id'], launch_epoch=epoch, case=label, duration_ns=end - begin))
-    return dict(status='PASS', cases=result, tcp_connections=12, https_controls=6,
+    return dict(status='DIAGNOSTIC_ONLY' if diagnostic_bracket_policy else 'PASS', cases=result, tcp_connections=12, https_controls=6,
+                observer_bracket_policy=diagnostic_bracket_policy or packet.get('observer_bracket_policy', 'completed-sample-brackets-v1'),
                 limitation='Pending retention and bounded excess only; no pending-expiry or failed-alert-wait claim')
 
 
-def audit(root, decoder):
+def audit(root, decoder, *, baseline_path=None):
     from audit_phase11_5_r2_modes import audit as audit_finite
     packet = validate(json.loads((root / 'jobs.json').read_text()))
     rows = [json.loads(line) for line in (root / 'pressure.jsonl').read_text().splitlines()]
@@ -139,7 +166,8 @@ def audit(root, decoder):
     load = json.loads((root / 'load.json').read_text())
     require(load['browser'] is False and load['seconds'] == 300 and load.get('rf_family') == 'R3',
             'R3 controller-only load')
-    result = audit_finite(root, decoder, cadence_policy='single-flight-admin-v1', packet_validator=validate)
+    result = audit_finite(root, decoder, cadence_policy='single-flight-admin-v1', packet_validator=validate,
+                          baseline_path=baseline_path)
     usb = [json.loads(line) for line in (root / 'usb-health.jsonl').read_text().splitlines()]
     require(usb[0]['value']['seconds'] == 360, 'R3 full observation window required')
     result['pressure'] = audit_pressure(packet, rows, usb)

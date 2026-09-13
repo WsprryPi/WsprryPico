@@ -1,0 +1,997 @@
+{
+  "schema": "phase11.5-diagnosis-register-v1",
+  "attempts": {
+    "A1": {
+      "schema": "phase11.5-diagnosis-v1",
+      "packet_sha256": "cab1abf2afffa27d79992b1d84bf393a2f1059ad3a4615829407485d695ca7a4",
+      "evidence": "RAW_RECONSTRUCTED",
+      "execution": "STOPPED_BEFORE_RF",
+      "acceptance": "PRESSURE_NOT_EXERCISED",
+      "fault_domain": "ASSISTANT_HARNESS",
+      "root_cause": "Console INFO was incorrectly treated as WTP STATUS.",
+      "firmware_defect_confirmed": false,
+      "assistant_tooling_defect_confirmed": true,
+      "completed_rf_jobs": 0,
+      "authoritative_final_output": "INACTIVE",
+      "automatic_retry_allowed": false,
+      "facts": [
+        "Raw audit confirms no LOAD/ARM or pressure connection.",
+        "The pressure helper failed on an absent job_id field in Console INFO.",
+        "The complete 360-second read-only observation and restoration remain valid evidence."
+      ],
+      "uncertainties": [],
+      "next_actions": [
+        "Repair/test the parser against the actual Console and WTP producers before another hardware attempt."
+      ],
+      "audit_classification": "FAILED_PREJOB_NO_RF_RESTORED",
+      "audit_result": {
+        "classification": "FAILED_PREJOB_NO_RF_RESTORED",
+        "accepted_assertions": 0,
+        "completed_jobs": 0,
+        "submitted_jobs": 0,
+        "pressure_connections": 0,
+        "packet_sha256": "cab1abf2afffa27d79992b1d84bf393a2f1059ad3a4615829407485d695ca7a4",
+        "candidate_boot": "57893aeefa99a6a3f19bcc5b4cabf773",
+        "restored_a_boot": "7a772a4eb283b23afdd1e25acbc449cd",
+        "unchanged_b_boot": "feffcd075ab6cb0b74e7e0c2fde6c87f",
+        "management_counts": {
+          "config": 36,
+          "wifi-off": 0,
+          "wifi-on": 0,
+          "heap-probe": 6
+        },
+        "host_restored": true,
+        "installed_pid": "1957",
+        "observer": {
+          "info": {
+            "samples": 360,
+            "max_gap_seconds": 1.000086669
+          },
+          "status": {
+            "samples": 72,
+            "max_gap_seconds": 5.00007137
+          },
+          "health": {
+            "samples": 72,
+            "max_gap_seconds": 5.000091127
+          },
+          "boot": "57893aeefa99a6a3f19bcc5b4cabf773",
+          "seconds": 360,
+          "raw_wire_verified": true,
+          "max_allocator_peak_bytes": 64028,
+          "last_heap_allocated_bytes": 16428,
+          "classification": "FAILED_PREJOB_READ_ONLY_OBSERVATION_VERIFIED"
+        }
+      }
+    },
+    "A1b": {
+      "schema": "phase11.5-diagnosis-v1",
+      "packet_sha256": "590da5a47dc37c1d4c8addea4713ca0cfcb25872a3daaff46a4c9abb9702b218",
+      "evidence": "RAW_RECONSTRUCTED",
+      "execution": "PARTIAL_RF_COMPLETED",
+      "acceptance": "PRESSURE_UNVERIFIED_OBSERVATION_INCOMPLETE",
+      "fault_domain": "ASSISTANT_HARNESS",
+      "root_cause": "The harness rejects the valid producer reason phrase and mishandles completed owner expiry.",
+      "firmware_defect_confirmed": false,
+      "assistant_tooling_defect_confirmed": true,
+      "completed_rf_jobs": 1,
+      "authoritative_final_output": "INACTIVE",
+      "automatic_retry_allowed": false,
+      "facts": [
+        "One 100-second Tone completed with authoritative inactive output.",
+        "The parser required 200 OK; the unchanged producer emits 200 Response.",
+        "The observer stopped at 125.137594288 seconds after rejecting known unowned Complete.",
+        "An expected terminal owner release is not an RF failure."
+      ],
+      "uncertainties": [
+        "The failing HTTP response bytes were not retained. Its actual status/body and any concurrent target error remain unknown.",
+        "The completed Tone does not replace the missing pressure assertions or full observation window."
+      ],
+      "next_actions": [
+        "Test against source-generated HTTP bytes; persist responses before parsing.",
+        "Keep observing known completed jobs after a failed load, and reconcile only authoritative state."
+      ],
+      "audit_classification": "FAILED_HTTP_CHECK_ONE_JOB_COMPLETE_HOST_RESTORED",
+      "audit_result": {
+        "classification": "FAILED_HTTP_CHECK_ONE_JOB_COMPLETE_HOST_RESTORED",
+        "accepted_assertions": 0,
+        "packet_sha256": "590da5a47dc37c1d4c8addea4713ca0cfcb25872a3daaff46a4c9abb9702b218",
+        "boot": "9c5aec394269e0b57ca16d73ad3d12b6",
+        "submitted_jobs": 1,
+        "completed_jobs": 1,
+        "released_jobs": 0,
+        "pressure_connections": 1,
+        "pressure_cases_passed": 0,
+        "http_response_bytes_retained": false,
+        "observer_samples": {
+          "health": 26,
+          "info": 126,
+          "status": 25
+        },
+        "observer_seconds": 125.137594288,
+        "final_status": {
+          "boot_id": "9c5aec394269e0b57ca16d73ad3d12b6",
+          "state": "complete",
+          "output_active": false,
+          "owner_id": null,
+          "job_id": "91bd2c3d57e3e74f7de183203796f463",
+          "terminal_records": [
+            {
+              "job_id": "91bd2c3d57e3e74f7de183203796f463",
+              "state": "complete",
+              "ended_monotonic_ns": "127539521000",
+              "output_active": false
+            }
+          ]
+        },
+        "host_restored": true,
+        "original_configuration_restored": false,
+        "management_counts": {
+          "config": 37,
+          "wifi-off": 0,
+          "wifi-on": 0,
+          "heap-probe": 6
+        },
+        "requests": {
+          "HELLO": 1,
+          "STATUS": 26,
+          "CLAIM": 1,
+          "LOAD": 1,
+          "GET_CLOCK": 1,
+          "ARM": 1
+        },
+        "timing": {
+          "status": "DIAGNOSTIC_ONLY",
+          "values": [
+            {
+              "job_id": "91bd2c3d57e3e74f7de183203796f463",
+              "mode": "tone",
+              "epoch": 1,
+              "expected_counter_deltas": {
+                "dma_irqs": 26323,
+                "alarm_irqs": 1,
+                "tail_irqs": 1,
+                "running_successor_links": 26321,
+                "refill_irq_pairs": 26321,
+                "running_tail_links": 1
+              },
+              "duration_ns": 100000000000,
+              "launch_target_ns": 27539236000,
+              "post_enable_delay_ns": 8000,
+              "short_words": 6736,
+              "short_interval_ns": 1561971.0144927537,
+              "short_75_percent_budget_ns": 1171478.2608695652,
+              "cumulative_worst_short": {
+                "measured": true,
+                "observations": 1,
+                "epoch": "1",
+                "successor_sequence": "26322",
+                "observed_ns": "127537775000",
+                "remaining_words": 6326,
+                "total_words": 6736
+              }
+            }
+          ]
+        }
+      }
+    },
+    "A1c": {
+      "schema": "phase11.5-diagnosis-v1",
+      "packet_sha256": "3167ff5d4c9e58b908ed0d5fcb64a278454a236857f5442ec0662e1e66fc5156",
+      "evidence": "RAW_RECONSTRUCTED",
+      "execution": "BLOCKED_BEFORE_RF",
+      "acceptance": "PRESSURE_NOT_EXERCISED",
+      "fault_domain": "UNLOCALIZED_NETWORK_PREREQUISITE",
+      "root_cause": "UNDETERMINED",
+      "firmware_defect_confirmed": false,
+      "assistant_tooling_defect_confirmed": false,
+      "completed_rf_jobs": 0,
+      "authoritative_final_output": "INACTIVE",
+      "automatic_retry_allowed": false,
+      "facts": [
+        "Twenty-five raw-verified readiness inventories did not establish address/clock admission.",
+        "Joining transitions were observed; the final link status was -3, CYW43 authentication failure.",
+        "The prior completed job was safely cleared without RF; A/B and host cleanup were verified.",
+        "No new RF, CONFIG save, flash or Wi-Fi OFF/ON command occurred."
+      ],
+      "uncertainties": [
+        "The source of authentication failure is unresolved: active AP settings, live credential state and driver/AP interoperability were not isolated.",
+        "The readiness attempt limit is a harness limit, not proof that a firmware timing contract failed.",
+        "The active AP password comparison was attempted only after the profile had been removed; it is inconclusive."
+      ],
+      "next_actions": [
+        "Verify the active AP against the retained input while the fixture is alive; report only a match boolean.",
+        "Retain timestamped AP authentication events and fresh Pico link observations before assigning fault.",
+        "Run a bounded idle Wi-Fi OFF/ON diagnostic only with its explicit hardware approval; a successful cycle proves recovery, not root cause."
+      ],
+      "readiness": {
+        "gate": "WIFI_AUTHENTICATION_NOT_ESTABLISHED",
+        "samples": 25,
+        "elapsed_seconds": 126.713333314,
+        "transitions": [
+          {
+            "monotonic_ns": 204653683941143,
+            "state": [
+              true,
+              -2,
+              "",
+              "unsynchronized"
+            ]
+          },
+          {
+            "monotonic_ns": 204664259272300,
+            "state": [
+              true,
+              -3,
+              "",
+              "unsynchronized"
+            ]
+          },
+          {
+            "monotonic_ns": 204722290758990,
+            "state": [
+              true,
+              1,
+              "",
+              "unsynchronized"
+            ]
+          },
+          {
+            "monotonic_ns": 204727575820589,
+            "state": [
+              true,
+              -3,
+              "",
+              "unsynchronized"
+            ]
+          },
+          {
+            "monotonic_ns": 204754005956649,
+            "state": [
+              true,
+              1,
+              "",
+              "unsynchronized"
+            ]
+          },
+          {
+            "monotonic_ns": 204759269556354,
+            "state": [
+              true,
+              -3,
+              "",
+              "unsynchronized"
+            ]
+          }
+        ],
+        "limit_kind": "HARNESS_READINESS_ATTEMPT_LIMIT",
+        "firmware_contract_violation": false,
+        "explanation": "Readiness observations describe the prerequisite. They do not identify a firmware bug or justify extending an authorized window."
+      },
+      "audit_classification": "FAILED_PRE_RF_WIFI_AUTHENTICATION",
+      "audit_result": {
+        "classification": "FAILED_PRE_RF_WIFI_AUTHENTICATION",
+        "packet_sha256": "3167ff5d4c9e58b908ed0d5fcb64a278454a236857f5442ec0662e1e66fc5156",
+        "accepted_assertions": 0,
+        "submitted_jobs": 0,
+        "completed_jobs": 0,
+        "pressure_connections": 0,
+        "new_rf_launches": 0,
+        "inventories": 30,
+        "readiness_inventories": 25,
+        "last_link_status": -3,
+        "prior_terminal_released": true,
+        "final_a_state": "empty",
+        "a_boot": "9c5aec394269e0b57ca16d73ad3d12b6",
+        "b_boot": "feffcd075ab6cb0b74e7e0c2fde6c87f",
+        "host_restored": true,
+        "configuration_writes": 0,
+        "flashes": 0,
+        "wifi_off": 0,
+        "wifi_on": 0,
+        "raw_sha256": {
+          "before-b.stdout": "1e973d3d798e9ca56eb94224a677ad9def7c4c3bac25f01bdcd06ec578c6df0e",
+          "initial-terminal-before.stdout": "8b9301d1fcc36d6a6a6f228a93c9ea344da27a2a6671950fb801aa90c8ec5851",
+          "initial-terminal-after.stdout": "11e77bd1870944edd278e5daff3b3f0595f1c2311527c7c2deaa96f75a1de65c",
+          "network-ready-0.stdout": "ee3c75a1462909f7d246a87791f6a3834f5eab525274e768b34bc47bf4e18898",
+          "network-ready-1.stdout": "a031bfdb908456a09e6d201c58cbb808968f8d2429bd3519ec440ed520d0f606",
+          "network-ready-2.stdout": "c99b70fc7f75f7d1d6d6d423296f60c8411663e051daad3888d50573365ae49f",
+          "network-ready-3.stdout": "8bcd796a7771e59e5342d1f1aebebf7cbb4e0e1db0d307127a2b33cb983696d7",
+          "network-ready-4.stdout": "4aca67ca0a64c0cceebd660bf4f49f35dd7b13f9b2f287b80abd39ac9926f442",
+          "network-ready-5.stdout": "1248d27225cbd7318ab63c90b8569d7264a646a47d0002a22fca1f8b13d90cc2",
+          "network-ready-6.stdout": "72a26ccc5590a0a5649917129b7a707692e2a54c54035f796ca37b1f44b46a93",
+          "network-ready-7.stdout": "4886dcdaf268480d784450dc2327e2ff7de124950e1c26c18bc58a2ed7b4e506",
+          "network-ready-8.stdout": "6c246089dc3c48465908c68beff2a2fc3209426c5479d017ac83172a835456b3",
+          "network-ready-9.stdout": "a46a12d3b86655cb882f6d3459ccdce0c796ebcc7b512e8c09045dfcbd85a324",
+          "network-ready-10.stdout": "9d0bd270c5160a431ddc5815335bca49a566cc6ea8648d9919134bf9e0521004",
+          "network-ready-11.stdout": "be2a0ecec198fa644a77da0db40e35f29d8d50c8a23841edfa223571465da705",
+          "network-ready-12.stdout": "119b81fab496664f2b0b961eb3399e87390c3cc14929c292a1f940e64d628f88",
+          "network-ready-13.stdout": "13c5cc85b84102cc2e0a4db6d8c7ce88a4969a57898cf178ec25e0d8fb576b42",
+          "network-ready-14.stdout": "9b99c219029c2331bba3e5d5320b618a483b699c7af496b897c5bca0319fba59",
+          "network-ready-15.stdout": "9c71d6bace7e976602f01eb517e8c971db5514b7775dd28e7d5667240dc0a646",
+          "network-ready-16.stdout": "cf0c9bb04d96ae42fd7b4161566e5c973d6eed0050bb9e5748503d4e79c160ed",
+          "network-ready-17.stdout": "ae574a9c673f88f2a92271b994f58d8a53229b0340b33d3380598b9e5e3d90e8",
+          "network-ready-18.stdout": "817c34c840c0f8fdabe13a1df97cbc536334d2b4633761c4e0fe83a9e639b55d",
+          "network-ready-19.stdout": "3a67b4753a0f7168dfe6b6a007ef20e9d812698e99d58c5026d7fbabd55888ee",
+          "network-ready-20.stdout": "c347ec9dd73a7b61bcc0f44e4f84e040105382925d33896c84b3bebe085bb772",
+          "network-ready-21.stdout": "c7c0332a8219d2ee98f4add4fc0f6697b27f03c1e1ce0a08ae54ec5abb24dd27",
+          "network-ready-22.stdout": "dc95cc67c2375e85ec17f09c6ecfb9c7dbba1844899d7c6d3bef0802d682d30a",
+          "network-ready-23.stdout": "2e0c8f88b338fe3fde7d8bc68423c3061beb68db98daba8965e75c657f8d3852",
+          "network-ready-24.stdout": "b06ae80c0315900cc02f72838a86e4c267aa894d3b9a7c02841ac75c32e85dd3",
+          "final-terminal-before.stdout": "fd745cc43e2a50cc0b73815ef93ef499edae569249cbbdc484714363b4eefe5e",
+          "after-b.stdout": "1403f29eed65525094930a4fda2cffc9d3e6bc1de60ca6ce544adea787d02e92",
+          "initial-terminal-release.jsonl": "295523706d75edb792329367f9a98ee0bfa1126c87eb2442e08e02a66a907dd6"
+        }
+      }
+    },
+    "A1d": {
+      "schema": "phase11.5-diagnosis-v1",
+      "packet_sha256": null,
+      "evidence": "TOOL_REVIEW_RECORD",
+      "execution": "NOT_STARTED",
+      "acceptance": "NOT_RUN",
+      "fault_domain": "AUTHORIZATION",
+      "root_cause": "Added idle Wi-Fi OFF/ON action requires explicit approval.",
+      "firmware_defect_confirmed": false,
+      "assistant_tooling_defect_confirmed": false,
+      "completed_rf_jobs": 0,
+      "authoritative_final_output": "UNKNOWN",
+      "automatic_retry_allowed": false,
+      "facts": [
+        "Automatic approval review blocked the launch.",
+        "The user did not decline the action."
+      ],
+      "uncertainties": [],
+      "next_actions": [
+        "Ask the user directly for the concrete added action; do not describe automatic review as a user refusal."
+      ]
+    },
+    "A1e": {
+      "schema": "phase11.5-diagnosis-v1",
+      "packet_sha256": "27cd914815b8af8933fb134b44a923add1f09c8748afd0082115e4b1f202a518",
+      "evidence": "RAW_RECONSTRUCTED",
+      "execution": "PARTIAL_RF_COMPLETED",
+      "acceptance": "PRESSURE_INCOMPLETE",
+      "fault_domain": "ASSISTANT_HARNESS",
+      "root_cause": "Pressure omitted the already supported bounded in-flight INFO admission.",
+      "firmware_defect_confirmed": false,
+      "assistant_tooling_defect_confirmed": true,
+      "completed_rf_jobs": 1,
+      "authoritative_final_output": "INACTIVE",
+      "automatic_retry_allowed": false,
+      "facts": [
+        "One explicitly approved idle Wi-Fi OFF/ON cycle restored network readiness; the active AP input matched.",
+        "INFO completed in 1.739071744 seconds, within its five-second deadline; starts retained the two-second cadence.",
+        "The pressure tool stopped on the preceding snapshot while that valid read was in flight.",
+        "Load interruption and the unsubmitted second job followed the primary stop; the observer completed 360 seconds.",
+        "One Tone completed; final A was Empty, inactive and unowned, with B and host restored."
+      ],
+      "uncertainties": [
+        "Successful Wi-Fi recovery does not identify the cause of A1c authentication failure."
+      ],
+      "next_actions": [
+        "Use the same bounded in-flight admission in every consumer; retain the original failure and causal timeline."
+      ],
+      "audit_classification": "HARNESS_STALE_CHECK_DURING_VALID_INFLIGHT_INFO",
+      "audit_result": {
+        "classification": "HARNESS_STALE_CHECK_DURING_VALID_INFLIGHT_INFO",
+        "accepted_assertions": 0,
+        "packet_sha256": "27cd914815b8af8933fb134b44a923add1f09c8748afd0082115e4b1f202a518",
+        "boot": "9c5aec394269e0b57ca16d73ad3d12b6",
+        "submitted_jobs": 1,
+        "completed_jobs": 1,
+        "unused_job_id": "4b579434a837cb8f7d371db85e9abd7f",
+        "pressure_connections": 3,
+        "preliminary_case_finishes": 2,
+        "recovery_completed": false,
+        "http_response_bytes_retained": true,
+        "observer_samples": {
+          "health": 72,
+          "info": 360,
+          "status": 72
+        },
+        "observer_seconds": 360.015244001,
+        "causal_timing": {
+          "pressure_failure_ns": 206694063600406,
+          "load_failure_ns": 206694189757690,
+          "previous_info_age_ns": 2045480670,
+          "inflight_elapsed_at_failure_ns": 1338980126,
+          "replacement_info_roundtrip_ns": 1739071744,
+          "max_info_start_gap_ns": 1752339449
+        },
+        "final_status": {
+          "boot_id": "9c5aec394269e0b57ca16d73ad3d12b6",
+          "state": "empty",
+          "output_active": false,
+          "owner_id": null,
+          "job_id": null,
+          "terminal_records": [
+            {
+              "job_id": "d27689688f2f3e519a3836b775b3092b",
+              "state": "complete",
+              "ended_monotonic_ns": "4525231417000",
+              "output_active": false
+            }
+          ]
+        },
+        "host_restored": true,
+        "configuration_writes": 0,
+        "flashes": 0,
+        "wifi_off": 1,
+        "wifi_on": 1,
+        "requests": {
+          "HELLO": 1,
+          "STATUS": 72,
+          "CLAIM": 1,
+          "LOAD": 1,
+          "GET_CLOCK": 1,
+          "ARM": 1
+        },
+        "timing": {
+          "status": "DIAGNOSTIC_ONLY",
+          "values": [
+            {
+              "job_id": "d27689688f2f3e519a3836b775b3092b",
+              "mode": "tone",
+              "epoch": 2,
+              "expected_counter_deltas": {
+                "dma_irqs": 26323,
+                "alarm_irqs": 1,
+                "tail_irqs": 1,
+                "running_successor_links": 26321,
+                "refill_irq_pairs": 26321,
+                "running_tail_links": 1
+              },
+              "duration_ns": 100000000000,
+              "launch_target_ns": 4425231201000,
+              "post_enable_delay_ns": 8000,
+              "short_words": 6736,
+              "short_interval_ns": 1561971.0144927537,
+              "short_75_percent_budget_ns": 1171478.2608695652,
+              "cumulative_worst_short": {
+                "measured": true,
+                "observations": 2,
+                "epoch": "2",
+                "successor_sequence": "26322",
+                "observed_ns": "4525229741000",
+                "remaining_words": 6319,
+                "total_words": 6736
+              }
+            }
+          ]
+        }
+      }
+    },
+    "A1f": {
+      "schema": "phase11.5-diagnosis-v1",
+      "packet_sha256": "cc557f977c655ac974c60c8343f1e8ba52dbd40b7837fdac9eb8561a63910236",
+      "evidence": "RAW_RECONSTRUCTED",
+      "execution": "RF_AND_TRAFFIC_COMPLETED_AUDIT_FAILED",
+      "acceptance": "FROZEN_OBSERVATION_GATE_FAILED",
+      "fault_domain": "ASSISTANT_HARNESS_AND_OBSERVATION_GATE",
+      "root_cause": "Boot-scoped event IDs and R3 result/cadence adapters were mishandled; a separate frozen completion bracket was missed.",
+      "firmware_defect_confirmed": false,
+      "assistant_tooling_defect_confirmed": true,
+      "completed_rf_jobs": 2,
+      "authoritative_final_output": "INACTIVE",
+      "automatic_retry_allowed": false,
+      "facts": [
+        "Both Tones, all ten traffic cases, 300-second production load and 360-second USB observation completed.",
+        "USB events 14 through 25 were consecutive; reconnecting does not reset the boot-scoped counter.",
+        "The shared load auditor still expected R2-only cadence scope and its different result envelope.",
+        "One INFO completed 2.262550925 seconds after a case ended, exceeding the frozen two-second completion bracket.",
+        "That request began 0.656231927 seconds after the case and took 1.606318998 seconds; its five-second deadline passed.",
+        "The original failure and zero acceptance remain; the proposed request-based bracket is diagnostic only for this capture."
+      ],
+      "uncertainties": [
+        "No firmware timing or resource contract violation is established by this observation miss."
+      ],
+      "next_actions": [
+        "Review and prospectively freeze consistent observer cadence and response bounds before further hardware execution.",
+        "Replay complete raw captures through the entire audit integration before another run."
+      ],
+      "audit_classification": "HARNESS_AUDIT_INTEGRATION_AND_FROZEN_OBSERVATION_MISS",
+      "audit_result": {
+        "classification": "HARNESS_AUDIT_INTEGRATION_AND_FROZEN_OBSERVATION_MISS",
+        "accepted_assertions": 0,
+        "packet_sha256": "cc557f977c655ac974c60c8343f1e8ba52dbd40b7837fdac9eb8561a63910236",
+        "completed_jobs": 2,
+        "physical_finite_gates": {
+          "status": "PASS",
+          "source_revision": "2e43110f05304efdc2ae25c298baa0ef6426955b",
+          "boot": "9c5aec394269e0b57ca16d73ad3d12b6",
+          "submission_path": "usb",
+          "completed_jobs": 2,
+          "timing": [
+            {
+              "job_id": "7f0198663d01009631fb2c4f16c1249c",
+              "mode": "tone",
+              "epoch": 3,
+              "expected_counter_deltas": {
+                "dma_irqs": 26323,
+                "alarm_irqs": 1,
+                "tail_irqs": 1,
+                "running_successor_links": 26321,
+                "refill_irq_pairs": 26321,
+                "running_tail_links": 1
+              },
+              "duration_ns": 100000000000,
+              "launch_target_ns": 5231168043000,
+              "post_enable_delay_ns": 8000,
+              "short_words": 6736,
+              "short_interval_ns": 1561971.0144927537,
+              "short_75_percent_budget_ns": 1171478.2608695652,
+              "cumulative_worst_short": {
+                "measured": true,
+                "observations": 3,
+                "epoch": "2",
+                "successor_sequence": "26322",
+                "observed_ns": "4525229741000",
+                "remaining_words": 6319,
+                "total_words": 6736
+              }
+            },
+            {
+              "job_id": "04973b6fde7ea85c37075ffe60dacead",
+              "mode": "tone",
+              "epoch": 4,
+              "expected_counter_deltas": {
+                "dma_irqs": 26323,
+                "alarm_irqs": 1,
+                "tail_irqs": 1,
+                "running_successor_links": 26321,
+                "refill_irq_pairs": 26321,
+                "running_tail_links": 1
+              },
+              "duration_ns": 100000000000,
+              "launch_target_ns": 5361174999000,
+              "post_enable_delay_ns": 8000,
+              "short_words": 6736,
+              "short_interval_ns": 1561971.0144927537,
+              "short_75_percent_budget_ns": 1171478.2608695652,
+              "cumulative_worst_short": {
+                "measured": true,
+                "observations": 4,
+                "epoch": "2",
+                "successor_sequence": "26322",
+                "observed_ns": "4525229741000",
+                "remaining_words": 6319,
+                "total_words": 6736
+              }
+            }
+          ],
+          "usb": {
+            "info": {
+              "samples": 360,
+              "max_gap_seconds": 1.614158122
+            },
+            "status": {
+              "samples": 72,
+              "max_gap_seconds": 5.000574335
+            },
+            "health": {
+              "samples": 72,
+              "max_gap_seconds": 5.000088741
+            },
+            "boot": "9c5aec394269e0b57ca16d73ad3d12b6",
+            "seconds": 360,
+            "raw_wire_verified": true,
+            "max_allocator_peak_bytes": 109972,
+            "last_heap_allocated_bytes": 30156,
+            "job_coverage": {
+              "7f0198663d01009631fb2c4f16c1249c": {
+                "states": [
+                  "armed",
+                  "complete",
+                  "loaded",
+                  "running"
+                ],
+                "active": true
+              },
+              "04973b6fde7ea85c37075ffe60dacead": {
+                "states": [
+                  "armed",
+                  "complete",
+                  "loaded",
+                  "running"
+                ],
+                "active": true
+              }
+            },
+            "max_rf_service_gap_ns": 2161000,
+            "rf_last_observation": {
+              "ok": true,
+              "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+              "revision": "2e43110f0530",
+              "firmware": "0.0.0-devel",
+              "deployment_identity_matches": true,
+              "recovery_boot": false,
+              "fault_stage": 0,
+              "fault_hash": 0,
+              "fault_pc": 0,
+              "fault_status": 0,
+              "network": {
+                "initialized": true,
+                "enabled": true,
+                "link_status": 3,
+                "ipv4": "10.77.15.10",
+                "requested_enabled": null,
+                "withdrawal_pending": false,
+                "resume_after_withdrawal": false,
+                "control_configured": true,
+                "control_listening": true,
+                "deployment_identity_matches": true,
+                "station_mac": "88:a2:9e:0a:60:df",
+                "stable_hostname": "wsprrypico-0a60df.local",
+                "configured_hostname": "wsprrypico-0a60df.local",
+                "advertised_hostname": "wsprrypico-0a60df.local",
+                "mdns_state": "active",
+                "mdns_reason": "",
+                "mdns_registrations": 3,
+                "mdns_conflicts": 0,
+                "mdns_failures": 0,
+                "mdns_address_changes": 0,
+                "mdns_goodbye_attempts": 0,
+                "mdns_goodbye_failures": 0,
+                "mdns_rejected_packets": 0,
+                "power_save": false,
+                "packets": {
+                  "arp": {
+                    "received": 24,
+                    "sent": 27,
+                    "dropped": 0
+                  },
+                  "ipv4": {
+                    "received": 1032,
+                    "sent": 745,
+                    "dropped": 0
+                  },
+                  "tcp": {
+                    "received": 978,
+                    "sent": 664,
+                    "dropped": 0
+                  },
+                  "udp": {
+                    "received": 54,
+                    "sent": 72,
+                    "dropped": 1
+                  }
+                },
+                "memory": {
+                  "heap": {
+                    "used": 200,
+                    "capacity": 32768,
+                    "peak": 4504,
+                    "errors": 0
+                  },
+                  "tcp_pcbs": {
+                    "used": 0,
+                    "capacity": 4,
+                    "peak": 4,
+                    "errors": 0
+                  },
+                  "tcp_segments": {
+                    "used": 0,
+                    "capacity": 32,
+                    "peak": 3,
+                    "errors": 0
+                  },
+                  "packet_pool": {
+                    "used": 0,
+                    "capacity": 8,
+                    "peak": 2,
+                    "errors": 0
+                  }
+                },
+                "tx_credit": {
+                  "waits": 0,
+                  "preserved": 0,
+                  "timeouts": 0
+                },
+                "ntp_server": "time.local",
+                "ntp_address": "10.77.15.1",
+                "ntp_resolution": "resolved",
+                "ntp_resolution_failures": 0,
+                "queries": 16,
+                "accepted": 15,
+                "rejected": 0,
+                "last_rtt_ns": 5298000,
+                "last_sample_uncertainty_ns": 6371886
+              },
+              "system_clock_hz": 138000000,
+              "heap_allocated_bytes": 30156,
+              "heap_available_bytes": 188128,
+              "heap_capacity_bytes": 218284,
+              "heap_arena_bytes": 132268,
+              "heap_arena_free_bytes": 102112,
+              "heap_free_chunks": 43,
+              "heap_top_releasable_bytes": 49408,
+              "heap_sample_observed_us": "5570051597",
+              "heap_sample_cost_us": 25,
+              "heap_sampled_peak_bytes": 93164,
+              "allocator_entries": "91045069",
+              "allocator_failures": "0",
+              "allocator_live_bytes": 33308,
+              "allocator_peak_bytes": 109972,
+              "allocator_largest_request_bytes": 16693,
+              "allocator_largest_successful_request_bytes": 16693,
+              "allocator_sample_time_us": "705226204",
+              "allocator_max_sample_us": 184,
+              "allocator_max_entry_us": 220,
+              "allocator_max_depth": 2,
+              "core0_stack_used_bytes": 8248,
+              "core0_stack_guard_bottom": 537378816,
+              "core0_stack_guard_limit": 537382912,
+              "core0_stack_fault_status": 0,
+              "core0_stack_guard_valid": 1,
+              "core0_stack_scan_us": 114,
+              "tls_peak_bytes": 61872,
+              "tls_allocated_bytes": 4396,
+              "tls_allocation_failures": 0,
+              "rf_render_in_ram": true,
+              "launch_observed_ns": "5361175007000",
+              "launch_epoch": "4",
+              "launch_target_ns": "5361174999000",
+              "launch_delay_ns": "8000",
+              "dma_irqs": 105292,
+              "max_dma_irq_ns": 135000,
+              "alarm_irqs": 4,
+              "max_alarm_irq_ns": "205000",
+              "tail_irqs": 4,
+              "dma_errors": 0,
+              "refill_irq_pairs": 105284,
+              "refill_irq_unpaired": 0,
+              "refill_invalid_reserves": 0,
+              "refill_full_predecessor": {
+                "measured": true,
+                "observations": 105280,
+                "epoch": "3",
+                "successor_sequence": "6911",
+                "observed_ns": "5257422571000",
+                "remaining_words": 7199,
+                "total_words": 16384
+              },
+              "refill_short_predecessor": {
+                "measured": true,
+                "observations": 4,
+                "epoch": "2",
+                "successor_sequence": "26322",
+                "observed_ns": "4525229741000",
+                "remaining_words": 6319,
+                "total_words": 6736
+              },
+              "max_refill_irq_to_ready_ns": "2120000",
+              "running_successor_links": 105284,
+              "exhausted_successor_links": 0,
+              "running_tail_links": 4,
+              "min_data_successor_ready_words": 7199,
+              "min_tail_successor_ready_words": 6319,
+              "min_successor_ready_words": 6319,
+              "core1_stack_used_bytes": 5620,
+              "core1_stack_guard_bottom": 536884368,
+              "core1_stack_guard_limit": 536888464,
+              "core1_stack_fault_status": 0,
+              "core1_stack_guard_valid": 1,
+              "rf_worker_commands": 43474108,
+              "rf_metric_probes": 896,
+              "rf_max_probe_ns": "311000",
+              "rf_max_service_gap_ns": "2161000",
+              "rf_max_poll_ns": "2030000",
+              "rf_max_roundtrip_ns": "27491000",
+              "max_loop_us": 645295,
+              "max_authority_poll_us": 1916,
+              "max_usb_us": 267,
+              "max_request_us": 10624,
+              "engine_diagnostic": "",
+              "status": {
+                "ok": true,
+                "configured": true,
+                "enabled": false,
+                "suspended": false,
+                "expires_utc_s": 0,
+                "boot_id": "9c5aec394269e0b57ca16d73ad3d12b6",
+                "utc_now_ns": "1789263326923688000",
+                "monotonic_now_ns": "5570055997000",
+                "sync_age_ns": "39656824000",
+                "station": {
+                  "callsign": "AA0NT",
+                  "locator": "EM18",
+                  "power_dbm": 20
+                },
+                "schedules": [
+                  {
+                    "period_s": 120,
+                    "phase_s": 0
+                  }
+                ],
+                "engine": "pio-dma-gp2",
+                "storage_healthy": true,
+                "reboot_required": false,
+                "watermark_utc_ns": "1788714601000000000",
+                "clock_state": "synchronized",
+                "uncertainty_ns": "8354728",
+                "state": "empty",
+                "last_error": null,
+                "last_job": "",
+                "output_active": false
+              }
+            },
+            "terminal_records": [
+              {
+                "job_id": "04973b6fde7ea85c37075ffe60dacead",
+                "state": "complete",
+                "ended_monotonic_ns": "5461175002000",
+                "output_active": false
+              },
+              {
+                "job_id": "7f0198663d01009631fb2c4f16c1249c",
+                "state": "complete",
+                "ended_monotonic_ns": "5331168388000",
+                "output_active": false
+              },
+              {
+                "job_id": "d27689688f2f3e519a3836b775b3092b",
+                "state": "complete",
+                "ended_monotonic_ns": "4525231417000",
+                "output_active": false
+              }
+            ]
+          },
+          "load": {
+            "boot": "9c5aec394269e0b57ca16d73ad3d12b6",
+            "seconds": 300,
+            "production_connections": 1,
+            "logical_sessions": 1,
+            "operations": {
+              "HELLO": 1,
+              "STATUS": 315,
+              "CAPS": 1
+            },
+            "status_cadence_policy": "single-flight-admin-v1",
+            "nominal_status_count": 311,
+            "nominal_status_hz": 1.0366666666666666,
+            "nominal_max_status_start_gap_ns": 1087888534,
+            "in_flight_time_beyond_poll_period_ns": 0,
+            "minimum_eligible_status_count": 298,
+            "max_eligible_offer_delay_ns": 108856485,
+            "administrative_response_deadline_ns": 5000000000,
+            "browser_counts": {},
+            "max_observed_write_to_response_seconds": 0.779029315,
+            "timing_origin": "SSL_write_ex entry",
+            "limitation": "Measurement begins at native TLS write; scheduler queue time is outside this metric",
+            "plaintext_sha256": "3ac6eccaa6b056f710cb3a180e31f98806310b65f47195cb034873f68d43e7ff"
+          },
+          "observer_cost": {
+            "max_usb_roundtrip_seconds": {
+              "INFO": 1.606318998,
+              "STATUS": 0.484704514,
+              "HELLO": 0.030694126,
+              "CLAIM": 0.025522181,
+              "LOAD": 0.04164965,
+              "GET_CLOCK": 0.027405879,
+              "ARM": 0.038465234,
+              "RENEW": 0.045434582,
+              "RELEASE": 0.027015177
+            },
+            "host_max_loadavg_1m": 0.54,
+            "host_max_temperature_c": 49.6,
+            "note": "Load average is system-wide runnable/uninterruptible load, not CPU utilization. Costs overlap."
+          }
+        },
+        "pressure_diagnostic": {
+          "status": "DIAGNOSTIC_ONLY",
+          "cases": [
+            {
+              "job_id": "7f0198663d01009631fb2c4f16c1249c",
+              "launch_epoch": 3,
+              "case": "positive",
+              "duration_ns": 3668183859
+            },
+            {
+              "job_id": "7f0198663d01009631fb2c4f16c1249c",
+              "launch_epoch": 3,
+              "case": "missing-certificate",
+              "duration_ns": 1296501639
+            },
+            {
+              "job_id": "7f0198663d01009631fb2c4f16c1249c",
+              "launch_epoch": 3,
+              "case": "recover-certificate",
+              "duration_ns": 2436053793
+            },
+            {
+              "job_id": "7f0198663d01009631fb2c4f16c1249c",
+              "launch_epoch": 3,
+              "case": "silent-handshake",
+              "duration_ns": 10013177987
+            },
+            {
+              "job_id": "7f0198663d01009631fb2c4f16c1249c",
+              "launch_epoch": 3,
+              "case": "recover-handshake",
+              "duration_ns": 2081450627
+            },
+            {
+              "job_id": "04973b6fde7ea85c37075ffe60dacead",
+              "launch_epoch": 4,
+              "case": "positive",
+              "duration_ns": 2362902391
+            },
+            {
+              "job_id": "04973b6fde7ea85c37075ffe60dacead",
+              "launch_epoch": 4,
+              "case": "slot-excess",
+              "duration_ns": 1274575508
+            },
+            {
+              "job_id": "04973b6fde7ea85c37075ffe60dacead",
+              "launch_epoch": 4,
+              "case": "recover-slots",
+              "duration_ns": 2520420716
+            },
+            {
+              "job_id": "04973b6fde7ea85c37075ffe60dacead",
+              "launch_epoch": 4,
+              "case": "duplicate-wtp",
+              "duration_ns": 2051544746
+            },
+            {
+              "job_id": "04973b6fde7ea85c37075ffe60dacead",
+              "launch_epoch": 4,
+              "case": "recover-wtp",
+              "duration_ns": 2189649808
+            }
+          ],
+          "tcp_connections": 12,
+          "https_controls": 6,
+          "observer_bracket_policy": "request-cadence-and-roundtrip-v1",
+          "limitation": "Pending retention and bounded excess only; no pending-expiry or failed-alert-wait claim"
+        },
+        "frozen_observation_misses": [
+          {
+            "case": "recover-slots",
+            "sample": "info",
+            "preceding_age_ns": 606507137,
+            "following_lag_ns": 2262550925,
+            "frozen_limit_ns": 2000000000,
+            "following_request_offset_ns": 656231927,
+            "following_roundtrip_ns": 1606318998
+          }
+        ],
+        "final_status": {
+          "boot_id": "9c5aec394269e0b57ca16d73ad3d12b6",
+          "state": "empty",
+          "output_active": false,
+          "owner_id": null,
+          "job_id": null,
+          "terminal_records": [
+            {
+              "job_id": "04973b6fde7ea85c37075ffe60dacead",
+              "state": "complete",
+              "ended_monotonic_ns": "5461175002000",
+              "output_active": false
+            },
+            {
+              "job_id": "7f0198663d01009631fb2c4f16c1249c",
+              "state": "complete",
+              "ended_monotonic_ns": "5331168388000",
+              "output_active": false
+            },
+            {
+              "job_id": "d27689688f2f3e519a3836b775b3092b",
+              "state": "complete",
+              "ended_monotonic_ns": "4525231417000",
+              "output_active": false
+            }
+          ]
+        },
+        "configuration_writes": 0,
+        "flashes": 0,
+        "wifi_off": 0,
+        "wifi_on": 0,
+        "host_restored": true,
+        "conclusion": "Three audit integration defects are confirmed. The separate frozen sample-completion bracket failed. No firmware contract violation is established; prospective cadence policy is diagnostic only here."
+      }
+    }
+  }
+}

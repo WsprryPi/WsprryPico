@@ -5,6 +5,7 @@ from phase11_5_inventory import require
 from phase11_5_r2_upload_plan import SOURCE, PHYSICAL
 
 SCHEMA = 'phase11.5-r3-tls-a1-v1'
+BRACKET_POLICY = 'request-cadence-and-roundtrip-v1'
 COUNTS = {'config': 34, 'wifi-off': 0, 'wifi-on': 0, 'heap-probe': 6}
 MANAGEMENT_SCOPE = 'R3-A1-config-34-to-36-v1'
 CONTINUATION_SCOPE = 'R3-A1b-config-36-to-38-v1'
@@ -33,6 +34,7 @@ def jobs(nonce):
 
 
 def validate(packet):
+    require(packet.get('observer_bracket_policy') in (None, BRACKET_POLICY), 'Unknown observer bracket policy')
     require(packet['schema'] == SCHEMA and packet['source_revision'] == SOURCE
             and packet['revision'] == SOURCE[:12] and packet['uf2_sha256'] == PHYSICAL,
             'R3 selected image')

@@ -414,6 +414,63 @@ class R3Tests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     probe.checkpoint()
 
+    def test_pressure_waits_for_same_observer_read_within_existing_deadline(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); p = packet(); path = root/'jobs.json'
+            path.write_text(json.dumps(p))
+            probe = object.__new__(Pressure)
+            probe.root, probe.packet, probe.packet_path = root, p, path
+            probe.sha, probe.observer, probe.job, probe.deadline = digest(path), None, p['jobs'][0], 20
+            probe.launch_epoch = 1
+            # A1e pattern: the last INFO is >2 s old while its replacement
+            # request is still comfortably within the established 5 s limit.
+            identity = dict(packet_sha256=probe.sha, pid=123, pid_start_ticks='567')
+            (root/'observer-info.json').write_text(json.dumps(identity | dict(
+                monotonic_ns=1_000_000_000, value=dict(value=info(p,p['jobs'][0])))))
+            (root/'observer-status.json').write_text(json.dumps(identity | dict(
+                monotonic_ns=2_900_000_000, value=dict(value=status(p,p['jobs'][0])))))
+            pending = identity | dict(monotonic_ns=1_700_000_000, value=dict(hex=b'INFO\n'.hex()))
+            pending_path = root/'observer-console_tx.json'
+            pending_path.write_text(json.dumps(pending))
+            usb_actor = USBJobs(p, root, None, None, None)
+            read = Path.read_text; stat = '123 (observer) S ' + '0 '*18 + '567'
+            with patch('phase11_5_r3_tls_pressure.time.monotonic',return_value=3.05), \
+                 patch('phase11_5_r3_tls_pressure.time.monotonic_ns',return_value=3_050_000_000), \
+                 patch.object(Path,'read_text',lambda path,*a,**kw:stat if str(path)=='/proc/123/stat' else read(path,*a,**kw)):
+                probe.checkpoint()
+                self.assertEqual(usb_actor.info()['launch_epoch'], '1')
+                for change in (dict(pid=124),dict(packet_sha256='f'*64),dict(pid_start_ticks='568'),
+                               dict(monotonic_ns=1_000_000_000),dict(value=dict(hex=b'CONFIG {}\n'.hex()))):
+                    pending_path.write_text(json.dumps(pending | change))
+                    with self.assertRaises(ValueError): probe.checkpoint()
+                    with self.assertRaises(ValueError): usb_actor.info()
+                pending_path.unlink()
+                with self.assertRaises(ValueError): probe.checkpoint()
+                with self.assertRaises(ValueError): usb_actor.info()
+                pending_path.write_text(json.dumps(pending))
+                with patch('phase11_5_r3_tls_pressure.time.monotonic_ns',return_value=6_700_000_001):
+                    with self.assertRaises(ValueError): probe.checkpoint()
+                    with self.assertRaises(ValueError): usb_actor.info()
+
+    def test_completed_job_waits_for_info_without_blocking_status_or_releasing_early(self):
+        p = packet()
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            (root/'ready.json').write_text(json.dumps(dict(boot_id=p['boot_id'],start_monotonic_ns=0)))
+            peer=MagicMock()
+            actor=USBJobs(p,root,peer,MagicMock(),MagicMock())
+            actor.phase='executing';actor.baseline_epoch=1
+            actor.info=MagicMock(side_effect=[dict(status=dict(state='running'),launch_epoch='2'),
+                dict(status=dict(state='complete'),launch_epoch='1'),
+                dict(status=dict(state='complete'),launch_epoch='2')])
+            complete=dict(state='complete',job_id=p['jobs'][0]['job_id'],output_active=False)
+            with patch('phase11_5_r2_usb_jobs.time.monotonic_ns',return_value=100_000_000_000), \
+                 patch('phase11_5_r2_usb_jobs.time.sleep',side_effect=AssertionError('Observer blocked')):
+                actor.observe(complete);actor.observe(complete)
+                peer.request.assert_not_called();self.assertEqual(actor.phase,'executing')
+                actor.observe(complete)
+                peer.request.assert_called_once_with('RELEASE');self.assertEqual(actor.phase,'released')
+
     def test_recorded_console_and_wtp_shapes_remain_distinct(self):
         fixture = json.loads((Path(__file__).parent / 'fixtures/phase11_5_r3_observer_shapes.json').read_text())
         samples = fixture['samples']

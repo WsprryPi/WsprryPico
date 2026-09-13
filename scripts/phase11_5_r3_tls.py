@@ -47,6 +47,8 @@ def run_packet(root, packet, device, fixture):
               maximum_renewals=12, browser_profile='N', ordinary_browser=False,
               pressure_cases=packet['pressure_cases'], baseline=str(root / 'r3-a1-admission.stdout'),
               prior_terminal_records=current['wtp']['STATUS']['terminal_records'])
+    if 'observer_bracket_policy' in packet:
+        rf['observer_bracket_policy'] = packet['observer_bracket_policy']
     validate(rf)
     admit_caps(rf, current['wtp']['CAPS'])
     save(target / 'jobs.json', rf)
