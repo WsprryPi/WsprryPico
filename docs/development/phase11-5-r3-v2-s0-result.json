@@ -1,0 +1,109 @@
+{
+  "status": "S0_STAGED_RF_ADMISSION_VERIFIED",
+  "family_closed": false,
+  "packet_sha256": "966cd695df2b2eab36f6999c2afae678ad6eecdb8a3c5ea0871fb5afb2c61fef",
+  "source_revision": "7d183978d08d77d5de668911be041bb188c851f5",
+  "image_sha256": "38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1",
+  "boot_id": "8e777dadaa81f4618154d84de0df268a",
+  "cadence": {
+    "info": {
+      "samples": 216,
+      "max_start_gap_ns": 1000083268
+    },
+    "status": {
+      "samples": 44,
+      "max_start_gap_ns": 5000081932
+    },
+    "health": {
+      "samples": 44,
+      "max_start_gap_ns": 5000088636
+    }
+  },
+  "jobs": [
+    {
+      "job_id": "767b2f4dcf6140f2abd69b786da4694e",
+      "mode": "tone",
+      "epoch": 1,
+      "expected_counter_deltas": {
+        "dma_irqs": 2634,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 2632,
+        "refill_irq_pairs": 2632,
+        "running_tail_links": 1
+      },
+      "duration_ns": 10000000000,
+      "launch_target_ns": 1006654340000,
+      "post_enable_delay_ns": 8000,
+      "short_words": 2312,
+      "short_interval_ns": 536115.9420289855,
+      "short_75_percent_budget_ns": 402086.95652173914,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 1,
+        "epoch": "1",
+        "successor_sequence": "2633",
+        "observed_ns": "1016653882000",
+        "remaining_words": 1999,
+        "total_words": 2312
+      }
+    },
+    {
+      "job_id": "7a18c3546cc24988b5fb7b16279fd8ff",
+      "mode": "qrss",
+      "epoch": 2,
+      "expected_counter_deltas": {
+        "dma_irqs": 37707,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 37705,
+        "refill_irq_pairs": 37705,
+        "running_tail_links": 1
+      },
+      "duration_ns": 143250001000,
+      "launch_target_ns": 1046659171000,
+      "post_enable_delay_ns": 8000,
+      "short_words": 6910,
+      "short_interval_ns": 1602318.8405797102,
+      "short_75_percent_budget_ns": 1201739.1304347827,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 2,
+        "epoch": "1",
+        "successor_sequence": "2633",
+        "observed_ns": "1016653882000",
+        "remaining_words": 1999,
+        "total_words": 2312
+      }
+    }
+  ],
+  "rf_jobs": 2,
+  "rf_duration_ns_charged": 153250001000,
+  "maximum_allocator_peak_bytes": 139924,
+  "terminal_records": [
+    {
+      "job_id": "7a18c3546cc24988b5fb7b16279fd8ff",
+      "state": "complete",
+      "ended_monotonic_ns": "1189909397000",
+      "output_active": false
+    },
+    {
+      "job_id": "767b2f4dcf6140f2abd69b786da4694e",
+      "state": "complete",
+      "ended_monotonic_ns": "1016654508000",
+      "output_active": false
+    },
+    {
+      "job_id": "830759f7779043e5ae89ec84ea9c8112",
+      "state": "aborted",
+      "ended_monotonic_ns": "5085340000",
+      "output_active": false
+    }
+  ],
+  "physical_hour_or_saturation_verified": false,
+  "evidence_archive_sha256": "ce1e4edf16830c71315bc91d4aa4c55f5ed7de7a053bd3f73f725126f7014d0a",
+  "auditor_sha256": "f7ac40273640a1d937514d85c475538303989f81ef23860ab26ab2bc070da076",
+  "auditor_mutations_rejected": 10,
+  "intact_reaudit": "PASS",
+  "scope": "Staged network-on USB finite RF and 32-character QRSS plan. No one-hour, maximum contention or final R3 closure."
+}

@@ -17,6 +17,10 @@ ACK_POLICY_B2 = 'zero-payload-after-server-flight-v1'
 
 
 def validate(packet):
+    if packet.get('schema')=='phase11.5-r3-v2-usb-rf-v1':
+        from phase11_5_r3_v2_pressure_plan import validate as validate_v2
+        require(packet.get('pressure_family')=='transport','V2 transport family')
+        return validate_v2(packet)
     require(packet.get('schema') in (SCHEMA, SCHEMA_B2) and packet.get('pressure_cases')==[list(c) for c in CASES]
             and packet.get('maximum_tcp_connections')==MAX_CONNECTIONS
             and packet.get('observer_bracket_policy')=='request-cadence-and-roundtrip-v1', 'B1 exact scope')

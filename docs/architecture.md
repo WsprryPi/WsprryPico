@@ -68,6 +68,14 @@ writes coordinate both cores using SDK lockout. See the
 schedules retain one ownership and execution authority. Network control defaults
 off; physical TLS/RF coexistence and production RF qualification remain open.
 
+The browser's compact `LOAD_MESSAGE` path compiles bounded QRSS, FSKCW and DFCW
+messages before entering the same job service. Inputs are limited to 32 characters
+including spaces; duration and expanded events independently fit the advertised
+3,600-second and 512-event ceilings. Repetition is fully expanded before ARM.
+Raw WTP clients continue submitting complete encoded jobs. See the
+[extended-job design](development/phase11-5-extended-job-design.md) for memory
+ownership and the distinction between implemented limits and physical acceptance.
+
 Standalone execution uses local Type 1 encoding, versioned persistent station
 and schedule records, and Wi-Fi SNTP acquisition without WsprryPi. Host
 operation accepts already encoded jobs. Both paths converge before engine

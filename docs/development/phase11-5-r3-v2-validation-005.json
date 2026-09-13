@@ -1,0 +1,19 @@
+{
+  "checkpoint": "v2-005",
+  "recorded_utc": "2026-09-13T16:47:49.424362+00:00",
+  "status": "PASS_WITH_RECORDED_SCOPE",
+  "physical_r3_groups_newly_closed": 0,
+  "result_file": "docs/development/phase11-5-r3-v2-s0-result.json",
+  "result_sha256": "1bb539d341f7ebff781cba6f903a65c304f51a282670428a57d95db52da6ec63",
+  "source_revision": "7d183978d08d77d5de668911be041bb188c851f5",
+  "image_sha256": "38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1",
+  "boot_id": "8e777dadaa81f4618154d84de0df268a",
+  "validated_assertions": [
+    "10-second Tone launch/refill/tail/terminal and release",
+    "32-character QRSS 384-event 143.250001-second plan completed with three renewals",
+    "Raw INFO/STATUS/health cadence and five-second roundtrip bounds",
+    "Current-image heap/guard/critical-path observations for the two scoped jobs",
+    "Final A/B identity, retained configuration and inactive/unowned output"
+  ],
+  "reuse_rule": "Keep this measured scope valid unless an affected source/configuration/runtime change is demonstrated. Later pressure failures do not erase these jobs or restart their progress. No hour or saturation credit."
+}

@@ -34,6 +34,9 @@ def jobs(nonce):
 
 
 def validate(packet):
+    if packet.get('schema')=='phase11.5-r3-v2-usb-rf-v1':
+        from phase11_5_r3_v2_pressure_plan import validate as validate_v2
+        return validate_v2(packet)
     require(packet.get('observer_bracket_policy') in (None, BRACKET_POLICY), 'Unknown observer bracket policy')
     require(packet['schema'] == SCHEMA and packet['source_revision'] == SOURCE
             and packet['revision'] == SOURCE[:12] and packet['uf2_sha256'] == PHYSICAL,

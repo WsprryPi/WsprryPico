@@ -1,0 +1,24 @@
+{
+  "checkpoint": "v2-007",
+  "recorded_utc": "2026-09-13T18:43:45.904691+00:00",
+  "status": "PASS_WITH_RECORDED_SCOPE_AND_SEPARATE_FINDING",
+  "physical_r3_groups_newly_closed": 0,
+  "result_file": "docs/development/phase11-5-r3-v2-h0-components-result.json",
+  "result_sha256": "d0c11cdce38a3722c60e9c7b2cb5c7f31562a181714b05f5611d1953e52a7fec",
+  "source_revision": "7d183978d08d77d5de668911be041bb188c851f5",
+  "image_sha256": "38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1",
+  "boot_id": "8e777dadaa81f4618154d84de0df268a",
+  "validated_assertions": [
+    "H0 actual native production WTP read-only TLS identity and full-hour cadence",
+    "H0 native local HTTP observations and full-hour cadence match independent USB authority",
+    "All 182 HTTPS replies have authenticated target identity, complete bodies and two-active/zero-pending concurrency",
+    "Three prior terminal records remained unchanged before their actual 3600-second TTL and were absent after expiry",
+    "Strict combined cadence audit still rejects H0; reporting independent components cannot excuse false authentication"
+  ],
+  "open_findings": [
+    "H0 HTTPS cadence remains FAILED; fixed scheduler physical validation pending"
+  ],
+  "local_frozen_auditor_manifest": "build/phase11-5-r3-v2-checkpoints/v2-007/manifest.json",
+  "local_frozen_auditor_manifest_sha256": "fcd4a527bad67013fc41ee97fdb3c61844e97f41ce564dd7b410a925321c07d5",
+  "reuse_rule": "Supplement v2-006 without overwriting it. Retain independent native/TLS/terminal-TTL assertions; do not promote failed HTTPS cadence or whole RETAINED/RECLAIM groups."
+}

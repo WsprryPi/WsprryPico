@@ -84,6 +84,9 @@ class Pressure:
         self.packet_path = root / 'jobs.json'
         packet=json.loads(self.packet_path.read_text())
         validator=validate
+        v2=packet.get('schema')=='phase11.5-r3-v2-usb-rf-v1'
+        if v2:
+            from phase11_5_r3_v2_pressure_plan import validate as validator
         if packet.get('schema')in ('phase11.5-r3-transport-b1-v1', 'phase11.5-r3-transport-b2-v1'):
             from phase11_5_r3_transport_plan import validate as validator
         self.packet = validator(packet)
@@ -95,7 +98,7 @@ class Pressure:
         self.connections = 0
         self.last_transport = None
         self.recover_until = None
-        self.deadline = time.monotonic() + 310
+        self.deadline = time.monotonic() + (packet['runtime_seconds'] if v2 else 310)
 
     def checkpoint(self):
         require(time.monotonic() < self.deadline and digest(self.packet_path) == self.sha,
@@ -136,7 +139,7 @@ class Pressure:
     def tcp(self, label):
         self.checkpoint()
         self.connections += 1
-        limit = 15 if self.packet['schema'] in ('phase11.5-r3-transport-b1-v1', 'phase11.5-r3-transport-b2-v1') else 12
+        limit = self.packet['maximum_tcp_connections'] if 'pressure_family' in self.packet else 15 if self.packet['schema'] in ('phase11.5-r3-transport-b1-v1', 'phase11.5-r3-transport-b2-v1') else 12
         require(self.connections <= limit, 'R3 connection budget')
         began = time.monotonic_ns()
         stream = socket.create_connection(('10.77.15.10', 18443), timeout=2)
@@ -271,7 +274,7 @@ class Pressure:
     def run(self):
         p = self.plan
         require(p['boot_id'] == self.packet['boot_id'] and p['device_id'] == self.packet['device_id']
-                and p['seconds'] == 300 and p['browser'] is False and p['address'] == '10.77.15.10'
+                and p['seconds'] == (self.packet['runtime_seconds'] if 'pressure_family' in self.packet else 300) and p['browser'] is False and p['address'] == '10.77.15.10'
                 and os.readlink('/proc/self/ns/net') == p['netns']
                 and os.readlink('/proc/self/ns/mnt') == p['mountns'], 'R3 isolated RF-off controller load')
         contexts = []
@@ -286,7 +289,8 @@ class Pressure:
         previous_epoch = int(initial[0]['value']['value']['launch_epoch'])
         save(self.root / 'pressure-ready.json', dict(packet_sha256=self.sha))
         for index, job in enumerate(self.packet['jobs']):
-            limit = time.monotonic() + 160
+            limit = time.monotonic() + (max(160,int(job['total_duration_ns'])/1e9+60)
+                                        if 'pressure_family' in self.packet else 160)
             while True:
                 values = self.checkpoint()
                 epoch = running_epoch(values[0]['value']['value'], values[1]['value']['value'],

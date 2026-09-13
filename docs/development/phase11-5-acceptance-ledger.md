@@ -49,6 +49,12 @@ claim requires current applicable evidence for every mandatory assertion.
 | --- | --- | --- |
 | [v2-001](phase11-5-r3-v2-validation-001.json) | 41 host CTest groups; updated heap-checker seven-test pass; Pi plan 1,073 checks and 1,937 independent frequency vectors; local desktop/mobile browser checks; both provisional images linked and passed linked checks | Software/build evidence only. New Pi limit UI cases, parent request-builder checks, final image admission and physical extended-job/R3 acceptance remain outstanding. |
 | [v2-002](phase11-5-r3-v2-validation-002.json) | 62 host CTest groups; Pi plan 1,085 checks and 1,937 independent frequency vectors; 6,871 production configuration/runtime checks; virtual-hour backend lifecycle checks; eight reviewed desktop/mobile browser captures with exact duration and numerical event ceilings | Software and local browser evidence only. A later HTTP-envelope boundary repair has a focused follow-up; current physical image admission and extended-job/R3 acceptance remain outstanding. |
+| [v2-003](phase11-5-r3-v2-validation-003.json) | Four affected host groups pass after HTTP body/envelope separation and complete allocator-entry timing | Hardware-free assertions only; unrelated v2-002 checks retain scoped credit. |
+| [v2-004](phase11-5-r3-v2-validation-004.json) | Seven independently audited E0a idle assertions on clean source `7d183978d08d`: extended image admission, 65,536-byte input, 65,537-byte rejection and same-connection recovery, 513-event and over-duration rejection, 512-event/3,600-second LOAD, Loaded ABORT/RELEASE | No RF job armed. Physical hour, Running contention and reclamation remain open. Ten evidence mutations rejected; intact evidence passes again. |
+| [v2-005](phase11-5-r3-v2-validation-005.json) | S0: 10-second Tone and 32-character, 384-event QRSS at 143.250001 seconds completed; three renewals; exact launch/DMA/refill/tail and raw observation cadence verified on `7d183978d08d`, same E0a boot | Staged network-on USB RF admission only. No hour or saturation credit. Ten evidence mutations rejected and intact audit repeated. |
+| [v2-006](phase11-5-r3-v2-validation-006.json) | H0: actual 3,600-second QRSS, 32 characters and 384 events; raw USB authority/cadence, exact launch/DMA/refill/tail, resource guards and final A/B state independently verified; ten core evidence mutations rejected | Preserve the completed physical QRSS hour. The separate combined HTTPS cadence audit failed on observer scheduling; no firmware failure inferred, no saturation or R3 closure claimed. Fresh H1a/H2a packets use a corrected scheduler. |
+| [v2-007](phase11-5-r3-v2-validation-007.json) | H0 component audit: native production WTP and native HTTP full-hour coverage pass; all 182 HTTPS replies authenticate and show supported slot counts; three prior terminal records cross actual 3,600-second expiry correctly | HTTPS cadence remains FAILED under its unchanged bound. Component reporting preserves that failure. This adds scoped terminal TTL evidence, not full RETAINED or RECLAIM closure. |
+| [v2-008](phase11-5-r3-v2-validation-008.json) | Reproduced and repaired unnecessary HTTP outer-padding admission/storage demand; affected API, adapter and real loopback TLS checks pass; both provisional firmware targets build and RF image checks pass | Software/source-patch credit only. Repair is not deployed; final identified image, equivalence assessment and affected physical HTTP/browser/contention checks remain required. Expired old-build credentials and denied loopback binding are recorded separately. |
 
 Raw logs and tested binaries are retained under
 `build/phase11-5-r3-v2-checkpoints/checkpoint-NNN/`; each public checkpoint binds
@@ -213,3 +219,15 @@ inhibited `dbf1d86f0885-dirty`, unchanged. Both Empty/inactive/unowned and origi
 configurations matched. Host and permanent time.local/GPS-PPS were restored.
 The selected 2e43110 [build record](phase11-5-r2-upload-builds.json) binds physical
 and inhibited listener-on images; it does not claim new listener-off layouts.
+
+## R3 v2 scoped validation preservation
+
+Checkpoints v2-006/007 preserve the complete QRSS hour and its separate HTTPS
+cadence finding. Checkpoint v2-010 preserves the complete FSKCW hour and passing
+independent native/Console/HTTPS observations, while retaining its failed full
+USB observer gate. Both are actual source 7d183978/image 38daadfd/boot 8e777dadaa81
+measurements; later-image reuse needs completed impact review and affected
+physical regression. Checkpoint v2-011 preserves zero-RF recovery verification
+and 62 passing host groups. These assertions do not close R3 or advance the
+2/6 family count. H2b DFCW remains in progress. Keep A's tested RF image in place;
+change it only for a demonstrated code defect and retain the repaired image.

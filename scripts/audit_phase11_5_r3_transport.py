@@ -126,7 +126,7 @@ def audit_case_flow(label, group, packets, offset, schema=None):
             counter, = [r for r in group if r['kind'] == 'ack_filter_counters']
             removed, = [r for r in group if r['kind'] == 'ack_filter_removed']
             table = install['value']['table']
-            b2 = schema == SCHEMA_B2
+            b2 = schema in (SCHEMA_B2,'phase11.5-r3-v2-usb-rf-v1')
             if b2:
                 from phase11_5_r3_ack_filter import rules, audit_rules
                 expected_rules = rules(table, port)
@@ -259,7 +259,7 @@ def audit_pressure(packet, rows, usb, packets, clock_offset):
                 extra = set() if label == 'pending-expiry' else {'ciphertext_rx', 'ciphertext_tx', 'fatal_alert'}
                 if label == 'failed-alert-wait':
                     extra |= {'ack_filter_installed', 'ack_filter_counters', 'ack_filter_removed'}
-                    if packet['schema'] == SCHEMA_B2:
+                    if packet['schema'] in (SCHEMA_B2,'phase11.5-r3-v2-usb-rf-v1'):
                         extra.add('server_flight_complete')
                 require(kinds == common | extra, 'Unexpected slot/alert operation')
             flow = audit_case_flow(label, group, packets, clock_offset, packet['schema'])

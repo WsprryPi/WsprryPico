@@ -31,6 +31,14 @@ passes all five operational modes at 138 MHz with QRSS3 workloads, compares
 132/138/150 MHz clocks and retains an unfiltered Pi GPIO4 benchmark.
 
 Optional TLS 1.3 WTP/TCP, the HTTPS browser API and operator UI are implemented
+and include bounded QRSS/FSKCW/DFCW message entry: 32 characters including spaces,
+up to 60 minutes per complete job, subject to the independent 512-event capacity.
+The [extended-job design](docs/development/phase11-5-extended-job-design.md)
+describes exact duration, repetition and local execution. These limits are
+implemented; [resource and physical acceptance](docs/development/phase11-5-acceptance-ledger.md)
+remains in progress.
+
+Network interfaces are implemented
 and host-tested. [Phase 11](docs/development/network-control.md) adds per-device
 certificate tooling and network management. Network control defaults off; target
 TLS/RF coexistence acceptance remains open. [Phase 11.2](docs/development/phase11-2-review.md)

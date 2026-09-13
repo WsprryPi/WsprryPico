@@ -1,0 +1,24 @@
+{
+  "checkpoint": "v2-010",
+  "recorded_utc": "2026-09-13T19:32:20.978442+00:00",
+  "status": "PASS_WITH_RECORDED_SCOPE_AND_SEPARATE_FINDING",
+  "physical_r3_groups_newly_closed": 0,
+  "result_file": "docs/development/phase11-5-r3-v2-h1a-components-result.json",
+  "result_sha256": "d928a8a09c2e7f5ee530ea4b816e8c993724d696f9bb38e03d1f0e3f9c40c746",
+  "source_revision": "7d183978d08d77d5de668911be041bb188c851f5",
+  "image_sha256": "38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1",
+  "boot_id": "8e777dadaa81f4618154d84de0df268a",
+  "validated_assertions": [
+    "Actual full 3600-second FSKCW 32-character/384-event job completed",
+    "Exact DMA/refill/launch/tail deltas and retained Complete/inactive terminal",
+    "Full surviving raw Console/health/authenticated native WTP observation within unchanged bounds",
+    "186 authenticated HTTPS replies with maximum 20.000196111-second start gap pass the unchanged 21-second bound",
+    "Original component audit passes, twelve adversarial mutations reject, intact evidence passes again"
+  ],
+  "open_findings": [
+    "H1A-INFO-PUBLICATION-RACE; full USB observation gate remains FAILED"
+  ],
+  "local_frozen_auditor_manifest": "build/phase11-5-r3-v2-checkpoints/checkpoint-010/manifest.json",
+  "local_frozen_auditor_manifest_sha256": "c8b44141d1994257681def0a7d2e13f199387f4f327e268fa47bf128046df587",
+  "reuse_rule": "Preserve actual FSKCW hour and independent observation passes. Retain the consumed runner failure and missing full USB coverage. No R3 saturation/reclamation closure or reattribution to later firmware."
+}

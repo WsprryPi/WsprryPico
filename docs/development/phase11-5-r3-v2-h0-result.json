@@ -1,0 +1,84 @@
+{
+  "status": "H0_QRSS_PHYSICAL_HOUR_CORE_VERIFIED",
+  "family_closed": false,
+  "packet_sha256": "065cb07e6ace4261caf4ba24cb7d6e1417186d1d7c1445bae25d102b256df3b5",
+  "source_revision": "7d183978d08d77d5de668911be041bb188c851f5",
+  "image_sha256": "38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1",
+  "boot_id": "8e777dadaa81f4618154d84de0df268a",
+  "cadence": {
+    "info": {
+      "samples": 3641,
+      "max_start_gap_ns": 1952547954
+    },
+    "status": {
+      "samples": 729,
+      "max_start_gap_ns": 5000095454
+    },
+    "health": {
+      "samples": 729,
+      "max_start_gap_ns": 5000086602
+    }
+  },
+  "jobs": [
+    {
+      "job_id": "cb5a5b1ef19146c9ad6b95304f6f2275",
+      "mode": "qrss",
+      "epoch": 3,
+      "expected_counter_deltas": {
+        "dma_irqs": 947572,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 947570,
+        "refill_irq_pairs": 947570,
+        "running_tail_links": 1
+      },
+      "duration_ns": 3600000000000,
+      "launch_target_ns": 1841555881000,
+      "post_enable_delay_ns": 8000,
+      "short_words": 13120,
+      "short_interval_ns": 3042318.84057971,
+      "short_75_percent_budget_ns": 2281739.1304347827,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 3,
+        "epoch": "1",
+        "successor_sequence": "2633",
+        "observed_ns": "1016653882000",
+        "remaining_words": 1999,
+        "total_words": 2312
+      }
+    }
+  ],
+  "rf_jobs": 1,
+  "rf_duration_ns_charged": 3600000000000,
+  "maximum_allocator_peak_bytes": 163372,
+  "terminal_records": [
+    {
+      "job_id": "cb5a5b1ef19146c9ad6b95304f6f2275",
+      "state": "complete",
+      "ended_monotonic_ns": "5441556148000",
+      "output_active": false
+    }
+  ],
+  "physical_hour_or_saturation_verified": true,
+  "physical_hour_verified": true,
+  "saturation_verified": false,
+  "evidence_archive_sha256": "633bcd2e5a7082c1cd3f858e19f767416834590bdded15b865c3c3d3d0e20568",
+  "auditor_sha256": "45ba71d4694f5651e9f23b69ff036f9d779f47f2bf98eafb6b60567e6adf4b60",
+  "auditor_mutations_rejected": 10,
+  "intact_reaudit": "PASS",
+  "message_characters": 32,
+  "message_events": 384,
+  "scope": "Actual 3600-second QRSS execution, raw USB authority/cadence, RF counters, resources and final A/B state. Combined HTTPS cadence acceptance remains unresolved; no saturation or R3 closure.",
+  "open_findings": [
+    {
+      "id": "H0-HTTPS-SCHEDULE",
+      "classification": "HARNESS_SCHEDULER_AND_AUDIT_CONTRACT",
+      "expected_auditor_max_start_gap_ns": 21000000000,
+      "observed_bootstrap_gap_ns": 21714092347,
+      "observed_periodic_max_gap_ns": 21002196289,
+      "details": "Initial readiness response shifts first periodic deadline; one-second main-loop sleeps add polling jitter. Strict combined audit rejected cadence. No firmware failure inferred. Core RF hour preserved separately.",
+      "repair": "Independent finite HTTPS scheduling thread, anchored to initial request start, bounded one-second scheduled lateness; prospective packets only. Physical scheduler revalidation pending."
+    }
+  ]
+}

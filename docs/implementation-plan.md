@@ -47,9 +47,9 @@ treated as long-term product documentation.
     Remaining physical gates: [11.5 target resource/contention acceptance](development/phase11-5-plan.md)
     for each PIO clock selected for 11.6; 11.6 per-band/per-mode conducted RF
     acceptance at those clocks; 11.7 final joint review and Phase 11 closure.
-    Implement the [selected QRSS-group limits](#planned-qrss-group-message-and-duration-limits)
-    before 11.6 acceptance of the extended jobs, with affected 11.5 resource
-    checks assessed against the implementation changes.
+    The [selected QRSS-group limits](#planned-qrss-group-message-and-duration-limits)
+    are implemented; affected 11.5 resource and extended-job physical acceptance
+    are in progress before 11.6 acceptance of those jobs.
     An alternative clock selected during 11.6 must repeat affected 11.5 checks.
     The systematic band x mode x clock comparison, final supported configurations,
     filters, spectral qualification and release firmware belong to Phase 13.
@@ -58,10 +58,12 @@ treated as long-term product documentation.
     network and filters, calibrated GPIO-edge timing, supported mode/band
     combinations and a reproducible release UF2.
 
-## Planned QRSS-group message and duration limits
+<a id="planned-qrss-group-message-and-duration-limits"></a>
 
-Decision: selected by the user on 2026-09-13; implementation and acceptance
-remain planned.
+## QRSS-group message and duration limits
+
+Decision: selected by the user on 2026-09-13. Implemented in Pico source
+`7d183978d08d` and Pi companion `bba4024`; final physical acceptance remains open.
 
 - Apply one uniform maximum message length of **32 characters, including
   spaces**, to QRSS, FSKCW and DFCW. Every supported character counts equally;
@@ -85,9 +87,16 @@ remain planned.
   use. Hardware-free checks precede separately authorized physical acceptance;
   long-duration endurance qualification remains in Phase 13.
 
-The current RF profile still limits jobs to 162 events and 110.592 seconds.
-These selected product limits do not claim implemented firmware support or
-physical qualification.
+The implemented RF profile advertises 512 events and 3,600 seconds. The compact
+message compiler expands finite repeats within both bounds; it never streams
+symbol timing after ARM. Worst 32-character plans require 383 events, plus one
+final off event for compact browser submissions. See the
+[extended-job design](development/phase11-5-extended-job-design.md).
+E0a has independently verified idle maximum admission and S0 has completed a
+32-character, 384-event QRSS plan lasting 143.250001 seconds on the new image.
+Physical hour jobs, saturation and reclamation remain open. The
+[incremental ledger](development/phase11-5-acceptance-ledger.md#incremental-v2-validation)
+preserves each applicable passing assertion without resetting unrelated checks.
 
 ## Completed baseline
 

@@ -61,6 +61,15 @@ Host tests, target execution and RF qualification are distinct evidence classes.
 A successful compile or simulated transmission establishes neither on-device
 symbol timing nor spectral performance.
 
+The QRSS, FSKCW and DFCW message compiler accepts at most 32 characters including
+spaces. Complete finite jobs are independently bounded by 3,600 seconds and
+512 events, with all repeats, gaps and required tails included. WTP and HTTP
+transport limits remain unchanged. The compact browser API compiles the message
+before LOAD/ARM; the RP2350 executes the resulting complete job locally.
+See the [extended-job design](docs/development/phase11-5-extended-job-design.md)
+and [current acceptance ledger](docs/development/phase11-5-acceptance-ledger.md)
+for the implemented constraints and remaining physical qualification.
+
 ## Licensing and release identity
 
 Original contributions use the MIT License in LICENSE.md. Dependencies and

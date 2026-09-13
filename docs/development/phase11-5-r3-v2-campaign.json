@@ -37,5 +37,97 @@
     "final_a_revision": "481da3c3ff17",
     "final_a_state": "empty/inactive/unowned",
     "b_unchanged": true
+  },
+  "e0a": {
+    "result_file": "phase11-5-r3-v2-e0a-result.json",
+    "rf_jobs": 0,
+    "flashes": 1,
+    "bootsel_commands": 1,
+    "configuration_writes": 0,
+    "wifi_cycles": 0,
+    "heap_probes": 0,
+    "boot_id": "8e777dadaa81f4618154d84de0df268a"
+  },
+  "s0": {
+    "result_file": "phase11-5-r3-v2-s0-result.json",
+    "rf_jobs": 2,
+    "rf_duration_ns": 153250001000,
+    "flashes": 0,
+    "wifi_cycles": 0,
+    "configuration_writes": 0,
+    "heap_probes": 0
+  },
+  "h0": {
+    "status": "H0_QRSS_PHYSICAL_HOUR_CORE_VERIFIED",
+    "rf_jobs_started": 1,
+    "rf_duration_ns_charged": 3600000000000,
+    "packet_sha256": "065cb07e6ace4261caf4ba24cb7d6e1417186d1d7c1445bae25d102b256df3b5",
+    "result_root": "/home/pi/phase11-5-r3-v2-hour-h0-20260913",
+    "flashes": 0,
+    "wifi_cycles": 0,
+    "configuration_writes": 0,
+    "heap_probes": 0,
+    "result_file": "phase11-5-r3-v2-h0-result.json",
+    "evidence_archive_sha256": "633bcd2e5a7082c1cd3f858e19f767416834590bdded15b865c3c3d3d0e20568",
+    "rf_jobs_completed": 1,
+    "renewals": 80,
+    "open_findings": [
+      "H0-HTTPS-SCHEDULE"
+    ]
+  },
+  "preservation_rule": "Immutable checkpoints v2-001 onward; invalidate only specifically affected assertions, retaining unrelated passes and all failed attempts.",
+  "h1a": {
+    "status": "H1A_PHYSICAL_FSKCW_HOUR_WITH_FAILED_USB_OBSERVER_GATE",
+    "packet_sha256": "c5ecb3dcf84eb61b788ede7c2481d10054831cee6c630c5ca4d9c715bc8a8c8c",
+    "unit": "phase115-r3-v2-h1a.service",
+    "invocation_id": "2a2e60c241e443a8a084f15f428a700b",
+    "rf_jobs_started": 1,
+    "rf_duration_ns_charged": 3600000000000,
+    "flashes": 0,
+    "wifi_cycles": 0,
+    "configuration_writes": 0,
+    "heap_probes": 0,
+    "open_findings": [
+      "H1A-INFO-PUBLICATION-RACE"
+    ],
+    "completion_credit": "PHYSICAL_FSKCW_HOUR_VERIFIED_WITH_FAILED_USB_GATE",
+    "result_file": "phase11-5-r3-v2-h1a-components-result.json",
+    "rf_jobs_completed": 1,
+    "renewals": 43,
+    "evidence_archive_sha256": "b1b3c671d9bcb0df5a30d461cff7489dd821b99aa729682221e6883c04699486"
+  },
+  "h2a": {
+    "status": "RETIRED_BEFORE_EXECUTION",
+    "rf_jobs_started": 0,
+    "rf_duration_ns_charged": 0
+  },
+  "h2b": {
+    "status": "RUNNING_REQUIRES_FINAL_AUDIT",
+    "packet_sha256": "addf150f2832d418c7f198e25edbf29bebaf21a62202fd1a9f072447c0db0da1",
+    "rf_jobs_started": 1,
+    "rf_duration_ns_charged": 3600000000000,
+    "unit": "phase115-r3-v2-h2b.service",
+    "invocation_id": "f5131b1020ae46f182ac898d5b6a8016",
+    "flashes": 0,
+    "wifi_cycles": 0,
+    "configuration_writes": 0,
+    "heap_probes": 0
+  },
+  "image_policy_user_clarification": "Keep current good code on Pico A; change its image only for a demonstrated defect, then retain and test the repaired image. No alternating RF/inhibited images or routine inhibited restoration. B remains read-only.",
+  "r0": {
+    "status": "FAILED_DEPENDENCY_STAGING_BEFORE_DEVICE_ACCESS",
+    "rf_jobs_started": 0,
+    "claim_attempts": 0,
+    "release_attempts": 0,
+    "evidence_archive_sha256": "3ad6d2f4164121c64fa42b90942bce3a16fa9dea8a689adf6647a1449a15ae93"
+  },
+  "r0a": {
+    "status": "IDLE_RECONCILIATION_INDEPENDENTLY_VERIFIED",
+    "original_runner_status": "FAILED_COMPARATOR_TELEMETRY_ASSUMPTION",
+    "rf_jobs_started": 0,
+    "claim_attempts": 1,
+    "release_attempts": 1,
+    "result_file": "phase11-5-r3-v2-r0a-result.json",
+    "evidence_archive_sha256": "52cd41e2a048d2f3029f4871b5f6a4b1f175a5e00cec819d0b11e9d3c267cfd7"
   }
 }

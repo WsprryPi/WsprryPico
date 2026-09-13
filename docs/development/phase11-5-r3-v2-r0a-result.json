@@ -1,0 +1,38 @@
+{
+  "status": "IDLE_RECONCILIATION_INDEPENDENTLY_VERIFIED",
+  "packet_sha256": "951e45b570756b4ea640a3efcdd4a21d935a0256ae29aaf2a72b3af55a4a6a25",
+  "source_revision": "7d183978d08d77d5de668911be041bb188c851f5",
+  "image_sha256": "38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1",
+  "boot_id": "8e777dadaa81f4618154d84de0df268a",
+  "final_a": {
+    "boot_id": "8e777dadaa81f4618154d84de0df268a",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": [
+      {
+        "job_id": "53025ecfb22bb5e40dd194e07226a49b",
+        "state": "complete",
+        "ended_monotonic_ns": "10831740871000",
+        "output_active": false
+      }
+    ]
+  },
+  "final_b": {
+    "boot_id": "feffcd075ab6cb0b74e7e0c2fde6c87f",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": []
+  },
+  "b_unchanged": true,
+  "configuration_unchanged": true,
+  "rf_counters_unchanged": true,
+  "rf_jobs": 0,
+  "claim_attempts": 1,
+  "release_attempts": 1,
+  "original_runner_status": "FAILED",
+  "preserved_finding": "R0a assumed RF telemetry on the inhibited B image"
+}

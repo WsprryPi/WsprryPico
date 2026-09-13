@@ -1,0 +1,42 @@
+{
+  "status": "E0A_IDLE_BOUNDARIES_VERIFIED",
+  "family_closed": false,
+  "packet_sha256": "ddfb38d310f2eb30f5888380013bc87c91e9bbb84d77ef6883a7cea8abb2ec53",
+  "source_revision": "7d183978d08d77d5de668911be041bb188c851f5",
+  "image_sha256": "38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1",
+  "boot_id": "8e777dadaa81f4618154d84de0df268a",
+  "assertions": [
+    "clean_extended_image_idle",
+    "wtp_65536_full_write",
+    "wtp_65537_rejected_same_connection_recovered",
+    "events_513_atomic_rejection",
+    "duration_3600_plus_ns_atomic_rejection",
+    "events_512_duration_3600_idle_load",
+    "loaded_abort_release"
+  ],
+  "rf_jobs": 0,
+  "flashes": 1,
+  "bootsel_commands": 1,
+  "b_unchanged": true,
+  "allocator_peak_bytes": 139924,
+  "heap_capacity_bytes": 220908,
+  "physical_hour_or_contention_verified": false,
+  "evidence_archive_sha256": "2ebe83a616ed3a11218132023593b432cdb726b5bb0b0b982bb24408d657c02c",
+  "auditor_sha256": "33b8e258f3a6ed1894dff864308ebcbef68c39df55ab3431f0d340d293dcc1c6",
+  "evidence_root": "build/phase11-5-r3-v2-idle-e0a/evidence",
+  "auditor_mutations_rejected": 10,
+  "intact_reaudit": "PASS",
+  "host_final_snapshot_sha256": "11d28a6e7df883220ef6fcf0cb1c1b02974d9e9dc43a45d3b9645fd1e1708479",
+  "host_final": {
+    "observed_utc_ns": 1789316915236839534,
+    "host_boot": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+    "pid": 1957,
+    "exe_sha256": "c19461bc6d2ebe7cae61798ad9acae8d43dfbec3ee57c288e4ef41e9c82b8273",
+    "service_state": "active"
+  },
+  "limitations": [
+    "Idle admission only; no RF job was armed.",
+    "No physical hour, Running contention or reclamation-cycle credit.",
+    "C0 exact failed request remains unproven; this is current-image idle maximum acceptance."
+  ]
+}

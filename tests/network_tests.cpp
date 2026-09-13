@@ -320,6 +320,18 @@ void maximum_http_job() {
                        std::string(32, '6') +
                        "\",\"operation\":\"HELLO\",\"body\":{\"versions\":[\"WTP/1\"],"
                        "\"client_name\":\"maximum\",\"client_version\":\"1\"}}";
+    {
+        Fixture padded;
+        auto outer_padding = body;
+        outer_padding.append(network::max_http_body - outer_padding.size(), ' ');
+        wtp::available_memory = []() -> std::size_t { return 90000; };
+        // The HTTP parser already owns these bytes. Trailing JSON whitespace
+        // needs no second large envelope or decoded-field allocation.
+        REQUIRE(padded.api.handle(request("POST", "/api/v1/jobs", outer_padding), "cert-a",
+                                  "127.0.0.1:8443").status == 200);
+        REQUIRE(padded.service.status().state == wtp::State::Empty);
+        wtp::available_memory = nullptr;
+    }
     // Padding inside the operation body survives the internal WTP envelope.
     body.insert(body.size() - 2, network::max_http_body - body.size(), ' ');
     REQUIRE(body.size() == 32768);
@@ -334,6 +346,10 @@ void maximum_http_job() {
     REQUIRE(parser.receive(bytes(wire)) == wire.size());
     REQUIRE(parser.ready() && !parser.failed());
     REQUIRE(f.api.handle(parser.request(), "cert-a", "127.0.0.1:8443").status == 200);
+    wtp::available_memory = []() -> std::size_t { return 90000; };
+    // Unlike outer padding, this body still needs a large internal envelope.
+    REQUIRE(f.api.handle(parser.request(), "cert-a", "127.0.0.1:8443").status == 503);
+    wtp::available_memory = nullptr;
     REQUIRE(f.service.status().state == wtp::State::Empty);
     network::HttpParser oversized;
     oversized.receive(bytes(header(body.size() + 1)));

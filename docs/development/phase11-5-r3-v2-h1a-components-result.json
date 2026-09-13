@@ -1,0 +1,95 @@
+{
+  "status": "H1A_PHYSICAL_FSKCW_HOUR_WITH_FAILED_USB_OBSERVER_GATE",
+  "packet_sha256": "c5ecb3dcf84eb61b788ede7c2481d10054831cee6c630c5ca4d9c715bc8a8c8c",
+  "source_revision": "7d183978d08d77d5de668911be041bb188c851f5",
+  "image_sha256": "38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1",
+  "boot_id": "8e777dadaa81f4618154d84de0df268a",
+  "physical_hour_verified": true,
+  "family_closed": false,
+  "full_usb_observation_gate": "FAILED",
+  "failure": {
+    "sequence": 80244,
+    "kind": "failure",
+    "value": {
+      "worker": "wtp",
+      "error": "Fresh INFO required",
+      "type": "ValueError"
+    },
+    "monotonic_ns": 270355611017663,
+    "utc_ns": 1789325854869583525
+  },
+  "jobs": [
+    {
+      "job_id": "53025ecfb22bb5e40dd194e07226a49b",
+      "mode": "fskcw",
+      "epoch": 4,
+      "expected_counter_deltas": {
+        "dma_irqs": 947572,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 947570,
+        "refill_irq_pairs": 947570,
+        "running_tail_links": 1
+      },
+      "duration_ns": 3600000000000,
+      "launch_target_ns": 7231740657000,
+      "post_enable_delay_ns": 8000,
+      "short_words": 13120,
+      "short_interval_ns": 3042318.84057971,
+      "short_75_percent_budget_ns": 2281739.1304347827,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 4,
+        "epoch": "1",
+        "successor_sequence": "2633",
+        "observed_ns": "1016653882000",
+        "remaining_words": 1999,
+        "total_words": 2312
+      }
+    }
+  ],
+  "coverage": {
+    "native_wire": {
+      "samples": 3722,
+      "maximum_start_gap_ns": 2843170081
+    },
+    "info": {
+      "samples": 3720,
+      "maximum_start_gap_ns": 1593119191
+    },
+    "health": {
+      "samples": 744,
+      "maximum_start_gap_ns": 5000092906
+    },
+    "native_status": {
+      "samples": 3678,
+      "maximum_start_gap_ns": 1551331128
+    },
+    "https_status": {
+      "samples": 186,
+      "maximum_start_gap_ns": 20000196111
+    }
+  },
+  "native": {
+    "connections": 1,
+    "operations": {
+      "HELLO": 1,
+      "STATUS": 3722,
+      "CAPS": 1
+    }
+  },
+  "terminal_record": {
+    "job_id": "53025ecfb22bb5e40dd194e07226a49b",
+    "state": "complete",
+    "ended_monotonic_ns": "10831740871000",
+    "output_active": false
+  },
+  "rf_duration_ns_charged": 3600000000000,
+  "source_of_completion": "Raw authenticated native WTP and independent Console counters; original RF runner remains failed",
+  "limitations": [
+    "No full-run USB observer credit",
+    "No saturation or reclamation closure",
+    "Source-impact assessment required for later firmware changes"
+  ],
+  "evidence_archive_sha256": "b1b3c671d9bcb0df5a30d461cff7489dd821b99aa729682221e6883c04699486"
+}

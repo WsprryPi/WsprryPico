@@ -64,7 +64,8 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
     const bool message_job = operation == "LOAD_MESSAGE";
     // Browser schema is versioned by the URL. WTP envelope/codec stays internal.
     std::string payload;
-    payload.reserve(r.body.size() + 128);
+    payload.reserve(body->get("session_id")->raw.size() + body->get("request_id")->raw.size() +
+                    body->get("operation")->raw.size() + body->get("body")->raw.size() + 128);
     payload =
         "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":" +
         std::string(body->get("session_id")->raw) +
@@ -135,7 +136,14 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
 }
 HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal,
                                 std::string_view authority, std::uint64_t transaction) {
-    if (!wtp::memory_admitted(r.body.size() * 2 + 16384))
+    // The parser already owns the complete HTTP body. Outer JSON whitespace
+    // neither enters the internal envelope nor creates decoded fields; account
+    // for additional working storage without reserving that padding twice.
+    const auto first = r.body.find_first_not_of(" \t\r\n");
+    const auto working_bytes = first == std::string::npos
+                                   ? 0
+                                   : r.body.find_last_not_of(" \t\r\n") - first + 1;
+    if (!wtp::memory_admitted(working_bytes * 2 + 16384))
         return http_error(503, "resource_exhausted");
     if (r.body.size() > max_http_body)
         return http_error(413, "body_too_large");

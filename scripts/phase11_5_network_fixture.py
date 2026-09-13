@@ -41,13 +41,28 @@ UNIT_SUFFIXES = ('cleanup.timer', 'cleanup.service', 'client.service', 'dhcp.ser
                  'capture-ap.service', 'capture-client.service', 'campaign.service', 'time-local.service')
 
 
+def runtime_budget(packet):
+    extended = packet.get('schema') == 'phase11.5-r3-v2-fixture-v1'
+    runtime = packet.get('network_runtime_seconds', RUN_SECONDS)
+    restoration = packet.get('network_restoration_seconds', 600) if extended else 600
+    require(type(runtime) is int and 0 < runtime <= (28800 if extended else RUN_SECONDS),
+            'Bounded host runtime')
+    require(type(restoration) is int and 0 < restoration <= (900 if extended else 600),
+            'Bounded host restoration')
+    if extended:
+        require(packet.get('family') == 'R3' and packet.get('configuration_writes') == 0 and
+                packet.get('standing_authority') == 'R3-COMPLETE-20260913-v2',
+                'Extended fixture authority/scope')
+    return runtime, restoration
+
+
 def fixture_wifi(root, packet, mdns, dns):
     """Select credentials before host mutation; retained inputs never rewrite the DUT."""
     expected_ntp = 'time.local' if mdns else TIME_NAME if dns else AP_ADDRESS
     retained = packet.get('retained_wifi_sha256')
     if retained is None:
         return dict(ssid='WsprryPico-Phase115', password=secrets.token_hex(16), ntp_ipv4=expected_ntp)
-    require(packet.get('schema') == 'phase11.5-r3-retained-fixture-v1' and packet.get('family') == 'R3'
+    require(packet.get('schema') in ('phase11.5-r3-retained-fixture-v1','phase11.5-r3-v2-fixture-v1') and packet.get('family') == 'R3'
             and packet.get('configuration_writes') == 0 and mdns and not dns,
             'Retained Wi-Fi requires the explicit no-write R3 lifecycle')
     raw = (root / 'retained-wifi.json').read_bytes()
@@ -200,23 +215,23 @@ class Fixture:
             from phase11_5_time_local import baseline, DROPIN, RUNTIME
             require(not DROPIN.exists() and not RUNTIME.exists(), 'Temporary time.local owner exists')
             permanent = baseline()
-        runtime = packet.get('network_runtime_seconds', RUN_SECONDS)
-        require(type(runtime) is int and 0 < runtime <= RUN_SECONDS, 'Bounded host runtime')
+        runtime, restoration = runtime_budget(packet)
         absolute = packet.get('absolute_host_deadline_monotonic_ns')
         if absolute is not None:
-            require(type(absolute) is int and time.monotonic_ns() + (runtime+600)*1_000_000_000
+            require(type(absolute) is int and time.monotonic_ns() + (runtime+restoration)*1_000_000_000
                     <= absolute, 'Original host restoration deadline would be exceeded')
         self.state = {'version': 1, 'token': 'Phase115 fixture ' + secrets.token_hex(16),
                       'host_boot': HOST_BOOT, 'before': before, 'radio': radio, 'units': [],
                       'time_server_dns': dns_fixture, 'runtime_seconds': runtime,
+                      'restoration_seconds': restoration,
                       'time_server_mdns': mdns_fixture, 'time_local_before': permanent}
         self.save()
         # Arm cleanup before pausing the timer or touching a radio. Cleanup owns
         # only host resources, and cannot erase/reboot an unknown Pico state.
         self.cmd(['systemd-run', '--quiet', '--unit=' + PREFIX + '-cleanup',
             '--description=' + self.state['token'], '--on-active=' + str(runtime) + 's',
-            '--property=UMask=0077', '--property=RuntimeMaxSec=600',
-            '--property=TimeoutStartSec=600', '--property=WorkingDirectory=' + str(self.root),
+            '--property=UMask=0077', '--property=RuntimeMaxSec=' + str(restoration),
+            '--property=TimeoutStartSec=' + str(restoration), '--property=WorkingDirectory=' + str(self.root),
             '--property=StandardOutput=append:' + str(self.root / 'cleanup.log'),
             '--property=StandardError=append:' + str(self.root / 'cleanup.log'),
             '/usr/bin/python3', str(Path(__file__).resolve()), 'cleanup', '--root', str(self.root), '--run'])

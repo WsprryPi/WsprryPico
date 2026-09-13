@@ -51,7 +51,9 @@ class TransportPressure(Pressure):
 
     def __init__(self, root, emit):
         super().__init__(root, emit)
-        require(self.packet['schema'] in (SCHEMA, SCHEMA_B2), 'Transport runner requires B1/B2 packet')
+        require(self.packet['schema'] in (SCHEMA, SCHEMA_B2) or
+                (self.packet['schema']=='phase11.5-r3-v2-usb-rf-v1' and self.packet.get('pressure_family')=='transport'),
+                'Transport runner requires a reviewed B1/B2 or v2 transport packet')
         self.stalled_stream = None
 
     def run(self):
@@ -92,7 +94,7 @@ class TransportPressure(Pressure):
     @contextmanager
     def ack_filter(self, stream):
         self.checkpoint()
-        b2 = self.packet['schema'] == SCHEMA_B2
+        b2 = self.packet['schema'] == SCHEMA_B2 or self.packet.get('ack_filter_policy')=='zero-payload-after-server-flight-v1'
         table = ('r3b2_' if b2 else 'r3b1_') + self.packet['nonce'][:16]
         port = stream.getsockname()[1]
         if b2:
@@ -177,7 +179,7 @@ class TransportPressure(Pressure):
                     return dict(alert=116, close=self.closed(stream, end))
                 raise ValueError('Missing target fatal alert')
 
-            if suppress and self.packet['schema'] == SCHEMA_B2:
+            if suppress and (self.packet['schema'] == SCHEMA_B2 or self.packet.get('ack_filter_policy')=='zero-payload-after-server-flight-v1'):
                 step(tls.do_handshake, defer_final_flush=True)
                 identity()
                 require(outgoing.pending > 0, 'Missing deferred client final flight')

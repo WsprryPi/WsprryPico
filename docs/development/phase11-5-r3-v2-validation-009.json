@@ -1,0 +1,24 @@
+{
+  "checkpoint": "v2-009",
+  "recorded_utc": "2026-09-13T19:18:20.734210+00:00",
+  "status": "PASS_WITH_RECORDED_SCOPE",
+  "physical_r3_groups_newly_closed": 0,
+  "validated_assertions": [
+    "Four observer publication/freshness and read-continuation regressions pass",
+    "Seven finite absolute HTTPS scheduler regressions remain passing"
+  ],
+  "evidence_artifacts": {
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-009/docs/development/phase11-5-r3-v2-h1a-observer-review.md": "fbf370830855239d94b530043a396eaadbce109fb6ac95e96b0127114ed436f6",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-009/phase11_5_r3_v2_nominal_schedule_tests.log": "fe836cbecd3b6b4f70bec51b58d30c3e45ad72ae7fb3cb63421a0f7337e651ae",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-009/phase11_5_r3_v2_observer_race_tests.log": "e6ec182765cd965f2837d8eeaef5a64af48a104f245cd1a0b7281559194c57c1",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-009/scripts/phase11_5_r3_v2_rf.py": "67a13ac6596cbec7905d623a17d934b2d439c52cb379472733865ab09d01d254",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-009/tests/phase11_5_r3_v2_nominal_schedule_tests.py": "fb60123df54e14be5e483af9af947ee35265935044b16e678c6486e3fbe4d1df",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-009/tests/phase11_5_r3_v2_observer_race_tests.py": "b7518919072396fb1fe4a129ba78f7096f06ae2cd698812f928608c663ae3f7a"
+  },
+  "limitations": [
+    "Hardware-free harness repair only",
+    "H1a frozen failure retained; physical component audit pending",
+    "H2a retired before execution with zero RF starts; corrected fresh H2b staged but not launched"
+  ],
+  "reuse_rule": "Keep v2-001 through v2-008 and exact prior assertions. Do not attribute this prospective harness repair to the consumed H1a runner."
+}

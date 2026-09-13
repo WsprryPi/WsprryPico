@@ -2,15 +2,26 @@
 
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).
 R2 is **7/7 jobs**; R1 remains **5/5** through documented affected-check reuse.
-The selected candidate is 2e43110 at physical 138 MHz/divider 1/RAM/listener on.
+The R1/R2 historical candidate is 2e43110 at physical 138 MHz/divider 1/RAM/listener on.
 At R2 closure devices and host were restored with CONFIG 34/34. R3–R6 remain open and
 full accepted configurations remain empty. Original failed assessments are retained.
 
-Current: R3 is OPEN after B2 passed fourteen further transport cases and C0
+Current: accepted [R3-COMPLETE-20260913-v2](phase11-5-r3-complete-authorization-prompt.md)
+authorizes the ongoing complete implementation and finite physical campaign.
+Pico `7d183978d08d` and Pi `bba4024` implement the selected 32-character and
+3,600-second limits. E0a independently passed seven idle assertions; S0 passed
+two finite RF jobs, including a 32-character, 384-event QRSS message lasting
+143.250001 seconds. [Immutable validation checkpoints](phase11-5-acceptance-ledger.md#incremental-v2-validation)
+retain scoped passes. Physical hour, saturation and reclamation acceptance remain
+open. A is on the new image, retaining the dedicated test configuration; see
+[campaign progress](phase11-5-r3-v2-progress.md) for current execution state.
+
+Historical pre-v2 status: R3 was OPEN after B2 passed fourteen further transport cases and C0
 confirmed a target allocation panic during idle 65,536-byte admission. A is
 reconciled inactive/unowned in recovery; diagnostic firmware requires new flash
 authority. The exact [D0 diagnostic packet](phase11-5-r3-allocation-d0-execution.md)
-is prepared and awaiting approval. See the [full remaining-work prompt](phase11-5-r3-final-completion-prompt.md)
+was prepared awaiting approval; accepted v2 superseded that approval boundary.
+See the historical [remaining-work prompt](phase11-5-r3-final-completion-prompt.md)
 and [R3 execution and adversarial review](phase11-5-r3-completion-review.md).
 A1g's observation rule was approved; network admission then failed before RF.
 The [network diagnosis](phase11-5-r3-network-diagnosis.md) distinguishes AP/DUT

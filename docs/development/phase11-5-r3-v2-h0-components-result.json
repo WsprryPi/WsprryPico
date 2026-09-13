@@ -1,0 +1,158 @@
+{
+  "status": "H0_QRSS_PHYSICAL_HOUR_WITH_SEPARATE_CADENCE_FINDINGS",
+  "family_closed": false,
+  "packet_sha256": "065cb07e6ace4261caf4ba24cb7d6e1417186d1d7c1445bae25d102b256df3b5",
+  "source_revision": "7d183978d08d77d5de668911be041bb188c851f5",
+  "image_sha256": "38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1",
+  "boot_id": "8e777dadaa81f4618154d84de0df268a",
+  "cadence": {
+    "info": {
+      "samples": 3641,
+      "max_start_gap_ns": 1952547954
+    },
+    "status": {
+      "samples": 729,
+      "max_start_gap_ns": 5000095454
+    },
+    "health": {
+      "samples": 729,
+      "max_start_gap_ns": 5000086602
+    }
+  },
+  "jobs": [
+    {
+      "job_id": "cb5a5b1ef19146c9ad6b95304f6f2275",
+      "mode": "qrss",
+      "epoch": 3,
+      "expected_counter_deltas": {
+        "dma_irqs": 947572,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 947570,
+        "refill_irq_pairs": 947570,
+        "running_tail_links": 1
+      },
+      "duration_ns": 3600000000000,
+      "launch_target_ns": 1841555881000,
+      "post_enable_delay_ns": 8000,
+      "short_words": 13120,
+      "short_interval_ns": 3042318.84057971,
+      "short_75_percent_budget_ns": 2281739.1304347827,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 3,
+        "epoch": "1",
+        "successor_sequence": "2633",
+        "observed_ns": "1016653882000",
+        "remaining_words": 1999,
+        "total_words": 2312
+      }
+    }
+  ],
+  "rf_jobs": 1,
+  "rf_duration_ns_charged": 3600000000000,
+  "maximum_allocator_peak_bytes": 163372,
+  "terminal_records": [
+    {
+      "job_id": "cb5a5b1ef19146c9ad6b95304f6f2275",
+      "state": "complete",
+      "ended_monotonic_ns": "5441556148000",
+      "output_active": false
+    }
+  ],
+  "physical_hour_or_saturation_verified": true,
+  "physical_hour_verified": true,
+  "saturation_verified": false,
+  "all_contention_cadence_passed": false,
+  "cadence_findings": [
+    {
+      "family": "https",
+      "coverage_and_cadence_pass": false,
+      "running_span_pass": true,
+      "maximum_start_gap_ns": 21714092347,
+      "required_maximum_start_gap_ns": 21000000000
+    }
+  ],
+  "native": {
+    "connections": 1,
+    "operations": {
+      "HELLO": 1,
+      "STATUS": 3645,
+      "CAPS": 1
+    }
+  },
+  "contention_coverage": {
+    "native_wire": {
+      "status": "PASS",
+      "samples": 3632,
+      "max_start_gap_ns": 1944378558
+    },
+    "native_http": {
+      "status": "PASS",
+      "samples": 3199,
+      "max_start_gap_ns": 4980820322
+    },
+    "https": {
+      "status": "FAILED",
+      "samples": 182,
+      "max_start_gap_ns": 21714092347
+    }
+  },
+  "https_requests": 182,
+  "message_characters": 32,
+  "message_events": 384,
+  "prior_terminal_expiry": [
+    {
+      "job_id": "7a18c3546cc24988b5fb7b16279fd8ff",
+      "expires_monotonic_ns": 4789909397000,
+      "observed_before_expiry": true,
+      "observed_after_expiry": true,
+      "last_present_bracket": {
+        "lower_ns": 4785480566000,
+        "upper_ns": 4788190100000
+      },
+      "first_absent_bracket": {
+        "lower_ns": 4790479292000,
+        "upper_ns": 4792477862000
+      },
+      "ambiguous_boundary_samples": 0,
+      "scope": "Existing terminal TTL only; not capacity/LRU/replay/reclamation"
+    },
+    {
+      "job_id": "767b2f4dcf6140f2abd69b786da4694e",
+      "expires_monotonic_ns": 4616654508000,
+      "observed_before_expiry": true,
+      "observed_after_expiry": true,
+      "last_present_bracket": {
+        "lower_ns": 4610479971000,
+        "upper_ns": 4612480761000
+      },
+      "first_absent_bracket": {
+        "lower_ns": 4620479395000,
+        "upper_ns": 4622480175000
+      },
+      "ambiguous_boundary_samples": 1,
+      "scope": "Existing terminal TTL only; not capacity/LRU/replay/reclamation"
+    },
+    {
+      "job_id": "830759f7779043e5ae89ec84ea9c8112",
+      "expires_monotonic_ns": 3605085340000,
+      "observed_before_expiry": true,
+      "observed_after_expiry": true,
+      "last_present_bracket": {
+        "lower_ns": 3600479527000,
+        "upper_ns": 3602479688000
+      },
+      "first_absent_bracket": {
+        "lower_ns": 3605479275000,
+        "upper_ns": 3608210783000
+      },
+      "ambiguous_boundary_samples": 0,
+      "scope": "Existing terminal TTL only; not capacity/LRU/replay/reclamation"
+    }
+  ],
+  "evidence_archive_sha256": "633bcd2e5a7082c1cd3f858e19f767416834590bdded15b865c3c3d3d0e20568",
+  "auditor_sha256": "289341857fb85d4ab6cbb44d0bdcb96e1e62df8c036a1137595a16d49ca586a8",
+  "strict_combined_audit": "FAILED: HTTPS cadence; unchanged bound",
+  "component_audit_test": "PASS: strict rejection retained, native components retained, altered certificate rejected, intact component audit repeated"
+}

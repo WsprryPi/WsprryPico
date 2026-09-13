@@ -1,0 +1,25 @@
+{
+  "checkpoint": "v2-006",
+  "recorded_utc": "2026-09-13T18:23:03.996701+00:00",
+  "status": "PASS_WITH_RECORDED_SCOPE_AND_SEPARATE_FINDING",
+  "physical_r3_groups_newly_closed": 0,
+  "result_file": "docs/development/phase11-5-r3-v2-h0-result.json",
+  "result_sha256": "10c85972c7071d31e380e1ceff62b6cb18c752565ac71686ed7f87392a81383d",
+  "source_revision": "7d183978d08d77d5de668911be041bb188c851f5",
+  "image_sha256": "38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1",
+  "boot_id": "8e777dadaa81f4618154d84de0df268a",
+  "validated_assertions": [
+    "Actual complete 3600-second QRSS with 32 question marks and 384 events",
+    "Exact launch, DMA/refill/tail and matching Complete/inactive terminal state",
+    "One-second INFO and five-second STATUS/health observations within declared core audit bounds",
+    "Zero observed allocation failures, valid guards and RF critical-service bounds",
+    "Final A/B identity, retained configuration and inactive/unowned output",
+    "Core evidence auditor rejects ten mutations and passes intact evidence again"
+  ],
+  "open_findings": [
+    "H0-HTTPS-SCHEDULE; combined nominal HTTPS cadence acceptance is withheld"
+  ],
+  "local_frozen_auditor_manifest": "build/phase11-5-r3-v2-checkpoints/v2-006/manifest.json",
+  "local_frozen_auditor_manifest_sha256": "2a91c7adb993e3056f6c46795c7af950ce18a2ef06e912364c444e6baa6fac3e",
+  "reuse_rule": "Preserve each validated assertion unless a demonstrated source/configuration/workload/observation dependency changes. The independent HTTPS scheduler finding does not invalidate the completed physical QRSS hour. Do not overwrite this checkpoint."
+}

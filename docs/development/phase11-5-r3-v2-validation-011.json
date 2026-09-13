@@ -1,0 +1,29 @@
+{
+  "checkpoint": "v2-011",
+  "recorded_utc": "2026-09-13T19:40:26.310069+00:00",
+  "status": "PASS_WITH_RECORDED_SCOPE_AND_SEPARATE_FINDINGS",
+  "physical_r3_groups_newly_closed": 0,
+  "result_file": "docs/development/phase11-5-r3-v2-r0a-result.json",
+  "result_sha256": "935243358fb3de2f1bfe5fb333987b5458f579589d72262aca38607325c018d1",
+  "validated_assertions": [
+    "R0a raw single idle CLAIM/RELEASE and final inactive/unowned A/B independently verified",
+    "Configuration, comparator source and A RF counters unchanged",
+    "Six evidence-removal mutations reject, intact recovery evidence passes again",
+    "Three reconciliation unit tests cover dependency closure, inactive authority and inhibited comparator schema",
+    "All 62 host test groups pass including real loopback TLS"
+  ],
+  "evidence_artifacts": {
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-011/r3-v2-pre-image-ctest.log": "dbbbb38b9331c233218699f37159151e8a4464361edf47d285c2c89427c87936",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-011/r3-v2-r0a-audit-tests.log": "884398754d4055c030688dd51df8e20f09ab15610d928f513a3f03bf8835322f",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-011/r3-v2-reconcile-unit-tests.log": "edb4e2159c923ea45a32656078835cdf531c3d7b414c670dd786978875cb0678",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-011/scripts/audit_phase11_5_r3_v2_reconcile.py": "3331f365cda250e8ae48a63ab78ab92177b72798a628cab6ddab85462efa1bbb",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-011/scripts/phase11_5_r3_v2_reconcile.py": "db3ca2ac0007a3713fbd620322e5f9688159a0dc33b055eeccda807a753c4c6b",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-011/tests/phase11_5_r3_v2_reconcile_audit_tests.py": "57c3f81135dccfe4d6ad5334e5feb76c136487b3955c28dce24c3f605fbec17e",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-011/tests/phase11_5_r3_v2_reconcile_tests.py": "dd2a64824e2729f3e665f74ef0f1e0d74dbbf36b26ca2e60b1affc9bbd7ddae1"
+  },
+  "open_findings": [
+    "R0 missing schema caused zero device/mutation work; retained",
+    "R0a producer summary stays FAILED for inhibited B RF-field assumption; independently verified recovery is separate"
+  ],
+  "reuse_rule": "Retain original failed recovery summaries. No repeated CLAIM/RELEASE or RF is needed for a corrected offline comparator-field audit. Full R3 remains open."
+}

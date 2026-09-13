@@ -1,0 +1,40 @@
+{
+  "checkpoint": "v2-008",
+  "recorded_utc": "2026-09-13T18:56:17.242047+00:00",
+  "status": "PASS_WITH_RECORDED_SCOPE",
+  "physical_r3_groups_newly_closed": 0,
+  "source_base": "7d183978d08d77d5de668911be041bb188c851f5",
+  "source_patch_sha256": "3791e0640c783221dfce55dc4ee004f629645c1cdbc8d8a4b3703aa01460ea72",
+  "validated_assertions": [
+    "Original HTTP outer-padding admission defect reproduced by new host regression",
+    "Corrected maximum padded HELLO admits with 90000 bytes available; meaningful internal-envelope padding retains its working-space gate",
+    "HTTP/API and network adapter tests pass; real loopback TLS suite passes with required socket permission",
+    "Both firmware targets cross-link; provisional RF UF2 converted and image reservation/stack/heap/renderer checks pass"
+  ],
+  "evidence_artifacts": {
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-008/r3-http-padding-firmware-build.log": "8cd4e087d7a36df0e062b5ee6e07f7673aa429ece83e449e3ae71e810e3307f1",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-008/r3-http-padding-final-unit.log": "4dba68fd2c35980736d3c362bbc87b1657918d4f3a928a82d884fa54bcff66af",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-008/r3-http-padding-tls-unsandboxed.log": "e20983b3057be760b559f567b73fecb643ca96cf1a62311571f46a0136668437",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-008/r3-http-padding-before-test.log": "cecf47bb8835594196d473ae2214002716bcceb55cd92c34ea7b90656a223699",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-008/r3-http-padding-before-build.log": "21433a4d10fbf8f2d186fe56391c2168033f3a965e28612bd29aaf6bf9dd4a09",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-008/r3-http-padding-reproduction-test.log": "fb73e455ae9dfaaa273e6001d8fb31f8baf932f1efbf8d243ce507eff6383786",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-008/r3-http-padding-fixed-tests.log": "4de75926dc953c30b3e3a0f7d31c0d5ef8f1a0b12fb4b68f6dfe12b9837f36e1",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-008/r3-http-padding-reproduction-build.log": "8adf663362883eacfebd949ea1747c166a40ed68d3d979cb18247e530887dca4",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-008/http-admission.patch": "3791e0640c783221dfce55dc4ee004f629645c1cdbc8d8a4b3703aa01460ea72",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-008/r3-http-padding-fixed-build.log": "ea5cf216725238dd0ed4882a415939c6cee15e3160d656bb86fe9052c43c3b57",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-008/r3-http-padding-image-check.log": "84dd0725cef34735116a154a4d2be4e5ab6680aaa9df6be40c5f63a3431fe0c5",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-008/tests/network_tests.cpp": "f70b5305c387a11cb4d3c0b182ab946c419abfb53501aa95508651e350511732",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-008/src/network/api.cpp": "a333cccc1eeddcc9dd9464ae2c7a5e39c4d4176aa109df383095692267f7b181"
+  },
+  "provisional_image_manifest": "build/phase11-5-r3-v2-checkpoints/http-padding-provisional/manifest.json",
+  "provisional_image_manifest_sha256": "e0b134597aa1180ccfe74c092206290d6a064e4036b67ca0b3b2d678920c64dd",
+  "excluded_attempts": [
+    "Old build-host certificate expiration prevented compilation; stale executable output is not credited",
+    "Sandbox blocked loopback TLS listener startup; unchanged rebuilt TLS suite passed with required permission"
+  ],
+  "limitations": [
+    "Repair not deployed",
+    "Final clean source/image identity, completed equivalence review and affected physical HTTP/browser/contention acceptance remain required"
+  ],
+  "reuse_rule": "Preserve these exact source-patch software passes. Earlier physical mode-hour checkpoints keep their actual 7d source/image identity and scoped assertions; do not relabel them as measurements of this provisional image."
+}
