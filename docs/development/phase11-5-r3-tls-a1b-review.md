@@ -1,5 +1,10 @@
 # R3 A1b corrected packet review — September 12, 2026
 
+**Consumed historical packet:** A1b failed at the first HTTP check; one Tone
+completed and the second was not submitted. The [failure review](phase11-5-r3-tls-a1b-failure-review.md)
+records the repairs and the user's subsequent choice to retain the test
+configuration. Do not replay the preparation below.
+
 The [fresh A1b execution packet](phase11-5-r3-tls-a1b-execution.md) freezes the
 repaired pressure driver and audit, two new finite-job identities, and a separate
 proposed CONFIG **36→38** allowance. Its [prepared record](phase11-5-r3-tls-a1b-prepared.json)

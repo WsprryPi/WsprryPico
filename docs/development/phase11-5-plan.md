@@ -21,6 +21,21 @@ must reconcile available tools with this plan before obtaining any missing
 bounded hardware/network authority. Old supervisors must not be run under new
 labels or modified implicitly to implement this plan.
 
+## Current campaign baseline
+
+After the [A1b failure](phase11-5-r3-tls-a1b-failure-review.md), the user explicitly
+chose to **keep the test configuration** between runs. Original-configuration
+restoration is no longer the default for subsequent packets. Record actual
+persistent writes and reserve any cleanup writes a particular test needs, but
+do not add two CONFIG saves merely to return to an obsolete pre-campaign baseline.
+The counter is bookkeeping, not a configuration version or an acceptance goal.
+
+A currently retains the physical 2e43110 image and a completed inactive/unowned
+job; B is unchanged and the host fixture is restored. The prior restoration timer
+is stopped. Future execution must first reconcile that terminal state and adapt
+the lifecycle to the retained baseline. This preference does not authorize more
+RF or make the old execution helpers compatible without review.
+
 ## Purpose and intended use
 
 Accept the resource and contention envelope of an exact Pico 2 W / RP2350

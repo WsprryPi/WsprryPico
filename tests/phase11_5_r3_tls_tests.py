@@ -286,6 +286,56 @@ class R3Tests(unittest.TestCase):
             with self.assertRaises((ValueError, json.JSONDecodeError)):
                 response(bad, p, p['jobs'][0])
 
+    def test_actual_firmware_http_serializer_and_status_code_semantics(self):
+        fixture = json.loads((Path(__file__).parent / 'fixtures/phase11_5_r3_http_serializer.json').read_text())
+        source = Path(__file__).resolve().parents[1] / fixture['provenance']['source']
+        self.assertEqual(digest(source), fixture['provenance']['source_sha256'])
+        wire = bytes.fromhex(fixture['response_hex'])
+        self.assertTrue(wire.startswith(b'HTTP/1.1 200 Response\r\n'))
+        p, job = fixture['packet'], fixture['job']
+        for phrase in (b'Response', b'OK', b'', b'Other description'):
+            self.assertEqual(response(wire.replace(b'200 Response', b'200 ' + phrase), p, job)['transport'],
+                             dict(active=2, pending=0))
+        for line in (b'HTTP/1.1 503 Response', b'HTTP/1.1 201 OK', b'HTTP/1.0 200 OK',
+                     b'HTTP/1.1 2000 OK', b'HTTP/1.1 200', b'HTTP/1.1 200 OK\x00'):
+            with self.assertRaises(ValueError):
+                response(line + wire[wire.index(b'\r\n'):], p, job)
+
+    def test_rejected_http_status_retains_exact_request_and_response(self):
+        fixture = json.loads((Path(__file__).parent / 'fixtures/phase11_5_r3_http_serializer.json').read_text())
+        wire = bytes.fromhex(fixture['response_hex']).replace(b'200 Response', b'503 Response')
+        p = object.__new__(Pressure)
+        p.packet, p.job = fixture['packet'], fixture['job']
+        stream = MagicMock()
+        stream.__enter__.return_value = stream
+        stream.send.side_effect = len
+        stream.recv.return_value = wire
+        p.tls = lambda *args: stream
+        p.invoke = lambda stream, method, deadline, *args: method(*args)
+        emitted = []
+        p.emit = lambda kind, value: emitted.append((kind, value))
+        with self.assertRaisesRegex(ValueError, 'R3 HTTP status'):
+            p.positive('positive', None)
+        self.assertEqual(len(emitted), 1)
+        self.assertEqual(emitted[0][0], 'http')
+        self.assertEqual(bytes.fromhex(emitted[0][1]['response_hex']), wire)
+        self.assertTrue(bytes.fromhex(emitted[0][1]['request_hex']).startswith(b'GET /api/v1/status '))
+
+    def test_failure_observation_retains_inactive_terminal_owner_release(self):
+        from phase11_5_rf_observer import validate_status
+        p = packet()
+        value = status(p, p['jobs'][0]) | dict(state='complete', output_active=False, owner_id=None,
+                terminal_records=[dict(job_id=p['jobs'][0]['job_id'], state='complete', output_active=False)])
+        with self.assertRaises(ValueError):
+            validate_status(value, p['boot_id'], p)
+        validate_status(value, p['boot_id'], p, failure_observation=True)
+        for changes in (dict(state='running'), dict(output_active=True), dict(owner_id='f'*32),
+                        dict(job_id='f'*32), dict(terminal_records=[]), dict(boot_id='f'*32)):
+            with self.assertRaises(ValueError):
+                validate_status(value | changes, p['boot_id'], p, failure_observation=True)
+        with self.assertRaises(ValueError):
+            validate_status(value, p['boot_id'], p | dict(schema='phase11.5-r2-modes-v1'), failure_observation=True)
+
     def test_missing_certificate_requires_exact_alert_not_generic_disconnect(self):
         p = object.__new__(Pressure)
         p.job = packet()['jobs'][0]

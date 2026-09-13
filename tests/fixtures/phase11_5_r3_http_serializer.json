@@ -1,0 +1,93 @@
+{
+  "provenance": {
+    "source": "src/network/http.cpp",
+    "source_sha256": "f5844ed00e712b5891a8fd7d71f25e2e4d76c2c94c5b1dc16290053d808a7a37",
+    "generator": "#include \"network/http.hpp\"\n#include <iostream>\n#include <iterator>\nint main() {\n    std::string body(std::istreambuf_iterator<char>{std::cin}, {});\n    std::cout << wsprrypico::network::HttpResponse{200, body, \"application/json\", {}}.wire();\n}\n",
+    "command": "c++ -std=c++20 -Isrc /tmp/r3-http-serializer.cpp src/network/http.cpp src/wtp/json.cpp build/phase11-5-closure/6db650d-on/generated/web_assets.cpp -o /tmp/r3-http-serializer",
+    "note": "Actual firmware HTTP serializer output on the host with a synthetic Running test body; not captured hardware traffic."
+  },
+  "packet": {
+    "schema": "phase11.5-r3-tls-a1-v1",
+    "source_revision": "2e43110f05304efdc2ae25c298baa0ef6426955b",
+    "revision": "2e43110f0530",
+    "uf2_sha256": "7e6e732cc7a9e196609413dfe228781a725ece56bed1b4a99a96d1cc8741baf6",
+    "serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "system_clock_hz": 138000000,
+    "pio_divider": 1,
+    "listener_enabled": true,
+    "rf_render_in_ram": true,
+    "boot_id": "22222222222222222222222222222222",
+    "owner_id": "33333333333333333333333333333333",
+    "nonce": "11111111111111111111111111111111",
+    "submission_path": "usb",
+    "nominal_seconds": 300,
+    "browser_profile": "N",
+    "ordinary_browser": false,
+    "maximum_renewals": 12,
+    "jobs": [
+      {
+        "profile": "rf-events/1",
+        "mode": "tone",
+        "events": [
+          {
+            "offset_ns": "0",
+            "duration_ns": "100000000000",
+            "rf_on": true,
+            "frequency_nhz": "135500000000000"
+          }
+        ],
+        "total_duration_ns": "100000000000",
+        "allow_frequency_adjustment": true,
+        "job_id": "8f85eafd32e4ce588b128f89feb33327"
+      },
+      {
+        "profile": "rf-events/1",
+        "mode": "tone",
+        "events": [
+          {
+            "offset_ns": "0",
+            "duration_ns": "100000000000",
+            "rf_on": true,
+            "frequency_nhz": "135500000000000"
+          }
+        ],
+        "total_duration_ns": "100000000000",
+        "allow_frequency_adjustment": true,
+        "job_id": "99c53cee1f33e4cd97b8a903a19acb2e"
+      }
+    ],
+    "pressure_cases": [
+      [
+        "positive",
+        "missing-certificate",
+        "recover-certificate",
+        "silent-handshake",
+        "recover-handshake"
+      ],
+      [
+        "positive",
+        "slot-excess",
+        "recover-slots",
+        "duplicate-wtp",
+        "recover-wtp"
+      ]
+    ]
+  },
+  "job": {
+    "profile": "rf-events/1",
+    "mode": "tone",
+    "events": [
+      {
+        "offset_ns": "0",
+        "duration_ns": "100000000000",
+        "rf_on": true,
+        "frequency_nhz": "135500000000000"
+      }
+    ],
+    "total_duration_ns": "100000000000",
+    "allow_frequency_adjustment": true,
+    "job_id": "8f85eafd32e4ce588b128f89feb33327"
+  },
+  "response_hex": "485454502f312e312032303020526573706f6e73650d0a436f6e74656e742d547970653a206170706c69636174696f6e2f6a736f6e0d0a436f6e74656e742d4c656e6774683a203233350d0a436f6e6e656374696f6e3a20636c6f73650d0a43616368652d436f6e74726f6c3a206e6f2d73746f72650d0a582d436f6e74656e742d547970652d4f7074696f6e733a206e6f736e6966660d0a436f6e74656e742d53656375726974792d506f6c6963793a2064656661756c742d737263202773656c66273b207374796c652d73726320277368613235362d61696650764e5245494b3556456c714b79424149515971566c49324357487950554c6f47664c6f587436493d273b207363726970742d73726320277368613235362d646b32386c37746c4b7579775553476a4b695a69342f74347a674447376141614e7745486d5064664a446b3d273b20696d672d737263202773656c662720646174613a3b206672616d652d616e636573746f727320276e6f6e65273b20626173652d75726920276e6f6e65273b20666f726d2d616374696f6e202773656c66270d0a52656665727265722d506f6c6963793a206e6f2d72656665727265720d0a0d0a7b226a6f62223a207b22626f6f745f6964223a20223232323232323232323232323232323232323232323232323232323232323232222c20226f776e65725f6964223a20223333333333333333333333333333333333333333333333333333333333333333222c20226a6f625f6964223a20223866383565616664333265346365353838623132386638396665623333333237222c20227374617465223a202272756e6e696e67222c20226f75747075745f616374697665223a20747275657d2c20227472616e73706f7274223a207b22616374697665223a20322c202270656e64696e67223a20307d7d"
+}

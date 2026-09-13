@@ -1,5 +1,10 @@
 # R3 A1b execution packet — prepared, awaiting approval
 
+**Consumed historical packet:** A1b failed at the first HTTP check; one Tone
+completed and the second was not submitted. The [failure review](phase11-5-r3-tls-a1b-failure-review.md)
+records the repairs and the user's subsequent choice to retain the test
+configuration. Do not replay the preparation below.
+
 This fresh packet uses the corrected INFO/STATUS binding after the
 [consumed A1 failure and restoration](phase11-5-r3-tls-failure-review.md).
 Its [review](phase11-5-r3-tls-a1b-review.md) and

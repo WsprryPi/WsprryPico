@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import select
 import socket
 import ssl
@@ -54,7 +55,8 @@ def response(raw, packet, job):
     """Decode the actual response bytes; reject truncated or ambiguous framing."""
     headers, body = raw.split(b'\r\n\r\n', 1)
     lines = headers.split(b'\r\n')
-    require(lines[0] == b'HTTP/1.1 200 OK', 'R3 HTTP status')
+    require(re.fullmatch(rb'HTTP/1\.1 200 [\t\x20-\x7e\x80-\xff]*', lines[0]) is not None,
+            'R3 HTTP status')
     fields = {}
     for line in lines[1:]:
         key, value = line.split(b':', 1)
@@ -189,8 +191,8 @@ class Pressure:
                                if line.lower().startswith(b'content-length:')]
                     if len(lengths) == 1 and len(body) >= int(lengths[0]):
                         break
-            value = response(raw, self.packet, self.job)
             self.emit('http', dict(label=label, request_hex=request.hex(), response_hex=raw.hex()))
+            value = response(raw, self.packet, self.job)
         return value['transport']
 
     def closed(self, stream, deadline):

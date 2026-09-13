@@ -6,13 +6,14 @@ The selected candidate is 2e43110 at physical 138 MHz/divider 1/RAM/listener on.
 At R2 closure devices and host were restored with CONFIG 34/34. R3–R6 remain open and
 full accepted configurations remain empty. Original failed assessments are retained.
 
-Current: [R3 A1 failed before RF submission and was restored](phase11-5-r3-tls-failure-review.md).
-The INFO/STATUS field-binding defect is repaired with recorded-response tests.
-CONFIG is **36/36**, probes six; no R3 physical assertion passed. The consumed
-packet cannot be replayed. The corrected [A1b execution packet](phase11-5-r3-tls-a1b-execution.md)
-and [review](phase11-5-r3-tls-a1b-review.md) are prepared, awaiting approval of a
-fresh window and CONFIG 36→38. The prior unchanged-wiring confirmation is retained;
-no new staging or hardware operation has occurred.
+Current: [A1b failed at its first HTTP check](phase11-5-r3-tls-a1b-failure-review.md).
+One 100-second Tone completed; the second job never ran. A is authoritatively
+inactive/unowned with the completed job retained. The user chose to **keep the
+test configuration** between runs; its restoration timer is stopped, and the
+physical 2e43110 image remains present. B is unchanged and the host is restored.
+The parser, response logging and failed-load terminal observation are repaired
+locally. No R3 physical acceptance is claimed. Future packets must reconcile the
+retained job and use the test configuration as their baseline.
 
 The defined hardware target is Pico 2 W / RP2350. The repository contains a
 portable WTP/1 core, deterministic host tests and an RF-inhibited firmware

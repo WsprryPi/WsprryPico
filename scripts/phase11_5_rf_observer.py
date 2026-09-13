@@ -50,7 +50,7 @@ def validate_info(info, baseline):
     check_rf_observation(info)
 
 
-def validate_status(value, boot, packet):
+def validate_status(value, boot, packet, *, failure_observation=False):
     require(value['boot_id']==boot and type(value['output_active']) is bool and
             value['state'] in ('empty','loaded','armed','running','complete'), 'WTP boot/state')
     require(value['state']=='running' or not value['output_active'],'WTP output/state')
@@ -58,8 +58,13 @@ def validate_status(value, boot, packet):
         require(value['job_id'] is None and value['owner_id'] in (None,packet['owner_id']),
                 'Unexpected empty ownership')
     else:
-        require(value['job_id'] in {j['job_id'] for j in packet['jobs']} and
-                value['owner_id']==packet['owner_id'],'Unexpected job/owner')
+        require(value['job_id'] in {j['job_id'] for j in packet['jobs']}, 'Unexpected job')
+        released = (failure_observation and packet.get('schema') == 'phase11.5-r3-tls-a1-v1'
+                    and value['state'] == 'complete' and value['owner_id'] is None
+                    and any(r['job_id'] == value['job_id'] and r['state'] == 'complete'
+                            and r['output_active'] is False and 'error' not in r
+                            for r in value['terminal_records']))
+        require(value['owner_id']==packet['owner_id'] or released,'Unexpected job/owner')
 
 
 def validate_event(value,boot,packet):
@@ -159,7 +164,9 @@ def main():
                     client_name='phase11-5-idle-observer', client_version='1'))
                 require(hello['device_id'] == DEVICE and hello['boot_id'] == boot, 'HELLO identity')
                 def read():
-                    value = peer.request('STATUS'); validate_status(value, boot, packet)
+                    value = peer.request('STATUS')
+                    validate_status(value, boot, packet, failure_observation=
+                                    (args.output.parent/'load-failed.json').exists())
                     return value
                 if packet.get('submission_path')=='usb' and packet['schema'] in ('phase11.5-r2-modes-v1','phase11.5-r3-tls-a1-v1'):
                     from phase11_5_r2_usb_jobs import USBJobs

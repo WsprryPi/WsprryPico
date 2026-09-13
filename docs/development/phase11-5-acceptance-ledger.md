@@ -31,12 +31,22 @@ No job or pressure connection was submitted. A/B and the host were restored;
 CONFIG is now **36/36**, probes six. A is back on original inhibited firmware,
 boot `7a772a4eb283b23afdd1e25acbc449cd`; B's boot remains unchanged.
 The failed packet is consumed. The driver/audit and recorded-response tests are
-repaired, with no new physical acceptance credit. The fresh
-[A1b packet](phase11-5-r3-tls-a1b-execution.md) and
-[review](phase11-5-r3-tls-a1b-review.md) freeze the corrected helpers, two new job
+repaired, with no new physical acceptance credit. The subsequent
+[A1b preparation packet](phase11-5-r3-tls-a1b-execution.md) and
+[review](phase11-5-r3-tls-a1b-review.md) froze the corrected helpers, two new job
 IDs and a specific proposed CONFIG 36→38 allowance. The supervisor re-audits
-the failed attempt before host setup. A1b is prepared, awaiting approval;
-actual counters remain 36 and six, with no new physical run or staging.
+the failed attempt before host setup. At preparation, counters remained 36 and
+six; the following paragraph records the subsequent execution outcome.
+
+A1b subsequently [failed at its first HTTP check](phase11-5-r3-tls-a1b-failure-review.md).
+One 100-second Tone completed and no second job was submitted. No pressure
+assertion passed. Host cleanup succeeded; A remains Complete/inactive/unowned,
+with the job retained on physical 2e43110. The user explicitly chose to keep the
+test configuration between runs; the restoration timer was cancelled. Actual
+CONFIG saves are 37, probes six. Fresh final A/B inventories confirm that baseline
+and unchanged B. The [result](phase11-5-r3-tls-a1b-result.json) preserves the failed
+attempt and the separate final-retention evidence. Future packets must reconcile
+this state rather than reusing a spent packet or assuming original restoration.
 
 ## Evidence that already exists
 

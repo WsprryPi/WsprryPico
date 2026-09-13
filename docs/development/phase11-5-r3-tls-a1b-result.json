@@ -1,0 +1,116 @@
+{
+  "classification": "FAILED_HTTP_CHECK_ONE_JOB_COMPLETE_HOST_RESTORED",
+  "accepted_assertions": 0,
+  "packet_sha256": "590da5a47dc37c1d4c8addea4713ca0cfcb25872a3daaff46a4c9abb9702b218",
+  "boot": "9c5aec394269e0b57ca16d73ad3d12b6",
+  "submitted_jobs": 1,
+  "completed_jobs": 1,
+  "released_jobs": 0,
+  "pressure_connections": 1,
+  "pressure_cases_passed": 0,
+  "http_response_bytes_retained": false,
+  "observer_samples": {
+    "health": 26,
+    "info": 126,
+    "status": 25
+  },
+  "observer_seconds": 125.137594288,
+  "final_status": {
+    "boot_id": "9c5aec394269e0b57ca16d73ad3d12b6",
+    "state": "complete",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": "91bd2c3d57e3e74f7de183203796f463",
+    "terminal_records": [
+      {
+        "job_id": "91bd2c3d57e3e74f7de183203796f463",
+        "state": "complete",
+        "ended_monotonic_ns": "127539521000",
+        "output_active": false
+      }
+    ]
+  },
+  "host_restored": true,
+  "original_configuration_restored": false,
+  "management_counts": {
+    "config": 37,
+    "wifi-off": 0,
+    "wifi-on": 0,
+    "heap-probe": 6
+  },
+  "requests": {
+    "HELLO": 1,
+    "STATUS": 26,
+    "CLAIM": 1,
+    "LOAD": 1,
+    "GET_CLOCK": 1,
+    "ARM": 1
+  },
+  "timing": {
+    "status": "DIAGNOSTIC_ONLY",
+    "values": [
+      {
+        "job_id": "91bd2c3d57e3e74f7de183203796f463",
+        "mode": "tone",
+        "epoch": 1,
+        "expected_counter_deltas": {
+          "dma_irqs": 26323,
+          "alarm_irqs": 1,
+          "tail_irqs": 1,
+          "running_successor_links": 26321,
+          "refill_irq_pairs": 26321,
+          "running_tail_links": 1
+        },
+        "duration_ns": 100000000000,
+        "launch_target_ns": 27539236000,
+        "post_enable_delay_ns": 8000,
+        "short_words": 6736,
+        "short_interval_ns": 1561971.0144927537,
+        "short_75_percent_budget_ns": 1171478.2608695652,
+        "cumulative_worst_short": {
+          "measured": true,
+          "observations": 1,
+          "epoch": "1",
+          "successor_sequence": "26322",
+          "observed_ns": "127537775000",
+          "remaining_words": 6326,
+          "total_words": 6736
+        }
+      }
+    ]
+  },
+  "schema": "phase11.5-r3-a1b-failure-result-v1",
+  "test_configuration_retained_by_user_choice": true,
+  "restoration_timer_cancelled": true,
+  "original_image_restored": false,
+  "b_unchanged": true,
+  "final_a_revision": "2e43110f0530",
+  "b_boot": "feffcd075ab6cb0b74e7e0c2fde6c87f",
+  "new_repairs_hardware_executed": false,
+  "evidence_archive": {
+    "bytes": 3737600,
+    "sha256": "23f040d37624e5bef9d4fa9161314f47f43a87d300a36f47eb8cce0ccfc2fd77",
+    "files": 144
+  },
+  "retention_archive": {
+    "bytes": 81920,
+    "sha256": "19306a3593518f01bc0304967f41dd5cbea7c5237e0d93676cbfc1b6921f75af",
+    "files": 6
+  },
+  "tests": {
+    "discovered": 178,
+    "passed": 176,
+    "skipped": 2,
+    "a1b_failure_mutations": 10
+  },
+  "phase11_5_families_closed": 2,
+  "accepted_configurations": [],
+  "raw_sha256": {
+    "retained-baseline-result.json": "09fe88d6c7276f0a3ff747315b3d77c87430060a99f9149899bb3f74baf1ddf5",
+    "retained-baseline-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "retained-baseline-a.stdout": "2f8807338d2dd9d2d6e3cd8a35d7405e40cfce3a9ecaed27be801b9fb6a9908f",
+    "retained-baseline-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "keep-test-configuration.json": "9b130fd81052a740286d6da249a5647523b7e7fc3ed132d9f88467f536d82062",
+    "retained-baseline-b.stdout": "6dddbff8ff70394b736b424753ab4e5e4135d5ea5f9996f6cd1074abacf97070"
+  }
+}
