@@ -1,0 +1,10 @@
+{
+  "accepted_utc": "2026-09-13T19:54:18.379388+00:00",
+  "answer": "Approve parallel B plan",
+  "document": "docs/development/phase11-5-r3-v2-parallel-b-authorization.md",
+  "document_sha256": "37ae5f5658ffc7c4436547061e4a81e577ea9102a086ec1e74d09031699caaab",
+  "status": "AUTHORIZED_PREPARATION_IN_PROGRESS",
+  "earliest_mutation": "After H2b and E1 unchanged-B gates complete",
+  "rf_jobs_authorized": 0,
+  "arm_commands_authorized": 0
+}

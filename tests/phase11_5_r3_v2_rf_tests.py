@@ -16,6 +16,19 @@ class FiniteRfPacketTests(unittest.TestCase):
             events=[dict(offset_ns='0',duration_ns='10000000000',rf_on=True,frequency_nhz='135500000000000')])])
         for i,k in enumerate(['owner_id','peer_session','inventory_session','b_session','boot_id','b_boot_id'],1):p[k]=f'{i:032x}'
         return p
+    def test_independent_b_requires_new_image_and_explicit_parallel_scope(self):
+        from phase11_5_r3_v2_rf import comparator_required,REPAIRED_SOURCE,REPAIRED_IMAGE,B_PARALLEL_AUTHORIZATION
+        p=self.packet();self.assertTrue(comparator_required(p))
+        p['b_role']='independent-zero-rf'
+        with self.assertRaises(ValueError):validate(p)
+        p.update(source_revision=REPAIRED_SOURCE,image_sha256=REPAIRED_IMAGE)
+        with self.assertRaises(ValueError):validate(p)
+        p['b_parallel_authorization_sha256']=B_PARALLEL_AUTHORIZATION
+        p.pop('b_session');p.pop('b_boot_id')
+        self.assertEqual(validate(p),p);self.assertFalse(comparator_required(p))
+        p['image_sha256']='0'*64
+        with self.assertRaises(ValueError):validate(p)
+
     def test_bounds(self):
         p=self.packet();self.assertEqual(validate(p),p)
         for key,value in [('runtime_seconds',40),('runtime_seconds',28801),('flashes',1),

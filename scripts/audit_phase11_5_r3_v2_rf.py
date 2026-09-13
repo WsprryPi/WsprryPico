@@ -9,7 +9,7 @@ from phase11_5_r3_preflight import audit_inventory
 from validate_wtp_contract import SchemaValidator
 from audit_phase11_5_idle import frames
 from audit_phase11_5_r2_modes import transactions
-from phase11_5_r3_v2_rf import validate,validate_info
+from phase11_5_r3_v2_rf import validate,validate_info,comparator_required
 
 PACKET='966cd695df2b2eab36f6999c2afae678ad6eecdb8a3c5ea0871fb5afb2c61fef'
 
@@ -26,7 +26,8 @@ def audit(root, *, packet_digest=PACKET):
             'Unreviewed RF audit packet')
     require(digest(root/'packet.json')==packet_digest,'Frozen RF packet')
     packet=json.loads((root/'packet.json').read_text());validate(packet);inventories={}
-    for label in ['before-a','before-b','final-a','final-b']:
+    labels=['before-a','before-b','final-a','final-b'] if comparator_required(packet) else ['before-a','final-a']
+    for label in labels:
         b=label.endswith('-b')
         v=audit_inventory(root/(label+'.stdout'),dict(serial=B_SERIAL if b else SERIAL,device_id=B_DEVICE if b else DEVICE),
             packet['b_session'] if b else packet['inventory_session'],packet['stage_sha256']['scripts/phase11_5_inventory.py'])
@@ -35,8 +36,9 @@ def audit(root, *, packet_digest=PACKET):
             s['state']=='empty' and s['owner_id'] is s['job_id'] is None and s['output_active'] is False,'Final/initial authority')
         inventories[label]=v
     before=inventories['before-a'];final=inventories['final-a']
-    require(configuration(before)==configuration(final) and
-            configuration(inventories['before-b'])==configuration(inventories['final-b']) and
+    require(configuration(before)==configuration(final),'Preserved A')
+    if comparator_required(packet):
+        require(configuration(inventories['before-b'])==configuration(inventories['final-b']) and
             inventories['before-b']['info']['revision']==inventories['final-b']['info']['revision'] and
             inventories['before-b']['wtp']['STATUS']==inventories['final-b']['wtp']['STATUS'],'Preserved A/B')
     validate_info(before['info'],before,packet);validate_info(final['info'],before,packet)

@@ -11,7 +11,7 @@ from phase11_5_inventory import require,exclusive_port,exchange
 from phase11_5_pilot import Peer,SERIAL,DEVICE
 from phase11_5_pilot_supervisor import finished,configuration,B_SERIAL,B_DEVICE
 from phase11_5_device_management import digest,save
-from phase11_5_r3_v2_rf import validate_info
+from phase11_5_r3_v2_rf import validate_info,comparator_required,REPAIRED_SOURCE,REPAIRED_IMAGE
 
 SCHEMA='phase11.5-r3-v2-chromium-v1'
 
@@ -19,8 +19,11 @@ SCHEMA='phase11.5-r3-v2-chromium-v1'
 def validate(packet):
     require(packet['schema']==packet['r3_scope']==SCHEMA and packet['standing_authority']=='R3-COMPLETE-20260913-v2',
             'Browser scope/authority')
-    require(packet['source_revision']=='7d183978d08d77d5de668911be041bb188c851f5' and
-            packet['image_sha256']=='38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1' and
+    comparator_required(packet)
+    require((packet['source_revision'],packet['image_sha256']) in [
+                ('7d183978d08d77d5de668911be041bb188c851f5',
+                 '38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1'),
+                (REPAIRED_SOURCE,REPAIRED_IMAGE)] and
             packet['serial']==SERIAL and packet['device_id']==DEVICE,'Browser physical identity')
     require(packet['runtime_seconds']==900 and packet['restoration_seconds']==150 and
             packet['configuration_writes']==packet['wifi_cycles']==packet['heap_probes']==packet['flashes']==0,
@@ -62,6 +65,7 @@ def run(root,packet):
         faults.append(name+': '+str(error));emit('failure',dict(worker=name,error=str(error),type=type(error).__name__))
         save(root/'observer-failed.json',dict(faults=faults))
     def inventory(label,b=False):
+        require(not b or comparator_required(packet),'Independent B endpoint is not owned by A')
         with (root/(label+'.stdout')).open('xb') as out,(root/(label+'.stderr')).open('xb') as err:
             code=subprocess.run(['python3',str(root/'scripts/phase11_5_inventory.py'),'--serial',B_SERIAL if b else SERIAL,
                 '--device-id',B_DEVICE if b else DEVICE,'--session-id',packet['b_session'] if b else packet['inventory_session'],
@@ -118,7 +122,8 @@ def run(root,packet):
         except BaseException as error:fail(name,error)
     threads=[]
     try:
-        baseline['b']=inventory('before-b',True);inactive(baseline['b'],True)
+        if comparator_required(packet):
+            baseline['b']=inventory('before-b',True);inactive(baseline['b'],True)
         baseline['a']=inventory('before-a');inactive(baseline['a']);validate_info(baseline['a']['info'],baseline['a'],packet)
         require(baseline['a']['wtp']['STATUS']['state']=='empty','Browser starts Empty')
         emit('start',dict(packet_sha256=digest(root/'packet.json'),baseline_sha256=digest(root/'before-a.stdout'),boot_id=packet['boot_id']))
@@ -155,7 +160,7 @@ def run(root,packet):
             except subprocess.TimeoutExpired:child.kill();child.wait(timeout=5)
         # After a producer fault independent readers retain the original finite deadline.
         for t in threads:t.join()
-        for label,b in [('final-a',False),('final-b',True)]:
+        for label,b in ([('final-a',False),('final-b',True)] if comparator_required(packet) else [('final-a',False)]):
             try:
                 v=inventory(label,b);inactive(v,b);old=baseline['b' if b else 'a']
                 require(configuration(v)==configuration(old) and v['info']['revision']==old['info']['revision'],'Preserved configuration/source')

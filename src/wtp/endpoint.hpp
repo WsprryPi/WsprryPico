@@ -2,6 +2,8 @@
 #include "wtp/frame_parser.hpp"
 #include "wtp/job_service.hpp"
 
+#include <variant>
+
 namespace wsprrypico::wtp {
 // Single-owner, inhibited-engine WTP endpoint. Transport is a byte stream and
 // does not own job lifecycle. No device USB calls occur in this class.
@@ -26,6 +28,7 @@ class Endpoint {
     void payload(InputBuffer bytes, std::uint64_t now_ms);
     void frame_events(std::vector<FrameEvent> events, std::uint64_t now_ms);
     bool enqueue(std::string payload, std::uint64_t now_ms, bool advisory);
+    bool enqueue(InputBuffer payload, std::uint64_t now_ms);
     void event(std::string_view name, std::string body, std::uint64_t now_ms);
     void observe(std::uint64_t now_ms, bool released = false);
     void close_after_output();
@@ -34,9 +37,17 @@ class Endpoint {
     FrameParser parser_;
     struct OutputFrame {
         std::array<std::uint8_t, kFrameHeaderBytes> header;
-        std::string payload;
+        std::variant<std::string, InputBuffer> payload;
+        std::span<const std::uint8_t> bytes() const {
+            return std::visit(
+                [](const auto& value) {
+                    return std::span(reinterpret_cast<const std::uint8_t*>(value.data()),
+                                     value.size());
+                },
+                payload);
+        }
         std::size_t size() const {
-            return header.size() + payload.size();
+            return header.size() + bytes().size();
         }
     };
     std::deque<OutputFrame> output_;

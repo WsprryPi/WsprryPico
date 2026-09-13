@@ -327,8 +327,10 @@ void maximum_http_job() {
         wtp::available_memory = []() -> std::size_t { return 90000; };
         // The HTTP parser already owns these bytes. Trailing JSON whitespace
         // needs no second large envelope or decoded-field allocation.
-        REQUIRE(padded.api.handle(request("POST", "/api/v1/jobs", outer_padding), "cert-a",
-                                  "127.0.0.1:8443").status == 200);
+        REQUIRE(
+            padded.api
+                .handle(request("POST", "/api/v1/jobs", outer_padding), "cert-a", "127.0.0.1:8443")
+                .status == 200);
         REQUIRE(padded.service.status().state == wtp::State::Empty);
         wtp::available_memory = nullptr;
     }
@@ -394,7 +396,16 @@ void message_jobs() {
     REQUIRE(f.service.status().state == wtp::State::Empty);
     const auto loaded = send("LOAD_MESSAGE", maximum, 1998);
     REQUIRE(loaded.status == 200 && f.service.status().state == wtp::State::Loaded);
-    REQUIRE(send("LOAD_MESSAGE", maximum, 1998).body == loaded.body);
+    REQUIRE(!loaded.body_view().empty() && wtp::json::parse(loaded.body_view()));
+    REQUIRE(send("LOAD_MESSAGE", maximum, 1998).body_view() == loaded.body_view());
+    REQUIRE(loaded.wire() == loaded.wire_headers() + std::string(loaded.body_view()));
+    const auto allocator = wtp::allocate_input;
+    wtp::allocate_input = [](std::size_t) -> void* { return nullptr; };
+    const auto unavailable = send("LOAD_MESSAGE", maximum, 1998);
+    REQUIRE(unavailable.status == 503);
+    REQUIRE(f.service.status().state == wtp::State::Loaded && !f.service.status().output_active);
+    wtp::allocate_input = allocator;
+    REQUIRE(send("LOAD_MESSAGE", maximum, 1998).body_view() == loaded.body_view());
     REQUIRE(send("LOAD_MESSAGE", body("E"), 1998).status == 409);
     REQUIRE(f.service.status().state == wtp::State::Loaded);
     REQUIRE(send("ABORT", "{\"job_id\":\"" + std::string(32, '4') + "\"}").status == 200);

@@ -1,0 +1,10 @@
+{
+  "checkpoint": "v2-012",
+  "kind": "ADDITIVE_AUDITOR_DEPENDENCY_COMPLETENESS",
+  "original_checkpoint_sha256": "135298cfcd2079bce726e285c244002d1cc142e84c62680b5c74e2415d6a0af4",
+  "explanation": "The campaign.plan import requires its source file in addition to the Python script dependency closure. Original evidence, results and checkpoint bytes are unchanged. The completed frozen closure passes with Python isolated from the working repository.",
+  "added_artifacts": {
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-012/src/campaign/plan.py": "13f7f1181dc4e04a81077b4b2e9d66d881310aabbcafae907fdd74b226ae4923",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-012/isolated-auditor-check.log": "54c0e2586f47c3c0e038ff1e5f58aa069fa128c7c862564cfcb783232e8386b5"
+  }
+}

@@ -1,5 +1,7 @@
 #include "wtp/codec.hpp"
 
+#include "wtp/memory_budget.hpp"
+
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -40,6 +42,38 @@ std::string nullable(const std::optional<std::string>& s) {
 }
 std::string boolean(bool b) {
     return b ? "true" : "false";
+}
+std::string response_prefix(const Request& r, const Response& s) {
+    return "{\"type\":\"response\",\"protocol\":\"WTP/1\",\"session_id\":" + quote(r.session_id) +
+           ",\"request_id\":" + quote(r.request_id) + ",\"op\":" + quote(r.operation) +
+           ",\"ok\":" + boolean(s.ok);
+}
+std::string load_body_prefix(const Response& s) {
+    return ",\"body\":{\"job_id\":" + quote(s.job_id) + ",\"state\":\"loaded\",\"adjustments\":[";
+}
+std::size_t load_response_bytes(std::size_t prefix, const Response& s) {
+    constexpr auto punctuation = std::string_view(
+        "{\"event_index\":,\"requested_frequency_nhz\":\"\",\"realized_frequency_nhz\":\"\"}");
+    auto bytes = prefix + 3;
+    bool first = true;
+    for (const auto& a : s.adjustments) {
+        bytes += (first ? 0 : 1) + punctuation.size() + decimal_width(a.event_index) +
+                 decimal_width(a.requested_frequency_nhz) + decimal_width(a.realized_frequency_nhz);
+        first = false;
+    }
+    return bytes;
+}
+template <typename Append> void append_load_adjustments(const Response& s, Append append) {
+    bool first = true;
+    for (const auto& a : s.adjustments) {
+        if (!first)
+            append(",");
+        first = false;
+        append("{\"event_index\":" + std::to_string(a.event_index) +
+               ",\"requested_frequency_nhz\":" + ns(a.requested_frequency_nhz) +
+               ",\"realized_frequency_nhz\":" + ns(a.realized_frequency_nhz) + '}');
+    }
+    append("]}}");
 }
 std::string clock_json(const ClockSnapshot& c) {
     constexpr std::array states{"unsynchronized", "synchronized", "holdover"};
@@ -270,10 +304,7 @@ std::string status_json(const ServiceStatus& s) {
 }
 std::string encode_response(const Request& r, const Response& s, const ServiceConfig& config,
                             std::string_view device, std::string_view firmware) {
-    std::string out =
-        "{\"type\":\"response\",\"protocol\":\"WTP/1\",\"session_id\":" + quote(r.session_id) +
-        ",\"request_id\":" + quote(r.request_id) + ",\"op\":" + quote(r.operation) +
-        ",\"ok\":" + boolean(s.ok);
+    std::string out = response_prefix(r, s);
     if (!s.ok)
         return out + ",\"error\":" + error_json(s.error) + '}';
     std::string b = "{}";
@@ -294,31 +325,11 @@ std::string encode_response(const Request& r, const Response& s, const ServiceCo
             ",\"granted_lease_ms\":" + std::to_string(s.granted_lease_ms) +
             ",\"expires_monotonic_ns\":" + ns(s.expires_monotonic_ns) + '}';
     else if (r.operation == "LOAD") {
-        out +=
-            ",\"body\":{\"job_id\":" + quote(s.job_id) + ",\"state\":\"loaded\",\"adjustments\":[";
+        out += load_body_prefix(s);
         // LOAD can return hundreds of adjustments. Size the final response
         // once, without a second full body or geometric string growth.
-        constexpr auto punctuation = std::string_view(
-            "{\"event_index\":,\"requested_frequency_nhz\":\"\",\"realized_frequency_nhz\":\"\"}");
-        auto bytes = out.size() + 3;
-        bool first = true;
-        for (const auto& a : s.adjustments) {
-            bytes += (first ? 0 : 1) + punctuation.size() + decimal_width(a.event_index) +
-                     decimal_width(a.requested_frequency_nhz) +
-                     decimal_width(a.realized_frequency_nhz);
-            first = false;
-        }
-        out.reserve(bytes);
-        first = true;
-        for (const auto& a : s.adjustments) {
-            if (!first)
-                out += ',';
-            first = false;
-            out += "{\"event_index\":" + std::to_string(a.event_index) +
-                   ",\"requested_frequency_nhz\":" + ns(a.requested_frequency_nhz) +
-                   ",\"realized_frequency_nhz\":" + ns(a.realized_frequency_nhz) + '}';
-        }
-        out += "]}}";
+        out.reserve(load_response_bytes(out.size(), s));
+        append_load_adjustments(s, [&](std::string_view part) { out += part; });
         return out;
     } else if (r.operation == "ARM" && s.clock_snapshot)
         b = "{\"job_id\":" + quote(s.job_id) +
@@ -328,5 +339,20 @@ std::string encode_response(const Request& r, const Response& s, const ServiceCo
     else if (r.operation == "ABORT")
         b = "{\"job_id\":" + quote(s.job_id) + ",\"state\":\"aborted\",\"output_active\":false}";
     return out + ",\"body\":" + b + '}';
+}
+InputBuffer encode_load_response_buffer(const Request& r, const Response& s) {
+    InputBuffer result;
+    if (!s.ok || r.operation != "LOAD" || s.adjustments.size() > 512)
+        return result;
+    const auto prefix = response_prefix(r, s) + load_body_prefix(s);
+    const auto bytes = load_response_bytes(prefix.size(), s);
+    if (bytes > 65536 || !memory_admitted(bytes + 1024) || !result.reserve(bytes))
+        return result;
+    auto append = [&](std::string_view part) {
+        result.append({reinterpret_cast<const std::uint8_t*>(part.data()), part.size()});
+    };
+    append(prefix);
+    append_load_adjustments(s, append);
+    return result;
 }
 } // namespace wsprrypico::wtp

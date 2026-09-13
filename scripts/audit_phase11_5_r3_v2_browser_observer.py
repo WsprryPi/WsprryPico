@@ -8,13 +8,13 @@ from phase11_5_pilot import SERIAL,DEVICE
 from phase11_5_r3_preflight import audit_inventory
 from validate_wtp_contract import SchemaValidator
 from audit_phase11_5_idle import frames
-from phase11_5_r3_v2_rf import validate_info
+from phase11_5_r3_v2_rf import validate_info,comparator_required
 from audit_phase11_5_r3_v2_hour import journal
 
 
 def audit(root,packet):
     inventories={}
-    for label in ['before-a','before-b','final-a','final-b']:
+    for label in (['before-a','before-b','final-a','final-b'] if comparator_required(packet) else ['before-a','final-a']):
         b=label.endswith('-b')
         v=audit_inventory(root/(label+'.stdout'),dict(serial=B_SERIAL if b else SERIAL,device_id=B_DEVICE if b else DEVICE),
             packet['b_session'] if b else packet['inventory_session'],packet['stage_sha256']['scripts/phase11_5_inventory.py'])
@@ -24,8 +24,9 @@ def audit(root,packet):
             s['state'] in (['empty','complete','aborted'] if label=='final-a' else ['empty']),'Inventory authority')
         inventories[label]=v
     before=inventories['before-a'];final=inventories['final-a']
-    require(configuration(before)==configuration(final) and
-        configuration(inventories['before-b'])==configuration(inventories['final-b']) and
+    require(configuration(before)==configuration(final),'Preserved A')
+    if comparator_required(packet):
+        require(configuration(inventories['before-b'])==configuration(inventories['final-b']) and
         inventories['before-b']['info']['revision']==inventories['final-b']['info']['revision'] and
         inventories['before-b']['wtp']['STATUS']==inventories['final-b']['wtp']['STATUS'],'Preserved A/B')
     validate_info(before['info'],before,packet);validate_info(final['info'],before,packet)

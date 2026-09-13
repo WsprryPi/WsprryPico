@@ -1,0 +1,34 @@
+{
+  "checkpoint": "v2-017",
+  "recorded_utc": "2026-09-13T21:19:41.425946+00:00",
+  "status": "SOFTWARE_PASS_PHYSICAL_REPAIR_PENDING",
+  "physical_r3_groups_newly_closed": 0,
+  "validated_assertions": [
+    "Nullable maximum WTP LOAD reply with exact bytes, seven-byte partial output, failed-allocation closure and reconnect/STATUS",
+    "Nullable browser LOAD reply, failed-allocation resource response, retained inactive job and successful replay",
+    "HTTP header/body streaming without a second large response copy; actual loopback TLS suite passes",
+    "61 of 62 CTest groups passed initially; unchanged-wire serializer fixture regenerated from current source, then the affected remaining R3 group passed",
+    "BF0 and BF1 component evidence each passes independently; 19 altered archives rejected"
+  ],
+  "source_base": "c5f00b6109cc1c692b3f6bf258c1a77dadef6639",
+  "evidence_artifacts": {
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/r3-shared-repair-r3-fixture-tests.log": "68d80644d3e40428670021ca67868242db2c5e913dca023ca507c9eca7e9e796",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/r3-b-stopped-mutation-tests.log": "56bea9aa1c0a7cbc95f5dd2be2295e1c799a6c3ed8580f7cb02a2becd51ae732",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/r3-bf1-shared-repair-tests.log": "7c819664353cf778ba8b1b8ba1b9a12d8d09196beb2eab0ff0f3593593474d67",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/r3-bf1-shared-repair-build.log": "bae0583013c0c1b7ce43afe3dd9db5151a8ffd6971b14a72ae287007bee7be7a",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/tests/network_tests.cpp": "88e8f0c67c7f979397657f463cbda1b74eaa627cf40352c4522f8c9cee301c0f",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/tests/core_tests.cpp": "242a015e77ac1d8d1118ba8d5df390d331c767b3b1eb278fe444654926362f25",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/src/network/api.cpp": "cd0e56ea854fab032d6d40b442c3107842873cd2b18687eed139b80b2a8c7537",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/src/network/http.hpp": "86eeb821aaf597cfa46bf4e78ae86837c99b6145c088c4a70c03fc6081987e6b",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/src/network/http.cpp": "e54a97ec626359b69b70ab59916886a2baabeeed372f58293531acbc443181dd",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/src/wtp/codec.hpp": "ec3a955a7b82f3ff751f82947f30229df13366d046518ee68f87d7a19f1924ee",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/src/wtp/input_buffer.hpp": "96d524f5d6254b7cc29deb83a19caba12347409df5d88c37fef1f24c4d733596",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/src/wtp/endpoint.cpp": "ac10bf6783f06af400dfb551f7f37ec8b920310651485fe08e82c1633d5368e1",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/src/wtp/endpoint.hpp": "25593185ee9d20129c1615e374d863492d8beb75f31638e26122af5a8ed32328",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/src/wtp/codec.cpp": "81e74ac45863629dab3188b06d7256ab1be360da515548d4011b3f9185b2fe1c",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/src/network/pico/server.hpp": "cf53b706f026434d6ffd69c7b49558254fe6c277f0a5ebe10532693e7b34e3de",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/src/network/pico/server.cpp": "6ea1066b8e4cdf01a27572020a2c8504a31cc8cf550fdf38522f17839f1f4ecb",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-017/tests/fixtures/phase11_5_r3_http_serializer.json": "10fc6d87b74ec7c7d68760c29de7e86a768fc8fd5819058864cd34d78708a3f1"
+  },
+  "reuse_rule": "Physical BF1 repair and affected final-image acceptance remain open. Prior physical-hour passes retain their original image and source-impact scope."
+}

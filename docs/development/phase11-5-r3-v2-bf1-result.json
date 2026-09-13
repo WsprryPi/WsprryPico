@@ -1,0 +1,29 @@
+{
+  "status": "STOPPED_B_COMPONENTS_VERIFIED",
+  "packet_sha256": "87032853b769c077555d6869aac10c642d1442c8205809d8b7ac299bddab9bb3",
+  "source_revision": "c5f00b6109cc1c692b3f6bf258c1a77dadef6639",
+  "boot_id": "015443e66990fc72b875e2345160caea",
+  "http_assertions": [
+    "http-32768",
+    "http-replay",
+    "http-conflict",
+    "http-32769-header",
+    "http-malformed",
+    "http-recovery"
+  ],
+  "original_result_status": "STOPPED_FINAL_STATE_UNVERIFIED",
+  "rf_jobs": 0,
+  "full_functional_pass": false,
+  "classification": "FIRMWARE_ALLOCATION_PANIC",
+  "failed_allocation_bytes": 54917,
+  "maximum_load_frame_bytes": 53413,
+  "diagnostic_boot_id": "de3aa3fcb1e87d5db95985509cd10110",
+  "final_state": {
+    "boot_id": "de3aa3fcb1e87d5db95985509cd10110",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": []
+  }
+}

@@ -66,7 +66,11 @@ class PicoServer {
         std::array<std::uint8_t, 1024> plain_{};
         std::size_t plain_size_ = 0, plain_offset_ = 0;
         HttpParser http_;
-        std::string response_, principal_;
+        HttpResponse response_;
+        std::string response_headers_, principal_;
+        std::size_t response_size() const {
+            return response_headers_.size() + response_.body_view().size();
+        }
         std::size_t response_offset_ = 0;
         std::uint64_t accepted_ms_ = 0, progress_ms_ = 0;
         bool setup_ = false, handshake_ = false, wtp_ = false, peer_closed_ = false,

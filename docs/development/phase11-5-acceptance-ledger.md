@@ -231,3 +231,15 @@ physical regression. Checkpoint v2-011 preserves zero-RF recovery verification
 and 62 passing host groups. These assertions do not close R3 or advance the
 2/6 family count. H2b DFCW remains in progress. Keep A's tested RF image in place;
 change it only for a demonstrated code defect and retain the repaired image.
+
+### Additional immutable v2 checkpoints 012–016
+
+- [012](phase11-5-r3-v2-validation-012.json): DFCW physical hour with full nominal contention.
+- [013](phase11-5-r3-v2-validation-013.json): final c5f00b6 A idle admission.
+- [014](phase11-5-r3-v2-validation-014.json): B deployment, zero RF and retained configuration.
+- [015](phase11-5-r3-v2-validation-015.json): four BF0 HTTP assertions; original harness failure retained.
+- [016](phase11-5-r3-v2-validation-016.json): six BF1 HTTP assertions and independently classified allocation fault/recovery state.
+
+012/013 have additive dependency supplements preserving their original hashes.
+Each later checkpoint freezes its complete isolated auditor closure. No full R3
+family is closed by these component results. BF1 physical repair remains open.

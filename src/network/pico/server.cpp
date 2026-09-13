@@ -300,7 +300,7 @@ void PicoServer::Connection::close(bool apply) {
         tcp_err(client_, nullptr);
         tcp_sent(client_, nullptr);
         // Normal completed HTTP responses are copied into lwIP before FIN.
-        if (responded_ && response_offset_ == response_.size()) {
+        if (responded_ && response_offset_ == response_size()) {
             if (tcp_close(client_) != ERR_OK)
                 tcp_abort(client_);
         } else
@@ -319,7 +319,8 @@ void PicoServer::Connection::close(bool apply) {
         api_.finish_request(generation_, apply);
     generation_ = 0;
     rx_size_ = plain_size_ = plain_offset_ = response_offset_ = 0;
-    std::string{}.swap(response_);
+    response_ = HttpResponse{};
+    std::string{}.swap(response_headers_);
     principal_.clear();
     http_ = HttpParser{};
     handshake_ = wtp_ = peer_closed_ = responded_ = close_notify_ = handshake_failed_ = false;
@@ -476,10 +477,14 @@ void PicoServer::Connection::poll(std::string_view authority, bool allow_handsha
             return;
         }
     }
-    auto output =
-        wtp_ ? endpoint_.output()
-             : std::span(reinterpret_cast<const std::uint8_t*>(response_.data() + response_offset_),
-                         response_.size() - response_offset_);
+    auto output = endpoint_.output();
+    if (!wtp_) {
+        const auto text =
+            response_offset_ < response_headers_.size()
+                ? std::string_view(response_headers_).substr(response_offset_)
+                : response_.body_view().substr(response_offset_ - response_headers_.size());
+        output = {reinterpret_cast<const std::uint8_t*>(text.data()), text.size()};
+    }
     if (!output.empty()) {
         const auto result =
             mbedtls_ssl_write(&ssl_, output.data(), std::min<std::size_t>(output.size(), 1024));
@@ -490,7 +495,7 @@ void PicoServer::Connection::poll(std::string_view authority, bool allow_handsha
                 endpoint_.consume_output(static_cast<std::size_t>(result), now);
             else {
                 response_offset_ += static_cast<std::size_t>(result);
-                if (response_offset_ == response_.size())
+                if (response_offset_ == response_size())
                     response_tcp_remaining_ = pending_tcp_bytes_;
             }
         } else if (!retry(result))
@@ -531,8 +536,8 @@ void PicoServer::Connection::poll(std::string_view authority, bool allow_handsha
             response_ = (http_.failed()
                              ? http_error(http_.exhausted() ? 503 : 400,
                                           http_.exhausted() ? "resource_exhausted" : "invalid_http")
-                             : api_.handle(http_.request(), principal_, authority, generation_))
-                            .wire();
+                             : api_.handle(http_.request(), principal_, authority, generation_));
+            response_headers_ = response_.wire_headers();
             responded_ = true;
         }
     }

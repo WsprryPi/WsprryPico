@@ -19,7 +19,10 @@ the final-image dependency comparison and affected target regression before
 applying old-image assertions to final acceptance. Checkpoints v2-009/011 retain
 the harness fixes, failed attempts and independently verified idle reconciliation.
 A remains on its tested RF image until a demonstrated code defect requires a
-repair; there is no routine switch to an inhibited image. B stays read-only.
+repair; there is no routine switch to an inhibited image. The separately accepted
+parallel-B plan permits a current-code B image and bounded zero-RF functional
+tests after H2b/E1 finish their unchanged-B gates. Subsequent A packets do not
+open B or claim it is unchanged; they record the independent B workload.
 
 ## Final image and fresh fixture
 
@@ -131,3 +134,24 @@ limit is insufficient for this cycle; use a separately validated finite cycle
 scope rather than weakening or replaying a consumed hour packet. F1's finite
 fixture allowance can cover several reviewed packets only while each full
 remaining execution and cleanup budget still fits before its original deadline.
+
+
+## Prospective retention timing preparation
+
+The pure retention-plan helper freezes 39 harmless HTTP HELLO/RENEW exchanges:
+14 new logical sessions alongside the two continuously observed WTP sessions,
+the seventeenth-session rejection, eight reply entries in one session, conflicts,
+LRU touch/eviction, 360 seconds of actual quiet, and expired-session/reply reuse.
+Replay entries are filled only after session occupancy is checked. The touched
+entry is checked before the evicted entry so the five-minute TTL cannot be
+mistaken for LRU eviction at the permitted response deadlines.
+
+The proposed last RF job is a 512-event, 1,020-second FSKCW plan. Thirty-nine
+15-second response allowances, the actual 360-second wait and 60 seconds of
+observation reserve total 1,005 seconds. This is prospective workload sizing,
+not execution or acceptance. The separate repeated-cycle policy drafts eight
+ten-second completed warmup jobs, that maximum plan, real terminal expiry and
+an inactive maximum LOAD/RELEASE reuse check, within 6,000 seconds plus 150
+seconds cleanup. Final selection still depends on measured supported memory
+combinations. These pure policy helpers do not implement or authorize an
+unreviewed runner. The accepted comprehensive scope remains the authority.

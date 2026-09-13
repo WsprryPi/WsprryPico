@@ -16,13 +16,18 @@ HttpResponse http_error(unsigned status, std::string_view code) {
     return {
         status, "{\"error\":{\"code\":" + wtp::json::quote(code) + "}}", "application/json", {}};
 }
-std::string HttpResponse::wire() const {
+std::string HttpResponse::wire_headers() const {
     return "HTTP/1.1 " + std::to_string(status) + " Response\r\nContent-Type: " + type +
-           "\r\nContent-Length: " + std::to_string(body.size()) +
+           "\r\nContent-Length: " + std::to_string(body_view().size()) +
            "\r\nConnection: close\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\n"
            "Content-Security-Policy: " +
            std::string(web_csp()) + "\r\nReferrer-Policy: no-referrer\r\n" +
-           (etag.empty() ? "" : "ETag: " + etag + "\r\n") + "\r\n" + body;
+           (etag.empty() ? "" : "ETag: " + etag + "\r\n") + "\r\n";
+}
+std::string HttpResponse::wire() const {
+    auto out = wire_headers();
+    out += body_view();
+    return out;
 }
 void HttpParser::parse_headers() {
     const auto end = headers_.find("\r\n");

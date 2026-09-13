@@ -51,7 +51,10 @@ class RawAdmissionAuditTests(unittest.TestCase):
         import shutil
         import tempfile
         from audit_phase11_5_r3_v2_admission import audit
-        value=os.environ.get('PHASE115_R3_V2_E0A_EVIDENCE')
+        value=os.environ.get('PHASE115_R3_V2_ADMISSION_EVIDENCE') or os.environ.get('PHASE115_R3_V2_E0A_EVIDENCE')
+        packet_digest=os.environ.get('PHASE115_R3_V2_ADMISSION_PACKET')
+        raw_audit=audit
+        def audit(root):return raw_audit(root,**({'packet_digest':packet_digest} if packet_digest else {}))
         if not value:self.skipTest('Private E0a evidence required')
         source=Path(value);original=audit(source)
         def trace_change(root,fn):
@@ -66,7 +69,7 @@ class RawAdmissionAuditTests(unittest.TestCase):
             lambda r:trace_change(r,lambda a:a.pop(20)),
             lambda r:(r/'flash.stdout').write_text('No verification\n'),
             lambda r:(r/'final-b.stdout').write_text(''),
-            lambda r:(r/'final-a.stdout').write_text((r/'final-a.stdout').read_text().replace('7d183978d08d','deadbeefdead')),
+            lambda r:(r/'final-a.stdout').write_text((r/'final-a.stdout').read_text().replace(json.loads((r/'packet.json').read_text())['source_revision'][:12],'deadbeefdead')),
             lambda r:(r/'packet.json').write_text('{}\n'),
             lambda r:trace_change(r,lambda a:record(a,'capacity_rx')['value'].update(hex='00')),
         ]

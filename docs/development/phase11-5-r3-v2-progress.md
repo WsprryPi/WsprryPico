@@ -5,6 +5,31 @@ including implementation, finite RF, recovery, review and commit/push. Exact
 acceptance and counters are in phase11-5-r3-v2-campaign.json. Historical packet
 approval text is retained as history; v2 is the current standing authority.
 
+## Latest state: BF1 repair in progress
+
+H2b's DFCW hour passed its complete independent RF/contention audit and ten
+mutations (checkpoint 012). E1 deployed c5f00b6 on A and passed all seven idle
+boundaries plus ten mutations (checkpoint 013). Both checkpoints also pass with
+isolated frozen audit dependencies. These passes remain preserved.
+
+B's authorized c5f00b6 deployment passed (014). BF0's four HTTP assertions pass
+independently; its 413 expectation error remains classified as a harness defect
+(015). BF1's six HTTP assertions pass independently, but its maximum LOAD caused
+a confirmed firmware allocation panic, followed by authoritative inactive
+recovery-boot reconciliation (016). B received no ARM or RF command. See the
+[BF1 repair review](phase11-5-r3-v2-bf1-repair-review.md) for the exact evidence,
+shared WTP/browser output-buffer repair, tests and physical limitations.
+
+A remains c5f00b6, boot a0badc7b54480767c3d3f907e0962dc7, inactive/unowned with
+schedules disabled. F0's owned restoration passed and F1 is active with client
+PID 491605 and unchanged cleanup deadline 306202695885000 host-monotonic ns.
+A rejoined and synchronized without a Wi-Fi cycle or CONFIG save. T2/T3 were
+retired before staging/execution after the demonstrated BF1 defect. The next
+firmware admission is on B first; A's good mode-hour results do not restart.
+
+The remaining sections record the campaign history; this latest-state section
+supersedes older statements that an already completed tranche is still pending.
+
 ## D0 completed
 
 The frozen D0 packet was staged and executed unchanged. One acknowledged
@@ -153,3 +178,29 @@ A/B final state, six evidence-removal checks, three recovery unit tests, and
 field mistake retain their original failed summaries. Neither warrants another
 RF job or image change. H2b started on unchanged 7d183978 with a fresh guarded
 observer; its own final audit remains pending.
+
+
+## Accepted parallel B work
+
+The user accepted the [parallel B plan](phase11-5-r3-v2-parallel-b-authorization.md)
+with “Approve parallel B plan”; the separate acceptance JSON binds its unchanged
+SHA-256. This supersedes earlier read-only-B wording for subsequent packets.
+H2b and E1 still require their original unchanged B and must finish before B
+is repurposed. A remains the RF/resource/reclamation target. B has no RF, ARM
+or scheduling authority and does not replace A's under-contention evidence.
+
+B's dedicated clean c5f00b6109cc standalone RF-capable image has been built with
+its existing device-specific TLS identity and passed the linked-image checker.
+Its ELF, map, UF2 and build/check logs are copied into the private immutable
+`build/phase11-5-r3-v2-checkpoints/parallel-b-image-c5f00b6/` directory. The UF2
+SHA-256 is b36f8d524cb0659107e82a41a3f8d15973fda80b843ef6909fe1a448b6ff3c6b.
+This is preparation, not deployment or physical acceptance.
+
+The B-only deployment helper admits one flash after both predecessor audits and
+stopped supervisors are verified. The separate functional runner freezes six
+HTTPS requests and thirteen USB requests, plus three five-request inventories.
+Its single maximum LOAD remains inactive and is aborted/released without ARM.
+Eight deterministic guard/plan tests pass. Independent raw-wire auditors are
+prepared; actual B evidence and evidence-mutation validation remain pending.
+New A packets explicitly declare B as independent and never open its endpoints.
+Old staged and consumed A packets retain their original comparator checks.

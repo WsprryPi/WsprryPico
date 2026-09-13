@@ -16,6 +16,20 @@ from phase11_5_device_management import digest,save
 from phase11_5_r3_capacity_plan import identity
 
 SCHEMA='phase11.5-r3-v2-usb-rf-v1'
+REPAIRED_SOURCE='c5f00b6109cc1c692b3f6bf258c1a77dadef6639'
+REPAIRED_IMAGE='5f681b10d2c076309116cb9c20df1653d21e522ad19b6b33c1ee57efb3f54756'
+B_PARALLEL_AUTHORIZATION='37ae5f5658ffc7c4436547061e4a81e577ea9102a086ec1e74d09031699caaab'
+
+
+def comparator_required(packet):
+    role=packet.get('b_role','unchanged-comparator')
+    require(role in ('unchanged-comparator','independent-zero-rf'), 'Explicit B role')
+    if role=='independent-zero-rf':
+        require(packet['source_revision']==REPAIRED_SOURCE and
+                packet.get('b_parallel_authorization_sha256')==B_PARALLEL_AUTHORIZATION,
+                'Independent B requires repaired A and accepted parallel scope')
+    return role=='unchanged-comparator'
+
 
 
 def fresh_sample(samples, lock, name, maximum_age_ns, monotonic_ns=time.monotonic_ns):
@@ -43,10 +57,15 @@ def validate(packet):
     require(packet['schema']==packet['r3_scope']==SCHEMA and
             packet['standing_authority']=='R3-COMPLETE-20260913-v2' and
             packet['serial']==SERIAL and packet['device_id']==DEVICE and
-            packet['source_revision']=='7d183978d08d77d5de668911be041bb188c851f5' and
-            packet['image_sha256']=='38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1',
+            (packet['source_revision'],packet['image_sha256']) in [
+                ('7d183978d08d77d5de668911be041bb188c851f5',
+                 '38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1'),
+                (REPAIRED_SOURCE,REPAIRED_IMAGE)],
             'Reviewed physical source/image/scope')
-    for key in ['owner_id','peer_session','inventory_session','b_session','boot_id','b_boot_id']:identity(packet[key])
+    comparator_required(packet)
+    for key in ['owner_id','peer_session','inventory_session','boot_id']:identity(packet[key])
+    if comparator_required(packet):
+        for key in ['b_session','b_boot_id']:identity(packet[key])
     require(type(packet['runtime_seconds']) is int and 1<=packet['runtime_seconds']<=28800 and
             packet['configuration_writes']==packet['wifi_cycles']==packet['heap_probes']==packet['flashes']==0,
             'Finite runtime and no management mutations')
@@ -121,6 +140,7 @@ def run(root,packet):
                 if kind=='failure':save(root/'observer-failure.json',dict(value=value))
     def checkpoint():require(time.monotonic()<end and not faults,'Finite deadline or observer failure')
     def inventory(label,b=False):
+        require(not b or comparator_required(packet),'Independent B endpoint is not owned by A')
         with (root/(label+'.stdout')).open('xb') as out,(root/(label+'.stderr')).open('xb') as err:
             code=subprocess.run(['python3',str(root/'scripts/phase11_5_inventory.py'),'--serial',B_SERIAL if b else SERIAL,
                 '--device-id',B_DEVICE if b else DEVICE,'--session-id',packet['b_session'] if b else packet['inventory_session'],
@@ -226,7 +246,8 @@ def run(root,packet):
             faults.append(name+': '+str(error));emit('failure',dict(worker=name,error=str(error),type=type(error).__name__))
             # Keep independent readers alive to the original finite deadline.
     try:
-        before_b=inventory('before-b',True);empty(before_b,True)
+        if comparator_required(packet):
+            before_b=inventory('before-b',True);empty(before_b,True)
         before=inventory('before-a');empty(before);validate_info(before['info'],before,packet)
         caps=before['wtp']['CAPS'];require(caps['max_events']==512 and caps['max_job_duration_ns']=='3600000000000','Extended CAPS')
         clock=before['wtp']['GET_CLOCK'];require(clock['state']=='synchronized' and clock['leap']=='normal','Initial clock')
@@ -256,7 +277,7 @@ def run(root,packet):
             load_process.terminate()
             try:load_process.wait(timeout=25)
             except subprocess.TimeoutExpired:load_process.kill();load_process.wait(timeout=5)
-        for label,b in [('final-a',False),('final-b',True)]:
+        for label,b in ([('final-a',False),('final-b',True)] if comparator_required(packet) else [('final-a',False)]):
             try:
                 v=inventory(label,b);empty(v,b)
                 if b:require(before_b is not None and configuration(v)==configuration(before_b) and

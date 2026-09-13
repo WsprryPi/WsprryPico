@@ -30,8 +30,10 @@ def decode_requests(raw):
     return result
 
 
-def audit(root):
-    require(digest(root/'packet.json')==PACKET,'Frozen E0a packet')
+def audit(root, *, packet_digest=PACKET):
+    require(packet_digest in [PACKET,'5b61ffdf74ab0e1f5daa77bef59ea2c3e7d797c128cf8499d3d90c6178965ab0'],
+            'Unreviewed idle admission packet')
+    require(digest(root/'packet.json')==packet_digest,'Frozen idle admission packet')
     packet=json.loads((root/'packet.json').read_text());values={}
     for name in ['before-a','before-b','after-flash-a','final-a','final-b']:
         b=name.endswith('-b')
@@ -75,7 +77,7 @@ def audit(root):
             b0['wtp']['STATUS']['boot_id']==packet['b_boot'] and
             b0['info']['revision']==b1['info']['revision']=='dbf1d86f0885-dirty','B changed')
     trace=rows(root/'admission.jsonl');kinds=[r['kind'] for r in trace]
-    require(trace[0]['kind']=='start' and trace[0]['value']==dict(packet_sha256=PACKET) and
+    require(trace[0]['kind']=='start' and trace[0]['value']==dict(packet_sha256=packet_digest) and
             trace[-1]['kind']=='finish' and trace[-1]['monotonic_ns']-trace[0]['monotonic_ns']<=600_000_000_000,
             'Trace boundary/deadline')
     require(kinds.count('bootsel_pending')==kinds.count('bootsel_acknowledged')==kinds.count('flash_pending')==
@@ -160,7 +162,7 @@ def audit(root):
             result['passed_assertions']==[r['value'] for r in trace if r['kind']=='assertion_observed']==ASSERTIONS and
             result['flashes_started']==result['bootsel_commands']==1 and
             all(result[k]==0 for k in ['rf_jobs','wifi_cycles','configuration_writes','heap_probes']), 'Result counters/claims')
-    return dict(status='E0A_IDLE_BOUNDARIES_VERIFIED',family_closed=False,packet_sha256=PACKET,
+    return dict(status=('E0A' if packet_digest==PACKET else 'E1')+'_IDLE_BOUNDARIES_VERIFIED',family_closed=False,packet_sha256=packet_digest,
                 source_revision=packet['source_revision'],image_sha256=packet['image_sha256'],boot_id=boot,
                 assertions=ASSERTIONS,rf_jobs=0,flashes=1,bootsel_commands=1,b_unchanged=True,
                 allocator_peak_bytes=final['info']['allocator_peak_bytes'],

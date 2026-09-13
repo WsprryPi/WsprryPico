@@ -56,6 +56,19 @@ bool Endpoint::enqueue(std::string text, std::uint64_t now, bool advisory) {
     output_.push_back(std::move(frame));
     return true;
 }
+bool Endpoint::enqueue(InputBuffer text, std::uint64_t now) {
+    if (text.empty() || text.size() > kMaximumPayloadBytes || output_.size() >= 8 ||
+        queued_bytes_ + text.size() + kFrameHeaderBytes > 131072 || !memory_admitted(1024)) {
+        disconnect();
+        return false;
+    }
+    OutputFrame frame{encode_frame_header(text), std::move(text)};
+    if (output_.empty())
+        last_tx_progress_ms_ = now;
+    queued_bytes_ += frame.size();
+    output_.push_back(std::move(frame));
+    return true;
+}
 void Endpoint::event(std::string_view name, std::string body, std::uint64_t now) {
     if (session_.empty() || closed_ || closing_)
         return;
@@ -201,10 +214,16 @@ void Endpoint::payload(InputBuffer bytes, std::uint64_t now) {
         session_ = request->session_id;
     request->body = std::monostate{};
     service_.poll();
-    auto encoded =
-        encode_response(*request, response, service_.config(), device_id_, firmware_version_);
-    service_.poll();
-    enqueue(std::move(encoded), now, false);
+    if (response.ok && request->operation == "LOAD") {
+        auto encoded = encode_load_response_buffer(*request, response);
+        service_.poll();
+        enqueue(std::move(encoded), now);
+    } else {
+        auto encoded =
+            encode_response(*request, response, service_.config(), device_id_, firmware_version_);
+        service_.poll();
+        enqueue(std::move(encoded), now, false);
+    }
     observe(now, response.ok && request->operation == "RELEASE");
     if (response.close_connection)
         close_after_output();
@@ -215,9 +234,7 @@ std::span<const std::uint8_t> Endpoint::output() const {
     const auto& frame = output_.front();
     if (offset_ < frame.header.size())
         return std::span(frame.header).subspan(offset_);
-    return std::span(reinterpret_cast<const std::uint8_t*>(frame.payload.data()),
-                     frame.payload.size())
-        .subspan(offset_ - frame.header.size());
+    return frame.bytes().subspan(offset_ - frame.header.size());
 }
 void Endpoint::consume_output(std::size_t count, std::uint64_t now) {
     if (count > output().size()) {

@@ -119,6 +119,27 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
     std::string{}.swap(payload);
     auto response = service_.handle(*request);
     request->body = std::monostate{};
+    if (response.ok && request->operation == "LOAD") {
+        auto encoded = encode_load_response_buffer(*request, response);
+        if (encoded.empty())
+            return http_error(503, "resource_exhausted");
+        const auto result =
+            json::parse({reinterpret_cast<const char*>(encoded.data()), encoded.size()});
+        if (!result || !result->get("body"))
+            return http_error(500, "invalid_response");
+        const auto value = result->get("body")->raw;
+        const auto offset =
+            static_cast<std::size_t>(value.data() - reinterpret_cast<const char*>(encoded.data()));
+        const auto prefix =
+            "{\"ok\":true,\"request_id\":" + json::quote(request->request_id) + ",\"result\":";
+        if (!encoded.shorten(offset + value.size()) ||
+            !encoded.replace_prefix(
+                offset, {reinterpret_cast<const std::uint8_t*>(prefix.data()), prefix.size()}))
+            return http_error(500, "invalid_response");
+        const std::uint8_t closing = '}';
+        encoded.append({&closing, 1});
+        return {200, {}, "application/json", {}, std::move(encoded)};
+    }
     auto encoded = encode_response(*request, response, service_.config(), device_, firmware_);
     const auto result = json::parse(encoded);
     const auto value = result->get(response.ok ? "body" : "error")->raw;
@@ -140,9 +161,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     // neither enters the internal envelope nor creates decoded fields; account
     // for additional working storage without reserving that padding twice.
     const auto first = r.body.find_first_not_of(" \t\r\n");
-    const auto working_bytes = first == std::string::npos
-                                   ? 0
-                                   : r.body.find_last_not_of(" \t\r\n") - first + 1;
+    const auto working_bytes =
+        first == std::string::npos ? 0 : r.body.find_last_not_of(" \t\r\n") - first + 1;
     if (!wtp::memory_admitted(working_bytes * 2 + 16384))
         return http_error(503, "resource_exhausted");
     if (r.body.size() > max_http_body)

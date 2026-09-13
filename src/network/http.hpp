@@ -1,4 +1,6 @@
 #pragma once
+#include "wtp/input_buffer.hpp"
+
 #include <cstdint>
 #include <map>
 #include <optional>
@@ -18,6 +20,14 @@ struct HttpResponse {
     std::string body;
     std::string type = "application/json";
     std::string etag;
+    wtp::InputBuffer buffered_body{};
+    std::string_view body_view() const {
+        return buffered_body.empty()
+                   ? std::string_view(body)
+                   : std::string_view(reinterpret_cast<const char*>(buffered_body.data()),
+                                      buffered_body.size());
+    }
+    std::string wire_headers() const;
     std::string wire() const;
 };
 // One request per TLS connection. The owner enforces a total connection deadline.

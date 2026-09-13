@@ -28,6 +28,8 @@ using namespace wsprrypico::wtp;
 static std::size_t allocations = 0;
 static std::size_t largest_allocation = 0;
 static std::size_t large_allocations = 0;
+static std::size_t measured_reply_bytes = 0, measured_reply_allocations = 0;
+static bool reject_reply_allocation = false;
 void* operator new(std::size_t size) {
     ++allocations;
     largest_allocation = std::max(largest_allocation, size);
@@ -326,7 +328,8 @@ void test_large_endpoint_reply_has_one_payload_allocation() {
     endpoint.connect("local");
     std::vector<std::uint8_t> received;
     received.reserve(131072);
-    auto send = [&](const std::string& op, const std::string& body, char digit, bool measured) {
+    auto send = [&](const std::string& op, const std::string& body, char digit, bool measured,
+                    bool expect_closed = false) {
         const auto text = "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":\"" +
                           id('1') + "\",\"request_id\":\"" + id(digit) + "\",\"op\":\"" + op +
                           "\",\"body\":" + body + "}";
@@ -346,8 +349,13 @@ void test_large_endpoint_reply_has_one_payload_allocation() {
                 received.insert(received.end(), chunk.begin(), chunk.end());
                 endpoint.consume_output(chunk.size(), 0);
             }
+            if (expect_closed && endpoint.closed()) {
+                CHECK(offset == wire.size());
+                return;
+            }
             CHECK(!endpoint.closed());
         }
+        CHECK(!expect_closed);
     };
     send("HELLO", "{\"versions\":[\"WTP/1\"],\"client_name\":\"test\",\"client_version\":\"1\"}",
          'a', false);
@@ -364,18 +372,44 @@ void test_large_endpoint_reply_has_one_payload_allocation() {
         engine.adjustments.push_back({n, 135500000000000ULL, 135500000000001ULL});
     }
     body += "]}";
+    Request expected_request;
+    expected_request.operation = "LOAD";
+    expected_request.session_id = id('1');
+    expected_request.request_id = id('c');
+    Response expected_response;
+    expected_response.ok = true;
+    expected_response.job_id = id('3');
+    expected_response.adjustments = engine.adjustments;
+    const auto expected =
+        encode_response(expected_request, expected_response, service.config(), id('d'), "test");
+    measured_reply_bytes = expected.size();
+    measured_reply_allocations = 0;
     send("LOAD", body, 'c', true);
-    // The encoded reply owns one >40 KB allocation. A second framed copy
-    // would violate this gate, even though all ordinary protocol tests pass.
-    CHECK(large_allocations == 1);
+    // One nullable wire allocation, no throwing string/framing allocation.
+    CHECK(large_allocations == 0 && measured_reply_allocations == 1);
     CHECK(service.status().state == State::Loaded && !service.status().output_active);
     FrameParser parser;
     const auto frames = parser.feed(received, 0);
     CHECK(!frames.empty());
+    CHECK(std::string_view(reinterpret_cast<const char*>(frames.front().payload.data()),
+                           frames.front().payload.size()) == expected);
     const auto root = json::parse({reinterpret_cast<const char*>(frames.front().payload.data()),
                                    frames.front().payload.size()});
     CHECK(root && root->get("ok")->boolean());
     CHECK(root->get("body")->get("adjustments")->elements().size() == 512);
+    // Repeat the LOAD with a fresh request id, failing only its output buffer.
+    // The accepted inactive job remains reconcilable; allocation failure does
+    // not reset the service, fabricate an error for an accepted operation, or ARM.
+    reject_reply_allocation = true;
+    send("LOAD", body, 'd', false, true);
+    reject_reply_allocation = false;
+    CHECK(service.status().state == State::Loaded && !service.status().output_active);
+    endpoint.connect("local");
+    send("HELLO", "{\"versions\":[\"WTP/1\"],\"client_name\":\"test\",\"client_version\":\"1\"}",
+         'e', false);
+    send("STATUS", "{}", 'f', false);
+    CHECK(!endpoint.closed() && service.status().state == State::Loaded);
+    measured_reply_bytes = 0;
 }
 
 void test_large_frames_across_feed_boundaries() {
@@ -1234,6 +1268,11 @@ using Test = std::pair<const char*, void (*)()>;
 
 int main() {
     allocate_input = [](std::size_t size) -> void* {
+        if (size == measured_reply_bytes) {
+            ++measured_reply_allocations;
+            if (reject_reply_allocation)
+                return nullptr;
+        }
         ++allocations;
         largest_allocation = std::max(largest_allocation, size);
         return std::malloc(size);
