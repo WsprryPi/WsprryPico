@@ -370,7 +370,12 @@ int main() {
             auto status = scheduler.status();
             if (!status.empty() && status.back() == '\n')
                 status.pop_back();
-            return result + ",\"status\":" + status + "}\n";
+            // Reuse the INFO buffer. Copying this lvalue into operator+ keeps
+            // two large diagnostic strings live beside a maximum job reply.
+            result += ",\"status\":";
+            result += status;
+            result += "}\n";
+            return result;
         }
         if (text.starts_with("HEAP PROBE ")) {
             const auto capacity = reinterpret_cast<std::uintptr_t>(&__HeapLimit) -
