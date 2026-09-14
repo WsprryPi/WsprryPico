@@ -4,6 +4,139 @@ Group 1 is CLOSED at checkpoint 043. Group 2 is OPEN. This record now includes
 C1–C5, E5 and R5. Checkpoint 048 ends diagnostic period 2 OPEN. Older preparation
 statements below are historical, not live fixture state.
 
+## Closure period 3: executing Option 1, 2026-09-14
+
+Component 2 completed the hardware-free candidate build and review. Source
+`4dad112c8a4c0ce4e5be77ecba5c3c460496472c` includes iterative JSON key sorting to remove
+additional sort recursion with paged input views. Both inhibited and Standalone
+RF images passed their checks. No hardware acceptance assertion closed.
+See the [build/review record](phase11-5-r3-v2-component2-review.md) and
+[exact candidate identities](phase11-5-r3-v2-component2-result.json).
+The component 1 and C6 entries below retain their historical state at completion.
+
+Component 1 is a separate hardware-free step authorized after the prompt was
+split into smaller tasks. It corrects the two test setups: JSON boundary values
+are placed inside the required object envelope, and reply allocation measurement
+begins on the final input byte, including cached LOAD responses. The seventh
+reply-page failure and unchanged preparation count are asserted explicitly.
+
+The affected core, endpoint, network, browser, standalone configuration, USB,
+RF-stream and PIO-DMA host test groups pass. The maximum input test permits only
+4 KiB allocations; failure cases cover the first and later pages, parser closure,
+no payload delivery and fresh-parser recovery. JSON boundary tests check Unicode,
+escapes, integer limits, invalid inputs and an exact maximum-request SHA-256.
+See `phase11-5-r3-v2-component1-result.json` for final checks and source hashes.
+
+Review found no remaining actionable host-side finding in this component.
+Target image layout, stack/resource observations and physical C6 workload
+acceptance remain unverified. No firmware candidate was built or flashed in
+Component 1, and no hardware operations or Git publication were performed.
+The working changes remain uncommitted for the next bounded component.
+
+Update after C6: the 65552-byte input allocation failed at core-0 caller
+0x1000f361 / input caller 0x1008c1b3. Exact ELF symbolication identifies
+`InputBuffer::reserve` in `FrameParser::feed`. Full raw evidence is preserved
+under `build/phase11-5-r3-v2-capacity-c6/evidence`; this is a failed supported
+case, not overload acceptance. One ARM charged 128 seconds. Final A inventory
+confirms the same boot, Complete terminal record, inactive output and no owner;
+no completion-audit PASS is assigned after the failed exchange. No new assertion
+has closed in this period. C2/C3 historical causality is not retroactively proved.
+
+The narrowly related archived paged-input work is now being completed against
+this captured allocation site. It remains uncommitted and unvalidated: initial
+builds exposed flat-view call-site adaptations; test allocation accounting also
+needs correction and expanded page-boundary checks are pending compilation.
+No candidate firmware has been selected, flashed or physically qualified.
+
+The user requested another prompt rewrite. F6 cleanup completed; independent
+host checks confirm temporary services inactive, protected files unchanged and
+the installed process identity unchanged. Evidence: this period's `f6-state.json`,
+`f6-log.json`, and `final-host.json`. The original budget clock continues; 772 RF
+seconds remain. A future packet must use a newly established fixture identity,
+not the restored F6 namespace or deadline.
+
+The user authorized rendering and executing the closure campaign, adversarial
+review, repair/reassessment and commit/push. Four hours monotonic, 30-minute
+cleanup reserve and 900 newly charged RF seconds; budget persists in
+`build/phase11-5-r3-group2-closure-period3-20260914/budget.json`. Preserve the
+previous periods and all 117 pre-existing dirty/untracked files, recorded with
+hashes. Pico starts at 1d75d37; Pi starts clean at 820e698. No firmware change is
+selected. A/B identities and inactive/unowned state match checkpoint 048;
+C4's terminal record has now expired normally, while C5's Complete record remains.
+
+Source-impact review before hardware: between 8921a70 and retained 4da3672, only
+`network/api.cpp`, heap metrics C/header and standalone INFO construction change.
+The exact RF, job/codec, endpoint/parser and transport timeout implementation
+paths checked are unchanged. The API change replaces static-asset string copies
+with paged output and changes that asset's memory admission; INFO avoids a
+large concatenation copy and adds failure metadata. This supports mechanism
+reuse candidates, but is not enough by itself to transfer physical heap/timing
+credit. C5 establishes bounded current-image Tone behavior, not maximum-event
+or TLS-pressure equivalence. Six partially covered assertions (2.1a/c and
+2.2c–f) receive explicit evidence review; no PASS is granted merely for matching
+source. HTTP stalled-reader behavior is specifically affected by static-body
+allocation and remains subject to targeted physical/resource applicability.
+
+C2/C3 vs C5: allocator/parser logic is unchanged; boot/heap history and TLS
+context occupancy differ, and failure metadata exists only on the later image.
+Aggregate free memory does not establish that a contiguous allocation fits.
+The first combined packet tests the actual required allocation rather than
+assuming that C5 repaired it.
+
+Planned RF allocation: C6 is one 128-second FSKCW job, 512 alternating
+135500/135495-Hz events of 250 ms, with current 512-event idle admission already
+covered by E5. It adds one maximum WTP request plus the original oversize/recovery
+pair, persistent native WTP/TLS and three HTTP boundaries on A. This leaves
+772 charged RF seconds for separately frozen timeout/USB/overload packets and,
+only if justified, an affected repair retest. Each later packet needs its exact
+stimulus, count, rate, mechanism, independent observer and deadline before ARM;
+this allocation is not permission to run unspecified traffic. No firmware
+change, flash, reboot, CONFIG save, Wi-Fi command or heap probe is selected.
+
+The supported combination for C6 is the final 512-event plan/job and retained
+state, one resident USB WTP input of 65552 bytes, one established native TLS/WTP
+context and independent INFO/status observations. The HTTP maximum cases run at
+separate declared HTTPS opportunities; they do not claim simultaneous residence
+of both maximum WTP and HTTP bodies. C1's historical 181580-byte peak leaves
+38748 bytes against its linked 220328-byte heap, so the additional capacity
+case remains a real admission/fragmentation test, not an assumed budget pass.
+The current 32768-byte reserve gate and all timing gates remain binding.
+
+The existing, previously prepared Group 2 HTTP probe and auditor changes in
+`phase11_5_r3_v2_nominal_load.py` and `audit_phase11_5_r3_v2_hour.py` are being
+reviewed for this directly related scope. Their initial bytes are preserved;
+publication will identify any adopted existing helper changes explicitly and
+exclude unrelated browser/native work.
+
+C6 frozen before ARM: packet `da89cf9f703f126ef71e463336674000373749df3c70f98ec7a2bff9fc7a7373`, archive
+`c6be9221978f91aa88c57f2c765e1f087172878856a233bf8001028c2c0aa6dd`, owner `b135b6929baad519552e35c807055ff2`,
+job `13b794ae029409ef78740f675c0dd3b8`. F6 deadline 361139582642000 host monotonic ns.
+Audit closure manifest `c139adf8cd6d477cde0105393f702996f24bfefc5e434fb31003a22917f18ad9`.
+One attempt, 128 seconds charged on ARM; no retry.
+
+Current assertion status before this period's physical work:
+
+| ID | Status | Accepted component or exact remaining requirement |
+| --- | --- | --- |
+| 2.1a | PARTIAL | E5 revalidates 512-event admission; C1 completion remains accepted on its old identity. C5 verifies one Tone; 512-event contention equivalence remains unproven. |
+| 2.1b | PASS | E5 independently verifies 513 and overduration rejection plus exact maximum idle LOAD on the diagnostic image. |
+| 2.1c | PARTIAL | Prior maximum-plan, hour and WSPR records remain; complete assertion-level source/resource reuse is not established. No repeated hour campaign. |
+| 2.1d | PASS | C5 full 65552-byte frame with valid 65536-byte STATUS payload and owned Running response under independently observed 90-second Tone; exact diagnostic identity above. Original C2/C3 failures retained and unrepaired. |
+| 2.1e | PARTIAL | E5 verifies 65537 framing rejection and same-connection recovery while idle; RF case unexecuted. |
+| 2.1f | PARTIAL | BF4 exact HTTP maximum remains B-only evidence; A under-RF valid 32768-byte API body unexecuted. |
+| 2.1g | PARTIAL | BF4 B HTTP limit/recovery retained; A under-RF 32769 rejection and authenticated recovery unexecuted. |
+| 2.2a | FAILED | C2 supported simultaneous allocation failed. No final workload/overlap allocation succeeded. |
+| 2.2b | NOT_RUN | Intended unsupported allocation, preserved owner/RF and authenticated recovery missing. Failed supported input is not overload acceptance. |
+| 2.2c | PARTIAL | T4 TLS handshake timeout/reuse retained on its identity; diagnostic resource applicability unproven. |
+| 2.2d | PARTIAL | T5 failed-alert ACK/unacknowledged lifetimes retained on its identity; diagnostic resource applicability unproven. |
+| 2.2e | PARTIAL | T4/T5 slot, one-WTP and pending mechanisms retained; diagnostic resource applicability unproven. |
+| 2.2f | PARTIAL | T5 HTTP header/body/stalled reader retained; diagnostic resource applicability unproven. |
+| 2.3a | NOT_RUN | Distinct 30-second drained WTP inactivity, closure and authenticated reuse absent. |
+| 2.3b | NOT_RUN | Five-second incomplete-input mechanism and recovery absent physically. |
+| 2.3c | NOT_RUN | Five-second no-output-progress mechanism and recovery absent physically. |
+| 2.3d | NOT_RUN | Actual USB parser pressure during independently observed finite RF absent. |
+| 2.3e | NOT_RUN | Actual unread USB output pressure during independently observed finite RF and authenticated recovery absent. |
+
 ## Diagnostic period 2: completed, checkpoint 048, 2026-09-14
 
 Execution began at Mac monotonic 713401316391750 ns. The new four-hour budget

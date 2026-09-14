@@ -1288,5 +1288,88 @@
     "active_packet": null,
     "latest_observation_result": "C4 raw final authority and post-restoration independent A/B inventory verified",
     "cumulative_counter_policy": "Earlier packet counters and historical snapshots remain unchanged. This attempt adds one A flash, one BOOTSEL and one 90-second ARM charge; zero launches, configuration writes, Wi-Fi cycles or probes. Do not compare allocator deltas across E5 boot."
+  },
+  "closure_period3_c6": {
+    "status": "FAILED_SUPPORTED_MAXIMUM_INPUT_ALLOCATION_SITE_CAPTURED",
+    "packet_sha256": "da89cf9f703f126ef71e463336674000373749df3c70f98ec7a2bff9fc7a7373",
+    "archive_sha256": "c6be9221978f91aa88c57f2c765e1f087172878856a233bf8001028c2c0aa6dd",
+    "frozen_auditor_sha256": "c139adf8cd6d477cde0105393f702996f24bfefc5e434fb31003a22917f18ad9",
+    "owner_id": "b135b6929baad519552e35c807055ff2",
+    "job_id": "13b794ae029409ef78740f675c0dd3b8",
+    "peer_session": "012c6232d7a823c22732d5637ae5911d",
+    "rf_duration_ns_charged": 128000000000,
+    "maximum_jobs": 1,
+    "fixture_root": "/home/pi/phase11-5-r3-v2-fixture-f6-20260914",
+    "fixture_packet_sha256": "2632c522e936e77e048644ecf47aadc220c082e7434514e6f30822ab9184eba8",
+    "fixture_deadline_monotonic_ns": 361139582642000,
+    "flashes": 0,
+    "reboots": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 0,
+    "heap_probes": 0,
+    "review": "Exact 512-event job; two USB capacity exchanges, three HTTP boundary opportunities, one persistent native observer. Existing allocation reserve and timing checks unchanged. Independent failure INFO persists within 300-second runtime. No retry.",
+    "result": {
+      "status": "STOPPED_REQUIRES_DIAGNOSIS",
+      "armed_jobs": [
+        "13b794ae029409ef78740f675c0dd3b8"
+      ],
+      "completed_jobs": [],
+      "renewals": 0,
+      "rf_duration_ns_charged": 128000000000,
+      "final-a": {
+        "boot_id": "0bd82f1324920c360d796988cf31cb5b",
+        "state": "complete",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": "13b794ae029409ef78740f675c0dd3b8",
+        "terminal_records": [
+          {
+            "job_id": "13b794ae029409ef78740f675c0dd3b8",
+            "state": "complete",
+            "ended_monotonic_ns": "5935370272000",
+            "output_active": false
+          },
+          {
+            "job_id": "0ec6f9c02e30398015c359eb3610497a",
+            "state": "complete",
+            "ended_monotonic_ns": "3554740582000",
+            "output_active": false
+          }
+        ]
+      },
+      "faults": [
+        "console diagnostic: Allocator reserve/failures",
+        "wtp action: Finite deadline or observer failure",
+        "wtp: STATUS response timeout; no automatic retry; output unknown",
+        "supervisor: Nominal contention completion"
+      ]
+    },
+    "evidence_archive_sha256": "3bb7c3b4de131b0301355e57d4646496f33b1a26a08721df89b5f66f85cc33df",
+    "allocation_failure": {
+      "request_bytes": 65552,
+      "entry": 1,
+      "caller": "0x1000f361",
+      "input_caller": "0x1008c1b3",
+      "core": 0,
+      "symbol": "InputBuffer::reserve in FrameParser::feed",
+      "elf_sha256": "8855dd77cb0057ff8f33f91d02a3447cf39ca96cb2782b606c51f2e44e4f7353"
+    },
+    "fixture_restored": true,
+    "newly_closed_assertions": [],
+    "repair_status": "CANDIDATE_BUILT_REVIEWED_NOT_FLASHED"
+  },
+  "closure_period3_component1": {
+    "status": "COMPONENT_1_HOST_VALIDATION_PASSED",
+    "result_file": "phase11-5-r3-v2-component1-result.json",
+    "hardware_operations": 0,
+    "newly_closed_assertions": []
+  },
+  "closure_period3_component2": {
+    "status": "COMPONENT_2_BUILD_AND_REVIEW_PASSED_PHYSICAL_ACCEPTANCE_PENDING",
+    "source_revision": "4dad112c8a4c0ce4e5be77ecba5c3c460496472c",
+    "result_file": "phase11-5-r3-v2-component2-result.json",
+    "review_file": "phase11-5-r3-v2-component2-review.md",
+    "hardware_operations": 0,
+    "newly_closed_assertions": []
   }
 }

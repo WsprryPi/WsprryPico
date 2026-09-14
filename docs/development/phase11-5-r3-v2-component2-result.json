@@ -1,0 +1,367 @@
+{
+  "status": "COMPONENT_2_BUILD_AND_REVIEW_PASSED_PHYSICAL_ACCEPTANCE_PENDING",
+  "source_revision": "4dad112c8a4c0ce4e5be77ecba5c3c460496472c",
+  "embedded_revision": "4dad112c8a4c",
+  "clean_source_checkout": true,
+  "board": "pico2_w",
+  "processor": "RP2350 Arm",
+  "sdk_version": "2.3.1",
+  "sdk_revision": "079c6f39023649b154152db30f1d781e884879bc",
+  "toolchain": "GNU Arm 15.3.1",
+  "picotool_revision": "6f6458d792b93685a11423b244a585eaa99eafcf",
+  "picotool_sha256": "8bfa2bc5dc1a066688ccd96e7ba0e5cf1c5846385d090223f66e0770abcf006f",
+  "configuration": {
+    "network_port": 18443,
+    "clock_hz": 138000000,
+    "render_in_ram": true,
+    "rf_engine": "PIO/DMA GP2"
+  },
+  "images": {
+    "WsprryPico": {
+      "elf_sha256": "9e6c680fe3df6db337e7c10f6571f3805ae740724bb4b64dde4a2bc20291c321",
+      "uf2_sha256": "cec51688467c7e5c7014bfb9ade261e3eee640af9de921ebe17051993562fe25",
+      "map_sha256": "8972284e1eac00640db96537713f9e3cfa7c4129279783a6473d79feeb8d0919",
+      "elf_bytes": 15481432,
+      "uf2_bytes": 2105856,
+      "primary_stack_bytes": 16384,
+      "stack_reserve_bytes": 4096,
+      "primary_usable_stack_bytes": 12288,
+      "heap_start": 537002564,
+      "heap_limit": 537378816,
+      "linked_heap_capacity_bytes": 376252,
+      "image_checks": {
+        "check_heap_hooks.py": {
+          "__wrap__calloc_r": [
+            "calloc",
+            "wsprry_heap_try_calloc"
+          ],
+          "__wrap__free_r": [
+            "__sflush_r",
+            "__sfvwrite_r",
+            "__swsetup_r",
+            "_fclose_r",
+            "_malloc_r",
+            "_realloc_r",
+            "free",
+            "wsprry_heap_probe"
+          ],
+          "__wrap__malloc_r": [
+            "__sfvwrite_r",
+            "__smakebuf_r",
+            "_calloc_r",
+            "_realloc_r",
+            "malloc",
+            "wsprry_heap_probe",
+            "wsprry_heap_try_input"
+          ],
+          "__wrap__realloc_r": [
+            "__sfvwrite_r",
+            "realloc"
+          ],
+          "_calloc_r": [
+            "__wrap__calloc_r"
+          ],
+          "_free_r": [
+            "__wrap__free_r"
+          ],
+          "_malloc_r": [
+            "__wrap__malloc_r"
+          ],
+          "_realloc_r": [
+            "__wrap__realloc_r"
+          ],
+          "mallinfo": [
+            "__wrap__calloc_r",
+            "__wrap__malloc_r",
+            "__wrap__realloc_r",
+            "__wrap_mallinfo",
+            "wsprry_heap_snapshot"
+          ]
+        },
+        "check_stack_guards.py": {
+          "msplim_writers": [
+            "runtime_init_per_core_install_stack_guard"
+          ],
+          "scope": "Linked startup/readback routes only; inspect constants and target evidence separately",
+          "startup_callers": [
+            "runtime_init"
+          ]
+        }
+      }
+    },
+    "WsprryPico-StandaloneRF": {
+      "elf_sha256": "6a26598daf11cbab8f40e1edcee031253b19939e88ef9d0b7059995b5b0c448c",
+      "uf2_sha256": "4b4ddd6c9108d20cb7718756da047e4ddd0d4948e6c432d3aa1329d55150d08a",
+      "map_sha256": "3c6d908fcbdb1d7a48379dcec1ec7ef38a7f65b8d02f75760375acbfdd0b964e",
+      "elf_bytes": 15699296,
+      "uf2_bytes": 2129920,
+      "primary_stack_bytes": 16384,
+      "stack_reserve_bytes": 4096,
+      "primary_usable_stack_bytes": 12288,
+      "heap_start": 537159112,
+      "heap_limit": 537378816,
+      "linked_heap_capacity_bytes": 219704,
+      "image_checks": {
+        "check_heap_hooks.py": {
+          "__wrap__calloc_r": [
+            "calloc",
+            "wsprry_heap_try_calloc"
+          ],
+          "__wrap__free_r": [
+            "__sflush_r",
+            "__sfvwrite_r",
+            "__swsetup_r",
+            "_fclose_r",
+            "_malloc_r",
+            "_realloc_r",
+            "free",
+            "wsprry_heap_probe"
+          ],
+          "__wrap__malloc_r": [
+            "__sfvwrite_r",
+            "__smakebuf_r",
+            "_calloc_r",
+            "_realloc_r",
+            "malloc",
+            "wsprry_heap_probe",
+            "wsprry_heap_try_input"
+          ],
+          "__wrap__realloc_r": [
+            "__sfvwrite_r",
+            "realloc"
+          ],
+          "_calloc_r": [
+            "__wrap__calloc_r"
+          ],
+          "_free_r": [
+            "__wrap__free_r"
+          ],
+          "_malloc_r": [
+            "__wrap__malloc_r"
+          ],
+          "_realloc_r": [
+            "__wrap__realloc_r"
+          ],
+          "mallinfo": [
+            "__wrap__calloc_r",
+            "__wrap__malloc_r",
+            "__wrap__realloc_r",
+            "__wrap_mallinfo",
+            "wsprry_heap_snapshot"
+          ]
+        },
+        "check_stack_guards.py": {
+          "msplim_writers": [
+            "runtime_init_per_core_install_stack_guard"
+          ],
+          "scope": "Linked startup/readback routes only; inspect constants and target evidence separately",
+          "startup_callers": [
+            "core1_wrapper",
+            "runtime_init"
+          ]
+        },
+        "check_rf_renderer.py": {
+          "address": "0x200012d8",
+          "bytes": 660,
+          "checked_instructions": 233,
+          "initialized_data_bytes": 12904,
+          "placement": "ram",
+          "worker_address": "0x2000bc88",
+          "worker_bytes": 166176
+        }
+      }
+    }
+  },
+  "source_sha256": {
+    "src/network/api.cpp": "03b08e0eb19cb0deb0a27999c94a379df9e84883349c38023becf772ea862600",
+    "src/standalone/config.cpp": "9839a7118c674675f3a06f14f37238834bde8ab287f2cacf09e48e7a76d38e34",
+    "src/wtp/codec.cpp": "4a00cd127f6b4551de0e8c94c9c223f578e0272526d25d755bd197ac2051a139",
+    "src/wtp/codec.hpp": "ae9a12dbaf92337d78665fbafd2e36a4a8e9e455a532fdcb9746bc9141c36073",
+    "src/wtp/endpoint.cpp": "10387bc32185403696370e353254739c8d615ccc2fc129c067f4d07d1fd6eda1",
+    "src/wtp/endpoint.hpp": "bef935a7df3fa35672f1a4536b34562ae3aee72a9079f81d14f01d34681cbfdb",
+    "src/wtp/frame_parser.cpp": "ab7d64699c2ac9278947fc3b2870bb58224a8c84656c106870df05979ac9deda",
+    "src/wtp/frame_parser.hpp": "3ba65a8ae9d738093447ae2dd418f98aa91cd2c396b973ddfebc468a39c109d7",
+    "src/wtp/frame_buffer.hpp": "4024e1749b2a4c26f4e6aa8182b02a2950c736185300b2259fd64fc39df3630d",
+    "src/wtp/input_buffer.hpp": "b7b4b7e6d4a1c23177d5797fd5d4631a64e1b1b477ef2bf5001d7d19250dc355",
+    "src/wtp/input_view.hpp": "9d0a97946aed50d7de40af41df0bd80739c3d55335bd2d79420f967e9be3924c",
+    "src/wtp/json.cpp": "aa128e6dc0cec3a0cca49b647619f52e50bdd9c85c785ea291f020664fc6f7b6",
+    "src/wtp/json.hpp": "3417fa827f4896cc1a40656439164c190a7c67ede04321c65a0e7f0e29998720",
+    "tests/core_tests.cpp": "a6b9fdc41e6ffdd182156d7eb03173468da5f943b97ed01860393494681305ba",
+    "tests/endpoint_driver.cpp": "101c3e48a1da3636dfecb6f57bfbf0a56c8794c070a8f60ab1dfdc2491aec74a",
+    "tests/network_tests.cpp": "1714f5104b93c4b5c01e6513c7a7b4f485a5cf3095614d5c7e5eeddd4384c662"
+  },
+  "stack_frames": {
+    "prior": [
+      {
+        "function": "wsprrypico::network::HttpResponse wsprrypico::network::BrowserApi::job(const wsprrypico::network::HttpRequest&, std::string_view)",
+        "bytes": 2264,
+        "classification": "static"
+      },
+      {
+        "function": "wsprrypico::network::HttpResponse wsprrypico::network::BrowserApi::handle(const wsprrypico::network::HttpRequest&, std::string_view, std::string_view, uint64_t)",
+        "bytes": 1432,
+        "classification": "static"
+      },
+      {
+        "function": "void wsprrypico::wtp::Endpoint::payload(wsprrypico::wtp::InputBuffer, uint64_t)",
+        "bytes": 1288,
+        "classification": "static"
+      },
+      {
+        "function": "void wsprrypico::wtp::Endpoint::frame_events(std::vector<wsprrypico::wtp::FrameEvent>, uint64_t)",
+        "bytes": 144,
+        "classification": "static"
+      },
+      {
+        "function": "std::size_t wsprrypico::wtp::Endpoint::receive(std::span<const unsigned char>, uint64_t)",
+        "bytes": 72,
+        "classification": "static"
+      },
+      {
+        "function": "bool wsprrypico::wtp::json::{anonymous}::value(std::string_view, std::size_t&, unsigned int, bool)",
+        "bytes": 176,
+        "classification": "static"
+      },
+      {
+        "function": "bool wsprrypico::wtp::json::{anonymous}::value(std::string_view, std::size_t&, unsigned int, bool)",
+        "bytes": 216,
+        "classification": "static"
+      },
+      {
+        "function": "std::optional<wsprrypico::wtp::json::Value> wsprrypico::wtp::json::parse(std::string_view)",
+        "bytes": 56,
+        "classification": "static"
+      },
+      {
+        "function": "void wsprrypico::wtp::FrameParser::process(std::vector<wsprrypico::wtp::FrameEvent>&)",
+        "bytes": 56,
+        "classification": "static"
+      },
+      {
+        "function": "std::vector<wsprrypico::wtp::FrameEvent> wsprrypico::wtp::FrameParser::feed(std::span<const unsigned char>, uint64_t)",
+        "bytes": 80,
+        "classification": "static"
+      },
+      {
+        "function": "void wsprrypico::network::PicoServer::Connection::poll(std::string_view, bool)",
+        "bytes": 456,
+        "classification": "static"
+      },
+      {
+        "function": "void wsprrypico::network::PicoServer::poll(bool, std::string, bool)",
+        "bytes": 64,
+        "classification": "static"
+      },
+      {
+        "function": "int main()",
+        "bytes": 2664,
+        "classification": "static"
+      }
+    ],
+    "candidate": [
+      {
+        "function": "wsprrypico::network::HttpResponse wsprrypico::network::BrowserApi::job(const wsprrypico::network::HttpRequest&, std::string_view)",
+        "bytes": 2280,
+        "classification": "static"
+      },
+      {
+        "function": "wsprrypico::network::HttpResponse wsprrypico::network::BrowserApi::handle(const wsprrypico::network::HttpRequest&, std::string_view, std::string_view, uint64_t)",
+        "bytes": 1440,
+        "classification": "static"
+      },
+      {
+        "function": "void wsprrypico::wtp::Endpoint::payload(wsprrypico::wtp::FrameBuffer, uint64_t)",
+        "bytes": 1352,
+        "classification": "static"
+      },
+      {
+        "function": "void wsprrypico::wtp::Endpoint::frame_events(std::vector<wsprrypico::wtp::FrameEvent>, uint64_t)",
+        "bytes": 352,
+        "classification": "static"
+      },
+      {
+        "function": "std::size_t wsprrypico::wtp::Endpoint::receive(std::span<const unsigned char>, uint64_t)",
+        "bytes": 72,
+        "classification": "static"
+      },
+      {
+        "function": "bool wsprrypico::wtp::json::{anonymous}::value(wsprrypico::wtp::InputView, std::size_t&, unsigned int, bool)",
+        "bytes": 264,
+        "classification": "static"
+      },
+      {
+        "function": "std::optional<wsprrypico::wtp::json::Value> wsprrypico::wtp::json::parse(wsprrypico::wtp::InputView)",
+        "bytes": 56,
+        "classification": "static"
+      },
+      {
+        "function": "void wsprrypico::wtp::FrameParser::process(std::vector<wsprrypico::wtp::FrameEvent>&)",
+        "bytes": 768,
+        "classification": "static"
+      },
+      {
+        "function": "std::vector<wsprrypico::wtp::FrameEvent> wsprrypico::wtp::FrameParser::feed(std::span<const unsigned char>, uint64_t)",
+        "bytes": 88,
+        "classification": "static"
+      },
+      {
+        "function": "void wsprrypico::network::PicoServer::Connection::poll(std::string_view, bool)",
+        "bytes": 456,
+        "classification": "static"
+      },
+      {
+        "function": "void wsprrypico::network::PicoServer::poll(bool, std::string, bool)",
+        "bytes": 64,
+        "classification": "static"
+      },
+      {
+        "function": "int main()",
+        "bytes": 2664,
+        "classification": "static"
+      }
+    ]
+  },
+  "stack_scope": "Compiler per-function static frames only, not a whole-program bound or measured target high-water mark.",
+  "rf_review": {
+    "source_paths_unchanged": true,
+    "ram_waveform_renderer_exact": true,
+    "renderer_bytes": 660,
+    "other_linked_functions_and_static_addresses_changed": true,
+    "comparison_manifest_sha256": "38da7e394e1d0e787a3395eb4f79bdab6f9d05af5fa00e1527ff9fd877825ae0",
+    "physical_timing_qualification": false
+  },
+  "review": {
+    "round_1_finding": "Paged JSON views increased recursive sorting stack use. Replaced introsort with iterative heap sorting and const-reference comparisons.",
+    "repair_validation": "Deep/wide paged JSON, duplicate escaped key and depth-limit tests pass; no recursive introsort helper remains in target JSON stack report.",
+    "round_2": "No remaining actionable finding in the selected source/build scope. Dynamic target stack, allocation and timing acceptance remain explicit gates."
+  },
+  "checks": {
+    "host_groups": 8,
+    "core_cases": 35,
+    "sanitizer_groups": 4,
+    "contract_passed": true,
+    "heap_hooks_passed": true,
+    "stack_guards_passed": true,
+    "ram_renderer_passed": true,
+    "flash_and_uf2_boundaries_passed": true,
+    "inhibited_shutdown_and_sync_passed": true
+  },
+  "hardware_operations": 0,
+  "group_2": "OPEN",
+  "newly_closed_assertions": [],
+  "evidence_root": "build/phase11-5-r3-group2-component2",
+  "evidence_sha256": {
+    "final-build.log": "67be7ec326f8929a10c129e864b4715c4a7c2a6e25ae14624250d23868e13765",
+    "final-comparison.log": "1dd12e47e480f3748f9332685e2ff96dfce7d9420571a78e0eb722907f5bf11f",
+    "final-configure.log": "13a1033d81711bc16f6ac1e695739a84fb934b316af589eb9dd98337abcf67a1",
+    "final-contract.log": "34188e867e39fa621167ea4d65841d01102c5398e9ae9e30e6c19abe3541bf9c",
+    "final-host-build.log": "80d1b841c151ee712fa1e43d99319dd8099cd08c7aa69bf849aa3321b8d77259",
+    "final-host-tests.log": "b6d3fc8cbf50a17d12ed419b789146452d98c76fc57b91ff894cb830605b1886",
+    "final-inhibited-layout.log": "44ede08ad45243766b93ff7d69490001d18721cbc999d2a450185027e0d90fd8",
+    "final-inhibited-shutdown.log": "a6661f27520f8806875893ef4ef9c980d3030e99aba76ed02256f206c4cd878e",
+    "final-inhibited-sync.log": "12fab67d7e207fdbee05865ef7493195d657a1f8e556e358efb9dd4c55d86311",
+    "final-rf-layout.log": "c6d8c81f35878c56358cfb6b4f1a2ea015bbd267f12a3d8b6676ba3ec12f798f",
+    "sanitize-build.log": "295ed7eedf094287733b19c841d0f1a36a06fe9984cec402c08b73fabc9d689d",
+    "sanitize-tests.log": "bfd61cb8971ad77353ee22a96746b8d8bc4d194e26489d6df95abcce08678848"
+  }
+}
