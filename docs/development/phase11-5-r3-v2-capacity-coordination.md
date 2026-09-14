@@ -4,7 +4,17 @@ Group 1 is CLOSED at checkpoint 043. Group 2 is OPEN. This record now includes
 C1–C5, E5 and R5. Checkpoint 048 ends diagnostic period 2 OPEN. Older preparation
 statements below are historical, not live fixture state.
 
-## Latest component 5 result
+## Latest component 6 result
+
+[Component 6](phase11-5-r3-v2-component6-review.md) verified the same installed
+image and retained E6 record. The corrected observer passed, but Pico network
+readiness remained blocked: firmware reported no IP and CYW43 authentication
+failure status -3. No primary LOAD, replay or RF operation ran. Host readiness
+and deadline defects are repaired and tested offline; both fixture instances
+and independent final A/B state are restored. No new assertion closed. One idle
+Pico Wi-Fi recovery cycle is proposed and requires extending the zero-cycle scope.
+
+## Historical component 5 result
 
 [Component 5](phase11-5-r3-v2-component5-review.md) installed the repaired source
 `e256633` and completed retained-state preparation. A host observer compared

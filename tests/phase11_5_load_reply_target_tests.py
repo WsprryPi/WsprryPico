@@ -29,6 +29,29 @@ class LoadTargetTests(unittest.TestCase):
             with self.assertRaises(ValueError):request(op,{},'1'*32)
         p=self.packet();p['primary']['body']['events'][0]['duration_ns']='1'
         with self.assertRaises(ValueError):validate_packet(p)
+    def test_retained_continuation_has_no_deployment_allowance(self):
+        p=self.packet();p.update(scope=target.CONTINUATION,prior_packet_sha256=target.PRIOR_PACKET_SHA,expected_boot=target.RETAINED_BOOT)
+        p['limits'].update(flashes=0,bootsel=0);validate_packet(p)
+        for field in ['flashes','bootsel']:
+            bad=copy.deepcopy(p);bad['limits'][field]=1
+            with self.assertRaises(ValueError):validate_packet(bad)
+        with self.assertRaisesRegex(ValueError,'no flash authority'):target.deploy(None,p,None,lambda:None)
+
+    def test_network_waits_for_two_confirmed_addresses(self):
+        waiting=dict(network=dict(initialized=True,enabled=True,link_status=-2,ipv4='',control_listening=True))
+        ready=dict(network=dict(initialized=True,enabled=True,link_status=3,ipv4='10.77.15.10',control_listening=True))
+        log=[]
+        with patch.object(target,'Journal',return_value=lambda k,v:log.append((k,v))),patch.object(target,'exclusive_port',return_value=contextlib.nullcontext(7)),patch.object(target,'exchange',side_effect=[waiting,ready,waiting,ready,ready]) as exchange,patch.object(target,'healthy'),patch.object(target.time,'sleep'):
+            target.wait_network(Path('/unused'),'a'*32,lambda:None)
+        self.assertEqual(exchange.call_count,5)
+        self.assertEqual(log[-1],('finish',dict(status='PICO_NETWORK_READY')))
+
+    def test_network_wait_clamps_sleep_to_remaining_deadline(self):
+        waiting=dict(network=dict(initialized=True,enabled=True,link_status=-3,ipv4='',control_listening=True))
+        with patch.object(target,'Journal',return_value=lambda k,v:None),patch.object(target,'exclusive_port',return_value=contextlib.nullcontext(7)),patch.object(target,'exchange',return_value=waiting),patch.object(target,'healthy'),patch.object(target.time,'monotonic',side_effect=[0,89,89,89.5,90]),patch.object(target.time,'sleep') as sleep:
+            with self.assertRaisesRegex(TimeoutError,'readiness deadline'):target.wait_network(Path('/unused'),'a'*32,lambda:None)
+        sleep.assert_called_once_with(.5)
+
     def test_complete_reply_and_corrupted_frame(self):
         reply=dict(type='response',protocol='WTP/1',session_id=primary()['session_id'],request_id=primary()['request_id'],op='LOAD',ok=True,body=dict(job_id=primary()['body']['job_id'],state='loaded',adjustments=[dict(event_index=i,requested_frequency_nhz=str(135500000000000 if i%2==0 else 135495000000000),realized_frequency_nhz=str(135500002652407 if i%2==0 else 135494990274310)) for i in range(512)]))
         response_ok(reply);raw=frame(json.dumps(reply,separators=(',',':')).encode());buf=bytearray();got=[]
@@ -86,7 +109,7 @@ class LoadTargetTests(unittest.TestCase):
                 if label=='final-a':raise ValueError('A health unavailable')
                 return b
             with patch.object(target,'exclusive_port',side_effect=lambda p:contextlib.nullcontext(7)),patch.object(target.USB,'ask',side_effect=ValueError('test stopped')),patch.object(target,'exchange',side_effect=[dict(device_id=DEVICE,status=dict(boot_id='a'*32)),dict(ok=True)]),patch.object(target,'Fixture') as fixture,patch.object(target,'inventory',side_effect=inventory),patch.object(target,'finished',return_value=b),patch.object(target,'configuration',return_value={}),patch.object(target,'inactive'):
-                target.run(root,dict(owner_id='1'*32,cleanup_deadline_utc_ns=10**30),lambda k,v:log.append((k,v)),lambda:None)
+                target.run(root,dict(scope='R3-G2-LOAD-TARGET-v1',owner_id='1'*32,cleanup_deadline_utc_ns=10**30),lambda k,v:log.append((k,v)),lambda:None)
             self.assertEqual(calls,['final-a','final-b'])
             fixture.return_value.cleanup.assert_called_once()
             result=json.loads((root/'run-result.json').read_text())

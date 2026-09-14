@@ -30,6 +30,9 @@ PRIOR_JOB='c339ee30075d458ccc3047bb3d8f8b18'
 WIRE_SHA='e5b48b92dd2abd74e670f2b2aed3d660c9b357bd4857be6b64b8affedbcee670'
 NAME='wsprrypico-0a60df.local'
 PEER_SHA='06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016'
+CONTINUATION='R3-G2-LOAD-CONTINUATION-v1'
+PRIOR_PACKET_SHA='cbe4d13d0c3b19a2ef891366a9b0bcaf12b9077927b7d66da45a4703b8dc1a84'
+RETAINED_BOOT='11dac3985326cb81c49022efcdceb5d4'
 OPS={'HELLO','STATUS','CLAIM','LOAD','ABORT','RELEASE'}
 
 def digest(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -41,10 +44,12 @@ def request(op,body,rid,session=C7_SESSION):
 def raw_request(q):return frame(json.dumps(q,separators=(',',':')).encode())
 def primary():return request('LOAD',maximum_job(C7_JOB,duration=128000000000),C7_RID)
 def validate_packet(p):
-    require(p['scope']=='R3-G2-LOAD-TARGET-v1' and p['source_revision']==SOURCE and
+    require(p['scope'] in ['R3-G2-LOAD-TARGET-v1',CONTINUATION] and p['source_revision']==SOURCE and
         p['serial']==SERIAL and p['device_id']==DEVICE and p['primary']==primary(), 'Exact target scope')
     require(len(raw_request(p['primary']))==52105 and hashlib.sha256(raw_request(p['primary'])).hexdigest()==WIRE_SHA,'Exact primary bytes')
-    require(p['limits']==dict(flashes=1,bootsel=1,primary_loads=1,replays=2,rf_jobs=0,configuration_writes=0,wifi_cycles=0,https_requests=4,network_seconds=90),'Finite limits')
+    continuation=p['scope']==CONTINUATION
+    if continuation:require(p['prior_packet_sha256']==PRIOR_PACKET_SHA and p['expected_boot']==RETAINED_BOOT,'Frozen retained continuation')
+    require(p['limits']==dict(flashes=0 if continuation else 1,bootsel=0 if continuation else 1,primary_loads=1,replays=2,rf_jobs=0,configuration_writes=0,wifi_cycles=0,https_requests=4,network_seconds=90),'Finite limits')
     require(p['cleanup_deadline_utc_ns']-p['work_deadline_utc_ns']==900000000000 and
         p['cleanup_deadline_utc_ns']-p['start_utc_ns']==3600000000000,'Original hour/cleanup reserve')
     for key in ['b_session','inventory_session','owner_id','fresh_request_id','tls_session']:
@@ -114,6 +119,7 @@ def inventory(root,p,label,b=False):
     require(proc.returncode==0,'Inventory failed: '+label);return finished(root/(label+'.stdout'),'READ_ONLY_INVENTORY')
 
 def deploy(root,p,emit,check):
+    require(p['scope']!='R3-G2-LOAD-CONTINUATION-v1','Continuation has no flash authority')
     check();require(not (root/'deployment.json').exists(),'Single deployment only')
     before=inventory(root,p,'before-a');before_b=inventory(root,p,'before-b',True);inactive(before);inactive(before_b)
     require(before['info']['revision']==p['prior_revision'] and before['wtp']['STATUS']['boot_id']==p['prior_boot'],'Prior image/boot')
@@ -138,6 +144,23 @@ def deploy(root,p,emit,check):
     require(boot!=p['prior_boot'] and configuration(after)==configuration(before),'Boot/configuration preservation')
     healthy(after['info'],boot)
     state.update(boot_id=boot,status='CANDIDATE_VERIFIED');save(root/'deployment.json',state);emit('deployment',state)
+
+def wait_network(root,boot,check):
+    log=Journal(root/'readiness.jsonl');log('start',dict(boot_id=boot));until=time.monotonic()+90
+    try:
+        with exclusive_port(Path(f'/dev/serial/by-id/usb-WsprryPi_WsprryPico_{SERIAL}-if00')) as fd:
+            consecutive=0
+            while time.monotonic()<until:
+                check();info=exchange(fd,b'INFO\n',min(until,time.monotonic()+5),log,False);log('info',info);healthy(info,boot)
+                network=info['network']
+                ready=(network['initialized'] and network['enabled'] and network['link_status']==3 and network['ipv4']=='10.77.15.10' and network['control_listening'])
+                consecutive=consecutive+1 if ready else 0
+                if consecutive>=2:log('finish',dict(status='PICO_NETWORK_READY'));return
+                time.sleep(min(2,max(0,until-time.monotonic())))
+        raise TimeoutError('Pico network readiness deadline')
+    except BaseException as error:
+        log('failure',dict(error=str(error)));raise
+
 
 def network(root,p,emit,check):
     boot=json.loads((root/'deployment.json').read_text())['boot_id'];end=time.monotonic()+90;stop=threading.Event();errors=[]
@@ -199,13 +222,13 @@ def network(root,p,emit,check):
 def run(root,p,emit,check):
     require(not (root/'run-result.json').exists(),'Single physical attempt only')
     boot=json.loads((root/'deployment.json').read_text())['boot_id'];result=dict(status='RUNNING',passed=[],primary_loads=0,replays=0,rf_jobs=0);save(root/'run-result.json',result)
-    fixture=Fixture(root);stop=threading.Event();errors=[];observer=None;net=None;fd=None
+    fixture=Fixture(root);stop=threading.Event();info_ready=threading.Event();errors=[];observer=None;net=None;fd=None
     def info_worker():
         try:
             with exclusive_port(Path(f'/dev/serial/by-id/usb-WsprryPi_WsprryPico_{SERIAL}-if00')) as console:
                 next_at=time.monotonic()
                 while not stop.is_set():
-                    check();began=time.monotonic_ns();info=exchange(console,b'INFO\n',time.monotonic()+5,lambda k,v:emit('console_'+k,v),False);emit('info',dict(began_ns=began,value=info));healthy(info,boot);next_at+=1;stop.wait(max(0,next_at-time.monotonic()))
+                    check();began=time.monotonic_ns();info=exchange(console,b'INFO\n',time.monotonic()+5,lambda k,v:emit('console_'+k,v),False);emit('info',dict(began_ns=began,value=info));healthy(info,boot);info_ready.set();next_at+=1;stop.wait(max(0,next_at-time.monotonic()))
         except BaseException as e:errors.append(str(e));stop.set();emit('failure',dict(worker='info',error=str(e)))
     def active_check():
         check();require(not stop.is_set() and not errors,'Observer failure')
@@ -217,22 +240,30 @@ def run(root,p,emit,check):
             peer=USB(fd,boot,emit,active_check)
             def ask(op,body,label,rid):return peer.ask(request(op,body,rid),label)
             hello=dict(versions=['WTP/1'],client_name='LOAD-reply-check',client_version='1')
-            ask('HELLO',hello,'prime-hello','a'*32);ask('CLAIM',dict(owner_id=p['owner_id'],lease_ms=60000),'prime-claim','b'*32)
-            prime=ask('LOAD',maximum_job(PRIOR_JOB),'prime-load','c'*32)
-            response_ok(dict(prime,body=dict(prime['body'],job_id=C7_JOB)))
-            ask('ABORT',dict(job_id=PRIOR_JOB),'prime-abort','d'*32);ask('RELEASE',{},'prime-release','e'*32)
-            retained_at=time.monotonic();result['passed'].append('retained_job_prepared');save(root/'run-result.json',result)
-            fixture.setup();fixture.verify()
-            while time.monotonic()-retained_at<310:active_check();time.sleep(min(1,310-(time.monotonic()-retained_at)))
+            if p['scope']==CONTINUATION:
+                prior=json.loads((root/'prior/run.jsonl').read_text().splitlines()[-1])
+                require(time.monotonic_ns()-prior['monotonic_ns']>=310000000000,'Retained cache aging')
+                result['passed'].append('retained_preparation_reused')
+                fixture.setup();fixture.verify()
+            else:
+                ask('HELLO',hello,'prime-hello','a'*32);ask('CLAIM',dict(owner_id=p['owner_id'],lease_ms=60000),'prime-claim','b'*32)
+                prime=ask('LOAD',maximum_job(PRIOR_JOB),'prime-load','c'*32)
+                response_ok(dict(prime,body=dict(prime['body'],job_id=C7_JOB)))
+                ask('ABORT',dict(job_id=PRIOR_JOB),'prime-abort','d'*32);ask('RELEASE',{},'prime-release','e'*32)
+                retained_at=time.monotonic();result['passed'].append('retained_job_prepared');save(root/'run-result.json',result)
+                fixture.setup();fixture.verify()
+                while time.monotonic()-retained_at<310:active_check();time.sleep(min(1,310-(time.monotonic()-retained_at)))
             ask('HELLO',hello,'test-hello','f'*32)
             s=ask('STATUS',{},'retained-status','0'*32)['body'];require(s['state']=='empty' and s['owner_id'] is None and s['output_active'] is False and len(s['terminal_records'])==1 and s['terminal_records'][0]['job_id']==PRIOR_JOB and s['terminal_records'][0]['state']=='aborted','Retained baseline')
             result['passed'].append('retained_baseline_verified')
+            wait_network(root,boot,active_check)
             pid=int(fixture.value('systemctl','show','-p','MainPID','--value','phase115-closure-client'))
             net=subprocess.Popen(['nsenter','-t',str(pid),'-m','-n','python3',str(Path(__file__).resolve()),'network','--root',str(root),'--packet-sha256',digest(root/'test-packet.json'),'--run'],stdout=(root/'network.stdout').open('xb'),stderr=(root/'network.stderr').open('xb'))
             until=time.monotonic()+10
             while not (root/'network-ready.json').exists() and time.monotonic()<until:active_check();require(net.poll() is None,'Network observer exited');time.sleep(.1)
             require((root/'network-ready.json').exists(),'Network readiness deadline')
             observer=threading.Thread(target=info_worker);observer.start()
+            require(info_ready.wait(6),'First healthy INFO readiness');active_check()
             for i in range(7):
                 if i:stop.wait(5)
                 active_check();ask('STATUS',{},'pre-status-'+str(i),f'{i+1:032x}')
@@ -284,8 +315,24 @@ def run(root,p,emit,check):
         except BaseException as e:result['fixture_cleanup_error']=str(e);result['status']='FAILED'
         save(root/'run-result.json',result);emit('finish',result)
 
+def admit(root,p,emit,check):
+    require(p['scope']==CONTINUATION and not (root/'deployment.json').exists(),'Single retained admission')
+    check()
+    require(digest(root/'prior/test-packet.json')==p['prior_packet_sha256'],'Prior packet')
+    prior=json.loads((root/'prior/test-packet.json').read_text())
+    require(prior['host_boot_id']==p['host_boot_id'] and prior['image_sha256']==p['image_sha256'],'Same host/image')
+    before=inventory(root,p,'before-a');before_b=inventory(root,p,'before-b',True)
+    inactive(before);inactive(before_b);healthy(before['info'],p['expected_boot'])
+    require(before['wtp']['STATUS']['terminal_records']==finished(root/'prior/post-restoration-a.stdout','READ_ONLY_INVENTORY')['wtp']['STATUS']['terminal_records'],'Retained preparation unchanged')
+    for value,name in [(before,'a'),(before_b,'b')]:
+        old=finished(root/('prior/post-restoration-'+name+'.stdout'),'READ_ONLY_INVENTORY')
+        require(configuration(value)==configuration(old) and value['wtp']['STATUS']['boot_id']==old['wtp']['STATUS']['boot_id'] and value['info']['revision']==old['info']['revision'],'Retained board/configuration identity')
+    state=dict(bootsel_commands=0,flashes_started=0,boot_id=p['expected_boot'],status='RETAINED_CANDIDATE_VERIFIED')
+    save(root/'deployment.json',state);emit('admission',state)
+
+
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('mode',choices=['deploy','run','network']);parser.add_argument('--root',type=Path,required=True);parser.add_argument('--packet-sha256',required=True);parser.add_argument('--run',action='store_true');a=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('mode',choices=['deploy','admit','run','network']);parser.add_argument('--root',type=Path,required=True);parser.add_argument('--packet-sha256',required=True);parser.add_argument('--run',action='store_true');a=parser.parse_args()
     if not a.run:print('Plan only; no device or network access.');return
     root=a.root.resolve(strict=True);require(digest(root/'test-packet.json')==a.packet_sha256,'Frozen packet hash');p=validate_packet(json.loads((root/'test-packet.json').read_text()));require(str(root)==p['root'],'Private root identity')
     for path,sha in p['stage_sha256'].items():require((root/path).resolve().is_relative_to(root) and digest(root/path)==sha,'Frozen helper/input hash')

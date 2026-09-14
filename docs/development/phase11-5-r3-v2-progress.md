@@ -22,7 +22,7 @@ The user has now said Execute. Standing finite approvals remain active.
    - 1.3 PASS: native QRSS/FSKCW/DFCW submissions in checkpoints 040–042;
      acknowledged-ARM loss, local completion and original-session reconciliation
      in 043. Original harness failures remain separately recorded.
-2. **Capacity and pressure — OPEN (component 5 observer stop; primary target check pending)**
+2. **Capacity and pressure — OPEN (component 6 network readiness blocked; primary target check pending)**
    - 2.1 Complete maximum WTP, HTTP and job capacity assertions.
    - 2.2 Verify supported combined load and bounded overload rejection.
    - 2.3 Complete WTP timeout and USB pressure mechanisms.
@@ -35,7 +35,17 @@ The user has now said Execute. Standing finite approvals remain active.
    - 4.2 Finish adversarial review, repairs and affected retests.
    - 4.3 Restore, verify final state, commit, push and report.
 
-## Latest bounded Group 2 outcome: component 5
+## Latest component 6 result
+
+[Component 6](phase11-5-r3-v2-component6-review.md) verified the same installed
+image and retained E6 record. The corrected observer passed, but Pico network
+readiness remained blocked: firmware reported no IP and CYW43 authentication
+failure status -3. No primary LOAD, replay or RF operation ran. Host readiness
+and deadline defects are repaired and tested offline; both fixture instances
+and independent final A/B state are restored. No new assertion closed. One idle
+Pico Wi-Fi recovery cycle is proposed and requires extending the zero-cycle scope.
+
+## Historical bounded Group 2 outcome: component 5
 
 [Component 5](phase11-5-r3-v2-component5-review.md) installed clean `e256633`
 and verified the retained E6 preparation. The first INFO sample exposed a host
