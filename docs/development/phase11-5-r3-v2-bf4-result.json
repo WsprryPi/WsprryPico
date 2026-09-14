@@ -1,0 +1,31 @@
+{
+  "status": "B_IDLE_FUNCTIONAL_VERIFIED",
+  "packet_sha256": "1ea8add9d2b07bf1306dc541a5e9bbc4e1c0717a4b6cdef3f977d1fd8727c04d",
+  "source_revision": "8921a70081839f168edef5926e92445f251d8e1d",
+  "image_sha256": "67c27f20da8212097d60cd6b58fbbb4e774286df728ed7ea3e2746b5c6a59f58",
+  "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+  "passed_cases": [
+    "http-32768",
+    "http-replay",
+    "http-conflict",
+    "http-32769-header",
+    "http-malformed",
+    "http-recovery",
+    "hello",
+    "maximum-status",
+    "oversized-recovery",
+    "claim",
+    "events-513",
+    "after-513",
+    "overduration",
+    "after-overduration",
+    "maximum-load",
+    "loaded-status",
+    "loaded-abort",
+    "release",
+    "final-status"
+  ],
+  "accepted_loads": 1,
+  "rf_jobs": 0,
+  "a_under_rf_acceptance": false
+}

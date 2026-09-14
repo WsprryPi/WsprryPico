@@ -3,7 +3,7 @@
   "prompt_sha256": "8339283a873f93c8d0343132d0039781956bb7c30902bb9f8b2f65e5475065b5",
   "accepted_on": "2026-09-13",
   "acceptance": "I accept R3-COMPLETE-20260913-v2, including the 32-character and 60-minute implementation, finite RF tests, and the complete work/recovery scope described. The documented 60 dB conducted wiring remains unchanged.",
-  "status": "AUTHORIZED_IN_PROGRESS",
+  "status": "OPEN_BOUNDED_ATTEMPT_STOPPED",
   "historical_counters": {
     "rf_jobs": 9,
     "rf_planned_seconds": 900,
@@ -102,7 +102,7 @@
     "rf_duration_ns_charged": 0
   },
   "h2b": {
-    "status": "RUNNING_REQUIRES_FINAL_AUDIT",
+    "status": "H2B_DFCW_PHYSICAL_HOUR_WITH_NOMINAL_CONTENTION_VERIFIED",
     "packet_sha256": "addf150f2832d418c7f198e25edbf29bebaf21a62202fd1a9f072447c0db0da1",
     "rf_jobs_started": 1,
     "rf_duration_ns_charged": 3600000000000,
@@ -111,7 +111,9 @@
     "flashes": 0,
     "wifi_cycles": 0,
     "configuration_writes": 0,
-    "heap_probes": 0
+    "heap_probes": 0,
+    "result_file": "phase11-5-r3-v2-h2b-result.json",
+    "evidence_archive_sha256": "6cfeef00435b8974dba51a6c8be7fcb3101c16ed7b60067e720f443b56722323"
   },
   "image_policy_user_clarification": "Keep current good code on Pico A; change its image only for a demonstrated defect, then retain and test the repaired image. No alternating RF/inhibited images or routine inhibited restoration. B remains read-only.",
   "r0": {
@@ -129,5 +131,1045 @@
     "release_attempts": 1,
     "result_file": "phase11-5-r3-v2-r0a-result.json",
     "evidence_archive_sha256": "52cd41e2a048d2f3029f4871b5f6a4b1f175a5e00cec819d0b11e9d3c267cfd7"
+  },
+  "e1": {
+    "status": "E1_IDLE_BOUNDARIES_VERIFIED",
+    "packet_sha256": "5b61ffdf74ab0e1f5daa77bef59ea2c3e7d797c128cf8499d3d90c6178965ab0",
+    "result_file": "phase11-5-r3-v2-e1-result.json",
+    "evidence_archive_sha256": "407df5a3fa6cd075352b9402924cb636a1e3a86ebdc3f115a1950d07b5d1273f"
+  },
+  "e2": {
+    "status": "E2_IDLE_BOUNDARIES_VERIFIED",
+    "packet_sha256": "37a6cd1d990e0c79cc8510a7e5b7fc81e3ac13316de76cabc65b4d2dfa7f7207",
+    "result_file": "phase11-5-r3-v2-e2-result.json",
+    "evidence_archive_sha256": "029cae4620995b7b635214195790045b9ac0dc96aec44609a26fe4e8314e3298"
+  },
+  "t4": {
+    "status": "T4_PRESSURE_VERIFIED",
+    "packet_sha256": "a96a14455d08caa37fab21e7ef96be5bd5249afdf6471e8450c64a2e5d73f5a4",
+    "result_file": "phase11-5-r3-v2-t4-result.json",
+    "evidence_archive_sha256": "06fb5f16486be04a7a7d46dedee9292188219f487dbabff36fa3b665a3dbb154"
+  },
+  "bd0": {
+    "status": "B_DEPLOYMENT_VERIFIED",
+    "classification": null,
+    "packet_sha256": "9e491643982fb5c0480c866666143530ea7ccc612ba32a2a2692308eb44aa214",
+    "result_file": "phase11-5-r3-v2-bd0-result.json",
+    "rf_jobs": 0,
+    "arm_commands": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 0,
+    "flashes": 1,
+    "evidence_archive_sha256": "4190537c2efb3e8c1e0ba309a17fcbcbe168d90a31c55562f7e70c2cefccce83"
+  },
+  "bf0": {
+    "status": "STOPPED_B_COMPONENTS_VERIFIED",
+    "classification": "HARNESS_EXPECTATION_ERROR",
+    "packet_sha256": "d9b6db99ad6d491c780a00c6f34a50a47c2be02de5665bab28c78ee0a5af59dd",
+    "result_file": "phase11-5-r3-v2-bf0-result.json",
+    "rf_jobs": 0,
+    "arm_commands": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 0,
+    "flashes": 0,
+    "evidence_archive_sha256": "34a816bc536145b83d74da4f11cf5a43db841cf5575c616f1963a14214b9a05a"
+  },
+  "bf1": {
+    "status": "STOPPED_B_COMPONENTS_VERIFIED",
+    "classification": "FIRMWARE_ALLOCATION_PANIC",
+    "packet_sha256": "87032853b769c077555d6869aac10c642d1442c8205809d8b7ac299bddab9bb3",
+    "result_file": "phase11-5-r3-v2-bf1-result.json",
+    "rf_jobs": 0,
+    "arm_commands": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 0,
+    "flashes": 0,
+    "evidence_archive_sha256": "8449424b704a0c1cdfe21c6b482d70f0a96e14e21cf61d9d9aba521fe310743c"
+  },
+  "bd1": {
+    "status": "B_DEPLOYMENT_VERIFIED",
+    "classification": null,
+    "packet_sha256": "83b483a76b03466616ccb852d93555554ffa1d6839b5ed5cdef452c4b3e2a349",
+    "result_file": "phase11-5-r3-v2-bd1-result.json",
+    "rf_jobs": 0,
+    "arm_commands": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 0,
+    "flashes": 1,
+    "evidence_archive_sha256": "39d36a552592eb3124d9bb354d93e7d37eeae46238431262c6b07bb342370083"
+  },
+  "bf2": {
+    "status": "STOPPED_B_COMPONENTS_VERIFIED",
+    "classification": "FIRMWARE_OUTPUT_ALLOCATION_REJECTED_WITHOUT_RESET",
+    "packet_sha256": "e72a6130cf014515af75601b762c8df3cd93faa2d64440d22eef0f55137e17d5",
+    "result_file": "phase11-5-r3-v2-bf2-result.json",
+    "rf_jobs": 0,
+    "arm_commands": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 0,
+    "flashes": 0,
+    "evidence_archive_sha256": "27b10f8637aa6ff1bc887c25b9cc0d746436a9e516386e7ca55ab54e88e7555f"
+  },
+  "bd2": {
+    "status": "B_DEPLOYMENT_VERIFIED",
+    "classification": null,
+    "packet_sha256": "b7eb16dd88ab2867d5189ea3a3c1c49a7b47ab4e25fc82fa862f20a1962444a1",
+    "result_file": "phase11-5-r3-v2-bd2-result.json",
+    "rf_jobs": 0,
+    "arm_commands": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 0,
+    "flashes": 1,
+    "evidence_archive_sha256": "11e8df145cd2e2ca0a0f2dd0805ec764248e000abfd169b47a4594a21f8c7b1c"
+  },
+  "bf3": {
+    "status": "STOPPED_B_COMPONENTS_VERIFIED",
+    "classification": "NETWORK_CONNECT_TIMEOUT_BEFORE_REQUEST",
+    "packet_sha256": "482ddb19074aff4190ffd5b2e432109d3926a2cd1c6829e29631e82f46b9983c",
+    "result_file": "phase11-5-r3-v2-bf3-result.json",
+    "rf_jobs": 0,
+    "arm_commands": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 0,
+    "flashes": 0,
+    "evidence_archive_sha256": "4ad5dc1e41d6dd18ee040be2cf0391ddd0502955fd23e25204aca082cdaf9d2e"
+  },
+  "bf4": {
+    "status": "B_IDLE_FUNCTIONAL_VERIFIED",
+    "classification": null,
+    "packet_sha256": "1ea8add9d2b07bf1306dc541a5e9bbc4e1c0717a4b6cdef3f977d1fd8727c04d",
+    "result_file": "phase11-5-r3-v2-bf4-result.json",
+    "rf_jobs": 0,
+    "arm_commands": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 0,
+    "flashes": 0,
+    "evidence_archive_sha256": "3ca2fc83b1dcbc98d6a51302e12a2826e928d6d56b1550583a3d9370ad189de2"
+  },
+  "image_policy_current": "Retain the tested RF-capable image on both A and separately authorized B; reflash only for demonstrated source defects. B has no ARM or RF authority.",
+  "latest_verified_state": {
+    "recorded_utc": "2026-09-14T16:36:59.528316+00:00",
+    "source_revision": "4da36726ac6809bdf4e73d281fe13b2393dd3b31",
+    "a_boot": "0bd82f1324920c360d796988cf31cb5b",
+    "b_boot": "6684b4b197d80cfa0ce83b3aaf205cb0",
+    "a": {
+      "source": "4da36726ac68",
+      "status": {
+        "boot_id": "0bd82f1324920c360d796988cf31cb5b",
+        "state": "missed",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": "9f0ae5cb9bf19c6366c53c33a75d86e0",
+        "terminal_records": [
+          {
+            "job_id": "9f0ae5cb9bf19c6366c53c33a75d86e0",
+            "state": "missed",
+            "ended_monotonic_ns": "264396496000",
+            "output_active": false,
+            "error": {
+              "code": "MISSED_START",
+              "message": "MISSED_START",
+              "retryable": false
+            }
+          },
+          {
+            "job_id": "f2b4b083a800382a8917a80364f848bd",
+            "state": "aborted",
+            "ended_monotonic_ns": "6245238000",
+            "output_active": false
+          }
+        ]
+      },
+      "scheduling_enabled": false
+    },
+    "b": {
+      "source": "8921a7008183",
+      "status": {
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "scheduling_enabled": false
+    },
+    "fixture_restored": true,
+    "active_packet": null,
+    "latest_observation_result": "C4 raw final authority and post-restoration independent A/B inventory verified",
+    "cumulative_counter_policy": "Earlier packet counters and historical snapshots remain unchanged. This attempt adds one A flash, one BOOTSEL and one 90-second ARM charge; zero launches, configuration writes, Wi-Fi cycles or probes. Do not compare allocator deltas across E5 boot."
+  },
+  "e3": {
+    "status": "E3_IDLE_BOUNDARIES_VERIFIED",
+    "result_file": "phase11-5-r3-v2-e3-result.json",
+    "packet_sha256": "8bd146adfccd861974e86fe669584ef5de221c56826c9a2589b4315a3b6433c1",
+    "evidence_archive_sha256": "91b790c47c4d58c0640a6609f1d219b28b1cb5bb5a1c4c0e23f563a2e45ce7c7"
+  },
+  "t5": {
+    "status": "T5_PRESSURE_VERIFIED",
+    "result_file": "phase11-5-r3-v2-t5-result.json",
+    "packet_sha256": "9215a8049c83c2319506ef0c76100213a6bf5bb479a06cd283835c684719f095",
+    "evidence_archive_sha256": "0038ef6708f81be1b8d54320a2bb0faaf8e2d979328a21d7dc6ebf27f80093e5"
+  },
+  "browser_b2": {
+    "status": "B2_ZERO_RF_TRUST_FAILURE_VERIFIED",
+    "result_file": "phase11-5-r3-v2-browser-b2-result.json",
+    "packet_sha256": "21569af32117cd0ea8bb1117446e3cdf55584325429b5a88abc6b55a3723db5e",
+    "evidence_archive_sha256": "a80be52b1ec5aa0ddc562de37c2a11807f7d4350e617c87d4060abf1d6b52fff"
+  },
+  "browser_p0": {
+    "status": "P0_AUTHENTICATED_GET_ONLY_BROWSER_VERIFIED",
+    "result_file": "phase11-5-r3-v2-browser-p0-result.json",
+    "packet_sha256": "dcdbdb5dbba70ac47ab3c9f691926940d8b484c0f5752106224205e39b13be4c",
+    "evidence_archive_sha256": "b6071fdf5c4ef0a8a2d0f252b0e6cdbef1cbdadb9f29a49e3e6cf76ac745b2e0"
+  },
+  "browser_b3": {
+    "status": "B3_STOPPED_COMPONENTS_VERIFIED",
+    "result_file": "phase11-5-r3-v2-browser-b3-result.json",
+    "packet_sha256": "ef0a4f7f42182001783878ce3216f08a654104ad86a593f78d0ae60cb00e4254",
+    "evidence_archive_sha256": "748628982a5904fdf5e675738cae97b91c4cf3e0afc8e9ff39d78e721add3fb8"
+  },
+  "browser_b4": {
+    "status": "B4_COMPLETED_FSKCW_AND_REJECTED_QRSS_VERIFIED",
+    "result_file": "phase11-5-r3-v2-browser-b4-result.json",
+    "packet_sha256": "8d37a3a5fb5085716a4add0e6d8b5a1c74c59e36846d31af2b79ba5ba1d51170",
+    "evidence_archive_sha256": "b7c30b5a460ea99796169ccf275a3a8fc58b8cc03da9bc47197d7366a025bec3"
+  },
+  "r0c": {
+    "status": "IDLE_RECONCILIATION_INDEPENDENTLY_VERIFIED",
+    "result_file": "phase11-5-r3-v2-r0c-result.json",
+    "packet_sha256": "ec07a3f4909ed039d04dbafcb17b4c5ef6fe31d2de38f6dbc4f0cd35b23783e4",
+    "evidence_archive_sha256": "f8e65e9762610f1a0a28c3c310969a818aed2846a3a952ef4007502462bd589b"
+  },
+  "r0b": {
+    "status": "STAGING_REJECTED_BEFORE_ROOT_CREATION",
+    "classification": "HARNESS_MISSING_STAGING_SCOPE",
+    "packet_sha256": "13ed2ac1e8cfeeded4214f9da59eff5af0fecf2c9c4638fd331c1839b22d0308",
+    "rf_jobs": 0,
+    "claim_attempts": 0,
+    "release_attempts": 0,
+    "correction": "R0c supplies the missing scope; corrected stager manifest rehearsed locally before staging."
+  },
+  "browser_b5": {
+    "status": "B5_ARMED_CANCELLATION_WITH_HARNESS_FAILURE_VERIFIED",
+    "packet_sha256": "05e1e318b504e3c20e7fb0b233ba42663f52bfd55983e35b1a56f05ced449c80",
+    "unit": "phase115-r3-v2-browser-b5.service",
+    "invocation_id": "f8c8d648d970407bae8fde74c8e97ea4",
+    "planned_jobs": 2,
+    "maximum_rf_duration_ns_charged": 299000002000,
+    "result_file": "phase11-5-r3-v2-browser-b5-result.json",
+    "family_closed": false,
+    "rf_jobs_charged": 1,
+    "rf_duration_ns_charged": 143250001000,
+    "physical_rf_launches": 0,
+    "classification": "HARNESS_STALE_POST_RELEASE_SAMPLE",
+    "completion_credit": "ARMED_CANCELLATION_VERIFIED"
+  },
+  "browser_b6": {
+    "status": "B6_ZERO_RF_STATIC_PAGE_REFUSAL_VERIFIED",
+    "packet_sha256": "2f1d5f744042fa65923d21e8d26e0f25d1ce614c52cfdb39b0a7cb3adc8adc91",
+    "result_file": "phase11-5-r3-v2-browser-b6-result.json",
+    "family_closed": false,
+    "rf_jobs_charged": 0,
+    "physical_rf_launches": 0,
+    "classification": "FIRMWARE_STATIC_ASSET_ADMISSION_REFUSAL"
+  },
+  "static_asset_repair": {
+    "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+    "status": "DEPLOYED_IDLE_VALIDATED",
+    "host_ctest_groups_passed": 62,
+    "deployed": true,
+    "reason": "B6 static root returned resource_exhausted under the obsolete triple-copy admission budget; use fallible 4 KiB output pages and the actual body budget."
+  },
+  "e4": {
+    "status": "E4_IDLE_BOUNDARIES_VERIFIED",
+    "result_file": "phase11-5-r3-v2-e4-result.json",
+    "packet_sha256": "4f2f3680f88021adfc14b32930eaea575cbbe291045bce3c5f3daa02807d2783",
+    "evidence_archive_sha256": "028aa2864071becc5b5cdc71532f8b5688b2b2e9e933af89f2cdcb607444ff12"
+  },
+  "browser_b7": {
+    "status": "B7_STOPPED_LIFECYCLE_RECONCILED",
+    "packet_sha256": "22f191f41c43eab0dea11de654dd13ef20235aa72f1ba08c57c01e9b7acbdce3",
+    "unit": "phase115-r3-v2-browser-b7.service",
+    "invocation_id": "d357792de4de4e5c9d35c855ec596e10",
+    "rf_jobs_charged": 1,
+    "rf_duration_ns_charged": 155750001000,
+    "finding": "INFO_CADENCE_GATE_FAILURE_ORIGIN_UNRESOLVED",
+    "latest_observed_authority": "complete/inactive/unowned; full evidence audit pending",
+    "completion_credit": "Terminal lifecycle only; original INFO cadence FAILED; no cancellation or full timing acceptance",
+    "result_file": "phase11-5-r3-v2-browser-b7-result.json",
+    "evidence_archive_sha256": "fa0b4d4aeb577175439c4b0c182b98ea0c78a53df13bd0fcd6104ec1325ffcee",
+    "terminal_completions": 1,
+    "physical_launches": 1
+  },
+  "execution_handoff": {
+    "prompt_id": "R3-FOUR-GROUP-HANDOFF-20260914-v1",
+    "execution_authorized": true,
+    "groups": [
+      {
+        "number": 1,
+        "name": "Controller and lifecycle",
+        "status": "IN_PROGRESS",
+        "subtasks": {
+          "1.1": "B7 original cadence failure preserved; prospective policy tested; B8 complete observations audited",
+          "1.2": "PASS: B9 Running cancellation, checkpoint 039; prior applicable browser assertions preserved",
+          "1.3": "Native implementation/audit preparation in progress; no native RF run yet"
+        }
+      },
+      {
+        "number": 2,
+        "name": "Capacity and pressure",
+        "status": "OPEN",
+        "subtasks": {
+          "2.1": "Maximum WTP, HTTP and job capacities",
+          "2.2": "Combined load and bounded overload",
+          "2.3": "WTP timeout and USB pressure"
+        }
+      },
+      {
+        "number": 3,
+        "name": "Retention and reclamation",
+        "status": "OPEN",
+        "subtasks": {
+          "3.1": "Freeze measured workload and fixture allowance",
+          "3.2": "Capacity, reuse, eviction and actual expiry",
+          "3.3": "Three equivalent cycles on one A source/boot"
+        }
+      },
+      {
+        "number": 4,
+        "name": "Closeout",
+        "status": "OPEN",
+        "subtasks": {
+          "4.1": "Acceptance evidence matrix",
+          "4.2": "Adversarial review, repairs and affected retests",
+          "4.3": "Cleanup, final verification, commit, push and report"
+        }
+      }
+    ]
+  },
+  "handoff_resume": {
+    "recorded_utc": "2026-09-14T11:04:42.381551+00:00",
+    "a_revision": "a740dbb8e731",
+    "a_boot": "2b4583bd3d79a38f030a08c82ed96939",
+    "b_revision": "8921a7008183",
+    "b_boot": "6684b4b197d80cfa0ce83b3aaf205cb0",
+    "a_state": "C1 finite maximum-event job Running; independent observations active; old INFO freshness guard failure preserved",
+    "b_state": "Empty/inactive/unowned; scheduling disabled",
+    "fixture_f1_restored": true,
+    "fixture_f1_cleanup_failures": [],
+    "installed_pi_pid": 1957,
+    "installed_pi_sha256": "c19461bc6d2ebe7cae61798ad9acae8d43dfbec3ee57c288e4ef41e9c82b8273",
+    "new_rf_jobs": 8,
+    "new_flashes": 0,
+    "new_config_saves": 0,
+    "new_wifi_cycles": 2,
+    "inventory_evidence_sha256": "07947603e7993ff8eb7e9479266c06610e3ecdefc9400114ebb09f73f5b1f8b2",
+    "fixture_f2_root": "/home/pi/phase11-5-r3-v2-fixture-f2-20260914",
+    "fixture_f2_deadline_monotonic_ns": 335844710513000,
+    "new_rf_duration_ns_charged": 1473500002000,
+    "fixture_f2_restoration": {
+      "root": "/home/pi/phase11-5-r3-v2-fixture-f2-20260914",
+      "restored": true,
+      "state_sha256": "28c2c4942cbd9a42b7f9da55e1239d344d476819c21681b9ce1d05aca169c168",
+      "host_boot": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+      "protected_pid": 1957,
+      "protected_executable_sha256": "c19461bc6d2ebe7cae61798ad9acae8d43dfbec3ee57c288e4ef41e9c82b8273",
+      "old_client_absent": true,
+      "recovery_timer": "active"
+    },
+    "fixture_f3": {
+      "status": "ACTIVE",
+      "root": "/home/pi/phase11-5-r3-v2-fixture-f3-20260914",
+      "packet_sha256": "9702d0312a7ed57f657c41619ac18fa5bc87a7be50e097f4d9e9e544de6a5d55",
+      "client_pid": 553798,
+      "fixture_deadline_monotonic_ns": 348101486890000,
+      "runtime_seconds": 7200,
+      "restoration_seconds": 900
+    }
+  },
+  "wifi_w0": {
+    "result_file": "phase11-5-r3-v2-wifi-w0-result.json",
+    "status": "IDLE_WIFI_RECOVERY_VERIFIED",
+    "family_closed": false,
+    "packet_sha256": "9f966046ea29d5062a8699157e951cf67f83526dd437a2c8d8ed89a3657ceda6",
+    "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+    "image_sha256": "454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4",
+    "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+    "wifi_cycles": 1,
+    "off_commands": 1,
+    "on_commands": 1,
+    "configuration_writes": 0,
+    "flashes": 0,
+    "rf_jobs": 0,
+    "final_authority": {
+      "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+      "state": "empty",
+      "output_active": false,
+      "owner_id": null,
+      "job_id": null,
+      "terminal_records": []
+    },
+    "final_clock": {
+      "state": "synchronized",
+      "utc_now_ns": "1789384389313513000",
+      "monotonic_now_ns": "39284306429000",
+      "uncertainty_ns": "13958324",
+      "sync_age_ns": "1988756000",
+      "leap": "normal"
+    },
+    "evidence_archive_sha256": "468c4d60c2a799ca9424e7878d18b3715a59202caf15ed776cb4f73bd4a0abaa",
+    "adversarial_mutations_rejected": 7
+  },
+  "browser_b8": {
+    "status": "B8_FINITE_COMPLETION_WITH_PUBLICATION_HARNESS_FAILURE_VERIFIED",
+    "packet_sha256": "1b0d44f5215c2e6580f8c2bd6ec25b72eb6d9ef76e8c9e85067b2b0dce1e1966",
+    "unit": "phase115-r3-v2-browser-b8.service",
+    "invocation_id": "ae1aebf25e1e48ab84d8e4c758a06506",
+    "rf_jobs_charged": 1,
+    "rf_duration_ns_charged": 155750001000,
+    "job_id": "6dbca0fecb3b4c48a47ae315d4764e9b",
+    "completion_credit": null,
+    "result_file": "phase11-5-r3-v2-browser-b8-result.json",
+    "evidence_archive_sha256": "8de3b46609192e42b05d872265ce5d5f9b905a7d8b81eb125c682f402c67b885",
+    "terminal_completions": 1,
+    "physical_launches": 1,
+    "cancellation_verified": false,
+    "timing_acceptance": false
+  },
+  "reconcile_r1": {
+    "status": "IDLE_RECONCILIATION_INDEPENDENTLY_VERIFIED",
+    "result_file": "phase11-5-r3-v2-r1-result.json",
+    "packet_sha256": "ff9dfbe305085cbcf113c31011cf94870a4670e86d682824f2074b359f7b2eff",
+    "rf_jobs": 0,
+    "claim_attempts": 1,
+    "release_attempts": 1
+  },
+  "browser_b9": {
+    "status": "B9_ACTUAL_CHROMIUM_FEATURES_VERIFIED",
+    "packet_sha256": "df22c7fea17a0984532c3ee6d4cb4c30c976747d918f449ebe9878f3f4f1f1be",
+    "maximum_jobs": 1,
+    "maximum_charge_ns": 155750001000,
+    "unit": "phase115-r3-v2-browser-b9.service",
+    "invocation": "bc51c06f904b4136a865eb21114e3f99",
+    "result_file": "phase11-5-r3-v2-browser-b9-result.json",
+    "rf_jobs_charged": 1,
+    "rf_duration_ns_charged": 155750001000,
+    "job_id": "c5ec4d9753d0466c853494c85dd0aa27",
+    "running_cancellation_verified": true,
+    "evidence_archive_sha256": "08defa67f636de125b84397f8eb22ce40de9198f92f15ab0895a3c53ce1a4fbf"
+  },
+  "native_n0": {
+    "status": "N0_NATIVE_QRSS_COMPLETION_WITH_HARNESS_FAILURE_VERIFIED",
+    "packet_sha256": "2a3d8c11635c48dda176c006b668bc1286114bdb7398791c12be96cbc83ab029",
+    "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+    "native_source_revision": "bba4024ec310589b9f4813e9c6fb3082836e726f",
+    "mode": "qrss",
+    "rf_jobs_charged": 1,
+    "rf_duration_ns_charged": 143250000000,
+    "unit": "phase115-r3-v2-native-n0.service",
+    "invocation": "82ce095a55ba4791b340955ad55517f2",
+    "result_file": "phase11-5-r3-v2-native-n0-result.json",
+    "job_id": "9df722202f3930350000000000000001",
+    "native_submission_verified": true,
+    "completion_duration_ns": 143250000000,
+    "original_harness_failure": "Producer treated the next hourly queued job as a foreign job before the five-second USB completion publication arrived",
+    "evidence_archive_sha256": "2bb2b490163dc7fdeeeb2239de7996a36031eb73926468cb71c6759c8f454916"
+  },
+  "native_n1": {
+    "status": "N1_NATIVE_FSKCW_COMPLETION_WITH_HARNESS_FAILURE_VERIFIED",
+    "family_closed": false,
+    "packet_sha256": "a0260a2b0da99c33a9091e77e359a81f22d4b9e855a13f8f5f0461d51638a2b6",
+    "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+    "image_sha256": "454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4",
+    "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+    "native_source_revision": "bba4024ec310589b9f4813e9c6fb3082836e726f",
+    "native_binary_sha256": "b184cfba8b72a2cb73def207ab01792c5eaaae033607a926593dbad1e91cf124",
+    "mode": "fskcw",
+    "job_id": "72a33b663b0c50750000000000000001",
+    "session_id": "5ce1a3523f62208dbaf6973633217626",
+    "rf_jobs_charged": 1,
+    "rf_duration_ns_charged": 143250000000,
+    "timing": {
+      "job_id": "72a33b663b0c50750000000000000001",
+      "mode": "fskcw",
+      "epoch": 5,
+      "expected_counter_deltas": {
+        "dma_irqs": 37707,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 37705,
+        "refill_irq_pairs": 37705,
+        "running_tail_links": 1
+      },
+      "duration_ns": 143250000000,
+      "launch_target_ns": 42708995150000,
+      "post_enable_delay_ns": 13000,
+      "short_words": 6905,
+      "short_interval_ns": 1601159.420289855,
+      "short_75_percent_budget_ns": 1200869.5652173914,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 4,
+        "epoch": "4",
+        "successor_sequence": "37706",
+        "observed_ns": "42030272437000",
+        "remaining_words": 6511,
+        "total_words": 6905
+      }
+    },
+    "cadence": {
+      "info": {
+        "samples": 600,
+        "max_start_gap_ns": 1000775837,
+        "max_roundtrip_ns": 390598656,
+        "policy": "single-flight-info-v1"
+      },
+      "status": {
+        "samples": 120,
+        "max_start_gap_ns": 5000081695
+      },
+      "health": {
+        "samples": 120,
+        "max_start_gap_ns": 5000084085
+      }
+    },
+    "wire_operations": {
+      "ARM": 1,
+      "CAPS": 1,
+      "CLAIM": 1,
+      "GET_CLOCK": 1,
+      "HELLO": 1,
+      "LOAD": 1,
+      "RELEASE": 1,
+      "RENEW": 4,
+      "STATUS": 662
+    },
+    "final_authority": {
+      "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+      "state": "empty",
+      "output_active": false,
+      "owner_id": null,
+      "job_id": null,
+      "terminal_records": [
+        {
+          "job_id": "72a33b663b0c50750000000000000001",
+          "state": "complete",
+          "ended_monotonic_ns": "42852245151000",
+          "output_active": false
+        },
+        {
+          "job_id": "9df722202f3930350000000000000001",
+          "state": "complete",
+          "ended_monotonic_ns": "42030274136000",
+          "output_active": false
+        },
+        {
+          "job_id": "c5ec4d9753d0466c853494c85dd0aa27",
+          "state": "aborted",
+          "ended_monotonic_ns": "40982567917000",
+          "output_active": false
+        },
+        {
+          "job_id": "6dbca0fecb3b4c48a47ae315d4764e9b",
+          "state": "complete",
+          "ended_monotonic_ns": "39727787559000",
+          "output_active": false
+        }
+      ]
+    },
+    "evidence_archive_sha256": "a4612f54ae114f9c525e7e451e93ab649a5056f17eea2de38d78116ef74a6ef2",
+    "classification": "CONFIRMED_HARNESS_DEFECT",
+    "failure": "Producer missed the transient host Complete state; durable last_report proves completion before the next hourly Waiting plan",
+    "preserved_runner_status": "FAILED",
+    "native_submission_assertion": "PASS",
+    "adversarial_missing_evidence_rejected": 9,
+    "constraints": [
+      "Exactly one native CLAIM/LOAD/ARM/RELEASE; no second submission",
+      "Next hourly plan stayed beyond packet runtime",
+      "Native process exited 0; complete 600-second observer window audited"
+    ],
+    "checkpoint": "v2-041",
+    "root": "/home/pi/phase11-5-r3-v2-native-n1-20260914"
+  },
+  "native_n2": {
+    "root": "/home/pi/phase11-5-r3-v2-native-n2-20260914",
+    "packet_sha256": "5e18bbe50867720be83a42ee3a0b431640f2d3520da16f4dd98612e75bb06be4",
+    "archive_sha256": "a10051d2ab23b794e2f716fcb52de2ffe208992d74577bcd9e600e8eb97d7fdc",
+    "stager_sha256": "f2358e2116bcfc90649cbf7ec92d520ae47ec33861afb3b7a88070fb44e448c4",
+    "observer_sha256": "7d097999d7feebd9099d00ee97e74f2788e76bdabdc8e6f131c303b5e471b72e",
+    "producer_sha256": "8e6c3b0264bf0297c3d7ae5cf22afe62faf3a666f0daa5d3b6c4f883d6b25e03",
+    "auditor_sha256": "aa3058f884810c792d5868badc2e0aa21574b0f41d54a2b0e65c41ca9f95a686",
+    "planned_jobs": 1,
+    "maximum_duration_ns": 155750000000,
+    "status": "N2_NATIVE_DFCW_COMPLETION_WITH_FAILED_LOSS_VERIFIED",
+    "rf_jobs_charged": 1,
+    "rf_duration_ns_charged": 155750000000,
+    "invocation": "d8e1535a0cdd4a49ab7bb54f9fb7fc26",
+    "loss_assertion": "FAILED",
+    "loss_attempts": 1,
+    "loss_failure": "ss returned zero with RTNETLINK Invalid argument; exact socket remained established",
+    "independent_terminal": "Complete/inactive/unowned; full archive audit pending",
+    "family_closed": false,
+    "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+    "image_sha256": "454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4",
+    "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+    "native_source_revision": "bba4024ec310589b9f4813e9c6fb3082836e726f",
+    "native_binary_sha256": "b184cfba8b72a2cb73def207ab01792c5eaaae033607a926593dbad1e91cf124",
+    "mode": "dfcw",
+    "job_id": "3cf9f150fc0d031a0000000000000001",
+    "session_id": "5d8c072157edef2ed94a2f6f08f79249",
+    "timing": {
+      "job_id": "3cf9f150fc0d031a0000000000000001",
+      "mode": "dfcw",
+      "epoch": 6,
+      "expected_counter_deltas": {
+        "dma_irqs": 40997,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 40995,
+        "refill_irq_pairs": 40995,
+        "running_tail_links": 1
+      },
+      "duration_ns": 155749999969,
+      "launch_target_ns": 43617002107000,
+      "post_enable_delay_ns": 7000,
+      "short_words": 9795,
+      "short_interval_ns": 2271304.347826087,
+      "short_75_percent_budget_ns": 1703478.2608695652,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 5,
+        "epoch": "4",
+        "successor_sequence": "37706",
+        "observed_ns": "42030272437000",
+        "remaining_words": 6511,
+        "total_words": 6905
+      }
+    },
+    "cadence": {
+      "info": {
+        "samples": 600,
+        "max_start_gap_ns": 1000887037,
+        "max_roundtrip_ns": 266936470,
+        "policy": "single-flight-info-v1"
+      },
+      "status": {
+        "samples": 120,
+        "max_start_gap_ns": 5000089661
+      },
+      "health": {
+        "samples": 120,
+        "max_start_gap_ns": 5000083642
+      }
+    },
+    "wire_operations": {
+      "ARM": 1,
+      "CAPS": 1,
+      "CLAIM": 1,
+      "GET_CLOCK": 1,
+      "HELLO": 1,
+      "LOAD": 1,
+      "RELEASE": 1,
+      "RENEW": 5,
+      "STATUS": 787
+    },
+    "final_authority": {
+      "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+      "state": "empty",
+      "output_active": false,
+      "owner_id": null,
+      "job_id": null,
+      "terminal_records": [
+        {
+          "job_id": "3cf9f150fc0d031a0000000000000001",
+          "state": "complete",
+          "ended_monotonic_ns": "43772752237000",
+          "output_active": false
+        },
+        {
+          "job_id": "72a33b663b0c50750000000000000001",
+          "state": "complete",
+          "ended_monotonic_ns": "42852245151000",
+          "output_active": false
+        },
+        {
+          "job_id": "9df722202f3930350000000000000001",
+          "state": "complete",
+          "ended_monotonic_ns": "42030274136000",
+          "output_active": false
+        },
+        {
+          "job_id": "c5ec4d9753d0466c853494c85dd0aa27",
+          "state": "aborted",
+          "ended_monotonic_ns": "40982567917000",
+          "output_active": false
+        }
+      ]
+    },
+    "evidence_archive_sha256": "dbe757ea80d698721f42e928e9559b3efc502b67476237d5168144060a9cb543",
+    "classification": "CONFIRMED_HARNESS_DEFECT",
+    "failure": "ss socket destruction returned EINVAL with zero exit; connection persisted. Direct compiler template bypassed production double-to-nanoseconds gap conversion.",
+    "preserved_runner_status": "FAILED",
+    "native_submission_assertion": "PASS",
+    "transport_loss_assertion": "FAILED",
+    "original_exact_template_assertion": "FAILED",
+    "original_integer_sample_assertion": "FAILED",
+    "adversarial_missing_evidence_rejected": 9,
+    "constraints": [
+      "One actual native DFCW CLAIM/LOAD/ARM/RELEASE completed; no second submission",
+      "Raw production LOAD has 383 events and duration 155749999969 ns; conservative charge remains 155750000000 ns",
+      "Actual production request builder exactly reproduces all raw N2 LOAD fields after normalizing job ID",
+      "Source waveform absolute-nearest conversion yields 21493499996 samples; exact counters and reserve checks pass",
+      "Both original audit rejections remain; no loss or reconciliation credit"
+    ],
+    "production_config_export": {
+      "body_sha256": "f1f274704c67c1ff4869714ba70a225f327fa2f52057424093bec95320426709",
+      "source": "bba4024ec310589b9f4813e9c6fb3082836e726f",
+      "source_unchanged_at_current_pi_head": true
+    },
+    "checkpoint": "v2-042"
+  },
+  "native_n3": {
+    "root": "/home/pi/phase11-5-r3-v2-native-n3-20260914",
+    "packet_sha256": "5b074896a06d9bae022e89fcac58355e92b823fc43e6f5da12a4fdb970458d95",
+    "archive_sha256": "ab1dddbfca318cfe07a7768cbbfd70395a4a2aca7f6a13e3665729deb98d8cd4",
+    "stager_sha256": "f2358e2116bcfc90649cbf7ec92d520ae47ec33861afb3b7a88070fb44e448c4",
+    "observer_sha256": "2a5cf555cba7c7ad59779d65f750b96578e05188002cc0258068d3851f40b99a",
+    "producer_sha256": "acd0173e8d08332cf2e15bfbe1733d1788c0bda24bdcf284f304ada6bac7a2e3",
+    "auditor_sha256": "c08df2429bc0301a5f1a6a39673d61eabbe300db934e8b5c8dc006938d55b5f8",
+    "planned_jobs": 1,
+    "maximum_duration_ns": 155750000000,
+    "status": "RETIRED_BEFORE_EXECUTION",
+    "reason": "Direct template omitted production nanosecond conversion; fresh N4 required",
+    "rf_jobs_charged": 0,
+    "loss_attempts": 0
+  },
+  "native_n4": {
+    "root": "/home/pi/phase11-5-r3-v2-native-n4-20260914",
+    "packet_sha256": "6b332a2f69a8f9b53dee5d8eeb83ac171beea475ee580df317b2f8deb7ce2894",
+    "archive_sha256": "be618ed24a621fb928e7914e10faeea2df46476c5ea0b66c9055f574efaad67f",
+    "stager_sha256": "f2358e2116bcfc90649cbf7ec92d520ae47ec33861afb3b7a88070fb44e448c4",
+    "observer_sha256": "627ad85c0b05d0b13b15529821f15673aadaf836a5576cb1bb554045bd8ffb62",
+    "producer_sha256": "9083d95d4991ca8c7a6c516bf0fbe13048bfe4292c1297b52c006dbf5f65e878",
+    "auditor_sha256": "e0ed780cdab78890e8d40ebae0d3e7d55a0b6f14faa5cc15cefbafbb4cf15b19",
+    "planned_jobs": 1,
+    "maximum_duration_ns": 155750000000,
+    "status": "N4_NATIVE_LOSS_RECONCILIATION_WITH_EXIT_EXPECTATION_FAILURE_VERIFIED",
+    "rf_jobs_charged": 1,
+    "rf_duration_ns_charged": 155750000000,
+    "invocation": "0d2efddc24494220bd1e5b975605487b",
+    "family_closed": false,
+    "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+    "image_sha256": "454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4",
+    "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+    "native_source_revision": "bba4024ec310589b9f4813e9c6fb3082836e726f",
+    "native_binary_sha256": "b184cfba8b72a2cb73def207ab01792c5eaaae033607a926593dbad1e91cf124",
+    "mode": "dfcw",
+    "job_id": "79cba0caa707a2d10000000000000001",
+    "session_id": "5537ab29f0e950b6f00328ffd4f87e31",
+    "timing": {
+      "job_id": "79cba0caa707a2d10000000000000001",
+      "mode": "dfcw",
+      "epoch": 7,
+      "expected_counter_deltas": {
+        "dma_irqs": 40997,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 40995,
+        "refill_irq_pairs": 40995,
+        "running_tail_links": 1
+      },
+      "duration_ns": 155749999969,
+      "launch_target_ns": 44845003525000,
+      "post_enable_delay_ns": 21000,
+      "short_words": 9795,
+      "short_interval_ns": 2271304.347826087,
+      "short_75_percent_budget_ns": 1703478.2608695652,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 6,
+        "epoch": "4",
+        "successor_sequence": "37706",
+        "observed_ns": "42030272437000",
+        "remaining_words": 6511,
+        "total_words": 6905
+      }
+    },
+    "cadence": {
+      "info": {
+        "samples": 600,
+        "max_start_gap_ns": 1000798745,
+        "max_roundtrip_ns": 478096422,
+        "policy": "single-flight-info-v1"
+      },
+      "status": {
+        "samples": 120,
+        "max_start_gap_ns": 5000081975
+      },
+      "health": {
+        "samples": 120,
+        "max_start_gap_ns": 5000079789
+      }
+    },
+    "wire_operations": {
+      "ARM": 1,
+      "CAPS": 2,
+      "CLAIM": 1,
+      "GET_CLOCK": 1,
+      "HELLO": 2,
+      "LOAD": 1,
+      "STATUS": 34
+    },
+    "final_authority": {
+      "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+      "state": "complete",
+      "output_active": false,
+      "owner_id": null,
+      "job_id": "79cba0caa707a2d10000000000000001",
+      "terminal_records": [
+        {
+          "job_id": "79cba0caa707a2d10000000000000001",
+          "state": "complete",
+          "ended_monotonic_ns": "45000753535000",
+          "output_active": false
+        },
+        {
+          "job_id": "3cf9f150fc0d031a0000000000000001",
+          "state": "complete",
+          "ended_monotonic_ns": "43772752237000",
+          "output_active": false
+        },
+        {
+          "job_id": "72a33b663b0c50750000000000000001",
+          "state": "complete",
+          "ended_monotonic_ns": "42852245151000",
+          "output_active": false
+        },
+        {
+          "job_id": "9df722202f3930350000000000000001",
+          "state": "complete",
+          "ended_monotonic_ns": "42030274136000",
+          "output_active": false
+        }
+      ]
+    },
+    "evidence_archive_sha256": "7d220841929215f2f90dadcb4271740239c13b1c38f74cc1d8f7a2a3c5c8b8f7",
+    "classification": "CONFIRMED_HARNESS_DEFECT",
+    "failure": "Producer required zero exit after intentional transport failure. The production scheduling loop retains its failure flag after successful same-session reconciliation and exits one.",
+    "preserved_runner_status": "FAILED",
+    "native_submission_assertion": "PASS",
+    "transport_loss_assertion": "PASS",
+    "same_session_reconciliation_assertion": "PASS",
+    "original_exit_expectation_assertion": "FAILED",
+    "adversarial_evidence_mutations_rejected": 16,
+    "source_exit_policy": {
+      "failed_callback": "src/scheduling_runtime.cpp:275",
+      "loop_return": "src/scheduling_runtime.cpp:965",
+      "main_exit": "src/main.cpp:399",
+      "recover": "src/wtp_integration/application.cpp:250",
+      "source_unchanged_at_current_pi_head": true
+    },
+    "constraints": [
+      "Exactly one native CLAIM/LOAD/ARM; no second RF submission",
+      "Original session remains blocked through independent local Complete; explicit same-session reconciliation succeeds",
+      "All 600 INFO / 120 STATUS / 120 health observations pass; final Complete/inactive/unowned on unchanged A boot",
+      "Original failed producer, observer and audit records remain unmodified",
+      "No additional RF job required for the source-proven exit expectation repair"
+    ],
+    "checkpoint": "v2-043"
+  },
+  "execution_group_status": {
+    "1": "CLOSED",
+    "2": "OPEN",
+    "3": "OPEN",
+    "4": "OPEN"
+  },
+  "capacity_coordination_preparation": {
+    "status": "REVISED_TO_REUSE_EXISTING_TOOLS",
+    "rf_jobs_charged": 0,
+    "rf_duration_ns_charged": 0,
+    "retired_packet_sha256": "ae660d464f1e3a0e54505f24944fe01808599351966c65fc9b33563aaf9334a1",
+    "retirement": "build/phase11-5-r3-v2-capacity-c0/retirement.json",
+    "reason": "User corrected unnecessary replacement-runner scope. Existing RF observer and pressure tools are the execution basis.",
+    "active_packet": "3c8cea4f50a1e78b62cbb300846f05555360e8e0c91b467c694505b66fc8e3cf"
+  },
+  "wifi_w1": {
+    "status": "FAILED_PREREQUISITE_CHANGED",
+    "packet_sha256": "4b3a49a3b771b2bfaa2223f9bc8fc1c3da9fb9be33754f7b2393af70a82cf18e",
+    "wifi_cycles": 0,
+    "rf_jobs": 0,
+    "reason": "Link changed from associated/no-address to terminal failure before first OFF; no transition command sent",
+    "evidence_archive_sha256": "24157b13356f289650eeddafdc60c2ad12a7157de7f7b50f73dc6d3ade2fa190"
+  },
+  "wifi_w2": {
+    "status": "IDLE_WIFI_RECOVERY_VERIFIED",
+    "packet_sha256": "bad37b8a79f4fbd9757ffc0e7a96321519552cfcdfe49be53dc7cef6c385f19e",
+    "wifi_cycles": 1,
+    "rf_jobs": 0,
+    "result": "docs/development/phase11-5-r3-v2-wifi-w2-result.json",
+    "evidence_archive_sha256": "914e16fb869594816e8ad0fff6c28c17c1d1acee4da1babd2febc4ac694e4909"
+  },
+  "capacity_c1": {
+    "result": "docs/development/phase11-5-r3-v2-capacity-c1-result.json",
+    "status": "C1_MAXIMUM_EVENT_COMPLETION_WITH_NOMINAL_CONTENTION_VERIFIED",
+    "packet_sha256": "3c8cea4f50a1e78b62cbb300846f05555360e8e0c91b467c694505b66fc8e3cf",
+    "rf_jobs": 1,
+    "rf_duration_ns_charged": 384000000000,
+    "original_runner_status": "FAILED",
+    "next": "Remaining RF boundary and pressure stimuli using established tools"
+  },
+  "capacity_c2": {
+    "status": "FAILED_SUPPORTED_CAPACITY_ATTEMPT",
+    "result": "docs/development/phase11-5-r3-v2-capacity-c2-result.json",
+    "rf_jobs": 1,
+    "rf_duration_ns_charged": 180000000000,
+    "allocator_failures_delta": 1,
+    "full_wtp_write": false,
+    "http_boundary_cases_executed": 0,
+    "final_a": "Complete/inactive/unowned; same image/boot"
+  },
+  "capacity_c3": {
+    "status": "FAILED_SUPPORTED_CAPACITY_ATTEMPT",
+    "result": "docs/development/phase11-5-r3-v2-capacity-c3-result.json",
+    "packet_sha256": "1fc1577212f2bcd0c5ea308a9da923b9386863a3dd567d28fd700e4787980cb7",
+    "rf_jobs_charged": 1,
+    "rf_duration_ns_charged": 90000000000,
+    "terminal_completions": 1,
+    "capacity_pass": false,
+    "allocator_failures_before": 1,
+    "allocator_failures_after": 2,
+    "continuous_observation_pass": false,
+    "flashes": 0,
+    "wifi_cycles": 0,
+    "configuration_writes": 0,
+    "heap_probes": 0
+  },
+  "group2_bounded_attempt": {
+    "start_monotonic_ns": 710199726832375,
+    "budget_seconds": 14400,
+    "new_rf_limit_seconds": 900,
+    "new_rf_seconds_charged": 90,
+    "diagnostic_candidates": 1,
+    "repair_candidates": 0,
+    "status": "OPEN_DIAGNOSIS_EXIT_NOT_REACHED",
+    "assertion_record": "docs/development/phase11-5-r3-v2-capacity-coordination.md",
+    "flashes": 1,
+    "bootsel_commands": 1,
+    "extra_reboots": 0,
+    "rf_jobs_admitted": 1,
+    "new_rf_seconds_reserved": 90,
+    "elapsed_seconds": 1969.91936225,
+    "physical_rf_launches": 0,
+    "restoration_complete": true,
+    "completed_jobs": 0,
+    "configuration_writes": 0,
+    "heap_probes": 0,
+    "wifi_cycles": 0,
+    "checkpoint": 47,
+    "stop_reason": "Sole C4 diagnostic reported MISSED_START before capacity; no automatic replacement authorized within this attempt."
+  },
+  "e5": {
+    "status": "E5_IDLE_BOUNDARIES_VERIFIED",
+    "family_closed": false,
+    "packet_sha256": "e41c50ae3cef279a28082cdb0ae9de639e57e6f940cf1a0fbe6731b8da8da39d",
+    "source_revision": "4da36726ac6809bdf4e73d281fe13b2393dd3b31",
+    "image_sha256": "0153107c517b673bfad7850957c8387a7dbfb12ddb0a3b1e90edb94b804b9a9f",
+    "boot_id": "0bd82f1324920c360d796988cf31cb5b",
+    "assertions": [
+      "clean_extended_image_idle",
+      "wtp_65536_full_write",
+      "wtp_65537_rejected_same_connection_recovered",
+      "events_513_atomic_rejection",
+      "duration_3600_plus_ns_atomic_rejection",
+      "events_512_duration_3600_idle_load",
+      "loaded_abort_release"
+    ],
+    "rf_jobs": 0,
+    "flashes": 1,
+    "bootsel_commands": 1,
+    "b_unchanged": true,
+    "allocator_peak_bytes": 140152,
+    "heap_capacity_bytes": 220328,
+    "physical_hour_or_contention_verified": false
+  },
+  "fixture_f4": {
+    "root": "/home/pi/phase11-5-r3-v2-fixture-f4-20260914",
+    "deadline_monotonic_ns": 357877820026000,
+    "client_pid": 558608,
+    "packet_sha256": "cc9c2722a16f6d2d5c84c6382fcd0c7e038066baa0bfbc7ec6032c7fe0a0f9cc",
+    "restored": true,
+    "cleanup_monotonic_ns": 347850093812794
+  },
+  "historical_latest_verified_state_before_group2_closeout": {
+    "recorded_utc": "2026-09-14T00:27:25.323827+00:00",
+    "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+    "a_boot": "2b4583bd3d79a38f030a08c82ed96939",
+    "b_boot": "6684b4b197d80cfa0ce83b3aaf205cb0",
+    "a_flashes_v2": 6,
+    "b_flashes_v2": 3,
+    "configuration_writes_v2": 0,
+    "wifi_cycles_v2": 0,
+    "heap_probes_v2": 0,
+    "unexpected_watchdog_reboots_v2": 1,
+    "verified_completed_rf_jobs_v2": 11,
+    "verified_rf_duration_ns_v2": 11606500002000,
+    "active_packet": "B7 remaining read-only observers",
+    "active_packet_planned_jobs": 1,
+    "active_packet_planned_duration_ns": 155750001000,
+    "fixture_root": "/home/pi/phase11-5-r3-v2-fixture-f1-20260913",
+    "fixture_cleanup_deadline_monotonic_ns": 306202695885000,
+    "latest_observation_result": "B7 live trace; not yet audited",
+    "armed_cancellations_without_rf_v2": 1
+  },
+  "reconcile_r4": {
+    "status": "IDLE_RECONCILIATION_INDEPENDENTLY_VERIFIED",
+    "packet_sha256": "b02bb43f2e231b9012915f5777051270515e0aa3fabca747c82844905be003e1",
+    "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+    "image_sha256": "454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4",
+    "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+    "final_a": {
+      "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+      "state": "empty",
+      "output_active": false,
+      "owner_id": null,
+      "job_id": null,
+      "terminal_records": [
+        {
+          "job_id": "c0779e0176119170554cb961d2991c11",
+          "state": "complete",
+          "ended_monotonic_ns": "54748903808000",
+          "output_active": false
+        },
+        {
+          "job_id": "98ca88a09106eac17360a14a62005851",
+          "state": "complete",
+          "ended_monotonic_ns": "54135736761000",
+          "output_active": false
+        }
+      ]
+    },
+    "final_b": null,
+    "b_unchanged": null,
+    "configuration_unchanged": true,
+    "rf_counters_unchanged": true,
+    "rf_jobs": 0,
+    "claim_attempts": 1,
+    "release_attempts": 1,
+    "original_runner_status": "RECONCILED_INACTIVE_UNOWNED",
+    "preserved_finding": null,
+    "evidence_archive_sha256": "d12262abd5986c377ea94ea57fadcbe558444f66d8e8e048db60bbaa04c41ab7",
+    "collection_note": "Archive command returned 2 for an absent optional supervisor.log; all seven required files are present and the raw replay and five missing-file mutations passed."
+  },
+  "capacity_c4": {
+    "status": "C4_MISSED_START_BEFORE_CAPACITY_INDEPENDENTLY_CLASSIFIED",
+    "result": "docs/development/phase11-5-r3-v2-capacity-c4-result.json",
+    "packet_sha256": "3265c16e1a970c79c1beee2bd6a9cf4b9198381ee051a08f5f0dd40d7ed95277",
+    "rf_jobs_charged": 1,
+    "rf_duration_ns_charged": 90000000000,
+    "terminal_completions": 0,
+    "rf_launches": 0,
+    "capacity_pass": false,
+    "allocation_failures": 0
   }
 }

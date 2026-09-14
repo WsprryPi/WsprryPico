@@ -1,0 +1,112 @@
+{
+  "status": "C4_MISSED_START_BEFORE_CAPACITY_INDEPENDENTLY_CLASSIFIED",
+  "group_2": "OPEN",
+  "original_runner_result": {
+    "status": "STOPPED_FINAL_STATE_UNVERIFIED",
+    "armed_jobs": [
+      "9f0ae5cb9bf19c6366c53c33a75d86e0"
+    ],
+    "completed_jobs": [],
+    "renewals": 0,
+    "rf_duration_ns_charged": 90000000000,
+    "final-a-error": "Inactive/unowned admission",
+    "faults": [
+      "console: INFO authority",
+      "wtp: device/protocol fault event"
+    ]
+  },
+  "acceptance_audit_rejected": "Final/initial authority",
+  "capacity_stimuli": 0,
+  "capacity_bytes_written": 0,
+  "armed_jobs": 1,
+  "charged_rf_seconds": 90,
+  "rf_launches": 0,
+  "completed_jobs": 0,
+  "source_revision": "4da36726ac6809bdf4e73d281fe13b2393dd3b31",
+  "image_sha256": "0153107c517b673bfad7850957c8387a7dbfb12ddb0a3b1e90edb94b804b9a9f",
+  "boot_id": "0bd82f1324920c360d796988cf31cb5b",
+  "job_id": "9f0ae5cb9bf19c6366c53c33a75d86e0",
+  "allocation_failures_on_this_boot": 0,
+  "original_allocation_failure_site": "UNRESOLVED",
+  "final_a": {
+    "source": "4da36726ac68",
+    "status": {
+      "boot_id": "0bd82f1324920c360d796988cf31cb5b",
+      "state": "missed",
+      "output_active": false,
+      "owner_id": null,
+      "job_id": "9f0ae5cb9bf19c6366c53c33a75d86e0",
+      "terminal_records": [
+        {
+          "job_id": "9f0ae5cb9bf19c6366c53c33a75d86e0",
+          "state": "missed",
+          "ended_monotonic_ns": "264396496000",
+          "output_active": false,
+          "error": {
+            "code": "MISSED_START",
+            "message": "MISSED_START",
+            "retryable": false
+          }
+        },
+        {
+          "job_id": "f2b4b083a800382a8917a80364f848bd",
+          "state": "aborted",
+          "ended_monotonic_ns": "6245238000",
+          "output_active": false
+        }
+      ]
+    },
+    "scheduling_enabled": false
+  },
+  "final_b": {
+    "source": "8921a7008183",
+    "status": {
+      "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+      "state": "empty",
+      "output_active": false,
+      "owner_id": null,
+      "job_id": null,
+      "terminal_records": []
+    },
+    "scheduling_enabled": false
+  },
+  "fixtures": {
+    "f3": {
+      "restored": true,
+      "cleanup_monotonic_ns": 346755676051449,
+      "failures": [],
+      "protected_files_unchanged": true
+    },
+    "f4": {
+      "restored": true,
+      "cleanup_monotonic_ns": 347850093812794,
+      "failures": [],
+      "protected_files_unchanged": true
+    }
+  },
+  "raw_sha256": {
+    "build/phase11-5-r3-v2-capacity-c4/evidence/packet.json": "3265c16e1a970c79c1beee2bd6a9cf4b9198381ee051a08f5f0dd40d7ed95277",
+    "build/phase11-5-r3-v2-capacity-c4/evidence/rf.jsonl": "a503a9ac6c152d92c830768ab5147831ec126a82a4dd9c1022437073e29304b9",
+    "build/phase11-5-r3-v2-capacity-c4/evidence/rf-result.json": "4568c1d7bb2a0beae14edd364539797860179e2c3277dbf4c1703680001ea68a",
+    "build/phase11-5-r3-v2-capacity-c4/evidence/final-a.stdout": "b2147533ddcc4adf55ef0c4cb882c082d48deb8db9a6b6eee140776448b166ba",
+    "build/phase11-5-r3-group2-bounded-20260914/final-a.jsonl": "a4f243638152a80e86316bf9bd81f5a7aeb52a0b97f513433b360d996ef4d1ce",
+    "build/phase11-5-r3-group2-bounded-20260914/final-b.jsonl": "9393468e651e3a48717cbd863ec381f6bbdaa30b7dda1a2089306516e6e87f39",
+    "build/phase11-5-r3-group2-bounded-20260914/f3-state.json": "40a4977ab3a3cbcb6ab0aabab6138336bd0013c01399d7b683fc9a16c92558da",
+    "build/phase11-5-r3-group2-bounded-20260914/f3-log.json": "a34dbdf8990236f02e845a656ce6791b9bbde801a2c4575cfa4df96d4f749b03",
+    "build/phase11-5-r3-group2-bounded-20260914/f4-state.json": "68759982238fe2e7e1088be633788fc9bc2577adffbbac4e671e02212d5b1397",
+    "build/phase11-5-r3-group2-bounded-20260914/f4-log.json": "9d1f5296b9e7cdff2e8152a8a18d7c45e1fa3a539aea07ff6ffa4eba8d0e8e37"
+  },
+  "packet_sha256": "3265c16e1a970c79c1beee2bd6a9cf4b9198381ee051a08f5f0dd40d7ed95277",
+  "evidence_archive_sha256": "5f9205ba619aaeec93fb40a199ca6fd3c630ee97c43f81b064df2ff55c400330",
+  "elf_sha256": "8855dd77cb0057ff8f33f91d02a3447cf39ca96cb2782b606c51f2e44e4f7353",
+  "diagnostic_candidates": 1,
+  "repair_candidates": 0,
+  "flashes": 1,
+  "bootsel_commands": 1,
+  "extra_reboots": 0,
+  "wifi_cycles": 0,
+  "configuration_writes": 0,
+  "heap_probes": 0,
+  "limitation": "Independent failure classification and final authority only; no RF capacity or allocation-site acceptance.",
+  "original_frozen_auditor_limitation": "C4 auditor closure omitted the new packet whitelist. The later independent audit adds only that identity and still rejects C4. No thresholds or original failure results were relaxed."
+}

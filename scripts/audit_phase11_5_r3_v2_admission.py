@@ -31,7 +31,7 @@ def decode_requests(raw):
 
 
 def audit(root, *, packet_digest=PACKET):
-    require(packet_digest in [PACKET,'5b61ffdf74ab0e1f5daa77bef59ea2c3e7d797c128cf8499d3d90c6178965ab0'],
+    require(packet_digest in [PACKET,'e41c50ae3cef279a28082cdb0ae9de639e57e6f940cf1a0fbe6731b8da8da39d','4f2f3680f88021adfc14b32930eaea575cbbe291045bce3c5f3daa02807d2783','8bd146adfccd861974e86fe669584ef5de221c56826c9a2589b4315a3b6433c1','5b61ffdf74ab0e1f5daa77bef59ea2c3e7d797c128cf8499d3d90c6178965ab0','37a6cd1d990e0c79cc8510a7e5b7fc81e3ac13316de76cabc65b4d2dfa7f7207'],
             'Unreviewed idle admission packet')
     require(digest(root/'packet.json')==packet_digest,'Frozen idle admission packet')
     packet=json.loads((root/'packet.json').read_text());values={}
@@ -75,7 +75,7 @@ def audit(root, *, packet_digest=PACKET):
     require(configuration(b0)==configuration(b1) and b0['wtp']['STATUS']==b1['wtp']['STATUS'] and
             b0['wtp']['CAPS']==b1['wtp']['CAPS'] and
             b0['wtp']['STATUS']['boot_id']==packet['b_boot'] and
-            b0['info']['revision']==b1['info']['revision']=='dbf1d86f0885-dirty','B changed')
+            b0['info']['revision']==b1['info']['revision']==('8921a7008183' if packet_digest in ['e41c50ae3cef279a28082cdb0ae9de639e57e6f940cf1a0fbe6731b8da8da39d','4f2f3680f88021adfc14b32930eaea575cbbe291045bce3c5f3daa02807d2783','37a6cd1d990e0c79cc8510a7e5b7fc81e3ac13316de76cabc65b4d2dfa7f7207','8bd146adfccd861974e86fe669584ef5de221c56826c9a2589b4315a3b6433c1'] else 'dbf1d86f0885-dirty'),'B changed')
     trace=rows(root/'admission.jsonl');kinds=[r['kind'] for r in trace]
     require(trace[0]['kind']=='start' and trace[0]['value']==dict(packet_sha256=packet_digest) and
             trace[-1]['kind']=='finish' and trace[-1]['monotonic_ns']-trace[0]['monotonic_ns']<=600_000_000_000,
@@ -162,7 +162,10 @@ def audit(root, *, packet_digest=PACKET):
             result['passed_assertions']==[r['value'] for r in trace if r['kind']=='assertion_observed']==ASSERTIONS and
             result['flashes_started']==result['bootsel_commands']==1 and
             all(result[k]==0 for k in ['rf_jobs','wifi_cycles','configuration_writes','heap_probes']), 'Result counters/claims')
-    return dict(status=('E0A' if packet_digest==PACKET else 'E1')+'_IDLE_BOUNDARIES_VERIFIED',family_closed=False,packet_sha256=packet_digest,
+    label = {'e41c50ae3cef279a28082cdb0ae9de639e57e6f940cf1a0fbe6731b8da8da39d':'E5','4f2f3680f88021adfc14b32930eaea575cbbe291045bce3c5f3daa02807d2783':'E4',PACKET:'E0A', '5b61ffdf74ab0e1f5daa77bef59ea2c3e7d797c128cf8499d3d90c6178965ab0':'E1',
+        '37a6cd1d990e0c79cc8510a7e5b7fc81e3ac13316de76cabc65b4d2dfa7f7207':'E2',
+        '8bd146adfccd861974e86fe669584ef5de221c56826c9a2589b4315a3b6433c1':'E3'}[packet_digest]
+    return dict(status=label+'_IDLE_BOUNDARIES_VERIFIED',family_closed=False,packet_sha256=packet_digest,
                 source_revision=packet['source_revision'],image_sha256=packet['image_sha256'],boot_id=boot,
                 assertions=ASSERTIONS,rf_jobs=0,flashes=1,bootsel_commands=1,b_unchanged=True,
                 allocator_peak_bytes=final['info']['allocator_peak_bytes'],

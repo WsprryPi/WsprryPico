@@ -1,0 +1,78 @@
+{
+  "status": "FAILED_SUPPORTED_CAPACITY_ATTEMPT",
+  "packet_sha256": "1fc1577212f2bcd0c5ea308a9da923b9386863a3dd567d28fd700e4787980cb7",
+  "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+  "image_sha256": "454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4",
+  "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+  "classification": "Maximum input allocation failure reproduced without native TLS or HTTP load; exact allocator call not recorded",
+  "final_authority": {
+    "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+    "state": "complete",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": "c0779e0176119170554cb961d2991c11",
+    "terminal_records": [
+      {
+        "job_id": "c0779e0176119170554cb961d2991c11",
+        "state": "complete",
+        "ended_monotonic_ns": "54748903808000",
+        "output_active": false
+      },
+      {
+        "job_id": "98ca88a09106eac17360a14a62005851",
+        "state": "complete",
+        "ended_monotonic_ns": "54135736761000",
+        "output_active": false
+      },
+      {
+        "job_id": "60723b3b1baf42db814dcc6f6f28ef20",
+        "state": "complete",
+        "ended_monotonic_ns": "52680909321000",
+        "output_active": false
+      }
+    ]
+  },
+  "configuration_unchanged": true,
+  "original_runner_result": {
+    "status": "STOPPED_FINAL_STATE_UNVERIFIED",
+    "armed_jobs": [
+      "c0779e0176119170554cb961d2991c11"
+    ],
+    "completed_jobs": [],
+    "renewals": 0,
+    "rf_duration_ns_charged": 90000000000,
+    "final-a-error": "Inactive/unowned admission",
+    "faults": [
+      "console: Allocator reserve/failures",
+      "wtp action: C0 five-second capacity operation deadline; no retry or RF action",
+      "wtp: STATUS response timeout; no automatic retry; output unknown"
+    ]
+  },
+  "rf_duration_ns_charged": 90000000000,
+  "allocator_failures_before": 1,
+  "allocator_failures_after": 2,
+  "tls_allocation_failures": 0,
+  "dma_errors": 0,
+  "maximum_request_payload_bytes": 65536,
+  "submitted_frame_bytes": 4096,
+  "full_write": false,
+  "http_capacity_cases_executed": 0,
+  "continuous_observation_pass": false,
+  "capacity_pass": false,
+  "overload_acceptance_pass": false,
+  "allocator_failure_baseline_scope": "Historical failed C2 and C3 attempts only; future packets must not introduce an undeclared increment",
+  "source_findings": [
+    "FrameParser requests one contiguous maximum frame buffer through nullable InputBuffer::reserve; failure closes input without dispatch.",
+    "Aggregate free bytes do not establish a contiguous allocation. Source inspection alone cannot prove this allocation was the failed call."
+  ],
+  "raw_files_sha256": {
+    "final-a.stdout": "f815d4b043404581bfd2bf9168bd41080c4709c7215691b7b9b0d387bd2bb1c8",
+    "run.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "packet.json": "1fc1577212f2bcd0c5ea308a9da923b9386863a3dd567d28fd700e4787980cb7",
+    "final-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "before-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "rf.jsonl": "5a4cf1a85d27d11a8d6cce98deb018e9604b161513c22a03b03735c962cdbc25",
+    "rf-result.json": "7989cc05afebd7c386af514b0258b6b0d15fb391096c6b616bedc2f7a4cd093f",
+    "before-a.stdout": "a773ef998a4881963af46cc9c7fdaadaccf4cb6c72548128e4240eb75f0af7c1"
+  }
+}

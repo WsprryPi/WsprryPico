@@ -5,30 +5,110 @@ including implementation, finite RF, recovery, review and commit/push. Exact
 acceptance and counters are in phase11-5-r3-v2-campaign.json. Historical packet
 approval text is retained as history; v2 is the current standing authority.
 
-## Latest state: BF1 repair in progress
+## Current four execution groups
 
-H2b's DFCW hour passed its complete independent RF/contention audit and ten
-mutations (checkpoint 012). E1 deployed c5f00b6 on A and passed all seven idle
-boundaries plus ten mutations (checkpoint 013). Both checkpoints also pass with
-isolated frozen audit dependencies. These passes remain preserved.
+The accepted handoff R3-FOUR-GROUP-HANDOFF-20260914-v1 supplies this execution
+grouping. It preserves all fourteen normative R3 groups and seven feature checks.
+The user has now said Execute. Standing finite approvals remain active.
 
-B's authorized c5f00b6 deployment passed (014). BF0's four HTTP assertions pass
-independently; its 413 expectation error remains classified as a harness defect
-(015). BF1's six HTTP assertions pass independently, but its maximum LOAD caused
-a confirmed firmware allocation panic, followed by authoritative inactive
-recovery-boot reconciliation (016). B received no ARM or RF command. See the
-[BF1 repair review](phase11-5-r3-v2-bf1-repair-review.md) for the exact evidence,
-shared WTP/browser output-buffer repair, tests and physical limitations.
+1. **Controller and lifecycle — CLOSED (checkpoint 043)**
+   - 1.1 B7 collected and independently reconciled in checkpoint 035. Its original
+     INFO cadence gate remains FAILED. Prospective observer and UI harness
+     corrections passed prospectively in B9/N0/N1; the underlying B7 exchange delay
+     remains unresolved and its original score is preserved.
+   - 1.2 PASS: B9 Running cancellation after at least 120 seconds, checkpoint 039. Reuse
+     prior file/Tone, completed FSKCW and Armed-cancellation components only within
+     their recorded source-impact scope.
+   - 1.3 PASS: native QRSS/FSKCW/DFCW submissions in checkpoints 040–042;
+     acknowledged-ARM loss, local completion and original-session reconciliation
+     in 043. Original harness failures remain separately recorded.
+2. **Capacity and pressure — OPEN (bounded attempt stopped, checkpoint 047)**
+   - 2.1 Complete maximum WTP, HTTP and job capacity assertions.
+   - 2.2 Verify supported combined load and bounded overload rejection.
+   - 2.3 Complete WTP timeout and USB pressure mechanisms.
+3. **Retention and reclamation — OPEN**
+   - 3.1 Freeze the measured highest-resource workload and fixture allowance.
+   - 3.2 Verify capacity, reuse, eviction and actual expiry.
+   - 3.3 Pass three equivalent cycles on A's same firmware and boot.
+4. **Closeout — OPEN**
+   - 4.1 Complete the assertion-level acceptance matrix.
+   - 4.2 Finish adversarial review, repairs and affected retests.
+   - 4.3 Restore, verify final state, commit, push and report.
 
-A remains c5f00b6, boot a0badc7b54480767c3d3f907e0962dc7, inactive/unowned with
-schedules disabled. F0's owned restoration passed and F1 is active with client
-PID 491605 and unchanged cleanup deadline 306202695885000 host-monotonic ns.
-A rejoined and synchronized without a Wi-Fi cycle or CONFIG save. T2/T3 were
-retired before staging/execution after the demonstrated BF1 defect. The next
-firmware admission is on B first; A's good mode-hour results do not restart.
+## Current bounded Group 2 outcome: checkpoint 047
 
-The remaining sections record the campaign history; this latest-state section
-supersedes older statements that an already completed tranche is still pending.
+E5 revalidated all seven idle admission assertions on diagnostic source 4da3672.
+The sole C4 diagnostic charged one 90-second Tone but reported MISSED_START before
+RF launch or capacity input. Zero capacity bytes and zero allocator failures on
+this new boot leave C2/C3's original allocation failure unresolved. No repair or
+automatic replacement test was attempted. The complete 18-assertion disposition,
+identities, source-impact limits and next decision are in
+`phase11-5-r3-v2-capacity-coordination.md`.
+
+F3 and F4 are restored. Independent post-restoration inventories verify A
+Missed/inactive/unowned on boot 0bd82f1324920c360d796988cf31cb5b and B unchanged,
+Empty/inactive/unowned on boot 6684b4b197d80cfa0ce83b3aaf205cb0. Scheduling is
+disabled; installed WsprryPi PID/hash and protected host files are unchanged.
+This attempt added one diagnostic flash/BOOTSEL and one 90-second ARM charge,
+zero launches, extra reboots, configuration writes, Wi-Fi cycles or probes.
+The archived unfinished refactor is withdrawn; both firmware targets build and
+all 70 current host CTests pass. Group 1 remains closed on its recorded evidence;
+Group 3 was not started. Another work period requires user direction.
+
+## Historical progress through checkpoint 046
+
+The following preserves earlier observations and fixture states. They are not
+current admission authority; checkpoint 047 above supersedes them.
+
+## Browser cancellation completed: checkpoint 039
+
+B9 independently passes the remaining Running-cancellation assertion. The real
+Chromium UI showed matching job c5ec4d9753d0466c853494c85dd0aa27, Running/Active,
+enabled Abort and 79.3 percent estimated progress at 123.624089 seconds. The
+captured ABORT followed at least 120 seconds independently observed Running;
+raw USB and final inventory prove Aborted/inactive/unowned on the same A boot.
+Its full 155.750001-second charge is retained; it is not a completed-duration
+job. Ten evidence mutations were rejected. Group 1.3 native execution and audit are active.
+B9's unit has stopped. F2 remains under its original cleanup deadline.
+
+## Latest reconciled state
+
+Checkpoint 035 preserves B7's terminal completion with its original failed INFO
+cadence and failed cancellation. Checkpoint 036 records W0's one idle Wi-Fi
+cycle and unchanged image/boot/configuration/RF counters; the fresh host build
+passes all 62 CTest groups. F1 is restored. Fresh F2 is active with its original
+absolute deadline 335844710513000 on host boot
+220e53ca-ca95-4206-9581-dbe28aa1eeb8; client PID 539659. No old deadline was extended.
+
+Checkpoint 037 preserves B8's one complete DFCW lifecycle and full prospective
+900 INFO / 180 STATUS / 180 health observations. Running cancellation FAILED:
+the producer asserted on a 6.026-second-old STATUS publication while the next
+valid sample arrived 0.101 seconds later. The corrected consumer waits for a
+fresh completed sample without enlarging the age limit. The final stopped
+browser GET response is absent. Thirteen evidence mutations were rejected.
+
+B8's timing auditor also rejected comparing the original launch target against
+later UTC estimates after SNTP refined the clock by about 40 ms. The launch
+exactly matches the ARM acknowledgment's monotonic target. Preserve the mapping
+rejection pending source-based auditor review; no timing acceptance is assigned.
+
+Checkpoint 038 records R1: one idle CLAIM/RELEASE, preserved terminal record and
+RF counters/configuration, final Empty/inactive/unowned. B9 subsequently passed the remaining Running cancellation in checkpoint 039;
+its full charge and inactive/unowned Aborted outcome are recorded above. A remains source a740dbb, boot
+2b4583bd3d79a38f030a08c82ed96939. B's last refreshed inventory remains
+Empty/inactive/unowned on source 8921a70, boot 6684b4b197d80cfa0ce83b3aaf205cb0.
+
+Historical eleven completed RF jobs / 11606.500002 seconds remain separately
+qualified. B7 and B8 each charged 155.750001 seconds and have terminal-only
+completion credit. B5's 143.250001-second Armed cancellation charge remains
+separate with no RF launch. A/B flashes remain six/three; CONFIG saves and heap
+probes remain zero; v2 Wi-Fi cycles are now one. B9 is bounded at one additional
+155.750001-second charge. All prior failures and the BF1 watchdog event remain.
+Native QRSS and FSKCW completed with independent audits (040–041). Each charged
+143.250000 seconds; their original producer failures remain preserved. N2
+DFCW has charged 155.750000 seconds and is executing its reviewed loss case.
+
+The following sections retain campaign history, not live device/fixture claims.
 
 ## D0 completed
 
@@ -204,3 +284,100 @@ Eight deterministic guard/plan tests pass. Independent raw-wire auditors are
 prepared; actual B evidence and evidence-mutation validation remain pending.
 New A packets explicitly declare B as independent and never open its endpoints.
 Old staged and consumed A packets retain their original comparator checks.
+
+## Native FSKCW preserved — checkpoint 041
+
+N1 completed the actual 383-event, 143.250000-second native FSKCW job. Raw TLS
+proves exactly one CLAIM/LOAD/ARM/RELEASE; 600 INFO, 120 STATUS and 120 host
+health samples passed. Final A is Empty/inactive/unowned on the unchanged image
+and boot. Nine missing-evidence mutations reject and intact evidence passes.
+The original producer failure remains: it missed a transient host Complete
+state before the next hourly Waiting plan. The durable last_report proves the
+first job completed; the next dispatch remained outside the packet. The next
+prospective guard uses that durable report. Group 1.3 remains open for DFCW with
+acknowledged transport loss, local completion and same-session reconciliation.
+
+## Native DFCW and failed loss — checkpoint 042
+
+N2 completed its actual 383-event production DFCW job, with 600 INFO / 120 STATUS /
+120 health observations and final Empty/inactive/unowned. Full charge remains
+155.750000 seconds. Socket destruction returned EINVAL despite exit zero and did
+not disconnect the task socket: transport loss FAILED, no reconciliation credit.
+The direct compiler export also omitted the production INI double-to-nanosecond
+conversion: each of 31 character gaps was one nanosecond shorter. The real
+production request builder reproduces all raw LOAD fields exactly (duration
+155749999969 ns); the unchanged waveform absolute-boundary conversion yields
+21493499996 samples and the exact timing/counter audit passes. Original template
+and integer-only sample expectations remain FAILED. Nine missing-evidence
+mutations reject. N3 was retired before execution; N4 will freeze the actual
+production template and reviewed pidfd socket shutdown. No QRSS/FSKCW or physical
+hour rerun is needed. Group 1 remains open only for loss and reconciliation.
+
+## Controller and lifecycle closed — checkpoint 043
+
+N4 passes the remaining acknowledged-ARM loss, local completion and explicit
+same-session reconciliation assertions. One native DFCW job was charged
+155.750000 seconds; no repeated physical hour or second dispatch occurred. All
+600 INFO, 120 STATUS and 120 health observations pass. Final independent state
+is Complete/inactive/unowned on the retained A image and boot. Sixteen evidence
+mutations reject, and intact evidence passes.
+
+The original producer and observer remain FAILED: the harness incorrectly
+required process exit zero after deliberate transport failure. The unchanged Pi
+scheduling loop retains its failure flag through successful WTP reconciliation
+and returns exit one on shutdown. The corrected future expectation is tested;
+N4 component acceptance depends on full wire, timing, terminal and recovery
+evidence, never process exit alone. No RF rerun is needed. Actual Pico planner
+exports also match all 383 sample boundaries in each native mode.
+
+Group 1 closes using checkpoints 035–043. B7 retains its original failed cadence
+score and unlocalized exchange delay; the operational observer expectation was
+corrected prospectively and passed subsequent runs. Group 2 is next. R3 remains
+OPEN until capacity, pressure, retention, reclamation and closeout are complete.
+
+## Group 2 scope correction and fixture recovery — checkpoint 044
+
+The user rejected the unnecessary replacement runner. C0 is retired before
+execution, with zero RF charge. Its 19 untracked implementation/auditor/test
+files were archived and removed from proposed repository changes. Group 2 uses
+the established RF observer, nominal load and pressure tools.
+
+F3 is active after verified F2 restoration. W1 stopped before OFF/ON because
+the addressless link changed to terminal failure. Its zero-command failure is
+preserved. W2 performed exactly one idle OFF/ON; the independent audit confirms
+unchanged launch/DMA counters, same A image and boot, unchanged configuration,
+restored IP and synchronized clock, and Empty/inactive/unowned output.
+
+C1 has started one 512-event, 384-second FSKCW job with existing native WTP and
+HTTPS load. Full RF charge is recorded. An old two-second freshness guard failed
+while a valid 1.368612098-second INFO exchange was in flight. Further control
+actions stopped while independent readers continued. The original failure is
+retained; the existing guard is corrected prospectively using the already tested
+completed-or-bounded-inflight helper. No C1 completion or Group 2 closure is yet
+claimed. The active staged C1 source is unchanged.
+
+## Maximum-event completion preserved — checkpoint 045
+
+C1 independently verifies one 512-event FSKCW completion over 384 seconds with
+472 INFO, 96 USB STATUS, 96 host-health, 484 authenticated native STATUS and
+24 HTTPS observations. Exact DMA/refill/tail deltas pass; allocation failures
+and DMA errors remain zero. Peak allocator use is 181580 bytes; maximum sampled
+heap use is 169396 bytes. Final authority is Complete/inactive/unowned on the
+same image and boot. Twelve altered-evidence cases reject and intact evidence
+passes again. The original age-guard and final-Empty expectation failures remain
+FAILED; no RF rerun is needed for this component. Three nullable native host HTTP
+job publications are recorded without host-HTTP authority credit; raw native WTP
+and independent USB/Console supply that authority. Group 2 remains IN PROGRESS.
+
+## C2 supported-capacity attempt failed
+
+C2 charged one 180-second Tone. Its first maximum WTP frame wrote only 4096
+bytes before input stopped; one allocator failure was recorded, with zero TLS
+allocation failures and zero DMA errors. The existing observers stopped on that
+failed gate; no HTTP body cases ran. Final independently decoded inventory
+confirms Complete/inactive/unowned on the same image and boot. This is not full
+WTP-write, supported-capacity, overload or continuous-observation acceptance.
+The exact failed allocation remains unresolved; contiguous frame storage is
+the current source-backed diagnostic hypothesis. Future packets may carry this
+explicitly recorded historical failure count but must reject any new undeclared
+increment. The original C2 expectation and result remain unchanged.

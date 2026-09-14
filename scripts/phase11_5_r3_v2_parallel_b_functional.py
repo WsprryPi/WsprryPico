@@ -61,17 +61,37 @@ def usb_exchange(peer, case):
     raise TimeoutError('B five-second USB exchange; no retry')
 
 
-def http_exchange(root, packet, case, emit):
+def connect_http(packet):
+    path=packet.get('network_path')
+    if path is None:return socket.create_connection((packet['address'],18443),timeout=5)
+    require(path==dict(interface='wlan1',source_address='192.168.1.117'),'Fixed B management socket path')
+    stream=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    try:
+        stream.settimeout(5)
+        stream.setsockopt(socket.SOL_SOCKET,socket.SO_BINDTODEVICE,b'wlan1\0')
+        stream.bind(('192.168.1.117',0));stream.connect((packet['address'],18443))
+        return stream
+    except BaseException:
+        stream.close();raise
+
+
+def http_exchange(root, packet, case, emit, *, target=None):
+    name,peer_sha,device = target or (NAME,PEER_SHA,B_DEVICE)
+    require((name,peer_sha,device) in [(NAME,PEER_SHA,B_DEVICE),
+        ('wsprrypico-0a60df.local','06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016',
+         'fd6127d11d6aca42a9905fa3fb1bf1d5')],'Reviewed HTTP identity')
     ctx=ssl.create_default_context(cafile=str(root/'credentials/browser/client-ca.crt'))
     ctx.minimum_version=ssl.TLSVersion.TLSv1_3;ctx.maximum_version=ssl.TLSVersion.TLSv1_3
     ctx.set_alpn_protocols(['http/1.1'])
     ctx.load_cert_chain(str(root/'credentials/browser/client.crt'),str(root/'credentials/browser/client.key'))
     began=time.monotonic_ns();deadline=time.monotonic()+15
     emit('http_tx',case)
-    with socket.create_connection((packet['address'],18443),timeout=5) as raw:
-        with ctx.wrap_socket(raw,server_hostname=NAME) as stream:
+    with connect_http(packet) as raw:
+        if packet.get('network_path') is not None:
+            emit('http_connected',dict(label=case['label'],local=list(raw.getsockname()),peer=list(raw.getpeername()),network_path=packet['network_path']))
+        with ctx.wrap_socket(raw,server_hostname=name) as stream:
             peer=hashlib.sha256(stream.getpeercert(binary_form=True)).hexdigest()
-            require(peer==PEER_SHA and stream.selected_alpn_protocol()=='http/1.1','B authenticated TLS peer')
+            require(peer==peer_sha and stream.selected_alpn_protocol()=='http/1.1','B authenticated TLS peer')
             stream.settimeout(max(.001,deadline-time.monotonic()))
             def expire():
                 try:stream.shutdown(socket.SHUT_RDWR)
@@ -91,7 +111,7 @@ def http_exchange(root, packet, case, emit):
                 require(value['error']['code']==case['error_code'] and
                         (case['error_code']=='invalid_http' or value.get('ok') is False),'B HTTP error')
             elif response.status==200:
-                require(value['ok'] is True and value['result']['device_id']==B_DEVICE and
+                require(value['ok'] is True and value['result']['device_id']==device and
                         value['result']['boot_id']==packet['boot_id'],'B HELLO identity')
             return value
 

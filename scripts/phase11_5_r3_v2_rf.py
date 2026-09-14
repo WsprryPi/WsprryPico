@@ -14,10 +14,19 @@ from phase11_5_pilot import Peer,SERIAL,DEVICE,check_rf_observation
 from phase11_5_pilot_supervisor import finished,configuration,B_SERIAL,B_DEVICE
 from phase11_5_device_management import digest,save
 from phase11_5_r3_capacity_plan import identity
+from phase11_5_r3_v2_observer_policy import SINGLE_FLIGHT,next_offer
 
 SCHEMA='phase11.5-r3-v2-usb-rf-v1'
 REPAIRED_SOURCE='c5f00b6109cc1c692b3f6bf258c1a77dadef6639'
 REPAIRED_IMAGE='5f681b10d2c076309116cb9c20df1653d21e522ad19b6b33c1ee57efb3f54756'
+PAGED_SOURCE='8921a70081839f168edef5926e92445f251d8e1d'
+PAGED_IMAGE='3899b498d05ca5b39e23a45e455c44b2784bcf2aca35f62a8ef4db644cc7241b'
+INFO_SOURCE='f5502cff9fa6b56747b2e1b1036a77fc0e270f6f'
+INFO_IMAGE='a71447e8fe00c023a106ac682f4b11cf8e9e7d93cabb7b5868da10025e2cd5a2'
+ASSET_SOURCE='a740dbb8e7319beb20c4807b35f6672bf9fdfd27'
+ASSET_IMAGE='454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4'
+DIAGNOSTIC_SOURCE='4da36726ac6809bdf4e73d281fe13b2393dd3b31'
+DIAGNOSTIC_IMAGE='0153107c517b673bfad7850957c8387a7dbfb12ddb0a3b1e90edb94b804b9a9f'
 B_PARALLEL_AUTHORIZATION='37ae5f5658ffc7c4436547061e4a81e577ea9102a086ec1e74d09031699caaab'
 
 
@@ -25,17 +34,23 @@ def comparator_required(packet):
     role=packet.get('b_role','unchanged-comparator')
     require(role in ('unchanged-comparator','independent-zero-rf'), 'Explicit B role')
     if role=='independent-zero-rf':
-        require(packet['source_revision']==REPAIRED_SOURCE and
+        require(packet['source_revision'] in (REPAIRED_SOURCE,PAGED_SOURCE,INFO_SOURCE,ASSET_SOURCE,DIAGNOSTIC_SOURCE) and
                 packet.get('b_parallel_authorization_sha256')==B_PARALLEL_AUTHORIZATION,
                 'Independent B requires repaired A and accepted parallel scope')
     return role=='unchanged-comparator'
 
 
 
-def fresh_sample(samples, lock, name, maximum_age_ns, monotonic_ns=time.monotonic_ns):
+def fresh_sample(samples, lock, name, maximum_age_ns, monotonic_ns=time.monotonic_ns, *, identity=None,inflight=None):
     """Read publication and age atomically with the journal's publisher."""
     with lock:
         stamp, value = samples[name]
+        if identity is not None:
+            from phase11_5_browser_jobs import admit_snapshot
+            admit_snapshot(dict(identity,monotonic_ns=stamp),monotonic_ns(),maximum_age_ns,
+                identity['packet_sha256'],inflight.get(name) if inflight is not None else None,
+                'INFO' if name=='info' else 'STATUS')
+            return value
         age = monotonic_ns() - stamp
         require(0 <= age <= maximum_age_ns,
                 f'Fresh {name.upper()} required: age_ns={age}, limit_ns={maximum_age_ns}')
@@ -60,10 +75,27 @@ def validate(packet):
             (packet['source_revision'],packet['image_sha256']) in [
                 ('7d183978d08d77d5de668911be041bb188c851f5',
                  '38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1'),
-                (REPAIRED_SOURCE,REPAIRED_IMAGE)],
+                (REPAIRED_SOURCE,REPAIRED_IMAGE),(PAGED_SOURCE,PAGED_IMAGE),(INFO_SOURCE,INFO_IMAGE),(ASSET_SOURCE,ASSET_IMAGE),(DIAGNOSTIC_SOURCE,DIAGNOSTIC_IMAGE)],
             'Reviewed physical source/image/scope')
     comparator_required(packet)
+    if packet['source_revision']==DIAGNOSTIC_SOURCE:
+        require(len(packet['jobs'])==1 and packet['jobs'][0]['mode']=='tone' and
+                packet['jobs'][0]['total_duration_ns']=='90000000000' and
+                packet['runtime_seconds']==180 and packet['maximum_renewals']==5 and
+                'wtp_capacity' in packet and 'contention' not in packet and
+                'http_capacity' not in packet and not packet.get('allocator_failure_baseline'),
+                'Diagnostic image permits only the reviewed 90-second maximum-input comparison')
     for key in ['owner_id','peer_session','inventory_session','boot_id']:identity(packet[key])
+    if 'wtp_capacity' in packet:
+        cap=packet['wtp_capacity']
+        require(set(cap)=={'maximum_request_id','oversized_request_id','recovery_request_id'} and
+            len({identity(value) for value in cap.values()})==3 and len(packet['jobs'])==1,
+            'One bounded pair of existing WTP capacity exchanges')
+    if 'http_capacity' in packet:
+        from phase11_5_r3_capacity_plan import http_capacity_cases
+        cap=packet['http_capacity']
+        require(set(cap)=={'seed','cases'} and cap['cases']==http_capacity_cases(cap['seed']) and
+            len(packet['jobs'])==1 and 'contention' in packet,'Exact A HTTP boundary stimuli')
     if comparator_required(packet):
         for key in ['b_session','b_boot_id']:identity(packet[key])
     require(type(packet['runtime_seconds']) is int and 1<=packet['runtime_seconds']<=28800 and
@@ -98,6 +130,14 @@ def validate(packet):
 
 def validate_info(info,baseline,packet):
     old=baseline['info']
+    failures=packet.get('allocator_failure_baseline',0)
+    if failures:
+        require(type(failures) is int and failures in (1,2) and packet['source_revision']==ASSET_SOURCE and
+            packet['boot_id']=='2b4583bd3d79a38f030a08c82ed96939' and
+            packet.get('allocator_failure_evidence_sha256')=={
+                1:'1dfe9f50261824323df93b969370ca8c4bc6d4d7e1b293d3cdeaa8d11dd4f64a',
+                2:'551e6985c56a3a088cbdc4b1d6d3a750d3695536f0914eafc54c277f38af26d6'}[failures],
+            'Historical C2/C3 failure baseline requires exact retained evidence; no new failures allowed')
     require(info['device_id']==DEVICE and info['revision']==packet['source_revision'][:12] and
             info['status']['boot_id']==packet['boot_id']==old['status']['boot_id'] and
             info['system_clock_hz']==138000000 and info['rf_render_in_ram'] is True and
@@ -114,7 +154,7 @@ def validate_info(info,baseline,packet):
                 info[p+'guard_limit']==old[p+'guard_limit']==info[p+'guard_bottom']+4096,'Stack guard/reserve')
     require(info['heap_capacity_bytes']==old['heap_capacity_bytes'] and
             info['heap_capacity_bytes']-info['allocator_peak_bytes']>=32768 and
-            info['allocator_failures']==old['allocator_failures']=='0' and
+            info['allocator_failures']==old['allocator_failures']==str(failures) and
             info['tls_allocation_failures']==old['tls_allocation_failures'],'Allocator reserve/failures')
     require(type(info['status']['output_active']) is bool and
             info['status']['state'] in ['empty','loaded','armed','running','complete','aborted'] and
@@ -124,9 +164,10 @@ def validate_info(info,baseline,packet):
 
 def run(root,packet):
     os.umask(0o077);end=time.monotonic()+packet['runtime_seconds'];lock=threading.Lock();done=threading.Event()
-    faults=[];samples={};seq=0;result=dict(status='RUNNING',armed_jobs=[],completed_jobs=[],renewals=0,rf_duration_ns_charged=0)
+    faults=[];samples={};inflight={};seq=0;result=dict(status='RUNNING',armed_jobs=[],completed_jobs=[],renewals=0,rf_duration_ns_charged=0)
     log=(root/'rf.jsonl').open('x')
     observer_pid=os.getpid();observer_start=Path('/proc/self/stat').read_text().rsplit(')',1)[1].split()[19]
+    observer_identity=dict(packet_sha256=digest(root/'packet.json'),pid=observer_pid,pid_start_ticks=observer_start)
     def emit(kind,value):
         nonlocal seq
         with lock:
@@ -134,7 +175,8 @@ def run(root,packet):
             log.write(json.dumps(dict(sequence=seq,kind=kind,value=value,monotonic_ns=stamp,utc_ns=time.time_ns()))+'\n')
             log.flush();os.fsync(log.fileno());seq+=1
             if kind in ['info','status','health']:samples[kind]=(stamp,value['value'])
-            if 'pressure_family' in packet:
+            if kind=='console_tx':inflight['info']=dict(observer_identity,monotonic_ns=stamp,value=value)
+            if 'pressure_family' in packet or ('http_capacity' in packet and kind in ['info','status','console_tx','failure']):
                 save(root/('observer-'+kind+'.json'),dict(packet_sha256=digest(root/'packet.json'),
                     pid=observer_pid,pid_start_ticks=observer_start,monotonic_ns=stamp,value=value))
                 if kind=='failure':save(root/'observer-failure.json',dict(value=value))
@@ -154,13 +196,15 @@ def run(root,packet):
     before=before_b=None;load_process=None
     def periodic(name,interval,read,act=None):
         next_at=time.monotonic();last=None;count=0
+        singleflight=name=='info' and packet.get('observer_policy')==SINGLE_FLIGHT
         while time.monotonic()<end and not done.is_set():
             began=time.monotonic()
-            require(began-next_at<=1 and (last is None or began-last<=interval+1),name+' cadence')
+            require(began-next_at<=1 and (singleflight or last is None or began-last<=interval+1),name+' cadence')
             value=read();require(time.monotonic()-began<=5,name+' roundtrip')
             emit(name,dict(began_monotonic_ns=int(began*1e9),value=value));last=began;count+=1
             if act is not None:guarded_action(act,value,faults,emit)
-            next_at+=interval;done.wait(max(0,min(next_at,end)-time.monotonic()))
+            next_at=next_offer(began,time.monotonic(),interval) if singleflight else next_at+interval
+            done.wait(max(0,min(next_at,end)-time.monotonic()))
         emit(name+'_finish',dict(samples=count))
     def console():
         with exclusive_port(Path(f'/dev/serial/by-id/usb-WsprryPi_WsprryPico_{SERIAL}-if00')) as fd:
@@ -202,7 +246,8 @@ def run(root,packet):
                     require(json.loads(ready.read_text())['packet_sha256']==digest(root/'packet.json'),
                             'Contention readiness packet')
                 if 'info' not in samples or 'health' not in samples:return
-                info=fresh_sample(samples,lock,'info',2_000_000_000)
+                info=fresh_sample(samples,lock,'info',2_000_000_000,
+                    identity=observer_identity if packet.get('observer_policy')==SINGLE_FLIGHT else None,inflight=inflight)
                 if state['done_at'] is not None:
                     if time.monotonic()-state['done_at']>=10:done.set()
                     return
@@ -227,6 +272,21 @@ def run(root,packet):
                 elif state['phase']=='executing':
                     require(status['job_id']==job['job_id'] and status['owner_id']==packet['owner_id'] and
                             status['state'] in ['armed','running','complete'],'Finite lifecycle')
+                    if status['state']=='running' and 'wtp_capacity' in packet and not state.get('capacity_exchanged',False):
+                        from phase11_5_r3_capacity_probe import exchange_capacity
+                        from phase11_5_r3_capacity_plan import wtp_capacity_frame
+                        from validate_wtp_contract import frame
+                        cap=packet['wtp_capacity'];state['capacity_exchanged']=True
+                        raw=wtp_capacity_frame(peer.session,cap['maximum_request_id'])
+                        observed=exchange_capacity(peer,raw,json.loads(raw[16:]),emit)
+                        require(observed['boot_id']==packet['boot_id'] and observed['job_id']==job['job_id'] and
+                            observed['owner_id']==packet['owner_id'] and observed['state']=='running' and
+                            observed['output_active'] is True,'Maximum WTP under owned Running RF')
+                        recovery=dict(type='request',protocol='WTP/1',session_id=peer.session,
+                            request_id=cap['recovery_request_id'],op='PING',body={'token':'after-capacity'})
+                        raw=wtp_capacity_frame(peer.session,cap['oversized_request_id'],True)+frame(json.dumps(recovery,separators=(',',':')).encode())
+                        require(exchange_capacity(peer,raw,recovery,emit,invalid_frames=1)==recovery['body'],
+                                'Same-connection oversized WTP recovery')
                     if status['state']=='complete':
                         if info['status']['state']!='complete' or int(info['launch_epoch'])<=state['epoch']:return
                         emit('job_complete',dict(job_id=job['job_id'],status=status,info=info))

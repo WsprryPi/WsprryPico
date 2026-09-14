@@ -14,15 +14,36 @@ from phase11_5_r3_v2_rf import validate,validate_info,comparator_required
 PACKET='966cd695df2b2eab36f6999c2afae678ad6eecdb8a3c5ea0871fb5afb2c61fef'
 
 
+def capacity_request(packet, value, index):
+    from audit_phase11_5_r3_v2_admission import decode_requests
+    from phase11_5_r3_capacity_plan import wtp_capacity_frame
+    from validate_wtp_contract import frame
+    require('wtp_capacity' in packet and index in (0,1),'Declared WTP capacity pair only')
+    cap=packet['wtp_capacity'];session=packet['peer_session']
+    if index==0:
+        expected=wtp_capacity_frame(session,cap['maximum_request_id'])
+    else:
+        recovery=dict(type='request',protocol='WTP/1',session_id=session,
+            request_id=cap['recovery_request_id'],op='PING',body={'token':'after-capacity'})
+        expected=wtp_capacity_frame(session,cap['oversized_request_id'],True)+frame(json.dumps(recovery,separators=(',',':')).encode())
+    raw=bytes.fromhex(value['hex']);requests=decode_requests(raw)
+    require(raw==expected and requests[-1][1]==value['request'] and value['expected_invalid_frames']==index,
+        'Exact capacity CRC, length, operation, identity and recovery bytes')
+    return len(raw)
+
+
 def audit(root, *, packet_digest=PACKET):
-    require(packet_digest in [PACKET, '065cb07e6ace4261caf4ba24cb7d6e1417186d1d7c1445bae25d102b256df3b5',
+    require(packet_digest in [PACKET, '3265c16e1a970c79c1beee2bd6a9cf4b9198381ee051a08f5f0dd40d7ed95277', 'a96a14455d08caa37fab21e7ef96be5bd5249afdf6471e8450c64a2e5d73f5a4', '9215a8049c83c2319506ef0c76100213a6bf5bb479a06cd283835c684719f095', '065cb07e6ace4261caf4ba24cb7d6e1417186d1d7c1445bae25d102b256df3b5',
             'c408f5db396a50a6413334f05b7cc1eda22dab0040023454f28c435241931d41',
             '4eeb2113a40dc386f7839ae40a2e1f1d13b2da23dc86d04eb7ae0131dcfe2304',
             'c5ecb3dcf84eb61b788ede7c2481d10054831cee6c630c5ca4d9c715bc8a8c8c',
             'dd834b829b6745d64385a4b831e96018be51edcf09dcfbc544cc6dc4d4eb82ed',
             'addf150f2832d418c7f198e25edbf29bebaf21a62202fd1a9f072447c0db0da1',
             'eef06c2fefab51ffb7954d1d563c956acb0cbfddf386597163bf91fd927ddce7',
-            '6e866906cd3eaffab9d63e52fd64a54b8b6b44300179d7aacc22a6671e50c3df'],
+            '6e866906cd3eaffab9d63e52fd64a54b8b6b44300179d7aacc22a6671e50c3df',
+            '3c8cea4f50a1e78b62cbb300846f05555360e8e0c91b467c694505b66fc8e3cf',
+            'ef709e0ee4f2de33537fa887921815b4c36534ebd7afbb0259c7f8ec9b962d57',
+            '1fc1577212f2bcd0c5ea308a9da923b9386863a3dd567d28fd700e4787980cb7'],
             'Unreviewed RF audit packet')
     require(digest(root/'packet.json')==packet_digest,'Frozen RF packet')
     packet=json.loads((root/'packet.json').read_text());validate(packet);inventories={}
@@ -55,10 +76,12 @@ def audit(root, *, packet_digest=PACKET):
         allowed.append('contention_starting')
         require(len([r for r in rows if r['kind']=='contention_starting'])==1,
                 'Missing/extra contention process')
+    if 'wtp_capacity' in packet:allowed+=['capacity_tx','capacity_write','capacity_rx','capacity_message']
     require(all(r['kind'] in allowed for r in rows),'Unexpected failure/operation')
     schema=json.loads((Path(__file__).resolve().parents[1]/'docs/protocol/wtp-1.schema.json').read_text());validator=SchemaValidator(schema)
     pending={};seen=set();wire=b'';messages=[];console=b'';console_pending=None;console_value=None
     latest_status=None;exchanges=[];events=[];event_id=None;samples={}
+    capacity=None;capacity_count=0;capacity_results=[]
     for row in rows:
         kind,v=row['kind'],row['value'];stamp=row['monotonic_ns']
         if kind=='console_tx':
@@ -71,25 +94,49 @@ def audit(root, *, packet_digest=PACKET):
                 require(console.endswith(b'\n') and console.count(b'\n')==1 and stamp-console_pending<=5_000_000_000,
                         'Console response/deadline')
                 console_value=loads_console(console.decode().strip());console=b'';console_pending=None
-        elif kind=='wtp_tx':
-            values,left=frames(bytes.fromhex(v['hex']));require(not left and values==[v['request']],'Request raw/summary')
-            request=values[0]
+        elif kind in ['wtp_tx','capacity_tx']:
+            if kind=='capacity_tx':
+                require(capacity is None,'Capacity exchange overlapped')
+                capacity=dict(size=capacity_request(packet,v,capacity_count),written=0,invalid=0,index=capacity_count)
+                request=v['request'];capacity_count+=1
+            else:
+                require(capacity is None,'Ordinary request during capacity exchange')
+                values,left=frames(bytes.fromhex(v['hex']));require(not left and values==[v['request']],'Request raw/summary')
+                request=values[0]
             require(not validator.errors(request,schema) and request['session_id']==packet['peer_session'] and
                     request['request_id'] not in seen and not pending,'Request schema/session/no retry')
             seen.add(request['request_id']);pending[request['request_id']]=(stamp,request)
-        elif kind=='wtp_rx':
+        elif kind=='capacity_write':
+            require(capacity is not None and type(v['bytes']) is int and 0<v['bytes']<=4096 and
+                v['total_written']==capacity['written']+v['bytes']<=capacity['size'],'Capacity complete write accounting')
+            capacity['written']=v['total_written']
+        elif kind in ['wtp_rx','capacity_rx']:
             values,wire=frames(wire+bytes.fromhex(v['hex']));messages.extend(values)
-        elif kind=='wtp_message':
+        elif kind in ['wtp_message','capacity_message']:
             require(messages and messages.pop(0)==v and not validator.errors(v,schema) and
                     v['session_id']==packet['peer_session'],'Response raw/summary/schema')
             if v['type']=='event':
-                require(v['boot_id']==packet['boot_id'] and v['event'] in ['JOB_STATE','OWNER_RELEASED'] and
+                require(v['boot_id']==packet['boot_id'] and v['event'] in (['INVALID_FRAME'] if kind=='capacity_message' else ['JOB_STATE','OWNER_RELEASED']) and
                         (event_id is None or int(v['event_id'])==event_id+1),'Event gap/fault/boot')
-                event_id=int(v['event_id']);events.append(v);continue
+                event_id=int(v['event_id']);events.append(v)
+                if kind=='capacity_message':
+                    require(capacity is not None and capacity['index']==1 and capacity['invalid']==0,'One expected framing refusal')
+                    capacity['invalid']+=1
+                continue
             require(v['ok'] is True and v['request_id'] in pending,'Unmatched/rejected response')
             began,q=pending.pop(v['request_id']);require(q['op']==v['op'] and stamp-began<=5_000_000_000,'Operation/deadline')
             exchanges.append(dict(request=q,response=v,started_ns=began,finished_ns=stamp))
-            if q['op']=='STATUS':latest_status=v['body']
+            if kind=='capacity_message':
+                require(capacity is not None and capacity['written']==capacity['size'] and
+                    capacity['invalid']==capacity['index'],'Capacity full write and intended rejection')
+                if capacity['index']==0:
+                    value=v['body'];require(value['boot_id']==packet['boot_id'] and value['state']=='running' and
+                        value['owner_id']==packet['owner_id'] and value['job_id']==packet['jobs'][0]['job_id'] and
+                        value['output_active'] is True,'Maximum WTP actual owned Running authority')
+                else:require(v['body']=={'token':'after-capacity'},'Same-connection PING recovery')
+                capacity_results.append(dict(bytes_written=capacity['written'],invalid_frames=capacity['invalid'],
+                    began_ns=began,ended_ns=stamp));capacity=None
+            elif q['op']=='STATUS':latest_status=v['body']
             if q['op']=='HELLO':require(v['body']['boot_id']==packet['boot_id'] and v['body']['device_id']==DEVICE,'HELLO identity')
         elif kind in ['info','status','health']:
             samples.setdefault(kind,[]).append(row)
@@ -101,17 +148,40 @@ def audit(root, *, packet_digest=PACKET):
             else:require(v['value']['boot']==packet['host_boot_id'] and v['value']['throttled']=='throttled=0x0','Host health')
     require(not pending and not wire and not messages and not console and console_pending is None and
             console_value is None and latest_status is None,'Unconsumed/missing wire')
+    require(capacity is None and capacity_count==(2 if 'wtp_capacity' in packet else 0),'Complete capacity pair')
     cadence={}
     for kind,period in [('info',1),('status',5),('health',5)]:
         values=samples.get(kind,[]);require(values,'Missing observation family')
         starts=[r['value']['began_monotonic_ns'] for r in values];gaps=[b-a for a,b in zip(starts,starts[1:])]
         endings=[r for r in rows if r['kind']==kind+'_finish']
+        if kind=='info' and packet.get('observer_policy')=='single-flight-info-v1':
+            from phase11_5_r3_v2_observer_policy import validate_intervals
+            require(len(endings)==1 and endings[0]['value']==dict(samples=len(values)),'INFO count/end')
+            cadence[kind]=validate_intervals(starts,[r['monotonic_ns'] for r in values],rows[0]['monotonic_ns'],endings[0]['monotonic_ns'])
+            continue
         require(len(endings)==1 and endings[0]['value']==dict(samples=len(values)) and
                 starts[0]-rows[0]['monotonic_ns']<=(period+1)*10**9 and
                 endings[0]['monotonic_ns']-starts[-1]<=(period+1)*10**9 and
                 max(gaps,default=0)<=(period+1)*10**9,'Cadence count/start/end/gap')
         cadence[kind]=dict(samples=len(values),max_start_gap_ns=max(gaps,default=0))
+    arm_exchanges=[e for e in exchanges if e['request']['op']=='ARM']
+    arm_pending=[r for r in rows if r['kind']=='arm_pending']
+    arm_acknowledged=[r for r in rows if r['kind']=='arm_acknowledged']
+    completed_summaries=[r for r in rows if r['kind']=='job_complete']
+    require(len(arm_exchanges)==len(arm_pending)==len(arm_acknowledged)==len(completed_summaries)==len(packet['jobs']),
+            'Exact lifecycle summary count')
+    for job,exchange,pending_row,ack,complete in zip(packet['jobs'],arm_exchanges,arm_pending,arm_acknowledged,completed_summaries):
+        require(pending_row['value']==dict(job=job,start_utc_ns=exchange['request']['body']['start_utc_ns']) and
+                ack['value']==exchange['response']['body'] and
+                pending_row['monotonic_ns']<=exchange['started_ns']<=exchange['finished_ns']<=ack['monotonic_ns']<complete['monotonic_ns'],
+                'ARM summaries must match raw request and response')
+        prior_status=next(r for r in reversed(samples['status']) if r['monotonic_ns']<=complete['monotonic_ns'])
+        prior_info=next(r for r in reversed(samples['info']) if r['monotonic_ns']<=complete['monotonic_ns'])
+        require(complete['value']==dict(job_id=job['job_id'],status=prior_status['value']['value'],info=prior_info['value']['value']) and
+                prior_status['value']['value']['state']=='complete','Completion summary must match raw observations')
     arms=transactions(dict(packet,submission_path='usb'),exchanges,events,packet_validator=validate)
+    for arm,exchange in zip(arms,arm_exchanges):
+        arm.update(request=exchange['request']['body'],acknowledgment=exchange['response']['body'])
     metrics=timing(packet,arms,rows)
     for job in packet['jobs']:
         statuses=[r for r in samples['status'] if r['value']['value']['job_id']==job['job_id']]
@@ -144,7 +214,7 @@ def audit(root, *, packet_digest=PACKET):
     return dict(status='S0_STAGED_RF_ADMISSION_VERIFIED' if packet_digest==PACKET else 'FINITE_RF_WIRE_VERIFIED',
         family_closed=False,packet_sha256=packet_digest,
         source_revision=packet['source_revision'],image_sha256=packet['image_sha256'],boot_id=packet['boot_id'],
-        cadence=cadence,jobs=metrics,rf_jobs=len(packet['jobs']),rf_duration_ns_charged=result['rf_duration_ns_charged'],
+        cadence=cadence,wtp_capacity=capacity_results,jobs=metrics,rf_jobs=len(packet['jobs']),rf_duration_ns_charged=result['rf_duration_ns_charged'],
         maximum_allocator_peak_bytes=max(r['value']['value']['allocator_peak_bytes'] for r in samples['info']),
         terminal_records=new,physical_hour_or_saturation_verified=False)
 
@@ -161,7 +231,14 @@ def timing(packet, arms, rows):
         require(before and selected,'Missing per-job INFO window')
         base,last=before[-1],selected[-1]
         job=arm['job'];samples=138000000*int(job['total_duration_ns'])//10**9
-        require(138000000*int(job['total_duration_ns'])%10**9==0,'Nonintegral sample count')
+        if packet.get('sample_mapping_policy')=='waveform-absolute-nearest-v1':
+            from phase11_5_r3_v2_arm_mapping import waveform_samples
+            from phase11_5_r3_v2_native_plan import validate_template
+            require(packet['schema']=='phase11.5-r3-v2-native-v1' and
+                packet['native']['template_policy']=='production-config-builder-v1','Native sample mapping scope')
+            validate_template(job,job['mode'],'production-config-builder-v1')
+            samples=waveform_samples(job)
+        else:require(138000000*int(job['total_duration_ns'])%10**9==0,'Nonintegral sample count')
         blocks=(samples+524287)//524288
         expected=dict(dma_irqs=blocks+1,alarm_irqs=1,tail_irqs=1,running_successor_links=blocks-1,
                       refill_irq_pairs=blocks-1,running_tail_links=1)
@@ -172,9 +249,15 @@ def timing(packet, arms, rows):
         epochs.add(epoch)
         running=[i for i in selected if i['status']['state']=='running' and int(i['launch_epoch'])==epoch]
         require(running,'Running current launch epoch absent')
-        for i in running:
-            s=i['status'];mapped=target+int(s['utc_now_ns'])-int(s['monotonic_now_ns'])
-            require(abs(mapped-int(arm['start_utc_ns']))<=int(s['uncertainty_ns'])+1000000,'ARM UTC mapping')
+        if packet.get('timing_mapping_policy')=='acknowledged-monotonic-launch-v1':
+            from phase11_5_r3_v2_arm_mapping import validate_mapping
+            require(packet['schema'] in ['phase11.5-r3-v2-native-v1','phase11.5-r3-v2-usb-rf-v1'],
+                    'Prospective native/USB RF mapping scope')
+            validate_mapping(arm['request'],arm['acknowledgment'],target)
+        else:
+            for i in running:
+                s=i['status'];mapped=target+int(s['utc_now_ns'])-int(s['monotonic_now_ns'])
+                require(abs(mapped-int(arm['start_utc_ns']))<=int(s['uncertainty_ns'])+1000000,'ARM UTC mapping')
         short=(samples%524288+31)//32
         require(short>0,'Expected short predecessor absent')
         previous=base['refill_short_predecessor']

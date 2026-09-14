@@ -29,6 +29,41 @@ class FiniteRfPacketTests(unittest.TestCase):
         p['image_sha256']='0'*64
         with self.assertRaises(ValueError):validate(p)
 
+    def test_capacity_stimuli_reject_wrong_crc_size_and_recovery(self):
+        import json
+        from phase11_5_r3_capacity_plan import wtp_capacity_frame
+        from validate_wtp_contract import frame
+        from audit_phase11_5_r3_v2_rf import capacity_request
+        p=self.packet();cap=dict(maximum_request_id='a'*32,oversized_request_id='b'*32,recovery_request_id='c'*32)
+        p['wtp_capacity']=cap;validate(p)
+        raw=wtp_capacity_frame(p['peer_session'],cap['maximum_request_id'])
+        value=dict(hex=raw.hex(),request=json.loads(raw[16:]),expected_invalid_frames=0)
+        self.assertEqual(capacity_request(p,value,0),65552)
+        for damaged in [raw[:-1],raw[:12]+bytes([raw[12]^1])+raw[13:],wtp_capacity_frame(p['peer_session'],'d'*32)]:
+            with self.assertRaises(ValueError):capacity_request(p,dict(value,hex=damaged.hex()),0)
+        q=dict(type='request',protocol='WTP/1',session_id=p['peer_session'],request_id=cap['recovery_request_id'],
+            op='PING',body={'token':'after-capacity'})
+        raw=wtp_capacity_frame(p['peer_session'],cap['oversized_request_id'],True)+frame(json.dumps(q,separators=(',',':')).encode())
+        value=dict(hex=raw.hex(),request=q,expected_invalid_frames=1)
+        self.assertEqual(capacity_request(p,value,1),len(raw))
+        with self.assertRaises(ValueError):capacity_request(p,value,0)
+        with self.assertRaises(ValueError):capacity_request(p,dict(value,expected_invalid_frames=0),1)
+
+    def test_http_boundary_cases_are_supported_operations_at_declared_layer(self):
+        import json
+        from phase11_5_r3_capacity_plan import http_capacity_cases
+        cases=http_capacity_cases('1'*32)
+        self.assertEqual([c['expected_status'] for c in cases],[200,400,200])
+        for case in cases:
+            headers,body=bytes.fromhex(case['wire_hex']).split(b'\r\n\r\n',1)
+            self.assertIn(('Content-Length: '+str(case['declared_body_bytes'])).encode(),headers)
+            self.assertEqual(len(body),case['offered_body_bytes'])
+            if body:self.assertEqual(json.loads(body)['operation'],'HELLO')
+        self.assertEqual(len(bytes.fromhex(cases[0]['wire_hex']).split(b'\r\n\r\n',1)[1]),32768)
+        self.assertEqual((cases[1]['declared_body_bytes'],cases[1]['offered_body_bytes']),(32769,0))
+        from phase11_5_r3_v2_parallel_b_functional import http_exchange
+        with self.assertRaises(ValueError):http_exchange(Path('/nonexistent'),{},cases[0],lambda *_:None,target=('wrong','0'*64,'0'*32))
+
     def test_bounds(self):
         p=self.packet();self.assertEqual(validate(p),p)
         for key,value in [('runtime_seconds',40),('runtime_seconds',28801),('flashes',1),
@@ -39,6 +74,21 @@ class FiniteRfPacketTests(unittest.TestCase):
             q=copy.deepcopy(p);q['jobs'][0]['events'][0][key]=value
             with self.subTest(key=key),self.assertRaises(ValueError):validate(q)
         q=copy.deepcopy(p);q['jobs']*=17
+        with self.assertRaises(ValueError):validate(q)
+
+    def test_diagnostic_identity_cannot_admit_a_broader_campaign(self):
+        from phase11_5_r3_v2_rf import DIAGNOSTIC_SOURCE,DIAGNOSTIC_IMAGE
+        p=self.packet();p.update(source_revision=DIAGNOSTIC_SOURCE,image_sha256=DIAGNOSTIC_IMAGE,
+            runtime_seconds=180,maximum_renewals=5,
+            wtp_capacity=dict(maximum_request_id='a'*32,oversized_request_id='b'*32,recovery_request_id='c'*32))
+        p['jobs'][0]['total_duration_ns']='90000000000'
+        p['jobs'][0]['events'][0]['duration_ns']='90000000000'
+        self.assertEqual(validate(p),p)
+        for key,value in [('runtime_seconds',181),('maximum_renewals',6),
+                          ('allocator_failure_baseline',1),('contention',{}),('http_capacity',{})]:
+            q=copy.deepcopy(p);q[key]=value
+            with self.subTest(key=key),self.assertRaises(ValueError):validate(q)
+        q=copy.deepcopy(p);q['image_sha256']='0'*64
         with self.assertRaises(ValueError):validate(q)
 
 

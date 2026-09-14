@@ -30,10 +30,11 @@ def unpack(archive, packet_sha, root, own_sha):
     require(packet['root'] == str(root) and packet['r3_scope'] in
             ('phase11.5-r3-tls-a1-v1', 'phase11.5-r3-transport-b1-v1','phase11.5-r3-transport-b2-v1',
              'phase11.5-r3-capacity-probe-v1','phase11.5-r3-allocation-diagnostic-d0-v1',
-             'phase11.5-r3-v2-idle-admission-v1','phase11.5-r3-v2-fixture-v1',
-             'phase11.5-r3-v2-usb-rf-v1','phase11.5-r3-v2-chromium-v1',
+             'phase11.5-r3-v2-idle-admission-v1','phase11.5-r3-v2-idle-reconcile-v1','phase11.5-r3-v2-fixture-v1',
+             'phase11.5-r3-v2-usb-rf-v1','phase11.5-r3-v2-chromium-v1','phase11.5-r3-v2-browser-trust-v1',
              'phase11.5-r3-v2-parallel-b-deploy-v1','phase11.5-r3-v2-parallel-b-functional-v1',
-             'phase11.5-r3-v2-parallel-b-repair-v1'), 'R3 staging root/scope')
+             'phase11.5-r3-v2-parallel-b-repair-v1','phase11.5-r3-v2-parallel-b-paged-repair-v1',
+             'phase11.5-r3-v2-wifi-recovery-v1','phase11.5-r3-v2-native-v1'), 'R3 staging root/scope')
     require(set(data) == {'packet.json'} | set(packet['stage_sha256']), 'Archive manifest differs')
     require(packet['stage_sha256']['scripts/phase11_5_r3_tls_stage.py'] == own_sha,
             'Uploaded staging helper differs')

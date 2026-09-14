@@ -1,0 +1,271 @@
+{
+  "status": "T5_PRESSURE_VERIFIED",
+  "family_closed": false,
+  "packet_sha256": "9215a8049c83c2319506ef0c76100213a6bf5bb479a06cd283835c684719f095",
+  "source_revision": "8921a70081839f168edef5926e92445f251d8e1d",
+  "image_sha256": "3899b498d05ca5b39e23a45e455c44b2784bcf2aca35f62a8ef4db644cc7241b",
+  "boot_id": "fc90d1a04eb0acc703de907917277921",
+  "cadence": {
+    "info": {
+      "samples": 376,
+      "max_start_gap_ns": 1906851867
+    },
+    "status": {
+      "samples": 76,
+      "max_start_gap_ns": 5000074014
+    },
+    "health": {
+      "samples": 76,
+      "max_start_gap_ns": 5000085789
+    }
+  },
+  "jobs": [
+    {
+      "job_id": "055291e96e6bf5e70ef04eb1fd10381b",
+      "mode": "tone",
+      "epoch": 3,
+      "expected_counter_deltas": {
+        "dma_irqs": 39484,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 39482,
+        "refill_irq_pairs": 39482,
+        "running_tail_links": 1
+      },
+      "duration_ns": 150000000000,
+      "launch_target_ns": 774884988000,
+      "post_enable_delay_ns": 8000,
+      "short_words": 1912,
+      "short_interval_ns": 443362.3188405797,
+      "short_75_percent_budget_ns": 332521.73913043475,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 3,
+        "epoch": "3",
+        "successor_sequence": "39483",
+        "observed_ns": "924884610000",
+        "remaining_words": 1653,
+        "total_words": 1912
+      }
+    },
+    {
+      "job_id": "511733cbaf50f21ddce24b4426454218",
+      "mode": "tone",
+      "epoch": 4,
+      "expected_counter_deltas": {
+        "dma_irqs": 39484,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 39482,
+        "refill_irq_pairs": 39482,
+        "running_tail_links": 1
+      },
+      "duration_ns": 150000000000,
+      "launch_target_ns": 954892043000,
+      "post_enable_delay_ns": 8000,
+      "short_words": 1912,
+      "short_interval_ns": 443362.3188405797,
+      "short_75_percent_budget_ns": 332521.73913043475,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 4,
+        "epoch": "4",
+        "successor_sequence": "39483",
+        "observed_ns": "1104891706000",
+        "remaining_words": 1475,
+        "total_words": 1912
+      }
+    }
+  ],
+  "rf_jobs": 2,
+  "rf_duration_ns_charged": 300000000000,
+  "maximum_allocator_peak_bytes": 158580,
+  "terminal_records": [
+    {
+      "job_id": "511733cbaf50f21ddce24b4426454218",
+      "state": "complete",
+      "ended_monotonic_ns": "1104892678000",
+      "output_active": false
+    },
+    {
+      "job_id": "055291e96e6bf5e70ef04eb1fd10381b",
+      "state": "complete",
+      "ended_monotonic_ns": "924885157000",
+      "output_active": false
+    },
+    {
+      "job_id": "7677571d46f4c014de5c0af84bab1237",
+      "state": "complete",
+      "ended_monotonic_ns": "521240542000",
+      "output_active": false
+    },
+    {
+      "job_id": "d0f3d2bada2d84266718ad429133fd37",
+      "state": "complete",
+      "ended_monotonic_ns": "391232566000",
+      "output_active": false
+    },
+    {
+      "job_id": "93fdeb00471569811357d5742f039999",
+      "state": "aborted",
+      "ended_monotonic_ns": "6243355000",
+      "output_active": false
+    }
+  ],
+  "physical_hour_or_saturation_verified": true,
+  "pressure": {
+    "status": "PASS",
+    "cases": [
+      {
+        "case": "positive",
+        "job_id": "055291e96e6bf5e70ef04eb1fd10381b",
+        "launch_epoch": 3,
+        "duration_ns": 2085022987,
+        "flow": null
+      },
+      {
+        "case": "partial-header",
+        "job_id": "055291e96e6bf5e70ef04eb1fd10381b",
+        "launch_epoch": 3,
+        "duration_ns": 15015115812,
+        "flow": {
+          "port": 50248,
+          "target_close_after_syn_seconds": 15.009258
+        }
+      },
+      {
+        "case": "recover-header",
+        "job_id": "055291e96e6bf5e70ef04eb1fd10381b",
+        "launch_epoch": 3,
+        "duration_ns": 2727461766,
+        "flow": null
+      },
+      {
+        "case": "partial-body",
+        "job_id": "055291e96e6bf5e70ef04eb1fd10381b",
+        "launch_epoch": 3,
+        "duration_ns": 15018186008,
+        "flow": {
+          "port": 38936,
+          "target_close_after_syn_seconds": 15.013446
+        }
+      },
+      {
+        "case": "recover-body",
+        "job_id": "055291e96e6bf5e70ef04eb1fd10381b",
+        "launch_epoch": 3,
+        "duration_ns": 1937220386,
+        "flow": null
+      },
+      {
+        "case": "pending-expiry",
+        "job_id": "055291e96e6bf5e70ef04eb1fd10381b",
+        "launch_epoch": 3,
+        "duration_ns": 11818130413,
+        "flow": {
+          "port": 60922,
+          "target_close_after_syn_seconds": 10.829483
+        }
+      },
+      {
+        "case": "recover-pending",
+        "job_id": "055291e96e6bf5e70ef04eb1fd10381b",
+        "launch_epoch": 3,
+        "duration_ns": 2122852063,
+        "flow": null
+      },
+      {
+        "case": "positive",
+        "job_id": "511733cbaf50f21ddce24b4426454218",
+        "launch_epoch": 4,
+        "duration_ns": 2236288132,
+        "flow": null
+      },
+      {
+        "case": "stalled-http-reader",
+        "job_id": "511733cbaf50f21ddce24b4426454218",
+        "launch_epoch": 4,
+        "duration_ns": 16983793881,
+        "flow": {
+          "port": 59960,
+          "held_unread_until_monotonic_ns": 282559620582726,
+          "proof": "fresh slot reuse and timeout counter; no client EOF deadline claim"
+        }
+      },
+      {
+        "case": "recover-reader",
+        "job_id": "511733cbaf50f21ddce24b4426454218",
+        "launch_epoch": 4,
+        "duration_ns": 2027107464,
+        "flow": null
+      },
+      {
+        "case": "failed-alert-ack",
+        "job_id": "511733cbaf50f21ddce24b4426454218",
+        "launch_epoch": 4,
+        "duration_ns": 1061840248,
+        "flow": {
+          "port": 48334,
+          "target_close_after_syn_seconds": 1.055938
+        }
+      },
+      {
+        "case": "recover-alert-ack",
+        "job_id": "511733cbaf50f21ddce24b4426454218",
+        "launch_epoch": 4,
+        "duration_ns": 2082448834,
+        "flow": null
+      },
+      {
+        "case": "failed-alert-wait",
+        "job_id": "511733cbaf50f21ddce24b4426454218",
+        "launch_epoch": 4,
+        "duration_ns": 4819335474,
+        "flow": {
+          "port": 48354,
+          "target_close_after_syn_seconds": 4.768382
+        }
+      },
+      {
+        "case": "recover-alert-wait",
+        "job_id": "511733cbaf50f21ddce24b4426454218",
+        "launch_epoch": 4,
+        "duration_ns": 2008747223,
+        "flow": null
+      }
+    ],
+    "tcp_connections": 15,
+    "https_controls": 8
+  },
+  "native": {
+    "connections": 1,
+    "operations": {
+      "HELLO": 1,
+      "STATUS": 386,
+      "CAPS": 1
+    }
+  },
+  "contention_coverage": [
+    {
+      "job_id": "055291e96e6bf5e70ef04eb1fd10381b",
+      "family": "native_wire",
+      "samples": 160
+    },
+    {
+      "job_id": "055291e96e6bf5e70ef04eb1fd10381b",
+      "family": "native_http",
+      "samples": 156
+    },
+    {
+      "job_id": "511733cbaf50f21ddce24b4426454218",
+      "family": "native_wire",
+      "samples": 160
+    },
+    {
+      "job_id": "511733cbaf50f21ddce24b4426454218",
+      "family": "native_http",
+      "samples": 155
+    }
+  ],
+  "tcp_packets": 2450
+}

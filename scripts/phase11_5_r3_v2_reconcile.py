@@ -11,7 +11,7 @@ from phase11_5_pilot import Peer, SERIAL, DEVICE
 from phase11_5_pilot_supervisor import finished, configuration, B_SERIAL, B_DEVICE
 from phase11_5_device_management import digest, save
 from phase11_5_r3_capacity_plan import identity
-from phase11_5_r3_v2_rf import validate_info
+from phase11_5_r3_v2_rf import validate_info, comparator_required
 
 
 def validate_stage(root, packet):
@@ -63,6 +63,7 @@ def run(root, packet):
     def checkpoint(): require(time.monotonic() < end, 'Finite reconciliation deadline')
     def inventory(label, b=False):
         checkpoint()
+        require(not b or comparator_required(packet), 'Independent B is outside this reconciliation')
         with (root/(label+'.stdout')).open('xb') as out, (root/(label+'.stderr')).open('xb') as err:
             code = subprocess.run(['python3', str(root/'scripts/phase11_5_inventory.py'),
                 '--serial', B_SERIAL if b else SERIAL, '--device-id', B_DEVICE if b else DEVICE,
@@ -74,12 +75,14 @@ def run(root, packet):
     save(root/'result.json', result)
     before = before_b = None
     try:
-        before_b = inventory('before-b', True)
+        if comparator_required(packet):
+            before_b = inventory('before-b', True)
         before = inventory('before-a')
         needed = admission(before, packet)
-        s = before_b['wtp']['STATUS']
-        require(s['boot_id'] == packet['b_boot_id'] and s['state'] == 'empty' and
-                s['owner_id'] is s['job_id'] is None and s['output_active'] is False, 'B initial authority')
+        if before_b is not None:
+            s = before_b['wtp']['STATUS']
+            require(s['boot_id'] == packet['b_boot_id'] and s['state'] == 'empty' and
+                    s['owner_id'] is s['job_id'] is None and s['output_active'] is False, 'B initial authority')
         with (root/'reconcile.jsonl').open('x') as log:
             def emit(kind,value):
                 log.write(json.dumps(dict(kind=kind,value=value,monotonic_ns=time.monotonic_ns()))+'\n')
@@ -104,7 +107,7 @@ def run(root, packet):
     except BaseException as error:
         result.update(status='FAILED',error=str(error))
     finally:
-        for label,b in [('after-a',False),('after-b',True)]:
+        for label,b in ([('after-a',False),('after-b',True)] if comparator_required(packet) else [('after-a',False)]):
             try:
                 value=inventory(label,b);s=value['wtp']['STATUS'];baseline=before_b if b else before
                 validate_final(value, baseline, packet, b)

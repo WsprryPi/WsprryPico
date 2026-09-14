@@ -1,0 +1,204 @@
+{
+  "status": "T4_PRESSURE_VERIFIED",
+  "family_closed": false,
+  "packet_sha256": "a96a14455d08caa37fab21e7ef96be5bd5249afdf6471e8450c64a2e5d73f5a4",
+  "source_revision": "8921a70081839f168edef5926e92445f251d8e1d",
+  "image_sha256": "3899b498d05ca5b39e23a45e455c44b2784bcf2aca35f62a8ef4db644cc7241b",
+  "boot_id": "fc90d1a04eb0acc703de907917277921",
+  "cadence": {
+    "info": {
+      "samples": 276,
+      "max_start_gap_ns": 1652309568
+    },
+    "status": {
+      "samples": 56,
+      "max_start_gap_ns": 5000080307
+    },
+    "health": {
+      "samples": 56,
+      "max_start_gap_ns": 5000092492
+    }
+  },
+  "jobs": [
+    {
+      "job_id": "d0f3d2bada2d84266718ad429133fd37",
+      "mode": "tone",
+      "epoch": 1,
+      "expected_counter_deltas": {
+        "dma_irqs": 26323,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 26321,
+        "refill_irq_pairs": 26321,
+        "running_tail_links": 1
+      },
+      "duration_ns": 100000000000,
+      "launch_target_ns": 291232497000,
+      "post_enable_delay_ns": 8000,
+      "short_words": 6736,
+      "short_interval_ns": 1561971.0144927537,
+      "short_75_percent_budget_ns": 1171478.2608695652,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 1,
+        "epoch": "1",
+        "successor_sequence": "26322",
+        "observed_ns": "391231008000",
+        "remaining_words": 6445,
+        "total_words": 6736
+      }
+    },
+    {
+      "job_id": "7677571d46f4c014de5c0af84bab1237",
+      "mode": "tone",
+      "epoch": 2,
+      "expected_counter_deltas": {
+        "dma_irqs": 26323,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 26321,
+        "refill_irq_pairs": 26321,
+        "running_tail_links": 1
+      },
+      "duration_ns": 100000000000,
+      "launch_target_ns": 421240186000,
+      "post_enable_delay_ns": 8000,
+      "short_words": 6736,
+      "short_interval_ns": 1561971.0144927537,
+      "short_75_percent_budget_ns": 1171478.2608695652,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 2,
+        "epoch": "1",
+        "successor_sequence": "26322",
+        "observed_ns": "391231008000",
+        "remaining_words": 6445,
+        "total_words": 6736
+      }
+    }
+  ],
+  "rf_jobs": 2,
+  "rf_duration_ns_charged": 200000000000,
+  "maximum_allocator_peak_bytes": 151588,
+  "terminal_records": [
+    {
+      "job_id": "7677571d46f4c014de5c0af84bab1237",
+      "state": "complete",
+      "ended_monotonic_ns": "521240542000",
+      "output_active": false
+    },
+    {
+      "job_id": "d0f3d2bada2d84266718ad429133fd37",
+      "state": "complete",
+      "ended_monotonic_ns": "391232566000",
+      "output_active": false
+    },
+    {
+      "job_id": "93fdeb00471569811357d5742f039999",
+      "state": "aborted",
+      "ended_monotonic_ns": "6243355000",
+      "output_active": false
+    }
+  ],
+  "physical_hour_or_saturation_verified": true,
+  "pressure": {
+    "status": "PASS",
+    "cases": [
+      {
+        "job_id": "d0f3d2bada2d84266718ad429133fd37",
+        "launch_epoch": 1,
+        "case": "positive",
+        "duration_ns": 1950107604
+      },
+      {
+        "job_id": "d0f3d2bada2d84266718ad429133fd37",
+        "launch_epoch": 1,
+        "case": "missing-certificate",
+        "duration_ns": 966864088
+      },
+      {
+        "job_id": "d0f3d2bada2d84266718ad429133fd37",
+        "launch_epoch": 1,
+        "case": "recover-certificate",
+        "duration_ns": 1945634388
+      },
+      {
+        "job_id": "d0f3d2bada2d84266718ad429133fd37",
+        "launch_epoch": 1,
+        "case": "silent-handshake",
+        "duration_ns": 10018953393
+      },
+      {
+        "job_id": "d0f3d2bada2d84266718ad429133fd37",
+        "launch_epoch": 1,
+        "case": "recover-handshake",
+        "duration_ns": 2512704509
+      },
+      {
+        "job_id": "7677571d46f4c014de5c0af84bab1237",
+        "launch_epoch": 2,
+        "case": "positive",
+        "duration_ns": 2343730580
+      },
+      {
+        "job_id": "7677571d46f4c014de5c0af84bab1237",
+        "launch_epoch": 2,
+        "case": "slot-excess",
+        "duration_ns": 1029483330
+      },
+      {
+        "job_id": "7677571d46f4c014de5c0af84bab1237",
+        "launch_epoch": 2,
+        "case": "recover-slots",
+        "duration_ns": 1937790590
+      },
+      {
+        "job_id": "7677571d46f4c014de5c0af84bab1237",
+        "launch_epoch": 2,
+        "case": "duplicate-wtp",
+        "duration_ns": 2245289931
+      },
+      {
+        "job_id": "7677571d46f4c014de5c0af84bab1237",
+        "launch_epoch": 2,
+        "case": "recover-wtp",
+        "duration_ns": 2081546182
+      }
+    ],
+    "tcp_connections": 12,
+    "https_controls": 6,
+    "observer_bracket_policy": "request-cadence-and-roundtrip-v1",
+    "limitation": "Pending retention and bounded excess only; no pending-expiry or failed-alert-wait claim"
+  },
+  "native": {
+    "connections": 1,
+    "operations": {
+      "HELLO": 1,
+      "STATUS": 285,
+      "CAPS": 1
+    }
+  },
+  "contention_coverage": [
+    {
+      "job_id": "d0f3d2bada2d84266718ad429133fd37",
+      "family": "native_wire",
+      "samples": 110
+    },
+    {
+      "job_id": "d0f3d2bada2d84266718ad429133fd37",
+      "family": "native_http",
+      "samples": 106
+    },
+    {
+      "job_id": "7677571d46f4c014de5c0af84bab1237",
+      "family": "native_wire",
+      "samples": 110
+    },
+    {
+      "job_id": "7677571d46f4c014de5c0af84bab1237",
+      "family": "native_http",
+      "samples": 106
+    }
+  ],
+  "tcp_packets": 1757
+}

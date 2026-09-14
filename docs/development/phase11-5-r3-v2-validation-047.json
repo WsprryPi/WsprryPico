@@ -1,0 +1,138 @@
+{
+  "checkpoint": 47,
+  "status": "GROUP_2_OPEN_BOUNDED_DIAGNOSIS_STOPPED_RESTORED",
+  "group_1": "CLOSED_AT_043",
+  "group_2": "OPEN",
+  "group_3": "NOT_STARTED_THIS_ATTEMPT",
+  "diagnostic_source": "4da36726ac6809bdf4e73d281fe13b2393dd3b31",
+  "budget_start_monotonic_ns": 710199726832375,
+  "budget_seconds": 14400,
+  "recorded_elapsed_seconds": 2103.099370708,
+  "counts": {
+    "diagnostic_candidates": 1,
+    "repair_candidates": 0,
+    "a_flashes": 1,
+    "bootsel_commands": 1,
+    "extra_reboots": 0,
+    "rf_jobs_charged": 1,
+    "rf_seconds_charged": 90,
+    "rf_launches": 0,
+    "completed_jobs": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 0,
+    "heap_probes": 0
+  },
+  "assertions": {
+    "PASS": [
+      "2.1b"
+    ],
+    "FAILED": [
+      "2.1d",
+      "2.2a"
+    ],
+    "PARTIAL": [
+      "2.1a",
+      "2.1c",
+      "2.1e",
+      "2.1f",
+      "2.1g",
+      "2.2c",
+      "2.2d",
+      "2.2e",
+      "2.2f"
+    ],
+    "NOT_RUN": [
+      "2.2b",
+      "2.3a",
+      "2.3b",
+      "2.3c",
+      "2.3d",
+      "2.3e"
+    ]
+  },
+  "checks": {
+    "ctest": {
+      "passed": 70,
+      "failed": 0
+    },
+    "r3_v2_python": {
+      "total": 101,
+      "passed": 85,
+      "skipped": 16
+    },
+    "isolated_publication_python": {
+      "total": 61,
+      "passed": 47,
+      "skipped": 14
+    },
+    "e5_raw_mutations_rejected": 10,
+    "r4_missing_file_mutations_rejected": 4,
+    "both_firmware_targets_built": true,
+    "wtp_contract": {
+      "schema_fixtures": 23,
+      "raw_fixtures": 7,
+      "framing_fixtures": 1,
+      "transition_fixtures": 8
+    }
+  },
+  "review": {
+    "allocation_failure_site": "UNKNOWN",
+    "no_supported_capacity_or_overload_credit_for_c4": true,
+    "c4_frozen_auditor_missing_whitelist_preserved": true,
+    "historical_evidence_not_regraded": true,
+    "new_parser_architecture_not_selected": true
+  },
+  "evidence_archive_sha256": {
+    "E5": "4f51d4d6c14a3e3e8065a359f657a8aa3632e67723d117d2c3a096536a150e36",
+    "C4": "5f9205ba619aaeec93fb40a199ca6fd3c630ee97c43f81b064df2ff55c400330",
+    "R4": "d12262abd5986c377ea94ea57fadcbe558444f66d8e8e048db60bbaa04c41ab7"
+  },
+  "closure_sha256": {
+    "scripts/phase11_5_r3_v2_rf.py": "c01a00c4fa72a27fb20170d075a40d317611e2d19f4a79bfa18ea68b964fd59b",
+    "scripts/audit_phase11_5_r3_v2_rf.py": "2c7a3b4ac4a952f9a9dcd612e3154b042905ee542ac49f5878ee37abbe2a08ea",
+    "scripts/audit_phase11_5_r3_v2_admission.py": "94c4e278254d3ce0d55c1ec1e99edab667f583057e995f992dbb0dfbd68753df",
+    "scripts/phase11_5_r3_v2_reconcile.py": "61c7a09af3b3b7a17ccef38fa1f365e571890881645bb6c5865c1cb3147c761d",
+    "scripts/audit_phase11_5_r3_v2_reconcile.py": "49ba0a11155ab453ee60daf1e779369804ae426c18556b600bad9254fe771d23",
+    "scripts/phase11_5_r3_capacity_plan.py": "65e71dbd4a5b3d11e55f227721761bdab7f3c55f11dd8f9d11a836f0dde330e7",
+    "scripts/phase11_5_r3_tls_stage.py": "f2358e2116bcfc90649cbf7ec92d520ae47ec33861afb3b7a88070fb44e448c4",
+    "scripts/phase11_5_r3_v2_parallel_b_functional.py": "49bfca53fa031f069c182fb44ae571f913f4cd32f75c57c4c4828582d10d0d72",
+    "scripts/phase11_5_r3_v2_observer_policy.py": "0c4e7f8f8e2511f0f220cb65728cbe2bc6999aa061b478cc99e689fb0e572932",
+    "scripts/phase11_5_r3_v2_arm_mapping.py": "106cf7c7dd1d22516858c2baa28320947a9a92edf697abba1a3a7439b85a64d5",
+    "scripts/phase11_5_r3_v2_native_plan.py": "dad79d7a837a140c2a4dc78edf03df61a349d7f8b100dc9c829a60cadefc8f82",
+    "tests/phase11_5_r3_v2_rf_tests.py": "4cf6318622d5bd921e282e8e57232389d426845cbad6da03d2de002d0d64983a",
+    "tests/phase11_5_r3_v2_reconcile_audit_tests.py": "47ad526eb8273e37485d8be405b205c57001a123fc392705e9f291a72bf2a878",
+    "tests/phase11_5_r3_v2_arm_mapping_tests.py": "42df5b7351ee0b5bf773f5a3d6e4bd3ac07eeacc52cb91d7bd8f7817bda911b5",
+    "tests/phase11_5_r3_v2_observer_policy_tests.py": "d4ad7d53a55a4a31386bd760fbf8053316f5b7252471cdc784a14fb734c05dbd",
+    "docs/development/phase11-5-r3-v2-capacity-coordination.md": "143017c2d3fedc871cb575afbd3486ab6a2ccf8e1b987c813690e06d613170c8",
+    "docs/development/phase11-5-r3-v2-campaign.json": "0d1c8e1cec3977c4254fd11eea890bea3e4fc78b1bf8313dadfbf11b94e386dc",
+    "docs/development/phase11-5-r3-v2-progress.md": "303d844b2fdbaab78ca8b3877c75920807a4db94b4b89431964f079adebbe105",
+    "docs/development/phase11-5-r3-v2-r4-result.json": "ec8ad2ff9cbe556b9b22bc15593addeee79ff65db00f552a7ef21f8ce9c3c02b",
+    "docs/development/phase11-5-r3-v2-e5-result.json": "4d89a76716f697a3eda10ec3a1b0843f9cc548e915e04003a83568d2097e2fd8",
+    "docs/development/phase11-5-r3-v2-capacity-c4-result.json": "a039135d8db909f288599c960ddd433872b40ab69357226ec0378335c23372e3",
+    "docs/development/phase11-5-r3-v2-capacity-c1-result.json": "6ae97715e5868d1e77448a2227950b98f87758859d575bab7d18d2ee86af7a5c",
+    "docs/development/phase11-5-r3-v2-capacity-c1-execution.md": "73d3894b3df2ea273c34ead1393fb227aba4619b9e2bbb1f46015056560bc8a7",
+    "docs/development/phase11-5-r3-v2-capacity-c2-result.json": "1dfe9f50261824323df93b969370ca8c4bc6d4d7e1b293d3cdeaa8d11dd4f64a",
+    "docs/development/phase11-5-r3-v2-capacity-c2-execution.md": "d5075ff78a4ca2a6a9fd48932f9e421b31334d0c5acf22e2aa3755ab3c529c40",
+    "docs/development/phase11-5-r3-v2-capacity-c3-result.json": "551e6985c56a3a088cbdc4b1d6d3a750d3695536f0914eafc54c277f38af26d6",
+    "docs/development/phase11-5-r3-v2-capacity-c3-execution.md": "c895f4b1fe0112fbcb123241bc49876ca915abbc20804b7a013466497086c98a",
+    "docs/development/phase11-5-r3-v2-e4-result.json": "2dde41319f4b2f50fd12529ce2b7aac73bb8d6ca3e2c1fab73a0cd11e160103a",
+    "docs/development/phase11-5-r3-v2-bf4-result.json": "9741d81f3cfc9497c9f33f32ec3591ab6c398b427842c642b5b4a734483ca936",
+    "docs/development/phase11-5-r3-v2-t4-result.json": "c86f92dce8abcb720d6242be34f68b04c2f67e783312e9de0d5b82af14c3fa24",
+    "docs/development/phase11-5-r3-v2-t5-result.json": "8dd34682b7e9a0244f849a39a5ae90052ad552a058c41c0450c477b0df90210c",
+    "build/phase11-5-r3-group2-bounded-20260914/independent-closeout.json": "12e82fcca83e2c1a95787f57e9c0e71c3c4df5553dfad820a97f2c31f75a0f7d",
+    "build/phase11-5-r3-group2-bounded-20260914/audit_r3_c4_closeout.py": "56b51aebed1885cb7f09a0509c6cfdfd76d64dfb9f74bdb9b0ca2d531422b230",
+    "build/phase11-5-r3-group2-bounded-20260914/final-host.txt": "e02871bb092cb3f91deb9214626210a525ba444aad6edb74b00b11da97f07eff",
+    "build/phase11-5-r3-group2-bounded-20260914/final-a.jsonl": "a4f243638152a80e86316bf9bd81f5a7aeb52a0b97f513433b360d996ef4d1ce",
+    "build/phase11-5-r3-group2-bounded-20260914/final-b.jsonl": "9393468e651e3a48717cbd863ec381f6bbdaa30b7dda1a2089306516e6e87f39",
+    "build/phase11-5-r3-group2-bounded-20260914/f3-state.json": "40a4977ab3a3cbcb6ab0aabab6138336bd0013c01399d7b683fc9a16c92558da",
+    "build/phase11-5-r3-group2-bounded-20260914/f3-log.json": "a34dbdf8990236f02e845a656ce6791b9bbde801a2c4575cfa4df96d4f749b03",
+    "build/phase11-5-r3-group2-bounded-20260914/f4-state.json": "68759982238fe2e7e1088be633788fc9bc2577adffbbac4e671e02212d5b1397",
+    "build/phase11-5-r3-group2-bounded-20260914/f4-log.json": "9d1f5296b9e7cdff2e8152a8a18d7c45e1fa3a539aea07ff6ffa4eba8d0e8e37",
+    "build/phase11-5-r3-group2-bounded-20260914/diagnostic-host-ctest.log": "cb8528abeb11f3978ea9c4f7346b3e7396ddfc717499df652be570db60da6394",
+    "build/phase11-5-r3-group2-bounded-20260914/r3-v2-regression.log": "ec73078a80dd8bd680e99ecb55998d5b9228851c30bd02d64e6afe42f5e91ec6",
+    "build/phase11-5-r3-group2-bounded-20260914/publication-replay.log": "c46fc1215448555d31599567922f7dfd2fa0292b85ce1110bdaaaaf005c0b2fb",
+    "build/phase11-5-r3-group2-bounded-20260914/withdrawn-paged-input/manifest.json": "7b056c3654f8c4172d5785ab63ce30e308614e4d7a58f5c3d35889e165bdcd26",
+    "build/phase11-5-r3-group2-bounded-20260914/identified-diagnostic-image/manifest.json": "31982e7aaa546a173a5d359410d390aa5bb774c17e126aa2453a673dd27b20a3",
+    "build/phase11-5-r3-group2-bounded-20260914/identified-diagnostic-image/rf-image-comparison.json": "7a2bbbd8639ff5a74e3ca75aba7f78041fc9e817b623085dd7b1d5980caaa5e6"
+  }
+}

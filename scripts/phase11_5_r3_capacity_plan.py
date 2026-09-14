@@ -52,3 +52,20 @@ def http_capacity_body(session, request, oversized=False):
 
 def browser_capacity_file(job, oversized=False):
     return padded_json(job, 30001 if oversized else 30000)
+
+
+def http_capacity_cases(seed):
+    """Existing body boundary probes addressed to A; three finite HELLO cases."""
+    identity(seed)
+    ident=lambda label:hashlib.sha256((seed+':'+label).encode()).hexdigest()[:32]
+    session=ident('http-session');result=[]
+    for label,oversized,small in [('http-32768',False,False),('http-32769-header',True,False),('http-recovery',False,True)]:
+        body=http_capacity_body(session,ident(label),oversized)
+        if small:body=body.rstrip(b' ')
+        header=(f'POST /api/v1/jobs HTTP/1.1\r\nHost: wsprrypico-0a60df.local:18443\r\n'
+            'Origin: https://wsprrypico-0a60df.local:18443\r\nX-WsprryPico-Request: 1\r\n'
+            f'Content-Type: application/json\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n').encode()
+        result.append(dict(label=label,wire_hex=(header+(b'' if oversized else body)).hex(),
+            declared_body_bytes=len(body),offered_body_bytes=0 if oversized else len(body),
+            expected_status=400 if oversized else 200,error_code='invalid_http' if oversized else None))
+    return result

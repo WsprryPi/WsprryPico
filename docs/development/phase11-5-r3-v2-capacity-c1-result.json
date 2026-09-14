@@ -1,0 +1,107 @@
+{
+  "status": "C1_MAXIMUM_EVENT_COMPLETION_WITH_NOMINAL_CONTENTION_VERIFIED",
+  "family_closed": false,
+  "original_runner_status": "FAILED",
+  "failure_classification": "Confirmed harness expectation defect",
+  "failure": {
+    "sequence": 3413,
+    "kind": "failure",
+    "value": {
+      "worker": "wtp action",
+      "error": "Fresh INFO required: age_ns=2176692630, limit_ns=2000000000",
+      "type": "ValueError"
+    },
+    "monotonic_ns": 341967858240262,
+    "utc_ns": 1789397467116805846
+  },
+  "packet_sha256": "3c8cea4f50a1e78b62cbb300846f05555360e8e0c91b467c694505b66fc8e3cf",
+  "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+  "image_sha256": "454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4",
+  "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+  "jobs": [
+    {
+      "job_id": "60723b3b1baf42db814dcc6f6f28ef20",
+      "mode": "fskcw",
+      "epoch": 8,
+      "expected_counter_deltas": {
+        "dma_irqs": 101076,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 101074,
+        "refill_irq_pairs": 101074,
+        "running_tail_links": 1
+      },
+      "duration_ns": 384000000000,
+      "launch_target_ns": 52296903654000,
+      "post_enable_delay_ns": 8000,
+      "short_words": 3584,
+      "short_interval_ns": 831072.463768116,
+      "short_75_percent_budget_ns": 623304.3478260869,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 7,
+        "epoch": "8",
+        "successor_sequence": "101075",
+        "observed_ns": "52680902881000",
+        "remaining_words": 3360,
+        "total_words": 3584
+      }
+    }
+  ],
+  "coverage": {
+    "info": {
+      "samples": 472,
+      "max_start_gap_ns": 1996099072,
+      "max_roundtrip_ns": 1993637560,
+      "policy": "single-flight-info-v1"
+    },
+    "status": {
+      "samples": 96,
+      "maximum_start_gap_ns": 5000074188
+    },
+    "health": {
+      "samples": 96,
+      "maximum_start_gap_ns": 5000092097
+    },
+    "native_wire": {
+      "samples": 484,
+      "maximum_start_gap_ns": 1191526735
+    },
+    "https": {
+      "samples": 24,
+      "maximum_start_gap_ns": 20000204226
+    }
+  },
+  "native": {
+    "connections": 1,
+    "operations": {
+      "HELLO": 1,
+      "STATUS": 484,
+      "CAPS": 1
+    }
+  },
+  "https_requests": 24,
+  "terminal_record": {
+    "job_id": "60723b3b1baf42db814dcc6f6f28ef20",
+    "state": "complete",
+    "ended_monotonic_ns": "52680909321000",
+    "output_active": false
+  },
+  "maximum_events": 512,
+  "rf_duration_ns_charged": 384000000000,
+  "native_http_missing_job_publications": [
+    341889274266953,
+    341893316135298,
+    342287485218284
+  ],
+  "native_http_authority_credit": false,
+  "maximum_allocator_peak_bytes": 181580,
+  "maximum_heap_allocated_bytes": 169396,
+  "limitations": [
+    "No maximum WTP/HTTP body or USB pressure claim",
+    "No retention/reclamation closure"
+  ],
+  "raw_records_sha256": "d115a9c1a40bbc0eb917aa1b6a1bbcf090ba796fdb234956105c004c497fec99",
+  "native_wire_sha256": "e63237966b85d9cebc9c1af57cd0a9385711f8d69abd91b354899f6a099abecc",
+  "altered_evidence_cases_rejected": 12
+}

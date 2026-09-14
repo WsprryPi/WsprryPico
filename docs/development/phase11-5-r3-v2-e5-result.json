@@ -1,0 +1,24 @@
+{
+  "status": "E5_IDLE_BOUNDARIES_VERIFIED",
+  "family_closed": false,
+  "packet_sha256": "e41c50ae3cef279a28082cdb0ae9de639e57e6f940cf1a0fbe6731b8da8da39d",
+  "source_revision": "4da36726ac6809bdf4e73d281fe13b2393dd3b31",
+  "image_sha256": "0153107c517b673bfad7850957c8387a7dbfb12ddb0a3b1e90edb94b804b9a9f",
+  "boot_id": "0bd82f1324920c360d796988cf31cb5b",
+  "assertions": [
+    "clean_extended_image_idle",
+    "wtp_65536_full_write",
+    "wtp_65537_rejected_same_connection_recovered",
+    "events_513_atomic_rejection",
+    "duration_3600_plus_ns_atomic_rejection",
+    "events_512_duration_3600_idle_load",
+    "loaded_abort_release"
+  ],
+  "rf_jobs": 0,
+  "flashes": 1,
+  "bootsel_commands": 1,
+  "b_unchanged": true,
+  "allocator_peak_bytes": 140152,
+  "heap_capacity_bytes": 220328,
+  "physical_hour_or_contention_verified": false
+}

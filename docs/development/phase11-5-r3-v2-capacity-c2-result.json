@@ -1,0 +1,81 @@
+{
+  "status": "FAILED_SUPPORTED_CAPACITY_ATTEMPT",
+  "packet_sha256": "ef709e0ee4f2de33537fa887921815b4c36534ebd7afbb0259c7f8ec9b962d57",
+  "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+  "image_sha256": "454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4",
+  "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+  "classification": "Allocation failure during maximum input attempt; exact contiguous-allocation cause unresolved",
+  "final_authority": {
+    "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+    "state": "complete",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": "98ca88a09106eac17360a14a62005851",
+    "terminal_records": [
+      {
+        "job_id": "98ca88a09106eac17360a14a62005851",
+        "state": "complete",
+        "ended_monotonic_ns": "54135736761000",
+        "output_active": false
+      },
+      {
+        "job_id": "60723b3b1baf42db814dcc6f6f28ef20",
+        "state": "complete",
+        "ended_monotonic_ns": "52680909321000",
+        "output_active": false
+      }
+    ]
+  },
+  "configuration_unchanged": true,
+  "original_runner_result": {
+    "status": "STOPPED_FINAL_STATE_UNVERIFIED",
+    "armed_jobs": [
+      "98ca88a09106eac17360a14a62005851"
+    ],
+    "completed_jobs": [],
+    "renewals": 0,
+    "rf_duration_ns_charged": 180000000000,
+    "final-a-error": "Inactive/unowned admission",
+    "faults": [
+      "console: Allocator reserve/failures",
+      "wtp action: C0 five-second capacity operation deadline; no retry or RF action",
+      "wtp: STATUS response timeout; no automatic retry; output unknown",
+      "supervisor: Nominal contention completion"
+    ]
+  },
+  "rf_duration_ns_charged": 180000000000,
+  "allocator_failures_before": 0,
+  "allocator_failures_after": 1,
+  "tls_allocation_failures": 0,
+  "dma_errors": 0,
+  "maximum_request_payload_bytes": 65536,
+  "submitted_frame_bytes": 4096,
+  "full_write": false,
+  "http_capacity_cases_executed": 0,
+  "continuous_observation_pass": false,
+  "capacity_pass": false,
+  "overload_acceptance_pass": false,
+  "allocator_failure_baseline_scope": "Historical failed C2 attempt only; future packets must not introduce an undeclared increment",
+  "source_findings": [
+    "FrameParser requests one contiguous maximum frame buffer through nullable InputBuffer::reserve; failure closes input without dispatch.",
+    "Aggregate free bytes do not establish a contiguous allocation. Source inspection alone cannot prove this allocation was the failed call."
+  ],
+  "raw_files_sha256": {
+    "final-a.stdout": "ee876adc308d4bbdb59e467831c956ef6ce3e83ada14d600ed24252bb6d85254",
+    "contention.jsonl": "db559c2c7e60a189c439488b3b57030c2f9aad2e93dc0790d953ed40cd9d6651",
+    "contention-failed.json": "75ff3bb09e1ae7eaf927a1fda6f6be853b41f1b7b5055fc64a803f79bf39a680",
+    "run.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "packet.json": "ef709e0ee4f2de33537fa887921815b4c36534ebd7afbb0259c7f8ec9b962d57",
+    "rf-observation-done.json": "e88e1e9e2e38f5bfc27fc56763f1ca757e147e87480dc5be0cef0f99e01aa842",
+    "final-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "before-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "contention-ready.json": "74fc5aa755305f129e3363825d8466a7ed31025b14f5d020f45c025f6b60c57e",
+    "contention-result.json": "16c9662e3000e00eeb6009cf521ec01a862d1ced9d3000091e9af199efde0d0d",
+    "rf.jsonl": "8e81e56cca6ab40f4e0ee24ad4e52e78bcd7e1f678e19bd03f9fb11209526269",
+    "contention-live.json": "081e9caac12152e867b4de58276e77e20d53e8fe229faaa521a80b8a765ec69a",
+    "contention.stderr": "388f9119827ed621c0c3d295d6c6fa0d0994a2ea6d070e9e70c08eb482bb1d7f",
+    "contention.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "rf-result.json": "c7f5667cc234a43f21d0e116906c54a35f28d66e4f7509db4e8c62fdf68a2a6f",
+    "before-a.stdout": "e1b86c47ab4b004c57349feac5fd7c011f20038304cc75f44713b8c7b17cd402"
+  }
+}
