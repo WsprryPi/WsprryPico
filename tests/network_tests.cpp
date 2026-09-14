@@ -1,3 +1,4 @@
+#include "network/assets.hpp"
 #include "network/http.hpp"
 #include "network/identity.hpp"
 #include "network_support.hpp"
@@ -8,6 +9,8 @@
 using namespace wsprrypico;
 using namespace network_test;
 namespace {
+std::size_t available_asset_memory = 0;
+unsigned asset_allocation_calls = 0;
 std::span<const std::uint8_t> bytes(std::string_view text) {
     return {reinterpret_cast<const std::uint8_t*>(text.data()), text.size()};
 }
@@ -57,6 +60,48 @@ void framing() {
     const auto response = network::http_error(403, "forbidden").wire();
     REQUIRE(response.find("Connection: close\r\n") != response.npos);
     REQUIRE(response.find("Access-Control-Allow-Origin") == response.npos);
+}
+void streamed_asset_admission() {
+    Fixture f;
+    const auto asset = network::web_asset("/");
+    REQUIRE(asset && asset->body.size() > 16384);
+    // Enough memory for the actual streamed response and authority reserve,
+    // but not for the obsolete three-full-copies estimate.
+    available_asset_memory = asset->body.size() + 4096 + 32768;
+    wtp::available_memory = []() -> std::size_t { return available_asset_memory; };
+    const auto allocator = wtp::allocate_input;
+    wtp::allocate_input = [](std::size_t size) -> void* {
+        return size <= 4096 ? std::malloc(size) : nullptr;
+    };
+    {
+        const auto response = f.api.handle(request("GET", "/"), "cert", "127.0.0.1:8443");
+        REQUIRE(response.status == 200 && response.body_size() == asset->body.size());
+        std::string delivered;
+        for (std::size_t offset = 0; offset < response.body_size();) {
+            const auto chunk = response.body_at(offset).first(
+                std::min<std::size_t>(1024, response.body_at(offset).size()));
+            delivered.append(reinterpret_cast<const char*>(chunk.data()), chunk.size());
+            offset += chunk.size();
+        }
+        REQUIRE(delivered == asset->body);
+        REQUIRE(response.wire_headers().find(
+                    "Content-Length: " + std::to_string(asset->body.size()) + "\r\n") !=
+                std::string::npos);
+    }
+    --available_asset_memory;
+    REQUIRE(f.api.handle(request("GET", "/"), "cert", "127.0.0.1:8443").status == 503);
+    ++available_asset_memory;
+    asset_allocation_calls = 0;
+    wtp::allocate_input = [](std::size_t size) -> void* {
+        return ++asset_allocation_calls == 3 ? nullptr : std::malloc(size);
+    };
+    const auto refused = f.api.handle(request("GET", "/"), "cert", "127.0.0.1:8443");
+    REQUIRE(asset_allocation_calls == 3 && refused.status == 503 && refused.buffered_body.empty());
+    REQUIRE(refused.body == "{\"error\":{\"code\":\"resource_exhausted\"}}");
+    wtp::allocate_input = allocator;
+    REQUIRE(f.api.handle(request("GET", "/"), "cert", "127.0.0.1:8443").body_text() == asset->body);
+    REQUIRE(f.service.status().state == wtp::State::Empty && !f.service.status().output_active);
+    wtp::available_memory = nullptr;
 }
 void identities() {
     using network::canonical_local_hostname;
@@ -415,6 +460,7 @@ void message_jobs() {
 int main() {
     identities();
     framing();
+    streamed_asset_admission();
     api_checks();
     jobs();
     maximum_http_job();

@@ -180,9 +180,18 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     service_.poll();
     if (r.method == "GET") {
         if (auto asset = web_asset(r.path)) {
-            if (!memory_admitted(asset->body.size() * 3))
+            // The target streams this single paged body through body_at(). It
+            // no longer builds two additional full HTTP wire strings. Reserve
+            // the body plus bounded header/allocator overhead, while retaining
+            // memory_admitted's independent 32 KiB authority/RF reserve.
+            if (!memory_admitted(asset->body.size() + 4096))
                 return http_error(503, "resource_exhausted");
-            return {200, std::string(asset->body), std::string(asset->type), {}};
+            wtp::OutputBuffer output;
+            if (!output.reserve(asset->body.size()) ||
+                !output.append({reinterpret_cast<const std::uint8_t*>(asset->body.data()),
+                                asset->body.size()}))
+                return http_error(503, "resource_exhausted");
+            return {200, {}, std::string(asset->type), {}, std::move(output)};
         }
         if (r.path == "/api/v1/capabilities") {
             Request request;
