@@ -1,0 +1,136 @@
+{
+  "checkpoint": 48,
+  "status": "GROUP_2_OPEN_ONE_NEW_ASSERTION_CLOSED_DIAGNOSTIC_FAILURE_NOT_REPRODUCED_RESTORED",
+  "group_1": "CLOSED_AT_043",
+  "group_2": "OPEN",
+  "group_3": "NOT_STARTED_THIS_PERIOD",
+  "newly_closed_assertions": [
+    "2.1d"
+  ],
+  "newly_closed_subissues": [],
+  "assertions": {
+    "PASS": [
+      "2.1b",
+      "2.1d"
+    ],
+    "FAILED": [
+      "2.2a"
+    ],
+    "PARTIAL": [
+      "2.1a",
+      "2.1c",
+      "2.1e",
+      "2.1f",
+      "2.1g",
+      "2.2c",
+      "2.2d",
+      "2.2e",
+      "2.2f"
+    ],
+    "NOT_RUN": [
+      "2.2b",
+      "2.3a",
+      "2.3b",
+      "2.3c",
+      "2.3d",
+      "2.3e"
+    ]
+  },
+  "diagnostic_source": "4da36726ac6809bdf4e73d281fe13b2393dd3b31",
+  "image_sha256": "0153107c517b673bfad7850957c8387a7dbfb12ddb0a3b1e90edb94b804b9a9f",
+  "boot_id": "0bd82f1324920c360d796988cf31cb5b",
+  "budget": {
+    "start_monotonic_ns": 713401316391750,
+    "start_wall_ns": 1789405051232469000,
+    "budget_seconds": 14400,
+    "cleanup_reserve_seconds": 1800,
+    "maximum_new_diagnostic_candidates": 1,
+    "maximum_rf_jobs": 1,
+    "maximum_charged_rf_seconds": 90
+  },
+  "recorded_elapsed_seconds": 1614.569634583,
+  "counts": {
+    "new_diagnostic_candidates": 0,
+    "repair_candidates": 0,
+    "flashes": 0,
+    "bootsel_commands": 0,
+    "extra_reboots": 0,
+    "rf_jobs_charged": 1,
+    "rf_seconds_charged": 90,
+    "rf_launches": 1,
+    "completed_jobs": 1,
+    "configuration_writes": 0,
+    "wifi_cycles": 0,
+    "heap_probes": 0,
+    "maximum_payload_stimuli": 1,
+    "oversized_payload_stimuli": 0
+  },
+  "checks": {
+    "pio_dma_host_replay_passed": true,
+    "isolated_publication_python_passed": 24,
+    "isolated_publication_python_skipped": 0,
+    "c5_raw_mutations_rejected": 10,
+    "r5_missing_file_mutations_rejected": 4,
+    "r4_historical_replay_and_four_mutations_passed": true,
+    "wtp_contract": {
+      "schema": 23,
+      "raw": 7,
+      "framing": 1,
+      "transitions": 8
+    },
+    "firmware_rebuilt": false,
+    "firmware_source_and_build_configuration_unchanged": true
+  },
+  "review": {
+    "c4_guard_replay": "Recorded mapping refinement reproduces guard refusal; unchanged control launches. Historical interrupt branch not captured.",
+    "allocation_failure_site": "UNRESOLVED_NO_NEW_FAILURE",
+    "capture_after_failure": "Host regression passed; C5 physically exercised only success.",
+    "initial_host_replay_issue": "Generic 1 ms service policy rejected replay ARM; corrected setup to deployed 500 ms policy before hardware.",
+    "mutations_stop": "Fresh checkpoint added before each mutating exchange before C5 staging.",
+    "audit_scope": "C5 single-capacity policy only; normal paired capacity and failure rejection preserved.",
+    "publication_replay": "Reviewed file set over pristine HEAD passes all 24 focused Python tests; unrelated dirty work excluded.",
+    "physical_retry": false,
+    "parser_repair": false,
+    "thresholds_relaxed": false,
+    "final_adversarial_assessment": "No remaining actionable finding in this bounded change. Original allocation defect and broader evidence gaps remain explicitly open."
+  },
+  "evidence_archive_sha256": {
+    "C5": "28b20f6a1ef757f1bc9b32fd29283ebca182b26337ce3a206affea8d3b677963",
+    "R5": "d5e0b94f8111c37628baba7e1ede78d07ac52f30e2cad29545e2679c93e24199"
+  },
+  "fixture": {
+    "name": "F5",
+    "packet_sha256": "074c732a455f07ad7a9a9fbbe0f2d54184871562aff8e0f8b9b99ce1af0e1f47",
+    "deadline_monotonic_ns": 354040071090000,
+    "restored": true,
+    "cleanup_monotonic_ns": 350807833112278,
+    "failures": [],
+    "protected_files_unchanged": true
+  },
+  "closure_sha256": {
+    "scripts/phase11_5_r3_v2_rf.py": "35bfd1b8bfa10730e43ef9cf27cede27d9471103f35ffaea5116803bcfedc6d4",
+    "scripts/phase11_5_r3_v2_reconcile.py": "5394e1d8543e738e5ab47e8ea3297658bdcafff4e011b49d86eb526218c964d7",
+    "scripts/audit_phase11_5_r3_v2_rf.py": "b7e3e15d0477b58a7a15c7cfae909befa58c95b7e3a150e336cc8db32f8fb1a7",
+    "scripts/audit_phase11_5_r3_v2_reconcile.py": "0fab5a0fbbed7690854653eb38fe1dfd2f446e09c674a96115450778d676d18e",
+    "tests/phase11_5_r3_v2_rf_tests.py": "fda3c0dcdc626deabd40570c7d4b6393865a8789ebcbedf9c82777355c3fdecb",
+    "tests/phase11_5_r3_v2_reconcile_tests.py": "87fd129652403e4296ba5ba232e29fdf53c89a0e55e91e028c48100edecf7bac",
+    "tests/pio_dma_tests.cpp": "3969d059e64c1e08f91b2039cc500d637fba685e60f3ca09410f2d575eef2a41",
+    "docs/development/phase11-5-r3-v2-campaign.json": "073f7d4d19254957b6b0b935a927ec54ebf1c1d8286903db3d08098840e91f4c",
+    "docs/development/phase11-5-r3-v2-capacity-coordination.md": "98d667e1b132abd4366bcfff74edac785fb1c6666d8b38ddf4d316ef047b0835",
+    "docs/development/phase11-5-r3-v2-progress.md": "0ad816044cd5ad9068211e7d09b4b618144d45468444fad5104c7cd207dd0812",
+    "docs/development/phase11-5-r3-v2-r5-result.json": "20da64242534a23649df79f105d5e42922c31f968cb9535d00aa1c4e81af6d9c",
+    "docs/development/phase11-5-r3-v2-capacity-c5-result.json": "40da1dc725eb5454a3d801740354db49161eaab07e41ac2bafb5499619ffc338",
+    "build/phase11-5-r3-group2-diagnostic-period2-20260914/budget.json": "fc95f95f034da7b96d5d6b03a0acf0e0bf5bb10e704f07adb8a24e0357c7ba68",
+    "build/phase11-5-r3-group2-diagnostic-period2-20260914/independent-closeout.json": "40da1dc725eb5454a3d801740354db49161eaab07e41ac2bafb5499619ffc338",
+    "build/phase11-5-r3-group2-diagnostic-period2-20260914/audit_r3_c5_closeout.py": "750f37ae005a7a3c155c909d49a27d79e1c3d1372096e6c3d51ec8fcdd181462",
+    "build/phase11-5-r3-group2-diagnostic-period2-20260914/pio-build.log": "557cc3f0e6fa07311a61b553fb36afa8dc4e94775358efe047bc7c7fbe56f78f",
+    "build/phase11-5-r3-group2-diagnostic-period2-20260914/pio-replay.log": "d492b12be89971f9142e643ba0d889451587a2e35f6ac87d720f4d6c8a7c840e",
+    "build/phase11-5-r3-group2-diagnostic-period2-20260914/isolated-publication-checks.log": "ec23588da2972e565bd5ca47e478d7f56d64acd42b96036953c02d71eafc9d1d",
+    "build/phase11-5-r3-group2-diagnostic-period2-20260914/final-host.json": "a40a037802fb845eadb1aac57241f391d1b8747811788eda02e20b9ebcb99762",
+    "build/phase11-5-r3-group2-diagnostic-period2-20260914/final-a.jsonl": "96bfff7a492b0b995412d24e1b845539f418098f25731f7db3cd300e0b652e55",
+    "build/phase11-5-r3-group2-diagnostic-period2-20260914/final-b.jsonl": "9af56b52d8f3fa94da37809bb1c70188feef0be1ce5dc538b860cd55f0009114",
+    "build/phase11-5-r3-group2-diagnostic-period2-20260914/f5-state.json": "946176d4f9a854880392f297ff86b78b738011aea61612a7ecda196f1b92bd76",
+    "build/phase11-5-r3-group2-diagnostic-period2-20260914/f5-log.json": "4b51d53b15367b8112e71e42bf8affcd89e9df1547f03629ab716d26f16f3cbd",
+    "build/phase11-5-r3-v2-capacity-c5/frozen-auditor.json": "830a2fb8d7a5d3d98bf48e780133454be24c122191bd393b4cfeb0b6cba0970d"
+  }
+}

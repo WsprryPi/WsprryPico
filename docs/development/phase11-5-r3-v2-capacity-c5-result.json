@@ -1,0 +1,167 @@
+{
+  "status": "C5_MAXIMUM_WTP_DURING_FINITE_RF_VERIFIED_ALLOCATION_FAILURE_NOT_REPRODUCED",
+  "family_closed": false,
+  "packet_sha256": "d46edf56bd1eaaaae095139ec6cfb39edb627470c769f4d758bed8d7a3d2da83",
+  "source_revision": "4da36726ac6809bdf4e73d281fe13b2393dd3b31",
+  "image_sha256": "0153107c517b673bfad7850957c8387a7dbfb12ddb0a3b1e90edb94b804b9a9f",
+  "boot_id": "0bd82f1324920c360d796988cf31cb5b",
+  "cadence": {
+    "info": {
+      "samples": 141,
+      "max_start_gap_ns": 1000098294,
+      "max_roundtrip_ns": 160487860,
+      "policy": "single-flight-info-v1"
+    },
+    "status": {
+      "samples": 29,
+      "max_start_gap_ns": 5000075740
+    },
+    "health": {
+      "samples": 29,
+      "max_start_gap_ns": 5000090110
+    }
+  },
+  "wtp_capacity": [
+    {
+      "bytes_written": 65552,
+      "invalid_frames": 0,
+      "began_ns": 350647569320058,
+      "ended_ns": 350649627738265
+    }
+  ],
+  "jobs": [
+    {
+      "job_id": "0ec6f9c02e30398015c359eb3610497a",
+      "mode": "tone",
+      "epoch": 2,
+      "expected_counter_deltas": {
+        "dma_irqs": 23691,
+        "alarm_irqs": 1,
+        "tail_irqs": 1,
+        "running_successor_links": 23689,
+        "refill_irq_pairs": 23689,
+        "running_tail_links": 1
+      },
+      "duration_ns": 90000000000,
+      "launch_target_ns": 3464740311000,
+      "post_enable_delay_ns": 8000,
+      "short_words": 4424,
+      "short_interval_ns": 1025855.0724637681,
+      "short_75_percent_budget_ns": 769391.304347826,
+      "cumulative_worst_short": {
+        "measured": true,
+        "observations": 1,
+        "epoch": "2",
+        "successor_sequence": "23690",
+        "observed_ns": "3554739351000",
+        "remaining_words": 4164,
+        "total_words": 4424
+      }
+    }
+  ],
+  "rf_jobs": 1,
+  "rf_duration_ns_charged": 90000000000,
+  "maximum_allocator_peak_bytes": 140152,
+  "terminal_records": [
+    {
+      "job_id": "0ec6f9c02e30398015c359eb3610497a",
+      "state": "complete",
+      "ended_monotonic_ns": "3554740582000",
+      "output_active": false
+    },
+    {
+      "job_id": "9f0ae5cb9bf19c6366c53c33a75d86e0",
+      "state": "missed",
+      "ended_monotonic_ns": "264396496000",
+      "output_active": false,
+      "error": {
+        "code": "MISSED_START",
+        "message": "MISSED_START",
+        "retryable": false
+      }
+    },
+    {
+      "job_id": "f2b4b083a800382a8917a80364f848bd",
+      "state": "aborted",
+      "ended_monotonic_ns": "6245238000",
+      "output_active": false
+    }
+  ],
+  "physical_hour_or_saturation_verified": false,
+  "group_2": "OPEN",
+  "assertion_closed": "2.1d",
+  "subissues_closed": [],
+  "allocation_failure_reproduced": false,
+  "allocation_failure_site": "UNRESOLVED",
+  "allocation_failure_metadata": {
+    "allocator_last_failure_request_bytes": 0,
+    "allocator_last_failure_entry": 0,
+    "allocator_last_failure_caller": 0,
+    "allocator_last_failure_input_caller": 0,
+    "allocator_last_failure_core": 0
+  },
+  "evidence_archive_sha256": "28b20f6a1ef757f1bc9b32fd29283ebca182b26337ce3a206affea8d3b677963",
+  "frozen_auditor_manifest_sha256": "830a2fb8d7a5d3d98bf48e780133454be24c122191bd393b4cfeb0b6cba0970d",
+  "final_a": {
+    "boot_id": "0bd82f1324920c360d796988cf31cb5b",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": [
+      {
+        "job_id": "0ec6f9c02e30398015c359eb3610497a",
+        "state": "complete",
+        "ended_monotonic_ns": "3554740582000",
+        "output_active": false
+      },
+      {
+        "job_id": "9f0ae5cb9bf19c6366c53c33a75d86e0",
+        "state": "missed",
+        "ended_monotonic_ns": "264396496000",
+        "output_active": false,
+        "error": {
+          "code": "MISSED_START",
+          "message": "MISSED_START",
+          "retryable": false
+        }
+      }
+    ]
+  },
+  "final_b": {
+    "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": []
+  },
+  "configuration_unchanged": true,
+  "b_unchanged": true,
+  "fixture": {
+    "name": "F5",
+    "packet_sha256": "074c732a455f07ad7a9a9fbbe0f2d54184871562aff8e0f8b9b99ce1af0e1f47",
+    "deadline_monotonic_ns": 354040071090000,
+    "restored": true,
+    "cleanup_monotonic_ns": 350807833112278,
+    "failures": [],
+    "protected_files_unchanged": true
+  },
+  "sampled_heap_capacity_bytes": 220328,
+  "sampled_aggregate_heap_reserve_bytes": 80176,
+  "maximum_dma_irq_ns": 106000,
+  "maximum_refill_irq_to_ready_ns": 2088000,
+  "maximum_rf_service_gap_ns": 2129000,
+  "original_failure_history": "C2/C3 retained on a740dbb / boot 2b4583bd3d79a38f030a08c82ed96939; not repaired or invalidated by this non-reproduction.",
+  "raw_sha256": {
+    "build/phase11-5-r3-v2-capacity-c5/evidence/rf.jsonl": "e3c1fa2ced3947c9c10a63146b183d6d51b97517072ebf9c53f871dfb9329436",
+    "build/phase11-5-r3-v2-capacity-c5/evidence/rf-result.json": "24fe568b1035aebb34e6cb56ee81f464329258688ea1bf6e532cb39463470b81",
+    "build/phase11-5-r3-v2-capacity-c5/evidence/before-a.stdout": "715b9e7fb60db8aa7cea746d99bc576d91cb1e86fa35ae02f27f5081aba62b68",
+    "build/phase11-5-r3-v2-capacity-c5/evidence/final-a.stdout": "e2e85a66efae0e331d0da537d8608b26f53dd7010c903a092e32ddd29de3a1da",
+    "build/phase11-5-r3-group2-diagnostic-period2-20260914/final-a.jsonl": "96bfff7a492b0b995412d24e1b845539f418098f25731f7db3cd300e0b652e55",
+    "build/phase11-5-r3-group2-diagnostic-period2-20260914/final-b.jsonl": "9af56b52d8f3fa94da37809bb1c70188feef0be1ce5dc538b860cd55f0009114",
+    "build/phase11-5-r3-group2-diagnostic-period2-20260914/f5-state.json": "946176d4f9a854880392f297ff86b78b738011aea61612a7ecda196f1b92bd76",
+    "build/phase11-5-r3-group2-diagnostic-period2-20260914/f5-log.json": "4b51d53b15367b8112e71e42bf8affcd89e9df1547f03629ab716d26f16f3cbd",
+    "build/phase11-5-r3-group2-diagnostic-period2-20260914/final-host.json": "a40a037802fb845eadb1aac57241f391d1b8747811788eda02e20b9ebcb99762"
+  }
+}

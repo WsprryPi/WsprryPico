@@ -11,7 +11,21 @@ from phase11_5_pilot import Peer, SERIAL, DEVICE
 from phase11_5_pilot_supervisor import finished, configuration, B_SERIAL, B_DEVICE
 from phase11_5_device_management import digest, save
 from phase11_5_r3_capacity_plan import identity
-from phase11_5_r3_v2_rf import validate_info, comparator_required
+from phase11_5_r3_v2_rf import validate_info, comparator_required, DIAGNOSTIC_SOURCE, DIAGNOSTIC_IMAGE
+
+C4_TERMINAL=dict(job_id='9f0ae5cb9bf19c6366c53c33a75d86e0',state='missed',
+    ended_monotonic_ns='264396496000',output_active=False,
+    error=dict(code='MISSED_START',message='MISSED_START',retryable=False))
+
+
+def known_missed(packet):
+    if 'allowed_missed_terminal' not in packet:return False
+    require(packet['allowed_missed_terminal']==C4_TERMINAL and
+        packet['source_revision']==DIAGNOSTIC_SOURCE and packet['image_sha256']==DIAGNOSTIC_IMAGE and
+        packet['boot_id']=='0bd82f1324920c360d796988cf31cb5b' and
+        packet.get('missed_evidence_sha256')=='a039135d8db909f288599c960ddd433872b40ab69357226ec0378335c23372e3' and
+        packet['allowed_complete_jobs']==[], 'Exact independently verified C4 Missed terminal required')
+    return True
 
 
 def validate_stage(root, packet):
@@ -28,18 +42,22 @@ def validate_stage(root, packet):
 
 def admission(value, packet):
     s, i = value['wtp']['STATUS'], value['info']
+    missed=known_missed(packet)
     require(s['boot_id'] == i['status']['boot_id'] == packet['boot_id'] and
-            s['state'] == i['status']['state'] and s['state'] in ['empty','complete'] and
+            s['state'] == i['status']['state'] and s['state'] in (['empty','missed'] if missed else ['empty','complete']) and
             s['output_active'] is i['status']['output_active'] is False and s['owner_id'] is None,
             'Reconciliation requires authoritative inactive/unowned state')
-    validate_info(i, value, packet)
+    validate_info(i, value, packet,allow_missed=missed)
     if s['state'] == 'complete':
         require(s['job_id'] in packet['allowed_complete_jobs'] and any(
             r['job_id'] == s['job_id'] and r['state'] == 'complete' and r['output_active'] is False and
             'error' not in r for r in s['terminal_records']), 'Unknown terminal job')
+    elif s['state']=='missed':
+        require(s['job_id']==C4_TERMINAL['job_id'] and C4_TERMINAL in s['terminal_records'],
+                'Missing or changed C4 terminal record')
     else:
         require(s['job_id'] is None, 'Empty job identity')
-    return s['state'] == 'complete'
+    return s['state'] != 'empty'
 
 
 def validate_final(value, baseline, packet, b=False):
@@ -130,8 +148,9 @@ def main():
             packet['rf_jobs']==packet['flashes']==packet['wifi_cycles']==packet['configuration_writes']==0 and
             Path('/proc/sys/kernel/random/boot_id').read_text().strip()==packet['host_boot_id'], 'Finite idle scope')
     for key in ['owner_id','peer_session','inventory_session','b_session','boot_id','b_boot_id']:identity(packet[key])
-    require(len(packet['allowed_complete_jobs'])==1,'Exactly one known terminal job')
-    identity(packet['allowed_complete_jobs'][0])
+    if not known_missed(packet):
+        require(len(packet['allowed_complete_jobs'])==1,'Exactly one known terminal job')
+        identity(packet['allowed_complete_jobs'][0])
     validate_stage(root, packet)
     with (root/'result.json').open('x') as out:json.dump(dict(status='STARTING'),out)
     run(root,packet)

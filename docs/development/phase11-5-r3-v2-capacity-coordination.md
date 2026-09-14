@@ -1,10 +1,159 @@
 # Group 2 capacity and pressure execution basis
 
 Group 1 is CLOSED at checkpoint 043. Group 2 is OPEN. This record now includes
-C1–C4 and E5. Checkpoint 047 ends the bounded attempt OPEN. Older preparation
+C1–C5, E5 and R5. Checkpoint 048 ends diagnostic period 2 OPEN. Older preparation
 statements below are historical, not live fixture state.
 
-## Checkpoint 047: bounded attempt ended OPEN
+## Diagnostic period 2: completed, checkpoint 048, 2026-09-14
+
+Execution began at Mac monotonic 713401316391750 ns. The new four-hour budget
+reserves 30 minutes for restoration, at most one additional diagnostic image
+and one <=90-second physical attempt. The prior period and its charge remain.
+No new firmware is selected: source 4da3672 and A boot 0bd82f1324920c360d796988cf31cb5b
+are independently confirmed unchanged. B is unchanged, inactive and unowned.
+
+Offline replay through the production StreamEngine/PIO-DMA guard reproduces
+Missed with the recorded 25.805 ms refinement and 9.629566 ms pre-launch
+uncertainty. The unchanged-mapping control launches. Four pre-launch INFO samples
+already show that mapping disagreement after accepted SNTP sample five. This
+strongly supports a clock-guard refusal; the interrupt snapshot and hardware
+branch were not captured, so C4's exact historical branch remains unproved.
+The first host replay used the generic service's 1 ms uncertainty limit and was
+rejected at ARM; selecting the deployed 500 ms standalone policy corrected the
+replay setup. No firmware guard or uncertainty threshold changed.
+
+The next packet will LOAD only within five seconds of a recent accepted SNTP
+sample, verify matching INFO/GET_CLOCK mapping and <=15-second age before ARM,
+and start ten seconds ahead. The source schedules its ordinary next SNTP request
+64 seconds after an accepted reply. This avoids the observed ordinary-update
+window but cannot guarantee that an unexpected network reset will not change it.
+
+R5 is one exact-C4 idle CLAIM/RELEASE, zero ARM/flash/CONFIG/Wi-Fi/probe operations,
+packet d7329b92520247345ecc7fd8ed6c8e6074217bb94a84a22c4db3060e874effec.
+Host tests reject active output, ownership, identity drift and altered terminal
+history. Independent Console capture now latches failure and stops further
+stimuli while retaining bounded same-identity read-only evidence. Normal
+acceptance still rejects the failure. One valid maximum request is planned;
+the oversized-input follow-up is excluded. R5 completed Empty/inactive/unowned,
+preserving the exact C4 terminal record; raw audit and four missing-file mutations
+pass. R5 evidence archive d5e0b94f8111c37628baba7e1ede78d07ac52f30e2cad29545e2679c93e24199.
+
+### C5 frozen diagnostic schedule
+
+F5 is a new host-only fixture, packet
+074c732a455f07ad7a9a9fbbe0f2d54184871562aff8e0f8b9b99ce1af0e1f47,
+3600 seconds runtime plus 900 seconds cleanup. Its actual absolute cleanup timer
+is 354040071090000 host monotonic ns. No former fixture deadline is extended.
+C5 packet d46edf56bd1eaaaae095139ec6cfb39edb627470c769f4d758bed8d7a3d2da83,
+archive a88c10762141dee34fd3b9d228e09fd736b20d940b64c99523be5509f2959562,
+is frozen with a local auditor dependency manifest before ARM.
+
+One Tone job `0ec6f9c02e30398015c359eb3610497a`, 90 seconds at 135500 Hz, unchanged
+conducted route, source/image/boot above. Charge the entire 90 seconds before
+ARM. One USB WTP owner/stimulus connection, owner `6757e0a0a2ab27fa905e8ef45d9a4a82`,
+session `a832940eb8960757dadf270fca6b7716`. Console if00 remains an independent observer;
+WTP if02 is opened once. No B operation in C5, HTTP load, native TLS load,
+configuration write, Wi-Fi command, reboot, flash or heap probe.
+
+After the recent-clock admission above, require both WTP and fresh independent
+INFO to show Running/output-active before the only capacity request. Existing
+`wtp_capacity_frame` generates valid 65536-byte JSON STATUS payload, 65552 bytes
+including framing/CRC, request `f797d96e4d1e65e2db06eeefbfdd569f`,
+frame SHA-256 `d695d406962f1ddde4506b1a4abef60b611622ed61ee555146d485eb4e99a818`.
+Writes are at most 4096 bytes each on that same connection, one five-second
+exchange deadline beginning at the stimulus. No retry or oversized follow-up.
+A passing transfer requires all bytes written and a same-boot owned Running
+STATUS reply. A failure is retained and cannot receive capacity acceptance.
+
+INFO starts every second under the existing single-flight policy; WTP STATUS and
+host health every five seconds, each reply within five seconds. Any invariant
+failure stops test mutations. Independent Console and host observations continue
+to the original 240-second deadline, retaining allocation operation/request/site,
+caller PC, observed heap figures and RF telemetry through terminal state. Normal
+successful RELEASE follows matching Complete/inactive; after failure there are
+no stimulus/release retries. Final independent inventory has a 150-second reserve
+and must prove inactive/unowned before host fixture cleanup is credited. An
+unknown output state remains unknown and is handled under existing recovery
+authority, never inferred from transport loss. No replacement physical attempt.
+
+Source impact: only host harness, auditor and regression test changes. Deployed
+allocator/parser/RF/clock code and the diagnostic image are unchanged; E5 is not
+rerun. Prior RF equivalence gaps remain. This packet seeks diagnosis, not Group 2
+closure, parser repair or acceptance of expected allocation failure.
+
+### Checkpoint 048 outcome and assertion disposition
+
+**One new assertion is closed: 2.1d. No entire sub-issue (2.1, 2.2 or 2.3) is
+closed; Group 2 remains OPEN.** R5 retired C4's inactive slot with exact retained
+terminal history. C5 then launched once, transferred all 65552 frame bytes and
+received the valid maximum STATUS response while the same owner/job was Running.
+The exchange took 2.058418207 seconds. Its original result is
+`CAPTURED_REQUIRES_AUDIT`; the auditor frozen before ARM independently returns
+`FINITE_RF_WIRE_VERIFIED`. Ten altered-evidence cases are rejected. No threshold
+was relaxed and no historical failure was rescored.
+
+C5's 141 independent INFO samples, 29 STATUS and 29 host-health observations meet
+the original cadence/deadline gates. The 90-second Tone completed and RELEASE
+returned Empty/inactive/unowned. Launch delay was 8000 ns, expected DMA/refill/tail
+deltas matched, worst refill-to-ready was 2088000 ns and worst RF service gap
+2129000 ns. Short-predecessor reserve was 4164/4424 words (94.1%). Allocator peak
+140152 of 220328 bytes leaves an 80176-byte sampled aggregate reserve; this is
+not a largest-free-block or complete transient-peak measurement.
+
+**The allocation failure did not reproduce.** Every sampled allocator failure
+count and retained failure entry/size/caller/input-caller/core remained zero;
+TLS allocation failures and DMA errors also remained zero. There is no failed
+PC to symbolize. C2/C3 remain valid failed observations on their older image and
+boot; differences in boot history, heap layout, prior E5 admission and R5 cleanup
+prevent treating C5 as proof of a repair or disproving the earlier defect.
+No allocator/parser source changed, no repair was selected, and the abandoned
+paged-input work remains archived and withdrawn. The improved post-failure
+capture path is host-tested; C5 did not physically exercise that failure path.
+
+R5 and C5 results and raw/archive hashes are in `phase11-5-r3-v2-r5-result.json`
+and `phase11-5-r3-v2-capacity-c5-result.json`. F5 was restored at host monotonic
+350807833112278 ns, before its unchanged 354040071090000 ns deadline. Cleanup
+reported zero failures; independent checks verify permanent host files/services,
+installed PID 1957 and executable hash unchanged, fixture units inactive and
+both Picos Empty/inactive/unowned with scheduling disabled and configurations
+unchanged. A retains the same diagnostic firmware/boot, and C4's Missed record
+remains present. B is unchanged on boot 6684b4b197d80cfa0ce83b3aaf205cb0.
+
+This period consumed one job and 90 charged RF seconds, with one launch and
+completion. Zero firmware candidates, flashes, BOOTSEL, extra reboots,
+configuration writes, commanded Wi-Fi cycles or heap probes. No E5 replay on
+hardware, replacement attempt, parser repair or Group 3 work occurred.
+
+The exact historical C4 rejection branch remains unproved; the recorded mapping
+change strongly supports the production guard mechanism reproduced offline.
+The smallest next decision is whether to authorize a new bounded investigation
+of C2/C3 versus C5 heap/boot conditioning before another failure reproduction,
+or proceed separately with the remaining acceptance assertions. Either requires
+new direction; this period admits no further RF. A repair requires an observed
+failed allocation site or comparably decisive source evidence first.
+
+| ID | Status | Accepted component or exact remaining requirement |
+| --- | --- | --- |
+| 2.1a | PARTIAL | E5 revalidates 512-event admission; C1 completion remains accepted on its old identity. C5 verifies one Tone; 512-event contention equivalence remains unproven. |
+| 2.1b | PASS | E5 independently verifies 513 and overduration rejection plus exact maximum idle LOAD on the diagnostic image. |
+| 2.1c | PARTIAL | Prior maximum-plan, hour and WSPR records remain; complete assertion-level source/resource reuse is not established. No repeated hour campaign. |
+| 2.1d | PASS | C5 full 65552-byte frame with valid 65536-byte STATUS payload and owned Running response under independently observed 90-second Tone; exact diagnostic identity above. Original C2/C3 failures retained and unrepaired. |
+| 2.1e | PARTIAL | E5 verifies 65537 framing rejection and same-connection recovery while idle; RF case unexecuted. |
+| 2.1f | PARTIAL | BF4 exact HTTP maximum remains B-only evidence; A under-RF valid 32768-byte API body unexecuted. |
+| 2.1g | PARTIAL | BF4 B HTTP limit/recovery retained; A under-RF 32769 rejection and authenticated recovery unexecuted. |
+| 2.2a | FAILED | C2 supported simultaneous allocation failed. No final workload/overlap allocation succeeded. |
+| 2.2b | NOT_RUN | Intended unsupported allocation, preserved owner/RF and authenticated recovery missing. Failed supported input is not overload acceptance. |
+| 2.2c | PARTIAL | T4 TLS handshake timeout/reuse retained on its identity; diagnostic resource applicability unproven. |
+| 2.2d | PARTIAL | T5 failed-alert ACK/unacknowledged lifetimes retained on its identity; diagnostic resource applicability unproven. |
+| 2.2e | PARTIAL | T4/T5 slot, one-WTP and pending mechanisms retained; diagnostic resource applicability unproven. |
+| 2.2f | PARTIAL | T5 HTTP header/body/stalled reader retained; diagnostic resource applicability unproven. |
+| 2.3a | NOT_RUN | Distinct 30-second drained WTP inactivity, closure and authenticated reuse absent. |
+| 2.3b | NOT_RUN | Five-second incomplete-input mechanism and recovery absent physically. |
+| 2.3c | NOT_RUN | Five-second no-output-progress mechanism and recovery absent physically. |
+| 2.3d | NOT_RUN | Actual USB parser pressure during independently observed finite RF absent. |
+| 2.3e | NOT_RUN | Actual unread USB output pressure during independently observed finite RF and authenticated recovery absent. |
+
+## Historical checkpoint 047: bounded attempt ended OPEN
 
 The sole diagnostic C4 was admitted once and reported `MISSED_START` before the
 capacity trigger. Raw ARM acknowledgment, JOB_STATE/MISSED_START events, Console
@@ -29,7 +178,7 @@ that makes the armed mapping exceed the current uncertainty. This is a possible
 explanation, not a demonstrated cause: the exact guard snapshot/rejection branch
 was not captured. No timing threshold, guard or clock policy was changed.
 
-### Final assertion disposition on diagnostic source 4da3672
+### Historical checkpoint 047 assertion disposition on diagnostic source 4da3672
 
 E5 and C4 use source `4da36726ac6809bdf4e73d281fe13b2393dd3b31`,
 UF2 `0153107c517b673bfad7850957c8387a7dbfb12ddb0a3b1e90edb94b804b9a9f`,

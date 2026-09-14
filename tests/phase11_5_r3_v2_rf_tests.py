@@ -114,7 +114,7 @@ class RawRfAuditTests(unittest.TestCase):
             lambda r:edit(r,lambda a:first(a,'info_finish')['value'].update(samples=1)),
             lambda r:edit(r,lambda a:first(a,'wtp_rx')['value'].update(hex='00')),
             lambda r:edit(r,lambda a:first(a,'status')['value'].update(began_monotonic_ns=0)),
-            lambda r:(r/'final-b.stdout').write_text(''),
+            lambda r:(r/('final-b.stdout' if (r/'final-b.stdout').exists() else 'final-a.stdout')).write_text(''),
             lambda r:(r/'packet.json').write_text('{}\n'),
             lambda r:edit(r,lambda a:a[-1]['value'].update(rf_duration_ns_charged=10000000000)),
         ]
@@ -123,5 +123,90 @@ class RawRfAuditTests(unittest.TestCase):
                 root=Path(directory)/'evidence';shutil.copytree(source,root);mutate(root)
                 with self.assertRaises((ValueError,KeyError,IndexError)):audit(root)
         self.assertEqual(audit(source),original)
+
+
+class DiagnosticCaptureTests(unittest.TestCase):
+    def baseline(self):
+        from phase11_5_r3_v2_rf import DIAGNOSTIC_SOURCE,DIAGNOSTIC_IMAGE
+        packet=FiniteRfPacketTests().packet()
+        packet.update(source_revision=DIAGNOSTIC_SOURCE,image_sha256=DIAGNOSTIC_IMAGE)
+        info=dict(device_id=DEVICE,revision=DIAGNOSTIC_SOURCE[:12],system_clock_hz=138000000,
+            rf_render_in_ram=True,recovery_boot=False,engine_diagnostic='',heap_capacity_bytes=220328,
+            allocator_peak_bytes=140152,allocator_failures='0',tls_allocation_failures=0,
+            refill_full_predecessor=None,refill_short_predecessor=None,rf_max_service_gap_ns='100000',
+            network=dict(accepted=5,link_status=3),
+            status=dict(boot_id=packet['boot_id'],engine='pio-dma-gp2',storage_healthy=True,
+                enabled=False,last_error=None,watermark_utc_ns='0',state='running',output_active=True,
+                clock_state='synchronized',sync_age_ns='1000000000',utc_now_ns='20000000000',monotonic_now_ns='10000000000'))
+        for k in ['fault_stage','fault_hash','fault_pc','fault_status','dma_errors',
+                  'refill_invalid_reserves','exhausted_successor_links','refill_irq_unpaired',
+                  'running_successor_links','refill_irq_pairs']:info[k]=0
+        for core in [0,1]:
+            p=f'core{core}_stack_'
+            info.update({p+'guard_valid':1,p+'fault_status':0,p+'guard_bottom':1000,p+'guard_limit':5096})
+        return packet,dict(info=info)
+
+    def test_failure_latches_mutation_stop_but_retains_subsequent_info(self):
+        from phase11_5_r3_v2_rf import capture_diagnostic_info,guarded_action,validate_info
+        packet,base=self.baseline();validate_info(base['info'],base,packet)
+        faults=[];events=[];actions=[];emit=lambda *a:events.append(a)
+        bad=copy.deepcopy(base['info']);bad.update(allocator_failures='1',allocator_last_failure_request_bytes=65552)
+        observed=[]
+        for state in ['running','running','complete']:
+            sample=copy.deepcopy(bad);sample['status'].update(state=state,output_active=state=='running')
+            observed.append(capture_diagnostic_info(sample,base,packet,faults,emit))
+            guarded_action(lambda _:actions.append('another stimulus'),sample,faults,emit)
+        self.assertEqual(len(observed),3);self.assertEqual(len(faults),1);self.assertEqual(actions,[])
+        self.assertEqual(observed[-1]['allocator_last_failure_request_bytes'],65552)
+        with self.assertRaises(ValueError):validate_info(observed[-1],base,packet)
+
+    def test_other_faults_stop_mutations_and_identity_change_is_fatal(self):
+        from phase11_5_r3_v2_rf import capture_diagnostic_info,guarded_action
+        packet,base=self.baseline()
+        for k,v in [('dma_errors',1),('engine_diagnostic','refill_starved')]:
+            bad=copy.deepcopy(base['info']);bad[k]=v;faults=[];actions=[]
+            capture_diagnostic_info(bad,base,packet,faults,lambda *_:None)
+            guarded_action(lambda _:actions.append(1),bad,faults,lambda *_:None)
+            self.assertTrue(faults);self.assertEqual(actions,[])
+        for change in ['boot','device','revision','output']:
+            bad=copy.deepcopy(base['info'])
+            if change=='boot':bad['status']['boot_id']='f'*32
+            elif change=='device':bad['device_id']='f'*32
+            elif change=='revision':bad['revision']='bad'
+            else:bad['status']['output_active']=None
+            with self.subTest(change=change),self.assertRaises(ValueError):
+                capture_diagnostic_info(bad,base,packet,[],lambda *_:None)
+
+    def test_recent_sample_does_not_admit_c4_stale_clock_or_mapping_change(self):
+        from phase11_5_r3_v2_rf import recent_clock
+        _,base=self.baseline();info=base['info'];self.assertTrue(recent_clock(info))
+        clock=dict(state='synchronized',leap='normal',sync_age_ns='1100000000',
+            utc_now_ns='20100000000',monotonic_now_ns='10100000000',uncertainty_ns='10000000')
+        self.assertTrue(recent_clock(info,clock))
+        for key,value in [('sync_age_ns','57652560000'),('leap','unknown'),
+                          ('utc_now_ns','20125805000'),('monotonic_now_ns','13000000000')]:
+            bad=dict(clock);bad[key]=value
+            with self.subTest(key=key):self.assertFalse(recent_clock(info,bad))
+        info['status']['sync_age_ns']='57652560000';self.assertFalse(recent_clock(info))
+
+    def test_single_maximum_policy_rejects_extra_stimuli_and_duration(self):
+        from phase11_5_r3_v2_rf import DIAGNOSTIC_POLICY
+        packet,_=self.baseline();packet.update(diagnostic_policy=DIAGNOSTIC_POLICY,
+            runtime_seconds=240,maximum_renewals=5,observer_policy='single-flight-info-v1',
+            wtp_capacity=dict(maximum_request_id='a'*32))
+        packet['jobs'][0]['total_duration_ns']=packet['jobs'][0]['events'][0]['duration_ns']='90000000000'
+        validate(packet)
+        import json
+        from phase11_5_r3_capacity_plan import wtp_capacity_frame
+        from audit_phase11_5_r3_v2_rf import capacity_request
+        raw=wtp_capacity_frame(packet['peer_session'],packet['wtp_capacity']['maximum_request_id'])
+        value=dict(hex=raw.hex(),request=json.loads(raw[16:]),expected_invalid_frames=0)
+        self.assertEqual(capacity_request(packet,value,0),65552)
+        with self.assertRaises(ValueError):capacity_request(packet,value,1)
+        for key,value in [('runtime_seconds',241),('diagnostic_policy','unknown'),('contention',{}),('http_capacity',{})]:
+            bad=copy.deepcopy(packet);bad[key]=value
+            with self.assertRaises(ValueError):validate(bad)
+        bad=copy.deepcopy(packet);bad['wtp_capacity']['oversized_request_id']='b'*32
+        with self.assertRaises(ValueError):validate(bad)
 
 if __name__=='__main__':unittest.main()

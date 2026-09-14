@@ -9,7 +9,7 @@ from phase11_5_r3_preflight import audit_inventory
 from validate_wtp_contract import SchemaValidator
 from audit_phase11_5_idle import frames
 from audit_phase11_5_r2_modes import transactions
-from phase11_5_r3_v2_rf import validate,validate_info,comparator_required
+from phase11_5_r3_v2_rf import validate,validate_info,comparator_required,DIAGNOSTIC_POLICY,recent_clock
 
 PACKET='966cd695df2b2eab36f6999c2afae678ad6eecdb8a3c5ea0871fb5afb2c61fef'
 
@@ -18,7 +18,9 @@ def capacity_request(packet, value, index):
     from audit_phase11_5_r3_v2_admission import decode_requests
     from phase11_5_r3_capacity_plan import wtp_capacity_frame
     from validate_wtp_contract import frame
-    require('wtp_capacity' in packet and index in (0,1),'Declared WTP capacity pair only')
+    diagnostic=packet.get('diagnostic_policy')==DIAGNOSTIC_POLICY
+    require('wtp_capacity' in packet and index in ((0,) if diagnostic else (0,1)),
+            'Declared WTP capacity exchanges only')
     cap=packet['wtp_capacity'];session=packet['peer_session']
     if index==0:
         expected=wtp_capacity_frame(session,cap['maximum_request_id'])
@@ -33,7 +35,7 @@ def capacity_request(packet, value, index):
 
 
 def audit(root, *, packet_digest=PACKET):
-    require(packet_digest in [PACKET, '3265c16e1a970c79c1beee2bd6a9cf4b9198381ee051a08f5f0dd40d7ed95277', 'a96a14455d08caa37fab21e7ef96be5bd5249afdf6471e8450c64a2e5d73f5a4', '9215a8049c83c2319506ef0c76100213a6bf5bb479a06cd283835c684719f095', '065cb07e6ace4261caf4ba24cb7d6e1417186d1d7c1445bae25d102b256df3b5',
+    require(packet_digest in [PACKET, 'd46edf56bd1eaaaae095139ec6cfb39edb627470c769f4d758bed8d7a3d2da83', '3265c16e1a970c79c1beee2bd6a9cf4b9198381ee051a08f5f0dd40d7ed95277', 'a96a14455d08caa37fab21e7ef96be5bd5249afdf6471e8450c64a2e5d73f5a4', '9215a8049c83c2319506ef0c76100213a6bf5bb479a06cd283835c684719f095', '065cb07e6ace4261caf4ba24cb7d6e1417186d1d7c1445bae25d102b256df3b5',
             'c408f5db396a50a6413334f05b7cc1eda22dab0040023454f28c435241931d41',
             '4eeb2113a40dc386f7839ae40a2e1f1d13b2da23dc86d04eb7ae0131dcfe2304',
             'c5ecb3dcf84eb61b788ede7c2481d10054831cee6c630c5ca4d9c715bc8a8c8c',
@@ -47,6 +49,7 @@ def audit(root, *, packet_digest=PACKET):
             'Unreviewed RF audit packet')
     require(digest(root/'packet.json')==packet_digest,'Frozen RF packet')
     packet=json.loads((root/'packet.json').read_text());validate(packet);inventories={}
+    diagnostic=packet.get('diagnostic_policy')==DIAGNOSTIC_POLICY
     labels=['before-a','before-b','final-a','final-b'] if comparator_required(packet) else ['before-a','final-a']
     for label in labels:
         b=label.endswith('-b')
@@ -97,6 +100,12 @@ def audit(root, *, packet_digest=PACKET):
         elif kind in ['wtp_tx','capacity_tx']:
             if kind=='capacity_tx':
                 require(capacity is None,'Capacity exchange overlapped')
+                if diagnostic:
+                    info=samples['info'][-1]
+                    require(0<=stamp-info['monotonic_ns']<=2_000_000_000 and
+                        info['value']['value']['status']['state']=='running' and
+                        info['value']['value']['status']['output_active'] is True,
+                        'Independent current Running INFO before single capacity stimulus')
                 capacity=dict(size=capacity_request(packet,v,capacity_count),written=0,invalid=0,index=capacity_count)
                 request=v['request'];capacity_count+=1
             else:
@@ -148,7 +157,17 @@ def audit(root, *, packet_digest=PACKET):
             else:require(v['value']['boot']==packet['host_boot_id'] and v['value']['throttled']=='throttled=0x0','Host health')
     require(not pending and not wire and not messages and not console and console_pending is None and
             console_value is None and latest_status is None,'Unconsumed/missing wire')
-    require(capacity is None and capacity_count==(2 if 'wtp_capacity' in packet else 0),'Complete capacity pair')
+    require(capacity is None and capacity_count==((1 if diagnostic else 2) if 'wtp_capacity' in packet else 0),
+            'Complete declared capacity exchanges')
+    if diagnostic:
+        for exchange in exchanges:
+            if exchange['request']['op'] not in ('CLAIM','ARM'):continue
+            info=next(r for r in reversed(samples['info']) if r['monotonic_ns']<=exchange['started_ns'])
+            clock=None
+            if exchange['request']['op']=='ARM':
+                clock=next(e['response']['body'] for e in reversed(exchanges) if
+                    e['request']['op']=='GET_CLOCK' and e['finished_ns']<=exchange['started_ns'])
+            require(recent_clock(info['value']['value'],clock),'Recent unchanged accepted clock at admission')
     cadence={}
     for kind,period in [('info',1),('status',5),('health',5)]:
         values=samples.get(kind,[]);require(values,'Missing observation family')

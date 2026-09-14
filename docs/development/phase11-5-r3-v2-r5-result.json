@@ -1,0 +1,44 @@
+{
+  "status": "IDLE_RECONCILIATION_INDEPENDENTLY_VERIFIED",
+  "packet_sha256": "d7329b92520247345ecc7fd8ed6c8e6074217bb94a84a22c4db3060e874effec",
+  "source_revision": "4da36726ac6809bdf4e73d281fe13b2393dd3b31",
+  "image_sha256": "0153107c517b673bfad7850957c8387a7dbfb12ddb0a3b1e90edb94b804b9a9f",
+  "boot_id": "0bd82f1324920c360d796988cf31cb5b",
+  "final_a": {
+    "boot_id": "0bd82f1324920c360d796988cf31cb5b",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": [
+      {
+        "job_id": "9f0ae5cb9bf19c6366c53c33a75d86e0",
+        "state": "missed",
+        "ended_monotonic_ns": "264396496000",
+        "output_active": false,
+        "error": {
+          "code": "MISSED_START",
+          "message": "MISSED_START",
+          "retryable": false
+        }
+      },
+      {
+        "job_id": "f2b4b083a800382a8917a80364f848bd",
+        "state": "aborted",
+        "ended_monotonic_ns": "6245238000",
+        "output_active": false
+      }
+    ]
+  },
+  "final_b": null,
+  "b_unchanged": null,
+  "configuration_unchanged": true,
+  "rf_counters_unchanged": true,
+  "rf_jobs": 0,
+  "claim_attempts": 1,
+  "release_attempts": 1,
+  "original_runner_status": "RECONCILED_INACTIVE_UNOWNED",
+  "preserved_finding": null,
+  "evidence_archive_sha256": "d5e0b94f8111c37628baba7e1ede78d07ac52f30e2cad29545e2679c93e24199",
+  "missing_file_mutations_rejected": 4
+}

@@ -22,7 +22,7 @@ The user has now said Execute. Standing finite approvals remain active.
    - 1.3 PASS: native QRSS/FSKCW/DFCW submissions in checkpoints 040–042;
      acknowledged-ARM loss, local completion and original-session reconciliation
      in 043. Original harness failures remain separately recorded.
-2. **Capacity and pressure — OPEN (bounded attempt stopped, checkpoint 047)**
+2. **Capacity and pressure — OPEN (diagnostic period 2 complete, checkpoint 048)**
    - 2.1 Complete maximum WTP, HTTP and job capacity assertions.
    - 2.2 Verify supported combined load and bounded overload rejection.
    - 2.3 Complete WTP timeout and USB pressure mechanisms.
@@ -35,7 +35,38 @@ The user has now said Execute. Standing finite approvals remain active.
    - 4.2 Finish adversarial review, repairs and affected retests.
    - 4.3 Restore, verify final state, commit, push and report.
 
-## Current bounded Group 2 outcome: checkpoint 047
+## Current bounded Group 2 outcome: checkpoint 048
+
+C5 closes assertion **2.1d: valid maximum WTP input succeeds during RF** on the
+retained diagnostic image. The frozen raw auditor verifies all 65552 frame bytes,
+the owned Running STATUS response, continuous independent observations and one
+completed 90-second Tone. Ten altered-evidence cases are rejected. No entire
+sub-issue closes; 2.1, 2.2 and 2.3 remain OPEN. The full current assertion table is
+in `phase11-5-r3-v2-capacity-coordination.md`.
+
+The original allocator failure did not reproduce: zero new failures and all
+retained failure metadata stayed zero. No failed PC was available, no allocator
+or parser repair was made, and no replacement run occurred. C2/C3 and C4 remain
+failed historical results. C4's 25.805 ms time refinement exceeds the recorded
+pre-launch uncertainty; replay through the production guard reproduces Missed,
+while its unchanged-mapping control launches. That supports the mechanism without
+proving the missing interrupt-time branch. R5's exact idle CLAIM/RELEASE preserves
+C4's terminal record and returns Empty before C5.
+
+F5 is restored with zero cleanup failures. Final independent A/B inventories
+confirm Empty/inactive/unowned, scheduling disabled and unchanged configuration.
+A remains source 4da36726ac68, boot 0bd82f1324920c360d796988cf31cb5b; B remains
+source 8921a7008183, boot 6684b4b197d80cfa0ce83b3aaf205cb0. Installed WsprryPi
+PID/hash and protected host state are unchanged. Period 2 charged one 90-second
+job and completed it; zero firmware candidates, flashes, BOOTSEL, extra reboots,
+CONFIG writes, Wi-Fi commands or heap probes. Group 3 was not started.
+
+Only host harness/auditor/regression and evidence records changed. The affected
+PIO/DMA host replay, RF/clock/admission tests, R5 raw audit and C5 raw mutations
+pass; firmware source/build configuration is unchanged and no firmware rebuild
+or E5 physical rerun was needed. Checkpoint 048 records exact final checks.
+
+## Historical bounded Group 2 outcome: checkpoint 047
 
 E5 revalidated all seven idle admission assertions on diagnostic source 4da3672.
 The sole C4 diagnostic charged one 90-second Tone but reported MISSED_START before
@@ -58,7 +89,7 @@ Group 3 was not started. Another work period requires user direction.
 ## Historical progress through checkpoint 046
 
 The following preserves earlier observations and fixture states. They are not
-current admission authority; checkpoint 047 above supersedes them.
+current admission authority; checkpoints 047 and 048 above supersede them.
 
 ## Browser cancellation completed: checkpoint 039
 

@@ -335,6 +335,46 @@ void fractional_start_test() {
     }
 }
 
+void c4_clock_refinement_replay_test() {
+    // C4 raw ARM clock and the final pre-launch INFO sample. This replays
+    // recorded conditions through the production guard; it is not the missing
+    // interrupt-time snapshot or proof of the historical rejection branch.
+    for (bool refined : {false, true}) {
+        Hardware hw;
+        hw.time = 254'425'705'000ULL;
+        Clock clock(hw);
+        clock.utc_offset = 1'789'402'676'877'225'000ULL;
+        clock.uncertainty = 59'575'773;
+        Identity identity;
+        rf::PioDmaSink sink(hw);
+        rf::StreamEngine engine(sink);
+        wtp::ServiceConfig config;
+        config.maximum_arm_uncertainty_ns = 500'000'000; // Deployed standalone policy.
+        wtp::JobService service(clock, engine, identity, config);
+        CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
+        CHECK(
+            service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 60000}, 'b')).ok);
+        const auto payload = job(rf::sample_rate * 90ULL);
+        CHECK(service.handle(request("LOAD", payload, 'c')).ok);
+        const auto ack = service.handle(request(
+            "ARM", wtp::ArmBody{payload.job_id, 1'789'402'941'273'883'000ULL, 500'000'000}, 'd'));
+        if (!ack.ok)
+            std::cerr << "C4 replay ARM error: " << static_cast<int>(ack.error) << '\n';
+        CHECK(ack.ok && ack.start_monotonic_ns == 264'396'658'000ULL);
+        if (refined) {
+            clock.utc_offset += 25'805'000;
+            clock.uncertainty = 9'629'566;
+        }
+        hw.time = 264'396'458'000ULL; // Driver offers its alarm 200 us early.
+        hw.alarm_event(1);
+        hw.time = 264'396'668'000ULL;
+        service.poll();
+        CHECK(hw.launches == (refined ? 0U : 1U));
+        CHECK(service.status().state == (refined ? wtp::State::Missed : wtp::State::Running));
+        CHECK(engine.disable(hw.time));
+    }
+}
+
 void quantized_end_leap_test() {
     Hardware hw;
     Clock clock(hw);
@@ -598,6 +638,7 @@ int main() {
         queue_test();
         failures_test();
         fractional_start_test();
+        c4_clock_refinement_replay_test();
         quantized_end_leap_test();
         local_launch_test();
         late_launch_window_test();

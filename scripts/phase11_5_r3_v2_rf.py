@@ -27,6 +27,7 @@ ASSET_SOURCE='a740dbb8e7319beb20c4807b35f6672bf9fdfd27'
 ASSET_IMAGE='454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4'
 DIAGNOSTIC_SOURCE='4da36726ac6809bdf4e73d281fe13b2393dd3b31'
 DIAGNOSTIC_IMAGE='0153107c517b673bfad7850957c8387a7dbfb12ddb0a3b1e90edb94b804b9a9f'
+DIAGNOSTIC_POLICY='single-maximum-failure-capture-v1'
 B_PARALLEL_AUTHORIZATION='37ae5f5658ffc7c4436547061e4a81e577ea9102a086ec1e74d09031699caaab'
 
 
@@ -69,6 +70,11 @@ def guarded_action(action, value, faults, report):
 
 
 def validate(packet):
+    diagnostic=packet.get('diagnostic_policy')==DIAGNOSTIC_POLICY
+    require('diagnostic_policy' not in packet or diagnostic,'Unknown diagnostic policy')
+    if diagnostic:
+        require(packet['source_revision']==DIAGNOSTIC_SOURCE and
+                packet['observer_policy']==SINGLE_FLIGHT,'Diagnostic source/observer scope')
     require(packet['schema']==packet['r3_scope']==SCHEMA and
             packet['standing_authority']=='R3-COMPLETE-20260913-v2' and
             packet['serial']==SERIAL and packet['device_id']==DEVICE and
@@ -81,16 +87,16 @@ def validate(packet):
     if packet['source_revision']==DIAGNOSTIC_SOURCE:
         require(len(packet['jobs'])==1 and packet['jobs'][0]['mode']=='tone' and
                 packet['jobs'][0]['total_duration_ns']=='90000000000' and
-                packet['runtime_seconds']==180 and packet['maximum_renewals']==5 and
+                packet['runtime_seconds']==(240 if diagnostic else 180) and packet['maximum_renewals']==5 and
                 'wtp_capacity' in packet and 'contention' not in packet and
                 'http_capacity' not in packet and not packet.get('allocator_failure_baseline'),
                 'Diagnostic image permits only the reviewed 90-second maximum-input comparison')
     for key in ['owner_id','peer_session','inventory_session','boot_id']:identity(packet[key])
     if 'wtp_capacity' in packet:
         cap=packet['wtp_capacity']
-        require(set(cap)=={'maximum_request_id','oversized_request_id','recovery_request_id'} and
-            len({identity(value) for value in cap.values()})==3 and len(packet['jobs'])==1,
-            'One bounded pair of existing WTP capacity exchanges')
+        keys={'maximum_request_id'} if diagnostic else {'maximum_request_id','oversized_request_id','recovery_request_id'}
+        require(set(cap)==keys and len({identity(value) for value in cap.values()})==len(keys) and len(packet['jobs'])==1,
+            'Exact bounded WTP capacity exchanges')
     if 'http_capacity' in packet:
         from phase11_5_r3_capacity_plan import http_capacity_cases
         cap=packet['http_capacity']
@@ -128,7 +134,7 @@ def validate(packet):
     return packet
 
 
-def validate_info(info,baseline,packet):
+def validate_info(info,baseline,packet, *, allow_missed=False):
     old=baseline['info']
     failures=packet.get('allocator_failure_baseline',0)
     if failures:
@@ -157,12 +163,49 @@ def validate_info(info,baseline,packet):
             info['allocator_failures']==old['allocator_failures']==str(failures) and
             info['tls_allocation_failures']==old['tls_allocation_failures'],'Allocator reserve/failures')
     require(type(info['status']['output_active']) is bool and
-            info['status']['state'] in ['empty','loaded','armed','running','complete','aborted'] and
+            info['status']['state'] in (['empty','loaded','armed','running','complete','aborted']+(['missed'] if allow_missed else [])) and
             (info['status']['state']=='running' or info['status']['output_active'] is False),'INFO authority')
     check_rf_observation(info)
 
 
+def diagnostic_identity(info,packet):
+    require(info['device_id']==DEVICE and info['revision']==packet['source_revision'][:12] and
+            info['status']['boot_id']==packet['boot_id'] and
+            type(info['status']['output_active']) is bool,'Diagnostic identity/output authority')
+
+
+def capture_diagnostic_info(info,baseline,packet,faults,emit):
+    """Keep same-identity read-only evidence after failure; acceptance stays strict."""
+    diagnostic_identity(info,packet)
+    try:
+        validate_info(info,baseline,packet)
+    except (ValueError,KeyError) as error:
+        reason='console diagnostic: '+str(error)
+        if reason not in faults:
+            faults.append(reason)
+            emit('failure',dict(worker='console diagnostic',error=str(error),type=type(error).__name__))
+    return info
+
+
+def recent_clock(info, clock=None):
+    """Offer LOAD shortly after accepted SNTP; ARM ten seconds ahead before its
+    ordinary 64-second successor. Network resets can still invalidate launch.
+    No device clock, polling or guard policy is changed.
+    """
+    s=info['status']
+    ready=(info['network']['accepted']>0 and info['network']['link_status']==3 and
+        s['clock_state']=='synchronized' and 0<=int(s['sync_age_ns'])<=5_000_000_000)
+    if clock is None:return ready
+    return (info['network']['link_status']==3 and info['network']['accepted']>0 and
+        s['clock_state']=='synchronized' and clock['state']=='synchronized' and clock['leap']=='normal' and
+        0<=int(clock['sync_age_ns'])<=15_000_000_000 and
+        0<=int(clock['monotonic_now_ns'])-int(s['monotonic_now_ns'])<=2_000_000_000 and
+        int(clock['utc_now_ns'])-int(clock['monotonic_now_ns'])==int(s['utc_now_ns'])-int(s['monotonic_now_ns']) and
+        int(clock['uncertainty_ns'])<=500_000_000)
+
+
 def run(root,packet):
+    diagnostic=packet.get('diagnostic_policy')==DIAGNOSTIC_POLICY
     os.umask(0o077);end=time.monotonic()+packet['runtime_seconds'];lock=threading.Lock();done=threading.Event()
     faults=[];samples={};inflight={};seq=0;result=dict(status='RUNNING',armed_jobs=[],completed_jobs=[],renewals=0,rf_duration_ns_charged=0)
     log=(root/'rf.jsonl').open('x')
@@ -210,6 +253,7 @@ def run(root,packet):
         with exclusive_port(Path(f'/dev/serial/by-id/usb-WsprryPi_WsprryPico_{SERIAL}-if00')) as fd:
             def read():
                 info=exchange(fd,b'INFO\n',time.monotonic()+5,lambda k,v:emit('console_'+k,v),False)
+                if diagnostic:return capture_diagnostic_info(info,before,packet,faults,emit)
                 validate_info(info,before,packet);return info
             periodic('info',1,read)
     def health():
@@ -255,15 +299,19 @@ def run(root,packet):
                 if state['phase']=='idle':
                     require(status['state']=='empty' and status['owner_id'] is None and not status['output_active'],
                             'Next job idle admission')
+                    if diagnostic and not recent_clock(info):return
                     require(time.monotonic()+int(job['total_duration_ns'])/1e9+40<end,'Remaining finite observation budget')
+                    checkpoint()
                     state['epoch']=int(info['launch_epoch']);state['lease']=peer.request('CLAIM',dict(owner_id=packet['owner_id'],lease_ms=60000))
-                    peer.request('LOAD',job);state['phase']='loaded'
+                    checkpoint();peer.request('LOAD',job);state['phase']='loaded'
                 elif state['phase']=='loaded':
                     require(status['state']=='loaded' and status['job_id']==job['job_id'],'Loaded observation')
                     clock=peer.request('GET_CLOCK')
                     require(clock['state']=='synchronized' and clock['leap']=='normal' and int(clock['uncertainty_ns'])<=500_000_000,
                             'ARM synchronized clock')
+                    if diagnostic:require(recent_clock(info,clock),'ARM recent accepted SNTP and matching clock mapping')
                     target=((int(clock['utc_now_ns'])+10_000_000_000+999)//1000)*1000
+                    checkpoint()
                     result['armed_jobs'].append(job['job_id']);result['rf_duration_ns_charged']+=int(job['total_duration_ns'])
                     save(root/'rf-result.json',result);emit('arm_pending',dict(job=job,start_utc_ns=str(target)))
                     arm=peer.request('ARM',dict(job_id=job['job_id'],start_utc_ns=str(target),max_start_uncertainty_ns='500000000'))
@@ -273,27 +321,34 @@ def run(root,packet):
                     require(status['job_id']==job['job_id'] and status['owner_id']==packet['owner_id'] and
                             status['state'] in ['armed','running','complete'],'Finite lifecycle')
                     if status['state']=='running' and 'wtp_capacity' in packet and not state.get('capacity_exchanged',False):
+                        if diagnostic and not (info['status']['state']=='running' and info['status']['output_active'] is True):return
                         from phase11_5_r3_capacity_probe import exchange_capacity
                         from phase11_5_r3_capacity_plan import wtp_capacity_frame
                         from validate_wtp_contract import frame
                         cap=packet['wtp_capacity'];state['capacity_exchanged']=True
                         raw=wtp_capacity_frame(peer.session,cap['maximum_request_id'])
-                        observed=exchange_capacity(peer,raw,json.loads(raw[16:]),emit)
+                        checkpoint()
+                        observer_checkpoint=peer.checkpoint
+                        if diagnostic:peer.checkpoint=checkpoint
+                        try:observed=exchange_capacity(peer,raw,json.loads(raw[16:]),emit)
+                        finally:peer.checkpoint=observer_checkpoint
                         require(observed['boot_id']==packet['boot_id'] and observed['job_id']==job['job_id'] and
                             observed['owner_id']==packet['owner_id'] and observed['state']=='running' and
                             observed['output_active'] is True,'Maximum WTP under owned Running RF')
-                        recovery=dict(type='request',protocol='WTP/1',session_id=peer.session,
-                            request_id=cap['recovery_request_id'],op='PING',body={'token':'after-capacity'})
-                        raw=wtp_capacity_frame(peer.session,cap['oversized_request_id'],True)+frame(json.dumps(recovery,separators=(',',':')).encode())
-                        require(exchange_capacity(peer,raw,recovery,emit,invalid_frames=1)==recovery['body'],
-                                'Same-connection oversized WTP recovery')
+                        if not diagnostic:
+                            recovery=dict(type='request',protocol='WTP/1',session_id=peer.session,
+                                request_id=cap['recovery_request_id'],op='PING',body={'token':'after-capacity'})
+                            raw=wtp_capacity_frame(peer.session,cap['oversized_request_id'],True)+frame(json.dumps(recovery,separators=(',',':')).encode())
+                            require(exchange_capacity(peer,raw,recovery,emit,invalid_frames=1)==recovery['body'],
+                                    'Same-connection oversized WTP recovery')
                     if status['state']=='complete':
                         if info['status']['state']!='complete' or int(info['launch_epoch'])<=state['epoch']:return
                         emit('job_complete',dict(job_id=job['job_id'],status=status,info=info))
                         result['completed_jobs'].append(job['job_id']);save(root/'rf-result.json',result)
-                        peer.request('RELEASE');state['phase']='released'
+                        checkpoint();peer.request('RELEASE');state['phase']='released'
                     elif int(state['lease']['expires_monotonic_ns'])-int(info['status']['monotonic_now_ns'])<=20_000_000_000:
                         require(result['renewals']<packet['maximum_renewals'],'Renewal bound')
+                        checkpoint()
                         state['lease']=peer.request('RENEW',dict(owner_id=packet['owner_id'],lease_ms=60000));result['renewals']+=1
                 else:
                     require(status['state']=='empty' and status['owner_id'] is None and not status['output_active'],'Released authority')
@@ -339,7 +394,16 @@ def run(root,packet):
             except subprocess.TimeoutExpired:load_process.kill();load_process.wait(timeout=5)
         for label,b in ([('final-a',False),('final-b',True)] if comparator_required(packet) else [('final-a',False)]):
             try:
-                v=inventory(label,b);empty(v,b)
+                v=inventory(label,b)
+                if diagnostic and not b:
+                    diagnostic_identity(v['info'],packet)
+                    require(v['wtp']['STATUS']['boot_id']==packet['boot_id'] and
+                            v['wtp']['STATUS']['output_active'] is v['info']['status']['output_active'] is False and
+                            v['wtp']['STATUS']['owner_id'] is None,'Diagnostic final inactive/unowned authority')
+                    require(configuration(v)==configuration(before),'Diagnostic configuration changed')
+                    result[label]=v['wtp']['STATUS']
+                    continue
+                empty(v,b)
                 if b:require(before_b is not None and configuration(v)==configuration(before_b) and
                              v['info']['revision']==before_b['info']['revision'],'B configuration/source')
                 else:require(before is not None and configuration(v)==configuration(before),'A configuration');validate_info(v['info'],before,packet)
