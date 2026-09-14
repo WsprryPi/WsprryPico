@@ -19,6 +19,13 @@ typedef struct {
     uint32_t max_sample_us;
     uint32_t max_entry_us;
     uint32_t max_depth;
+    // Retained until another failure, under the allocator lock. Entry: 1 malloc,
+    // 2 calloc, 3 realloc. PCs are target return addresses for offline ELF lookup.
+    uint32_t last_failure_request_bytes;
+    uint32_t last_failure_entry;
+    uint32_t last_failure_caller;
+    uint32_t last_failure_input_caller;
+    uint32_t last_failure_core;
 } wsprry_heap_metrics;
 
 wsprry_heap_metrics wsprry_heap_snapshot(void);

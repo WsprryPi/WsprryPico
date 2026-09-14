@@ -14,6 +14,7 @@
 auto_init_recursive_mutex(heap_mutex);
 static wsprry_heap_metrics metrics;
 static uint32_t depth;
+static uint32_t input_caller;
 static volatile uint32_t last_attempt_bytes[2];
 static volatile uint32_t last_attempt_tag[2];
 
@@ -48,7 +49,7 @@ static uint64_t enter(size_t requested) {
     return time_us_64();
 }
 static void leave(uint64_t start, bool failed, size_t requested_bytes, size_t successful_bytes,
-                  bool may_grow, bool returned_null) {
+                  bool may_grow, bool returned_null, uint32_t entry, uintptr_t caller) {
     metrics.largest_successful_request_bytes =
         maximum(metrics.largest_successful_request_bytes, bounded(successful_bytes));
     // Free cannot raise allocated occupancy. Walking the complete free list
@@ -57,8 +58,14 @@ static void leave(uint64_t start, bool failed, size_t requested_bytes, size_t su
     // the public snapshot always refreshes live_bytes under this same lock.
     if (may_grow)
         sample();
-    if (failed)
+    if (failed) {
         ++metrics.failures;
+        metrics.last_failure_request_bytes = bounded(requested_bytes);
+        metrics.last_failure_entry = entry;
+        metrics.last_failure_caller = (uint32_t)caller;
+        metrics.last_failure_input_caller = input_caller;
+        metrics.last_failure_core = get_core_num();
+    }
     if (may_grow) {
         const unsigned core = get_core_num();
         last_attempt_bytes[core] = bounded(requested_bytes);
@@ -71,7 +78,8 @@ static void leave(uint64_t start, bool failed, size_t requested_bytes, size_t su
 void* __wrap__malloc_r(struct _reent* context, size_t size) {
     const uint64_t start = enter(size);
     void* result = __real__malloc_r(context, size);
-    leave(start, !result && size != 0, size, result ? size : 0, true, result == NULL);
+    leave(start, !result && size != 0, size, result ? size : 0, true, result == NULL, 1,
+          (uintptr_t)__builtin_return_address(0));
     return result;
 }
 void* __wrap__calloc_r(struct _reent* context, size_t count, size_t size) {
@@ -83,19 +91,21 @@ void* __wrap__calloc_r(struct _reent* context, size_t count, size_t size) {
     else
         result = __real__calloc_r(context, count, size);
     leave(start, !result && (overflow || (count && size)), overflow ? SIZE_MAX : count * size,
-          result ? count * size : 0, true, result == NULL);
+          result ? count * size : 0, true, result == NULL, 2,
+          (uintptr_t)__builtin_return_address(0));
     return result;
 }
 void* __wrap__realloc_r(struct _reent* context, void* pointer, size_t size) {
     const uint64_t start = enter(size);
     void* result = __real__realloc_r(context, pointer, size);
-    leave(start, !result && size != 0, size, result ? size : 0, true, result == NULL);
+    leave(start, !result && size != 0, size, result ? size : 0, true, result == NULL, 3,
+          (uintptr_t)__builtin_return_address(0));
     return result;
 }
 void __wrap__free_r(struct _reent* context, void* pointer) {
     const uint64_t start = enter(0);
     __real__free_r(context, pointer);
-    leave(start, false, 0, 0, false, false);
+    leave(start, false, 0, 0, false, false, 0, 0);
 }
 void wsprry_heap_panic_attempt(uint32_t record[2]) {
     const unsigned core = get_core_num();
@@ -128,6 +138,8 @@ bool wsprry_heap_probe(size_t bytes) {
 
 void* wsprry_heap_try_input(size_t bytes) {
     recursive_mutex_enter_blocking(&heap_mutex);
+    const uint32_t previous_input_caller = input_caller;
+    input_caller = (uint32_t)(uintptr_t)__builtin_return_address(0);
     const uint64_t start = time_us_64();
     if (bytes >= 4096) {
         ++metrics.input_trim_attempts;
@@ -137,6 +149,7 @@ void* wsprry_heap_try_input(size_t bytes) {
     void* result = _malloc_r(_REENT, bytes);
     // Include trimming in the serialized allocator critical-section bound.
     metrics.max_entry_us = maximum(metrics.max_entry_us, bounded(time_us_64() - start));
+    input_caller = previous_input_caller;
     recursive_mutex_exit(&heap_mutex);
     return result;
 }

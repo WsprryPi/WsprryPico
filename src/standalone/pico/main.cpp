@@ -287,6 +287,13 @@ int main() {
             const auto allocator = wsprry_heap_snapshot();
             number_field(result, "allocator_entries", allocator.entries, true);
             number_field(result, "allocator_failures", allocator.failures, true);
+            number_field(result, "allocator_last_failure_request_bytes",
+                         allocator.last_failure_request_bytes);
+            number_field(result, "allocator_last_failure_entry", allocator.last_failure_entry);
+            number_field(result, "allocator_last_failure_caller", allocator.last_failure_caller);
+            number_field(result, "allocator_last_failure_input_caller",
+                         allocator.last_failure_input_caller);
+            number_field(result, "allocator_last_failure_core", allocator.last_failure_core);
             number_field(result, "allocator_live_bytes", allocator.live_bytes);
             number_field(result, "allocator_peak_bytes", allocator.peak_bytes);
             number_field(result, "allocator_largest_request_bytes",

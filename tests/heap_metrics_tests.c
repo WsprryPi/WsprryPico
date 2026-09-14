@@ -129,6 +129,9 @@ int main(void) {
     wsprry_heap_metrics m = wsprry_heap_snapshot();
     assert(m.live_bytes == 316 && m.peak_bytes == 432 && m.max_depth >= 2);
     assert(!__wrap__realloc_r(_REENT, p, 4097) && p[0] == 42);
+    m = wsprry_heap_snapshot();
+    assert(m.last_failure_request_bytes == 4097 && m.last_failure_entry == 3 &&
+           m.last_failure_input_caller == 0 && m.last_failure_core == 0);
     wsprry_heap_panic_attempt(attempt);
     assert(attempt[0] == 4097 && attempt[1] == (WSPRRY_ALLOCATION_FAULT_TAG | 1U));
     assert(wsprry_heap_snapshot().live_bytes == 316);
@@ -153,6 +156,10 @@ int main(void) {
     assert(trim_calls == previous_trims + 1);
     assert(wsprry_heap_snapshot().input_trim_attempts == 1);
     assert(wsprry_heap_snapshot().input_trim_releases == 1);
+    m = wsprry_heap_snapshot();
+    assert(m.last_failure_request_bytes == 65552 && m.last_failure_entry == 1 &&
+           m.last_failure_input_caller != 0 && m.last_failure_caller != 0);
+    const uint32_t failed_input_caller = m.last_failure_input_caller;
     pthread_t a, b;
     assert(!pthread_create(&a, NULL, concurrent, NULL));
     assert(!pthread_create(&b, NULL, concurrent, NULL));
@@ -161,6 +168,15 @@ int main(void) {
     m = wsprry_heap_snapshot();
     assert(m.live_bytes == 0 && m.failures == failures + 1 && m.entries >= 6000);
     assert(m.max_sample_us && m.sample_time_us && m.max_entry_us);
+    // Thousands of subsequent successful allocations/snapshots cannot erase
+    // the failure site. A later ordinary failure must clear input context.
+    assert(m.last_failure_request_bytes == 65552 &&
+           m.last_failure_input_caller == failed_input_caller);
+    test_core_num = 1;
+    assert(!__wrap__malloc_r(_REENT, 5001));
+    m = wsprry_heap_snapshot();
+    assert(m.last_failure_request_bytes == 5001 && m.last_failure_entry == 1 &&
+           m.last_failure_input_caller == 0 && m.last_failure_core == 1);
     puts("Heap hooks: transient realloc peak, failed realloc retention, overflow, nullable "
          "recovery, probe release and concurrent recursion passed");
 }

@@ -148,6 +148,18 @@ must be distinguished using the campaign's probe intervals and raw records.
 `allocator_max_sample_us` and `allocator_max_entry_us` retain maxima. Nested
 entry times overlap and must not be summed. `allocator_max_depth` exposes nesting.
 Entry duration starts after lock acquisition and does not include lock waiting.
+
+The bounded Group 2 diagnostic also retains the last failed allocation's requested
+bytes, allocator entry (1 malloc, 2 calloc, 3 realloc), caller return address,
+nullable input allocator caller address (zero outside that context), and core.
+These fields update only on failure under the existing allocator lock; successful
+allocations and INFO snapshots do not erase them. Resolve addresses against the
+exact linked ELF (a return address identifies the instruction after the call).
+Nested failures may be counted more than once and the outer failed wrapper can
+be the final retained entry. The input context covers both input and large reply
+buffers, so use its ELF call site to distinguish their ownership. These fields
+are diagnosis, not a largest-free-block measurement or a repair. Their added
+layout and INFO cost require affected physical assessment before evidence reuse.
 These instrumentation costs are part of the candidate image's contention load.
 
 TLS's existing null-handling path uses a separately named nullable inner calloc
