@@ -2,26 +2,40 @@
 // Opt-in real target Chromium UI producer. All mutations pass a finite guard.
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {spawn}=require('node:child_process'),assert=require('node:assert/strict');
-const {guardRequest,ORIGIN}=require('./phase11_5_r3_v2_browser_guard');
+const {guardRequest,ORIGIN,sameAuthority,readyForJob}=require('./phase11_5_r3_v2_browser_guard');
 if(!process.argv.includes('--run')) {console.log('Plan only; no browser or target access.');process.exit(0);}
 const argument=n=>process.argv[process.argv.indexOf(n)+1];
 const root=path.resolve(argument('--root')),packetSha=argument('--packet-sha256');
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 assert.equal(hash(fs.readFileSync(root+'/packet.json')),packetSha);
 const packet=JSON.parse(fs.readFileSync(root+'/packet.json'));
-assert.equal(packet.schema,'phase11.5-r3-v2-chromium-v1');assert.equal(packet.standing_authority,'R3-COMPLETE-20260913-v2');
+const admissionOnly=process.argv.includes('--admission-only');
+assert.equal(packet.schema,admissionOnly?'phase11.5-r3-v2-browser-trust-v1':'phase11.5-r3-v2-chromium-v1');
+if(admissionOnly){assert.equal(packet.maximum_jobs,0);assert.deepEqual(packet.cases,[]);assert.equal(packet.maximum_request_count,15);}assert.equal(packet.standing_authority,'R3-COMPLETE-20260913-v2');
 assert.equal(fs.readlinkSync('/proc/self/ns/net'),packet.netns);
 const WebSocket=require('/usr/share/nodejs/ws');
 let chrome,socket,sequence=0,requestCount=0,context=null,failure=null;
 const pending=new Map(),responseWork=new Set(),responses=new Map();
-const log=fs.openSync(root+'/browser.jsonl','wx',0o600),start=process.hrtime.bigint(),deadline=start+850000000000n;
+const log=fs.openSync(root+'/browser.jsonl','wx',0o600),start=process.hrtime.bigint(),deadline=start+(admissionOnly?60000000000n:850000000000n);
 const result={status:'RUNNING',rf_jobs_charged:0,rf_duration_ns_charged:'0',cases:[]};
 const binding={packet_sha256:packetSha,session:null,job_ids:[]};
 const ns=()=>process.hrtime.bigint();
 function emit(kind,value) {fs.writeSync(log,JSON.stringify({sequence:sequence++,kind,value,monotonic_ns:Number(ns()),utc_ns:Date.now()*1000000})+'\n');fs.fsyncSync(log);}
 function save(name,value) {const temp=root+'/'+name+'.tmp';const fd=fs.openSync(temp,'w',0o600);fs.writeSync(fd,JSON.stringify(value)+'\n');fs.fsyncSync(fd);fs.closeSync(fd);fs.renameSync(temp,root+'/'+name);}
 function check() {assert(ns()<deadline,'Finite browser deadline');if(failure)throw failure;assert(!fs.existsSync(root+'/observer-failed.json'),'Independent observer failure');}
-function observe(kind,age) {const r=JSON.parse(fs.readFileSync(root+'/observer-'+kind+'.json'));assert.equal(r.packet_sha256,packetSha);assert(ns()-BigInt(r.monotonic_ns)<=age,'Stale independent '+kind);return r.value.value;}
+function observe(kind,age,pending=false) {
+  const r=JSON.parse(fs.readFileSync(root+'/observer-'+kind+'.json'));assert.equal(r.packet_sha256,packetSha);
+  const elapsed=ns()-BigInt(r.monotonic_ns);assert(elapsed>=0n,'Future independent '+kind);
+  if(pending&&elapsed>age)return null;
+  assert(elapsed<=age,'Stale independent '+kind);return r.value.value;
+}
+async function fresh(kind,age) {
+  let value=null;
+  // A publication can age while the next bounded exchange is in flight.
+  // Wait for a fresh completed sample; never consume the stale value.
+  await until(()=>{value=observe(kind,age,true);return value!==null;},7);
+  return value;
+}
 function send(method,params={}) {return new Promise((resolve,reject)=>{const id=pending.size+1000+sequence*100000+(send.serial++);const timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP deadline '+method));},20000);pending.set(id,{resolve,reject,timer});socket.send(JSON.stringify({id,method,params}));});}send.serial=0;
 async function evaluate(expression) {const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(JSON.stringify(r.exceptionDetails));return r.result.value;}
 async function until(fn,seconds=20) {const end=ns()+BigInt(seconds)*1000000000n;while(ns()<end){check();if(await fn())return;await new Promise(r=>setTimeout(r,100));}throw Error('UI/observer condition deadline');}
@@ -40,8 +54,8 @@ async function intercepted(event) {
       }
       if(q.operation==='ARM') {
         // Hold the actual browser request until an independent observer confirms Loaded.
-        await until(()=>{const s=observe('status',6000000000n);return s.state==='loaded'&&s.job_id===q.body.job_id&&s.owner_id===binding.session;},7);
-        const i=observe('info',2000000000n);assert.equal(i.status.boot_id,packet.boot_id);assert.equal(i.status.output_active,false);
+        await until(async()=>{const s=await fresh('status',6000000000n);return s.state==='loaded'&&s.job_id===q.body.job_id&&s.owner_id===binding.session;},7);
+        const i=await fresh('info',2000000000n);assert.equal(i.status.boot_id,packet.boot_id);assert.equal(i.status.output_active,false);
         assert.equal(i.status.clock_state,'synchronized');
         assert(BigInt(q.body.start_utc_ns)-BigInt(i.status.utc_now_ns)>=5000000000n,'Observed ARM lead exhausted');
         ++result.rf_jobs_charged;result.rf_duration_ns_charged=(BigInt(result.rf_duration_ns_charged)+BigInt(context.case.duration_ns)).toString();
@@ -69,13 +83,20 @@ async function messageValues(mode,text,dot='0.25') {
   const values={mode,text,frequency:'135500',shift:'5',dot,repeats:'1',gap:'1',dash:'3',intra:'1',character:'3',word:'7'};
   await evaluate(`(()=>{for(const [k,v] of Object.entries(${JSON.stringify(values)}))$('message-'+k).value=v;messagePreview();})()`);
 }
+async function matchingUi(expected, cancel=false, click=false) {
+  return evaluate(`(()=>{const ready=(${readyForJob.toString()})({job:snapshot?.job,online,busy,abortDisabled:$('abort').disabled},${JSON.stringify(expected)},${cancel});if(ready&&${click})$('abort').click();return ready;})()`);
+}
 async function idle() {
   await until(()=>evaluate('!busy'),35);await evaluate("$('refresh').click()");await until(()=>evaluate('!busy'));
   const s=await evaluate('snapshot.job');assert.equal(s.output_active,false);
   if(s.owner_id===binding.session) {
     context.operations.push('RELEASE');await evaluate("$('release').click()");await until(()=>evaluate('!busy'));
   }
-  assert.equal((await evaluate('snapshot.job')).owner_id,null,'Browser owner remains at next case');
+  const expected=await evaluate('snapshot.job');
+  assert.equal(expected.owner_id,null,'Browser owner remains at next case');
+  // The USB observer may still hold the terminal sample preceding RELEASE.
+  // Wait for its next independent publication before accepting this boundary.
+  await until(async()=>sameAuthority(await fresh('status',6000000000n),expected),7);
 }
 (async()=>{
   emit('start',{packet_sha256:packetSha,netns:fs.readlinkSync('/proc/self/ns/net')});
@@ -94,6 +115,7 @@ async function idle() {
   const cert=await send('Network.getCertificate',{origin:ORIGIN});assert(cert.tableNames.length>0);
   assert.equal(hash(Buffer.from(cert.tableNames[0],'base64')),packet.peer_sha256);emit('peer_certificate',{sha256:packet.peer_sha256});
   binding.session=await evaluate('session');save('browser-binding.json',binding);await shot('initial');
+  if(admissionOnly) {assert.equal(result.rf_jobs_charged,0);assert.equal(binding.job_ids.length,0);result.status='BROWSER_TRUST_READ_ONLY_VERIFIED';return;}
   for(const mode of ['qrss','fskcw','dfcw']) {
     for(const count of [31,32,33]) {
       await messageValues(mode,'?'.repeat(count));const preview=await evaluate("$('message-preview').textContent");
@@ -110,6 +132,16 @@ async function idle() {
   await until(()=>evaluate('!busy'));assert((await evaluate("$('notice').textContent")).includes('at most 30,000 bytes'));
   assert.equal(binding.job_ids.length,0);await shot('file-30001-rejected');
   for(let n=0;n<packet.cases.length;n++) {
+    if(!(packet.case_indices||[0,1,2,3]).includes(n))continue;
+    if(result.cases.length && packet.between_case_quiet_seconds) {
+      const began=ns();emit('replay_quiet_start',{seconds:packet.between_case_quiet_seconds});
+      while(ns()-began<BigInt(packet.between_case_quiet_seconds)*1000000000n) {
+        check();const s=await fresh('status',6000000000n);
+        assert.equal(s.state,'empty');assert.equal(s.output_active,false);assert.equal(s.owner_id,null);
+        await new Promise(r=>setTimeout(r,1000));
+      }
+      emit('replay_quiet_finish',{elapsed_ns:(ns()-began).toString()});
+    }
     const c=packet.cases[n];context={case:c,operations:['HELLO','CLAIM',c.kind==='file-complete'?'LOAD':'LOAD_MESSAGE','ARM'],index:0,
       session:binding.session,requestIds:new Set(),jobId:null,chargedJobs:result.rf_jobs_charged,chargedNs:BigInt(result.rf_duration_ns_charged),utcNowNs:String(Date.now()*1000000)};
     if(c.kind==='file-complete') {
@@ -121,26 +153,38 @@ async function idle() {
       const preview=await evaluate("messagePlan().duration.toString()");assert.equal(preview,c.duration_ns);
       await evaluate("$('message-start').value=new Date(Date.now()+20000).toISOString().slice(0,19);$('message-form').requestSubmit()");
     }
-    await until(()=>evaluate('!busy'),45);check();assert.equal(context.index,4);assert.equal(await evaluate('snapshot.job.state'),'armed');await shot('case-'+n+'-armed');
+    await until(()=>evaluate('!busy'),45);check();
+    if(context.index!==4) {
+      const diagnostic=await shot('case-'+n+'-submission-rejected');
+      throw Error('Submission stopped before ARM: '+diagnostic.notice+'; guarded operations '+context.index+'/4');
+    }
+    assert.equal(await evaluate('snapshot.job.state'),'armed');await shot('case-'+n+'-armed');
     const caseResult={kind:c.kind,job_id:context.jobId,planned_duration_ns:c.duration_ns};
     if(c.kind==='armed-abort') {
-      await until(()=>{const s=observe('status',6000000000n);return s.state==='armed'&&s.job_id===context.jobId;},10);
+      await until(async()=>{const s=await fresh('status',6000000000n);return s.state==='armed'&&s.job_id===context.jobId;},10);
       context.operations.push('ABORT');await evaluate("$('abort').click()");await until(()=>evaluate('!busy'));
       assert.equal(await evaluate('snapshot.job.state'),'aborted');
     } else {
-      await until(()=>{const s=observe('status',6000000000n);return s.state==='running'&&s.job_id===context.jobId;},30);
-      const runningAt=ns();await shot('case-'+n+'-running');
+      await until(async()=>{const s=await fresh('status',6000000000n);return s.state==='running'&&s.job_id===context.jobId;},30);
+      const runningAt=ns();
+      const runningAuthority={boot_id:packet.boot_id,state:'running',job_id:context.jobId,owner_id:binding.session,output_active:true};
+      await until(()=>matchingUi(runningAuthority),15);await shot('case-'+n+'-running');
       if(c.kind==='running-abort') {
         while(ns()-runningAt<BigInt(packet.running_abort_after_ns)) {check();await new Promise(r=>setTimeout(r,1000));}
-        assert.equal(observe('status',6000000000n).state,'running');context.operations.push('ABORT');
-        await shot('case-'+n+'-before-abort');await evaluate("$('abort').click()");await until(()=>evaluate('!busy'));
+        assert(sameAuthority(await fresh('status',6000000000n),runningAuthority));
+        await until(()=>matchingUi(runningAuthority,true),15);
+        await shot('case-'+n+'-before-abort');context.operations.push('ABORT');
+        // Recheck and click atomically: a polling refresh can start during a screenshot.
+        await until(()=>matchingUi(runningAuthority,true,true),15);await until(()=>evaluate('!busy'));
         assert.equal(await evaluate('snapshot.job.state'),'aborted');caseResult.observed_running_ns=(ns()-runningAt).toString();
       } else {
-        await until(()=>{const s=observe('status',6000000000n);return s.state==='complete'&&s.job_id===context.jobId;},Math.ceil(Number(c.duration_ns)/1e9)+10);
+        await until(async()=>{const s=await fresh('status',6000000000n);return s.state==='complete'&&s.job_id===context.jobId;},Math.ceil(Number(c.duration_ns)/1e9)+10);
         await evaluate("$('refresh').click()");await until(()=>evaluate('!busy'));assert.equal(await evaluate('snapshot.job.state'),'complete');
       }
     }
     assert.equal(await evaluate('snapshot.job.output_active'),false);await shot('case-'+n+'-terminal');
+    await until(async()=>{const s=await fresh('status',6000000000n);return s.job_id===context.jobId&&
+      s.state===(c.kind.includes('abort')?'aborted':'complete')&&s.output_active===false;},7);
     await idle();caseResult.result=c.kind.includes('abort')?'aborted':'complete';result.cases.push(caseResult);save('browser-result.json',result);
   }
   await shot('final');check();result.status='CAPTURED_REQUIRES_AUDIT';

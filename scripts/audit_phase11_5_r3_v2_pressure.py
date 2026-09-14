@@ -11,6 +11,8 @@ from audit_phase11_5_r3_tls import audit_pressure as audit_tls
 from audit_phase11_5_r3_transport import audit_pressure as audit_transport,tcp_packets
 
 PACKETS={
+ 'a96a14455d08caa37fab21e7ef96be5bd5249afdf6471e8450c64a2e5d73f5a4':'T4',
+ '9215a8049c83c2319506ef0c76100213a6bf5bb479a06cd283835c684719f095':'T5',
  'eef06c2fefab51ffb7954d1d563c956acb0cbfddf386597163bf91fd927ddce7':'T0',
  '6e866906cd3eaffab9d63e52fd64a54b8b6b44300179d7aacc22a6671e50c3df':'T1A',
 }
@@ -80,7 +82,7 @@ def audit(root,decoder):
         abs(offsets[1]-offsets[0])<=10_000_000,'TCP clock mapping/coverage')
     require(re.search(r'\b0 packets dropped by kernel\b',(root/'pressure-capture.stderr').read_text()),'TCP capture drops')
     packets=tcp_packets((root/'pressure.pcap').read_bytes())
-    if PACKETS[packet_sha]=='T0':
+    if packet['pressure_family']=='tls':
         checked=audit_tls(packet,pressure,rf)
     else:
         installed,=[r for r in pressure if r['kind']=='ack_filter_installed']

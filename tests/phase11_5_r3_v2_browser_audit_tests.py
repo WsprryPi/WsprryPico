@@ -17,7 +17,7 @@ class BrowserAuditTests(unittest.TestCase):
             file=root/'browser.jsonl';rows=[json.loads(s) for s in file.read_text().splitlines()]
             change(next(r for r in rows if r['kind']==kind));file.write_text(''.join(json.dumps(r)+'\n' for r in rows))
         changes=[lambda r:(r/'job-30000.json').write_bytes((r/'job-30000.json').read_bytes()+b' '),
-            lambda r:(r/'initial.png').write_bytes(b''),lambda r:(r/'final-b.stdout').write_text(''),
+            lambda r:(r/'initial.png').write_bytes(b''),lambda r:(r/'final-a.stdout').write_text(''),
             lambda r:edit(r,'peer_certificate',lambda row:row['value'].update(sha256='0'*64)),
             lambda r:edit(r,'arm_charge',lambda row:row['value'].update(duration_ns='1')),
             lambda r:edit(r,'network_body',lambda row:row['value']['body'].update(body='{}',base64Encoded=False)),

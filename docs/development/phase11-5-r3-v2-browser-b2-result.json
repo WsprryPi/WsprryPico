@@ -1,0 +1,46 @@
+{
+  "status": "B2_ZERO_RF_TRUST_FAILURE_VERIFIED",
+  "packet_sha256": "21569af32117cd0ea8bb1117446e3cdf55584325429b5a88abc6b55a3723db5e",
+  "rf_jobs": 0,
+  "classification": "BROWSER_TRUST_SETUP_FAILURE_BEFORE_JOB_REQUEST",
+  "final_authority": {
+    "boot_id": "fc90d1a04eb0acc703de907917277921",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": [
+      {
+        "job_id": "511733cbaf50f21ddce24b4426454218",
+        "state": "complete",
+        "ended_monotonic_ns": "1104892678000",
+        "output_active": false
+      },
+      {
+        "job_id": "055291e96e6bf5e70ef04eb1fd10381b",
+        "state": "complete",
+        "ended_monotonic_ns": "924885157000",
+        "output_active": false
+      },
+      {
+        "job_id": "7677571d46f4c014de5c0af84bab1237",
+        "state": "complete",
+        "ended_monotonic_ns": "521240542000",
+        "output_active": false
+      },
+      {
+        "job_id": "d0f3d2bada2d84266718ad429133fd37",
+        "state": "complete",
+        "ended_monotonic_ns": "391232566000",
+        "output_active": false
+      },
+      {
+        "job_id": "93fdeb00471569811357d5742f039999",
+        "state": "aborted",
+        "ended_monotonic_ns": "6243355000",
+        "output_active": false
+      }
+    ]
+  },
+  "family_closed": false
+}

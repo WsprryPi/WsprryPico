@@ -11,7 +11,8 @@ from phase11_5_inventory import require,exclusive_port,exchange
 from phase11_5_pilot import Peer,SERIAL,DEVICE
 from phase11_5_pilot_supervisor import finished,configuration,B_SERIAL,B_DEVICE
 from phase11_5_device_management import digest,save
-from phase11_5_r3_v2_rf import validate_info,comparator_required,REPAIRED_SOURCE,REPAIRED_IMAGE
+from phase11_5_r3_v2_rf import validate_info,comparator_required,REPAIRED_SOURCE,REPAIRED_IMAGE,PAGED_SOURCE,PAGED_IMAGE,INFO_SOURCE,INFO_IMAGE,ASSET_SOURCE,ASSET_IMAGE
+from phase11_5_r3_v2_observer_policy import STRICT,SINGLE_FLIGHT,next_offer
 
 SCHEMA='phase11.5-r3-v2-chromium-v1'
 
@@ -20,10 +21,11 @@ def validate(packet):
     require(packet['schema']==packet['r3_scope']==SCHEMA and packet['standing_authority']=='R3-COMPLETE-20260913-v2',
             'Browser scope/authority')
     comparator_required(packet)
+    require(packet.get('observer_policy',STRICT) in (STRICT,SINGLE_FLIGHT),'Unknown observer policy')
     require((packet['source_revision'],packet['image_sha256']) in [
                 ('7d183978d08d77d5de668911be041bb188c851f5',
                  '38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1'),
-                (REPAIRED_SOURCE,REPAIRED_IMAGE)] and
+                (REPAIRED_SOURCE,REPAIRED_IMAGE),(PAGED_SOURCE,PAGED_IMAGE),(INFO_SOURCE,INFO_IMAGE),(ASSET_SOURCE,ASSET_IMAGE)] and
             packet['serial']==SERIAL and packet['device_id']==DEVICE,'Browser physical identity')
     require(packet['runtime_seconds']==900 and packet['restoration_seconds']==150 and
             packet['configuration_writes']==packet['wifi_cycles']==packet['heap_probes']==packet['flashes']==0,
@@ -32,7 +34,23 @@ def validate(packet):
     require(len(cases)==4 and [c['kind'] for c in cases]==['file-complete','message-complete','armed-abort','running-abort'] and
             [int(c['duration_ns']) for c in cases]==[10000000000,143250001000,143250001000,155750001000] and
             sum(int(c['duration_ns']) for c in cases)<=600000000000,'Frozen browser job budget')
-    require(packet['maximum_jobs']==4 and packet['maximum_request_count']==250 and
+    indices=packet.get('case_indices',[0,1,2,3])
+    require(indices in ([0,1,2,3],[1,2,3],[2,3],[3]), 'Reviewed remaining browser cases')
+    if indices in ([1,2,3],[2,3],[3]):
+        require(packet['source_revision'] in (INFO_SOURCE,ASSET_SOURCE) and packet.get('reused_browser_audit_sha256')==
+            '7ddd6632414f01a230e149630ef81e4978bae8579cab1689e32c47f105a94b65', 'Preserved B3 component evidence')
+    if indices==[2,3]:
+        require(packet.get('reused_completed_fskcw_audit_sha256')==
+            'bc0f02e259df7d146b5d2d624866461fede040e473fa9a8138592f019b0277de' and
+            packet.get('between_case_quiet_seconds')==360, 'Preserved FSKCW and actual replay quiet interval')
+    else:
+        require(packet.get('between_case_quiet_seconds',0)==0, 'Unexpected quiet interval')
+    if indices==[3]:
+        require(packet.get('reused_completed_fskcw_audit_sha256')==
+            'bc0f02e259df7d146b5d2d624866461fede040e473fa9a8138592f019b0277de' and
+            packet.get('reused_armed_cancel_audit_sha256')==
+            'a08bdeb570d273b216b5193e96f27d9f3abdb97eebe7e5164b684cbd0cb3983e', 'Preserved completed and Armed-cancel components')
+    require(packet['maximum_jobs']==len(indices) and packet['maximum_request_count']==250 and
             packet['running_abort_after_ns']==120000000000,'Producer request/abort bounds')
     job=cases[0]['job']
     require(job['profile']=='rf-events/1' and job['mode']=='tone' and job['allow_frequency_adjustment'] is True and
@@ -49,14 +67,28 @@ def validate(packet):
     return packet
 
 
+def zero_rf_stop_admitted(result,requests,info,status,boot):
+    return (result.get('status')=='FAILED' and result.get('rf_jobs_charged')==0 and
+        result.get('rf_duration_ns_charged')=='0' and result.get('cases')==[] and
+        all(r.get('method')=='GET' for r in requests) and
+        info.get('status',{}).get('boot_id')==status.get('boot_id')==boot and
+        info.get('status',{}).get('state')==status.get('state')=='empty' and
+        info.get('status',{}).get('output_active') is status.get('output_active') is False and
+        status.get('owner_id') is status.get('job_id') is None)
+
+
 def run(root,packet):
     end=time.monotonic()+packet['runtime_seconds'];done=threading.Event();lock=threading.Lock();seq=0
     faults=[];samples={};child=None;baseline={};result=dict(status='RUNNING')
     log=(root/'browser-observer.jsonl').open('x')
     def emit(kind,value):
         nonlocal seq
+        entered=time.monotonic_ns()
         with lock:
             row=dict(sequence=seq,kind=kind,value=value,monotonic_ns=time.monotonic_ns(),utc_ns=time.time_ns());seq+=1
+            if packet.get('observer_policy')==SINGLE_FLIGHT:
+                row['event_observed_monotonic_ns']=entered
+                row['journal_lock_wait_ns']=row['monotonic_ns']-entered
             log.write(json.dumps(row)+'\n');log.flush();os.fsync(log.fileno())
             if kind in ['info','status','health']:
                 samples[kind]=row
@@ -79,11 +111,16 @@ def run(root,packet):
                 s['owner_id'] is None and i['status']['enabled'] is False,'Inactive/unowned boundary')
     def periodic(name,period,read):
         next_at=time.monotonic();last=None;count=0
+        single=name=='info' and packet.get('observer_policy')==SINGLE_FLIGHT
         while time.monotonic()<end and not done.is_set():
-            now=time.monotonic();require(now-next_at<=1 and (last is None or now-last<=period+1),name+' cadence')
+            now=time.monotonic();require(now-next_at<=1 and (single or last is None or now-last<=period+1),name+' cadence')
             value=read();require(time.monotonic()-now<=5,name+' reply deadline')
             emit(name,dict(began_monotonic_ns=int(now*1e9),value=value));last=now;count+=1
-            next_at+=period;done.wait(max(0,min(next_at,end)-time.monotonic()))
+            published=time.monotonic()
+            require(published-now<=5,name+' publication deadline')
+            if single:next_at=next_offer(now,published,period)
+            else:next_at+=period
+            done.wait(max(0,min(next_at,end)-time.monotonic()))
         emit(name+'_finish',dict(samples=count))
     def console():
         with exclusive_port(Path(f'/dev/serial/by-id/usb-WsprryPi_WsprryPico_{SERIAL}-if00')) as fd:
@@ -133,7 +170,7 @@ def run(root,packet):
         while len(samples)<3:
             require(not faults and time.monotonic()<deadline,'Independent observer readiness');time.sleep(.05)
         command=['nsenter','-t',str(packet['client_pid']),'-m','-n','bwrap','--ro-bind','/','/',
-            '--bind',str(root),str(root),'--bind',str(root/'browser-home'),'/root',
+            '--bind',str(root),str(root),'--bind',str(root/'browser-home'),'/root','--setenv','HOME','/root',
             '--ro-bind',str(root/'chromium-etc'),'/etc/chromium','--tmpfs','/tmp','--dev','/dev','--proc','/proc',
             '--unshare-pid','--die-with-parent','node',str(root/'scripts/phase11_5_r3_v2_browser.js'),
             '--root',str(root),'--packet-sha256',digest(root/'packet.json'),'--run']
@@ -147,18 +184,35 @@ def run(root,packet):
                 require(r['status']=='CAPTURED_REQUIRES_AUDIT','Browser result failed')
                 # One observer period after the producer exits, preserving terminal evidence.
                 time.sleep(6);done.set();break
-            if faults:child.terminate();break
+            if faults:
+                raise ValueError('Browser stopped after independent observer failure')
             time.sleep(.1)
         if child.poll() is None:raise ValueError('Browser did not finish within finite runtime')
         result['status']='CAPTURED_REQUIRES_AUDIT'
     except BaseException as error:
         fail('supervisor',error);result['status']='STOPPED_REQUIRES_DIAGNOSIS'
+        save(root/'browser-observer-result.json',dict(result,faults=faults,
+            observation_state='Remaining readers continue to the original deadline'))
     finally:
         if child is not None and child.poll() is None:
             child.terminate()
             try:child.wait(timeout=15)
             except subprocess.TimeoutExpired:child.kill();child.wait(timeout=5)
-        # After a producer fault independent readers retain the original finite deadline.
+        # A verified GET-only setup failure has no pending job lifecycle to observe.
+        # Otherwise preserve the original deadline and all independent readers.
+        if faults and child is not None and child.poll() is not None:
+            try:
+                r=json.loads((root/'browser-result.json').read_text())
+                trace=[json.loads(line) for line in (root/'browser.jsonl').read_text().splitlines()]
+                requests=[row['value']['request'] for row in trace if row['kind'] in ('network_request','request_guard')]
+                with lock:
+                    now=time.monotonic_ns();i=samples['info'];s=samples['status']
+                    fresh=0<=now-i['monotonic_ns']<=2_000_000_000 and 0<=now-s['monotonic_ns']<=6_000_000_000
+                    safe=fresh and zero_rf_stop_admitted(r,requests,i['value']['value'],s['value']['value'],packet['boot_id'])
+                if safe:
+                    emit('zero_rf_failure_observation_complete',dict(reason='GET-only producer failure; fresh Empty/inactive/unowned authority'))
+                    done.set()
+            except (OSError,ValueError,KeyError,TypeError):pass
         for t in threads:t.join()
         for label,b in ([('final-a',False),('final-b',True)] if comparator_required(packet) else [('final-a',False)]):
             try:

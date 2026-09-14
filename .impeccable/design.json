@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-13T16:09:48.829238+00:00",
+  "title": "Design System: WsprryPico Station Control",
+  "extensions": {
+    "colorMeta": {
+      "header-navy": {
+        "displayName": "Header navy",
+        "tonalRamp": [
+          "oklch(0.1500 0.04607 244.764)",
+          "oklch(0.2643 0.04607 244.764)",
+          "oklch(0.3786 0.04607 244.764)",
+          "oklch(0.4929 0.04607 244.764)",
+          "oklch(0.6071 0.04607 244.764)",
+          "oklch(0.7214 0.04607 244.764)",
+          "oklch(0.8357 0.04607 244.764)",
+          "oklch(0.9500 0.04607 244.764)"
+        ]
+      },
+      "action-blue": {
+        "displayName": "Action blue",
+        "tonalRamp": [
+          "oklch(0.1500 0.09409 244.259)",
+          "oklch(0.2643 0.09409 244.259)",
+          "oklch(0.3786 0.09409 244.259)",
+          "oklch(0.4929 0.09409 244.259)",
+          "oklch(0.6071 0.09409 244.259)",
+          "oklch(0.7214 0.09409 244.259)",
+          "oklch(0.8357 0.09409 244.259)",
+          "oklch(0.9500 0.09409 244.259)"
+        ]
+      },
+      "canvas": {
+        "displayName": "Canvas",
+        "tonalRamp": [
+          "oklch(0.1500 0.00171 247.839)",
+          "oklch(0.2643 0.00171 247.839)",
+          "oklch(0.3786 0.00171 247.839)",
+          "oklch(0.4929 0.00171 247.839)",
+          "oklch(0.6071 0.00171 247.839)",
+          "oklch(0.7214 0.00171 247.839)",
+          "oklch(0.8357 0.00171 247.839)",
+          "oklch(0.9500 0.00171 247.839)"
+        ]
+      },
+      "field-surface": {
+        "displayName": "Field surface",
+        "tonalRamp": [
+          "oklch(0.1500 0.00000 89.876)",
+          "oklch(0.2643 0.00000 89.876)",
+          "oklch(0.3786 0.00000 89.876)",
+          "oklch(0.4929 0.00000 89.876)",
+          "oklch(0.6071 0.00000 89.876)",
+          "oklch(0.7214 0.00000 89.876)",
+          "oklch(0.8357 0.00000 89.876)",
+          "oklch(0.9500 0.00000 89.876)"
+        ]
+      },
+      "body-text": {
+        "displayName": "Body text",
+        "tonalRamp": [
+          "oklch(0.1500 0.02717 248.726)",
+          "oklch(0.2643 0.02717 248.726)",
+          "oklch(0.3786 0.02717 248.726)",
+          "oklch(0.4929 0.02717 248.726)",
+          "oklch(0.6071 0.02717 248.726)",
+          "oklch(0.7214 0.02717 248.726)",
+          "oklch(0.8357 0.02717 248.726)",
+          "oklch(0.9500 0.02717 248.726)"
+        ]
+      },
+      "action-text": {
+        "displayName": "Action text",
+        "tonalRamp": [
+          "oklch(0.1500 0.05048 245.575)",
+          "oklch(0.2643 0.05048 245.575)",
+          "oklch(0.3786 0.05048 245.575)",
+          "oklch(0.4929 0.05048 245.575)",
+          "oklch(0.6071 0.05048 245.575)",
+          "oklch(0.7214 0.05048 245.575)",
+          "oklch(0.8357 0.05048 245.575)",
+          "oklch(0.9500 0.05048 245.575)"
+        ]
+      },
+      "help-text": {
+        "displayName": "Help text",
+        "tonalRamp": [
+          "oklch(0.1500 0.02792 244.556)",
+          "oklch(0.2643 0.02792 244.556)",
+          "oklch(0.3786 0.02792 244.556)",
+          "oklch(0.4929 0.02792 244.556)",
+          "oklch(0.6071 0.02792 244.556)",
+          "oklch(0.7214 0.02792 244.556)",
+          "oklch(0.8357 0.02792 244.556)",
+          "oklch(0.9500 0.02792 244.556)"
+        ]
+      },
+      "section-border": {
+        "displayName": "Section border",
+        "tonalRamp": [
+          "oklch(0.1500 0.01484 244.744)",
+          "oklch(0.2643 0.01484 244.744)",
+          "oklch(0.3786 0.01484 244.744)",
+          "oklch(0.4929 0.01484 244.744)",
+          "oklch(0.6071 0.01484 244.744)",
+          "oklch(0.7214 0.01484 244.744)",
+          "oklch(0.8357 0.01484 244.744)",
+          "oklch(0.9500 0.01484 244.744)"
+        ]
+      },
+      "field-border": {
+        "displayName": "Field border",
+        "tonalRamp": [
+          "oklch(0.1500 0.02650 242.521)",
+          "oklch(0.2643 0.02650 242.521)",
+          "oklch(0.3786 0.02650 242.521)",
+          "oklch(0.4929 0.02650 242.521)",
+          "oklch(0.6071 0.02650 242.521)",
+          "oklch(0.7214 0.02650 242.521)",
+          "oklch(0.8357 0.02650 242.521)",
+          "oklch(0.9500 0.02650 242.521)"
+        ]
+      },
+      "button-border": {
+        "displayName": "Button border",
+        "tonalRamp": [
+          "oklch(0.1500 0.03780 243.093)",
+          "oklch(0.2643 0.03780 243.093)",
+          "oklch(0.3786 0.03780 243.093)",
+          "oklch(0.4929 0.03780 243.093)",
+          "oklch(0.6071 0.03780 243.093)",
+          "oklch(0.7214 0.03780 243.093)",
+          "oklch(0.8357 0.03780 243.093)",
+          "oklch(0.9500 0.03780 243.093)"
+        ]
+      },
+      "focus-amber": {
+        "displayName": "Focus amber",
+        "tonalRamp": [
+          "oklch(0.1500 0.12542 71.296)",
+          "oklch(0.2643 0.12542 71.296)",
+          "oklch(0.3786 0.12542 71.296)",
+          "oklch(0.4929 0.12542 71.296)",
+          "oklch(0.6071 0.12542 71.296)",
+          "oklch(0.7214 0.12542 71.296)",
+          "oklch(0.8357 0.12542 71.296)",
+          "oklch(0.9500 0.12542 71.296)"
+        ]
+      },
+      "notice-surface": {
+        "displayName": "Notice surface",
+        "tonalRamp": [
+          "oklch(0.1500 0.01104 243.656)",
+          "oklch(0.2643 0.01104 243.656)",
+          "oklch(0.3786 0.01104 243.656)",
+          "oklch(0.4929 0.01104 243.656)",
+          "oklch(0.6071 0.01104 243.656)",
+          "oklch(0.7214 0.01104 243.656)",
+          "oklch(0.8357 0.01104 243.656)",
+          "oklch(0.9500 0.01104 243.656)"
+        ]
+      },
+      "notice-border": {
+        "displayName": "Notice border",
+        "tonalRamp": [
+          "oklch(0.1500 0.02536 242.412)",
+          "oklch(0.2643 0.02536 242.412)",
+          "oklch(0.3786 0.02536 242.412)",
+          "oklch(0.4929 0.02536 242.412)",
+          "oklch(0.6071 0.02536 242.412)",
+          "oklch(0.7214 0.02536 242.412)",
+          "oklch(0.8357 0.02536 242.412)",
+          "oklch(0.9500 0.02536 242.412)"
+        ]
+      },
+      "error-surface": {
+        "displayName": "Error surface",
+        "tonalRamp": [
+          "oklch(0.1500 0.01678 31.082)",
+          "oklch(0.2643 0.01678 31.082)",
+          "oklch(0.3786 0.01678 31.082)",
+          "oklch(0.4929 0.01678 31.082)",
+          "oklch(0.6071 0.01678 31.082)",
+          "oklch(0.7214 0.01678 31.082)",
+          "oklch(0.8357 0.01678 31.082)",
+          "oklch(0.9500 0.01678 31.082)"
+        ]
+      },
+      "error-border": {
+        "displayName": "Error border",
+        "tonalRamp": [
+          "oklch(0.1500 0.11417 32.906)",
+          "oklch(0.2643 0.11417 32.906)",
+          "oklch(0.3786 0.11417 32.906)",
+          "oklch(0.4929 0.11417 32.906)",
+          "oklch(0.6071 0.11417 32.906)",
+          "oklch(0.7214 0.11417 32.906)",
+          "oklch(0.8357 0.11417 32.906)",
+          "oklch(0.9500 0.11417 32.906)"
+        ]
+      },
+      "error-text": {
+        "displayName": "Error text",
+        "tonalRamp": [
+          "oklch(0.1500 0.13041 32.977)",
+          "oklch(0.2643 0.13041 32.977)",
+          "oklch(0.3786 0.13041 32.977)",
+          "oklch(0.4929 0.13041 32.977)",
+          "oklch(0.6071 0.13041 32.977)",
+          "oklch(0.7214 0.13041 32.977)",
+          "oklch(0.8357 0.13041 32.977)",
+          "oklch(0.9500 0.13041 32.977)"
+        ]
+      }
+    },
+    "breakpoints": [
+      {
+        "name": "stacked-forms",
+        "value": "650px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Existing complete-job and station action control.",
+      "html": "<button class=\"ds-button-primary\">Review action</button>",
+      "css": ".ds-button-primary{font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;font-size:1rem;line-height:1.5;min-height:44px;border:1px solid #687e90;background:white;color:#203a50;border-radius:4px;padding:.5rem .9rem;cursor:pointer;margin:.25rem .35rem .25rem 0;background:#225e8a;border-color:#225e8a;color:white}.ds-button-primary:hover:enabled{filter:brightness(.93)}.ds-button-primary:disabled{opacity:.6;cursor:default}.ds-button-primary:focus-visible{outline:3px solid #b37617;outline-offset:3px}"
+    },
+    {
+      "name": "Secondary button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Existing complete-job and station action control.",
+      "html": "<button class=\"ds-button-secondary\">Review action</button>",
+      "css": ".ds-button-secondary{font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;font-size:1rem;line-height:1.5;min-height:44px;border:1px solid #687e90;background:white;color:#203a50;border-radius:4px;padding:.5rem .9rem;cursor:pointer;margin:.25rem .35rem .25rem 0}.ds-button-secondary:hover:enabled{filter:brightness(.93)}.ds-button-secondary:disabled{opacity:.6;cursor:default}.ds-button-secondary:focus-visible{outline:3px solid #b37617;outline-offset:3px}"
+    },
+    {
+      "name": "Message field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "An editable draft with an associated label and help.",
+      "html": "<label class=\"ds-label\" for=\"ds-message\">Message<input class=\"ds-input\" id=\"ds-message\" aria-describedby=\"ds-help\" value=\"CQ TEST\"><small class=\"ds-help\" id=\"ds-help\">Spaces count toward the 32-character limit.</small></label>",
+      "css": ".ds-label{display:flex;flex-direction:column;font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;font-size:1rem;line-height:1.5;font-weight:600;gap:.4rem;margin:0 0 1rem;color:#25313d}.ds-input{font:inherit;font-weight:400;width:100%;background:white;border:1px solid #8b9ba8;border-radius:4px;padding:.6rem;color:#25313d;caret-color:#225e8a}.ds-help{font-size:.875rem;font-weight:400;color:#52616e}.ds-input:focus-visible{outline:3px solid #b37617;outline-offset:3px}"
+    },
+    {
+      "name": "Header identity",
+      "kind": "nav",
+      "description": "Home link and station-control descriptor.",
+      "html": "<header class=\"ds-header\"><a class=\"ds-home\" href=\"#\">WsprryPico</a><span class=\"ds-descriptor\">Station control</span></header>",
+      "css": ".ds-header{font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;line-height:1.5;background:#263e52;color:white;padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}.ds-home{font-weight:700;font-size:1.25rem;color:inherit;text-decoration:none}.ds-descriptor{color:#dbe5ed}.ds-home:focus-visible{outline:3px solid #b37617;outline-offset:3px}@media(max-width:650px){.ds-header{align-items:flex-start;flex-direction:column;gap:.2rem}}"
+    },
+    {
+      "name": "Status notice",
+      "kind": "custom",
+      "refersTo": "notice",
+      "description": "Text carries status meaning; error tint accompanies explanatory text.",
+      "html": "<p class=\"ds-notice\" role=\"status\">Status observation available.</p><p class=\"ds-notice ds-error\" role=\"status\">Unable to read status. Output is unknown.</p>",
+      "css": ".ds-notice{font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;font-size:1rem;line-height:1.5;color:#25313d;padding:.8rem 1rem;background:#e7eef4;border:1px solid #b6c6d3;border-radius:4px}.ds-error{background:#fff0ed;border-color:#bd6755;color:#882b19}"
+    },
+    {
+      "name": "Timing disclosure",
+      "kind": "custom",
+      "description": "Native disclosure for advanced timing fields.",
+      "html": "<details class=\"ds-details\"><summary class=\"ds-summary\">Timing settings</summary><p>Gap values are multiples of the dot length.</p></details>",
+      "css": ".ds-details{font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;font-size:1rem;line-height:1.5;color:#25313d;margin:.5rem 0 1rem}.ds-summary{font-weight:600;cursor:pointer;padding:.65rem 0;min-height:44px}.ds-summary:focus-visible{outline:3px solid #b37617;outline-offset:3px}"
+    },
+    {
+      "name": "Exact preview",
+      "kind": "custom",
+      "description": "Illustrative preview content; exact fractional duration and numerical capacity remain visible.",
+      "html": "<p class=\"ds-preview\" role=\"status\">3.000001 s \u00b7 2 / 512 events \u00b7 1 / 32 characters</p>",
+      "css": ".ds-preview{font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;font-size:1rem;line-height:1.5;color:#25313d;font-variant-numeric:tabular-nums}.ds-preview.ds-error{color:#882b19}"
+    }
+  ],
+  "narrative": {
+    "overview": "This record applies to `src/network/web/index.html`, `style.css`, and `app.js`.\nIt captures the existing embedded operator interface after the finite-message\nchanges. No new brand metaphor, visual identity, or approved composition is\nestablished. WsprryPi has its own design record; its fonts, Bootstrap components,\nand theme rules are not dependencies of this embedded surface.\n\nThe interface presents station state and editable forms in a centered light\npage beneath a navy header. Technical values, plain labels, inline help, and\nexplicit recovery messages carry the hierarchy. Timing belongs to the Pico;\nthe browser prepares complete jobs and reports observations.",
+    "keyCharacteristics": [
+      "Flat sections separated by borders and spacing.",
+      "Native controls with visible keyboard focus and explicit labels.",
+      "Inline validation that preserves the entered draft.",
+      "Exact finite-job duration and numerical event capacity.",
+      "Confirmed status remains separate from estimated progress."
+    ],
+    "rules": [
+      {
+        "name": "The Preserved Draft Rule",
+        "body": "Reject invalid input with an explanation; retain the entered message for correction rather than truncating it or silently splitting it into jobs.",
+        "section": "components"
+      },
+      {
+        "name": "The Confirmed State Rule",
+        "body": "Estimated elapsed time may describe a matching running job, but never replace its last confirmed state or turn a completed estimate into confirmed completion.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "**Do** preserve the light canvas, navy header, and existing native form styles.",
+      "**Do** expose exact duration, character count, and numerical event capacity.",
+      "**Do** keep units, validation guidance, visible focus, and status announcements.",
+      "**Do** preserve invalid drafts and explicit unknown device states."
+    ],
+    "donts": [
+      "**Don't** truncate, split, or silently reduce an invalid message to fit limits.",
+      "**Don't** use elapsed time or a lost connection as evidence of RF state.",
+      "**Don't** import WsprryPi's separate theme or typography as an embedded UI rule."
+    ]
+  }
+}

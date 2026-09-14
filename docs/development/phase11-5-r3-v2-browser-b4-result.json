@@ -1,0 +1,65 @@
+{
+  "status": "B4_COMPLETED_FSKCW_AND_REJECTED_QRSS_VERIFIED",
+  "family_closed": false,
+  "packet_sha256": "8d37a3a5fb5085716a4add0e6d8b5a1c74c59e36846d31af2b79ba5ba1d51170",
+  "source_revision": "f5502cff9fa6b56747b2e1b1036a77fc0e270f6f",
+  "image_sha256": "a71447e8fe00c023a106ac682f4b11cf8e9e7d93cabb7b5868da10025e2cd5a2",
+  "boot_id": "2d34c532eb46a11a6b2cede5eae8f796",
+  "rf_jobs_charged": 1,
+  "rf_duration_ns_charged": 143250001000,
+  "cases": [
+    {
+      "kind": "message-complete",
+      "job_id": "35250e73a194432aa90e24110a18110b",
+      "result": "complete",
+      "planned_duration_ns": "143250001000",
+      "timing": {
+        "job_id": "35250e73a194432aa90e24110a18110b",
+        "mode": "fskcw",
+        "epoch": 1,
+        "expected_counter_deltas": {
+          "dma_irqs": 37707,
+          "alarm_irqs": 1,
+          "tail_irqs": 1,
+          "running_successor_links": 37705,
+          "refill_irq_pairs": 37705,
+          "running_tail_links": 1
+        },
+        "duration_ns": 143250001000,
+        "launch_target_ns": 390056912000,
+        "post_enable_delay_ns": 13000,
+        "short_words": 6910,
+        "short_interval_ns": 1602318.8405797102,
+        "short_75_percent_budget_ns": 1201739.1304347827,
+        "cumulative_worst_short": {
+          "measured": true,
+          "observations": 1,
+          "epoch": "1",
+          "successor_sequence": "37706",
+          "observed_ns": "533305378000",
+          "remaining_words": 6665,
+          "total_words": 6910
+        }
+      }
+    }
+  ],
+  "cadence": {
+    "info": {
+      "samples": 900,
+      "max_start_gap_ns": 1473326455
+    },
+    "status": {
+      "samples": 180,
+      "max_start_gap_ns": 5001316832
+    },
+    "health": {
+      "samples": 180,
+      "max_start_gap_ns": 5000171801
+    }
+  },
+  "reused_browser_audit_sha256": "7ddd6632414f01a230e149630ef81e4978bae8579cab1689e32c47f105a94b65",
+  "rendered_checkpoints": 17,
+  "rendered_visual_review": "REQUIRED_SEPARATELY",
+  "network_requests": 47,
+  "maximum_allocator_peak_bytes": 162156
+}

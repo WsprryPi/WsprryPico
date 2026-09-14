@@ -1,0 +1,71 @@
+{
+  "status": "B7_STOPPED_LIFECYCLE_RECONCILED",
+  "family_closed": false,
+  "packet_sha256": "22f191f41c43eab0dea11de654dd13ef20235aa72f1ba08c57c01e9b7acbdce3",
+  "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+  "image_sha256": "454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4",
+  "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+  "job_id": "88b420ee9f4f464492fdb6f71cca32a9",
+  "classification": "OBSERVATION_FAILURE",
+  "delay_cause": "UNRESOLVED: host records cannot separate target service, USB delivery, scheduling and logging",
+  "cadence": {
+    "info": {
+      "samples": 155,
+      "max_start_gap_ns": 1888488467,
+      "status": "FAILED",
+      "last_roundtrip_ns": 2177624184
+    },
+    "status": {
+      "samples": 180,
+      "max_start_gap_ns": 5000074216
+    },
+    "health": {
+      "samples": 180,
+      "max_start_gap_ns": 5000089661
+    }
+  },
+  "rf_jobs_charged": 1,
+  "rf_duration_ns_charged": 155750001000,
+  "physical_launches": 1,
+  "terminal_completions": 1,
+  "cancellation_verified": false,
+  "full_observation_verified": false,
+  "physical_timing_acceptance": false,
+  "missing_final_get_body": "101.37",
+  "preserved_assertions": [
+    "Repaired static page served",
+    "One acknowledged finite DFCW ARM",
+    "Independent Running then Complete/inactive/unowned authority"
+  ],
+  "final_authority": {
+    "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+    "state": "complete",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": "88b420ee9f4f464492fdb6f71cca32a9",
+    "terminal_records": [
+      {
+        "job_id": "88b420ee9f4f464492fdb6f71cca32a9",
+        "state": "complete",
+        "ended_monotonic_ns": "367678006000",
+        "output_active": false
+      },
+      {
+        "job_id": "136cf8bce28ab40d7e70deb596f731eb",
+        "state": "aborted",
+        "ended_monotonic_ns": "7419203000",
+        "output_active": false
+      }
+    ]
+  },
+  "visual_review": "Reviewed case-3-before-abort.png: Running/Active, matching job, 75.7 percent estimated progress, Abort disabled while busy; no cancellation credit.",
+  "evidence_archive_sha256": "fa0b4d4aeb577175439c4b0c182b98ea0c78a53df13bd0fcd6104ec1325ffcee",
+  "adversarial_mutations_rejected": 13,
+  "findings": [
+    "Original strict INFO cadence remains FAILED",
+    "Delay cause unresolved",
+    "Harness captured stale Armed UI as running",
+    "Harness attempted cancellation without waiting for enabled control",
+    "Final GET response body and producer final checkpoint absent after supervised stop"
+  ]
+}

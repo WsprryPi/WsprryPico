@@ -7,6 +7,7 @@ from phase11_5_r3_capacity_plan import identity, http_capacity_body, wtp_capacit
 from validate_wtp_contract import frame
 from phase11_5_r3_v2_parallel_b_deploy import B_SERIAL, B_DEVICE, SOURCE, AUTHORIZATION, IMAGE
 from phase11_5_r3_v2_parallel_b_repair import SOURCE as REPAIR_SOURCE, IMAGE as REPAIR_IMAGE
+from phase11_5_r3_v2_parallel_b_paged_repair import SOURCE as PAGED_SOURCE, IMAGE as PAGED_IMAGE
 
 SCHEMA='phase11.5-r3-v2-parallel-b-functional-v1'
 NAME='wsprrypico-0a9d89.local'
@@ -58,7 +59,7 @@ def stimuli(seed):
 
 def validate(packet):
     require(packet['schema']==packet['r3_scope']==SCHEMA and packet['serial']==B_SERIAL and packet['device_id']==B_DEVICE and
-            (packet['source_revision'],packet['image_sha256']) in ((SOURCE,IMAGE),(REPAIR_SOURCE,REPAIR_IMAGE)) and
+            (packet['source_revision'],packet['image_sha256']) in ((SOURCE,IMAGE),(REPAIR_SOURCE,REPAIR_IMAGE),(PAGED_SOURCE,PAGED_IMAGE)) and
             packet['authorization_sha256']==AUTHORIZATION,
             'B-only functional identity')
     identity(packet['seed']);identity(packet['boot_id']);identity(packet['inventory_session'])
@@ -69,4 +70,6 @@ def validate(packet):
         require(type(packet[key]) is int and packet[key]==value,'Exact B functional budget: '+key)
     require(packet['address']=='192.168.1.53' and packet['tls_name']==NAME and
             packet['tls_peer_sha256']==PEER_SHA,'B network identity')
+    require(packet.get('network_path') in (None,dict(interface='wlan1',source_address='192.168.1.117')),
+            'Fixed existing B management path')
     return packet

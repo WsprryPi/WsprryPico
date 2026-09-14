@@ -1,0 +1,46 @@
+{
+  "status": "B9_ACTUAL_CHROMIUM_FEATURES_VERIFIED",
+  "family_closed": false,
+  "packet_sha256": "df22c7fea17a0984532c3ee6d4cb4c30c976747d918f449ebe9878f3f4f1f1be",
+  "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+  "image_sha256": "454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4",
+  "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+  "rf_jobs_charged": 1,
+  "rf_duration_ns_charged": 155750001000,
+  "cases": [
+    {
+      "kind": "running-abort",
+      "job_id": "c5ec4d9753d0466c853494c85dd0aa27",
+      "result": "aborted",
+      "planned_duration_ns": "155750001000",
+      "timing": null
+    }
+  ],
+  "cadence": {
+    "info": {
+      "samples": 172,
+      "max_start_gap_ns": 2005512076,
+      "max_roundtrip_ns": 1997460171,
+      "policy": "single-flight-info-v1"
+    },
+    "status": {
+      "samples": 36,
+      "max_start_gap_ns": 5000101896
+    },
+    "health": {
+      "samples": 36,
+      "max_start_gap_ns": 5000096359
+    }
+  },
+  "reused_browser_audit_sha256": "7ddd6632414f01a230e149630ef81e4978bae8579cab1689e32c47f105a94b65",
+  "rendered_checkpoints": 19,
+  "rendered_visual_review": "Reviewed before-abort screenshot: matching job c5ec4d9753d0466c853494c85dd0aa27, Running/Active, this-browser ownership, enabled Abort, 79.3 percent estimated progress at 123.624089 of 155.750001 seconds.",
+  "network_requests": 40,
+  "maximum_allocator_peak_bytes": 150652,
+  "evidence_archive_sha256": "08defa67f636de125b84397f8eb22ce40de9198f92f15ab0895a3c53ce1a4fbf",
+  "adversarial_mutations_rejected": 10,
+  "assertion": "Running cancellation after at least 120 seconds independently observed Running",
+  "assertion_status": "PASS",
+  "full_duration_charge_ns": 155750001000,
+  "completion_credit": false
+}

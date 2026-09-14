@@ -3,6 +3,16 @@
 const assert = require('node:assert/strict');
 const ORIGIN = 'https://wsprrypico-0a60df.local:18443';
 function same(actual,expected) { assert.deepEqual(actual,expected); }
+function sameAuthority(actual,expected) {
+  return ['boot_id','state','job_id','owner_id','output_active'].every(key=>
+    Object.hasOwn(actual,key)&&Object.hasOwn(expected,key)&&actual[key]===expected[key]);
+}
+function readyForJob(ui, expected, cancellation=false) {
+  return ui.online===true && ui.busy===false && ui.job &&
+    ['boot_id','state','job_id','owner_id','output_active'].every(key=>
+      Object.hasOwn(ui.job,key)&&Object.hasOwn(expected,key)&&ui.job[key]===expected[key]) &&
+    (!cancellation || ui.abortDisabled===false);
+}
 function guardRequest(request, context) {
   const url = new URL(request.url);
   assert.equal(url.origin,ORIGIN,'Unexpected browser origin');
@@ -32,4 +42,4 @@ function guardRequest(request, context) {
   if(step==='RELEASE') same(q.body,{});
   return q;
 }
-module.exports={guardRequest,ORIGIN};
+module.exports={guardRequest,ORIGIN,sameAuthority,readyForJob};

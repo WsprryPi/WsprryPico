@@ -1,0 +1,9 @@
+{
+  "status": "B_DEPLOYMENT_VERIFIED",
+  "packet_sha256": "b7eb16dd88ab2867d5189ea3a3c1c49a7b47ab4e25fc82fa862f20a1962444a1",
+  "source_revision": "8921a70081839f168edef5926e92445f251d8e1d",
+  "image_sha256": "67c27f20da8212097d60cd6b58fbbb4e774286df728ed7ea3e2746b5c6a59f58",
+  "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+  "rf_jobs": 0,
+  "rf_acceptance": false
+}

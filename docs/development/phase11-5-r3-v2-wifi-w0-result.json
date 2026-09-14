@@ -1,0 +1,32 @@
+{
+  "status": "IDLE_WIFI_RECOVERY_VERIFIED",
+  "family_closed": false,
+  "packet_sha256": "9f966046ea29d5062a8699157e951cf67f83526dd437a2c8d8ed89a3657ceda6",
+  "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+  "image_sha256": "454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4",
+  "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+  "wifi_cycles": 1,
+  "off_commands": 1,
+  "on_commands": 1,
+  "configuration_writes": 0,
+  "flashes": 0,
+  "rf_jobs": 0,
+  "final_authority": {
+    "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": []
+  },
+  "final_clock": {
+    "state": "synchronized",
+    "utc_now_ns": "1789384389313513000",
+    "monotonic_now_ns": "39284306429000",
+    "uncertainty_ns": "13958324",
+    "sync_age_ns": "1988756000",
+    "leap": "normal"
+  },
+  "evidence_archive_sha256": "468c4d60c2a799ca9424e7878d18b3715a59202caf15ed776cb4f73bd4a0abaa",
+  "adversarial_mutations_rejected": 7
+}

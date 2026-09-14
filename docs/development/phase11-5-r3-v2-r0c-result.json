@@ -1,0 +1,37 @@
+{
+  "status": "IDLE_RECONCILIATION_INDEPENDENTLY_VERIFIED",
+  "packet_sha256": "ec07a3f4909ed039d04dbafcb17b4c5ef6fe31d2de38f6dbc4f0cd35b23783e4",
+  "source_revision": "f5502cff9fa6b56747b2e1b1036a77fc0e270f6f",
+  "image_sha256": "a71447e8fe00c023a106ac682f4b11cf8e9e7d93cabb7b5868da10025e2cd5a2",
+  "boot_id": "2d34c532eb46a11a6b2cede5eae8f796",
+  "final_a": {
+    "boot_id": "2d34c532eb46a11a6b2cede5eae8f796",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": [
+      {
+        "job_id": "35250e73a194432aa90e24110a18110b",
+        "state": "complete",
+        "ended_monotonic_ns": "533307233000",
+        "output_active": false
+      },
+      {
+        "job_id": "4ddf69105c2c5f00fd8af36ca4665887",
+        "state": "aborted",
+        "ended_monotonic_ns": "6620077000",
+        "output_active": false
+      }
+    ]
+  },
+  "final_b": null,
+  "b_unchanged": null,
+  "configuration_unchanged": true,
+  "rf_counters_unchanged": true,
+  "rf_jobs": 0,
+  "claim_attempts": 1,
+  "release_attempts": 1,
+  "original_runner_status": "RECONCILED_INACTIVE_UNOWNED",
+  "preserved_finding": null
+}

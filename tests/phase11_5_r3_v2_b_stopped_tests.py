@@ -5,6 +5,17 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 from audit_phase11_5_r3_v2_b_stopped import audit,PACKETS
 
 class StoppedBTests(unittest.TestCase):
+    def test_bf3_connection_failure(self):
+        value=os.environ.get('PHASE115_R3_V2_B_STOPPED_BUILD')
+        if not value:self.skipTest('Private stopped B archives required')
+        source=Path(value)/'phase11-5-r3-v2-parallel-b-functional-bf3/evidence'
+        sha='482ddb19074aff4190ffd5b2e432109d3926a2cd1c6829e29631e82f46b9983c';intact=audit(source,sha)
+        for name in ['packet.json','before-b.stdout','final-b.stdout','functional-result.json','functional.jsonl']:
+            with self.subTest(name=name),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory)/'evidence';shutil.copytree(source,root);(root/name).write_text('{}')
+                with self.assertRaises((ValueError,KeyError,IndexError,OSError)):audit(root,sha)
+        self.assertEqual(audit(source,sha),intact)
+
     def test_stopped_components_and_failure_mutations(self):
         value=os.environ.get('PHASE115_R3_V2_B_STOPPED_BUILD')
         if not value:self.skipTest('Private stopped B archives required')

@@ -1,0 +1,21 @@
+{
+  "status": "STOPPED_B_COMPONENTS_VERIFIED",
+  "packet_sha256": "482ddb19074aff4190ffd5b2e432109d3926a2cd1c6829e29631e82f46b9983c",
+  "source_revision": "8921a70081839f168edef5926e92445f251d8e1d",
+  "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+  "http_assertions": [],
+  "original_result_status": "STOPPED_REQUIRES_DIAGNOSIS",
+  "rf_jobs": 0,
+  "full_functional_pass": false,
+  "classification": "NETWORK_CONNECT_TIMEOUT_BEFORE_REQUEST",
+  "final_state": {
+    "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": []
+  },
+  "allocator_failures": 0,
+  "maximum_load_attempted": false
+}

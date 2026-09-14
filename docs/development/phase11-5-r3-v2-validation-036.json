@@ -1,0 +1,42 @@
+{
+  "checkpoint": "v2-036",
+  "recorded_utc": "2026-09-14T11:32:57.973633+00:00",
+  "status": "W0_RECOVERY_AND_PROSPECTIVE_HARNESS_CHECKS",
+  "physical_r3_groups_newly_closed": 0,
+  "result_file": "docs/development/phase11-5-r3-v2-wifi-w0-result.json",
+  "result_sha256": "71635a02881138ebf1c7040163c01358dcd90332a3156f7bfc87b3d5f68edd2a",
+  "validated_assertions": [
+    "One idle Wi-Fi off/on cycle; unchanged boot/image/configuration/RF counters; final inactive/unowned",
+    "Prospective single-flight INFO scheduling and fresh browser publication wait",
+    "Fresh host build: 62 CTest groups passed; focused v2 discovery: 83 tests, 15 private-evidence skips"
+  ],
+  "limitations": [
+    "No new RF or browser-cancellation acceptance from these host tests",
+    "B8 remains failed and independently audited separately"
+  ],
+  "evidence_artifacts": {
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/build/phase11-5-r3-v2-handoff-resume/fresh-host-ctest.log": "6a838a08d7f7927f80f25de1168b9e1f47010dd29bd19d5125841e28e1078569",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/build/phase11-5-r3-v2-handoff-resume/r3-pre-b9.log": "75e5733b618119b8715e94354194bd4f53ed7843fa6378404a87c0fa8aa3ea6b",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/docs/protocol/wtp-1.schema.json": "fae1a7f94adb875733f47f22438a0811a3ab7fd9e4b8477780aea77cad62c8a8",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/scripts/audit_phase11_5_r3_v2_wifi_recovery.py": "f4ce64b50fdd25f7debbbffa9ce3f510f96893f929aeacc1414238475eb5905c",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/scripts/phase11_5_device_management.py": "3f3fa78cd17c170b35aa591f29ec77770b26b31b0effeccc4e11e9372530fd5d",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/scripts/phase11_5_inventory.py": "dcef778c18a10a0fc20bbb13fa2b07cc690c9d1c9ab8fe05a29af60a6d0483df",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/scripts/phase11_5_pilot.py": "bb91dc6fea9fb10e7564252810b534979a1f28b36de132745d100f388c3003c4",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/scripts/phase11_5_pilot_supervisor.py": "dbf97a316ebe02eb27f90d838ce70c468b75abc38749a7af3f6911beab8dd9e7",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/scripts/phase11_5_r2_amended_plan.py": "a28672abb2703ee1fee2a49e5dfb5ed81347a6d3172584966c4ba4d568a5f679",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/scripts/phase11_5_r2_upload_plan.py": "734d86758b7870aea761f9637a3861904b755e6e333b2a8855377815aeed969a",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/scripts/phase11_5_r3_capacity_plan.py": "222a21b907724ccc918336d34217eeb22f87c03a9fd89ab31ad3350764ae15a4",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/scripts/phase11_5_r3_preflight.py": "637741fa271719beb4c3a764af2d88ea0ca4cd0b8cda3094f86167e0f64822e7",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/scripts/phase11_5_r3_v2_browser.js": "3f0df39f3384d71108de457ffa2c956e9f8e76bc94744cf457ab4b14a682a2fe",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/scripts/phase11_5_r3_v2_browser_guard.js": "41583da758a020d5f1cba7a373309a46f00266a01baf0dd299b8edefc19b2912",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/scripts/phase11_5_r3_v2_observer_policy.py": "0c4e7f8f8e2511f0f220cb65728cbe2bc6999aa061b478cc99e689fb0e572932",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/scripts/phase11_5_r3_v2_rf.py": "5938c05feb346f7e22ca7b9feb15e9d33ab75336ffd59332e3e189b2cb718e1c",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/scripts/phase11_5_r3_v2_wifi_recovery.py": "10e34c97e907770571ca3a7b6b776ba217bec1a35d9380b38a209a647e6cc8b7",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/tests/phase11_5_r3_v2_browser_publication_tests.py": "d69c72bcd3105141c33bf5db325a254c365c5c6b032e64a806bba90325ad6d06",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/tests/phase11_5_r3_v2_browser_ready_tests.py": "a5add4320ba7806a444f93fd9654a36e99f28a0117f165337842b5208d3fec4c",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/tests/phase11_5_r3_v2_observer_policy_tests.py": "d4ad7d53a55a4a31386bd760fbf8053316f5b7252471cdc784a14fb734c05dbd",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-036/tests/phase11_5_r3_v2_wifi_recovery_tests.py": "b8b16c9b703ab4a5e01fe6d8891e1fee46b7e420ab6f5eb48f6fd33c6bee179c"
+  }
+}

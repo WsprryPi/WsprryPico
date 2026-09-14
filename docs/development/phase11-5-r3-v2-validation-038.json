@@ -1,0 +1,35 @@
+{
+  "checkpoint": "v2-038",
+  "recorded_utc": "2026-09-14T11:39:49.281511+00:00",
+  "status": "IDLE_RECONCILIATION_INDEPENDENTLY_VERIFIED",
+  "physical_r3_groups_newly_closed": 0,
+  "result_file": "docs/development/phase11-5-r3-v2-r1-result.json",
+  "result_sha256": "3bc6bfcdfd9b0e8a09334e279305fddbf11a8c91864eac852eac8ac2a7c64d79",
+  "validated_assertions": [
+    "One idle CLAIM/RELEASE; final Empty/inactive/unowned",
+    "Terminal history and configuration/RF counters preserved",
+    "Four removed-evidence mutations rejected; intact evidence passed again"
+  ],
+  "limitations": [
+    "Zero-RF reconciliation only"
+  ],
+  "evidence_artifacts": {
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/docs/protocol/wtp-1.schema.json": "fae1a7f94adb875733f47f22438a0811a3ab7fd9e4b8477780aea77cad62c8a8",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/scripts/audit_phase11_5_idle.py": "487d93ecb7758fc5b665f49c819ce85d19d55b2beab644fdb97214df5e20f064",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/scripts/audit_phase11_5_r3_v2_reconcile.py": "5bfeb02b5bf7aa66700a9c45b813113817e66a3d8ed1cb67a692b8c78445d44d",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/scripts/phase11_5_device_management.py": "3f3fa78cd17c170b35aa591f29ec77770b26b31b0effeccc4e11e9372530fd5d",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/scripts/phase11_5_inventory.py": "dcef778c18a10a0fc20bbb13fa2b07cc690c9d1c9ab8fe05a29af60a6d0483df",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/scripts/phase11_5_network_fixture.py": "a09338f6c83647a876dfdf05d1cd495e405e188468def1081b2d325fc84361ac",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/scripts/phase11_5_pilot.py": "bb91dc6fea9fb10e7564252810b534979a1f28b36de132745d100f388c3003c4",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/scripts/phase11_5_pilot_supervisor.py": "dbf97a316ebe02eb27f90d838ce70c468b75abc38749a7af3f6911beab8dd9e7",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/scripts/phase11_5_r2_amended_plan.py": "a28672abb2703ee1fee2a49e5dfb5ed81347a6d3172584966c4ba4d568a5f679",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/scripts/phase11_5_r2_upload_plan.py": "734d86758b7870aea761f9637a3861904b755e6e333b2a8855377815aeed969a",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/scripts/phase11_5_r3_capacity_plan.py": "222a21b907724ccc918336d34217eeb22f87c03a9fd89ab31ad3350764ae15a4",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/scripts/phase11_5_r3_preflight.py": "637741fa271719beb4c3a764af2d88ea0ca4cd0b8cda3094f86167e0f64822e7",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/scripts/phase11_5_r3_v2_reconcile.py": "61c7a09af3b3b7a17ccef38fa1f365e571890881645bb6c5865c1cb3147c761d",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/scripts/phase11_5_r3_v2_rf.py": "5938c05feb346f7e22ca7b9feb15e9d33ab75336ffd59332e3e189b2cb718e1c",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-038/tests/phase11_5_r3_v2_reconcile_audit_tests.py": "47ad526eb8273e37485d8be405b205c57001a123fc392705e9f291a72bf2a878"
+  }
+}

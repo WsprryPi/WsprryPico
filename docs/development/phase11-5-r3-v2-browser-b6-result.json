@@ -1,0 +1,53 @@
+{
+  "status": "B6_ZERO_RF_STATIC_PAGE_REFUSAL_VERIFIED",
+  "packet_sha256": "2f1d5f744042fa65923d21e8d26e0f25d1ce614c52cfdb39b0a7cb3adc8adc91",
+  "rf_jobs": 0,
+  "classification": "FIRMWARE_STATIC_ASSET_ADMISSION_REFUSAL",
+  "original_harness_error": "UI/observer condition deadline",
+  "boot_id": "2d34c532eb46a11a6b2cede5eae8f796",
+  "source_revision": "f5502cff9fa6b56747b2e1b1036a77fc0e270f6f",
+  "image_sha256": "a71447e8fe00c023a106ac682f4b11cf8e9e7d93cabb7b5868da10025e2cd5a2",
+  "final_authority": {
+    "boot_id": "2d34c532eb46a11a6b2cede5eae8f796",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": [
+      {
+        "job_id": "85b3a634f44a43a5b89027f883d88dd6",
+        "state": "aborted",
+        "ended_monotonic_ns": "1655174926000",
+        "output_active": false
+      },
+      {
+        "job_id": "35250e73a194432aa90e24110a18110b",
+        "state": "complete",
+        "ended_monotonic_ns": "533307233000",
+        "output_active": false
+      },
+      {
+        "job_id": "4ddf69105c2c5f00fd8af36ca4665887",
+        "state": "aborted",
+        "ended_monotonic_ns": "6620077000",
+        "output_active": false
+      }
+    ]
+  },
+  "cadence": {
+    "info": {
+      "samples": 49,
+      "max_start_gap_ns": 1000269105
+    },
+    "status": {
+      "samples": 10,
+      "max_start_gap_ns": 5000081157
+    },
+    "health": {
+      "samples": 10,
+      "max_start_gap_ns": 5000094268
+    }
+  },
+  "certificate_pin_observation": "NOT_REACHED",
+  "family_closed": false
+}

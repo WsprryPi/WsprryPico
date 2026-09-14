@@ -7,6 +7,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from phase11_5_r3_v2_rf import fresh_sample, guarded_action
 
 class ObserverRaceTests(unittest.TestCase):
+    def test_c1_completed_or_bounded_inflight_guard_is_prospective(self):
+        identity=dict(packet_sha256='packet',pid=555148,pid_start_ticks='ticks')
+        samples={'info':(341965681530206,'recorded prior INFO')};lock=threading.Lock()
+        inflight={'info':dict(identity,monotonic_ns=341966504024721,value={'hex':b'INFO\n'.hex()})}
+        now=lambda:341967858240262
+        with self.assertRaises(ValueError):fresh_sample(samples,lock,'info',2_000_000_000,now)
+        self.assertEqual(fresh_sample(samples,lock,'info',2_000_000_000,now,identity=identity,inflight=inflight),
+                         'recorded prior INFO')
+        for pending in [None,{'info':dict(inflight['info'],pid=0)},
+                        {'info':dict(inflight['info'],monotonic_ns=341960000000000)}]:
+            with self.assertRaises(ValueError):
+                fresh_sample(samples,lock,'info',2_000_000_000,now,identity=identity,inflight=pending)
     def test_publication_is_read_after_writer_releases_lock(self):
         # The writer has journaled a fresh INFO but is still flushing it. The
         # stale previous tuple must not escape before the publication completes.

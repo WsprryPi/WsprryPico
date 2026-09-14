@@ -1,0 +1,53 @@
+{
+  "checkpoint": "v2-040",
+  "recorded_utc": "2026-09-14T12:07:36.445085+00:00",
+  "status": "N0_NATIVE_QRSS_COMPLETION_WITH_HARNESS_FAILURE_VERIFIED",
+  "physical_r3_groups_newly_closed": 0,
+  "result_file": "docs/development/phase11-5-r3-v2-native-n0-result.json",
+  "result_sha256": "c56ef8d604efa2100f8abc3af2e6a513197db77fcf8e55dc4b8b908a147ea83b",
+  "validated_assertions": [
+    "Actual native QRSS compiler LOAD and one acknowledged ARM",
+    "143.250000-second completion with exact DMA/launch/tail counters and sampled refill/timing gates",
+    "600 INFO / 120 STATUS / 120 health observations; final Empty/inactive/unowned"
+  ],
+  "limitations": [
+    "Producer treated the next hourly queued job as a foreign job before the five-second USB completion publication arrived",
+    "Native FSKCW and DFCW transport loss remain open"
+  ],
+  "evidence_artifacts": {
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/build/phase11-5-r3-v2-handoff-resume/native-n0-mutations.log": "930226d19d6965b193b867c2d65f78e4ff0810431103569fcbfdc90985011b60",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/docs/protocol/wtp-1.schema.json": "fae1a7f94adb875733f47f22438a0811a3ab7fd9e4b8477780aea77cad62c8a8",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/audit_phase11_5_idle.py": "487d93ecb7758fc5b665f49c819ce85d19d55b2beab644fdb97214df5e20f064",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/audit_phase11_5_load.py": "4e335be30cb615e34467ac54ea7aa725a636c86cc47831044960de25cb4261be",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/audit_phase11_5_r1.py": "e9bb9d1d687949e82cfafd365eb7944b97c5d7530f546e0520240eed05dbb817",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/audit_phase11_5_r2_modes.py": "dd12df797749b31437c792e5fb55caa201a513b226ce7fb10570623a82f109ec",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/audit_phase11_5_r3_v2_browser_observer.py": "a35de811e86865efe5e82694c537218f3994b59c79c007f05bf583d7d7efabe9",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/audit_phase11_5_r3_v2_hour.py": "ff0e2c1bb630059aa4ae302f2e5f1309587db14ab0bf0a9755177569ecb44a0e",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/audit_phase11_5_r3_v2_native.py": "59b45b08c40c182c8a1fb2106326646ba06df8ab77671c2a69dc423cb063d953",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/audit_phase11_5_r3_v2_rf.py": "223a2c40bf528fcc4d081cf86afac4c0a58b848e20cd7044d028f6c7de4c23d8",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_device_fixture.py": "03089505dc25b49637660fce15a2e6337410237b172cc3af6c508e94bdb4224b",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_device_management.py": "3f3fa78cd17c170b35aa591f29ec77770b26b31b0effeccc4e11e9372530fd5d",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_f1_plan.py": "e568e285b856691b5d5c4e53937378aca30e8fa7b5638d75a45804b76376c03a",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_inventory.py": "dcef778c18a10a0fc20bbb13fa2b07cc690c9d1c9ab8fe05a29af60a6d0483df",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_network_fixture.py": "a09338f6c83647a876dfdf05d1cd495e405e188468def1081b2d325fc84361ac",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_pilot.py": "bb91dc6fea9fb10e7564252810b534979a1f28b36de132745d100f388c3003c4",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_pilot_supervisor.py": "dbf97a316ebe02eb27f90d838ce70c468b75abc38749a7af3f6911beab8dd9e7",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_r1.py": "e171de2f85387a808046b661b138e86935e8d4befd86b07ff169c170cc37aa32",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_r2_amended_plan.py": "a28672abb2703ee1fee2a49e5dfb5ed81347a6d3172584966c4ba4d568a5f679",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_r2_modes_plan.py": "2ed53fc77b80cbbee9d7fa53bf8ba3d96928bc2a5229104cc0fc7317ccbb1d0b",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_r2_upload_plan.py": "734d86758b7870aea761f9637a3861904b755e6e333b2a8855377815aeed969a",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_r3_capacity_plan.py": "222a21b907724ccc918336d34217eeb22f87c03a9fd89ab31ad3350764ae15a4",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_r3_preflight.py": "637741fa271719beb4c3a764af2d88ea0ca4cd0b8cda3094f86167e0f64822e7",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_r3_v2_arm_mapping.py": "3c03d32f1235e65cd9935bc32abf375bad98a9facdf64e28721badc4d3a02fc4",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_r3_v2_native_observer.py": "7d097999d7feebd9099d00ee97e74f2788e76bdabdc8e6f131c303b5e471b72e",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_r3_v2_native_plan.py": "7ae3f2f4ff5110979600fc4efb9f654fe7f4e1ad23c48bfc0aae4fe05cdd7bce",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_r3_v2_observer_policy.py": "0c4e7f8f8e2511f0f220cb65728cbe2bc6999aa061b478cc99e689fb0e572932",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/phase11_5_r3_v2_rf.py": "5938c05feb346f7e22ca7b9feb15e9d33ab75336ffd59332e3e189b2cb718e1c",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/tests/phase11_5_r3_v2_arm_mapping_tests.py": "e0b5c1c8cda6f3e3dea74ed5ed02b1c3b1e2a7711d5348b3f585590dfd2654f8",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/tests/phase11_5_r3_v2_native_audit_tests.py": "60db81d69c473e0429c2301d3ee2bc0679e0cec5df8bed9ed50d6dea5e17d9dd",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/tests/phase11_5_r3_v2_native_loss_tests.py": "258b4d5ed1d8249c73de27cad26097d2eb8c074e55ac26ca39c61a32b97f5b8a",
+    "build/phase11-5-r3-v2-checkpoints/checkpoint-040/tests/phase11_5_r3_v2_native_plan_tests.py": "1eeb146e747605fdcc72630d7d011a274baf0089071bf3974c1c6c177d40d542"
+  }
+}

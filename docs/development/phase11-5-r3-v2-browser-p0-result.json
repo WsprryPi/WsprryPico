@@ -1,0 +1,9 @@
+{
+  "status": "P0_AUTHENTICATED_GET_ONLY_BROWSER_VERIFIED",
+  "packet_sha256": "dcdbdb5dbba70ac47ab3c9f691926940d8b484c0f5752106224205e39b13be4c",
+  "rf_jobs": 0,
+  "authenticated_gets": 4,
+  "document_sha256": "c2e866fdc8e26efbafeb87a94452d20db8ba83d3cdef4bfe6a70db330771f9b9",
+  "boot_id": "fc90d1a04eb0acc703de907917277921",
+  "family_closed": false
+}

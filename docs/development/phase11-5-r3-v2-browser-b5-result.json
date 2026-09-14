@@ -1,0 +1,38 @@
+{
+  "status": "B5_ARMED_CANCELLATION_WITH_HARNESS_FAILURE_VERIFIED",
+  "family_closed": false,
+  "packet_sha256": "05e1e318b504e3c20e7fb0b233ba42663f52bfd55983e35b1a56f05ced449c80",
+  "source_revision": "f5502cff9fa6b56747b2e1b1036a77fc0e270f6f",
+  "image_sha256": "a71447e8fe00c023a106ac682f4b11cf8e9e7d93cabb7b5868da10025e2cd5a2",
+  "boot_id": "2d34c532eb46a11a6b2cede5eae8f796",
+  "rf_jobs_charged": 1,
+  "rf_duration_ns_charged": 143250001000,
+  "cases": [
+    {
+      "kind": "armed-abort",
+      "job_id": "85b3a634f44a43a5b89027f883d88dd6",
+      "result": "aborted",
+      "planned_duration_ns": "143250001000",
+      "timing": null
+    }
+  ],
+  "cadence": {
+    "info": {
+      "samples": 900,
+      "max_start_gap_ns": 1000126187
+    },
+    "status": {
+      "samples": 180,
+      "max_start_gap_ns": 5000073341
+    },
+    "health": {
+      "samples": 180,
+      "max_start_gap_ns": 5000098100
+    }
+  },
+  "reused_browser_audit_sha256": "7ddd6632414f01a230e149630ef81e4978bae8579cab1689e32c47f105a94b65",
+  "rendered_checkpoints": 16,
+  "rendered_visual_review": "REQUIRED_SEPARATELY",
+  "network_requests": 16,
+  "maximum_allocator_peak_bytes": 162156
+}

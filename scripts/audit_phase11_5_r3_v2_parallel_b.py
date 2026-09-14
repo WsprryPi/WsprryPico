@@ -12,6 +12,7 @@ from phase11_5_r3_v2_parallel_b_plan import B_SERIAL, B_DEVICE, SOURCE, PEER_SHA
 from validate_wtp_contract import SchemaValidator
 from phase11_5_r3_v2_parallel_b_deploy import validate as validate_deployment
 from phase11_5_r3_v2_parallel_b_repair import validate as validate_repair, SCHEMA as REPAIR_SCHEMA
+from phase11_5_r3_v2_parallel_b_paged_repair import validate as validate_paged_repair, SCHEMA as PAGED_SCHEMA
 
 
 def inventory(root, packet, name, deployed=True):
@@ -52,7 +53,7 @@ def saved(value):
 def deployment(root, expected_packet):
     require(digest(root/'packet.json')==expected_packet,'Frozen B deployment packet')
     packet=json.loads((root/'packet.json').read_text())
-    (validate_repair if packet['schema']==REPAIR_SCHEMA else validate_deployment)(packet)
+    {REPAIR_SCHEMA:validate_repair,PAGED_SCHEMA:validate_paged_repair}.get(packet['schema'],validate_deployment)(packet)
     before=inventory(root,packet,'before-b',False)
     after=inventory(root,packet,'after-flash-b');final=inventory(root,packet,'final-b')
     boot=after['wtp']['STATUS']['boot_id']
@@ -65,6 +66,10 @@ def deployment(root, expected_packet):
         require(info['recovery_boot'] is True and info['fault_stage']==5 and info['fault_hash']==3833354787 and
             info['fault_allocation_recorded'] is True and info['fault_allocation_request_bytes']==54917 and
             info['fault_allocation_returned_null'] is True,'B repair starts from confirmed BF1 fault')
+    if packet['schema']==PAGED_SCHEMA:
+        info=before['info']
+        require(info['recovery_boot'] is False and info['fault_stage']==0 and
+                int(info['allocator_failures'])==1,'B paged repair starts from confirmed safe BF2 refusal')
     trace=rows(root/'deployment.jsonl');kinds=[r['kind'] for r in trace]
     require(trace[0]['kind']=='start' and trace[0]['value']==dict(packet_sha256=expected_packet) and
             trace[-1]['kind']=='finish' and 'failure' not in kinds and
@@ -105,9 +110,18 @@ def functional(root, expected_packet):
     require(trace[0]['kind']=='start' and trace[0]['value']==dict(packet_sha256=expected_packet) and
             trace[-1]['kind']=='finish' and not any(r['kind']=='failure' for r in trace) and
             trace[-1]['monotonic_ns']-trace[0]['monotonic_ns']<=750_000_000_000,'B functional trace boundary')
-    require(all(r['kind'] in {'start','finish','http_tx','http_write_complete','http_response',
+    require(all(r['kind'] in {'start','finish','http_tx','http_connected','http_write_complete','http_response',
                              'usb_tx','usb_write','usb_rx','usb_message'} for r in trace),
             'B undeclared functional activity')
+    connected=[r['value'] for r in trace if r['kind']=='http_connected']
+    if packet.get('network_path') is not None:
+        require(packet['network_path']==dict(interface='wlan1',source_address='192.168.1.117') and
+                len(connected)==len(plan['http_cases']),'Declared B connection path count')
+        for value,case in zip(connected,plan['http_cases']):
+            require(value['label']==case['label'] and value['network_path']==packet['network_path'] and
+                    value['local'][0]=='192.168.1.117' and 0<value['local'][1]<=65535 and
+                    value['peer']==['192.168.1.53',18443],'Observed B connection path')
+    else:require(not connected,'Unexpected B network path')
     http=[];current=None
     for row in trace:
         kind,v=row['kind'],row['value']

@@ -1,0 +1,32 @@
+{
+  "status": "IDLE_RECONCILIATION_INDEPENDENTLY_VERIFIED",
+  "packet_sha256": "ff9dfbe305085cbcf113c31011cf94870a4670e86d682824f2074b359f7b2eff",
+  "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+  "image_sha256": "454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4",
+  "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+  "final_a": {
+    "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": [
+      {
+        "job_id": "6dbca0fecb3b4c48a47ae315d4764e9b",
+        "state": "complete",
+        "ended_monotonic_ns": "39727787559000",
+        "output_active": false
+      }
+    ]
+  },
+  "final_b": null,
+  "b_unchanged": null,
+  "configuration_unchanged": true,
+  "rf_counters_unchanged": true,
+  "rf_jobs": 0,
+  "claim_attempts": 1,
+  "release_attempts": 1,
+  "original_runner_status": "RECONCILED_INACTIVE_UNOWNED",
+  "preserved_finding": null,
+  "evidence_archive_sha256": "6de269c62b66cc2b2aa8c2e2765489ae275af9eb110e2b77d17c407b1c224391"
+}

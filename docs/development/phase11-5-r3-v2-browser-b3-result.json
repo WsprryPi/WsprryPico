@@ -1,0 +1,108 @@
+{
+  "status": "B3_STOPPED_COMPONENTS_VERIFIED",
+  "family_closed": false,
+  "packet_sha256": "ef0a4f7f42182001783878ce3216f08a654104ad86a593f78d0ae60cb00e4254",
+  "source_revision": "8921a70081839f168edef5926e92445f251d8e1d",
+  "boot_id": "fc90d1a04eb0acc703de907917277921",
+  "classification": "SUPPORTED_BROWSER_LOAD_HEAP_RESERVE_VIOLATION",
+  "harness_finding": "Guard-triggered stop incorrectly reported as finite-runtime expiry",
+  "peak_allocator_bytes": 194260,
+  "heap_capacity_bytes": 220348,
+  "reserve_bytes": 26088,
+  "required_reserve_bytes": 32768,
+  "allocator_failures": 0,
+  "tls_allocation_failures": 0,
+  "rf_jobs_charged": 1,
+  "rf_duration_ns_charged": 10000000000,
+  "preserved_assertions": [
+    "Three-mode 31/32/33 and spaces UI",
+    "Oversized file rejected before POST",
+    "Ten-second browser Tone complete"
+  ],
+  "complete_tone": {
+    "job_id": "742fb1bda892ba244c91e87f1eb6b3bf",
+    "mode": "tone",
+    "epoch": 5,
+    "expected_counter_deltas": {
+      "dma_irqs": 2634,
+      "alarm_irqs": 1,
+      "tail_irqs": 1,
+      "running_successor_links": 2632,
+      "refill_irq_pairs": 2632,
+      "running_tail_links": 1
+    },
+    "duration_ns": 10000000000,
+    "launch_target_ns": 1932805397000,
+    "post_enable_delay_ns": 8000,
+    "short_words": 2312,
+    "short_interval_ns": 536115.9420289855,
+    "short_75_percent_budget_ns": 402086.95652173914,
+    "cumulative_worst_short": {
+      "measured": true,
+      "observations": 5,
+      "epoch": "4",
+      "successor_sequence": "39483",
+      "observed_ns": "1104891706000",
+      "remaining_words": 1475,
+      "total_words": 1912
+    }
+  },
+  "completed_prefix_samples": {
+    "info": 46,
+    "status": 10,
+    "health": 10
+  },
+  "final_authority": {
+    "boot_id": "fc90d1a04eb0acc703de907917277921",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": [
+      {
+        "job_id": "a56895fcd1b246ebaf43595089df38f1",
+        "state": "aborted",
+        "ended_monotonic_ns": "1980287800000",
+        "output_active": false
+      },
+      {
+        "job_id": "742fb1bda892ba244c91e87f1eb6b3bf",
+        "state": "complete",
+        "ended_monotonic_ns": "1942805606000",
+        "output_active": false
+      },
+      {
+        "job_id": "511733cbaf50f21ddce24b4426454218",
+        "state": "complete",
+        "ended_monotonic_ns": "1104892678000",
+        "output_active": false
+      },
+      {
+        "job_id": "055291e96e6bf5e70ef04eb1fd10381b",
+        "state": "complete",
+        "ended_monotonic_ns": "924885157000",
+        "output_active": false
+      },
+      {
+        "job_id": "7677571d46f4c014de5c0af84bab1237",
+        "state": "complete",
+        "ended_monotonic_ns": "521240542000",
+        "output_active": false
+      },
+      {
+        "job_id": "d0f3d2bada2d84266718ad429133fd37",
+        "state": "complete",
+        "ended_monotonic_ns": "391232566000",
+        "output_active": false
+      },
+      {
+        "job_id": "93fdeb00471569811357d5742f039999",
+        "state": "aborted",
+        "ended_monotonic_ns": "6243355000",
+        "output_active": false
+      }
+    ]
+  },
+  "full_browser_pass": false,
+  "visual_review": "REQUIRED_SEPARATELY"
+}

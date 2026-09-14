@@ -207,3 +207,133 @@ def audit(root, decoder):
         source_of_completion='Raw authenticated native WTP and independent Console counters; original RF runner remains failed',
         limitations=['No full-run USB observer credit', 'No saturation or reclamation closure',
                      'Source-impact assessment required for later firmware changes'])
+
+
+def audit_c1(root, decoder):
+    """Score C1's completed capacity component, retaining its exact guard failure."""
+    from phase11_5_r3_v2_observer_policy import validate_intervals
+    frozen='3c8cea4f50a1e78b62cbb300846f05555360e8e0c91b467c694505b66fc8e3cf'
+    require(digest(root/'packet.json')==frozen,'Only frozen C1 component')
+    packet=json.loads((root/'packet.json').read_text());validate(packet)
+    job,=packet['jobs']
+    require(len(job['events'])==512 and job['total_duration_ns']=='384000000000','C1 capacity/duration')
+    inventories=[]
+    for label in ['before-a','final-a']:
+        value=audit_inventory(root/(label+'.stdout'),dict(serial=SERIAL,device_id=DEVICE),
+            packet['inventory_session'],packet['stage_sha256']['scripts/phase11_5_inventory.py'])
+        require(not (root/(label+'.stderr')).read_bytes(),'Inventory stderr')
+        s=value['wtp']['STATUS']
+        require(s['boot_id']==packet['boot_id'] and s['output_active'] is False and s['owner_id'] is None and
+            s['state']==('empty' if label=='before-a' else 'complete') and
+            s['job_id']==(None if label=='before-a' else job['job_id']),'C1 final/initial authority')
+        inventories.append(value)
+    before,final=inventories
+    require(configuration(before)==configuration(final),'C1 configuration preserved')
+    for v in inventories:validate_info(v['info'],before,packet)
+    rows=journal(root/'rf.jsonl')
+    require(rows[0]['value']==dict(packet_sha256=frozen,baseline_sha256=digest(root/'before-a.stdout'),
+        boot_id=packet['boot_id'],seconds=480),'C1 raw identity')
+    failure,=[r for r in rows if r['kind']=='failure']
+    require(failure['sequence']==3413 and failure['monotonic_ns']==341967858240262 and failure['value']==dict(
+        worker='wtp action',error='Fresh INFO required: age_ns=2176692630, limit_ns=2000000000',type='ValueError'),
+        'Exact C1 failed guard retained')
+    allowed={'start','finish','console_tx','console_rx','wtp_tx','wtp_rx','wtp_message','info','status','health',
+        'info_finish','status_finish','health_finish','arm_pending','arm_acknowledged','contention_starting','failure'}
+    require(all(r['kind'] in allowed for r in rows),'Unexpected C1 activity')
+    samples,exchanges,events=raw_observations(rows,before,packet)
+    mutation=[e for e in exchanges if e['request']['op'] not in ['HELLO','STATUS','GET_CLOCK']]
+    require([e['request']['op'] for e in mutation]==['CLAIM','LOAD','ARM','RENEW'] and
+        all(e['finished_ns']<failure['monotonic_ns'] for e in mutation),'Single finite ARM; mutations stopped')
+    claim,load,arm,renew=mutation
+    require(load['request']['body']==job and all(e['request']['body']==dict(owner_id=packet['owner_id'],lease_ms=60000)
+        for e in [claim,renew]),'Actual maximum job and owner')
+    pending,=[r for r in rows if r['kind']=='arm_pending'];ack,=[r for r in rows if r['kind']=='arm_acknowledged']
+    q,a=arm['request']['body'],arm['response']['body']
+    require(pending['value']==dict(job=job,start_utc_ns=q['start_utc_ns']) and ack['value']==a and
+        pending['monotonic_ns']<=arm['started_ns']<=arm['finished_ns']<=ack['monotonic_ns'] and
+        q['job_id']==job['job_id'] and q['max_start_uncertainty_ns']=='500000000','Raw ARM charge/ACK')
+    metrics=timing(packet,[dict(job=job,start_utc_ns=q['start_utc_ns'],monotonic_ns=arm['started_ns'],
+        request=q,acknowledgment=a)],rows)
+    states=[r['value']['value'] for r in samples['status']]
+    require({'loaded','armed','running','complete'}<={s['state'] for s in states},'Full C1 lifecycle')
+    for s in states:
+        require(s['job_id'] in [None,job['job_id']] and s['owner_id'] in [None,packet['owner_id']] and
+            s['output_active'] is (s['state']=='running'),'C1 identity/output')
+        if s['state']=='running':require(s['owner_id']==packet['owner_id'],'Running owner lost')
+    records=final['wtp']['STATUS']['terminal_records'];record,=records
+    require(record==dict(job_id=job['job_id'],state='complete',output_active=False,
+        ended_monotonic_ns=record['ended_monotonic_ns']) and
+        384000000000<=int(record['ended_monotonic_ns'])-metrics[0]['launch_target_ns']<=389000000000,
+        'Actual finite terminal duration')
+    coverage={}
+    for kind,period in [('info',2_000_000_000),('status',6_000_000_000),('health',6_000_000_000)]:
+        values=samples[kind];ending,=[r for r in rows if r['kind']==kind+'_finish']
+        require(ending['value']==dict(samples=len(values)),'Full reader count')
+        starts=[r['value']['began_monotonic_ns'] for r in values]
+        if kind=='info':coverage[kind]=validate_intervals(starts,[r['monotonic_ns'] for r in values],
+            rows[0]['monotonic_ns'],ending['monotonic_ns'])
+        else:
+            require(starts[0]-rows[0]['monotonic_ns']<=period and ending['monotonic_ns']-starts[-1]<=period and
+                all(0<b-a<=period for a,b in zip(starts,starts[1:])),'C1 cadence')
+            coverage[kind]=dict(samples=len(values),maximum_start_gap_ns=max(b-a for a,b in zip(starts,starts[1:])))
+    last_info=next(r for r in reversed(samples['info']) if r['monotonic_ns']<=failure['monotonic_ns'])
+    next_info=next(r for r in samples['info'] if r['monotonic_ns']>failure['monotonic_ns'])
+    require(last_info['monotonic_ns']==341965681530206 and
+        0<=failure['monotonic_ns']-last_info['monotonic_ns']-2176692630<1_000_000 and
+        next_info['value']['began_monotonic_ns']<failure['monotonic_ns']<next_info['monotonic_ns'] and
+        next_info['monotonic_ns']-next_info['value']['began_monotonic_ns']<=5_000_000_000,
+        'Original age guard failed during bounded in-flight INFO')
+    native,native_metrics=native_wire(root,packet,decoder)
+    running=[r for r in samples['status'] if r['value']['value']['state']=='running']
+    end=next(r['monotonic_ns'] for r in samples['status'] if r['value']['value']['state']=='complete')
+    families={'native_wire':(native,6_000_000_000)}
+    load_rows=journal(root/'contention.jsonl');plan=packet['contention']
+    require(load_rows[0]['value']==dict(packet_sha256=frozen,policy=plan['policy'],binary_sha256=plan['binary_sha256']) and
+        all(r['kind'] in ['start','finish','native_status','https_status'] for r in load_rows),'Nominal provenance')
+    host=[];https=[];host_missing=[]
+    for r in load_rows:
+        k,v=r['kind'],r['value']
+        if k not in ['native_status','https_status']:continue
+        raw=bytes.fromhex(v['body_hex']);body=json.loads(raw)
+        require(0<=r['monotonic_ns']-v['began_monotonic_ns']<=(3 if k=='native_status' else 15)*10**9,'HTTP deadline')
+        if k=='https_status':
+            expected=f'GET /api/v1/status HTTP/1.1\r\nHost: {NAME}:18443\r\nConnection: close\r\n\r\n'.encode()
+            require(bytes.fromhex(v['request_hex'])==expected and v['status']==200 and v['peer_sha256']==PEER and
+                int(dict((k.lower(),v) for k,v in v['headers'])['content-length'])==len(raw) and
+                body['transport']['active']==2 and body['transport']['pending']==0,'Authenticated concurrent HTTPS')
+            dest=https
+        else:
+            require(body==v['value'],'Native HTTP raw/summary')
+            ident=body.get('host',{}).get('identity')
+            if ident is None:continue
+            require(ident['device_id']==DEVICE and ident['boot_id']==packet['boot_id'],'Native HTTP identity');dest=host
+        if body['job'] is None:
+            require(k=='native_status','Missing HTTPS authority');host_missing.append(r['monotonic_ns']);continue
+        dest.append(dict(began=v['began_monotonic_ns'],ended=r['monotonic_ns'],value=body['job']))
+    # Native wire supplies authority; preserve nullable host HTTP publication separately.
+    families.update(https=(https,21_000_000_000))
+    for name,(values,period) in families.items():
+        coverage[name]=cadence(values,period,arm['started_ns'],end)
+        active=[v for v in values if v['value']['state']=='running']
+        require(active and active[-1]['ended']-active[0]['began']>=384000000000-2*period,'Full RF nominal overlap')
+        for v in values:
+            s=v['value'];require(s['boot_id']==packet['boot_id'] and s['job_id'] in [None,job['job_id']] and
+                s['owner_id'] in [None,packet['owner_id']] and s['output_active'] is (s['state']=='running'),'Nominal authority')
+            if running[0]['monotonic_ns']+period<=v['began'] and v['ended']<=running[-1]['monotonic_ns']-period:
+                require(s['state']=='running' and s['owner_id']==packet['owner_id'],'Nominal RF continuity')
+    lr=json.loads((root/'contention-result.json').read_text())
+    require(lr==load_rows[-1]['value']==dict(status='CAPTURED_REQUIRES_AUDIT',https_requests=len(https),native_exit=0) and
+        len(https)<=plan['maximum_https_requests'],'Native orderly finish/budget')
+    result=json.loads((root/'rf-result.json').read_text())
+    require(result==rows[-1]['value']==dict(status='STOPPED_FINAL_STATE_UNVERIFIED',armed_jobs=[job['job_id']],
+        completed_jobs=[],renewals=1,rf_duration_ns_charged=384000000000,**{'final-a-error':'Inactive/unowned admission'},
+        faults=['wtp action: '+failure['value']['error']]),'Original failed C1 result retained')
+    return dict(status='C1_MAXIMUM_EVENT_COMPLETION_WITH_NOMINAL_CONTENTION_VERIFIED',family_closed=False,
+        original_runner_status='FAILED',failure_classification='Confirmed harness expectation defect',failure=failure,
+        packet_sha256=frozen,source_revision=packet['source_revision'],image_sha256=packet['image_sha256'],
+        boot_id=packet['boot_id'],jobs=metrics,coverage=coverage,native=native_metrics,https_requests=len(https),
+        terminal_record=record,maximum_events=512,rf_duration_ns_charged=384000000000,
+        native_http_missing_job_publications=host_missing,native_http_authority_credit=False,
+        maximum_allocator_peak_bytes=max(r['value']['value']['allocator_peak_bytes'] for r in samples['info']),
+        maximum_heap_allocated_bytes=max(r['value']['value']['heap_allocated_bytes'] for r in samples['info']),
+        limitations=['No maximum WTP/HTTP body or USB pressure claim','No retention/reclamation closure'])

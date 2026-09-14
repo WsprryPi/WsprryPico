@@ -1,0 +1,108 @@
+{
+  "status": "N0_NATIVE_QRSS_COMPLETION_WITH_HARNESS_FAILURE_VERIFIED",
+  "family_closed": false,
+  "packet_sha256": "2a3d8c11635c48dda176c006b668bc1286114bdb7398791c12be96cbc83ab029",
+  "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+  "image_sha256": "454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4",
+  "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+  "native_source_revision": "bba4024ec310589b9f4813e9c6fb3082836e726f",
+  "native_binary_sha256": "b184cfba8b72a2cb73def207ab01792c5eaaae033607a926593dbad1e91cf124",
+  "mode": "qrss",
+  "job_id": "9df722202f3930350000000000000001",
+  "session_id": "843654b8e0c9f2172bbe9297efffa412",
+  "rf_jobs_charged": 1,
+  "rf_duration_ns_charged": 143250000000,
+  "timing": {
+    "job_id": "9df722202f3930350000000000000001",
+    "mode": "qrss",
+    "epoch": 4,
+    "expected_counter_deltas": {
+      "dma_irqs": 37707,
+      "alarm_irqs": 1,
+      "tail_irqs": 1,
+      "running_successor_links": 37705,
+      "refill_irq_pairs": 37705,
+      "running_tail_links": 1
+    },
+    "duration_ns": 143250000000,
+    "launch_target_ns": 41887023939000,
+    "post_enable_delay_ns": 7000,
+    "short_words": 6905,
+    "short_interval_ns": 1601159.420289855,
+    "short_75_percent_budget_ns": 1200869.5652173914,
+    "cumulative_worst_short": {
+      "measured": true,
+      "observations": 3,
+      "epoch": "4",
+      "successor_sequence": "37706",
+      "observed_ns": "42030272437000",
+      "remaining_words": 6511,
+      "total_words": 6905
+    }
+  },
+  "cadence": {
+    "info": {
+      "samples": 600,
+      "max_start_gap_ns": 1000911855,
+      "max_roundtrip_ns": 229123914,
+      "policy": "single-flight-info-v1"
+    },
+    "status": {
+      "samples": 120,
+      "max_start_gap_ns": 5000048011
+    },
+    "health": {
+      "samples": 120,
+      "max_start_gap_ns": 5000087179
+    }
+  },
+  "wire_operations": {
+    "ARM": 1,
+    "CAPS": 1,
+    "CLAIM": 1,
+    "GET_CLOCK": 1,
+    "HELLO": 1,
+    "LOAD": 1,
+    "RELEASE": 1,
+    "RENEW": 4,
+    "STATUS": 645
+  },
+  "final_authority": {
+    "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": [
+      {
+        "job_id": "9df722202f3930350000000000000001",
+        "state": "complete",
+        "ended_monotonic_ns": "42030274136000",
+        "output_active": false
+      },
+      {
+        "job_id": "c5ec4d9753d0466c853494c85dd0aa27",
+        "state": "aborted",
+        "ended_monotonic_ns": "40982567917000",
+        "output_active": false
+      },
+      {
+        "job_id": "6dbca0fecb3b4c48a47ae315d4764e9b",
+        "state": "complete",
+        "ended_monotonic_ns": "39727787559000",
+        "output_active": false
+      }
+    ]
+  },
+  "evidence_archive_sha256": "2bb2b490163dc7fdeeeb2239de7996a36031eb73926468cb71c6759c8f454916",
+  "classification": "CONFIRMED_HARNESS_DEFECT",
+  "failure": "Producer treated the next hourly queued job as a foreign job before the five-second USB completion publication arrived",
+  "preserved_runner_status": "FAILED",
+  "native_submission_assertion": "PASS",
+  "adversarial_missing_evidence_rejected": 9,
+  "constraints": [
+    "Exactly one native CLAIM/LOAD/ARM/RELEASE; no second submission",
+    "Later queued job remained beyond packet runtime",
+    "Native process exited 0; full observer interval and final authority audited"
+  ]
+}

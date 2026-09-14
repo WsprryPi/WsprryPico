@@ -1,0 +1,987 @@
+{
+  "status": "B8_FINITE_COMPLETION_WITH_PUBLICATION_HARNESS_FAILURE_VERIFIED",
+  "family_closed": false,
+  "packet_sha256": "1b0d44f5215c2e6580f8c2bd6ec25b72eb6d9ef76e8c9e85067b2b0dce1e1966",
+  "source_revision": "a740dbb8e7319beb20c4807b35f6672bf9fdfd27",
+  "image_sha256": "454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4",
+  "boot_id": "2b4583bd3d79a38f030a08c82ed96939",
+  "rf_jobs_charged": 1,
+  "rf_duration_ns_charged": 155750001000,
+  "cases": [
+    {
+      "kind": "running-abort",
+      "job_id": "6dbca0fecb3b4c48a47ae315d4764e9b",
+      "result": "complete",
+      "planned_duration_ns": "155750001000",
+      "timing": null,
+      "cancellation_verified": false,
+      "missing_final_get_response": "100.12",
+      "failure_classification": "CONFIRMED_HARNESS_DEFECT",
+      "timing_acceptance": false,
+      "timing_audit_failure": "ARM UTC mapping",
+      "timing_cause": "UNRESOLVED",
+      "clock_mapping": [
+        {
+          "monotonic_now_ns": "39572520609000",
+          "sync_age_ns": "34101380000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 90341955
+        },
+        {
+          "monotonic_now_ns": "39573521146000",
+          "sync_age_ns": "35101917000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 90391982
+        },
+        {
+          "monotonic_now_ns": "39574520434000",
+          "sync_age_ns": "36101205000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 90441947
+        },
+        {
+          "monotonic_now_ns": "39575520761000",
+          "sync_age_ns": "37101532000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 90491963
+        },
+        {
+          "monotonic_now_ns": "39576521152000",
+          "sync_age_ns": "38101923000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 90541983
+        },
+        {
+          "monotonic_now_ns": "39577521803000",
+          "sync_age_ns": "39102574000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 90592015
+        },
+        {
+          "monotonic_now_ns": "39578522114000",
+          "sync_age_ns": "40102885000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 90642031
+        },
+        {
+          "monotonic_now_ns": "39579521248000",
+          "sync_age_ns": "41102019000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 90691987
+        },
+        {
+          "monotonic_now_ns": "39580526648000",
+          "sync_age_ns": "42107419000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 90742257
+        },
+        {
+          "monotonic_now_ns": "39581522281000",
+          "sync_age_ns": "43103052000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 90792039
+        },
+        {
+          "monotonic_now_ns": "39582522556000",
+          "sync_age_ns": "44103327000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 90842053
+        },
+        {
+          "monotonic_now_ns": "39583524214000",
+          "sync_age_ns": "45104985000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 90892136
+        },
+        {
+          "monotonic_now_ns": "39584522666000",
+          "sync_age_ns": "46103437000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 90942058
+        },
+        {
+          "monotonic_now_ns": "39585523960000",
+          "sync_age_ns": "47104731000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 90992123
+        },
+        {
+          "monotonic_now_ns": "39586523268000",
+          "sync_age_ns": "48104039000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 91042088
+        },
+        {
+          "monotonic_now_ns": "39587524806000",
+          "sync_age_ns": "49105577000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 91092165
+        },
+        {
+          "monotonic_now_ns": "39588522943000",
+          "sync_age_ns": "50103714000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 91142072
+        },
+        {
+          "monotonic_now_ns": "39589523335000",
+          "sync_age_ns": "51104106000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 91192092
+        },
+        {
+          "monotonic_now_ns": "39590526114000",
+          "sync_age_ns": "52106885000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 91242231
+        },
+        {
+          "monotonic_now_ns": "39591524692000",
+          "sync_age_ns": "53105463000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 91292160
+        },
+        {
+          "monotonic_now_ns": "39592524489000",
+          "sync_age_ns": "54105260000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 91342149
+        },
+        {
+          "monotonic_now_ns": "39593522958000",
+          "sync_age_ns": "55103729000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 91392073
+        },
+        {
+          "monotonic_now_ns": "39594524377000",
+          "sync_age_ns": "56105148000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 91442144
+        },
+        {
+          "monotonic_now_ns": "39595523517000",
+          "sync_age_ns": "57104288000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 91492101
+        },
+        {
+          "monotonic_now_ns": "39596522872000",
+          "sync_age_ns": "58103643000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 91542069
+        },
+        {
+          "monotonic_now_ns": "39597524214000",
+          "sync_age_ns": "59104985000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 91592136
+        },
+        {
+          "monotonic_now_ns": "39598523713000",
+          "sync_age_ns": "60104484000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 91642111
+        },
+        {
+          "monotonic_now_ns": "39599526395000",
+          "sync_age_ns": "61107166000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 91692245
+        },
+        {
+          "monotonic_now_ns": "39600524381000",
+          "sync_age_ns": "62105152000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 91742144
+        },
+        {
+          "monotonic_now_ns": "39601524753000",
+          "sync_age_ns": "63105524000",
+          "mapping_error_ns": 0,
+          "allowed_ns": 91792163
+        },
+        {
+          "monotonic_now_ns": "39602524163000",
+          "sync_age_ns": "97133000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 7768743
+        },
+        {
+          "monotonic_now_ns": "39603524853000",
+          "sync_age_ns": "1097823000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 7818778
+        },
+        {
+          "monotonic_now_ns": "39604526128000",
+          "sync_age_ns": "2099098000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 7868841
+        },
+        {
+          "monotonic_now_ns": "39605524306000",
+          "sync_age_ns": "3097276000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 7918750
+        },
+        {
+          "monotonic_now_ns": "39606524670000",
+          "sync_age_ns": "4097640000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 7968768
+        },
+        {
+          "monotonic_now_ns": "39607526432000",
+          "sync_age_ns": "5099402000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8018857
+        },
+        {
+          "monotonic_now_ns": "39608526678000",
+          "sync_age_ns": "6099648000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8068869
+        },
+        {
+          "monotonic_now_ns": "39609524679000",
+          "sync_age_ns": "7097649000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8118769
+        },
+        {
+          "monotonic_now_ns": "39610524541000",
+          "sync_age_ns": "8097511000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8168762
+        },
+        {
+          "monotonic_now_ns": "39611525663000",
+          "sync_age_ns": "9098633000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8218818
+        },
+        {
+          "monotonic_now_ns": "39612524855000",
+          "sync_age_ns": "10097825000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8268778
+        },
+        {
+          "monotonic_now_ns": "39613526379000",
+          "sync_age_ns": "11099349000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8318854
+        },
+        {
+          "monotonic_now_ns": "39614524595000",
+          "sync_age_ns": "12097565000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8368765
+        },
+        {
+          "monotonic_now_ns": "39615524965000",
+          "sync_age_ns": "13097935000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8418783
+        },
+        {
+          "monotonic_now_ns": "39616525285000",
+          "sync_age_ns": "14098255000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8468799
+        },
+        {
+          "monotonic_now_ns": "39617525765000",
+          "sync_age_ns": "15098735000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8518823
+        },
+        {
+          "monotonic_now_ns": "39618526124000",
+          "sync_age_ns": "16099094000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8568841
+        },
+        {
+          "monotonic_now_ns": "39619525527000",
+          "sync_age_ns": "17098497000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8618811
+        },
+        {
+          "monotonic_now_ns": "39620526163000",
+          "sync_age_ns": "18099133000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8668843
+        },
+        {
+          "monotonic_now_ns": "39621526305000",
+          "sync_age_ns": "19099275000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8718850
+        },
+        {
+          "monotonic_now_ns": "39622526689000",
+          "sync_age_ns": "20099659000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8768869
+        },
+        {
+          "monotonic_now_ns": "39623526165000",
+          "sync_age_ns": "21099135000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8818843
+        },
+        {
+          "monotonic_now_ns": "39624525395000",
+          "sync_age_ns": "22098365000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8868805
+        },
+        {
+          "monotonic_now_ns": "39625525752000",
+          "sync_age_ns": "23098722000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8918823
+        },
+        {
+          "monotonic_now_ns": "39626526064000",
+          "sync_age_ns": "24099034000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 8968838
+        },
+        {
+          "monotonic_now_ns": "39627526552000",
+          "sync_age_ns": "25099522000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9018863
+        },
+        {
+          "monotonic_now_ns": "39628527743000",
+          "sync_age_ns": "26100713000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9068922
+        },
+        {
+          "monotonic_now_ns": "39629528564000",
+          "sync_age_ns": "27101534000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9118963
+        },
+        {
+          "monotonic_now_ns": "39630526589000",
+          "sync_age_ns": "28099559000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9168864
+        },
+        {
+          "monotonic_now_ns": "39631525992000",
+          "sync_age_ns": "29098962000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9218835
+        },
+        {
+          "monotonic_now_ns": "39632527549000",
+          "sync_age_ns": "30100519000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9268912
+        },
+        {
+          "monotonic_now_ns": "39633526602000",
+          "sync_age_ns": "31099572000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9318865
+        },
+        {
+          "monotonic_now_ns": "39634528329000",
+          "sync_age_ns": "32101299000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9368951
+        },
+        {
+          "monotonic_now_ns": "39635526475000",
+          "sync_age_ns": "33099445000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9418859
+        },
+        {
+          "monotonic_now_ns": "39636528139000",
+          "sync_age_ns": "34101109000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9468942
+        },
+        {
+          "monotonic_now_ns": "39637526874000",
+          "sync_age_ns": "35099844000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9518879
+        },
+        {
+          "monotonic_now_ns": "39638526357000",
+          "sync_age_ns": "36099327000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9568853
+        },
+        {
+          "monotonic_now_ns": "39639529500000",
+          "sync_age_ns": "37102470000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9619010
+        },
+        {
+          "monotonic_now_ns": "39640527525000",
+          "sync_age_ns": "38100495000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9668911
+        },
+        {
+          "monotonic_now_ns": "39641530224000",
+          "sync_age_ns": "39103194000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9719046
+        },
+        {
+          "monotonic_now_ns": "39642528193000",
+          "sync_age_ns": "40101163000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9768945
+        },
+        {
+          "monotonic_now_ns": "39643528595000",
+          "sync_age_ns": "41101565000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9818965
+        },
+        {
+          "monotonic_now_ns": "39644527986000",
+          "sync_age_ns": "42100956000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9868934
+        },
+        {
+          "monotonic_now_ns": "39645527296000",
+          "sync_age_ns": "43100266000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9918900
+        },
+        {
+          "monotonic_now_ns": "39646529972000",
+          "sync_age_ns": "44102942000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 9969034
+        },
+        {
+          "monotonic_now_ns": "39647527983000",
+          "sync_age_ns": "45100953000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10018934
+        },
+        {
+          "monotonic_now_ns": "39648528517000",
+          "sync_age_ns": "46101487000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10068961
+        },
+        {
+          "monotonic_now_ns": "39649528969000",
+          "sync_age_ns": "47101939000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10118983
+        },
+        {
+          "monotonic_now_ns": "39650531963000",
+          "sync_age_ns": "48104933000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10169133
+        },
+        {
+          "monotonic_now_ns": "39651528583000",
+          "sync_age_ns": "49101553000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10218964
+        },
+        {
+          "monotonic_now_ns": "39652528328000",
+          "sync_age_ns": "50101298000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10268951
+        },
+        {
+          "monotonic_now_ns": "39653529476000",
+          "sync_age_ns": "51102446000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10319009
+        },
+        {
+          "monotonic_now_ns": "39654528985000",
+          "sync_age_ns": "52101955000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10368984
+        },
+        {
+          "monotonic_now_ns": "39655530216000",
+          "sync_age_ns": "53103186000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10419046
+        },
+        {
+          "monotonic_now_ns": "39656528460000",
+          "sync_age_ns": "54101430000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10468958
+        },
+        {
+          "monotonic_now_ns": "39657530117000",
+          "sync_age_ns": "55103087000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10519041
+        },
+        {
+          "monotonic_now_ns": "39658529178000",
+          "sync_age_ns": "56102148000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10568994
+        },
+        {
+          "monotonic_now_ns": "39659528961000",
+          "sync_age_ns": "57101931000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10618983
+        },
+        {
+          "monotonic_now_ns": "39660530236000",
+          "sync_age_ns": "58103206000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10669047
+        },
+        {
+          "monotonic_now_ns": "39661530822000",
+          "sync_age_ns": "59103792000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10719076
+        },
+        {
+          "monotonic_now_ns": "39662532106000",
+          "sync_age_ns": "60105076000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10769140
+        },
+        {
+          "monotonic_now_ns": "39663529250000",
+          "sync_age_ns": "61102220000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10818997
+        },
+        {
+          "monotonic_now_ns": "39664529385000",
+          "sync_age_ns": "62102355000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10869004
+        },
+        {
+          "monotonic_now_ns": "39665529876000",
+          "sync_age_ns": "63102846000",
+          "mapping_error_ns": 39770000,
+          "allowed_ns": 10919029
+        },
+        {
+          "monotonic_now_ns": "39666530406000",
+          "sync_age_ns": "97366000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 7877755
+        },
+        {
+          "monotonic_now_ns": "39667531841000",
+          "sync_age_ns": "1098801000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 7927827
+        },
+        {
+          "monotonic_now_ns": "39668529988000",
+          "sync_age_ns": "2096948000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 7977734
+        },
+        {
+          "monotonic_now_ns": "39669529681000",
+          "sync_age_ns": "3096641000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8027719
+        },
+        {
+          "monotonic_now_ns": "39670530634000",
+          "sync_age_ns": "4097594000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8077766
+        },
+        {
+          "monotonic_now_ns": "39671532399000",
+          "sync_age_ns": "5099359000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8127854
+        },
+        {
+          "monotonic_now_ns": "39672530411000",
+          "sync_age_ns": "6097371000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8177755
+        },
+        {
+          "monotonic_now_ns": "39673530347000",
+          "sync_age_ns": "7097307000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8227752
+        },
+        {
+          "monotonic_now_ns": "39674530261000",
+          "sync_age_ns": "8097221000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8277748
+        },
+        {
+          "monotonic_now_ns": "39675530683000",
+          "sync_age_ns": "9097643000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8327769
+        },
+        {
+          "monotonic_now_ns": "39676532118000",
+          "sync_age_ns": "10099078000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8377840
+        },
+        {
+          "monotonic_now_ns": "39677532678000",
+          "sync_age_ns": "11099638000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8427868
+        },
+        {
+          "monotonic_now_ns": "39678532015000",
+          "sync_age_ns": "12098975000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8477835
+        },
+        {
+          "monotonic_now_ns": "39679531378000",
+          "sync_age_ns": "13098338000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8527803
+        },
+        {
+          "monotonic_now_ns": "39680530554000",
+          "sync_age_ns": "14097514000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8577762
+        },
+        {
+          "monotonic_now_ns": "39681531857000",
+          "sync_age_ns": "15098817000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8627827
+        },
+        {
+          "monotonic_now_ns": "39682531370000",
+          "sync_age_ns": "16098330000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8677803
+        },
+        {
+          "monotonic_now_ns": "39683534029000",
+          "sync_age_ns": "17100989000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8727936
+        },
+        {
+          "monotonic_now_ns": "39684530827000",
+          "sync_age_ns": "18097787000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8777776
+        },
+        {
+          "monotonic_now_ns": "39685532404000",
+          "sync_age_ns": "19099364000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8827855
+        },
+        {
+          "monotonic_now_ns": "39686531131000",
+          "sync_age_ns": "20098091000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8877791
+        },
+        {
+          "monotonic_now_ns": "39687531233000",
+          "sync_age_ns": "21098193000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8927796
+        },
+        {
+          "monotonic_now_ns": "39688533762000",
+          "sync_age_ns": "22100722000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 8977923
+        },
+        {
+          "monotonic_now_ns": "39689531779000",
+          "sync_age_ns": "23098739000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9027823
+        },
+        {
+          "monotonic_now_ns": "39690532136000",
+          "sync_age_ns": "24099096000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9077841
+        },
+        {
+          "monotonic_now_ns": "39691532408000",
+          "sync_age_ns": "25099368000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9127855
+        },
+        {
+          "monotonic_now_ns": "39692534335000",
+          "sync_age_ns": "26101295000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9177951
+        },
+        {
+          "monotonic_now_ns": "39693532302000",
+          "sync_age_ns": "27099262000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9227850
+        },
+        {
+          "monotonic_now_ns": "39694531973000",
+          "sync_age_ns": "28098933000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9277833
+        },
+        {
+          "monotonic_now_ns": "39695533400000",
+          "sync_age_ns": "29100360000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9327904
+        },
+        {
+          "monotonic_now_ns": "39696532584000",
+          "sync_age_ns": "30099544000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9377864
+        },
+        {
+          "monotonic_now_ns": "39697534047000",
+          "sync_age_ns": "31101007000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9427937
+        },
+        {
+          "monotonic_now_ns": "39698534473000",
+          "sync_age_ns": "32101433000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9477958
+        },
+        {
+          "monotonic_now_ns": "39699533869000",
+          "sync_age_ns": "33100829000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9527928
+        },
+        {
+          "monotonic_now_ns": "39700533309000",
+          "sync_age_ns": "34100269000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9577900
+        },
+        {
+          "monotonic_now_ns": "39701534351000",
+          "sync_age_ns": "35101311000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9627952
+        },
+        {
+          "monotonic_now_ns": "39702533768000",
+          "sync_age_ns": "36100728000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9677923
+        },
+        {
+          "monotonic_now_ns": "39703533338000",
+          "sync_age_ns": "37100298000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9727901
+        },
+        {
+          "monotonic_now_ns": "39704533622000",
+          "sync_age_ns": "38100582000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9777916
+        },
+        {
+          "monotonic_now_ns": "39705533140000",
+          "sync_age_ns": "39100100000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9827891
+        },
+        {
+          "monotonic_now_ns": "39706534336000",
+          "sync_age_ns": "40101296000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9877951
+        },
+        {
+          "monotonic_now_ns": "39707533726000",
+          "sync_age_ns": "41100686000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9927921
+        },
+        {
+          "monotonic_now_ns": "39708534121000",
+          "sync_age_ns": "42101081000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 9977941
+        },
+        {
+          "monotonic_now_ns": "39709535856000",
+          "sync_age_ns": "43102816000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10028027
+        },
+        {
+          "monotonic_now_ns": "39710533782000",
+          "sync_age_ns": "44100742000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10077924
+        },
+        {
+          "monotonic_now_ns": "39711534183000",
+          "sync_age_ns": "45101143000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10127944
+        },
+        {
+          "monotonic_now_ns": "39712534558000",
+          "sync_age_ns": "46101518000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10177962
+        },
+        {
+          "monotonic_now_ns": "39713533836000",
+          "sync_age_ns": "47100796000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10227926
+        },
+        {
+          "monotonic_now_ns": "39714534224000",
+          "sync_age_ns": "48101184000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10277946
+        },
+        {
+          "monotonic_now_ns": "39715534575000",
+          "sync_age_ns": "49101535000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10327963
+        },
+        {
+          "monotonic_now_ns": "39716535244000",
+          "sync_age_ns": "50102204000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10377997
+        },
+        {
+          "monotonic_now_ns": "39717534758000",
+          "sync_age_ns": "51101718000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10427972
+        },
+        {
+          "monotonic_now_ns": "39718534023000",
+          "sync_age_ns": "52100983000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10477936
+        },
+        {
+          "monotonic_now_ns": "39719534073000",
+          "sync_age_ns": "53101033000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10527938
+        },
+        {
+          "monotonic_now_ns": "39720534643000",
+          "sync_age_ns": "54101603000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10577967
+        },
+        {
+          "monotonic_now_ns": "39721534670000",
+          "sync_age_ns": "55101630000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10627968
+        },
+        {
+          "monotonic_now_ns": "39722534359000",
+          "sync_age_ns": "56101319000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10677952
+        },
+        {
+          "monotonic_now_ns": "39723534504000",
+          "sync_age_ns": "57101464000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10727960
+        },
+        {
+          "monotonic_now_ns": "39724534407000",
+          "sync_age_ns": "58101367000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10777955
+        },
+        {
+          "monotonic_now_ns": "39725537891000",
+          "sync_age_ns": "59104851000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10828129
+        },
+        {
+          "monotonic_now_ns": "39726534649000",
+          "sync_age_ns": "60101609000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10877967
+        },
+        {
+          "monotonic_now_ns": "39727536211000",
+          "sync_age_ns": "61103171000",
+          "mapping_error_ns": 40352000,
+          "allowed_ns": 10928045
+        }
+      ]
+    }
+  ],
+  "cadence": {
+    "info": {
+      "samples": 900,
+      "max_start_gap_ns": 1139971888,
+      "max_roundtrip_ns": 1131602320,
+      "policy": "single-flight-info-v1"
+    },
+    "status": {
+      "samples": 180,
+      "max_start_gap_ns": 5000088166
+    },
+    "health": {
+      "samples": 180,
+      "max_start_gap_ns": 5000093258
+    }
+  },
+  "reused_browser_audit_sha256": "7ddd6632414f01a230e149630ef81e4978bae8579cab1689e32c47f105a94b65",
+  "rendered_checkpoints": 15,
+  "rendered_visual_review": "Reviewed case-3-armed.png: matching job, Armed/inactive, this-browser ownership, 384 events and 155.750001-second duration; no Running UI or cancellation evidence.",
+  "network_requests": 12,
+  "maximum_allocator_peak_bytes": 150652,
+  "evidence_archive_sha256": "8de3b46609192e42b05d872265ce5d5f9b905a7d8b81eb125c682f402c67b885",
+  "adversarial_mutations_rejected": 13,
+  "timing_review": "Launch target 39572037319000 equals acknowledged start_monotonic_ns exactly. At ARM UTC maps exactly. Later SNTP update shifts current UTC mapping by up to 40352000 ns while uncertainty decreases. Original all-Running-sample mapping auditor rejects; no timing acceptance assigned pending source-based auditor review."
+}

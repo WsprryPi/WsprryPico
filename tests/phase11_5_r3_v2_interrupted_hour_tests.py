@@ -2,7 +2,7 @@
 import json, os, shutil, sys, tempfile, unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'scripts'))
-from audit_phase11_5_r3_v2_interrupted_hour import audit, cadence
+from audit_phase11_5_r3_v2_interrupted_hour import audit, audit_c1, cadence
 
 class InterruptedHourTests(unittest.TestCase):
     def test_cadence_does_not_hide_missing_end_or_gap(self):
@@ -13,13 +13,18 @@ class InterruptedHourTests(unittest.TestCase):
             with self.subTest(rows=rows), self.assertRaises(ValueError): cadence(rows,2,begin,end)
 
     def test_actual_and_adversarial_mutations(self):
-        source = os.environ.get('PHASE115_R3_V2_H1A_COMPONENT_EVIDENCE')
+        c1 = os.environ.get('PHASE115_R3_V2_C1_COMPONENT_EVIDENCE')
+        source = c1 or os.environ.get('PHASE115_R3_V2_H1A_COMPONENT_EVIDENCE')
         if not source: self.skipTest('Private H1a completed archive required')
         source = Path(source)
-        def check(root): return audit(root, root/'pi/phase115_tls_observer_test.py')
+        def check(root): return (audit_c1 if c1 else audit)(root, root/'pi/phase115_tls_observer_test.py')
         original = check(source)
-        self.assertTrue(original['physical_hour_verified'])
-        self.assertEqual(original['full_usb_observation_gate'], 'FAILED')
+        if c1:
+            self.assertEqual(original['maximum_events'],512)
+            self.assertEqual(original['original_runner_status'],'FAILED')
+        else:
+            self.assertTrue(original['physical_hour_verified'])
+            self.assertEqual(original['full_usb_observation_gate'], 'FAILED')
         def edit(root, filename, change):
             path=root/filename;rows=[json.loads(s) for s in path.read_text().splitlines()]
             change(rows);path.write_text(''.join(json.dumps(r)+'\n' for r in rows))

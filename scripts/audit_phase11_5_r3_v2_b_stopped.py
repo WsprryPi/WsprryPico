@@ -15,7 +15,33 @@ PACKETS={
  'e72a6130cf014515af75601b762c8df3cd93faa2d64440d22eef0f55137e17d5':6,
 }
 
+def connection_failure(root, expected_packet):
+    require(digest(root/'packet.json')==expected_packet,'Frozen BF3 packet')
+    packet=json.loads((root/'packet.json').read_text());plan=stimuli(packet['seed'])
+    before=inventory(root,packet,'before-b');final=inventory(root,packet,'final-b')
+    trace=rows(root/'functional.jsonl');result=json.loads((root/'functional-result.json').read_text())
+    require([r['kind'] for r in trace]==['start','http_tx','failure','finish'] and
+        trace[0]['value']==dict(packet_sha256=expected_packet) and
+        trace[1]['value']==plan['http_cases'][0] and trace[2]['value']=='TimeoutError: timed out' and
+        trace[3]['value']==result,'BF3 stopped before HTTP write or USB operation')
+    require(result['status']=='STOPPED_REQUIRES_DIAGNOSIS' and result['passed_cases']==[] and
+        result['accepted_loads']==result['rf_jobs']==result['arm_commands']==0 and
+        result['final_b']==final['wtp']['STATUS']==before['wtp']['STATUS'] and
+        final['wtp']['STATUS']['boot_id']==packet['boot_id'],'BF3 inactive unchanged boot')
+    for value in (before,final):
+        i=value['info'];require(int(i['allocator_failures'])==0 and i['recovery_boot'] is False and
+            i['network']['packets']['tcp']['received']==i['network']['packets']['tcp']['sent']==0,
+            'BF3 no allocation fault or target TCP traffic')
+    return dict(status='STOPPED_B_COMPONENTS_VERIFIED',packet_sha256=expected_packet,
+        source_revision=packet['source_revision'],boot_id=packet['boot_id'],http_assertions=[],
+        original_result_status=result['status'],rf_jobs=0,full_functional_pass=False,
+        classification='NETWORK_CONNECT_TIMEOUT_BEFORE_REQUEST',final_state=result['final_b'],
+        allocator_failures=0,maximum_load_attempted=False)
+
+
 def audit(root, expected_packet):
+    if expected_packet=='482ddb19074aff4190ffd5b2e432109d3926a2cd1c6829e29631e82f46b9983c':
+        return connection_failure(root,expected_packet)
     require(expected_packet in PACKETS and digest(root/'packet.json')==expected_packet,'Frozen stopped B packet')
     packet=json.loads((root/'packet.json').read_text());plan=stimuli(packet['seed'])
     before=inventory(root,packet,'before-b')
