@@ -1,0 +1,236 @@
+{
+  "status": "HOST_REPLY_DUPLICATION_FIXED_PHYSICAL_ACCEPTANCE_PENDING",
+  "group2_closed": false,
+  "hardware_actions": 0,
+  "base_commit": "495a647eaddef71e5970cff53ec6e335effecadb",
+  "packet_sha256": "8cfcdfeef0c4513f24fe4dff64eaef1f62bbeaa4054c33d2d6720a3481e4b908",
+  "load_frame_sha256": "e5b48b92dd2abd74e670f2b2aed3d660c9b357bd4857be6b64b8affedbcee670",
+  "load_frame_bytes": 52105,
+  "reply_payload_bytes": 54916,
+  "encoder_required_available_bytes": 88708,
+  "target_snapshot": {
+    "path": "build/phase11-5-r3-group2-component3/inflight/observer-info.json",
+    "sha256": "f57eed03cfe62e39d04a6c3a3c6d7b9584e88a5ad59807ecbb9d0e34747563f8",
+    "values": {
+      "heap_capacity_bytes": 219704,
+      "heap_allocated_bytes": 125848,
+      "allocator_live_bytes": 129200,
+      "allocator_peak_bytes": 165464,
+      "tls_allocated_bytes": 31384,
+      "allocator_failures": "0",
+      "tls_allocation_failures": 0
+    }
+  },
+  "model": {
+    "scope": "Reply admission only; earlier parse/prepare guards unrestricted. C++ requested bytes exclude allocator overhead; nullable reply pages counted separately. E6 retained job and synthetic prelude; no target heap emulation.",
+    "heap_capacity_bytes": 219704,
+    "calibrated_background_bytes": 18168,
+    "calibration": "125848 sampled target used minus 107680 pre-fix host retained requested bytes; net includes TLS and ABI/context differences, not an independent physical component measurement.",
+    "tls_background_bytes": 31384,
+    "reply_admission_live_cpp_bytes_saved": 24864,
+    "runs": {
+      "before": {
+        "0": {
+          "before": 66728,
+          "after": 107680,
+          "peak_new_bytes": 141192,
+          "closed": false,
+          "state": "loaded",
+          "starts": 0,
+          "samples": [
+            {
+              "new_bytes": 121008,
+              "pages": 0,
+              "available": 98696
+            },
+            {
+              "new_bytes": 120576,
+              "pages": 54916,
+              "available": 44212
+            },
+            {
+              "new_bytes": 121296,
+              "pages": 54916,
+              "available": 43492
+            }
+          ],
+          "output_wire_bytes": 55203,
+          "output_wire_sha256": "7ba112756ee7871dc8bf121bb50a198296b8a87f70d7fe26c4ea0c8f8db7c79d"
+        },
+        "18168": {
+          "before": 66728,
+          "after": 107680,
+          "peak_new_bytes": 141192,
+          "closed": true,
+          "state": "loaded",
+          "starts": 0,
+          "samples": [
+            {
+              "new_bytes": 121008,
+              "pages": 0,
+              "available": 80528
+            }
+          ],
+          "output_wire_bytes": 0,
+          "output_wire_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "31384": {
+          "before": 66728,
+          "after": 107680,
+          "peak_new_bytes": 141192,
+          "closed": true,
+          "state": "loaded",
+          "starts": 0,
+          "samples": [
+            {
+              "new_bytes": 121008,
+              "pages": 0,
+              "available": 67312
+            }
+          ],
+          "output_wire_bytes": 0,
+          "output_wire_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "100000": {
+          "before": 66728,
+          "after": 107680,
+          "peak_new_bytes": 141192,
+          "closed": true,
+          "state": "loaded",
+          "starts": 0,
+          "samples": [
+            {
+              "new_bytes": 121008,
+              "pages": 0,
+              "available": 0
+            }
+          ],
+          "output_wire_bytes": 0,
+          "output_wire_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "after": {
+        "0": {
+          "before": 54104,
+          "after": 95104,
+          "peak_new_bytes": 116328,
+          "closed": false,
+          "state": "loaded",
+          "starts": 0,
+          "samples": [
+            {
+              "new_bytes": 96144,
+              "pages": 0,
+              "available": 123560
+            },
+            {
+              "new_bytes": 95712,
+              "pages": 54916,
+              "available": 69076
+            },
+            {
+              "new_bytes": 96432,
+              "pages": 54916,
+              "available": 68356
+            }
+          ],
+          "output_wire_bytes": 55203,
+          "output_wire_sha256": "7ba112756ee7871dc8bf121bb50a198296b8a87f70d7fe26c4ea0c8f8db7c79d"
+        },
+        "18168": {
+          "before": 54104,
+          "after": 95104,
+          "peak_new_bytes": 116328,
+          "closed": false,
+          "state": "loaded",
+          "starts": 0,
+          "samples": [
+            {
+              "new_bytes": 96144,
+              "pages": 0,
+              "available": 105392
+            },
+            {
+              "new_bytes": 95712,
+              "pages": 54916,
+              "available": 50908
+            },
+            {
+              "new_bytes": 96432,
+              "pages": 54916,
+              "available": 50188
+            }
+          ],
+          "output_wire_bytes": 55203,
+          "output_wire_sha256": "7ba112756ee7871dc8bf121bb50a198296b8a87f70d7fe26c4ea0c8f8db7c79d"
+        },
+        "31384": {
+          "before": 54104,
+          "after": 95104,
+          "peak_new_bytes": 116328,
+          "closed": false,
+          "state": "loaded",
+          "starts": 0,
+          "samples": [
+            {
+              "new_bytes": 96144,
+              "pages": 0,
+              "available": 92176
+            },
+            {
+              "new_bytes": 95712,
+              "pages": 54916,
+              "available": 37692
+            },
+            {
+              "new_bytes": 96432,
+              "pages": 54916,
+              "available": 36972
+            }
+          ],
+          "output_wire_bytes": 55203,
+          "output_wire_sha256": "7ba112756ee7871dc8bf121bb50a198296b8a87f70d7fe26c4ea0c8f8db7c79d"
+        },
+        "100000": {
+          "before": 54104,
+          "after": 95104,
+          "peak_new_bytes": 116328,
+          "closed": true,
+          "state": "loaded",
+          "starts": 0,
+          "samples": [
+            {
+              "new_bytes": 96144,
+              "pages": 0,
+              "available": 23560
+            }
+          ],
+          "output_wire_bytes": 0,
+          "output_wire_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    }
+  },
+  "source_sha256": {
+    "src/wtp/job_service.hpp": "5f8709f4b447b01db3df4baf31b31a5f6a1b872be5df3d2965200eee36203a50",
+    "src/wtp/job_service.cpp": "0179625d8e999aec907bb932350acef56cd26bbbc105827f7050c2680ae0c682",
+    "tests/load_reply_driver.cpp": "d27730b32c66c3689a4362b29b80396c962201c1a7e2aaa1a3adeec3a8983651",
+    "tests/load_reply_tests.py": "4b58d7af3697100a508da731ea49996ef3797e011ffb3fb8e47441ad090b79a5",
+    "tests/core_tests.cpp": "dfde3b9697d5c4855a8faeebf13aa966e3d6b5f4b96486f5295677efef4f599c"
+  },
+  "validation": {
+    "host_ctest_targets": 71,
+    "sandbox_passed": 70,
+    "loopback_tls_recheck_passed": true,
+    "core_cases": 37,
+    "load_reply_tests": 2,
+    "sanitizers": [
+      "address",
+      "undefined"
+    ],
+    "target_cross_build": "Pico 2 W RP2350 Arm StandaloneRF 138 MHz RAM renderer; no flash",
+    "target_linked_heap_bytes": 219712,
+    "target_elf_sha256": "e4a24f295f42736973fc17e1cc4a698446fffbc34ec383ef3677c0346e7ae8d8",
+    "adversarial_review": "Corrected model prelude order and calibration; reassessment found no remaining actionable issue. Physical branch and target acceptance remain unproven."
+  }
+}

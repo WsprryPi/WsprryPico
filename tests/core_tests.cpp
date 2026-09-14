@@ -6,6 +6,7 @@
 #include "wtp/frame_parser.hpp"
 #include "wtp/inhibited_rf_engine.hpp"
 #include "wtp/job_service.hpp"
+#include "wtp/memory_budget.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -406,8 +407,10 @@ void test_wspr_adjustment_response_allocation() {
     Response response;
     response.ok = true;
     response.job_id = std::string(32, '3');
+    std::vector<FrequencyAdjustment> adjustments;
     for (std::size_t n = 0; n < 162; ++n)
-        response.adjustments.push_back({n, 135500000000000ULL, 135500000000001ULL});
+        adjustments.push_back({n, 135500000000000ULL, 135500000000001ULL});
+    response.adjustments = std::move(adjustments);
     largest_allocation = 0;
     const auto encoded = encode_response(r, response, ServiceConfig{}, "device", "firmware");
     CHECK(largest_allocation <= 18364);
@@ -1090,6 +1093,96 @@ void test_adjustments_and_engine_failure_safety() {
     CHECK(service.status().terminal_records.front().error == ErrorCode::OutputStateUnknown);
 }
 
+void test_shared_adjustment_replay_lifetimes() {
+    VirtualClock clock;
+    MockRfEngine engine;
+    TestIdentitySource ids;
+    JobService service(clock, engine, ids);
+    establish_owner(service);
+    auto job = sample_job();
+    job.allow_frequency_adjustment = true;
+    job.total_duration_ns = 512;
+    job.events.clear();
+    for (std::size_t i = 0; i < 512; ++i) {
+        job.events.push_back({i, 1, true, 135500000000000ULL});
+        engine.adjustments.push_back({i, 135500000000000ULL, 135500000000001ULL});
+    }
+    const auto load = request("LOAD", job, 'c');
+    const auto first = service.handle(load);
+    CHECK(first.ok && first.adjustments.size() == 512);
+    const auto expected = first.adjustments;
+    // Replacing the caller's result cannot change cached or active replies.
+    auto replaced = first;
+    replaced.adjustments.clear();
+    CHECK(replaced.adjustments.empty() && first.adjustments == expected);
+    largest_allocation = 0;
+    CHECK(service.handle(load) == first);
+    CHECK(largest_allocation < 512 * sizeof(FrequencyAdjustment));
+    for (char digit = '4'; digit <= '9'; ++digit) {
+        auto retry = request("LOAD", job, digit);
+        largest_allocation = 0;
+        CHECK(service.handle(retry) == first);
+        CHECK(largest_allocation < 512 * sizeof(FrequencyAdjustment));
+    }
+    CHECK(engine.prepare_calls == 1);
+    CHECK(service.handle(request("ABORT", AbortBody{job.job_id}, 'd')).ok);
+    CHECK(service.handle(request("RELEASE", {}, 'e')).ok);
+    CHECK(claim(service, '1', 'f').ok);
+    auto retained = request("LOAD", job, '0');
+    largest_allocation = 0;
+    CHECK(service.handle(retained) == first);
+    CHECK(largest_allocation < 512 * sizeof(FrequencyAdjustment));
+    CHECK(service.status().state == State::Empty && engine.prepare_calls == 1);
+    auto conflict = retained;
+    conflict.payload_digest[0] ^= 1;
+    CHECK(service.handle(conflict).error == ErrorCode::RequestIdReuse);
+    service.reset();
+    CHECK(first.adjustments == expected && first.adjustments.size() == 512);
+    // Value equality must work for separately allocated lists too.
+    CHECK(first.adjustments == AdjustmentList(engine.adjustments));
+    engine.adjustments[0].realized_frequency_nhz += 1;
+    CHECK(!(first.adjustments == AdjustmentList(engine.adjustments)));
+    CHECK(first.adjustments[0].realized_frequency_nhz == 135500000000001ULL);
+}
+
+static std::size_t reply_available = 0, reply_page_calls = 0, fail_reply_page = 0;
+void test_reply_reserve_and_all_page_failures() {
+    Request request;
+    request.operation = "LOAD";
+    request.session_id = id('1');
+    request.request_id = id('2');
+    Response response;
+    response.ok = true;
+    response.job_id = id('3');
+    std::vector<FrequencyAdjustment> values;
+    for (std::size_t i = 0; i < 512; ++i)
+        values.push_back({i, 135500000000000ULL, 135500000000001ULL});
+    response.adjustments = std::move(values);
+    const auto allocator = allocate_input;
+    for (bool browser : {false, true}) {
+        const auto bytes = encode_load_response_buffer(request, response, browser).size();
+        CHECK(bytes > 50000);
+        available_memory = [] { return reply_available; };
+        reply_available = bytes + 1024 + 32768 - 1;
+        CHECK(encode_load_response_buffer(request, response, browser).empty());
+        ++reply_available;
+        CHECK(encode_load_response_buffer(request, response, browser).size() == bytes);
+        available_memory = nullptr;
+        for (fail_reply_page = 1; fail_reply_page <= (bytes + 4095) / 4096; ++fail_reply_page) {
+            reply_page_calls = 0;
+            allocate_input = [](std::size_t size) -> void* {
+                return ++reply_page_calls == fail_reply_page ? nullptr : std::malloc(size);
+            };
+            CHECK(encode_load_response_buffer(request, response, browser).empty());
+            CHECK(reply_page_calls == fail_reply_page);
+            allocate_input = allocator;
+            CHECK(encode_load_response_buffer(request, response, browser).size() == bytes);
+        }
+    }
+    allocate_input = allocator;
+    available_memory = nullptr;
+}
+
 void test_expired_active_lease_and_terminal_retention() {
     VirtualClock clock;
     MockRfEngine engine;
@@ -1446,6 +1539,8 @@ int main() {
         {"lease expiry and reset", test_lease_expiry_and_reset},
         {"safety gate and connection close", test_safety_gate_and_connection_close},
         {"adjustments and engine failure safety", test_adjustments_and_engine_failure_safety},
+        {"shared adjustment replay lifetimes", test_shared_adjustment_replay_lifetimes},
+        {"reply reserve and every page failure", test_reply_reserve_and_all_page_failures},
         {"expired active lease and terminal retention",
          test_expired_active_lease_and_terminal_retention},
         {"engine completion watchdog", test_engine_completion_watchdog},

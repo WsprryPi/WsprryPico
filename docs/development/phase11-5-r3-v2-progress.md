@@ -22,7 +22,7 @@ The user has now said Execute. Standing finite approvals remain active.
    - 1.3 PASS: native QRSS/FSKCW/DFCW submissions in checkpoints 040–042;
      acknowledged-ARM loss, local completion and original-session reconciliation
      in 043. Original harness failures remain separately recorded.
-2. **Capacity and pressure — OPEN (component 3 stopped before ARM)**
+2. **Capacity and pressure — OPEN (component 4 host fix; target acceptance pending)**
    - 2.1 Complete maximum WTP, HTTP and job capacity assertions.
    - 2.2 Verify supported combined load and bounded overload rejection.
    - 2.3 Complete WTP timeout and USB pressure mechanisms.
@@ -35,14 +35,16 @@ The user has now said Execute. Standing finite approvals remain active.
    - 4.2 Finish adversarial review, repairs and affected retests.
    - 4.3 Restore, verify final state, commit, push and report.
 
-## Latest bounded Group 2 outcome: component 3
+## Latest bounded Group 2 outcome: component 4
 
-[Component 3](phase11-5-r3-v2-component3-review.md) flashed reviewed candidate
-`4dad112c8a4c` and passed E6's seven idle checks. C7 failed to return its LOAD
-reply before ARM; no new RF acceptance or Group 2 closure was obtained.
-Both boards are inactive/unowned and F7 is restored. Next: hardware-free
-reproduction of the LOAD reply admission/closure path. Historical failures
-and original finite budgets remain binding.
+[Component 4](phase11-5-r3-v2-component4-review.md) reproduces C7's exact LOAD
+through the production endpoint/service/encoder under modeled reply pressure.
+Shared immutable adjustments eliminate duplicate response/history allocations;
+the regression passes without lowering memory reserves. Host tests and the
+local target cross-build pass. No new physical assertion closed and no hardware
+was accessed. C7 remains a historical pre-ARM failure; next is a newly authorized
+bounded candidate admission check with retained state and TLS before affected
+Group 2 retests. The original finite hardware allowances were not renewed.
 
 ## Historical bounded Group 2 outcome: checkpoint 048
 

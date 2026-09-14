@@ -4,6 +4,14 @@ Group 1 is CLOSED at checkpoint 043. Group 2 is OPEN. This record now includes
 C1–C5, E5 and R5. Checkpoint 048 ends diagnostic period 2 OPEN. Older preparation
 statements below are historical, not live fixture state.
 
+## Latest component 4 result
+
+The [component 4 review](phase11-5-r3-v2-component4-review.md) records exact C7
+host replay, the modeled encoder-refusal path and shared immutable adjustment
+storage. Regression and adversarial checks pass; physical acceptance remains
+pending. No device access or new hardware allowance was used. Component 3 below
+retains its historical result and last verified physical state.
+
 ## Latest component 3 result
 
 E6 passed seven idle checks on source `4dad112c8a4c`. C7 stopped before ARM:

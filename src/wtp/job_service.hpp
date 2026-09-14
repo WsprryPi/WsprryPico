@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <deque>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -91,6 +92,49 @@ struct FrequencyAdjustment {
     std::uint64_t realized_frequency_nhz;
 
     bool operator==(const FrequencyAdjustment&) const = default;
+};
+
+// LOAD adjustments never change after preparation. Share one immutable list
+// across active-job, response-cache and terminal-history lifetimes. Copying a
+// response must not duplicate a maximum 512-entry allocation.
+class AdjustmentList {
+  public:
+    AdjustmentList() = default;
+    AdjustmentList(std::vector<FrequencyAdjustment> values) {
+        if (!values.empty())
+            values_ = std::make_shared<const std::vector<FrequencyAdjustment>>(std::move(values));
+    }
+    std::size_t size() const {
+        return values_ ? values_->size() : 0;
+    }
+    bool empty() const {
+        return size() == 0;
+    }
+    const FrequencyAdjustment* begin() const {
+        return values_ ? values_->data() : nullptr;
+    }
+    const FrequencyAdjustment* end() const {
+        return values_ ? values_->data() + size() : nullptr;
+    }
+    const FrequencyAdjustment& operator[](std::size_t index) const {
+        return (*values_)[index];
+    }
+    void clear() {
+        values_.reset();
+    }
+    bool operator==(const AdjustmentList& other) const {
+        if (values_ == other.values_)
+            return true;
+        if (size() != other.size())
+            return false;
+        for (std::size_t i = 0; i < size(); ++i)
+            if ((*this)[i] != other[i])
+                return false;
+        return true;
+    }
+
+  private:
+    std::shared_ptr<const std::vector<FrequencyAdjustment>> values_;
 };
 
 struct PrepareResult {
@@ -238,7 +282,7 @@ struct Response {
     bool output_active = false;
     bool close_connection = false;
     std::optional<std::string> ping_token;
-    std::vector<FrequencyAdjustment> adjustments;
+    AdjustmentList adjustments;
     std::optional<ClockSnapshot> clock_snapshot;
     std::optional<ServiceStatus> status_snapshot;
     std::uint64_t start_utc_ns = 0;
@@ -347,7 +391,7 @@ class JobService {
     std::vector<Session> sessions_;
     std::optional<Owner> owner_;
     std::optional<Job> job_;
-    std::vector<FrequencyAdjustment> adjustments_;
+    AdjustmentList adjustments_;
     std::optional<ArmRecord> arm_;
     std::deque<ReplayEntry> replay_cache_;
     std::deque<TerminalRecord> terminal_records_;

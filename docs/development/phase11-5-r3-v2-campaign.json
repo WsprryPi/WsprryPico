@@ -1441,5 +1441,13 @@
       }
     },
     "fixture": "F7_RESTORED"
+  },
+  "component4": {
+    "status": "HOST_REPLY_DUPLICATION_FIXED_PHYSICAL_ACCEPTANCE_PENDING",
+    "review": "docs/development/phase11-5-r3-v2-component4-review.md",
+    "result": "docs/development/phase11-5-r3-v2-component4-result.json",
+    "new_physical_assertions_closed": 0,
+    "hardware_actions": 0,
+    "group2_closed": false
   }
 }

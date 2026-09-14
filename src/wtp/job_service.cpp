@@ -342,7 +342,7 @@ Response JobService::dispatch(const Request& request) {
         // preparation, retained response and serialization working space.
         if (!memory_admitted(65536))
             return reject(ErrorCode::InternalError);
-        const auto preparation = engine_.prepare(*body);
+        auto preparation = engine_.prepare(*body);
         if (!preparation.accepted) {
             return reject(ErrorCode::FrequencyRejected);
         }
@@ -365,13 +365,13 @@ Response JobService::dispatch(const Request& request) {
             }
         }
         job_ = *body;
-        adjustments_ = preparation.adjustments;
+        adjustments_ = AdjustmentList(std::move(preparation.adjustments));
         arm_.reset();
         state_ = State::Loaded;
         auto response = success();
         response.state = state_;
         response.job_id = body->job_id;
-        response.adjustments = preparation.adjustments;
+        response.adjustments = adjustments_;
         return response;
     }
     if (request.operation == "ARM") {
