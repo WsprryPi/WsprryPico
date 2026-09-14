@@ -283,6 +283,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_compile_options(load_reply_driver PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME load_reply_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/load_reply_tests.py $<TARGET_FILE:load_reply_driver>)
+    add_test(NAME load_reply_target_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase11_5_load_reply_target_tests.py)
     target_link_libraries(endpoint_driver PRIVATE wsprrypico_core)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         target_compile_options(endpoint_driver PRIVATE -Wall -Wextra -Wpedantic -Werror)

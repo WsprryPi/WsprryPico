@@ -1,0 +1,308 @@
+{
+  "schema": "phase11.5-r3-component5-result-v1",
+  "status": "OBSERVER_ABORTED_BEFORE_PRIMARY_LOAD",
+  "physical_attempt_status": "FAILED",
+  "audit_status": "LOAD_REPLY_TARGET_FAILED",
+  "new_physical_assertions_closed": 0,
+  "group2_closed": false,
+  "source_revision": "e256633304e03ab85998fde947360ccbaab6c68e",
+  "image_sha256": "b2983da197de0462f3ef4288355dc4b5ce5fe349b0b98d526dce0d6e526a9288",
+  "elf_sha256": "1381fd45d2d79d1415963e70f368794c479b34110cc6fa4f6ea160ae8874489b",
+  "packet_sha256": "cbe4d13d0c3b19a2ef891366a9b0bcaf12b9077927b7d66da45a4703b8dc1a84",
+  "target": {
+    "serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "boot_id": "11dac3985326cb81c49022efcdceb5d4",
+    "board": "Pico 2 W / RP2350 Arm",
+    "engine": "pio-dma-gp2",
+    "clock_hz": 138000000,
+    "render_in_ram": true
+  },
+  "counts": {
+    "flashes": 1,
+    "bootsel": 1,
+    "preparation_loads": 1,
+    "primary_loads": 0,
+    "replays": 0,
+    "rf_jobs": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 0
+  },
+  "primary_request": {
+    "frame_bytes": 52105,
+    "sha256": "e5b48b92dd2abd74e670f2b2aed3d660c9b357bd4857be6b64b8affedbcee670",
+    "sent": false
+  },
+  "observer_failure": {
+    "message": "Idle counters/faults",
+    "cause": "Frozen runner compared Console uint64 launch_epoch string \"0\" with integer 0",
+    "raw_info_recovered": true,
+    "corrected_health_check_passes": true,
+    "metrics": {
+      "allocator_failures": "0",
+      "tls_allocation_failures": 0,
+      "launch_epoch": "0",
+      "fault_stage": 0,
+      "fault_hash": 0,
+      "fault_pc": 0,
+      "fault_status": 0,
+      "dma_irqs": 0,
+      "alarm_irqs": 0,
+      "tail_irqs": 0,
+      "heap_capacity_bytes": 219712,
+      "heap_allocated_bytes": 55776,
+      "heap_available_bytes": 163936,
+      "allocator_live_bytes": 59128,
+      "allocator_peak_bytes": 112920,
+      "tls_allocated_bytes": 31384,
+      "tls_peak_bytes": 34884,
+      "core0_stack_used_bytes": 8700,
+      "core1_stack_used_bytes": 940
+    }
+  },
+  "network": {
+    "client": "Python authenticated TLS 1.3 WTP observer",
+    "tls_allocated_bytes_in_failed_info": 31384,
+    "https_requests": 0,
+    "primary_pressure_bracket_available": false,
+    "comparison": "Matches historical TLS allocation in one pre-primary sample; no sustained pressure or LOAD bracket qualified"
+  },
+  "transactions": {
+    "prime-hello": {
+      "start": 370167233944213,
+      "written": 246,
+      "wire_bytes": 246,
+      "response_bytes": 341,
+      "response_sha256": "364bdb3894d78044b52220d9ecfa8e0871d65a9748b4a6edb820f2143a0cbb9d",
+      "elapsed_ns": 23331296,
+      "op": "HELLO",
+      "response_received": true
+    },
+    "prime-claim": {
+      "start": 370167260050502,
+      "written": 234,
+      "wire_bytes": 234,
+      "response_bytes": 275,
+      "response_sha256": "091e67ff6ef4499e75ed174f7eae7759046491504868a008ec002a4b7eab1b9b",
+      "elapsed_ns": 20274840,
+      "op": "CLAIM",
+      "response_received": true
+    },
+    "prime-load": {
+      "start": 370167363985381,
+      "written": 53413,
+      "wire_bytes": 53413,
+      "response_bytes": 54916,
+      "response_sha256": "20a53694081b7eed501405459581db45f0dc0943b603cddebb63c2f6b7a1e845",
+      "elapsed_ns": 2458090484,
+      "op": "LOAD",
+      "response_received": true
+    },
+    "prime-abort": {
+      "start": 370169826533132,
+      "written": 215,
+      "wire_bytes": 215,
+      "response_bytes": 250,
+      "response_sha256": "bb49c7b34e62d82c32a534e51405fde9a702dbd1e679289b441077282bad9d0c",
+      "elapsed_ns": 31965922,
+      "op": "ABORT",
+      "response_received": true
+    },
+    "prime-release": {
+      "start": 370169861043678,
+      "written": 174,
+      "wire_bytes": 174,
+      "response_bytes": 169,
+      "response_sha256": "f3b32cab536b3c6f6b6d972e24928aa6eeef904f5297f4b6a9c26535da1f5574",
+      "elapsed_ns": 19382601,
+      "op": "RELEASE",
+      "response_received": true
+    },
+    "test-hello": {
+      "start": 370479883721260,
+      "written": 246,
+      "wire_bytes": 246,
+      "response_bytes": 341,
+      "response_sha256": "402cf782b8064ae1ffc5a59fe8a1c515586a467c5b8a2b3cd59e6e622c0bf08b",
+      "elapsed_ns": 20208599,
+      "op": "HELLO",
+      "response_received": true
+    },
+    "retained-status": {
+      "start": 370479906889037,
+      "written": 173,
+      "wire_bytes": 173,
+      "response_bytes": 422,
+      "response_sha256": "9983f7babe01e543c944a3a446657c7e2044b21b8cf238f05e0fa20d4da9e7ca",
+      "elapsed_ns": 18585714,
+      "op": "STATUS",
+      "response_received": true
+    },
+    "pre-status-0": {
+      "start": 370482044100531,
+      "written": 173,
+      "wire_bytes": 173,
+      "response_bytes": 422,
+      "response_sha256": "0e2eb8affcdeeec58f175bca0c9f6cf523ce3e66e989d4c474079b746a6aaed6",
+      "elapsed_ns": 23624407,
+      "op": "STATUS",
+      "response_received": true
+    },
+    "cleanup-hello": {
+      "start": 370482287200915,
+      "written": 248,
+      "wire_bytes": 248,
+      "response_bytes": 341,
+      "response_sha256": "9eea9e61c926cf9305a29fff0fd9d7a0860487e6f5cfa40ac8c817ea3d86e6dc",
+      "elapsed_ns": 18293030,
+      "op": "HELLO",
+      "response_received": true
+    },
+    "cleanup-claim": {
+      "start": 370482308161939,
+      "written": 233,
+      "wire_bytes": 233,
+      "response_bytes": 274,
+      "response_sha256": "f544a56c0cf8dcecc982ac344efb6edb369593ea4dead1c27bd52ae47caaa0fa",
+      "elapsed_ns": 18109605,
+      "op": "CLAIM",
+      "response_received": true
+    },
+    "cleanup-release": {
+      "start": 370482328810149,
+      "written": 174,
+      "wire_bytes": 174,
+      "response_bytes": 169,
+      "response_sha256": "54b68af9e3805d45169b926ccf09885efd004426fe3f0d3c0dc9e3a7d62aa5b0",
+      "elapsed_ns": 14997576,
+      "op": "RELEASE",
+      "response_received": true
+    }
+  },
+  "final_devices": {
+    "a": {
+      "revision": "e256633304e0",
+      "status": {
+        "boot_id": "11dac3985326cb81c49022efcdceb5d4",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": [
+          {
+            "job_id": "c339ee30075d458ccc3047bb3d8f8b18",
+            "state": "aborted",
+            "ended_monotonic_ns": "91176225000",
+            "output_active": false
+          }
+        ]
+      },
+      "scheduling_enabled": false,
+      "configuration_preserved": true
+    },
+    "b": {
+      "revision": "8921a7008183",
+      "status": {
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "scheduling_enabled": false,
+      "configuration_preserved": true
+    }
+  },
+  "restoration": {
+    "verified": true,
+    "fixture_restored": true,
+    "installed_pid": "1957",
+    "installed_sha256": "c19461bc6d2ebe7cae61798ad9acae8d43dfbec3ee57c288e4ef41e9c82b8273",
+    "protected_files_preserved": true,
+    "management_addresses_preserved": true,
+    "temporary_units_inactive": true,
+    "radio_power_save_restored": true,
+    "host_boot": "220e53ca-ca95-4206-9581-dbe28aa1eeb8"
+  },
+  "budget": {
+    "start_utc_ns": 1789424788365548000,
+    "work_deadline_utc_ns": 1789427488365548000,
+    "cleanup_deadline_utc_ns": 1789428388365548000,
+    "final_verification_utc_ns": 1789426082814289585,
+    "elapsed_to_final_verification_seconds": 1294.448741585,
+    "hardware_retry_performed": false
+  },
+  "evidence": {
+    "remote_root": "/home/pi/phase11-5-r3-v2-load-reply-c8-20260914",
+    "local_root": "build/phase11-5-r3-group2-component5/evidence",
+    "files_sha256": {
+      "after-flash-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after-flash-a.stdout": "99276236bc8995b5e3db9649caf48c61b72c5ee691c35906001f22ffe32bdc7a",
+      "before-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before-a.stdout": "c3ee12851a1e4775ad605b83bf98aaaa35fbccd45ea43caa653c9ad6e706747e",
+      "before-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before-b.stdout": "cdad8c7afd6f4f7ac25d041aa99f19261e8beedc0ff82ce039cdb63d810ef700",
+      "capture-ap.log": "c4623edc00f16d150a4c29efdabfa07360dd119aef87b3e0404b228d7b0cd9a3",
+      "capture-client.log": "aa7807b1b09a7f055bb0a03b77fb095cf052a842c2bbf7c277db2f59fc73995b",
+      "client.log": "45bc8dcec3b14650e058aeac697056dee7e9d531c0719daa1dc29a601fdf00db",
+      "deploy.jsonl": "36e5f9fad3131d56757b249f4cc85cf2c8351fcad3e46becf62b56a287beea9d",
+      "deployment.json": "0e9997835b41f95898d17fd8978a8b57ec160aa901c9c5998186093532f8ffb2",
+      "dhcp.log": "5b4f61c6726cb1d4b54d00b5ad8ee034a0eee38e09a5cccdc6c4179556356b32",
+      "final-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "final-a.stdout": "dc33fd3e1782edcd8af5f91867d15610f277b6050af7f9cc22154acc72be94ff",
+      "fixture-state.json": "9be99b0daea305cdcb7dfe22014e986c9ab5939ce1e9c07d5b7188e1523c1d2e",
+      "fixture.jsonl": "4613eb20b417ed2561d84829c01ecb413cff0cfe6a3f1cbb17981c133f45813d",
+      "flash.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "flash.stdout": "cb716f468a9bceb533036e6e6dd4ee4dd8b6464837c6667424650e1f7a8401e2",
+      "frozen/__pycache__/phase11_5_load_reply_target.cpython-314.pyc": "6251ee72e10265de6dc9b0b5040f87e20e7c76388d33afef0f00ae9c3a58de53",
+      "frozen/audit_phase11_5_load_reply_target.py": "e2c48e39742ab39a287f74a05822ecb3b339d42027c8c04474d841cbad02767d",
+      "frozen/phase11_5_load_reply_target.py": "dd6f8b3af92004d0b9edd4f217bf0f57815428b98300cc56e70b59b9efd075d3",
+      "network-ready.json": "d446a27d0318a567f2694931d28be4a55994451fb7c504cb31d969bb30520c11",
+      "network-result.json": "031d59bf4487ec6c16393d10ccad3aeb1e22deaba3d1cdad9dd3c94bc26e15d3",
+      "network.jsonl": "ab4373defd8d52849460cd2fedfa84d6b1a218437d2a3ebc2c2db4d521c4d028",
+      "network.stderr": "a346f0c1ba72368fe1878d68993414fb10ef77120255a9a8a1847b805db361d0",
+      "network.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "packet.json": "f8ee3cafed0057f5e248159ef56dd0f5a593d6a77f44f4948a82fedccdce3028",
+      "post-restoration-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "post-restoration-a.stdout": "9de062cd648d5b3a526cd9b2f8a0eac63ac85603ece176cdb4a4de87d946df8a",
+      "post-restoration-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "post-restoration-b.stdout": "fffcca0aa02e72131ce9eafa5837cd9c2418cd3fd8b17e5f57e40f4d11acd097",
+      "post-restoration-check.py": "e8e3ce83c97491b679a2a7cf6bd047444eadb218ecb5cd9260486c6dcbe4fdc0",
+      "post-restoration-host.json": "8b1ce9a318081150a5191093a280614fcf55bda3fc3d776824fb7c0ee714b917",
+      "run-result.json": "a79f9d54df7dbe61505ac9c25261031391ad8526059e208babf111f71d2018ff",
+      "run.jsonl": "8b1e66d835e93bc7b48eddc9f12bd6642c8a56d2ff5fff318e85a03fec7bec9b",
+      "supervisor.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "test-packet.json": "cbe4d13d0c3b19a2ef891366a9b0bcaf12b9077927b7d66da45a4703b8dc1a84",
+      "time-local.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "archives_sha256": {
+      "evidence.tar": "ebfcef8be1a2bf61941d14172ef467347537148b0fd2f6d5d9dbfb364e68d986",
+      "post-restoration-evidence.tar": "be5a35c19c07bf5fe95d22d00d16032708e10a22743df3622c22ff2925a7b5f5"
+    }
+  },
+  "source_impact": "Only host runner, offline auditor, tests, CTest registration and records changed after deployment. Firmware remains exact clean e256633; no firmware repair or second build/flash was made.",
+  "validation": {
+    "host_ctest_targets_passed": 8,
+    "runner_unit_cases": 7,
+    "offline_capture_cases": 2,
+    "altered_evidence_cases_rejected": 15,
+    "target_cross_build_passed": true,
+    "linked_heap_hooks_passed": true,
+    "linked_stack_guards_passed": true,
+    "ram_renderer_bytes": 660
+  },
+  "remaining": [
+    "Exact C7 primary LOAD under retained state and TLS is unperformed",
+    "Both replay checks and four HTTPS observations are unperformed",
+    "Group 2 capacity, RF, timeout, USB-pressure and reclamation acceptance remains open"
+  ],
+  "frozen_runner_sha256": "dd6f8b3af92004d0b9edd4f217bf0f57815428b98300cc56e70b59b9efd075d3",
+  "frozen_auditor_sha256": "e2c48e39742ab39a287f74a05822ecb3b339d42027c8c04474d841cbad02767d",
+  "repaired_tools_sha256": {
+    "scripts/phase11_5_load_reply_target.py": "90f54278c0fbaa3fa296ef254d3e3f346d7538fb056d10c5e4f5201ef2529f1e",
+    "scripts/audit_phase11_5_load_reply_target.py": "ae8e822559c39c6e6355ebe5f091cf00048dd2de2f0f63ee84a0028fddf219e2",
+    "tests/phase11_5_load_reply_target_tests.py": "e6790f52d069076d7a8ec5face24d5c8ee4b713dfbcb055ec01f47e18a0818f9",
+    "tests/phase11_5_load_reply_target_audit_tests.py": "c6d67c4e284d8207b72015940536789ab191efd239751beb3bf2932d501d3223"
+  }
+}

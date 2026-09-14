@@ -22,7 +22,7 @@ The user has now said Execute. Standing finite approvals remain active.
    - 1.3 PASS: native QRSS/FSKCW/DFCW submissions in checkpoints 040–042;
      acknowledged-ARM loss, local completion and original-session reconciliation
      in 043. Original harness failures remain separately recorded.
-2. **Capacity and pressure — OPEN (component 4 host fix; target acceptance pending)**
+2. **Capacity and pressure — OPEN (component 5 observer stop; primary target check pending)**
    - 2.1 Complete maximum WTP, HTTP and job capacity assertions.
    - 2.2 Verify supported combined load and bounded overload rejection.
    - 2.3 Complete WTP timeout and USB pressure mechanisms.
@@ -35,7 +35,19 @@ The user has now said Execute. Standing finite approvals remain active.
    - 4.2 Finish adversarial review, repairs and affected retests.
    - 4.3 Restore, verify final state, commit, push and report.
 
-## Latest bounded Group 2 outcome: component 4
+## Latest bounded Group 2 outcome: component 5
+
+[Component 5](phase11-5-r3-v2-component5-review.md) installed clean `e256633`
+and verified the retained E6 preparation. The first INFO sample exposed a host
+counter-type bug, so the run stopped before the primary LOAD or either replay.
+The observer and cleanup paths are repaired and tested offline; no physical
+retry occurred and no new assertion closed. Both devices are independently
+Empty/inactive/unowned, and the temporary fixture is restored. A now remains
+on `e256633304e0`, boot `11dac3985326cb81c49022efcdceb5d4`; B is unchanged.
+The exact LOAD reply under retained state and TLS remains pending. See the
+[result](phase11-5-r3-v2-component5-result.json) for counters and evidence hashes.
+
+## Historical bounded Group 2 outcome: component 4
 
 [Component 4](phase11-5-r3-v2-component4-review.md) reproduces C7's exact LOAD
 through the production endpoint/service/encoder under modeled reply pressure.

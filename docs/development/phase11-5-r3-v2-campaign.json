@@ -248,35 +248,24 @@
   },
   "image_policy_current": "Retain the tested RF-capable image on both A and separately authorized B; reflash only for demonstrated source defects. B has no ARM or RF authority.",
   "latest_verified_state": {
-    "recorded_utc": "2026-09-14T17:22:20.982996+00:00",
-    "source_revision": "4da36726ac6809bdf4e73d281fe13b2393dd3b31",
-    "a_boot": "0bd82f1324920c360d796988cf31cb5b",
+    "recorded_utc": "2026-09-14T22:48:02.814290+00:00",
+    "source_revision": "e256633304e03ab85998fde947360ccbaab6c68e",
+    "a_boot": "11dac3985326cb81c49022efcdceb5d4",
     "b_boot": "6684b4b197d80cfa0ce83b3aaf205cb0",
     "a": {
-      "source": "4da36726ac68",
+      "source": "e256633304e0",
       "status": {
-        "boot_id": "0bd82f1324920c360d796988cf31cb5b",
+        "boot_id": "11dac3985326cb81c49022efcdceb5d4",
         "state": "empty",
         "output_active": false,
         "owner_id": null,
         "job_id": null,
         "terminal_records": [
           {
-            "job_id": "0ec6f9c02e30398015c359eb3610497a",
-            "state": "complete",
-            "ended_monotonic_ns": "3554740582000",
+            "job_id": "c339ee30075d458ccc3047bb3d8f8b18",
+            "state": "aborted",
+            "ended_monotonic_ns": "91176225000",
             "output_active": false
-          },
-          {
-            "job_id": "9f0ae5cb9bf19c6366c53c33a75d86e0",
-            "state": "missed",
-            "ended_monotonic_ns": "264396496000",
-            "output_active": false,
-            "error": {
-              "code": "MISSED_START",
-              "message": "MISSED_START",
-              "retryable": false
-            }
           }
         ]
       },
@@ -296,8 +285,8 @@
     },
     "fixture_restored": true,
     "active_packet": null,
-    "latest_observation_result": "C5 strict frozen raw audit and post-restoration independent A/B inventories verified",
-    "cumulative_counter_policy": "Prior counters and failed C2/C3/C4 results preserved. Period 2 adds one 90-second ARM charge, launch and completion; zero firmware candidates, flashes, BOOTSEL, reboots, configuration writes, Wi-Fi commands or probes. No allocator deltas across boots."
+    "latest_observation_result": "Component 5 stopped on observer type mismatch before primary LOAD; independent post-restoration A/B inventories verified",
+    "cumulative_counter_policy": "Prior periods preserved. Component 5 adds one flash, BOOTSEL and preparation LOAD; zero primary LOAD, replay or RF. No cross-boot allocator delta or acceptance transfer."
   },
   "e3": {
     "status": "E3_IDLE_BOUNDARIES_VERIFIED",
@@ -1449,5 +1438,75 @@
     "new_physical_assertions_closed": 0,
     "hardware_actions": 0,
     "group2_closed": false
+  },
+  "historical_latest_verified_state_before_component5": {
+    "recorded_utc": "2026-09-14T17:22:20.982996+00:00",
+    "source_revision": "4da36726ac6809bdf4e73d281fe13b2393dd3b31",
+    "a_boot": "0bd82f1324920c360d796988cf31cb5b",
+    "b_boot": "6684b4b197d80cfa0ce83b3aaf205cb0",
+    "a": {
+      "source": "4da36726ac68",
+      "status": {
+        "boot_id": "0bd82f1324920c360d796988cf31cb5b",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": [
+          {
+            "job_id": "0ec6f9c02e30398015c359eb3610497a",
+            "state": "complete",
+            "ended_monotonic_ns": "3554740582000",
+            "output_active": false
+          },
+          {
+            "job_id": "9f0ae5cb9bf19c6366c53c33a75d86e0",
+            "state": "missed",
+            "ended_monotonic_ns": "264396496000",
+            "output_active": false,
+            "error": {
+              "code": "MISSED_START",
+              "message": "MISSED_START",
+              "retryable": false
+            }
+          }
+        ]
+      },
+      "scheduling_enabled": false
+    },
+    "b": {
+      "source": "8921a7008183",
+      "status": {
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "scheduling_enabled": false
+    },
+    "fixture_restored": true,
+    "active_packet": null,
+    "latest_observation_result": "C5 strict frozen raw audit and post-restoration independent A/B inventories verified",
+    "cumulative_counter_policy": "Prior counters and failed C2/C3/C4 results preserved. Period 2 adds one 90-second ARM charge, launch and completion; zero firmware candidates, flashes, BOOTSEL, reboots, configuration writes, Wi-Fi commands or probes. No allocator deltas across boots."
+  },
+  "component5": {
+    "status": "OBSERVER_ABORTED_BEFORE_PRIMARY_LOAD",
+    "review": "docs/development/phase11-5-r3-v2-component5-review.md",
+    "result": "docs/development/phase11-5-r3-v2-component5-result.json",
+    "new_physical_assertions_closed": 0,
+    "group2_closed": false,
+    "counts": {
+      "flashes": 1,
+      "bootsel": 1,
+      "preparation_loads": 1,
+      "primary_loads": 0,
+      "replays": 0,
+      "rf_jobs": 0,
+      "configuration_writes": 0,
+      "wifi_cycles": 0
+    },
+    "fixture_restored": true
   }
 }

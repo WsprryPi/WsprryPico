@@ -4,7 +4,19 @@ Group 1 is CLOSED at checkpoint 043. Group 2 is OPEN. This record now includes
 C1–C5, E5 and R5. Checkpoint 048 ends diagnostic period 2 OPEN. Older preparation
 statements below are historical, not live fixture state.
 
-## Latest component 4 result
+## Latest component 5 result
+
+[Component 5](phase11-5-r3-v2-component5-review.md) installed the repaired source
+`e256633` and completed retained-state preparation. A host observer compared
+`launch_epoch` string `"0"` with integer zero and stopped the attempt before
+primary LOAD. Raw INFO shows zero allocation failures and faults. The observer
+and cleanup defects are fixed with offline regression and altered-evidence tests.
+No primary/replay/RF check ran, and no new Group 2 assertion closed. The fixture
+is restored; independent A/B inventories verify Empty/inactive/unowned state.
+A remains on the repaired candidate. Exact pressure validation needs a newly
+bounded continuation; no extra physical attempt was taken.
+
+## Historical component 4 result
 
 The [component 4 review](phase11-5-r3-v2-component4-review.md) records exact C7
 host replay, the modeled encoder-refusal path and shared immutable adjustment
@@ -12,7 +24,7 @@ storage. Regression and adversarial checks pass; physical acceptance remains
 pending. No device access or new hardware allowance was used. Component 3 below
 retains its historical result and last verified physical state.
 
-## Latest component 3 result
+## Historical component 3 result
 
 E6 passed seven idle checks on source `4dad112c8a4c`. C7 stopped before ARM:
 LOAD entered Loaded but returned no USB response bytes; the following STATUS
