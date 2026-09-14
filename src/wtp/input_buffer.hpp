@@ -52,6 +52,9 @@ class InputBuffer {
         if (size_)
             std::memmove(data_, data_ + count, size_);
     }
+    void truncate(std::size_t size) {
+        size_ = std::min(size_, size);
+    }
     void clear() {
         size_ = 0;
     }

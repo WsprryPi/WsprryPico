@@ -129,7 +129,7 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
     auto encoded = encode_response(*request, response, service_.config(), device_, firmware_);
     const auto result = json::parse(encoded);
     const auto value = result->get(response.ok ? "body" : "error")->raw;
-    const auto offset = static_cast<std::size_t>(value.data() - encoded.data());
+    const auto offset = value.offset();
     const auto length = value.size();
     const auto prefix = "{\"ok\":" + std::string(response.ok ? "true" : "false") +
                         ",\"request_id\":" + json::quote(request->request_id) +
@@ -285,7 +285,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         if (password && password->raw == "null") {
             if (!store_.config())
                 return http_error(400, "password_required");
-            const auto offset = static_cast<std::size_t>(password->raw.data() - r.body.data());
+            const auto offset = password->raw.offset();
             candidate.replace(offset, 4, json::quote(store_.config()->password));
         }
     } else {
@@ -294,8 +294,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         candidate = standalone::serialize_config(*store_.config());
         auto current = json::parse(candidate);
         auto schedules = current->get("schedules")->raw;
-        candidate.replace(static_cast<std::size_t>(schedules.data() - candidate.data()),
-                          schedules.size(), root->get("schedules")->raw);
+        candidate.replace(schedules.offset(), schedules.size(),
+                          static_cast<std::string>(root->get("schedules")->raw));
     }
     if (!standalone::parse_config(candidate))
         return http_error(400, "invalid_config");

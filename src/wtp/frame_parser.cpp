@@ -88,7 +88,8 @@ std::vector<FrameEvent> FrameParser::feed(std::span<const std::uint8_t> bytes,
             // include following frames, so retain room for the current chunk.
             if (buffer_.size() >= kFrameHeaderBytes) {
                 const auto frame_size =
-                    kFrameHeaderBytes + static_cast<std::size_t>(read_u32_be(buffer_.data() + 8));
+                    kFrameHeaderBytes +
+                    static_cast<std::size_t>(read_u32_be(buffer_.view().at(8).data()));
                 capacity = std::max(buffer_.size() + count, frame_size);
             }
             if (!memory_admitted(capacity) || !buffer_.reserve(capacity)) {
@@ -143,7 +144,7 @@ void FrameParser::process(std::vector<FrameEvent>& events) {
             partial_ = !buffer_.empty();
             return;
         }
-        const auto length = read_u32_be(buffer_.data() + 8);
+        const auto length = read_u32_be(buffer_.view().at(8).data());
         const bool valid_header = buffer_[4] == 1 && buffer_[5] == 1 && buffer_[6] == 0 &&
                                   buffer_[7] == 0 && length >= 1 && length <= kMaximumPayloadBytes;
         if (!valid_header) {
@@ -158,9 +159,15 @@ void FrameParser::process(std::vector<FrameEvent>& events) {
             partial_ = true;
             return;
         }
-        const auto expected_crc = read_u32_be(buffer_.data() + 12);
-        const std::span<const std::uint8_t> payload(buffer_.data() + kFrameHeaderBytes, length);
-        if (crc32c(payload) != expected_crc) {
+        const auto expected_crc = read_u32_be(buffer_.view().at(12).data());
+        const auto payload = buffer_.view().substr(kFrameHeaderBytes, length);
+        std::uint32_t checksum = 0;
+        for (std::size_t offset = 0; offset < payload.size();) {
+            const auto part = payload.at(offset);
+            checksum = crc32c(part, checksum);
+            offset += part.size();
+        }
+        if (checksum != expected_crc) {
             invalid_frame(events);
             if (!closed_) {
                 buffer_.discard(frame_size);
@@ -174,7 +181,7 @@ void FrameParser::process(std::vector<FrameEvent>& events) {
             events.push_back({FrameEventKind::Payload, std::move(buffer_)});
             buffer_ = {};
         } else {
-            InputBuffer delivered;
+            FrameBuffer delivered;
             if (!memory_admitted(length) || !delivered.reserve(length)) {
                 close(events);
                 return;

@@ -100,7 +100,9 @@ int main() {
         if (action == "decode") {
             auto bytes = unhex(get("hex").string());
             auto root = json::parse({reinterpret_cast<const char*>(bytes.data()), bytes.size()});
-            auto r = root ? decode_request(*root, "usb-physical", bytes) : std::nullopt;
+            auto r =
+                root ? decode_request(*root, "usb-physical", std::span<const std::uint8_t>(bytes))
+                     : std::nullopt;
             std::cout << "{\"json\":" << (root ? "true" : "false")
                       << ",\"valid\":" << (r && r->body_valid ? "true" : "false") << "}\n"
                       << std::flush;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "wtp/input_view.hpp"
+
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -10,7 +12,7 @@
 namespace wsprrypico::wtp::json {
 // Non-owning views into one validated, immutable payload. No DOM is retained.
 struct Value {
-    std::string_view raw;
+    InputView raw;
     char type() const;
     std::string string() const;
     std::int32_t integer() const;
@@ -18,7 +20,7 @@ struct Value {
     std::vector<Value> elements(std::size_t limit = 512) const;
     std::optional<Value> get(std::string_view key) const;
 };
-std::optional<Value> parse(std::string_view payload);
+std::optional<Value> parse(InputView payload);
 std::string quote(std::string_view value);
 bool decimal(Value value, std::uint64_t& output, bool nonzero = false);
 bool identifier(Value value);

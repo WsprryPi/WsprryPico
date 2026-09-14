@@ -479,7 +479,7 @@ int main() {
                               "\",\"op\":\"UNKNOWN\",\"body\":" + many_keys + "}";
     const auto unknown = wtp::json::parse(unknown_wire);
     REQUIRE(unknown);
-    const auto decoded = wtp::decode_request(*unknown, "cert-a", bytes(unknown->raw));
+    const auto decoded = wtp::decode_request(*unknown, "cert-a", unknown->raw);
     REQUIRE(decoded && decoded->operation == "UNKNOWN");
     {
         Fixture f;

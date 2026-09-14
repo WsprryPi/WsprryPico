@@ -227,8 +227,7 @@ std::string caps(const ServiceConfig& c) {
            std::to_string(c.terminal_record_ttl_ns / 1'000'000'000ULL) + '}';
 }
 } // namespace
-std::optional<Request> decode_request(Value root, std::string_view principal,
-                                      std::span<const std::uint8_t> payload) {
+std::optional<Request> decode_request(Value root, std::string_view principal, InputView payload) {
     if (!json::fields(root, {"type", "protocol", "session_id", "request_id", "op", "body"}) ||
         get(root, "type").string() != "request" || !json::identifier(get(root, "session_id")) ||
         !json::identifier(get(root, "request_id")) || get(root, "protocol").type() != '"' ||
@@ -241,7 +240,13 @@ std::optional<Request> decode_request(Value root, std::string_view principal,
     r.request_id = get(root, "request_id").string();
     r.operation = get(root, "op").string();
     r.principal = principal;
-    r.payload_digest = sha256(payload);
+    Sha256 digest;
+    for (std::size_t offset = 0; offset < payload.size();) {
+        const auto part = payload.at(offset);
+        digest.update(part);
+        offset += part.size();
+    }
+    r.payload_digest = digest.finish();
     r.body_valid = body(r, get(root, "body"));
     return r;
 }

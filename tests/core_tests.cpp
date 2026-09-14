@@ -30,6 +30,8 @@ static std::size_t largest_allocation = 0;
 static std::size_t large_allocations = 0;
 static std::size_t measured_reply_bytes = 0, measured_reply_allocations = 0;
 static bool reject_reply_allocation = false;
+static bool reply_allocation_phase = false;
+static std::size_t input_pages_until_failure = 0;
 void* operator new(std::size_t size) {
     ++allocations;
     largest_allocation = std::max(largest_allocation, size);
@@ -254,26 +256,125 @@ void test_crc_and_frame_encoding() {
     CHECK(encode_frame(oversized).empty());
 }
 
-void test_input_allocation_failure_closes_without_dispatch() {
+void test_maximum_frame_with_fragmented_input_heap() {
     const auto normal = allocate_input;
     const std::vector<std::uint8_t> bytes(65536, ' ');
     const auto wire = encode_frame(bytes);
-    allocate_input = [](std::size_t n) -> void* {
-        largest_allocation = std::max(largest_allocation, n);
-        return n >= 65536 ? nullptr : std::malloc(n);
+    allocate_input = [](std::size_t size) -> void* {
+        return size <= 4096 ? std::malloc(size) : nullptr;
     };
     FrameParser parser;
     std::vector<FrameEvent> events;
     for (const auto& byte : wire) {
-        auto part = parser.feed(std::span(&byte, 1), 0);
-        for (auto& event : part)
+        for (auto& event : parser.feed(std::span(&byte, 1), 0))
             events.push_back(std::move(event));
     }
     allocate_input = normal;
-    CHECK(parser.closed());
-    CHECK(parser.buffered_bytes() == 0);
-    CHECK(events.size() == 1 && events[0].kind == FrameEventKind::Closed);
-    CHECK(parser.feed(wire, 1).empty());
+    CHECK(!parser.closed());
+    CHECK(events.size() == 1 && events[0].kind == FrameEventKind::Payload);
+    if (!events.empty())
+        CHECK(events[0].payload == bytes);
+}
+
+void test_paged_json_and_digest_boundaries() {
+    // Put escapes, multibyte UTF-8 and integers across a page boundary.
+    for (const auto& token :
+         {std::string("\"\\uD83D\\uDE00\""), std::string("\"\xf0\x9f\x98\x80\""),
+          std::string("-2147483648"), std::string("2147483647")}) {
+        for (std::size_t split = 1; split < token.size(); ++split) {
+            std::string text(FrameBuffer::page_bytes - split - 5, ' ');
+            text += "{\"v\":" + token + "}";
+            FrameBuffer storage;
+            CHECK(storage.reserve(text.size()));
+            storage.append(
+                std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
+            auto flat = json::parse(text), paged = json::parse(storage.view());
+            CHECK(flat && paged &&
+                  static_cast<std::string>(flat->raw) == static_cast<std::string>(paged->raw));
+            const auto a = flat->get("v"), b = paged->get("v");
+            CHECK(a && b && a->type() == b->type());
+            if (a->type() == '"')
+                CHECK(a->string() == "\xf0\x9f\x98\x80" && b->string() == a->string());
+            else
+                CHECK(a->integer() == (token[0] == '-' ? INT32_MIN : INT32_MAX) &&
+                      b->integer() == a->integer());
+        }
+    }
+    const std::string request = "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":\"" +
+                                id('1') + "\",\"request_id\":\"" + id('2') +
+                                "\",\"op\":\"STATUS\",\"body\":{}}";
+    std::string text(65536 - request.size(), ' ');
+    text += request;
+    FrameBuffer storage;
+    CHECK(storage.reserve(text.size()));
+    storage.append(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
+    const auto root = json::parse(storage.view());
+    CHECK(root);
+    const auto decoded = decode_request(*root, "usb-physical", storage.view());
+    CHECK(decoded && decoded->operation == "STATUS" && decoded->body_valid);
+    CHECK(decoded->payload_digest ==
+          sha256(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size())));
+    for (const auto invalid :
+         {"{\"x\":1,\"\\u0078\":2}", "{\"v\":2147483648}", "{\"v\":\"\\uD800\"}"}) {
+        std::string bad(FrameBuffer::page_bytes - 3, ' ');
+        bad += invalid;
+        FrameBuffer buffer;
+        CHECK(buffer.reserve(bad.size()));
+        buffer.append(std::span(reinterpret_cast<const std::uint8_t*>(bad.data()), bad.size()));
+        CHECK(!json::parse(buffer.view()));
+    }
+}
+
+void test_paged_nested_wide_object_keys() {
+    std::string body = "{";
+    for (int i = 255; i >= 0; --i) {
+        if (i != 255)
+            body += ',';
+        body += json::quote("field-" + std::to_string(i)) + ":0";
+    }
+    auto parse_paged = [](const std::string& text) {
+        FrameBuffer buffer;
+        CHECK(buffer.reserve(text.size()));
+        buffer.append(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
+        return json::parse(buffer.view()).has_value();
+    };
+    std::string prefix(FrameBuffer::page_bytes - 8, ' ');
+    for (unsigned i = 0; i < 15; ++i)
+        prefix += "{\"nested\":";
+    const std::string suffix(15, '}');
+    CHECK(parse_paged(prefix + body + "}" + suffix));
+    // An escaped spelling of an existing key must still be rejected after sorting.
+    CHECK(!parse_paged(prefix + body + ",\"\\u0066ield-127\":0}" + suffix));
+    CHECK(!parse_paged("{\"extra\":" + prefix + body + "}" + suffix + "}"));
+}
+
+void test_input_allocation_failure_closes_without_dispatch() {
+    const auto normal = allocate_input;
+    const std::vector<std::uint8_t> bytes(65536, ' ');
+    const auto wire = encode_frame(bytes);
+    for (const std::size_t successful_pages : {0U, 1U, 8U, 15U}) {
+        input_pages_until_failure = successful_pages;
+        allocate_input = [](std::size_t n) -> void* {
+            if (n == FrameBuffer::page_bytes) {
+                if (input_pages_until_failure == 0)
+                    return nullptr;
+                --input_pages_until_failure;
+            }
+            return std::malloc(n);
+        };
+        FrameParser parser;
+        std::vector<FrameEvent> events;
+        for (const auto& byte : wire) {
+            auto part = parser.feed(std::span(&byte, 1), 0);
+            for (auto& event : part)
+                events.push_back(std::move(event));
+        }
+        allocate_input = normal;
+        CHECK(parser.closed());
+        CHECK(parser.buffered_bytes() == 0);
+        CHECK(events.size() == 1 && events[0].kind == FrameEventKind::Closed);
+        CHECK(parser.feed(wire, 1).empty());
+    }
     FrameParser recovered;
     auto good = recovered.feed(wire, 2);
     CHECK(!recovered.closed() && good.size() == 1 && good[0].payload == bytes);
@@ -336,13 +437,21 @@ void test_large_endpoint_reply_has_one_payload_allocation() {
         const auto wire =
             encode_frame({reinterpret_cast<const std::uint8_t*>(text.data()), text.size()});
         CHECK(!wire.empty());
+        reply_allocation_phase = false;
         if (measured)
             large_allocations = 0;
         received.clear();
         std::size_t offset = 0;
         while (offset < wire.size() || !endpoint.output().empty()) {
-            if (endpoint.can_receive() && offset < wire.size())
-                offset += endpoint.receive(std::span(wire).subspan(offset), 0);
+            if (endpoint.can_receive() && offset < wire.size()) {
+                // Reserve and fill the input before measuring reply allocations.
+                // Dispatch happens on the separately delivered final byte, also
+                // for a cached LOAD that does not call engine.prepare().
+                const auto remaining = wire.size() - offset;
+                reply_allocation_phase = op == "LOAD" && remaining == 1;
+                offset += endpoint.receive(
+                    std::span(wire).subspan(offset, remaining > 1 ? remaining - 1 : 1), 0);
+            }
             while (!endpoint.output().empty()) {
                 const auto chunk =
                     endpoint.output().first(std::min<std::size_t>(7, endpoint.output().size()));
@@ -394,10 +503,8 @@ void test_large_endpoint_reply_has_one_payload_allocation() {
     FrameParser parser;
     const auto frames = parser.feed(received, 0);
     CHECK(!frames.empty());
-    CHECK(std::string_view(reinterpret_cast<const char*>(frames.front().payload.data()),
-                           frames.front().payload.size()) == expected);
-    const auto root = json::parse({reinterpret_cast<const char*>(frames.front().payload.data()),
-                                   frames.front().payload.size()});
+    CHECK(frames.front().payload.view() == expected);
+    const auto root = json::parse(frames.front().payload.view());
     CHECK(root && root->get("ok")->boolean());
     CHECK(root->get("body")->get("adjustments")->elements().size() == 512);
     const auto normal_allocator = allocate_input;
@@ -427,8 +534,11 @@ void test_large_endpoint_reply_has_one_payload_allocation() {
     // not reset the service, fabricate an error for an accepted operation, or ARM.
     measured_reply_allocations = 0;
     reject_reply_allocation = true;
+    const auto prepared_before_replay = engine.prepare_calls;
     send("LOAD", body, 'd', false, true);
     reject_reply_allocation = false;
+    CHECK(measured_reply_allocations == 7);
+    CHECK(engine.prepare_calls == prepared_before_replay);
     CHECK(service.status().state == State::Loaded && !service.status().output_active);
     endpoint.connect("local");
     send("HELLO", "{\"versions\":[\"WTP/1\"],\"client_name\":\"test\",\"client_version\":\"1\"}",
@@ -1294,8 +1404,9 @@ using Test = std::pair<const char*, void (*)()>;
 
 int main() {
     allocate_input = [](std::size_t size) -> void* {
-        if (measured_reply_bytes && (size == OutputBuffer::page_bytes ||
-                                     size == measured_reply_bytes % OutputBuffer::page_bytes)) {
+        if (measured_reply_bytes && reply_allocation_phase &&
+            (size == OutputBuffer::page_bytes ||
+             size == measured_reply_bytes % OutputBuffer::page_bytes)) {
             ++measured_reply_allocations;
             if (reject_reply_allocation && measured_reply_allocations == 7)
                 return nullptr;
@@ -1315,6 +1426,9 @@ int main() {
          test_large_endpoint_reply_has_one_payload_allocation},
         {"WSPR adjustment response allocation", test_wspr_adjustment_response_allocation},
         {"input allocation failure", test_input_allocation_failure_closes_without_dispatch},
+        {"maximum input in fragmented heap", test_maximum_frame_with_fragmented_input_heap},
+        {"paged JSON and digest boundaries", test_paged_json_and_digest_boundaries},
+        {"paged nested wide object keys", test_paged_nested_wide_object_keys},
         {"extended Morse boundaries", test_extended_morse_message_boundaries},
         {"fragmented and combined frames", test_fragmented_and_combined_frames},
         {"frame recovery limits and timeout", test_frame_recovery_limits_and_timeout},

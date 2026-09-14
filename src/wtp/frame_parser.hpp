@@ -1,6 +1,6 @@
 #pragma once
 
-#include "wtp/input_buffer.hpp"
+#include "wtp/frame_buffer.hpp"
 
 #include <array>
 #include <cstddef>
@@ -25,7 +25,7 @@ enum class FrameEventKind { Payload, InvalidFrame, Closed };
 
 struct FrameEvent {
     FrameEventKind kind;
-    InputBuffer payload;
+    FrameBuffer payload;
 };
 
 class FrameParser {
@@ -47,7 +47,7 @@ class FrameParser {
     void invalid_frame(std::vector<FrameEvent>& events);
     void close(std::vector<FrameEvent>& events);
 
-    InputBuffer buffer_;
+    FrameBuffer buffer_;
     std::size_t consecutive_invalid_frames_ = 0;
     std::size_t resync_discard_bytes_ = 0;
     std::uint64_t last_progress_ms_ = 0;

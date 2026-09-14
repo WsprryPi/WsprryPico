@@ -4,6 +4,7 @@
 #include "wtp/json.hpp"
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <numeric>
 
@@ -35,8 +36,12 @@ bool ipv4(std::string_view text) {
 bool integer(wtp::json::Value value, std::uint32_t& n) {
     if ((value.type() < '0' || value.type() > '9') || value.raw.empty())
         return false;
-    const auto result = std::from_chars(value.raw.data(), value.raw.data() + value.raw.size(), n);
-    return result.ec == std::errc{} && result.ptr == value.raw.data() + value.raw.size();
+    if (value.raw.size() > 10)
+        return false;
+    std::array<char, 10> text{};
+    std::copy(value.raw.begin(), value.raw.end(), text.begin());
+    const auto result = std::from_chars(text.data(), text.data() + value.raw.size(), n);
+    return result.ec == std::errc{} && result.ptr == text.data() + value.raw.size();
 }
 } // namespace
 bool valid_time_server(std::string_view text) {
@@ -107,11 +112,12 @@ std::optional<Config> parse_config(std::string_view text) {
     if (const auto expiry = root->get("expires_utc_s")) {
         if (expiry->type() < '0' || expiry->type() > '9')
             return {};
-        const auto result = std::from_chars(
-            expiry->raw.data(), expiry->raw.data() + expiry->raw.size(), c.expires_utc_s);
-        if (result.ec != std::errc{} || result.ptr != expiry->raw.data() + expiry->raw.size() ||
-            (c.expires_utc_s &&
-             (c.expires_utc_s < 1'735'689'600ULL || c.expires_utc_s >= 4'102'444'800ULL)))
+        std::uint32_t seconds = 0;
+        if (!integer(*expiry, seconds))
+            return {};
+        c.expires_utc_s = seconds;
+        if (c.expires_utc_s &&
+            (c.expires_utc_s < 1'735'689'600ULL || c.expires_utc_s >= 4'102'444'800ULL))
             return {};
     }
     c.callsign = station.get("callsign")->string();

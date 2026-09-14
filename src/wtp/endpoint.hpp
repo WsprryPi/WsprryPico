@@ -27,7 +27,7 @@ class Endpoint {
     }
 
   private:
-    void payload(InputBuffer bytes, std::uint64_t now_ms);
+    void payload(FrameBuffer bytes, std::uint64_t now_ms);
     void frame_events(std::vector<FrameEvent> events, std::uint64_t now_ms);
     bool enqueue(std::string payload, std::uint64_t now_ms, bool advisory);
     bool enqueue(OutputBuffer payload, std::uint64_t now_ms);

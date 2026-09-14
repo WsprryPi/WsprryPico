@@ -3,12 +3,13 @@
 #include "wtp/memory_budget.hpp"
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <limits>
 
 namespace wsprrypico::wtp::json {
 namespace {
-void whitespace(std::string_view s, std::size_t& p) {
+void whitespace(InputView s, std::size_t& p) {
     while (p < s.size() && (s[p] == ' ' || s[p] == '\n' || s[p] == '\r' || s[p] == '\t'))
         ++p;
 }
@@ -21,7 +22,7 @@ int hex(char c) {
         return c - 'A' + 10;
     return -1;
 }
-bool codepoint(std::string_view s, std::size_t& p, unsigned& cp) {
+bool codepoint(InputView s, std::size_t& p, unsigned& cp) {
     cp = 0;
     for (unsigned i = 0; i < 4; ++i) {
         if (p == s.size() || hex(s[p]) < 0)
@@ -47,7 +48,7 @@ void append_utf8(std::string& out, unsigned cp) {
         out += static_cast<char>(0x80 | (cp & 63));
     }
 }
-bool string_token(std::string_view s, std::size_t& p, std::string* decoded = nullptr) {
+bool string_token(InputView s, std::size_t& p, std::string* decoded = nullptr) {
     if (p == s.size() || s[p++] != '"')
         return false;
     while (p < s.size()) {
@@ -111,7 +112,7 @@ bool string_token(std::string_view s, std::size_t& p, std::string* decoded = nul
     }
     return false;
 }
-bool utf8(std::string_view s) {
+bool utf8(InputView s) {
     for (std::size_t p = 0; p < s.size();) {
         unsigned c = static_cast<unsigned char>(s[p++]);
         if (c < 0x80)
@@ -144,8 +145,16 @@ bool utf8(std::string_view s) {
     }
     return true;
 }
+bool integer_token(InputView bytes, std::int32_t& number) {
+    if (bytes.empty() || bytes.size() > 11)
+        return false;
+    std::array<char, 11> text{};
+    std::copy(bytes.begin(), bytes.end(), text.begin());
+    const auto result = std::from_chars(text.data(), text.data() + bytes.size(), number);
+    return result.ec == std::errc{} && result.ptr == text.data() + bytes.size();
+}
 // Validation stores only key views for the active objects, never a value tree.
-bool value(std::string_view s, std::size_t& p, unsigned depth, bool validate) {
+bool value(InputView s, std::size_t& p, unsigned depth, bool validate) {
     whitespace(s, p);
     if (p == s.size())
         return false;
@@ -159,7 +168,7 @@ bool value(std::string_view s, std::size_t& p, unsigned depth, bool validate) {
         ++p;
         whitespace(s, p);
         const char end = c == '{' ? '}' : ']';
-        std::vector<std::string_view> keys;
+        std::vector<InputView> keys;
         std::size_t maximum_key_bytes = 0;
         if (p < s.size() && s[p] == end) {
             ++p;
@@ -178,8 +187,8 @@ bool value(std::string_view s, std::size_t& p, unsigned depth, bool validate) {
                     const auto capacity = keys.size() == keys.capacity()
                                               ? std::max<std::size_t>(8, keys.capacity() * 2)
                                               : 0;
-                    if (!memory_admitted(capacity * sizeof(std::string_view) +
-                                         2 * maximum_key_bytes + 1024))
+                    if (!memory_admitted(capacity * sizeof(InputView) + 2 * maximum_key_bytes +
+                                         1024))
                         return false;
                     if (capacity)
                         keys.reserve(capacity);
@@ -196,10 +205,14 @@ bool value(std::string_view s, std::size_t& p, unsigned depth, bool validate) {
                 return false;
             if (s[p++] == end) {
                 if (validate && c == '{') {
-                    auto less = [](auto a, auto b) {
+                    auto less = [](const auto& a, const auto& b) {
                         return Value{a}.string() < Value{b}.string();
                     };
-                    std::sort(keys.begin(), keys.end(), less);
+                    // Paged views are larger than string_view. Keep key sorting
+                    // iterative so wide objects cannot add recursive sort frames
+                    // beneath the independently bounded JSON nesting depth.
+                    std::make_heap(keys.begin(), keys.end(), less);
+                    std::sort_heap(keys.begin(), keys.end(), less);
                     for (std::size_t i = 1; i < keys.size(); ++i)
                         if (Value{keys[i - 1]}.string() == Value{keys[i]}.string())
                             return false;
@@ -229,8 +242,7 @@ bool value(std::string_view s, std::size_t& p, unsigned depth, bool validate) {
         while (p < s.size() && s[p] >= '0' && s[p] <= '9')
             ++p;
     std::int32_t number;
-    auto result = std::from_chars(s.data() + start, s.data() + p, number);
-    return result.ec == std::errc{} && result.ptr == s.data() + p;
+    return integer_token(s.substr(start, p - start), number);
 }
 } // namespace
 char Value::type() const {
@@ -244,7 +256,7 @@ std::string Value::string() const {
 }
 std::int32_t Value::integer() const {
     std::int32_t out = 0;
-    std::from_chars(raw.data(), raw.data() + raw.size(), out);
+    integer_token(raw, out);
     return out;
 }
 bool Value::boolean() const {
@@ -296,7 +308,7 @@ std::optional<Value> Value::get(std::string_view key) const {
     }
     return std::nullopt;
 }
-std::optional<Value> parse(std::string_view payload) {
+std::optional<Value> parse(InputView payload) {
     if (payload.empty() || payload.size() > 65536 || !utf8(payload))
         return std::nullopt;
     std::size_t p = 0;

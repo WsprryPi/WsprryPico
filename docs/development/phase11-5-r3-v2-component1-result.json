@@ -1,0 +1,56 @@
+{
+  "status": "COMPONENT_1_HOST_VALIDATION_PASSED",
+  "scope": "Local paged-input repair and test corrections only",
+  "base_commit": "1d75d376e13236f763f1d2682c88023fa9f2d701",
+  "working_changes_committed": false,
+  "hardware_operations": 0,
+  "firmware_candidates_built": 0,
+  "group_2": "OPEN",
+  "newly_closed_assertions": [],
+  "checks": {
+    "host_test_groups_passed": 8,
+    "core_cases_passed": 34,
+    "address_and_undefined_behavior_sanitizer_groups_passed": 4,
+    "contract_schema_cases": 23,
+    "contract_raw_json_cases": 7,
+    "contract_framing_cases": 1,
+    "contract_transition_cases": 8,
+    "whitespace_check_passed": true
+  },
+  "review": {
+    "json_setup": "Object envelope preserved; decoded scalar expectations checked across page boundaries.",
+    "reply_setup": "Final input byte begins reply accounting for fresh and cached LOAD; seventh-page refusal and unchanged cached preparation count asserted.",
+    "allocation_failure": "First and later input-page refusals close without payload dispatch; fresh parser recovers.",
+    "source_assessment": "Paged ownership/moves, bounded capacity, CRC/digest iteration, JSON views and flat HTTP/configuration call sites reviewed. No remaining actionable host-side finding.",
+    "limitations": [
+      "No target image build or layout/stack review in this component.",
+      "No physical qualification or allocation-defect closure.",
+      "Historical C6 failure remains retained."
+    ]
+  },
+  "source_sha256": {
+    "src/network/api.cpp": "03b08e0eb19cb0deb0a27999c94a379df9e84883349c38023becf772ea862600",
+    "src/standalone/config.cpp": "9839a7118c674675f3a06f14f37238834bde8ab287f2cacf09e48e7a76d38e34",
+    "src/wtp/codec.cpp": "4a00cd127f6b4551de0e8c94c9c223f578e0272526d25d755bd197ac2051a139",
+    "src/wtp/codec.hpp": "ae9a12dbaf92337d78665fbafd2e36a4a8e9e455a532fdcb9746bc9141c36073",
+    "src/wtp/endpoint.cpp": "10387bc32185403696370e353254739c8d615ccc2fc129c067f4d07d1fd6eda1",
+    "src/wtp/endpoint.hpp": "bef935a7df3fa35672f1a4536b34562ae3aee72a9079f81d14f01d34681cbfdb",
+    "src/wtp/frame_parser.cpp": "ab7d64699c2ac9278947fc3b2870bb58224a8c84656c106870df05979ac9deda",
+    "src/wtp/frame_parser.hpp": "3ba65a8ae9d738093447ae2dd418f98aa91cd2c396b973ddfebc468a39c109d7",
+    "src/wtp/frame_buffer.hpp": "4024e1749b2a4c26f4e6aa8182b02a2950c736185300b2259fd64fc39df3630d",
+    "src/wtp/input_buffer.hpp": "b7b4b7e6d4a1c23177d5797fd5d4631a64e1b1b477ef2bf5001d7d19250dc355",
+    "src/wtp/input_view.hpp": "9d0a97946aed50d7de40af41df0bd80739c3d55335bd2d79420f967e9be3924c",
+    "src/wtp/json.cpp": "e8b4a0a01e358d4e13f3de7dfbca0eabad3d61cdbe30bbeac48a5b2aa5852ea8",
+    "src/wtp/json.hpp": "3417fa827f4896cc1a40656439164c190a7c67ede04321c65a0e7f0e29998720",
+    "tests/core_tests.cpp": "5c2f0c6fa20632bbf466ed5c52e586497f9d0ac24a14853334dc0baeb4101716",
+    "tests/endpoint_driver.cpp": "101c3e48a1da3636dfecb6f57bfbf0a56c8794c070a8f60ab1dfdc2491aec74a",
+    "tests/network_tests.cpp": "1714f5104b93c4b5c01e6513c7a7b4f485a5cf3095614d5c7e5eeddd4384c662"
+  },
+  "check_log_sha256": {
+    "component1-final-build.log": "c4de2f15c585d32a801f28cf46d78b62852031d359ae74ee9b0e279faa438322",
+    "component1-final-tests.log": "575f33729cd2c58b6d28e30241217b7b22634bf7bb9b4cc226bc3fd008fefbf9",
+    "component1-sanitize-final-build.log": "4e214d1c9c932c67bb636a14e70df76dee1274a9c7879182f20aae2fe86e313b",
+    "component1-sanitize-final-tests.log": "24216a2620441d285574c50d9818a890ed11aa64cc8a8d883cdbfabf937cccbc",
+    "component1-contract.log": "34188e867e39fa621167ea4d65841d01102c5398e9ae9e30e6c19abe3541bf9c"
+  }
+}

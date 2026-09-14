@@ -178,7 +178,7 @@ std::size_t Endpoint::receive(std::span<const std::uint8_t> input, std::uint64_t
     }
     return count;
 }
-void Endpoint::payload(InputBuffer bytes, std::uint64_t now) {
+void Endpoint::payload(FrameBuffer bytes, std::uint64_t now) {
     // Refuse transport work before decoding/dispatch when competing contexts
     // have consumed its working space. No new operation or replay entry exists.
     if (!memory_admitted(16384)) {
@@ -188,13 +188,13 @@ void Endpoint::payload(InputBuffer bytes, std::uint64_t now) {
     // A complete request can take longer than one RF refill interval. Keep
     // execution progressing between the independently bounded codec stages.
     service_.poll();
-    auto root = json::parse({reinterpret_cast<const char*>(bytes.data()), bytes.size()});
+    auto root = json::parse(bytes.view());
     service_.poll();
     if (!root) {
         close_after_output();
         return;
     }
-    auto request = decode_request(std::move(*root), principal_, bytes);
+    auto request = decode_request(std::move(*root), principal_, bytes.view());
     // Decoded requests own their fields and digest. Release raw input before
     // preparing a maximum job or serializing its independently bounded reply.
     root.reset();
