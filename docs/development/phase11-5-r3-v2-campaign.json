@@ -1371,5 +1371,75 @@
     "review_file": "phase11-5-r3-v2-component2-review.md",
     "hardware_operations": 0,
     "newly_closed_assertions": []
+  },
+  "group2_component3": {
+    "status": "COMPONENT_3_COMPLETE_WITH_PRE_ARM_FAILURE",
+    "result": "phase11-5-r3-v2-component3-result.json",
+    "group_2": "OPEN",
+    "newly_closed_assertions": [],
+    "counts": {
+      "flashes": 1,
+      "bootsel_commands": 1,
+      "extra_reboots": 0,
+      "rf_jobs_charged": 0,
+      "rf_seconds_charged": 0,
+      "configuration_writes": 0,
+      "wifi_cycles": 0,
+      "heap_probes": 0
+    },
+    "period3_totals": {
+      "repair_candidates_selected": 1,
+      "flashes": 1,
+      "bootsel_commands": 1,
+      "extra_reboots": 0,
+      "rf_jobs_charged": 1,
+      "rf_seconds_charged": 128,
+      "remaining_rf_seconds": 772,
+      "configuration_writes": 0,
+      "wifi_cycles": 0,
+      "heap_probes": 0
+    },
+    "final_devices": {
+      "a": {
+        "serial": "0BF4B4AEC9FFB344",
+        "revision": "4dad112c8a4c",
+        "status": {
+          "boot_id": "b512a9e82baeee7580de50adf888d32b",
+          "state": "empty",
+          "output_active": false,
+          "owner_id": null,
+          "job_id": null,
+          "terminal_records": [
+            {
+              "job_id": "8d8734400ddd2d472799f3d08a92e6b5",
+              "state": "aborted",
+              "ended_monotonic_ns": "409384821000",
+              "output_active": false
+            },
+            {
+              "job_id": "c339ee30075d458ccc3047bb3d8f8b18",
+              "state": "aborted",
+              "ended_monotonic_ns": "8283006000",
+              "output_active": false
+            }
+          ]
+        },
+        "scheduling_enabled": false
+      },
+      "b": {
+        "serial": "CDDBF8767C506C07",
+        "revision": "8921a7008183",
+        "status": {
+          "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+          "state": "empty",
+          "output_active": false,
+          "owner_id": null,
+          "job_id": null,
+          "terminal_records": []
+        },
+        "scheduling_enabled": false
+      }
+    },
+    "fixture": "F7_RESTORED"
   }
 }

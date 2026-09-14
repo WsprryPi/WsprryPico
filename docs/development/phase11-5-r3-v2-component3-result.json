@@ -1,0 +1,186 @@
+{
+  "status": "COMPONENT_3_COMPLETE_WITH_PRE_ARM_FAILURE",
+  "group_2": "OPEN",
+  "newly_closed_assertions": [],
+  "source_revision": "4dad112c8a4c0ce4e5be77ecba5c3c460496472c",
+  "image_sha256": "4b4ddd6c9108d20cb7718756da047e4ddd0d4948e6c432d3aa1329d55150d08a",
+  "boot_id": "b512a9e82baeee7580de50adf888d32b",
+  "idle_admission": {
+    "status": "E6_IDLE_BOUNDARIES_VERIFIED",
+    "family_closed": false,
+    "packet_sha256": "913815043305325b19efdf594b97df570b47b03e4b9ac991504edb3bb7b572bc",
+    "source_revision": "4dad112c8a4c0ce4e5be77ecba5c3c460496472c",
+    "image_sha256": "4b4ddd6c9108d20cb7718756da047e4ddd0d4948e6c432d3aa1329d55150d08a",
+    "boot_id": "b512a9e82baeee7580de50adf888d32b",
+    "assertions": [
+      "clean_extended_image_idle",
+      "wtp_65536_full_write",
+      "wtp_65537_rejected_same_connection_recovered",
+      "events_513_atomic_rejection",
+      "duration_3600_plus_ns_atomic_rejection",
+      "events_512_duration_3600_idle_load",
+      "loaded_abort_release"
+    ],
+    "rf_jobs": 0,
+    "flashes": 1,
+    "bootsel_commands": 1,
+    "b_unchanged": true,
+    "allocator_peak_bytes": 140392,
+    "heap_capacity_bytes": 219704,
+    "physical_hour_or_contention_verified": false
+  },
+  "capacity_retest": {
+    "status": "C7_PRE_ARM_LOAD_REPLY_FAILURE_VERIFIED",
+    "acceptance_pass": false,
+    "newly_closed_assertions": [],
+    "packet_sha256": "8cfcdfeef0c4513f24fe4dff64eaef1f62bbeaa4054c33d2d6720a3481e4b908",
+    "source_revision": "4dad112c8a4c0ce4e5be77ecba5c3c460496472c",
+    "image_sha256": "4b4ddd6c9108d20cb7718756da047e4ddd0d4948e6c432d3aa1329d55150d08a",
+    "boot_id": "b512a9e82baeee7580de50adf888d32b",
+    "rf_jobs_charged": 0,
+    "rf_seconds_charged": 0,
+    "maximum_input_exchanges": 0,
+    "load_request_wire_bytes": 52105,
+    "load_response_bytes": 0,
+    "first_failure": "LOAD response timeout; no automatic retry; output unknown",
+    "info_samples": 300,
+    "allocator_failures": 0,
+    "allocator_peak_bytes": 165464,
+    "heap_capacity_bytes": 219704,
+    "core0_stack_used_bytes": 8700,
+    "core1_stack_used_bytes": 940,
+    "final_a": {
+      "boot_id": "b512a9e82baeee7580de50adf888d32b",
+      "state": "empty",
+      "output_active": false,
+      "owner_id": null,
+      "job_id": null,
+      "terminal_records": [
+        {
+          "job_id": "8d8734400ddd2d472799f3d08a92e6b5",
+          "state": "aborted",
+          "ended_monotonic_ns": "409384821000",
+          "output_active": false
+        },
+        {
+          "job_id": "c339ee30075d458ccc3047bb3d8f8b18",
+          "state": "aborted",
+          "ended_monotonic_ns": "8283006000",
+          "output_active": false
+        }
+      ]
+    },
+    "b_unchanged": true,
+    "cause": "UNRESOLVED: LOAD reply reserve refusal is a source-based hypothesis, not a captured branch."
+  },
+  "counts": {
+    "flashes": 1,
+    "bootsel_commands": 1,
+    "extra_reboots": 0,
+    "rf_jobs_charged": 0,
+    "rf_seconds_charged": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 0,
+    "heap_probes": 0
+  },
+  "period3_totals": {
+    "repair_candidates_selected": 1,
+    "flashes": 1,
+    "bootsel_commands": 1,
+    "extra_reboots": 0,
+    "rf_jobs_charged": 1,
+    "rf_seconds_charged": 128,
+    "remaining_rf_seconds": 772,
+    "configuration_writes": 0,
+    "wifi_cycles": 0,
+    "heap_probes": 0
+  },
+  "final_devices": {
+    "a": {
+      "serial": "0BF4B4AEC9FFB344",
+      "revision": "4dad112c8a4c",
+      "status": {
+        "boot_id": "b512a9e82baeee7580de50adf888d32b",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": [
+          {
+            "job_id": "8d8734400ddd2d472799f3d08a92e6b5",
+            "state": "aborted",
+            "ended_monotonic_ns": "409384821000",
+            "output_active": false
+          },
+          {
+            "job_id": "c339ee30075d458ccc3047bb3d8f8b18",
+            "state": "aborted",
+            "ended_monotonic_ns": "8283006000",
+            "output_active": false
+          }
+        ]
+      },
+      "scheduling_enabled": false
+    },
+    "b": {
+      "serial": "CDDBF8767C506C07",
+      "revision": "8921a7008183",
+      "status": {
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "scheduling_enabled": false
+    }
+  },
+  "host_restored": true,
+  "protected_files_unchanged": true,
+  "installed_pid": 1957,
+  "installed_sha256": "c19461bc6d2ebe7cae61798ad9acae8d43dfbec3ee57c288e4ef41e9c82b8273",
+  "evidence_sha256": {
+    "build/phase11-5-r3-v2-idle-e6/evidence.tar": "bcb6309e36c8d9f337d0a54029372c660517da6017e01eaa93dde9208fa6a2ea",
+    "build/phase11-5-r3-v2-idle-e6/frozen-auditor.json": "a03b90b3ac356d20390daa4b6b21f209c52a4d9bd5d57ce0502b9258f793fd42",
+    "build/phase11-5-r3-v2-capacity-c7/evidence.tar": "6b908a120bc03e3e8f62e83949f25d90c019736cdec3505d1f4c23588a079488",
+    "build/phase11-5-r3-v2-capacity-c7/frozen-auditor.json": "c7f39111e9c9e2a0dc1bfcdce3a1c2109940d563428093f2fe032b777c145d66",
+    "build/phase11-5-r3-v2-capacity-c7/pre-arm-review.json": "67af134b9971beed0aa9c19a3bbb183b1a0fed2c8b89515d8d78f15e545bc7f7",
+    "build/phase11-5-r3-group2-component3/final-host.json": "7e5f5afb477e8c6048b14ae3d54e7b72bdded71f6a3c2a8e9144e662ca1391d0",
+    "build/phase11-5-r3-group2-component3/final-a.stdout": "67e43d988f19c404d923adf393b872b0ffb7d78ecbf41f5bad7ab1d2431ff117",
+    "build/phase11-5-r3-group2-component3/final-b.stdout": "5227a5268dea3926358c69a7589cabd91311e1eb4e647f28b673ef5dc711167c",
+    "build/phase11-5-r3-group2-component3/f7-state.json": "f6fb509818dd69b6d7b35a52f7b1c5aca4da9f917a063207724331b3494e4122",
+    "build/phase11-5-r3-group2-component3/f7-log.json": "4b317f36f41f589ad81eb7cffe8c1bd31fd666694907a7d7ffcb324e021a877f",
+    "build/phase11-5-r3-group2-component3/publication-r3-tests.log": "08413ef6b7b31bc013b80df0edcc6b20395111b686b0acc1fdd1eba2e00f7d5a",
+    "build/phase11-5-r3-group2-component3/publication-contract.log": "34188e867e39fa621167ea4d65841d01102c5398e9ae9e30e6c19abe3541bf9c"
+  },
+  "review": {
+    "e6_raw_mutations_passed": true,
+    "c7_raw_mutations_rejected": 12,
+    "physical_retry": false,
+    "firmware_changed_after_component2": false,
+    "thresholds_relaxed": false,
+    "findings": [
+      "Added fresh native Running admission before USB capacity; prospective only, not reached in C7.",
+      "Corrected failure-auditor start-record shape to include the producer runtime field; all raw fields remain checked."
+    ],
+    "reassessment": "No remaining actionable finding in this bounded harness/evidence publication. Physical LOAD reply failure remains unresolved."
+  },
+  "limitations": [
+    "E6 proves idle admission only. C7 never reached ARM or either USB maximum/oversized stimulus.",
+    "C7 reports zero allocator failures; it neither reproduces nor physically closes the C6 input allocation failure.",
+    "Historical checkpoint 048 passes remain bound to their original images. Candidate RF acceptance remains pending.",
+    "The LOAD reply reserve check is a source-based hypothesis. Current raw data does not identify the actual close branch.",
+    "No Group 3 work or additional RF attempt."
+  ],
+  "next_step": "Hardware-free reproduction of C7 LOAD response admission using the exact request, real service/encoder, and measured TLS/retained memory costs; identify the close path before proposing another firmware candidate.",
+  "checks": {
+    "isolated_r3_tests_run": 151,
+    "isolated_r3_tests_passed": 122,
+    "isolated_r3_tests_skipped": 29,
+    "c7_raw_mutations_rejected": 12,
+    "e6_private_evidence_tests_passed": 4,
+    "contract_passed": true,
+    "unrelated_pending_files_preserved": 115
+  }
+}

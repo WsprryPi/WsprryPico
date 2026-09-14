@@ -59,6 +59,7 @@ def main():
     ctx.set_alpn_protocols(['http/1.1']);opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
     log=(root/'contention.jsonl').open('x');seq=0;process=None;end=time.monotonic()+packet['runtime_seconds']
     result=dict(status='RUNNING',https_requests=0);pressure_process=None;capture=None
+    capacity_index=0
     pressure_mode=plan['policy']=='native-wtp-and-bounded-pressure-v1'
     if pressure_mode:
         from phase11_5_r3_v2_pressure_plan import validate as validate_pressure
@@ -81,8 +82,33 @@ def main():
         began=time.monotonic_ns()
         with opener.open('http://127.0.0.1:31425/api/v1/status',timeout=3) as response:
             raw=response.read(131073);require(len(raw)<=131072,'Host status bound');value=json.loads(raw)
-        emit('native_status',dict(began_monotonic_ns=began,body_hex=raw.hex(),value=value));return value
+        emit('native_status',dict(began_monotonic_ns=began,body_hex=raw.hex(),value=value))
+        if packet.get('closure_policy')=='group2-paged-input-retest-v1':
+            save(root/'native-observation.json',dict(packet_sha256=a.packet_sha256,
+                observed_monotonic_ns=time.monotonic_ns(),job=value.get('job')))
+        return value
     def https():
+        nonlocal capacity_index
+        if 'http_capacity' in packet and capacity_index<len(packet['http_capacity']['cases']):
+            observed=root/'observer-status.json'
+            if observed.exists():
+                snap=json.loads(observed.read_text());status=snap['value']['value']
+                if status['state']=='running':
+                    from phase11_5_browser_jobs import admit_snapshot
+                    from phase11_5_r3_v2_parallel_b_functional import http_exchange
+                    info=json.loads((root/'observer-info.json').read_text())
+                    pending=json.loads((root/'observer-console_tx.json').read_text())
+                    now=time.monotonic_ns();admit_snapshot(snap,now,6_000_000_000,a.packet_sha256,operation='STATUS')
+                    admit_snapshot(info,now,2_000_000_000,a.packet_sha256,pending)
+                    require(not (root/'observer-failure.json').exists() and
+                        status['boot_id']==packet['boot_id'] and status['owner_id']==packet['owner_id'] and
+                        status['job_id']==packet['jobs'][0]['job_id'] and status['output_active'] is True,
+                        'HTTP capacity requires observed owned Running RF')
+                    case=packet['http_capacity']['cases'][capacity_index];capacity_index+=1
+                    emit('http_capacity_admission',dict(case=case['label'],status=snap,info=info,pending_info=pending,guarded_at_ns=now))
+                    began=time.monotonic()
+                    http_exchange(root,dict(packet,address='10.77.15.10'),case,emit,target=(NAME,PEER_SHA,DEVICE))
+                    result['https_requests']+=1;return began
         began=time.monotonic_ns();deadline=time.monotonic()+15
         request=f'GET /api/v1/status HTTP/1.1\r\nHost: {NAME}:18443\r\nConnection: close\r\n\r\n'.encode()
         with socket.create_connection(('10.77.15.10',18443),timeout=5) as raw:
@@ -166,6 +192,8 @@ def main():
             if pressure_mode:
                 pressure_process.wait(timeout=5);require(pressure_process.returncode==0,'Pressure completion')
                 result['pressure_exit']=pressure_process.returncode
+            if 'http_capacity' in packet:
+                require(capacity_index==len(packet['http_capacity']['cases']),'Missing HTTP capacity case')
             result['status']='CAPTURED_REQUIRES_AUDIT'
     except BaseException as error:
         result.update(status='FAILED',error=str(error));emit('failure',dict(type=type(error).__name__,error=str(error)))

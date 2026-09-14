@@ -214,3 +214,90 @@ def terminal_expiry(root, rows):
             last_present_bracket=present[-1] if present else None,first_absent_bracket=absent[0] if absent else None,
             ambiguous_boundary_samples=ambiguous,scope='Existing terminal TTL only; not capacity/LRU/replay/reclamation'))
     return checks
+
+
+def audit_capacity(root, decoder, packet_digest):
+    """Existing RF/native audits plus three bounded HTTP body boundary exchanges."""
+    from phase11_5_r3_capacity_plan import http_capacity_cases
+    from phase11_5_browser_jobs import admit_snapshot
+    base=audit_rf(root,packet_digest=packet_digest)
+    packet=json.loads((root/'packet.json').read_text());cases=http_capacity_cases(packet['http_capacity']['seed'])
+    require(packet['http_capacity']['cases']==cases,'Frozen capacity HTTP cases')
+    rf=journal(root/'rf.jsonl');load=journal(root/'contention.jsonl');plan=packet['contention'];job,=packet['jobs']
+    native,metrics=native_wire(root,packet,decoder)
+    require(metrics['connections']==1,'One persistent native TLS/WTP connection')
+    ready=json.loads((root/'contention-ready.json').read_text())
+    require(ready['packet_sha256']==packet_digest and ready['boot_id']==packet['boot_id'] and
+        ready['observed_monotonic_ns']<next(r['monotonic_ns'] for r in rf if r['kind']=='arm_pending') and
+        not (root/'contention-failed.json').exists(),'Native readiness and no contention failure')
+    for exchange in base['wtp_capacity']:
+        before=[s for s in native if s['ended']<=exchange['began_ns']]
+        after=[s for s in native if s['began']>=exchange['ended_ns']]
+        require(before and after,'Native observations bracket USB capacity')
+        for s in [before[-1],after[0]]:
+            v=s['value']
+            require(v['boot_id']==packet['boot_id'] and v['state']=='running' and v['output_active'] is True and
+                v['owner_id']==packet['owner_id'] and v['job_id']==job['job_id'],
+                'Independent native owned Running around USB capacity')
+    arm=next(r['monotonic_ns'] for r in rf if r['kind']=='arm_acknowledged')
+    end=next(r['monotonic_ns'] for r in rf if r['kind']=='job_complete')
+    require(native[0]['began']<arm and native[-1]['ended']>=end-6_000_000_000 and
+        all(0<b['began']-a['began']<=6_000_000_000 for a,b in zip(native,native[1:])),'Native authority coverage')
+    for s in native:
+        v=s['value'];require(v['boot_id']==packet['boot_id'] and v['job_id'] in [None,job['job_id']] and
+            v['owner_id'] in [None,packet['owner_id']] and v['output_active'] is (v['state']=='running'),'Native authority')
+    require(load[0]['value']==dict(packet_sha256=packet_digest,policy=plan['policy'],binary_sha256=plan['binary_sha256']) and
+        all(r['kind'] in ['start','finish','native_status','https_status','http_capacity_admission','http_tx',
+            'http_write_complete','http_response'] for r in load),'Finite HTTP capture without failures')
+    selected=[r for r in load if r['kind'].startswith('http_')]
+    require([r['kind'] for r in selected]==['http_capacity_admission','http_tx','http_write_complete','http_response']*3,
+        'Exactly three HTTP capacity exchanges')
+    observations={}
+    for r in rf:
+        if r['kind'] in ['status','info','console_tx']:observations[(r['kind'],r['monotonic_ns'])]=r['value']
+    out=[]
+    for case,offset in zip(cases,range(0,12,4)):
+        admission,tx,write,reply=selected[offset:offset+4];snap=admission['value']
+        require(snap['case']==case['label'] and tx['value']==case and
+            write['value']==dict(label=case['label'],bytes=len(bytes.fromhex(case['wire_hex']))),'Exact complete HTTP write')
+        require(0<=admission['monotonic_ns']-snap['guarded_at_ns']<=100_000_000,'HTTP admission publication delay')
+        pending=snap['pending_info']
+        require(observations[('console_tx',pending['monotonic_ns'])]==pending['value'],'Raw in-flight INFO request')
+        for kind,maxage in [('status',6_000_000_000),('info',2_000_000_000)]:
+            record=snap[kind]
+            require(observations[(kind,record['monotonic_ns'])]==record['value'] and
+                record['packet_sha256']==packet_digest,'Independent HTTP admission evidence')
+            admit_snapshot(record,snap['guarded_at_ns'],maxage,packet_digest,pending if kind=='info' else None,
+                'INFO' if kind=='info' else 'STATUS')
+        status=snap['status']['value']['value'];info=snap['info']['value']['value']
+        require(status['boot_id']==info['status']['boot_id']==packet['boot_id'] and status['state']=='running' and
+            status['output_active'] is True and status['owner_id']==packet['owner_id'] and status['job_id']==job['job_id'],
+            'HTTP boundary during authoritative Running RF')
+        v=reply['value'];raw=bytes.fromhex(v['body_hex']);body=json.loads(raw)
+        headers={k.lower():val for k,val in v['headers']}
+        require(v['label']==case['label'] and v['peer_sha256']==PEER and v['status']==case['expected_status'] and
+            len(raw)<=131072 and int(headers['content-length'])==len(raw) and
+            0<=reply['monotonic_ns']-v['began_monotonic_ns']<=15_000_000_000,'HTTP identity/body/deadline')
+        if case['error_code']:
+            require(body['error']['code']==case['error_code'],'HTTP-layer rejection')
+        else:
+            request=json.loads(bytes.fromhex(case['wire_hex']).split(b'\r\n\r\n',1)[1])
+            require(body['ok'] is True and body['request_id']==request['request_id'] and
+                body['result']['device_id']==DEVICE and body['result']['boot_id']==packet['boot_id'],
+                'Supported HELLO, exact request and recovery identity')
+        following=next(r for r in rf if r['kind']=='status' and r['value']['began_monotonic_ns']>reply['monotonic_ns'])
+        require(following['value']['value']['state']=='running' and following['value']['value']['owner_id']==packet['owner_id'],
+            'RF and owner survive HTTP boundary exchange')
+        out.append(dict(label=case['label'],declared_bytes=case['declared_body_bytes'],offered_bytes=case['offered_body_bytes'],
+            response_status=v['status'],began_ns=v['began_monotonic_ns'],ended_ns=reply['monotonic_ns']))
+    ordinary=[r for r in load if r['kind']=='https_status']
+    for r in ordinary:
+        v=r['value'];body=json.loads(bytes.fromhex(v['body_hex']))
+        require(v['status']==200 and v['peer_sha256']==PEER and body['job']['boot_id']==packet['boot_id'] and
+            body['transport']['active']==2 and body['transport']['pending']==0,'Ordinary native plus HTTPS concurrency')
+    result=json.loads((root/'contention-result.json').read_text())
+    require(result==load[-1]['value']==dict(status='CAPTURED_REQUIRES_AUDIT',https_requests=len(ordinary)+3,native_exit=0) and
+        result['https_requests']<=plan['maximum_https_requests'],'Finite contention accounting')
+    base.update(status='RF_WTP_HTTP_CAPACITY_COMPONENTS_VERIFIED',http_capacity=out,native=metrics,
+        limitations=['No USB unread-output pressure or retention/reclamation credit'])
+    return base

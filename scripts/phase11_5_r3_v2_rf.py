@@ -28,6 +28,10 @@ ASSET_IMAGE='454e03e5165143463d6b5f965ea8f1f3704138f08bfc7057704e3fef8f10ebe4'
 DIAGNOSTIC_SOURCE='4da36726ac6809bdf4e73d281fe13b2393dd3b31'
 DIAGNOSTIC_IMAGE='0153107c517b673bfad7850957c8387a7dbfb12ddb0a3b1e90edb94b804b9a9f'
 DIAGNOSTIC_POLICY='single-maximum-failure-capture-v1'
+CLOSURE_POLICY='group2-bounded-acceptance-v1'
+REPAIR_POLICY='group2-paged-input-retest-v1'
+REPAIR_SOURCE='4dad112c8a4c0ce4e5be77ecba5c3c460496472c'
+REPAIR_IMAGE='4b4ddd6c9108d20cb7718756da047e4ddd0d4948e6c432d3aa1329d55150d08a'
 B_PARALLEL_AUTHORIZATION='37ae5f5658ffc7c4436547061e4a81e577ea9102a086ec1e74d09031699caaab'
 
 
@@ -40,6 +44,17 @@ def comparator_required(packet):
                 'Independent B requires repaired A and accepted parallel scope')
     return role=='unchanged-comparator'
 
+
+
+def native_running(record, packet, packet_sha256, now):
+    """Wait for a fresh independent native observation before USB capacity input."""
+    require(record['packet_sha256']==packet_sha256,'Native observation packet')
+    age=now-record['observed_monotonic_ns']
+    require(0<=age<=3_000_000_000,'Fresh native observation required')
+    job=record.get('job') or {}
+    return (job.get('boot_id')==packet['boot_id'] and job.get('job_id')==packet['jobs'][0]['job_id'] and
+            job.get('owner_id')==packet['owner_id'] and job.get('state')=='running' and
+            job.get('output_active') is True)
 
 
 def fresh_sample(samples, lock, name, maximum_age_ns, monotonic_ns=time.monotonic_ns, *, identity=None,inflight=None):
@@ -71,6 +86,23 @@ def guarded_action(action, value, faults, report):
 
 def validate(packet):
     diagnostic=packet.get('diagnostic_policy')==DIAGNOSTIC_POLICY
+    repair=packet.get('closure_policy')==REPAIR_POLICY
+    closure=packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY)
+    require('closure_policy' not in packet or closure,'Unknown closure policy')
+    require(packet['source_revision']!=REPAIR_SOURCE or repair,'Repair image requires exact retest policy')
+    if closure:
+        require('diagnostic_policy' not in packet and packet['source_revision']==(REPAIR_SOURCE if repair else DIAGNOSTIC_SOURCE) and
+                packet['observer_policy']==SINGLE_FLIGHT and len(packet['jobs'])==1 and
+                packet['runtime_seconds']==300 and packet['maximum_renewals']==8 and
+                packet['jobs'][0]['mode']=='fskcw' and len(packet['jobs'][0]['events'])==512 and
+                packet['jobs'][0]['total_duration_ns']=='128000000000' and
+                all(e==dict(offset_ns=str(n*250000000),duration_ns='250000000',rf_on=True,
+                    frequency_nhz=str(135500000000000 if n%2==0 else 135495000000000))
+                    for n,e in enumerate(packet['jobs'][0]['events'])) and
+                'wtp_capacity' in packet and 'http_capacity' in packet and
+                packet['contention']['policy']=='native-wtp-and-https-status-20s-v1' and
+                packet['contention']['maximum_https_requests']==16 and
+                not packet.get('allocator_failure_baseline'), 'Exact Group 2 capacity tranche')
     require('diagnostic_policy' not in packet or diagnostic,'Unknown diagnostic policy')
     if diagnostic:
         require(packet['source_revision']==DIAGNOSTIC_SOURCE and
@@ -81,10 +113,10 @@ def validate(packet):
             (packet['source_revision'],packet['image_sha256']) in [
                 ('7d183978d08d77d5de668911be041bb188c851f5',
                  '38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1'),
-                (REPAIRED_SOURCE,REPAIRED_IMAGE),(PAGED_SOURCE,PAGED_IMAGE),(INFO_SOURCE,INFO_IMAGE),(ASSET_SOURCE,ASSET_IMAGE),(DIAGNOSTIC_SOURCE,DIAGNOSTIC_IMAGE)],
+                (REPAIRED_SOURCE,REPAIRED_IMAGE),(PAGED_SOURCE,PAGED_IMAGE),(INFO_SOURCE,INFO_IMAGE),(ASSET_SOURCE,ASSET_IMAGE),(DIAGNOSTIC_SOURCE,DIAGNOSTIC_IMAGE),(REPAIR_SOURCE,REPAIR_IMAGE)],
             'Reviewed physical source/image/scope')
     comparator_required(packet)
-    if packet['source_revision']==DIAGNOSTIC_SOURCE:
+    if packet['source_revision']==DIAGNOSTIC_SOURCE and not closure:
         require(len(packet['jobs'])==1 and packet['jobs'][0]['mode']=='tone' and
                 packet['jobs'][0]['total_duration_ns']=='90000000000' and
                 packet['runtime_seconds']==(240 if diagnostic else 180) and packet['maximum_renewals']==5 and
@@ -206,6 +238,7 @@ def recent_clock(info, clock=None):
 
 def run(root,packet):
     diagnostic=packet.get('diagnostic_policy')==DIAGNOSTIC_POLICY
+    capture_failures=diagnostic or packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY)
     os.umask(0o077);end=time.monotonic()+packet['runtime_seconds'];lock=threading.Lock();done=threading.Event()
     faults=[];samples={};inflight={};seq=0;result=dict(status='RUNNING',armed_jobs=[],completed_jobs=[],renewals=0,rf_duration_ns_charged=0)
     log=(root/'rf.jsonl').open('x')
@@ -253,7 +286,7 @@ def run(root,packet):
         with exclusive_port(Path(f'/dev/serial/by-id/usb-WsprryPi_WsprryPico_{SERIAL}-if00')) as fd:
             def read():
                 info=exchange(fd,b'INFO\n',time.monotonic()+5,lambda k,v:emit('console_'+k,v),False)
-                if diagnostic:return capture_diagnostic_info(info,before,packet,faults,emit)
+                if capture_failures:return capture_diagnostic_info(info,before,packet,faults,emit)
                 validate_info(info,before,packet);return info
             periodic('info',1,read)
     def health():
@@ -299,7 +332,7 @@ def run(root,packet):
                 if state['phase']=='idle':
                     require(status['state']=='empty' and status['owner_id'] is None and not status['output_active'],
                             'Next job idle admission')
-                    if diagnostic and not recent_clock(info):return
+                    if capture_failures and not recent_clock(info):return
                     require(time.monotonic()+int(job['total_duration_ns'])/1e9+40<end,'Remaining finite observation budget')
                     checkpoint()
                     state['epoch']=int(info['launch_epoch']);state['lease']=peer.request('CLAIM',dict(owner_id=packet['owner_id'],lease_ms=60000))
@@ -309,7 +342,7 @@ def run(root,packet):
                     clock=peer.request('GET_CLOCK')
                     require(clock['state']=='synchronized' and clock['leap']=='normal' and int(clock['uncertainty_ns'])<=500_000_000,
                             'ARM synchronized clock')
-                    if diagnostic:require(recent_clock(info,clock),'ARM recent accepted SNTP and matching clock mapping')
+                    if capture_failures:require(recent_clock(info,clock),'ARM recent accepted SNTP and matching clock mapping')
                     target=((int(clock['utc_now_ns'])+10_000_000_000+999)//1000)*1000
                     checkpoint()
                     result['armed_jobs'].append(job['job_id']);result['rf_duration_ns_charged']+=int(job['total_duration_ns'])
@@ -321,15 +354,18 @@ def run(root,packet):
                     require(status['job_id']==job['job_id'] and status['owner_id']==packet['owner_id'] and
                             status['state'] in ['armed','running','complete'],'Finite lifecycle')
                     if status['state']=='running' and 'wtp_capacity' in packet and not state.get('capacity_exchanged',False):
-                        if diagnostic and not (info['status']['state']=='running' and info['status']['output_active'] is True):return
+                        if capture_failures and not (info['status']['state']=='running' and info['status']['output_active'] is True):return
                         from phase11_5_r3_capacity_probe import exchange_capacity
                         from phase11_5_r3_capacity_plan import wtp_capacity_frame
                         from validate_wtp_contract import frame
+                        if packet.get('closure_policy')==REPAIR_POLICY:
+                            published=root/'native-observation.json'
+                            if not published.exists() or not native_running(json.loads(published.read_text()),packet,digest(root/'packet.json'),time.monotonic_ns()):return
                         cap=packet['wtp_capacity'];state['capacity_exchanged']=True
                         raw=wtp_capacity_frame(peer.session,cap['maximum_request_id'])
                         checkpoint()
                         observer_checkpoint=peer.checkpoint
-                        if diagnostic:peer.checkpoint=checkpoint
+                        if capture_failures:peer.checkpoint=checkpoint
                         try:observed=exchange_capacity(peer,raw,json.loads(raw[16:]),emit)
                         finally:peer.checkpoint=observer_checkpoint
                         require(observed['boot_id']==packet['boot_id'] and observed['job_id']==job['job_id'] and
@@ -339,8 +375,12 @@ def run(root,packet):
                             recovery=dict(type='request',protocol='WTP/1',session_id=peer.session,
                                 request_id=cap['recovery_request_id'],op='PING',body={'token':'after-capacity'})
                             raw=wtp_capacity_frame(peer.session,cap['oversized_request_id'],True)+frame(json.dumps(recovery,separators=(',',':')).encode())
-                            require(exchange_capacity(peer,raw,recovery,emit,invalid_frames=1)==recovery['body'],
-                                    'Same-connection oversized WTP recovery')
+                            checkpoint();observer_checkpoint=peer.checkpoint
+                            if capture_failures:peer.checkpoint=checkpoint
+                            try:
+                                require(exchange_capacity(peer,raw,recovery,emit,invalid_frames=1)==recovery['body'],
+                                        'Same-connection oversized WTP recovery')
+                            finally:peer.checkpoint=observer_checkpoint
                     if status['state']=='complete':
                         if info['status']['state']!='complete' or int(info['launch_epoch'])<=state['epoch']:return
                         emit('job_complete',dict(job_id=job['job_id'],status=status,info=info))
@@ -395,7 +435,7 @@ def run(root,packet):
         for label,b in ([('final-a',False),('final-b',True)] if comparator_required(packet) else [('final-a',False)]):
             try:
                 v=inventory(label,b)
-                if diagnostic and not b:
+                if capture_failures and not b:
                     diagnostic_identity(v['info'],packet)
                     require(v['wtp']['STATUS']['boot_id']==packet['boot_id'] and
                             v['wtp']['STATUS']['output_active'] is v['info']['status']['output_active'] is False and

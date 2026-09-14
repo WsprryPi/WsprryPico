@@ -126,6 +126,30 @@ class RawRfAuditTests(unittest.TestCase):
 
 
 class DiagnosticCaptureTests(unittest.TestCase):
+    def test_closure_packet_is_exact_and_does_not_expand_c5(self):
+        from phase11_5_r3_v2_rf import CLOSURE_POLICY,DIAGNOSTIC_POLICY
+        from phase11_5_r3_capacity_plan import http_capacity_cases
+        p,_=self.baseline()
+        p.update(closure_policy=CLOSURE_POLICY,observer_policy='single-flight-info-v1',runtime_seconds=300,
+            maximum_renewals=8,wtp_capacity=dict(maximum_request_id='a'*32,oversized_request_id='b'*32,
+                recovery_request_id='c'*32),http_capacity=dict(seed='d'*32,cases=http_capacity_cases('d'*32)),
+            contention=dict(policy='native-wtp-and-https-status-20s-v1',maximum_https_requests=16))
+        p['jobs'][0].update(mode='fskcw',total_duration_ns='128000000000',events=[
+            dict(offset_ns=str(n*250000000),duration_ns='250000000',rf_on=True,
+                frequency_nhz=str(135500000000000 if n%2==0 else 135495000000000)) for n in range(512)])
+        self.assertEqual(validate(p),p)
+        for key,value in [('closure_policy','unknown'),('runtime_seconds',301),('maximum_renewals',9),
+                          ('diagnostic_policy',DIAGNOSTIC_POLICY),('allocator_failure_baseline',1)]:
+            bad=copy.deepcopy(p);bad[key]=value
+            with self.subTest(key=key),self.assertRaises(ValueError):validate(bad)
+        for change in ['count','frequency','duration','http','wtp','contention']:
+            bad=copy.deepcopy(p)
+            if change=='count':bad['jobs'][0]['events'].pop()
+            elif change=='frequency':bad['jobs'][0]['events'][1]['frequency_nhz']='135500000000000'
+            elif change=='duration':bad['jobs'][0]['total_duration_ns']='129000000000'
+            else:bad.pop({'http':'http_capacity','wtp':'wtp_capacity','contention':'contention'}[change])
+            with self.subTest(change=change),self.assertRaises((ValueError,KeyError)):validate(bad)
+
     def baseline(self):
         from phase11_5_r3_v2_rf import DIAGNOSTIC_SOURCE,DIAGNOSTIC_IMAGE
         packet=FiniteRfPacketTests().packet()
@@ -208,5 +232,39 @@ class DiagnosticCaptureTests(unittest.TestCase):
             with self.assertRaises(ValueError):validate(bad)
         bad=copy.deepcopy(packet);bad['wtp_capacity']['oversized_request_id']='b'*32
         with self.assertRaises(ValueError):validate(bad)
+
+
+class PagedRepairRetestTests(unittest.TestCase):
+    def test_candidate_requires_exact_policy_and_workload(self):
+        import json
+        from phase11_5_r3_v2_rf import REPAIR_SOURCE,REPAIR_IMAGE,REPAIR_POLICY,CLOSURE_POLICY
+        # Use the same bounded workload constructor as the existing C6 test.
+        p,_=DiagnosticCaptureTests().baseline()
+        from phase11_5_r3_capacity_plan import http_capacity_cases
+        p.update(source_revision=REPAIR_SOURCE,image_sha256=REPAIR_IMAGE,closure_policy=REPAIR_POLICY,
+            observer_policy='single-flight-info-v1',runtime_seconds=300,maximum_renewals=8,
+            wtp_capacity=dict(maximum_request_id='a'*32,oversized_request_id='b'*32,recovery_request_id='c'*32),
+            http_capacity=dict(seed='d'*32,cases=http_capacity_cases('d'*32)),
+            contention=dict(policy='native-wtp-and-https-status-20s-v1',maximum_https_requests=16))
+        p['jobs'][0].update(mode='fskcw',total_duration_ns='128000000000',events=[
+            dict(offset_ns=str(n*250000000),duration_ns='250000000',rf_on=True,
+                frequency_nhz=str(135500000000000 if n%2==0 else 135495000000000)) for n in range(512)])
+        self.assertEqual(validate(p),p)
+        for key,value in [('closure_policy',CLOSURE_POLICY),('image_sha256','0'*64),
+                          ('runtime_seconds',301),('allocator_failure_baseline',1)]:
+            bad=copy.deepcopy(p);bad[key]=value
+            with self.subTest(key=key),self.assertRaises(ValueError):validate(bad)
+        bad=copy.deepcopy(p);bad.pop('closure_policy')
+        with self.assertRaises(ValueError):validate(bad)
+        from phase11_5_r3_v2_rf import native_running
+        job=dict(boot_id=p['boot_id'],job_id=p['jobs'][0]['job_id'],owner_id=p['owner_id'],state='running',output_active=True)
+        record=dict(packet_sha256='a'*64,observed_monotonic_ns=100,job=job)
+        self.assertTrue(native_running(record,p,'a'*64,101))
+        for key,value in [('state','armed'),('boot_id','f'*32),('job_id','f'*32),('owner_id',None),('output_active',False)]:
+            bad=copy.deepcopy(record);bad['job'][key]=value
+            self.assertFalse(native_running(bad,p,'a'*64,101))
+        for now in [99,3000000101]:
+            with self.assertRaises(ValueError):native_running(record,p,'a'*64,now)
+        with self.assertRaises(ValueError):native_running(record,p,'b'*64,101)
 
 if __name__=='__main__':unittest.main()

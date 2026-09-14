@@ -4,6 +4,17 @@ Group 1 is CLOSED at checkpoint 043. Group 2 is OPEN. This record now includes
 C1–C5, E5 and R5. Checkpoint 048 ends diagnostic period 2 OPEN. Older preparation
 statements below are historical, not live fixture state.
 
+## Latest component 3 result
+
+E6 passed seven idle checks on source `4dad112c8a4c`. C7 stopped before ARM:
+LOAD entered Loaded but returned no USB response bytes; the following STATUS
+also timed out. No RF or maximum-input stimulus occurred. No new Group 2
+assertion closed. Final A/B are Empty/inactive/unowned; F7 is restored.
+See the [component 3 review](phase11-5-r3-v2-component3-review.md) and
+[result](phase11-5-r3-v2-component3-result.json). Checkpoint 048 remains a
+historical old-image assessment; its RF passes do not qualify this candidate.
+The remaining entries below preserve their recorded stage in the campaign.
+
 ## Closure period 3: executing Option 1, 2026-09-14
 
 Component 2 completed the hardware-free candidate build and review. Source
