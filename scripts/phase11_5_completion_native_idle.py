@@ -11,7 +11,7 @@ import time
 from phase11_5_device_management import digest, save
 from phase11_5_inventory import exclusive_port, exchange, require
 from phase11_5_load_reply_target import Journal, USB, inventory, healthy, request, wait_network
-from phase11_5_pilot import SERIAL
+from phase11_5_pilot import SERIAL, DEVICE
 from phase11_5_pilot_supervisor import configuration
 from phase11_5_r3_v2_admission import maximum_job, candidate
 from phase11_5_rf_reservation import Reservation, inactive
@@ -21,10 +21,10 @@ BOOT = '8d747e80fa4e2762ba2509b5bb5ecfae'
 
 
 def validate(p):
-    require(p['scope'] in ('phase115-completion-native-idle-v1', 'phase115-completion-native-idle-v2', 'phase115-completion-native-idle-v3') and
-            p['source_revision'] == SOURCE and p['boot_id'] == BOOT and
+    require(p['scope'] in ('phase115-completion-native-idle-v1', 'phase115-completion-native-idle-v2', 'phase115-completion-native-idle-v3', 'phase115-completion-native-idle-v4') and
+            (p['source_revision'],p['boot_id']) == (('d674dc6cbf8efd142527c1c54f283d6037bb1acf','d76d4e540ddafff6622513596125c58c') if p['scope'].endswith('-v4') else (SOURCE,BOOT)) and
             p['native_idle_policy'] == 'retained-load-native-90s-v1', 'Identified idle candidate')
-    count=2 if p['scope'].endswith('-v1') else 1
+    count=3 if p['scope'].endswith('-v4') else 2 if p['scope'].endswith('-v1') else 1
     require(p['limits'] == dict(loads=count, fresh_id_replays=1, claims=count, aborts=count,
             releases=count, cleanup_aborts=1, cleanup_claims=1, cleanup_releases=1,
             rf_jobs=0, flashes=0, reboots=0, wifi_cycles=0, configuration_writes=0), 'Idle operation ceilings')
@@ -43,7 +43,16 @@ def validate(p):
     return p
 
 
+def cleanup_identity(info, boot, source):
+    # Acceptance failures must not prevent physical safety cleanup. This proves
+    # the intended board/boot only; final inventory must still prove inactivity.
+    require(info['device_id'] == DEVICE and info['revision'] == source[:12] and
+            info['status']['boot_id'] == boot and info['status']['enabled'] is False,
+            'Cleanup board/boot/scheduling identity')
+
+
 def run(root, p, sha):
+    boot=p['boot_id'];source=p['source_revision']
     require(os.geteuid() == 0 and str(root) == p['root'] and
             Path('/proc/sys/kernel/random/boot_id').read_text().strip() == p['host_boot_id'], 'Host identity')
     for n, h in p['stage_sha256'].items():
@@ -70,14 +79,14 @@ def run(root, p, sha):
                 while not stop.is_set():
                     deadline(); began = time.monotonic_ns()
                     v = exchange(fd, b'INFO\n', time.monotonic()+5, lambda k,v:emit('console_'+k,v), False)
-                    emit('info',dict(began_ns=began,value=v)); healthy(v,BOOT,SOURCE); info_ready.set()
+                    emit('info',dict(began_ns=began,value=v)); healthy(v,boot,source); info_ready.set()
                     next_at += 1; stop.wait(max(0,next_at-time.monotonic()))
         except BaseException as e:
             errors.append(str(e)); emit('failure',dict(worker='info',error=str(e)))
     hello = dict(versions=['WTP/1'], client_name='retained-native-idle', client_version='1')
     try:
         deadline(); before = {b:inventory(root,p,'before-'+b,b=='b') for b in ('a','b')}
-        inactive(before); candidate(before['a'],p,boot=BOOT)
+        inactive(before); candidate(before['a'],p,boot=boot)
         records=before['a']['wtp']['STATUS']['terminal_records']
         expected=p.get('initial_terminal_jobs',[])
         require(before['a']['wtp']['STATUS']['state']=='empty' and
@@ -85,7 +94,7 @@ def run(root, p, sha):
         require(before['b']['wtp']['STATUS']['boot_id']==p['b_boot_id'], 'B boot')
         reservation.acquire(before); held = True
         save(root/'reservation-acquired.json',json.loads(reservation.path.read_text()))
-        wait_network(root,BOOT,active,SOURCE)
+        wait_network(root,boot,active,source)
         plan=p['contention'];pid=plan['client_pid']
         require(os.readlink(f'/proc/{pid}/ns/net')==plan['netns'] and
                 os.readlink(f'/proc/{pid}/ns/mnt')==plan['mountns'], 'Original fixture process namespaces')
@@ -98,7 +107,7 @@ def run(root, p, sha):
         observer=threading.Thread(target=info_worker);observer.start()
         require(info_ready.wait(6),'INFO readiness');active()
         with exclusive_port(Path(f'/dev/serial/by-id/usb-WsprryPi_WsprryPico_{SERIAL}-if02')) as fd:
-            peer=USB(fd,BOOT,emit,active);serial=0
+            peer=USB(fd,boot,emit,active);serial=0
             def ask(op,body,label):
                 nonlocal serial
                 if op in ('CLAIM','LOAD'):
@@ -151,17 +160,17 @@ def run(root, p, sha):
                 deadline(True)
                 with exclusive_port(Path(f'/dev/serial/by-id/usb-WsprryPi_WsprryPico_{SERIAL}-if00')) as fd:
                     v=exchange(fd,b'INFO\n',time.monotonic()+5,lambda k,v:emit('cleanup_'+k,v),False)
-                    healthy(v,BOOT,SOURCE)
+                    cleanup_identity(v,boot,source)
                     ack=exchange(fd,b'ABORT\n',time.monotonic()+5,lambda k,v:emit('cleanup_'+k,v),False)
                     require(ack.get('ok') is True,'Cleanup ABORT acknowledgement')
                 with exclusive_port(Path(f'/dev/serial/by-id/usb-WsprryPi_WsprryPico_{SERIAL}-if02')) as fd:
-                    peer=USB(fd,BOOT,emit,lambda:deadline(True))
+                    peer=USB(fd,boot,emit,lambda:deadline(True))
                     for n,(op,body) in enumerate([('HELLO',hello),('CLAIM',dict(owner_id=p['owner_id'],lease_ms=5000)),('RELEASE',{})]):
                         peer.ask(request(op,body,f'{n+100:032x}',p['cleanup_session']),'cleanup-'+op)
             except BaseException as e:result['cleanup_error']=str(e)
         try:
             deadline(True);final={b:inventory(root,p,'final-'+b,b=='b') for b in ('a','b')}
-            inactive(final);candidate(final['a'],p,boot=BOOT)
+            inactive(final);candidate(final['a'],p,boot=boot)
             require(before is not None and all(configuration(before[b])==configuration(final[b]) for b in before) and
                     final['b']['wtp']['STATUS']==before['b']['wtp']['STATUS'], 'Final configuration/B preservation')
             if held:

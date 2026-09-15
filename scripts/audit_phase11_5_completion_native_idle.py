@@ -11,7 +11,7 @@ from phase11_5_pilot_supervisor import configuration
 from phase11_5_rf_reservation import BOARDS, inactive
 from validate_wtp_contract import SchemaValidator
 
-PACKET='0bda1b7f0dc648a2537456352fa10528c6adb45e3b4a0790afed2a219e2de5cb'
+PACKET='575ede223180c866915d600724bd2ad778d63be522be38f08c8437d816afd630'
 
 
 def audit(root):
@@ -70,16 +70,18 @@ def audit(root):
             require(v['value']==decoded,'Raw INFO matches summary');healthy(decoded,p['boot_id'],p['source_revision']);infos.append(r);decoded=None
     require(pending is None and not wire and not console and console_at is None and decoded is None and
             received==[r['value']['message'] for r in rows if r['kind']=='usb_message'],'Complete raw observations')
-    require([e['request']['op'] for e in exchanges]==['HELLO','CLAIM','LOAD','LOAD','ABORT','RELEASE','STATUS'],'Exact idle sequence; no ARM')
+    expected_ops=['HELLO']
+    for i in range(len(p['jobs'])):expected_ops+=['CLAIM','LOAD']+(['LOAD'] if i==len(p['jobs'])-1 else [])+['ABORT','RELEASE','STATUS']
+    require([e['request']['op'] for e in exchanges]==expected_ops,'Exact idle sequence; no ARM')
     loads=[e for e in exchanges if e['request']['op']=='LOAD']
-    for e,job in zip(loads,[p['jobs'][0],p['jobs'][0]]):
+    for e,job in zip(loads,p['jobs']+[p['jobs'][-1]]):
         require(e['request']['body']==job and e['size']==52105,'Exact complete maximum LOAD')
         body=e['response']['body'];require(body['job_id']==job['job_id'] and body['state']=='loaded' and len(body['adjustments'])==512,'Maximum response')
         for n,a in enumerate(body['adjustments']):
             require(a==dict(event_index=n,requested_frequency_nhz=str(135500000000000 if n%2==0 else 135495000000000),
                 realized_frequency_nhz=str(135500002652407 if n%2==0 else 135494990274310)),'Exact adjustment')
-    require(loads[0]['request']['request_id']!=loads[1]['request']['request_id'] and
-            loads[0]['response']['body']==loads[1]['response']['body'],'Same-job fresh-ID replay')
+    require(loads[-2]['request']['request_id']!=loads[-1]['request']['request_id'] and
+            loads[-2]['response']['body']==loads[-1]['response']['body'],'Same-job fresh-ID replay')
     retained=[e for e in exchanges if e['request']['op']=='STATUS']
     for e,job in zip(retained,p['jobs']):
         b=e['response']['body'];require(b['boot_id']==p['boot_id'] and b['state']=='empty' and b['owner_id'] is None and

@@ -107,5 +107,36 @@ class IdleFailureTests(unittest.TestCase):
             with self.assertRaises(ValueError):idle_audit(root)
 
 
+RESERVE_FAILURE = os.environ.get('PHASE115_COMPLETION_RESERVE_FAILURE')
+
+
+@unittest.skipUnless(RESERVE_FAILURE, 'Private reserve failure packet not supplied')
+class ReserveFailureTests(unittest.TestCase):
+    def test_preserved_failure(self):
+        from audit_phase11_5_completion_reserve_failure import audit as reserve_audit
+        value = reserve_audit(Path(RESERVE_FAILURE))
+        self.assertFalse(value['capacity_acceptance'])
+        self.assertEqual(value['maximum_load_replies'], 3)
+        self.assertEqual(value['allocator_headroom_bytes'], 31200)
+
+    def test_rejects_altered_reply_peak_and_reservation(self):
+        from audit_phase11_5_completion_reserve_failure import audit as reserve_audit
+        for mutation in ('reply', 'peak', 'reservation'):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)/'evidence'; shutil.copytree(RESERVE_FAILURE, root)
+                if mutation == 'reservation':
+                    p = root/'reservation-reconciled.json'; value = json.loads(p.read_text())
+                    value['packet_sha256'] = '0'*64; p.write_text(json.dumps(value))
+                else:
+                    p = root/'idle.jsonl'; rows = [json.loads(line) for line in p.read_text().splitlines()]
+                    if mutation == 'peak':
+                        next(r for r in rows if r['kind']=='info')['value']['value']['allocator_peak_bytes'] = 0
+                    else:
+                        r = next(r for r in rows if r['kind']=='usb_rx' and r['value']['label']=='load-2')
+                        raw = bytearray.fromhex(r['value']['hex']); raw[-1] ^= 1; r['value']['hex'] = raw.hex()
+                    p.write_text(''.join(json.dumps(r)+'\n' for r in rows))
+                with self.assertRaises(ValueError): reserve_audit(root)
+
+
 if __name__ == '__main__':
     unittest.main()

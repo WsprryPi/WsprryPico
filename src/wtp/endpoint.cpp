@@ -149,7 +149,7 @@ void Endpoint::poll(std::uint64_t now) {
     if (!pending_input_.empty()) {
         if (now >= pending_input_since_ms_ && now - pending_input_since_ms_ >= 5000) {
             close_after_output();
-        } else if (output_.empty() && memory_admitted(32768)) {
+        } else if (output_.empty() && memory_admitted(pending_input_workspace_)) {
             const auto began = pending_input_since_ms_;
             payload(std::move(pending_input_), now);
             // A changed budget cannot restart the original admission deadline.
@@ -189,7 +189,8 @@ void Endpoint::payload(FrameBuffer bytes, std::uint64_t now) {
     // A different endpoint may briefly own a maximum reply. Retain this one
     // already buffered frame for at most five seconds and apply backpressure;
     // do not decode, dispatch or consume the unchanged safety reserve yet.
-    if (!memory_admitted(32768)) {
+    pending_input_workspace_ = 6144;
+    if (!memory_admitted(pending_input_workspace_)) {
         pending_input_ = std::move(bytes);
         pending_input_since_ms_ = now;
         return;
@@ -203,7 +204,15 @@ void Endpoint::payload(FrameBuffer bytes, std::uint64_t now) {
         close_after_output();
         return;
     }
-    auto request = decode_request(std::move(*root), principal_, bytes.view());
+    const auto replay_id = service_.active_load_replay_id();
+    pending_input_workspace_ = is_active_load_replay(*root, replay_id) ? 6144 : 32768;
+    if (!memory_admitted(pending_input_workspace_)) {
+        pending_input_ = std::move(bytes);
+        pending_input_since_ms_ = now;
+        return;
+    }
+    auto request = decode_request(std::move(*root), principal_, bytes.view(),
+                                  pending_input_workspace_ == 6144 ? replay_id : "");
     // Decoded requests own their fields and digest. Release raw input before
     // preparing a maximum job or serializing its independently bounded reply.
     root.reset();

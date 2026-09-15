@@ -35,7 +35,7 @@ def inactive(values):
 
 
 class Reservation:
-    def __init__(self, packet_hash, path=PATH):
+    def __init__(self, packet_hash, path=PATH, *, reconciliation=None):
         self.path = path
         self.packet_hash = packet_hash
         self.held = False
@@ -44,8 +44,20 @@ class Reservation:
             fcntl.flock(self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             require(not path.is_symlink(), 'Reservation symlink refused')
             previous = json.loads(path.read_text()) if path.exists() else None
-            require(previous is None or previous['state'] == 'RELEASED',
-                    'Prior RF reservation unresolved; reconcile before any new RF')
+            if reconciliation is None:
+                require(previous is None or previous['state'] == 'RELEASED',
+                        'Prior RF reservation unresolved; reconcile before any new RF')
+            else:
+                values, observed_ns = reconciliation
+                identities = inactive(values)
+                require(previous is not None and previous['state'] == 'HELD' and
+                        previous['packet_sha256'] == packet_hash and
+                        previous['host_boot'] == Path('/proc/sys/kernel/random/boot_id').read_text().strip() and
+                        0 <= time.monotonic_ns() - observed_ns <= 5_000_000_000 and
+                        all(all(identities[b][k] == previous['boards'][b][k]
+                                for k in ('device_id', 'boot_id', 'revision')) for b in BOARDS),
+                        'Reconciliation requires fresh inactive proof for the original packet and unchanged boots')
+                self.held = True
         except BaseException:
             os.close(self.fd)
             raise

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -20,6 +21,32 @@ def snapshots():
 
 
 class Tests(unittest.TestCase):
+    def test_failed_resource_gate_does_not_block_identified_cleanup(self):
+        from phase11_5_completion_native_idle import cleanup_identity
+        info = snapshots()['a']['info']
+        info['allocator_peak_bytes'] = 200000
+        cleanup_identity(info, 'a'*32, 'test')
+        for change in (dict(device_id='wrong'), dict(revision='wrong'),
+                       dict(status=dict(boot_id='changed',enabled=False)),
+                       dict(status=dict(boot_id='a'*32,enabled=True))):
+            with self.assertRaises(ValueError):cleanup_identity(info|change, 'a'*32, 'test')
+
+    def test_reconciliation_cannot_transfer_or_use_stale_authority(self):
+        original_read=Path.read_text
+        def read(path,*args,**kwargs):
+            return 'test-host-boot' if str(path)=='/proc/sys/kernel/random/boot_id' else original_read(path,*args,**kwargs)
+        with tempfile.TemporaryDirectory() as directory, patch.object(Path,'read_text',read):
+            path=Path(directory)/'reservation.json';values=snapshots()
+            owner=Reservation('a'*64,path);owner.acquire(values);owner.close()
+            changed=copy.deepcopy(values);changed['a']['info']['revision']='other'
+            for sha,v,stamp in [('b'*64,values,time.monotonic_ns()),('a'*64,changed,time.monotonic_ns()),
+                                ('a'*64,values,time.monotonic_ns()-6_000_000_000)]:
+                with self.assertRaises(ValueError):Reservation(sha,path,reconciliation=(v,stamp))
+                self.assertEqual(json.loads(path.read_text())['state'],'HELD')
+            owner=Reservation('a'*64,path,reconciliation=(values,time.monotonic_ns()))
+            owner.release(values);owner.close()
+            self.assertEqual(json.loads(path.read_text())['state'],'RELEASED')
+
     def test_declared_complete_predecessor_only_before_load(self):
         from phase11_5_r3_v2_rf import observed_status, SERIAL_CAPACITY
         packet=dict(boot_id='boot',owner_id='owner',jobs=[dict(job_id='new')],

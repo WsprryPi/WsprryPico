@@ -40,6 +40,7 @@ class Endpoint {
     FrameParser parser_;
     FrameBuffer pending_input_;
     std::uint64_t pending_input_since_ms_ = 0;
+    std::size_t pending_input_workspace_ = 6144;
     struct OutputFrame {
         std::array<std::uint8_t, kFrameHeaderBytes> header;
         std::variant<std::string, LoadResponseStream> payload;

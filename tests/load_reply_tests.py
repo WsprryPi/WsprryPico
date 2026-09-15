@@ -77,7 +77,7 @@ class LoadReplyTests(unittest.TestCase):
         # 5,751 is fixed from the pre-fix host peak (184,673) versus the
         # measured target peak (190,424). It includes TLS/platform differences;
         # do not add TLS again or treat this calibration as target prediction.
-        for background in [0, 5751]:
+        for background in [0, 5751, 31384]:
             with self.subTest(background=background):
                 r = self.run_model(background, replay=True)
                 self.assertEqual(r['terminal_records'], 1)
@@ -111,15 +111,17 @@ class LoadReplyTests(unittest.TestCase):
                 self.assertEqual(responses[0]['body'], responses[2]['body'])
 
     def test_uncalibrated_tls_sensitivity_preserves_refusal(self):
-        # Full 64-bit host allocations + TLS is a different, stricter model.
-        # It refuses replay before decoding, so cannot establish target closure.
-        r = self.run_model(31384, replay=True)
+        # 31,384 now passes above because replay no longer duplicates events.
+        # A separately declared 48,000-byte background still cannot admit even
+        # the smaller workspace. Preserve the same reserve and five-second limit.
+        r = self.run_model(48000, replay=True)
         self.assertFalse(r['exchanges'][0]['closed'])
         self.assertTrue(r['exchanges'][1]['closed'])
         self.assertEqual(r['exchanges'][1]['hex'], '')
         self.assertEqual(r['exchanges'][1]['after_pages'], 0)
         self.assertEqual(r['exchanges'][1]['wait_ms'], 5000)
         self.assertEqual(r['preparations'], 2)
+        self.assertGreaterEqual(219712 - 48000 - r['exchanges'][1]['peak_bytes'], 32768)
 
     def test_reply_reserve_refusal_preserves_inactive_loaded_job(self):
         r = self.run_model(140000)

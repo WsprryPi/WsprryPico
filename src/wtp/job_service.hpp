@@ -63,6 +63,19 @@ struct Job {
 };
 
 // Stable typed identity, streamed without retaining a serialized event copy.
+class JobDigestBuilder {
+  public:
+    JobDigestBuilder(const Job& header, std::size_t event_count);
+    void append(const RfEvent& event);
+    PayloadDigest finish() {
+        return digest_.finish();
+    }
+
+  private:
+    void number(std::uint64_t value);
+    void text(std::string_view value);
+    Sha256 digest_;
+};
 PayloadDigest job_digest(const Job& job);
 
 enum class EngineState { Idle, Armed, Running, Complete, Failed, Missed };
@@ -228,8 +241,14 @@ struct PingBody {
     std::optional<std::string> token;
 };
 
+// Internal decoder result for an already resident active job. It cannot create
+// a new job: dispatch rechecks ownership and the current/retained typed digest.
+struct LoadReplayBody {
+    std::string job_id;
+    PayloadDigest digest;
+};
 using RequestBody = std::variant<std::monostate, HelloBody, ClaimBody, RenewBody, Job, ArmBody,
-                                 AbortBody, PingBody>;
+                                 AbortBody, PingBody, LoadReplayBody>;
 
 struct Request {
     std::string protocol = "WTP/1";
@@ -319,6 +338,9 @@ class JobService {
     void poll();
     void reset();
     [[nodiscard]] ServiceActivity activity() const;
+    [[nodiscard]] std::string active_load_replay_id() const {
+        return job_ && (state_ == State::Loaded || state_ == State::Armed) ? job_->job_id : "";
+    }
     [[nodiscard]] ServiceStatus status() const;
     [[nodiscard]] ClockSnapshot clock_snapshot() const {
         return clock_.snapshot();

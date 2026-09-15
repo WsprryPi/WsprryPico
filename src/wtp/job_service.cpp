@@ -54,31 +54,35 @@ bool valid_protocol_version(std::string_view version) {
 
 // Hash typed job values, independent of JSON member ordering/escaping. Retain
 // this compact identity instead of keeping eight complete 512-event jobs.
-PayloadDigest job_digest(const Job& job) {
-    Sha256 digest;
-    auto number = [&](std::uint64_t n) {
-        std::array<std::uint8_t, 8> bytes{};
-        for (unsigned i = 0; i < 8; ++i)
-            bytes[i] = static_cast<std::uint8_t>(n >> (i * 8));
-        digest.update(bytes);
-    };
-    auto text = [&](std::string_view value) {
-        number(value.size());
-        digest.update({reinterpret_cast<const std::uint8_t*>(value.data()), value.size()});
-    };
+void JobDigestBuilder::number(std::uint64_t n) {
+    std::array<std::uint8_t, 8> bytes{};
+    for (unsigned i = 0; i < 8; ++i)
+        bytes[i] = static_cast<std::uint8_t>(n >> (i * 8));
+    digest_.update(bytes);
+}
+void JobDigestBuilder::text(std::string_view value) {
+    number(value.size());
+    digest_.update({reinterpret_cast<const std::uint8_t*>(value.data()), value.size()});
+}
+JobDigestBuilder::JobDigestBuilder(const Job& job, std::size_t count) {
     text(job.job_id);
     text(job.profile);
     text(job.mode);
     number(job.total_duration_ns);
     number(job.allow_frequency_adjustment);
-    number(job.events.size());
-    for (const auto& event : job.events) {
-        number(event.offset_ns);
-        number(event.duration_ns);
-        number(event.rf_on);
-        number(event.frequency_nhz.has_value());
-        number(event.frequency_nhz.value_or(0));
-    }
+    number(count);
+}
+void JobDigestBuilder::append(const RfEvent& event) {
+    number(event.offset_ns);
+    number(event.duration_ns);
+    number(event.rf_on);
+    number(event.frequency_nhz.has_value());
+    number(event.frequency_nhz.value_or(0));
+}
+PayloadDigest job_digest(const Job& job) {
+    JobDigestBuilder digest(job, job.events.size());
+    for (const auto& event : job.events)
+        digest.append(event);
     return digest.finish();
 }
 
@@ -257,7 +261,8 @@ Response JobService::dispatch(const Request& request) {
     }
     if ((request.operation == "RENEW" && std::get_if<RenewBody>(&request.body) == nullptr) ||
         (request.operation == "RELEASE" && !std::holds_alternative<std::monostate>(request.body)) ||
-        (request.operation == "LOAD" && std::get_if<Job>(&request.body) == nullptr) ||
+        (request.operation == "LOAD" && std::get_if<Job>(&request.body) == nullptr &&
+         std::get_if<LoadReplayBody>(&request.body) == nullptr) ||
         (request.operation == "ARM" && std::get_if<ArmBody>(&request.body) == nullptr) ||
         (request.operation == "ABORT" && std::get_if<AbortBody>(&request.body) == nullptr)) {
         return reject(ErrorCode::InvalidMessage);
@@ -302,6 +307,29 @@ Response JobService::dispatch(const Request& request) {
         return success();
     }
     if (request.operation == "LOAD") {
+        if (const auto* replay = std::get_if<LoadReplayBody>(&request.body)) {
+            if (engine_.output_active() || state_ == State::Failed)
+                return reject(ErrorCode::InvalidState);
+            const auto retained = std::find_if(
+                retained_jobs_.begin(), retained_jobs_.end(),
+                [&](const RetainedJob& item) { return item.job_id == replay->job_id; });
+            if (retained != retained_jobs_.end()) {
+                if (retained->digest != replay->digest)
+                    return reject(ErrorCode::JobIdConflict);
+                auto response = retained->load_response;
+                touch_terminal(replay->job_id);
+                return response;
+            }
+            if (!job_ || job_->job_id != replay->job_id)
+                return reject(ErrorCode::InvalidState);
+            if (job_digest(*job_) != replay->digest)
+                return reject(ErrorCode::JobIdConflict);
+            auto response = success();
+            response.state = State::Loaded;
+            response.job_id = replay->job_id;
+            response.adjustments = adjustments_;
+            return response;
+        }
         const auto* body = std::get_if<Job>(&request.body);
         if (body == nullptr) {
             return reject(ErrorCode::InvalidMessage);

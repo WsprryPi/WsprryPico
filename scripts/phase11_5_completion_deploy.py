@@ -18,6 +18,9 @@ from phase11_5_r3_v2_admission import candidate
 from phase11_5_rf_reservation import Reservation, inactive
 
 CANDIDATES = {
+    'phase115-completion-streamed-reply-deploy-v1': (
+        'd674dc6cbf8efd142527c1c54f283d6037bb1acf', 'a9d5610d76f6',
+        '8d747e80fa4e2762ba2509b5bb5ecfae'),
     'phase115-completion-terminal-storage-deploy-v1': (
         'bd16bb1c736720fbf901589d41d2a25897987b8b', '98f5797d77fb',
         'b1c0af7bef6ef0bef8f5e44130182149'),

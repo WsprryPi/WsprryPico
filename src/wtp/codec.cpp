@@ -15,7 +15,8 @@ Value get(Value v, std::string_view key) {
     return v.get(key).value_or(Value{});
 }
 bool text(Value v, std::size_t min, std::size_t max) {
-    return v.type() == '"' && v.string().size() >= min && v.string().size() <= max;
+    return v.type() == '"' && v.raw.size() <= max * 6 + 2 && v.string().size() >= min &&
+           v.string().size() <= max;
 }
 bool version(std::string_view v) {
     return v.starts_with("WTP/") && v.size() >= 5 && v[4] >= '1' && v[4] <= '9' &&
@@ -91,7 +92,7 @@ std::string clock_json(const ClockSnapshot& c) {
         out += ",\"leap_transition_utc_ns\":" + ns(*c.leap_transition_utc_ns);
     return out + '}';
 }
-bool body(Request& r, Value b) {
+bool body(Request& r, Value b, std::string_view active_replay_id) {
     const auto& op = r.operation;
     if (op == "HELLO") {
         HelloBody h;
@@ -156,8 +157,8 @@ bool body(Request& r, Value b) {
         Job j;
         if (!json::fields(b, {"job_id", "profile", "mode", "total_duration_ns", "events"},
                           {"allow_frequency_adjustment"}) ||
-            !json::identifier(get(b, "job_id")) || get(b, "profile").type() != '"' ||
-            get(b, "profile").string() != "rf-events/1" || get(b, "mode").type() != '"' ||
+            !json::identifier(get(b, "job_id")) || !text(get(b, "profile"), 11, 11) ||
+            get(b, "profile").string() != "rf-events/1" || !text(get(b, "mode"), 2, 5) ||
             !json::decimal(get(b, "total_duration_ns"), j.total_duration_ns, true) ||
             get(b, "events").type() != '[')
             return false;
@@ -179,9 +180,12 @@ bool body(Request& r, Value b) {
         }
         if (!count)
             return false;
-        // Count first to allocate event storage exactly once. Keep only one JSON
-        // view beside the input pages and decoded events, including on replay.
-        j.events.reserve(count);
+        // Replay still validates every field and hashes every typed event, but
+        // does not allocate a second copy of the active event array.
+        const bool replay = !active_replay_id.empty() && j.job_id == active_replay_id;
+        JobDigestBuilder digest(j, count);
+        if (!replay)
+            j.events.reserve(count);
         cursor = 0;
         while (auto element = events.next_element(cursor)) {
             const auto e = *element;
@@ -201,9 +205,15 @@ bool body(Request& r, Value b) {
                     return false;
                 event.frequency_nhz = frequency;
             }
-            j.events.push_back(event);
+            if (replay)
+                digest.append(event);
+            else
+                j.events.push_back(event);
         }
-        r.body = std::move(j);
+        if (replay)
+            r.body = LoadReplayBody{j.job_id, digest.finish()};
+        else
+            r.body = std::move(j);
         return true;
     }
     return (op == "CAPS" || op == "STATUS" || op == "GET_CLOCK" || op == "RELEASE") &&
@@ -237,7 +247,17 @@ std::string caps(const ServiceConfig& c) {
            std::to_string(c.terminal_record_ttl_ns / 1'000'000'000ULL) + '}';
 }
 } // namespace
-std::optional<Request> decode_request(Value root, std::string_view principal, InputView payload) {
+bool is_active_load_replay(Value root, std::string_view id) {
+    if (id.empty())
+        return false;
+    const auto op = get(root, "op"), job = get(get(root, "body"), "job_id");
+    // Bound strings before decoding them; escaped identifiers remain supported.
+    return get(root, "protocol").raw.size() <= 128 && get(root, "type").raw.size() <= 44 &&
+           op.raw.size() <= 26 && job.raw.size() <= 194 && op.string() == "LOAD" &&
+           job.string() == id;
+}
+std::optional<Request> decode_request(Value root, std::string_view principal, InputView payload,
+                                      std::string_view active_replay_id) {
     if (!json::fields(root, {"type", "protocol", "session_id", "request_id", "op", "body"}) ||
         get(root, "type").string() != "request" || !json::identifier(get(root, "session_id")) ||
         !json::identifier(get(root, "request_id")) || get(root, "protocol").type() != '"' ||
@@ -257,7 +277,7 @@ std::optional<Request> decode_request(Value root, std::string_view principal, In
         offset += part.size();
     }
     r.payload_digest = digest.finish();
-    r.body_valid = body(r, get(root, "body"));
+    r.body_valid = body(r, get(root, "body"), active_replay_id);
     return r;
 }
 std::string state_name(State s) {

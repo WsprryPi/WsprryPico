@@ -358,7 +358,8 @@ std::string quote(std::string_view s) {
     return out + '"';
 }
 bool decimal(Value v, std::uint64_t& out, bool nonzero) {
-    if (v.type() != '"')
+    // At most 20 decimal digits, each possibly JSON escaped.
+    if (v.type() != '"' || v.raw.size() > 20 * 6 + 2)
         return false;
     auto s = v.string();
     if (s.empty() || (s.size() > 1 && s[0] == '0') || (nonzero && s == "0"))
@@ -369,7 +370,7 @@ bool decimal(Value v, std::uint64_t& out, bool nonzero) {
     return r.ec == std::errc{} && r.ptr == s.data() + s.size();
 }
 bool identifier(Value v) {
-    if (v.type() != '"')
+    if (v.type() != '"' || v.raw.size() > 32 * 6 + 2)
         return false;
     auto s = v.string();
     return s.size() == 32 && std::all_of(s.begin(), s.end(), [](char c) {

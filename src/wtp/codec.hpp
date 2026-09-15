@@ -6,7 +6,9 @@
 namespace wsprrypico::wtp {
 // Invalid envelope has no safely echoable identity and closes without a response.
 std::optional<Request> decode_request(json::Value root, std::string_view principal,
-                                      InputView payload);
+                                      InputView payload, std::string_view active_replay_id = {});
+// Only a LOAD naming the caller's current active job can omit decoded events.
+bool is_active_load_replay(json::Value root, std::string_view active_replay_id);
 std::string encode_response(const Request& request, const Response& response,
                             const ServiceConfig& config, std::string_view device_id,
                             std::string_view firmware_version);

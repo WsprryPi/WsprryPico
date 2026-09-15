@@ -253,7 +253,11 @@ int main() {
             const auto stack_before = time_us_64();
             const auto core0_stack_used = stack_used();
             const auto core0_stack_scan_us = time_us_64() - stack_before;
-            std::string result =
+            std::string result;
+            // Avoid retaining old and doubled buffers while a maximum WTP
+            // input is resident. Reserve the normal INFO size in one allocation.
+            result.reserve(6144);
+            result +=
                 "{\"ok\":true,\"device_id\":" +
                 wsprrypico::wtp::json::quote(identities.device_id()) + ",\"revision\":" +
                 wsprrypico::wtp::json::quote(wsprrypico::firmware::kBuildRevision) +

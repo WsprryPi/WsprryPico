@@ -1,0 +1,222 @@
+{
+  "schema": "phase11.5-completion-active-replay-checkpoint-v1",
+  "phase_status": "OPEN",
+  "families_closed": 2,
+  "newly_closed_assertions": [],
+  "deployment": {
+    "status": "DEPLOYMENT_INDEPENDENTLY_VERIFIED",
+    "packet_sha256": "0b8c6d4ee7cefcadcd6f25548ebb032a8b9969a64cc7d2026242e1c83a3acad7",
+    "source_revision": "d674dc6cbf8efd142527c1c54f283d6037bb1acf",
+    "image_sha256": "152ae1435a14cb1cf5f17fa7af987e00b146bb58d5f3a3cbc38595195aaed958",
+    "elf_sha256": "9805aeb19fb2a8c3e2d6652d9bc671c03dd3ac8c99cccfdb3072b854978d9055",
+    "boot_id": "d76d4e540ddafff6622513596125c58c",
+    "boards": {
+      "a": {
+        "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+        "boot_id": "d76d4e540ddafff6622513596125c58c",
+        "revision": "d674dc6cbf8e",
+        "state": "empty"
+      },
+      "b": {
+        "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "revision": "8921a7008183",
+        "state": "empty"
+      }
+    },
+    "configuration_preserved": true,
+    "schedules_disabled": true,
+    "reservation_released": true,
+    "flashes": 1,
+    "bootsel": 1,
+    "rf_jobs": 0,
+    "heap_capacity_bytes": 219008,
+    "allocator_peak_bytes": 14952
+  },
+  "failed_idle": {
+    "status": "REPLAY_RESERVE_FAILURE_CONFIRMED",
+    "packet_sha256": "575ede223180c866915d600724bd2ad778d63be522be38f08c8437d816afd630",
+    "source_revision": "d674dc6cbf8efd142527c1c54f283d6037bb1acf",
+    "boot_id": "d76d4e540ddafff6622513596125c58c",
+    "maximum_load_replies": 3,
+    "replay_request_bytes": 52105,
+    "replay_accepted": false,
+    "allocator_peak_bytes": 187808,
+    "allocator_headroom_bytes": 31200,
+    "required_headroom_bytes": 32768,
+    "rf_jobs": 0,
+    "native_prefix": {
+      "connections": 1,
+      "operations": {
+        "HELLO": 1,
+        "STATUS": 21,
+        "CAPS": 1
+      }
+    },
+    "capacity_acceptance": false,
+    "reservation_released": true,
+    "configurations_preserved": true,
+    "schedules_disabled": true
+  },
+  "restoration": {
+    "boards": {
+      "a": {
+        "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+        "boot_id": "d76d4e540ddafff6622513596125c58c",
+        "revision": "d674dc6cbf8e",
+        "state": "empty"
+      },
+      "b": {
+        "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "revision": "8921a7008183",
+        "state": "empty"
+      }
+    },
+    "configurations_preserved": true,
+    "schedules_disabled": true,
+    "inventory_sha256": {
+      "a": "ee0053441faa1341709d80ef7ebae11dca22979f08a2c03001f508a72e144193",
+      "b": "667b9179291cb96956be3db93f7b0751bbdf45d94c73b6eb5801626ed78d4f98"
+    },
+    "fixture": {
+      "restored": true,
+      "completed_monotonic_ns": 430594349127162,
+      "independent_cleanup_start_monotonic_ns": 432239251861000,
+      "installed_pid": "1957",
+      "evidence_sha256": {
+        "packet.json": "e1fb43ff2affdb1b05adfcfa8c173e47deb50ee2e2051b3a4248591d3fd51320",
+        "fixture-state.json": "d37588c9df124cc217c2ee664d0ef5c1b4e13f53fcac94c7811b29e4af7d43c3",
+        "fixture.jsonl": "d2e84fead62e44618375869d8ceca8e4af8f341d7158838fe18f6190a86abeef"
+      }
+    }
+  },
+  "repair": {
+    "status": "HOST_VALIDATED_TARGET_PENDING",
+    "parent_source": "d674dc6cbf8efd142527c1c54f283d6037bb1acf",
+    "source_sha256": {
+      "src/wtp/job_service.hpp": "823410c1c5e067dbc914d8a98e5dcd3f5ea92d7df487c3d79a9c38422c9a286b",
+      "src/wtp/job_service.cpp": "e95b122b4019c0f3cd7f81eccd074498e82afc700f270b3571f13c12d00ea74c",
+      "src/wtp/codec.hpp": "408605146e0c319dba3de61a65f9c70c42fc2e851a056919bb1bd15f20ed5775",
+      "src/wtp/codec.cpp": "f3d18e0e4ad487ff7cd4dff9821b00473061ba5aef3f24fafb3b0f9bf526ecdf",
+      "src/wtp/endpoint.hpp": "5ab08c8c44ac27733ec01e93d84cefd04f62bfd9f1c096c0a22b3c349bed2b02",
+      "src/wtp/endpoint.cpp": "13cab20b27f7c6763786c7624dc1a3aa0d16e53b5931f17d119ce61534c84444",
+      "src/wtp/json.cpp": "f71fbf965311f9bf0a64accd2436c1f504bbeb5043976d034f5a4b72801efff2",
+      "src/standalone/pico/main.cpp": "67dc11bf6a81c4d58da71a88afa2b3cf75878b22d9f98f627ea85eec2ab9d523",
+      "scripts/phase11_5_completion_native_idle.py": "d74e2eee78cb984be62f62e40ab978b595913c19b8cd10e6d3dbe0a319f5d2a2",
+      "scripts/phase11_5_rf_reservation.py": "33b6d765534f7388adb3b594daa11f832363956c087ec7062d07d9c3f0607e4a",
+      "scripts/audit_phase11_5_completion_reserve_failure.py": "7e9230f03695e5ce589de35990cc1d3c8d35312b5717a21f85a5e65bbc0b9ec3"
+    },
+    "host_background_31384_headroom_bytes": 49391,
+    "host_background_48000_refusal_headroom_bytes": 33543,
+    "reserve_bytes": 32768
+  },
+  "checks": {
+    "affected_ctest_targets_passed": 7,
+    "core_cases_passed": 40,
+    "r3_cases_passed": 172,
+    "r3_private_cases_skipped": 42,
+    "reservation_cleanup_cases_passed": 7,
+    "private_failure_audit_cases_passed": 2,
+    "protocol_cases_passed": 39,
+    "log_sha256": {
+      "active-replay-bounded-tests.log": "1ff7ce184ee56683b42e3bcc040f9adeba1fc4c34aa5e870c07625fc39d0e65d",
+      "active-replay-reviewed-core-tests.log": "e814559a59564598f0c17052cc59204ddc8d191206cf4280616fb2e6c16008b3",
+      "active-replay-network-tests.log": "bdfe5f02cbdb1d35197c04ecde1f0a62729c54cafc5ca33e0b42a65768e64db9",
+      "active-replay-r3-tests.log": "1fa3566df8000598f7ae96c17ddc4a405aca8b4a67901e12e05d0b538c43140f",
+      "active-replay-reservation-tests.log": "9928c97198be540f25b2cb1d2ad108f7aed79a15ebca980295c3601f33afdb7f",
+      "active-replay-altered-evidence-tests.log": "45976fd78442f8e3fe855339817b48f454838c21c4cf68917c08e33a0d9d6efc",
+      "active-replay-protocol.log": "34188e867e39fa621167ea4d65841d01102c5398e9ae9e30e6c19abe3541bf9c",
+      "active-replay-red-pair-tests.log": "9c7f767acac91a9ca01f98db2855f60c1420bb3240b36ccff5800157a2767284",
+      "active-replay-green-pair-tests.log": "937a811de8dfa2d0a2bca04502e16358afbe4c7c0a3765d64da79ef253884454"
+    }
+  },
+  "cumulative_task_charges": {
+    "rf_jobs": 3,
+    "planned_rf_seconds": 384,
+    "a_flashes": 3,
+    "bootsel": 3,
+    "additional_reboots": 0,
+    "wifi_cycles": 2,
+    "configuration_writes": 0
+  },
+  "packet_helpers_sha256": {
+    "production.ini": "b36e42545ee2b902ea46279888254821cee1a1111cd473027f56b187a166bbfc",
+    "pi/phase115_tls_observer_test.py": "5cf410758c48e05bc35f04f394b486f0b210b93e7ab785cedaf1bc7dd689162d",
+    "pi/phase115_tls_observer.c": "7c6a4afba6f414b9ef6a92ee223b0c0863219311e9c472a0d32a92f45f7e4a1d",
+    "pi/phase115_production_load.py": "5d854540d9369173f1ec13a5a489c2045a7ace634da6aa10a8c42f0529b1ed0d",
+    "scripts/phase11_5_pilot.py": "bb91dc6fea9fb10e7564252810b534979a1f28b36de132745d100f388c3003c4",
+    "scripts/phase11_5_r3_tls_plan.py": "458dcd137155a7922a5621ffe83f53f16e11915b43b051f97e98fc50854a66e8",
+    "scripts/phase11_5_r3_transport_plan.py": "18eae92079cdd738e4b5705be4853fee6a15fd2338527a6b57fc664a93c49e84",
+    "scripts/phase11_5_r3_capacity_plan.py": "65e71dbd4a5b3d11e55f227721761bdab7f3c55f11dd8f9d11a836f0dde330e7",
+    "scripts/phase11_5_rf_reservation.py": "039d26a3bcab247757f9681fb0db6c4962004ed0eada390fab588a9e0a409147",
+    "scripts/phase11_5_rf_observer.py": "6e43b5d39961da5512c5999351f66c106d38a06be85f8a1b3541d21a432f2b1c",
+    "scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+    "scripts/phase11_5_device_management.py": "3f3fa78cd17c170b35aa591f29ec77770b26b31b0effeccc4e11e9372530fd5d",
+    "scripts/phase11_5_r3_preflight.py": "637741fa271719beb4c3a764af2d88ea0ca4cd0b8cda3094f86167e0f64822e7",
+    "scripts/phase11_5_r2_amended_plan.py": "a28672abb2703ee1fee2a49e5dfb5ed81347a6d3172584966c4ba4d568a5f679",
+    "scripts/phase11_5_r2_plan.py": "e7b9157ca65f7abc1fd509f070467d908ad5808a4d408772d61e4df71f509bbc",
+    "scripts/phase11_5_f1_plan.py": "e568e285b856691b5d5c4e53937378aca30e8fa7b5638d75a45804b76376c03a",
+    "scripts/check_usb_target.py": "51fcd12c14f9fc012554249378721a9ecb6cb01b11bb11152c746e9228a5fbf7",
+    "scripts/inhibited_network_acceptance.py": "088904c352c9891e73de871bf717b53ae34955cc2e9d7a854d47c0c2c7a3e043",
+    "scripts/phase11_5_r2_modes.py": "9558a5d34bc12f15b9fab592d0546cfdde00e0673a69f125b34eaaa073a66be8",
+    "scripts/phase11_5_device_fixture.py": "03089505dc25b49637660fce15a2e6337410237b172cc3af6c508e94bdb4224b",
+    "scripts/phase11_5_r3_v2_parallel_b_repair.py": "dbd8ca59268a68c9492d249708751ece561fa1c7f18f46574eb83df4c11f4d93",
+    "scripts/phase11_5_time_local.py": "ac26b85628f05990905e86b236a1a6bd6f8cba84ea6729dcdf750f0aed928783",
+    "scripts/audit_phase11_5_load.py": "4e335be30cb615e34467ac54ea7aa725a636c86cc47831044960de25cb4261be",
+    "scripts/phase11_5_r3_v2_parallel_b_plan.py": "df8dc1efd7a041b22105da17e46007d17c79a3ebf7f580b59e17606a539e61a9",
+    "scripts/phase11_5_r3_v2_rf.py": "5363b5db0e64a4cf7ada7ce47dbf03287678d23b828e2bc002950364148ca261",
+    "scripts/phase11_5_r3_v2_parallel_b_paged_repair.py": "0ab3c0aaa5b0995bf3e82e801e51684d3e7c82800c8dbcabae2485ce1a265138",
+    "scripts/phase11_5_r3_v2_parallel_b_deploy.py": "80293892b285295f72e3bdbea4fc827aa7c83498b1cdb3298fa622a4ffa763ed",
+    "scripts/phase11_5_r3_v2_nominal_load.py": "758d1bacbaca39b47333517c2572d965fb37f71a0e84ac040c2a53e2ee445aed",
+    "scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9",
+    "scripts/audit_phase11_5_r1.py": "e9bb9d1d687949e82cfafd365eb7944b97c5d7530f546e0520240eed05dbb817",
+    "scripts/phase11_5_pilot_supervisor.py": "dbf97a316ebe02eb27f90d838ce70c468b75abc38749a7af3f6911beab8dd9e7",
+    "scripts/phase11_5_r3_transport_pressure.py": "0b94305819bf88852a29594a97683656807747acab624bffc4be28e5584c6b0b",
+    "scripts/phase11_5_r3_v2_parallel_b_functional.py": "49bfca53fa031f069c182fb44ae571f913f4cd32f75c57c4c4828582d10d0d72",
+    "scripts/phase11_5_r3_retained.py": "54c1020f63745d8d61a475f11c0e6773b5f2f4f37a63730b458e29971cee120f",
+    "scripts/audit_phase11_5_r3_transport.py": "aaf67374aff265a49977927b81492a7a2a07e110b5c78e8ee0275028ef0bdf5e",
+    "scripts/phase11_5_r2_usb_jobs.py": "3d4db8d7b7e22189d8a74c5dd10f07dace75c2a20200091fc24490f28425d58f",
+    "scripts/phase11_5_r3_capacity_probe.py": "fd34c6c6d3df689e96f5d6a073d2520f2e1a6fa6b856651877c465588c2b96c9",
+    "scripts/phase11_5_terminal_history.py": "978af643e7f90bbe23dfaca38196d11024d4dd2ed63996c8f6a52f15c8643458",
+    "scripts/phase11_5_browser_jobs.py": "868e8376a05eabfad382517a4b951a9f177b51c50619e55c06578e90fe23a575",
+    "scripts/phase11_5_r2_modes_plan.py": "2ed53fc77b80cbbee9d7fa53bf8ba3d96928bc2a5229104cc0fc7317ccbb1d0b",
+    "scripts/phase11_5_r3_v2_admission.py": "0958e73ae7389eb06cfd7ab9c20907412f9133f48296050701348bbbd9ebb195",
+    "scripts/audit_phase11_5_idle.py": "487d93ecb7758fc5b665f49c819ce85d19d55b2beab644fdb97214df5e20f064",
+    "scripts/phase11_5_inventory.py": "dcef778c18a10a0fc20bbb13fa2b07cc690c9d1c9ab8fe05a29af60a6d0483df",
+    "scripts/audit_phase11_5_r3_tls.py": "34105c6784e183607df1cdb8e60d3941d9c853216a7152ad84c4079474a0940c",
+    "scripts/audit_phase11_5_r3_failure.py": "5b361f34dd87ff1b08264523ab32066165888fab26e86f20adf4e44678da8080",
+    "scripts/phase11_5_r3_ack_filter.py": "e9cec9ca5fa0b58488d8bed4c809976216e04cd39b0c6b06900dc239d2f61c65",
+    "scripts/phase11_5_r3_allocation_diagnostic.py": "046c3c624ec26c1d21b53ddd52f728bfab1f1f45ade2a75efa0e836b7c5624a8",
+    "scripts/phase11_5_r3_v2_pressure_plan.py": "90f0957e8f9145922df8ef563286e1779c08c64fd84cc8972cc69ee12adbdad1",
+    "scripts/phase11_5_r2_upload_plan.py": "734d86758b7870aea761f9637a3861904b755e6e333b2a8855377815aeed969a",
+    "scripts/phase11_4_hotspot.py": "20253c0ab455f023bc360b7b9f10fba5b6b719ffffddce79c0c7128a4e7712ee",
+    "scripts/phase11_5_join_diagnostics.py": "5f6d0f242c81b8f1d1b2ffc589e2ff7d04d023fe7845010bd7b878e611514ded",
+    "scripts/audit_phase11_5_r2_modes.py": "dd12df797749b31437c792e5fb55caa201a513b226ce7fb10570623a82f109ec",
+    "scripts/phase11_5_network_fixture.py": "a09338f6c83647a876dfdf05d1cd495e405e188468def1081b2d325fc84361ac",
+    "scripts/phase11_5_r3_v2_observer_policy.py": "0c4e7f8f8e2511f0f220cb65728cbe2bc6999aa061b478cc99e689fb0e572932",
+    "scripts/phase11_5_r3_tls.py": "c0b8bc09cea7ac3fc68fbd30110954401e64b8762a9959f9d2251416984ce6e0",
+    "scripts/phase11_5_r3_tls_pressure.py": "eb5f1c7ad9d91893bb77a7de2720da4ff0f933bd4ef3416172102d985619b6da",
+    "scripts/phase11_5_r3_tls_stage.py": "f2358e2116bcfc90649cbf7ec92d520ae47ec33861afb3b7a88070fb44e448c4",
+    "scripts/phase11_5_r3_v2_fixture.py": "3d7f185ac3c058d6288a706acf768befa2e80ee0086ca8d94d8367d37913c531",
+    "scripts/rf_wtp.py": "d815043f8b4876c71c6bb1e1c5ad95451608b97dcfdcfb2d726b021deef99017",
+    "scripts/phase11_5_r1.py": "e171de2f85387a808046b661b138e86935e8d4befd86b07ff169c170cc37aa32",
+    "src/campaign/plan.py": "13f7f1181dc4e04a81077b4b2e9d66d881310aabbcafae907fdd74b226ae4923",
+    "docs/protocol/wtp-1.schema.json": "fae1a7f94adb875733f47f22438a0811a3ab7fd9e4b8477780aea77cad62c8a8",
+    "pi/phase115_tls_observer.so": "fd70cde276b04aa08e771e12b83335a89aae24e050e2f2c5e56ed6848eb1a7bc",
+    "credentials/controller/client-ca.crt": "cda60b730367129165b43aef6ff129dc0107ad878cd95e4ecedf9243327f847e",
+    "credentials/controller/client.crt": "6eff58d32983f47cd0d94ff265bb391168b7a066074d939bf7deafc13a70e99e",
+    "credentials/controller/client.key": "d978ee5b5b8276498a06811983e466ee050fac7a012fae1b2a7caeb4c050c972",
+    "credentials/browser/client-ca.crt": "cda60b730367129165b43aef6ff129dc0107ad878cd95e4ecedf9243327f847e",
+    "credentials/browser/client.crt": "d33d28277bc58a49e723b4736c04899efe566a5e5aeda542679d703bed378b7c",
+    "credentials/browser/client.key": "76ecdbaa15ac322a4c16b9bfa3c5c05942a3417ec2c271105ad89bfb0fb335bd",
+    "scripts/phase11_5_completion_deploy.py": "03818d015dab3db379eb1c4ff301eb07da2d09fccf0387f585e1328557505dba",
+    "scripts/phase11_5_load_reply_target.py": "64dace9181f9246c89e2063b55834c55fe1148dc590a97f39325bea357323ca6",
+    "src/campaign/analysis.py": "2bf05a16de11b1543d5d6aed4d0f342cd24d7416f84050f0d090f74fd89a44be",
+    "src/campaign/live.py": "9b804a2e4694152384a7a664ccd9b2087ffad83ff7974c4c96d7ecf90b27b657",
+    "src/campaign/evidence.py": "e0e3886fe6ca14c988298b03bcaf1cb98ad5a6b8ce285044dccf45267b044b06",
+    "docs/development/phase11-5-completion-authorization-20260915.md": "d37aa064766d36d28f3e45baadf8c6416af3bc1b2f4a8a9ff6716dd11da84d1d",
+    "scripts/phase11_5_completion_native_idle.py": "47e7543bb3b135d7c6e47c627050a30e3f9490a9f06ce777302914fb62d8f429"
+  },
+  "private_evidence_root": "/Users/lbussy/GitHub/WsprryPico/build/phase11-5-completion-20260915/native-idled"
+}

@@ -1209,6 +1209,97 @@ void test_shared_adjustment_replay_lifetimes() {
     CHECK(first.adjustments[0].realized_frequency_nhz == 135500000000001ULL);
 }
 
+void test_active_load_replay_decode_and_authority() {
+    VirtualClock clock;
+    MockRfEngine engine;
+    TestIdentitySource ids;
+    JobService service(clock, engine, ids);
+    establish_owner(service);
+    std::string body =
+        "{\"job_id\":\"" + id('3') +
+        "\",\"profile\":\"rf-events/1\",\"mode\":\"fskcw\",\"total_duration_ns\":\"512\","
+        "\"allow_frequency_adjustment\":true,\"events\":[";
+    for (unsigned n = 0; n < 512; ++n) {
+        if (n)
+            body += ',';
+        body += "{\"offset_ns\":\"" + std::to_string(n) +
+                "\",\"duration_ns\":\"1\",\"rf_on\":true,\"frequency_nhz\":\"135500000000000\"}";
+    }
+    body += "]}";
+    auto decode = [&](const std::string& value, char rid, std::string_view hint) {
+        const auto wire = "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":\"" +
+                          id('1') + "\",\"request_id\":\"" + id(rid) +
+                          "\",\"op\":\"LOAD\",\"body\":" + value + "}";
+        const auto root = json::parse(wire);
+        CHECK(root);
+        largest_allocation = 0;
+        auto result = decode_request(*root, "local", wire, hint);
+        CHECK(result);
+        return *result;
+    };
+    auto first = decode(body, 'c', {});
+    CHECK(std::holds_alternative<Job>(first.body));
+    const auto digest = job_digest(std::get<Job>(first.body));
+    CHECK(hex(digest) == "68c1ad542ba02ab4421d51bea473432dda5433bfd4ce4f20c660798a576a8ff5");
+    auto loaded = service.handle(first);
+    CHECK(loaded.ok && service.active_load_replay_id() == id('3'));
+    auto replay = decode(body, 'd', service.active_load_replay_id());
+    CHECK(largest_allocation < 1024);
+    CHECK(std::get<LoadReplayBody>(replay.body).digest == digest);
+    CHECK(service.handle(replay) == loaded && engine.prepare_calls == 1);
+    auto escaped = body;
+    const auto offset = escaped.find("135500000000000");
+    escaped.replace(offset, 1, "\\u0031");
+    CHECK(service.handle(decode(escaped, 'e', id('3'))) == loaded);
+    char conflict_digit = '4';
+    for (const auto& change :
+         {std::pair{"135500000000000", "135500000000001"}, std::pair{"\"512\"", "\"513\""},
+          std::pair{"\"fskcw\"", "\"qrss\""}}) {
+        auto changed = body;
+        changed.replace(changed.find(change.first), std::string_view(change.first).size(),
+                        change.second);
+        auto q = decode(changed, 'f', id('3'));
+        // Distinct request IDs avoid substituting request-reuse precedence for
+        // the semantic job-conflict behavior under test.
+        q.request_id = id(conflict_digit++);
+        CHECK(service.handle(q).error == ErrorCode::JobIdConflict);
+    }
+    auto malformed = body;
+    malformed.replace(malformed.find("135500000000000"), 15, "0");
+    auto bad = decode(malformed, '7', id('3'));
+    CHECK(!bad.body_valid && service.handle(bad).error == ErrorCode::InvalidMessage);
+    auto oversized_scalar = body;
+    oversized_scalar.replace(oversized_scalar.find("135500000000000"), 15, std::string(8000, '1'));
+    auto bounded = decode(oversized_scalar, '8', id('3'));
+    CHECK(!bounded.body_valid && largest_allocation < 1024);
+    auto foreign = replay;
+    foreign.request_id = id('8');
+    foreign.session_id = id('9');
+    CHECK(hello(service, '9', 'a').ok);
+    CHECK(service.handle(foreign).error == ErrorCode::NotOwner);
+    CHECK(
+        service
+            .handle(request("ARM", ArmBody{id('3'), clock.value.utc_now_ns + 100000000, 1000}, '9'))
+            .ok);
+    CHECK(service.active_load_replay_id() == id('3'));
+    auto armed_replay = decode(body, '0', service.active_load_replay_id());
+    CHECK(service.handle(armed_replay) == loaded && engine.begin_calls == 0);
+    CHECK(service.handle(request("ABORT", AbortBody{id('3')}, '2')).ok);
+    CHECK(service.active_load_replay_id().empty());
+    CHECK(service.handle(request("RELEASE", {}, '3')).ok);
+    auto expired = replay;
+    expired.request_id = id('f');
+    CHECK(service.handle(expired).error == ErrorCode::LeaseExpired);
+    // A compact body cannot introduce a new job, even with a valid owner.
+    CHECK(hello(service, 'e', 'e').ok && claim(service, 'e', 'f').ok);
+    auto unknown = request("LOAD", LoadReplayBody{id('f'), digest}, '0', 'e');
+    CHECK(service.handle(unknown).error == ErrorCode::InvalidState);
+    clock.advance(11000000000ULL);
+    unknown.request_id = id('1');
+    CHECK(service.handle(unknown).error == ErrorCode::LeaseExpired);
+    CHECK(engine.prepare_calls == 1 && engine.begin_calls == 0);
+}
+
 void test_completed_event_storage_and_replacement() {
     for (const bool unknown_output : {false, true}) {
         struct ResetMeasurement {
@@ -1697,6 +1788,7 @@ int main() {
         {"adjustments and engine failure safety", test_adjustments_and_engine_failure_safety},
         {"shared adjustment replay lifetimes", test_shared_adjustment_replay_lifetimes},
         {"completed event storage and replacement", test_completed_event_storage_and_replacement},
+        {"active LOAD replay decoding and authority", test_active_load_replay_decode_and_authority},
         {"reply reserve and every page failure", test_reply_reserve_and_all_page_failures},
         {"expired active lease and terminal retention",
          test_expired_active_lease_and_terminal_retention},
