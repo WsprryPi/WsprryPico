@@ -11,7 +11,7 @@ from phase11_5_pilot_supervisor import configuration
 from phase11_5_rf_reservation import BOARDS, inactive
 from validate_wtp_contract import SchemaValidator
 
-PACKET='575ede223180c866915d600724bd2ad778d63be522be38f08c8437d816afd630'
+PACKET='ac6623b5ab72ed98ae0ee4230a054f75c00afc0a8fe1e7c37f4517da2d30dab1'
 
 
 def audit(root):
@@ -107,6 +107,6 @@ def audit(root):
     require(final['state']=='empty' and {r['job_id'] for r in final['terminal_records']}=={j['job_id'] for j in p['jobs']}|set(p['initial_terminal_jobs']),'Final retained records')
     return dict(status='IDLE_NATIVE_RETAINED_LOAD_PASS',packet_sha256=PACKET,rf_jobs=0,source_revision=p['source_revision'],boot_id=p['boot_id'],
         load_exchange_seconds=[(e['end']-e['start'])/1e9 for e in loads],native=metrics,info_samples=len(infos),
-        allocator_peak_bytes=max(r['value']['value']['allocator_peak_bytes'] for r in infos),heap_capacity_bytes=values['final']['a']['info']['heap_capacity_bytes'],
+        allocator_peak_bytes=max([r['value']['value']['allocator_peak_bytes'] for r in infos]+[values['final']['a']['info']['allocator_peak_bytes']]),heap_capacity_bytes=values['final']['a']['info']['heap_capacity_bytes'],
         configurations_preserved=True,schedules_disabled=True,reservation_released=True,family_closed=False,
         scope='Aborted retained LOAD/native continuity only; no Complete-state or RF capacity acceptance.')

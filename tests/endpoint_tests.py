@@ -294,11 +294,11 @@ p.close()
 print("Retained LOAD/ARM results, terminal LRU and expiry tests passed")
 
 # A competing maximum reply temporarily occupies decoding workspace. Keep the
-# same complete STATUS request bounded and undispatched until space returns.
+# same complete CLAIM request bounded and undispatched until space returns.
 for recover in (True, False):
     p=Peer(); ok(p.hello())
     p.call(action="poll",available_bytes=42000)
-    request=p.request("STATUS")
+    request=p.request("CLAIM",{"owner_id":"2"*32,"lease_ms":60000})
     result=p.send(request)
     assert not result["closed"] and not result["messages"] and result["pending"]==0
     result=p.call(action="clock",synchronized=True,now_ns="4999000000")
@@ -307,7 +307,7 @@ for recover in (True, False):
         result=p.call(action="poll",available_bytes=65536)
         responses=[m for m in result["messages"] if m["type"]=="response"]
         assert len(responses)==1 and responses[0]["request_id"]==request["request_id"]
-        assert ok(responses[0])["state"]=="empty" and not result["closed"]
+        assert ok(responses[0])["owner_id"]=="2"*32 and not result["closed"]
         ok(p.ask("PING"))
     else:
         # The original deadline wins even if workspace returns at expiry.
@@ -325,3 +325,28 @@ p.call(action="disconnect",available_bytes=65536)
 p.reconnect(); ok(p.hello()); ok(p.ask("CLAIM",{"owner_id":"2"*32,"lease_ms":60000}))
 p.close()
 print("Disconnect discards deferred mutation without ownership side effects")
+
+# Bounded read-only decoding fits beside a maximum frame without allocating an
+# event array. Full schema/identity rules still apply, including escaped names.
+for op in ("STATUS", "CAPS", "GET_CLOCK"):
+    p=Peer(); ok(p.hello()); p.call(action="poll",available_bytes=42000)
+    q=p.request(op)
+    raw=json.dumps(q,separators=(",", ":")).replace(op, ''.join("\\u%04x"%ord(c) for c in op)).encode()
+    wire=frame(raw+b" "*(65536-len(raw)))
+    # This driver budgets a whole input allocation at header admission. Lower
+    # available memory only after that storage is resident, before decoding.
+    for offset in range(0,len(wire)-1,1024):
+        p.call(action="send",hex=wire[offset:min(offset+1024,len(wire)-1)].hex(),available_bytes=1000000)
+    result=p.call(action="send",hex=wire[-1:].hex(),available_bytes=42000)
+    responses=[m for m in result["messages"] if m["type"]=="response"]
+    assert len(responses)==1 and responses[0]["request_id"]==q["request_id"]
+    ok(responses[0]); assert not result["closed"]
+    p.close()
+# A large protocol string cannot enter the small-workspace route.
+p=Peer();ok(p.hello());p.call(action="poll",available_bytes=42000)
+result=p.send(p.request("STATUS",protocol="WTP/1"+"1"*8000))
+assert not result["closed"] and not result["messages"]
+result=p.call(action="clock",synchronized=True,now_ns="5000000000")
+assert result["closed"] and not result["messages"]
+p.close()
+print("Maximum padded read requests preserve bounded decoding and validation")

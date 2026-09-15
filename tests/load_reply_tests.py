@@ -30,11 +30,11 @@ def c7_frame():
 
 DRIVER = sys.argv[1] if len(sys.argv) > 1 else None
 class LoadReplyTests(unittest.TestCase):
-    def run_model(self, background, replay=False):
+    def run_model(self, background, replay=False, maximum_status=False):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'c7.bin'
             path.write_bytes(c7_frame())
-            run = subprocess.run([DRIVER, str(path), str(background)] + (["replay"] if replay else []), capture_output=True,
+            run = subprocess.run([DRIVER, str(path), str(background)] + (["maximum-status"] if maximum_status else ["replay"] if replay else []), capture_output=True,
                                  text=True, check=True, timeout=30)
         result = json.loads(run.stdout)
         self.assertEqual(result['state'], 'loaded')
@@ -109,6 +109,40 @@ class LoadReplyTests(unittest.TestCase):
                 self.assertEqual(len(responses), 3)
                 self.assertEqual(responses[0], responses[1])
                 self.assertEqual(responses[0]['body'], responses[2]['body'])
+
+    def test_maximum_status_with_loaded_job_and_terminal_retention(self):
+        # Count the complete 65,536-byte input beside actual service/planner
+        # allocations. Fixed modeled background; no target-equivalence claim.
+        for background in (0, 5751, 18168):
+            r = self.run_model(background, maximum_status=True)
+            self.assertEqual(r['preparations'], 2)
+            responses = []
+            for exchange in r['exchanges']:
+                self.assertFalse(exchange['closed'])
+                self.assertEqual(exchange['wait_ms'], 0)
+                self.assertEqual(exchange['after_pages'], 0)
+                self.assertGreaterEqual(219712-background-exchange['peak_bytes'], 32768)
+                decoder = FrameDecoder()
+                messages = [json.loads(p) for p in decoder.feed(bytes.fromhex(exchange['hex']))]
+                self.assertFalse(decoder.buffer)
+                schema = load_json(ROOT / 'docs/protocol/wtp-1.schema.json')
+                for message in messages:
+                    self.assertFalse(SchemaValidator(schema).errors(message, schema))
+                response, = [m for m in messages if m['type']=='response']
+                self.assertTrue(response['ok'])
+                responses.append(response)
+            self.assertEqual(responses[1], responses[2])
+            status = responses[1]
+            self.assertEqual(status['op'], 'STATUS')
+            self.assertEqual(status['request_id'], '8'*32)
+            self.assertEqual(status['body']['state'], 'loaded')
+            self.assertFalse(status['body']['output_active'])
+            self.assertEqual(status['body']['job_id'], '8d8734400ddd2d472799f3d08a92e6b5')
+            self.assertEqual(len(status['body']['terminal_records']), 1)
+        refused = self.run_model(31384, maximum_status=True)
+        self.assertTrue(refused['exchanges'][1]['closed'])
+        self.assertEqual(refused['exchanges'][1]['wait_ms'], 5000)
+        self.assertGreaterEqual(219712-31384-refused['exchanges'][1]['peak_bytes'], 32768)
 
     def test_uncalibrated_tls_sensitivity_preserves_refusal(self):
         # 31,384 now passes above because replay no longer duplicates events.

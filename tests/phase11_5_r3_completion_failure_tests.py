@@ -138,5 +138,36 @@ class ReserveFailureTests(unittest.TestCase):
                 with self.assertRaises(ValueError): reserve_audit(root)
 
 
+
+
+IDLE_SUCCESS = os.environ.get('PHASE115_COMPLETION_IDLE_SUCCESS')
+
+
+@unittest.skipUnless(IDLE_SUCCESS, 'Private completed idle packet not supplied')
+class IdleSuccessTests(unittest.TestCase):
+    def test_complete_bounded_replay(self):
+        from audit_phase11_5_completion_native_idle import audit as idle_audit
+        value = idle_audit(Path(IDLE_SUCCESS))
+        self.assertEqual(value['status'], 'IDLE_NATIVE_RETAINED_LOAD_PASS')
+        self.assertEqual(len(value['load_exchange_seconds']), 4)
+        self.assertFalse(value['family_closed'])
+        self.assertEqual(value['heap_capacity_bytes']-value['allocator_peak_bytes'], 32800)
+
+    def test_rejects_partial_write_missing_native_and_peak_change(self):
+        from audit_phase11_5_completion_native_idle import audit as idle_audit
+        for change in ('write', 'native', 'peak'):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as directory:
+                root=Path(directory)/'evidence';shutil.copytree(IDLE_SUCCESS,root)
+                if change == 'native':
+                    path=root/'production-tls.bin';path.write_bytes(path.read_bytes()[:-32])
+                else:
+                    path=root/'idle.jsonl';rows=[json.loads(x) for x in path.read_text().splitlines()]
+                    if change == 'write':
+                        next(r for r in rows if r['kind']=='usb_write' and r['value']['label']=='fresh-id-replay')['value']['bytes']-=1
+                    else:
+                        next(r for r in rows if r['kind']=='info')['value']['value']['allocator_peak_bytes']+=1
+                    path.write_text(''.join(json.dumps(r)+'\n' for r in rows))
+                with self.assertRaises(ValueError):idle_audit(root)
+
 if __name__ == '__main__':
     unittest.main()

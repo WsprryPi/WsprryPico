@@ -1,0 +1,130 @@
+{
+  "schema": "phase11.5-completion-read-workspace-checkpoint-v1",
+  "phase_status": "OPEN",
+  "families_closed": 2,
+  "newly_closed_assertions": [],
+  "deployment": {
+    "status": "DEPLOYMENT_INDEPENDENTLY_VERIFIED",
+    "packet_sha256": "a78704abc55b57f6e96d223dfe0a8c68f69c368ea9acc43bee41f0a3d404a965",
+    "source_revision": "b0254c5e64abf858255ca6d426e864080f003891",
+    "image_sha256": "0b03abf7c7a6c6249c224c45239dbb0899cbdf8d3506f255c422ab6d5e28fccd",
+    "elf_sha256": "7a7cb9253d24b76f48b676f338b0a9be261f0ed2a758239df632936d4b9dd31f",
+    "boot_id": "4dad3b38c27aad73da01cefc9e857cdb",
+    "boards": {
+      "a": {
+        "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+        "boot_id": "4dad3b38c27aad73da01cefc9e857cdb",
+        "revision": "b0254c5e64ab",
+        "state": "empty"
+      },
+      "b": {
+        "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "revision": "8921a7008183",
+        "state": "empty"
+      }
+    },
+    "configuration_preserved": true,
+    "schedules_disabled": true,
+    "reservation_released": true,
+    "flashes": 1,
+    "bootsel": 1,
+    "rf_jobs": 0,
+    "heap_capacity_bytes": 218984,
+    "allocator_peak_bytes": 18600
+  },
+  "idle": {
+    "status": "IDLE_NATIVE_RETAINED_LOAD_PASS",
+    "packet_sha256": "ac6623b5ab72ed98ae0ee4230a054f75c00afc0a8fe1e7c37f4517da2d30dab1",
+    "rf_jobs": 0,
+    "source_revision": "b0254c5e64abf858255ca6d426e864080f003891",
+    "boot_id": "4dad3b38c27aad73da01cefc9e857cdb",
+    "load_exchange_seconds": [
+      2.114623334,
+      2.454966464,
+      2.577591429,
+      2.613489643
+    ],
+    "native": {
+      "connections": 1,
+      "operations": {
+        "HELLO": 1,
+        "STATUS": 96,
+        "CAPS": 1
+      }
+    },
+    "info_samples": 88,
+    "allocator_peak_bytes": 186184,
+    "heap_capacity_bytes": 218984,
+    "configurations_preserved": true,
+    "schedules_disabled": true,
+    "reservation_released": true,
+    "family_closed": false,
+    "scope": "Aborted retained LOAD/native continuity only; no Complete-state or RF capacity acceptance."
+  },
+  "required_headroom_bytes": 32768,
+  "measured_headroom_bytes": 32800,
+  "fixture": {
+    "status": "ACTIVE",
+    "packet_sha256": "11bd8abc8090433997f40d5fc8ad84b2e0921c5e79a35475e9932456bc0204ad",
+    "root": "/home/pi/phase11-5-completion-active-replay-fixture-20260915",
+    "independent_cleanup_start_monotonic_ns": 435459994813000,
+    "session_budget": {
+      "start_monotonic_ns": 431841383890721,
+      "start_utc_ns": 1789487340642457545,
+      "work_deadline_monotonic_ns": 435741383890721,
+      "cleanup_deadline_monotonic_ns": 436641383890721,
+      "execution_seconds": 3900,
+      "cleanup_seconds": 900,
+      "initial_packet_rf_jobs": 0,
+      "initial_packet_rf_seconds": 0,
+      "flashes": 0,
+      "configuration_writes": 0,
+      "wifi_cycles": 0
+    }
+  },
+  "repair": {
+    "status": "HOST_VALIDATED_TARGET_PENDING",
+    "parent_source": "b0254c5e64abf858255ca6d426e864080f003891",
+    "mechanism": "Bounded STATUS/CAPS/GET_CLOCK decoding uses 6144 bytes workspace; unchanged 32768-byte reserve and five-second deadline; new LOAD remains at 32768 workspace.",
+    "source_sha256": {
+      "src/wtp/codec.cpp": "797e5a2b8bbad299c54cc8a78389f9fdcd1739d6615787890906dde652f4866b",
+      "src/wtp/codec.hpp": "219d2f267e9811fa43945fa170a0179b457da2817e8c302b09f2faa610b6d3bf",
+      "src/wtp/endpoint.cpp": "eede96c6a7b18bdb514250241691e3275b7fcc3cfa70b61407933d7e573db5cf"
+    },
+    "host_model_background_bytes": [
+      0,
+      5751,
+      18168
+    ],
+    "host_model_maximum_status_peak_bytes": [
+      151872,
+      159384
+    ],
+    "host_model_separate_refusal_background_bytes": 31384
+  },
+  "checks": {
+    "affected_ctest_passed": 7,
+    "cleanup_tests_passed": 8,
+    "private_success_audit_tests_passed": 2,
+    "red_green_confirmed": true,
+    "local_tls_certificate_expiry": "Recorded expired host fixture regenerated; TLS verification unchanged; rerun passed"
+  },
+  "evidence_sha256": {
+    "packet.json": "ac6623b5ab72ed98ae0ee4230a054f75c00afc0a8fe1e7c37f4517da2d30dab1",
+    "idle.jsonl": "1c41192cdb89bc430fffc731ed3e75e325c3164bc6998d3ce666353c199730c5",
+    "run-result.json": "d818ad66396dbe5f50f97a8a0fb3cf9dbd94aee5fe898383f1a4ca8e98917296",
+    "production-tls.bin": "85d186bb2eace08904a9770dfcc870ce907603d932dbd023c0ca1fbec367c0db",
+    "production.log": "4c2048d0656690f853c73176590f4136286edcec6ab1ed8aea7698033eb60872",
+    "reservation-released.json": "0e999648f727785d4cf7271a010bdd8f1260ed88c654bb6b8534c0b75c7db1bf"
+  },
+  "cumulative_task_charges": {
+    "rf_jobs": 3,
+    "planned_rf_seconds": 384,
+    "a_flashes": 5,
+    "bootsel": 5,
+    "additional_reboots": 0,
+    "wifi_cycles": 2,
+    "configuration_writes": 0
+  }
+}

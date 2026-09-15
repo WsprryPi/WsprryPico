@@ -247,6 +247,16 @@ std::string caps(const ServiceConfig& c) {
            std::to_string(c.terminal_record_ttl_ns / 1'000'000'000ULL) + '}';
 }
 } // namespace
+bool is_small_read_request(Value root) {
+    const auto op = get(root, "op");
+    // Classify only bounded read envelopes. Full protocol/schema validation
+    // still follows; whitespace padding never requires a second event array.
+    if (get(root, "protocol").raw.size() > 128 || get(root, "type").raw.size() > 44 ||
+        op.raw.size() > 56 || !json::fields(get(root, "body"), {}))
+        return false;
+    const auto name = op.string();
+    return name == "STATUS" || name == "CAPS" || name == "GET_CLOCK";
+}
 bool is_active_load_replay(Value root, std::string_view id) {
     if (id.empty())
         return false;

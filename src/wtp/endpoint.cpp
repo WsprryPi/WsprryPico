@@ -205,14 +205,15 @@ void Endpoint::payload(FrameBuffer bytes, std::uint64_t now) {
         return;
     }
     const auto replay_id = service_.active_load_replay_id();
-    pending_input_workspace_ = is_active_load_replay(*root, replay_id) ? 6144 : 32768;
+    const bool replay = is_active_load_replay(*root, replay_id);
+    pending_input_workspace_ = replay || is_small_read_request(*root) ? 6144 : 32768;
     if (!memory_admitted(pending_input_workspace_)) {
         pending_input_ = std::move(bytes);
         pending_input_since_ms_ = now;
         return;
     }
-    auto request = decode_request(std::move(*root), principal_, bytes.view(),
-                                  pending_input_workspace_ == 6144 ? replay_id : "");
+    auto request =
+        decode_request(std::move(*root), principal_, bytes.view(), replay ? replay_id : "");
     // Decoded requests own their fields and digest. Release raw input before
     // preparing a maximum job or serializing its independently bounded reply.
     root.reset();

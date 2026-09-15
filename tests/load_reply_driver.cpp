@@ -209,7 +209,8 @@ int main(int argc, char** argv) {
     if (argc != 3 && argc != 4)
         return 2;
     background = std::stoull(argv[2]);
-    whole = argc == 4 && std::string_view(argv[3]) == "replay";
+    const bool maximum_status = argc == 4 && std::string_view(argv[3]) == "maximum-status";
+    whole = argc == 4 && (std::string_view(argv[3]) == "replay" || maximum_status);
     if (whole) {
         wtp::allocate_input = tracked_page;
         wtp::deallocate_input = free_page;
@@ -305,6 +306,9 @@ int main(int argc, char** argv) {
         fresh.replace(fresh.find("7082c6ffbb9d466eac3cfc636ba6538a"), 32,
                       "a56745738e684a8094fc0cc3d29bd089");
         auto fresh_wire = wire(fresh);
+        auto status_text = request("STATUS", "{}", '8');
+        status_text.resize(65536, ' ');
+        auto status_wire = wire(status_text);
         std::cout << "{\"exchanges\":[";
         for (unsigned i = 0; i < 3; ++i) {
             output_size = 0;
@@ -312,7 +316,7 @@ int main(int argc, char** argv) {
             peak_cpp = live;
             peak_pages = page_live;
             calls = 0;
-            send(endpoint, i == 2 ? fresh_wire : c7, true);
+            send(endpoint, maximum_status && i > 0 ? status_wire : i == 2 ? fresh_wire : c7, true);
             if (i)
                 std::cout << ',';
             std::cout << "{\"peak_bytes\":" << total_peak << ",\"peak_cpp\":" << peak_cpp
