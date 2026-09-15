@@ -1,4 +1,5 @@
 #pragma once
+#include "wtp/codec.hpp"
 #include "wtp/frame_parser.hpp"
 #include "wtp/job_service.hpp"
 #include "wtp/output_buffer.hpp"
@@ -30,7 +31,7 @@ class Endpoint {
     void payload(FrameBuffer bytes, std::uint64_t now_ms);
     void frame_events(std::vector<FrameEvent> events, std::uint64_t now_ms);
     bool enqueue(std::string payload, std::uint64_t now_ms, bool advisory);
-    bool enqueue(OutputBuffer payload, std::uint64_t now_ms);
+    bool enqueue(LoadResponseStream payload, std::uint64_t now_ms);
     void event(std::string_view name, std::string body, std::uint64_t now_ms);
     void observe(std::uint64_t now_ms, bool released = false);
     void close_after_output();
@@ -41,11 +42,11 @@ class Endpoint {
     std::uint64_t pending_input_since_ms_ = 0;
     struct OutputFrame {
         std::array<std::uint8_t, kFrameHeaderBytes> header;
-        std::variant<std::string, OutputBuffer> payload;
+        std::variant<std::string, LoadResponseStream> payload;
         std::span<const std::uint8_t> bytes(std::size_t offset = 0) const {
             return std::visit(
                 [offset](const auto& value) -> std::span<const std::uint8_t> {
-                    if constexpr (std::is_same_v<std::decay_t<decltype(value)>, OutputBuffer>)
+                    if constexpr (std::is_same_v<std::decay_t<decltype(value)>, LoadResponseStream>)
                         return value.at(offset);
                     else
                         return std::span(reinterpret_cast<const std::uint8_t*>(value.data()),

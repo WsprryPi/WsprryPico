@@ -1,0 +1,168 @@
+{
+  "schema": "phase11.5-completion-streamed-reply-checkpoint-v1",
+  "phase_status": "OPEN",
+  "families_closed": 2,
+  "deployment": {
+    "status": "DEPLOYMENT_INDEPENDENTLY_VERIFIED",
+    "packet_sha256": "2de78745f573ef91043d063b95a9498d6c598daed48e06bf8df6d2653c3ae6da",
+    "source_revision": "a9d5610d76f6cb349249b8def6eba65f21e7bfa9",
+    "image_sha256": "ecbde4012133f394074b44b21940e04d2fbdd2d5ca2ac92206a51cfec25691b5",
+    "elf_sha256": "108f7298e0c1fa843faab9029c4fb5608d2a596e8d590cc4575d3e155450db28",
+    "boot_id": "8d747e80fa4e2762ba2509b5bb5ecfae",
+    "boards": {
+      "a": {
+        "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+        "boot_id": "8d747e80fa4e2762ba2509b5bb5ecfae",
+        "revision": "a9d5610d76f6",
+        "state": "empty"
+      },
+      "b": {
+        "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "revision": "8921a7008183",
+        "state": "empty"
+      }
+    },
+    "configuration_preserved": true,
+    "schedules_disabled": true,
+    "reservation_released": true,
+    "flashes": 1,
+    "bootsel": 1,
+    "rf_jobs": 0,
+    "heap_capacity_bytes": 219008,
+    "allocator_peak_bytes": 14952
+  },
+  "attempts": {
+    "native-idle": {
+      "status": "HARNESS_NATIVE_GUARD_FAILURE_CONFIRMED",
+      "packet_sha256": "b007878df252c296a1baf5f626fb983e7caabe999d214beaf7a40c46c997b84a",
+      "failure": "event_refresh",
+      "rf_jobs": 0,
+      "capacity_acceptance": false,
+      "native": {
+        "connections": 1,
+        "operations": {
+          "HELLO": 1,
+          "STATUS": 5,
+          "CAPS": 1
+        }
+      },
+      "incomplete_usb_reply": "load-0",
+      "configurations_preserved": true,
+      "schedules_disabled": true,
+      "reservation_released": true,
+      "allocator_peak_bytes": 154256,
+      "source_revision": "a9d5610d76f6cb349249b8def6eba65f21e7bfa9",
+      "boot_id": "8d747e80fa4e2762ba2509b5bb5ecfae"
+    },
+    "native-idleb": {
+      "status": "HARNESS_NATIVE_GUARD_FAILURE_CONFIRMED",
+      "packet_sha256": "0bda1b7f0dc648a2537456352fa10528c6adb45e3b4a0790afed2a219e2de5cb",
+      "failure": "foreign_owner_readiness",
+      "rf_jobs": 0,
+      "capacity_acceptance": false,
+      "native": {
+        "connections": 1,
+        "operations": {
+          "HELLO": 1,
+          "STATUS": 7,
+          "CAPS": 1
+        }
+      },
+      "incomplete_usb_reply": "load-0",
+      "configurations_preserved": true,
+      "schedules_disabled": true,
+      "reservation_released": true,
+      "allocator_peak_bytes": 169040,
+      "source_revision": "a9d5610d76f6cb349249b8def6eba65f21e7bfa9",
+      "boot_id": "8d747e80fa4e2762ba2509b5bb5ecfae"
+    },
+    "native-idlec": {
+      "status": "NATIVE_IDLE_REPLY_TIMEOUT_CONFIRMED",
+      "packet_sha256": "af60edcba5e3767abf6dafb5e9982f058b6200a385a9ed2cbfad56794a009fc5",
+      "failure": "reply_timeout",
+      "rf_jobs": 0,
+      "capacity_acceptance": false,
+      "native": {
+        "connections": 1,
+        "operations": {
+          "HELLO": 1,
+          "STATUS": 10,
+          "CAPS": 1
+        }
+      },
+      "incomplete_usb_reply": "load-0",
+      "configurations_preserved": true,
+      "schedules_disabled": true,
+      "reservation_released": true,
+      "allocator_peak_bytes": 169040,
+      "source_revision": "a9d5610d76f6cb349249b8def6eba65f21e7bfa9",
+      "boot_id": "8d747e80fa4e2762ba2509b5bb5ecfae"
+    }
+  },
+  "task_accounting": {
+    "rf_jobs_charged": 3,
+    "rf_seconds_charged": 384,
+    "flashes": 2,
+    "bootsel": 2,
+    "additional_reboots": 0,
+    "wifi_cycles": 2,
+    "configuration_writes": 0
+  },
+  "current_state": {
+    "a_source": "a9d5610d76f6cb349249b8def6eba65f21e7bfa9",
+    "a_boot": "8d747e80fa4e2762ba2509b5bb5ecfae",
+    "a_state": "empty",
+    "a_terminal_records": 3,
+    "b_source": "8921a70081839f168edef5926e92445f251d8e1d",
+    "b_boot": "6684b4b197d80cfa0ce83b3aaf205cb0",
+    "b_state": "empty",
+    "output_active": false,
+    "owners": null,
+    "schedules_enabled": false,
+    "configurations_preserved": true,
+    "shared_reservation": "RELEASED",
+    "fixture": "ACTIVE within original independently supervised deadline"
+  },
+  "fixture_session": {
+    "root": "/home/pi/phase11-5-r3-completion-p1e-f20260915",
+    "fixture_cleanup_starts_monotonic_ns": 432239251861000,
+    "work_deadline_monotonic_ns": 432516632812315,
+    "cleanup_deadline_monotonic_ns": 433416632812315
+  },
+  "repair": {
+    "status": "HOST_VALIDATED_TARGET_PENDING",
+    "wire": "Immutable adjustments plus one 4096-byte reusable output page; original exact bytes and CRC.",
+    "admission": "6144-byte stream working allowance; 32768-byte request decode allowance; separate unchanged 32768-byte reserve.",
+    "native_guard": "Use ready session/network and matching fresh status. Application ready is transmission admission and may be false under foreign ownership. Event refresh may hide status until its original six-second freshness limit; unresolved status cannot admit new stimuli."
+  },
+  "validation": {
+    "affected_ctest_targets": 7,
+    "passed": 7,
+    "protocol": "PASS",
+    "native_guard_tests": 12,
+    "private_failure_methods_passed": 2,
+    "red_green": "Old endpoint fails retained reply pressure; restored stream passes. 85000-byte direct codec regression retains exact bytes with old full-buffer refusal. Original stricter replay refusal remains."
+  },
+  "limitations": [
+    "No new physical acceptance family closes.",
+    "P1f historical close branch remains unproved.",
+    "The two native guard stops were harness failures, with complete native frames before harness shutdown.",
+    "The third idle packet fully wrote its LOAD but received zero USB reply bytes; native STATUS proved Loaded. The reply admission path is reproduced in source tests, not directly instrumented at the historical instruction.",
+    "New stream layout and timing require fresh target validation before RF capacity work."
+  ],
+  "evidence_sha256": {
+    "deferred-decode-deploy/audit.json": "d996e889094d42a04b19ef2eed7193efd5c8dbc15f63d99ccbb3c2e610b99136",
+    "deferred-decode-deploy/evidence.tar": "bd29b06b79d7a343e0543b2874653a27d5c6f8ed4b17ba18e8da3edb01fec67f",
+    "deferred-decode-linked-checks.json": "1a5ea087d81e953e120d5142e1d4db54604a30480b7117978688207e066332ef",
+    "native-idle/audit.json": "58413fa8ab9f6cc0ad3e8ea812fcd758cc18a2b5781b5fa1162d5ffd1e58cce0",
+    "native-idle/evidence.tar": "d47a81347e5b2ba93c53f3d410d6a93fc8715675163faceb64ac2203f945095c",
+    "native-idleb/audit.json": "abeb600b65ee9ef8efe92aef5bda6f61b9d98cdd51ec8ff0861ef4c75e6522d9",
+    "native-idleb/evidence.tar": "d70448bfd34dccccea5aa04aed91c38dc36ed7d5cc0bba8776fd5ddf651db68d",
+    "native-idlec/audit.json": "7ba3e8134aa2791a7684dc1602f4176c4e283e5020c18790a78587438fff60d1",
+    "native-idlec/evidence.tar": "01aecb18a3f37b71624c8d22d5e42b9249216cef059985e56817cf65b584f68f",
+    "native-idle/evidence/private-input-hashes.json": "65bdd4d072a135332f170628939530dbdc119ea00e422af4676e10cf5eb5bf1c",
+    "native-idleb/evidence/private-input-hashes.json": "a2c7725d1bc994cf4033f01c46100e1c8c426812d7a740ea091662e3d0a6a4f1",
+    "native-idlec/evidence/private-input-hashes.json": "4ffaab4b89866e6ae2cbb857e09bfbcd174cdadc4059d01e5b28f4aa45e01c0c"
+  }
+}

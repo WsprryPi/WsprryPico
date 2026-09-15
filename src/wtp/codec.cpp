@@ -1,5 +1,6 @@
 #include "wtp/codec.hpp"
 
+#include "wtp/frame_parser.hpp"
 #include "wtp/memory_budget.hpp"
 
 #include <algorithm>
@@ -378,5 +379,57 @@ OutputBuffer encode_load_response_buffer(const Request& r, const Response& s, bo
     if (!complete || result.size() != bytes)
         return {};
     return result;
+}
+LoadResponseStream::LoadResponseStream(const Request& r, const Response& s) {
+    if (!s.ok || r.operation != "LOAD" || s.adjustments.size() > 512 || !memory_admitted(6144))
+        return;
+    piece_ = response_prefix(r, s) + ",\"body\":" + load_fields(s);
+    const auto bytes = load_response_bytes(piece_.size(), s);
+    if (bytes > 65536 || !page_.reserve(4096)) {
+        piece_.clear();
+        return;
+    }
+    piece_.reserve(512);
+    adjustments_ = s.adjustments;
+    auto checksum = [&](std::string_view part) {
+        checksum_ =
+            crc32c({reinterpret_cast<const std::uint8_t*>(part.data()), part.size()}, checksum_);
+    };
+    checksum(piece_);
+    append_load_adjustments(s, checksum);
+    size_ = bytes;
+}
+std::span<const std::uint8_t> LoadResponseStream::at(std::size_t offset) const {
+    if (offset >= size_ || offset < page_start_)
+        return {};
+    if (offset >= page_start_ + page_.size()) {
+        if (offset != page_start_ + page_.size())
+            return {}; // The transport may retry or advance, never skip bytes.
+        page_start_ = offset;
+        page_.clear();
+        while (page_.size() < 4096) {
+            if (piece_offset_ == piece_.size()) {
+                piece_.clear();
+                piece_offset_ = 0;
+                if (next_adjustment_ < adjustments_.size()) {
+                    const auto& a = adjustments_[next_adjustment_];
+                    if (next_adjustment_++)
+                        piece_ += ',';
+                    piece_ += "{\"event_index\":" + std::to_string(a.event_index) +
+                              ",\"requested_frequency_nhz\":" + ns(a.requested_frequency_nhz) +
+                              ",\"realized_frequency_nhz\":" + ns(a.realized_frequency_nhz) + '}';
+                } else if (!closing_) {
+                    piece_ = "]}}";
+                    closing_ = true;
+                } else
+                    break;
+            }
+            const auto count = std::min(4096 - page_.size(), piece_.size() - piece_offset_);
+            page_.append(
+                {reinterpret_cast<const std::uint8_t*>(piece_.data() + piece_offset_), count});
+            piece_offset_ += count;
+        }
+    }
+    return std::span<const std::uint8_t>(page_).subspan(offset - page_start_);
 }
 } // namespace wsprrypico::wtp

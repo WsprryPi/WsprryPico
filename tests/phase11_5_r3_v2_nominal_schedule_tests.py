@@ -49,13 +49,33 @@ class ScheduleTests(unittest.TestCase):
             self.assertEqual(await_capacity_phase(root,'a','b',3,None,lambda:False,lambda:2),good)
 
 class NativePublicationTests(unittest.TestCase):
+    def test_event_refresh_keeps_original_status_deadline(self):
+        from phase11_5_r3_v2_nominal_load import NativeHealth, DEVICE
+        packet=dict(boot_id='b'*32)
+        remote=dict(boot_id=packet['boot_id'],state='loaded',output_active=False)
+        host=dict(ready=True,session_phase='ready',remote=remote,now_ms='10000',status_observed_ms='9900',
+                  identity=dict(device_id=DEVICE,boot_id=packet['boot_id']),network=dict(state='ready'),uncertain=False,safety_fault=False)
+        guard=NativeHealth();self.assertTrue(guard.observe(dict(host=host,job=remote),packet))
+        transient=dict(host,remote=None,status_observed_ms=None,now_ms='15900')
+        self.assertFalse(guard.observe(dict(host=transient,job=None),packet))
+        self.assertFalse(guard.observe(dict(host=transient,job=None),packet))
+        with self.assertRaises(ValueError):
+            guard.observe(dict(host=dict(transient,now_ms='15901'),job=None),packet)
+        self.assertTrue(guard.observe(dict(host=dict(host,ready=False),job=remote),packet))
+        for bad in [dict(network=dict(state='closed')),dict(uncertain=True),dict(safety_fault=True),dict(session_phase='disconnected'),dict(identity={})]:
+            with self.assertRaises(ValueError):guard.observe(dict(host=dict(host,**bad),job=remote),packet)
+        with self.assertRaises(ValueError):NativeHealth().observe(dict(host=transient,job=None),packet)
+        recovered=dict(host,now_ms='16000',status_observed_ms='16000')
+        self.assertTrue(guard.observe(dict(host=recovered,job=remote),packet))
+
     def test_cached_identity_does_not_prove_connected_authority(self):
         from phase11_5_r3_v2_nominal_load import native_status_live
         packet=dict(boot_id='b'*32)
         remote=dict(boot_id=packet['boot_id'],state='running',output_active=True)
         host=dict(ready=True,session_phase='ready',remote=remote,now_ms='10000',status_observed_ms='9900')
         self.assertTrue(native_status_live(dict(host=host,job=remote),packet))
-        for changed in (dict(ready=False),dict(session_phase='disconnected'),dict(remote=None),
+        self.assertTrue(native_status_live(dict(host=dict(host,ready=False),job=remote),packet))
+        for changed in (dict(session_phase='disconnected'),dict(remote=None),
                         dict(status_observed_ms=None),dict(status_observed_ms='0')):
             self.assertFalse(native_status_live(dict(host=dict(host,**changed),job=remote),packet))
 

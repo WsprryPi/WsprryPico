@@ -5,7 +5,7 @@
 | Package | Status | Outcome / next requirement |
 | --- | --- | --- |
 | 0 | COMPLETE | Fresh named A/B USB inventories independently decoded; source-impact matrix and current summaries reconciled. [Result](phase11-5-completion-package0-result.json). |
-| 1 | OPEN — native connection failure | Original RF capacity failure preserved. Later packets stopped before ARM; completed-job storage blocked replacement LOAD under native TLS. Repair needs identified target build and affected retest. [Review](phase11-5-completion-terminal-storage-review.md). |
+| 1 | OPEN — native connection failure | RF failures and three idle attempts preserved. Streamed reply repair is host-validated; retained native/LOAD target check precedes further RF capacity. [Review](phase11-5-completion-streamed-reply-review.md). |
 | 2 | OPEN | Supported simultaneous workload and separate bounded overload. |
 | 3 | OPEN | Affected TLS/HTTP and distinct WTP timeouts. |
 | 4 | OPEN | Actual USB parser and unread-output pressure. |
@@ -15,30 +15,27 @@
 | 8 | OPEN; idle Wi-Fi accepted on source 98f5797 | Two independently audited OFF/ON readiness cycles preserve state/configuration and recover address/clock. Link loss, lease/name change, DNS/SNTP, journal rotation and autonomy remain. |
 | 9 | OPEN | R6 mixed operation after R1-R5 acceptance. |
 
-### Current connection-repair checkpoint
+### Current retained-reply checkpoint
 
-[Immutable results](phase11-5-completion-native-closure-result.json) and
-[review](phase11-5-completion-native-closure-review.md). R1/R2 remain closed in
-recorded scope; R3-R6 remain open. Idle Wi-Fi recovery retains its accepted
-source 98f5797 scope. No new family closes.
+[Immutable results](phase11-5-completion-streamed-reply-result.json) and
+[review](phase11-5-completion-streamed-reply-review.md). R1/R2 retain recorded
+closure; R3-R6 remain OPEN. No new physical family closes.
 
-A now runs bd16bb1 on boot 3dbf851d7107a714504e5f3dd52df4d9. P1e/P1f each
-completed a 128-second maximum-event job, but neither exercised capacity probes.
-P1e's new-policy readiness publication was missing; its wait also blocked lease
-renewal. P1f repaired those defects and proved replacement maximum LOAD admission,
-but the native TLS connection closed with a STATUS reply outstanding. Cached
-identity must not be treated as live observer health. All failures are retained.
+A runs a9d5610 on boot 8d747e80fa4e2762ba2509b5bb5ecfae. Three zero-RF
+packets preserved two native observer guard failures and one maximum LOAD reply
+timeout with two aborted records retained. The guard failures are independently
+attributed to event refresh and foreign-owner transmission admission. The third
+packet's actual native session stayed healthy; USB received no LOAD reply.
 
-Latest packet inventories show A and B Empty/inactive/unowned, preserved
-configurations and disabled schedules. A retains two Complete records; B is
-unchanged. The shared reservation is released. The isolated fixture remains
-active within its unchanged supervised deadline. Task charge: three RF jobs /
-384 seconds, one A flash, two Wi-Fi cycles and zero configuration writes.
+The reviewed stream encoder and larger decoding allowance pass host checks but
+are not yet built/flashed for target acceptance. Next: recreate the retained
+maximum workload on an identified candidate without RF, then affected RF capacity.
 
-A bounded deferred-decoding repair, stronger native health gate and read-only
-WTP close diagnostics pass host checks; they are not yet flashed or physically
-accepted. Next: identified build and a zero-RF native connection test before any
-further capacity RF packet.
+Latest inventories: both boards Empty/inactive/unowned, schedules disabled and
+configurations preserved; A has three aborted records, B is unchanged. Shared
+reservation RELEASED. Fixture ACTIVE within its original supervised deadline.
+Cumulative charge: three RF jobs / 384 seconds, two A flashes, two Wi-Fi cycles,
+zero configuration writes. Prior RF/idle failures remain failed.
 
 ### Package 0 checkpoint
 

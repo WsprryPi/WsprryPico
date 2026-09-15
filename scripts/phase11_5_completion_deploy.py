@@ -17,14 +17,20 @@ from phase11_5_r3_allocation_diagnostic import request_bootsel
 from phase11_5_r3_v2_admission import candidate
 from phase11_5_rf_reservation import Reservation, inactive
 
-SOURCE = 'bd16bb1c736720fbf901589d41d2a25897987b8b'
+CANDIDATES = {
+    'phase115-completion-terminal-storage-deploy-v1': (
+        'bd16bb1c736720fbf901589d41d2a25897987b8b', '98f5797d77fb',
+        'b1c0af7bef6ef0bef8f5e44130182149'),
+    'phase115-completion-deferred-decode-deploy-v1': (
+        'a9d5610d76f6cb349249b8def6eba65f21e7bfa9', 'bd16bb1c7367',
+        '3dbf851d7107a714504e5f3dd52df4d9'),
+}
 
 
 def validate(p):
-    require(p['scope'] == 'phase115-completion-terminal-storage-deploy-v1' and
-            p['serial'] == SERIAL and p['device_id'] == DEVICE and
-            p['source_revision'] == SOURCE and p['prior_revision'] == '98f5797d77fb' and
-            p['prior_boot'] == 'b1c0af7bef6ef0bef8f5e44130182149', 'Exact A repair candidate')
+    require(p['serial'] == SERIAL and p['device_id'] == DEVICE and
+            CANDIDATES.get(p['scope']) == (p['source_revision'], p['prior_revision'],
+                                        p['prior_boot']), 'Exact A repair candidate')
     require(p['limits'] == dict(flashes=1, bootsel=1, rf_jobs=0, loads=0, arm=0,
             reboots=0, wifi_cycles=0, configuration_writes=0), 'Single idle flash budget')
     require(p['runtime_seconds'] == 300 and p['cleanup_seconds'] == 150 and

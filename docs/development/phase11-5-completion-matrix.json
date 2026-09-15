@@ -10,7 +10,7 @@
     "R5": "OPEN",
     "R6": "OPEN"
   },
-  "candidate_source": "bd16bb1c736720fbf901589d41d2a25897987b8b",
+  "candidate_source": "a9d5610d76f6cb349249b8def6eba65f21e7bfa9",
   "assertions": [
     {
       "id": "R1.1",
@@ -287,8 +287,8 @@
       "group": "TLS-VALID",
       "requirement": "Authenticated production WTP/HTTPS positive controls",
       "classification": "failed",
-      "evidence": "phase11-5-r3-v2-component9-result.json; phase11-5-completion-native-closure-result.json",
-      "remaining": "P1f native TLS closed with STATUS outstanding during replacement LOAD. Exact close branch unresolved; host workspace deferral repair and read-only close diagnostics need target validation.",
+      "evidence": "phase11-5-r3-v2-component9-result.json; phase11-5-completion-native-closure-result.json; phase11-5-completion-streamed-reply-result.json",
+      "remaining": "P1f historical native close branch remains unproved. Three a9d5610 idle packets establish two harness guard failures and one retained LOAD reply timeout. Streamed reply repair is host-validated; fresh retained target sequence and RF contention required.",
       "package": 1
     },
     {

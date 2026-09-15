@@ -43,7 +43,7 @@ class LoadReplyTests(unittest.TestCase):
 
     def test_exact_reply_with_retained_job_and_tls_cost(self):
         replies = []
-        for background in [0, 18168, 31384]:
+        for background in [0, 18168, 31384, 80000]:
             with self.subTest(background=background):
                 r = self.run_model(background)
                 self.assertFalse(r['closed'])
@@ -66,10 +66,10 @@ class LoadReplyTests(unittest.TestCase):
                         realized_frequency_nhz=str(135500002652407 if i % 2 == 0 else 135494990274310)))
                 reply, = [p for p in payloads if json.loads(p)['type'] == 'response']
                 self.assertEqual(len(reply), 54916)
-                self.assertGreaterEqual(r['samples'][0]['available'], 54916 + 1024 + 32768)
+                self.assertGreaterEqual(r['samples'][0]['available'], 6144 + 32768)
                 self.assertGreaterEqual(r['samples'][1]['available'], 1024 + 32768)
                 replies.append(reply)
-        self.assertEqual(len(replies), 3)
+        self.assertEqual(len(replies), 4)
         self.assertEqual(replies[0], replies[1])
         self.assertEqual(replies[0], replies[2])
 
@@ -122,7 +122,7 @@ class LoadReplyTests(unittest.TestCase):
         self.assertEqual(r['preparations'], 2)
 
     def test_reply_reserve_refusal_preserves_inactive_loaded_job(self):
-        r = self.run_model(100000)
+        r = self.run_model(140000)
         self.assertTrue(r['closed'])
         self.assertEqual(r['hex'], '')
         self.assertEqual(len(r['samples']), 1)

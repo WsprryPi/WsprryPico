@@ -57,19 +57,13 @@ bool Endpoint::enqueue(std::string text, std::uint64_t now, bool advisory) {
     output_.push_back(std::move(frame));
     return true;
 }
-bool Endpoint::enqueue(OutputBuffer text, std::uint64_t now) {
+bool Endpoint::enqueue(LoadResponseStream text, std::uint64_t now) {
     if (text.empty() || text.size() > kMaximumPayloadBytes || output_.size() >= 8 ||
         queued_bytes_ + text.size() + kFrameHeaderBytes > 131072 || !memory_admitted(1024)) {
         disconnect();
         return false;
     }
-    std::uint32_t checksum = 0;
-    for (std::size_t offset = 0; offset < text.size();) {
-        const auto page = text.at(offset);
-        checksum = crc32c(page, checksum);
-        offset += page.size();
-    }
-    OutputFrame frame{encode_frame_header(text.size(), checksum), std::move(text)};
+    OutputFrame frame{encode_frame_header(text.size(), text.checksum()), std::move(text)};
     if (output_.empty())
         last_tx_progress_ms_ = now;
     queued_bytes_ += frame.size();
@@ -155,7 +149,7 @@ void Endpoint::poll(std::uint64_t now) {
     if (!pending_input_.empty()) {
         if (now >= pending_input_since_ms_ && now - pending_input_since_ms_ >= 5000) {
             close_after_output();
-        } else if (output_.empty() && memory_admitted(16384)) {
+        } else if (output_.empty() && memory_admitted(32768)) {
             const auto began = pending_input_since_ms_;
             payload(std::move(pending_input_), now);
             // A changed budget cannot restart the original admission deadline.
@@ -195,7 +189,7 @@ void Endpoint::payload(FrameBuffer bytes, std::uint64_t now) {
     // A different endpoint may briefly own a maximum reply. Retain this one
     // already buffered frame for at most five seconds and apply backpressure;
     // do not decode, dispatch or consume the unchanged safety reserve yet.
-    if (!memory_admitted(16384)) {
+    if (!memory_admitted(32768)) {
         pending_input_ = std::move(bytes);
         pending_input_since_ms_ = now;
         return;
@@ -236,7 +230,7 @@ void Endpoint::payload(FrameBuffer bytes, std::uint64_t now) {
     request->body = std::monostate{};
     service_.poll();
     if (response.ok && request->operation == "LOAD") {
-        auto encoded = encode_load_response_buffer(*request, response);
+        auto encoded = LoadResponseStream(*request, response);
         service_.poll();
         enqueue(std::move(encoded), now);
     } else {

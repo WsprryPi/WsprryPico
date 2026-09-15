@@ -14,6 +14,32 @@ std::string encode_response(const Request& request, const Response& response,
 // insufficient working space; the endpoint must close and permit reconciliation.
 OutputBuffer encode_load_response_buffer(const Request& request, const Response& response,
                                          bool browser = false);
+// Own immutable adjustments and one reusable wire page. Partial transport writes
+// and TLS retries retain the same page until every byte in it is consumed.
+class LoadResponseStream {
+  public:
+    LoadResponseStream() = default;
+    LoadResponseStream(const Request&, const Response&);
+    std::size_t size() const {
+        return size_;
+    }
+    bool empty() const {
+        return size_ == 0;
+    }
+    std::uint32_t checksum() const {
+        return checksum_;
+    }
+    std::span<const std::uint8_t> at(std::size_t offset) const;
+
+  private:
+    AdjustmentList adjustments_;
+    mutable InputBuffer page_;
+    mutable std::string piece_;
+    mutable std::size_t page_start_ = 0, piece_offset_ = 0, next_adjustment_ = 0;
+    mutable bool closing_ = false;
+    std::size_t size_ = 0;
+    std::uint32_t checksum_ = 0;
+};
 std::string error_json(ErrorCode code);
 std::string status_json(const ServiceStatus& status);
 std::string state_name(State state);

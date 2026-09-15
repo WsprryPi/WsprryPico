@@ -565,9 +565,7 @@ void test_large_endpoint_reply_has_one_payload_allocation() {
     send("LOAD", body, 'c', true);
     // The reply can use separated 4 KiB holes, with no large contiguous
     // string or framed copy. Its externally visible frame remains identical.
-    CHECK(large_allocations == 0 &&
-          measured_reply_allocations ==
-              (expected.size() + OutputBuffer::page_bytes - 1) / OutputBuffer::page_bytes);
+    CHECK(large_allocations == 0 && measured_reply_allocations == 1);
     CHECK(service.status().state == State::Loaded && !service.status().output_active);
     FrameParser parser;
     const auto frames = parser.feed(received, 0);
@@ -606,7 +604,7 @@ void test_large_endpoint_reply_has_one_payload_allocation() {
     const auto prepared_before_replay = engine.prepare_calls;
     send("LOAD", body, 'd', false, true);
     reject_reply_allocation = false;
-    CHECK(measured_reply_allocations == 7);
+    CHECK(measured_reply_allocations == 1);
     CHECK(engine.prepare_calls == prepared_before_replay);
     CHECK(service.status().state == State::Loaded && !service.status().output_active);
     endpoint.connect("local");
@@ -1309,6 +1307,34 @@ void test_reply_reserve_and_all_page_failures() {
         }
     }
     allocate_input = allocator;
+    available_memory = [] { return reply_available; };
+    reply_available = 85000; // The captured retained LOAD had only about 85 KiB.
+    CHECK(encode_load_response_buffer(request, response).empty());
+    auto streamed = LoadResponseStream(request, response);
+    CHECK(!streamed.empty());
+    const auto expected = encode_response(request, response, {}, id('4'), "test");
+    CHECK(streamed.size() == expected.size());
+    CHECK(streamed.checksum() ==
+          crc32c({reinterpret_cast<const std::uint8_t*>(expected.data()), expected.size()}));
+    // The stream retains the immutable reply across producer release and move.
+    response.adjustments.clear();
+    auto moved = std::move(streamed);
+    std::string actual;
+    while (actual.size() < moved.size()) {
+        const auto part = moved.at(actual.size());
+        CHECK(!part.empty() && part.size() <= 4096);
+        CHECK(moved.at(actual.size()).data() == part.data());
+        const auto count = std::min<std::size_t>(part.size(), 17);
+        actual.append(reinterpret_cast<const char*>(part.data()), count);
+    }
+    CHECK(actual == expected && moved.at(moved.size()).empty());
+    reply_available = 32768 + 6144 - 1;
+    CHECK(LoadResponseStream(request, response).empty());
+    ++reply_available;
+    CHECK(!LoadResponseStream(request, response).empty());
+    allocate_input = [](std::size_t) -> void* { return nullptr; };
+    CHECK(LoadResponseStream(request, response).empty());
+    allocate_input = allocator;
     available_memory = nullptr;
 }
 
@@ -1630,7 +1656,7 @@ int main() {
             (size == OutputBuffer::page_bytes ||
              size == measured_reply_bytes % OutputBuffer::page_bytes)) {
             ++measured_reply_allocations;
-            if (reject_reply_allocation && measured_reply_allocations == 7)
+            if (reject_reply_allocation && measured_reply_allocations == 1)
                 return nullptr;
         }
         ++allocations;

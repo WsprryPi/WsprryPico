@@ -15,6 +15,7 @@ from audit_phase11_5_completion_readiness_failure import audit as audit_native_f
 EVIDENCE = os.environ.get('PHASE115_COMPLETION_P1_FAILURE')
 PREARM = os.environ.get('PHASE115_COMPLETION_PREARM')
 NATIVE_FAILURE = os.environ.get('PHASE115_COMPLETION_NATIVE_FAILURE')
+IDLE_FAILURE = os.environ.get('PHASE115_COMPLETION_IDLE_FAILURE')
 
 
 @unittest.skipUnless(EVIDENCE, 'Private completed packet not supplied')
@@ -86,6 +87,24 @@ class NativeFailureTests(unittest.TestCase):
             path.write_bytes(raw.replace(header, header[:-1]+b'\x00'))
             with self.assertRaises(ValueError):
                 audit_native_failure(root)
+
+
+@unittest.skipUnless(IDLE_FAILURE, 'Private idle failure packet not supplied')
+class IdleFailureTests(unittest.TestCase):
+    def test_preserved_idle_failure(self):
+        from audit_phase11_5_completion_native_guard_failure import audit as idle_audit
+        result=idle_audit(Path(IDLE_FAILURE))
+        self.assertFalse(result['capacity_acceptance'])
+        self.assertEqual(result['rf_jobs'],0)
+
+    def test_native_wire_corruption_is_rejected(self):
+        from audit_phase11_5_completion_native_guard_failure import audit as idle_audit
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)/'evidence';shutil.copytree(IDLE_FAILURE,root)
+            p=root/'production-tls.bin';raw=p.read_bytes()
+            self.assertIn(b'"state":"loaded"',raw)
+            p.write_bytes(raw.replace(b'"state":"loaded"',b'"state":"armed!"',1))
+            with self.assertRaises(ValueError):idle_audit(root)
 
 
 if __name__ == '__main__':

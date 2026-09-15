@@ -27,14 +27,38 @@ PEER_SHA='06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016'
 
 def native_status_live(value, packet):
     host=value.get('host') or {}; remote=host.get('remote')
-    return (host.get('ready') is True and host.get('session_phase')=='ready' and
+    return (host.get('session_phase')=='ready' and
         isinstance(remote,dict) and remote==value.get('job') and
         remote.get('boot_id')==packet['boot_id'] and
         host.get('status_observed_ms') is not None and
         0<=int(host['now_ms'])-int(host['status_observed_ms'])<=6000)
 
+
+class NativeHealth:
+    """A ready session can hide status while reconciling an event; never extend its age."""
+    def __init__(self):
+        self.last_status_ms = None
+
+    def observe(self, value, packet):
+        host=value.get('host') or {}; identity=host.get('identity') or {}
+        # Application ready means eligible to transmit: it is false for the
+        # deliberately foreign-owned USB job. Session/network readiness is the
+        # observer contract, independently of that mutation-admission result.
+        require(host.get('session_phase')=='ready' and (host.get('network') or {}).get('state')=='ready' and
+                host.get('uncertain') is False and host.get('safety_fault') is False and
+                identity.get('device_id')==DEVICE and identity.get('boot_id')==packet['boot_id'],
+                'Native session disconnected or identity changed')
+        now=int(host['now_ms'])
+        if native_status_live(value,packet):
+            self.last_status_ms=int(host['status_observed_ms']);return True
+        require(host.get('remote') is None and value.get('job') is None and
+                host.get('status_observed_ms') is None and self.last_status_ms is not None and
+                0<=now-self.last_status_ms<=6000,
+                'Native status unresolved beyond its original six-second freshness limit')
+        return False
+
 def publish_native(root, packet, packet_sha, value):
-    if native_observation_required(packet):
+    if native_observation_required(packet) or packet.get('native_idle_policy') == 'retained-load-native-90s-v1':
         save(root/'native-observation.json',dict(packet_sha256=packet_sha,
             observed_monotonic_ns=time.monotonic_ns(),job=value.get('job')))
 
@@ -69,6 +93,10 @@ def main():
     root=a.root.resolve(strict=True);require(digest(root/'packet.json')==a.packet_sha256,'Nominal packet hash')
     packet=json.loads((root/'packet.json').read_text());plan=packet['contention'];os.umask(0o077)
     sequential=packet.get('capacity_schedule_policy')=='wtp-then-http-capacity-v1'
+    idle=packet.get('native_idle_policy')=='retained-load-native-90s-v1'
+    if idle:
+        require(sequential and packet['runtime_seconds']==90 and plan['maximum_https_requests']==0,
+                'Idle native-only observation bound')
     require(plan['policy'] in ['native-wtp-and-https-status-20s-v1','native-wtp-and-bounded-pressure-v1'] and packet['standing_authority']=='R3-COMPLETE-20260913-v2' and
             1<=packet['runtime_seconds']<=4000 and plan['maximum_https_requests']<=201,'Nominal finite scope')
     require(os.readlink('/proc/self/ns/net')==plan['netns'] and os.readlink('/proc/self/ns/mnt')==plan['mountns'],
@@ -87,7 +115,7 @@ def main():
     ctx.load_cert_chain(root/'credentials/browser/client.crt',root/'credentials/browser/client.key')
     ctx.set_alpn_protocols(['http/1.1']);opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
     log=(root/'contention.jsonl').open('x');seq=0;process=None;end=time.monotonic()+packet['runtime_seconds']
-    result=dict(status='RUNNING',https_requests=0);pressure_process=None;capture=None
+    result=dict(status='RUNNING',https_requests=0);pressure_process=None;capture=None;health=NativeHealth()
     capacity_index=0
     pressure_mode=plan['policy']=='native-wtp-and-bounded-pressure-v1'
     if pressure_mode:
@@ -114,7 +142,7 @@ def main():
         emit('native_status',dict(began_monotonic_ns=began,body_hex=raw.hex(),value=value))
         publish_native(root,packet,a.packet_sha256,value)
         if ready is not None:
-            require(native_status_live(value,packet),'Native session disconnected, unresolved or stale; cached identity is insufficient')
+            health.observe(value,packet)
         return value
     def https():
         nonlocal capacity_index
@@ -174,6 +202,7 @@ def main():
                 except OSError:time.sleep(.2);continue
                 identity=status.get('host',{}).get('identity')
                 if identity and native_status_live(status,packet):
+                    health.observe(status,packet)
                     require(identity['device_id']==DEVICE and identity['boot_id']==packet['boot_id'] and
                         status['host']['network']['resolved_address']=='10.77.15.10' and
                         status['host']['network']['authenticated_identity']==NAME,'Native peer identity')
@@ -198,7 +227,7 @@ def main():
                 require(json.loads((root/'pressure-ready.json').read_text())['packet_sha256']==a.packet_sha256,
                         'Pressure readiness packet')
             save(root/'contention-ready.json',ready)
-            if not pressure_mode:
+            if not pressure_mode and not idle:
                 def observe_https():
                     require(result['https_requests']<plan['maximum_https_requests'],'HTTPS count bound')
                     https()

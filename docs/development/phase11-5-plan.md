@@ -25,7 +25,7 @@ labels or modified implicitly to implement this plan.
 
 Use the [September 15 assertion matrix](phase11-5-completion-matrix.md) and
 [accepted completion request](phase11-5-completion-authorization-20260915.md).
-A is on clean firmware `bd16bb1`, B on `8921a7008183`; both are authorized
+A is on clean firmware `a9d5610`, B on `8921a7008183`; both are authorized
 validation targets, with at most one RF-capable owner/schedule across both.
 R1/R2 recorded closure and Group 1 checkpoint 043 remain; Group 2 capacity,
 Group 3 reclamation, R3 closeout and R4-R6 remain open. Component 9 closes
