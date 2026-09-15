@@ -30,11 +30,41 @@ def c7_frame():
 
 DRIVER = sys.argv[1] if len(sys.argv) > 1 else None
 class LoadReplyTests(unittest.TestCase):
-    def run_model(self, background, replay=False, maximum_status=False):
+    def test_retained_maximum_series_preserves_capacity_and_exact_replies(self):
+        self.check_retained_series(18168, 9, 'retained-series')
+        self.check_retained_series(31384, 8, 'retained-series-eight')
+
+    def check_retained_series(self, background, count, mode):
+        # Fixed background, real endpoint/service/planner, actual retained
+        # histories. This is a host allocation model, not target RF evidence.
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'input.bin';path.write_bytes(c7_frame())
+            run=subprocess.run([DRIVER,str(path),str(background),mode],capture_output=True,
+                               text=True,check=True,timeout=30)
+        result=json.loads(run.stdout)
+        self.assertEqual(len(result['exchanges']),count)
+        self.assertEqual(result['terminal_records'],8)
+        self.assertEqual(result['starts'],0)
+        for index,e in enumerate(result['exchanges']):
+            self.assertFalse(e['closed'])
+            self.assertLess(e['wait_ms'],5000)
+            self.assertGreaterEqual(219712-background-e['peak_bytes'],32768)
+            decoder=FrameDecoder()
+            messages=[json.loads(x) for x in decoder.feed(bytes.fromhex(e['hex']))]
+            self.assertFalse(decoder.buffer)
+            reply,=[m for m in messages if m['type']=='response']
+            self.assertTrue(reply['ok'])
+            self.assertEqual(reply['body']['job_id'],'a'*31+str(index))
+            self.assertEqual(reply['body']['adjustments'],[dict(event_index=i,
+                requested_frequency_nhz=str(135500000000000 if i%2==0 else 135495000000000),
+                realized_frequency_nhz=str(135500002652407 if i%2==0 else 135494990274310)) for i in range(512)])
+
+    def run_model(self, background, replay=False, maximum_status=False, distinct=False):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'c7.bin'
             path.write_bytes(c7_frame())
-            run = subprocess.run([DRIVER, str(path), str(background)] + (["maximum-status"] if maximum_status else ["replay"] if replay else []), capture_output=True,
+            mode = ('distinct-' if distinct else '') + ('maximum-status' if maximum_status else 'replay')
+            run = subprocess.run([DRIVER, str(path), str(background)] + ([mode] if maximum_status or replay else []), capture_output=True,
                                  text=True, check=True, timeout=30)
         result = json.loads(run.stdout)
         self.assertEqual(result['state'], 'loaded')
@@ -139,16 +169,17 @@ class LoadReplyTests(unittest.TestCase):
             self.assertFalse(status['body']['output_active'])
             self.assertEqual(status['body']['job_id'], '8d8734400ddd2d472799f3d08a92e6b5')
             self.assertEqual(len(status['body']['terminal_records']), 1)
-        refused = self.run_model(31384, maximum_status=True)
+        refused = self.run_model(31384, maximum_status=True, distinct=True)
         self.assertTrue(refused['exchanges'][1]['closed'])
         self.assertEqual(refused['exchanges'][1]['wait_ms'], 5000)
         self.assertGreaterEqual(219712-31384-refused['exchanges'][1]['peak_bytes'], 32768)
 
     def test_uncalibrated_tls_sensitivity_preserves_refusal(self):
         # 31,384 now passes above because replay no longer duplicates events.
-        # A separately declared 48,000-byte background still cannot admit even
-        # the smaller workspace. Preserve the same reserve and five-second limit.
-        r = self.run_model(48000, replay=True)
+        # A separately declared 48,000-byte background with a nonidentical
+        # retained list still cannot admit even the smaller workspace. Preserve
+        # the same reserve and five-second limit.
+        r = self.run_model(48000, replay=True, distinct=True)
         self.assertFalse(r['exchanges'][0]['closed'])
         self.assertTrue(r['exchanges'][1]['closed'])
         self.assertEqual(r['exchanges'][1]['hex'], '')

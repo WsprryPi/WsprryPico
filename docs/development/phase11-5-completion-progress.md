@@ -15,33 +15,41 @@
 | 8 | OPEN; idle Wi-Fi accepted on source 98f5797 | Two independently audited OFF/ON readiness cycles preserve state/configuration and recover address/clock. Link loss, lease/name change, DNS/SNTP, journal rotation and autonomy remain. |
 | 9 | OPEN | R6 mixed operation after R1-R5 acceptance. |
 
-### Current HTTP allocation checkpoint
+### Current retained-state checkpoint
 
-[Immutable results](phase11-5-completion-http-pages-result.json) and
-[review](phase11-5-completion-http-pages-review.md). R1/R2 retain recorded closure;
-R3-R6 remain OPEN. P1g's 2.1a/2.1d/2.1e evidence remains on e64ebb9 and its original
-boot. The idle replay pass remains on b0254c5.
+[Immutable result](phase11-5-completion-retained-sharing-result.json) and
+[review](phase11-5-completion-retained-sharing-review.md). R1/R2 retain recorded
+closure; R3–R6 remain OPEN. P1g's 2.1a/2.1d/2.1e evidence remains on e64ebb9 and
+its original boot; the prior idle replay pass remains on b0254c5.
 
-P1h fully wrote the supported 32,768-byte HTTP body during Running, but received
-no response. The board entered a watchdog recovery boot with a recorded failed
-32,769-byte allocation. This packet receives no HTTP or RF-completion credit.
-The parser's contiguous body allocation is replaced by nullable 4 KiB pages;
-maximum-body, page failure/lifetime, replay and configuration tests pass.
-Seven affected CTest groups, TLS and two altered-evidence tests pass. Target
-retest and candidate resource/layout applicability remain outstanding.
+The HTTP paging candidate 6b7a1b8 was built, deployed and independently checked.
+After the app-update pause, fresh inventories verified both original boots,
+inactive/unowned state, disabled scheduling, unchanged configuration and host
+baseline. A retains 6b7a1b8, boot 1739cc4f28304080ec97e2b228ab2683; B retains
+8921a7008183, boot 6684b4b197d80cfa0ce83b3aaf205cb0.
 
-A retains e64ebb9, boot cb429dd3964439e66e03bb0d93a9863b, Empty/inactive/unowned
-in recovery mode, with networking intentionally off. B retains 8921a7008183,
-boot 6684b4b197d80cfa0ce83b3aaf205cb0, Empty/inactive/unowned. Fresh post-restoration
-raw inventories confirm disabled scheduling and preserved visible saved
-configuration. The shared reservation is RELEASED. Fixture cleanup completed
-at host monotonic 435282842781484 ns, before its independent deadline; protected
-files, services, management interfaces, time service and installed PID 1957
-were restored. There is no active fixture.
+Native-idlej wrote three maximum LOADs with the real native observer. The first
+two replied completely; the third timed out after a complete 52,105-byte write.
+No RF or allocation failure occurred. Independent raw audit verifies cleanup to
+Empty/inactive/unowned on both boards, preserved configuration and reservation
+release. This failed packet receives no capacity closure credit.
 
-Cumulative charges: five RF jobs / 640 planned seconds, six A flashes/BOOTSEL
-transitions, two Wi-Fi cycles, zero configuration writes and zero additional
-controlled reboots. One unplanned watchdog reboot is recorded separately.
+The host model reproduces retained-list pressure. The source repair shares
+identical immutable adjustment values across different jobs while preserving
+separate identities and replay contracts. Eight maximum LOADs at the larger
+modeled background and nine at the smaller background pass. The ninth at the
+larger background remains an observed refusal; it is not qualified overload.
+Nine affected CTest groups pass, including TLS and core replay/lifetime checks.
+Target retest of this new sharing change is pending; no new firmware is deployed
+at this checkpoint.
+
+A fresh 45-minute isolated fixture is active, with independent cleanup and its
+original fixed deadline. Raw authenticated records remain on wspr5; publication
+contains sanitized facts and hashes. No RF/native packet is running at this
+checkpoint. Cumulative charges: five RF jobs / 640 planned seconds, seven A
+flashes/BOOTSEL transitions, two Wi-Fi cycles, zero configuration writes and
+zero additional controlled reboots. One unplanned watchdog reboot remains in
+the historical P1h failure record.
 
 ### Package 0 checkpoint
 

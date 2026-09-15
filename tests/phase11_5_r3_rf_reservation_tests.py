@@ -21,6 +21,95 @@ def snapshots():
 
 
 class Tests(unittest.TestCase):
+    def test_rejected_preflight_never_claims_aborts_or_releases(self):
+        from phase11_5_completion_native_idle import run
+        from unittest.mock import Mock
+        original_read = Path.read_text
+        def read(path, *args, **kwargs):
+            return 'host' if str(path) == '/proc/sys/kernel/random/boot_id' else original_read(path, *args, **kwargs)
+        for foreign_active in (False, True):
+            values = snapshots()
+            if foreign_active:
+                values['a']['info']['status'].update(state='running', output_active=True)
+                values['a']['wtp']['STATUS'].update(state='running', output_active=True, owner_id='foreign')
+            with self.subTest(foreign_active=foreign_active), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory); now = time.monotonic_ns()
+                packet = dict(root=str(root), boot_id='a'*32, source_revision='test', host_boot_id='host',
+                              stage_sha256={}, start_monotonic_ns=now-1_000_000_000,
+                              work_deadline_monotonic_ns=now+10_000_000_000,
+                              cleanup_deadline_monotonic_ns=now+20_000_000_000)
+                reservation = Mock()
+                with patch.object(Path, 'read_text', read), patch('os.geteuid', return_value=0), \
+                     patch('phase11_5_completion_native_idle.Reservation', return_value=reservation), \
+                     patch('phase11_5_completion_native_idle.inventory', side_effect=lambda root,p,label,b: values['b' if b else 'a']) as inventory, \
+                     patch('phase11_5_completion_native_idle.candidate', side_effect=ValueError('rejected candidate')), \
+                     patch('phase11_5_completion_native_idle.configuration', return_value={}), \
+                     patch('phase11_5_completion_native_idle.exclusive_port') as port:
+                    run(root, packet, 'packet')
+                port.assert_not_called()
+                reservation.acquire.assert_not_called()
+                reservation.release.assert_not_called()
+                reservation.close.assert_called_once()
+                self.assertEqual(inventory.call_count, 4)
+                result = json.loads((root/'run-result.json').read_text())
+                self.assertEqual(result['status'], 'FAILED')
+                self.assertTrue(result['preflight_rejected'])
+                self.assertEqual(result['loads'], 0)
+                self.assertNotIn('cleanup_error', result)
+                self.assertFalse((root/'reservation-released.json').exists())
+                if foreign_active:
+                    self.assertIn('reconciliation_error', result)
+                else:
+                    self.assertEqual(result['error'], 'rejected candidate')
+                    self.assertNotIn('reconciliation_error', result)
+
+    def test_loaded_dwell_requires_observed_state_not_just_elapsed_time(self):
+        from phase11_5_completion_native_idle import LoadedObservationGate
+        state=dict(boot_id='boot',state='loaded',job_id='job',owner_id='owner',output_active=False)
+        gate=LoadedObservationGate('packet','boot','owner','job',9_000_000_000)
+        def value(stamp,job):return dict(packet_sha256='packet',observed_monotonic_ns=stamp,job=job)
+        self.assertFalse(gate.observe(value(8_000_000_000,state),9_000_000_000))
+        for stamp in (9_132_000_000,10_153_000_000,11_177_000_000,12_190_000_000):
+            self.assertFalse(gate.observe(value(stamp,None),stamp))
+        self.assertFalse(gate.observe(value(13_203_000_000,state),13_203_000_000))
+        self.assertFalse(gate.observe(value(13_203_000_000,state),13_250_000_000))
+        self.assertTrue(gate.observe(value(14_219_000_000,state),14_219_000_000))
+        for changed in (state|dict(job_id='other'),state|dict(owner_id='other'),state|dict(output_active=True)):
+            fresh=LoadedObservationGate('packet','boot','owner','job',0)
+            self.assertFalse(fresh.observe(value(1,changed),1))
+        with self.assertRaises(ValueError):gate.observe(value(1,state),7_000_000_002)
+        with self.assertRaises(ValueError):gate.observe(value(14_219_000_000,state)|dict(packet_sha256='other'),14_219_000_000)
+
+    def test_recovery_deployment_requires_exact_fault_and_inactive_peer(self):
+        from phase11_5_completion_deploy import admit_prior, HTTP_PAGES, RECOVERY_FAULT
+        before=snapshots();before['a']['info'].update(RECOVERY_FAULT)
+        packet=dict(scope=HTTP_PAGES,prior_revision='test',prior_boot='a'*32,b_boot_id='b'*32)
+        admit_prior(before,packet)
+        for change in ('fault','boot','peer','active','schedule'):
+            altered=copy.deepcopy(before)
+            if change=='fault':altered['a']['info']['fault_allocation_request_bytes']=32768
+            elif change=='boot':altered['a']['wtp']['STATUS']['boot_id']='c'*32
+            elif change=='peer':altered['b']['wtp']['STATUS']['boot_id']='c'*32
+            elif change=='active':altered['a']['wtp']['STATUS']['output_active']=True
+            else:altered['b']['info']['status']['enabled']=True
+            with self.subTest(change=change),self.assertRaises(ValueError):admit_prior(altered,packet)
+
+    def test_recovery_config_excludes_only_uninitialized_runtime_mac(self):
+        from phase11_5_completion_deploy import config_snapshot, HTTP_PAGES
+        info=dict(status=dict(configured=True,enabled=False,station=dict(call='TEST'),schedules=[],watermark_utc_ns='0'),
+                  network=dict(station_mac='',configured_hostname='pico.local',control_configured=True))
+        before=dict(info=info);after=copy.deepcopy(before)
+        after['info']['network']['station_mac']='88:a2:9e:0a:60:df'
+        packet=dict(scope=HTTP_PAGES)
+        self.assertEqual(config_snapshot(before,packet),config_snapshot(after,packet))
+        self.assertNotEqual(config_snapshot(before,dict(scope='old')),config_snapshot(after,dict(scope='old')))
+        for change in ('station','schedule','hostname'):
+            altered=copy.deepcopy(after)
+            if change=='station':altered['info']['status']['station']['call']='CHANGED'
+            elif change=='schedule':altered['info']['status']['enabled']=True
+            else:altered['info']['network']['configured_hostname']='other.local'
+            self.assertNotEqual(config_snapshot(before,packet),config_snapshot(altered,packet))
+
     def test_failed_resource_gate_does_not_block_identified_cleanup(self):
         from phase11_5_completion_native_idle import cleanup_identity
         info = snapshots()['a']['info']

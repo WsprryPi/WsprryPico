@@ -14,9 +14,12 @@ from validate_wtp_contract import SchemaValidator
 PACKET='ac6623b5ab72ed98ae0ee4230a054f75c00afc0a8fe1e7c37f4517da2d30dab1'
 
 
-def audit(root):
-    require(digest(root/'packet.json')==PACKET,'Exact reviewed idle packet')
+def audit(root, expected_packet_sha=PACKET):
+    packet_sha=digest(root/'packet.json')
+    require(packet_sha==expected_packet_sha,'Exact reviewed idle packet')
     p=json.loads((root/'packet.json').read_text())
+    from phase11_5_completion_native_idle import validate
+    validate(p)
     private=json.loads((root/'private-input-hashes.json').read_text())
     for n,h in p['stage_sha256'].items():require((private[n] if n in private else digest(root/n))==h,'Executed input '+n)
     values={}
@@ -33,7 +36,7 @@ def audit(root):
             [r['job_id'] for r in values['before']['a']['wtp']['STATUS']['terminal_records']]==p['initial_terminal_jobs'],'Exact retained baseline')
     for b in BOARDS:require(configuration(values['before'][b])==configuration(values['final'][b]),'Configuration preserved')
     require(values['before']['b']['wtp']['STATUS']==values['final']['b']['wtp']['STATUS'],'B unchanged')
-    rows=journal(root/'idle.jsonl');require(rows[0]['value']==dict(packet_sha256=PACKET),'Trace packet')
+    rows=journal(root/'idle.jsonl');require(rows[0]['value']==dict(packet_sha256=packet_sha),'Trace packet')
     schema=json.loads((root/'docs/protocol/wtp-1.schema.json').read_text());validator=SchemaValidator(schema)
     pending=None;wire=b'';received=[];exchanges=[];console=b'';console_at=None;decoded=None;infos=[]
     for r in rows:
@@ -96,16 +99,38 @@ def audit(root):
     require(infos and infos[0]['monotonic_ns']<loads[0]['start'] and infos[-1]['monotonic_ns']>loads[-1]['end'] and
             all(0<b['value']['began_ns']-a['value']['began_ns']<=2_000_000_000 for a,b in zip(infos,infos[1:])),'Independent INFO overlap/cadence')
     contention=journal(root/'contention.jsonl');cr=json.loads((root/'contention-result.json').read_text())
+    published=[r for r in contention if r['kind']=='native_status']
+    for r in published:
+        require(json.loads(bytes.fromhex(r['value']['body_hex']))==r['value']['value'],
+                'Native application status matches raw response')
+    if p.get('loaded_observation_policy'):
+        gates=[r for r in rows if r['kind']=='loaded_observation_gate']
+        require([r['value']['job_id'] for r in gates]==[j['job_id'] for j in p['jobs']],
+                'One observation gate per loaded job')
+        for gate in gates:
+            g=gate['value']
+            require(3_000_000_000<=g['ended_ns']-g['began_ns']<=6_100_000_000 and
+                    g['began_ns']<=g['first_observed_ns']<g['ended_ns']<=gate['monotonic_ns'],
+                    'Bounded observed Loaded dwell')
+            matching=[]
+            for row in published:
+                job=row['value']['value'].get('job')
+                if g['began_ns']<=row['monotonic_ns']<=g['ended_ns'] and job is not None and all(
+                        job[k]==v for k,v in dict(boot_id=p['boot_id'],owner_id=p['owner_id'],
+                            job_id=g['job_id'],state='loaded',output_active=False).items()):
+                    matching.append(row['monotonic_ns'])
+            require(len(matching)>=2 and matching[-1]-matching[0]>=1_000_000_000,
+                    'Independent raw publications support Loaded gate')
     require(cr==contention[-1]['value'] and cr['status']=='CAPTURED_REQUIRES_AUDIT' and cr['https_requests']==0 and cr['native_exit']==0 and
             not any(r['kind']=='https_status' for r in contention),'Native-only successful completion')
     result=json.loads((root/'run-result.json').read_text())
     require(result==rows[-1]['value'] and result['status']=='CAPTURED_REQUIRES_AUDIT','Runner complete')
     for name,state,phase in [('acquired','HELD','before'),('released','RELEASED','final')]:
         r=json.loads((root/('reservation-'+name+'.json')).read_text())
-        require(r['packet_sha256']==PACKET and r['state']==state and r['boards']==inactive(values[phase]),'Reservation reconciliation')
+        require(r['packet_sha256']==packet_sha and r['state']==state and r['boards']==inactive(values[phase]),'Reservation reconciliation')
     final=values['final']['a']['wtp']['STATUS']
     require(final['state']=='empty' and {r['job_id'] for r in final['terminal_records']}=={j['job_id'] for j in p['jobs']}|set(p['initial_terminal_jobs']),'Final retained records')
-    return dict(status='IDLE_NATIVE_RETAINED_LOAD_PASS',packet_sha256=PACKET,rf_jobs=0,source_revision=p['source_revision'],boot_id=p['boot_id'],
+    return dict(status='IDLE_NATIVE_RETAINED_LOAD_PASS',packet_sha256=packet_sha,rf_jobs=0,source_revision=p['source_revision'],boot_id=p['boot_id'],
         load_exchange_seconds=[(e['end']-e['start'])/1e9 for e in loads],native=metrics,info_samples=len(infos),
         allocator_peak_bytes=max([r['value']['value']['allocator_peak_bytes'] for r in infos]+[values['final']['a']['info']['allocator_peak_bytes']]),heap_capacity_bytes=values['final']['a']['info']['heap_capacity_bytes'],
         configurations_preserved=True,schedules_disabled=True,reservation_released=True,family_closed=False,

@@ -209,8 +209,11 @@ int main(int argc, char** argv) {
     if (argc != 3 && argc != 4)
         return 2;
     background = std::stoull(argv[2]);
-    const bool maximum_status = argc == 4 && std::string_view(argv[3]) == "maximum-status";
-    whole = argc == 4 && (std::string_view(argv[3]) == "replay" || maximum_status);
+    const auto mode = argc == 4 ? std::string_view(argv[3]) : std::string_view{};
+    const bool distinct = mode == "distinct-replay" || mode == "distinct-maximum-status";
+    const bool maximum_status = mode == "maximum-status" || mode == "distinct-maximum-status";
+    const bool retained_series = mode == "retained-series" || mode == "retained-series-eight";
+    whole = mode == "replay" || distinct || maximum_status || retained_series;
     if (whole) {
         wtp::allocate_input = tracked_page;
         wtp::deallocate_input = free_page;
@@ -254,6 +257,10 @@ int main(int argc, char** argv) {
         prior.events[i].offset_ns = i * 7031250000ULL;
         prior.events[i].duration_ns = 7031250000ULL;
     }
+    // A deliberately different retained adjustment list protects the refusal
+    // tests from gaining the identical-list sharing used by the normal series.
+    if (distinct)
+        *prior.events.back().frequency_nhz += 1000000;
     wtp::Request q;
     q.session_id = "d2f0af9141101f9a5c0d61e7cdee7983";
     q.request_id = std::string(32, 'c');
@@ -300,6 +307,53 @@ int main(int argc, char** argv) {
     total_peak = live + page_live;
     peak_cpp = live;
     peak_pages = page_live;
+    if (retained_series) {
+        const std::string original(reinterpret_cast<const char*>(c7.data() + 16), c7.size() - 16);
+        std::cout << "{\"exchanges\":[";
+        for (unsigned i = 0; i < (mode == "retained-series-eight" ? 8U : 9U); ++i) {
+            const char digit = static_cast<char>('0' + i);
+            const auto job_id = std::string(31, 'a') + digit;
+            auto text = original;
+            text.replace(text.find("8d8734400ddd2d472799f3d08a92e6b5"), 32, job_id);
+            text.replace(text.find("7082c6ffbb9d466eac3cfc636ba6538a"), 32,
+                         std::string(31, 'b') + digit);
+            const auto input = wire(text);
+            output_size = 0;
+            total_peak = live + page_live;
+            send(endpoint, input, true);
+            if (i)
+                std::cout << ',';
+            std::cout << "{\"peak_bytes\":" << total_peak << ",\"after_cpp\":" << live
+                      << ",\"closed\":" << (endpoint.closed() ? "true" : "false")
+                      << ",\"wait_ms\":" << last_wait_ms << ",\"hex\":\"";
+            for (std::size_t n = 0; n < output_size; ++n)
+                std::printf("%02x", output[n]);
+            std::cout << "\"}";
+            if (endpoint.closed())
+                break;
+            send(endpoint, wire(request("ABORT", "{\"job_id\":\"" + job_id + "\"}", 'c')));
+            send(endpoint, wire(request("RELEASE", "{}", 'e')));
+            // Retire request IDs naturally between equivalent cycles. Terminal
+            // records have a separate one-hour TTL and must remain resident.
+            tracking = true;
+            clock.now.monotonic_now_ns += 301000000000ULL;
+            service.poll();
+            tracking = false;
+            send(endpoint, wire(request("HELLO",
+                                        "{\"versions\":[\"WTP/"
+                                        "1\"],\"client_name\":\"series\",\"client_version\":\"1\"}",
+                                        'f')));
+            send(endpoint,
+                 wire(request(
+                     "CLAIM",
+                     "{\"owner_id\":\"8f65f545870902708dc0e2072114b78e\",\"lease_ms\":60000}",
+                     'd')));
+        }
+        wtp::available_memory = nullptr;
+        std::cout << "],\"terminal_records\":" << service.status().terminal_records.size()
+                  << ",\"starts\":" << sink.starts << "}\n";
+        return 0;
+    }
     if (whole) {
         // Fixture storage and output reporting are outside measured allocations.
         std::string fresh(reinterpret_cast<const char*>(c7.data() + 16), c7.size() - 16);

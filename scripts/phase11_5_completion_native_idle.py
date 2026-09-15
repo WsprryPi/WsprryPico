@@ -21,10 +21,11 @@ BOOT = '8d747e80fa4e2762ba2509b5bb5ecfae'
 
 
 def validate(p):
-    require(p['scope'] in ('phase115-completion-native-idle-v1', 'phase115-completion-native-idle-v2', 'phase115-completion-native-idle-v3', 'phase115-completion-native-idle-v4', 'phase115-completion-native-idle-v5', 'phase115-completion-native-idle-v6') and
-            (p['source_revision'],p['boot_id']) == (('b0254c5e64abf858255ca6d426e864080f003891','4dad3b38c27aad73da01cefc9e857cdb') if p['scope'].endswith('-v6') else ('0001a3625832b16ad89236cd98cce9679353aba8','6213cc6b8d7694082fb804fdf5b121fc') if p['scope'].endswith('-v5') else ('d674dc6cbf8efd142527c1c54f283d6037bb1acf','d76d4e540ddafff6622513596125c58c') if p['scope'].endswith('-v4') else (SOURCE,BOOT)) and
+    require(p['scope'] in ('phase115-completion-native-idle-v1', 'phase115-completion-native-idle-v2', 'phase115-completion-native-idle-v3', 'phase115-completion-native-idle-v4', 'phase115-completion-native-idle-v5', 'phase115-completion-native-idle-v6', 'phase115-completion-native-idle-v7', 'phase115-completion-native-idle-v8') and
+            (p['source_revision'],p['boot_id']) == (('6b7a1b848e2b5192acaa0fa08fb778613457ad8b','1739cc4f28304080ec97e2b228ab2683') if p['scope'].endswith(('-v7','-v8')) else ('b0254c5e64abf858255ca6d426e864080f003891','4dad3b38c27aad73da01cefc9e857cdb') if p['scope'].endswith('-v6') else ('0001a3625832b16ad89236cd98cce9679353aba8','6213cc6b8d7694082fb804fdf5b121fc') if p['scope'].endswith('-v5') else ('d674dc6cbf8efd142527c1c54f283d6037bb1acf','d76d4e540ddafff6622513596125c58c') if p['scope'].endswith('-v4') else (SOURCE,BOOT)) and
             p['native_idle_policy'] == 'retained-load-native-90s-v1', 'Identified idle candidate')
-    count=3 if p['scope'].endswith(('-v4','-v5','-v6')) else 2 if p['scope'].endswith('-v1') else 1
+    require(p.get('loaded_observation_policy') == ('two-published-loaded-samples-v1' if p['scope'].endswith('-v8') else None), 'Declared Loaded observation gate')
+    count=3 if p['scope'].endswith(('-v4','-v5','-v6','-v7','-v8')) else 2 if p['scope'].endswith('-v1') else 1
     require(p['limits'] == dict(loads=count, fresh_id_replays=1, claims=count, aborts=count,
             releases=count, cleanup_aborts=1, cleanup_claims=1, cleanup_releases=1,
             rf_jobs=0, flashes=0, reboots=0, wifi_cycles=0, configuration_writes=0), 'Idle operation ceilings')
@@ -41,6 +42,25 @@ def validate(p):
         if p['scope'].endswith('-v3'):expected.insert(0,'681609784d9c46d882f1bd7df5aede7d')
         require(p['initial_terminal_jobs']==expected, 'Retained failed-packet seed identity')
     return p
+
+
+class LoadedObservationGate:
+    """Count distinct fresh native publications for the actual loaded job."""
+    def __init__(self, packet_sha, boot, owner, job, began_ns):
+        self.packet_sha,self.boot,self.owner,self.job,self.began_ns=packet_sha,boot,owner,job,began_ns
+        self.first = None
+
+    def observe(self, value, now_ns):
+        require(value['packet_sha256']==self.packet_sha and
+                0<=now_ns-value['observed_monotonic_ns']<=6_000_000_000, 'Fresh same-packet native publication')
+        stamp=value['observed_monotonic_ns'];job=value.get('job')
+        if stamp<self.began_ns or job is None:
+            return False
+        if not (job['boot_id']==self.boot and job['state']=='loaded' and
+                job['job_id']==self.job and job['owner_id']==self.owner and job['output_active'] is False):
+            return False
+        if self.first is None:self.first=stamp
+        return stamp-self.first>=1_000_000_000
 
 
 def cleanup_identity(info, boot, source):
@@ -143,9 +163,21 @@ def run(root, p, sha):
                     result['replays']+=1;save(root/'run-result.json',result)
                     again=ask('LOAD',job,'fresh-id-replay')
                     require(again['body']==body,'Fresh-ID replay equality')
-                # Leave the Loaded state visible to at least two native polls.
-                until=time.monotonic()+3
-                while time.monotonic()<until:active();time.sleep(.1)
+                # Keep the original minimum dwell. A fixed three seconds can
+                # miss a transient resolved status between one-Hz publications.
+                began=time.monotonic_ns();until=time.monotonic()+3
+                if p.get('loaded_observation_policy'):
+                    gate=LoadedObservationGate(sha,boot,p['owner_id'],job['job_id'],began)
+                    expires=began+6_000_000_000;observed=False
+                    while time.monotonic()<until or not observed:
+                        active();now=time.monotonic_ns()
+                        require(now<expires, 'Loaded publication six-second deadline')
+                        observed=gate.observe(json.loads((root/'native-observation.json').read_text()),now) or observed
+                        time.sleep(.05)
+                    emit('loaded_observation_gate',dict(job_id=job['job_id'],began_ns=began,
+                        first_observed_ns=gate.first,ended_ns=time.monotonic_ns()))
+                else:
+                    while time.monotonic()<until:active();time.sleep(.1)
                 result['aborts']+=1;save(root/'run-result.json',result)
                 ask('ABORT',dict(job_id=job['job_id']),f'abort-{index}')
                 result['releases']+=1;save(root/'run-result.json',result)
@@ -165,7 +197,7 @@ def run(root, p, sha):
             net.terminate()
             try:net.wait(timeout=15)
             except subprocess.TimeoutExpired:net.kill();net.wait(timeout=5)
-        if result['status']=='FAILED' and before is not None:
+        if result['status']=='FAILED' and before is not None and held:
             try:
                 deadline(True)
                 with exclusive_port(Path(f'/dev/serial/by-id/usb-WsprryPi_WsprryPico_{SERIAL}-if00')) as fd:
@@ -180,15 +212,25 @@ def run(root, p, sha):
             except BaseException as e:result['cleanup_error']=str(e)
         try:
             deadline(True);final={b:inventory(root,p,'final-'+b,b=='b') for b in ('a','b')}
-            require(before is not None and held, 'Original reservation and inventories required')
-            result['final'] = reconcile_authority(reservation, before, final, boot, source)
-            save(root/'reservation-released.json',json.loads(reservation.path.read_text()))
-            try: candidate(final['a'],p,boot=boot)
-            except ValueError as e: result.update(status='FAILED',acceptance_error=str(e))
+            require(before is not None, 'Original inventories required')
+            if held:
+                result['final'] = reconcile_authority(reservation, before, final, boot, source)
+                save(root/'reservation-released.json',json.loads(reservation.path.read_text()))
+                try: candidate(final['a'],p,boot=boot)
+                except ValueError as e: result.update(status='FAILED',acceptance_error=str(e))
+            else:
+                # Rejected admission grants no authority to abort or claim a
+                # device. Record fresh observations without changing ownership.
+                result['preflight_rejected'] = True
+                result['final'] = inactive(final)
+                require(result['final'] == inactive(before) and
+                        all(configuration(before[b]) == configuration(final[b]) for b in before),
+                        'Rejected preflight identity/configuration preservation')
         except BaseException as e:result.update(status='FAILED',reconciliation_error=str(e))
         reservation.close()
         if errors:result.update(status='FAILED',observer_errors=errors)
         save(root/'run-result.json',result);emit('finish',result)
+        emit.file.close()
 
 
 def main():

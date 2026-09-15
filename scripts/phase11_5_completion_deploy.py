@@ -13,11 +13,18 @@ from phase11_5_inventory import require
 from phase11_5_load_reply_target import Journal, inventory, healthy
 from phase11_5_pilot import SERIAL, DEVICE
 from phase11_5_pilot_supervisor import PICOTOOL, PICOTOOL_SHA, configuration
-from phase11_5_r3_allocation_diagnostic import request_bootsel
+from phase11_5_r3_allocation_diagnostic import request_bootsel, saved_configuration
 from phase11_5_r3_v2_admission import candidate
 from phase11_5_rf_reservation import Reservation, inactive
 
+HTTP_PAGES = 'phase115-completion-http-pages-deploy-v1'
+RECOVERY_FAULT = dict(recovery_boot=True,fault_stage=14,fault_hash=3833354787,
+    fault_pc=0,fault_status=0,fault_allocation_recorded=True,
+    fault_allocation_request_bytes=32769,fault_allocation_returned_null=True)
+
 CANDIDATES = {
+    HTTP_PAGES: ('6b7a1b848e2b5192acaa0fa08fb778613457ad8b', 'e64ebb9b0373',
+                 'cb429dd3964439e66e03bb0d93a9863b'),
     'phase115-completion-read-workspace-deploy-v1': (
         'e64ebb9b03739b61e33987ec267f7adf1f9732c6', 'b0254c5e64ab',
         '4dad3b38c27aad73da01cefc9e857cdb'),
@@ -56,6 +63,22 @@ def validate(p):
     return p
 
 
+def admit_prior(before, p):
+    inactive(before)
+    require(before['a']['info']['revision'] == p['prior_revision'] and
+            before['a']['wtp']['STATUS']['boot_id'] == p['prior_boot'] and
+            before['b']['wtp']['STATUS']['boot_id'] == p['b_boot_id'], 'Prior A/B boots')
+    if p['scope'] == HTTP_PAGES:
+        require(all(before['a']['info'][key] == value for key,value in RECOVERY_FAULT.items()),
+                'Exact previously audited recovery fault')
+
+
+def config_snapshot(value, p):
+    # Recovery intentionally has no live station MAC. Retained configuration,
+    # including station identity and schedules, remains available read-only.
+    return saved_configuration(value) if p['scope'] == HTTP_PAGES else configuration(value)
+
+
 def run(root, p, sha):
     require(os.geteuid() == 0 and str(root) == p['root'] and
             Path('/proc/sys/kernel/random/boot_id').read_text().strip() == p['host_boot_id'], 'Host/root identity')
@@ -74,10 +97,7 @@ def run(root, p, sha):
     state = dict(bootsel_commands=0, flashes_started=0, status='STARTED')
     try:
         before = {b: inventory(root,p,'before-'+b,b=='b') for b in ('a','b')}
-        inactive(before)
-        require(before['a']['info']['revision'] == p['prior_revision'] and
-                before['a']['wtp']['STATUS']['boot_id'] == p['prior_boot'] and
-                before['b']['wtp']['STATUS']['boot_id'] == p['b_boot_id'], 'Prior A/B boots')
+        admit_prior(before, p)
         reservation.acquire(before)
         save(root/'reservation-acquired.json', json.loads(reservation.path.read_text()))
         check(); state['bootsel_commands'] = 1; save(root/'deployment.json',state)
@@ -105,8 +125,9 @@ def run(root, p, sha):
         after = {b: inventory(root,p,'final-'+b,b=='b') for b in ('a','b')}
         boot = candidate(after['a'],p)
         healthy(after['a']['info'],boot,p['source_revision'])
-        require(boot != p['prior_boot'] and all(configuration(after[b]) == configuration(before[b]) for b in before)
-                and after['b']['wtp']['STATUS'] == before['b']['wtp']['STATUS'], 'Preserved configurations and B')
+        require(boot != p['prior_boot'] and all(config_snapshot(after[b], p) == config_snapshot(before[b], p) for b in before)
+                and after['b']['wtp']['STATUS'] == before['b']['wtp']['STATUS']
+                and configuration(after['b']) == configuration(before['b']), 'Preserved configurations and B')
         reservation.release(after)
         save(root/'reservation-released.json', json.loads(reservation.path.read_text()))
         state.update(status='CANDIDATE_VERIFIED',boot_id=boot)

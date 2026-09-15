@@ -393,7 +393,19 @@ Response JobService::dispatch(const Request& request) {
             }
         }
         job_ = *body;
-        adjustments_ = AdjustmentList(std::move(preparation.adjustments));
+        // Different jobs often have the same complete adjustment sequence.
+        // Retain their identities/digests independently while sharing exactly
+        // equal immutable values; eight histories must not multiply this list.
+        const auto identical = std::find_if(
+            retained_jobs_.begin(), retained_jobs_.end(), [&](const RetainedJob& retained) {
+                const auto& values = retained.load_response.adjustments;
+                return values.size() == preparation.adjustments.size() &&
+                       (values.empty() || std::equal(values.begin(), values.end(),
+                                                     preparation.adjustments.begin()));
+            });
+        adjustments_ = identical == retained_jobs_.end()
+                           ? AdjustmentList(std::move(preparation.adjustments))
+                           : identical->load_response.adjustments;
         arm_.reset();
         state_ = State::Loaded;
         auto response = success();

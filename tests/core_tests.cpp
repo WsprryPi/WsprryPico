@@ -1209,6 +1209,43 @@ void test_shared_adjustment_replay_lifetimes() {
     CHECK(first.adjustments[0].realized_frequency_nhz == 135500000000001ULL);
 }
 
+void test_identical_adjustments_preserve_distinct_job_replays() {
+    VirtualClock clock;
+    MockRfEngine engine;
+    TestIdentitySource ids;
+    JobService service(clock, engine, ids);
+    establish_owner(service);
+    auto job = sample_job();
+    job.allow_frequency_adjustment = true;
+    engine.adjustments = {{0, *job.events[0].frequency_nhz, *job.events[0].frequency_nhz + 1}};
+    const auto first = service.handle(request("LOAD", job, 'c'));
+    CHECK(first.ok);
+    CHECK(service.handle(request("ABORT", AbortBody{job.job_id}, 'd')).ok);
+    CHECK(service.handle(request("RELEASE", {}, 'e')).ok);
+    CHECK(claim(service, '1', 'f').ok);
+    auto second_job = job;
+    second_job.job_id = std::string(32, '9');
+    const auto second = service.handle(request("LOAD", second_job, '0'));
+    CHECK(second.ok && second.job_id != first.job_id);
+    CHECK(second.adjustments == first.adjustments);
+    CHECK(service.handle(request("ABORT", AbortBody{second_job.job_id}, '1')).ok);
+    CHECK(service.handle(request("RELEASE", {}, '2')).ok);
+    CHECK(claim(service, '1', '3').ok);
+    auto third_job = job;
+    third_job.job_id = std::string(32, '8');
+    ++engine.adjustments[0].realized_frequency_nhz;
+    const auto third = service.handle(request("LOAD", third_job, '4'));
+    CHECK(third.ok && third.adjustments != first.adjustments);
+    CHECK(third.adjustments[0].realized_frequency_nhz ==
+          first.adjustments[0].realized_frequency_nhz + 1);
+    CHECK(service.handle(request("LOAD", job, '5')) == first);
+    CHECK(service.handle(request("LOAD", second_job, '6')) == second);
+    CHECK(service.status().job_id == third_job.job_id);
+    service.reset();
+    CHECK(first.adjustments == second.adjustments);
+    CHECK(first.adjustments != third.adjustments);
+}
+
 void test_active_load_replay_decode_and_authority() {
     VirtualClock clock;
     MockRfEngine engine;
@@ -1755,6 +1792,7 @@ int main() {
         return std::malloc(size);
     };
     const std::vector<Test> tests{
+        {"identical adjustments preserve distinct job replays", test_identical_adjustments_preserve_distinct_job_replays},
         {"allocation-free activity with retained history", test_activity_with_retained_history},
         {"physical Console abort", test_physical_console_abort},
         {"crc and frame encoding", test_crc_and_frame_encoding},

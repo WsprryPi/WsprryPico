@@ -59,6 +59,25 @@ class FiniteRfPacketTests(unittest.TestCase):
                     ('initial_a_state','complete'),('maximum_initial_terminal_records',1),('flashes',1),
                     ('runtime_seconds',301),('configuration_writes',1)]:
             with self.subTest(key=k),self.assertRaises(ValueError):validate(dict(p,**{k:v}))
+    def test_http_pages_capacity_retains_exact_idle_seed(self):
+        from phase11_5_r3_v2_rf import HTTP_POLICY, HTTP_SOURCE, HTTP_IMAGE, HTTP_BOOT, SERIAL_CAPACITY
+        from phase11_5_r3_v2_admission import maximum_job
+        from phase11_5_r3_capacity_plan import http_capacity_cases
+        p=self.packet()
+        p.update(source_revision=HTTP_SOURCE,image_sha256=HTTP_IMAGE,boot_id=HTTP_BOOT,
+            closure_policy=HTTP_POLICY,capacity_schedule_policy=SERIAL_CAPACITY,
+            observer_policy='single-flight-info-v1',runtime_seconds=300,initial_a_state='empty',
+            initial_a_job_id=None,initial_terminal_jobs=['1'*32,'2'*32,'3'*32],maximum_initial_terminal_records=3,b_role='unchanged-comparator',
+            shared_rf_reservation='durable-both-picos-v1',not_before_host_monotonic_ns=1,
+            jobs=[maximum_job('a'*32,duration=128000000000)],
+            wtp_capacity=dict(maximum_request_id='a'*32,oversized_request_id='b'*32,recovery_request_id='c'*32),
+            http_capacity=dict(seed='d'*32,cases=http_capacity_cases('d'*32)),
+            contention=dict(policy='native-wtp-and-https-status-20s-v1',maximum_https_requests=16))
+        self.assertEqual(validate(p),p)
+        for k,v in [('closure_policy',None),('boot_id','0'*32),('image_sha256','0'*64),
+                    ('initial_a_state','complete'),('maximum_initial_terminal_records',1),('flashes',1),
+                    ('runtime_seconds',301),('configuration_writes',1)]:
+            with self.subTest(key=k),self.assertRaises(ValueError):validate(dict(p,**{k:v}))
 
     def test_independent_b_requires_new_image_and_explicit_parallel_scope(self):
         from phase11_5_r3_v2_rf import comparator_required,REPAIRED_SOURCE,REPAIRED_IMAGE,B_PARALLEL_AUTHORIZATION
