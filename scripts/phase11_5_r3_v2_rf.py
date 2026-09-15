@@ -32,6 +32,9 @@ CLOSURE_POLICY='group2-bounded-acceptance-v1'
 REPAIR_POLICY='group2-paged-input-retest-v1'
 REPAIR_SOURCE='4dad112c8a4c0ce4e5be77ecba5c3c460496472c'
 REPAIR_IMAGE='4b4ddd6c9108d20cb7718756da047e4ddd0d4948e6c432d3aa1329d55150d08a'
+COMPLETION_POLICY='phase115-completion-capacity-v1'
+COMPLETION_SOURCE='98f5797d77fb2bc4c11a4e80f6ff35d7ad16a5b5'
+COMPLETION_IMAGE='b6d5ab7610a0e19e9de91ce78dde4eb7c63b9192343dd86af4f7bcb857838733'
 B_PARALLEL_AUTHORIZATION='37ae5f5658ffc7c4436547061e4a81e577ea9102a086ec1e74d09031699caaab'
 
 
@@ -86,12 +89,13 @@ def guarded_action(action, value, faults, report):
 
 def validate(packet):
     diagnostic=packet.get('diagnostic_policy')==DIAGNOSTIC_POLICY
+    completion=packet.get('closure_policy')==COMPLETION_POLICY
     repair=packet.get('closure_policy')==REPAIR_POLICY
-    closure=packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY)
+    closure=packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY)
     require('closure_policy' not in packet or closure,'Unknown closure policy')
     require(packet['source_revision']!=REPAIR_SOURCE or repair,'Repair image requires exact retest policy')
     if closure:
-        require('diagnostic_policy' not in packet and packet['source_revision']==(REPAIR_SOURCE if repair else DIAGNOSTIC_SOURCE) and
+        require('diagnostic_policy' not in packet and packet['source_revision']==(COMPLETION_SOURCE if completion else REPAIR_SOURCE if repair else DIAGNOSTIC_SOURCE) and
                 packet['observer_policy']==SINGLE_FLIGHT and len(packet['jobs'])==1 and
                 packet['runtime_seconds']==300 and packet['maximum_renewals']==8 and
                 packet['jobs'][0]['mode']=='fskcw' and len(packet['jobs'][0]['events'])==512 and
@@ -103,6 +107,12 @@ def validate(packet):
                 packet['contention']['policy']=='native-wtp-and-https-status-20s-v1' and
                 packet['contention']['maximum_https_requests']==16 and
                 not packet.get('allocator_failure_baseline'), 'Exact Group 2 capacity tranche')
+    if completion:
+        require(packet.get('shared_rf_reservation')=='durable-both-picos-v1' and
+                packet.get('b_role')=='unchanged-comparator' and
+                type(packet.get('maximum_initial_terminal_records')) is int and
+                packet['maximum_initial_terminal_records']==1, 'Completion requires both-board RF reservation and bounded initial retention')
+    require(packet['source_revision']!=COMPLETION_SOURCE or completion, 'Completion image requires reviewed policy')
     require('diagnostic_policy' not in packet or diagnostic,'Unknown diagnostic policy')
     if diagnostic:
         require(packet['source_revision']==DIAGNOSTIC_SOURCE and
@@ -113,8 +123,11 @@ def validate(packet):
             (packet['source_revision'],packet['image_sha256']) in [
                 ('7d183978d08d77d5de668911be041bb188c851f5',
                  '38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1'),
-                (REPAIRED_SOURCE,REPAIRED_IMAGE),(PAGED_SOURCE,PAGED_IMAGE),(INFO_SOURCE,INFO_IMAGE),(ASSET_SOURCE,ASSET_IMAGE),(DIAGNOSTIC_SOURCE,DIAGNOSTIC_IMAGE),(REPAIR_SOURCE,REPAIR_IMAGE)],
+                (REPAIRED_SOURCE,REPAIRED_IMAGE),(PAGED_SOURCE,PAGED_IMAGE),(INFO_SOURCE,INFO_IMAGE),(ASSET_SOURCE,ASSET_IMAGE),(DIAGNOSTIC_SOURCE,DIAGNOSTIC_IMAGE),(REPAIR_SOURCE,REPAIR_IMAGE),(COMPLETION_SOURCE,COMPLETION_IMAGE)],
             'Reviewed physical source/image/scope')
+    if completion:
+        require(type(packet.get('not_before_host_monotonic_ns')) is int and
+                packet['not_before_host_monotonic_ns']>0, 'Frozen capacity start boundary')
     comparator_required(packet)
     if packet['source_revision']==DIAGNOSTIC_SOURCE and not closure:
         require(len(packet['jobs'])==1 and packet['jobs'][0]['mode']=='tone' and
@@ -238,7 +251,7 @@ def recent_clock(info, clock=None):
 
 def run(root,packet):
     diagnostic=packet.get('diagnostic_policy')==DIAGNOSTIC_POLICY
-    capture_failures=diagnostic or packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY)
+    capture_failures=diagnostic or packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY)
     os.umask(0o077);end=time.monotonic()+packet['runtime_seconds'];lock=threading.Lock();done=threading.Event()
     faults=[];samples={};inflight={};seq=0;result=dict(status='RUNNING',armed_jobs=[],completed_jobs=[],renewals=0,rf_duration_ns_charged=0)
     log=(root/'rf.jsonl').open('x')
@@ -270,6 +283,7 @@ def run(root,packet):
                 s['state']==i['status']['state']=='empty' and s['output_active'] is i['status']['output_active'] is False and
                 s['owner_id'] is s['job_id'] is None and i['status']['enabled'] is False,'Inactive/unowned admission')
     before=before_b=None;load_process=None
+    reservation=None;final_values={}
     def periodic(name,interval,read,act=None):
         next_at=time.monotonic();last=None;count=0
         singleflight=name=='info' and packet.get('observer_policy')==SINGLE_FLIGHT
@@ -358,7 +372,7 @@ def run(root,packet):
                         from phase11_5_r3_capacity_probe import exchange_capacity
                         from phase11_5_r3_capacity_plan import wtp_capacity_frame
                         from validate_wtp_contract import frame
-                        if packet.get('closure_policy')==REPAIR_POLICY:
+                        if packet.get('closure_policy') in (REPAIR_POLICY,COMPLETION_POLICY):
                             published=root/'native-observation.json'
                             if not published.exists() or not native_running(json.loads(published.read_text()),packet,digest(root/'packet.json'),time.monotonic_ns()):return
                         cap=packet['wtp_capacity'];state['capacity_exchanged']=True
@@ -401,10 +415,18 @@ def run(root,packet):
             faults.append(name+': '+str(error));emit('failure',dict(worker=name,error=str(error),type=type(error).__name__))
             # Keep independent readers alive to the original finite deadline.
     try:
+        if packet.get('closure_policy')==COMPLETION_POLICY:
+            from phase11_5_rf_reservation import Reservation
+            reservation=Reservation(digest(root/'packet.json'))
         if comparator_required(packet):
             before_b=inventory('before-b',True);empty(before_b,True)
         before=inventory('before-a');empty(before);validate_info(before['info'],before,packet)
         caps=before['wtp']['CAPS'];require(caps['max_events']==512 and caps['max_job_duration_ns']=='3600000000000','Extended CAPS')
+        if reservation is not None:
+            require(len(before['wtp']['STATUS']['terminal_records'])<=packet['maximum_initial_terminal_records'],
+                    'Initial retained state exceeds the frozen individual-capacity workload')
+            reservation.acquire({'a':before,'b':before_b})
+            save(root/'rf-reservation-acquired.json',json.loads(reservation.path.read_text()))
         clock=before['wtp']['GET_CLOCK'];require(clock['state']=='synchronized' and clock['leap']=='normal','Initial clock')
         emit('start',dict(packet_sha256=digest(root/'packet.json'),baseline_sha256=digest(root/'before-a.stdout'),
                          boot_id=packet['boot_id'],seconds=packet['runtime_seconds']))
@@ -435,6 +457,7 @@ def run(root,packet):
         for label,b in ([('final-a',False),('final-b',True)] if comparator_required(packet) else [('final-a',False)]):
             try:
                 v=inventory(label,b)
+                final_values['b' if b else 'a']=v
                 if capture_failures and not b:
                     diagnostic_identity(v['info'],packet)
                     require(v['wtp']['STATUS']['boot_id']==packet['boot_id'] and
@@ -449,6 +472,15 @@ def run(root,packet):
                 else:require(before is not None and configuration(v)==configuration(before),'A configuration');validate_info(v['info'],before,packet)
                 result[label]=v['wtp']['STATUS']
             except BaseException as error:result[label+'-error']=str(error);result['status']='STOPPED_FINAL_STATE_UNVERIFIED'
+        if reservation is not None:
+            try:
+                if reservation.held:
+                    reservation.release(final_values)
+                    save(root/'rf-reservation-released.json',json.loads(reservation.path.read_text()))
+            except BaseException as error:
+                faults.append('RF reservation remains held: '+str(error))
+                result['status']='STOPPED_FINAL_STATE_UNVERIFIED'
+            finally:reservation.close()
         result['faults']=faults;emit('finish',result);save(root/'rf-result.json',result);log.close()
 
 
@@ -459,6 +491,8 @@ def main():
     root=a.root.resolve(strict=True);require(os.geteuid()==0 and digest(root/'packet.json')==a.packet_sha256,'Root/hash')
     packet=validate(json.loads((root/'packet.json').read_text()));require(packet['root']==str(root),'Packet root')
     require(Path('/proc/sys/kernel/random/boot_id').read_text().strip()==packet['host_boot_id'],'Host boot')
+    if packet.get('closure_policy')==COMPLETION_POLICY:
+        require(time.monotonic_ns()>=packet['not_before_host_monotonic_ns'], 'Individual-capacity preparation window not complete')
     timer=subprocess.check_output(['busctl','get-property','org.freedesktop.systemd1',
         '/org/freedesktop/systemd1/unit/phase115_2dclosure_2dcleanup_2etimer',
         'org.freedesktop.systemd1.Timer','NextElapseUSecMonotonic'],text=True,timeout=5).strip()

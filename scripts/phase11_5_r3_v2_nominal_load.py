@@ -83,7 +83,7 @@ def main():
         with opener.open('http://127.0.0.1:31425/api/v1/status',timeout=3) as response:
             raw=response.read(131073);require(len(raw)<=131072,'Host status bound');value=json.loads(raw)
         emit('native_status',dict(began_monotonic_ns=began,body_hex=raw.hex(),value=value))
-        if packet.get('closure_policy')=='group2-paged-input-retest-v1':
+        if packet.get('closure_policy') in ('group2-paged-input-retest-v1','phase115-completion-capacity-v1'):
             save(root/'native-observation.json',dict(packet_sha256=a.packet_sha256,
                 observed_monotonic_ns=time.monotonic_ns(),job=value.get('job')))
         return value

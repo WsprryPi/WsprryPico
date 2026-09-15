@@ -125,8 +125,8 @@
       "group": "JOB-MAX",
       "requirement": "512-event idle admission and complete RF job",
       "classification": "affected and needing retest",
-      "evidence": "phase11-5-r3-v2-component3-result.json; phase11-5-r3-v2-validation-045.json; phase11-5-r3-v2-component9-result.json",
-      "remaining": "128-second 512-event candidate completion with independent observations",
+      "evidence": "phase11-5-r3-v2-component3-result.json; phase11-5-r3-v2-validation-045.json; phase11-5-r3-v2-component9-result.json; phase11-5-completion-p1-attempt1-result.json",
+      "remaining": "Candidate completed once on the recorded boot, but the multi-observer capacity run failed; preserve the finite completion and perform the affected capacity retest.",
       "package": 1
     },
     {
@@ -151,9 +151,9 @@
       "id": "2.1d",
       "group": "WTP-MAX",
       "requirement": "65536-byte WTP payload success during RF",
-      "classification": "affected and needing retest",
-      "evidence": "phase11-5-r3-v2-capacity-c5-result.json; phase11-5-r3-v2-component3-result.json",
-      "remaining": "Full candidate request writes and valid owned Running response",
+      "classification": "failed",
+      "evidence": "phase11-5-r3-v2-capacity-c5-result.json; phase11-5-r3-v2-component3-result.json; phase11-5-completion-p1-attempt1-result.json",
+      "remaining": "Attempt1 wrote only 4096 of 65552 frame bytes during ordinary HTTPS overlap. Freeze sequential individual capacity probes; no acceptance from the failed exchange.",
       "package": 1
     },
     {
@@ -188,8 +188,8 @@
       "group": "COMBINED",
       "requirement": "Supported simultaneous resident workload",
       "classification": "failed",
-      "evidence": "phase11-5-r3-v2-capacity-c2-result.json",
-      "remaining": "Freeze exact overlap after P1 measured resource result; same-device success required",
+      "evidence": "phase11-5-r3-v2-capacity-c2-result.json; phase11-5-completion-p1-attempt1-result.json",
+      "remaining": "Attempt1 maximum WTP overlapped ordinary HTTPS and failed. Preserve this supported-workload failure; separately freeze and validate the supported simultaneous workload.",
       "package": 2
     },
     {

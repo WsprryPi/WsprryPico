@@ -9,7 +9,7 @@ from phase11_5_r3_preflight import audit_inventory
 from validate_wtp_contract import SchemaValidator
 from audit_phase11_5_idle import frames
 from audit_phase11_5_r2_modes import transactions
-from phase11_5_r3_v2_rf import validate,validate_info,comparator_required,DIAGNOSTIC_POLICY,CLOSURE_POLICY,REPAIR_POLICY,recent_clock
+from phase11_5_r3_v2_rf import validate,validate_info,comparator_required,DIAGNOSTIC_POLICY,CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY,recent_clock
 
 PACKET='966cd695df2b2eab36f6999c2afae678ad6eecdb8a3c5ea0871fb5afb2c61fef'
 
@@ -35,7 +35,7 @@ def capacity_request(packet, value, index):
 
 
 def audit(root, *, packet_digest=PACKET):
-    require(packet_digest in [PACKET, '8cfcdfeef0c4513f24fe4dff64eaef1f62bbeaa4054c33d2d6720a3481e4b908', 'd46edf56bd1eaaaae095139ec6cfb39edb627470c769f4d758bed8d7a3d2da83', '3265c16e1a970c79c1beee2bd6a9cf4b9198381ee051a08f5f0dd40d7ed95277', 'a96a14455d08caa37fab21e7ef96be5bd5249afdf6471e8450c64a2e5d73f5a4', '9215a8049c83c2319506ef0c76100213a6bf5bb479a06cd283835c684719f095', '065cb07e6ace4261caf4ba24cb7d6e1417186d1d7c1445bae25d102b256df3b5',
+    require(packet_digest in [PACKET, 'cbc6f4b871841c0cf4f6976e5cde73976699798aa0ccdc3ff65b72dc50c73e8d', '8cfcdfeef0c4513f24fe4dff64eaef1f62bbeaa4054c33d2d6720a3481e4b908', 'd46edf56bd1eaaaae095139ec6cfb39edb627470c769f4d758bed8d7a3d2da83', '3265c16e1a970c79c1beee2bd6a9cf4b9198381ee051a08f5f0dd40d7ed95277', 'a96a14455d08caa37fab21e7ef96be5bd5249afdf6471e8450c64a2e5d73f5a4', '9215a8049c83c2319506ef0c76100213a6bf5bb479a06cd283835c684719f095', '065cb07e6ace4261caf4ba24cb7d6e1417186d1d7c1445bae25d102b256df3b5',
             'da89cf9f703f126ef71e463336674000373749df3c70f98ec7a2bff9fc7a7373',
             'c408f5db396a50a6413334f05b7cc1eda22dab0040023454f28c435241931d41',
             '4eeb2113a40dc386f7839ae40a2e1f1d13b2da23dc86d04eb7ae0131dcfe2304',
@@ -51,7 +51,7 @@ def audit(root, *, packet_digest=PACKET):
     require(digest(root/'packet.json')==packet_digest,'Frozen RF packet')
     packet=json.loads((root/'packet.json').read_text());validate(packet);inventories={}
     diagnostic=packet.get('diagnostic_policy')==DIAGNOSTIC_POLICY
-    recent_admission=diagnostic or packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY)
+    recent_admission=diagnostic or packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY)
     labels=['before-a','before-b','final-a','final-b'] if comparator_required(packet) else ['before-a','final-a']
     for label in labels:
         b=label.endswith('-b')
@@ -67,6 +67,9 @@ def audit(root, *, packet_digest=PACKET):
         require(configuration(inventories['before-b'])==configuration(inventories['final-b']) and
             inventories['before-b']['info']['revision']==inventories['final-b']['info']['revision'] and
             inventories['before-b']['wtp']['STATUS']==inventories['final-b']['wtp']['STATUS'],'Preserved A/B')
+    if packet.get('closure_policy')==COMPLETION_POLICY:
+        require(len(before['wtp']['STATUS']['terminal_records'])<=packet['maximum_initial_terminal_records'],
+                'Frozen individual-capacity initial retention')
     validate_info(before['info'],before,packet);validate_info(final['info'],before,packet)
     raw=(root/'rf.jsonl').read_text();require(raw.endswith('\n'),'Truncated trace')
     rows=[json.loads(s) for s in raw.splitlines()]
@@ -75,6 +78,19 @@ def audit(root, *, packet_digest=PACKET):
             rows[0]['value']['boot_id']==packet['boot_id'] and
             [r['sequence'] for r in rows]==list(range(len(rows))) and
             all(a['monotonic_ns']<=b['monotonic_ns'] for a,b in zip(rows,rows[1:])), 'Trace identity/sequence')
+    if packet.get('closure_policy')==COMPLETION_POLICY:
+        from phase11_5_rf_reservation import inactive
+        acquired=json.loads((root/'rf-reservation-acquired.json').read_text())
+        released=json.loads((root/'rf-reservation-released.json').read_text())
+        for value,state,phase in [(acquired,'HELD','before'),(released,'RELEASED','final')]:
+            require(value['state']==state and value['packet_sha256']==packet_digest and
+                    value['host_boot']==packet['host_boot_id'] and
+                    value['boards']==inactive({name:inventories[phase+'-'+name] for name in ('a','b')}),
+                    'Shared reservation state, packet and both-board authority')
+        require(acquired['monotonic_ns']<=rows[0]['monotonic_ns'] and
+                rows[-1]['monotonic_ns']>=released['monotonic_ns']>=max(
+                    r['monotonic_ns'] for r in rows if r['kind']=='job_complete'),
+                'Shared RF reservation lifetime')
     allowed=['start','finish','console_tx','console_rx','wtp_tx','wtp_rx','wtp_message','info','status','health',
              'info_finish','status_finish','health_finish','arm_pending','arm_acknowledged','job_complete']
     if 'contention' in packet:

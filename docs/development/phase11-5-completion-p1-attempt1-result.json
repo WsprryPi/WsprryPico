@@ -1,0 +1,221 @@
+{
+  "status": "FAILED_CAPACITY_PARTIAL_WRITE_CONFIRMED",
+  "packet_sha256": "cbc6f4b871841c0cf4f6976e5cde73976699798aa0ccdc3ff65b72dc50c73e8d",
+  "capacity_acceptance": false,
+  "group2_closed": false,
+  "rf_jobs_charged": 1,
+  "rf_seconds_charged": 128,
+  "maximum_payload_bytes": 65536,
+  "frame_bytes": 65552,
+  "host_bytes_written": 4096,
+  "http_capacity_cases_executed": 0,
+  "console_samples": 300,
+  "maximum_console_start_gap_ns": 1000111948,
+  "native": {
+    "connections": 1,
+    "operations": {
+      "HELLO": 1,
+      "STATUS": 87,
+      "CAPS": 1
+    }
+  },
+  "ordinary_https_overlap": true,
+  "preceding_heap_available_bytes": 78456,
+  "preceding_heap_sample_age_ns": 48938369,
+  "admission_requirement_bytes": 98320,
+  "diagnosis": "Source and sampled heap support parser admission refusal during HTTPS overlap; the exact target branch is not directly observed.",
+  "final_a": {
+    "boot_id": "b1c0af7bef6ef0bef8f5e44130182149",
+    "state": "complete",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": "b88c7a3082eb4208a7e1f403bc13c9f8",
+    "terminal_records": [
+      {
+        "job_id": "b88c7a3082eb4208a7e1f403bc13c9f8",
+        "state": "complete",
+        "ended_monotonic_ns": "3834256341000",
+        "output_active": false
+      },
+      {
+        "job_id": "8d8734400ddd2d472799f3d08a92e6b5",
+        "state": "aborted",
+        "ended_monotonic_ns": "384943220000",
+        "output_active": false
+      }
+    ]
+  },
+  "final_b": {
+    "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "job_id": null,
+    "terminal_records": []
+  },
+  "configurations_preserved": true,
+  "schedules_disabled": true,
+  "reservation_released": true,
+  "limitations": [
+    "No maximum-frame acceptance, oversize recovery or HTTP boundary credit.",
+    "Finite completion is confirmed; the complete multi-observer capacity gate failed."
+  ],
+  "failures": [
+    {
+      "worker": "wtp action",
+      "error": "C0 five-second capacity operation deadline; no retry or RF action",
+      "type": "TimeoutError"
+    },
+    {
+      "worker": "wtp",
+      "error": "STATUS response timeout; no automatic retry; output unknown",
+      "type": "TimeoutError"
+    },
+    {
+      "type": "ValueError",
+      "error": "Stale observer without bounded read in flight"
+    }
+  ],
+  "schema": "phase11.5-completion-p1-attempt1-result-v1",
+  "package_status": "OPEN",
+  "family_status": "R3 OPEN",
+  "source_revision": "98f5797d77fb2bc4c11a4e80f6ff35d7ad16a5b5",
+  "image_sha256": "b6d5ab7610a0e19e9de91ce78dde4eb7c63b9192343dd86af4f7bcb857838733",
+  "stage_sha256": {
+    "production.ini": "bbf837b2418414a273068403d1556ebd6157ac56a5ca915a78943a0867840916",
+    "pi/phase115_tls_observer_test.py": "5cf410758c48e05bc35f04f394b486f0b210b93e7ab785cedaf1bc7dd689162d",
+    "pi/phase115_tls_observer.c": "7c6a4afba6f414b9ef6a92ee223b0c0863219311e9c472a0d32a92f45f7e4a1d",
+    "pi/phase115_production_load.py": "5d854540d9369173f1ec13a5a489c2045a7ace634da6aa10a8c42f0529b1ed0d",
+    "scripts/phase11_5_pilot.py": "bb91dc6fea9fb10e7564252810b534979a1f28b36de132745d100f388c3003c4",
+    "scripts/phase11_5_r3_tls_plan.py": "458dcd137155a7922a5621ffe83f53f16e11915b43b051f97e98fc50854a66e8",
+    "scripts/phase11_5_r3_transport_plan.py": "18eae92079cdd738e4b5705be4853fee6a15fd2338527a6b57fc664a93c49e84",
+    "scripts/phase11_5_r3_capacity_plan.py": "65e71dbd4a5b3d11e55f227721761bdab7f3c55f11dd8f9d11a836f0dde330e7",
+    "scripts/phase11_5_rf_reservation.py": "039d26a3bcab247757f9681fb0db6c4962004ed0eada390fab588a9e0a409147",
+    "scripts/phase11_5_rf_observer.py": "6e43b5d39961da5512c5999351f66c106d38a06be85f8a1b3541d21a432f2b1c",
+    "scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+    "scripts/phase11_5_device_management.py": "3f3fa78cd17c170b35aa591f29ec77770b26b31b0effeccc4e11e9372530fd5d",
+    "scripts/phase11_5_r3_preflight.py": "637741fa271719beb4c3a764af2d88ea0ca4cd0b8cda3094f86167e0f64822e7",
+    "scripts/phase11_5_r2_amended_plan.py": "a28672abb2703ee1fee2a49e5dfb5ed81347a6d3172584966c4ba4d568a5f679",
+    "scripts/phase11_5_r2_plan.py": "e7b9157ca65f7abc1fd509f070467d908ad5808a4d408772d61e4df71f509bbc",
+    "scripts/phase11_5_f1_plan.py": "e568e285b856691b5d5c4e53937378aca30e8fa7b5638d75a45804b76376c03a",
+    "scripts/check_usb_target.py": "51fcd12c14f9fc012554249378721a9ecb6cb01b11bb11152c746e9228a5fbf7",
+    "scripts/inhibited_network_acceptance.py": "088904c352c9891e73de871bf717b53ae34955cc2e9d7a854d47c0c2c7a3e043",
+    "scripts/phase11_5_r2_modes.py": "9558a5d34bc12f15b9fab592d0546cfdde00e0673a69f125b34eaaa073a66be8",
+    "scripts/phase11_5_device_fixture.py": "03089505dc25b49637660fce15a2e6337410237b172cc3af6c508e94bdb4224b",
+    "scripts/phase11_5_r3_v2_parallel_b_repair.py": "dbd8ca59268a68c9492d249708751ece561fa1c7f18f46574eb83df4c11f4d93",
+    "scripts/phase11_5_time_local.py": "ac26b85628f05990905e86b236a1a6bd6f8cba84ea6729dcdf750f0aed928783",
+    "scripts/audit_phase11_5_load.py": "4e335be30cb615e34467ac54ea7aa725a636c86cc47831044960de25cb4261be",
+    "scripts/phase11_5_r3_v2_parallel_b_plan.py": "df8dc1efd7a041b22105da17e46007d17c79a3ebf7f580b59e17606a539e61a9",
+    "scripts/phase11_5_r3_v2_rf.py": "103ccf65eb8b3c1e90e94c2fba22638d68a0c388f6bebb26ca77d9de323829b3",
+    "scripts/phase11_5_r3_v2_parallel_b_paged_repair.py": "0ab3c0aaa5b0995bf3e82e801e51684d3e7c82800c8dbcabae2485ce1a265138",
+    "scripts/phase11_5_r3_v2_parallel_b_deploy.py": "80293892b285295f72e3bdbea4fc827aa7c83498b1cdb3298fa622a4ffa763ed",
+    "scripts/phase11_5_r3_v2_nominal_load.py": "d1de8aaad1cd40cef662eeef278f10ee195cebabb9019eb9964078903beac7cb",
+    "scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9",
+    "scripts/audit_phase11_5_r1.py": "e9bb9d1d687949e82cfafd365eb7944b97c5d7530f546e0520240eed05dbb817",
+    "scripts/phase11_5_pilot_supervisor.py": "dbf97a316ebe02eb27f90d838ce70c468b75abc38749a7af3f6911beab8dd9e7",
+    "scripts/phase11_5_r3_transport_pressure.py": "0b94305819bf88852a29594a97683656807747acab624bffc4be28e5584c6b0b",
+    "scripts/phase11_5_r3_v2_parallel_b_functional.py": "49bfca53fa031f069c182fb44ae571f913f4cd32f75c57c4c4828582d10d0d72",
+    "scripts/phase11_5_r3_retained.py": "54c1020f63745d8d61a475f11c0e6773b5f2f4f37a63730b458e29971cee120f",
+    "scripts/audit_phase11_5_r3_transport.py": "aaf67374aff265a49977927b81492a7a2a07e110b5c78e8ee0275028ef0bdf5e",
+    "scripts/phase11_5_r2_usb_jobs.py": "3d4db8d7b7e22189d8a74c5dd10f07dace75c2a20200091fc24490f28425d58f",
+    "scripts/phase11_5_r3_capacity_probe.py": "fd34c6c6d3df689e96f5d6a073d2520f2e1a6fa6b856651877c465588c2b96c9",
+    "scripts/phase11_5_terminal_history.py": "978af643e7f90bbe23dfaca38196d11024d4dd2ed63996c8f6a52f15c8643458",
+    "scripts/phase11_5_browser_jobs.py": "868e8376a05eabfad382517a4b951a9f177b51c50619e55c06578e90fe23a575",
+    "scripts/phase11_5_r2_modes_plan.py": "2ed53fc77b80cbbee9d7fa53bf8ba3d96928bc2a5229104cc0fc7317ccbb1d0b",
+    "scripts/phase11_5_r3_v2_admission.py": "0958e73ae7389eb06cfd7ab9c20907412f9133f48296050701348bbbd9ebb195",
+    "scripts/audit_phase11_5_idle.py": "487d93ecb7758fc5b665f49c819ce85d19d55b2beab644fdb97214df5e20f064",
+    "scripts/phase11_5_inventory.py": "dcef778c18a10a0fc20bbb13fa2b07cc690c9d1c9ab8fe05a29af60a6d0483df",
+    "scripts/audit_phase11_5_r3_tls.py": "34105c6784e183607df1cdb8e60d3941d9c853216a7152ad84c4079474a0940c",
+    "scripts/audit_phase11_5_r3_failure.py": "5b361f34dd87ff1b08264523ab32066165888fab26e86f20adf4e44678da8080",
+    "scripts/phase11_5_r3_ack_filter.py": "e9cec9ca5fa0b58488d8bed4c809976216e04cd39b0c6b06900dc239d2f61c65",
+    "scripts/phase11_5_r3_allocation_diagnostic.py": "046c3c624ec26c1d21b53ddd52f728bfab1f1f45ade2a75efa0e836b7c5624a8",
+    "scripts/phase11_5_r3_v2_pressure_plan.py": "a19efa4b667c1b02c50f4d3a222aaad217ceca2659664403d65e20b9e55b08a3",
+    "scripts/phase11_5_r2_upload_plan.py": "734d86758b7870aea761f9637a3861904b755e6e333b2a8855377815aeed969a",
+    "scripts/phase11_4_hotspot.py": "20253c0ab455f023bc360b7b9f10fba5b6b719ffffddce79c0c7128a4e7712ee",
+    "scripts/phase11_5_join_diagnostics.py": "5f6d0f242c81b8f1d1b2ffc589e2ff7d04d023fe7845010bd7b878e611514ded",
+    "scripts/audit_phase11_5_r2_modes.py": "dd12df797749b31437c792e5fb55caa201a513b226ce7fb10570623a82f109ec",
+    "scripts/phase11_5_network_fixture.py": "a09338f6c83647a876dfdf05d1cd495e405e188468def1081b2d325fc84361ac",
+    "scripts/phase11_5_r3_v2_observer_policy.py": "0c4e7f8f8e2511f0f220cb65728cbe2bc6999aa061b478cc99e689fb0e572932",
+    "scripts/phase11_5_r3_tls.py": "c0b8bc09cea7ac3fc68fbd30110954401e64b8762a9959f9d2251416984ce6e0",
+    "scripts/phase11_5_r3_tls_pressure.py": "eb5f1c7ad9d91893bb77a7de2720da4ff0f933bd4ef3416172102d985619b6da",
+    "scripts/phase11_5_r3_tls_stage.py": "f2358e2116bcfc90649cbf7ec92d520ae47ec33861afb3b7a88070fb44e448c4",
+    "scripts/phase11_5_r3_v2_fixture.py": "3d7f185ac3c058d6288a706acf768befa2e80ee0086ca8d94d8367d37913c531",
+    "scripts/rf_wtp.py": "d815043f8b4876c71c6bb1e1c5ad95451608b97dcfdcfb2d726b021deef99017",
+    "scripts/phase11_5_r1.py": "e171de2f85387a808046b661b138e86935e8d4befd86b07ff169c170cc37aa32",
+    "src/campaign/plan.py": "13f7f1181dc4e04a81077b4b2e9d66d881310aabbcafae907fdd74b226ae4923",
+    "docs/protocol/wtp-1.schema.json": "fae1a7f94adb875733f47f22438a0811a3ab7fd9e4b8477780aea77cad62c8a8",
+    "pi/phase115_tls_observer.so": "fd70cde276b04aa08e771e12b83335a89aae24e050e2f2c5e56ed6848eb1a7bc",
+    "credentials/controller/client-ca.crt": "cda60b730367129165b43aef6ff129dc0107ad878cd95e4ecedf9243327f847e",
+    "credentials/controller/client.crt": "6eff58d32983f47cd0d94ff265bb391168b7a066074d939bf7deafc13a70e99e",
+    "credentials/controller/client.key": "d978ee5b5b8276498a06811983e466ee050fac7a012fae1b2a7caeb4c050c972",
+    "credentials/browser/client-ca.crt": "cda60b730367129165b43aef6ff129dc0107ad878cd95e4ecedf9243327f847e",
+    "credentials/browser/client.crt": "d33d28277bc58a49e723b4736c04899efe566a5e5aeda542679d703bed378b7c",
+    "credentials/browser/client.key": "76ecdbaa15ac322a4c16b9bfa3c5c05942a3417ec2c271105ad89bfb0fb335bd"
+  },
+  "counts": {
+    "rf_jobs": 1,
+    "rf_seconds": 128,
+    "flashes": 0,
+    "bootsel": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 0
+  },
+  "session_budget": {
+    "start_monotonic_ns": 419306458530925,
+    "start_utc_ns": 1789474805717096990,
+    "work_deadline_monotonic_ns": 422006458530925,
+    "cleanup_deadline_monotonic_ns": 422906458530925,
+    "execution_seconds": 2700,
+    "cleanup_seconds": 900,
+    "rf_jobs": 1,
+    "rf_seconds": 128,
+    "flashes": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 0
+  },
+  "fixture_restored": true,
+  "fixture_cleanup_utc_ns": 1789475966477404394,
+  "installed_pid": 1957,
+  "installed_executable_sha256": "c19461bc6d2ebe7cae61798ad9acae8d43dfbec3ee57c288e4ef41e9c82b8273",
+  "post_restoration": {
+    "a": {
+      "status": {
+        "boot_id": "b1c0af7bef6ef0bef8f5e44130182149",
+        "state": "complete",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": "b88c7a3082eb4208a7e1f403bc13c9f8",
+        "terminal_records": [
+          {
+            "job_id": "b88c7a3082eb4208a7e1f403bc13c9f8",
+            "state": "complete",
+            "ended_monotonic_ns": "3834256341000",
+            "output_active": false
+          }
+        ]
+      },
+      "revision": "98f5797d77fb",
+      "schedule_enabled": false
+    },
+    "b": {
+      "status": {
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "revision": "8921a7008183",
+      "schedule_enabled": false
+    }
+  },
+  "evidence_sha256": {
+    "evidence.tar": "85c34aa76737d8d06c6c8999fcfb3618bf23bed922bb0c1d9c5cf20feaf0b405",
+    "fixture-restoration.tar": "4734692ae227fd5d2d6bbbda3e92fbc42f7c3e2662be3dc1311df3848a51c360",
+    "post-restoration-a.stdout": "5a599cf9ce6be193080e67339eede0b538f917fdce807ba5cc9cb07baca5369c",
+    "post-restoration-b.stdout": "b0a8faa6569c58abc06d3afb45bbd3dbf8f5d279936d0d373b051c677b44fd1a",
+    "post-restoration-sessions.json": "0731389ae6193ece7fbb4dfe3152e35a0185a2399b55fe6a4e19323976ab3f6d",
+    "evidence/private-input-hashes.json": "335372a5b8ff46908403726096428f052cf6c4aad2d4ce85e9732d2e9ba4cf7b"
+  }
+}
