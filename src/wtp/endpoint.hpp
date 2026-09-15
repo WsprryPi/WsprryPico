@@ -26,6 +26,11 @@ class Endpoint {
     bool can_receive() const {
         return !closed_ && !closing_ && output_.empty() && pending_input_.empty();
     }
+    // Capacity already reserved for the current input frame. This is a direct
+    // endpoint value; unrelated heap allocations and releases cannot change it.
+    std::size_t input_reserved_bytes() const {
+        return parser_.buffered_capacity() + pending_input_.capacity();
+    }
 
   private:
     void payload(FrameBuffer bytes, std::uint64_t now_ms);

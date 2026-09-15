@@ -552,6 +552,11 @@ void test_large_endpoint_reply_has_one_payload_allocation() {
                 reply_allocation_phase = op == "LOAD" && remaining == 1;
                 offset += endpoint.receive(
                     std::span(wire).subspan(offset, remaining > 1 ? remaining - 1 : 1), 0);
+                if (remaining > 1) {
+                    CHECK(endpoint.input_reserved_bytes() == wire.size());
+                } else {
+                    CHECK(endpoint.input_reserved_bytes() == 0);
+                }
             }
             while (!endpoint.output().empty()) {
                 const auto chunk =

@@ -58,12 +58,12 @@ class CombinedTests(unittest.TestCase):
         status.pop('job_id');status.pop('owner_id')
         info_running(status,p)  # Actual INFO has neither WTP identity field.
         with self.assertRaises(ValueError):running(dict(status,job_id=p['jobs'][0]['job_id'],owner_id='foreign'),p)
-        warm=dict(packet_sha256='x',monotonic_ns=1,value=dict(value=dict(heap_allocated_bytes=100000,status=status)))
-        sample=copy.deepcopy(warm);sample['monotonic_ns']=3;sample['value']['value']['heap_allocated_bytes']+=32768
+        warm=dict(packet_sha256='x',monotonic_ns=1,value=dict(value=dict(heap_allocated_bytes=100000,wtp_input_reserved_bytes=0,status=status)))
+        sample=copy.deepcopy(warm);sample['monotonic_ns']=3;sample['value']['value']['wtp_input_reserved_bytes']+=32768
         resident(sample,warm,2,p)
         for change in ('low','stale','boot','state','inactive','packet'):
             bad=copy.deepcopy(sample)
-            if change=='low':bad['value']['value']['heap_allocated_bytes']-=1
+            if change=='low':bad['value']['value']['wtp_input_reserved_bytes']-=1
             elif change=='stale':bad['monotonic_ns']=2
             elif change=='packet':bad['packet_sha256']='other'
             else:bad['value']['value']['status'][{'boot':'boot_id','state':'state','inactive':'output_active'}[change]]=False if change=='inactive' else 'other'
@@ -75,8 +75,8 @@ class CombinedTests(unittest.TestCase):
             p=packet(mode); row=lambda kind,value,stamp:dict(kind=kind,value=value,monotonic_ns=stamp)
             status=dict(boot_id=BOOT,job_id=p['jobs'][0]['job_id'],owner_id=p['owner_id'],state='running',output_active=True)
             status.pop('job_id');status.pop('owner_id')
-            warm=dict(packet_sha256='x',monotonic_ns=10,value=dict(value=dict(status=status,heap_allocated_bytes=100000)))
-            sample=copy.deepcopy(warm);sample['monotonic_ns']=30;sample['value']['value']['heap_allocated_bytes']=133000
+            warm=dict(packet_sha256='x',monotonic_ns=10,value=dict(value=dict(status=status,heap_allocated_bytes=100000,wtp_input_reserved_bytes=0)))
+            sample=copy.deepcopy(warm);sample['monotonic_ns']=30;sample['value']['value'].update(heap_allocated_bytes=132488,wtp_input_reserved_bytes=32784)
             rf=[row('start',dict(packet_sha256='x'),1),row('info',warm['value'],10),row('capacity_tx',{},20),
                 row('capacity_write',dict(bytes=32783,total_written=32783),28),row('info',sample['value'],30),
                 row('combined_resident',dict(packet_sha256='x',info=sample,baseline=warm,began_ns=19),32),
@@ -96,7 +96,7 @@ class CombinedTests(unittest.TestCase):
                 elif change=='short_write':a[-2]['value']['total_written']-=1
                 elif change=='wrong_status':b[3]['value']['status']=400
                 elif change=='wrong_peer':b[3]['value']['peer_sha256']='other'
-                elif change=='fake_info':a[-3]['value']['info']['value']['value']['heap_allocated_bytes']+=8
+                elif change=='fake_info':a[-3]['value']['info']['value']['value']['wtp_input_reserved_bytes']+=8
                 else:b[0]['value']['packet_sha256']='other'
                 with self.subTest(mode=mode,change=change),self.assertRaises(ValueError):overlap(p,a,b)
 

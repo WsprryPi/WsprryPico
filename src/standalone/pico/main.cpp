@@ -293,6 +293,7 @@ int main() {
             number_field(result, "heap_sample_observed_us", heap_observed_us, true);
             number_field(result, "heap_sample_cost_us", heap_observed_us - heap_before);
             number_field(result, "heap_sampled_peak_bytes", heap_peak);
+            number_field(result, "wtp_input_reserved_bytes", endpoint.input_reserved_bytes());
             const auto allocator = wsprry_heap_snapshot();
             number_field(result, "allocator_entries", allocator.entries, true);
             number_field(result, "allocator_failures", allocator.failures, true);

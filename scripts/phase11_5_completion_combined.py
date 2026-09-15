@@ -107,7 +107,8 @@ def resident(sample, baseline, began, p):
     require(sample['packet_sha256'] == baseline['packet_sha256'] and
             sample['monotonic_ns'] > began > baseline['monotonic_ns'], 'Residence observation order/identity')
     info = sample['value']['value']; info_running(info['status'], p)
-    require(info['heap_allocated_bytes'] - baseline['value']['value']['heap_allocated_bytes'] >=
+    require(info['wtp_input_reserved_bytes'] -
+            baseline['value']['value']['wtp_input_reserved_bytes'] >=
             p['combined']['minimum_resident_delta_bytes'], 'Full WTP input not observed resident')
 
 
@@ -124,8 +125,10 @@ def usb_step(peer, root, p, emit):
         peer.checkpoint()
         if not published and written >= 4096:
             sample = json.loads((root/'observer-info.json').read_text())
-            if (sample['monotonic_ns'] > began and sample['value']['value']['heap_allocated_bytes'] -
-                    ready['info']['value']['value']['heap_allocated_bytes'] >= p['combined']['minimum_resident_delta_bytes']):
+            if (sample['monotonic_ns'] > began and
+                    sample['value']['value']['wtp_input_reserved_bytes'] -
+                    ready['info']['value']['value']['wtp_input_reserved_bytes'] >=
+                    p['combined']['minimum_resident_delta_bytes']):
                 resident(sample, ready['info'], began, p)
                 record = dict(packet_sha256=sha, began_ns=began, info=sample, baseline=ready['info'])
                 emit('combined_resident', record); save(root/'combined-usb-resident.json', record); published = True

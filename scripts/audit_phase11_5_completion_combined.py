@@ -50,7 +50,8 @@ def overlap(packet, rf, load):
     require(selected[3]['monotonic_ns']>final['monotonic_ns'],'Recovery follows WTP completion')
     return dict(mode=c['mode'],wtp_wire_bytes=32784,http_primary_status=primary_reply['value']['status'],
                 http_declared_body_bytes=primary['declared_body_bytes'],http_offered_body_bytes=primary['offered_body_bytes'],
-                observed_resident_delta_bytes=sample['value']['value']['heap_allocated_bytes']-warm['value']['value']['heap_allocated_bytes'],
+                observed_resident_delta_bytes=sample['value']['value']['wtp_input_reserved_bytes']-warm['value']['value']['wtp_input_reserved_bytes'],
+                observed_heap_delta_bytes=sample['value']['value']['heap_allocated_bytes']-warm['value']['value']['heap_allocated_bytes'],
                 wtp_exchange_ns=final['monotonic_ns']-tx['monotonic_ns'],
                 resident_before_http_ns=primary_tx['monotonic_ns']-sample['monotonic_ns'],
                 http_response_before_final_byte_ns=writes[-1]['monotonic_ns']-primary_reply['monotonic_ns'],

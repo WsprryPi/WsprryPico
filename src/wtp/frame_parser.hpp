@@ -40,6 +40,9 @@ class FrameParser {
     [[nodiscard]] std::size_t buffered_bytes() const {
         return buffer_.size();
     }
+    [[nodiscard]] std::size_t buffered_capacity() const {
+        return buffer_.capacity();
+    }
 
   private:
     void process(std::vector<FrameEvent>& events);
