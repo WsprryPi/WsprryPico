@@ -169,5 +169,32 @@ class IdleSuccessTests(unittest.TestCase):
                     path.write_text(''.join(json.dumps(r)+'\n' for r in rows))
                 with self.assertRaises(ValueError):idle_audit(root)
 
+CAPACITY_CADENCE = os.environ.get('PHASE115_COMPLETION_CAPACITY_CADENCE')
+
+
+@unittest.skipUnless(CAPACITY_CADENCE, 'Private capacity cadence packet not supplied')
+class CapacityCadenceTests(unittest.TestCase):
+    def test_component_acceptance_preserves_failure(self):
+        from audit_phase11_5_completion_capacity_cadence import audit
+        v=audit(Path(CAPACITY_CADENCE))
+        self.assertEqual(v['accepted_components'],['2.1a','2.1d','2.1e'])
+        self.assertFalse(v['package_complete']);self.assertEqual(v['http_offers'],0)
+        self.assertEqual(v['headroom_bytes'],48136)
+
+    def test_rejects_incomplete_input_false_arm_and_missing_native_bracket(self):
+        from audit_phase11_5_completion_capacity_cadence import audit
+        for change in ('write','arm','native'):
+            with self.subTest(change=change),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory)/'evidence';shutil.copytree(CAPACITY_CADENCE,root)
+                if change=='native':
+                    path=root/'production-tls.bin';path.write_bytes(path.read_bytes()[:-32])
+                else:
+                    path=root/'rf.jsonl';rows=[json.loads(x) for x in path.read_text().splitlines()]
+                    if change=='write':next(r for r in rows if r['kind']=='capacity_write')['value']['bytes']-=1
+                    else:next(r for r in rows if r['kind']=='arm_acknowledged')['value']['job_id']='0'*32
+                    path.write_text(''.join(json.dumps(r)+'\n' for r in rows))
+                with self.assertRaises(ValueError):audit(root)
+
+
 if __name__ == '__main__':
     unittest.main()

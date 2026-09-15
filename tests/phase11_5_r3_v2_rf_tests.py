@@ -16,6 +16,50 @@ class FiniteRfPacketTests(unittest.TestCase):
             events=[dict(offset_ns='0',duration_ns='10000000000',rf_on=True,frequency_nhz='135500000000000')])])
         for i,k in enumerate(['owner_id','peer_session','inventory_session','b_session','boot_id','b_boot_id'],1):p[k]=f'{i:032x}'
         return p
+    def test_capacity_exchange_yields_between_five_second_observer_intervals(self):
+        from unittest.mock import patch
+        from types import SimpleNamespace
+        from phase11_5_r3_v2_rf import capacity_step, guarded_action
+        p=self.packet();p['wtp_capacity']=dict(maximum_request_id='a'*32,oversized_request_id='b'*32,recovery_request_id='c'*32)
+        job=p['jobs'][0];peer=SimpleNamespace(session=p['peer_session']);calls=[];now=[0.0]
+        def exchange(peer,raw,q,emit,invalid_frames=0):
+            calls.append((q['op'],len(raw),invalid_frames));now[0]+=(3.15 if q['op']=='STATUS' else 3.51)
+            return dict(boot_id=p['boot_id'],job_id=job['job_id'],owner_id=p['owner_id'],state='running',output_active=True) if q['op']=='STATUS' else q['body']
+        with patch('phase11_5_r3_capacity_probe.exchange_capacity',side_effect=exchange):
+            capacity_step(peer,p,job,0,lambda *_:None)
+            self.assertEqual(calls,[('STATUS',65552,0)])
+            self.assertLess(now[0],5)  # STATUS can run at its original next start.
+            now[0]=5
+            capacity_step(peer,p,job,1,lambda *_:None)
+            self.assertEqual(len(calls),2);self.assertEqual(calls[-1][0::2],('PING',1))
+            self.assertLess(now[0],10)
+        faults=[]
+        with patch('phase11_5_r3_capacity_probe.exchange_capacity',side_effect=ValueError('partial write')) as failed:
+            action=lambda _:capacity_step(peer,p,job,0,lambda *_:None)
+            guarded_action(action,None,faults,lambda *_:None)
+            guarded_action(action,None,faults,lambda *_:None)
+            self.assertEqual(failed.call_count,1);self.assertTrue(faults)
+
+    def test_fresh_read_workspace_capacity_packet(self):
+        from phase11_5_r3_v2_rf import READ_POLICY, READ_SOURCE, READ_IMAGE, READ_BOOT, SERIAL_CAPACITY
+        from phase11_5_r3_v2_admission import maximum_job
+        from phase11_5_r3_capacity_plan import http_capacity_cases
+        p=self.packet()
+        p.update(source_revision=READ_SOURCE,image_sha256=READ_IMAGE,boot_id=READ_BOOT,
+            closure_policy=READ_POLICY,capacity_schedule_policy=SERIAL_CAPACITY,
+            observer_policy='single-flight-info-v1',runtime_seconds=300,initial_a_state='empty',
+            initial_a_job_id=None,maximum_initial_terminal_records=0,b_role='unchanged-comparator',
+            shared_rf_reservation='durable-both-picos-v1',not_before_host_monotonic_ns=1,
+            jobs=[maximum_job('a'*32,duration=128000000000)],
+            wtp_capacity=dict(maximum_request_id='a'*32,oversized_request_id='b'*32,recovery_request_id='c'*32),
+            http_capacity=dict(seed='d'*32,cases=http_capacity_cases('d'*32)),
+            contention=dict(policy='native-wtp-and-https-status-20s-v1',maximum_https_requests=16))
+        self.assertEqual(validate(p),p)
+        for k,v in [('closure_policy',None),('boot_id','0'*32),('image_sha256','0'*64),
+                    ('initial_a_state','complete'),('maximum_initial_terminal_records',1),('flashes',1),
+                    ('runtime_seconds',301),('configuration_writes',1)]:
+            with self.subTest(key=k),self.assertRaises(ValueError):validate(dict(p,**{k:v}))
+
     def test_independent_b_requires_new_image_and_explicit_parallel_scope(self):
         from phase11_5_r3_v2_rf import comparator_required,REPAIRED_SOURCE,REPAIRED_IMAGE,B_PARALLEL_AUTHORIZATION
         p=self.packet();self.assertTrue(comparator_required(p))

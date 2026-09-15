@@ -5,7 +5,7 @@
 | Package | Status | Outcome / next requirement |
 | --- | --- | --- |
 | 0 | COMPLETE | Fresh named A/B USB inventories independently decoded; source-impact matrix and current summaries reconciled. [Result](phase11-5-completion-package0-result.json). |
-| 1 | OPEN — idle regression passed | Three maximum LOADs and fresh-ID replay pass on b0254c5. Maximum padded STATUS repair passes host checks; RF capacity remains unaccepted. [Review](phase11-5-completion-read-workspace-review.md). |
+| 1 | OPEN — WTP components passed | 2.1a/2.1d/2.1e pass on e64ebb9. P1g later failed observer cadence before HTTP. Repaired same-boot continuation active. [Review](phase11-5-completion-capacity-cadence-review.md). |
 | 2 | OPEN | Supported simultaneous workload and separate bounded overload. |
 | 3 | OPEN | Affected TLS/HTTP and distinct WTP timeouts. |
 | 4 | OPEN | Actual USB parser and unread-output pressure. |
@@ -17,27 +17,28 @@
 
 ### Current retained-reply checkpoint
 
-[Immutable results](phase11-5-completion-read-workspace-result.json) and
-[review](phase11-5-completion-read-workspace-review.md). R1/R2 retain recorded
-closure; R3-R6 remain OPEN. No new normative physical assertion closes.
+[Immutable results](phase11-5-completion-capacity-cadence-result.json) and
+[review](phase11-5-completion-capacity-cadence-review.md). R1/R2 retain recorded
+closure; R3-R6 remain OPEN. Components 2.1a, 2.1d and 2.1e now have current-image
+evidence. The prior idle replay pass remains recorded on b0254c5.
 
-A runs b0254c5 on boot 4dad3b38c27aad73da01cefc9e857cdb. Three maximum LOADs and
-one fresh-ID replay returned all exact adjustments in 2.11-2.61 seconds under
-96 native STATUS replies. Peak headroom is 32,800 bytes, only 32 above the gate.
-This passes the frozen idle workload; it provides no additional capacity margin
-or RF-continuity acceptance. Earlier failures remain failed.
+A runs e64ebb9 on boot 0a6d95e11cf712a53e97a4c9938614e9. P1g's 512-event job
+completed with exact DMA/launch/tail counters and 48,136-byte heap headroom.
+The maximum 65,536-byte WTP payload and 65,537-byte rejection/recovery each
+completed under independently bracketed native Running observations. Two serial
+exchanges in one polling action then missed USB STATUS cadence; HTTP was never
+offered. This failure is preserved separately from passing components.
 
-Host tests reproduce maximum padded STATUS decode refusal beside a loaded job.
-A targeted bounded-read workspace repair passes red/green tests without changing
-new-LOAD admission, the safety reserve or five-second deadlines. Next: reviewed
-image deployment and affected maximum-capacity RF test. The completed idle replay
-is reused only within its source-impact scope; changed layout is checked anew.
+The harness now offers one exchange per polling action. P1h is ACTIVE on the
+same source/boot, retaining P1g's Complete job, with one 128-second job allowance,
+no flash/configuration writes and the existing fixture deadline. Final P1h state
+and actual ARM charges await reconciliation. P1g ended Complete/inactive/unowned,
+B remained Empty, both schedules disabled and configurations unchanged; the
+original reservation was released before P1h acquired it.
 
-Both boards are Empty/inactive/unowned with schedules disabled and configurations
-preserved. Shared reservation RELEASED. The prior fixture session is restored;
-the current session is ACTIVE with independent cleanup due at host monotonic
-435459994813000 ns. Cumulative charge: three RF jobs / 384 planned seconds,
-five A flashes/BOOTSEL transitions, two Wi-Fi cycles, zero configuration writes.
+The fixture remains ACTIVE with independent cleanup due at host monotonic
+435459994813000 ns. Completed-packet charges: four RF jobs / 512 planned seconds,
+six A flashes/BOOTSEL transitions, two Wi-Fi cycles, zero configuration writes.
 
 ### Package 0 checkpoint
 

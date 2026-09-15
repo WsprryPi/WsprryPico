@@ -10,16 +10,16 @@ The [machine matrix](phase11-5-completion-matrix.json) contains each assertion.
 ## Candidate and applicability
 
 Repository devel was clean at d1a5a2e and independently matched origin/devel.
-Deployed A is clean firmware b0254c5. [Current results](phase11-5-completion-read-workspace-result.json)
-accept the bounded three-LOAD/fresh-ID replay under native observation, with
-32,800-byte headroom against the unchanged 32,768-byte reserve. A new host-proved
-maximum STATUS decoding repair awaits target RF-capacity validation.
+Deployed A is clean firmware e64ebb9. [Current results](phase11-5-completion-capacity-cadence-result.json)
+accept the 512-event job completion and both WTP size-boundary components during
+RF. The subsequent observer cadence failure is preserved; HTTP was not offered.
+A same-boot continuation tests the repaired polling schedule and HTTP boundaries.
 Earlier bd16bb1 results retain two finite completions with
 failed capacity workloads. B remains 8921a7008183. Both are Pico 2 W/RP2350 Arm,
 138 MHz/divider 1, GP2 PIO/DMA, RAM rendering and listener configured. No full
 configuration is accepted.
 
-Compared with B's source, six firmware commits changed INFO buffer reuse,
+Firmware changes since B's source include INFO buffer reuse,
 static HTTP output pages, allocator diagnostics, paged WTP/JSON input, shared
 immutable LOAD adjustments and bounded array traversal. Reviewed actual diffs
 contain no RF renderer, worker, PIO/DMA, mode compiler or duration arithmetic
@@ -79,11 +79,11 @@ resource gates. Evidence links retain exact source/image/boot and raw hashes.
 | R2.5 | R2 | USB FSKCW | accepted/applicable | [phase11-5-r2-closure-result.json](phase11-5-r2-closure-result.json) | Unchanged RF renderer/PIO/worker timing semantics; retain original image identities. New maximum-event RF observation in P1 covers changed input/retention contention. | 0 |
 | R2.6 | R2 | USB DFCW | accepted/applicable | [phase11-5-r2-closure-result.json](phase11-5-r2-closure-result.json) | Unchanged RF renderer/PIO/worker timing semantics; retain original image identities. New maximum-event RF observation in P1 covers changed input/retention contention. | 0 |
 | R2.7 | R2 | USB WSPR | accepted/applicable | [phase11-5-r2-closure-result.json](phase11-5-r2-closure-result.json) | Unchanged RF renderer/PIO/worker timing semantics; retain original image identities. New maximum-event RF observation in P1 covers changed input/retention contention. | 0 |
-| 2.1a | JOB-MAX | 512-event idle admission and complete RF job | affected and needing retest | [latest checkpoint](phase11-5-completion-native-closure-result.json) | Two candidate 512-event jobs completed with independently decoded USB/Console timing. Full capacity workload failed: P1e readiness publication, P1f native connection loss. Preserve completion components; affected contention/resource retest remains. | 1 |
+| 2.1a | JOB-MAX | 512-event idle admission and complete RF job | accepted/applicable | [P1g components](phase11-5-completion-capacity-cadence-result.json) | Full raw WTP boundaries and maximum-job completion pass on e64ebb9; later cadence failure and absent HTTP remain open | 1 |
 | 2.1b | JOB-MAX | 513 events and over-duration atomic rejection | accepted/applicable | [phase11-5-r3-v2-component3-result.json](phase11-5-r3-v2-component3-result.json) | E6 paged-input boundary results plus current codec/service tests; semantics unchanged by shared adjustments/array traversal | 0 |
 | 2.1c | JOB-MAX | Worst 32-character plans and complete physical hours | accepted/applicable | [phase11-5-r3-v2-validation-006.json](phase11-5-r3-v2-validation-006.json); [phase11-5-r3-v2-validation-007.json](phase11-5-r3-v2-validation-007.json); [phase11-5-r3-v2-validation-010.json](phase11-5-r3-v2-validation-010.json); [phase11-5-r3-v2-validation-012.json](phase11-5-r3-v2-validation-012.json); [phase11-5-r3-v2-validation-043.json](phase11-5-r3-v2-validation-043.json) | Retain actual hours and original observation failures. No repeated hours: local engine/duration arithmetic unchanged; resource/lifetime acceptance remains separately open. | 0 |
-| 2.1d | WTP-MAX | 65536-byte WTP payload success during RF | failed | [phase11-5-r3-v2-capacity-c5-result.json](phase11-5-r3-v2-capacity-c5-result.json); [phase11-5-r3-v2-component3-result.json](phase11-5-r3-v2-component3-result.json); [phase11-5-completion-p1-attempt1-result.json](phase11-5-completion-p1-attempt1-result.json) | Attempt1 wrote only 4096 of 65552 frame bytes during ordinary HTTPS overlap. Freeze sequential individual capacity probes; no acceptance from the failed exchange. | 1 |
-| 2.1e | WTP-MAX | 65537-byte framed rejection and same-connection recovery during RF | missing | [phase11-5-r3-v2-component3-result.json](phase11-5-r3-v2-component3-result.json) | Idle E6 credit retained; under-RF exact oversize and recovery required | 1 |
+| 2.1d | WTP-MAX | 65536-byte WTP payload success during RF | accepted/applicable | [P1g components](phase11-5-completion-capacity-cadence-result.json) | Full raw WTP boundaries and maximum-job completion pass on e64ebb9; later cadence failure and absent HTTP remain open | 1 |
+| 2.1e | WTP-MAX | 65537-byte framed rejection and same-connection recovery during RF | accepted/applicable | [P1g components](phase11-5-completion-capacity-cadence-result.json) | Full raw WTP boundaries and maximum-job completion pass on e64ebb9; later cadence failure and absent HTTP remain open | 1 |
 | 2.1f | HTTP-MAX | Valid exact 32768-byte API body success during RF | missing | [phase11-5-r3-v2-bf4-result.json](phase11-5-r3-v2-bf4-result.json) | B idle functional credit; candidate body and WTP envelope allocation under RF | 1 |
 | 2.1g | HTTP-MAX | 32769-byte HTTP limit rejection and authenticated recovery during RF | missing | [phase11-5-r3-v2-bf4-result.json](phase11-5-r3-v2-bf4-result.json) | Header-layer refusal is correct; document offered versus declared bytes | 1 |
 | 2.2a | COMBINED | Supported simultaneous resident workload | failed | [phase11-5-r3-v2-capacity-c2-result.json](phase11-5-r3-v2-capacity-c2-result.json); [phase11-5-completion-p1-attempt1-result.json](phase11-5-completion-p1-attempt1-result.json) | Attempt1 maximum WTP overlapped ordinary HTTPS and failed. Preserve this supported-workload failure; separately freeze and validate the supported simultaneous workload. | 2 |

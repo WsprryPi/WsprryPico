@@ -10,7 +10,7 @@
     "R5": "OPEN",
     "R6": "OPEN"
   },
-  "candidate_source": "b0254c5e64abf858255ca6d426e864080f003891",
+  "candidate_source": "e64ebb9b03739b61e33987ec267f7adf1f9732c6",
   "assertions": [
     {
       "id": "R1.1",
@@ -124,9 +124,9 @@
       "id": "2.1a",
       "group": "JOB-MAX",
       "requirement": "512-event idle admission and complete RF job",
-      "classification": "affected and needing retest",
-      "evidence": "phase11-5-r3-v2-component3-result.json; phase11-5-r3-v2-validation-045.json; phase11-5-r3-v2-component9-result.json; phase11-5-completion-p1-attempt1-result.json; phase11-5-completion-native-closure-result.json",
-      "remaining": "Two candidate 512-event jobs completed with independently decoded USB/Console timing. Full capacity workload failed: P1e readiness publication, P1f native connection loss. Preserve completion components; affected contention/resource retest remains.",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r3-v2-component3-result.json; phase11-5-r3-v2-validation-045.json; phase11-5-r3-v2-component9-result.json; phase11-5-completion-p1-attempt1-result.json; phase11-5-completion-native-closure-result.json; phase11-5-completion-capacity-cadence-result.json",
+      "remaining": "P1g raw components accepted on e64ebb9, boot 0a6d95e11cf712a53e97a4c9938614e9: full maximum job completion and both WTP boundaries under independent INFO/native observation. Full packet failed later USB cadence and did not offer HTTP; preserve that failure. No P2 combined-load or family closure.",
       "package": 1
     },
     {
@@ -151,18 +151,18 @@
       "id": "2.1d",
       "group": "WTP-MAX",
       "requirement": "65536-byte WTP payload success during RF",
-      "classification": "failed",
-      "evidence": "phase11-5-r3-v2-capacity-c5-result.json; phase11-5-r3-v2-component3-result.json; phase11-5-completion-p1-attempt1-result.json",
-      "remaining": "Attempt1 wrote only 4096 of 65552 frame bytes during ordinary HTTPS overlap. Freeze sequential individual capacity probes; no acceptance from the failed exchange.",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r3-v2-capacity-c5-result.json; phase11-5-r3-v2-component3-result.json; phase11-5-completion-p1-attempt1-result.json; phase11-5-completion-capacity-cadence-result.json",
+      "remaining": "P1g raw components accepted on e64ebb9, boot 0a6d95e11cf712a53e97a4c9938614e9: full maximum job completion and both WTP boundaries under independent INFO/native observation. Full packet failed later USB cadence and did not offer HTTP; preserve that failure. No P2 combined-load or family closure.",
       "package": 1
     },
     {
       "id": "2.1e",
       "group": "WTP-MAX",
       "requirement": "65537-byte framed rejection and same-connection recovery during RF",
-      "classification": "missing",
-      "evidence": "phase11-5-r3-v2-component3-result.json",
-      "remaining": "Idle E6 credit retained; under-RF exact oversize and recovery required",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r3-v2-component3-result.json; phase11-5-completion-capacity-cadence-result.json",
+      "remaining": "P1g raw components accepted on e64ebb9, boot 0a6d95e11cf712a53e97a4c9938614e9: full maximum job completion and both WTP boundaries under independent INFO/native observation. Full packet failed later USB cadence and did not offer HTTP; preserve that failure. No P2 combined-load or family closure.",
       "package": 1
     },
     {

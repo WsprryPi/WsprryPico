@@ -18,6 +18,9 @@ from phase11_5_r3_v2_admission import candidate
 from phase11_5_rf_reservation import Reservation, inactive
 
 CANDIDATES = {
+    'phase115-completion-read-workspace-deploy-v1': (
+        'e64ebb9b03739b61e33987ec267f7adf1f9732c6', 'b0254c5e64ab',
+        '4dad3b38c27aad73da01cefc9e857cdb'),
     'phase115-completion-info-lifetime-deploy-v1': (
         'b0254c5e64abf858255ca6d426e864080f003891', '0001a3625832',
         '6213cc6b8d7694082fb804fdf5b121fc'),
