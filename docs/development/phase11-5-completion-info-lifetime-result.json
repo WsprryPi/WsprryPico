@@ -1,0 +1,141 @@
+{
+  "schema": "phase11.5-completion-info-lifetime-checkpoint-v1",
+  "phase_status": "OPEN",
+  "families_closed": 2,
+  "newly_closed_assertions": [],
+  "deployment": {
+    "status": "DEPLOYMENT_INDEPENDENTLY_VERIFIED",
+    "packet_sha256": "b0860bcf071417e14768596279957d80047036b05788505b7cd727fbf4eb3ea7",
+    "source_revision": "0001a3625832b16ad89236cd98cce9679353aba8",
+    "image_sha256": "5f5eb88ef2ac58bece060bd8530442eeb73d9ca58c71deffcdc2ff13eb1a0474",
+    "elf_sha256": "5413d960eb0bca612647257d91e99ab8c23ac459eb0d73935faa9d423a525199",
+    "boot_id": "6213cc6b8d7694082fb804fdf5b121fc",
+    "boards": {
+      "a": {
+        "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+        "boot_id": "6213cc6b8d7694082fb804fdf5b121fc",
+        "revision": "0001a3625832",
+        "state": "empty"
+      },
+      "b": {
+        "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "revision": "8921a7008183",
+        "state": "empty"
+      }
+    },
+    "configuration_preserved": true,
+    "schedules_disabled": true,
+    "reservation_released": true,
+    "flashes": 1,
+    "bootsel": 1,
+    "rf_jobs": 0,
+    "heap_capacity_bytes": 218984,
+    "allocator_peak_bytes": 19904
+  },
+  "failed_idle": {
+    "status": "REPLAY_RESERVE_FAILURE_CONFIRMED",
+    "packet_sha256": "1f578a4b0f403434e3110d9c9b08e48daaa6f22c4f2c94da62dc38c2b277a951",
+    "source_revision": "0001a3625832b16ad89236cd98cce9679353aba8",
+    "boot_id": "6213cc6b8d7694082fb804fdf5b121fc",
+    "maximum_load_replies": 3,
+    "replay_request_bytes": 49152,
+    "replay_accepted": false,
+    "cleanup_abort_sent": true,
+    "allocator_peak_bytes": 187304,
+    "allocator_headroom_bytes": 31680,
+    "required_headroom_bytes": 32768,
+    "rf_jobs": 0,
+    "native_prefix": {
+      "connections": 1,
+      "operations": {
+        "HELLO": 1,
+        "STATUS": 23,
+        "CAPS": 1
+      }
+    },
+    "capacity_acceptance": false,
+    "reservation_released": true,
+    "configurations_preserved": true,
+    "schedules_disabled": true
+  },
+  "reconciliation": {
+    "status": "AUTHORITATIVELY_RECONCILED",
+    "packet_sha256": "1f578a4b0f403434e3110d9c9b08e48daaa6f22c4f2c94da62dc38c2b277a951",
+    "helper_sha256": "33b6d765534f7388adb3b594daa11f832363956c087ec7062d07d9c3f0607e4a",
+    "observed_monotonic_ns": 432259224934212,
+    "boards": {
+      "a": {
+        "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+        "boot_id": "6213cc6b8d7694082fb804fdf5b121fc",
+        "revision": "0001a3625832",
+        "state": "empty"
+      },
+      "b": {
+        "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "revision": "8921a7008183",
+        "state": "empty"
+      }
+    },
+    "additional_abort_commands": 0,
+    "additional_claim_commands": 0,
+    "additional_release_commands": 0
+  },
+  "fixture": {
+    "status": "ACTIVE",
+    "packet_sha256": "11bd8abc8090433997f40d5fc8ad84b2e0921c5e79a35475e9932456bc0204ad",
+    "root": "/home/pi/phase11-5-completion-active-replay-fixture-20260915",
+    "independent_cleanup_start_monotonic_ns": 435459994813000,
+    "session_budget": {
+      "start_monotonic_ns": 431841383890721,
+      "start_utc_ns": 1789487340642457545,
+      "work_deadline_monotonic_ns": 435741383890721,
+      "cleanup_deadline_monotonic_ns": 436641383890721,
+      "execution_seconds": 3900,
+      "cleanup_seconds": 900,
+      "initial_packet_rf_jobs": 0,
+      "initial_packet_rf_seconds": 0,
+      "flashes": 0,
+      "configuration_writes": 0,
+      "wifi_cycles": 0
+    }
+  },
+  "repair": {
+    "status": "SOURCE_REVIEWED_TARGET_PENDING",
+    "parent_source": "0001a3625832b16ad89236cd98cce9679353aba8",
+    "source_sha256": {
+      "src/standalone/pico/main.cpp": "d36e350b57033e317521090320375b178ee3587924fd326f5aa145f236244d3f",
+      "scripts/phase11_5_completion_native_idle.py": "8cae80b0c7a9dbde30a3ea1400dc8f2b12c5175363fb4f66a2cb2c87ca33c3dd",
+      "scripts/audit_phase11_5_completion_reserve_failure.py": "1c775f6482ed6da930c50b593e59d2d834d923eea970477a31474231c2e502c7",
+      "scripts/audit_phase11_5_completion_native_idle.py": "df1d96ce3e6dbb8698f7393e5e885a90fc51946330eebeafb53b10174f638d08"
+    },
+    "reserve_bytes": 32768
+  },
+  "checks": {
+    "cleanup_tests_passed": 8,
+    "private_audit_tests_passed": 2,
+    "log_sha256": {
+      "info-lifetime-cleanup-tests.log": "40ca486838d221c325895202ea121c5971fc2f6911a6dac3a4c81e3511c0952a",
+      "info-lifetime-evidence-tests.log": "e718ec137775d101a835a9575d5989ec307fc6a74e9b781e8a9f747ac39ed221"
+    }
+  },
+  "evidence_sha256": {
+    "packet.json": "1f578a4b0f403434e3110d9c9b08e48daaa6f22c4f2c94da62dc38c2b277a951",
+    "idle.jsonl": "f41ed61d086491caae112313251bd2c4e639864cc429a2a00ae1fe33629e7064",
+    "run-result.json": "0087969eae5cccd2aaa240ace3ac7b4bac353947e656bb149d0debe50cc954f3",
+    "production-tls.bin": "94958961bf18623572f285de934360d3e40fe7f21918ff3b993d69102c50918e",
+    "production.log": "4c2048d0656690f853c73176590f4136286edcec6ab1ed8aea7698033eb60872",
+    "reconciliation.json": "7b84e229abaa1f536af50e00363b103229a79d4c4cc7944c066dd75e52179ac5",
+    "reservation-reconciled.json": "8b34d8a9522b7b1ac1b96c557c4d529d098a635ba472b3448a65c5841e6393cc"
+  },
+  "cumulative_task_charges": {
+    "rf_jobs": 3,
+    "planned_rf_seconds": 384,
+    "a_flashes": 4,
+    "bootsel": 4,
+    "additional_reboots": 0,
+    "wifi_cycles": 2,
+    "configuration_writes": 0
+  }
+}

@@ -5,7 +5,7 @@
 | Package | Status | Outcome / next requirement |
 | --- | --- | --- |
 | 0 | COMPLETE | Fresh named A/B USB inventories independently decoded; source-impact matrix and current summaries reconciled. [Result](phase11-5-completion-package0-result.json). |
-| 1 | OPEN — replay reserve failure | Three complete maximum idle LOADs, then 31,200-byte headroom failure. Compact active replay repair is host-validated; target check precedes RF capacity. [Review](phase11-5-completion-active-replay-review.md). |
+| 1 | OPEN — replay reserve failure | Three complete maximum idle LOADs, then 31,680-byte headroom failure before replay input completed. INFO lifetime repair precedes another affected target check. [Review](phase11-5-completion-info-lifetime-review.md). |
 | 2 | OPEN | Supported simultaneous workload and separate bounded overload. |
 | 3 | OPEN | Affected TLS/HTTP and distinct WTP timeouts. |
 | 4 | OPEN | Actual USB parser and unread-output pressure. |
@@ -17,25 +17,26 @@
 
 ### Current retained-reply checkpoint
 
-[Immutable results](phase11-5-completion-active-replay-result.json) and
-[review](phase11-5-completion-active-replay-review.md). R1/R2 retain recorded
+[Immutable results](phase11-5-completion-info-lifetime-result.json) and
+[review](phase11-5-completion-info-lifetime-review.md). R1/R2 retain recorded
 closure; R3-R6 remain OPEN. No new physical assertion closes.
 
-A runs d674dc6 on boot d76d4e540ddafff6622513596125c58c. Its fresh zero-RF
-packet returned three complete 512-adjustment LOAD replies. A fully written
-fresh-ID replay had no completed reply when peak allocator headroom failed at
-31,200 bytes against the unchanged 32,768-byte reserve. Native observation
-provided 21 complete STATUS replies, but the full workload remains failed.
+A runs 0001a36 on boot 6213cc6b8d7694082fb804fdf5b121fc. Three maximum LOADs
+returned all adjustments; the fresh-ID replay stopped after 49,152 of 52,105
+request bytes when peak headroom failed at 31,680 against the 32,768-byte reserve.
+The native observer supplied 23 STATUS replies. The workload remains failed.
 
-The active-replay decoder now avoids a duplicate event array; INFO avoids normal
-geometric string growth. Seven affected host targets and adversarial replay,
-ownership, scalar and evidence checks pass. Target behavior remains unvalidated.
-Next: a fresh reviewed image and the same finite three-LOAD/replay workload.
+Active replay decoding remains host-validated but was not reached by this partial
+request. INFO now prepares its network snapshot before its outer buffer, avoiding
+their formatting overlap. The final acceptance check follows authority cleanup,
+so a failed peak cannot block release of an independently reconciled reservation.
+Next: exact-image build and the same bounded affected zero-RF target check.
 
 Both boards are Empty/inactive/unowned with schedules disabled and configurations
 preserved. Shared reservation RELEASED after fresh authoritative reconciliation.
-The temporary host fixture is RESTORED before its fixed cleanup deadline.
-Cumulative charge: three RF jobs / 384 seconds, three A flashes, two Wi-Fi cycles,
+The prior fixture session is restored; the new one-hour session is ACTIVE with
+independent cleanup due at host monotonic 435459994813000 ns.
+Cumulative charge: three RF jobs / 384 seconds, four A flashes, two Wi-Fi cycles,
 zero configuration writes. All earlier failed workloads remain failed.
 
 ### Package 0 checkpoint

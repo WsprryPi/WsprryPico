@@ -21,10 +21,10 @@ BOOT = '8d747e80fa4e2762ba2509b5bb5ecfae'
 
 
 def validate(p):
-    require(p['scope'] in ('phase115-completion-native-idle-v1', 'phase115-completion-native-idle-v2', 'phase115-completion-native-idle-v3', 'phase115-completion-native-idle-v4') and
-            (p['source_revision'],p['boot_id']) == (('d674dc6cbf8efd142527c1c54f283d6037bb1acf','d76d4e540ddafff6622513596125c58c') if p['scope'].endswith('-v4') else (SOURCE,BOOT)) and
+    require(p['scope'] in ('phase115-completion-native-idle-v1', 'phase115-completion-native-idle-v2', 'phase115-completion-native-idle-v3', 'phase115-completion-native-idle-v4', 'phase115-completion-native-idle-v5') and
+            (p['source_revision'],p['boot_id']) == (('0001a3625832b16ad89236cd98cce9679353aba8','6213cc6b8d7694082fb804fdf5b121fc') if p['scope'].endswith('-v5') else ('d674dc6cbf8efd142527c1c54f283d6037bb1acf','d76d4e540ddafff6622513596125c58c') if p['scope'].endswith('-v4') else (SOURCE,BOOT)) and
             p['native_idle_policy'] == 'retained-load-native-90s-v1', 'Identified idle candidate')
-    count=3 if p['scope'].endswith('-v4') else 2 if p['scope'].endswith('-v1') else 1
+    count=3 if p['scope'].endswith(('-v4','-v5')) else 2 if p['scope'].endswith('-v1') else 1
     require(p['limits'] == dict(loads=count, fresh_id_replays=1, claims=count, aborts=count,
             releases=count, cleanup_aborts=1, cleanup_claims=1, cleanup_releases=1,
             rf_jobs=0, flashes=0, reboots=0, wifi_cycles=0, configuration_writes=0), 'Idle operation ceilings')
@@ -49,6 +49,16 @@ def cleanup_identity(info, boot, source):
     require(info['device_id'] == DEVICE and info['revision'] == source[:12] and
             info['status']['boot_id'] == boot and info['status']['enabled'] is False,
             'Cleanup board/boot/scheduling identity')
+
+
+def reconcile_authority(reservation, before, final, boot, source):
+    identities = inactive(final)
+    cleanup_identity(final['a']['info'], boot, source)
+    require(all(configuration(before[b]) == configuration(final[b]) for b in before) and
+            final['b']['wtp']['STATUS'] == before['b']['wtp']['STATUS'],
+            'Final configuration/B preservation')
+    reservation.release(final)
+    return identities
 
 
 def run(root, p, sha):
@@ -170,12 +180,11 @@ def run(root, p, sha):
             except BaseException as e:result['cleanup_error']=str(e)
         try:
             deadline(True);final={b:inventory(root,p,'final-'+b,b=='b') for b in ('a','b')}
-            inactive(final);candidate(final['a'],p,boot=boot)
-            require(before is not None and all(configuration(before[b])==configuration(final[b]) for b in before) and
-                    final['b']['wtp']['STATUS']==before['b']['wtp']['STATUS'], 'Final configuration/B preservation')
-            if held:
-                reservation.release(final);save(root/'reservation-released.json',json.loads(reservation.path.read_text()))
-            result['final']=inactive(final)
+            require(before is not None and held, 'Original reservation and inventories required')
+            result['final'] = reconcile_authority(reservation, before, final, boot, source)
+            save(root/'reservation-released.json',json.loads(reservation.path.read_text()))
+            try: candidate(final['a'],p,boot=boot)
+            except ValueError as e: result.update(status='FAILED',acceptance_error=str(e))
         except BaseException as e:result.update(status='FAILED',reconciliation_error=str(e))
         reservation.close()
         if errors:result.update(status='FAILED',observer_errors=errors)

@@ -31,6 +31,24 @@ class Tests(unittest.TestCase):
                        dict(status=dict(boot_id='a'*32,enabled=True))):
             with self.assertRaises(ValueError):cleanup_identity(info|change, 'a'*32, 'test')
 
+    def test_final_authority_release_is_independent_of_failed_resource_acceptance(self):
+        from phase11_5_completion_native_idle import reconcile_authority
+        from unittest.mock import Mock
+        before = snapshots(); final = copy.deepcopy(before)
+        final['a']['info']['allocator_peak_bytes'] = 200000
+        reservation = Mock()
+        with patch('phase11_5_completion_native_idle.configuration', return_value={}):
+            reconcile_authority(reservation, before, final, 'a'*32, 'test')
+            reservation.release.assert_called_once_with(final)
+            for mutation in ('boot', 'active', 'schedule'):
+                changed = copy.deepcopy(final)
+                if mutation == 'boot': changed['a']['info']['status']['boot_id'] = 'wrong'
+                elif mutation == 'active': changed['a']['wtp']['STATUS']['output_active'] = True
+                else: changed['a']['info']['status']['enabled'] = True
+                rejected = Mock()
+                with self.assertRaises(ValueError):reconcile_authority(rejected, before, changed, 'a'*32, 'test')
+                rejected.release.assert_not_called()
+
     def test_reconciliation_cannot_transfer_or_use_stale_authority(self):
         original_read=Path.read_text
         def read(path,*args,**kwargs):

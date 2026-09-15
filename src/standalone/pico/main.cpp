@@ -253,6 +253,9 @@ int main() {
             const auto stack_before = time_us_64();
             const auto core0_stack_used = stack_used();
             const auto core0_stack_scan_us = time_us_64() - stack_before;
+            // Build the network snapshot before allocating the outer INFO
+            // buffer: its formatter has its own temporary strings.
+            auto network_status = network.status();
             std::string result;
             // Avoid retaining old and doubled buffers while a maximum WTP
             // input is resident. Reserve the normal INFO size in one allocation.
@@ -275,7 +278,9 @@ int main() {
                          allocation_fault ? saved_status : 0);
             result += ",\"fault_allocation_returned_null\":";
             result += allocation_fault ? ((saved_pc & 1U) ? "true" : "false") : "null";
-            result += ",\"network\":" + network.status();
+            result += ",\"network\":";
+            result += network_status;
+            std::string{}.swap(network_status);
             number_field(result, "system_clock_hz", clock_get_hz(clk_sys));
             number_field(result, "heap_allocated_bytes", heap.uordblks);
             number_field(result, "heap_available_bytes",

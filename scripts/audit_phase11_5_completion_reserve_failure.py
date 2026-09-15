@@ -10,13 +10,18 @@ from phase11_5_r3_preflight import audit_inventory
 from phase11_5_rf_reservation import BOARDS, inactive
 from validate_wtp_contract import SchemaValidator
 
-PACKET = '575ede223180c866915d600724bd2ad778d63be522be38f08c8437d816afd630'
+PACKETS = {
+    '575ede223180c866915d600724bd2ad778d63be522be38f08c8437d816afd630': (31200,187808,False,52105),
+    '1f578a4b0f403434e3110d9c9b08e48daaa6f22c4f2c94da62dc38c2b277a951': (31680,187304,True,49152),
+}
 
 
 def audit(root):
-    p, values = inputs(root, PACKET)
+    packet = digest(root/'packet.json'); require(packet in PACKETS, 'Exact failed packet')
+    expected_head, expected_peak, cleanup_sent, replay_written = PACKETS[packet]
+    p, values = inputs(root, packet)
     rows = journal(root/'idle.jsonl')
-    require(rows[0]['value'] == dict(packet_sha256=PACKET), 'Packet trace binding')
+    require(rows[0]['value'] == dict(packet_sha256=packet), 'Packet trace binding')
     schema = json.loads((root/'docs/protocol/wtp-1.schema.json').read_text())
     validator = SchemaValidator(schema)
     requests = {}; written = {}; replies = {}; wire = b''
@@ -56,6 +61,7 @@ def audit(root):
         expected += [f'claim-{i}', f'load-{i}']
         if i < 2: expected += [f'abort-{i}', f'release-{i}', f'retained-{i}']
     expected += ['fresh-id-replay']
+    if cleanup_sent: expected += ['cleanup-HELLO','cleanup-CLAIM','cleanup-RELEASE']
     require(list(requests) == expected, 'Exact finite sequence')
     for i in range(3):
         label = f'load-{i}'; q = requests[label]
@@ -65,8 +71,8 @@ def audit(root):
                 body['adjustments'] == [dict(event_index=n,
                     requested_frequency_nhz=str(135500000000000 if n%2 == 0 else 135495000000000),
                     realized_frequency_nhz=str(135500002652407 if n%2 == 0 else 135494990274310)) for n in range(512)], 'All exact adjustments')
-    require(requests['fresh-id-replay']['body'] == p['jobs'][-1] and written['fresh-id-replay'] == 52105 and
-            not replies['fresh-id-replay'] and not wire, 'Fully written replay without complete reply')
+    require(requests['fresh-id-replay']['body'] == p['jobs'][-1] and written['fresh-id-replay'] == replay_written and
+            not replies['fresh-id-replay'] and not wire, 'Exact replay write prefix without complete reply')
     require(not pending and not console and decoded is None and info, 'Complete INFO observer prefix')
     for v in info + [values['final-a']['info']]:
         require(v['device_id'] == BOARDS['a'][1] and v['revision'] == p['source_revision'][:12] and
@@ -82,21 +88,21 @@ def audit(root):
         require(not path.with_suffix('.stderr').read_bytes() and configuration(final[b]) == configuration(values['before-'+b]), 'Fresh reconciliation/configuration')
     identities = inactive(final)
     f = final['a']['info']; headroom = f['heap_capacity_bytes'] - f['allocator_peak_bytes']
-    require(headroom == 31200 and headroom < 32768 and f['allocator_peak_bytes'] == 187808, 'Preserved failed reserve')
+    require(headroom == expected_head and headroom < 32768 and f['allocator_peak_bytes'] == expected_peak, 'Preserved failed reserve')
     require({t['job_id'] for t in final['a']['wtp']['STATUS']['terminal_records']} == {j['job_id'] for j in p['jobs']} and
             all(t['state'] == 'aborted' and t['output_active'] is False for t in final['a']['wtp']['STATUS']['terminal_records']), 'Three inactive terminal records')
     reservation = json.loads((root/'reservation-reconciled.json').read_text())
-    require(reservation['state'] == 'RELEASED' and reservation['packet_sha256'] == PACKET and
+    require(reservation['state'] == 'RELEASED' and reservation['packet_sha256'] == packet and
             reservation['boards'] == identities and reservation['host_boot'] == p['host_boot_id'], 'Same packet reconciled release')
     native, metrics = native_wire(root,p,root/'pi/phase115_tls_observer_test.py')
     require(native and all(s['value']['output_active'] is False for s in native), 'Independent native inactive prefix')
     result = json.loads((root/'run-result.json').read_text())
     require(result == rows[-1]['value'] and result['status'] == 'FAILED' and result['rf_jobs'] == 0 and
-            result['cleanup_error'] == 'Observed allocator reserve', 'Failure and cleanup defect preserved')
-    require(not any(r['kind']=='cleanup_tx' and bytes.fromhex(r['value']['hex']) != b'INFO\n' for r in rows), 'No cleanup mutation before lease reconciliation')
-    return dict(status='REPLAY_RESERVE_FAILURE_CONFIRMED', packet_sha256=PACKET,
+            ((not result.get('cleanup_error') and result['reconciliation_error']=='Extended candidate identity/capacity/resource') if cleanup_sent else result['cleanup_error']=='Observed allocator reserve'), 'Failure and cleanup defect preserved')
+    require([bytes.fromhex(r['value']['hex']) for r in rows if r['kind']=='cleanup_tx']==([b'INFO\n',b'ABORT\n'] if cleanup_sent else [b'INFO\n']), 'Exact cleanup command count')
+    return dict(status='REPLAY_RESERVE_FAILURE_CONFIRMED', packet_sha256=packet,
         source_revision=p['source_revision'],boot_id=p['boot_id'],maximum_load_replies=3,
-        replay_request_bytes=52105,replay_accepted=False,allocator_peak_bytes=f['allocator_peak_bytes'],
+        replay_request_bytes=replay_written,replay_accepted=False,cleanup_abort_sent=cleanup_sent,allocator_peak_bytes=f['allocator_peak_bytes'],
         allocator_headroom_bytes=headroom,required_headroom_bytes=32768,rf_jobs=0,
         native_prefix=metrics,capacity_acceptance=False,reservation_released=True,
         configurations_preserved=True,schedules_disabled=True)

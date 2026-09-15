@@ -2,7 +2,7 @@
 import json
 
 from audit_phase11_5_idle import frames
-from audit_phase11_5_r3_preflight import audit_inventory
+from phase11_5_r3_preflight import audit_inventory
 from audit_phase11_5_r3_v2_hour import journal, native_wire
 from phase11_5_device_management import digest
 from phase11_5_inventory import require, loads_console

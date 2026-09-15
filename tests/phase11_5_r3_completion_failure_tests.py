@@ -117,7 +117,7 @@ class ReserveFailureTests(unittest.TestCase):
         value = reserve_audit(Path(RESERVE_FAILURE))
         self.assertFalse(value['capacity_acceptance'])
         self.assertEqual(value['maximum_load_replies'], 3)
-        self.assertEqual(value['allocator_headroom_bytes'], 31200)
+        self.assertEqual(value['allocator_headroom_bytes'], 31680 if value['cleanup_abort_sent'] else 31200)
 
     def test_rejects_altered_reply_peak_and_reservation(self):
         from audit_phase11_5_completion_reserve_failure import audit as reserve_audit

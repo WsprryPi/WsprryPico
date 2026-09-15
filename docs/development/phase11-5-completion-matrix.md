@@ -10,9 +10,9 @@ The [machine matrix](phase11-5-completion-matrix.json) contains each assertion.
 ## Candidate and applicability
 
 Repository devel was clean at d1a5a2e and independently matched origin/devel.
-Deployed A is clean firmware d674dc6. [Current results](phase11-5-completion-active-replay-result.json)
-preserve three complete maximum idle LOAD replies followed by a failed replay
-reserve gate. Active replay decoding is host-validated and awaits target
+Deployed A is clean firmware 0001a36. [Current results](phase11-5-completion-info-lifetime-result.json)
+preserve three complete maximum idle LOAD replies, then a partial replay stopped
+by the INFO reserve gate. The reviewed diagnostic lifetime repair awaits target
 validation. Earlier bd16bb1 results retain two finite completions with
 failed capacity workloads. B remains 8921a7008183. Both are Pico 2 W/RP2350 Arm,
 138 MHz/divider 1, GP2 PIO/DMA, RAM rendering and listener configured. No full
