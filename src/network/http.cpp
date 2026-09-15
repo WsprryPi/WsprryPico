@@ -109,11 +109,18 @@ void HttpParser::parse_headers() {
         failed_ = true;
         return;
     }
-    if (!wtp::memory_admitted(content_length_)) {
+    if (!wtp::memory_admitted(content_length_ + (content_length_ ? 1024 : 0))) {
         exhausted_ = failed_ = true;
         return;
     }
-    request_.body.reserve(content_length_);
+    if (content_length_) {
+        request_.buffered_body = std::make_shared<wtp::FrameBuffer>();
+        if (!request_.buffered_body->reserve(content_length_)) {
+            request_.buffered_body.reset();
+            exhausted_ = failed_ = true;
+            return;
+        }
+    }
     headers_done_ = true;
     ready_ = content_length_ == 0;
 }
@@ -142,8 +149,8 @@ std::size_t HttpParser::receive(std::span<const std::uint8_t> bytes) {
             if (headers_.ends_with("\r\n\r\n"))
                 parse_headers();
         } else {
-            request_.body += static_cast<char>(c);
-            ready_ = request_.body.size() == content_length_;
+            request_.buffered_body->append(std::span(&c, 1));
+            ready_ = request_.buffered_body->size() == content_length_;
         }
     }
     return used;

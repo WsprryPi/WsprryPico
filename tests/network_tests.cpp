@@ -6,6 +6,26 @@
 #include "wtp/endpoint.hpp"
 #include "wtp/frame_parser.hpp"
 #include "wtp/memory_budget.hpp"
+
+#include <new>
+
+static std::size_t largest_new = 0;
+static bool bounded_http = false;
+void* operator new(std::size_t size) {
+    largest_new = std::max(largest_new, size);
+    if (bounded_http && size > 8192)
+        throw std::bad_alloc();
+    if (auto* result = std::malloc(size ? size : 1))
+        return result;
+    throw std::bad_alloc();
+}
+void operator delete(void* memory) noexcept {
+    std::free(memory);
+}
+void operator delete(void* memory, std::size_t) noexcept {
+    std::free(memory);
+}
+
 using namespace wsprrypico;
 using namespace network_test;
 namespace {
@@ -31,7 +51,7 @@ void framing() {
         REQUIRE(parser.receive(bytes(wire).first(split)) == split);
         REQUIRE(parser.receive(bytes(wire).subspan(split)) == wire.size() - split);
         REQUIRE(parser.ready() && !parser.failed());
-        REQUIRE(parser.request().body == "{\"enabled\":true}");
+        REQUIRE(parser.request().body_view() == "{\"enabled\":true}");
     }
     const auto bad = [](std::string text) {
         network::HttpParser parser;
@@ -60,6 +80,110 @@ void framing() {
     const auto response = network::http_error(403, "forbidden").wire();
     REQUIRE(response.find("Connection: close\r\n") != response.npos);
     REQUIRE(response.find("Access-Control-Allow-Origin") == response.npos);
+}
+void maximum_http_allocation() {
+    Fixture f;
+    std::string body = "{\"session_id\":\"" + std::string(32, 'a') + "\",\"request_id\":\"" +
+                       std::string(32, '1') +
+                       "\",\"operation\":\"HELLO\",\"body\":{\"versions\":[\"WTP/"
+                       "1\"],\"client_name\":\"test\",\"client_version\":\"1\"}}";
+    body.resize(network::max_http_body, ' ');
+    const std::string wire = "POST /api/v1/jobs HTTP/1.1\r\nHost: 127.0.0.1:8443\r\n"
+                             "Origin: https://127.0.0.1:8443\r\nX-WsprryPico-Request: 1\r\n"
+                             "Content-Type: application/json\r\nContent-Length: 32768\r\n\r\n" +
+                             body;
+    largest_new = 0;
+    bounded_http = true;
+    network::HttpParser parser;
+    for (std::size_t offset = 0; offset < wire.size();) {
+        const auto part =
+            bytes(wire).subspan(offset).first(std::min<std::size_t>(1023, wire.size() - offset));
+        REQUIRE(parser.receive(part) == part.size());
+        offset += part.size();
+    }
+    REQUIRE(parser.ready() && !parser.failed());
+    REQUIRE(largest_new <= 4096);
+    const auto response = f.api.handle(parser.request(), "cert", "127.0.0.1:8443");
+    REQUIRE(response.status == 200);
+    REQUIRE(response.body.find("\"ok\":true") != std::string::npos);
+    // HELLO creates the existing bounded session/replay table (7424 host bytes).
+    REQUIRE(largest_new <= 8192);
+    bounded_http = false;
+}
+std::size_t body_pages_live = 0;
+unsigned body_page_calls = 0, body_page_failure = 0;
+void http_body_failure_and_lifetime() {
+    const auto allocate = wtp::allocate_input;
+    const auto deallocate = wtp::deallocate_input;
+    wtp::allocate_input = [](std::size_t size) -> void* {
+        REQUIRE(size <= 4096);
+        if (++body_page_calls == body_page_failure)
+            return nullptr;
+        auto* page = std::malloc(size);
+        if (page)
+            ++body_pages_live;
+        return page;
+    };
+    wtp::deallocate_input = [](void* page) {
+        if (page) {
+            REQUIRE(body_pages_live > 0);
+            --body_pages_live;
+        }
+        std::free(page);
+    };
+    const std::string header =
+        "POST /api/v1/jobs HTTP/1.1\r\nHost: x\r\nContent-Length: 32768\r\n\r\n";
+    std::string body(network::max_http_body, ' ');
+    body.replace(4093, 11, "{\"value\":1}"); // Deliberately crosses a page boundary.
+    for (unsigned failure = 1; failure <= 8; ++failure) {
+        body_page_calls = 0;
+        body_page_failure = failure;
+        network::HttpParser parser;
+        REQUIRE(parser.receive(bytes(header)) == header.size());
+        REQUIRE(parser.failed() && parser.exhausted() && !parser.ready());
+        REQUIRE(body_page_calls == failure && body_pages_live == 0);
+        REQUIRE(parser.request().body_view().empty());
+        REQUIRE(parser.receive(bytes(body)) == 0);
+    }
+    body_page_failure = body_page_calls = 0;
+    {
+        network::HttpRequest retained;
+        {
+            network::HttpParser parser;
+            parser.receive(bytes(header));
+            REQUIRE(!parser.ready() && !parser.failed());
+            for (const auto c : body) {
+                const std::uint8_t value = static_cast<std::uint8_t>(c);
+                REQUIRE(parser.receive(std::span(&value, 1)) == 1);
+            }
+            REQUIRE(parser.ready() && !parser.failed());
+            retained = parser.request();
+            parser = {};
+            REQUIRE(body_pages_live == 8);
+        }
+        REQUIRE(retained.body_view() == body);
+        const auto parsed = wtp::json::parse(retained.body_view());
+        REQUIRE(parsed && parsed->get("value") && parsed->get("value")->raw == "1");
+        retained = {};
+        REQUIRE(body_pages_live == 0);
+    }
+    body_page_calls = 0;
+    {
+        network::HttpParser oversized;
+        oversized.receive(bytes("POST / HTTP/1.1\r\nHost: x\r\nContent-Length: 32769\r\n\r\n"));
+        REQUIRE(oversized.failed() && !oversized.exhausted() && body_page_calls == 0);
+        network::HttpParser empty;
+        empty.receive(bytes("GET / HTTP/1.1\r\nHost: x\r\n\r\n"));
+        REQUIRE(empty.ready() && body_page_calls == 0);
+        wtp::available_memory = []() -> std::size_t { return 32768 + 32768 + 1023; };
+        network::HttpParser refused;
+        refused.receive(bytes(header));
+        REQUIRE(refused.exhausted() && body_page_calls == 0);
+        wtp::available_memory = nullptr;
+    }
+    REQUIRE(body_pages_live == 0);
+    wtp::allocate_input = allocate;
+    wtp::deallocate_input = deallocate;
 }
 void streamed_asset_admission() {
     Fixture f;
@@ -207,6 +331,14 @@ void api_checks() {
         REQUIRE(result.body.find("test-password") == result.body.npos);
     }
     auto preserved = request("PUT", "/api/v1/config", std::string(value->get("config")->raw));
+    // Redacted password offsets retain the original leading whitespace when
+    // a paged configuration is materialized within the existing config limit.
+    preserved.body.insert(0, 50, ' ');
+    auto config_pages = std::make_shared<wtp::FrameBuffer>();
+    REQUIRE(config_pages->reserve(preserved.body.size()));
+    config_pages->append(bytes(preserved.body));
+    preserved.buffered_body = std::move(config_pages);
+    preserved.body.clear();
     preserved.headers["if-match"] = f.api.revision();
     REQUIRE(call(preserved).status == 200);
     REQUIRE(f.store.config()->password == "test-password");
@@ -411,14 +543,21 @@ void message_jobs() {
     Fixture f;
     unsigned sequence = 1000;
     const std::string session(32, '3');
-    auto send = [&](std::string op, std::string body, unsigned id = 0) {
+    auto send = [&](std::string op, std::string body, unsigned id = 0, bool paged = false) {
         if (!id)
             id = ++sequence;
-        return f.api.handle(request("POST", "/api/v1/jobs",
-                                    "{\"session_id\":\"" + session + "\",\"request_id\":\"" +
-                                        std::string(28, '0') + std::to_string(id) +
-                                        "\",\"operation\":\"" + op + "\",\"body\":" + body + "}"),
-                            "cert-a", "127.0.0.1:8443");
+        auto r = request("POST", "/api/v1/jobs",
+                         std::string(4093, ' ') + "{\"session_id\":\"" + session +
+                             "\",\"request_id\":\"" + std::string(28, '0') + std::to_string(id) +
+                             "\",\"operation\":\"" + op + "\",\"body\":" + body + "}");
+        if (paged) {
+            auto storage = std::make_shared<wtp::FrameBuffer>();
+            REQUIRE(storage->reserve(r.body.size()));
+            storage->append(bytes(r.body));
+            r.buffered_body = std::move(storage);
+            r.body.clear();
+        }
+        return f.api.handle(r, "cert-a", "127.0.0.1:8443");
     };
     auto body = [&](std::string message) {
         return "{\"job_id\":\"" + std::string(32, '4') +
@@ -443,6 +582,8 @@ void message_jobs() {
     REQUIRE(loaded.status == 200 && f.service.status().state == wtp::State::Loaded);
     REQUIRE(!loaded.body_text().empty() && wtp::json::parse(loaded.body_text()));
     REQUIRE(send("LOAD_MESSAGE", maximum, 1998).body_text() == loaded.body_text());
+    REQUIRE(send("LOAD_MESSAGE", maximum, 1998, true).body_text() == loaded.body_text());
+    REQUIRE(send("LOAD_MESSAGE", body("E"), 1998, true).status == 409);
     REQUIRE(loaded.wire() == loaded.wire_headers() + std::string(loaded.body_text()));
     const auto allocator = wtp::allocate_input;
     wtp::allocate_input = [](std::size_t) -> void* { return nullptr; };
@@ -460,6 +601,8 @@ void message_jobs() {
 int main() {
     identities();
     framing();
+    maximum_http_allocation();
+    http_body_failure_and_lifetime();
     streamed_asset_admission();
     api_checks();
     jobs();

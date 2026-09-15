@@ -5,7 +5,7 @@
 | Package | Status | Outcome / next requirement |
 | --- | --- | --- |
 | 0 | COMPLETE | Fresh named A/B USB inventories independently decoded; source-impact matrix and current summaries reconciled. [Result](phase11-5-completion-package0-result.json). |
-| 1 | OPEN — WTP components passed | 2.1a/2.1d/2.1e pass on e64ebb9. P1g later failed observer cadence before HTTP. Repaired same-boot continuation active. [Review](phase11-5-completion-capacity-cadence-review.md). |
+| 1 | OPEN — WTP components passed | 2.1a/2.1d/2.1e pass on e64ebb9. P1g later failed cadence; P1h failed maximum HTTP with watchdog allocation failure. Paged-body repair has host evidence. [Review](phase11-5-completion-http-pages-review.md). |
 | 2 | OPEN | Supported simultaneous workload and separate bounded overload. |
 | 3 | OPEN | Affected TLS/HTTP and distinct WTP timeouts. |
 | 4 | OPEN | Actual USB parser and unread-output pressure. |
@@ -15,30 +15,33 @@
 | 8 | OPEN; idle Wi-Fi accepted on source 98f5797 | Two independently audited OFF/ON readiness cycles preserve state/configuration and recover address/clock. Link loss, lease/name change, DNS/SNTP, journal rotation and autonomy remain. |
 | 9 | OPEN | R6 mixed operation after R1-R5 acceptance. |
 
-### Current retained-reply checkpoint
+### Current HTTP allocation checkpoint
 
-[Immutable results](phase11-5-completion-capacity-cadence-result.json) and
-[review](phase11-5-completion-capacity-cadence-review.md). R1/R2 retain recorded
-closure; R3-R6 remain OPEN. Components 2.1a, 2.1d and 2.1e now have current-image
-evidence. The prior idle replay pass remains recorded on b0254c5.
+[Immutable results](phase11-5-completion-http-pages-result.json) and
+[review](phase11-5-completion-http-pages-review.md). R1/R2 retain recorded closure;
+R3-R6 remain OPEN. P1g's 2.1a/2.1d/2.1e evidence remains on e64ebb9 and its original
+boot. The idle replay pass remains on b0254c5.
 
-A runs e64ebb9 on boot 0a6d95e11cf712a53e97a4c9938614e9. P1g's 512-event job
-completed with exact DMA/launch/tail counters and 48,136-byte heap headroom.
-The maximum 65,536-byte WTP payload and 65,537-byte rejection/recovery each
-completed under independently bracketed native Running observations. Two serial
-exchanges in one polling action then missed USB STATUS cadence; HTTP was never
-offered. This failure is preserved separately from passing components.
+P1h fully wrote the supported 32,768-byte HTTP body during Running, but received
+no response. The board entered a watchdog recovery boot with a recorded failed
+32,769-byte allocation. This packet receives no HTTP or RF-completion credit.
+The parser's contiguous body allocation is replaced by nullable 4 KiB pages;
+maximum-body, page failure/lifetime, replay and configuration tests pass.
+Seven affected CTest groups, TLS and two altered-evidence tests pass. Target
+retest and candidate resource/layout applicability remain outstanding.
 
-The harness now offers one exchange per polling action. P1h is ACTIVE on the
-same source/boot, retaining P1g's Complete job, with one 128-second job allowance,
-no flash/configuration writes and the existing fixture deadline. Final P1h state
-and actual ARM charges await reconciliation. P1g ended Complete/inactive/unowned,
-B remained Empty, both schedules disabled and configurations unchanged; the
-original reservation was released before P1h acquired it.
+A retains e64ebb9, boot cb429dd3964439e66e03bb0d93a9863b, Empty/inactive/unowned
+in recovery mode, with networking intentionally off. B retains 8921a7008183,
+boot 6684b4b197d80cfa0ce83b3aaf205cb0, Empty/inactive/unowned. Fresh post-restoration
+raw inventories confirm disabled scheduling and preserved visible saved
+configuration. The shared reservation is RELEASED. Fixture cleanup completed
+at host monotonic 435282842781484 ns, before its independent deadline; protected
+files, services, management interfaces, time service and installed PID 1957
+were restored. There is no active fixture.
 
-The fixture remains ACTIVE with independent cleanup due at host monotonic
-435459994813000 ns. Completed-packet charges: four RF jobs / 512 planned seconds,
-six A flashes/BOOTSEL transitions, two Wi-Fi cycles, zero configuration writes.
+Cumulative charges: five RF jobs / 640 planned seconds, six A flashes/BOOTSEL
+transitions, two Wi-Fi cycles, zero configuration writes and zero additional
+controlled reboots. One unplanned watchdog reboot is recorded separately.
 
 ### Package 0 checkpoint
 

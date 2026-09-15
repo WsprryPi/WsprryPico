@@ -169,9 +169,9 @@
       "id": "2.1f",
       "group": "HTTP-MAX",
       "requirement": "Valid exact 32768-byte API body success during RF",
-      "classification": "missing",
-      "evidence": "phase11-5-r3-v2-bf4-result.json",
-      "remaining": "B idle functional credit; candidate body and WTP envelope allocation under RF",
+      "classification": "failed",
+      "evidence": "phase11-5-completion-http-pages-result.json",
+      "remaining": "P1h maximum HTTP request fully written, no response, watchdog allocation failure; paged-body repair requires target retest",
       "package": 1
     },
     {
@@ -180,7 +180,7 @@
       "requirement": "32769-byte HTTP limit rejection and authenticated recovery during RF",
       "classification": "missing",
       "evidence": "phase11-5-r3-v2-bf4-result.json",
-      "remaining": "Header-layer refusal is correct; document offered versus declared bytes",
+      "remaining": "P1h stopped before oversize/recovery after maximum HTTP failure; fresh target packet required",
       "package": 1
     },
     {

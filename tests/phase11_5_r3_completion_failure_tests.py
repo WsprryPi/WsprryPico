@@ -196,5 +196,38 @@ class CapacityCadenceTests(unittest.TestCase):
                 with self.assertRaises(ValueError):audit(root)
 
 
+HTTP_FAILURE = os.environ.get('PHASE115_COMPLETION_HTTP_FAILURE')
+
+
+@unittest.skipUnless(HTTP_FAILURE, 'Private HTTP failure packet not supplied')
+class HttpFailureTests(unittest.TestCase):
+    def test_failure_and_restoration(self):
+        from audit_phase11_5_completion_http_failure import audit
+        v=audit(Path(HTTP_FAILURE))
+        self.assertEqual(v['accepted_components'],[])
+        self.assertFalse(v['package_complete'])
+        self.assertTrue(v['fixture_restored'] and v['reservation_released'])
+        self.assertEqual(v['fault']['fault_allocation_request_bytes'],32769)
+
+    def test_rejects_false_write_running_state_and_restoration(self):
+        from audit_phase11_5_completion_http_failure import audit
+        for change in ('write','running','restoration','inventory'):
+            with self.subTest(change=change),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory)/'evidence';shutil.copytree(HTTP_FAILURE,root)
+                if change=='restoration':
+                    path=root/'fixture-restoration/fixture-state.json'
+                    value=json.loads(path.read_text());value['restored']=False
+                    path.write_text(json.dumps(value))
+                elif change=='inventory':
+                    path=root/'restored-a.stdout';path.write_bytes(path.read_bytes()[:-40])
+                else:
+                    path=root/('contention.jsonl' if change=='write' else 'rf.jsonl')
+                    rows=[json.loads(x) for x in path.read_text().splitlines()]
+                    if change=='write':next(r for r in rows if r['kind']=='http_write_complete')['value']['bytes']-=1
+                    else:next(r for r in reversed(rows) if r['kind']=='info')['value']['value']['status']['output_active']=False
+                    path.write_text(''.join(json.dumps(r)+'\n' for r in rows))
+                with self.assertRaises(ValueError):audit(root)
+
+
 if __name__ == '__main__':
     unittest.main()

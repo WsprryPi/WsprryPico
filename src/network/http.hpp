@@ -1,8 +1,10 @@
 #pragma once
+#include "wtp/frame_buffer.hpp"
 #include "wtp/output_buffer.hpp"
 
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -13,6 +15,12 @@ inline constexpr std::size_t max_http_headers = 2048, max_http_body = 32768;
 struct HttpRequest {
     std::string method, path, body;
     std::map<std::string, std::string> headers;
+    // Parsed bodies retain paged storage when requests are copied. Direct host
+    // API callers may still supply body; a parsed body takes precedence.
+    std::shared_ptr<wtp::FrameBuffer> buffered_body{};
+    wtp::InputView body_view() const {
+        return buffered_body ? buffered_body->view() : wtp::InputView(body);
+    }
     std::string_view header(std::string_view name) const;
 };
 struct HttpResponse {

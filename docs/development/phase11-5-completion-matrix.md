@@ -10,10 +10,11 @@ The [machine matrix](phase11-5-completion-matrix.json) contains each assertion.
 ## Candidate and applicability
 
 Repository devel was clean at d1a5a2e and independently matched origin/devel.
-Deployed A is clean firmware e64ebb9. [Current results](phase11-5-completion-capacity-cadence-result.json)
-accept the 512-event job completion and both WTP size-boundary components during
-RF. The subsequent observer cadence failure is preserved; HTTP was not offered.
-A same-boot continuation tests the repaired polling schedule and HTTP boundaries.
+Deployed A retains clean firmware e64ebb9 in inactive recovery boot cb429dd3.
+[Current results](phase11-5-completion-http-pages-result.json) record P1h's failed
+maximum HTTP request and verified restoration. P1g still supplies the 512-event
+completion and both WTP size-boundary components on its original boot. The HTTP
+body allocation repair has host evidence; target acceptance remains OPEN.
 Earlier bd16bb1 results retain two finite completions with
 failed capacity workloads. B remains 8921a7008183. Both are Pico 2 W/RP2350 Arm,
 138 MHz/divider 1, GP2 PIO/DMA, RAM rendering and listener configured. No full

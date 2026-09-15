@@ -43,7 +43,7 @@ HttpResponse BrowserApi::config() const {
     return result;
 }
 HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
-    auto body = json::parse(r.body);
+    auto body = json::parse(r.body_view());
     if (!body || !json::fields(*body, {"session_id", "request_id", "operation", "body"}))
         return http_error(400, "invalid_job_request");
     auto operation = body->get("operation")->string();
@@ -110,8 +110,14 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
         request->body = std::move(*compiled.job);
         // Replay identity binds the complete original compact browser request,
         // including operation, message, timing and repeat inputs.
-        request->payload_digest =
-            sha256({reinterpret_cast<const std::uint8_t*>(r.body.data()), r.body.size()});
+        Sha256 digest;
+        const auto original = r.body_view();
+        for (std::size_t offset = 0; offset < original.size();) {
+            const auto part = original.at(offset);
+            digest.update(part);
+            offset += part.size();
+        }
+        request->payload_digest = digest.finish();
     }
     // All decoded fields own their storage; the internal envelope need not
     // coexist with RF preparation and a maximum adjustment response.
@@ -146,12 +152,17 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     // The parser already owns the complete HTTP body. Outer JSON whitespace
     // neither enters the internal envelope nor creates decoded fields; account
     // for additional working storage without reserving that padding twice.
-    const auto first = r.body.find_first_not_of(" \t\r\n");
-    const auto working_bytes =
-        first == std::string::npos ? 0 : r.body.find_last_not_of(" \t\r\n") - first + 1;
+    const auto body = r.body_view();
+    const auto whitespace = [](char c) { return c == ' ' || c == '\t' || c == '\r' || c == '\n'; };
+    std::size_t first = 0, last = body.size();
+    while (first < last && whitespace(body[first]))
+        ++first;
+    while (last > first && whitespace(body[last - 1]))
+        --last;
+    const auto working_bytes = last - first;
     if (!wtp::memory_admitted(working_bytes * 2 + 16384))
         return http_error(503, "resource_exhausted");
-    if (r.body.size() > max_http_body)
+    if (body.size() > max_http_body)
         return http_error(413, "body_too_large");
     if (principal.empty())
         return http_error(401, "authentication_required");
@@ -247,7 +258,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         return http_error(412, "revision_conflict");
     if (!scheduler_.idle())
         return http_error(409, "busy");
-    auto root = json::parse(r.body);
+    auto root = json::parse(r.body_view());
     if (!root)
         return http_error(400, "invalid_json");
     if (pending_transaction_)
@@ -281,7 +292,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     if (r.path == "/api/v1/config") {
         auto wifi = root->get("wifi");
         auto password = wifi ? wifi->get("password") : std::nullopt;
-        candidate = r.body;
+        candidate = std::string(r.body_view());
         if (password && password->raw == "null") {
             if (!store_.config())
                 return http_error(400, "password_required");
