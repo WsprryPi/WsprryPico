@@ -1,0 +1,163 @@
+{
+  "schema": "phase11.5-completion-package0-result-v1",
+  "status": "PACKAGE0_RECONCILED",
+  "source_revision": "d1a5a2e6171c9b8d84531fda0500a2046590cb6c",
+  "remote_devel_independently_verified": "d1a5a2e6171c9b8d84531fda0500a2046590cb6c",
+  "family_status": {
+    "R1": "CLOSED 5/5 with recorded applicability",
+    "R2": "CLOSED 7/7 with recorded applicability",
+    "R3": "OPEN",
+    "R4": "OPEN",
+    "R5": "OPEN",
+    "R6": "OPEN"
+  },
+  "new_physical_acceptance_assertions": 0,
+  "counts": {
+    "inventories": 2,
+    "rf_jobs": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 0,
+    "flashes": 0,
+    "fixture_changes": 0
+  },
+  "boards": {
+    "A": {
+      "revision": "98f5797d77fb",
+      "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+      "status": {
+        "boot_id": "b1c0af7bef6ef0bef8f5e44130182149",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": [
+          {
+            "job_id": "8d8734400ddd2d472799f3d08a92e6b5",
+            "state": "aborted",
+            "ended_monotonic_ns": "384943220000",
+            "output_active": false
+          },
+          {
+            "job_id": "c339ee30075d458ccc3047bb3d8f8b18",
+            "state": "aborted",
+            "ended_monotonic_ns": "33328355000",
+            "output_active": false
+          }
+        ]
+      },
+      "scheduling_enabled": false,
+      "caps": {
+        "profiles": [
+          "rf-events/1"
+        ],
+        "modes": [
+          "wspr",
+          "tone",
+          "qrss",
+          "fskcw",
+          "dfcw"
+        ],
+        "engine": "pio-dma-gp2",
+        "frequency_ranges": [
+          {
+            "minimum_nhz": "100000000000000",
+            "maximum_nhz": "68999999000000000"
+          }
+        ],
+        "max_payload_bytes": 65536,
+        "max_events": 512,
+        "max_job_duration_ns": "3600000000000",
+        "minimum_arm_lead_ns": "100000000",
+        "maximum_arm_ahead_ns": "604800000000000",
+        "maximum_arm_uncertainty_ns": "500000000",
+        "maximum_holdover_age_ns": "90000000000",
+        "output_disable_timeout_ns": "100000000",
+        "minimum_lease_ms": 5000,
+        "maximum_lease_ms": 60000,
+        "response_cache_entries": 8,
+        "response_cache_ttl_seconds": 300,
+        "terminal_record_entries": 8,
+        "terminal_record_ttl_seconds": 3600
+      },
+      "observable_configuration_matches_component9": true,
+      "configuration_summary_sha256": "5c00c5fc15dd0ad3897d5ccc147fe8b73b62eab284e696f28e952216a7b08496",
+      "clock_state": "unsynchronized"
+    },
+    "B": {
+      "revision": "8921a7008183",
+      "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+      "status": {
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "scheduling_enabled": false,
+      "caps": {
+        "profiles": [
+          "rf-events/1"
+        ],
+        "modes": [
+          "wspr",
+          "tone",
+          "qrss",
+          "fskcw",
+          "dfcw"
+        ],
+        "engine": "pio-dma-gp2",
+        "frequency_ranges": [
+          {
+            "minimum_nhz": "100000000000000",
+            "maximum_nhz": "68999999000000000"
+          }
+        ],
+        "max_payload_bytes": 65536,
+        "max_events": 512,
+        "max_job_duration_ns": "3600000000000",
+        "minimum_arm_lead_ns": "100000000",
+        "maximum_arm_ahead_ns": "604800000000000",
+        "maximum_arm_uncertainty_ns": "500000000",
+        "maximum_holdover_age_ns": "90000000000",
+        "output_disable_timeout_ns": "100000000",
+        "minimum_lease_ms": 5000,
+        "maximum_lease_ms": 60000,
+        "response_cache_entries": 8,
+        "response_cache_ttl_seconds": 300,
+        "terminal_record_entries": 8,
+        "terminal_record_ttl_seconds": 3600
+      },
+      "observable_configuration_matches_component9": true,
+      "configuration_summary_sha256": "cde5f7980b914e1d8ced42c0e738a74f544844ad0c4bb8ce4965b71d5debc2ec",
+      "clock_state": "synchronized"
+    }
+  },
+  "evidence_sha256": {
+    "B.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "A-decoded.json": "ca186bf005916725dac5a01f583ddb6217196a109c2dfe889b948a78abebd6ea",
+    "packet.json": "200ad04150eb34abcb455a14842d14e76710073a265b1c6f0a49ad2275310ae6",
+    "start.json": "6fd5b6274ac89ac5f282947542065cce355f9012124704684a0e2dd11b0a7cda",
+    "B.jsonl": "1c9e43c073de444b5b3781efc31cb2d42fea6760492d93cccc8bfbdebc997333",
+    "A.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ctest.log": "0d485ec03b9da5530c6deb09d0dede3eb03636107c8813d1f72e673e539393fd",
+    "A.jsonl": "bfe042e0a3ef32d4118288d60faded53a726403bcfa5bd9bf73519aed5d7e747",
+    "B-decoded.json": "aff6af9e77c11a819d7fc28db2b24ab3bfb6207b366a0033a93ac71e95103fb1",
+    "build.log": "a68cce9c8be4c2a4c478bcf0042b59f129b5f2c4b9ed8e3f3d93bf76980e5f2f"
+  },
+  "checks": {
+    "inventory_tests": "5 passed",
+    "preflight_tests": "10 passed",
+    "r3_discovery": "195 discovered, 163 passed, 32 private-evidence cases skipped",
+    "affected_ctest": "11 passed; initial TLS startup failure in sandbox, loopback-authorized rerun passed",
+    "wtp_contract": "23 schema, 7 raw JSON, 1 framing, 8 transition cases passed"
+  },
+  "review": {
+    "corrected": [
+      "Stale current firmware/budget/board restrictions labeled historical",
+      "Incorrect initial Armed-abort evidence pointer replaced by B5 raw result",
+      "Current retained-state applicability marked affected because adjustment lifetime changed"
+    ],
+    "reassessment": "No remaining actionable issue in P0 reconciliation; physical packages remain mandatory."
+  }
+}

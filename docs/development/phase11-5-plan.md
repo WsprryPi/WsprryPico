@@ -23,6 +23,17 @@ labels or modified implicitly to implement this plan.
 
 ## Current campaign baseline
 
+Use the [September 15 assertion matrix](phase11-5-completion-matrix.md) and
+[accepted completion request](phase11-5-completion-authorization-20260915.md).
+A is on clean firmware `98f5797`, B on `8921a7008183`; both are authorized
+validation targets, with at most one RF-capable owner/schedule across both.
+R1/R2 recorded closure and Group 1 checkpoint 043 remain; Group 2 capacity,
+Group 3 reclamation, R3 closeout and R4-R6 remain open. Component 9 closes
+only its exact idle LOAD/replay regression. The later request authorizes
+minimal reviewed R5 rotation/scheduling writes after actual journal inspection.
+
+### Historical retained baseline after A1b
+
 After the [A1b failure](phase11-5-r3-tls-a1b-failure-review.md), the user explicitly
 chose to **keep the test configuration** between runs. Original-configuration
 restoration is no longer the default for subsequent packets. Record actual
@@ -68,13 +79,13 @@ the changed path and its physical interaction, not the entire earlier matrix.
 | 132 MHz | Not selected | Untested in physical 11.5 |
 | 150 MHz | Not selected | Untested in physical 11.5; inhibited evidence is separate |
 
-The current candidate is `2e43110f05304efdc2ae25c298baa0ef6426955b`, divider 1,
+The historical R2 candidate was `2e43110f05304efdc2ae25c298baa0ef6426955b`, divider 1,
 RAM renderer and listener enabled, with exact images in the
 [upload-repair build record](phase11-5-r2-upload-builds.json). R1 5/5 and R2 7/7
 have applicable evidence through the [explicit impact review](phase11-5-r2-continuation-review.md).
 The three browser Tone jobs and native QRSS retain their older 049cc929 identities;
 FSKCW/DFCW/WSPR have new-image measurements. Preserve original failed attempts.
-Freeze this candidate unless a demonstrated defect requires a change. Helper and
+The current matrix records later justified repairs and their impact. Helper and
 documentation changes do not change its firmware identity.
 
 A full 16,384-word block represents 524,288 samples. Its interval is
@@ -325,23 +336,23 @@ subcase counts after each packet, separately from family completion counts.
 
 A test packet is not necessarily a fresh fixture session. Neighboring packets
 may share a bounded authorized session and unchanged boot with safe explicit
-handoffs and sufficient restoration time. Last recorded configuration count is
-34/34; obtain a new bounded allowance that reserves R5 rotation, schedule
-changes and final restoration before further writes. Separate setup/restoration per packet would exhaust this budget. Never
+handoffs and sufficient restoration time. The historical configuration allowance was
+34/34. The September 15 request separately authorizes minimal R5 rotation,
+schedule and restoration writes; freeze their exact count before execution. Separate setup/restoration per packet would exhaust this budget. Never
 reset an administrative counter to manufacture capacity. Preserve prior attempts.
 
 Every future session binds actual board/boot/image, radio MAC/roles, finite RF
 jobs and current 50-ohm/attenuation/filter/instrument wiring, with exclusive USB
-endpoints, independent local supervision and bounded guarded restoration. Keep
-Pico B read-only, and protect the installed WsprryPi process, Ethernet, wlan1 and
+endpoints, independent local supervision and bounded guarded restoration. Under the September 15 authorization either Pico may perform bounded RF or
+lifecycle work with the shared reservation. Protect the installed WsprryPi process, Ethernet, wlan1 and
 GPSDO unless separately authorized otherwise. Reuse existing authorization only
 within its actual bounds; this planning task does not activate a session.
 
 Stop dependent actions on unexpected faults or failed cleanup. Preserve unknown
 output and failed evidence; do not automatically reboot/reflash/retry/clear it.
 Other independent work may proceed only after safe admission, with the failed
-gate still open. Restore original approved inhibited image/config and host state
-after authoritative checks; independent host cleanup cannot reset an unknown Pico.
+gate still open. Retain the reviewed tested images and campaign configuration, disable schedules,
+and restore host state after authoritative checks; independent host cleanup cannot reset an unknown Pico.
 
 ## Closure and implementation readiness
 

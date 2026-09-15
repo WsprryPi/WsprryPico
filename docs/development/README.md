@@ -1,5 +1,12 @@
 # Development baseline
 
+Current Phase 11.5 execution uses the [completion matrix](phase11-5-completion-matrix.md)
+and [September 15 standing authorization](phase11-5-completion-authorization-20260915.md).
+A's tested firmware is `98f5797`, B's is `8921a7008183`; older candidate
+paragraphs below retain historical evidence identities. Phase 11.5 is OPEN,
+R1/R2 closed, R3-R6 open; component 9's bounded LOAD/replay regression is closed.
+
+
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).
 R2 is **7/7 jobs**; R1 remains **5/5** through documented affected-check reuse.
 The R1/R2 historical candidate is 2e43110 at physical 138 MHz/divider 1/RAM/listener on.

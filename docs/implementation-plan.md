@@ -94,7 +94,10 @@ final off event for compact browser submissions. See the
 [extended-job design](development/phase11-5-extended-job-design.md).
 E0a has independently verified idle maximum admission and S0 has completed a
 32-character, 384-event QRSS plan lasting 143.250001 seconds on the new image.
-Physical hour jobs, saturation and reclamation remain open. The
+Actual QRSS, FSKCW and DFCW physical hours are recorded in checkpoints 006/010/012,
+with their original observation limits preserved. Saturation and reclamation
+remain open; the [current completion matrix](development/phase11-5-completion-matrix.md)
+records source applicability and affected checks. The
 [incremental ledger](development/phase11-5-acceptance-ledger.md#incremental-v2-validation)
 preserves each applicable passing assertion without resetting unrelated checks.
 

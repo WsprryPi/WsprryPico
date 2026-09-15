@@ -1,0 +1,682 @@
+{
+  "schema": "phase11.5-completion-matrix-v1",
+  "status": "OPEN",
+  "accepted_configuration": null,
+  "family_status": {
+    "R1": "CLOSED 5/5 with recorded applicability",
+    "R2": "CLOSED 7/7 with recorded applicability",
+    "R3": "OPEN",
+    "R4": "OPEN",
+    "R5": "OPEN",
+    "R6": "OPEN"
+  },
+  "candidate_source": "98f5797d77fb2bc4c11a4e80f6ff35d7ad16a5b5",
+  "assertions": [
+    {
+      "id": "R1.1",
+      "group": "R1",
+      "requirement": "Four linked layouts/instrumentation",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r1-result.json; phase11-5-r2-closure-result.json; phase11-5-r2-continuation-review.md",
+      "remaining": "Retain recorded closure. Current-image layout/idle LOAD reserve from component9; affected workload resource observations required in P1-P5 and P9. Historical measurements are not relabeled.",
+      "package": 0
+    },
+    {
+      "id": "R1.2",
+      "group": "R1",
+      "requirement": "Changed shared-path inhibited regression",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r1-result.json; phase11-5-r2-closure-result.json; phase11-5-r2-continuation-review.md",
+      "remaining": "Retain recorded closure. Current-image layout/idle LOAD reserve from component9; affected workload resource observations required in P1-P5 and P9. Historical measurements are not relabeled.",
+      "package": 0
+    },
+    {
+      "id": "R1.3",
+      "group": "R1",
+      "requirement": "Allocation feasibility and recovery",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r1-result.json; phase11-5-r2-closure-result.json; phase11-5-r2-continuation-review.md",
+      "remaining": "Retain recorded closure. Current-image layout/idle LOAD reserve from component9; affected workload resource observations required in P1-P5 and P9. Historical measurements are not relabeled.",
+      "package": 0
+    },
+    {
+      "id": "R1.4",
+      "group": "R1",
+      "requirement": "Same-boot matched resource states",
+      "classification": "affected and needing retest",
+      "evidence": "phase11-5-r1-result.json; phase11-5-r2-closure-result.json; phase11-5-r2-continuation-review.md",
+      "remaining": "Historical R1 remains closed on its identity. Shared immutable adjustments change retained lifetimes; P5 equivalent-state physical checks required for current-image applicability.",
+      "package": 0
+    },
+    {
+      "id": "R1.5",
+      "group": "R1",
+      "requirement": "Observer cost and guarded stacks",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r1-result.json; phase11-5-r2-closure-result.json; phase11-5-r2-continuation-review.md",
+      "remaining": "Retain recorded closure. Current-image layout/idle LOAD reserve from component9; affected workload resource observations required in P1-P5 and P9. Historical measurements are not relabeled.",
+      "package": 0
+    },
+    {
+      "id": "R2.1",
+      "group": "R2",
+      "requirement": "Browser Tone 1",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r2-closure-result.json",
+      "remaining": "Unchanged RF renderer/PIO/worker timing semantics; retain original image identities. New maximum-event RF observation in P1 covers changed input/retention contention.",
+      "package": 0
+    },
+    {
+      "id": "R2.2",
+      "group": "R2",
+      "requirement": "Browser Tone 2",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r2-closure-result.json",
+      "remaining": "Unchanged RF renderer/PIO/worker timing semantics; retain original image identities. New maximum-event RF observation in P1 covers changed input/retention contention.",
+      "package": 0
+    },
+    {
+      "id": "R2.3",
+      "group": "R2",
+      "requirement": "Browser Tone 3",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r2-closure-result.json",
+      "remaining": "Unchanged RF renderer/PIO/worker timing semantics; retain original image identities. New maximum-event RF observation in P1 covers changed input/retention contention.",
+      "package": 0
+    },
+    {
+      "id": "R2.4",
+      "group": "R2",
+      "requirement": "Native QRSS",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r2-closure-result.json",
+      "remaining": "Unchanged RF renderer/PIO/worker timing semantics; retain original image identities. New maximum-event RF observation in P1 covers changed input/retention contention.",
+      "package": 0
+    },
+    {
+      "id": "R2.5",
+      "group": "R2",
+      "requirement": "USB FSKCW",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r2-closure-result.json",
+      "remaining": "Unchanged RF renderer/PIO/worker timing semantics; retain original image identities. New maximum-event RF observation in P1 covers changed input/retention contention.",
+      "package": 0
+    },
+    {
+      "id": "R2.6",
+      "group": "R2",
+      "requirement": "USB DFCW",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r2-closure-result.json",
+      "remaining": "Unchanged RF renderer/PIO/worker timing semantics; retain original image identities. New maximum-event RF observation in P1 covers changed input/retention contention.",
+      "package": 0
+    },
+    {
+      "id": "R2.7",
+      "group": "R2",
+      "requirement": "USB WSPR",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r2-closure-result.json",
+      "remaining": "Unchanged RF renderer/PIO/worker timing semantics; retain original image identities. New maximum-event RF observation in P1 covers changed input/retention contention.",
+      "package": 0
+    },
+    {
+      "id": "2.1a",
+      "group": "JOB-MAX",
+      "requirement": "512-event idle admission and complete RF job",
+      "classification": "affected and needing retest",
+      "evidence": "phase11-5-r3-v2-component3-result.json; phase11-5-r3-v2-validation-045.json; phase11-5-r3-v2-component9-result.json",
+      "remaining": "128-second 512-event candidate completion with independent observations",
+      "package": 1
+    },
+    {
+      "id": "2.1b",
+      "group": "JOB-MAX",
+      "requirement": "513 events and over-duration atomic rejection",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r3-v2-component3-result.json",
+      "remaining": "E6 paged-input boundary results plus current codec/service tests; semantics unchanged by shared adjustments/array traversal",
+      "package": 0
+    },
+    {
+      "id": "2.1c",
+      "group": "JOB-MAX",
+      "requirement": "Worst 32-character plans and complete physical hours",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r3-v2-validation-006.json; phase11-5-r3-v2-validation-007.json; phase11-5-r3-v2-validation-010.json; phase11-5-r3-v2-validation-012.json; phase11-5-r3-v2-validation-043.json",
+      "remaining": "Retain actual hours and original observation failures. No repeated hours: local engine/duration arithmetic unchanged; resource/lifetime acceptance remains separately open.",
+      "package": 0
+    },
+    {
+      "id": "2.1d",
+      "group": "WTP-MAX",
+      "requirement": "65536-byte WTP payload success during RF",
+      "classification": "affected and needing retest",
+      "evidence": "phase11-5-r3-v2-capacity-c5-result.json; phase11-5-r3-v2-component3-result.json",
+      "remaining": "Full candidate request writes and valid owned Running response",
+      "package": 1
+    },
+    {
+      "id": "2.1e",
+      "group": "WTP-MAX",
+      "requirement": "65537-byte framed rejection and same-connection recovery during RF",
+      "classification": "missing",
+      "evidence": "phase11-5-r3-v2-component3-result.json",
+      "remaining": "Idle E6 credit retained; under-RF exact oversize and recovery required",
+      "package": 1
+    },
+    {
+      "id": "2.1f",
+      "group": "HTTP-MAX",
+      "requirement": "Valid exact 32768-byte API body success during RF",
+      "classification": "missing",
+      "evidence": "phase11-5-r3-v2-bf4-result.json",
+      "remaining": "B idle functional credit; candidate body and WTP envelope allocation under RF",
+      "package": 1
+    },
+    {
+      "id": "2.1g",
+      "group": "HTTP-MAX",
+      "requirement": "32769-byte HTTP limit rejection and authenticated recovery during RF",
+      "classification": "missing",
+      "evidence": "phase11-5-r3-v2-bf4-result.json",
+      "remaining": "Header-layer refusal is correct; document offered versus declared bytes",
+      "package": 1
+    },
+    {
+      "id": "2.2a",
+      "group": "COMBINED",
+      "requirement": "Supported simultaneous resident workload",
+      "classification": "failed",
+      "evidence": "phase11-5-r3-v2-capacity-c2-result.json",
+      "remaining": "Freeze exact overlap after P1 measured resource result; same-device success required",
+      "package": 2
+    },
+    {
+      "id": "2.2b",
+      "group": "COMBINED",
+      "requirement": "Unsupported combination bounded refusal/closure",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "One declared unsupported allocation combination; preserve owner/RF/recovery",
+      "package": 2
+    },
+    {
+      "id": "2.2c",
+      "group": "TLS-SLOW",
+      "requirement": "Activated handshake deadline and reuse",
+      "classification": "affected and needing retest",
+      "evidence": "phase11-5-r3-v2-t4-result.json",
+      "remaining": "Retain functional timeout; changed resident parser/retention costs require RF resource observation",
+      "package": 3
+    },
+    {
+      "id": "2.2d",
+      "group": "TLS-FAIL",
+      "requirement": "Failed-alert ACK and unacknowledged lifetime",
+      "classification": "affected and needing retest",
+      "evidence": "phase11-5-r3-v2-t5-result.json",
+      "remaining": "Retain semantics and raw target distinction; affected allocation/lifetime workload",
+      "package": 3
+    },
+    {
+      "id": "2.2e",
+      "group": "SLOT",
+      "requirement": "Both active slots, one-WTP, pending expiry, excess and reuse",
+      "classification": "affected and needing retest",
+      "evidence": "phase11-5-r3-v2-t4-result.json; phase11-5-r3-v2-t5-result.json",
+      "remaining": "Source timeout/slot policy unchanged; current resource interaction required",
+      "package": 3
+    },
+    {
+      "id": "2.2f",
+      "group": "HTTP-PARTIAL",
+      "requirement": "Partial header/body and stalled HTTP sender/reader",
+      "classification": "affected and needing retest",
+      "evidence": "phase11-5-r3-v2-t5-result.json",
+      "remaining": "Distinct 15-second activation deadlines; changed static paged response affects stalled output",
+      "package": 3
+    },
+    {
+      "id": "2.3a",
+      "group": "PROGRESS",
+      "requirement": "30-second drained WTP inactivity",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Trigger distinct inactivity path and authenticated recovery",
+      "package": 3
+    },
+    {
+      "id": "2.3b",
+      "group": "PROGRESS",
+      "requirement": "Five-second incomplete WTP input",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Actual incomplete-input timeout and recovery",
+      "package": 3
+    },
+    {
+      "id": "2.3c",
+      "group": "PROGRESS",
+      "requirement": "Five-second WTP no-output-progress",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Prove output progress origin and timeout, distinct from queue overflow",
+      "package": 3
+    },
+    {
+      "id": "2.3d",
+      "group": "USB",
+      "requirement": "USB parser pressure",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Bounded bytes during RF; separate network authority",
+      "package": 4
+    },
+    {
+      "id": "2.3e",
+      "group": "USB",
+      "requirement": "USB unread-output pressure",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Bounded unread output during RF; separate network authority and recovery",
+      "package": 4
+    },
+    {
+      "id": "R3.TLS-VALID",
+      "group": "TLS-VALID",
+      "requirement": "Authenticated production WTP/HTTPS positive controls",
+      "classification": "affected and needing retest",
+      "evidence": "phase11-5-r3-v2-component9-result.json",
+      "remaining": "Idle controls accepted; Running candidate controls in P1",
+      "package": 1
+    },
+    {
+      "id": "R3.BROWSER-MAX",
+      "group": "BROWSER-MAX",
+      "requirement": "Actual browser 30000/30001 file and message/progress/cancellation",
+      "classification": "affected and needing retest",
+      "evidence": "phase11-5-r3-v2-browser-b3-result.json; phase11-5-r3-v2-browser-b4-result.json; phase11-5-r3-v2-browser-b5-result.json; phase11-5-r3-v2-validation-039.json",
+      "remaining": "Keep actual UI semantics. Page allocation changed; affected target page initialization/resource check required",
+      "package": 3
+    },
+    {
+      "id": "R3.RETAINED.replay",
+      "group": "RETAINED",
+      "requirement": "8 replay entries/session; replay/conflict/eviction/300-second expiry",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Current shared adjustment lifetimes need measured capacity and actual expiry",
+      "package": 5
+    },
+    {
+      "id": "R3.RETAINED.session",
+      "group": "RETAINED",
+      "requirement": "16 sessions; reuse, capacity, intended exhaustion and expiry",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "One board, fixed same boot; no unrelated quiet-window traffic",
+      "package": 5
+    },
+    {
+      "id": "R3.RETAINED.terminal",
+      "group": "RETAINED",
+      "requirement": "8 terminals; finite completions, overflow and 3600-second expiry",
+      "classification": "affected and needing retest",
+      "evidence": "phase11-5-r3-v2-validation-007.json",
+      "remaining": "Prior real expiry retained; capacity/eviction via completions remains missing",
+      "package": 5
+    },
+    {
+      "id": "R3.RECLAIM",
+      "group": "RECLAIM",
+      "requirement": "Three equivalent highest-resource cycles",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Freeze after measured P1-P4; same A source/boot; equal cardinalities and 1024-byte/no-growth gate",
+      "package": 5
+    },
+    {
+      "id": "FEATURE.1",
+      "group": "extended",
+      "requirement": "Message 31/32/33, spaces/alphabet/worst complexity",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r3-v2-validation-002.json",
+      "remaining": "Compiler unchanged; current deterministic checks",
+      "package": 0
+    },
+    {
+      "id": "FEATURE.2",
+      "group": "extended",
+      "requirement": "Duration below/exact/above 3600 seconds and overflow",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r3-v2-validation-004.json",
+      "remaining": "Arithmetic/limits unchanged; current boundary regression",
+      "package": 0
+    },
+    {
+      "id": "FEATURE.3",
+      "group": "extended",
+      "requirement": "Worst message expansion/events and per-path live memory",
+      "classification": "affected and needing retest",
+      "evidence": "phase11-5-r3-v2-validation-043.json",
+      "remaining": "Expansion preserved; changed memory evidence P1/P2/P5",
+      "package": 2
+    },
+    {
+      "id": "FEATURE.4",
+      "group": "extended",
+      "requirement": "Three physical 3600-second mode jobs",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r3-v2-validation-006.json; phase11-5-r3-v2-validation-010.json; phase11-5-r3-v2-validation-012.json",
+      "remaining": "Retain original QRSS/FSKCW observation failures and passing components; no automatic hour repetition",
+      "package": 0
+    },
+    {
+      "id": "FEATURE.5",
+      "group": "extended",
+      "requirement": "USB/native/browser completion, Armed/Running abort and transport loss",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r3-v2-validation-043.json",
+      "remaining": "Group 1 closed with original identities; overlap assessed under R4",
+      "package": 7
+    },
+    {
+      "id": "FEATURE.6",
+      "group": "extended",
+      "requirement": "WSPR/old CAPS/atomic jobs/fixed local buffers",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r3-v2-validation-002.json; phase11-5-r2-closure-result.json",
+      "remaining": "Current deterministic checks; no protocol limit change",
+      "package": 0
+    },
+    {
+      "id": "FEATURE.7",
+      "group": "extended",
+      "requirement": "Sustained resources and reuse",
+      "classification": "affected and needing retest",
+      "evidence": "",
+      "remaining": "P2/P5 current shared-storage lifetime and equivalent cycles",
+      "package": 5
+    },
+    {
+      "id": "R4.claimed-empty.foreign-control",
+      "group": "R4",
+      "requirement": "foreign-control in claimed-empty",
+      "classification": "missing",
+      "evidence": "phase11-4-g4-g7-results.md",
+      "remaining": "Reuse software precedence after focused review; physical distinct state/operation coverage required",
+      "package": 7
+    },
+    {
+      "id": "R4.claimed-empty.forbidden-storage",
+      "group": "R4",
+      "requirement": "forbidden-storage in claimed-empty",
+      "classification": "missing",
+      "evidence": "phase11-4-g4-g7-results.md",
+      "remaining": "Reuse software precedence after focused review; physical distinct state/operation coverage required",
+      "package": 7
+    },
+    {
+      "id": "R4.loaded.foreign-control",
+      "group": "R4",
+      "requirement": "foreign-control in loaded",
+      "classification": "missing",
+      "evidence": "phase11-4-g4-g7-results.md",
+      "remaining": "Reuse software precedence after focused review; physical distinct state/operation coverage required",
+      "package": 7
+    },
+    {
+      "id": "R4.loaded.forbidden-storage",
+      "group": "R4",
+      "requirement": "forbidden-storage in loaded",
+      "classification": "missing",
+      "evidence": "phase11-4-g4-g7-results.md",
+      "remaining": "Reuse software precedence after focused review; physical distinct state/operation coverage required",
+      "package": 7
+    },
+    {
+      "id": "R4.armed.foreign-control",
+      "group": "R4",
+      "requirement": "foreign-control in armed",
+      "classification": "missing",
+      "evidence": "phase11-4-g4-g7-results.md",
+      "remaining": "Reuse software precedence after focused review; physical distinct state/operation coverage required",
+      "package": 7
+    },
+    {
+      "id": "R4.armed.forbidden-storage",
+      "group": "R4",
+      "requirement": "forbidden-storage in armed",
+      "classification": "missing",
+      "evidence": "phase11-4-g4-g7-results.md",
+      "remaining": "Reuse software precedence after focused review; physical distinct state/operation coverage required",
+      "package": 7
+    },
+    {
+      "id": "R4.running.foreign-control",
+      "group": "R4",
+      "requirement": "foreign-control in running",
+      "classification": "missing",
+      "evidence": "phase11-4-g4-g7-results.md",
+      "remaining": "Reuse software precedence after focused review; physical distinct state/operation coverage required",
+      "package": 7
+    },
+    {
+      "id": "R4.running.forbidden-storage",
+      "group": "R4",
+      "requirement": "forbidden-storage in running",
+      "classification": "missing",
+      "evidence": "phase11-4-g4-g7-results.md",
+      "remaining": "Reuse software precedence after focused review; physical distinct state/operation coverage required",
+      "package": 7
+    },
+    {
+      "id": "R4.browser-armed-abort",
+      "group": "R4",
+      "requirement": "Browser owner Armed abort",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r3-v2-browser-b5-result.json",
+      "remaining": "B5 raw Armed ABORT component verified; original harness failure preserved. Review its visual record before full UI credit.",
+      "package": 7
+    },
+    {
+      "id": "R4.browser-running-abort",
+      "group": "R4",
+      "requirement": "Browser owner Running abort",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r3-v2-validation-039.json",
+      "remaining": "Keep Group 1 identity; assess explicit raw operation/state coverage before scheduling duplicates",
+      "package": 7
+    },
+    {
+      "id": "R4.production-armed-abort",
+      "group": "R4",
+      "requirement": "Production owner Armed abort",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Keep Group 1 identity; assess explicit raw operation/state coverage before scheduling duplicates",
+      "package": 7
+    },
+    {
+      "id": "R4.production-running-abort",
+      "group": "R4",
+      "requirement": "Production owner Running abort",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Keep Group 1 identity; assess explicit raw operation/state coverage before scheduling duplicates",
+      "package": 7
+    },
+    {
+      "id": "R4.lost-load",
+      "group": "R4",
+      "requirement": "Lost LOAD reply with same-session replay",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Keep Group 1 identity; assess explicit raw operation/state coverage before scheduling duplicates",
+      "package": 7
+    },
+    {
+      "id": "R4.lost-arm",
+      "group": "R4",
+      "requirement": "Lost ARM reply with same-session replay",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Keep Group 1 identity; assess explicit raw operation/state coverage before scheduling duplicates",
+      "package": 7
+    },
+    {
+      "id": "R4.lost-abort",
+      "group": "R4",
+      "requirement": "Lost ABORT reply with same-session replay",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Keep Group 1 identity; assess explicit raw operation/state coverage before scheduling duplicates",
+      "package": 7
+    },
+    {
+      "id": "R4.acknowledged-loss",
+      "group": "R4",
+      "requirement": "Acknowledged ARM, transport loss, local completion and original-session reconciliation",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r3-v2-validation-043.json",
+      "remaining": "Keep Group 1 identity; assess explicit raw operation/state coverage before scheduling duplicates",
+      "package": 7
+    },
+    {
+      "id": "R4.tcp-reset-eof",
+      "group": "R4",
+      "requirement": "Distinct reset/EOF regression",
+      "classification": "missing",
+      "evidence": "phase11-4-g4-g7-results.md",
+      "remaining": "Keep Group 1 identity; assess explicit raw operation/state coverage before scheduling duplicates",
+      "package": 7
+    },
+    {
+      "id": "R4.resolver-failure",
+      "group": "R4",
+      "requirement": "Resolver failure regression",
+      "classification": "missing",
+      "evidence": "phase11-4-g4-g7-results.md",
+      "remaining": "Keep Group 1 identity; assess explicit raw operation/state coverage before scheduling duplicates",
+      "package": 7
+    },
+    {
+      "id": "R5.link-loss",
+      "group": "R5",
+      "requirement": "External isolated link loss during RF and restored service",
+      "classification": "missing",
+      "evidence": "phase11-4-three-radio-results.md; standalone-physical-validation.md; standalone-rf-power-validation.md",
+      "remaining": "One bounded source-distinct cycle, independent authority and recovery",
+      "package": 8
+    },
+    {
+      "id": "R5.address",
+      "group": "R5",
+      "requirement": "Actual lease/address change and certified-name recovery",
+      "classification": "missing",
+      "evidence": "phase11-4-three-radio-results.md; standalone-physical-validation.md; standalone-rf-power-validation.md",
+      "remaining": "One bounded source-distinct cycle, independent authority and recovery",
+      "package": 8
+    },
+    {
+      "id": "R5.wifi",
+      "group": "R5",
+      "requirement": "Idle Wi-Fi OFF/ON",
+      "classification": "missing",
+      "evidence": "phase11-4-three-radio-results.md; standalone-physical-validation.md; standalone-rf-power-validation.md",
+      "remaining": "One bounded source-distinct cycle, independent authority and recovery",
+      "package": 8
+    },
+    {
+      "id": "R5.dns-sntp",
+      "group": "R5",
+      "requirement": "DNS/SNTP competition",
+      "classification": "missing",
+      "evidence": "phase11-4-three-radio-results.md; standalone-physical-validation.md; standalone-rf-power-validation.md",
+      "remaining": "One bounded source-distinct cycle, independent authority and recovery",
+      "package": 8
+    },
+    {
+      "id": "R5.persistence",
+      "group": "R5",
+      "requirement": "Ordinary API configuration persistence and worker lockout",
+      "classification": "missing",
+      "evidence": "phase11-4-three-radio-results.md; standalone-physical-validation.md; standalone-rf-power-validation.md",
+      "remaining": "Reuse semantic background only. Inspect journal position, freeze writes and restoration reserve before storage mutation.",
+      "package": 8
+    },
+    {
+      "id": "R5.rotation",
+      "group": "R5",
+      "requirement": "Smallest actual journal rotation and restored baseline",
+      "classification": "missing",
+      "evidence": "phase11-4-three-radio-results.md; standalone-physical-validation.md; standalone-rf-power-validation.md",
+      "remaining": "Reuse semantic background only. Inspect journal position, freeze writes and restoration reserve before storage mutation.",
+      "package": 8
+    },
+    {
+      "id": "R5.time-admission",
+      "group": "R5",
+      "requirement": "Autonomous time-validity admission",
+      "classification": "missing",
+      "evidence": "phase11-4-three-radio-results.md; standalone-physical-validation.md; standalone-rf-power-validation.md",
+      "remaining": "One bounded source-distinct cycle, independent authority and recovery",
+      "package": 8
+    },
+    {
+      "id": "R5.schedule",
+      "group": "R5",
+      "requirement": "Saved autonomous schedule preparation/completion with N/M; disable; watermark",
+      "classification": "missing",
+      "evidence": "phase11-4-three-radio-results.md; standalone-physical-validation.md; standalone-rf-power-validation.md",
+      "remaining": "Reuse semantic background only. Inspect journal position, freeze writes and restoration reserve before storage mutation.",
+      "package": 8
+    },
+    {
+      "id": "R6.normal-load",
+      "group": "R6",
+      "requirement": "30 cumulative minutes N",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload",
+      "package": 9
+    },
+    {
+      "id": "R6.rf-budget",
+      "group": "R6",
+      "requirement": "Finite demanding launches, at most 20 minutes RF",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload",
+      "package": 9
+    },
+    {
+      "id": "R6.windows",
+      "group": "R6",
+      "requirement": "Three comparable post-warm-up resource windows",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload",
+      "package": 9
+    },
+    {
+      "id": "R6.quiet",
+      "group": "R6",
+      "requirement": "Interleaved quiet and final equivalent Q",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload",
+      "package": 9
+    },
+    {
+      "id": "R6.gates",
+      "group": "R6",
+      "requirement": "No monotonic retained growth; <=1024-byte matched delta; unchanged resource/timing/fault gates",
+      "classification": "missing",
+      "evidence": "",
+      "remaining": "Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload",
+      "package": 9
+    }
+  ]
+}

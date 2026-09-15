@@ -1,5 +1,21 @@
 # Phase 11.5 current acceptance ledger
 
+## Current completion campaign — September 15, 2026
+
+**OPEN: R1 CLOSED 5/5; R2 CLOSED 7/7; R3-R6 OPEN.** The
+[current assertion matrix](phase11-5-completion-matrix.md) records current
+applicability and remaining work. [Standing authorization](phase11-5-completion-authorization-20260915.md)
+permits fresh bounded packets on either Pico with one shared RF reservation.
+Pico A runs firmware `98f5797d77fb2bc4c11a4e80f6ff35d7ad16a5b5`;
+Pico B runs `8921a7008183`. Repository HEAD is a separate identity.
+Component 9's bounded idle LOAD/replay regression is CLOSED; Group 2 remains
+OPEN. Group 1 closed at checkpoint 043. Groups 3/4 and R4-R6 remain open.
+
+The records below preserve earlier identities, counts and outcomes. Their
+then-current candidate and device restrictions are historical.
+
+## Historical September 13 ledger
+
 Status on September 13, 2026: **OPEN; 2 of 6 families closed; no accepted
 configuration.** [R2 closure and review](phase11-5-r2-continuation-review.md)
 close **7/7 jobs**. R1 remains **5/5**, with explicit change-directed reuse.
