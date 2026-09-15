@@ -23,6 +23,9 @@ RECOVERY_FAULT = dict(recovery_boot=True,fault_stage=14,fault_hash=3833354787,
     fault_allocation_request_bytes=32769,fault_allocation_returned_null=True)
 
 CANDIDATES = {
+    'phase115-completion-retained-sharing-deploy-v1': (
+        '150fe016bb61518fb259adcedf86d3ac9779d373', '6b7a1b848e2b',
+        '1739cc4f28304080ec97e2b228ab2683'),
     HTTP_PAGES: ('6b7a1b848e2b5192acaa0fa08fb778613457ad8b', 'e64ebb9b0373',
                  'cb429dd3964439e66e03bb0d93a9863b'),
     'phase115-completion-read-workspace-deploy-v1': (

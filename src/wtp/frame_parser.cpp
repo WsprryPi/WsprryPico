@@ -92,7 +92,7 @@ std::vector<FrameEvent> FrameParser::feed(std::span<const std::uint8_t> bytes,
                     static_cast<std::size_t>(read_u32_be(buffer_.view().at(8).data()));
                 capacity = std::max(buffer_.size() + count, frame_size);
             }
-            if (!memory_admitted(capacity) || !buffer_.reserve(capacity)) {
+            if (!input_memory_admitted(capacity) || !buffer_.reserve(capacity)) {
                 close(events);
                 break;
             }
@@ -182,7 +182,7 @@ void FrameParser::process(std::vector<FrameEvent>& events) {
             buffer_ = {};
         } else {
             FrameBuffer delivered;
-            if (!memory_admitted(length) || !delivered.reserve(length)) {
+            if (!input_memory_admitted(length) || !delivered.reserve(length)) {
                 close(events);
                 return;
             }

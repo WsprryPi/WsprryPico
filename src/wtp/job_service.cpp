@@ -322,7 +322,7 @@ Response JobService::dispatch(const Request& request) {
             }
             if (!job_ || job_->job_id != replay->job_id)
                 return reject(ErrorCode::InvalidState);
-            if (job_digest(*job_) != replay->digest)
+            if (job_digest_ != replay->digest)
                 return reject(ErrorCode::JobIdConflict);
             auto response = success();
             response.state = State::Loaded;
@@ -351,7 +351,7 @@ Response JobService::dispatch(const Request& request) {
             return response;
         }
         if (job_ && job_->job_id == body->job_id) {
-            if (*job_ == *body) {
+            if (job_digest_ == job_digest(*body)) {
                 auto response = success();
                 response.state = State::Loaded;
                 response.job_id = body->job_id;
@@ -393,6 +393,7 @@ Response JobService::dispatch(const Request& request) {
             }
         }
         job_ = *body;
+        job_digest_ = job_digest(*body);
         // Different jobs often have the same complete adjustment sequence.
         // Retain their identities/digests independently while sharing exactly
         // equal immutable values; eight histories must not multiply this list.
@@ -477,6 +478,8 @@ Response JobService::dispatch(const Request& request) {
             record_terminal(State::Failed, error, now.monotonic_now_ns);
             return reject(error);
         }
+        if (arm_->scheduled_locally)
+            release_execution_input();
         return response;
     }
 
@@ -596,6 +599,7 @@ void JobService::poll() {
             return;
         }
         arm_->launch_monotonic_ns = now.monotonic_now_ns;
+        release_execution_input();
         state_ = State::Running;
     }
     if (state_ != State::Running) {
@@ -660,6 +664,7 @@ void JobService::reset() {
     sessions_.clear();
     owner_.reset();
     job_.reset();
+    job_digest_ = {};
     adjustments_.clear();
     arm_.reset();
     replay_cache_.clear();
@@ -857,7 +862,7 @@ void JobService::record_terminal(State state, ErrorCode error, std::uint64_t now
         load.state = State::Loaded;
         load.job_id = job_->job_id;
         load.adjustments = adjustments_;
-        retained_jobs_.push_front({job_->job_id, job_digest(*job_), std::move(load), arm_});
+        retained_jobs_.push_front({job_->job_id, job_digest_, std::move(load), arm_});
         if (state == State::Complete) {
             // Completion has authoritatively stopped the engine. Status needs
             // the identity and duration; retained replay uses the digest above.
@@ -887,8 +892,18 @@ void JobService::touch_terminal(std::string_view id) {
         std::rotate(retained_jobs_.begin(), job, job + 1);
 }
 
+void JobService::release_execution_input() {
+    if (job_ && engine_.owns_execution_plan()) {
+        // The engine has acknowledged its independent plan. Keep identity,
+        // duration and the original digest for authority and replay; the event
+        // vector is no longer consulted by this execution path.
+        std::vector<RfEvent>{}.swap(job_->events);
+    }
+}
+
 void JobService::clear_job() {
     job_.reset();
+    job_digest_ = {};
     adjustments_.clear();
     arm_.reset();
     state_ = State::Empty;

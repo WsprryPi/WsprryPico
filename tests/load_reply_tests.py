@@ -30,6 +30,34 @@ def c7_frame():
 
 DRIVER = sys.argv[1] if len(sys.argv) > 1 else None
 class LoadReplyTests(unittest.TestCase):
+    def test_maximum_status_during_modeled_execution(self):
+        # Real service/stream plan and tracked input allocations; the fake sink
+        # advances no hardware. Include 8 KiB concurrent diagnostic background.
+        background=31384+8192
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'input.bin';path.write_bytes(c7_frame())
+            run=subprocess.run([DRIVER,str(path),str(background),'running-status'],
+                capture_output=True,text=True,check=True,timeout=30)
+        result=json.loads(run.stdout)
+        self.assertEqual(result['state'],'running')
+        self.assertEqual(result['starts'],3) # Two submitted buffers and one arm.
+        self.assertEqual(result['preparations'],2)
+        self.assertEqual(result['terminal_records'],1)
+        for i,e in enumerate(result['exchanges']):
+            self.assertFalse(e['closed'])
+            self.assertEqual(e['wait_ms'],0)
+            self.assertEqual(e['after_pages'],0)
+            self.assertGreaterEqual(219712-background-e['peak_bytes'],32768)
+            decoder=FrameDecoder()
+            messages=[json.loads(x) for x in decoder.feed(bytes.fromhex(e['hex']))]
+            self.assertFalse(decoder.buffer)
+            response,=[m for m in messages if m['type']=='response']
+            self.assertTrue(response['ok'])
+            if i:
+                self.assertEqual(response['op'],'STATUS')
+                self.assertEqual(response['body']['state'],'running')
+                self.assertTrue(response['body']['output_active'])
+
     def test_retained_maximum_series_preserves_capacity_and_exact_replies(self):
         self.check_retained_series(18168, 9, 'retained-series')
         self.check_retained_series(31384, 8, 'retained-series-eight')
@@ -171,20 +199,22 @@ class LoadReplyTests(unittest.TestCase):
             self.assertEqual(len(status['body']['terminal_records']), 1)
         refused = self.run_model(31384, maximum_status=True, distinct=True)
         self.assertTrue(refused['exchanges'][1]['closed'])
-        self.assertEqual(refused['exchanges'][1]['wait_ms'], 5000)
+        # Input admission refuses before occupying the temporary reserve.
+        # Post-admission decode expiry remains covered by endpoint_tests.
+        self.assertEqual(refused['exchanges'][1]['wait_ms'], 0)
         self.assertGreaterEqual(219712-31384-refused['exchanges'][1]['peak_bytes'], 32768)
 
     def test_uncalibrated_tls_sensitivity_preserves_refusal(self):
         # 31,384 now passes above because replay no longer duplicates events.
         # A separately declared 48,000-byte background with a nonidentical
         # retained list still cannot admit even the smaller workspace. Preserve
-        # the same reserve and five-second limit.
+        # the same reserve; input admission now refuses before decode waiting.
         r = self.run_model(48000, replay=True, distinct=True)
         self.assertFalse(r['exchanges'][0]['closed'])
         self.assertTrue(r['exchanges'][1]['closed'])
         self.assertEqual(r['exchanges'][1]['hex'], '')
         self.assertEqual(r['exchanges'][1]['after_pages'], 0)
-        self.assertEqual(r['exchanges'][1]['wait_ms'], 5000)
+        self.assertEqual(r['exchanges'][1]['wait_ms'], 0)
         self.assertEqual(r['preparations'], 2)
         self.assertGreaterEqual(219712 - 48000 - r['exchanges'][1]['peak_bytes'], 32768)
 

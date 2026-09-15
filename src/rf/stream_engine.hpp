@@ -62,6 +62,9 @@ class StreamEngine final : public wtp::RfEngine {
     [[nodiscard]] bool schedules_locally() const override {
         return sink_.schedules_locally();
     }
+    [[nodiscard]] bool owns_execution_plan() const override {
+        return true;
+    }
     bool schedule(const wtp::Job& job, std::uint64_t start_ns,
                   const wtp::LocalStartConditions& conditions) override;
     [[nodiscard]] std::uint64_t start_resolution_ns() const override {

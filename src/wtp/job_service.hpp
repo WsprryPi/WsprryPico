@@ -169,6 +169,12 @@ class RfEngine {
     [[nodiscard]] virtual bool schedules_locally() const {
         return false;
     }
+    // Immutable capability: after successful schedule()/begin(), execution
+    // retains no references into the caller's Job. Default preserves input for
+    // adapters that borrow it. Preparation alone does not transfer ownership.
+    [[nodiscard]] virtual bool owns_execution_plan() const {
+        return false;
+    }
     [[nodiscard]] virtual std::uint64_t start_resolution_ns() const {
         return 1;
     }
@@ -399,6 +405,7 @@ class JobService {
     void expire_resources(std::uint64_t monotonic_now_ns);
     void record_terminal(State state, ErrorCode error, std::uint64_t now_ns);
     void clear_job();
+    void release_execution_input();
     void touch_terminal(std::string_view job_id);
     void prune_replay(std::uint64_t now_ns);
     void prune_terminals(std::uint64_t now_ns);
@@ -413,6 +420,7 @@ class JobService {
     std::vector<Session> sessions_;
     std::optional<Owner> owner_;
     std::optional<Job> job_;
+    PayloadDigest job_digest_{};
     AdjustmentList adjustments_;
     std::optional<ArmRecord> arm_;
     std::deque<ReplayEntry> replay_cache_;

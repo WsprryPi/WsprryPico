@@ -478,6 +478,36 @@ void lifecycle_test() {
     CHECK(engine.poll(102).state == wtp::EngineState::Idle);
 }
 
+void owned_plan_survives_input_destruction_test() {
+    auto run = [](bool destroy_input) {
+        TestSink sink;
+        rf::StreamEngine engine(sink);
+        std::array<std::uint64_t, 512> lengths;
+        lengths.fill(4096);
+        auto job = job_for(lengths);
+        CHECK(engine.owns_execution_plan());
+        CHECK(engine.prepare(job).accepted);
+        CHECK(engine.begin(job, 100));
+        if (destroy_input)
+            job = {}; // Destroy all caller-owned fields before any refill.
+        const auto before = allocations;
+        std::uint64_t digest = 0;
+        while (sink.report.consumed_samples < sink.total) {
+            const auto& slot = sink.slots[sink.report.completed_blocks % 2];
+            digest = digest * 31 + checksum(slot.words);
+            sink.consume();
+            const auto report = engine.poll(100 + ns_at(sink.report.consumed_samples));
+            CHECK(report.state == (sink.report.consumed_samples == sink.total
+                                       ? wtp::EngineState::Complete
+                                       : wtp::EngineState::Running));
+        }
+        CHECK(engine.disable(100 + ns_at(sink.total)));
+        CHECK(allocations == before);
+        return digest;
+    };
+    CHECK(run(false) == run(true));
+}
+
 void quantized_lifecycle_test() {
     for (std::int64_t adjustment = -3; adjustment <= 3; ++adjustment) {
         TestSink sink;
@@ -722,6 +752,7 @@ int main(int argc, char** argv) {
         extended_plan_limits();
         correction_test();
         lifecycle_test();
+        owned_plan_survives_input_destruction_test();
         quantized_lifecycle_test();
         faults_test();
         service_test();

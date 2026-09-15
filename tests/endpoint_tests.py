@@ -295,11 +295,21 @@ print("Retained LOAD/ARM results, terminal LRU and expiry tests passed")
 
 # A competing maximum reply temporarily occupies decoding workspace. Keep the
 # same complete CLAIM request bounded and undispatched until space returns.
+def send_with_decode_pressure(peer, request):
+    # Input admission now reserves temporary workspace too. Model a competing
+    # endpoint consuming memory after admission, before the final input byte.
+    wire=frame(json.dumps(request,separators=(',', ':')).encode())
+    for offset in range(0,len(wire)-1,1024):
+        result=peer.call(action='send',hex=wire[offset:min(offset+1024,len(wire)-1)].hex(),
+                         available_bytes=1000000)
+        assert not result['closed'] and not result['messages']
+    return peer.call(action='send',hex=wire[-1:].hex(),available_bytes=42000)
+
 for recover in (True, False):
     p=Peer(); ok(p.hello())
     p.call(action="poll",available_bytes=42000)
     request=p.request("CLAIM",{"owner_id":"2"*32,"lease_ms":60000})
-    result=p.send(request)
+    result=send_with_decode_pressure(p,request)
     assert not result["closed"] and not result["messages"] and result["pending"]==0
     result=p.call(action="clock",synchronized=True,now_ns="4999000000")
     assert not result["closed"] and not result["messages"]
@@ -319,7 +329,7 @@ print("Bounded deferred decoding, same-connection recovery and expiry tests pass
 
 # Closing an endpoint discards its deferred mutation; it cannot claim later.
 p=Peer(); ok(p.hello()); p.call(action="poll",available_bytes=42000)
-result=p.send(p.request("CLAIM",{"owner_id":"2"*32,"lease_ms":60000}))
+result=send_with_decode_pressure(p,p.request("CLAIM",{"owner_id":"2"*32,"lease_ms":60000}))
 assert not result["closed"] and not result["messages"]
 p.call(action="disconnect",available_bytes=65536)
 p.reconnect(); ok(p.hello()); ok(p.ask("CLAIM",{"owner_id":"2"*32,"lease_ms":60000}))
@@ -344,7 +354,7 @@ for op in ("STATUS", "CAPS", "GET_CLOCK"):
     p.close()
 # A large protocol string cannot enter the small-workspace route.
 p=Peer();ok(p.hello());p.call(action="poll",available_bytes=42000)
-result=p.send(p.request("STATUS",protocol="WTP/1"+"1"*8000))
+result=send_with_decode_pressure(p,p.request("STATUS",protocol="WTP/1"+"1"*8000))
 assert not result["closed"] and not result["messages"]
 result=p.call(action="clock",synchronized=True,now_ns="5000000000")
 assert result["closed"] and not result["messages"]

@@ -66,29 +66,40 @@ struct Ids : wtp::IdentitySource {
 };
 struct Sink : rf::BlockSink {
     unsigned starts = 0;
+    bool allow = false;
+    rf::SinkReport report;
+    std::uint64_t start = 0;
     bool stop(std::uint64_t) override {
         return true;
     }
-    bool submit(std::uint64_t, std::uint64_t, std::span<const std::uint32_t>,
+    bool submit(std::uint64_t epoch, std::uint64_t, std::span<const std::uint32_t>,
                 std::uint64_t) override {
         ++starts;
-        return false;
+        report.epoch = epoch;
+        return allow;
     }
-    bool arm(std::uint64_t, std::uint64_t, std::uint64_t, rf::LaunchGuard) override {
+    bool arm(std::uint64_t, std::uint64_t when, std::uint64_t, rf::LaunchGuard) override {
         ++starts;
-        return false;
+        start = when;
+        report.state = wtp::EngineState::Armed;
+        return allow;
     }
-    rf::SinkReport poll(std::uint64_t) override {
-        return {};
+    rf::SinkReport poll(std::uint64_t now) override {
+        if (allow && now >= start && report.state == wtp::EngineState::Armed)
+            report.state = wtp::EngineState::Running;
+        return report;
     }
     bool output_active() const override {
-        return false;
+        return allow && report.state == wtp::EngineState::Running;
     }
 };
 struct CountingEngine : wtp::RfEngine {
     rf::StreamEngine engine;
     unsigned preparations = 0;
     explicit CountingEngine(Sink& sink) : engine(sink) {}
+    bool owns_execution_plan() const override {
+        return engine.owns_execution_plan();
+    }
     wtp::PrepareResult prepare(const wtp::Job& job) override {
         ++preparations;
         return engine.prepare(job);
@@ -211,7 +222,9 @@ int main(int argc, char** argv) {
     background = std::stoull(argv[2]);
     const auto mode = argc == 4 ? std::string_view(argv[3]) : std::string_view{};
     const bool distinct = mode == "distinct-replay" || mode == "distinct-maximum-status";
-    const bool maximum_status = mode == "maximum-status" || mode == "distinct-maximum-status";
+    const bool running_status = mode == "running-status";
+    const bool maximum_status =
+        mode == "maximum-status" || mode == "distinct-maximum-status" || running_status;
     const bool retained_series = mode == "retained-series" || mode == "retained-series-eight";
     whole = mode == "replay" || distinct || maximum_status || retained_series;
     if (whole) {
@@ -365,6 +378,26 @@ int main(int argc, char** argv) {
         auto status_wire = wire(status_text);
         std::cout << "{\"exchanges\":[";
         for (unsigned i = 0; i < 3; ++i) {
+            if (running_status && i == 1) {
+                sink.allow = true;
+                clock.now.state = wtp::ClockState::Synchronized;
+                clock.now.leap = wtp::LeapState::Normal;
+                clock.now.utc_now_ns = clock.now.monotonic_now_ns;
+                const auto begin = clock.now.utc_now_ns + 100000000;
+                tracking = false;
+                const auto armed = wire(
+                    request("ARM",
+                            "{\"job_id\":\"8d8734400ddd2d472799f3d08a92e6b5\",\"start_utc_ns\":\"" +
+                                std::to_string(begin) + "\",\"max_start_uncertainty_ns\":\"1000\"}",
+                            '9'));
+                send(endpoint, armed);
+                tracking = true;
+                clock.now.utc_now_ns = clock.now.monotonic_now_ns = begin;
+                service.poll();
+                tracking = false;
+                if (service.status().state != wtp::State::Running)
+                    return 8;
+            }
             output_size = 0;
             total_peak = live + page_live;
             peak_cpp = live;

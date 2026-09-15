@@ -117,6 +117,7 @@ class MockRfEngine final : public RfEngine {
     bool stall_completion = false;
     bool active = false;
     bool local_scheduling = false;
+    bool independent_plan = false;
     std::uint64_t acknowledgement_ns = 0;
     std::size_t prepare_calls = 0;
     std::size_t begin_calls = 0;
@@ -126,6 +127,9 @@ class MockRfEngine final : public RfEngine {
 
     bool schedules_locally() const override {
         return local_scheduling;
+    }
+    bool owns_execution_plan() const override {
+        return independent_plan;
     }
     std::uint64_t completion_acknowledgement_ns() const override {
         return acknowledgement_ns;
@@ -1337,6 +1341,122 @@ void test_active_load_replay_decode_and_authority() {
     CHECK(engine.prepare_calls == 1 && engine.begin_calls == 0);
 }
 
+void test_execution_input_handoff_and_replay() {
+    for (const bool local : {false, true}) {
+        for (const bool independent : {false, true}) {
+            for (const unsigned outcome : {0U, 1U, 2U, 3U}) {
+                // Completion, owner abort, uncertain stop, rejected handoff.
+                VirtualClock clock;
+                MockRfEngine engine;
+                engine.local_scheduling = local;
+                engine.independent_plan = independent;
+                engine.reject_begin = outcome == 3;
+                TestIdentitySource ids;
+                ServiceConfig config;
+                config.minimum_arm_lead_ns = 10;
+                JobService service(clock, engine, ids, config);
+                establish_owner(service);
+                auto job = sample_job();
+                job.events.resize(512);
+                job.total_duration_ns = 512;
+                for (std::size_t i = 0; i < job.events.size(); ++i)
+                    job.events[i] = {i, 1, true, 135500000000000ULL};
+                const auto load = request("LOAD", job, 'c');
+                watched_event_released = false;
+                watched_event_bytes = 512 * sizeof(RfEvent);
+                const auto loaded = service.handle(load);
+                watched_event_bytes = 0;
+                CHECK(loaded.ok && watched_event_allocation && !watched_event_released);
+                const auto body = ArmBody{job.job_id, clock.value.utc_now_ns + 10, 1000};
+                const auto arm = request("ARM", body, 'd');
+                const auto armed = service.handle(arm);
+                CHECK(armed.ok == !(local && outcome == 3));
+                CHECK(watched_event_released == (local && independent && outcome != 3));
+                if (outcome != 3) {
+                    CHECK(service.handle(load) == loaded);
+                    CHECK(service.handle(request("LOAD", job, 'e')) == loaded);
+                    CHECK(service.handle(request(
+                              "LOAD", LoadReplayBody{job.job_id, job_digest(job)}, 'f')) == loaded);
+                    auto changed = job;
+                    ++*changed.events.back().frequency_nhz;
+                    CHECK(service.handle(request("LOAD", changed, '0')).error ==
+                          ErrorCode::JobIdConflict);
+                    CHECK(service.handle(arm) == armed);
+                    CHECK(service.handle(request("ARM", body, '1')) == armed);
+                }
+                clock.advance(10);
+                service.poll();
+                CHECK(watched_event_released == (independent && outcome != 3));
+                if (outcome == 3) {
+                    CHECK(service.status().state == State::Failed &&
+                          !service.status().output_active);
+                    CHECK(service.status().terminal_records.size() == 1);
+                } else if (outcome == 1 || outcome == 2) {
+                    engine.reject_disable = outcome == 2;
+                    const auto aborted =
+                        service.handle(request("ABORT", AbortBody{job.job_id}, '2'));
+                    CHECK(aborted.ok == (outcome == 1));
+                    CHECK(service.status().state ==
+                          (outcome == 1 ? State::Aborted : State::Failed));
+                    CHECK(service.status().output_active == (outcome == 2));
+                } else {
+                    CHECK(service.status().state == State::Running &&
+                          service.status().output_active);
+                    clock.advance(512);
+                    service.poll();
+                    CHECK(service.status().state == State::Complete &&
+                          !service.status().output_active);
+                    CHECK(watched_event_released);
+                }
+                if (outcome == 0 || outcome == 1) {
+                    CHECK(service.handle(request("LOAD", job, '3')) == loaded);
+                    auto changed = job;
+                    ++changed.events.back().duration_ns;
+                    CHECK(service.handle(request("LOAD", changed, '4')).error ==
+                          ErrorCode::JobIdConflict);
+                    CHECK(service.handle(request("ARM", body, '5')) == armed);
+                    CHECK(engine.begin_calls == 1);
+                    CHECK(service.handle(request("RELEASE", {}, '6')).ok);
+                    CHECK(claim(service, '1', '7').ok);
+                    job.job_id = id('4');
+                    CHECK(service.handle(request("LOAD", job, '8')).ok);
+                    CHECK(service.status().job_id == job.job_id);
+                }
+                watched_event_allocation = nullptr;
+            }
+        }
+    }
+}
+
+void test_input_workspace_admission() {
+    const std::vector<std::uint8_t> bytes(65536, 'x');
+    const auto wire = encode_frame(bytes);
+    static std::size_t budget;
+    available_memory = [] { return budget; };
+    // Gate at the original reserve would allow this input but leave no room
+    // for the real serialized diagnostics/decode lifetime.
+    for (const auto free :
+         {65552U + 32768U, 65552U + 32768U + 8192U + 1023U, 65552U + 32768U + 8192U + 1024U}) {
+        budget = free;
+        FrameParser parser;
+        std::vector<FrameEvent> events;
+        for (const auto& byte : wire)
+            for (auto& event : parser.feed(std::span(&byte, 1), 0))
+                events.push_back(std::move(event));
+        const bool admitted = free == 65552U + 32768U + 8192U + 1024U;
+        CHECK(parser.closed() != admitted);
+        CHECK(events.size() == 1);
+        CHECK(events[0].kind == (admitted ? FrameEventKind::Payload : FrameEventKind::Closed));
+        if (admitted)
+            CHECK(events[0].payload == bytes);
+        else
+            CHECK(parser.buffered_bytes() == 0);
+    }
+    budget = std::numeric_limits<std::size_t>::max();
+    CHECK(!input_memory_admitted(budget));
+    available_memory = nullptr;
+}
+
 void test_completed_event_storage_and_replacement() {
     for (const bool unknown_output : {false, true}) {
         struct ResetMeasurement {
@@ -1792,7 +1912,8 @@ int main() {
         return std::malloc(size);
     };
     const std::vector<Test> tests{
-        {"identical adjustments preserve distinct job replays", test_identical_adjustments_preserve_distinct_job_replays},
+        {"identical adjustments preserve distinct job replays",
+         test_identical_adjustments_preserve_distinct_job_replays},
         {"allocation-free activity with retained history", test_activity_with_retained_history},
         {"physical Console abort", test_physical_console_abort},
         {"crc and frame encoding", test_crc_and_frame_encoding},
@@ -1826,6 +1947,8 @@ int main() {
         {"adjustments and engine failure safety", test_adjustments_and_engine_failure_safety},
         {"shared adjustment replay lifetimes", test_shared_adjustment_replay_lifetimes},
         {"completed event storage and replacement", test_completed_event_storage_and_replacement},
+        {"execution input handoff and replay", test_execution_input_handoff_and_replay},
+        {"input workspace admission", test_input_workspace_admission},
         {"active LOAD replay decoding and authority", test_active_load_replay_decode_and_authority},
         {"reply reserve and every page failure", test_reply_reserve_and_all_page_failures},
         {"expired active lease and terminal retention",

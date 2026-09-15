@@ -8,7 +8,8 @@ WorkerEngine::WorkerEngine(wtp::RfEngine& engine, time::UtcDiscipline& clock, No
                            Failure failure, Mask mask, Restore restore)
     : engine_(engine), clock_(clock), staged_clock_(clock), worker_clock_(clock), now_(now),
       wait_(wait), failure_(failure), mask_(mask), restore_(restore),
-      completion_acknowledgement_ns_(engine.completion_acknowledgement_ns()) {}
+      completion_acknowledgement_ns_(engine.completion_acknowledgement_ns()),
+      owns_execution_plan_(engine.owns_execution_plan()) {}
 void WorkerEngine::call(Op op) const {
     // No reentrancy, no queue overwrite, no retry after ambiguous completion.
     if (phase_.load(std::memory_order_acquire) != 0) {

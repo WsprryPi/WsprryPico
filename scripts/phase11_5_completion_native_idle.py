@@ -21,11 +21,11 @@ BOOT = '8d747e80fa4e2762ba2509b5bb5ecfae'
 
 
 def validate(p):
-    require(p['scope'] in ('phase115-completion-native-idle-v1', 'phase115-completion-native-idle-v2', 'phase115-completion-native-idle-v3', 'phase115-completion-native-idle-v4', 'phase115-completion-native-idle-v5', 'phase115-completion-native-idle-v6', 'phase115-completion-native-idle-v7', 'phase115-completion-native-idle-v8') and
-            (p['source_revision'],p['boot_id']) == (('6b7a1b848e2b5192acaa0fa08fb778613457ad8b','1739cc4f28304080ec97e2b228ab2683') if p['scope'].endswith(('-v7','-v8')) else ('b0254c5e64abf858255ca6d426e864080f003891','4dad3b38c27aad73da01cefc9e857cdb') if p['scope'].endswith('-v6') else ('0001a3625832b16ad89236cd98cce9679353aba8','6213cc6b8d7694082fb804fdf5b121fc') if p['scope'].endswith('-v5') else ('d674dc6cbf8efd142527c1c54f283d6037bb1acf','d76d4e540ddafff6622513596125c58c') if p['scope'].endswith('-v4') else (SOURCE,BOOT)) and
+    require(p['scope'] in ('phase115-completion-native-idle-v1', 'phase115-completion-native-idle-v2', 'phase115-completion-native-idle-v3', 'phase115-completion-native-idle-v4', 'phase115-completion-native-idle-v5', 'phase115-completion-native-idle-v6', 'phase115-completion-native-idle-v7', 'phase115-completion-native-idle-v8', 'phase115-completion-native-idle-v9') and
+            (p['source_revision'],p['boot_id']) == (('150fe016bb61518fb259adcedf86d3ac9779d373','c3ea3e2ad15dafe5db2acec253e35c99') if p['scope'].endswith('-v9') else ('6b7a1b848e2b5192acaa0fa08fb778613457ad8b','1739cc4f28304080ec97e2b228ab2683') if p['scope'].endswith(('-v7','-v8')) else ('b0254c5e64abf858255ca6d426e864080f003891','4dad3b38c27aad73da01cefc9e857cdb') if p['scope'].endswith('-v6') else ('0001a3625832b16ad89236cd98cce9679353aba8','6213cc6b8d7694082fb804fdf5b121fc') if p['scope'].endswith('-v5') else ('d674dc6cbf8efd142527c1c54f283d6037bb1acf','d76d4e540ddafff6622513596125c58c') if p['scope'].endswith('-v4') else (SOURCE,BOOT)) and
             p['native_idle_policy'] == 'retained-load-native-90s-v1', 'Identified idle candidate')
-    require(p.get('loaded_observation_policy') == ('two-published-loaded-samples-v1' if p['scope'].endswith('-v8') else None), 'Declared Loaded observation gate')
-    count=3 if p['scope'].endswith(('-v4','-v5','-v6','-v7','-v8')) else 2 if p['scope'].endswith('-v1') else 1
+    require(p.get('loaded_observation_policy') == ('two-published-loaded-samples-v1' if p['scope'].endswith(('-v8','-v9')) else None), 'Declared Loaded observation gate')
+    count=3 if p['scope'].endswith(('-v4','-v5','-v6','-v7','-v8','-v9')) else 2 if p['scope'].endswith('-v1') else 1
     require(p['limits'] == dict(loads=count, fresh_id_replays=1, claims=count, aborts=count,
             releases=count, cleanup_aborts=1, cleanup_claims=1, cleanup_releases=1,
             rf_jobs=0, flashes=0, reboots=0, wifi_cycles=0, configuration_writes=0), 'Idle operation ceilings')

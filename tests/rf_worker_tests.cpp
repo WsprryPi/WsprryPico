@@ -38,6 +38,10 @@ struct Engine : wtp::RfEngine {
     std::uint64_t start = 0;
     wtp::LocalStartConditions conditions;
     bool fail_disable = false;
+    bool independent_plan = false;
+    bool owns_execution_plan() const override {
+        return independent_plan;
+    }
     wtp::PrepareResult prepare(const wtp::Job&) override {
         return {true, {}};
     }
@@ -89,6 +93,14 @@ int main(int argc, char** argv) {
     time::UtcDiscipline clock(clock_now, nullptr);
     CHECK(clock.observe(1'800'000'000'000'000'000ULL, now(), 1000, wtp::LeapState::Normal));
     rf::WorkerEngine proxy(physical, clock, now, wait, failure, mask, restore);
+    CHECK(!proxy.owns_execution_plan());
+    Engine owned;
+    owned.independent_plan = true;
+    rf::WorkerEngine owned_proxy(owned, clock, now, wait, failure, mask, restore);
+    CHECK(owned_proxy.owns_execution_plan());
+    owned.independent_plan = false;
+    // Capability is frozen before worker startup, never a cross-core query.
+    CHECK(owned_proxy.owns_execution_plan());
     wtp::Job job;
     if (argc > 1) {
         if (std::string_view(argv[1]) == "--reentrant") {

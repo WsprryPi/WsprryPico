@@ -24,6 +24,9 @@ class WorkerEngine final : public wtp::RfEngine {
     bool schedules_locally() const override {
         return true;
     }
+    bool owns_execution_plan() const override {
+        return owns_execution_plan_;
+    }
     std::uint64_t start_resolution_ns() const override {
         return 1000;
     }
@@ -73,6 +76,7 @@ class WorkerEngine final : public wtp::RfEngine {
     Mask mask_;
     Restore restore_;
     const std::uint64_t completion_acknowledgement_ns_;
+    const bool owns_execution_plan_;
     // 0: producer owns payload, 1: consumer owns it, 2: completed.
     mutable std::atomic<unsigned> phase_{0};
     mutable Op op_ = Op::Inspect;
