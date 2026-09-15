@@ -818,6 +818,13 @@ void JobService::record_terminal(State state, ErrorCode error, std::uint64_t now
         load.job_id = job_->job_id;
         load.adjustments = adjustments_;
         retained_jobs_.push_front({job_->job_id, job_digest(*job_), std::move(load), arm_});
+        if (state == State::Complete) {
+            // Completion has authoritatively stopped the engine. Status needs
+            // the identity and duration; retained replay uses the digest above.
+            // Keeping a maximum event list here blocks the next decoded job's
+            // admission while ordinary TLS management remains connected.
+            std::vector<RfEvent>{}.swap(job_->events);
+        }
     }
     while (terminal_records_.size() > config_.terminal_record_entries) {
         const auto id = terminal_records_.back().job_id;

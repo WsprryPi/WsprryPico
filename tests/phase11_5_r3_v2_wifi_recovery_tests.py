@@ -1,9 +1,10 @@
 """Recovery scope and authoritative idle admission, without device access."""
 import copy,json,sys,unittest,shutil,tempfile
 from pathlib import Path
+from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 from phase11_5_r3_v2_wifi_recovery import validate,idle,initial_link,SCHEMA
-from phase11_5_r3_v2_rf import ASSET_SOURCE,ASSET_IMAGE
+from phase11_5_r3_v2_rf import ASSET_SOURCE,ASSET_IMAGE,COMPLETION_SOURCE,COMPLETION_IMAGE
 
 class WifiRecoveryTests(unittest.TestCase):
     def test_addressless_admission_does_not_cycle_a_healthy_or_disabled_link(self):
@@ -12,16 +13,40 @@ class WifiRecoveryTests(unittest.TestCase):
         for key,value in [('enabled',False),('ipv4','10.77.15.10'),('link_status',3),('mdns_state','advertising')]:
             with self.subTest(key=key),self.assertRaises(ValueError):initial_link(dict(n,**{key:value}),p)
         with self.assertRaises(ValueError):initial_link(n,{})
+        for state in (-3,-2,1):
+            initial_link(dict(n,link_status=state),dict(initial_link_policy='no-ipv4-after-240-v1'))
+        for state in (0,2,3):
+            with self.assertRaises(ValueError):
+                initial_link(dict(n,link_status=state),dict(initial_link_policy='no-ipv4-after-240-v1'))
     def test_scope_limits(self):
         p=dict(schema=SCHEMA,r3_scope=SCHEMA,standing_authority='R3-COMPLETE-20260913-v2',serial='0BF4B4AEC9FFB344',
             device_id='fd6127d11d6aca42a9905fa3fb1bf1d5',source_revision=ASSET_SOURCE,image_sha256=ASSET_IMAGE,
             runtime_seconds=300,restoration_seconds=150,maximum_wifi_cycles=1,rf_jobs=0,flashes=0,configuration_writes=0,heap_probes=0,
             hypothesis='A stayed at terminal link failure after F1 AP expiry; one idle OFF/ON requests rejoin to verified F2')
         self.assertEqual(validate(p),p)
+        current=dict(p,source_revision=COMPLETION_SOURCE,image_sha256=COMPLETION_IMAGE,
+            completion_recovery_policy='retained-complete-addressless-v1',initial_link_policy='associated-no-ipv4-v1',
+            initial_job_id='b88c7a3082eb4208a7e1f403bc13c9f8',not_before_monotonic_ns=1,
+            hypothesis='A remained associated without IPv4 for at least 240 seconds after P1b fixture activation; one inactive OFF/ON restarts acquisition')
+        validate(current)
+        for key,value in [('not_before_monotonic_ns',0),('initial_job_id','other'),('initial_link_policy','terminal-failure-v1')]:
+            with self.assertRaises(ValueError):validate(dict(current,**{key:value}))
         for key,value in [('serial','CDDBF8767C506C07'),('rf_jobs',1),('flashes',1),('configuration_writes',1),
             ('heap_probes',1),('maximum_wifi_cycles',2),('runtime_seconds',301),('restoration_seconds',151),('image_sha256','0'*64)]:
             q=copy.deepcopy(p);q[key]=value
             with self.subTest(key=key),self.assertRaises(ValueError):validate(q)
+
+    def test_complete_recovery_preserves_inactive_authority(self):
+        p=dict(boot_id='boot',completion_recovery_policy='retained-complete-addressless-v1',initial_job_id='job')
+        v=dict(info=dict(status=dict(state='complete',output_active=False,enabled=False)),
+            wtp=dict(STATUS=dict(boot_id='boot',state='complete',output_active=False,owner_id=None,job_id='job')))
+        with patch('phase11_5_r3_v2_wifi_recovery.validate_info'),patch('phase11_5_r3_v2_wifi_recovery.configuration',return_value=None):
+            idle(v,v,p)
+            for key,value in [('state','armed'),('output_active',True),('owner_id','foreign'),('job_id','other')]:
+                changed=copy.deepcopy(v);changed['wtp']['STATUS'][key]=value
+                with self.assertRaises(ValueError):idle(changed,v,p)
+            changed=copy.deepcopy(v);changed['info']['status']['enabled']=True
+            with self.assertRaises(ValueError):idle(changed,v,p)
 
     def test_live_recorded_authority_rejections(self):
         path=Path(__file__).resolve().parents[1]/'build/phase11-5-r3-v2-fixture-f2/admission.json'

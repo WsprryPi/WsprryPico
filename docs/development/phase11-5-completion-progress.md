@@ -5,30 +5,36 @@
 | Package | Status | Outcome / next requirement |
 | --- | --- | --- |
 | 0 | COMPLETE | Fresh named A/B USB inventories independently decoded; source-impact matrix and current summaries reconciled. [Result](phase11-5-completion-package0-result.json). |
-| 1 | OPEN — attempt 1 failed | 512-event job completed; maximum WTP stopped after a partial write during ordinary HTTPS overlap. [Failure and restoration](phase11-5-completion-p1-attempt1-result.json). Prepare sequential individual capacity probes. |
+| 1 | OPEN — repair validated on host | Original RF capacity failure preserved. Later packets stopped before ARM; completed-job storage blocked replacement LOAD under native TLS. Repair needs identified target build and affected retest. [Review](phase11-5-completion-terminal-storage-review.md). |
 | 2 | OPEN | Supported simultaneous workload and separate bounded overload. |
 | 3 | OPEN | Affected TLS/HTTP and distinct WTP timeouts. |
 | 4 | OPEN | Actual USB parser and unread-output pressure. |
 | 5 | OPEN | Retained capacity/eviction/expiry and three equivalent cycles. |
 | 6 | OPEN | All R3 groups and extended-feature applicability/closeout. |
 | 7 | OPEN | Remaining R4 authority/interruption assertions after reuse. |
-| 8 | OPEN | Network recovery; measured journal rotation and autonomous schedule. |
+| 8 | OPEN; idle Wi-Fi accepted on source 98f5797 | Two independently audited OFF/ON readiness cycles preserve state/configuration and recover address/clock. Link loss, lease/name change, DNS/SNTP, journal rotation and autonomy remain. |
 | 9 | OPEN | R6 mixed operation after R1-R5 acceptance. |
 
-No full physical acceptance assertion closed in P0 or P1 attempt 1. The latter
-charged one job / 128 RF seconds, with no firmware, configuration or Wi-Fi
-management changes. A completed locally on the same boot and is inactive and
-unowned; B is Empty/inactive/unowned. Both schedules remain disabled. Independent
-post-restoration inventories preserve both configurations. The host fixture is
-restored, and installed WsprryPi PID 1957 and executable hash are unchanged.
-The shared RF reservation was released only after fresh A/B authority checks.
+### Current repair checkpoint
 
-P1 attempt 1's failed maximum WTP exchange wrote 4,096 of 65,552 frame bytes;
-oversize and HTTP capacity probes did not execute. All 300 Console samples were
-independently decoded. Sampled heap and source support an admission refusal
-during ordinary HTTPS overlap, but do not directly identify the target branch.
-The failure remains a failed supported workload; it earns no overload credit.
-See the [review](phase11-5-completion-p1-attempt1-review.md).
+[Results and exact hashes](phase11-5-completion-terminal-storage-result.json)
+and [adversarial review](phase11-5-completion-terminal-storage-review.md).
+R5.wifi is newly accepted within its source 98f5797 idle recovery scope; no
+family closes. Cumulative charge: one RF job / 128 seconds, two Wi-Fi cycles,
+zero flashes and zero configuration writes. P1b/c/d sent no ARM.
+
+Fresh post-review inventories show both boards Empty/inactive/unowned with
+unchanged configurations and disabled scheduling. A's terminal record expired
+naturally. Images and boots remain unchanged. Host fixture restoration matches
+its baseline; installed WsprryPi PID 1957 is unchanged. The shared RF reservation
+is released. The Complete-only event storage repair passes host regression but
+has not been flashed or physically accepted.
+
+Original attempt 1 wrote 4,096 of 65,552 maximum-frame bytes during ordinary
+HTTPS overlap. Oversize and HTTP capacity probes did not execute. All 300
+Console samples were independently decoded. The failure remains failed and
+earns no overload credit. Subsequent deadline/guard/admission failures are
+retained separately. Next: identified build and bounded affected target tests.
 
 ### Package 0 checkpoint
 

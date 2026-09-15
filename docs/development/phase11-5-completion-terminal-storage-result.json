@@ -1,0 +1,257 @@
+{
+  "schema": "phase11.5-completion-repair-checkpoint-v1",
+  "phase_status": "OPEN",
+  "family_closed": false,
+  "deployed_source": "98f5797d77fb2bc4c11a4e80f6ff35d7ad16a5b5",
+  "attempts": {
+    "package1c": {
+      "status": "PREARM_FAILURE_CONFIRMED",
+      "classification": "initial_status_guard",
+      "packet_sha256": "69c5b306bdde2231764b078e47da05cd47e661eef35b0bb294eb83ae1734de18",
+      "acceptance": false,
+      "rf_jobs_charged": 0,
+      "rf_seconds_charged": 0,
+      "native": {
+        "connections": 1,
+        "operations": {
+          "HELLO": 1,
+          "STATUS": 300,
+          "CAPS": 1
+        }
+      },
+      "configurations_preserved": true,
+      "schedules_disabled": true,
+      "reservation_released": true,
+      "final_a": {
+        "boot_id": "b1c0af7bef6ef0bef8f5e44130182149",
+        "state": "complete",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": "b88c7a3082eb4208a7e1f403bc13c9f8",
+        "terminal_records": [
+          {
+            "job_id": "b88c7a3082eb4208a7e1f403bc13c9f8",
+            "state": "complete",
+            "ended_monotonic_ns": "3834256341000",
+            "output_active": false
+          }
+        ]
+      },
+      "final_b": {
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "failures": [
+        "wtp: Foreign owner/job",
+        "supervisor: Nominal contention completion"
+      ]
+    },
+    "package1d": {
+      "status": "PREARM_FAILURE_CONFIRMED",
+      "classification": "replacement_load_admission",
+      "packet_sha256": "aa603d6510059bbc34a6f79627402e477615ef04ff789a8d66992352db619662",
+      "acceptance": false,
+      "rf_jobs_charged": 0,
+      "rf_seconds_charged": 0,
+      "native": {
+        "connections": 1,
+        "operations": {
+          "HELLO": 1,
+          "STATUS": 301,
+          "CAPS": 1
+        }
+      },
+      "configurations_preserved": true,
+      "schedules_disabled": true,
+      "reservation_released": true,
+      "final_a": {
+        "boot_id": "b1c0af7bef6ef0bef8f5e44130182149",
+        "state": "complete",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": "b88c7a3082eb4208a7e1f403bc13c9f8",
+        "terminal_records": [
+          {
+            "job_id": "b88c7a3082eb4208a7e1f403bc13c9f8",
+            "state": "complete",
+            "ended_monotonic_ns": "3834256341000",
+            "output_active": false
+          }
+        ]
+      },
+      "final_b": {
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "failures": [
+        "wtp action: LOAD rejected: {'code': 'INTERNAL_ERROR', 'message': 'INTERNAL_ERROR', 'retryable': False}",
+        "wtp: Foreign owner/job",
+        "supervisor: Nominal contention completion"
+      ]
+    }
+  },
+  "wifi_recovery": {
+    "package1b-wifi-t": {
+      "status": "IDLE_WIFI_RECOVERY_VERIFIED",
+      "family_closed": false,
+      "packet_sha256": "2b5ea3e816aeced0cceb3f586a1c16567576a1f795bd3c30c0d55094b6a7d54f",
+      "source_revision": "98f5797d77fb2bc4c11a4e80f6ff35d7ad16a5b5",
+      "image_sha256": "b6d5ab7610a0e19e9de91ce78dde4eb7c63b9192343dd86af4f7bcb857838733",
+      "boot_id": "b1c0af7bef6ef0bef8f5e44130182149",
+      "wifi_cycles": 1,
+      "off_commands": 1,
+      "on_commands": 1,
+      "configuration_writes": 0,
+      "flashes": 0,
+      "rf_jobs": 0,
+      "final_authority": {
+        "boot_id": "b1c0af7bef6ef0bef8f5e44130182149",
+        "state": "complete",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": "b88c7a3082eb4208a7e1f403bc13c9f8",
+        "terminal_records": [
+          {
+            "job_id": "b88c7a3082eb4208a7e1f403bc13c9f8",
+            "state": "complete",
+            "ended_monotonic_ns": "3834256341000",
+            "output_active": false
+          }
+        ]
+      },
+      "final_clock": {
+        "state": "synchronized",
+        "utc_now_ns": "1789477116969436000",
+        "monotonic_now_ns": "5204147050000",
+        "uncertainty_ns": "8694695",
+        "sync_age_ns": "110994000",
+        "leap": "normal"
+      }
+    },
+    "package1c-wifi": {
+      "status": "IDLE_WIFI_RECOVERY_VERIFIED",
+      "family_closed": false,
+      "packet_sha256": "98857dba64c0313f81dd32d673abd1b6c1ebf0102ad1c9d34e895be92efcf2f1",
+      "source_revision": "98f5797d77fb2bc4c11a4e80f6ff35d7ad16a5b5",
+      "image_sha256": "b6d5ab7610a0e19e9de91ce78dde4eb7c63b9192343dd86af4f7bcb857838733",
+      "boot_id": "b1c0af7bef6ef0bef8f5e44130182149",
+      "wifi_cycles": 1,
+      "off_commands": 1,
+      "on_commands": 1,
+      "configuration_writes": 0,
+      "flashes": 0,
+      "rf_jobs": 0,
+      "final_authority": {
+        "boot_id": "b1c0af7bef6ef0bef8f5e44130182149",
+        "state": "complete",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": "b88c7a3082eb4208a7e1f403bc13c9f8",
+        "terminal_records": [
+          {
+            "job_id": "b88c7a3082eb4208a7e1f403bc13c9f8",
+            "state": "complete",
+            "ended_monotonic_ns": "3834256341000",
+            "output_active": false
+          }
+        ]
+      },
+      "final_clock": {
+        "state": "synchronized",
+        "utc_now_ns": "1789477674513593000",
+        "monotonic_now_ns": "5761689191000",
+        "uncertainty_ns": "8863790",
+        "sync_age_ns": "2158061000",
+        "leap": "normal"
+      }
+    }
+  },
+  "deadline_rejection": {
+    "packet_sha256": "c63acb30835b0f0e866b5b4c7bf1aa3199bd02f0eee9a5dba33719e8d23ee1c8",
+    "classification": "fixture_deadline_admission",
+    "device_access": false,
+    "rf_jobs_charged": 0
+  },
+  "unused_wifi_recovery": {
+    "packet_sha256": "c6806a95e86b795d7a96ea1399764da179350c1ebea739207866827e54a3a42e",
+    "classification": "prerequisite_changed_before_command",
+    "off_commands": 0,
+    "on_commands": 0
+  },
+  "cumulative_task_accounting": {
+    "rf_jobs_charged": 1,
+    "rf_seconds_charged": 128,
+    "wifi_off_commands": 2,
+    "wifi_on_commands": 2,
+    "flashes": 0,
+    "bootsel": 0,
+    "configuration_writes": 0
+  },
+  "final_boards": {
+    "a": {
+      "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+      "boot_id": "b1c0af7bef6ef0bef8f5e44130182149",
+      "revision": "98f5797d77fb",
+      "state": "empty"
+    },
+    "b": {
+      "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+      "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+      "revision": "8921a7008183",
+      "state": "empty"
+    }
+  },
+  "configurations_preserved": true,
+  "schedules_disabled": true,
+  "terminal_expiry": "A completed record naturally expired before the fresh post-review inventory; no clear/reset/reboot performed.",
+  "fixture_restoration": {
+    "session": "completion-p1c",
+    "restored": true,
+    "cleanup_failures": [],
+    "host_matches_before": true,
+    "time_local_preserved": true,
+    "installed_pid": 1957
+  },
+  "validation": {
+    "affected_ctest_targets": 6,
+    "passed": 6,
+    "r3_tests": 201,
+    "r3_passed": 167,
+    "r3_private_skips": 34,
+    "protocol": "PASS",
+    "format": "PASS",
+    "red_green": "Replacement maximum LOAD fails without repair and passes with repair"
+  },
+  "firmware_repair": {
+    "path": "src/wtp/job_service.cpp",
+    "physical_validation": "PENDING",
+    "released_bytes_for_512_events": 20480,
+    "scope": "Complete event storage after authoritative engine disable; retain digest, replies, identities, durations and history"
+  },
+  "evidence_sha256": {
+    "package1d/audit.json": "5bbe2f4ff54ef2f12617801f39363f38d28b8a5d4f6d605f790c1c460bcf4ee9",
+    "package1d/evidence.tar": "12663248fe1fae438fc9f72c8685dda6cf8e09d94c38fbe22da2c87777e3bc0b",
+    "package1c/audit.json": "a1cb668ab1f67a07b770c32d4cf50f2b5821d0941fa579102eef669bc03f3cc1",
+    "package1c/restoration.tar": "9c856858106fad8cc67fddcbd190f08a346f1f09e40e45d64f38a5059f1098f1",
+    "package1c/evidence.tar": "1627f33a0e26d5807e7d381e3321bddabcd471a4d5118e655d222408156c1bc7",
+    "post-repair-review/b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "post-repair-review/audit.json": "5a0e06a9c65c19701a4d9bee753234c4d7af8fcac3ef834a7164da53e8d0b246",
+    "post-repair-review/b.stdout": "3fa257443009eaa55172e3304e099929126972f6c6f9aebced4f128a7a52e511",
+    "post-repair-review/a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "post-repair-review/a.stdout": "32cc0f242abc354d220409568d08b2ae6c9094c4b008f6e557e8717b7dd8af33",
+    "package1c-wifi/audit.json": "60b61b24778700afe008c977620847e8622c11a5650898431716bfb51d4cf6fa",
+    "package1c-wifi/evidence.tar": "835fe382e99643d1a0dc28c218da235247b0f9021bcc0b00eae58942a117209f",
+    "package1/evidence.tar": "85c34aa76737d8d06c6c8999fcfb3618bf23bed922bb0c1d9c5cf20feaf0b405",
+    "package1b-wifi/evidence.tar": "2ab7a4ea258ce3aa14abd28b3d813de2a3e552d7b0a5bae8ffe2996369ab8eb9",
+    "package1b-wifi-t/audit.json": "8d28760102b6586688fc414a28e29218ee0af18151271697f5cc35e15deea7b6",
+    "package1b-wifi-t/evidence.tar": "cc96b3b7f87ad0f7250e3258c6d173fccfe170a618f7b4d2e221c766896ce53b"
+  }
+}

@@ -35,6 +35,7 @@ REPAIR_IMAGE='4b4ddd6c9108d20cb7718756da047e4ddd0d4948e6c432d3aa1329d55150d08a'
 COMPLETION_POLICY='phase115-completion-capacity-v1'
 COMPLETION_SOURCE='98f5797d77fb2bc4c11a4e80f6ff35d7ad16a5b5'
 COMPLETION_IMAGE='b6d5ab7610a0e19e9de91ce78dde4eb7c63b9192343dd86af4f7bcb857838733'
+SERIAL_CAPACITY='wtp-then-http-capacity-v1'
 B_PARALLEL_AUTHORIZATION='37ae5f5658ffc7c4436547061e4a81e577ea9102a086ec1e74d09031699caaab'
 
 
@@ -58,6 +59,21 @@ def native_running(record, packet, packet_sha256, now):
     return (job.get('boot_id')==packet['boot_id'] and job.get('job_id')==packet['jobs'][0]['job_id'] and
             job.get('owner_id')==packet['owner_id'] and job.get('state')=='running' and
             job.get('output_active') is True)
+
+
+def observed_status(status, packet, *, initial=False):
+    """Permit the declared inactive predecessor only before this packet's LOAD."""
+    require(status['boot_id']==packet['boot_id'] and type(status['output_active']) is bool,
+            'STATUS identity/authority')
+    require(status['state'] in ['empty','loaded','armed','running','complete'] and
+            (status['state']=='running' or status['output_active'] is False), 'Unexpected RF state')
+    predecessor=(initial and packet.get('capacity_schedule_policy')==SERIAL_CAPACITY and
+        status['state']=='complete' and status['output_active'] is False and status['owner_id'] is None and
+        status['job_id']==packet['initial_a_job_id'])
+    require(status['owner_id'] in [None,packet['owner_id']] and
+        (predecessor or status['job_id'] is None or status['job_id'] in [j['job_id'] for j in packet['jobs']]),
+        'Foreign owner/job')
+    return status
 
 
 def fresh_sample(samples, lock, name, maximum_age_ns, monotonic_ns=time.monotonic_ns, *, identity=None,inflight=None):
@@ -90,6 +106,11 @@ def guarded_action(action, value, faults, report):
 def validate(packet):
     diagnostic=packet.get('diagnostic_policy')==DIAGNOSTIC_POLICY
     completion=packet.get('closure_policy')==COMPLETION_POLICY
+    require(packet.get('capacity_schedule_policy') in (None,SERIAL_CAPACITY), 'Known capacity ordering')
+    if packet.get('capacity_schedule_policy'):
+        require(completion and packet.get('initial_a_state')=='complete' and
+                packet.get('initial_a_job_id')=='b88c7a3082eb4208a7e1f403bc13c9f8',
+                'Sequential retest preserves the failed packet terminal state')
     repair=packet.get('closure_policy')==REPAIR_POLICY
     closure=packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY)
     require('closure_policy' not in packet or closure,'Unknown closure policy')
@@ -277,11 +298,14 @@ def run(root,packet):
                 '--device-id',B_DEVICE if b else DEVICE,'--session-id',packet['b_session'] if b else packet['inventory_session'],
                 '--run'],stdout=out,stderr=err,timeout=65).returncode
         require(code==0,'Inventory failed: '+label);return finished(root/(label+'.stdout'),'READ_ONLY_INVENTORY')
-    def empty(value,b=False):
+    def empty(value,b=False,initial=False):
         i,s=value['info'],value['wtp']['STATUS']
+        terminal=initial and not b and packet.get('capacity_schedule_policy')==SERIAL_CAPACITY
         require(s['boot_id']==(packet['b_boot_id'] if b else packet['boot_id']) and
-                s['state']==i['status']['state']=='empty' and s['output_active'] is i['status']['output_active'] is False and
-                s['owner_id'] is s['job_id'] is None and i['status']['enabled'] is False,'Inactive/unowned admission')
+                s['state']==i['status']['state']==('complete' if terminal else 'empty') and
+                s['output_active'] is i['status']['output_active'] is False and s['owner_id'] is None and
+                s['job_id']==(packet['initial_a_job_id'] if terminal else None) and
+                i['status']['enabled'] is False,'Inactive/unowned admission')
     before=before_b=None;load_process=None
     reservation=None;final_values={}
     def periodic(name,interval,read,act=None):
@@ -318,13 +342,7 @@ def run(root,packet):
             require(hello['device_id']==DEVICE and hello['boot_id']==packet['boot_id'],'Peer identity')
             state=dict(index=0,phase='idle',lease=None,done_at=None)
             def read():
-                s=peer.request('STATUS');require(s['boot_id']==packet['boot_id'] and type(s['output_active']) is bool,
-                                               'STATUS identity/authority')
-                require(s['state'] in ['empty','loaded','armed','running','complete'] and
-                        (s['state']=='running' or s['output_active'] is False),'Unexpected RF state')
-                require(s['owner_id'] in [None,packet['owner_id']] and
-                        (s['job_id'] is None or s['job_id'] in [j['job_id'] for j in packet['jobs']]),'Foreign owner/job')
-                return s
+                return observed_status(peer.request('STATUS'),packet,initial=state['phase']=='idle')
             def act(status):
                 checkpoint()
                 if load_process is not None:
@@ -344,7 +362,8 @@ def run(root,packet):
                     return
                 job=packet['jobs'][state['index']]
                 if state['phase']=='idle':
-                    require(status['state']=='empty' and status['owner_id'] is None and not status['output_active'],
+                    require(status['state']==('complete' if packet.get('capacity_schedule_policy')==SERIAL_CAPACITY else 'empty') and
+                            status['owner_id'] is None and not status['output_active'],
                             'Next job idle admission')
                     if capture_failures and not recent_clock(info):return
                     require(time.monotonic()+int(job['total_duration_ns'])/1e9+40<end,'Remaining finite observation budget')
@@ -395,6 +414,11 @@ def run(root,packet):
                                 require(exchange_capacity(peer,raw,recovery,emit,invalid_frames=1)==recovery['body'],
                                         'Same-connection oversized WTP recovery')
                             finally:peer.checkpoint=observer_checkpoint
+                        if packet.get('capacity_schedule_policy')==SERIAL_CAPACITY:
+                            value=dict(packet_sha256=digest(root/'packet.json'),completed_exchanges=2,
+                                       job_id=job['job_id'],monotonic_ns=time.monotonic_ns())
+                            emit('wtp_capacity_complete',value)
+                            save(root/'wtp-capacity-complete.json',value)
                     if status['state']=='complete':
                         if info['status']['state']!='complete' or int(info['launch_epoch'])<=state['epoch']:return
                         emit('job_complete',dict(job_id=job['job_id'],status=status,info=info))
@@ -420,7 +444,7 @@ def run(root,packet):
             reservation=Reservation(digest(root/'packet.json'))
         if comparator_required(packet):
             before_b=inventory('before-b',True);empty(before_b,True)
-        before=inventory('before-a');empty(before);validate_info(before['info'],before,packet)
+        before=inventory('before-a');empty(before,initial=True);validate_info(before['info'],before,packet)
         caps=before['wtp']['CAPS'];require(caps['max_events']==512 and caps['max_job_duration_ns']=='3600000000000','Extended CAPS')
         if reservation is not None:
             require(len(before['wtp']['STATUS']['terminal_records'])<=packet['maximum_initial_terminal_records'],

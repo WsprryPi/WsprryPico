@@ -9,6 +9,11 @@ from phase11_5_r3_preflight import audit_inventory
 def audit(root,packet_sha):
     require(digest(root/'packet.json')==packet_sha,'Frozen recovery packet')
     p=validate(json.loads((root/'packet.json').read_text()));inventories={}
+    if p.get('completion_recovery_policy'):
+        for name,sha in p['stage_sha256'].items():
+            require(digest(root/name)==sha,'Recovery executed helper identity')
+        start=json.loads((root/'before-a.stdout').read_text().splitlines()[0])['monotonic_ns']
+        require(start>=p['not_before_monotonic_ns'],'Recovery prerequisite duration')
     for path in sorted(root.glob('*.stdout')):
         label=path.stem;require(not path.with_suffix('.stderr').read_bytes(),'Inventory stderr')
         inventories[label]=audit_inventory(path,dict(serial=p['serial'],device_id=p['device_id']),

@@ -224,6 +224,7 @@ def audit_capacity(root, decoder, packet_digest):
     packet=json.loads((root/'packet.json').read_text());cases=http_capacity_cases(packet['http_capacity']['seed'])
     require(packet['http_capacity']['cases']==cases,'Frozen capacity HTTP cases')
     rf=journal(root/'rf.jsonl');load=journal(root/'contention.jsonl');plan=packet['contention'];job,=packet['jobs']
+    sequential=packet.get('capacity_schedule_policy')=='wtp-then-http-capacity-v1'
     native,metrics=native_wire(root,packet,decoder)
     require(metrics['connections']==1,'One persistent native TLS/WTP connection')
     ready=json.loads((root/'contention-ready.json').read_text())
@@ -243,13 +244,29 @@ def audit_capacity(root, decoder, packet_digest):
     end=next(r['monotonic_ns'] for r in rf if r['kind']=='job_complete')
     require(native[0]['began']<arm and native[-1]['ended']>=end-6_000_000_000 and
         all(0<b['began']-a['began']<=6_000_000_000 for a,b in zip(native,native[1:])),'Native authority coverage')
+    load_ack=next(r['monotonic_ns'] for r in rf if r['kind']=='wtp_message' and
+        r['value'].get('type')=='response' and r['value'].get('op')=='LOAD' and r['value'].get('ok') is True)
     for s in native:
-        v=s['value'];require(v['boot_id']==packet['boot_id'] and v['job_id'] in [None,job['job_id']] and
+        v=s['value']
+        predecessor=(sequential and s['began']<=load_ack and v['state']=='complete' and
+            v['output_active'] is False and v['job_id']==packet['initial_a_job_id'])
+        require(v['boot_id']==packet['boot_id'] and (predecessor or v['job_id'] in [None,job['job_id']]) and
             v['owner_id'] in [None,packet['owner_id']] and v['output_active'] is (v['state']=='running'),'Native authority')
+    allowed=['start','finish','native_status','https_status','http_capacity_admission','http_tx','http_write_complete','http_response']
+    if sequential:
+        allowed.append('http_phase_started')
+        complete,=[r for r in rf if r['kind']=='wtp_capacity_complete']
+        phase,=[r for r in load if r['kind']=='http_phase_started']
+        value=json.loads((root/'wtp-capacity-complete.json').read_text())
+        require(value==complete['value']==phase['value'] and value['packet_sha256']==packet_digest and
+            value['job_id']==job['job_id'] and value['completed_exchanges']==2 and
+            max(r['monotonic_ns'] for r in rf if r['kind'].startswith('capacity_')) <=
+            value['monotonic_ns'] <= complete['monotonic_ns'] <= phase['monotonic_ns'], 'WTP precedes HTTP phase')
+        require(all(r['monotonic_ns']>=phase['monotonic_ns'] for r in load if r['kind'].startswith('http_') or
+            r['kind']=='https_status'),'No HTTP during individual WTP probes')
     require(load[0]['value']==dict(packet_sha256=packet_digest,policy=plan['policy'],binary_sha256=plan['binary_sha256']) and
-        all(r['kind'] in ['start','finish','native_status','https_status','http_capacity_admission','http_tx',
-            'http_write_complete','http_response'] for r in load),'Finite HTTP capture without failures')
-    selected=[r for r in load if r['kind'].startswith('http_')]
+        all(r['kind'] in allowed for r in load),'Finite HTTP capture without failures')
+    selected=[r for r in load if r['kind'].startswith('http_') and r['kind']!='http_phase_started']
     require([r['kind'] for r in selected]==['http_capacity_admission','http_tx','http_write_complete','http_response']*3,
         'Exactly three HTTP capacity exchanges')
     observations={}

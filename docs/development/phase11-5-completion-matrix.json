@@ -583,9 +583,9 @@
       "id": "R5.wifi",
       "group": "R5",
       "requirement": "Idle Wi-Fi OFF/ON",
-      "classification": "missing",
-      "evidence": "phase11-4-three-radio-results.md; standalone-physical-validation.md; standalone-rf-power-validation.md",
-      "remaining": "One bounded source-distinct cycle, independent authority and recovery",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-completion-terminal-storage-result.json",
+      "remaining": "Accepted on A source 98f5797 same boot: one OFF and one ON, preserved configuration, inactive output, recovered address and synchronized clock. Second cycle confirms readiness. Name/address-change and full R5 remain separate. Reassess after candidate change.",
       "package": 8
     },
     {

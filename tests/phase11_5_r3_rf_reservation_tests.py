@@ -20,6 +20,17 @@ def snapshots():
 
 
 class Tests(unittest.TestCase):
+    def test_declared_complete_predecessor_only_before_load(self):
+        from phase11_5_r3_v2_rf import observed_status, SERIAL_CAPACITY
+        packet=dict(boot_id='boot',owner_id='owner',jobs=[dict(job_id='new')],
+                    capacity_schedule_policy=SERIAL_CAPACITY,initial_a_job_id='old')
+        status=dict(boot_id='boot',owner_id=None,job_id='old',state='complete',output_active=False)
+        self.assertEqual(observed_status(status,packet,initial=True),status)
+        with self.assertRaises(ValueError):observed_status(status,packet)
+        for change in [dict(state='armed'),dict(state='running',output_active=True),dict(owner_id='foreign'),
+                       dict(owner_id='owner'),dict(job_id='undeclared'),dict(boot_id='other')]:
+            with self.assertRaises(ValueError):observed_status(status|change,packet,initial=True)
+        self.assertEqual(observed_status(status|dict(job_id='new',state='loaded',owner_id='owner'),packet)['job_id'],'new')
     def test_authority_and_identity_fail_closed(self):
         original = snapshots()
         inactive(original)
@@ -101,6 +112,12 @@ class Tests(unittest.TestCase):
                       closure_policy=COMPLETION_POLICY, shared_rf_reservation='durable-both-picos-v1',
                       maximum_initial_terminal_records=1, not_before_host_monotonic_ns=1)
         validate(packet)
+        sequential = dict(packet, capacity_schedule_policy='wtp-then-http-capacity-v1',
+                          initial_a_state='complete', initial_a_job_id='b88c7a3082eb4208a7e1f403bc13c9f8')
+        validate(sequential)
+        for key in ('initial_a_state', 'initial_a_job_id'):
+            with self.assertRaises(ValueError):
+                validate(dict(sequential, **{key: None}))
         for key, value in [('shared_rf_reservation', None), ('closure_policy', None),
                            ('b_role', 'independent-zero-rf'), ('image_sha256', '0' * 64),
                            ('runtime_seconds', 301), ('maximum_initial_terminal_records', 2), ('not_before_host_monotonic_ns', None)]:

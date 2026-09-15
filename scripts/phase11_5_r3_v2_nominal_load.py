@@ -24,6 +24,20 @@ NAME='wsprrypico-0a60df.local'
 PEER_SHA='06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016'
 
 
+def await_capacity_phase(root, packet_sha, job_id, deadline, stop, finished, monotonic=time.monotonic):
+    """No HTTPS socket may start before both individual WTP boundaries finish."""
+    path=root/'wtp-capacity-complete.json'
+    while not path.exists():
+        require(monotonic()<deadline and not finished() and not stop.wait(.05),
+                'WTP phase did not complete; no HTTP capacity traffic permitted')
+    value=json.loads(path.read_text())
+    require(value['packet_sha256']==packet_sha and value['job_id']==job_id and
+            type(value['completed_exchanges']) is int and value['completed_exchanges']==2 and
+            type(value['monotonic_ns']) is int and 0<value['monotonic_ns']<=int(monotonic()*1e9),
+            'Exact completed WTP phase required')
+    return value
+
+
 def periodic_https(first_start, deadline, stop, observe, finished, monotonic=time.monotonic):
     """Schedule starts independently of native HTTP reads and previous reply latency."""
     next_at=first_start+20
@@ -40,6 +54,7 @@ def main():
     if not a.run:print('Plan only; no process or network activity.');return
     root=a.root.resolve(strict=True);require(digest(root/'packet.json')==a.packet_sha256,'Nominal packet hash')
     packet=json.loads((root/'packet.json').read_text());plan=packet['contention'];os.umask(0o077)
+    sequential=packet.get('capacity_schedule_policy')=='wtp-then-http-capacity-v1'
     require(plan['policy'] in ['native-wtp-and-https-status-20s-v1','native-wtp-and-bounded-pressure-v1'] and packet['standing_authority']=='R3-COMPLETE-20260913-v2' and
             1<=packet['runtime_seconds']<=4000 and plan['maximum_https_requests']<=201,'Nominal finite scope')
     require(os.readlink('/proc/self/ns/net')==plan['netns'] and os.readlink('/proc/self/ns/mnt')==plan['mountns'],
@@ -148,7 +163,8 @@ def main():
                     require(identity['device_id']==DEVICE and identity['boot_id']==packet['boot_id'] and
                         status['host']['network']['resolved_address']=='10.77.15.10' and
                         status['host']['network']['authenticated_identity']==NAME,'Native peer identity')
-                    first_https_start=https();ready=dict(packet_sha256=a.packet_sha256,boot_id=packet['boot_id'],
+                    first_https_start=time.monotonic() if sequential else https()
+                    ready=dict(packet_sha256=a.packet_sha256,boot_id=packet['boot_id'],
                         observed_monotonic_ns=time.monotonic_ns(),pid=process.pid);break
                 time.sleep(.2)
             require(ready is not None,'Native readiness deadline')
@@ -174,7 +190,13 @@ def main():
                     https()
                 def https_worker():
                     try:
-                        periodic_https(first_https_start,end,stop,observe_https,
+                        first=first_https_start
+                        if sequential:
+                            value=await_capacity_phase(root,a.packet_sha256,packet['jobs'][0]['job_id'],end,stop,
+                                lambda:(root/'rf-observation-done.json').exists())
+                            emit('http_phase_started',value)
+                            first=time.monotonic()-20
+                        periodic_https(first,end,stop,observe_https,
                             lambda:(root/'rf-observation-done.json').exists())
                     except BaseException as error:
                         https_errors.append(error);stop.set()

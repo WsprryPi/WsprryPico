@@ -6,17 +6,34 @@ from phase11_5_inventory import require,exclusive_port,exchange
 from phase11_5_pilot import SERIAL,DEVICE
 from phase11_5_pilot_supervisor import finished,configuration
 from phase11_5_device_management import digest,save
-from phase11_5_r3_v2_rf import ASSET_SOURCE,ASSET_IMAGE,validate_info
+from phase11_5_r3_v2_rf import ASSET_SOURCE,ASSET_IMAGE,COMPLETION_SOURCE,COMPLETION_IMAGE,validate_info
 
 SCHEMA='phase11.5-r3-v2-wifi-recovery-v1'
+COMPLETION_RECOVERY={
+    'retained-complete-addressless-v1':('associated-no-ipv4-v1',
+        'A remained associated without IPv4 for at least 240 seconds after P1b fixture activation; one inactive OFF/ON restarts acquisition'),
+    'retained-complete-terminal-v1':('terminal-failure-v1',
+        'A reached terminal link failure after P1b fixture activation; one inactive OFF/ON restarts acquisition'),
+    'retained-complete-link-recovery-v1':('no-ipv4-after-240-v1',
+        'A has no IPv4 after at least 240 seconds of the verified fixture; one inactive OFF/ON restarts acquisition'),
+}
 
 
 def validate(p):
+    require(p.get('completion_recovery_policy') is None or p.get('completion_recovery_policy') in COMPLETION_RECOVERY, 'Known completion recovery policy')
+    completion=p.get('completion_recovery_policy') in COMPLETION_RECOVERY
     require(p['schema']==p['r3_scope']==SCHEMA and p['standing_authority']=='R3-COMPLETE-20260913-v2','Recovery scope')
     require(p['serial']==SERIAL and p['device_id']==DEVICE and
-        (p['source_revision'],p['image_sha256'])==(ASSET_SOURCE,ASSET_IMAGE),'Recovery image')
+        (p['source_revision'],p['image_sha256'])==((COMPLETION_SOURCE,COMPLETION_IMAGE) if completion else
+            (ASSET_SOURCE,ASSET_IMAGE)),'Recovery image')
     require(p['runtime_seconds']==300 and p['restoration_seconds']==150 and p['maximum_wifi_cycles']==1 and
         p['rf_jobs']==p['flashes']==p['configuration_writes']==p['heap_probes']==0,'Recovery finite limits')
+    if completion:
+        require((p['initial_link_policy'],p['hypothesis'])==COMPLETION_RECOVERY[p['completion_recovery_policy']] and
+            p['initial_job_id']=='b88c7a3082eb4208a7e1f403bc13c9f8' and
+            type(p['not_before_monotonic_ns']) is int and p['not_before_monotonic_ns']>0,
+            'Completion recovery exact retained state and waited prerequisite')
+        return p
     require((p.get('initial_link_policy','terminal-failure-v1'),p['hypothesis']) in [
         ('terminal-failure-v1','A stayed at terminal link failure after F1 AP expiry; one idle OFF/ON requests rejoin to verified F2'),
         ('terminal-failure-v1','A reached terminal link failure after F2 removal and F3 creation; one idle OFF/ON requests rejoin to verified F3'),
@@ -27,17 +44,22 @@ def validate(p):
 
 def initial_link(network,p):
     policy=p.get('initial_link_policy','terminal-failure-v1')
-    require(network['enabled'] is True and not network['ipv4'] and
-        (network['link_status'] in (-3,-2) if policy=='terminal-failure-v1' else
-            policy=='associated-no-ipv4-v1' and network['link_status']==1 and network['mdns_state']=='waiting_address'),
+    states={'terminal-failure-v1':(-3,-2),'associated-no-ipv4-v1':(1,),
+            'no-ipv4-after-240-v1':(-3,-2,1)}.get(policy,())
+    failed=network['link_status'] in states
+    if policy!='terminal-failure-v1':failed=failed and network['mdns_state']=='waiting_address'
+    require(network['enabled'] is True and not network['ipv4'] and failed,
         'Recovery requires exact failed/addressless link prerequisite')
 
 
 def idle(v,baseline,p):
     validate_info(v['info'],baseline,p)
     s=v['wtp']['STATUS'];i=v['info']['status']
-    require(s['boot_id']==p['boot_id'] and s['state']==i['state']=='empty' and
-        s['output_active'] is i['output_active'] is False and s['owner_id'] is s['job_id'] is None,'Recovery inactive/unowned admission')
+    terminal=p.get('completion_recovery_policy') in COMPLETION_RECOVERY
+    require(s['boot_id']==p['boot_id'] and s['state']==i['state']==('complete' if terminal else 'empty') and
+        s['output_active'] is i['output_active'] is False and s['owner_id'] is None and
+        s['job_id']==(p['initial_job_id'] if terminal else None) and i['enabled'] is False,
+        'Recovery inactive/unowned/schedule-disabled admission')
     require(configuration(v)==configuration(baseline),'Recovery configuration changed')
 
 
@@ -94,6 +116,8 @@ def main():
     if not args.run:print('Plan only; no device or network activity.');return
     root=args.root.resolve(strict=True);require(os.geteuid()==0 and digest(root/'packet.json')==args.packet_sha256,'Recovery root/packet')
     p=validate(json.loads((root/'packet.json').read_text()));require(p['root']==str(root),'Recovery root mismatch')
+    if p.get('completion_recovery_policy'):
+        require(time.monotonic_ns()>=p['not_before_monotonic_ns'],'Recovery prerequisite wait not complete')
     require(Path('/proc/sys/kernel/random/boot_id').read_text().strip()==p['host_boot_id'],'Recovery host boot')
     timer=subprocess.check_output(['busctl','get-property','org.freedesktop.systemd1','/org/freedesktop/systemd1/unit/phase115_2dclosure_2dcleanup_2etimer','org.freedesktop.systemd1.Timer','NextElapseUSecMonotonic'],text=True).strip()
     require(timer=='t '+str(p['fixture_deadline_monotonic_ns']//1000) and

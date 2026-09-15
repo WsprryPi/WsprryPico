@@ -33,20 +33,30 @@ static std::size_t measured_reply_bytes = 0, measured_reply_allocations = 0;
 static bool reject_reply_allocation = false;
 static bool reply_allocation_phase = false;
 static std::size_t input_pages_until_failure = 0;
+static std::size_t watched_event_bytes = 0;
+static void* watched_event_allocation = nullptr;
+static bool watched_event_released = false;
 void* operator new(std::size_t size) {
     ++allocations;
     largest_allocation = std::max(largest_allocation, size);
     if (size >= 40000)
         ++large_allocations;
-    if (auto* result = std::malloc(size ? size : 1))
+    if (auto* result = std::malloc(size ? size : 1)) {
+        if (watched_event_bytes && size == watched_event_bytes)
+            watched_event_allocation = result;
         return result;
+    }
     throw std::bad_alloc();
 }
 void operator delete(void* memory) noexcept {
+    if (memory && memory == watched_event_allocation) {
+        watched_event_released = true;
+        watched_event_allocation = nullptr;
+    }
     std::free(memory);
 }
 void operator delete(void* memory, std::size_t) noexcept {
-    std::free(memory);
+    operator delete(memory);
 }
 
 namespace {
@@ -1201,6 +1211,69 @@ void test_shared_adjustment_replay_lifetimes() {
     CHECK(first.adjustments[0].realized_frequency_nhz == 135500000000001ULL);
 }
 
+void test_completed_event_storage_and_replacement() {
+    for (const bool unknown_output : {false, true}) {
+        struct ResetMeasurement {
+            ~ResetMeasurement() {
+                available_memory = nullptr;
+                watched_event_bytes = 0;
+                watched_event_allocation = nullptr;
+            }
+        } reset;
+        VirtualClock clock;
+        MockRfEngine engine;
+        TestIdentitySource identities;
+        ServiceConfig config;
+        config.minimum_arm_lead_ns = 10;
+        JobService service(clock, engine, identities, config);
+        establish_owner(service);
+        auto job = sample_job();
+        job.total_duration_ns = 512;
+        job.events.clear();
+        for (std::size_t i = 0; i < 512; ++i)
+            job.events.push_back({i, 1, true, 135500000000000ULL});
+        const auto load_request = request("LOAD", job, 'c');
+        watched_event_released = false;
+        watched_event_bytes = job.events.size() * sizeof(RfEvent);
+        const auto loaded = service.handle(load_request);
+        watched_event_bytes = 0;
+        CHECK(loaded.ok && watched_event_allocation && !watched_event_released);
+        const auto arm_body = ArmBody{job.job_id, clock.value.utc_now_ns + 10, 1000};
+        const auto armed = service.handle(request("ARM", arm_body, 'd'));
+        CHECK(armed.ok);
+        clock.advance(10);
+        service.poll();
+        CHECK(service.status().state == State::Running && !watched_event_released);
+        engine.reject_disable = unknown_output;
+        clock.advance(job.total_duration_ns);
+        service.poll();
+        if (unknown_output) {
+            CHECK(service.status().state == State::Failed);
+            CHECK(service.status().output_active && !watched_event_released);
+            continue;
+        }
+        const auto terminal = service.status();
+        CHECK(terminal.state == State::Complete && !terminal.output_active);
+        CHECK(terminal.job_id == job.job_id && terminal.terminal_records.size() == 1);
+        CHECK(service.handle(request("LOAD", job, 'e')) == loaded);
+        auto changed = job;
+        changed.events[0].frequency_nhz = 135500000000001ULL;
+        CHECK(service.handle(request("LOAD", changed, 'f')).error == ErrorCode::JobIdConflict);
+        CHECK(service.handle(request("ARM", arm_body, '0')) == armed);
+        CHECK(engine.begin_calls == 1 && service.status() == terminal);
+        // Inject the admission headroom recovered by releasing this allocation.
+        // This is a host lifetime regression, not a target heap measurement.
+        available_memory = []() -> std::size_t {
+            return watched_event_released ? 100000 : 100000 - 512 * sizeof(RfEvent);
+        };
+        job.job_id = id('4');
+        CHECK(service.handle(request("LOAD", job, '1')).ok);
+        CHECK(watched_event_released);
+        CHECK(service.status().state == State::Loaded);
+        CHECK(service.status().terminal_records == terminal.terminal_records);
+    }
+}
+
 static std::size_t reply_available = 0, reply_page_calls = 0, fail_reply_page = 0;
 void test_reply_reserve_and_all_page_failures() {
     Request request;
@@ -1597,6 +1670,7 @@ int main() {
         {"safety gate and connection close", test_safety_gate_and_connection_close},
         {"adjustments and engine failure safety", test_adjustments_and_engine_failure_safety},
         {"shared adjustment replay lifetimes", test_shared_adjustment_replay_lifetimes},
+        {"completed event storage and replacement", test_completed_event_storage_and_replacement},
         {"reply reserve and every page failure", test_reply_reserve_and_all_page_failures},
         {"expired active lease and terminal retention",
          test_expired_active_lease_and_terminal_retention},

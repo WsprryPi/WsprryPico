@@ -15,8 +15,8 @@ from phase11_5_r3_v2_rf import validate_info
 PACKET = 'cbc6f4b871841c0cf4f6976e5cde73976699798aa0ccdc3ff65b72dc50c73e8d'
 
 
-def audit(root):
-    require(digest(root/'packet.json') == PACKET, 'Exact failed packet')
+def inputs(root, packet_sha):
+    require(digest(root/'packet.json') == packet_sha, 'Exact failed packet')
     packet = json.loads((root/'packet.json').read_text())
     private = json.loads((root/'private-input-hashes.json').read_text())
     require(set(private) == {'production.ini'} | {
@@ -38,6 +38,11 @@ def audit(root):
         require(configuration(values['before-'+board]) == configuration(values['final-'+board]),
                 'Preserved configuration')
     require(values['before-b']['wtp']['STATUS'] == values['final-b']['wtp']['STATUS'], 'B unchanged')
+    return packet, values
+
+
+def audit(root):
+    packet, values = inputs(root, PACKET)
     rows = journal(root/'rf.jsonl')
     require(rows[0]['value']['packet_sha256'] == PACKET, 'Trace packet')
     info = []; pending = None; buffer = b''; decoded = None
