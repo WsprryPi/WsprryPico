@@ -40,6 +40,7 @@ TERMINAL_POLICY='phase115-completion-terminal-storage-capacity-v1'
 PRESSURE_POLICY='phase115-completion-pressure-v1'
 TERMINAL_SOURCE='bd16bb1c736720fbf901589d41d2a25897987b8b'
 TERMINAL_IMAGE='dfb9fa073914ce827df6612792cfcaf2991af6b47dfe340543d2e89572e90120'
+COMBINED_POLICY='phase115-completion-combined-v1'
 MEMORY_POLICY='phase115-memory-pressure-capacity-v1'
 MEMORY_SOURCE='8dd6f0812292e9264c2a72745078a95ee606c191'
 MEMORY_IMAGE='ccfdf60b2b927b4a3fd14cc9254a6748334d584ebad0d672771939ab2369b40d'
@@ -58,7 +59,7 @@ READ_IMAGE='4afb9eb1bff5d19011cd38837a32ff589685845d6b25995dbd08968e7c690848'
 READ_BOOT='0a6d95e11cf712a53e97a4c9938614e9'
 
 def completion_policy(packet):
-    return packet.get('closure_policy') in (COMPLETION_POLICY,TERMINAL_POLICY,READ_POLICY,HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY)
+    return packet.get('closure_policy') in (COMPLETION_POLICY,TERMINAL_POLICY,READ_POLICY,HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY,COMBINED_POLICY)
 
 def native_observation_required(packet):
     return packet.get('closure_policy')==REPAIR_POLICY or completion_policy(packet)
@@ -67,7 +68,7 @@ def reservation_required(packet):
     return completion_policy(packet) or packet.get('closure_policy')==PRESSURE_POLICY
 
 def initial_terminal(packet):
-    return packet.get('capacity_schedule_policy')==SERIAL_CAPACITY and packet.get('initial_a_state')=='complete'
+    return (packet.get('capacity_schedule_policy')==SERIAL_CAPACITY or packet.get('closure_policy')==COMBINED_POLICY) and packet.get('initial_a_state')=='complete'
 
 B_PARALLEL_AUTHORIZATION='37ae5f5658ffc7c4436547061e4a81e577ea9102a086ec1e74d09031699caaab'
 
@@ -100,7 +101,8 @@ def observed_status(status, packet, *, initial=False):
             'STATUS identity/authority')
     require(status['state'] in ['empty','loaded','armed','running','complete'] and
             (status['state']=='running' or status['output_active'] is False), 'Unexpected RF state')
-    predecessor=(initial and packet.get('capacity_schedule_policy')==SERIAL_CAPACITY and
+    predecessor=(initial and (packet.get('capacity_schedule_policy')==SERIAL_CAPACITY or
+        (packet.get('closure_policy')==COMBINED_POLICY and initial_terminal(packet))) and
         status['state']=='complete' and status['output_active'] is False and status['owner_id'] is None and
         status['job_id']==packet['initial_a_job_id'])
     require(status['owner_id'] in [None,packet['owner_id']] and
@@ -164,6 +166,7 @@ def validate(packet):
     require(packet.get('capacity_schedule_policy') in (None,SERIAL_CAPACITY), 'Known capacity ordering')
     terminal_repair=packet.get('closure_policy')==TERMINAL_POLICY
     read_repair=packet.get('closure_policy')==READ_POLICY
+    combined=packet.get('closure_policy')==COMBINED_POLICY
     memory_repair=packet.get('closure_policy')==MEMORY_POLICY
     sharing_repair=packet.get('closure_policy')==SHARING_POLICY
     http_repair=packet.get('closure_policy') in (HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY)
@@ -190,10 +193,13 @@ def validate(packet):
                 'Sequential retest preserves the failed packet terminal state')
     repair=packet.get('closure_policy')==REPAIR_POLICY
     pressure=packet.get('closure_policy')==PRESSURE_POLICY
-    closure=packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY,TERMINAL_POLICY,READ_POLICY,HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY)
+    closure=packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY,TERMINAL_POLICY,READ_POLICY,HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY,COMBINED_POLICY)
     require('closure_policy' not in packet or closure or pressure,'Unknown closure policy')
     require(packet['source_revision']!=REPAIR_SOURCE or repair,'Repair image requires exact retest policy')
-    if closure:
+    if combined:
+        from phase11_5_completion_combined import validate_profile
+        validate_profile(packet)
+    if closure and not combined:
         require('diagnostic_policy' not in packet and packet['source_revision']==(MEMORY_SOURCE if memory_repair else SHARING_SOURCE if sharing_repair else HTTP_SOURCE if http_repair else READ_SOURCE if read_repair else TERMINAL_SOURCE if terminal_repair else COMPLETION_SOURCE if completion else REPAIR_SOURCE if repair else DIAGNOSTIC_SOURCE) and
                 packet['observer_policy']==SINGLE_FLIGHT and len(packet['jobs'])==1 and
                 packet['runtime_seconds']==300 and packet['maximum_renewals']==8 and
@@ -210,8 +216,8 @@ def validate(packet):
         require(packet.get('shared_rf_reservation')=='durable-both-picos-v1' and
                 packet.get('b_role')=='unchanged-comparator' and
                 type(packet.get('maximum_initial_terminal_records')) is int and
-                (0<=packet['maximum_initial_terminal_records']<=8 if pressure else packet['maximum_initial_terminal_records']==(len(packet['initial_terminal_jobs']) if http_repair else int(initial_terminal(packet)) if read_repair else 1)), 'Completion requires both-board RF reservation and bounded initial retention')
-    require(packet['source_revision']!=MEMORY_SOURCE or memory_repair, 'Memory image requires reviewed policy')
+                (0<=packet['maximum_initial_terminal_records']<=8 if pressure or combined else packet['maximum_initial_terminal_records']==(len(packet['initial_terminal_jobs']) if http_repair else int(initial_terminal(packet)) if read_repair else 1)), 'Completion requires both-board RF reservation and bounded initial retention')
+    require(packet['source_revision']!=MEMORY_SOURCE or memory_repair or combined, 'Memory image requires reviewed policy')
     require(packet['source_revision']!=SHARING_SOURCE or sharing_repair, 'Retained sharing image requires reviewed policy')
     require(packet['source_revision']!=HTTP_SOURCE or http_repair, 'HTTP pages image requires reviewed policy')
     require(packet['source_revision']!=READ_SOURCE or read_repair, 'Read workspace image requires reviewed policy')
@@ -361,7 +367,7 @@ def recent_clock(info, clock=None):
 
 def run(root,packet):
     diagnostic=packet.get('diagnostic_policy')==DIAGNOSTIC_POLICY
-    capture_failures=diagnostic or packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY,TERMINAL_POLICY,READ_POLICY,HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY,PRESSURE_POLICY)
+    capture_failures=diagnostic or packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY,TERMINAL_POLICY,READ_POLICY,HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY,COMBINED_POLICY,PRESSURE_POLICY)
     os.umask(0o077);end=time.monotonic()+packet['runtime_seconds'];lock=threading.Lock();done=threading.Event()
     faults=[];samples={};inflight={};seq=0;result=dict(status='RUNNING',armed_jobs=[],completed_jobs=[],renewals=0,rf_duration_ns_charged=0)
     log=(root/'rf.jsonl').open('x')
@@ -375,7 +381,7 @@ def run(root,packet):
             log.flush();os.fsync(log.fileno());seq+=1
             if kind in ['info','status','health']:samples[kind]=(stamp,value['value'])
             if kind=='console_tx':inflight['info']=dict(observer_identity,monotonic_ns=stamp,value=value)
-            if 'pressure_family' in packet or ('http_capacity' in packet and kind in ['info','status','console_tx','failure']):
+            if 'pressure_family' in packet or (('http_capacity' in packet or 'combined' in packet) and kind in ['info','status','console_tx','failure']):
                 save(root/('observer-'+kind+'.json'),dict(packet_sha256=digest(root/'packet.json'),
                     pid=observer_pid,pid_start_ticks=observer_start,monotonic_ns=stamp,value=value))
                 if kind=='failure':save(root/'observer-failure.json',dict(value=value))
@@ -482,6 +488,12 @@ def run(root,packet):
                 elif state['phase']=='executing':
                     require(status['job_id']==job['job_id'] and status['owner_id']==packet['owner_id'] and
                             status['state'] in ['armed','running','complete'],'Finite lifecycle')
+                    if status['state']=='running' and 'combined' in packet and not state.get('combined_exchanged') and capacity_ready(info) and (root/'combined-http-ready.json').exists():
+                        from phase11_5_completion_combined import usb_step
+                        checkpoint();observer_checkpoint=peer.checkpoint;peer.checkpoint=checkpoint
+                        try:usb_step(peer,root,packet,emit)
+                        finally:peer.checkpoint=observer_checkpoint
+                        state['combined_exchanged']=True
                     if status['state']=='running' and 'wtp_capacity' in packet and not state.get('capacity_exchanged',False) and capacity_ready(info):
                         # Each bounded exchange may consume most of one STATUS
                         # interval. Offer one per poll so the observer runs
@@ -533,6 +545,8 @@ def run(root,packet):
                 require([r['job_id'] for r in before['wtp']['STATUS']['terminal_records']]==packet['initial_terminal_jobs'] and
                         all(r['state']=='aborted' and r['output_active'] is False for r in before['wtp']['STATUS']['terminal_records']),
                         'Exact retained idle regression seed')
+            if 'combined' in packet:
+                require(before['wtp']['STATUS']['terminal_records']==packet['initial_terminal_records'], 'Exact P2 retained state')
             reservation.acquire({'a':before,'b':before_b})
             save(root/'rf-reservation-acquired.json',json.loads(reservation.path.read_text()))
         clock=before['wtp']['GET_CLOCK'];require(clock['state']=='synchronized' and clock['leap']=='normal','Initial clock')

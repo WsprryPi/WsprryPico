@@ -10,6 +10,8 @@ from phase11_5_r3_v2_rf import ASSET_SOURCE,ASSET_IMAGE,COMPLETION_SOURCE,COMPLE
 from phase11_5_r3_v2_rf import MEMORY_SOURCE, MEMORY_IMAGE, MEMORY_BOOT
 
 SCHEMA='phase11.5-r3-v2-wifi-recovery-v1'
+P2_RECOVERY='restored-fixture-terminal-v1'
+P2_HYPOTHESIS='A remained addressless with terminal link failure through 90 seconds after P2 fixture setup; one inactive OFF/ON restarts acquisition'
 MEMORY_RECOVERY='post-flash-down-v1'
 MEMORY_HYPOTHESIS='A remained addressless at link -1 through the 90-second post-flash readiness test while the isolated AP was up; one inactive OFF/ON restarts acquisition'
 COMPLETION_RECOVERY={
@@ -23,8 +25,9 @@ COMPLETION_RECOVERY={
 
 
 def validate(p):
-    memory=p.get('memory_recovery_policy')==MEMORY_RECOVERY
-    require(p.get('memory_recovery_policy') in (None,MEMORY_RECOVERY), 'Known memory recovery policy')
+    p2=p.get('memory_recovery_policy')==P2_RECOVERY
+    memory=p.get('memory_recovery_policy') in (MEMORY_RECOVERY,P2_RECOVERY)
+    require(p.get('memory_recovery_policy') in (None,MEMORY_RECOVERY,P2_RECOVERY), 'Known memory recovery policy')
     require(p.get('completion_recovery_policy') is None or p.get('completion_recovery_policy') in COMPLETION_RECOVERY, 'Known completion recovery policy')
     completion=p.get('completion_recovery_policy') in COMPLETION_RECOVERY
     require(p['schema']==p['r3_scope']==SCHEMA and p['standing_authority']=='R3-COMPLETE-20260913-v2','Recovery scope')
@@ -35,7 +38,7 @@ def validate(p):
         p['rf_jobs']==p['flashes']==p['configuration_writes']==p['heap_probes']==0,'Recovery finite limits')
     if memory:
         require(not completion and p['boot_id']==MEMORY_BOOT and
-                p['initial_link_policy']=='cold-link-down-v1' and p['hypothesis']==MEMORY_HYPOTHESIS and
+                p['initial_link_policy']==('terminal-failure-v1' if p2 else 'cold-link-down-v1') and p['hypothesis']==(P2_HYPOTHESIS if p2 else MEMORY_HYPOTHESIS) and
                 p['initial_job_id'] is None and type(p['not_before_monotonic_ns']) is int and
                 p['not_before_monotonic_ns']>0, 'Exact post-flash recovery prerequisite')
         return p

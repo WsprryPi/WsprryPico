@@ -6,8 +6,12 @@
 [current assertion matrix](phase11-5-completion-matrix.md) records current
 applicability and remaining work. [Standing authorization](phase11-5-completion-authorization-20260915.md)
 permits fresh bounded packets on either Pico with one shared RF reservation.
-Pico A runs firmware `a9d5610d76f6cb349249b8def6eba65f21e7bfa9`;
+Pico A runs firmware `8dd6f0812292e9264c2a72745078a95ee606c191`;
 Pico B runs `8921a7008183`. Repository HEAD is a separate identity.
+A is currently in network-free recovery boot `4768a88991247131bdc7c0fc421dbe8f`
+after the [P2 LOAD allocation fault](phase11-5-package2-review.md). Both boards
+are independently inactive/unowned; the host fixture is restored. P1 retains its
+recorded profile. P2 is OPEN and overload unexecuted.
 Component 9's bounded idle LOAD/replay regression is CLOSED; Group 2 remains
 OPEN. Group 1 closed at checkpoint 043. Groups 3/4 and R4-R6 remain open.
 

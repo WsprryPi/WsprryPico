@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | 0 | COMPLETE | Fresh named A/B USB inventories independently decoded; source-impact matrix and current summaries reconciled. [Result](phase11-5-completion-package0-result.json). |
 | 1 | COMPLETE — individual capacity | 2.1a/2.1d/2.1e/2.1f/2.1g and authenticated controls pass on 8dd6f08 with three retained records, continuous observation and 55,944-byte minimum reserve. Prior P1g/P1h/P1i failures retained. [Review](phase11-5-memory-pressure-review.md). |
-| 2 | OPEN | Supported simultaneous workload and separate bounded overload. |
+| 2 | OPEN — allocation fault | Supported attempts failed; 20,480-byte LOAD allocation triggered recovery before ARM. Overload unexecuted. [Review](phase11-5-package2-review.md). |
 | 3 | OPEN | Affected TLS/HTTP and distinct WTP timeouts. |
 | 4 | OPEN | Actual USB parser and unread-output pressure. |
 | 5 | OPEN | Retained capacity/eviction/expiry and three equivalent cycles. |
@@ -15,7 +15,31 @@
 | 8 | OPEN; idle Wi-Fi accepted on source 98f5797 | Two independently audited OFF/ON readiness cycles preserve state/configuration and recover address/clock. Link loss, lease/name change, DNS/SNTP, journal rotation and autonomy remain. |
 | 9 | OPEN | R6 mixed operation after R1-R5 acceptance. |
 
-### Current memory-pressure checkpoint
+### Current Package 2 checkpoint
+
+[Prompt](phase11-5-package2-prompt.md), [review](phase11-5-package2-review.md),
+[immutable result](phase11-5-package2-result.json). No assertion closed. The
+maximum simultaneous profile timed out; the revised 32 KiB profile failed a
+20,480-byte allocation during LOAD before RF. Repair of that allocation path
+and affected target validation are prerequisites for fresh P2 packets.
+
+A retains 8dd6f08 in network-free recovery boot 4768a88991247131bdc7c0fc421dbe8f;
+B remains 8921a7008183 / 6684b4b197d80cfa0ce83b3aaf205cb0. Both are independently
+Empty/inactive/unowned with scheduling disabled. Persisted configuration fields
+survived; A's volatile terminal history was lost. The host fixture is restored,
+reservation released, and no packet is running. The helper findings are repaired;
+the target allocation failure remains open.
+
+Affected host checks: 233 cases, 48 expected private-capture skips. Four altered
+failure-evidence cases and fourteen synthetic overlap alterations were rejected;
+intact failure evidence passes reassessment. These checks grant no P2 acceptance.
+This turn charged two RF jobs / 256 planned seconds, one Wi-Fi cycle and one
+unplanned watchdog, with no flashes, BOOTSEL, configuration writes or controlled
+reboots. Cumulative completion charges: nine RF jobs / 1,152 planned seconds,
+nine flashes/BOOTSEL, four Wi-Fi cycles, two unplanned watchdogs, zero configuration
+writes and zero additional controlled reboots.
+
+### Historical memory-pressure checkpoint
 
 [Prompt](phase11-5-memory-pressure-prompt.md),
 [review](phase11-5-memory-pressure-review.md) and

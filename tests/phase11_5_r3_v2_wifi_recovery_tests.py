@@ -35,6 +35,11 @@ class WifiRecoveryTests(unittest.TestCase):
             image_sha256=MEMORY_IMAGE,boot_id=MEMORY_BOOT,initial_link_policy='cold-link-down-v1',
             hypothesis=MEMORY_HYPOTHESIS,initial_job_id=None,not_before_monotonic_ns=1)
         validate(memory)
+        from phase11_5_r3_v2_wifi_recovery import P2_RECOVERY,P2_HYPOTHESIS
+        p2=dict(memory,memory_recovery_policy=P2_RECOVERY,hypothesis=P2_HYPOTHESIS,initial_link_policy='terminal-failure-v1')
+        validate(p2)
+        initial_link(dict(enabled=True,ipv4='',link_status=-3,mdns_state='waiting_address'),p2)
+        with self.assertRaises(ValueError):validate(dict(p2,hypothesis=MEMORY_HYPOTHESIS))
         n=dict(enabled=True,ipv4='',link_status=-1,mdns_state='waiting_address')
         initial_link(n,memory)
         for k,v in [('ipv4','10.77.15.10'),('link_status',3),('enabled',False)]:

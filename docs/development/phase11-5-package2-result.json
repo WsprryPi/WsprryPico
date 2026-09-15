@@ -1,0 +1,585 @@
+{
+  "schema": "phase11.5-package2-result-v1",
+  "status": "OPEN_BLOCKED_BY_LOAD_ALLOCATION_FAULT",
+  "newly_closed_assertions": [],
+  "accepted_configuration": null,
+  "repository_baseline": "14a2ddcfe55287d4635cbc758fbee65c7b3c62ad",
+  "source_revision": "8dd6f0812292e9264c2a72745078a95ee606c191",
+  "firmware_changed": false,
+  "physical_configuration": {
+    "board": "Pico 2 W / RP2350 Arm",
+    "engine": "PIO-DMA GP2",
+    "clock_hz": 138000000,
+    "divider": 1,
+    "renderer": "RAM",
+    "listener_configured": true
+  },
+  "image_sha256": {
+    "elf": "d4ba4097418cc526de3bf567554bc1ed14c623466308a89a853cbb93a6175758",
+    "uf2": "ccfdf60b2b927b4a3fd14cc9254a6748334d584ebad0d672771939ab2369b40d"
+  },
+  "prompt": "phase11-5-package2-prompt.md",
+  "review": "phase11-5-package2-review.md",
+  "assertions": {
+    "2.2a": "FAILED; neither the initial maximum nor revised 32 KiB supported profile was accepted",
+    "2.2b": "MISSING; overload was not staged or run because supported acceptance was absent"
+  },
+  "preflight": {
+    "status": "P2_PREFLIGHT_VERIFIED",
+    "boards": {
+      "a": {
+        "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+        "boot_id": "7a04779b8018624574066260fce9d0d8",
+        "revision": "8dd6f0812292",
+        "state": "empty"
+      },
+      "b": {
+        "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "revision": "8921a7008183",
+        "state": "empty"
+      }
+    },
+    "terminal_records": [
+      {
+        "job_id": "6191ba4a83b94c4aa7e798c2068b6cec",
+        "state": "complete",
+        "ended_monotonic_ns": "1166664681000",
+        "output_active": false
+      },
+      {
+        "job_id": "ac12046f14f2442eba1a9c8a9c7a75b7",
+        "state": "aborted",
+        "ended_monotonic_ns": "553214002000",
+        "output_active": false
+      },
+      {
+        "job_id": "566a51592776410887e2de6f456b229f",
+        "state": "aborted",
+        "ended_monotonic_ns": "544405320000",
+        "output_active": false
+      },
+      {
+        "job_id": "caa0bf2463e14c6398e9e22eee7a6399",
+        "state": "aborted",
+        "ended_monotonic_ns": "538777725000",
+        "output_active": false
+      }
+    ],
+    "network": {
+      "initialized": true,
+      "enabled": true,
+      "link_status": -2,
+      "ipv4": "",
+      "requested_enabled": null,
+      "withdrawal_pending": false,
+      "resume_after_withdrawal": false,
+      "control_configured": true,
+      "control_listening": true,
+      "deployment_identity_matches": true,
+      "station_mac": "88:a2:9e:0a:60:df",
+      "stable_hostname": "wsprrypico-0a60df.local",
+      "configured_hostname": "wsprrypico-0a60df.local",
+      "advertised_hostname": "",
+      "mdns_state": "waiting_address",
+      "mdns_reason": "",
+      "mdns_registrations": 1,
+      "mdns_conflicts": 0,
+      "mdns_failures": 0,
+      "mdns_address_changes": 0,
+      "mdns_goodbye_attempts": 0,
+      "mdns_goodbye_failures": 0,
+      "mdns_rejected_packets": 0,
+      "power_save": false,
+      "packets": {
+        "arp": {
+          "received": 20,
+          "sent": 22,
+          "dropped": 0
+        },
+        "ipv4": {
+          "received": 1164,
+          "sent": 920,
+          "dropped": 0
+        },
+        "tcp": {
+          "received": 1118,
+          "sent": 856,
+          "dropped": 5
+        },
+        "udp": {
+          "received": 46,
+          "sent": 61,
+          "dropped": 0
+        }
+      },
+      "memory": {
+        "heap": {
+          "used": 0,
+          "capacity": 32768,
+          "peak": 4820,
+          "errors": 0
+        },
+        "tcp_pcbs": {
+          "used": 0,
+          "capacity": 4,
+          "peak": 2,
+          "errors": 0
+        },
+        "tcp_segments": {
+          "used": 0,
+          "capacity": 32,
+          "peak": 4,
+          "errors": 0
+        },
+        "packet_pool": {
+          "used": 0,
+          "capacity": 8,
+          "peak": 2,
+          "errors": 0
+        }
+      },
+      "tx_credit": {
+        "waits": 0,
+        "preserved": 0,
+        "timeouts": 0
+      },
+      "ntp_server": "time.local",
+      "ntp_address": "",
+      "ntp_resolution": "unresolved",
+      "ntp_resolution_failures": 2,
+      "queries": 15,
+      "accepted": 14,
+      "rejected": 0,
+      "last_rtt_ns": 7040000,
+      "last_sample_uncertainty_ns": 8129145
+    },
+    "host_restored": true,
+    "configuration_preserved": true,
+    "monotonic_ns": 448639529345350,
+    "evidence_sha256": {
+      "before-b.stdout": "b6defeb31c6607c26af029d6af75841d75b07a44d4fae9d578715609b053dc43",
+      "before-a.stdout": "e36e8a6e350b8dd7e92b678d963b865e8aa2fc44333dcebff3902ecf9e10b98e"
+    }
+  },
+  "preflight_helper_failure": "First read-only inventory staging omitted the public WTP schema and failed before device access; repaired public staging passed.",
+  "wifi_recovery": {
+    "status": "IDLE_WIFI_RECOVERY_VERIFIED",
+    "family_closed": false,
+    "packet_sha256": "d1418ded48b3a532bc5071ef68d0f694f3c680229f4708314e0b18cc861d5eb2",
+    "source_revision": "8dd6f0812292e9264c2a72745078a95ee606c191",
+    "image_sha256": "ccfdf60b2b927b4a3fd14cc9254a6748334d584ebad0d672771939ab2369b40d",
+    "boot_id": "7a04779b8018624574066260fce9d0d8",
+    "wifi_cycles": 1,
+    "off_commands": 1,
+    "on_commands": 1,
+    "configuration_writes": 0,
+    "flashes": 0,
+    "rf_jobs": 0,
+    "final_authority": {
+      "boot_id": "7a04779b8018624574066260fce9d0d8",
+      "state": "empty",
+      "output_active": false,
+      "owner_id": null,
+      "job_id": null,
+      "terminal_records": [
+        {
+          "job_id": "6191ba4a83b94c4aa7e798c2068b6cec",
+          "state": "complete",
+          "ended_monotonic_ns": "1166664681000",
+          "output_active": false
+        },
+        {
+          "job_id": "ac12046f14f2442eba1a9c8a9c7a75b7",
+          "state": "aborted",
+          "ended_monotonic_ns": "553214002000",
+          "output_active": false
+        },
+        {
+          "job_id": "566a51592776410887e2de6f456b229f",
+          "state": "aborted",
+          "ended_monotonic_ns": "544405320000",
+          "output_active": false
+        },
+        {
+          "job_id": "caa0bf2463e14c6398e9e22eee7a6399",
+          "state": "aborted",
+          "ended_monotonic_ns": "538777725000",
+          "output_active": false
+        }
+      ]
+    },
+    "final_clock": {
+      "state": "synchronized",
+      "utc_now_ns": "1789504479787758000",
+      "monotonic_now_ns": "3148783818000",
+      "uncertainty_ns": "8878307",
+      "sync_age_ns": "2303239000",
+      "leap": "normal"
+    },
+    "evidence_sha256": {
+      "off-before.stdout": "9ccbbf51a21acb7ee5ce5769b8d3d2609d8d6687b00033782a0c0d8e229b44fe",
+      "on-after-0.stdout": "c823288cc6a23c091eecb36863401a40c8796b02460d832ae6ed75fffce3aa62",
+      "on-after-0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "ready-2.stdout": "90f32ff8b49309829a6332acdf66a0605d43f4cd2cab0ccbd0d5ccf3fefa47e5",
+      "off-after-0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "off-before.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "on-before.stdout": "ecba9e40f144f44d0868e7cdbd4f1e78b84848fbb501595ed6799574d3cef0bd",
+      "ready-2.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "on-before.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "packet.json": "d1418ded48b3a532bc5071ef68d0f694f3c680229f4708314e0b18cc861d5eb2",
+      "before-a.stdout": "d4126994bc4e92295c8c008097f8b726952447d7609462a9fe0a4d1cfb35e03f",
+      "off-exchange.jsonl": "adf999648ee3c6d335b89a1c18a299ae647713be858d62f6a6f688788bd66dad",
+      "before-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "off-after-0.stdout": "b05aa09a367de09d6c94eb1a59a3d4a958a2bf55e6f0cf0e03dd5d316823f2b9",
+      "ready-1.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "wifi-result.json": "87cfd1bb68c22301a8727415f7379f2ae315a52dd289cb5363004931065e03c2",
+      "ready-0.stdout": "ca4b09c00e9c606c45643b23fbce91fe92deb1c25ec38cae9dde5a7482e4dcaf",
+      "ready-1.stdout": "0f2099f04f553f3c401957a75c760b32288f3fef01084115db64bb6d239d3fd0",
+      "on-exchange.jsonl": "dc7fab69edba9d3b6205721e5dad4021f7ff44c7db8e50e0db2357f5cb7dee02",
+      "ready-0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "preceding_readiness_failure": {
+      "status": "ADDRESS_OR_CLOCK_NOT_READY",
+      "elapsed_seconds": 90.36588428198593,
+      "samples": 10,
+      "final_label": "network-ready-9",
+      "boot_id": "7a04779b8018624574066260fce9d0d8",
+      "link_status": -3,
+      "ipv4": "",
+      "clock_state": "unsynchronized",
+      "mdns_state": "waiting_address",
+      "config_enabled": true,
+      "evidence_sha256": {
+        "network-ready-3.stdout": "373ef0ba8223b6122fb8c425a8ae0a3d26314093b30c64cc42e9a90bd4d9982a",
+        "network-ready-5.stdout": "33facb90afb81a957d3e9b0dce43de9d58105388b47e94fa5b51d220e5c4a86a",
+        "network-ready-1.stdout": "177fa50020e465213f22ed4d0a7ff9717cd638a3a1bcba10b53ba214ad4a9221",
+        "network-ready-7.stdout": "cc11508b036b2d14fcfd61c9fcec8565e7b18eb0e9372ed1252d7aad4fef711b",
+        "network-ready-8.stdout": "d3dd67151fb5646a734de8d843412031e5fb24ac23d22a091988bc344e9bbb6c",
+        "network-ready-2.stdout": "b2e943258c0920b374092cb3abe679e3ae99245be22510d4de789f6562bede68",
+        "network-ready-0.stdout": "e7aa3ff852cdefbdbdb44ed3875600f7030b181b84b57cb19724edeef1daa8af",
+        "network-ready-4.stdout": "2b487122994949d8277fbe886064601e37a8e93c5681ee75acac3ff6be2f5c95",
+        "network-ready-9.stdout": "01147deeec750efd3e7765e2861b9cf524cd1acea3bf1c59d31aeb604dc12f8c",
+        "network-ready-6.stdout": "eb61f9073b6bd6337db138775fa8deef08bde364302c2543737bf52862377c06"
+      }
+    }
+  },
+  "packets": [
+    {
+      "status": "HELPER_FAILURE_AND_FINAL_INACTIVITY_VERIFIED",
+      "packet_sha256": "4c37acc596ecbee3e809c9186b2bfea1a357a62cbc60f22ec06719dc2bc1a4f8",
+      "rf_seconds_charged": 128,
+      "accepted_components": [],
+      "capacity_attempted": false,
+      "http_attempted": false,
+      "configurations_preserved": true,
+      "final_boards": {
+        "a": {
+          "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+          "boot_id": "7a04779b8018624574066260fce9d0d8",
+          "revision": "8dd6f0812292",
+          "state": "complete"
+        },
+        "b": {
+          "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+          "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+          "revision": "8921a7008183",
+          "state": "empty"
+        }
+      },
+      "reservation_released": true,
+      "continuous_rf_timing_accepted": false,
+      "contention_result": {
+        "status": "FAILED",
+        "https_requests": 0,
+        "error": "'job_id'",
+        "native_exit": 0
+      },
+      "evidence_sha256": {
+        "packet.json": "4c37acc596ecbee3e809c9186b2bfea1a357a62cbc60f22ec06719dc2bc1a4f8",
+        "rf.jsonl": "303fabf6c1746da38ea37876344959c6b50d6b637518555effe08766b0de64d7",
+        "rf-result.json": "c3a11277f3abb568a9f329008d2fe6643a23f13ae615abc7b79f3311cf4f7401",
+        "contention.jsonl": "a06c4b5de3fe65c7932dcb81df34b41c95fda935c4c8a0aa3d58c6d4d2bd506e",
+        "contention-result.json": "d25973139e89a9a7dc89931a792447567cb015232e848d0c8a05bc254b9630ad",
+        "before-a.stdout": "a3340bec384dea8ca974fa8df77044e64b358688d9d0fa1cc4ef63a349ec0990",
+        "before-b.stdout": "b3ec49a5425ab49c04c844b896b2e3b26d929f5fcb491e0e0bd99a317f9dd627",
+        "final-a.stdout": "381a6827fc349f95ea9636f99e15014c5c1f86f48befa462fdcc7277b6c43e70",
+        "final-b.stdout": "6fe481121aa44f0c9adb95553216baceff403937dfb33d62735cccffc5b87ff3",
+        "rf-reservation-acquired.json": "605f1806c162ef0e04da974c7d948dd42827b5cb97e188d9abe3350de6283e8a",
+        "rf-reservation-released.json": "7a71b6070751289b3621e31f926be09c5f0f4de6258365935cc9360c99bc4f6e"
+      },
+      "root": "/home/pi/phase11-5-p2-supported-20260915"
+    },
+    {
+      "status": "PREMUTATION_ADMISSION_FAILURE_VERIFIED",
+      "packet_sha256": "ce1fd5410a28c35c80187d7fcafed5e204c4b65cfcb395de24238d74ec0460af",
+      "rf_jobs": 0,
+      "rf_seconds_charged": 0,
+      "final_boards": {
+        "a": {
+          "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+          "boot_id": "7a04779b8018624574066260fce9d0d8",
+          "revision": "8dd6f0812292",
+          "state": "complete"
+        },
+        "b": {
+          "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+          "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+          "revision": "8921a7008183",
+          "state": "empty"
+        }
+      },
+      "configuration_and_status_preserved": true,
+      "faults": [
+        "supervisor: Inactive/unowned admission"
+      ],
+      "evidence_sha256": {
+        "packet.json": "ce1fd5410a28c35c80187d7fcafed5e204c4b65cfcb395de24238d74ec0460af",
+        "rf.jsonl": "252473ba9007d81a235ef7a87099fd582ed450b850221b9adc1451c9afe3b258",
+        "rf-result.json": "63fb023eca8a42be191551ef19070e1273adf3626b9172cea2219e7880749b5f",
+        "before-a.stdout": "5841bf7e552df5184fcc23083fc01fe8c2c3c48db95ed0cdcc91e36f98b292fa",
+        "before-b.stdout": "4911a6390edb4ee6387bf9142d829391cff1a3a85281d572577b758185cd36eb",
+        "final-a.stdout": "1f33168e5134bf09964547563085c239f3c9786011402ac4c7d95b1377a4447f",
+        "final-b.stdout": "afe8515e01aa3e2e5f4e97e24d14288be63241f0295aca785e5ac9bec91c9511"
+      },
+      "root": "/home/pi/phase11-5-p2-supported2-20260915"
+    },
+    {
+      "status": "SUPPORTED_MAXIMUM_TIMEOUT_AND_FINAL_INACTIVITY_VERIFIED",
+      "packet_sha256": "1dd195dcd25226eefc50ef084a216556d9f21603256150b3aa4a85565ce3eb45",
+      "rf_seconds_charged": 128,
+      "accepted_components": [],
+      "capacity_attempted": true,
+      "capacity_written_bytes": 4096,
+      "http_attempted": false,
+      "configurations_preserved": true,
+      "final_boards": {
+        "a": {
+          "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+          "boot_id": "7a04779b8018624574066260fce9d0d8",
+          "revision": "8dd6f0812292",
+          "state": "complete"
+        },
+        "b": {
+          "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+          "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+          "revision": "8921a7008183",
+          "state": "empty"
+        }
+      },
+      "reservation_released": true,
+      "continuous_rf_timing_accepted": false,
+      "contention_result": {
+        "status": "FAILED",
+        "https_requests": 0,
+        "error": "P2 finite deadline or observation failure",
+        "native_exit": 0
+      },
+      "evidence_sha256": {
+        "packet.json": "1dd195dcd25226eefc50ef084a216556d9f21603256150b3aa4a85565ce3eb45",
+        "rf.jsonl": "8c0f68bd9cf7e5c55a3ce04ccbe0b25e84d4a8d2faa4718ae3e1df01aadbd535",
+        "rf-result.json": "cf8738d543463c23d1e7118bb9d74d5a5935e2ce8d0b8c2bd12dc2eb46a7d549",
+        "contention.jsonl": "55f41958c8c979b2567b8a4a70ded94a6a8f112973670738a7c1dc671054fb74",
+        "contention-result.json": "2c0b82e891f438ddafc78cda81329f75080c9a0ffcf4dfa3bb00ad04cd271f49",
+        "before-a.stdout": "19a0a13a61c6c7f9ae05b1d3787890de629144c598627a57b1ab2978784bc957",
+        "before-b.stdout": "fc499961c6de6d64c7e6bd19fd5eef03e3c2e3489dda6edfefb33f742e5198cd",
+        "final-a.stdout": "ae5e55dc901376fefce4c028ef4cc9d727afe5df647722ab6646a6b4f095129d",
+        "final-b.stdout": "cfa3f67291f323bea7aeaaa1f1c16ba91e7a21254613a92ad8d014fff01bb3cb",
+        "rf-reservation-acquired.json": "12325f8f1eafb26cb69fe7ad7f874f27fb54a3c5346f48bbbc87ef1dd9a41982",
+        "rf-reservation-released.json": "ffca310c37709b4f5fd19d1be8e2eb5156538fc56fceb9cc8a7b1bf8b6f9be06"
+      },
+      "root": "/home/pi/phase11-5-p2-supported3-20260915"
+    },
+    {
+      "status": "LOAD_ALLOCATION_FAULT_AND_NEW_BOOT_INACTIVITY_VERIFIED",
+      "packet_sha256": "d5d9b1a813909e3f880084887cf7962bbe7a12b76944cf3d73d9367d88f46c9d",
+      "rf_seconds_charged": 0,
+      "unplanned_watchdog_reboots": 1,
+      "old_boot": "7a04779b8018624574066260fce9d0d8",
+      "new_boot": "4768a88991247131bdc7c0fc421dbe8f",
+      "allocation_fault": {
+        "fault_stage": 5,
+        "fault_hash": 3833354787,
+        "fault_pc": 0,
+        "fault_status": 0,
+        "fault_allocation_recorded": true,
+        "fault_allocation_request_bytes": 20480,
+        "fault_allocation_returned_null": true
+      },
+      "load_wire_bytes": 52105,
+      "load_response_received": false,
+      "prior_terminal_history_lost": true,
+      "accepted_components": [],
+      "capacity_attempted": false,
+      "http_attempted": false,
+      "persisted_configuration_fields_preserved": true,
+      "recovery_runtime_station_mac_empty": true,
+      "final_boards": {
+        "a": {
+          "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+          "boot_id": "4768a88991247131bdc7c0fc421dbe8f",
+          "revision": "8dd6f0812292",
+          "state": "empty"
+        },
+        "b": {
+          "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+          "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+          "revision": "8921a7008183",
+          "state": "empty"
+        }
+      },
+      "reservation_released": true,
+      "continuous_rf_timing_accepted": false,
+      "contention_result": {
+        "status": "FAILED",
+        "https_requests": 0,
+        "error": "P2 finite deadline or observation failure",
+        "native_exit": 0
+      },
+      "evidence_sha256": {
+        "packet.json": "d5d9b1a813909e3f880084887cf7962bbe7a12b76944cf3d73d9367d88f46c9d",
+        "rf.jsonl": "19e51713925f71bf9bc03cbc34b13f6f0780476b2a54873219afe0acbb4dba61",
+        "rf-result.json": "a14c038226e4eb2ade12233df26b15668ffd944336757169c681f0bd0cfe89f4",
+        "contention.jsonl": "2865262156cefc94e524b2f7b02d6d5af7fd0e667d436ae60e45112889a80cff",
+        "contention-result.json": "2c0b82e891f438ddafc78cda81329f75080c9a0ffcf4dfa3bb00ad04cd271f49",
+        "before-a.stdout": "13208b6ea3818a6c6b9e82963e19952111efc14c5813a73a84b2bb12391b6ac1",
+        "before-b.stdout": "ef4200ae8587bc354602faf0d5274d4264727342354a2cebf5e4375a8591431c",
+        "final-a.stdout": "1931fbbf98a7bfb0cd8dfa7e205f61346669c121c9bf0e197396cc619d629e5a",
+        "final-b.stdout": "a5eba563242bd5bd329524a70b97e8a3d7c0209acb31a806d6f2c2a69d5f7f15",
+        "rf-reservation-acquired.json": "cc3bb060ec92f71b02cc55169ea06a40e1acaf6de381a94439fa148e792cb635",
+        "rf-reservation-released.json": "cb1227f46d63372224dedd4ca08d1c42c0cc285d980507487b0ee69c7c5a76ac"
+      },
+      "root": "/home/pi/phase11-5-p2-supported4-20260915"
+    }
+  ],
+  "overload": {
+    "executed": false,
+    "staged": false,
+    "proposed_profile": "Resident valid WTP payload 32768 bytes, declared HTTP body 32768 bytes, header only, expected 503 resource_exhausted; authenticated recovery required",
+    "accepted": false
+  },
+  "review_findings_closed": [
+    "INFO versus WTP identity field mapping",
+    "Exact inactive predecessor admission before LOAD only",
+    "Mid-exchange observer failure guard",
+    "Existing private inputs referenced without copies",
+    "Raw overlap binds INFO, exact bytes, TLS peer, deadlines and classification",
+    "Native predecessor accepted only before LOAD",
+    "Exact 2.2a/2.2b profile scope"
+  ],
+  "unresolved": [
+    {
+      "id": "P2-LOAD-20480",
+      "severity": "blocking",
+      "finding": "LOAD failed a 20480-byte allocation and entered watchdog recovery before ARM or capacity stimuli",
+      "evidence_packet": "d5d9b1a813909e3f880084887cf7962bbe7a12b76944cf3d73d9367d88f46c9d",
+      "source_pointer": "src/wtp/codec.cpp:188",
+      "interpretation": "Size matches 512 RfEvent objects; exact fragmentation versus peak-lifetime cause is not proven",
+      "required_work": "Reproduce the failed contiguous allocation with matching retained state/native traffic; repair or explicitly refuse before allocation failure while preserving reserve and transport continuity; validate affected LOAD/replay/retention paths, deploy reviewed firmware, then run new supported and separately bounded overload packets. Do not reboot and repeat the same workload as a repair."
+    }
+  ],
+  "adversarial": {
+    "status": "FAILURE_EVIDENCE_ADVERSARIAL_REASSESSMENT_PASSED",
+    "altered_evidence_rejected": [
+      "raw_inventory",
+      "raw_load",
+      "armed_count",
+      "reservation"
+    ],
+    "intact_reassessment_identical": true,
+    "source_sha256": "0a0c93f689641132063f960ad57b5b41b9489e8a35df27b67b55d02be3a04882",
+    "package2_accepted": false
+  },
+  "durable_failure_auditor": {
+    "path": "scripts/audit_phase11_5_package2_failure.py",
+    "sha256": "4dbb0528a5bdd4ed0b6bf47c5fafa670ca980dbf5ae93a736edc4d8ed632ddb3",
+    "final_intact_reassessment_matches": true
+  },
+  "validation": {
+    "affected_ctest_groups": 1,
+    "python_cases": 233,
+    "expected_private_capture_skips": 48,
+    "focused_combined_cases": 5,
+    "synthetic_overlap_mutations_rejected": 14,
+    "firmware_tests_rerun": false,
+    "reason": "Only host helpers and documentation changed; firmware source and binaries unchanged",
+    "logs_sha256": {
+      "helpers-repair-test.log": "a349cff07b0379e0293a1020c64d11ff104e21790cd85a3fcf206cabdbebaf61",
+      "helpers-predecessor-final-test.log": "14a341fc4662c623ac658c1674414448baafb4b0046cb7592b4b9494d118ff6d",
+      "helpers-32k-test.log": "3c0b6d3db9a5d33b31bb8aff0db38b4bfb7f5a62b645eccfd2a47a5160c87f98",
+      "helpers-closeout-test.log": "cd6b1c3631e78361b2aa5afb4facb25b935af056363fa91f832efad2bbdbe0c2"
+    }
+  },
+  "restoration": {
+    "status": "HOST_RESTORED_AND_BOARDS_INDEPENDENTLY_INACTIVE",
+    "boards": {
+      "a": {
+        "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+        "boot_id": "4768a88991247131bdc7c0fc421dbe8f",
+        "revision": "8dd6f0812292",
+        "state": "empty"
+      },
+      "b": {
+        "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "revision": "8921a7008183",
+        "state": "empty"
+      }
+    },
+    "host_snapshot_matches_baseline": true,
+    "installed_pid": "1957",
+    "configuration_preserved": true,
+    "schedules_disabled": true,
+    "reservation_released": true,
+    "cleanup_failures": [],
+    "cleanup_monotonic_ns": 450582735881219,
+    "audited_monotonic_ns": 450632938909975,
+    "fixture_packet_sha256": "172083c5fd9d9e000013e3d26c9123c2a6e6dcfe046ce07f09605924ef448192",
+    "fixture_state_sha256": "de6147082ef0673f3ce728568ea2ef71bb79c146f74703ecd015c0c6974c1a0f",
+    "fixture_trace_sha256": "cf68f7f21bd399a53cb0c9ae371182667c9c57529ff3d82321990984873328cc",
+    "evidence_sha256": {
+      "restored-a.stdout": "0353a2f5cd86c82896049220c54b92382362ee64cca872952b54f80cd415e5df",
+      "restored-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "restored-b.stdout": "04f6cc3a0fbb1ee1458480f7030780bdf04445da81d7f4f633d7a46017c10a70",
+      "restored-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "current_a": {
+    "boot_id": "4768a88991247131bdc7c0fc421dbe8f",
+    "recovery_boot": true,
+    "network_initialized": false,
+    "state": "empty",
+    "output_active": false,
+    "owner_id": null,
+    "terminal_records": [],
+    "schedules_enabled": false
+  },
+  "charges_this_turn": {
+    "rf_jobs": 2,
+    "rf_planned_seconds": 256,
+    "flashes": 0,
+    "bootsel": 0,
+    "wifi_cycles": 1,
+    "configuration_writes": 0,
+    "controlled_reboots": 0,
+    "unplanned_watchdog_reboots": 1
+  },
+  "cumulative_completion_charges": {
+    "rf_jobs": 9,
+    "rf_planned_seconds": 1152,
+    "flashes": 9,
+    "bootsel": 9,
+    "wifi_cycles": 4,
+    "configuration_writes": 0,
+    "additional_controlled_reboots": 0,
+    "unplanned_watchdog_reboots": 2
+  },
+  "limitations": [
+    "No P2 supported or overload capacity acceptance.",
+    "No RF continuity acceptance from either failed armed packet; final inactivity is independently established.",
+    "A persisted configuration fields survived; runtime station MAC is absent in network-free recovery and terminal history was lost in the watchdog reboot.",
+    "P1 evidence remains on its original exact workload and boot; it does not cover this later failing retained-state context.",
+    "No new family closure. R1/R2 retain recorded scope; R3-R6 and full Phase 11.5 remain open.",
+    "The shared fixture deadline was not extended; host restoration is verified."
+  ]
+}

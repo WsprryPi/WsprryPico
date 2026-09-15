@@ -188,8 +188,8 @@
       "group": "COMBINED",
       "requirement": "Supported simultaneous resident workload",
       "classification": "failed",
-      "evidence": "phase11-5-r3-v2-capacity-c2-result.json; phase11-5-completion-p1-attempt1-result.json",
-      "remaining": "Attempt1 maximum WTP overlapped ordinary HTTPS and failed. Preserve this supported-workload failure; separately freeze and validate the supported simultaneous workload.",
+      "evidence": "phase11-5-r3-v2-capacity-c2-result.json; phase11-5-completion-p1-attempt1-result.json; phase11-5-package2-result.json",
+      "remaining": "P2 maximum overlap stopped after 4096 host bytes; revised 32 KiB profile failed a 20480-byte LOAD allocation before ARM. Repair and validate the allocation path before a fresh supported packet. No P2 acceptance.",
       "package": 2
     },
     {
@@ -197,8 +197,8 @@
       "group": "COMBINED",
       "requirement": "Unsupported combination bounded refusal/closure",
       "classification": "missing",
-      "evidence": "",
-      "remaining": "One declared unsupported allocation combination; preserve owner/RF/recovery",
+      "evidence": "phase11-5-package2-result.json",
+      "remaining": "Not executed: requires an independently accepted supported packet, then one separately declared unsupported combination with owner/RF continuity and authenticated recovery.",
       "package": 2
     },
     {

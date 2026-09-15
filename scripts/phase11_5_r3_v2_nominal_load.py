@@ -92,6 +92,7 @@ def main():
     if not a.run:print('Plan only; no process or network activity.');return
     root=a.root.resolve(strict=True);require(digest(root/'packet.json')==a.packet_sha256,'Nominal packet hash')
     packet=json.loads((root/'packet.json').read_text());plan=packet['contention'];os.umask(0o077)
+    combined='combined' in packet
     sequential=packet.get('capacity_schedule_policy')=='wtp-then-http-capacity-v1'
     idle=packet.get('native_idle_policy')=='retained-load-native-90s-v1'
     if idle:
@@ -103,16 +104,21 @@ def main():
             'Client namespace identity')
     for key in ['binary','observer']:
         require(digest(Path(plan[key]))==plan[key+'_sha256'],'Native binary/observer identity')
-    require(digest(root/'production.ini')==plan['ini_sha256'],'Native INI identity')
+    private=Path(packet['private_reference_root']) if combined else root
+    if combined:
+        from phase11_5_completion_combined import validate_profile
+        validate_profile(packet)
+        for name,sha in packet['private_reference_sha256'].items():require(digest(private/name)==sha,'Existing private input identity')
+    require(digest(private/'production.ini')==plan['ini_sha256'],'Native INI identity')
     sys.path.insert(0,str(root/'pi'));from phase115_production_load import validate_ini
-    validate_ini(root/'production.ini',False)
-    cfg=configparser.ConfigParser(interpolation=None);cfg.optionxform=str;cfg.read(root/'production.ini')
-    require(all(cfg['WTP'][k]==str(root/'credentials/controller'/f) for k,f in
+    validate_ini(private/'production.ini',False)
+    cfg=configparser.ConfigParser(interpolation=None);cfg.optionxform=str;cfg.read(private/'production.ini')
+    require(all(cfg['WTP'][k]==str(private/'credentials/controller'/f) for k,f in
             [('TLS CA File','client-ca.crt'),('TLS Client Certificate','client.crt'),('TLS Client Key','client.key')]),
             'Controller credential paths')
-    ctx=ssl.create_default_context(cafile=root/'credentials/browser/client-ca.crt')
+    ctx=ssl.create_default_context(cafile=private/'credentials/browser/client-ca.crt')
     ctx.minimum_version=ctx.maximum_version=ssl.TLSVersion.TLSv1_3
-    ctx.load_cert_chain(root/'credentials/browser/client.crt',root/'credentials/browser/client.key')
+    ctx.load_cert_chain(private/'credentials/browser/client.crt',private/'credentials/browser/client.key')
     ctx.set_alpn_protocols(['http/1.1']);opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
     log=(root/'contention.jsonl').open('x');seq=0;process=None;end=time.monotonic()+packet['runtime_seconds']
     result=dict(status='RUNNING',https_requests=0);pressure_process=None;capture=None;health=NativeHealth()
@@ -191,7 +197,7 @@ def main():
     try:
         emit('start',dict(packet_sha256=a.packet_sha256,policy=plan['policy'],binary_sha256=plan['binary_sha256']))
         with (root/'production.log').open('xb') as out:
-            process=subprocess.Popen([plan['binary'],'--backend','wtp','-i',str(root/'production.ini'),
+            process=subprocess.Popen([plan['binary'],'--backend','wtp','-i',str(private/'production.ini'),
                 '--socket-loopback-only','--socket-loopback-family','ipv4','--allow-unqualified-frequency',
                 '--allow-non-amateur-frequency'],cwd=root,stdout=out,stderr=subprocess.STDOUT,
                 env=dict(os.environ,LD_PRELOAD=plan['observer'],PHASE115_TLS_LOG=str(root/'production-tls.bin')))
@@ -206,7 +212,7 @@ def main():
                     require(identity['device_id']==DEVICE and identity['boot_id']==packet['boot_id'] and
                         status['host']['network']['resolved_address']=='10.77.15.10' and
                         status['host']['network']['authenticated_identity']==NAME,'Native peer identity')
-                    first_https_start=time.monotonic() if sequential else https()
+                    first_https_start=time.monotonic() if sequential or combined else https()
                     ready=dict(packet_sha256=a.packet_sha256,boot_id=packet['boot_id'],
                         observed_monotonic_ns=time.monotonic_ns(),pid=process.pid);break
                 time.sleep(.2)
@@ -233,6 +239,11 @@ def main():
                     https()
                 def https_worker():
                     try:
+                        if combined:
+                            from phase11_5_completion_combined import run_http
+                            run_http(root,packet,emit,stop,end)
+                            result['https_requests']=2
+                            return
                         first=first_https_start
                         if sequential:
                             value=await_capacity_phase(root,a.packet_sha256,packet['jobs'][0]['job_id'],end,stop,
@@ -257,6 +268,8 @@ def main():
             if pressure_mode:
                 pressure_process.wait(timeout=5);require(pressure_process.returncode==0,'Pressure completion')
                 result['pressure_exit']=pressure_process.returncode
+            if combined:
+                require((root/'combined-complete.json').exists() and json.loads((root/'combined-complete.json').read_text())['packet_sha256']==a.packet_sha256, 'Complete P2 case required')
             if 'http_capacity' in packet:
                 require(capacity_index==len(packet['http_capacity']['cases']),'Missing HTTP capacity case')
             result['status']='CAPTURED_REQUIRES_AUDIT'

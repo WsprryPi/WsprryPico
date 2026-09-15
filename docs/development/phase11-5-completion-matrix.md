@@ -9,13 +9,14 @@ The [machine matrix](phase11-5-completion-matrix.json) contains each assertion.
 
 ## Candidate and applicability
 
-Deployed A retains clean firmware 8dd6f08, boot 7a04779b8018624574066260fce9d0d8.
-The [memory-pressure result](phase11-5-memory-pressure-result.json) and
-[review](phase11-5-memory-pressure-review.md) close P1's affected maximum-event,
-WTP and HTTP boundary components with three retained records and continuous
-native observation. Both boards are independently Empty/inactive/unowned with
-disabled schedules, preserved configuration and the host fixture restored.
-No new acceptance family is closed. Prior failed packets remain recorded.
+Deployed A retains firmware 8dd6f08 in network-free recovery boot
+4768a88991247131bdc7c0fc421dbe8f. The [Package 2 result](phase11-5-package2-result.json)
+records a 20,480-byte LOAD allocation fault and watchdog reboot before ARM;
+2.2a remains failed and 2.2b unexecuted. The [P1 result](phase11-5-memory-pressure-result.json)
+retains its exact original workload and boot, without broader combined-load credit.
+Both boards are independently Empty/inactive/unowned with disabled schedules.
+Persisted configuration fields survived; A's volatile terminal history was lost.
+The host fixture is restored and the shared reservation released. No family closes.
 Earlier bd16bb1 results retain two finite completions with
 failed capacity workloads. B remains 8921a7008183. Both are Pico 2 W/RP2350 Arm,
 138 MHz/divider 1, GP2 PIO/DMA, RAM rendering and listener configured. No full
@@ -89,12 +90,12 @@ resource gates. Evidence links retain exact source/image/boot and raw hashes.
 | 2.1e | WTP-MAX | 65537-byte framed rejection and same-connection recovery during RF | accepted/applicable | [phase11-5-r3-v2-component3-result.json](phase11-5-r3-v2-component3-result.json); [phase11-5-completion-capacity-cadence-result.json](phase11-5-completion-capacity-cadence-result.json); [phase11-5-memory-pressure-result.json](phase11-5-memory-pressure-result.json) | Accepted on 8dd6f08, boot 7a04779b8018624574066260fce9d0d8: independent complete 512-event RF, sequential WTP/HTTP boundaries and continuous native observer with three retained records. Prior failures preserved; no simultaneous-maximum, overload, reclamation or family closure. | 1 |
 | 2.1f | HTTP-MAX | Valid exact 32768-byte API body success during RF | accepted/applicable | [phase11-5-completion-http-pages-result.json](phase11-5-completion-http-pages-result.json); [phase11-5-memory-pressure-result.json](phase11-5-memory-pressure-result.json) | Accepted on 8dd6f08, boot 7a04779b8018624574066260fce9d0d8: independent complete 512-event RF, sequential WTP/HTTP boundaries and continuous native observer with three retained records. Prior failures preserved; no simultaneous-maximum, overload, reclamation or family closure. | 1 |
 | 2.1g | HTTP-MAX | 32769-byte HTTP limit rejection and authenticated recovery during RF | accepted/applicable | [phase11-5-r3-v2-bf4-result.json](phase11-5-r3-v2-bf4-result.json); [phase11-5-memory-pressure-result.json](phase11-5-memory-pressure-result.json) | Accepted on 8dd6f08, boot 7a04779b8018624574066260fce9d0d8: independent complete 512-event RF, sequential WTP/HTTP boundaries and continuous native observer with three retained records. Prior failures preserved; no simultaneous-maximum, overload, reclamation or family closure. | 1 |
-| 2.2a | COMBINED | Supported simultaneous resident workload | failed | [phase11-5-r3-v2-capacity-c2-result.json](phase11-5-r3-v2-capacity-c2-result.json); [phase11-5-completion-p1-attempt1-result.json](phase11-5-completion-p1-attempt1-result.json) | Attempt1 maximum WTP overlapped ordinary HTTPS and failed. Preserve this supported-workload failure; separately freeze and validate the supported simultaneous workload. | 2 |
-| 2.2b | COMBINED | Unsupported combination bounded refusal/closure | missing | None | One declared unsupported allocation combination; preserve owner/RF/recovery | 2 |
-| 2.2c | TLS-SLOW | Activated handshake deadline and reuse | affected and needing retest | [phase11-5-r3-v2-t4-result.json](phase11-5-r3-v2-t4-result.json) | Retain functional timeout; changed resident parser/retention costs require RF resource observation | 3 |
-| 2.2d | TLS-FAIL | Failed-alert ACK and unacknowledged lifetime | affected and needing retest | [phase11-5-r3-v2-t5-result.json](phase11-5-r3-v2-t5-result.json) | Retain semantics and raw target distinction; affected allocation/lifetime workload | 3 |
-| 2.2e | SLOT | Both active slots, one-WTP, pending expiry, excess and reuse | affected and needing retest | [phase11-5-r3-v2-t4-result.json](phase11-5-r3-v2-t4-result.json); [phase11-5-r3-v2-t5-result.json](phase11-5-r3-v2-t5-result.json) | Source timeout/slot policy unchanged; current resource interaction required | 3 |
-| 2.2f | HTTP-PARTIAL | Partial header/body and stalled HTTP sender/reader | affected and needing retest | [phase11-5-r3-v2-t5-result.json](phase11-5-r3-v2-t5-result.json) | Distinct 15-second activation deadlines; changed static paged response affects stalled output | 3 |
+| 2.2a | COMBINED | Supported simultaneous resident workload | failed | [Package 2 result](phase11-5-package2-result.json) | P2 maximum overlap stopped after 4096 host bytes; revised 32 KiB profile failed a 20480-byte LOAD allocation before ARM. Repair and validate the allocation path before a fresh supported packet. No P2 acceptance. | 2 |
+| 2.2b | COMBINED | Unsupported combination bounded refusal/closure | missing | [Package 2 result](phase11-5-package2-result.json) | Not executed: requires an independently accepted supported packet, then one separately declared unsupported combination with owner/RF continuity and authenticated recovery. | 2 |
+| 2.2c | TLS-SLOW | Activated handshake deadline and reuse | affected and needing retest | [Package 2 result](phase11-5-package2-result.json) | Retain functional timeout; changed resident parser/retention costs require RF resource observation | 2 |
+| 2.2d | TLS-FAIL | Failed-alert ACK and unacknowledged lifetime | affected and needing retest | [Package 2 result](phase11-5-package2-result.json) | Retain semantics and raw target distinction; affected allocation/lifetime workload | 2 |
+| 2.2e | SLOT | Both active slots, one-WTP, pending expiry, excess and reuse | affected and needing retest | [Package 2 result](phase11-5-package2-result.json) | Source timeout/slot policy unchanged; current resource interaction required | 2 |
+| 2.2f | HTTP-PARTIAL | Partial header/body and stalled HTTP sender/reader | affected and needing retest | [Package 2 result](phase11-5-package2-result.json) | Distinct 15-second activation deadlines; changed static paged response affects stalled output | 2 |
 | 2.3a | PROGRESS | 30-second drained WTP inactivity | missing | None | Trigger distinct inactivity path and authenticated recovery | 3 |
 | 2.3b | PROGRESS | Five-second incomplete WTP input | missing | None | Actual incomplete-input timeout and recovery | 3 |
 | 2.3c | PROGRESS | Five-second WTP no-output-progress | missing | None | Prove output progress origin and timeout, distinct from queue overflow | 3 |

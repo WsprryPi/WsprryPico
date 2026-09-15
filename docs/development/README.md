@@ -6,7 +6,10 @@ A's current firmware is `8dd6f0812292`, B's is `8921a7008183`; older candidate
 paragraphs below retain historical evidence identities. Phase 11.5 is OPEN,
 R1/R2 closed, R3-R6 open. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
 passes retained LOAD/replay and P1 individual WTP/HTTP capacity during RF;
-combined maximum load and retention/reclamation remain separate open gates.
+the [Package 2 attempt](phase11-5-package2-review.md) remains OPEN after a
+20,480-byte LOAD allocation fault. A is inactive in network-free recovery boot
+4768a88991247131bdc7c0fc421dbe8f; the host fixture is restored. Overload was not
+executed. Retention/reclamation remains a separate open gate.
 
 
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).
