@@ -1,0 +1,759 @@
+{
+  "schema": "phase11.5-memory-pressure-repair-v1",
+  "status": "REPAIR_AND_BOUNDED_TARGET_RETEST_COMPLETE",
+  "phase11_5_status": "OPEN",
+  "accepted_configuration": null,
+  "family_status": {
+    "R1": "CLOSED within recorded scope",
+    "R2": "CLOSED within recorded scope",
+    "R3": "OPEN",
+    "R4": "OPEN",
+    "R5": "OPEN",
+    "R6": "OPEN"
+  },
+  "source_revision": "8dd6f0812292e9264c2a72745078a95ee606c191",
+  "prompt": "phase11-5-memory-pressure-prompt.md",
+  "review": "phase11-5-memory-pressure-review.md",
+  "repair": {
+    "released_rp2350_event_bytes_at_512": 20480,
+    "handoff": "Only after successful acknowledged independent schedule or begin",
+    "replay": "Original typed digest retained; identity and immutable adjustments preserved",
+    "required_reserve_bytes": 32768,
+    "input_workspace_bytes": 8192,
+    "input_bookkeeping_allowance_bytes": 1024
+  },
+  "physical_setup": {
+    "board": "Pico 2 W / RP2350 Arm",
+    "system_clock_hz": 138000000,
+    "pio_divider": 1,
+    "engine": "pio-dma-gp2",
+    "renderer": "ram",
+    "listener": true,
+    "mode": "fskcw",
+    "rf_path": "Unchanged user-authorized conducted fixture; frequency range 135490-135510 Hz"
+  },
+  "linked_images": {
+    "WsprryPico": {
+      "elf_sha256": "adf38208d6769cdd630f31d3c93a7cf8d0e91975bec5056bb48b112d5e504883",
+      "uf2_sha256": "a731498c35eb43b6d7520349dbca815b2dd7fb84877967d2f0f935d8d55c0d56",
+      "checks": {
+        "check_heap_hooks.py": {
+          "returncode": 0,
+          "stdout": "{\"__wrap__calloc_r\": [\"calloc\", \"wsprry_heap_try_calloc\"], \"__wrap__free_r\": [\"__sflush_r\", \"__sfvwrite_r\", \"__swsetup_r\", \"_fclose_r\", \"_malloc_r\", \"_realloc_r\", \"free\", \"wsprry_heap_probe\"], \"__wrap__malloc_r\": [\"__sfvwrite_r\", \"__smakebuf_r\", \"_calloc_r\", \"_realloc_r\", \"malloc\", \"wsprry_heap_probe\", \"wsprry_heap_try_input\"], \"__wrap__realloc_r\": [\"__sfvwrite_r\", \"realloc\"], \"_calloc_r\": [\"__wrap__calloc_r\"], \"_free_r\": [\"__wrap__free_r\"], \"_malloc_r\": [\"__wrap__malloc_r\"], \"_realloc_r\": [\"__wrap__realloc_r\"], \"mallinfo\": [\"__wrap__calloc_r\", \"__wrap__malloc_r\", \"__wrap__realloc_r\", \"__wrap_mallinfo\", \"wsprry_heap_snapshot\"]}\n",
+          "stderr": ""
+        },
+        "check_stack_guards.py": {
+          "returncode": 0,
+          "stdout": "{\"msplim_writers\": [\"runtime_init_per_core_install_stack_guard\"], \"scope\": \"Linked startup/readback routes only; inspect constants and target evidence separately\", \"startup_callers\": [\"runtime_init\"]}\n",
+          "stderr": ""
+        },
+        "check_standalone_image.py": {
+          "returncode": 0,
+          "stdout": "RP2350: 16 KiB primary stack; heap and core-1 stack do not overlap it\nLinked FLASH ends at 0x103fb000; journals end below the reserved boot sector\n",
+          "stderr": ""
+        }
+      }
+    },
+    "WsprryPico-StandaloneRF": {
+      "elf_sha256": "d4ba4097418cc526de3bf567554bc1ed14c623466308a89a853cbb93a6175758",
+      "uf2_sha256": "ccfdf60b2b927b4a3fd14cc9254a6748334d584ebad0d672771939ab2369b40d",
+      "checks": {
+        "check_heap_hooks.py": {
+          "returncode": 0,
+          "stdout": "{\"__wrap__calloc_r\": [\"calloc\", \"wsprry_heap_try_calloc\"], \"__wrap__free_r\": [\"__sflush_r\", \"__sfvwrite_r\", \"__swsetup_r\", \"_fclose_r\", \"_malloc_r\", \"_realloc_r\", \"free\", \"wsprry_heap_probe\"], \"__wrap__malloc_r\": [\"__sfvwrite_r\", \"__smakebuf_r\", \"_calloc_r\", \"_realloc_r\", \"malloc\", \"wsprry_heap_probe\", \"wsprry_heap_try_input\"], \"__wrap__realloc_r\": [\"__sfvwrite_r\", \"realloc\"], \"_calloc_r\": [\"__wrap__calloc_r\"], \"_free_r\": [\"__wrap__free_r\"], \"_malloc_r\": [\"__wrap__malloc_r\"], \"_realloc_r\": [\"__wrap__realloc_r\"], \"mallinfo\": [\"__wrap__calloc_r\", \"__wrap__malloc_r\", \"__wrap__realloc_r\", \"__wrap_mallinfo\", \"wsprry_heap_snapshot\"]}\n",
+          "stderr": ""
+        },
+        "check_stack_guards.py": {
+          "returncode": 0,
+          "stdout": "{\"msplim_writers\": [\"runtime_init_per_core_install_stack_guard\"], \"scope\": \"Linked startup/readback routes only; inspect constants and target evidence separately\", \"startup_callers\": [\"core1_wrapper\", \"runtime_init\"]}\n",
+          "stderr": ""
+        },
+        "check_standalone_image.py": {
+          "returncode": 0,
+          "stdout": "RF worker: dedicated aligned 16 KiB BSS stack below the heap\nRP2350: 16 KiB primary stack; heap and core-1 stack do not overlap it\nLinked FLASH ends at 0x103fb000; journals end below the reserved boot sector\n",
+          "stderr": ""
+        },
+        "check_rf_renderer.py": {
+          "returncode": 0,
+          "stdout": "{\"address\": \"0x200012d8\", \"bytes\": 660, \"checked_instructions\": 233, \"initialized_data_bytes\": 12904, \"placement\": \"ram\", \"worker_address\": \"0x2000bf88\", \"worker_bytes\": 166176}\n",
+          "stderr": ""
+        }
+      }
+    }
+  },
+  "validation": {
+    "ctest_groups": 72,
+    "result": "PASS across broad run and affected reruns",
+    "r3_final_seconds": 21.01,
+    "r3_cases": 228,
+    "r3_private_evidence_skips": 48,
+    "source_mutations": {
+      "mutations": [
+        {
+          "mutation": "retain-execution-input",
+          "rejected": true,
+          "returncode": 1,
+          "diagnostic": "FAIL: execution input handoff and replay: test_execution_input_handoff_and_replay: CHECK failed: watched_event_released == (independent && outcome != 3)"
+        },
+        {
+          "mutation": "digest-after-release",
+          "rejected": true,
+          "returncode": 1,
+          "diagnostic": "FAIL: execution input handoff and replay: test_execution_input_handoff_and_replay: CHECK failed: service.handle(request(\"LOAD\", job, '3')) == loaded"
+        },
+        {
+          "mutation": "omit-input-workspace",
+          "rejected": true,
+          "returncode": 1,
+          "diagnostic": "FAIL: input workspace admission: test_input_workspace_admission: CHECK failed: parser.closed() != admitted"
+        }
+      ],
+      "intact_pass": true
+    },
+    "evidence_mutations_rejected": 8,
+    "independent_intact_reassessment": "PASS"
+  },
+  "accepted_assertions": [
+    "2.1a",
+    "2.1d",
+    "2.1e",
+    "2.1f",
+    "2.1g",
+    "R3.TLS-VALID"
+  ],
+  "capacity": {
+    "heap_capacity_bytes": 218936,
+    "sticky_peak_bytes": 162992,
+    "minimum_reserve_bytes": 55944,
+    "margin_above_required_reserve_bytes": 23176,
+    "initial_terminal_records": 3,
+    "final_terminal_records": 4,
+    "scope": "Sequential WTP and HTTP maximum/boundary exchanges during one RF job with continuous native observer; not simultaneous maximum inputs"
+  },
+  "charges_this_repair": {
+    "rf_jobs": 1,
+    "planned_rf_seconds": 128,
+    "a_flashes": 1,
+    "bootsel_transitions": 1,
+    "wifi_off_on_cycles": 1,
+    "additional_controlled_reboots": 0,
+    "configuration_writes": 0
+  },
+  "cumulative_completion_charges": {
+    "rf_jobs": 7,
+    "planned_rf_seconds": 896,
+    "a_flashes": 9,
+    "bootsel_transitions": 9,
+    "wifi_off_on_cycles": 3,
+    "additional_controlled_reboots": 0,
+    "configuration_writes": 0,
+    "historical_unplanned_watchdog_reboots": 1
+  },
+  "audits": {
+    "prior_failure": {
+      "status": "MEMORY_RESERVE_FAILURE_AND_FINAL_INACTIVITY_VERIFIED",
+      "packet_sha256": "6128dbd48ab024057e60691f44c6b2a551ee08d0fd032e542fe535356643b8a5",
+      "source_revision": "150fe016bb61518fb259adcedf86d3ac9779d373",
+      "boot_id": "c3ea3e2ad15dafe5db2acec253e35c99",
+      "peak_bytes": 193448,
+      "capacity_bytes": 218968,
+      "reserve_bytes": 25520,
+      "required_reserve_bytes": 32768,
+      "allocation_failures": 0,
+      "tls_allocation_failures": 0,
+      "capacity_wire_bytes": 65552,
+      "capacity_written_bytes": 24576,
+      "capacity_response_received": false,
+      "http_attempted": false,
+      "rf_job": "470d7c1bb0524468ab518ca2439db93b",
+      "rf_seconds_charged": 128,
+      "final_boards": {
+        "a": {
+          "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+          "boot_id": "c3ea3e2ad15dafe5db2acec253e35c99",
+          "revision": "150fe016bb61",
+          "state": "complete"
+        },
+        "b": {
+          "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+          "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+          "revision": "8921a7008183",
+          "state": "empty"
+        }
+      },
+      "configurations_preserved": true,
+      "reservation_released": true,
+      "fixture_restored": true,
+      "fixture_cleanup_monotonic_ns": 443494406757825,
+      "accepted_components": [],
+      "continuous_rf_timing_accepted": false,
+      "trailing_usb_bytes": 0,
+      "unanswered_info": false,
+      "limitations": [
+        "Final Complete does not prove continuous RF timing.",
+        "The causal relationship between reserve failure and monitoring loss is not proven."
+      ],
+      "evidence_sha256": {
+        "packet.json": "6128dbd48ab024057e60691f44c6b2a551ee08d0fd032e542fe535356643b8a5",
+        "rf.jsonl": "663b027e49fb65285208b8fad3a9d6f29bb0255e0fdcd3c070c39e99241478d3",
+        "rf-result.json": "18da61f665f2ce72ecb3e3279b6f1b96ef125d737ce97d06beacfb361599f13c",
+        "contention.jsonl": "5096ec38303f39213f8a406540615f905dd9d35f7aacfb95d8d833f235721f50",
+        "contention-result.json": "fc45aa22725f0e45fd2177fd93e6dfd84bc87a7c148a1e237fdba252f053db52",
+        "production-tls.bin": "43048a37e3bc43db6df41b88156e1e36a8405d2f6da40ccb16cf3047afd35335",
+        "before-a.stdout": "ee0850f8fbf51b012f44bd6e3163d97c9179aca0eeebf6e5dd2d5aad2539042e",
+        "before-b.stdout": "53b226941877828a52d8f79ace855a5cc8eee723d72aa4fe39ba37ee8fbbe1d4",
+        "final-a.stdout": "985478df3cb292b8b23b412b486939340b4da78b9aaf00bece5998318a06e22f",
+        "final-b.stdout": "bf14dea9fbe19c1b746bb509646a9c75f6488dbe2f2a04c7a5a15c467819d9d2",
+        "rf-reservation-acquired.json": "9ac42ca2fea93e8d1aaff4e6dda68d8157c08b641138122e9a34138812bf7940",
+        "rf-reservation-released.json": "14c541cb1d9d25cc4b27f73f411e0128a08a98f5319edb372965f440a06021f2"
+      }
+    },
+    "deployment": {
+      "status": "DEPLOYMENT_INDEPENDENTLY_VERIFIED",
+      "packet_sha256": "f9b9714dcd34b5399fd448eb7d45fcd300322eda3a695d9fde28a2e3cbfaf98b",
+      "source_revision": "8dd6f0812292e9264c2a72745078a95ee606c191",
+      "image_sha256": "ccfdf60b2b927b4a3fd14cc9254a6748334d584ebad0d672771939ab2369b40d",
+      "elf_sha256": "d4ba4097418cc526de3bf567554bc1ed14c623466308a89a853cbb93a6175758",
+      "boot_id": "7a04779b8018624574066260fce9d0d8",
+      "boards": {
+        "a": {
+          "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+          "boot_id": "7a04779b8018624574066260fce9d0d8",
+          "revision": "8dd6f0812292",
+          "state": "empty"
+        },
+        "b": {
+          "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+          "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+          "revision": "8921a7008183",
+          "state": "empty"
+        }
+      },
+      "configuration_preserved": true,
+      "schedules_disabled": true,
+      "reservation_released": true,
+      "flashes": 1,
+      "bootsel": 1,
+      "rf_jobs": 0,
+      "heap_capacity_bytes": 218936,
+      "allocator_peak_bytes": 18600
+    },
+    "wifi_recovery": {
+      "status": "IDLE_WIFI_RECOVERY_VERIFIED",
+      "family_closed": false,
+      "packet_sha256": "e98c9d58f1bb8613120dc3e52ea5b96c399a8d9d94ba6f72e27f14b0b97661f8",
+      "source_revision": "8dd6f0812292e9264c2a72745078a95ee606c191",
+      "image_sha256": "ccfdf60b2b927b4a3fd14cc9254a6748334d584ebad0d672771939ab2369b40d",
+      "boot_id": "7a04779b8018624574066260fce9d0d8",
+      "wifi_cycles": 1,
+      "off_commands": 1,
+      "on_commands": 1,
+      "configuration_writes": 0,
+      "flashes": 0,
+      "rf_jobs": 0,
+      "final_authority": {
+        "boot_id": "7a04779b8018624574066260fce9d0d8",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "final_clock": {
+        "state": "synchronized",
+        "utc_now_ns": "1789501775676738000",
+        "monotonic_now_ns": "444671646000",
+        "uncertainty_ns": "12945996",
+        "sync_age_ns": "2217011000",
+        "leap": "normal"
+      },
+      "evidence_sha256": {
+        "ready-7.stdout": "5ab93d7687a482ba16d5569421d14db0995e732bb0cc5a9d775cf8b17a2c9b16",
+        "off-before.stdout": "a788b3608e673a7f691131ed0a4d585b61ea9cce532433503f77ac0d161d16fb",
+        "ready-9.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ready-15.stdout": "0a3650d9c1d8c9141c772a230ce877782c0f36cfb4cb0f986df19df736de1054",
+        "ready-11.stdout": "80894882e7c9d551d560f0cfccd4a03d566d98ad603d3870c35c7fd1e9945cf5",
+        "on-after-0.stdout": "563f3b3553d897065324e3336a03408e7c9a4e595e49a1cd33d09b255b9d1a45",
+        "on-after-0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ready-2.stdout": "8cfc7e75d1c176512455b2fa9084674a05e2b7bfb5ce1c97160cf263ee65d56e",
+        "ready-8.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "off-after-0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "off-before.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ready-5.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "on-before.stdout": "e8c31b26ab31d5273e338d905eab412e4573b60b10bb64efd1e2908dac29c484",
+        "ready-8.stdout": "fe4894479978a0b5e6aacdecb1027a5301ac45b39ef63f298910234de24f7e9c",
+        "ready-3.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ready-2.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ready-14.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ready-4.stdout": "36b8ea581b2ded73fa493a38bfec04892629383fabcc2b37a104cd271b3c8e5b",
+        "on-before.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ready-13.stdout": "ef0d82bf054ca8c2cf5363cdd1196e3b360c2bb16d176442aaace7c75e4117a7",
+        "ready-10.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "packet.json": "e98c9d58f1bb8613120dc3e52ea5b96c399a8d9d94ba6f72e27f14b0b97661f8",
+        "ready-12.stdout": "aa39a62565259aafd216f28658afeeea1fe9db816125d091cdca9ce99d6e5446",
+        "ready-12.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "before-a.stdout": "5ce700ebc413759bedece37fe72597fe4471ad98b293c14e7b7dfecea3bc700f",
+        "ready-13.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "off-exchange.jsonl": "beb071a1e328a529be85c66b3a69f16ee0dcc22cc5d49038799e39b3bb659f23",
+        "ready-4.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ready-6.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ready-5.stdout": "cc3c8d80173cc950f07050f7d105fe971a9c9997d4a154accf92bb71c93a4ad4",
+        "before-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "off-after-0.stdout": "8d450e701a5dd4b0f148fb82ebad96aa2af6a07f16dc3989869bbb5e21c026e8",
+        "ready-6.stdout": "55b8b56356f5e10ff56ed433bb32b3d98bf2c41b15101f4a0f960b0fb5f700f1",
+        "ready-1.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "wifi-result.json": "86a82a25b3a27772096d19f466a655dd956cff510ad23ed231e30f2a368bbccf",
+        "ready-14.stdout": "4714ba9d8af37e39a10e0feda546a144045eb1cae791a2dc7d36d55e0afa2d83",
+        "ready-9.stdout": "1b72ea60b00be43a050a1029b76cea9052cf1441d27b8825f4b0585f55f7aaad",
+        "ready-10.stdout": "ab9332ebec812cd0fd93f7182cdad9943760afa359f93097b265929ab8e429be",
+        "ready-11.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ready-15.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ready-0.stdout": "2d84af46b6067178e911aa4b27d64b2e04838ea5ac12f44626e22a363fa78e09",
+        "ready-1.stdout": "7c791776159d95baa53cc59d8f4f3db80f1a1156dc3401993c5341e8368fbd44",
+        "on-exchange.jsonl": "f03db22ccfa2c8ce2f4870c23e7479a25cf4042f90c55b47477319034b1194b9",
+        "ready-3.stdout": "a79c522cfe2deb14bce94a10e6f24c4ed08e091ea4259db971bce4f1ba711f90",
+        "ready-0.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ready-7.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "preceding_readiness_failure": {
+        "packet_sha256": "bef12ef87833010b24e56e0fc5f0441a77e1b2ade3652e379af7406913b11bef",
+        "result_sha256": "95e0b886a8097d3b89f464657dc3069c0e44d416c145121d69d2a340d650143d",
+        "loads": 0,
+        "rf_jobs": 0,
+        "boards": {
+          "a": {
+            "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+            "boot_id": "7a04779b8018624574066260fce9d0d8",
+            "revision": "8dd6f0812292",
+            "state": "empty"
+          },
+          "b": {
+            "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+            "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+            "revision": "8921a7008183",
+            "state": "empty"
+          }
+        },
+        "configurations_preserved": true,
+        "reservation_released": true,
+        "accepted_components": []
+      }
+    },
+    "retained_native": {
+      "status": "IDLE_NATIVE_RETAINED_LOAD_PASS",
+      "packet_sha256": "0480f969fb1304eb4b993a44c38e5f51e3738c429b09cc17cd97eb91f26ac86b",
+      "rf_jobs": 0,
+      "source_revision": "8dd6f0812292e9264c2a72745078a95ee606c191",
+      "boot_id": "7a04779b8018624574066260fce9d0d8",
+      "load_exchange_seconds": [
+        2.041570638,
+        2.302708064,
+        2.41629419,
+        2.423294792
+      ],
+      "native": {
+        "connections": 1,
+        "operations": {
+          "HELLO": 1,
+          "STATUS": 92,
+          "CAPS": 1
+        }
+      },
+      "info_samples": 88,
+      "allocator_peak_bytes": 162992,
+      "heap_capacity_bytes": 218936,
+      "configurations_preserved": true,
+      "schedules_disabled": true,
+      "reservation_released": true,
+      "family_closed": false,
+      "scope": "Aborted retained LOAD/native continuity only; no Complete-state or RF capacity acceptance.",
+      "altered_evidence_rejected": [
+        "write",
+        "native",
+        "peak",
+        "publication"
+      ],
+      "evidence_sha256": {
+        "packet.json": "0480f969fb1304eb4b993a44c38e5f51e3738c429b09cc17cd97eb91f26ac86b",
+        "private-input-hashes.json": "1dc5d64d85d35f575396a401e445430fa17b3d5855a2e3550f517f8f0e38a97c",
+        "idle.jsonl": "77c5f659006077611748381c4b9bbfe80bcf1521a820b49d507f33c87bfe1fbf",
+        "run-result.json": "d7cbdab81d94e9e50dd4ab628108ce1af3d64372f8bf16f59fdb88fa86fabf84",
+        "contention.jsonl": "60f34f8cf8c432b67d1894af4562c1268c7cb4c0d13e49b984b84a66e48d48cb",
+        "contention-result.json": "48e60bbb78f311aee73c8ad6039eaf7948850df894eb7213f10370d99b66fc67",
+        "production-tls.bin": "e8021197749b436af0c009f3bfa4072b660019ad0ecd72707a475e6c0045db0e",
+        "reservation-acquired.json": "595cea0f6551263e0ebbd3d5cd8d6a3f6e18414039dc2f32698062ce9f314354",
+        "reservation-released.json": "3cd50db390395b3ef6a4b01eaa04cf0a76a9fe2c7813c5622bbf6dba06fa6c90",
+        "before-a.stdout": "ae21957cb884dda572d3e918d26287aca8898aea529d3eb2414c3e252666d5b1",
+        "before-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "before-b.stdout": "b0f0d8cac993bf665244c8cb431972f8b47b0af2bc3338c95e07467e80069882",
+        "before-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "final-a.stdout": "9b4fa35e505be91a46d24aeae658650bb2eb73d0a26ec2ea9dee67659204b50d",
+        "final-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "final-b.stdout": "49e8bb609fad27967f1aaf2da8e1af0d421b7eaa1c733c71159bf48810fb7eb6",
+        "final-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "packet_helpers_sha256": {
+        "production.ini": "8760993403b37da397946040e6f1b877e42c3bc3397a5706f690df2ede850cf3",
+        "pi/phase115_tls_observer_test.py": "5cf410758c48e05bc35f04f394b486f0b210b93e7ab785cedaf1bc7dd689162d",
+        "pi/phase115_tls_observer.c": "7c6a4afba6f414b9ef6a92ee223b0c0863219311e9c472a0d32a92f45f7e4a1d",
+        "pi/phase115_production_load.py": "5d854540d9369173f1ec13a5a489c2045a7ace634da6aa10a8c42f0529b1ed0d",
+        "scripts/phase11_5_pilot.py": "bb91dc6fea9fb10e7564252810b534979a1f28b36de132745d100f388c3003c4",
+        "scripts/phase11_5_r3_tls_plan.py": "458dcd137155a7922a5621ffe83f53f16e11915b43b051f97e98fc50854a66e8",
+        "scripts/phase11_5_r3_transport_plan.py": "18eae92079cdd738e4b5705be4853fee6a15fd2338527a6b57fc664a93c49e84",
+        "scripts/phase11_5_r3_capacity_plan.py": "65e71dbd4a5b3d11e55f227721761bdab7f3c55f11dd8f9d11a836f0dde330e7",
+        "scripts/phase11_5_rf_reservation.py": "33b6d765534f7388adb3b594daa11f832363956c087ec7062d07d9c3f0607e4a",
+        "scripts/phase11_5_rf_observer.py": "6e43b5d39961da5512c5999351f66c106d38a06be85f8a1b3541d21a432f2b1c",
+        "scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+        "scripts/phase11_5_device_management.py": "3f3fa78cd17c170b35aa591f29ec77770b26b31b0effeccc4e11e9372530fd5d",
+        "scripts/phase11_5_r3_preflight.py": "637741fa271719beb4c3a764af2d88ea0ca4cd0b8cda3094f86167e0f64822e7",
+        "scripts/phase11_5_r2_amended_plan.py": "a28672abb2703ee1fee2a49e5dfb5ed81347a6d3172584966c4ba4d568a5f679",
+        "scripts/phase11_5_r2_plan.py": "e7b9157ca65f7abc1fd509f070467d908ad5808a4d408772d61e4df71f509bbc",
+        "scripts/phase11_5_f1_plan.py": "e568e285b856691b5d5c4e53937378aca30e8fa7b5638d75a45804b76376c03a",
+        "scripts/check_usb_target.py": "51fcd12c14f9fc012554249378721a9ecb6cb01b11bb11152c746e9228a5fbf7",
+        "scripts/inhibited_network_acceptance.py": "088904c352c9891e73de871bf717b53ae34955cc2e9d7a854d47c0c2c7a3e043",
+        "scripts/phase11_5_r2_modes.py": "9558a5d34bc12f15b9fab592d0546cfdde00e0673a69f125b34eaaa073a66be8",
+        "scripts/phase11_5_device_fixture.py": "03089505dc25b49637660fce15a2e6337410237b172cc3af6c508e94bdb4224b",
+        "scripts/phase11_5_r3_v2_parallel_b_repair.py": "dbd8ca59268a68c9492d249708751ece561fa1c7f18f46574eb83df4c11f4d93",
+        "scripts/phase11_5_time_local.py": "ac26b85628f05990905e86b236a1a6bd6f8cba84ea6729dcdf750f0aed928783",
+        "scripts/audit_phase11_5_load.py": "4e335be30cb615e34467ac54ea7aa725a636c86cc47831044960de25cb4261be",
+        "scripts/phase11_5_r3_v2_parallel_b_plan.py": "df8dc1efd7a041b22105da17e46007d17c79a3ebf7f580b59e17606a539e61a9",
+        "scripts/phase11_5_r3_v2_rf.py": "439a2d30f1b75470dec662dda7f10f5f4a2cc4aa24d738bed40258c52055a1d4",
+        "scripts/phase11_5_r3_v2_parallel_b_paged_repair.py": "0ab3c0aaa5b0995bf3e82e801e51684d3e7c82800c8dbcabae2485ce1a265138",
+        "scripts/phase11_5_r3_v2_parallel_b_deploy.py": "80293892b285295f72e3bdbea4fc827aa7c83498b1cdb3298fa622a4ffa763ed",
+        "scripts/phase11_5_r3_v2_nominal_load.py": "758d1bacbaca39b47333517c2572d965fb37f71a0e84ac040c2a53e2ee445aed",
+        "scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9",
+        "scripts/audit_phase11_5_r1.py": "e9bb9d1d687949e82cfafd365eb7944b97c5d7530f546e0520240eed05dbb817",
+        "scripts/phase11_5_pilot_supervisor.py": "dbf97a316ebe02eb27f90d838ce70c468b75abc38749a7af3f6911beab8dd9e7",
+        "scripts/phase11_5_r3_transport_pressure.py": "0b94305819bf88852a29594a97683656807747acab624bffc4be28e5584c6b0b",
+        "scripts/phase11_5_r3_v2_parallel_b_functional.py": "49bfca53fa031f069c182fb44ae571f913f4cd32f75c57c4c4828582d10d0d72",
+        "scripts/phase11_5_r3_retained.py": "54c1020f63745d8d61a475f11c0e6773b5f2f4f37a63730b458e29971cee120f",
+        "scripts/audit_phase11_5_r3_transport.py": "aaf67374aff265a49977927b81492a7a2a07e110b5c78e8ee0275028ef0bdf5e",
+        "scripts/phase11_5_r2_usb_jobs.py": "3d4db8d7b7e22189d8a74c5dd10f07dace75c2a20200091fc24490f28425d58f",
+        "scripts/phase11_5_r3_capacity_probe.py": "fd34c6c6d3df689e96f5d6a073d2520f2e1a6fa6b856651877c465588c2b96c9",
+        "scripts/phase11_5_terminal_history.py": "978af643e7f90bbe23dfaca38196d11024d4dd2ed63996c8f6a52f15c8643458",
+        "scripts/phase11_5_browser_jobs.py": "868e8376a05eabfad382517a4b951a9f177b51c50619e55c06578e90fe23a575",
+        "scripts/phase11_5_r2_modes_plan.py": "2ed53fc77b80cbbee9d7fa53bf8ba3d96928bc2a5229104cc0fc7317ccbb1d0b",
+        "scripts/phase11_5_r3_v2_admission.py": "0958e73ae7389eb06cfd7ab9c20907412f9133f48296050701348bbbd9ebb195",
+        "scripts/audit_phase11_5_idle.py": "487d93ecb7758fc5b665f49c819ce85d19d55b2beab644fdb97214df5e20f064",
+        "scripts/phase11_5_inventory.py": "dcef778c18a10a0fc20bbb13fa2b07cc690c9d1c9ab8fe05a29af60a6d0483df",
+        "scripts/audit_phase11_5_r3_tls.py": "34105c6784e183607df1cdb8e60d3941d9c853216a7152ad84c4079474a0940c",
+        "scripts/audit_phase11_5_r3_failure.py": "5b361f34dd87ff1b08264523ab32066165888fab26e86f20adf4e44678da8080",
+        "scripts/phase11_5_r3_ack_filter.py": "e9cec9ca5fa0b58488d8bed4c809976216e04cd39b0c6b06900dc239d2f61c65",
+        "scripts/phase11_5_r3_allocation_diagnostic.py": "046c3c624ec26c1d21b53ddd52f728bfab1f1f45ade2a75efa0e836b7c5624a8",
+        "scripts/phase11_5_r3_v2_pressure_plan.py": "90f0957e8f9145922df8ef563286e1779c08c64fd84cc8972cc69ee12adbdad1",
+        "scripts/phase11_5_r2_upload_plan.py": "734d86758b7870aea761f9637a3861904b755e6e333b2a8855377815aeed969a",
+        "scripts/phase11_4_hotspot.py": "20253c0ab455f023bc360b7b9f10fba5b6b719ffffddce79c0c7128a4e7712ee",
+        "scripts/phase11_5_join_diagnostics.py": "5f6d0f242c81b8f1d1b2ffc589e2ff7d04d023fe7845010bd7b878e611514ded",
+        "scripts/audit_phase11_5_r2_modes.py": "dd12df797749b31437c792e5fb55caa201a513b226ce7fb10570623a82f109ec",
+        "scripts/phase11_5_network_fixture.py": "a09338f6c83647a876dfdf05d1cd495e405e188468def1081b2d325fc84361ac",
+        "scripts/phase11_5_r3_v2_observer_policy.py": "0c4e7f8f8e2511f0f220cb65728cbe2bc6999aa061b478cc99e689fb0e572932",
+        "scripts/phase11_5_r3_tls.py": "c0b8bc09cea7ac3fc68fbd30110954401e64b8762a9959f9d2251416984ce6e0",
+        "scripts/phase11_5_r3_tls_pressure.py": "eb5f1c7ad9d91893bb77a7de2720da4ff0f933bd4ef3416172102d985619b6da",
+        "scripts/phase11_5_r3_tls_stage.py": "f2358e2116bcfc90649cbf7ec92d520ae47ec33861afb3b7a88070fb44e448c4",
+        "scripts/phase11_5_r3_v2_fixture.py": "3d7f185ac3c058d6288a706acf768befa2e80ee0086ca8d94d8367d37913c531",
+        "scripts/rf_wtp.py": "d815043f8b4876c71c6bb1e1c5ad95451608b97dcfdcfb2d726b021deef99017",
+        "scripts/phase11_5_r1.py": "e171de2f85387a808046b661b138e86935e8d4befd86b07ff169c170cc37aa32",
+        "src/campaign/plan.py": "13f7f1181dc4e04a81077b4b2e9d66d881310aabbcafae907fdd74b226ae4923",
+        "docs/protocol/wtp-1.schema.json": "fae1a7f94adb875733f47f22438a0811a3ab7fd9e4b8477780aea77cad62c8a8",
+        "pi/phase115_tls_observer.so": "fd70cde276b04aa08e771e12b83335a89aae24e050e2f2c5e56ed6848eb1a7bc",
+        "credentials/controller/client-ca.crt": "cda60b730367129165b43aef6ff129dc0107ad878cd95e4ecedf9243327f847e",
+        "credentials/controller/client.crt": "6eff58d32983f47cd0d94ff265bb391168b7a066074d939bf7deafc13a70e99e",
+        "credentials/controller/client.key": "d978ee5b5b8276498a06811983e466ee050fac7a012fae1b2a7caeb4c050c972",
+        "credentials/browser/client-ca.crt": "cda60b730367129165b43aef6ff129dc0107ad878cd95e4ecedf9243327f847e",
+        "credentials/browser/client.crt": "d33d28277bc58a49e723b4736c04899efe566a5e5aeda542679d703bed378b7c",
+        "credentials/browser/client.key": "76ecdbaa15ac322a4c16b9bfa3c5c05942a3417ec2c271105ad89bfb0fb335bd",
+        "scripts/phase11_5_completion_deploy.py": "87671b405c5696f0da040ad271089ae5e097e4475590ef34f0174a1ef52aaa6f",
+        "scripts/phase11_5_load_reply_target.py": "64dace9181f9246c89e2063b55834c55fe1148dc590a97f39325bea357323ca6",
+        "src/campaign/analysis.py": "2bf05a16de11b1543d5d6aed4d0f342cd24d7416f84050f0d090f74fd89a44be",
+        "src/campaign/live.py": "9b804a2e4694152384a7a664ccd9b2087ffad83ff7974c4c96d7ecf90b27b657",
+        "src/campaign/evidence.py": "e0e3886fe6ca14c988298b03bcaf1cb98ad5a6b8ce285044dccf45267b044b06",
+        "docs/development/phase11-5-completion-authorization-20260915.md": "872975fa179b76418ce221a3c92fcce0dd28d95cfd28d749640bf021abb963fc",
+        "scripts/phase11_5_completion_native_idle.py": "04edbed537099271e1457ccf4d500aae1131cf802cb367d72979e2a18214d418"
+      }
+    },
+    "rf_capacity": {
+      "status": "RF_WTP_HTTP_CAPACITY_COMPONENTS_VERIFIED",
+      "family_closed": false,
+      "packet_sha256": "acde3e3f2f77c89eef5f4d64ced6e0f391fe11991b33e830e9207cf0836be1f7",
+      "source_revision": "8dd6f0812292e9264c2a72745078a95ee606c191",
+      "image_sha256": "ccfdf60b2b927b4a3fd14cc9254a6748334d584ebad0d672771939ab2369b40d",
+      "boot_id": "7a04779b8018624574066260fce9d0d8",
+      "cadence": {
+        "info": {
+          "samples": 207,
+          "max_start_gap_ns": 1839872411,
+          "max_roundtrip_ns": 1831837764,
+          "policy": "single-flight-info-v1"
+        },
+        "status": {
+          "samples": 43,
+          "max_start_gap_ns": 5000086475
+        },
+        "health": {
+          "samples": 43,
+          "max_start_gap_ns": 5000090697
+        }
+      },
+      "wtp_capacity": [
+        {
+          "bytes_written": 65552,
+          "invalid_frames": 0,
+          "began_ns": 446875559992947,
+          "ended_ns": 446878609992518
+        },
+        {
+          "bytes_written": 65748,
+          "invalid_frames": 1,
+          "began_ns": 446880509544731,
+          "ended_ns": 446883638432161
+        }
+      ],
+      "jobs": [
+        {
+          "job_id": "6191ba4a83b94c4aa7e798c2068b6cec",
+          "mode": "fskcw",
+          "epoch": 1,
+          "expected_counter_deltas": {
+            "dma_irqs": 33693,
+            "alarm_irqs": 1,
+            "tail_irqs": 1,
+            "running_successor_links": 33691,
+            "refill_irq_pairs": 33691,
+            "running_tail_links": 1
+          },
+          "duration_ns": 128000000000,
+          "launch_target_ns": 1038664441000,
+          "post_enable_delay_ns": 8000,
+          "short_words": 6656,
+          "short_interval_ns": 1543420.2898550725,
+          "short_75_percent_budget_ns": 1157565.2173913044,
+          "cumulative_worst_short": {
+            "measured": true,
+            "observations": 1,
+            "epoch": "1",
+            "successor_sequence": "33692",
+            "observed_ns": "1166662951000",
+            "remaining_words": 6448,
+            "total_words": 6656
+          }
+        }
+      ],
+      "rf_jobs": 1,
+      "rf_duration_ns_charged": 128000000000,
+      "maximum_allocator_peak_bytes": 162992,
+      "terminal_records": [
+        {
+          "job_id": "6191ba4a83b94c4aa7e798c2068b6cec",
+          "state": "complete",
+          "ended_monotonic_ns": "1166664681000",
+          "output_active": false
+        },
+        {
+          "job_id": "ac12046f14f2442eba1a9c8a9c7a75b7",
+          "state": "aborted",
+          "ended_monotonic_ns": "553214002000",
+          "output_active": false
+        },
+        {
+          "job_id": "566a51592776410887e2de6f456b229f",
+          "state": "aborted",
+          "ended_monotonic_ns": "544405320000",
+          "output_active": false
+        },
+        {
+          "job_id": "caa0bf2463e14c6398e9e22eee7a6399",
+          "state": "aborted",
+          "ended_monotonic_ns": "538777725000",
+          "output_active": false
+        }
+      ],
+      "physical_hour_or_saturation_verified": false,
+      "http_capacity": [
+        {
+          "label": "http-32768",
+          "declared_bytes": 32768,
+          "offered_bytes": 32768,
+          "response_status": 200,
+          "began_ns": 446883689454848,
+          "ended_ns": 446886746540467
+        },
+        {
+          "label": "http-32769-header",
+          "declared_bytes": 32769,
+          "offered_bytes": 0,
+          "response_status": 400,
+          "began_ns": 446903660304861,
+          "ended_ns": 446906343356621
+        },
+        {
+          "label": "http-recovery",
+          "declared_bytes": 196,
+          "offered_bytes": 196,
+          "response_status": 200,
+          "began_ns": 446923660407066,
+          "ended_ns": 446926022019301
+        }
+      ],
+      "native": {
+        "connections": 1,
+        "operations": {
+          "HELLO": 1,
+          "STATUS": 216,
+          "CAPS": 1
+        }
+      },
+      "limitations": [
+        "No USB unread-output pressure or retention/reclamation credit"
+      ],
+      "altered_evidence_rejected": [
+        "write",
+        "http",
+        "native",
+        "reservation"
+      ],
+      "evidence_sha256": {
+        "packet.json": "acde3e3f2f77c89eef5f4d64ced6e0f391fe11991b33e830e9207cf0836be1f7",
+        "private-input-hashes.json": "96b6bf25981789220544cf925e8d2233cead739bff8836550856ab2bfde23c55",
+        "rf.jsonl": "582b1b0ba826e65aff318974deedf96a533ccddcfa2fe4c5d744c5b8d11e8503",
+        "rf-result.json": "d70275b6bbac9c0c1152e3fc2f81d42969f9b9bdb213453f5f3396e45e91547c",
+        "contention.jsonl": "4d0d71b4ca327493d4e73185af983884f92ca21cda7478b9c8c5081c364f64bc",
+        "contention-result.json": "865edb7372384f15f87353095744ce27c2c36b7d6247f61646f33fa55cf99357",
+        "production-tls.bin": "898f07e57be5aaeca2e285fc63606f5ca9328892ec1ea460eead0cf2b5a5b2e6",
+        "rf-reservation-acquired.json": "0cf96bd4634bec9891126a24ac89c51411f9ae7ab43e8f22027662c7b237eef7",
+        "rf-reservation-released.json": "a5387d28017165c10ece56728a3776555e3e9a96f8200133490b4c63b4463e2f",
+        "contention-ready.json": "0c685c5f16d3813511e338269be0f25be69325a79f72c3326790c9ed64eec304",
+        "wtp-capacity-complete.json": "f3fde1cc0dde0d24fd801ff54f0370c3cc3696beec47ff504c24922a1a490f92",
+        "before-a.stdout": "d58220bf2fc9eca208959a6cafe70ee120a79a04e6d0446584a05f569cb3e822",
+        "before-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "before-b.stdout": "1e912109c7f7505b56e36c361a8b5e7322d998b5c6a96c667c792bbeb20f3ee8",
+        "before-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "final-a.stdout": "e3dde81093508e39ba8bfd6cb8a2f75897e0033ef4c16ef41274044e9e1221d5",
+        "final-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "final-b.stdout": "5ad93c7454b2d1d7ad9606c60651b98049a3215e403566b050082d458bdb2b7d",
+        "final-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "packet_helpers_sha256": {
+        "production.ini": "ccfa5593926b344c33d31c9f811ebcc12041ade84a3bb4e13f4d498cf0f50a28",
+        "pi/phase115_tls_observer_test.py": "5cf410758c48e05bc35f04f394b486f0b210b93e7ab785cedaf1bc7dd689162d",
+        "pi/phase115_tls_observer.c": "7c6a4afba6f414b9ef6a92ee223b0c0863219311e9c472a0d32a92f45f7e4a1d",
+        "pi/phase115_production_load.py": "5d854540d9369173f1ec13a5a489c2045a7ace634da6aa10a8c42f0529b1ed0d",
+        "scripts/phase11_5_pilot.py": "bb91dc6fea9fb10e7564252810b534979a1f28b36de132745d100f388c3003c4",
+        "scripts/phase11_5_r3_tls_plan.py": "458dcd137155a7922a5621ffe83f53f16e11915b43b051f97e98fc50854a66e8",
+        "scripts/phase11_5_r3_transport_plan.py": "18eae92079cdd738e4b5705be4853fee6a15fd2338527a6b57fc664a93c49e84",
+        "scripts/phase11_5_r3_capacity_plan.py": "65e71dbd4a5b3d11e55f227721761bdab7f3c55f11dd8f9d11a836f0dde330e7",
+        "scripts/phase11_5_rf_reservation.py": "33b6d765534f7388adb3b594daa11f832363956c087ec7062d07d9c3f0607e4a",
+        "scripts/phase11_5_rf_observer.py": "6e43b5d39961da5512c5999351f66c106d38a06be85f8a1b3541d21a432f2b1c",
+        "scripts/validate_wtp_contract.py": "63f7a48a0ea8fa316ef2b04ffbd81aaed4d8151c4b9c80267a5b9b9de76ef874",
+        "scripts/phase11_5_device_management.py": "3f3fa78cd17c170b35aa591f29ec77770b26b31b0effeccc4e11e9372530fd5d",
+        "scripts/phase11_5_r3_preflight.py": "637741fa271719beb4c3a764af2d88ea0ca4cd0b8cda3094f86167e0f64822e7",
+        "scripts/phase11_5_r2_amended_plan.py": "a28672abb2703ee1fee2a49e5dfb5ed81347a6d3172584966c4ba4d568a5f679",
+        "scripts/phase11_5_r2_plan.py": "e7b9157ca65f7abc1fd509f070467d908ad5808a4d408772d61e4df71f509bbc",
+        "scripts/phase11_5_f1_plan.py": "e568e285b856691b5d5c4e53937378aca30e8fa7b5638d75a45804b76376c03a",
+        "scripts/check_usb_target.py": "51fcd12c14f9fc012554249378721a9ecb6cb01b11bb11152c746e9228a5fbf7",
+        "scripts/inhibited_network_acceptance.py": "088904c352c9891e73de871bf717b53ae34955cc2e9d7a854d47c0c2c7a3e043",
+        "scripts/phase11_5_r2_modes.py": "9558a5d34bc12f15b9fab592d0546cfdde00e0673a69f125b34eaaa073a66be8",
+        "scripts/phase11_5_device_fixture.py": "03089505dc25b49637660fce15a2e6337410237b172cc3af6c508e94bdb4224b",
+        "scripts/phase11_5_r3_v2_parallel_b_repair.py": "dbd8ca59268a68c9492d249708751ece561fa1c7f18f46574eb83df4c11f4d93",
+        "scripts/phase11_5_time_local.py": "ac26b85628f05990905e86b236a1a6bd6f8cba84ea6729dcdf750f0aed928783",
+        "scripts/audit_phase11_5_load.py": "4e335be30cb615e34467ac54ea7aa725a636c86cc47831044960de25cb4261be",
+        "scripts/phase11_5_r3_v2_parallel_b_plan.py": "df8dc1efd7a041b22105da17e46007d17c79a3ebf7f580b59e17606a539e61a9",
+        "scripts/phase11_5_r3_v2_rf.py": "7ebbf10d4b409a3113787c3016a8d3e2a0d97740ee7731d45e21c71d9107cd7c",
+        "scripts/phase11_5_r3_v2_parallel_b_paged_repair.py": "0ab3c0aaa5b0995bf3e82e801e51684d3e7c82800c8dbcabae2485ce1a265138",
+        "scripts/phase11_5_r3_v2_parallel_b_deploy.py": "80293892b285295f72e3bdbea4fc827aa7c83498b1cdb3298fa622a4ffa763ed",
+        "scripts/phase11_5_r3_v2_nominal_load.py": "758d1bacbaca39b47333517c2572d965fb37f71a0e84ac040c2a53e2ee445aed",
+        "scripts/wtp_monitor.py": "0d1c037b372f84cdc5cbd66058ff3201ea89355742b4bdbfa44498c492e2d1d9",
+        "scripts/audit_phase11_5_r1.py": "e9bb9d1d687949e82cfafd365eb7944b97c5d7530f546e0520240eed05dbb817",
+        "scripts/phase11_5_pilot_supervisor.py": "dbf97a316ebe02eb27f90d838ce70c468b75abc38749a7af3f6911beab8dd9e7",
+        "scripts/phase11_5_r3_transport_pressure.py": "0b94305819bf88852a29594a97683656807747acab624bffc4be28e5584c6b0b",
+        "scripts/phase11_5_r3_v2_parallel_b_functional.py": "49bfca53fa031f069c182fb44ae571f913f4cd32f75c57c4c4828582d10d0d72",
+        "scripts/phase11_5_r3_retained.py": "54c1020f63745d8d61a475f11c0e6773b5f2f4f37a63730b458e29971cee120f",
+        "scripts/audit_phase11_5_r3_transport.py": "aaf67374aff265a49977927b81492a7a2a07e110b5c78e8ee0275028ef0bdf5e",
+        "scripts/phase11_5_r2_usb_jobs.py": "3d4db8d7b7e22189d8a74c5dd10f07dace75c2a20200091fc24490f28425d58f",
+        "scripts/phase11_5_r3_capacity_probe.py": "fd34c6c6d3df689e96f5d6a073d2520f2e1a6fa6b856651877c465588c2b96c9",
+        "scripts/phase11_5_terminal_history.py": "978af643e7f90bbe23dfaca38196d11024d4dd2ed63996c8f6a52f15c8643458",
+        "scripts/phase11_5_browser_jobs.py": "868e8376a05eabfad382517a4b951a9f177b51c50619e55c06578e90fe23a575",
+        "scripts/phase11_5_r2_modes_plan.py": "2ed53fc77b80cbbee9d7fa53bf8ba3d96928bc2a5229104cc0fc7317ccbb1d0b",
+        "scripts/phase11_5_r3_v2_admission.py": "0958e73ae7389eb06cfd7ab9c20907412f9133f48296050701348bbbd9ebb195",
+        "scripts/audit_phase11_5_idle.py": "487d93ecb7758fc5b665f49c819ce85d19d55b2beab644fdb97214df5e20f064",
+        "scripts/phase11_5_inventory.py": "dcef778c18a10a0fc20bbb13fa2b07cc690c9d1c9ab8fe05a29af60a6d0483df",
+        "scripts/audit_phase11_5_r3_tls.py": "34105c6784e183607df1cdb8e60d3941d9c853216a7152ad84c4079474a0940c",
+        "scripts/audit_phase11_5_r3_failure.py": "5b361f34dd87ff1b08264523ab32066165888fab26e86f20adf4e44678da8080",
+        "scripts/phase11_5_r3_ack_filter.py": "e9cec9ca5fa0b58488d8bed4c809976216e04cd39b0c6b06900dc239d2f61c65",
+        "scripts/phase11_5_r3_allocation_diagnostic.py": "046c3c624ec26c1d21b53ddd52f728bfab1f1f45ade2a75efa0e836b7c5624a8",
+        "scripts/phase11_5_r3_v2_pressure_plan.py": "90f0957e8f9145922df8ef563286e1779c08c64fd84cc8972cc69ee12adbdad1",
+        "scripts/phase11_5_r2_upload_plan.py": "734d86758b7870aea761f9637a3861904b755e6e333b2a8855377815aeed969a",
+        "scripts/phase11_4_hotspot.py": "20253c0ab455f023bc360b7b9f10fba5b6b719ffffddce79c0c7128a4e7712ee",
+        "scripts/phase11_5_join_diagnostics.py": "5f6d0f242c81b8f1d1b2ffc589e2ff7d04d023fe7845010bd7b878e611514ded",
+        "scripts/audit_phase11_5_r2_modes.py": "dd12df797749b31437c792e5fb55caa201a513b226ce7fb10570623a82f109ec",
+        "scripts/phase11_5_network_fixture.py": "a09338f6c83647a876dfdf05d1cd495e405e188468def1081b2d325fc84361ac",
+        "scripts/phase11_5_r3_v2_observer_policy.py": "0c4e7f8f8e2511f0f220cb65728cbe2bc6999aa061b478cc99e689fb0e572932",
+        "scripts/phase11_5_r3_tls.py": "c0b8bc09cea7ac3fc68fbd30110954401e64b8762a9959f9d2251416984ce6e0",
+        "scripts/phase11_5_r3_tls_pressure.py": "eb5f1c7ad9d91893bb77a7de2720da4ff0f933bd4ef3416172102d985619b6da",
+        "scripts/phase11_5_r3_tls_stage.py": "f2358e2116bcfc90649cbf7ec92d520ae47ec33861afb3b7a88070fb44e448c4",
+        "scripts/phase11_5_r3_v2_fixture.py": "3d7f185ac3c058d6288a706acf768befa2e80ee0086ca8d94d8367d37913c531",
+        "scripts/rf_wtp.py": "d815043f8b4876c71c6bb1e1c5ad95451608b97dcfdcfb2d726b021deef99017",
+        "scripts/phase11_5_r1.py": "e171de2f85387a808046b661b138e86935e8d4befd86b07ff169c170cc37aa32",
+        "src/campaign/plan.py": "13f7f1181dc4e04a81077b4b2e9d66d881310aabbcafae907fdd74b226ae4923",
+        "docs/protocol/wtp-1.schema.json": "fae1a7f94adb875733f47f22438a0811a3ab7fd9e4b8477780aea77cad62c8a8",
+        "pi/phase115_tls_observer.so": "fd70cde276b04aa08e771e12b83335a89aae24e050e2f2c5e56ed6848eb1a7bc",
+        "credentials/controller/client-ca.crt": "cda60b730367129165b43aef6ff129dc0107ad878cd95e4ecedf9243327f847e",
+        "credentials/controller/client.crt": "6eff58d32983f47cd0d94ff265bb391168b7a066074d939bf7deafc13a70e99e",
+        "credentials/controller/client.key": "d978ee5b5b8276498a06811983e466ee050fac7a012fae1b2a7caeb4c050c972",
+        "credentials/browser/client-ca.crt": "cda60b730367129165b43aef6ff129dc0107ad878cd95e4ecedf9243327f847e",
+        "credentials/browser/client.crt": "d33d28277bc58a49e723b4736c04899efe566a5e5aeda542679d703bed378b7c",
+        "credentials/browser/client.key": "76ecdbaa15ac322a4c16b9bfa3c5c05942a3417ec2c271105ad89bfb0fb335bd"
+      }
+    },
+    "restoration": {
+      "status": "HOST_RESTORED_AND_BOARDS_INDEPENDENTLY_INACTIVE",
+      "boards": {
+        "a": {
+          "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+          "boot_id": "7a04779b8018624574066260fce9d0d8",
+          "revision": "8dd6f0812292",
+          "state": "empty"
+        },
+        "b": {
+          "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+          "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+          "revision": "8921a7008183",
+          "state": "empty"
+        }
+      },
+      "host_snapshot_matches_baseline": true,
+      "installed_pid": "1957",
+      "configuration_preserved": true,
+      "schedules_disabled": true,
+      "reservation_released": true,
+      "cleanup_failures": [],
+      "cleanup_monotonic_ns": 447127112059526,
+      "audited_monotonic_ns": 447142148775118,
+      "fixture_packet_sha256": "5b53dfb76120c44165c23ded1e9fb2cce217c41b8d754e0074f9d8154fca78a2",
+      "fixture_state_sha256": "20c5b1ddddd27aae1e1b1b5eea796e28149750dc4ed3cd7a6b61a8a1aa448aec",
+      "fixture_trace_sha256": "e013f6c207c0a26ee4b3cd96702d67c46bf67c0a460299835ffb83dcf2af16fe",
+      "evidence_sha256": {
+        "restored-a.stdout": "7b872c633b5fd6a3fc4eb054b69b98fbfbc7909f29801621a1367b28e201417e",
+        "restored-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "restored-b.stdout": "4dbae87b60ad642921586c858c33dd5f560341314005792c4b649855b94d0677",
+        "restored-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "evidence_location": "Raw authenticated evidence remains in the named /home/pi/phase11-5-memory-pressure-* roots on wspr5; local build/ contains sanitized audits and public staging code. No raw payloads or credentials are published.",
+  "audit_archive_sha256": "61e180c4e8f9da48850673bbd390cfc1ef455497f149a6da60316b29138747cb",
+  "local_audit_sha256": {
+    "deploy-audit.json": "236fff929fa0468899a2b8b53c65edd7f7e343e956f7751415ad534b62f1b69e",
+    "native2-audit.json": "d56037c1faa408e4c64abc6aa11cc7d3049667835de5872973fd9b2a8d85f1c3",
+    "p1i-failure-audit.json": "6b633311ce43fe28eaf7eb15a12f4989efb2e3f73d14da87cc12bbdb882f87f2",
+    "restoration-audit.json": "2758fe6c0227e73d41d665d86e3e153d5e24a7b76f6e26442f34038155fd4c5c",
+    "rf-audit.json": "fcc134c18516fb0553b2b8e6ffee5a2bfc35858cd896126f7c961e1a4810185e",
+    "wifi-audit.json": "525acca3fa198a6a66c5478697d3fe5ef749743c8e67a38a9b3cc5f21ba3b313"
+  },
+  "limitations": [
+    "P1i remains failed and receives no retroactive capacity credit. Its monitoring-loss causal chain is not fully proven.",
+    "Reserve figures are source/boot-specific sticky allocator bounds, not a matched-state cross-image memory delta.",
+    "First post-flash native packet failed network readiness before LOAD/RF; preserved separately from memory results.",
+    "P2 simultaneous workload and overload, P3/P4 timeouts and USB pressure, P5 capacity/expiry/reclamation, and remaining R3-R6 qualification remain open.",
+    "No new physical hour, SDR spectrum or full configuration acceptance is claimed."
+  ]
+}

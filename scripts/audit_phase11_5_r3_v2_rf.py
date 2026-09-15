@@ -35,7 +35,7 @@ def capacity_request(packet, value, index):
 
 
 def audit(root, *, packet_digest=PACKET):
-    require(packet_digest in [PACKET, '6128dbd48ab024057e60691f44c6b2a551ee08d0fd032e542fe535356643b8a5', '6754555f69ac57fc5dae670cb37f3db1ea4fca5f3ce0590f8749c8c47cd92fdf', '4bc1919c3be6acba32a5c952a2fa00ffae65ce12a1cd8164e1dfa86d84558c57', '26e58c73da189aa1d9aecae6b410e392ca2957499632e38caa3b05f14c3d8104', 'aa603d6510059bbc34a6f79627402e477615ef04ff789a8d66992352db619662', '69c5b306bdde2231764b078e47da05cd47e661eef35b0bb294eb83ae1734de18', 'cbc6f4b871841c0cf4f6976e5cde73976699798aa0ccdc3ff65b72dc50c73e8d', '8cfcdfeef0c4513f24fe4dff64eaef1f62bbeaa4054c33d2d6720a3481e4b908', 'd46edf56bd1eaaaae095139ec6cfb39edb627470c769f4d758bed8d7a3d2da83', '3265c16e1a970c79c1beee2bd6a9cf4b9198381ee051a08f5f0dd40d7ed95277', 'a96a14455d08caa37fab21e7ef96be5bd5249afdf6471e8450c64a2e5d73f5a4', '9215a8049c83c2319506ef0c76100213a6bf5bb479a06cd283835c684719f095', '065cb07e6ace4261caf4ba24cb7d6e1417186d1d7c1445bae25d102b256df3b5',
+    require(packet_digest in [PACKET, 'acde3e3f2f77c89eef5f4d64ced6e0f391fe11991b33e830e9207cf0836be1f7', '6128dbd48ab024057e60691f44c6b2a551ee08d0fd032e542fe535356643b8a5', '6754555f69ac57fc5dae670cb37f3db1ea4fca5f3ce0590f8749c8c47cd92fdf', '4bc1919c3be6acba32a5c952a2fa00ffae65ce12a1cd8164e1dfa86d84558c57', '26e58c73da189aa1d9aecae6b410e392ca2957499632e38caa3b05f14c3d8104', 'aa603d6510059bbc34a6f79627402e477615ef04ff789a8d66992352db619662', '69c5b306bdde2231764b078e47da05cd47e661eef35b0bb294eb83ae1734de18', 'cbc6f4b871841c0cf4f6976e5cde73976699798aa0ccdc3ff65b72dc50c73e8d', '8cfcdfeef0c4513f24fe4dff64eaef1f62bbeaa4054c33d2d6720a3481e4b908', 'd46edf56bd1eaaaae095139ec6cfb39edb627470c769f4d758bed8d7a3d2da83', '3265c16e1a970c79c1beee2bd6a9cf4b9198381ee051a08f5f0dd40d7ed95277', 'a96a14455d08caa37fab21e7ef96be5bd5249afdf6471e8450c64a2e5d73f5a4', '9215a8049c83c2319506ef0c76100213a6bf5bb479a06cd283835c684719f095', '065cb07e6ace4261caf4ba24cb7d6e1417186d1d7c1445bae25d102b256df3b5',
             'da89cf9f703f126ef71e463336674000373749df3c70f98ec7a2bff9fc7a7373',
             'c408f5db396a50a6413334f05b7cc1eda22dab0040023454f28c435241931d41',
             '4eeb2113a40dc386f7839ae40a2e1f1d13b2da23dc86d04eb7ae0131dcfe2304',
@@ -73,6 +73,11 @@ def audit(root, *, packet_digest=PACKET):
     if completion_policy(packet):
         require(len(before['wtp']['STATUS']['terminal_records'])<=packet['maximum_initial_terminal_records'],
                 'Frozen individual-capacity initial retention')
+        if 'initial_terminal_jobs' in packet:
+            retained=before['wtp']['STATUS']['terminal_records']
+            require([r['job_id'] for r in retained]==packet['initial_terminal_jobs'] and
+                    all(r['state']=='aborted' and r['output_active'] is False for r in retained),
+                    'Exact independently observed retained seed')
     validate_info(before['info'],before,packet);validate_info(final['info'],before,packet)
     raw=(root/'rf.jsonl').read_text();require(raw.endswith('\n'),'Truncated trace')
     rows=[json.loads(s) for s in raw.splitlines()]

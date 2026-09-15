@@ -87,6 +87,16 @@ class FiniteRfPacketTests(unittest.TestCase):
                     ('source_revision',HTTP_SOURCE),('maximum_initial_terminal_records',0)]:
             with self.subTest(sharing_key=k),self.assertRaises(ValueError):validate(dict(sharing,**{k:v}))
 
+        from phase11_5_r3_v2_rf import MEMORY_POLICY, MEMORY_SOURCE, MEMORY_IMAGE, MEMORY_BOOT
+        memory=dict(p,closure_policy=MEMORY_POLICY,source_revision=MEMORY_SOURCE,
+                    image_sha256=MEMORY_IMAGE,boot_id=MEMORY_BOOT)
+        self.assertEqual(validate(memory),memory)
+        for bad in [dict(closure_policy=SHARING_POLICY),dict(boot_id=SHARING_BOOT),
+                    dict(image_sha256=SHARING_IMAGE),dict(source_revision=SHARING_SOURCE),
+                    dict(initial_terminal_jobs=[],maximum_initial_terminal_records=0),
+                    dict(runtime_seconds=301),dict(flashes=1)]:
+            with self.subTest(memory_change=bad),self.assertRaises(ValueError):validate(dict(memory,**bad))
+
     def test_independent_b_requires_new_image_and_explicit_parallel_scope(self):
         from phase11_5_r3_v2_rf import comparator_required,REPAIRED_SOURCE,REPAIRED_IMAGE,B_PARALLEL_AUTHORIZATION
         p=self.packet();self.assertTrue(comparator_required(p))

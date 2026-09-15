@@ -2,9 +2,11 @@
 
 Current Phase 11.5 execution uses the [completion matrix](phase11-5-completion-matrix.md)
 and [September 15 standing authorization](phase11-5-completion-authorization-20260915.md).
-A's current firmware is `a9d5610`, B's is `8921a7008183`; older candidate
+A's current firmware is `8dd6f0812292`, B's is `8921a7008183`; older candidate
 paragraphs below retain historical evidence identities. Phase 11.5 is OPEN,
-R1/R2 closed, R3-R6 open; component 9's bounded LOAD/replay regression is closed.
+R1/R2 closed, R3-R6 open. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
+passes retained LOAD/replay and P1 individual WTP/HTTP capacity during RF;
+combined maximum load and retention/reclamation remain separate open gates.
 
 
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).

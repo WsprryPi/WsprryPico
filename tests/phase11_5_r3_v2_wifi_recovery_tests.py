@@ -29,6 +29,19 @@ class WifiRecoveryTests(unittest.TestCase):
             initial_job_id='b88c7a3082eb4208a7e1f403bc13c9f8',not_before_monotonic_ns=1,
             hypothesis='A remained associated without IPv4 for at least 240 seconds after P1b fixture activation; one inactive OFF/ON restarts acquisition')
         validate(current)
+        from phase11_5_r3_v2_wifi_recovery import MEMORY_RECOVERY, MEMORY_HYPOTHESIS
+        from phase11_5_r3_v2_rf import MEMORY_SOURCE, MEMORY_IMAGE, MEMORY_BOOT
+        memory=dict(p,memory_recovery_policy=MEMORY_RECOVERY,source_revision=MEMORY_SOURCE,
+            image_sha256=MEMORY_IMAGE,boot_id=MEMORY_BOOT,initial_link_policy='cold-link-down-v1',
+            hypothesis=MEMORY_HYPOTHESIS,initial_job_id=None,not_before_monotonic_ns=1)
+        validate(memory)
+        n=dict(enabled=True,ipv4='',link_status=-1,mdns_state='waiting_address')
+        initial_link(n,memory)
+        for k,v in [('ipv4','10.77.15.10'),('link_status',3),('enabled',False)]:
+            with self.assertRaises(ValueError):initial_link(dict(n,**{k:v}),memory)
+        for k,v in [('boot_id','0'*32),('initial_job_id','job'),('not_before_monotonic_ns',0),
+                    ('maximum_wifi_cycles',2),('source_revision',ASSET_SOURCE)]:
+            with self.assertRaises(ValueError):validate(dict(memory,**{k:v}))
         for key,value in [('not_before_monotonic_ns',0),('initial_job_id','other'),('initial_link_policy','terminal-failure-v1')]:
             with self.assertRaises(ValueError):validate(dict(current,**{key:value}))
         for key,value in [('serial','CDDBF8767C506C07'),('rf_jobs',1),('flashes',1),('configuration_writes',1),

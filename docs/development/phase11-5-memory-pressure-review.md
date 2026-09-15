@@ -73,3 +73,70 @@ At this source checkpoint, no actionable host repair finding remains. Both
 linked-image verification and the retained-workload target retest are pending;
 Phase 11.5 remains OPEN, with R1/R2 closed only within their recorded scope.
 The new source has not yet been flashed at this checkpoint.
+
+
+## Target outcome and final adversarial reassessment
+
+The [immutable result](phase11-5-memory-pressure-result.json) records clean source
+8dd6f0812292e9264c2a72745078a95ee606c191, linked-image checks and the exact
+physical UF2/ELF hashes. Both inhibited and physical image layout, heap hooks
+and guarded-stack checks pass. The physical RAM renderer remains 660 bytes /
+233 checked instructions.
+
+A was flashed once and independently identified at boot
+7a04779b8018624574066260fce9d0d8. The first native packet failed its 90-second
+network-readiness gate before any LOAD or RF. One separately frozen, justified
+OFF/ON cycle recovered its address and clock on the same boot; configuration
+was preserved. The failed readiness packet remains recorded with no capacity
+credit.
+
+The next packet passed three maximum 512-event LOADs and a fresh-ID replay,
+with all four complete replies in 2.04–2.43 seconds. One native TLS connection
+remained continuous through the 90-second retained-load observation. Three
+Aborted terminal records were independently identified before the RF packet.
+
+The 128-second, 512-event FSKCW job then completed under independent USB INFO,
+WTP and native observation. The maximum 65,536-byte WTP payload was completely
+written and answered; 65,537 bytes were rejected with same-connection recovery.
+The valid 32,768-byte HTTP body returned 200. A declared 32,769-byte body was
+rejected at its header with 400, followed by successful authenticated recovery.
+The WTP and HTTP capacity exchanges were sequential and overlapped Running;
+this does not qualify simultaneous maximum inputs.
+
+The independent raw auditor verifies RF launch/refill/tail counters and timing,
+207 INFO samples with a maximum 1.840-second start gap, and one native TLS
+connection with 216 STATUS requests. It checks complete writes, responses,
+CRC/schema, active RF overlap, original peer/image/boot, exact three retained
+seed identities, final ownership/configuration and reservation release.
+
+The same-boot sticky allocator peak is 162,992 bytes against 218,936 bytes of
+heap: at least **55,944 bytes remain**, exceeding the unchanged 32,768-byte
+reserve by 23,176 bytes. This peak includes the preceding idle test. It is a
+conservative bound for this boot, not an instantaneous RF allocation or a
+matched-state subtraction from the failed image. No allocator/TLS failure,
+watchdog, stack guard failure or engine fault was accepted.
+
+Adversarial review identified that the independent RF auditor previously checked
+only retained-record count while the runner checked exact identities. The
+auditor now also requires the frozen ordered IDs and inactive Aborted states.
+Four altered native evidence sets (write, continuity, peak and publication) and
+four altered RF sets (write, HTTP response, native continuity and reservation)
+are rejected; intact evidence passes again after each assessment. The final
+R3 helper regression passes in 21.01 seconds. The three source mutations listed
+above also fail as intended. No actionable issue remains in this repair slice.
+
+The isolated host fixture is restored and independently matches its original
+host snapshot, including installed WsprryPi PID 1957. Fresh raw A/B inventories
+prove both Empty, inactive, unowned, schedules disabled and configurations
+preserved; their boots remain unchanged after the test. The shared RF
+reservation is released. This repair used one A flash/BOOTSEL, one justified
+Wi-Fi cycle and one 128-second RF job, with no configuration writes or additional
+controlled reboot. Cumulative completion charges are seven RF jobs / 896 planned
+seconds, nine A flashes/BOOTSEL transitions and three Wi-Fi cycles. The original
+P1h unplanned watchdog remains separately recorded.
+
+P1's five affected capacity assertions and authenticated positive controls now
+pass on 8dd6f08. P1i's failed evidence is retained. R1/R2 keep their original
+scope; R3–R6 and full configuration acceptance remain OPEN. The current matrix
+keeps simultaneous load, overload, timeout/USB pressure, retained capacity and
+three equivalent reclamation cycles as separate unfinished work.

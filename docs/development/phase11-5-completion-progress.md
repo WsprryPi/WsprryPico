@@ -5,7 +5,7 @@
 | Package | Status | Outcome / next requirement |
 | --- | --- | --- |
 | 0 | COMPLETE | Fresh named A/B USB inventories independently decoded; source-impact matrix and current summaries reconciled. [Result](phase11-5-completion-package0-result.json). |
-| 1 | OPEN — WTP components passed | 2.1a/2.1d/2.1e pass on e64ebb9. P1g later failed cadence; P1h failed maximum HTTP with watchdog allocation failure. Paged-body repair has host evidence. [Review](phase11-5-completion-http-pages-review.md). |
+| 1 | COMPLETE — individual capacity | 2.1a/2.1d/2.1e/2.1f/2.1g and authenticated controls pass on 8dd6f08 with three retained records, continuous observation and 55,944-byte minimum reserve. Prior P1g/P1h/P1i failures retained. [Review](phase11-5-memory-pressure-review.md). |
 | 2 | OPEN | Supported simultaneous workload and separate bounded overload. |
 | 3 | OPEN | Affected TLS/HTTP and distinct WTP timeouts. |
 | 4 | OPEN | Actual USB parser and unread-output pressure. |
@@ -15,7 +15,32 @@
 | 8 | OPEN; idle Wi-Fi accepted on source 98f5797 | Two independently audited OFF/ON readiness cycles preserve state/configuration and recover address/clock. Link loss, lease/name change, DNS/SNTP, journal rotation and autonomy remain. |
 | 9 | OPEN | R6 mixed operation after R1-R5 acceptance. |
 
-### Current retained-state checkpoint
+### Current memory-pressure checkpoint
+
+[Prompt](phase11-5-memory-pressure-prompt.md),
+[review](phase11-5-memory-pressure-review.md) and
+[immutable result](phase11-5-memory-pressure-result.json).
+The repair releases the 20,480-byte event vector only after acknowledged
+independent engine handoff and preserves its original digest for replay. Input
+admission now budgets temporary processing memory above the unchanged reserve.
+
+A retains 8dd6f08, boot 7a04779b8018624574066260fce9d0d8; B retains 8921a7008183,
+boot 6684b4b197d80cfa0ce83b3aaf205cb0. Both are independently Empty, inactive,
+unowned and schedule-disabled, with configurations preserved. The host fixture
+is restored and the shared reservation is released. No packet is running.
+Three retained maximum LOADs plus replay and one 128-second RF capacity job pass
+independent raw audit. First-attempt network readiness failure and its justified
+single Wi-Fi recovery are preserved separately.
+
+All 72 configured host test groups pass across the broad run and affected
+reruns; three source mutations and eight altered evidence cases are rejected.
+Final intact reassessment passes. Cumulative charges: seven RF jobs / 896
+planned seconds, nine A flashes/BOOTSEL transitions, three Wi-Fi cycles, zero
+configuration writes and zero additional controlled reboots. One historical
+unplanned watchdog remains in P1h. P2–P9 remain open; no family or full
+configuration acceptance is added.
+
+### Historical retained-state checkpoint
 
 [Immutable result](phase11-5-completion-retained-sharing-result.json) and
 [review](phase11-5-completion-retained-sharing-review.md). R1/R2 retain recorded

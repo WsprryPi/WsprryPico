@@ -10,7 +10,7 @@
     "R5": "OPEN",
     "R6": "OPEN"
   },
-  "candidate_source": "6b7a1b848e2b5192acaa0fa08fb778613457ad8b",
+  "candidate_source": "8dd6f0812292e9264c2a72745078a95ee606c191",
   "assertions": [
     {
       "id": "R1.1",
@@ -45,7 +45,7 @@
       "requirement": "Same-boot matched resource states",
       "classification": "affected and needing retest",
       "evidence": "phase11-5-r1-result.json; phase11-5-r2-closure-result.json; phase11-5-r2-continuation-review.md",
-      "remaining": "Historical R1 remains closed on its identity. Shared immutable adjustments change retained lifetimes; P5 equivalent-state physical checks required for current-image applicability.",
+      "remaining": "Historical R1 remains closed on its identity. Shared adjustments, cached digest and acknowledged execution-input release affect retained lifetimes; P5 equivalent-state physical cycles remain required.",
       "package": 0
     },
     {
@@ -125,8 +125,8 @@
       "group": "JOB-MAX",
       "requirement": "512-event idle admission and complete RF job",
       "classification": "accepted/applicable",
-      "evidence": "phase11-5-r3-v2-component3-result.json; phase11-5-r3-v2-validation-045.json; phase11-5-r3-v2-component9-result.json; phase11-5-completion-p1-attempt1-result.json; phase11-5-completion-native-closure-result.json; phase11-5-completion-capacity-cadence-result.json",
-      "remaining": "P1g raw components accepted on e64ebb9, boot 0a6d95e11cf712a53e97a4c9938614e9: full maximum job completion and both WTP boundaries under independent INFO/native observation. Full packet failed later USB cadence and did not offer HTTP; preserve that failure. No P2 combined-load or family closure.",
+      "evidence": "phase11-5-r3-v2-component3-result.json; phase11-5-r3-v2-validation-045.json; phase11-5-r3-v2-component9-result.json; phase11-5-completion-p1-attempt1-result.json; phase11-5-completion-native-closure-result.json; phase11-5-completion-capacity-cadence-result.json; phase11-5-memory-pressure-result.json",
+      "remaining": "Accepted on 8dd6f08, boot 7a04779b8018624574066260fce9d0d8: independent complete 512-event RF, sequential WTP/HTTP boundaries and continuous native observer with three retained records. Prior failures preserved; no simultaneous-maximum, overload, reclamation or family closure.",
       "package": 1
     },
     {
@@ -152,8 +152,8 @@
       "group": "WTP-MAX",
       "requirement": "65536-byte WTP payload success during RF",
       "classification": "accepted/applicable",
-      "evidence": "phase11-5-r3-v2-capacity-c5-result.json; phase11-5-r3-v2-component3-result.json; phase11-5-completion-p1-attempt1-result.json; phase11-5-completion-capacity-cadence-result.json",
-      "remaining": "P1g raw components accepted on e64ebb9, boot 0a6d95e11cf712a53e97a4c9938614e9: full maximum job completion and both WTP boundaries under independent INFO/native observation. Full packet failed later USB cadence and did not offer HTTP; preserve that failure. No P2 combined-load or family closure.",
+      "evidence": "phase11-5-r3-v2-capacity-c5-result.json; phase11-5-r3-v2-component3-result.json; phase11-5-completion-p1-attempt1-result.json; phase11-5-completion-capacity-cadence-result.json; phase11-5-memory-pressure-result.json",
+      "remaining": "Accepted on 8dd6f08, boot 7a04779b8018624574066260fce9d0d8: independent complete 512-event RF, sequential WTP/HTTP boundaries and continuous native observer with three retained records. Prior failures preserved; no simultaneous-maximum, overload, reclamation or family closure.",
       "package": 1
     },
     {
@@ -161,26 +161,26 @@
       "group": "WTP-MAX",
       "requirement": "65537-byte framed rejection and same-connection recovery during RF",
       "classification": "accepted/applicable",
-      "evidence": "phase11-5-r3-v2-component3-result.json; phase11-5-completion-capacity-cadence-result.json",
-      "remaining": "P1g raw components accepted on e64ebb9, boot 0a6d95e11cf712a53e97a4c9938614e9: full maximum job completion and both WTP boundaries under independent INFO/native observation. Full packet failed later USB cadence and did not offer HTTP; preserve that failure. No P2 combined-load or family closure.",
+      "evidence": "phase11-5-r3-v2-component3-result.json; phase11-5-completion-capacity-cadence-result.json; phase11-5-memory-pressure-result.json",
+      "remaining": "Accepted on 8dd6f08, boot 7a04779b8018624574066260fce9d0d8: independent complete 512-event RF, sequential WTP/HTTP boundaries and continuous native observer with three retained records. Prior failures preserved; no simultaneous-maximum, overload, reclamation or family closure.",
       "package": 1
     },
     {
       "id": "2.1f",
       "group": "HTTP-MAX",
       "requirement": "Valid exact 32768-byte API body success during RF",
-      "classification": "failed",
-      "evidence": "phase11-5-completion-http-pages-result.json",
-      "remaining": "P1h maximum HTTP request fully written, no response, watchdog allocation failure; paged-body repair requires target retest",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-completion-http-pages-result.json; phase11-5-memory-pressure-result.json",
+      "remaining": "Accepted on 8dd6f08, boot 7a04779b8018624574066260fce9d0d8: independent complete 512-event RF, sequential WTP/HTTP boundaries and continuous native observer with three retained records. Prior failures preserved; no simultaneous-maximum, overload, reclamation or family closure.",
       "package": 1
     },
     {
       "id": "2.1g",
       "group": "HTTP-MAX",
       "requirement": "32769-byte HTTP limit rejection and authenticated recovery during RF",
-      "classification": "missing",
-      "evidence": "phase11-5-r3-v2-bf4-result.json",
-      "remaining": "P1h stopped before oversize/recovery after maximum HTTP failure; fresh target packet required",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r3-v2-bf4-result.json; phase11-5-memory-pressure-result.json",
+      "remaining": "Accepted on 8dd6f08, boot 7a04779b8018624574066260fce9d0d8: independent complete 512-event RF, sequential WTP/HTTP boundaries and continuous native observer with three retained records. Prior failures preserved; no simultaneous-maximum, overload, reclamation or family closure.",
       "package": 1
     },
     {
@@ -286,9 +286,9 @@
       "id": "R3.TLS-VALID",
       "group": "TLS-VALID",
       "requirement": "Authenticated production WTP/HTTPS positive controls",
-      "classification": "failed",
-      "evidence": "phase11-5-r3-v2-component9-result.json; phase11-5-completion-native-closure-result.json; phase11-5-completion-streamed-reply-result.json",
-      "remaining": "P1f historical native close branch remains unproved. Three a9d5610 idle packets establish two harness guard failures and one retained LOAD reply timeout. Streamed reply repair is host-validated; fresh retained target sequence and RF contention required.",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r3-v2-component9-result.json; phase11-5-completion-native-closure-result.json; phase11-5-completion-streamed-reply-result.json; phase11-5-memory-pressure-result.json",
+      "remaining": "Accepted on 8dd6f08, boot 7a04779b8018624574066260fce9d0d8: independent complete 512-event RF, sequential WTP/HTTP boundaries and continuous native observer with three retained records. Prior failures preserved; no simultaneous-maximum, overload, reclamation or family closure.",
       "package": 1
     },
     {
@@ -584,8 +584,8 @@
       "group": "R5",
       "requirement": "Idle Wi-Fi OFF/ON",
       "classification": "accepted/applicable",
-      "evidence": "phase11-5-completion-terminal-storage-result.json",
-      "remaining": "Accepted on A source 98f5797 same boot: one OFF and one ON, preserved configuration, inactive output, recovered address and synchronized clock. Second cycle confirms readiness. Name/address-change and full R5 remain separate. Reassess after candidate change.",
+      "evidence": "phase11-5-completion-terminal-storage-result.json; phase11-5-memory-pressure-result.json",
+      "remaining": "Prior 98f5797 cycles retained; one idle post-flash OFF/ON recovery is independently verified on 8dd6f08 with preserved state/configuration and recovered address/clock. Name/address change and full R5 remain separate.",
       "package": 8
     },
     {
