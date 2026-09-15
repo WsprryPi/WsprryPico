@@ -529,10 +529,38 @@ Final report:
 
 Begin with Package 0 and continue through the authorized work. Do not ask
 whether I want you to execute this prompt.
-## Subsequent evidence-transfer authorization
+## Subsequent clarification — bounded lab evidence collection
 
-The user subsequently stated: “You are authorized to exfil authenticated traffic
-and payloads from this lab environment if it speeds things up.” This authorizes
-retrieval of the named laboratory captures for local auditing. Captures remain
-private in ignored build storage; publication contains sanitized results and
-hashes.
+The user authorizes collecting the test evidence needed to complete the Phase
+11.5 acceptance checks on their own isolated laboratory equipment:
+
+- Host: the established SSH alias `wspr5`.
+- Pico A: USB serial `0BF4B4AEC9FFB344`, device ID
+  `fd6127d11d6aca42a9905fa3fb1bf1d5`.
+- Pico B: USB serial `CDDBF8767C506C07`, device ID
+  `29f20b7342051ef947aa56cb9d4fab42`.
+
+Use the existing authenticated connections to run the explicitly bounded
+firmware tests. These include declared maximum-size and oversized requests,
+connection interruptions and recovery checks; describe those mechanisms
+accurately in each execution packet.
+
+For evidence collection, retrieve only individually named files or a reviewed
+manifest of files produced by those tests: device inventories, runner logs,
+application protocol records, timing/resource measurements and restoration
+records. Keep raw records on `wspr5` or in the repository's ignored `build/`
+directory. Inspect only the fields required for the named acceptance assertion.
+Do not print raw authenticated payloads into routine progress output.
+
+Do not collect credentials, private keys, tokens, private configuration contents,
+unrelated files, other users' data or unrelated network traffic. For credential
+and private configuration identity, record hashes only. Do not capture traffic
+from the surrounding network or transfer test records to an external service.
+Publish only sanitized results, source references and evidence hashes.
+
+This clarification narrows the earlier evidence-transfer wording. It does not
+authorize accessing additional systems, circumventing authentication, concealing
+test behavior or bypassing automatic approval review. If a specific operation
+is rejected, retain the rejection, report its stated reason and continue only
+with permitted work. All existing device, RF, deadline and restoration limits
+remain in force.
