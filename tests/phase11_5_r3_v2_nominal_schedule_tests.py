@@ -48,4 +48,32 @@ class ScheduleTests(unittest.TestCase):
             (root/'wtp-capacity-complete.json').write_text(json.dumps(good))
             self.assertEqual(await_capacity_phase(root,'a','b',3,None,lambda:False,lambda:2),good)
 
+class NativePublicationTests(unittest.TestCase):
+    def test_cached_identity_does_not_prove_connected_authority(self):
+        from phase11_5_r3_v2_nominal_load import native_status_live
+        packet=dict(boot_id='b'*32)
+        remote=dict(boot_id=packet['boot_id'],state='running',output_active=True)
+        host=dict(ready=True,session_phase='ready',remote=remote,now_ms='10000',status_observed_ms='9900')
+        self.assertTrue(native_status_live(dict(host=host,job=remote),packet))
+        for changed in (dict(ready=False),dict(session_phase='disconnected'),dict(remote=None),
+                        dict(status_observed_ms=None),dict(status_observed_ms='0')):
+            self.assertFalse(native_status_live(dict(host=dict(host,**changed),job=remote),packet))
+
+    def test_candidate_policy_publishes_the_consumed_running_authority(self):
+        from phase11_5_r3_v2_nominal_load import publish_native
+        from phase11_5_r3_v2_rf import TERMINAL_POLICY, native_running
+        import json
+        import tempfile
+        import time
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            packet = dict(closure_policy=TERMINAL_POLICY, boot_id='b'*32,
+                          owner_id='c'*32, jobs=[dict(job_id='d'*32)])
+            value = dict(job=dict(boot_id=packet['boot_id'],owner_id=packet['owner_id'],
+                         job_id=packet['jobs'][0]['job_id'],state='running',output_active=True))
+            publish_native(root,packet,'a'*64,value)
+            record = json.loads((root/'native-observation.json').read_text())
+            self.assertTrue(native_running(record,packet,'a'*64,time.monotonic_ns()))
+
+
 if __name__=='__main__':unittest.main()

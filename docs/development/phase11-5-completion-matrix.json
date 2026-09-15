@@ -10,7 +10,7 @@
     "R5": "OPEN",
     "R6": "OPEN"
   },
-  "candidate_source": "98f5797d77fb2bc4c11a4e80f6ff35d7ad16a5b5",
+  "candidate_source": "bd16bb1c736720fbf901589d41d2a25897987b8b",
   "assertions": [
     {
       "id": "R1.1",
@@ -125,8 +125,8 @@
       "group": "JOB-MAX",
       "requirement": "512-event idle admission and complete RF job",
       "classification": "affected and needing retest",
-      "evidence": "phase11-5-r3-v2-component3-result.json; phase11-5-r3-v2-validation-045.json; phase11-5-r3-v2-component9-result.json; phase11-5-completion-p1-attempt1-result.json",
-      "remaining": "Candidate completed once on the recorded boot, but the multi-observer capacity run failed; preserve the finite completion and perform the affected capacity retest.",
+      "evidence": "phase11-5-r3-v2-component3-result.json; phase11-5-r3-v2-validation-045.json; phase11-5-r3-v2-component9-result.json; phase11-5-completion-p1-attempt1-result.json; phase11-5-completion-native-closure-result.json",
+      "remaining": "Two candidate 512-event jobs completed with independently decoded USB/Console timing. Full capacity workload failed: P1e readiness publication, P1f native connection loss. Preserve completion components; affected contention/resource retest remains.",
       "package": 1
     },
     {
@@ -286,9 +286,9 @@
       "id": "R3.TLS-VALID",
       "group": "TLS-VALID",
       "requirement": "Authenticated production WTP/HTTPS positive controls",
-      "classification": "affected and needing retest",
-      "evidence": "phase11-5-r3-v2-component9-result.json",
-      "remaining": "Idle controls accepted; Running candidate controls in P1",
+      "classification": "failed",
+      "evidence": "phase11-5-r3-v2-component9-result.json; phase11-5-completion-native-closure-result.json",
+      "remaining": "P1f native TLS closed with STATUS outstanding during replacement LOAD. Exact close branch unresolved; host workspace deferral repair and read-only close diagnostics need target validation.",
       "package": 1
     },
     {

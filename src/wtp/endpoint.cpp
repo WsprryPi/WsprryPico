@@ -31,6 +31,7 @@ void Endpoint::connect(std::string principal) {
 void Endpoint::disconnect() {
     parser_.end_of_stream();
     parser_ = FrameParser{}; // Release retained frame storage between transport uses.
+    pending_input_ = {};
     output_.clear();
     offset_ = 0;
     queued_bytes_ = 0;
@@ -151,11 +152,23 @@ void Endpoint::poll(std::uint64_t now) {
         disconnect();
         return;
     }
+    if (!pending_input_.empty()) {
+        if (now >= pending_input_since_ms_ && now - pending_input_since_ms_ >= 5000) {
+            close_after_output();
+        } else if (output_.empty() && memory_admitted(16384)) {
+            const auto began = pending_input_since_ms_;
+            payload(std::move(pending_input_), now);
+            // A changed budget cannot restart the original admission deadline.
+            if (!pending_input_.empty())
+                pending_input_since_ms_ = began;
+        }
+    }
     if (!closing_)
         frame_events(parser_.check_timeout(now), now);
 }
 void Endpoint::close_after_output() {
     parser_.end_of_stream();
+    pending_input_ = {};
     closing_ = true;
     if (output_.empty())
         closed_ = true;
@@ -179,10 +192,12 @@ std::size_t Endpoint::receive(std::span<const std::uint8_t> input, std::uint64_t
     return count;
 }
 void Endpoint::payload(FrameBuffer bytes, std::uint64_t now) {
-    // Refuse transport work before decoding/dispatch when competing contexts
-    // have consumed its working space. No new operation or replay entry exists.
+    // A different endpoint may briefly own a maximum reply. Retain this one
+    // already buffered frame for at most five seconds and apply backpressure;
+    // do not decode, dispatch or consume the unchanged safety reserve yet.
     if (!memory_admitted(16384)) {
-        close_after_output();
+        pending_input_ = std::move(bytes);
+        pending_input_since_ms_ = now;
         return;
     }
     // A complete request can take longer than one RF refill interval. Keep

@@ -1,6 +1,7 @@
 #include "wtp/codec.hpp"
 #include "wtp/endpoint.hpp"
 #include "wtp/inhibited_rf_engine.hpp"
+#include "wtp/memory_budget.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -55,6 +56,7 @@ std::string hex(std::span<const std::uint8_t> data) {
     return out;
 }
 int main() {
+    static std::size_t available_bytes = 0;
     TestClock clock;
     Ids ids;
     TestEngine engine;
@@ -68,6 +70,10 @@ int main() {
             return 2;
         auto get = [&](std::string_view key) { return control->get(key).value_or(json::Value{}); };
         auto action = get("action").string();
+        if (auto bytes = control->get("available_bytes")) {
+            available_bytes = static_cast<std::size_t>(bytes->integer());
+            available_memory = [] { return available_bytes; };
+        }
         auto now = clock.current.monotonic_now_ns / 1'000'000ULL;
         std::vector<std::uint8_t> sent;
         if (action == "connect") {

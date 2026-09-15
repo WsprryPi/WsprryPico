@@ -363,6 +363,16 @@ try:
         assert http()[0] == 200
     stats = json.loads(http()[2])['transport']
     assert stats['tls_allocated_bytes'] <= baseline + 1024, (baseline, stats)
+    with connect(context(protocols=('wtp/1',))) as stream:
+        decoder = FrameDecoder()
+        assert ask('HELLO',{'versions':['WTP/1'],'client_name':'close-metric','client_version':'1'})['ok']
+        control('LINK OFF')
+        control('CLOSE METRICS')
+        assert process.stdout.readline().strip() == 'CLOSE 1 0'
+    control('LINK ON')
+    assert http()[0] == 200
+    control('CLOSE METRICS')
+    assert process.stdout.readline().strip() == 'CLOSE 1 0'  # HTTP cannot overwrite the WTP cause.
     print('Transport metrics:', stats)
     print('Actual TLS 1.3 mTLS/ALPN, HTTP framing, origin, revisions, assets and WTP tests passed')
 finally:

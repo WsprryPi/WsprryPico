@@ -6,7 +6,7 @@
 [current assertion matrix](phase11-5-completion-matrix.md) records current
 applicability and remaining work. [Standing authorization](phase11-5-completion-authorization-20260915.md)
 permits fresh bounded packets on either Pico with one shared RF reservation.
-Pico A runs firmware `98f5797d77fb2bc4c11a4e80f6ff35d7ad16a5b5`;
+Pico A runs firmware `bd16bb1c736720fbf901589d41d2a25897987b8b`;
 Pico B runs `8921a7008183`. Repository HEAD is a separate identity.
 Component 9's bounded idle LOAD/replay regression is CLOSED; Group 2 remains
 OPEN. Group 1 closed at checkpoint 043. Groups 3/4 and R4-R6 remain open.

@@ -19,10 +19,24 @@ import urllib.request
 from phase11_5_inventory import require
 from phase11_5_device_management import digest,save
 from phase11_5_pilot import DEVICE
+from phase11_5_r3_v2_rf import native_observation_required
 
 NAME='wsprrypico-0a60df.local'
 PEER_SHA='06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016'
 
+
+def native_status_live(value, packet):
+    host=value.get('host') or {}; remote=host.get('remote')
+    return (host.get('ready') is True and host.get('session_phase')=='ready' and
+        isinstance(remote,dict) and remote==value.get('job') and
+        remote.get('boot_id')==packet['boot_id'] and
+        host.get('status_observed_ms') is not None and
+        0<=int(host['now_ms'])-int(host['status_observed_ms'])<=6000)
+
+def publish_native(root, packet, packet_sha, value):
+    if native_observation_required(packet):
+        save(root/'native-observation.json',dict(packet_sha256=packet_sha,
+            observed_monotonic_ns=time.monotonic_ns(),job=value.get('job')))
 
 def await_capacity_phase(root, packet_sha, job_id, deadline, stop, finished, monotonic=time.monotonic):
     """No HTTPS socket may start before both individual WTP boundaries finish."""
@@ -98,9 +112,9 @@ def main():
         with opener.open('http://127.0.0.1:31425/api/v1/status',timeout=3) as response:
             raw=response.read(131073);require(len(raw)<=131072,'Host status bound');value=json.loads(raw)
         emit('native_status',dict(began_monotonic_ns=began,body_hex=raw.hex(),value=value))
-        if packet.get('closure_policy') in ('group2-paged-input-retest-v1','phase115-completion-capacity-v1'):
-            save(root/'native-observation.json',dict(packet_sha256=a.packet_sha256,
-                observed_monotonic_ns=time.monotonic_ns(),job=value.get('job')))
+        publish_native(root,packet,a.packet_sha256,value)
+        if ready is not None:
+            require(native_status_live(value,packet),'Native session disconnected, unresolved or stale; cached identity is insufficient')
         return value
     def https():
         nonlocal capacity_index
@@ -159,7 +173,7 @@ def main():
                 try:status=host_status()
                 except OSError:time.sleep(.2);continue
                 identity=status.get('host',{}).get('identity')
-                if identity:
+                if identity and native_status_live(status,packet):
                     require(identity['device_id']==DEVICE and identity['boot_id']==packet['boot_id'] and
                         status['host']['network']['resolved_address']=='10.77.15.10' and
                         status['host']['network']['authenticated_identity']==NAME,'Native peer identity')

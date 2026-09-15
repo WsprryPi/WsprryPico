@@ -118,6 +118,7 @@ class LoadReplyTests(unittest.TestCase):
         self.assertTrue(r['exchanges'][1]['closed'])
         self.assertEqual(r['exchanges'][1]['hex'], '')
         self.assertEqual(r['exchanges'][1]['after_pages'], 0)
+        self.assertEqual(r['exchanges'][1]['wait_ms'], 5000)
         self.assertEqual(r['preparations'], 2)
 
     def test_reply_reserve_refusal_preserves_inactive_loaded_job(self):

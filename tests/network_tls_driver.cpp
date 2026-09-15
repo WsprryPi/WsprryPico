@@ -159,6 +159,9 @@ int main(int argc, char** argv) {
             commands.erase(0, end + 1);
             if (command == "RESTART COUNT")
                 std::cout << "RESTARTS " << restarts << std::endl;
+            else if (command == "CLOSE METRICS")
+                std::cout << "CLOSE " << server.metrics().last_wtp_close_reason << ' '
+                          << server.metrics().last_wtp_tls_result << std::endl;
             else if (command == "CLOCK OFF")
                 clock.invalidate();
             else if (command == "CLOCK ON")

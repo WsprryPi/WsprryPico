@@ -23,7 +23,7 @@ class Endpoint {
         return closed_;
     }
     bool can_receive() const {
-        return !closed_ && !closing_ && output_.empty();
+        return !closed_ && !closing_ && output_.empty() && pending_input_.empty();
     }
 
   private:
@@ -37,6 +37,8 @@ class Endpoint {
     JobService& service_;
     std::string device_id_, firmware_version_, principal_, session_, boot_;
     FrameParser parser_;
+    FrameBuffer pending_input_;
+    std::uint64_t pending_input_since_ms_ = 0;
     struct OutputFrame {
         std::array<std::uint8_t, kFrameHeaderBytes> header;
         std::variant<std::string, OutputBuffer> payload;

@@ -5,7 +5,7 @@
 | Package | Status | Outcome / next requirement |
 | --- | --- | --- |
 | 0 | COMPLETE | Fresh named A/B USB inventories independently decoded; source-impact matrix and current summaries reconciled. [Result](phase11-5-completion-package0-result.json). |
-| 1 | OPEN — repair validated on host | Original RF capacity failure preserved. Later packets stopped before ARM; completed-job storage blocked replacement LOAD under native TLS. Repair needs identified target build and affected retest. [Review](phase11-5-completion-terminal-storage-review.md). |
+| 1 | OPEN — native connection failure | Original RF capacity failure preserved. Later packets stopped before ARM; completed-job storage blocked replacement LOAD under native TLS. Repair needs identified target build and affected retest. [Review](phase11-5-completion-terminal-storage-review.md). |
 | 2 | OPEN | Supported simultaneous workload and separate bounded overload. |
 | 3 | OPEN | Affected TLS/HTTP and distinct WTP timeouts. |
 | 4 | OPEN | Actual USB parser and unread-output pressure. |
@@ -15,26 +15,30 @@
 | 8 | OPEN; idle Wi-Fi accepted on source 98f5797 | Two independently audited OFF/ON readiness cycles preserve state/configuration and recover address/clock. Link loss, lease/name change, DNS/SNTP, journal rotation and autonomy remain. |
 | 9 | OPEN | R6 mixed operation after R1-R5 acceptance. |
 
-### Current repair checkpoint
+### Current connection-repair checkpoint
 
-[Results and exact hashes](phase11-5-completion-terminal-storage-result.json)
-and [adversarial review](phase11-5-completion-terminal-storage-review.md).
-R5.wifi is newly accepted within its source 98f5797 idle recovery scope; no
-family closes. Cumulative charge: one RF job / 128 seconds, two Wi-Fi cycles,
-zero flashes and zero configuration writes. P1b/c/d sent no ARM.
+[Immutable results](phase11-5-completion-native-closure-result.json) and
+[review](phase11-5-completion-native-closure-review.md). R1/R2 remain closed in
+recorded scope; R3-R6 remain open. Idle Wi-Fi recovery retains its accepted
+source 98f5797 scope. No new family closes.
 
-Fresh post-review inventories show both boards Empty/inactive/unowned with
-unchanged configurations and disabled scheduling. A's terminal record expired
-naturally. Images and boots remain unchanged. Host fixture restoration matches
-its baseline; installed WsprryPi PID 1957 is unchanged. The shared RF reservation
-is released. The Complete-only event storage repair passes host regression but
-has not been flashed or physically accepted.
+A now runs bd16bb1 on boot 3dbf851d7107a714504e5f3dd52df4d9. P1e/P1f each
+completed a 128-second maximum-event job, but neither exercised capacity probes.
+P1e's new-policy readiness publication was missing; its wait also blocked lease
+renewal. P1f repaired those defects and proved replacement maximum LOAD admission,
+but the native TLS connection closed with a STATUS reply outstanding. Cached
+identity must not be treated as live observer health. All failures are retained.
 
-Original attempt 1 wrote 4,096 of 65,552 maximum-frame bytes during ordinary
-HTTPS overlap. Oversize and HTTP capacity probes did not execute. All 300
-Console samples were independently decoded. The failure remains failed and
-earns no overload credit. Subsequent deadline/guard/admission failures are
-retained separately. Next: identified build and bounded affected target tests.
+Latest packet inventories show A and B Empty/inactive/unowned, preserved
+configurations and disabled schedules. A retains two Complete records; B is
+unchanged. The shared reservation is released. The isolated fixture remains
+active within its unchanged supervised deadline. Task charge: three RF jobs /
+384 seconds, one A flash, two Wi-Fi cycles and zero configuration writes.
+
+A bounded deferred-decoding repair, stronger native health gate and read-only
+WTP close diagnostics pass host checks; they are not yet flashed or physically
+accepted. Next: identified build and a zero-RF native connection test before any
+further capacity RF packet.
 
 ### Package 0 checkpoint
 

@@ -36,6 +36,23 @@ COMPLETION_POLICY='phase115-completion-capacity-v1'
 COMPLETION_SOURCE='98f5797d77fb2bc4c11a4e80f6ff35d7ad16a5b5'
 COMPLETION_IMAGE='b6d5ab7610a0e19e9de91ce78dde4eb7c63b9192343dd86af4f7bcb857838733'
 SERIAL_CAPACITY='wtp-then-http-capacity-v1'
+TERMINAL_POLICY='phase115-completion-terminal-storage-capacity-v1'
+PRESSURE_POLICY='phase115-completion-pressure-v1'
+TERMINAL_SOURCE='bd16bb1c736720fbf901589d41d2a25897987b8b'
+TERMINAL_IMAGE='dfb9fa073914ce827df6612792cfcaf2991af6b47dfe340543d2e89572e90120'
+
+def completion_policy(packet):
+    return packet.get('closure_policy') in (COMPLETION_POLICY,TERMINAL_POLICY)
+
+def native_observation_required(packet):
+    return packet.get('closure_policy')==REPAIR_POLICY or completion_policy(packet)
+
+def reservation_required(packet):
+    return completion_policy(packet) or packet.get('closure_policy')==PRESSURE_POLICY
+
+def initial_terminal(packet):
+    return packet.get('capacity_schedule_policy')==SERIAL_CAPACITY and packet.get('initial_a_state')=='complete'
+
 B_PARALLEL_AUTHORIZATION='37ae5f5658ffc7c4436547061e4a81e577ea9102a086ec1e74d09031699caaab'
 
 
@@ -105,18 +122,25 @@ def guarded_action(action, value, faults, report):
 
 def validate(packet):
     diagnostic=packet.get('diagnostic_policy')==DIAGNOSTIC_POLICY
-    completion=packet.get('closure_policy')==COMPLETION_POLICY
+    completion=completion_policy(packet)
     require(packet.get('capacity_schedule_policy') in (None,SERIAL_CAPACITY), 'Known capacity ordering')
-    if packet.get('capacity_schedule_policy'):
+    terminal_repair=packet.get('closure_policy')==TERMINAL_POLICY
+    if terminal_repair:
+        require(packet.get('capacity_schedule_policy')==SERIAL_CAPACITY and
+                (packet.get('initial_a_state'),packet.get('initial_a_job_id')) in
+                [('empty',None),('complete','aef23738c28045d6bc5ef4d8a6a13e11')] and
+                packet['boot_id']=='3dbf851d7107a714504e5f3dd52df4d9', 'Fresh terminal-storage candidate capacity workload')
+    elif packet.get('capacity_schedule_policy'):
         require(completion and packet.get('initial_a_state')=='complete' and
                 packet.get('initial_a_job_id')=='b88c7a3082eb4208a7e1f403bc13c9f8',
                 'Sequential retest preserves the failed packet terminal state')
     repair=packet.get('closure_policy')==REPAIR_POLICY
-    closure=packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY)
-    require('closure_policy' not in packet or closure,'Unknown closure policy')
+    pressure=packet.get('closure_policy')==PRESSURE_POLICY
+    closure=packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY,TERMINAL_POLICY)
+    require('closure_policy' not in packet or closure or pressure,'Unknown closure policy')
     require(packet['source_revision']!=REPAIR_SOURCE or repair,'Repair image requires exact retest policy')
     if closure:
-        require('diagnostic_policy' not in packet and packet['source_revision']==(COMPLETION_SOURCE if completion else REPAIR_SOURCE if repair else DIAGNOSTIC_SOURCE) and
+        require('diagnostic_policy' not in packet and packet['source_revision']==(TERMINAL_SOURCE if terminal_repair else COMPLETION_SOURCE if completion else REPAIR_SOURCE if repair else DIAGNOSTIC_SOURCE) and
                 packet['observer_policy']==SINGLE_FLIGHT and len(packet['jobs'])==1 and
                 packet['runtime_seconds']==300 and packet['maximum_renewals']==8 and
                 packet['jobs'][0]['mode']=='fskcw' and len(packet['jobs'][0]['events'])==512 and
@@ -128,11 +152,12 @@ def validate(packet):
                 packet['contention']['policy']=='native-wtp-and-https-status-20s-v1' and
                 packet['contention']['maximum_https_requests']==16 and
                 not packet.get('allocator_failure_baseline'), 'Exact Group 2 capacity tranche')
-    if completion:
+    if reservation_required(packet):
         require(packet.get('shared_rf_reservation')=='durable-both-picos-v1' and
                 packet.get('b_role')=='unchanged-comparator' and
                 type(packet.get('maximum_initial_terminal_records')) is int and
-                packet['maximum_initial_terminal_records']==1, 'Completion requires both-board RF reservation and bounded initial retention')
+                (0<=packet['maximum_initial_terminal_records']<=8 if pressure else packet['maximum_initial_terminal_records']==1), 'Completion requires both-board RF reservation and bounded initial retention')
+    require(packet['source_revision']!=TERMINAL_SOURCE or terminal_repair or pressure, 'Terminal-storage image requires reviewed policy')
     require(packet['source_revision']!=COMPLETION_SOURCE or completion, 'Completion image requires reviewed policy')
     require('diagnostic_policy' not in packet or diagnostic,'Unknown diagnostic policy')
     if diagnostic:
@@ -144,12 +169,18 @@ def validate(packet):
             (packet['source_revision'],packet['image_sha256']) in [
                 ('7d183978d08d77d5de668911be041bb188c851f5',
                  '38daadfdb38e7ce9f35c3c327cd3b160d12e9040d50a31c97db0a3f2ce6eedd1'),
-                (REPAIRED_SOURCE,REPAIRED_IMAGE),(PAGED_SOURCE,PAGED_IMAGE),(INFO_SOURCE,INFO_IMAGE),(ASSET_SOURCE,ASSET_IMAGE),(DIAGNOSTIC_SOURCE,DIAGNOSTIC_IMAGE),(REPAIR_SOURCE,REPAIR_IMAGE),(COMPLETION_SOURCE,COMPLETION_IMAGE)],
+                (REPAIRED_SOURCE,REPAIRED_IMAGE),(PAGED_SOURCE,PAGED_IMAGE),(INFO_SOURCE,INFO_IMAGE),(ASSET_SOURCE,ASSET_IMAGE),(DIAGNOSTIC_SOURCE,DIAGNOSTIC_IMAGE),(REPAIR_SOURCE,REPAIR_IMAGE),(COMPLETION_SOURCE,COMPLETION_IMAGE),(TERMINAL_SOURCE,TERMINAL_IMAGE)],
             'Reviewed physical source/image/scope')
     if completion:
         require(type(packet.get('not_before_host_monotonic_ns')) is int and
                 packet['not_before_host_monotonic_ns']>0, 'Frozen capacity start boundary')
     comparator_required(packet)
+    if pressure:
+        require(packet['source_revision']==TERMINAL_SOURCE and packet['boot_id']=='3dbf851d7107a714504e5f3dd52df4d9' and
+                packet.get('observer_policy')==SINGLE_FLIGHT and not any(k in packet for k in
+                ('wtp_capacity','http_capacity','capacity_schedule_policy','allocator_failure_baseline')), 'Exact candidate pressure scope')
+        from phase11_5_r3_v2_pressure_plan import validate_profile
+        validate_profile(packet)
     if packet['source_revision']==DIAGNOSTIC_SOURCE and not closure:
         require(len(packet['jobs'])==1 and packet['jobs'][0]['mode']=='tone' and
                 packet['jobs'][0]['total_duration_ns']=='90000000000' and
@@ -272,7 +303,7 @@ def recent_clock(info, clock=None):
 
 def run(root,packet):
     diagnostic=packet.get('diagnostic_policy')==DIAGNOSTIC_POLICY
-    capture_failures=diagnostic or packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY)
+    capture_failures=diagnostic or packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY,TERMINAL_POLICY,PRESSURE_POLICY)
     os.umask(0o077);end=time.monotonic()+packet['runtime_seconds'];lock=threading.Lock();done=threading.Event()
     faults=[];samples={};inflight={};seq=0;result=dict(status='RUNNING',armed_jobs=[],completed_jobs=[],renewals=0,rf_duration_ns_charged=0)
     log=(root/'rf.jsonl').open('x')
@@ -300,7 +331,7 @@ def run(root,packet):
         require(code==0,'Inventory failed: '+label);return finished(root/(label+'.stdout'),'READ_ONLY_INVENTORY')
     def empty(value,b=False,initial=False):
         i,s=value['info'],value['wtp']['STATUS']
-        terminal=initial and not b and packet.get('capacity_schedule_policy')==SERIAL_CAPACITY
+        terminal=initial and not b and initial_terminal(packet)
         require(s['boot_id']==(packet['b_boot_id'] if b else packet['boot_id']) and
                 s['state']==i['status']['state']==('complete' if terminal else 'empty') and
                 s['output_active'] is i['status']['output_active'] is False and s['owner_id'] is None and
@@ -343,6 +374,13 @@ def run(root,packet):
             state=dict(index=0,phase='idle',lease=None,done_at=None)
             def read():
                 return observed_status(peer.request('STATUS'),packet,initial=state['phase']=='idle')
+            def capacity_ready(info):
+                if capture_failures and not (info['status']['state']=='running' and info['status']['output_active'] is True):
+                    return False
+                if native_observation_required(packet):
+                    published=root/'native-observation.json'
+                    return published.exists() and native_running(json.loads(published.read_text()),packet,digest(root/'packet.json'),time.monotonic_ns())
+                return True
             def act(status):
                 checkpoint()
                 if load_process is not None:
@@ -362,7 +400,7 @@ def run(root,packet):
                     return
                 job=packet['jobs'][state['index']]
                 if state['phase']=='idle':
-                    require(status['state']==('complete' if packet.get('capacity_schedule_policy')==SERIAL_CAPACITY else 'empty') and
+                    require(status['state']==('complete' if initial_terminal(packet) else 'empty') and
                             status['owner_id'] is None and not status['output_active'],
                             'Next job idle admission')
                     if capture_failures and not recent_clock(info):return
@@ -386,14 +424,10 @@ def run(root,packet):
                 elif state['phase']=='executing':
                     require(status['job_id']==job['job_id'] and status['owner_id']==packet['owner_id'] and
                             status['state'] in ['armed','running','complete'],'Finite lifecycle')
-                    if status['state']=='running' and 'wtp_capacity' in packet and not state.get('capacity_exchanged',False):
-                        if capture_failures and not (info['status']['state']=='running' and info['status']['output_active'] is True):return
+                    if status['state']=='running' and 'wtp_capacity' in packet and not state.get('capacity_exchanged',False) and capacity_ready(info):
                         from phase11_5_r3_capacity_probe import exchange_capacity
                         from phase11_5_r3_capacity_plan import wtp_capacity_frame
                         from validate_wtp_contract import frame
-                        if packet.get('closure_policy') in (REPAIR_POLICY,COMPLETION_POLICY):
-                            published=root/'native-observation.json'
-                            if not published.exists() or not native_running(json.loads(published.read_text()),packet,digest(root/'packet.json'),time.monotonic_ns()):return
                         cap=packet['wtp_capacity'];state['capacity_exchanged']=True
                         raw=wtp_capacity_frame(peer.session,cap['maximum_request_id'])
                         checkpoint()
@@ -439,7 +473,7 @@ def run(root,packet):
             faults.append(name+': '+str(error));emit('failure',dict(worker=name,error=str(error),type=type(error).__name__))
             # Keep independent readers alive to the original finite deadline.
     try:
-        if packet.get('closure_policy')==COMPLETION_POLICY:
+        if reservation_required(packet):
             from phase11_5_rf_reservation import Reservation
             reservation=Reservation(digest(root/'packet.json'))
         if comparator_required(packet):
@@ -515,7 +549,7 @@ def main():
     root=a.root.resolve(strict=True);require(os.geteuid()==0 and digest(root/'packet.json')==a.packet_sha256,'Root/hash')
     packet=validate(json.loads((root/'packet.json').read_text()));require(packet['root']==str(root),'Packet root')
     require(Path('/proc/sys/kernel/random/boot_id').read_text().strip()==packet['host_boot_id'],'Host boot')
-    if packet.get('closure_policy')==COMPLETION_POLICY:
+    if reservation_required(packet):
         require(time.monotonic_ns()>=packet['not_before_host_monotonic_ns'], 'Individual-capacity preparation window not complete')
     timer=subprocess.check_output(['busctl','get-property','org.freedesktop.systemd1',
         '/org/freedesktop/systemd1/unit/phase115_2dclosure_2dcleanup_2etimer',

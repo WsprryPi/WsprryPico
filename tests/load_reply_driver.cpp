@@ -172,24 +172,35 @@ std::string request(std::string op, std::string body, char id) {
 }
 std::uint8_t output[131072];
 std::size_t output_size = 0;
+std::uint64_t endpoint_now_ms = 0, last_wait_ms = 0;
 void send(wtp::Endpoint& endpoint, std::span<const std::uint8_t> bytes, bool keep = false) {
     tracking = true;
-    for (std::size_t pos = 0; pos < bytes.size() && !endpoint.closed();) {
-        const auto n = endpoint.receive(bytes.subspan(pos), 0);
-        if (!n)
-            std::abort();
-        pos += n;
-    }
-    while (!endpoint.output().empty()) {
-        const auto part =
-            endpoint.output().first(std::min<std::size_t>(7, endpoint.output().size()));
-        if (keep) {
-            if (part.size() > sizeof(output) - output_size)
-                std::abort();
-            std::copy(part.begin(), part.end(), output + output_size);
-            output_size += part.size();
+    last_wait_ms = 0;
+    std::size_t pos = 0;
+    while (!endpoint.closed() && (pos < bytes.size() || !endpoint.can_receive())) {
+        bool progressed = false;
+        if (pos < bytes.size() && endpoint.can_receive()) {
+            const auto n = endpoint.receive(bytes.subspan(pos), endpoint_now_ms);
+            pos += n;
+            progressed = n != 0;
         }
-        endpoint.consume_output(part.size(), 0);
+        while (!endpoint.output().empty()) {
+            const auto part =
+                endpoint.output().first(std::min<std::size_t>(7, endpoint.output().size()));
+            if (keep) {
+                if (part.size() > sizeof(output) - output_size)
+                    std::abort();
+                std::copy(part.begin(), part.end(), output + output_size);
+                output_size += part.size();
+            }
+            endpoint.consume_output(part.size(), endpoint_now_ms);
+            progressed = true;
+        }
+        if (!progressed) {
+            if (++last_wait_ms > 5000)
+                std::abort();
+            endpoint.poll(++endpoint_now_ms);
+        }
     }
     tracking = false;
 }
@@ -306,7 +317,7 @@ int main(int argc, char** argv) {
                 std::cout << ',';
             std::cout << "{\"peak_bytes\":" << total_peak << ",\"peak_cpp\":" << peak_cpp
                       << ",\"peak_pages\":" << peak_pages << ",\"after_cpp\":" << live
-                      << ",\"after_pages\":" << page_live
+                      << ",\"after_pages\":" << page_live << ",\"wait_ms\":" << last_wait_ms
                       << ",\"closed\":" << (endpoint.closed() ? "true" : "false") << ",\"hex\":\"";
             for (std::size_t n = 0; n < output_size; ++n)
                 std::printf("%02x", output[n]);

@@ -7,6 +7,10 @@ from phase11_5_r3_transport_plan import CASES as TRANSPORT_CASES,ACK_POLICY_B2
 def validate(packet):
     from phase11_5_r3_v2_rf import validate as validate_rf
     validate_rf(packet)
+    return validate_profile(packet)
+
+
+def validate_profile(packet):
     family=packet['pressure_family'];require(family in ['tls','transport'],'V2 pressure family')
     require(packet['runtime_seconds']==(330 if family=='tls' else 450) and len(packet['jobs'])==2 and
             packet['maximum_tcp_connections']==(12 if family=='tls' else 15) and

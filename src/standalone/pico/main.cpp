@@ -318,6 +318,10 @@ int main() {
             number_field(result, "tls_peak_bytes", server.tls_peak());
             number_field(result, "tls_allocated_bytes", server.tls_allocated());
             number_field(result, "tls_allocation_failures", server.tls_failures());
+            number_field(result, "network_wtp_close_reason",
+                         server.metrics().last_wtp_close_reason);
+            result += ",\"network_wtp_tls_result\":" +
+                      std::to_string(server.metrics().last_wtp_tls_result);
 #ifdef WSPRRY_PICO_STANDALONE_RF
             const auto metrics = engine.metrics();
 #ifdef WSPRRY_PICO_RF_RENDER_IN_RAM

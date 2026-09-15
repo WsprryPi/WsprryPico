@@ -1,0 +1,265 @@
+{
+  "schema": "phase11.5-completion-native-closure-checkpoint-v1",
+  "phase_status": "OPEN",
+  "family_closed": false,
+  "deployment": {
+    "status": "DEPLOYMENT_INDEPENDENTLY_VERIFIED",
+    "packet_sha256": "a05783ca29644bfcf5b67c2caed548abb9f9386c3f2434055f4baa7a9d3bba20",
+    "source_revision": "bd16bb1c736720fbf901589d41d2a25897987b8b",
+    "image_sha256": "dfb9fa073914ce827df6612792cfcaf2991af6b47dfe340543d2e89572e90120",
+    "elf_sha256": "f3775657357058fee23077c9c882fadd0b25df38d9d1eb07605c4f468f5e4a9b",
+    "boot_id": "3dbf851d7107a714504e5f3dd52df4d9",
+    "boards": {
+      "a": {
+        "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+        "boot_id": "3dbf851d7107a714504e5f3dd52df4d9",
+        "revision": "bd16bb1c7367",
+        "state": "empty"
+      },
+      "b": {
+        "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "revision": "8921a7008183",
+        "state": "empty"
+      }
+    },
+    "configuration_preserved": true,
+    "schedules_disabled": true,
+    "reservation_released": true,
+    "flashes": 1,
+    "bootsel": 1,
+    "rf_jobs": 0,
+    "heap_capacity_bytes": 219712,
+    "allocator_peak_bytes": 14952
+  },
+  "attempts": {
+    "package1e": {
+      "status": "READINESS_FAILURE_AND_FINITE_COMPLETION_CONFIRMED",
+      "packet_sha256": "26e58c73da189aa1d9aecae6b410e392ca2957499632e38caa3b05f14c3d8104",
+      "capacity_acceptance": false,
+      "family_closed": false,
+      "rf_jobs_charged": 1,
+      "rf_seconds_charged": 128,
+      "console_samples": 300,
+      "maximum_console_start_gap_ns": 1000098534,
+      "native": {
+        "connections": 1,
+        "operations": {
+          "HELLO": 1,
+          "STATUS": 304,
+          "CAPS": 1
+        }
+      },
+      "jobs": [
+        {
+          "job_id": "aef23738c28045d6bc5ef4d8a6a13e11",
+          "mode": "fskcw",
+          "epoch": 1,
+          "expected_counter_deltas": {
+            "dma_irqs": 33693,
+            "alarm_irqs": 1,
+            "tail_irqs": 1,
+            "running_successor_links": 33691,
+            "refill_irq_pairs": 33691,
+            "running_tail_links": 1
+          },
+          "duration_ns": 128000000000,
+          "launch_target_ns": 482140402000,
+          "post_enable_delay_ns": 8000,
+          "short_words": 6656,
+          "short_interval_ns": 1543420.2898550725,
+          "short_75_percent_budget_ns": 1157565.2173913044,
+          "cumulative_worst_short": {
+            "measured": true,
+            "observations": 1,
+            "epoch": "1",
+            "successor_sequence": "33692",
+            "observed_ns": "610138943000",
+            "remaining_words": 6316,
+            "total_words": 6656
+          }
+        }
+      ],
+      "final_a": {
+        "boot_id": "3dbf851d7107a714504e5f3dd52df4d9",
+        "state": "complete",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": "aef23738c28045d6bc5ef4d8a6a13e11",
+        "terminal_records": [
+          {
+            "job_id": "aef23738c28045d6bc5ef4d8a6a13e11",
+            "state": "complete",
+            "ended_monotonic_ns": "610140593000",
+            "output_active": false
+          }
+        ]
+      },
+      "final_b": {
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "configurations_preserved": true,
+      "schedules_disabled": true,
+      "reservation_released": true,
+      "failures": [
+        "wtp action: Finite lifecycle",
+        "supervisor: Nominal contention completion"
+      ],
+      "maximum_allocator_peak_bytes": 161224
+    },
+    "package1f": {
+      "status": "NATIVE_CONNECTION_FAILURE_AND_FINITE_COMPLETION_CONFIRMED",
+      "packet_sha256": "e14d253bca421dd9f49824333ae1907d30fa4a3e1716474efef2ddad5eeedaf4",
+      "capacity_acceptance": false,
+      "family_closed": false,
+      "rf_jobs_charged": 1,
+      "rf_seconds_charged": 128,
+      "console_samples": 166,
+      "maximum_console_start_gap_ns": 1000100512,
+      "native": {
+        "status": "FAILED_INCOMPLETE_FRAME",
+        "complete_successful_responses": 8,
+        "outstanding_request_id": "00000000000000000000000000000009",
+        "declared_payload_bytes": 255,
+        "received_payload_bytes": 0,
+        "connection_closed_monotonic_ns": 425564604912844,
+        "full_native_coverage": false
+      },
+      "jobs": [
+        {
+          "job_id": "28ce6b2efa07447e91e801d44be9c713",
+          "mode": "fskcw",
+          "epoch": 2,
+          "expected_counter_deltas": {
+            "dma_irqs": 33693,
+            "alarm_irqs": 1,
+            "tail_irqs": 1,
+            "running_successor_links": 33691,
+            "refill_irq_pairs": 33691,
+            "running_tail_links": 1
+          },
+          "duration_ns": 128000000000,
+          "launch_target_ns": 864285831000,
+          "post_enable_delay_ns": 17000,
+          "short_words": 6656,
+          "short_interval_ns": 1543420.2898550725,
+          "short_75_percent_budget_ns": 1157565.2173913044,
+          "cumulative_worst_short": {
+            "measured": true,
+            "observations": 2,
+            "epoch": "1",
+            "successor_sequence": "33692",
+            "observed_ns": "610138943000",
+            "remaining_words": 6316,
+            "total_words": 6656
+          }
+        }
+      ],
+      "final_a": {
+        "boot_id": "3dbf851d7107a714504e5f3dd52df4d9",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": [
+          {
+            "job_id": "28ce6b2efa07447e91e801d44be9c713",
+            "state": "complete",
+            "ended_monotonic_ns": "992286106000",
+            "output_active": false
+          },
+          {
+            "job_id": "aef23738c28045d6bc5ef4d8a6a13e11",
+            "state": "complete",
+            "ended_monotonic_ns": "610140593000",
+            "output_active": false
+          }
+        ]
+      },
+      "final_b": {
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "configurations_preserved": true,
+      "schedules_disabled": true,
+      "reservation_released": true,
+      "failures": [
+        "supervisor: Nominal contention completion"
+      ],
+      "maximum_allocator_peak_bytes": 177384
+    }
+  },
+  "task_accounting": {
+    "rf_jobs_charged": 3,
+    "rf_seconds_charged": 384,
+    "flashes": 1,
+    "bootsel": 1,
+    "additional_reboots": 0,
+    "wifi_cycles": 2,
+    "configuration_writes": 0
+  },
+  "current_state": {
+    "a_source": "bd16bb1c736720fbf901589d41d2a25897987b8b",
+    "a_boot": "3dbf851d7107a714504e5f3dd52df4d9",
+    "a_state": "empty",
+    "a_output_active": false,
+    "a_owner": null,
+    "a_schedule_enabled": false,
+    "a_terminal_records": 2,
+    "b_source": "8921a70081839f168edef5926e92445f251d8e1d",
+    "b_boot": "6684b4b197d80cfa0ce83b3aaf205cb0",
+    "b_state": "empty",
+    "b_output_active": false,
+    "b_owner": null,
+    "b_schedule_enabled": false,
+    "configurations_preserved": true,
+    "shared_reservation": "RELEASED",
+    "fixture": "ACTIVE within unchanged independently supervised session"
+  },
+  "fixture_session": {
+    "root": "/home/pi/phase11-5-r3-completion-p1e-f20260915",
+    "packet_sha256": "e1fb43ff2affdb1b05adfcfa8c173e47deb50ee2e2051b3a4248591d3fd51320",
+    "fixture_cleanup_starts_monotonic_ns": 432239251861000,
+    "session_work_deadline_monotonic_ns": 432516632812315,
+    "session_cleanup_deadline_monotonic_ns": 433416632812315
+  },
+  "diagnosis": {
+    "observed": "Native STATUS 9 outstanding; only the 16-byte header declaring 255 payload bytes arrived before connection closure, 2.214868111 seconds after USB replacement LOAD began.",
+    "historical_close_branch": "UNPROVED",
+    "host_reproduction": "A complete small request closes immediately at 42000 available bytes because decoding requires 16384 plus the unchanged 32768 reserve.",
+    "target_replacement_load": "Complete 512-adjustment replacement LOAD succeeded; simultaneous native continuity failed."
+  },
+  "repair": {
+    "status": "HOST_VALIDATED_TARGET_PENDING",
+    "policy": "Retain one complete input frame for at most 5000 ms while decoding workspace recovers; block further input, preserve reserve and 16384-byte working allowance, discard pending mutation on disconnect.",
+    "new_metrics": [
+      "network_wtp_close_reason",
+      "network_wtp_tls_result"
+    ],
+    "scope": "No change to RF renderer, timing, event limits, job duration, framing or ownership rules."
+  },
+  "validation": {
+    "affected_ctest_targets": 7,
+    "passed": 7,
+    "loopback_test_required_socket_permission": true,
+    "protocol": "PASS",
+    "red_green": "Small request reproduces immediate closure before repair, recovers same connection after repair; exact timeout and disconnect discard pass."
+  },
+  "evidence_sha256": {
+    "package1e/audit.json": "3bd267a953226704c66928e1e392cc531bc52eae9843f99cfa3cc74d32d58569",
+    "package1e/evidence.tar": "6a6c41851f53589803608db9486dd62941d20cbfcc21eab395a9d1b5c052c9e2",
+    "package1f/audit.json": "f54314940918a3fac03b5ca93160bbf90d0dfb77f00a010fe4bcbc262c0853de",
+    "package1f/evidence.tar": "5794cd5b169a32c734e80139430729602f99b260e8aeec2cb5256d7cc323e501",
+    "terminal-storage-deploy/audit.json": "f1d1214e23fdbb72e838a09459bdd9bf41d468962a0da57ebcdbcc2c7e419344",
+    "terminal-storage-deploy/evidence.tar": "85e7867dacad957d46da041a1979c65df00991983738ed348634f0a59edbe526"
+  }
+}

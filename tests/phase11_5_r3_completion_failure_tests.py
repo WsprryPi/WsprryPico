@@ -10,9 +10,11 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'scripts'))
 from audit_phase11_5_completion_p1_failure import audit
 from audit_phase11_5_completion_prearm import audit as audit_prearm
+from audit_phase11_5_completion_readiness_failure import audit as audit_native_failure
 
 EVIDENCE = os.environ.get('PHASE115_COMPLETION_P1_FAILURE')
 PREARM = os.environ.get('PHASE115_COMPLETION_PREARM')
+NATIVE_FAILURE = os.environ.get('PHASE115_COMPLETION_NATIVE_FAILURE')
 
 
 @unittest.skipUnless(EVIDENCE, 'Private completed packet not supplied')
@@ -64,6 +66,26 @@ class PrearmTests(unittest.TestCase):
                 path.write_text(''.join(json.dumps(r)+'\n' for r in rows))
                 with self.assertRaises(ValueError):
                     audit_prearm(root)
+
+
+@unittest.skipUnless(NATIVE_FAILURE, 'Private native failure packet not supplied')
+class NativeFailureTests(unittest.TestCase):
+    def test_failed_native_stream_is_not_capacity_acceptance(self):
+        result = audit_native_failure(Path(NATIVE_FAILURE))
+        self.assertFalse(result['capacity_acceptance'])
+        self.assertFalse(result['native']['full_native_coverage'])
+        self.assertEqual(result['native']['received_payload_bytes'], 0)
+
+    def test_altered_incomplete_frame_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)/'evidence'; shutil.copytree(NATIVE_FAILURE, root)
+            path = root/'production-tls.bin'
+            raw = path.read_bytes()
+            header = bytes.fromhex('5754504601010000000000ff8c4e21fa')
+            self.assertEqual(raw.count(header), 1)
+            path.write_bytes(raw.replace(header, header[:-1]+b'\x00'))
+            with self.assertRaises(ValueError):
+                audit_native_failure(root)
 
 
 if __name__ == '__main__':

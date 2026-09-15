@@ -293,7 +293,11 @@ int PicoServer::Connection::receive_tls(void* context, unsigned char* bytes, std
         tcp_recved(self.client_, static_cast<u16_t>(n));
     return static_cast<int>(n);
 }
-void PicoServer::Connection::close(bool apply) {
+void PicoServer::Connection::close(bool apply, unsigned reason, int tls_result) {
+    if (generation_ && wtp_) {
+        owner_.metrics_.last_wtp_close_reason = reason;
+        owner_.metrics_.last_wtp_tls_result = tls_result;
+    }
     if (client_) {
         tcp_arg(client_, nullptr);
         tcp_recv(client_, nullptr);
@@ -367,7 +371,7 @@ void PicoServer::poll(bool link_up, std::string authority, bool allow_handshake_
     if (!link_up) {
         close_pending();
         for (auto& c : connections_)
-            c.close(false);
+            c.close(false, 1);
         return;
     }
     if (pending_ && (busy() || started / 1000 - pending_since_ms_ >= 10000)) {
@@ -400,7 +404,7 @@ void PicoServer::Connection::poll(std::string_view authority, bool allow_handsha
     if (peer_closed_) {
         // FIN/RST after an acknowledged HTTP response must not cancel its action.
         // TLS close_notify bytes are outside the HTTP acknowledgement boundary.
-        close(response_acknowledged());
+        close(response_acknowledged(), 2);
         return;
     }
     if (!client_)
@@ -409,7 +413,7 @@ void PicoServer::Connection::poll(std::string_view authority, bool allow_handsha
     if ((!handshake_ && (owner_.busy() || now - accepted_ms_ >= 10000)) ||
         (handshake_ && !wtp_ && now - accepted_ms_ >= 15000) || now - progress_ms_ >= 30000) {
         ++owner_.metrics_.timeouts;
-        close(response_acknowledged());
+        close(response_acknowledged(), 3);
         return;
     }
     // Fatal TLS alerts were copied into lwIP, not necessarily delivered. Keep
@@ -473,7 +477,7 @@ void PicoServer::Connection::poll(std::string_view authority, bool allow_handsha
     if (wtp_) {
         endpoint_.poll(now);
         if (endpoint_.closed()) {
-            close();
+            close(false, 4);
             return;
         }
     }
@@ -499,7 +503,7 @@ void PicoServer::Connection::poll(std::string_view authority, bool allow_handsha
                     response_tcp_remaining_ = pending_tcp_bytes_;
             }
         } else if (!retry(result))
-            close();
+            close(false, 5, result);
         return;
     }
     if (!wtp_ && responded_) {
@@ -520,7 +524,7 @@ void PicoServer::Connection::poll(std::string_view authority, bool allow_handsha
         service_.poll();
         if (result <= 0) {
             if (!retry(result))
-                close();
+                close(false, 6, result);
             return;
         }
         plain_size_ = static_cast<std::size_t>(result);

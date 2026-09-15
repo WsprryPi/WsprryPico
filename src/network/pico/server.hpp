@@ -31,6 +31,9 @@ class PicoServer {
         std::uint64_t admitted = 0, rejected = 0, closed = 0, timeouts = 0;
         std::uint64_t max_handshake_us = 0, max_poll_us = 0;
         unsigned peak_active = 0;
+        // Last established WTP closure only; HTTP cleanup cannot overwrite it.
+        unsigned last_wtp_close_reason = 0;
+        int last_wtp_tls_result = 0;
     };
     const Metrics& metrics() const {
         return metrics_;
@@ -44,7 +47,7 @@ class PicoServer {
         Connection(PicoServer&, std::string device, std::string firmware);
         void activate(tcp_pcb*);
         void poll(std::string_view authority, bool allow_handshake_steps);
-        void close(bool apply = false);
+        void close(bool apply = false, unsigned reason = 0, int tls_result = 0);
         static err_t receive(void*, tcp_pcb*, pbuf*, err_t);
         static void error(void*, err_t);
         static err_t sent(void*, tcp_pcb*, u16_t);

@@ -292,3 +292,36 @@ assert not ok(p.ask("STATUS"))["terminal_records"]
 error(p.ask("ARM",arm_body),"JOB_NOT_FOUND")
 p.close()
 print("Retained LOAD/ARM results, terminal LRU and expiry tests passed")
+
+# A competing maximum reply temporarily occupies decoding workspace. Keep the
+# same complete STATUS request bounded and undispatched until space returns.
+for recover in (True, False):
+    p=Peer(); ok(p.hello())
+    p.call(action="poll",available_bytes=42000)
+    request=p.request("STATUS")
+    result=p.send(request)
+    assert not result["closed"] and not result["messages"] and result["pending"]==0
+    result=p.call(action="clock",synchronized=True,now_ns="4999000000")
+    assert not result["closed"] and not result["messages"]
+    if recover:
+        result=p.call(action="poll",available_bytes=65536)
+        responses=[m for m in result["messages"] if m["type"]=="response"]
+        assert len(responses)==1 and responses[0]["request_id"]==request["request_id"]
+        assert ok(responses[0])["state"]=="empty" and not result["closed"]
+        ok(p.ask("PING"))
+    else:
+        # The original deadline wins even if workspace returns at expiry.
+        result=p.call(action="clock",synchronized=True,now_ns="5000000000",available_bytes=65536)
+        assert result["closed"] and not result["messages"]
+        p.reconnect(); ok(p.hello()); ok(p.ask("STATUS"))
+    p.close()
+print("Bounded deferred decoding, same-connection recovery and expiry tests passed")
+
+# Closing an endpoint discards its deferred mutation; it cannot claim later.
+p=Peer(); ok(p.hello()); p.call(action="poll",available_bytes=42000)
+result=p.send(p.request("CLAIM",{"owner_id":"2"*32,"lease_ms":60000}))
+assert not result["closed"] and not result["messages"]
+p.call(action="disconnect",available_bytes=65536)
+p.reconnect(); ok(p.hello()); ok(p.ask("CLAIM",{"owner_id":"2"*32,"lease_ms":60000}))
+p.close()
+print("Disconnect discards deferred mutation without ownership side effects")
