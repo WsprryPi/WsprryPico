@@ -31,6 +31,7 @@ WIRE_SHA='e5b48b92dd2abd74e670f2b2aed3d660c9b357bd4857be6b64b8affedbcee670'
 NAME='wsprrypico-0a60df.local'
 PEER_SHA='06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016'
 CONTINUATION='R3-G2-LOAD-CONTINUATION-v1'
+RECOVERY='R3-G2-LOAD-WIFI-RECOVERY-v1'
 PRIOR_PACKET_SHA='cbe4d13d0c3b19a2ef891366a9b0bcaf12b9077927b7d66da45a4703b8dc1a84'
 RETAINED_BOOT='11dac3985326cb81c49022efcdceb5d4'
 OPS={'HELLO','STATUS','CLAIM','LOAD','ABORT','RELEASE'}
@@ -44,12 +45,14 @@ def request(op,body,rid,session=C7_SESSION):
 def raw_request(q):return frame(json.dumps(q,separators=(',',':')).encode())
 def primary():return request('LOAD',maximum_job(C7_JOB,duration=128000000000),C7_RID)
 def validate_packet(p):
-    require(p['scope'] in ['R3-G2-LOAD-TARGET-v1',CONTINUATION] and p['source_revision']==SOURCE and
+    require(p['scope'] in ['R3-G2-LOAD-TARGET-v1',CONTINUATION,RECOVERY] and p['source_revision']==SOURCE and
         p['serial']==SERIAL and p['device_id']==DEVICE and p['primary']==primary(), 'Exact target scope')
     require(len(raw_request(p['primary']))==52105 and hashlib.sha256(raw_request(p['primary'])).hexdigest()==WIRE_SHA,'Exact primary bytes')
-    continuation=p['scope']==CONTINUATION
+    continuation=p['scope'] in [CONTINUATION,RECOVERY]
+    recovery=p['scope']==RECOVERY
+    if recovery:require(type(p['prepare_retained']) is bool,'Explicit retained preparation selection')
     if continuation:require(p['prior_packet_sha256']==PRIOR_PACKET_SHA and p['expected_boot']==RETAINED_BOOT,'Frozen retained continuation')
-    require(p['limits']==dict(flashes=0 if continuation else 1,bootsel=0 if continuation else 1,primary_loads=1,replays=2,rf_jobs=0,configuration_writes=0,wifi_cycles=0,https_requests=4,network_seconds=90),'Finite limits')
+    require(p['limits']==dict(flashes=0 if continuation else 1,bootsel=0 if continuation else 1,primary_loads=1,replays=2,rf_jobs=0,configuration_writes=0,wifi_cycles=1 if recovery else 0,https_requests=4,network_seconds=90),'Finite limits')
     require(p['cleanup_deadline_utc_ns']-p['work_deadline_utc_ns']==900000000000 and
         p['cleanup_deadline_utc_ns']-p['start_utc_ns']==3600000000000,'Original hour/cleanup reserve')
     for key in ['b_session','inventory_session','owner_id','fresh_request_id','tls_session']:
@@ -101,9 +104,9 @@ def healthy(info,boot):
     require(info['allocator_failures']=='0' and info['launch_epoch']=='0' and
         info['tls_allocation_failures']==0 and all(info[k]==0 for k in
         ['fault_stage','fault_hash','fault_pc','fault_status','dma_irqs','alarm_irqs','tail_irqs']),'Idle counters/faults')
-    require(info['heap_capacity_bytes']-info['allocator_peak_bytes']>=32768,'Observed allocator reserve')
     for core in (0,1):
         require(info[f'core{core}_stack_guard_valid']==1 and info[f'core{core}_stack_fault_status']==0 and info[f'core{core}_stack_used_bytes']<=12288,'Stack guard/reserve')
+    require(info['heap_capacity_bytes']-info['allocator_peak_bytes']>=32768,'Observed allocator reserve')
 
 def response_ok(reply):
     b=reply['body'];require(b['job_id']==C7_JOB and b['state']=='loaded' and len(b['adjustments'])==512,'Complete LOAD body')
@@ -119,7 +122,7 @@ def inventory(root,p,label,b=False):
     require(proc.returncode==0,'Inventory failed: '+label);return finished(root/(label+'.stdout'),'READ_ONLY_INVENTORY')
 
 def deploy(root,p,emit,check):
-    require(p['scope']!='R3-G2-LOAD-CONTINUATION-v1','Continuation has no flash authority')
+    require(p['scope']=='R3-G2-LOAD-TARGET-v1','Continuation has no flash authority')
     check();require(not (root/'deployment.json').exists(),'Single deployment only')
     before=inventory(root,p,'before-a');before_b=inventory(root,p,'before-b',True);inactive(before);inactive(before_b)
     require(before['info']['revision']==p['prior_revision'] and before['wtp']['STATUS']['boot_id']==p['prior_boot'],'Prior image/boot')
@@ -144,6 +147,29 @@ def deploy(root,p,emit,check):
     require(boot!=p['prior_boot'] and configuration(after)==configuration(before),'Boot/configuration preservation')
     healthy(after['info'],boot)
     state.update(boot_id=boot,status='CANDIDATE_VERIFIED');save(root/'deployment.json',state);emit('deployment',state)
+
+def wifi_cycle(root,boot,check,cleanup_deadline):
+    log=Journal(root/'wifi.jsonl');log('start',dict(boot_id=boot));state=dict(off_started=0,on_started=0,status='STARTED');save(root/'wifi-state.json',state)
+    with exclusive_port(Path(f'/dev/serial/by-id/usb-WsprryPi_WsprryPico_{SERIAL}-if00')) as fd:
+        def ask(command):
+            reply=exchange(fd,command,time.monotonic()+10,log,False)
+            log('message',dict(command=command.decode().strip(),reply=reply));require(reply.get('ok') is True,'Wi-Fi recovery acknowledgement');return reply
+        info=ask(b'INFO\n');healthy(info,boot);require(info['status']['state']=='empty','Idle Wi-Fi recovery')
+        check()
+        try:
+            state['off_started']=1;save(root/'wifi-state.json',state);ask(b'WIFI OFF\n')
+            until=time.monotonic()+10
+            while True:
+                info=ask(b'INFO\n');healthy(info,boot)
+                if info['network']['enabled'] is False and not info['network']['withdrawal_pending']:break
+                require(time.monotonic()<until,'Wi-Fi OFF completion deadline');time.sleep(.2)
+        finally:
+            # Restore network enablement even if the OFF acknowledgement is lost.
+            require(time.time_ns()<cleanup_deadline,'Wi-Fi ON cleanup deadline')
+            state['on_started']=1;save(root/'wifi-state.json',state);ask(b'WIFI ON\n')
+        info=ask(b'INFO\n');healthy(info,boot);require(info['network']['enabled'] is True,'Wi-Fi ON state')
+    state['status']='WIFI_RECOVERED';save(root/'wifi-state.json',state);log('finish',state)
+
 
 def wait_network(root,boot,check):
     log=Journal(root/'readiness.jsonl');log('start',dict(boot_id=boot));until=time.monotonic()+90
@@ -240,18 +266,20 @@ def run(root,p,emit,check):
             peer=USB(fd,boot,emit,active_check)
             def ask(op,body,label,rid):return peer.ask(request(op,body,rid),label)
             hello=dict(versions=['WTP/1'],client_name='LOAD-reply-check',client_version='1')
-            if p['scope']==CONTINUATION:
+            if p['scope']==RECOVERY:
+                fixture.setup();fixture.verify();wifi_cycle(root,boot,active_check,p['cleanup_deadline_utc_ns'])
+            if p['scope']==CONTINUATION or (p['scope']==RECOVERY and not p['prepare_retained']):
                 prior=json.loads((root/'prior/run.jsonl').read_text().splitlines()[-1])
                 require(time.monotonic_ns()-prior['monotonic_ns']>=310000000000,'Retained cache aging')
                 result['passed'].append('retained_preparation_reused')
-                fixture.setup();fixture.verify()
+                if p['scope']!=RECOVERY:fixture.setup();fixture.verify()
             else:
                 ask('HELLO',hello,'prime-hello','a'*32);ask('CLAIM',dict(owner_id=p['owner_id'],lease_ms=60000),'prime-claim','b'*32)
                 prime=ask('LOAD',maximum_job(PRIOR_JOB),'prime-load','c'*32)
                 response_ok(dict(prime,body=dict(prime['body'],job_id=C7_JOB)))
                 ask('ABORT',dict(job_id=PRIOR_JOB),'prime-abort','d'*32);ask('RELEASE',{},'prime-release','e'*32)
                 retained_at=time.monotonic();result['passed'].append('retained_job_prepared');save(root/'run-result.json',result)
-                fixture.setup();fixture.verify()
+                if p['scope']!=RECOVERY:fixture.setup();fixture.verify()
                 while time.monotonic()-retained_at<310:active_check();time.sleep(min(1,310-(time.monotonic()-retained_at)))
             ask('HELLO',hello,'test-hello','f'*32)
             s=ask('STATUS',{},'retained-status','0'*32)['body'];require(s['state']=='empty' and s['owner_id'] is None and s['output_active'] is False and len(s['terminal_records'])==1 and s['terminal_records'][0]['job_id']==PRIOR_JOB and s['terminal_records'][0]['state']=='aborted','Retained baseline')
@@ -316,14 +344,16 @@ def run(root,p,emit,check):
         save(root/'run-result.json',result);emit('finish',result)
 
 def admit(root,p,emit,check):
-    require(p['scope']==CONTINUATION and not (root/'deployment.json').exists(),'Single retained admission')
+    require(p['scope'] in [CONTINUATION,RECOVERY] and not (root/'deployment.json').exists(),'Single retained admission')
     check()
     require(digest(root/'prior/test-packet.json')==p['prior_packet_sha256'],'Prior packet')
     prior=json.loads((root/'prior/test-packet.json').read_text())
     require(prior['host_boot_id']==p['host_boot_id'] and prior['image_sha256']==p['image_sha256'],'Same host/image')
     before=inventory(root,p,'before-a');before_b=inventory(root,p,'before-b',True)
     inactive(before);inactive(before_b);healthy(before['info'],p['expected_boot'])
-    require(before['wtp']['STATUS']['terminal_records']==finished(root/'prior/post-restoration-a.stdout','READ_ONLY_INVENTORY')['wtp']['STATUS']['terminal_records'],'Retained preparation unchanged')
+    expected_records=[] if p['scope']==RECOVERY and p['prepare_retained'] else finished(root/'prior/post-restoration-a.stdout','READ_ONLY_INVENTORY')['wtp']['STATUS']['terminal_records']
+    require(before['wtp']['STATUS']['terminal_records']==expected_records,'Retained preparation admission')
+    # The earlier preparation may expire; only the explicitly selected replacement is permitted.
     for value,name in [(before,'a'),(before_b,'b')]:
         old=finished(root/('prior/post-restoration-'+name+'.stdout'),'READ_ONLY_INVENTORY')
         require(configuration(value)==configuration(old) and value['wtp']['STATUS']['boot_id']==old['wtp']['STATUS']['boot_id'] and value['info']['revision']==old['info']['revision'],'Retained board/configuration identity')

@@ -52,6 +52,26 @@ class LoadTargetTests(unittest.TestCase):
             with self.assertRaisesRegex(TimeoutError,'readiness deadline'):target.wait_network(Path('/unused'),'a'*32,lambda:None)
         sleep.assert_called_once_with(.5)
 
+    def test_recovery_scope_allows_one_cycle_and_no_flash(self):
+        p=self.packet();p.update(scope=target.RECOVERY,prepare_retained=True,prior_packet_sha256=target.PRIOR_PACKET_SHA,expected_boot=target.RETAINED_BOOT);p['limits'].update(flashes=0,bootsel=0,wifi_cycles=1);validate_packet(p)
+        for key,value in [('wifi_cycles',2),('flashes',1),('bootsel',1),('rf_jobs',1)]:
+            bad=copy.deepcopy(p);bad['limits'][key]=value
+            with self.assertRaises(ValueError):validate_packet(bad)
+        with self.assertRaisesRegex(ValueError,'no flash authority'):target.deploy(None,p,None,lambda:None)
+
+    def test_wifi_on_attempted_once_after_lost_off_ack(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);commands=[]
+            def exchange(fd,command,*args):
+                commands.append(command)
+                if command==b'INFO\n':return dict(ok=True,status=dict(state='empty'))
+                if command==b'WIFI OFF\n':raise TimeoutError('lost OFF ack')
+                return dict(ok=True)
+            with patch.object(target,'exclusive_port',return_value=contextlib.nullcontext(7)),patch.object(target,'healthy'),patch.object(target,'exchange',side_effect=exchange):
+                with self.assertRaisesRegex(TimeoutError,'lost OFF ack'):target.wifi_cycle(root,'a'*32,lambda:None,10**30)
+            self.assertEqual(commands,[b'INFO\n',b'WIFI OFF\n',b'WIFI ON\n'])
+            state=json.loads((root/'wifi-state.json').read_text());self.assertEqual(state['off_started'],1);self.assertEqual(state['on_started'],1)
+
     def test_complete_reply_and_corrupted_frame(self):
         reply=dict(type='response',protocol='WTP/1',session_id=primary()['session_id'],request_id=primary()['request_id'],op='LOAD',ok=True,body=dict(job_id=primary()['body']['job_id'],state='loaded',adjustments=[dict(event_index=i,requested_frequency_nhz=str(135500000000000 if i%2==0 else 135495000000000),realized_frequency_nhz=str(135500002652407 if i%2==0 else 135494990274310)) for i in range(512)]))
         response_ok(reply);raw=frame(json.dumps(reply,separators=(',',':')).encode());buf=bytearray();got=[]

@@ -1,0 +1,532 @@
+{
+  "schema": "phase11.5-r3-component7-result-v1",
+  "status": "PRIMARY_REPLY_VERIFIED_REPLAY_RESERVE_GATE_FAILED",
+  "bounded_target_validation": "FAILED",
+  "audit_status": "LOAD_REPLY_TARGET_FAILED",
+  "primary_response_verified": true,
+  "full_load_reply_regression_closed": false,
+  "new_full_group2_assertions_closed": 0,
+  "group2_closed": false,
+  "user_context": "User reported an unrelated external router reset and authorized one Wi-Fi recovery cycle, replacement preparation if expired and pending LOAD/replays",
+  "source_revision": "e256633304e03ab85998fde947360ccbaab6c68e",
+  "image_sha256": "b2983da197de0462f3ef4288355dc4b5ce5fe349b0b98d526dce0d6e526a9288",
+  "packet_sha256": "056e4e3188c2b4f906eb6e8e1a70482e167ce84a7ba7823e791edc3514425e10",
+  "target": {
+    "serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "boot_id": "11dac3985326cb81c49022efcdceb5d4",
+    "board": "Pico 2 W / RP2350 Arm",
+    "engine": "pio-dma-gp2",
+    "clock_hz": 138000000,
+    "render_in_ram": true
+  },
+  "counts": {
+    "flashes": 0,
+    "bootsel": 0,
+    "preparation_loads": 1,
+    "primary_loads": 1,
+    "replays": 1,
+    "rf_jobs": 0,
+    "configuration_writes": 0,
+    "wifi_cycles": 1,
+    "https_requests": 1,
+    "fresh_id_replays": 0
+  },
+  "wifi": {
+    "off_started": 1,
+    "on_started": 1,
+    "status": "WIFI_RECOVERED"
+  },
+  "readiness": {
+    "complete": true,
+    "samples": 2,
+    "ended_ns": 414270177429428
+  },
+  "primary_reply": {
+    "frame_request_bytes": 52105,
+    "request_sha256": "e5b48b92dd2abd74e670f2b2aed3d660c9b357bd4857be6b64b8affedbcee670",
+    "response_payload_bytes": 54916,
+    "response_payload_sha256": "af5f053d375afd4e29f5ebc95f2b1ba866dda71624d10ba7781e8e27005696c9",
+    "adjustments": 512,
+    "elapsed_ns": 2175230900,
+    "tls_bracket_bytes": [
+      31384,
+      31384,
+      31384,
+      31384
+    ],
+    "tls_pressure_comparable": true
+  },
+  "replay": {
+    "identical_request_fully_written": true,
+    "response_completed": false,
+    "stop": "Observer reserve gate after full replay request write, before its five-second deadline; not a measured reply timeout",
+    "fresh_request_sent": false
+  },
+  "health_findings": [
+    {
+      "context": "final-a",
+      "reason": "Observed allocator reserve",
+      "heap_capacity_bytes": 219712,
+      "allocator_peak_bytes": 190424,
+      "headroom_bytes": 29288,
+      "required_headroom_bytes": 32768
+    },
+    {
+      "context": "info-414306243668992",
+      "reason": "Observed allocator reserve",
+      "heap_capacity_bytes": 219712,
+      "allocator_peak_bytes": 190424,
+      "headroom_bytes": 29288,
+      "required_headroom_bytes": 32768
+    }
+  ],
+  "minimum_observed_allocator_headroom_bytes": 29288,
+  "required_allocator_headroom_bytes": 32768,
+  "reserve_shortfall_bytes": 3480,
+  "allocator_failures": 0,
+  "tls_allocation_failures": 0,
+  "info_samples": 35,
+  "near_primary_memory": [
+    {
+      "offset_from_primary_ns": -5321436552,
+      "heap_allocated_bytes": 66456,
+      "heap_available_bytes": 153256,
+      "allocator_live_bytes": 69816,
+      "allocator_peak_bytes": 116976,
+      "tls_allocated_bytes": 31384
+    },
+    {
+      "offset_from_primary_ns": -4318996794,
+      "heap_allocated_bytes": 67160,
+      "heap_available_bytes": 152552,
+      "allocator_live_bytes": 70520,
+      "allocator_peak_bytes": 116976,
+      "tls_allocated_bytes": 31384
+    },
+    {
+      "offset_from_primary_ns": -3318950714,
+      "heap_allocated_bytes": 67152,
+      "heap_available_bytes": 152560,
+      "allocator_live_bytes": 70512,
+      "allocator_peak_bytes": 116976,
+      "tls_allocated_bytes": 31384
+    },
+    {
+      "offset_from_primary_ns": -2318231377,
+      "heap_allocated_bytes": 67160,
+      "heap_available_bytes": 152552,
+      "allocator_live_bytes": 70520,
+      "allocator_peak_bytes": 116976,
+      "tls_allocated_bytes": 31384
+    },
+    {
+      "offset_from_primary_ns": -1319070499,
+      "heap_allocated_bytes": 67152,
+      "heap_available_bytes": 152560,
+      "allocator_live_bytes": 70512,
+      "allocator_peak_bytes": 116976,
+      "tls_allocated_bytes": 31384
+    },
+    {
+      "offset_from_primary_ns": -323766572,
+      "heap_allocated_bytes": 67848,
+      "heap_available_bytes": 151864,
+      "allocator_live_bytes": 71208,
+      "allocator_peak_bytes": 116976,
+      "tls_allocated_bytes": 31384
+    },
+    {
+      "offset_from_primary_ns": 699340257,
+      "heap_allocated_bytes": 120256,
+      "heap_available_bytes": 99456,
+      "allocator_live_bytes": 123616,
+      "allocator_peak_bytes": 125304,
+      "tls_allocated_bytes": 31384
+    },
+    {
+      "offset_from_primary_ns": 1697769252,
+      "heap_allocated_bytes": 164896,
+      "heap_available_bytes": 54816,
+      "allocator_live_bytes": 168256,
+      "allocator_peak_bytes": 169944,
+      "tls_allocated_bytes": 31384
+    },
+    {
+      "offset_from_primary_ns": 2705992853,
+      "heap_allocated_bytes": 161288,
+      "heap_available_bytes": 58424,
+      "allocator_live_bytes": 164648,
+      "allocator_peak_bytes": 174976,
+      "tls_allocated_bytes": 31384
+    },
+    {
+      "offset_from_primary_ns": 3744888733,
+      "heap_allocated_bytes": 164112,
+      "heap_available_bytes": 55600,
+      "allocator_live_bytes": 167472,
+      "allocator_peak_bytes": 190424,
+      "tls_allocated_bytes": 31384
+    }
+  ],
+  "transactions": {
+    "prime-hello": {
+      "start": 413955256335605,
+      "written": 246,
+      "wire_bytes": 246,
+      "response_bytes": 341,
+      "response_sha256": "364bdb3894d78044b52220d9ecfa8e0871d65a9748b4a6edb820f2143a0cbb9d",
+      "elapsed_ns": 23162204,
+      "op": "HELLO",
+      "response_received": true
+    },
+    "prime-claim": {
+      "start": 413955282486337,
+      "written": 234,
+      "wire_bytes": 234,
+      "response_bytes": 277,
+      "response_sha256": "ec77011a7da7c5ec3602c8ba408bbc1217ee719ff7f3eacb165533a6fbbef6b6",
+      "elapsed_ns": 23203390,
+      "op": "CLAIM",
+      "response_received": true
+    },
+    "prime-load": {
+      "start": 413955422320860,
+      "written": 53413,
+      "wire_bytes": 53413,
+      "response_bytes": 54916,
+      "response_sha256": "20a53694081b7eed501405459581db45f0dc0943b603cddebb63c2f6b7a1e845",
+      "elapsed_ns": 2465494459,
+      "op": "LOAD",
+      "response_received": true
+    },
+    "prime-abort": {
+      "start": 413957892351675,
+      "written": 215,
+      "wire_bytes": 215,
+      "response_bytes": 250,
+      "response_sha256": "bb49c7b34e62d82c32a534e51405fde9a702dbd1e679289b441077282bad9d0c",
+      "elapsed_ns": 32565990,
+      "op": "ABORT",
+      "response_received": true
+    },
+    "prime-release": {
+      "start": 413957927457546,
+      "written": 174,
+      "wire_bytes": 174,
+      "response_bytes": 169,
+      "response_sha256": "f3b32cab536b3c6f6b6d972e24928aa6eeef904f5297f4b6a9c26535da1f5574",
+      "elapsed_ns": 20009029,
+      "op": "RELEASE",
+      "response_received": true
+    },
+    "test-hello": {
+      "start": 414267950689251,
+      "written": 246,
+      "wire_bytes": 246,
+      "response_bytes": 341,
+      "response_sha256": "402cf782b8064ae1ffc5a59fe8a1c515586a467c5b8a2b3cd59e6e622c0bf08b",
+      "elapsed_ns": 39559548,
+      "op": "HELLO",
+      "response_received": true
+    },
+    "retained-status": {
+      "start": 414267993255901,
+      "written": 173,
+      "wire_bytes": 173,
+      "response_bytes": 425,
+      "response_sha256": "32c00d1dbaba1b9aafc99fdedfaaa3bde0c98fb7f06ff13cb9b43c49bce87cc8",
+      "elapsed_ns": 18685981,
+      "op": "STATUS",
+      "response_received": true
+    },
+    "pre-status-0": {
+      "start": 414272178040783,
+      "written": 173,
+      "wire_bytes": 173,
+      "response_bytes": 425,
+      "response_sha256": "53369f0958a8eedf651a9691f35fb08f6842de7c374f39be71226a4d6995339b",
+      "elapsed_ns": 21078678,
+      "op": "STATUS",
+      "response_received": true
+    },
+    "pre-status-1": {
+      "start": 414277202242261,
+      "written": 173,
+      "wire_bytes": 173,
+      "response_bytes": 425,
+      "response_sha256": "00fbcc95ba9ccf280577c43e7174fe9d56b53fd2c701f19ecd519a7b20008b95",
+      "elapsed_ns": 22328304,
+      "op": "STATUS",
+      "response_received": true
+    },
+    "pre-status-2": {
+      "start": 414282227744998,
+      "written": 173,
+      "wire_bytes": 173,
+      "response_bytes": 425,
+      "response_sha256": "8bece4308e71100dbd09b93f9413be96d6e627ab3b115e322a0d8425ee85ffcf",
+      "elapsed_ns": 22452271,
+      "op": "STATUS",
+      "response_received": true
+    },
+    "pre-status-3": {
+      "start": 414287253419291,
+      "written": 173,
+      "wire_bytes": 173,
+      "response_bytes": 425,
+      "response_sha256": "4d8bfaf2d66f2575c54b145ee4076fea5430d1aa4e1531dcd1f52425c0259a6e",
+      "elapsed_ns": 21980323,
+      "op": "STATUS",
+      "response_received": true
+    },
+    "pre-status-4": {
+      "start": 414292278410699,
+      "written": 173,
+      "wire_bytes": 173,
+      "response_bytes": 425,
+      "response_sha256": "5db5562e1340ab03426e1eb2a3416d6796e786fe33f3375db923590d588ba9ef",
+      "elapsed_ns": 23670541,
+      "op": "STATUS",
+      "response_received": true
+    },
+    "pre-status-5": {
+      "start": 414297305221515,
+      "written": 173,
+      "wire_bytes": 173,
+      "response_bytes": 425,
+      "response_sha256": "c43a1c0188d24e56d094c9843eaecf7df0b85d58779edcf0e8b11c55fa3c8f1e",
+      "elapsed_ns": 25535706,
+      "op": "STATUS",
+      "response_received": true
+    },
+    "pre-status-6": {
+      "start": 414302333920518,
+      "written": 173,
+      "wire_bytes": 173,
+      "response_bytes": 425,
+      "response_sha256": "6d6bc68ab4a76859b5b63c4bdcb89ff96ee113b10df0aee0da7bf02805b44ec3",
+      "elapsed_ns": 23683563,
+      "op": "STATUS",
+      "response_received": true
+    },
+    "test-claim": {
+      "start": 414302360906461,
+      "written": 234,
+      "wire_bytes": 234,
+      "response_bytes": 277,
+      "response_sha256": "068cacdadd3ca299fd67b97f34ad0bf759f68982a72beac10e9eb34e86c0532a",
+      "elapsed_ns": 20576127,
+      "op": "CLAIM",
+      "response_received": true
+    },
+    "primary": {
+      "start": 414302498780259,
+      "written": 52105,
+      "wire_bytes": 52105,
+      "response_bytes": 54916,
+      "response_sha256": "af5f053d375afd4e29f5ebc95f2b1ba866dda71624d10ba7781e8e27005696c9",
+      "elapsed_ns": 2175230900,
+      "op": "LOAD",
+      "response_received": true
+    },
+    "identical-replay": {
+      "start": 414304758720851,
+      "written": 52105,
+      "wire_bytes": 52105,
+      "op": "LOAD",
+      "response_received": false
+    },
+    "cleanup-hello": {
+      "start": 414306422024052,
+      "written": 248,
+      "wire_bytes": 248,
+      "response_bytes": 341,
+      "response_sha256": "9eea9e61c926cf9305a29fff0fd9d7a0860487e6f5cfa40ac8c817ea3d86e6dc",
+      "elapsed_ns": 19475293,
+      "op": "HELLO",
+      "response_received": true
+    },
+    "cleanup-claim": {
+      "start": 414306444199115,
+      "written": 233,
+      "wire_bytes": 233,
+      "response_bytes": 276,
+      "response_sha256": "eda9a55edd981d80bb04772138eb15ab6f17f55c7ef4af05275cc74130c9b7e1",
+      "elapsed_ns": 19182202,
+      "op": "CLAIM",
+      "response_received": true
+    },
+    "cleanup-release": {
+      "start": 414306465928717,
+      "written": 174,
+      "wire_bytes": 174,
+      "response_bytes": 169,
+      "response_sha256": "54b68af9e3805d45169b926ccf09885efd004426fe3f0d3c0dc9e3a7d62aa5b0",
+      "elapsed_ns": 15713231,
+      "op": "RELEASE",
+      "response_received": true
+    }
+  },
+  "final_devices": {
+    "a": {
+      "revision": "e256633304e0",
+      "status": {
+        "boot_id": "11dac3985326cb81c49022efcdceb5d4",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": [
+          {
+            "job_id": "8d8734400ddd2d472799f3d08a92e6b5",
+            "state": "aborted",
+            "ended_monotonic_ns": "44227766836000",
+            "output_active": false
+          },
+          {
+            "job_id": "c339ee30075d458ccc3047bb3d8f8b18",
+            "state": "aborted",
+            "ended_monotonic_ns": "43879286206000",
+            "output_active": false
+          }
+        ]
+      },
+      "scheduling_enabled": false,
+      "configuration_preserved": true
+    },
+    "b": {
+      "revision": "8921a7008183",
+      "status": {
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "scheduling_enabled": false,
+      "configuration_preserved": true
+    }
+  },
+  "restoration": {
+    "verified": true,
+    "fixture_restored": true,
+    "installed_pid": "1957",
+    "installed_sha256": "c19461bc6d2ebe7cae61798ad9acae8d43dfbec3ee57c288e4ef41e9c82b8273",
+    "protected_host_files_services_preserved": true,
+    "management_addresses_radios_restored": true
+  },
+  "budget": {
+    "start_utc_ns": 1789469202129875000,
+    "work_deadline_utc_ns": 1789471902129875000,
+    "cleanup_deadline_utc_ns": 1789472802129875000,
+    "final_verification_utc_ns": 1789469951626261024,
+    "elapsed_to_final_verification_seconds": 749.496386024,
+    "deadline_extended": false
+  },
+  "evidence": {
+    "local_root": "build/phase11-5-r3-group2-component7/evidence",
+    "remote_root": "/home/pi/phase11-5-r3-v2-load-reply-c10-20260915",
+    "files_sha256": {
+      "admit.jsonl": "677ae3d1ed2f76696f7a66bc78e9e2507ea4d4a38be94f5cc78694151d44a54e",
+      "before-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before-a.stdout": "87d2b423dd6eeb3867963bad04fe528268ab066a53e139da2526117135c2ff58",
+      "before-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before-b.stdout": "66bd1d7754a6a48303e9351bfa6bcb53adc9b37fbe35fa5aec628fd297b181ee",
+      "capture-ap.log": "278de949029182fc09e7e22a2751efe7be45180d06b74b1b251e9ade8aeea89f",
+      "capture-client.log": "c9856750f16bd1c6cd06653df0e5da9da858f5781c5a912c6d5eb70680728b9a",
+      "client.log": "0ed31bc67d3fc94cbb73ec8e9ab9e760f937acc2d89658d5dd4a008bdd8e1a86",
+      "deployment.json": "b973d7ec82ac4ab1102756d1afbfff6633ae7d1915b18827be36b52f736c166e",
+      "dhcp.log": "e7d66f9915a6e71f7273cf017de56e18e6e61c330b3084c6ba6cc33442182c27",
+      "final-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "final-a.stdout": "e63055dcb58dad1a91e403da62ecbb0b48d513d09204e49fdde0d82009e29e33",
+      "final-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "final-b.stdout": "516510ffbabafee98cdda6c9e2b88189b763509c85fd38cd15a991a1cef63141",
+      "fixture-state.json": "40df5fc72263eecb3ae304bdc239b64eb6f619d79d82926c1439ad30d3f35241",
+      "fixture.jsonl": "e3e31237c93e560ea375caad182b6cb0c5a33fa97ac12a1d488ba87879859480",
+      "frozen/audit_phase11_5_load_reply_target.py": "3e49f7fe90551ae5e9f65557c6ed707094ac6e640b7744d138bd9677507a6fda",
+      "frozen/phase11_5_load_reply_target.py": "41772d041fbb63b3e1247e007c353bcf95132e28410075a2f8045df8030e651c",
+      "network-ready.json": "84a35a06d3e0fc5df5f8ae802fc82cccc9272ed5efd12900447cf04d17b48bcb",
+      "network-result.json": "031d59bf4487ec6c16393d10ccad3aeb1e22deaba3d1cdad9dd3c94bc26e15d3",
+      "network.jsonl": "a45ca445ab1961f8c12bac46781cf5f9634336e53bc4c69c06b2d6fe80097058",
+      "network.stderr": "3f6f961d7db591150f7a163f3d103d5032a49eb17fa9814f11de70326edd6314",
+      "network.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "packet.json": "26a308bc73ccf24dadf93787b0d65126c4766d6fbd46755b07c351da29c43dbd",
+      "post-restoration-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "post-restoration-a.stdout": "3830b2ab286711e8eaecbdfcae9f5c291d0dd8a7a07eec7f1a44c706c6f68fbc",
+      "post-restoration-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "post-restoration-b.stdout": "ff0788e168906dbf9234ff2bc4eda1086c130ea1579046d44a36ac8b9140c986",
+      "post-restoration-check.py": "053d321bb19ac0cf1f97e0e6db488e0efac49f15e02218e50809d4dc5c4dadb0",
+      "post-restoration-host.json": "4921b37a3d547b51bccd29c8e76a68430f073e126a2964e7f59e089b0114f443",
+      "prior/after-flash-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prior/after-flash-a.stdout": "99276236bc8995b5e3db9649caf48c61b72c5ee691c35906001f22ffe32bdc7a",
+      "prior/before-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prior/before-a.stdout": "c3ee12851a1e4775ad605b83bf98aaaa35fbccd45ea43caa653c9ad6e706747e",
+      "prior/before-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prior/before-b.stdout": "cdad8c7afd6f4f7ac25d041aa99f19261e8beedc0ff82ce039cdb63d810ef700",
+      "prior/capture-ap.log": "c4623edc00f16d150a4c29efdabfa07360dd119aef87b3e0404b228d7b0cd9a3",
+      "prior/capture-client.log": "aa7807b1b09a7f055bb0a03b77fb095cf052a842c2bbf7c277db2f59fc73995b",
+      "prior/client.log": "45bc8dcec3b14650e058aeac697056dee7e9d531c0719daa1dc29a601fdf00db",
+      "prior/deploy.jsonl": "36e5f9fad3131d56757b249f4cc85cf2c8351fcad3e46becf62b56a287beea9d",
+      "prior/deployment.json": "0e9997835b41f95898d17fd8978a8b57ec160aa901c9c5998186093532f8ffb2",
+      "prior/dhcp.log": "5b4f61c6726cb1d4b54d00b5ad8ee034a0eee38e09a5cccdc6c4179556356b32",
+      "prior/final-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prior/final-a.stdout": "dc33fd3e1782edcd8af5f91867d15610f277b6050af7f9cc22154acc72be94ff",
+      "prior/fixture-state.json": "9be99b0daea305cdcb7dfe22014e986c9ab5939ce1e9c07d5b7188e1523c1d2e",
+      "prior/fixture.jsonl": "4613eb20b417ed2561d84829c01ecb413cff0cfe6a3f1cbb17981c133f45813d",
+      "prior/flash.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prior/flash.stdout": "cb716f468a9bceb533036e6e6dd4ee4dd8b6464837c6667424650e1f7a8401e2",
+      "prior/frozen/__pycache__/phase11_5_load_reply_target.cpython-314.pyc": "6251ee72e10265de6dc9b0b5040f87e20e7c76388d33afef0f00ae9c3a58de53",
+      "prior/frozen/audit_phase11_5_load_reply_target.py": "e2c48e39742ab39a287f74a05822ecb3b339d42027c8c04474d841cbad02767d",
+      "prior/frozen/phase11_5_load_reply_target.py": "dd6f8b3af92004d0b9edd4f217bf0f57815428b98300cc56e70b59b9efd075d3",
+      "prior/network-ready.json": "d446a27d0318a567f2694931d28be4a55994451fb7c504cb31d969bb30520c11",
+      "prior/network-result.json": "031d59bf4487ec6c16393d10ccad3aeb1e22deaba3d1cdad9dd3c94bc26e15d3",
+      "prior/network.jsonl": "ab4373defd8d52849460cd2fedfa84d6b1a218437d2a3ebc2c2db4d521c4d028",
+      "prior/network.stderr": "a346f0c1ba72368fe1878d68993414fb10ef77120255a9a8a1847b805db361d0",
+      "prior/network.stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prior/packet.json": "f8ee3cafed0057f5e248159ef56dd0f5a593d6a77f44f4948a82fedccdce3028",
+      "prior/post-restoration-a.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prior/post-restoration-a.stdout": "9de062cd648d5b3a526cd9b2f8a0eac63ac85603ece176cdb4a4de87d946df8a",
+      "prior/post-restoration-b.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prior/post-restoration-b.stdout": "fffcca0aa02e72131ce9eafa5837cd9c2418cd3fd8b17e5f57e40f4d11acd097",
+      "prior/post-restoration-check.py": "e8e3ce83c97491b679a2a7cf6bd047444eadb218ecb5cd9260486c6dcbe4fdc0",
+      "prior/post-restoration-host.json": "8b1ce9a318081150a5191093a280614fcf55bda3fc3d776824fb7c0ee714b917",
+      "prior/run-result.json": "a79f9d54df7dbe61505ac9c25261031391ad8526059e208babf111f71d2018ff",
+      "prior/run.jsonl": "8b1e66d835e93bc7b48eddc9f12bd6642c8a56d2ff5fff318e85a03fec7bec9b",
+      "prior/supervisor.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prior/test-packet.json": "cbe4d13d0c3b19a2ef891366a9b0bcaf12b9077927b7d66da45a4703b8dc1a84",
+      "prior/time-local.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "readiness.jsonl": "f9c53932c60f6ba7ceffc08ea1e1aee693bff9edc12875725eb0efeaa4d5bfba",
+      "run-result.json": "39188528b2cef6ac995d44cb070d9c5e82af97c91a148aab03fff3520fd3448f",
+      "run.jsonl": "6ba4186f40e1cf6d240568e20f809498a6a789d87c48601ca46f333121ed465e",
+      "supervisor.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "test-packet.json": "056e4e3188c2b4f906eb6e8e1a70482e167ce84a7ba7823e791edc3514425e10",
+      "time-local.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "wifi-state.json": "08df78a7b2286cbe612f972085d6d2b7a7e70bfcdd9051996c665b93d6c1b233",
+      "wifi.jsonl": "2b148abc2addf6a32333a7d2a264df8e917b2e859e2857b8c1385690d7bf35e5"
+    },
+    "archive_sha256": "d03132e6763942a38c5f8aeab19c449d8289699080e797548a8e8e08dc5a9ded"
+  },
+  "validation": {
+    "affected_ctest_targets": 8,
+    "runner_cases": 12,
+    "prior_evidence_mutations": 15,
+    "continuation_evidence_mutations": 8,
+    "recovery_rejected_mutations": 18,
+    "lower_pressure_remains_failed": true
+  },
+  "source_impact": "Host recovery runner, auditor, tests and records only; installed firmware remains e256633 and reserves are unchanged",
+  "remaining": [
+    "Reproduce and reduce the replay-stage peak without relaxing the 32768-byte reserve",
+    "First replay completion, fresh-ID replay and full post-LOAD observation remain unqualified",
+    "Broader Group 2 RF/capacity/timeout/USB-pressure/reclamation gates remain open"
+  ],
+  "diagnostic_lead": "codec.cpp materializes 512 json::Value views while input pages and decoded Job event storage coexist; examine exact replay-stage allocation lifetime. Not yet proven as the captured peak site.",
+  "source_sha256": {
+    "scripts/phase11_5_load_reply_target.py": "f212a67687edef50a6c6f29d9ed98bcad190389f45c6c3ed1e4648025f6c48ef",
+    "scripts/audit_phase11_5_load_reply_target.py": "e6740f3dca51e7a43011af6927ac4bff1a3e2b3fa17bc47c25e9ae7690889dac",
+    "tests/phase11_5_load_reply_target_tests.py": "e26db3c7f2c71af4010fd26e12ea24e85ff5538fc7149bae0845344ce02925af",
+    "tests/phase11_5_load_reply_recovery_audit_tests.py": "8401dad911d1f943058d6cb5daedd505d953e35c39fdaf01241f94cd48ab0c84"
+  }
+}

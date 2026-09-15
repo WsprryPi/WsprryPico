@@ -22,7 +22,7 @@ The user has now said Execute. Standing finite approvals remain active.
    - 1.3 PASS: native QRSS/FSKCW/DFCW submissions in checkpoints 040–042;
      acknowledged-ARM loss, local completion and original-session reconciliation
      in 043. Original harness failures remain separately recorded.
-2. **Capacity and pressure — OPEN (component 6 network readiness blocked; primary target check pending)**
+2. **Capacity and pressure — OPEN (primary reply verified; replay reserve gate open)**
    - 2.1 Complete maximum WTP, HTTP and job capacity assertions.
    - 2.2 Verify supported combined load and bounded overload rejection.
    - 2.3 Complete WTP timeout and USB pressure mechanisms.
@@ -35,7 +35,26 @@ The user has now said Execute. Standing finite approvals remain active.
    - 4.2 Finish adversarial review, repairs and affected retests.
    - 4.3 Restore, verify final state, commit, push and report.
 
-## Latest component 6 result
+## Latest component 7 result
+
+[Component 7](phase11-5-r3-v2-component7-review.md) completed the authorized
+single Wi-Fi recovery cycle and replacement retained-state preparation. The
+exact primary LOAD returned all 512 adjustments in 2.175 seconds under measured
+31,384-byte TLS allocation. The first identical replay was fully written, but
+the observer stopped before its response completed: allocator peak headroom was
+29,288 bytes, below the unchanged 32,768-byte reserve. The fresh-ID replay was
+not sent. No allocation failure or RF operation occurred.
+
+The primary response is verified; full LOAD-regression acceptance and Group 2
+remain OPEN. Both devices are independently Empty/inactive/unowned, configuration
+is preserved, and the host fixture is restored. No firmware changed. The next
+software step is to reproduce and reduce the replay-stage memory peak, then
+complete the remaining target checks under a subsequent bounded authorization.
+See the [result](phase11-5-r3-v2-component7-result.json) for exact identities,
+counters and evidence hashes. Prior failed attempts remain historical evidence;
+the unrelated external router reset is user-reported context.
+
+## Historical component 6 result
 
 [Component 6](phase11-5-r3-v2-component6-review.md) verified the same installed
 image and retained E6 record. The corrected observer passed, but Pico network
