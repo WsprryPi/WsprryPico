@@ -4,7 +4,22 @@ Group 1 is CLOSED at checkpoint 043. Group 2 is OPEN. This record now includes
 C1–C5, E5 and R5. Checkpoint 048 ends diagnostic period 2 OPEN. Older preparation
 statements below are historical, not live fixture state.
 
-## Latest component 8 software result
+## Latest component 9 target result — bounded LOAD/replays CLOSED
+
+[Component 9](phase11-5-r3-v2-component9-review.md) passes the exact primary,
+identical replay and fresh-ID LOAD reply on clean `98f5797`, each within five
+seconds, with all 512 adjustments and comparable TLS allocation. The complete
+90-second observation and four HTTPS status reads pass. Peak allocator headroom
+is 36,960 bytes against the unchanged 32,768-byte reserve; no allocation failure,
+fault or RF activity occurred. Independent A/B and host restoration is verified.
+
+The bounded retained-state/TLS LOAD-reply regression is CLOSED. Broader Group 2
+RF/capacity/timeout/USB-pressure assertions remain OPEN; no maximum simultaneous
+workload or RF qualification is inferred. Previous failures remain historical.
+The [result](phase11-5-r3-v2-component9-result.json) binds the tested image, boot,
+measurements and finite counters.
+
+## Historical component 8 software result
 
 [Component 8](phase11-5-r3-v2-component8-review.md) removes the temporary
 512-element JSON-view vector during LOAD decoding. The full production replay

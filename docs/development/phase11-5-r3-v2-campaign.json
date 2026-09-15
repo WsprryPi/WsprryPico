@@ -248,14 +248,14 @@
   },
   "image_policy_current": "Retain the tested RF-capable image on both A and separately authorized B; reflash only for demonstrated source defects. B has no ARM or RF authority.",
   "latest_verified_state": {
-    "recorded_utc": "2026-09-15T10:59:11.626261+00:00",
-    "source_revision": "e256633304e03ab85998fde947360ccbaab6c68e",
-    "a_boot": "11dac3985326cb81c49022efcdceb5d4",
+    "recorded_utc": "2026-09-15T11:39:58.447312+00:00",
+    "source_revision": "98f5797d77fb2bc4c11a4e80f6ff35d7ad16a5b5",
+    "a_boot": "b1c0af7bef6ef0bef8f5e44130182149",
     "b_boot": "6684b4b197d80cfa0ce83b3aaf205cb0",
     "a": {
-      "source": "e256633304e0",
+      "source": "98f5797d77fb",
       "status": {
-        "boot_id": "11dac3985326cb81c49022efcdceb5d4",
+        "boot_id": "b1c0af7bef6ef0bef8f5e44130182149",
         "state": "empty",
         "output_active": false,
         "owner_id": null,
@@ -264,13 +264,13 @@
           {
             "job_id": "8d8734400ddd2d472799f3d08a92e6b5",
             "state": "aborted",
-            "ended_monotonic_ns": "44227766836000",
+            "ended_monotonic_ns": "384943220000",
             "output_active": false
           },
           {
             "job_id": "c339ee30075d458ccc3047bb3d8f8b18",
             "state": "aborted",
-            "ended_monotonic_ns": "43879286206000",
+            "ended_monotonic_ns": "33328355000",
             "output_active": false
           }
         ]
@@ -291,8 +291,8 @@
     },
     "fixture_restored": true,
     "active_packet": null,
-    "latest_observation_result": "Component 7 Wi-Fi recovered; exact primary LOAD reply verified under TLS; first replay stopped on allocator reserve; independent A/B and host restoration verified",
-    "cumulative_counter_policy": "Prior periods preserved. Component 7 adds one Wi-Fi cycle, one preparation LOAD, one primary and one fully written replay; zero RF, flash, BOOTSEL or CONFIG write. No cross-boot counter inference."
+    "latest_observation_result": "Component 9 PASS: primary and both 512-event replays under TLS; reserve and observation gates pass; independent A/B and host restoration verified",
+    "cumulative_counter_policy": "Prior periods preserved. Component 9 adds one BOOTSEL/flash, one preparation, one primary and two replays; zero RF, Wi-Fi cycles or CONFIG writes. No cross-boot allocator counter inference."
   },
   "e3": {
     "status": "E3_IDLE_BOUNDARIES_VERIFIED",
@@ -1650,5 +1650,72 @@
     },
     "result": "docs/development/phase11-5-r3-v2-component8-result.json",
     "review": "docs/development/phase11-5-r3-v2-component8-review.md"
+  },
+  "historical_latest_verified_state_before_component9": {
+    "recorded_utc": "2026-09-15T10:59:11.626261+00:00",
+    "source_revision": "e256633304e03ab85998fde947360ccbaab6c68e",
+    "a_boot": "11dac3985326cb81c49022efcdceb5d4",
+    "b_boot": "6684b4b197d80cfa0ce83b3aaf205cb0",
+    "a": {
+      "source": "e256633304e0",
+      "status": {
+        "boot_id": "11dac3985326cb81c49022efcdceb5d4",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": [
+          {
+            "job_id": "8d8734400ddd2d472799f3d08a92e6b5",
+            "state": "aborted",
+            "ended_monotonic_ns": "44227766836000",
+            "output_active": false
+          },
+          {
+            "job_id": "c339ee30075d458ccc3047bb3d8f8b18",
+            "state": "aborted",
+            "ended_monotonic_ns": "43879286206000",
+            "output_active": false
+          }
+        ]
+      },
+      "scheduling_enabled": false
+    },
+    "b": {
+      "source": "8921a7008183",
+      "status": {
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "scheduling_enabled": false
+    },
+    "fixture_restored": true,
+    "active_packet": null,
+    "latest_observation_result": "Component 7 Wi-Fi recovered; exact primary LOAD reply verified under TLS; first replay stopped on allocator reserve; independent A/B and host restoration verified",
+    "cumulative_counter_policy": "Prior periods preserved. Component 7 adds one Wi-Fi cycle, one preparation LOAD, one primary and one fully written replay; zero RF, flash, BOOTSEL or CONFIG write. No cross-boot counter inference."
+  },
+  "component9": {
+    "status": "LOAD_REPLY_TARGET_PASS",
+    "counts": {
+      "flashes": 1,
+      "bootsel": 1,
+      "preparation_loads": 1,
+      "primary_loads": 1,
+      "replays": 2,
+      "rf_jobs": 0,
+      "configuration_writes": 0,
+      "wifi_cycles": 0,
+      "https_requests": 4
+    },
+    "bounded_load_reply_regression_closed": true,
+    "full_load_reply_regression_closed": true,
+    "group2_closed": false,
+    "result": "docs/development/phase11-5-r3-v2-component9-result.json",
+    "review": "docs/development/phase11-5-r3-v2-component9-review.md",
+    "fixture_restored": true
   }
 }

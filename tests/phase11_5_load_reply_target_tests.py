@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 from phase11_5_load_reply_target import primary,raw_request,request,validate_packet,response_ok,SOURCE,SERIAL,DEVICE,WIRE_SHA
-from audit_phase11_5_load_reply_target import wire_decode
+from audit_phase11_5_load_reply_target import wire_decode,pressure_brackets
 from validate_wtp_contract import frame
 import phase11_5_load_reply_target as target
 
@@ -19,6 +19,24 @@ class LoadTargetTests(unittest.TestCase):
         return dict(b_session='1'*32,inventory_session='2'*32,owner_id='3'*32,fresh_request_id='4'*32,tls_session='5'*32,scope='R3-G2-LOAD-TARGET-v1',source_revision=SOURCE,serial=SERIAL,device_id=DEVICE,primary=primary(),limits=dict(flashes=1,bootsel=1,primary_loads=1,replays=2,rf_jobs=0,configuration_writes=0,wifi_cycles=0,https_requests=4,network_seconds=90),start_utc_ns=0,work_deadline_utc_ns=2700000000000,cleanup_deadline_utc_ns=3600000000000)
     def test_exact_frozen_request(self):
         raw=raw_request(primary());self.assertEqual(len(raw),52105);self.assertEqual(hashlib.sha256(raw).hexdigest(),WIRE_SHA);validate_packet(self.packet())
+    def test_repaired_candidate_scope_is_exact_and_bounded(self):
+        p=self.packet();p.update(scope=target.REPLAY_SCOPE,source_revision=target.REPLAY_SOURCE);validate_packet(p)
+        for key in p['limits']:
+            bad=copy.deepcopy(p);bad['limits'][key]+=1
+            with self.subTest(key=key),self.assertRaises(ValueError):validate_packet(bad)
+        for source in [SOURCE,'f'*40]:
+            bad=copy.deepcopy(p);bad['source_revision']=source
+            with self.assertRaises(ValueError):validate_packet(bad)
+
+    def test_tls_comparability_covers_each_complete_exchange(self):
+        tx={k:dict(start=i*3*10**9,elapsed_ns=2*10**9,response=True) for i,k in enumerate(['primary','identical-replay','fresh-id-replay'])}
+        infos=[dict(monotonic_ns=i*10**9,value=dict(value=dict(tls_allocated_bytes=31384))) for i in range(-1,10)]
+        self.assertTrue(all(x['comparable'] for x in pressure_brackets(tx,infos).values()))
+        infos[-2]['value']['value']['tls_allocated_bytes']=1000
+        brackets=pressure_brackets(tx,infos)
+        self.assertTrue(brackets['primary']['comparable']);self.assertFalse(brackets['fresh-id-replay']['comparable'])
+        self.assertFalse(pressure_brackets(tx,infos[:1])['fresh-id-replay']['bracketed'])
+
     def test_scope_changes_rejected(self):
         for key in self.packet()['limits']:
             p=self.packet();p['limits'][key]+=1

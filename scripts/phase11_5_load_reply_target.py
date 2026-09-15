@@ -22,6 +22,8 @@ from phase11_5_network_fixture import Fixture
 from phase11_5_r3_v2_admission import maximum_job, candidate
 from validate_wtp_contract import frame, SchemaValidator, loads_strict
 
+REPLAY_SCOPE='R3-G2-LOAD-TARGET-v2'
+REPLAY_SOURCE='98f5797d77fb2bc4c11a4e80f6ff35d7ad16a5b5'
 SOURCE='e256633304e03ab85998fde947360ccbaab6c68e'
 C7_SESSION='d2f0af9141101f9a5c0d61e7cdee7983'
 C7_RID='7082c6ffbb9d466eac3cfc636ba6538a'
@@ -45,7 +47,7 @@ def request(op,body,rid,session=C7_SESSION):
 def raw_request(q):return frame(json.dumps(q,separators=(',',':')).encode())
 def primary():return request('LOAD',maximum_job(C7_JOB,duration=128000000000),C7_RID)
 def validate_packet(p):
-    require(p['scope'] in ['R3-G2-LOAD-TARGET-v1',CONTINUATION,RECOVERY] and p['source_revision']==SOURCE and
+    require(p['scope'] in ['R3-G2-LOAD-TARGET-v1',REPLAY_SCOPE,CONTINUATION,RECOVERY] and p['source_revision']==(REPLAY_SOURCE if p['scope']==REPLAY_SCOPE else SOURCE) and
         p['serial']==SERIAL and p['device_id']==DEVICE and p['primary']==primary(), 'Exact target scope')
     require(len(raw_request(p['primary']))==52105 and hashlib.sha256(raw_request(p['primary'])).hexdigest()==WIRE_SHA,'Exact primary bytes')
     continuation=p['scope'] in [CONTINUATION,RECOVERY]
@@ -97,8 +99,8 @@ class USB:
                 require(time.monotonic()<=end,'Five-second exchange deadline');return response
         raise TimeoutError('Five-second exchange deadline; no retry: '+label)
 
-def healthy(info,boot):
-    require(info['device_id']==DEVICE and info['revision']==SOURCE[:12] and info['status']['boot_id']==boot and
+def healthy(info,boot,source=SOURCE):
+    require(info['device_id']==DEVICE and info['revision']==source[:12] and info['status']['boot_id']==boot and
         info['status']['output_active'] is False and info['status']['enabled'] is False and not info['recovery_boot'],'INFO identity/inactive')
     # Console encodes these uint64 counters as decimal strings, even at zero.
     require(info['allocator_failures']=='0' and info['launch_epoch']=='0' and
@@ -122,7 +124,7 @@ def inventory(root,p,label,b=False):
     require(proc.returncode==0,'Inventory failed: '+label);return finished(root/(label+'.stdout'),'READ_ONLY_INVENTORY')
 
 def deploy(root,p,emit,check):
-    require(p['scope']=='R3-G2-LOAD-TARGET-v1','Continuation has no flash authority')
+    require(p['scope'] in ['R3-G2-LOAD-TARGET-v1',REPLAY_SCOPE],'Continuation has no flash authority')
     check();require(not (root/'deployment.json').exists(),'Single deployment only')
     before=inventory(root,p,'before-a');before_b=inventory(root,p,'before-b',True);inactive(before);inactive(before_b)
     require(before['info']['revision']==p['prior_revision'] and before['wtp']['STATUS']['boot_id']==p['prior_boot'],'Prior image/boot')
@@ -145,7 +147,7 @@ def deploy(root,p,emit,check):
     while not Path(f'/dev/serial/by-id/usb-WsprryPi_WsprryPico_{SERIAL}-if00').exists() and time.monotonic()<end:time.sleep(.2)
     after=inventory(root,p,'after-flash-a');boot=candidate(after,p)
     require(boot!=p['prior_boot'] and configuration(after)==configuration(before),'Boot/configuration preservation')
-    healthy(after['info'],boot)
+    healthy(after['info'],boot,p['source_revision'])
     state.update(boot_id=boot,status='CANDIDATE_VERIFIED');save(root/'deployment.json',state);emit('deployment',state)
 
 def wifi_cycle(root,boot,check,cleanup_deadline):
@@ -171,13 +173,13 @@ def wifi_cycle(root,boot,check,cleanup_deadline):
     state['status']='WIFI_RECOVERED';save(root/'wifi-state.json',state);log('finish',state)
 
 
-def wait_network(root,boot,check):
+def wait_network(root,boot,check,source=SOURCE):
     log=Journal(root/'readiness.jsonl');log('start',dict(boot_id=boot));until=time.monotonic()+90
     try:
         with exclusive_port(Path(f'/dev/serial/by-id/usb-WsprryPi_WsprryPico_{SERIAL}-if00')) as fd:
             consecutive=0
             while time.monotonic()<until:
-                check();info=exchange(fd,b'INFO\n',min(until,time.monotonic()+5),log,False);log('info',info);healthy(info,boot)
+                check();info=exchange(fd,b'INFO\n',min(until,time.monotonic()+5),log,False);log('info',info);healthy(info,boot,source)
                 network=info['network']
                 ready=(network['initialized'] and network['enabled'] and network['link_status']==3 and network['ipv4']=='10.77.15.10' and network['control_listening'])
                 consecutive=consecutive+1 if ready else 0
@@ -254,7 +256,7 @@ def run(root,p,emit,check):
             with exclusive_port(Path(f'/dev/serial/by-id/usb-WsprryPi_WsprryPico_{SERIAL}-if00')) as console:
                 next_at=time.monotonic()
                 while not stop.is_set():
-                    check();began=time.monotonic_ns();info=exchange(console,b'INFO\n',time.monotonic()+5,lambda k,v:emit('console_'+k,v),False);emit('info',dict(began_ns=began,value=info));healthy(info,boot);info_ready.set();next_at+=1;stop.wait(max(0,next_at-time.monotonic()))
+                    check();began=time.monotonic_ns();info=exchange(console,b'INFO\n',time.monotonic()+5,lambda k,v:emit('console_'+k,v),False);emit('info',dict(began_ns=began,value=info));healthy(info,boot,p['source_revision']);info_ready.set();next_at+=1;stop.wait(max(0,next_at-time.monotonic()))
         except BaseException as e:errors.append(str(e));stop.set();emit('failure',dict(worker='info',error=str(e)))
     def active_check():
         check();require(not stop.is_set() and not errors,'Observer failure')
@@ -284,7 +286,7 @@ def run(root,p,emit,check):
             ask('HELLO',hello,'test-hello','f'*32)
             s=ask('STATUS',{},'retained-status','0'*32)['body'];require(s['state']=='empty' and s['owner_id'] is None and s['output_active'] is False and len(s['terminal_records'])==1 and s['terminal_records'][0]['job_id']==PRIOR_JOB and s['terminal_records'][0]['state']=='aborted','Retained baseline')
             result['passed'].append('retained_baseline_verified')
-            wait_network(root,boot,active_check)
+            wait_network(root,boot,active_check,p['source_revision'])
             pid=int(fixture.value('systemctl','show','-p','MainPID','--value','phase115-closure-client'))
             net=subprocess.Popen(['nsenter','-t',str(pid),'-m','-n','python3',str(Path(__file__).resolve()),'network','--root',str(root),'--packet-sha256',digest(root/'test-packet.json'),'--run'],stdout=(root/'network.stdout').open('xb'),stderr=(root/'network.stderr').open('xb'))
             until=time.monotonic()+10
@@ -330,7 +332,7 @@ def run(root,p,emit,check):
         if errors:
             result['status']='FAILED';result['observer_errors']=errors
         try:
-            final=inventory(root,p,'final-a');inactive(final);healthy(final['info'],boot)
+            final=inventory(root,p,'final-a');inactive(final);healthy(final['info'],boot,p['source_revision'])
             result['final_a_authority_verified']=True
         except BaseException as e:result['final_a_authority_error']=str(e);result['status']='FAILED'
         try:
@@ -371,7 +373,7 @@ def main():
     def check():require(time.time_ns()<p['work_deadline_utc_ns'] and time.monotonic_ns()<p['host_work_deadline_monotonic_ns'],'Original work deadline')
     def terminate(*_):raise TimeoutError('Bounded supervisor requested cleanup')
     signal.signal(signal.SIGTERM,terminate);signal.signal(signal.SIGINT,terminate)
-    check();emit('start',dict(packet_sha256=a.packet_sha256,source=SOURCE))
+    check();emit('start',dict(packet_sha256=a.packet_sha256,source=p['source_revision']))
     try:
         globals()[a.mode](root,p,emit,check)
         if a.mode=='network':save(root/'network-result.json',dict(status='COMPLETE'))

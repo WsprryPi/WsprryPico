@@ -9,7 +9,8 @@ from phase11_5_pilot import Decoder
 from phase11_5_pilot_supervisor import configuration, B_SERIAL, B_DEVICE
 from phase11_5_r3_preflight import audit_inventory
 from phase11_5_r3_allocation_diagnostic import inactive
-from phase11_5_load_reply_target import validate_packet, primary, raw_request, response_ok, healthy, C7_JOB, SOURCE, PEER_SHA, SERIAL, DEVICE, PRIOR_JOB, maximum_job, CONTINUATION, RECOVERY
+from phase11_5_r3_v2_admission import candidate
+from phase11_5_load_reply_target import validate_packet, primary, raw_request, response_ok, healthy, C7_JOB, SOURCE, PEER_SHA, SERIAL, DEVICE, PRIOR_JOB, maximum_job, CONTINUATION, RECOVERY, REPLAY_SCOPE
 from validate_wtp_contract import loads_strict, SchemaValidator, crc32c
 
 
@@ -48,7 +49,7 @@ def audit_wifi(root,boot):
     return state
 
 
-def audit_readiness(path,boot):
+def audit_readiness(path,boot,source=SOURCE):
     records=rows(path);require(records[0]['value']['boot_id']==boot,'Readiness boot')
     buffer=bytearray();pending=None;values=[]
     for record in records[1:]:
@@ -58,13 +59,26 @@ def audit_readiness(path,boot):
         elif k=='rx':require(pending is not None,'Readiness response');buffer.extend(bytes.fromhex(v['hex']))
         elif k=='info':
             require(pending is not None and buffer.endswith(b'\n') and buffer.count(b'\n')==1 and loads_console(buffer.decode().strip())==v and record['monotonic_ns']-pending<=5000000000,'Readiness raw INFO')
-            healthy(v,boot);values.append(v);pending=None;buffer.clear()
+            healthy(v,boot,source);values.append(v);pending=None;buffer.clear()
     complete=records[-1]['kind']=='finish' and records[-1]['value']==dict(status='PICO_NETWORK_READY')
     if complete:
         require(not buffer and pending is None and len(values)>=2 and records[-1]['monotonic_ns']-records[0]['monotonic_ns']<=90000000000,'Readiness bound/completeness')
         for value in values[-2:]:
             n=value['network'];require(n['initialized'] and n['enabled'] and n['link_status']==3 and n['ipv4']=='10.77.15.10' and n['control_listening'],'Confirmed target address')
     return dict(complete=complete,samples=len(values),ended_ns=records[-1]['monotonic_ns'])
+
+
+def pressure_brackets(transactions, infos):
+    result={}
+    for label in ['primary','identical-replay','fresh-id-replay']:
+        t=transactions.get(label)
+        if not t or not t['response']:continue
+        start=t['start'];end=start+t['elapsed_ns']
+        samples=[r for r in infos if start-2000000000<=r['monotonic_ns']<=end+2000000000]
+        costs=[r['value']['value']['tls_allocated_bytes'] for r in samples]
+        bracket=bool(samples) and samples[0]['monotonic_ns']<=start and samples[-1]['monotonic_ns']>=end
+        result[label]=dict(bracketed=bracket,tls_bytes=costs,comparable=bracket and min(costs)>=31384)
+    return result
 
 
 def audit(root):
@@ -86,7 +100,7 @@ def audit(root):
     observed_boot=json.loads((root/'deployment.json').read_text())['boot_id']
     health_findings=[]
     def observed_health(info,context):
-        try:healthy(info,observed_boot)
+        try:healthy(info,observed_boot,p['source_revision'])
         except ValueError as error:
             # Preserve a recorded physical reserve failure while still auditing
             # bytes and final inactive authority. It can never become a pass.
@@ -157,6 +171,7 @@ def audit(root):
             require(primary_pass,'Replay before successful primary');response_ok(t['response'])
             expected=primary() if label=='identical-replay' else dict(primary(),request_id=p['fresh_request_id'])
             require(t['request']==expected and dict(t['response'],request_id=primary_tx['response']['request_id'])==primary_tx['response'],'Replay content')
+            if p['scope']==REPLAY_SCOPE:require(t['response_bytes']==54916,'Exact replay payload size')
             replays.append(label)
     deployment=json.loads((root/'deployment.json').read_text())
     require(deployment['bootsel_commands']==deployment['flashes_started']==(0 if continuation else 1) and deployment['status']==('RETAINED_CANDIDATE_VERIFIED' if continuation else 'CANDIDATE_VERIFIED'),'Verified candidate without extra flash')
@@ -169,6 +184,19 @@ def audit(root):
     final_b_name='post-restoration-b' if (root/'post-restoration-b.stdout').exists() else 'final-b'
     final=inventory(final_a_name);inactive(final);observed_health(final['info'],'final-a')
     before=inventory('before-a');require(configuration(final)==configuration(before),'A configuration preserved')
+    if p['scope']==REPLAY_SCOPE:
+        after=inventory('after-flash-a');candidate(after,p,boot=deployment['boot_id'])
+        require(before['info']['revision']==p['prior_revision'] and before['wtp']['STATUS']['boot_id']==p['prior_boot'] and deployment['boot_id']!=p['prior_boot'] and configuration(after)==configuration(before),'Fresh candidate admission chain')
+        dr=rows(root/'deploy.jsonl')
+        require(dr[0]['value']==dict(packet_sha256=packet_sha,source=p['source_revision']) and dr[-1]['kind']=='deployment' and dr[-1]['value']==deployment,'Deployment packet/result binding')
+        require(all(x['kind'] in ['start','bootsel_intent','tx','rx','bootsel_acknowledged','bootsel_disconnect_cleanup','deployment'] for x in dr),'Deployment journal scope')
+        require([x['value'] for x in dr if x['kind']=='bootsel_intent']==[dict(bootsel_commands=1,flashes_started=0)] and [bytes.fromhex(x['value']['hex']) for x in dr if x['kind']=='tx']==[b'BOOTSEL\n'],'One recorded BOOTSEL command')
+        ack=[x['value'] for x in dr if x['kind']=='bootsel_acknowledged']
+        raw=b''.join(bytes.fromhex(x['value']['hex']) for x in dr if x['kind']=='rx')
+        require(len(ack)==1 and loads_console(raw.decode().strip())==ack[0] and ack[0].get('ok') is True and ack[0].get('rebooting') is True,'Raw BOOTSEL acknowledgement')
+        require(not (root/'flash.stderr').read_bytes() and 'Verifying Flash:' in (root/'flash.stdout').read_text() and 'The device was rebooted to start the application.' in (root/'flash.stdout').read_text(),'Flash verification result')
+        require(p['start_utc_ns']<=dr[0]['utc_ns']<=dr[-1]['utc_ns']<=p['work_deadline_utc_ns'] and p['start_utc_ns']<=r[0]['utc_ns']<=r[-1]['utc_ns']<=p['cleanup_deadline_utc_ns'],'Fixed deployment/run deadline')
+
     final_b=inventory(final_b_name,True);before_b=inventory('before-b',True);inactive(final_b)
     require(final_b['wtp']['STATUS']['boot_id']==before_b['wtp']['STATUS']['boot_id'] and final_b['info']['revision']==before_b['info']['revision'] and configuration(final_b)==configuration(before_b),'B unchanged')
     fixture=json.loads((root/'fixture-state.json').read_text()) if (root/'fixture-state.json').exists() else {}
@@ -202,7 +230,7 @@ def audit(root):
         require(all(b-a>=20000000000 for a,b in zip(https_starts,https_starts[1:])),'HTTPS spacing')
         network_status=json.loads((root/'network-result.json').read_text())['status'] if (root/'network-result.json').exists() else 'INTERRUPTED'
     wifi=audit_wifi(root, deployment['boot_id']) if recovery else None
-    readiness=audit_readiness(root/'readiness.jsonl',deployment['boot_id']) if (root/'readiness.jsonl').exists() else None
+    readiness=audit_readiness(root/'readiness.jsonl',deployment['boot_id'],p['source_revision']) if (root/'readiness.jsonl').exists() else None
     recovered_infos=[]
     if console:
         require(result['status']=='FAILED' and failures and console.endswith(b'\n') and console.count(b'\n')==1 and 0<=console_end-console_start<=5000000000,'Incomplete failed INFO evidence')
@@ -210,11 +238,17 @@ def audit(root):
     for row in infos+recovered_infos:
         observed_health(row['value']['value'],'info-'+str(row['monotonic_ns']))
         if primary_tx and abs(row['monotonic_ns']-primary_tx['start'])<=2000000000:tls_samples.append(row['value']['value']['tls_allocated_bytes'])
+    brackets=pressure_brackets(transactions,infos+recovered_infos) if p['scope']==REPLAY_SCOPE else {}
     comparable=bool(tls_samples) and min(tls_samples)>=31384
+    if p['scope']==REPLAY_SCOPE:
+        comparable=len(brackets)==3 and all(v['comparable'] for v in brackets.values())
     success=result['status']=='CAPTURED_REQUIRES_AUDIT' and primary_pass and len(replays)==2 and network_status=='COMPLETE' and https_count==4 and fixture_restored and not failures and not health_findings
     if success:
+        if p['scope']==REPLAY_SCOPE:
+            network_rows=rows(root/'network.jsonl')
+            require(network_rows[-1]['kind']=='finish' and network_rows[-1]['monotonic_ns']-network_rows[0]['monotonic_ns']>=90000000000,'Complete ninety-second TLS observation')
         if recovery:require(wifi and wifi['status']=='WIFI_RECOVERED','Completed authorized Wi-Fi recovery')
-        if continuation:
+        if continuation or p['scope']==REPLAY_SCOPE:
             require(readiness and readiness['complete'] and readiness['ended_ns']<rows(root/'network.jsonl')[0]['monotonic_ns'],'Network readiness before TLS')
         expected=['prime-hello','prime-claim','prime-load','prime-abort','prime-release','test-hello','retained-status',*[f'pre-status-{i}' for i in range(7)],'test-claim','primary','identical-replay','fresh-id-replay','loaded-status','test-abort','test-release']
         if reused:expected=expected[5:]
@@ -222,8 +256,9 @@ def audit(root):
         loaded=transactions['loaded-status']['response']['body']
         require(loaded['boot_id']==deployment['boot_id'] and loaded['state']=='loaded' and loaded['job_id']==C7_JOB and loaded['owner_id']==p['owner_id'] and loaded['output_active'] is False,'Loaded authority')
         require(not buffer and not console and len(infos)>=60,'Complete observer trace')
-        require(primary_tx['start']-infos[0]['value']['began_ns']>=30000000000 and infos[-1]['monotonic_ns']-(primary_tx['start']+primary_tx['elapsed_ns'])>=30000000000,'Observation bracket')
-    return dict(status='LOAD_REPLY_TARGET_PASS' if success and comparable else 'LOAD_REPLY_TARGET_LIMITED' if success else 'LOAD_REPLY_TARGET_FAILED',group2_closed=False,packet_sha256=packet_sha,source_revision=SOURCE,image_sha256=p['image_sha256'],boot_id=deployment['boot_id'],primary_pass=primary_pass,replays_passed=replays,transactions=transactions,network_status=network_status,https_requests=https_count,tls_bracket_bytes=tls_samples,tls_pressure_comparable=comparable,info_samples=len(infos),wifi=wifi,readiness=readiness,recovered_failed_info_samples=[x['value']['value'] for x in recovered_infos],failures=failures,health_findings=health_findings,fixture_restored=fixture_restored,final_authority=final['wtp']['STATUS'],final_inventory_files=[final_a_name,final_b_name],b_unchanged=True,counts=dict(flashes=deployment['flashes_started'],bootsel=deployment['bootsel_commands'],preparation_loads=int('prime-load' in transactions),primary_loads=int(primary_tx is not None),replays=sum(label in transactions for label in ['identical-replay','fresh-id-replay']),rf_jobs=0,configuration_writes=0,wifi_cycles=int(wifi is not None and wifi['off_started']==1)))
+        last_exchange=transactions['fresh-id-replay'] if p['scope']==REPLAY_SCOPE else primary_tx
+        require(primary_tx['start']-infos[0]['value']['began_ns']>=30000000000 and infos[-1]['monotonic_ns']-(last_exchange['start']+last_exchange['elapsed_ns'])>=30000000000,'Observation bracket')
+    return dict(status='LOAD_REPLY_TARGET_PASS' if success and comparable else 'LOAD_REPLY_TARGET_LIMITED' if success else 'LOAD_REPLY_TARGET_FAILED',group2_closed=False,packet_sha256=packet_sha,source_revision=p['source_revision'],image_sha256=p['image_sha256'],boot_id=deployment['boot_id'],primary_pass=primary_pass,replays_passed=replays,transactions=transactions,network_status=network_status,https_requests=https_count,tls_bracket_bytes=tls_samples,tls_pressure_comparable=comparable,exchange_tls_brackets=brackets,info_samples=len(infos),wifi=wifi,readiness=readiness,recovered_failed_info_samples=[x['value']['value'] for x in recovered_infos],failures=failures,health_findings=health_findings,fixture_restored=fixture_restored,final_authority=final['wtp']['STATUS'],final_inventory_files=[final_a_name,final_b_name],b_unchanged=True,counts=dict(flashes=deployment['flashes_started'],bootsel=deployment['bootsel_commands'],preparation_loads=int('prime-load' in transactions),primary_loads=int(primary_tx is not None),replays=sum(label in transactions for label in ['identical-replay','fresh-id-replay']),rf_jobs=0,configuration_writes=0,wifi_cycles=int(wifi is not None and wifi['off_started']==1)))
 
 
 if __name__=='__main__':
