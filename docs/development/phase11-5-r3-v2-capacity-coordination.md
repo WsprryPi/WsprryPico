@@ -4,7 +4,22 @@ Group 1 is CLOSED at checkpoint 043. Group 2 is OPEN. This record now includes
 C1–C5, E5 and R5. Checkpoint 048 ends diagnostic period 2 OPEN. Older preparation
 statements below are historical, not live fixture state.
 
-## Latest component 7 result
+## Latest component 8 software result
+
+[Component 8](phase11-5-r3-v2-component8-review.md) removes the temporary
+512-element JSON-view vector during LOAD decoding. The full production replay
+model now passes the unchanged reserve with a fixed calibration; identical and
+fresh-ID replies retain all 512 adjustments and do not repeat preparation.
+The removed vector is 16,384 bytes on this host and 8,192 bytes by target ABI;
+neither is a new physical peak measurement. The stricter uncalibrated TLS-only
+model still refuses replay before decoding. Tests and source review pass.
+
+Component 7's physical reserve failure remains unchanged. A new bounded target
+run is needed to qualify the rebuilt image, both replay replies and full TLS
+observation interval. No device control or RF occurred in component 8. Group 2
+remains OPEN.
+
+## Historical component 7 result
 
 [Component 7](phase11-5-r3-v2-component7-review.md) completed the authorized
 single Wi-Fi recovery cycle and replacement retained-state preparation. The

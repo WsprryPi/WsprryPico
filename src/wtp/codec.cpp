@@ -170,11 +170,20 @@ bool body(Request& r, Value b) {
                 return false;
             j.allow_frequency_adjustment = allow->boolean();
         }
-        auto events = get(b, "events").elements();
-        if (events.empty() || events.size() > 512)
+        const auto events = get(b, "events");
+        std::size_t cursor = 0, count = 0;
+        while (events.next_element(cursor)) {
+            if (++count > 512)
+                return false;
+        }
+        if (!count)
             return false;
-        j.events.reserve(events.size());
-        for (auto e : events) {
+        // Count first to allocate event storage exactly once. Keep only one JSON
+        // view beside the input pages and decoded events, including on replay.
+        j.events.reserve(count);
+        cursor = 0;
+        while (auto element = events.next_element(cursor)) {
+            const auto e = *element;
             RfEvent event;
             if (!json::fields(e, {"offset_ns", "duration_ns", "rf_on"}, {"frequency_nhz"}) ||
                 !json::decimal(get(e, "offset_ns"), event.offset_ns) ||

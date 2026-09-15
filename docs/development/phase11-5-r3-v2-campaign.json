@@ -1635,5 +1635,20 @@
     "result": "docs/development/phase11-5-r3-v2-component7-result.json",
     "review": "docs/development/phase11-5-r3-v2-component7-review.md",
     "fixture_restored": true
+  },
+  "component8": {
+    "status": "SOFTWARE_REPLAY_ALLOCATION_FIXED_TARGET_PENDING",
+    "software_regression_closed": true,
+    "physical_replay_acceptance_closed": false,
+    "group2_closed": false,
+    "counts": {
+      "device_commands": 0,
+      "flashes": 0,
+      "wifi_cycles": 0,
+      "rf_jobs": 0,
+      "configuration_writes": 0
+    },
+    "result": "docs/development/phase11-5-r3-v2-component8-result.json",
+    "review": "docs/development/phase11-5-r3-v2-component8-review.md"
   }
 }

@@ -1,0 +1,374 @@
+{
+  "schema": "phase11.5-r3-component8-result-v1",
+  "status": "SOFTWARE_REPLAY_ALLOCATION_FIXED_TARGET_PENDING",
+  "baseline_revision": "ba28bd5ff0ba7bc59b0e8258ebc8a5b6ac6fdd9e",
+  "software_regression_closed": true,
+  "physical_replay_acceptance_closed": false,
+  "group2_closed": false,
+  "physical_reference": {
+    "result": "docs/development/phase11-5-r3-v2-component7-result.json",
+    "sha256": "151a6d0bfacfe276b9d639cdb1ee74420048448d001cb3d905eb46abb875a663",
+    "allocator_peak_bytes": 190424,
+    "heap_capacity_bytes": 219712,
+    "tls_allocated_bytes": 31384,
+    "required_reserve_bytes": 32768,
+    "recorded_headroom_bytes": 29288
+  },
+  "request": {
+    "frame_bytes": 52105,
+    "sha256": "e5b48b92dd2abd74e670f2b2aed3d660c9b357bd4857be6b64b8affedbcee670"
+  },
+  "model": {
+    "basis": "Requested ordinary C++ new allocations during production calls plus actual live nullable input/output pages; synthetic retained-state prelude",
+    "net_background_bytes": 5751,
+    "calibration": "190424 measured target peak minus 184673 pre-fix host replay peak; includes TLS/platform/allocator differences; do not add TLS again",
+    "results": {
+      "before": {
+        "0": {
+          "exchanges": [
+            {
+              "peak_bytes": 151564,
+              "peak_cpp": 96648,
+              "peak_pages": 54916,
+              "after_cpp": 95104,
+              "after_pages": 0,
+              "closed": false,
+              "output_frame_bytes": 55203,
+              "output_sha256": "7ba112756ee7871dc8bf121bb50a198296b8a87f70d7fe26c4ea0c8f8db7c79d",
+              "modeled_headroom_bytes": 68148
+            },
+            {
+              "peak_bytes": 184673,
+              "peak_cpp": 132568,
+              "peak_pages": 52105,
+              "after_cpp": 95104,
+              "after_pages": 0,
+              "closed": false,
+              "output_frame_bytes": 54932,
+              "output_sha256": "fbed8723212f8ff1f20f1e04fbb9cd05868ec5411430ee1d6e68225c385a40d2",
+              "modeled_headroom_bytes": 35039
+            },
+            {
+              "peak_bytes": 184673,
+              "peak_cpp": 132568,
+              "peak_pages": 52105,
+              "after_cpp": 102448,
+              "after_pages": 0,
+              "closed": false,
+              "output_frame_bytes": 54932,
+              "output_sha256": "d5d7a7cd47109dcb85f1b93c4e7436f502256c0037292b1cad614706a05b0c78",
+              "modeled_headroom_bytes": 35039
+            }
+          ],
+          "state": "loaded",
+          "starts": 0,
+          "terminal_records": 1,
+          "preparations": 2
+        },
+        "5751": {
+          "exchanges": [
+            {
+              "peak_bytes": 151564,
+              "peak_cpp": 96648,
+              "peak_pages": 54916,
+              "after_cpp": 95104,
+              "after_pages": 0,
+              "closed": false,
+              "output_frame_bytes": 55203,
+              "output_sha256": "7ba112756ee7871dc8bf121bb50a198296b8a87f70d7fe26c4ea0c8f8db7c79d",
+              "modeled_headroom_bytes": 62397
+            },
+            {
+              "peak_bytes": 184673,
+              "peak_cpp": 132568,
+              "peak_pages": 52105,
+              "after_cpp": 95104,
+              "after_pages": 0,
+              "closed": false,
+              "output_frame_bytes": 54932,
+              "output_sha256": "fbed8723212f8ff1f20f1e04fbb9cd05868ec5411430ee1d6e68225c385a40d2",
+              "modeled_headroom_bytes": 29288
+            },
+            {
+              "peak_bytes": 184673,
+              "peak_cpp": 132568,
+              "peak_pages": 52105,
+              "after_cpp": 102448,
+              "after_pages": 0,
+              "closed": false,
+              "output_frame_bytes": 54932,
+              "output_sha256": "d5d7a7cd47109dcb85f1b93c4e7436f502256c0037292b1cad614706a05b0c78",
+              "modeled_headroom_bytes": 29288
+            }
+          ],
+          "state": "loaded",
+          "starts": 0,
+          "terminal_records": 1,
+          "preparations": 2
+        },
+        "31384": {
+          "exchanges": [
+            {
+              "peak_bytes": 151564,
+              "peak_cpp": 96648,
+              "peak_pages": 54916,
+              "after_cpp": 95104,
+              "after_pages": 0,
+              "closed": false,
+              "output_frame_bytes": 55203,
+              "output_sha256": "7ba112756ee7871dc8bf121bb50a198296b8a87f70d7fe26c4ea0c8f8db7c79d",
+              "modeled_headroom_bytes": 36764
+            },
+            {
+              "peak_bytes": 147665,
+              "peak_cpp": 95560,
+              "peak_pages": 52105,
+              "after_cpp": 95104,
+              "after_pages": 0,
+              "closed": true,
+              "output_frame_bytes": 0,
+              "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "modeled_headroom_bytes": 40663
+            },
+            {
+              "peak_bytes": 95104,
+              "peak_cpp": 95104,
+              "peak_pages": 0,
+              "after_cpp": 95104,
+              "after_pages": 0,
+              "closed": true,
+              "output_frame_bytes": 0,
+              "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "modeled_headroom_bytes": 93224
+            }
+          ],
+          "state": "loaded",
+          "starts": 0,
+          "terminal_records": 1,
+          "preparations": 2
+        }
+      },
+      "after": {
+        "0": {
+          "exchanges": [
+            {
+              "peak_bytes": 151564,
+              "peak_cpp": 96648,
+              "peak_pages": 54916,
+              "after_cpp": 95104,
+              "after_pages": 0,
+              "closed": false,
+              "output_frame_bytes": 55203,
+              "output_sha256": "7ba112756ee7871dc8bf121bb50a198296b8a87f70d7fe26c4ea0c8f8db7c79d",
+              "modeled_headroom_bytes": 68148
+            },
+            {
+              "peak_bytes": 168289,
+              "peak_cpp": 116184,
+              "peak_pages": 52105,
+              "after_cpp": 95104,
+              "after_pages": 0,
+              "closed": false,
+              "output_frame_bytes": 54932,
+              "output_sha256": "fbed8723212f8ff1f20f1e04fbb9cd05868ec5411430ee1d6e68225c385a40d2",
+              "modeled_headroom_bytes": 51423
+            },
+            {
+              "peak_bytes": 168289,
+              "peak_cpp": 116184,
+              "peak_pages": 52105,
+              "after_cpp": 102448,
+              "after_pages": 0,
+              "closed": false,
+              "output_frame_bytes": 54932,
+              "output_sha256": "d5d7a7cd47109dcb85f1b93c4e7436f502256c0037292b1cad614706a05b0c78",
+              "modeled_headroom_bytes": 51423
+            }
+          ],
+          "state": "loaded",
+          "starts": 0,
+          "terminal_records": 1,
+          "preparations": 2
+        },
+        "5751": {
+          "exchanges": [
+            {
+              "peak_bytes": 151564,
+              "peak_cpp": 96648,
+              "peak_pages": 54916,
+              "after_cpp": 95104,
+              "after_pages": 0,
+              "closed": false,
+              "output_frame_bytes": 55203,
+              "output_sha256": "7ba112756ee7871dc8bf121bb50a198296b8a87f70d7fe26c4ea0c8f8db7c79d",
+              "modeled_headroom_bytes": 62397
+            },
+            {
+              "peak_bytes": 168289,
+              "peak_cpp": 116184,
+              "peak_pages": 52105,
+              "after_cpp": 95104,
+              "after_pages": 0,
+              "closed": false,
+              "output_frame_bytes": 54932,
+              "output_sha256": "fbed8723212f8ff1f20f1e04fbb9cd05868ec5411430ee1d6e68225c385a40d2",
+              "modeled_headroom_bytes": 45672
+            },
+            {
+              "peak_bytes": 168289,
+              "peak_cpp": 116184,
+              "peak_pages": 52105,
+              "after_cpp": 102448,
+              "after_pages": 0,
+              "closed": false,
+              "output_frame_bytes": 54932,
+              "output_sha256": "d5d7a7cd47109dcb85f1b93c4e7436f502256c0037292b1cad614706a05b0c78",
+              "modeled_headroom_bytes": 45672
+            }
+          ],
+          "state": "loaded",
+          "starts": 0,
+          "terminal_records": 1,
+          "preparations": 2
+        },
+        "31384": {
+          "exchanges": [
+            {
+              "peak_bytes": 151564,
+              "peak_cpp": 96648,
+              "peak_pages": 54916,
+              "after_cpp": 95104,
+              "after_pages": 0,
+              "closed": false,
+              "output_frame_bytes": 55203,
+              "output_sha256": "7ba112756ee7871dc8bf121bb50a198296b8a87f70d7fe26c4ea0c8f8db7c79d",
+              "modeled_headroom_bytes": 36764
+            },
+            {
+              "peak_bytes": 147665,
+              "peak_cpp": 95560,
+              "peak_pages": 52105,
+              "after_cpp": 95104,
+              "after_pages": 0,
+              "closed": true,
+              "output_frame_bytes": 0,
+              "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "modeled_headroom_bytes": 40663
+            },
+            {
+              "peak_bytes": 95104,
+              "peak_cpp": 95104,
+              "peak_pages": 0,
+              "after_cpp": 95104,
+              "after_pages": 0,
+              "closed": true,
+              "output_frame_bytes": 0,
+              "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "modeled_headroom_bytes": 93224
+            }
+          ],
+          "state": "loaded",
+          "starts": 0,
+          "terminal_records": 1,
+          "preparations": 2
+        }
+      }
+    },
+    "limits": [
+      "No allocator metadata, fragmentation or full platform emulation",
+      "Fixture/reporting storage and static engine buffers excluded",
+      "Full TLS-only background remains a failing replay-admission sensitivity case",
+      "Synthetic clock does not qualify target response latency"
+    ]
+  },
+  "removed_view_vector": {
+    "host_value_bytes": 32,
+    "host_payload_bytes": 16384,
+    "target_value_bytes": 16,
+    "target_payload_bytes": 8192,
+    "target_event_bytes": 40,
+    "target_abi_verified": true,
+    "target_peak_savings_measured": false
+  },
+  "validation": {
+    "host_ctest_targets": 72,
+    "host_passed_in_sandbox": 71,
+    "tls_loopback_rerun": "PASS",
+    "replay_cases": 4,
+    "baseline_regression": "EXPECTED_FAIL: 29288 < 32768",
+    "sanitizers": "AddressSanitizer and UndefinedBehaviorSanitizer core/replay suites PASS",
+    "adversarial_reassessment": "No remaining actionable software findings; physical gate remains open"
+  },
+  "build": {
+    "target": "WsprryPico-StandaloneRF",
+    "board": "Pico 2 W / RP2350 Arm",
+    "sdk": "2.3.1",
+    "compiler": "GCC 15.3.1",
+    "clock_hz": 138000000,
+    "renderer": "RAM",
+    "elf_sha256": "6d2f70e126b8e724143b1b196ea89fa6698d1cf8b1a87428beae80891c55d041",
+    "source_label": "ba28bd5ff0ba-dirty",
+    "published_candidate": false,
+    "flashed": false,
+    "heap_capacity_bytes": 219712,
+    "allocator_hooks": "PASS",
+    "stack_guards": "PASS",
+    "renderer_check": "PASS",
+    "renderer_bytes": 660,
+    "renderer_address": "0x200012d8",
+    "picotool_disabled": true
+  },
+  "counts": {
+    "device_commands": 0,
+    "flashes": 0,
+    "wifi_cycles": 0,
+    "rf_jobs": 0,
+    "configuration_writes": 0
+  },
+  "source_sha256": {
+    "src/wtp/codec.cpp": "8595371312dc676c67a3369ba83e5fa789e7d8fa7124cb73df78a624654a90fe",
+    "src/wtp/json.cpp": "4579bf4d88fe640ccf882e5784e03f9d39582aa582239ad38df4135071aa6189",
+    "src/wtp/json.hpp": "4b0f7eae24d4cedb380ef76c866918884f7ddd9f6055fda3a365969c393d82e9",
+    "src/wtp/input_buffer.hpp": "4dd437033482fc888dca01ce12ca23363b3e53f6b92d6f243d0c6786fcb9c5e2",
+    "tests/load_reply_driver.cpp": "6cb64d4f8965abe4811d2f93784132e7d32901c0982b896c614a6a005cfa03c4",
+    "tests/load_reply_tests.py": "fd3146cbbd2c33e34648db46e14ad1c8dddf3a3f160954d05740aa3d884138bb",
+    "tests/core_tests.cpp": "177ceb412ecdd123baa9eaf1a4daa4861684bc48f74cd4470c4a299eab257a87"
+  },
+  "evidence": {
+    "local_root": "build/phase11-5-r3-group2-component8",
+    "sha256": {
+      "abi.cpp": "6bdee5be4d63d75d440f295604793d72c06f3091dd50acd1d648a67200d43bfc",
+      "abi.o": "ee5a834974c0a3611711941aca718d700b358de0bcfbbad72d21ac1bb305af91",
+      "after-0.json": "87b80e0d802d89604a137f199ebca8f38de55976a3a7fc616ffcfea365e6379a",
+      "after-31384.json": "a4e2453233afa23eaa4aa1995b68813b5ce3b83a3ad5ecbd4c5d8a4d3904e430",
+      "after-5751.json": "87b80e0d802d89604a137f199ebca8f38de55976a3a7fc616ffcfea365e6379a",
+      "baseline-build.log": "12be2eb1fd28894fb7cd4d59ca245635a48e6405dc692ed630d2bdab3a57dc50",
+      "baseline-configure.log": "42a62236d451e5a4e51eeb7f38d24a090a666ebc67b612624434664144dedc19",
+      "baseline-final-build.log": "4bf45010e2c419f9e3d42c69bb2bc842e45f7664017fc9e942f4d116aad1c8a6",
+      "baseline-regression.log": "108cb37da3abfecf12bec0fdfd8d2e936565d78cc9d369b145d359231326c83c",
+      "before-0.json": "9134220d261f330a0d4fffc468541e482c2764546f9e68677b888f1ea04b0a7f",
+      "before-31384.json": "a4e2453233afa23eaa4aa1995b68813b5ce3b83a3ad5ecbd4c5d8a4d3904e430",
+      "before-5751.json": "9134220d261f330a0d4fffc468541e482c2764546f9e68677b888f1ea04b0a7f",
+      "c7.bin": "e5b48b92dd2abd74e670f2b2aed3d660c9b357bd4857be6b64b8affedbcee670",
+      "core-build.log": "74cf72010057c9f78b6a07d035ccb529d40b11229c9776404ec9fc16d35a5e2c",
+      "ctest.log": "afcd8fbd96e9fea55584094f98096767156d73c5da2f8d5d224ae3186b912331",
+      "firmware-build-final.log": "1c2d60cdb4d66c3a336591e071ff4d6b48bb125bfbce032db5270dee20d6d57d",
+      "firmware-build.log": "809ee476ba22387d8344cbd4c80c26268e8adbd7de1265aa5884ba416f317549",
+      "firmware-configure-final.log": "fc70d21ea63e681fd1ce3d50b9a5235067cf868c7df3e668b3664041241bdc8d",
+      "firmware-configure.log": "845426806ad6a650dbcece7cf0b4c80304547ea0fcc163376a54a02f217e0136",
+      "fixed-build.log": "cc91cd578c9b83ee94c1ff4914c17b5fae6675ab0d892e96537f6ceb05b11924",
+      "focused-tests.log": "2bb442b45d600f5ed45ad7286bf8362fed08b3caaaead21f8527100294f5ba8e",
+      "host-build.log": "c454b72f6c0c60e44fb2cf32f7ac9380573e94e148708e54caf7de30fbe11735",
+      "model-summaries.json": "ae40e067698a407d119765c037488511901f3cf64065e16a1c54a48fe99a97c9",
+      "sanitized-build.log": "d45a65dca86b89ca76229b0fde1691b60f78caa535050d2be7c1efba39b5b87c",
+      "sanitized-configure.log": "c149d59c3d1824a1bd5939a7f77219ade8f41e41f8147d7194b41ff9d9643aed",
+      "sanitized-tests.log": "e80a6c06503b3b861ed419b613d07b7601ad19abc2d6e82b80e5c94723bcfa49",
+      "tls-loopback.log": "4964ab52238867d1acb61d9a53a05294f8d5bef659d4cd85124be782504c3781"
+    }
+  },
+  "remaining": [
+    "Build a clean identified candidate for newly bounded Pico A validation",
+    "Verify primary and both replay replies plus full observation interval under measured TLS/retention pressure",
+    "Preserve component 7 failure and broader Group 2 open gates"
+  ]
+}

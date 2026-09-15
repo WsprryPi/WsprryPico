@@ -18,7 +18,16 @@ struct alignas(std::max_align_t) Allocation {
     bool tracked;
 };
 bool tracking = false;
-std::size_t live = 0, peak = 0;
+std::size_t live = 0, peak = 0, page_live = 0, total_peak = 0;
+std::size_t peak_cpp = 0, peak_pages = 0;
+bool whole = false;
+void sample_peak() {
+    if (live + page_live > total_peak) {
+        total_peak = live + page_live;
+        peak_cpp = live;
+        peak_pages = page_live;
+    }
+}
 } // namespace
 void* operator new(std::size_t size) {
     auto* p = static_cast<Allocation*>(std::malloc(sizeof(Allocation) + size));
@@ -28,6 +37,7 @@ void* operator new(std::size_t size) {
     if (tracking) {
         live += size;
         peak = std::max(peak, live);
+        sample_peak();
     }
     return p + 1;
 }
@@ -75,6 +85,27 @@ struct Sink : rf::BlockSink {
         return false;
     }
 };
+struct CountingEngine : wtp::RfEngine {
+    rf::StreamEngine engine;
+    unsigned preparations = 0;
+    explicit CountingEngine(Sink& sink) : engine(sink) {}
+    wtp::PrepareResult prepare(const wtp::Job& job) override {
+        ++preparations;
+        return engine.prepare(job);
+    }
+    bool begin(const wtp::Job& job, std::uint64_t now) override {
+        return engine.begin(job, now);
+    }
+    wtp::EngineReport poll(std::uint64_t now) override {
+        return engine.poll(now);
+    }
+    bool disable(std::uint64_t deadline) override {
+        return engine.disable(deadline);
+    }
+    bool output_active() const override {
+        return engine.output_active();
+    }
+};
 constexpr std::size_t heap = 219704;
 std::size_t background = 0, calls = 0, reply_pages = 0;
 struct Sample {
@@ -82,12 +113,14 @@ struct Sample {
 } samples[16];
 wtp::JobService* modeled_service = nullptr;
 std::size_t available() {
-    // Isolate reply admission. Earlier parser/decoder/preparation gates use
-    // unrestricted host memory; this is not a whole-target heap emulator.
-    if (modeled_service->activity().state != wtp::State::Loaded)
+    // Legacy mode isolates reply admission. Replay mode applies the budget
+    // throughout primary and both replays, counting live input/output pages.
+    // Both remain host allocation models, not whole-target heap emulators.
+    if (!whole && modeled_service->activity().state != wtp::State::Loaded)
         return std::numeric_limits<std::size_t>::max();
-    const auto used = live + reply_pages + background;
-    const auto free = used < heap ? heap - used : 0;
+    const auto used = live + (whole ? page_live : reply_pages) + background;
+    const auto capacity = whole ? 219712 : heap;
+    const auto free = used < capacity ? capacity - used : 0;
     if (calls < 16)
         samples[calls] = {live, reply_pages, free};
     ++calls;
@@ -97,6 +130,37 @@ void* page(std::size_t bytes) {
     if (modeled_service->activity().state == wtp::State::Loaded)
         reply_pages += bytes;
     return std::malloc(bytes);
+}
+struct Page {
+    void* ptr = nullptr;
+    std::size_t bytes = 0;
+} pages[128];
+void* tracked_page(std::size_t bytes) {
+    auto* ptr = std::malloc(bytes);
+    if (!ptr)
+        return nullptr;
+    for (auto& item : pages) {
+        if (!item.ptr) {
+            item = {ptr, bytes};
+            page_live += bytes;
+            sample_peak();
+            return ptr;
+        }
+    }
+    std::abort();
+}
+void free_page(void* ptr) {
+    if (!ptr)
+        return;
+    for (auto& item : pages) {
+        if (item.ptr == ptr) {
+            page_live -= item.bytes;
+            item = {};
+            std::free(ptr);
+            return;
+        }
+    }
+    std::abort();
 }
 std::vector<std::uint8_t> wire(std::string text) {
     return wtp::encode_frame({reinterpret_cast<const std::uint8_t*>(text.data()), text.size()});
@@ -131,9 +195,14 @@ void send(wtp::Endpoint& endpoint, std::span<const std::uint8_t> bytes, bool kee
 }
 } // namespace
 int main(int argc, char** argv) {
-    if (argc != 3)
+    if (argc != 3 && argc != 4)
         return 2;
     background = std::stoull(argv[2]);
+    whole = argc == 4 && std::string_view(argv[3]) == "replay";
+    if (whole) {
+        wtp::allocate_input = tracked_page;
+        wtp::deallocate_input = free_page;
+    }
     std::ifstream file(argv[1], std::ios::binary);
     std::vector<std::uint8_t> c7((std::istreambuf_iterator<char>(file)), {});
     if (c7.size() != 52105)
@@ -142,7 +211,7 @@ int main(int argc, char** argv) {
     Ids ids;
     Sink sink;
     tracking = true;
-    rf::StreamEngine engine(sink);
+    CountingEngine engine(sink);
     wtp::JobService service(clock, engine, ids, standalone::wtp_profile(true));
     wtp::Endpoint endpoint(service, std::string(32, 'd'), "host-replay");
     endpoint.connect("host-test");
@@ -214,7 +283,43 @@ int main(int argc, char** argv) {
     peak = live;
     modeled_service = &service;
     wtp::available_memory = available;
-    wtp::allocate_input = page;
+    if (!whole)
+        wtp::allocate_input = page;
+    total_peak = live + page_live;
+    peak_cpp = live;
+    peak_pages = page_live;
+    if (whole) {
+        // Fixture storage and output reporting are outside measured allocations.
+        std::string fresh(reinterpret_cast<const char*>(c7.data() + 16), c7.size() - 16);
+        fresh.replace(fresh.find("7082c6ffbb9d466eac3cfc636ba6538a"), 32,
+                      "a56745738e684a8094fc0cc3d29bd089");
+        auto fresh_wire = wire(fresh);
+        std::cout << "{\"exchanges\":[";
+        for (unsigned i = 0; i < 3; ++i) {
+            output_size = 0;
+            total_peak = live + page_live;
+            peak_cpp = live;
+            peak_pages = page_live;
+            calls = 0;
+            send(endpoint, i == 2 ? fresh_wire : c7, true);
+            if (i)
+                std::cout << ',';
+            std::cout << "{\"peak_bytes\":" << total_peak << ",\"peak_cpp\":" << peak_cpp
+                      << ",\"peak_pages\":" << peak_pages << ",\"after_cpp\":" << live
+                      << ",\"after_pages\":" << page_live
+                      << ",\"closed\":" << (endpoint.closed() ? "true" : "false") << ",\"hex\":\"";
+            for (std::size_t n = 0; n < output_size; ++n)
+                std::printf("%02x", output[n]);
+            std::cout << "\"}";
+        }
+        wtp::available_memory = nullptr;
+        const auto status = service.status();
+        std::cout << "],\"state\":\"" << wtp::state_name(status.state)
+                  << "\",\"starts\":" << sink.starts
+                  << ",\"terminal_records\":" << status.terminal_records.size()
+                  << ",\"preparations\":" << engine.preparations << "}\n";
+        return 0;
+    }
     send(endpoint, c7, true);
     wtp::available_memory = nullptr;
     wtp::allocate_input = std::malloc;

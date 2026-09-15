@@ -326,6 +326,62 @@ void test_paged_json_and_digest_boundaries() {
     }
 }
 
+void test_load_array_traversal_boundaries() {
+    for (const std::size_t count : {0, 1, 512, 513}) {
+        std::string events;
+        for (std::size_t i = 0; i < count; ++i) {
+            if (i)
+                events += ", \n";
+            events += "{\"offset_ns\":\"" + std::to_string(i) +
+                      "\",\"duration_ns\":\"1\",\"rf_on\":false}";
+        }
+        const auto text = "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":\"" +
+                          id('1') + "\",\"request_id\":\"" + id('2') +
+                          "\",\"op\":\"LOAD\",\"body\":{\"job_id\":\"" + id('3') +
+                          "\",\"profile\":\"rf-events/1\",\"mode\":\"qrss\","
+                          "\"total_duration_ns\":\"512\",\"events\":[ " +
+                          events + " ]}}";
+        for (const bool paged : {false, true}) {
+            FrameBuffer buffer;
+            CHECK(buffer.reserve(text.size()));
+            buffer.append(
+                std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
+            const auto input = paged ? buffer.view() : InputView(text);
+            const auto root = json::parse(input);
+            CHECK(root);
+            auto decoded = decode_request(*root, "local", input);
+            CHECK(decoded && decoded->body_valid == (count > 0 && count <= 512));
+            if (decoded->body_valid) {
+                const auto& job = std::get<Job>(decoded->body);
+                CHECK(job.events.size() == count);
+                for (std::size_t i = 0; i < count; ++i)
+                    CHECK(job.events[i].offset_ns == i && job.events[i].duration_ns == 1 &&
+                          !job.events[i].rf_on && !job.events[i].frequency_nhz);
+            }
+        }
+    }
+    // Nested arrays/objects, escapes and empty arrays remain single values,
+    // including when the first element crosses a storage page boundary.
+    std::string text = "{\"a\":[";
+    text.append(FrameBuffer::page_bytes - text.size() - 2, ' ');
+    text += "[1,{\"s\":\"x\\\"y\"}],{},[],true,null,-2]}";
+    FrameBuffer storage;
+    CHECK(storage.reserve(text.size()));
+    storage.append(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
+    auto root = json::parse(storage.view());
+    CHECK(root);
+    auto array = *root->get("a");
+    std::size_t cursor = 0;
+    for (const auto expected : {"[1,{\"s\":\"x\\\"y\"}]", "{}", "[]", "true", "null", "-2"}) {
+        const auto element = array.next_element(cursor);
+        CHECK(element && element->raw == expected);
+    }
+    CHECK(!array.next_element(cursor));
+    CHECK(!array.next_element(cursor));
+    cursor = 0;
+    CHECK(!root->next_element(cursor));
+}
+
 void test_paged_nested_wide_object_keys() {
     std::string body = "{";
     for (int i = 255; i >= 0; --i) {
@@ -1521,6 +1577,7 @@ int main() {
         {"input allocation failure", test_input_allocation_failure_closes_without_dispatch},
         {"maximum input in fragmented heap", test_maximum_frame_with_fragmented_input_heap},
         {"paged JSON and digest boundaries", test_paged_json_and_digest_boundaries},
+        {"LOAD array traversal boundaries", test_load_array_traversal_boundaries},
         {"paged nested wide object keys", test_paged_nested_wide_object_keys},
         {"extended Morse boundaries", test_extended_morse_message_boundaries},
         {"fragmented and combined frames", test_fragmented_and_combined_frames},

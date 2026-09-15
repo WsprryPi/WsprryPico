@@ -12,6 +12,8 @@ namespace wsprrypico::wtp {
 // Installed once before transports start. Input and large reply buffers use
 // nullable newlib allocation rather than the SDK's panic wrapper.
 inline void* (*allocate_input)(std::size_t) = std::malloc;
+// Paired with allocate_input; replace only while no buffers are alive.
+inline void (*deallocate_input)(void*) = std::free;
 
 class InputBuffer {
   public:
@@ -27,7 +29,7 @@ class InputBuffer {
         return *this;
     }
     ~InputBuffer() {
-        std::free(data_);
+        deallocate_input(data_);
     }
     bool reserve(std::size_t capacity) {
         if (capacity <= capacity_)
@@ -37,7 +39,7 @@ class InputBuffer {
             return false;
         if (size_)
             std::memcpy(next, data_, size_);
-        std::free(data_);
+        deallocate_input(data_);
         data_ = next;
         capacity_ = capacity;
         return true;

@@ -262,6 +262,25 @@ std::int32_t Value::integer() const {
 bool Value::boolean() const {
     return raw == "true";
 }
+std::optional<Value> Value::next_element(std::size_t& cursor) const {
+    if (type() != '[')
+        return std::nullopt;
+    if (cursor == 0)
+        cursor = 1;
+    whitespace(raw, cursor);
+    if (cursor >= raw.size() || raw[cursor] == ']')
+        return std::nullopt;
+    const auto start = cursor;
+    if (!value(raw, cursor, 1, false))
+        return std::nullopt;
+    const auto end = cursor;
+    whitespace(raw, cursor);
+    if (cursor >= raw.size() || (raw[cursor] != ',' && raw[cursor] != ']'))
+        return std::nullopt;
+    if (raw[cursor] == ',')
+        ++cursor;
+    return Value{raw.substr(start, end - start)};
+}
 std::vector<Value> Value::elements(std::size_t limit) const {
     std::vector<Value> out;
     if (type() != '[')
