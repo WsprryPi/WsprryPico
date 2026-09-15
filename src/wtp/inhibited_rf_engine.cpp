@@ -7,21 +7,21 @@ PrepareResult InhibitedRfEngine::prepare(const Job&) {
 }
 
 bool InhibitedRfEngine::begin(const Job& job, std::uint64_t start_monotonic_ns) {
-    job_ = job;
+    duration_ns_ = job.total_duration_ns;
     start_monotonic_ns_ = start_monotonic_ns;
     running_ = true;
     return true;
 }
 
 EngineReport InhibitedRfEngine::poll(std::uint64_t monotonic_now_ns) {
-    if (!running_ || !job_) {
+    if (!running_ || !duration_ns_) {
         return {EngineState::Idle, false};
     }
     if (monotonic_now_ns < start_monotonic_ns_) {
         return {EngineState::Armed, false};
     }
     const auto elapsed = monotonic_now_ns - start_monotonic_ns_;
-    if (elapsed >= job_->total_duration_ns) {
+    if (elapsed >= *duration_ns_) {
         running_ = false;
         return {EngineState::Complete, false};
     }
@@ -30,7 +30,7 @@ EngineReport InhibitedRfEngine::poll(std::uint64_t monotonic_now_ns) {
 
 bool InhibitedRfEngine::disable(std::uint64_t) {
     running_ = false;
-    job_.reset();
+    duration_ns_.reset();
     return true;
 }
 

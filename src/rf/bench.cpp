@@ -33,11 +33,13 @@ std::string error(std::string_view reason) {
 
 wtp::Job diagnostic_frame() {
     wtp::Job job{std::string(32, 'b'), "rf-events/1", "wspr", 110592000000ULL, {}, true};
-    job.events.reserve(162);
+    if (!job.events.reserve(162))
+        return job;
     for (unsigned i = 0; i < 162; ++i) {
         const auto start = (std::uint64_t{i} * 2048000000 + 1) / 3;
         const auto end = (std::uint64_t{i + 1} * 2048000000 + 1) / 3;
-        job.events.push_back({start, end - start, true, base_nhz + (i % 4) * spacing_nhz});
+        if (!job.events.push_back({start, end - start, true, base_nhz + (i % 4) * spacing_nhz}))
+            return job;
     }
     return job;
 }
@@ -168,6 +170,8 @@ std::string Bench::command(std::string_view line) {
         return error("stop_failed");
     }
     auto job = frame ? diagnostic_frame() : tone(index, duration);
+    if (!job.events.valid())
+        return error("resource_exhausted");
     if (symbols)
         for (unsigned i = 0; i < symbols->size(); ++i)
             job.events[i].frequency_nhz = base_nhz + (*symbols)[i] * spacing_nhz;

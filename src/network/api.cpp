@@ -93,7 +93,8 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
         auto compiled = encoding::compile_message(*message, service_.config().max_events,
                                                   service_.config().max_job_duration_ns);
         if (!compiled.job) {
-            auto response = http_error(400, std::string(compiled.error));
+            auto response = http_error(compiled.error == "resource_exhausted" ? 503 : 400,
+                                       std::string(compiled.error));
             response.body.pop_back();
             response.body +=
                 ",\"calculated_duration_ns\":" +

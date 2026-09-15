@@ -184,8 +184,10 @@ bool body(Request& r, Value b, std::string_view active_replay_id) {
         // does not allocate a second copy of the active event array.
         const bool replay = !active_replay_id.empty() && j.job_id == active_replay_id;
         JobDigestBuilder digest(j, count);
-        if (!replay)
-            j.events.reserve(count);
+        if (!replay && !j.events.reserve(count)) {
+            r.body = std::move(j);
+            return true;
+        }
         cursor = 0;
         while (auto element = events.next_element(cursor)) {
             const auto e = *element;
@@ -207,8 +209,10 @@ bool body(Request& r, Value b, std::string_view active_replay_id) {
             }
             if (replay)
                 digest.append(event);
-            else
-                j.events.push_back(event);
+            else if (!j.events.push_back(event)) {
+                r.body = std::move(j);
+                return true;
+            }
         }
         if (replay)
             r.body = LoadReplayBody{j.job_id, digest.finish()};

@@ -370,7 +370,11 @@ Response JobService::dispatch(const Request& request) {
         // preparation, retained response and serialization working space.
         if (!memory_admitted(65536))
             return reject(ErrorCode::InternalError);
-        auto preparation = engine_.prepare(*body);
+        Job accepted = *body;
+        if (!accepted.events.valid())
+            return reject(ErrorCode::InternalError);
+        const auto accepted_digest = job_digest(accepted);
+        auto preparation = engine_.prepare(accepted);
         if (!preparation.accepted) {
             return reject(ErrorCode::FrequencyRejected);
         }
@@ -384,16 +388,16 @@ Response JobService::dispatch(const Request& request) {
                 preparation.adjustments.begin(), current, [&](const FrequencyAdjustment& prior) {
                     return prior.event_index == adjustment.event_index;
                 });
-            if (adjustment.event_index >= body->events.size() ||
-                !body->events[adjustment.event_index].frequency_nhz ||
-                *body->events[adjustment.event_index].frequency_nhz !=
+            if (adjustment.event_index >= accepted.events.size() ||
+                !accepted.events[adjustment.event_index].frequency_nhz ||
+                *accepted.events[adjustment.event_index].frequency_nhz !=
                     adjustment.requested_frequency_nhz ||
                 adjustment.realized_frequency_nhz == 0 || duplicate) {
                 return reject(ErrorCode::DeviceFault);
             }
         }
-        job_ = *body;
-        job_digest_ = job_digest(*body);
+        job_ = std::move(accepted);
+        job_digest_ = accepted_digest;
         // Different jobs often have the same complete adjustment sequence.
         // Retain their identities/digests independently while sharing exactly
         // equal immutable values; eight histories must not multiply this list.
@@ -401,8 +405,8 @@ Response JobService::dispatch(const Request& request) {
             retained_jobs_.begin(), retained_jobs_.end(), [&](const RetainedJob& retained) {
                 const auto& values = retained.load_response.adjustments;
                 return values.size() == preparation.adjustments.size() &&
-                       (values.empty() || std::equal(values.begin(), values.end(),
-                                                     preparation.adjustments.begin()));
+                       (values.empty() ||
+                        std::equal(values.begin(), values.end(), preparation.adjustments.begin()));
             });
         adjustments_ = identical == retained_jobs_.end()
                            ? AdjustmentList(std::move(preparation.adjustments))
@@ -737,6 +741,11 @@ bool JobService::owns(const Request& request) const {
 }
 
 ErrorCode JobService::validate_job(const Job& job) const {
+    if (!job.events.valid()) {
+        return job.events.failure() == EventList::Failure::LimitExceeded
+                   ? ErrorCode::JobLimitExceeded
+                   : ErrorCode::InternalError;
+    }
     if (!valid_id(job.job_id) || job.events.empty()) {
         return ErrorCode::InvalidMessage;
     }
@@ -868,7 +877,7 @@ void JobService::record_terminal(State state, ErrorCode error, std::uint64_t now
             // the identity and duration; retained replay uses the digest above.
             // Keeping a maximum event list here blocks the next decoded job's
             // admission while ordinary TLS management remains connected.
-            std::vector<RfEvent>{}.swap(job_->events);
+            job_->events.clear();
         }
     }
     while (terminal_records_.size() > config_.terminal_record_entries) {
@@ -896,8 +905,8 @@ void JobService::release_execution_input() {
     if (job_ && engine_.owns_execution_plan()) {
         // The engine has acknowledged its independent plan. Keep identity,
         // duration and the original digest for authority and replay; the event
-        // vector is no longer consulted by this execution path.
-        std::vector<RfEvent>{}.swap(job_->events);
+        // storage is no longer consulted by this execution path.
+        job_->events.clear();
     }
 }
 

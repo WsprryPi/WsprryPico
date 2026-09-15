@@ -107,11 +107,18 @@ void Scheduler::poll() {
         return;
     }
     wtp::Job job{id(candidate), "rf-events/1", "wspr", 110'592'000'000ULL, {}, true};
-    job.events.reserve(162);
+    if (!job.events.reserve(162)) {
+        (void)request("RELEASE");
+        return;
+    }
     for (unsigned i = 0; i < symbols->size(); ++i) {
         const auto start = (std::uint64_t{i} * 2'048'000'000ULL + 1) / 3;
         const auto end = (std::uint64_t{i + 1} * 2'048'000'000ULL + 1) / 3;
-        job.events.push_back({start, end - start, true, frequency + (*symbols)[i] * spacing});
+        if (!job.events.push_back(
+                {start, end - start, true, frequency + (*symbols)[i] * spacing})) {
+            (void)request("RELEASE");
+            return;
+        }
     }
     last_job_ = job.job_id;
     response = request("LOAD", std::move(job));

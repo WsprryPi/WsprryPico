@@ -1,15 +1,23 @@
 #pragma once
 
+#include "wtp/input_buffer.hpp"
 #include "wtp/sha256.hpp"
 
+#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <initializer_list>
+#include <iterator>
 #include <limits>
 #include <memory>
+#include <new>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <type_traits>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -51,12 +59,219 @@ struct RfEvent {
     bool operator==(const RfEvent&) const = default;
 };
 
+// Maximum jobs must not depend on one 20,480-byte heap block. Eight bounded
+// pages keep random access and value semantics while using the nullable input
+// allocator that the target can refuse without invoking the SDK panic path.
+class EventList {
+  public:
+    enum class Failure { None, LimitExceeded, AllocationFailed };
+    static constexpr std::size_t page_events = 64;
+    static constexpr std::size_t maximum_events = 512;
+
+    template <bool Constant> class Iterator {
+      public:
+        using Owner = std::conditional_t<Constant, const EventList, EventList>;
+        using value_type = RfEvent;
+        using difference_type = std::ptrdiff_t;
+        using reference = std::conditional_t<Constant, const RfEvent&, RfEvent&>;
+        using pointer = std::conditional_t<Constant, const RfEvent*, RfEvent*>;
+        using iterator_category = std::forward_iterator_tag;
+
+        Iterator() = default;
+        Iterator(Owner* owner, std::size_t index) : owner_(owner), index_(index) {}
+        reference operator*() const {
+            return (*owner_)[index_];
+        }
+        pointer operator->() const {
+            return &(*owner_)[index_];
+        }
+        Iterator& operator++() {
+            ++index_;
+            return *this;
+        }
+        Iterator operator++(int) {
+            auto prior = *this;
+            ++*this;
+            return prior;
+        }
+        bool operator==(const Iterator&) const = default;
+
+      private:
+        Owner* owner_ = nullptr;
+        std::size_t index_ = 0;
+    };
+
+    using iterator = Iterator<false>;
+    using const_iterator = Iterator<true>;
+
+    EventList() = default;
+    EventList(std::initializer_list<RfEvent> values) {
+        if (!reserve(values.size()))
+            return;
+        for (const auto& value : values)
+            if (!push_back(value))
+                return;
+    }
+    EventList(const EventList& other) {
+        copy(other);
+    }
+    EventList& operator=(const EventList& other) {
+        if (this != &other) {
+            clear();
+            copy(other);
+        }
+        return *this;
+    }
+    EventList(EventList&& other) noexcept
+        : pages_(std::move(other.pages_)), size_(std::exchange(other.size_, 0)),
+          failure_(std::exchange(other.failure_, Failure::None)) {}
+    EventList& operator=(EventList&& other) noexcept {
+        if (this != &other) {
+            clear();
+            pages_ = std::move(other.pages_);
+            size_ = std::exchange(other.size_, 0);
+            failure_ = std::exchange(other.failure_, Failure::None);
+        }
+        return *this;
+    }
+    ~EventList() {
+        destroy();
+    }
+
+    bool reserve(std::size_t count) {
+        if (count > maximum_events) {
+            failure_ = Failure::LimitExceeded;
+            return false;
+        }
+        const auto needed = (count + page_events - 1) / page_events;
+        for (std::size_t page = 0; page < needed; ++page) {
+            if (pages_[page].capacity())
+                continue;
+            if (!pages_[page].reserve(page_events * sizeof(RfEvent))) {
+                failure_ = Failure::AllocationFailed;
+                return false;
+            }
+        }
+        return true;
+    }
+    bool push_back(const RfEvent& value) {
+        if (size_ >= maximum_events || !reserve(size_ + 1)) {
+            if (failure_ == Failure::None)
+                failure_ = Failure::LimitExceeded;
+            return false;
+        }
+        new (slot(size_)) RfEvent(value);
+        ++size_;
+        return true;
+    }
+    bool resize(std::size_t count) {
+        if (count < size_) {
+            while (size_ > count)
+                at(--size_).~RfEvent();
+            return true;
+        }
+        if (!reserve(count))
+            return false;
+        while (size_ < count) {
+            new (slot(size_)) RfEvent();
+            ++size_;
+        }
+        return true;
+    }
+    bool assign(std::size_t count, const RfEvent& value) {
+        clear();
+        if (!reserve(count))
+            return false;
+        while (size_ < count)
+            if (!push_back(value))
+                return false;
+        return true;
+    }
+    void clear() {
+        destroy();
+        for (auto& page : pages_)
+            page = {};
+        failure_ = Failure::None;
+    }
+    bool valid() const {
+        return failure_ == Failure::None;
+    }
+    Failure failure() const {
+        return failure_;
+    }
+    bool empty() const {
+        return size_ == 0;
+    }
+    std::size_t size() const {
+        return size_;
+    }
+    RfEvent& operator[](std::size_t index) {
+        return at(index);
+    }
+    const RfEvent& operator[](std::size_t index) const {
+        return at(index);
+    }
+    RfEvent& back() {
+        return at(size_ - 1);
+    }
+    const RfEvent& back() const {
+        return at(size_ - 1);
+    }
+    iterator begin() {
+        return {this, 0};
+    }
+    iterator end() {
+        return {this, size_};
+    }
+    const_iterator begin() const {
+        return {this, 0};
+    }
+    const_iterator end() const {
+        return {this, size_};
+    }
+    bool operator==(const EventList& other) const {
+        return failure_ == other.failure_ && size_ == other.size_ &&
+               std::equal(begin(), end(), other.begin());
+    }
+
+  private:
+    RfEvent& at(std::size_t index) {
+        return *slot(index);
+    }
+    const RfEvent& at(std::size_t index) const {
+        return *slot(index);
+    }
+    RfEvent* slot(std::size_t index) {
+        return reinterpret_cast<RfEvent*>(pages_[index / page_events].data()) + index % page_events;
+    }
+    const RfEvent* slot(std::size_t index) const {
+        return reinterpret_cast<const RfEvent*>(pages_[index / page_events].data()) +
+               index % page_events;
+    }
+    void destroy() {
+        while (size_)
+            at(--size_).~RfEvent();
+    }
+    void copy(const EventList& other) {
+        failure_ = other.failure_;
+        if (!other.valid() || !reserve(other.size_))
+            return;
+        for (const auto& value : other)
+            if (!push_back(value))
+                return;
+    }
+
+    std::array<InputBuffer, maximum_events / page_events> pages_;
+    std::size_t size_ = 0;
+    Failure failure_ = Failure::None;
+};
+
 struct Job {
     std::string job_id;
     std::string profile = "rf-events/1";
     std::string mode;
     std::uint64_t total_duration_ns = 0;
-    std::vector<RfEvent> events;
+    EventList events;
     bool allow_frequency_adjustment = false;
 
     bool operator==(const Job&) const = default;

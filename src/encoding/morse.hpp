@@ -127,10 +127,13 @@ inline MorseResult compile_message(const MorseMessage& input, std::size_t event_
     job.mode = input.mode;
     job.allow_frequency_adjustment = input.allow_frequency_adjustment;
     job.total_duration_ns = result.calculated_duration_ns;
-    job.events.reserve(result.calculated_events);
+    if (!job.events.reserve(result.calculated_events))
+        return fail("resource_exhausted");
+    bool stored = true;
     std::uint64_t offset = 0;
     auto emit = [&](std::uint64_t duration, bool on, std::uint64_t frequency) {
-        job.events.push_back({offset, duration, on, on ? std::optional(frequency) : std::nullopt});
+        stored = stored && job.events.push_back({offset, duration, on,
+                                                 on ? std::optional(frequency) : std::nullopt});
         offset += duration;
     };
     for (std::uint32_t repeat = 0; repeat < input.repeat_count; ++repeat) {
@@ -139,6 +142,8 @@ inline MorseResult compile_message(const MorseMessage& input, std::size_t event_
             emit(input.repeat_gap_ns, false, 0);
     }
     emit(message_tail_ns, false, 0);
+    if (!stored)
+        return fail("resource_exhausted");
     result.job = std::move(job);
     return result;
 }

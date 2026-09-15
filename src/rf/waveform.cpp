@@ -120,7 +120,8 @@ std::optional<Plan> plan_job(const wtp::Job& job, std::int32_t correction_ppb) {
         job.profile != "rf-events/1" ||
         (job.mode != "tone" && job.mode != "wspr" && job.mode != "qrss" && job.mode != "fskcw" &&
          job.mode != "dfcw") ||
-        job.events.empty() || job.events.size() > max_events || job.total_duration_ns == 0) {
+        !job.events.valid() || job.events.empty() || job.events.size() > max_events ||
+        job.total_duration_ns == 0) {
         return std::nullopt;
     }
     const auto total = samples_at(job.total_duration_ns, !job.events.back().rf_on);

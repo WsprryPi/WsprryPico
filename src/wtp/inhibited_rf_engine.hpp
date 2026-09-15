@@ -16,7 +16,7 @@ class InhibitedRfEngine final : public RfEngine {
     [[nodiscard]] bool output_active() const override;
 
   private:
-    std::optional<Job> job_;
+    std::optional<std::uint64_t> duration_ns_;
     std::uint64_t start_monotonic_ns_ = 0;
     bool running_ = false;
 };

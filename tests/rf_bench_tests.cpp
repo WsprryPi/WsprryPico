@@ -1,6 +1,7 @@
 #include "encoding/wspr.hpp"
 #include "rf/bench.hpp"
 
+#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 
@@ -79,6 +80,18 @@ int main() {
         CHECK(!encoding::wspr_type1("AA0NT", "EM18", 61));
         CHECK(encoding::wspr_type1("K1ABC", "AA00", 0));
         CHECK(encoding::wspr_type1("A12ABC", "RR99", 60));
+        wtp::allocate_input = [](std::size_t) -> void* { return nullptr; };
+        {
+            const auto failed_frame = rf::diagnostic_frame();
+            CHECK(!failed_frame.events.valid() && failed_frame.events.empty());
+            Clock failed_clock;
+            Engine failed_engine;
+            rf::Bench failed_bench(failed_engine, failed_clock);
+            const auto refused = failed_bench.command("WSPR AA0NT EM18 20 100");
+            CHECK(refused.find("resource_exhausted") != refused.npos);
+            CHECK(failed_engine.prepares == 0 && failed_engine.begins == 0);
+        }
+        wtp::allocate_input = std::malloc;
         rf::prepare_word_tables();
         for (unsigned tone = 0; tone < 4; ++tone) {
             const auto check = [tone](std::uint32_t phase) {
