@@ -2,14 +2,15 @@
 
 Current Phase 11.5 execution uses the [completion matrix](phase11-5-completion-matrix.md)
 and [September 15 standing authorization](phase11-5-completion-authorization-20260915.md).
-A's current firmware is `8dd6f0812292`, B's is `8921a7008183`; older candidate
+A's current firmware is `ca3c5dce4036`, B's is `8921a7008183`; older candidate
 paragraphs below retain historical evidence identities. Phase 11.5 is OPEN,
 R1/R2 closed, R3-R6 open. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
 passes retained LOAD/replay and P1 individual WTP/HTTP capacity during RF;
-the [Package 2 attempt](phase11-5-package2-review.md) remains OPEN after a
-20,480-byte LOAD allocation fault. A is inactive in network-free recovery boot
-4768a88991247131bdc7c0fc421dbe8f; the host fixture is restored. Overload was not
-executed. Retention/reclamation remains a separate open gate.
+the [Package 2 review](phase11-5-package2-review.md) accepts assertions 2.2a and
+2.2b after paged RF event storage and direct WTP-reservation observability. A is
+inactive in boot `5e0d6bc3e383b8c1cb4b0db9ed636bf5`; the host fixture is
+restored and both boards are Empty. TLS/slot/partial-HTTP, USB pressure,
+retention/reclamation and later-family gates remain open.
 
 
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).

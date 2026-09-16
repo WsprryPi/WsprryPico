@@ -10,7 +10,7 @@
     "R5": "OPEN",
     "R6": "OPEN"
   },
-  "candidate_source": "8dd6f0812292e9264c2a72745078a95ee606c191",
+  "candidate_source": "ca3c5dce40360b7eea2f9c45618232caa68cdbb6",
   "assertions": [
     {
       "id": "R1.1",
@@ -187,18 +187,18 @@
       "id": "2.2a",
       "group": "COMBINED",
       "requirement": "Supported simultaneous resident workload",
-      "classification": "failed",
-      "evidence": "phase11-5-r3-v2-capacity-c2-result.json; phase11-5-completion-p1-attempt1-result.json; phase11-5-package2-result.json",
-      "remaining": "P2 maximum overlap stopped after 4096 host bytes; revised 32 KiB profile failed a 20480-byte LOAD allocation before ARM. Repair and validate the allocation path before a fresh supported packet. No P2 acceptance.",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-event-pages-result.json; phase11-5-package2-result.json",
+      "remaining": "Accepted on ca3c5dce4036: 32784 direct WTP-reserved bytes overlap authenticated HTTP 200 during one complete 128-second RF job; WTP completes in 1.520 seconds with native continuity and recovery. Historical failures remain preserved.",
       "package": 2
     },
     {
       "id": "2.2b",
       "group": "COMBINED",
       "requirement": "Unsupported combination bounded refusal/closure",
-      "classification": "missing",
-      "evidence": "phase11-5-package2-result.json",
-      "remaining": "Not executed: requires an independently accepted supported packet, then one separately declared unsupported combination with owner/RF continuity and authenticated recovery.",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-event-pages-result.json",
+      "remaining": "Accepted on a separate complete 128-second RF job: resident WTP input plus a declared 32768-byte HTTP body yields bounded 503 resource_exhausted before body submission; authenticated recovery and owner/RF continuity pass.",
       "package": 2
     },
     {

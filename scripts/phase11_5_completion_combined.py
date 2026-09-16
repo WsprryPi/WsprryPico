@@ -15,10 +15,10 @@ from phase11_5_device_management import digest, save
 from phase11_5_r3_capacity_plan import http_capacity_cases, identity, padded_json
 
 POLICY = 'phase115-completion-combined-v1'
-SOURCE = '8dd6f0812292e9264c2a72745078a95ee606c191'
-IMAGE = 'ccfdf60b2b927b4a3fd14cc9254a6748334d584ebad0d672771939ab2369b40d'
+SOURCE = 'ca3c5dce40360b7eea2f9c45618232caa68cdbb6'
+IMAGE = '6c7aa0b7df6756e8f248570d682c6af4bbcfc44a5ad67e94d6761709ced0bd59'
 PRIVATE_ROOT = '/home/pi/phase11-5-memory-pressure-rf-20260915'
-BOOT = '7a04779b8018624574066260fce9d0d8'
+BOOT = '5e0d6bc3e383b8c1cb4b0db9ed636bf5'
 NAME = 'wsprrypico-0a60df.local'
 PEER = '06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016'
 DEVICE = 'fd6127d11d6aca42a9905fa3fb1bf1d5'

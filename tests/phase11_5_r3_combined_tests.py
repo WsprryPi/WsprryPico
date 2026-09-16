@@ -78,9 +78,9 @@ class CombinedTests(unittest.TestCase):
             warm=dict(packet_sha256='x',monotonic_ns=10,value=dict(value=dict(status=status,heap_allocated_bytes=100000,wtp_input_reserved_bytes=0)))
             sample=copy.deepcopy(warm);sample['monotonic_ns']=30;sample['value']['value'].update(heap_allocated_bytes=132488,wtp_input_reserved_bytes=32784)
             rf=[row('start',dict(packet_sha256='x'),1),row('info',warm['value'],10),row('capacity_tx',{},20),
-                row('capacity_write',dict(bytes=32783,total_written=32783),28),row('info',sample['value'],30),
+                row('capacity_write',dict(bytes=32768,total_written=32768),28),row('info',sample['value'],30),
                 row('combined_resident',dict(packet_sha256='x',info=sample,baseline=warm,began_ns=19),32),
-                row('capacity_write',dict(bytes=1,total_written=32784),45),row('capacity_message',{},50)]
+                row('capacity_write',dict(bytes=16,total_written=32784),45),row('capacity_message',{},50)]
             load=[row('combined_http_ready',dict(packet_sha256='x',info=warm,peer_sha256=PEER,authenticated_ns=5),15)]
             for i,case in enumerate(p['combined']['cases']):
                 t=35+i*25

@@ -1,0 +1,100 @@
+{
+  "schema": "phase11.5-event-pages-package2-result-v1",
+  "status": "PACKAGE_2_ACCEPTED",
+  "phase_status": "OPEN",
+  "phase_families_closed": 2,
+  "package_assertions": {"2.2a": "ACCEPTED", "2.2b": "ACCEPTED"},
+  "target": {
+    "board": "Pico 2 W / RP2350 Arm",
+    "source_revision": "ca3c5dce40360b7eea2f9c45618232caa68cdbb6",
+    "image_sha256": "6c7aa0b7df6756e8f248570d682c6af4bbcfc44a5ad67e94d6761709ced0bd59",
+    "elf_sha256": "d49c560ef8484079ff65fc020cc604b116795b09e0211ae0505e37903cf92c9b",
+    "boot_id": "5e0d6bc3e383b8c1cb4b0db9ed636bf5",
+    "sample_clock_hz": 138000000,
+    "pio_divider": 1,
+    "renderer": "RAM",
+    "listener": "configured"
+  },
+  "repairs": [
+    {"commit": "b51cd30be113f872153b956e4ebce5b44a3d0bca", "description": "Replace the contiguous 20,480-byte RF event vector with bounded nullable event pages and explicit allocation failure handling."},
+    {"commit": "ca3c5dce40360b7eea2f9c45618232caa68cdbb6", "description": "Report direct WTP parser input reservation so simultaneous residence is measured without unrelated heap movement."}
+  ],
+  "builds": {
+    "network_on_standard_elf": "1a6d8b421c6ad4b4d86e8532771404ffed20babcdfe16553da37bc73ee2bdb34",
+    "network_on_standard_uf2": "7e08593f4c075b3822ace7dc94afa9dd43239614c31e198f567655126b8efe8c",
+    "network_on_standalone_rf_elf": "d49c560ef8484079ff65fc020cc604b116795b09e0211ae0505e37903cf92c9b",
+    "network_on_standalone_rf_uf2": "6c7aa0b7df6756e8f248570d682c6af4bbcfc44a5ad67e94d6761709ced0bd59",
+    "network_off_standard_elf": "fd564960fb2a9f9acb67184a86cce7fe67a069c200633bfb21d84a9522af7d40",
+    "network_off_standard_uf2": "a8f1214fbfb2763ea0b3fd3586631c0ffb2866a16d9782bd90c3148344444460",
+    "network_off_standalone_rf_elf": "7b4df0dc67941c202051b668c1c79df21624b253de193d5fc9e4d9ec4c217b93",
+    "network_off_standalone_rf_uf2": "625d024762cf57e35ba038ebea0fe0099f99af294d7445b7b533e950817a2700"
+  },
+  "zero_rf_load_replay": {
+    "packet_sha256": "669cbe68c88537dfda0030d5e7473a388094a20133833ccf28c4eea5191c9450",
+    "status": "IDLE_NATIVE_RETAINED_LOAD_PASS",
+    "maximum_load_bytes": 52105,
+    "fresh_id_replay_equal": true,
+    "native_connection_continuous": true,
+    "allocator_peak_bytes": 142576,
+    "heap_cap_bytes": 218840,
+    "altered_evidence_rejected": 4
+  },
+  "retained_failures": [
+    {"packet_sha256": "d5d9b1a813909e3f880084887cf7962bbe7a12b76944cf3d73d9367d88f46c9d", "outcome": "20,480-byte contiguous RF event allocation failed before ARM; watchdog recovery; no Package 2 credit."},
+    {"packet_sha256": "7040dde3b78cee31afd365cfdc974a3502e2694e00d323ffb66b3ffaa61cf4a8", "outcome": "RF completed, but the global heap-delta proof gate missed by 280 bytes; no HTTP request and no acceptance credit."},
+    {"outcome": "The first metric packet freeze rejected local bytecode-cache entries before device action; a fresh evidence root was used."},
+    {"packet_sha256": "43c42e4df930bd970843a956c8250d4e1db545ea0dd9537fdc30cde42b9ad897", "outcome": "The first final audit rejected a stale exact-final-byte assumption; unchanged raw evidence passed the corrected bounded-final-write audit."}
+  ],
+  "supported": {
+    "packet_sha256": "43c42e4df930bd970843a956c8250d4e1db545ea0dd9537fdc30cde42b9ad897",
+    "status": "P2_SUPPORTED_VERIFIED",
+    "job_id": "4fe6b268bd634482a23b853640bc6abc",
+    "rf_duration_ns": 128000000000,
+    "wtp_wire_bytes": 32784,
+    "wtp_input_reserved_delta_bytes": 32784,
+    "observed_heap_delta_bytes": 32912,
+    "wtp_exchange_ns": 1520482972,
+    "http_status": 200,
+    "http_declared_body_bytes": 196,
+    "authenticated_recovery": true,
+    "native_connections": 1,
+    "maximum_allocator_peak_bytes": 148088,
+    "altered_evidence_rejected": ["overlap", "write", "response", "native", "reservation"]
+  },
+  "overload": {
+    "packet_sha256": "5dc597983d2ca9c471419c25dbc8ba74b47b8c46d8682447c71912b3f6ef000e",
+    "status": "P2_OVERLOAD_VERIFIED",
+    "job_id": "e8c745764a4b4c5b8f6a0312bcd2cdc6",
+    "rf_duration_ns": 128000000000,
+    "wtp_wire_bytes": 32784,
+    "wtp_input_reserved_delta_bytes": 32784,
+    "observed_heap_delta_bytes": 37080,
+    "wtp_exchange_ns": 1653157680,
+    "http_status": 503,
+    "http_error_code": "resource_exhausted",
+    "http_declared_body_bytes": 32768,
+    "http_offered_body_bytes": 0,
+    "authenticated_recovery": true,
+    "native_connections": 1,
+    "maximum_allocator_peak_bytes": 164296,
+    "altered_evidence_rejected": ["overlap", "write", "response", "native", "reservation"]
+  },
+  "restoration": {
+    "status": "HOST_RESTORED_AND_BOARDS_INDEPENDENTLY_INACTIVE",
+    "fixture_packet_sha256": "9074b7329789987dbe1a1684a9f23af0d2c12c54f0274a1e16d9c7203f0cc214",
+    "host_snapshot_matches_baseline": true,
+    "configuration_preserved": true,
+    "reservation_released": true,
+    "pico_a_state": "empty",
+    "pico_b_state": "empty",
+    "pico_b_revision": "8921a7008183",
+    "pico_b_boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0"
+  },
+  "package_budget": {"controlled_flashes": 2, "rf_jobs": 3, "planned_rf_seconds": 384, "configuration_writes": 0, "controlled_reboots": 0, "wifi_cycles": 0},
+  "limitations": [
+    "Only Package 2 assertions 2.2a and 2.2b are accepted.",
+    "TLS timeout, slot, partial HTTP, USB pressure, retention/reclamation, interruption, network lifecycle and R6 gates remain separate.",
+    "Phase 11.5 remains OPEN with R1/R2 closed in recorded scope and R3-R6 open.",
+    "Physical 132 MHz and 150 MHz configurations remain untested; selecting another clock requires affected Phase 11.5 checks."
+  ]
+}

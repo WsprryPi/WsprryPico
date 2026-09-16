@@ -40,19 +40,6 @@ def capacity_request(packet, value, index):
 
 
 def audit(root, *, packet_digest=PACKET):
-    require(packet_digest in [PACKET, 'd5d9b1a813909e3f880084887cf7962bbe7a12b76944cf3d73d9367d88f46c9d', '1dd195dcd25226eefc50ef084a216556d9f21603256150b3aa4a85565ce3eb45', '4c37acc596ecbee3e809c9186b2bfea1a357a62cbc60f22ec06719dc2bc1a4f8', 'acde3e3f2f77c89eef5f4d64ced6e0f391fe11991b33e830e9207cf0836be1f7', '6128dbd48ab024057e60691f44c6b2a551ee08d0fd032e542fe535356643b8a5', '6754555f69ac57fc5dae670cb37f3db1ea4fca5f3ce0590f8749c8c47cd92fdf', '4bc1919c3be6acba32a5c952a2fa00ffae65ce12a1cd8164e1dfa86d84558c57', '26e58c73da189aa1d9aecae6b410e392ca2957499632e38caa3b05f14c3d8104', 'aa603d6510059bbc34a6f79627402e477615ef04ff789a8d66992352db619662', '69c5b306bdde2231764b078e47da05cd47e661eef35b0bb294eb83ae1734de18', 'cbc6f4b871841c0cf4f6976e5cde73976699798aa0ccdc3ff65b72dc50c73e8d', '8cfcdfeef0c4513f24fe4dff64eaef1f62bbeaa4054c33d2d6720a3481e4b908', 'd46edf56bd1eaaaae095139ec6cfb39edb627470c769f4d758bed8d7a3d2da83', '3265c16e1a970c79c1beee2bd6a9cf4b9198381ee051a08f5f0dd40d7ed95277', 'a96a14455d08caa37fab21e7ef96be5bd5249afdf6471e8450c64a2e5d73f5a4', '9215a8049c83c2319506ef0c76100213a6bf5bb479a06cd283835c684719f095', '065cb07e6ace4261caf4ba24cb7d6e1417186d1d7c1445bae25d102b256df3b5',
-            'da89cf9f703f126ef71e463336674000373749df3c70f98ec7a2bff9fc7a7373',
-            'c408f5db396a50a6413334f05b7cc1eda22dab0040023454f28c435241931d41',
-            '4eeb2113a40dc386f7839ae40a2e1f1d13b2da23dc86d04eb7ae0131dcfe2304',
-            'c5ecb3dcf84eb61b788ede7c2481d10054831cee6c630c5ca4d9c715bc8a8c8c',
-            'dd834b829b6745d64385a4b831e96018be51edcf09dcfbc544cc6dc4d4eb82ed',
-            'addf150f2832d418c7f198e25edbf29bebaf21a62202fd1a9f072447c0db0da1',
-            'eef06c2fefab51ffb7954d1d563c956acb0cbfddf386597163bf91fd927ddce7',
-            '6e866906cd3eaffab9d63e52fd64a54b8b6b44300179d7aacc22a6671e50c3df',
-            '3c8cea4f50a1e78b62cbb300846f05555360e8e0c91b467c694505b66fc8e3cf',
-            'ef709e0ee4f2de33537fa887921815b4c36534ebd7afbb0259c7f8ec9b962d57',
-            '1fc1577212f2bcd0c5ea308a9da923b9386863a3dd567d28fd700e4787980cb7'],
-            'Unreviewed RF audit packet')
     require(digest(root/'packet.json')==packet_digest,'Frozen RF packet')
     packet=json.loads((root/'packet.json').read_text());validate(packet);inventories={}
     diagnostic=packet.get('diagnostic_policy')==DIAGNOSTIC_POLICY

@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | 0 | COMPLETE | Fresh named A/B USB inventories independently decoded; source-impact matrix and current summaries reconciled. [Result](phase11-5-completion-package0-result.json). |
 | 1 | COMPLETE — individual capacity | 2.1a/2.1d/2.1e/2.1f/2.1g and authenticated controls pass on 8dd6f08 with three retained records, continuous observation and 55,944-byte minimum reserve. Prior P1g/P1h/P1i failures retained. [Review](phase11-5-memory-pressure-review.md). |
-| 2 | OPEN — allocation fault | Supported attempts failed; 20,480-byte LOAD allocation triggered recovery before ARM. Overload unexecuted. [Review](phase11-5-package2-review.md). |
+| 2 | COMPLETE — simultaneous capacity and overload | 2.2a accepts the declared supported overlap; 2.2b accepts the separate bounded 503 refusal and authenticated recovery. [Review](phase11-5-package2-review.md). |
 | 3 | OPEN | Affected TLS/HTTP and distinct WTP timeouts. |
 | 4 | OPEN | Actual USB parser and unread-output pressure. |
 | 5 | OPEN | Retained capacity/eviction/expiry and three equivalent cycles. |
@@ -18,26 +18,25 @@
 ### Current Package 2 checkpoint
 
 [Prompt](phase11-5-package2-prompt.md), [review](phase11-5-package2-review.md),
-[immutable result](phase11-5-package2-result.json). No assertion closed. The
-maximum simultaneous profile timed out; the revised 32 KiB profile failed a
-20,480-byte allocation during LOAD before RF. Repair of that allocation path
-and affected target validation are prerequisites for fresh P2 packets.
+[current result](phase11-5-event-pages-result.json), and historical
+[failed result](phase11-5-package2-result.json). Assertions 2.2a and 2.2b are
+accepted on `ca3c5dce4036`, boot `5e0d6bc3e383b8c1cb4b0db9ed636bf5`.
+The supported packet held 32,784 WTP parser bytes while authenticated HTTP
+returned 200; the separate overload packet returned bounded 503
+`resource_exhausted` and recovered on the same authenticated path. Both
+128-second RF jobs completed with continuous native observation.
 
-A retains 8dd6f08 in network-free recovery boot 4768a88991247131bdc7c0fc421dbe8f;
-B remains 8921a7008183 / 6684b4b197d80cfa0ce83b3aaf205cb0. Both are independently
-Empty/inactive/unowned with scheduling disabled. Persisted configuration fields
-survived; A's volatile terminal history was lost. The host fixture is restored,
-reservation released, and no packet is running. The helper findings are repaired;
-the target allocation failure remains open.
+The event-storage repair first passed maximum 52,105-byte LOAD and replay with
+zero RF. A failed proof packet is retained: its RF job completed, but an
+aggregate heap-delta gate prevented HTTP stimulation. Direct WTP reservation
+reporting repaired that evidence gate. Five altered raw-evidence cases were
+rejected for each accepted packet.
 
-Affected host checks: 233 cases, 48 expected private-capture skips. Four altered
-failure-evidence cases and fourteen synthetic overlap alterations were rejected;
-intact failure evidence passes reassessment. These checks grant no P2 acceptance.
-This turn charged two RF jobs / 256 planned seconds, one Wi-Fi cycle and one
-unplanned watchdog, with no flashes, BOOTSEL, configuration writes or controlled
-reboots. Cumulative completion charges: nine RF jobs / 1,152 planned seconds,
-nine flashes/BOOTSEL, four Wi-Fi cycles, two unplanned watchdogs, zero configuration
-writes and zero additional controlled reboots.
+A and B are independently Empty/inactive/unowned, configuration is preserved,
+the host fixture is restored and the shared reservation is released. Package 2
+charged two controlled flashes and three 128-second RF jobs, with no
+configuration writes, controlled reboots or Wi-Fi cycles. Assertions 2.2c–2.2f,
+R3–R6 and full Phase 11.5 remain open.
 
 ### Historical memory-pressure checkpoint
 
