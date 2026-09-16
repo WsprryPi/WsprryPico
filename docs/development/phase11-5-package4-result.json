@@ -1,0 +1,72 @@
+{
+  "schema": "phase11.5-package4-audit-v1",
+  "status": "PACKAGE4_PARTIAL_VERIFIED",
+  "packet_sha256": "6de855e36977a824498d920fce9eeff9c4bfd9b087c8964966d93f7daa68522f",
+  "source_revision": "ca3c5dce40360b7eea2f9c45618232caa68cdbb6",
+  "image_sha256": "6c7aa0b7df6756e8f248570d682c6af4bbcfc44a5ad67e94d6761709ced0bd59",
+  "boot_id": "5e0d6bc3e383b8c1cb4b0db9ed636bf5",
+  "assertions": {
+    "2.3d": "ACCEPTED",
+    "2.3e": "OPEN_MISSING_SAME_SESSION_SILENCE_AND_DTR_RECOVERY"
+  },
+  "mechanisms": {
+    "maximum_payload_bytes": 65536,
+    "maximum_wire_bytes": 65552,
+    "output_progress_timeout_ms": 5000,
+    "usb_service_bytes": 64,
+    "dtr_resets_endpoint": true
+  },
+  "parser": {
+    "wire_bytes": 65552,
+    "maximum_reserved_bytes": 65552,
+    "same_connection_recovery": true,
+    "dtr_recovery": true,
+    "network_request_count": 242,
+    "network_message_count": 251,
+    "console_exchange_count": 324,
+    "network_samples": 183,
+    "console_samples": 324
+  },
+  "unread": {
+    "written_bytes": 16384,
+    "complete_requests": 94,
+    "responses_before_close": 7,
+    "hold_seconds": 12,
+    "pre_dtr_probe_silent": false,
+    "fresh_hello_status_recovery": false,
+    "network_samples": 43,
+    "console_samples": 324,
+    "failure": "Unread USB silence probe write",
+    "host_output_queue_flush_fix": "NOT_PRESENT_IN_FROZEN_PACKET"
+  },
+  "rf_jobs": 2,
+  "rf_duration_ns": 200000000000,
+  "absolute_rf_jobs": 4,
+  "absolute_rf_duration_ns": 400000000000,
+  "fixture_recovery": {
+    "prior_packet_sha256": "d09c9a35ce35b00a57004a69290cc6ad39a439e2dcd6c31014da3e88c63f21d8",
+    "prior_rf_jobs": 0,
+    "host_ap_station_evictions": 1,
+    "target_configuration_writes": 0,
+    "target_controlled_reboots": 0
+  },
+  "execution_history": {
+    "preflight_packet_sha256": "d09c9a35ce35b00a57004a69290cc6ad39a439e2dcd6c31014da3e88c63f21d8",
+    "preflight_rf_jobs": 0,
+    "observer_defect_packet_sha256": "8896f2cbf44dff298864600bbcd8656314fc61638f2df71eceaa4221f208b983",
+    "observer_defect_rf_jobs": 1,
+    "observer_defect_rf_duration_ns": 100000000000,
+    "observer_reconciliation_packet_sha256": "9f110f5e99f1391102a39afd6741a863377ff949ffa0f59ff4fd75bf9b4d38a9",
+    "gate_defect_packet_sha256": "5c999fd00d27f041a79d0991ca1d58e8555b4dc3df5b72911b264958fcd207e4",
+    "gate_defect_rf_jobs": 1,
+    "gate_defect_rf_duration_ns": 100000000000,
+    "gate_reconciliation_packet_sha256": "fbd68f1f4215bbc1d5c136ae1e02809e7bd6013ea2966fef898a4806ee657829",
+    "cumulative_prior_rf_jobs": 2,
+    "cumulative_prior_rf_duration_ns": 200000000000
+  },
+  "configuration_preserved": true,
+  "pico_b_unchanged": true,
+  "final_inactive_unowned": true,
+  "reservation_released": true,
+  "reconciliation_packet_sha256": "d0c521b5f4976b9a0af0ed38fc933e07b16a89d4eb7f54e7bd58bc18591e121d"
+}

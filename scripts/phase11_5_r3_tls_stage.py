@@ -36,7 +36,8 @@ def unpack(archive, packet_sha, root, own_sha):
              'phase11.5-r3-v2-parallel-b-deploy-v1','phase11.5-r3-v2-parallel-b-functional-v1',
              'phase11.5-r3-v2-parallel-b-repair-v1','phase11.5-r3-v2-parallel-b-paged-repair-v1',
              'phase11.5-r3-v2-wifi-recovery-v1','phase11.5-r3-v2-native-v1',
-             'phase11.5-package3-progress-v1'), 'R3 staging root/scope')
+             'phase11.5-package3-progress-v1','phase11.5-package4-usb-v1'),
+            'R3 staging root/scope')
     require(set(data) == {'packet.json'} | set(packet['stage_sha256']), 'Archive manifest differs')
     require(packet['stage_sha256']['scripts/phase11_5_r3_tls_stage.py'] == own_sha,
             'Uploaded staging helper differs')

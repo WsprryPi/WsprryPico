@@ -652,6 +652,36 @@ void test_large_endpoint_reply_has_one_payload_allocation() {
     measured_reply_bytes = 0;
 }
 
+void test_endpoint_unread_output_timeout_and_reconnect() {
+    VirtualClock clock;
+    TestIdentitySource identities;
+    MockRfEngine engine;
+    JobService service(clock, engine, identities);
+    Endpoint endpoint(service, id('d'), "test");
+    const auto hello = "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":\"" +
+                       id('1') + "\",\"request_id\":\"" + id('2') +
+                       "\",\"op\":\"HELLO\",\"body\":{\"versions\":[\"WTP/1\"],"
+                       "\"client_name\":\"timeout\",\"client_version\":\"1\"}}";
+    const auto wire = encode_frame(
+        {reinterpret_cast<const std::uint8_t*>(hello.data()), hello.size()});
+    auto offer = [&] {
+        std::size_t offset = 0;
+        while (offset < wire.size())
+            offset += endpoint.receive(std::span(wire).subspan(offset), 0);
+        CHECK(!endpoint.output().empty());
+    };
+    endpoint.connect("local");
+    offer();
+    endpoint.poll(4999);
+    CHECK(!endpoint.closed() && !endpoint.output().empty());
+    endpoint.poll(5000);
+    CHECK(endpoint.closed() && endpoint.output().empty());
+    CHECK(endpoint.receive(wire, 5001) == 0);
+    endpoint.connect("local");
+    offer();
+    CHECK(!endpoint.closed());
+}
+
 void test_large_frames_across_feed_boundaries() {
     for (const std::size_t length : {16668U, 65536U}) {
         std::vector<std::uint8_t> payload(length);
@@ -1963,6 +1993,8 @@ int main() {
         {"large frame feed boundaries", test_large_frames_across_feed_boundaries},
         {"large endpoint response allocation",
          test_large_endpoint_reply_has_one_payload_allocation},
+        {"endpoint unread output timeout and reconnect",
+         test_endpoint_unread_output_timeout_and_reconnect},
         {"WSPR adjustment response allocation", test_wspr_adjustment_response_allocation},
         {"input allocation failure", test_input_allocation_failure_closes_without_dispatch},
         {"maximum input in fragmented heap", test_maximum_frame_with_fragmented_input_heap},

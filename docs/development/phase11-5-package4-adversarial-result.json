@@ -1,0 +1,21 @@
+{
+  "schema": "phase11.5-package4-adversarial-v1",
+  "status": "PASS",
+  "intact_status": "PACKAGE4_PARTIAL_VERIFIED",
+  "rejected_count": 13,
+  "rejected_mutations": [
+    "packet-identity",
+    "staged-source",
+    "tls-peer",
+    "raw-network",
+    "raw-console",
+    "parser-wire",
+    "raw-parser-response",
+    "parser-recovery-removed",
+    "fabricated-unread-proof",
+    "failure-reason",
+    "result-overclaim",
+    "reconciliation-state",
+    "reservation-packet"
+  ]
+}

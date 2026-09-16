@@ -268,9 +268,9 @@
       "id": "2.3d",
       "group": "USB",
       "requirement": "USB parser pressure",
-      "classification": "missing",
-      "evidence": "",
-      "remaining": "Bounded bytes during RF; separate network authority",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-package4-result.json; phase11-5-package4-review.md",
+      "remaining": "Exact 65,552-byte USB frame during RF; direct 65,552-byte reservation, separate authenticated network authority, same-connection and DTR recovery accepted",
       "package": 4
     },
     {
@@ -278,8 +278,8 @@
       "group": "USB",
       "requirement": "USB unread-output pressure",
       "classification": "missing",
-      "evidence": "",
-      "remaining": "Bounded unread output during RF; separate network authority and recovery",
+      "evidence": "phase11-5-package4-result.json; phase11-5-package4-review.md",
+      "remaining": "Bounded zero-read response deficit observed, but same-session silence probe was not written; physically retest fixed host-output flush, pre-DTR silence and fresh DTR recovery",
       "package": 4
     },
     {

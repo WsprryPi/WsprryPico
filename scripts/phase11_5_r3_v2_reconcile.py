@@ -92,6 +92,7 @@ def run(root, packet):
     result = dict(status='RUNNING', rf_jobs=0, rf_duration_ns_charged=0, claim_attempts=0, release_attempts=0)
     save(root/'result.json', result)
     before = before_b = None
+    final_values = {}
     try:
         if comparator_required(packet):
             before_b = inventory('before-b', True)
@@ -130,7 +131,23 @@ def run(root, packet):
                 value=inventory(label,b);s=value['wtp']['STATUS'];baseline=before_b if b else before
                 validate_final(value, baseline, packet, b)
                 result[label]=s
+                final_values['b' if b else 'a'] = value
             except BaseException as error:result.update(status='FAILED',**{label+'-error':str(error)})
+        if result['status']=='RECONCILED_REQUIRES_FINAL_INVENTORY' and packet.get('shared_rf_reservation'):
+            try:
+                require(packet['shared_rf_reservation']=='durable-both-picos-v1' and
+                        set(final_values)=={'a','b'},'Both final boards required for reservation reconciliation')
+                from phase11_5_rf_reservation import Reservation
+                observed_ns=time.monotonic_ns()
+                reservation=Reservation(packet['reservation_packet_sha256'],
+                    reconciliation=(final_values,observed_ns))
+                try:
+                    reservation.release(final_values)
+                    save(root/'rf-reservation-released.json',json.loads(reservation.path.read_text()))
+                    result['reservation_released']=True
+                finally:reservation.close()
+            except BaseException as error:
+                result.update(status='FAILED',reservation_error=str(error))
         if result['status']=='RECONCILED_REQUIRES_FINAL_INVENTORY':result['status']='RECONCILED_INACTIVE_UNOWNED'
         save(root/'result.json',result)
     require(result['status']=='RECONCILED_INACTIVE_UNOWNED','Reconciliation requires diagnosis')
@@ -151,6 +168,10 @@ def main():
     if not known_missed(packet):
         require(len(packet['allowed_complete_jobs'])==1,'Exactly one known terminal job')
         identity(packet['allowed_complete_jobs'][0])
+    if packet.get('shared_rf_reservation'):
+        require(packet['shared_rf_reservation']=='durable-both-picos-v1' and
+                packet.get('b_role')=='unchanged-comparator','Exact shared reservation reconciliation')
+        identity(packet['reservation_packet_sha256'][:32]);identity(packet['reservation_packet_sha256'][32:])
     validate_stage(root, packet)
     with (root/'result.json').open('x') as out:json.dump(dict(status='STARTING'),out)
     run(root,packet)
