@@ -1,0 +1,18 @@
+{
+  "status": "PACKAGE5_PARTIAL_ADVERSARIAL_VERIFIED",
+  "result_status": "PACKAGE5_OPEN",
+  "mutations": 10,
+  "rejected": [
+    "source_identity",
+    "replay_overclaim",
+    "terminal_expiry_overclaim",
+    "reclamation_overclaim",
+    "reclamation_delta",
+    "late_response_hidden",
+    "failed_packet_removed",
+    "hardware_charge_reduced",
+    "reservation_not_released",
+    "fixture_failure_hidden"
+  ],
+  "package5_complete": false
+}

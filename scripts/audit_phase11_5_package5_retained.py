@@ -6,7 +6,7 @@ from pathlib import Path
 
 from phase11_5_inventory import require
 from phase11_5_package5_http import digest
-from phase11_5_package5_plan import BOOT, DEVICE, PEER, validate_retention
+from phase11_5_package5_plan import RETAINED_BOOT as BOOT, DEVICE, PEER, validate_retention
 
 
 def rows(path):

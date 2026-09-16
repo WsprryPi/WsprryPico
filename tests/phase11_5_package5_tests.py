@@ -6,14 +6,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
-from phase11_5_package5_plan import (BOOT, DEVICE, IMAGE, POLICY, SOURCE, expiry_cases,
-    retention_cases, terminal_jobs, validate_expiry, validate_retention, validate_terminal)
+from phase11_5_package5_plan import (BOOT, DEVICE, IMAGE, POLICY, RETAINED_BOOT,
+    RETAINED_IMAGE, RETAINED_SOURCE, SOURCE, expiry_cases, retention_cases,
+    terminal_jobs, validate_expiry, validate_retention, validate_terminal)
 
 
 class Package5PolicyTests(unittest.TestCase):
     def retained(self):
         seed, owner = "a" * 32, "b" * 32
-        return dict(policy=POLICY, source_revision=SOURCE, image_sha256=IMAGE, boot_id=BOOT,
+        return dict(policy=POLICY, source_revision=RETAINED_SOURCE,
+                    image_sha256=RETAINED_IMAGE, boot_id=RETAINED_BOOT,
                     device_id=DEVICE, runtime_seconds=1500, restoration_seconds=150,
                     configuration_writes=0, controlled_reboots=0, wifi_cycles=0, flashes=0,
                     rf_jobs=0, retention=dict(seed=seed, owner_id=owner,

@@ -6,14 +6,19 @@
 [current assertion matrix](phase11-5-completion-matrix.md) records current
 applicability and remaining work. [Standing authorization](phase11-5-completion-authorization-20260915.md)
 permits fresh bounded packets on either Pico with one shared RF reservation.
-Pico A runs firmware `8dd6f0812292e9264c2a72745078a95ee606c191`;
-Pico B runs `8921a7008183`. Repository HEAD is a separate identity.
-A is currently in network-free recovery boot `4768a88991247131bdc7c0fc421dbe8f`
-after the [P2 LOAD allocation fault](phase11-5-package2-review.md). Both boards
-are independently inactive/unowned; the host fixture is restored. P1 retains its
-recorded profile. P2 is OPEN and overload unexecuted.
-Component 9's bounded idle LOAD/replay regression is CLOSED; Group 2 remains
-OPEN. Group 1 closed at checkpoint 043. Groups 3/4 and R4-R6 remain open.
+Pico A runs firmware `2b25ca05c270819466a04498f9bc4894a4c5bace`, image
+`16698dd36ac4b919a93e56e948499462cbe41b1ca20c9b20007512339ff35a51`
+and boot `80d558e5804547749eca849c53ba27e1`; Pico B runs
+`8921a7008183` on unchanged boot `6684b4b197d80cfa0ce83b3aaf205cb0`.
+Repository HEAD is a separate identity. Both boards are independently
+Empty/inactive/unowned, the shared reservation is Released and the host fixture
+is restored.
+
+Packages 1-4 are complete. [Package 5](phase11-5-package5-review.md) is open at
+2/4 rows: replay/session capacity, LRU and real expiry are accepted; terminal
+capacity/LRU passes, while terminal expiry remains unexecuted and the three-cycle
+reclamation comparison exceeds its unchanged 1,024-byte gate. Package 6 and
+R4-R6 remain open. Phase 11.5 remains 2/6 families closed.
 
 The records below preserve earlier identities, counts and outcomes. Their
 then-current candidate and device restrictions are historical.

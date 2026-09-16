@@ -6,9 +6,12 @@ from phase11_5_inventory import require
 
 
 POLICY = "phase115-package5-retained-v1"
-SOURCE = "ca3c5dce40360b7eea2f9c45618232caa68cdbb6"
-IMAGE = "6c7aa0b7df6756e8f248570d682c6af4bbcfc44a5ad67e94d6761709ced0bd59"
-BOOT = "5e0d6bc3e383b8c1cb4b0db9ed636bf5"
+RETAINED_SOURCE = "ca3c5dce40360b7eea2f9c45618232caa68cdbb6"
+RETAINED_IMAGE = "6c7aa0b7df6756e8f248570d682c6af4bbcfc44a5ad67e94d6761709ced0bd59"
+RETAINED_BOOT = "5e0d6bc3e383b8c1cb4b0db9ed636bf5"
+SOURCE = "2b25ca05c270819466a04498f9bc4894a4c5bace"
+IMAGE = "16698dd36ac4b919a93e56e948499462cbe41b1ca20c9b20007512339ff35a51"
+BOOT = "80d558e5804547749eca849c53ba27e1"
 DEVICE = "fd6127d11d6aca42a9905fa3fb1bf1d5"
 NAME = "wsprrypico-0a60df.local"
 PEER = "06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016"
@@ -67,8 +70,8 @@ def retention_cases(seed, owner_id):
 
 
 def validate_retention(packet):
-    require(packet["policy"] == POLICY and packet["source_revision"] == SOURCE and
-            packet["image_sha256"] == IMAGE and packet["boot_id"] == BOOT and
+    require(packet["policy"] == POLICY and packet["source_revision"] == RETAINED_SOURCE and
+            packet["image_sha256"] == RETAINED_IMAGE and packet["boot_id"] == RETAINED_BOOT and
             packet["device_id"] == DEVICE, "Package 5 retained identity")
     plan = packet["retention"]
     require(plan == dict(seed=plan["seed"], owner_id=plan["owner_id"],

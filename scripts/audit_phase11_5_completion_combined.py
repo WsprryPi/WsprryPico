@@ -6,6 +6,8 @@ from phase11_5_completion_combined import validate_profile, resident, running, P
 from audit_phase11_5_r3_v2_rf import audit as audit_rf
 from audit_phase11_5_r3_v2_hour import journal, native_wire
 
+NATIVE_DECODER_SHA256 = '5cf410758c48e05bc35f04f394b486f0b210b93e7ab785cedaf1bc7dd689162d'
+
 
 def overlap(packet, rf, load):
     c=packet['combined']; primary,recovery=c['cases']
@@ -78,7 +80,8 @@ def audit(root, expected):
     require(end==load[-1]['value'] and end==dict(status='CAPTURED_REQUIRES_AUDIT',https_requests=2,native_exit=0),
             'Complete bounded native/HTTP run')
     metrics=overlap(p,rf,load)
-    native,counts=native_wire(root,p,root/'pi/phase115_tls_observer_test.py')
+    native,counts=native_wire(root,p,root/'pi/phase115_tls_observer_test.py',
+                              decoder_sha256=NATIVE_DECODER_SHA256)
     require(counts['connections']==1 and all(0<b['began']-a['began']<=6_000_000_000 for a,b in zip(native,native[1:])),
             'Continuous independent native connection')
     arm=single([r for r in rf if r['kind']=='arm_acknowledged'],'ARM')['monotonic_ns']

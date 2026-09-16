@@ -9,11 +9,44 @@
 | 2 | COMPLETE — simultaneous capacity and overload | 2.2a accepts the declared supported overlap; 2.2b accepts the separate bounded 503 refusal and authenticated recovery. [Review](phase11-5-package2-review.md). |
 | 3 | COMPLETE — network timeout and resource recovery | 2.2c–2.2f, 2.3a–2.3c and R3.BROWSER-MAX pass with current-image RF pressure, distinct WTP timeout evidence and browser-source applicability. [Review](phase11-5-package3-review.md). |
 | 4 | COMPLETE — USB parser and unread output | 2.3d passes exact maximum USB parser pressure. The repaired 2.3e retest passes bounded unread-output deficit, same-session pre-DTR silence and fresh DTR recovery during RF. [Review](phase11-5-package4-review.md). |
-| 5 | OPEN | Retained capacity/eviction/expiry and three equivalent cycles. |
+| 5 | OPEN — 2/4 rows accepted | Replay/session capacity, LRU and real expiry pass. Terminal capacity/LRU passes; terminal expiry and the 1,024-byte three-cycle reclamation gate remain open. [Review](phase11-5-package5-review.md). |
 | 6 | OPEN | All R3 groups and extended-feature applicability/closeout. |
 | 7 | OPEN | Remaining R4 authority/interruption assertions after reuse. |
 | 8 | OPEN; idle Wi-Fi accepted on source 98f5797 | Two independently audited OFF/ON readiness cycles preserve state/configuration and recover address/clock. Link loss, lease/name change, DNS/SNTP, journal rotation and autonomy remain. |
 | 9 | OPEN | R6 mixed operation after R1-R5 acceptance. |
+
+### Current Package 5 checkpoint
+
+[Prompt](phase11-5-package5-prompt.md),
+[review](phase11-5-package5-review.md),
+[result](phase11-5-package5-result.json) and
+[adversarial result](phase11-5-package5-adversarial-result.json). Package 5 is
+open at 2/4 rows. Replay and session capacity, LRU behavior and real 300-second
+expiry are accepted. Nine current-image one-second completions prove terminal
+capacity and exact LRU eviction, but terminal expiry was not run.
+
+Physical Package 5 execution exposed and repaired a maximum LOAD ownership and
+temporary-memory defect. The repaired RF/TLS image is source `2b25ca05c270`,
+UF2 `16698dd36ac4b919a93e56e948499462cbe41b1ca20c9b20007512339ff35a51`
+and boot `80d558e5804547749eca849c53ba27e1`. The repair checkpoint passed all
+74 configured host test groups; the final repository suite, after registering
+Package 5 in CMake, passes 68/68 CTest entries. Three 128-second
+maximum-workload cycles each pass their functional raw audit, including direct
+WTP residence, bounded authenticated HTTP 503, continuous authority and
+recovery.
+
+Reclamation is not accepted. Their immediate post-cycle live allocations span
+12,384 bytes, above the unchanged 1,024-byte limit, because terminal content
+and session/replay cache phase were not actually equivalent. A separate failed
+LOAD response arrived after 7.666 seconds, left an aborted terminal record and
+blocked the frozen all-complete expiry prerequisite. Both failures remain in
+the record. The [bounded continuation](phase11-5-package5-continuation-prompt.md)
+requires a separate RF allowance and has not run.
+
+The campaign charged 13 RF jobs / 521 seconds, three flashes, one Wi-Fi cycle,
+zero configuration writes and zero controlled reboots. Both Picos are
+Empty/inactive/unowned, the shared reservation is released and the host fixture
+is restored. Package 6 remains blocked; Phase 11.5 remains open at 2/6 families.
 
 ### Current Package 4 checkpoint
 

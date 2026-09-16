@@ -2,7 +2,7 @@
 
 Current Phase 11.5 execution uses the [completion matrix](phase11-5-completion-matrix.md)
 and [September 15 standing authorization](phase11-5-completion-authorization-20260915.md).
-A's current firmware is `ca3c5dce4036`, B's is `8921a7008183`; older candidate
+A's current firmware is `2b25ca05c270`, B's is `8921a7008183`; older candidate
 paragraphs below retain historical evidence identities. Phase 11.5 is OPEN,
 R1/R2 closed, R3-R6 open. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
 passes retained LOAD/replay and P1 individual WTP/HTTP capacity during RF;
@@ -14,10 +14,12 @@ plus the affected browser-resource check. The [Package 4 review](phase11-5-packa
 accepts exact maximum USB parser pressure and the repaired
 [unread-output retest](phase11-5-package4-unread-retest2-result.json), including
 same-session pre-DTR silence and fresh DTR recovery. The earlier failed attempts
-remain retained. A is inactive in boot
-`5e0d6bc3e383b8c1cb4b0db9ed636bf5`; the host fixture is restored and both
-boards are Empty. Capacity and pressure is closed; retention/reclamation and
-later-family gates remain open.
+remain retained. The [Package 5 review](phase11-5-package5-review.md) accepts
+replay/session capacity, LRU and real expiry and verifies terminal capacity/LRU,
+but keeps terminal expiry and the 1,024-byte reclamation gate open. A is
+inactive in boot `80d558e5804547749eca849c53ba27e1`; the host fixture is
+restored and both boards are Empty. Capacity and pressure is closed;
+retention/reclamation and later-family gates remain open.
 
 
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).

@@ -19,15 +19,19 @@ from phase11_5_r3_v2_admission import candidate
 from phase11_5_rf_reservation import BOARDS, PATH as RESERVATION_PATH, inactive
 
 SCOPE = "phase115-package5-corrective-rf-deploy-v1"
-WRONG_SOURCE = "f2b933ba407d"
-WRONG_BOOT = "cadc0100a41f1cbbcfeadc702e2783a0"
+KNOWN_PRIORS = {
+    ("f2b933ba407d", "cadc0100a41f1cbbcfeadc702e2783a0"):
+        (150_000_000, "inhibited-standalone-simulator"),
+    ("42e6fef3668a", "3e98d40782ad92d0d5058ee003fcdb4c"):
+        (138_000_000, "pio-dma-gp2"),
+}
 ORIGINAL_PACKET = "050dfe6b51f6b08672ad6778c1aa4588bd0f2c00be048717c2e64d0f1acb8af3"
 
 
 def validate(packet):
     require(packet["scope"] == SCOPE and packet["serial"] == SERIAL and
-            packet["device_id"] == DEVICE and packet["prior_revision"] == WRONG_SOURCE and
-            packet["prior_boot"] == WRONG_BOOT and
+            packet["device_id"] == DEVICE and
+            (packet["prior_revision"], packet["prior_boot"]) in KNOWN_PRIORS and
             packet["original_reservation_packet_sha256"] == ORIGINAL_PACKET and
             re.fullmatch(r"[0-9a-f]{40}", packet["source_revision"]) and
             re.fullmatch(r"[0-9a-f]{64}", packet["image_sha256"]),
@@ -112,10 +116,12 @@ def run(root, packet, packet_sha):
         before = {b: inventory(root, packet, "before-" + b, b == "b") for b in BOARDS}
         inactive(before)
         info = before["a"]["info"]
-        require(info["revision"] == WRONG_SOURCE and
-                before["a"]["wtp"]["STATUS"]["boot_id"] == WRONG_BOOT and
-                info["system_clock_hz"] == 150_000_000 and
-                info["status"]["engine"] == "inhibited-standalone-simulator" and
+        expected_clock, expected_engine = KNOWN_PRIORS[(packet["prior_revision"],
+                                                        packet["prior_boot"])]
+        require(info["revision"] == packet["prior_revision"] and
+                before["a"]["wtp"]["STATUS"]["boot_id"] == packet["prior_boot"] and
+                info["system_clock_hz"] == expected_clock and
+                info["status"]["engine"] == expected_engine and
                 configuration(before["a"])[0] == configuration(original_before["a"])[0] and
                 configuration(before["a"])[1] == {
                     "station_mac": configuration(original_before["a"])[1]["station_mac"],
@@ -154,12 +160,12 @@ def run(root, packet, packet_sha):
         after = {b: inventory(root, packet, "final-" + b, b == "b") for b in BOARDS}
         boot = candidate(after["a"], packet)
         healthy(after["a"]["info"], boot, packet["source_revision"])
-        require(boot != WRONG_BOOT and
+        require(boot != packet["prior_boot"] and
                 all(configuration(after[b]) == configuration(original_before[b]) for b in BOARDS) and
                 after["b"]["wtp"]["STATUS"] == original_before["b"]["wtp"]["STATUS"],
                 "Correct RF image, preserved configurations and comparator")
-        transition = {"from_boot": WRONG_BOOT, "to_boot": boot,
-                      "from_revision": WRONG_SOURCE,
+        transition = {"from_boot": packet["prior_boot"], "to_boot": boot,
+                      "from_revision": packet["prior_revision"],
                       "to_revision": packet["source_revision"][:12],
                       "from_image_sha256": packet["wrong_image_sha256"],
                       "to_image_sha256": packet["image_sha256"]}

@@ -304,18 +304,18 @@
       "id": "R3.RETAINED.replay",
       "group": "RETAINED",
       "requirement": "8 replay entries/session; replay/conflict/eviction/300-second expiry",
-      "classification": "missing",
-      "evidence": "",
-      "remaining": "Current shared adjustment lifetimes need measured capacity and actual expiry",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-package5-result.json; phase11-5-package5-review.md",
+      "remaining": "Two real 360-second quiet windows, exact replay/conflict/LRU/expiry and authenticated final status accepted; later LOAD-only repair is source-independent",
       "package": 5
     },
     {
       "id": "R3.RETAINED.session",
       "group": "RETAINED",
       "requirement": "16 sessions; reuse, capacity, intended exhaustion and expiry",
-      "classification": "missing",
-      "evidence": "",
-      "remaining": "One board, fixed same boot; no unrelated quiet-window traffic",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-package5-result.json; phase11-5-package5-review.md",
+      "remaining": "Sixteen sessions, intended seventeenth BUSY, admitted-session reuse and real expiry/reuse accepted; later LOAD-only repair is source-independent",
       "package": 5
     },
     {
@@ -323,8 +323,8 @@
       "group": "RETAINED",
       "requirement": "8 terminals; finite completions, overflow and 3600-second expiry",
       "classification": "affected and needing retest",
-      "evidence": "phase11-5-r3-v2-validation-007.json",
-      "remaining": "Prior real expiry retained; capacity/eviction via completions remains missing",
+      "evidence": "phase11-5-package5-result.json; phase11-5-package5-review.md; phase11-5-r3-v2-validation-007.json",
+      "remaining": "Nine current-image completions and exact LRU eviction pass; real 3600-second expiry remains open because a failed later LOAD left an aborted record",
       "package": 5
     },
     {
@@ -332,8 +332,8 @@
       "group": "RECLAIM",
       "requirement": "Three equivalent highest-resource cycles",
       "classification": "missing",
-      "evidence": "",
-      "remaining": "Freeze after measured P1-P4; same A source/boot; equal cardinalities and 1024-byte/no-growth gate",
+      "evidence": "phase11-5-package5-result.json; phase11-5-package5-review.md",
+      "remaining": "Three functional cycles pass, but unlike retained content/cache phase produces a 12384-byte post spread; rerun only under the bounded continuation and unchanged 1024-byte gate",
       "package": 5
     },
     {

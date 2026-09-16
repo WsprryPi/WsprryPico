@@ -19,6 +19,9 @@ SOURCE = 'ca3c5dce40360b7eea2f9c45618232caa68cdbb6'
 IMAGE = '6c7aa0b7df6756e8f248570d682c6af4bbcfc44a5ad67e94d6761709ced0bd59'
 PRIVATE_ROOT = '/home/pi/phase11-5-memory-pressure-rf-20260915'
 BOOT = '5e0d6bc3e383b8c1cb4b0db9ed636bf5'
+PACKAGE5_IDENTITY = ('2b25ca05c270819466a04498f9bc4894a4c5bace',
+                     '16698dd36ac4b919a93e56e948499462cbe41b1ca20c9b20007512339ff35a51',
+                     '80d558e5804547749eca849c53ba27e1')
 NAME = 'wsprrypico-0a60df.local'
 PEER = '06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016'
 DEVICE = 'fd6127d11d6aca42a9905fa3fb1bf1d5'
@@ -52,7 +55,8 @@ def validate_profile(p):
     require(set(c) == {'mode', 'seed', 'wtp_request_id', 'cases', 'minimum_resident_delta_bytes', 'wtp_payload_bytes'} and
             c['cases'] == cases(c['seed'], c['mode']) and c['minimum_resident_delta_bytes'] == 32768 and c['wtp_payload_bytes']==32768,
             'Frozen P2 stimuli and allocation gate')
-    require((p['source_revision'], p['image_sha256'], p['boot_id']) == (SOURCE, IMAGE, BOOT) and
+    require((p['source_revision'], p['image_sha256'], p['boot_id']) in
+            ((SOURCE, IMAGE, BOOT), PACKAGE5_IDENTITY) and
             p['closure_policy'] == POLICY and p['runtime_seconds'] == 300 and p['maximum_renewals'] == 8 and
             p['observer_policy'] == 'single-flight-info-v1' and
             p['contention']['policy'] == 'native-wtp-and-https-status-20s-v1' and

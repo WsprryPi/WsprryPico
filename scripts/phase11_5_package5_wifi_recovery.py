@@ -9,7 +9,8 @@ import time
 
 from phase11_5_inventory import exclusive_port, exchange, require
 from phase11_5_package5_http import digest, save
-from phase11_5_package5_plan import BOOT, DEVICE, IMAGE, SOURCE
+from phase11_5_package5_plan import (RETAINED_BOOT as BOOT, DEVICE,
+    RETAINED_IMAGE as IMAGE, RETAINED_SOURCE as SOURCE)
 
 
 SERIAL = "0BF4B4AEC9FFB344"

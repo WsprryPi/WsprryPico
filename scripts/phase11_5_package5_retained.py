@@ -9,7 +9,7 @@ import time
 
 from phase11_5_inventory import exclusive_port, exchange, require
 from phase11_5_package5_http import digest, exchange as http_exchange, save
-from phase11_5_package5_plan import BOOT, DEVICE, NAME, PEER, validate_retention
+from phase11_5_package5_plan import RETAINED_BOOT as BOOT, DEVICE, NAME, PEER, validate_retention
 
 
 SERIAL = "0BF4B4AEC9FFB344"

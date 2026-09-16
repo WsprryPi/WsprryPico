@@ -8,7 +8,8 @@ import time
 
 from phase11_5_inventory import require
 from phase11_5_package5_http import digest, get_status, save
-from phase11_5_package5_plan import BOOT, DEVICE, IMAGE, NAME, PEER, SOURCE
+from phase11_5_package5_plan import (RETAINED_BOOT as BOOT, DEVICE,
+    RETAINED_IMAGE as IMAGE, NAME, PEER, RETAINED_SOURCE as SOURCE)
 
 
 FAILED = "2039a76c119c23ebd7cdf36e8052252e58b9fc4b5a7d3283b51018690c829ccc"

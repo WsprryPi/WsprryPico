@@ -1,5 +1,13 @@
 # Phase 11.5 Package 5 execution prompt
 
+> Execution disposition: the bounded run is complete but Package 5 remains
+> open. Replay/session rows pass; terminal capacity passes but expiry was not
+> run; three functional reclamation cycles pass but the 1,024-byte comparison
+> fails. See the [review](phase11-5-package5-review.md),
+> [result](phase11-5-package5-result.json) and separately gated
+> [continuation](phase11-5-package5-continuation-prompt.md). The criteria below
+> remain unchanged.
+
 Execute only Phase 11.5 Package 5 in `/Users/lbussy/GitHub/WsprryPico`.
 Preserve every Package 1-4 result and every failed attempt. Do not claim Package
 6 or R3 family closure.
