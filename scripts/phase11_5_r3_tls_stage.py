@@ -27,14 +27,16 @@ def unpack(archive, packet_sha, root, own_sha):
         data = {m.name: tar.extractfile(m).read() for m in members}
     require(hashlib.sha256(data['packet.json']).hexdigest() == packet_sha, 'Unapproved packet bytes')
     packet = json.loads(data['packet.json'])
-    require(packet['root'] == str(root) and packet['r3_scope'] in
+    scope = packet.get('r3_scope', packet.get('scope'))
+    require(packet['root'] == str(root) and scope in
             ('phase11.5-r3-tls-a1-v1', 'phase11.5-r3-transport-b1-v1','phase11.5-r3-transport-b2-v1',
              'phase11.5-r3-capacity-probe-v1','phase11.5-r3-allocation-diagnostic-d0-v1',
              'phase11.5-r3-v2-idle-admission-v1','phase11.5-r3-v2-idle-reconcile-v1','phase11.5-r3-v2-fixture-v1',
              'phase11.5-r3-v2-usb-rf-v1','phase11.5-r3-v2-chromium-v1','phase11.5-r3-v2-browser-trust-v1',
              'phase11.5-r3-v2-parallel-b-deploy-v1','phase11.5-r3-v2-parallel-b-functional-v1',
              'phase11.5-r3-v2-parallel-b-repair-v1','phase11.5-r3-v2-parallel-b-paged-repair-v1',
-             'phase11.5-r3-v2-wifi-recovery-v1','phase11.5-r3-v2-native-v1'), 'R3 staging root/scope')
+             'phase11.5-r3-v2-wifi-recovery-v1','phase11.5-r3-v2-native-v1',
+             'phase11.5-package3-progress-v1'), 'R3 staging root/scope')
     require(set(data) == {'packet.json'} | set(packet['stage_sha256']), 'Archive manifest differs')
     require(packet['stage_sha256']['scripts/phase11_5_r3_tls_stage.py'] == own_sha,
             'Uploaded staging helper differs')

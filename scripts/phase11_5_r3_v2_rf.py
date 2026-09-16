@@ -38,6 +38,7 @@ COMPLETION_IMAGE='b6d5ab7610a0e19e9de91ce78dde4eb7c63b9192343dd86af4f7bcb8578387
 SERIAL_CAPACITY='wtp-then-http-capacity-v1'
 TERMINAL_POLICY='phase115-completion-terminal-storage-capacity-v1'
 PRESSURE_POLICY='phase115-completion-pressure-v1'
+PACKAGE3_POLICY='phase115-package3-timeouts-v1'
 TERMINAL_SOURCE='bd16bb1c736720fbf901589d41d2a25897987b8b'
 TERMINAL_IMAGE='dfb9fa073914ce827df6612792cfcaf2991af6b47dfe340543d2e89572e90120'
 COMBINED_POLICY='phase115-completion-combined-v1'
@@ -64,10 +65,10 @@ def completion_policy(packet):
     return packet.get('closure_policy') in (COMPLETION_POLICY,TERMINAL_POLICY,READ_POLICY,HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY,COMBINED_POLICY)
 
 def native_observation_required(packet):
-    return packet.get('closure_policy')==REPAIR_POLICY or completion_policy(packet)
+    return packet.get('closure_policy') in (REPAIR_POLICY,PACKAGE3_POLICY) or completion_policy(packet)
 
 def reservation_required(packet):
-    return completion_policy(packet) or packet.get('closure_policy')==PRESSURE_POLICY
+    return completion_policy(packet) or packet.get('closure_policy') in (PRESSURE_POLICY,PACKAGE3_POLICY)
 
 def initial_terminal(packet):
     return (packet.get('capacity_schedule_policy')==SERIAL_CAPACITY or packet.get('closure_policy')==COMBINED_POLICY) and packet.get('initial_a_state')=='complete'
@@ -195,8 +196,9 @@ def validate(packet):
                 'Sequential retest preserves the failed packet terminal state')
     repair=packet.get('closure_policy')==REPAIR_POLICY
     pressure=packet.get('closure_policy')==PRESSURE_POLICY
+    package3=packet.get('closure_policy')==PACKAGE3_POLICY
     closure=packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY,TERMINAL_POLICY,READ_POLICY,HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY,COMBINED_POLICY)
-    require('closure_policy' not in packet or closure or pressure,'Unknown closure policy')
+    require('closure_policy' not in packet or closure or pressure or package3,'Unknown closure policy')
     require(packet['source_revision']!=REPAIR_SOURCE or repair,'Repair image requires exact retest policy')
     if combined:
         from phase11_5_completion_combined import validate_profile
@@ -218,7 +220,7 @@ def validate(packet):
         require(packet.get('shared_rf_reservation')=='durable-both-picos-v1' and
                 packet.get('b_role')=='unchanged-comparator' and
                 type(packet.get('maximum_initial_terminal_records')) is int and
-                (0<=packet['maximum_initial_terminal_records']<=8 if pressure or combined else packet['maximum_initial_terminal_records']==(len(packet['initial_terminal_jobs']) if http_repair else int(initial_terminal(packet)) if read_repair else 1)), 'Completion requires both-board RF reservation and bounded initial retention')
+                (0<=packet['maximum_initial_terminal_records']<=8 if pressure or package3 or combined else packet['maximum_initial_terminal_records']==(len(packet['initial_terminal_jobs']) if http_repair else int(initial_terminal(packet)) if read_repair else 1)), 'Completion requires both-board RF reservation and bounded initial retention')
     require(packet['source_revision']!=MEMORY_SOURCE or memory_repair or combined, 'Memory image requires reviewed policy')
     require(packet['source_revision']!=SHARING_SOURCE or sharing_repair, 'Retained sharing image requires reviewed policy')
     require(packet['source_revision']!=HTTP_SOURCE or http_repair, 'HTTP pages image requires reviewed policy')
@@ -245,6 +247,15 @@ def validate(packet):
         require(packet['source_revision']==TERMINAL_SOURCE and packet['boot_id']=='3dbf851d7107a714504e5f3dd52df4d9' and
                 packet.get('observer_policy')==SINGLE_FLIGHT and not any(k in packet for k in
                 ('wtp_capacity','http_capacity','capacity_schedule_policy','allocator_failure_baseline')), 'Exact candidate pressure scope')
+        from phase11_5_r3_v2_pressure_plan import validate_profile
+        validate_profile(packet)
+    if package3:
+        require(packet['source_revision']==EVENT_PAGES_METRIC_SOURCE and
+                packet['image_sha256']==EVENT_PAGES_METRIC_IMAGE and
+                packet['boot_id']=='5e0d6bc3e383b8c1cb4b0db9ed636bf5' and
+                packet.get('observer_policy')==SINGLE_FLIGHT and not any(k in packet for k in
+                ('wtp_capacity','http_capacity','capacity_schedule_policy','allocator_failure_baseline')),
+                'Exact Package 3 current-image pressure scope')
         from phase11_5_r3_v2_pressure_plan import validate_profile
         validate_profile(packet)
     if packet['source_revision']==DIAGNOSTIC_SOURCE and not closure:
@@ -369,7 +380,7 @@ def recent_clock(info, clock=None):
 
 def run(root,packet):
     diagnostic=packet.get('diagnostic_policy')==DIAGNOSTIC_POLICY
-    capture_failures=diagnostic or packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY,TERMINAL_POLICY,READ_POLICY,HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY,COMBINED_POLICY,PRESSURE_POLICY)
+    capture_failures=diagnostic or packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY,TERMINAL_POLICY,READ_POLICY,HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY,COMBINED_POLICY,PRESSURE_POLICY,PACKAGE3_POLICY)
     os.umask(0o077);end=time.monotonic()+packet['runtime_seconds'];lock=threading.Lock();done=threading.Event()
     faults=[];samples={};inflight={};seq=0;result=dict(status='RUNNING',armed_jobs=[],completed_jobs=[],renewals=0,rf_duration_ns_charged=0)
     log=(root/'rf.jsonl').open('x')

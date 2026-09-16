@@ -561,6 +561,13 @@ class R3Tests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 unpack(data, sha, target, own_sha)
 
+            target = parent / 'package3-stage'
+            p['root'] = str(target)
+            p['scope'] = 'phase11.5-package3-progress-v1'
+            del p['r3_scope']
+            data, sha = archive()
+            self.assertEqual(unpack(data, sha, target, own_sha)['status'], 'STAGED_ONLY')
+
 
 if __name__ == '__main__':
     unittest.main()

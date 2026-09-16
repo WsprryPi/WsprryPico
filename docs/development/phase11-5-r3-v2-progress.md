@@ -22,10 +22,12 @@ The user has now said Execute. Standing finite approvals remain active.
    - 1.3 PASS: native QRSS/FSKCW/DFCW submissions in checkpoints 040–042;
      acknowledged-ARM loss, local completion and original-session reconciliation
      in 043. Original harness failures remain separately recorded.
-2. **Capacity and pressure — OPEN (bounded LOAD/replay regression CLOSED; broader assertions remain)**
-   - 2.1 Complete maximum WTP, HTTP and job capacity assertions.
-   - 2.2 Verify supported combined load and bounded overload rejection.
-   - 2.3 Complete WTP timeout and USB pressure mechanisms.
+2. **Capacity and pressure — OPEN (Packages 1–3 accepted; USB pressure remains)**
+   - 2.1 Individual WTP, HTTP and maximum job capacity is accepted by Package 1.
+   - 2.2 Supported combined load, bounded overload and network TLS/HTTP pressure
+     are accepted by Packages 2 and 3.
+   - 2.3 Network WTP inactivity/input/output progress is accepted by Package 3;
+     USB parser and unread-output pressure remain Package 4 work.
 3. **Retention and reclamation — OPEN**
    - 3.1 Freeze the measured highest-resource workload and fixture allowance.
    - 3.2 Verify capacity, reuse, eviction and actual expiry.
@@ -34,6 +36,19 @@ The user has now said Execute. Standing finite approvals remain active.
    - 4.1 Complete the assertion-level acceptance matrix.
    - 4.2 Finish adversarial review, repairs and affected retests.
    - 4.3 Restore, verify final state, commit, push and report.
+
+## Package 3 network pressure and progress result
+
+[Package 3](phase11-5-package3-review.md) accepts current-image TLS handshake,
+failed-alert, slot/pending, partial/stalled HTTP, three distinct WTP progress
+timeout and affected browser-resource assertions. Four RF jobs / 500 planned
+seconds are accepted; three failed RF jobs / 300 seconds remain charged and
+receive no credit. Thirty-six evidence mutations are rejected and all intact
+packets reverify. Both Picos and the host fixture are restored.
+
+Capacity and pressure stays OPEN only for the Package 4 USB mechanisms. Package
+5 retained reclamation and Package 6 R3 closeout also remain open; no R3 family
+closure is inferred from Package 3.
 
 ## Latest component 9 target result — bounded LOAD/replays CLOSED
 

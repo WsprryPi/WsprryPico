@@ -12,7 +12,9 @@ def validate(packet):
 
 def validate_profile(packet):
     family=packet['pressure_family'];require(family in ['tls','transport'],'V2 pressure family')
-    require(packet['runtime_seconds']==(330 if family=='tls' else 450) and len(packet['jobs'])==2 and
+    package3=packet.get('closure_policy')=='phase115-package3-timeouts-v1'
+    runtime=(660 if family=='tls' else 900) if package3 else (330 if family=='tls' else 450)
+    require(packet['runtime_seconds']==runtime and len(packet['jobs'])==2 and
             packet['maximum_tcp_connections']==(12 if family=='tls' else 15) and
             packet['pressure_cases']==[list(c) for c in (TLS_CASES if family=='tls' else TRANSPORT_CASES)] and
             packet['observer_bracket_policy']==BRACKET_POLICY and packet['maximum_renewals']==12,

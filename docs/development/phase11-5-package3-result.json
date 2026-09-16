@@ -1,0 +1,238 @@
+{
+  "schema": "phase11.5-package3-result-v1",
+  "status": "PACKAGE_3_ACCEPTED",
+  "phase_status": "OPEN",
+  "phase_families_closed": 2,
+  "r3_family_status": "OPEN",
+  "prompt": "phase11-5-package3-prompt.md",
+  "review": "phase11-5-package3-review.md",
+  "package_assertions": {
+    "2.2c": "ACCEPTED",
+    "2.2d": "ACCEPTED",
+    "2.2e": "ACCEPTED",
+    "2.2f": "ACCEPTED",
+    "2.3a": "ACCEPTED",
+    "2.3b": "ACCEPTED",
+    "2.3c": "ACCEPTED",
+    "R3.BROWSER-MAX": "ACCEPTED"
+  },
+  "target": {
+    "board": "Pico 2 W / RP2350 Arm",
+    "source_revision": "ca3c5dce40360b7eea2f9c45618232caa68cdbb6",
+    "image_sha256": "6c7aa0b7df6756e8f248570d682c6af4bbcfc44a5ad67e94d6761709ced0bd59",
+    "boot_id": "5e0d6bc3e383b8c1cb4b0db9ed636bf5",
+    "sample_clock_hz": 138000000,
+    "pio_divider": 1,
+    "renderer": "RAM",
+    "listener": "configured"
+  },
+  "comparator": {
+    "source_revision": "8921a70081839f168edef5926e92445f251d8e1d",
+    "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+    "role": "unchanged"
+  },
+  "browser_reuse": {
+    "status": "ACCEPTED_WITH_CURRENT_TARGET_RESOURCE_CHECK",
+    "accepted_browser_source": "f5502cff9fa6b56747b2e1b1036a77fc0e270f6f",
+    "current_source": "ca3c5dce40360b7eea2f9c45618232caa68cdbb6",
+    "app_js_git_blob": "6dd5d54a75da675f968447f785e49c44649c8ce0",
+    "source_bytes_equal": true,
+    "current_target_check": "Authenticated stalled GET /app.js during RF, bounded reclamation and authenticated reuse",
+    "retained_browser_evidence": [
+      "phase11-5-r3-v2-browser-b3-result.json",
+      "phase11-5-r3-v2-browser-b4-result.json",
+      "phase11-5-r3-v2-browser-b5-result.json",
+      "phase11-5-r3-v2-validation-039.json"
+    ]
+  },
+  "tls_pressure": {
+    "status": "PACKAGE3_TLS_PRESSURE_VERIFIED",
+    "private_evidence_root": "/home/pi/phase11-5-package3-tls4-20260915",
+    "packet_sha256": "06c4f970162e55e86733364c2ee5c7f77998d8ce4c00159668c1bc80c160ba16",
+    "job_ids": [
+      "7412f51f1340cc8dde0439dd08424d4e",
+      "e0e7175bbf90b257ea6d0af4aa33a2dd"
+    ],
+    "rf_jobs": 2,
+    "rf_duration_ns": 200000000000,
+    "cases_passed": 10,
+    "cases_total": 10,
+    "tcp_connections": 12,
+    "tcp_packets": 2244,
+    "capture_drops": 0,
+    "native_connection_continuous": true,
+    "authenticated_http_observation": true,
+    "maximum_allocator_peak_bytes": 164296,
+    "allocator_failures_delta": 0,
+    "tls_allocation_failures_delta": 0,
+    "silent_handshake_duration_ns": 10218758401,
+    "final_authority_verified": true,
+    "configuration_preserved": true
+  },
+  "transport_pressure": {
+    "status": "PACKAGE3_TRANSPORT_PRESSURE_VERIFIED",
+    "private_evidence_root": "/home/pi/phase11-5-package3-transport4-20260915",
+    "packet_sha256": "a7214e63dff669334ca46120755867052cdbef676a257610961e6993f831f494",
+    "job_ids": [
+      "7bcc47d6dfe47bd2a3c2b0c944742812",
+      "497ba7a6c8d2e009c2e0b36ebefc6771"
+    ],
+    "rf_jobs": 2,
+    "rf_duration_ns": 300000000000,
+    "cases_passed": 14,
+    "cases_total": 14,
+    "tcp_connections": 15,
+    "tcp_packets": 2569,
+    "capture_drops": 0,
+    "native_connection_continuous": true,
+    "authenticated_http_observation": true,
+    "partial_header_target_close_seconds": 15.247128,
+    "partial_body_target_close_seconds": 15.442044,
+    "pending_target_close_seconds": 10.990631,
+    "failed_alert_ack_target_close_seconds": 2.994926,
+    "failed_alert_wait_target_close_seconds": 2.604388,
+    "network_filter_removed": true,
+    "maximum_allocator_peak_bytes": 164296,
+    "allocator_failures_delta": 0,
+    "tls_allocation_failures_delta": 0,
+    "final_authority_verified": true,
+    "configuration_preserved": true
+  },
+  "progress_timeouts": {
+    "status": "PACKAGE3_PROGRESS_VERIFIED",
+    "private_evidence_root": "/home/pi/phase11-5-package3-progress5-20260915",
+    "packet_sha256": "ac63c441247cb08a2ed13f47b675f98820bde4321b7508f666572433752dc579",
+    "rf_jobs": 0,
+    "rf_duration_ns": 0,
+    "cases": [
+      {
+        "id": "2.3a",
+        "elapsed_seconds": 29.806788671,
+        "close": "reset",
+        "close_reason": 3,
+        "network_timeout_delta": 1,
+        "recovery_seconds": 3.466551786
+      },
+      {
+        "id": "2.3b",
+        "elapsed_seconds": 5.044382719,
+        "close": "reset",
+        "close_reason": 4,
+        "network_timeout_delta": 0,
+        "partial_frame_bytes": 8,
+        "recovery_seconds": 4.097329994
+      },
+      {
+        "id": "2.3c",
+        "elapsed_seconds": 7.968642991,
+        "close_reason": 4,
+        "network_timeout_delta": 0,
+        "maximum_load_wire_bytes": 52105,
+        "application_reads_after_load": 0,
+        "recovery_seconds": 4.391125269,
+        "recovered_state": "loaded",
+        "application_count": 1,
+        "final_state": "empty"
+      }
+    ],
+    "rf_counters_unchanged": true,
+    "configuration_preserved": true,
+    "allocator_failures_delta": 0,
+    "tls_allocation_failures_delta": 0
+  },
+  "source_thresholds": {
+    "pending_tcp_ms": 10000,
+    "activated_tls_ms": 10000,
+    "http_activation_ms": 15000,
+    "established_progress_ms": 30000,
+    "failed_alert_ms": 1000,
+    "wtp_output_progress_ms": 5000,
+    "wtp_pending_input_ms": 5000,
+    "partial_frame_ms": 5000,
+    "browser_file_bytes": 30000
+  },
+  "retained_failures": [
+    {
+      "root": "/home/pi/phase11-5-package3-tls-20260915",
+      "outcome": "Missing staged dependency stopped the packet before RF; no acceptance credit."
+    },
+    {
+      "root": "/home/pi/phase11-5-package3-tls2-20260915",
+      "rf_jobs": 1,
+      "rf_seconds_charged": 100,
+      "outcome": "The first RF job completed, but the finite packet envelope expired before the second job; no acceptance credit."
+    },
+    {
+      "root": "/home/pi/phase11-5-package3-tls3-20260915",
+      "rf_jobs": 2,
+      "rf_seconds_charged": 200,
+      "outcome": "Both RF jobs completed, but the actor's inter-job wait expired before the second pressure profile; no acceptance credit."
+    },
+    {
+      "roots": [
+        "/home/pi/phase11-5-package3-progress1-20260915",
+        "/home/pi/phase11-5-package3-progress2-20260915",
+        "/home/pi/phase11-5-package3-progress3-20260915",
+        "/home/pi/phase11-5-package3-progress4-20260915"
+      ],
+      "rf_jobs": 0,
+      "outcome": "Harness timing, receive-window sequencing, output predicate and expired-owner cleanup defects were preserved, repaired and superseded by progress5. No failed progress attempt receives credit."
+    }
+  ],
+  "adversarial_review": {
+    "pressure_mutations_rejected": {
+      "tls": 10,
+      "transport": 11
+    },
+    "progress_mutations_rejected": 15,
+    "final_targeted_progress_mutations_rejected": 5,
+    "intact_packets_reverified": true,
+    "findings_closed": [
+      "Bind current source, image, boot and Package 3 profile instead of inheriting the historical pressure profile.",
+      "Decode native TLS wire records independently and bind the decoder hash.",
+      "Bind progress conclusions to raw WTP and HTTPS bytes, authenticated peers, close rows, exact LOAD, recovery, ABORT, RELEASE and final authority.",
+      "Require an active Loaded endpoint with queued TCP segments before the five-second output close, followed by reason 4 and reclaimed transport resources.",
+      "Bind the partial input to an exact valid STATUS frame and bind CLAIM, STATUS, ABORT and RELEASE request/response pairs.",
+      "Apply the constrained receive window only after HELLO and CLAIM so setup responses cannot consume the pressure mechanism.",
+      "Refresh authority before cleanup when a failed progress attempt outlives its original owner lease."
+    ],
+    "remaining_actionable_findings": 0
+  },
+  "restoration": {
+    "status": "HOST_RESTORED_AND_BOARDS_INDEPENDENTLY_INACTIVE",
+    "private_fixture_root": "/home/pi/phase11-5-package3-fixture2-20260915",
+    "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+    "host_fixture_failures": [],
+    "host_interfaces_and_routes_match_baseline": true,
+    "time_local_restored": true,
+    "installed_wsprrypi_pid": 1957,
+    "configuration_preserved": true,
+    "reservation_released": true,
+    "pico_a_state": "empty",
+    "pico_a_output_active": false,
+    "pico_a_owned": false,
+    "pico_b_state": "empty",
+    "pico_b_output_active": false,
+    "pico_b_owned": false
+  },
+  "package_budget": {
+    "accepted_rf_jobs": 4,
+    "accepted_planned_rf_seconds": 500,
+    "failed_rf_jobs": 3,
+    "failed_planned_rf_seconds": 300,
+    "total_rf_jobs": 7,
+    "total_planned_rf_seconds": 800,
+    "controlled_flashes": 0,
+    "bootsel_transitions": 0,
+    "configuration_writes": 0,
+    "controlled_reboots": 0,
+    "pico_wifi_cycles": 0
+  },
+  "limitations": [
+    "Package 3 accepts only the eight listed rows on the recorded current identity.",
+    "USB parser and unread-output pressure remain Package 4 work.",
+    "Retained capacity, eviction, expiry and three equivalent cycles remain Package 5 work.",
+    "R3 closeout remains Package 6 work; the R3 family and Phase 11.5 remain OPEN.",
+    "Physical 132 MHz and 150 MHz configurations remain untested; selecting another clock requires affected Phase 11.5 checks."
+  ]
+}

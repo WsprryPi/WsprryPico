@@ -33,13 +33,14 @@ def journal(path):
     return rows
 
 
-def native_wire(root, packet, decoder):
-    require(digest(decoder) == packet["stage_sha256"]["pi/phase115_tls_observer_test.py"], "Native decoder identity")
+def native_wire(root, packet, decoder, decoder_sha256=None):
+    expected = decoder_sha256 or packet["stage_sha256"]["pi/phase115_tls_observer_test.py"]
+    require(digest(decoder) == expected, "Native decoder identity")
     spec = importlib.util.spec_from_file_location("h0_native_decoder", decoder)
     module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
     rows = module.decode((root / "production-tls.bin").read_bytes())
     require(all(r["version"] == "P115TLS2" for r in rows), "Native write-entry evidence")
-    schema = json.loads((Path(__file__).resolve().parents[1] / "docs/protocol/wtp-1.schema.json").read_text())
+    schema = json.loads((root / "docs/protocol/wtp-1.schema.json").read_text())
     validator = SchemaValidator(schema)
     buffers = {}; starts = {}; writes = {}; pending = {}; seen = set(); statuses = []; counts = {}; connections = set()
     for row in rows:

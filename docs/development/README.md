@@ -7,10 +7,13 @@ paragraphs below retain historical evidence identities. Phase 11.5 is OPEN,
 R1/R2 closed, R3-R6 open. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
 passes retained LOAD/replay and P1 individual WTP/HTTP capacity during RF;
 the [Package 2 review](phase11-5-package2-review.md) accepts assertions 2.2a and
-2.2b after paged RF event storage and direct WTP-reservation observability. A is
-inactive in boot `5e0d6bc3e383b8c1cb4b0db9ed636bf5`; the host fixture is
-restored and both boards are Empty. TLS/slot/partial-HTTP, USB pressure,
-retention/reclamation and later-family gates remain open.
+2.2b after paged RF event storage and direct WTP-reservation observability. The
+[Package 3 review](phase11-5-package3-review.md) accepts current-image TLS,
+slot, partial/stalled HTTP, failed-alert and three distinct WTP timeout paths,
+plus the affected browser-resource check. A is inactive in boot
+`5e0d6bc3e383b8c1cb4b0db9ed636bf5`; the host fixture is restored and both
+boards are Empty. USB pressure, retention/reclamation and later-family gates
+remain open.
 
 
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).

@@ -19,7 +19,7 @@ import urllib.request
 from phase11_5_inventory import require
 from phase11_5_device_management import digest,save
 from phase11_5_pilot import DEVICE
-from phase11_5_r3_v2_rf import native_observation_required
+from phase11_5_r3_v2_rf import native_observation_required,PACKAGE3_POLICY
 
 NAME='wsprrypico-0a60df.local'
 PEER_SHA='06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016'
@@ -104,13 +104,24 @@ def main():
             'Client namespace identity')
     for key in ['binary','observer']:
         require(digest(Path(plan[key]))==plan[key+'_sha256'],'Native binary/observer identity')
-    private=Path(packet['private_reference_root']) if combined else root
+    package3=packet.get('closure_policy')==PACKAGE3_POLICY
+    private=Path(packet['private_reference_root']) if combined or package3 else root
     if combined:
         from phase11_5_completion_combined import validate_profile
         validate_profile(packet)
         for name,sha in packet['private_reference_sha256'].items():require(digest(private/name)==sha,'Existing private input identity')
+    if package3:
+        require(private==Path('/home/pi/phase11-5-r3-v2-pressure-t5-20260913') and
+                set(packet['private_reference_sha256'])=={
+                    'production.ini','pi/phase115_production_load.py','pi/phase115_tls_observer.so',
+                    'credentials/controller/client-ca.crt','credentials/controller/client.crt',
+                    'credentials/controller/client.key','credentials/browser/client-ca.crt',
+                    'credentials/browser/client.crt','credentials/browser/client.key'},
+                'Reviewed Package 3 private reference')
+        for name,sha in packet['private_reference_sha256'].items():
+            require(digest(private/name)==sha,'Existing Package 3 private input identity')
     require(digest(private/'production.ini')==plan['ini_sha256'],'Native INI identity')
-    sys.path.insert(0,str(root/'pi'));from phase115_production_load import validate_ini
+    sys.path.insert(0,str(private/'pi'));from phase115_production_load import validate_ini
     validate_ini(private/'production.ini',False)
     cfg=configparser.ConfigParser(interpolation=None);cfg.optionxform=str;cfg.read(private/'production.ini')
     require(all(cfg['WTP'][k]==str(private/'credentials/controller'/f) for k,f in
@@ -129,9 +140,9 @@ def main():
         validate_pressure(packet)
         with (root/'jobs.json').open('xb') as f:f.write((root/'packet.json').read_bytes())
         pressure_plan=dict(boot_id=packet['boot_id'],device_id=DEVICE,seconds=packet['runtime_seconds'],browser=False,
-            address='10.77.15.10',netns=plan['netns'],mountns=plan['mountns'],ca=str(root/'credentials/browser/client-ca.crt'))
+            address='10.77.15.10',netns=plan['netns'],mountns=plan['mountns'],ca=str(private/'credentials/browser/client-ca.crt'))
         for role in ['browser','controller']:
-            for key,filename in [('cert','client.crt'),('key','client.key')]:pressure_plan[role+'_'+key]=str(root/'credentials'/role/filename)
+            for key,filename in [('cert','client.crt'),('key','client.key')]:pressure_plan[role+'_'+key]=str(private/'credentials'/role/filename)
         with (root/'load.json').open('x') as f:json.dump(pressure_plan,f)
     stop=threading.Event();log_lock=threading.Lock();https_thread=None;https_errors=[]
     signal.signal(signal.SIGTERM,lambda *_:stop.set())

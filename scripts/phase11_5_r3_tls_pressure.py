@@ -289,8 +289,9 @@ class Pressure:
         previous_epoch = int(initial[0]['value']['value']['launch_epoch'])
         save(self.root / 'pressure-ready.json', dict(packet_sha256=self.sha))
         for index, job in enumerate(self.packet['jobs']):
-            limit = time.monotonic() + (max(160,int(job['total_duration_ns'])/1e9+60)
-                                        if 'pressure_family' in self.packet else 160)
+            package3=self.packet.get('closure_policy')=='phase115-package3-timeouts-v1'
+            wait=max(360,int(job['total_duration_ns'])/1e9+240) if package3 else max(160,int(job['total_duration_ns'])/1e9+60)
+            limit = time.monotonic() + (wait if 'pressure_family' in self.packet else 160)
             while True:
                 values = self.checkpoint()
                 epoch = running_epoch(values[0]['value']['value'], values[1]['value']['value'],

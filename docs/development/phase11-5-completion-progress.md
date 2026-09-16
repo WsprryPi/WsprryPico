@@ -7,13 +7,46 @@
 | 0 | COMPLETE | Fresh named A/B USB inventories independently decoded; source-impact matrix and current summaries reconciled. [Result](phase11-5-completion-package0-result.json). |
 | 1 | COMPLETE — individual capacity | 2.1a/2.1d/2.1e/2.1f/2.1g and authenticated controls pass on 8dd6f08 with three retained records, continuous observation and 55,944-byte minimum reserve. Prior P1g/P1h/P1i failures retained. [Review](phase11-5-memory-pressure-review.md). |
 | 2 | COMPLETE — simultaneous capacity and overload | 2.2a accepts the declared supported overlap; 2.2b accepts the separate bounded 503 refusal and authenticated recovery. [Review](phase11-5-package2-review.md). |
-| 3 | OPEN | Affected TLS/HTTP and distinct WTP timeouts. |
+| 3 | COMPLETE — network timeout and resource recovery | 2.2c–2.2f, 2.3a–2.3c and R3.BROWSER-MAX pass with current-image RF pressure, distinct WTP timeout evidence and browser-source applicability. [Review](phase11-5-package3-review.md). |
 | 4 | OPEN | Actual USB parser and unread-output pressure. |
 | 5 | OPEN | Retained capacity/eviction/expiry and three equivalent cycles. |
 | 6 | OPEN | All R3 groups and extended-feature applicability/closeout. |
 | 7 | OPEN | Remaining R4 authority/interruption assertions after reuse. |
 | 8 | OPEN; idle Wi-Fi accepted on source 98f5797 | Two independently audited OFF/ON readiness cycles preserve state/configuration and recover address/clock. Link loss, lease/name change, DNS/SNTP, journal rotation and autonomy remain. |
 | 9 | OPEN | R6 mixed operation after R1-R5 acceptance. |
+
+### Current Package 3 checkpoint
+
+[Prompt](phase11-5-package3-prompt.md),
+[review](phase11-5-package3-review.md) and
+[result](phase11-5-package3-result.json). Assertions 2.2c–2.2f, 2.3a–2.3c and
+R3.BROWSER-MAX are accepted on `ca3c5dce4036`, boot
+`5e0d6bc3e383b8c1cb4b0db9ed636bf5`.
+
+Two 100-second TLS-pressure jobs pass ten cases; two 150-second transport jobs
+pass fourteen cases. Native and authenticated HTTP observation remained
+continuous, raw captures dropped no packets, all four jobs completed and no
+allocation counter increased. The zero-RF progress packet separately verifies
+the 30-second drained inactivity path, five-second incomplete-frame path and
+five-second no-output-progress path, including authenticated recovery and final
+Empty state.
+
+The current and accepted actual-browser sources contain the same `app.js` blob.
+The current-image stalled page response supplies the affected allocation and
+reclamation check, so the existing browser file/message/progress/cancellation
+evidence remains applicable.
+
+The adversarial assessment rejected 36 altered-evidence cases and reverified
+all intact packets after strengthening raw peer, frame, HTTP, timeout and final
+authority bindings. Failed attempts remain retained and receive no credit.
+Package 3 charged seven RF jobs / 800 planned seconds: four accepted jobs / 500
+seconds and three failed jobs / 300 seconds. It used no flashes, configuration
+writes, controlled reboots or Pico Wi-Fi cycles.
+
+A and B are independently Empty/inactive/unowned, configuration is preserved,
+the host fixture is restored and the shared reservation is released. Package 4
+USB pressure, Package 5 retained reclamation and Package 6 R3 closeout remain
+open. R3 and full Phase 11.5 remain open at 2/6 families.
 
 ### Current Package 2 checkpoint
 
@@ -35,8 +68,8 @@ rejected for each accepted packet.
 A and B are independently Empty/inactive/unowned, configuration is preserved,
 the host fixture is restored and the shared reservation is released. Package 2
 charged two controlled flashes and three 128-second RF jobs, with no
-configuration writes, controlled reboots or Wi-Fi cycles. Assertions 2.2c–2.2f,
-R3–R6 and full Phase 11.5 remain open.
+configuration writes, controlled reboots or Wi-Fi cycles. Package 3 subsequently
+accepted assertions 2.2c–2.2f. R3–R6 and full Phase 11.5 remain open.
 
 ### Historical memory-pressure checkpoint
 

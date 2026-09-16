@@ -5,6 +5,7 @@ from phase11_5_inventory import require
 from phase11_5_device_management import digest
 from phase11_5_pilot import DEVICE
 from phase11_5_r3_v2_pressure_plan import validate
+from phase11_5_r3_v2_rf import PACKAGE3_POLICY
 from audit_phase11_5_r3_v2_rf import audit as audit_rf
 from audit_phase11_5_r3_v2_hour import journal,native_wire,PEER,NAME
 from audit_phase11_5_r3_tls import audit_pressure as audit_tls
@@ -16,10 +17,14 @@ PACKETS={
  'eef06c2fefab51ffb7954d1d563c956acb0cbfddf386597163bf91fd927ddce7':'T0',
  '6e866906cd3eaffab9d63e52fd64a54b8b6b44300179d7aacc22a6671e50c3df':'T1A',
 }
+PACKAGE3_DECODER_SHA256 = "d12fd9525b1e34b7615a9a84ef4ce5f32b65928341b9f2b0bbe5ba617dee02e5"
 
 def audit(root,decoder):
-    packet_sha=digest(root/'packet.json');require(packet_sha in PACKETS,'Unreviewed pressure packet')
-    packet=validate(json.loads((root/'packet.json').read_text()));plan=packet['contention']
+    packet_sha=digest(root/'packet.json')
+    packet=validate(json.loads((root/'packet.json').read_text()))
+    package3=packet.get('closure_policy')==PACKAGE3_POLICY
+    require(packet_sha in PACKETS or package3,'Unreviewed pressure packet')
+    plan=packet['contention']
     require((root/'jobs.json').read_bytes()==(root/'packet.json').read_bytes(),'Pressure packet copy changed')
     base=audit_rf(root,packet_digest=packet_sha);rf=journal(root/'rf.jsonl')
     load=journal(root/'contention.jsonl');pressure=journal(root/'pressure.jsonl')
@@ -52,7 +57,8 @@ def audit(root,decoder):
         int(headers['content-length'])==len(bytes.fromhex(v['body_hex'])) and
         0<=row['monotonic_ns']-v['began_monotonic_ns']<=15_000_000_000 and
         row['monotonic_ns']<=ready['observed_monotonic_ns'],'Initial HTTPS authentication/body/deadline')
-    native,metrics=native_wire(root,packet,decoder)
+    native,metrics=native_wire(root,packet,decoder,
+        decoder_sha256=PACKAGE3_DECODER_SHA256 if package3 else None)
     host=[]
     for row in load:
         if row['kind']!='native_status':continue
@@ -92,7 +98,8 @@ def audit(root,decoder):
         require(json.loads((root/'ack-filter.json').read_text())['status']=='REMOVED','ACK filter cleanup')
     epochs={j['job_id']:j['epoch'] for j in base['jobs']}
     require(all(epochs[c['job_id']]==c['launch_epoch'] for c in checked['cases']),'Pressure raw ARM epoch mismatch')
-    base.update(status=PACKETS[packet_sha]+'_PRESSURE_VERIFIED',pressure=checked,native=metrics,
+    label=('PACKAGE3_'+packet['pressure_family'].upper()) if package3 else PACKETS[packet_sha]
+    base.update(status=label+'_PRESSURE_VERIFIED',pressure=checked,native=metrics,
         contention_coverage=coverage,tcp_packets=len(packets),physical_hour_or_saturation_verified=True,
         family_closed=False)
     return base
