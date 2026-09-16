@@ -18,7 +18,7 @@ remain retained. The [Package 5 review](phase11-5-package5-review.md) accepts
 replay/session capacity, LRU and real expiry and verifies terminal capacity/LRU,
 but keeps terminal expiry and the 1,024-byte reclamation gate open. A is
 inactive in boot `80d558e5804547749eca849c53ba27e1`; the host fixture is
-restored and both boards are Empty. Capacity and pressure is closed;
+restored and both boards are Empty. Capacity and pressure are closed;
 retention/reclamation and later-family gates remain open.
 
 

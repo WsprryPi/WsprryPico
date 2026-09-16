@@ -148,6 +148,6 @@ failures, restores the exact preflight interfaces and routes, protected time
 service files and installed WsprryPi PID 1957 on host boot
 `220e53ca-ca95-4206-9581-dbe28aa1eeb8`.
 
-Package 5 has two accepted rows and two open rows. Capacity and pressure remains
-the only closed revised Phase 11.5 family, so Phase 11.5 remains open at 2/6
+Package 5 has two accepted rows and two open rows. Capacity and pressure remain
+the only closed revised Phase 11.5 families, so Phase 11.5 remains open at 2/6
 families. Package 6 must not start until Package 5 is resolved.

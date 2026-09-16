@@ -81,7 +81,7 @@ The [retry audit](phase11-5-package4-unread-retest2-audit-result.json) accepts
 2.3e. Its [adversarial result](phase11-5-package4-unread-retest2-adversarial-result.json)
 rejects 13 altered-evidence cases and reverifies the intact evidence. Both Picos
 are Empty/inactive/unowned, configuration is preserved, the shared reservation
-is released, and the host fixture is restored. Capacity and pressure is closed;
+is released, and the host fixture is restored. Capacity and pressure are closed;
 Package 5 retention/reclamation and Package 6 R3 closeout remain open. Phase
 11.5 remains open at 2/6 families.
 
