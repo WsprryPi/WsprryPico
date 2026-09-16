@@ -23,6 +23,9 @@ RECOVERY_FAULT = dict(recovery_boot=True,fault_stage=14,fault_hash=3833354787,
     fault_allocation_request_bytes=32769,fault_allocation_returned_null=True)
 
 CANDIDATES = {
+    'phase115-package5-load-transfer-deploy-v1': (
+        'f2b933ba407d989536d922eff54c7bae29f522e4', 'ca3c5dce4036',
+        '5e0d6bc3e383b8c1cb4b0db9ed636bf5'),
     'phase115-memory-pressure-deploy-v1': (
         '8dd6f0812292e9264c2a72745078a95ee606c191', '150fe016bb61',
         'c3ea3e2ad15dafe5db2acec253e35c99'),
