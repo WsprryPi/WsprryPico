@@ -1,0 +1,42 @@
+{
+  "schema": "phase11.5-package4-unread-retest-audit-v1",
+  "status": "PACKAGE4_2_3E_VERIFIED",
+  "packet_sha256": "e948cff5ab87532ebb35e3956613fda0b2b2748e7f077f4177b9a7c9b7f59816",
+  "fixture_packet_sha256": "f4d1dade80f5df59375af02faccfd347158cffe295955b74aa360bf4a30b9e86",
+  "source_revision": "ca3c5dce40360b7eea2f9c45618232caa68cdbb6",
+  "image_sha256": "6c7aa0b7df6756e8f248570d682c6af4bbcfc44a5ad67e94d6761709ced0bd59",
+  "boot_id": "5e0d6bc3e383b8c1cb4b0db9ed636bf5",
+  "assertion": {
+    "2.3e": "ACCEPTED"
+  },
+  "mechanisms": {
+    "maximum_payload_bytes": 65536,
+    "maximum_wire_bytes": 65552,
+    "output_progress_timeout_ms": 5000,
+    "usb_service_bytes": 64,
+    "dtr_resets_endpoint": true
+  },
+  "unread": {
+    "written_bytes": 16384,
+    "complete_requests": 94,
+    "responses_before_close": 11,
+    "trailing_response_bytes": 144,
+    "hold_seconds": 12,
+    "host_output_flushed_with_dtr_asserted": true,
+    "pre_dtr_probe_silent": true,
+    "silence_seconds": 2,
+    "fresh_hello_status_recovery": true,
+    "network_request_count": 214,
+    "network_message_count": 220,
+    "console_exchange_count": 262,
+    "network_samples": 203,
+    "console_samples": 262
+  },
+  "rf_jobs": 1,
+  "rf_duration_ns": 100000000000,
+  "configuration_preserved": true,
+  "pico_b_unchanged": true,
+  "final_inactive_unowned": true,
+  "reservation_released": true,
+  "fixture_restored": true
+}

@@ -173,6 +173,19 @@ int main() {
     assert(accepted.ok && accepted.state == State::Loaded &&
            service.status().job_id == std::string(32, '3'));
 
+    // Production adapters transfer decoded requests. Prove that a maximum
+    // LOAD can cross the service boundary even when the first event-page copy
+    // would fail; no second event list is allocated by the service.
+    reset();
+    auto transferred = decode(text);
+    TestEngine transfer_engine;
+    JobService transfer_service(clock, transfer_engine, identity);
+    admit(transfer_service);
+    reset(1);
+    auto transferred_response = transfer_service.handle(std::move(transferred));
+    assert(transferred_response.ok && transferred_response.state == State::Loaded && calls == 0 &&
+           transfer_engine.preparations == 1);
+
     Job over_limit;
     assert(!over_limit.events.assign(513, {}));
     assert(over_limit.events.failure() == EventList::Failure::LimitExceeded);
@@ -192,6 +205,7 @@ int main() {
     assert(!compile_failure.job && compile_failure.error == "resource_exhausted");
 
     service.reset();
+    transfer_service.reset();
     decoded.body = std::monostate{};
     moved.events.clear();
     accepted.adjustments.clear();

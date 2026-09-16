@@ -1,0 +1,18 @@
+{
+  "schema": "phase11.5-package4-unread-retest-failure-adversarial-v1",
+  "status": "PASS",
+  "rejected": [
+    "packet_job",
+    "runner_network_state",
+    "runner_result_overclaim",
+    "completion_output",
+    "recovery_operation",
+    "final_a_state",
+    "reservation_state",
+    "fixture_restored",
+    "fixture_cleanup",
+    "client_capture"
+  ],
+  "mutation_count": 10,
+  "intact_status": "RETEST_FAILURE_VERIFIED"
+}

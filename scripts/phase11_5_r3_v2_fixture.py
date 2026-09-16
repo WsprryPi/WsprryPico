@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Hash-bound host-only extended R3 fixture; no USB, CONFIG or RF operation."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
-from phase11_5_device_management import digest
 from phase11_5_inventory import require
 from phase11_5_network_fixture import Fixture, HOST_BOOT, runtime_budget
+
+
+def digest(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def main():

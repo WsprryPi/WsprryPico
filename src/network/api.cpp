@@ -124,7 +124,7 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
     // coexist with RF preparation and a maximum adjustment response.
     root.reset();
     std::string{}.swap(payload);
-    auto response = service_.handle(*request);
+    auto response = service_.handle(std::move(*request));
     request->body = std::monostate{};
     if (response.ok && request->operation == "LOAD") {
         auto encoded = encode_load_response_buffer(*request, response, true);

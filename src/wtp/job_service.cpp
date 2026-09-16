@@ -121,6 +121,15 @@ JobService::JobService(Clock& clock, RfEngine& engine, IdentitySource& identitie
 }
 
 Response JobService::handle(const Request& request) {
+    Request copy = request;
+    return handle_owned(copy);
+}
+
+Response JobService::handle(Request&& request) {
+    return handle_owned(request);
+}
+
+Response JobService::handle_owned(Request& request) {
     const auto now = clock_.snapshot();
     expire_resources(now.monotonic_now_ns);
     prune_replay(now.monotonic_now_ns);
@@ -198,7 +207,7 @@ Response JobService::handle(const Request& request) {
     return response;
 }
 
-Response JobService::dispatch(const Request& request) {
+Response JobService::dispatch(Request& request) {
     const auto now = clock_.snapshot();
     constexpr std::array<std::string_view, 11> operations{"HELLO",   "CAPS",      "CLAIM", "RENEW",
                                                           "RELEASE", "LOAD",      "ARM",   "ABORT",
@@ -330,7 +339,7 @@ Response JobService::dispatch(const Request& request) {
             response.adjustments = adjustments_;
             return response;
         }
-        const auto* body = std::get_if<Job>(&request.body);
+        auto* body = std::get_if<Job>(&request.body);
         if (body == nullptr) {
             return reject(ErrorCode::InvalidMessage);
         }
@@ -366,19 +375,21 @@ Response JobService::dispatch(const Request& request) {
         if (const auto error = validate_job(*body); error != ErrorCode::None) {
             return reject(error);
         }
-        // Preserve normative validation/ownership order, then reserve bounded
-        // preparation, retained response and serialization working space.
-        if (!memory_admitted(65536))
+        // The production adapters transfer the already decoded event pages.
+        // Reserve bounded preparation/adjustment work here; serialization has
+        // its own paged gate and memory_admitted keeps the separate 32 KiB
+        // authority/RF reserve.
+        if (!memory_admitted(32768))
             return reject(ErrorCode::InternalError);
-        Job accepted = *body;
+        const auto accepted_digest = job_digest(*body);
+        Job accepted = std::move(*body);
         if (!accepted.events.valid())
             return reject(ErrorCode::InternalError);
-        const auto accepted_digest = job_digest(accepted);
         auto preparation = engine_.prepare(accepted);
         if (!preparation.accepted) {
             return reject(ErrorCode::FrequencyRejected);
         }
-        if (!body->allow_frequency_adjustment && !preparation.adjustments.empty()) {
+        if (!accepted.allow_frequency_adjustment && !preparation.adjustments.empty()) {
             return reject(ErrorCode::FrequencyRejected);
         }
         for (auto current = preparation.adjustments.begin();
@@ -415,7 +426,7 @@ Response JobService::dispatch(const Request& request) {
         state_ = State::Loaded;
         auto response = success();
         response.state = state_;
-        response.job_id = body->job_id;
+        response.job_id = job_->job_id;
         response.adjustments = adjustments_;
         return response;
     }

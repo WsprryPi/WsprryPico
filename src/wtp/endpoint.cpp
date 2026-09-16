@@ -234,7 +234,7 @@ void Endpoint::payload(FrameBuffer bytes, std::uint64_t now) {
         event("SESSION_REPLACED", "{\"error\":" + error_json(ErrorCode::SessionReplaced) + '}',
               now);
     } else
-        response = service_.handle(*request);
+        response = service_.handle(std::move(*request));
     if (response.ok && request->operation == "HELLO")
         session_ = request->session_id;
     request->body = std::monostate{};

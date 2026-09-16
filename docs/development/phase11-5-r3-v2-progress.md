@@ -22,13 +22,13 @@ The user has now said Execute. Standing finite approvals remain active.
    - 1.3 PASS: native QRSS/FSKCW/DFCW submissions in checkpoints 040–042;
      acknowledged-ARM loss, local completion and original-session reconciliation
      in 043. Original harness failures remain separately recorded.
-2. **Capacity and pressure — OPEN (Packages 1–3 and USB parser pressure accepted)**
+2. **Capacity and pressure — CLOSED (Packages 1–4 accepted)**
    - 2.1 Individual WTP, HTTP and maximum job capacity is accepted by Package 1.
    - 2.2 Supported combined load, bounded overload and network TLS/HTTP pressure
      are accepted by Packages 2 and 3.
    - 2.3 Network WTP inactivity/input/output progress is accepted by Package 3.
-     Package 4 accepts USB parser pressure; unread-output silence and DTR
-     recovery remain open.
+     Package 4 accepts both USB parser pressure and unread-output silence/DTR
+     recovery.
 3. **Retention and reclamation — OPEN**
    - 3.1 Freeze the measured highest-resource workload and fixture allowance.
    - 3.2 Verify capacity, reuse, eviction and actual expiry.
@@ -47,11 +47,11 @@ seconds are accepted; three failed RF jobs / 300 seconds remain charged and
 receive no credit. Thirty-six evidence mutations are rejected and all intact
 packets reverify. Both Picos and the host fixture are restored.
 
-Capacity and pressure stays OPEN for Package 4 unread-output pressure. Package
-5 retained reclamation and Package 6 R3 closeout also remain open; no R3 family
-closure is inferred from Package 3.
+Capacity and pressure is now CLOSED after Package 4 accepted USB unread-output
+pressure. Package 5 retained reclamation and Package 6 R3 closeout remain open;
+closing this execution group does not close the R3 family.
 
-## Package 4 USB result — parser accepted, unread output open
+## Package 4 USB result — COMPLETE
 
 [Package 4](phase11-5-package4-review.md) accepts 2.3d with an exact 65,552-byte
 USB frame, directly observed equal parser reservation, independent authenticated
@@ -59,13 +59,23 @@ network authority, Console observation and both same-connection and DTR
 recovery during a 100-second Tone. The evidence auditor reconstructs the raw
 network, Console and USB response streams.
 
-The separate unread-output job established a bounded response deficit after 12
-seconds with zero application reads, but the host output queue prevented its
-same-session silence PING from being written. The harness now flushes only
-unsent host output before the probe while DTR remains asserted. That fix has not
-been physically retested, so 2.3e and Package 4 remain open. The four-job,
-400-second absolute ceiling is exhausted. Both Picos and the host fixture are
-restored, and 13 altered-evidence cases are rejected.
+The repaired [2.3e retest](phase11-5-package4-unread-retest2-result.json)
+offered 94 complete STATUS requests with zero application reads for 12 seconds,
+then recovered 11 responses plus a bounded partial response. With DTR still
+asserted, it flushed only unsent host output and observed two seconds of
+same-session silence; fresh HELLO/STATUS succeeded after DTR recovery. Network
+and Console observers bracketed Running, the single 100-second Tone completed
+inactive, both Picos returned Empty, the reservation was released and the host
+fixture was restored.
+
+The failed original attempt and first focused retest remain retained. The first
+retest stopped before unread pressure on a 232 ms Console/network transition
+race. The repaired retry physically passed the bounded transition wait. Across
+the original and separately authorized scopes, Package 4 charged 6 jobs / 600
+planned seconds and no flashes, configuration writes, controlled reboots or
+Pico Wi-Fi cycles. The acceptance auditor passes, all 13 adversarial mutations
+are rejected, and the intact evidence reverifies. Capacity and pressure is
+CLOSED; Package 5 retention/reclamation is next.
 
 ## Latest component 9 target result — bounded LOAD/replays CLOSED
 

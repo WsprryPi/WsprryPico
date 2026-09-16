@@ -1,0 +1,23 @@
+{
+  "schema": "phase11.5-package4-unread-retest-failure-audit-v1",
+  "status": "RETEST_FAILURE_VERIFIED",
+  "packet_sha256": "10fe965e5ac0e15d58226aaab598ca9671ed0d5009149e5f737b26f6499607ba",
+  "fixture_packet_sha256": "0084f965781aaf591f55c6d2a7b6252876d29c8dd455a0ae48d33c9803b828ea",
+  "source_revision": "ca3c5dce40360b7eea2f9c45618232caa68cdbb6",
+  "image_sha256": "6c7aa0b7df6756e8f248570d682c6af4bbcfc44a5ad67e94d6761709ced0bd59",
+  "boot_id": "5e0d6bc3e383b8c1cb4b0db9ed636bf5",
+  "assertion": {
+    "2.3e": "OPEN_NO_UNREAD_PRESSURE_EXECUTED"
+  },
+  "charged_rf_jobs": 1,
+  "charged_rf_duration_ns": 100000000000,
+  "console_to_network_sample_gap_ns": 232079078,
+  "network_request_count": 25,
+  "network_message_count": 28,
+  "console_exchange_count": 34,
+  "job_completed_inactive": true,
+  "configuration_preserved": true,
+  "pico_b_unchanged": true,
+  "reservation_released": true,
+  "fixture_restored": true
+}

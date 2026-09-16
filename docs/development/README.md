@@ -11,11 +11,13 @@ the [Package 2 review](phase11-5-package2-review.md) accepts assertions 2.2a and
 [Package 3 review](phase11-5-package3-review.md) accepts current-image TLS,
 slot, partial/stalled HTTP, failed-alert and three distinct WTP timeout paths,
 plus the affected browser-resource check. The [Package 4 review](phase11-5-package4-review.md)
-accepts exact maximum USB parser pressure and leaves unread-output pressure open
-because its same-session silence probe was not written. A is inactive in boot
+accepts exact maximum USB parser pressure and the repaired
+[unread-output retest](phase11-5-package4-unread-retest2-result.json), including
+same-session pre-DTR silence and fresh DTR recovery. The earlier failed attempts
+remain retained. A is inactive in boot
 `5e0d6bc3e383b8c1cb4b0db9ed636bf5`; the host fixture is restored and both
-boards are Empty. Unread USB pressure, retention/reclamation and later-family
-gates remain open.
+boards are Empty. Capacity and pressure is closed; retention/reclamation and
+later-family gates remain open.
 
 
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).

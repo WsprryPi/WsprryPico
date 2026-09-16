@@ -553,7 +553,10 @@ class JobService {
     JobService(Clock& clock, RfEngine& engine, IdentitySource& identities,
                ServiceConfig config = {});
 
+    // Lvalue callers retain value semantics. Production adapters transfer a
+    // decoded request so a maximum LOAD does not allocate a second event list.
     Response handle(const Request& request);
+    Response handle(Request&& request);
     // Physical Console safety control only; never exposed as a network operation.
     Response local_abort();
     void poll();
@@ -608,7 +611,8 @@ class JobService {
         std::uint64_t lru;
     };
 
-    Response dispatch(const Request& request);
+    Response handle_owned(Request& request);
+    Response dispatch(Request& request);
     Response abort_job(std::string_view job_id);
     Response reject(ErrorCode code) const;
     Response success() const;

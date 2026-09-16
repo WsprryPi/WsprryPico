@@ -8,7 +8,7 @@
 | 1 | COMPLETE — individual capacity | 2.1a/2.1d/2.1e/2.1f/2.1g and authenticated controls pass on 8dd6f08 with three retained records, continuous observation and 55,944-byte minimum reserve. Prior P1g/P1h/P1i failures retained. [Review](phase11-5-memory-pressure-review.md). |
 | 2 | COMPLETE — simultaneous capacity and overload | 2.2a accepts the declared supported overlap; 2.2b accepts the separate bounded 503 refusal and authenticated recovery. [Review](phase11-5-package2-review.md). |
 | 3 | COMPLETE — network timeout and resource recovery | 2.2c–2.2f, 2.3a–2.3c and R3.BROWSER-MAX pass with current-image RF pressure, distinct WTP timeout evidence and browser-source applicability. [Review](phase11-5-package3-review.md). |
-| 4 | PARTIAL — parser accepted, unread output open | 2.3d passes exact maximum USB parser pressure during RF. 2.3e captured a bounded response deficit but lacks the same-session silence and post-DTR recovery proof. [Review](phase11-5-package4-review.md). |
+| 4 | COMPLETE — USB parser and unread output | 2.3d passes exact maximum USB parser pressure. The repaired 2.3e retest passes bounded unread-output deficit, same-session pre-DTR silence and fresh DTR recovery during RF. [Review](phase11-5-package4-review.md). |
 | 5 | OPEN | Retained capacity/eviction/expiry and three equivalent cycles. |
 | 6 | OPEN | All R3 groups and extended-feature applicability/closeout. |
 | 7 | OPEN | Remaining R4 authority/interruption assertions after reuse. |
@@ -19,25 +19,38 @@
 
 [Prompt](phase11-5-package4-prompt.md),
 [review](phase11-5-package4-review.md),
-[result](phase11-5-package4-result.json) and
-[adversarial result](phase11-5-package4-adversarial-result.json). Assertion 2.3d
-is accepted on `ca3c5dce4036`, boot
-`5e0d6bc3e383b8c1cb4b0db9ed636bf5`. The exact 65,552-byte USB frame was
-accepted during a 100-second Tone, the live parser reservation reached 65,552
-bytes, and same-connection plus post-DTR recovery passed under independent
-authenticated network and Console observation.
+[original result](phase11-5-package4-result.json) and
+[repaired 2.3e result](phase11-5-package4-unread-retest2-result.json). Package 4
+is complete on `ca3c5dce4036`, boot
+`5e0d6bc3e383b8c1cb4b0db9ed636bf5`.
 
-Assertion 2.3e remains open. Its 12-second zero-read interval accepted 94
-complete requests and yielded only 7 complete responses, but the host output
-queue prevented the same-session proof PING from being written. The runner now
-flushes only unsent host output before that PING while retaining DTR; this fix
-has not been physically retested. Thirteen evidence mutations are rejected and
-the intact packet reverifies as a partial result.
+Assertion 2.3d accepts the exact 65,552-byte USB frame during a 100-second Tone,
+directly observed equal parser reservation, independent authenticated network
+authority, same-connection recovery and fresh post-DTR recovery.
 
-Four failed/accepted Package 4 jobs consumed the absolute 400-second ceiling.
-No further RF job ran. Both Picos are Empty/inactive/unowned, configuration is
-preserved, the shared reservation is released and the host fixture is restored.
-Package 4, R3 and full Phase 11.5 remain open at 2/6 families.
+Assertion 2.3e accepts a separate 100-second Tone. The runner offered 94 complete
+STATUS requests while performing zero application reads for 12 seconds and
+recovered only 11 responses plus a bounded partial response before close. It
+then flushed only unsent host output with DTR asserted, observed two seconds of
+same-session silence and recovered with fresh HELLO/STATUS after DTR. Network
+and Console observers continuously bracketed Running. The job completed
+inactive with zero allocator failures.
+
+The original failed 2.3e attempt and the first focused retest remain retained.
+The first retest charged one job but stopped before unread pressure because its
+network observer was 232 ms ahead of the latest Console sample. The repaired
+retry charged one additional job and physically passed the bounded transition
+wait and unread recovery. Package 4 therefore charged 6 jobs / 600 planned
+seconds across the original and separately authorized scopes, with zero flashes,
+configuration writes, controlled reboots or Pico Wi-Fi cycles.
+
+The [retry audit](phase11-5-package4-unread-retest2-audit-result.json) accepts
+2.3e. Its [adversarial result](phase11-5-package4-unread-retest2-adversarial-result.json)
+rejects 13 altered-evidence cases and reverifies the intact evidence. Both Picos
+are Empty/inactive/unowned, configuration is preserved, the shared reservation
+is released, and the host fixture is restored. Capacity and pressure is closed;
+Package 5 retention/reclamation and Package 6 R3 closeout remain open. Phase
+11.5 remains open at 2/6 families.
 
 ### Current Package 3 checkpoint
 
@@ -69,9 +82,8 @@ writes, controlled reboots or Pico Wi-Fi cycles.
 
 A and B are independently Empty/inactive/unowned, configuration is preserved,
 the host fixture is restored and the shared reservation is released. Package 4
-subsequently accepted 2.3d while leaving 2.3e open. Package 5 retained
-reclamation and Package 6 R3 closeout remain open. R3 and full Phase 11.5 remain
-open at 2/6 families.
+subsequently accepted 2.3d and 2.3e. Package 5 retained reclamation and Package
+6 R3 closeout remain open. R3 and full Phase 11.5 remain open at 2/6 families.
 
 ### Current Package 2 checkpoint
 

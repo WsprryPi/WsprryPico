@@ -1,0 +1,21 @@
+{
+  "schema": "phase11.5-package4-unread-retest-adversarial-v1",
+  "status": "PASS",
+  "rejected": [
+    "packet_job_identity",
+    "result_rf_charge",
+    "unread_start_application_read",
+    "unread_offered_request_floor",
+    "unread_hold_duration",
+    "response_deficit",
+    "host_output_flush_dtr",
+    "same_session_silence",
+    "completion_output",
+    "final_a_state",
+    "reservation_release",
+    "fixture_restored",
+    "fixture_cleanup"
+  ],
+  "mutation_count": 13,
+  "intact_status": "PACKAGE4_2_3E_VERIFIED"
+}

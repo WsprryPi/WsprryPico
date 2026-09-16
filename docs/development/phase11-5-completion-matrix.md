@@ -16,8 +16,11 @@ observability. The [Package 3 result](phase11-5-package3-result.json) accepts
 2.2c–2.2f, 2.3a–2.3c and R3.BROWSER-MAX with current-image RF pressure and
 distinct zero-RF timeout evidence. Earlier failed results remain historical
 evidence. The [Package 4 result](phase11-5-package4-result.json) accepts 2.3d
-USB parser pressure and leaves 2.3e unread-output pressure open. The [P1
-result](phase11-5-memory-pressure-result.json) retains its
+USB parser pressure. Its first
+[focused 2.3e retest](phase11-5-package4-unread-retest-result.json) stopped
+before pressure on an observer synchronization race and received no credit; the
+[repaired retry](phase11-5-package4-unread-retest2-result.json) accepts 2.3e and
+completes Package 4. The [P1 result](phase11-5-memory-pressure-result.json) retains its
 exact original workload and boot. Both boards are independently
 Empty/inactive/unowned. Configuration is preserved, the host fixture is restored
 and the shared reservation is released. No family closes from Packages 2 or 3
@@ -105,7 +108,7 @@ resource gates. Evidence links retain exact source/image/boot and raw hashes.
 | 2.3b | PROGRESS | Five-second incomplete WTP input | accepted/applicable | [Package 3 result](phase11-5-package3-result.json); [review](phase11-5-package3-review.md) | Raw eight-byte partial frame, reason 4, unchanged network timeout counter and recovery verified | 3 |
 | 2.3c | PROGRESS | Five-second WTP no-output-progress | accepted/applicable | [Package 3 result](phase11-5-package3-result.json); [review](phase11-5-package3-review.md) | Complete maximum LOAD applied once; zero reads, reason 4, Loaded recovery and final release verified | 3 |
 | 2.3d | USB | USB parser pressure | accepted/applicable | [Package 4 result](phase11-5-package4-result.json); [review](phase11-5-package4-review.md) | Exact 65,552-byte USB frame during RF; direct 65,552-byte reservation, separate authenticated network authority, same-connection and DTR recovery accepted | 4 |
-| 2.3e | USB | USB unread-output pressure | missing | [Package 4 result](phase11-5-package4-result.json); [review](phase11-5-package4-review.md) | Bounded zero-read response deficit observed, but same-session silence probe was not written; physically retest fixed host-output flush, pre-DTR silence and fresh DTR recovery | 4 |
+| 2.3e | USB | USB unread-output pressure | accepted/applicable | [Repaired retest](phase11-5-package4-unread-retest2-result.json); [audit](phase11-5-package4-unread-retest2-audit-result.json); [review](phase11-5-package4-review.md) | One bounded RF job: 94 complete requests offered with zero reads for 12 seconds, 11 responses before close, same-session two-second silence with DTR asserted, fresh HELLO/STATUS recovery, continuous independent authority and full restoration accepted | 4 |
 | R3.TLS-VALID | TLS-VALID | Authenticated production WTP/HTTPS positive controls | accepted/applicable | [phase11-5-r3-v2-component9-result.json](phase11-5-r3-v2-component9-result.json); [phase11-5-completion-native-closure-result.json](phase11-5-completion-native-closure-result.json); [phase11-5-completion-streamed-reply-result.json](phase11-5-completion-streamed-reply-result.json); [phase11-5-memory-pressure-result.json](phase11-5-memory-pressure-result.json) | Accepted on 8dd6f08, boot 7a04779b8018624574066260fce9d0d8: independent complete 512-event RF, sequential WTP/HTTP boundaries and continuous native observer with three retained records. Prior failures preserved; no simultaneous-maximum, overload, reclamation or family closure. | 1 |
 | R3.BROWSER-MAX | BROWSER-MAX | Actual browser 30000/30001 file and message/progress/cancellation | accepted/applicable | [Package 3 result](phase11-5-package3-result.json); [phase11-5-r3-v2-browser-b3-result.json](phase11-5-r3-v2-browser-b3-result.json); [phase11-5-r3-v2-browser-b4-result.json](phase11-5-r3-v2-browser-b4-result.json); [phase11-5-r3-v2-browser-b5-result.json](phase11-5-r3-v2-browser-b5-result.json); [phase11-5-r3-v2-validation-039.json](phase11-5-r3-v2-validation-039.json) | Current and accepted browser sources share app.js blob 6dd5d54; current-image stalled page response verifies affected allocation and reclamation | 3 |
 | R3.RETAINED.replay | RETAINED | 8 replay entries/session; replay/conflict/eviction/300-second expiry | missing | None | Current shared adjustment lifetimes need measured capacity and actual expiry | 5 |

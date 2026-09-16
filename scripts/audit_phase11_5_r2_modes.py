@@ -15,8 +15,15 @@ def transactions(packet, exchanges, events, *, packet_validator=validate):
     packet_validator(packet)
     requests=[v['request'] for v in exchanges]
     mut=[q for q in requests if q['op'] not in ('HELLO','CAPS','STATUS','GET_CLOCK','PING','RENEW')]
-    require([q['op'] for q in mut]==['CLAIM','LOAD','ARM','RELEASE']*len(packet['jobs']),
-            'Missing/extra/reordered RF mutation; no retry')
+    if packet.get('closure_policy')=='phase115-package5-terminal-capacity-v1':
+        expected=['CLAIM','LOAD','ARM','RELEASE']*8+['CLAIM','LOAD','RELEASE']+[
+            'CLAIM','LOAD','ARM','RELEASE']
+        require([q['op'] for q in mut]==expected and mut[33]['body']==packet['jobs'][0],
+                'Missing/extra/reordered Package 5 terminal mutation')
+        mut=mut[:32]+mut[35:]
+    else:
+        require([q['op'] for q in mut]==['CLAIM','LOAD','ARM','RELEASE']*len(packet['jobs']),
+                'Missing/extra/reordered RF mutation; no retry')
     require(sum(q['op']=='RENEW' for q in requests)<=packet['maximum_renewals'],'Renewal budget')
     for q in requests:
         if q['op'] in ('CLAIM','RENEW'):

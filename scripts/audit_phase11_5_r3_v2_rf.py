@@ -9,7 +9,7 @@ from phase11_5_r3_preflight import audit_inventory
 from validate_wtp_contract import SchemaValidator
 from audit_phase11_5_idle import frames
 from audit_phase11_5_r2_modes import transactions
-from phase11_5_r3_v2_rf import validate,validate_info,comparator_required,DIAGNOSTIC_POLICY,CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY,SERIAL_CAPACITY,TERMINAL_POLICY,completion_policy,initial_terminal,recent_clock
+from phase11_5_r3_v2_rf import validate,validate_info,comparator_required,DIAGNOSTIC_POLICY,CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY,SERIAL_CAPACITY,TERMINAL_POLICY,PACKAGE5_TERMINAL_POLICY,completion_policy,initial_terminal,recent_clock
 
 PACKET='966cd695df2b2eab36f6999c2afae678ad6eecdb8a3c5ea0871fb5afb2c61fef'
 
@@ -67,6 +67,9 @@ def audit(root, *, packet_digest=PACKET):
                 'Frozen individual-capacity initial retention')
         if 'combined' in packet:
             require(before['wtp']['STATUS']['terminal_records']==packet['initial_terminal_records'], 'Exact P2 retained baseline')
+        if packet.get('closure_policy')==PACKAGE5_TERMINAL_POLICY:
+            require(before['wtp']['STATUS']['terminal_records']==packet['initial_terminal_records'],
+                    'Exact Package 5 retained baseline')
         if 'initial_terminal_jobs' in packet:
             retained=before['wtp']['STATUS']['terminal_records']
             require([r['job_id'] for r in retained]==packet['initial_terminal_jobs'] and
@@ -102,6 +105,7 @@ def audit(root, *, packet_digest=PACKET):
     if 'wtp_capacity' in packet or 'combined' in packet:allowed+=['capacity_tx','capacity_write','capacity_rx','capacity_message']
     if packet.get('capacity_schedule_policy')==SERIAL_CAPACITY:allowed.append('wtp_capacity_complete')
     if 'combined' in packet:allowed.append('combined_resident')
+    if packet.get('closure_policy')==PACKAGE5_TERMINAL_POLICY:allowed.append('terminal_lru_touch')
     require(all(r['kind'] in allowed for r in rows),'Unexpected failure/operation')
     schema=json.loads((Path(__file__).resolve().parents[1]/'docs/protocol/wtp-1.schema.json').read_text());validator=SchemaValidator(schema)
     pending={};seen=set();wire=b'';messages=[];console=b'';console_pending=None;console_value=None
@@ -224,15 +228,27 @@ def audit(root, *, packet_digest=PACKET):
     for arm,exchange in zip(arms,arm_exchanges):
         arm.update(request=exchange['request']['body'],acknowledgment=exchange['response']['body'])
     metrics=timing(packet,arms,rows)
-    for job in packet['jobs']:
+    for index,job in enumerate(packet['jobs']):
         statuses=[r for r in samples['status'] if r['value']['value']['job_id']==job['job_id']]
         states={r['value']['value']['state'] for r in statuses}
-        require({'loaded','armed','running','complete'}<=states,'Observed lifecycle gap')
+        package5_short=packet.get('closure_policy')==PACKAGE5_TERMINAL_POLICY
+        require(({'loaded','armed','complete'} if package5_short else
+                 {'loaded','armed','running','complete'})<=states,'Observed lifecycle gap')
         running=[r for r in statuses if r['value']['value']['state']=='running']
-        require(running and all(r['value']['value']['output_active'] is True for r in running),'Running authority')
+        if package5_short:
+            console_running=[r for r in samples['info']
+                if arm_acknowledged[index]['monotonic_ns']<r['monotonic_ns']<
+                   completed_summaries[index]['monotonic_ns'] and
+                   r['value']['value']['status']['state']=='running' and
+                   r['value']['value']['status']['output_active'] is True]
+            require(console_running,'Independent Console missed one-second Running authority')
+        else:
+            require(running and all(r['value']['value']['output_active'] is True for r in running),
+                    'Running authority')
         completed=next(r for r in statuses if r['value']['value']['state']=='complete')
-        require(completed['monotonic_ns']-running[0]['monotonic_ns']>=int(job['total_duration_ns'])-6_000_000_000,
-                'Truncated physical duration')
+        if not package5_short:
+            require(completed['monotonic_ns']-running[0]['monotonic_ns']>=
+                    int(job['total_duration_ns'])-6_000_000_000,'Truncated physical duration')
     prior=before['wtp']['STATUS']['terminal_records'];new=final['wtp']['STATUS']['terminal_records']
     final_infos=[r['value']['value'] for r in samples['info'][-2:]]
     lower=int(final_infos[0]['status']['monotonic_now_ns']);upper=int(final['info']['status']['monotonic_now_ns'])
@@ -241,7 +257,16 @@ def audit(root, *, packet_digest=PACKET):
         expires=int(record['ended_monotonic_ns'])+3600_000_000_000
         require(not lower<expires<=upper,'Ambiguous terminal expiry bracket')
         if expires>upper:kept.append(record)
-    expected=[j['job_id'] for j in reversed(packet['jobs'])]+[j['job_id'] for j in kept]
+    if packet.get('closure_policy')==PACKAGE5_TERMINAL_POLICY:
+        touch=[r for r in rows if r['kind']=='terminal_lru_touch']
+        expected_touch=[packet['jobs'][0]['job_id']]+[j['job_id'] for j in reversed(packet['jobs'][1:8])]
+        require(len(touch)==1 and touch[0]['value']['job_id']==packet['jobs'][0]['job_id'] and
+                [r['job_id'] for r in touch[0]['value']['status']['terminal_records']]==expected_touch,
+                'Package 5 terminal LRU touch/order')
+        expected=[packet['jobs'][8]['job_id'],packet['jobs'][0]['job_id']]+[
+            packet['jobs'][n]['job_id'] for n in range(7,1,-1)]
+    else:
+        expected=[j['job_id'] for j in reversed(packet['jobs'])]+[j['job_id'] for j in kept]
     require([t['job_id'] for t in new]==expected[:8],'Retained terminal order/capacity/expiry')
     for record in new:
         if record['job_id'] in [j['job_id'] for j in packet['jobs']]:

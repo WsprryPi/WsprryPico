@@ -2,10 +2,13 @@
 
 ## Outcome
 
-Package 4 is **PARTIAL and remains OPEN**. Assertion **2.3d USB parser
-pressure is accepted**. Assertion **2.3e USB unread-output pressure remains
-open** because the retained run did not write its same-session silence probe
-and therefore did not establish pre-DTR silence or fresh post-DTR recovery.
+Package 4 is **COMPLETE**. Assertion **2.3d USB parser pressure** and
+assertion **2.3e USB unread-output pressure** are accepted. The original 2.3e
+packet and the [first focused retest](phase11-5-package4-unread-retest-result.json)
+remain failed evidence. The repaired
+[second focused retest](phase11-5-package4-unread-retest2-result.json) ran the
+missing same-session silence and DTR recovery sequence during one bounded RF
+job and passed independent and adversarial audit.
 
 The executed scope is the [Package 4 prompt](phase11-5-package4-prompt.md). The
 [audited result](phase11-5-package4-result.json) binds source
@@ -29,29 +32,29 @@ network messages, 324 raw Console INFO exchanges and the raw USB parser reply.
 The RF job completed locally with output inactive. Final reconciliation records
 both planned Package 4 jobs as complete and returns A to Empty.
 
-## Open 2.3e evidence and repair
+## Accepted 2.3e evidence and retained repairs
 
-The unread-output case offered 16,384 bytes containing 94 complete STATUS
-requests, performed zero application reads for 12 seconds, then recovered only
-7 complete responses plus a bounded 656-byte partial response. This proves that
-the deliberate no-read workload created a bounded response deficit while the
-network owner and Console observer continued to report the exact Running job.
+The accepted retry offered 16,384 bytes containing 94 complete STATUS requests
+and performed zero application reads for 12 seconds. It recovered only 11
+complete responses plus a bounded 144-byte partial response before closing the
+read interval. This establishes the required bounded response deficit while
+203 authenticated network STATUS samples and 262 raw Console INFO samples
+continued to bracket the exact Running job.
 
-It does not close 2.3e. The host tty still held unsent request bytes after the
-target endpoint stopped consuming input. The file descriptor never became
-writable for the same-session PING, so the harness stopped with
-`Unread USB silence probe write`. No `usb_unread_silent` or
-`usb_unread_recovery` record exists. The later same-job recovery attempt began
-after the 100-second Tone had completed and receives no acceptance credit.
+The runner then discarded only the host-side unsent output queue with
+`tcflush(TCOFLUSH)` while DTR remained asserted. A PING written on that same
+session produced zero bytes for two seconds. After DTR recovery, a fresh USB
+HELLO and STATUS succeeded. The 100-second Tone completed locally with output
+inactive, allocator failures remained zero, A returned to Empty, B remained
+unchanged and the reservation was released.
 
-The runner now discards only the host-side unsent output queue with
-`tcflush(TCOFLUSH)` after the bounded response drain and while DTR remains
-asserted. It then sends the proof PING before toggling DTR. This repairs the
-harness mechanism that blocked the probe. The fix is covered by source and host
-checks but is **not physically retested**, so 2.3e remains open. A future packet
-needs one bounded unread-output job that records the same-session silent PING,
-fresh post-DTR HELLO/STATUS, continuous independent authority and final
-restoration.
+The earlier failures remain part of the record. The original packet could not
+write the silence probe because the host output queue was still full. The first
+focused retest reached Running, but stopped before unread pressure because the
+network observer was 232 ms ahead of the latest Console sample. The repaired
+runner waits up to two seconds for Console to advance from Armed to Running and
+performs bounded terminal observation and release after a post-ARM observer
+failure. The accepted retry physically exercises both repairs.
 
 ## Retained attempts and finite budget
 
@@ -63,11 +66,14 @@ All failed attempts remain evidence and receive no assertion credit.
 | `8896f2cbf44dff298864600bbcd8656314fc61638f2df71eceaa4221f208b983` | 1 job / 100 s | Console INFO was incorrectly treated as if it contained network job/owner fields. The completed job was reconciled by packet `9f110f5e99f1391102a39afd6741a863377ff949ffa0f59ff4fd75bf9b4d38a9`. |
 | `5c999fd00d27f041a79d0991ca1d58e8555b4dc3df5b72911b264958fcd207e4` | 1 job / 100 s | The first case ran, but the second-case gate counted only 45 seconds instead of the preceding 100-second job plus margin. Packet `fbd68f1f4215bbc1d5c136ae1e02809e7bd6013ea2966fef898a4806ee657829` reconciled the completed job. |
 | `6de855e36977a824498d920fce9eeff9c4bfd9b087c8964966d93f7daa68522f` | 2 jobs / 200 s | 2.3d passed. 2.3e stopped at the silence-probe write. Zero-RF packet `d0c521b5f4976b9a0af0ed38fc933e07b16a89d4eb7f54e7bd58bc18591e121d` reconciled the second completion and released the reservation. |
+| `10fe965e5ac0e15d58226aaab598ca9671ed0d5009149e5f737b26f6499607ba` | 1 job / 100 s | User-authorized focused 2.3e retest. The Tone completed, but a 232 ms Console/network transition race stopped the harness before unread pressure. No 2.3e credit. Zero-RF recovery released Complete to Empty and reconciled the reservation. |
+| `e948cff5ab87532ebb35e3956613fda0b2b2748e7f077f4177b9a7c9b7f59816` | 1 job / 100 s | User-authorized repaired 2.3e retest. The complete unread-pressure, same-session silence and fresh DTR recovery sequence passed; the Tone completed inactive and independent audit accepted 2.3e. |
 
-The Package 4 campaign reached its absolute ceiling of **4 RF jobs / 400
-planned seconds**. It used zero flashes, configuration writes, controlled
-reboots or Pico Wi-Fi cycles. No additional RF job was started after the
-ceiling was reached.
+The original Package 4 campaign reached its absolute ceiling of **4 RF jobs /
+400 planned seconds**. Two separately authorized focused retest packets each
+charged **1 RF job / 100 planned seconds**. Across all scopes Package 4 charged
+6 jobs / 600 planned seconds and used zero flashes, configuration writes,
+controlled reboots or Pico Wi-Fi cycles.
 
 ## Adversarial review
 
@@ -86,6 +92,26 @@ unread proof, changed failure reason, result overclaim, reconciliation state and
 reservation identity. The intact evidence then passed again as
 `PACKAGE4_PARTIAL_VERIFIED`. No actionable auditor finding remains.
 
+The focused retest's acceptance auditor correctly rejects the failed packet.
+Its separate [failure audit](phase11-5-package4-unread-retest-audit-result.json)
+reconstructs 25 raw network requests, 28 network messages, 34 raw Console INFO
+exchanges, the 232 ms Armed-to-Running observer gap, the local inactive
+completion, zero-RF Complete-to-Empty release, reservation reconciliation and
+host restoration. The [failure adversarial result](phase11-5-package4-unread-retest-adversarial-result.json)
+rejects all 10 mutations and reverifies the intact failure evidence.
+
+The repaired retry's
+[acceptance audit](phase11-5-package4-unread-retest2-audit-result.json)
+reconstructs the exact offered stream, delayed response capture, same-session
+silent probe, fresh recovery, independent Running brackets, one completed RF
+launch, final A/B state, reservation lifecycle and fixture restoration. During
+review, the first final-state mutation was found to alter a non-authoritative
+duplicate record. The mutation was corrected to alter the authoritative final
+STATUS. The full
+[adversarial assessment](phase11-5-package4-unread-retest2-adversarial-result.json)
+then rejected all 13 altered-evidence cases and reverified the intact evidence
+as `PACKAGE4_2_3E_VERIFIED`. No actionable finding remains.
+
 ## Restoration
 
 Zero-RF reconciliation left A and B Empty, inactive and unowned, preserved both
@@ -94,6 +120,11 @@ recorded no failures and restored the exact preflight interfaces and routes,
 the protected time service files, and installed WsprryPi PID 1957 on host boot
 `220e53ca-ca95-4206-9581-dbe28aa1eeb8`.
 
-Package 5 and Package 6 remain blocked behind completion of 2.3e because
-Package 4 has not closed both USB pressure mechanisms. Phase 11.5 therefore
-remains open at 2/6 families.
+Both focused retests independently reached the same restored state after their
+single Tones completed: both Picos Empty/inactive/unowned, reservation Released,
+fixture cleanup with no failures, exact preflight interfaces/routes and the
+same installed PID 1957.
+
+Package 4 is complete and the capacity-and-pressure execution group is closed.
+Package 5 retention/reclamation and Package 6 R3 closeout remain open. Phase
+11.5 remains open at 2/6 families.

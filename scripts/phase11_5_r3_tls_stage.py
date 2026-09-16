@@ -36,7 +36,10 @@ def unpack(archive, packet_sha, root, own_sha):
              'phase11.5-r3-v2-parallel-b-deploy-v1','phase11.5-r3-v2-parallel-b-functional-v1',
              'phase11.5-r3-v2-parallel-b-repair-v1','phase11.5-r3-v2-parallel-b-paged-repair-v1',
              'phase11.5-r3-v2-wifi-recovery-v1','phase11.5-r3-v2-native-v1',
-             'phase11.5-package3-progress-v1','phase11.5-package4-usb-v1'),
+             'phase11.5-package3-progress-v1','phase11.5-package4-usb-v1',
+             'phase11.5-package4-unread-retest-v1','phase11.5-package5-retained-v1',
+             'phase11.5-package5-terminal-expiry-v1','phase11.5-package5-wifi-recovery-v1',
+             'phase11.5-package5-status-confirm-v1','phase11.5-package5-fixture-extend-v1'),
             'R3 staging root/scope')
     require(set(data) == {'packet.json'} | set(packet['stage_sha256']), 'Archive manifest differs')
     require(packet['stage_sha256']['scripts/phase11_5_r3_tls_stage.py'] == own_sha,

@@ -1,0 +1,103 @@
+{
+  "schema": "phase11.5-package4-unread-retest-result-v1",
+  "status": "PACKAGE4_2_3E_ACCEPTED",
+  "assertion": {
+    "2.3e": "ACCEPTED"
+  },
+  "target": {
+    "source_revision": "ca3c5dce40360b7eea2f9c45618232caa68cdbb6",
+    "image_sha256": "6c7aa0b7df6756e8f248570d682c6af4bbcfc44a5ad67e94d6761709ced0bd59",
+    "a_boot_id": "5e0d6bc3e383b8c1cb4b0db9ed636bf5",
+    "b_boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+    "system_clock_hz": 138000000,
+    "mode": "tone",
+    "frequency_nhz": "135500000000000",
+    "duration_ns": "100000000000"
+  },
+  "packet": {
+    "sha256": "e948cff5ab87532ebb35e3956613fda0b2b2748e7f077f4177b9a7c9b7f59816",
+    "stage_archive_sha256": "547964a26019df3a21e48bb56c11505ef4f01158ccd379731ef459b41ad56f5d",
+    "fixture_packet_sha256": "f4d1dade80f5df59375af02faccfd347158cffe295955b74aa360bf4a30b9e86",
+    "job_id": "c3b8d839e7877891ba7462700de62748",
+    "previous_retest_packet_sha256": "10fe965e5ac0e15d58226aaab598ca9671ed0d5009149e5f737b26f6499607ba"
+  },
+  "budget": {
+    "authorized_rf_jobs": 1,
+    "charged_rf_jobs": 1,
+    "authorized_rf_duration_ns": "100000000000",
+    "charged_rf_duration_ns": "100000000000",
+    "flashes": 0,
+    "configuration_writes": 0,
+    "controlled_reboots": 0,
+    "pico_wifi_cycles": 0,
+    "retries_within_packet": 0
+  },
+  "observation": {
+    "written_bytes": 16384,
+    "complete_requests": 94,
+    "responses_before_close": 11,
+    "trailing_response_bytes": 144,
+    "hold_seconds": 12,
+    "application_reads_during_hold": 0,
+    "host_output_flushed_with_dtr_asserted": true,
+    "pre_dtr_same_session_probe_silent": true,
+    "silence_seconds": 2,
+    "fresh_hello_status_recovery": true,
+    "network_request_count": 214,
+    "network_message_count": 220,
+    "console_exchange_count": 262,
+    "network_running_samples": 203,
+    "console_samples": 262
+  },
+  "physical_outcome": {
+    "job_reached_running": true,
+    "job_completed_locally": true,
+    "completion_observed_output_active": false,
+    "allocator_failures": "0",
+    "configuration_preserved": true,
+    "pico_b_unchanged": true
+  },
+  "restoration": {
+    "a_state": "empty",
+    "b_state": "empty",
+    "a_output_active": false,
+    "b_output_active": false,
+    "a_owner_id": null,
+    "b_owner_id": null,
+    "shared_rf_reservation": "RELEASED",
+    "host_fixture": "RESTORED",
+    "fixture_cleanup_failures": [],
+    "installed_wsprrypi_pid": 1957,
+    "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8"
+  },
+  "audit": {
+    "status": "PACKAGE4_2_3E_VERIFIED",
+    "adversarial_status": "PASS",
+    "adversarial_mutations_rejected": 13,
+    "intact_reverified": true,
+    "harness_review_finding": "The initial final-state mutation altered a non-authoritative duplicate; it was changed to alter the authoritative final STATUS and the full assessment was rerun."
+  },
+  "private_evidence": {
+    "root": "/home/pi/phase11-5-package4-unread-retest2-20260916",
+    "fixture_root": "/home/pi/phase11-5-package4-unread-fixture2-20260916",
+    "files": {
+      "packet.json": "e948cff5ab87532ebb35e3956613fda0b2b2748e7f077f4177b9a7c9b7f59816",
+      "unread-retest.jsonl": "388977c013631430edfdb0e70fc1f4d5d616c99646d970a18aa44779dd325cfc",
+      "unread-retest-result.json": "57d23ee824707165798fdb2f2fc56a578d8d166b2c70265cf5b4b022e93dfe97",
+      "before-a.stdout": "7dbaf7d398b64478a06f8c488df8ca2a981a0960768cd00443fa9e26abec1ceb",
+      "before-b.stdout": "dd8a812a89134a64628656e4b68380229467972798018aaf73f4ba94af464ca4",
+      "final-a.stdout": "2354643e06c4ce27aecc7df806bc26c27be3c407d888b9571087c9021dba4607",
+      "final-b.stdout": "ea95f99d5d0d23e4d2afc0cca64715704ab317e987a21ca02ab3aac354d53280",
+      "rf-reservation-acquired.json": "61d512bc67322ac4d38506e5fb86ed5ea91ed72fec11607f99a03ae8d7638b9c",
+      "rf-reservation-released.json": "76ee06402a38264229c4af06fde475693bf6f98a826ae6260289f4bb0f870e8c",
+      "audit-result.json": "ce75f7de1bd5b390d209e1b6d30db52290b2c3af01e64f87757d6637b2f82a43",
+      "adversarial-result.json": "0e5e74560fd2b1fbd701148ef80782690b3fb2c90cd64dae182e202d03d58ff0",
+      "fixture.jsonl": "68a17aee6cfd8b91e9899a81eec83db6b924254bf4b7c0ef8cfc74f94acaba4e",
+      "fixture-state.json": "de2f27b563245c7abfc12614807f7bf8fcfcc915f737d588894bbd56c07235cb",
+      "capture-ap.pcap": "255d19c666387ade9fbb106c0e79c6d67c16e2c44c9613489c6f58823ed81d76",
+      "capture-client.pcap": "6b00278aa428498df04d2c09b4b367c420ebc6f802116bd03b68c4bd1735c11c"
+    }
+  },
+  "package4_status": "COMPLETE",
+  "next_gate": "Package 5 retention and reclamation remains open; no additional Package 4 RF work is required."
+}

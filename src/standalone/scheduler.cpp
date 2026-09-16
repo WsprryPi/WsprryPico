@@ -41,7 +41,7 @@ wtp::Response Scheduler::request(std::string_view operation, wtp::RequestBody bo
     r.body = std::move(body);
     r.payload_digest = wtp::sha256(
         std::span(reinterpret_cast<const std::uint8_t*>(r.request_id.data()), r.request_id.size()));
-    return service_.handle(r);
+    return service_.handle(std::move(r));
 }
 bool Scheduler::idle() const {
     const auto s = service_.activity();

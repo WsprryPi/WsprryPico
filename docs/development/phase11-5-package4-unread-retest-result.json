@@ -1,0 +1,105 @@
+{
+  "schema": "phase11.5-package4-unread-retest-result-v1",
+  "status": "RETEST_REJECTED_HARNESS_OBSERVER_SYNCHRONIZATION",
+  "assertion": {
+    "2.3e": "OPEN_NO_UNREAD_PRESSURE_EXECUTED"
+  },
+  "target": {
+    "source_revision": "ca3c5dce40360b7eea2f9c45618232caa68cdbb6",
+    "image_sha256": "6c7aa0b7df6756e8f248570d682c6af4bbcfc44a5ad67e94d6761709ced0bd59",
+    "a_boot_id": "5e0d6bc3e383b8c1cb4b0db9ed636bf5",
+    "b_boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+    "system_clock_hz": 138000000,
+    "mode": "tone",
+    "frequency_nhz": "135500000000000",
+    "planned_duration_ns": "100000000000"
+  },
+  "packet": {
+    "sha256": "10fe965e5ac0e15d58226aaab598ca9671ed0d5009149e5f737b26f6499607ba",
+    "stage_archive_sha256": "d7612f07c77f561d6faf07382f21113e58a1921a96e40a49e7585b3a1612aff6",
+    "fixture_packet_sha256": "0084f965781aaf591f55c6d2a7b6252876d29c8dd455a0ae48d33c9803b828ea",
+    "job_id": "eda66092283064e6539f8ffd59e3cb9d"
+  },
+  "budget": {
+    "authorized_rf_jobs": 1,
+    "charged_rf_jobs": 1,
+    "authorized_rf_duration_ns": "100000000000",
+    "charged_rf_duration_ns": "100000000000",
+    "flashes": 0,
+    "configuration_writes": 0,
+    "controlled_reboots": 0,
+    "pico_wifi_cycles": 0,
+    "retries": 0
+  },
+  "observed_failure": {
+    "runner_start_monotonic_ns": 506015026235856,
+    "last_console_sample_monotonic_ns": 506028322559384,
+    "last_console_state": "armed",
+    "network_running_sample_monotonic_ns": 506028554638462,
+    "observer_failure_monotonic_ns": 506028556952123,
+    "console_to_network_sample_gap_ns": 232079078,
+    "fault": "network: ValueError: Console Running authority",
+    "cause": "The network observer saw Running 232 ms after the latest Console sample still reported Armed. The runner required that stale sample to already report Running instead of waiting for the next bounded Console poll.",
+    "observed_device_failure": false,
+    "observed_firmware_failure": false
+  },
+  "acceptance_boundary": {
+    "unread_pressure_started": false,
+    "same_session_ping_attempted": false,
+    "pre_dtr_silence_observed": false,
+    "fresh_dtr_recovery_observed": false,
+    "credit_awarded": false,
+    "reason": "No usb_unread event exists; the required 2.3e stimulus and recovery sequence did not run."
+  },
+  "physical_outcome": {
+    "job_reached_running": true,
+    "job_completed_locally": true,
+    "completion_observed_output_active": false,
+    "completion_state_released_to_empty": true,
+    "allocator_failures": "0",
+    "target_fault_recorded": false
+  },
+  "restoration": {
+    "a_state": "empty",
+    "b_state": "empty",
+    "a_output_active": false,
+    "b_output_active": false,
+    "a_owner_id": null,
+    "b_owner_id": null,
+    "shared_rf_reservation": "RELEASED",
+    "host_fixture": "RESTORED",
+    "fixture_cleanup_failures": [],
+    "installed_wsprrypi_pid": 1957,
+    "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8"
+  },
+  "audit": {
+    "acceptance_auditor_accepted": false,
+    "acceptance_auditor_expected_rejection": "Unread retest runner completion",
+    "failure_auditor_status": "RETEST_FAILURE_VERIFIED",
+    "failure_adversarial_mutations_rejected": 10,
+    "repository_fix_after_evidence": [
+      "Wait up to two seconds for the Console observer to advance from Armed to Running after network Running is observed.",
+      "If an armed job outlives an observer failure, observe it to an inactive terminal state, release it to Empty, and preserve the failed assertion result."
+    ],
+    "focused_tests": "6 passed"
+  },
+  "private_evidence": {
+    "root": "/home/pi/phase11-5-package4-unread-retest-20260916",
+    "fixture_root": "/home/pi/phase11-5-package4-unread-fixture-20260916",
+    "files": {
+      "unread-retest.jsonl": "ff8ef6e754aa1266f384808f62af57e355e8e709eaee54a0d901585bcd17ce6c",
+      "unread-retest-result.json": "a0071448cbdb22026bfbef8dda4cc947f5d0ef1b532f2c7817d22dce3436e519",
+      "post-failure-release.jsonl": "e80a24bfca7e613bbf4c5ed7b6cf2ae91344ff0459828f70ccdabd8b47c952a3",
+      "post-completion-a.jsonl": "1c733dcbb39e79d4a2dd351957f3646037e2022ca1179cf4235f3aeb96e599eb",
+      "reconciled-a.stdout": "4ccc778f6ecb38c88cf20df687b651f7bc516a41d4cef374aeb2ccea2597f325",
+      "reconciled-b.stdout": "1c59eace39143eb80ee5d6362f7c1d7c0443e89f86eacf586721bedcb69df779",
+      "rf-reservation-acquired.json": "ee38f8a16e7af0a4f353ef87eb090c9520764d5fd096310fead392787447650e",
+      "rf-reservation-reconciled.json": "29846c0af1c17b6c47e8f985ee03ca5e6fc2a1fb65281581549148db7df39794",
+      "fixture.jsonl": "b366f523ae33231facc25cd1166b93391691baa57ea1f6b7c76316af0ef6d1f1",
+      "fixture-state.json": "1369c01240741bea51728276d67eb4926e834fa3144e9c01f97613c852dc665c",
+      "capture-ap.pcap": "5ebbafcae83bd388953ce1dd4009e62f17bf082798fff2bcc5525fd655d6a3bd",
+      "capture-client.pcap": "0c5ed5b9f9e0b24898f6bb3a48da1f9e46e476540850d6c427adb2f4a523d4e3"
+    }
+  },
+  "next_gate": "A new one-job physical authorization is required to rerun 2.3e with the repaired observer synchronization and cleanup harness."
+}
