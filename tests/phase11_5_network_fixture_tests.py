@@ -100,6 +100,43 @@ class FixtureTests(unittest.TestCase):
                 self.assertNotIn('secret-PSK', str(raised.exception))
                 self.assertNotIn('secret-PSK', (self.root / 'fixture.jsonl').read_text())
 
+    def test_package7_runtime_is_bounded_and_authorized(self):
+        packet = dict(schema='phase11.5-package7-fixture-v1', family='R4',
+                      configuration_writes=0,
+                      standing_authority='PHASE11.5-COMPLETION-20260915',
+                      network_runtime_seconds=7200,
+                      network_restoration_seconds=900)
+        self.assertEqual(fixture.runtime_budget(packet), (7200, 900))
+        for key, value in (('network_runtime_seconds', 7201),
+                           ('network_restoration_seconds', 901),
+                           ('configuration_writes', 1),
+                           ('family', 'R3'),
+                           ('standing_authority', 'wrong')):
+            altered = dict(packet)
+            altered[key] = value
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                fixture.runtime_budget(altered)
+
+    def test_service_restoration_accepts_a_new_active_pid(self):
+        self.assertIsNone(fixture.service_activity_restored('1957', '861234'))
+        for before, after in (('0', '861234'), ('1957', '0'), ('bad', '861234')):
+            with self.subTest(before=before, after=after), self.assertRaises(ValueError):
+                fixture.service_activity_restored(before, after)
+
+    def test_package7_retained_wifi_is_read_only(self):
+        raw = json.dumps(dict(ssid='WsprryPico-Phase115', password='a' * 32,
+                              ntp_ipv4='time.local')).encode()
+        (self.root / 'retained-wifi.json').write_bytes(raw)
+        packet = dict(schema='phase11.5-package7-fixture-v1', family='R4',
+                      configuration_writes=0,
+                      standing_authority='PHASE11.5-COMPLETION-20260915',
+                      retained_wifi_sha256=__import__('hashlib').sha256(raw).hexdigest())
+        self.assertEqual(fixture.fixture_wifi(self.root, packet, True, False),
+                         json.loads(raw))
+        packet['configuration_writes'] = 1
+        with self.assertRaises(ValueError):
+            fixture.fixture_wifi(self.root, packet, True, False)
+
     def test_cleanup_is_armed_and_intent_durable_before_first_mutation(self):
         (self.root / 'packet.json').write_text('{}')
         commands = []

@@ -297,7 +297,11 @@ def validate_source_impact(root, result):
             "Source-impact changed-file lists")
     require(git_output(root, "diff", CURRENT_SOURCE, "--", "src", "firmware", "cmake") == b"",
             "No production source drift after selected candidate")
-    cmake_diff = git_output(root, "diff", CURRENT_SOURCE, "--", "CMakeLists.txt")
+    # Keep the Package 6 historical CMake assertion bound to its own closeout
+    # commit. Later packages may add their own host-only test registrations.
+    cmake_diff = git_output(
+        root, "diff", f"{CURRENT_SOURCE}..5e6799c31a4b7a9d714ac1f9a620e6c826ca6459",
+        "--", "CMakeLists.txt")
     require(hashlib.sha256(cmake_diff).hexdigest() == final["top_level_cmake_diff_sha256"] and
             sum(line.startswith(b"+    add_test(NAME phase11_5_package")
                 for line in cmake_diff.splitlines()) == 2 and
@@ -339,7 +343,9 @@ def validate(result, matrix, root):
 
     require(matrix["status"] == "OPEN" and matrix["accepted_configuration"] is None and
             matrix["candidate_source"] == CURRENT_SOURCE and
-            matrix["family_status"] == expected_family_status,
+            all(matrix["family_status"][name] == expected_family_status[name]
+                for name in ("R1", "R2", "R3")) and
+            all(name in matrix["family_status"] for name in ("R4", "R5", "R6")),
             "Current family and accepted-configuration boundary")
 
     rows = {row["id"]: row for row in matrix["assertions"]}

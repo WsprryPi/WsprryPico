@@ -1,0 +1,324 @@
+{
+  "schema": "phase11.5-package7-result-v1",
+  "status": "PACKAGE7_COMPLETE_R4_CLOSED",
+  "phase11_5_status": "OPEN_4_OF_6_FAMILIES",
+  "family_status": {
+    "R1": "CLOSED",
+    "R2": "CLOSED",
+    "R3": "CLOSED",
+    "R4": "CLOSED",
+    "R5": "OPEN",
+    "R6": "OPEN"
+  },
+  "accepted_rows": [
+    "claimed-empty-foreign-control",
+    "claimed-empty-forbidden-storage",
+    "loaded-foreign-control",
+    "loaded-forbidden-storage",
+    "armed-foreign-control",
+    "armed-forbidden-storage",
+    "running-foreign-control",
+    "running-forbidden-storage",
+    "production-armed-abort",
+    "production-running-abort",
+    "lost-load",
+    "lost-arm",
+    "lost-abort",
+    "tcp-reset-eof",
+    "resolver-failure"
+  ],
+  "inherited_rows": [
+    "browser-armed-abort",
+    "browser-running-abort",
+    "acknowledged-loss"
+  ],
+  "all_r4_rows": [
+    "claimed-empty-foreign-control",
+    "claimed-empty-forbidden-storage",
+    "loaded-foreign-control",
+    "loaded-forbidden-storage",
+    "armed-foreign-control",
+    "armed-forbidden-storage",
+    "running-foreign-control",
+    "running-forbidden-storage",
+    "production-armed-abort",
+    "production-running-abort",
+    "lost-load",
+    "lost-arm",
+    "lost-abort",
+    "browser-armed-abort",
+    "browser-running-abort",
+    "acknowledged-loss",
+    "tcp-reset-eof",
+    "resolver-failure"
+  ],
+  "candidate": {
+    "board": "Pico A 0BF4B4AEC9FFB344",
+    "source_revision": "2b25ca05c270819466a04498f9bc4894a4c5bace",
+    "image_sha256": "16698dd36ac4b919a93e56e948499462cbe41b1ca20c9b20007512339ff35a51",
+    "boot_id": "80d558e5804547749eca849c53ba27e1",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "system_clock_hz": 138000000,
+    "pio_divider": 1,
+    "engine": "pio-dma-gp2",
+    "renderer": "RAM",
+    "network_listener": "configured",
+    "wsprrypi_source_revision": "820e6980e880ce8b20418a20c15f4ac2311f8ca0"
+  },
+  "packet_sha256": "78e3422fbf1638e89062a56da965bd2bacc8fc0c14d603be68bd62d031fab051",
+  "budget": {
+    "rf_jobs": 9,
+    "planned_rf_duration_ns": 213000000000,
+    "ceiling_jobs": 16,
+    "ceiling_duration_ns": 14400000000000,
+    "attempts": [
+      {
+        "name": "direct-state-transition",
+        "rf_jobs": 1,
+        "planned_rf_duration_ns": 12000000000,
+        "outcome": "retained-failure"
+      },
+      {
+        "name": "production-armed-transition",
+        "rf_jobs": 1,
+        "planned_rf_duration_ns": 33000000000,
+        "outcome": "retained-failure"
+      },
+      {
+        "name": "tail-console-schema",
+        "rf_jobs": 1,
+        "planned_rf_duration_ns": 12000000000,
+        "outcome": "retained-failure"
+      },
+      {
+        "name": "tail-queued-event",
+        "rf_jobs": 1,
+        "planned_rf_duration_ns": 12000000000,
+        "outcome": "retained-failure"
+      },
+      {
+        "name": "lost-abort-tail",
+        "rf_jobs": 1,
+        "planned_rf_duration_ns": 12000000000,
+        "outcome": "accepted"
+      },
+      {
+        "name": "production-armed-host-authority",
+        "rf_jobs": 1,
+        "planned_rf_duration_ns": 33000000000,
+        "outcome": "retained-failure"
+      },
+      {
+        "name": "production-armed",
+        "rf_jobs": 1,
+        "planned_rf_duration_ns": 33000000000,
+        "outcome": "accepted"
+      },
+      {
+        "name": "production-running-console-schema",
+        "rf_jobs": 1,
+        "planned_rf_duration_ns": 33000000000,
+        "outcome": "retained-failure"
+      },
+      {
+        "name": "production-running",
+        "rf_jobs": 1,
+        "planned_rf_duration_ns": 33000000000,
+        "outcome": "accepted"
+      }
+    ],
+    "zero_rf_failures": 6
+  },
+  "authority_and_storage": {
+    "foreign_states": [
+      "empty",
+      "loaded",
+      "armed",
+      "running"
+    ],
+    "storage_states": {
+      "empty": {
+        "etag": "\"3f75fc4766499c251eeb1d0a70324dfe68d244884daa04b3b1dfb340033ca1be\"",
+        "put_utc_ns": 1789597615620169460
+      },
+      "loaded": {
+        "etag": "\"3f75fc4766499c251eeb1d0a70324dfe68d244884daa04b3b1dfb340033ca1be\"",
+        "put_utc_ns": 1789597626302267704
+      },
+      "armed": {
+        "etag": "\"3f75fc4766499c251eeb1d0a70324dfe68d244884daa04b3b1dfb340033ca1be\"",
+        "put_utc_ns": 1789597637408842673
+      },
+      "running": {
+        "etag": "\"3f75fc4766499c251eeb1d0a70324dfe68d244884daa04b3b1dfb340033ca1be\"",
+        "put_utc_ns": 1789599329976563402
+      }
+    }
+  },
+  "lost_operations": {
+    "LOAD": {
+      "request_id": "0000000000000000000000000000000b",
+      "job_id": "510830b527cb8c262ed886178c313de9",
+      "state": "loaded",
+      "inbound_ciphertext_packets": 1,
+      "server_response_payload_bytes": 53,
+      "client_response_acknowledged": false
+    },
+    "ARM": {
+      "request_id": "00000000000000000000000000000018",
+      "job_id": "510830b527cb8c262ed886178c313de9",
+      "state": "armed",
+      "inbound_ciphertext_packets": 1,
+      "server_response_payload_bytes": 53,
+      "client_response_acknowledged": false
+    },
+    "ABORT": {
+      "request_id": "00000000000000000000000000000009",
+      "job_id": "7c7c3c3bed914f03bee0d4a3d49f572a",
+      "state": "aborted",
+      "inbound_ciphertext_packets": 1,
+      "server_response_payload_bytes": 53,
+      "client_response_acknowledged": false
+    }
+  },
+  "production": {
+    "armed": {
+      "job_id": "1ea641594ad06c810000000000000001",
+      "owner_id": "ba4da339e3bafdee74a6986a4568b585",
+      "session_id": "f65f65bec92dcbd00a810109bf90c877",
+      "state": "armed",
+      "terminal": "aborted",
+      "browser_request_id": "40829b6dbeb14a61a1a9194188b435e3",
+      "wire": {
+        "records": 207,
+        "requests": 40,
+        "mutations": [
+          "CLAIM",
+          "LOAD",
+          "ARM",
+          "ABORT",
+          "RELEASE"
+        ]
+      },
+      "storage": null
+    },
+    "running": {
+      "job_id": "7708d58f40ce15ec0000000000000001",
+      "owner_id": "6b6ca50334abac5279878be30997e84f",
+      "session_id": "18f2c148c777a7cfd512217e739f6d4a",
+      "state": "running",
+      "terminal": "aborted",
+      "browser_request_id": "0b8c86002c914cb5ae54cf5578a87f4a",
+      "wire": {
+        "records": 409,
+        "requests": 80,
+        "mutations": [
+          "CLAIM",
+          "LOAD",
+          "ARM",
+          "ABORT",
+          "RELEASE"
+        ]
+      },
+      "storage": {
+        "etag": "\"3f75fc4766499c251eeb1d0a70324dfe68d244884daa04b3b1dfb340033ca1be\"",
+        "put_utc_ns": 1789599329976563402
+      }
+    }
+  },
+  "regressions": {
+    "source_revision": "820e6980e880ce8b20418a20c15f4ac2311f8ca0",
+    "tcp_reset_eof": "PASS",
+    "resolver_failure": "PASS",
+    "backend": "PASS",
+    "production": "PASS",
+    "network_lifecycle": "PASS"
+  },
+  "source_impact": {
+    "pico_runtime_source_changes_after_candidate": 0,
+    "current_repository_changes": "documentation, auditors and tests only",
+    "historical_browser_and_acknowledged_loss_rows": "applicable"
+  },
+  "failed_attempt_sha256": {
+    "failed-direct-preflight-owner-field": "786021ff762a9906fd1c2fd981e54f0f47d17fa207816080a9042b2dcf3e88c2",
+    "failed-direct-preflight-schedule-shape": "8499a51c2603087efb7e353fd42920b9b5a1c19908b3bfa1c1961e80ce6f35cb",
+    "failed-direct-preflight-http-name": "29164f94f9cfe70bfad8d4b714fb52fb699aabb2b17c46df5a60f4fb0ff50028",
+    "failed-direct-renew-owner": "e69a3e543f0881a3f60c580da479ef167decd8745830ee73b22c05aa85b45685",
+    "failed-armed-systemctl-namespace": "d42db7f6339b45812eef9c35241c8262781f138538945f433707b34e1fbfc900",
+    "failed-production-armed-transition": "adbbdc0c2745ff2f7484b9bf5d610a7d57fda69434eb981ee5415e8e55c605c6",
+    "failed-tail-console-schema": "b26de3246f3c3af4daf740d5f2b26ddb1b90073ccc115ca69f425160b8f5cce8",
+    "failed-tail-queued-event": "b5c4069f431c77581f1e0142126f69ee6e4d4724eef8282c91a24ebe5cc660a1",
+    "failed-tail-aborted-admission": "822f71b4b1a84ecdd5cf5555c28ca31d110dbb751ada9d7ce5876001e1ae8fea",
+    "failed-production-armed-host-authority": "3901b3670060d195e4fd085532a86b7b66ad46b79f68afb359f31e2f3fdd1c61",
+    "failed-production-running-console-schema": "5d0d1ad865be384e8fcf4ec16757108c93d18d122b49df5758088b735fcedb01"
+  },
+  "final_inventories": {
+    "a": {
+      "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+      "boot_id": "80d558e5804547749eca849c53ba27e1",
+      "revision": "2b25ca05c270",
+      "state": "empty",
+      "output_active": false
+    },
+    "b": {
+      "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+      "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+      "revision": "8921a7008183",
+      "state": "empty",
+      "output_active": false
+    }
+  },
+  "post_restoration_inventories": {
+    "a": {
+      "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+      "boot_id": "80d558e5804547749eca849c53ba27e1",
+      "revision": "2b25ca05c270",
+      "state": "empty",
+      "output_active": false
+    },
+    "b": {
+      "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+      "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+      "revision": "8921a7008183",
+      "state": "empty",
+      "output_active": false
+    }
+  },
+  "restoration": {
+    "rf_reservation_released": true,
+    "fixture_restored": true,
+    "installed_binary_restored": true,
+    "installed_config_restored": true,
+    "installed_service_active": true,
+    "schedules_disabled": true,
+    "both_boards_empty": true,
+    "recovery_timer_active": true,
+    "fixture_namespace_absent": true
+  },
+  "evidence_sha256": {
+    "packet.json": "78e3422fbf1638e89062a56da965bd2bacc8fc0c14d603be68bd62d031fab051",
+    "direct.jsonl": "68b385f33f26e70b7269212835ecedb6ff78c02dabd4ff2ee95f2ed16e5b830e",
+    "tail.jsonl": "f46cf08ed156b4c3a493d7f7aadb11f07af9d9d01278b082294612fec1492e56",
+    "load-request.bin": "fd90cdd8ad57aea981e58e2a9aeb937e255ed56440af504aadecb5b6d4c39333",
+    "load.pcap": "a24f14b83e4187a1bff42ff3120b32e632859f343359884de97d16a88997003b",
+    "arm-request.bin": "63690fc760abc2f3b94fabbf8bd9e485a6effb7171aa2648f0dbe055f0903ba1",
+    "arm.pcap": "5e93c09584e48df7a931c42094c052db880d4775d878d6913b2ac2be4989c44f",
+    "abort-request.bin": "fb66be4c353c8e8a088fa7a8ad8e493805c64e32d3c9a878ba76efd04d2ebb9b",
+    "abort.pcap": "9f9c37025eacf1c025241b9484423cfdfd1d3f5fb3e38b6ebc7a7805441cdac5",
+    "armed/production.jsonl": "4a16552d9291c8d9578ce026a3e5435729d73132ae2c64d17613ba576278aac1",
+    "armed/production-tls.bin": "03b12c3d36156a57e7f72adf923912e56739fa43fc6332680cfb2523b88b102f",
+    "armed/case.json": "7eb0355b88201b43a10a30d500507dc517ca893a212e08b935aebcbba51b0380",
+    "running/production.jsonl": "9108b48605e69c724c51e0d63ee128d9d352da67798c7ea38c3493956d4049d0",
+    "running/production-tls.bin": "42a3cb47d589bec3109aa428b49c7b75d834faa87a6f7890eb3eb12823f2de2a",
+    "running/case.json": "e5641227b4159415a846c60f83c9ae0efcf43bbe7a7cbaaabf1b21a9263b239a",
+    "final-a.jsonl": "d0c48cd1c7f74cf15e148f331650799305d7b7b4217af311cf4c000c4b4a4e0c",
+    "final-b.jsonl": "19123c19b4a836a82df4ad08cb1dd8638f5753ce662bd9d9703493ccf593d92f",
+    "post-restoration-a.jsonl": "849af00ff5d4bae2f531a8a9d73d66fdbbe43649b712e772d8accf5e440a2ffe",
+    "post-restoration-b.jsonl": "b93c755b21ed6277addf8a6c0813a2ca17c16206aab35c6d0ca6384b95b7b82c",
+    "reservation-released.json": "f5654199035b7c69e8baa8c312646c57711cb98acb1ac1ce9e7f319a19bad79b",
+    "installed-before.txt": "ab2f28314da7362f954baddf245d99e49c8ec0bc5166854b9a3181bdc8e858c3",
+    "installed-after.txt": "cf9d0972457f5f0331ab9c1d670f450d8d8c057c407215327e383a2ba01ff6ba",
+    "r4-regressions.log": "0e6583e89e32182a056af058975d0dc0110dbe4da9443f03fba8f7459c5db440",
+    "fixture/fixture-state.json": "7d6d313faf5e3d22e1b0fadcb69156b1e289fd1e276a1734ccce2628fdacab57"
+  }
+}

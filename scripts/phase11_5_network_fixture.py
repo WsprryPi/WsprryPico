@@ -42,17 +42,24 @@ UNIT_SUFFIXES = ('cleanup.timer', 'cleanup.service', 'client.service', 'dhcp.ser
 
 
 def runtime_budget(packet):
-    extended = packet.get('schema') == 'phase11.5-r3-v2-fixture-v1'
+    schema = packet.get('schema')
+    extended = schema in ('phase11.5-r3-v2-fixture-v1',
+                          'phase11.5-package7-fixture-v1')
     runtime = packet.get('network_runtime_seconds', RUN_SECONDS)
     restoration = packet.get('network_restoration_seconds', 600) if extended else 600
     require(type(runtime) is int and 0 < runtime <= (28800 if extended else RUN_SECONDS),
             'Bounded host runtime')
     require(type(restoration) is int and 0 < restoration <= (900 if extended else 600),
             'Bounded host restoration')
-    if extended:
+    if schema == 'phase11.5-r3-v2-fixture-v1':
         require(packet.get('family') == 'R3' and packet.get('configuration_writes') == 0 and
                 packet.get('standing_authority') == 'R3-COMPLETE-20260913-v2',
                 'Extended fixture authority/scope')
+    elif schema == 'phase11.5-package7-fixture-v1':
+        require(packet.get('family') == 'R4' and packet.get('configuration_writes') == 0 and
+                packet.get('standing_authority') == 'PHASE11.5-COMPLETION-20260915' and
+                runtime <= 7200 and restoration <= 900,
+                'Package 7 fixture authority/scope')
     return runtime, restoration
 
 
@@ -62,9 +69,15 @@ def fixture_wifi(root, packet, mdns, dns):
     retained = packet.get('retained_wifi_sha256')
     if retained is None:
         return dict(ssid='WsprryPico-Phase115', password=secrets.token_hex(16), ntp_ipv4=expected_ntp)
-    require(packet.get('schema') in ('phase11.5-r3-retained-fixture-v1','phase11.5-r3-v2-fixture-v1') and packet.get('family') == 'R3'
-            and packet.get('configuration_writes') == 0 and mdns and not dns,
-            'Retained Wi-Fi requires the explicit no-write R3 lifecycle')
+    retained_scope = ((packet.get('schema') in
+                       ('phase11.5-r3-retained-fixture-v1', 'phase11.5-r3-v2-fixture-v1') and
+                       packet.get('family') == 'R3') or
+                      (packet.get('schema') == 'phase11.5-package7-fixture-v1' and
+                       packet.get('family') == 'R4' and
+                       packet.get('standing_authority') ==
+                       'PHASE11.5-COMPLETION-20260915'))
+    require(retained_scope and packet.get('configuration_writes') == 0 and mdns and not dns,
+            'Retained Wi-Fi requires an explicit no-write lifecycle')
     raw = (root / 'retained-wifi.json').read_bytes()
     require(hashlib.sha256(raw).hexdigest() == retained, 'Retained Wi-Fi input changed')
     value = json.loads(raw)
@@ -73,6 +86,13 @@ def fixture_wifi(root, packet, mdns, dns):
             and len(value['password']) == 32 and all(c in '0123456789abcdef' for c in value['password']),
             'Unexpected retained Wi-Fi configuration')
     return value
+
+
+def service_activity_restored(before_pid, after_pid):
+    require(isinstance(before_pid, str) and before_pid.isdigit() and int(before_pid) > 0,
+            'Fixture baseline service was not active')
+    require(isinstance(after_pid, str) and after_pid.isdigit() and int(after_pid) > 0,
+            'Installed service was not restored active')
 
 
 class Fixture:
@@ -421,8 +441,11 @@ class Fixture:
             def converged():
                 nonlocal current
                 current = self.host()
-                require(current['installed_pid'] == self.state['before']['installed_pid'],
-                        'Installed service restarted')
+                # Package execution may deliberately pause and restart the
+                # installed service. Restoration requires an active process and
+                # the exact installed binary, not reuse of an obsolete PID.
+                service_activity_restored(self.state['before']['installed_pid'],
+                                          current['installed_pid'])
                 return '10.77.15.' not in current['interfaces'] + current['routes']
             self.settle(converged, 'Fixture subnet remains')
             require(NETNS not in self.value('ip', 'netns', 'list'), 'Namespace remains')

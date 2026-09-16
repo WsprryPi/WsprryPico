@@ -1,6 +1,6 @@
 # Phase 11.5 completion progress
 
-**OPEN — 3/6 families closed.** [Current matrix](phase11-5-completion-matrix.md).
+**OPEN — 4/6 families closed.** [Current matrix](phase11-5-completion-matrix.md).
 
 | Package | Status | Outcome / next requirement |
 | --- | --- | --- |
@@ -11,9 +11,40 @@
 | 4 | COMPLETE — USB parser and unread output | 2.3d passes exact maximum USB parser pressure. The repaired 2.3e retest passes bounded unread-output deficit, same-session pre-DTR silence and fresh DTR recovery during RF. [Review](phase11-5-package4-review.md). |
 | 5 | COMPLETE — 4/4 rows accepted | Replay/session capacity, terminal capacity/LRU/actual expiry and three equivalent reclamation cycles pass. [Review](phase11-5-package5-review.md). |
 | 6 | COMPLETE — R3 CLOSED | All 14 R3 groups, 24 assertion rows and seven extended features accepted after exact source-impact and evidence-applicability review. [Review](phase11-5-package6-review.md). |
-| 7 | OPEN | Remaining R4 authority/interruption assertions after reuse. |
+| 7 | COMPLETE — R4 CLOSED | All 18 R4 rows are accepted/applicable: 15 directly closed and three inherited rows reconfirmed. Nine charged RF attempts total 213 planned seconds; failures and restoration evidence are retained. [Review](phase11-5-package7-review.md). |
 | 8 | OPEN; idle Wi-Fi accepted on source 98f5797 | Two independently audited OFF/ON readiness cycles preserve state/configuration and recover address/clock. Link loss, lease/name change, DNS/SNTP, journal rotation and autonomy remain. |
 | 9 | OPEN | R6 mixed operation after R1-R5 acceptance. |
+
+### Current Package 7 checkpoint
+
+[Prompt](phase11-5-package7-prompt.md),
+[corrective amendment](phase11-5-package7-amendment.md),
+[result](phase11-5-package7-result.json),
+[review](phase11-5-package7-review.md) and
+[adversarial result](phase11-5-package7-adversarial-result.json), plus the
+[private raw-evidence assessment](phase11-5-package7-raw-adversarial-result.json).
+Package 7 is
+complete and R4 is closed. It directly accepts fifteen previously missing R4
+rows and confirms three inherited browser/loss rows remain applicable.
+
+The physical work used Pico A source `2b25ca05c270`, UF2
+`16698dd36ac4b919a93e56e948499462cbe41b1ca20c9b20007512339ff35a51`
+and unchanged boot `80d558e5804547749eca849c53ba27e1`. Direct tests cover
+foreign control and forbidden storage in claimed-empty, Loaded and Armed states,
+plus lost LOAD and ARM replies. A bounded tail closes lost ABORT. Two real
+WsprryPi production jobs close owner abort in Armed and Running; the Running
+case also closes its foreign-control and forbidden-storage rows. Current
+regressions close distinct TCP reset/EOF and resolver-failure rows.
+
+Nine charged RF attempts total 213 planned seconds within the standing ceiling.
+Eleven failed-attempt directories remain hashed and receive no row credit. The
+offline raw-evidence audit passes. The final assessments reject 33 independent
+summary mutations and 21 private raw-evidence mutations before reverifying both
+intact inputs. Both
+Picos are Empty/inactive/unowned and schedule-disabled, the RF reservation is
+released, the isolated fixture is removed, and the installed WsprryPi service,
+binary, configuration and recovery timer are restored. Phase 11.5 is open at
+4/6 families; Package 8 and R5 are next.
 
 ### Current Package 6 checkpoint
 
@@ -30,8 +61,8 @@ completed Package 1/2/5 evidence. It performed no new hardware or fixture
 operation and added no physical acceptance credit. The first adversarial review
 found incomplete candidate-configuration and group-evidence bindings; both were
 repaired. The second assessment rejects 25 mutations and reverifies the intact
-publication. The full registered suite passes 76/76. Package 7 is next. Phase
-11.5 remains open at 3/6 families.
+publication. The full registered suite passes 76/76. Package 7 subsequently
+closed R4. Phase 11.5 remains open at 4/6 families.
 
 ### Current Package 5 checkpoint
 
@@ -97,8 +128,8 @@ The [retry audit](phase11-5-package4-unread-retest2-audit-result.json) accepts
 rejects 13 altered-evidence cases and reverifies the intact evidence. Both Picos
 are Empty/inactive/unowned, configuration is preserved, the shared reservation
 is released, and the host fixture is restored. Capacity/pressure and Package 5
-retention/reclamation are closed. Package 6 subsequently closes R3; Phase 11.5
-remains open at 3/6 families.
+retention/reclamation are closed. Package 6 subsequently closes R3 and Package
+7 closes R4; Phase 11.5 remains open at 4/6 families.
 
 ### Current Package 3 checkpoint
 
@@ -131,7 +162,8 @@ writes, controlled reboots or Pico Wi-Fi cycles.
 A and B are independently Empty/inactive/unowned, configuration is preserved,
 the host fixture is restored and the shared reservation is released. Package 4
 subsequently accepted 2.3d and 2.3e, Package 5 accepted retention/reclamation,
-and Package 6 closed R3. Full Phase 11.5 remains open at 3/6 families.
+Package 6 closed R3 and Package 7 closed R4. Full Phase 11.5 remains open at
+4/6 families.
 
 ### Current Package 2 checkpoint
 

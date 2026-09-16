@@ -1,0 +1,31 @@
+{
+  "schema": "phase11.5-package7-raw-adversarial-v1",
+  "status": "PASS",
+  "intact_raw_before": "PASS",
+  "mutations": 21,
+  "rejected": [
+    "wrong-source",
+    "wrong-image",
+    "wrong-boot",
+    "wrong-session",
+    "wrong-job",
+    "budget-inflation",
+    "incomplete-write",
+    "request-framing",
+    "delivered-lost-reply",
+    "capture-loss",
+    "client-response-ack",
+    "foreign-success",
+    "changed-owner",
+    "accepted-storage-write",
+    "production-missing-abort",
+    "production-not-active",
+    "wrong-production-owner",
+    "false-terminal",
+    "production-wire-truncation",
+    "incomplete-restoration",
+    "final-active-output"
+  ],
+  "intact_raw_after": "PASS",
+  "device_or_network_operations": 0
+}

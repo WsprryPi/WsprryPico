@@ -1,6 +1,6 @@
 # Phase 11.5 target resources and contention
 
-Status: **OPEN; 3 of 6 acceptance families closed (R1: 5/5; R2: 7/7 jobs; R3: 14/14 groups).** This
+Status: **OPEN; 4 of 6 acceptance families closed (R1: 5/5; R2: 7/7 jobs; R3: 14/14 groups; R4: 18/18 rows).** This
 September 12, 2026 documentation revision supersedes the execution organization
 of the [preserved original plan](phase11-5-plan-legacy.md). It does not supersede
 old measurements, failed limits or evidence identities. The [current ledger](phase11-5-acceptance-ledger.md)
@@ -17,7 +17,9 @@ configuration, while preserving the earlier failed attempts. The later
 and passes three Tone jobs. The [R2 continuation](phase11-5-r2-continuation-review.md)
 closes R2 7/7 with affected-check R1 reuse on 2e43110. The later
 [Package 6 closeout](phase11-5-package6-review.md) closes R3 after exact
-source-impact and evidence-applicability review. R4–R6 remain open.
+source-impact and evidence-applicability review. The
+[Package 7 closeout](phase11-5-package7-review.md) closes R4 with current-image
+authority/interruption evidence and reviewed inherited rows. R5-R6 remain open.
 No hardware execution is authorized by this document. Future packets
 must reconcile available tools with this plan before obtaining any missing
 bounded hardware/network authority. Old supervisors must not be run under new
@@ -30,8 +32,8 @@ Use the [September 15 assertion matrix](phase11-5-completion-matrix.md) and
 A is on clean firmware `2b25ca05c270`, B on `8921a7008183`; both are authorized
 validation targets, with at most one RF-capable owner/schedule across both.
 R1/R2 recorded closure and Group 1 checkpoint 043 remain; Groups 2 and 3 are
-closed by Packages 1-5, and Package 6 closes Group 4 and the R3 family. R4-R6
-remain open, with Package 7 next. Component 9 closes only its exact idle
+closed by Packages 1-5, Package 6 closes Group 4 and the R3 family, and Package
+7 closes R4. R5-R6 remain open, with Package 8 next. Component 9 closes only its exact idle
 LOAD/replay regression. The later request authorizes
 minimal reviewed R5 rotation/scheduling writes after actual journal inspection.
 

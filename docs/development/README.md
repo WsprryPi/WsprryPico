@@ -4,7 +4,7 @@ Current Phase 11.5 execution uses the [completion matrix](phase11-5-completion-m
 and [September 15 standing authorization](phase11-5-completion-authorization-20260915.md).
 A's current firmware is `2b25ca05c270`, B's is `8921a7008183`; older candidate
 paragraphs below retain historical evidence identities. Phase 11.5 is OPEN at
-3/6 families: R1-R3 are closed and R4-R6 are open. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
+4/6 families: R1-R4 are closed and R5-R6 are open. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
 passes retained LOAD/replay and P1 individual WTP/HTTP capacity during RF;
 the [Package 2 review](phase11-5-package2-review.md) accepts assertions 2.2a and
 2.2b after paged RF event storage and direct WTP-reservation observability. The
@@ -22,8 +22,10 @@ A's last authoritative state is inactive in boot
 are Empty. Capacity/pressure and retention/reclamation execution groups are
 closed. The [Package 6 review](phase11-5-package6-review.md) accepts all fourteen
 R3 groups, twenty-four mandatory rows and seven features after exact source-impact
-and evidence-applicability review. It closes R3 without new physical work;
-Package 7 and R4 are next.
+and evidence-applicability review. It closes R3 without new physical work. The
+[Package 7 review](phase11-5-package7-review.md) closes all 18 R4 rows using
+current-image authority, interruption and production-owner evidence; Package 8
+and R5 are next.
 
 
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).
@@ -77,7 +79,7 @@ supersedes the open B2/D2 status in earlier investigation records below. The
 
 Current [Phase 11.5 plan](phase11-5-plan.md) organizes six acceptance families
 with realistic normal traffic separated from stress and overload. The
-[current ledger](phase11-5-acceptance-ledger.md) records **3 of 6 revised families
+[current ledger](phase11-5-acceptance-ledger.md) records **4 of 6 revised families
 closed**, useful existing evidence and an empty accepted-configuration list.
 The [documentation reorganization review](phase11-5-test-reorganization-review.md)
 maps all 20 legacy cases without changing code, runners or historical results.
