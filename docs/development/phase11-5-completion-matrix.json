@@ -5,7 +5,7 @@
   "family_status": {
     "R1": "CLOSED 5/5 with recorded applicability",
     "R2": "CLOSED 7/7 with recorded applicability",
-    "R3": "OPEN",
+    "R3": "CLOSED with Package 6 applicability review",
     "R4": "OPEN",
     "R5": "OPEN",
     "R6": "OPEN"
@@ -43,9 +43,9 @@
       "id": "R1.4",
       "group": "R1",
       "requirement": "Same-boot matched resource states",
-      "classification": "affected and needing retest",
-      "evidence": "phase11-5-r1-result.json; phase11-5-r2-closure-result.json; phase11-5-r2-continuation-review.md; phase11-5-package5-result.json",
-      "remaining": "Historical R1 remains closed on its identity. Package 5 now supplies current same-boot equivalent-state cycles; Package 6 must make the final assertion-level applicability decision.",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r1-result.json; phase11-5-r2-closure-result.json; phase11-5-r2-continuation-review.md; phase11-5-package5-result.json; phase11-5-package6-result.json",
+      "remaining": "Historical R1 remains closed on its identity. Package 6 accepts current-image applicability from Package 5's normalized same-boot cycles: eight-byte post spread, no monotonic growth and the unchanged 1024-byte gate.",
       "package": 0
     },
     {
@@ -358,9 +358,9 @@
       "id": "FEATURE.3",
       "group": "extended",
       "requirement": "Worst message expansion/events and per-path live memory",
-      "classification": "affected and needing retest",
-      "evidence": "phase11-5-r3-v2-validation-043.json",
-      "remaining": "Expansion preserved; changed memory evidence P1/P2/P5",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-r3-v2-validation-043.json; phase11-5-memory-pressure-result.json; phase11-5-event-pages-result.json; phase11-5-package5-result.json; phase11-5-package6-result.json",
+      "remaining": "Package 6 accepts applicability: expansion is preserved and Packages 1, 2 and 5 cover maximum-event and per-path live memory through the current image.",
       "package": 2
     },
     {
@@ -394,9 +394,9 @@
       "id": "FEATURE.7",
       "group": "extended",
       "requirement": "Sustained resources and reuse",
-      "classification": "affected and needing retest",
-      "evidence": "",
-      "remaining": "P2/P5 current shared-storage lifetime and equivalent cycles",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-event-pages-result.json; phase11-5-package5-result.json; phase11-5-package6-result.json",
+      "remaining": "Package 6 accepts applicability from Package 2 shared-storage lifetime and Package 5 expiry plus three equivalent current-image reclamation cycles.",
       "package": 5
     },
     {

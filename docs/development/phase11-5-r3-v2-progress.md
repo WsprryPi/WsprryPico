@@ -1,6 +1,6 @@
 # R3 v2 execution progress
 
-R3 remains OPEN. The user accepted R3-COMPLETE-20260913-v2 on September 13,
+R3 is **CLOSED** by [Package 6](phase11-5-package6-review.md). The user accepted R3-COMPLETE-20260913-v2 on September 13,
 including implementation, finite RF, recovery, review and commit/push. Exact
 acceptance and counters are in phase11-5-r3-v2-campaign.json. Historical packet
 approval text is retained as history; v2 is the current standing authority.
@@ -34,10 +34,13 @@ The user has now said Execute. Standing finite approvals remain active.
    - 3.2 PASS: replay/session/terminal capacity, reuse, eviction and actual expiry.
    - 3.3 PASS: three equivalent cycles on A's same firmware and boot; eight-byte
      post spread under the unchanged 1,024-byte gate.
-4. **Closeout — OPEN**
-   - 4.1 Complete the assertion-level acceptance matrix.
-   - 4.2 Finish adversarial review, repairs and affected retests.
-   - 4.3 Restore, verify final state, commit, push and report.
+4. **Closeout — CLOSED (Package 6)**
+   - 4.1 PASS: all fourteen R3 groups and twenty-four mandatory rows reconcile
+     as accepted/applicable.
+   - 4.2 PASS: all seven extended features and current-image `R1.4` applicability
+     reconcile through exact source-impact review; no affected physical gap remains.
+   - 4.3 PASS: the repaired auditor rejects 24 mutations; Package 6 used no
+     hardware or fixture allowance and inherits Package 5's verified restoration.
 
 ## Package 3 network pressure and progress result
 
@@ -49,8 +52,9 @@ receive no credit. Thirty-six evidence mutations are rejected and all intact
 packets reverify. Both Picos and the host fixture are restored.
 
 Capacity/pressure is CLOSED after Package 4 and retention/reclamation is CLOSED
-after [Package 5](phase11-5-package5-review.md). Package 6 R3 closeout remains
-open; closing these execution groups does not close the R3 family.
+after [Package 5](phase11-5-package5-review.md). Package 6 completes the
+assertion-level closeout and closes R3. Phase 11.5 remains open at 3/6 families;
+Package 7 and R4 are next.
 
 ## Package 4 USB result — COMPLETE
 
@@ -76,7 +80,7 @@ the original and separately authorized scopes, Package 4 charged 6 jobs / 600
 planned seconds and no flashes, configuration writes, controlled reboots or
 Pico Wi-Fi cycles. The acceptance auditor passes, all 13 adversarial mutations
 are rejected, and the intact evidence reverifies. Capacity and pressure is
-CLOSED; Package 5 retention/reclamation is also complete and Package 6 is next.
+CLOSED; Package 5 retention/reclamation and Package 6 closeout are complete.
 
 ## Latest component 9 target result — bounded LOAD/replays CLOSED
 

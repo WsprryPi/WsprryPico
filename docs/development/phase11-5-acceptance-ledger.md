@@ -2,7 +2,7 @@
 
 ## Current completion campaign — September 15, 2026
 
-**OPEN: R1 CLOSED 5/5; R2 CLOSED 7/7; R3-R6 OPEN.** The
+**OPEN: R1 CLOSED 5/5; R2 CLOSED 7/7; R3 CLOSED; R4-R6 OPEN.** The
 [current assertion matrix](phase11-5-completion-matrix.md) records current
 applicability and remaining work. [Standing authorization](phase11-5-completion-authorization-20260915.md)
 permits fresh bounded packets on either Pico with one shared RF reservation.
@@ -14,13 +14,16 @@ Repository HEAD is a separate identity. Both boards are independently
 Empty/inactive/unowned, the shared reservation is Released and the host fixture
 is restored.
 
-Packages 1-5 are complete. [Package 5](phase11-5-package5-review.md) accepts all
+Packages 1-6 are complete. [Package 5](phase11-5-package5-review.md) accepts all
 4/4 replay/session/terminal/reclamation rows. Eight maximum-event normalizers,
 three equivalent bounded-overload cycles and their 360-second quiet windows
 produce an eight-byte post spread under the unchanged 1,024-byte gate; the
-subsequent 3,660-second quiet interval expires all eight terminal records.
-Package 6 and R4-R6 remain open. Phase 11.5 remains 2/6 families closed because
-R3 requires Package 6 assertion-level closeout.
+subsequent 3,660-second quiet interval expires all eight terminal records. The
+[Package 6 closeout](phase11-5-package6-review.md) binds thirteen immutable
+results, audits both source-impact ranges and accepts all fourteen R3 groups,
+twenty-four mandatory rows and seven extended features. It resolves `R1.4`,
+`FEATURE.3` and `FEATURE.7` without new physical work. R3 is closed; Package 7
+and R4 are next. Phase 11.5 remains open at 3/6 families.
 
 The records below preserve earlier identities, counts and outcomes. Their
 then-current candidate and device restrictions are historical.
@@ -178,12 +181,12 @@ Historical 049cc929 image hashes and all four layouts are in
 
 | Family | Status | Existing input | Required next evidence |
 | --- | --- | --- | --- |
-| R1 | CLOSED — 5/5 applicable to 2e43110 through impact review | Earlier 049cc929 layouts/intervals/probes plus affected new-image layout, heap and stack checks; [review](phase11-5-r2-continuation-review.md) | Reuse unaffected assertions; invalidate demonstrated impacts of future changes |
+| R1 | CLOSED — 5/5 with current applicability reviewed through Package 6 | Earlier layouts/intervals/probes plus Package 5 normalized same-boot resource cycles; [Package 6](phase11-5-package6-review.md) | Reuse unaffected assertions; invalidate only demonstrated impacts of future changes |
 | R2 | CLOSED — 7/7 jobs | Three browser Tones, native production QRSS and USB FSKCW/DFCW/WSPR; [result](phase11-5-r2-closure-result.json) | Repeat affected paths only if later changes invalidate this evidence |
-| R3 | OPEN — 5/14 historical-image groups complete; PROGRESS partial | A1h2 and B2 passed 24 pressure cases; C0 allocation panic preserved; D0 fresh-boot maximum response passed | Execute accepted v2: finish extended-job implementation and allocation repair; retain applicable assertions and complete outstanding final-image groups and affected checks |
-| R4 | NOT RUN | Existing ownership/replay/recovery semantics | Current-image physical authority, owner abort and interrupted-operation checks |
-| R5 | NOT RUN | Prior network/storage/standalone evidence | Targeted physical lifecycle, journal rotation and autonomous scheduling under contention |
-| R6 | NOT RUN | Prior inhibited soak is contextual only | Mixed physical workload after mandatory R1-R5 gates pass |
+| R3 | CLOSED — 14/14 groups, 24/24 rows and 7/7 features | Packages 1-5 physical evidence plus exact Package 6 source-impact/applicability audit; [result](phase11-5-package6-result.json) | Preserve failed attempts and exact image scope; invalidate only affected rows after later production changes |
+| R4 | OPEN — partial reusable evidence | Existing ownership/replay/recovery semantics and selected Group 1 physical results | Package 7 current-image authority, owner abort and interrupted-operation closeout |
+| R5 | OPEN — idle Wi-Fi accepted | Prior network/storage/standalone evidence | Package 8 targeted physical lifecycle, journal rotation and autonomous scheduling under contention |
+| R6 | OPEN — not run | Prior inhibited soak is contextual only | Package 9 mixed physical workload after mandatory R1-R5 gates pass |
 
 For each future packet, record its family/assertion IDs, exact inputs, prior
 evidence reused with rationale, and `passed / failed / not run` counts. A failed

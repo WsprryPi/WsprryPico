@@ -1,6 +1,6 @@
 # Phase 11.5 completion progress
 
-**OPEN — 2/6 families closed.** [Current matrix](phase11-5-completion-matrix.md).
+**OPEN — 3/6 families closed.** [Current matrix](phase11-5-completion-matrix.md).
 
 | Package | Status | Outcome / next requirement |
 | --- | --- | --- |
@@ -10,10 +10,28 @@
 | 3 | COMPLETE — network timeout and resource recovery | 2.2c–2.2f, 2.3a–2.3c and R3.BROWSER-MAX pass with current-image RF pressure, distinct WTP timeout evidence and browser-source applicability. [Review](phase11-5-package3-review.md). |
 | 4 | COMPLETE — USB parser and unread output | 2.3d passes exact maximum USB parser pressure. The repaired 2.3e retest passes bounded unread-output deficit, same-session pre-DTR silence and fresh DTR recovery during RF. [Review](phase11-5-package4-review.md). |
 | 5 | COMPLETE — 4/4 rows accepted | Replay/session capacity, terminal capacity/LRU/actual expiry and three equivalent reclamation cycles pass. [Review](phase11-5-package5-review.md). |
-| 6 | OPEN | All R3 groups and extended-feature applicability/closeout. |
+| 6 | COMPLETE — R3 CLOSED | All 14 R3 groups, 24 assertion rows and seven extended features accepted after exact source-impact and evidence-applicability review. [Review](phase11-5-package6-review.md). |
 | 7 | OPEN | Remaining R4 authority/interruption assertions after reuse. |
 | 8 | OPEN; idle Wi-Fi accepted on source 98f5797 | Two independently audited OFF/ON readiness cycles preserve state/configuration and recover address/clock. Link loss, lease/name change, DNS/SNTP, journal rotation and autonomy remain. |
 | 9 | OPEN | R6 mixed operation after R1-R5 acceptance. |
+
+### Current Package 6 checkpoint
+
+[Prompt](phase11-5-package6-prompt.md),
+[review](phase11-5-package6-review.md),
+[result](phase11-5-package6-result.json) and
+[adversarial result](phase11-5-package6-adversarial-result.json). Package 6 is
+complete and R3 is closed. It binds thirteen immutable results, independently
+reconstructs both source-impact ranges and accepts all fourteen R3 groups,
+twenty-four rows and seven features.
+
+Package 6 resolves current-image `R1.4`, `FEATURE.3` and `FEATURE.7` from the
+completed Package 1/2/5 evidence. It performed no new hardware or fixture
+operation and added no physical acceptance credit. The first adversarial review
+found incomplete candidate-configuration and group-evidence bindings; both were
+repaired. The second assessment rejects 25 mutations and reverifies the intact
+publication. The full registered suite passes 76/76. Package 7 is next. Phase
+11.5 remains open at 3/6 families.
 
 ### Current Package 5 checkpoint
 
@@ -41,8 +59,9 @@ The failed 12,384-byte comparison and 7.666-second late LOAD remain in the
 record. Cumulative Package 5 charge is 24 RF jobs / 913 seconds, three flashes,
 two WiFi cycles, zero configuration writes and zero controlled reboots. Both
 Picos are Empty/inactive/unowned at their last authoritative reads, the shared
-reservation is released and the host fixture is restored. Package 6 is next;
-Phase 11.5 remains open at 2/6 families.
+reservation is released and the host fixture is restored. Package 6 subsequently
+closed R3 through exact evidence/applicability review; no Package 5 physical
+result was relabeled.
 
 ### Current Package 4 checkpoint
 
@@ -78,8 +97,8 @@ The [retry audit](phase11-5-package4-unread-retest2-audit-result.json) accepts
 rejects 13 altered-evidence cases and reverifies the intact evidence. Both Picos
 are Empty/inactive/unowned, configuration is preserved, the shared reservation
 is released, and the host fixture is restored. Capacity/pressure and Package 5
-retention/reclamation are closed. Package 6 R3 closeout remains open. Phase 11.5
-remains open at 2/6 families.
+retention/reclamation are closed. Package 6 subsequently closes R3; Phase 11.5
+remains open at 3/6 families.
 
 ### Current Package 3 checkpoint
 
@@ -111,8 +130,8 @@ writes, controlled reboots or Pico Wi-Fi cycles.
 
 A and B are independently Empty/inactive/unowned, configuration is preserved,
 the host fixture is restored and the shared reservation is released. Package 4
-subsequently accepted 2.3d and 2.3e. Package 5 retained reclamation and Package
-6 R3 closeout remain open. R3 and full Phase 11.5 remain open at 2/6 families.
+subsequently accepted 2.3d and 2.3e, Package 5 accepted retention/reclamation,
+and Package 6 closed R3. Full Phase 11.5 remains open at 3/6 families.
 
 ### Current Package 2 checkpoint
 

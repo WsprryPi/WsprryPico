@@ -3,8 +3,8 @@
 Current Phase 11.5 execution uses the [completion matrix](phase11-5-completion-matrix.md)
 and [September 15 standing authorization](phase11-5-completion-authorization-20260915.md).
 A's current firmware is `2b25ca05c270`, B's is `8921a7008183`; older candidate
-paragraphs below retain historical evidence identities. Phase 11.5 is OPEN,
-R1/R2 closed, R3-R6 open. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
+paragraphs below retain historical evidence identities. Phase 11.5 is OPEN at
+3/6 families: R1-R3 are closed and R4-R6 are open. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
 passes retained LOAD/replay and P1 individual WTP/HTTP capacity during RF;
 the [Package 2 review](phase11-5-package2-review.md) accepts assertions 2.2a and
 2.2b after paged RF event storage and direct WTP-reservation observability. The
@@ -20,7 +20,10 @@ normalizers, three equivalent bounded-overload cycles and real terminal expiry.
 A's last authoritative state is inactive in boot
 `80d558e5804547749eca849c53ba27e1`; the host fixture is restored and both boards
 are Empty. Capacity/pressure and retention/reclamation execution groups are
-closed; Package 6 and the R3 family gate remain open.
+closed. The [Package 6 review](phase11-5-package6-review.md) accepts all fourteen
+R3 groups, twenty-four mandatory rows and seven features after exact source-impact
+and evidence-applicability review. It closes R3 without new physical work;
+Package 7 and R4 are next.
 
 
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).
@@ -29,15 +32,16 @@ The R1/R2 historical candidate is 2e43110 at physical 138 MHz/divider 1/RAM/list
 At R2 closure devices and host were restored with CONFIG 34/34. R3–R6 remain open and
 full accepted configurations remain empty. Original failed assessments are retained.
 
-Current: accepted [R3-COMPLETE-20260913-v2](phase11-5-r3-complete-authorization-prompt.md)
-authorizes the ongoing complete implementation and finite physical campaign.
+The accepted [R3-COMPLETE-20260913-v2](phase11-5-r3-complete-authorization-prompt.md)
+authorized the completed R3 implementation and finite physical campaign.
 Pico `7d183978d08d` and Pi `bba4024` implement the selected 32-character and
 3,600-second limits. E0a independently passed seven idle assertions; S0 passed
 two finite RF jobs, including a 32-character, 384-event QRSS message lasting
 143.250001 seconds. [Immutable validation checkpoints](phase11-5-acceptance-ledger.md#incremental-v2-validation)
 retain scoped passes. Physical hour and saturation evidence is retained and
-Package 5 reclamation is accepted. A is on the new image, retaining the dedicated test configuration; see
-[campaign progress](phase11-5-r3-v2-progress.md) for current execution state.
+Package 5 reclamation and Package 6 closeout are accepted. A retains the tested
+image and dedicated test configuration; see [campaign progress](phase11-5-r3-v2-progress.md)
+for the closed R3 execution state.
 
 Historical pre-v2 status: R3 was OPEN after B2 passed fourteen further transport cases and C0
 confirmed a target allocation panic during idle 65,536-byte admission. A is
@@ -73,7 +77,7 @@ supersedes the open B2/D2 status in earlier investigation records below. The
 
 Current [Phase 11.5 plan](phase11-5-plan.md) organizes six acceptance families
 with realistic normal traffic separated from stress and overload. The
-[current ledger](phase11-5-acceptance-ledger.md) records **2 of 6 revised families
+[current ledger](phase11-5-acceptance-ledger.md) records **3 of 6 revised families
 closed**, useful existing evidence and an empty accepted-configuration list.
 The [documentation reorganization review](phase11-5-test-reorganization-review.md)
 maps all 20 legacy cases without changing code, runners or historical results.
