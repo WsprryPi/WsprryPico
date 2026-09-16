@@ -116,7 +116,10 @@ def run(root, packet, packet_sha):
                 before["a"]["wtp"]["STATUS"]["boot_id"] == WRONG_BOOT and
                 info["system_clock_hz"] == 150_000_000 and
                 info["status"]["engine"] == "inhibited-standalone-simulator" and
-                configuration(before["a"]) == configuration(original_before["a"]) and
+                configuration(before["a"])[0] == configuration(original_before["a"])[0] and
+                configuration(before["a"])[1] == {
+                    "station_mac": configuration(original_before["a"])[1]["station_mac"],
+                    "configured_hostname": "", "control_configured": False} and
                 before["b"]["wtp"]["STATUS"] == original_before["b"]["wtp"]["STATUS"] and
                 configuration(before["b"]) == configuration(original_before["b"]),
                 "Exact inactive misselected image and unchanged comparator")
