@@ -43,6 +43,7 @@ TERMINAL_SOURCE='bd16bb1c736720fbf901589d41d2a25897987b8b'
 TERMINAL_IMAGE='dfb9fa073914ce827df6612792cfcaf2991af6b47dfe340543d2e89572e90120'
 COMBINED_POLICY='phase115-completion-combined-v1'
 PACKAGE5_TERMINAL_POLICY='phase115-package5-terminal-capacity-v1'
+PACKAGE5_NORMALIZER_POLICY='phase115-package5-normalizer-v1'
 MEMORY_POLICY='phase115-memory-pressure-capacity-v1'
 MEMORY_SOURCE='8dd6f0812292e9264c2a72745078a95ee606c191'
 MEMORY_IMAGE='ccfdf60b2b927b4a3fd14cc9254a6748334d584ebad0d672771939ab2369b40d'
@@ -65,7 +66,7 @@ READ_IMAGE='4afb9eb1bff5d19011cd38837a32ff589685845d6b25995dbd08968e7c690848'
 READ_BOOT='0a6d95e11cf712a53e97a4c9938614e9'
 
 def completion_policy(packet):
-    return packet.get('closure_policy') in (COMPLETION_POLICY,TERMINAL_POLICY,READ_POLICY,HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY,COMBINED_POLICY,PACKAGE5_TERMINAL_POLICY)
+    return packet.get('closure_policy') in (COMPLETION_POLICY,TERMINAL_POLICY,READ_POLICY,HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY,COMBINED_POLICY,PACKAGE5_TERMINAL_POLICY,PACKAGE5_NORMALIZER_POLICY)
 
 def native_observation_required(packet):
     return packet.get('closure_policy') in (REPAIR_POLICY,PACKAGE3_POLICY) or completion_policy(packet)
@@ -174,6 +175,7 @@ def validate(packet):
     read_repair=packet.get('closure_policy')==READ_POLICY
     combined=packet.get('closure_policy')==COMBINED_POLICY
     package5_terminal=packet.get('closure_policy')==PACKAGE5_TERMINAL_POLICY
+    package5_normalizer=packet.get('closure_policy')==PACKAGE5_NORMALIZER_POLICY
     memory_repair=packet.get('closure_policy')==MEMORY_POLICY
     sharing_repair=packet.get('closure_policy')==SHARING_POLICY
     http_repair=packet.get('closure_policy') in (HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY)
@@ -201,7 +203,7 @@ def validate(packet):
     repair=packet.get('closure_policy')==REPAIR_POLICY
     pressure=packet.get('closure_policy')==PRESSURE_POLICY
     package3=packet.get('closure_policy')==PACKAGE3_POLICY
-    closure=packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY,TERMINAL_POLICY,READ_POLICY,HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY,COMBINED_POLICY,PACKAGE5_TERMINAL_POLICY)
+    closure=packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY,TERMINAL_POLICY,READ_POLICY,HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY,COMBINED_POLICY,PACKAGE5_TERMINAL_POLICY,PACKAGE5_NORMALIZER_POLICY)
     require('closure_policy' not in packet or closure or pressure or package3,'Unknown closure policy')
     require(packet['source_revision']!=REPAIR_SOURCE or repair,'Repair image requires exact retest policy')
     if combined:
@@ -210,7 +212,10 @@ def validate(packet):
     if package5_terminal:
         from phase11_5_package5_plan import validate_terminal
         validate_terminal(packet)
-    if closure and not combined and not package5_terminal:
+    if package5_normalizer:
+        from phase11_5_package5_plan import validate_normalizer
+        validate_normalizer(packet)
+    if closure and not combined and not package5_terminal and not package5_normalizer:
         require('diagnostic_policy' not in packet and packet['source_revision']==(MEMORY_SOURCE if memory_repair else SHARING_SOURCE if sharing_repair else HTTP_SOURCE if http_repair else READ_SOURCE if read_repair else TERMINAL_SOURCE if terminal_repair else COMPLETION_SOURCE if completion else REPAIR_SOURCE if repair else DIAGNOSTIC_SOURCE) and
                 packet['observer_policy']==SINGLE_FLIGHT and len(packet['jobs'])==1 and
                 packet['runtime_seconds']==300 and packet['maximum_renewals']==8 and
@@ -227,7 +232,7 @@ def validate(packet):
         require(packet.get('shared_rf_reservation')=='durable-both-picos-v1' and
                 packet.get('b_role')=='unchanged-comparator' and
                 type(packet.get('maximum_initial_terminal_records')) is int and
-                (0<=packet['maximum_initial_terminal_records']<=8 if pressure or package3 or combined or package5_terminal else packet['maximum_initial_terminal_records']==(len(packet['initial_terminal_jobs']) if http_repair else int(initial_terminal(packet)) if read_repair else 1)), 'Completion requires both-board RF reservation and bounded initial retention')
+                (0<=packet['maximum_initial_terminal_records']<=8 if pressure or package3 or combined or package5_terminal or package5_normalizer else packet['maximum_initial_terminal_records']==(len(packet['initial_terminal_jobs']) if http_repair else int(initial_terminal(packet)) if read_repair else 1)), 'Completion requires both-board RF reservation and bounded initial retention')
     require(packet['source_revision']!=MEMORY_SOURCE or memory_repair or combined, 'Memory image requires reviewed policy')
     require(packet['source_revision']!=SHARING_SOURCE or sharing_repair, 'Retained sharing image requires reviewed policy')
     require(packet['source_revision']!=HTTP_SOURCE or http_repair, 'HTTP pages image requires reviewed policy')
@@ -387,7 +392,7 @@ def recent_clock(info, clock=None):
 
 def run(root,packet):
     diagnostic=packet.get('diagnostic_policy')==DIAGNOSTIC_POLICY
-    capture_failures=diagnostic or packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY,TERMINAL_POLICY,READ_POLICY,HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY,COMBINED_POLICY,PACKAGE5_TERMINAL_POLICY,PRESSURE_POLICY,PACKAGE3_POLICY)
+    capture_failures=diagnostic or packet.get('closure_policy') in (CLOSURE_POLICY,REPAIR_POLICY,COMPLETION_POLICY,TERMINAL_POLICY,READ_POLICY,HTTP_POLICY,SHARING_POLICY,MEMORY_POLICY,COMBINED_POLICY,PACKAGE5_TERMINAL_POLICY,PACKAGE5_NORMALIZER_POLICY,PRESSURE_POLICY,PACKAGE3_POLICY)
     os.umask(0o077);end=time.monotonic()+packet['runtime_seconds'];lock=threading.Lock();done=threading.Event()
     faults=[];samples={};inflight={};seq=0;result=dict(status='RUNNING',armed_jobs=[],completed_jobs=[],renewals=0,rf_duration_ns_charged=0)
     log=(root/'rf.jsonl').open('x')
@@ -592,6 +597,9 @@ def run(root,packet):
             if packet.get('closure_policy')==PACKAGE5_TERMINAL_POLICY:
                 require(before['wtp']['STATUS']['terminal_records']==packet['initial_terminal_records'],
                         'Exact Package 5 retained baseline')
+            if packet.get('closure_policy')==PACKAGE5_NORMALIZER_POLICY:
+                require(before['wtp']['STATUS']['terminal_records']==packet['initial_terminal_records'],
+                        'Exact Package 5 normalizer baseline')
             reservation.acquire({'a':before,'b':before_b})
             save(root/'rf-reservation-acquired.json',json.loads(reservation.path.read_text()))
         clock=before['wtp']['GET_CLOCK'];require(clock['state']=='synchronized' and clock['leap']=='normal','Initial clock')

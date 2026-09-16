@@ -70,6 +70,9 @@ def audit(root, *, packet_digest=PACKET):
         if packet.get('closure_policy')==PACKAGE5_TERMINAL_POLICY:
             require(before['wtp']['STATUS']['terminal_records']==packet['initial_terminal_records'],
                     'Exact Package 5 retained baseline')
+        if packet.get('closure_policy')=='phase115-package5-normalizer-v1':
+            require(before['wtp']['STATUS']['terminal_records']==packet['initial_terminal_records'],
+                    'Exact Package 5 normalizer baseline')
         if 'initial_terminal_jobs' in packet:
             retained=before['wtp']['STATUS']['terminal_records']
             require([r['job_id'] for r in retained]==packet['initial_terminal_jobs'] and
@@ -231,7 +234,8 @@ def audit(root, *, packet_digest=PACKET):
     for index,job in enumerate(packet['jobs']):
         statuses=[r for r in samples['status'] if r['value']['value']['job_id']==job['job_id']]
         states={r['value']['value']['state'] for r in statuses}
-        package5_short=packet.get('closure_policy')==PACKAGE5_TERMINAL_POLICY
+        package5_short=packet.get('closure_policy') in (PACKAGE5_TERMINAL_POLICY,
+            'phase115-package5-normalizer-v1')
         require(({'loaded','armed','complete'} if package5_short else
                  {'loaded','armed','running','complete'})<=states,'Observed lifecycle gap')
         running=[r for r in statuses if r['value']['value']['state']=='running']

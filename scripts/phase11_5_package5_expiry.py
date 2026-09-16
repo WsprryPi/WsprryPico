@@ -153,6 +153,9 @@ def main():
     for name, sha in packet["stage_sha256"].items():
         require((root / name).resolve().is_relative_to(root) and digest(root / name) == sha,
                 "Package 5 expiry staged input changed")
+    for name, sha in packet["private_input_sha256"].items():
+        require((root / name).resolve().is_relative_to(root) and digest(root / name) == sha,
+                "Package 5 expiry private input changed")
     if args.client:
         client(root, packet)
     else:

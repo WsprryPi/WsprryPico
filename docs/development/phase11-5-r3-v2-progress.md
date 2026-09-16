@@ -29,10 +29,11 @@ The user has now said Execute. Standing finite approvals remain active.
    - 2.3 Network WTP inactivity/input/output progress is accepted by Package 3.
      Package 4 accepts both USB parser pressure and unread-output silence/DTR
      recovery.
-3. **Retention and reclamation — OPEN**
-   - 3.1 Freeze the measured highest-resource workload and fixture allowance.
-   - 3.2 Verify capacity, reuse, eviction and actual expiry.
-   - 3.3 Pass three equivalent cycles on A's same firmware and boot.
+3. **Retention and reclamation — CLOSED (Package 5)**
+   - 3.1 PASS: measured bounded-overload workload and finite fixture allowance frozen.
+   - 3.2 PASS: replay/session/terminal capacity, reuse, eviction and actual expiry.
+   - 3.3 PASS: three equivalent cycles on A's same firmware and boot; eight-byte
+     post spread under the unchanged 1,024-byte gate.
 4. **Closeout — OPEN**
    - 4.1 Complete the assertion-level acceptance matrix.
    - 4.2 Finish adversarial review, repairs and affected retests.
@@ -47,9 +48,9 @@ seconds are accepted; three failed RF jobs / 300 seconds remain charged and
 receive no credit. Thirty-six evidence mutations are rejected and all intact
 packets reverify. Both Picos and the host fixture are restored.
 
-Capacity and pressure is now CLOSED after Package 4 accepted USB unread-output
-pressure. Package 5 retained reclamation and Package 6 R3 closeout remain open;
-closing this execution group does not close the R3 family.
+Capacity/pressure is CLOSED after Package 4 and retention/reclamation is CLOSED
+after [Package 5](phase11-5-package5-review.md). Package 6 R3 closeout remains
+open; closing these execution groups does not close the R3 family.
 
 ## Package 4 USB result — COMPLETE
 
@@ -75,7 +76,7 @@ the original and separately authorized scopes, Package 4 charged 6 jobs / 600
 planned seconds and no flashes, configuration writes, controlled reboots or
 Pico Wi-Fi cycles. The acceptance auditor passes, all 13 adversarial mutations
 are rejected, and the intact evidence reverifies. Capacity and pressure is
-CLOSED; Package 5 retention/reclamation is next.
+CLOSED; Package 5 retention/reclamation is also complete and Package 6 is next.
 
 ## Latest component 9 target result — bounded LOAD/replays CLOSED
 

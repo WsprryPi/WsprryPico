@@ -14,11 +14,13 @@ Repository HEAD is a separate identity. Both boards are independently
 Empty/inactive/unowned, the shared reservation is Released and the host fixture
 is restored.
 
-Packages 1-4 are complete. [Package 5](phase11-5-package5-review.md) is open at
-2/4 rows: replay/session capacity, LRU and real expiry are accepted; terminal
-capacity/LRU passes, while terminal expiry remains unexecuted and the three-cycle
-reclamation comparison exceeds its unchanged 1,024-byte gate. Package 6 and
-R4-R6 remain open. Phase 11.5 remains 2/6 families closed.
+Packages 1-5 are complete. [Package 5](phase11-5-package5-review.md) accepts all
+4/4 replay/session/terminal/reclamation rows. Eight maximum-event normalizers,
+three equivalent bounded-overload cycles and their 360-second quiet windows
+produce an eight-byte post spread under the unchanged 1,024-byte gate; the
+subsequent 3,660-second quiet interval expires all eight terminal records.
+Package 6 and R4-R6 remain open. Phase 11.5 remains 2/6 families closed because
+R3 requires Package 6 assertion-level closeout.
 
 The records below preserve earlier identities, counts and outcomes. Their
 then-current candidate and device restrictions are historical.

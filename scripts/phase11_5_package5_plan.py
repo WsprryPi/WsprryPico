@@ -6,6 +6,7 @@ from phase11_5_inventory import require
 
 
 POLICY = "phase115-package5-retained-v1"
+NORMALIZER_POLICY = "phase115-package5-normalizer-v1"
 RETAINED_SOURCE = "ca3c5dce40360b7eea2f9c45618232caa68cdbb6"
 RETAINED_IMAGE = "6c7aa0b7df6756e8f248570d682c6af4bbcfc44a5ad67e94d6761709ced0bd59"
 RETAINED_BOOT = "5e0d6bc3e383b8c1cb4b0db9ed636bf5"
@@ -98,6 +99,41 @@ def terminal_jobs(seed):
                            events=[dict(offset_ns="0", duration_ns="1000000000", rf_on=True,
                                         frequency_nhz="135500000000000")]))
     return result
+
+
+def normalizer_jobs(seed):
+    event_ns = 1_953_125
+    events = [dict(offset_ns=str(n * event_ns), duration_ns=str(event_ns), rf_on=True,
+                   frequency_nhz=str(135500000000000 if n % 2 == 0 else
+                                     135495000000000)) for n in range(512)]
+    return [dict(job_id=ident(seed, f"normalizer-{n}"), profile="rf-events/1",
+                 mode="fskcw", total_duration_ns="1000000000",
+                 allow_frequency_adjustment=True,
+                 events=[dict(event) for event in events])
+            for n in range(8)]
+
+
+def validate_normalizer(packet):
+    require(packet["closure_policy"] == NORMALIZER_POLICY and
+            packet["source_revision"] == SOURCE and packet["image_sha256"] == IMAGE and
+            packet["boot_id"] == BOOT, "Package 5 normalizer identity")
+    require(packet["jobs"] == normalizer_jobs(packet["normalizer_seed"]) and
+            packet["runtime_seconds"] == 720 and packet["restoration_seconds"] == 150 and
+            packet["maximum_renewals"] == 2 and packet["normalization"] ==
+            dict(entries=8, events_per_job=512, duration_ns="1000000000",
+                 event_duration_ns="1953125", frequencies_nhz=
+                 ["135500000000000", "135495000000000"]),
+            "Frozen Package 5 normalization workload")
+    records = packet["initial_terminal_records"]
+    require(packet["maximum_initial_terminal_records"] == len(records) <= 8 and
+            packet["initial_a_state"] == "empty" and packet["initial_a_job_id"] is None and
+            all(record["state"] in ("complete", "aborted") and
+                record["output_active"] is False for record in records),
+            "Package 5 normalizer initial state")
+    require(packet["post_quiet"] ==
+            dict(seconds=360, sample_interval_seconds=30, phase="normalizer"),
+            "Package 5 normalizer quiet phase")
+    return packet
 
 
 def validate_terminal(packet):

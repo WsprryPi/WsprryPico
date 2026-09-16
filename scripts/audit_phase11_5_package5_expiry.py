@@ -23,7 +23,13 @@ def audit(root, expected):
     require(digest(root / "packet.json") == expected, "Frozen Package 5 expiry packet")
     packet = validate_expiry(json.loads((root / "packet.json").read_text()))
     for name, sha in packet["stage_sha256"].items():
-        require(digest(root / name) == sha, "Package 5 expiry helper changed")
+        path = (root / name).resolve()
+        require(path.is_relative_to(root) and digest(path) == sha,
+                "Package 5 expiry helper changed")
+    for name, sha in packet["private_input_sha256"].items():
+        path = (root / name).resolve()
+        require(path.is_relative_to(root) and digest(path) == sha,
+                "Package 5 expiry private input changed")
     parent = trace(root / "expiry.jsonl")
     http = trace(root / "expiry-http.jsonl")
     require(parent[0]["kind"] == http[0]["kind"] == "start" and
@@ -78,12 +84,22 @@ def audit(root, expected):
             status_values[1]["response"] - values["after-hello"]["tx"] <=
             packet["terminal_expiry"]["authenticated_recovery_seconds"] * 1_000_000_000 and
             not any(quiet["began_monotonic_ns"] < row["monotonic_ns"] < values["after-hello"]["tx"]
-                    and row["kind"].startswith("http_") for row in http),
+                    and row["kind"] in {"http_tx", "http_response", "status_tx",
+                                        "status_response"} for row in http),
             "Actual 3660-second quiet and authenticated reuse deadline")
     infos = [row for row in parent if row["kind"] == "info"]
     require(len(infos) >= 120 and max(b["monotonic_ns"] - a["monotonic_ns"]
             for a, b in zip(infos, infos[1:])) <= 36_000_000_000,
             "Terminal expiry Console coverage")
+    for row in infos:
+        info = row["value"]["value"]
+        status = info["status"]
+        require(info["device_id"] == DEVICE and info["revision"] == packet["source_revision"][:12]
+                and status["boot_id"] == BOOT and status["state"] == "empty" and
+                status["output_active"] is False and status["enabled"] is False and
+                info["core0_stack_guard_valid"] == info["core1_stack_guard_valid"] == 1 and
+                int(info["allocator_failures"]) == int(info["tls_allocation_failures"]) == 0,
+                "Package 5 expiry continuous identity/authority/resource state")
     final_info = infos[-1]["value"]["value"]
     now = int(final_info["status"]["monotonic_now_ns"])
     require(all(now >= int(record["ended_monotonic_ns"]) and

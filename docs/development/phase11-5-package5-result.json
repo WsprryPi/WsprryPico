@@ -1,6 +1,6 @@
 {
-  "schema": "phase11.5-package5-result-v1",
-  "status": "PACKAGE5_OPEN",
+  "schema": "phase11.5-package5-result-v2",
+  "status": "PACKAGE5_COMPLETE",
   "source_revision": "2b25ca05c270819466a04498f9bc4894a4c5bace",
   "image_sha256": "16698dd36ac4b919a93e56e948499462cbe41b1ca20c9b20007512339ff35a51",
   "boot_id": "80d558e5804547749eca849c53ba27e1",
@@ -10,8 +10,8 @@
   "assertions": {
     "R3.RETAINED.replay": "ACCEPTED",
     "R3.RETAINED.session": "ACCEPTED",
-    "R3.RETAINED.terminal": "OPEN_EXPIRY_NOT_EXECUTED",
-    "R3.RECLAIM": "OPEN_LIVE_MEMORY_COMPARISON_FAILED"
+    "R3.RETAINED.terminal": "ACCEPTED",
+    "R3.RECLAIM": "ACCEPTED"
   },
   "replay_session": {
     "packet_sha256": "2039a76c119c23ebd7cdf36e8052252e58b9fc4b5a7d3283b51018690c829ccc",
@@ -26,71 +26,143 @@
     "source_impact": "The deployed LOAD ownership and admission repair does not change HELLO, STATUS, RENEW, replay LRU, session capacity or session/replay pruning. The separately authenticated final STATUS closes the known browser POST STATUS harness failure."
   },
   "terminal_capacity": {
-    "packet_sha256": "ed7db2e3a386b47855b3bb5a06c19c3d65b3c8af1b0eee92a74cb769f5130149",
-    "status": "PACKAGE5_TERMINAL_CAPACITY_VERIFIED",
+    "capacity_packet_sha256": "ed7db2e3a386b47855b3bb5a06c19c3d65b3c8af1b0eee92a74cb769f5130149",
+    "capacity_status": "PACKAGE5_TERMINAL_CAPACITY_VERIFIED",
     "capacity": 8,
-    "completed_jobs": 9,
-    "rf_duration_ns": 9000000000,
-    "touched_job_id": "c6766008532cc90ca3decb757fac0585",
-    "evicted_job_id": "3a5fde8a32f6f30e1eb03d43160ed134",
-    "expiry_status": "NOT_RUN",
-    "expiry_blocker": "A later maximum LOAD response timeout inserted an aborted terminal record. The frozen expiry plan requires eight complete records and the RF budget does not authorize enough cleanup completions to restore that prerequisite."
+    "capacity_completed_jobs": 9,
+    "capacity_rf_duration_ns": 9000000000,
+    "normalizer": {
+      "packet_sha256": "78b7a9f3ffd412a405f2f4eac0811dc676d5168cbf7263a35331facb520fab23",
+      "audit_sha256": "d3b0dac965bdc7bc6f967d0c6c42ee3df01f2aa7c1981cb3482fb129868fc8cf",
+      "status": "PACKAGE5_NORMALIZER_VERIFIED",
+      "jobs": 8,
+      "events_per_job": 512,
+      "duration_ns_per_job": 1000000000,
+      "event_duration_ns": 1953125,
+      "frequencies_nhz": [
+        135500000000000,
+        135495000000000
+      ],
+      "terminal_record_job_ids": [
+        "ba582b6091c432f0f3dab33cfc19d8a8",
+        "5a529502c6dad01e28225663579a4346",
+        "64f812a54255928f5b48261b2ca9913d",
+        "1029f1aa4bfbf704e0a1e0cef4a9ef0e",
+        "366e8f92cd6406e4743af30a6f46c76c",
+        "7ad35b6dceec21d654e750b19b04be7a",
+        "eab7b171aa091bea99214a2021057070",
+        "c993678761becba86455e23b4c2bcf46"
+      ],
+      "terminal_record_state": "complete",
+      "quiet_packet_sha256": "c4f84696a61294bc2afc33b97d4cbea855aab47457a12918a821c5a77e9bf6ae",
+      "quiet_audit_sha256": "e5ea9cf26ed237dae88176da5fa968b2b918cccaa35226c9a62b687e20e9dc26",
+      "quiet_seconds": 360,
+      "quiet_samples": 13,
+      "allowed_quiet_operations": [
+        "console-info",
+        "host-health"
+      ],
+      "application_quiet_operations": 0,
+      "normalized_live_bytes": 36840,
+      "allocator_live_bytes": 42992,
+      "allocator_failures": 0,
+      "tls_allocation_failures": 0
+    },
+    "expiry": {
+      "packet_sha256": "ffb41161d63745bee2f88fb6675d78e552a49f41edbd756bbcc6dd620bfb19f4",
+      "audit_sha256": "dc79fa394c377b53e7592f72ea660e140768cadac7bd449fd75b91c4f56c593f",
+      "status": "PACKAGE5_TERMINAL_EXPIRY_VERIFIED",
+      "initial_records": 8,
+      "initial_record_state": "complete",
+      "source_ttl_seconds": 3600,
+      "quiet_seconds": 3660,
+      "quiet_http_operations": 0,
+      "quiet_status_operations": 0,
+      "console_samples": 124,
+      "expired_records": 8,
+      "final_records": 0,
+      "authenticated_recovery_deadline_ns": 15000000000,
+      "authenticated_recovery_ns": 3189919683,
+      "host_health_sha256": "634c961e24eb6a728f61d53ab54582ee91ed1d524262a1f047dca6e14c86c119",
+      "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8",
+      "host_throttled": "throttled=0x0"
+    }
   },
   "reclamation": {
+    "aggregate_packet_sha256": "b0829059d55f4e35890bfff6750202cddf357abed0bdcde3709160bf37415274",
+    "audit_sha256": "47be8dcb58eea614ce5de2f46d14107cdaaf623076ed920e543d58df2a5dafeb",
+    "status": "PACKAGE5_THREE_CYCLE_RECLAMATION_VERIFIED",
+    "selected_workload": "bounded-overload",
+    "load_response_deadline_ns": 5000000000,
+    "post_quiet_seconds": 360,
     "required_post_tolerance_bytes": 1024,
-    "functional_cycles": [
+    "normalized_live_bytes": 36840,
+    "post_live_bytes": [
+      37088,
+      37080,
+      37088
+    ],
+    "maximum_post_difference_bytes": 8,
+    "post_live_growth_monotonic": false,
+    "minimum_reserve_bytes": 32768,
+    "observed_reserve_bytes": 42968,
+    "terminal_records_per_cycle": 8,
+    "terminal_record_state": "complete",
+    "terminal_order_bound": true,
+    "stack_guards_valid": true,
+    "allocator_failures": 0,
+    "tls_allocation_failures": 0,
+    "cycles": [
       {
         "number": 1,
-        "root": "/home/pi/phase11-5-package5-reclaim-repair1-20260916",
-        "packet_sha256": "7878985c56b65df766e9fd717b59c44416ea96140b21002944981aa4e17736a8",
-        "audit_status": "P2_OVERLOAD_VERIFIED",
+        "packet_sha256": "05573ec4e23f1760d295a04b5c85eff67beb7d98bac79b4d2461ea5693c9ceae",
+        "audit_sha256": "8af7be5a8889c4232ab305fb5a7b31b494b55defda51a47693ada58c9a11def1",
+        "quiet_audit_sha256": "42cc69019878f21f1fd92ad2ab126b9a91893e5eb77114677b4024bddb40dd60",
         "rf_duration_ns": 128000000000,
-        "load_response_ns": 3311575494,
-        "pre_live_bytes": 33080,
-        "immediate_post_live_bytes": 73008,
-        "post_delta_bytes": 39928,
+        "load_response_ns": 2165734428,
         "resident_wtp_bytes": 32784,
         "http_status": 503,
-        "authenticated_recovery": true
+        "http_error": "resource_exhausted",
+        "authenticated_recovery": true,
+        "post_live_bytes": 37088
       },
       {
         "number": 2,
-        "root": "/home/pi/phase11-5-package5-reclaim-repair2-20260916",
-        "packet_sha256": "fc55afcf0efbdf236cb9472e5d6191b79ae700189c632f9111c22ce84969e730",
-        "audit_status": "P2_OVERLOAD_VERIFIED",
+        "packet_sha256": "417ddd20bc663015e4b917c329cdb11eac300d761c49a6e8d5b30d7c19cc5b74",
+        "audit_sha256": "32b2011fa976191db5e463379306a24fded64dd407a6b6e22db5a7eea464afd1",
+        "quiet_audit_sha256": "befb1db77ed6b9e8f15546a24d27654cff85e7b87a47ad0fd1619797e0d9a8d0",
         "rf_duration_ns": 128000000000,
-        "load_response_ns": 3222799605,
-        "pre_live_bytes": 35944,
-        "immediate_post_live_bytes": 60624,
-        "post_delta_bytes": 24680,
+        "load_response_ns": 2174564544,
         "resident_wtp_bytes": 32784,
         "http_status": 503,
-        "authenticated_recovery": true
+        "http_error": "resource_exhausted",
+        "authenticated_recovery": true,
+        "post_live_bytes": 37080
       },
       {
         "number": 3,
-        "root": "/home/pi/phase11-5-package5-reclaim-repair3b-20260916",
-        "packet_sha256": "a536693b90e55cb9f3602d75ed42f6199178e1f0873bbad269071eb8f4ba3a6f",
-        "audit_status": "P2_OVERLOAD_VERIFIED",
+        "packet_sha256": "e1e8428715bb03a4732499eb244a2629872647db23672ba2936073b07a7167cd",
+        "audit_sha256": "78ab3b3bf052b3cb33119595901f2c1ce01756e515ad29bf1ba2bc1def33c121",
+        "quiet_audit_sha256": "968882329ad99956ff487c82aa4e995fba5dd8264f2a1182c702691194e8e222",
         "rf_duration_ns": 128000000000,
-        "load_response_ns": 3274059077,
-        "pre_live_bytes": 40272,
-        "immediate_post_live_bytes": 64480,
-        "post_delta_bytes": 24208,
+        "load_response_ns": 2177149640,
         "resident_wtp_bytes": 32784,
         "http_status": 503,
-        "authenticated_recovery": true
+        "http_error": "resource_exhausted",
+        "authenticated_recovery": true,
+        "post_live_bytes": 37088
       }
     ],
-    "maximum_immediate_post_difference_bytes": 12384,
-    "post_live_bytes": [
-      73008,
-      60624,
-      64480
-    ],
-    "post_live_growth_monotonic": false,
-    "accepted": false,
-    "reason": "The 12384-byte spread exceeds the frozen 1024-byte gate. Immediate final inventories include unequal replay/session lifetimes, and successive maximum-event completions replace smaller retained Tone histories. Cardinality alone did not create equivalent cache content."
+    "accepted": true
+  },
+  "continuation_control": {
+    "fixture_packet_sha256": "a8aaf885a1112489a680593b12e4d60d8bcfb5552a15378e7561914d6b409dbd",
+    "fixture_extension_packet_sha256": "70bbb55893e99bdaca707efca781e18260b8400289af6308e368f617c061af9e",
+    "fixture_extension_result_sha256": "d5bfb5bbe8013bb6c423e1dc4ed7f67fcd87ebac50003f0e4bebe00a1a59d965",
+    "wifi_recovery_packet_sha256": "024d86b59108ae603cb18ae0896c71a525449ae0cf2951580484bdf676c723ac",
+    "wifi_recovery_audit_sha256": "262abbab546823295e7e7320cc06f59f22c5e05dc169aa6fd1e65b9a27f8c336",
+    "wifi_cycles": 1,
+    "network_or_device_mutations_from_timer_extension": 0
   },
   "failed_attempts": [
     {
@@ -115,12 +187,20 @@
       "outcome": "Maximum LOAD response exceeded the unchanged five-second deadline, arrived late and left an aborted terminal record."
     }
   ],
+  "continuation_non_rf_failures": [
+    "The first fixture credential copy was denied before setup or device mutation; the replacement fixture was used.",
+    "The first WiFi recovery staging root omitted a helper and stopped before USB or WiFi action.",
+    "The first quiet sampler assumed WTP owner/job fields existed in Console INFO and stopped before the quiet interval.",
+    "The first normalizer quiet audit used stale event names; the unchanged raw capture passed the corrected isolated audit.",
+    "Early cycle-1 audit launches imported shadowed host modules; python isolated mode plus packet-root PYTHONPATH produced the accepted packet-bound audit.",
+    "The first strengthened reclamation review bundles omitted support modules and stopped before evidence acceptance; the complete read-only bundle passed."
+  ],
   "repair": {
     "problem": "Production adapters copied a decoded 512-event request before JobService admission while temporary response memory was admitted at 65536 bytes in addition to the separate reserve.",
     "change": "Transfer request and event-page ownership into JobService, reduce the bounded preparation admission to 32768 bytes and retain paged serialization plus the independent 32 KiB reserve.",
     "host_test_groups": 74,
     "host_test_failures": 0,
-    "final_registered_ctest_groups": 68,
+    "final_registered_ctest_groups": 75,
     "final_registered_ctest_failures": 0
   },
   "deployment": {
@@ -134,30 +214,61 @@
     "accepted_status": "CORRECTIVE_RF_IMAGE_VERIFIED"
   },
   "hardware_charge": {
-    "rf_jobs": 13,
-    "rf_duration_ns": 521000000000,
-    "wifi_cycles": 1,
-    "flashes": 3,
-    "configuration_writes": 0,
-    "controlled_reboots": 0
+    "original": {
+      "rf_jobs": 13,
+      "rf_duration_ns": 521000000000,
+      "wifi_cycles": 1,
+      "flashes": 3,
+      "configuration_writes": 0,
+      "controlled_reboots": 0
+    },
+    "continuation": {
+      "rf_jobs": 11,
+      "rf_duration_ns": 392000000000,
+      "wifi_cycles": 1,
+      "flashes": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0
+    },
+    "total": {
+      "rf_jobs": 24,
+      "rf_duration_ns": 913000000000,
+      "wifi_cycles": 2,
+      "flashes": 3,
+      "configuration_writes": 0,
+      "controlled_reboots": 0
+    }
+  },
+  "adversarial_review": {
+    "first_pass_findings": 3,
+    "repairs": [
+      "Bind aggregate staged inputs and the normalizer RF packet/audit to the quiet predecessor.",
+      "Enforce recorded host boot and zero throttle in every 360-second quiet sample.",
+      "Exclude both HTTP and status traffic during terminal expiry and enforce continuous Console authority/resource state."
+    ],
+    "strengthened_reclamation_audit_sha256": "47be8dcb58eea614ce5de2f46d14107cdaaf623076ed920e543d58df2a5dafeb",
+    "strengthened_expiry_audit_sha256": "dc79fa394c377b53e7592f72ea660e140768cadac7bd449fd75b91c4f56c593f"
   },
   "restoration": {
-    "pico_a_state": "empty",
-    "pico_a_output_active": false,
-    "pico_a_owner_id": null,
+    "pico_a_last_authoritative_state": "empty",
+    "pico_a_last_authoritative_output_active": false,
+    "pico_a_last_authoritative_owner_id": null,
+    "pico_a_final_terminal_records": 0,
     "pico_b_state": "empty",
     "pico_b_output_active": false,
     "pico_b_owner_id": null,
     "reservation_state": "RELEASED",
-    "reservation_packet_sha256": "a536693b90e55cb9f3602d75ed42f6199178e1f0873bbad269071eb8f4ba3a6f",
+    "reservation_packet_sha256": "e1e8428715bb03a4732499eb244a2629872647db23672ba2936073b07a7167cd",
     "fixture_cleanup_failures": [],
     "host_interfaces_and_routes_restored": true,
+    "temporary_namespace_present": false,
+    "temporary_units_active": 0,
+    "wifi_recovery_timer_active": true,
     "installed_wsprrypi_pid": 1957,
     "host_boot_id": "220e53ca-ca95-4206-9581-dbe28aa1eeb8"
   },
   "remaining": [
-    "Create equivalent start/end retained-cache content for three highest-resource cycles without weakening the 1024-byte gate.",
-    "Remove the aborted terminal prerequisite contamination within a newly authorized hardware budget, then execute the real 3660-second terminal expiry.",
-    "Run final raw-evidence and adversarial acceptance after those two gates pass."
+    "Execute Package 6 assertion-level R3 closeout.",
+    "Keep R3 and Phase 11.5 open until Package 6 passes."
   ]
 }

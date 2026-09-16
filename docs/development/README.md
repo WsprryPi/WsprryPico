@@ -14,12 +14,13 @@ plus the affected browser-resource check. The [Package 4 review](phase11-5-packa
 accepts exact maximum USB parser pressure and the repaired
 [unread-output retest](phase11-5-package4-unread-retest2-result.json), including
 same-session pre-DTR silence and fresh DTR recovery. The earlier failed attempts
-remain retained. The [Package 5 review](phase11-5-package5-review.md) accepts
-replay/session capacity, LRU and real expiry and verifies terminal capacity/LRU,
-but keeps terminal expiry and the 1,024-byte reclamation gate open. A is
-inactive in boot `80d558e5804547749eca849c53ba27e1`; the host fixture is
-restored and both boards are Empty. Capacity and pressure are closed;
-retention/reclamation and later-family gates remain open.
+remain retained. The [Package 5 review](phase11-5-package5-review.md) accepts all
+four replay/session/terminal/reclamation rows after eight maximum-event
+normalizers, three equivalent bounded-overload cycles and real terminal expiry.
+A's last authoritative state is inactive in boot
+`80d558e5804547749eca849c53ba27e1`; the host fixture is restored and both boards
+are Empty. Capacity/pressure and retention/reclamation execution groups are
+closed; Package 6 and the R3 family gate remain open.
 
 
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).
@@ -34,8 +35,8 @@ Pico `7d183978d08d` and Pi `bba4024` implement the selected 32-character and
 3,600-second limits. E0a independently passed seven idle assertions; S0 passed
 two finite RF jobs, including a 32-character, 384-event QRSS message lasting
 143.250001 seconds. [Immutable validation checkpoints](phase11-5-acceptance-ledger.md#incremental-v2-validation)
-retain scoped passes. Physical hour, saturation and reclamation acceptance remain
-open. A is on the new image, retaining the dedicated test configuration; see
+retain scoped passes. Physical hour and saturation evidence is retained and
+Package 5 reclamation is accepted. A is on the new image, retaining the dedicated test configuration; see
 [campaign progress](phase11-5-r3-v2-progress.md) for current execution state.
 
 Historical pre-v2 status: R3 was OPEN after B2 passed fourteen further transport cases and C0
@@ -83,7 +84,7 @@ matched quiet retention, stack guards and observer costs. This covers the exact
 150 MHz regression. Both boards and host were restored, including permanent
 time.local. Earlier DNS failures and a later unlocalized Mac NTP timeout remain
 preserved. No RF jobs ran in that historical R1 campaign; the later R2 closure
-is recorded above. R3–R6 execution remains outstanding.
+is recorded above. Package 6 and the R3–R6 family closeouts remain outstanding.
 
 Historical [Phase 11.5 review](phase11-5-review.md),
 [metric definitions](phase11-5-metrics.md) and the bounded

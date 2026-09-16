@@ -19,9 +19,12 @@ def main():
     parser.add_argument("--prior-root", type=Path, required=True)
     parser.add_argument("--template", type=Path, required=True)
     parser.add_argument("--fixture-deadline-monotonic-ns", type=int, required=True)
+    parser.add_argument("--fixture-root", type=Path, required=True)
+    parser.add_argument("--fixture-packet-sha256", required=True)
     parser.add_argument("--client-pid", type=int, required=True)
     parser.add_argument("--client-netns", required=True)
     parser.add_argument("--client-mountns", required=True)
+    parser.add_argument("--cycle-number", type=int, choices=(1, 2, 3), required=True)
     args = parser.parse_args()
     root = args.root.resolve(strict=True)
     prior = args.prior_root.resolve(strict=True)
@@ -39,8 +42,16 @@ def main():
                   maximum_initial_terminal_records=len(baseline["terminal_records"]),
                   initial_a_state=baseline["state"], initial_a_job_id=baseline["job_id"],
                   initial_terminal_records=baseline["terminal_records"],
+                  fixture_root=str(args.fixture_root.resolve(strict=True)),
+                  fixture_packet_sha256=args.fixture_packet_sha256,
                   fixture_deadline_monotonic_ns=args.fixture_deadline_monotonic_ns,
-                  not_before_host_monotonic_ns=time.monotonic_ns() - 1_000_000_000)
+                  not_before_host_monotonic_ns=time.monotonic_ns() - 1_000_000_000,
+                  continuation_cycle_number=args.cycle_number,
+                  post_quiet=dict(seconds=360, sample_interval_seconds=30,
+                                  phase=f"cycle-{args.cycle_number}"))
+    if len(args.fixture_packet_sha256) != 64 or any(
+            c not in "0123456789abcdef" for c in args.fixture_packet_sha256):
+        raise ValueError("Fixture packet SHA-256")
     packet["jobs"][0]["job_id"] = uuid.uuid4().hex
     packet["combined"] = {
         "mode": "overload", "seed": seed, "wtp_request_id": uuid.uuid4().hex,

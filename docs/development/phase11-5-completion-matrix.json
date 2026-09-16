@@ -10,7 +10,7 @@
     "R5": "OPEN",
     "R6": "OPEN"
   },
-  "candidate_source": "ca3c5dce40360b7eea2f9c45618232caa68cdbb6",
+  "candidate_source": "2b25ca05c270819466a04498f9bc4894a4c5bace",
   "assertions": [
     {
       "id": "R1.1",
@@ -44,8 +44,8 @@
       "group": "R1",
       "requirement": "Same-boot matched resource states",
       "classification": "affected and needing retest",
-      "evidence": "phase11-5-r1-result.json; phase11-5-r2-closure-result.json; phase11-5-r2-continuation-review.md",
-      "remaining": "Historical R1 remains closed on its identity. Shared adjustments, cached digest and acknowledged execution-input release affect retained lifetimes; P5 equivalent-state physical cycles remain required.",
+      "evidence": "phase11-5-r1-result.json; phase11-5-r2-closure-result.json; phase11-5-r2-continuation-review.md; phase11-5-package5-result.json",
+      "remaining": "Historical R1 remains closed on its identity. Package 5 now supplies current same-boot equivalent-state cycles; Package 6 must make the final assertion-level applicability decision.",
       "package": 0
     },
     {
@@ -322,18 +322,18 @@
       "id": "R3.RETAINED.terminal",
       "group": "RETAINED",
       "requirement": "8 terminals; finite completions, overflow and 3600-second expiry",
-      "classification": "affected and needing retest",
+      "classification": "accepted/applicable",
       "evidence": "phase11-5-package5-result.json; phase11-5-package5-review.md; phase11-5-r3-v2-validation-007.json",
-      "remaining": "Nine current-image completions and exact LRU eviction pass; real 3600-second expiry remains open because a failed later LOAD left an aborted record",
+      "remaining": "Capacity/LRU plus eight equivalent complete records, 3660-second quiet, actual 3600-second source TTL expiry and authenticated reuse accepted on 2b25ca0/boot 80d558e",
       "package": 5
     },
     {
       "id": "R3.RECLAIM",
       "group": "RECLAIM",
       "requirement": "Three equivalent highest-resource cycles",
-      "classification": "missing",
+      "classification": "accepted/applicable",
       "evidence": "phase11-5-package5-result.json; phase11-5-package5-review.md",
-      "remaining": "Three functional cycles pass, but unlike retained content/cache phase produces a 12384-byte post spread; rerun only under the bounded continuation and unchanged 1024-byte gate",
+      "remaining": "Three same-boot bounded-overload cycles follow maximum-event normalization and matched 360-second quiet windows; post live values span 8 bytes under the unchanged 1024-byte gate",
       "package": 5
     },
     {

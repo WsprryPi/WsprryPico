@@ -1,18 +1,27 @@
 {
-  "status": "PACKAGE5_PARTIAL_ADVERSARIAL_VERIFIED",
-  "result_status": "PACKAGE5_OPEN",
-  "mutations": 10,
+  "schema": "phase11.5-package5-adversarial-v2",
+  "status": "PASS",
+  "result_status": "PACKAGE5_COMPLETE",
+  "mutations": 18,
   "rejected": [
-    "source_identity",
-    "replay_overclaim",
-    "terminal_expiry_overclaim",
-    "reclamation_overclaim",
-    "reclamation_delta",
-    "late_response_hidden",
-    "failed_packet_removed",
-    "hardware_charge_reduced",
-    "reservation_not_released",
-    "fixture_failure_hidden"
+    "identity",
+    "normalizer-event-count",
+    "normalizer-duration",
+    "load-deadline",
+    "quiet-duration",
+    "quiet-traffic",
+    "terminal-type",
+    "terminal-order",
+    "resident-wtp",
+    "http-outcome",
+    "recovery",
+    "memory-comparison",
+    "expiry",
+    "authority",
+    "reservation",
+    "restoration",
+    "hardware-charge",
+    "failed-attempt"
   ],
-  "package5_complete": false
+  "package5_complete": true
 }
