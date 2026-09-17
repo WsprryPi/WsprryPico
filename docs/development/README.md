@@ -31,8 +31,14 @@ restoration evidence. The [Package 9 review](phase11-5-package9-review.md)
 retains a complete 1,800-second mixed workload and all five quiet windows, but
 post-N heap deltas of 12,432, 12,432 and 11,944 bytes and a 7,216-byte final-Q
 delta fail the unchanged 1,024-byte gate. Cumulative Package 9 RF is 1,164.4 of
-1,200 seconds, leaving too little for another complete packet. R6 and Phase 11.5
-remain open pending a retained-memory repair and newly bounded physical retry.
+1,200 seconds, leaving too little for another complete packet. The
+[Package 10 review](phase11-5-package10-review.md) selects matched replay-history
+normalization without changing firmware or the limit, but the corrected packet
+was blocked before RF by the mandatory independent wireless-client fixture.
+Package 10 used four of 480 authorized RF seconds, all in a stopped frequency-
+sequence attempt; thirteen corrected preflights used no RF and restored cleanly.
+R6 and Phase 11.5 remain open pending a separately qualified client fixture and
+one newly frozen complete corrected packet.
 
 
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).

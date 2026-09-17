@@ -1,0 +1,130 @@
+{
+  "schema": "phase11.5-package10-failure-adversarial-v1",
+  "status": "PASS",
+  "mutation_count": 24,
+  "all_mutations_rejected": true,
+  "mutations": [
+    {
+      "mutation": "false-closure",
+      "rejected": true,
+      "reason": "Package 10 failure publication status"
+    },
+    {
+      "mutation": "phase-status",
+      "rejected": true,
+      "reason": "Package 10 failure publication status"
+    },
+    {
+      "mutation": "acceptance-credit",
+      "rejected": true,
+      "reason": "Package 10 failure publication status"
+    },
+    {
+      "mutation": "candidate-source",
+      "rejected": true,
+      "reason": "Package 10 failure candidate"
+    },
+    {
+      "mutation": "package9-preservation",
+      "rejected": true,
+      "reason": "Package 10 failure diagnosis"
+    },
+    {
+      "mutation": "false-retest",
+      "rejected": true,
+      "reason": "Package 10 failure diagnosis"
+    },
+    {
+      "mutation": "resource-limit",
+      "rejected": true,
+      "reason": "Package 10 failure diagnosis"
+    },
+    {
+      "mutation": "blocked-stage",
+      "rejected": true,
+      "reason": "Package 10 blocked fixture gate"
+    },
+    {
+      "mutation": "fixed-requirement",
+      "rejected": true,
+      "reason": "Package 10 blocked fixture gate"
+    },
+    {
+      "mutation": "alternate-roles",
+      "rejected": true,
+      "reason": "Package 10 blocked fixture gate"
+    },
+    {
+      "mutation": "preflight-count",
+      "rejected": true,
+      "reason": "Package 10 blocked execution"
+    },
+    {
+      "mutation": "false-rf-work",
+      "rejected": true,
+      "reason": "Package 10 blocked execution"
+    },
+    {
+      "mutation": "false-workload",
+      "rejected": true,
+      "reason": "Package 10 blocked execution"
+    },
+    {
+      "mutation": "charged-duration",
+      "rejected": true,
+      "reason": "Package 10 actual budget"
+    },
+    {
+      "mutation": "unused-duration",
+      "rejected": true,
+      "reason": "Package 10 actual budget"
+    },
+    {
+      "mutation": "flash-count",
+      "rejected": true,
+      "reason": "Package 10 actual budget"
+    },
+    {
+      "mutation": "history-outcome",
+      "rejected": true,
+      "reason": "Package 10 preflight history"
+    },
+    {
+      "mutation": "history-restoration",
+      "rejected": true,
+      "reason": "Package 10 preflight history"
+    },
+    {
+      "mutation": "history-role",
+      "rejected": true,
+      "reason": "Package 10 preflight history"
+    },
+    {
+      "mutation": "pico-a-output",
+      "rejected": true,
+      "reason": "Package 10 final inventories"
+    },
+    {
+      "mutation": "reservation",
+      "rejected": true,
+      "reason": "Package 10 restoration"
+    },
+    {
+      "mutation": "fixture",
+      "rejected": true,
+      "reason": "Package 10 restoration"
+    },
+    {
+      "mutation": "evidence",
+      "rejected": true,
+      "reason": "Package 10 failure evidence"
+    },
+    {
+      "mutation": "auditor",
+      "rejected": true,
+      "reason": "Package 10 failure evidence"
+    }
+  ],
+  "failure_result_sha256": "b5dd9851f9d4dbc232af4c7b4f3c20908b59d5c4033a7da4595f65128be41279",
+  "adversarial_script_sha256": "d1924d82c8db17ab5472f4bdd9a0a632ed4d19d8f481fe21bf050ae4b34743b5"
+}

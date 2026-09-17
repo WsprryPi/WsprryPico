@@ -37,7 +37,19 @@ retains v44's complete 30-minute normal workload, 11 finite RF jobs, 48 browser
 actions and five quiet windows. R6.gates failed: post-N matched-baseline deltas
 were +12,432, +12,432 and +11,944 bytes, and final-Q remained +7,216 bytes.
 The cumulative RF charge is 1,164.4/1,200 seconds, so a complete retry requires
-a retained-memory repair and new finite physical allowance.
+a retained-memory repair and new finite physical allowance. Package 10 then
+recorded the evidence-based diagnosis that inequivalent replay-history classes
+made the comparisons inequivalent, and froze a corrected matched 3/5-class
+packet without changing firmware or the
+1,024-byte gate. Its first packet stopped after four one-second warm-up jobs on
+a frequency-sequence mismatch. Thirteen corrected preflights used zero RF; the
+final packet and the reverse radio-role check both failed the mandatory
+independent-client association gate before reservation. The
+[Package 10 result](phase11-5-package10-failure-result.json) and
+[review](phase11-5-package10-review.md) preserve that blocker, 4/480-second
+actual charge and full restoration. The remaining allowance is unused and not
+an automatic retry. R6 remains open pending a separately qualified client
+fixture and one complete corrected physical packet.
 
 The records below preserve earlier identities, counts and outcomes. Their
 then-current candidate and device restrictions are historical.

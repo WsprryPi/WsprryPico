@@ -8,7 +8,7 @@
     "R3": "CLOSED with Package 6 applicability review",
     "R4": "CLOSED with Package 7 authority/interruption evidence",
     "R5": "CLOSED with Package 8 network/storage/autonomous evidence",
-    "R6": "OPEN \u2014 Package 9 matched resource-return gate failed"
+    "R6": "OPEN \u2014 Package 9 gate failed; Package 10 corrected retry blocked before RF by independent-client fixture"
   },
   "candidate_source": "91933c00970939e366d1bfcf3c1956b59be8f6c5",
   "assertions": [
@@ -674,8 +674,8 @@
       "group": "R6",
       "requirement": "No monotonic retained growth; <=1024-byte matched delta; unchanged resource/timing/fault gates",
       "classification": "failed",
-      "evidence": "phase11-5-package9-failure-result.json; phase11-5-package9-review.md",
-      "remaining": "v44 baseline was 44,392 bytes; post-N deltas were +12,432, +12,432 and +11,944 bytes, and final-Q was +7,216 bytes, exceeding the unchanged 1,024-byte gate. Only 35.6 RF seconds remain; repair plus a newly authorized complete retry is required.",
+      "evidence": "phase11-5-package9-failure-result.json; phase11-5-package9-review.md; phase11-5-package10-failure-result.json; phase11-5-package10-review.md",
+      "remaining": "v44 baseline was 44,392 bytes; post-N deltas were +12,432, +12,432 and +11,944 bytes, and final-Q was +7,216 bytes, exceeding the unchanged 1,024-byte gate. Package 10 selected matched replay-history normalization, but its corrected comparison stopped before RF at the independent-client fixture. Qualify that path separately, then freeze one complete corrected packet; no automatic retry is authorized.",
       "package": 9
     }
   ]

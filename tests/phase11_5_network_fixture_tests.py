@@ -33,6 +33,8 @@ class FixtureTests(unittest.TestCase):
                 raise RuntimeError('stop before AP activation')
             return subprocess.CompletedProcess(args,0,'active\n' if list(args[:2])==['systemctl','is-active'] else '','')
         with patch.object(self.subject,'preflight',return_value=({'installed_pid':'1957'},{})), \
+             patch.object(self.subject,'rebind_sdio_radio'), \
+             patch.object(self.subject,'rebind_usb_radio'), \
              patch.object(self.subject,'cmd',side_effect=command),patch.object(self.subject,'unit',side_effect=unit):
             with self.assertRaisesRegex(RuntimeError,'before AP activation'):self.subject.setup()
 
@@ -152,11 +154,100 @@ class FixtureTests(unittest.TestCase):
             with self.subTest(key=key, value=value), self.assertRaises(ValueError):
                 fixture.runtime_budget(altered)
 
+    def test_package10_runtime_is_bounded_to_authorized_packet(self):
+        packet = dict(schema='phase11.5-package10-fixture-v1', family='R6',
+                      configuration_writes=0, authorization='PACKAGE10-480-RF-SECONDS',
+                      rf_jobs=16, rf_duration_ns=356800000000,
+                      network_runtime_seconds=5400, network_restoration_seconds=900)
+        self.assertEqual(fixture.runtime_budget(packet), (5400, 900))
+        for key, value in (('network_runtime_seconds', 5401),
+                           ('network_restoration_seconds', 901),
+                           ('configuration_writes', 1), ('family', 'R5'),
+                           ('authorization', 'wrong'), ('rf_jobs', 17),
+                           ('rf_duration_ns', 356800000001)):
+            altered = dict(packet)
+            altered[key] = value
+            with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                fixture.runtime_budget(altered)
+
+    def test_package10_v2_charges_stopped_attempt_inside_same_authorization(self):
+        packet = dict(schema='phase11.5-package10-fixture-v2', family='R6',
+                      configuration_writes=0, authorization='PACKAGE10-480-RF-SECONDS',
+                      rf_jobs=16, rf_duration_ns=356800000000,
+                      cumulative_rf_jobs=20, cumulative_rf_duration_ns=360800000000,
+                      network_runtime_seconds=5400, network_restoration_seconds=900)
+        self.assertEqual(fixture.runtime_budget(packet), (5400, 900))
+        for key, value in (('cumulative_rf_jobs', 19),
+                           ('cumulative_rf_duration_ns', 360799999999),
+                           ('authorization', 'wrong')):
+            altered = dict(packet)
+            altered[key] = value
+            with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                fixture.runtime_budget(altered)
+
     def test_service_restoration_accepts_a_new_active_pid(self):
         self.assertIsNone(fixture.service_activity_restored('1957', '861234'))
         for before, after in (('0', '861234'), ('1957', '0'), ('bad', '861234')):
             with self.subTest(before=before, after=after), self.assertRaises(ValueError):
                 fixture.service_activity_restored(before, after)
+
+    def test_client_join_is_constrained_to_qualified_ap(self):
+        value = fixture.client_wpa_config('test-ssid', 'a' * 32, qualified=True)
+        self.assertIn('bssid=' + fixture.RADIOS[fixture.AP_IF] + '\n', value)
+        self.assertIn('scan_freq=2462\n', value)
+        self.assertIn('ssid="test-ssid"\n', value)
+
+    def test_client_join_binding_is_package10_only(self):
+        value = fixture.client_wpa_config('test-ssid', 'a' * 32)
+        self.assertNotIn('bssid=', value)
+        self.assertNotIn('scan_freq=', value)
+        self.assertTrue(fixture.package10_fixture(
+            {'schema': 'phase11.5-package10-fixture-v2'}))
+        self.assertFalse(fixture.package10_fixture(
+            {'schema': 'phase11.5-package9-fixture-v1'}))
+
+    def test_usb_radio_rebind_requires_exact_driver(self):
+        sysfs = self.root / 'usb'
+        driver = sysfs / 'drivers' / fixture.CLIENT_USB_DRIVER
+        device = sysfs / 'devices' / fixture.CLIENT_USB_DEVICE
+        driver.mkdir(parents=True)
+        device.mkdir(parents=True)
+        (driver / 'unbind').write_text('')
+        (driver / 'bind').write_text('')
+        (device / 'driver').symlink_to(driver, target_is_directory=True)
+        net = self.root / 'net' / 'wlan2'
+        net.mkdir(parents=True)
+        (net / 'address').write_text(fixture.RADIOS['wlan2'])
+        with patch.object(fixture, 'USB_SYSFS', sysfs), \
+                patch.object(fixture, 'NET_SYSFS', self.root / 'net'), \
+                patch.object(fixture.time, 'sleep'), \
+                patch.object(self.subject, 'note') as note:
+            self.subject.rebind_usb_radio()
+        self.assertEqual((driver / 'unbind').read_text(), fixture.CLIENT_USB_DEVICE)
+        self.assertEqual((driver / 'bind').read_text(), fixture.CLIENT_USB_DEVICE)
+        note.assert_called_once()
+
+    def test_sdio_radio_rebind_owns_both_functions(self):
+        sysfs = self.root / 'sdio'
+        driver = sysfs / 'drivers' / fixture.AP_SDIO_DRIVER
+        driver.mkdir(parents=True)
+        (driver / 'unbind').write_text('')
+        (driver / 'bind').write_text('')
+        for name in fixture.AP_SDIO_DEVICES:
+            device = sysfs / 'devices' / name
+            device.mkdir(parents=True)
+            (device / 'driver').symlink_to(driver, target_is_directory=True)
+        net = self.root / 'net' / 'wlan0'
+        net.mkdir(parents=True)
+        (net / 'address').write_text(fixture.RADIOS['wlan0'])
+        with patch.object(fixture, 'SDIO_SYSFS', sysfs), \
+                patch.object(fixture, 'NET_SYSFS', self.root / 'net'), \
+                patch.object(fixture.time, 'sleep'), \
+                patch.object(self.subject, 'note') as note:
+            self.subject.rebind_sdio_radio()
+        self.assertEqual((driver / 'unbind').read_text(), fixture.AP_SDIO_DEVICES[0])
+        self.assertEqual((driver / 'bind').read_text(), fixture.AP_SDIO_DEVICES[-1])
+        note.assert_called_once()
 
     def test_package7_retained_wifi_is_read_only(self):
         raw = json.dumps(dict(ssid='WsprryPico-Phase115', password='a' * 32,
@@ -194,6 +285,19 @@ class FixtureTests(unittest.TestCase):
         packet = dict(schema='phase11.5-package9-fixture-v1', family='R6',
                       configuration_writes=0,
                       standing_authority='PHASE11.5-COMPLETION-20260915',
+                      retained_wifi_sha256=__import__('hashlib').sha256(raw).hexdigest())
+        self.assertEqual(fixture.fixture_wifi(self.root, packet, True, False),
+                         json.loads(raw))
+        packet['configuration_writes'] = 1
+        with self.assertRaises(ValueError):
+            fixture.fixture_wifi(self.root, packet, True, False)
+
+    def test_package10_retained_wifi_is_read_only(self):
+        raw = json.dumps(dict(ssid='WsprryPico-Phase115', password='a' * 32,
+                              ntp_ipv4='time.local')).encode()
+        (self.root / 'retained-wifi.json').write_bytes(raw)
+        packet = dict(schema='phase11.5-package10-fixture-v2', family='R6',
+                      configuration_writes=0, authorization='PACKAGE10-480-RF-SECONDS',
                       retained_wifi_sha256=__import__('hashlib').sha256(raw).hexdigest())
         self.assertEqual(fixture.fixture_wifi(self.root, packet, True, False),
                          json.loads(raw))
@@ -303,6 +407,8 @@ class FixtureTests(unittest.TestCase):
                 root=Path(directory);(root/'packet.json').write_text(json.dumps({'time_server_dns':enabled}))
                 subject=fixture.Fixture(root)
                 with patch.object(subject,'preflight',return_value=({'installed_pid':'1957'},{})), \
+                     patch.object(subject,'rebind_sdio_radio'), \
+                     patch.object(subject,'rebind_usb_radio'), \
                      patch.object(subject,'cmd',return_value=subprocess.CompletedProcess([],0,'','')), \
                      patch.object(subject,'unit',side_effect=RuntimeError('stop before daemon activation')):
                     with self.assertRaisesRegex(RuntimeError,'before daemon'):subject.setup()

@@ -1,6 +1,8 @@
 # Phase 11.5 completion matrix
 
-Status: **OPEN; R1-R5 closed in their recorded scope; R6 resource-return gate failed.**
+Status: **OPEN; R1-R5 closed in their recorded scope; R6 resource-return gate
+failed and Package 10's corrected retry was blocked before RF by the independent
+wireless-client fixture.**
 
 Authority: [accepted September 15 request](phase11-5-completion-authorization-20260915.md).
 This current matrix supersedes stale current-state paragraphs in historical
@@ -49,7 +51,13 @@ workload, all five quiet windows and full restoration. R6 remains open because
 post-N heap deltas of 12,432, 12,432 and 11,944 bytes, plus a 7,216-byte final-Q
 delta, exceed the unchanged 1,024-byte matched-baseline gate. Only 35.6 seconds
 remain under the finite RF ceiling, so repair and a new complete-run allowance
-are required.
+are required. [Package 10](phase11-5-package10-review.md) selects matched
+replay-history normalization without a firmware or threshold change. Its first
+packet stopped after four RF seconds on a frequency-sequence mismatch; thirteen
+corrected zero-RF preflights then failed readiness, ending with independent-client
+association failure under both radio-role assignments. The corrected resource
+comparison did not run and earns no R6 credit. Its remaining authorization is
+unused and not an automatic retry.
 Earlier bd16bb1 results retain two finite completions with
 failed capacity workloads. B remains 8921a7008183. Both are Pico 2 W/RP2350 Arm,
 138 MHz/divider 1, GP2 PIO/DMA, RAM rendering and listener configured. No full
@@ -177,4 +185,4 @@ resource gates. Evidence links retain exact source/image/boot and raw hashes.
 | R6.rf-budget | R6 | Finite demanding launches, at most 20 minutes RF | accepted/applicable | [phase11-5-package9-failure-result.json](phase11-5-package9-failure-result.json); [phase11-5-package9-review.md](phase11-5-package9-review.md) | v44 used 11 jobs / 351.8 planned RF seconds; cumulative conservative accounting is 142 jobs / 1,164.4 seconds under the 1,200-second ceiling. | 9 |
 | R6.windows | R6 | Three comparable post-warm-up resource windows | accepted/applicable | [phase11-5-package9-failure-result.json](phase11-5-package9-failure-result.json); [phase11-5-package9-review.md](phase11-5-package9-review.md) | v44 recorded the matched baseline and all three post-N windows on one source/boot/workload. Their existence is accepted; the resource-return values fail R6.gates. | 9 |
 | R6.quiet | R6 | Interleaved quiet and final equivalent Q | accepted/applicable | [phase11-5-package9-failure-result.json](phase11-5-package9-failure-result.json); [phase11-5-package9-review.md](phase11-5-package9-review.md) | v44 completed the 360-second baseline, three 306-second interleaved quiet periods and separate 360-second final Q with inactive output. | 9 |
-| R6.gates | R6 | No monotonic retained growth; <=1024-byte matched delta; unchanged resource/timing/fault gates | failed | [phase11-5-package9-failure-result.json](phase11-5-package9-failure-result.json); [phase11-5-package9-review.md](phase11-5-package9-review.md) | v44 baseline was 44,392 bytes; post-N deltas were +12,432, +12,432 and +11,944 bytes, and final-Q was +7,216 bytes, exceeding the unchanged 1,024-byte gate. Only 35.6 RF seconds remain; repair plus a newly authorized complete retry is required. | 9 |
+| R6.gates | R6 | No monotonic retained growth; <=1024-byte matched delta; unchanged resource/timing/fault gates | failed | [phase11-5-package9-failure-result.json](phase11-5-package9-failure-result.json); [phase11-5-package9-review.md](phase11-5-package9-review.md); [phase11-5-package10-failure-result.json](phase11-5-package10-failure-result.json); [phase11-5-package10-review.md](phase11-5-package10-review.md) | v44 baseline was 44,392 bytes; post-N deltas were +12,432, +12,432 and +11,944 bytes, and final-Q was +7,216 bytes, exceeding the unchanged 1,024-byte gate. Package 10 selected matched replay-history normalization, but its corrected comparison stopped before RF at the independent-client fixture. Qualify that path separately, then freeze one complete corrected packet; no automatic retry is authorized. | 9 |

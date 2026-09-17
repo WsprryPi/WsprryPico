@@ -21,7 +21,11 @@ source-impact and evidence-applicability review. The
 [Package 7 closeout](phase11-5-package7-review.md) closes R4 with current-image
 authority/interruption evidence and reviewed inherited rows. Package 8 closes
 R5. Package 9 completed R6's workload and quiet schedule, but the unchanged
-1,024-byte matched resource-return gate failed; R6 remains open.
+1,024-byte matched resource-return gate failed. Package 10 selected equivalent
+replay-history normalization, then stopped before corrected RF because the
+mandatory independent wireless-client fixture could not pass association in
+either radio-role assignment. R6 remains open; qualify that client path with a
+zero-RF packet before freezing another complete corrected campaign.
 No hardware execution is authorized by this document. Future packets
 must reconcile available tools with this plan before obtaining any missing
 bounded hardware/network authority. Old supervisors must not be run under new
@@ -37,7 +41,10 @@ R1/R2 recorded closure and Group 1 checkpoint 043 remain; Groups 2 and 3 are
 closed by Packages 1-5, Package 6 closes Group 4 and the R3 family, and Package
 7 closes R4 and Package 8 closes R5. Package 9 completed the 1,800-second
 normal workload, finite RF launches and quiet windows, but its post-N and final-Q
-heap deltas fail R6.gates. R6 remains open. Component 9 closes only its exact idle
+heap deltas fail R6.gates. Package 10's corrected comparison did not run: its
+first packet used four RF seconds before a sequence mismatch was found, and its
+corrected preflights stopped before reservation on the independent-client
+fixture. R6 remains open. Component 9 closes only its exact idle
 LOAD/replay regression. The later request authorizes
 minimal reviewed R5 rotation/scheduling writes after actual journal inspection.
 

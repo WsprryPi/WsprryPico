@@ -230,12 +230,13 @@ def verify():
     print('FIXTURE READY: AP and independent wireless client; management unchanged', flush=True)
 
 
-def client(address='10.77.14.2'):
+def client(address='10.77.14.2', association_seconds=20):
+    assert isinstance(association_seconds, int) and 1 <= association_seconds <= 120
     cmd(['mount', '-t', 'tmpfs', '-o', 'mode=755', 'tmpfs', '/run'])
     children = []
     try:
         children.append(subprocess.Popen(['/usr/sbin/wpa_supplicant', '-i', CLIENT_IF, '-c', str(ROOT / 'wpa.conf')]))
-        deadline = time.monotonic() + 20
+        deadline = time.monotonic() + association_seconds
         while time.monotonic() < deadline:
             if 'wpa_state=COMPLETED' in cmd(['wpa_cli', '-i', CLIENT_IF, 'status'], check=False).stdout:
                 break

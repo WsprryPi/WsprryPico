@@ -1,0 +1,35 @@
+{
+  "schema": "phase11.5-package10-stopped-attempt-v1",
+  "status": "STOPPED_PRE_GATE_SEQUENCE_MISMATCH",
+  "packet_sha256": "def689a1e498bb0ba0206198b9a6637b4496f275d498cf15011390ece9540c90",
+  "reason": "The short production-class normalizer used 135.500/135.495 MHz, while retained Package 9 TLS evidence proves WsprryPi uses 135.505/135.500 MHz for this configuration.",
+  "acceptance_credit": 0,
+  "charged_rf_jobs": 4,
+  "charged_rf_duration_ns": 4000000000,
+  "completed_jobs": [
+    {"phase": "warmup", "index": 0, "event_count": 383},
+    {"phase": "warmup", "index": 1, "event_count": 383},
+    {"phase": "warmup", "index": 2, "event_count": 383},
+    {"phase": "warmup", "index": 3, "event_count": 512}
+  ],
+  "resource_windows": 0,
+  "normal_cycles": 0,
+  "failure": {"type": "KeyboardInterrupt", "intentional_stop": true},
+  "restoration": {
+    "pico_a_empty_unowned_inactive": true,
+    "pico_b_empty_unowned_inactive": true,
+    "schedules_disabled": true,
+    "reservation_released": true,
+    "fixture_restored": true,
+    "installed_service_active": true
+  },
+  "evidence_sha256": {
+    "packet.json": "def689a1e498bb0ba0206198b9a6637b4496f275d498cf15011390ece9540c90",
+    "campaign.jsonl": "e83f2a890b7e0f2a1c6e0d4b116f29a81d60d45dc487b332767799616648cc8e",
+    "interrupted-final-a.jsonl": "d72ac593b4a64be6a0ac361b95b3c9c79cb99c9b9a094d3e6c5f3466a25ac894",
+    "interrupted-final-b.jsonl": "f65c8a87667a9c806f3d136b2196489d412859863cde5bc2ac767ee6555fee10",
+    "fixture-state.json": "17032a28ad8e5f5d53bc8b352c7641bbf2450666742734403acb7973e89b93d5",
+    "fixture.jsonl": "2a0ec3b31825e02858345e9fa289ec6a7235f833c467e91f7aa1b54d465c127d",
+    "reservation.json": "0134b654cbe8475a8ab19d9be3613f01f3313846203cba5669e666b2e503dc47"
+  }
+}

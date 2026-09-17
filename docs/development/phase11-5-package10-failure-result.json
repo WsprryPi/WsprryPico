@@ -1,0 +1,334 @@
+{
+  "schema": "phase11.5-package10-failure-v1",
+  "status": "PACKAGE10_OPEN_R6_FIXTURE_BLOCKED",
+  "phase11_5_status": "OPEN_5_OF_6_FAMILIES",
+  "acceptance_credit": 0,
+  "candidate": {
+    "source_revision": "91933c00970939e366d1bfcf3c1956b59be8f6c5",
+    "image_sha256": "5da240aacf20e27db79126a7bff2be18e4ece849a608fa439f4e0c577659f446",
+    "boot_id": "ff719d304f1ba4ac23fddd93561b26f0",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "system_clock_hz": 138000000,
+    "pio_divider": 1,
+    "engine": "pio-dma-gp2",
+    "renderer": "RAM",
+    "wsprrypi_source_revision": "21ae75ab9e38bd6237b1ae73f3e7ab8527324067"
+  },
+  "diagnosis": {
+    "package9_failure_preserved": true,
+    "package9_resource_failure_retested": false,
+    "intended_repair": "equivalent retained WTP replay-history classes",
+    "firmware_memory_leak_found": false,
+    "resource_limit_bytes": 1024,
+    "reason_not_retested": "independent wireless client fixture never reached corrected RF admission"
+  },
+  "blocked_gate": {
+    "stage": "independent_wireless_client_association",
+    "final_error": "Independent client did not start",
+    "final_packet_sha256": "11c29234218383408394fcca61d3d9d21f5dc2e7f8c270e00d7c04a72606c75c",
+    "final_roles": {
+      "ap": "wlan0",
+      "client": "wlan2",
+      "ap_mac": "2c:cf:67:62:76:66",
+      "client_mac": "e8:4e:06:ae:d7:09"
+    },
+    "alternate_roles_tested": true,
+    "alternate_roles": {
+      "ap": "wlan2",
+      "client": "wlan0",
+      "ap_mac": "e8:4e:06:ae:d7:09",
+      "client_mac": "2c:cf:67:62:76:66"
+    },
+    "alternate_role_packet_sha256": "b0f65378cc684736817190948e1d340a19fb79f50786fd662f21e6c86b63b94b",
+    "identity_checked_radio_resets_tested": true,
+    "fixed_acceptance_requirement": true
+  },
+  "execution": {
+    "stopped_attempt_rf_jobs": 4,
+    "stopped_attempt_rf_duration_ns": 4000000000,
+    "corrected_preflight_iterations": 13,
+    "corrected_fixture_ready_iterations": 5,
+    "corrected_campaign_launches": 5,
+    "corrected_rf_jobs": 0,
+    "corrected_rf_duration_ns": 0,
+    "planned_corrected_rf_jobs": 16,
+    "planned_corrected_rf_duration_ns": 356800000000,
+    "full_workload_completed": false
+  },
+  "budget": {
+    "authorized_rf_duration_ns": 480000000000,
+    "charged_rf_jobs": 4,
+    "charged_rf_duration_ns": 4000000000,
+    "unused_authorized_rf_duration_ns": 476000000000,
+    "authorized_max_flashes": 2,
+    "authorized_max_bootsel": 2,
+    "flashes": 0,
+    "bootsel": 0,
+    "configuration_writes": 0,
+    "controlled_reboots": 0,
+    "wifi_cycles": 0,
+    "allocation_probes": 0
+  },
+  "preflight_history": [
+    {
+      "iteration": 2,
+      "packet_sha256": "8b9f92e2206a8de5a5c9460e253b119690b86a575e5116a041cebb3ed77e8b0c",
+      "fixture_state_sha256": "aa279e0c42381119172962b1d487ff7f1835059a78c41ef46fcf249581fcb075",
+      "fixture_journal_sha256": "922dc1896c19223f9d97dc9079c938ebb3ded7d16549ed1430d909f14fa3458d",
+      "client_log_sha256": "9c1c1d75b7fb99b4bfe2a952214e36b044bc95f7d01e08bc40ca35fbf327a450",
+      "campaign_journal_sha256": null,
+      "roles": {
+        "ap": "wlan0",
+        "client": "wlan2",
+        "ap_mac": "2c:cf:67:62:76:66",
+        "client_mac": "e8:4e:06:ae:d7:09"
+      },
+      "fixture_ready": false,
+      "restored": true,
+      "outcome": "CLIENT_ASSOCIATION_FAILED"
+    },
+    {
+      "iteration": 3,
+      "packet_sha256": "64ac377bcdc3e1fe1013404c3b584c4fd8734b98075ac7a73d1a376d5c45cc59",
+      "fixture_state_sha256": "8e92f4a399b44be341b8efbe6429aceb791e391fdc9823d1736643f241b9cb93",
+      "fixture_journal_sha256": "cfec73c419e339777b22fd75d2ef17ea289d2fe4d4726913a8b7f6c882f90ccb",
+      "client_log_sha256": "7e64c34beaba46fb8322f4880313b9c7ebf4998754894e862219401c96967f2c",
+      "campaign_journal_sha256": null,
+      "roles": {
+        "ap": "wlan0",
+        "client": "wlan2",
+        "ap_mac": "2c:cf:67:62:76:66",
+        "client_mac": "e8:4e:06:ae:d7:09"
+      },
+      "fixture_ready": false,
+      "restored": true,
+      "outcome": "CLIENT_ASSOCIATION_FAILED"
+    },
+    {
+      "iteration": 4,
+      "packet_sha256": "352270e5164503781800493d0ba21149a17cd9d3cf81d02982087a2dfeeec693",
+      "fixture_state_sha256": "4528274e279b88872aeca6994b48f43d0985d1e5899d3a1f30b186dcd2cda4d1",
+      "fixture_journal_sha256": "9416340d7080422bbf230a8ecd0afe6913b81351c8b79220eda95c82720eab30",
+      "client_log_sha256": "fad9671a3bffbe19a66c7fb0301a6b7b45ab7d2dcade2abbb4f817d5c23621dc",
+      "campaign_journal_sha256": null,
+      "roles": {
+        "ap": "wlan0",
+        "client": "wlan2",
+        "ap_mac": "2c:cf:67:62:76:66",
+        "client_mac": "e8:4e:06:ae:d7:09"
+      },
+      "fixture_ready": false,
+      "restored": true,
+      "outcome": "CLIENT_ASSOCIATION_FAILED"
+    },
+    {
+      "iteration": 5,
+      "packet_sha256": "caa3c6e9322592ed20c25ff96a13180091def5c70d8195c2b2cd8b7c1229d157",
+      "fixture_state_sha256": "f4982521e35511f6e0d5717531955816633f1716e3720059c6027582d04b1305",
+      "fixture_journal_sha256": "01f00d4d2e45201ce8e33265bfb89b40ba515ac3dc387b725d7d167942d85b3e",
+      "client_log_sha256": "0cedabd13d40262577eace2a8a0b23a5fe9df201a695d3efd8352e2943e2be00",
+      "campaign_journal_sha256": null,
+      "roles": {
+        "ap": "wlan0",
+        "client": "wlan2",
+        "ap_mac": "2c:cf:67:62:76:66",
+        "client_mac": "e8:4e:06:ae:d7:09"
+      },
+      "fixture_ready": false,
+      "restored": true,
+      "outcome": "CLIENT_ASSOCIATION_FAILED"
+    },
+    {
+      "iteration": 6,
+      "packet_sha256": "a9710a99df03f3ca045908c309bf4cb0cf719dab0873329e2467ae43f179dfd4",
+      "fixture_state_sha256": "28e1b69662e56f0562965c9dc59448f1ca9723fa6ee7a6f99c81d1e2debc2e64",
+      "fixture_journal_sha256": "065f872df23da948f144a5cfcc50eb2521c2fb2aa4db63c0c507b6a8637c198e",
+      "client_log_sha256": "5cfcde8ee953cd558f4a9c308a103af66d4a1aadb008747ef71601581120ac7c",
+      "campaign_journal_sha256": "c38ed2642d381a3e7691a2dd1e4ffc918c730848c5a0f00721fb7f63c7eee20d",
+      "roles": {
+        "ap": "wlan0",
+        "client": "wlan2",
+        "ap_mac": "2c:cf:67:62:76:66",
+        "client_mac": "e8:4e:06:ae:d7:09"
+      },
+      "fixture_ready": true,
+      "restored": true,
+      "outcome": "PICO_NETWORK_CLOCK_READINESS_TIMEOUT"
+    },
+    {
+      "iteration": 7,
+      "packet_sha256": "938f0060feeaf74251126682ead59c04d8470c03d29bc164c4f2c7da79f7358e",
+      "fixture_state_sha256": "96219fe83d145454b392fa9b875590f467c9f86561de981c279ee911b34f46ff",
+      "fixture_journal_sha256": "95ba81500eb433b9e41c30fad6110d8eafc5390432f4bf6e28b271302840c216",
+      "client_log_sha256": "b26d5fdc9ace5505c822abef45f6bc1367f91bd90716aa243c0ed80dbdae8210",
+      "campaign_journal_sha256": "58aa723f7783486dc90f1ca26eca969fb501377fe83f4f5bff0e776142327a7e",
+      "roles": {
+        "ap": "wlan0",
+        "client": "wlan2",
+        "ap_mac": "2c:cf:67:62:76:66",
+        "client_mac": "e8:4e:06:ae:d7:09"
+      },
+      "fixture_ready": true,
+      "restored": true,
+      "outcome": "TLS_HANDSHAKE_STALL_INTERRUPTED"
+    },
+    {
+      "iteration": 8,
+      "packet_sha256": "be464d2f92463ce267ac07488faef892fc5c1b54085504caf13c97118e67a0ce",
+      "fixture_state_sha256": "dd89acadf058912cbf6087072ce0004576cd08f6930b9a4a76658c8dba974256",
+      "fixture_journal_sha256": "69474c2f331c4116bf490bd4ae5e66b16738fec3c48439c155f13d3aa336cf22",
+      "client_log_sha256": "e44feb2d1ed5a173e985c2f6e3394cb9accc8d7ce9f2355e2fba500f7dbff6bf",
+      "campaign_journal_sha256": "e7a46342d8c4c7b7985fad6600fd78869b76bd09c071601c26cae4a8bc9f826e",
+      "roles": {
+        "ap": "wlan0",
+        "client": "wlan2",
+        "ap_mac": "2c:cf:67:62:76:66",
+        "client_mac": "e8:4e:06:ae:d7:09"
+      },
+      "fixture_ready": true,
+      "restored": true,
+      "outcome": "MDNS_RESOLUTION_FAILED"
+    },
+    {
+      "iteration": 9,
+      "packet_sha256": "b628fda2b367ae9e4d341d143ba5fed7a7a9eab5bdcbb2846ccc6cde27bdeead",
+      "fixture_state_sha256": "74f03f9fc1c711232a55f418d5a1daedadac0664809564b4905f225a9bc343b4",
+      "fixture_journal_sha256": "0c29e2ed6b0235475ddcabfdc0d66003d2b4962bca46fac56810e0ac53564219",
+      "client_log_sha256": "dd9c9d76ec5e26163bb36af522257ddd89ffb91b0ce0d80d470fad10931cd6f9",
+      "campaign_journal_sha256": null,
+      "roles": {
+        "ap": "wlan0",
+        "client": "wlan2",
+        "ap_mac": "2c:cf:67:62:76:66",
+        "client_mac": "e8:4e:06:ae:d7:09"
+      },
+      "fixture_ready": false,
+      "restored": true,
+      "outcome": "CLIENT_ASSOCIATION_FAILED"
+    },
+    {
+      "iteration": 10,
+      "packet_sha256": "1f065da0ae5521bee1f20cd6a13cd35d9a7d9c98afa7e522c81bc8077e41c55e",
+      "fixture_state_sha256": "9f4043c4e396f6a737413fcb17d821e2cc8608d0246071822d5136f62ca9c8b0",
+      "fixture_journal_sha256": "8a432dfd0d523dc76e5acc44df2d06ec53ba6c985fbf8106e095c66d24566f12",
+      "client_log_sha256": "96b4bf58a8ac2eae10d7fe2937fe6c99573539f13e0604caa97f03b26250d5bd",
+      "campaign_journal_sha256": "2189174394e5d241eba86d19cc6ebeb7118f39ba7d6a1d436a365defe32332ea",
+      "roles": {
+        "ap": "wlan0",
+        "client": "wlan2",
+        "ap_mac": "2c:cf:67:62:76:66",
+        "client_mac": "e8:4e:06:ae:d7:09"
+      },
+      "fixture_ready": true,
+      "restored": true,
+      "outcome": "WTP_READINESS_STALL_INTERRUPTED"
+    },
+    {
+      "iteration": 11,
+      "packet_sha256": "e9902e0b41dc868d17f4f9164f851f62d309844caf18a980426e6c963aaa8b1b",
+      "fixture_state_sha256": "59958cd2bc7f02ea907c997742c5312460452997ad2c8a85069ce33467a80ee9",
+      "fixture_journal_sha256": "02764139fc8696da88073ffd9e4fcd17d68c4d9fe2bf037c79d74d63b775e8da",
+      "client_log_sha256": "0385477bb07abed7ae499b4132900298dbab90b4c15c5a3efec0ee19805f370f",
+      "campaign_journal_sha256": "11f14889caf74e802c8a5b3efc411c4fc319f5cef72a05f786a2bf711edcde50",
+      "roles": {
+        "ap": "wlan0",
+        "client": "wlan2",
+        "ap_mac": "2c:cf:67:62:76:66",
+        "client_mac": "e8:4e:06:ae:d7:09"
+      },
+      "fixture_ready": true,
+      "restored": true,
+      "outcome": "PICO_NETWORK_CLOCK_READINESS_TIMEOUT"
+    },
+    {
+      "iteration": 12,
+      "packet_sha256": "c571af0c26526145b6cb57daae4ba56d2ac4ce1584958819d35b2b4e59c5170a",
+      "fixture_state_sha256": "03c123c0c656b13530ab3749d2604f86a61f6005e91ff63f49637a4f8cb339b1",
+      "fixture_journal_sha256": "d866bf7f7285b337f497530f6f6f2fc5b96275005afdd330a061558c86cc9ecc",
+      "client_log_sha256": "ee7a68f16a5b9b349f0ea4e60291be9d07a2da6627cfb0fdd4891350a2baec46",
+      "campaign_journal_sha256": null,
+      "roles": {
+        "ap": "wlan0",
+        "client": "wlan2",
+        "ap_mac": "2c:cf:67:62:76:66",
+        "client_mac": "e8:4e:06:ae:d7:09"
+      },
+      "fixture_ready": false,
+      "restored": true,
+      "outcome": "CLIENT_ASSOCIATION_FAILED"
+    },
+    {
+      "iteration": 13,
+      "packet_sha256": "b0f65378cc684736817190948e1d340a19fb79f50786fd662f21e6c86b63b94b",
+      "fixture_state_sha256": "e92291859f2f5da2a45c06fc11a2ebbbf381ccbb4a4509f2342a99741ee50a4e",
+      "fixture_journal_sha256": "fb79ed1c3e572df05fea6e0432e80c8526a85101abfb2119c56be2ef46629b0b",
+      "client_log_sha256": "794e5ca9224153eaadf33a0c8a934771d18d410440558d2d98800638497a7138",
+      "campaign_journal_sha256": null,
+      "roles": {
+        "ap": "wlan2",
+        "client": "wlan0",
+        "ap_mac": "e8:4e:06:ae:d7:09",
+        "client_mac": "2c:cf:67:62:76:66"
+      },
+      "fixture_ready": false,
+      "restored": true,
+      "outcome": "SWAPPED_ROLE_CLIENT_ASSOCIATION_FAILED"
+    },
+    {
+      "iteration": 14,
+      "packet_sha256": "11c29234218383408394fcca61d3d9d21f5dc2e7f8c270e00d7c04a72606c75c",
+      "fixture_state_sha256": "ae804e2dcabcf93a4029fa4be7eb80e2b7733478b5d61301ad11c10a1784d71c",
+      "fixture_journal_sha256": "c9729c3c05754715dddd32ded634048643a4b712b46ec6e60dab579f60b571a1",
+      "client_log_sha256": "3381e0a02eecc21146516b9c6f93be8f40d038e3731da1172817a54376d21b05",
+      "campaign_journal_sha256": null,
+      "roles": {
+        "ap": "wlan0",
+        "client": "wlan2",
+        "ap_mac": "2c:cf:67:62:76:66",
+        "client_mac": "e8:4e:06:ae:d7:09"
+      },
+      "fixture_ready": false,
+      "restored": true,
+      "outcome": "RESET_QUALIFIED_ROLE_CLIENT_ASSOCIATION_FAILED"
+    }
+  ],
+  "final_inventory": {
+    "pico_a": {
+      "serial": "0BF4B4AEC9FFB344",
+      "boot_id": "ff719d304f1ba4ac23fddd93561b26f0",
+      "source_revision": "91933c009709",
+      "state": "empty",
+      "owner_id": null,
+      "output_active": false
+    },
+    "pico_b": {
+      "serial": "CDDBF8767C506C07",
+      "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+      "source_revision": "8921a7008183",
+      "state": "empty",
+      "owner_id": null,
+      "output_active": false
+    }
+  },
+  "restoration": {
+    "pico_a_empty_unowned_inactive": true,
+    "pico_b_empty_unowned_inactive": true,
+    "reservation_released": true,
+    "host_fixture_restored": true,
+    "installed_service_active": true,
+    "recovery_timer_active": true
+  },
+  "evidence_sha256": {
+    "stopped_attempt": "d73515feb8a35c6bb559fbb346213f73f0649bf06e26fb5dc2d5848aa2759f79",
+    "final_packet": "11c29234218383408394fcca61d3d9d21f5dc2e7f8c270e00d7c04a72606c75c",
+    "final_fixture_state": "ae804e2dcabcf93a4029fa4be7eb80e2b7733478b5d61301ad11c10a1784d71c",
+    "final_fixture_journal": "c9729c3c05754715dddd32ded634048643a4b712b46ec6e60dab579f60b571a1",
+    "final_client_log": "3381e0a02eecc21146516b9c6f93be8f40d038e3731da1172817a54376d21b05",
+    "final_a": "d46a573093a1f4cda9bce8c26c01c8bc75a7e941e852c32856400d0e295aed25",
+    "final_b": "7cacc184785185c5c4ad3927a900a874ef14ed794ed3423ef34a57568f67163d",
+    "reservation": "0134b654cbe8475a8ab19d9be3613f01f3313846203cba5669e666b2e503dc47",
+    "alternate_role_packet": "b0f65378cc684736817190948e1d340a19fb79f50786fd662f21e6c86b63b94b",
+    "alternate_role_fixture_state": "e92291859f2f5da2a45c06fc11a2ebbbf381ccbb4a4509f2342a99741ee50a4e"
+  },
+  "auditor_sha256": "2372b0f9f76fd49eb4f007dec867d858d9f57e8d4cb794fd0145636326a291b1"
+}

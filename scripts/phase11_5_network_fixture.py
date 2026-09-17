@@ -31,12 +31,25 @@ DUT_ADDRESS = '10.77.15.10'
 DUT_MAC = '88:a2:9e:0a:60:df'
 TIME_NAME = 'clock.phase115.test'
 RADIOS = {'wlan0': '2c:cf:67:62:76:66', 'wlan2': 'e8:4e:06:ae:d7:09'}
+AP_IF = 'wlan0'
+CLIENT_IF = 'wlan2'
 MANAGEMENT = '90:de:80:47:b9:da'
 ETHERNET = '2c:cf:67:62:76:64'
 HOST_BOOT = '220e53ca-ca95-4206-9581-dbe28aa1eeb8'
 MANAGEMENT_PROFILE = '921301fe-cdfd-4965-8ac7-c96e9d908ea6'
 INSTALLED_SHA = 'ab1989097cc87b54f76f5fcf776d7d16a166e1edca29ed2c71a2f396fdd22a90'
 RUN_SECONDS = 21000  # 5 h 50 min; last ten minutes reserved for host restoration.
+USB_SYSFS = Path('/sys/bus/usb')
+SDIO_SYSFS = Path('/sys/bus/sdio')
+NET_SYSFS = Path('/sys/class/net')
+CLIENT_USB_DEVICE = '4-1.1:1.0'
+CLIENT_USB_DRIVER = 'mt7921u'
+AP_SDIO_DEVICES = ('mmc1:0001:1', 'mmc1:0001:2')
+AP_SDIO_DRIVER = 'brcmfmac'
+CLIENT_ASSOCIATION_SECONDS = 90
+CLIENT_READY_SECONDS = 105
+PACKAGE10_SCHEMAS = ('phase11.5-package10-fixture-v1',
+                     'phase11.5-package10-fixture-v2')
 UNIT_SUFFIXES = ('cleanup.timer', 'cleanup.service', 'client.service', 'dhcp.service',
                  'capture-ap.service', 'capture-client.service', 'campaign.service', 'time-local.service')
 
@@ -46,7 +59,9 @@ def runtime_budget(packet):
     extended = schema in ('phase11.5-r3-v2-fixture-v1',
                           'phase11.5-package7-fixture-v1',
                           'phase11.5-package8-fixture-v1',
-                          'phase11.5-package9-fixture-v1')
+                          'phase11.5-package9-fixture-v1',
+                          'phase11.5-package10-fixture-v1',
+                          'phase11.5-package10-fixture-v2')
     runtime = packet.get('network_runtime_seconds', RUN_SECONDS)
     restoration = packet.get('network_restoration_seconds', 600) if extended else 600
     require(type(runtime) is int and 0 < runtime <= (28800 if extended else RUN_SECONDS),
@@ -73,6 +88,21 @@ def runtime_budget(packet):
                 packet.get('standing_authority') == 'PHASE11.5-COMPLETION-20260915' and
                 runtime <= 5400 and restoration <= 900,
                 'Package 9 fixture authority/scope')
+    elif schema == 'phase11.5-package10-fixture-v1':
+        require(packet.get('family') == 'R6' and packet.get('configuration_writes') == 0 and
+                packet.get('authorization') == 'PACKAGE10-480-RF-SECONDS' and
+                packet.get('rf_jobs') == 16 and
+                packet.get('rf_duration_ns') == 356800000000 and
+                runtime <= 5400 and restoration <= 900,
+                'Package 10 fixture authority/scope')
+    elif schema == 'phase11.5-package10-fixture-v2':
+        require(packet.get('family') == 'R6' and packet.get('configuration_writes') == 0 and
+                packet.get('authorization') == 'PACKAGE10-480-RF-SECONDS' and
+                packet.get('rf_jobs') == 16 and packet.get('rf_duration_ns') == 356800000000 and
+                packet.get('cumulative_rf_jobs') == 20 and
+                packet.get('cumulative_rf_duration_ns') == 360800000000 and
+                runtime <= 5400 and restoration <= 900,
+                'Package 10 v2 fixture authority/scope')
     return runtime, restoration
 
 
@@ -90,7 +120,11 @@ def fixture_wifi(root, packet, mdns, dns):
                                                'phase11.5-package9-fixture-v1') and
                        packet.get('family') in ('R4', 'R5', 'R6') and
                        packet.get('standing_authority') ==
-                       'PHASE11.5-COMPLETION-20260915'))
+                       'PHASE11.5-COMPLETION-20260915') or
+                      (packet.get('schema') in ('phase11.5-package10-fixture-v1',
+                                                'phase11.5-package10-fixture-v2') and
+                       packet.get('family') == 'R6' and
+                       packet.get('authorization') == 'PACKAGE10-480-RF-SECONDS'))
     writes = packet.get('configuration_writes')
     authorized_writes = ((packet.get('schema') != 'phase11.5-package8-fixture-v1' and
                           writes == 0) or
@@ -114,6 +148,17 @@ def service_activity_restored(before_pid, after_pid):
             'Fixture baseline service was not active')
     require(isinstance(after_pid, str) and after_pid.isdigit() and int(after_pid) > 0,
             'Installed service was not restored active')
+
+
+def package10_fixture(packet):
+    return packet.get('schema') in PACKAGE10_SCHEMAS
+
+
+def client_wpa_config(ssid, psk, qualified=False):
+    binding = ('bssid=' + RADIOS[AP_IF] + '\nscan_freq=2462\n') if qualified else ''
+    return ('ctrl_interface=/run/wpa_supplicant\nnetwork={\n'
+            'ssid="' + ssid + '"\npsk="' + psk + '"\nkey_mgmt=WPA-PSK\nproto=RSN\n'
+            'pairwise=CCMP\n' + binding + '}\n')
 
 
 class Fixture:
@@ -143,6 +188,54 @@ class Fixture:
             os.fsync(fd)
         finally:
             os.close(fd)
+
+    def rebind_usb_radio(self):
+        device = USB_SYSFS / 'devices' / CLIENT_USB_DEVICE
+        driver = (device / 'driver').resolve(strict=True)
+        require(driver.name == CLIENT_USB_DRIVER, 'Fixture client USB driver changed')
+        for action in ('unbind', 'bind'):
+            with (USB_SYSFS / 'drivers' / CLIENT_USB_DRIVER / action).open('w') as stream:
+                stream.write(CLIENT_USB_DEVICE)
+            if action == 'unbind':
+                time.sleep(3)
+        deadline = time.monotonic() + 30
+        found = {}
+        while time.monotonic() < deadline:
+            found = {p.read_text().strip(): p.parent.name
+                     for p in NET_SYSFS.glob('*/address')}
+            if found.get(RADIOS['wlan2']) == 'wlan2':
+                break
+            time.sleep(.2)
+        require(found.get(RADIOS['wlan2']) == 'wlan2',
+                'Fixture client radio did not return with its bound identity')
+        self.note('usb_radio_rebind', {"device": CLIENT_USB_DEVICE,
+            "driver": CLIENT_USB_DRIVER})
+
+    def rebind_sdio_radio(self):
+        driver = SDIO_SYSFS / 'drivers' / AP_SDIO_DRIVER
+        for device_name in AP_SDIO_DEVICES:
+            device = SDIO_SYSFS / 'devices' / device_name
+            require((device / 'driver').resolve(strict=True).name == AP_SDIO_DRIVER,
+                    'Fixture AP SDIO driver changed')
+        for device_name in reversed(AP_SDIO_DEVICES):
+            with (driver / 'unbind').open('w') as stream:
+                stream.write(device_name)
+        time.sleep(3)
+        for device_name in AP_SDIO_DEVICES:
+            with (driver / 'bind').open('w') as stream:
+                stream.write(device_name)
+        deadline = time.monotonic() + 30
+        found = {}
+        while time.monotonic() < deadline:
+            found = {p.read_text().strip(): p.parent.name
+                     for p in NET_SYSFS.glob('*/address')}
+            if found.get(RADIOS['wlan0']) == 'wlan0':
+                break
+            time.sleep(.2)
+        require(found.get(RADIOS['wlan0']) == 'wlan0',
+                'Fixture AP radio did not return with its bound identity')
+        self.note('sdio_radio_rebind', {"devices": list(AP_SDIO_DEVICES),
+            "driver": AP_SDIO_DRIVER})
 
     def intent(self, key):
         self.state[key] = True
@@ -243,6 +336,7 @@ class Fixture:
         self.deadline = time.monotonic() + 300
         before, radio = self.preflight()
         packet = json.loads((self.root / 'packet.json').read_text())
+        package10 = package10_fixture(packet)
         from phase11_5_join_diagnostics import selected, CAPTURE_FILTER
         join_diagnostics = selected(packet)
         dns_fixture = packet.get('time_server_dns', False)
@@ -265,7 +359,8 @@ class Fixture:
                       'host_boot': HOST_BOOT, 'before': before, 'radio': radio, 'units': [],
                       'time_server_dns': dns_fixture, 'runtime_seconds': runtime,
                       'restoration_seconds': restoration,
-                      'time_server_mdns': mdns_fixture, 'time_local_before': permanent}
+                      'time_server_mdns': mdns_fixture, 'time_local_before': permanent,
+                      'package10': package10}
         self.save()
         # Arm cleanup before pausing the timer or touching a radio. Cleanup owns
         # only host resources, and cannot erase/reboot an unknown Pico state.
@@ -279,10 +374,16 @@ class Fixture:
         self.intent('cleanup_armed')
         self.intent('timer_paused')
         self.cmd(['systemctl', 'stop', 'pi-wifi-recover.timer', 'pi-wifi-recover.service'])
+        # Both host fixture radios can retain failed AP/client state across
+        # teardown. Reset only their identity-checked drivers; neither Pico
+        # radio is involved.
+        if package10:
+            self.rebind_sdio_radio()
+            self.rebind_usb_radio()
         psk, ssid = wifi['password'], wifi['ssid']
         (self.root / 'pico-wifi.json').write_text(json.dumps(wifi) + '\n')
         self.intent('ap_profile')
-        self.cmd(['nmcli', 'connection', 'add', 'save', 'no', 'type', 'wifi', 'ifname', 'wlan0',
+        self.cmd(['nmcli', 'connection', 'add', 'save', 'no', 'type', 'wifi', 'ifname', AP_IF,
             'con-name', PROFILE, 'ssid', ssid, '802-11-wireless.mode', 'ap',
             '802-11-wireless.band', 'bg', '802-11-wireless.channel', '11',
             '802-11-wireless.powersave', '2', 'connection.autoconnect', 'no',
@@ -293,7 +394,7 @@ class Fixture:
         if join_diagnostics:
             # Start before AP activation: a later capture can miss the entire
             # association/DHCP attempt while the fixture is still being built.
-            self.unit('capture-ap', ['/usr/bin/tcpdump', '--immediate-mode', '-i', 'wlan0', '-U', '-s', '0',
+            self.unit('capture-ap', ['/usr/bin/tcpdump', '--immediate-mode', '-i', AP_IF, '-U', '-s', '0',
                 '-w', str(self.root/'capture-ap.pcap'), CAPTURE_FILTER])
             end = time.monotonic() + 5
             while not (self.root/'capture-ap.pcap').exists() and time.monotonic() < end:
@@ -302,10 +403,10 @@ class Fixture:
             self.verify_join_capture()
             self.note('join_capture_before_ap', dict(filter=CAPTURE_FILTER))
         self.cmd(['nmcli', '--wait', '25', 'connection', 'up', PROFILE])
-        self.cmd(['iw', 'dev', 'wlan0', 'set', 'power_save', 'off'])
+        self.cmd(['iw', 'dev', AP_IF, 'set', 'power_save', 'off'])
         (self.root / 'dhcp-hosts').write_text(DUT_MAC + ',' + DUT_ADDRESS + ',60s\n')
         (self.root / 'dnsmasq.conf').write_text('\n'.join([
-            'port=53' if dns_fixture else 'port=0', 'interface=wlan0', 'bind-interfaces', 'dhcp-authoritative',
+            'port=53' if dns_fixture else 'port=0', 'interface=' + AP_IF, 'bind-interfaces', 'dhcp-authoritative',
             'dhcp-range=10.77.15.0,static,255.255.255.0,60s',
             'dhcp-hostsfile=' + str(self.root / 'dhcp-hosts'),
             'dhcp-leasefile=' + str(self.root / 'leases'), 'dhcp-option=3',
@@ -320,21 +421,20 @@ class Fixture:
         self.intent('chrony_acl')
         self.cmd(['chronyc', 'allow', SUBNET])
         self.intent('client_unmanaged')
-        self.cmd(['nmcli', 'device', 'set', 'wlan2', 'managed', 'no'])
+        self.cmd(['nmcli', 'device', 'set', CLIENT_IF, 'managed', 'no'])
         self.intent('namespace')
         self.cmd(['ip', 'netns', 'add', NETNS])
-        phy = Path('/sys/class/net/wlan2/phy80211').resolve(strict=True).name
+        phy = Path('/sys/class/net/' + CLIENT_IF + '/phy80211').resolve(strict=True).name
         self.cmd(['iw', 'phy', phy, 'set', 'netns', 'name', NETNS])
         self.cmd(['ip', '-n', NETNS, 'link', 'set', 'lo', 'up'])
-        (self.root / 'wpa.conf').write_text('ctrl_interface=/run/wpa_supplicant\nnetwork={\n'
-            'ssid="' + ssid + '"\npsk="' + psk + '"\nkey_mgmt=WPA-PSK\nproto=RSN\npairwise=CCMP\n}\n')
+        (self.root / 'wpa.conf').write_text(client_wpa_config(ssid, psk, package10))
         (self.root / 'avahi.conf').write_text('[server]\nhost-name=phase115-client\n'
-            'use-ipv4=yes\nuse-ipv6=no\nallow-interfaces=wlan2\nenable-dbus=no\n'
+            'use-ipv4=yes\nuse-ipv6=no\nallow-interfaces=' + CLIENT_IF + '\nenable-dbus=no\n'
             '[publish]\ndisable-publishing=yes\n')
         self.unit('client', ['ip', 'netns', 'exec', NETNS, 'unshare', '--mount',
             '--propagation', 'private', '/usr/bin/python3', str(Path(__file__).resolve()),
             'client', '--root', str(self.root), '--run'])
-        deadline = time.monotonic() + 35
+        deadline = time.monotonic() + (CLIENT_READY_SECONDS if package10 else 35)
         while not (self.root / 'client-ready').exists() and time.monotonic() < deadline:
             time.sleep(.2)
         require((self.root / 'client-ready').exists(), 'Independent client did not start')
@@ -343,11 +443,11 @@ class Fixture:
             install(self)
             time.sleep(3)  # Avahi probe/announcement settling; no acceptance from this wait.
             if not join_diagnostics:
-                self.unit('capture-ap', ['/usr/bin/tcpdump', '--immediate-mode', '-i', 'wlan0', '-U', '-s', '0',
+                self.unit('capture-ap', ['/usr/bin/tcpdump', '--immediate-mode', '-i', AP_IF, '-U', '-s', '0',
                     '-w', str(self.root/'capture-ap.pcap'), 'udp port 5353 or udp port 123'])
             pid = self.value('systemctl', 'show', '-p', 'MainPID', '--value', PREFIX+'-client')
             self.unit('capture-client', ['nsenter', '-t', pid, '-m', '-n', '/usr/bin/tcpdump', '--immediate-mode',
-                '-i', 'wlan2', '-U', '-s', '0', '-w', str(self.root/'capture-client.pcap'),
+                '-i', CLIENT_IF, '-U', '-s', '0', '-w', str(self.root/'capture-client.pcap'),
                 'udp port 5353 or udp port 123'])
             time.sleep(1)
             for side in ('ap', 'client'):
@@ -376,10 +476,10 @@ class Fixture:
         require(current['installed_pid'] == self.state['before']['installed_pid'],
                 'Installed application restarted')
         peer = {label: self.in_client(args).stdout for label, args in {
-            'link': ['iw', 'dev', 'wlan2', 'link'], 'routes': ['ip', '-4', 'route'],
+            'link': ['iw', 'dev', CLIENT_IF, 'link'], 'routes': ['ip', '-4', 'route'],
             'addresses': ['ip', '-brief', 'address'], 'netns': ['readlink', '/proc/self/ns/net'],
             'mountns': ['readlink', '/proc/self/ns/mnt']}.items()}
-        require('Connected to ' + RADIOS['wlan0'] in peer['link'], 'Wrong AP')
+        require('Connected to ' + RADIOS[AP_IF] in peer['link'], 'Wrong AP')
         require('default' not in peer['routes'] and CLIENT_ADDRESS + '/24' in peer['addresses'],
                 'Client isolation differs from plan')
         require(peer['netns'].strip() != os.readlink('/proc/self/ns/net') and
@@ -434,17 +534,29 @@ class Fixture:
         def restore_radios():
             # Namespace teardown can return its radio asynchronously after 20 s.
             # Keep this inside the independently bounded ten-minute cleanup.
-            deadline = time.monotonic() + 60
+            package10 = self.state.get('package10') is True
+            deadline = time.monotonic() + (30 if package10 else 60)
             found = {}
             while time.monotonic() < deadline:
                 found = {p.read_text().strip(): p.parent.name
-                         for p in Path('/sys/class/net').glob('*/address')}
+                         for p in NET_SYSFS.glob('*/address')}
                 if all(mac in found for mac in RADIOS.values()):
                     break
                 time.sleep(.2)
+            if package10 and RADIOS['wlan0'] not in found:
+                self.rebind_sdio_radio()
+            if package10 and RADIOS['wlan2'] not in found:
+                self.rebind_usb_radio()
+                deadline = time.monotonic() + 30
+                while time.monotonic() < deadline:
+                    found = {p.read_text().strip(): p.parent.name
+                             for p in NET_SYSFS.glob('*/address')}
+                    if all(mac in found for mac in RADIOS.values()):
+                        break
+                    time.sleep(.2)
             require(all(mac in found for mac in RADIOS.values()), 'Radio did not return')
             if self.state.get('client_unmanaged'):
-                self.cmd(['nmcli', 'device', 'set', found[RADIOS['wlan2']], 'managed', 'yes'])
+                self.cmd(['nmcli', 'device', 'set', found[RADIOS[CLIENT_IF]], 'managed', 'yes'])
             for mac, before in self.state['radio'].items():
                 self.cmd(['iw', 'dev', found[mac], 'set', 'power_save', before['power_save']])
                 self.settle(lambda: self.value('nmcli', '-g', 'GENERAL.STATE', 'device', 'show',
@@ -508,8 +620,10 @@ def main():
     if args.command == 'client':
         # Existing qualified namespace worker has no USB, job or host-role action.
         import phase11_4_hotspot as old
-        old.ROOT, old.CLIENT_IF = root, 'wlan2'
-        old.client(CLIENT_ADDRESS)
+        old.ROOT, old.CLIENT_IF = root, CLIENT_IF
+        packet = json.loads((root / 'packet.json').read_text())
+        seconds = CLIENT_ASSOCIATION_SECONDS if package10_fixture(packet) else 20
+        old.client(CLIENT_ADDRESS, association_seconds=seconds)
     else:
         # One setup/cleanup actor globally, including independent timer cleanup.
         # Setup has a five-minute deadline; no lock is held by the client worker.

@@ -193,6 +193,10 @@ def tls_context(root, packet, role, alpn):
     cred = packet["credentials"][role]
     context = ssl.create_default_context(cafile=str(root / cred["ca"]))
     context.minimum_version = context.maximum_version = ssl.TLSVersion.TLSv1_3
+    group = packet.get("tls_key_exchange_group")
+    if group is not None:
+        require(group == "X25519", "Unreviewed TLS key-exchange group")
+        context.set_ecdh_curve(group)
     context.load_cert_chain(root / cred["cert"], root / cred["key"])
     context.set_alpn_protocols([alpn])
     return context
@@ -207,7 +211,8 @@ class NetworkPeer:
         self.number = 0
 
     def connect(self):
-        raw = socket.create_connection((ADDRESS, 18443), timeout=5)
+        raw = socket.create_connection((ADDRESS, 18443), timeout=
+                                       self.packet.get("normalizer_connect_timeout_seconds", 5))
         try:
             self.stream = tls_context(self.root, self.packet, "controller", "wtp/1").wrap_socket(
                 raw, server_hostname=HOSTNAME)
@@ -330,7 +335,7 @@ def wait_for_normalizer_readiness(root, packet, journal, session, label="initial
             request_number = peer.number
             peer.close()
             peer = None
-        time.sleep(2)
+        time.sleep(packet.get("normalizer_retry_seconds", 2))
     if peer is not None:
         peer.close()
     raise TimeoutError("Normalizer network/clock readiness deadline")
@@ -781,11 +786,17 @@ def run_normal_cycle(root, packet, journal, cycle, observer_stop):
             require(not stop.is_set() and not observer_stop.is_set() and
                     not failures and usb.failure is None,
                     "Normal workers before production")
+            environment = dict(os.environ, LD_PRELOAD=packet["observer"],
+                               PHASE115_TLS_LOG=str(tls))
+            if packet.get("production_openssl") is not None:
+                openssl = (root / packet["production_openssl"]).resolve(strict=True)
+                require(openssl.is_relative_to(root.resolve()), "Production OpenSSL config path")
+                environment["OPENSSL_CONF"] = str(openssl)
             process = subprocess.Popen([packet["binary"], "--backend", "wtp", "-i", str(ini),
                 "--socket-loopback-only", "--socket-loopback-family", "ipv4",
                 "--allow-unqualified-frequency", "--allow-non-amateur-frequency"],
                 cwd=root, stdout=output, stderr=subprocess.STDOUT,
-                env=dict(os.environ, LD_PRELOAD=packet["observer"], PHASE115_TLS_LOG=str(tls)))
+                env=environment)
             journal.emit("production_start", {"cycle": cycle, "pid": process.pid,
                 "target_utc_ns": target_utc_ns, "ini_sha256": digest(ini)})
             deadline = min(time.monotonic() + 12,
