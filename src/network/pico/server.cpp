@@ -365,7 +365,7 @@ void PicoServer::stop() {
         tls_owner = nullptr;
     }
 }
-void PicoServer::poll(bool link_up, std::string authority, bool allow_handshake_steps) {
+void PicoServer::poll(bool link_up, std::string authority, bool allow_http_steps) {
     const auto started = time_us_64();
     service_.poll();
     if (!link_up) {
@@ -393,14 +393,14 @@ void PicoServer::poll(bool link_up, std::string authority, bool allow_handshake_
     unsigned active = 0;
     for (std::size_t i = 0; i < connections_.size(); ++i) {
         auto& c = connections_[(turn_ + i) % connections_.size()];
-        c.poll(authority, allow_handshake_steps);
+        c.poll(authority, allow_http_steps);
         active += c.client_ != nullptr;
     }
     turn_ = (turn_ + 1) % connections_.size();
     metrics_.peak_active = std::max(metrics_.peak_active, active);
     metrics_.max_poll_us = std::max(metrics_.max_poll_us, time_us_64() - started);
 }
-void PicoServer::Connection::poll(std::string_view authority, bool allow_handshake_steps) {
+void PicoServer::Connection::poll(std::string_view authority, bool allow_http_steps) {
     if (peer_closed_) {
         // FIN/RST after an acknowledged HTTP response must not cancel its action.
         // TLS close_notify bytes are outside the HTTP acknowledgement boundary.
@@ -427,7 +427,7 @@ void PicoServer::Connection::poll(std::string_view authority, bool allow_handsha
     if (!handshake_) {
         // Timeout, closure and established traffic remain serviced while USB
         // gets its bounded opportunity to drain a queued diagnostic response.
-        if (!allow_handshake_steps)
+        if (!allow_http_steps)
             return;
         const auto clock = service_.clock_snapshot();
         if (clock.state == wtp::ClockState::Unsynchronized || !clock.utc_now_ns) {
@@ -481,6 +481,11 @@ void PicoServer::Connection::poll(std::string_view authority, bool allow_handsha
             return;
         }
     }
+    // A queued multi-packet USB Console response gets a short bounded grace
+    // period from all HTTP TLS work, including an already established page
+    // response. Established WTP remains live for status and output authority.
+    if (!wtp_ && !allow_http_steps)
+        return;
     auto output = endpoint_.output();
     if (!wtp_) {
         if (response_offset_ < response_headers_.size()) {

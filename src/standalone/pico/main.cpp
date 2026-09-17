@@ -496,12 +496,12 @@ int main() {
             network.poll();
         service.poll();
         static wsprrypico::usb::ReplyPriority reply_priority;
-        const bool allow_handshake_steps = !reply_priority.defer_handshake(
+        const bool allow_http_steps = !reply_priority.defer_http(
             time_us_64(), wsprrypico::usb::console_output_pending());
         server.poll(network.link_up(),
                     network.ipv4() +
                         (server.port() == 443 ? "" : ":" + std::to_string(server.port())),
-                    allow_handshake_steps);
+                    allow_http_steps);
         service.poll();
         watchdog_hw->scratch[1] = 5;
 #ifdef WSPRRY_PICO_STANDALONE_RF

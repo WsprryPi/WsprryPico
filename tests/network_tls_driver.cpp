@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
         std::abort();
     fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
     bool link = true;
-    bool allow_handshake_steps = true;
+    bool allow_http_steps = true;
     std::string commands;
     std::cout << "READY " << server.port() << std::endl;
     while (!stopping) {
@@ -171,9 +171,13 @@ int main(int argc, char** argv) {
             else if (command == "LINK ON")
                 link = true;
             else if (command == "HANDSHAKE PAUSE")
-                allow_handshake_steps = false;
+                allow_http_steps = false;
             else if (command == "HANDSHAKE RESUME")
-                allow_handshake_steps = true;
+                allow_http_steps = true;
+            else if (command == "HTTP PAUSE")
+                allow_http_steps = false;
+            else if (command == "HTTP RESUME")
+                allow_http_steps = true;
             else if (command == "WRITE FRAGMENT")
                 mock_tcp_fragment_writes(true);
             else if (command == "WRITE NORMAL")
@@ -191,7 +195,7 @@ int main(int argc, char** argv) {
         }
         mock_tcp_poll();
         server.poll(link && network.enabled, address + ":" + std::to_string(server.port()),
-                    allow_handshake_steps);
+                    allow_http_steps);
         std::this_thread::sleep_for(std::chrono::microseconds(100));
     }
     server.stop();

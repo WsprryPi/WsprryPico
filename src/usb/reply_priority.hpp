@@ -3,12 +3,12 @@
 #include <cstdint>
 
 namespace wsprrypico::usb {
-// Let a multi-packet Console reply drain before the next expensive TLS step.
+// Let a multi-packet Console reply drain before the next HTTP TLS step.
 // An unread or continuously refilled Console gets at most 100 ms per second;
 // it cannot renew the grace period by alternating empty and pending states.
 class ReplyPriority {
   public:
-    bool defer_handshake(std::uint64_t now_us, bool pending) {
+    bool defer_http(std::uint64_t now_us, bool pending) {
         if (!pending)
             return false;
         if (!started_ || now_us - started_us_ >= kPeriodUs) {

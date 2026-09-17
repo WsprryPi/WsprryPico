@@ -242,6 +242,24 @@ try:
             assert ask('STATUS')['ok']
             control('HANDSHAKE RESUME')
             assert waiting.result(timeout=5)[0] == 200
+        # The same bounded USB-reply grace also pauses an established HTTP
+        # request/response, while the established WTP owner remains responsive.
+        with connect(context('other')) as paused_http:
+            paused_http.sendall(b'GET /api/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n')
+            control('HTTP PAUSE')
+            paused_http.sendall(b'\r\n')
+            paused_http.settimeout(.1)
+            try:
+                assert not paused_http.recv(1), 'Established HTTP progressed while paused'
+            except TimeoutError:
+                pass
+            assert ask('STATUS')['ok']
+            control('HTTP RESUME')
+            paused_http.settimeout(5)
+            response = b''
+            while chunk := paused_http.recv(4096):
+                response += chunk
+            assert response.startswith(b'HTTP/1.1 200'), response
         # Persistent WTP remains negotiated while independent certificates read HTTP.
         for _ in range(8):
             assert http(identity='other')[0] == 200
