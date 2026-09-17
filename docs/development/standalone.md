@@ -22,7 +22,10 @@ PIO/DMA GP2 engine. Only that image joins persistent schedules to physical RF.
 It advertises `pio-dma-gp2`; both images now expose finite `wspr`, `tone`, `qrss`,
 `fskcw` and `dfcw` host jobs using the shared experimental profile: 162 events,
 110.592 seconds, and 100 kHz through one Hz below half the selected sample rate.
-Autonomous schedules retain the existing 80 m WSPR profile. The simulator's
+Autonomous schedules use the build-selected whole-Hz base frequency
+`WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ`, which defaults to the existing
+3,570,100 Hz profile. `STATUS` reports the selected base in nanohertz so a
+physical packet can bind its RF limit to the exact image. The simulator's
 numeric acceptance does not establish physical waveform representability.
 This is experimental scope, not supported-band or output-power qualification.
 See [host acceptance prerequisites](phase10-host-acceptance.md) for image selection,

@@ -44,7 +44,8 @@ UNIT_SUFFIXES = ('cleanup.timer', 'cleanup.service', 'client.service', 'dhcp.ser
 def runtime_budget(packet):
     schema = packet.get('schema')
     extended = schema in ('phase11.5-r3-v2-fixture-v1',
-                          'phase11.5-package7-fixture-v1')
+                          'phase11.5-package7-fixture-v1',
+                          'phase11.5-package8-fixture-v1')
     runtime = packet.get('network_runtime_seconds', RUN_SECONDS)
     restoration = packet.get('network_restoration_seconds', 600) if extended else 600
     require(type(runtime) is int and 0 < runtime <= (28800 if extended else RUN_SECONDS),
@@ -60,6 +61,12 @@ def runtime_budget(packet):
                 packet.get('standing_authority') == 'PHASE11.5-COMPLETION-20260915' and
                 runtime <= 7200 and restoration <= 900,
                 'Package 7 fixture authority/scope')
+    elif schema == 'phase11.5-package8-fixture-v1':
+        require(packet.get('family') == 'R5' and
+                packet.get('configuration_writes') in (2, 3) and
+                packet.get('standing_authority') == 'PHASE11.5-COMPLETION-20260915' and
+                runtime <= 7200 and restoration <= 900,
+                'Package 8 fixture authority/scope')
     return runtime, restoration
 
 
@@ -72,12 +79,19 @@ def fixture_wifi(root, packet, mdns, dns):
     retained_scope = ((packet.get('schema') in
                        ('phase11.5-r3-retained-fixture-v1', 'phase11.5-r3-v2-fixture-v1') and
                        packet.get('family') == 'R3') or
-                      (packet.get('schema') == 'phase11.5-package7-fixture-v1' and
-                       packet.get('family') == 'R4' and
+                      (packet.get('schema') in ('phase11.5-package7-fixture-v1',
+                                               'phase11.5-package8-fixture-v1') and
+                       packet.get('family') in ('R4', 'R5') and
                        packet.get('standing_authority') ==
                        'PHASE11.5-COMPLETION-20260915'))
-    require(retained_scope and packet.get('configuration_writes') == 0 and mdns and not dns,
-            'Retained Wi-Fi requires an explicit no-write lifecycle')
+    writes = packet.get('configuration_writes')
+    authorized_writes = ((packet.get('schema') != 'phase11.5-package8-fixture-v1' and
+                          writes == 0) or
+                         (packet.get('schema') == 'phase11.5-package8-fixture-v1' and
+                          writes in (2, 3)))
+    require(retained_scope and authorized_writes and
+            mdns and not dns,
+            'Retained Wi-Fi requires an authorized lifecycle')
     raw = (root / 'retained-wifi.json').read_bytes()
     require(hashlib.sha256(raw).hexdigest() == retained, 'Retained Wi-Fi input changed')
     value = json.loads(raw)

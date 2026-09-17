@@ -84,6 +84,20 @@ set(WSPRRY_PICO_RF_SAMPLE_RATE_HZ "138000000" CACHE STRING "Experimental bench c
 if(NOT WSPRRY_PICO_RF_SAMPLE_RATE_HZ MATCHES "^(132000000|138000000|150000000)$")
     message(FATAL_ERROR "Unsupported experimental RF sample clock")
 endif()
+set(WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ "3570100" CACHE STRING
+    "Autonomous standalone WSPR base frequency in whole Hz")
+if(NOT WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ MATCHES "^[0-9]+$")
+    message(FATAL_ERROR "Standalone WSPR base frequency must be whole Hz")
+endif()
+math(EXPR WSPRRY_PICO_STANDALONE_WSPR_MAX_BASE_HZ
+     "${WSPRRY_PICO_RF_SAMPLE_RATE_HZ} / 2 - 5")
+if(WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ LESS 100000 OR
+   WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ GREATER
+   WSPRRY_PICO_STANDALONE_WSPR_MAX_BASE_HZ)
+    message(FATAL_ERROR "Standalone WSPR base frequency is outside the RF profile")
+endif()
+target_compile_definitions(wsprrypico_core PUBLIC
+    WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ=${WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ})
 target_compile_definitions(wsprrypico_rf PUBLIC WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ})
 target_link_libraries(wsprrypico_rf PUBLIC wsprrypico_core)
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")

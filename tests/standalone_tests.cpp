@@ -152,8 +152,12 @@ void storage_tests() {
     MemoryFlash flash;
     standalone::Store store(flash);
     CHECK(store.load() && store.healthy() && !store.config());
+    CHECK(store.config_sequence() == 0 && store.config_offset() == 0 &&
+          store.config_record_size() == 2048 && store.cursor_sequence() == 0 &&
+          store.cursor_offset() == 0 && store.cursor_record_size() == 256);
     auto c = *standalone::parse_config(example);
     CHECK(store.save(c));
+    CHECK(store.config_sequence() == 1 && store.config_offset() == 0);
     // A checksum-valid record from the overlapping layout must not be
     // reinterpreted: its omitted newer watermark could permit replay.
     auto legacy = flash;
@@ -170,6 +174,7 @@ void storage_tests() {
     standalone::Store old_layout(legacy);
     CHECK(!old_layout.load() && !old_layout.save(c));
     CHECK(store.reserve(100));
+    CHECK(store.cursor_sequence() == 1 && store.cursor_offset() == 0);
     CHECK(!store.reserve(100) && !store.reserve(99));
     for (std::uint64_t i = 101; i < 180; ++i) {
         standalone::Store reboot(flash);
@@ -302,6 +307,11 @@ void live_config_tests() {
     Identity identities;
     wtp::JobService service(clock, engine, identities);
     standalone::Scheduler scheduler(store, service);
+    const auto storage = scheduler.command("STORAGE");
+    CHECK(storage.find("\"config\":{\"sequence\":\"1\",\"latest_offset\":0,") !=
+          std::string::npos);
+    CHECK(storage.find("\"watermark\":{\"sequence\":\"0\",\"latest_offset\":0,") !=
+          std::string::npos);
     auto current = *store.config();
     current.power_dbm = 20;
     const auto save = [&] {
@@ -363,7 +373,14 @@ void scheduler_tests() {
     CHECK(service.status().state == wtp::State::Armed && store.watermark() == start);
     CHECK(engine.prepared == 1 && engine.job.events.size() == 162);
     CHECK(engine.job.total_duration_ns == 110'592'000'000ULL);
-    CHECK(engine.job.events[0].frequency_nhz == 3'570'101'464'843'750ULL);
+    CHECK(engine.job.events[0].frequency_nhz ==
+          std::uint64_t{WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ} * ns +
+              1'464'843'750ULL);
+    CHECK(scheduler.status().find(
+              "\"schedule_base_frequency_nhz\":\"" +
+              std::to_string(
+                  std::uint64_t{WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ} * ns) +
+              "\"") != std::string::npos);
     CHECK(scheduler.command("CONFIG " + example).find("busy") != std::string::npos);
     for (int i = 0; i < 10; ++i)
         scheduler.poll();

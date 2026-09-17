@@ -24,6 +24,15 @@ class Journal {
     bool healthy() const {
         return healthy_;
     }
+    std::uint64_t sequence() const {
+        return sequence_;
+    }
+    std::size_t latest_offset() const {
+        return latest_;
+    }
+    std::size_t record_size() const {
+        return size_;
+    }
 
   private:
     Flash& flash_;
@@ -47,6 +56,24 @@ class Store {
     }
     bool healthy() const {
         return healthy_;
+    }
+    std::uint64_t config_sequence() const {
+        return config_.sequence();
+    }
+    std::size_t config_offset() const {
+        return config_.latest_offset();
+    }
+    std::size_t config_record_size() const {
+        return config_.record_size();
+    }
+    std::uint64_t cursor_sequence() const {
+        return cursor_.sequence();
+    }
+    std::size_t cursor_offset() const {
+        return cursor_.latest_offset();
+    }
+    std::size_t cursor_record_size() const {
+        return cursor_.record_size();
     }
 
   private:

@@ -11,7 +11,9 @@
 namespace wsprrypico::standalone {
 namespace {
 constexpr std::uint64_t ns = 1'000'000'000ULL;
-constexpr std::uint64_t frequency = 3'570'100'000'000'000ULL, spacing = 1'464'843'750ULL;
+constexpr std::uint64_t frequency =
+    std::uint64_t{WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ} * ns;
+constexpr std::uint64_t spacing = 1'464'843'750ULL;
 constexpr auto local_id = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 std::string id(std::uint64_t value) {
     char text[33];
@@ -156,6 +158,7 @@ std::string Scheduler::status() const {
            std::to_string(clock.monotonic_now_ns) + "\"" + ",\"sync_age_ns\":\"" +
            std::to_string(clock.sync_age_ns) + "\"" + ",\"station\":" + station +
            ",\"schedules\":" + schedules +
+           ",\"schedule_base_frequency_nhz\":\"" + std::to_string(frequency) + "\"" +
            ",\"engine\":" + wtp::json::quote(service_.config().capability_engine) +
            ",\"storage_healthy\":" + (store_.healthy() ? "true" : "false") +
            ",\"reboot_required\":" + (reboot_required_ ? "true" : "false") +
@@ -173,6 +176,15 @@ std::string Scheduler::status() const {
 std::string Scheduler::command(std::string_view line) {
     if (line == "STATUS")
         return status();
+    if (line == "STORAGE")
+        return "{\"ok\":true,\"healthy\":" + std::string(store_.healthy() ? "true" : "false") +
+               ",\"config\":{\"sequence\":\"" + std::to_string(store_.config_sequence()) +
+               "\",\"latest_offset\":" + std::to_string(store_.config_offset()) +
+               ",\"record_size\":" + std::to_string(store_.config_record_size()) +
+               "},\"watermark\":{\"sequence\":\"" +
+               std::to_string(store_.cursor_sequence()) + "\",\"latest_offset\":" +
+               std::to_string(store_.cursor_offset()) + ",\"record_size\":" +
+               std::to_string(store_.cursor_record_size()) + "}}\n";
     if (line == "STOP") {
         suspended_ = true;
         const auto current = service_.status();
