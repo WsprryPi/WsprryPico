@@ -31,6 +31,8 @@ watchdog_hw_t* watchdog_hw = &watchdog;
 static std::uint64_t now_us;
 static unsigned enables, disables, driver_polls, delivered_goodbyes, lost_goodbyes;
 static unsigned connect_calls;
+static unsigned leave_calls;
+static std::optional<int> forced_link_status;
 static bool power_failure;
 static std::vector<std::array<unsigned char, 4>> positive_addresses;
 static int mac_result;
@@ -137,10 +139,18 @@ int cyw43_arch_wifi_connect_async(const char*, const char*, int) {
     return 0;
 }
 int cyw43_tcpip_link_status(cyw43_t*, int) {
+    if (forced_link_status)
+        return *forced_link_status;
     const auto* station = &cyw43_state.netif[0];
     if (!netif_is_up(station) || !netif_is_link_up(station))
         return CYW43_LINK_DOWN;
     return ip4_addr_isany_val(*netif_ip4_addr(station)) ? CYW43_LINK_NOIP : CYW43_LINK_UP;
+}
+int cyw43_wifi_leave(cyw43_t* state, int interface) {
+    assert(state == &cyw43_state && interface == CYW43_ITF_STA);
+    ++leave_calls;
+    netif_set_link_down(&cyw43_state.netif[0]);
+    return 0;
 }
 int cyw43_wifi_pm(cyw43_t*, std::uint32_t) {
     return power_failure ? -1 : 0;
@@ -287,10 +297,25 @@ int main(int argc, char** argv) {
     active(network);
     expect_address(12);
     assert(connect_calls == joins_before_dhcp);
+    // A terminal join result must be cleared before retrying. This models an
+    // AP outage that leaves the driver reporting bad authentication even after
+    // the same AP and credentials return.
+    forced_link_status = CYW43_LINK_BADAUTH;
+    const auto joins_before_failed_reset = connect_calls;
+    const auto leaves_before_failed_reset = leave_calls;
+    network.poll();
+    assert(leave_calls == leaves_before_failed_reset + 1);
+    assert(connect_calls == joins_before_failed_reset);
+    advance(network, 999'999);
+    assert(connect_calls == joins_before_failed_reset);
+    forced_link_status.reset();
+    advance(network, 1);
+    assert(connect_calls == joins_before_failed_reset + 1);
+    assert(network.link_up());
     // Actual association loss must still reconnect once its deadline is due.
     netif_set_link_down(&cyw43_state.netif[0]);
-    network.poll();
-    assert(connect_calls == joins_before_dhcp + 1);
+    advance(network, 30'000'000);
+    assert(connect_calls == joins_before_failed_reset + 2);
     active(network);
     const auto before = now_us;
     const auto down = disables;

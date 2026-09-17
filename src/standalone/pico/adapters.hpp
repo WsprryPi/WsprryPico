@@ -74,6 +74,7 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     std::uint32_t resolution_failures_ = 0;
     std::string ssid_, password_;
     std::uint64_t next_connect_us_ = 0;
+    std::optional<std::uint64_t> reconnect_after_leave_us_;
     bool initialized_ = false, enabled_ = true;
     std::optional<bool> power_save_;
     std::optional<bool> pending_enabled_;

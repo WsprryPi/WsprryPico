@@ -292,14 +292,36 @@ void PicoNetwork::poll() {
         poll_schedule_.reset();
         // NOIP still has a working Wi-Fi association. DHCP may temporarily
         // clear the address after a NAK; rejoining here disrupts that exchange.
-        if (link != CYW43_LINK_NOIP && now >= next_connect_us_) {
+        if (link == CYW43_LINK_NOIP)
+            return;
+        if (reconnect_after_leave_us_) {
+            if (now < *reconnect_after_leave_us_)
+                return;
+            reconnect_after_leave_us_.reset();
             watchdog_hw->scratch[1] = 15;
             (void)cyw43_arch_wifi_connect_async(ssid_.c_str(), password_.c_str(),
                                                 CYW43_AUTH_WPA2_AES_PSK);
             next_connect_us_ = now + 30'000'000ULL;
+        } else if (now >= next_connect_us_) {
+            watchdog_hw->scratch[1] = 15;
+            if (link == CYW43_LINK_DOWN) {
+                (void)cyw43_arch_wifi_connect_async(ssid_.c_str(), password_.c_str(),
+                                                    CYW43_AUTH_WPA2_AES_PSK);
+                next_connect_us_ = now + 30'000'000ULL;
+            } else {
+                // Failed and stalled joins can remain latched in the CYW43
+                // driver's join state.  A fresh join alone may then keep
+                // reporting the old failure after the AP returns.  Explicitly
+                // disassociate and give its event one second of poll time
+                // before starting the next bounded attempt.
+                (void)cyw43_wifi_leave(&cyw43_state, CYW43_ITF_STA);
+                reconnect_after_leave_us_ = now + 1'000'000ULL;
+                next_connect_us_ = now + 31'000'000ULL;
+            }
         }
         return;
     }
+    reconnect_after_leave_us_.reset();
     if (!server_literal_) {
         resolve_server(now);
         if (!lookup_.ready())
@@ -366,6 +388,7 @@ bool PicoNetwork::set_enabled(bool enabled) {
             return false;
         }
         next_connect_us_ = 0;
+        reconnect_after_leave_us_.reset();
         poll_schedule_.reset();
     } else {
         lookup_.link(false);

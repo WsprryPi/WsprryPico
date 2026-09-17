@@ -20,6 +20,14 @@ class JoinDiagnosticTests(unittest.TestCase):
         for changed in (dict(network_join_diagnostics=True),dict(network_join_diagnostics='unknown'),
                         dict(family='R2'),dict(schema='other'),dict(configuration_writes=1)):
             with self.assertRaises(ValueError):selected(p|changed)
+        r5=dict(network_join_diagnostics=POLICY,schema='phase11.5-package8-fixture-v1',
+                family='R5',configuration_writes=2,
+                standing_authority='PHASE11.5-COMPLETION-20260915')
+        self.assertTrue(selected(r5))
+        self.assertTrue(selected(r5|dict(configuration_writes=3)))
+        for changed in (dict(family='R4'),dict(configuration_writes=0),
+                        dict(standing_authority='other')):
+            with self.assertRaises(ValueError):selected(r5|changed)
 
     def test_journal_retains_target_interface_and_host_identity(self):
         entry=self.entry();raw='\n'.join(json.dumps(r) for r in (entry,self.entry('wlan1: management event')))

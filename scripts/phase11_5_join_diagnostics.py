@@ -8,9 +8,13 @@ CAPTURE_FILTER='arp or udp port 67 or udp port 68 or udp port 5353 or udp port 1
 
 def selected(packet):
     value=packet.get('network_join_diagnostics')
-    require(value is None or (value==POLICY and packet.get('schema') in
-            ('phase11.5-r3-retained-fixture-v1','phase11.5-r3-v2-fixture-v1')
-            and packet.get('family')=='R3' and packet.get('configuration_writes')==0),
+    r3 = (packet.get('schema') in
+          ('phase11.5-r3-retained-fixture-v1','phase11.5-r3-v2-fixture-v1') and
+          packet.get('family')=='R3' and packet.get('configuration_writes')==0)
+    r5 = (packet.get('schema')=='phase11.5-package8-fixture-v1' and
+          packet.get('family')=='R5' and packet.get('configuration_writes') in (2,3) and
+          packet.get('standing_authority')=='PHASE11.5-COMPLETION-20260915')
+    require(value is None or (value==POLICY and (r3 or r5)),
             'Unreviewed network diagnostic scope')
     return value is not None
 

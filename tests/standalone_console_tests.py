@@ -11,7 +11,7 @@ import standalone_console
 
 class ConsoleTests(unittest.TestCase):
     def test_no_device_io_without_opt_in(self):
-        for action in ('info', 'netlink'):
+        for action in ('info', 'storage', 'netlink'):
             with self.subTest(action=action):
                 result = subprocess.run([sys.executable, standalone_console.__file__, action,
                                          '--port', '/missing-device', '--device-id', 'test'],
