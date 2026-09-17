@@ -192,18 +192,13 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     service_.poll();
     if (r.method == "GET") {
         if (auto asset = web_asset(r.path)) {
-            // The target streams this single paged body through body_at(). It
-            // no longer builds two additional full HTTP wire strings. Reserve
-            // the body plus bounded header/allocator overhead, while retaining
-            // memory_admitted's independent 32 KiB authority/RF reserve.
-            if (!memory_admitted(asset->body.size() + 4096))
+            // Generated assets live in flash for the process lifetime. Stream
+            // the immutable bytes directly rather than copying a full page
+            // into heap while WTP and RF state are resident. Preserve bounded
+            // transport/header scratch plus the independent authority reserve.
+            if (!memory_admitted(4096))
                 return http_error(503, "resource_exhausted");
-            wtp::OutputBuffer output;
-            if (!output.reserve(asset->body.size()) ||
-                !output.append({reinterpret_cast<const std::uint8_t*>(asset->body.data()),
-                                asset->body.size()}))
-                return http_error(503, "resource_exhausted");
-            return {200, {}, std::string(asset->type), {}, std::move(output)};
+            return {200, {}, std::string(asset->type), {}, {}, asset->body};
         }
         if (r.path == "/api/v1/capabilities") {
             Request request;

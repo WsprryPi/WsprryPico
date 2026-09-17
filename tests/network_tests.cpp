@@ -189,17 +189,23 @@ void streamed_asset_admission() {
     Fixture f;
     const auto asset = network::web_asset("/");
     REQUIRE(asset && asset->body.size() > 16384);
-    // Enough memory for the actual streamed response and authority reserve,
-    // but not for the obsolete three-full-copies estimate.
-    available_asset_memory = asset->body.size() + 4096 + 32768;
+    // The generated asset is immutable static storage. Only bounded transport
+    // scratch and the independent authority reserve consume target heap.
+    // BrowserApi's common request gate retains 16 KiB of processing scratch;
+    // that is the controlling bound for this zero-body GET.
+    available_asset_memory = 16384 + 32768;
     wtp::available_memory = []() -> std::size_t { return available_asset_memory; };
     const auto allocator = wtp::allocate_input;
+    asset_allocation_calls = 0;
     wtp::allocate_input = [](std::size_t size) -> void* {
-        return size <= 4096 ? std::malloc(size) : nullptr;
+        ++asset_allocation_calls;
+        return std::malloc(size);
     };
     {
         const auto response = f.api.handle(request("GET", "/"), "cert", "127.0.0.1:8443");
         REQUIRE(response.status == 200 && response.body_size() == asset->body.size());
+        REQUIRE(response.static_body.data() == asset->body.data());
+        REQUIRE(response.buffered_body.empty() && response.body.empty());
         std::string delivered;
         for (std::size_t offset = 0; offset < response.body_size();) {
             const auto chunk = response.body_at(offset).first(
@@ -212,16 +218,13 @@ void streamed_asset_admission() {
                     "Content-Length: " + std::to_string(asset->body.size()) + "\r\n") !=
                 std::string::npos);
     }
+    REQUIRE(asset_allocation_calls == 0);
     --available_asset_memory;
     REQUIRE(f.api.handle(request("GET", "/"), "cert", "127.0.0.1:8443").status == 503);
     ++available_asset_memory;
-    asset_allocation_calls = 0;
-    wtp::allocate_input = [](std::size_t size) -> void* {
-        return ++asset_allocation_calls == 3 ? nullptr : std::malloc(size);
-    };
-    const auto refused = f.api.handle(request("GET", "/"), "cert", "127.0.0.1:8443");
-    REQUIRE(asset_allocation_calls == 3 && refused.status == 503 && refused.buffered_body.empty());
-    REQUIRE(refused.body == "{\"error\":{\"code\":\"resource_exhausted\"}}");
+    const auto direct = f.api.handle(request("GET", "/"), "cert", "127.0.0.1:8443");
+    REQUIRE(direct.status == 200 && direct.static_body == asset->body);
+    REQUIRE(asset_allocation_calls == 0);
     wtp::allocate_input = allocator;
     REQUIRE(f.api.handle(request("GET", "/"), "cert", "127.0.0.1:8443").body_text() == asset->body);
     REQUIRE(f.service.status().state == wtp::State::Empty && !f.service.status().output_active);

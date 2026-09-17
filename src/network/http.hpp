@@ -29,10 +29,20 @@ struct HttpResponse {
     std::string type = "application/json";
     std::string etag;
     wtp::OutputBuffer buffered_body{};
+    // Generated browser assets have static storage duration. Borrowing those
+    // bytes lets the target stream them from flash without a same-size heap
+    // copy while another authenticated connection remains active.
+    std::string_view static_body{};
     std::size_t body_size() const {
+        if (!static_body.empty())
+            return static_body.size();
         return buffered_body.empty() ? body.size() : buffered_body.size();
     }
     std::span<const std::uint8_t> body_at(std::size_t offset) const {
+        if (!static_body.empty())
+            return std::span(reinterpret_cast<const std::uint8_t*>(static_body.data()),
+                             static_body.size())
+                .subspan(offset);
         if (!buffered_body.empty())
             return buffered_body.at(offset);
         return std::span(reinterpret_cast<const std::uint8_t*>(body.data()), body.size())

@@ -35,7 +35,7 @@ MANAGEMENT = '90:de:80:47:b9:da'
 ETHERNET = '2c:cf:67:62:76:64'
 HOST_BOOT = '220e53ca-ca95-4206-9581-dbe28aa1eeb8'
 MANAGEMENT_PROFILE = '921301fe-cdfd-4965-8ac7-c96e9d908ea6'
-INSTALLED_SHA = 'c19461bc6d2ebe7cae61798ad9acae8d43dfbec3ee57c288e4ef41e9c82b8273'
+INSTALLED_SHA = '0dcc2868e68a5ea7e38072818ae15d70cb9630e9d0212993db11b587d36a15f2'
 RUN_SECONDS = 21000  # 5 h 50 min; last ten minutes reserved for host restoration.
 UNIT_SUFFIXES = ('cleanup.timer', 'cleanup.service', 'client.service', 'dhcp.service',
                  'capture-ap.service', 'capture-client.service', 'campaign.service', 'time-local.service')
@@ -45,7 +45,8 @@ def runtime_budget(packet):
     schema = packet.get('schema')
     extended = schema in ('phase11.5-r3-v2-fixture-v1',
                           'phase11.5-package7-fixture-v1',
-                          'phase11.5-package8-fixture-v1')
+                          'phase11.5-package8-fixture-v1',
+                          'phase11.5-package9-fixture-v1')
     runtime = packet.get('network_runtime_seconds', RUN_SECONDS)
     restoration = packet.get('network_restoration_seconds', 600) if extended else 600
     require(type(runtime) is int and 0 < runtime <= (28800 if extended else RUN_SECONDS),
@@ -67,6 +68,11 @@ def runtime_budget(packet):
                 packet.get('standing_authority') == 'PHASE11.5-COMPLETION-20260915' and
                 runtime <= 7200 and restoration <= 900,
                 'Package 8 fixture authority/scope')
+    elif schema == 'phase11.5-package9-fixture-v1':
+        require(packet.get('family') == 'R6' and packet.get('configuration_writes') == 0 and
+                packet.get('standing_authority') == 'PHASE11.5-COMPLETION-20260915' and
+                runtime <= 5400 and restoration <= 900,
+                'Package 9 fixture authority/scope')
     return runtime, restoration
 
 
@@ -80,8 +86,9 @@ def fixture_wifi(root, packet, mdns, dns):
                        ('phase11.5-r3-retained-fixture-v1', 'phase11.5-r3-v2-fixture-v1') and
                        packet.get('family') == 'R3') or
                       (packet.get('schema') in ('phase11.5-package7-fixture-v1',
-                                               'phase11.5-package8-fixture-v1') and
-                       packet.get('family') in ('R4', 'R5') and
+                                               'phase11.5-package8-fixture-v1',
+                                               'phase11.5-package9-fixture-v1') and
+                       packet.get('family') in ('R4', 'R5', 'R6') and
                        packet.get('standing_authority') ==
                        'PHASE11.5-COMPLETION-20260915'))
     writes = packet.get('configuration_writes')
