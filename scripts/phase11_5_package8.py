@@ -23,12 +23,12 @@ from rf_wtp import WtpPeer
 from validate_wtp_contract import frame
 
 
-SOURCE = "71d8f5b174d227ec4ecbbfbda594b5edc19a7313"
-IMAGE = "9ec4b084822dc5d6bf54bac3798ea178051162d5aea45b83255503eee681cbd7"
+SOURCE = "7c5296471250cc06416c79a73c9627aed0eb3624"
+IMAGE = "c73e0714572cb0edd7f3ba4c6c0c9e3b3a8ac500aca7a7edea23fc4b32cb9e87"
 SERIAL = "0BF4B4AEC9FFB344"
 DEVICE = "fd6127d11d6aca42a9905fa3fb1bf1d5"
 B_BOOT = "6684b4b197d80cfa0ce83b3aaf205cb0"
-DEPLOYED_BOOT = "3609966a45a282631fb9e38884724d25"
+DEPLOYED_BOOT = "61130461c14d4fb9297684539d4ebd45"
 HOST_BOOT = "220e53ca-ca95-4206-9581-dbe28aa1eeb8"
 HOSTNAME = "wsprrypico-0a60df.local"
 PEER_SHA = "06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016"
@@ -99,6 +99,26 @@ def validate(packet):
         "prior_attempt_rf_submissions": 0,
         "additional_rf_jobs": 0,
         "additional_rf_duration_ns": 0}, "Exact Package 8 corrective amendment")
+    require(packet.get("execution_history") == {
+        "prior_attempts": [
+            {"packet_sha256":
+             "44918000c592b5348179fbafb5d96432efd2a577f6c1f5b3b9d7fcf8e853724d",
+             "disposition": "pre-claim-harness-failure", "rf_jobs": 0,
+             "rf_duration_ns": 0},
+            {"packet_sha256":
+             "7248629e1c08d45571598f101da4f3687ea062680a4ed86e9e2ea2e6c9a6a5e3",
+             "disposition": "address-recovery-failure", "rf_jobs": 1,
+             "rf_duration_ns": 240_000_000_000}],
+        "repair_deployment": {
+            "packet_sha256":
+            "45cdcb5c276498b5720a8745b0c8b76af255ad967ebb63445919f1b4d2c28324",
+            "source_revision": SOURCE, "image_sha256": IMAGE,
+            "boot_id": DEPLOYED_BOOT, "flashes": 1, "bootsel": 1},
+        "aggregate_after_planned_success": {
+            "rf_jobs": 3, "rf_duration_ns": 590_592_000_000,
+            "configuration_writes": 2, "controlled_reboots": 1,
+            "flashes": 2, "bootsel": 2}},
+        "Exact Package 8 attempt and repair accounting")
     return packet
 
 
@@ -174,8 +194,8 @@ def header(headers, name):
     return next((value for key, value in headers.items() if key.lower() == name.lower()), None)
 
 
-def http(root, packet, journal, address, method, path, body=None, headers=None,
-         allow_disconnect=False):
+def https_request(root, packet, journal, address, method, path, body=None, headers=None,
+                  allow_disconnect=False):
     encoded = b"" if body is None else json.dumps(body, separators=(",", ":")).encode()
     request_headers = {"Host": f"{HOSTNAME}:18443", "Connection": "close"}
     if method != "GET":
@@ -362,7 +382,7 @@ def run_network(root, packet):
         post.close()
         require(post_status["state"] == "complete" and post_status["output_active"] is False,
                 "Authenticated WTP recovery")
-        code, _, web = http(root, packet, journal, NEW_ADDRESS, "GET", "/api/v1/status")
+        code, _, web = https_request(root, packet, journal, NEW_ADDRESS, "GET", "/api/v1/status")
         require(code == 200 and web["job"]["boot_id"] == DEPLOYED_BOOT and
                 web["job"]["output_active"] is False, "Authenticated HTTPS recovery")
         after = {name: inv(root, packet, "network" + suffix + "-final-" + name, name == "b")
@@ -388,6 +408,106 @@ def run_network(root, packet):
         journal.close()
 
 
+def run_network_finalize(root, packet):
+    continuation_path = root / "network-finalize-packet.json"
+    continuation = json.loads(continuation_path.read_text())
+    require(continuation == {
+        "schema": "phase11.5-package8-network-finalize-v1",
+        "standing_authority": "PHASE11.5-COMPLETION-20260915",
+        "parent_packet_sha256": digest(root / "packet.json"),
+        "parent_failure": "post-recovery HTTPS helper name collision",
+        "helper_sha256": digest(Path(__file__)),
+        "limits": {"rf_jobs": 0, "rf_duration_ns": 0, "loads": 0, "arm": 0,
+                   "configuration_writes": 0, "controlled_reboots": 0,
+                   "flashes": 0, "bootsel": 0, "wifi_cycles": 0}},
+        "Exact zero-mutation Package 8 network continuation")
+    require(not (root / "network-result.json").exists(),
+            "Package 8 network result already exists")
+    rows = [json.loads(line) for line in (root / "network-run.jsonl").read_text().splitlines()]
+    statuses = [row for row in rows if row["kind"] == "usb_status"]
+    running = [row for row in statuses if row["value"]["state"] == "running"]
+    completed = [row for row in statuses if row["value"]["state"] == "complete"]
+    require(len(running) >= 50 and len(completed) == 1,
+            "Preserved Package 8 RF continuity/completion")
+    complete = completed[0]["value"]
+    terminal = [row for row in complete["terminal_records"]
+                if row["job_id"] == packet["network_job"]]
+    require(len(terminal) == 1 and terminal[0]["state"] == "complete" and
+            terminal[0]["output_active"] is False and complete["output_active"] is False,
+            "Preserved Package 8 terminal record")
+    recovered_rows = [row["value"] for row in rows if row["kind"] == "info_observation" and
+                      row["value"]["network"]["ipv4"] == NEW_ADDRESS and
+                      row["value"]["status"]["clock_state"] == "synchronized"]
+    require(recovered_rows and recovered_rows[-1]["network"]["link_status"] == 3 and
+            recovered_rows[-1]["network"]["control_listening"] is True and
+            recovered_rows[-1]["status"]["state"] == "complete" and
+            recovered_rows[-1]["status"]["output_active"] is False,
+            "Preserved Package 8 address/SNTP recovery")
+    post_status = [row["value"]["body"] for row in rows
+                   if row["kind"] == "network_message" and
+                   row["value"].get("session_id") == packet["post_network_session"] and
+                   row["value"].get("op") == "STATUS" and row["value"].get("ok") is True]
+    require(post_status and post_status[-1]["state"] == "complete" and
+            post_status[-1]["output_active"] is False,
+            "Preserved authenticated WTP recovery")
+    fixture_rows = [json.loads(line) for line in (root / "fixture.jsonl").read_text().splitlines()]
+    kinds = [row["kind"] for row in fixture_rows]
+    require(kinds.count("dhcp_binding_changed") == 1 and
+            kinds.count("external_link_down") == 1 and
+            kinds.count("external_link_restored") == 1,
+            "One preserved Package 8 network fault sequence")
+    journal = Journal(root / "network-finalize.jsonl")
+    reservation = None
+    try:
+        current = wait_info(journal, lambda i: i["network"]["ipv4"] == NEW_ADDRESS and
+                            i["network"]["link_status"] == 3 and
+                            i["status"]["clock_state"] == "synchronized" and
+                            i["status"]["state"] == "complete" and
+                            i["status"]["output_active"] is False,
+                            30, DEPLOYED_BOOT)
+        fixture = Fixture(root)
+        resolutions = []
+        for _ in range(2):
+            answer = fixture.in_client(["getent", "-s", "mdns4", "ahostsv4", HOSTNAME],
+                                       timeout=8)
+            addresses = sorted({line.split()[0] for line in answer.stdout.splitlines() if line})
+            require(addresses == [NEW_ADDRESS], "Native Package 8 name recovery")
+            resolutions.append(addresses)
+            time.sleep(1)
+        code, _, web = https_request(root, packet, journal, NEW_ADDRESS, "GET", "/api/v1/status")
+        require(code == 200 and web["job"]["boot_id"] == DEPLOYED_BOOT and
+                web["job"]["state"] == "complete" and
+                web["job"]["output_active"] is False,
+                "Authenticated HTTPS recovery")
+        before = {name: inv(root, packet, "network-finalize-before-" + name, name == "b")
+                  for name in ("a", "b")}
+        observed = time.monotonic_ns()
+        reservation = Reservation(digest(root / "packet.json"),
+                                  reconciliation=(before, observed))
+        after = {name: inv(root, packet, "network-finalize-final-" + name, name == "b")
+                 for name in ("a", "b")}
+        reservation.release(after)
+        save(root / "network-finalize-reservation-released.json",
+             json.loads(reservation.path.read_text()))
+        result = {"status": "accepted", "boot_id": DEPLOYED_BOOT,
+                  "job_id": packet["network_job"], "owner_id": packet["network_owner"],
+                  "planned_duration_ns": 240_000_000_000,
+                  "running_started_monotonic_ns": running[0]["monotonic_ns"],
+                  "running_usb_samples": len(running), "terminal": terminal[0],
+                  "recovered_ipv4": current["network"]["ipv4"],
+                  "native_resolutions": resolutions,
+                  "sntp_accepted": current["network"]["accepted"],
+                  "sntp_rejected": current["network"]["rejected"],
+                  "https_status": code,
+                  "continuation_packet_sha256": digest(continuation_path)}
+        save(root / "network-result.json", result)
+        journal.emit("network_pass", result)
+    finally:
+        if reservation is not None:
+            reservation.close()
+        journal.close()
+
+
 def schedule_occurrence(now_s):
     occurrence = ((int(now_s) + 359) // 120) * 120 + 1
     if occurrence - now_s < 240:
@@ -398,6 +518,249 @@ def schedule_occurrence(now_s):
 def storage_position(value):
     require(value["ok"] is True and value["healthy"] is True, "Healthy Package 8 storage")
     return value["config"]
+
+
+def storage_retry_packet(root):
+    path = root / "storage-retry-packet.json"
+    value = json.loads(path.read_text())
+    require(value.get("schema") == "phase11.5-package8-storage-retry-v1" and
+            value.get("standing_authority") == "PHASE11.5-COMPLETION-20260915" and
+            value.get("parent_packet_sha256") == digest(root / "packet.json") and
+            value.get("source_revision") == SOURCE and value.get("image_sha256") == IMAGE and
+            value.get("prior_boot_id") == DEPLOYED_BOOT and
+            value.get("current_boot_id") == "8af7e0f0f4cef61bcbf8d5f7173d4c78" and
+            value.get("prior_attempt") == {
+                "result": "observer-idle-timeout-before-autonomous-rf",
+                "rf_jobs": 0, "rf_duration_ns": 0, "configuration_writes": 2,
+                "controlled_reboots": 1,
+                "storage_run_sha256": digest(root / "storage-run.jsonl")} and
+            value.get("limits") == {"rf_jobs": 1, "rf_duration_ns": 110_592_000_000,
+                "loads": 0, "arm": 0, "time_commands": 0, "configuration_writes": 2,
+                "controlled_reboots": 1, "flashes": 0, "bootsel": 0,
+                "wifi_cycles": 0} and
+            value.get("storage_plan") == {"before_sequence": "70", "before_offset": 2048,
+                "record_size": 2048, "enabled_sequence": "71", "enabled_offset": 4096,
+                "restored_sequence": "72", "restored_offset": 6144,
+                "watermark_utc_ns": "1789606801000000000"} and
+            value.get("aggregate_after_planned_success") == {
+                "rf_jobs": 3, "rf_duration_ns": 590_592_000_000,
+                "configuration_writes": 4, "controlled_reboots": 2,
+                "flashes": 2, "bootsel": 2} and
+            value.get("helper_sha256") == digest(Path(__file__)) and
+            value.get("reservation_helper_sha256") ==
+                digest(root / "scripts/phase11_5_rf_reservation.py"),
+            "Exact bounded Package 8 storage retry")
+    sessions = [value.get(name) for name in
+                ("usb_session", "armed_network_session", "running_network_session")]
+    require(len(set(sessions)) == 3 and all(isinstance(item, str) and len(item) == 32 and
+            all(c in "0123456789abcdef" for c in item) for item in sessions),
+            "Distinct Package 8 retry identities")
+    return value, digest(path)
+
+
+def run_storage_retry(root, packet):
+    retry, retry_sha = storage_retry_packet(root)
+    journal = Journal(root / "storage-retry.jsonl")
+    reservation = None
+    current_boot = retry["current_boot_id"]
+    original_private = None
+    writes = 0
+    restored = False
+    try:
+        before = {name: inv(root, packet, "storage-retry-before-" + name, name == "b")
+                  for name in ("a", "b")}
+        observed = time.monotonic_ns()
+        old = Reservation(digest(root / "packet.json"), reconciliation=(before, observed),
+                          authorized_boot_changes={"a": (DEPLOYED_BOOT, current_boot)})
+        try:
+            old.release(before)
+            save(root / "storage-retry-parent-reservation-released.json",
+                 json.loads(old.path.read_text()))
+        finally:
+            old.close()
+        reservation = Reservation(retry_sha)
+        reservation.acquire(before)
+        save(root / "storage-retry-reservation-acquired.json",
+             json.loads(reservation.path.read_text()))
+        initial = storage_position(console(journal, "STORAGE", current_boot))
+        require(initial == {"sequence": "70", "latest_offset": 2048, "record_size": 2048},
+                "Package 8 retry starting journal position")
+        initial_info = console(journal, "INFO", current_boot)
+        require(initial_info["status"]["enabled"] is False and
+                initial_info["status"]["suspended"] is True and
+                initial_info["status"]["watermark_utc_ns"] ==
+                    retry["storage_plan"]["watermark_utc_ns"] and
+                initial_info["status"]["output_active"] is False,
+                "Package 8 failed attempt cleanup state")
+        code, headers, body = https_request(root, packet, journal, NEW_ADDRESS,
+                                             "GET", "/api/v1/config")
+        require(code == 200 and body["config"]["enabled"] is False and
+                body["config"]["station"] == {"callsign": "AA0NT", "locator": "EM18",
+                                                "power_dbm": 20} and
+                body["config"]["schedules"] == [{"period_s": 120, "phase_s": 0}],
+                "Package 8 retry retained baseline")
+        original = body["config"]
+        original_private = json.loads(json.dumps(original))
+        original_private["wifi"]["password"] = json.loads(
+            (root / "retained-wifi.json").read_text())["password"]
+        occurrence, phase = schedule_occurrence(time.time())
+        enabled = json.loads(json.dumps(original))
+        enabled.update(enabled=True, expires_utc_s=occurrence + 300,
+                       schedules=[{"period_s": 86400, "phase_s": phase}])
+        writes = 1
+        code, save_headers, saved = https_request(root, packet, journal, NEW_ADDRESS, "PUT",
+            "/api/v1/config", enabled, {"If-Match": header(headers, "ETag")})
+        require(code == 200 and saved["config"]["enabled"] is True and
+                saved.get("reboot_required") is False, "Package 8 retry enabled save")
+        rotated = storage_position(console(journal, "STORAGE", current_boot))
+        require(rotated == {"sequence": "71", "latest_offset": 4096, "record_size": 2048},
+                "Package 8 retry enabled journal position")
+        code, _, _ = https_request(root, packet, journal, NEW_ADDRESS, "POST",
+            "/api/v1/restart", {}, {"If-Match": header(save_headers, "ETag")}, True)
+        require(code in (None, 202), "Package 8 retry restart request")
+        first = wait_info(journal, lambda i: i["status"]["boot_id"] != current_boot, 30)
+        current_boot = first["status"]["boot_id"]
+        require(first["status"]["enabled"] is True and
+                first["status"]["suspended"] is False and
+                first["status"]["clock_state"] == "unsynchronized" and
+                first["status"]["watermark_utc_ns"] ==
+                    retry["storage_plan"]["watermark_utc_ns"] and
+                first["status"]["state"] == "empty" and
+                first["status"]["output_active"] is False,
+                "Package 8 retry boot admission gate")
+        synchronized = wait_info(journal, lambda i: i["network"]["ipv4"] == NEW_ADDRESS and
+                                 i["status"]["clock_state"] == "synchronized" and
+                                 i["status"]["enabled"] is True, 180, current_boot)
+        expected_job = "eeeeeeeeeeeeeeee" + f"{occurrence * 1_000_000_000:016x}"
+        with exclusive_port(Path(str(BASE) + "-if02")) as fd, \
+                (root / "storage-retry-usb-frames.jsonl").open("x") as wire, \
+                contextlib.redirect_stdout(wire):
+            usb = WtpPeer(fd, session=retry["usb_session"])
+            hello = usb.request("HELLO", {"versions": ["WTP/1"],
+                                "client_name": "phase11-5-package8-retry-observer",
+                                "client_version": "1"})
+            require(hello["device_id"] == DEVICE and hello["boot_id"] == current_boot,
+                    "Package 8 retry USB identity")
+            deadline = time.monotonic() + max(30, occurrence - time.time() + 130)
+            armed = running = complete = None
+            while time.monotonic() < deadline:
+                state = usb.request("STATUS", {})
+                journal.emit("retry_usb_status", state)
+                if state["state"] == "armed" and armed is None:
+                    require(state["owner_id"] == LOCAL_OWNER and state["job_id"] == expected_job and
+                            state["output_active"] is False, "Package 8 retry local Armed")
+                    armed = state
+                    durable = console(journal, "INFO", current_boot)
+                    require(durable["status"]["watermark_utc_ns"] ==
+                            str(occurrence * 1_000_000_000),
+                            "Package 8 retry durable watermark")
+                    observer = NetworkPeer(root, packet, journal, NEW_ADDRESS, current_boot,
+                                           retry["armed_network_session"]).connect()
+                    try:
+                        require(observer.ask("STATUS")["job_id"] == expected_job,
+                                "Package 8 retry network Armed observer")
+                    finally:
+                        observer.close()
+                    https_request(root, packet, journal, NEW_ADDRESS, "GET", "/api/v1/status")
+                elif state["state"] == "running" and running is None:
+                    require(state["owner_id"] == LOCAL_OWNER and state["job_id"] == expected_job and
+                            state["output_active"] is True, "Package 8 retry local Running")
+                    running = state
+                    position = storage_position(console(journal, "STORAGE", current_boot))
+                    rejected = console(journal, "CONFIG " + json.dumps(
+                        original_private, separators=(",", ":")), current_boot)
+                    require(rejected == {"ok": False, "error": "busy"} and
+                            storage_position(console(journal, "STORAGE", current_boot)) == position,
+                            "Package 8 retry busy write rejection")
+                    observer = NetworkPeer(root, packet, journal, NEW_ADDRESS, current_boot,
+                                           retry["running_network_session"]).connect()
+                    try:
+                        require(observer.ask("STATUS")["output_active"] is True,
+                                "Package 8 retry network Running observer")
+                    finally:
+                        observer.close()
+                    code, _, web = https_request(root, packet, journal, NEW_ADDRESS,
+                                                 "GET", "/api/v1/status")
+                    require(code == 200 and web["job"]["job_id"] == expected_job and
+                            web["job"]["output_active"] is True,
+                            "Package 8 retry HTTPS Running observer")
+                elif state["state"] == "complete":
+                    complete = state
+                    break
+                else:
+                    require(state["state"] in ("empty", "armed", "running"),
+                            "Unexpected Package 8 retry state")
+                time.sleep(.2)
+        require(armed is not None and running is not None and complete is not None and
+                complete["owner_id"] is None and complete["output_active"] is False,
+                "Package 8 retry autonomous lifecycle")
+        terminals = [row for row in complete["terminal_records"]
+                     if row["job_id"] == expected_job]
+        require(len(terminals) == 1 and terminals[0]["state"] == "complete" and
+                terminals[0]["output_active"] is False,
+                "Package 8 retry autonomous completion")
+        code, restore_headers, current = https_request(root, packet, journal, NEW_ADDRESS,
+                                                        "GET", "/api/v1/config")
+        require(code == 200 and current["config"]["enabled"] is True,
+                "Package 8 retry pre-restoration configuration")
+        writes = 2
+        code, _, restored_body = https_request(root, packet, journal, NEW_ADDRESS, "PUT",
+            "/api/v1/config", original, {"If-Match": header(restore_headers, "ETag")})
+        require(code == 200 and restored_body["config"] == original and
+                restored_body.get("reboot_required") is False,
+                "Package 8 retry API restoration")
+        restored = True
+        final_storage = storage_position(console(journal, "STORAGE", current_boot))
+        require(final_storage == {"sequence": "72", "latest_offset": 6144,
+                                  "record_size": 2048},
+                "Package 8 retry final journal position")
+        final_info = console(journal, "INFO", current_boot)
+        require(final_info["status"]["enabled"] is False and
+                final_info["status"]["watermark_utc_ns"] ==
+                    str(occurrence * 1_000_000_000) and
+                final_info["status"]["output_active"] is False and
+                final_info["status"]["schedule_base_frequency_nhz"] == BASE_NHZ,
+                "Package 8 retry final retained state")
+        after = {name: inv(root, packet, "storage-retry-final-" + name, name == "b")
+                 for name in ("a", "b")}
+        require(after["b"]["wtp"]["STATUS"]["boot_id"] == B_BOOT,
+                "Package 8 retry comparator unchanged")
+        reservation.release(after)
+        save(root / "storage-retry-reservation-released.json",
+             json.loads(reservation.path.read_text()))
+        result = {"status": "accepted", "prior_boot_id": retry["current_boot_id"],
+                  "boot_id": current_boot,
+                  "occurrence_utc_ns": str(occurrence * 1_000_000_000),
+                  "job_id": expected_job, "owner_id": LOCAL_OWNER,
+                  "planned_duration_ns": 110_592_000_000,
+                  "unsynchronized_observation": first["status"],
+                  "synchronized_observation": synchronized["status"],
+                  "storage_before": initial, "storage_rotated": rotated,
+                  "storage_restored": final_storage, "terminal": terminals[0],
+                  "final_status": final_info["status"], "configuration_writes": writes,
+                  "retry_packet_sha256": retry_sha}
+        save(root / "storage-result.json", result)
+        journal.emit("storage_retry_pass", result)
+    except BaseException:
+        if writes and not restored and original_private is not None:
+            try:
+                observed = console(journal, "INFO")
+                current_boot = observed["status"]["boot_id"]
+                (stopped := console(journal, "STOP", current_boot))
+                journal.emit("retry_cleanup_stop", stopped)
+                position = storage_position(console(journal, "STORAGE", current_boot))
+                if position["sequence"] != retry["storage_plan"]["restored_sequence"] and writes < 2:
+                    reply = console(journal, "CONFIG " + json.dumps(
+                        original_private, separators=(",", ":")), current_boot)
+                    journal.emit("retry_cleanup_restore", reply)
+            except BaseException as cleanup_error:
+                journal.emit("retry_cleanup_failure", {
+                    "type": type(cleanup_error).__name__, "message": str(cleanup_error)})
+        raise
+    finally:
+        if reservation is not None:
+            reservation.close()
+        journal.close()
 
 
 def run_storage(root, packet):
@@ -414,7 +777,7 @@ def run_storage(root, packet):
         initial = storage_position(console(journal, "STORAGE", DEPLOYED_BOOT))
         require(initial == {"sequence": "68", "latest_offset": 6144, "record_size": 2048},
                 "Package 8 live rotation starting position")
-        code, headers, body = http(root, packet, journal, NEW_ADDRESS, "GET", "/api/v1/config")
+        code, headers, body = https_request(root, packet, journal, NEW_ADDRESS, "GET", "/api/v1/config")
         require(code == 200 and body["config"]["enabled"] is False and
                 body["config"]["station"] == {"callsign": "AA0NT", "locator": "EM18",
                                                "power_dbm": 20} and
@@ -431,7 +794,7 @@ def run_storage(root, packet):
         enabled = json.loads(json.dumps(original))
         enabled.update(enabled=True, expires_utc_s=occurrence + 300,
                        schedules=[{"period_s": 86400, "phase_s": phase}])
-        code, save_headers, saved = http(root, packet, journal, NEW_ADDRESS, "PUT",
+        code, save_headers, saved = https_request(root, packet, journal, NEW_ADDRESS, "PUT",
             "/api/v1/config", enabled, {"If-Match": header(headers, "ETag")})
         require(code == 200 and saved["config"]["enabled"] is True and
                 saved["config"]["schedules"] == enabled["schedules"] and
@@ -442,8 +805,9 @@ def run_storage(root, packet):
         require(rotated == {"sequence": "69", "latest_offset": 0, "record_size": 2048},
                 "Package 8 journal bank crossing")
         old_watermark = console(journal, "INFO", DEPLOYED_BOOT)["status"]["watermark_utc_ns"]
-        code, _, response = http(root, packet, journal, NEW_ADDRESS, "POST", "/api/v1/restart",
-                                  {}, {"If-Match": header(save_headers, "ETag")}, True)
+        code, _, response = https_request(root, packet, journal, NEW_ADDRESS, "POST",
+                                          "/api/v1/restart", {},
+                                          {"If-Match": header(save_headers, "ETag")}, True)
         require(code in (None, 202), "Package 8 restart request")
         first = wait_info(journal, lambda i: i["status"]["boot_id"] != DEPLOYED_BOOT, 30)
         current_boot = first["status"]["boot_id"]
@@ -484,7 +848,7 @@ def run_storage(root, packet):
                             "Package 8 durable occurrence watermark")
                     require(network.ask("STATUS")["job_id"] == expected_job,
                             "Package 8 network WTP Armed observer")
-                    http(root, packet, journal, NEW_ADDRESS, "GET", "/api/v1/status")
+                    https_request(root, packet, journal, NEW_ADDRESS, "GET", "/api/v1/status")
                 elif state["state"] == "running" and running is None:
                     require(state["owner_id"] == LOCAL_OWNER and state["job_id"] == expected_job and
                             state["output_active"] is True, "Package 8 local Running authority")
@@ -499,8 +863,8 @@ def run_storage(root, packet):
                             "Package 8 busy write left journal unchanged")
                     require(network.ask("STATUS")["output_active"] is True,
                             "Package 8 network WTP Running observer")
-                    code, _, web = http(root, packet, journal, NEW_ADDRESS,
-                                         "GET", "/api/v1/status")
+                    code, _, web = https_request(root, packet, journal, NEW_ADDRESS,
+                                                 "GET", "/api/v1/status")
                     require(code == 200 and web["job"]["job_id"] == expected_job and
                             web["job"]["output_active"] is True,
                             "Package 8 HTTPS Running observer")
@@ -518,11 +882,11 @@ def run_storage(root, packet):
         terminals = [row for row in complete["terminal_records"] if row["job_id"] == expected_job]
         require(len(terminals) == 1 and terminals[0]["state"] == "complete" and
                 terminals[0]["output_active"] is False, "One autonomous completion")
-        code, restore_headers, current = http(root, packet, journal, NEW_ADDRESS,
-                                               "GET", "/api/v1/config")
+        code, restore_headers, current = https_request(root, packet, journal, NEW_ADDRESS,
+                                                       "GET", "/api/v1/config")
         require(code == 200 and current["config"]["enabled"] is True,
                 "Package 8 pre-restoration configuration")
-        code, _, restored_body = http(root, packet, journal, NEW_ADDRESS, "PUT",
+        code, _, restored_body = https_request(root, packet, journal, NEW_ADDRESS, "PUT",
             "/api/v1/config", original, {"If-Match": header(restore_headers, "ETag")})
         require(code == 200 and restored_body["config"] == original and
                 restored_body.get("reboot_required") is False, "Package 8 API restoration")
@@ -579,7 +943,8 @@ def run_storage(root, packet):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("network", "storage"))
+    parser.add_argument("action", choices=("network", "network-finalize", "storage",
+                                           "storage-retry"))
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--run", action="store_true")
     args = parser.parse_args()
@@ -598,6 +963,13 @@ def main():
             "Package 8 candidate identity record")
     if args.action == "network":
         run_network(root, packet)
+    elif args.action == "network-finalize":
+        run_network_finalize(root, packet)
+    elif args.action == "storage-retry":
+        require((root / "network-result.json").exists() and
+                (root / "storage-run.jsonl").exists(),
+                "Network closure and preserved failed storage evidence required")
+        run_storage_retry(root, packet)
     else:
         require((root / "network-result.json").exists(), "Network run must close before storage run")
         run_storage(root, packet)

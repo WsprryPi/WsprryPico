@@ -295,8 +295,21 @@ def validate_source_impact(root, result):
     ).decode().splitlines()
     require(first_names == P1_TO_P24_FILES and second_names == P24_TO_CURRENT_FILES,
             "Source-impact changed-file lists")
-    require(git_output(root, "diff", CURRENT_SOURCE, "--", "src", "firmware", "cmake") == b"",
-            "No production source drift after selected candidate")
+    later_names = git_output(
+        root, "diff", "--name-only", f"{CURRENT_SOURCE}..HEAD", "--",
+        "src", "firmware", "cmake").decode().splitlines()
+    if later_names:
+        require(later_names == ["src/standalone/pico/adapters.cpp",
+                                "src/standalone/pico/adapters.hpp",
+                                "src/standalone/scheduler.cpp",
+                                "src/standalone/storage.hpp"],
+                "Later production drift requires exact Package 8 review")
+        from audit_phase11_5_package8 import validate_result as validate_package8
+        package8 = json.loads((root / "docs/development/phase11-5-package8-result.json").read_text())
+        validate_package8(package8)
+        require(package8["source_impact"]["prior_candidate"] == CURRENT_SOURCE and
+                package8["source_impact"]["later_pico_runtime_source_changes"] == 0,
+                "Package 8 must carry Package 6 applicability forward")
     # Keep the Package 6 historical CMake assertion bound to its own closeout
     # commit. Later packages may add their own host-only test registrations.
     cmake_diff = git_output(
@@ -341,8 +354,11 @@ def validate(result, matrix, root):
     validate_inputs(values)
     validate_source_impact(root, result)
 
+    matrix_source = ("7c5296471250cc06416c79a73c9627aed0eb3624"
+                     if (root / "docs/development/phase11-5-package8-result.json").exists()
+                     else CURRENT_SOURCE)
     require(matrix["status"] == "OPEN" and matrix["accepted_configuration"] is None and
-            matrix["candidate_source"] == CURRENT_SOURCE and
+            matrix["candidate_source"] == matrix_source and
             all(matrix["family_status"][name] == expected_family_status[name]
                 for name in ("R1", "R2", "R3")) and
             all(name in matrix["family_status"] for name in ("R4", "R5", "R6")),

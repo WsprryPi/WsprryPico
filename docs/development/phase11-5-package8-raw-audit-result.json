@@ -1,0 +1,20 @@
+{
+  "schema": "phase11.5-package8-raw-audit-v1",
+  "status": "PASS",
+  "auditor_sha256": "f24bb0dc3a740946d63245fc84039584c2057a25c0fb5496853a49606f984091",
+  "raw_evidence_archive_sha256": "cfe88bd9cb8852640a4044fcd67b8baf240aaa8b546dd248bb5644df7adfd82b",
+  "evidence_files_bound": 21,
+  "deployments_verified": 2,
+  "failed_attempts_preserved": 3,
+  "network_rf_jobs_verified": 2,
+  "autonomous_rf_jobs_verified": 1,
+  "configuration_writes_verified": 4,
+  "controlled_reboots_verified": 2,
+  "source_impact_verified": true,
+  "reservation_chain_verified": true,
+  "final_inventories_verified": true,
+  "host_restoration_verified": true,
+  "capture_drop_count": 0,
+  "device_or_network_operations": 0,
+  "sanitized_result_sha256": "08cbadd4edb53f5e2fa21b6934c5ef24f5df702b92c9c7c73f239e7500b2778c"
+}

@@ -154,6 +154,29 @@ class Tests(unittest.TestCase):
             owner.release(values);owner.close()
             self.assertEqual(json.loads(path.read_text())['state'],'RELEASED')
 
+    def test_reconciliation_allows_only_exact_authorized_boot_transition(self):
+        original_read=Path.read_text
+        def read(path,*args,**kwargs):
+            return 'test-host-boot' if str(path)=='/proc/sys/kernel/random/boot_id' else original_read(path,*args,**kwargs)
+        with tempfile.TemporaryDirectory() as directory, patch.object(Path,'read_text',read):
+            path=Path(directory)/'reservation.json';before=snapshots()
+            owner=Reservation('a'*64,path);owner.acquire(before);owner.close()
+            after=copy.deepcopy(before)
+            after['a']['info']['status']['boot_id']='c'*32
+            after['a']['wtp']['HELLO']['boot_id']='c'*32
+            after['a']['wtp']['STATUS']['boot_id']='c'*32
+            transition={'a':('a'*32,'c'*32)}
+            for allowed in (None, {'a':('a'*32,'d'*32)}, {'b':('b'*32,'c'*32)},
+                            {'a':('a'*32,'c'*32), 'b':('b'*32,'d'*32)}):
+                with self.subTest(allowed=allowed),self.assertRaises(ValueError):
+                    Reservation('a'*64,path,reconciliation=(after,time.monotonic_ns()),
+                                authorized_boot_changes=allowed)
+                self.assertEqual(json.loads(path.read_text())['state'],'HELD')
+            owner=Reservation('a'*64,path,reconciliation=(after,time.monotonic_ns()),
+                              authorized_boot_changes=transition)
+            owner.release(after);owner.close()
+            self.assertEqual(json.loads(path.read_text())['state'],'RELEASED')
+
     def test_declared_complete_predecessor_only_before_load(self):
         from phase11_5_r3_v2_rf import observed_status, SERIAL_CAPACITY
         packet=dict(boot_id='boot',owner_id='owner',jobs=[dict(job_id='new')],

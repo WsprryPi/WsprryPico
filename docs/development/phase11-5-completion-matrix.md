@@ -1,6 +1,6 @@
 # Phase 11.5 completion matrix
 
-Status: **OPEN; R1-R4 closed in their recorded scope; R5-R6 open.**
+Status: **OPEN; R1-R5 closed in their recorded scope; R6 open.**
 
 Authority: [accepted September 15 request](phase11-5-completion-authorization-20260915.md).
 This current matrix supersedes stale current-state paragraphs in historical
@@ -9,8 +9,8 @@ The [machine matrix](phase11-5-completion-matrix.json) contains each assertion.
 
 ## Candidate and applicability
 
-Deployed A retains firmware 2b25ca05c270 in boot
-80d558e5804547749eca849c53ba27e1. The [current Package 2 result](phase11-5-event-pages-result.json)
+Deployed A retains firmware 7c5296471250 in boot
+f93fe05254d1523e50b16b0ad248a44a. The [current Package 2 result](phase11-5-event-pages-result.json)
 accepts 2.2a and 2.2b after paged event storage and direct WTP input-reservation
 observability. The [Package 3 result](phase11-5-package3-result.json) accepts
 2.2c–2.2f, 2.3a–2.3c and R3.BROWSER-MAX with current-image RF pressure and
@@ -36,7 +36,13 @@ previously missing R4 rows and confirms the applicability of the three inherited
 R4 rows. The [execution and adversarial review](phase11-5-package7-review.md)
 closes R4 with nine charged RF jobs / 213 planned RF seconds, preserves eleven
 failed-attempt directories, and records complete device and host restoration.
-Package 8 is next.
+The [Package 8 result](phase11-5-package8-result.json) and
+[execution/adversarial review](phase11-5-package8-review.md) accept all eight R5
+rows. The repaired current-image network cycle preserves RF through one external
+link loss and an actual address change, then restores native name, SNTP, WTP and
+HTTPS service. The storage/autonomy cycle proves retained-config reboot,
+unsynchronized admission, journal rotation, Running write lockout, autonomous
+completion, durable watermark and restoration. Package 9 and R6 are next.
 Earlier bd16bb1 results retain two finite completions with
 failed capacity workloads. B remains 8921a7008183. Both are Pico 2 W/RP2350 Arm,
 138 MHz/divider 1, GP2 PIO/DMA, RAM rendering and listener configured. No full
@@ -152,14 +158,14 @@ resource gates. Evidence links retain exact source/image/boot and raw hashes.
 | R4.acknowledged-loss | R4 | Acknowledged ARM, transport loss, local completion and original-session reconciliation | accepted/applicable | [phase11-5-r3-v2-validation-043.json](phase11-5-r3-v2-validation-043.json); [phase11-5-package7-result.json](phase11-5-package7-result.json); [phase11-5-package7-review.md](phase11-5-package7-review.md) | Package 7 closes this exact authority/interruption row; preserve its raw identity, failed attempts and recorded limits. | 7 |
 | R4.tcp-reset-eof | R4 | Distinct reset/EOF regression | accepted/applicable | [phase11-4-g4-g7-results.md](phase11-4-g4-g7-results.md); [phase11-5-package7-result.json](phase11-5-package7-result.json); [phase11-5-package7-review.md](phase11-5-package7-review.md) | Package 7 closes this exact authority/interruption row; preserve its raw identity, failed attempts and recorded limits. | 7 |
 | R4.resolver-failure | R4 | Resolver failure regression | accepted/applicable | [phase11-4-g4-g7-results.md](phase11-4-g4-g7-results.md); [phase11-5-package7-result.json](phase11-5-package7-result.json); [phase11-5-package7-review.md](phase11-5-package7-review.md) | Package 7 closes this exact authority/interruption row; preserve its raw identity, failed attempts and recorded limits. | 7 |
-| R5.link-loss | R5 | External isolated link loss during RF and restored service | missing | [phase11-4-three-radio-results.md](phase11-4-three-radio-results.md); [standalone-physical-validation.md](standalone-physical-validation.md); [standalone-rf-power-validation.md](standalone-rf-power-validation.md) | One bounded source-distinct cycle, independent authority and recovery | 8 |
-| R5.address | R5 | Actual lease/address change and certified-name recovery | missing | [phase11-4-three-radio-results.md](phase11-4-three-radio-results.md); [standalone-physical-validation.md](standalone-physical-validation.md); [standalone-rf-power-validation.md](standalone-rf-power-validation.md) | One bounded source-distinct cycle, independent authority and recovery | 8 |
-| R5.wifi | R5 | Idle Wi-Fi OFF/ON | accepted/applicable | [phase11-5-completion-terminal-storage-result.json](phase11-5-completion-terminal-storage-result.json); [phase11-5-memory-pressure-result.json](phase11-5-memory-pressure-result.json) | Prior 98f5797 cycles retained; one idle post-flash OFF/ON recovery is independently verified on 8dd6f08 with preserved state/configuration and recovered address/clock. Name/address change and full R5 remain separate. | 8 |
-| R5.dns-sntp | R5 | DNS/SNTP competition | missing | [phase11-4-three-radio-results.md](phase11-4-three-radio-results.md); [standalone-physical-validation.md](standalone-physical-validation.md); [standalone-rf-power-validation.md](standalone-rf-power-validation.md) | One bounded source-distinct cycle, independent authority and recovery | 8 |
-| R5.persistence | R5 | Ordinary API configuration persistence and worker lockout | missing | [phase11-4-three-radio-results.md](phase11-4-three-radio-results.md); [standalone-physical-validation.md](standalone-physical-validation.md); [standalone-rf-power-validation.md](standalone-rf-power-validation.md) | Reuse semantic background only. Inspect journal position, freeze writes and restoration reserve before storage mutation. | 8 |
-| R5.rotation | R5 | Smallest actual journal rotation and restored baseline | missing | [phase11-4-three-radio-results.md](phase11-4-three-radio-results.md); [standalone-physical-validation.md](standalone-physical-validation.md); [standalone-rf-power-validation.md](standalone-rf-power-validation.md) | Reuse semantic background only. Inspect journal position, freeze writes and restoration reserve before storage mutation. | 8 |
-| R5.time-admission | R5 | Autonomous time-validity admission | missing | [phase11-4-three-radio-results.md](phase11-4-three-radio-results.md); [standalone-physical-validation.md](standalone-physical-validation.md); [standalone-rf-power-validation.md](standalone-rf-power-validation.md) | One bounded source-distinct cycle, independent authority and recovery | 8 |
-| R5.schedule | R5 | Saved autonomous schedule preparation/completion with N/M; disable; watermark | missing | [phase11-4-three-radio-results.md](phase11-4-three-radio-results.md); [standalone-physical-validation.md](standalone-physical-validation.md); [standalone-rf-power-validation.md](standalone-rf-power-validation.md) | Reuse semantic background only. Inspect journal position, freeze writes and restoration reserve before storage mutation. | 8 |
+| R5.link-loss | R5 | External isolated link loss during RF and restored service | accepted/applicable | [phase11-5-package8-result.json](phase11-5-package8-result.json); [phase11-5-package8-review.md](phase11-5-package8-review.md) | Package 8 accepts the repaired 240-second current-image RF cycle with one 15-second external link loss, 10.77.15.10 to .20 lease change, native name recovery, authenticated WTP/HTTPS recovery and accepted SNTP samples. | 8 |
+| R5.address | R5 | Actual lease/address change and certified-name recovery | accepted/applicable | [phase11-5-package8-result.json](phase11-5-package8-result.json); [phase11-5-package8-review.md](phase11-5-package8-review.md) | Package 8 accepts the repaired 240-second current-image RF cycle with one 15-second external link loss, 10.77.15.10 to .20 lease change, native name recovery, authenticated WTP/HTTPS recovery and accepted SNTP samples. | 8 |
+| R5.wifi | R5 | Idle Wi-Fi OFF/ON | accepted/applicable | [phase11-5-completion-terminal-storage-result.json](phase11-5-completion-terminal-storage-result.json); [phase11-5-memory-pressure-result.json](phase11-5-memory-pressure-result.json); [phase11-5-package8-result.json](phase11-5-package8-result.json); [phase11-5-package8-review.md](phase11-5-package8-review.md) | Prior idle OFF/ON evidence remains applicable; Package 8 source review and repaired current-image reconnect cycle cover the changed network state without relabeling the earlier OFF/ON measurement. | 8 |
+| R5.dns-sntp | R5 | DNS/SNTP competition | accepted/applicable | [phase11-5-package8-result.json](phase11-5-package8-result.json); [phase11-5-package8-review.md](phase11-5-package8-review.md) | Package 8 accepts the repaired 240-second current-image RF cycle with one 15-second external link loss, 10.77.15.10 to .20 lease change, native name recovery, authenticated WTP/HTTPS recovery and accepted SNTP samples. | 8 |
+| R5.persistence | R5 | Ordinary API configuration persistence and worker lockout | accepted/applicable | [phase11-5-package8-result.json](phase11-5-package8-result.json); [phase11-5-package8-review.md](phase11-5-package8-review.md) | Package 8 accepts the bounded retained-config reboot, unsynchronized admission gate, journal rotation, Running write rejection, autonomous completion, durable watermark and restored disabled baseline. | 8 |
+| R5.rotation | R5 | Smallest actual journal rotation and restored baseline | accepted/applicable | [phase11-5-package8-result.json](phase11-5-package8-result.json); [phase11-5-package8-review.md](phase11-5-package8-review.md) | Package 8 accepts the bounded retained-config reboot, unsynchronized admission gate, journal rotation, Running write rejection, autonomous completion, durable watermark and restored disabled baseline. | 8 |
+| R5.time-admission | R5 | Autonomous time-validity admission | accepted/applicable | [phase11-5-package8-result.json](phase11-5-package8-result.json); [phase11-5-package8-review.md](phase11-5-package8-review.md) | Package 8 accepts the bounded retained-config reboot, unsynchronized admission gate, journal rotation, Running write rejection, autonomous completion, durable watermark and restored disabled baseline. | 8 |
+| R5.schedule | R5 | Saved autonomous schedule preparation/completion with N/M; disable; watermark | accepted/applicable | [phase11-5-package8-result.json](phase11-5-package8-result.json); [phase11-5-package8-review.md](phase11-5-package8-review.md) | Package 8 accepts the bounded retained-config reboot, unsynchronized admission gate, journal rotation, Running write rejection, autonomous completion, durable watermark and restored disabled baseline. | 8 |
 | R6.normal-load | R6 | 30 cumulative minutes N | missing | None | Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload | 9 |
 | R6.rf-budget | R6 | Finite demanding launches, at most 20 minutes RF | missing | None | Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload | 9 |
 | R6.windows | R6 | Three comparable post-warm-up resource windows | missing | None | Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload | 9 |

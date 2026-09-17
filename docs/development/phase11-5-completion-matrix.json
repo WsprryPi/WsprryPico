@@ -7,10 +7,10 @@
     "R2": "CLOSED 7/7 with recorded applicability",
     "R3": "CLOSED with Package 6 applicability review",
     "R4": "CLOSED with Package 7 authority/interruption evidence",
-    "R5": "OPEN",
+    "R5": "CLOSED with Package 8 network/storage/autonomous evidence",
     "R6": "OPEN"
   },
-  "candidate_source": "2b25ca05c270819466a04498f9bc4894a4c5bace",
+  "candidate_source": "7c5296471250cc06416c79a73c9627aed0eb3624",
   "assertions": [
     {
       "id": "R1.1",
@@ -565,18 +565,18 @@
       "id": "R5.link-loss",
       "group": "R5",
       "requirement": "External isolated link loss during RF and restored service",
-      "classification": "missing",
-      "evidence": "phase11-4-three-radio-results.md; standalone-physical-validation.md; standalone-rf-power-validation.md",
-      "remaining": "One bounded source-distinct cycle, independent authority and recovery",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-package8-result.json; phase11-5-package8-review.md",
+      "remaining": "Package 8 accepts the repaired 240-second current-image RF cycle with one 15-second external link loss, 10.77.15.10 to .20 lease change, native name recovery, authenticated WTP/HTTPS recovery and accepted SNTP samples.",
       "package": 8
     },
     {
       "id": "R5.address",
       "group": "R5",
       "requirement": "Actual lease/address change and certified-name recovery",
-      "classification": "missing",
-      "evidence": "phase11-4-three-radio-results.md; standalone-physical-validation.md; standalone-rf-power-validation.md",
-      "remaining": "One bounded source-distinct cycle, independent authority and recovery",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-package8-result.json; phase11-5-package8-review.md",
+      "remaining": "Package 8 accepts the repaired 240-second current-image RF cycle with one 15-second external link loss, 10.77.15.10 to .20 lease change, native name recovery, authenticated WTP/HTTPS recovery and accepted SNTP samples.",
       "package": 8
     },
     {
@@ -584,53 +584,53 @@
       "group": "R5",
       "requirement": "Idle Wi-Fi OFF/ON",
       "classification": "accepted/applicable",
-      "evidence": "phase11-5-completion-terminal-storage-result.json; phase11-5-memory-pressure-result.json",
-      "remaining": "Prior 98f5797 cycles retained; one idle post-flash OFF/ON recovery is independently verified on 8dd6f08 with preserved state/configuration and recovered address/clock. Name/address change and full R5 remain separate.",
+      "evidence": "phase11-5-completion-terminal-storage-result.json; phase11-5-memory-pressure-result.json; phase11-5-package8-result.json; phase11-5-package8-review.md",
+      "remaining": "Prior idle OFF/ON evidence remains applicable; Package 8 source review and repaired current-image reconnect cycle cover the changed network state without relabeling the earlier OFF/ON measurement.",
       "package": 8
     },
     {
       "id": "R5.dns-sntp",
       "group": "R5",
       "requirement": "DNS/SNTP competition",
-      "classification": "missing",
-      "evidence": "phase11-4-three-radio-results.md; standalone-physical-validation.md; standalone-rf-power-validation.md",
-      "remaining": "One bounded source-distinct cycle, independent authority and recovery",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-package8-result.json; phase11-5-package8-review.md",
+      "remaining": "Package 8 accepts the repaired 240-second current-image RF cycle with one 15-second external link loss, 10.77.15.10 to .20 lease change, native name recovery, authenticated WTP/HTTPS recovery and accepted SNTP samples.",
       "package": 8
     },
     {
       "id": "R5.persistence",
       "group": "R5",
       "requirement": "Ordinary API configuration persistence and worker lockout",
-      "classification": "missing",
-      "evidence": "phase11-4-three-radio-results.md; standalone-physical-validation.md; standalone-rf-power-validation.md",
-      "remaining": "Reuse semantic background only. Inspect journal position, freeze writes and restoration reserve before storage mutation.",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-package8-result.json; phase11-5-package8-review.md",
+      "remaining": "Package 8 accepts the bounded retained-config reboot, unsynchronized admission gate, journal rotation, Running write rejection, autonomous completion, durable watermark and restored disabled baseline.",
       "package": 8
     },
     {
       "id": "R5.rotation",
       "group": "R5",
       "requirement": "Smallest actual journal rotation and restored baseline",
-      "classification": "missing",
-      "evidence": "phase11-4-three-radio-results.md; standalone-physical-validation.md; standalone-rf-power-validation.md",
-      "remaining": "Reuse semantic background only. Inspect journal position, freeze writes and restoration reserve before storage mutation.",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-package8-result.json; phase11-5-package8-review.md",
+      "remaining": "Package 8 accepts the bounded retained-config reboot, unsynchronized admission gate, journal rotation, Running write rejection, autonomous completion, durable watermark and restored disabled baseline.",
       "package": 8
     },
     {
       "id": "R5.time-admission",
       "group": "R5",
       "requirement": "Autonomous time-validity admission",
-      "classification": "missing",
-      "evidence": "phase11-4-three-radio-results.md; standalone-physical-validation.md; standalone-rf-power-validation.md",
-      "remaining": "One bounded source-distinct cycle, independent authority and recovery",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-package8-result.json; phase11-5-package8-review.md",
+      "remaining": "Package 8 accepts the bounded retained-config reboot, unsynchronized admission gate, journal rotation, Running write rejection, autonomous completion, durable watermark and restored disabled baseline.",
       "package": 8
     },
     {
       "id": "R5.schedule",
       "group": "R5",
       "requirement": "Saved autonomous schedule preparation/completion with N/M; disable; watermark",
-      "classification": "missing",
-      "evidence": "phase11-4-three-radio-results.md; standalone-physical-validation.md; standalone-rf-power-validation.md",
-      "remaining": "Reuse semantic background only. Inspect journal position, freeze writes and restoration reserve before storage mutation.",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-package8-result.json; phase11-5-package8-review.md",
+      "remaining": "Package 8 accepts the bounded retained-config reboot, unsynchronized admission gate, journal rotation, Running write rejection, autonomous completion, durable watermark and restored disabled baseline.",
       "package": 8
     },
     {

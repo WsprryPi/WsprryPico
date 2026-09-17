@@ -2,9 +2,9 @@
 
 Current Phase 11.5 execution uses the [completion matrix](phase11-5-completion-matrix.md)
 and [September 15 standing authorization](phase11-5-completion-authorization-20260915.md).
-A's current firmware is `2b25ca05c270`, B's is `8921a7008183`; older candidate
+A's current firmware is `7c5296471250`, B's is `8921a7008183`; older candidate
 paragraphs below retain historical evidence identities. Phase 11.5 is OPEN at
-4/6 families: R1-R4 are closed and R5-R6 are open. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
+5/6 families: R1-R5 are closed and R6 is open. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
 passes retained LOAD/replay and P1 individual WTP/HTTP capacity during RF;
 the [Package 2 review](phase11-5-package2-review.md) accepts assertions 2.2a and
 2.2b after paged RF event storage and direct WTP-reservation observability. The
@@ -17,15 +17,17 @@ same-session pre-DTR silence and fresh DTR recovery. The earlier failed attempts
 remain retained. The [Package 5 review](phase11-5-package5-review.md) accepts all
 four replay/session/terminal/reclamation rows after eight maximum-event
 normalizers, three equivalent bounded-overload cycles and real terminal expiry.
-A's last authoritative state is inactive in boot
-`80d558e5804547749eca849c53ba27e1`; the host fixture is restored and both boards
-are Empty. Capacity/pressure and retention/reclamation execution groups are
+A's last authoritative state is Complete/inactive in boot
+`f93fe05254d1523e50b16b0ad248a44a`; the host fixture is restored and B is
+Empty/inactive. Capacity/pressure and retention/reclamation execution groups are
 closed. The [Package 6 review](phase11-5-package6-review.md) accepts all fourteen
 R3 groups, twenty-four mandatory rows and seven features after exact source-impact
 and evidence-applicability review. It closes R3 without new physical work. The
 [Package 7 review](phase11-5-package7-review.md) closes all 18 R4 rows using
-current-image authority, interruption and production-owner evidence; Package 8
-and R5 are next.
+current-image authority, interruption and production-owner evidence. The
+[Package 8 review](phase11-5-package8-review.md) closes all eight R5 rows with
+repaired network recovery, journal rotation, autonomous scheduling and full
+restoration evidence. Package 9 and R6 are next.
 
 
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).

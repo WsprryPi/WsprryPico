@@ -1,0 +1,162 @@
+{
+  "schema": "phase11.5-package8-result-v1",
+  "status": "PACKAGE8_COMPLETE_R5_CLOSED",
+  "phase11_5_status": "OPEN_5_OF_6_FAMILIES",
+  "accepted_configuration": null,
+  "family_status": {
+    "R1": "CLOSED",
+    "R2": "CLOSED",
+    "R3": "CLOSED",
+    "R4": "CLOSED",
+    "R5": "CLOSED",
+    "R6": "OPEN"
+  },
+  "accepted_rows": [
+    "R5.link-loss",
+    "R5.address",
+    "R5.wifi",
+    "R5.dns-sntp",
+    "R5.persistence",
+    "R5.rotation",
+    "R5.time-admission",
+    "R5.schedule"
+  ],
+  "candidate": {
+    "source_revision": "7c5296471250cc06416c79a73c9627aed0eb3624",
+    "image_sha256": "c73e0714572cb0edd7f3ba4c6c0c9e3b3a8ac500aca7a7edea23fc4b32cb9e87",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "initial_boot_id": "61130461c14d4fb9297684539d4ebd45",
+    "final_boot_id": "f93fe05254d1523e50b16b0ad248a44a",
+    "system_clock_hz": 138000000,
+    "engine": "pio-dma-gp2",
+    "renderer": "ram",
+    "schedule_base_frequency_nhz": "135500000000000"
+  },
+  "network": {
+    "job_id": "f0c02c551ced8fe0b300e3e0b0289d08",
+    "owner_id": "8c098429aa70df60f52d0f56ba3ea4eb",
+    "running_usb_samples": 1047,
+    "planned_duration_ns": 240000000000,
+    "address_change": [
+      "10.77.15.10",
+      "10.77.15.20"
+    ],
+    "external_link_loss_seconds": 15,
+    "native_resolutions": 2,
+    "sntp_accepted": 8,
+    "sntp_rejected": 0,
+    "https_status": 200,
+    "terminal": "complete"
+  },
+  "storage_and_autonomy": {
+    "job_id": "eeeeeeeeeeeeeeee18d5f6c6e1afea00",
+    "owner_id": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "planned_duration_ns": 110592000000,
+    "usb_samples": {
+      "empty": 1547,
+      "armed": 21,
+      "running": 462,
+      "complete": 1
+    },
+    "clock_gate": [
+      "unsynchronized",
+      "synchronized"
+    ],
+    "journal_sequences": [
+      "70",
+      "71",
+      "72"
+    ],
+    "running_config": "busy/no-write",
+    "network_states": [
+      "armed",
+      "running"
+    ],
+    "terminal": "complete",
+    "watermark_utc_ns": "1789607761000000000",
+    "restored_enabled": false,
+    "restored_suspended": false
+  },
+  "budget": {
+    "rf_jobs": 3,
+    "planned_rf_duration_ns": 590592000000,
+    "configuration_writes": 4,
+    "controlled_reboots": 2,
+    "flashes": 2,
+    "bootsel": 2,
+    "direct_loads_in_storage": 0,
+    "direct_arms_in_storage": 0,
+    "time_commands": 0,
+    "wifi_cycles": 0,
+    "deployments": [
+      {
+        "packet_sha256": "27b87b496585bb80371dee8302851bd813db2228e71b4bbdc9b9781fac7c5160",
+        "source_revision": "71d8f5b174d227ec4ecbbfbda594b5edc19a7313",
+        "image_sha256": "9ec4b084822dc5d6bf54bac3798ea178051162d5aea45b83255503eee681cbd7",
+        "boot_id": "3609966a45a282631fb9e38884724d25",
+        "flashes": 1,
+        "bootsel": 1
+      },
+      {
+        "packet_sha256": "45cdcb5c276498b5720a8745b0c8b76af255ad967ebb63445919f1b4d2c28324",
+        "source_revision": "7c5296471250cc06416c79a73c9627aed0eb3624",
+        "image_sha256": "c73e0714572cb0edd7f3ba4c6c0c9e3b3a8ac500aca7a7edea23fc4b32cb9e87",
+        "boot_id": "61130461c14d4fb9297684539d4ebd45",
+        "flashes": 1,
+        "bootsel": 1
+      }
+    ]
+  },
+  "failed_attempts": {
+    "pre_claim_harness_packet_sha256": "44918000c592b5348179fbafb5d96432efd2a577f6c1f5b3b9d7fcf8e853724d",
+    "address_recovery_packet_sha256": "7248629e1c08d45571598f101da4f3687ea062680a4ed86e9e2ea2e6c9a6a5e3",
+    "address_recovery_log_sha256": "2edfc16623899402c2e552494ed233767e1d465ef2e92193d1cf9983cf6fcc68",
+    "storage_observer_log_sha256": "1766ba75586a637d38fe4979fb0646ff9321535e43381b6233f71bc27113943c",
+    "storage_observer_rf_jobs": 0
+  },
+  "source_impact": {
+    "prior_candidate": "2b25ca05c270819466a04498f9bc4894a4c5bace",
+    "changed_files": [
+      "CMakeLists.txt",
+      "src/standalone/pico/adapters.cpp",
+      "src/standalone/pico/adapters.hpp",
+      "src/standalone/scheduler.cpp",
+      "src/standalone/storage.hpp"
+    ],
+    "diff_sha256": "6e724bf7ddfdb072008439fe2240eeba28e0c16d56b83b484a671b9b4aab79a6",
+    "decision": "R1-R4 remain applicable; Package 8 directly covers the new scheduler/storage diagnostics and network reconnect state. RF renderer, WTP authority, protocol limits and timing are unchanged.",
+    "later_pico_runtime_source_changes": 0
+  },
+  "restoration": {
+    "pico_a_inactive": true,
+    "pico_a_schedule_disabled": true,
+    "pico_b_unchanged_inactive": true,
+    "reservation_released": true,
+    "host_fixture_restored": true,
+    "capture_drops": 0
+  },
+  "raw_evidence_archive_sha256": "cfe88bd9cb8852640a4044fcd67b8baf240aaa8b546dd248bb5644df7adfd82b",
+  "evidence_sha256": {
+    "phase11-5-package8-20260916/network-attempt1-packet.json": "44918000c592b5348179fbafb5d96432efd2a577f6c1f5b3b9d7fcf8e853724d",
+    "phase11-5-package8-20260916/packet.json": "7248629e1c08d45571598f101da4f3687ea062680a4ed86e9e2ea2e6c9a6a5e3",
+    "phase11-5-package8-20260916/network-run.jsonl": "c57e1546ce8b177c3240887fad5d10baa386bf637f9665b01aabd75a815ca6d9",
+    "phase11-5-package8-20260916/network-run-attempt2.jsonl": "2edfc16623899402c2e552494ed233767e1d465ef2e92193d1cf9983cf6fcc68",
+    "phase11-5-package8-deploy2-20260916/packet.json": "27b87b496585bb80371dee8302851bd813db2228e71b4bbdc9b9781fac7c5160",
+    "phase11-5-package8-deploy2-20260916/deployment.json": "ef29468ec493f67ad28f38794d43b13ae4312473479c31cdadfab7f16f0f3655",
+    "phase11-5-package8-repair-deploy-20260916/packet.json": "45cdcb5c276498b5720a8745b0c8b76af255ad967ebb63445919f1b4d2c28324",
+    "phase11-5-package8-repair-deploy-20260916/deployment.json": "057297ba46e0ff55be5f32deb644a9a3a3f23e85ca73c6bfebf92a52668128a2",
+    "phase11-5-package8-repair-20260916/packet.json": "37d7405bdec781fd3dce9e854b2cdd8548b356f5c51e86d14e537646b12dfb01",
+    "phase11-5-package8-repair-20260916/network-run.jsonl": "e388615ae05a9347e30127e2beb7960d50458c454b6a0a4c72278a23f355be86",
+    "phase11-5-package8-repair-20260916/network-finalize.jsonl": "18d596555f7448f70a4703d18359b102b3bc06e57a141cad5366d213640d8292",
+    "phase11-5-package8-repair-20260916/network-result.json": "9cf0cdf4e11ae8b01993804b57e8e804f7ea2adb926cc5634eb66413c371cd3c",
+    "phase11-5-package8-repair-20260916/storage-run.jsonl": "1766ba75586a637d38fe4979fb0646ff9321535e43381b6233f71bc27113943c",
+    "phase11-5-package8-repair-20260916/storage-retry-packet.json": "de2a51816f1ae0e1588a0eccbdb8c3dc6076361ac251c40327bcd6c66efdfdf3",
+    "phase11-5-package8-repair-20260916/storage-retry.jsonl": "e10fa25abe9cec5bfff52c77ea26d4c70700ff9c4889cde49f8bf1fa45132239",
+    "phase11-5-package8-repair-20260916/storage-result.json": "7f1fb8fbcca668a50e7168a75f4928956391defae3894cebbf2d0398086c57ed",
+    "phase11-5-package8-repair-20260916/storage-retry-reservation-released.json": "277285d3b6327dc88d0ae8c09552dbd11fcaf120dd2497bffec60476a037ff23",
+    "phase11-5-package8-repair-20260916/storage-retry-final-a.stdout": "0f38c9fbbdaf0ab8a64ff4a63db6921c1bec73f115ab30c2d7eb0e84967ba4d2",
+    "phase11-5-package8-repair-20260916/storage-retry-final-b.stdout": "0f83af1c6f97bc2770a7425598b2cb653cfd2556902b17abfbcc5e9157de5248",
+    "phase11-5-package8-repair-20260916/fixture-state.json": "824951352495e4d07ae8a7c5497ce3703e09b395baa3593a09fc70f0fe9dbdac",
+    "phase11-5-package8-repair-20260916/fixture.jsonl": "0c4481f678648395e7bec2faf6a8a137a253c3f89f3a29d020984a4883ff86f2"
+  }
+}

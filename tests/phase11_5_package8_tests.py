@@ -1,11 +1,24 @@
 """No-hardware checks for the frozen Package 8 packet and schedule selection."""
 
+import json
+import hashlib
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import phase11_5_package8 as package8
+from audit_phase11_5_package8 import validate_result
+from adversarial_phase11_5_package8 import assess
+
+
+ROOT = Path(__file__).resolve().parents[1]
+RESULT_PATH = ROOT / "docs/development/phase11-5-package8-result.json"
+RAW_AUDIT_PATH = ROOT / "docs/development/phase11-5-package8-raw-audit-result.json"
+ADVERSARIAL_PATH = ROOT / "docs/development/phase11-5-package8-adversarial-result.json"
+MATRIX_PATH = ROOT / "docs/development/phase11-5-completion-matrix.json"
 
 
 class Package8Tests(unittest.TestCase):
@@ -29,6 +42,20 @@ class Package8Tests(unittest.TestCase):
                     storage_plan={"before_sequence": "68", "before_offset": 6144,
                         "record_size": 2048, "enabled_sequence": "69", "enabled_offset": 0,
                         "restored_sequence": "70", "restored_offset": 2048},
+                    execution_history={"prior_attempts": [
+                        {"packet_sha256": "44918000c592b5348179fbafb5d96432efd2a577f6c1f5b3b9d7fcf8e853724d",
+                         "disposition": "pre-claim-harness-failure", "rf_jobs": 0,
+                         "rf_duration_ns": 0},
+                        {"packet_sha256": "7248629e1c08d45571598f101da4f3687ea062680a4ed86e9e2ea2e6c9a6a5e3",
+                         "disposition": "address-recovery-failure", "rf_jobs": 1,
+                         "rf_duration_ns": 240_000_000_000}],
+                        "repair_deployment": {
+                            "packet_sha256": "45cdcb5c276498b5720a8745b0c8b76af255ad967ebb63445919f1b4d2c28324",
+                            "source_revision": package8.SOURCE, "image_sha256": package8.IMAGE,
+                            "boot_id": package8.DEPLOYED_BOOT, "flashes": 1, "bootsel": 1},
+                        "aggregate_after_planned_success": {"rf_jobs": 3,
+                            "rf_duration_ns": 590_592_000_000, "configuration_writes": 2,
+                            "controlled_reboots": 1, "flashes": 2, "bootsel": 2}},
                     **dict(zip(("network_session", "network_owner", "network_job", "usb_session",
                         "post_network_session", "schedule_usb_session", "schedule_network_session",
                         "inventory_session", "b_session"), identities)))
@@ -54,6 +81,98 @@ class Package8Tests(unittest.TestCase):
             self.assertGreaterEqual(occurrence - now, 240)
             self.assertEqual((occurrence - 1) % 120, 0)
             self.assertEqual(phase, (occurrence - 1) % 86400)
+
+    def test_https_helper_does_not_shadow_http_module(self):
+        self.assertTrue(callable(package8.https_request))
+        self.assertTrue(hasattr(package8.http, "client"))
+
+    def test_storage_retry_packet_is_bound_to_failed_evidence_and_helpers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "scripts").mkdir()
+            (root / "packet.json").write_text("{}\n")
+            (root / "storage-run.jsonl").write_text('{"kind":"preserved_failure"}\n')
+            reservation = Path(package8.__file__).with_name("phase11_5_rf_reservation.py")
+            (root / "scripts" / reservation.name).write_bytes(reservation.read_bytes())
+            packet = {
+                "schema": "phase11.5-package8-storage-retry-v1",
+                "standing_authority": "PHASE11.5-COMPLETION-20260915",
+                "parent_packet_sha256": package8.digest(root / "packet.json"),
+                "source_revision": package8.SOURCE,
+                "image_sha256": package8.IMAGE,
+                "prior_boot_id": package8.DEPLOYED_BOOT,
+                "current_boot_id": "8af7e0f0f4cef61bcbf8d5f7173d4c78",
+                "prior_attempt": {
+                    "result": "observer-idle-timeout-before-autonomous-rf",
+                    "rf_jobs": 0,
+                    "rf_duration_ns": 0,
+                    "configuration_writes": 2,
+                    "controlled_reboots": 1,
+                    "storage_run_sha256": package8.digest(root / "storage-run.jsonl"),
+                },
+                "limits": {"rf_jobs": 1, "rf_duration_ns": 110_592_000_000,
+                    "loads": 0, "arm": 0, "time_commands": 0,
+                    "configuration_writes": 2, "controlled_reboots": 1,
+                    "flashes": 0, "bootsel": 0, "wifi_cycles": 0},
+                "storage_plan": {"before_sequence": "70", "before_offset": 2048,
+                    "record_size": 2048, "enabled_sequence": "71", "enabled_offset": 4096,
+                    "restored_sequence": "72", "restored_offset": 6144,
+                    "watermark_utc_ns": "1789606801000000000"},
+                "aggregate_after_planned_success": {"rf_jobs": 3,
+                    "rf_duration_ns": 590_592_000_000, "configuration_writes": 4,
+                    "controlled_reboots": 2, "flashes": 2, "bootsel": 2},
+                "helper_sha256": package8.digest(Path(package8.__file__)),
+                "reservation_helper_sha256": package8.digest(
+                    root / "scripts" / reservation.name),
+                "usb_session": "1" * 32,
+                "armed_network_session": "2" * 32,
+                "running_network_session": "3" * 32,
+            }
+            retry_path = root / "storage-retry-packet.json"
+            retry_path.write_text(json.dumps(packet) + "\n")
+            actual, packet_sha = package8.storage_retry_packet(root)
+            self.assertEqual(actual, packet)
+            self.assertEqual(packet_sha, package8.digest(retry_path))
+            (root / "storage-run.jsonl").write_text('{"kind":"changed"}\n')
+            with self.assertRaisesRegex(ValueError, "Exact bounded"):
+                package8.storage_retry_packet(root)
+
+    def test_publication_closes_exactly_r5(self):
+        result = validate_result(json.loads(RESULT_PATH.read_text()))
+        matrix = json.loads(MATRIX_PATH.read_text())
+        rows = [row for row in matrix["assertions"] if row["group"] == "R5"]
+        self.assertEqual(len(rows), 8)
+        self.assertTrue(all(row["classification"] == "accepted/applicable" for row in rows))
+        self.assertTrue(matrix["family_status"]["R5"].startswith("CLOSED"))
+        self.assertEqual(matrix["family_status"]["R6"], "OPEN")
+        self.assertIsNone(matrix["accepted_configuration"])
+        self.assertEqual(result["phase11_5_status"], "OPEN_5_OF_6_FAMILIES")
+
+    def test_raw_audit_publication_binds_offline_evidence(self):
+        value = json.loads(RAW_AUDIT_PATH.read_text())
+        self.assertEqual(value["schema"], "phase11.5-package8-raw-audit-v1")
+        self.assertEqual(value["status"], "PASS")
+        self.assertEqual(value["evidence_files_bound"], 21)
+        self.assertEqual(value["device_or_network_operations"], 0)
+        self.assertTrue(value["reservation_chain_verified"])
+        self.assertTrue(value["host_restoration_verified"])
+        self.assertEqual(value["sanitized_result_sha256"],
+            hashlib.sha256(RESULT_PATH.read_bytes()).hexdigest())
+        self.assertEqual(value["auditor_sha256"], hashlib.sha256(
+            (ROOT / "scripts/audit_phase11_5_package8.py").read_bytes()).hexdigest())
+
+    def test_published_adversarial_assessment_is_reproducible(self):
+        expected = json.loads(ADVERSARIAL_PATH.read_text())
+        actual = assess(json.loads(RESULT_PATH.read_text()))
+        self.assertEqual(actual, expected)
+        self.assertEqual(actual["mutations"], 46)
+
+    def test_candidate_has_no_later_pico_runtime_source_change(self):
+        completed = subprocess.run(
+            ["git", "diff", "--name-only", package8.SOURCE + "..HEAD", "--",
+             "src", "include", "firmware", "cmake"], cwd=ROOT, check=True,
+            text=True, stdout=subprocess.PIPE)
+        self.assertEqual(completed.stdout, "")
 
 
 if __name__ == "__main__":

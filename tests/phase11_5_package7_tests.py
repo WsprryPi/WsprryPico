@@ -45,7 +45,7 @@ class Package7Tests(unittest.TestCase):
         self.assertTrue(all("phase11-5-package7-result.json" in row["evidence"]
                             for row in rows))
         self.assertTrue(self.matrix["family_status"]["R4"].startswith("CLOSED"))
-        self.assertEqual(self.matrix["family_status"]["R5"], "OPEN")
+        self.assertTrue(self.matrix["family_status"]["R5"].startswith("CLOSED"))
         self.assertEqual(self.matrix["family_status"]["R6"], "OPEN")
         self.assertIsNone(self.matrix["accepted_configuration"])
 
@@ -54,13 +54,22 @@ class Package7Tests(unittest.TestCase):
         self.assertEqual(len(self.result["failed_attempt_sha256"]), 11)
         self.assertEqual(self.result["family_status"]["R4"], "CLOSED")
 
-    def test_candidate_has_no_later_pico_runtime_source_change(self):
+    def test_later_pico_source_change_has_package8_impact_review(self):
         source = self.result["candidate"]["source_revision"]
         completed = subprocess.run(
             ["git", "diff", "--name-only", source + "..HEAD", "--",
              "src", "include", "firmware", "cmake"], cwd=ROOT, check=True,
             text=True, stdout=subprocess.PIPE)
-        self.assertEqual(completed.stdout, "")
+        self.assertEqual(completed.stdout.splitlines(), [
+            "src/standalone/pico/adapters.cpp",
+            "src/standalone/pico/adapters.hpp",
+            "src/standalone/scheduler.cpp",
+            "src/standalone/storage.hpp",
+        ])
+        package8 = json.loads((ROOT / "docs/development/phase11-5-package8-result.json").read_text())
+        self.assertEqual(package8["source_impact"]["prior_candidate"], source)
+        self.assertEqual(package8["source_impact"]["later_pico_runtime_source_changes"], 0)
+        self.assertEqual(package8["family_status"]["R4"], "CLOSED")
 
     def test_published_adversarial_result_is_reproducible(self):
         completed = subprocess.run(

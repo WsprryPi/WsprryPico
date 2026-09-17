@@ -35,7 +35,8 @@ def inactive(values):
 
 
 class Reservation:
-    def __init__(self, packet_hash, path=PATH, *, reconciliation=None):
+    def __init__(self, packet_hash, path=PATH, *, reconciliation=None,
+                 authorized_boot_changes=None):
         self.path = path
         self.packet_hash = packet_hash
         self.held = False
@@ -45,18 +46,31 @@ class Reservation:
             require(not path.is_symlink(), 'Reservation symlink refused')
             previous = json.loads(path.read_text()) if path.exists() else None
             if reconciliation is None:
+                require(authorized_boot_changes is None,
+                        'Boot changes require reconciliation evidence')
                 require(previous is None or previous['state'] == 'RELEASED',
                         'Prior RF reservation unresolved; reconcile before any new RF')
             else:
                 values, observed_ns = reconciliation
                 identities = inactive(values)
+                allowed = authorized_boot_changes or {}
+                require(set(allowed).issubset(BOARDS) and all(
+                    isinstance(pair, (tuple, list)) and len(pair) == 2 and pair[0] != pair[1]
+                    for pair in allowed.values()), 'Invalid authorized boot transition')
                 require(previous is not None and previous['state'] == 'HELD' and
                         previous['packet_sha256'] == packet_hash and
-                        previous['host_boot'] == Path('/proc/sys/kernel/random/boot_id').read_text().strip() and
-                        0 <= time.monotonic_ns() - observed_ns <= 5_000_000_000 and
-                        all(all(identities[b][k] == previous['boards'][b][k]
-                                for k in ('device_id', 'boot_id', 'revision')) for b in BOARDS),
-                        'Reconciliation requires fresh inactive proof for the original packet and unchanged boots')
+                        previous['host_boot'] == Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
+                        'Reconciliation requires the original held reservation')
+                changed = {board for board in BOARDS
+                           if identities[board]['boot_id'] != previous['boards'][board]['boot_id']}
+                require(0 <= time.monotonic_ns() - observed_ns <= 5_000_000_000 and
+                        changed == set(allowed) and all(
+                            identities[b]['device_id'] == previous['boards'][b]['device_id'] and
+                            identities[b]['revision'] == previous['boards'][b]['revision'] and
+                            (b not in allowed or tuple(allowed[b]) == (
+                                previous['boards'][b]['boot_id'], identities[b]['boot_id']))
+                            for b in BOARDS),
+                        'Reconciliation requires fresh inactive proof and exact authorized boot transitions')
                 self.held = True
         except BaseException:
             os.close(self.fd)
