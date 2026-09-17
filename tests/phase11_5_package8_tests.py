@@ -11,6 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import phase11_5_package8 as package8
 from audit_phase11_5_package8 import validate_result
+from audit_phase11_5_package9 import validate_published_result as validate_package9
 from adversarial_phase11_5_package8 import assess
 
 
@@ -144,8 +145,12 @@ class Package8Tests(unittest.TestCase):
         self.assertEqual(len(rows), 8)
         self.assertTrue(all(row["classification"] == "accepted/applicable" for row in rows))
         self.assertTrue(matrix["family_status"]["R5"].startswith("CLOSED"))
-        self.assertEqual(matrix["family_status"]["R6"], "OPEN")
-        self.assertIsNone(matrix["accepted_configuration"])
+        if (ROOT / "docs/development/phase11-5-package9-result.json").exists():
+            self.assertTrue(matrix["family_status"]["R6"].startswith("CLOSED"))
+            self.assertIsNotNone(matrix["accepted_configuration"])
+        else:
+            self.assertTrue(matrix["family_status"]["R6"].startswith("OPEN"))
+            self.assertIsNone(matrix["accepted_configuration"])
         self.assertEqual(result["phase11_5_status"], "OPEN_5_OF_6_FAMILIES")
 
     def test_raw_audit_publication_binds_offline_evidence(self):
@@ -167,12 +172,20 @@ class Package8Tests(unittest.TestCase):
         self.assertEqual(actual, expected)
         self.assertEqual(actual["mutations"], 46)
 
-    def test_candidate_has_no_later_pico_runtime_source_change(self):
+    def test_only_reviewed_package9_runtime_paths_changed_after_candidate(self):
         completed = subprocess.run(
             ["git", "diff", "--name-only", package8.SOURCE + "..HEAD", "--",
              "src", "include", "firmware", "cmake"], cwd=ROOT, check=True,
             text=True, stdout=subprocess.PIPE)
-        self.assertEqual(completed.stdout, "")
+        self.assertEqual(set(completed.stdout.splitlines()),
+            {"src/network/api.cpp", "src/network/http.hpp",
+             "src/network/pico/server.cpp", "src/network/pico/server.hpp",
+             "src/standalone/pico/main.cpp", "src/usb/reply_priority.hpp"})
+        package9_path = ROOT / "docs/development/phase11-5-package9-result.json"
+        if package9_path.exists():
+            package9 = validate_package9(json.loads(package9_path.read_text()))
+            self.assertEqual(package9["source_impact"]["prior_candidate"],
+                             package8.SOURCE)
 
 
 if __name__ == "__main__":

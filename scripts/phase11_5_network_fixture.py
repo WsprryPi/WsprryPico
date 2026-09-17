@@ -35,7 +35,7 @@ MANAGEMENT = '90:de:80:47:b9:da'
 ETHERNET = '2c:cf:67:62:76:64'
 HOST_BOOT = '220e53ca-ca95-4206-9581-dbe28aa1eeb8'
 MANAGEMENT_PROFILE = '921301fe-cdfd-4965-8ac7-c96e9d908ea6'
-INSTALLED_SHA = '0dcc2868e68a5ea7e38072818ae15d70cb9630e9d0212993db11b587d36a15f2'
+INSTALLED_SHA = 'ab1989097cc87b54f76f5fcf776d7d16a166e1edca29ed2c71a2f396fdd22a90'
 RUN_SECONDS = 21000  # 5 h 50 min; last ten minutes reserved for host restoration.
 UNIT_SUFFIXES = ('cleanup.timer', 'cleanup.service', 'client.service', 'dhcp.service',
                  'capture-ap.service', 'capture-client.service', 'campaign.service', 'time-local.service')

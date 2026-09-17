@@ -1,0 +1,90 @@
+{
+  "schema": "phase11.5-package9-failure-adversarial-v1",
+  "status": "PASS",
+  "mutation_count": 16,
+  "all_mutations_rejected": true,
+  "mutations": [
+    {
+      "mutation": "status",
+      "rejected": true,
+      "reason": "Failure publication status"
+    },
+    {
+      "mutation": "phase-status",
+      "rejected": true,
+      "reason": "Failure publication status"
+    },
+    {
+      "mutation": "candidate-source",
+      "rejected": true,
+      "reason": "Failure candidate"
+    },
+    {
+      "mutation": "workload-minutes",
+      "rejected": true,
+      "reason": "Failure workload"
+    },
+    {
+      "mutation": "workload-jobs",
+      "rejected": true,
+      "reason": "Failure workload"
+    },
+    {
+      "mutation": "lifecycle",
+      "rejected": true,
+      "reason": "Failure workload"
+    },
+    {
+      "mutation": "gate-limit",
+      "rejected": true,
+      "reason": "Published failed gate"
+    },
+    {
+      "mutation": "gate-baseline",
+      "rejected": true,
+      "reason": "Published failed gate"
+    },
+    {
+      "mutation": "gate-terminal-count",
+      "rejected": true,
+      "reason": "Published failed gate"
+    },
+    {
+      "mutation": "auditor-status",
+      "rejected": true,
+      "reason": "Published rejection/restoration"
+    },
+    {
+      "mutation": "budget-duration",
+      "rejected": true,
+      "reason": "Published exhausted budget"
+    },
+    {
+      "mutation": "budget-remaining",
+      "rejected": true,
+      "reason": "Published exhausted budget"
+    },
+    {
+      "mutation": "flash-count",
+      "rejected": true,
+      "reason": "Published exhausted budget"
+    },
+    {
+      "mutation": "reservation",
+      "rejected": true,
+      "reason": "Published rejection/restoration"
+    },
+    {
+      "mutation": "fixture",
+      "rejected": true,
+      "reason": "Published rejection/restoration"
+    },
+    {
+      "mutation": "evidence",
+      "rejected": true,
+      "reason": "Failure evidence hashes"
+    }
+  ],
+  "failure_result_sha256": "6d8e9e14304fba0916540b2c3c8657ad42e47656eda9e0df360fbdb8b8884843",
+  "adversarial_script_sha256": "3d7ed2838e0419e8cb320fe94c19512abdcb6b127d4ea97caeef325bdefcfa2f"
+}

@@ -1,0 +1,79 @@
+{
+  "schema": "phase11.5-package9-failure-v1",
+  "status": "PACKAGE9_OPEN_R6_RESOURCE_RETURN_FAILED",
+  "phase11_5_status": "OPEN_5_OF_6_FAMILIES",
+  "packet_sha256": "ddfa7e07e728d101138952a60bfd1a9861ba86bedf0f2c8008bed57f0fe9c291",
+  "candidate": {
+    "source_revision": "91933c00970939e366d1bfcf3c1956b59be8f6c5",
+    "image_sha256": "5da240aacf20e27db79126a7bff2be18e4ece849a608fa439f4e0c577659f446",
+    "boot_id": "ff719d304f1ba4ac23fddd93561b26f0",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "system_clock_hz": 138000000,
+    "engine": "pio-dma-gp2",
+    "renderer": "RAM"
+  },
+  "completed_workload": {
+    "normal_load_seconds": 1800,
+    "rf_jobs": 11,
+    "planned_rf_duration_ns": 351800000000,
+    "normalizer_jobs": 8,
+    "production_jobs": 3,
+    "browser_actions": 48,
+    "browser_gets": 84,
+    "resource_windows": 5,
+    "production_lifecycles_complete": true
+  },
+  "failed_gate": {
+    "name": "matched_resource_return",
+    "limit_bytes": 1024,
+    "baseline_bytes": 44392,
+    "post_n_bytes": [
+      56824,
+      56824,
+      56336
+    ],
+    "post_n_deltas_bytes": [
+      12432,
+      12432,
+      11944
+    ],
+    "post_n_span_bytes": 488,
+    "final_q_bytes": 51608,
+    "final_q_delta_bytes": 7216,
+    "final_terminal_records": 4
+  },
+  "closure_auditor": {
+    "status": "REJECTED",
+    "reason": "Campaign failure record"
+  },
+  "cumulative_budget": {
+    "attempt_count": 45,
+    "charged_rf_jobs": 142,
+    "charged_rf_duration_ns": 1164400000000,
+    "flashes": 6,
+    "bootsel": 6,
+    "configuration_writes": 0,
+    "controlled_reboots": 0,
+    "wifi_cycles": 0,
+    "remaining_rf_duration_ns": 35600000000,
+    "complete_retry_duration_ns": 351800000000
+  },
+  "restoration": {
+    "pico_a_empty_unowned_inactive": true,
+    "pico_b_empty_unowned_inactive": true,
+    "reservation_released": true,
+    "host_fixture_restored": true,
+    "installed_service_active": true
+  },
+  "evidence_sha256": {
+    "packet.json": "ddfa7e07e728d101138952a60bfd1a9861ba86bedf0f2c8008bed57f0fe9c291",
+    "campaign.jsonl": "80c8d3283c97b796a84408b130f08d0fa5023fa2f6ce432a11dcf5c69c333b79",
+    "final-a.jsonl": "000cf9461e6736c9f5efa68d290a062c58f7559023ac7b91b1f96c8dc72276f7",
+    "final-b.jsonl": "189bb7fb1855f7189ce6012a72091db374786bf03c7290cb486760e9cb9444cb",
+    "fixture-state.json": "ad13bda65e6b0a0049a2b5c05591c88e10709daed75302d6ce80516abc533f8d",
+    "fixture.jsonl": "d16b3805ed2b924dec542fe93b923a39bc41341a760e97dfac01273d9148a801",
+    "reservation.json": "29db7d1c87a0ecb497c32bee69e19045d77dc6d064312cec7673a009c71cccb1",
+    "attempt-history.json": "b20e286694b058b5d63c9312af55bbfce56173c31752af1fd6112ee1fec5b241"
+  },
+  "auditor_sha256": "c421040a9408d3b1890347d92649b5ade937d881cc34a15dbe42bdbe61d4c9e6"
+}

@@ -49,7 +49,9 @@ treated as long-term product documentation.
     acceptance at those clocks; 11.7 final joint review and Phase 11 closure.
     The [selected QRSS-group limits](#planned-qrss-group-message-and-duration-limits)
     are implemented; affected 11.5 resource and extended-job physical acceptance
-    are in progress before 11.6 acceptance of those jobs.
+    are in progress before 11.6 acceptance of those jobs. Phase 11.5 has R1-R5
+    closed; Package 9 completed the R6 workload but failed its 1,024-byte matched
+    resource-return gate, so no complete 11.5 configuration is accepted.
     An alternative clock selected during 11.6 must repeat affected 11.5 checks.
     The systematic band x mode x clock comparison, final supported configurations,
     filters, spectral qualification and release firmware belong to Phase 13.

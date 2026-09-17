@@ -6,12 +6,12 @@
 [current assertion matrix](phase11-5-completion-matrix.md) records current
 applicability and remaining work. [Standing authorization](phase11-5-completion-authorization-20260915.md)
 permits fresh bounded packets on either Pico with one shared RF reservation.
-Pico A runs firmware `7c5296471250cc06416c79a73c9627aed0eb3624`, image
-`c73e0714572cb0edd7f3ba4c6c0c9e3b3a8ac500aca7a7edea23fc4b32cb9e87`
-and boot `f93fe05254d1523e50b16b0ad248a44a`; Pico B runs
+Pico A runs firmware `91933c00970939e366d1bfcf3c1956b59be8f6c5`, image
+`5da240aacf20e27db79126a7bff2be18e4ece849a608fa439f4e0c577659f446`
+and boot `ff719d304f1ba4ac23fddd93561b26f0`; Pico B runs
 `8921a7008183` on unchanged boot `6684b4b197d80cfa0ce83b3aaf205cb0`.
 Repository HEAD is a separate identity. Both boards are independently
-inactive/unowned with A Complete and B Empty, the shared reservation is Released and the host fixture
+inactive/unowned and Empty, the shared reservation is Released and the host fixture
 is restored.
 
 Packages 1-8 are complete. [Package 5](phase11-5-package5-review.md) accepts all
@@ -32,7 +32,12 @@ one bounded external link loss and real address change, restores native name,
 SNTP, WTP and HTTPS service, while retained storage rotates through sequences
 70/71/72 and one autonomous job passes the unsynchronized admission gate,
 Running write lockout, completion, watermark and baseline restoration. Phase
-11.5 remains open at 5/6 families; Package 9 and R6 are next.
+11.5 remains open at 5/6 families. The [Package 9 review](phase11-5-package9-review.md)
+retains v44's complete 30-minute normal workload, 11 finite RF jobs, 48 browser
+actions and five quiet windows. R6.gates failed: post-N matched-baseline deltas
+were +12,432, +12,432 and +11,944 bytes, and final-Q remained +7,216 bytes.
+The cumulative RF charge is 1,164.4/1,200 seconds, so a complete retry requires
+a retained-memory repair and new finite physical allowance.
 
 The records below preserve earlier identities, counts and outcomes. Their
 then-current candidate and device restrictions are historical.

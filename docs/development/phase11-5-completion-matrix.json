@@ -8,9 +8,9 @@
     "R3": "CLOSED with Package 6 applicability review",
     "R4": "CLOSED with Package 7 authority/interruption evidence",
     "R5": "CLOSED with Package 8 network/storage/autonomous evidence",
-    "R6": "OPEN"
+    "R6": "OPEN \u2014 Package 9 matched resource-return gate failed"
   },
-  "candidate_source": "7c5296471250cc06416c79a73c9627aed0eb3624",
+  "candidate_source": "91933c00970939e366d1bfcf3c1956b59be8f6c5",
   "assertions": [
     {
       "id": "R1.1",
@@ -637,45 +637,45 @@
       "id": "R6.normal-load",
       "group": "R6",
       "requirement": "30 cumulative minutes N",
-      "classification": "missing",
-      "evidence": "",
-      "remaining": "Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-package9-failure-result.json; phase11-5-package9-review.md",
+      "remaining": "v44 completed all three 600-second N intervals, 1,800 normal seconds total, with three complete production lifecycles and 48 browser actions.",
       "package": 9
     },
     {
       "id": "R6.rf-budget",
       "group": "R6",
       "requirement": "Finite demanding launches, at most 20 minutes RF",
-      "classification": "missing",
-      "evidence": "",
-      "remaining": "Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-package9-failure-result.json; phase11-5-package9-review.md",
+      "remaining": "v44 used 11 jobs / 351.8 planned RF seconds; cumulative conservative accounting is 142 jobs / 1,164.4 seconds under the 1,200-second ceiling.",
       "package": 9
     },
     {
       "id": "R6.windows",
       "group": "R6",
       "requirement": "Three comparable post-warm-up resource windows",
-      "classification": "missing",
-      "evidence": "",
-      "remaining": "Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-package9-failure-result.json; phase11-5-package9-review.md",
+      "remaining": "v44 recorded the matched baseline and all three post-N windows on one source/boot/workload. Their existence is accepted; the resource-return values fail R6.gates.",
       "package": 9
     },
     {
       "id": "R6.quiet",
       "group": "R6",
       "requirement": "Interleaved quiet and final equivalent Q",
-      "classification": "missing",
-      "evidence": "",
-      "remaining": "Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload",
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-package9-failure-result.json; phase11-5-package9-review.md",
+      "remaining": "v44 completed the 360-second baseline, three 306-second interleaved quiet periods and separate 360-second final Q with inactive output.",
       "package": 9
     },
     {
       "id": "R6.gates",
       "group": "R6",
       "requirement": "No monotonic retained growth; <=1024-byte matched delta; unchanged resource/timing/fault gates",
-      "classification": "missing",
-      "evidence": "",
-      "remaining": "Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload",
+      "classification": "failed",
+      "evidence": "phase11-5-package9-failure-result.json; phase11-5-package9-review.md",
+      "remaining": "v44 baseline was 44,392 bytes; post-N deltas were +12,432, +12,432 and +11,944 bytes, and final-Q was +7,216 bytes, exceeding the unchanged 1,024-byte gate. Only 35.6 RF seconds remain; repair plus a newly authorized complete retry is required.",
       "package": 9
     }
   ]

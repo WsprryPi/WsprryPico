@@ -1,6 +1,6 @@
 # Phase 11.5 completion matrix
 
-Status: **OPEN; R1-R5 closed in their recorded scope; R6 open.**
+Status: **OPEN; R1-R5 closed in their recorded scope; R6 resource-return gate failed.**
 
 Authority: [accepted September 15 request](phase11-5-completion-authorization-20260915.md).
 This current matrix supersedes stale current-state paragraphs in historical
@@ -9,8 +9,8 @@ The [machine matrix](phase11-5-completion-matrix.json) contains each assertion.
 
 ## Candidate and applicability
 
-Deployed A retains firmware 7c5296471250 in boot
-f93fe05254d1523e50b16b0ad248a44a. The [current Package 2 result](phase11-5-event-pages-result.json)
+Deployed A runs firmware 91933c009709 in boot
+ff719d304f1ba4ac23fddd93561b26f0. The [current Package 2 result](phase11-5-event-pages-result.json)
 accepts 2.2a and 2.2b after paged event storage and direct WTP input-reservation
 observability. The [Package 3 result](phase11-5-package3-result.json) accepts
 2.2c–2.2f, 2.3a–2.3c and R3.BROWSER-MAX with current-image RF pressure and
@@ -42,7 +42,14 @@ rows. The repaired current-image network cycle preserves RF through one external
 link loss and an actual address change, then restores native name, SNTP, WTP and
 HTTPS service. The storage/autonomy cycle proves retained-config reboot,
 unsynchronized admission, journal rotation, Running write lockout, autonomous
-completion, durable watermark and restoration. Package 9 and R6 are next.
+completion, durable watermark and restoration. The
+[Package 9 failure result](phase11-5-package9-failure-result.json) and
+[review](phase11-5-package9-review.md) retain a complete 1,800-second normal
+workload, all five quiet windows and full restoration. R6 remains open because
+post-N heap deltas of 12,432, 12,432 and 11,944 bytes, plus a 7,216-byte final-Q
+delta, exceed the unchanged 1,024-byte matched-baseline gate. Only 35.6 seconds
+remain under the finite RF ceiling, so repair and a new complete-run allowance
+are required.
 Earlier bd16bb1 results retain two finite completions with
 failed capacity workloads. B remains 8921a7008183. Both are Pico 2 W/RP2350 Arm,
 138 MHz/divider 1, GP2 PIO/DMA, RAM rendering and listener configured. No full
@@ -166,8 +173,8 @@ resource gates. Evidence links retain exact source/image/boot and raw hashes.
 | R5.rotation | R5 | Smallest actual journal rotation and restored baseline | accepted/applicable | [phase11-5-package8-result.json](phase11-5-package8-result.json); [phase11-5-package8-review.md](phase11-5-package8-review.md) | Package 8 accepts the bounded retained-config reboot, unsynchronized admission gate, journal rotation, Running write rejection, autonomous completion, durable watermark and restored disabled baseline. | 8 |
 | R5.time-admission | R5 | Autonomous time-validity admission | accepted/applicable | [phase11-5-package8-result.json](phase11-5-package8-result.json); [phase11-5-package8-review.md](phase11-5-package8-review.md) | Package 8 accepts the bounded retained-config reboot, unsynchronized admission gate, journal rotation, Running write rejection, autonomous completion, durable watermark and restored disabled baseline. | 8 |
 | R5.schedule | R5 | Saved autonomous schedule preparation/completion with N/M; disable; watermark | accepted/applicable | [phase11-5-package8-result.json](phase11-5-package8-result.json); [phase11-5-package8-review.md](phase11-5-package8-review.md) | Package 8 accepts the bounded retained-config reboot, unsynchronized admission gate, journal rotation, Running write rejection, autonomous completion, durable watermark and restored disabled baseline. | 8 |
-| R6.normal-load | R6 | 30 cumulative minutes N | missing | None | Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload | 9 |
-| R6.rf-budget | R6 | Finite demanding launches, at most 20 minutes RF | missing | None | Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload | 9 |
-| R6.windows | R6 | Three comparable post-warm-up resource windows | missing | None | Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload | 9 |
-| R6.quiet | R6 | Interleaved quiet and final equivalent Q | missing | None | Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload | 9 |
-| R6.gates | R6 | No monotonic retained growth; <=1024-byte matched delta; unchanged resource/timing/fault gates | missing | None | Start only after all R1-R5 assertions have applicable acceptance; one source/boot/workload | 9 |
+| R6.normal-load | R6 | 30 cumulative minutes N | accepted/applicable | [phase11-5-package9-failure-result.json](phase11-5-package9-failure-result.json); [phase11-5-package9-review.md](phase11-5-package9-review.md) | v44 completed all three 600-second N intervals, 1,800 normal seconds total, with three complete production lifecycles and 48 browser actions. | 9 |
+| R6.rf-budget | R6 | Finite demanding launches, at most 20 minutes RF | accepted/applicable | [phase11-5-package9-failure-result.json](phase11-5-package9-failure-result.json); [phase11-5-package9-review.md](phase11-5-package9-review.md) | v44 used 11 jobs / 351.8 planned RF seconds; cumulative conservative accounting is 142 jobs / 1,164.4 seconds under the 1,200-second ceiling. | 9 |
+| R6.windows | R6 | Three comparable post-warm-up resource windows | accepted/applicable | [phase11-5-package9-failure-result.json](phase11-5-package9-failure-result.json); [phase11-5-package9-review.md](phase11-5-package9-review.md) | v44 recorded the matched baseline and all three post-N windows on one source/boot/workload. Their existence is accepted; the resource-return values fail R6.gates. | 9 |
+| R6.quiet | R6 | Interleaved quiet and final equivalent Q | accepted/applicable | [phase11-5-package9-failure-result.json](phase11-5-package9-failure-result.json); [phase11-5-package9-review.md](phase11-5-package9-review.md) | v44 completed the 360-second baseline, three 306-second interleaved quiet periods and separate 360-second final Q with inactive output. | 9 |
+| R6.gates | R6 | No monotonic retained growth; <=1024-byte matched delta; unchanged resource/timing/fault gates | failed | [phase11-5-package9-failure-result.json](phase11-5-package9-failure-result.json); [phase11-5-package9-review.md](phase11-5-package9-review.md) | v44 baseline was 44,392 bytes; post-N deltas were +12,432, +12,432 and +11,944 bytes, and final-Q was +7,216 bytes, exceeding the unchanged 1,024-byte gate. Only 35.6 RF seconds remain; repair plus a newly authorized complete retry is required. | 9 |

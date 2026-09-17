@@ -40,7 +40,11 @@ class Package6Tests(unittest.TestCase):
         self.assertEqual(self.result["new_physical_acceptance_assertions"], 0)
         self.assertEqual(self.matrix["family_status"]["R3"],
                          "CLOSED with Package 6 applicability review")
-        self.assertIsNone(self.matrix["accepted_configuration"])
+        if (ROOT / "docs/development/phase11-5-package9-result.json").exists():
+            self.assertEqual(self.matrix["status"], "CLOSED")
+            self.assertIsNotNone(self.matrix["accepted_configuration"])
+        else:
+            self.assertIsNone(self.matrix["accepted_configuration"])
 
     def test_published_adversarial_result_is_reproducible(self):
         completed = subprocess.run(

@@ -6,6 +6,12 @@ Current planning, September 12: use the [six-family plan](phase11-5-plan.md),
 No revised family or clock configuration is accepted. The chronological code
 and hardware observations below are historical; their failures remain preserved.
 
+Current execution status, September 17: **OPEN at 5/6 families**. R1-R5 are
+closed. [Package 9](phase11-5-package9-review.md) completed the R6 workload and
+quiet schedule but failed the unchanged 1,024-byte matched resource-return
+gate; cumulative RF leaves no room for another complete packet. The historical
+status and observations below remain unchanged in their original scope.
+
 Status: **OPEN**. The original 138 MHz pilot failed refill margin and terminal
 completion. The [P2 SRAM remediation](phase11-5-remediation-result.json) passed
 three bounded Tone jobs. The [P3 allocator candidate](phase11-5-allocator-result.json)

@@ -2,9 +2,9 @@
 
 Current Phase 11.5 execution uses the [completion matrix](phase11-5-completion-matrix.md)
 and [September 15 standing authorization](phase11-5-completion-authorization-20260915.md).
-A's current firmware is `7c5296471250`, B's is `8921a7008183`; older candidate
+A's current firmware is `91933c009709`, B's is `8921a7008183`; older candidate
 paragraphs below retain historical evidence identities. Phase 11.5 is OPEN at
-5/6 families: R1-R5 are closed and R6 is open. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
+5/6 families: R1-R5 are closed and R6's matched resource-return gate failed. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
 passes retained LOAD/replay and P1 individual WTP/HTTP capacity during RF;
 the [Package 2 review](phase11-5-package2-review.md) accepts assertions 2.2a and
 2.2b after paged RF event storage and direct WTP-reservation observability. The
@@ -27,7 +27,12 @@ and evidence-applicability review. It closes R3 without new physical work. The
 current-image authority, interruption and production-owner evidence. The
 [Package 8 review](phase11-5-package8-review.md) closes all eight R5 rows with
 repaired network recovery, journal rotation, autonomous scheduling and full
-restoration evidence. Package 9 and R6 are next.
+restoration evidence. The [Package 9 review](phase11-5-package9-review.md)
+retains a complete 1,800-second mixed workload and all five quiet windows, but
+post-N heap deltas of 12,432, 12,432 and 11,944 bytes and a 7,216-byte final-Q
+delta fail the unchanged 1,024-byte gate. Cumulative Package 9 RF is 1,164.4 of
+1,200 seconds, leaving too little for another complete packet. R6 and Phase 11.5
+remain open pending a retained-memory repair and newly bounded physical retry.
 
 
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).

@@ -299,17 +299,32 @@ def validate_source_impact(root, result):
         root, "diff", "--name-only", f"{CURRENT_SOURCE}..HEAD", "--",
         "src", "firmware", "cmake").decode().splitlines()
     if later_names:
-        require(later_names == ["src/standalone/pico/adapters.cpp",
+        require(later_names == ["src/network/api.cpp",
+                                "src/network/http.hpp",
+                                "src/network/pico/server.cpp",
+                                "src/network/pico/server.hpp",
+                                "src/standalone/pico/adapters.cpp",
                                 "src/standalone/pico/adapters.hpp",
+                                "src/standalone/pico/main.cpp",
                                 "src/standalone/scheduler.cpp",
-                                "src/standalone/storage.hpp"],
-                "Later production drift requires exact Package 8 review")
+                                "src/standalone/storage.hpp",
+                                "src/usb/reply_priority.hpp"],
+                "Later production drift requires exact Package 8/9 review")
         from audit_phase11_5_package8 import validate_result as validate_package8
         package8 = json.loads((root / "docs/development/phase11-5-package8-result.json").read_text())
         validate_package8(package8)
         require(package8["source_impact"]["prior_candidate"] == CURRENT_SOURCE and
                 package8["source_impact"]["later_pico_runtime_source_changes"] == 0,
                 "Package 8 must carry Package 6 applicability forward")
+        package9_path = root / "docs/development/phase11-5-package9-result.json"
+        if package9_path.exists():
+            from audit_phase11_5_package9 import (PRIOR_SOURCE,
+                validate_published_result as validate_package9)
+            package9 = json.loads(package9_path.read_text())
+            validate_package9(package9)
+            require(PRIOR_SOURCE == "7c5296471250cc06416c79a73c9627aed0eb3624" and
+                    package9["source_impact"]["prior_candidate"] == PRIOR_SOURCE,
+                    "Package 9 must carry Package 6 applicability forward")
     # Keep the Package 6 historical CMake assertion bound to its own closeout
     # commit. Later packages may add their own host-only test registrations.
     cmake_diff = git_output(
@@ -354,15 +369,33 @@ def validate(result, matrix, root):
     validate_inputs(values)
     validate_source_impact(root, result)
 
-    matrix_source = ("7c5296471250cc06416c79a73c9627aed0eb3624"
-                     if (root / "docs/development/phase11-5-package8-result.json").exists()
-                     else CURRENT_SOURCE)
-    require(matrix["status"] == "OPEN" and matrix["accepted_configuration"] is None and
-            matrix["candidate_source"] == matrix_source and
-            all(matrix["family_status"][name] == expected_family_status[name]
-                for name in ("R1", "R2", "R3")) and
-            all(name in matrix["family_status"] for name in ("R4", "R5", "R6")),
-            "Current family and accepted-configuration boundary")
+    package9_path = root / "docs/development/phase11-5-package9-result.json"
+    if package9_path.exists():
+        from audit_phase11_5_package9 import validate_published_result as validate_package9
+        package9 = validate_package9(json.loads(package9_path.read_text()))
+        require(matrix["status"] == "CLOSED" and
+                matrix["accepted_configuration"] == package9["accepted_configuration"] and
+                matrix["candidate_source"] == package9["accepted_configuration"]
+                    ["source_revision"] and
+                all(matrix["family_status"][name].startswith("CLOSED")
+                    for name in ("R1", "R2", "R3", "R4", "R5", "R6")),
+                "Current closed family and accepted-configuration boundary")
+    else:
+        failure9_path = root / "docs/development/phase11-5-package9-failure-result.json"
+        if failure9_path.exists():
+            from audit_phase11_5_package9_failure import validate_result as validate_failure9
+            failure9 = validate_failure9(json.loads(failure9_path.read_text()))
+            matrix_source = failure9["candidate"]["source_revision"]
+        else:
+            matrix_source = ("7c5296471250cc06416c79a73c9627aed0eb3624"
+                             if (root / "docs/development/phase11-5-package8-result.json").exists()
+                             else CURRENT_SOURCE)
+        require(matrix["status"] == "OPEN" and matrix["accepted_configuration"] is None and
+                matrix["candidate_source"] == matrix_source and
+                all(matrix["family_status"][name] == expected_family_status[name]
+                    for name in ("R1", "R2", "R3")) and
+                all(name in matrix["family_status"] for name in ("R4", "R5", "R6")),
+                "Current open family and accepted-configuration boundary")
 
     rows = {row["id"]: row for row in matrix["assertions"]}
     require(len(rows) == len(matrix["assertions"]), "Unique assertion IDs")

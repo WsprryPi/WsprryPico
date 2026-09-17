@@ -13,6 +13,7 @@ SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 from audit_phase11_5_package7 import ALL_ROWS, ROWS, validate_result  # noqa: E402
+from audit_phase11_5_package9 import validate_published_result as validate_package9  # noqa: E402
 
 
 RESULT_PATH = ROOT / "docs/development/phase11-5-package7-result.json"
@@ -46,8 +47,12 @@ class Package7Tests(unittest.TestCase):
                             for row in rows))
         self.assertTrue(self.matrix["family_status"]["R4"].startswith("CLOSED"))
         self.assertTrue(self.matrix["family_status"]["R5"].startswith("CLOSED"))
-        self.assertEqual(self.matrix["family_status"]["R6"], "OPEN")
-        self.assertIsNone(self.matrix["accepted_configuration"])
+        if (ROOT / "docs/development/phase11-5-package9-result.json").exists():
+            self.assertTrue(self.matrix["family_status"]["R6"].startswith("CLOSED"))
+            self.assertIsNotNone(self.matrix["accepted_configuration"])
+        else:
+            self.assertTrue(self.matrix["family_status"]["R6"].startswith("OPEN"))
+            self.assertIsNone(self.matrix["accepted_configuration"])
 
     def test_restoration_and_failure_retention_are_complete(self):
         self.assertTrue(all(self.result["restoration"].values()))
@@ -61,15 +66,26 @@ class Package7Tests(unittest.TestCase):
              "src", "include", "firmware", "cmake"], cwd=ROOT, check=True,
             text=True, stdout=subprocess.PIPE)
         self.assertEqual(completed.stdout.splitlines(), [
+            "src/network/api.cpp",
+            "src/network/http.hpp",
+            "src/network/pico/server.cpp",
+            "src/network/pico/server.hpp",
             "src/standalone/pico/adapters.cpp",
             "src/standalone/pico/adapters.hpp",
+            "src/standalone/pico/main.cpp",
             "src/standalone/scheduler.cpp",
             "src/standalone/storage.hpp",
+            "src/usb/reply_priority.hpp",
         ])
         package8 = json.loads((ROOT / "docs/development/phase11-5-package8-result.json").read_text())
         self.assertEqual(package8["source_impact"]["prior_candidate"], source)
         self.assertEqual(package8["source_impact"]["later_pico_runtime_source_changes"], 0)
         self.assertEqual(package8["family_status"]["R4"], "CLOSED")
+        package9_path = ROOT / "docs/development/phase11-5-package9-result.json"
+        if package9_path.exists():
+            package9 = validate_package9(json.loads(package9_path.read_text()))
+            self.assertEqual(package9["source_impact"]["prior_candidate"],
+                             package8["candidate"]["source_revision"])
 
     def test_published_adversarial_result_is_reproducible(self):
         completed = subprocess.run(

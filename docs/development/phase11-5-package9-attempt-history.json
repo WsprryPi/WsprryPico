@@ -1,0 +1,840 @@
+{
+  "schema": "phase11.5-package9-attempt-history-v1",
+  "status": "PASS",
+  "attempts": [
+    {
+      "attempt": "phase11-5-package9-20260916",
+      "packet_sha256": "ea673563d514fee73d65bcaf67a867568d7827fbaf303f92bead9b755568229e",
+      "journal_sha256": "151e0b2f3e55d7ff950652b38ab1070b1a0d70bbceaf1996c71e79498d08ccf2",
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": {
+        "type": "ValueError",
+        "error": "Installed WsprryPi service baseline"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-deploy-v29",
+      "packet_sha256": "60944cc68f881d57db0906c2e484cbebb2ee5d44128b1d12b50cc12761fa9a1e",
+      "journal_sha256": null,
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": null,
+      "campaign_result": null,
+      "flashes": 1,
+      "bootsel": 1,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-deploy-v30",
+      "packet_sha256": "bb5506f0f8a93ecafaa202735ccb50e646eaff3e57958b007428ce327348a378",
+      "journal_sha256": null,
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": null,
+      "campaign_result": null,
+      "flashes": 1,
+      "bootsel": 1,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-deploy-v32",
+      "packet_sha256": "7ae2db5f013f52a6e23f10acfae1699f6644bb6fbb55c007727ca13cfa8ba76f",
+      "journal_sha256": null,
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": null,
+      "campaign_result": null,
+      "flashes": 1,
+      "bootsel": 1,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-deploy-v34",
+      "packet_sha256": "2f58daac994ece6754eaed53a7626efcd2521ad01e032fcc0eae3cd3999f3a47",
+      "journal_sha256": null,
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": null,
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-deploy-v35",
+      "packet_sha256": "2f58daac994ece6754eaed53a7626efcd2521ad01e032fcc0eae3cd3999f3a47",
+      "journal_sha256": null,
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": null,
+      "campaign_result": null,
+      "flashes": 1,
+      "bootsel": 1,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-deploy-v36",
+      "packet_sha256": "ea09310974ad35eb3575bc0c8b386e4dc505c4a90d3294419c50c37c55b53ca4",
+      "journal_sha256": null,
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": null,
+      "campaign_result": null,
+      "flashes": 1,
+      "bootsel": 1,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-repair-deploy-20260917",
+      "packet_sha256": "7f40b8114ff54d40064c3ff65f3b4c16be2463f842d8e09ad00737378683abe8",
+      "journal_sha256": null,
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": null,
+      "campaign_result": null,
+      "flashes": 1,
+      "bootsel": 1,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v10-20260916",
+      "packet_sha256": "489918f52b5ccc154f135565efb061c0040407e096b362354902ded4dbc24072",
+      "journal_sha256": "1df0d12dbd41d37f33aa24e94eeee2170647e7587109f36a4fa96c74b2b3f1f3",
+      "charged_rf_jobs": 8,
+      "charged_rf_duration_ns": 8000000000,
+      "charged_paths": {
+        "normalizer": 8
+      },
+      "failure": {
+        "type": "KeyboardInterrupt",
+        "error": ""
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v11-20260916",
+      "packet_sha256": "07df65533577a55f0b7a35580864f15725d476ac3972c29b168ce1b3733b7336",
+      "journal_sha256": "ae8907ffab5bfb0810c46703b530cd6fc3b688361fe0e6b227f8022efd4596aa",
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": {
+        "type": "ConnectionResetError",
+        "error": "[Errno 104] Connection reset by peer"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v12-20260916",
+      "packet_sha256": "af75d63b21dc0f3377ef7bfedfdc20f170e9906b316b41a64cb38e373a541f1f",
+      "journal_sha256": "f055e51e9558f6b9e2fe271d6935cf3ce28693764978c254caa9c204eb9069f1",
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": {
+        "type": "ConnectionResetError",
+        "error": "[Errno 104] Connection reset by peer"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v13-20260916",
+      "packet_sha256": "f4c9172737ab944e26d91b6930a23c4a5461c79a813b91d16e08acec8d31dec8",
+      "journal_sha256": "9294c916ebf484b2339764ba3eccdd269c1fa0046f8b0591b8c5c4a0d9143f9d",
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": {
+        "type": "ValueError",
+        "error": "Memory headroom readiness deadline"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v14-20260916",
+      "packet_sha256": "e6c19c28c2f4a5aabd40683e3f490ac481d7ddd8713be46cd7212f15e6cb5725",
+      "journal_sha256": "b9ff16fe9db4f1a0fb45931bce26ede662e012597f618f5f238f445bad66aa83",
+      "charged_rf_jobs": 8,
+      "charged_rf_duration_ns": 8000000000,
+      "charged_paths": {
+        "normalizer": 8
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Normalizer lifecycle"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v15-20260916",
+      "packet_sha256": "0638df54ee84ed896cbbf7613ef6d5dffa9aea4b65ea1c3722bc703cf36271a8",
+      "journal_sha256": "1e32155c7e462000a9bc009490905e725261f1d50eed1c3efa345f044aa8cff2",
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": {
+        "type": "ValueError",
+        "error": "Preflight identity/headroom"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v16-20260916",
+      "packet_sha256": "0e1d723dd281bdee720d040f38870337d1d26b2377ede47543265f0210874406",
+      "journal_sha256": "c46db3fb215dfb5b318a040d560647c122aa9dc986d5cc2f5360a2d1e036682e",
+      "charged_rf_jobs": 8,
+      "charged_rf_duration_ns": 8000000000,
+      "charged_paths": {
+        "normalizer": 8
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Console unavailable before quiet"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v17-20260916",
+      "packet_sha256": "5ce9eaaea95bd939ece5f23ac7ee3460bbf5790679c3f9a00c784e2f581bba20",
+      "journal_sha256": "f36b822f97ea0c691162410ef164aa061efc15094a733d83ec9db37168ecfeef",
+      "charged_rf_jobs": 1,
+      "charged_rf_duration_ns": 1000000000,
+      "charged_paths": {
+        "normalizer": 1
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Normalizer lifecycle"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v18-20260916",
+      "packet_sha256": "4ac603ad6539134f9824f42142aa73c7ec5e9e6d78447d4566c8569e0cb5c45e",
+      "journal_sha256": "024dd133e244200d749b7fb1ff4ea532b40db8851a7ea584908b87fda18ff717",
+      "charged_rf_jobs": 8,
+      "charged_rf_duration_ns": 8000000000,
+      "charged_paths": {
+        "normalizer": 8
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Production execution failed"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v19-20260916",
+      "packet_sha256": "47e900c73f0fd29cea23a25f21e610a4c540624c7156b0444788f3fefef4b477",
+      "journal_sha256": "d4a6ed99e2b028e0987d97fc5eb3dcd97cece277eeebe5d669cde2c67748b93e",
+      "charged_rf_jobs": 8,
+      "charged_rf_duration_ns": 8000000000,
+      "charged_paths": {
+        "normalizer": 8
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Production health"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v2-20260916",
+      "packet_sha256": "efa775d0b94ee1e8754900e58f53b73eabc00e39496a46ed82453e7793be3633",
+      "journal_sha256": "b31128846d56b8e60d99e96b2c11fd9037f366b54e460316558ebf9b94a0120b",
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": {
+        "type": "ValueError",
+        "error": "Normalizer clock"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v20-20260916",
+      "packet_sha256": "62f0931fe0e674ad11c78e0fa6f16b62a9134a3bdfb5d01012ed19c82618439f",
+      "journal_sha256": "4e6911144e1a82057fa06ddae07cc6c55d1756a19e6fdaa00b88cf12719a1bb4",
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": {
+        "type": "ValueError",
+        "error": "Preflight identity/headroom"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v21-20260917",
+      "packet_sha256": "c5a7601e5b012d53d32bd798853f46bda81c53ebf76f426fe035fefd43c84a19",
+      "journal_sha256": "9b88069967a621d5bc0bec773da1d4d1cb8404392186765edc1644a595d4776f",
+      "charged_rf_jobs": 8,
+      "charged_rf_duration_ns": 8000000000,
+      "charged_paths": {
+        "normalizer": 8
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Production execution failed"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v22-20260917",
+      "packet_sha256": "7609d41368ff0d90963d42b2acee5032e06077c43b76db76fb8d381075bcf288",
+      "journal_sha256": null,
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": null,
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v23-20260917",
+      "packet_sha256": "5f8cb84a134142157290d8b52725ce6b9c5d0c77e539c298d380dd9917f8849b",
+      "journal_sha256": "63b217eac722179cbef076b6bbdf9f17d3e7c20455dfdd43b88f427cc2f69fb0",
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": {
+        "type": "ValueError",
+        "error": "Memory headroom readiness deadline"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v24-20260917",
+      "packet_sha256": "b175f02c4113882eba2b951c6cf69b15cd4d665ff0571795f35972410d0964cd",
+      "journal_sha256": "8c40a6ff2fceb49fdb535098bfb12a8f6ecf4b43bbbf9c211417dd0e75fe3dee",
+      "charged_rf_jobs": 4,
+      "charged_rf_duration_ns": 4000000000,
+      "charged_paths": {
+        "normalizer": 4
+      },
+      "failure": {
+        "type": "TimeoutError",
+        "error": "The read operation timed out"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v25-20260917",
+      "packet_sha256": "26b2c3b92ace17cdd7fcf9a73e1b2859ea894117a66ec38e8dcda1ae1a107647",
+      "journal_sha256": "40d5e99fff519575d0495eb5752b87ea4b43f37ffd9ce462a0463ca0229019c7",
+      "charged_rf_jobs": 9,
+      "charged_rf_duration_ns": 122600000000,
+      "charged_paths": {
+        "normalizer": 8,
+        "production": 1
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Production health"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v26-20260917",
+      "packet_sha256": "4a1854e4e67b130e4de3036a871429e1aa272c36051322d9db7cd99d224dab32",
+      "journal_sha256": null,
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": null,
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v27-20260917",
+      "packet_sha256": "1ca707ca45fcb9d5c9dd5047978c575208a5915a7e4123fd19da473cbf86e6bb",
+      "journal_sha256": "f1b23752053c76d46802fb072be217e8b2ea93e9e97377b307afb0d25fd4fe92",
+      "charged_rf_jobs": 8,
+      "charged_rf_duration_ns": 8000000000,
+      "charged_paths": {
+        "normalizer": 8
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Production readiness"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v28-20260917",
+      "packet_sha256": "0fc96b8f9ec09005007987181b6728f0af58594c1a25b63b4934ab04c4dc2276",
+      "journal_sha256": "3c55bad9aa767293c908680b72fd966ed1f343c980e1403ba08df7aec7aef7bb",
+      "charged_rf_jobs": 9,
+      "charged_rf_duration_ns": 122600000000,
+      "charged_paths": {
+        "normalizer": 8,
+        "production": 1
+      },
+      "failure": {
+        "type": "KeyboardInterrupt",
+        "error": ""
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v3-20260916",
+      "packet_sha256": "0d43d1cf17a04b097deabd2f5875c8e673e4b1941eaf96fdfd11d75c3cb0d838",
+      "journal_sha256": "9de96af64aee72ec48f76ce05b4162827df59914b5614af72ae50f57bb383e7b",
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": {
+        "type": "OSError",
+        "error": "[Errno 113] No route to host"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v31-20260917",
+      "packet_sha256": "5d638d8625a7bb2a4bd6c0668f18c5b1b78702e3c608d2b0445da7e8dad94dd7",
+      "journal_sha256": "4bba1b81748dc9e77d8b4b53979fda16301fb7e959a3baf999894a287476bba2",
+      "charged_rf_jobs": 9,
+      "charged_rf_duration_ns": 122600000000,
+      "charged_paths": {
+        "normalizer": 8,
+        "production": 1
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Normal workers"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v33-20260917",
+      "packet_sha256": "e431aa3d37bd33772eb3d1e75a803e6e7f1b6c02ea85efcc0d3cc3e8481c9363",
+      "journal_sha256": "ef7b5e214b30d9c8206caece65d3f54221289b149e04e2c5f85892ff20563976",
+      "charged_rf_jobs": 9,
+      "charged_rf_duration_ns": 122600000000,
+      "charged_paths": {
+        "normalizer": 8,
+        "production": 1
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Normal workers"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v37-20260917",
+      "packet_sha256": "3a78b2e2e9dc128ec395d2eed52841b449c2ba45de6a51f094624bc94b3cd609",
+      "journal_sha256": "4c9c93c95ef67fe5364c9181290a2a2ac35edac2552f446fb4190a5104a34bfa",
+      "charged_rf_jobs": 9,
+      "charged_rf_duration_ns": 122600000000,
+      "charged_paths": {
+        "normalizer": 8,
+        "production": 1
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Production lifecycle"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v38-20260917",
+      "packet_sha256": "26e735716df1e5536c5d4fbea2f77b1991196f38cfb254ecc485e5bb7946ce32",
+      "journal_sha256": "9a14bbebf0ccf343e3d914a3041beb19a6a37eb6217f94e0860622e587a92b9a",
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": {
+        "type": "ValueError",
+        "error": "Memory headroom readiness deadline"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v39-20260917",
+      "packet_sha256": "d3c66e587a9c90dd62cd4d5049be88c1330d7fc7e61a11c3e97b1ccc8e18d6c1",
+      "journal_sha256": "0ecd9865b64127e4d71b626734de3263cc1b8804df3f8e9d80fd214a3bd932d8",
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": {
+        "type": "ValueError",
+        "error": "Memory headroom readiness deadline"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v4-20260916",
+      "packet_sha256": "eb16f80fa8d6391dbe6979b9233632c833c8de48f3bb01e04ae3811f0a48730e",
+      "journal_sha256": "e032bfef3e2fea429bd9834fc0b12704367c0bb89ebfcfd27ecaae1fca547486",
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": {
+        "type": "TimeoutError",
+        "error": "Normalizer network/clock readiness deadline"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v40-20260917",
+      "packet_sha256": "2da55e3a6daf5adf16915954cc727e0dc1a3e45c4fdf92dff2296e9a9c692316",
+      "journal_sha256": null,
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": null,
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v41-20260917",
+      "packet_sha256": "d1fe65a9951097c3e147836d1be28de53bc021343614248d76dcfcdb06a816b2",
+      "journal_sha256": "77a668e4f201e990702c9b7feccf3e265e20a58e0575b0d8aa21de8682383cfe",
+      "charged_rf_jobs": 9,
+      "charged_rf_duration_ns": 122600000000,
+      "charged_paths": {
+        "normalizer": 8,
+        "production": 1
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Production lifecycle"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v42-20260917",
+      "packet_sha256": "0d4287b67eefe5093e1c062e75b14b502794828bf30084c90cbb4da3145d60aa",
+      "journal_sha256": "e898ad333f0dab9d93e46c298c0abfc9cebfd8f7e2cd2750d0c922e660959c91",
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": {
+        "type": "ValueError",
+        "error": "Memory headroom readiness deadline"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v43-20260917",
+      "packet_sha256": "741a0d411976117f7a55d78739aa893224581ea68719a0dd572c6c1ec43fb6ff",
+      "journal_sha256": null,
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": null,
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v44-20260917",
+      "packet_sha256": "ddfa7e07e728d101138952a60bfd1a9861ba86bedf0f2c8008bed57f0fe9c291",
+      "journal_sha256": "80c8d3283c97b796a84408b130f08d0fa5023fa2f6ce432a11dcf5c69c333b79",
+      "charged_rf_jobs": 11,
+      "charged_rf_duration_ns": 351800000000,
+      "charged_paths": {
+        "normalizer": 8,
+        "production": 3
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Final terminal/authority"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v5-20260916",
+      "packet_sha256": "b30db782d596b60075144f6666bdc9a9ec2d468958317ebe1688fc0faa8963b1",
+      "journal_sha256": "1a0b89e4ace7918d3e3e718c42699b27b55023eb694a371c0049127d37bc12a6",
+      "charged_rf_jobs": 1,
+      "charged_rf_duration_ns": 1000000000,
+      "charged_paths": {
+        "normalizer": 1
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Normalizer clock"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v6-20260916",
+      "packet_sha256": "5057dc8a5f795a5b65c1efce44d303d71d3bdb3bfadb0f08f544cd3fe93cc4f4",
+      "journal_sha256": "c5be9d59f1e6dfba884ba8b7a0eb4ae78247afb081102085609c5eb3596a975a",
+      "charged_rf_jobs": 1,
+      "charged_rf_duration_ns": 1000000000,
+      "charged_paths": {
+        "normalizer": 1
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Normalizer lifecycle"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v7-20260916",
+      "packet_sha256": "e53aba78baa1d8db5cf433c3229ca35029ece2538114b56897a387ff54b0fe19",
+      "journal_sha256": "7d6c2df23b9aebe501e070d599165ea9bf859b5dfd2475352f725768cb8c99cf",
+      "charged_rf_jobs": 6,
+      "charged_rf_duration_ns": 6000000000,
+      "charged_paths": {
+        "normalizer": 6
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Normalizer response"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v8-20260916",
+      "packet_sha256": "de2dd0bb2b9d775f9290c1d0ac928e1b817d828167ad705993d53f8a17789224",
+      "journal_sha256": "0eda47a0f253b469c59e3a73393133f878068adbdb706f01d929456c04d42977",
+      "charged_rf_jobs": 8,
+      "charged_rf_duration_ns": 8000000000,
+      "charged_paths": {
+        "normalizer": 8
+      },
+      "failure": {
+        "type": "ValueError",
+        "error": "Normalizer lifecycle"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    },
+    {
+      "attempt": "phase11-5-package9-v9-20260916",
+      "packet_sha256": "d4428b6c4df6b764d593edbbac3bb69f998f4f8d83055d93584ad39481fd6632",
+      "journal_sha256": "dd8e66bf8192a38112ec3404c64ff0e5fec89cd6fd30059aa7f46ade4fa83e06",
+      "charged_rf_jobs": 0,
+      "charged_rf_duration_ns": 0,
+      "charged_paths": {},
+      "failure": {
+        "type": "TimeoutError",
+        "error": "Normalizer network/clock readiness deadline"
+      },
+      "campaign_result": null,
+      "flashes": 0,
+      "bootsel": 0,
+      "configuration_writes": 0,
+      "controlled_reboots": 0,
+      "wifi_cycles": 0
+    }
+  ],
+  "attempt_count": 45,
+  "charged_rf_jobs": 142,
+  "charged_rf_duration_ns": 1164400000000,
+  "flashes": 6,
+  "bootsel": 6,
+  "configuration_writes": 0,
+  "controlled_reboots": 0,
+  "wifi_cycles": 0,
+  "decoder_sha256": "d12fd9525b1e34b7615a9a84ef4ce5f32b65928341b9f2b0bbe5ba617dee02e5",
+  "auditor_sha256": "9bd980db7169c292ffa3a73f7b6416151952df23d56b9be2cb430b96cb0c6258"
+}
