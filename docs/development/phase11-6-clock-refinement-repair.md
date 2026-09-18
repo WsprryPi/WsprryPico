@@ -1,7 +1,7 @@
 # Phase 11.6 clock-refinement repair and deployment record
 
 Status: **REPAIR COMMITTED; CORRECTED IMAGE DEPLOYED; ZERO-RF CANDIDATE
-GATES PASS; ATTEMPT 42 PRESERVED AS A PRE-RF HARNESS FAILURE; CORRECTIVE RF
+GATES PASS; ATTEMPTS 42-43 PRESERVED AS PRE-RF HARNESS FAILURES; CORRECTIVE RF
 GATE PENDING; PHASE 11.6 OPEN**
 
 ## Preserved failure
@@ -204,7 +204,23 @@ reservation. The sanitized record is
 [`phase11-6-clock-refinement-attempt42.json`](phase11-6-clock-refinement-attempt42.json).
 Attempt 42 is not reused.
 
-The remaining affected-candidate gate is fresh immutable sequence 43 using the
+Attempt 43 used the repaired browser path and became page-ready, but stopped at
+receiver process creation before capture readiness. Clean archive staging had
+correctly restored `scripts/capture_rf_bench.py` to its tracked non-executable
+mode; the Phase 11.6 adapter had incorrectly depended on a private executable
+mode applied to an earlier staging tree. The production client did not start,
+and no `LOAD`, `ARM` or RF request occurred. Fresh A/B reconciliation again
+proved both boards empty, inactive and unowned before reservation release.
+
+The capture adapter now invokes the reviewed Python source through the running
+Python interpreter. The retained capture request binds both interpreter and
+helper paths, and the helper SHA-256 remains independently journaled. This
+removes the unstated file-mode dependency without changing receiver settings,
+samples, duration or RF content. The sanitized record is
+[`phase11-6-clock-refinement-attempt43.json`](phase11-6-clock-refinement-attempt43.json).
+Attempt 43 is not reused.
+
+The remaining affected-candidate gate is fresh immutable sequence 44 using the
 unspent authorized 45.000001-second 160 m QRSS corrective RF allowance. The
 production entry point is rebound to that exact sequence and repair reason; it
 continues to require one submission and zero automatic retries. It must

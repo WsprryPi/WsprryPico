@@ -1,0 +1,50 @@
+{
+  "schema": "phase11.6-clock-refinement-attempt-result-v1",
+  "date": "2026-09-18",
+  "sequence": 43,
+  "result": "FAIL_PRE_RF_HARNESS",
+  "job": {
+    "band": "160m",
+    "mode": "QRSS",
+    "submission_path": "production",
+    "planned_rf_seconds": 45.000001
+  },
+  "operations": {
+    "browser_ready": true,
+    "receiver_capture_started": false,
+    "production_client_started": false,
+    "wtp_load_requests": 0,
+    "wtp_arm_requests": 0,
+    "rf_jobs": 0,
+    "charged_rf_seconds": 0
+  },
+  "failure": {
+    "type": "PermissionError",
+    "stage": "Receiver helper process creation before capture readiness",
+    "cause": "A clean Git archive restored scripts/capture_rf_bench.py to its tracked non-executable mode while Capture launched the Python source directly"
+  },
+  "repair": {
+    "strategy": "Invoke the pinned Python capture helper through the current Python interpreter instead of relying on an untracked executable-mode override",
+    "clean_archive_compatible": true,
+    "capture_request_retains_interpreter_and_helper": true
+  },
+  "reconciliation": {
+    "pico_a_empty_inactive_unowned": true,
+    "pico_b_empty_inactive_unowned": true,
+    "schedules_disabled": true,
+    "reservation_released": true
+  },
+  "private_evidence": {
+    "attempt_packet_file_sha256": "0b5d9d842872056bae47a84c86a915bfd0cd0bda46444cf0296e9cc0716e23d1",
+    "attempt_packet_canonical_sha256": "30e217c31185ca77bfa2a89bc04e996bd45a2d0bc31aa84bd94e06841c1a99a0",
+    "execution_journal_sha256": "fdb50973bbaabeda670696834c18a88ec6c2b846ce9da481186e1a93c932b70b",
+    "browser_journal_sha256": "5284cb6e2fa1c446ea24834698ebde5a09e795fa17d46b3fd34f57d39834776c",
+    "reconciliation_result_sha256": "e3145c73a7ff04a3a4635ec3c20464eddc0075f166d22320eacc328d7cd22065"
+  },
+  "accounting_after_attempt": {
+    "rf_attempts": 41,
+    "charged_planned_rf_seconds": 1200.000028,
+    "corrective_rf_allowance_unspent": true
+  },
+  "disposition": "Preserve attempt 43; use a fresh immutable packet only after the capture-helper invocation repair passes from a clean archive"
+}

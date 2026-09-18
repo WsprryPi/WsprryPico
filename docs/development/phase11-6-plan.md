@@ -1,8 +1,8 @@
 # Phase 11.6 conducted RF acceptance plan
 
 Status: **OPEN — the corrected candidate is deployed and has passed identity,
-configuration, resource and authenticated read-only control gates; attempt 42
-is preserved as a zero-RF browser-resolution harness failure, and one fresh
+configuration, resource and authenticated read-only control gates; attempts 42
+and 43 are preserved as zero-RF harness failures, and one fresh
 clock-refinement/QRSS packet remains pending under the unspent corrective RF
 allowance.** This phase is per-band/per-mode operational
 acceptance for the configuration closed by Phase 11.5. It is not the Phase 13
@@ -88,9 +88,14 @@ the already-pinned fixture address while retaining hostname-based HTTPS and
 the pinned peer certificate. A browser-only validation passed page load,
 authentication and manual refresh against the corrected boot. The
 [sanitized attempt record](phase11-6-clock-refinement-attempt42.json) preserves
-the failure, zero-RF accounting and tool hashes. The corrective entry point is
-rebound to fresh sequence 43 with the same one-submission, zero-retry and
-45.000001-second RF limits; attempt 42 may not be reused.
+the failure, zero-RF accounting and tool hashes. Attempt 43 then passed browser
+readiness but exposed a clean-archive executable-mode dependency before capture
+or production startup. Its
+[sanitized record](phase11-6-clock-refinement-attempt43.json) preserves that
+second pre-RF failure and reconciliation. The capture adapter now invokes the
+Python helper through the running interpreter. The corrective entry point is
+rebound to fresh sequence 44 with the same one-submission, zero-retry and
+45.000001-second RF limits; attempts 42 and 43 may not be reused.
 
 ## Frozen content and frequency convention
 

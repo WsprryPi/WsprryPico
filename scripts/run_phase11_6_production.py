@@ -23,10 +23,10 @@ from phase11_6_attempt import check as validate_attempt, packet_digest
 
 
 CORRECTIVE_JOB = "160m:QRSS:0:production:nominal"
-CORRECTIVE_SEQUENCE = 43
+CORRECTIVE_SEQUENCE = 44
 CORRECTIVE_REASON = (
     "Corrective repaired-candidate armed-interval clock-refinement "
-    "requalification after verified browser resolution repair"
+    "requalification after verified capture-helper invocation repair"
 )
 
 

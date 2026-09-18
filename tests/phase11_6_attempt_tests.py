@@ -18,7 +18,7 @@ from phase11_6.live import (BROWSER_ARM_LEAD_NS, MINIMUM_ARM_LEAD_NS,
                             CORRECTIVE_MAXIMUM_SYNC_AGE_NS,
                             CORRECTIVE_MINIMUM_SYNC_AGE_NS,
                             SETTLED_CLOCK_UNCERTAINTY_NS,
-                            NetworkPeer, RetryableWtpBusy,
+                            Capture, NetworkPeer, RetryableWtpBusy,
                             armed_clock_refinement, configure_capture_validator,
                             production_command,
                             render_production_ini, settled_inventory,
@@ -192,13 +192,36 @@ class Phase116AttemptTests(unittest.TestCase):
             self.assertIn("const ORIGIN='https://'+HOST+':18443'", source)
             self.assertIn("assert(!navigation.errorText", source)
 
-    def test_corrective_runner_is_rebound_only_to_fresh_attempt_43(self):
+    def test_corrective_runner_is_rebound_only_to_fresh_attempt_44(self):
         source = (ROOT / "scripts/run_phase11_6_production.py").read_text()
-        self.assertIn("CORRECTIVE_SEQUENCE = 43", source)
-        self.assertIn("after verified browser resolution repair", source)
+        self.assertIn("CORRECTIVE_SEQUENCE = 44", source)
+        self.assertIn("after verified capture-helper invocation repair", source)
         self.assertIn('attempt["sequence"] == CORRECTIVE_SEQUENCE', source)
         self.assertIn('attempt["maximum_submissions"] == 1', source)
         self.assertIn('attempt["automatic_retries"] == 0', source)
+
+    def test_capture_helper_does_not_depend_on_archive_executable_mode(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            helper = root / "capture.py"
+            helper.write_text("raise SystemExit(0)\n")
+            directory = root / "capture"
+            journal = mock.Mock()
+            process = mock.Mock()
+            process.poll.return_value = None
+            commands = []
+
+            def launch(command, **kwargs):
+                commands.append(command)
+                (directory / "capture.cf32.incomplete").write_bytes(b"x" * 65_537)
+                return process
+
+            capture = Capture(root, directory, helper, 1_838_100, 0.1, journal)
+            with mock.patch("phase11_6.live.subprocess.Popen", side_effect=launch):
+                capture.start()
+            self.assertEqual(commands[0][:2], [sys.executable, str(helper)])
+            journal.emit.assert_called_once()
+            capture.output.close()
 
     def test_production_browser_is_quiesced_during_wtp_admission(self):
         live = (ROOT / "src/phase11_6/live.py").read_text()
