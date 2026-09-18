@@ -173,6 +173,7 @@ def main() -> int:
             sys.executable, str(root / "scripts/analyze_phase11_6.py"),
             "--plan", str(args.plan), "--job-id", job["id"],
             "--attempt-packet", str(attempt),
+            "--run-result", str(attempt_root / "run-result.json"),
             "--capture", str(attempt_root / "job/capture/capture.cf32"),
             "--metadata", str(attempt_root / "job/capture/capture.json"),
             "--output", str(analysis_root), "--wsprd", str(args.wsprd),

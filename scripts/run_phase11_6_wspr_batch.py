@@ -180,6 +180,8 @@ def main() -> int:
                 sys.executable, str(root / "scripts/analyze_phase11_6.py"),
                 "--plan", str(args.plan), "--job-id", job["id"],
                 "--attempt-packet", str(attempts_by_job[job["id"]]),
+                "--run-result", str(group_root / "group" / job["submission_path"]
+                                    / "result.json"),
                 "--capture", str(group_root / "group" / job["submission_path"]
                                  / "capture/capture.cf32"),
                 "--metadata", str(group_root / "group" / job["submission_path"]

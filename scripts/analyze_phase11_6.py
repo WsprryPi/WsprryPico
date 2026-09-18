@@ -8,6 +8,7 @@ import importlib
 import json
 from pathlib import Path
 import platform
+import re
 import sys
 
 import numpy as np
@@ -46,11 +47,28 @@ def tool_provenance(harness_path: Path) -> dict:
     }
 
 
+def bind_run_result(attempt: dict, run_result: dict, job_id: str,
+                    capture_sha256: str, metadata_sha256: str) -> str:
+    capture = run_result.get("capture", {})
+    actual = run_result.get("wtp_job_id")
+    if (run_result.get("schema") != "phase11.6-job-result-v1"
+            or run_result.get("job_id") != job_id
+            or capture.get("capture_sha256") != capture_sha256
+            or capture.get("metadata_sha256") != metadata_sha256
+            or not isinstance(actual, str)
+            or re.fullmatch(r"[0-9a-f]{32}", actual) is None
+            or (attempt.get("runtime_job_id") is False
+                and actual != attempt.get("wtp_job_id"))):
+        raise ValueError("Analysis physical run-result binding")
+    return actual
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--plan", type=Path, required=True)
     parser.add_argument("--job-id", required=True)
     parser.add_argument("--attempt-packet", type=Path, required=True)
+    parser.add_argument("--run-result", type=Path, required=True)
     parser.add_argument("--capture", type=Path, required=True)
     parser.add_argument("--metadata", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
@@ -75,11 +93,19 @@ def main() -> int:
     validate_attempt(attempt, plan, args.plan.resolve().parent)
     if attempt["job_id"] != args.job_id:
         raise ValueError("Attempt packet job mismatch")
+    capture_sha = sha256(args.capture)
+    metadata_sha = sha256(args.metadata)
+    run_result = json.loads(args.run_result.read_text())
+    actual_wtp_job_id = bind_run_result(
+        attempt, run_result, args.job_id, capture_sha, metadata_sha
+    )
     job = copy.deepcopy(jobs[0])
     job["expected_job"] = copy.deepcopy(attempt["effective_job"])
     result = analyze(
         job, args.capture, args.metadata, args.output, args.wsprd,
         tool_provenance=tool_provenance(harness_path),
+        actual_wtp_job_id=actual_wtp_job_id,
+        physical_result_sha256=sha256(args.run_result),
     )
     print(json.dumps({"passed": result["passed"], "job_id": result["job_id"]}, indent=2))
     return 0 if result["passed"] else 1

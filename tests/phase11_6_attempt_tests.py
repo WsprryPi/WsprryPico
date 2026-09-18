@@ -35,6 +35,7 @@ from phase11_6_attempt import (  # noqa: E402
                            )
 from reconcile_phase11_6 import release_safe  # noqa: E402
 import run_phase11_6_production as production_runner  # noqa: E402
+from analyze_phase11_6 import bind_run_result  # noqa: E402
 
 
 class Phase116AttemptTests(unittest.TestCase):
@@ -219,6 +220,37 @@ class Phase116AttemptTests(unittest.TestCase):
                 helper.write_bytes(b"changed helper fixture")
                 with self.assertRaisesRegex(ValueError, "Exact reviewed"):
                     production_runner.require_capture_helper(helper)
+
+    def test_analysis_binds_actual_runtime_job_and_capture_hashes(self):
+        actual = "a" * 32
+        attempt = {"runtime_job_id": True, "wtp_job_id": None}
+        run_result = {
+            "schema": "phase11.6-job-result-v1",
+            "job_id": "160m:QRSS:0:production:nominal",
+            "wtp_job_id": actual,
+            "capture": {
+                "capture_sha256": "b" * 64,
+                "metadata_sha256": "c" * 64,
+            },
+        }
+        self.assertEqual(bind_run_result(
+            attempt, run_result, run_result["job_id"], "b" * 64, "c" * 64
+        ), actual)
+        for mutation in (
+                lambda value: value.__setitem__("wtp_job_id", "d" * 31),
+                lambda value: value["capture"].__setitem__("capture_sha256", "e" * 64),
+                lambda value: value.__setitem__("job_id", "wrong")):
+            changed = copy.deepcopy(run_result)
+            mutation(changed)
+            with self.assertRaisesRegex(ValueError, "run-result binding"):
+                bind_run_result(
+                    attempt, changed, run_result["job_id"], "b" * 64, "c" * 64
+                )
+        nonruntime = {"runtime_job_id": False, "wtp_job_id": "f" * 32}
+        with self.assertRaisesRegex(ValueError, "run-result binding"):
+            bind_run_result(
+                nonruntime, run_result, run_result["job_id"], "b" * 64, "c" * 64
+            )
 
     def test_production_browser_is_quiesced_during_wtp_admission(self):
         live = (ROOT / "src/phase11_6/live.py").read_text()

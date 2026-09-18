@@ -151,10 +151,18 @@ def _decode_wspr(iq: np.ndarray, rate: int, center: float, frequency: int,
 
 
 def analyze(job: dict, capture_path: Path, metadata_path: Path, directory: Path,
-            wsprd: Path | None = None, *, tool_provenance: dict) -> dict:
+            wsprd: Path | None = None, *, tool_provenance: dict,
+            actual_wtp_job_id: str, physical_result_sha256: str) -> dict:
     if (tool_provenance.get("schema") != "phase11.6-analysis-tools-v1"
             or not tool_provenance.get("source_sha256")):
         raise ValueError("Phase 11.6 analysis tool provenance")
+    if (len(actual_wtp_job_id) != 32
+            or any(character not in "0123456789abcdef"
+                   for character in actual_wtp_job_id)
+            or len(physical_result_sha256) != 64
+            or any(character not in "0123456789abcdef"
+                   for character in physical_result_sha256)):
+        raise ValueError("Phase 11.6 physical result identity")
     directory.mkdir(mode=0o700)
     iq, metadata, capture_sha = load_capture(capture_path, metadata_path)
     settings = metadata["actual_settings"]
@@ -247,7 +255,8 @@ def analyze(job: dict, capture_path: Path, metadata_path: Path, directory: Path,
     report = {
         "schema": "phase11.6-analysis-v1",
         "job_id": job["id"],
-        "wtp_job_id": job["expected_job"]["job_id"],
+        "wtp_job_id": actual_wtp_job_id,
+        "physical_result_sha256": physical_result_sha256,
         "band": job["band"],
         "mode": mode,
         "capture_sha256": capture_sha,
