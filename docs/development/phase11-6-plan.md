@@ -1,9 +1,12 @@
 # Phase 11.6 conducted RF acceptance plan
 
-Status: **OPEN — the corrected candidate is deployed; attempts 42 and 43 are
-preserved as zero-RF harness failures, and attempt 44 passed the armed clock-
-refinement, launch, resource, production/browser and independent-IQ corrective
-gate. Remaining matrix paths and bands are pending.** This phase is per-band/per-mode operational
+Status: **OPEN — the corrected candidate is deployed; attempts 42, 43 and 45
+are preserved as zero-RF harness/orchestration failures, and attempt 44 passed
+the armed clock-refinement corrective gate. The three 160 m QRSS paths and the
+three reverse-profile DFCW paths now pass their individual physical and IQ
+checks. Attempt 48 retains an unrelaxed 160 m FSKCW production-path coherence
+failure; its other two paths were not spent. Remaining matrix paths, packet
+audits and bands are pending.** This phase is per-band/per-mode operational
 acceptance for the configuration closed by Phase 11.5. It is not the Phase 13
 band x mode x clock, filter, harmonic, calibrated-power or release campaign.
 
@@ -115,10 +118,38 @@ the exact measurements, hashes, accounting and limitations. Cumulative RF
 accounting is 42 RF attempts and 1245.000029 charged planned seconds; the two
 pre-RF harness failures do not add RF charges.
 
-Attempt 44 supplies only the production path for the 160 m QRSS row. The row
-still requires its browser-owned and controller-disconnect jobs, and the
-ordinary packet cannot receive packet-level audit credit until all jobs and
-restoration assertions are present. No Phase 11.6 phase-closure claim is made.
+At the corrective checkpoint, attempt 44 supplied only the production path for
+the 160 m QRSS row. The continuation below adds the browser-owned and
+controller-disconnect results, but the ordinary packet still cannot receive
+packet-level audit credit until all jobs and restoration assertions are
+present. No Phase 11.6 phase-closure claim is made.
+
+## 160 m continuation checkpoint
+
+After the timing requalification, sequence 45 was preserved without RF when a
+manual `nsenter` invocation used a relative runner path. The runner never
+started, the output root was absent, the reservation remained released and no
+Pico request or capture occurred. Its packet was not reused. Fresh sequences
+46 and 47 passed the browser-owned and controller-disconnect QRSS paths, so all
+three QRSS submission paths now have passing physical and independent-IQ
+results. The ordinary 160 m packet audit remains pending.
+
+Sequence 48 completed the 160 m FSKCW production waveform and lifecycle, but
+the independent analysis failed the frozen 0.15 rad phase-coherence threshold:
+the 21-second low state measured 0.167284 rad RMS. Its +5.018197 Hz separation,
+transition timing, carrier continuity, amplitude and contrast otherwise passed.
+An offline diagnostic found a smooth approximately 0.040 Hz drift across that
+state, not a dropout. Because the receiver axis is uncalibrated, the retained
+evidence cannot assign that relative drift solely to the Pico or receiver. The
+limit was not relaxed, the attempt was not repeated, and the browser/controller
+FSKCW paths remain unspent.
+
+Sequences 49 through 51 then passed the production, browser and controller-
+disconnect DFCW paths. These packets and browser requests explicitly preserve
+the project image's reverse dot-high/dash-low profile; conventional external
+DFCW remains dot-low/dash-high. The full sanitized checkpoint, exact evidence
+hashes, RF accounting and restoration state are recorded in
+[`phase11-6-160m-attempt45-51.json`](phase11-6-160m-attempt45-51.json).
 
 ## Frozen content and frequency convention
 
