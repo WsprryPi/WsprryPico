@@ -1,0 +1,69 @@
+{
+  "schema": "phase11.6-clock-refinement-deployment-result-v1",
+  "status": "REJECTED_CONFIGURATION_RECONCILED",
+  "date": "2026-09-18",
+  "source_revision": "2eaa99945d21501cd4dbdac98c25be5fa146e479",
+  "companion_revision": "3b046ebe3eaa19ae764706d844fa7354033c32df",
+  "device": {
+    "serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "prior_revision": "91933c009709",
+    "prior_boot_id": "d2f657c2099c67a7af2ef390426bda10",
+    "installed_revision": "2eaa99945d21",
+    "installed_boot_id": "0839b9427c766e4a93f3e76c6a8ad718"
+  },
+  "deployed_image": {
+    "accepted": false,
+    "uf2_sha256": "04a4091dd8658711ea1f495b2284ed610214a712653ee039c0dae2222b279df4",
+    "elf_sha256": "7255b07d834014ff1b1da4fd5c4117f3177f801686ee21203f9c82794b8347b7",
+    "sdk": "2.3.1",
+    "toolchain": "Arm GNU 15.3.1",
+    "system_clock_hz": 138000000,
+    "pio_divider": 1,
+    "rf_render_in_ram": true,
+    "network_port": 18443,
+    "compiled_schedule_base_frequency_hz": 3570100
+  },
+  "configuration_gate": {
+    "expected_schedule_base_frequency_nhz": "135500000000000",
+    "observed_schedule_base_frequency_nhz": "3570100000000000",
+    "station_preserved": true,
+    "schedules_preserved": true,
+    "schedules_enabled": false,
+    "watermark_preserved": true,
+    "storage_healthy": true,
+    "network_identity_configured": true,
+    "stack_guards_valid": true,
+    "allocator_failures": 0,
+    "tls_allocation_failures": 0,
+    "dma_errors": 0,
+    "output_active": false
+  },
+  "operation": {
+    "bootsel": 1,
+    "flashes": 1,
+    "configuration_writes": 0,
+    "rf_jobs": 0,
+    "planned_rf_seconds": 0,
+    "before_flash_sha256": "80ce1e996e93e274d6ce14359b935ad01862322df1f8b0404b4bbd22516b01f1",
+    "reservation_released_after_reconciliation": true,
+    "peer_boot_unchanged": true
+  },
+  "corrected_candidate": {
+    "deployed": false,
+    "compiled_schedule_base_frequency_hz": 135500,
+    "uf2_sha256": "af3f6917ba807a1526dca6e15f19fff1974410fc87ecc32fd6e9c4f07059525f",
+    "elf_sha256": "a8683a1b84a443e7ecfce5b894c26f1041146b13f6446a22a9e8d0d5431e27be",
+    "map_sha256": "cbd9f66d852be055070aa3a291f86b129535694b9a7481dff35ff0a6ca117074",
+    "text_bytes": 1101420,
+    "bss_bytes": 276192,
+    "linked_image_checks": "PASS",
+    "fresh_flash_authorization_required": true
+  },
+  "campaign_accounting": {
+    "rf_attempts": 41,
+    "planned_rf_seconds": 1200.000028,
+    "unchanged": true
+  },
+  "private_evidence_root": "/home/pi/phase11-6-conducted-v3-20260918/repair-2eaa999-deployment"
+}

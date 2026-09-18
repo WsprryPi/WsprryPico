@@ -1,6 +1,7 @@
-# Phase 11.6 clock-refinement repair preparation
+# Phase 11.6 clock-refinement repair and deployment record
 
-Status: **PREPARED, NOT DEPLOYED; PHASE 11.6 OPEN**
+Status: **REPAIR COMMITTED; CORRECTED IMAGE PREPARED, NOT DEPLOYED;
+PHASE 11.6 OPEN**
 
 ## Preserved failure
 
@@ -94,15 +95,64 @@ part of this deployment.
 - Pico 2 W physical target linked with SDK 2.3.1 and Arm GCC 15.3.1. Linked
   heap hooks, stack guards and RAM renderer checks passed.
 
-The current source-only, dirty-worktree build is deliberately provisional and
-must not be treated as a deployment identity. Its StandaloneRF UF2 SHA-256 is
+The source-only, dirty-worktree build was deliberately provisional and was not
+treated as a deployment identity. Its StandaloneRF UF2 SHA-256 was
 `f98038e4bce0393c3b3ea68cadf8f79b80d266ab0916d4c9be0181a92f634562`;
-the linked ELF SHA-256 is
+the linked ELF SHA-256 was
 `8f7854f16eb17fdbea609f6d848c0b5952f49fd19cc7accfe791fa23ca2f9cd3`.
-A clean committed candidate must be rebuilt and identified before any flash.
+A clean committed candidate was subsequently rebuilt and identified as
+described below.
 
-## Authorization boundary
+## First deployment attempt and retained stop
 
-No flash, reboot, BOOTSEL action, CONFIG write or additional RF attempt was
-performed while preparing this repair. Deployment and the bounded corrective
-RF gate require fresh explicit operational authorization.
+The operator authorized one clean Pico A deployment, affected Phase 11.5
+candidate checks and at most one additional 45.000001-second 160 m QRSS
+corrective attempt. Repair source `2eaa99945d21501cd4dbdac98c25be5fa146e479`
+and the companion WsprryPi change `3b046ebe3eaa19ae764706d844fa7354033c32df`
+were committed and verified at `origin/devel` before the build.
+
+The first clean network-enabled image used the accepted 138 MHz, divider-1,
+RAM-rendered, Pico A TLS configuration, but the build command omitted the
+accepted `WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ=135500` override. It
+therefore compiled the generic 3,570,100 Hz standalone default. Its UF2
+SHA-256 was
+`04a4091dd8658711ea1f495b2284ed610214a712653ee039c0dae2222b279df4`;
+its ELF SHA-256 was
+`7255b07d834014ff1b1da4fd5c4117f3177f801686ee21203f9c82794b8347b7`.
+
+The serial-bound deployment backed up the full pre-flash contents, loaded and
+verified that UF2 once, and produced Pico A boot
+`0839b9427c766e4a93f3e76c6a8ad718`. Post-flash inventory confirmed the repaired
+source, 138 MHz/RAM/GP2 engine, valid stack guards, zero allocator, TLS and DMA
+faults, retained station/schedules/watermark, configured network identity and
+inactive output. The deployment gate nevertheless rejected the candidate
+because `schedule_base_frequency_nhz` changed from `135500000000000` to
+`3570100000000000`. Schedules remained disabled. No CONFIG write, RF job or
+corrective attempt occurred.
+
+The shared reservation remained HELD after that stop. Fresh authoritative A/B
+inventories then proved both boards empty, inactive and unowned; the exact
+authorized A boot/revision transition was reconciled and the reservation was
+released. The installed image is not an accepted Phase 11.5 or 11.6 candidate.
+The full private record is retained under mode 0700 at
+`/home/pi/phase11-6-conducted-v3-20260918/repair-2eaa999-deployment` on wspr5;
+the sanitized result is
+[`phase11-6-clock-refinement-deployment-attempt1.json`](phase11-6-clock-refinement-deployment-attempt1.json).
+
+## Corrected candidate and authorization boundary
+
+A second clean build from the same repair source explicitly restores the
+accepted 135,500 Hz standalone base while retaining the listener, 138 MHz
+clock, divider 1 and RAM renderer. SDK 2.3.1 and Arm GCC 15.3.1 linked it; heap
+hooks, stack guards, RF RAM placement and the reserved flash boundary passed.
+The corrected, not-deployed hashes are:
+
+- UF2: `af3f6917ba807a1526dca6e15f19fff1974410fc87ecc32fd6e9c4f07059525f`;
+- ELF: `a8683a1b84a443e7ecfce5b894c26f1041146b13f6446a22a9e8d0d5431e27be`;
+- map: `cbd9f66d852be055070aa3a291f86b129535694b9a7481dff35ff0a6ca117074`.
+
+The image is staged privately on wspr5 but has not been flashed. The one
+authorized deployment was spent. A second serial-bound flash/BOOTSEL requires
+fresh explicit authorization. The affected Phase 11.5 candidate checks and the
+single authorized corrective RF attempt remain unspent; they cannot proceed on
+the rejected installed configuration.

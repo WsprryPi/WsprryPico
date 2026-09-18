@@ -1,7 +1,8 @@
 # Phase 11.6 conducted RF acceptance plan
 
-Status: **OPEN — physical execution is paused at the firmware-repair deployment
-gate after preserved attempt 41.** This phase is per-band/per-mode operational
+Status: **OPEN — physical execution is paused at the corrected-candidate
+authorization gate after preserved attempt 41 and one rejected deployment
+build.** This phase is per-band/per-mode operational
 acceptance for the configuration closed by Phase 11.5. It is not the Phase 13
 band x mode x clock, filter, harmonic, calibrated-power or release campaign.
 
@@ -67,6 +68,15 @@ assertions and records the source-only repair. No repaired firmware has been
 deployed; Phase 11.5 evidence remains bound to its recorded image and transfers
 only through the documented source-impact decision and required candidate
 checks.
+
+One authorized repair flash subsequently installed clean source `2eaa99945d21`
+but was rejected before acceptance because its build omitted the accepted
+135,500 Hz standalone-base override and reported the generic 3,570,100 Hz
+default. The device remained inactive, no RF or CONFIG write occurred, and the
+held reservation was released only after fresh A/B reconciliation. A corrected
+135,500 Hz UF2 is built and privately staged but not deployed; its exact record
+and the fresh-authorization boundary are in the
+[deployment attempt result](phase11-6-clock-refinement-deployment-attempt1.json).
 
 ## Frozen content and frequency convention
 
