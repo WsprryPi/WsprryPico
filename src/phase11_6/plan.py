@@ -12,16 +12,17 @@ SCHEMA = "phase11.6-plan-v3"
 MATRIX_SCHEMA = "phase11.6-matrix-v3"
 SAMPLE_RATE_HZ = 138_000_000
 DIRECT_MAXIMUM_HZ = 68_999_999
-FIRMWARE_SOURCE = "91933c00970939e366d1bfcf3c1956b59be8f6c5"
+FIRMWARE_SOURCE = "2eaa99945d21501cd4dbdac98c25be5fa146e479"
 FIRMWARE_UF2_SHA256 = (
-    "5da240aacf20e27db79126a7bff2be18e4ece849a608fa439f4e0c577659f446"
+    "af3f6917ba807a1526dca6e15f19fff1974410fc87ecc32fd6e9c4f07059525f"
 )
 PICO_SERIAL = "0BF4B4AEC9FFB344"
 PICO_DEVICE_ID = "fd6127d11d6aca42a9905fa3fb1bf1d5"
 PICO_PHASE115_BOOT = "ff719d304f1ba4ac23fddd93561b26f0"
-PICO_ACCEPTED_BOOT = "d2f657c2099c67a7af2ef390426bda10"
+PICO_PREDECESSOR_BOOT = "d2f657c2099c67a7af2ef390426bda10"
+PICO_ACCEPTED_BOOT = "b72fed2c17583cc7aba0f1345f76a3b2"
 PREDECESSOR_PLAN_SHA256 = (
-    "ea512b70a786c46fbe15f769b327139d69ad3b0cae984b3622d79f145a076c53"
+    "9324f6057ae8f4e552375919836bbe4e0c30176405eedaf3915f0ab67d929556"
 )
 PEER_SERIAL = "CDDBF8767C506C07"
 PEER_DEVICE_ID = "29f20b7342051ef947aa56cb9d4fab42"
@@ -311,21 +312,21 @@ def compose() -> dict:
         "schema": SCHEMA,
         "phase": "11.6",
         "repositories": {
-            "WsprryPico": "f34a606391bca048af902e120d214462dd5f55b3",
-            "WsprryPi": "21ae75ab9e38bd6237b1ae73f3e7ab8527324067",
+            "WsprryPico": "8d84dbe567cdb4e3814281c4792c6d544ee2b711",
+            "WsprryPi": "3b046ebe3eaa19ae764706d844fa7354033c32df",
         },
         "amendment": {
             "predecessor_plan_sha256": PREDECESSOR_PLAN_SHA256,
-            "scope": "accepted boot identity and restart provenance only",
+            "scope": "clock-refinement repair candidate identity and applicability gate",
             "rf_job_payloads_changed": False,
             "reason": (
-                "operator-authorized restart after a repaired production-browser "
-                "admission collision latched allocator and TLS allocation counters"
+                "operator-authorized repair of the armed UTC-to-monotonic projection "
+                "defect preserved by Phase 11.6 attempt 41"
             ),
             "authorization_date": "2026-09-18",
-            "restart_request": "authenticated same-origin POST /api/v1/restart",
+            "deployment": "serial-bound corrected 135500 Hz UF2 flash",
             "configuration_writes": 0,
-            "firmware_flashes": 0,
+            "firmware_flashes": 1,
         },
         "accepted_configuration": {
             "pico_serial": PICO_SERIAL,
@@ -342,15 +343,15 @@ def compose() -> dict:
             "output": "GP2",
             "frequency_correction_ppb": 0,
             "boot_transition": {
-                "from_boot_id": PICO_PHASE115_BOOT,
+                "from_boot_id": PICO_PREDECESSOR_BOOT,
                 "to_boot_id": PICO_ACCEPTED_BOOT,
-                "source_revision_unchanged": True,
-                "uf2_sha256_unchanged": True,
+                "source_revision_unchanged": False,
+                "uf2_sha256_unchanged": False,
                 "hardware_configuration_unchanged": True,
                 "postrestart_allocator_failures": 0,
                 "postrestart_tls_allocation_failures": 0,
                 "private_evidence_directory":
-                    "restart-authorization-20260918",
+                    "repair-2eaa999-deployment/corrected-deployment",
             },
         },
         "peer": {"pico_serial": PEER_SERIAL, "device_id": PEER_DEVICE_ID},
@@ -423,9 +424,12 @@ def compose() -> dict:
         "planned_rf_seconds": planned_seconds,
         "capture_estimate_bytes": int((planned_seconds + planned_jobs * 4) * 250_000 * 8),
         "source_impact": {
-            "firmware_runtime_changes": 0,
-            "decision": "host-only planning, capture, analysis and evidence tooling",
-            "phase11_5_applicability": "retained unless live evidence contradicts the accepted identity",
+            "firmware_runtime_changes": 1,
+            "decision": "reproject immutable UTC from the newest admissible armed clock sample",
+            "phase11_5_applicability": (
+                "R1.1/R1.5, the shared R2 launch path and R6 timing/resources require "
+                "the documented repaired-candidate gate before transfer"
+            ),
         },
     }
     validate(plan)

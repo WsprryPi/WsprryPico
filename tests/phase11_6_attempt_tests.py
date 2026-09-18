@@ -15,9 +15,12 @@ sys.path.insert(1, str(ROOT / "scripts"))
 
 from phase11_6.plan import PICO_ACCEPTED_BOOT, compose  # noqa: E402
 from phase11_6.live import (BROWSER_ARM_LEAD_NS, MINIMUM_ARM_LEAD_NS,
+                            CORRECTIVE_MAXIMUM_SYNC_AGE_NS,
+                            CORRECTIVE_MINIMUM_SYNC_AGE_NS,
                             SETTLED_CLOCK_UNCERTAINTY_NS,
                             NetworkPeer, RetryableWtpBusy,
-                            configure_capture_validator, production_command,
+                            armed_clock_refinement, configure_capture_validator,
+                            production_command,
                             render_production_ini, settled_inventory,
                             usb_completion,
                             wait_observer_readiness)  # noqa: E402
@@ -45,6 +48,60 @@ class Phase116AttemptTests(unittest.TestCase):
             wait_observer_readiness(console, usb, timeout=0)
         usb.clock["uncertainty_ns"] = str(SETTLED_CLOCK_UNCERTAINTY_NS)
         wait_observer_readiness(console, usb, timeout=0.01)
+
+    def test_corrective_readiness_uses_bounded_sample_age_without_relaxing_default(self):
+        console = mock.Mock(failure=None, latest={"ok": True})
+        usb = mock.Mock(
+            failure=None,
+            latest={"state": "empty"},
+            clock={"state": "synchronized", "leap": "normal",
+                   "uncertainty_ns": "38000000",
+                   "sync_age_ns": str(CORRECTIVE_MINIMUM_SYNC_AGE_NS)},
+        )
+        with self.assertRaises(TimeoutError):
+            wait_observer_readiness(console, usb, timeout=0)
+        wait_observer_readiness(
+            console, usb, timeout=0.01, maximum_uncertainty_ns=500_000_000,
+            minimum_sync_age_ns=CORRECTIVE_MINIMUM_SYNC_AGE_NS,
+            maximum_sync_age_ns=CORRECTIVE_MAXIMUM_SYNC_AGE_NS,
+        )
+        usb.clock["sync_age_ns"] = str(CORRECTIVE_MAXIMUM_SYNC_AGE_NS + 1)
+        with self.assertRaises(TimeoutError):
+            wait_observer_readiness(
+                console, usb, timeout=0, maximum_uncertainty_ns=500_000_000,
+                minimum_sync_age_ns=CORRECTIVE_MINIMUM_SYNC_AGE_NS,
+                maximum_sync_age_ns=CORRECTIVE_MAXIMUM_SYNC_AGE_NS,
+            )
+
+    def test_clock_refinement_requires_better_accepted_sample_while_armed(self):
+        def row(sequence, accepted, state, utc, monotonic, uncertainty, age):
+            return {
+                "sequence": sequence, "kind": "console_info",
+                "monotonic_ns": monotonic,
+                "value": {"value": {
+                    "network": {"accepted": accepted},
+                    "status": {
+                        "state": state, "utc_now_ns": str(utc),
+                        "monotonic_now_ns": str(monotonic),
+                        "uncertainty_ns": str(uncertainty),
+                        "sync_age_ns": str(age),
+                    },
+                }},
+            }
+
+        rows = [
+            row(1, 34, "armed", 1_000_000_000_000, 10_000, 38_000_000,
+                63_000_000_000),
+            row(2, 35, "armed", 1_001_000_000_000, 1_010_000_000, 3_700_000,
+                500_000_000),
+        ]
+        value = armed_clock_refinement(rows, "a" * 32)
+        self.assertEqual(value["uncertainty_reduction_ns"], 34_300_000)
+        self.assertEqual(value["job_id"], "a" * 32)
+        changed = copy.deepcopy(rows)
+        changed[1]["value"]["value"]["status"]["state"] = "running"
+        with self.assertRaisesRegex(ValueError, "while Armed"):
+            armed_clock_refinement(changed, "a" * 32)
 
     def test_phase116_usb_observer_refreshes_clock_each_status_cycle(self):
         source = (ROOT / "scripts/phase11_5_package9.py").read_text()

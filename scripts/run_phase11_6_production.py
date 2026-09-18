@@ -22,6 +22,12 @@ from phase11_5_rf_reservation import Reservation
 from phase11_6_attempt import check as validate_attempt, packet_digest
 
 
+CORRECTIVE_JOB = "160m:QRSS:0:production:nominal"
+CORRECTIVE_REASON = (
+    "Corrective repaired-candidate armed-interval clock-refinement requalification"
+)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--plan", type=Path, required=True)
@@ -33,6 +39,7 @@ def main() -> int:
     parser.add_argument("--capture-helper", type=Path, required=True)
     parser.add_argument("--qualification-src", type=Path, required=True)
     parser.add_argument("--production-binary", type=Path, required=True)
+    parser.add_argument("--require-armed-clock-refinement", action="store_true")
     parser.add_argument("--enable-rf", action="store_true", required=True)
     args = parser.parse_args()
     if not args.enable_rf:
@@ -53,6 +60,15 @@ def main() -> int:
             or attempt["job_id"] != args.job_id
             or attempt["runtime_job_id"] is not True):
         raise ValueError("Immutable production attempt packet mismatch")
+    if args.require_armed_clock_refinement and not (
+            args.job_id == CORRECTIVE_JOB
+            and attempt["sequence"] == 42
+            and attempt["reason"] == CORRECTIVE_REASON
+            and attempt["planned_jobs"] == 1
+            and attempt["planned_rf_seconds"] == 45.000001
+            and attempt["maximum_submissions"] == 1
+            and attempt["automatic_retries"] == 0):
+        raise ValueError("Exact corrective clock-refinement authorization mismatch")
     job = copy.deepcopy(jobs[0])
     job["expected_job"] = copy.deepcopy(attempt["effective_job"])
     output = args.output.resolve()
@@ -86,7 +102,8 @@ def main() -> int:
         reservation.acquire(before)
         journal.emit("reservation_acquired", json.loads(reservation.path.read_text()))
         result = execute_production_job(
-            fixture_root, plan, job, output / "job", helper, binary, journal
+            fixture_root, plan, job, output / "job", helper, binary, journal,
+            corrective_clock_refinement=args.require_armed_clock_refinement,
         )
         final_values = {
             "a": settled_inventory(fixture_root, "phase116-after-a-" + label,

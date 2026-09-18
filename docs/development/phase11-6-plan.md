@@ -1,73 +1,60 @@
 # Phase 11.6 conducted RF acceptance plan
 
-Status: **OPEN — physical execution is paused at the corrected-candidate
-authorization gate after preserved attempt 41 and one rejected deployment
-build.** This phase is per-band/per-mode operational
+Status: **OPEN — the corrected candidate is deployed and has passed identity,
+configuration, resource and authenticated read-only control gates; the single
+bounded attempt 42 clock-refinement/QRSS gate remains pending.** This phase is per-band/per-mode operational
 acceptance for the configuration closed by Phase 11.5. It is not the Phase 13
 band x mode x clock, filter, harmonic, calibrated-power or release campaign.
 
 The reproducible packet generator is `scripts/phase11_6.py`; the initial public
 matrix is [`phase11-6-matrix.json`](phase11-6-matrix.json). The canonical plan
 successor SHA-256 is
-`9324f6057ae8f4e552375919836bbe4e0c30176405eedaf3915f0ab67d929556`.
+`8a52e4d9b3f252097bca0112c08b3b1e41792905775624940bcbf313b5cb072b`.
 The immutable predecessor plan SHA-256 is
-`ea512b70a786c46fbe15f769b327139d69ad3b0cae984b3622d79f145a076c53`.
+`9324f6057ae8f4e552375919836bbe4e0c30176405eedaf3915f0ab67d929556`.
 The expanded private packet is intentionally generated from maintained source
 rather than committing 1.6 MB of repeated WSPR and keyed events.
 
 ## Source and accepted configuration
 
-Both clean `devel` heads were fetched and equal their upstream branches before
-planning:
+The repair and its companion production-client support were committed and
+verified at their upstream `devel` branches before the corrected build:
 
-- WsprryPico `f34a606391bca048af902e120d214462dd5f55b3`.
-- WsprryPi `21ae75ab9e38bd6237b1ae73f3e7ab8527324067`.
+- WsprryPico repair `2eaa99945d21501cd4dbdac98c25be5fa146e479`;
+  planning/deployment record baseline
+  `8d84dbe567cdb4e3814281c4792c6d544ee2b711`.
+- WsprryPi `3b046ebe3eaa19ae764706d844fa7354033c32df`.
 
-The installed firmware identity remains distinct from repository HEAD. The DUT
-is Pico A serial `0BF4B4AEC9FFB344`, WTP device
-`fd6127d11d6aca42a9905fa3fb1bf1d5`, source
-`91933c00970939e366d1bfcf3c1956b59be8f6c5`, UF2 SHA-256
-`5da240aacf20e27db79126a7bff2be18e4ece849a608fa439f4e0c577659f446`
-and original Phase 11.5 accepted boot
-`ff719d304f1ba4ac23fddd93561b26f0`. The configuration is
+The installed candidate remains distinct from repository HEAD. The DUT is Pico
+A serial `0BF4B4AEC9FFB344`, WTP device
+`fd6127d11d6aca42a9905fa3fb1bf1d5`, repaired source
+`2eaa99945d21501cd4dbdac98c25be5fa146e479`, UF2 SHA-256
+`af3f6917ba807a1526dca6e15f19fff1974410fc87ecc32fd6e9c4f07059525f`
+and boot `b72fed2c17583cc7aba0f1345f76a3b2`. The original Phase 11.5
+accepted boot remains `ff719d304f1ba4ac23fddd93561b26f0`; the last
+pre-repair campaign boot was `d2f657c2099c67a7af2ef390426bda10`. The candidate configuration is
 Pico 2 W / RP2350 Arm, 138 MHz system/sample clock, PIO divider 1,
 `pio-dma-gp2`, GP2 and RAM rendering with the network listener configured.
 
-Fresh zero-RF USB inventory on 2026-09-18 reconfirmed that exact A identity and
-boot. Pico B serial `CDDBF8767C506C07`, device
+Fresh zero-RF USB inventory after deployment confirmed the exact A identity,
+135,500 Hz retained standalone base, valid stack guards, at least 32,768 bytes
+of heap reserve, zero allocator/TLS/DMA/fault counters, empty state, no owner,
+inactive output and disabled schedules. Authenticated hostname/TLS WTP `HELLO`,
+`CAPS`, `STATUS`, `GET_CLOCK` and `PING` then passed without a mutation. Pico B serial `CDDBF8767C506C07`, device
 `29f20b7342051ef947aa56cb9d4fab42`, source `8921a7008183` and boot
 `6684b4b197d80cfa0ce83b3aaf205cb0` was independently empty, inactive and
-unowned. The previous shared reservation was `RELEASED`. A's retained test
-network was disconnected after restoration, so its clock was unsynchronized;
-this blocked ARM until the accepted fixture restored `time.local`, but was not
-a firmware regression.
-
-After attempt 31, the production-browser startup collision was repaired but
-had latched 16 allocator failures and eight TLS allocation failures. The
-operator authorized one authenticated same-origin restart on 2026-09-18. The
-accepted successor boot is `d2f657c2099c67a7af2ef390426bda10`; fresh
-post-restart inventory retained the exact device, source, UF2, 138 MHz clock,
-divider, engine, RAM renderer and GP2 output configuration, with zero allocator
-and TLS allocation failures, no fault/DMA errors, empty state, no owner and
-inactive output. No flash or configuration write occurred.
-
-This boot-only amendment did not change RF content. Canonical comparison of
-the two plans gives the same packet SHA-256
-`e0ab3cd4a039a88786bc677a7fc66be1c7dca1e30877859ccc71dd8bba547893`
-and flattened-job SHA-256
-`35ad0d4165171c158a4e99f92128be8052a86eec79e5cccd6930c19b8e09b88b`.
-Attempts 1-31 therefore remain bound to the predecessor plan and later attempts
-are bound to the successor without recasting earlier evidence.
+unowned. The shared reservation is `RELEASED`; the WsprryPi service is inactive.
 
 The initial campaign changes were host planning, capture, analysis, audit and
 documentation only. Attempt 41 then confirmed that a normal armed-interval
 clock refinement is rejected by the accepted image's immutable local timer
 projection. The [clock-refinement repair preparation](phase11-6-clock-refinement-repair.md)
 preserves that failed attempt and accounting, identifies affected Phase 11.5
-assertions and records the source-only repair. No repaired firmware has been
-deployed; Phase 11.5 evidence remains bound to its recorded image and transfers
-only through the documented source-impact decision and required candidate
-checks.
+assertions and records the repair and both deployment attempts. Historical
+evidence remains bound to its recorded images. R1.1/R1.5, the shared R2 launch
+path and the R6 timing/resource gates transfer to the repaired candidate only
+after an observed armed-interval refinement completes the bounded corrective
+job without `MISSED_START`.
 
 One authorized repair flash subsequently installed clean source `2eaa99945d21`
 but was rejected before acceptance because its build omitted the accepted
@@ -77,6 +64,19 @@ held reservation was released only after fresh A/B reconciliation. A corrected
 135,500 Hz UF2 is built and privately staged but not deployed; its exact record
 and the fresh-authorization boundary are in the
 [deployment attempt result](phase11-6-clock-refinement-deployment-attempt1.json).
+
+A separately authorized serial-bound flash then installed the corrected
+135,500 Hz image once. It produced boot
+`b72fed2c17583cc7aba0f1345f76a3b2`; exact source, UF2, 138 MHz/RAM/GP2,
+retained configuration and network identity checks passed, Pico B remained
+unchanged, no CONFIG or RF operation occurred, and the reservation was released
+after fresh inactive A/B authority. The sanitized result is
+[`phase11-6-clock-refinement-deployment-attempt2.json`](phase11-6-clock-refinement-deployment-attempt2.json).
+
+This second amendment changes accepted source/image/boot identity but not RF
+job payloads. Attempts 1-41 remain bound to their recorded predecessor plans.
+Attempt 42 and later attempts use the current plan without recasting earlier
+evidence.
 
 ## Frozen content and frequency convention
 

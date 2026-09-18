@@ -347,8 +347,8 @@ def wait_for_normalizer_readiness(root, packet, journal, session, label="initial
     raise TimeoutError("Normalizer network/clock readiness deadline")
 
 
-def resource_gate(info, expected_boot=BOOT):
-    require(info["device_id"] == DEVICE and info["revision"] == SOURCE[:12] and
+def resource_gate(info, expected_boot=BOOT, expected_source=SOURCE):
+    require(info["device_id"] == DEVICE and info["revision"] == expected_source[:12] and
             info["status"]["boot_id"] == expected_boot and
             info["system_clock_hz"] == 138_000_000 and
             info["status"]["engine"] == "pio-dma-gp2" and info["rf_render_in_ram"] is True,
@@ -424,10 +424,11 @@ def wait_for_readiness_session_release(packet, journal):
 
 
 class ConsoleObserver(threading.Thread):
-    def __init__(self, journal, stop, expected_boot=BOOT):
+    def __init__(self, journal, stop, expected_boot=BOOT, expected_source=SOURCE):
         super().__init__(name="package9-console")
         self.journal, self.stop, self.failure, self.latest = journal, stop, None, None
         self.expected_boot = expected_boot
+        self.expected_source = expected_source
         self.starts = []
 
     def run(self):
@@ -444,7 +445,7 @@ class ConsoleObserver(threading.Thread):
                                     lambda kind, value: self.journal.emit(
                                         "console_" + kind, value), False)
                     ended = time.monotonic_ns()
-                    resource_gate(info, self.expected_boot)
+                    resource_gate(info, self.expected_boot, self.expected_source)
                     self.starts.append(began)
                     self.latest = info
                     self.journal.emit("console_info", {"began_monotonic_ns": began,

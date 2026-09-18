@@ -1,7 +1,7 @@
 # Phase 11.6 clock-refinement repair and deployment record
 
-Status: **REPAIR COMMITTED; CORRECTED IMAGE PREPARED, NOT DEPLOYED;
-PHASE 11.6 OPEN**
+Status: **REPAIR COMMITTED; CORRECTED IMAGE DEPLOYED; ZERO-RF CANDIDATE
+GATES PASS; CORRECTIVE RF GATE PENDING; PHASE 11.6 OPEN**
 
 ## Preserved failure
 
@@ -139,7 +139,7 @@ The full private record is retained under mode 0700 at
 the sanitized result is
 [`phase11-6-clock-refinement-deployment-attempt1.json`](phase11-6-clock-refinement-deployment-attempt1.json).
 
-## Corrected candidate and authorization boundary
+## Corrected candidate and second deployment
 
 A second clean build from the same repair source explicitly restores the
 accepted 135,500 Hz standalone base while retaining the listener, 138 MHz
@@ -151,8 +151,32 @@ The corrected, not-deployed hashes are:
 - ELF: `a8683a1b84a443e7ecfce5b894c26f1041146b13f6446a22a9e8d0d5431e27be`;
 - map: `cbd9f66d852be055070aa3a291f86b129535694b9a7481dff35ff0a6ca117074`.
 
-The image is staged privately on wspr5 but has not been flashed. The one
-authorized deployment was spent. A second serial-bound flash/BOOTSEL requires
-fresh explicit authorization. The affected Phase 11.5 candidate checks and the
-single authorized corrective RF attempt remain unspent; they cannot proceed on
-the rejected installed configuration.
+The first deployment authorization was spent by the rejected build. The
+operator then explicitly authorized exactly one additional serial-bound flash
+of this corrected UF2. The bounded deployment performed one BOOTSEL transition,
+backed up the full installed flash, wrote and verified the exact UF2, and made
+no CONFIG or RF request. The installed candidate is now:
+
+- source `2eaa99945d21501cd4dbdac98c25be5fa146e479`;
+- UF2 SHA-256
+  `af3f6917ba807a1526dca6e15f19fff1974410fc87ecc32fd6e9c4f07059525f`;
+- boot `b72fed2c17583cc7aba0f1345f76a3b2`;
+- retained standalone base `135500000000000` nHz;
+- Pico 2 W Arm, 138 MHz, divider 1, RAM renderer, `pio-dma-gp2` on GP2.
+
+Fresh post-flash A/B inventories confirmed A empty, inactive, unowned and
+schedule-disabled with valid stack guards, more than 32,768 bytes of heap
+reserve and zero allocator, TLS, DMA and fault counters. Pico B retained source
+`8921a7008183` and boot `6684b4b197d80cfa0ce83b3aaf205cb0` and was also
+empty, inactive and unowned. The shared reservation was released. Authenticated
+hostname/TLS WTP `HELLO`, `CAPS`, `STATUS`, `GET_CLOCK` and `PING` passed on the
+new boot without a control mutation. The private record is under
+`repair-2eaa999-deployment/corrected-deployment`; the sanitized record is
+[`phase11-6-clock-refinement-deployment-attempt2.json`](phase11-6-clock-refinement-deployment-attempt2.json).
+
+The remaining affected-candidate gate is the one authorized 45.000001-second
+160 m QRSS corrective attempt. It must observe a newly accepted,
+lower-uncertainty clock sample while the same job remains Armed, complete
+without `MISSED_START`, retain the Phase 11.5 resource gates and pass independent
+IQ analysis. If that sample is not observed, the campaign stops without an
+automatic retry.

@@ -35,7 +35,7 @@ from phase11_6.live import (
     wait_observer_readiness,
     wait_for_terminal,
 )
-from phase11_6.plan import PICO_ACCEPTED_BOOT, canonical, digest
+from phase11_6.plan import FIRMWARE_SOURCE, PICO_ACCEPTED_BOOT, canonical, digest
 
 
 GROUP_SCHEMA = "phase11.6-wspr-group-v1"
@@ -371,7 +371,7 @@ def execute_wspr_group(root: Path, plan: dict, jobs: list[dict], directory: Path
     ordered = [production, controller, browser_job]
     directory.mkdir(mode=0o700)
     stop = threading.Event()
-    console = ConsoleObserver(journal, stop, PICO_ACCEPTED_BOOT)
+    console = ConsoleObserver(journal, stop, PICO_ACCEPTED_BOOT, FIRMWARE_SOURCE)
     usb = UsbStatusObserver(journal, stop, uuid.uuid4().hex, 116,
                             PICO_ACCEPTED_BOOT, observe_clock=True)
     production_watch = BrowserWatch(root, directory / "production/browser", None,
@@ -442,7 +442,7 @@ def execute_wspr_group(root: Path, plan: dict, jobs: list[dict], directory: Path
                 and console.failure is None and usb.failure is None
                 and console.latest is not None and usb.latest is not None,
                 "WSPR group observer health")
-        resource_gate(console.latest, PICO_ACCEPTED_BOOT)
+        resource_gate(console.latest, PICO_ACCEPTED_BOOT, FIRMWARE_SOURCE)
         journal_path = Path(journal.stream.name)
         journal_rows = [json.loads(line)
                         for line in journal_path.read_text().splitlines()]

@@ -1,0 +1,44 @@
+{
+  "schema": "phase11.6-clock-refinement-deployment-result-v1",
+  "date": "2026-09-18",
+  "result": "PASS",
+  "device": {
+    "serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "source_revision": "2eaa99945d21501cd4dbdac98c25be5fa146e479",
+    "prior_boot_id": "0839b9427c766e4a93f3e76c6a8ad718",
+    "new_boot_id": "b72fed2c17583cc7aba0f1345f76a3b2"
+  },
+  "candidate": {
+    "uf2_sha256": "af3f6917ba807a1526dca6e15f19fff1974410fc87ecc32fd6e9c4f07059525f",
+    "elf_sha256": "a8683a1b84a443e7ecfce5b894c26f1041146b13f6446a22a9e8d0d5431e27be",
+    "map_sha256": "cbd9f66d852be055070aa3a291f86b129535694b9a7481dff35ff0a6ca117074",
+    "system_clock_hz": 138000000,
+    "renderer": "RAM",
+    "engine": "pio-dma-gp2",
+    "output": "GP2",
+    "schedule_base_frequency_nhz": "135500000000000"
+  },
+  "operations": {
+    "bootsel_transitions": 1,
+    "firmware_flashes": 1,
+    "configuration_writes": 0,
+    "rf_jobs": 0
+  },
+  "postflight": {
+    "retained_configuration_preserved": true,
+    "network_identity_configured": true,
+    "pico_b_unchanged": true,
+    "both_boards_inactive_unarmed_unowned": true,
+    "schedules_disabled": true,
+    "reservation_released": true,
+    "authenticated_read_only_control_passed": true
+  },
+  "private_evidence": {
+    "directory": "/home/pi/phase11-6-conducted-v3-20260918/repair-2eaa999-deployment/corrected-deployment",
+    "packet_sha256": "68c88536cdd24a9387b4354fda314fe86f143c4fbf4c9ccfb02bd785deb875ed",
+    "deployment_tool_sha256": "3232a86824862136f6bf40fb29090a0f6801c627cc613dd4449f8e9f511ae6b3",
+    "preflash_backup_sha256": "c7d6da80b64f7f944f1a276226740513320e14e493a1721bcc08adc9d3b0f507"
+  },
+  "remaining_gate": "One bounded 160 m QRSS armed clock-refinement attempt; no automatic retry"
+}

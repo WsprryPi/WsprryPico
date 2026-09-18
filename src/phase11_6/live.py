@@ -29,7 +29,8 @@ from phase11_5_package9 import (ConsoleObserver, UsbStatusObserver, inventory,
 from phase11_5_pilot import Decoder
 from validate_wtp_contract import frame
 
-from phase11_6.plan import PICO_ACCEPTED_BOOT, PICO_DEVICE_ID, RECEIVER_SERIAL, digest
+from phase11_6.plan import (FIRMWARE_SOURCE, PICO_ACCEPTED_BOOT, PICO_DEVICE_ID,
+                            RECEIVER_SERIAL, digest)
 
 
 HOSTNAME = "wsprrypico-0a60df.local"
@@ -52,6 +53,8 @@ WTP_ADMISSION_RETRY_SECONDS = 5.0
 # the next sample tightens its UTC mapping.  Admit physical attempts only in the
 # freshly settled part of the existing 500 ms protocol envelope.
 SETTLED_CLOCK_UNCERTAINTY_NS = 10_000_000
+CORRECTIVE_MINIMUM_SYNC_AGE_NS = 24_000_000_000
+CORRECTIVE_MAXIMUM_SYNC_AGE_NS = 29_000_000_000
 
 
 class RetryableWtpBusy(ValueError):
@@ -82,7 +85,11 @@ def sha256(path: Path) -> str:
 
 
 def wait_observer_readiness(console: ConsoleObserver, usb: UsbStatusObserver,
-                            timeout: float = 95.0) -> None:
+                            timeout: float = 95.0, *,
+                            maximum_uncertainty_ns: int =
+                            SETTLED_CLOCK_UNCERTAINTY_NS,
+                            minimum_sync_age_ns: int = 0,
+                            maximum_sync_age_ns: int | None = None) -> None:
     """Require independent authority and a freshly settled Pico UTC mapping."""
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -94,10 +101,53 @@ def wait_observer_readiness(console: ConsoleObserver, usb: UsbStatusObserver,
                 and clock.get("state") == "synchronized"
                 and clock.get("leap") == "normal"
                 and int(clock.get("uncertainty_ns", "999999999"))
-                    <= SETTLED_CLOCK_UNCERTAINTY_NS):
+                    <= maximum_uncertainty_ns
+                and int(clock.get("sync_age_ns", "0")) >= minimum_sync_age_ns
+                and (maximum_sync_age_ns is None
+                     or int(clock.get("sync_age_ns", "999999999999"))
+                     <= maximum_sync_age_ns)):
             return
         time.sleep(0.05)
     raise TimeoutError("Independent observer admission deadline")
+
+
+def armed_clock_refinement(rows: list[dict], job_id: str) -> dict:
+    """Find a strictly better accepted clock sample while the job remains Armed."""
+    samples = []
+    for row in rows:
+        if row.get("kind") != "console_info":
+            continue
+        info = row.get("value", {}).get("value", {})
+        status = info.get("status", {})
+        if status.get("state") != "armed":
+            continue
+        samples.append({
+            "sequence": row.get("sequence"),
+            "monotonic_ns": row.get("monotonic_ns"),
+            "accepted_samples": info.get("network", {}).get("accepted"),
+            "utc_now_ns": int(status["utc_now_ns"]),
+            "monotonic_now_ns": int(status["monotonic_now_ns"]),
+            "sync_age_ns": int(status["sync_age_ns"]),
+            "uncertainty_ns": int(status["uncertainty_ns"]),
+        })
+    for before, after in zip(samples, samples[1:]):
+        if (isinstance(before["accepted_samples"], int)
+                and isinstance(after["accepted_samples"], int)
+                and after["accepted_samples"] > before["accepted_samples"]
+                and after["sync_age_ns"] < before["sync_age_ns"]
+                and after["uncertainty_ns"] < before["uncertainty_ns"]):
+            before_offset = before["utc_now_ns"] - before["monotonic_now_ns"]
+            after_offset = after["utc_now_ns"] - after["monotonic_now_ns"]
+            return {
+                "job_id": job_id,
+                "before": before,
+                "after": after,
+                "utc_monotonic_mapping_change_ns": after_offset - before_offset,
+                "uncertainty_reduction_ns": (
+                    before["uncertainty_ns"] - after["uncertainty_ns"]
+                ),
+            }
+    raise ValueError("No accepted lower-uncertainty clock sample while Armed")
 
 
 def settled_inventory(root: Path, label: str, serial: str, device: str,
@@ -310,6 +360,7 @@ def _tls_messages(root: Path, path: Path) -> tuple[list[dict], list[dict], dict]
 
 class Journal:
     def __init__(self, path: Path):
+        self.path = path
         self.stream = path.open("x", buffering=1)
         self.lock = threading.Lock()
         self.sequence = 0
@@ -794,7 +845,7 @@ def execute_controller_job(root: Path, plan: dict, job: dict, directory: Path,
     require(job["submission_path"] == "controller_disconnect", "Controller path mismatch")
     directory.mkdir(mode=0o700)
     stop = threading.Event()
-    console = ConsoleObserver(journal, stop, PICO_ACCEPTED_BOOT)
+    console = ConsoleObserver(journal, stop, PICO_ACCEPTED_BOOT, FIRMWARE_SOURCE)
     usb = UsbStatusObserver(journal, stop, uuid.uuid4().hex, 116,
                             PICO_ACCEPTED_BOOT, observe_clock=True)
     peer = NetworkPeer(root, journal)
@@ -892,7 +943,7 @@ def execute_controller_job(root: Path, plan: dict, job: dict, directory: Path,
             and usb.latest is not None,
             "Independent observer health",
         )
-        resource_gate(console.latest, PICO_ACCEPTED_BOOT)
+        resource_gate(console.latest, PICO_ACCEPTED_BOOT, FIRMWARE_SOURCE)
         validate_usb_completion(usb, job["expected_job"]["job_id"])
         result = {
             "schema": "phase11.6-job-result-v1",
@@ -945,7 +996,7 @@ def execute_browser_job(root: Path, plan: dict, job: dict, directory: Path,
             "Browser path mismatch")
     directory.mkdir(mode=0o700)
     stop = threading.Event()
-    console = ConsoleObserver(journal, stop, PICO_ACCEPTED_BOOT)
+    console = ConsoleObserver(journal, stop, PICO_ACCEPTED_BOOT, FIRMWARE_SOURCE)
     usb = UsbStatusObserver(journal, stop, uuid.uuid4().hex, 116,
                             PICO_ACCEPTED_BOOT, observe_clock=True)
     duration = job["planned_duration_ns"] / 1e9
@@ -999,7 +1050,7 @@ def execute_browser_job(root: Path, plan: dict, job: dict, directory: Path,
                 and console.failure is None and usb.failure is None
                 and console.latest is not None and usb.latest is not None,
                 "Browser independent observer health")
-        resource_gate(console.latest, PICO_ACCEPTED_BOOT)
+        resource_gate(console.latest, PICO_ACCEPTED_BOOT, FIRMWARE_SOURCE)
         validate_usb_completion(usb, expected_id)
         result = {
             "schema": "phase11.6-job-result-v1", "plan_sha256": digest(plan),
@@ -1028,12 +1079,13 @@ def execute_browser_job(root: Path, plan: dict, job: dict, directory: Path,
 
 def execute_production_job(root: Path, plan: dict, job: dict, directory: Path,
                            helper: Path, binary: Path, journal: Journal,
-                           *, port: int = 31_425) -> dict:
+                           *, port: int = 31_425,
+                           corrective_clock_refinement: bool = False) -> dict:
     """Execute one actual WsprryPi-produced job without installing the candidate."""
     require(job["submission_path"] == "production", "Production path mismatch")
     directory.mkdir(mode=0o700)
     stop = threading.Event()
-    console = ConsoleObserver(journal, stop, PICO_ACCEPTED_BOOT)
+    console = ConsoleObserver(journal, stop, PICO_ACCEPTED_BOOT, FIRMWARE_SOURCE)
     usb = UsbStatusObserver(journal, stop, uuid.uuid4().hex, 116,
                             PICO_ACCEPTED_BOOT, observe_clock=True)
     duration = job["planned_duration_ns"] / 1e9
@@ -1052,7 +1104,16 @@ def execute_production_job(root: Path, plan: dict, job: dict, directory: Path,
                 "Installed WsprryPi service is not authoritatively paused")
         console.start()
         usb.start()
-        wait_observer_readiness(console, usb)
+        if corrective_clock_refinement:
+            wait_observer_readiness(
+                console,
+                usb,
+                maximum_uncertainty_ns=500_000_000,
+                minimum_sync_age_ns=CORRECTIVE_MINIMUM_SYNC_AGE_NS,
+                maximum_sync_age_ns=CORRECTIVE_MAXIMUM_SYNC_AGE_NS,
+            )
+        else:
+            wait_observer_readiness(console, usb)
         initial, clock = usb.latest, usb.clock
         require(initial["owner_id"] is None and initial["output_active"] is False
                 and clock["state"] == "synchronized" and clock["leap"] == "normal"
@@ -1234,8 +1295,12 @@ def execute_production_job(root: Path, plan: dict, job: dict, directory: Path,
                 and console.failure is None and usb.failure is None
                 and console.latest is not None and usb.latest is not None,
                 "Production independent observer health")
-        resource_gate(console.latest, PICO_ACCEPTED_BOOT)
+        resource_gate(console.latest, PICO_ACCEPTED_BOOT, FIRMWARE_SOURCE)
         validate_usb_completion(usb, binding["job_id"])
+        refinement = None
+        if corrective_clock_refinement:
+            rows = [json.loads(line) for line in journal.path.read_text().splitlines()]
+            refinement = armed_clock_refinement(rows, binding["job_id"])
         result = {
             "schema": "phase11.6-job-result-v1", "plan_sha256": digest(plan),
             "job_id": job["id"], "wtp_job_id": binding["job_id"],
@@ -1254,6 +1319,7 @@ def execute_production_job(root: Path, plan: dict, job: dict, directory: Path,
                          "usb_states": sorted(usb.states),
                          "usb_event_states": sorted(usb.event_states),
                          "console_final": console.latest, "usb_final": usb.latest},
+            "clock_refinement": refinement,
             "capture": capture_value, "browser": browser_value,
             "disposition": "CAPTURED_REQUIRES_ANALYSIS",
         }

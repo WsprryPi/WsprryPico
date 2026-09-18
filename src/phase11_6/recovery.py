@@ -26,7 +26,7 @@ from phase11_6.live import (
     save,
     sha256,
 )
-from phase11_6.plan import PICO_ACCEPTED_BOOT, digest
+from phase11_6.plan import FIRMWARE_SOURCE, PICO_ACCEPTED_BOOT, digest
 
 
 def _configure_capture_validator(source: Path) -> dict:
@@ -316,7 +316,7 @@ def recover(root: Path, plan: dict, job: dict, attempt: dict,
                if row.get("kind") == "console_info"]
     require(console, "Independent console observations")
     for value in console:
-        resource_gate(value, PICO_ACCEPTED_BOOT)
+        resource_gate(value, PICO_ACCEPTED_BOOT, FIRMWARE_SOURCE)
     usb_status = [row["value"]["value"] for row in rows
                   if row.get("kind") == "usb_status"]
     usb_events = [row["value"]["value"] for row in rows
@@ -501,7 +501,7 @@ def recover_browser(root: Path, plan: dict, job: dict, attempt: dict,
                if row.get("kind") == "console_info"]
     require(console, "Independent console observations")
     for value in console:
-        resource_gate(value, PICO_ACCEPTED_BOOT)
+        resource_gate(value, PICO_ACCEPTED_BOOT, FIRMWARE_SOURCE)
     usb_status = [row["value"]["value"] for row in rows
                   if row.get("kind") == "usb_status"]
     usb_events = [row["value"]["value"] for row in rows
@@ -644,7 +644,7 @@ def recover_postflight_inventory(root: Path, plan: dict, job: dict, attempt: dic
                if row.get("kind") == "console_info"]
     require(console, "Independent console observations")
     for value in console:
-        resource_gate(value, PICO_ACCEPTED_BOOT)
+        resource_gate(value, PICO_ACCEPTED_BOOT, FIRMWARE_SOURCE)
     usb_status = [row["value"]["value"] for row in rows
                   if row.get("kind") == "usb_status"]
     usb_events = [row["value"]["value"] for row in rows

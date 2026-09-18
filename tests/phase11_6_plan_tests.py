@@ -15,6 +15,7 @@ from phase11_6.plan import (  # noqa: E402
     NS,
     PICO_ACCEPTED_BOOT,
     PICO_PHASE115_BOOT,
+    PICO_PREDECESSOR_BOOT,
     PREDECESSOR_PLAN_SHA256,
     WSPR_LOWEST_OFFSET_NHZ,
     WSPR_SPACING_NHZ,
@@ -29,7 +30,7 @@ from phase11_6.plan import (  # noqa: E402
 
 
 class Phase116PlanTests(unittest.TestCase):
-    def test_authorized_boot_only_plan_amendment(self):
+    def test_authorized_repair_candidate_plan_amendment(self):
         plan = compose()
         self.assertEqual(
             plan["amendment"]["predecessor_plan_sha256"],
@@ -45,6 +46,16 @@ class Phase116PlanTests(unittest.TestCase):
             PICO_ACCEPTED_BOOT,
         )
         self.assertNotEqual(PICO_PHASE115_BOOT, PICO_ACCEPTED_BOOT)
+        self.assertEqual(
+            plan["accepted_configuration"]["boot_transition"]["from_boot_id"],
+            PICO_PREDECESSOR_BOOT,
+        )
+        self.assertFalse(
+            plan["accepted_configuration"]["boot_transition"][
+                "source_revision_unchanged"
+            ]
+        )
+        self.assertEqual(plan["source_impact"]["firmware_runtime_changes"], 1)
 
     def test_complete_bounded_schedule(self):
         plan = compose()

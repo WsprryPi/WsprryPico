@@ -10,7 +10,7 @@ const job=JSON.parse(fs.readFileSync(jobPath,'utf8')),jobId=job.job_id;
 assert(['raw','compact'].includes(kind));assert(/^[0-9a-f]{32}$/.test(jobId));
 const ORIGIN='https://wsprrypico-0a60df.local:18443';
 const PEER='06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016';
-const BOOT='d2f657c2099c67a7af2ef390426bda10';
+const BOOT='b72fed2c17583cc7aba0f1345f76a3b2';
 const WebSocket=require('/usr/share/nodejs/ws');
 let chrome,socket,failure=null,sequence=0,refreshes=0,unavailableRefreshes=0;
 const pending=new Map(),events=new Set(),states=new Set(),requests=[],responses=[];

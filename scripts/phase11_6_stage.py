@@ -17,7 +17,7 @@ from phase11_6.plan import digest, validate
 
 SCHEMA = "phase11.6-fixture-v1"
 AUTHORIZATION = "PHASE11.6-CONDUCTED-RF-20260918"
-PLAN_SHA256 = "9324f6057ae8f4e552375919836bbe4e0c30176405eedaf3915f0ab67d929556"
+PLAN_SHA256 = "8a52e4d9b3f252097bca0112c08b3b1e41792905775624940bcbf313b5cb072b"
 CREDENTIALS = {
     "controller": {"ca": "credentials/controller/client-ca.crt",
                    "cert": "credentials/controller/client.crt",
