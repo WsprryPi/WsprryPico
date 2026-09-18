@@ -139,14 +139,40 @@ def mutations():
                 ["value"]["last_report"].__setitem__("job_id", "0" * 32))),
         ("production-usb-completion", lambda c: change_jsonl(
             c["root"] / "campaign.jsonl", lambda rows: next(value for value in rows
-                if value["kind"] == "usb_status" and value["value"]["cycle"] == 1 and
-                value["value"]["value"]["state"] == "complete")["value"]["value"]
-                .__setitem__("state", "running"))),
+                if value["kind"] == "usb_event" and value["value"]["cycle"] == 1 and
+                value["value"]["value"]["event"] == "JOB_STATE" and
+                value["value"]["value"]["body"]["state"] == "complete")
+                ["value"]["value"]["body"].__setitem__("state", "running"))),
         ("production-usb-loaded", lambda c: change_jsonl(
             c["root"] / "campaign.jsonl", lambda rows: next(value for value in rows
-                if value["kind"] == "usb_status" and value["value"]["cycle"] == 1 and
-                value["value"]["value"]["state"] == "loaded")["value"]["value"]
-                .__setitem__("state", "armed"))),
+                if value["kind"] == "usb_event" and value["value"]["cycle"] == 1 and
+                value["value"]["value"]["event"] == "JOB_STATE" and
+                value["value"]["value"]["body"]["state"] == "loaded")
+                ["value"]["value"]["body"].__setitem__("state", "armed"))),
+        ("production-usb-terminal", lambda c: change_jsonl(
+            c["root"] / "campaign.jsonl", lambda rows: next(record for value in rows
+                if value["kind"] == "usb_status" and value["value"]["cycle"] == 1
+                for record in value["value"]["value"]["terminal_records"]
+                if record["job_id"] == row(rows, "normal_finish", 0)["value"]["job_id"])
+                .__setitem__("output_active", True))),
+        ("production-usb-event-order", lambda c: change_jsonl(
+            c["root"] / "campaign.jsonl", lambda rows: next(value for value in rows
+                if value["kind"] == "usb_event" and value["value"]["cycle"] == 1 and
+                value["value"]["value"]["event"] == "JOB_STATE" and
+                value["value"]["value"]["body"]["state"] == "complete")
+                ["value"]["value"].__setitem__("event_id", next(value for value in rows
+                    if value["kind"] == "usb_event" and value["value"]["cycle"] == 1 and
+                    value["value"]["value"]["event"] == "JOB_STATE" and
+                    value["value"]["value"]["body"]["state"] == "loaded")
+                    ["value"]["value"]["event_id"]))),
+        ("production-usb-event-protocol", lambda c: change_jsonl(
+            c["root"] / "campaign.jsonl", lambda rows: next(value for value in rows
+                if value["kind"] == "usb_event" and value["value"]["cycle"] == 1)
+                ["value"]["value"].__setitem__("protocol", "WTP/2"))),
+        ("production-usb-event-session", lambda c: change_jsonl(
+            c["root"] / "campaign.jsonl", lambda rows: next(value for value in rows
+                if value["kind"] == "usb_event" and value["value"]["cycle"] == 1)
+                ["value"]["value"].__setitem__("session_id", "0" * 32))),
         ("production-launch-schedule", lambda c: change_jsonl(
             c["root"] / "campaign.jsonl", lambda rows: row(rows, "production_start", 0)
                 .__setitem__("monotonic_ns", row(rows, "normal_begin", 0)["monotonic_ns"] +

@@ -1,0 +1,120 @@
+{
+  "schema": "phase11.5-package11-retry3-usb-reducer-adversarial-v1",
+  "status": "PASS",
+  "mutation_count": 22,
+  "all_mutations_rejected": true,
+  "mutations": [
+    {
+      "name": "status",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "packet",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "journal",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "raw-log",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "runner-source",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retest-source",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "status-samples",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "empty-samples",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "event-count",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "event-complete",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "status-gap",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "status-response",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "terminal",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "old-reducer",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "new-reducer",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "pico",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "usb",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "network",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "service",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "reservation",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "rf-job",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "rf-duration",
+      "rejected": true,
+      "error_type": "ValueError"
+    }
+  ],
+  "result_sha256": "9016f26d0f6d87c8743202cd2ffd4cba2be9473f6320c0e6f1064afe520f823b",
+  "adversarial_script_sha256": "c8ed095af976e54fc5353ab53e35029b7438b4d7521316465aef21adbd9261ef"
+}

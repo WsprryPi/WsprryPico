@@ -1,0 +1,165 @@
+{
+  "schema": "phase11.5-package11-retry1-adversarial-v1",
+  "status": "PASS",
+  "mutation_count": 31,
+  "all_mutations_rejected": true,
+  "mutations": [
+    {
+      "name": "status",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "phase",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "packet",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "authorization",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "dependency",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "clock-repair",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "warmups",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "warmup-duration",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "classes",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "adjustment",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "baseline",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "production-ready",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "production-arm",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "cycle-credit",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "r6-credit",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "timing",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "resource-acceptance",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "failure-class",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "product-failure",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "resource-result",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "charge",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "production-charge",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "automatic-retry",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "cumulative",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "router-cause",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "capture-drop",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "pico-restoration",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "reservation",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "host-restoration",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "cleanup",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "evidence",
+      "rejected": true,
+      "error_type": "ValueError"
+    }
+  ],
+  "result_sha256": "89a7a1f26b2aa084187d08b24749bde22bec95476a20cddfe397a62f25d9d1a7",
+  "adversarial_script_sha256": "e1a071b4a3d060f0d84f392d97c1f7b5796b55cb283339121acb8a9b9a8e51a3"
+}

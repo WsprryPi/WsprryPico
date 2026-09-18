@@ -308,6 +308,7 @@ def wait_for_normalizer_readiness(root, packet, journal, session, label="initial
     request_number = 0
     while time.monotonic() < deadline:
         attempt += 1
+        delay = 2
         try:
             if peer is None:
                 peer = NetworkPeer(root, packet, journal, session)
@@ -335,7 +336,12 @@ def wait_for_normalizer_readiness(root, packet, journal, session, label="initial
             request_number = peer.number
             peer.close()
             peer = None
-        time.sleep(packet.get("normalizer_retry_seconds", 2))
+            delay = packet.get("normalizer_retry_seconds", 2)
+        # A healthy connection with a synchronized but older clock sample must
+        # be polled faster than the Pico SNTP cadence.  Reusing the 30-second
+        # transport backoff here can alias a roughly 60-second update cadence
+        # and miss every <=10-second freshness window.
+        time.sleep(min(delay, max(0, deadline - time.monotonic())))
     if peer is not None:
         peer.close()
     raise TimeoutError("Normalizer network/clock readiness deadline")
@@ -489,6 +495,36 @@ class UsbStatusObserver(threading.Thread):
         super().__init__(name=f"package9-usb-{cycle}")
         self.journal, self.stop, self.session, self.cycle = journal, stop, session, cycle
         self.failure, self.starts, self.states, self.latest = None, [], set(), None
+        self.jobs, self.event_states, self.event_jobs = set(), set(), set()
+        self.last_event_id = None
+
+    def consume_events(self, peer):
+        """Preserve lifecycle events left pending while a STATUS reply is selected."""
+        while peer.pending:
+            value = peer.pending.popleft()
+            require(value.get("type") == "event" and value.get("boot_id") == BOOT,
+                    "USB observer event identity")
+            raw_id = value.get("event_id")
+            require(isinstance(raw_id, str) and raw_id.isdigit() and
+                    str(int(raw_id)) == raw_id and
+                    (self.last_event_id is None or int(raw_id) == self.last_event_id + 1),
+                    "USB observer event order")
+            self.last_event_id = int(raw_id)
+            require(value.get("event") in {"JOB_STATE", "OWNER_RELEASED"},
+                    "USB observer adverse event")
+            self.journal.emit("usb_event", {"cycle": self.cycle, "value": value})
+            if value.get("event") == "JOB_STATE":
+                state = value["body"]["state"]
+                job = value["body"].get("job_id")
+                require(state in {"loaded", "armed", "running", "complete", "empty"} and
+                        type(value["body"].get("output_active")) is bool and
+                        value["body"]["output_active"] is (state == "running") and
+                        ((state == "empty" and job is None) or
+                         (state != "empty" and identity(job, "USB event job") == job)),
+                        "USB observer lifecycle event")
+                self.event_states.add(state)
+                if job:
+                    self.event_jobs.add(job)
 
     def run(self):
         try:
@@ -508,10 +544,13 @@ class UsbStatusObserver(threading.Thread):
                         continue
                     began = time.monotonic_ns()
                     status = peer.request("STATUS", {}, timeout=5)
+                    self.consume_events(peer)
                     ended = time.monotonic_ns()
                     require(status["boot_id"] == BOOT, "USB observer boot")
                     self.starts.append(began)
                     self.states.add(status["state"])
+                    if status.get("job_id"):
+                        self.jobs.add(status["job_id"])
                     self.latest = status
                     self.journal.emit("usb_status", {"cycle": self.cycle,
                         "began_monotonic_ns": began, "ended_monotonic_ns": ended,
@@ -523,6 +562,30 @@ class UsbStatusObserver(threading.Thread):
             self.journal.emit("observer_failure", {"observer": "usb-status",
                               "cycle": self.cycle, "error": self.failure})
             self.stop.set()
+
+
+def validate_usb_lifecycle(observer, job_id):
+    """Combine advisory USB events with authoritative periodic STATUS state."""
+    latest = observer.latest or {}
+    records = latest.get("terminal_records", [])
+    terminal = [record for record in latest.get("terminal_records", [])
+                if record.get("job_id") == job_id]
+    require({"armed", "running"}.issubset(observer.states) and
+            observer.states <= {"empty", "loaded", "armed", "running", "complete"} and
+            observer.jobs == {job_id} and
+            observer.event_states == {"loaded", "armed", "running", "complete", "empty"} and
+            observer.event_jobs == {job_id} and
+            latest.get("state") == "empty" and latest.get("owner_id") is None and
+            latest.get("output_active") is False and len(records) == 8 and
+            all(record.get("state") == "complete" and
+                record.get("output_active") is False for record in records) and
+            len(terminal) == 1 and
+            terminal[0].get("state") == "complete" and
+            terminal[0].get("output_active") is False,
+            "USB lifecycle/terminal authority")
+    return {"status_states": sorted(observer.states),
+            "event_states": sorted(observer.event_states),
+            "terminal_records": len(latest["terminal_records"])}
 
 
 def inventory(root, packet, label, serial, device, session):
@@ -726,8 +789,8 @@ def production_lifecycle(last, states, owners, jobs, sessions):
     # LOAD and ARM are adjacent controller operations. A five-second host API
     # sample can therefore observe ARM without ever sampling the transient
     # Loaded state. Require the durable handoff states here; the independent
-    # one-second USB observer below proves Loaded as part of the full device
-    # lifecycle.
+    # USB event stream proves transient lifecycle and USB STATUS proves the
+    # retained terminal record.
     require(last is not None and {"armed", "running"}.issubset(states) and
             len(owners) == len(jobs) == len(sessions) == 1 and
             report.get("outcome") == "complete" and report.get("job_id") in jobs and
@@ -870,16 +933,19 @@ def run_normal_cycle(root, packet, journal, cycle, observer_stop):
                 "session_id": next(iter(sessions)), "last_report": report})
             stop.set()
             usb.join(10)
-            require(not usb.is_alive() and usb.failure is None and
-                    {"running", "complete"}.issubset(usb.states),
-                    "USB lifecycle/cadence")
+            require(not usb.is_alive() and usb.failure is None,
+                    "USB observer completion/cadence")
+            usb_evidence = validate_usb_lifecycle(usb, next(iter(jobs)))
             process.send_signal(signal.SIGTERM)
             process.wait(timeout=12)
             require(process.returncode == 0, "Production clean exit")
             process = None
             return {"cycle": cycle, "job_id": next(iter(jobs)),
                     "owner_id": next(iter(owners)), "session_id": next(iter(sessions)),
-                    "states": sorted(states), "usb_states": sorted(usb.states),
+                    "states": sorted(states),
+                    "usb_states": usb_evidence["status_states"],
+                    "usb_event_states": usb_evidence["event_states"],
+                    "usb_terminal_records": usb_evidence["terminal_records"],
                     "ini_sha256": digest(ini), "tls_sha256": digest(tls),
                     "target_utc_ns": target_utc_ns}
     finally:

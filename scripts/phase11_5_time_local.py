@@ -17,7 +17,7 @@ import subprocess
 import time
 
 NAME = 'time.local'
-ADDRESS = '10.77.15.1'
+ADDRESS = os.environ.get('PHASE115_TIME_ADDRESS', '10.77.15.1')
 CLIENT = '10.77.15.2'
 SERVICE = 'org.freedesktop.Avahi'
 PERMANENT = (
@@ -136,13 +136,13 @@ def mdns_query():
                     elapsed_ns=time.monotonic_ns()-start)
 
 
-def validate_mdns(value):
+def validate_mdns(value, address=ADDRESS, client=CLIENT):
     q, r = bytes.fromhex(value['query_hex']), bytes.fromhex(value['reply_hex'])
     require(q == struct.pack('!6H', 12345, 0, 1, 0, 0, 0)+b'\x04time\x05local\x00\x00\x01\x00\x01' and
-            r[:2] == q[:2] and value['peer'] == [ADDRESS, 5353] and
-            value['local_address'] == CLIENT and 0 <= value['elapsed_ns'] <= 3_000_000_000,
+            r[:2] == q[:2] and value['peer'] == [address, 5353] and
+            value['local_address'] == client and 0 <= value['elapsed_ns'] <= 3_000_000_000,
             'mDNS query/peer/deadline')
-    require(set(mdns_addresses(r)) == {ADDRESS}, 'mDNS wrong/unreachable/multiple address selection')
+    require(set(mdns_addresses(r)) == {address}, 'mDNS wrong/unreachable/multiple address selection')
 
 
 def capture_packets(path, allow_live_tail=False):
@@ -316,16 +316,16 @@ def probe():
     require(value['status'] == 'PASS', 'Native mDNS/NTP admission failed')
 
 
-def validate_admission(value):
+def validate_admission(value, address=ADDRESS, client=CLIENT):
     require(value['schema'] == 'phase11.5-time-local-admission-v1' and value['status'] == 'PASS' and
             value['name'] == NAME and
             value['native_resolver'] == 'getent -s mdns4 ahostsv4' and
-            {line.split()[0] for line in value['native_output'].splitlines()} == {ADDRESS} and
-            value['native_resolution'].split() == [NAME, ADDRESS] and
+            {line.split()[0] for line in value['native_output'].splitlines()} == {address} and
+            value['native_resolution'].split() == [NAME, address] and
             0 <= value['resolution_elapsed_ns'] <= 10_000_000_000 and
             value['finish_utc_ns'] >= value['start_utc_ns'], 'Incomplete native mDNS admission')
-    validate_mdns(value['mdns'])
-    validate_ntp(value['ntp'], ADDRESS, CLIENT)
+    validate_mdns(value['mdns'], address, client)
+    validate_ntp(value['ntp'], address, client)
 
 
 def fixture_admission(fixture, root, label):

@@ -1,0 +1,85 @@
+{
+  "schema": "phase11.5-package11-attempt-failure-v1",
+  "status": "STOPPED_PRE_CYCLE_CLOCK_POLL_ALIAS",
+  "phase11_5_status": "OPEN_5_OF_6_FAMILIES",
+  "packet_sha256": "ed3255ba7811edef230a6e263e8de94cf13dbb0afbae6c51ee400a70f3622052",
+  "admission": {
+    "status": "PASS_ZERO_RF",
+    "result_sha256": "fe4d7a9b84ec97f256b09f187005399685d0aefd556b129648608ea2a4cb1214",
+    "adversarial_sha256": "2b9e18c73cc7f53572f086b44c2d1fef9835009b129cb4b30c8b0c5db6317935"
+  },
+  "completed_scope": {
+    "warmup_jobs": 8,
+    "warmup_rf_duration_ns": 8000000000,
+    "production_class_records": 3,
+    "maximum_class_records": 5,
+    "matched_baseline_seconds": 360,
+    "matched_baseline_bytes": 56712,
+    "normal_cycles": 0,
+    "post_n_windows": 0,
+    "r6_credit": false
+  },
+  "failure": {
+    "type": "TimeoutError",
+    "message": "Normalizer network/clock readiness deadline",
+    "stage": "cycle-1-readiness-before-normal-begin",
+    "clock_state": "synchronized",
+    "clock_leap": "normal",
+    "freshness_limit_ns": 10000000000,
+    "samples": [
+      {
+        "attempt": 1,
+        "sync_age_ns": 58285256000,
+        "uncertainty_ns": 6416149,
+        "usable": false
+      },
+      {
+        "attempt": 2,
+        "transport": "ConnectionResetError"
+      },
+      {
+        "attempt": 3,
+        "sync_age_ns": 56258116000,
+        "uncertainty_ns": 7271792,
+        "usable": false
+      }
+    ],
+    "diagnosis": "The 30-second transport retry interval was also used for healthy stale-clock polling, aliasing the approximately 60-second Pico SNTP cadence and repeatedly missing the unchanged 10-second freshness window.",
+    "product_failure": false,
+    "resource_result_accepted": false
+  },
+  "actual_budget": {
+    "authorized_rf_duration_ns": 480000000000,
+    "charged_rf_jobs": 8,
+    "charged_rf_duration_ns": 8000000000,
+    "flashes": 0,
+    "bootsel": 0,
+    "configuration_writes": 0,
+    "controlled_reboots": 0,
+    "wifi_cycles": 0,
+    "allocation_probes": 0,
+    "automatic_retry_authorized": false
+  },
+  "restoration": {
+    "pico_a_empty_unowned_inactive": true,
+    "pico_b_empty_unowned_inactive": true,
+    "reservation_released_after_fresh_reconciliation": true,
+    "wspr5_fixture_restored": true,
+    "wspr4_fixture_restored": true,
+    "installed_service_active": true
+  },
+  "evidence_sha256": {
+    "packet.json": "ed3255ba7811edef230a6e263e8de94cf13dbb0afbae6c51ee400a70f3622052",
+    "campaign.jsonl": "c7631654a24daf75e66f0e653c4e15782ccd702a822167013dcd092b15076a50",
+    "reconcile-a.jsonl": "113402a868e3869e509ae762eac3be8ace629b17cdb02dbc5233a35c98e39a04",
+    "reconcile-b.jsonl": "8aafd27e1ae0d3d36c0fc2763d36b573d9db585b812b83145149f69f0f6a6395",
+    "fixture-state.json": "b61ce7eb028d263619d21da9029caf0b778a0f857e84223320885b0f8e4e5518",
+    "fixture.jsonl": "6c9dad55c50599ba09b2bd371abf092315399f719e25df97db5a03c219a20212",
+    "campaign.pcap": "c4c358b1a4aace41b3173f4d1cd4f4e49a0350f38397c9fdcd8ca87ec0f9b192",
+    "reservation.json": "c0d5099d4b1919a9c162e1851cc9ed22bce2fe9dde76b94ab0a0ee70a4df70c7",
+    "remote-state.json": "02fcef7ab2fb7f0d2bb87e22be576b1bd37e861aba2d276cbbe6698c1c57551a",
+    "remote.jsonl": "d1d94983e79547e2aa7cac7811e375a7a1e6b4954a7f0d9c8ea9d432b68471f8",
+    "remote-capture.pcap": "1752430160b7048c96aa41bbc6356984bd3ccfa6edaa01ace7736b23635114bb",
+    "remote-ready.json": "dca726800af458ea8db5d772ed026539dcbc1281eec4e1656c03d4da98deb842"
+  }
+}

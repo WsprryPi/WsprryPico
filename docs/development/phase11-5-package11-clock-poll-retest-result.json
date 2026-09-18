@@ -1,0 +1,95 @@
+{
+  "schema": "phase11.5-package11-clock-poll-retest-result-v1",
+  "status": "PASS_ZERO_RF",
+  "phase11_5_status": "OPEN_5_OF_6_FAMILIES",
+  "candidate": {
+    "source_revision": "91933c00970939e366d1bfcf3c1956b59be8f6c5",
+    "image_sha256": "5da240aacf20e27db79126a7bff2be18e4ece849a608fa439f4e0c577659f446",
+    "boot_id": "ff719d304f1ba4ac23fddd93561b26f0",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5"
+  },
+  "packet_sha256": "57291ba2033d726afea0c2cf0d85d29e8e3dcc9d7bc2c5aa57cde5eb789d95f4",
+  "result_sha256": "519ea9707f91d04b3087d2fb7e91519b98311ece7164073082a3923e280df4c6",
+  "observation": {
+    "initial_sync_age_ns": 29328286000,
+    "fresh_sync_age_ns": 2027972000,
+    "freshness_limit_ns": 10000000000,
+    "elapsed_ns": 36702052738,
+    "readiness_attempts": 17,
+    "poll_interval_seconds": 2,
+    "allowed_operations": [
+      "HELLO",
+      "CAPS",
+      "STATUS",
+      "GET_CLOCK"
+    ],
+    "operation_counts": {
+      "HELLO": 2,
+      "CAPS": 2,
+      "STATUS": 18,
+      "GET_CLOCK": 18
+    }
+  },
+  "finding": {
+    "attempt1_failure_reproduced": true,
+    "transport_backoff_separated_from_healthy_stale_clock_polling": true,
+    "fresh_pico_clock_window_observed": true,
+    "product_failure": false,
+    "r6_credit": false
+  },
+  "budget": {
+    "rf_jobs": 0,
+    "rf_duration_ns": 0,
+    "reservation_acquired": false,
+    "mutating_wtp_requests": 0,
+    "flashes": 0,
+    "bootsel": 0,
+    "configuration_writes": 0,
+    "controlled_reboots": 0,
+    "wifi_cycles": 0,
+    "allocation_probes": 0
+  },
+  "restoration": {
+    "reservation_released_unchanged": true,
+    "wspr5_fixture_restored": true,
+    "wspr4_fixture_restored": true,
+    "installed_service_active": true,
+    "wspr4_original_profiles_active": true,
+    "wspr4_recovery_timer_active": true,
+    "capture_drops": 0
+  },
+  "tooling_attempts": [
+    {
+      "attempt": 1,
+      "status": "STOPPED_PRE_PROBE_ROUTE_NOT_READY",
+      "rf_jobs": 0,
+      "product_credit": false
+    },
+    {
+      "attempt": 2,
+      "status": "STOPPED_POST_PROOF_OVERSTRICT_HANDSHAKE_CLASSIFIER",
+      "rf_jobs": 0,
+      "product_credit": false
+    },
+    {
+      "attempt": 3,
+      "status": "PASS_ZERO_RF",
+      "rf_jobs": 0,
+      "product_credit": false
+    }
+  ],
+  "evidence_sha256": {
+    "packet.json": "57291ba2033d726afea0c2cf0d85d29e8e3dcc9d7bc2c5aa57cde5eb789d95f4",
+    "clock-poll-retest-result.json": "519ea9707f91d04b3087d2fb7e91519b98311ece7164073082a3923e280df4c6",
+    "clock-poll-retest.jsonl": "de559db76262c0ecc2f21106ca5cc3556d78646b693861d427b59993d7dfff25",
+    "fixture-state.json": "8735dc70956f5e6acf9fde99b7cf01e7df74ba619ff071292fbc56dea0810665",
+    "fixture.jsonl": "f8bb175b3e225594eaadd99f63a7f13122a92bdc6d66b3807c230639752e1ab1",
+    "client-capture.pcap": "a83b5ccd25b128dd31bbf2970adf4b21da2ef1bcb1e84a85e2bc139bb54e44f6",
+    "reservation.json": "c0d5099d4b1919a9c162e1851cc9ed22bce2fe9dde76b94ab0a0ee70a4df70c7",
+    "remote-packet.json": "1f656c20d005c7720799b2b8e2f1a28e194bea97fa6f183aa2a88cd5987326e0",
+    "remote-ready.json": "dcaa038af21eb3c16380d638f29f1063e3eda79acb27e93311bfbd9333bbf800",
+    "remote-state.json": "13561f6e7b2bd0bd778990d7e4a4563ad8dadf566a0b9fcfd9ee29029f29bd5e",
+    "remote.jsonl": "52462efd4a2ab94da8f283e78cac55b862001551abf646d74d27f2cae5ead2c9",
+    "remote-capture.pcap": "9d007510983aed2290a4a13a626b92ee90301175c90633d27ca6a49076cd70bd"
+  }
+}

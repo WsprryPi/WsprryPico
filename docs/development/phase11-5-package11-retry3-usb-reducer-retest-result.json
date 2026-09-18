@@ -1,0 +1,39 @@
+{
+  "schema": "phase11.5-package11-retry3-usb-reducer-retest-v1",
+  "status": "PASS_ZERO_RF_HOST_ONLY",
+  "packet_sha256": "f2f0e684b658310038dd6b3a36b8b58ef285c1db6bd6fcbf05a9c4111b153dbd",
+  "evidence_sha256": {
+    "campaign.jsonl": "e67f3d0e17b25425352f01070710a52a2be277e0e143f964991f01a4da587c76",
+    "campaign.log": "160ed356f86e9ef69930f4be811cf1335200862fb0f5321770e70c5b7adc9f81"
+  },
+  "source_sha256": {
+    "phase11_5_package9.py": "5d9b268b65f9dcc01c962217d620603c0a55363639dc03a14fbb2d55c3ca7a3c",
+    "phase11_5_package11_usb_reducer_retest.py": "6ef024dc2848317fa77a36695593840221ae5e80c0a52ee8dd6f8d25374545a4"
+  },
+  "usb_status_samples": 120,
+  "usb_status_state_counts": {
+    "empty": 95,
+    "armed": 2,
+    "running": 23
+  },
+  "usb_event_count": 6,
+  "usb_event_states": [
+    "armed",
+    "complete",
+    "empty",
+    "loaded",
+    "running"
+  ],
+  "maximum_status_gap_ns": 5000065331,
+  "maximum_status_response_ns": 954628630,
+  "matching_terminal_complete_output_inactive": true,
+  "old_status_only_reducer_rejects": true,
+  "repaired_event_and_status_reducer_accepts": true,
+  "pico_access": false,
+  "usb_access": false,
+  "network_access": false,
+  "service_mutations": 0,
+  "reservation_access": false,
+  "rf_jobs": 0,
+  "rf_duration_ns": 0
+}

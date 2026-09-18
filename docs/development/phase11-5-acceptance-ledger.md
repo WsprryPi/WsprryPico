@@ -48,8 +48,29 @@ independent-client association gate before reservation. The
 [Package 10 result](phase11-5-package10-failure-result.json) and
 [review](phase11-5-package10-review.md) preserve that blocker, 4/480-second
 actual charge and full restoration. The remaining allowance is unused and not
-an automatic retry. R6 remains open pending a separately qualified client
-fixture and one complete corrected physical packet.
+an automatic retry. Package 11 subsequently qualified the separate wspr4 AP /
+wspr5 client fixture and passed its zero-RF admission. Attempt 1 charged eight
+warmups and stopped at an aliased clock-poll gate; its zero-RF polling repair
+passed. Retry 1 charged eight warmups, completed the matched baseline and passed
+baseline timing, then stopped before any production ARM because root-run
+WsprryPi rejected `pi`-owned mode-0600 private keys. The
+[Retry 1 review](phase11-5-package11-retry1-review.md) records fresh inactive
+reconciliation, reservation release, complete two-host restoration, the
+credential-owner repair, a Linux host-only zero-RF retest and 31 rejected
+adversarial mutations. Retry 2 verified the credential repair, then stopped
+before reservation when four complete prior terminal records remained inside
+their one-hour retention and the unchanged memory gate ended 224 bytes short.
+It charged zero RF and restored cleanly. [Retry 3](phase11-5-package11-retry3-review.md)
+then cleared the retention and memory gates, completed eight warmups, the
+matched baseline and Cycle 1, and stopped because the host reducer ignored the
+complete USB lifecycle events it had already received. The repaired
+event-plus-STATUS reducer passed an exact-evidence zero-RF replay and 22
+adversarial mutations; the stopped-attempt record rejected another 35
+mutations. Retry 3 charges 9 jobs / 122.6 planned seconds. Cumulative Package 11
+use is 25 jobs / 138.6 planned seconds with no R6 credit. Both Picos and hosts
+are restored and all captures report zero kernel drops. R6 remains open pending
+expiry of the eight retained Retry 3 records and a separately authorized fresh
+full campaign.
 
 The records below preserve earlier identities, counts and outcomes. Their
 then-current candidate and device restrictions are historical.
@@ -212,7 +233,7 @@ Historical 049cc929 image hashes and all four layouts are in
 | R3 | CLOSED — 14/14 groups, 24/24 rows and 7/7 features | Packages 1-5 physical evidence plus exact Package 6 source-impact/applicability audit; [result](phase11-5-package6-result.json) | Preserve failed attempts and exact image scope; invalidate only affected rows after later production changes |
 | R4 | CLOSED — 18/18 rows | Package 7 current-image foreign authority, forbidden storage, owner abort, lost-operation replay and current regressions plus three reviewed inherited rows; [result](phase11-5-package7-result.json) | Preserve exact identities, failures and scope; invalidate only affected rows after later production changes |
 | R5 | CLOSED — 8/8 rows | Package 8 repaired network lifecycle, retained journal rotation, autonomous time admission/completion and reviewed idle Wi-Fi applicability; [result](phase11-5-package8-result.json) | Preserve failed attempts and exact image scope; invalidate only affected rows after later production changes |
-| R6 | OPEN — not run | Prior inhibited soak is contextual only | Package 9 mixed physical workload after mandatory R1-R5 gates pass |
+| R6 | OPEN — no accepted resource result | Package 9 completed the workload but failed matched resource return; Package 11 Retry 3 reached Cycle 1 before the repaired host reducer stopped acceptance | Fresh full Package 11 campaign after retained-record expiry and separate physical authorization |
 
 For each future packet, record its family/assertion IDs, exact inputs, prior
 evidence reused with rationale, and `passed / failed / not run` counts. A failed

@@ -37,8 +37,25 @@ normalization without changing firmware or the limit, but the corrected packet
 was blocked before RF by the mandatory independent wireless-client fixture.
 Package 10 used four of 480 authorized RF seconds, all in a stopped frequency-
 sequence attempt; thirteen corrected preflights used no RF and restored cleanly.
-R6 and Phase 11.5 remain open pending a separately qualified client fixture and
-one newly frozen complete corrected packet.
+Package 11 qualified the separate two-host fixture and passed its zero-RF
+admission. Its first RF attempt stopped after eight warmups and the matched
+baseline when clock polling reused the transport backoff; the zero-RF
+clock-poll retest passed. [Retry 1](phase11-5-package11-retry1-review.md) then
+passed that repaired path, eight warmups, the matched baseline and baseline
+timing, but root-run WsprryPi rejected `pi`-owned private keys before the first
+production ARM. The credential-owner repair passed a Linux host-only zero-RF
+retest. [Retry 2](phase11-5-package11-retry2-review.md) verified that repair but
+stopped before reservation after its 360-second memory window ended 224 bytes
+below the unchanged gate while prior complete terminal records were still
+inside their one-hour retention. It charged zero RF. [Retry 3](phase11-5-package11-retry3-review.md)
+cleared both preflight gates, completed eight warmups, the matched baseline and
+the first 600-second cycle, then stopped because the host reducer ignored the
+complete USB lifecycle events it had received and considered only five-second
+STATUS snapshots. The repaired event-plus-STATUS reducer passed an exact-source
+zero-RF replay and two adversarial assessments. Package 11 has charged 25 jobs /
+138.6 planned seconds across four stopped attempts, with no R6 credit and full
+restoration. R6 and Phase 11.5 remain open pending expiry of Retry 3's eight
+terminal records and a separately authorized fresh campaign.
 
 
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).

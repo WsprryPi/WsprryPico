@@ -1,0 +1,185 @@
+{
+  "schema": "phase11.5-package11-retry3-adversarial-v1",
+  "status": "PASS",
+  "mutation_count": 35,
+  "all_mutations_rejected": true,
+  "mutations": [
+    {
+      "name": "status",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "phase",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "packet",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "authorization",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "dependency",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retention",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "memory",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "reservation",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "warmup",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "cycle",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "r6-credit",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "runner",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "samples",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "events",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "event-complete",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "cadence",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "terminal",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "classification",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "product",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "resource",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retest",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retest-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "adversarial-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "fresh-rf",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "charge",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "duration",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retry",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "cumulative",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "capture",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "drop",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "pico",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "released",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "host",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "cleanup",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "evidence",
+      "rejected": true,
+      "error_type": "ValueError"
+    }
+  ],
+  "result_sha256": "9b02a77258a36739a3076f68ddf9b525cb6edf32c54bf5408f02e8340f956598",
+  "adversarial_script_sha256": "ab189c440682f196ebb46fbeeee8faf91c5f2886066161a2e3cb962fe6795dd5"
+}

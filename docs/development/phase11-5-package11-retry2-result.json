@@ -1,0 +1,116 @@
+{
+  "schema": "phase11.5-package11-retry2-failure-v1",
+  "status": "STOPPED_PRE_RESERVATION_MEMORY_RETENTION_WINDOW",
+  "phase11_5_status": "OPEN_5_OF_6_FAMILIES",
+  "packet_sha256": "6408d93a0d7b990c0cb40b5bafb8bc6bfd650b187bfb975984783572c898a1fb",
+  "authorization": "PACKAGE11-TWO-HOST-R6-RETRY2",
+  "dependencies": {
+    "admission_result_sha256": "fe4d7a9b84ec97f256b09f187005399685d0aefd556b129648608ea2a4cb1214",
+    "admission_adversarial_sha256": "2b9e18c73cc7f53572f086b44c2d1fef9835009b129cb4b30c8b0c5db6317935",
+    "attempt1_result_sha256": "0bef1850d736535661e2c0ae1bc7519dbff2cfbf06ebacf1c64108b4831b6faf",
+    "clock_poll_retest_result_sha256": "92838e20c1de3a998bda67084f75b8deb728049633598ab9e2b5b18b2606fa68",
+    "retry1_result_sha256": "89a7a1f26b2aa084187d08b24749bde22bec95476a20cddfe397a62f25d9d1a7",
+    "retry1_adversarial_sha256": "f9c83b32542f0843ca262fcd041c5a8e89b96fcff526917008d50757d61e28b8",
+    "credential_retest_result_sha256": "eda622ce6aac1b0d0cf2628dac179233138910628179f16a64f7c41ca2069238"
+  },
+  "completed_scope": {
+    "credential_repair_observed": true,
+    "credential_files_verified": 6,
+    "fixture_ready": true,
+    "memory_preflight_attempts": 25,
+    "reservation_acquired": false,
+    "warmup_jobs": 0,
+    "production_jobs": 0,
+    "normal_cycles": 0,
+    "post_n_windows": 0,
+    "r6_credit": false
+  },
+  "memory_preflight": {
+    "timeout_seconds": 360,
+    "sample_seconds": 15,
+    "elapsed_ns": 360001652399,
+    "required_heap_available_bytes": 165000,
+    "minimum_observed_bytes": 162400,
+    "maximum_observed_bytes": 164800,
+    "final_observed_bytes": 164776,
+    "final_shortfall_bytes": 224,
+    "allocator_failures": 0,
+    "network_wtp_close_reasons": [
+      2
+    ],
+    "runner_type": "ValueError",
+    "runner_message": "Memory headroom readiness deadline"
+  },
+  "retained_state": {
+    "terminal_record_ttl_seconds": 3600,
+    "retry1_reconciliation_terminal_records": 8,
+    "retry2_reconciliation_terminal_records": 4,
+    "retry2_reconciliation_monotonic_now_ns": 44520235518000,
+    "latest_retained_terminal_ended_monotonic_ns": 41137685933000,
+    "latest_retained_terminal_remaining_ns": 217450415000,
+    "all_observed_records_complete_and_output_inactive": true,
+    "diagnosis": "The fixed memory gate began while Retry 1 terminal replay records were still inside their one-hour retention lifetime. Records retired during the window, but four remained at reconciliation and the gate expired 224 bytes below its unchanged threshold.",
+    "classification": "HOST_FIXTURE_PREFLIGHT_SEQUENCING_DEFECT",
+    "product_failure": false,
+    "resource_result_accepted": false
+  },
+  "actual_budget": {
+    "authorized_rf_jobs": 16,
+    "authorized_rf_duration_ns": 480000000000,
+    "planned_rf_duration_ns": 356800000000,
+    "charged_rf_jobs": 0,
+    "charged_rf_duration_ns": 0,
+    "flashes": 0,
+    "bootsel": 0,
+    "configuration_writes": 0,
+    "controlled_reboots": 0,
+    "wifi_cycles": 0,
+    "allocation_probes": 0,
+    "automatic_retry_authorized": false
+  },
+  "cumulative_package11_budget": {
+    "attempt1_charged_rf_jobs": 8,
+    "attempt1_charged_rf_duration_ns": 8000000000,
+    "retry1_charged_rf_jobs": 8,
+    "retry1_charged_rf_duration_ns": 8000000000,
+    "retry2_charged_rf_jobs": 0,
+    "retry2_charged_rf_duration_ns": 0,
+    "charged_rf_jobs": 16,
+    "charged_rf_duration_ns": 16000000000
+  },
+  "capture": {
+    "campaign_capture_started": false,
+    "campaign_kernel_drops": null,
+    "client_kernel_drops": 0,
+    "remote_ap_kernel_drops": 0
+  },
+  "restoration": {
+    "pico_a_empty_unowned_inactive": true,
+    "pico_a_boot_unchanged": true,
+    "pico_b_empty_unowned_inactive": true,
+    "pico_b_boot_unchanged": true,
+    "reservation_remained_released": true,
+    "wspr5_fixture_restored": true,
+    "wspr4_fixture_restored": true,
+    "installed_service_active": true,
+    "recovery_timers_active": true,
+    "cleanup_failures": 0
+  },
+  "evidence_sha256": {
+    "packet.json": "6408d93a0d7b990c0cb40b5bafb8bc6bfd650b187bfb975984783572c898a1fb",
+    "campaign.jsonl": "5b82d393569a704feb85b23a8abac6cc03967d30489b229110ef4fcf1314bb56",
+    "fixture-state.json": "f02f0bda4a7a60d9f6fe3816501d62ec2e04edf995319985f14a22a44b294df2",
+    "fixture.jsonl": "7a1d5638b845edf7223ac03e9ec3ba73af6e63186048aa844923b5ba254fa2e2",
+    "capture-client.pcap": "4040748d2eba20522f630d01e526cd74f335e44b427ba160751fc2004378dabf",
+    "capture-client.log": "29453eb85a312158f5d58320ff1a21d5901867f7b2046b7d5badeec857d9cc0a",
+    "reconcile-a.jsonl": "2ffa0b84ed1d5103a7c3c68bb172ce5c08957c1fcf6d2364ff699c68eca601ae",
+    "reconcile-b.jsonl": "1b6a75074f05b1bd8ed517836df6e976c0b298bd2bcf9a967ffd61373a9f59ad",
+    "reservation.json": "ff8be730d13f9487b99652f6774055fb8bb963d49f220c990fb41697a28b62dd",
+    "remote-packet.json": "74b0d5f4690db9bf8e66b6eee6a44f9e29a747da5f8271d98891522065e247f4",
+    "remote-ready.json": "63be508de7b7b0662062e1f6123976d5271bdcba0a15eacccffd93c9306ae0d2",
+    "remote-state.json": "4cb86ed0a11da2106630cebc13f985a30f0dbb7cbb035d34cd827012788b1467",
+    "remote.jsonl": "a197d4a8e0c7688bae254c6087d1b039c2ef6a0c95a8a2268009b42150aecc91",
+    "remote-capture.pcap": "cf6aaeb7dd82c7aa22f5e0196cbe9383347af0c1c5f97c64bf79fc76dbc64134",
+    "remote-capture.log": "ae76bcd6d1f7bd2b5bc411c6241fb846ca98543ba494fbfb1747906ac13475b3"
+  }
+}

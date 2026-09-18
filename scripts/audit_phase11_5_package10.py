@@ -401,26 +401,60 @@ def audit(root, expected_packet_sha, decoder_path, fixture_root,
             "Host-health coverage")
     for cycle in range(1, 4):
         status = [row for row in values(records, "usb_status") if row["value"]["cycle"] == cycle]
+        events = [row for row in values(records, "usb_event")
+                  if row["value"]["cycle"] == cycle]
+        expected_session = packet[f"usb_observer_session_{cycle}"]
+        job_events = [row["value"]["value"] for row in events
+                      if row["value"]["value"]["event"] == "JOB_STATE"]
         finish = finishes[cycle - 1]["value"]
         usb_states = {row["value"]["value"]["state"] for row in status}
         usb_jobs = {row["value"]["value"]["job_id"] for row in status
                     if row["value"]["value"].get("job_id")}
+        event_states = {row["body"]["state"] for row in job_events}
+        event_jobs = {row["body"]["job_id"] for row in job_events
+                      if row["body"].get("job_id")}
+        raw_event_ids = [row["value"]["value"]["event_id"] for row in events]
+        event_ids = [int(value) for value in raw_event_ids]
+        terminal_status = [row["value"]["value"] for row in status if any(
+            record["job_id"] == finish["job_id"] and record["state"] == "complete" and
+            record["output_active"] is False
+            for record in row["value"]["value"]["terminal_records"])]
         require(len(status) >= 118 and max_gap([row["value"]["began_monotonic_ns"]
                 for row in status]) <= 6_000_000_000 and
                 max(row["value"]["ended_monotonic_ns"] - row["value"]["began_monotonic_ns"]
                     for row in status) <= 5_000_000_000 and
                 all(row["value"]["value"]["boot_id"] == BOOT for row in status) and
-                {"loaded", "armed", "running", "complete"}.issubset(usb_states) and
-                usb_jobs == {finish["job_id"]},
-                "USB STATUS coverage/lifecycle")
-        completed_status = [row["value"]["value"] for row in status
-                            if row["value"]["value"]["state"] == "complete"]
+                {"armed", "running"}.issubset(usb_states) and
+                usb_states <= {"empty", "loaded", "armed", "running", "complete"} and
+                usb_jobs == {finish["job_id"]} and events and
+                all(row["value"]["value"]["boot_id"] == BOOT and
+                    row["value"]["value"].get("protocol") == "WTP/1" and
+                    row["value"]["value"].get("session_id") == expected_session
+                    for row in events) and
+                all(row["value"]["value"]["event"] in {"JOB_STATE", "OWNER_RELEASED"}
+                    for row in events) and
+                all(isinstance(value, str) and value.isdigit() and str(int(value)) == value
+                    for value in raw_event_ids) and
+                event_ids == list(range(event_ids[0], event_ids[0] + len(event_ids))) and
+                event_states == {"loaded", "armed", "running", "complete", "empty"} and
+                event_jobs == {finish["job_id"]} and terminal_status and
+                all(type(row["body"].get("output_active")) is bool and
+                    row["body"]["output_active"] is (row["body"]["state"] == "running") and
+                    ((row["body"]["state"] == "empty" and row["body"].get("job_id") is None) or
+                     (row["body"]["state"] != "empty" and
+                      row["body"].get("job_id") == finish["job_id"]))
+                    for row in job_events) and
+                terminal_status[-1]["state"] == "empty" and
+                terminal_status[-1]["owner_id"] is None and
+                terminal_status[-1]["output_active"] is False and
+                all(record["state"] == "complete" and record["output_active"] is False
+                    for record in terminal_status[-1]["terminal_records"]),
+                "USB STATUS/event coverage/lifecycle")
         expected_cycle_terminals = (
             {job["job_id"] for job in packet["warmup_jobs"][cycle:]} |
             {item["value"]["job_id"] for item in finishes[:cycle]})
-        require(completed_status and
-                {record["job_id"] for record in
-                    completed_status[-1]["terminal_records"]} == expected_cycle_terminals and
+        require({record["job_id"] for record in
+                    terminal_status[-1]["terminal_records"]} == expected_cycle_terminals and
                 len(expected_cycle_terminals) == 8,
                 "Post-N equivalent terminal-history cardinality")
         health = [row for row in values(records, "production_process_health")

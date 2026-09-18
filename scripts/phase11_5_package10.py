@@ -379,7 +379,9 @@ def run_refresh(root, packet, journal, cycles, warmup):
     return result
 
 
-def _run_with_service_paused(root, packet, journal):
+def _run_with_service_paused(root, packet, journal, pre_memory=None):
+    if pre_memory is not None:
+        pre_memory(root, packet, journal)
     package9.wait_for_memory_headroom(packet, journal)
     wait_for_network_settle(packet, journal)
     package9.wait_for_normalizer_readiness(root, packet, journal,
@@ -513,7 +515,7 @@ def _run_with_service_paused(root, packet, journal):
         reservation.close()
 
 
-def run(root, packet, journal):
+def run(root, packet, journal, pre_memory=None):
     service_was_active = subprocess.run([*package9.HOST_SYSTEMCTL, "is-active", "--quiet",
         "wsprrypi.service"]).returncode == 0
     require(service_was_active, "Installed WsprryPi service baseline")
@@ -522,7 +524,7 @@ def run(root, packet, journal):
     journal.emit("installed_service_paused", {"was_active": True,
         "before_memory_readiness": True})
     try:
-        return _run_with_service_paused(root, packet, journal)
+        return _run_with_service_paused(root, packet, journal, pre_memory)
     finally:
         subprocess.run([*package9.HOST_SYSTEMCTL, "start", "wsprrypi.service"],
                        check=False, timeout=15)

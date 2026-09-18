@@ -51,7 +51,18 @@ treated as long-term product documentation.
     are implemented; affected 11.5 resource and extended-job physical acceptance
     are in progress before 11.6 acceptance of those jobs. Phase 11.5 has R1-R5
     closed; Package 9 completed the R6 workload but failed its 1,024-byte matched
-    resource-return gate, so no complete 11.5 configuration is accepted.
+    resource-return gate. Package 11's separate two-host fixture is qualified,
+    while two stopped eight-warmup attempts preserve clock-poll and TLS
+    credential-owner harness defects, their zero-RF repairs and full restoration.
+    Retry 2 verified the credential repair but stopped before reservation while
+    prior complete terminal records outlived its fixed memory window. Retry 3
+    cleared that preflight, completed the warmups, matched baseline and first
+    600-second cycle, then stopped when the host reducer ignored the complete
+    USB lifecycle events it had received and evaluated only periodic STATUS.
+    The event-plus-STATUS repair passed an exact-evidence zero-RF replay and
+    adversarial review. A fresh separately authorized full campaign after the
+    retained records expire is the remaining R6 gate, so no complete 11.5
+    configuration is accepted.
     An alternative clock selected during 11.6 must repeat affected 11.5 checks.
     The systematic band x mode x clock comparison, final supported configurations,
     filters, spectral qualification and release firmware belong to Phase 13.

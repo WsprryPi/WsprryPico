@@ -170,6 +170,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_package9_tests.py)
     add_test(NAME phase11_5_package10_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_package10_tests.py)
+    add_test(NAME phase11_5_package11_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase11_5_package11_tests.py)
     add_test(NAME phase11_5_device_management_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_device_management_tests.py)
     add_test(NAME phase11_5_device_fixture_tests COMMAND ${Python3_EXECUTABLE}

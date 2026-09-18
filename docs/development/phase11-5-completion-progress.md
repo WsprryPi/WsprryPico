@@ -1,6 +1,6 @@
 # Phase 11.5 completion progress
 
-**OPEN — 4/6 families closed.** [Current matrix](phase11-5-completion-matrix.md).
+**OPEN — 5/6 families closed.** [Current matrix](phase11-5-completion-matrix.md).
 
 | Package | Status | Outcome / next requirement |
 | --- | --- | --- |
@@ -12,8 +12,10 @@
 | 5 | COMPLETE — 4/4 rows accepted | Replay/session capacity, terminal capacity/LRU/actual expiry and three equivalent reclamation cycles pass. [Review](phase11-5-package5-review.md). |
 | 6 | COMPLETE — R3 CLOSED | All 14 R3 groups, 24 assertion rows and seven extended features accepted after exact source-impact and evidence-applicability review. [Review](phase11-5-package6-review.md). |
 | 7 | COMPLETE — R4 CLOSED | All 18 R4 rows are accepted/applicable: 15 directly closed and three inherited rows reconfirmed. Nine charged RF attempts total 213 planned seconds; failures and restoration evidence are retained. [Review](phase11-5-package7-review.md). |
-| 8 | OPEN; idle Wi-Fi accepted on source 98f5797 | Two independently audited OFF/ON readiness cycles preserve state/configuration and recover address/clock. Link loss, lease/name change, DNS/SNTP, journal rotation and autonomy remain. |
-| 9 | OPEN | R6 mixed operation after R1-R5 acceptance. |
+| 8 | COMPLETE — R5 CLOSED | All eight R5 rows pass repaired network recovery, storage rotation and autonomous scheduling with full restoration. [Review](phase11-5-package8-review.md). |
+| 9 | COMPLETE workload; R6 gate failed | The full mixed workload completed, but retained-memory windows exceeded the unchanged 1,024-byte resource-return limit. [Review](phase11-5-package9-review.md). |
+| 10 | BLOCKED; no R6 credit | Matched replay-history normalization is selected, but the same-host independent-client fixture could not be qualified. [Review](phase11-5-package10-review.md). |
+| 11 | OPEN; fresh campaign requires authorization | Separate two-host admission passed. Retry 3 cleared the retained-terminal and memory gates, completed eight warmups, the matched baseline and Cycle 1, then stopped on a host reducer that ignored received USB lifecycle events. The event-plus-STATUS repair passed a zero-RF replay and adversarial review. Cumulative use is 25 jobs / 138.6 seconds; no R6 credit. [Retry 3 review](phase11-5-package11-retry3-review.md). |
 
 ### Current Package 7 checkpoint
 

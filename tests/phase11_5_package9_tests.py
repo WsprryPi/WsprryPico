@@ -3,9 +3,11 @@
 
 import hashlib
 import json
+from collections import deque
 from pathlib import Path
 import sys
 import threading
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -139,10 +141,12 @@ class Package9RequestTests(unittest.TestCase):
 
     def test_adversarial_review_covers_repaired_authority_chain(self):
         names = {name for name, _ in mutations()}
-        self.assertEqual(len(names), 40)
+        self.assertEqual(len(names), 44)
         self.assertTrue({"readiness-service-pause", "memory-readiness-admission",
             "production-completion-report", "production-completion-identity",
             "production-usb-completion", "production-usb-loaded",
+            "production-usb-terminal", "production-usb-event-order",
+            "production-usb-event-protocol", "production-usb-event-session",
             "production-host-safety", "production-host-armed",
             "installed-service-restoration"}.issubset(names))
 
@@ -209,6 +213,43 @@ class Package9RequestTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Production lifecycle"):
             package9.production_lifecycle(last, {"running", "empty"},
                 {"2" * 32}, {job}, {"3" * 32})
+
+    def test_usb_observer_preserves_pending_lifecycle_events(self):
+        job = "1" * 32
+        journal = Journal()
+        observer = package9.UsbStatusObserver(journal, threading.Event(), "2" * 32, 1)
+        peer = SimpleNamespace(pending=deque({"type": "event", "protocol": "WTP/1",
+            "session_id": "2" * 32, "boot_id": package9.BOOT,
+            "event_id": str(index), "event": "JOB_STATE",
+            "body": {"job_id": job if state != "empty" else None, "state": state,
+                     "output_active": state == "running"}}
+            for index, state in enumerate(("loaded", "armed", "running", "complete", "empty"))))
+        observer.consume_events(peer)
+        self.assertFalse(peer.pending)
+        self.assertEqual(observer.event_states,
+                         {"loaded", "armed", "running", "complete", "empty"})
+        self.assertEqual(observer.event_jobs, {job})
+        self.assertEqual([kind for kind, _ in journal.rows], ["usb_event"] * 5)
+
+    def test_usb_lifecycle_combines_events_with_terminal_status(self):
+        job = "1" * 32
+        terminal = {"job_id": job, "state": "complete", "output_active": False}
+        terminals = [terminal] + [
+            {"job_id": f"{index:x}" * 32, "state": "complete", "output_active": False}
+            for index in range(2, 9)]
+        observer = SimpleNamespace(states={"empty", "armed", "running"}, jobs={job},
+            event_states={"loaded", "armed", "running", "complete", "empty"},
+            event_jobs={job}, latest={"state": "empty", "owner_id": None,
+                "output_active": False, "terminal_records": terminals})
+        evidence = package9.validate_usb_lifecycle(observer, job)
+        self.assertEqual(evidence["terminal_records"], 8)
+        observer.event_states.remove("complete")
+        with self.assertRaisesRegex(ValueError, "USB lifecycle/terminal authority"):
+            package9.validate_usb_lifecycle(observer, job)
+        observer.event_states.add("complete")
+        terminal["output_active"] = True
+        with self.assertRaisesRegex(ValueError, "USB lifecycle/terminal authority"):
+            package9.validate_usb_lifecycle(observer, job)
 
     def test_installed_service_is_paused_before_readiness_and_always_restored(self):
         calls = []
