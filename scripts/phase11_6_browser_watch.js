@@ -10,7 +10,8 @@ const HOST='wsprrypico-0a60df.local',ADDRESS='10.77.15.10';
 const ORIGIN='https://'+HOST+':18443';
 const PEER='06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016';
 const WebSocket=require('/usr/share/nodejs/ws');
-let chrome,socket,failure=null,sequence=0,refreshes=0,unavailableRefreshes=0,observedJob=null;
+let chrome,socket,failure=null,sequence=0,refreshes=0,unavailableRefreshes=0,consecutiveUnavailableRefreshes=0,observedJob=null;
+const MAX_CONSECUTIVE_UNAVAILABLE_REFRESHES=3;
 const pending=new Map(),events=new Set(),states=new Set(),jobs=new Set();
 const log=fs.openSync(root+'/browser.jsonl','wx',0o600),deadline=process.hrtime.bigint()+BigInt(Math.ceil(seconds+90))*1000000000n;
 const ns=()=>process.hrtime.bigint();
@@ -21,7 +22,7 @@ function send(method,params={}){return new Promise((resolve,reject)=>{const id=+
 async function evaluate(expression){const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(JSON.stringify(r.exceptionDetails));return r.result.value;}
 async function until(fn,seconds=30){const end=ns()+BigInt(seconds)*1000000000n;while(ns()<end){check();if(await fn())return;await new Promise(r=>setTimeout(r,100));}throw Error('browser condition deadline');}
 async function shot(name){const state=await evaluate(`({job:snapshot?.job,notice:$('notice').textContent,progress:$('job-progress').textContent,online,busy})`);save(name+'-dom.json',state);const p=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});fs.writeFileSync(root+'/'+name+'.png',Buffer.from(p.data,'base64'));return state;}
-async function refresh(){await until(()=>evaluate('!busy'),15);await evaluate("$('refresh').click()");await until(()=>evaluate('!busy'),15);refreshes++;const s=await evaluate('snapshot?.job??null');if(s===null){unavailableRefreshes++;const page=await evaluate(`({notice:$('notice').textContent,online,busy})`);emit('manual_refresh_unavailable',{refresh:refreshes,page});return null;}assert.equal(s.boot_id,boot);states.add(s.state);if(s.job_id)jobs.add(s.job_id);emit('manual_refresh',{refresh:refreshes,state:s});return s;}
+async function refresh(){await until(()=>evaluate('!busy'),15);await evaluate("$('refresh').click()");await until(()=>evaluate('!busy'),15);refreshes++;const s=await evaluate('snapshot?.job??null');if(s===null){unavailableRefreshes++;consecutiveUnavailableRefreshes++;const page=await evaluate(`({notice:$('notice').textContent,online,busy})`);emit('manual_refresh_unavailable',{refresh:refreshes,consecutive:consecutiveUnavailableRefreshes,page});assert(consecutiveUnavailableRefreshes<=MAX_CONSECUTIVE_UNAVAILABLE_REFRESHES,'consecutive unavailable browser refresh limit');return null;}consecutiveUnavailableRefreshes=0;assert.equal(s.boot_id,boot);states.add(s.state);if(s.job_id)jobs.add(s.job_id);emit('manual_refresh',{refresh:refreshes,state:s});return s;}
 async function requiredRefresh(seconds=30){let value=null;await until(async()=>{value=await refresh();return value!==null;},seconds);return value;}
 (async()=>{
   emit('start',{job_id:jobId,seconds,refresh_interval_ms:refreshMs});const profile=root+'/chrome';assert(!fs.existsSync(profile));fs.mkdirSync(profile);
@@ -54,8 +55,8 @@ async function requiredRefresh(seconds=30){let value=null;await until(async()=>{
   if(jobId==='any')assert(observedJob&&jobs.has(observedJob),'page never observed an active production job');
   else assert(jobs.has(jobId),'page never observed expected job');
   assert.equal(final.output_active,false);
-  save('browser-result.json',{status:'PASS',page_loaded:true,manual_refreshes:refreshes,unavailable_refreshes:unavailableRefreshes,refresh_interval_ms:refreshMs,manual_refresh_overlap:true,states:[...states].sort(),job_ids:[...jobs].sort(),expected_job_id:jobId,observed_job_id:observedJob,peer_sha256:PEER,events:[...events].sort()});
-})().catch(error=>{failure=error;emit('failure',{message:error.message,stack:error.stack});save('browser-result.json',{status:'FAIL',error:error.message,page_loaded:false,manual_refreshes:refreshes,unavailable_refreshes:unavailableRefreshes,states:[...states].sort(),job_ids:[...jobs].sort()});process.exitCode=1;}).finally(async()=>{
+  save('browser-result.json',{status:'PASS',page_loaded:true,manual_refreshes:refreshes,unavailable_refreshes:unavailableRefreshes,consecutive_unavailable_refreshes:consecutiveUnavailableRefreshes,maximum_consecutive_unavailable_refreshes:MAX_CONSECUTIVE_UNAVAILABLE_REFRESHES,refresh_interval_ms:refreshMs,manual_refresh_overlap:true,states:[...states].sort(),job_ids:[...jobs].sort(),expected_job_id:jobId,observed_job_id:observedJob,peer_sha256:PEER,events:[...events].sort()});
+})().catch(error=>{failure=error;emit('failure',{message:error.message,stack:error.stack});save('browser-result.json',{status:'FAIL',error:error.message,page_loaded:false,manual_refreshes:refreshes,unavailable_refreshes:unavailableRefreshes,consecutive_unavailable_refreshes:consecutiveUnavailableRefreshes,maximum_consecutive_unavailable_refreshes:MAX_CONSECUTIVE_UNAVAILABLE_REFRESHES,states:[...states].sort(),job_ids:[...jobs].sort()});process.exitCode=1;}).finally(async()=>{
   if(socket){await send('Browser.close').catch(()=>{});socket.close();}
   if(chrome&&chrome.exitCode===null){chrome.kill('SIGTERM');await new Promise(r=>{chrome.once('exit',r);setTimeout(r,5000);});}
   emit('finish',{exitCode:process.exitCode||0});fs.closeSync(log);

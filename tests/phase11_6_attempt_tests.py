@@ -187,6 +187,19 @@ class Phase116AttemptTests(unittest.TestCase):
             self.assertIn("manual_refresh_unavailable", source)
             self.assertIn("requiredRefresh", source)
 
+    def test_browser_watch_bounds_consecutive_unavailable_refreshes(self):
+        source = (ROOT / "scripts/phase11_6_browser_watch.js").read_text()
+        self.assertIn("MAX_CONSECUTIVE_UNAVAILABLE_REFRESHES=3", source)
+        self.assertIn(
+            "consecutiveUnavailableRefreshes<=MAX_CONSECUTIVE_UNAVAILABLE_REFRESHES",
+            source,
+        )
+        self.assertIn("consecutiveUnavailableRefreshes=0;assert.equal(s.boot_id,boot)",
+                      source)
+        self.assertEqual(
+            source.count("maximum_consecutive_unavailable_refreshes:"), 2
+        )
+
     def test_browser_paths_pin_fixture_address_but_retain_tls_hostname(self):
         for name in ("phase11_6_browser_submit.js", "phase11_6_browser_watch.js"):
             source = (ROOT / "scripts" / name).read_text()

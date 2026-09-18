@@ -1,6 +1,6 @@
 {
   "schema": "phase11.6-matrix-v3",
-  "plan_sha256": "8a52e4d9b3f252097bca0112c08b3b1e41792905775624940bcbf313b5cb072b",
+  "plan_sha256": "3f69820064a1dd633205299ea91e04fdeea544ec5b35390f4a6dfa7a8a432c9f",
   "phase_status": "OPEN",
   "rows": [
     {
@@ -187,60 +187,60 @@
       "band": "160m",
       "nominal_frequency_hz": 1838100,
       "mode": "QRSS",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "all three physical/IQ paths pass; ordinary packet audit pending",
+      "attempts": [44, 46, 47],
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "decoding_or_readability": true,
+        "frequency_spacing_and_timing": true,
+        "network_lifecycle": true,
+        "instrument_capture_validity": true,
+        "diagnostic_spectrum": true
       }
     },
     {
       "band": "160m",
       "nominal_frequency_hz": 1838100,
       "mode": "FSKCW",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "FAIL",
+      "reason": "production path exceeded the unchanged 0.15 rad phase-coherence limit; remaining paths unspent",
+      "attempts": [48],
       "assertions": {
         "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "frequency_spacing_and_timing": false,
+        "network_lifecycle": true,
+        "instrument_capture_validity": true,
+        "diagnostic_spectrum": true
       }
     },
     {
       "band": "160m",
       "nominal_frequency_hz": 1838100,
       "mode": "DFCW",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "all three reverse-profile physical/IQ paths pass; ordinary packet audit pending",
+      "attempts": [49, 50, 51],
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "decoding_or_readability": true,
+        "frequency_spacing_and_timing": true,
+        "network_lifecycle": true,
+        "instrument_capture_validity": true,
+        "diagnostic_spectrum": true
       }
     },
     {
       "band": "80m",
       "nominal_frequency_hz": 3570100,
       "mode": "TONE",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "PASS",
+      "reason": "exact-candidate controller-disconnect path and zero-tail lifecycle requalification passed",
+      "attempts": [52, 53, 54, 55],
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "decoding_or_readability": true,
+        "frequency_spacing_and_timing": true,
+        "network_lifecycle": true,
+        "instrument_capture_validity": true,
+        "diagnostic_spectrum": true
       }
     },
     {
@@ -262,60 +262,60 @@
       "band": "80m",
       "nominal_frequency_hz": 3570100,
       "mode": "QRSS",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "FAIL",
+      "reason": "production path exceeded the unchanged 0.15 rad phase-coherence limit; remaining paths unspent",
+      "attempts": [56],
       "assertions": {
         "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "frequency_spacing_and_timing": false,
+        "network_lifecycle": true,
+        "instrument_capture_validity": true,
+        "diagnostic_spectrum": true
       }
     },
     {
       "band": "80m",
       "nominal_frequency_hz": 3570100,
       "mode": "FSKCW",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "FAIL",
+      "reason": "production path exceeded the unchanged phase-coherence and state-frequency limits; remaining paths unspent",
+      "attempts": [57],
       "assertions": {
         "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "frequency_spacing_and_timing": false,
+        "network_lifecycle": true,
+        "instrument_capture_validity": true,
+        "diagnostic_spectrum": true
       }
     },
     {
       "band": "80m",
       "nominal_frequency_hz": 3570100,
       "mode": "DFCW",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "all three reverse-profile physical/IQ paths pass; ordinary packet audit pending",
+      "attempts": [58, 59, 60],
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "decoding_or_readability": true,
+        "frequency_spacing_and_timing": true,
+        "network_lifecycle": true,
+        "instrument_capture_validity": true,
+        "diagnostic_spectrum": true
       }
     },
     {
       "band": "60m",
       "nominal_frequency_hz": 5288700,
       "mode": "TONE",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "PASS",
+      "reason": "controller-disconnect physical/IQ path passed",
+      "attempts": [61],
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "decoding_or_readability": true,
+        "frequency_spacing_and_timing": true,
+        "network_lifecycle": true,
+        "instrument_capture_validity": true,
+        "diagnostic_spectrum": true
       }
     },
     {
@@ -337,44 +337,44 @@
       "band": "60m",
       "nominal_frequency_hz": 5288700,
       "mode": "QRSS",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "FAIL",
+      "reason": "production path exceeded the unchanged 0.15 rad phase-coherence limit; remaining paths unspent",
+      "attempts": [62],
       "assertions": {
         "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "frequency_spacing_and_timing": false,
+        "network_lifecycle": true,
+        "instrument_capture_validity": true,
+        "diagnostic_spectrum": true
       }
     },
     {
       "band": "60m",
       "nominal_frequency_hz": 5288700,
       "mode": "FSKCW",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "FAIL",
+      "reason": "production path exceeded the unchanged phase-coherence and state-frequency limits; remaining paths unspent",
+      "attempts": [64],
       "assertions": {
         "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "frequency_spacing_and_timing": false,
+        "network_lifecycle": true,
+        "instrument_capture_validity": true,
+        "diagnostic_spectrum": true
       }
     },
     {
       "band": "60m",
       "nominal_frequency_hz": 5288700,
       "mode": "DFCW",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "FAIL",
+      "reason": "production and browser paths pass; controller-disconnect path failed observer/resource acceptance and has no accepted IQ analysis",
+      "attempts": [65, 66, 67],
       "assertions": {
         "decoding_or_readability": null,
         "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
+        "network_lifecycle": false,
+        "instrument_capture_validity": true,
         "diagnostic_spectrum": null
       }
     },
@@ -1131,13 +1131,15 @@
   ],
   "integration_cases": [],
   "accounting": {
-    "attempted": 0,
-    "accepted": 0,
-    "rejected": 0,
-    "aborted": 0,
-    "uncertain": 0,
-    "completed": 0,
-    "charged_jobs": 0,
-    "charged_planned_rf_seconds": 0
+    "sequence_attempts": 67,
+    "rf_attempts": 61,
+    "accepted": null,
+    "rejected": null,
+    "aborted": null,
+    "uncertain": null,
+    "completed": null,
+    "classification_pending_packet_audit": true,
+    "charged_jobs": 61,
+    "charged_planned_rf_seconds": 1926.000045
   }
 }

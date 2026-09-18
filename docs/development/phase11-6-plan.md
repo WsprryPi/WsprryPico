@@ -1,22 +1,32 @@
 # Phase 11.6 conducted RF acceptance plan
 
-Status: **OPEN — further RF is blocked after attempt 52.** The corrected timing
-candidate remains installed, but the 80 m TONE controller-disconnect job ended
-in a preserved inactive `DEVICE_FAULT` after its zero-tail hardware stop. The
-shared reservation remains held and Pico A remains in failed/inactive state;
-no retry or boot-changing recovery has been performed. A narrow source repair
-and discriminating hardware-free regression are prepared but not deployed.
-See the [attempt 52 checkpoint](phase11-6-80m-attempt52.json).
+Status: **OPEN — further RF is paused after attempt 67.** The exact zero-tail
+repair candidate is installed and its affected Phase 11.5 lifecycle checks and
+80 m TONE row passed. Attempts 56, 57, 62 and 64 retain unrelaxed QRSS/FSKCW
+coherence failures. Attempt 67 completed one 60 m reverse-profile DFCW RF job,
+but the independent resource gate failed after the browser observer continued
+refreshing through target TLS allocation failures. Its full capture is retained
+without an accepted analysis result; the attempt is charged and will not be
+retried automatically.
 
-Before that stop, attempts 42, 43 and 45
-are preserved as zero-RF harness/orchestration failures, and attempt 44 passed
-the armed clock-refinement corrective gate. The three 160 m QRSS paths and the
-three reverse-profile DFCW paths now pass their individual physical and IQ
-checks. Attempt 48 retains an unrelaxed 160 m FSKCW production-path coherence
-failure; its other two paths were not spent. Remaining matrix paths, packet
-audits and bands are pending.** This phase is per-band/per-mode operational
-acceptance for the configuration closed by Phase 11.5. It is not the Phase 13
-band x mode x clock, filter, harmonic, calibrated-power or release campaign.
+The browser watcher now stops after four consecutive unavailable refreshes,
+but that host-only repair does not convert attempt 67 to a pass or clear the
+DUT's latched counters. Both Picos are empty, inactive and unowned, the shared
+reservation is released, and both host fixtures are restored. Continuing at
+sequence 68 requires one separately authorized controlled reboot of Pico A,
+with no flash or CONFIG write, followed by fresh exact-image, retained-config
+and zero-resource-counter verification. See the
+[attempts 53-67 checkpoint](phase11-6-80m-60m-attempt53-67.json).
+
+Earlier attempts 42, 43, 45, 53, 54 and 63 remain preserved zero-RF
+harness/orchestration failures. Attempt 44 passed the armed clock-refinement
+corrective gate. The 160 m QRSS and reverse-profile DFCW paths pass their
+individual physical and IQ checks, while attempt 48 retains its unrelaxed
+FSKCW coherence failure. The 80 m reverse-profile DFCW paths also pass their
+individual checks. Packet audits, WSPR and remaining bands are pending. This
+phase is per-band/per-mode operational acceptance for the configuration closed
+by Phase 11.5. It is not the Phase 13 band x mode x clock, filter, harmonic,
+calibrated-power or release campaign.
 
 Attempt 52 launched its immutable 80 m UTC request after an accepted clock
 refinement; this was not a stale-target or uncertainty rejection. The final
@@ -25,52 +35,54 @@ remaining, the tail IRQ count advanced, PIO output was inactive, DMA errors and
 invalid/unpaired refill counts remained zero, and the 2,168,000 ns maximum
 service gap stayed below the frozen 2,849,391 ns gate. The failure is the sink's
 software completion rule: it waits for tail IRQ service even though the chained
-hardware stop has already executed. The prepared repair recognizes that
+hardware stop has already executed. The deployed repair recognizes that
 authoritative inactive hardware state after the final-data IRQ. It changes no
 sample, frequency, tail length, 100 microsecond acknowledgement bound or frozen
 service-gap limit. The original sink fails the new regression and the repaired
-sink passes it. Because this is an RF lifecycle firmware change, affected 11.5
-checks and the affected 11.6 row still require exact-candidate physical
-requalification after separately authorized recovery/deployment.
+sink passes it. Sequence 55 physically requalified the affected Phase 11.5
+lifecycle checks and the 80 m TONE row on the exact deployed candidate.
 
-The reproducible packet generator is `scripts/phase11_6.py`; the initial public
-matrix is [`phase11-6-matrix.json`](phase11-6-matrix.json). The canonical plan
-successor SHA-256 is
-`8a52e4d9b3f252097bca0112c08b3b1e41792905775624940bcbf313b5cb072b`.
+The reproducible packet generator is `scripts/phase11_6.py`; the public acceptance
+matrix is [`phase11-6-matrix.json`](phase11-6-matrix.json). The current
+canonical plan SHA-256 is
+`3f69820064a1dd633205299ea91e04fdeea544ec5b35390f4a6dfa7a8a432c9f`;
+its serialized file SHA-256 is
+`650a69b9f24b02d60da28fbc50a8a816e0d7254085bcc1a0c361a1beda10a2d9`.
 The immutable predecessor plan SHA-256 is
-`9324f6057ae8f4e552375919836bbe4e0c30176405eedaf3915f0ab67d929556`.
+`8a52e4d9b3f252097bca0112c08b3b1e41792905775624940bcbf313b5cb072b`.
 The expanded private packet is intentionally generated from maintained source
 rather than committing 1.6 MB of repeated WSPR and keyed events.
 
 ## Source and accepted configuration
 
-The repair and its companion production-client support were committed and
-verified at their upstream `devel` branches before the corrected build:
+The zero-tail repair and its companion production-client support were committed
+and verified at their upstream `devel` branches before the accepted build:
 
-- WsprryPico repair `2eaa99945d21501cd4dbdac98c25be5fa146e479`;
-  planning/deployment record baseline
-  `8d84dbe567cdb4e3814281c4792c6d544ee2b711`.
+- WsprryPico repair `210599d907acdb23278fc24244b674d62c820d7c`;
+  campaign tooling through `0bc2061c3f430e73479acb3f9be8f1930b660daf`.
 - WsprryPi `3b046ebe3eaa19ae764706d844fa7354033c32df`.
 
-The installed candidate remains distinct from repository HEAD. The DUT is Pico
-A serial `0BF4B4AEC9FFB344`, WTP device
+The DUT is Pico A serial `0BF4B4AEC9FFB344`, WTP device
 `fd6127d11d6aca42a9905fa3fb1bf1d5`, repaired source
-`2eaa99945d21501cd4dbdac98c25be5fa146e479`, UF2 SHA-256
-`af3f6917ba807a1526dca6e15f19fff1974410fc87ecc32fd6e9c4f07059525f`
-and boot `b72fed2c17583cc7aba0f1345f76a3b2`. The original Phase 11.5
+`210599d907acdb23278fc24244b674d62c820d7c`, UF2 SHA-256
+`b01fecbe3d516dbe5a5e261955e376f062f92a9fe9f7c9b86135bb5f7e8b9811`
+and boot `be52153ea21a03f75067129f2bc2245f`. The original Phase 11.5
 accepted boot remains `ff719d304f1ba4ac23fddd93561b26f0`; the last
-pre-repair campaign boot was `d2f657c2099c67a7af2ef390426bda10`. The candidate configuration is
+pre-zero-tail-repair campaign boot was `b72fed2c17583cc7aba0f1345f76a3b2`.
+The candidate configuration is
 Pico 2 W / RP2350 Arm, 138 MHz system/sample clock, PIO divider 1,
 `pio-dma-gp2`, GP2 and RAM rendering with the network listener configured.
 
-Fresh zero-RF USB inventory after deployment confirmed the exact A identity,
+The initial fresh zero-RF USB inventory after deployment confirmed the exact A identity,
 135,500 Hz retained standalone base, valid stack guards, at least 32,768 bytes
 of heap reserve, zero allocator/TLS/DMA/fault counters, empty state, no owner,
 inactive output and disabled schedules. Authenticated hostname/TLS WTP `HELLO`,
 `CAPS`, `STATUS`, `GET_CLOCK` and `PING` then passed without a mutation. Pico B serial `CDDBF8767C506C07`, device
 `29f20b7342051ef947aa56cb9d4fab42`, source `8921a7008183` and boot
 `6684b4b197d80cfa0ce83b3aaf205cb0` was independently empty, inactive and
-unowned. The shared reservation is `RELEASED`; the WsprryPi service is inactive.
+unowned. After sequence 67 reconciliation and host cleanup, the shared
+reservation is `RELEASED`, both fixture recovery timers are active and the
+installed WsprryPi service is active.
 
 The initial campaign changes were host planning, capture, analysis, audit and
 documentation only. Attempt 41 then confirmed that a normal armed-interval
@@ -83,13 +95,14 @@ path and the R6 timing/resource gates transfer to the repaired candidate only
 after an observed armed-interval refinement completes the bounded corrective
 job without `MISSED_START`.
 
-One authorized repair flash subsequently installed clean source `2eaa99945d21`
+At that historical checkpoint, one authorized repair flash installed clean
+source `2eaa99945d21`
 but was rejected before acceptance because its build omitted the accepted
 135,500 Hz standalone-base override and reported the generic 3,570,100 Hz
 default. The device remained inactive, no RF or CONFIG write occurred, and the
 held reservation was released only after fresh A/B reconciliation. A corrected
-135,500 Hz UF2 is built and privately staged but not deployed; its exact record
-and the fresh-authorization boundary are in the
+135,500 Hz UF2 was then built and privately staged; its exact record and the
+fresh-authorization boundary are in the
 [deployment attempt result](phase11-6-clock-refinement-deployment-attempt1.json).
 
 A separately authorized serial-bound flash then installed the corrected
@@ -100,10 +113,11 @@ unchanged, no CONFIG or RF operation occurred, and the reservation was released
 after fresh inactive A/B authority. The sanitized result is
 [`phase11-6-clock-refinement-deployment-attempt2.json`](phase11-6-clock-refinement-deployment-attempt2.json).
 
-This second amendment changes accepted source/image/boot identity but not RF
-job payloads. Attempts 1-41 remain bound to their recorded predecessor plans.
-Attempt 42 and later attempts use the current plan without recasting earlier
-evidence.
+That second amendment changed accepted source/image/boot identity but not RF
+job payloads. Attempts 1-41 remain bound to their recorded predecessor plans;
+attempts 42-52 remain bound to the `2eaa999`/`b72fed2c` plan lineage. The later
+`210599d` zero-tail deployment created the current plan lineage used by attempts
+53 and later without recasting any earlier evidence.
 
 Attempt 42 stopped before capture, production-client startup, `LOAD`, `ARM` or
 RF because the isolated browser namespace could not resolve the retained Pico
@@ -173,6 +187,64 @@ the project image's reverse dot-high/dash-low profile; conventional external
 DFCW remains dot-low/dash-high. The full sanitized checkpoint, exact evidence
 hashes, RF accounting and restoration state are recorded in
 [`phase11-6-160m-attempt45-51.json`](phase11-6-160m-attempt45-51.json).
+
+## 80 m and 60 m continuation checkpoint
+
+Sequences 53 and 54 stopped without RF: first the staged plan retained the
+predecessor firmware identity, then the browser watcher retained the predecessor
+boot identity. Sequence 55 passed the repaired five-second 80 m TONE
+controller-disconnect path and the affected zero-tail/lifecycle requalification.
+The failures remain preserved and their packets were not reused.
+
+The 80 m production QRSS and FSKCW jobs completed physically but failed the
+unchanged 0.15 rad phase-coherence limit at 0.215676 and 0.481743 rad RMS. Their
+remaining paths were not spent. All three 80 m reverse-profile DFCW paths then
+passed their individual physical and IQ checks, with measured separations from
+4.968399 to 4.997379 Hz and maximum phase residual no greater than 0.042081 rad.
+The ordinary packet audit remains pending.
+
+At 60 m, TONE passed. Production QRSS failed with a 0.342160 rad residual, and
+production FSKCW failed with a 0.659806 rad residual; their remaining paths were
+not spent. Sequence 63 is a preserved zero-RF orchestration error: the shell
+selected the wrong duplicate TONE job, then the settled-clock admission gate
+timed out before capture, `LOAD` or `ARM`. Production and browser DFCW passed
+their individual checks with 4.989293 and 5.038572 Hz separation.
+
+The sequence 67 controller-disconnect DFCW job reached `Complete` and returned
+inactive, with a complete 14,250,000-sample capture, zero overflow and zero
+clipping. It nevertheless fails acceptance. The old browser watcher issued 120
+manual refreshes, treated 107 unavailable responses as success, and continued
+pressuring TLS. Final authoritative inventory recorded 428 allocator failures,
+214 TLS allocation failures and a last failed request of 16,693 bytes. The
+runner consequently failed independent observer health before writing
+`run-result.json`; no ordinary analysis result exists. Reconciliation retained
+the complete terminal record, proved both boards empty/inactive/unowned and
+released the reservation.
+
+The watcher now fails on the fourth consecutive unavailable refresh and resets
+that counter on recovery. This host-only change prevents an observer from
+hammering a failed page and from reporting a misleading pass; it does not alter
+the attempt, waveform or DUT. The full sanitized measurements, hashes,
+accounting and restoration record are in
+[`phase11-6-80m-60m-attempt53-67.json`](phase11-6-80m-60m-attempt53-67.json);
+the independent disposition and continuation checks are in the
+[adversarial review](phase11-6-attempt53-67-review.md).
+
+## Clock refinement behavior
+
+Better timing is accepted. Before a job, the host waits up to a bounded deadline
+for synchronized uncertainty at or below 10 ms instead of rejecting the packet
+on the first coarse sample. Sequence 65 waited from 11.813152 ms to 3.948996 ms;
+sequence 67 waited from 13.001644 ms to 3.948780 ms, and both then armed.
+
+While a job is Armed, the `210599d` candidate accepts a newer lower-uncertainty
+sample and reprojects the same immutable UTC target onto the revised monotonic
+mapping. The earlier attempt 41 failure occurred because its predecessor kept
+the old local projection: by the time the better sample moved the mapping, the
+unchanged UTC target no longer satisfied the minimum-launch guard. That was a
+stale-target safety rejection, not a policy that prefers coarse timing. The
+repair preserves the immutable UTC request and guard while updating only its
+local projection.
 
 ## Frozen content and frequency convention
 
