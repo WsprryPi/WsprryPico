@@ -1,10 +1,9 @@
 # Phase 11.6 conducted RF acceptance plan
 
-Status: **OPEN — the corrected candidate is deployed and has passed identity,
-configuration, resource and authenticated read-only control gates; attempts 42
-and 43 are preserved as zero-RF harness failures, and one fresh
-clock-refinement/QRSS packet remains pending under the unspent corrective RF
-allowance.** This phase is per-band/per-mode operational
+Status: **OPEN — the corrected candidate is deployed; attempts 42 and 43 are
+preserved as zero-RF harness failures, and attempt 44 passed the armed clock-
+refinement, launch, resource, production/browser and independent-IQ corrective
+gate. Remaining matrix paths and bands are pending.** This phase is per-band/per-mode operational
 acceptance for the configuration closed by Phase 11.5. It is not the Phase 13
 band x mode x clock, filter, harmonic, calibrated-power or release campaign.
 
@@ -104,6 +103,22 @@ native helper and RSP1B serial `2404058C60`: 500,000 retained CF32 samples,
 zero overflow, zero clipping, first-read discard and verified device cleanup.
 No RF output was requested. Exact IQ and metadata hashes are retained in the
 attempt 43 record.
+
+Fresh sequence 44 then completed the one authorized 45.000001-second corrective
+RF job. A lower-uncertainty sample was accepted while the same job remained
+Armed, the corrected image reprojected the local alarm, launched once and
+completed without `MISSED_START`. Browser overlap, independent USB lifecycle,
+retained Phase 11.5 health gates, capture integrity and physical-result-bound IQ
+analysis passed. The
+[sanitized attempt 44 result](phase11-6-clock-refinement-attempt44.json) records
+the exact measurements, hashes, accounting and limitations. Cumulative RF
+accounting is 42 RF attempts and 1245.000029 charged planned seconds; the two
+pre-RF harness failures do not add RF charges.
+
+Attempt 44 supplies only the production path for the 160 m QRSS row. The row
+still requires its browser-owned and controller-disconnect jobs, and the
+ordinary packet cannot receive packet-level audit credit until all jobs and
+restoration assertions are present. No Phase 11.6 phase-closure claim is made.
 
 ## Frozen content and frequency convention
 

@@ -1,8 +1,8 @@
 # Phase 11.6 clock-refinement repair and deployment record
 
-Status: **REPAIR COMMITTED; CORRECTED IMAGE DEPLOYED; ZERO-RF CANDIDATE
-GATES PASS; ATTEMPTS 42-43 PRESERVED AS PRE-RF HARNESS FAILURES; CORRECTIVE RF
-GATE PENDING; PHASE 11.6 OPEN**
+Status: **REPAIR COMMITTED; CORRECTED IMAGE DEPLOYED; ATTEMPTS 42-43 PRESERVED
+AS PRE-RF HARNESS FAILURES; CORRECTIVE RF GATE PASSED ON ATTEMPT 44; PHASE
+11.6 OPEN**
 
 ## Preserved failure
 
@@ -233,12 +233,35 @@ metadata SHA-256 is
 `8f250681d295fff7fed1fbd545c00f0383abe0f9643aa3ed4a7cea3ff3dfd1c8`.
 No transmitter operation was requested.
 
-The remaining affected-candidate gate is fresh immutable sequence 44 using the
-unspent authorized 45.000001-second 160 m QRSS corrective RF allowance. The
-production entry point is rebound to that exact sequence and repair reason; it
-continues to require one submission and zero automatic retries. It must
-observe a newly accepted,
-lower-uncertainty clock sample while the same job remains Armed, complete
-without `MISSED_START`, retain the Phase 11.5 resource gates and pass independent
-IQ analysis. If that sample is not observed, the campaign stops without an
-automatic retry.
+## Corrective attempt 44 result
+
+Fresh immutable sequence 44 spent the authorized 45.000001-second 160 m QRSS
+allowance once, with no retry. While the job remained Armed, accepted SNTP
+samples advanced from 37 to 38, sync age reset from 63.027940 seconds to
+0.019885 seconds, uncertainty fell from 46.606283 ms to 8.387881 ms and the
+UTC/monotonic mapping moved by -19.497 ms. The repaired firmware issued the
+second local alarm, preserved the requested UTC timestamp and launched once,
+8 microseconds after its final monotonic target. It did not report
+`MISSED_START`.
+
+The production WsprryPi path performed one `CLAIM`, `LOAD`, `ARM`, `RELEASE`
+sequence. The actual runtime job `7d42741bb4b4579e0000000000000001`
+completed, the browser manually observed both Armed and Running, and the final
+terminal record plus fresh A/B inventories proved inactive/unowned output before
+reservation release. The retained 170,000,000-byte RSP1B capture has zero
+overflow and clipping.
+
+Independent analysis passed the `ET E` QRSS envelope: indicated mark
+frequencies were about nominal +3.9 Hz, the three mark intervals matched 3 s,
+9 s and 3 s, contrast exceeded 67 dB and there were no analysis issues. The
+first report incorrectly labeled the plan-template job ID and is retained but
+not credited. Analyzer source `5b6bde5281c420793e8f0e40ec95ab367cab6a4c`
+requires the physical result, capture and metadata hashes and produced the
+credited report bound to the actual runtime ID. The sanitized result is
+[`phase11-6-clock-refinement-attempt44.json`](phase11-6-clock-refinement-attempt44.json).
+
+This passes the affected shared launch/refinement and retained R6 resource
+gate. It also supplies one passing 160 m QRSS production-path job. It does not
+complete that row's browser/controller paths, the ordinary band packet or the
+packet-level restoration audit. Phase 11.6 remains open and matrix execution
+may resume without repeating unaffected Phase 11.5 campaigns.

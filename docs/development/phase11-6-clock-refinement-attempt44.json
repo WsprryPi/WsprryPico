@@ -1,0 +1,132 @@
+{
+  "schema": "phase11.6-clock-refinement-attempt-result-v1",
+  "date": "2026-09-18",
+  "sequence": 44,
+  "result": "PASS_CORRECTIVE_GATE",
+  "job": {
+    "id": "160m:QRSS:0:production:nominal",
+    "wtp_job_id": "7d42741bb4b4579e0000000000000001",
+    "band": "160m",
+    "mode": "QRSS",
+    "submission_path": "production",
+    "planned_rf_seconds": 45.000001,
+    "terminal_state": "complete",
+    "terminal_output_active": false
+  },
+  "clock_refinement": {
+    "state_before": "armed",
+    "state_after": "armed",
+    "accepted_samples_before": 37,
+    "accepted_samples_after": 38,
+    "sync_age_ns_before": 63027940000,
+    "sync_age_ns_after": 19885000,
+    "uncertainty_ns_before": 46606283,
+    "uncertainty_ns_after": 8387881,
+    "uncertainty_reduction_ns": 38218402,
+    "utc_monotonic_mapping_change_ns": -19497000,
+    "alarm_irqs": 2,
+    "launch_target_monotonic_ns": "2385684431000",
+    "launch_observed_monotonic_ns": "2385684439000",
+    "launch_delay_ns": 8000,
+    "missed_start": false
+  },
+  "production_and_browser": {
+    "production_binary_sha256": "c10e9c7439cccad700826e1685af584775717c61a6923717d69b9eed3ff536c1",
+    "mutation_order": [
+      "CLAIM",
+      "LOAD",
+      "ARM",
+      "RELEASE"
+    ],
+    "browser_page_loaded": true,
+    "browser_manual_refreshes": 10,
+    "browser_overlap_states": [
+      "armed",
+      "running"
+    ],
+    "browser_peer_sha256": "06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016"
+  },
+  "capture": {
+    "helper_sha256": "b98de116d696846b88eea1b3ad3f1b2a471052fa2ca440f4234fec7087dc5a03",
+    "driver": "sdrplay",
+    "serial": "2404058C60",
+    "format": "CF32",
+    "sample_rate_hz": 250000,
+    "bandwidth_hz": 200000,
+    "center_frequency_hz": 1813100,
+    "gain_db": 20,
+    "agc": false,
+    "bias_tee": false,
+    "sample_count": 21250000,
+    "bytes": 170000000,
+    "overflow_count": 0,
+    "clipping_sample_count": 0,
+    "capture_sha256": "310de38f136c521be229cd3074b7b120aade409932636cd5053b74cb67a29dcb",
+    "metadata_sha256": "54f9e6fa8a23e689df7137e3bad3d9b98f15b7344a2c07d840640bce7716bd1a"
+  },
+  "independent_analysis": {
+    "result": "PASS",
+    "actual_wtp_job_id_bound": true,
+    "physical_result_sha256": "3dcaeae752987790f0cafbe0963238f2e8b3f38eb8a8e7221e14f0f82df95ebe",
+    "analysis_sha256": "9510b2424ba4e1d8a08ecd10e9667bb77cbdca624f3d8f5f340030523156da28",
+    "alignment_s": 17.48,
+    "observed_intervals_s": [
+      [17.48, 20.48],
+      [29.479, 38.48],
+      [59.479, 62.48]
+    ],
+    "indicated_frequency_hz": [
+      1838103.956274496,
+      1838103.9211379774,
+      1838103.8901514409
+    ],
+    "contrast_db": [
+      67.44495851106973,
+      67.42877787237356,
+      67.40979369542755
+    ],
+    "issues": [],
+    "strongest_other_in_band_bin_dbc": -41.35229322418092,
+    "diagnostic_spectrum_only": true,
+    "superseded_unbound_analysis_sha256": "51ca5fed4c38d3d3e0e2cea64c99199f289c9614a7329e67e3946a88d7da02aa"
+  },
+  "resources": {
+    "heap_available_bytes": 153296,
+    "heap_minimum_required_bytes": 32768,
+    "core0_stack_guard_valid": true,
+    "core1_stack_guard_valid": true,
+    "allocator_failures": 0,
+    "tls_allocation_failures": 0,
+    "faults": 0,
+    "dma_errors": 0,
+    "refill_irq_unpaired": 0,
+    "refill_invalid_reserves": 0,
+    "minimum_successor_ready_words": 7881
+  },
+  "postflight": {
+    "pico_a_empty_inactive_unowned": true,
+    "pico_b_empty_inactive_unowned": true,
+    "schedules_disabled": true,
+    "reservation_released": true,
+    "packet_level_audit": "Deferred until the ordinary band packet is complete and fixture restoration assertions are applicable"
+  },
+  "private_evidence": {
+    "attempt_packet_canonical_sha256": "4674c3477de83c4f823b05e12bb77c5e7a4db472b7298645069ef373351d1549",
+    "attempt_packet_file_sha256": "b34ffe3bb9f42cc6dd5025bfda9c90743accd07fe46042a2437dc3bba21a4c05",
+    "execution_journal_sha256": "0bf6379f1a64d6898f0d55f0305a1cf6c0dd060b8c100ada1ab2819245859396",
+    "run_result_sha256": "3dcaeae752987790f0cafbe0963238f2e8b3f38eb8a8e7221e14f0f82df95ebe",
+    "browser_result_sha256": "de5860bae7f5258c1de05c9dc638e4813ce42a82efccb6ecb4d51bf56d20b766",
+    "production_tls_sha256": "0771698fe0ae2a84a2b16f3fb74b6bd926c226bdd1a9127e218dacc685b045c7",
+    "production_log_sha256": "cec0be1951a8ca6a8abf67caf74a679fb0ca970e541f8ad6cfc3e3b03752ddee"
+  },
+  "accounting_after_attempt": {
+    "rf_attempts": 42,
+    "charged_planned_rf_seconds": 1245.000029
+  },
+  "limitations": [
+    "Absolute frequency is receiver-indicated and uncalibrated",
+    "Spectrum is relative and in-band only; no harmonic, calibrated-power or regulatory claim",
+    "Capture-relative timing does not independently calibrate UTC",
+    "This passes the corrective shared launch/resource gate and one production-path job; it does not close the 160 m QRSS row or Phase 11.6"
+  ]
+}
