@@ -204,8 +204,10 @@ reservation. The sanitized record is
 [`phase11-6-clock-refinement-attempt42.json`](phase11-6-clock-refinement-attempt42.json).
 Attempt 42 is not reused.
 
-The remaining affected-candidate gate is one fresh immutable packet using the
-unspent authorized 45.000001-second 160 m QRSS corrective RF allowance. It must
+The remaining affected-candidate gate is fresh immutable sequence 43 using the
+unspent authorized 45.000001-second 160 m QRSS corrective RF allowance. The
+production entry point is rebound to that exact sequence and repair reason; it
+continues to require one submission and zero automatic retries. It must
 observe a newly accepted,
 lower-uncertainty clock sample while the same job remains Armed, complete
 without `MISSED_START`, retain the Phase 11.5 resource gates and pass independent

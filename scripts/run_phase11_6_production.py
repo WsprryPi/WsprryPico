@@ -23,8 +23,10 @@ from phase11_6_attempt import check as validate_attempt, packet_digest
 
 
 CORRECTIVE_JOB = "160m:QRSS:0:production:nominal"
+CORRECTIVE_SEQUENCE = 43
 CORRECTIVE_REASON = (
-    "Corrective repaired-candidate armed-interval clock-refinement requalification"
+    "Corrective repaired-candidate armed-interval clock-refinement "
+    "requalification after verified browser resolution repair"
 )
 
 
@@ -62,7 +64,7 @@ def main() -> int:
         raise ValueError("Immutable production attempt packet mismatch")
     if args.require_armed_clock_refinement and not (
             args.job_id == CORRECTIVE_JOB
-            and attempt["sequence"] == 42
+            and attempt["sequence"] == CORRECTIVE_SEQUENCE
             and attempt["reason"] == CORRECTIVE_REASON
             and attempt["planned_jobs"] == 1
             and attempt["planned_rf_seconds"] == 45.000001

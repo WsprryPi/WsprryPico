@@ -88,8 +88,9 @@ the already-pinned fixture address while retaining hostname-based HTTPS and
 the pinned peer certificate. A browser-only validation passed page load,
 authentication and manual refresh against the corrected boot. The
 [sanitized attempt record](phase11-6-clock-refinement-attempt42.json) preserves
-the failure, zero-RF accounting and tool hashes. A future corrective execution
-must use a fresh immutable packet; attempt 42 may not be reused.
+the failure, zero-RF accounting and tool hashes. The corrective entry point is
+rebound to fresh sequence 43 with the same one-submission, zero-retry and
+45.000001-second RF limits; attempt 42 may not be reused.
 
 ## Frozen content and frequency convention
 

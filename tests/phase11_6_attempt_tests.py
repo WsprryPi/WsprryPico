@@ -192,6 +192,14 @@ class Phase116AttemptTests(unittest.TestCase):
             self.assertIn("const ORIGIN='https://'+HOST+':18443'", source)
             self.assertIn("assert(!navigation.errorText", source)
 
+    def test_corrective_runner_is_rebound_only_to_fresh_attempt_43(self):
+        source = (ROOT / "scripts/run_phase11_6_production.py").read_text()
+        self.assertIn("CORRECTIVE_SEQUENCE = 43", source)
+        self.assertIn("after verified browser resolution repair", source)
+        self.assertIn('attempt["sequence"] == CORRECTIVE_SEQUENCE', source)
+        self.assertIn('attempt["maximum_submissions"] == 1', source)
+        self.assertIn('attempt["automatic_retries"] == 0', source)
+
     def test_production_browser_is_quiesced_during_wtp_admission(self):
         live = (ROOT / "src/phase11_6/live.py").read_text()
         production = live[live.index("def execute_production_job"):]
