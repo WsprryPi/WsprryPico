@@ -12,17 +12,17 @@ SCHEMA = "phase11.6-plan-v3"
 MATRIX_SCHEMA = "phase11.6-matrix-v3"
 SAMPLE_RATE_HZ = 138_000_000
 DIRECT_MAXIMUM_HZ = 68_999_999
-FIRMWARE_SOURCE = "2eaa99945d21501cd4dbdac98c25be5fa146e479"
+FIRMWARE_SOURCE = "210599d907acdb23278fc24244b674d62c820d7c"
 FIRMWARE_UF2_SHA256 = (
-    "af3f6917ba807a1526dca6e15f19fff1974410fc87ecc32fd6e9c4f07059525f"
+    "b01fecbe3d516dbe5a5e261955e376f062f92a9fe9f7c9b86135bb5f7e8b9811"
 )
 PICO_SERIAL = "0BF4B4AEC9FFB344"
 PICO_DEVICE_ID = "fd6127d11d6aca42a9905fa3fb1bf1d5"
 PICO_PHASE115_BOOT = "ff719d304f1ba4ac23fddd93561b26f0"
-PICO_PREDECESSOR_BOOT = "d2f657c2099c67a7af2ef390426bda10"
-PICO_ACCEPTED_BOOT = "b72fed2c17583cc7aba0f1345f76a3b2"
+PICO_PREDECESSOR_BOOT = "b72fed2c17583cc7aba0f1345f76a3b2"
+PICO_ACCEPTED_BOOT = "be52153ea21a03f75067129f2bc2245f"
 PREDECESSOR_PLAN_SHA256 = (
-    "9324f6057ae8f4e552375919836bbe4e0c30176405eedaf3915f0ab67d929556"
+    "8a52e4d9b3f252097bca0112c08b3b1e41792905775624940bcbf313b5cb072b"
 )
 PEER_SERIAL = "CDDBF8767C506C07"
 PEER_DEVICE_ID = "29f20b7342051ef947aa56cb9d4fab42"
@@ -312,19 +312,19 @@ def compose() -> dict:
         "schema": SCHEMA,
         "phase": "11.6",
         "repositories": {
-            "WsprryPico": "8d84dbe567cdb4e3814281c4792c6d544ee2b711",
+            "WsprryPico": "210599d907acdb23278fc24244b674d62c820d7c",
             "WsprryPi": "3b046ebe3eaa19ae764706d844fa7354033c32df",
         },
         "amendment": {
             "predecessor_plan_sha256": PREDECESSOR_PLAN_SHA256,
-            "scope": "clock-refinement repair candidate identity and applicability gate",
+            "scope": "zero-tail completion repair identity and source-impact gate",
             "rf_job_payloads_changed": False,
             "reason": (
-                "operator-authorized repair of the armed UTC-to-monotonic projection "
-                "defect preserved by Phase 11.6 attempt 41"
+                "operator-authorized repair of the delayed tail-IRQ completion "
+                "defect preserved by Phase 11.6 attempt 52"
             ),
             "authorization_date": "2026-09-18",
-            "deployment": "serial-bound corrected 135500 Hz UF2 flash",
+            "deployment": "serial-bound 210599d zero-tail repair UF2 flash",
             "configuration_writes": 0,
             "firmware_flashes": 1,
         },
@@ -351,7 +351,7 @@ def compose() -> dict:
                 "postrestart_allocator_failures": 0,
                 "postrestart_tls_allocation_failures": 0,
                 "private_evidence_directory":
-                    "repair-2eaa999-deployment/corrected-deployment",
+                    "repair-210599d-deployment",
             },
         },
         "peer": {"pico_serial": PEER_SERIAL, "device_id": PEER_DEVICE_ID},
