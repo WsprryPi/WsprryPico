@@ -15,6 +15,9 @@ import phase11_5_package10 as package10
 import phase11_5_package11 as package11
 from audit_phase11_5_package11_retry1_failure import validate_result as validate_retry1
 from audit_phase11_5_package11_retry2_failure import validate_result as validate_retry2
+from audit_phase11_5_package11_retry3_failure import validate_result as validate_retry3
+from audit_phase11_5_package11_usb_reducer_retest import (
+    validate_result as validate_usb_reducer_retest)
 from phase11_5_package10_stage import production_openssl_config
 from phase11_5_package11_admission import (INTERVAL_SECONDS, OBSERVATION_SECONDS, SAMPLES,
     PICO_TIME_READINESS_SECONDS, STATUS_READINESS_SECONDS)
@@ -35,6 +38,11 @@ COMMON_INPUTS = (
     "scripts/adversarial_phase11_5_package11_retry1_failure.py",
     "scripts/audit_phase11_5_package11_retry2_failure.py",
     "scripts/adversarial_phase11_5_package11_retry2_failure.py",
+    "scripts/audit_phase11_5_package11_retry3_failure.py",
+    "scripts/adversarial_phase11_5_package11_retry3_failure.py",
+    "scripts/phase11_5_package11_usb_reducer_retest.py",
+    "scripts/audit_phase11_5_package11_usb_reducer_retest.py",
+    "scripts/adversarial_phase11_5_package11_usb_reducer_retest.py",
     "scripts/phase11_5_package10.py", "scripts/phase11_5_package9.py",
     "scripts/phase11_5_inventory.py", "scripts/phase11_5_rf_reservation.py",
     "scripts/phase11_5_tls_observer_decoder.py", "scripts/validate_wtp_contract.py",
@@ -109,6 +117,11 @@ def main():
     parser.add_argument("--credential-retest-result", type=Path)
     parser.add_argument("--retry2-result", type=Path)
     parser.add_argument("--retry2-adversarial", type=Path)
+    parser.add_argument("--retry3-result", type=Path)
+    parser.add_argument("--retry3-adversarial", type=Path)
+    parser.add_argument("--usb-reducer-retest-result", type=Path)
+    parser.add_argument("--usb-reducer-retest-adversarial", type=Path)
+    parser.add_argument("--retry4-credential-retest-result", type=Path)
     args = parser.parse_args()
     root = args.root.resolve(strict=True)
     if (root / "packet.json").exists():
@@ -131,7 +144,7 @@ def main():
               "phase11.5-package11-fixture-v1")
     packet = {"schema": schema, "family": "R6",
         "authorization": (package11.AUTHORIZATION if args.kind == "admission" else
-                          package11.RETRY3_AUTHORIZATION), "root": str(root),
+                          package11.RETRY4_AUTHORIZATION), "root": str(root),
         "wifi": wifi, "retained_wifi_sha256": digest(retained),
         "retained_wifi_canonical_sha256": wifi_hash,
         "remote_ready": remote_ready, "client_if": package11.CLIENT_IF,
@@ -180,7 +193,10 @@ def main():
                 args.admission_adversarial, args.prior_attempt_result,
                 args.clock_poll_retest_result, args.retry1_result,
                 args.retry1_adversarial, args.credential_retest_result,
-                args.retry2_result, args.retry2_adversarial)):
+                args.retry2_result, args.retry2_adversarial, args.retry3_result,
+                args.retry3_adversarial, args.usb_reducer_retest_result,
+                args.usb_reducer_retest_adversarial,
+                args.retry4_credential_retest_result)):
             raise ValueError("Admission, stopped-attempt and clock-retest results are required")
         admission_result = args.admission_result.resolve(strict=True)
         admission_adversarial = args.admission_adversarial.resolve(strict=True)
@@ -191,6 +207,13 @@ def main():
         credential_retest_result = args.credential_retest_result.resolve(strict=True)
         retry2_result = args.retry2_result.resolve(strict=True)
         retry2_adversarial = args.retry2_adversarial.resolve(strict=True)
+        retry3_result = args.retry3_result.resolve(strict=True)
+        retry3_adversarial = args.retry3_adversarial.resolve(strict=True)
+        usb_reducer_retest_result = args.usb_reducer_retest_result.resolve(strict=True)
+        usb_reducer_retest_adversarial = args.usb_reducer_retest_adversarial.resolve(
+            strict=True)
+        retry4_credential_retest_result = args.retry4_credential_retest_result.resolve(
+            strict=True)
         admission_value = json.loads(admission_result.read_text())
         adversarial_value = json.loads(admission_adversarial.read_text())
         prior_value = json.loads(prior_attempt_result.read_text())
@@ -200,6 +223,13 @@ def main():
         credential_retest_value = json.loads(credential_retest_result.read_text())
         retry2_value = json.loads(retry2_result.read_text())
         retry2_adversarial_value = json.loads(retry2_adversarial.read_text())
+        retry3_value = json.loads(retry3_result.read_text())
+        retry3_adversarial_value = json.loads(retry3_adversarial.read_text())
+        usb_reducer_retest_value = json.loads(usb_reducer_retest_result.read_text())
+        usb_reducer_retest_adversarial_value = json.loads(
+            usb_reducer_retest_adversarial.read_text())
+        retry4_credential_retest_value = json.loads(
+            retry4_credential_retest_result.read_text())
         if (digest(admission_result) != package11.ADMISSION_RESULT_SHA256 or
                 digest(admission_adversarial) !=
                     package11.ADMISSION_ADVERSARIAL_SHA256 or
@@ -211,7 +241,15 @@ def main():
                 digest(credential_retest_result) !=
                     package11.CREDENTIAL_RETEST_RESULT_SHA256 or
                 digest(retry2_result) != package11.RETRY2_RESULT_SHA256 or
-                digest(retry2_adversarial) != package11.RETRY2_ADVERSARIAL_SHA256):
+                digest(retry2_adversarial) != package11.RETRY2_ADVERSARIAL_SHA256 or
+                digest(retry3_result) != package11.RETRY3_RESULT_SHA256 or
+                digest(retry3_adversarial) != package11.RETRY3_ADVERSARIAL_SHA256 or
+                digest(usb_reducer_retest_result) !=
+                    package11.USB_REDUCER_RETEST_RESULT_SHA256 or
+                digest(usb_reducer_retest_adversarial) !=
+                    package11.USB_REDUCER_RETEST_ADVERSARIAL_SHA256 or
+                digest(retry4_credential_retest_result) !=
+                    package11.RETRY4_CREDENTIAL_RETEST_RESULT_SHA256):
             raise ValueError("Package 11 retry dependency hash changed")
         if (admission_value.get("status") != "PASS_ZERO_RF" or
                 admission_value.get("schema") !=
@@ -272,8 +310,8 @@ def main():
                 credential_retest_value.get("after_owner_uid") != 0 or
                 credential_retest_value.get("mode") != "0600" or
                 credential_retest_value.get("content_hashes_unchanged") is not True or
-                credential_retest_value.get("fixture_source_sha256") != digest(
-                    Path(__file__).with_name("phase11_5_package11_fixture.py")) or
+                credential_retest_value.get("fixture_source_sha256") !=
+                    "fc3ea5e7ff8f4e8c3baa2573218ded881357198159f08482a42a1b2343581fdc" or
                 any(credential_retest_value.get(name) not in (0, False) for name in
                     ("rf_jobs", "rf_duration_ns", "pico_access", "usb_access",
                      "network_mutations", "service_mutations", "reservation_access"))):
@@ -286,6 +324,47 @@ def main():
                 retry2_adversarial_value.get("mutation_count", 0) < 1 or
                 retry2_adversarial_value.get("result_sha256") != digest(retry2_result)):
             raise ValueError("Package 11 Retry 2 failure review did not pass")
+        validate_retry3(retry3_value)
+        if (retry3_adversarial_value.get("schema") !=
+                "phase11.5-package11-retry3-adversarial-v1" or
+                retry3_adversarial_value.get("status") != "PASS" or
+                retry3_adversarial_value.get("all_mutations_rejected") is not True or
+                retry3_adversarial_value.get("mutation_count") != 35 or
+                retry3_adversarial_value.get("result_sha256") != digest(retry3_result)):
+            raise ValueError("Package 11 Retry 3 failure review did not pass")
+        validate_usb_reducer_retest(usb_reducer_retest_value)
+        if (usb_reducer_retest_adversarial_value.get("schema") !=
+                "phase11.5-package11-retry3-usb-reducer-adversarial-v1" or
+                usb_reducer_retest_adversarial_value.get("status") != "PASS" or
+                usb_reducer_retest_adversarial_value.get(
+                    "all_mutations_rejected") is not True or
+                usb_reducer_retest_adversarial_value.get("mutation_count") != 22 or
+                usb_reducer_retest_adversarial_value.get("result_sha256") !=
+                    digest(usb_reducer_retest_result) or
+                usb_reducer_retest_value.get("source_sha256", {}).get(
+                    "phase11_5_package9.py") != digest(
+                        Path(__file__).with_name("phase11_5_package9.py"))):
+            raise ValueError("Package 11 USB reducer repair did not pass")
+        if (retry4_credential_retest_value.get("schema") !=
+                "phase11.5-package11-retry4-credential-retest-v1" or
+                retry4_credential_retest_value.get("status") !=
+                    "PASS_ZERO_RF_HOST_ONLY" or
+                retry4_credential_retest_value.get("host") != "wspr5" or
+                retry4_credential_retest_value.get("host_boot_id") !=
+                    package10.HOST_BOOT or
+                retry4_credential_retest_value.get("files") != 6 or
+                retry4_credential_retest_value.get("before_owner_uid") != 1000 or
+                retry4_credential_retest_value.get("after_owner_uid") != 0 or
+                retry4_credential_retest_value.get("mode") != "0600" or
+                retry4_credential_retest_value.get(
+                    "content_hashes_unchanged") is not True or
+                retry4_credential_retest_value.get("fixture_source_sha256") != digest(
+                    Path(__file__).with_name("phase11_5_package11_fixture.py")) or
+                any(retry4_credential_retest_value.get(name) not in (0, False)
+                    for name in ("rf_jobs", "rf_duration_ns", "pico_access",
+                                 "usb_access", "network_mutations", "service_mutations",
+                                 "reservation_access"))):
+            raise ValueError("Package 11 Retry 4 credential retest did not pass")
         seed = uuid.uuid4().hex
         packet.update({"authorized_rf_duration_ns": package11.AUTHORIZED_RF_DURATION_NS,
             "authorized_max_flashes": 0, "authorized_max_bootsel": 0,
@@ -344,6 +423,41 @@ def main():
                 "charged_rf_duration_ns": package11.RETRY2_RF_DURATION_NS,
                 "reservation_acquired": False, "resource_result_accepted": False,
                 "reservation_released": True, "fixture_restored": True},
+            "retry3_attempt_result_sha256": digest(retry3_result),
+            "retry3_adversarial_sha256": digest(retry3_adversarial),
+            "retry3_package11_attempt": {
+                "packet_sha256": package11.RETRY3_PACKET_SHA256,
+                "result_sha256": digest(retry3_result),
+                "adversarial_sha256": digest(retry3_adversarial),
+                "status": "STOPPED_AFTER_CYCLE1_USB_EVENT_REDUCTION",
+                "charged_rf_jobs": package11.RETRY3_RF_JOBS,
+                "charged_rf_duration_ns": package11.RETRY3_RF_DURATION_NS,
+                "production_jobs": 1, "normal_cycles": 1, "post_n_windows": 0,
+                "resource_result_accepted": False,
+                "reservation_released": True, "fixture_restored": True},
+            "usb_reducer_retest_result_sha256": digest(usb_reducer_retest_result),
+            "usb_reducer_retest_adversarial_sha256": digest(
+                usb_reducer_retest_adversarial),
+            "usb_reducer_retest": {"status": "PASS_ZERO_RF_HOST_ONLY",
+                "result_sha256": digest(usb_reducer_retest_result),
+                "adversarial_sha256": digest(usb_reducer_retest_adversarial),
+                "phase11_5_package9_source_sha256":
+                    usb_reducer_retest_value["source_sha256"]["phase11_5_package9.py"],
+                "repaired_event_and_status_reducer_accepts": True,
+                "mutations_rejected": 22, "rf_jobs": 0, "rf_duration_ns": 0,
+                "pico_access": False, "usb_access": False, "network_access": False,
+                "service_mutations": 0, "reservation_access": False},
+            "retry4_credential_retest_result_sha256": digest(
+                retry4_credential_retest_result),
+            "retry4_credential_retest": {"status": "PASS_ZERO_RF_HOST_ONLY",
+                "result_sha256": digest(retry4_credential_retest_result), "files": 6,
+                "fixture_source_sha256": retry4_credential_retest_value[
+                    "fixture_source_sha256"],
+                "before_owner_uid": 1000, "after_owner_uid": 0, "mode": "0600",
+                "content_hashes_unchanged": True, "rf_jobs": 0,
+                "rf_duration_ns": 0, "pico_access": False, "usb_access": False,
+                "network_mutations": 0, "service_mutations": 0,
+                "reservation_access": False},
             "cumulative_package11_rf_jobs": package11.CUMULATIVE_RF_JOBS,
             "cumulative_package11_rf_duration_ns":
                 package11.CUMULATIVE_RF_DURATION_NS,
@@ -388,7 +502,7 @@ def main():
                 "refresh_maximum_class": 5, "final_production_class": 3,
                 "final_maximum_class": 5, "resource_return_limit_bytes": 1024},
             "source_impact": {"deployed_source_revision": package10.SOURCE,
-                "repository_baseline_revision": "e22c86c83ceb161080c218748baf5d3eaa892652",
+                "repository_baseline_revision": "a19db5319520a7c609cd9947cb44942bace5a0f3",
                 "runtime_source_changes": 0,
                 "decision": "measurement-only replay-history normalization"}})
         for name in ("before_a_session", "before_b_session", "final_a_session",

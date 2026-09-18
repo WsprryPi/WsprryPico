@@ -12,6 +12,9 @@ import phase11_5_package10 as package10
 import phase11_5_package11 as package11
 from audit_phase11_5_package11_retry1_failure import validate_result as validate_retry1
 from audit_phase11_5_package11_retry2_failure import validate_result as validate_retry2
+from audit_phase11_5_package11_retry3_failure import validate_result as validate_retry3
+from audit_phase11_5_package11_usb_reducer_retest import (
+    validate_result as validate_usb_reducer_retest)
 
 
 FAMILY_STATUS = dict(package10_audit.FAMILY_STATUS)
@@ -29,12 +32,30 @@ def audit(root, packet_sha256, decoder, local_fixture, remote_fixture, reservati
     # Inject only the Package 11 packet validator, then independently extend the
     # result with the two-host and prior-admission evidence below.
     original = package10_audit.validate
+    original_require = package10_audit.require
+
+    def compatible_require(condition, message):
+        if message == "Package 10 source impact":
+            require(packet["source_impact"] == {
+                "deployed_source_revision": package10.SOURCE,
+                "repository_baseline_revision":
+                    "a19db5319520a7c609cd9947cb44942bace5a0f3",
+                "runtime_source_changes": 0,
+                "decision": "measurement-only replay-history normalization"},
+                "Package 11 Retry 4 source impact")
+            return
+        original_require(condition, message)
     try:
         package10_audit.validate = package11.validate
+        package10_audit.require = compatible_require
         result = package10_audit.audit(root, packet_sha256, decoder, local_fixture,
-                                       reservation)
+                                       reservation, ap_fixture_root=remote_fixture,
+                                       ap_capture_log_name="capture.log",
+                                       ap_capture_pcap_name="capture.pcap",
+                                       ap_capture_json=True)
     finally:
         package10_audit.validate = original
+        package10_audit.require = original_require
     local_state = json.loads((local_fixture / "fixture-state.json").read_text())
     local_rows = [json.loads(line) for line in
                   (local_fixture / "fixture.jsonl").read_text().splitlines()]
@@ -67,6 +88,11 @@ def audit(root, packet_sha256, decoder, local_fixture, remote_fixture, reservati
     credential_retest = root / "credential-retest-result.json"
     retry2_result = root / "retry2-result.json"
     retry2_adversarial = root / "retry2-adversarial.json"
+    retry3_result = root / "retry3-result.json"
+    retry3_adversarial = root / "retry3-adversarial.json"
+    usb_reducer_retest = root / "usb-reducer-retest-result.json"
+    usb_reducer_adversarial = root / "usb-reducer-retest-adversarial.json"
+    retry4_credential_retest = root / "retry4-credential-retest-result.json"
     require(digest(admission_result) == packet["admission_result_sha256"] and
             digest(admission_adversarial) == packet["admission_adversarial_sha256"] and
             json.loads(admission_result.read_text())["status"] == "PASS_ZERO_RF" and
@@ -79,6 +105,11 @@ def audit(root, packet_sha256, decoder, local_fixture, remote_fixture, reservati
     credential_retest_value = json.loads(credential_retest.read_text())
     retry2_value = json.loads(retry2_result.read_text())
     retry2_adversarial_value = json.loads(retry2_adversarial.read_text())
+    retry3_value = json.loads(retry3_result.read_text())
+    retry3_adversarial_value = json.loads(retry3_adversarial.read_text())
+    usb_reducer_value = json.loads(usb_reducer_retest.read_text())
+    usb_reducer_adversarial_value = json.loads(usb_reducer_adversarial.read_text())
+    retry4_credential_value = json.loads(retry4_credential_retest.read_text())
     require(digest(prior_attempt) == packet["prior_attempt_result_sha256"] and
             prior_value["status"] == "STOPPED_PRE_CYCLE_CLOCK_POLL_ALIAS" and
             prior_value["actual_budget"]["charged_rf_jobs"] ==
@@ -116,6 +147,33 @@ def audit(root, packet_sha256, decoder, local_fixture, remote_fixture, reservati
             retry2_adversarial_value["all_mutations_rejected"] is True and
             retry2_adversarial_value["result_sha256"] == digest(retry2_result),
             "Package 11 Retry 2 stopped-attempt binding")
+    validate_retry3(retry3_value)
+    require(digest(retry3_result) == packet["retry3_attempt_result_sha256"] and
+            digest(retry3_adversarial) == packet["retry3_adversarial_sha256"] and
+            retry3_adversarial_value["status"] == "PASS" and
+            retry3_adversarial_value["all_mutations_rejected"] is True and
+            retry3_adversarial_value["result_sha256"] == digest(retry3_result),
+            "Package 11 Retry 3 stopped-attempt binding")
+    validate_usb_reducer_retest(usb_reducer_value)
+    require(digest(usb_reducer_retest) == packet[
+                "usb_reducer_retest_result_sha256"] and
+            digest(usb_reducer_adversarial) == packet[
+                "usb_reducer_retest_adversarial_sha256"] and
+            usb_reducer_adversarial_value["status"] == "PASS" and
+            usb_reducer_adversarial_value["all_mutations_rejected"] is True and
+            usb_reducer_adversarial_value["result_sha256"] ==
+                digest(usb_reducer_retest),
+            "Package 11 Retry 3 USB reducer repair binding")
+    require(digest(retry4_credential_retest) == packet[
+                "retry4_credential_retest_result_sha256"] and
+            retry4_credential_value["status"] == "PASS_ZERO_RF_HOST_ONLY" and
+            retry4_credential_value["fixture_source_sha256"] == packet[
+                "stage_sha256"]["scripts/phase11_5_package11_fixture.py"] and
+            retry4_credential_value["files"] == 6 and
+            retry4_credential_value["content_hashes_unchanged"] is True and
+            retry4_credential_value["rf_jobs"] == 0 and
+            retry4_credential_value["pico_access"] is False,
+            "Package 11 Retry 4 credential-repair retest binding")
     campaign_rows = [json.loads(line) for line in
                      (root / "campaign.jsonl").read_text().splitlines()]
     retention_rows = [row["value"] for row in campaign_rows
@@ -154,6 +212,21 @@ def audit(root, packet_sha256, decoder, local_fixture, remote_fixture, reservati
         "charged_rf_jobs": package11.RETRY2_RF_JOBS,
         "charged_rf_duration_ns": package11.RETRY2_RF_DURATION_NS,
         "reservation_acquired": False, "resource_result_accepted": False}
+    result["retry3_attempt"] = {"result_sha256": digest(retry3_result),
+        "adversarial_sha256": digest(retry3_adversarial),
+        "status": retry3_value["status"],
+        "charged_rf_jobs": package11.RETRY3_RF_JOBS,
+        "charged_rf_duration_ns": package11.RETRY3_RF_DURATION_NS,
+        "production_jobs": 1, "normal_cycles": 1, "post_n_windows": 0,
+        "resource_result_accepted": False}
+    result["usb_reducer_retest"] = {"result_sha256": digest(usb_reducer_retest),
+        "adversarial_sha256": digest(usb_reducer_adversarial),
+        "status": "PASS_ZERO_RF_HOST_ONLY", "mutations_rejected": 22,
+        "rf_jobs": 0, "rf_duration_ns": 0}
+    result["retry4_credential_retest"] = {
+        "result_sha256": digest(retry4_credential_retest),
+        "status": "PASS_ZERO_RF_HOST_ONLY", "files": 6, "rf_jobs": 0,
+        "rf_duration_ns": 0}
     result["terminal_retention_preflight"] = {"attempts": len(retention_rows),
         "initial_terminal_records": retention_rows[0]["terminal_records"],
         "final_terminal_records": retention_rows[-1]["terminal_records"],
@@ -169,6 +242,8 @@ def audit(root, packet_sha256, decoder, local_fixture, remote_fixture, reservati
         "retry1_charged_rf_duration_ns": package11.RETRY1_RF_DURATION_NS,
         "retry2_charged_rf_jobs": package11.RETRY2_RF_JOBS,
         "retry2_charged_rf_duration_ns": package11.RETRY2_RF_DURATION_NS,
+        "retry3_charged_rf_jobs": package11.RETRY3_RF_JOBS,
+        "retry3_charged_rf_duration_ns": package11.RETRY3_RF_DURATION_NS,
         "cumulative_package11_rf_jobs": package11.CUMULATIVE_RF_JOBS,
         "cumulative_package11_rf_duration_ns": package11.CUMULATIVE_RF_DURATION_NS,
         "flashes": 0, "bootsel": 0, "configuration_writes": 0,
@@ -191,6 +266,14 @@ def audit(root, packet_sha256, decoder, local_fixture, remote_fixture, reservati
     result["evidence_sha256"]["retry2-result.json"] = digest(retry2_result)
     result["evidence_sha256"]["retry2-adversarial.json"] = digest(
         retry2_adversarial)
+    result["evidence_sha256"]["retry3-result.json"] = digest(retry3_result)
+    result["evidence_sha256"]["retry3-adversarial.json"] = digest(retry3_adversarial)
+    result["evidence_sha256"]["usb-reducer-retest-result.json"] = digest(
+        usb_reducer_retest)
+    result["evidence_sha256"]["usb-reducer-retest-adversarial.json"] = digest(
+        usb_reducer_adversarial)
+    result["evidence_sha256"]["retry4-credential-retest-result.json"] = digest(
+        retry4_credential_retest)
     result["auditor_sha256"] = digest(Path(__file__))
     return result
 
@@ -227,6 +310,9 @@ def publication(raw, packet):
             "package11_attempt1_failure_preserved": True,
             "package11_retry1_failure_preserved": True,
             "package11_retry2_failure_preserved": True,
+            "package11_retry3_failure_preserved": True,
+            "usb_event_reducer_repair_zero_rf_verified": True,
+            "retry4_credential_repair_zero_rf_verified": True,
             "credential_owner_repair_zero_rf_verified": True,
             "clock_poll_repair_zero_rf_verified": True,
             "terminal_retention_preflight_verified": True,
@@ -238,7 +324,7 @@ def publication(raw, packet):
             "client_mac": package11.CLIENT_MAC, "channel": 11,
             "wspr4_restored": True, "wspr5_restored": True},
         "source_impact": {"deployed_candidate": package10.SOURCE,
-            "repository_baseline_revision": "e22c86c83ceb161080c218748baf5d3eaa892652",
+            "repository_baseline_revision": "a19db5319520a7c609cd9947cb44942bace5a0f3",
             "runtime_source_changes": 0,
             "decision": "measurement-only replay-history normalization",
             "wsprrypi_source_revision": package10.WSPRRYPI_SOURCE},
@@ -256,6 +342,14 @@ def publication(raw, packet):
         "credential_retest_result_sha256": packet["credential_retest_result_sha256"],
         "retry2_attempt_result_sha256": packet["retry2_attempt_result_sha256"],
         "retry2_adversarial_sha256": packet["retry2_adversarial_sha256"],
+        "retry3_attempt_result_sha256": packet["retry3_attempt_result_sha256"],
+        "retry3_adversarial_sha256": packet["retry3_adversarial_sha256"],
+        "usb_reducer_retest_result_sha256": packet[
+            "usb_reducer_retest_result_sha256"],
+        "usb_reducer_retest_adversarial_sha256": packet[
+            "usb_reducer_retest_adversarial_sha256"],
+        "retry4_credential_retest_result_sha256": packet[
+            "retry4_credential_retest_result_sha256"],
         "raw_audit_sha256": hashlib.sha256(
             (json.dumps(raw, indent=2) + "\n").encode()).hexdigest(),
         "evidence_sha256": raw["evidence_sha256"]}
@@ -306,6 +400,9 @@ def validate_result(value):
             "package11_attempt1_failure_preserved": True,
             "package11_retry1_failure_preserved": True,
             "package11_retry2_failure_preserved": True,
+            "package11_retry3_failure_preserved": True,
+            "usb_event_reducer_repair_zero_rf_verified": True,
+            "retry4_credential_repair_zero_rf_verified": True,
             "credential_owner_repair_zero_rf_verified": True,
             "clock_poll_repair_zero_rf_verified": True,
             "terminal_retention_preflight_verified": True,
@@ -318,7 +415,7 @@ def validate_result(value):
             "wspr4_restored": True, "wspr5_restored": True},
             "Package 11 fixture")
     require(value.get("source_impact") == {"deployed_candidate": package10.SOURCE,
-            "repository_baseline_revision": "e22c86c83ceb161080c218748baf5d3eaa892652",
+            "repository_baseline_revision": "a19db5319520a7c609cd9947cb44942bace5a0f3",
             "runtime_source_changes": 0,
             "decision": "measurement-only replay-history normalization",
             "wsprrypi_source_revision": package10.WSPRRYPI_SOURCE},
@@ -335,6 +432,8 @@ def validate_result(value):
             "retry1_charged_rf_duration_ns": package11.RETRY1_RF_DURATION_NS,
             "retry2_charged_rf_jobs": package11.RETRY2_RF_JOBS,
             "retry2_charged_rf_duration_ns": package11.RETRY2_RF_DURATION_NS,
+            "retry3_charged_rf_jobs": package11.RETRY3_RF_JOBS,
+            "retry3_charged_rf_duration_ns": package11.RETRY3_RF_DURATION_NS,
             "cumulative_package11_rf_jobs": package11.CUMULATIVE_RF_JOBS,
             "cumulative_package11_rf_duration_ns": package11.CUMULATIVE_RF_DURATION_NS,
             "flashes": 0, "bootsel": 0, "configuration_writes": 0,
@@ -361,7 +460,17 @@ def validate_result(value):
             value.get("retry2_attempt_result_sha256") ==
                 package11.RETRY2_RESULT_SHA256 and
             value.get("retry2_adversarial_sha256") ==
-                package11.RETRY2_ADVERSARIAL_SHA256,
+                package11.RETRY2_ADVERSARIAL_SHA256 and
+            value.get("retry3_attempt_result_sha256") ==
+                package11.RETRY3_RESULT_SHA256 and
+            value.get("retry3_adversarial_sha256") ==
+                package11.RETRY3_ADVERSARIAL_SHA256 and
+            value.get("usb_reducer_retest_result_sha256") ==
+                package11.USB_REDUCER_RETEST_RESULT_SHA256 and
+            value.get("usb_reducer_retest_adversarial_sha256") ==
+                package11.USB_REDUCER_RETEST_ADVERSARIAL_SHA256 and
+            value.get("retry4_credential_retest_result_sha256") ==
+                package11.RETRY4_CREDENTIAL_RETEST_RESULT_SHA256,
             "Package 11 exact dependency hashes")
     require(isinstance(value.get("raw_audit_sha256"), str) and
             len(value["raw_audit_sha256"]) == 64, "Package 11 raw audit hash")

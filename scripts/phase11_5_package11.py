@@ -18,6 +18,7 @@ AUTHORIZATION = "PACKAGE11-TWO-HOST-R6"
 RETRY1_AUTHORIZATION = "PACKAGE11-TWO-HOST-R6-RETRY1"
 RETRY2_AUTHORIZATION = "PACKAGE11-TWO-HOST-R6-RETRY2"
 RETRY3_AUTHORIZATION = "PACKAGE11-TWO-HOST-R6-RETRY3"
+RETRY4_AUTHORIZATION = "PACKAGE11-TWO-HOST-R6-RETRY4"
 SCHEMA = "phase11.5-package11-fixture-v1"
 ATTEMPT1_PACKET_SHA256 = "ed3255ba7811edef230a6e263e8de94cf13dbb0afbae6c51ee400a70f3622052"
 ADMISSION_RESULT_SHA256 = "fe4d7a9b84ec97f256b09f187005399685d0aefd556b129648608ea2a4cb1214"
@@ -31,15 +32,24 @@ CREDENTIAL_RETEST_RESULT_SHA256 = "b12474628bac9c07e93f86652f92f4c8dae47cb8464f0
 RETRY2_PACKET_SHA256 = "6408d93a0d7b990c0cb40b5bafb8bc6bfd650b187bfb975984783572c898a1fb"
 RETRY2_RESULT_SHA256 = "4f4eaf27cd1ad84a84d72b7669e4f72822c25402768d5acc20eb33cc7412c7e1"
 RETRY2_ADVERSARIAL_SHA256 = "717a3aea894f10ae28881a98bc67b4cb12208a972bb30e1515593fc69a7330c5"
+RETRY3_PACKET_SHA256 = "f2f0e684b658310038dd6b3a36b8b58ef285c1db6bd6fcbf05a9c4111b153dbd"
+RETRY3_RESULT_SHA256 = "9b02a77258a36739a3076f68ddf9b525cb6edf32c54bf5408f02e8340f956598"
+RETRY3_ADVERSARIAL_SHA256 = "5743412d23c14e59c0efa018b4071b94f4760bd7669878a159f7bd4f15cc3e1c"
+USB_REDUCER_RETEST_RESULT_SHA256 = "9016f26d0f6d87c8743202cd2ffd4cba2be9473f6320c0e6f1064afe520f823b"
+USB_REDUCER_RETEST_ADVERSARIAL_SHA256 = "e88f8ab10c8ad16e6fe80ed77990e299be7b7be67cdf56534ace86af2c252868"
+RETRY4_CREDENTIAL_RETEST_RESULT_SHA256 = "0bf89b6046b6fd7f2eed6f410044ae5556b1b1a2997c8493bdc3518151d13f3c"
 ATTEMPT1_RF_JOBS = 8
 ATTEMPT1_RF_DURATION_NS = 8_000_000_000
 RETRY1_RF_JOBS = 8
 RETRY1_RF_DURATION_NS = 8_000_000_000
 RETRY2_RF_JOBS = 0
 RETRY2_RF_DURATION_NS = 0
-PRIOR_RF_JOBS = ATTEMPT1_RF_JOBS + RETRY1_RF_JOBS + RETRY2_RF_JOBS
+RETRY3_RF_JOBS = 9
+RETRY3_RF_DURATION_NS = 122_600_000_000
+PRIOR_RF_JOBS = (ATTEMPT1_RF_JOBS + RETRY1_RF_JOBS + RETRY2_RF_JOBS +
+                 RETRY3_RF_JOBS)
 PRIOR_RF_DURATION_NS = (ATTEMPT1_RF_DURATION_NS + RETRY1_RF_DURATION_NS +
-                        RETRY2_RF_DURATION_NS)
+                        RETRY2_RF_DURATION_NS + RETRY3_RF_DURATION_NS)
 CUMULATIVE_RF_JOBS = PRIOR_RF_JOBS + package10.RF_JOBS
 CUMULATIVE_RF_DURATION_NS = PRIOR_RF_DURATION_NS + package10.RF_DURATION_NS
 TERMINAL_RETENTION_WAIT_SECONDS = 600
@@ -75,7 +85,7 @@ def legacy_packet(packet):
 
 def validate(packet):
     require(packet.get("schema") == SCHEMA and packet.get("family") == "R6" and
-            packet.get("authorization") == RETRY3_AUTHORIZATION and
+            packet.get("authorization") == RETRY4_AUTHORIZATION and
             packet.get("authorized_rf_duration_ns") == AUTHORIZED_RF_DURATION_NS and
             packet.get("rf_jobs") == package10.RF_JOBS and
             packet.get("rf_duration_ns") == package10.RF_DURATION_NS and
@@ -92,6 +102,13 @@ def validate(packet):
         "ap_host": REMOTE_HOST, "ap": "wlan1", "ap_mac": REMOTE_AP_MAC,
         "client_host": "wspr5", "client": CLIENT_IF, "client_mac": CLIENT_MAC},
         "Package 11 two-host roles")
+    require(packet.get("source_impact") == {
+            "deployed_source_revision": package10.SOURCE,
+            "repository_baseline_revision":
+                "a19db5319520a7c609cd9947cb44942bace5a0f3",
+            "runtime_source_changes": 0,
+            "decision": "measurement-only replay-history normalization"},
+            "Package 11 Retry 4 source impact")
     retention = packet.get("terminal_retention_preflight", {})
     sessions = retention.get("sessions", [])
     require(retention.get("timeout_seconds") == TERMINAL_RETENTION_WAIT_SECONDS and
@@ -124,7 +141,15 @@ def validate(packet):
             packet.get("credential_retest_result_sha256") ==
                 CREDENTIAL_RETEST_RESULT_SHA256 and
             packet.get("retry2_attempt_result_sha256") == RETRY2_RESULT_SHA256 and
-            packet.get("retry2_adversarial_sha256") == RETRY2_ADVERSARIAL_SHA256,
+            packet.get("retry2_adversarial_sha256") == RETRY2_ADVERSARIAL_SHA256 and
+            packet.get("retry3_attempt_result_sha256") == RETRY3_RESULT_SHA256 and
+            packet.get("retry3_adversarial_sha256") == RETRY3_ADVERSARIAL_SHA256 and
+            packet.get("usb_reducer_retest_result_sha256") ==
+                USB_REDUCER_RETEST_RESULT_SHA256 and
+            packet.get("usb_reducer_retest_adversarial_sha256") ==
+                USB_REDUCER_RETEST_ADVERSARIAL_SHA256 and
+            packet.get("retry4_credential_retest_result_sha256") ==
+                RETRY4_CREDENTIAL_RETEST_RESULT_SHA256,
             "Package 11 exact retry dependencies")
     prior = packet.get("prior_package11_attempt", {})
     require(prior.get("packet_sha256") == ATTEMPT1_PACKET_SHA256 and
@@ -160,9 +185,35 @@ def validate(packet):
             retry2.get("reservation_released") is True and
             retry2.get("fixture_restored") is True,
             "Package 11 Retry 2 accounting")
-    credential_retest = packet.get("credential_retest", {})
+    retry3 = packet.get("retry3_package11_attempt", {})
+    require(retry3.get("packet_sha256") == RETRY3_PACKET_SHA256 and
+            retry3.get("result_sha256") == packet.get("retry3_attempt_result_sha256") and
+            retry3.get("adversarial_sha256") == packet.get("retry3_adversarial_sha256") and
+            retry3.get("status") == "STOPPED_AFTER_CYCLE1_USB_EVENT_REDUCTION" and
+            retry3.get("charged_rf_jobs") == RETRY3_RF_JOBS and
+            retry3.get("charged_rf_duration_ns") == RETRY3_RF_DURATION_NS and
+            retry3.get("production_jobs") == 1 and
+            retry3.get("normal_cycles") == 1 and
+            retry3.get("post_n_windows") == 0 and
+            retry3.get("resource_result_accepted") is False and
+            retry3.get("reservation_released") is True and
+            retry3.get("fixture_restored") is True,
+            "Package 11 Retry 3 accounting")
+    reducer = packet.get("usb_reducer_retest", {})
+    require(reducer == {"status": "PASS_ZERO_RF_HOST_ONLY",
+            "result_sha256": packet.get("usb_reducer_retest_result_sha256"),
+            "adversarial_sha256": packet.get(
+                "usb_reducer_retest_adversarial_sha256"),
+            "phase11_5_package9_source_sha256": packet.get("stage_sha256", {}).get(
+                "scripts/phase11_5_package9.py"),
+            "repaired_event_and_status_reducer_accepts": True,
+            "mutations_rejected": 22, "rf_jobs": 0, "rf_duration_ns": 0,
+            "pico_access": False, "usb_access": False, "network_access": False,
+            "service_mutations": 0, "reservation_access": False},
+            "Package 11 Retry 3 USB reducer repair evidence")
+    credential_retest = packet.get("retry4_credential_retest", {})
     require(credential_retest == {"status": "PASS_ZERO_RF_HOST_ONLY",
-            "result_sha256": packet.get("credential_retest_result_sha256"),
+            "result_sha256": packet.get("retry4_credential_retest_result_sha256"),
             "files": 6, "fixture_source_sha256": packet.get("stage_sha256", {}).get(
                 "scripts/phase11_5_package11_fixture.py"),
             "before_owner_uid": 1000, "after_owner_uid": 0,

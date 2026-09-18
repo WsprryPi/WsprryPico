@@ -49,20 +49,18 @@ treated as long-term product documentation.
     acceptance at those clocks; 11.7 final joint review and Phase 11 closure.
     The [selected QRSS-group limits](#planned-qrss-group-message-and-duration-limits)
     are implemented; affected 11.5 resource and extended-job physical acceptance
-    are in progress before 11.6 acceptance of those jobs. Phase 11.5 has R1-R5
-    closed; Package 9 completed the R6 workload but failed its 1,024-byte matched
-    resource-return gate. Package 11's separate two-host fixture is qualified,
-    while two stopped eight-warmup attempts preserve clock-poll and TLS
-    credential-owner harness defects, their zero-RF repairs and full restoration.
-    Retry 2 verified the credential repair but stopped before reservation while
-    prior complete terminal records outlived its fixed memory window. Retry 3
-    cleared that preflight, completed the warmups, matched baseline and first
-    600-second cycle, then stopped when the host reducer ignored the complete
-    USB lifecycle events it had received and evaluated only periodic STATUS.
-    The event-plus-STATUS repair passed an exact-evidence zero-RF replay and
-    adversarial review. A fresh separately authorized full campaign after the
-    retained records expire is the remaining R6 gate, so no complete 11.5
-    configuration is accepted.
+    are complete for the recorded 138 MHz/divider-1 configuration before 11.6
+    acceptance of those jobs. Package 9 completed the R6 workload but failed its
+    1,024-byte matched resource-return gate. Package 11 preserved that failure,
+    qualified a separate two-host fixture and repaired the clock-poll,
+    credential-owner, retained-terminal/memory and event-reducer harness paths
+    exposed by four stopped attempts. Retry 4 then completed the exact fresh
+    campaign. Its five matched windows pass the unchanged limit with a 520-byte
+    post-N span and no monotonic growth; heap, stack, timing, fault, capture and
+    restoration gates also pass. The independent
+    [result](development/phase11-5-package11-retry4-result.json) and
+    [review](development/phase11-5-package11-retry4-review.md) close R6 and
+    Phase 11.5 at 6/6 families for that configuration.
     An alternative clock selected during 11.6 must repeat affected 11.5 checks.
     The systematic band x mode x clock comparison, final supported configurations,
     filters, spectral qualification and release firmware belong to Phase 13.

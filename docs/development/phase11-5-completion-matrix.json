@@ -1,14 +1,27 @@
 {
   "schema": "phase11.5-completion-matrix-v1",
-  "status": "OPEN",
-  "accepted_configuration": null,
+  "status": "CLOSED",
+  "accepted_configuration": {
+    "board": "Pico A 0BF4B4AEC9FFB344",
+    "boot_id": "ff719d304f1ba4ac23fddd93561b26f0",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "engine": "pio-dma-gp2",
+    "image_sha256": "5da240aacf20e27db79126a7bff2be18e4ece849a608fa439f4e0c577659f446",
+    "network_listener": "configured",
+    "pio_divider": 1,
+    "renderer": "RAM",
+    "rf_pin": "GP2",
+    "schedule_base_frequency_nhz": "135500000000000",
+    "source_revision": "91933c00970939e366d1bfcf3c1956b59be8f6c5",
+    "system_clock_hz": 138000000
+  },
   "family_status": {
     "R1": "CLOSED 5/5 with recorded applicability",
     "R2": "CLOSED 7/7 with recorded applicability",
     "R3": "CLOSED with Package 6 applicability review",
     "R4": "CLOSED with Package 7 authority/interruption evidence",
     "R5": "CLOSED with Package 8 network/storage/autonomous evidence",
-    "R6": "OPEN \u2014 Package 9 gate failed; Package 10 corrected retry blocked before RF by independent-client fixture"
+    "R6": "CLOSED with Package 11 two-host sustained mixed-operation evidence"
   },
   "candidate_source": "91933c00970939e366d1bfcf3c1956b59be8f6c5",
   "assertions": [
@@ -638,45 +651,45 @@
       "group": "R6",
       "requirement": "30 cumulative minutes N",
       "classification": "accepted/applicable",
-      "evidence": "phase11-5-package9-failure-result.json; phase11-5-package9-review.md",
-      "remaining": "v44 completed all three 600-second N intervals, 1,800 normal seconds total, with three complete production lifecycles and 48 browser actions.",
-      "package": 9
+      "evidence": "phase11-5-package11-retry4-result.json; phase11-5-package11-retry4-review.md",
+      "remaining": "Retry 4 completed all three 600-second N intervals, 1800 normal seconds total, three complete production lifecycles, 48 browser actions and 84 successful GETs.",
+      "package": 11
     },
     {
       "id": "R6.rf-budget",
       "group": "R6",
       "requirement": "Finite demanding launches, at most 20 minutes RF",
       "classification": "accepted/applicable",
-      "evidence": "phase11-5-package9-failure-result.json; phase11-5-package9-review.md",
-      "remaining": "v44 used 11 jobs / 351.8 planned RF seconds; cumulative conservative accounting is 142 jobs / 1,164.4 seconds under the 1,200-second ceiling.",
-      "package": 9
+      "evidence": "phase11-5-package11-retry4-result.json; phase11-5-package11-retry4-review.md",
+      "remaining": "Retry 4 used 16 jobs / 356.8 planned RF seconds under its 480-second cap. Cumulative Package 11 accounting, including all stopped attempts, is 41 jobs / 495.4 seconds.",
+      "package": 11
     },
     {
       "id": "R6.windows",
       "group": "R6",
       "requirement": "Three comparable post-warm-up resource windows",
       "classification": "accepted/applicable",
-      "evidence": "phase11-5-package9-failure-result.json; phase11-5-package9-review.md",
-      "remaining": "v44 recorded the matched baseline and all three post-N windows on one source/boot/workload. Their existence is accepted; the resource-return values fail R6.gates.",
-      "package": 9
+      "evidence": "phase11-5-package11-retry4-result.json; phase11-5-package11-retry4-review.md",
+      "remaining": "One source/boot/workload produced baseline 56984 bytes, post-N 57080/57128/56608 and final-Q 57032 bytes.",
+      "package": 11
     },
     {
       "id": "R6.quiet",
       "group": "R6",
       "requirement": "Interleaved quiet and final equivalent Q",
       "classification": "accepted/applicable",
-      "evidence": "phase11-5-package9-failure-result.json; phase11-5-package9-review.md",
-      "remaining": "v44 completed the 360-second baseline, three 306-second interleaved quiet periods and separate 360-second final Q with inactive output.",
-      "package": 9
+      "evidence": "phase11-5-package11-retry4-result.json; phase11-5-package11-retry4-review.md",
+      "remaining": "Retry 4 completed the 360-second baseline, three 306-second application-quiet periods and separate 360-second final Q with inactive output and independent authority evidence.",
+      "package": 11
     },
     {
       "id": "R6.gates",
       "group": "R6",
       "requirement": "No monotonic retained growth; <=1024-byte matched delta; unchanged resource/timing/fault gates",
-      "classification": "failed",
-      "evidence": "phase11-5-package9-failure-result.json; phase11-5-package9-review.md; phase11-5-package10-failure-result.json; phase11-5-package10-review.md",
-      "remaining": "v44 baseline was 44,392 bytes; post-N deltas were +12,432, +12,432 and +11,944 bytes, and final-Q was +7,216 bytes, exceeding the unchanged 1,024-byte gate. Package 10 selected matched replay-history normalization, but its corrected comparison stopped before RF at the independent-client fixture. Qualify that path separately, then freeze one complete corrected packet; no automatic retry is authorized.",
-      "package": 9
+      "classification": "accepted/applicable",
+      "evidence": "phase11-5-package11-retry4-result.json; phase11-5-package11-retry4-adversarial.json; phase11-5-package11-retry4-review.md",
+      "remaining": "All deltas are within 1024 bytes; post-N span is 520 bytes and not monotonic. Heap reserve is 51968 bytes; stack guards, timing, allocator/TLS/DMA/fault, capture, reservation and restoration gates pass.",
+      "package": 11
     }
   ]
 }

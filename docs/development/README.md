@@ -3,8 +3,8 @@
 Current Phase 11.5 execution uses the [completion matrix](phase11-5-completion-matrix.md)
 and [September 15 standing authorization](phase11-5-completion-authorization-20260915.md).
 A's current firmware is `91933c009709`, B's is `8921a7008183`; older candidate
-paragraphs below retain historical evidence identities. Phase 11.5 is OPEN at
-5/6 families: R1-R5 are closed and R6's matched resource-return gate failed. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
+paragraphs below retain historical evidence identities. Phase 11.5 is CLOSED
+at 6/6 families for the recorded 138 MHz/divider-1 configuration. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
 passes retained LOAD/replay and P1 individual WTP/HTTP capacity during RF;
 the [Package 2 review](phase11-5-package2-review.md) accepts assertions 2.2a and
 2.2b after paged RF event storage and direct WTP-reservation observability. The
@@ -52,10 +52,15 @@ cleared both preflight gates, completed eight warmups, the matched baseline and
 the first 600-second cycle, then stopped because the host reducer ignored the
 complete USB lifecycle events it had received and considered only five-second
 STATUS snapshots. The repaired event-plus-STATUS reducer passed an exact-source
-zero-RF replay and two adversarial assessments. Package 11 has charged 25 jobs /
-138.6 planned seconds across four stopped attempts, with no R6 credit and full
-restoration. R6 and Phase 11.5 remain open pending expiry of Retry 3's eight
-terminal records and a separately authorized fresh campaign.
+zero-RF replay and two adversarial assessments. [Retry 4](phase11-5-package11-retry4-review.md)
+then completed the exact 16-job/356.8-second fresh campaign. Its 56,984-byte
+baseline, 57,080/57,128/56,608-byte post-N windows and 57,032-byte final Q pass
+the unchanged 1,024-byte limit with a 520-byte nonmonotonic post-N span. Heap,
+stack, timing, fault, capture and restoration gates pass; the independent
+[result](phase11-5-package11-retry4-result.json) and 67-mutation
+[adversarial assessment](phase11-5-package11-retry4-adversarial.json) close R6
+and Phase 11.5. Package 11 cumulative accounting is 41 jobs / 495.4 planned
+seconds. All four stopped attempts remain preserved.
 
 
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).

@@ -267,7 +267,11 @@ def audit_resource_info(info):
 
 
 def audit(root, expected_packet_sha, decoder_path, fixture_root,
-          reservation_path=Path("/home/pi/phase11-5-shared-rf-reservation.json")):
+          reservation_path=Path("/home/pi/phase11-5-shared-rf-reservation.json"),
+          ap_fixture_root=None, ap_capture_log_name="capture-ap.log",
+          ap_capture_pcap_name="capture-ap.pcap", ap_capture_json=False):
+    ap_fixture_root = (Path(fixture_root) if ap_fixture_root is None else
+                       Path(ap_fixture_root))
     require(digest(root / "packet.json") == expected_packet_sha, "Package 10 packet hash")
     packet = validate(json.loads((root / "packet.json").read_text()))
     require(packet["source_impact"] == {"deployed_source_revision": SOURCE,
@@ -330,8 +334,11 @@ def audit(root, expected_packet_sha, decoder_path, fixture_root,
         cycle_actions = [row for row in actions if row["value"]["cycle"] == cycle]
         cycle_finishes = [row for row in action_finishes if row["value"]["cycle"] == cycle]
         cycle_gets = [row for row in gets if row["value"]["cycle"] == cycle]
-        require([(row["value"]["offset_seconds"], row["value"]["action"],
-                  row["value"]["paths"]) for row in cycle_actions] == expected_actions and
+        # browser_actions() intentionally returns JSON-shaped lists.  Preserve
+        # that shape here so an exact, valid captured schedule is not rejected
+        # solely because the auditor constructed Python tuples.
+        require([[row["value"]["offset_seconds"], row["value"]["action"],
+                  row["value"]["paths"]] for row in cycle_actions] == expected_actions and
                 len(cycle_gets) == 28 and
                 all(0 <= row["monotonic_ns"] - row["value"]["scheduled_monotonic_ns"] <=
                     15_000_000_000 for row in cycle_actions) and
@@ -513,12 +520,19 @@ def audit(root, expected_packet_sha, decoder_path, fixture_root,
         quiet_console = [row for row in console
                          if begin["monotonic_ns"] < row["monotonic_ns"] <
                          end["monotonic_ns"]]
-        require(end["monotonic_ns"] - begin["monotonic_ns"] >=
-                begin["value"]["seconds"] * 1_000_000_000 and
+        # The resource-window payload records the actual measurement bounds.
+        # Journal emission occurs a few milliseconds after those bounds, so
+        # comparing event timestamps can reject a full interval spuriously.
+        require(end["value"]["seconds"] == begin["value"]["seconds"] and
+                end["value"]["ended_monotonic_ns"] -
+                    end["value"]["began_monotonic_ns"] >=
+                    begin["value"]["seconds"] * 1_000_000_000 and
+                end["value"]["began_monotonic_ns"] <= begin["monotonic_ns"] and
+                end["value"]["ended_monotonic_ns"] <= end["monotonic_ns"] and
                 not [row for row in records if begin["monotonic_ns"] < row["monotonic_ns"] <
                      end["monotonic_ns"] and row["kind"] in forbidden] and
                 quiet_console and all(
-                    row["value"]["value"]["status"]["owner_id"] is None and
+                    row["value"]["value"]["status"].get("owner_id") is None and
                     row["value"]["value"]["status"]["output_active"] is False
                     for row in quiet_console),
                 "Application-quiet interval/authority")
@@ -606,10 +620,24 @@ def audit(root, expected_packet_sha, decoder_path, fixture_root,
             restored_host["value"]["installed_pid"].isdigit() and
             int(restored_host["value"]["installed_pid"]) > 0,
             "Fixture cleanup and installed service restoration")
-    for name in ("capture-ap.log", "capture-client.log"):
-        text = (fixture_root / name).read_text()
-        require(re.search(r"[1-9][0-9]* packets captured", text) and
-                "0 packets dropped by kernel" in text, "Capture completeness")
+    ap_capture_text = (ap_fixture_root / ap_capture_log_name).read_text()
+    if ap_capture_json:
+        ap_capture = json.loads(ap_capture_text)
+        require(ap_capture.get("captured", 0) > 0 and
+                ap_capture.get("kernel_packets") == ap_capture["captured"] and
+                ap_capture.get("kernel_drops") == 0,
+                "Capture completeness")
+    else:
+        require(re.search(r"[1-9][0-9]* packets captured", ap_capture_text) and
+                "0 packets dropped by kernel" in ap_capture_text,
+                "Capture completeness")
+    client_capture_text = (Path(fixture_root) / "capture-client.log").read_text()
+    require(re.search(r"[1-9][0-9]* packets captured", client_capture_text) and
+            "0 packets dropped by kernel" in client_capture_text,
+            "Capture completeness")
+    require((ap_fixture_root / ap_capture_pcap_name).stat().st_size > 24 and
+            (Path(fixture_root) / "capture-client.pcap").stat().st_size > 24,
+            "Fixture capture payloads")
     campaign_capture = (root / "campaign-capture.log").read_text()
     require(re.search(r"[1-9][0-9]* packets captured", campaign_capture) and
             "0 packets dropped by kernel" in campaign_capture and
@@ -622,7 +650,8 @@ def audit(root, expected_packet_sha, decoder_path, fixture_root,
         "production-1-tls.bin", "production-2-tls.bin", "production-3-tls.bin"]
     evidence = {name: digest(root / name) for name in evidence_names}
     evidence["fixture/fixture-state.json"] = digest(fixture_root / "fixture-state.json")
-    evidence["fixture/capture-ap.pcap"] = digest(fixture_root / "capture-ap.pcap")
+    evidence["fixture/capture-ap.pcap"] = digest(
+        ap_fixture_root / ap_capture_pcap_name)
     evidence["fixture/capture-client.pcap"] = digest(fixture_root / "capture-client.pcap")
     evidence["fixture/fixture.jsonl"] = digest(fixture_root / "fixture.jsonl")
     evidence["campaign.pcap"] = digest(root / "campaign.pcap")

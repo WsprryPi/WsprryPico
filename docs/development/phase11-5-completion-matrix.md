@@ -1,8 +1,8 @@
 # Phase 11.5 completion matrix
 
-Status: **OPEN; R1-R5 closed in their recorded scope; R6 resource-return gate
-failed and Package 10's corrected retry was blocked before RF by the independent
-wireless-client fixture.**
+Status: **CLOSED; all six families have accepted evidence for the recorded
+138 MHz/divider-1 configuration.** Package 11 Retry 4 closes R6 with a complete
+two-host sustained mixed-operation campaign and the unchanged 1,024-byte gate.
 
 Authority: [accepted September 15 request](phase11-5-completion-authorization-20260915.md).
 This current matrix supersedes stale current-state paragraphs in historical
@@ -56,8 +56,15 @@ replay-history normalization without a firmware or threshold change. Its first
 packet stopped after four RF seconds on a frequency-sequence mismatch; thirteen
 corrected zero-RF preflights then failed readiness, ending with independent-client
 association failure under both radio-role assignments. The corrected resource
-comparison did not run and earns no R6 credit. Its remaining authorization is
-unused and not an automatic retry.
+comparison did not run and earns no R6 credit. Package 11 preserved those
+failures, qualified the separate wspr4/wspr5 fixture and repaired three stopped
+host-harness paths. Its [Retry 4 result](phase11-5-package11-retry4-result.json)
+and [review](phase11-5-package11-retry4-review.md) accept a fresh complete
+1,800-second workload: 56,984-byte baseline; 57,080, 57,128 and 56,608-byte
+post-N windows; 57,032-byte final Q; 520-byte post-N span; no monotonic growth;
+and all resource, timing, fault, capture and restoration gates passing. R6 and
+Phase 11.5 are closed for the recorded configuration. Earlier failed attempts
+retain their original status and accounting.
 Earlier bd16bb1 results retain two finite completions with
 failed capacity workloads. B remains 8921a7008183. Both are Pico 2 W/RP2350 Arm,
 138 MHz/divider 1, GP2 PIO/DMA, RAM rendering and listener configured. No full
@@ -181,8 +188,8 @@ resource gates. Evidence links retain exact source/image/boot and raw hashes.
 | R5.rotation | R5 | Smallest actual journal rotation and restored baseline | accepted/applicable | [phase11-5-package8-result.json](phase11-5-package8-result.json); [phase11-5-package8-review.md](phase11-5-package8-review.md) | Package 8 accepts the bounded retained-config reboot, unsynchronized admission gate, journal rotation, Running write rejection, autonomous completion, durable watermark and restored disabled baseline. | 8 |
 | R5.time-admission | R5 | Autonomous time-validity admission | accepted/applicable | [phase11-5-package8-result.json](phase11-5-package8-result.json); [phase11-5-package8-review.md](phase11-5-package8-review.md) | Package 8 accepts the bounded retained-config reboot, unsynchronized admission gate, journal rotation, Running write rejection, autonomous completion, durable watermark and restored disabled baseline. | 8 |
 | R5.schedule | R5 | Saved autonomous schedule preparation/completion with N/M; disable; watermark | accepted/applicable | [phase11-5-package8-result.json](phase11-5-package8-result.json); [phase11-5-package8-review.md](phase11-5-package8-review.md) | Package 8 accepts the bounded retained-config reboot, unsynchronized admission gate, journal rotation, Running write rejection, autonomous completion, durable watermark and restored disabled baseline. | 8 |
-| R6.normal-load | R6 | 30 cumulative minutes N | accepted/applicable | [phase11-5-package9-failure-result.json](phase11-5-package9-failure-result.json); [phase11-5-package9-review.md](phase11-5-package9-review.md) | v44 completed all three 600-second N intervals, 1,800 normal seconds total, with three complete production lifecycles and 48 browser actions. | 9 |
-| R6.rf-budget | R6 | Finite demanding launches, at most 20 minutes RF | accepted/applicable | [phase11-5-package9-failure-result.json](phase11-5-package9-failure-result.json); [phase11-5-package9-review.md](phase11-5-package9-review.md) | v44 used 11 jobs / 351.8 planned RF seconds; cumulative conservative accounting is 142 jobs / 1,164.4 seconds under the 1,200-second ceiling. | 9 |
-| R6.windows | R6 | Three comparable post-warm-up resource windows | accepted/applicable | [phase11-5-package9-failure-result.json](phase11-5-package9-failure-result.json); [phase11-5-package9-review.md](phase11-5-package9-review.md) | v44 recorded the matched baseline and all three post-N windows on one source/boot/workload. Their existence is accepted; the resource-return values fail R6.gates. | 9 |
-| R6.quiet | R6 | Interleaved quiet and final equivalent Q | accepted/applicable | [phase11-5-package9-failure-result.json](phase11-5-package9-failure-result.json); [phase11-5-package9-review.md](phase11-5-package9-review.md) | v44 completed the 360-second baseline, three 306-second interleaved quiet periods and separate 360-second final Q with inactive output. | 9 |
-| R6.gates | R6 | No monotonic retained growth; <=1024-byte matched delta; unchanged resource/timing/fault gates | failed | [phase11-5-package9-failure-result.json](phase11-5-package9-failure-result.json); [phase11-5-package9-review.md](phase11-5-package9-review.md); [phase11-5-package10-failure-result.json](phase11-5-package10-failure-result.json); [phase11-5-package10-review.md](phase11-5-package10-review.md) | v44 baseline was 44,392 bytes; post-N deltas were +12,432, +12,432 and +11,944 bytes, and final-Q was +7,216 bytes, exceeding the unchanged 1,024-byte gate. Package 10 selected matched replay-history normalization, but its corrected comparison stopped before RF at the independent-client fixture. Qualify that path separately, then freeze one complete corrected packet; no automatic retry is authorized. | 9 |
+| R6.normal-load | R6 | 30 cumulative minutes N | accepted/applicable | [Retry 4 result](phase11-5-package11-retry4-result.json); [Retry 4 review](phase11-5-package11-retry4-review.md) | Retry 4 completed all three 600-second N intervals, 1,800 normal seconds total, three complete production lifecycles, 48 browser actions and 84 successful GETs. | 11 |
+| R6.rf-budget | R6 | Finite demanding launches, at most 20 minutes RF | accepted/applicable | [Retry 4 result](phase11-5-package11-retry4-result.json); [Retry 4 review](phase11-5-package11-retry4-review.md) | Retry 4 used 16 jobs / 356.8 planned RF seconds under its 480-second cap. Cumulative Package 11 accounting, including all stopped attempts, is 41 jobs / 495.4 seconds. | 11 |
+| R6.windows | R6 | Three comparable post-warm-up resource windows | accepted/applicable | [Retry 4 result](phase11-5-package11-retry4-result.json); [Retry 4 review](phase11-5-package11-retry4-review.md) | One source/boot/workload produced baseline 56,984 bytes, post-N 57,080/57,128/56,608 and final-Q 57,032 bytes. | 11 |
+| R6.quiet | R6 | Interleaved quiet and final equivalent Q | accepted/applicable | [Retry 4 result](phase11-5-package11-retry4-result.json); [Retry 4 review](phase11-5-package11-retry4-review.md) | Retry 4 completed the 360-second baseline, three 306-second application-quiet periods and separate 360-second final Q with inactive output and independent authority evidence. | 11 |
+| R6.gates | R6 | No monotonic retained growth; <=1024-byte matched delta; unchanged resource/timing/fault gates | accepted/applicable | [Retry 4 result](phase11-5-package11-retry4-result.json); [Retry 4 adversarial result](phase11-5-package11-retry4-adversarial.json); [Retry 4 review](phase11-5-package11-retry4-review.md) | All deltas are within 1,024 bytes; post-N span is 520 bytes and not monotonic. Heap reserve is 51,968 bytes; stack guards, timing, allocator/TLS/DMA/fault, capture, reservation and restoration gates pass. | 11 |

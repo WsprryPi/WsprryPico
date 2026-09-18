@@ -145,7 +145,7 @@ class Package8Tests(unittest.TestCase):
         self.assertEqual(len(rows), 8)
         self.assertTrue(all(row["classification"] == "accepted/applicable" for row in rows))
         self.assertTrue(matrix["family_status"]["R5"].startswith("CLOSED"))
-        if (ROOT / "docs/development/phase11-5-package9-result.json").exists():
+        if (ROOT / "docs/development/phase11-5-package11-retry4-result.json").exists():
             self.assertTrue(matrix["family_status"]["R6"].startswith("CLOSED"))
             self.assertIsNotNone(matrix["accepted_configuration"])
         else:

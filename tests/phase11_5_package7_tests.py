@@ -47,7 +47,7 @@ class Package7Tests(unittest.TestCase):
                             for row in rows))
         self.assertTrue(self.matrix["family_status"]["R4"].startswith("CLOSED"))
         self.assertTrue(self.matrix["family_status"]["R5"].startswith("CLOSED"))
-        if (ROOT / "docs/development/phase11-5-package9-result.json").exists():
+        if (ROOT / "docs/development/phase11-5-package11-retry4-result.json").exists():
             self.assertTrue(self.matrix["family_status"]["R6"].startswith("CLOSED"))
             self.assertIsNotNone(self.matrix["accepted_configuration"])
         else:

@@ -369,8 +369,19 @@ def validate(result, matrix, root):
     validate_inputs(values)
     validate_source_impact(root, result)
 
+    package11_path = root / "docs/development/phase11-5-package11-retry4-result.json"
     package9_path = root / "docs/development/phase11-5-package9-result.json"
-    if package9_path.exists():
+    if package11_path.exists():
+        from audit_phase11_5_package11 import validate_result as validate_package11
+        package11 = validate_package11(json.loads(package11_path.read_text()))
+        require(matrix["status"] == "CLOSED" and
+                matrix["accepted_configuration"] == package11["accepted_configuration"] and
+                matrix["candidate_source"] == package11["accepted_configuration"]
+                    ["source_revision"] and
+                all(matrix["family_status"][name].startswith("CLOSED")
+                    for name in ("R1", "R2", "R3", "R4", "R5", "R6")),
+                "Current closed family and accepted-configuration boundary")
+    elif package9_path.exists():
         from audit_phase11_5_package9 import validate_published_result as validate_package9
         package9 = validate_package9(json.loads(package9_path.read_text()))
         require(matrix["status"] == "CLOSED" and

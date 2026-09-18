@@ -96,7 +96,7 @@ class RemoteAp:
         packet = self.packet
         authorization = ("PACKAGE11-TWO-HOST-R6" if
                          packet.get("schema") == "phase11.5-package11-admission-v1" else
-                         "PACKAGE11-TWO-HOST-R6-RETRY3")
+                         "PACKAGE11-TWO-HOST-R6-RETRY4")
         require(packet.get("schema") in SCHEMAS and
                 packet.get("authorization") == authorization and
                 packet.get("root") == str(self.root) and

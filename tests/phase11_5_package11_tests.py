@@ -103,6 +103,9 @@ def closure_result():
             "package11_attempt1_failure_preserved": True,
             "package11_retry1_failure_preserved": True,
             "package11_retry2_failure_preserved": True,
+            "package11_retry3_failure_preserved": True,
+            "usb_event_reducer_repair_zero_rf_verified": True,
+            "retry4_credential_repair_zero_rf_verified": True,
             "credential_owner_repair_zero_rf_verified": True,
             "clock_poll_repair_zero_rf_verified": True,
             "terminal_retention_preflight_verified": True,
@@ -114,7 +117,7 @@ def closure_result():
             "client_mac": package11.CLIENT_MAC, "channel": 11,
             "wspr4_restored": True, "wspr5_restored": True},
         "source_impact": {"deployed_candidate": package10.SOURCE,
-            "repository_baseline_revision": "e22c86c83ceb161080c218748baf5d3eaa892652",
+            "repository_baseline_revision": "a19db5319520a7c609cd9947cb44942bace5a0f3",
             "runtime_source_changes": 0,
             "decision": "measurement-only replay-history normalization",
             "wsprrypi_source_revision": package10.WSPRRYPI_SOURCE},
@@ -129,6 +132,8 @@ def closure_result():
             "retry1_charged_rf_duration_ns": package11.RETRY1_RF_DURATION_NS,
             "retry2_charged_rf_jobs": package11.RETRY2_RF_JOBS,
             "retry2_charged_rf_duration_ns": package11.RETRY2_RF_DURATION_NS,
+            "retry3_charged_rf_jobs": package11.RETRY3_RF_JOBS,
+            "retry3_charged_rf_duration_ns": package11.RETRY3_RF_DURATION_NS,
             "cumulative_package11_rf_jobs": package11.CUMULATIVE_RF_JOBS,
             "cumulative_package11_rf_duration_ns": package11.CUMULATIVE_RF_DURATION_NS,
             "flashes": 0, "bootsel": 0, "configuration_writes": 0,
@@ -146,6 +151,14 @@ def closure_result():
         "credential_retest_result_sha256": package11.CREDENTIAL_RETEST_RESULT_SHA256,
         "retry2_attempt_result_sha256": package11.RETRY2_RESULT_SHA256,
         "retry2_adversarial_sha256": package11.RETRY2_ADVERSARIAL_SHA256,
+        "retry3_attempt_result_sha256": package11.RETRY3_RESULT_SHA256,
+        "retry3_adversarial_sha256": package11.RETRY3_ADVERSARIAL_SHA256,
+        "usb_reducer_retest_result_sha256":
+            package11.USB_REDUCER_RETEST_RESULT_SHA256,
+        "usb_reducer_retest_adversarial_sha256":
+            package11.USB_REDUCER_RETEST_ADVERSARIAL_SHA256,
+        "retry4_credential_retest_result_sha256":
+            package11.RETRY4_CREDENTIAL_RETEST_RESULT_SHA256,
         "raw_audit_sha256": HASH, "evidence_sha256": {"packet.json": HASH}}
 
 
@@ -415,11 +428,11 @@ class Package11Tests(unittest.TestCase):
         self.assertEqual(package10.RF_JOBS, 16)
         self.assertEqual(package10.RF_DURATION_NS, 356_800_000_000)
         self.assertLess(package10.RF_DURATION_NS, package11.AUTHORIZED_RF_DURATION_NS)
-        self.assertEqual(package11.PRIOR_RF_JOBS, 16)
-        self.assertEqual(package11.PRIOR_RF_DURATION_NS, 16_000_000_000)
-        self.assertEqual(package11.CUMULATIVE_RF_JOBS, 32)
-        self.assertEqual(package11.CUMULATIVE_RF_DURATION_NS, 372_800_000_000)
-        self.assertNotEqual(package11.RETRY2_AUTHORIZATION, package11.RETRY3_AUTHORIZATION)
+        self.assertEqual(package11.PRIOR_RF_JOBS, 25)
+        self.assertEqual(package11.PRIOR_RF_DURATION_NS, 138_600_000_000)
+        self.assertEqual(package11.CUMULATIVE_RF_JOBS, 41)
+        self.assertEqual(package11.CUMULATIVE_RF_DURATION_NS, 495_400_000_000)
+        self.assertNotEqual(package11.RETRY3_AUTHORIZATION, package11.RETRY4_AUTHORIZATION)
 
     def test_retained_terminal_preflight_waits_without_relaxing_heap_gate(self):
         record = {"job_id": "a" * 32, "state": "complete", "output_active": False,
@@ -490,6 +503,8 @@ class Package11Tests(unittest.TestCase):
             (root / "scripts").mkdir()
             (root / "scripts/phase11_5_package11_fixture.py").write_bytes(
                 Path(fixture.__file__).read_bytes())
+            (root / "scripts/phase11_5_package9.py").write_bytes(
+                Path(package11.package9.__file__).read_bytes())
             wifi = {"ssid": "WsprryPico-Phase115", "password": "a" * 32,
                     "ntp_ipv4": "time.local"}
             (root / "retained-wifi.json").write_text(json.dumps(wifi))
@@ -546,8 +561,6 @@ class Package11Tests(unittest.TestCase):
             credential_retest_path = root / "credential-retest.json"
             credential_retest_value = json.loads((Path(__file__).resolve().parents[1] /
                 "docs/development/phase11-5-package11-credential-retest-result.json").read_text())
-            credential_retest_value["fixture_source_sha256"] = hashlib.sha256(
-                Path(fixture.__file__).read_bytes()).hexdigest()
             credential_retest_path.write_text(json.dumps(credential_retest_value))
             retry2_path = root / "retry2.json"
             retry2_value = json.loads((Path(__file__).resolve().parents[1] /
@@ -558,6 +571,16 @@ class Package11Tests(unittest.TestCase):
             retry2_adversarial_value["result_sha256"] = hashlib.sha256(
                 retry2_path.read_bytes()).hexdigest()
             retry2_adversarial_path.write_text(json.dumps(retry2_adversarial_value))
+            development = Path(__file__).resolve().parents[1] / "docs/development"
+            retry3_path = development / "phase11-5-package11-retry3-result.json"
+            retry3_adversarial_path = development / \
+                "phase11-5-package11-retry3-adversarial.json"
+            usb_reducer_path = development / \
+                "phase11-5-package11-retry3-usb-reducer-retest-result.json"
+            usb_reducer_adversarial_path = development / \
+                "phase11-5-package11-retry3-usb-reducer-retest-adversarial.json"
+            retry4_credential_path = development / \
+                "phase11-5-package11-retry4-credential-retest-result.json"
             argv = ["stage", "--root", str(root), "--kind", "campaign",
                     "--binary", str(binary), "--observer", str(observer),
                     "--admission-result", str(admission_path),
@@ -568,7 +591,13 @@ class Package11Tests(unittest.TestCase):
                     "--retry1-adversarial", str(retry1_adversarial_path),
                     "--credential-retest-result", str(credential_retest_path),
                     "--retry2-result", str(retry2_path),
-                    "--retry2-adversarial", str(retry2_adversarial_path)]
+                    "--retry2-adversarial", str(retry2_adversarial_path),
+                    "--retry3-result", str(retry3_path),
+                    "--retry3-adversarial", str(retry3_adversarial_path),
+                    "--usb-reducer-retest-result", str(usb_reducer_path),
+                    "--usb-reducer-retest-adversarial",
+                    str(usb_reducer_adversarial_path),
+                    "--retry4-credential-retest-result", str(retry4_credential_path)]
             dependency_hashes = {
                 "ADMISSION_RESULT_SHA256": hashlib.sha256(
                     admission_path.read_bytes()).hexdigest(),
@@ -587,9 +616,20 @@ class Package11Tests(unittest.TestCase):
                 "RETRY2_RESULT_SHA256": hashlib.sha256(
                     retry2_path.read_bytes()).hexdigest(),
                 "RETRY2_ADVERSARIAL_SHA256": hashlib.sha256(
-                    retry2_adversarial_path.read_bytes()).hexdigest()}
+                    retry2_adversarial_path.read_bytes()).hexdigest(),
+                "RETRY3_RESULT_SHA256": hashlib.sha256(
+                    retry3_path.read_bytes()).hexdigest(),
+                "RETRY3_ADVERSARIAL_SHA256": hashlib.sha256(
+                    retry3_adversarial_path.read_bytes()).hexdigest(),
+                "USB_REDUCER_RETEST_RESULT_SHA256": hashlib.sha256(
+                    usb_reducer_path.read_bytes()).hexdigest(),
+                "USB_REDUCER_RETEST_ADVERSARIAL_SHA256": hashlib.sha256(
+                    usb_reducer_adversarial_path.read_bytes()).hexdigest(),
+                "RETRY4_CREDENTIAL_RETEST_RESULT_SHA256": hashlib.sha256(
+                    retry4_credential_path.read_bytes()).hexdigest()}
             with patch.object(sys, "argv", argv), patch.object(stage, "COMMON_INPUTS",
-                    ("scripts/phase11_5_package11_fixture.py",)), \
+                    ("scripts/phase11_5_package11_fixture.py",
+                     "scripts/phase11_5_package9.py")), \
                     patch.object(package11, "ADMISSION_RESULT_SHA256",
                                  dependency_hashes["ADMISSION_RESULT_SHA256"]), \
                     patch.object(package11, "ADMISSION_ADVERSARIAL_SHA256",
@@ -608,10 +648,23 @@ class Package11Tests(unittest.TestCase):
                                  dependency_hashes["RETRY2_RESULT_SHA256"]), \
                     patch.object(package11, "RETRY2_ADVERSARIAL_SHA256",
                                  dependency_hashes["RETRY2_ADVERSARIAL_SHA256"]), \
+                    patch.object(package11, "RETRY3_RESULT_SHA256",
+                                 dependency_hashes["RETRY3_RESULT_SHA256"]), \
+                    patch.object(package11, "RETRY3_ADVERSARIAL_SHA256",
+                                 dependency_hashes["RETRY3_ADVERSARIAL_SHA256"]), \
+                    patch.object(package11, "USB_REDUCER_RETEST_RESULT_SHA256",
+                                 dependency_hashes[
+                                     "USB_REDUCER_RETEST_RESULT_SHA256"]), \
+                    patch.object(package11, "USB_REDUCER_RETEST_ADVERSARIAL_SHA256",
+                                 dependency_hashes[
+                                     "USB_REDUCER_RETEST_ADVERSARIAL_SHA256"]), \
+                    patch.object(package11, "RETRY4_CREDENTIAL_RETEST_RESULT_SHA256",
+                                 dependency_hashes[
+                                     "RETRY4_CREDENTIAL_RETEST_RESULT_SHA256"]), \
                     redirect_stdout(io.StringIO()):
                 stage.main()
                 packet = json.loads((root / "packet.json").read_text())
-                self.assertEqual(package11.RETRY3_AUTHORIZATION, packet["authorization"])
+                self.assertEqual(package11.RETRY4_AUTHORIZATION, packet["authorization"])
                 self.assertEqual(package11.CUMULATIVE_RF_JOBS,
                                  packet["cumulative_package11_rf_jobs"])
                 self.assertEqual(hashlib.sha256(prior_path.read_bytes()).hexdigest(),
@@ -631,6 +684,16 @@ class Package11Tests(unittest.TestCase):
                 self.assertEqual(hashlib.sha256(
                     retry2_adversarial_path.read_bytes()).hexdigest(),
                     packet["retry2_adversarial_sha256"])
+                self.assertEqual(hashlib.sha256(retry3_path.read_bytes()).hexdigest(),
+                                 packet["retry3_attempt_result_sha256"])
+                self.assertEqual(hashlib.sha256(
+                    retry3_adversarial_path.read_bytes()).hexdigest(),
+                    packet["retry3_adversarial_sha256"])
+                self.assertEqual(hashlib.sha256(usb_reducer_path.read_bytes()).hexdigest(),
+                                 packet["usb_reducer_retest_result_sha256"])
+                self.assertEqual(hashlib.sha256(
+                    retry4_credential_path.read_bytes()).hexdigest(),
+                    packet["retry4_credential_retest_result_sha256"])
                 self.assertEqual(set(fixture.credential_paths(packet)),
                                  set(packet["credential_sha256"]))
                 package11.validate(packet)
@@ -647,13 +710,22 @@ class Package11Tests(unittest.TestCase):
                             "retry1_adversarial_sha256",
                             "credential_retest_result_sha256",
                             "retry2_attempt_result_sha256",
-                            "retry2_adversarial_sha256"):
+                            "retry2_adversarial_sha256",
+                            "retry3_attempt_result_sha256",
+                            "retry3_adversarial_sha256",
+                            "usb_reducer_retest_result_sha256",
+                            "usb_reducer_retest_adversarial_sha256",
+                            "retry4_credential_retest_result_sha256"):
                     changed = copy.deepcopy(packet)
                     changed[key] = "0" * 64
                     with self.subTest(key=key), self.assertRaises(ValueError):
                         package11.validate(changed)
                 changed = copy.deepcopy(packet)
                 changed["cumulative_package11_rf_jobs"] -= 1
+                with self.assertRaises(ValueError):
+                    package11.validate(changed)
+                changed = copy.deepcopy(packet)
+                changed["source_impact"]["repository_baseline_revision"] = "0" * 40
                 with self.assertRaises(ValueError):
                     package11.validate(changed)
                 changed = copy.deepcopy(packet)
@@ -669,11 +741,20 @@ class Package11Tests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     package11.validate(changed)
                 changed = copy.deepcopy(packet)
-                changed["credential_retest"]["fixture_source_sha256"] = "0" * 64
+                changed["retry4_credential_retest"]["fixture_source_sha256"] = "0" * 64
                 with self.assertRaises(ValueError):
                     package11.validate(changed)
                 changed = copy.deepcopy(packet)
                 changed["retry2_package11_attempt"]["reservation_acquired"] = True
+                with self.assertRaises(ValueError):
+                    package11.validate(changed)
+                changed = copy.deepcopy(packet)
+                changed["retry3_package11_attempt"]["post_n_windows"] = 1
+                with self.assertRaises(ValueError):
+                    package11.validate(changed)
+                changed = copy.deepcopy(packet)
+                changed["usb_reducer_retest"][
+                    "repaired_event_and_status_reducer_accepts"] = False
                 with self.assertRaises(ValueError):
                     package11.validate(changed)
                 changed = copy.deepcopy(packet)
@@ -749,7 +830,7 @@ class Package11Tests(unittest.TestCase):
                     remote.RemoteAp(root).validate_packet()
             campaign = copy.deepcopy(packet)
             campaign["schema"] = "phase11.5-package11-fixture-v1"
-            campaign["authorization"] = package11.RETRY3_AUTHORIZATION
+            campaign["authorization"] = package11.RETRY4_AUTHORIZATION
             campaign["runtime_seconds"] = 5400
             (root / "packet.json").write_text(json.dumps(campaign))
             self.assertEqual(remote.RemoteAp(root).validate_packet(), campaign)

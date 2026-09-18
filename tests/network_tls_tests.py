@@ -40,7 +40,7 @@ HOSTNAME = "wsprrypico-" + "a" * 32 + ".local"
 def connect(ctx=None, hostname="127.0.0.1"):
     return (ctx or context()).wrap_socket(socket.create_connection(('127.0.0.1', 18443), timeout=5), server_hostname=hostname)
 
-def http(path='/api/v1/status', method='GET', body=None, headers=None, fragment=False, identity="client", padding=0):
+def http_on(stream, path='/api/v1/status', method='GET', body=None, headers=None, fragment=False, padding=0):
     text = '' if body is None else json.dumps(body, separators=(',', ':'))
     text += ' ' * max(0, padding - len(text))
     fields = {'Host':'127.0.0.1:18443'}
@@ -49,18 +49,21 @@ def http(path='/api/v1/status', method='GET', body=None, headers=None, fragment=
                        'X-WsprryPico-Request':'1','Content-Length':str(len(text))})
     fields.update(headers or {})
     wire = (f'{method} {path} HTTP/1.1\r\n' + ''.join(f'{k}: {v}\r\n' for k,v in fields.items()) + '\r\n' + text).encode()
-    with connect(context(identity)) as stream:
-        assert stream.version() == 'TLSv1.3' and stream.selected_alpn_protocol() == 'http/1.1'
-        if fragment:
-            for i in range(0, len(wire), 7): stream.sendall(wire[i:i+7])
-        else: stream.sendall(wire)
-        response = b''
-        while chunk := stream.recv(4096): response += chunk
+    assert stream.version() == 'TLSv1.3' and stream.selected_alpn_protocol() == 'http/1.1'
+    if fragment:
+        for i in range(0, len(wire), 7): stream.sendall(wire[i:i+7])
+    else: stream.sendall(wire)
+    response = b''
+    while chunk := stream.recv(4096): response += chunk
     head, payload = response.split(b'\r\n\r\n', 1)
     status = int(head.split()[1])
     response_headers = dict(line.decode().split(': ',1) for line in head.split(b'\r\n')[1:])
     assert int(response_headers['Content-Length']) == len(payload)
     return status, response_headers, payload
+
+def http(path='/api/v1/status', method='GET', body=None, headers=None, fragment=False, identity="client", padding=0):
+    with connect(context(identity)) as stream:
+        return http_on(stream, path, method, body, headers, fragment, padding)
 
 try:
     assert process.stdout.readline().startswith('READY'), process.stderr.read()
@@ -343,9 +346,13 @@ try:
     assert browser('RELEASE',{})[0] == 200
     # Concurrent revisions admit exactly one distinct update.
     revision = http('/api/v1/config')[1]['ETag']
-    with concurrent.futures.ThreadPoolExecutor() as pool:
+    # Establish both admitted TLS sessions before releasing concurrent requests.
+    # This tests the config revision race itself without racing the deliberately
+    # single pending-handshake slot in the host socket adapter.
+    with connect(context()) as first, connect(context()) as second, concurrent.futures.ThreadPoolExecutor() as pool:
         configs = [{**config,'station':{**config['station'],'power_dbm':p}} for p in (20,30)]
-        replies = list(pool.map(lambda c:http('/api/v1/config','PUT',c,{'If-Match':revision}),configs))
+        replies = list(pool.map(lambda pair:http_on(pair[0],'/api/v1/config','PUT',pair[1],{'If-Match':revision}),
+                                zip((first,second),configs)))
     assert sorted(r[0] for r in replies) == [200,412]
     # Delay the initiating PCB's ACK callback after its complete TLS response.
     # Unrelated closes cannot apply it; failure cancels; completion rechecks idle.

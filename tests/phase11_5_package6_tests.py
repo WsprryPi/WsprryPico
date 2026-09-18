@@ -40,7 +40,7 @@ class Package6Tests(unittest.TestCase):
         self.assertEqual(self.result["new_physical_acceptance_assertions"], 0)
         self.assertEqual(self.matrix["family_status"]["R3"],
                          "CLOSED with Package 6 applicability review")
-        if (ROOT / "docs/development/phase11-5-package9-result.json").exists():
+        if (ROOT / "docs/development/phase11-5-package11-retry4-result.json").exists():
             self.assertEqual(self.matrix["status"], "CLOSED")
             self.assertIsNotNone(self.matrix["accepted_configuration"])
         else:

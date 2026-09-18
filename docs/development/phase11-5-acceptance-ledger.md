@@ -2,7 +2,8 @@
 
 ## Current completion campaign — September 15, 2026
 
-**OPEN: R1 CLOSED 5/5; R2 CLOSED 7/7; R3-R5 CLOSED; R6 OPEN.** The
+**CLOSED: all six families have accepted evidence for the recorded
+138 MHz/divider-1 configuration.** The
 [current assertion matrix](phase11-5-completion-matrix.md) records current
 applicability and remaining work. [Standing authorization](phase11-5-completion-authorization-20260915.md)
 permits fresh bounded packets on either Pico with one shared RF reservation.
@@ -31,8 +32,8 @@ accepts all eight R5 rows on repaired source `7c5296471250`: network RF survives
 one bounded external link loss and real address change, restores native name,
 SNTP, WTP and HTTPS service, while retained storage rotates through sequences
 70/71/72 and one autonomous job passes the unsynchronized admission gate,
-Running write lockout, completion, watermark and baseline restoration. Phase
-11.5 remains open at 5/6 families. The [Package 9 review](phase11-5-package9-review.md)
+Running write lockout, completion, watermark and baseline restoration. The
+[Package 9 review](phase11-5-package9-review.md)
 retains v44's complete 30-minute normal workload, 11 finite RF jobs, 48 browser
 actions and five quiet windows. R6.gates failed: post-N matched-baseline deltas
 were +12,432, +12,432 and +11,944 bytes, and final-Q remained +7,216 bytes.
@@ -66,11 +67,18 @@ matched baseline and Cycle 1, and stopped because the host reducer ignored the
 complete USB lifecycle events it had already received. The repaired
 event-plus-STATUS reducer passed an exact-evidence zero-RF replay and 22
 adversarial mutations; the stopped-attempt record rejected another 35
-mutations. Retry 3 charges 9 jobs / 122.6 planned seconds. Cumulative Package 11
-use is 25 jobs / 138.6 planned seconds with no R6 credit. Both Picos and hosts
-are restored and all captures report zero kernel drops. R6 remains open pending
-expiry of the eight retained Retry 3 records and a separately authorized fresh
-full campaign.
+mutations. Retry 3 charges 9 jobs / 122.6 planned seconds.
+
+[Retry 4](phase11-5-package11-retry4-review.md) cleared the same retention and
+memory gates and completed the fresh 16-job/356.8-second packet. Its 56,984-byte
+baseline, 57,080/57,128/56,608-byte post-N windows and 57,032-byte final Q are
+all within the unchanged 1,024-byte limit; post-N span is 520 bytes and is not
+monotonic. Heap reserve is 51,968 bytes. Stack guards, RF timing,
+allocator/TLS/DMA/fault counters, both zero-drop captures and complete
+restoration pass. The independent result closes R6 and Phase 11.5; its
+adversarial assessment rejects 67/67 mutations. Cumulative Package 11 use is
+41 jobs / 495.4 planned seconds. All earlier failures and their charges remain
+preserved.
 
 The records below preserve earlier identities, counts and outcomes. Their
 then-current candidate and device restrictions are historical.
@@ -233,7 +241,7 @@ Historical 049cc929 image hashes and all four layouts are in
 | R3 | CLOSED — 14/14 groups, 24/24 rows and 7/7 features | Packages 1-5 physical evidence plus exact Package 6 source-impact/applicability audit; [result](phase11-5-package6-result.json) | Preserve failed attempts and exact image scope; invalidate only affected rows after later production changes |
 | R4 | CLOSED — 18/18 rows | Package 7 current-image foreign authority, forbidden storage, owner abort, lost-operation replay and current regressions plus three reviewed inherited rows; [result](phase11-5-package7-result.json) | Preserve exact identities, failures and scope; invalidate only affected rows after later production changes |
 | R5 | CLOSED — 8/8 rows | Package 8 repaired network lifecycle, retained journal rotation, autonomous time admission/completion and reviewed idle Wi-Fi applicability; [result](phase11-5-package8-result.json) | Preserve failed attempts and exact image scope; invalidate only affected rows after later production changes |
-| R6 | OPEN — no accepted resource result | Package 9 completed the workload but failed matched resource return; Package 11 Retry 3 reached Cycle 1 before the repaired host reducer stopped acceptance | Fresh full Package 11 campaign after retained-record expiry and separate physical authorization |
+| R6 | CLOSED — sustained mixed-operation resource result accepted | Package 11 Retry 4 completed 1,800 normal seconds, 16 jobs, five comparable windows and all unchanged resource/timing/fault/restoration gates; [result](phase11-5-package11-retry4-result.json) and [review](phase11-5-package11-retry4-review.md) | Repeat affected checks only if later changes invalidate this exact 138 MHz/divider-1 evidence |
 
 For each future packet, record its family/assertion IDs, exact inputs, prior
 evidence reused with rationale, and `passed / failed / not run` counts. A failed
@@ -243,8 +251,8 @@ historical 20-case counts and revised family counts separately; do not add them.
 
 ## Clock and device boundary
 
-- 138 MHz, divider 1, RAM renderer, network listener on: **R1 closed**; selected
-  for 11.6; **R2 also closed**, but **not accepted for full Phase 11.5**.
+- 138 MHz, divider 1, RAM renderer, network listener on: **accepted for full
+  Phase 11.5** and selected for 11.6.
 - Physical 132/150 MHz: **untested** in 11.5. Inhibited 150 MHz is separate.
 - Selecting another clock during 11.6 requires the affected 11.5 checks and
   recalculated timing budgets; broad clock/band/spectral qualification is Phase 13.

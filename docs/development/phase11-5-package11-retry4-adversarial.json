@@ -1,0 +1,345 @@
+{
+  "schema": "phase11.5-package11-adversarial-v1",
+  "status": "PASS",
+  "mutation_count": 67,
+  "all_mutations_rejected": true,
+  "mutations": [
+    {
+      "name": "closure",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "phase",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "r6",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "source",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "boot",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "clock",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "normal-seconds",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "packet-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "rf-jobs",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "rf-duration",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "warmup",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "refresh",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "browser-actions",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "browser-gets",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "windows",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "terminal-count",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "class-cardinality",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "resource-delta",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "resource-span",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "growth",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "adjustments",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "package9",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "package10",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "package11-attempt1",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "package11-retry1",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "package11-retry2",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "package11-retry3",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "usb-reducer-retest",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retry4-credential-retest",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "credential-retest",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "clock-poll-retest",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retention-preflight",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "threshold",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "source-impact",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "admission",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "ap-host",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "ap-mac",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "client-mac",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "remote-restoration",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "budget",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "charge",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "prior-charge",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retry1-charge",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retry2-charge",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retry3-charge",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "cumulative-charge",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "flash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "reservation",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "pico-active",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "wspr5-restoration",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "capture-drop",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "raw-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "admission-result-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "admission-adversarial-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "prior-attempt-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "clock-retest-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retry1-result-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retry1-adversarial-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "credential-retest-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retry2-result-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retry2-adversarial-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retry3-result-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retry3-adversarial-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "usb-reducer-result-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "usb-reducer-adversarial-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "retry4-credential-result-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    },
+    {
+      "name": "evidence-hash",
+      "rejected": true,
+      "error_type": "ValueError"
+    }
+  ],
+  "result_sha256": "ecb31bd3518de8831a44b57347363fb2aa65398027bc1df072ae92c5823377fe",
+  "adversarial_script_sha256": "51647807cb1188f42c7c139a317b86f7e7b4c2174e09002b532c2f299d3661bc"
+}

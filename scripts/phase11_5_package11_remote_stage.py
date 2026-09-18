@@ -28,7 +28,7 @@ def main():
     schema = ("phase11.5-package11-admission-v1" if args.kind == "admission" else
               "phase11.5-package11-fixture-v1")
     authorization = ("PACKAGE11-TWO-HOST-R6" if args.kind == "admission" else
-                     "PACKAGE11-TWO-HOST-R6-RETRY3")
+                     "PACKAGE11-TWO-HOST-R6-RETRY4")
     packet = {"schema": schema, "authorization": authorization,
         "root": str(root), "remote_host": "wspr4", "remote_host_boot_id": HOST_BOOT,
         "remote_ap_if": AP_IF, "remote_ap_mac": AP_MAC,

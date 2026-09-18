@@ -54,6 +54,12 @@ def mutations(value):
         "package11_retry1_failure_preserved", False))
     add("package11-retry2", lambda v: v["diagnosis"].__setitem__(
         "package11_retry2_failure_preserved", False))
+    add("package11-retry3", lambda v: v["diagnosis"].__setitem__(
+        "package11_retry3_failure_preserved", False))
+    add("usb-reducer-retest", lambda v: v["diagnosis"].__setitem__(
+        "usb_event_reducer_repair_zero_rf_verified", False))
+    add("retry4-credential-retest", lambda v: v["diagnosis"].__setitem__(
+        "retry4_credential_repair_zero_rf_verified", False))
     add("credential-retest", lambda v: v["diagnosis"].__setitem__(
         "credential_owner_repair_zero_rf_verified", False))
     add("clock-poll-retest", lambda v: v["diagnosis"].__setitem__(
@@ -75,6 +81,8 @@ def mutations(value):
         "retry1_charged_rf_jobs", 7))
     add("retry2-charge", lambda v: v["budget"].__setitem__(
         "retry2_charged_rf_jobs", 1))
+    add("retry3-charge", lambda v: v["budget"].__setitem__(
+        "retry3_charged_rf_jobs", 8))
     add("cumulative-charge", lambda v: v["budget"].__setitem__(
         "cumulative_package11_rf_jobs", 23))
     add("flash", lambda v: v["budget"].__setitem__("flashes", 1))
@@ -101,6 +109,16 @@ def mutations(value):
         "retry2_attempt_result_sha256", "0" * 64))
     add("retry2-adversarial-hash", lambda v: v.__setitem__(
         "retry2_adversarial_sha256", "0" * 64))
+    add("retry3-result-hash", lambda v: v.__setitem__(
+        "retry3_attempt_result_sha256", "0" * 64))
+    add("retry3-adversarial-hash", lambda v: v.__setitem__(
+        "retry3_adversarial_sha256", "0" * 64))
+    add("usb-reducer-result-hash", lambda v: v.__setitem__(
+        "usb_reducer_retest_result_sha256", "0" * 64))
+    add("usb-reducer-adversarial-hash", lambda v: v.__setitem__(
+        "usb_reducer_retest_adversarial_sha256", "0" * 64))
+    add("retry4-credential-result-hash", lambda v: v.__setitem__(
+        "retry4_credential_retest_result_sha256", "0" * 64))
     add("evidence-hash", lambda v: v["evidence_sha256"].__setitem__(
         next(iter(v["evidence_sha256"])), "0" * 63))
     return result
