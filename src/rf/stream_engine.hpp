@@ -4,12 +4,17 @@
 
 namespace wsprrypico::rf {
 
+struct LaunchTarget {
+    bool admissible = false;
+    std::uint64_t monotonic_ns = 0;
+};
+
 struct LaunchGuard {
-    bool (*check)(void*) = nullptr;
+    LaunchTarget (*project)(void*) = nullptr;
     void* context = nullptr;
     std::uint64_t deadline_ns = 0; // Exclusive; zero retains strict relative bench launch.
-    [[nodiscard]] bool ready() const {
-        return !check || check(context);
+    [[nodiscard]] LaunchTarget target(std::uint64_t fallback) const {
+        return project ? project(context) : LaunchTarget{true, fallback};
     }
 };
 
@@ -81,7 +86,7 @@ class StreamEngine final : public wtp::RfEngine {
     }
 
   private:
-    static bool check_clock(void* context);
+    static LaunchTarget project_clock(void* context);
     wtp::LocalStartConditions start_conditions_{};
     bool submit_next(std::size_t slot);
     wtp::EngineReport fail(std::uint64_t now_ns, const char* reason = "sink_rejected");

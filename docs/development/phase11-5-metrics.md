@@ -95,11 +95,13 @@ is compile-time checked against the stream buffer size.
 `dma_irqs`, `tail_irqs` and `dma_errors` count handled events. The maximum DMA IRQ
 interval starts at handler entry and ends after the sink callback, before final
 metric bookkeeping and exception return. `alarm_irqs` and `max_alarm_irq_ns`
-likewise cover the alarm callback, including its launch guard and timer wait.
+likewise cover the alarm callback, including its launch guard and timer wait. A
+job can add more than one alarm IRQ when a fresh admissible UTC mapping moves
+the target later and the local timer is re-armed.
 The launch alarm is requested up to 200 microseconds early. `launch_observed_ns`
 is sampled after enabling PIO; it is not the first electrical edge.
 `launch_epoch` and `launch_target_ns` bind that successful launch to the driver's
-epoch and requested monotonic timer target, allowing host job/epoch correlation. Counters
+epoch and final reprojected monotonic timer target, allowing host job/epoch correlation. Counters
 remain cumulative across jobs on a boot; compare authoritative per-job deltas.
 Internal evidence does not replace Phase 11.6 conducted acceptance.
 

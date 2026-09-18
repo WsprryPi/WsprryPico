@@ -234,14 +234,17 @@ bool PicoPioDma::alarm(std::uint64_t start_ns, std::uint64_t epoch) {
     return !hardware_alarm_set_target(static_cast<unsigned>(alarm_), from_us_since_boot(target));
 }
 
-bool PicoPioDma::launch(std::uint64_t start_ns, std::uint64_t deadline_ns) {
+LaunchResult PicoPioDma::launch(std::uint64_t start_ns, std::uint64_t deadline_ns) {
     const auto target_us = start_ns / 1000;
     auto observed_us = time_us_64();
     if (!installed_ || start_ns % 1000 != 0 || deadline_ns <= start_ns ||
-        observed_us * 1000 >= deadline_ns ||
-        (observed_us < target_us && target_us - observed_us > 250) ||
-        pio_sm_is_tx_fifo_empty(pio_, sm_)) {
-        return false;
+        observed_us * 1000 >= deadline_ns || pio_sm_is_tx_fifo_empty(pio_, sm_)) {
+        return LaunchResult::Rejected;
+    }
+    if (observed_us < target_us && target_us - observed_us > 250) {
+        if (!alarm(start_ns, alarm_epoch_))
+            return LaunchResult::Rejected;
+        return LaunchResult::Rescheduled;
     }
     // Prime the output shift register while disabled. Autopull on the first
     // OUT would otherwise record a startup TXSTALL despite a prefilled FIFO.
@@ -252,7 +255,7 @@ bool PicoPioDma::launch(std::uint64_t start_ns, std::uint64_t deadline_ns) {
     while (observed_us < target_us)
         observed_us = time_us_64();
     if (observed_us * 1000 >= deadline_ns)
-        return false;
+        return LaunchResult::Rejected;
     pio_->fdebug = 1U << (PIO_FDEBUG_TXSTALL_LSB + sm_);
     gpio_set_outover(rf_pin, GPIO_OVERRIDE_NORMAL);
     launch_boundary_ns_ = observed_us * 1000;
@@ -261,7 +264,7 @@ bool PicoPioDma::launch(std::uint64_t start_ns, std::uint64_t deadline_ns) {
     metrics_.launch_epoch = alarm_epoch_;
     metrics_.launch_target_ns = start_ns;
     launched_ = true;
-    return true;
+    return LaunchResult::Launched;
 }
 
 PicoDriverMetrics PicoPioDma::metrics() {

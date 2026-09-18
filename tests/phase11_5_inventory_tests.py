@@ -1,4 +1,5 @@
 import copy
+import json
 from pathlib import Path
 import subprocess
 import sys
@@ -37,6 +38,36 @@ class InventoryTests(unittest.TestCase):
         self.assertEqual(receive(False), {'hash':2844794185})
         with self.assertRaisesRegex(ValueError, 'WTP/1 range'):
             receive(True)
+
+    def test_exchange_preserves_stale_console_reply_and_uses_latest(self):
+        wire = b'{"value":1}\n{"value":2}\n'
+        events = []
+        with patch('phase11_5_inventory.select.select', return_value=([7], [7], [])), \
+             patch('phase11_5_inventory.os.write', side_effect=lambda fd, data: len(data)), \
+             patch('phase11_5_inventory.os.read', return_value=wire), \
+             patch('phase11_5_inventory.time.monotonic', return_value=0):
+            value = exchange(7, b'INFO\n', 1,
+                             lambda kind, body: events.append((kind, body)), False)
+        self.assertEqual(value, {'value': 2})
+        self.assertEqual(events[-1][0], 'stale_console_reply')
+
+    def test_exchange_skips_stale_event_before_correlated_response(self):
+        request = {'session_id': 'a' * 32, 'request_id': 'b' * 32, 'op': 'STATUS'}
+        event = {'type': 'event', 'protocol': 'WTP/1',
+                 'session_id': 'c' * 32, 'event': 'SESSION_REPLACED', 'body': {}}
+        response = {'type': 'response', 'protocol': 'WTP/1', **request,
+                    'ok': True, 'body': {'state': 'empty'}}
+        wire = frame(json.dumps(event).encode()) + frame(json.dumps(response).encode())
+        events = []
+        with patch('phase11_5_inventory.select.select', return_value=([7], [7], [])), \
+             patch('phase11_5_inventory.os.write', side_effect=lambda fd, data: len(data)), \
+             patch('phase11_5_inventory.os.read', return_value=wire), \
+             patch('phase11_5_inventory.time.monotonic', return_value=0):
+            value = exchange(7, b'request', 1,
+                             lambda kind, body: events.append((kind, body)), True,
+                             expected=request)
+        self.assertEqual(value, response)
+        self.assertIn(('stale_wtp_message', event), events)
 
     def test_refuses_before_io(self):
         result = subprocess.run([sys.executable, str(Path(__file__).resolve().parents[1] /

@@ -17,10 +17,12 @@ class Hardware final : public rf::PioDmaHardware {
     Handler handler = nullptr;
     void* context = nullptr;
     std::uint64_t time = 1'000'000, epoch = 0, sequence = 0;
+    std::uint64_t last_alarm = 0, last_launch_target = 0;
+    std::optional<std::uint64_t> launch_observed_override;
     bool launch_on_unlock = false;
     bool enabled = false, busy = false, repeat = false, txstall = false;
     bool fail_open = false, fail_dma = false, fail_alarm = false, fail_halt = false;
-    unsigned opened = 0, launches = 0, depth = 0;
+    unsigned opened = 0, launches = 0, alarm_requests = 0, depth = 0;
     const std::uint32_t* data = nullptr;
     std::uint32_t count = 0;
     struct Pending {
@@ -80,21 +82,25 @@ class Hardware final : public rf::PioDmaHardware {
         busy = true;
         return true;
     }
-    bool alarm(std::uint64_t, std::uint64_t) override {
+    bool alarm(std::uint64_t start, std::uint64_t) override {
+        ++alarm_requests;
+        last_alarm = start;
         return !fail_alarm;
     }
     std::uint64_t launch_observed_ns() const override {
-        return time;
+        return launch_observed_override.value_or(time);
     }
-    bool launch(std::uint64_t start, std::uint64_t deadline) override {
+    rf::LaunchResult launch(std::uint64_t start, std::uint64_t deadline) override {
         CHECK(depth > 0);
-        if (time >= deadline || (time < start && start - time > 250000)) {
-            return false;
-        }
+        if (time >= deadline)
+            return rf::LaunchResult::Rejected;
+        if (time < start && start - time > 250000)
+            return alarm(start, epoch) ? rf::LaunchResult::Rescheduled : rf::LaunchResult::Rejected;
         time = std::max(time, start);
         enabled = true;
         ++launches;
-        return true;
+        last_launch_target = start;
+        return rf::LaunchResult::Launched;
     }
     std::uint64_t now_ns() const override {
         return time;
@@ -181,7 +187,7 @@ void queue_test() {
 }
 
 void failures_test() {
-    for (unsigned fault = 0; fault < 8; ++fault) {
+    for (unsigned fault = 0; fault < 9; ++fault) {
         Hardware hw;
         rf::PioDmaSink sink(hw);
         std::array<std::uint32_t, rf::block_words> words{};
@@ -206,6 +212,8 @@ void failures_test() {
         }
         CHECK(ok);
         hw.time = start + (fault == 3 ? 1000 : 0);
+        if (fault == 8)
+            hw.launch_observed_override = start - 1;
         hw.alarm_event(1);
         if (fault == 3) {
             CHECK(sink.poll(hw.time).state == wtp::EngineState::Missed && !hw.enabled);
@@ -225,9 +233,13 @@ void failures_test() {
             CHECK(!sink.stop(hw.time));
             CHECK(!sink.submit(1, 1, words, rf::block_samples));
             hw.fail_halt = false;
-        } else {
+        } else if (fault == 7) {
             hw.handler(hw.context, {rf::DriverEventKind::DmaError, 1, 0});
             CHECK(sink.poll(hw.time).state == wtp::EngineState::Failed);
+        } else {
+            CHECK(sink.poll(hw.time).state == wtp::EngineState::Failed);
+            CHECK(sink.diagnostic() == "invalid_launch_boundary");
+            CHECK(!hw.enabled);
         }
         CHECK(sink.stop(hw.time));
     }
@@ -369,10 +381,44 @@ void c4_clock_refinement_replay_test() {
         hw.alarm_event(1);
         hw.time = 264'396'668'000ULL;
         service.poll();
-        CHECK(hw.launches == (refined ? 0U : 1U));
-        CHECK(service.status().state == (refined ? wtp::State::Missed : wtp::State::Running));
+        CHECK(hw.launches == 1);
+        CHECK(hw.last_launch_target == (refined ? 264'396'458'000ULL : 264'396'658'000ULL));
+        CHECK(service.status().state == wtp::State::Running);
         CHECK(engine.disable(hw.time));
     }
+
+    // A refinement that moves the same UTC instant later must reproject the
+    // local timer, not transmit at the stale early target or issue a new ARM.
+    Hardware hw;
+    hw.time = 254'425'705'000ULL;
+    Clock clock(hw);
+    clock.utc_offset = 1'789'402'676'877'225'000ULL;
+    clock.uncertainty = 59'575'773;
+    Identity identity;
+    rf::PioDmaSink sink(hw);
+    rf::StreamEngine engine(sink);
+    wtp::ServiceConfig config;
+    config.maximum_arm_uncertainty_ns = 500'000'000;
+    wtp::JobService service(clock, engine, identity, config);
+    CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
+    CHECK(service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 60000}, 'b')).ok);
+    const auto payload = job(rf::sample_rate * 90ULL);
+    CHECK(service.handle(request("LOAD", payload, 'c')).ok);
+    const auto ack = service.handle(request(
+        "ARM", wtp::ArmBody{payload.job_id, 1'789'402'941'273'883'000ULL, 500'000'000}, 'd'));
+    CHECK(ack.ok && ack.start_monotonic_ns == 264'396'658'000ULL);
+    clock.utc_offset -= 25'805'000;
+    clock.uncertainty = 9'629'566;
+    hw.time = 264'396'458'000ULL;
+    hw.alarm_event(1);
+    CHECK(hw.launches == 0 && service.status().state == wtp::State::Armed);
+    CHECK(hw.alarm_requests == 2 && hw.last_alarm == 264'422'463'000ULL);
+    hw.time = 264'422'263'000ULL;
+    hw.alarm_event(1);
+    service.poll();
+    CHECK(hw.launches == 1 && service.status().state == wtp::State::Running);
+    CHECK(hw.last_launch_target == 264'422'463'000ULL);
+    CHECK(engine.disable(hw.time));
 }
 
 void quantized_end_leap_test() {
@@ -461,7 +507,7 @@ void local_launch_test() {
         // Foreground polling intentionally misses the exact launch instant.
         hw.time = start + 10'000;
         service.poll();
-        if (action == 1 || action == 2 || action >= 5) {
+        if (action == 1 || action == 2 || action == 5 || action >= 7) {
             CHECK(service.status().state == wtp::State::Missed);
             CHECK(!hw.enabled && hw.launches == 0);
         } else {

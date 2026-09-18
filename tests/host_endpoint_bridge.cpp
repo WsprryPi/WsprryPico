@@ -41,8 +41,8 @@ struct AdmissionHardware : rf::PioDmaHardware {
     std::uint64_t launch_observed_ns() const override {
         return now;
     }
-    bool launch(std::uint64_t, std::uint64_t) override {
-        return false;
+    rf::LaunchResult launch(std::uint64_t, std::uint64_t) override {
+        return rf::LaunchResult::Rejected;
     }
     std::uint64_t now_ns() const override {
         return now;

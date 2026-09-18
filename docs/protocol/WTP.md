@@ -263,10 +263,16 @@ transition. `unknown` leap status is `LEAP_UNSAFE`.
 604,800,000,000,000 ns (seven days). `minimum_arm_lead_ns` MUST be no greater
 than that advertised horizon.
 
-A successful `ARM` returns the sampled clock mapping and computed
-`start_monotonic_ns`. Immediately before enabling output, the server MUST
-recheck clock state and uncertainty. It MUST aim for the requested instant and
-MUST NOT deliberately start before it. A delayed launch is permitted only before
+A successful `ARM` returns the sampled clock mapping and initial computed
+`start_monotonic_ns`. The requested UTC timestamp is immutable after ARM, but a
+locally scheduled server MAY reproject and re-arm its not-yet-launched monotonic
+timer when a newer admissible clock sample refines that mapping. This is local
+timing maintenance, not a second client ARM, and it MUST remain within the
+requested UTC second and before the original monotonic deadline. Immediately
+before enabling output, the server MUST recheck clock state and uncertainty. It
+MUST aim for the requested UTC instant using the freshest admissible mapping
+and MUST NOT deliberately start before it. A delayed launch is permitted only
+before
 the end of the UTC second containing `start_utc_ns`: the exclusive deadline is
 `start_utc_ns + (1,000,000,000 - start_utc_ns % 1,000,000,000)`, mapped to the
 same monotonic clock at ARM. This is not a rolling one-second lateness allowance.

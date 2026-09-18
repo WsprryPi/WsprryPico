@@ -127,10 +127,22 @@ void PioDmaSink::event(DriverEvent event) {
             return;
         }
         const auto deadline = guard_.deadline_ns ? guard_.deadline_ns : start_ + 1;
-        if (!guard_.ready() || !hw_.launch(start_, deadline)) {
+        const auto target = guard_.target(start_);
+        if (!target.admissible || target.monotonic_ns >= deadline) {
             state_ = hw_.halt(hw_.now_ns()) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
-        } else {
-            launch_ns_ = hw_.launch_observed_ns();
+            return;
+        }
+        start_ = target.monotonic_ns;
+        const auto launch = hw_.launch(start_, deadline);
+        if (launch == LaunchResult::Rejected) {
+            state_ = hw_.halt(hw_.now_ns()) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
+        } else if (launch == LaunchResult::Launched) {
+            const auto observed = hw_.launch_observed_ns();
+            if (observed < start_ || observed >= deadline) {
+                fault("invalid_launch_boundary");
+                return;
+            }
+            launch_ns_ = observed;
             start_ = *launch_ns_;
             state_ = wtp::EngineState::Running;
         }

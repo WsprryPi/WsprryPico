@@ -5,6 +5,7 @@
 namespace wsprrypico::rf {
 
 enum class DriverEventKind { Alarm, DmaComplete, DmaError };
+enum class LaunchResult { Launched, Rescheduled, Rejected };
 struct DriverEvent {
     DriverEventKind kind;
     std::uint64_t epoch;
@@ -24,7 +25,7 @@ class PioDmaHardware {
                      std::uint64_t epoch, std::uint64_t sequence) = 0;
     virtual bool alarm(std::uint64_t start_ns, std::uint64_t epoch) = 0;
     // Waits only inside the short prelaunch window; deadline is exclusive.
-    virtual bool launch(std::uint64_t start_ns, std::uint64_t deadline_ns) = 0;
+    virtual LaunchResult launch(std::uint64_t start_ns, std::uint64_t deadline_ns) = 0;
     [[nodiscard]] virtual std::uint64_t launch_observed_ns() const = 0;
     [[nodiscard]] virtual std::uint64_t now_ns() const = 0;
     [[nodiscard]] virtual bool stalled() const = 0;

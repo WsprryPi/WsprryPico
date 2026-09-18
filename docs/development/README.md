@@ -112,10 +112,13 @@ supersedes the open B2/D2 status in earlier investigation records below. The
 `phase11_4_three_radio_campaign_audit.py` checks a complete private series, and
 `phase11_4_three_radio_adversarial.py` checks per-case evidence mutations offline.
 
-Current [Phase 11.5 plan](phase11-5-plan.md) organizes six acceptance families
-with realistic normal traffic separated from stress and overload. The
-[current ledger](phase11-5-acceptance-ledger.md) records **4 of 6 revised families
-closed**, useful existing evidence and an empty accepted-configuration list.
+The historical [Phase 11.5 plan](phase11-5-plan.md) organizes six acceptance
+families with realistic normal traffic separated from stress and overload. At
+the checkpoint retained in the following paragraphs, the ledger recorded
+**4 of 6 revised families closed** and an empty accepted-configuration list.
+The authoritative current section at the top of this file and the
+[current ledger](phase11-5-acceptance-ledger.md) now close all 6/6 families for
+the recorded 138 MHz/divider-1 configuration.
 The [documentation reorganization review](phase11-5-test-reorganization-review.md)
 maps all 20 legacy cases without changing code, runners or historical results.
 The historical e20ae8b [R1 executor and review](phase11-5-r1-review.md) close **5 of 5 assertions**:
@@ -125,7 +128,8 @@ matched quiet retention, stack guards and observer costs. This covers the exact
 150 MHz regression. Both boards and host were restored, including permanent
 time.local. Earlier DNS failures and a later unlocalized Mac NTP timeout remain
 preserved. No RF jobs ran in that historical R1 campaign; the later R2 closure
-is recorded above. Package 6 and the R3–R6 family closeouts remain outstanding.
+is recorded above. Package 6 and the R3–R6 closeouts were still outstanding at
+that checkpoint; the current section records their later closure.
 
 Historical [Phase 11.5 review](phase11-5-review.md),
 [metric definitions](phase11-5-metrics.md) and the bounded

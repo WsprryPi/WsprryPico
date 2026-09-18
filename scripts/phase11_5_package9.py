@@ -347,9 +347,10 @@ def wait_for_normalizer_readiness(root, packet, journal, session, label="initial
     raise TimeoutError("Normalizer network/clock readiness deadline")
 
 
-def resource_gate(info):
+def resource_gate(info, expected_boot=BOOT):
     require(info["device_id"] == DEVICE and info["revision"] == SOURCE[:12] and
-            info["status"]["boot_id"] == BOOT and info["system_clock_hz"] == 138_000_000 and
+            info["status"]["boot_id"] == expected_boot and
+            info["system_clock_hz"] == 138_000_000 and
             info["status"]["engine"] == "pio-dma-gp2" and info["rf_render_in_ram"] is True,
             "Console identity/configuration")
     require(info["core0_stack_guard_valid"] == info["core1_stack_guard_valid"] == 1 and
@@ -423,9 +424,10 @@ def wait_for_readiness_session_release(packet, journal):
 
 
 class ConsoleObserver(threading.Thread):
-    def __init__(self, journal, stop):
+    def __init__(self, journal, stop, expected_boot=BOOT):
         super().__init__(name="package9-console")
         self.journal, self.stop, self.failure, self.latest = journal, stop, None, None
+        self.expected_boot = expected_boot
         self.starts = []
 
     def run(self):
@@ -442,7 +444,7 @@ class ConsoleObserver(threading.Thread):
                                     lambda kind, value: self.journal.emit(
                                         "console_" + kind, value), False)
                     ended = time.monotonic_ns()
-                    resource_gate(info)
+                    resource_gate(info, self.expected_boot)
                     self.starts.append(began)
                     self.latest = info
                     self.journal.emit("console_info", {"began_monotonic_ns": began,
@@ -491,10 +493,15 @@ class HostObserver(threading.Thread):
 
 
 class UsbStatusObserver(threading.Thread):
-    def __init__(self, journal, stop, session, cycle):
+    def __init__(self, journal, stop, session, cycle, expected_boot=BOOT,
+                 observe_clock=False):
         super().__init__(name=f"package9-usb-{cycle}")
         self.journal, self.stop, self.session, self.cycle = journal, stop, session, cycle
         self.failure, self.starts, self.states, self.latest = None, [], set(), None
+        self.expected_boot = expected_boot
+        self.observe_clock = observe_clock
+        self.clock = None
+        self.ready = threading.Event()
         self.jobs, self.event_states, self.event_jobs = set(), set(), set()
         self.last_event_id = None
 
@@ -502,7 +509,8 @@ class UsbStatusObserver(threading.Thread):
         """Preserve lifecycle events left pending while a STATUS reply is selected."""
         while peer.pending:
             value = peer.pending.popleft()
-            require(value.get("type") == "event" and value.get("boot_id") == BOOT,
+            require(value.get("type") == "event"
+                    and value.get("boot_id") == self.expected_boot,
                     "USB observer event identity")
             raw_id = value.get("event_id")
             require(isinstance(raw_id, str) and raw_id.isdigit() and
@@ -516,7 +524,12 @@ class UsbStatusObserver(threading.Thread):
             if value.get("event") == "JOB_STATE":
                 state = value["body"]["state"]
                 job = value["body"].get("job_id")
-                require(state in {"loaded", "armed", "running", "complete", "empty"} and
+                # Preserve adverse terminal events as evidence.  Success
+                # validators below still require the complete lifecycle, but
+                # an abort/miss/failure must not kill the independent observer
+                # before its final authoritative STATUS is recorded.
+                require(state in {"loaded", "armed", "running", "complete",
+                                  "aborted", "missed", "failed", "empty"} and
                         type(value["body"].get("output_active")) is bool and
                         value["body"]["output_active"] is (state == "running") and
                         ((state == "empty" and job is None) or
@@ -531,10 +544,31 @@ class UsbStatusObserver(threading.Thread):
             from rf_wtp import WtpPeer
             with exclusive_port(Path(str(BASE) + "-if02")) as fd:
                 peer = WtpPeer(fd, session=self.session)
-                hello = peer.request("HELLO", {"versions": ["WTP/1"],
-                    "client_name": f"phase11-5-package9-observer-{self.cycle}",
-                    "client_version": "1"}, timeout=5)
-                require(hello["device_id"] == DEVICE and hello["boot_id"] == BOOT,
+                deadline = time.monotonic() + 90
+                attempt = 0
+                while True:
+                    attempt += 1
+                    try:
+                        hello = peer.request("HELLO", {"versions": ["WTP/1"],
+                            "client_name": f"phase11-5-package9-observer-{self.cycle}",
+                            "client_version": "1"}, timeout=5)
+                        break
+                    except RuntimeError as error:
+                        detail = error.args[0] if error.args else None
+                        retryable = (isinstance(detail, dict)
+                            and detail.get("code") == "BUSY"
+                            and detail.get("retryable") is True)
+                        if not retryable or time.monotonic() >= deadline:
+                            raise
+                        self.journal.emit("usb_admission_busy", {
+                            "cycle": self.cycle, "attempt": attempt,
+                            "remaining_seconds": deadline - time.monotonic(),
+                        })
+                        self.stop.wait(min(5, max(0, deadline - time.monotonic())))
+                        require(not self.stop.is_set(),
+                                "USB observer stopped during admission")
+                require(hello["device_id"] == DEVICE
+                        and hello["boot_id"] == self.expected_boot,
                         "USB observer identity")
                 due = time.monotonic()
                 while not self.stop.is_set():
@@ -543,15 +577,22 @@ class UsbStatusObserver(threading.Thread):
                         self.stop.wait(min(.1, due - now))
                         continue
                     began = time.monotonic_ns()
+                    if self.observe_clock:
+                        self.clock = peer.request("GET_CLOCK", {}, timeout=5)
+                        self.journal.emit("usb_clock", {
+                            "cycle": self.cycle, "value": self.clock,
+                        })
                     status = peer.request("STATUS", {}, timeout=5)
                     self.consume_events(peer)
                     ended = time.monotonic_ns()
-                    require(status["boot_id"] == BOOT, "USB observer boot")
+                    require(status["boot_id"] == self.expected_boot,
+                            "USB observer boot")
                     self.starts.append(began)
                     self.states.add(status["state"])
                     if status.get("job_id"):
                         self.jobs.add(status["job_id"])
                     self.latest = status
+                    self.ready.set()
                     self.journal.emit("usb_status", {"cycle": self.cycle,
                         "began_monotonic_ns": began, "ended_monotonic_ns": ended,
                         "value": status})
@@ -559,6 +600,7 @@ class UsbStatusObserver(threading.Thread):
                     require(time.monotonic() - due <= 1, "USB STATUS cadence lost")
         except BaseException as error:
             self.failure = f"{type(error).__name__}: {error}"
+            self.ready.set()
             self.journal.emit("observer_failure", {"observer": "usb-status",
                               "cycle": self.cycle, "error": self.failure})
             self.stop.set()

@@ -33,7 +33,7 @@ bool StreamEngine::schedule(const wtp::Job& job, std::uint64_t start_ns,
     return begin(job, start_ns + start_conditions_.start_adjustment_ns);
 }
 
-bool StreamEngine::check_clock(void* context) {
+LaunchTarget StreamEngine::project_clock(void* context) {
     const auto& self = *static_cast<StreamEngine*>(context);
     const auto& conditions = self.start_conditions_;
     const auto now = conditions.clock->snapshot();
@@ -42,27 +42,39 @@ bool StreamEngine::check_clock(void* context) {
         !(now.state == wtp::ClockState::Synchronized ||
           (now.state == wtp::ClockState::Holdover && conditions.maximum_holdover_age_ns > 0 &&
            now.sync_age_ns <= conditions.maximum_holdover_age_ns))) {
-        return false;
+        return {};
     }
-    const auto early = now.monotonic_now_ns <= self.start_ns_;
-    const auto delta =
-        early ? self.start_ns_ - now.monotonic_now_ns : now.monotonic_now_ns - self.start_ns_;
     const auto duration = self.end_ns_ - self.start_ns_;
     const auto limit = std::numeric_limits<std::uint64_t>::max();
-    if ((early && now.utc_now_ns > limit - delta) || (!early && now.utc_now_ns < delta) ||
+    const auto window = wtp::start_window_ns(conditions.start_utc_ns);
+    if (conditions.start_utc_ns > limit - window ||
+        now.utc_now_ns >= conditions.start_utc_ns + window ||
         conditions.start_utc_ns > limit - duration) {
-        return false;
+        return {};
     }
-    const auto predicted = early ? now.utc_now_ns + delta : now.utc_now_ns - delta;
-    const auto error = predicted > conditions.start_utc_ns ? predicted - conditions.start_utc_ns
-                                                           : conditions.start_utc_ns - predicted;
+    auto target = now.monotonic_now_ns;
+    if (now.utc_now_ns < conditions.start_utc_ns) {
+        const auto remaining = conditions.start_utc_ns - now.utc_now_ns;
+        if (target > limit - remaining)
+            return {};
+        target += remaining;
+    }
+    // Reproject the immutable UTC request in both directions. If refinement
+    // shows that its instant has already passed, target now and take the
+    // permitted late launch inside the originally admitted UTC second.
+    const auto resolution = self.start_resolution_ns();
+    if (!resolution)
+        return {};
+    const auto rounding = (resolution - target % resolution) % resolution;
+    if (target > limit - rounding)
+        return {};
+    target += rounding;
     const auto pending =
         now.leap == wtp::LeapState::InsertPending || now.leap == wtp::LeapState::DeletePending;
-    if (error > conditions.maximum_uncertainty_ns - now.uncertainty_ns ||
-        (error > now.uncertainty_ns &&
-         error - now.uncertainty_ns > conditions.start_adjustment_ns) ||
+    if (target >= self.launch_deadline_ns_ ||
+        rounding > conditions.maximum_uncertainty_ns - now.uncertainty_ns ||
         now.leap == wtp::LeapState::Unknown || pending != now.leap_transition_utc_ns.has_value()) {
-        return false;
+        return {};
     }
     if (now.leap_transition_utc_ns) {
         const auto leap = *now.leap_transition_utc_ns;
@@ -70,10 +82,11 @@ bool StreamEngine::check_clock(void* context) {
         const auto high = leap > limit - 1'000'000'000 ? limit : leap + 1'000'000'000;
         const auto latest_start =
             conditions.start_utc_ns + wtp::start_window_ns(conditions.start_utc_ns) - 1;
-        return conditions.start_utc_ns > high ||
-               (latest_start <= limit - duration && latest_start + duration < low);
+        if (!(conditions.start_utc_ns > high ||
+              (latest_start <= limit - duration && latest_start + duration < low)))
+            return {};
     }
-    return true;
+    return {true, target};
 }
 
 bool StreamEngine::set_frequency_correction_ppb(std::int32_t ppb) {
@@ -147,7 +160,7 @@ bool StreamEngine::begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) 
     launch_ns_.reset();
     if (!submit_next(0) || !submit_next(1) ||
         !sink_.arm(epoch_, start_ns_, plan_.total_samples,
-                   start_conditions_.clock ? LaunchGuard{check_clock, this, launch_deadline_ns_}
+                   start_conditions_.clock ? LaunchGuard{project_clock, this, launch_deadline_ns_}
                                            : LaunchGuard{})) {
         (void)fail(start_ns_, failure_);
         return false;
@@ -177,7 +190,7 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
     }
     if (report.launch_monotonic_ns) {
         if ((launch_ns_ && launch_ns_ != report.launch_monotonic_ns) ||
-            *report.launch_monotonic_ns < start_ns_ || *report.launch_monotonic_ns > now_ns ||
+            *report.launch_monotonic_ns > now_ns ||
             (!launch_ns_ && start_conditions_.clock &&
              *report.launch_monotonic_ns >= launch_deadline_ns_))
             return fail(now_ns, "invalid_launch_observation");

@@ -1,0 +1,1143 @@
+{
+  "schema": "phase11.6-matrix-v3",
+  "plan_sha256": "9324f6057ae8f4e552375919836bbe4e0c30176405eedaf3915f0ab67d929556",
+  "phase_status": "OPEN",
+  "rows": [
+    {
+      "band": "2200m",
+      "nominal_frequency_hz": 137500,
+      "mode": "TONE",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "2200m",
+      "nominal_frequency_hz": 137500,
+      "mode": "WSPR",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "2200m",
+      "nominal_frequency_hz": 137500,
+      "mode": "QRSS",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "2200m",
+      "nominal_frequency_hz": 137500,
+      "mode": "FSKCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "2200m",
+      "nominal_frequency_hz": 137500,
+      "mode": "DFCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "630m",
+      "nominal_frequency_hz": 475700,
+      "mode": "TONE",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "630m",
+      "nominal_frequency_hz": 475700,
+      "mode": "WSPR",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "630m",
+      "nominal_frequency_hz": 475700,
+      "mode": "QRSS",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "630m",
+      "nominal_frequency_hz": 475700,
+      "mode": "FSKCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "630m",
+      "nominal_frequency_hz": 475700,
+      "mode": "DFCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "160m",
+      "nominal_frequency_hz": 1838100,
+      "mode": "TONE",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "160m",
+      "nominal_frequency_hz": 1838100,
+      "mode": "WSPR",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "160m",
+      "nominal_frequency_hz": 1838100,
+      "mode": "QRSS",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "160m",
+      "nominal_frequency_hz": 1838100,
+      "mode": "FSKCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "160m",
+      "nominal_frequency_hz": 1838100,
+      "mode": "DFCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "80m",
+      "nominal_frequency_hz": 3570100,
+      "mode": "TONE",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "80m",
+      "nominal_frequency_hz": 3570100,
+      "mode": "WSPR",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "80m",
+      "nominal_frequency_hz": 3570100,
+      "mode": "QRSS",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "80m",
+      "nominal_frequency_hz": 3570100,
+      "mode": "FSKCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "80m",
+      "nominal_frequency_hz": 3570100,
+      "mode": "DFCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "60m",
+      "nominal_frequency_hz": 5288700,
+      "mode": "TONE",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "60m",
+      "nominal_frequency_hz": 5288700,
+      "mode": "WSPR",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "60m",
+      "nominal_frequency_hz": 5288700,
+      "mode": "QRSS",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "60m",
+      "nominal_frequency_hz": 5288700,
+      "mode": "FSKCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "60m",
+      "nominal_frequency_hz": 5288700,
+      "mode": "DFCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "40m",
+      "nominal_frequency_hz": 7040100,
+      "mode": "TONE",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "40m",
+      "nominal_frequency_hz": 7040100,
+      "mode": "WSPR",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "40m",
+      "nominal_frequency_hz": 7040100,
+      "mode": "QRSS",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "40m",
+      "nominal_frequency_hz": 7040100,
+      "mode": "FSKCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "40m",
+      "nominal_frequency_hz": 7040100,
+      "mode": "DFCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "30m",
+      "nominal_frequency_hz": 10140200,
+      "mode": "TONE",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "30m",
+      "nominal_frequency_hz": 10140200,
+      "mode": "WSPR",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "30m",
+      "nominal_frequency_hz": 10140200,
+      "mode": "QRSS",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "30m",
+      "nominal_frequency_hz": 10140200,
+      "mode": "FSKCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "30m",
+      "nominal_frequency_hz": 10140200,
+      "mode": "DFCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "20m",
+      "nominal_frequency_hz": 14097100,
+      "mode": "TONE",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "20m",
+      "nominal_frequency_hz": 14097100,
+      "mode": "WSPR",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "20m",
+      "nominal_frequency_hz": 14097100,
+      "mode": "QRSS",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "20m",
+      "nominal_frequency_hz": 14097100,
+      "mode": "FSKCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "20m",
+      "nominal_frequency_hz": 14097100,
+      "mode": "DFCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "17m",
+      "nominal_frequency_hz": 18106100,
+      "mode": "TONE",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "17m",
+      "nominal_frequency_hz": 18106100,
+      "mode": "WSPR",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "17m",
+      "nominal_frequency_hz": 18106100,
+      "mode": "QRSS",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "17m",
+      "nominal_frequency_hz": 18106100,
+      "mode": "FSKCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "17m",
+      "nominal_frequency_hz": 18106100,
+      "mode": "DFCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "15m",
+      "nominal_frequency_hz": 21096100,
+      "mode": "TONE",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "15m",
+      "nominal_frequency_hz": 21096100,
+      "mode": "WSPR",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "15m",
+      "nominal_frequency_hz": 21096100,
+      "mode": "QRSS",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "15m",
+      "nominal_frequency_hz": 21096100,
+      "mode": "FSKCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "15m",
+      "nominal_frequency_hz": 21096100,
+      "mode": "DFCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "12m",
+      "nominal_frequency_hz": 24926100,
+      "mode": "TONE",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "12m",
+      "nominal_frequency_hz": 24926100,
+      "mode": "WSPR",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "12m",
+      "nominal_frequency_hz": 24926100,
+      "mode": "QRSS",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "12m",
+      "nominal_frequency_hz": 24926100,
+      "mode": "FSKCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "12m",
+      "nominal_frequency_hz": 24926100,
+      "mode": "DFCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "10m",
+      "nominal_frequency_hz": 28126100,
+      "mode": "TONE",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "10m",
+      "nominal_frequency_hz": 28126100,
+      "mode": "WSPR",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "10m",
+      "nominal_frequency_hz": 28126100,
+      "mode": "QRSS",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "10m",
+      "nominal_frequency_hz": 28126100,
+      "mode": "FSKCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "10m",
+      "nominal_frequency_hz": 28126100,
+      "mode": "DFCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "6m",
+      "nominal_frequency_hz": 50294500,
+      "mode": "TONE",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "6m",
+      "nominal_frequency_hz": 50294500,
+      "mode": "WSPR",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "6m",
+      "nominal_frequency_hz": 50294500,
+      "mode": "QRSS",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "6m",
+      "nominal_frequency_hz": 50294500,
+      "mode": "FSKCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "6m",
+      "nominal_frequency_hz": 50294500,
+      "mode": "DFCW",
+      "disposition": "NOT TESTED",
+      "reason": "awaiting immutable physical packet",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "4m",
+      "nominal_frequency_hz": 70092500,
+      "mode": "TONE",
+      "disposition": "UNSUPPORTED_CONFIGURATION",
+      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "4m",
+      "nominal_frequency_hz": 70092500,
+      "mode": "WSPR",
+      "disposition": "UNSUPPORTED_CONFIGURATION",
+      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "4m",
+      "nominal_frequency_hz": 70092500,
+      "mode": "QRSS",
+      "disposition": "UNSUPPORTED_CONFIGURATION",
+      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "4m",
+      "nominal_frequency_hz": 70092500,
+      "mode": "FSKCW",
+      "disposition": "UNSUPPORTED_CONFIGURATION",
+      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "4m",
+      "nominal_frequency_hz": 70092500,
+      "mode": "DFCW",
+      "disposition": "UNSUPPORTED_CONFIGURATION",
+      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "2m",
+      "nominal_frequency_hz": 144490500,
+      "mode": "TONE",
+      "disposition": "UNSUPPORTED_CONFIGURATION",
+      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "2m",
+      "nominal_frequency_hz": 144490500,
+      "mode": "WSPR",
+      "disposition": "UNSUPPORTED_CONFIGURATION",
+      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "2m",
+      "nominal_frequency_hz": 144490500,
+      "mode": "QRSS",
+      "disposition": "UNSUPPORTED_CONFIGURATION",
+      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "2m",
+      "nominal_frequency_hz": 144490500,
+      "mode": "FSKCW",
+      "disposition": "UNSUPPORTED_CONFIGURATION",
+      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    },
+    {
+      "band": "2m",
+      "nominal_frequency_hz": 144490500,
+      "mode": "DFCW",
+      "disposition": "UNSUPPORTED_CONFIGURATION",
+      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
+      "attempts": [],
+      "assertions": {
+        "decoding_or_readability": null,
+        "frequency_spacing_and_timing": null,
+        "network_lifecycle": null,
+        "instrument_capture_validity": null,
+        "diagnostic_spectrum": null
+      }
+    }
+  ],
+  "integration_cases": [],
+  "accounting": {
+    "attempted": 0,
+    "accepted": 0,
+    "rejected": 0,
+    "aborted": 0,
+    "uncertain": 0,
+    "completed": 0,
+    "charged_jobs": 0,
+    "charged_planned_rf_seconds": 0
+  }
+}

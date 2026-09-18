@@ -99,9 +99,10 @@ def exclusive_port(path):
                 primary_error.add_note('USB cleanup also failed: ' + repr(error))
 
 
-def exchange(fd, data, deadline, emit, framed):
+def exchange(fd, data, deadline, emit, framed, expected=None):
     emit('tx', {'hex': data.hex()})
     pending, received = data, bytearray()
+    skipped = 0
     while True:
         left = deadline - time.monotonic()
         if left <= 0:
@@ -120,20 +121,42 @@ def exchange(fd, data, deadline, emit, framed):
             require(bool(part), 'USB EOF')
             emit('rx', {'hex': part.hex()})
             received.extend(part)
-            require(len(received) <= 65552, 'Oversized inventory response')
+            require(len(received) <= 131104, 'Oversized inventory response')
         if not framed and b'\n' in received:
-            require(received.endswith(b'\n') and received.count(b'\n') == 1, 'Console framing')
+            require(received.endswith(b'\n'), 'Console framing')
             require(not pending, 'Response before request completed')
-            return loads_console(received.decode().strip())
-        if framed and len(received) >= 16:
-            magic, version, encoding, flags, size, crc = struct.unpack('>4sBBHII', received[:16])
-            require((magic, version, encoding, flags) == (b'WTPF', 1, 1, 0) and
-                    1 <= size <= 65536, 'WTP header')
-            if len(received) >= 16 + size:
-                require(not pending and len(received) == 16 + size, 'WTP framing suffix')
-                payload = received[16:]
-                require(crc32c(payload) == crc, 'WTP CRC')
-                return loads_strict(payload.decode())
+            lines = [line for line in received.splitlines() if line]
+            require(lines and len(lines) <= 4, 'Console response count')
+            # An abruptly stopped observer can leave one complete INFO reply in
+            # the CDC queue.  Preserve it and use the last complete line, which
+            # is the reply to this request.
+            for line in lines[:-1]:
+                emit('stale_console_reply', {'hex': line.hex()})
+            return loads_console(lines[-1].decode())
+        while framed and len(received) >= 16:
+            magic, version, encoding, flags, size, crc = struct.unpack(
+                '>4sBBHII', received[:16]
+            )
+            require((magic, version, encoding, flags) == (b'WTPF', 1, 1, 0)
+                    and 1 <= size <= 65536, 'WTP header')
+            if len(received) < 16 + size:
+                break
+            require(not pending, 'Response before request completed')
+            payload = bytes(received[16:16 + size])
+            del received[:16 + size]
+            require(crc32c(payload) == crc, 'WTP CRC')
+            value = loads_strict(payload.decode())
+            if expected is None:
+                require(not received, 'WTP framing suffix')
+                return value
+            if (value.get('type') == 'response'
+                    and all(value.get(key) == expected[key]
+                            for key in ('session_id', 'request_id', 'op'))):
+                require(not received, 'WTP response suffix')
+                return value
+            skipped += 1
+            require(skipped <= 32, 'Excess stale WTP messages')
+            emit('stale_wtp_message', value)
 
 
 def main():
@@ -179,8 +202,11 @@ def main():
                                request_id=uuid.uuid4().hex, op=op,
                                body={'versions': ['WTP/1'], 'client_name': 'phase11-5-inventory',
                                      'client_version': '1'} if op == 'HELLO' else {})
-                response = exchange(fd, frame(json.dumps(request, separators=(',', ':')).encode()),
-                                    min(end, time.monotonic() + 5), emit, True)
+                response = exchange(
+                    fd,
+                    frame(json.dumps(request, separators=(',', ':')).encode()),
+                    min(end, time.monotonic() + 5), emit, True, expected=request,
+                )
                 require(not validator.errors(response, schema), 'WTP schema')
                 require(response['type'] == 'response' and response.get('ok') is True and
                         all(response[key] == request[key] for key in ('session_id', 'request_id', 'op')),
