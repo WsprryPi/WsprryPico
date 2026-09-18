@@ -40,6 +40,9 @@ PEER_SHA256 = "06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016"
 CAPTURE_RATE = 250_000
 CAPTURE_BANDWIDTH = 200_000
 CAPTURE_GAIN = 20
+CAPTURE_HELPER_SHA256 = (
+    "b98de116d696846b88eea1b3ad3f1b2a471052fa2ca440f4234fec7087dc5a03"
+)
 MINIMUM_ARM_LEAD_NS = 8_000_000_000
 # The browser-owned path must still compile the compact form and complete
 # HELLO/CLAIM/LOAD_MESSAGE after the submit marker is written.  The accepted
@@ -82,6 +85,15 @@ def configure_capture_validator(source: Path) -> dict:
 def sha256(path: Path) -> str:
     with path.open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def require_capture_helper(path: Path) -> Path:
+    """Require the exact reviewed native SDR helper before physical access."""
+    helper = path.resolve(strict=True)
+    if (not helper.is_file() or not os.access(helper, os.X_OK)
+            or sha256(helper) != CAPTURE_HELPER_SHA256):
+        raise ValueError("Exact reviewed capture helper identity required")
+    return helper
 
 
 def wait_observer_readiness(console: ConsoleObserver, usb: UsbStatusObserver,

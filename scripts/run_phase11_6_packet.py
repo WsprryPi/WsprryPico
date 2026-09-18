@@ -14,8 +14,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "src"))
 
 from phase11_6.live import (Journal, configure_capture_validator,
-                            execute_browser_job, execute_controller_job, save,
-                            settled_inventory, sha256)
+                            execute_browser_job, execute_controller_job,
+                            require_capture_helper, save, settled_inventory,
+                            sha256)
 from phase11_6.plan import (PEER_DEVICE_ID, PEER_SERIAL, PICO_DEVICE_ID, PICO_SERIAL,
                             digest, validate)
 from phase11_5_rf_reservation import Reservation
@@ -66,7 +67,7 @@ def main() -> int:
         raise ValueError("Private output root required")
     if any(output.iterdir()):
         raise ValueError("Fresh output root required")
-    helper = args.capture_helper.resolve(strict=True)
+    helper = require_capture_helper(args.capture_helper)
     validator = configure_capture_validator(args.qualification_src)
     journal = Journal(output / "execution.jsonl")
     reservation = Reservation(args.attempt_sha256)

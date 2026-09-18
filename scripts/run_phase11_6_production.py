@@ -14,8 +14,8 @@ sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "src"))
 
 from phase11_6.live import (Journal, configure_capture_validator,
-                            execute_production_job, save, settled_inventory,
-                            sha256)
+                            execute_production_job, require_capture_helper, save,
+                            settled_inventory, sha256)
 from phase11_6.plan import (PEER_DEVICE_ID, PEER_SERIAL, PICO_DEVICE_ID,
                             PICO_SERIAL, digest, validate)
 from phase11_5_rf_reservation import Reservation
@@ -24,21 +24,10 @@ from phase11_6_attempt import check as validate_attempt, packet_digest
 
 CORRECTIVE_JOB = "160m:QRSS:0:production:nominal"
 CORRECTIVE_SEQUENCE = 44
-CAPTURE_HELPER_SHA256 = (
-    "b98de116d696846b88eea1b3ad3f1b2a471052fa2ca440f4234fec7087dc5a03"
-)
 CORRECTIVE_REASON = (
     "Corrective repaired-candidate armed-interval clock-refinement "
     "requalification after verified capture-helper identity correction"
 )
-
-
-def require_capture_helper(path: Path) -> Path:
-    helper = path.resolve(strict=True)
-    if (not os.access(helper, os.X_OK)
-            or sha256(helper) != CAPTURE_HELPER_SHA256):
-        raise ValueError("Exact reviewed capture helper identity required")
-    return helper
 
 
 def main() -> int:

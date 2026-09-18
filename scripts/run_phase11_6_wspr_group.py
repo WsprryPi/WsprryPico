@@ -15,8 +15,9 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from phase11_5_inventory import require
 from phase11_5_rf_reservation import Reservation
-from phase11_6.live import (Journal, configure_capture_validator, save,
-                            settled_inventory, sha256)
+from phase11_6.live import (Journal, configure_capture_validator,
+                            require_capture_helper, save, settled_inventory,
+                            sha256)
 from phase11_6.plan import (PEER_DEVICE_ID, PEER_SERIAL, PICO_DEVICE_ID,
                             PICO_SERIAL, digest, validate)
 from phase11_6.wspr_group import execute_wspr_group, group_digest, validate_group
@@ -69,7 +70,7 @@ def main() -> int:
     output.mkdir(mode=0o700, parents=True)
     require(not output.stat().st_mode & 0o077 and not any(output.iterdir()),
             "Fresh private output root")
-    helper = args.capture_helper.resolve(strict=True)
+    helper = require_capture_helper(args.capture_helper)
     validator = configure_capture_validator(args.qualification_src)
     binary = args.production_binary.resolve(strict=True)
     require(binary.is_file() and os.access(binary, os.X_OK),

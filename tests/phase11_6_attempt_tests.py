@@ -22,10 +22,12 @@ from phase11_6.live import (BROWSER_ARM_LEAD_NS, MINIMUM_ARM_LEAD_NS,
                             NetworkPeer, RetryableWtpBusy,
                             armed_clock_refinement, configure_capture_validator,
                             production_command,
+                            require_capture_helper,
                             render_production_ini, settled_inventory,
                             usb_completion,
                             wait_observer_readiness)  # noqa: E402
 import phase11_5_package9 as package9  # noqa: E402
+import phase11_6.live as live_module  # noqa: E402
 from validate_wtp_contract import frame  # noqa: E402
 from phase11_6_attempt import (  # noqa: E402
     DIRECT_TOOLS,
@@ -34,7 +36,6 @@ from phase11_6_attempt import (  # noqa: E402
     effective_job,
                            )
 from reconcile_phase11_6 import release_safe  # noqa: E402
-import run_phase11_6_production as production_runner  # noqa: E402
 from analyze_phase11_6 import bind_run_result  # noqa: E402
 
 
@@ -202,24 +203,32 @@ class Phase116AttemptTests(unittest.TestCase):
         self.assertIn('attempt["sequence"] == CORRECTIVE_SEQUENCE', source)
         self.assertIn('attempt["maximum_submissions"] == 1', source)
         self.assertIn('attempt["automatic_retries"] == 0', source)
-        self.assertIn("CAPTURE_HELPER_SHA256", source)
-        self.assertIn("Exact reviewed capture helper identity required", source)
+        self.assertIn("require_capture_helper", source)
+
+    def test_every_physical_runner_requires_reviewed_capture_helper(self):
+        for name in (
+                "run_phase11_6_production.py", "run_phase11_6_packet.py",
+                "run_phase11_6_wspr_group.py"):
+            source = (ROOT / "scripts" / name).read_text()
+            self.assertIn("require_capture_helper", source, name)
+            self.assertIn("helper = require_capture_helper(args.capture_helper)",
+                          source, name)
 
     def test_capture_helper_identity_is_checked_before_use(self):
         with tempfile.TemporaryDirectory() as temporary:
             helper = Path(temporary) / "capture-helper"
             helper.write_bytes(b"reviewed helper fixture")
             expected = hashlib.sha256(helper.read_bytes()).hexdigest()
-            with mock.patch.object(production_runner, "CAPTURE_HELPER_SHA256", expected):
+            with mock.patch.object(live_module, "CAPTURE_HELPER_SHA256", expected):
                 with self.assertRaisesRegex(ValueError, "Exact reviewed"):
-                    production_runner.require_capture_helper(helper)
+                    require_capture_helper(helper)
                 helper.chmod(0o700)
                 self.assertEqual(
-                    production_runner.require_capture_helper(helper), helper.resolve()
+                    require_capture_helper(helper), helper.resolve()
                 )
                 helper.write_bytes(b"changed helper fixture")
                 with self.assertRaisesRegex(ValueError, "Exact reviewed"):
-                    production_runner.require_capture_helper(helper)
+                    require_capture_helper(helper)
 
     def test_analysis_binds_actual_runtime_job_and_capture_hashes(self):
         actual = "a" * 32
