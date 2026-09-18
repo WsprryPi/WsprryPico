@@ -6,7 +6,8 @@ if(!process.argv.includes('--run')) {console.log('Plan only; no browser or targe
 const arg=n=>process.argv[process.argv.indexOf(n)+1];
 const root=path.resolve(arg('--root')),jobId=arg('--job-id'),seconds=Number(arg('--seconds')),refreshMs=Number(arg('--refresh-ms'));
 assert(Number.isFinite(seconds)&&seconds>0&&seconds<=3700);assert(Number.isFinite(refreshMs)&&refreshMs>=250&&refreshMs<=60000);assert(jobId==='any'||/^[0-9a-f]{32}$/.test(jobId));
-const ORIGIN='https://wsprrypico-0a60df.local:18443';
+const HOST='wsprrypico-0a60df.local',ADDRESS='10.77.15.10';
+const ORIGIN='https://'+HOST+':18443';
 const PEER='06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016';
 const BOOT='b72fed2c17583cc7aba0f1345f76a3b2';
 const WebSocket=require('/usr/share/nodejs/ws');
@@ -25,13 +26,13 @@ async function refresh(){await until(()=>evaluate('!busy'),15);await evaluate("$
 async function requiredRefresh(seconds=30){let value=null;await until(async()=>{value=await refresh();return value!==null;},seconds);return value;}
 (async()=>{
   emit('start',{job_id:jobId,seconds,refresh_interval_ms:refreshMs});const profile=root+'/chrome';assert(!fs.existsSync(profile));fs.mkdirSync(profile);
-  chrome=spawn('/usr/bin/chromium',['--headless=new','--no-sandbox','--disable-gpu','--disable-background-networking','--no-first-run','--no-default-browser-check','--disable-component-update','--disable-sync','--no-proxy-server','--remote-debugging-port=0','--user-data-dir='+profile,'about:blank'],{stdio:['ignore',fs.openSync(root+'/chrome.stdout','wx'),fs.openSync(root+'/chrome.stderr','wx')]});
+  chrome=spawn('/usr/bin/chromium',['--headless=new','--no-sandbox','--disable-gpu','--disable-background-networking','--no-first-run','--no-default-browser-check','--disable-component-update','--disable-sync','--no-proxy-server','--host-resolver-rules=MAP '+HOST+' '+ADDRESS+', EXCLUDE localhost','--remote-debugging-port=0','--user-data-dir='+profile,'about:blank'],{stdio:['ignore',fs.openSync(root+'/chrome.stdout','wx'),fs.openSync(root+'/chrome.stderr','wx')]});
   await until(()=>fs.existsSync(profile+'/DevToolsActivePort'),20);const port=fs.readFileSync(profile+'/DevToolsActivePort','utf8').split('\n')[0];
   const tabs=await(await fetch('http://127.0.0.1:'+port+'/json')).json();socket=new WebSocket(tabs.find(t=>t.type==='page').webSocketDebuggerUrl);
   socket.on('message',raw=>{const m=JSON.parse(raw);if(m.id&&pending.has(m.id)){const p=pending.get(m.id);pending.delete(m.id);clearTimeout(p.t);m.error?p.reject(Error(JSON.stringify(m.error))):p.resolve(m.result);}else if(m.method){events.add(m.method);}});
   await new Promise((resolve,reject)=>{socket.on('open',resolve);socket.on('error',reject);});
   emit('version',await send('Browser.getVersion'));await send('Page.enable');await send('Network.enable');await send('Network.setCacheDisabled',{cacheDisabled:true});await send('Emulation.setDeviceMetricsOverride',{width:1280,height:1000,deviceScaleFactor:1,mobile:false});
-  await send('Page.navigate',{url:ORIGIN+'/'});await until(()=>evaluate('typeof online!=="undefined"&&online&&!busy'),40);
+  const navigation=await send('Page.navigate',{url:ORIGIN+'/'});emit('navigation',navigation);assert(!navigation.errorText,'Page.navigate '+navigation.errorText);await until(()=>evaluate('typeof online!=="undefined"&&online&&!busy'),40);
   const cert=await send('Network.getCertificate',{origin:ORIGIN});assert(cert.tableNames.length);assert.equal(crypto.createHash('sha256').update(Buffer.from(cert.tableNames[0],'base64')).digest('hex'),PEER);
   await requiredRefresh();await shot('initial');fs.closeSync(fs.openSync(root+'/browser-ready','wx',0o600));
   let sawOverlap=false,lastShot=null;

@@ -1,8 +1,10 @@
 # Phase 11.6 conducted RF acceptance plan
 
 Status: **OPEN — the corrected candidate is deployed and has passed identity,
-configuration, resource and authenticated read-only control gates; the single
-bounded attempt 42 clock-refinement/QRSS gate remains pending.** This phase is per-band/per-mode operational
+configuration, resource and authenticated read-only control gates; attempt 42
+is preserved as a zero-RF browser-resolution harness failure, and one fresh
+clock-refinement/QRSS packet remains pending under the unspent corrective RF
+allowance.** This phase is per-band/per-mode operational
 acceptance for the configuration closed by Phase 11.5. It is not the Phase 13
 band x mode x clock, filter, harmonic, calibrated-power or release campaign.
 
@@ -77,6 +79,17 @@ This second amendment changes accepted source/image/boot identity but not RF
 job payloads. Attempts 1-41 remain bound to their recorded predecessor plans.
 Attempt 42 and later attempts use the current plan without recasting earlier
 evidence.
+
+Attempt 42 stopped before capture, production-client startup, `LOAD`, `ARM` or
+RF because the isolated browser namespace could not resolve the retained Pico
+hostname. Both boards were reconciled inactive and the reservation was
+released. The browser tools now deterministically map the frozen hostname to
+the already-pinned fixture address while retaining hostname-based HTTPS and
+the pinned peer certificate. A browser-only validation passed page load,
+authentication and manual refresh against the corrected boot. The
+[sanitized attempt record](phase11-6-clock-refinement-attempt42.json) preserves
+the failure, zero-RF accounting and tool hashes. A future corrective execution
+must use a fresh immutable packet; attempt 42 may not be reused.
 
 ## Frozen content and frequency convention
 

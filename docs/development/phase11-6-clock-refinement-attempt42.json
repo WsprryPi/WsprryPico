@@ -1,0 +1,69 @@
+{
+  "schema": "phase11.6-clock-refinement-attempt-result-v1",
+  "date": "2026-09-18",
+  "sequence": 42,
+  "result": "FAIL_PRE_RF_HARNESS",
+  "job": {
+    "band": "160m",
+    "mode": "QRSS",
+    "submission_path": "production",
+    "planned_rf_seconds": 45.000001
+  },
+  "operations": {
+    "receiver_capture_started": false,
+    "production_client_started": false,
+    "wtp_load_requests": 0,
+    "wtp_arm_requests": 0,
+    "rf_jobs": 0,
+    "charged_rf_seconds": 0
+  },
+  "failure": {
+    "message": "Browser readiness deadline",
+    "stage": "Chromium page navigation before capture or WTP submission",
+    "cause": "The isolated client namespace could reach 10.77.15.10 but could not resolve wsprrypico-0a60df.local; Chromium sent no TCP request to the Pico before the deadline"
+  },
+  "repair": {
+    "hostname": "wsprrypico-0a60df.local",
+    "fixture_address": "10.77.15.10",
+    "https_hostname_preserved": true,
+    "peer_certificate_sha256_preserved": "06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016",
+    "navigation_errors_recorded": true,
+    "browser_watch_sha256": "24cb5512bc1345423dcee5f1562f140bb9b9799de1af455adba663526ddf57fd",
+    "browser_submit_sha256": "421e9964fc3d65690486751206ad6ccba2cf6965c06534d5d25ccc3f1ad27093"
+  },
+  "zero_rf_validation": {
+    "page_ready": true,
+    "client_certificate_authenticated": true,
+    "peer_certificate_matched": true,
+    "ui_online": true,
+    "ui_busy": false,
+    "manual_status_refreshes": 3,
+    "observed_boot_id": "b72fed2c17583cc7aba0f1345f76a3b2",
+    "observed_state": "empty",
+    "observed_output_active": false,
+    "observed_owner_id": null,
+    "terminal_assertion": "Expected diagnostic-only failure because no Armed or Running RF job was created"
+  },
+  "reconciliation": {
+    "pico_a_empty_inactive_unowned": true,
+    "pico_b_empty_inactive_unowned": true,
+    "schedules_disabled": true,
+    "reservation_released": true
+  },
+  "private_evidence": {
+    "attempt_packet_file_sha256": "e57bc6b00f392fedc39e6ee629806dd1a9e58dc35bbbcfe01076eeadbdab6a5d",
+    "attempt_packet_canonical_sha256": "7edda555b1a35a4246d9464339e8e562dd562469b1c426834483d19566480ef0",
+    "execution_journal_sha256": "3a0fcebf8eb5c1c1d8270a9f0e1f227e24fef377a4064b539f492633ff501c52",
+    "failed_browser_journal_sha256": "b94c43328724f05c6154b27df846329ea7910af89b79e30e25a0bf90a08e5d06",
+    "reconciliation_result_sha256": "ccf1ea6379edf00f79e1ac62cbde73ebb1839ba905f9e1a65d7991030cf24026",
+    "diagnostic_browser_journal_sha256": "134046ddc2e7340d64739fc05b352736041bb50ae971157c8552c38b71e2b9e5",
+    "diagnostic_initial_dom_sha256": "90b6f7d887377a4c1acdde00c648d2ff2acd683b3db244c7434c1560d019cecd",
+    "diagnostic_initial_png_sha256": "e74f4d613734e4b585ed5ec5a0496ab4504ebe2cbd34a9929aa8040f093edd0f"
+  },
+  "accounting_after_attempt": {
+    "rf_attempts": 41,
+    "charged_planned_rf_seconds": 1200.000028,
+    "corrective_rf_allowance_unspent": true
+  },
+  "disposition": "Preserve attempt 42; use a fresh immutable packet only after the browser repair passes its zero-RF validation"
+}

@@ -183,6 +183,15 @@ class Phase116AttemptTests(unittest.TestCase):
             self.assertIn("manual_refresh_unavailable", source)
             self.assertIn("requiredRefresh", source)
 
+    def test_browser_paths_pin_fixture_address_but_retain_tls_hostname(self):
+        for name in ("phase11_6_browser_submit.js", "phase11_6_browser_watch.js"):
+            source = (ROOT / "scripts" / name).read_text()
+            self.assertIn("HOST='wsprrypico-0a60df.local'", source)
+            self.assertIn("ADDRESS='10.77.15.10'", source)
+            self.assertIn("--host-resolver-rules=MAP ", source)
+            self.assertIn("const ORIGIN='https://'+HOST+':18443'", source)
+            self.assertIn("assert(!navigation.errorText", source)
+
     def test_production_browser_is_quiesced_during_wtp_admission(self):
         live = (ROOT / "src/phase11_6/live.py").read_text()
         production = live[live.index("def execute_production_job"):]

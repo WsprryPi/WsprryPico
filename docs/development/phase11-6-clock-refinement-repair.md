@@ -1,7 +1,8 @@
 # Phase 11.6 clock-refinement repair and deployment record
 
 Status: **REPAIR COMMITTED; CORRECTED IMAGE DEPLOYED; ZERO-RF CANDIDATE
-GATES PASS; CORRECTIVE RF GATE PENDING; PHASE 11.6 OPEN**
+GATES PASS; ATTEMPT 42 PRESERVED AS A PRE-RF HARNESS FAILURE; CORRECTIVE RF
+GATE PENDING; PHASE 11.6 OPEN**
 
 ## Preserved failure
 
@@ -174,8 +175,38 @@ new boot without a control mutation. The private record is under
 `repair-2eaa999-deployment/corrected-deployment`; the sanitized record is
 [`phase11-6-clock-refinement-deployment-attempt2.json`](phase11-6-clock-refinement-deployment-attempt2.json).
 
-The remaining affected-candidate gate is the one authorized 45.000001-second
-160 m QRSS corrective attempt. It must observe a newly accepted,
+## Attempt 42 pre-RF browser failure and repair
+
+Attempt 42 used a fresh immutable packet for the bounded 160 m QRSS corrective
+case. The independent USB clock observer reached the special corrective
+admission window, but the Chromium observer did not become ready. The runner
+stopped before receiver capture, WsprryPi startup, `LOAD`, `ARM` or RF. The
+attempt therefore consumes no RF submission and does not change the cumulative
+41-attempt, 1200.000028-second RF accounting.
+
+The isolated client namespace could reach the Pico at its pinned
+`10.77.15.10` address but could not resolve `wsprrypico-0a60df.local`.
+Contemporaneous Pico counters showed that Chromium never opened a TCP flow.
+This was a fixture browser-resolution defect, not a target timing result. The
+browser tools now map that exact hostname to the already-frozen fixture address
+inside Chromium. The URL remains the hostname, and the existing client
+certificate policy plus pinned peer-certificate SHA-256 remain mandatory.
+`Page.navigate` results are also retained and explicit navigation errors now
+fail immediately.
+
+A zero-RF validation of the repaired observer loaded the shipped HTTPS page,
+authenticated the browser principal, matched the peer certificate, observed
+the corrected boot empty/inactive/unowned and completed three manual page
+refreshes. Its final overlap assertion failed as expected because the
+diagnostic deliberately created no Armed or Running job. Fresh A/B authority
+then confirmed both boards empty, inactive and unowned before releasing the
+reservation. The sanitized record is
+[`phase11-6-clock-refinement-attempt42.json`](phase11-6-clock-refinement-attempt42.json).
+Attempt 42 is not reused.
+
+The remaining affected-candidate gate is one fresh immutable packet using the
+unspent authorized 45.000001-second 160 m QRSS corrective RF allowance. It must
+observe a newly accepted,
 lower-uncertainty clock sample while the same job remains Armed, complete
 without `MISSED_START`, retain the Phase 11.5 resource gates and pass independent
 IQ analysis. If that sample is not observed, the campaign stops without an
