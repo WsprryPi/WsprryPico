@@ -21,12 +21,33 @@
   "failure": {
     "type": "PermissionError",
     "stage": "Receiver helper process creation before capture readiness",
-    "cause": "A clean Git archive restored scripts/capture_rf_bench.py to its tracked non-executable mode while Capture launched the Python source directly"
+    "cause": "The execution command incorrectly supplied WsprryPico scripts/capture_rf_bench.py where --capture-helper requires the reviewed native SDR capture executable"
   },
   "repair": {
-    "strategy": "Invoke the pinned Python capture helper through the current Python interpreter instead of relying on an untracked executable-mode override",
-    "clean_archive_compatible": true,
-    "capture_request_retains_interpreter_and_helper": true
+    "strategy": "Resolve the helper from retained successful Phase 11.6 capture requests and require the same executable and hash",
+    "capture_helper": "/var/tmp/wsprrypico-2200-capture-build/wspq-capture-soapy",
+    "capture_helper_sha256": "b98de116d696846b88eea1b3ad3f1b2a471052fa2ca440f4234fec7087dc5a03",
+    "identity_source": "Retained successful attempts 40 and 41 plus current ELF and dynamic-link inventory"
+  },
+  "receiver_only_validation": {
+    "result": "PASS",
+    "rf_commanded": false,
+    "driver": "sdrplay",
+    "serial": "2404058C60",
+    "center_frequency_hz": 1813100,
+    "sample_rate_hz": 250000,
+    "bandwidth_hz": 200000,
+    "gain_db": 20,
+    "agc": false,
+    "bias_tee": false,
+    "retained_sample_count": 500000,
+    "overflow_count": 0,
+    "clipping_sample_count": 0,
+    "first_read_discarded": true,
+    "cleanup_outcome": "verified",
+    "capture_sha256": "82f1d8ca535d57d85af5f4159efdccb9d5b02b148b15c05fda0d5be63c289f5b",
+    "metadata_sha256": "8f250681d295fff7fed1fbd545c00f0383abe0f9643aa3ed4a7cea3ff3dfd1c8",
+    "metadata_validator": "WsprryPi-Qualification-Harness load_capture_metadata"
   },
   "reconciliation": {
     "pico_a_empty_inactive_unowned": true,
@@ -46,5 +67,5 @@
     "charged_planned_rf_seconds": 1200.000028,
     "corrective_rf_allowance_unspent": true
   },
-  "disposition": "Preserve attempt 43; use a fresh immutable packet only after the capture-helper invocation repair passes from a clean archive"
+  "disposition": "Preserve attempt 43; use a fresh immutable packet only after a receiver-only check passes with the exact retained native capture helper"
 }

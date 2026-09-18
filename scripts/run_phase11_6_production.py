@@ -24,10 +24,21 @@ from phase11_6_attempt import check as validate_attempt, packet_digest
 
 CORRECTIVE_JOB = "160m:QRSS:0:production:nominal"
 CORRECTIVE_SEQUENCE = 44
+CAPTURE_HELPER_SHA256 = (
+    "b98de116d696846b88eea1b3ad3f1b2a471052fa2ca440f4234fec7087dc5a03"
+)
 CORRECTIVE_REASON = (
     "Corrective repaired-candidate armed-interval clock-refinement "
-    "requalification after verified capture-helper invocation repair"
+    "requalification after verified capture-helper identity correction"
 )
+
+
+def require_capture_helper(path: Path) -> Path:
+    helper = path.resolve(strict=True)
+    if (not os.access(helper, os.X_OK)
+            or sha256(helper) != CAPTURE_HELPER_SHA256):
+        raise ValueError("Exact reviewed capture helper identity required")
+    return helper
 
 
 def main() -> int:
@@ -77,7 +88,7 @@ def main() -> int:
     output.mkdir(mode=0o700)
     if output.stat().st_mode & 0o077 or any(output.iterdir()):
         raise ValueError("Fresh private output root required")
-    helper = args.capture_helper.resolve(strict=True)
+    helper = require_capture_helper(args.capture_helper)
     validator = configure_capture_validator(args.qualification_src)
     binary = args.production_binary.resolve(strict=True)
     journal = Journal(output / "execution.jsonl")

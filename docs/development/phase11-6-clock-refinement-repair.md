@@ -205,20 +205,33 @@ reservation. The sanitized record is
 Attempt 42 is not reused.
 
 Attempt 43 used the repaired browser path and became page-ready, but stopped at
-receiver process creation before capture readiness. Clean archive staging had
-correctly restored `scripts/capture_rf_bench.py` to its tracked non-executable
-mode; the Phase 11.6 adapter had incorrectly depended on a private executable
-mode applied to an earlier staging tree. The production client did not start,
-and no `LOAD`, `ARM` or RF request occurred. Fresh A/B reconciliation again
-proved both boards empty, inactive and unowned before reservation release.
+receiver process creation before capture readiness. The execution command had
+incorrectly supplied WsprryPico's historical `scripts/capture_rf_bench.py`
+orchestrator where `--capture-helper` requires the reviewed native SDR capture
+executable. The production client did not start, and no `LOAD`, `ARM` or RF
+request occurred. Fresh A/B reconciliation again proved both boards empty,
+inactive and unowned before reservation release.
 
-The capture adapter now invokes the reviewed Python source through the running
-Python interpreter. The retained capture request binds both interpreter and
-helper paths, and the helper SHA-256 remains independently journaled. This
-removes the unstated file-mode dependency without changing receiver settings,
-samples, duration or RF content. The sanitized record is
+Retained successful attempts 40 and 41 identify the actual helper as
+`/var/tmp/wsprrypico-2200-capture-build/wspq-capture-soapy`, SHA-256
+`b98de116d696846b88eea1b3ad3f1b2a471052fa2ca440f4234fec7087dc5a03`.
+Fresh inventory confirms that the path is still the executable AArch64 ELF with
+the expected SoapySDR dynamic dependency. The production entry point now rejects
+any non-executable or different helper hash before acquiring the shared RF
+reservation. A receiver-only readiness capture is required with that exact
+helper before sequence 44. The sanitized record is
 [`phase11-6-clock-refinement-attempt43.json`](phase11-6-clock-refinement-attempt43.json).
 Attempt 43 is not reused.
+
+That receiver-only check subsequently passed at the 160 m capture tuning point:
+RSP1B serial `2404058C60`, 500,000 retained CF32 samples at 250 ksample/s,
+200 kHz bandwidth, 20 dB gain, AGC and bias tee off, zero overflow, zero clipped
+samples, first-read discard and verified cleanup. The Qualification Harness
+metadata validator accepted the record. The IQ SHA-256 is
+`82f1d8ca535d57d85af5f4159efdccb9d5b02b148b15c05fda0d5be63c289f5b`;
+metadata SHA-256 is
+`8f250681d295fff7fed1fbd545c00f0383abe0f9643aa3ed4a7cea3ff3dfd1c8`.
+No transmitter operation was requested.
 
 The remaining affected-candidate gate is fresh immutable sequence 44 using the
 unspent authorized 45.000001-second 160 m QRSS corrective RF allowance. The

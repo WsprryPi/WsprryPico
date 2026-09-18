@@ -2,6 +2,7 @@
 
 import copy
 import configparser
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -18,7 +19,7 @@ from phase11_6.live import (BROWSER_ARM_LEAD_NS, MINIMUM_ARM_LEAD_NS,
                             CORRECTIVE_MAXIMUM_SYNC_AGE_NS,
                             CORRECTIVE_MINIMUM_SYNC_AGE_NS,
                             SETTLED_CLOCK_UNCERTAINTY_NS,
-                            Capture, NetworkPeer, RetryableWtpBusy,
+                            NetworkPeer, RetryableWtpBusy,
                             armed_clock_refinement, configure_capture_validator,
                             production_command,
                             render_production_ini, settled_inventory,
@@ -33,6 +34,7 @@ from phase11_6_attempt import (  # noqa: E402
     effective_job,
                            )
 from reconcile_phase11_6 import release_safe  # noqa: E402
+import run_phase11_6_production as production_runner  # noqa: E402
 
 
 class Phase116AttemptTests(unittest.TestCase):
@@ -195,33 +197,28 @@ class Phase116AttemptTests(unittest.TestCase):
     def test_corrective_runner_is_rebound_only_to_fresh_attempt_44(self):
         source = (ROOT / "scripts/run_phase11_6_production.py").read_text()
         self.assertIn("CORRECTIVE_SEQUENCE = 44", source)
-        self.assertIn("after verified capture-helper invocation repair", source)
+        self.assertIn("after verified capture-helper identity correction", source)
         self.assertIn('attempt["sequence"] == CORRECTIVE_SEQUENCE', source)
         self.assertIn('attempt["maximum_submissions"] == 1', source)
         self.assertIn('attempt["automatic_retries"] == 0', source)
+        self.assertIn("CAPTURE_HELPER_SHA256", source)
+        self.assertIn("Exact reviewed capture helper identity required", source)
 
-    def test_capture_helper_does_not_depend_on_archive_executable_mode(self):
+    def test_capture_helper_identity_is_checked_before_use(self):
         with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            helper = root / "capture.py"
-            helper.write_text("raise SystemExit(0)\n")
-            directory = root / "capture"
-            journal = mock.Mock()
-            process = mock.Mock()
-            process.poll.return_value = None
-            commands = []
-
-            def launch(command, **kwargs):
-                commands.append(command)
-                (directory / "capture.cf32.incomplete").write_bytes(b"x" * 65_537)
-                return process
-
-            capture = Capture(root, directory, helper, 1_838_100, 0.1, journal)
-            with mock.patch("phase11_6.live.subprocess.Popen", side_effect=launch):
-                capture.start()
-            self.assertEqual(commands[0][:2], [sys.executable, str(helper)])
-            journal.emit.assert_called_once()
-            capture.output.close()
+            helper = Path(temporary) / "capture-helper"
+            helper.write_bytes(b"reviewed helper fixture")
+            expected = hashlib.sha256(helper.read_bytes()).hexdigest()
+            with mock.patch.object(production_runner, "CAPTURE_HELPER_SHA256", expected):
+                with self.assertRaisesRegex(ValueError, "Exact reviewed"):
+                    production_runner.require_capture_helper(helper)
+                helper.chmod(0o700)
+                self.assertEqual(
+                    production_runner.require_capture_helper(helper), helper.resolve()
+                )
+                helper.write_bytes(b"changed helper fixture")
+                with self.assertRaisesRegex(ValueError, "Exact reviewed"):
+                    production_runner.require_capture_helper(helper)
 
     def test_production_browser_is_quiesced_during_wtp_admission(self):
         live = (ROOT / "src/phase11_6/live.py").read_text()

@@ -89,13 +89,21 @@ the pinned peer certificate. A browser-only validation passed page load,
 authentication and manual refresh against the corrected boot. The
 [sanitized attempt record](phase11-6-clock-refinement-attempt42.json) preserves
 the failure, zero-RF accounting and tool hashes. Attempt 43 then passed browser
-readiness but exposed a clean-archive executable-mode dependency before capture
+readiness but exposed an incorrect `--capture-helper` selection before capture
 or production startup. Its
 [sanitized record](phase11-6-clock-refinement-attempt43.json) preserves that
-second pre-RF failure and reconciliation. The capture adapter now invokes the
-Python helper through the running interpreter. The corrective entry point is
+second pre-RF failure and reconciliation. Retained successful requests bind the
+reviewed native capture helper and its SHA-256; a receiver-only readiness check
+with that exact executable is required before proceeding, and the production
+entry point rejects a different helper before reservation. The corrective entry point is
 rebound to fresh sequence 44 with the same one-submission, zero-retry and
 45.000001-second RF limits; attempts 42 and 43 may not be reused.
+
+The required receiver-only check then passed at 1,813,100 Hz with the exact
+native helper and RSP1B serial `2404058C60`: 500,000 retained CF32 samples,
+zero overflow, zero clipping, first-read discard and verified device cleanup.
+No RF output was requested. Exact IQ and metadata hashes are retained in the
+attempt 43 record.
 
 ## Frozen content and frequency convention
 

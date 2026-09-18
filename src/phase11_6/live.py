@@ -533,7 +533,6 @@ class Capture:
         output = self.directory / "capture.cf32"
         metadata = self.directory / "capture.json"
         command = [
-            sys.executable,
             str(self.helper),
             "--enable-physical-sdr",
             "sdrplay",
