@@ -668,6 +668,7 @@ class BrowserWatch:
             str(self.root / "scripts/phase11_6_browser_watch.js"), "--root",
             str(self.directory), "--job-id", self.job_id or "any", "--seconds", str(self.seconds),
             "--refresh-ms", str(self.refresh_interval_ms),
+            "--boot-id", PICO_ACCEPTED_BOOT,
             "--run",
         ]
         self.stdout = (self.directory / "watch.stdout").open("x")
@@ -766,7 +767,8 @@ class BrowserSubmit:
             "/etc/chromium", "--tmpfs", "/tmp", "--dev", "/dev", "--proc", "/proc",
             "--unshare-pid", "--die-with-parent", "node",
             str(self.root / "scripts/phase11_6_browser_submit.js"), "--root",
-            str(self.directory), "--kind", kind, "--job", str(job_path), "--run",
+            str(self.directory), "--kind", kind, "--job", str(job_path),
+            "--boot-id", PICO_ACCEPTED_BOOT, "--run",
         ]
         self.stdout = (self.directory / "submit.stdout").open("x")
         self.stderr = (self.directory / "submit.stderr").open("x")

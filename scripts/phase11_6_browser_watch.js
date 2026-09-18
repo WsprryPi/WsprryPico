@@ -4,12 +4,11 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const {spawn}=require('node:child_process'),assert=require('node:assert/strict');
 if(!process.argv.includes('--run')) {console.log('Plan only; no browser or target access.');process.exit(0);}
 const arg=n=>process.argv[process.argv.indexOf(n)+1];
-const root=path.resolve(arg('--root')),jobId=arg('--job-id'),seconds=Number(arg('--seconds')),refreshMs=Number(arg('--refresh-ms'));
-assert(Number.isFinite(seconds)&&seconds>0&&seconds<=3700);assert(Number.isFinite(refreshMs)&&refreshMs>=250&&refreshMs<=60000);assert(jobId==='any'||/^[0-9a-f]{32}$/.test(jobId));
+const root=path.resolve(arg('--root')),jobId=arg('--job-id'),seconds=Number(arg('--seconds')),refreshMs=Number(arg('--refresh-ms')),boot=arg('--boot-id');
+assert(Number.isFinite(seconds)&&seconds>0&&seconds<=3700);assert(Number.isFinite(refreshMs)&&refreshMs>=250&&refreshMs<=60000);assert(jobId==='any'||/^[0-9a-f]{32}$/.test(jobId));assert(/^[0-9a-f]{32}$/.test(boot));
 const HOST='wsprrypico-0a60df.local',ADDRESS='10.77.15.10';
 const ORIGIN='https://'+HOST+':18443';
 const PEER='06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016';
-const BOOT='b72fed2c17583cc7aba0f1345f76a3b2';
 const WebSocket=require('/usr/share/nodejs/ws');
 let chrome,socket,failure=null,sequence=0,refreshes=0,unavailableRefreshes=0,observedJob=null;
 const pending=new Map(),events=new Set(),states=new Set(),jobs=new Set();
@@ -22,7 +21,7 @@ function send(method,params={}){return new Promise((resolve,reject)=>{const id=+
 async function evaluate(expression){const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(JSON.stringify(r.exceptionDetails));return r.result.value;}
 async function until(fn,seconds=30){const end=ns()+BigInt(seconds)*1000000000n;while(ns()<end){check();if(await fn())return;await new Promise(r=>setTimeout(r,100));}throw Error('browser condition deadline');}
 async function shot(name){const state=await evaluate(`({job:snapshot?.job,notice:$('notice').textContent,progress:$('job-progress').textContent,online,busy})`);save(name+'-dom.json',state);const p=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});fs.writeFileSync(root+'/'+name+'.png',Buffer.from(p.data,'base64'));return state;}
-async function refresh(){await until(()=>evaluate('!busy'),15);await evaluate("$('refresh').click()");await until(()=>evaluate('!busy'),15);refreshes++;const s=await evaluate('snapshot?.job??null');if(s===null){unavailableRefreshes++;const page=await evaluate(`({notice:$('notice').textContent,online,busy})`);emit('manual_refresh_unavailable',{refresh:refreshes,page});return null;}assert.equal(s.boot_id,BOOT);states.add(s.state);if(s.job_id)jobs.add(s.job_id);emit('manual_refresh',{refresh:refreshes,state:s});return s;}
+async function refresh(){await until(()=>evaluate('!busy'),15);await evaluate("$('refresh').click()");await until(()=>evaluate('!busy'),15);refreshes++;const s=await evaluate('snapshot?.job??null');if(s===null){unavailableRefreshes++;const page=await evaluate(`({notice:$('notice').textContent,online,busy})`);emit('manual_refresh_unavailable',{refresh:refreshes,page});return null;}assert.equal(s.boot_id,boot);states.add(s.state);if(s.job_id)jobs.add(s.job_id);emit('manual_refresh',{refresh:refreshes,state:s});return s;}
 async function requiredRefresh(seconds=30){let value=null;await until(async()=>{value=await refresh();return value!==null;},seconds);return value;}
 (async()=>{
   emit('start',{job_id:jobId,seconds,refresh_interval_ms:refreshMs});const profile=root+'/chrome';assert(!fs.existsSync(profile));fs.mkdirSync(profile);

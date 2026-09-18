@@ -196,6 +196,16 @@ class Phase116AttemptTests(unittest.TestCase):
             self.assertIn("const ORIGIN='https://'+HOST+':18443'", source)
             self.assertIn("assert(!navigation.errorText", source)
 
+    def test_browser_paths_receive_the_campaign_accepted_boot(self):
+        live = (ROOT / "src/phase11_6/live.py").read_text()
+        self.assertEqual(live.count('"--boot-id", PICO_ACCEPTED_BOOT'), 2)
+        for name in ("phase11_6_browser_submit.js", "phase11_6_browser_watch.js"):
+            source = (ROOT / "scripts" / name).read_text()
+            self.assertIn("boot=arg('--boot-id')", source)
+            self.assertIn("assert(/^[0-9a-f]{32}$/.test(boot))", source)
+            self.assertIn("assert.equal(s.boot_id,boot)", source)
+            self.assertNotIn("const BOOT=", source)
+
     def test_corrective_runner_is_rebound_only_to_fresh_attempt_44(self):
         source = (ROOT / "scripts/run_phase11_6_production.py").read_text()
         self.assertIn("CORRECTIVE_SEQUENCE = 44", source)

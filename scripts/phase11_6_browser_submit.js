@@ -5,13 +5,12 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const {spawn}=require('node:child_process'),assert=require('node:assert/strict');
 if(!process.argv.includes('--run')){console.log('Plan only; no browser or target access.');process.exit(0);}
 const arg=n=>process.argv[process.argv.indexOf(n)+1];
-const root=path.resolve(arg('--root')),kind=arg('--kind'),jobPath=path.resolve(arg('--job'));
+const root=path.resolve(arg('--root')),kind=arg('--kind'),jobPath=path.resolve(arg('--job')),boot=arg('--boot-id');
 const job=JSON.parse(fs.readFileSync(jobPath,'utf8')),jobId=job.job_id;
-assert(['raw','compact'].includes(kind));assert(/^[0-9a-f]{32}$/.test(jobId));
+assert(['raw','compact'].includes(kind));assert(/^[0-9a-f]{32}$/.test(jobId));assert(/^[0-9a-f]{32}$/.test(boot));
 const HOST='wsprrypico-0a60df.local',ADDRESS='10.77.15.10';
 const ORIGIN='https://'+HOST+':18443';
 const PEER='06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016';
-const BOOT='b72fed2c17583cc7aba0f1345f76a3b2';
 const WebSocket=require('/usr/share/nodejs/ws');
 let chrome,socket,failure=null,sequence=0,refreshes=0,unavailableRefreshes=0;
 const pending=new Map(),events=new Set(),states=new Set(),requests=[],responses=[];
@@ -24,7 +23,7 @@ function send(method,params={}){return new Promise((resolve,reject)=>{const id=+
 async function evaluate(expression){const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(JSON.stringify(r.exceptionDetails));return r.result.value;}
 async function until(fn,seconds=30){const end=ns()+BigInt(seconds)*1000000000n;while(ns()<end){check();if(await fn())return;await new Promise(r=>setTimeout(r,100));}throw Error('browser condition deadline');}
 async function shot(name){const state=await evaluate(`({job:snapshot?.job,notice:$('notice').textContent,result:$('job-result').textContent,progress:$('job-progress').textContent,online,busy})`);save(name+'-dom.json',state);const p=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true});fs.writeFileSync(root+'/'+name+'.png',Buffer.from(p.data,'base64'));return state;}
-async function refresh(){await until(()=>evaluate('!busy'),20);await evaluate("$('refresh').click()");await until(()=>evaluate('!busy'),20);refreshes++;const s=await evaluate('snapshot?.job??null');if(s===null){unavailableRefreshes++;const page=await evaluate(`({notice:$('notice').textContent,online,busy})`);emit('manual_refresh_unavailable',{refresh:refreshes,page});return null;}assert.equal(s.boot_id,BOOT);states.add(s.state);emit('manual_refresh',{refresh:refreshes,state:s});return s;}
+async function refresh(){await until(()=>evaluate('!busy'),20);await evaluate("$('refresh').click()");await until(()=>evaluate('!busy'),20);refreshes++;const s=await evaluate('snapshot?.job??null');if(s===null){unavailableRefreshes++;const page=await evaluate(`({notice:$('notice').textContent,online,busy})`);emit('manual_refresh_unavailable',{refresh:refreshes,page});return null;}assert.equal(s.boot_id,boot);states.add(s.state);emit('manual_refresh',{refresh:refreshes,state:s});return s;}
 async function requiredRefresh(seconds=30){let value=null;await until(async()=>{value=await refresh();return value!==null;},seconds);return value;}
 function utcInput(utcNs){return new Date(Number(BigInt(utcNs)/1000000n)).toISOString().slice(0,19);}
 (async()=>{
