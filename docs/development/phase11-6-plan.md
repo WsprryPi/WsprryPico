@@ -1,6 +1,14 @@
 # Phase 11.6 conducted RF acceptance plan
 
-Status: **OPEN — the corrected candidate is deployed; attempts 42, 43 and 45
+Status: **OPEN — further RF is blocked after attempt 52.** The corrected timing
+candidate remains installed, but the 80 m TONE controller-disconnect job ended
+in a preserved inactive `DEVICE_FAULT` after its zero-tail hardware stop. The
+shared reservation remains held and Pico A remains in failed/inactive state;
+no retry or boot-changing recovery has been performed. A narrow source repair
+and discriminating hardware-free regression are prepared but not deployed.
+See the [attempt 52 checkpoint](phase11-6-80m-attempt52.json).
+
+Before that stop, attempts 42, 43 and 45
 are preserved as zero-RF harness/orchestration failures, and attempt 44 passed
 the armed clock-refinement corrective gate. The three 160 m QRSS paths and the
 three reverse-profile DFCW paths now pass their individual physical and IQ
@@ -9,6 +17,21 @@ failure; its other two paths were not spent. Remaining matrix paths, packet
 audits and bands are pending.** This phase is per-band/per-mode operational
 acceptance for the configuration closed by Phase 11.5. It is not the Phase 13
 band x mode x clock, filter, harmonic, calibrated-power or release campaign.
+
+Attempt 52 launched its immutable 80 m UTC request after an accepted clock
+refinement; this was not a stale-target or uncertainty rejection. The final
+data IRQ established a zero-tail chain with 936 of 1,156 predecessor words
+remaining, the tail IRQ count advanced, PIO output was inactive, DMA errors and
+invalid/unpaired refill counts remained zero, and the 2,168,000 ns maximum
+service gap stayed below the frozen 2,849,391 ns gate. The failure is the sink's
+software completion rule: it waits for tail IRQ service even though the chained
+hardware stop has already executed. The prepared repair recognizes that
+authoritative inactive hardware state after the final-data IRQ. It changes no
+sample, frequency, tail length, 100 microsecond acknowledgement bound or frozen
+service-gap limit. The original sink fails the new regression and the repaired
+sink passes it. Because this is an RF lifecycle firmware change, affected 11.5
+checks and the affected 11.6 row still require exact-candidate physical
+requalification after separately authorized recovery/deployment.
 
 The reproducible packet generator is `scripts/phase11_6.py`; the initial public
 matrix is [`phase11-6-matrix.json`](phase11-6-matrix.json). The canonical plan

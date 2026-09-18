@@ -1,0 +1,114 @@
+{
+  "schema": "phase11.6-public-checkpoint-v1",
+  "phase_status": "OPEN_BLOCKED_ON_AUTHORIZED_FAULT_RECOVERY_AND_CANDIDATE_DEPLOYMENT",
+  "plan_sha256": "8a52e4d9b3f252097bca0112c08b3b1e41792905775624940bcbf313b5cb072b",
+  "tool_source_commit": "a12f052f35d089f4b521a4565e130a00191b9ecf",
+  "private_evidence_root": "/home/pi/phase11-6-conducted-v3-20260918",
+  "attempt": {
+    "sequence": 52,
+    "job_id": "80m:TONE:0:controller_disconnect:nominal",
+    "wtp_job_id": "df4a43d595c95bd60b963078462a86f0",
+    "attempt_packet_sha256": "8117052edbb7e27aed8a421e1544906f3475f2d6cb37b05dbdd470be8202efce",
+    "attempt_record_sha256": "f5dea76349993c9aedaa8be6e0db30c78c783caa1dadb8e2f50e9c134c3659e6",
+    "effective_job_sha256": "e14b2032398cbc60e359cdf5b2fa32bc3b23cd85d09172ba72e09b6696075c8a",
+    "requested_frequency_nhz": "3570100000000000",
+    "realized_frequency_nhz": "3570100004319102",
+    "planned_duration_ns": "5000000000",
+    "submission_path": "controller_disconnect",
+    "controller_transport_disconnected_after_arm": true,
+    "target_utc_ns": "1789766688000000000",
+    "armed_start_monotonic_ns": "4688962177000",
+    "reprojected_launch_target_ns": "4688962009000",
+    "launch_observed_ns": "4688962094000",
+    "launch_delay_from_reprojected_target_ns": "85000",
+    "terminal_ended_monotonic_ns": "4693962318000",
+    "terminal_state": "failed",
+    "terminal_error": "DEVICE_FAULT",
+    "terminal_output_active": false,
+    "capture_retained": false,
+    "analysis_performed": false,
+    "disposition": "PRESERVED_FAILED_NO_RETRY",
+    "charged_planned_rf_seconds": 5.0
+  },
+  "evidence_sha256": {
+    "execution.jsonl": "c9bbddfa471a5dfd581044580741d4702363a7b9bbb7d187a910f1c27843b6d9",
+    "first_reconciliation.jsonl": "a79f6d0ec4b6bbff04f2057e0ef039adee627bf264c51f541f4578febe7a89c3",
+    "post_lease_reconciliation.jsonl": "45af2fa88254436ffcacce03d1168383a6263ac78cf2df58b08efa91d3d3334b"
+  },
+  "diagnostic_observations": {
+    "launch_succeeded_inside_original_utc_second": true,
+    "output_authoritatively_inactive": true,
+    "tail_irq_delta": 1,
+    "dma_irq_delta": 1318,
+    "dma_errors": 0,
+    "refill_irq_unpaired": 0,
+    "refill_invalid_reserves": 0,
+    "short_predecessor_remaining_words": 936,
+    "short_predecessor_total_words": 1156,
+    "rf_max_service_gap_ns": "2168000",
+    "frozen_service_gap_limit_ns": "2849391",
+    "allocator_failures": 0,
+    "tls_allocation_failures": 0,
+    "minimum_observed_heap_available_bytes": 108776,
+    "stack_guards_valid": true,
+    "engine_diagnostic": ""
+  },
+  "finding": {
+    "classification": "SOURCE_DEFECT_AFTER_SAFE_HARDWARE_STOP",
+    "cause": "The zero-tail DMA had chained to the hardware stop and PIO output was already inactive, but software required tail IRQ service before recognizing completion. A delayed IRQ exposed a false DEVICE_FAULT window.",
+    "not_a_clock_rejection": true,
+    "clock_refinement_result": "The immutable UTC request was reprojected and launched successfully; the failure occurred only at terminal completion.",
+    "frozen_limits_changed": false
+  },
+  "prepared_repair": {
+    "base_commit": "cefbf3e",
+    "files": [
+      "src/rf/pio_dma_sink.cpp",
+      "tests/pio_dma_tests.cpp"
+    ],
+    "behavior": "Recognize completion when the final-data IRQ has established the zero-tail state and the chained hardware stop is already observed inactive, even if tail IRQ entry is delayed.",
+    "waveform_or_frequency_generation_changed": false,
+    "completion_acknowledgement_limit_changed": false,
+    "service_gap_limit_changed": false,
+    "deployment_status": "NOT_DEPLOYED",
+    "hardware_free_regression": {
+      "original_sink": "FAILS_NEW_REGRESSION",
+      "repaired_sink": "PASS",
+      "focused_pio_dma_tests": "1_OF_1_PASS",
+      "phase11_6_python_tests": "33_OF_33_PASS"
+    }
+  },
+  "source_impact": {
+    "phase11_5_requalification_required": [
+      "finite-tail completion and terminal-state recognition",
+      "controller-disconnect completion",
+      "output-inactive and engine-diagnostic assertions",
+      "resource/refill gates during the representative repaired workload"
+    ],
+    "phase11_6_retest_required": [
+      "80m TONE controller-disconnect row",
+      "any additional row selected by the final source-impact review"
+    ],
+    "prior_failure_retained": true
+  },
+  "accounting_after_sequence_52": {
+    "sequence_attempts": 52,
+    "rf_attempts": 49,
+    "charged_planned_rf_seconds": 1502.000035
+  },
+  "restoration": {
+    "shared_reservation": "HELD",
+    "shared_reservation_file_sha256": "e06576a2e2ff957fe064c5a9e4ba7e8c34e20ef197c59ed119178e7327f400be",
+    "dut_state": "failed",
+    "dut_output_active": false,
+    "dut_owner_id": null,
+    "peer_state": "empty",
+    "recovery_status": "NOT_EXECUTED_REQUIRES_BOOT_CHANGING_OPERATIONAL_AUTHORIZATION",
+    "further_rf_blocked": true
+  },
+  "limitations": [
+    "No IQ capture survived runner unwind, so attempt 52 provides lifecycle and device evidence but cannot pass the 80 m TONE RF row.",
+    "The repair has only hardware-free validation and is not a physically accepted firmware configuration.",
+    "Raw journals, inventories and authenticated material remain private on wspr5."
+  ]
+}

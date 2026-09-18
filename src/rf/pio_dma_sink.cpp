@@ -192,6 +192,15 @@ SinkReport PioDmaSink::poll(std::uint64_t) {
     if (state_ == wtp::EngineState::Running && !tail_ && hw_.stalled()) {
         fault("pio_txstall");
     }
+    // The zero-tail descriptor chains directly to the hardware stop channel.
+    // Once the final data IRQ established tail_ and hardware is inactive, all
+    // ten zero words have crossed the eight-word FIFO and the stop write has
+    // executed. That is authoritative completion even if tail DMA IRQ entry is
+    // delayed; requiring the software IRQ first creates a false DEVICE_FAULT
+    // window after output is already safely low.
+    if (state_ == wtp::EngineState::Running && tail_ && !hw_.active()) {
+        state_ = wtp::EngineState::Complete;
+    }
     if (state_ == wtp::EngineState::Complete) {
         return {state_, epoch_, submitted_, total_, now_ns, hw_.active(), launch_ns_};
     }

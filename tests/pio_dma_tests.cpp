@@ -128,6 +128,14 @@ class Hardware final : public rf::PioDmaHardware {
         }
         handler(context, {rf::DriverEventKind::DmaComplete, done_epoch, done_sequence});
     }
+    void stop_tail_before_irq() {
+        CHECK(busy && repeat && !pending);
+        enabled = false; // Chained stop-channel write has executed.
+        busy = false;    // Tail DMA completed; its IRQ remains pending.
+    }
+    void deliver_completion_irq() {
+        handler(context, {rf::DriverEventKind::DmaComplete, epoch, sequence});
+    }
 };
 
 std::uint64_t ns_at(std::uint64_t samples) {
@@ -618,6 +626,28 @@ void more_than_final_pending_test() {
     CHECK(engine.poll(hw.time).state == wtp::EngineState::Failed);
     CHECK(!engine.output_active());
 }
+void delayed_tail_irq_after_hardware_stop_test() {
+    Hardware hw;
+    rf::PioDmaSink sink(hw);
+    rf::StreamEngine engine(sink);
+    const auto payload = job(2 * rf::block_samples);
+    CHECK(engine.prepare(payload).accepted);
+    const auto start = hw.time + 1000000;
+    CHECK(engine.begin(payload, start));
+    hw.time = start;
+    hw.alarm_event(1);
+    hw.complete();
+    hw.complete();
+    CHECK(hw.repeat && hw.enabled);
+    hw.stop_tail_before_irq();
+    hw.time = start + payload.total_duration_ns + 100001;
+    const auto report = engine.poll(hw.time);
+    CHECK(report.state == wtp::EngineState::Complete && !report.output_active);
+    // A late IRQ is harmless after the same stop has already been observed.
+    hw.deliver_completion_irq();
+    CHECK(engine.poll(hw.time).state == wtp::EngineState::Complete);
+    CHECK(engine.disable(hw.time));
+}
 void refill_test(bool missing_tail = false, bool delayed_final_data = false) {
     Hardware hw;
     rf::PioDmaSink sink(hw);
@@ -690,6 +720,7 @@ int main() {
         late_launch_window_test();
         launch_snapshot_test();
         more_than_final_pending_test();
+        delayed_tail_irq_after_hardware_stop_test();
         refill_test();
         refill_test(true);
         refill_test(false, true);
