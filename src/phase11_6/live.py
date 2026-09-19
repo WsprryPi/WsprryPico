@@ -190,8 +190,10 @@ def settled_inventory(root: Path, label: str, serial: str, device: str,
 
 def usb_completion(status_states: set[str], event_states: set[str],
                    status_jobs: set[str], event_jobs: set[str],
-                   latest: dict, job_id: str) -> dict:
+                   latest: dict, job_id: str,
+                   mutation_states: set[str] | None = None) -> dict:
     """Reduce ordered USB events plus authoritative STATUS to one completion."""
+    mutation_states = mutation_states or set()
     require(latest.get("boot_id") == PICO_ACCEPTED_BOOT,
             "Independent USB final boot identity")
     terminals = [record for record in latest.get("terminal_records", [])
@@ -202,7 +204,7 @@ def usb_completion(status_states: set[str], event_states: set[str],
                        and record.get("state") == "complete"
                        and record.get("output_active") is False}
     require({"loaded", "armed", "running", "complete"}.issubset(
-                status_states | event_states)
+                status_states | event_states | mutation_states)
             and event_jobs == {job_id}
             and job_id in status_jobs | event_jobs
             and prior_terminals == prior_status_jobs
@@ -215,6 +217,7 @@ def usb_completion(status_states: set[str], event_states: set[str],
     return {
         "status_states": sorted(status_states),
         "event_states": sorted(event_states),
+        "mutation_states": sorted(mutation_states),
         "terminal": terminals[0],
         "final": latest,
     }
@@ -269,6 +272,8 @@ def render_production_ini(root: Path, directory: Path, job: dict, port: int) -> 
     # persistent policy.  Follow is required here so the explicit
     # Transmit=true request survives managed startup policy application.
     parser["Operation"]["Enable on Boot"] = "Follow"
+    parser["Meta"]["Loop TX"] = "false"
+    parser["Meta"]["TX Iterations"] = "1"
     parser["Operation"]["Use LED"] = "false"
     parser["Operation"]["Use Amp"] = "false"
     parser["Operation"]["Use Shutdown"] = "false"
@@ -641,6 +646,28 @@ class Capture:
             self.output.close()
 
 
+def browser_watch_complete(result: dict, job_id: str | None) -> bool:
+    """Validate the watched job without confusing it with a safe successor."""
+    common = (
+        result.get("status") == "PASS"
+        and result.get("page_loaded") is True
+        and result.get("manual_refresh_overlap") is True
+    )
+    if not common:
+        return False
+    if job_id is not None:
+        return (job_id in result.get("job_ids", [])
+                and result.get("final_output_active") is False)
+    observed = result.get("observed_job_id")
+    terminal = result.get("observed_terminal") or {}
+    return (
+        observed in result.get("job_ids", [])
+        and terminal.get("job_id") == observed
+        and terminal.get("state") == "complete"
+        and terminal.get("output_active") is False
+    )
+
+
 class BrowserWatch:
     """Own one real Chromium page lifecycle in the isolated client namespace."""
 
@@ -686,16 +713,22 @@ class BrowserWatch:
 
     def finish(self) -> dict:
         require(self.process is not None, "Browser not started")
-        (self.directory / "browser-stop").touch(mode=0o600)
-        code = self.process.wait(timeout=35)
+        if self.job_id is None and self.process.poll() is None:
+            try:
+                # The wildcard production observer exits itself only after it
+                # has reduced the exact retained terminal.  Do not turn a
+                # transient connection-limit miss into a premature stop that
+                # skips that reduction.
+                code = self.process.wait(timeout=18)
+            except subprocess.TimeoutExpired:
+                (self.directory / "browser-stop").touch(mode=0o600)
+                code = self.process.wait(timeout=35)
+        else:
+            (self.directory / "browser-stop").touch(mode=0o600)
+            code = self.process.wait(timeout=35)
         self.stdout.close(); self.stderr.close()
         result = json.loads((self.directory / "browser-result.json").read_text())
-        require(code == 0 and result.get("status") == "PASS"
-                and result.get("page_loaded") is True
-                and result.get("manual_refresh_overlap") is True
-                and ((self.job_id is not None and self.job_id in result.get("job_ids", []))
-                     or (self.job_id is None and result.get("observed_job_id")
-                         in result.get("job_ids", []))),
+        require(code == 0 and browser_watch_complete(result, self.job_id),
                 "Actual browser page lifecycle")
         self.journal.emit("browser_complete", result)
         return result
@@ -748,6 +781,7 @@ class BrowserSubmit:
         self.seconds, self.journal = seconds, journal
         self.process: subprocess.Popen | None = None
         self.stdout = self.stderr = None
+        self.predecessor_job_id: str | None = None
 
     def start(self) -> None:
         self.directory.mkdir(mode=0o700)
@@ -783,11 +817,95 @@ class BrowserSubmit:
             time.sleep(0.1)
         raise TimeoutError("Browser submitter readiness deadline")
 
-    def submit(self, target_utc_ns: int) -> None:
+    def submit(self, target_utc_ns: int,
+               predecessor_job_id: str | None = None,
+               predecessor_complete_utc_ns: int | None = None) -> None:
         require(self.process is not None and self.process.poll() is None,
                 "Browser submitter unavailable")
-        save(self.directory / "submit.json", {"start_utc_ns": str(target_utc_ns)})
-        self.journal.emit("browser_submit_authorized", {"target_utc_ns": target_utc_ns})
+        require(predecessor_job_id is None or (
+            len(predecessor_job_id) == 32
+            and all(character in "0123456789abcdef"
+                    for character in predecessor_job_id)
+        ), "Browser predecessor job identity")
+        require((predecessor_job_id is None
+                 and predecessor_complete_utc_ns is None) or (
+                    predecessor_job_id is not None
+                    and type(predecessor_complete_utc_ns) is int
+                    and predecessor_complete_utc_ns > 0
+                 ), "Browser predecessor completion target")
+        self.predecessor_job_id = predecessor_job_id
+        packet = {"start_utc_ns": str(target_utc_ns)}
+        if predecessor_job_id is not None:
+            packet["predecessor_job_id"] = predecessor_job_id
+            packet["predecessor_complete_utc_ns"] = str(
+                predecessor_complete_utc_ns
+            )
+        save(self.directory / "submit.json", packet)
+        self.journal.emit("browser_submit_authorized", packet)
+
+    def authorize_predecessor(self, value: dict) -> None:
+        """Deliver exact USB event-plus-STATUS authority to the waiting page."""
+        terminal = value.get("terminal") or {}
+        status = value.get("status") or {}
+        clock = value.get("clock") or {}
+        require(
+            self.predecessor_job_id is not None
+            and value.get("schema") == "phase11.6-browser-predecessor-authority-v1"
+            and value.get("source")
+                == "authenticated-usb-event-status-release"
+            and value.get("predecessor_job_id") == self.predecessor_job_id
+            and terminal.get("job_id") == self.predecessor_job_id
+            and terminal.get("state") == "complete"
+            and terminal.get("output_active") is False
+            and status.get("boot_id") == PICO_ACCEPTED_BOOT
+            and status.get("state") == "complete"
+            and status.get("job_id") == self.predecessor_job_id
+            and status.get("owner_id") is None
+            and status.get("output_active") is False
+            and clock.get("state") == "synchronized"
+            and clock.get("leap") == "normal"
+            and int(clock.get("uncertainty_ns", "999999999")) <= 500_000_000
+            and str(value.get("clock_observed_monotonic_ns", "")).isdigit(),
+            "Browser predecessor USB authority",
+        )
+        save(self.directory / "predecessor-authority.json", value)
+        self.journal.emit("browser_predecessor_authorized", value)
+
+    def wait_mutations(self, timeout: float = 45.0) -> dict:
+        """Wait without another target request for the browser ARM acknowledgement."""
+        require(self.process is not None, "Browser submitter not started")
+        expected_id = self.job["expected_job"]["job_id"]
+        expected_operation = ("LOAD" if self.job["submission_path"] == "browser_raw"
+                              else "LOAD_MESSAGE")
+        expected = ["HELLO", "CLAIM", expected_operation, "ARM"]
+        marker = self.directory / "browser-mutations-complete.json"
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            require(self.process.poll() is None,
+                    "Browser submitter exited during mutations")
+            if marker.is_file():
+                value = json.loads(marker.read_text())
+                admission = value.get("browser_arm_admission") or {}
+                require(
+                    value.get("schema") == "phase11.6-browser-mutations-v1"
+                    and value.get("job_id") == expected_id
+                    and value.get("predecessor_job_id") == self.predecessor_job_id
+                    and value.get("operations") == expected
+                    and isinstance(value.get("session_id"), str)
+                    and len(value["session_id"]) == 32
+                    and isinstance(value.get("last_request_id"), str)
+                    and len(value["last_request_id"]) == 32
+                    and admission.get("clock_state") == "synchronized"
+                    and int(admission.get("uncertainty_ns", "999999999"))
+                        <= 500_000_000
+                    and int(admission.get("accepted_arm_lead_ns", "0"))
+                        >= 8_000_000_000,
+                    "Browser mutation acknowledgement",
+                )
+                self.journal.emit("browser_mutations_complete", value)
+                return value
+            time.sleep(0.025)
+        raise TimeoutError("Browser mutation acknowledgement deadline")
 
     def finish(self) -> dict:
         require(self.process is not None, "Browser submitter not started")
@@ -800,16 +918,37 @@ class BrowserSubmit:
         base_operations = ["HELLO", "CLAIM", expected_operation, "ARM"]
         operations = result.get("operations")
         release_required = result.get("release_required")
+        admission = result.get("browser_arm_admission") or {}
+        predecessor_terminal = result.get("predecessor_terminal") or {}
+        predecessor_authority = result.get("predecessor_authority") or {}
         expected_operations = base_operations + (["RELEASE"] if release_required else [])
         terminal = result.get("terminal") or {}
         final = result.get("final") or {}
         require(code == 0 and result.get("status") == "PASS"
                 and result.get("job_id") == expected_id
+                and result.get("predecessor_job_id") == self.predecessor_job_id
+                and (self.predecessor_job_id is None or (
+                    result.get("predecessor_manual_refresh_overlap") is True
+                    and predecessor_terminal.get("job_id")
+                        == self.predecessor_job_id
+                    and predecessor_terminal.get("state") == "complete"
+                    and predecessor_terminal.get("output_active") is False
+                    and predecessor_authority.get("source")
+                        == "authenticated-usb-event-status-release"
+                    and predecessor_authority.get("predecessor_job_id")
+                        == self.predecessor_job_id
+                    and admission.get("clock_state") == "synchronized"
+                    and int(admission.get("uncertainty_ns", "999999999"))
+                        <= 500_000_000
+                    and int(admission.get("lead_ns", "0")) >= 8_000_000_000
+                    and int(admission.get("accepted_arm_lead_ns", "0"))
+                        >= 8_000_000_000
+                ))
                 and result.get("manual_refresh_overlap") is True
                 and isinstance(release_required, bool)
                 and operations == expected_operations
                 and terminal.get("job_id") == expected_id
-                and terminal.get("state") in {"complete", "aborted", "missed", "failed"}
+                and terminal.get("state") == "complete"
                 and terminal.get("output_active") is False
                 and final.get("output_active") is False
                 and final.get("owner_id") is None,

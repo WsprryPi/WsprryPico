@@ -8,8 +8,8 @@ import json
 from collections import OrderedDict
 
 
-SCHEMA = "phase11.6-plan-v3"
-MATRIX_SCHEMA = "phase11.6-matrix-v3"
+SCHEMA = "phase11.6-plan-v19"
+MATRIX_SCHEMA = "phase11.6-matrix-v19"
 SAMPLE_RATE_HZ = 138_000_000
 DIRECT_MAXIMUM_HZ = 68_999_999
 FIRMWARE_SOURCE = "210599d907acdb23278fc24244b674d62c820d7c"
@@ -19,10 +19,10 @@ FIRMWARE_UF2_SHA256 = (
 PICO_SERIAL = "0BF4B4AEC9FFB344"
 PICO_DEVICE_ID = "fd6127d11d6aca42a9905fa3fb1bf1d5"
 PICO_PHASE115_BOOT = "ff719d304f1ba4ac23fddd93561b26f0"
-PICO_PREDECESSOR_BOOT = "b72fed2c17583cc7aba0f1345f76a3b2"
-PICO_ACCEPTED_BOOT = "be52153ea21a03f75067129f2bc2245f"
+PICO_PREDECESSOR_BOOT = "be52153ea21a03f75067129f2bc2245f"
+PICO_ACCEPTED_BOOT = "e363bf9ae4528258563557b7d306efcd"
 PREDECESSOR_PLAN_SHA256 = (
-    "8a52e4d9b3f252097bca0112c08b3b1e41792905775624940bcbf313b5cb072b"
+    "01a828715f786bec40c8792056f2d973e36e0df95e9cd2fa5921422faa702538"
 )
 PEER_SERIAL = "CDDBF8767C506C07"
 PEER_DEVICE_ID = "29f20b7342051ef947aa56cb9d4fab42"
@@ -68,6 +68,41 @@ SHIFT_NHZ = 5 * NS
 WSPR_SPACING_NHZ = 1_464_843_750
 WSPR_LOWEST_OFFSET_NHZ = -2_197_265_625
 WSPR_SYMBOL_NS = 682_666_666
+
+
+def realized_frequency_nhz(frequency_nhz: int) -> int:
+    """Mirror the accepted 138 MHz NCO's exact integer quantization."""
+    divisor = SAMPLE_RATE_HZ * NS
+    increment = (frequency_nhz * (1 << 32) + divisor // 2) // divisor
+    return (SAMPLE_RATE_HZ * increment * NS + (1 << 31)) >> 32
+
+
+def strict_realized_job(job: dict) -> dict:
+    """Preserve RF increments while minimizing a strict controller LOAD."""
+    value = copy.deepcopy(job)
+    for event in value["events"]:
+        if event["rf_on"]:
+            event["frequency_nhz"] = str(
+                realized_frequency_nhz(int(event["frequency_nhz"]))
+            )
+    coalesced = []
+    for event in value["events"]:
+        if (coalesced
+                and coalesced[-1]["rf_on"] == event["rf_on"]
+                and coalesced[-1].get("frequency_nhz")
+                    == event.get("frequency_nhz")
+                and int(coalesced[-1]["offset_ns"])
+                    + int(coalesced[-1]["duration_ns"])
+                    == int(event["offset_ns"])):
+            coalesced[-1]["duration_ns"] = str(
+                int(coalesced[-1]["duration_ns"])
+                + int(event["duration_ns"])
+            )
+        else:
+            coalesced.append(copy.deepcopy(event))
+    value["events"] = coalesced
+    value["allow_frequency_adjustment"] = False
+    return value
 
 
 def canonical(value: object) -> bytes:
@@ -186,6 +221,11 @@ def _planned_job(band: str, mode: str, index: int, path: str, *, matrix_credit: 
     frequency = BANDS[band]
     token = f"{band}:{mode}:{index}:{path}:{purpose}"
     expected = raw_job(mode, frequency, token, duration_ns=duration_ns, message=message)
+    if mode == "WSPR" and path == "controller_disconnect":
+        # A raw WSPR adjustment reply repeats 162 mappings over USB after the
+        # predecessor releases. Requesting the exact accepted NCO realizations
+        # preserves every RF increment while returning an empty adjustment list.
+        expected = strict_realized_job(expected)
     value = {
         "id": token,
         "band": band,
@@ -313,20 +353,166 @@ def compose() -> dict:
         "phase": "11.6",
         "repositories": {
             "WsprryPico": "210599d907acdb23278fc24244b674d62c820d7c",
-            "WsprryPi": "3b046ebe3eaa19ae764706d844fa7354033c32df",
+            "WsprryPi": "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf",
         },
         "amendment": {
             "predecessor_plan_sha256": PREDECESSOR_PLAN_SHA256,
-            "scope": "zero-tail completion repair identity and source-impact gate",
+            "scope": "post-sequence-154 WSPR terminal handoff contention repair",
             "rf_job_payloads_changed": False,
+            "rf_waveform_changed": False,
             "reason": (
-                "operator-authorized repair of the delayed tail-IRQ completion "
-                "defect preserved by Phase 11.6 attempt 52"
+                "sequence 152 completed its full production WSPR emission and returned "
+                "an authenticated inactive terminal plus acknowledged RELEASE. The "
+                "successor's first CLAIM received BUSY, its second CLAIM and exact LOAD "
+                "succeeded inside the bounded handoff, but only 7.63 seconds remained "
+                "before the immutable target and the unchanged 8-second pre-ARM guard "
+                "correctly rejected it; sequences 153 and 154 were not emitted. Exact "
+                "reconciliation proved both boards empty and released the reservation. "
+                "The retained trace shows one-second full Console INFO diagnostics "
+                "overlapping terminal reduction and ownership handoff. Suppress only "
+                "those diagnostic reads from two seconds before predicted completion "
+                "through successor ARM, then resume them from a fresh cadence. No RF "
+                "job payload, waveform, clock path, fixture, slot spacing, companion "
+                "binary, or 8-second guard changed"
             ),
             "authorization_date": "2026-09-18",
-            "deployment": "serial-bound 210599d zero-tail repair UF2 flash",
+            "deployment": (
+                "new non-installed WsprryPi candidate; accepted Pico image unchanged"
+            ),
             "configuration_writes": 0,
-            "firmware_flashes": 1,
+            "firmware_flashes": 0,
+            "controlled_reboots": 1,
+            "failed_sequence_retried": False,
+            "failed_sequences": [
+                67, 88, 94, 97, 100, 102, 106, 109, 113, 116, 119, 125, 128,
+                131, 134, 137, 143, 144, 146, 149, 152
+            ],
+            "zero_rf_preflight_failures": [91, 103, 104, 105, 122, 135, 140, 146],
+            "zero_rf_aborted_submissions": [110, 117, 126, 132],
+            "aborted_rf_sequences": [114, 120, 129, 138],
+            "abandoned_unsubmitted_sequences": [
+                89, 90, 92, 93, 95, 96, 98, 99, 101, 107, 108, 111, 112, 115,
+                118, 121, 123, 124, 127, 130, 133, 136, 139, 141, 142, 145,
+                147, 148, 150, 151, 153, 154
+            ],
+            "next_sequence": 155,
+            "companion_source_revision":
+                "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf",
+            "companion_binary_sha256":
+                "b8e63947e2e9780f43dc4247869db138f81cc6e2245c99c1fd02ad9de4b33ff6",
+            "production_ini": {
+                "loop_tx": False,
+                "tx_iterations": 1,
+            },
+            "terminal_evidence_repair": (
+                "reduce the exact loaded, armed, running and complete events from "
+                "the authenticated production WTP stream; retain any final host "
+                "report as an additional consistency check"
+            ),
+            "fixture_namespace_repair": {
+                "required_namespaces": ["mount", "network"],
+                "admission": (
+                    "batch and physical group require their current namespace "
+                    "identities to equal the supplied active fixture process"
+                ),
+                "admission_before_attempt_creation": True,
+            },
+            "fixture_continuity_repair": {
+                "remote_ap": "reuse the active accepted AP attestation",
+                "local_client": "fresh source and namespace root",
+                "reason": (
+                    "avoid another AP withdrawal while retaining immutable local "
+                    "packet, namespace, capture, and observer evidence"
+                ),
+                "pico_mutations": 0,
+            },
+            "wspr_transition_repair": {
+                "production_transport": "authenticated-network-wtp",
+                "controller_transport": "usb-wtp",
+                "browser_transport": "shipped-https-browser-page",
+                "controller_disconnect": (
+                    "close the USB WTP stream immediately after ARM without "
+                    "disconnecting USB power"
+                ),
+                "production_cleanup_handoff": (
+                    "after the exact inactive predecessor terminal, attempt the USB "
+                    "successor CLAIM for at most two seconds while the releasing "
+                    "owner settles; give the in-flight CLAIM the remaining deadline "
+                    "rather than a fixed 0.5-second timeout, and retry only explicit "
+                    "BUSY replies inside that envelope; companion c39fae3 accepts "
+                    "that inactive successor after acknowledged RELEASE"
+                ),
+                "production_release_latency": (
+                    "reuse the fresh exact terminal/inactive proof from successful "
+                    "execution before RELEASE; monitor JOB_STATE without a continuous "
+                    "STATUS transaction, pace long-job STATUS outside the final full "
+                    "transaction allowance, retain a bounded post-completion fallback, "
+                    "and require fresh post-RELEASE STATUS"
+                ),
+                "console_quiet_window": (
+                    "suppress full Console INFO diagnostics from two seconds before "
+                    "the predicted production terminal through successor ARM, then "
+                    "resume at a fresh one-second cadence; authenticated WTP clock, "
+                    "status, event, release, claim, load and ARM evidence remain active"
+                ),
+                "browser_predecessor_gate": (
+                    "require the already-open page to overlap the exact controller "
+                    "job while armed or running, then submit only after authenticated "
+                    "USB terminal event plus current complete unowned inactive STATUS "
+                    "and authenticated release authority"
+                ),
+                "disconnect_event_gap": (
+                    "only the first event on the new authenticated post-disconnect "
+                    "USB session may skip strictly increasing global event IDs; record "
+                    "the exact missing range, require contiguous events thereafter, "
+                    "and bridge lifecycle with accepted ARM plus current STATUS"
+                ),
+                "minimum_arm_lead_ns": "8000000000",
+                "controller_clock_handoff": (
+                    "project the immediately preceding synchronized device clock by "
+                    "host monotonic elapsed time before CLAIM, after CLAIM, and "
+                    "before ARM; omit redundant GET_CLOCK exchanges and require the "
+                    "clock returned by ARM itself to retain the unchanged lead, "
+                    "otherwise immediately ABORT and RELEASE"
+                ),
+                "controller_load_frequency_encoding": (
+                    "exact 138 MHz NCO realized frequencies, strict admission, "
+                    "identical increments to the nominal adjustment-allowed job; "
+                    "adjacent identical tone cells are coalesced without changing "
+                    "the RF waveform or total duration"
+                ),
+                "failed_group_reconciliation": (
+                    "first reuse the exact retained USB principal when it remains "
+                    "admissible; when an active disconnected session blocks WTP, "
+                    "bind the exact job through authenticated browser status and "
+                    "the boot/source/active state through physical Console INFO "
+                    "before exactly one Console ABORT; validate the identity-free "
+                    "Console acknowledgement against boot and inactive aborted "
+                    "state, then prove the exact job terminal through fresh WTP "
+                    "status"
+                ),
+                "production_browser_terminal": (
+                    "bind the wildcard production observer to the first active job, "
+                    "latch its exact retained complete inactive terminal, stop page "
+                    "refreshes while successors run, and verify the observed id "
+                    "against the authenticated production runtime binding"
+                ),
+                "production_browser_handoff": (
+                    "pre-open the raw-browser successor while idle; after controller "
+                    "ARM and USB disconnect, authorize that existing page only after "
+                    "the wildcard production page exits by reducing its exact retained "
+                    "terminal; the successor page must itself overlap the controller, "
+                    "quiesce refreshes before predicted completion, and consume fresh "
+                    "USB event-plus-STATUS terminal authority before submitting the "
+                    "third slot"
+                ),
+                "browser_connection_budget": (
+                    "pre-open exactly the production observer and raw-browser successor "
+                    "while the target is idle; retain the successor page with bounded "
+                    "standby refreshes because active RF pauses new network admission; "
+                    "fail before RF if either browser exits"
+                ),
+            },
         },
         "accepted_configuration": {
             "pico_serial": PICO_SERIAL,
@@ -345,13 +531,13 @@ def compose() -> dict:
             "boot_transition": {
                 "from_boot_id": PICO_PREDECESSOR_BOOT,
                 "to_boot_id": PICO_ACCEPTED_BOOT,
-                "source_revision_unchanged": False,
-                "uf2_sha256_unchanged": False,
+                "source_revision_unchanged": True,
+                "uf2_sha256_unchanged": True,
                 "hardware_configuration_unchanged": True,
                 "postrestart_allocator_failures": 0,
                 "postrestart_tls_allocation_failures": 0,
                 "private_evidence_directory":
-                    "repair-210599d-deployment",
+                    "phase11-6-reboot-after-0067-v2-20260918",
             },
         },
         "peer": {"pico_serial": PEER_SERIAL, "device_id": PEER_DEVICE_ID},
@@ -425,7 +611,17 @@ def compose() -> dict:
         "capture_estimate_bytes": int((planned_seconds + planned_jobs * 4) * 250_000 * 8),
         "source_impact": {
             "firmware_runtime_changes": 1,
-            "decision": "reproject immutable UTC from the newest admissible armed clock sample",
+            "companion_runtime_changes": 1,
+            "decision": (
+                "retain the repaired clock handoff and defer the raw-browser client "
+                "until after exact production-terminal proof; consume terminal WTP "
+                "events without an overlapping continuous STATUS request"
+            ),
+            "companion_decision": (
+                "import finite managed WSPR fields, consume the iteration and require "
+                "orderly production exit; use event-driven execution monitoring with "
+                "paced and post-completion STATUS fallbacks"
+            ),
             "phase11_5_applicability": (
                 "R1.1/R1.5, the shared R2 launch path and R6 timing/resources require "
                 "the documented repaired-candidate gate before transfer"

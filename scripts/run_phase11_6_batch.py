@@ -159,7 +159,7 @@ def main() -> int:
                 sys.executable, str(root / "scripts/reconcile_phase11_6.py"),
                 "--root", str(root), "--session", uuid.uuid4().hex,
                 "--request-number", "0", "--packet-sha256", attempt_hash,
-                "--output", str(reconciliation), "--run",
+                "--output", str(reconciliation), "--authorize-console-abort", "--run",
             ] + (["--expected-job-id", attempt_value["wtp_job_id"]]
                  if attempt_value.get("wtp_job_id") else []),
                 output / f"{sequence:04d}-reconciliation.log")

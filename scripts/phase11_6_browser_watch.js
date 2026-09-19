@@ -10,7 +10,7 @@ const HOST='wsprrypico-0a60df.local',ADDRESS='10.77.15.10';
 const ORIGIN='https://'+HOST+':18443';
 const PEER='06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016';
 const WebSocket=require('/usr/share/nodejs/ws');
-let chrome,socket,failure=null,sequence=0,refreshes=0,unavailableRefreshes=0,consecutiveUnavailableRefreshes=0,observedJob=null;
+let chrome,socket,failure=null,sequence=0,refreshes=0,unavailableRefreshes=0,consecutiveUnavailableRefreshes=0,observedJob=null,observedTerminal=null,settledState=null;
 const MAX_CONSECUTIVE_UNAVAILABLE_REFRESHES=3;
 const pending=new Map(),events=new Set(),states=new Set(),jobs=new Set();
 const log=fs.openSync(root+'/browser.jsonl','wx',0o600),deadline=process.hrtime.bigint()+BigInt(Math.ceil(seconds+90))*1000000000n;
@@ -44,18 +44,33 @@ async function requiredRefresh(seconds=30){let value=null;await until(async()=>{
     if(fs.existsSync(root+'/browser-paused')){fs.unlinkSync(root+'/browser-paused');emit('resumed',{job_id:jobId});}
     check();const s=await refresh();
     if(s===null){await new Promise(r=>setTimeout(r,refreshMs));continue;}
-    if(s.job_id&&(s.state==='armed'||s.state==='running')&&(jobId==='any'||s.job_id===jobId)){
-      if(observedJob&&observedJob!==s.job_id)throw Error('wildcard observer saw multiple active jobs');
-      observedJob=s.job_id;sawOverlap=true;if(lastShot!==s.state){await shot('overlap-'+s.state);lastShot=s.state;}
+    const active=s.job_id&&(s.state==='armed'||s.state==='running');
+    if(active&&(jobId!=='any'?s.job_id===jobId:observedJob===null))observedJob=s.job_id;
+    if(active&&s.job_id===observedJob){
+      sawOverlap=true;if(lastShot!==s.state){await shot('overlap-'+s.state);lastShot=s.state;}
+    }
+    if(jobId==='any'&&observedJob!==null){
+      const matches=(s.terminal_records??[]).filter(record=>record.job_id===observedJob);
+      assert(matches.length<=1,'production job has duplicate retained terminal records');
+      if(matches.length===1){
+        assert.equal(matches[0].state,'complete');assert.equal(matches[0].output_active,false);
+        observedTerminal=matches[0];settledState=s;emit('observed_terminal',{job_id:observedJob,terminal:observedTerminal});await shot('terminal');break;
+      }
     }
     await new Promise(r=>setTimeout(r,refreshMs));
   }
-  const final=await requiredRefresh();await shot('final');
+  const final=jobId==='any'&&settledState!==null?settledState:await requiredRefresh();await shot('final');
   assert(sawOverlap,'manual page refresh never overlapped Armed/Running');
-  if(jobId==='any')assert(observedJob&&jobs.has(observedJob),'page never observed an active production job');
-  else assert(jobs.has(jobId),'page never observed expected job');
-  assert.equal(final.output_active,false);
-  save('browser-result.json',{status:'PASS',page_loaded:true,manual_refreshes:refreshes,unavailable_refreshes:unavailableRefreshes,consecutive_unavailable_refreshes:consecutiveUnavailableRefreshes,maximum_consecutive_unavailable_refreshes:MAX_CONSECUTIVE_UNAVAILABLE_REFRESHES,refresh_interval_ms:refreshMs,manual_refresh_overlap:true,states:[...states].sort(),job_ids:[...jobs].sort(),expected_job_id:jobId,observed_job_id:observedJob,peer_sha256:PEER,events:[...events].sort()});
+  if(jobId==='any'){
+    assert(observedJob&&jobs.has(observedJob),'page never observed an active production job');
+    assert(observedTerminal!==null,'production job must have one retained terminal record');
+    assert.equal(observedTerminal.state,'complete');
+    assert.equal(observedTerminal.output_active,false);
+  }else{
+    assert(jobs.has(jobId),'page never observed expected job');
+    assert.equal(final.output_active,false);
+  }
+  save('browser-result.json',{status:'PASS',page_loaded:true,manual_refreshes:refreshes,unavailable_refreshes:unavailableRefreshes,consecutive_unavailable_refreshes:consecutiveUnavailableRefreshes,maximum_consecutive_unavailable_refreshes:MAX_CONSECUTIVE_UNAVAILABLE_REFRESHES,refresh_interval_ms:refreshMs,manual_refresh_overlap:true,states:[...states].sort(),job_ids:[...jobs].sort(),expected_job_id:jobId,observed_job_id:observedJob,observed_terminal:observedTerminal,final_job_id:final.job_id??null,final_output_active:final.output_active,peer_sha256:PEER,events:[...events].sort()});
 })().catch(error=>{failure=error;emit('failure',{message:error.message,stack:error.stack});save('browser-result.json',{status:'FAIL',error:error.message,page_loaded:false,manual_refreshes:refreshes,unavailable_refreshes:unavailableRefreshes,consecutive_unavailable_refreshes:consecutiveUnavailableRefreshes,maximum_consecutive_unavailable_refreshes:MAX_CONSECUTIVE_UNAVAILABLE_REFRESHES,states:[...states].sort(),job_ids:[...jobs].sort()});process.exitCode=1;}).finally(async()=>{
   if(socket){await send('Browser.close').catch(()=>{});socket.close();}
   if(chrome&&chrome.exitCode===null){chrome.kill('SIGTERM');await new Promise(r=>{chrome.once('exit',r);setTimeout(r,5000);});}

@@ -11,9 +11,10 @@
 
 static std::size_t largest_new = 0;
 static bool bounded_http = false;
+static std::size_t bounded_http_limit = 8192;
 void* operator new(std::size_t size) {
     largest_new = std::max(largest_new, size);
-    if (bounded_http && size > 8192)
+    if (bounded_http && size > bounded_http_limit)
         throw std::bad_alloc();
     if (auto* result = std::malloc(size ? size : 1))
         return result;
@@ -542,6 +543,62 @@ void maximum_http_job() {
         413);
     REQUIRE(f.service.status().state == wtp::State::Empty);
 }
+void fragmented_raw_browser_load() {
+    Fixture f;
+    unsigned sequence = 0;
+    const std::string session(32, '7'), job_id(32, '8');
+    const auto send = [&](std::string operation, std::string body) {
+        auto value = request("POST", "/api/v1/jobs",
+                             "{\"session_id\":\"" + session + "\",\"request_id\":\"" +
+                                 std::string(28, '0') + std::to_string(1000 + ++sequence) +
+                                 "\",\"operation\":\"" + operation + "\",\"body\":" + body + "}");
+        return f.api.handle(value, "cert-a", "127.0.0.1:8443");
+    };
+    REQUIRE(send("HELLO", "{\"versions\":[\"WTP/1\"],\"client_name\":\"browser\","
+                          "\"client_version\":\"1\"}")
+                .status == 200);
+    REQUIRE(send("CLAIM", "{\"owner_id\":\"" + session + "\",\"lease_ms\":30000}").status == 200);
+
+    std::string events = "[";
+    for (unsigned index = 0; index < 162; ++index) {
+        if (index)
+            events += ',';
+        events += "{\"offset_ns\":\"" + std::to_string(index * 682666666ULL) +
+                  "\",\"duration_ns\":\"682666666\",\"rf_on\":true,"
+                  "\"frequency_nhz\":\"137500732421875\"}";
+    }
+    events += ']';
+    const auto plan = "{\"profile\":\"rf-events/1\",\"mode\":\"wspr\",\"events\":" + events +
+                      ",\"total_duration_ns\":\"110591999892\",\"allow_frequency_adjustment\":true,"
+                      "\"job_id\":\"" +
+                      job_id + "\"}";
+    auto value = request("POST", "/api/v1/jobs",
+                         "{\"session_id\":\"" + session + "\",\"request_id\":\"" +
+                             std::string(28, '0') + std::to_string(1000 + ++sequence) +
+                             "\",\"operation\":\"LOAD\",\"body\":" + plan + "}");
+    REQUIRE(value.body.size() > 16000 && value.body.size() < 18000);
+
+    // The target evidence retained a successful roughly 16.7 KiB envelope
+    // allocation followed by a failed 33,335-byte geometric temporary.  Model
+    // that fragmented heap: the one necessary envelope fits, a doubled copy
+    // does not.
+    largest_new = 0;
+    bounded_http_limit = 20000;
+    bounded_http = true;
+    bool threw = false;
+    network::HttpResponse loaded;
+    try {
+        loaded = f.api.handle(value, "cert-a", "127.0.0.1:8443");
+    } catch (const std::bad_alloc&) {
+        threw = true;
+    }
+    bounded_http = false;
+    bounded_http_limit = 8192;
+    REQUIRE(!threw);
+    REQUIRE(loaded.status == 200);
+    REQUIRE(largest_new <= 20000);
+    REQUIRE(f.service.status().state == wtp::State::Loaded);
+}
 void message_jobs() {
     Fixture f;
     unsigned sequence = 1000;
@@ -610,6 +667,7 @@ int main() {
     api_checks();
     jobs();
     maximum_http_job();
+    fragmented_raw_browser_load();
     message_jobs();
     deferred();
     restart_tests();

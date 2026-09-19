@@ -424,11 +424,13 @@ def wait_for_readiness_session_release(packet, journal):
 
 
 class ConsoleObserver(threading.Thread):
-    def __init__(self, journal, stop, expected_boot=BOOT, expected_source=SOURCE):
+    def __init__(self, journal, stop, expected_boot=BOOT, expected_source=SOURCE,
+                 pause=None):
         super().__init__(name="package9-console")
         self.journal, self.stop, self.failure, self.latest = journal, stop, None, None
         self.expected_boot = expected_boot
         self.expected_source = expected_source
+        self.pause = pause
         self.starts = []
 
     def run(self):
@@ -436,6 +438,12 @@ class ConsoleObserver(threading.Thread):
             with exclusive_port(Path(str(BASE) + "-if00")) as fd:
                 due = time.monotonic()
                 while not self.stop.is_set():
+                    if self.pause is not None and self.pause.is_set():
+                        self.stop.wait(.025)
+                        # Resume from a fresh cadence instead of trying to
+                        # repay deliberately suppressed diagnostic samples.
+                        due = time.monotonic()
+                        continue
                     now = time.monotonic()
                     if now < due:
                         self.stop.wait(min(.05, due - now))

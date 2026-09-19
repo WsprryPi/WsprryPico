@@ -17,7 +17,7 @@ from phase11_6.plan import digest, validate
 
 SCHEMA = "phase11.6-fixture-v1"
 AUTHORIZATION = "PHASE11.6-CONDUCTED-RF-20260918"
-PLAN_SHA256 = "8a52e4d9b3f252097bca0112c08b3b1e41792905775624940bcbf313b5cb072b"
+PLAN_SHA256 = "a03a6b62eebe75202062c447b95498c3300b9e425796df96989fbe498796986a"
 CREDENTIALS = {
     "controller": {"ca": "credentials/controller/client-ca.crt",
                    "cert": "credentials/controller/client.crt",
@@ -93,6 +93,11 @@ def remote_packet(args):
 
 def local_packet(args):
     root, retained, wifi = root_and_inputs(args)
+    required_schema = root / "docs/protocol/wtp-1.schema.json"
+    require(
+        required_schema.is_file() and not required_schema.is_symlink(),
+        "complete Phase 11.6 execution root",
+    )
     remote_ready_path = args.remote_ready.resolve(strict=True)
     remote_ready = json.loads(remote_ready_path.read_text())
     require(remote_ready.get("schema") == "phase11.5-package11-remote-ap-ready-v1"
@@ -104,6 +109,11 @@ def local_packet(args):
     shutil.copy2(retained / "retained-wifi.json", root / "retained-wifi.json")
     shutil.copy2(remote_ready_path, root / "remote-ready.json")
     shutil.copytree(retained / "credentials", root / "credentials", symlinks=False)
+    for name in ("browser-home", "chromium-etc"):
+        source = retained / name
+        require(source.is_dir() and not source.is_symlink(),
+                "retained browser trust/profile directory")
+        shutil.copytree(source, root / name, symlinks=False)
     for name in ("production-base.ini", "production-openssl.cnf", "observer.so"):
         source = retained / name
         if source.is_file() and not source.is_symlink():
@@ -141,6 +151,7 @@ def local_packet(args):
         "bootsel": 0,
         "wifi_cycles": 0,
         "allocation_probes": 0,
+        "installed_service_prepaused": True,
     }
     save_new(root / "packet.json", packet)
     print(json.dumps({"status": "STAGED", "role": "local-client",

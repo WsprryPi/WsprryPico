@@ -14,13 +14,15 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(1, str(ROOT / "scripts"))
 
-from phase11_6.plan import PICO_ACCEPTED_BOOT, compose  # noqa: E402
+from phase11_6.plan import (FIRMWARE_SOURCE, PICO_ACCEPTED_BOOT,
+                            PICO_DEVICE_ID, compose)  # noqa: E402
 from phase11_6.live import (BROWSER_ARM_LEAD_NS, MINIMUM_ARM_LEAD_NS,
                             CORRECTIVE_MAXIMUM_SYNC_AGE_NS,
                             CORRECTIVE_MINIMUM_SYNC_AGE_NS,
                             SETTLED_CLOCK_UNCERTAINTY_NS,
                             NetworkPeer, RetryableWtpBusy,
-                            armed_clock_refinement, configure_capture_validator,
+                            armed_clock_refinement, browser_watch_complete,
+                            configure_capture_validator,
                             production_command,
                             require_capture_helper,
                             render_production_ini, settled_inventory,
@@ -35,8 +37,13 @@ from phase11_6_attempt import (  # noqa: E402
     effective_compact_request,
     effective_job,
                            )
-from reconcile_phase11_6 import release_safe  # noqa: E402
+from reconcile_phase11_6 import (console_abort_acknowledged,
+                                 console_abort_eligible,
+                                 recovery_release_evidence,
+                                 console_state_abort_eligible,
+                                 release_safe)  # noqa: E402
 from analyze_phase11_6 import bind_run_result  # noqa: E402
+from run_phase11_6_wspr_batch import reconciliation_disposition  # noqa: E402
 
 
 class Phase116AttemptTests(unittest.TestCase):
@@ -200,6 +207,34 @@ class Phase116AttemptTests(unittest.TestCase):
             source.count("maximum_consecutive_unavailable_refreshes:"), 2
         )
 
+    def test_wildcard_browser_latches_exact_terminal_before_successor_load(self):
+        source = (ROOT / "scripts/phase11_6_browser_watch.js").read_text()
+        self.assertIn("settledState=s;emit('observed_terminal'", source)
+        self.assertIn("await shot('terminal');break", source)
+        self.assertNotIn("wildcard observer saw multiple active jobs", source)
+
+    def test_browser_watch_binds_wildcard_to_its_retained_terminal(self):
+        production = "a" * 32
+        successor = "b" * 32
+        result = {
+            "status": "PASS", "page_loaded": True,
+            "manual_refresh_overlap": True,
+            "job_ids": [production, successor],
+            "observed_job_id": production,
+            "observed_terminal": {
+                "job_id": production, "state": "complete",
+                "output_active": False,
+            },
+            "final_job_id": successor, "final_output_active": True,
+        }
+        self.assertTrue(browser_watch_complete(result, None))
+        self.assertFalse(browser_watch_complete(result, successor))
+        for field, value in (("job_id", successor), ("state", "running"),
+                             ("output_active", True)):
+            changed = copy.deepcopy(result)
+            changed["observed_terminal"][field] = value
+            self.assertFalse(browser_watch_complete(changed, None))
+
     def test_browser_paths_pin_fixture_address_but_retain_tls_hostname(self):
         for name in ("phase11_6_browser_submit.js", "phase11_6_browser_watch.js"):
             source = (ROOT / "scripts" / name).read_text()
@@ -208,6 +243,25 @@ class Phase116AttemptTests(unittest.TestCase):
             self.assertIn("--host-resolver-rules=MAP ", source)
             self.assertIn("const ORIGIN='https://'+HOST+':18443'", source)
             self.assertIn("assert(!navigation.errorText", source)
+
+    def test_successor_staging_retains_bound_browser_trust_and_policy(self):
+        source = (ROOT / "scripts/phase11_6_stage.py").read_text()
+        self.assertIn('(\"browser-home\", \"chromium-etc\")', source)
+        self.assertIn('"retained browser trust/profile directory"', source)
+        self.assertIn("shutil.copytree(source, root / name, symlinks=False)", source)
+
+    def test_fixture_preserves_an_already_paused_installed_transmitter(self):
+        stage = (ROOT / "scripts/phase11_6_stage.py").read_text()
+        fixture = (ROOT / "scripts/phase11_6_fixture.py").read_text()
+        self.assertIn('"installed_service_prepaused": True', stage)
+        self.assertIn('installed_state == "inactive"', fixture)
+        self.assertIn('installed_pid == "0"', fixture)
+        self.assertNotIn(
+            '["systemctl", "start", "wsprrypi.service"]', fixture
+        )
+        self.assertIn('marker = self.root / "installed-paused.txt"', fixture)
+        self.assertIn('with marker.open("x")', fixture)
+        self.assertIn('== self.installed_service_marker()', fixture)
 
     def test_browser_paths_receive_the_campaign_accepted_boot(self):
         live = (ROOT / "src/phase11_6/live.py").read_text()
@@ -294,7 +348,8 @@ class Phase116AttemptTests(unittest.TestCase):
         self.assertIn("refresh_interval_s=10.0", production)
         group = (ROOT / "src/phase11_6/wspr_group.py").read_text()
         self.assertIn("production_watch.start(); production_watch.pause()", group)
-        self.assertIn("watch.resume()", group)
+        self.assertIn("browser.start()", group)
+        self.assertNotIn('task["watch"].resume()', group)
 
     def test_usb_observer_preserves_adverse_terminal_event(self):
         class Journal:
@@ -347,6 +402,11 @@ class Phase116AttemptTests(unittest.TestCase):
             {job, prior}, {job}, final, job,
         )
         self.assertEqual(value["terminal"]["job_id"], job)
+        bridged = usb_completion(
+            {"running", "complete"}, {"loaded", "complete"},
+            {job}, {job}, final, job, mutation_states={"armed"},
+        )
+        self.assertEqual(bridged["mutation_states"], ["armed"])
         with self.assertRaises(ValueError):
             usb_completion({"running", "complete"}, {"loaded", "running", "complete"},
                            {job}, {job}, final, job)
@@ -392,6 +452,7 @@ class Phase116AttemptTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "production-base.ini").write_text(
+                "[Meta]\n"
                 "[Operation]\n"
                 "[Calibration]\n"
                 "[Experimental]\n"
@@ -405,6 +466,8 @@ class Phase116AttemptTests(unittest.TestCase):
             parser.read(path)
             self.assertEqual(parser["Operation"]["Transmit"], "true")
             self.assertEqual(parser["Operation"]["Enable on Boot"], "Follow")
+            self.assertEqual(parser["Meta"]["Loop TX"], "false")
+            self.assertEqual(parser["Meta"]["TX Iterations"], "1")
 
             command = production_command(Path("/candidate"), path, job)
             dot = command.index("--dfcw-dot-frequency")
@@ -434,6 +497,102 @@ class Phase116AttemptTests(unittest.TestCase):
         self.assertTrue(release_safe(complete, job))
         self.assertFalse(release_safe(complete))
         self.assertFalse(release_safe(complete, "b" * 32))
+
+    def test_console_abort_requires_exact_active_job_and_boot(self):
+        job = "a" * 32
+        active = {
+            "boot_id": PICO_ACCEPTED_BOOT, "state": "running",
+            "owner_id": "c" * 32, "output_active": True, "job_id": job,
+        }
+        self.assertTrue(console_abort_eligible(active, job))
+        for field, value in (("boot_id", "f" * 32), ("state", "complete"),
+                             ("job_id", "b" * 32), ("output_active", None)):
+            changed = dict(active)
+            changed[field] = value
+            self.assertFalse(console_abort_eligible(changed, job))
+        self.assertFalse(console_abort_eligible(active, None))
+
+        console = dict(active)
+        console.pop("job_id")
+        console.pop("owner_id")
+        self.assertTrue(console_state_abort_eligible(console))
+        for field, value in (("boot_id", "f" * 32), ("state", "complete"),
+                             ("output_active", False)):
+            changed = dict(console)
+            changed[field] = value
+            self.assertFalse(console_state_abort_eligible(changed))
+
+        acknowledgement = {
+            "ok": True, "boot_id": PICO_ACCEPTED_BOOT, "state": "aborted",
+            "output_active": False,
+        }
+        self.assertTrue(console_abort_acknowledged(acknowledgement, job))
+        acknowledgement["job_id"] = job
+        self.assertTrue(console_abort_acknowledged(acknowledgement, job))
+        acknowledgement["job_id"] = "b" * 32
+        self.assertFalse(console_abort_acknowledged(acknowledgement, job))
+
+    def test_recovery_reconciliation_requires_exact_inactive_fault(self):
+        new_boot = "1" * 32
+        status = {
+            "boot_id": new_boot, "state": "empty", "job_id": None,
+            "owner_id": None, "output_active": False,
+        }
+        values = {"a": {
+            "info": {
+                "device_id": PICO_DEVICE_ID,
+                "revision": FIRMWARE_SOURCE[:12],
+                "deployment_identity_matches": True,
+                "recovery_boot": True,
+                "fault_stage": 14,
+                "fault_hash": 3833354787,
+                "fault_allocation_recorded": True,
+                "fault_allocation_request_bytes": 33335,
+                "fault_allocation_returned_null": True,
+                "network": {"initialized": False, "control_listening": False},
+                "status": {**status, "enabled": False},
+            },
+            "wtp": {"HELLO": {"boot_id": new_boot}, "STATUS": status},
+        }}
+        result = recovery_release_evidence(
+            values, (PICO_ACCEPTED_BOOT, new_boot), 14, 3833354787, 33335
+        )
+        self.assertEqual(result["to_boot_id"], new_boot)
+        changed = copy.deepcopy(values)
+        changed["a"]["info"]["fault_allocation_request_bytes"] = 33334
+        with self.assertRaisesRegex(ValueError, "Exact inactive"):
+            recovery_release_evidence(
+                changed, (PICO_ACCEPTED_BOOT, new_boot), 14, 3833354787, 33335
+            )
+
+    def test_rf_batches_explicitly_authorize_failure_console_abort(self):
+        for name in ("run_phase11_6_batch.py", "run_phase11_6_wspr_batch.py"):
+            source = (ROOT / "scripts" / name).read_text()
+            self.assertIn('"--authorize-console-abort"', source)
+
+    def test_wspr_batch_reconciles_only_its_exact_held_reservation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "reservation.json"
+            self.assertEqual(
+                reconciliation_disposition("a" * 64, path),
+                "not-required-no-reservation",
+            )
+            path.write_text(json.dumps({"state": "RELEASED",
+                                        "packet_sha256": "b" * 64}))
+            self.assertEqual(
+                reconciliation_disposition("a" * 64, path),
+                "not-required-released-reservation",
+            )
+            path.write_text(json.dumps({"state": "HELD",
+                                        "packet_sha256": "a" * 64}))
+            self.assertEqual(
+                reconciliation_disposition("a" * 64, path),
+                "required-exact-held-reservation",
+            )
+            self.assertEqual(
+                reconciliation_disposition("b" * 64, path),
+                "not-attempted-foreign-or-invalid-reservation",
+            )
 
     def test_capture_validator_dependency_is_explicit_and_hashed(self):
         with tempfile.TemporaryDirectory() as temporary:

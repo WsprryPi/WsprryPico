@@ -21,6 +21,13 @@ std::string hex(std::span<const std::uint8_t> bytes) {
 HttpResponse ok(std::string body) {
     return {200, std::move(body), "application/json", {}};
 }
+void append(std::string& output, InputView input) {
+    for (std::size_t offset = 0; offset < input.size();) {
+        const auto part = input.at(offset);
+        output.append(reinterpret_cast<const char*>(part.data()), part.size());
+        offset += part.size();
+    }
+}
 } // namespace
 std::string BrowserApi::revision() const {
     const auto data = service_.status().boot_id + ":" + std::to_string(network_revision_) + ":" +
@@ -66,13 +73,25 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
     std::string payload;
     payload.reserve(body->get("session_id")->raw.size() + body->get("request_id")->raw.size() +
                     body->get("operation")->raw.size() + body->get("body")->raw.size() + 128);
-    payload =
-        "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":" +
-        std::string(body->get("session_id")->raw) +
-        ",\"request_id\":" + std::string(body->get("request_id")->raw) + ",\"op\":" +
-        (message_job ? std::string("\"PING\"") : std::string(body->get("operation")->raw)) +
-        ",\"body\":" + (message_job ? std::string("{}") : std::string(body->get("body")->raw)) +
-        "}";
+    // Append paged views into the reserved destination.  A chained string
+    // expression builds a geometrically grown full-size temporary alongside
+    // the HTTP body and destination; fragmented target heaps can reject that
+    // unnecessary contiguous allocation even when the admission total passes.
+    payload += "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":";
+    append(payload, body->get("session_id")->raw);
+    payload += ",\"request_id\":";
+    append(payload, body->get("request_id")->raw);
+    payload += ",\"op\":";
+    if (message_job)
+        payload += "\"PING\"";
+    else
+        append(payload, body->get("operation")->raw);
+    payload += ",\"body\":";
+    if (message_job)
+        payload += "{}";
+    else
+        append(payload, body->get("body")->raw);
+    payload += '}';
     if (payload.size() > kMaximumPayloadBytes)
         return http_error(413, "job_too_large");
     auto root = json::parse(payload);

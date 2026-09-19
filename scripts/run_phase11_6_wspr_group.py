@@ -21,6 +21,7 @@ from phase11_6.live import (Journal, configure_capture_validator,
 from phase11_6.plan import (PEER_DEVICE_ID, PEER_SERIAL, PICO_DEVICE_ID,
                             PICO_SERIAL, digest, validate)
 from phase11_6.wspr_group import execute_wspr_group, group_digest, validate_group
+from phase11_6.wspr_group import require_fixture_namespaces
 from phase11_6_attempt import check as validate_attempt, packet_digest
 
 
@@ -34,6 +35,7 @@ def main() -> int:
     parser.add_argument("--capture-helper", type=Path, required=True)
     parser.add_argument("--qualification-src", type=Path, required=True)
     parser.add_argument("--production-binary", type=Path, required=True)
+    parser.add_argument("--fixture-process", type=int, required=True)
     parser.add_argument("--enable-rf", action="store_true", required=True)
     args = parser.parse_args()
     if not args.enable_rf:
@@ -44,6 +46,7 @@ def main() -> int:
 
     plan = validate(json.loads(args.plan.read_text()))
     root = args.plan.resolve().parent
+    require_fixture_namespaces(args.fixture_process)
     require(digest(plan) == args.plan_sha256, "Immutable Phase 11.6 plan")
     group = json.loads(args.group_packet.read_text())
     planned_jobs = validate_group(group, plan, root)
@@ -75,6 +78,10 @@ def main() -> int:
     binary = args.production_binary.resolve(strict=True)
     require(binary.is_file() and os.access(binary, os.X_OK),
             "Reviewed production candidate executable")
+    require(
+        sha256(binary) == plan["amendment"]["companion_binary_sha256"],
+        "Reviewed production candidate identity",
+    )
     paused = (root / "installed-paused.txt").read_text()
     require("MainPID=0" in paused and "ActiveState=inactive" in paused,
             "Installed WsprryPi service is not authoritatively paused")

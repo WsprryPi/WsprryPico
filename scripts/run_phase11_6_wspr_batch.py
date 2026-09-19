@@ -17,7 +17,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "src"))
 
 from phase11_6.plan import BANDS, DIRECT_MAXIMUM_HZ, digest, validate
-from phase11_6.wspr_group import group_digest
+from phase11_6.wspr_group import group_digest, require_fixture_namespaces
+
+RESERVATION_PATH = Path("/home/pi/phase11-5-shared-rf-reservation.json")
 
 
 def save(path: Path, value: object) -> None:
@@ -60,10 +62,86 @@ def label(value: str) -> str:
     return value.replace(":", "-").lower()
 
 
+def reconciliation_binding(execution: Path,
+                           browser_result: Path | None = None) -> dict:
+    """Recover the exact USB principal after a partial controller transition."""
+    if not execution.is_file():
+        return {"session": uuid.uuid4().hex, "request_number": 0,
+                "expected_job_id": None}
+    exchanges = []
+    for line in execution.read_text().splitlines():
+        row = json.loads(line)
+        if row.get("kind") == "usb_controller_exchange":
+            exchanges.append(row["value"])
+    if not exchanges:
+        return {"session": uuid.uuid4().hex, "request_number": 0,
+                "expected_job_id": None}
+    loads = [value for value in exchanges if value.get("operation") == "LOAD"]
+    selected = loads[-1] if loads else exchanges[-1]
+
+    # The browser is deliberately the final mutating principal.  Its retained
+    # request may have reached the target even when the response or runner did
+    # not, so prefer an observed browser LOAD/LOAD_MESSAGE envelope.
+    if browser_result is not None and browser_result.is_file():
+        result = json.loads(browser_result.read_text())
+        decoded = []
+        for request in result.get("requests", []):
+            value = request
+            if isinstance(request, dict) and isinstance(request.get("postData"), str):
+                value = json.loads(request["postData"])
+            if isinstance(value, dict):
+                decoded.append(value)
+        browser_loads = [value for value in decoded
+                         if value.get("operation") in {"LOAD", "LOAD_MESSAGE"}]
+        if browser_loads:
+            selected = browser_loads[-1]
+            exchanges = decoded
+
+    session = selected.get("session_id")
+    if not isinstance(session, str):
+        raise ValueError("Missing reconciliation principal")
+    session_exchanges = [value for value in exchanges
+                         if value.get("session_id") == session]
+    request_numbers = [int(value["request_id"], 16)
+                       for value in session_exchanges]
+    body = selected.get("body") or {}
+    return {"session": session, "request_number": max(request_numbers),
+            "expected_job_id": body.get("job_id")}
+
+
+def reconciliation_disposition(group_hash: str,
+                               path: Path = RESERVATION_PATH) -> str:
+    """Never reconcile a pre-reservation failure or somebody else's hold."""
+    if not path.is_file():
+        return "not-required-no-reservation"
+    try:
+        value = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return "not-attempted-unreadable-reservation"
+    if value.get("state") == "RELEASED":
+        return "not-required-released-reservation"
+    if (value.get("state") == "HELD"
+            and value.get("packet_sha256") == group_hash):
+        return "required-exact-held-reservation"
+    return "not-attempted-foreign-or-invalid-reservation"
+
+
+def prepare_attempts_root(root: Path) -> Path:
+    attempts = root / "attempts"
+    if not attempts.exists():
+        attempts.mkdir(mode=0o700)
+    if (not attempts.is_dir() or attempts.is_symlink()
+            or attempts.stat().st_mode & 0o077):
+        raise ValueError("Private regular attempts directory required")
+    return attempts
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--plan", type=Path, required=True)
     parser.add_argument("--start-sequence", type=int, required=True)
+    parser.add_argument("--attempt-reason", required=True)
+    parser.add_argument("--fixture-process", type=int, required=True)
     parser.add_argument("--skip-band", action="append", default=[])
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--capture-helper", type=Path, required=True)
@@ -77,6 +155,8 @@ def main() -> int:
     plan = validate(json.loads(args.plan.read_text()))
     plan_hash = digest(plan)
     root = args.plan.resolve().parent
+    require_fixture_namespaces(args.fixture_process)
+    attempts_root = prepare_attempts_root(root)
     output = args.output.resolve()
     output.mkdir(mode=0o700, parents=True)
     if output.stat().st_mode & 0o077 or any(output.iterdir()):
@@ -111,12 +191,12 @@ def main() -> int:
         attempts = []
         for offset, job in enumerate(jobs):
             attempt_sequence = sequence + offset
-            path = root / "attempts" / f"attempt-{attempt_sequence:04d}.json"
+            path = attempts_root / f"attempt-{attempt_sequence:04d}.json"
             result = run([
                 sys.executable, str(root / "scripts/phase11_6_attempt.py"), "create",
                 "--plan", str(args.plan), "--job-id", job["id"],
                 "--sequence", str(attempt_sequence),
-                "--reason", "Initial frozen Phase 11.6 consecutive WSPR group",
+                "--reason", args.attempt_reason,
                 "--output", str(path),
             ], output / f"{attempt_sequence:04d}-attempt-create.log")
             if result.returncode != 0:
@@ -151,21 +231,35 @@ def main() -> int:
             "--output", str(group_root), "--capture-helper", str(args.capture_helper),
             "--qualification-src", str(args.qualification_src),
             "--production-binary", str(args.production_binary), "--enable-rf",
+            "--fixture-process", str(args.fixture_process),
         ], output / f"{sequence:04d}-physical.log")
         if physical.returncode != 0:
-            reconciliation = root / "attempts" / f"wspr-{sequence:04d}-reconciliation"
-            reconciled = run([
-                sys.executable, str(root / "scripts/reconcile_phase11_6.py"),
-                "--root", str(root), "--session", uuid.uuid4().hex,
-                "--request-number", "0", "--packet-sha256", group_hash,
-                "--output", str(reconciliation), "--run",
-            ], output / f"{sequence:04d}-reconciliation.log")
+            disposition = reconciliation_disposition(group_hash)
+            reconciliation_returncode = None
+            if disposition == "required-exact-held-reservation":
+                reconciliation = root / "attempts" / f"wspr-{sequence:04d}-reconciliation"
+                binding = reconciliation_binding(
+                    group_root / "execution.jsonl",
+                    group_root / "group/browser_raw/browser/browser-result.json",
+                )
+                command = [
+                    sys.executable, str(root / "scripts/reconcile_phase11_6.py"),
+                    "--root", str(root), "--session", binding["session"],
+                    "--request-number", str(binding["request_number"]),
+                    "--packet-sha256", group_hash,
+                    "--output", str(reconciliation), "--authorize-console-abort", "--run",
+                ]
+                if binding["expected_job_id"] is not None:
+                    command.extend(["--expected-job-id", binding["expected_job_id"]])
+                reconciled = run(command, output / f"{sequence:04d}-reconciliation.log")
+                reconciliation_returncode = reconciled.returncode
             journal.emit("stopped", {
                 "stage": "physical", "band": band,
                 "returncode": physical.returncode,
-                "reconciliation_returncode": reconciled.returncode,
+                "reconciliation_disposition": disposition,
+                "reconciliation_returncode": reconciliation_returncode,
             })
-            return physical.returncode or reconciled.returncode or 1
+            return physical.returncode or reconciliation_returncode or 1
 
         passed = True
         analyses = []
