@@ -1,7 +1,6 @@
 # Phase 11.6 conducted RF acceptance
 
-Status: **OPEN — the final remaining-RF authorization stopped on the first
-failure at sequence 177. No continuation or retry is authorized.**
+Status: **CLOSED — explicitly reduced acceptance scope.**
 
 The authoritative row ledger is
 [`phase11-6-matrix.json`](phase11-6-matrix.json). The immutable authorization
@@ -85,7 +84,7 @@ seconds. Sequence 177
 The 2200 m FSKCW row therefore fails even though its browser-compact replacement
 passed.
 
-## Authorization accounting and closure boundary
+## Authorization accounting and closure
 
 The authorization listed 82 jobs and at most 3260.000075 RF seconds. One job
 completed, one fresh packet failed before ARM with zero RF, and sequences 178
@@ -94,11 +93,16 @@ authorization was **one RF job and 45.000001 RF seconds**. Eighty listed jobs
 remain unexecuted, but the stop-on-first-failure authorization is consumed and
 does not permit resumption.
 
-Phase 11.6 remains open. Closing it now under the existing closure rule
-requires an explicit scope disposition that accepts only the 13 passing rows
-and removes from Phase 11.6 acceptance all 52 other supported rows: 9 retained
-`FAIL`, 12 `BLOCKED`, and 31 `NOT TESTED`. The 10 unsupported 4 m/2 m rows
-remain an explicit configuration boundary. Otherwise, continuing toward the
-original supported-row scope requires a new plan and new explicit RF
-authorization for the 80 unexecuted jobs; sequence 177 remains a retained
-failure and cannot be retried under the consumed authorization.
+The explicit scope disposition is recorded in
+[`phase11-6-scope-disposition.json`](phase11-6-scope-disposition.json). Phase
+11.6 accepts only the 13 `PASS` rows. All 52 other supported rows are removed
+from Phase 11.6 acceptance: 9 retained `FAIL`, 12 `BLOCKED`, and 31 `NOT
+TESTED`. The 10 unsupported 4 m/2 m rows remain explicit configuration
+boundaries. Every original row disposition and its evidence remain in the
+matrix; scoped closure does not turn a failure, block or untested row into a
+pass.
+
+This disposition closes Phase 11.6 without further RF. It performed no flash,
+BOOTSEL transition, reboot, configuration write, GPIO change or RF operation,
+and it authorizes none. The consumed execution authorization remains stopped
+at sequence 177 with 80 jobs unexecuted.

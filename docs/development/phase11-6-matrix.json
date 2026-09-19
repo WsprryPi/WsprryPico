@@ -1,7 +1,7 @@
 {
   "schema": "phase11.6-reconciled-matrix-v1",
   "phase": "11.6",
-  "phase_status": "OPEN",
+  "phase_status": "CLOSED_SCOPED",
   "reconciled_date": "2026-09-19",
   "reconciled_against_origin_devel": "f817fb79ddee50c690089b9964e39bcf0663a65f",
   "base_plan_schema": "phase11.6-plan-v23",
@@ -118,7 +118,8 @@
     "phase11-6-status-admission-repair-source-impact.json": "36f00ce476781da0470af0ea4333d0ca1190685a1c3ece9b93ad6f3d4b6a0dda",
     "phase11-6-status-admission-repair-requalification.json": "089d94f7827ded9cb57dfbf0b534ab290591ba596df46fce57fac2b0dded9cb6",
     "phase11-6-closure-execution-results.json": "b1198e1ef61c61d860e32481457f344d9fc87ba558cdb8aa62a50650dca72511",
-    "phase11-6-closure-execution-plan.json": "1d5c5451d7ac6389f163277342887978b258e4805872f3ec3ec46c5d9872983e"
+    "phase11-6-closure-execution-plan.json": "1d5c5451d7ac6389f163277342887978b258e4805872f3ec3ec46c5d9872983e",
+    "phase11-6-scope-disposition.json": "d54924a9f7f819d486e743b875260b41d73031392a02b43d323e5daf009e369b"
   },
   "disposition_counts": {
     "PASS": 13,
@@ -157,7 +158,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "ACCEPTED"
     },
     {
       "band": "2200m",
@@ -223,7 +225,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "2200m",
@@ -302,7 +305,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "ACCEPTED"
     },
     {
       "band": "2200m",
@@ -398,7 +402,8 @@
         "packet_audit_complete": true,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "2200m",
@@ -460,7 +465,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "630m",
@@ -493,7 +499,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "ACCEPTED"
     },
     {
       "band": "630m",
@@ -523,7 +530,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "630m",
@@ -592,7 +600,8 @@
         "packet_audit_complete": true,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "ACCEPTED"
     },
     {
       "band": "630m",
@@ -661,7 +670,8 @@
         "packet_audit_complete": true,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "ACCEPTED"
     },
     {
       "band": "630m",
@@ -730,7 +740,8 @@
         "packet_audit_complete": true,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "ACCEPTED"
     },
     {
       "band": "160m",
@@ -763,7 +774,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "ACCEPTED"
     },
     {
       "band": "160m",
@@ -793,7 +805,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "160m",
@@ -874,7 +887,8 @@
         "packet_audit_complete": true,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "ACCEPTED"
     },
     {
       "band": "160m",
@@ -908,7 +922,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "160m",
@@ -977,7 +992,8 @@
         "packet_audit_complete": true,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "ACCEPTED"
     },
     {
       "band": "80m",
@@ -1034,7 +1050,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "ACCEPTED"
     },
     {
       "band": "80m",
@@ -1064,7 +1081,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "80m",
@@ -1099,7 +1117,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "80m",
@@ -1134,7 +1153,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "80m",
@@ -1209,7 +1229,8 @@
         "packet_audit_complete": true,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "ACCEPTED"
     },
     {
       "band": "60m",
@@ -1244,7 +1265,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "ACCEPTED"
     },
     {
       "band": "60m",
@@ -1274,7 +1296,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "60m",
@@ -1309,7 +1332,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "60m",
@@ -1344,7 +1368,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "60m",
@@ -1411,7 +1436,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "40m",
@@ -1444,7 +1470,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "ACCEPTED"
     },
     {
       "band": "40m",
@@ -1495,7 +1522,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "40m",
@@ -1512,7 +1540,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "40m",
@@ -1529,7 +1558,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "40m",
@@ -1546,7 +1576,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "30m",
@@ -1563,7 +1594,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "30m",
@@ -1593,7 +1625,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "30m",
@@ -1610,7 +1643,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "30m",
@@ -1627,7 +1661,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "30m",
@@ -1644,7 +1679,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "20m",
@@ -1661,7 +1697,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "20m",
@@ -1691,7 +1728,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "20m",
@@ -1708,7 +1746,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "20m",
@@ -1725,7 +1764,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "20m",
@@ -1742,7 +1782,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "17m",
@@ -1759,7 +1800,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "17m",
@@ -1789,7 +1831,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "17m",
@@ -1806,7 +1849,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "17m",
@@ -1823,7 +1867,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "17m",
@@ -1840,7 +1885,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "15m",
@@ -1857,7 +1903,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "15m",
@@ -1887,7 +1934,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "15m",
@@ -1904,7 +1952,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "15m",
@@ -1921,7 +1970,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "15m",
@@ -1938,7 +1988,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "12m",
@@ -1955,7 +2006,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "12m",
@@ -1985,7 +2037,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "12m",
@@ -2002,7 +2055,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "12m",
@@ -2019,7 +2073,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "12m",
@@ -2036,7 +2091,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "10m",
@@ -2053,7 +2109,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "10m",
@@ -2083,7 +2140,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "10m",
@@ -2100,7 +2158,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "10m",
@@ -2117,7 +2176,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "10m",
@@ -2134,7 +2194,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "6m",
@@ -2151,7 +2212,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "6m",
@@ -2181,7 +2243,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "6m",
@@ -2198,7 +2261,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "6m",
@@ -2215,7 +2279,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "6m",
@@ -2232,7 +2297,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "REMOVED_FROM_PHASE_ACCEPTANCE"
     },
     {
       "band": "4m",
@@ -2249,7 +2315,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "CONFIGURATION_BOUNDARY"
     },
     {
       "band": "4m",
@@ -2266,7 +2333,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "CONFIGURATION_BOUNDARY"
     },
     {
       "band": "4m",
@@ -2283,7 +2351,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "CONFIGURATION_BOUNDARY"
     },
     {
       "band": "4m",
@@ -2300,7 +2369,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "CONFIGURATION_BOUNDARY"
     },
     {
       "band": "4m",
@@ -2317,7 +2387,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "CONFIGURATION_BOUNDARY"
     },
     {
       "band": "2m",
@@ -2334,7 +2405,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "CONFIGURATION_BOUNDARY"
     },
     {
       "band": "2m",
@@ -2351,7 +2423,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "CONFIGURATION_BOUNDARY"
     },
     {
       "band": "2m",
@@ -2368,7 +2441,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "CONFIGURATION_BOUNDARY"
     },
     {
       "band": "2m",
@@ -2385,7 +2459,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "CONFIGURATION_BOUNDARY"
     },
     {
       "band": "2m",
@@ -2402,7 +2477,8 @@
         "packet_audit_complete": null,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
-      }
+      },
+      "phase_acceptance": "CONFIGURATION_BOUNDARY"
     }
   ],
   "limitations": [
@@ -2434,5 +2510,22 @@
     "automatic_retries": 0,
     "authorization_consumed": true,
     "resume_prohibited_without_new_explicit_scope_and_RF_authorization": true
+  },
+  "closed_date": "2026-09-19",
+  "closed_against_origin_devel": "842e201f9adfb754d4887762ff664183db985e16",
+  "scope_disposition": {
+    "artifact": "phase11-6-scope-disposition.json",
+    "artifact_sha256": "d54924a9f7f819d486e743b875260b41d73031392a02b43d323e5daf009e369b",
+    "accepted_rows": 13,
+    "removed_supported_rows": {
+      "FAIL": 9,
+      "BLOCKED": 12,
+      "NOT TESTED": 31,
+      "total": 52
+    },
+    "configuration_boundary_rows": 10,
+    "additional_rf_jobs": 0,
+    "additional_rf_seconds": 0,
+    "further_rf_authorized": false
   }
 }

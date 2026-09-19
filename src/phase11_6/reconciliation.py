@@ -148,7 +148,8 @@ def _is_sha256(value: object) -> bool:
 
 def validate_matrix(matrix: dict) -> dict:
     _require(matrix.get("schema") == MATRIX_SCHEMA, "reconciled matrix schema")
-    _require(matrix.get("phase_status") == "OPEN", "Phase 11.6 must remain open")
+    _require(matrix.get("phase_status") == "CLOSED_SCOPED",
+             "Phase 11.6 scoped closure status")
     _require(matrix.get("evidence_cutoff_sequence") == 177, "evidence cutoff")
     _require(matrix.get("thresholds_relaxed") is False, "threshold relaxation")
     _require(matrix.get("evidence_rebound") is False, "evidence rebinding")
@@ -164,6 +165,28 @@ def validate_matrix(matrix: dict) -> dict:
         and execution.get("automatic_retries") == 0
         and execution.get("authorization_consumed") is True,
         "closure execution outcome",
+    )
+    _require(matrix.get("scope_disposition") == {
+        "artifact": "phase11-6-scope-disposition.json",
+        "artifact_sha256":
+            "d54924a9f7f819d486e743b875260b41d73031392a02b43d323e5daf009e369b",
+        "accepted_rows": 13,
+        "removed_supported_rows": {
+            "FAIL": 9,
+            "BLOCKED": 12,
+            "NOT TESTED": 31,
+            "total": 52,
+        },
+        "configuration_boundary_rows": 10,
+        "additional_rf_jobs": 0,
+        "additional_rf_seconds": 0,
+        "further_rf_authorized": False,
+    }, "exact scoped closure disposition")
+    _require(
+        matrix.get("closed_date") == "2026-09-19"
+        and matrix.get("closed_against_origin_devel")
+            == "842e201f9adfb754d4887762ff664183db985e16",
+        "scoped closure provenance",
     )
     rows = matrix.get("rows")
     _require(isinstance(rows, list) and len(rows) == len(BANDS) * len(MODES),
@@ -195,6 +218,14 @@ def validate_matrix(matrix: dict) -> dict:
         if disposition in {"NOT TESTED", "UNSUPPORTED_CONFIGURATION"}:
             _require(evidence.get("attempts") == [],
                      f"unattempted row evidence: {row['band']}/{row['mode']}")
+        expected_acceptance = (
+            "ACCEPTED" if disposition == "PASS"
+            else "CONFIGURATION_BOUNDARY"
+            if disposition == "UNSUPPORTED_CONFIGURATION"
+            else "REMOVED_FROM_PHASE_ACCEPTANCE"
+        )
+        _require(row.get("phase_acceptance") == expected_acceptance,
+                 f"phase acceptance: {row['band']}/{row['mode']}")
     actual_counts = Counter(row["disposition"] for row in rows)
     expected_counts = Counter(expected_disposition(band, mode)
                               for band in BANDS for mode in MODES)

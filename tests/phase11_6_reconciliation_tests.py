@@ -32,6 +32,22 @@ class Phase116ReconciliationTests(unittest.TestCase):
     def test_checked_in_artifacts_validate(self):
         validate_public_artifacts(self.matrix, ROOT / "docs/development")
         validate_closure_plan(self.plan, self.matrix)
+        self.assertEqual(self.matrix["phase_status"], "CLOSED_SCOPED")
+        self.assertEqual(
+            sum(row["phase_acceptance"] == "ACCEPTED"
+                for row in self.matrix["rows"]),
+            13,
+        )
+        self.assertEqual(
+            sum(row["phase_acceptance"] == "REMOVED_FROM_PHASE_ACCEPTANCE"
+                for row in self.matrix["rows"]),
+            52,
+        )
+        self.assertEqual(
+            sum(row["phase_acceptance"] == "CONFIGURATION_BOUNDARY"
+                for row in self.matrix["rows"]),
+            10,
+        )
 
     def test_remaining_budget_is_exact(self):
         jobs = remaining_jobs()
@@ -54,6 +70,13 @@ class Phase116ReconciliationTests(unittest.TestCase):
             ),
             lambda value: value["closure_execution"].__setitem__(
                 "automatic_retries", 1
+            ),
+            lambda value: value.__setitem__("phase_status", "OPEN"),
+            lambda value: value["scope_disposition"].__setitem__(
+                "accepted_rows", 14
+            ),
+            lambda value: value["rows"][0].__setitem__(
+                "phase_acceptance", "REMOVED_FROM_PHASE_ACCEPTANCE"
             ),
             lambda value: value["rows"][0].__setitem__("disposition", "FAIL"),
         ):

@@ -1,7 +1,7 @@
 {
   "schema": "phase11.6-closure-execution-result-v1",
   "phase": "11.6",
-  "phase_status": "OPEN_STOPPED_ON_FIRST_FAILURE",
+  "phase_status": "CLOSED_SCOPED",
   "date": "2026-09-19",
   "authorization": {
     "origin_devel_commit": "f817fb79ddee50c690089b9964e39bcf0663a65f",
@@ -150,7 +150,7 @@
   },
   "authoritative_matrix": {
     "artifact": "phase11-6-matrix.json",
-    "file_sha256": "1be962c10b46e9837a65742efebd7505c420345cafb161351d8e60c5a8e86f08",
+    "file_sha256": "53ecf6052fae23c0c1f6f76f5e74f0b7fe6665bc27e033eae3fad053d599e6e8",
     "evidence_cutoff_sequence": 177,
     "disposition_counts": {
       "PASS": 13,
@@ -161,9 +161,18 @@
     }
   },
   "closure": {
-    "closed": false,
+    "closed": true,
+    "status": "CLOSED_SCOPED",
+    "scope_disposition_artifact": "phase11-6-scope-disposition.json",
+    "scope_disposition_artifact_sha256": "d54924a9f7f819d486e743b875260b41d73031392a02b43d323e5daf009e369b",
+    "accepted_rows": 13,
+    "removed_supported_rows": 52,
+    "configuration_boundary_rows": 10,
     "further_rf_authorized": false,
-    "exact_scope_disposition_for_no_further_rf_closure": "accept only the 13 PASS rows; remove all 9 FAIL, 12 BLOCKED and 31 NOT TESTED supported rows from Phase 11.6 acceptance; retain the 10 unsupported 4 m/2 m rows as an explicit configuration boundary",
-    "alternative": "approve a new plan and new RF authorization for the 80 unexecuted jobs while retaining sequence 177 as a no-retry failure"
+    "scope_disposition": "Accept only the 13 PASS rows; remove all 9 FAIL, 12 BLOCKED, and 31 NOT TESTED supported rows from Phase 11.6 acceptance; retain the 10 unsupported 4 m/2 m rows as an explicit configuration boundary.",
+    "additional_rf_jobs": 0,
+    "additional_rf_seconds": 0,
+    "thresholds_relaxed": false,
+    "evidence_rebound": false
   }
 }

@@ -108,13 +108,50 @@ class Phase116ClosureExecutionTests(unittest.TestCase):
             ROOT / "docs/development/phase11-6-closure-execution.json"
         ).read_text())
         matrix_path = ROOT / "docs/development/phase11-6-matrix.json"
+        scope_path = ROOT / "docs/development/phase11-6-scope-disposition.json"
         self.assertEqual(
             summary["authoritative_matrix"]["file_sha256"],
             hashlib.sha256(matrix_path.read_bytes()).hexdigest(),
         )
+        self.assertEqual(
+            summary["closure"]["scope_disposition_artifact_sha256"],
+            hashlib.sha256(scope_path.read_bytes()).hexdigest(),
+        )
+        scope = json.loads(scope_path.read_text())
+        matrix = json.loads(matrix_path.read_text())
+        by_disposition = {
+            disposition: {
+                f"{row['band']}:{row['mode']}" for row in matrix["rows"]
+                if row["disposition"] == disposition
+            }
+            for disposition in (
+                "PASS", "FAIL", "BLOCKED", "NOT TESTED",
+                "UNSUPPORTED_CONFIGURATION",
+            )
+        }
+        self.assertEqual(len(scope["accepted_rows"]), 13)
+        self.assertEqual(set(scope["accepted_rows"]), by_disposition["PASS"])
+        self.assertEqual(
+            sum(len(rows) for rows in scope["removed_supported_rows"].values()),
+            52,
+        )
+        for disposition in ("FAIL", "BLOCKED", "NOT TESTED"):
+            self.assertEqual(
+                set(scope["removed_supported_rows"][disposition]),
+                by_disposition[disposition],
+            )
+        self.assertEqual(len(scope["configuration_boundary_rows"]), 10)
+        self.assertEqual(
+            set(scope["configuration_boundary_rows"]),
+            by_disposition["UNSUPPORTED_CONFIGURATION"],
+        )
         self.assertEqual(summary["execution"]["completed_rf_seconds"], "45.000001")
         self.assertEqual(summary["execution"]["unexecuted_jobs"], 80)
-        self.assertFalse(summary["closure"]["closed"])
+        self.assertTrue(summary["closure"]["closed"])
+        self.assertEqual(summary["phase_status"], "CLOSED_SCOPED")
+        self.assertEqual(summary["closure"]["accepted_rows"], 13)
+        self.assertEqual(summary["closure"]["removed_supported_rows"], 52)
+        self.assertEqual(summary["closure"]["configuration_boundary_rows"], 10)
         self.assertFalse(summary["closure"]["further_rf_authorized"])
 
 
