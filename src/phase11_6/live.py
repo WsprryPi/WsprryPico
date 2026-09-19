@@ -29,8 +29,9 @@ from phase11_5_package9 import (ConsoleObserver, UsbStatusObserver, inventory,
 from phase11_5_pilot import Decoder
 from validate_wtp_contract import frame
 
-from phase11_6.plan import (FIRMWARE_SOURCE, PICO_ACCEPTED_BOOT, PICO_DEVICE_ID,
-                            RECEIVER_SERIAL, digest)
+from phase11_6.plan import (FIRMWARE_SOURCE, PEER_ACCEPTED_BOOT, PEER_DEVICE_ID,
+                            PICO_ACCEPTED_BOOT, PICO_DEVICE_ID, RECEIVER_SERIAL,
+                            SAMPLE_RATE_HZ, digest)
 
 
 HOSTNAME = "wsprrypico-0a60df.local"
@@ -186,6 +187,57 @@ def settled_inventory(root: Path, label: str, serial: str, device: str,
             require(time.monotonic() < deadline,
                     "Read-only inventory settlement deadline")
             time.sleep(min(1.0, max(0.0, deadline - time.monotonic())))
+
+
+def require_execution_inventory(values: dict) -> dict:
+    """Require the exact closure candidate, peer, and inactive RF authority."""
+    require(set(values) == {"a", "b"}, "Both closure boards required")
+    a, b = values["a"], values["b"]
+    a_info, b_info = a["info"], b["info"]
+    a_status, b_status = a["wtp"]["STATUS"], b["wtp"]["STATUS"]
+    a_hello, b_hello = a["wtp"]["HELLO"], b["wtp"]["HELLO"]
+    a_caps = a["wtp"]["CAPS"]
+    require(
+        a_info.get("device_id") == a_hello.get("device_id") == PICO_DEVICE_ID
+        and a_info.get("revision") == FIRMWARE_SOURCE[:12]
+        and a_info.get("deployment_identity_matches") is True
+        and a_info.get("recovery_boot") is False
+        and a_info.get("system_clock_hz") == SAMPLE_RATE_HZ
+        and a_info.get("rf_render_in_ram") is True
+        and a_info.get("status", {}).get("boot_id")
+            == a_status.get("boot_id") == a_hello.get("boot_id")
+            == PICO_ACCEPTED_BOOT
+        and a_info.get("status", {}).get("engine") == "pio-dma-gp2"
+        and a_caps.get("engine") == "pio-dma-gp2"
+        and set(a_caps.get("modes", ()))
+            == {"wspr", "tone", "qrss", "fskcw", "dfcw"}
+        and a_caps.get("frequency_ranges") == [{
+            "minimum_nhz": "100000000000000",
+            "maximum_nhz": "68999999000000000",
+        }],
+        "Exact Pico A source, boot, clock, RAM renderer and GP2 engine required",
+    )
+    require(
+        b_info.get("device_id") == b_hello.get("device_id") == PEER_DEVICE_ID
+        and b_info.get("deployment_identity_matches") is True
+        and b_info.get("recovery_boot") is False
+        and b_info.get("status", {}).get("boot_id")
+            == b_status.get("boot_id") == b_hello.get("boot_id")
+            == PEER_ACCEPTED_BOOT,
+        "Exact unchanged Pico B identity and boot required",
+    )
+    for value in (a, b):
+        info, status = value["info"], value["wtp"]["STATUS"]
+        require(
+            info.get("status", {}).get("enabled") is False
+            and info.get("status", {}).get("output_active") is False
+            and status.get("state") in {"empty", "complete", "aborted", "missed"}
+            and status.get("output_active") is False
+            and status.get("owner_id") is None,
+            "Inactive, unowned and schedule-disabled closure boards required",
+        )
+    resource_gate(a_info, PICO_ACCEPTED_BOOT, FIRMWARE_SOURCE)
+    return values
 
 
 def usb_completion(status_states: set[str], event_states: set[str],

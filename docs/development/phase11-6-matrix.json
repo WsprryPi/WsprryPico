@@ -3,11 +3,11 @@
   "phase": "11.6",
   "phase_status": "OPEN",
   "reconciled_date": "2026-09-19",
-  "reconciled_against_origin_devel": "334b21547a96c3e5584aa4d980893774ac488606",
+  "reconciled_against_origin_devel": "f817fb79ddee50c690089b9964e39bcf0663a65f",
   "base_plan_schema": "phase11.6-plan-v23",
   "base_plan_sha256": "2f4d0608afdcb6a494c84ebbd8c55c665ca87e9bc0cea9de692d7e6c792b0123",
   "base_plan_file_sha256": "4500a2bf3496631d1a7cc097d78cfb2b52c889e35d2d274d6c7bedcf9d48ef0a",
-  "evidence_cutoff_sequence": 175,
+  "evidence_cutoff_sequence": 177,
   "thresholds_relaxed": false,
   "evidence_rebound": false,
   "dfcw_polarity": "dot-high/dash-low",
@@ -102,7 +102,8 @@
       "engine": "pio-dma-gp2",
       "renderer": "RAM",
       "output": "GP2",
-      "matrix_credit_from_requalification": false
+      "matrix_credit_from_requalification": false,
+      "matrix_credit_from_closure_execution": true
     }
   },
   "current_candidate_lineage": "status_admission_current",
@@ -115,12 +116,14 @@
     "phase11-6-attempt-0164-tone-offline-recovery.json": "0db72b01a6a5095ed2bbfdad57bdf57ec9142fbde27394fc908bc0123fa2254b",
     "phase11-6-2200m-nonwspr-checkpoint.json": "1617421f36168ee9b5e2fe98416ed68ad2741cce73dfd6b8428bbcf081536d18",
     "phase11-6-status-admission-repair-source-impact.json": "36f00ce476781da0470af0ea4333d0ca1190685a1c3ece9b93ad6f3d4b6a0dda",
-    "phase11-6-status-admission-repair-requalification.json": "089d94f7827ded9cb57dfbf0b534ab290591ba596df46fce57fac2b0dded9cb6"
+    "phase11-6-status-admission-repair-requalification.json": "089d94f7827ded9cb57dfbf0b534ab290591ba596df46fce57fac2b0dded9cb6",
+    "phase11-6-closure-execution-results.json": "b1198e1ef61c61d860e32481457f344d9fc87ba558cdb8aa62a50650dca72511",
+    "phase11-6-closure-execution-plan.json": "1d5c5451d7ac6389f163277342887978b258e4805872f3ec3ec46c5d9872983e"
   },
   "disposition_counts": {
-    "PASS": 7,
-    "FAIL": 8,
-    "BLOCKED": 19,
+    "PASS": 13,
+    "FAIL": 9,
+    "BLOCKED": 12,
     "NOT TESTED": 31,
     "UNSUPPORTED_CONFIGURATION": 10
   },
@@ -305,8 +308,8 @@
       "band": "2200m",
       "nominal_frequency_hz": 137500,
       "mode": "FSKCW",
-      "disposition": "BLOCKED",
-      "reason": "only the source-impact-approved fresh replacement paths remain",
+      "disposition": "FAIL",
+      "reason": "browser-compact repair replacement passed, then the required controller-disconnect replacement failed the frozen pre-ARM timing admission with zero RF; no retry is authorized",
       "evidence": {
         "attempts": [
           {
@@ -344,15 +347,55 @@
             "charged_rf_seconds": 0.0,
             "cause": "operator capture-helper path typo",
             "lineage": "browser_allocation"
+          },
+          {
+            "sequence": 176,
+            "job_id": "2200m:FSKCW:1:browser_compact:nominal",
+            "attempt_packet_sha256": "11d331ab38034fca8bf28ecf2acf59aee8e8710628f35ad3bda48f1ad9b51fe6",
+            "attempt_packet_file_sha256": "cdfb0c9de2f19ddca19a80c37c751d159d04fe0f2bc1c752aaa4e243ae9fce7f",
+            "execution_sha256": "84c4e15df61f6db581c7f482c4b2101779407e3fdefbb926bd60afa22a60d178",
+            "run_result_sha256": "332b77b3fad88c67e0d2392e7241142c2eb26c19cc9460033e5f397344b36ce6",
+            "capture_sha256": "a4b1874adf2932958d47da78d9a313b0a7d44faafcdea135d3965054959ac122",
+            "metadata_sha256": "4d82e0afb6654da22515f0ae32e6ccad7085aad860eb08d1c7d61091cd454578",
+            "analysis_sha256": "8e94b715f079ead86ccd0bff6678c283fd48788dd28900e8da47096886149eea",
+            "lineage": "status_admission_current",
+            "audit": "PASS",
+            "status": "ACCEPTED_PACKET_AUDIT",
+            "charged_rf_seconds": 45.000001
+          },
+          {
+            "sequence": 177,
+            "job_id": "2200m:FSKCW:2:controller_disconnect:nominal",
+            "attempt_packet_sha256": "69e6311227079e5b656d0ae64c7d9ee688d11d308f176492077009e8d46c01eb",
+            "attempt_packet_file_sha256": "d03842d1f1171f90bef57f153b50e80e3a09184c7e28b6695d512d37e8d3c0f1",
+            "execution_sha256": "c65e72324ae42863630719681d47ce9424e2da81e37d50abe2281eb7a6d638a8",
+            "reconciliation_sha256": "47e2f00553c22fc849f2a20f169ecbf2cf864ef10f9cc617684cd7e816415f84",
+            "stage": "pre-ARM timing admission",
+            "rf_emitted": false,
+            "automatic_retry": false,
+            "reservation_released_after_authoritative_inactive": true,
+            "disposition": "FAIL",
+            "status": "FAILED_TIMING_ADMISSION_NO_RF",
+            "charged_rf_seconds": 0.0,
+            "lineage": "status_admission_current"
           }
         ],
         "source_lineages": [
-          "browser_allocation"
-        ]
+          "status_admission_current"
+        ],
+        "packet_audit": {
+          "artifact": "phase11-6-closure-execution-results.json",
+          "artifact_sha256": "b1198e1ef61c61d860e32481457f344d9fc87ba558cdb8aa62a50650dca72511",
+          "result": "FAIL",
+          "attempt_sequences": [
+            176,
+            177
+          ]
+        }
       },
       "assertions": {
-        "path_evidence_complete": null,
-        "packet_audit_complete": null,
+        "path_evidence_complete": false,
+        "packet_audit_complete": true,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
       }
@@ -362,7 +405,7 @@
       "nominal_frequency_hz": 137500,
       "mode": "DFCW",
       "disposition": "BLOCKED",
-      "reason": "only the source-impact-approved fresh replacement paths remain",
+      "reason": "the approved replacement was not reached because execution stopped at sequence 177; no further RF is authorized",
       "evidence": {
         "attempts": [
           {
@@ -486,8 +529,8 @@
       "band": "630m",
       "nominal_frequency_hz": 475700,
       "mode": "QRSS",
-      "disposition": "BLOCKED",
-      "reason": "all required paths have passing individual evidence but the independent packet audit is absent",
+      "disposition": "PASS",
+      "reason": "all three retained paths pass the independent packet audit",
       "evidence": {
         "attempts": [
           {
@@ -532,11 +575,21 @@
         ],
         "source_lineages": [
           "phase115_initial_ff719"
-        ]
+        ],
+        "packet_audit": {
+          "artifact": "phase11-6-closure-execution-results.json",
+          "artifact_sha256": "b1198e1ef61c61d860e32481457f344d9fc87ba558cdb8aa62a50650dca72511",
+          "result": "PASS",
+          "attempt_sequences": [
+            27,
+            28,
+            30
+          ]
+        }
       },
       "assertions": {
-        "path_evidence_complete": null,
-        "packet_audit_complete": false,
+        "path_evidence_complete": true,
+        "packet_audit_complete": true,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
       }
@@ -545,8 +598,8 @@
       "band": "630m",
       "nominal_frequency_hz": 475700,
       "mode": "FSKCW",
-      "disposition": "BLOCKED",
-      "reason": "all required paths have passing individual evidence but the independent packet audit is absent",
+      "disposition": "PASS",
+      "reason": "all three retained paths pass the independent packet audit",
       "evidence": {
         "attempts": [
           {
@@ -591,11 +644,21 @@
         ],
         "source_lineages": [
           "phase115_initial_d2f657"
-        ]
+        ],
+        "packet_audit": {
+          "artifact": "phase11-6-closure-execution-results.json",
+          "artifact_sha256": "b1198e1ef61c61d860e32481457f344d9fc87ba558cdb8aa62a50650dca72511",
+          "result": "PASS",
+          "attempt_sequences": [
+            32,
+            33,
+            34
+          ]
+        }
       },
       "assertions": {
-        "path_evidence_complete": null,
-        "packet_audit_complete": false,
+        "path_evidence_complete": true,
+        "packet_audit_complete": true,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
       }
@@ -604,8 +667,8 @@
       "band": "630m",
       "nominal_frequency_hz": 475700,
       "mode": "DFCW",
-      "disposition": "BLOCKED",
-      "reason": "all required paths have passing individual evidence but the independent packet audit is absent",
+      "disposition": "PASS",
+      "reason": "all three retained paths pass the independent packet audit",
       "evidence": {
         "attempts": [
           {
@@ -650,11 +713,21 @@
         ],
         "source_lineages": [
           "phase115_initial_d2f657"
-        ]
+        ],
+        "packet_audit": {
+          "artifact": "phase11-6-closure-execution-results.json",
+          "artifact_sha256": "b1198e1ef61c61d860e32481457f344d9fc87ba558cdb8aa62a50650dca72511",
+          "result": "PASS",
+          "attempt_sequences": [
+            36,
+            37,
+            38
+          ]
+        }
       },
       "assertions": {
-        "path_evidence_complete": null,
-        "packet_audit_complete": false,
+        "path_evidence_complete": true,
+        "packet_audit_complete": true,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
       }
@@ -726,8 +799,8 @@
       "band": "160m",
       "nominal_frequency_hz": 1838100,
       "mode": "QRSS",
-      "disposition": "BLOCKED",
-      "reason": "all required paths have passing individual evidence but the independent packet audit is absent",
+      "disposition": "PASS",
+      "reason": "all three retained paths pass the independent packet audit",
       "evidence": {
         "attempts": [
           {
@@ -784,11 +857,21 @@
         ],
         "source_lineages": [
           "clock_refinement"
-        ]
+        ],
+        "packet_audit": {
+          "artifact": "phase11-6-closure-execution-results.json",
+          "artifact_sha256": "b1198e1ef61c61d860e32481457f344d9fc87ba558cdb8aa62a50650dca72511",
+          "result": "PASS",
+          "attempt_sequences": [
+            44,
+            46,
+            47
+          ]
+        }
       },
       "assertions": {
-        "path_evidence_complete": null,
-        "packet_audit_complete": false,
+        "path_evidence_complete": true,
+        "packet_audit_complete": true,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
       }
@@ -831,8 +914,8 @@
       "band": "160m",
       "nominal_frequency_hz": 1838100,
       "mode": "DFCW",
-      "disposition": "BLOCKED",
-      "reason": "all required paths have passing individual evidence but the independent packet audit is absent",
+      "disposition": "PASS",
+      "reason": "all three retained paths pass the independent packet audit",
       "evidence": {
         "attempts": [
           {
@@ -877,11 +960,21 @@
         ],
         "source_lineages": [
           "clock_refinement"
-        ]
+        ],
+        "packet_audit": {
+          "artifact": "phase11-6-closure-execution-results.json",
+          "artifact_sha256": "b1198e1ef61c61d860e32481457f344d9fc87ba558cdb8aa62a50650dca72511",
+          "result": "PASS",
+          "attempt_sequences": [
+            49,
+            50,
+            51
+          ]
+        }
       },
       "assertions": {
-        "path_evidence_complete": null,
-        "packet_audit_complete": false,
+        "path_evidence_complete": true,
+        "packet_audit_complete": true,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
       }
@@ -1047,8 +1140,8 @@
       "band": "80m",
       "nominal_frequency_hz": 3570100,
       "mode": "DFCW",
-      "disposition": "BLOCKED",
-      "reason": "all required paths have passing individual evidence but the independent packet audit is absent",
+      "disposition": "PASS",
+      "reason": "all three retained paths pass the independent packet audit",
       "evidence": {
         "attempts": [
           {
@@ -1099,11 +1192,21 @@
         ],
         "source_lineages": [
           "zero_tail_be521"
-        ]
+        ],
+        "packet_audit": {
+          "artifact": "phase11-6-closure-execution-results.json",
+          "artifact_sha256": "b1198e1ef61c61d860e32481457f344d9fc87ba558cdb8aa62a50650dca72511",
+          "result": "PASS",
+          "attempt_sequences": [
+            58,
+            59,
+            60
+          ]
+        }
       },
       "assertions": {
-        "path_evidence_complete": null,
-        "packet_audit_complete": false,
+        "path_evidence_complete": true,
+        "packet_audit_complete": true,
         "thresholds_unchanged": true,
         "historical_identity_preserved": true
       }
@@ -1399,7 +1502,7 @@
       "nominal_frequency_hz": 7040100,
       "mode": "QRSS",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1416,7 +1519,7 @@
       "nominal_frequency_hz": 7040100,
       "mode": "FSKCW",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1433,7 +1536,7 @@
       "nominal_frequency_hz": 7040100,
       "mode": "DFCW",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1450,7 +1553,7 @@
       "nominal_frequency_hz": 10140200,
       "mode": "TONE",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1497,7 +1600,7 @@
       "nominal_frequency_hz": 10140200,
       "mode": "QRSS",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1514,7 +1617,7 @@
       "nominal_frequency_hz": 10140200,
       "mode": "FSKCW",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1531,7 +1634,7 @@
       "nominal_frequency_hz": 10140200,
       "mode": "DFCW",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1548,7 +1651,7 @@
       "nominal_frequency_hz": 14097100,
       "mode": "TONE",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1595,7 +1698,7 @@
       "nominal_frequency_hz": 14097100,
       "mode": "QRSS",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1612,7 +1715,7 @@
       "nominal_frequency_hz": 14097100,
       "mode": "FSKCW",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1629,7 +1732,7 @@
       "nominal_frequency_hz": 14097100,
       "mode": "DFCW",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1646,7 +1749,7 @@
       "nominal_frequency_hz": 18106100,
       "mode": "TONE",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1693,7 +1796,7 @@
       "nominal_frequency_hz": 18106100,
       "mode": "QRSS",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1710,7 +1813,7 @@
       "nominal_frequency_hz": 18106100,
       "mode": "FSKCW",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1727,7 +1830,7 @@
       "nominal_frequency_hz": 18106100,
       "mode": "DFCW",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1744,7 +1847,7 @@
       "nominal_frequency_hz": 21096100,
       "mode": "TONE",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1791,7 +1894,7 @@
       "nominal_frequency_hz": 21096100,
       "mode": "QRSS",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1808,7 +1911,7 @@
       "nominal_frequency_hz": 21096100,
       "mode": "FSKCW",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1825,7 +1928,7 @@
       "nominal_frequency_hz": 21096100,
       "mode": "DFCW",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1842,7 +1945,7 @@
       "nominal_frequency_hz": 24926100,
       "mode": "TONE",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1889,7 +1992,7 @@
       "nominal_frequency_hz": 24926100,
       "mode": "QRSS",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1906,7 +2009,7 @@
       "nominal_frequency_hz": 24926100,
       "mode": "FSKCW",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1923,7 +2026,7 @@
       "nominal_frequency_hz": 24926100,
       "mode": "DFCW",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1940,7 +2043,7 @@
       "nominal_frequency_hz": 28126100,
       "mode": "TONE",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -1987,7 +2090,7 @@
       "nominal_frequency_hz": 28126100,
       "mode": "QRSS",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -2004,7 +2107,7 @@
       "nominal_frequency_hz": 28126100,
       "mode": "FSKCW",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -2021,7 +2124,7 @@
       "nominal_frequency_hz": 28126100,
       "mode": "DFCW",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -2038,7 +2141,7 @@
       "nominal_frequency_hz": 50294500,
       "mode": "TONE",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -2085,7 +2188,7 @@
       "nominal_frequency_hz": 50294500,
       "mode": "QRSS",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -2102,7 +2205,7 @@
       "nominal_frequency_hz": 50294500,
       "mode": "FSKCW",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -2119,7 +2222,7 @@
       "nominal_frequency_hz": 50294500,
       "mode": "DFCW",
       "disposition": "NOT TESTED",
-      "reason": "no retained row attempt through sequence 175",
+      "reason": "the authorized batch stopped at sequence 177 before this row; no retained row attempt exists through sequence 177",
       "evidence": {
         "attempts": [],
         "source_lineages": []
@@ -2307,5 +2410,29 @@
     "absolute frequency is receiver-indicated and uncalibrated",
     "spectrum evidence is relative and in-band only; no harmonic, calibrated-power or regulatory claim",
     "capture-relative timing does not independently calibrate UTC"
-  ]
+  ],
+  "closure_execution": {
+    "status": "STOPPED_ON_FIRST_FAILURE",
+    "authorization_input_commit": "f817fb79ddee50c690089b9964e39bcf0663a65f",
+    "authorization_closure_plan_file_sha256": "4733941d6dd6b7ff80b8dceaa819397c12b6e49bd0512df0f902df44cb29b0fe",
+    "authorization_matrix_file_sha256": "f5dc043da0cf3b0e398777d07e5e6146b2faf76b5e94c7fed8797a5cbb33467f",
+    "execution_plan_schema": "phase11.6-plan-v24",
+    "execution_plan_sha256": "ef6624ccfa3be1b05ec914721071271fe1ef2bdb2afca5bffb200b1812ae279c",
+    "execution_plan_file_sha256": "1d5c5451d7ac6389f163277342887978b258e4805872f3ec3ec46c5d9872983e",
+    "audit_artifact": "phase11-6-closure-execution-results.json",
+    "audit_artifact_sha256": "b1198e1ef61c61d860e32481457f344d9fc87ba558cdb8aa62a50650dca72511",
+    "completed_sequences": [
+      176
+    ],
+    "failed_sequence": 177,
+    "failure_stage": "pre-ARM timing admission",
+    "rf_jobs_completed": 1,
+    "rf_seconds_completed": 45.000001,
+    "rf_jobs_failed_after_start": 0,
+    "zero_rf_failures": 1,
+    "unexecuted_authorized_jobs": 80,
+    "automatic_retries": 0,
+    "authorization_consumed": true,
+    "resume_prohibited_without_new_explicit_scope_and_RF_authorization": true
+  }
 }

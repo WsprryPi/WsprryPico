@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+from decimal import Decimal
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -60,8 +62,75 @@ def label(job: dict) -> str:
     return job["id"].replace(":", "-").lower()
 
 
-def select_jobs(plan: dict, selection: str) -> list[dict]:
+def closure_jobs(plan: dict, closure: dict) -> list[dict]:
+    if (closure.get("schema") != "phase11.6-closure-plan-v1"
+            or closure.get("phase") != "11.6"
+            or closure.get("phase_status") != "OPEN"
+            or closure.get("evidence_cutoff_sequence") != 175
+            or closure.get("minimum_remaining_rf_job_count") != 82
+            or Decimal(str(closure.get("maximum_remaining_rf_seconds")))
+                != Decimal("3260.000075")
+            or closure.get("automatic_retries") != 0
+            or closure.get("wspr_jobs") != 0
+            or closure.get("fresh_attempt_packet_per_job") is not True
+            or closure.get("dfcw_polarity") != "dot-high/dash-low"):
+        raise ValueError("Exact Phase 11.6 closure authorization plan required")
+    accepted = plan["accepted_configuration"]
+    candidate = closure.get("current_candidate", {})
+    companion = closure.get("companion", {})
+    peer = closure.get("peer", {})
+    if (candidate.get("source_revision") != accepted.get("source_revision")
+            or candidate.get("uf2_sha256") != accepted.get("uf2_sha256")
+            or candidate.get("boot_id") != accepted.get("accepted_boot_id")
+            or candidate.get("pico_serial") != accepted.get("pico_serial")
+            or candidate.get("device_id") != accepted.get("device_id")
+            or candidate.get("board") != accepted.get("board")
+            or candidate.get("system_clock_hz") != accepted.get("system_clock_hz")
+            or candidate.get("pio_divider") != accepted.get("pio_divider")
+            or candidate.get("engine") != accepted.get("engine")
+            or candidate.get("renderer") != accepted.get("renderer")
+            or candidate.get("output") != accepted.get("output")
+            or companion.get("source_revision")
+                != plan["repositories"]["WsprryPi"]
+            or companion.get("binary_sha256")
+                != plan["amendment"]["companion_binary_sha256"]
+            or peer.get("pico_serial") != plan["peer"]["pico_serial"]
+            or peer.get("device_id") != plan["peer"]["device_id"]
+            or peer.get("boot_id") != plan["peer"]["accepted_boot_id"]):
+        raise ValueError("Closure candidate, companion or peer binding mismatch")
+    available = [job for packet in plan["packets"] for job in packet["jobs"]]
+    resolved = []
+    entries = closure.get("minimum_remaining_rf_jobs", [])
+    for offset, entry in enumerate(entries):
+        matches = [job for job in available
+                   if job["band"] == entry.get("band")
+                   and job["mode"] == entry.get("mode")
+                   and job["submission_path"] == entry.get("submission_path")
+                   and job["purpose"] == "nominal"
+                   and job["matrix_credit"] is True]
+        expected_seconds = Decimal(matches[0]["planned_duration_ns"]) / Decimal(10**9) \
+            if len(matches) == 1 else None
+        if (len(matches) != 1
+                or entry.get("sequence") != 176 + offset
+                or entry.get("mode") == "WSPR"
+                or Decimal(str(entry.get("maximum_rf_seconds")))
+                    != expected_seconds):
+            raise ValueError("Closure job order, identity or budget mismatch")
+        resolved.append(matches[0])
+    if (len(resolved) != 82 or len({job["id"] for job in resolved}) != 82
+            or sum(Decimal(job["planned_duration_ns"]) / Decimal(10**9)
+                   for job in resolved) != Decimal("3260.000075")):
+        raise ValueError("Closure job accounting mismatch")
+    return resolved
+
+
+def select_jobs(plan: dict, selection: str,
+                closure: dict | None = None) -> list[dict]:
     jobs = [job for packet in plan["packets"] for job in packet["jobs"]]
+    if selection == "closure-plan":
+        if closure is None:
+            raise ValueError("Closure plan required")
+        return closure_jobs(plan, closure)
     if selection == "primary-non-wspr":
         return [job for job in jobs
                 if job["purpose"] != "abort-authority-integration"
@@ -76,8 +145,11 @@ def select_jobs(plan: dict, selection: str) -> list[dict]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--plan", type=Path, required=True)
-    parser.add_argument("--selection", choices=("primary-non-wspr", "primary-wspr"),
+    parser.add_argument("--selection", choices=("primary-non-wspr", "primary-wspr",
+                                                  "closure-plan"),
                         required=True)
+    parser.add_argument("--closure-plan", type=Path)
+    parser.add_argument("--closure-plan-sha256")
     parser.add_argument("--start-sequence", type=int, required=True)
     parser.add_argument(
         "--reason",
@@ -96,13 +168,24 @@ def main() -> int:
         raise ValueError("Linux root required")
     plan = validate(json.loads(args.plan.read_text()))
     plan_hash = digest(plan)
+    closure = None
+    closure_file_hash = None
+    if args.selection == "closure-plan":
+        if args.closure_plan is None or args.closure_plan_sha256 is None:
+            raise ValueError("Immutable closure plan arguments required")
+        closure_file_hash = hashlib.sha256(args.closure_plan.read_bytes()).hexdigest()
+        if closure_file_hash != args.closure_plan_sha256:
+            raise ValueError("Immutable closure plan file mismatch")
+        closure = json.loads(args.closure_plan.read_text())
+        if args.skip_job or args.max_jobs is not None or args.start_sequence != 176:
+            raise ValueError("Closure execution cannot skip or truncate jobs")
     root = args.plan.resolve().parent
     output = args.output.resolve()
     output.mkdir(mode=0o700, parents=True)
     if output.stat().st_mode & 0o077 or any(output.iterdir()):
         raise ValueError("Fresh private batch output required")
     journal = Journal(output / "batch.jsonl")
-    jobs = [job for job in select_jobs(plan, args.selection)
+    jobs = [job for job in select_jobs(plan, args.selection, closure)
             if job["id"] not in set(args.skip_job)]
     if args.max_jobs is not None:
         if args.max_jobs <= 0:
@@ -117,6 +200,7 @@ def main() -> int:
         "planned_jobs": len(jobs),
         "planned_rf_seconds": sum(job["planned_duration_ns"] for job in jobs) / 1e9,
         "automatic_retries": 0,
+        "closure_plan_file_sha256": closure_file_hash,
     })
     sequence = args.start_sequence
     completed = []

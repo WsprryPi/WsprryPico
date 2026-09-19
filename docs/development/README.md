@@ -8,8 +8,10 @@ candidate `0e85ff90571c` / UF2
 `9ac5a40fe6d9a44a3a0156621b82801488efecafb9f472ba601dbcbb3e138398` /
 boot `cab95d7eecad05047fcb1d6806cf9e86`; Pico B remains `8921a7008183` /
 boot `6684b4b197d80cfa0ce83b3aaf205cb0`. The
-[Phase 11.6 matrix and closure plan](phase11-6-plan.md) remain OPEN after a
-zero-RF reconciliation through attempt 175. Older candidate paragraphs below
+[Phase 11.6 matrix and closure evidence](phase11-6-plan.md) remain OPEN after
+one accepted closure job at sequence 176 and a zero-RF pre-ARM timing-admission
+failure at sequence 177 stopped the batch. The authorization is consumed and
+80 jobs were not reached. Older candidate paragraphs below
 retain historical evidence identities. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
 passes retained LOAD/replay and P1 individual WTP/HTTP capacity during RF;
 the [Package 2 review](phase11-5-package2-review.md) accepts assertions 2.2a and

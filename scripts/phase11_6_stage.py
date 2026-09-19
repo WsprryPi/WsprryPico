@@ -17,7 +17,7 @@ from phase11_6.plan import digest, validate
 
 SCHEMA = "phase11.6-fixture-v1"
 AUTHORIZATION = "PHASE11.6-CONDUCTED-RF-20260918"
-PLAN_SHA256 = "2f4d0608afdcb6a494c84ebbd8c55c665ca87e9bc0cea9de692d7e6c792b0123"
+PLAN_SHA256 = "ef6624ccfa3be1b05ec914721071271fe1ef2bdb2afca5bffb200b1812ae279c"
 CREDENTIALS = {
     "controller": {"ca": "credentials/controller/client-ca.crt",
                    "cert": "credentials/controller/client.crt",
@@ -117,8 +117,7 @@ def local_packet(args):
         require(source.is_dir() and not source.is_symlink(),
                 "retained browser trust/profile directory")
         shutil.copytree(source, root / name, symlinks=False)
-    for name in ("production-base.ini", "production-openssl.cnf", "observer.so",
-                 "installed-paused.txt"):
+    for name in ("production-base.ini", "production-openssl.cnf", "observer.so"):
         source = retained / name
         if source.is_file() and not source.is_symlink():
             shutil.copy2(source, root / name)

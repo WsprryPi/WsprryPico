@@ -94,7 +94,12 @@ class Phase116PlanTests(unittest.TestCase):
                          [155, 156, 158, 160, 161, 163])
         self.assertEqual(plan["amendment"]["host_recovered_sequences"], [164])
         self.assertEqual(plan["amendment"]["accepted_sequences"], [164])
-        self.assertEqual(plan["amendment"]["next_sequence"], 165)
+        self.assertEqual(plan["amendment"]["evidence_cutoff_sequence"], 175)
+        self.assertEqual(plan["amendment"]["next_sequence"], 176)
+        self.assertEqual(
+            plan["amendment"]["current_candidate_requalification"]["boot_id"],
+            PICO_ACCEPTED_BOOT,
+        )
         self.assertEqual(
             plan["amendment"]["usb_terminal_reducer_repair"],
             {

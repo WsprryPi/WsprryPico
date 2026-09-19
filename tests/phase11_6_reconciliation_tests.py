@@ -1,4 +1,5 @@
 from pathlib import Path
+import copy
 import json
 import sys
 import unittest
@@ -13,6 +14,7 @@ from phase11_6.reconciliation import (  # noqa: E402
     remaining_jobs,
     remaining_rf_seconds,
     validate_closure_plan,
+    validate_matrix,
     validate_public_artifacts,
 )
 
@@ -43,6 +45,22 @@ class Phase116ReconciliationTests(unittest.TestCase):
         self.assertFalse(AUDIT_BLOCKED_ROWS & REPAIR_BLOCKED_ROWS)
         self.assertFalse(AUDIT_BLOCKED_ROWS & STRUCTURAL_WSPR_BLOCKED_ROWS)
         self.assertFalse(REPAIR_BLOCKED_ROWS & STRUCTURAL_WSPR_BLOCKED_ROWS)
+
+    def test_post_execution_matrix_mutations_are_rejected(self):
+        for mutate in (
+            lambda value: value.__setitem__("evidence_cutoff_sequence", 175),
+            lambda value: value["closure_execution"].__setitem__(
+                "completed_sequences", [176, 177]
+            ),
+            lambda value: value["closure_execution"].__setitem__(
+                "automatic_retries", 1
+            ),
+            lambda value: value["rows"][0].__setitem__("disposition", "FAIL"),
+        ):
+            changed = copy.deepcopy(self.matrix)
+            mutate(changed)
+            with self.assertRaises(ValueError):
+                validate_matrix(changed)
 
 
 if __name__ == "__main__":

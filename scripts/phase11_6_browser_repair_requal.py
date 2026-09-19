@@ -30,6 +30,7 @@ AUTHORIZATION = "PHASE11.6-BROWSER-ALLOCATION-REPAIR-20260919"
 RESULT_SCHEMA = "phase11.6-browser-allocation-repair-requalification-result-v1"
 IMAGE_SHA256 = "f1d437261cb7aa3f9668f7624dad5806346a248202a45f15c553617e12e74a47"
 SUBMISSION_KIND = "raw"
+EXTRA_PACKET_FIELDS: dict[str, object] = {}
 
 
 def require(condition: bool, message: str) -> None:
@@ -218,7 +219,7 @@ def main() -> int:
     packet = json.loads(packet_path.read_text())
     require(digest(packet_path) == args.packet_sha256,
             "Immutable requalification packet")
-    require(packet == {
+    expected_packet = {
         "schema": PACKET_SCHEMA,
         "authorization": AUTHORIZATION,
         "source_revision": SOURCE,
@@ -232,7 +233,9 @@ def main() -> int:
         "limits": {"rf_jobs": 0, "arms": 1, "aborts": 1,
                    "flashes": 0, "bootsel": 0, "configuration_writes": 0,
                    "retries": 0},
-    }, "Exact repair requalification packet")
+    }
+    expected_packet.update(EXTRA_PACKET_FIELDS)
+    require(packet == expected_packet, "Exact repair requalification packet")
     require(
         os.readlink("/proc/self/ns/net")
             == os.readlink(f"/proc/{FIXTURE_PID}/ns/net")

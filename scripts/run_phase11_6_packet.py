@@ -15,8 +15,8 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from phase11_6.live import (Journal, configure_capture_validator,
                             execute_browser_job, execute_controller_job,
-                            require_capture_helper, save, settled_inventory,
-                            sha256)
+                            require_capture_helper, require_execution_inventory,
+                            save, settled_inventory, sha256)
 from phase11_6.plan import (PEER_DEVICE_ID, PEER_SERIAL, PICO_DEVICE_ID, PICO_SERIAL,
                             digest, validate)
 from phase11_5_rf_reservation import Reservation
@@ -94,6 +94,7 @@ def main() -> int:
             "b": settled_inventory(fixture_root, "phase116-before-b-" + attempt_label,
                                    PEER_SERIAL, PEER_DEVICE_ID, journal),
         }
+        require_execution_inventory(before)
         reservation.acquire(before)
         journal.emit("reservation_acquired", json.loads(reservation.path.read_text()))
         if physical_job["submission_path"] == "controller_disconnect":
@@ -108,6 +109,7 @@ def main() -> int:
             "b": settled_inventory(fixture_root, "phase116-after-b-" + attempt_label,
                                    PEER_SERIAL, PEER_DEVICE_ID, journal),
         }
+        require_execution_inventory(final_values)
         reservation.release(final_values)
         journal.emit("reservation_released", json.loads(reservation.path.read_text()))
         journal.emit("finish", result)

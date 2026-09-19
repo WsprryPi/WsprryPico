@@ -8,25 +8,30 @@ import json
 from collections import OrderedDict
 
 
-SCHEMA = "phase11.6-plan-v23"
-MATRIX_SCHEMA = "phase11.6-matrix-v23"
+SCHEMA = "phase11.6-plan-v24"
+MATRIX_SCHEMA = "phase11.6-matrix-v24"
 SAMPLE_RATE_HZ = 138_000_000
 DIRECT_MAXIMUM_HZ = 68_999_999
-FIRMWARE_SOURCE = "7068b937240a7cbdfd0f0edbd7d347057604c0f0"
+FIRMWARE_SOURCE = "0e85ff90571c800450073f7b0bfafd70266f1f44"
 FIRMWARE_UF2_SHA256 = (
-    "f1d437261cb7aa3f9668f7624dad5806346a248202a45f15c553617e12e74a47"
+    "9ac5a40fe6d9a44a3a0156621b82801488efecafb9f472ba601dbcbb3e138398"
 )
 PICO_SERIAL = "0BF4B4AEC9FFB344"
 PICO_DEVICE_ID = "fd6127d11d6aca42a9905fa3fb1bf1d5"
 PICO_PHASE115_BOOT = "ff719d304f1ba4ac23fddd93561b26f0"
-PICO_PREDECESSOR_BOOT = "1ab2d3ee391ec6c39fcd904f1c9dae01"
-PICO_ACCEPTED_BOOT = "a12f61f7cd59557c1b5628b2568a52d5"
+PICO_PREDECESSOR_BOOT = "e67d02a2621bb3527ed9f6bed0a6080f"
+PICO_ACCEPTED_BOOT = "cab95d7eecad05047fcb1d6806cf9e86"
 PREDECESSOR_PLAN_SHA256 = (
-    "c3392251cac3f718655a8ae641ac164d185ce0d51dc3db7e86b4dea6e66bf601"
+    "2f4d0608afdcb6a494c84ebbd8c55c665ca87e9bc0cea9de692d7e6c792b0123"
 )
 PEER_SERIAL = "CDDBF8767C506C07"
 PEER_DEVICE_ID = "29f20b7342051ef947aa56cb9d4fab42"
+PEER_ACCEPTED_BOOT = "6684b4b197d80cfa0ce83b3aaf205cb0"
 RECEIVER_SERIAL = "2404058C60"
+COMPANION_SOURCE = "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf"
+COMPANION_BINARY_SHA256 = (
+    "b8e63947e2e9780f43dc4247869db138f81cc6e2245c99c1fd02ad9de4b33ff6"
+)
 WSPR_SYMBOLS = (
     "13200002302011100030232111300002223001230022201211203321000310302221301030323003003233"
     "2021321030223220203223221310310213010221110002210302110200222310303320011002"
@@ -353,11 +358,11 @@ def compose() -> dict:
         "phase": "11.6",
         "repositories": {
             "WsprryPico": FIRMWARE_SOURCE,
-            "WsprryPi": "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf",
+            "WsprryPi": COMPANION_SOURCE,
         },
         "amendment": {
             "predecessor_plan_sha256": PREDECESSOR_PLAN_SHA256,
-            "scope": "post-sequence-164 TONE offline evidence recovery",
+            "scope": "post-sequence-175 corrected status-admission candidate",
             "rf_job_payloads_changed": False,
             "rf_waveform_changed": False,
             "reason": (
@@ -425,11 +430,25 @@ def compose() -> dict:
             "completed_noncredit_sequences": [155, 156, 158, 160, 161, 163],
             "host_recovered_sequences": [164],
             "accepted_sequences": [164],
-            "next_sequence": 165,
-            "companion_source_revision":
-                "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf",
-            "companion_binary_sha256":
-                "b8e63947e2e9780f43dc4247869db138f81cc6e2245c99c1fd02ad9de4b33ff6",
+            "evidence_cutoff_sequence": 175,
+            "next_sequence": 176,
+            "companion_source_revision": COMPANION_SOURCE,
+            "companion_binary_sha256": COMPANION_BINARY_SHA256,
+            "current_candidate_requalification": {
+                "source_revision": FIRMWARE_SOURCE,
+                "uf2_sha256": FIRMWARE_UF2_SHA256,
+                "boot_id": PICO_ACCEPTED_BOOT,
+                "deployment_evidence_directory":
+                    "phase11-6-status-repair-corrected-deployment-20260919",
+                "zero_rf_evidence_directory":
+                    "phase11-6-status-repair-corrected-zero-rf-20260919",
+                "conducted_evidence_directory":
+                    "phase11-6-status-repair-corrected-conducted-20260919",
+                "firmware_flashes": 1,
+                "bootsel_transitions": 1,
+                "configuration_writes": 0,
+                "retries": 0,
+            },
             "production_ini": {
                 "loop_tx": False,
                 "tx_iterations": 1,
@@ -661,7 +680,7 @@ def compose() -> dict:
                 "postrestart_allocator_failures": 0,
                 "postrestart_tls_allocation_failures": 0,
                 "private_evidence_directory":
-                    "phase11-6-repair-7068b93-deployment-20260919",
+                    "phase11-6-status-repair-corrected-deployment-20260919",
             },
             "failure_transition": {
                 "from_boot_id": "e363bf9ae4528258563557b7d306efcd",
@@ -669,7 +688,11 @@ def compose() -> dict:
                 "cause": "browser raw LOAD allocation failure before RF",
             },
         },
-        "peer": {"pico_serial": PEER_SERIAL, "device_id": PEER_DEVICE_ID},
+        "peer": {
+            "pico_serial": PEER_SERIAL,
+            "device_id": PEER_DEVICE_ID,
+            "accepted_boot_id": PEER_ACCEPTED_BOOT,
+        },
         "receiver": {
             "driver": "sdrplay",
             "serial": RECEIVER_SERIAL,

@@ -1,0 +1,169 @@
+{
+  "schema": "phase11.6-closure-execution-result-v1",
+  "phase": "11.6",
+  "phase_status": "OPEN_STOPPED_ON_FIRST_FAILURE",
+  "date": "2026-09-19",
+  "authorization": {
+    "origin_devel_commit": "f817fb79ddee50c690089b9964e39bcf0663a65f",
+    "closure_plan_file_sha256": "4733941d6dd6b7ff80b8dceaa819397c12b6e49bd0512df0f902df44cb29b0fe",
+    "matrix_file_sha256": "f5dc043da0cf3b0e398777d07e5e6146b2faf76b5e94c7fed8797a5cbb33467f",
+    "evidence_cutoff_sequence": 175,
+    "planned_jobs": 82,
+    "planned_maximum_rf_seconds": "3260.000075",
+    "automatic_retries": 0,
+    "wspr_jobs": 0,
+    "dfcw_polarity": "dot-high/dash-low"
+  },
+  "execution_plan": {
+    "artifact": "phase11-6-closure-execution-plan.json",
+    "schema": "phase11.6-plan-v24",
+    "plan_sha256": "ef6624ccfa3be1b05ec914721071271fe1ef2bdb2afca5bffb200b1812ae279c",
+    "file_sha256": "1d5c5451d7ac6389f163277342887978b258e4805872f3ec3ec46c5d9872983e",
+    "source_bundle_sha256": "62477128c502f824f46ea64e3e8d01d957b9e9dbc129ba28519b0a22b13482e5"
+  },
+  "admission": {
+    "status": "PASS_ZERO_RF",
+    "private_root": "/home/pi/phase11-6-closure-final-20260919/admission",
+    "packet_sha256": "52f9d919184ac03d4a2a36024de875bace85570a79a11661952842bf4b5917d1",
+    "prerequisites_sha256": "849e5f5bba5bf27d34946f68244390a8a17d14a58e5f4dc5096e745409966022",
+    "result_sha256": "1fbf1401c63cfad9dbb6bb200ad303eda09e7c6591f50a7095b8f59e8c3eb435",
+    "reservation_released_sha256": "ca6a541797d05e7938f0655c7061aeb07c56a6183a2d083c0f6187368e55fd0e",
+    "observer_journal_sha256": "ee3086551ad9dd1768a7c1734ea98b1578f7e73f5a69b84043b9aa404d665bde",
+    "receiver_inventory_file_sha256": "22faaef81a25a34ec5d184e1ce61d147984d48cc54f2e30164b278eb488048be",
+    "rf_jobs": 0,
+    "operations": [
+      "HELLO",
+      "CLAIM",
+      "LOAD_MESSAGE",
+      "ARM",
+      "ABORT",
+      "RELEASE"
+    ],
+    "accepted_arm_lead_ns": 114070479000,
+    "reservation_released": true
+  },
+  "identity": {
+    "pico_a": {
+      "serial": "0BF4B4AEC9FFB344",
+      "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+      "source_revision": "0e85ff90571c800450073f7b0bfafd70266f1f44",
+      "uf2_sha256": "9ac5a40fe6d9a44a3a0156621b82801488efecafb9f472ba601dbcbb3e138398",
+      "boot_id": "cab95d7eecad05047fcb1d6806cf9e86",
+      "board": "Pico 2 W / RP2350 Arm Secure",
+      "system_clock_hz": 138000000,
+      "pio_divider": 1,
+      "engine": "pio-dma-gp2",
+      "renderer": "RAM",
+      "output": "GP2"
+    },
+    "pico_b": {
+      "serial": "CDDBF8767C506C07",
+      "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+      "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0"
+    },
+    "companion": {
+      "source_revision": "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf",
+      "binary_sha256": "b8e63947e2e9780f43dc4247869db138f81cc6e2245c99c1fd02ad9de4b33ff6"
+    },
+    "receiver": {
+      "driver": "sdrplay",
+      "serial": "2404058C60",
+      "sample_rate_hz": 250000,
+      "bandwidth_hz": 200000,
+      "gain_db": 20,
+      "agc": false,
+      "bias_tee": false,
+      "frequency_correction_ppm": 0
+    },
+    "capture_helper_sha256": "b98de116d696846b88eea1b3ad3f1b2a471052fa2ca440f4234fec7087dc5a03",
+    "qualification_carrier_sha256": "b6c5ada7d38532156ea32a071685492101d5002c79c306eaf8a2d6d80ff6592c"
+  },
+  "execution": {
+    "status": "STOPPED_ON_FIRST_FAILURE",
+    "private_root": "/home/pi/phase11-6-closure-final-20260919",
+    "batch_journal_sha256": "2ee31140e32d32f7718b187d537c52efc3be651fd766b0e45bb5d0a2f7a7f25e",
+    "completed_jobs": 1,
+    "completed_rf_seconds": "45.000001",
+    "completed_sequence": 176,
+    "completed_job_id": "2200m:FSKCW:1:browser_compact:nominal",
+    "attempt_176_physical_log_sha256": "07533001d0ae3c9200e6ea9bdc1a96864855c22da6e07ebad13aca2e6d83fea5",
+    "attempt_176_analysis_log_sha256": "8ab597adbe93903dde07712af81d7b7d4f4746a0eca787728914192c61ea1914",
+    "failed_sequence": 177,
+    "failed_job_id": "2200m:FSKCW:2:controller_disconnect:nominal",
+    "failure_stage": "pre-ARM independent observer timing admission",
+    "failure": "Independent observer admission deadline",
+    "attempt_177_physical_log_sha256": "2ad927335d6ef5adbd7055f916684e7cd2042a3c5860f1fb839f82cf592b01fb",
+    "attempt_177_rf_emitted": false,
+    "attempt_177_capture_started": false,
+    "attempt_177_claim_load_arm_operations": 0,
+    "attempt_177_automatic_retry": false,
+    "attempt_177_reservation_released_after_authoritative_inactive": true,
+    "unexecuted_sequences": "178-257",
+    "unexecuted_jobs": 80,
+    "authorization_consumed": true
+  },
+  "audit": {
+    "artifact": "phase11-6-closure-execution-results.json",
+    "artifact_sha256": "b1198e1ef61c61d860e32481457f344d9fc87ba558cdb8aa62a50650dca72511",
+    "auditor_sha256": "3d0ce522ad9a5d425f537a4cd28acb7918a95ca6ae1bceff1cffbdec57d94646",
+    "retained_reanalysis_tool_sha256": "90310287ed5b30ad50cf6687f473013ce6ad7e755e63dc8660fd1a92c688c6fa",
+    "retained_reanalysis": [
+      {
+        "sequence": 27,
+        "mode": "QRSS",
+        "analysis_sha256": "b5efcfbce250c187b2976e8aafa02b24a7fa58ab16e21828667e551684915356"
+      },
+      {
+        "sequence": 32,
+        "mode": "FSKCW",
+        "analysis_sha256": "24b60fbcb9f5aebdb3d50fd769ce9ca2d6b898ad6536e9052d900d7dddfe4c10"
+      },
+      {
+        "sequence": 36,
+        "mode": "DFCW",
+        "analysis_sha256": "a7c0704f6bcd79eaf15cccb43abb7450bac2240c7716b25e95baebfa2ff8d465"
+      }
+    ],
+    "historical_packet_rows_passed": 6,
+    "new_completed_jobs_passed": 1,
+    "stop_failure_audited": true,
+    "thresholds_relaxed": false,
+    "evidence_rebound": false
+  },
+  "fixtures": {
+    "wspr5": {
+      "packet_sha256": "084145c278ed417edd84eaabc65f5d4d9f4a9710b58521e1a3c0afb52fc4409b",
+      "state_sha256_after_cleanup": "c553c5a16505ea40f0601b0d1bd5e4639817d0cb3a03587bc1b9443c909aae8a",
+      "journal_sha256_after_cleanup": "0a7b5d94d342c9c2742de7c888d4ad351c9abe7ecd57c6c11d22842970222dcd",
+      "restored": true,
+      "installed_service_state": "inactive",
+      "installed_service_main_pid": 0
+    },
+    "wspr4": {
+      "packet_sha256": "c26f14c63587b53a62afa88afd4053ec7a1f2810fa35805c2f12b2c8aaaaa395",
+      "ready_sha256": "24afa3c8fd2b0a5eb8f222fc636372ad218cf3ab95d9c431262a9f2bd73968b3",
+      "state_sha256_after_cleanup": "b3d3d42be89dbfec86a8b78875cd78b17112f70a19f75845e97674d826bc3bbe",
+      "journal_sha256_after_cleanup": "c1638cab02dee8ecc712a9fcd3d79649c8e9280351b96fe2fcae7c77badc8fa7",
+      "capture_pcap_sha256": "4953f821dfdc35a90d0e9857684cbadee023e8184be8bb3838d7a6a4367f2cad",
+      "restored": true
+    }
+  },
+  "authoritative_matrix": {
+    "artifact": "phase11-6-matrix.json",
+    "file_sha256": "1be962c10b46e9837a65742efebd7505c420345cafb161351d8e60c5a8e86f08",
+    "evidence_cutoff_sequence": 177,
+    "disposition_counts": {
+      "PASS": 13,
+      "FAIL": 9,
+      "BLOCKED": 12,
+      "NOT TESTED": 31,
+      "UNSUPPORTED_CONFIGURATION": 10
+    }
+  },
+  "closure": {
+    "closed": false,
+    "further_rf_authorized": false,
+    "exact_scope_disposition_for_no_further_rf_closure": "accept only the 13 PASS rows; remove all 9 FAIL, 12 BLOCKED and 31 NOT TESTED supported rows from Phase 11.6 acceptance; retain the 10 unsupported 4 m/2 m rows as an explicit configuration boundary",
+    "alternative": "approve a new plan and new RF authorization for the 80 unexecuted jobs while retaining sequence 177 as a no-retry failure"
+  }
+}

@@ -26,6 +26,12 @@ PASS_ROWS = {
     ("80m", "TONE"),
     ("60m", "TONE"),
     ("40m", "TONE"),
+    ("630m", "QRSS"),
+    ("630m", "FSKCW"),
+    ("630m", "DFCW"),
+    ("160m", "QRSS"),
+    ("160m", "DFCW"),
+    ("80m", "DFCW"),
 }
 
 FAIL_ROWS = {
@@ -37,19 +43,12 @@ FAIL_ROWS = {
     ("60m", "FSKCW"),
     ("60m", "DFCW"),
     ("40m", "WSPR"),
+    ("2200m", "FSKCW"),
 }
 
-AUDIT_BLOCKED_ROWS = {
-    ("630m", "QRSS"),
-    ("630m", "FSKCW"),
-    ("630m", "DFCW"),
-    ("160m", "QRSS"),
-    ("160m", "DFCW"),
-    ("80m", "DFCW"),
-}
+AUDIT_BLOCKED_ROWS: set[tuple[str, str]] = set()
 
 REPAIR_BLOCKED_ROWS = {
-    ("2200m", "FSKCW"),
     ("2200m", "DFCW"),
 }
 
@@ -150,10 +149,22 @@ def _is_sha256(value: object) -> bool:
 def validate_matrix(matrix: dict) -> dict:
     _require(matrix.get("schema") == MATRIX_SCHEMA, "reconciled matrix schema")
     _require(matrix.get("phase_status") == "OPEN", "Phase 11.6 must remain open")
-    _require(matrix.get("evidence_cutoff_sequence") == 175, "evidence cutoff")
+    _require(matrix.get("evidence_cutoff_sequence") == 177, "evidence cutoff")
     _require(matrix.get("thresholds_relaxed") is False, "threshold relaxation")
     _require(matrix.get("evidence_rebound") is False, "evidence rebinding")
     _require(matrix.get("dfcw_polarity") == "dot-high/dash-low", "DFCW polarity")
+    execution = matrix.get("closure_execution", {})
+    _require(
+        execution.get("status") == "STOPPED_ON_FIRST_FAILURE"
+        and execution.get("completed_sequences") == [176]
+        and execution.get("failed_sequence") == 177
+        and execution.get("rf_jobs_completed") == 1
+        and execution.get("rf_seconds_completed") == 45.000001
+        and execution.get("unexecuted_authorized_jobs") == 80
+        and execution.get("automatic_retries") == 0
+        and execution.get("authorization_consumed") is True,
+        "closure execution outcome",
+    )
     rows = matrix.get("rows")
     _require(isinstance(rows, list) and len(rows) == len(BANDS) * len(MODES),
              "complete matrix row count")
@@ -234,6 +245,7 @@ def validate_closure_plan(plan: dict, matrix: dict) -> dict:
     _require(plan.get("closure_after_execution") is False,
              "RF execution cannot itself close Phase 11.6")
     expected_candidate = dict(matrix["evidence_lineages"]["status_admission_current"])
+    expected_candidate.pop("matrix_credit_from_closure_execution", None)
     expected_candidate.update({
         "pico_serial": "0BF4B4AEC9FFB344",
         "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",

@@ -37,7 +37,9 @@ The [extended-job design](docs/development/phase11-5-extended-job-design.md)
 describes exact duration, repetition and local execution. These limits are
 implemented; [resource and physical acceptance](docs/development/phase11-5-acceptance-ledger.md)
 is closed for the recorded 138 MHz/divider-1 configuration. The subsequent
-[Phase 11.6 conducted matrix](docs/development/phase11-6-plan.md) remains open.
+[Phase 11.6 conducted matrix](docs/development/phase11-6-plan.md) remains open;
+its final remaining-RF authorization stopped on the first failure at sequence
+177 after one accepted 45.000001-second job.
 
 Network interfaces are implemented
 and host-tested. [Phase 11](docs/development/network-control.md) adds per-device

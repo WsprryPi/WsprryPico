@@ -256,7 +256,7 @@ class Phase116AttemptTests(unittest.TestCase):
         stage = (ROOT / "scripts/phase11_6_stage.py").read_text()
         fixture = (ROOT / "scripts/phase11_6_fixture.py").read_text()
         self.assertIn('"installed_service_prepaused": True', stage)
-        self.assertIn('"installed-paused.txt")', stage)
+        self.assertNotIn('"installed-paused.txt")', stage)
         self.assertIn('installed_state == "inactive"', fixture)
         self.assertIn('installed_pid == "0"', fixture)
         self.assertNotIn(
