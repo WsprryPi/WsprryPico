@@ -1,0 +1,70 @@
+{
+  "schema": "phase11.6-browser-allocation-repair-source-impact-v1",
+  "status": "REQUALIFICATION_REQUIRED",
+  "prior_accepted_source_revision": "210599d907acdb23278fc24244b674d62c820d7c",
+  "candidate_source_revision": "7068b937240a7cbdfd0f0edbd7d347057604c0f0",
+  "source_diff_sha256": "274311b2c4a5b38da054010602a5741135dad88b27a4e7b1cc7c4ccec0805535",
+  "changed_source_files": [
+    "src/network/api.cpp",
+    "src/phase11_6/live.py",
+    "src/phase11_6/plan.py",
+    "src/phase11_6/wspr_group.py"
+  ],
+  "firmware_linked_files": [
+    "src/network/api.cpp"
+  ],
+  "host_only_files": [
+    "src/phase11_6/live.py",
+    "src/phase11_6/plan.py",
+    "src/phase11_6/wspr_group.py"
+  ],
+  "failure": {
+    "attempt_sequence": 155,
+    "recovery_boot_id": "1ab2d3ee391ec6c39fcd904f1c9dae01",
+    "fault_stage": 14,
+    "fault_hash": 3833354787,
+    "allocation_request_bytes": 33335,
+    "allocation_returned_null": true
+  },
+  "repair": {
+    "component": "BrowserApi::job",
+    "behavior": "append paged HTTP InputView spans directly into one pre-reserved WTP envelope",
+    "protocol_fields_changed": false,
+    "rf_job_payload_changed": false,
+    "rf_waveform_changed": false,
+    "timing_or_frequency_changed": false,
+    "output_authority_changed": false
+  },
+  "candidate_build": {
+    "board": "Pico 2 W / RP2350 Arm Secure",
+    "sdk_version": "2.3.1",
+    "compiler": "Arm GNU 15.3.1",
+    "system_clock_hz": 138000000,
+    "standalone_wspr_base_frequency_hz": 135500,
+    "network_port": 18443,
+    "uf2_sha256": "f1d437261cb7aa3f9668f7624dad5806346a248202a45f15c553617e12e74a47",
+    "elf_sha256": "2cd4c371864df22f113ed2c048afaf095b95eaed0e71c17c4d0111bc049b3dd7",
+    "map_sha256": "81a8882181cd2af9d8384395aa151ffb49ee0e05f2d03a0bb3eba0bdca0e15a2",
+    "linked_identity": "7068b937240a",
+    "heap_hook_check": "PASS",
+    "stack_guard_check": "PASS",
+    "ram_renderer_check": "PASS"
+  },
+  "phase11_5_affected_checks": [
+    "browser raw LOAD through the shipped HTTPS page",
+    "large and paged HTTP-to-WTP request assembly",
+    "allocation failure diagnostics and retained heap reserve",
+    "browser plus USB and Console contention",
+    "authenticated terminal state and inactive cleanup"
+  ],
+  "phase11_5_unaffected_historical_evidence": [
+    "RF synthesis frequency and spacing measurements remain bound to their recorded image",
+    "keyed and WSPR waveform measurements remain bound to their recorded image",
+    "DFCW retained campaign polarity remains dot high and dash low"
+  ],
+  "authorization": {
+    "firmware_deployment": false,
+    "physical_requalification": false,
+    "phase11_6_rf_resume": false
+  }
+}

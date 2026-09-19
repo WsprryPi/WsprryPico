@@ -886,15 +886,21 @@ class BrowserSubmit:
             if marker.is_file():
                 value = json.loads(marker.read_text())
                 admission = value.get("browser_arm_admission") or {}
+                session_id = value.get("session_id")
+                request_id = value.get("last_request_id")
                 require(
                     value.get("schema") == "phase11.6-browser-mutations-v1"
                     and value.get("job_id") == expected_id
                     and value.get("predecessor_job_id") == self.predecessor_job_id
                     and value.get("operations") == expected
-                    and isinstance(value.get("session_id"), str)
-                    and len(value["session_id"]) == 32
-                    and isinstance(value.get("last_request_id"), str)
-                    and len(value["last_request_id"]) == 32
+                    and isinstance(session_id, str)
+                    and len(session_id) == 32
+                    and all(character in "0123456789abcdef"
+                            for character in session_id)
+                    and isinstance(request_id, str)
+                    and len(request_id) == 32
+                    and all(character in "0123456789abcdef"
+                            for character in request_id)
                     and admission.get("clock_state") == "synchronized"
                     and int(admission.get("uncertainty_ns", "999999999"))
                         <= 500_000_000

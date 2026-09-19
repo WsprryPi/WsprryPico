@@ -62,6 +62,11 @@ def label(value: str) -> str:
     return value.replace(":", "-").lower()
 
 
+def identifier(value: object) -> bool:
+    return (isinstance(value, str) and len(value) == 32
+            and all(character in "0123456789abcdef" for character in value))
+
+
 def reconciliation_binding(execution: Path,
                            browser_result: Path | None = None) -> dict:
     """Recover the exact USB principal after a partial controller transition."""
@@ -98,12 +103,14 @@ def reconciliation_binding(execution: Path,
             exchanges = decoded
 
     session = selected.get("session_id")
-    if not isinstance(session, str):
-        raise ValueError("Missing reconciliation principal")
+    if not identifier(session):
+        raise ValueError("Invalid reconciliation principal")
     session_exchanges = [value for value in exchanges
                          if value.get("session_id") == session]
-    request_numbers = [int(value["request_id"], 16)
-                       for value in session_exchanges]
+    request_ids = [value.get("request_id") for value in session_exchanges]
+    if not request_ids or not all(identifier(value) for value in request_ids):
+        raise ValueError("Invalid reconciliation request identity")
+    request_numbers = [int(value, 16) for value in request_ids]
     body = selected.get("body") or {}
     return {"session": session, "request_number": max(request_numbers),
             "expected_job_id": body.get("job_id")}

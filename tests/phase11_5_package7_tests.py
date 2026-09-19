@@ -70,6 +70,19 @@ class Package7Tests(unittest.TestCase):
             "src/network/http.hpp",
             "src/network/pico/server.cpp",
             "src/network/pico/server.hpp",
+            "src/phase11_6/__init__.py",
+            "src/phase11_6/analysis.py",
+            "src/phase11_6/audit.py",
+            "src/phase11_6/live.py",
+            "src/phase11_6/plan.py",
+            "src/phase11_6/recovery.py",
+            "src/phase11_6/wspr_group.py",
+            "src/rf/pico/pico_pio_dma.cpp",
+            "src/rf/pico/pico_pio_dma.hpp",
+            "src/rf/pio_dma_sink.cpp",
+            "src/rf/pio_dma_sink.hpp",
+            "src/rf/stream_engine.cpp",
+            "src/rf/stream_engine.hpp",
             "src/standalone/pico/adapters.cpp",
             "src/standalone/pico/adapters.hpp",
             "src/standalone/pico/main.cpp",
@@ -77,6 +90,10 @@ class Package7Tests(unittest.TestCase):
             "src/standalone/storage.hpp",
             "src/usb/reply_priority.hpp",
         ])
+        impact = json.loads((ROOT / "docs/development/phase11-6-browser-"
+                             "allocation-repair-source-impact.json").read_text())
+        self.assertEqual(impact["status"], "REQUALIFICATION_REQUIRED")
+        self.assertFalse(impact["authorization"]["firmware_deployment"])
         package8 = json.loads((ROOT / "docs/development/phase11-5-package8-result.json").read_text())
         self.assertEqual(package8["source_impact"]["prior_candidate"], source)
         self.assertEqual(package8["source_impact"]["later_pico_runtime_source_changes"], 0)

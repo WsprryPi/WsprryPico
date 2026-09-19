@@ -124,6 +124,55 @@ class Phase116WsprGroupTests(unittest.TestCase):
                 "expected_job_id": "6" * 32,
             })
 
+    def test_reconciliation_rejects_malformed_browser_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            execution = root / "execution.jsonl"
+            execution.write_text(json.dumps({
+                "kind": "usb_controller_exchange",
+                "value": {"session_id": "2" * 32, "request_id": "a" * 32,
+                          "operation": "LOAD",
+                          "body": {"job_id": "4" * 32}},
+            }) + "\n")
+            browser = root / "browser-result.json"
+            browser.write_text(json.dumps({"requests": [{
+                "session_id": "Z" * 32, "request_id": "b" * 32,
+                "operation": "LOAD", "body": {"job_id": "6" * 32},
+            }]}))
+            with self.assertRaisesRegex(ValueError,
+                                        "Invalid reconciliation principal"):
+                reconciliation_binding(execution, browser)
+
+    def test_browser_mutation_marker_rejects_malformed_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            submitter = BrowserSubmit(
+                ROOT, directory,
+                {"submission_path": "browser_raw",
+                 "expected_job": {"job_id": "4" * 32}},
+                10, mock.Mock(),
+            )
+            submitter.process = mock.Mock()
+            submitter.process.poll.return_value = None
+            (directory / "browser-mutations-complete.json").write_text(
+                json.dumps({
+                    "schema": "phase11.6-browser-mutations-v1",
+                    "job_id": "4" * 32,
+                    "predecessor_job_id": None,
+                    "operations": ["HELLO", "CLAIM", "LOAD", "ARM"],
+                    "session_id": "Z" * 32,
+                    "last_request_id": "5" * 32,
+                    "browser_arm_admission": {
+                        "clock_state": "synchronized",
+                        "uncertainty_ns": "1000000",
+                        "accepted_arm_lead_ns": "8000000000",
+                    },
+                })
+            )
+            with self.assertRaisesRegex(ValueError,
+                                        "Browser mutation acknowledgement"):
+                submitter.wait_mutations(timeout=0.1)
+
     def test_fixture_namespace_admission_requires_mount_and_network_match(self):
         values = {
             "/proc/self/ns/mnt": "mnt:[1]",

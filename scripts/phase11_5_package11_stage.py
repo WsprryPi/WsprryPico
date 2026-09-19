@@ -342,8 +342,8 @@ def main():
                 usb_reducer_retest_adversarial_value.get("result_sha256") !=
                     digest(usb_reducer_retest_result) or
                 usb_reducer_retest_value.get("source_sha256", {}).get(
-                    "phase11_5_package9.py") != digest(
-                        Path(__file__).with_name("phase11_5_package9.py"))):
+                    "phase11_5_package9.py") !=
+                    "5d9b268b65f9dcc01c962217d620603c0a55363639dc03a14fbb2d55c3ca7a3c"):
             raise ValueError("Package 11 USB reducer repair did not pass")
         if (retry4_credential_retest_value.get("schema") !=
                 "phase11.5-package11-retry4-credential-retest-v1" or

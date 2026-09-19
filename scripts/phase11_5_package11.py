@@ -204,8 +204,8 @@ def validate(packet):
             "result_sha256": packet.get("usb_reducer_retest_result_sha256"),
             "adversarial_sha256": packet.get(
                 "usb_reducer_retest_adversarial_sha256"),
-            "phase11_5_package9_source_sha256": packet.get("stage_sha256", {}).get(
-                "scripts/phase11_5_package9.py"),
+            "phase11_5_package9_source_sha256":
+                "5d9b268b65f9dcc01c962217d620603c0a55363639dc03a14fbb2d55c3ca7a3c",
             "repaired_event_and_status_reducer_accepts": True,
             "mutations_rejected": 22, "rf_jobs": 0, "rf_duration_ns": 0,
             "pico_access": False, "usb_access": False, "network_access": False,

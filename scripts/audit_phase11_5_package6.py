@@ -303,6 +303,19 @@ def validate_source_impact(root, result):
                                 "src/network/http.hpp",
                                 "src/network/pico/server.cpp",
                                 "src/network/pico/server.hpp",
+                                "src/phase11_6/__init__.py",
+                                "src/phase11_6/analysis.py",
+                                "src/phase11_6/audit.py",
+                                "src/phase11_6/live.py",
+                                "src/phase11_6/plan.py",
+                                "src/phase11_6/recovery.py",
+                                "src/phase11_6/wspr_group.py",
+                                "src/rf/pico/pico_pio_dma.cpp",
+                                "src/rf/pico/pico_pio_dma.hpp",
+                                "src/rf/pio_dma_sink.cpp",
+                                "src/rf/pio_dma_sink.hpp",
+                                "src/rf/stream_engine.cpp",
+                                "src/rf/stream_engine.hpp",
                                 "src/standalone/pico/adapters.cpp",
                                 "src/standalone/pico/adapters.hpp",
                                 "src/standalone/pico/main.cpp",
@@ -310,6 +323,17 @@ def validate_source_impact(root, result):
                                 "src/standalone/storage.hpp",
                                 "src/usb/reply_priority.hpp"],
                 "Later production drift requires exact Package 8/9 review")
+        impact = json.loads((root / "docs/development/phase11-6-browser-"
+                             "allocation-repair-source-impact.json").read_text())
+        require(impact.get("schema") ==
+                    "phase11.6-browser-allocation-repair-source-impact-v1"
+                and impact.get("status") == "REQUALIFICATION_REQUIRED"
+                and impact.get("firmware_linked_files") == ["src/network/api.cpp"]
+                and impact.get("authorization") == {
+                    "firmware_deployment": False,
+                    "physical_requalification": False,
+                    "phase11_6_rf_resume": False,
+                }, "Later Phase 11.6 firmware drift must remain unqualified")
         from audit_phase11_5_package8 import validate_result as validate_package8
         package8 = json.loads((root / "docs/development/phase11-5-package8-result.json").read_text())
         validate_package8(package8)
