@@ -46,6 +46,19 @@ USB_WTP_PORT = Path(
 )
 
 
+def _terminal_poll_delay_s(deadlines: list[int], now_ns: int) -> float:
+    """Enter the two-second terminal polling window without oversleeping it."""
+    offsets = [deadline - now_ns for deadline in deadlines]
+    if any(-1_000_000_000 <= offset <= 2_000_000_000
+           for offset in offsets):
+        return 0.025
+    until_windows = [
+        (offset - 2_000_000_000) / 1e9
+        for offset in offsets if offset > 2_000_000_000
+    ]
+    return max(0.025, min(5.0, min(until_windows, default=5.0)))
+
+
 def group_digest(value: dict) -> str:
     return hashlib.sha256(canonical(value)).hexdigest()
 
@@ -763,11 +776,7 @@ class UsbWsprCoordinator(threading.Thread):
                 task["target_utc_ns"] + task["job"]["planned_duration_ns"],
                 task["next_target_utc_ns"] + task["next_duration_ns"],
             ]
-            near_terminal = any(
-                -1_000_000_000 <= deadline - time.time_ns() <= 2_000_000_000
-                for deadline in deadlines
-            )
-            self.stop.wait(0.025 if near_terminal else 5.0)
+            self.stop.wait(_terminal_poll_delay_s(deadlines, time.time_ns()))
 
     def run(self) -> None:
         try:

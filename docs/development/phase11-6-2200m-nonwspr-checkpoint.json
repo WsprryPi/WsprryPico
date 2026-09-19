@@ -1,0 +1,238 @@
+{
+  "schema": "phase11.6-2200m-nonwspr-checkpoint-v1",
+  "date": "2026-09-19",
+  "status": "PARTIAL",
+  "scope": {
+    "band": "2200m",
+    "nominal_frequency_hz": 137500,
+    "modes": ["TONE", "QRSS", "FSKCW", "DFCW"],
+    "plan_schema": "phase11.6-plan-v23",
+    "plan_sha256": "2f4d0608afdcb6a494c84ebbd8c55c665ca87e9bc0cea9de692d7e6c792b0123",
+    "private_evidence_root": "phase11-6-conducted-v34-20260919"
+  },
+  "tested_identity": {
+    "firmware_source_revision": "7068b937240a7cbdfd0f0edbd7d347057604c0f0",
+    "firmware_uf2_sha256": "f1d437261cb7aa3f9668f7624dad5806346a248202a45f15c553617e12e74a47",
+    "board_a_boot_id": "a12f61f7cd59557c1b5628b2568a52d5",
+    "board_a_usb_serial": "0BF4B4AEC9FFB344",
+    "board_a_device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "rf_engine": {
+      "system_clock_hz": 138000000,
+      "divider": 1,
+      "event_storage": "RAM",
+      "output_gpio": 2
+    }
+  },
+  "convention": {
+    "dfcw": "dot-high/dash-low",
+    "retained": true,
+    "repair_changes_polarity": false
+  },
+  "rows": [
+    {
+      "mode": "TONE",
+      "disposition": "ACCEPTED",
+      "accepted_attempts": [164],
+      "failed_or_abandoned_attempts": [],
+      "submission_paths_accepted": ["controller_disconnect"]
+    },
+    {
+      "mode": "QRSS",
+      "disposition": "ACCEPTED",
+      "accepted_attempts": [167, 168, 169],
+      "failed_or_abandoned_attempts": [165, 166],
+      "submission_paths_accepted": [
+        "production",
+        "browser_compact",
+        "controller_disconnect"
+      ]
+    },
+    {
+      "mode": "FSKCW",
+      "disposition": "OPEN",
+      "accepted_attempts": [170],
+      "failed_or_abandoned_attempts": [171, 172],
+      "submission_paths_accepted": ["production"],
+      "remaining": ["browser_compact", "controller_disconnect"]
+    },
+    {
+      "mode": "DFCW",
+      "disposition": "OPEN",
+      "accepted_attempts": [173, 174],
+      "failed_or_abandoned_attempts": [175],
+      "submission_paths_accepted": ["production", "browser_compact"],
+      "remaining": ["controller_disconnect"]
+    }
+  ],
+  "attempts": [
+    {
+      "sequence": 164,
+      "mode": "TONE",
+      "submission_path": "controller_disconnect",
+      "status": "ACCEPTED_OFFLINE_RECOVERY",
+      "attempt_packet_file_sha256": "de42c9b216cccc72d8dcb3bc4dedd3adbd1717e27fd8b584474671bb1c509d0",
+      "capture_sha256": "f6519744e998cbb2404f75ae594a9325ffb426b6ae69d3a22f46537344296d7b",
+      "analysis_sha256": "5d2f92b9b53a5b5e408849fa95b23ac1b8e6a2e9f97e6e8c6c9041851437bf91",
+      "charged_rf_seconds": 5.0
+    },
+    {
+      "sequence": 165,
+      "mode": "QRSS",
+      "submission_path": "production",
+      "status": "ABANDONED_NO_PACKET_NO_RF",
+      "charged_rf_seconds": 0.0
+    },
+    {
+      "sequence": 166,
+      "mode": "QRSS",
+      "submission_path": "production",
+      "status": "FAILED_PREFLIGHT_NO_RF",
+      "attempt_packet_file_sha256": "fd253bf7ad03bd3f42bdb3e2f25684727890018692e53f2a192df4b5a9866636",
+      "execution_jsonl_sha256": "63b80185731e4ba02e69b25ceaa2fbfcf30fd34203af56b5d099527539864f22",
+      "reconciliation_sha256": "116fef6835035c1037f54e5caef4ad358b85f631e4350a3905b3925ce8e60e78",
+      "cause": "installed-paused staging marker omitted",
+      "charged_rf_seconds": 0.0
+    },
+    {
+      "sequence": 167,
+      "mode": "QRSS",
+      "submission_path": "production",
+      "status": "ACCEPTED",
+      "attempt_packet_file_sha256": "dd891eb774f38ba55b725b7123c1af215e5d4608402231a2e6f49a45b2c4d419",
+      "run_result_sha256": "e62da2b2eaf9fe3bc82bbf28bf5aaa0bc7399e947fe0a8fb69612dca0e9672de",
+      "analysis_sha256": "ed393547239fd0ee04864bdf60bb9ca6e0507e88ff047d0d7b56a2b8f94096e3",
+      "capture_sha256": "4569a3da049a95bf3c3879060ce66ab61c16495fd0f6fe2da06590b8ae5145b4",
+      "metadata_sha256": "c1696408d7a60a7f824b5d8e7381a1a6d0f7adc4c88f821f10e5a1cd9b15d144",
+      "charged_rf_seconds": 45.000001
+    },
+    {
+      "sequence": 168,
+      "mode": "QRSS",
+      "submission_path": "browser_compact",
+      "status": "ACCEPTED",
+      "attempt_packet_file_sha256": "17ac6e33d299262884f576e886b613f75f554f572f84d8db80724aaa92f0774b",
+      "run_result_sha256": "b3e06b326a2b9e7dcb45cd135c7a5404bcaaf01c11963bdc53624be5175c5b61",
+      "analysis_sha256": "6682475863adbcb6f90aa2071756eafa828e653a4ff3250ac56b464077ad1f02",
+      "capture_sha256": "f9bdfb76a5fc753926c0432f952873e4fafba203e3c364bd70cfeacfeb7a0616",
+      "metadata_sha256": "352a7cf680925f2a0b462d362eeecefc05ae9146f0db1d5f37ea807a3ec5b4ec",
+      "charged_rf_seconds": 45.000001
+    },
+    {
+      "sequence": 169,
+      "mode": "QRSS",
+      "submission_path": "controller_disconnect",
+      "status": "ACCEPTED",
+      "attempt_packet_file_sha256": "5df5c76ae642a2d1a5c9a28b5ae7376689042c51e328f90d7050fa266c4c1d4d",
+      "run_result_sha256": "1bf44fdcac18cd759da9e89469a18d0e539757fa39f96ac5f9c00d680ef2e30e",
+      "analysis_sha256": "cb7b9b03f0379ad3e7c79e7a16716242d281407589f02249e81c3a4580e29b5a",
+      "capture_sha256": "7a8474834169365d8e082b7cb5130a05d6d888103acdaf6048c0a56598cf8ee1",
+      "metadata_sha256": "91c70fa8ed8aac4d31f3e5831d14cc8df814a8361ae56a409f88b2fc8d5262de",
+      "charged_rf_seconds": 45.000001
+    },
+    {
+      "sequence": 170,
+      "mode": "FSKCW",
+      "submission_path": "production",
+      "status": "ACCEPTED",
+      "attempt_packet_file_sha256": "38d7b6f4340607faced8078827731cda871a84bf015726fd114af363a06c5f05",
+      "run_result_sha256": "5e3d454e95c77d0f01231a2a8f992290b6df827256851445be92dc0fdc649914",
+      "analysis_sha256": "3845a3fdaccaaebf58e55fb8d3195af99a6db9c6ee77cbf549d7fea5b0d4b852",
+      "capture_sha256": "367a25f84ff86aadc81ebaec8a7d9a6e4e387d74e1bed578e8da0dcb7cbdd3be",
+      "metadata_sha256": "38471921c93ac5e5961ddf327de6df1a8706cad6548c4f3204f4998962ffe2fb",
+      "observed_spacing_hz": 4.980255742,
+      "charged_rf_seconds": 45.000001
+    },
+    {
+      "sequence": 171,
+      "mode": "FSKCW",
+      "submission_path": "browser_compact",
+      "status": "FAILED_LOAD_NO_RF",
+      "attempt_packet_file_sha256": "362c1205daa9b6481bc793e4b06865e67ffad9acf0733157bfe20bf2834bf951",
+      "browser_result_sha256": "d54b717383ba3395d44fd0d16da10e6b7b3442b6cf47255c6d897b4c72415a38",
+      "execution_jsonl_sha256": "506eec468a7caf09daf7ae56e4309afcf2b460928a0e519eafc4d61061b0e18e",
+      "reconciliation_sha256": "d1fa6f88cef2e5bae17c913f826ce3b9ef695e4118247fd50ba3f5b4cbf350a6",
+      "cause": "compact six-event LOAD_MESSAGE rejected by fixed maximum event allocation admission",
+      "charged_rf_seconds": 0.0
+    },
+    {
+      "sequence": 172,
+      "mode": "FSKCW",
+      "submission_path": "controller_disconnect",
+      "status": "FAILED_PREFLIGHT_NO_RF",
+      "attempt_packet_file_sha256": "292570597e86d75f2293ffd8e75fb166bd074edf82311fbc8ffda47e887ed9da",
+      "cause": "operator capture-helper path typo",
+      "charged_rf_seconds": 0.0
+    },
+    {
+      "sequence": 173,
+      "mode": "DFCW",
+      "submission_path": "production",
+      "status": "ACCEPTED",
+      "attempt_packet_file_sha256": "287a278d057222abd2beb262ed90eb17e39143eb89ad3e064ff499004428885a",
+      "run_result_sha256": "0be09ea6ffc0e2a66cde471e3b711ba39fd173a6cfae1ec973bbeb3cb5dbb0e1",
+      "analysis_sha256": "f2ec7663ee8d9e8335619a76e94c7ad8ce82a25c287e742ef1091292a305e2d3",
+      "capture_sha256": "ed42f393f3076bb72e23375cb8c2f166b0d80ae80aeb0d6aec6525485279eccc",
+      "metadata_sha256": "fedd832106a234d9da76cb6b8f7357303e30fddf5d0c7ec42cfe29fa2b97a46f",
+      "charged_rf_seconds": 39.000001
+    },
+    {
+      "sequence": 174,
+      "mode": "DFCW",
+      "submission_path": "browser_compact",
+      "status": "ACCEPTED",
+      "attempt_packet_file_sha256": "cb34b652509b9e1ea9a5253183475d28b1e01701aa02c0292b190d04a8c2ad71",
+      "run_result_sha256": "3f00052b21cdebbf0c87c4d2d8d21e3a6f15b9b1b7d4b0e4cdb837a2f0903188",
+      "analysis_sha256": "9a03d3a6cd2735eec0f6fc8bfc5abcf2d33efe1522fef71ab55cd0eebf1abf67",
+      "capture_sha256": "0894a1aa57b31bec628e933b91f331fb1ddcf4731140771e1d91a1606b437d5b",
+      "metadata_sha256": "be57a5eed240a42dca4e18ef36755b885dd4eb1f44d0d12d52d2506140270e74",
+      "observed_spacing_hz": 4.980193179,
+      "charged_rf_seconds": 39.000001
+    },
+    {
+      "sequence": 175,
+      "mode": "DFCW",
+      "submission_path": "controller_disconnect",
+      "status": "FAILED_REQUIRED_BROWSER_OBSERVER",
+      "attempt_packet_file_sha256": "7799f879c36d92e4529d8fdd25c2e2ed79c64f4e33fb0168091c7eaf1b457963",
+      "runtime_job_id": "3e8efd0e2e6acb584061c07386cf3e43",
+      "browser_result_sha256": "487d7930e11d74ecbe5702829ef3f86d76c660828a00c9586f6fb5c2d5ce08f6",
+      "capture_sha256": "5336eab49a3065b0358cef0523285c9512fe65dce0b6e5a664c9b67459b0d92e",
+      "metadata_sha256": "df3d3b18b4aa10a8cf37b13f0710683c61e8a371dbec799566de109b39a75121",
+      "execution_jsonl_sha256": "4d7c3b90c8108c780bf95f80f0604d517424654413e44281b619bc70fba5af62",
+      "reconciliation_sha256": "a2f8e511981b9ab5501804ccda5fdcf4408b6ebec29df7563903cf90c40b3924",
+      "cause": "four consecutive status refreshes were refused by the generic HTTP memory gate while RF and TLS state were resident",
+      "charged_rf_seconds": 39.000001
+    }
+  ],
+  "checkpoint_accounting": {
+    "rf_jobs_charged": 8,
+    "rf_seconds_charged": 302.000007,
+    "automatic_retries": 0
+  },
+  "repair": {
+    "classification": "SOURCE_REPAIR_REQUIRES_REQUALIFICATION_AND_NEW_FIRMWARE",
+    "compact_load_admission": "measure the encoded event count, then allocate only the required event pages",
+    "status_admission": "use an 8192-byte scratch allowance for JSON status endpoints while preserving the 32768-byte RF reserve",
+    "unchanged": [
+      "WTP authority and job lifecycle",
+      "RF renderer and symbol timing",
+      "mode frequency mapping",
+      "DFCW dot-high/dash-low polarity",
+      "32768-byte RF reserve"
+    ],
+    "deployment_status": "NOT_FLASHED",
+    "required_before_retest": [
+      "build and bind a firmware image to the repaired source revision",
+      "obtain separate authorization for the concrete flash action",
+      "requalify compact FSKCW LOAD and browser status under the affected Phase 11.5 conditions",
+      "create fresh immutable packets for each justified campaign retest"
+    ]
+  },
+  "limitations": [
+    "This checkpoint does not accept the WSPR row.",
+    "Open submission paths remain failed until a repaired image is deployed, requalified, and retested with fresh packets.",
+    "Frequency is receiver-indicated and uncalibrated.",
+    "Spectrum claims are relative and in-band only; no harmonic, absolute-power, or regulatory claim is made.",
+    "Private raw captures, transcripts, and packets are identified by hashes but are not published."
+  ]
+}

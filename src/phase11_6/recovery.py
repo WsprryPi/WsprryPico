@@ -23,10 +23,13 @@ from phase11_6.live import (
     PEER_SHA256,
     RECEIVER_SERIAL,
     _tls_messages,
+    browser_watch_complete,
+    frame,
     save,
     sha256,
 )
-from phase11_6.plan import FIRMWARE_SOURCE, PICO_ACCEPTED_BOOT, digest
+from phase11_6.plan import (FIRMWARE_SOURCE, PICO_ACCEPTED_BOOT, PICO_DEVICE_ID,
+                            digest)
 
 
 def _configure_capture_validator(source: Path) -> dict:
@@ -86,9 +89,10 @@ def _usb_completion(status_states: set[str], event_states: set[str],
     terminals = [record for record in latest.get("terminal_records", [])
                  if record.get("job_id") == job_id]
     prior_status_jobs = status_jobs - {job_id}
+    settled_states = {"complete", "aborted", "missed", "failed"}
     prior_terminals = {record.get("job_id") for record in latest.get("terminal_records", [])
                        if record.get("job_id") in prior_status_jobs
-                       and record.get("state") == "complete"
+                       and record.get("state") in settled_states
                        and record.get("output_active") is False}
     require({"loaded", "armed", "running", "complete"}.issubset(
                 status_states | event_states)
@@ -108,7 +112,9 @@ def _usb_completion(status_states: set[str], event_states: set[str],
 
 def _capture(attempt_root: Path, job: dict, start: dict,
              helper: Path, qualification_source: Path,
-             capture_lead_and_tail_s: float = 40.0) -> tuple[dict, dict]:
+             capture_lead_and_tail_s: float = 40.0,
+             recorded_attempt_root: Path | None = None,
+             recorded_helper_path: Path | None = None) -> tuple[dict, dict]:
     validator = _configure_capture_validator(qualification_source)
     require(sha256(helper) == start["capture_helper_sha256"],
             "Capture helper identity")
@@ -137,6 +143,11 @@ def _capture(attempt_root: Path, job: dict, start: dict,
     }
     iq_hash = sha256(iq)
     argv = request.get("argv", [])
+    recorded_capture = ((recorded_attempt_root / "job/capture")
+                        if recorded_attempt_root is not None else capture)
+    recorded_helper = recorded_helper_path or helper
+    require(recorded_capture.is_absolute() and recorded_helper.is_absolute(),
+            "Absolute recorded capture/helper paths")
     require(
         metadata.get("evidence_type") == "capture_success"
         and metadata.get("primary_outcome") == "success"
@@ -153,9 +164,9 @@ def _capture(attempt_root: Path, job: dict, start: dict,
         and metadata.get("output", {}).get("complete") is True
         and metadata.get("output", {}).get("sha256") == iq_hash
         and metadata.get("cleanup", {}).get("outcome") == "verified"
-        and len(argv) >= 2 and Path(argv[0]).resolve() == helper.resolve()
-        and Path(argv[-3]).resolve() == iq.resolve()
-        and Path(argv[-2]).resolve() == metadata_path.resolve(),
+        and len(argv) >= 3 and Path(argv[0]) == recorded_helper
+        and Path(argv[-3]) == recorded_capture / "capture.cf32"
+        and Path(argv[-2]) == recorded_capture / "capture.json",
         "Retained receiver identity/settings/integrity",
     )
     value = {
@@ -214,6 +225,210 @@ def _browser(attempt_root: Path, job_id: str) -> dict:
         "refreshes": len(refreshes),
         "chrome": version,
         "journal_sha256": sha256(directory / "browser.jsonl"),
+        "screenshots": screenshots,
+    }
+
+
+def _request_wire(session_id: str, request_id: str,
+                  operation: str, body: dict) -> tuple[str, int]:
+    request = {
+        "type": "request", "protocol": "WTP/1",
+        "session_id": session_id, "request_id": request_id,
+        "op": operation, "body": body,
+    }
+    wire = frame(json.dumps(request, separators=(",", ":")).encode())
+    return hashlib.sha256(wire).hexdigest(), len(wire)
+
+
+def _controller_protocol(rows: list[dict], attempt: dict,
+                         job_id: str) -> dict:
+    """Reconstruct and verify every controller request from its retained wire hash."""
+    tx_rows = [row for row in rows if row.get("kind") == "wtp_tx"]
+    response_rows = [row for row in rows if row.get("kind") == "wtp_response"]
+    require(tx_rows and len(tx_rows) == len(response_rows),
+            "Complete controller request/response journal")
+    responses = {}
+    for row in response_rows:
+        value = row["value"]
+        key = (value.get("session_id"), value.get("request_id"))
+        require(key not in responses, "Unique controller response identity")
+        responses[key] = row
+
+    sessions = {row["value"].get("session_id") for row in tx_rows}
+    require(len(sessions) == 1, "One controller session across reconnect")
+    session_id = sessions.pop()
+    target_utc_ns = None
+    for row in response_rows:
+        value = row["value"]
+        if value.get("op") == "ARM":
+            require(target_utc_ns is None, "Exactly one ARM response")
+            target_utc_ns = int(value.get("body", {}).get("start_utc_ns", "0"))
+    require(target_utc_ns and target_utc_ns > 0, "Authoritative ARM target")
+
+    bodies = {
+        "HELLO": {
+            "versions": ["WTP/1"],
+            "client_name": "phase11-6-conducted-controller",
+            "client_version": "1",
+        },
+        "STATUS": {}, "GET_CLOCK": {}, "RELEASE": {},
+        "CLAIM": {"owner_id": session_id, "lease_ms": 60000},
+        "LOAD": attempt["effective_job"],
+        "ARM": {
+            "job_id": job_id,
+            "start_utc_ns": str(target_utc_ns),
+            "max_start_uncertainty_ns": "500000000",
+        },
+    }
+    operations = []
+    for index, row in enumerate(tx_rows, 1):
+        value = row["value"]
+        operation = value.get("operation")
+        request_id = value.get("request_id")
+        require(operation in bodies
+                and request_id == f"{index:032x}"
+                and value.get("session_id") == session_id,
+                "Controller request ordering/identity")
+        wire_sha, wire_bytes = _request_wire(
+            session_id, request_id, operation, bodies[operation]
+        )
+        require(value.get("wire_sha256") == wire_sha
+                and value.get("bytes") == wire_bytes,
+                "Controller request body/wire identity")
+        response_row = responses.get((session_id, request_id))
+        response = response_row.get("value") if response_row else {}
+        require(response.get("type") == "response"
+                and response.get("protocol") == "WTP/1"
+                and response.get("op") == operation
+                and response.get("ok") is True
+                and response_row["sequence"] > row["sequence"],
+                "Controller response correlation/disposition")
+        operations.append(operation)
+
+    mutations = [operation for operation in operations
+                 if operation in {"CLAIM", "LOAD", "ARM", "ABORT", "RELEASE"}]
+    require(mutations == ["CLAIM", "LOAD", "ARM", "RELEASE"]
+            and operations.count("HELLO") == 2,
+            "Controller mutation/reconnect order")
+    response_values = [row["value"] for row in response_rows]
+    hellos = [value["body"] for value in response_values if value["op"] == "HELLO"]
+    require(all(value.get("boot_id") == PICO_ACCEPTED_BOOT
+                and value.get("device_id") == PICO_DEVICE_ID for value in hellos),
+            "Controller HELLO identity")
+    clocks = [value["body"] for value in response_values
+              if value["op"] == "GET_CLOCK"]
+    require(len(clocks) == 2
+            and all(value.get("state") == "synchronized"
+                    and value.get("leap") == "normal"
+                    and int(value.get("uncertainty_ns", "999999999")) <= 500_000_000
+                    for value in clocks),
+            "Controller pre-ARM clock authority")
+    status_rows = [row for row in response_rows if row["value"]["op"] == "STATUS"]
+    pre_status = status_rows[0]["value"]["body"]
+    require(pre_status.get("boot_id") == PICO_ACCEPTED_BOOT
+            and pre_status.get("output_active") is False
+            and pre_status.get("owner_id") is None,
+            "Controller pre-ARM output authority")
+
+    load = next(value["body"] for value in response_values if value["op"] == "LOAD")
+    arm = next(value["body"] for value in response_values if value["op"] == "ARM")
+    require(load.get("job_id") == job_id and load.get("state") == "loaded"
+            and arm.get("job_id") == job_id and arm.get("state") == "armed"
+            and int(arm.get("start_utc_ns", "0")) == target_utc_ns,
+            "Controller LOAD/ARM acknowledgement")
+    disconnected = _one(rows, "controller_transport_disconnected")
+    arm_response_row = next(row for row in response_rows
+                            if row["value"]["op"] == "ARM")
+    hello_rows = [row for row in tx_rows if row["value"]["operation"] == "HELLO"]
+    require(disconnected["value"].get("job_id") == job_id
+            and arm_response_row["sequence"] < disconnected["sequence"]
+            < hello_rows[1]["sequence"],
+            "Controller disconnect occurred after ARM before reconnect")
+
+    terminal_status_rows = [row for row in status_rows
+                            if row["sequence"] > hello_rows[1]["sequence"]]
+    seen = []
+    terminal_status = None
+    for row in terminal_status_rows:
+        status = row["value"]["body"]
+        if status.get("job_id") == job_id:
+            seen.append(status.get("state"))
+        records = [record for record in status.get("terminal_records", [])
+                   if record.get("job_id") == job_id]
+        if ((status.get("job_id") == job_id
+             and status.get("state") in {"complete", "aborted", "missed", "failed"})
+                or records):
+            terminal_status = status
+            break
+    require(terminal_status is not None
+            and terminal_status.get("state") == "complete"
+            and terminal_status.get("output_active") is False,
+            "Controller authoritative complete terminal")
+    records = [record for record in terminal_status.get("terminal_records", [])
+               if record.get("job_id") == job_id]
+    require(len(records) == 1 and records[0].get("state") == "complete"
+            and records[0].get("output_active") is False,
+            "Controller terminal record")
+    released = status_rows[-1]["value"]["body"]
+    require(released.get("state") == "empty"
+            and released.get("job_id") is None
+            and released.get("owner_id") is None
+            and released.get("output_active") is False
+            and _terminal(released, job_id) == records[0],
+            "Controller release authority")
+    events = [row["value"] for row in rows if row.get("kind") == "wtp_event"
+              and row["sequence"] > hello_rows[1]["sequence"]]
+    return {
+        "target_utc_ns": target_utc_ns,
+        "loaded_adjustments": load.get("adjustments"),
+        "pre_status": pre_status,
+        "terminal": {"status": terminal_status,
+                     "seen_states": sorted(set(seen)), "records": records},
+        "released_status": released,
+        "network_events": events,
+        "session_id": session_id,
+        "operations": operations,
+    }
+
+
+def _controller_browser(attempt_root: Path, rows: list[dict], job_id: str) -> tuple[dict, dict]:
+    browser = _one(rows, "browser_complete")["value"]
+    directory = attempt_root / "job/browser"
+    result_path = directory / "browser-result.json"
+    require(browser == _json(result_path)
+            and browser_watch_complete(browser, job_id)
+            and browser.get("peer_sha256") == PEER_SHA256
+            and browser.get("expected_job_id") == job_id
+            and browser.get("observed_job_id") == job_id
+            and {"armed", "running", "complete"}.issubset(
+                set(browser.get("states", []))),
+            "Controller browser overlap/result identity")
+    browser_rows = _jsonl(directory / "browser.jsonl")
+    require(_one(browser_rows, "start")["value"].get("job_id") == job_id
+            and str(_one(browser_rows, "version")["value"].get("product", ""))
+                .startswith("Chrome/"),
+            "Controller browser page identity")
+    refreshes = [row["value"]["state"] for row in browser_rows
+                 if row.get("kind") == "manual_refresh"]
+    require(any(value.get("job_id") == job_id
+                and value.get("state") == "armed"
+                and value.get("output_active") is False for value in refreshes)
+            and any(value.get("job_id") == job_id
+                    and value.get("state") == "running"
+                    and value.get("output_active") is True for value in refreshes)
+            and any(value.get("job_id") == job_id
+                    and value.get("state") == "complete"
+                    and value.get("output_active") is False for value in refreshes),
+            "Controller browser manual-refresh overlap")
+    screenshots = {}
+    for name in ("initial.png", "overlap-armed.png", "overlap-running.png", "final.png"):
+        path = directory / name
+        require(path.is_file() and not path.is_symlink() and path.stat().st_size > 0,
+                f"Controller browser screenshot: {name}")
+        screenshots[name] = sha256(path)
+    return browser, {
+        "result": sha256(result_path),
+        "journal": sha256(directory / "browser.jsonl"),
         "screenshots": screenshots,
     }
 
@@ -564,6 +779,150 @@ def recover_browser(root: Path, plan: dict, job: dict, attempt: dict,
                 "browser_journal": sha256(attempt_root / "job/browser/browser.jsonl"),
                 "capture_metadata": capture["metadata_sha256"],
                 "capture_iq": capture["capture_sha256"],
+            },
+        },
+        "disposition": "CAPTURED_REQUIRES_ANALYSIS",
+    }
+    output.mkdir(mode=0o700)
+    require(not output.is_symlink() and not any(output.iterdir()),
+            "Fresh private recovery output")
+    save(output / "recovered-result.json", result)
+    return result
+
+
+def recover_controller(root: Path, plan: dict, job: dict, attempt: dict,
+                       attempt_packet_path: Path, attempt_root: Path,
+                       reconciliation_path: Path, helper: Path,
+                       qualification_source: Path, output: Path,
+                       *, recorded_attempt_root: Path | None = None,
+                       recorded_helper_path: Path | None = None) -> dict:
+    """Recover the known post-capture controller USB-reducer failure offline."""
+    attempt_root = attempt_root.resolve(strict=True)
+    require(not attempt_root.is_symlink(), "Attempt root containment")
+    require(not (attempt_root / "run-result.json").exists()
+            and not (attempt_root / "job/result.json").exists(),
+            "Recovery is only for an incomplete host result")
+    rows = _jsonl(attempt_root / "execution.jsonl")
+    failure = _one(rows, "failure")
+    require(failure["value"] == {
+        "type": "ValueError",
+        "message": "Independent USB lifecycle/terminal authority",
+    } and rows[-2] is failure and rows[-1].get("kind") == "reservation_left_held",
+            "Exact recoverable controller USB reducer failure")
+    require(not any(row.get("kind") == "finish" for row in rows),
+            "No partially accepted controller result marker")
+
+    start = _one(rows, "start")["value"]
+    attempt_file_hash = sha256(attempt_packet_path)
+    attempt_hash = hashlib.sha256(
+        json.dumps(attempt, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    job_id = attempt["effective_job"]["job_id"]
+    require(start.get("plan_sha256") == digest(plan)
+            and start.get("job_id") == job["id"]
+            and start.get("wtp_job_id") == job_id
+            and start.get("attempt_packet_sha256") == attempt_hash
+            and start.get("attempt_packet_file_sha256") == attempt_file_hash,
+            "Execution journal plan/attempt binding")
+    acquired = _one(rows, "reservation_acquired")["value"]
+    require(acquired.get("state") == "HELD"
+            and acquired.get("packet_sha256") == attempt_hash
+            and acquired.get("boards", {}).get("a", {}).get("state")
+                in {"empty", "complete", "aborted", "missed", "failed"}
+            and acquired.get("boards", {}).get("b", {}).get("state") == "empty",
+            "Dual-device reservation acquisition")
+
+    capture, validator = _capture(
+        attempt_root, job, start, helper, qualification_source, 18.0,
+        recorded_attempt_root, recorded_helper_path,
+    )
+    require(start.get("capture_validator_sha256") == validator
+            and _one(rows, "capture_complete")["value"] == capture,
+            "Controller completed capture identity")
+    protocol = _controller_protocol(rows, attempt, job_id)
+    browser, browser_hashes = _controller_browser(attempt_root, rows, job_id)
+
+    console = [row["value"]["value"] for row in rows
+               if row.get("kind") == "console_info"]
+    require(console, "Independent console observations")
+    for value in console:
+        resource_gate(value, PICO_ACCEPTED_BOOT, FIRMWARE_SOURCE)
+    usb_status = [row["value"]["value"] for row in rows
+                  if row.get("kind") == "usb_status"]
+    usb_events = [row["value"]["value"] for row in rows
+                  if row.get("kind") == "usb_event"]
+    require(usb_status
+            and all(value.get("boot_id") == PICO_ACCEPTED_BOOT for value in usb_status)
+            and all(value.get("boot_id") == PICO_ACCEPTED_BOOT for value in usb_events),
+            "Independent USB observation identity")
+    status_states = {value.get("state") for value in usb_status
+                     if value.get("job_id") == job_id}
+    event_states = {value.get("body", {}).get("state") for value in usb_events
+                    if value.get("event") == "JOB_STATE"
+                    and value.get("body", {}).get("job_id") == job_id}
+    status_jobs = {value.get("job_id") for value in usb_status if value.get("job_id")}
+    event_jobs = {value.get("body", {}).get("job_id") for value in usb_events
+                  if value.get("event") == "JOB_STATE"
+                  and value.get("body", {}).get("job_id")}
+    usb = _usb_completion(status_states, event_states, status_jobs, event_jobs,
+                          usb_status[-1], job_id)
+    require(protocol["terminal"]["records"] == [usb["terminal"]]
+            and protocol["released_status"] == usb["final"],
+            "Controller network/USB terminal agreement")
+
+    reconciliation = _json(reconciliation_path)
+    before = reconciliation.get("before", {})
+    after = reconciliation.get("after", {})
+    reservation = reconciliation.get("reservation", {})
+    require(reconciliation.get("status") == "RECONCILED"
+            and before == after == usb["final"]
+            and after.get("state") == "empty"
+            and after.get("output_active") is False
+            and after.get("owner_id") is None
+            and _terminal(after, job_id) == usb["terminal"]
+            and reservation.get("state") == "RELEASED"
+            and reservation.get("packet_sha256") == attempt_hash
+            and reservation.get("boards", {}).get("a", {}).get("state") == "empty"
+            and reservation.get("boards", {}).get("b", {}).get("state") == "empty",
+            "Authoritative reconciliation and reservation release")
+
+    result = {
+        "schema": "phase11.6-job-result-v1",
+        "plan_sha256": digest(plan), "job_id": job["id"], "wtp_job_id": job_id,
+        "band": job["band"], "mode": job["mode"],
+        "submission_path": job["submission_path"],
+        "planned_duration_ns": job["planned_duration_ns"],
+        "target_utc_ns": protocol["target_utc_ns"],
+        "loaded_adjustments": protocol["loaded_adjustments"],
+        "pre_status": protocol["pre_status"],
+        "terminal": protocol["terminal"],
+        "released_status": protocol["released_status"],
+        "controller_disconnect_after_arm": True,
+        "observer": {
+            "console_samples": len(console), "usb_status_samples": len(usb_status),
+            "usb_states": usb["status_states"],
+            "usb_event_states": usb["event_states"],
+            "console_final": console[-1], "usb_final": usb["final"],
+        },
+        "capture": capture, "browser": browser,
+        "network_events": protocol["network_events"],
+        "recovery": {
+            "kind": "offline-auditor-only-controller-usb-reducer",
+            "original_failure": failure["value"],
+            "no_network_usb_sdr_or_rf_access": True,
+            "capture_validator_sha256": validator,
+            "controller_session_id": protocol["session_id"],
+            "controller_operations": protocol["operations"],
+            "source_sha256": {
+                "attempt_packet": attempt_file_hash,
+                "execution_journal": sha256(attempt_root / "execution.jsonl"),
+                "reconciliation": sha256(reconciliation_path),
+                "browser_result": browser_hashes["result"],
+                "browser_journal": browser_hashes["journal"],
+                "capture_metadata": capture["metadata_sha256"],
+                "capture_iq": capture["capture_sha256"],
+                **{f"browser_{name}": value
+                   for name, value in browser_hashes["screenshots"].items()},
             },
         },
         "disposition": "CAPTURED_REQUIRES_ANALYSIS",

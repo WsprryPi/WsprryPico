@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(1, str(ROOT / "scripts"))
 
-from phase11_6.plan import compose  # noqa: E402
+from phase11_6.plan import PICO_ACCEPTED_BOOT, compose  # noqa: E402
 from phase11_6.live import BrowserSubmit, BrowserWatch  # noqa: E402
 from run_phase11_6_wspr_batch import (  # noqa: E402
     prepare_attempts_root,
@@ -29,6 +29,7 @@ from phase11_6.wspr_group import (  # noqa: E402
     UsbWsprCoordinator,
     WSPR_SLOT_PHASE_NS,
     _completed_predecessor,
+    _terminal_poll_delay_s,
     _terminal_predecessor,
     _next_slot,
     _prepare_production_directory,
@@ -42,6 +43,21 @@ from phase11_6.wspr_group import (  # noqa: E402
 
 
 class Phase116WsprGroupTests(unittest.TestCase):
+    def test_terminal_poll_enters_quiet_window_without_oversleep(self):
+        deadline = 20_000_000_000
+        self.assertEqual(
+            _terminal_poll_delay_s([deadline], deadline - 2_496_000_000),
+            0.496,
+        )
+        self.assertEqual(
+            _terminal_poll_delay_s([deadline], deadline - 10_000_000_000),
+            5.0,
+        )
+        self.assertEqual(
+            _terminal_poll_delay_s([deadline], deadline - 1_500_000_000),
+            0.025,
+        )
+
     def test_fresh_batch_creates_private_attempt_directory(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -211,7 +227,7 @@ class Phase116WsprGroupTests(unittest.TestCase):
             events.append({
                 "type": "event", "protocol": "WTP/1",
                 "session_id": binding["session_id"],
-                "boot_id": "e363bf9ae4528258563557b7d306efcd",
+                "boot_id": PICO_ACCEPTED_BOOT,
                 "event_id": str(index), "event": "JOB_STATE",
                 "body": {"job_id": binding["job_id"], "state": state,
                          "output_active": output},
@@ -223,7 +239,7 @@ class Phase116WsprGroupTests(unittest.TestCase):
         terminal = _production_wtp_terminal(events, binding)
         self.assertEqual(terminal, {
             "job_id": binding["job_id"],
-            "boot_id": "e363bf9ae4528258563557b7d306efcd",
+            "boot_id": PICO_ACCEPTED_BOOT,
             "state": "complete", "output_active": False,
             "event_id": "3", "authoritative": True,
             "source": "authenticated-wtp-job-state-event",
@@ -278,7 +294,7 @@ class Phase116WsprGroupTests(unittest.TestCase):
             return {
                 "type": "event", "protocol": "WTP/1",
                 "session_id": session,
-                "boot_id": "e363bf9ae4528258563557b7d306efcd",
+                "boot_id": PICO_ACCEPTED_BOOT,
                 "event_id": str(event_id), "event": "JOB_STATE",
                 "body": {"job_id": "4" * 32, "state": "complete",
                          "output_active": False},
@@ -513,7 +529,7 @@ class Phase116WsprGroupTests(unittest.TestCase):
         peer = mock.Mock(session="5" * 32, sequence=0, pending=[])
         statuses = [
             {
-                "boot_id": "e363bf9ae4528258563557b7d306efcd",
+                "boot_id": PICO_ACCEPTED_BOOT,
                 "state": "complete", "job_id": job_id, "owner_id": None,
                 "output_active": False, "terminal_records": [{
                     "job_id": job_id, "state": "complete",
@@ -521,7 +537,7 @@ class Phase116WsprGroupTests(unittest.TestCase):
                 }],
             },
             {
-                "boot_id": "e363bf9ae4528258563557b7d306efcd",
+                "boot_id": PICO_ACCEPTED_BOOT,
                 "state": "empty", "job_id": None, "owner_id": None,
                 "output_active": False, "terminal_records": [{
                     "job_id": job_id, "state": "complete",

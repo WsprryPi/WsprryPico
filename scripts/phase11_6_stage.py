@@ -17,7 +17,7 @@ from phase11_6.plan import digest, validate
 
 SCHEMA = "phase11.6-fixture-v1"
 AUTHORIZATION = "PHASE11.6-CONDUCTED-RF-20260918"
-PLAN_SHA256 = "a03a6b62eebe75202062c447b95498c3300b9e425796df96989fbe498796986a"
+PLAN_SHA256 = "2f4d0608afdcb6a494c84ebbd8c55c665ca87e9bc0cea9de692d7e6c792b0123"
 CREDENTIALS = {
     "controller": {"ca": "credentials/controller/client-ca.crt",
                    "cert": "credentials/controller/client.crt",
@@ -106,6 +106,9 @@ def local_packet(args):
             and remote_ready.get("wifi_sha256")
             == hashlib.sha256(canonical_wifi(wifi)).hexdigest(),
             "accepted remote AP attestation")
+    attempts = root / "attempts"
+    require(not attempts.exists(), "fresh attempts directory required")
+    attempts.mkdir(mode=0o700)
     shutil.copy2(retained / "retained-wifi.json", root / "retained-wifi.json")
     shutil.copy2(remote_ready_path, root / "remote-ready.json")
     shutil.copytree(retained / "credentials", root / "credentials", symlinks=False)
@@ -114,7 +117,8 @@ def local_packet(args):
         require(source.is_dir() and not source.is_symlink(),
                 "retained browser trust/profile directory")
         shutil.copytree(source, root / name, symlinks=False)
-    for name in ("production-base.ini", "production-openssl.cnf", "observer.so"):
+    for name in ("production-base.ini", "production-openssl.cnf", "observer.so",
+                 "installed-paused.txt"):
         source = retained / name
         if source.is_file() and not source.is_symlink():
             shutil.copy2(source, root / name)

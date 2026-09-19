@@ -53,26 +53,28 @@ class Phase116PlanTests(unittest.TestCase):
             plan["accepted_configuration"]["boot_transition"]["from_boot_id"],
             PICO_PREDECESSOR_BOOT,
         )
-        self.assertTrue(
+        self.assertFalse(
             plan["accepted_configuration"]["boot_transition"][
                 "source_revision_unchanged"
             ]
         )
-        self.assertTrue(
+        self.assertFalse(
             plan["accepted_configuration"]["boot_transition"][
                 "uf2_sha256_unchanged"
             ]
         )
+        self.assertEqual(plan["amendment"]["firmware_flashes"], 1)
+        self.assertEqual(plan["amendment"]["bootsel_transitions"], 1)
         self.assertEqual(plan["amendment"]["controlled_reboots"], 1)
         self.assertFalse(plan["amendment"]["failed_sequence_retried"])
         self.assertEqual(
             plan["amendment"]["failed_sequences"],
             [67, 88, 94, 97, 100, 102, 106, 109, 113, 116, 119, 125, 128,
-             131, 134, 137, 143, 144, 146, 149, 152],
+             131, 134, 137, 143, 144, 146, 149, 152, 157, 159, 162, 164],
         )
         self.assertEqual(
             plan["amendment"]["zero_rf_preflight_failures"],
-            [91, 103, 104, 105, 122, 135, 140, 146],
+            [91, 103, 104, 105, 122, 135, 140, 146, 159],
         )
         self.assertEqual(
             plan["amendment"]["zero_rf_aborted_submissions"],
@@ -80,7 +82,7 @@ class Phase116PlanTests(unittest.TestCase):
         )
         self.assertEqual(
             plan["amendment"]["aborted_rf_sequences"],
-            [114, 120, 129, 138],
+            [114, 120, 129, 138, 162],
         )
         self.assertEqual(
             plan["amendment"]["abandoned_unsubmitted_sequences"],
@@ -88,7 +90,78 @@ class Phase116PlanTests(unittest.TestCase):
              118, 121, 123, 124, 127, 130, 133, 136, 139, 141, 142, 145,
              147, 148, 150, 151, 153, 154],
         )
-        self.assertEqual(plan["amendment"]["next_sequence"], 155)
+        self.assertEqual(plan["amendment"]["completed_noncredit_sequences"],
+                         [155, 156, 158, 160, 161, 163])
+        self.assertEqual(plan["amendment"]["host_recovered_sequences"], [164])
+        self.assertEqual(plan["amendment"]["accepted_sequences"], [164])
+        self.assertEqual(plan["amendment"]["next_sequence"], 165)
+        self.assertEqual(
+            plan["amendment"]["usb_terminal_reducer_repair"],
+            {
+                "sequence": 164,
+                "failure": "Independent USB lifecycle/terminal authority",
+                "cause": (
+                    "the reducer required every retained predecessor terminal to be "
+                    "complete even when an authoritative aborted, missed or failed "
+                    "terminal was inactive and safely settled"
+                ),
+                "repair": (
+                    "accept complete, aborted, missed or failed only for prior retained "
+                    "jobs when output_active is false; retain exact complete and inactive "
+                    "requirements for the current job"
+                ),
+                "retransmission": False,
+                "rf_jobs_charged": 1,
+                "rf_seconds_charged": 5.0,
+                "runtime_job_id": "75ff8cebd469df39418a4ad42624eeeb",
+                "capture_sha256": (
+                    "f6519744e998cbb2404f75ae594a9325ffb426b6ae69d3a22f46537344296d7b"
+                ),
+                "analysis_sha256": (
+                    "5d2f92b9b53a5b5e408849fa95b23ac1b8e6a2e9f97e6e8c6c9041851437bf91"
+                ),
+                "analysis_passed": True,
+                "reservation_released": True,
+            },
+        )
+        self.assertEqual(
+            plan["amendment"]["wspr_transition_repair"]["retained_timing_gate"],
+            {
+                "repeat_group_sequences": [161, 162, 163],
+                "predecessor_authority_lead_ns": "9236268079",
+                "browser_mutation_to_arm_ns": "6797680079",
+                "accepted_arm_lead_ns": "2438588000",
+                "required_arm_lead_ns": "8000000000",
+                "consecutive_slot_gap_ns": "9408000108",
+                "production_preparation_lead_ns": "13100000000",
+                "browser_runtime_job_id": "a4c3cae0c122fc55152f3a8d14c7d265",
+                "browser_terminal_state": "aborted",
+                "threshold_changed": False,
+                "disposition": (
+                    "retain 2200m WSPR failed without another retry; the same "
+                    "duration and control-path constraints block the remaining "
+                    "WSPR primary rows on this exact configuration"
+                ),
+            },
+        )
+        self.assertEqual(
+            plan["amendment"]["browser_allocation_repair"]["requalification"],
+            {
+                "rf_jobs": 0,
+                "arms": 1,
+                "aborts": 1,
+                "allocator_largest_successful_request_bytes": 16718,
+                "allocator_failures": 0,
+                "tls_allocation_failures": 0,
+                "heap_reserve_bytes": 116312,
+                "console_samples": 41,
+                "usb_samples": 9,
+                "accepted_arm_lead_ns": 113986909000,
+                "terminal_state": "aborted",
+                "final_state": "empty",
+                "reservation_released": True,
+            },
+        )
         self.assertEqual(
             plan["amendment"]["fixture_namespace_repair"],
             {
@@ -200,6 +273,31 @@ class Phase116PlanTests(unittest.TestCase):
                     "standby refreshes because active RF pauses new network admission; "
                     "fail before RF if either browser exits"
                 ),
+                "terminal_poll_schedule": (
+                    "cap each long observer wait at the entrance to the two-second "
+                    "terminal polling window; the sequence-159 failure slept five "
+                    "seconds from 2.496 seconds before completion and crossed the "
+                    "frozen eight-second browser ARM-lead gate, while the repaired "
+                    "calculation waits 0.496 seconds for that same observation"
+                ),
+                "retained_timing_gate": {
+                    "repeat_group_sequences": [161, 162, 163],
+                    "predecessor_authority_lead_ns": "9236268079",
+                    "browser_mutation_to_arm_ns": "6797680079",
+                    "accepted_arm_lead_ns": "2438588000",
+                    "required_arm_lead_ns": "8000000000",
+                    "consecutive_slot_gap_ns": "9408000108",
+                    "production_preparation_lead_ns": "13100000000",
+                    "browser_runtime_job_id":
+                        "a4c3cae0c122fc55152f3a8d14c7d265",
+                    "browser_terminal_state": "aborted",
+                    "threshold_changed": False,
+                    "disposition": (
+                        "retain 2200m WSPR failed without another retry; the same "
+                        "duration and control-path constraints block the remaining "
+                        "WSPR primary rows on this exact configuration"
+                    ),
+                },
             },
         )
         self.assertEqual(

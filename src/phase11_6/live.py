@@ -199,9 +199,10 @@ def usb_completion(status_states: set[str], event_states: set[str],
     terminals = [record for record in latest.get("terminal_records", [])
                  if record.get("job_id") == job_id]
     prior_status_jobs = status_jobs - {job_id}
+    settled_states = {"complete", "aborted", "missed", "failed"}
     prior_terminals = {record.get("job_id") for record in latest.get("terminal_records", [])
                        if record.get("job_id") in prior_status_jobs
-                       and record.get("state") == "complete"
+                       and record.get("state") in settled_states
                        and record.get("output_active") is False}
     require({"loaded", "armed", "running", "complete"}.issubset(
                 status_states | event_states | mutation_states)

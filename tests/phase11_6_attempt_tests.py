@@ -249,11 +249,14 @@ class Phase116AttemptTests(unittest.TestCase):
         self.assertIn('(\"browser-home\", \"chromium-etc\")', source)
         self.assertIn('"retained browser trust/profile directory"', source)
         self.assertIn("shutil.copytree(source, root / name, symlinks=False)", source)
+        self.assertIn('attempts = root / "attempts"', source)
+        self.assertIn('attempts.mkdir(mode=0o700)', source)
 
     def test_fixture_preserves_an_already_paused_installed_transmitter(self):
         stage = (ROOT / "scripts/phase11_6_stage.py").read_text()
         fixture = (ROOT / "scripts/phase11_6_fixture.py").read_text()
         self.assertIn('"installed_service_prepaused": True', stage)
+        self.assertIn('"installed-paused.txt")', stage)
         self.assertIn('installed_state == "inactive"', fixture)
         self.assertIn('installed_pid == "0"', fixture)
         self.assertNotIn(
@@ -410,6 +413,34 @@ class Phase116AttemptTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             usb_completion({"running", "complete"}, {"loaded", "running", "complete"},
                            {job}, {job}, final, job)
+
+    def test_usb_reducer_accepts_only_safe_prior_terminal_outcomes(self):
+        job = "a" * 32
+        prior = "b" * 32
+        lifecycle = {"loaded", "armed", "running", "complete"}
+        for state in ("complete", "aborted", "missed", "failed"):
+            final = {
+                "boot_id": PICO_ACCEPTED_BOOT,
+                "state": "empty", "output_active": False, "owner_id": None,
+                "terminal_records": [
+                    {"job_id": job, "state": "complete", "output_active": False},
+                    {"job_id": prior, "state": state, "output_active": False},
+                ],
+            }
+            value = usb_completion(
+                {"running", "complete"}, lifecycle, {job, prior}, {job}, final, job,
+            )
+            self.assertEqual(value["terminal"]["job_id"], job)
+
+        for state, output_active in (("loaded", False), ("aborted", True)):
+            final["terminal_records"][1].update(
+                {"state": state, "output_active": output_active}
+            )
+            with self.assertRaises(ValueError):
+                usb_completion(
+                    {"running", "complete"}, lifecycle,
+                    {job, prior}, {job}, final, job,
+                )
 
     def test_each_attempt_has_fresh_identity_and_identical_rf_content(self):
         plan = compose()

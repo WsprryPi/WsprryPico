@@ -1,0 +1,102 @@
+{
+  "schema": "phase11.6-wspr-group-failure-v1",
+  "status": "FAILED_FROZEN_TIMING_GATE",
+  "date": "2026-09-19",
+  "band": "2200m",
+  "plan_sha256": "6f233e933b5d7bd5ceaa557e7353cfc3076c387b16065a728c9d35d143ef1f52",
+  "group_packet_sha256": "7c40610664724c24128893d71f9772ace2e4de3d84f5485267daf0b467e7d5ce",
+  "group_packet_file_sha256": "2c8e345427d3f1b42665bf8d4d0c7120fa05dab143a6a4dbd95d6d7af8993dae",
+  "private_evidence_root": "phase11-6-conducted-v32-20260919",
+  "automatic_retries": 0,
+  "attempts": [
+    {
+      "sequence": 161,
+      "submission_path": "production",
+      "job_id": "2200m:WSPR:0:production:nominal",
+      "runtime_job_id": "ea663c44d83e9e3e0000000000000001",
+      "disposition": "COMPLETED_NONCREDIT",
+      "rf_jobs_charged": 1,
+      "rf_seconds_charged": 110.591999892
+    },
+    {
+      "sequence": 163,
+      "submission_path": "controller_disconnect",
+      "job_id": "2200m:WSPR:2:controller_disconnect:nominal",
+      "runtime_job_id": "b655bea790506102aeefd52152c05423",
+      "disposition": "COMPLETED_NONCREDIT",
+      "rf_jobs_charged": 1,
+      "rf_seconds_charged": 110.591999892
+    },
+    {
+      "sequence": 162,
+      "submission_path": "browser_raw",
+      "job_id": "2200m:WSPR:1:browser_raw:nominal",
+      "runtime_job_id": "a4c3cae0c122fc55152f3a8d14c7d265",
+      "disposition": "ABORTED_AFTER_RF_START",
+      "rf_jobs_charged": 1,
+      "rf_seconds_charged": 110.591999892,
+      "observed_output_active_ns": 8991504000,
+      "browser_requests": 4,
+      "browser_responses": 4,
+      "browser_operations": ["HELLO", "CLAIM", "LOAD", "ARM"]
+    }
+  ],
+  "charged_totals": {
+    "rf_jobs": 3,
+    "rf_seconds": 331.775999676
+  },
+  "failure": {
+    "classification": "FROZEN_WSPR_CONTROL_PATH_TIMING_CONTRADICTION",
+    "message": "browser WSPR accepted ARM lead",
+    "browser_target_utc_ns": "1789815481000000000",
+    "controller_expected_complete_utc_ns": "1789815471591999892",
+    "predecessor_authority_utc_ns": "1789815471763731921",
+    "predecessor_authority_lead_ns": "9236268079",
+    "accepted_arm_utc_ns": "1789815478561412000",
+    "accepted_arm_lead_ns": "2438588000",
+    "browser_mutation_to_arm_ns": "6797680079",
+    "frozen_minimum_arm_lead_ns": "8000000000",
+    "consecutive_slot_gap_ns": "9408000108",
+    "maximum_mutation_budget_at_exact_predecessor_end_ns": "1408000108",
+    "production_preparation_lead_ns": "13100000000",
+    "threshold_changed": false,
+    "rf_payload_changed": false,
+    "firmware_changed": false,
+    "further_wspr_retry_justified": false
+  },
+  "identity": {
+    "pico_serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "boot_id": "a12f61f7cd59557c1b5628b2568a52d5",
+    "firmware_source": "7068b937240a7cbdfd0f0edbd7d347057604c0f0",
+    "peer_serial": "CDDBF8767C506C07",
+    "peer_device_id": "29f20b7342051ef947aa56cb9d4fab42",
+    "peer_boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0"
+  },
+  "cleanup": {
+    "board_a_state": "aborted",
+    "board_a_output_active": false,
+    "board_b_state": "empty",
+    "reservation_state": "RELEASED",
+    "reconciliation_returncode": 0
+  },
+  "evidence_sha256": {
+    "execution_jsonl": "71e567d5922c2df7e8cc1337860a1df91d0b4aaad7c919bb22223fdf20f65867",
+    "browser_result_json": "22a9c3ea6c817e5ceb70eb0e7c8ce6242a3f5eda63e92cdd5f965e50c6f93e8c",
+    "browser_jsonl": "b77b89bbed7fd4bc0a6862407b7c672eb67c8c97efd0ac42a611b87a7aec3f48",
+    "predecessor_authority_json": "182d42b9136aad346b4a30efc7cd025ec2dfb1dc5662c5479ebd749ddc476e91",
+    "reconciliation_result_json": "0e7f4454402f15389b6c4755959b26fd3182611a3fe050a277e833ee6ddd425c",
+    "incomplete_parent_capture_cf32": "8d5167f12039599b0b8e53e96684bb9127a9b0562be14debb65dd4ee8c9d4475"
+  },
+  "capture": {
+    "receiver_driver": "sdrplay",
+    "receiver_serial": "2404058C60",
+    "format": "CF32",
+    "sample_rate_hz": 250000,
+    "bandwidth_hz": 200000,
+    "gain_db": 20,
+    "bytes": 637959168,
+    "complete": false,
+    "credit_allowed": false
+  }
+}

@@ -53,7 +53,7 @@ struct MorseResult {
     std::size_t calculated_events = 0;
 };
 
-inline MorseResult compile_message(const MorseMessage& input, std::size_t event_limit = 512,
+inline MorseResult measure_message(const MorseMessage& input, std::size_t event_limit = 512,
                                    std::uint64_t duration_limit = max_message_duration_ns) {
     MorseResult result;
     auto fail = [&](std::string_view reason) {
@@ -122,6 +122,19 @@ inline MorseResult compile_message(const MorseMessage& input, std::size_t event_
         return fail("message_duration_limit_exceeded");
     if (result.calculated_events > std::min<std::size_t>(event_limit, 512))
         return fail("message_event_limit_exceeded");
+    return result;
+}
+
+inline MorseResult compile_message(const MorseMessage& input, std::size_t event_limit = 512,
+                                   std::uint64_t duration_limit = max_message_duration_ns) {
+    auto result = measure_message(input, event_limit, duration_limit);
+    if (!result.error.empty())
+        return result;
+    auto fail = [&](std::string_view reason) {
+        result.job.reset();
+        result.error = reason;
+        return result;
+    };
     wtp::Job job;
     job.job_id = input.job_id;
     job.mode = input.mode;
@@ -135,6 +148,28 @@ inline MorseResult compile_message(const MorseMessage& input, std::size_t event_
         stored = stored && job.events.push_back({offset, duration, on,
                                                  on ? std::optional(frequency) : std::nullopt});
         offset += duration;
+    };
+    auto visit = [&](auto emit_event) {
+        for (std::size_t i = 0; i < input.text.size(); ++i) {
+            if (message_space(input.text[i]))
+                continue;
+            const auto code = morse_code(input.text[i]);
+            for (std::size_t n = 0; n < code.size(); ++n) {
+                emit_event(input.mode == "dfcw" || code[n] == '.' ? input.dot_ns : input.dash_ns,
+                           true,
+                           input.mode == "dfcw" && code[n] == '-' ? input.space_frequency_nhz
+                                                                  : input.mark_frequency_nhz);
+                if (n + 1 < code.size())
+                    emit_event(input.intra_gap_ns, input.mode == "fskcw",
+                               input.space_frequency_nhz);
+            }
+            auto next = i + 1;
+            while (next < input.text.size() && message_space(input.text[next]))
+                ++next;
+            if (next < input.text.size())
+                emit_event(next == i + 1 ? input.character_gap_ns : input.word_gap_ns,
+                           input.mode == "fskcw", input.space_frequency_nhz);
+        }
     };
     for (std::uint32_t repeat = 0; repeat < input.repeat_count; ++repeat) {
         visit(emit);

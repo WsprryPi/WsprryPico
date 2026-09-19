@@ -1,0 +1,118 @@
+{
+  "schema": "phase11.6-offline-recovery-v1",
+  "status": "ACCEPTED",
+  "date": "2026-09-19",
+  "sequence": 164,
+  "job_id": "2200m:TONE:0:controller_disconnect:nominal",
+  "runtime_job_id": "75ff8cebd469df39418a4ad42624eeeb",
+  "band": "2200m",
+  "mode": "TONE",
+  "submission_path": "controller_disconnect",
+  "plan_sha256": "c3392251cac3f718655a8ae641ac164d185ce0d51dc3db7e86b4dea6e66bf601",
+  "attempt_packet_sha256": "e1ef87c57fe09bc81710e15c18619f97db6033384b42b07feb1f5c437ee4de2d",
+  "attempt_packet_file_sha256": "de42c9b216cccc72d8dcb3bc4dedd3adbd17137e27fd8b584474671bb1c509d0",
+  "private_evidence_root": "phase11-6-conducted-v33-20260919",
+  "original_host_failure": {
+    "type": "ValueError",
+    "message": "Independent USB lifecycle/terminal authority",
+    "stage": "post-capture evidence reduction",
+    "rf_completed": true,
+    "capture_completed": true,
+    "browser_overlap_completed": true
+  },
+  "cause": {
+    "classification": "HOST_ONLY_PRIOR_TERMINAL_REDUCER_DEFECT",
+    "detail": "The reducer accepted only complete prior terminal records. The retained predecessor was authoritatively aborted with output inactive, so a safe settled predecessor falsely invalidated the new job's otherwise complete lifecycle.",
+    "firmware_changed": false,
+    "rf_payload_changed": false,
+    "waveform_changed": false,
+    "threshold_changed": false
+  },
+  "repair": {
+    "prior_terminal_states": ["complete", "aborted", "missed", "failed"],
+    "prior_output_active_required": false,
+    "current_terminal_state_required": "complete",
+    "current_output_active_required": false,
+    "offline_only": true,
+    "retransmission": false
+  },
+  "controller": {
+    "session_id": "f9177f517cdc41c3a2e49096f6a8fc5e",
+    "target_utc_ns": "1789816235000000000",
+    "operations": [
+      "HELLO", "STATUS", "GET_CLOCK", "GET_CLOCK", "CLAIM", "LOAD", "ARM",
+      "HELLO", "STATUS", "STATUS", "STATUS", "STATUS", "STATUS", "STATUS",
+      "STATUS", "STATUS", "STATUS", "STATUS", "STATUS", "STATUS", "STATUS",
+      "RELEASE", "STATUS"
+    ],
+    "disconnect_after_arm": true,
+    "terminal_states_seen": ["armed", "complete", "running"],
+    "terminal_state": "complete",
+    "released_state": "empty",
+    "released_owner_id": null,
+    "released_output_active": false
+  },
+  "observers": {
+    "console_samples": 58,
+    "usb_status_samples": 12,
+    "usb_states": ["armed", "complete", "running"],
+    "usb_event_states": ["armed", "complete", "loaded", "running"],
+    "browser_status": "PASS",
+    "browser_manual_refreshes": 10,
+    "browser_manual_refresh_overlap": true,
+    "browser_final_output_active": false
+  },
+  "capture": {
+    "receiver_driver": "sdrplay",
+    "receiver_serial": "2404058C60",
+    "format": "CF32",
+    "sample_rate_hz": 250000,
+    "bandwidth_hz": 200000,
+    "center_frequency_hz": 112500,
+    "gain_db": 20,
+    "sample_count": 5750000,
+    "bytes": 46000000,
+    "overflow_count": 0,
+    "clipping_samples": 0,
+    "capture_sha256": "f6519744e998cbb2404f75ae594a9325ffb426b6ae69d3a22f46537344296d7b",
+    "metadata_sha256": "db9acf89067cc62325d4611c6b0897c54c35c39cd28f3929a64938cadf499b62"
+  },
+  "analysis": {
+    "passed": true,
+    "analysis_sha256": "5d2f92b9b53a5b5e408849fa95b23ac1b8e6a2e9f97e6e8c6c9041851437bf91",
+    "physical_result_sha256": "fcd756545e3c87df394091116ae5d98997c10a1665eb40559471dab20b4613aa",
+    "observed_duration_s": 5.0,
+    "indicated_mean_hz": 137500.82699226908,
+    "indicated_peak_to_peak_hz": 0.0025920499465428293,
+    "requested_bin_contrast_db": 75.72235680468124,
+    "strongest_feature_contrast_db": 84.19578013604345,
+    "best_20hz_resolved_power_share": 0.999999789510175,
+    "relative_checks_passed": true,
+    "limitations": [
+      "absolute frequency is receiver-indicated and uncalibrated",
+      "spectrum is relative and in-band only; no harmonic, power or regulatory claim",
+      "capture-relative timing does not independently calibrate UTC"
+    ]
+  },
+  "accounting": {
+    "rf_jobs_charged": 1,
+    "rf_seconds_charged": 5.0,
+    "automatic_retries": 0,
+    "additional_rf_for_recovery": 0
+  },
+  "cleanup": {
+    "board_a_state": "empty",
+    "board_a_output_active": false,
+    "board_b_state": "empty",
+    "reservation_state": "RELEASED",
+    "reconciliation_returncode": 0
+  },
+  "evidence_sha256": {
+    "execution_jsonl": "2b98439c0b13233fcdbe2c85dd54ee262730676e379ebf01df0371d41e648fc7",
+    "reconciliation_result_json": "3dd05666c08b4c4292a750dca122497a5a30aa0828770a1bd12fb6868ac22d19",
+    "browser_result_json": "ac3ca26d712a0d7fe94445b9bdc4a1e0fb3c365621d222b9974faee2ec440c62",
+    "browser_jsonl": "847e02e3e0edfc9bf8e7faa5e8a69e0f9749f44e6cd417903c8a399f8926085e",
+    "recovered_result_json": "fcd756545e3c87df394091116ae5d98997c10a1665eb40559471dab20b4613aa",
+    "analysis_json": "5d2f92b9b53a5b5e408849fa95b23ac1b8e6a2e9f97e6e8c6c9041851437bf91"
+  }
+}

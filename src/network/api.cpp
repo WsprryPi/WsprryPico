@@ -107,25 +107,34 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
         const auto message = decode_message_job(*body->get("body"));
         if (!message)
             return http_error(400, "invalid_message_job");
-        if (!memory_admitted(512 * sizeof(RfEvent) + 16384))
-            return http_error(503, "resource_exhausted");
-        auto compiled = encoding::compile_message(*message, service_.config().max_events,
-                                                  service_.config().max_job_duration_ns);
-        if (!compiled.job) {
-            auto response = http_error(compiled.error == "resource_exhausted" ? 503 : 400,
-                                       std::string(compiled.error));
+        const auto response_for = [&](const encoding::MorseResult& result) {
+            auto response = http_error(result.error == "resource_exhausted" ? 503 : 400,
+                                       std::string(result.error));
             response.body.pop_back();
             response.body +=
                 ",\"calculated_duration_ns\":" +
-                json::quote(std::to_string(compiled.calculated_duration_ns)) +
+                json::quote(std::to_string(result.calculated_duration_ns)) +
                 ",\"max_job_duration_ns\":" +
                 json::quote(std::to_string(std::min(service_.config().max_job_duration_ns,
                                                     encoding::max_message_duration_ns))) +
-                ",\"calculated_events\":" + std::to_string(compiled.calculated_events) +
+                ",\"calculated_events\":" + std::to_string(result.calculated_events) +
                 ",\"max_events\":" +
                 std::to_string(std::min<std::size_t>(service_.config().max_events, 512)) + "}";
             return response;
-        }
+        };
+        const auto measured = encoding::measure_message(*message, service_.config().max_events,
+                                                        service_.config().max_job_duration_ns);
+        if (!measured.error.empty())
+            return response_for(measured);
+        const auto event_pages =
+            (measured.calculated_events + EventList::page_events - 1) / EventList::page_events;
+        const auto event_bytes = event_pages * EventList::page_events * sizeof(RfEvent);
+        if (!memory_admitted(event_bytes + 16384))
+            return http_error(503, "resource_exhausted");
+        auto compiled = encoding::compile_message(*message, service_.config().max_events,
+                                                  service_.config().max_job_duration_ns);
+        if (!compiled.job)
+            return response_for(compiled);
         request->operation = "LOAD";
         request->body = std::move(*compiled.job);
         // Replay identity binds the complete original compact browser request,
@@ -180,7 +189,15 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     while (last > first && whitespace(body[last - 1]))
         --last;
     const auto working_bytes = last - first;
-    if (!wtp::memory_admitted(working_bytes * 2 + 16384))
+    // Status is the browser's read-only authority view during RF. Its empty
+    // request body and bounded response do not need the mutation/parser scratch
+    // reserved by other endpoints. Keep the independent 32 KiB authority/RF
+    // reserve unchanged while avoiding a false 503 under an established TLS
+    // observer and a resident RF plan.
+    const bool status_read =
+        r.method == "GET" && (r.path == "/api/v1/status" || r.path == "/api/v1/jobs");
+    const auto request_scratch = status_read ? 8192 : working_bytes * 2 + 16384;
+    if (!wtp::memory_admitted(request_scratch))
         return http_error(503, "resource_exhausted");
     if (body.size() > max_http_body)
         return http_error(413, "body_too_large");

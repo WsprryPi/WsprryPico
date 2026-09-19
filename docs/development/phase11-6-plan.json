@@ -1,20 +1,21 @@
 {
-  "schema": "phase11.6-plan-v19",
+  "schema": "phase11.6-plan-v23",
   "phase": "11.6",
   "repositories": {
-    "WsprryPico": "210599d907acdb23278fc24244b674d62c820d7c",
+    "WsprryPico": "7068b937240a7cbdfd0f0edbd7d347057604c0f0",
     "WsprryPi": "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf"
   },
   "amendment": {
-    "predecessor_plan_sha256": "01a828715f786bec40c8792056f2d973e36e0df95e9cd2fa5921422faa702538",
-    "scope": "post-sequence-154 WSPR terminal handoff contention repair",
+    "predecessor_plan_sha256": "c3392251cac3f718655a8ae641ac164d185ce0d51dc3db7e86b4dea6e66bf601",
+    "scope": "post-sequence-164 TONE offline evidence recovery",
     "rf_job_payloads_changed": false,
     "rf_waveform_changed": false,
-    "reason": "sequence 152 completed its full production WSPR emission and returned an authenticated inactive terminal plus acknowledged RELEASE. The successor's first CLAIM received BUSY, its second CLAIM and exact LOAD succeeded inside the bounded handoff, but only 7.63 seconds remained before the immutable target and the unchanged 8-second pre-ARM guard correctly rejected it; sequences 153 and 154 were not emitted. Exact reconciliation proved both boards empty and released the reservation. The retained trace shows one-second full Console INFO diagnostics overlapping terminal reduction and ownership handoff. Suppress only those diagnostic reads from two seconds before predicted completion through successor ARM, then resume them from a fresh cadence. No RF job payload, waveform, clock path, fixture, slot spacing, companion binary, or 8-second guard changed",
-    "authorization_date": "2026-09-18",
-    "deployment": "new non-installed WsprryPi candidate; accepted Pico image unchanged",
+    "reason": "sequences 155 and 156 completed their full WSPR emissions, but the browser raw LOAD for sequence 157 triggered a 33,335-byte transient allocation and watchdog recovery before LOAD acknowledgement or RF. Exact reconciliation preserved the failure, proved both boards inactive and released the reservation. BrowserApi::job now appends paged input directly into one pre-reserved envelope rather than constructing a second full-size temporary. The exact candidate was flashed once, then the shipped browser page completed the same raw LOAD under persistent Console and USB observation and was aborted 113.99 seconds before launch. Zero allocator/TLS failures, 116,312 bytes of heap reserve, valid stack guards and authoritative inactive cleanup requalified the affected Phase 11.5 allocation/transport assertions. The first repeat then completed sequences 158 and 160, but sequence 159 stopped before browser mutation or RF because a five-second observer sleep crossed the two-second terminal polling window and left only 6.76 seconds of the unchanged eight-second ARM lead. The host-only repair caps that sleep at entry to the terminal window. The fresh 161-163 group proved that repair: exact predecessor authority arrived with 9.236 seconds of lead. The shipped browser then needed 6.798 seconds to complete HELLO/CLAIM/raw LOAD/ARM, so the accepted ARM retained only 2.439 seconds instead of the frozen eight seconds. The accepted job reached running before reconciliation aborted it. A WSPR frame leaves only 9.408 seconds between consecutive two-minute slots, and production WsprryPi preserves a 13.1-second preparation lead, so no ordering of the three required principals can satisfy the frozen gates. The WSPR row is retained failed and independent non-WSPR rows continue. RF job payloads, waveform, firmware, clock path, fixture, slot spacing, companion binary and acceptance thresholds did not change. Sequence 164 then completed the 2200 m TONE controller-disconnect waveform, capture and browser overlap, but the host USB reducer rejected a safe retained predecessor whose authoritative terminal was aborted rather than complete. Offline recovery reconstructed every controller request from the retained wire hashes, matched network and independent USB terminal authority, revalidated the exact capture, and passed RF analysis without another transmission. The host-only reducer now accepts any inactive authoritative terminal outcome for earlier jobs while still requiring the current job to complete",
+    "authorization_date": "2026-09-19",
+    "deployment": "one serial-bound Pico A repair flash; WsprryPi candidate unchanged",
     "configuration_writes": 0,
-    "firmware_flashes": 0,
+    "firmware_flashes": 1,
+    "bootsel_transitions": 1,
     "controlled_reboots": 1,
     "failed_sequence_retried": false,
     "failed_sequences": [
@@ -38,7 +39,11 @@
       144,
       146,
       149,
-      152
+      152,
+      157,
+      159,
+      162,
+      164
     ],
     "zero_rf_preflight_failures": [
       91,
@@ -48,7 +53,8 @@
       122,
       135,
       140,
-      146
+      146,
+      159
     ],
     "zero_rf_aborted_submissions": [
       110,
@@ -60,7 +66,8 @@
       114,
       120,
       129,
-      138
+      138,
+      162
     ],
     "abandoned_unsubmitted_sequences": [
       89,
@@ -96,7 +103,21 @@
       153,
       154
     ],
-    "next_sequence": 155,
+    "completed_noncredit_sequences": [
+      155,
+      156,
+      158,
+      160,
+      161,
+      163
+    ],
+    "host_recovered_sequences": [
+      164
+    ],
+    "accepted_sequences": [
+      164
+    ],
+    "next_sequence": 165,
     "companion_source_revision": "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf",
     "companion_binary_sha256": "b8e63947e2e9780f43dc4247869db138f81cc6e2245c99c1fd02ad9de4b33ff6",
     "production_ini": {
@@ -104,6 +125,20 @@
       "tx_iterations": 1
     },
     "terminal_evidence_repair": "reduce the exact loaded, armed, running and complete events from the authenticated production WTP stream; retain any final host report as an additional consistency check",
+    "usb_terminal_reducer_repair": {
+      "sequence": 164,
+      "failure": "Independent USB lifecycle/terminal authority",
+      "cause": "the reducer required every retained predecessor terminal to be complete even when an authoritative aborted, missed or failed terminal was inactive and safely settled",
+      "repair": "accept complete, aborted, missed or failed only for prior retained jobs when output_active is false; retain exact complete and inactive requirements for the current job",
+      "retransmission": false,
+      "rf_jobs_charged": 1,
+      "rf_seconds_charged": 5.0,
+      "runtime_job_id": "75ff8cebd469df39418a4ad42624eeeb",
+      "capture_sha256": "f6519744e998cbb2404f75ae594a9325ffb426b6ae69d3a22f46537344296d7b",
+      "analysis_sha256": "5d2f92b9b53a5b5e408849fa95b23ac1b8e6a2e9f97e6e8c6c9041851437bf91",
+      "analysis_passed": true,
+      "reservation_released": true
+    },
     "fixture_namespace_repair": {
       "required_namespaces": [
         "mount",
@@ -134,17 +169,79 @@
       "failed_group_reconciliation": "first reuse the exact retained USB principal when it remains admissible; when an active disconnected session blocks WTP, bind the exact job through authenticated browser status and the boot/source/active state through physical Console INFO before exactly one Console ABORT; validate the identity-free Console acknowledgement against boot and inactive aborted state, then prove the exact job terminal through fresh WTP status",
       "production_browser_terminal": "bind the wildcard production observer to the first active job, latch its exact retained complete inactive terminal, stop page refreshes while successors run, and verify the observed id against the authenticated production runtime binding",
       "production_browser_handoff": "pre-open the raw-browser successor while idle; after controller ARM and USB disconnect, authorize that existing page only after the wildcard production page exits by reducing its exact retained terminal; the successor page must itself overlap the controller, quiesce refreshes before predicted completion, and consume fresh USB event-plus-STATUS terminal authority before submitting the third slot",
-      "browser_connection_budget": "pre-open exactly the production observer and raw-browser successor while the target is idle; retain the successor page with bounded standby refreshes because active RF pauses new network admission; fail before RF if either browser exits"
+      "browser_connection_budget": "pre-open exactly the production observer and raw-browser successor while the target is idle; retain the successor page with bounded standby refreshes because active RF pauses new network admission; fail before RF if either browser exits",
+      "terminal_poll_schedule": "cap each long observer wait at the entrance to the two-second terminal polling window; the sequence-159 failure slept five seconds from 2.496 seconds before completion and crossed the frozen eight-second browser ARM-lead gate, while the repaired calculation waits 0.496 seconds for that same observation",
+      "retained_timing_gate": {
+        "repeat_group_sequences": [
+          161,
+          162,
+          163
+        ],
+        "predecessor_authority_lead_ns": "9236268079",
+        "browser_mutation_to_arm_ns": "6797680079",
+        "accepted_arm_lead_ns": "2438588000",
+        "required_arm_lead_ns": "8000000000",
+        "consecutive_slot_gap_ns": "9408000108",
+        "production_preparation_lead_ns": "13100000000",
+        "browser_runtime_job_id": "a4c3cae0c122fc55152f3a8d14c7d265",
+        "browser_terminal_state": "aborted",
+        "threshold_changed": false,
+        "disposition": "retain 2200m WSPR failed without another retry; the same duration and control-path constraints block the remaining WSPR primary rows on this exact configuration"
+      }
+    },
+    "browser_allocation_repair": {
+      "failure_attempts": [
+        155,
+        156,
+        157
+      ],
+      "failed_sequence": 157,
+      "failure_boot_id": "1ab2d3ee391ec6c39fcd904f1c9dae01",
+      "fault_stage": 14,
+      "fault_hash": 3833354787,
+      "failed_allocation_request_bytes": 33335,
+      "repair": "append paged HTTP InputView spans directly into one pre-reserved WTP envelope",
+      "deployment_packet_sha256": "0609b44177e8e9e0c3c9673abbc0525fb023f0b84e7e0e729b352c5878439be1",
+      "requalification_packet_sha256": "60418607933b01ad4989c4d6a8643d42939ef202ca5ab555f9f3055e4ff61932",
+      "requalification": {
+        "rf_jobs": 0,
+        "arms": 1,
+        "aborts": 1,
+        "allocator_largest_successful_request_bytes": 16718,
+        "allocator_failures": 0,
+        "tls_allocation_failures": 0,
+        "heap_reserve_bytes": 116312,
+        "console_samples": 41,
+        "usb_samples": 9,
+        "accepted_arm_lead_ns": 113986909000,
+        "terminal_state": "aborted",
+        "final_state": "empty",
+        "reservation_released": true
+      },
+      "first_repeat_group_sequences": [
+        158,
+        159,
+        160
+      ],
+      "first_repeat_result": "production and controller-disconnect completed noncredit; browser stopped before mutation or RF on the terminal-poll harness defect",
+      "repeat_affected_row_from_sequence": 161,
+      "second_repeat_group_sequences": [
+        161,
+        162,
+        163
+      ],
+      "second_repeat_result": "terminal polling repair passed, production and controller-disconnect completed noncredit, and browser raw ARM was accepted 2.439 seconds before launch then aborted after RF began; frozen eight-second gate retained and no further WSPR retry justified",
+      "automatic_retry": false
     }
   },
   "accepted_configuration": {
     "pico_serial": "0BF4B4AEC9FFB344",
     "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
     "phase11_5_accepted_boot_id": "ff719d304f1ba4ac23fddd93561b26f0",
-    "accepted_boot_id": "e363bf9ae4528258563557b7d306efcd",
-    "source_revision": "210599d907acdb23278fc24244b674d62c820d7c",
-    "uf2_sha256": "b01fecbe3d516dbe5a5e261955e376f062f92a9fe9f7c9b86135bb5f7e8b9811",
-    "board": "Pico 2 W / RP2350 Arm",
+    "accepted_boot_id": "a12f61f7cd59557c1b5628b2568a52d5",
+    "source_revision": "7068b937240a7cbdfd0f0edbd7d347057604c0f0",
+    "uf2_sha256": "f1d437261cb7aa3f9668f7624dad5806346a248202a45f15c553617e12e74a47",
+    "board": "Pico 2 W / RP2350 Arm Secure",
     "system_clock_hz": 138000000,
     "pio_divider": 1,
     "engine": "pio-dma-gp2",
@@ -152,14 +249,19 @@
     "output": "GP2",
     "frequency_correction_ppb": 0,
     "boot_transition": {
-      "from_boot_id": "be52153ea21a03f75067129f2bc2245f",
-      "to_boot_id": "e363bf9ae4528258563557b7d306efcd",
-      "source_revision_unchanged": true,
-      "uf2_sha256_unchanged": true,
+      "from_boot_id": "1ab2d3ee391ec6c39fcd904f1c9dae01",
+      "to_boot_id": "a12f61f7cd59557c1b5628b2568a52d5",
+      "source_revision_unchanged": false,
+      "uf2_sha256_unchanged": false,
       "hardware_configuration_unchanged": true,
       "postrestart_allocator_failures": 0,
       "postrestart_tls_allocation_failures": 0,
-      "private_evidence_directory": "phase11-6-reboot-after-0067-v2-20260918"
+      "private_evidence_directory": "phase11-6-repair-7068b93-deployment-20260919"
+    },
+    "failure_transition": {
+      "from_boot_id": "e363bf9ae4528258563557b7d306efcd",
+      "to_recovery_boot_id": "1ab2d3ee391ec6c39fcd904f1c9dae01",
+      "cause": "browser raw LOAD allocation failure before RF"
     }
   },
   "peer": {
@@ -45115,8 +45217,8 @@
   "source_impact": {
     "firmware_runtime_changes": 1,
     "companion_runtime_changes": 1,
-    "decision": "retain the repaired clock handoff and defer the raw-browser client until after exact production-terminal proof; consume terminal WTP events without an overlapping continuous STATUS request",
+    "decision": "retain the exact browser-envelope allocation repair and accepted firmware after zero-RF target requalification; retain the host terminal-poll and USB terminal-reducer repairs, preserve attempts 155-164, keep the failed WSPR timing gate and unchanged thresholds, accept the recovered TONE evidence without retransmission, and continue independent modes",
     "companion_decision": "import finite managed WSPR fields, consume the iteration and require orderly production exit; use event-driven execution monitoring with paced and post-completion STATUS fallbacks",
-    "phase11_5_applicability": "R1.1/R1.5, the shared R2 launch path and R6 timing/resources require the documented repaired-candidate gate before transfer"
+    "phase11_5_applicability": "affected image identity, browser raw LOAD, allocation reserve, Console/USB contention, stack/fault and inactive-cleanup gates passed on the repaired exact candidate; RF synthesis evidence remains bound to its recorded image until the affected 11.6 row is repeated"
   }
 }

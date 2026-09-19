@@ -6,6 +6,7 @@ const {spawn}=require('node:child_process'),assert=require('node:assert/strict')
 if(!process.argv.includes('--run')){console.log('Plan only; no browser or target access.');process.exit(0);}
 const arg=n=>process.argv[process.argv.indexOf(n)+1];
 const root=path.resolve(arg('--root')),kind=arg('--kind'),jobPath=path.resolve(arg('--job')),boot=arg('--boot-id');
+const abortAfterMutations=process.argv.includes('--abort-after-mutations');
 const job=JSON.parse(fs.readFileSync(jobPath,'utf8')),jobId=job.job_id;
 assert(['raw','compact'].includes(kind));assert(/^[0-9a-f]{32}$/.test(jobId));assert(/^[0-9a-f]{32}$/.test(boot));
 const HOST='wsprrypico-0a60df.local',ADDRESS='10.77.15.10';
@@ -28,7 +29,7 @@ async function refresh(){await until(()=>evaluate('!busy'),20);await evaluate("$
 async function requiredRefresh(seconds=30){let value=null;await until(async()=>{value=await refresh();return value!==null;},seconds);return value;}
 function utcInput(utcNs){return new Date(Number(BigInt(utcNs)/1000000n)).toISOString().slice(0,19);}
 (async()=>{
-  emit('start',{kind,job_id:jobId,job_sha256:crypto.createHash('sha256').update(fs.readFileSync(jobPath)).digest('hex')});
+  emit('start',{kind,job_id:jobId,job_sha256:crypto.createHash('sha256').update(fs.readFileSync(jobPath)).digest('hex'),abort_after_mutations:abortAfterMutations});
   const profile=root+'/chrome';assert(!fs.existsSync(profile));fs.mkdirSync(profile);
   chrome=spawn('/usr/bin/chromium',['--headless=new','--no-sandbox','--disable-gpu','--disable-background-networking','--no-first-run','--no-default-browser-check','--disable-component-update','--disable-sync','--no-proxy-server','--host-resolver-rules=MAP '+HOST+' '+ADDRESS+', EXCLUDE localhost','--remote-debugging-port=0','--user-data-dir='+profile,'about:blank'],{stdio:['ignore',fs.openSync(root+'/chrome.stdout','wx'),fs.openSync(root+'/chrome.stderr','wx')]});
   await until(()=>fs.existsSync(profile+'/DevToolsActivePort'),20);const port=fs.readFileSync(profile+'/DevToolsActivePort','utf8').split('\n')[0];
@@ -61,6 +62,7 @@ function utcInput(utcNs){return new Date(Number(BigInt(utcNs)/1000000n)).toISOSt
     emit('predecessor_settled',{predecessor_job_id:predecessor,state:settled,terminal:predecessorTerminal,manual_refresh_overlap:predecessorOverlap,authority_sha256:predecessorAuthoritySha256,browser_arm_admission:browserArmAdmission});
   }
   const start=utcInput(submission.start_utc_ns);
+  emit('submission_begin',{job_id:jobId,start_utc_ns:submission.start_utc_ns});
   if(kind==='raw'){
     await evaluate(`$('start').value=${JSON.stringify(start)}`);
     await evaluate("$('job').requestSubmit()");
@@ -98,12 +100,13 @@ function utcInput(utcNs){return new Date(Number(BigInt(utcNs)/1000000n)).toISOSt
   const acceptedArm=responses[3]?.body?.result;assert(acceptedArm?.clock?.utc_now_ns);const acceptedLead=BigInt(submission.start_utc_ns)-BigInt(acceptedArm.clock.utc_now_ns);assert(acceptedLead>=8000000000n,'browser WSPR accepted ARM lead');if(browserArmAdmission)browserArmAdmission.accepted_arm_utc_now_ns=acceptedArm.clock.utc_now_ns,browserArmAdmission.accepted_arm_lead_ns=acceptedLead.toString();
   save('browser-mutations-complete.json',{schema:'phase11.6-browser-mutations-v1',job_id:jobId,predecessor_job_id:predecessor,session_id:submitted[0].session_id,last_request_id:submitted.at(-1).request_id,operations:submittedOperations,browser_arm_admission:browserArmAdmission});
   emit('mutations_complete',{job_id:jobId,operations:submittedOperations,accepted_arm_lead_ns:acceptedLead.toString()});
+  if(abortAfterMutations){await until(()=>evaluate("!busy&&!$('abort').disabled"),20);await evaluate("$('abort').click()");await until(()=>evaluate('!busy'),20);emit('expected_abort_requested',{job_id:jobId});}
   let overlap=false,lastShot=null,terminal=null;
   while(true){check();const s=await refresh();if(s!==null&&s.job_id===jobId){ownStates.add(s.state);if(s.state==='armed'||s.state==='running'){overlap=true;if(lastShot!==s.state){await shot('overlap-'+s.state);lastShot=s.state;}}}if(s!==null&&s.job_id===jobId&&['complete','aborted','missed','failed'].includes(s.state)){terminal=s;break;}if(s!==null&&s.job_id===null&&ownStates.has('running')){terminal=s;break;}await new Promise(r=>setTimeout(r,650));}
-  assert(overlap,'manual page refresh never overlapped Armed/Running');assert(!ownStates.has('aborted')&&!ownStates.has('missed')&&!ownStates.has('failed'),'browser job did not complete');
+  if(abortAfterMutations){assert(ownStates.has('aborted'),'browser job did not reach the expected aborted state');assert(!ownStates.has('running')&&!ownStates.has('complete')&&!ownStates.has('missed')&&!ownStates.has('failed'),'expected prelaunch abort was not isolated');}else{assert(overlap,'manual page refresh never overlapped Armed/Running');assert(!ownStates.has('aborted')&&!ownStates.has('missed')&&!ownStates.has('failed'),'browser job did not complete');}
   const releaseRequired=Boolean(terminal.owner_id);
   if(releaseRequired){await until(()=>evaluate("!busy&&!$('release').disabled"),20);await evaluate("$('release').click()");await until(()=>evaluate('!busy'),20);}
   const final=await requiredRefresh();await shot('final');assert.equal(final.output_active,false);assert.equal(final.owner_id,null);
-  const decoded=requests.map(r=>JSON.parse(r.postData));const operations=decoded.map(r=>r.operation),expected=[...expectedMutations];if(releaseRequired)expected.push('RELEASE');assert.deepEqual(operations,expected);assert.equal(new Set(decoded.map(r=>r.request_id)).size,decoded.length);assert.equal(new Set(decoded.map(r=>r.session_id)).size,1);assert.equal(decoded[2].body.job_id,jobId);assert.equal(decoded[3].body.job_id,jobId);assert(responses.every(r=>r.status===200));
-  save('browser-result.json',{status:'PASS',kind,page_loaded:true,manual_refreshes:refreshes,unavailable_refreshes:unavailableRefreshes,manual_refresh_overlap:true,standby_refreshes:standbyRefresh,states:[...states].sort(),own_states:[...ownStates].sort(),job_id:jobId,predecessor_job_id:predecessor,predecessor_manual_refresh_overlap:predecessor===null?null:predecessorOverlap,predecessor_terminal:predecessorTerminal,predecessor_authority:predecessorAuthority,predecessor_authority_sha256:predecessorAuthoritySha256,browser_arm_admission:browserArmAdmission,peer_sha256:PEER,operations,release_required:releaseRequired,terminal,final,requests:decoded,responses,preview,events:[...events].sort()});
+  const decoded=requests.map(r=>JSON.parse(r.postData));const operations=decoded.map(r=>r.operation),expected=[...expectedMutations];if(abortAfterMutations)expected.push('ABORT');if(releaseRequired)expected.push('RELEASE');assert.deepEqual(operations,expected);assert.equal(new Set(decoded.map(r=>r.request_id)).size,decoded.length);assert.equal(new Set(decoded.map(r=>r.session_id)).size,1);assert.equal(decoded[2].body.job_id,jobId);assert.equal(decoded[3].body.job_id,jobId);assert(responses.every(r=>r.status===200));
+  save('browser-result.json',{status:'PASS',kind,page_loaded:true,expected_abort:abortAfterMutations,manual_refreshes:refreshes,unavailable_refreshes:unavailableRefreshes,manual_refresh_overlap:abortAfterMutations?false:true,standby_refreshes:standbyRefresh,states:[...states].sort(),own_states:[...ownStates].sort(),job_id:jobId,predecessor_job_id:predecessor,predecessor_manual_refresh_overlap:predecessor===null?null:predecessorOverlap,predecessor_terminal:predecessorTerminal,predecessor_authority:predecessorAuthority,predecessor_authority_sha256:predecessorAuthoritySha256,browser_arm_admission:browserArmAdmission,peer_sha256:PEER,operations,release_required:releaseRequired,terminal,final,requests:decoded,responses,preview,events:[...events].sort()});
 })().catch(error=>{failure=error;emit('failure',{message:error.message,stack:error.stack});save('browser-result.json',{status:'FAIL',error:error.message,kind,page_loaded:false,manual_refreshes:refreshes,unavailable_refreshes:unavailableRefreshes,states:[...states].sort(),requests,responses});process.exitCode=1;}).finally(async()=>{if(socket){await send('Browser.close').catch(()=>{});socket.close();}if(chrome&&chrome.exitCode===null){chrome.kill('SIGTERM');await new Promise(r=>{chrome.once('exit',r);setTimeout(r,5000);});}emit('finish',{exitCode:process.exitCode||0});fs.closeSync(log);});

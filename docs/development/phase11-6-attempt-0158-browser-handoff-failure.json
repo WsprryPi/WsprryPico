@@ -1,0 +1,93 @@
+{
+  "schema": "phase11.6-wspr-group-failure-v1",
+  "status": "STOPPED_REQUIRES_DIAGNOSIS",
+  "date": "2026-09-19",
+  "band": "2200m",
+  "plan_sha256": "cb0ca7be3a0468add27186f0fb0c18dbec62d7804d206ea897f0b36e1fb3f51c",
+  "group_packet_sha256": "1d5e42153dd9a5a6dddb497e49387459901eb155556497afa5e06d38635e3991",
+  "group_packet_file_sha256": "671395bcc84d3946a89bc170ca0d780343b0907bd197ad6ecd9c5261a8450223",
+  "private_evidence_root": "phase11-6-conducted-v31-20260919",
+  "automatic_retries": 0,
+  "attempts": [
+    {
+      "sequence": 158,
+      "submission_path": "production",
+      "job_id": "2200m:WSPR:0:production:nominal",
+      "runtime_job_id": "bf9812b500c309430000000000000001",
+      "disposition": "COMPLETED_NONCREDIT",
+      "rf_jobs_charged": 1,
+      "rf_seconds_charged": 110.591999892
+    },
+    {
+      "sequence": 160,
+      "submission_path": "controller_disconnect",
+      "job_id": "2200m:WSPR:2:controller_disconnect:nominal",
+      "runtime_job_id": "36323268900ccc0a74db1d4184611e95",
+      "disposition": "COMPLETED_NONCREDIT",
+      "rf_jobs_charged": 1,
+      "rf_seconds_charged": 110.591999892
+    },
+    {
+      "sequence": 159,
+      "submission_path": "browser_raw",
+      "job_id": "2200m:WSPR:1:browser_raw:nominal",
+      "runtime_job_id": "d1d2096d540adf228580c02ec24d6d4f",
+      "disposition": "FAILED_BEFORE_MUTATION_OR_RF",
+      "rf_jobs_charged": 0,
+      "rf_seconds_charged": 0.0,
+      "browser_requests": 0,
+      "browser_responses": 0
+    }
+  ],
+  "charged_totals": {
+    "rf_jobs": 2,
+    "rf_seconds": 221.183999784
+  },
+  "failure": {
+    "classification": "HOST_ACCEPTANCE_HARNESS_TERMINAL_POLL_OVERSLEEP",
+    "message": "browser WSPR immutable ARM lead",
+    "browser_target_utc_ns": "1789814521000000000",
+    "controller_expected_complete_utc_ns": "1789814511591999892",
+    "last_long_poll_utc_ns": "1789814509096368876",
+    "authority_published_utc_ns": "1789814514183979808",
+    "derived_browser_admission_lead_ns": "6754164979",
+    "frozen_minimum_arm_lead_ns": "8000000000",
+    "old_poll_delay_s": 5.0,
+    "repaired_poll_delay_s_for_observed_offset": 0.496,
+    "threshold_changed": false,
+    "rf_payload_changed": false,
+    "firmware_changed": false
+  },
+  "identity": {
+    "pico_serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "boot_id": "a12f61f7cd59557c1b5628b2568a52d5",
+    "firmware_source": "7068b937240a7cbdfd0f0edbd7d347057604c0f0",
+    "peer_serial": "CDDBF8767C506C07",
+    "peer_device_id": "29f20b7342051ef947aa56cb9d4fab42",
+    "peer_boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0"
+  },
+  "cleanup": {
+    "board_a_state": "empty",
+    "board_b_state": "empty",
+    "reservation_state": "RELEASED",
+    "reconciliation_returncode": 0
+  },
+  "evidence_sha256": {
+    "execution_jsonl": "4ba439227f91f494333b15096ecfd26296397162e62abfc828f5c25c66f46761",
+    "browser_result_json": "af586c317f576b0b6f89bbd08b09ecffe0ed893dce001de5205bf7739e503873",
+    "browser_jsonl": "19486b8c51f25049004e6f8cb3da679ac826e55eea68ab2063566d0779b6e04b",
+    "predecessor_authority_json": "d99264f4846bd937ce039a31565057c78d63132d193566f616688e91f5202864",
+    "incomplete_parent_capture_cf32": "111d79a711859e55d5f19f8a6847858306e30b3ac43d85cfc22fb4234ecae25e"
+  },
+  "capture": {
+    "receiver_driver": "sdrplay",
+    "receiver_serial": "2404058C60",
+    "format": "CF32",
+    "sample_rate_hz": 250000,
+    "bandwidth_hz": 200000,
+    "gain_db": 20,
+    "complete": false,
+    "credit_allowed": false
+  }
+}

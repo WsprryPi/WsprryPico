@@ -192,8 +192,8 @@ void streamed_asset_admission() {
     REQUIRE(asset && asset->body.size() > 16384);
     // The generated asset is immutable static storage. Only bounded transport
     // scratch and the independent authority reserve consume target heap.
-    // BrowserApi's common request gate retains 16 KiB of processing scratch;
-    // that is the controlling bound for this zero-body GET.
+    // Static asset requests retain 16 KiB of processing scratch; that is the
+    // controlling bound for this zero-body GET.
     available_asset_memory = 16384 + 32768;
     wtp::available_memory = []() -> std::size_t { return available_asset_memory; };
     const auto allocator = wtp::allocate_input;
@@ -657,6 +657,51 @@ void message_jobs() {
     REQUIRE(send("ABORT", "{\"job_id\":\"" + std::string(32, '4') + "\"}").status == 200);
     REQUIRE(send("RELEASE", "{}").status == 200);
 }
+
+void compact_message_actual_admission() {
+    Fixture f;
+    unsigned sequence = 3000;
+    const std::string session(32, '5'), job_id(32, '6');
+    const auto send = [&](std::string operation, std::string body) {
+        auto r = request("POST", "/api/v1/jobs",
+                         "{\"session_id\":\"" + session + "\",\"request_id\":\"" +
+                             std::string(28, '0') + std::to_string(++sequence) +
+                             "\",\"operation\":\"" + operation + "\",\"body\":" + body + "}");
+        return f.api.handle(r, "cert-a", "127.0.0.1:8443");
+    };
+    REQUIRE(send("HELLO", "{\"versions\":[\"WTP/1\"],\"client_name\":\"measured\","
+                          "\"client_version\":\"1\"}")
+                .status == 200);
+    REQUIRE(send("CLAIM", "{\"owner_id\":\"" + session + "\",\"lease_ms\":5000}").status == 200);
+    const auto compact = "{\"job_id\":\"" + job_id +
+                         "\",\"mode\":\"fskcw\",\"message\":\"ET E\","
+                         "\"frequency_nhz\":\"137505000000000\","
+                         "\"space_frequency_nhz\":\"137500000000000\","
+                         "\"timing\":{\"dot_ns\":\"3000000000\",\"dash_ns\":\"9000000000\","
+                         "\"intra_gap_ns\":\"3000000000\",\"character_gap_ns\":\"9000000000\","
+                         "\"word_gap_ns\":\"21000000000\"},\"repeat_count\":1,"
+                         "\"repeat_gap_ns\":\"0\",\"allow_frequency_adjustment\":true}";
+    // This is enough for the six-event plan, its bounded response/preparation,
+    // and the unchanged 32 KiB authority reserve, but not the obsolete fixed
+    // 512-event admission estimate.
+    wtp::available_memory = []() -> std::size_t { return 67000; };
+    const auto loaded = send("LOAD_MESSAGE", compact);
+    wtp::available_memory = nullptr;
+    REQUIRE(loaded.status == 200);
+    REQUIRE(f.service.status().state == wtp::State::Loaded);
+    REQUIRE(f.service.status().job_id == job_id);
+    REQUIRE(send("ABORT", "{\"job_id\":\"" + job_id + "\"}").status == 200);
+    REQUIRE(send("RELEASE", "{}").status == 200);
+}
+
+void status_read_admission() {
+    Fixture f;
+    wtp::available_memory = []() -> std::size_t { return 32768 + 8192; };
+    REQUIRE(f.api.handle(request("GET", "/api/v1/status"), "cert", "127.0.0.1:8443").status == 200);
+    wtp::available_memory = []() -> std::size_t { return 32768 + 8192 - 1; };
+    REQUIRE(f.api.handle(request("GET", "/api/v1/status"), "cert", "127.0.0.1:8443").status == 503);
+    wtp::available_memory = nullptr;
+}
 } // namespace
 int main() {
     identities();
@@ -669,6 +714,8 @@ int main() {
     maximum_http_job();
     fragmented_raw_browser_load();
     message_jobs();
+    compact_message_actual_admission();
+    status_read_admission();
     deferred();
     restart_tests();
     // JSON scratch admission must not silently narrow WTP's body grammar.
