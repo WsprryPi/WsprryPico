@@ -34,6 +34,16 @@ class Phase116BrowserRepairRequalTests(unittest.TestCase):
         self.assertIn(requal.BOOT, command)
         self.assertEqual(command[-1], "--run")
 
+    def test_browser_command_can_bind_compact_submission(self):
+        original = requal.SUBMISSION_KIND
+        try:
+            requal.SUBMISSION_KIND = "compact"
+            command = requal.browser_command(Path("/private/requal"), {})
+        finally:
+            requal.SUBMISSION_KIND = original
+        self.assertEqual(command[command.index("--kind") + 1], "compact")
+        self.assertIn("--abort-after-mutations", command)
+
 
 if __name__ == "__main__":
     unittest.main()

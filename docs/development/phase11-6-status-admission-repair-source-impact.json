@@ -1,6 +1,6 @@
 {
   "schema": "phase11.6-status-admission-repair-source-impact-v1",
-  "status": "AWAITING_EXPLICIT_FLASH_AUTHORIZATION",
+  "status": "REQUALIFICATION_ACCEPTED",
   "date": "2026-09-19",
   "failure_evidence": {
     "compact_load_attempt": 171,
@@ -59,12 +59,12 @@
       "stack_guards": "PASS",
       "rf_renderer_in_ram": "PASS"
     },
-    "staging": "LOCAL_ONLY_NOT_COPIED_TO_WSPR5"
+    "staging": "COPIED_TO_WSPR5_AND_FLASHED_ONCE"
   },
   "validation": {
     "macos_host_ctest": "68/68 PASS",
     "focused_network_and_event_storage": "2/2 PASS",
-    "phase11_6_python": "84/84 PASS",
+    "phase11_6_python": "92/92 PASS",
     "wspr5_source_bundle": "focused host build PASS and 78/78 Phase 11.6 tests PASS"
   },
   "deployment_boundary": {
@@ -83,7 +83,136 @@
       "rf_jobs_during_deployment": 0,
       "automatic_retries": 0
     },
-    "authorized": false
+    "authorized": true,
+    "consumed": {
+      "firmware_flashes": 1,
+      "bootsel_transitions": 1,
+      "configuration_writes": 0,
+      "rf_jobs_during_deployment": 0,
+      "automatic_retries": 0
+    }
+  },
+  "deployment_result": {
+    "result": "STOPPED_BEFORE_REQUALIFICATION",
+    "image_sha256": "377f752bac87eb407172f6a4a3b3caf7e0a24502521f9a964fdcc9830095e6f0",
+    "new_revision": "0e85ff90571c",
+    "new_boot_id": "e67d02a2621bb3527ed9f6bed0a6080f",
+    "candidate_load_verified": true,
+    "post_flash_state": "empty",
+    "post_flash_output_active": false,
+    "post_flash_owner_id": null,
+    "post_flash_schedule_enabled": false,
+    "health": {
+      "recovery_boot": false,
+      "system_clock_hz": 138000000,
+      "engine": "pio-dma-gp2",
+      "rf_render_in_ram": true,
+      "core0_stack_guard_valid": true,
+      "core1_stack_guard_valid": true,
+      "fault_status": 0,
+      "dma_errors": 0,
+      "allocator_failures": 0,
+      "tls_allocation_failures": 0
+    },
+    "network": {
+      "wifi_configuration_retained": true,
+      "link_observed": true,
+      "control_configured": false,
+      "control_listening": false,
+      "configured_hostname": "",
+      "mdns_state": "unconfigured"
+    },
+    "root_cause": {
+      "classification": "CANDIDATE_BUILD_CONFIGURATION_ERROR",
+      "candidate_network_port": 0,
+      "candidate_network_credential_dir": "",
+      "prior_accepted_network_port": 18443,
+      "prior_accepted_network_credential_dir": "config/local/network/phase11-4-fd6127d1/server-mac-suffix",
+      "runtime_configuration_loss": false
+    },
+    "peer_unchanged": true,
+    "reservation_state": "RELEASED",
+    "fixtures_cleaned": true,
+    "final_post_teardown_inventory": {
+      "board_a": {
+        "revision": "0e85ff90571c",
+        "boot_id": "e67d02a2621bb3527ed9f6bed0a6080f",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "schedule_enabled": false,
+        "control_configured": false,
+        "control_listening": false,
+        "link_status": -2
+      },
+      "board_b": {
+        "revision": "8921a7008183",
+        "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "schedule_enabled": false,
+        "control_configured": true,
+        "control_listening": true,
+        "link_status": 3
+      }
+    },
+    "zero_rf_browser_check_run": false,
+    "conducted_requalification_run": false,
+    "conducted_rf_seconds": 0,
+    "flash_retried": false
+  },
+  "corrected_candidate": {
+    "status": "DEPLOYED_AND_REQUALIFIED",
+    "source_revision": "0e85ff90571c800450073f7b0bfafd70266f1f44",
+    "linked_revision": "0e85ff90571c",
+    "target": "WsprryPico-StandaloneRF",
+    "network_port": 18443,
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "hostname": "wsprrypico-0a60df.local",
+    "uf2": {
+      "bytes": 2173952,
+      "sha256": "9ac5a40fe6d9a44a3a0156621b82801488efecafb9f472ba601dbcbb3e138398"
+    },
+    "elf": {
+      "bytes": 16237904,
+      "sha256": "cb6a2193a966094138f1fe8f9737b9344be52473fafbb378d9592fba4cc0e68b"
+    },
+    "map": {
+      "bytes": 2746047,
+      "sha256": "c72f198c06973ec239d13e59b7ed994079398f9b8f2ef4ed610847c4ab5e4890"
+    },
+    "linked_checks": {
+      "heap_hooks": "PASS",
+      "stack_guards": "PASS",
+      "rf_renderer_in_ram": "PASS"
+    },
+    "uf2_conversion": {
+      "picotool_version": "2.3.0",
+      "abs_block": true,
+      "equivalence_check": "the same command reproduced the originally deployed UF2 byte-for-byte from its ELF"
+    },
+    "copied_to_wspr5": true,
+    "flashed": true,
+    "deployment_result": "PASS",
+    "boot_id": "cab95d7eecad05047fcb1d6806cf9e86",
+    "firmware_flashes": 1,
+    "bootsel_transitions": 1,
+    "configuration_writes": 0,
+    "rf_jobs_during_deployment": 0,
+    "automatic_retries": 0
+  },
+  "corrected_requalification": {
+    "status": "ACCEPTED",
+    "evidence": "phase11-6-status-admission-repair-requalification.json",
+    "zero_rf_browser_check": "PASS",
+    "conducted_requalification": "PASS",
+    "conducted_rf_jobs": 1,
+    "conducted_rf_seconds": 5.0,
+    "automatic_retries": 0,
+    "matrix_credit": false,
+    "reservation_released": true,
+    "fixtures_restored": true
   },
   "affected_phase11_5_requalification": [
     {
@@ -99,7 +228,8 @@
     }
   ],
   "campaign_resume": {
-    "requires_requalification_pass": true,
+    "requires_requalification_pass": false,
+    "requalification_status": "ACCEPTED",
     "fresh_attempt_packets_required": true,
     "justified_retests": [
       "FSKCW browser_compact replacement for attempt 171",

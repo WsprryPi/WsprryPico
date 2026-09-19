@@ -1,0 +1,209 @@
+{
+  "schema": "phase11.6-status-admission-repair-requalification-v1",
+  "status": "ACCEPTED",
+  "date": "2026-09-19",
+  "scope": {
+    "source_revision": "0e85ff90571c800450073f7b0bfafd70266f1f44",
+    "linked_revision": "0e85ff90571c",
+    "target": "WsprryPico-StandaloneRF",
+    "board": "Pico 2 W / RP2350 Arm Secure",
+    "pico_serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "hostname": "wsprrypico-0a60df.local",
+    "uf2_sha256": "9ac5a40fe6d9a44a3a0156621b82801488efecafb9f472ba601dbcbb3e138398"
+  },
+  "authorization": {
+    "deployment": {
+      "firmware_flashes": 1,
+      "bootsel_transitions": 1,
+      "configuration_writes": 0,
+      "rf_jobs": 0,
+      "automatic_retries": 0
+    },
+    "post_flash": {
+      "zero_rf_browser_checks": 1,
+      "conducted_rf_jobs": 1,
+      "maximum_conducted_rf_seconds": 5,
+      "automatic_retries": 0
+    }
+  },
+  "deployment": {
+    "result": "PASS",
+    "private_evidence_root": "phase11-6-status-repair-corrected-deployment-20260919",
+    "result_sha256": "c0f50028059a457d2090b3ff9003b676be861aa33f089216d07188f1accf82a4",
+    "prior_boot_id": "e67d02a2621bb3527ed9f6bed0a6080f",
+    "new_boot_id": "cab95d7eecad05047fcb1d6806cf9e86",
+    "before_flash_sha256": "5f92c880b4211602494a4f8a6b42dbea28f98597ecec996e5b5881145b50199f",
+    "firmware_flashes": 1,
+    "bootsel_transitions": 1,
+    "configuration_writes": 0,
+    "rf_jobs": 0,
+    "automatic_retries": 0,
+    "network_identity_configured": true,
+    "retained_configuration_preserved": true,
+    "reservation_released": true,
+    "peer_unchanged": true
+  },
+  "zero_rf_browser_check": {
+    "result": "PASS",
+    "private_evidence_root": "phase11-6-status-repair-corrected-zero-rf-20260919",
+    "packet_sha256": "0c31827a44367c97e974439fb312348826bb19a1e2b49eeed4ecaa76f845add7",
+    "result_sha256": "d6860092a9a14b590ea0e5010918f35f869e95d38422359f1de3f3930697b4ff",
+    "reservation_release_sha256": "68334c51cbc50028f68da10fce475087265f899db29b3855793d7229e1a6299c",
+    "mode": "FSKCW",
+    "job_id": "b34631832e7e3936ebd050ffc23179d4",
+    "browser_operations": [
+      "HELLO",
+      "CLAIM",
+      "LOAD_MESSAGE",
+      "ARM",
+      "ABORT",
+      "RELEASE"
+    ],
+    "accepted_arm_lead_ns": 113639230000,
+    "console_samples": 46,
+    "usb_samples": 10,
+    "terminal_state": "aborted",
+    "final_state": "empty",
+    "final_output_active": false,
+    "final_owner_id": null,
+    "allocator_largest_successful_request_bytes": 16693,
+    "allocator_failures": 0,
+    "tls_allocation_failures": 0,
+    "heap_reserve_bytes": 151840,
+    "stack_guards_valid": true,
+    "rf_jobs": 0,
+    "arms": 1,
+    "aborts": 1,
+    "automatic_retries": 0,
+    "reservation_released": true
+  },
+  "conducted_requalification": {
+    "result": "PASS",
+    "matrix_credit": false,
+    "private_evidence_root": "phase11-6-status-repair-corrected-conducted-20260919",
+    "job_id": "2200m:TONE:0:controller_disconnect:nominal",
+    "wtp_job_id": "75771683a66c32ecdddc8ca7635ee1bf",
+    "band": "2200m",
+    "mode": "TONE",
+    "submission_path": "controller_disconnect",
+    "frequency_hz": 137500,
+    "planned_duration_ns": 5000000000,
+    "observed_duration_s": 5.0,
+    "plan_sha256": "2f4d0608afdcb6a494c84ebbd8c55c665ca87e9bc0cea9de692d7e6c792b0123",
+    "attempt_packet_sha256": "199f049bf41c5c78d703ee27dc2661aedbd804764c49be0e62117241f2f94c7a",
+    "attempt_packet_file_sha256": "6d88e197b624c4c8a3ca0ca482b0d687c56599be3a199bec609498807fb04349",
+    "run_result_sha256": "bf0242bfc37d6976265283dd6769d1195db64bab3fc9f5a990b3d9a895a79866",
+    "execution_jsonl_sha256": "b64201087b914a217e23ab16c0497a17be98fc2b901e018b468e845f677bb8e7",
+    "terminal_states": [
+      "armed",
+      "running",
+      "complete"
+    ],
+    "released_state": "empty",
+    "released_output_active": false,
+    "released_owner_id": null,
+    "browser": {
+      "result": "PASS",
+      "result_sha256": "cce90d8fad23cd5d8c9168e43a1342ac7f737f90e1b7a8df7a042e465abd954d",
+      "journal_sha256": "059e4a90bb399b938c4a0550bdb4606bdaaf37a9bcd67999dd89028d4bd266d2",
+      "manual_refreshes": 11,
+      "manual_refresh_overlap": true,
+      "unavailable_refreshes": 0,
+      "final_output_active": false
+    },
+    "observers": {
+      "console_samples": 46,
+      "usb_status_samples": 10,
+      "usb_event_states": [
+        "loaded",
+        "armed",
+        "running",
+        "complete",
+        "empty"
+      ]
+    },
+    "capture": {
+      "receiver_driver": "sdrplay",
+      "receiver_serial": "2404058C60",
+      "format": "CF32",
+      "sample_rate_hz": 250000,
+      "bandwidth_hz": 200000,
+      "center_frequency_hz": 112500,
+      "gain_db": 20,
+      "sample_count": 5750000,
+      "bytes": 46000000,
+      "overflow_count": 0,
+      "clipping_samples": 0,
+      "capture_sha256": "a7b38e7998d217f0d4e2f0e6489621618740181b3a07b49ebc78a549d89f9410",
+      "metadata_sha256": "0887289fe805360f4af71a37b1871a336495f0e84597bf847e55df1dbd56fb96"
+    },
+    "analysis": {
+      "passed": true,
+      "analysis_sha256": "a9a1dd3a555c3048c475f1129581cc9362f034d15d3fe53c9d203c71df451eea",
+      "physical_result_sha256": "bf0242bfc37d6976265283dd6769d1195db64bab3fc9f5a990b3d9a895a79866",
+      "indicated_mean_hz": 137500.82958805442,
+      "indicated_peak_to_peak_hz": 0.00250850516022183,
+      "requested_bin_contrast_db": 78.06205482669627,
+      "strongest_feature_contrast_db": 87.95111408702846,
+      "best_20hz_resolved_power_share": 0.9999998279464459,
+      "relative_checks_passed": true,
+      "limitations": [
+        "absolute frequency is receiver-indicated and uncalibrated",
+        "spectrum is relative and in-band only; no harmonic, power or regulatory claim",
+        "capture-relative timing does not independently calibrate UTC"
+      ]
+    },
+    "resource_gate": {
+      "allocator_failures": 0,
+      "tls_allocation_failures": 0,
+      "heap_available_bytes": 151768,
+      "allocator_peak_headroom_bytes": 108896,
+      "core0_stack_guard_valid": true,
+      "core1_stack_guard_valid": true,
+      "rf_render_in_ram": true
+    },
+    "accounting": {
+      "rf_jobs_charged": 1,
+      "rf_seconds_charged": 5.0,
+      "maximum_submissions": 1,
+      "automatic_retries": 0
+    },
+    "reservation_released": {
+      "state": "RELEASED",
+      "board_a_state": "empty",
+      "board_b_state": "empty",
+      "board_b_boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0"
+    }
+  },
+  "fixture_cleanup": {
+    "wspr5": {
+      "root": "phase11-6-status-repair-corrected-requal-20260919",
+      "state_sha256": "91078a07f82ef497b0f23adf3a8e1f4b7299220e7fc6fa271dc7d450f0bade4f",
+      "restored": true,
+      "campaign_units_inactive": true,
+      "namespace_absent": true,
+      "interfaces_restored": true
+    },
+    "wspr4": {
+      "root": "phase11-6-status-repair-corrected-ap-20260919",
+      "state_sha256": "26406e2aafd89c5fc55ae97704f0c80ea8df1a04340f8d8acadb62cbfa788491",
+      "restored": true,
+      "campaign_units_inactive": true,
+      "interfaces_restored": true
+    }
+  },
+  "source_impact": {
+    "compact_message_load_requalified": true,
+    "status_under_resident_rf_and_tls_requalified": true,
+    "firmware_waveform_changed": false,
+    "thresholds_changed": false,
+    "dfcw_polarity": "dot high; dash low",
+    "campaign_retests_justified": [
+      "FSKCW browser_compact replacement for attempt 171",
+      "FSKCW controller_disconnect replacement for zero-RF operator-path attempt 172",
+      "DFCW controller_disconnect replacement for attempt 175"
+    ],
+    "wspr_retest": false
+  }
+}

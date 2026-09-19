@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Zero-RF physical requalification of the repaired browser raw-LOAD path."""
+"""Zero-RF physical requalification of a repaired browser submission path."""
 
 from __future__ import annotations
 
@@ -25,6 +25,11 @@ BOOT = "a12f61f7cd59557c1b5628b2568a52d5"
 B_REVISION = "8921a7008183"
 B_BOOT = "6684b4b197d80cfa0ce83b3aaf205cb0"
 FIXTURE_PID = 1243702
+PACKET_SCHEMA = "phase11.6-browser-allocation-repair-requalification-v1"
+AUTHORIZATION = "PHASE11.6-BROWSER-ALLOCATION-REPAIR-20260919"
+RESULT_SCHEMA = "phase11.6-browser-allocation-repair-requalification-result-v1"
+IMAGE_SHA256 = "f1d437261cb7aa3f9668f7624dad5806346a248202a45f15c553617e12e74a47"
+SUBMISSION_KIND = "raw"
 
 
 def require(condition: bool, message: str) -> None:
@@ -109,7 +114,8 @@ def browser_command(root: Path, packet: dict) -> list[str]:
         str(FIXTURE / "chromium-etc"), "/etc/chromium", "--tmpfs", "/tmp",
         "--dev", "/dev", "--proc", "/proc", "--unshare-pid",
         "--die-with-parent", "node", str(root / "browser-submit.js"),
-        "--root", str(output), "--kind", "raw", "--job", str(root / "job.json"),
+        "--root", str(output), "--kind", SUBMISSION_KIND,
+        "--job", str(root / "job.json"),
         "--boot-id", BOOT, "--abort-after-mutations", "--run",
     ]
 
@@ -150,8 +156,11 @@ def validate_browser(root: Path, console, usb) -> dict:
     require(
         result.get("status") == "PASS"
         and result.get("expected_abort") is True
-        and result.get("operations")
-            == ["HELLO", "CLAIM", "LOAD", "ARM", "ABORT", "RELEASE"]
+        and result.get("operations") == [
+            "HELLO", "CLAIM",
+            "LOAD" if SUBMISSION_KIND == "raw" else "LOAD_MESSAGE",
+            "ARM", "ABORT", "RELEASE",
+        ]
         and "aborted" in result.get("own_states", [])
         and not ({"running", "complete", "missed", "failed"}
                  & set(result.get("own_states", [])))
@@ -159,11 +168,14 @@ def validate_browser(root: Path, console, usb) -> dict:
         and result.get("terminal", {}).get("output_active") is False
         and result.get("final", {}).get("output_active") is False
         and result.get("final", {}).get("owner_id") is None
-        and marker.get("operations") == ["HELLO", "CLAIM", "LOAD", "ARM"]
+        and marker.get("operations") == [
+            "HELLO", "CLAIM",
+            "LOAD" if SUBMISSION_KIND == "raw" else "LOAD_MESSAGE", "ARM",
+        ]
         and all(response.get("status") == 200
                 for response in result.get("responses", []))
         and len(result.get("responses", [])) == 6,
-        "Actual browser raw LOAD/ARM/ABORT/RELEASE lifecycle",
+        "Actual browser LOAD/ARM/ABORT/RELEASE lifecycle",
     )
     accepted = result["responses"][3]["body"]["result"]["clock"]
     lead = int(submission["start_utc_ns"]) - int(accepted["utc_now_ns"])
@@ -199,18 +211,20 @@ def main() -> int:
         parser.error("--run requires the authorized zero-RF physical check")
     require(sys.platform.startswith("linux") and os.geteuid() == 0,
             "Run as root on wspr5")
+    require(SUBMISSION_KIND in {"raw", "compact"},
+            "Exact browser submission kind")
     root = args.root.resolve(strict=True)
     packet_path = root / "packet.json"
     packet = json.loads(packet_path.read_text())
     require(digest(packet_path) == args.packet_sha256,
             "Immutable requalification packet")
     require(packet == {
-        "schema": "phase11.6-browser-allocation-repair-requalification-v1",
-        "authorization": "PHASE11.6-BROWSER-ALLOCATION-REPAIR-20260919",
+        "schema": PACKET_SCHEMA,
+        "authorization": AUTHORIZATION,
         "source_revision": SOURCE,
         "boot_id": BOOT,
-        "image_sha256":
-            "f1d437261cb7aa3f9668f7624dad5806346a248202a45f15c553617e12e74a47",
+        "image_sha256": IMAGE_SHA256,
+        "submission_kind": SUBMISSION_KIND,
         "browser_script_sha256": digest(root / "browser-submit.js"),
         "runner_sha256": digest(Path(__file__).resolve()),
         "job_sha256": digest(root / "job.json"),
@@ -301,7 +315,7 @@ def main() -> int:
         save_new(root / "reservation-released.json",
                  json.loads(reservation.path.read_text()))
         result = {
-            "schema": "phase11.6-browser-allocation-repair-requalification-result-v1",
+            "schema": RESULT_SCHEMA,
             "result": "PASS",
             "source_revision": SOURCE,
             "boot_id": BOOT,
