@@ -1,0 +1,112 @@
+{
+  "schema": "phase11.6-status-admission-repair-source-impact-v1",
+  "status": "AWAITING_EXPLICIT_FLASH_AUTHORIZATION",
+  "date": "2026-09-19",
+  "failure_evidence": {
+    "compact_load_attempt": 171,
+    "compact_load_result": "HTTP 503 before RF",
+    "status_observer_attempt": 175,
+    "status_observer_result": "four consecutive HTTP 503 responses during a completed RF job",
+    "minimum_observed_heap_bytes": 47272,
+    "prior_generic_status_admission_bytes": 49152,
+    "required_browser_observer_passed": false
+  },
+  "source": {
+    "prior_accepted_revision": "7068b937240a7cbdfd0f0edbd7d347057604c0f0",
+    "candidate_revision": "0e85ff90571c800450073f7b0bfafd70266f1f44",
+    "candidate_linked_revision": "0e85ff90571c",
+    "firmware_linked_files": [
+      "src/encoding/morse.hpp",
+      "src/network/api.cpp"
+    ],
+    "firmware_source_diff_sha256": "999fb7e6cd642d59e7a7854685ef67957e91aed708339b67faba75ec77ae2413"
+  },
+  "repair": {
+    "compact_load_admission": "validate and measure the message first, then admit and reserve only the event pages required by the measured event count",
+    "status_admission": "use 8192 bytes of request scratch for GET /api/v1/status and GET /api/v1/jobs while retaining the independent 32768-byte reserve",
+    "unchanged": [
+      "WTP authority and lifecycle",
+      "RF renderer",
+      "symbol timing and frequency mapping",
+      "DFCW dot-high/dash-low campaign polarity",
+      "32768-byte RF reserve",
+      "accepted physical configuration"
+    ]
+  },
+  "candidate_build": {
+    "target": "WsprryPico-StandaloneRF",
+    "board": "Pico 2 W / RP2350 Arm Secure",
+    "build_type": "Release",
+    "sdk_version": "2.3.1",
+    "sdk_commit": "079c6f39023649b154152db30f1d781e884879bc",
+    "compiler": "Arm GNU 15.3.1",
+    "system_clock_hz": 138000000,
+    "standalone_wspr_base_frequency_hz": 135500,
+    "uf2": {
+      "bytes": 2126336,
+      "sha256": "377f752bac87eb407172f6a4a3b3caf7e0a24502521f9a964fdcc9830095e6f0"
+    },
+    "elf": {
+      "bytes": 15954764,
+      "sha256": "1695395b0d7539b76468cd7b6d592cf92859c4dc26d2c99e09844071d58bfeb1"
+    },
+    "map": {
+      "bytes": 2737009,
+      "sha256": "782e40d7e5758135b91a0165679bbfcdca1c90ae3c9bf25831b8691204faf256"
+    },
+    "linked_checks": {
+      "heap_hooks": "PASS",
+      "stack_guards": "PASS",
+      "rf_renderer_in_ram": "PASS"
+    },
+    "staging": "LOCAL_ONLY_NOT_COPIED_TO_WSPR5"
+  },
+  "validation": {
+    "macos_host_ctest": "68/68 PASS",
+    "focused_network_and_event_storage": "2/2 PASS",
+    "phase11_6_python": "84/84 PASS",
+    "wspr5_source_bundle": "focused host build PASS and 78/78 Phase 11.6 tests PASS"
+  },
+  "deployment_boundary": {
+    "target_board": "A",
+    "pico_serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "prior_boot_id": "a12f61f7cd59557c1b5628b2568a52d5",
+    "prior_revision": "7068b937240a",
+    "peer_serial": "CDDBF8767C506C07",
+    "peer_device_id": "29f20b7342051ef947aa56cb9d4fab42",
+    "peer_boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0",
+    "limits": {
+      "firmware_flashes": 1,
+      "bootsel_transitions": 1,
+      "configuration_writes": 0,
+      "rf_jobs_during_deployment": 0,
+      "automatic_retries": 0
+    },
+    "authorized": false
+  },
+  "affected_phase11_5_requalification": [
+    {
+      "name": "compact message load",
+      "rf_jobs": 0,
+      "procedure": "submit the exact six-event FSKCW compact message through the shipped browser, ARM at least 120 seconds ahead, then ABORT and RELEASE before output under persistent Console and USB observation"
+    },
+    {
+      "name": "status under resident RF and TLS state",
+      "rf_jobs": 1,
+      "maximum_rf_seconds": 5,
+      "procedure": "run one bounded five-second conducted job while the shipped browser performs required manual status refreshes and independent WTP, Console, and USB observers remain active"
+    }
+  ],
+  "campaign_resume": {
+    "requires_requalification_pass": true,
+    "fresh_attempt_packets_required": true,
+    "justified_retests": [
+      "FSKCW browser_compact replacement for attempt 171",
+      "FSKCW controller_disconnect replacement for zero-RF operator-path attempt 172",
+      "DFCW controller_disconnect replacement for attempt 175"
+    ],
+    "wspr_retest": false,
+    "automatic_retries": 0
+  }
+}

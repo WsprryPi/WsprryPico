@@ -27,7 +27,9 @@ The repaired source has not been flashed. Before any affected campaign row can
 be retried, a firmware image must be bound to the repaired source revision, the
 concrete flash must receive separate authorization, and the affected Phase 11.5
 compact-load/status behavior must be requalified. Each justified retest then
-requires a new immutable attempt packet.
+requires a new immutable attempt packet. The exact candidate identity and
+requalification scope are in
+`phase11-6-status-admission-repair-source-impact.json`.
 
 The machine-readable companion records the accepted and retained attempts,
 private-evidence hashes, RF accounting, repair impact, and limitations. The
