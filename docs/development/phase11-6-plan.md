@@ -1,375 +1,137 @@
 # Phase 11.6 conducted RF acceptance plan
 
-Status: **OPEN — further RF is paused after attempt 67.** The exact zero-tail
-repair candidate is installed and its affected Phase 11.5 lifecycle checks and
-80 m TONE row passed. Attempts 56, 57, 62 and 64 retain unrelaxed QRSS/FSKCW
-coherence failures. Attempt 67 completed one 60 m reverse-profile DFCW RF job,
-but the independent resource gate failed after the browser observer continued
-refreshing through target TLS allocation failures. Its full capture is retained
-without an accepted analysis result; the attempt is charged and will not be
-retried automatically.
+Status: **OPEN — reconciled through immutable attempt 175; RF not authorized by
+this reconciliation.**
 
-The browser watcher now stops after four consecutive unavailable refreshes,
-but that host-only repair does not convert attempt 67 to a pass or clear the
-DUT's latched counters. Both Picos are empty, inactive and unowned, the shared
-reservation is released, and both host fixtures are restored. Continuing at
-sequence 68 requires one separately authorized controlled reboot of Pico A,
-with no flash or CONFIG write, followed by fresh exact-image, retained-config
-and zero-resource-counter verification. See the
-[attempts 53-67 checkpoint](phase11-6-80m-60m-attempt53-67.json).
+The authoritative row ledger is
+[`phase11-6-matrix.json`](phase11-6-matrix.json), and the exact minimum
+remaining RF list is
+[`phase11-6-closure-plan.json`](phase11-6-closure-plan.json). The expanded
+[`phase11-6-plan.json`](phase11-6-plan.json) remains the immutable v23 execution
+plan used by the retained attempt lineages. It is intentionally not rewritten:
+changing it would change the digest to which historical packets are bound.
 
-Earlier attempts 42, 43, 45, 53, 54 and 63 remain preserved zero-RF
-harness/orchestration failures. Attempt 44 passed the armed clock-refinement
-corrective gate. The 160 m QRSS and reverse-profile DFCW paths pass their
-individual physical and IQ checks, while attempt 48 retains its unrelaxed
-FSKCW coherence failure. The 80 m reverse-profile DFCW paths also pass their
-individual checks. Packet audits, WSPR and remaining bands are pending. This
-phase is per-band/per-mode operational acceptance for the configuration closed
-by Phase 11.5. It is not the Phase 13 band x mode x clock, filter, harmonic,
-calibrated-power or release campaign.
+This reconciliation used `origin/devel`
+`334b21547a96c3e5584aa4d980893774ac488606` and the retained wspr5 evidence
+through attempt 175. It performed no flash, BOOTSEL transition, reboot,
+configuration write, GPIO change or RF operation. No threshold was relaxed, no
+failed attempt was retried, and no historical evidence was rebound to a later
+source, image or boot.
 
-Attempt 52 launched its immutable 80 m UTC request after an accepted clock
-refinement; this was not a stale-target or uncertainty rejection. The final
-data IRQ established a zero-tail chain with 936 of 1,156 predecessor words
-remaining, the tail IRQ count advanced, PIO output was inactive, DMA errors and
-invalid/unpaired refill counts remained zero, and the 2,168,000 ns maximum
-service gap stayed below the frozen 2,849,391 ns gate. The failure is the sink's
-software completion rule: it waits for tail IRQ service even though the chained
-hardware stop has already executed. The deployed repair recognizes that
-authoritative inactive hardware state after the final-data IRQ. It changes no
-sample, frequency, tail length, 100 microsecond acknowledgement bound or frozen
-service-gap limit. The original sink fails the new regression and the repaired
-sink passes it. Sequence 55 physically requalified the affected Phase 11.5
-lifecycle checks and the 80 m TONE row on the exact deployed candidate.
+## Authoritative matrix checkpoint
 
-The reproducible packet generator is `scripts/phase11_6.py`; the public acceptance
-matrix is [`phase11-6-matrix.json`](phase11-6-matrix.json). The current
-canonical plan SHA-256 is
-`3f69820064a1dd633205299ea91e04fdeea544ec5b35390f4a6dfa7a8a432c9f`;
-its serialized file SHA-256 is
-`650a69b9f24b02d60da28fbc50a8a816e0d7254085bcc1a0c361a1beda10a2d9`.
-The immutable predecessor plan SHA-256 is
-`8a52e4d9b3f252097bca0112c08b3b1e41792905775624940bcbf313b5cb072b`.
-The expanded private packet is intentionally generated from maintained source
-rather than committing 1.6 MB of repeated WSPR and keyed events.
+The 75 rows now contain 7 `PASS`, 8 `FAIL`, 19 `BLOCKED`, 31 `NOT TESTED` and
+10 `UNSUPPORTED_CONFIGURATION` dispositions.
 
-## Source and accepted configuration
+| Band | TONE | WSPR | QRSS | FSKCW | DFCW |
+| --- | --- | --- | --- | --- | --- |
+| 2200 m | PASS | FAIL | PASS | BLOCKED — 2 repair replacements | BLOCKED — 1 repair replacement |
+| 630 m | PASS | BLOCKED — WSPR timing | BLOCKED — packet audit | BLOCKED — packet audit | BLOCKED — packet audit |
+| 160 m | PASS | BLOCKED — WSPR timing | BLOCKED — packet audit | FAIL — coherence | BLOCKED — packet audit |
+| 80 m | PASS | BLOCKED — WSPR timing | FAIL — coherence | FAIL — coherence | BLOCKED — packet audit |
+| 60 m | PASS | BLOCKED — WSPR timing | FAIL — coherence | FAIL — coherence | FAIL — observer/resource gate |
+| 40 m | PASS | FAIL — control path | NOT TESTED | NOT TESTED | NOT TESTED |
+| 30 m | NOT TESTED | BLOCKED — WSPR timing | NOT TESTED | NOT TESTED | NOT TESTED |
+| 20 m | NOT TESTED | BLOCKED — WSPR timing | NOT TESTED | NOT TESTED | NOT TESTED |
+| 17 m | NOT TESTED | BLOCKED — WSPR timing | NOT TESTED | NOT TESTED | NOT TESTED |
+| 15 m | NOT TESTED | BLOCKED — WSPR timing | NOT TESTED | NOT TESTED | NOT TESTED |
+| 12 m | NOT TESTED | BLOCKED — WSPR timing | NOT TESTED | NOT TESTED | NOT TESTED |
+| 10 m | NOT TESTED | BLOCKED — WSPR timing | NOT TESTED | NOT TESTED | NOT TESTED |
+| 6 m | NOT TESTED | BLOCKED — WSPR timing | NOT TESTED | NOT TESTED | NOT TESTED |
+| 4 m | UNSUPPORTED | UNSUPPORTED | UNSUPPORTED | UNSUPPORTED | UNSUPPORTED |
+| 2 m | UNSUPPORTED | UNSUPPORTED | UNSUPPORTED | UNSUPPORTED | UNSUPPORTED |
 
-The zero-tail repair and its companion production-client support were committed
-and verified at their upstream `devel` branches before the accepted build:
+`PASS` means the row has an explicit accepted disposition, not merely a runner
+PASS label. `FAIL` is immutable and is not a request for a retry. `BLOCKED`
+means either a zero-RF packet audit is absent, a source-impact-approved repair
+replacement remains, or the frozen WSPR control-path timing proof prohibits a
+further RF attempt. `NOT TESTED` means no retained row attempt exists through
+sequence 175. At 138 MHz/divider 1, 4 m and 2 m exceed the direct synthesis
+range and remain unsupported without ARM or RF.
 
-- WsprryPico repair `210599d907acdb23278fc24244b674d62c820d7c`;
-  campaign tooling through `0bc2061c3f430e73479acb3f9be8f1930b660daf`.
-- WsprryPi `3b046ebe3eaa19ae764706d844fa7354033c32df`.
+The campaign DFCW convention remains **dot-high/dash-low**. This is the
+retained WsprryPico/browser convention even though the common external DFCW
+convention is dot-low/dash-high. No row may silently reverse the retained
+campaign mapping.
 
-The DUT is Pico A serial `0BF4B4AEC9FFB344`, WTP device
-`fd6127d11d6aca42a9905fa3fb1bf1d5`, repaired source
-`210599d907acdb23278fc24244b674d62c820d7c`, UF2 SHA-256
-`b01fecbe3d516dbe5a5e261955e376f062f92a9fe9f7c9b86135bb5f7e8b9811`
-and boot `be52153ea21a03f75067129f2bc2245f`. The original Phase 11.5
-accepted boot remains `ff719d304f1ba4ac23fddd93561b26f0`; the last
-pre-zero-tail-repair campaign boot was `b72fed2c17583cc7aba0f1345f76a3b2`.
-The candidate configuration is
-Pico 2 W / RP2350 Arm, 138 MHz system/sample clock, PIO divider 1,
-`pio-dma-gp2`, GP2 and RAM rendering with the network listener configured.
+## Evidence identities and binding
 
-The initial fresh zero-RF USB inventory after deployment confirmed the exact A identity,
-135,500 Hz retained standalone base, valid stack guards, at least 32,768 bytes
-of heap reserve, zero allocator/TLS/DMA/fault counters, empty state, no owner,
-inactive output and disabled schedules. Authenticated hostname/TLS WTP `HELLO`,
-`CAPS`, `STATUS`, `GET_CLOCK` and `PING` then passed without a mutation. Pico B serial `CDDBF8767C506C07`, device
-`29f20b7342051ef947aa56cb9d4fab42`, source `8921a7008183` and boot
-`6684b4b197d80cfa0ce83b3aaf205cb0` was independently empty, inactive and
-unowned. After sequence 67 reconciliation and host cleanup, the shared
-reservation is `RELEASED`, both fixture recovery timers are active and the
-installed WsprryPi service is active.
+Every attempted-row claim in the machine-readable matrix includes its exact
+sequence, source/image/boot lineage, plan digest where available, and retained
+attempt, execution, run-result, capture, metadata and analysis hashes where
+those artifacts exist. The principal lineages are:
 
-The initial campaign changes were host planning, capture, analysis, audit and
-documentation only. Attempt 41 then confirmed that a normal armed-interval
-clock refinement is rejected by the accepted image's immutable local timer
-projection. The [clock-refinement repair preparation](phase11-6-clock-refinement-repair.md)
-preserves that failed attempt and accounting, identifies affected Phase 11.5
-assertions and records the repair and both deployment attempts. Historical
-evidence remains bound to its recorded images. R1.1/R1.5, the shared R2 launch
-path and the R6 timing/resource gates transfer to the repaired candidate only
-after an observed armed-interval refinement completes the bounded corrective
-job without `MISSED_START`.
+| Lineage | Source | UF2 SHA-256 | Boot |
+| --- | --- | --- | --- |
+| Phase 11.5 initial | `91933c00970939e366d1bfcf3c1956b59be8f6c5` | `5da240aacf20e27db79126a7bff2be18e4ece849a608fa439f4e0c577659f446` | `ff719d304f1ba4ac23fddd93561b26f0` or retained post-external-event boot `d2f657c2099c67a7af2ef390426bda10` |
+| Clock refinement | `2eaa99945d21501cd4dbdac98c25be5fa146e479` | `af3f6917ba807a1526dca6e15f19fff1974410fc87ecc32fd6e9c4f07059525f` | `b72fed2c17583cc7aba0f1345f76a3b2` |
+| Zero-tail | `210599d907acdb23278fc24244b674d62c820d7c` | `b01fecbe3d516dbe5a5e261955e376f062f92a9fe9f7c9b86135bb5f7e8b9811` | `be52153ea21a03f75067129f2bc2245f` or controlled-reboot boot `e363bf9ae4528258563557b7d306efcd` |
+| Browser allocation | `7068b937240a7cbdfd0f0edbd7d347057604c0f0` | `f1d437261cb7aa3f9668f7624dad5806346a248202a45f15c553617e12e74a47` | `a12f61f7cd59557c1b5628b2568a52d5` |
+| Current status-admission repair | `0e85ff90571c800450073f7b0bfafd70266f1f44` | `9ac5a40fe6d9a44a3a0156621b82801488efecafb9f472ba601dbcbb3e138398` | `cab95d7eecad05047fcb1d6806cf9e86` |
 
-At that historical checkpoint, one authorized repair flash installed clean
-source `2eaa99945d21`
-but was rejected before acceptance because its build omitted the accepted
-135,500 Hz standalone-base override and reported the generic 3,570,100 Hz
-default. The device remained inactive, no RF or CONFIG write occurred, and the
-held reservation was released only after fresh A/B reconciliation. A corrected
-135,500 Hz UF2 was then built and privately staged; its exact record and the
-fresh-authorization boundary are in the
-[deployment attempt result](phase11-6-clock-refinement-deployment-attempt1.json).
+The current candidate passed the documented zero-RF compact FSKCW browser
+check and one five-second conducted TONE requalification. That requalification
+has no matrix credit. Its source-impact decision permits only three fresh
+replacement paths: 2200 m FSKCW browser-compact, 2200 m FSKCW
+controller-disconnect and 2200 m DFCW controller-disconnect. It does not
+retroactively transfer later identity to older captures, does not justify a
+WSPR retry and does not authorize retrying the retained coherence or
+observer/resource failures.
 
-A separately authorized serial-bound flash then installed the corrected
-135,500 Hz image once. It produced boot
-`b72fed2c17583cc7aba0f1345f76a3b2`; exact source, UF2, 138 MHz/RAM/GP2,
-retained configuration and network identity checks passed, Pico B remained
-unchanged, no CONFIG or RF operation occurred, and the reservation was released
-after fresh inactive A/B authority. The sanitized result is
-[`phase11-6-clock-refinement-deployment-attempt2.json`](phase11-6-clock-refinement-deployment-attempt2.json).
+The exact sanitized evidence references include:
 
-That second amendment changed accepted source/image/boot identity but not RF
-job payloads. Attempts 1-41 remain bound to their recorded predecessor plans;
-attempts 42-52 remain bound to the `2eaa999`/`b72fed2c` plan lineage. The later
-`210599d` zero-tail deployment created the current plan lineage used by attempts
-53 and later without recasting any earlier evidence.
+- [`phase11-6-clock-refinement-attempt44.json`](phase11-6-clock-refinement-attempt44.json)
+- [`phase11-6-160m-attempt45-51.json`](phase11-6-160m-attempt45-51.json)
+- [`phase11-6-80m-60m-attempt53-67.json`](phase11-6-80m-60m-attempt53-67.json)
+- [`phase11-6-attempt-0161-browser-arm-lead-failure.json`](phase11-6-attempt-0161-browser-arm-lead-failure.json)
+- [`phase11-6-attempt-0164-tone-offline-recovery.json`](phase11-6-attempt-0164-tone-offline-recovery.json)
+- [`phase11-6-2200m-nonwspr-checkpoint.json`](phase11-6-2200m-nonwspr-checkpoint.json)
+- [`phase11-6-status-admission-repair-source-impact.json`](phase11-6-status-admission-repair-source-impact.json)
+- [`phase11-6-status-admission-repair-requalification.json`](phase11-6-status-admission-repair-requalification.json)
 
-Attempt 42 stopped before capture, production-client startup, `LOAD`, `ARM` or
-RF because the isolated browser namespace could not resolve the retained Pico
-hostname. Both boards were reconciled inactive and the reservation was
-released. The browser tools now deterministically map the frozen hostname to
-the already-pinned fixture address while retaining hostname-based HTTPS and
-the pinned peer certificate. A browser-only validation passed page load,
-authentication and manual refresh against the corrected boot. The
-[sanitized attempt record](phase11-6-clock-refinement-attempt42.json) preserves
-the failure, zero-RF accounting and tool hashes. Attempt 43 then passed browser
-readiness but exposed an incorrect `--capture-helper` selection before capture
-or production startup. Its
-[sanitized record](phase11-6-clock-refinement-attempt43.json) preserves that
-second pre-RF failure and reconciliation. Retained successful requests bind the
-reviewed native capture helper and its SHA-256; a receiver-only readiness check
-with that exact executable is required before proceeding, and the production
-entry point rejects a different helper before reservation. The corrective entry point is
-rebound to fresh sequence 44 with the same one-submission, zero-retry and
-45.000001-second RF limits; attempts 42 and 43 may not be reused.
+Raw IQ, authenticated transcripts and private attempt roots remain on wspr5.
 
-The required receiver-only check then passed at 1,813,100 Hz with the exact
-native helper and RSP1B serial `2404058C60`: 500,000 retained CF32 samples,
-zero overflow, zero clipping, first-read discard and verified device cleanup.
-No RF output was requested. Exact IQ and metadata hashes are retained in the
-attempt 43 record.
+## Minimum remaining RF
 
-Fresh sequence 44 then completed the one authorized 45.000001-second corrective
-RF job. A lower-uncertainty sample was accepted while the same job remained
-Armed, the corrected image reprojected the local alarm, launched once and
-completed without `MISSED_START`. Browser overlap, independent USB lifecycle,
-retained Phase 11.5 health gates, capture integrity and physical-result-bound IQ
-analysis passed. The
-[sanitized attempt 44 result](phase11-6-clock-refinement-attempt44.json) records
-the exact measurements, hashes, accounting and limitations. Cumulative RF
-accounting is 42 RF attempts and 1245.000029 charged planned seconds; the two
-pre-RF harness failures do not add RF charges.
+The minimum list has **82 jobs** and an exact maximum of
+**3260.000075 RF seconds**. It contains no WSPR job and no retry of an immutable
+failed row.
 
-At the corrective checkpoint, attempt 44 supplied only the production path for
-the 160 m QRSS row. The continuation below adds the browser-owned and
-controller-disconnect results, but the ordinary packet still cannot receive
-packet-level audit credit until all jobs and restoration assertions are
-present. No Phase 11.6 phase-closure claim is made.
+| Scope | Jobs | Maximum RF seconds |
+| --- | ---: | ---: |
+| 2200 m repair replacements | 3 | 129.000003 |
+| 40 m QRSS/FSKCW/DFCW, all three paths | 9 | 387.000009 |
+| 30 m non-WSPR matrix | 10 | 392.000009 |
+| 20 m non-WSPR matrix | 10 | 392.000009 |
+| 17 m non-WSPR matrix | 10 | 392.000009 |
+| 15 m non-WSPR matrix | 10 | 392.000009 |
+| 12 m non-WSPR matrix | 10 | 392.000009 |
+| 10 m non-WSPR matrix | 10 | 392.000009 |
+| 6 m non-WSPR matrix | 10 | 392.000009 |
+| **Total** | **82** | **3260.000075** |
 
-## 160 m continuation checkpoint
+The exact sequence allocation is 176 through 257 in the closure-plan JSON.
+Each job requires a fresh immutable packet. TONE is one five-second
+controller-disconnect job. QRSS and FSKCW are 45.000001 seconds for each of
+production, browser-compact and controller-disconnect. DFCW is 39.000001
+seconds for each of those three paths.
 
-After the timing requalification, sequence 45 was preserved without RF when a
-manual `nsenter` invocation used a relative runner path. The runner never
-started, the output root was absent, the reservation remained released and no
-Pico request or capture occurred. Its packet was not reused. Fresh sequences
-46 and 47 passed the browser-owned and controller-disconnect QRSS paths, so all
-three QRSS submission paths now have passing physical and independent-IQ
-results. The ordinary 160 m packet audit remains pending.
+The plan permits zero flashes, zero BOOTSEL transitions, zero controlled
+reboots, zero configuration writes, zero GPIO changes and zero automatic
+retries. Admission must match the current candidate, companion, receiver and
+conducted path exactly. Any identity, reservation, resource, observer,
+lifecycle, capture, analysis, cleanup or restoration failure stops RF and is
+retained.
 
-Sequence 48 completed the 160 m FSKCW production waveform and lifecycle, but
-the independent analysis failed the frozen 0.15 rad phase-coherence threshold:
-the 21-second low state measured 0.167284 rad RMS. Its +5.018197 Hz separation,
-transition timing, carrier continuity, amplitude and contrast otherwise passed.
-An offline diagnostic found a smooth approximately 0.040 Hz drift across that
-state, not a dropout. Because the receiver axis is uncalibrated, the retained
-evidence cannot assign that relative drift solely to the Pico or receiver. The
-limit was not relaxed, the attempt was not repeated, and the browser/controller
-FSKCW paths remain unspent.
+## Zero-RF work and closure boundary
 
-Sequences 49 through 51 then passed the production, browser and controller-
-disconnect DFCW paths. These packets and browser requests explicitly preserve
-the project image's reverse dot-high/dash-low profile; conventional external
-DFCW remains dot-low/dash-high. The full sanitized checkpoint, exact evidence
-hashes, RF accounting and restoration state are recorded in
-[`phase11-6-160m-attempt45-51.json`](phase11-6-160m-attempt45-51.json).
+Existing passing path sets for 630 m QRSS/FSKCW/DFCW, 160 m QRSS/DFCW and
+80 m DFCW still require independent packet audits. Every newly completed row
+also requires its independent audit and exact hash reconciliation. Those audits
+must not trust runner labels and must preserve the row's recorded lineage.
 
-## 80 m and 60 m continuation checkpoint
-
-Sequences 53 and 54 stopped without RF: first the staged plan retained the
-predecessor firmware identity, then the browser watcher retained the predecessor
-boot identity. Sequence 55 passed the repaired five-second 80 m TONE
-controller-disconnect path and the affected zero-tail/lifecycle requalification.
-The failures remain preserved and their packets were not reused.
-
-The 80 m production QRSS and FSKCW jobs completed physically but failed the
-unchanged 0.15 rad phase-coherence limit at 0.215676 and 0.481743 rad RMS. Their
-remaining paths were not spent. All three 80 m reverse-profile DFCW paths then
-passed their individual physical and IQ checks, with measured separations from
-4.968399 to 4.997379 Hz and maximum phase residual no greater than 0.042081 rad.
-The ordinary packet audit remains pending.
-
-At 60 m, TONE passed. Production QRSS failed with a 0.342160 rad residual, and
-production FSKCW failed with a 0.659806 rad residual; their remaining paths were
-not spent. Sequence 63 is a preserved zero-RF orchestration error: the shell
-selected the wrong duplicate TONE job, then the settled-clock admission gate
-timed out before capture, `LOAD` or `ARM`. Production and browser DFCW passed
-their individual checks with 4.989293 and 5.038572 Hz separation.
-
-The sequence 67 controller-disconnect DFCW job reached `Complete` and returned
-inactive, with a complete 14,250,000-sample capture, zero overflow and zero
-clipping. It nevertheless fails acceptance. The old browser watcher issued 120
-manual refreshes, treated 107 unavailable responses as success, and continued
-pressuring TLS. Final authoritative inventory recorded 428 allocator failures,
-214 TLS allocation failures and a last failed request of 16,693 bytes. The
-runner consequently failed independent observer health before writing
-`run-result.json`; no ordinary analysis result exists. Reconciliation retained
-the complete terminal record, proved both boards empty/inactive/unowned and
-released the reservation.
-
-The watcher now fails on the fourth consecutive unavailable refresh and resets
-that counter on recovery. This host-only change prevents an observer from
-hammering a failed page and from reporting a misleading pass; it does not alter
-the attempt, waveform or DUT. The full sanitized measurements, hashes,
-accounting and restoration record are in
-[`phase11-6-80m-60m-attempt53-67.json`](phase11-6-80m-60m-attempt53-67.json);
-the independent disposition and continuation checks are in the
-[adversarial review](phase11-6-attempt53-67-review.md).
-
-## Clock refinement behavior
-
-Better timing is accepted. Before a job, the host waits up to a bounded deadline
-for synchronized uncertainty at or below 10 ms instead of rejecting the packet
-on the first coarse sample. Sequence 65 waited from 11.813152 ms to 3.948996 ms;
-sequence 67 waited from 13.001644 ms to 3.948780 ms, and both then armed.
-
-While a job is Armed, the `210599d` candidate accepts a newer lower-uncertainty
-sample and reprojects the same immutable UTC target onto the revised monotonic
-mapping. The earlier attempt 41 failure occurred because its predecessor kept
-the old local projection: by the time the better sample moved the mapping, the
-unchanged UTC target no longer satisfied the minimum-launch guard. That was a
-stale-target safety rejection, not a policy that prefers coarse timing. The
-repair preserves the immutable UTC request and guard while updating only its
-local projection.
-
-## Frozen content and frequency convention
-
-The supported direct-synthesis points are 2200 m through 6 m from the requested
-matrix. At 138 MHz/divider 1, 4 m and 2 m exceed the 68,999,999 Hz direct range;
-all ten of those rows are `UNSUPPORTED_CONFIGURATION` and receive no ARM or RF
-attempt.
-
-The keyed message is `ET E`. It deliberately includes a dot, dash, character
-gap and word gap while keeping the campaign bounded. QRSS3 uses 3 s dots, 9 s
-dashes, 3 s intra-element gaps, 9 s character gaps and 21 s word gaps. FSKCW
-uses the listed nominal frequency as its low space and nominal +5 Hz as its high
-mark. This accepted image uses a **reverse DFCW profile**, high dot and low
-dash; conventional DFCW is dot low and dash high. The label is explicit so the
-matrix does not imply that the retained image defines the external convention.
-QRSS and DFCW gaps are silent; FSKCW gaps remain on the low state. Each
-compact job includes the implemented 1 microsecond final-off event.
-
-WSPR freezes `AA0NT EM18 20`; the power field is encoded content, not measured
-power. The listed nominal is the WSPR RF center. Its four production-compatible
-tones are nominal -2.197265625, -0.732421875, +0.732421875 and +2.197265625 Hz,
-with 162 canonical 682,666,666 ns symbol cells. A separate 32-character QRSS case on 20 m uses
-`E T ` repeated eight times, including its trailing counted space, to retain
-word-space and boundary evidence without duplicating an hour on every band.
-
-## Assertions and numeric tolerances
-
-These operational tolerances were frozen before physical results:
-
-- requested versus receiver-indicated frequency: within 100 Hz, explicitly
-  uncalibrated for absolute frequency;
-- WSPR adjacent-tone spacing: within 0.05 Hz of 1.46484375 Hz; per-symbol
-  residual no greater than 0.1 Hz; three complete independently decoded frames
-  in consecutive nominal two-minute slots;
-- keyed state separation: within 0.2 Hz of 5 Hz, with correct FSKCW and DFCW
-  polarity;
-- Tone duration: within 0.02 s; keyed edges and gaps: within 0.05 s at 1 ms
-  analysis resolution;
-- signal contrast: at least 10 dB without clipping or overload;
-- at least 1 s of leading and trailing quiet, no extra burst, hidden dropout,
-  unwanted tail or carrier in commanded-off intervals.
-
-Each row reports decoding/readability, frequency/spacing and envelope timing,
-network/lifecycle behavior, capture validity and diagnostic in-band spectrum
-separately. A decode alone cannot pass a row. Spectrum observations are
-diagnostic only and make no harmonic, calibrated-power or regulatory claim.
-
-## Packet schedule and accounting
-
-Each supported band has one ordinary immutable packet with the 13 primary
-jobs. The 20 m packet also contains the single 32-character semantics case.
-Thus ordinary packets contain 13 jobs, or 14 on 20 m, and charge 723.776009
-seconds, or 1,134.776010 seconds on 20 m. Tone is a documented production-
-interface gap: the Pi maintenance operation is start/stop controlled rather
-than a bounded scheduled production mode, so the finite laboratory controller
-supplies that row.
-
-Primary path allocation is:
-
-- Tone: direct network controller, deliberate transport disconnect after ARM;
-- WSPR: production WsprryPi, browser raw-job owner, then direct controller
-  disconnect, in consecutive slots;
-- QRSS/FSKCW/DFCW: production WsprryPi, browser `LOAD_MESSAGE`, then direct
-  controller disconnect.
-
-Every job includes actual browser page load/manual refresh interaction while
-Armed or Running. Each non-Tone row therefore receives production operation;
-all rows receive real page lifecycle coverage and one completion after control-
-transport loss. Direct
-disconnect closes transport only; it never removes Pico USB power.
-
-Three integration packets at 2200 m, 20 m and 6 m add nine jobs. They cover all
-five modes, production/browser/controller ownership, owner abort,
-foreign-principal rejection and physical Console ABORT, with IQ retained through
-cessation and trailing quiet.
-
-The complete frozen plan is 179 jobs and 10,248.68011968 planned RF seconds. The
-estimated CF32 volume, including four seconds of per-job capture allowance, is
-21,929,360,239 bytes. This is below the campaign ceilings of 300 jobs and 18,000
-seconds. Every ordinary packet is below 16 jobs and 1,800 seconds. Accepted,
-rejected, aborted, uncertain and completed submissions are charged separately;
-any possibly accepted submission reserves its full planned duration. No blind
-retry or threshold change is permitted.
-
-## Fixture, receiver and safety boundary
-
-Use the accepted two-host topology: wspr4 USB `wlan1`
-`e8:4e:06:ac:f3:87` as the channel-11 AP, and wspr5 USB `wlan2`
-`e8:4e:06:ae:d7:09` as the isolated client/time broker. Preserve wspr4 `wlan0`
-management and wspr5 `eth0`/`wlan1` management. Reinventory boots, interfaces,
-routes, service and executable hashes at setup and restoration. Keep recovery
-timers enabled except for the bounded fixture interval and arm cleanup before
-network changes.
-
-The operator-confirmed path is Pico A GP2 through its existing 60 dB attenuated
-branch into the common SDR combiner, with no antenna and no external filter.
-Do not operate the GPSDO or wspr5 GPIO RF branches. Preserve the path, drive and
-zero correction setting. Contradictory evidence stops RF.
-
-The receiver is the freshly inventoried SDRplay RSP1B serial `2404058C60`, CF32
-at 250 ksample/s, 200 kHz bandwidth, 20 dB gain, AGC and bias tee off, zero
-receiver correction and center 25 kHz below nominal. Run a receiver-only
-readiness capture before the first job and after any relevant retune. Every
-capture binds settings, sample count, helper/driver identity, overflow, clipping
-and cleanup. Raw IQ and authenticated material remain in a mode-0700 private
-root outside Git.
-
-Before reservation/ARM, both boards must be freshly authoritative, schedules
-disabled, B unowned/inactive, A exact-image and healthy, SDR and independent
-USB observers ready, and all other combiner sources inactive. Unknown output
-holds the shared reservation and blocks both boards. Release requires fresh
-inactive/unarmed/unowned proof and disabled schedules on both boards.
-
-## Audit and closure
-
-The independent audit must not trust runner PASS labels. It rehashes the packet
-and evidence inventory, checks exact board/image/boot/clock/receiver identities,
-reconciles LOAD adjustments and actual jobs, reruns IQ analysis, validates page
-overlap and disconnect/abort evidence, enforces RF accounting, and requires
-terminal records plus fresh output-inactive authority. Synthetic mutations must
-reject wrong identity/band/message, truncated capture, polarity reversal,
-missing/extra elements, missing quiet, false page overlap, duplicate submission,
-premature reservation release and changed thresholds.
-
-Rows use only `PASS`, `FAIL`, `BLOCKED`, `NOT TESTED` or
-`UNSUPPORTED_CONFIGURATION`. Phase 11.6 closes only when every mandatory
-supported row and integration assertion passes, or an explicit later scope
-revision disposes of a failure. Failed attempts remain immutable.
+Executing every remaining RF job successfully does **not** by itself close
+Phase 11.6. The retained FAIL rows and configuration-wide WSPR blocks remain.
+Under the existing closure rule, a later explicit scope disposition is required
+after the RF and zero-RF audits. This reconciliation neither supplies that
+scope decision nor marks the phase closed.

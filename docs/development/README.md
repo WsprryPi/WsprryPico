@@ -1,10 +1,16 @@
 # Development baseline
 
-Current Phase 11.5 execution uses the [completion matrix](phase11-5-completion-matrix.md)
-and [September 15 standing authorization](phase11-5-completion-authorization-20260915.md).
-A's current firmware is `91933c009709`, B's is `8921a7008183`; older candidate
-paragraphs below retain historical evidence identities. Phase 11.5 is CLOSED
-at 6/6 families for the recorded 138 MHz/divider-1 configuration. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
+Phase 11.5 is CLOSED at 6/6 families for its recorded 138 MHz/divider-1
+configuration. Its [completion matrix](phase11-5-completion-matrix.md) and
+[September 15 standing authorization](phase11-5-completion-authorization-20260915.md)
+remain historical evidence. Pico A now retains the Phase 11.6 status-admission
+candidate `0e85ff90571c` / UF2
+`9ac5a40fe6d9a44a3a0156621b82801488efecafb9f472ba601dbcbb3e138398` /
+boot `cab95d7eecad05047fcb1d6806cf9e86`; Pico B remains `8921a7008183` /
+boot `6684b4b197d80cfa0ce83b3aaf205cb0`. The
+[Phase 11.6 matrix and closure plan](phase11-6-plan.md) remain OPEN after a
+zero-RF reconciliation through attempt 175. Older candidate paragraphs below
+retain historical evidence identities. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
 passes retained LOAD/replay and P1 individual WTP/HTTP capacity during RF;
 the [Package 2 review](phase11-5-package2-review.md) accepts assertions 2.2a and
 2.2b after paged RF event storage and direct WTP-reservation observability. The

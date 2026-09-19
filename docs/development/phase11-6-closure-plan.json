@@ -1,0 +1,744 @@
+{
+  "schema": "phase11.6-closure-plan-v1",
+  "phase": "11.6",
+  "phase_status": "OPEN",
+  "date": "2026-09-19",
+  "evidence_cutoff_sequence": 175,
+  "matrix": "phase11-6-matrix.json",
+  "matrix_schema": "phase11.6-reconciled-matrix-v1",
+  "current_candidate": {
+    "source_revision": "0e85ff90571c800450073f7b0bfafd70266f1f44",
+    "uf2_sha256": "9ac5a40fe6d9a44a3a0156621b82801488efecafb9f472ba601dbcbb3e138398",
+    "boot_id": "cab95d7eecad05047fcb1d6806cf9e86",
+    "board": "Pico 2 W / RP2350 Arm Secure",
+    "system_clock_hz": 138000000,
+    "pio_divider": 1,
+    "engine": "pio-dma-gp2",
+    "renderer": "RAM",
+    "output": "GP2",
+    "matrix_credit_from_requalification": false,
+    "pico_serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "hostname": "wsprrypico-0a60df.local"
+  },
+  "companion": {
+    "source_revision": "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf",
+    "binary_sha256": "b8e63947e2e9780f43dc4247869db138f81cc6e2245c99c1fd02ad9de4b33ff6"
+  },
+  "peer": {
+    "pico_serial": "CDDBF8767C506C07",
+    "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+    "boot_id": "6684b4b197d80cfa0ce83b3aaf205cb0"
+  },
+  "dfcw_polarity": "dot-high/dash-low",
+  "minimum_remaining_rf_jobs": [
+    {
+      "sequence": 176,
+      "band": "2200m",
+      "mode": "FSKCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "repair replacement"
+    },
+    {
+      "sequence": 177,
+      "band": "2200m",
+      "mode": "FSKCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "repair replacement"
+    },
+    {
+      "sequence": 178,
+      "band": "2200m",
+      "mode": "DFCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "repair replacement"
+    },
+    {
+      "sequence": 179,
+      "band": "40m",
+      "mode": "QRSS",
+      "submission_path": "production",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 180,
+      "band": "40m",
+      "mode": "QRSS",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 181,
+      "band": "40m",
+      "mode": "QRSS",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 182,
+      "band": "40m",
+      "mode": "FSKCW",
+      "submission_path": "production",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 183,
+      "band": "40m",
+      "mode": "FSKCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 184,
+      "band": "40m",
+      "mode": "FSKCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 185,
+      "band": "40m",
+      "mode": "DFCW",
+      "submission_path": "production",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 186,
+      "band": "40m",
+      "mode": "DFCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 187,
+      "band": "40m",
+      "mode": "DFCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 188,
+      "band": "30m",
+      "mode": "TONE",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "5.000000",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 189,
+      "band": "30m",
+      "mode": "QRSS",
+      "submission_path": "production",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 190,
+      "band": "30m",
+      "mode": "QRSS",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 191,
+      "band": "30m",
+      "mode": "QRSS",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 192,
+      "band": "30m",
+      "mode": "FSKCW",
+      "submission_path": "production",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 193,
+      "band": "30m",
+      "mode": "FSKCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 194,
+      "band": "30m",
+      "mode": "FSKCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 195,
+      "band": "30m",
+      "mode": "DFCW",
+      "submission_path": "production",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 196,
+      "band": "30m",
+      "mode": "DFCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 197,
+      "band": "30m",
+      "mode": "DFCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 198,
+      "band": "20m",
+      "mode": "TONE",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "5.000000",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 199,
+      "band": "20m",
+      "mode": "QRSS",
+      "submission_path": "production",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 200,
+      "band": "20m",
+      "mode": "QRSS",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 201,
+      "band": "20m",
+      "mode": "QRSS",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 202,
+      "band": "20m",
+      "mode": "FSKCW",
+      "submission_path": "production",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 203,
+      "band": "20m",
+      "mode": "FSKCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 204,
+      "band": "20m",
+      "mode": "FSKCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 205,
+      "band": "20m",
+      "mode": "DFCW",
+      "submission_path": "production",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 206,
+      "band": "20m",
+      "mode": "DFCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 207,
+      "band": "20m",
+      "mode": "DFCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 208,
+      "band": "17m",
+      "mode": "TONE",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "5.000000",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 209,
+      "band": "17m",
+      "mode": "QRSS",
+      "submission_path": "production",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 210,
+      "band": "17m",
+      "mode": "QRSS",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 211,
+      "band": "17m",
+      "mode": "QRSS",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 212,
+      "band": "17m",
+      "mode": "FSKCW",
+      "submission_path": "production",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 213,
+      "band": "17m",
+      "mode": "FSKCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 214,
+      "band": "17m",
+      "mode": "FSKCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 215,
+      "band": "17m",
+      "mode": "DFCW",
+      "submission_path": "production",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 216,
+      "band": "17m",
+      "mode": "DFCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 217,
+      "band": "17m",
+      "mode": "DFCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 218,
+      "band": "15m",
+      "mode": "TONE",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "5.000000",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 219,
+      "band": "15m",
+      "mode": "QRSS",
+      "submission_path": "production",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 220,
+      "band": "15m",
+      "mode": "QRSS",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 221,
+      "band": "15m",
+      "mode": "QRSS",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 222,
+      "band": "15m",
+      "mode": "FSKCW",
+      "submission_path": "production",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 223,
+      "band": "15m",
+      "mode": "FSKCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 224,
+      "band": "15m",
+      "mode": "FSKCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 225,
+      "band": "15m",
+      "mode": "DFCW",
+      "submission_path": "production",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 226,
+      "band": "15m",
+      "mode": "DFCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 227,
+      "band": "15m",
+      "mode": "DFCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 228,
+      "band": "12m",
+      "mode": "TONE",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "5.000000",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 229,
+      "band": "12m",
+      "mode": "QRSS",
+      "submission_path": "production",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 230,
+      "band": "12m",
+      "mode": "QRSS",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 231,
+      "band": "12m",
+      "mode": "QRSS",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 232,
+      "band": "12m",
+      "mode": "FSKCW",
+      "submission_path": "production",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 233,
+      "band": "12m",
+      "mode": "FSKCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 234,
+      "band": "12m",
+      "mode": "FSKCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 235,
+      "band": "12m",
+      "mode": "DFCW",
+      "submission_path": "production",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 236,
+      "band": "12m",
+      "mode": "DFCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 237,
+      "band": "12m",
+      "mode": "DFCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 238,
+      "band": "10m",
+      "mode": "TONE",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "5.000000",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 239,
+      "band": "10m",
+      "mode": "QRSS",
+      "submission_path": "production",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 240,
+      "band": "10m",
+      "mode": "QRSS",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 241,
+      "band": "10m",
+      "mode": "QRSS",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 242,
+      "band": "10m",
+      "mode": "FSKCW",
+      "submission_path": "production",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 243,
+      "band": "10m",
+      "mode": "FSKCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 244,
+      "band": "10m",
+      "mode": "FSKCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 245,
+      "band": "10m",
+      "mode": "DFCW",
+      "submission_path": "production",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 246,
+      "band": "10m",
+      "mode": "DFCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 247,
+      "band": "10m",
+      "mode": "DFCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 248,
+      "band": "6m",
+      "mode": "TONE",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "5.000000",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 249,
+      "band": "6m",
+      "mode": "QRSS",
+      "submission_path": "production",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 250,
+      "band": "6m",
+      "mode": "QRSS",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 251,
+      "band": "6m",
+      "mode": "QRSS",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 252,
+      "band": "6m",
+      "mode": "FSKCW",
+      "submission_path": "production",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 253,
+      "band": "6m",
+      "mode": "FSKCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 254,
+      "band": "6m",
+      "mode": "FSKCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "45.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 255,
+      "band": "6m",
+      "mode": "DFCW",
+      "submission_path": "production",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 256,
+      "band": "6m",
+      "mode": "DFCW",
+      "submission_path": "browser_compact",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    },
+    {
+      "sequence": 257,
+      "band": "6m",
+      "mode": "DFCW",
+      "submission_path": "controller_disconnect",
+      "maximum_rf_seconds": "39.000001",
+      "basis": "untested row"
+    }
+  ],
+  "minimum_remaining_rf_job_count": 82,
+  "maximum_remaining_rf_seconds": "3260.000075",
+  "automatic_retries": 0,
+  "firmware_flashes": 0,
+  "bootsel_transitions": 0,
+  "controlled_reboots": 0,
+  "configuration_writes": 0,
+  "gpio_changes": 0,
+  "wspr_jobs": 0,
+  "fresh_attempt_packet_per_job": true,
+  "stop_conditions": [
+    "exact source, UF2, boot, board, clock, engine, renderer, output, retained configuration or companion identity mismatch",
+    "receiver, conducted path, attenuation, combiner or capture-helper mismatch",
+    "reservation, schedule exclusion, browser observer, independent USB observer or resource admission failure",
+    "any RF, lifecycle, capture, analysis, cleanup or restoration failure"
+  ],
+  "remaining_zero_rf_work": {
+    "existing_packet_audits": [
+      "160m/DFCW",
+      "160m/QRSS",
+      "630m/DFCW",
+      "630m/FSKCW",
+      "630m/QRSS",
+      "80m/DFCW"
+    ],
+    "post_execution": "independently audit every newly completed row, reconcile exact evidence hashes, and update the matrix without rebinding historical evidence"
+  },
+  "preserved_fail_rows": [
+    "2200m/WSPR",
+    "160m/FSKCW",
+    "80m/QRSS",
+    "80m/FSKCW",
+    "60m/QRSS",
+    "60m/FSKCW",
+    "60m/DFCW",
+    "40m/WSPR"
+  ],
+  "structural_block_rows": [
+    "10m/WSPR",
+    "12m/WSPR",
+    "15m/WSPR",
+    "160m/WSPR",
+    "17m/WSPR",
+    "20m/WSPR",
+    "30m/WSPR",
+    "60m/WSPR",
+    "630m/WSPR",
+    "6m/WSPR",
+    "80m/WSPR"
+  ],
+  "closure_after_execution": false,
+  "closure_gate": "even if all remaining jobs and zero-RF audits pass, retained FAIL and structural BLOCKED rows require an explicit scope disposition under the existing closure rule"
+}

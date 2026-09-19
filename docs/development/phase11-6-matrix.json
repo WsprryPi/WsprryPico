@@ -1,411 +1,1397 @@
 {
-  "schema": "phase11.6-matrix-v23",
-  "plan_sha256": "2f4d0608afdcb6a494c84ebbd8c55c665ca87e9bc0cea9de692d7e6c792b0123",
+  "schema": "phase11.6-reconciled-matrix-v1",
+  "phase": "11.6",
   "phase_status": "OPEN",
+  "reconciled_date": "2026-09-19",
+  "reconciled_against_origin_devel": "334b21547a96c3e5584aa4d980893774ac488606",
+  "base_plan_schema": "phase11.6-plan-v23",
+  "base_plan_sha256": "2f4d0608afdcb6a494c84ebbd8c55c665ca87e9bc0cea9de692d7e6c792b0123",
+  "base_plan_file_sha256": "4500a2bf3496631d1a7cc097d78cfb2b52c889e35d2d274d6c7bedcf9d48ef0a",
+  "evidence_cutoff_sequence": 175,
+  "thresholds_relaxed": false,
+  "evidence_rebound": false,
+  "dfcw_polarity": "dot-high/dash-low",
+  "device": {
+    "pico_serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5"
+  },
+  "receiver": {
+    "driver": "sdrplay",
+    "serial": "2404058C60",
+    "sample_rate_hz": 250000,
+    "bandwidth_hz": 200000,
+    "gain_db": 20,
+    "agc": false,
+    "bias_tee": false,
+    "frequency_correction_ppm": 0
+  },
+  "evidence_lineages": {
+    "phase115_initial_ff719": {
+      "source_revision": "91933c00970939e366d1bfcf3c1956b59be8f6c5",
+      "uf2_sha256": "5da240aacf20e27db79126a7bff2be18e4ece849a608fa439f4e0c577659f446",
+      "boot_id": "ff719d304f1ba4ac23fddd93561b26f0",
+      "board": "Pico 2 W / RP2350 Arm",
+      "system_clock_hz": 138000000,
+      "pio_divider": 1,
+      "engine": "pio-dma-gp2",
+      "renderer": "RAM",
+      "output": "GP2"
+    },
+    "phase115_initial_d2f657": {
+      "source_revision": "91933c00970939e366d1bfcf3c1956b59be8f6c5",
+      "uf2_sha256": "5da240aacf20e27db79126a7bff2be18e4ece849a608fa439f4e0c577659f446",
+      "boot_id": "d2f657c2099c67a7af2ef390426bda10",
+      "board": "Pico 2 W / RP2350 Arm",
+      "system_clock_hz": 138000000,
+      "pio_divider": 1,
+      "engine": "pio-dma-gp2",
+      "renderer": "RAM",
+      "output": "GP2"
+    },
+    "clock_refinement": {
+      "source_revision": "2eaa99945d21501cd4dbdac98c25be5fa146e479",
+      "uf2_sha256": "af3f6917ba807a1526dca6e15f19fff1974410fc87ecc32fd6e9c4f07059525f",
+      "boot_id": "b72fed2c17583cc7aba0f1345f76a3b2",
+      "board": "Pico 2 W / RP2350 Arm",
+      "system_clock_hz": 138000000,
+      "pio_divider": 1,
+      "engine": "pio-dma-gp2",
+      "renderer": "RAM",
+      "output": "GP2"
+    },
+    "zero_tail_be521": {
+      "source_revision": "210599d907acdb23278fc24244b674d62c820d7c",
+      "uf2_sha256": "b01fecbe3d516dbe5a5e261955e376f062f92a9fe9f7c9b86135bb5f7e8b9811",
+      "boot_id": "be52153ea21a03f75067129f2bc2245f",
+      "board": "Pico 2 W / RP2350 Arm",
+      "system_clock_hz": 138000000,
+      "pio_divider": 1,
+      "engine": "pio-dma-gp2",
+      "renderer": "RAM",
+      "output": "GP2"
+    },
+    "zero_tail_e363": {
+      "source_revision": "210599d907acdb23278fc24244b674d62c820d7c",
+      "uf2_sha256": "b01fecbe3d516dbe5a5e261955e376f062f92a9fe9f7c9b86135bb5f7e8b9811",
+      "boot_id": "e363bf9ae4528258563557b7d306efcd",
+      "board": "Pico 2 W / RP2350 Arm",
+      "system_clock_hz": 138000000,
+      "pio_divider": 1,
+      "engine": "pio-dma-gp2",
+      "renderer": "RAM",
+      "output": "GP2"
+    },
+    "browser_allocation": {
+      "source_revision": "7068b937240a7cbdfd0f0edbd7d347057604c0f0",
+      "uf2_sha256": "f1d437261cb7aa3f9668f7624dad5806346a248202a45f15c553617e12e74a47",
+      "boot_id": "a12f61f7cd59557c1b5628b2568a52d5",
+      "board": "Pico 2 W / RP2350 Arm Secure",
+      "system_clock_hz": 138000000,
+      "pio_divider": 1,
+      "engine": "pio-dma-gp2",
+      "renderer": "RAM",
+      "output": "GP2"
+    },
+    "status_admission_current": {
+      "source_revision": "0e85ff90571c800450073f7b0bfafd70266f1f44",
+      "uf2_sha256": "9ac5a40fe6d9a44a3a0156621b82801488efecafb9f472ba601dbcbb3e138398",
+      "boot_id": "cab95d7eecad05047fcb1d6806cf9e86",
+      "board": "Pico 2 W / RP2350 Arm Secure",
+      "system_clock_hz": 138000000,
+      "pio_divider": 1,
+      "engine": "pio-dma-gp2",
+      "renderer": "RAM",
+      "output": "GP2",
+      "matrix_credit_from_requalification": false
+    }
+  },
+  "current_candidate_lineage": "status_admission_current",
+  "lineage_policy": "historical claims remain bound to their recorded lineage; the current candidate requalification grants no retroactive matrix credit",
+  "public_evidence_artifacts": {
+    "phase11-6-clock-refinement-attempt44.json": "c4905ad74a70dd085eedf12541783d7b85c0185a59cd73bcff772a94c2356a2a",
+    "phase11-6-160m-attempt45-51.json": "8bb5c0276f862e5a19b3bf352b282f031b5e9237786b0796b0c51a4e59160787",
+    "phase11-6-80m-60m-attempt53-67.json": "51ca4e7e0449b985f3814c129a2a7518db88b270e573a1d3cd3122f73964fa28",
+    "phase11-6-attempt-0161-browser-arm-lead-failure.json": "a4a54c7d2b192d0237d5925c17d91d376ccbd19062d909e3e76a4ba71c1216f8",
+    "phase11-6-attempt-0164-tone-offline-recovery.json": "0db72b01a6a5095ed2bbfdad57bdf57ec9142fbde27394fc908bc0123fa2254b",
+    "phase11-6-2200m-nonwspr-checkpoint.json": "1617421f36168ee9b5e2fe98416ed68ad2741cce73dfd6b8428bbcf081536d18",
+    "phase11-6-status-admission-repair-source-impact.json": "36f00ce476781da0470af0ea4333d0ca1190685a1c3ece9b93ad6f3d4b6a0dda",
+    "phase11-6-status-admission-repair-requalification.json": "089d94f7827ded9cb57dfbf0b534ab290591ba596df46fce57fac2b0dded9cb6"
+  },
+  "disposition_counts": {
+    "PASS": 7,
+    "FAIL": 8,
+    "BLOCKED": 19,
+    "NOT TESTED": 31,
+    "UNSUPPORTED_CONFIGURATION": 10
+  },
   "rows": [
     {
       "band": "2200m",
       "nominal_frequency_hz": 137500,
       "mode": "TONE",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "PASS",
+      "reason": "retained physical lifecycle, capture and independent analysis pass",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 164,
+            "mode": "TONE",
+            "submission_path": "controller_disconnect",
+            "status": "ACCEPTED_OFFLINE_RECOVERY",
+            "attempt_packet_file_sha256": "de42c9b216cccc72d8dcb3bc4dedd3adbd17137e27fd8b584474671bb1c509d0",
+            "capture_sha256": "f6519744e998cbb2404f75ae594a9325ffb426b6ae69d3a22f46537344296d7b",
+            "analysis_sha256": "5d2f92b9b53a5b5e408849fa95b23ac1b8e6a2e9f97e6e8c6c9041851437bf91",
+            "charged_rf_seconds": 5.0,
+            "lineage": "browser_allocation"
+          }
+        ],
+        "source_lineages": [
+          "browser_allocation"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": true,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "2200m",
       "nominal_frequency_hz": 137500,
       "mode": "WSPR",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "FAIL",
+      "reason": "frozen eight-second ARM-lead gate is incompatible with the required three-path slot handoff",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 161,
+            "submission_path": "production",
+            "job_id": "2200m:WSPR:0:production:nominal",
+            "runtime_job_id": "ea663c44d83e9e3e0000000000000001",
+            "disposition": "COMPLETED_NONCREDIT",
+            "rf_jobs_charged": 1,
+            "rf_seconds_charged": 110.591999892,
+            "lineage": "browser_allocation"
+          },
+          {
+            "sequence": 163,
+            "submission_path": "controller_disconnect",
+            "job_id": "2200m:WSPR:2:controller_disconnect:nominal",
+            "runtime_job_id": "b655bea790506102aeefd52152c05423",
+            "disposition": "COMPLETED_NONCREDIT",
+            "rf_jobs_charged": 1,
+            "rf_seconds_charged": 110.591999892,
+            "lineage": "browser_allocation"
+          },
+          {
+            "sequence": 162,
+            "submission_path": "browser_raw",
+            "job_id": "2200m:WSPR:1:browser_raw:nominal",
+            "runtime_job_id": "a4c3cae0c122fc55152f3a8d14c7d265",
+            "disposition": "ABORTED_AFTER_RF_START",
+            "rf_jobs_charged": 1,
+            "rf_seconds_charged": 110.591999892,
+            "observed_output_active_ns": 8991504000,
+            "browser_requests": 4,
+            "browser_responses": 4,
+            "browser_operations": [
+              "HELLO",
+              "CLAIM",
+              "LOAD",
+              "ARM"
+            ],
+            "lineage": "browser_allocation"
+          }
+        ],
+        "source_lineages": [
+          "browser_allocation"
+        ],
+        "failure_artifact": {
+          "artifact": "phase11-6-attempt-0161-browser-arm-lead-failure.json",
+          "artifact_sha256": "a4a54c7d2b192d0237d5925c17d91d376ccbd19062d909e3e76a4ba71c1216f8",
+          "incomplete_capture_sha256": "8d5167f12039599b0b8e53e96684bb9127a9b0562be14debb65dd4ee8c9d4475",
+          "capture_complete": false,
+          "analysis_evidence": "absent; timing-gate failure is not an RF-analysis claim"
+        }
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "2200m",
       "nominal_frequency_hz": 137500,
       "mode": "QRSS",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "PASS",
+      "reason": "all three paths explicitly accepted by the attempt-175 checkpoint",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 165,
+            "mode": "QRSS",
+            "submission_path": "production",
+            "status": "ABANDONED_NO_PACKET_NO_RF",
+            "charged_rf_seconds": 0.0,
+            "lineage": "browser_allocation"
+          },
+          {
+            "sequence": 166,
+            "mode": "QRSS",
+            "submission_path": "production",
+            "status": "FAILED_PREFLIGHT_NO_RF",
+            "attempt_packet_file_sha256": "fd253bf7ad03bd3f42bdb3e2f25684727890018692e53f2a192df4b5a9866636",
+            "execution_jsonl_sha256": "63b80185731e4ba02e69b25ceaa2fbfcf30fd34203af56b5d099527539864f22",
+            "reconciliation_sha256": "116fef6835035c1037f54e5caef4ad358b85f631e4350a3905b3925ce8e60e78",
+            "charged_rf_seconds": 0.0,
+            "cause": "installed-paused staging marker omitted",
+            "lineage": "browser_allocation"
+          },
+          {
+            "sequence": 167,
+            "mode": "QRSS",
+            "submission_path": "production",
+            "status": "ACCEPTED",
+            "attempt_packet_file_sha256": "dd891eb774f38ba55b725b7123c1af215e5d4608402231a2e6f49a45b2c4d419",
+            "run_result_sha256": "e62da2b2eaf9fe3bc82bbf28bf5aaa0bc7399e947fe0a8fb69612dca0e9672de",
+            "capture_sha256": "4569a3da049a95bf3c3879060ce66ab61c16495fd0f6fe2da06590b8ae5145b4",
+            "metadata_sha256": "c1696408d7a60a7f824b5d8e7381a1a6d0f7adc4c88f821f10e5a1cd9b15d144",
+            "analysis_sha256": "ed393547239fd0ee04864bdf60bb9ca6e0507e88ff047d0d7b56a2b8f94096e3",
+            "charged_rf_seconds": 45.000001,
+            "lineage": "browser_allocation"
+          },
+          {
+            "sequence": 168,
+            "mode": "QRSS",
+            "submission_path": "browser_compact",
+            "status": "ACCEPTED",
+            "attempt_packet_file_sha256": "17ac6e33d299262884f576e886b613f75f554f572f84d8db80724aaa92f0774b",
+            "run_result_sha256": "b3e06b326a2b9e7dcb45cd135c7a5404bcaaf01c11963bdc53624be5175c5b61",
+            "capture_sha256": "f9bdfb76a5fc753926c0432f952873e4fafba203e3c364bd70cfeacfeb7a0616",
+            "metadata_sha256": "352a7cf680925f2a0b462d362eeecefc05ae9146f0db1d5f37ea807a3ec5b4ec",
+            "analysis_sha256": "6682475863adbcb6f90aa2071756eafa828e653a4ff3250ac56b464077ad1f02",
+            "charged_rf_seconds": 45.000001,
+            "lineage": "browser_allocation"
+          },
+          {
+            "sequence": 169,
+            "mode": "QRSS",
+            "submission_path": "controller_disconnect",
+            "status": "ACCEPTED",
+            "attempt_packet_file_sha256": "5df5c76ae642a2d1a5c9a28b5ae7376689042c51e328f90d7050fa266c4c1d4d",
+            "run_result_sha256": "1bf44fdcac18cd759da9e89469a18d0e539757fa39f96ac5f9c00d680ef2e30e",
+            "capture_sha256": "7a8474834169365d8e082b7cb5130a05d6d888103acdaf6048c0a56598cf8ee1",
+            "metadata_sha256": "91c70fa8ed8aac4d31f3e5831d14cc8df814a8361ae56a409f88b2fc8d5262de",
+            "analysis_sha256": "cb7b9b03f0379ad3e7c79e7a16716242d281407589f02249e81c3a4580e29b5a",
+            "charged_rf_seconds": 45.000001,
+            "lineage": "browser_allocation"
+          }
+        ],
+        "source_lineages": [
+          "browser_allocation"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": true,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "2200m",
       "nominal_frequency_hz": 137500,
       "mode": "FSKCW",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "only the source-impact-approved fresh replacement paths remain",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 170,
+            "mode": "FSKCW",
+            "submission_path": "production",
+            "status": "ACCEPTED",
+            "attempt_packet_file_sha256": "38d7b6f4340607faced8078827731cda871a84bf015726fd114af363a06c5f05",
+            "run_result_sha256": "5e3d454e95c77d0f01231a2a8f992290b6df827256851445be92dc0fdc649914",
+            "capture_sha256": "367a25f84ff86aadc81ebaec8a7d9a6e4e387d74e1bed578e8da0dcb7cbdd3be",
+            "metadata_sha256": "38471921c93ac5e5961ddf327de6df1a8706cad6548c4f3204f4998962ffe2fb",
+            "analysis_sha256": "3845a3fdaccaaebf58e55fb8d3195af99a6db9c6ee77cbf549d7fea5b0d4b852",
+            "charged_rf_seconds": 45.000001,
+            "lineage": "browser_allocation"
+          },
+          {
+            "sequence": 171,
+            "mode": "FSKCW",
+            "submission_path": "browser_compact",
+            "status": "FAILED_LOAD_NO_RF",
+            "attempt_packet_file_sha256": "362c1205daa9b6481bc793e4b06865e67ffad9acf0733157bfe20bf2834bf951",
+            "execution_jsonl_sha256": "506eec468a7caf09daf7ae56e4309afcf2b460928a0e519eafc4d61061b0e18e",
+            "browser_result_sha256": "d54b717383ba3395d44fd0d16da10e6b7b3442b6cf47255c6d897b4c72415a38",
+            "reconciliation_sha256": "d1fa6f88cef2e5bae17c913f826ce3b9ef695e4118247fd50ba3f5b4cbf350a6",
+            "charged_rf_seconds": 0.0,
+            "cause": "compact six-event LOAD_MESSAGE rejected by fixed maximum event allocation admission",
+            "lineage": "browser_allocation"
+          },
+          {
+            "sequence": 172,
+            "mode": "FSKCW",
+            "submission_path": "controller_disconnect",
+            "status": "FAILED_PREFLIGHT_NO_RF",
+            "attempt_packet_file_sha256": "292570597e86d75f2293ffd8e75fb166bd074edf82311fbc8ffda47e887ed9da",
+            "charged_rf_seconds": 0.0,
+            "cause": "operator capture-helper path typo",
+            "lineage": "browser_allocation"
+          }
+        ],
+        "source_lineages": [
+          "browser_allocation"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "2200m",
       "nominal_frequency_hz": 137500,
       "mode": "DFCW",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "only the source-impact-approved fresh replacement paths remain",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 173,
+            "mode": "DFCW",
+            "submission_path": "production",
+            "status": "ACCEPTED",
+            "attempt_packet_file_sha256": "287a278d057222abd2beb262ed90eb17e39143eb89ad3e064ff499004428885a",
+            "run_result_sha256": "0be09ea6ffc0e2a66cde471e3b711ba39fd173a6cfae1ec973bbeb3cb5dbb0e1",
+            "capture_sha256": "ed42f393f3076bb72e23375cb8c2f166b0d80ae80aeb0d6aec6525485279eccc",
+            "metadata_sha256": "fedd832106a234d9da76cb6b8f7357303e30fddf5d0c7ec42cfe29fa2b97a46f",
+            "analysis_sha256": "f2ec7663ee8d9e8335619a76e94c7ad8ce82a25c287e742ef1091292a305e2d3",
+            "charged_rf_seconds": 39.000001,
+            "lineage": "browser_allocation"
+          },
+          {
+            "sequence": 174,
+            "mode": "DFCW",
+            "submission_path": "browser_compact",
+            "status": "ACCEPTED",
+            "attempt_packet_file_sha256": "cb34b652509b9e1ea9a5253183475d28b1e01701aa02c0292b190d04a8c2ad71",
+            "run_result_sha256": "3f00052b21cdebbf0c87c4d2d8d21e3a6f15b9b1b7d4b0e4cdb837a2f0903188",
+            "capture_sha256": "0894a1aa57b31bec628e933b91f331fb1ddcf4731140771e1d91a1606b437d5b",
+            "metadata_sha256": "be57a5eed240a42dca4e18ef36755b885dd4eb1f44d0d12d52d2506140270e74",
+            "analysis_sha256": "9a03d3a6cd2735eec0f6fc8bfc5abcf2d33efe1522fef71ab55cd0eebf1abf67",
+            "charged_rf_seconds": 39.000001,
+            "lineage": "browser_allocation"
+          },
+          {
+            "sequence": 175,
+            "mode": "DFCW",
+            "submission_path": "controller_disconnect",
+            "status": "FAILED_REQUIRED_BROWSER_OBSERVER",
+            "runtime_job_id": "3e8efd0e2e6acb584061c07386cf3e43",
+            "attempt_packet_file_sha256": "7799f879c36d92e4529d8fdd25c2e2ed79c64f4e33fb0168091c7eaf1b457963",
+            "execution_jsonl_sha256": "4d7c3b90c8108c780bf95f80f0604d517424654413e44281b619bc70fba5af62",
+            "capture_sha256": "5336eab49a3065b0358cef0523285c9512fe65dce0b6e5a664c9b67459b0d92e",
+            "metadata_sha256": "df3d3b18b4aa10a8cf37b13f0710683c61e8a371dbec799566de109b39a75121",
+            "browser_result_sha256": "487d7930e11d74ecbe5702829ef3f86d76c660828a00c9586f6fb5c2d5ce08f6",
+            "reconciliation_sha256": "a2f8e511981b9ab5501804ccda5fdcf4408b6ebec29df7563903cf90c40b3924",
+            "charged_rf_seconds": 39.000001,
+            "cause": "four consecutive status refreshes were refused by the generic HTTP memory gate while RF and TLS state were resident",
+            "lineage": "browser_allocation"
+          }
+        ],
+        "source_lineages": [
+          "browser_allocation"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "630m",
       "nominal_frequency_hz": 475700,
       "mode": "TONE",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "PASS",
+      "reason": "retained physical lifecycle, capture and independent analysis pass",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 26,
+            "job_id": "630m:TONE:0:controller_disconnect:nominal",
+            "submission_path": "controller_disconnect",
+            "disposition": "PASS_PATH",
+            "lineage": "phase115_initial_ff719",
+            "plan_sha256": "ea512b70a786c46fbe15f769b327139d69ad3b0cae984b3622d79f145a076c53",
+            "run_result_sha256": "43cf6e86c9087cd5d7ff68bf3673bb0ffe70a6f2c054e8f91b174868226215ef",
+            "capture_sha256": "9d7122cc4c4cfadfedf8d87fdfab615e9965c8b4c1c1fb9ffb1eeffbd3c17132",
+            "metadata_sha256": "a5663398652154fd79db77f45c954fa705e6e2f15fad90bd1802632c463b94be",
+            "analysis_sha256": "e3ee729fa6ba4e39062b8fdca036b46554e24a46a73bff82605196becde7610e",
+            "private_evidence_root": "phase11-6-conducted-v3-20260918"
+          }
+        ],
+        "source_lineages": [
+          "phase115_initial_ff719"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": true,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "630m",
       "nominal_frequency_hz": 475700,
       "mode": "WSPR",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "configuration-wide frozen WSPR handoff timing contradiction; no RF retry justified",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": [],
+        "constraint_evidence": {
+          "source_row": "2200m/WSPR",
+          "sequences": [
+            161,
+            162,
+            163
+          ],
+          "artifact": "phase11-6-attempt-0161-browser-arm-lead-failure.json",
+          "artifact_sha256": "a4a54c7d2b192d0237d5925c17d91d376ccbd19062d909e3e76a4ba71c1216f8",
+          "frozen_minimum_arm_lead_ns": 8000000000,
+          "accepted_arm_lead_ns": 2438588000,
+          "further_wspr_retry_justified": false
+        }
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "630m",
       "nominal_frequency_hz": 475700,
       "mode": "QRSS",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "all required paths have passing individual evidence but the independent packet audit is absent",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 27,
+            "job_id": "630m:QRSS:0:production:nominal",
+            "submission_path": "production",
+            "disposition": "PASS_PATH",
+            "lineage": "phase115_initial_ff719",
+            "plan_sha256": "ea512b70a786c46fbe15f769b327139d69ad3b0cae984b3622d79f145a076c53",
+            "run_result_sha256": "16ae87e0d26dbf023779cf83e9418a334a038b4214640dd905132fde7cfc0307",
+            "capture_sha256": "0d1c304eb5fff600af3eb3d6b1c1370931dcdd9dc45ad589258c6a4af2917016",
+            "metadata_sha256": "c8c6d11e2215f9a5c5fc88ccc94cf9041d392b1ddf41fe2854db3c1b93f1cc1d",
+            "analysis_sha256": "3c7a28692664799259860d9b795496da30bd444bae5eea6b1be8d9e5b1801e27",
+            "private_evidence_root": "phase11-6-conducted-v3-20260918"
+          },
+          {
+            "sequence": 28,
+            "job_id": "630m:QRSS:1:browser_compact:nominal",
+            "submission_path": "browser_compact",
+            "disposition": "PASS_PATH",
+            "lineage": "phase115_initial_ff719",
+            "plan_sha256": "ea512b70a786c46fbe15f769b327139d69ad3b0cae984b3622d79f145a076c53",
+            "run_result_sha256": "68858f96b61acd75831e9e6398405dd2ede7bf517ccb140bd31a8a2e2db0c4c4",
+            "capture_sha256": "f691b54ca56e67b7f75940eced0062cc5db4628605cd8c773033653564883fee",
+            "metadata_sha256": "73d2c9aec4471f7c696855b261e9013398fc58f0f4d662455e137e0a5ef9fd84",
+            "analysis_sha256": "1be4ba275ff5e8371c37db103494120a3658a2b726ac9cad7242977b00f22ae6",
+            "private_evidence_root": "phase11-6-conducted-v3-20260918"
+          },
+          {
+            "sequence": 30,
+            "job_id": "630m:QRSS:2:controller_disconnect:nominal",
+            "submission_path": "controller_disconnect",
+            "disposition": "PASS_PATH",
+            "lineage": "phase115_initial_ff719",
+            "plan_sha256": "ea512b70a786c46fbe15f769b327139d69ad3b0cae984b3622d79f145a076c53",
+            "run_result_sha256": "d50605a0e92eeb6558118cb0d052aed6bb1da2ede44d46720c59c4b9966fcca8",
+            "capture_sha256": "8df6611daece147987449c36d709b5af8976db0cecd3bf6be590c21c43a272a0",
+            "metadata_sha256": "11dea85a526ee095f8c65c86210ed28673ea01e2204017d074b6eb608125e140",
+            "analysis_sha256": "4cb10ec615b01365cd8ee7e12e543a5a5964fb01965b1b6cb94e169c73f9447f",
+            "private_evidence_root": "phase11-6-conducted-v3-20260918"
+          }
+        ],
+        "source_lineages": [
+          "phase115_initial_ff719"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": false,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "630m",
       "nominal_frequency_hz": 475700,
       "mode": "FSKCW",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "all required paths have passing individual evidence but the independent packet audit is absent",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 32,
+            "job_id": "630m:FSKCW:0:production:nominal",
+            "submission_path": "production",
+            "disposition": "PASS_PATH",
+            "lineage": "phase115_initial_d2f657",
+            "plan_sha256": "9324f6057ae8f4e552375919836bbe4e0c30176405eedaf3915f0ab67d929556",
+            "run_result_sha256": "691e48f233181bd56ecd22177d20d9b3d97763c6714dbfd4a1a289498e608a17",
+            "capture_sha256": "8b469f8b4f0bebde1b25fb529b93329c6b6a374275a532c2243861d5ca179f2d",
+            "metadata_sha256": "4d644a406ed488ccc6bfd02463bae615bab57b790f888c55dc69c7d742d2a9fa",
+            "analysis_sha256": "68d27bfed45e6ad56411d215c8fe60f7dd8793ea6f302d480ab2de12d610bf79",
+            "private_evidence_root": "phase11-6-conducted-v3-20260918"
+          },
+          {
+            "sequence": 33,
+            "job_id": "630m:FSKCW:1:browser_compact:nominal",
+            "submission_path": "browser_compact",
+            "disposition": "PASS_PATH",
+            "lineage": "phase115_initial_d2f657",
+            "plan_sha256": "9324f6057ae8f4e552375919836bbe4e0c30176405eedaf3915f0ab67d929556",
+            "run_result_sha256": "d03c573483b7592ae2ef774190aa7eb5684284280403c69e4894fdd738891ef1",
+            "capture_sha256": "35a30876276a96805fd57038e5a04350044b8fb0df038098a022b96a6ec1b913",
+            "metadata_sha256": "eeef025ab9876935ba3c71805df128bc53deb5a88427a6cd74fa2eaee72d79d6",
+            "analysis_sha256": "40d7017e69562f464187686a31b555d34a2080c6c4b78943110b0bd0506a6a6c",
+            "private_evidence_root": "phase11-6-conducted-v3-20260918"
+          },
+          {
+            "sequence": 34,
+            "job_id": "630m:FSKCW:2:controller_disconnect:nominal",
+            "submission_path": "controller_disconnect",
+            "disposition": "PASS_PATH",
+            "lineage": "phase115_initial_d2f657",
+            "plan_sha256": "9324f6057ae8f4e552375919836bbe4e0c30176405eedaf3915f0ab67d929556",
+            "run_result_sha256": "6825d12254a17234ab7a0f8b7a397a90e41a2033d57f0c402ba2305d10ea2a41",
+            "capture_sha256": "f4af290759a9f41f072b392982b546d7f29e44e7f3f42ccb2d6c376cf8451fba",
+            "metadata_sha256": "69137fcece5c39c5df007bf9d1e925f97f733f2f0a12592a6aed600c07b2b525",
+            "analysis_sha256": "99d8fad68cd840e2efdc533f3122f167e8c5e8c5683922cf4d24cfcf980e27b6",
+            "private_evidence_root": "phase11-6-conducted-v3-20260918"
+          }
+        ],
+        "source_lineages": [
+          "phase115_initial_d2f657"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": false,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "630m",
       "nominal_frequency_hz": 475700,
       "mode": "DFCW",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "all required paths have passing individual evidence but the independent packet audit is absent",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 36,
+            "job_id": "630m:DFCW:0:production:nominal",
+            "submission_path": "production",
+            "disposition": "PASS_PATH",
+            "lineage": "phase115_initial_d2f657",
+            "plan_sha256": "9324f6057ae8f4e552375919836bbe4e0c30176405eedaf3915f0ab67d929556",
+            "run_result_sha256": "021c4b1a38f902955188e781524f223257020235e06d562b864147b3609d11e9",
+            "capture_sha256": "f46fa94ea96a2ec1ef1245dce531d1b114266a7b079d1c0140f74755300d9b4f",
+            "metadata_sha256": "54741fb956fbac1eb1071459ae68c18b73cd11b6548728b3cb0fe6b584d9dae2",
+            "analysis_sha256": "bd5b02a6a187a9e7ff4dbab78d312c24ceae4cba38f14477496bf403673cab31",
+            "private_evidence_root": "phase11-6-conducted-v3-20260918"
+          },
+          {
+            "sequence": 37,
+            "job_id": "630m:DFCW:1:browser_compact:nominal",
+            "submission_path": "browser_compact",
+            "disposition": "PASS_PATH",
+            "lineage": "phase115_initial_d2f657",
+            "plan_sha256": "9324f6057ae8f4e552375919836bbe4e0c30176405eedaf3915f0ab67d929556",
+            "run_result_sha256": "526731182ab3613a930b13bf5783277097d473d6eb45fb082ad20eacd1eea1c5",
+            "capture_sha256": "3da55d48ee827f8725b9436886d38fc838c625faff5399ed4c935f32492ead5c",
+            "metadata_sha256": "bf3e2e94cbe524f7fca48789c288e60ae463fcfcaa5e5f8b2f0cfb2f5d791af3",
+            "analysis_sha256": "b525abb6a9eb22790868a5ee344cb0681d472b18e888c5ea367b87c40b1e7127",
+            "private_evidence_root": "phase11-6-conducted-v3-20260918"
+          },
+          {
+            "sequence": 38,
+            "job_id": "630m:DFCW:2:controller_disconnect:nominal",
+            "submission_path": "controller_disconnect",
+            "disposition": "PASS_PATH",
+            "lineage": "phase115_initial_d2f657",
+            "plan_sha256": "9324f6057ae8f4e552375919836bbe4e0c30176405eedaf3915f0ab67d929556",
+            "run_result_sha256": "07a8436a9a1905424ddd2dce3769932d83864207ffb2498ea35597b126703efb",
+            "capture_sha256": "37255045391925d329a2c6f4bd3c8a23c572465e3d93e53118c8398ab8e89c66",
+            "metadata_sha256": "fe7ed77960d565c037496d0b41af9e1ba977f9cd2a5ef6d0c1cf4151ca764ccc",
+            "analysis_sha256": "5a10f3b0072cf0826517baa66378df86e39ce9348b6b52084f82693949041bc0",
+            "private_evidence_root": "phase11-6-conducted-v3-20260918"
+          }
+        ],
+        "source_lineages": [
+          "phase115_initial_d2f657"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": false,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "160m",
       "nominal_frequency_hz": 1838100,
       "mode": "TONE",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "PASS",
+      "reason": "retained physical lifecycle, capture and independent analysis pass",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 40,
+            "job_id": "160m:TONE:0:controller_disconnect:nominal",
+            "submission_path": "controller_disconnect",
+            "disposition": "PASS_PATH",
+            "lineage": "phase115_initial_d2f657",
+            "plan_sha256": "9324f6057ae8f4e552375919836bbe4e0c30176405eedaf3915f0ab67d929556",
+            "run_result_sha256": "6d01cacc51ad62b8e2f649970fb6db3a2c0b72bb8fb9d17cb744b3fa86e701b1",
+            "capture_sha256": "f349b8a43d981f58218b91e896f8fb4b9e87ac4485a589eae99f25233239e805",
+            "metadata_sha256": "8d98b056cad6ec0eb62356eaebaf0b3c42135a16314ca158bdde478ce0feb0b6",
+            "analysis_sha256": "1467b1f4863a667d4e6034e20d2160242075bb7d267a02260851393b9a3c9403",
+            "private_evidence_root": "phase11-6-conducted-v3-20260918"
+          }
+        ],
+        "source_lineages": [
+          "phase115_initial_d2f657"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": true,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "160m",
       "nominal_frequency_hz": 1838100,
       "mode": "WSPR",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "configuration-wide frozen WSPR handoff timing contradiction; no RF retry justified",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": [],
+        "constraint_evidence": {
+          "source_row": "2200m/WSPR",
+          "sequences": [
+            161,
+            162,
+            163
+          ],
+          "artifact": "phase11-6-attempt-0161-browser-arm-lead-failure.json",
+          "artifact_sha256": "a4a54c7d2b192d0237d5925c17d91d376ccbd19062d909e3e76a4ba71c1216f8",
+          "frozen_minimum_arm_lead_ns": 8000000000,
+          "accepted_arm_lead_ns": 2438588000,
+          "further_wspr_retry_justified": false
+        }
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "160m",
       "nominal_frequency_hz": 1838100,
       "mode": "QRSS",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "all required paths have passing individual evidence but the independent packet audit is absent",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 44,
+            "job_id": "160m:QRSS:0:production:nominal",
+            "submission_path": "production",
+            "disposition": "PASS_CORRECTIVE_GATE",
+            "lineage": "clock_refinement",
+            "attempt_packet_sha256": "4674c3477de83c4f823b05e12bb77c5e7a4db472b7298645069ef373351d1549",
+            "attempt_packet_file_sha256": "b34ffe3bb9f42cc6dd5025bfda9c90743accd07fe46042a2437dc3bba21a4c05",
+            "run_result_sha256": "3dcaeae752987790f0cafbe0963238f2e8b3f38eb8a8e7221e14f0f82df95ebe",
+            "execution_jsonl_sha256": "0bf6379f1a64d6898f0d55f0305a1cf6c0dd060b8c100ada1ab2819245859396",
+            "capture_sha256": "310de38f136c521be229cd3074b7b120aade409932636cd5053b74cb67a29dcb",
+            "metadata_sha256": "54f9e6fa8a23e689df7137e3bad3d9b98f15b7344a2c07d840640bce7716bd1a",
+            "analysis_sha256": "9510b2424ba4e1d8a08ecd10e9667bb77cbdca624f3d8f5f340030523156da28"
+          },
+          {
+            "sequence": 45,
+            "job_id": "160m:QRSS:1:browser_compact:nominal",
+            "disposition": "PRESERVED_ZERO_RF_PRE_RUN_FAILURE",
+            "attempt_packet_sha256": "6c5b05f399aee20864ad36afd6668dd76c3053a6f25e4dd77559ef78abcae674",
+            "attempt_packet_file_sha256": "06a450c32ba266d697619b514646bbfff10dc41ee4720f937fb85bc42afc1009",
+            "charged_planned_rf_seconds": 0,
+            "failure": "nsenter changed the inherited working directory and the relative runner path resolved as //scripts/run_phase11_6_packet.py",
+            "rf_spent": false,
+            "lineage": "clock_refinement"
+          },
+          {
+            "sequence": 46,
+            "job_id": "160m:QRSS:1:browser_compact:nominal",
+            "wtp_job_id": "748071919341407f0aa4d8951a425360",
+            "attempt_packet_sha256": "fa2617c6f37e0d620e3e48fc574c377b0696ca930c27482321989460ce9d90b3",
+            "attempt_packet_file_sha256": "5613a3ee1277bfcfac8a2052afbf960099ae3e8aa3188134501c6e7c62484c7c",
+            "run_result_sha256": "26f293e737a6d61b6d9cb3171205751448460dbdc8eb5b6197a2e589f67e1770",
+            "execution_sha256": "0fdb9b75cb6280c8a035db9faf14f5c4440a74d03b6261de6aaa56bc49e98de2",
+            "capture_sha256": "6890f2c80a9b32b5d37cb9af9acc66ae76e920a3975c93884bcf6327dd17bb3d",
+            "metadata_sha256": "b2b11f0d8cadd5244ab6b60282a742771c5d2f7412b4e33b4d87bf5b9ed1fb15",
+            "analysis_sha256": "8f993125bc8f3f3c036091bf44a09db206697e9d73cdbbc28cd71ed1bdb55538",
+            "lineage": "clock_refinement"
+          },
+          {
+            "sequence": 47,
+            "job_id": "160m:QRSS:2:controller_disconnect:nominal",
+            "wtp_job_id": "f847c39dfaba6a8d0bb0617a5298c379",
+            "attempt_packet_sha256": "fba72ec82a4790466d1e62401efc56d629934d995bfb5c013a3c04ae68c5a69a",
+            "attempt_packet_file_sha256": "51b953cb3e1094f4957523704056fa4c51b81050ccf57cd00ae06e8a9e0e0dd5",
+            "run_result_sha256": "d1cd45d894d9e0587e69797eb2d9c44c0acbfc1c1588bd9cee2bc7f65d7bc013",
+            "execution_sha256": "4375d6378174704a84c2469d37415ff8e9814bfad01eed2cab07a04fa492cfc5",
+            "capture_sha256": "0b184828a09fbf7758378c8e711cf3c08b539f9f4aa08baa145abab41049a058",
+            "metadata_sha256": "f21a25205edd56f4b6a175a20a1ebeef329b9b4ebec9796aadddf4646491f4e6",
+            "analysis_sha256": "5ebe8b39cf2018fe74e2d34941f77b44ea54eb5d2e22a2837a24a3adfcbd0f82",
+            "lineage": "clock_refinement"
+          }
+        ],
+        "source_lineages": [
+          "clock_refinement"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": false,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "160m",
       "nominal_frequency_hz": 1838100,
       "mode": "FSKCW",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "FAIL",
+      "reason": "production path exceeded the frozen 0.15 rad coherence threshold; no retry",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 48,
+            "job_id": "160m:FSKCW:0:production:nominal",
+            "disposition": "FAIL_NO_RETRY",
+            "wtp_job_id": "d93292f1890429df0000000000000001",
+            "attempt_packet_sha256": "886fd075c91480b59d4de59779905af84dfda6c731e319c7c1d7a241b0bf1dd1",
+            "attempt_packet_file_sha256": "51b916a39b4fe411cb2574b6e32c462a8f77e6129e6f5740d32c9e3ab85d7817",
+            "run_result_sha256": "63aab4c7eba3209c49f49d1ce837e0904ea6992f7f59985edc0434eefcc14d07",
+            "execution_sha256": "1432ed7e4082e2e1f2083c38b815045449175d880ac27c835f8032efedd993d7",
+            "capture_sha256": "6770d081c161690323197c011997489b9f73bfa99430ba8faf62cd3b2c49ed02",
+            "metadata_sha256": "b35f6d4ab2c9142cba53feadf8cd2f4f126d04f7437e6d3f57629f6eeb4c6954",
+            "analysis_sha256": "cc85305c0a69a035d35444528574e750c49b7d28120b61ae34f870785fbdb770",
+            "lineage": "clock_refinement"
+          }
+        ],
+        "source_lineages": [
+          "clock_refinement"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "160m",
       "nominal_frequency_hz": 1838100,
       "mode": "DFCW",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "all required paths have passing individual evidence but the independent packet audit is absent",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 49,
+            "job_id": "160m:DFCW:0:production:nominal",
+            "wtp_job_id": "ce1f05c1e72381430000000000000001",
+            "attempt_packet_sha256": "43abf31c6cf960d471c569b2c033c95eec2e109be045abfb68693f01fe775116",
+            "attempt_packet_file_sha256": "c9cc108b541740da301da9ad661af780f1cde8b0701da258acfeeec89db89c7a",
+            "run_result_sha256": "fb7744b7bba308ac1011183d555f45fb7a0419e12edfd17a4f92db227ad0b241",
+            "execution_sha256": "978111a2d35a53d36bf461686e4cca19cbc9ae2c1d72e92aed26cfec3193512b",
+            "capture_sha256": "ada6caa9e8a0e8d12c0dd53b1ebfd9161a4763ecb2fe72d0f30e206b4d875cad",
+            "metadata_sha256": "c3fe93224e8453b4fb5c196497e06d99f5e3f351cc670d05525a169af9fdefe0",
+            "analysis_sha256": "5af5af467f4e4ef9f186bace44732cf05b13b5d01903e1866a6b5a8c5a2546ae",
+            "lineage": "clock_refinement"
+          },
+          {
+            "sequence": 50,
+            "job_id": "160m:DFCW:1:browser_compact:nominal",
+            "wtp_job_id": "97a79c3c141a9c7fef3dc4f5fcc7580a",
+            "attempt_packet_sha256": "01189ae86371b053cf46be7bfd360f78f228dd49bf8ddf027ed9c99dd681c6b6",
+            "attempt_packet_file_sha256": "93f55a074849318970bed258658debea07bc1e61f49f709549ebf85971519756",
+            "run_result_sha256": "dee65e62fc9bf138bbd42a84ccadfea0f524aaac202acf7efb52c62a79eca14a",
+            "execution_sha256": "8c793fc4cff7487eb2e5c5db631a7210f619f16dee11b827069220ef01fc99bf",
+            "capture_sha256": "56e321134373afe769b7fd2954d62e15010e29a5855b68560df4522f90251dce",
+            "metadata_sha256": "02714162ea256199cacfd36575eae7be97a6279b67680288e6394898e22c4d01",
+            "analysis_sha256": "040f6643470e1b6e9ce2f192d873c084392e4986ddfd1b744b3a8147e5a05316",
+            "lineage": "clock_refinement"
+          },
+          {
+            "sequence": 51,
+            "job_id": "160m:DFCW:2:controller_disconnect:nominal",
+            "wtp_job_id": "b0c7c8b6ad5d1dc866bc244b49af7b26",
+            "attempt_packet_sha256": "49d92ae3f1cb25bc4d7d20f17a5c3963b70c749cc95348c7ba00ecd2e798e582",
+            "attempt_packet_file_sha256": "444707195958a254fcb64fab01e010b189d25c20468f0c71f5d127726f0e23a9",
+            "run_result_sha256": "4625a2a877d154600a3dafe9befd632299ba922156cae20565fb3b3759d3f822",
+            "execution_sha256": "c13b91e625d8863b1c1b37da121bcf973a2c6bd78c9e5532e02fcf01865c2b99",
+            "capture_sha256": "12db59163fcd91859e02789f3c2f8235cf0682317fa8ef1d666f7dae97f43684",
+            "metadata_sha256": "99bf8fd8395ad3609dd41595d46e822bbe081d5e19e277853a3a240833b779a0",
+            "analysis_sha256": "5cc278bdeab03679da7cc0890a6ae5611b5fd2112b2666e6db7961da39e53295",
+            "lineage": "clock_refinement"
+          }
+        ],
+        "source_lineages": [
+          "clock_refinement"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": false,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "80m",
       "nominal_frequency_hz": 3570100,
       "mode": "TONE",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "PASS",
+      "reason": "retained physical lifecycle, capture and independent analysis pass",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 53,
+            "job_id": "80m:TONE:0:controller_disconnect:nominal",
+            "disposition": "PRESERVED_ZERO_RF_ADMISSION_FAILURE",
+            "attempt_packet_sha256": "69c875ea76312e10c9bb9fa6447f112bc5f3df7f4fa435c2dc40e245657fd322",
+            "attempt_packet_file_sha256": "4fcc4d9119df83ad36052f2c48a432fb73c9b578a08dc974d3e61c0c6f56404d",
+            "charged_planned_rf_seconds": 0,
+            "failure": "The staged plan still expected the predecessor firmware identity, so independent console identity/configuration admission rejected the exact 210599d boot before capture, LOAD or ARM.",
+            "rf_spent": false,
+            "lineage": "zero_tail_be521"
+          },
+          {
+            "sequence": 54,
+            "job_id": "80m:TONE:0:controller_disconnect:nominal",
+            "disposition": "PRESERVED_ZERO_RF_BROWSER_READINESS_FAILURE",
+            "attempt_packet_sha256": "92673099ca2ab5e823a04388eb5e23a25f0f88fe473213e9245a44364278cbf4",
+            "attempt_packet_file_sha256": "284dcce57abdb0ba3974ef53be0d12a4bb3c8c51dbe2e6c7e0842e636aa3d7df",
+            "charged_planned_rf_seconds": 0,
+            "failure": "The browser watcher still contained the predecessor boot identity and exited during readiness before capture, LOAD or ARM.",
+            "rf_spent": false,
+            "lineage": "zero_tail_be521"
+          },
+          {
+            "sequence": 55,
+            "job_id": "80m:TONE:0:controller_disconnect:nominal",
+            "disposition": "PASS",
+            "wtp_job_id": "9e5f46b355828fb87c3d41960ec84466",
+            "attempt_packet_sha256": "d4a18fac1d036adaca65d5f52d2a943d76cf235331d015e2086a37e9a47dc005",
+            "attempt_packet_file_sha256": "a87f103de17dddacafcbd35bc38b06a71757518f5df70db2ee92b2a631130425",
+            "run_result_sha256": "86bdec84737bf91bafb428052d7802288a964714b665249708a05960c50aa2ed",
+            "execution_sha256": "3b68a82a21510e026f1cea7e5df675ea7aba7d1188fa818a23dff4aba239c02d",
+            "capture_sha256": "9fccb765aea0a5211d9b06ae36c1efb49b062ce92feea804bc92789f18998b15",
+            "metadata_sha256": "297326587c45f4f12cb370736ccf2654bee200d8a65f6151e06cad7c14c49122",
+            "analysis_sha256": "7488db14eb3246f26890bb86aed0bfb6f1064906d34c82ea3dd78e80f3f64ff7",
+            "charged_planned_rf_seconds": 5.0,
+            "lineage": "zero_tail_be521"
+          }
+        ],
+        "source_lineages": [
+          "zero_tail_be521"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": true,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "80m",
       "nominal_frequency_hz": 3570100,
       "mode": "WSPR",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "configuration-wide frozen WSPR handoff timing contradiction; no RF retry justified",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": [],
+        "constraint_evidence": {
+          "source_row": "2200m/WSPR",
+          "sequences": [
+            161,
+            162,
+            163
+          ],
+          "artifact": "phase11-6-attempt-0161-browser-arm-lead-failure.json",
+          "artifact_sha256": "a4a54c7d2b192d0237d5925c17d91d376ccbd19062d909e3e76a4ba71c1216f8",
+          "frozen_minimum_arm_lead_ns": 8000000000,
+          "accepted_arm_lead_ns": 2438588000,
+          "further_wspr_retry_justified": false
+        }
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "80m",
       "nominal_frequency_hz": 3570100,
       "mode": "QRSS",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "FAIL",
+      "reason": "production path exceeded the frozen 0.15 rad coherence threshold; no retry",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 56,
+            "job_id": "80m:QRSS:0:production:nominal",
+            "disposition": "FAIL_NO_RETRY",
+            "wtp_job_id": "47c6cd5d7c4e28c60000000000000001",
+            "attempt_packet_sha256": "c55d38e30d8a6cf2d1d57c31de4a14042190b477775350012d0836114d5c0fd8",
+            "attempt_packet_file_sha256": "8cea1415ecf0117c7e82c2ea9373da9b283a88482fd392c5825246e3af575b74",
+            "run_result_sha256": "910bde31a0f1a31ff92b5b2d27be92a242e08a498e623bd7dac0e860521aa6a5",
+            "execution_sha256": "e93b91afcfbe56412943bea0bc3adcad12967f2b1eb01de8b546abff4675f999",
+            "capture_sha256": "1a4ed092b233b11c938993b4c8743f872b9dbfe37b90493e4baa94a77eff0e04",
+            "metadata_sha256": "dd55f2c59baf273600259ed791ffa19cb6f265f2fd0d2cb72e4c1725eda0a59b",
+            "analysis_sha256": "dc3967562519f3660e9f0b2c75ab532a9aaeb81556ba1ef317d3b67ec5b0b594",
+            "charged_planned_rf_seconds": 45.000001,
+            "lineage": "zero_tail_be521"
+          }
+        ],
+        "source_lineages": [
+          "zero_tail_be521"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "80m",
       "nominal_frequency_hz": 3570100,
       "mode": "FSKCW",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "FAIL",
+      "reason": "production path exceeded the frozen 0.15 rad coherence threshold; no retry",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 57,
+            "job_id": "80m:FSKCW:0:production:nominal",
+            "disposition": "FAIL_NO_RETRY",
+            "wtp_job_id": "ed00da7ddef399b60000000000000001",
+            "attempt_packet_sha256": "0273d5e4fc160a228fe71ad46cf69a9264e5c7a13ccc32f440346579b8795dde",
+            "attempt_packet_file_sha256": "37f8284a69f33d490af914c7fdcb7490dbab6b9a7d5fc897da73787c146fa8fb",
+            "run_result_sha256": "53b4a9dd4d6be68fea3dfb71ff244ba943f00dd5808959e184759a8174da82f2",
+            "execution_sha256": "000dfc2a744306f2b1533f1f96db4dba081a84fd7503836ce2bab4e48e46309d",
+            "capture_sha256": "cde22a02df2235a750ede429d4d4ef9666b530f841cda29156d845fb0482ee9a",
+            "metadata_sha256": "ab3e38ada6b2863440414f878a60429184ccf2c57ba20e3345823fb360c25f4c",
+            "analysis_sha256": "5ca91c86131a691dfb8066e2b69294b3e3d0b4826673ff15dc99b6812439a125",
+            "charged_planned_rf_seconds": 45.000001,
+            "lineage": "zero_tail_be521"
+          }
+        ],
+        "source_lineages": [
+          "zero_tail_be521"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "80m",
       "nominal_frequency_hz": 3570100,
       "mode": "DFCW",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "all required paths have passing individual evidence but the independent packet audit is absent",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 58,
+            "job_id": "80m:DFCW:0:production:nominal",
+            "disposition": "PASS_PACKET_AUDIT_PENDING",
+            "wtp_job_id": "409c3f71ed17d8370000000000000001",
+            "attempt_packet_sha256": "bd9cbd77b9f12eef5009f444c97452a8cb41390e5a4a3656ffa5102b7f24b42c",
+            "attempt_packet_file_sha256": "f8812a192fbfc5a2d80aaaf7d57852d0c6053f5bdd5ff7ea2607ed69adecddfc",
+            "run_result_sha256": "199a773d9a213b57b121fdcc3a8eb52227d75f35e3a800db392139e873086917",
+            "execution_sha256": "f58ca4b9101c75b855d25f6765de2e4cfd4f9ef494f54be7762965cd240e525a",
+            "capture_sha256": "fa974cefc09adc1c7a5cd8d7beb2cbe571f47f8639616153a9e361708829dff1",
+            "metadata_sha256": "220a1e739a11b7944140e35b87aa2082ee6a2eca2dc8aaf1bfefa87bb447e6a3",
+            "analysis_sha256": "7100dc5f7e3c7868847a13bfc582f942c5224005a86d0433daf793a2a19e018a",
+            "charged_planned_rf_seconds": 39.000001,
+            "lineage": "zero_tail_be521"
+          },
+          {
+            "sequence": 59,
+            "job_id": "80m:DFCW:1:browser_compact:nominal",
+            "disposition": "PASS_PACKET_AUDIT_PENDING",
+            "wtp_job_id": "1acab0b4d69b4c4a96d89a3f1938334e",
+            "attempt_packet_sha256": "aecc1de062d99e17052fbf9dfdfa5eb104ffdd7024e2f6bd9e4a4fa290b32551",
+            "attempt_packet_file_sha256": "1ea66381d6ab9173f139ac2fc7a569ef31ac8c420b6d8fe83b0a9f507a6782b5",
+            "run_result_sha256": "23dbbc5b37ad6a82e62b819158087b2b8326781ac96409edd255ab52e531d8aa",
+            "execution_sha256": "eb6ad8445b4fb40dcfaf2a3a7f4e7c69496536eeb2675612635ad57379408c41",
+            "capture_sha256": "74379ea052806bfc0ad5bdd88308bbc206e38573364bd67fa17cca0f4b042a75",
+            "metadata_sha256": "8fa8fef2d5241fc3d1633cd3ec366874d5ea441689f506906032a9a789c5dc31",
+            "analysis_sha256": "74f210063f1c94acc812a39473a19f9b5dfc68ae0199b2605f15137450791686",
+            "charged_planned_rf_seconds": 39.000001,
+            "lineage": "zero_tail_be521"
+          },
+          {
+            "sequence": 60,
+            "job_id": "80m:DFCW:2:controller_disconnect:nominal",
+            "disposition": "PASS_PACKET_AUDIT_PENDING",
+            "wtp_job_id": "87e0f15f682192367685abface3b495f",
+            "attempt_packet_sha256": "23e6ee435c00e7407bfa41d064f82a6e4db01fd37d27bb6b3fbe90b463319f4c",
+            "attempt_packet_file_sha256": "ceb1155117dc037f8b7cee8a1618328963f414496a970e68a63499963460a0ba",
+            "run_result_sha256": "4aeaeeacffc910bf99796cc4fcebef695e185744342d8c4381cafc252c4abd2b",
+            "execution_sha256": "d9ad8597a63711a19f159cd8370d3379304d67148c6b2e86500adca6d61432ca",
+            "capture_sha256": "17a7f0581072fdeb11ecc7e4676f5e6cab9f0c3867ab920c254ae0ac36d50cae",
+            "metadata_sha256": "8fc897f65abb17dfc406902fd2a84ac7faa770532625f4f9c4551a47f1274f81",
+            "analysis_sha256": "5a57b81a15c94771569d88d25c9b9324f01c573661440fde23cd23f581a29156",
+            "charged_planned_rf_seconds": 39.000001,
+            "lineage": "zero_tail_be521"
+          }
+        ],
+        "source_lineages": [
+          "zero_tail_be521"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": false,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "60m",
       "nominal_frequency_hz": 5288700,
       "mode": "TONE",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "PASS",
+      "reason": "retained physical lifecycle, capture and independent analysis pass",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 61,
+            "job_id": "60m:TONE:0:controller_disconnect:nominal",
+            "disposition": "PASS",
+            "wtp_job_id": "e3135a01c38ca5f50b06296233c03221",
+            "attempt_packet_sha256": "08afa6c1115ab01559ef581a1b86247adf1df999ad0fba45ca6f3f44708defc3",
+            "attempt_packet_file_sha256": "a208ec5fe275cd6ca19b1377dd4d0d8aec199bc184c23f32d5a790513b4f33dd",
+            "run_result_sha256": "62f79b5720cf90449185571fa8ae58a12d10f7b99a6f5060ef434e1fb9cc929e",
+            "execution_sha256": "70f7f565fdf82214ba0a0d1bf2190e4862163a4147d1bfa2cf7268472e3a2d19",
+            "capture_sha256": "f83547fac8cfafcef0756cd609908527d32ebd7d866177093868696183280131",
+            "metadata_sha256": "a4b3ec98dc949f15d1e3589f34f751d7790191d6b8f4b90b1b42f773be9dc497",
+            "analysis_sha256": "cfc2f2a008ee269e69ef0ecd60c378109bd82199d559bf13ef7d7bd67075802e",
+            "charged_planned_rf_seconds": 5.0,
+            "lineage": "zero_tail_be521"
+          }
+        ],
+        "source_lineages": [
+          "zero_tail_be521"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": true,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "60m",
       "nominal_frequency_hz": 5288700,
       "mode": "WSPR",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "configuration-wide frozen WSPR handoff timing contradiction; no RF retry justified",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": [],
+        "constraint_evidence": {
+          "source_row": "2200m/WSPR",
+          "sequences": [
+            161,
+            162,
+            163
+          ],
+          "artifact": "phase11-6-attempt-0161-browser-arm-lead-failure.json",
+          "artifact_sha256": "a4a54c7d2b192d0237d5925c17d91d376ccbd19062d909e3e76a4ba71c1216f8",
+          "frozen_minimum_arm_lead_ns": 8000000000,
+          "accepted_arm_lead_ns": 2438588000,
+          "further_wspr_retry_justified": false
+        }
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "60m",
       "nominal_frequency_hz": 5288700,
       "mode": "QRSS",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "FAIL",
+      "reason": "production path exceeded the frozen 0.15 rad coherence threshold; no retry",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 62,
+            "job_id": "60m:QRSS:0:production:nominal",
+            "disposition": "FAIL_NO_RETRY",
+            "wtp_job_id": "5a872ad57f61626a0000000000000001",
+            "attempt_packet_sha256": "abc3809cdbb0b4bf00c0a8fde0d91e6bc6c0494e752fa3468a0f6ca67416345e",
+            "attempt_packet_file_sha256": "b17877276c1eed61a8be9daf3139eef04ac13f9ec5ac930337af3ae6798e30fb",
+            "run_result_sha256": "0a5e4ec3a054935194a230ddda962eacf65d34c2ad8d6110f723e7fb3ad86d1d",
+            "execution_sha256": "317053f1f2505ecb213b0b3ae3ee2a08a07a392eb097a844fbeef037fe70b3f7",
+            "capture_sha256": "d32ff28f9e49c7141b654f8319716856f1f7d3df70ee7c1970488ad81260239e",
+            "metadata_sha256": "6ba2e6c655b605af80e6b446b537dce4798075a10ba255ac18238b16bd290caa",
+            "analysis_sha256": "9d1e64b1f66b95b9f2063998e201e525aab245fe652e830e33578bbe50f08836",
+            "charged_planned_rf_seconds": 45.000001,
+            "lineage": "zero_tail_be521"
+          }
+        ],
+        "source_lineages": [
+          "zero_tail_be521"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "60m",
       "nominal_frequency_hz": 5288700,
       "mode": "FSKCW",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "FAIL",
+      "reason": "production path exceeded the frozen 0.15 rad coherence threshold; no retry",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 64,
+            "job_id": "60m:FSKCW:0:production:nominal",
+            "disposition": "FAIL_NO_RETRY",
+            "wtp_job_id": "bd790891a6de142e0000000000000001",
+            "attempt_packet_sha256": "1d4d4cbda4e088dab548877601d8bbbfb105dff6c8d33fe8d8393d1993c618a5",
+            "attempt_packet_file_sha256": "94ae27610dfb5a63929411ab65ce32b3545623ba870b547f6ff2f3d47aeddb22",
+            "run_result_sha256": "474ce4d37818a35744f712826409279d97a9fb4f82a50a7a531b115e26dedc76",
+            "execution_sha256": "f2bfde17e58ad54f6593cec42cca79a31a92bdb923451681186f961aa59e50bd",
+            "capture_sha256": "e03ed36cc902bc3fc26fab60435c8c24e9651b6e369d96170929a0effa1622b4",
+            "metadata_sha256": "1795562bcc15f6a658220451144744ba93025d891932ea13175e95861e8f24db",
+            "analysis_sha256": "47852b8cee9d9025f8eefd748ad4e2f9a675da450863869cd9b6389c88cc9c3c",
+            "charged_planned_rf_seconds": 45.000001,
+            "lineage": "zero_tail_be521"
+          }
+        ],
+        "source_lineages": [
+          "zero_tail_be521"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "60m",
       "nominal_frequency_hz": 5288700,
       "mode": "DFCW",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "FAIL",
+      "reason": "controller path failed required browser-observer resource admission; retained without accepted analysis or retry",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 65,
+            "job_id": "60m:DFCW:0:production:nominal",
+            "disposition": "PASS_PACKET_AUDIT_PENDING",
+            "wtp_job_id": "6c89b355049367ed0000000000000001",
+            "attempt_packet_sha256": "c31a3f8dd7cde6d08cc5920e914cd69167ff51ccc7126b244d79089c35e16adf",
+            "attempt_packet_file_sha256": "ef74e8a6efffe2ecfc39069f156ef1cb8aae5d2f6a5b77a998f15888ec208f24",
+            "run_result_sha256": "a3b2da258842990e7c04a4e7fd538ca672c38260a35085eb661563fb7b5ba5a9",
+            "execution_sha256": "334db2e476bd0c318c6b978cb33bb6eb712e71086e6bdb351ed10d39c2948956",
+            "capture_sha256": "65f73174b70a948a8ae4df8212a822484abfbf1bff10a2c92ba84d6796b70f60",
+            "metadata_sha256": "b92b1ae6097e7480a82d5e612b5d4a04d05a010854a63f1511ae87e53419c4c6",
+            "analysis_sha256": "febd1156ddb261954547b458ac5a136bd500e625832e0f5574c72276b0ab5af1",
+            "charged_planned_rf_seconds": 39.000001,
+            "lineage": "zero_tail_be521"
+          },
+          {
+            "sequence": 66,
+            "job_id": "60m:DFCW:1:browser_compact:nominal",
+            "disposition": "PASS_PACKET_AUDIT_PENDING",
+            "wtp_job_id": "94862cc0ceceb4d320a17c428a3ba68d",
+            "attempt_packet_sha256": "3ca1ed5d985777f8163580c779787911b6719e6ebeb813fde7b7b5e518e0ba8d",
+            "attempt_packet_file_sha256": "cdf70584b545a321683ff9d27d50458c7dc19bff4e5a8437343f6bcb5caab9b0",
+            "run_result_sha256": "c0eb81e33e60469c240f7ca4440e864f39d2ffa3ee105291736cb9491a5bd5fe",
+            "execution_sha256": "4ed6956973eb547a3e5a1d6f67428d074a24990846dcdf4014d6c4ac08c54b4c",
+            "capture_sha256": "2d3c2f8a65b13d43366ac558ce3f36657d284fc072f0d5dc6fbab977cc6204ed",
+            "metadata_sha256": "eb2381a8121255c5403dece4f02e99ef45b94255c58a628894ae88b3fda1aa79",
+            "analysis_sha256": "28d91479bdc62b540b7089aaff75001eef9982d9ad21a42106e14b8ec7514b96",
+            "charged_planned_rf_seconds": 39.000001,
+            "lineage": "zero_tail_be521"
+          },
+          {
+            "sequence": 67,
+            "job_id": "60m:DFCW:2:controller_disconnect:nominal",
+            "disposition": "FAIL_NO_RETRY",
+            "wtp_job_id": "e91341f781eed88966020f2a205a9c34",
+            "attempt_packet_sha256": "53e65f0c47d6e3d047a1831f1eff26461f977518b06903ced8cc1631f6ea2a6a",
+            "attempt_packet_file_sha256": "32ab37b901b61c119343dfd664fe9873e7263ebb929d6ecd8d06bde85ac1282a",
+            "execution_sha256": "4cc9069fcd479cc7dfb101b9eb02ad9c15648459ffb55cb6db8b55d8e9678345",
+            "capture_sha256": "a0f2157338ed678e60a7a84860457839f90ec6a166d01f2c6e0f8be985b8344d",
+            "metadata_sha256": "d1e88b21be2d1e4e925b36ae5b8bd38d84f466a4723c7c095275a8c2f936fad2",
+            "browser_result_sha256": "0e7108ac3872d995762fd0cdef0d54aa17727cc1a7128555b63ae406457ca377",
+            "charged_planned_rf_seconds": 39.000001,
+            "failure": "The physical job completed inactive, but the independent observer health gate failed after the browser watcher continued refreshing an unavailable page and exhausted target TLS allocation capacity.",
+            "analysis_performed": false,
+            "physical_job_completed": true,
+            "lineage": "zero_tail_be521"
+          }
+        ],
+        "source_lineages": [
+          "zero_tail_be521"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "40m",
       "nominal_frequency_hz": 7040100,
       "mode": "TONE",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "PASS",
+      "reason": "retained physical lifecycle, capture and independent analysis pass",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 69,
+            "job_id": "40m:TONE:0:controller_disconnect:nominal",
+            "submission_path": "controller_disconnect",
+            "disposition": "PASS_PATH",
+            "lineage": "zero_tail_e363",
+            "plan_sha256": "1b0afcc0148096e668e31fc63ffbb35af0b0c9089a37308977ca679247d43902",
+            "run_result_sha256": "7c5df383ad1e45b368f59dd91266349c3e1362cde09ee332cdfb1fcfa91e0ac7",
+            "capture_sha256": "4e5cedd1a676ab550708c4d4b0113ee6583452b75bc5b77c27e8848870ccdb79",
+            "metadata_sha256": "0ecf5b8fcb5bdcb4160de8029356a21575d78b995a19826cc85a123ea4683b48",
+            "analysis_sha256": "fa94fc23371502124667e1ffc320f4e7345448f4ac10195cef4bea481655f7c8",
+            "private_evidence_root": "phase11-6-conducted-v4-20260918"
+          }
+        ],
+        "source_lineages": [
+          "zero_tail_e363"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": true,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "40m",
       "nominal_frequency_hz": 7040100,
       "mode": "WSPR",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "FAIL",
+      "reason": "retained WSPR control-path attempts failed; the later configuration-wide timing proof prohibits another retry",
+      "evidence": {
+        "attempts": [
+          {
+            "sequence": 88,
+            "disposition": "FAIL",
+            "lineage": "zero_tail_e363",
+            "attempt_packet_file_sha256": "6820906e4aee519bcb27becdfec0e4091a7d4f3fc3947105aae53302102c6525",
+            "execution_jsonl_sha256": "d1df5dd066c0d673d91965a697462dda31592f8fe15a01337d48e7a5df4fe665",
+            "failure": "production process did not exit after its finite configured iteration",
+            "capture_evidence": "not accepted for row credit",
+            "analysis_evidence": "absent",
+            "private_evidence_root": "phase11-6-conducted-v5-20260918"
+          },
+          {
+            "sequence": 94,
+            "disposition": "FAIL",
+            "lineage": "zero_tail_e363",
+            "execution_jsonl_sha256": "edc78d2bb362c831969c92d07c91cdc61435adc4fc2ca619af613ba5e9506b96",
+            "failure": "production authoritative completion report",
+            "capture_evidence": "not accepted for row credit",
+            "analysis_evidence": "absent",
+            "private_evidence_root": "phase11-6-conducted-v7-20260918"
+          },
+          {
+            "sequence": 97,
+            "disposition": "FAIL",
+            "lineage": "zero_tail_e363",
+            "execution_jsonl_sha256": "03bdcc587b306e9b3fe00511143cc872719f27e98d32a35d9b9ce0d7ae05f131",
+            "failure": "controller WSPR transition admission deadline",
+            "capture_evidence": "not accepted for row credit",
+            "analysis_evidence": "absent",
+            "private_evidence_root": "phase11-6-conducted-v8-20260918"
+          }
+        ],
+        "source_lineages": [
+          "zero_tail_e363"
+        ]
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -413,14 +1399,16 @@
       "nominal_frequency_hz": 7040100,
       "mode": "QRSS",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -428,14 +1416,16 @@
       "nominal_frequency_hz": 7040100,
       "mode": "FSKCW",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -443,14 +1433,16 @@
       "nominal_frequency_hz": 7040100,
       "mode": "DFCW",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -458,29 +1450,46 @@
       "nominal_frequency_hz": 10140200,
       "mode": "TONE",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "30m",
       "nominal_frequency_hz": 10140200,
       "mode": "WSPR",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "configuration-wide frozen WSPR handoff timing contradiction; no RF retry justified",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": [],
+        "constraint_evidence": {
+          "source_row": "2200m/WSPR",
+          "sequences": [
+            161,
+            162,
+            163
+          ],
+          "artifact": "phase11-6-attempt-0161-browser-arm-lead-failure.json",
+          "artifact_sha256": "a4a54c7d2b192d0237d5925c17d91d376ccbd19062d909e3e76a4ba71c1216f8",
+          "frozen_minimum_arm_lead_ns": 8000000000,
+          "accepted_arm_lead_ns": 2438588000,
+          "further_wspr_retry_justified": false
+        }
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -488,14 +1497,16 @@
       "nominal_frequency_hz": 10140200,
       "mode": "QRSS",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -503,14 +1514,16 @@
       "nominal_frequency_hz": 10140200,
       "mode": "FSKCW",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -518,14 +1531,16 @@
       "nominal_frequency_hz": 10140200,
       "mode": "DFCW",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -533,29 +1548,46 @@
       "nominal_frequency_hz": 14097100,
       "mode": "TONE",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "20m",
       "nominal_frequency_hz": 14097100,
       "mode": "WSPR",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "configuration-wide frozen WSPR handoff timing contradiction; no RF retry justified",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": [],
+        "constraint_evidence": {
+          "source_row": "2200m/WSPR",
+          "sequences": [
+            161,
+            162,
+            163
+          ],
+          "artifact": "phase11-6-attempt-0161-browser-arm-lead-failure.json",
+          "artifact_sha256": "a4a54c7d2b192d0237d5925c17d91d376ccbd19062d909e3e76a4ba71c1216f8",
+          "frozen_minimum_arm_lead_ns": 8000000000,
+          "accepted_arm_lead_ns": 2438588000,
+          "further_wspr_retry_justified": false
+        }
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -563,14 +1595,16 @@
       "nominal_frequency_hz": 14097100,
       "mode": "QRSS",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -578,14 +1612,16 @@
       "nominal_frequency_hz": 14097100,
       "mode": "FSKCW",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -593,14 +1629,16 @@
       "nominal_frequency_hz": 14097100,
       "mode": "DFCW",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -608,29 +1646,46 @@
       "nominal_frequency_hz": 18106100,
       "mode": "TONE",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "17m",
       "nominal_frequency_hz": 18106100,
       "mode": "WSPR",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "configuration-wide frozen WSPR handoff timing contradiction; no RF retry justified",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": [],
+        "constraint_evidence": {
+          "source_row": "2200m/WSPR",
+          "sequences": [
+            161,
+            162,
+            163
+          ],
+          "artifact": "phase11-6-attempt-0161-browser-arm-lead-failure.json",
+          "artifact_sha256": "a4a54c7d2b192d0237d5925c17d91d376ccbd19062d909e3e76a4ba71c1216f8",
+          "frozen_minimum_arm_lead_ns": 8000000000,
+          "accepted_arm_lead_ns": 2438588000,
+          "further_wspr_retry_justified": false
+        }
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -638,14 +1693,16 @@
       "nominal_frequency_hz": 18106100,
       "mode": "QRSS",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -653,14 +1710,16 @@
       "nominal_frequency_hz": 18106100,
       "mode": "FSKCW",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -668,14 +1727,16 @@
       "nominal_frequency_hz": 18106100,
       "mode": "DFCW",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -683,29 +1744,46 @@
       "nominal_frequency_hz": 21096100,
       "mode": "TONE",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "15m",
       "nominal_frequency_hz": 21096100,
       "mode": "WSPR",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "configuration-wide frozen WSPR handoff timing contradiction; no RF retry justified",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": [],
+        "constraint_evidence": {
+          "source_row": "2200m/WSPR",
+          "sequences": [
+            161,
+            162,
+            163
+          ],
+          "artifact": "phase11-6-attempt-0161-browser-arm-lead-failure.json",
+          "artifact_sha256": "a4a54c7d2b192d0237d5925c17d91d376ccbd19062d909e3e76a4ba71c1216f8",
+          "frozen_minimum_arm_lead_ns": 8000000000,
+          "accepted_arm_lead_ns": 2438588000,
+          "further_wspr_retry_justified": false
+        }
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -713,14 +1791,16 @@
       "nominal_frequency_hz": 21096100,
       "mode": "QRSS",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -728,14 +1808,16 @@
       "nominal_frequency_hz": 21096100,
       "mode": "FSKCW",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -743,14 +1825,16 @@
       "nominal_frequency_hz": 21096100,
       "mode": "DFCW",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -758,29 +1842,46 @@
       "nominal_frequency_hz": 24926100,
       "mode": "TONE",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "12m",
       "nominal_frequency_hz": 24926100,
       "mode": "WSPR",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "configuration-wide frozen WSPR handoff timing contradiction; no RF retry justified",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": [],
+        "constraint_evidence": {
+          "source_row": "2200m/WSPR",
+          "sequences": [
+            161,
+            162,
+            163
+          ],
+          "artifact": "phase11-6-attempt-0161-browser-arm-lead-failure.json",
+          "artifact_sha256": "a4a54c7d2b192d0237d5925c17d91d376ccbd19062d909e3e76a4ba71c1216f8",
+          "frozen_minimum_arm_lead_ns": 8000000000,
+          "accepted_arm_lead_ns": 2438588000,
+          "further_wspr_retry_justified": false
+        }
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -788,14 +1889,16 @@
       "nominal_frequency_hz": 24926100,
       "mode": "QRSS",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -803,14 +1906,16 @@
       "nominal_frequency_hz": 24926100,
       "mode": "FSKCW",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -818,14 +1923,16 @@
       "nominal_frequency_hz": 24926100,
       "mode": "DFCW",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -833,29 +1940,46 @@
       "nominal_frequency_hz": 28126100,
       "mode": "TONE",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "10m",
       "nominal_frequency_hz": 28126100,
       "mode": "WSPR",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "configuration-wide frozen WSPR handoff timing contradiction; no RF retry justified",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": [],
+        "constraint_evidence": {
+          "source_row": "2200m/WSPR",
+          "sequences": [
+            161,
+            162,
+            163
+          ],
+          "artifact": "phase11-6-attempt-0161-browser-arm-lead-failure.json",
+          "artifact_sha256": "a4a54c7d2b192d0237d5925c17d91d376ccbd19062d909e3e76a4ba71c1216f8",
+          "frozen_minimum_arm_lead_ns": 8000000000,
+          "accepted_arm_lead_ns": 2438588000,
+          "further_wspr_retry_justified": false
+        }
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -863,14 +1987,16 @@
       "nominal_frequency_hz": 28126100,
       "mode": "QRSS",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -878,14 +2004,16 @@
       "nominal_frequency_hz": 28126100,
       "mode": "FSKCW",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -893,14 +2021,16 @@
       "nominal_frequency_hz": 28126100,
       "mode": "DFCW",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -908,29 +2038,46 @@
       "nominal_frequency_hz": 50294500,
       "mode": "TONE",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
       "band": "6m",
       "nominal_frequency_hz": 50294500,
       "mode": "WSPR",
-      "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "disposition": "BLOCKED",
+      "reason": "configuration-wide frozen WSPR handoff timing contradiction; no RF retry justified",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": [],
+        "constraint_evidence": {
+          "source_row": "2200m/WSPR",
+          "sequences": [
+            161,
+            162,
+            163
+          ],
+          "artifact": "phase11-6-attempt-0161-browser-arm-lead-failure.json",
+          "artifact_sha256": "a4a54c7d2b192d0237d5925c17d91d376ccbd19062d909e3e76a4ba71c1216f8",
+          "frozen_minimum_arm_lead_ns": 8000000000,
+          "accepted_arm_lead_ns": 2438588000,
+          "further_wspr_retry_justified": false
+        }
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": null,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -938,14 +2085,16 @@
       "nominal_frequency_hz": 50294500,
       "mode": "QRSS",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -953,14 +2102,16 @@
       "nominal_frequency_hz": 50294500,
       "mode": "FSKCW",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -968,14 +2119,16 @@
       "nominal_frequency_hz": 50294500,
       "mode": "DFCW",
       "disposition": "NOT TESTED",
-      "reason": "awaiting immutable physical packet",
-      "attempts": [],
+      "reason": "no retained row attempt through sequence 175",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -983,14 +2136,16 @@
       "nominal_frequency_hz": 70092500,
       "mode": "TONE",
       "disposition": "UNSUPPORTED_CONFIGURATION",
-      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
-      "attempts": [],
+      "reason": "outside the direct 138 MHz/divider-1 synthesis range; no ARM or RF attempt",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -998,14 +2153,16 @@
       "nominal_frequency_hz": 70092500,
       "mode": "WSPR",
       "disposition": "UNSUPPORTED_CONFIGURATION",
-      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
-      "attempts": [],
+      "reason": "outside the direct 138 MHz/divider-1 synthesis range; no ARM or RF attempt",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -1013,14 +2170,16 @@
       "nominal_frequency_hz": 70092500,
       "mode": "QRSS",
       "disposition": "UNSUPPORTED_CONFIGURATION",
-      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
-      "attempts": [],
+      "reason": "outside the direct 138 MHz/divider-1 synthesis range; no ARM or RF attempt",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -1028,14 +2187,16 @@
       "nominal_frequency_hz": 70092500,
       "mode": "FSKCW",
       "disposition": "UNSUPPORTED_CONFIGURATION",
-      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
-      "attempts": [],
+      "reason": "outside the direct 138 MHz/divider-1 synthesis range; no ARM or RF attempt",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -1043,14 +2204,16 @@
       "nominal_frequency_hz": 70092500,
       "mode": "DFCW",
       "disposition": "UNSUPPORTED_CONFIGURATION",
-      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
-      "attempts": [],
+      "reason": "outside the direct 138 MHz/divider-1 synthesis range; no ARM or RF attempt",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -1058,14 +2221,16 @@
       "nominal_frequency_hz": 144490500,
       "mode": "TONE",
       "disposition": "UNSUPPORTED_CONFIGURATION",
-      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
-      "attempts": [],
+      "reason": "outside the direct 138 MHz/divider-1 synthesis range; no ARM or RF attempt",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -1073,14 +2238,16 @@
       "nominal_frequency_hz": 144490500,
       "mode": "WSPR",
       "disposition": "UNSUPPORTED_CONFIGURATION",
-      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
-      "attempts": [],
+      "reason": "outside the direct 138 MHz/divider-1 synthesis range; no ARM or RF attempt",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -1088,14 +2255,16 @@
       "nominal_frequency_hz": 144490500,
       "mode": "QRSS",
       "disposition": "UNSUPPORTED_CONFIGURATION",
-      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
-      "attempts": [],
+      "reason": "outside the direct 138 MHz/divider-1 synthesis range; no ARM or RF attempt",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -1103,14 +2272,16 @@
       "nominal_frequency_hz": 144490500,
       "mode": "FSKCW",
       "disposition": "UNSUPPORTED_CONFIGURATION",
-      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
-      "attempts": [],
+      "reason": "outside the direct 138 MHz/divider-1 synthesis range; no ARM or RF attempt",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     },
     {
@@ -1118,26 +2289,23 @@
       "nominal_frequency_hz": 144490500,
       "mode": "DFCW",
       "disposition": "UNSUPPORTED_CONFIGURATION",
-      "reason": "outside direct 138 MHz/divider-1 synthesis range; no ARM/RF attempt",
-      "attempts": [],
+      "reason": "outside the direct 138 MHz/divider-1 synthesis range; no ARM or RF attempt",
+      "evidence": {
+        "attempts": [],
+        "source_lineages": []
+      },
       "assertions": {
-        "decoding_or_readability": null,
-        "frequency_spacing_and_timing": null,
-        "network_lifecycle": null,
-        "instrument_capture_validity": null,
-        "diagnostic_spectrum": null
+        "path_evidence_complete": false,
+        "packet_audit_complete": null,
+        "thresholds_unchanged": true,
+        "historical_identity_preserved": true
       }
     }
   ],
-  "integration_cases": [],
-  "accounting": {
-    "attempted": 0,
-    "accepted": 0,
-    "rejected": 0,
-    "aborted": 0,
-    "uncertain": 0,
-    "completed": 0,
-    "charged_jobs": 0,
-    "charged_planned_rf_seconds": 0
-  }
+  "limitations": [
+    "passing individual paths marked BLOCKED do not receive row PASS without their required packet audit",
+    "absolute frequency is receiver-indicated and uncalibrated",
+    "spectrum evidence is relative and in-band only; no harmonic, calibrated-power or regulatory claim",
+    "capture-relative timing does not independently calibrate UTC"
+  ]
 }
