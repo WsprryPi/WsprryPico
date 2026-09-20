@@ -1,5 +1,11 @@
 # Development baseline
 
+Phase 11 is closed within its documented software, bounded physical and scoped
+conducted-RF acceptance. The authoritative [Phase 11.7 joint review](phase11-7-review.md)
+binds the current source pair, assertion-level applicability, fresh host
+regressions and retained limitations. Phase 12 provisioning and Phase 13 broad
+hardware/release qualification remain open.
+
 Phase 11.5 is CLOSED at 6/6 families for its recorded 138 MHz/divider-1
 configuration. Its [completion matrix](phase11-5-completion-matrix.md) and
 [September 15 standing authorization](phase11-5-completion-authorization-20260915.md)
@@ -71,6 +77,10 @@ stack, timing, fault, capture and restoration gates pass; the independent
 and Phase 11.5. Package 11 cumulative accounting is 41 jobs / 495.4 planned
 seconds. All four stopped attempts remain preserved.
 
+## Historical Phase 11.5 execution chronology
+
+The following paragraphs retain contemporaneous states and device identities.
+They do not override the current 6/6 and scoped Phase 11 closure above.
 
 R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).
 R2 is **7/7 jobs**; R1 remains **5/5** through documented affected-check reuse.
@@ -216,6 +226,11 @@ The [full-frame record](rf-frame-validation.md) adds synthetic frame, abort/rear
 simultaneous GPSDO comparison and optional offline measurement tests.
 The [output/inhibit design](rf-output-design.md) remains a hardware proposal.
 
+### Historical Phase 11.4 investigation chronology
+
+The open statements below describe intermediate investigations. The current
+bounded Phase 11.4 acceptance is the closed matrix and soak summarized above.
+
 The [Phase 11.3 plan and joint checklist](phase11-3-plan.md) records DHCP/mDNS,
 hostname deployment certificates, HTTP authority and companion integration.
 The [shared identity contract](phase11-3-identity.md) is authoritative for both
@@ -313,11 +328,12 @@ compares future fault-testing options.
 
 The [Phase 11 network guide](network-control.md) documents optional TLS WTP/TCP,
 HTTPS/browser tests, device-specific certificate tooling, build inputs and
-recovery. The [review record](phase11-review.md) distinguishes hardware-free
-validation from the pending physical network acceptance gate. The
+recovery. The historical [review record](phase11-review.md) distinguishes its
+hardware-free validation from then-pending physical work; the later
+[Phase 11.7 review](phase11-7-review.md) supplies the current bounded disposition. The
 [11.2 plan](phase11-2-plan.md) and [concurrent-management review](phase11-2-review.md)
 record the two-core RF ownership design, bounded clients, actual TLS/11.1-client
-acceptance, sanitizers, browser checks and remaining target measurements.
+acceptance, sanitizers, browser checks and historical target-measurement boundary.
 
 The [Phase 10 host acceptance guide](phase10-host-acceptance.md) describes the
 SNTP-enabled five-mode images, optional actual-WsprryPi-client interoperability

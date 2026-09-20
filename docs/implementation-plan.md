@@ -34,19 +34,23 @@ treated as long-term product documentation.
     broader qualification retained in Phase 13. See the
     [target review](development/phase10-target-review.md) and
     [host acceptance guide](development/phase10-host-acceptance.md).
-11. **Implemented; target acceptance open:** optional mutually authenticated
+11. **Complete within documented scope:** optional mutually authenticated
     TLS WTP/TCP, browser API v1, embedded UI, network management and local
     certificate lifecycle. Host tests and firmware cross-linking are recorded in
-    the [Phase 11 review](development/phase11-review.md). Physical TLS/RF
-    coexistence remains open. WsprryPi 11.1 host software is implemented independently.
-    [11.2 concurrent management](development/phase11-2-review.md) implements software
-    isolation and instrumentation; target timing acceptance remains pending.
+    the [Phase 11 review](development/phase11-review.md). WsprryPi 11.1 host
+    software is implemented independently. [11.2 concurrent management](development/phase11-2-review.md)
+    supplies software isolation and instrumentation, with later bounded physical
+    applicability recorded by 11.5/11.6 rather than an unrestricted timing claim.
     [11.3 DHCP/mDNS/hostname certificates](development/phase11-3-plan.md) is closed
     within its joint software/integration scope. [11.4 inhibited physical acceptance](development/phase11-4-plan.md)
     is closed within its bounded matrix, including the reviewed eight-hour soak.
-    Remaining physical gates: [11.5 target resource/contention acceptance](development/phase11-5-plan.md)
-    for each PIO clock selected for 11.6; 11.6 per-band/per-mode conducted RF
-    acceptance at those clocks; 11.7 final joint review and Phase 11 closure.
+    [11.5 target resource/contention acceptance](development/phase11-5-plan.md)
+    is closed 6/6 for 138 MHz/divider 1. 11.6 is `CLOSED_SCOPED` at exactly
+    13 accepted conducted rows, with no WSPR row accepted and all failures,
+    blocked/untested work and 4 m/2 m configuration boundaries retained. The
+    [11.7 joint review](development/phase11-7-review.md) reconciles current source,
+    evidence applicability, regressions and documentation and closes Phase 11
+    within those boundaries.
     The [selected QRSS-group limits](#planned-qrss-group-message-and-duration-limits)
     are implemented; affected 11.5 resource and extended-job physical acceptance
     are complete for the recorded 138 MHz/divider-1 configuration before 11.6
@@ -74,7 +78,9 @@ treated as long-term product documentation.
 ## QRSS-group message and duration limits
 
 Decision: selected by the user on 2026-09-13. Implemented in Pico source
-`7d183978d08d` and Pi companion `bba4024`; final physical acceptance remains open.
+`7d183978d08d` and Pi companion `bba4024`. Phase 11.5 later accepted the limits
+within its recorded 138 MHz/divider-1 physical scope; wider reliability and
+configuration qualification remain in Phase 13.
 
 - Apply one uniform maximum message length of **32 characters, including
   spaces**, to QRSS, FSKCW and DFCW. Every supported character counts equally;
@@ -106,8 +112,9 @@ final off event for compact browser submissions. See the
 E0a has independently verified idle maximum admission and S0 has completed a
 32-character, 384-event QRSS plan lasting 143.250001 seconds on the new image.
 Actual QRSS, FSKCW and DFCW physical hours are recorded in checkpoints 006/010/012,
-with their original observation limits preserved. Saturation and reclamation
-remain open; the [current completion matrix](development/phase11-5-completion-matrix.md)
+with their original observation limits preserved. Later Package 11 Retry 4
+closed saturation/reclamation and Phase 11.5 at 6/6 for the recorded
+configuration. The [current completion matrix](development/phase11-5-completion-matrix.md)
 records source applicability and affected checks. The
 [incremental ledger](development/phase11-5-acceptance-ledger.md#incremental-v2-validation)
 preserves each applicable passing assertion without resetting unrelated checks.
@@ -279,11 +286,13 @@ Phase 13 qualification work.
 
 ## Subsequent slices
 
-1. Perform separately authorized Phase 11 inhibited target acceptance, then
-   evaluate RF/network coexistence and continuous browser availability. Coordinate
-   companion WsprryPi TLS transport/API adoption in that repository.
-2. Add SoftAP and BLE provisioning/local management with a documented recovery path.
-3. Qualify supported engine/mode/band combinations, timing, RF and reliability; finish output networks/filters and release a reproducible WsprryPico-x.y.z.uf2.
+1. Phase 11 is closed within its documented software, bounded physical and
+   scoped conducted-RF acceptance; do not broaden that result into release
+   qualification.
+2. Phase 12: add SoftAP and BLE provisioning/local management with a documented recovery path.
+3. Phase 13: qualify supported engine/mode/band/clock combinations, timing, RF
+   and reliability; finish output networks/filters and release a reproducible
+   WsprryPico-x.y.z.uf2.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 
@@ -292,6 +301,8 @@ Sequence may evolve based on RF feasibility. Standalone operation remains a prod
 The firmware builds for Pico 2 W. The portable core and WTP USB endpoint are
 host-tested, and bounded target USB validation passes on the recorded Pico 2 W
 and Mac. Bounded RF bench transmissions, UTC-scheduled WTP integration and CPU
-timing measurements are now recorded. Supported bands, physical autonomous timing,
-calibrated target timing and final engine promotion remain open. WTP/1 schemas are
+timing measurements are now recorded. Phase 11 adds its bounded inhibited,
+resource/contention and scoped conducted-RF acceptance. Final supported
+mode/band/clock combinations, calibrated timing and release engine promotion
+remain open in Phase 13. WTP/1 schemas are
 normative; changes to them require an explicit protocol-contract revision.

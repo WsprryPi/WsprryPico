@@ -42,16 +42,16 @@ explicitly reduced scope: 13 passing rows are accepted, 52 supported
 non-passing rows are excluded from acceptance, and the 10 unsupported 4 m/2 m
 rows remain configuration boundaries.
 
-Network interfaces are implemented
-and host-tested. [Phase 11](docs/development/network-control.md) adds per-device
-certificate tooling and network management. Network control defaults off; target
-TLS/RF coexistence acceptance remains open. [Phase 11.2](docs/development/phase11-2-review.md)
-isolates physical waveform servicing and permits concurrent controller/browser
-connections; target timing acceptance is pending. WsprryPi's host TLS integration
-is independently implemented. [Phase 11.3](docs/development/phase11-3-plan.md)
-adds DHCP with a stable certified mDNS hostname, optional explicit IP identity
-and a shared client/server authority contract. Its joint software/integration
-scope is closed; physical acceptance remains open.
+Network interfaces are implemented and host-tested. Per-device certificate
+tooling, network management, concurrent controller/browser servicing, DHCP with
+a stable certified mDNS hostname, optional explicit-IP identity and the shared
+client/server authority contract are accepted within the documented Phase 11
+software and bounded physical scopes. The authoritative
+[Phase 11.7 joint review](docs/development/phase11-7-review.md) closes Phase 11
+within that scope, including the 11.4 inhibited matrix/eight-hour soak, 11.5 at
+138 MHz/divider 1 and the explicitly reduced 11.6 conducted matrix. Network
+control still defaults off. Broader mode/band/clock, timing, spectra, filtering,
+reliability and release qualification remain in Phase 13.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)

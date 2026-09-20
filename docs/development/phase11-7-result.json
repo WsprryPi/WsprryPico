@@ -1,0 +1,250 @@
+{
+  "schema": "phase11.7-joint-closure-v1",
+  "date": "2026-09-20",
+  "status": "CLOSED_SCOPED",
+  "phase11_7_closed": true,
+  "phase11_closed_within_documented_scope": true,
+  "closure_language": "Phase 11 closed within its documented software, bounded physical and scoped conducted-RF acceptance",
+  "repositories": {
+    "pico": {
+      "owner": "coordination and authoritative joint closure",
+      "starting_revision": "10ea8210ba9bc1d2c50fa9b59bc16767af5c4200",
+      "tested_revision": "95aac22bf7cc31b67fe5773761708d743d8a6473",
+      "current_runtime_candidate_revision": "0e85ff90571c800450073f7b0bfafd70266f1f44",
+      "interop_pi_pin": "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf"
+    },
+    "pi": {
+      "starting_revision": "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf",
+      "tested_revision": "2298a268d8139409ed650d2311d794b3813d99ab",
+      "tested_revision_full": "2298a268d8139409ed650d2311d794b3813d99ab",
+      "interop_pico_pin": "95aac22bf7cc31b67fe5773761708d743d8a6473",
+      "recorded_phase11_6_binary_sha256": "b8e63947e2e9780f43dc4247869db138f81cc6e2245c99c1fd02ad9de4b33ff6"
+    },
+    "publication_policy": "The exact pair above is tested. Later closure-only documentation, audit and test-registration commits must remain production-source equivalent; reciprocal pins are not advanced in a cycle."
+  },
+  "source_equivalence": {
+    "pico_candidate_to_tested": {
+      "from": "0e85ff90571c800450073f7b0bfafd70266f1f44",
+      "to": "95aac22bf7cc31b67fe5773761708d743d8a6473",
+      "firmware_linked_diff": "EMPTY",
+      "later_files": [
+        "cmake/network_client_interop.cmake",
+        "cmake/network_host_tests.cmake",
+        "src/phase11_6/live.py",
+        "src/phase11_6/plan.py",
+        "src/phase11_6/reconciliation.py"
+      ],
+      "rationale": "The later files are hardware-free interoperability configuration or host campaign/reconciliation code and do not alter the linked Pico firmware runtime."
+    },
+    "pi_start_to_tested": {
+      "from": "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf",
+      "to": "2298a268d8139409ed650d2311d794b3813d99ab",
+      "production_runtime_diff": "EMPTY",
+      "later_files": [
+        "src/tests/network/CMakeLists.txt",
+        "src/tests/network/pico-reference-revision.txt"
+      ],
+      "rationale": "Only the host-only actual-Pico interoperability harness and its immutable source pin changed."
+    }
+  },
+  "assertion_ledger": [
+    {
+      "id": "11.1",
+      "claim": "WsprryPi TLS transport, shared browser API and network management are accepted in their software scope.",
+      "owner": "WsprryPi",
+      "supporting_artifacts": [
+        "WsprryPi/docs/development/phase11-1-review.md",
+        "WsprryPi/docs/wtp-network.md",
+        "WsprryPico/docs/development/network-control.md"
+      ],
+      "source_configuration": "Pico 95aac22bf7cc31b67fe5773761708d743d8a6473 with Pi 2298a26 host-only interoperability metadata over the c39fae35 production runtime",
+      "evidence_type": "fresh hardware-free host tests plus historical software review",
+      "subsequent_relevant_changes": "Paced STATUS monitoring, terminal-event reconciliation, cleanup proof reuse, finite managed WSPR iteration and QRSS-group planning were reviewed and freshly retested.",
+      "applicability": "APPLICABLE",
+      "limitations": "Loopback, synthetic clocks and ephemeral credentials do not qualify physical networking, installation, trust stores or RF."
+    },
+    {
+      "id": "11.2",
+      "claim": "Concurrent physical-job servicing and browser/WTP management are accepted within the recorded target and host-test scope.",
+      "owner": "WsprryPico",
+      "supporting_artifacts": [
+        "docs/development/phase11-2-review.md",
+        "docs/development/phase11-5-completion-matrix.json",
+        "docs/development/phase11-6-matrix.json"
+      ],
+      "source_configuration": "Current host-tested source plus the exact 138 MHz/divider-1 physical lineages retained by 11.5 and 11.6",
+      "evidence_type": "fresh host regression plus bounded historical physical evidence",
+      "subsequent_relevant_changes": "Direct reserved payload assembly, measured allocation, status scratch admission, immutable-start reprojection and inactive zero-tail completion were reviewed; firmware-source applicability is unchanged from 0e85ff9.",
+      "applicability": "APPLICABLE_BOUNDED",
+      "limitations": "Not a general target-latency or all-load qualification."
+    },
+    {
+      "id": "11.3",
+      "claim": "DHCP, stable mDNS hostname, certificate identity and explicit-IP support are accepted within the joint software/integration and recorded physical scope.",
+      "owner": "WsprryPico and WsprryPi",
+      "supporting_artifacts": [
+        "docs/development/phase11-3-review.md",
+        "docs/development/phase11-3-identity.md",
+        "WsprryPi/docs/wtp-network.md"
+      ],
+      "source_configuration": "Current clean tested pair with Mbed TLS 0bebf8b8c7f07abe3571ded48a11aa907a1ffb20; retained Phase 11.3 target records",
+      "evidence_type": "fresh actual shared server/client loopback plus retained bounded target evidence",
+      "subsequent_relevant_changes": "Current pair preserves canonical authority, DNS/IP SAN checks, mTLS, credential replacement and fail-closed identity behavior.",
+      "applicability": "APPLICABLE_BOUNDED",
+      "limitations": "The host could not bind a second loopback IPv4 address; the injected-address contract ran, but no new physical DHCP/mDNS operation occurred."
+    },
+    {
+      "id": "11.4",
+      "claim": "Bounded inhibited-device acceptance, including the reviewed eight-hour soak, remains accepted.",
+      "owner": "WsprryPico",
+      "supporting_artifacts": [
+        "docs/development/phase11-4-three-radio-results.md",
+        "docs/development/phase11-4-controlled-soak-run.md"
+      ],
+      "source_configuration": "Historical inhibited runtime 802c91a7b86e-dirty and the exact boots/UF2/configuration recorded in those artifacts",
+      "evidence_type": "historical physical inhibited-device evidence",
+      "subsequent_relevant_changes": "No current-source claim replaces or rebinds the recorded physical evidence; later applicable behavior is covered by 11.5/11.6 and host regressions.",
+      "applicability": "APPLICABLE_AS_RECORDED",
+      "limitations": "The evidence is not current-device inventory, live state or RF qualification."
+    },
+    {
+      "id": "11.5",
+      "claim": "Resource/contention acceptance is closed at 6/6 families for the recorded 138 MHz, PIO divider-1 configuration.",
+      "owner": "WsprryPico",
+      "supporting_artifacts": [
+        "docs/development/phase11-5-completion-matrix.json",
+        "docs/development/phase11-5-package11-retry4-result.json",
+        "docs/development/phase11-5-package11-retry4-adversarial.json"
+      ],
+      "source_configuration": "Pico A source 91933c00970939e366d1bfcf3c1956b59be8f6c5, 138 MHz, divider 1, GP2 PIO/DMA, RAM renderer, configured listener",
+      "evidence_type": "historical bounded physical acceptance plus fresh host regressions",
+      "subsequent_relevant_changes": "The 0e85ff9 candidate and current linked firmware inputs were reviewed for affected assertions; no clock or linked runtime change requires repeating 11.5.",
+      "applicability": "APPLICABLE_BOUNDED",
+      "limitations": "A clock, divider, allocator/layout, transport or RF timing-path change requires repeating affected checks."
+    },
+    {
+      "id": "11.6",
+      "claim": "Conducted RF acceptance is CLOSED_SCOPED at exactly 13 accepted rows with all excluded rows retained.",
+      "owner": "WsprryPico",
+      "supporting_artifacts": [
+        "docs/development/phase11-6-scope-disposition.json",
+        "docs/development/phase11-6-matrix.json",
+        "docs/development/phase11-6-closure-execution-results.json"
+      ],
+      "source_configuration": "Exact per-row firmware/image/boot lineage at 138 MHz, divider 1, GP2 PIO/DMA, RAM execution",
+      "evidence_type": "explicit user scope disposition over retained historical conducted evidence",
+      "subsequent_relevant_changes": "The current candidate is recorded separately and is not substituted for earlier accepted row lineages.",
+      "applicability": "APPLICABLE_SCOPED",
+      "limitations": "No Phase 11.6 WSPR row is accepted; 9 FAIL, 12 BLOCKED, 31 NOT TESTED and 10 UNSUPPORTED_CONFIGURATION rows remain excluded."
+    },
+    {
+      "id": "11.7",
+      "claim": "Current-source joint review, applicability analysis, regression validation, documentation reconciliation and adversarial reassessment support scoped Phase 11 closure.",
+      "owner": "WsprryPico",
+      "supporting_artifacts": [
+        "docs/development/phase11-7-review.md",
+        "docs/development/phase11-7-result.json",
+        "docs/development/phase11-7-adversarial-result.json"
+      ],
+      "source_configuration": "Pico 95aac22bf7cc31b67fe5773761708d743d8a6473 and Pi 2298a26 with explicitly source-equivalent later closure-only commits",
+      "evidence_type": "fresh source review, host tests and offline evidence audit",
+      "subsequent_relevant_changes": "None at review cutoff beyond closure-only metadata.",
+      "applicability": "APPLICABLE_SCOPED",
+      "limitations": "No hardware operations were authorized or performed."
+    }
+  ],
+  "phase11_6": {
+    "status": "CLOSED_SCOPED",
+    "disposition_counts": {
+      "PASS": 13,
+      "FAIL": 9,
+      "BLOCKED": 12,
+      "NOT TESTED": 31,
+      "UNSUPPORTED_CONFIGURATION": 10
+    },
+    "accepted_rows": [
+      {"band": "2200m", "mode": "TONE", "frequency_hz": 137500, "lineages": ["browser_allocation"], "sequences": [164]},
+      {"band": "2200m", "mode": "QRSS", "frequency_hz": 137500, "lineages": ["browser_allocation"], "sequences": [167, 168, 169]},
+      {"band": "630m", "mode": "TONE", "frequency_hz": 475700, "lineages": ["phase115_initial_ff719"], "sequences": [26]},
+      {"band": "630m", "mode": "QRSS", "frequency_hz": 475700, "lineages": ["phase115_initial_ff719"], "sequences": [27, 28, 30]},
+      {"band": "630m", "mode": "FSKCW", "frequency_hz": 475700, "lineages": ["phase115_initial_d2f657"], "sequences": [32, 33, 34]},
+      {"band": "630m", "mode": "DFCW", "frequency_hz": 475700, "lineages": ["phase115_initial_d2f657"], "sequences": [36, 37, 38]},
+      {"band": "160m", "mode": "TONE", "frequency_hz": 1838100, "lineages": ["phase115_initial_d2f657"], "sequences": [40]},
+      {"band": "160m", "mode": "QRSS", "frequency_hz": 1838100, "lineages": ["clock_refinement"], "sequences": [44, 46, 47]},
+      {"band": "160m", "mode": "DFCW", "frequency_hz": 1838100, "lineages": ["clock_refinement"], "sequences": [49, 50, 51]},
+      {"band": "80m", "mode": "TONE", "frequency_hz": 3570100, "lineages": ["zero_tail_be521"], "sequences": [55]},
+      {"band": "80m", "mode": "DFCW", "frequency_hz": 3570100, "lineages": ["zero_tail_be521"], "sequences": [58, 59, 60]},
+      {"band": "60m", "mode": "TONE", "frequency_hz": 5288700, "lineages": ["zero_tail_be521"], "sequences": [61]},
+      {"band": "40m", "mode": "TONE", "frequency_hz": 7040100, "lineages": ["zero_tail_e363"], "sequences": [69]}
+    ],
+    "lineages": {
+      "phase115_initial_ff719": {"source_revision": "91933c00970939e366d1bfcf3c1956b59be8f6c5", "uf2_sha256": "5da240aacf20e27db79126a7bff2be18e4ece849a608fa439f4e0c577659f446", "boot_id": "ff719d304f1ba4ac23fddd93561b26f0"},
+      "phase115_initial_d2f657": {"source_revision": "91933c00970939e366d1bfcf3c1956b59be8f6c5", "uf2_sha256": "5da240aacf20e27db79126a7bff2be18e4ece849a608fa439f4e0c577659f446", "boot_id": "d2f657c2099c67a7af2ef390426bda10"},
+      "clock_refinement": {"source_revision": "2eaa99945d21501cd4dbdac98c25be5fa146e479", "uf2_sha256": "af3f6917ba807a1526dca6e15f19fff1974410fc87ecc32fd6e9c4f07059525f", "boot_id": "b72fed2c17583cc7aba0f1345f76a3b2"},
+      "zero_tail_be521": {"source_revision": "210599d907acdb23278fc24244b674d62c820d7c", "uf2_sha256": "b01fecbe3d516dbe5a5e261955e376f062f92a9fe9f7c9b86135bb5f7e8b9811", "boot_id": "be52153ea21a03f75067129f2bc2245f"},
+      "zero_tail_e363": {"source_revision": "210599d907acdb23278fc24244b674d62c820d7c", "uf2_sha256": "b01fecbe3d516dbe5a5e261955e376f062f92a9fe9f7c9b86135bb5f7e8b9811", "boot_id": "e363bf9ae4528258563557b7d306efcd"},
+      "browser_allocation": {"source_revision": "7068b937240a7cbdfd0f0edbd7d347057604c0f0", "uf2_sha256": "f1d437261cb7aa3f9668f7624dad5806346a248202a45f15c553617e12e74a47", "boot_id": "a12f61f7cd59557c1b5628b2568a52d5"},
+      "status_admission_current": {"source_revision": "0e85ff90571c800450073f7b0bfafd70266f1f44", "uf2_sha256": "9ac5a40fe6d9a44a3a0156621b82801488efecafb9f472ba601dbcbb3e138398", "boot_id": "cab95d7eecad05047fcb1d6806cf9e86", "serial": "0BF4B4AEC9FFB344", "matrix_credit_from_requalification": false}
+    },
+    "wspr_rows_accepted": 0,
+    "last_sequence": 177,
+    "sequence_176": "one 45.000001-second job completed",
+    "sequence_177": "timing admission failed before RF",
+    "remaining_unexecuted_jobs": 80,
+    "campaign_authority_consumed": true,
+    "further_rf_authorized": false
+  },
+  "historical_artifact_sha256": {
+    "docs/development/phase11-6-scope-disposition.json": "d54924a9f7f819d486e743b875260b41d73031392a02b43d323e5daf009e369b",
+    "docs/development/phase11-6-matrix.json": "53ecf6052fae23c0c1f6f76f5e74f0b7fe6665bc27e033eae3fad053d599e6e8",
+    "docs/development/phase11-6-closure-execution.json": "b12b6f9d4f582f3cb61e8ae5a6580e425afe60374dd5ae0cb03ebc5ab7a11f65",
+    "docs/development/phase11-6-closure-execution-results.json": "b1198e1ef61c61d860e32481457f344d9fc87ba558cdb8aa62a50650dca72511",
+    "docs/development/phase11-5-completion-matrix.json": "6cce5fd19672275ee2c9345a08e46976cdefbe7e18dac48ff63285f147535a2a",
+    "docs/development/phase11-5-package11-retry4-result.json": "ecb31bd3518de8831a44b57347363fb2aa65398027bc1df072ae92c5823377fe",
+    "docs/development/phase11-5-package11-retry4-adversarial.json": "45fb2ce999493cc09606e1f45ff7c67251855f06d1c898926570be2fe98dbe5c"
+  },
+  "fresh_validation": {
+    "pico_host_ctest": {"status": "PASS", "groups": 79, "execution": "All 79 groups passed across the corrected full-suite run and affected reruns", "retained_retries": ["An invocation without the explicit Xcode 26.5 SDK passed 76 groups and had three host-toolchain link failures", "The corrected-SDK invocation passed 77 groups but the sandbox denied two loopback listener starts", "The two loopback groups passed outside sandbox socket restrictions with the validated SDK"]},
+    "pico_wtp_contract": {"status": "PASS", "schema_cases": 23, "raw_json_cases": 7, "framing_cases": 1, "transition_cases": 8},
+    "pico_sanitizers": {"status": "PASS_WITH_DOCUMENTED_SKIP", "groups": 14, "address_sanitizer": "PASS", "undefined_behavior_sanitizer": "PASS", "leak_detection": "SKIPPED_UNSUPPORTED_BY_APPLE_ADDRESS_SANITIZER", "initial_unsupported_invocation_retained": true},
+    "pi_core_suites": {"status": "PASS", "protocol_checks": 10373, "vector_checks": 946, "framing_checks": 1, "pin_checks": 3, "session_checks": 2924, "usb_checks": 2644, "plan_checks": 1088, "frequency_vector_checks": 1937, "backend_checks": 5410, "scheduler_checks": 1514, "status_recovery_checks": 3804, "application_checks": 1337, "production_checks": 223, "portable_semantics": "PASS", "ui_suite": "PASS", "http_and_network_policy_checks": 7},
+    "pi_network_interop": {"status": "PASS_WITH_DOCUMENTED_SKIP", "actual_tls_cases": 34, "second_ipv4_actual_bind": "SKIPPED_HOST_UNAVAILABLE", "injected_address_contract": "PASS", "actual_shared_server_client": "PASS"},
+    "pi_sanitizers": {"status": "PASS_WITH_DOCUMENTED_SKIP", "groups": 6, "address_sanitizer": "PASS", "undefined_behavior_sanitizer": "PASS", "covered": ["backend", "scheduler", "status_recovery", "application", "tls", "network_interop"], "leak_detection": "SKIPPED_UNSUPPORTED_BY_APPLE_ADDRESS_SANITIZER"},
+    "offline_closure_audit": {"status": "PASS", "accepted_rows": 13, "wspr_rows_accepted": 0},
+    "adversarial_mutations": {"status": "PASS", "count": 33}
+  },
+  "external_operator_documentation": {
+    "repository": "Wsprry_Pi_Docs",
+    "reviewed_revision": "c4cfc4ac9908adcc40a53702bb38803700b8a92e",
+    "branch": "devel",
+    "modified_by_phase11_7": false,
+    "blocks_phase11_closure": false,
+    "follow_ups": [
+      {"path": "docs/Advanced_Operations/ini_configuration/transmitter_backends.md", "classification": "NONBLOCKING_FOLLOW_UP", "work": "Document network transport keys, credentials, rotation and DHCP/mDNS prerequisites."},
+      {"path": "docs/Command_Line_Operations/transmitter_backends.md", "classification": "NONBLOCKING_FOLLOW_UP", "work": "Replace USB-only Pico guidance with explicit USB/network selection and current bounded finite-job behavior."},
+      {"path": "docs/User_Interface/Setup/Transmitter/index.md", "classification": "NONBLOCKING_FOLLOW_UP", "work": "Document network selection, configured versus authenticated identity and remote-management readiness."},
+      {"path": "docs/User_Interface/Operations/index.md", "classification": "NONBLOCKING_FOLLOW_UP", "work": "Document current-job cancellation, output-unknown state and explicit reconciliation."},
+      {"path": "docs/Advanced_Operations/rest_api.md", "classification": "NONBLOCKING_FOLLOW_UP", "work": "Document shared resources, revision CAS, intent/guard policy, replay and idle-management boundaries."},
+      {"path": "docs/User_Interface/Maintenance/network_safety.md", "classification": "NONBLOCKING_REVIEWED_NO_CORE_CHANGE", "work": "Retain the existing privileged-network policy and add a cross-link clarifying that Pico network management remains subject to the same host guard/proxy boundary."}
+    ]
+  },
+  "future_work": {
+    "phase12": "OPEN: SoftAP/BLE and provisioning",
+    "phase13": "OPEN: systematic band x mode x clock comparison, supported configurations, calibrated timing, spectra, output network/filters, reliability and reproducible release UF2"
+  },
+  "operations": {
+    "hardware_operations": 0,
+    "rf_operations": 0,
+    "device_connections": 0,
+    "fixture_operations": 0,
+    "trust_store_changes": 0,
+    "service_or_network_changes": 0
+  },
+  "limitations": [
+    "Historical physical evidence is bound to its recorded source, image, boot, board and configuration; it is not freshly observed device state.",
+    "The 13 accepted RF rows span multiple lineages and are not rebound to the latest image.",
+    "No Phase 11.6 WSPR row is accepted; earlier independently decoded WSPR evidence retains only its historical scope.",
+    "Host tests do not qualify target timing or RF output.",
+    "Phase 11 closure is not release qualification and does not qualify every supported mode, band, clock or historical image."
+  ]
+}
