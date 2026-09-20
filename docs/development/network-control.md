@@ -309,12 +309,12 @@ the scope used in this change.
 ## Companion interoperability and sanitizers
 
 Optional actual client interoperability uses unmodified reviewed WsprryPi sources at
-`2e47641f6ebdff104e32999f5194f2e0dc408e06`. Use an explicit clean checkout of that
+`c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf`. Use an explicit clean checkout of that
 revision; the option never fetches, edits or builds inside the companion checkout:
 
 ```sh
 cmake -S . -B build-host \
-  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/clean/2e47641/WsprryPi \
+  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/clean/c39fae3/WsprryPi \
   -DWSPRRY_PICO_TEST_MBEDTLS_PATH=/path/to/pico-sdk/lib/mbedtls
 cmake --build build-host --parallel
 ctest --test-dir build-host --output-on-failure
@@ -323,10 +323,10 @@ ctest --test-dir build-host --output-on-failure
 The test `network_11_1_interop` (historical target name) builds the existing client, application,
 scheduler and TLS/HTTP implementation; the companion's own harness independently
 enforces its Pico source pin. An isolated local source copy is useful
-when its working checkout is advancing. The tested pair is Pico runtime
-`d8cde03f8127b3c2aaf727f2c21c20960f658e84` and Pi `2e47641` (runtime unchanged from `efcc792`); the later Pico
-reference/test/documentation commit does not alter that runtime input. OpenSSL development files must already
-be installed; set `OPENSSL_ROOT_DIR` if CMake needs their location.
+when its working checkout is advancing. Phase 11.7 retests this pin against the
+current Pico source and records the exact tested pair in
+[the joint review](phase11-7-review.md). OpenSSL development files must already be
+installed; set `OPENSSL_ROOT_DIR` if CMake needs its location.
 
 ASan/UBSan applies to C and C++ (including Mbed TLS):
 
@@ -334,7 +334,7 @@ ASan/UBSan applies to C and C++ (including Mbed TLS):
 cmake -S . -B build/phase11-3-sanitize -DCMAKE_BUILD_TYPE=Debug \
   -DWSPRRY_PICO_BUILD_TESTS=ON \
   -DWSPRRY_PICO_TEST_MBEDTLS_PATH=/path/to/pico-sdk/lib/mbedtls \
-  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/clean/2e47641/WsprryPi \
+  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/clean/c39fae3/WsprryPi \
   -DCMAKE_C_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer' \
   -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'
 cmake --build build/phase11-3-sanitize --parallel

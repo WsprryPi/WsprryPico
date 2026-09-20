@@ -20,6 +20,7 @@ RESULT_PATH = ROOT / "docs/development/phase11-5-package7-result.json"
 ADVERSARIAL_PATH = ROOT / "docs/development/phase11-5-package7-adversarial-result.json"
 RAW_ADVERSARIAL_PATH = ROOT / "docs/development/phase11-5-package7-raw-adversarial-result.json"
 MATRIX_PATH = ROOT / "docs/development/phase11-5-completion-matrix.json"
+PHASE11_6_BROWSER_REPAIR_REVIEW = "3b8a6535d8a9a186d090d3105f056b9c52b2d268"
 
 
 class Package7Tests(unittest.TestCase):
@@ -59,10 +60,11 @@ class Package7Tests(unittest.TestCase):
         self.assertEqual(len(self.result["failed_attempt_sha256"]), 11)
         self.assertEqual(self.result["family_status"]["R4"], "CLOSED")
 
-    def test_later_pico_source_change_has_package8_impact_review(self):
+    def test_reviewed_pico_source_change_has_package8_impact_review(self):
         source = self.result["candidate"]["source_revision"]
         completed = subprocess.run(
-            ["git", "diff", "--name-only", source + "..HEAD", "--",
+            ["git", "diff", "--name-only",
+             source + ".." + PHASE11_6_BROWSER_REPAIR_REVIEW, "--",
              "src", "include", "firmware", "cmake"], cwd=ROOT, check=True,
             text=True, stdout=subprocess.PIPE)
         self.assertEqual(completed.stdout.splitlines(), [

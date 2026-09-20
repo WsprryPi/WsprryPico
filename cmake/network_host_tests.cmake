@@ -8,7 +8,7 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     if(NOT tls_result EQUAL 0 OR NOT tls_revision STREQUAL "0bebf8b8c7f07abe3571ded48a11aa907a1ffb20")
         message(FATAL_ERROR "TLS tests require the SDK-pinned Mbed TLS revision")
     endif()
-    execute_process(COMMAND git -C "${WSPRRY_PICO_TEST_MBEDTLS_PATH}" status --porcelain --untracked-files=no
+    execute_process(COMMAND git -C "${WSPRRY_PICO_TEST_MBEDTLS_PATH}" status --porcelain --untracked-files=normal
         OUTPUT_VARIABLE tls_status OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE tls_status_result)
     if(NOT tls_status_result EQUAL 0 OR NOT tls_status STREQUAL "")
         message(FATAL_ERROR "TLS tests require an unmodified pinned Mbed TLS checkout")

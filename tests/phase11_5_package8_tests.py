@@ -20,6 +20,7 @@ RESULT_PATH = ROOT / "docs/development/phase11-5-package8-result.json"
 RAW_AUDIT_PATH = ROOT / "docs/development/phase11-5-package8-raw-audit-result.json"
 ADVERSARIAL_PATH = ROOT / "docs/development/phase11-5-package8-adversarial-result.json"
 MATRIX_PATH = ROOT / "docs/development/phase11-5-completion-matrix.json"
+PHASE11_6_BROWSER_REPAIR_REVIEW = "3b8a6535d8a9a186d090d3105f056b9c52b2d268"
 
 
 class Package8Tests(unittest.TestCase):
@@ -172,9 +173,10 @@ class Package8Tests(unittest.TestCase):
         self.assertEqual(actual, expected)
         self.assertEqual(actual["mutations"], 46)
 
-    def test_only_reviewed_package9_runtime_paths_changed_after_candidate(self):
+    def test_only_reviewed_package9_runtime_paths_changed_at_review_cutoff(self):
         completed = subprocess.run(
-            ["git", "diff", "--name-only", package8.SOURCE + "..HEAD", "--",
+            ["git", "diff", "--name-only",
+             package8.SOURCE + ".." + PHASE11_6_BROWSER_REPAIR_REVIEW, "--",
              "src", "include", "firmware", "cmake"], cwd=ROOT, check=True,
             text=True, stdout=subprocess.PIPE)
         self.assertEqual(set(completed.stdout.splitlines()),

@@ -2,10 +2,10 @@
 set(WSPRRY_PICO_NETWORK_CLIENT_SOURCE "" CACHE PATH "Pinned WsprryPi client checkout")
 if(WSPRRY_PICO_NETWORK_CLIENT_SOURCE AND TARGET network_tls_driver)
     set(parent "${WSPRRY_PICO_NETWORK_CLIENT_SOURCE}")
-    set(pin fb0a2eb50c1ea1792324139412990341592db452)
+    set(pin c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf)
     execute_process(COMMAND git -C "${parent}" rev-parse HEAD OUTPUT_VARIABLE revision
         OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
-    execute_process(COMMAND git -C "${parent}" status --porcelain --untracked-files=no
+    execute_process(COMMAND git -C "${parent}" status --porcelain --untracked-files=normal
         OUTPUT_VARIABLE dirty OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
     if(NOT revision STREQUAL pin OR NOT dirty STREQUAL "")
         message(FATAL_ERROR "Client interoperability requires clean WsprryPi ${pin}")

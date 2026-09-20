@@ -13,6 +13,7 @@ P24_SOURCE = "ca3c5dce40360b7eea2f9c45618232caa68cdbb6"
 CURRENT_SOURCE = "2b25ca05c270819466a04498f9bc4894a4c5bace"
 CURRENT_IMAGE = "16698dd36ac4b919a93e56e948499462cbe41b1ca20c9b20007512339ff35a51"
 CURRENT_BOOT = "80d558e5804547749eca849c53ba27e1"
+PHASE11_6_BROWSER_REPAIR_REVIEW = "3b8a6535d8a9a186d090d3105f056b9c52b2d268"
 
 EVIDENCE_HASHES = {
     "phase11-5-r2-closure-result.json":
@@ -295,8 +296,13 @@ def validate_source_impact(root, result):
     ).decode().splitlines()
     require(first_names == P1_TO_P24_FILES and second_names == P24_TO_CURRENT_FILES,
             "Source-impact changed-file lists")
+    # Package 6 is a historical publication.  Keep this assertion bound to
+    # the Phase 11.6 browser-repair review that consumed it; current-source
+    # applicability belongs to the Phase 11.7 audit rather than to a moving
+    # HEAD comparison here.
     later_names = git_output(
-        root, "diff", "--name-only", f"{CURRENT_SOURCE}..HEAD", "--",
+        root, "diff", "--name-only",
+        f"{CURRENT_SOURCE}..{PHASE11_6_BROWSER_REPAIR_REVIEW}", "--",
         "src", "firmware", "cmake").decode().splitlines()
     if later_names:
         require(later_names == ["src/network/api.cpp",

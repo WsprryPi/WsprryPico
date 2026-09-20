@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-REVISION = "fb0a2eb50c1ea1792324139412990341592db452"
+REVISION = "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf"
 
 
 def verify(source):
