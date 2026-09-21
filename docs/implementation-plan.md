@@ -76,9 +76,11 @@ treated as long-term product documentation.
     flash region, selects committed runtime Wi-Fi/TLS material fail closed,
     validates it through Mbed TLS and supplies a mocked/tested Web Bluetooth
     UI for Bluefy rather than a WsprryPico-native iOS app. SoftAP remains the
-    Safari fallback. P12.4 adds its strict C++ command decoder and a portable
-    fail-closed post-commit activation handoff, without claiming transport
-    authentication or connecting a target activator. Pico BLE/SoftAP adapters,
+    Safari fallback. P12.4 adds its strict C++ command decoder. P12.5 adds a
+    response-delivery-safe activation coordinator, shared PSA crypto ownership,
+    a disjoint future BTstack flash bank and a strong provisioning firmware
+    link check, without claiming transport authentication or connecting a
+    target activator. Pico BLE/SoftAP adapters,
     authenticated live reload and all physical acceptance remain open; the
     retained pinned SDK checkout also lacks initialized BTstack source. The separate
     [physical plan](development/phase12-physical-acceptance.md) is planning only

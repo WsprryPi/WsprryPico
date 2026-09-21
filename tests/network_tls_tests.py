@@ -66,8 +66,30 @@ def http(path='/api/v1/status', method='GET', body=None, headers=None, fragment=
         return http_on(stream, path, method, body, headers, fragment, padding)
 
 try:
-    assert process.stdout.readline().startswith('READY'), process.stderr.read()
+    ready = process.stdout.readline().strip()
+    assert ready == 'READY 18443 PSA 1 PEAK 2', (ready, process.stderr.read())
     assert http()[0] == 200
+    # A transient validator nests one PSA owner under the live server without
+    # freeing global crypto state or disrupting the established TLS connection.
+    for command, expected in [('VALIDATE GOOD', 1), ('VALIDATE BAD', 0)] * 3:
+        with connect() as live:
+            control(command)
+            result = process.stdout.readline().strip().split()
+            assert result[0] == 'VALIDATE' and int(result[1]) == expected, result
+            assert (int(result[2]) == 0) == bool(expected), result
+            assert result[3:] == ['1', '2'], result
+            assert http_on(live)[0] == 200
+        assert http()[0] == 200
+    # Repeated last-owner release and first-owner reacquisition leave neither
+    # PSA ownership nor TLS allocations retained between cycles.
+    for _ in range(3):
+        control('SERVER CYCLE')
+        cycle = process.stdout.readline().strip().split()
+        assert cycle[0:3] == ['CYCLE', '1', '1'], cycle
+        assert int(cycle[3]) > 0, cycle
+        assert http()[0] == 200
+    control('PSA STATUS')
+    assert process.stdout.readline().strip() == 'PSA 1 2'
     # Real DNS SAN verification over an explicit loopback destination; no NSS/mDNS claim.
     with connect(hostname=HOSTNAME) as named:
         named.sendall(f'GET /api/v1/status HTTP/1.1\r\nHost: {HOSTNAME}:18443\r\n\r\n'.encode())

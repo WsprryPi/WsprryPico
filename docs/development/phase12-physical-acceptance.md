@@ -13,11 +13,13 @@ It does not reopen or silently extend Phase 11.6, and it cannot establish Phase
 
 ## Current admission state
 
-The [P12.3 hardware-free review](phase12-3-review.md) supplies candidate source
-for the disjoint profile layout, boot-time runtime selection, Mbed TLS validator
-and Bluefy page. It does not admit this procedure. The retained SDK checkout has
-no populated BTstack source; authenticated target BLE/SoftAP adapters, live
-activation and the listed security/recovery policies remain open. No exact
+The [P12.5 hardware-free review](phase12-5-review.md) supplies candidate source
+for the disjoint BTstack/profile layout, boot-time runtime selection, shared
+PSA ownership, Mbed TLS validator, Bluefy page and delivery-safe portable
+activation boundary. It does not admit this procedure. The retained SDK
+checkout has no populated BTstack source; authenticated target BLE/SoftAP
+adapters, a connected live activator and the listed security/recovery policies
+remain open. No exact
 operated UF2, device, iPhone/Bluefy combination, page origin or physical budget
 has been authorized or recorded. Stage A therefore remains wholly unexecuted.
 
@@ -52,7 +54,9 @@ than replacing them with retries.
 1. Confirm no provisioning advertisement/SoftAP outside its selected activation
    policy. In the exact recorded Bluefy/iOS combination, load the identity-bound
    Web Bluetooth page and exercise authorized BLE activation, exact identity
-   display and authenticated connection.
+   display and authenticated connection. Capture the negotiated ATT payload and
+   prove bounded command and status delivery in both directions, including
+   long-write or application framing/reassembly wherever one value does not fit.
 2. Provision Wi-Fi plus generation A TLS credentials through Bluefy. Verify committed
    generation, reboot persistence, station association, DHCP/mDNS identity,
    mTLS WTP/HTTPS and browser API behavior. Never record secret payloads.

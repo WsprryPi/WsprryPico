@@ -77,18 +77,26 @@ Wi-Fi/TLS profile, applies it only while job/RF authority is idle, and replaces
 it through a separate transactional journal. Hardware-free P12.3 integration
 maps that journal to `0x3f7000`–`0x3fafff`, leaving the existing standalone
 records at `0x3fb000`–`0x3fefff` and the E10 sector at `0x3ff000` unchanged.
+P12.5 additionally reserves `0x3f5000`–`0x3f6fff` as a project-owned future
+BTstack bank, so linked application FLASH now ends at `0x3f5000`.
 Boot selects either no-profile build credentials or one device-bound committed
 profile; committed corruption/identity failure is a fault and never revives
 factory trust. Provisioned Wi-Fi overlays only the runtime copy of SSID,
 password and time server. Mbed TLS validates chain, key pair, validity, exact
 DNS SAN, server purpose and P-256/SHA-256 material before listening. BLE and
-SoftAP remain unauthenticated platform adapters and therefore are not enabled.
+SoftAP target adapters remain unimplemented; future adapters must supply the
+authenticated, confidential and local session assertions before they are enabled.
 P12.4 adds one closed transport-neutral command decoder for the Bluefy
-vocabulary and an optional post-commit activator whose failure leaves the new
-generation authoritative and calls a fail-closed hook. No target activator is
-connected; live reload and physical acceptance remain open. See the
+vocabulary. P12.5 replaces its synchronous activation handoff with a bounded
+delivery-safe coordinator: a new committed generation is released only after a
+terminal response callback or five-second timeout, activity is checked again
+immediately before quiesce, and any failure leaves the new generation
+authoritative while invoking fail-closed behavior. Shared PSA ownership keeps a
+transient credential validation from freeing a live listener's crypto state.
+No target activator is connected; live reload and physical acceptance remain
+open. See the
 [Phase 12 plan](development/phase12-plan.md) and
-[P12.4 review](development/phase12-4-review.md).
+[P12.5 review](development/phase12-5-review.md).
 
 The browser's compact `LOAD_MESSAGE` path compiles bounded QRSS, FSKCW and DFCW
 messages before entering the same job service. Inputs are limited to 32 characters

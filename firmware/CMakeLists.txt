@@ -195,15 +195,49 @@ add_custom_command(TARGET WsprryPico-StandaloneRF POST_BUILD
 set_property(TARGET WsprryPico-StandaloneRF APPEND PROPERTY LINK_DEPENDS
              ${CMAKE_SOURCE_DIR}/scripts/check_rf_renderer.py)
 
-# Reserve journals plus the RP2350-E10 boot sector on every maintained image.
-# Override only the linker region; PICO_FLASH_SIZE_BYTES retains physical capacity.
-foreach(image WsprryPico WsprryPico-RFBench WsprryPico-RFWTP WsprryPico-StandaloneRF rf_driver_linkcheck)
-    pico_add_linker_script_override_path(${image} ${CMAKE_SOURCE_DIR}/cmake/standalone_link FILES memory_flash.incl)
+# Reserve the future SDK BTstack bank, all journals and the RP2350-E10 boot
+# sector on every maintained image. PICO_FLASH_SIZE_BYTES retains the physical
+# capacity; these definitions also pin the SDK flash-bank implementation to the
+# project-owned, non-overlapping region.
+set(WSPRRY_PICO_BTSTACK_FLASH_OFFSET 0x3f5000)
+set(WSPRRY_PICO_BTSTACK_FLASH_SIZE 0x2000)
+function(wsprry_configure_flash_layout image)
+    target_compile_definitions(${image} PRIVATE
+        PICO_FLASH_BANK_STORAGE_OFFSET=${WSPRRY_PICO_BTSTACK_FLASH_OFFSET}
+        PICO_FLASH_BANK_TOTAL_SIZE=${WSPRRY_PICO_BTSTACK_FLASH_SIZE})
+    pico_add_linker_script_override_path(${image}
+        ${CMAKE_SOURCE_DIR}/cmake/standalone_link FILES memory_flash.incl)
+endfunction()
+foreach(image WsprryPico WsprryPico-RFBench WsprryPico-RFWTP WsprryPico-StandaloneRF
+              rf_driver_linkcheck)
+    wsprry_configure_flash_layout(${image})
 endforeach()
 
 include(${CMAKE_SOURCE_DIR}/cmake/mbedtls_alert_overlay.cmake)
 wsprry_mbedtls_alert_overlay(pico_mbedtls_tls INTERFACE_SOURCES "${PICO_MBEDTLS_PATH}")
 include(${CMAKE_SOURCE_DIR}/cmake/network.cmake)
+
+# Hardware-free Arm link evidence for the provisioning boundary. This target is
+# never a radio/runtime integration claim: it retains the transport-neutral
+# manager/command/activation code plus the Pico credential/shared-PSA adapter.
+add_executable(provisioning_pico_linkcheck EXCLUDE_FROM_ALL
+    ${CMAKE_SOURCE_DIR}/tests/provisioning_pico_linkcheck.cpp
+    ${CMAKE_SOURCE_DIR}/src/network/pico/psa_lifetime.cpp
+    ${CMAKE_SOURCE_DIR}/src/provisioning/pico/credential_validator.cpp)
+target_link_libraries(provisioning_pico_linkcheck PRIVATE
+    wsprrypico_core pico_mbedtls pico_stdlib)
+target_include_directories(provisioning_pico_linkcheck PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/network/pico)
+target_compile_features(provisioning_pico_linkcheck PRIVATE cxx_std_20)
+target_compile_options(provisioning_pico_linkcheck PRIVATE
+    "$<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic;-Werror;-fstack-usage>"
+    "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fno-unwind-tables;-fno-use-cxa-atexit>")
+target_compile_definitions(provisioning_pico_linkcheck PRIVATE
+    PICO_NO_BI_PROGRAM_BUILD_DATE=1)
+set_target_properties(provisioning_pico_linkcheck PROPERTIES
+    C_STANDARD 11 C_STANDARD_REQUIRED ON C_EXTENSIONS ON)
+wsprry_configure_flash_layout(provisioning_pico_linkcheck)
+pico_add_extra_outputs(provisioning_pico_linkcheck)
 
 # Immutable pinned lwIP responder plus a narrow lifecycle integration wrapper.
 # Do not also link pico_lwip_mdns: the wrapper includes its mdns.c translation unit.

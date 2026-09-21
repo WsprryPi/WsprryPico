@@ -7,8 +7,8 @@
 #include <utility>
 
 namespace wsprrypico::provisioning {
-// This validator owns PSA only for the duration of validate(). Callers must
-// stop the TLS server before using it for a future live replacement.
+// This validator owns one shared PSA lease only for the duration of validate().
+// Its certificate/key contexts remain independent from an active TLS server.
 class MbedTlsCredentialValidator final : public CredentialValidator {
   public:
     explicit MbedTlsCredentialValidator(std::string expected_device_id)

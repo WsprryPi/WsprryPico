@@ -42,6 +42,7 @@ execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/genera
 
 add_library(wsprrypico_core
     src/provisioning/profile.cpp
+    src/provisioning/activation.cpp
     src/provisioning/storage.cpp
     src/provisioning/manager.cpp
     src/provisioning/command.cpp

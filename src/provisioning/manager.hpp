@@ -1,6 +1,6 @@
 #pragma once
 
-#include "provisioning/profile.hpp"
+#include "provisioning/activation.hpp"
 #include "provisioning/storage.hpp"
 #include "wtp/sha256.hpp"
 
@@ -54,14 +54,6 @@ struct Authorization {
     bool local = false;
     std::string principal;
 };
-struct Activity {
-    bool owned = false;
-    bool output_known = true;
-    bool output_active = false;
-    bool armed = false;
-    bool running = false;
-    bool failed = false;
-};
 struct Status {
     State state = State::Idle;
     Transport transport = Transport::Ble;
@@ -69,25 +61,15 @@ struct Status {
     std::size_t staged_bytes = 0;
     unsigned fragments = 0;
     std::size_t replay_entries = 0;
-};
-
-// The manager calls this only after a genuinely new profile generation has
-// committed and while its caller's job/RF activity observation is idle. The
-// implementation must not retain Profile references. Failure leaves the new
-// generation authoritative and must make the platform fail closed.
-class ProfileActivator {
-  public:
-    virtual ~ProfileActivator() = default;
-    virtual bool activate(const Profile& profile, std::uint64_t generation) = 0;
-    virtual void fail_closed(std::uint64_t generation) = 0;
+    ActivationStatus activation;
 };
 
 class Manager {
   public:
     Manager(ProfileStore& store, CredentialValidator& validator, std::string device_id,
-            ProfileActivator* activator = nullptr)
+            ActivationCoordinator* activation = nullptr)
         : store_(store), validator_(validator), device_id_(std::move(device_id)),
-          activator_(activator) {}
+          activation_(activation) {}
     ~Manager() {
         terminate(State::Cancelled);
     }
@@ -104,6 +86,8 @@ class Manager {
                  const Authorization& authorization, std::uint64_t now_ms);
     Result cancel(std::string_view request_id, std::string_view session_id, Transport transport,
                   const Authorization& authorization, std::uint64_t now_ms);
+    ActivationRelease release_activation(std::string_view request_id, std::uint64_t generation,
+                                         std::uint64_t now_ms);
     void poll(std::uint64_t now_ms);
     Status status() const;
 
@@ -134,7 +118,7 @@ class Manager {
     ProfileStore& store_;
     CredentialValidator& validator_;
     std::string device_id_;
-    ProfileActivator* activator_ = nullptr;
+    ActivationCoordinator* activation_ = nullptr;
     std::optional<Session> session_;
     std::vector<ReplayEntry> replay_;
     State state_ = State::Idle;

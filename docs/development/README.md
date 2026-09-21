@@ -6,7 +6,8 @@ binds its source pair, assertion-level applicability, host regressions and
 retained limitations. Phase 12 is current: its [implementation plan](phase12-plan.md)
 and [portable review](phase12-review.md), the
 [P12.3 hardware-free integration review](phase12-3-review.md), the
-[P12.4 portable command/activation review](phase12-4-review.md), plus the separate
+[P12.4 portable command/activation review](phase12-4-review.md), the
+[P12.5 activation-safety review](phase12-5-review.md), plus the separate
 [RF-inhibited-first physical plan](phase12-physical-acceptance.md), record the
 implemented infrastructure, unresolved transport security choices and fresh
 acceptance required for target adapters. Phase 13 broad hardware/release

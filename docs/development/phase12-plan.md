@@ -1,9 +1,10 @@
 # Phase 12 provisioning implementation and acceptance plan
 
-Status: active. P12.1/P12.2 and the bounded hardware-free P12.3/P12.4
+Status: active. P12.1/P12.2 and the bounded hardware-free P12.3–P12.5
 infrastructure are implemented and reviewed through the
-[P12.4 record](phase12-4-review.md). Authenticated Pico BLE and SoftAP
-transports, actual live reload and all physical acceptance remain open.
+[P12.5 record](phase12-5-review.md). Authenticated Pico BLE and SoftAP
+transports, an actual live-reload platform implementation and all physical
+acceptance remain open.
 This plan does not authorize target, radio, service, trust-store, certificate-installation or RF
 operations.
 
@@ -18,7 +19,9 @@ Provisioning is not a second job-control protocol and does not change WTP/1.
 The reviewed starting point is clean `devel` at
 `c3ecc303db9dbcf68214e20c9b93f6889851aa6b`, equal to the local
 `origin/devel` reference on 2026-09-20. Phase 11 is closed only within the scope
-recorded by the Phase 11.7 joint review. Phase 13 remains open.
+recorded by the Phase 11.7 joint review. The P12.5 tranche started from clean
+`devel` at `2bc90b1fe59b7f2470ddda031fd666af76d91e87`, equal to
+`origin/devel`. Phase 13 remains open.
 
 ## Source and dependency findings
 
@@ -26,6 +29,8 @@ recorded by the Phase 11.7 joint review. Phase 13 remains open.
   banks followed by two watermark banks. Its Pico mapping reserves the final
   16 KiB before the separate RP2350-E10 boot-workaround sector. P12.3 leaves
   those addresses unchanged and reserves the preceding 16 KiB for profiles.
+  P12.5 reserves the preceding 8 KiB at `0x3f5000`–`0x3f6fff` for a future
+  project-owned BTstack bank and ends linked application FLASH at `0x3f5000`.
 - Wi-Fi settings currently live inside the version-1 standalone configuration,
   together with station and schedules. A committed provisioned profile now
   overlays only Wi-Fi fields in RAM and provides stable TLS credential views;
@@ -35,12 +40,13 @@ recorded by the Phase 11.7 joint review. Phase 13 remains open.
   authority, idle-only persistent changes and explicit reboot requirements.
 - The clean retained Pico SDK is 2.3.1 at
   `079c6f39023649b154152db30f1d781e884879bc`. Its CMake files define
-  `pico_btstack_ble` and `pico_btstack_cyw43` and requires a project-owned
-  `btstack_config.h`, but the retained exact checkout has no initialized
-  BTstack submodule content. Therefore the existing pinned dependencies can
-  cross-build the portable slice but cannot build a BLE adapter. Obtaining and
-  pinning that content is separate dependency work, not target or coexistence
-  evidence.
+  `pico_btstack_ble` and `pico_btstack_cyw43` and require a project-owned
+  `btstack_config.h`. The project-local retained SDK checkout has no initialized
+  BTstack submodule. A second pre-existing cache contains a clean standalone
+  BTstack checkout at the recorded `eb0bb8b5ea6d234ccb940313b47f7a5c3b4e20ec`
+  revision, but the parent SDK still reports the submodule uninitialized. P12.5
+  does not initialize BTstack or build an adapter; exact source presence is not
+  target, authentication, ATT-interoperability or coexistence evidence.
 - Existing generated test identities show that a server certificate, private
   key and client CA fit comfortably inside a bounded 7 KiB canonical profile.
   The bound is nevertheless an implementation limit, not a promise that every
@@ -128,9 +134,10 @@ The remaining P12.3 work is intentionally open:
 - Verify the existing browser-side Web Bluetooth provisioning client with an
   exact Bluefy and iOS version, an approved HTTPS origin/integrity policy and
   an authenticated target GATT adapter. Keep SoftAP/Safari independent.
-- Add idle-only atomic live activation: stop new TLS sessions, validate and
-  replace network state without altering RF/job authority. The implemented
-  source activates a previously committed profile at boot only.
+- Connect the P12.5 delivery-safe coordinator to an idle-only target
+  activator that stops new TLS sessions and replaces network state without
+  altering RF/job authority. The production source still activates a previously
+  committed profile at boot only.
 
 The transport authentication, recovery gesture and at-rest key policy still
 materially change product security and target behavior and were not invented by
@@ -149,13 +156,42 @@ The next hardware-free boundary is implemented without enabling a radio:
   proximity grants no authority. The manager rechecks those assertions for
   every command and binds the principal and transport into replay identity, so
   another authenticated path cannot continue or replay that session.
-- `ProfileActivator` is an optional manager handoff after a genuinely new
-  generation validates and commits. Failure returns `activation_fault`, calls
-  the fail-closed hook, scrubs the session and leaves the new generation
-  authoritative. Replay and identical-profile replacement do not reactivate.
+- The P12.4 synchronous `ProfileActivator` boundary was an intermediate
+  hardware-free seam. P12.5 replaces it because a disruptive implementation
+  could otherwise destroy its own apply response before delivery.
 - No Pico activator, GATT service, captive HTTPS service, radio path or page
   distribution policy is implemented. Without an activator, the existing
   boot-only application behavior is unchanged.
+
+### P12.5 Delivery-safe activation and target admission
+
+The next hardware-free safety boundary is implemented without enabling a radio:
+
+- `ActivationCoordinator` owns one staged committed profile and binds it to the
+  apply request and generation. It runs destructive work only after the future
+  adapter reports a terminal response boundary or after a five-second timeout.
+  Stale callbacks do nothing, exact replay does not restage, and new sessions
+  remain blocked while activation is pending or faulted.
+- The coordinator orders prepare, final activity recheck, quiesce, owned-profile
+  installation and restart. Changed ownership/RF state or any platform failure
+  leaves the new generation authoritative, invokes fail-closed behavior and
+  scrubs staged secrets. The coordinator has no JobService or RF-owner handle;
+  every future platform implementation is contractually forbidden from aborting,
+  releasing or clearing job/RF ownership or inferring inactive output.
+- `PsaCryptoOwner` shares serialized core-0 PSA lifetime between the TLS server
+  and transient credential validator, so validation cannot globally free a
+  running listener's crypto state.
+- The future BTstack bank is pinned to `0x3f5000`–`0x3f6fff`; layout tests and the
+  image checker reject application writes into it while preserving every
+  profile, standalone, watermark and E10 address.
+- `provisioning_pico_linkcheck` strongly retains the command, manager,
+  activation, credential-validation and PSA boundaries in an RP2350 firmware
+  link. Bluefy commands remain bounded to 512 bytes and status notifications to
+  256 bytes, but both can exceed a default 20-byte ATT value; future GATT code
+  must negotiate a sufficient payload or supply bounded bidirectional
+  framing/reassembly and prove it on the exact client/target pair.
+- No production activator or authenticated BLE/SoftAP adapter is connected.
+  Firmware links and host mocks are not evidence of live reload or radio use.
 
 ## Deterministic acceptance matrix
 
@@ -171,6 +207,8 @@ The portable slice must cover:
 | Trust replacement | successful generation N+1 supersedes N; corrupt committed N+1 fails closed instead of selecting N |
 | Existing data | station, schedules and watermark survive provisioning success, cancellation, interruption and reload unchanged |
 | RF/ownership | owner, armed, running, failed, output-active and output-unknown states reject apply without abort/release side effects |
+| Activation | reply precedes release; exact callback or five-second timeout executes once; stale callbacks do nothing; activity drift and injected prepare/quiesce/install/restart faults fail closed |
+| Target admission | server survives nested valid/invalid credential validation; PSA last-owner release is balanced; BTstack/profile/standalone/E10 ranges do not overlap; strong linkcheck retains P12.5 symbols |
 | Resources | one session, fragment-count/payload/replay bounds, secret-free status and RAM reclamation after every terminal path |
 
 Run the documented host configure/build/CTest suite, the WTP contract validator,
@@ -219,8 +257,9 @@ These choices block Pico transport adapters but not the portable slices:
 
 ## Completion boundary
 
-Phase 12 is not complete at the hardware-free P12.4 checkpoint. Completion
-requires selected security policies, implemented BLE and SoftAP adapters,
-authenticated idle-only live activation, bounded inhibited-target acceptance,
-an authorized physical-plan execution and repaired adversarial reassessment.
+Phase 12 is not complete at the hardware-free P12.5 checkpoint. Completion
+requires selected security policies, implemented BLE and SoftAP adapters, a
+connected authenticated idle-only live activator, bounded inhibited-target
+acceptance, an authorized physical-plan execution and repaired adversarial
+reassessment.
 Phase 13 RF qualification remains separate.

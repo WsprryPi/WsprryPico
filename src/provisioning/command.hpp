@@ -10,6 +10,7 @@
 
 namespace wsprrypico::provisioning {
 inline constexpr std::size_t max_command_bytes = 512;
+inline constexpr std::size_t max_notification_bytes = 256;
 inline constexpr std::size_t max_fragment_bytes = 64;
 inline constexpr std::uint64_t max_wire_integer = 2147483647;
 

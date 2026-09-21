@@ -15,6 +15,11 @@ assert "const MAX_PROFILE_BYTES = 7168;" in web
 assert "max_profile_bytes = 7168;" in profile_header
 assert "const FRAGMENT_BYTES = 64;" in web
 assert "max_fragment_bytes = 64;" in command_header
+assert "const MAX_COMMAND_BYTES = 512;" in web
+assert "max_command_bytes = 512;" in command_header
+assert "const MAX_STATUS_BYTES = 256;" in web
+assert "max_notification_bytes = 256;" in command_header
+assert "framing" in web and "reassembly in both directions" in web
 assert "max_wire_integer = 2147483647;" in command_header
 
 for name, value in {

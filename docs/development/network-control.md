@@ -9,9 +9,10 @@ Phase 12 has a host-tested portable provisioning core, while SoftAP/BLE Pico
 adapters, authenticated live reload and physical acceptance remain open. Its
 hardware-free P12.3 layer now reserves a separate profile region and can select
 a committed runtime Wi-Fi/TLS profile at boot, with Mbed TLS validation before
-the listener starts. P12.4 adds the Bluefy command decoder and an unconnected
-portable post-commit activation/fail-closed handoff. Phase 13 retains final
-RF/timing/reliability qualification.
+the listener starts. P12.4 adds the Bluefy command decoder. P12.5 adds shared
+PSA lifetime ownership and an unconnected, delivery-safe post-commit activation
+coordinator; target reload and authenticated transport adapters remain open.
+Phase 13 retains final RF/timing/reliability qualification.
 
 ## Operator setup and certificates
 

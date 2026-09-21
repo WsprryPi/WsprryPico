@@ -4,6 +4,7 @@
 #include "mbedtls/entropy.h"
 #include "mbedtls/ssl.h"
 #include "network/api.hpp"
+#include "network/pico/psa_lifetime.hpp"
 #include "provisioning/profile.hpp"
 #include "wtp/endpoint.hpp"
 
@@ -102,6 +103,7 @@ class PicoServer {
     mbedtls_pk_context key_{};
     mbedtls_entropy_context entropy_{};
     mbedtls_ctr_drbg_context rng_{};
+    PsaCryptoOwner psa_{};
     int last_error_ = 0;
     bool setup_ = false;
     Metrics metrics_{};

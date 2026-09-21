@@ -1,6 +1,7 @@
 "use strict";
 const assert = require("assert");
-const {canonicalProfile, Client, FRAGMENT_BYTES} = require("../src/provisioning/web/bluefy.js");
+const {canonicalProfile, Client, FRAGMENT_BYTES, MAX_COMMAND_BYTES, MAX_STATUS_BYTES} =
+  require("../src/provisioning/web/bluefy.js");
 const device = "a".repeat(32);
 
 function profile(change) {
@@ -21,14 +22,24 @@ function cryptoFixture() {
   return {getRandomValues(bytes) { bytes.fill(0); bytes[bytes.length - 1] = next++; return bytes; }};
 }
 class Characteristic {
-  constructor(value) { this.value = value; this.listeners = []; this.commands = []; this.respond = true; }
+  constructor(value) {
+    this.value = value;
+    this.listeners = [];
+    this.commands = [];
+    this.emittedSizes = [];
+    this.respond = true;
+  }
   async readValue() { const bytes = new TextEncoder().encode(JSON.stringify(this.value)); return new DataView(bytes.buffer); }
   async startNotifications() { return this; }
   addEventListener(_, callback) { this.listeners.push(callback); }
   removeEventListener(_, callback) { this.listeners = this.listeners.filter((item) => item !== callback); }
+  emitBytes(bytes) {
+    this.emittedSizes.push(bytes.byteLength);
+    const value = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    for (const listener of this.listeners) listener({target: {value}});
+  }
   emit(value) {
-    const bytes = new TextEncoder().encode(JSON.stringify(value));
-    for (const listener of this.listeners) listener({target: {value: new DataView(bytes.buffer)}});
+    this.emitBytes(new TextEncoder().encode(JSON.stringify(value)));
   }
   async writeValueWithResponse(bytes) {
     const command = JSON.parse(new TextDecoder().decode(bytes));
@@ -118,6 +129,34 @@ async function run() {
   assert.strictEqual(fixture.command.commands[0].operation, "open");
   assert.strictEqual(fixture.command.commands.at(-1).operation, "apply");
   assert(fixture.command.commands.every((command) => command.device_id === device));
+  const commandSizes = fixture.command.commands.map((command) =>
+    new TextEncoder().encode(JSON.stringify(command)).length);
+  assert(commandSizes.every((size) => size <= MAX_COMMAND_BYTES));
+  assert(commandSizes.some((size) => size > 20),
+    "mock GATT must not be mistaken for default-ATT-MTU command evidence");
+  assert(fixture.status.emittedSizes.every((size) => size <= MAX_STATUS_BYTES));
+  assert(fixture.status.emittedSizes.some((size) => size > 20),
+    "mock GATT must not be mistaken for default-ATT-MTU status evidence");
+
+  const oversizedFixture = bluetoothFixture();
+  const oversizedClient = new Client(
+    oversizedFixture.bluetooth, cryptoFixture(), {timeoutMs: 10});
+  await oversizedClient.connect(device);
+  oversizedFixture.command.respond = false;
+  const oversizedRequest = "d".repeat(32);
+  const pendingOversizedStatus = oversizedClient.exchange({
+    version: 1, operation: "cancel", request_id: oversizedRequest,
+    session_id: "e".repeat(32), device_id: device
+  });
+  const oversizedStatus = new TextEncoder().encode(JSON.stringify({
+    request_id: oversizedRequest, ok: true, padding: "x".repeat(MAX_STATUS_BYTES)
+  }));
+  assert(oversizedStatus.byteLength > MAX_STATUS_BYTES);
+  oversizedFixture.status.emitBytes(oversizedStatus);
+  await rejectsCode(() => pendingOversizedStatus, "timeout");
+  assert.strictEqual(oversizedClient.pending.size, 0);
+  oversizedClient.disconnect();
+
   const unchangedFixture = bluetoothFixture(device, 1);
   unchangedFixture.command.applyGeneration = 1;
   const unchangedClient = new Client(unchangedFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});

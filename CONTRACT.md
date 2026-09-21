@@ -61,8 +61,12 @@ application for BLE-primary/SoftAP-fallback adapters. P12.3 hardware-free
 integration reserves a separate profile region without moving existing records,
 selects provisioned Wi-Fi/TLS material fail closed at boot, validates the TLS
 bundle on the pinned Mbed TLS stack and supplies a Bluefy Web Bluetooth client.
-P12.4 supplies the matching closed, bounded C++ command decoder and a portable
-post-commit activation/fail-closed interface. Authentication is still supplied
+P12.4 supplies the matching closed, bounded C++ command decoder. P12.5 stages a
+genuinely new committed generation until a terminal response-delivery callback
+or bounded timeout, rechecks job/RF activity immediately before disruption and
+fails closed on activation faults. It also gives the listener and credential
+validator shared PSA lifetime ownership and reserves a disjoint future BTstack
+flash bank without moving existing journals. Authentication is still supplied
 by a future platform adapter, and no Pico activator is connected. The target
 BLE/SoftAP adapters, proof/recovery policies, actual live idle-only reload and
 physical acceptance remain open, so this is not yet an end-user provisioning

@@ -24,7 +24,7 @@ def validate_uf2(uf2):
                       uf2[offset + 32:offset + 288] == bytes([0xEF]) * 256 and
                       struct.unpack_from("<I", uf2, offset + 288)[0] == 0x9957E304)
         if not workaround and not flags & 1 and not (
-                0x10000000 <= address < address + size <= 0x103F7000):
+                0x10000000 <= address < address + size <= 0x103F5000):
             raise ValueError("UF2 payload outside reserved application region")
 
 
@@ -33,13 +33,13 @@ def main():
     subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("check_endpoint_image.py")),
                     str(elf)], check=True)
     map_text = pathlib.Path(str(elf) + ".map").read_text()
-    if not re.search(r"^FLASH\s+0x10000000\s+0x003f7000\s+xr$", map_text, re.MULTILINE):
-        raise SystemExit("Missing profile, standalone and boot-sector flash reservations")
+    if not re.search(r"^FLASH\s+0x10000000\s+0x003f5000\s+xr$", map_text, re.MULTILINE):
+        raise SystemExit("Missing BTstack, profile, standalone and boot-sector flash reservations")
     try:
         validate_uf2(elf.with_suffix(".uf2").read_bytes())
     except ValueError as error:
         raise SystemExit(str(error)) from None
-    print("Linked FLASH ends at 0x103f7000; profile and standalone journals remain below the boot sector")
+    print("Linked FLASH ends at 0x103f5000; BTstack, profile and standalone storage remain below the boot sector")
 
 
 if __name__ == '__main__':

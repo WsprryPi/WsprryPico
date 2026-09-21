@@ -6,7 +6,7 @@
 #include "mbedtls/pk.h"
 #include "mbedtls/x509_crt.h"
 #include "network/identity.hpp"
-#include "psa/crypto.h"
+#include "network/pico/psa_lifetime.hpp"
 
 #include <string_view>
 
@@ -18,8 +18,7 @@ constexpr int algorithm_error = -0x7f03;
 constexpr int purpose_error = -0x7f04;
 
 bool exact_dns_san(const mbedtls_x509_crt& certificate, std::string_view expected) {
-    for (auto* entry = &certificate.subject_alt_names; entry && entry->buf.p;
-         entry = entry->next) {
+    for (auto* entry = &certificate.subject_alt_names; entry && entry->buf.p; entry = entry->next) {
         mbedtls_x509_subject_alternative_name parsed{};
         const auto result = mbedtls_x509_parse_subject_alt_name(&entry->buf, &parsed);
         const bool match =
@@ -44,8 +43,7 @@ bool p256_key(const mbedtls_pk_context& key) {
 
 bool p256_sha256_certificate(const mbedtls_x509_crt& certificate) {
     return certificate.MBEDTLS_PRIVATE(sig_md) == MBEDTLS_MD_SHA256 &&
-           certificate.MBEDTLS_PRIVATE(sig_pk) == MBEDTLS_PK_ECDSA &&
-           p256_key(certificate.pk);
+           certificate.MBEDTLS_PRIVATE(sig_pk) == MBEDTLS_PK_ECDSA && p256_key(certificate.pk);
 }
 
 struct Context {
@@ -67,7 +65,6 @@ struct Context {
         mbedtls_pk_free(&key);
         mbedtls_ctr_drbg_free(&rng);
         mbedtls_entropy_free(&entropy);
-        mbedtls_psa_crypto_free();
     }
 };
 } // namespace
@@ -81,9 +78,16 @@ bool MbedTlsCredentialValidator::validate(CredentialMaterial material) {
     verify_flags_ = 0;
     if (!network::valid_device_id(expected_device_id_) ||
         material.device_id != expected_device_id_ || !material.port || material.port > 65535 ||
-        !network::canonical_local_hostname(material.hostname) || material.server_certificate.empty() ||
-        material.server_private_key.empty() || material.client_ca.empty()) {
+        !network::canonical_local_hostname(material.hostname) ||
+        material.server_certificate.empty() || material.server_private_key.empty() ||
+        material.client_ca.empty()) {
         last_error_ = identity_error;
+        return false;
+    }
+    network::PsaCryptoOwner psa;
+    const auto psa_result = psa.acquire();
+    if (psa_result != PSA_SUCCESS) {
+        last_error_ = psa_result;
         return false;
     }
     Context context;
@@ -93,27 +97,26 @@ bool MbedTlsCredentialValidator::validate(CredentialMaterial material) {
             last_error_ = result;
         return result != 0;
     };
-    if (check(psa_crypto_init()) ||
-        check(mbedtls_ctr_drbg_seed(&context.rng, mbedtls_entropy_func, &context.entropy,
+    if (check(mbedtls_ctr_drbg_seed(&context.rng, mbedtls_entropy_func, &context.entropy,
                                     personalization, sizeof(personalization))) ||
         check(mbedtls_x509_crt_parse(
             &context.certificate,
             reinterpret_cast<const unsigned char*>(material.server_certificate.data()),
             material.server_certificate.size() + 1)) ||
-        check(mbedtls_x509_crt_parse(&context.ca,
-                                     reinterpret_cast<const unsigned char*>(material.client_ca.data()),
-                                     material.client_ca.size() + 1)) ||
+        check(mbedtls_x509_crt_parse(
+            &context.ca, reinterpret_cast<const unsigned char*>(material.client_ca.data()),
+            material.client_ca.size() + 1)) ||
         check(mbedtls_pk_parse_key(
             &context.key,
             reinterpret_cast<const unsigned char*>(material.server_private_key.data()),
             material.server_private_key.size() + 1, nullptr, 0, mbedtls_ctr_drbg_random,
             &context.rng)) ||
-        check(mbedtls_pk_check_pair(&context.certificate.pk, &context.key,
-                                    mbedtls_ctr_drbg_random, &context.rng)))
+        check(mbedtls_pk_check_pair(&context.certificate.pk, &context.key, mbedtls_ctr_drbg_random,
+                                    &context.rng)))
         return false;
     if (context.certificate.next || context.ca.next ||
-        !p256_sha256_certificate(context.certificate) ||
-        !p256_sha256_certificate(context.ca) || !p256_key(context.key)) {
+        !p256_sha256_certificate(context.certificate) || !p256_sha256_certificate(context.ca) ||
+        !p256_key(context.key)) {
         last_error_ = algorithm_error;
         return false;
     }
@@ -121,9 +124,8 @@ bool MbedTlsCredentialValidator::validate(CredentialMaterial material) {
         last_error_ = hostname_san_error;
         return false;
     }
-    if (mbedtls_x509_crt_check_extended_key_usage(
-            &context.certificate, MBEDTLS_OID_SERVER_AUTH,
-            MBEDTLS_OID_SIZE(MBEDTLS_OID_SERVER_AUTH)) != 0) {
+    if (mbedtls_x509_crt_check_extended_key_usage(&context.certificate, MBEDTLS_OID_SERVER_AUTH,
+                                                  MBEDTLS_OID_SIZE(MBEDTLS_OID_SERVER_AUTH)) != 0) {
         last_error_ = purpose_error;
         return false;
     }

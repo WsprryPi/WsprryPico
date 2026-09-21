@@ -213,12 +213,13 @@ erroneous forward clock step can therefore suspend scheduling until UTC catches
 up or an operator deliberately resets storage; this favors no repeats over
 availability. This is an at-most-once attempt policy, not guaranteed delivery.
 
-A separate Phase 12 profile journal occupies `0x3f7000`–`0x3fafff`. The four
+A project-owned 8 KiB future BTstack bank occupies `0x3f5000`–`0x3f6fff`, and
+a separate Phase 12 profile journal occupies `0x3f7000`–`0x3fafff`. The four
 existing 4 KiB standalone sectors remain at their original flash offsets
 `0x3fb000`–`0x3fefff` in every maintained image; no migration or reinterpretation
 occurs. The final sector (`0x3ff000`–`0x3fffff`) remains separately reserved for
 the RP2350-E10 boot workaround, observed in its last page. Linked application
-FLASH ends at `0x3f7000`, and the image checker rejects ordinary UF2 payloads in
+FLASH ends at `0x3f5000`, and the image checker rejects ordinary UF2 payloads in
 all reserved regions.
 The initial, physically unvalidated layout overlapped that page and failed
 closed on this board. It must not be used for persisted configuration.

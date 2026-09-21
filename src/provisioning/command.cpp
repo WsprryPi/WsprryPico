@@ -149,6 +149,8 @@ CommandReply CommandAdapter::reply(std::string_view request_id, Result result) c
     notification += ",\"generation\":" + std::to_string(result.generation) +
                     ",\"accepted_bytes\":" + std::to_string(result.accepted_bytes) +
                     ",\"replayed\":" + (result.replayed ? "true" : "false") + "}";
+    if (notification.size() > max_notification_bytes)
+        return {result.code, {}};
     return {result.code, std::move(notification)};
 }
 

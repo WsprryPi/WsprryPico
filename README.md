@@ -59,14 +59,17 @@ BLE/SoftAP-neutral state machine are implemented and tested. The hardware-free
 P12.3 infrastructure adds a disjoint 16 KiB Pico profile region, fail-closed
 boot selection, runtime Wi-Fi/TLS views, exact Mbed TLS credential validation
 and a repository-owned Web Bluetooth page for Bluefy. P12.4 adds the strict
-transport-neutral C++ decoder for that page's closed JSON vocabulary and an
-optional fail-closed activation handoff after a new generation commits.
+transport-neutral C++ decoder for that page's closed JSON vocabulary. P12.5
+adds a delivery-safe post-commit activation coordinator, shared PSA crypto
+lifetime ownership, a disjoint 8 KiB future BTstack bank and a strong firmware
+link check for the provisioning boundary. The coordinator is still only a
+portable platform boundary; no production runtime reload path is connected.
 Build-time credentials remain the no-profile bootstrap. Pico BLE-primary and
 SoftAP-fallback radio adapters, authenticated platform sessions, actual live
 network reload, page distribution policy and the
 [RF-inhibited-first physical plan](docs/development/phase12-physical-acceptance.md)
 remain open; no end-to-end or physical provisioning claim is made. See the
-[P12.4 review](docs/development/phase12-4-review.md).
+[P12.5 review](docs/development/phase12-5-review.md).
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)
@@ -75,6 +78,7 @@ remain open; no end-to-end or physical provisioning claim is made. See the
 - [Phase 12 provisioning plan](docs/development/phase12-plan.md)
 - [Phase 12.3 hardware-free integration review](docs/development/phase12-3-review.md)
 - [Phase 12.4 portable command and activation review](docs/development/phase12-4-review.md)
+- [Phase 12.5 activation-safety review](docs/development/phase12-5-review.md)
 - [RF feasibility investigation](docs/rf-feasibility.md)
 - [Implementation plan](docs/implementation-plan.md)
 - [WsprryPi host acceptance prerequisites](docs/development/phase10-host-acceptance.md)

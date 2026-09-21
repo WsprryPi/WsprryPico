@@ -57,7 +57,8 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     file(CHMOD ${CMAKE_BINARY_DIR}/network-test-generated/network_credentials.hpp PERMISSIONS OWNER_READ OWNER_WRITE)
     add_executable(network_tls_driver
         tests/network_tls_driver.cpp tests/network_mock/tcp.cpp
-        src/network/pico/server.cpp src/provisioning/pico/credential_validator.cpp)
+        src/network/pico/psa_lifetime.cpp src/network/pico/server.cpp
+        src/provisioning/pico/credential_validator.cpp)
     target_include_directories(network_tls_driver PRIVATE tests/network_mock ${CMAKE_BINARY_DIR}/network-test-generated)
     target_compile_definitions(network_tls_driver PRIVATE MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}")
     target_link_libraries(network_tls_driver PRIVATE wsprrypico_core wsprrypico_rf Threads::Threads mbedtls mbedx509 mbedcrypto)

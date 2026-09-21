@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <vector>
 
 using namespace wsprrypico;
 #define CHECK(condition)                                                                           \
@@ -130,21 +131,59 @@ struct Validator : provisioning::CredentialValidator {
     }
 };
 
-struct Activator : provisioning::ProfileActivator {
-    bool succeed = true;
-    unsigned calls = 0;
+struct ActivationPlatformFixture : provisioning::ActivationPlatform {
+    enum class Operation { Prepare, Activity, Quiesce, Install, Restart, FailClosed };
+    bool prepare_ok = true;
+    bool quiesce_ok = true;
+    bool install_ok = true;
+    bool restart_ok = true;
+    bool fail_closed_ok = true;
+    provisioning::Activity observed_activity;
+    mutable std::vector<Operation> order;
+    unsigned prepare_calls = 0;
+    mutable unsigned activity_calls = 0;
+    unsigned quiesce_calls = 0;
+    unsigned install_calls = 0;
+    unsigned restart_calls = 0;
     unsigned fail_closed_calls = 0;
     std::uint64_t generation = 0;
-    std::string observed_ssid;
-    bool activate(const provisioning::Profile& candidate, std::uint64_t next) override {
-        ++calls;
+    std::string prepared_ssid;
+    std::string installed_ssid;
+
+    bool prepare(const provisioning::Profile& candidate, std::uint64_t next) override {
+        order.push_back(Operation::Prepare);
+        ++prepare_calls;
         generation = next;
-        observed_ssid = candidate.ssid;
-        return succeed;
+        prepared_ssid = candidate.ssid;
+        return prepare_ok;
     }
-    void fail_closed(std::uint64_t failed) override {
+    provisioning::Activity activity() const override {
+        order.push_back(Operation::Activity);
+        ++activity_calls;
+        return observed_activity;
+    }
+    bool quiesce() override {
+        order.push_back(Operation::Quiesce);
+        ++quiesce_calls;
+        return quiesce_ok;
+    }
+    bool install(const provisioning::Profile& candidate, std::uint64_t next) override {
+        order.push_back(Operation::Install);
+        ++install_calls;
+        generation = next;
+        installed_ssid = candidate.ssid;
+        return install_ok;
+    }
+    bool restart() override {
+        order.push_back(Operation::Restart);
+        ++restart_calls;
+        return restart_ok;
+    }
+    bool fail_closed(std::uint64_t failed_generation) override {
+        order.push_back(Operation::FailClosed);
         ++fail_closed_calls;
-        generation = failed;
+        generation = failed_generation;
+        return fail_closed_ok;
     }
 };
 
@@ -163,6 +202,27 @@ provisioning::Authorization authorized() {
     return {true, true, true, "operator"};
 }
 
+constexpr std::uint64_t standalone_watermark = 1'900'000'000'000'000'000ULL;
+constexpr auto standalone_config_json =
+    R"({"version":1,"enabled":true,"station":{"callsign":"AA0NT","locator":"EM18","power_dbm":37},"wifi":{"ssid":"old-network","password":"old-password","ntp_ipv4":"pool.ntp.org"},"schedules":[{"period_s":120,"phase_s":0}]})";
+
+std::array<std::uint8_t, 16384> initialize_standalone(StandaloneMedia& media) {
+    standalone::Store store(media);
+    CHECK(store.load());
+    const auto config = standalone::parse_config(standalone_config_json);
+    CHECK(config && store.save(*config) && store.reserve(standalone_watermark));
+    return media.data;
+}
+
+void check_standalone_preserved(StandaloneMedia& media,
+                                const std::array<std::uint8_t, 16384>& before) {
+    CHECK(media.data == before);
+    standalone::Store reloaded(media);
+    const auto expected = standalone::parse_config(standalone_config_json);
+    CHECK(reloaded.load() && expected && reloaded.config() && *reloaded.config() == *expected);
+    CHECK(reloaded.watermark() == standalone_watermark);
+}
+
 struct Fixture {
     MemoryMedia media;
     provisioning::ProfileStore store{media};
@@ -170,6 +230,23 @@ struct Fixture {
     provisioning::Manager manager{store, validator, device};
     Fixture() {
         CHECK(store.load());
+    }
+};
+
+struct ActivationFixture {
+    StandaloneMedia standalone_media;
+    std::array<std::uint8_t, 16384> standalone_before;
+    MemoryMedia media;
+    provisioning::ProfileStore store{media};
+    Validator validator;
+    ActivationPlatformFixture platform;
+    provisioning::ActivationCoordinator activation{platform};
+    provisioning::Manager manager{store, validator, device, &activation};
+    ActivationFixture() : standalone_before(initialize_standalone(standalone_media)) {
+        CHECK(store.load());
+    }
+    void check_standalone() {
+        check_standalone_preserved(standalone_media, standalone_before);
     }
 };
 
@@ -579,6 +656,8 @@ void command_adapter_contract() {
     const auto open_id = request_id(request++);
     const auto opened = ble.handle(command("open", open_id), authorized(), {}, 1);
     CHECK(opened.code == provisioning::Code::Ok && opened.notify());
+    CHECK(opened.notification.size() > 20 &&
+          opened.notification.size() <= provisioning::max_notification_bytes);
     CHECK(opened.notification.find("\"request_id\":\"" + open_id + "\"") != std::string::npos);
     CHECK(opened.notification.find("\"ok\":true") != std::string::npos);
     const auto duplicate_open = ble.handle(command("open", open_id), authorized(), {}, 2);
@@ -607,6 +686,8 @@ void command_adapter_contract() {
         ble.handle(command("apply", apply_id, session_a, device, ",\"expected_generation\":0"),
                    authorized(), {}, 10000);
     CHECK(applied.code == provisioning::Code::Ok);
+    CHECK(applied.notification.size() > 20 &&
+          applied.notification.size() <= provisioning::max_notification_bytes);
     CHECK(applied.notification.find("\"generation\":1") != std::string::npos);
     CHECK(ble.identity() == R"({"device_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","generation":1})");
 
@@ -835,59 +916,282 @@ void command_adapter_rejections_and_busy_state() {
           f.manager.status().staged_bytes == 0);
 }
 
-void activation_handoff_and_fail_closed_policy() {
-    MemoryMedia media;
-    provisioning::ProfileStore store(media);
-    Validator validator;
-    Activator activator;
-    CHECK(store.load());
-    provisioning::Manager manager(store, validator, device, &activator);
+struct StagedActivation {
+    std::string request;
+    std::uint64_t generation = 0;
+};
+
+StagedActivation stage_activation(ActivationFixture& fixture, std::string suffix, unsigned& request,
+                                  std::uint64_t apply_ms) {
+    const auto expected = fixture.store.sequence();
+    CHECK(fixture.manager
+              .open(request_id(request++), session_a, device, provisioning::Transport::Ble,
+                    authorized(), apply_ms - 3)
+              .ok());
+    const auto encoded = provisioning::serialize_profile(profile(std::move(suffix)));
+    send(fixture.manager, session_a, encoded, request, apply_ms - 2);
+    const auto apply_request = request_id(request++);
+    const auto result =
+        session_apply(fixture.manager, apply_request, session_a, expected, {}, apply_ms);
+    CHECK(result.ok() && result.generation == expected + 1);
+    CHECK(fixture.manager.status().activation.state ==
+          provisioning::ActivationState::PendingDelivery);
+    return {apply_request, result.generation};
+}
+
+void deferred_activation_delivery_replay_and_ownership() {
+    ActivationFixture fixture;
     unsigned request = 400;
-    const auto first = provisioning::serialize_profile(profile("activate-A"));
-    CHECK(manager
-              .open(request_id(request++), session_a, device, provisioning::Transport::Ble,
-                    authorized(), 1)
-              .ok());
-    send(manager, session_a, first, request, 2);
-    const auto first_apply_id = request_id(request++);
-    const auto first_result = session_apply(manager, first_apply_id, session_a, 0, {}, 4);
-    CHECK(first_result.ok() && first_result.generation == 1);
-    CHECK(activator.calls == 1 && activator.fail_closed_calls == 0 && activator.generation == 1);
-    CHECK(activator.observed_ssid == "test-network-activate-A");
-    const auto replayed = session_apply(manager, first_apply_id, session_a, 0, {}, 5);
-    CHECK(replayed.ok() && replayed.replayed && activator.calls == 1);
+    const auto staged = stage_activation(fixture, "activate-A", request, 10);
+    const auto pending = fixture.manager.status();
+    CHECK(pending.state == provisioning::State::Complete);
+    CHECK(pending.activation.generation == 1);
+    CHECK(fixture.platform.order.empty());
 
-    CHECK(manager
+    auto unauthenticated = authorized();
+    unauthenticated.authenticated = false;
+    CHECK(fixture.manager
               .open(request_id(request++), session_b, device, provisioning::Transport::Ble,
-                    authorized(), 6)
-              .ok());
-    send(manager, session_b, first, request, 7);
-    CHECK(session_apply(manager, request_id(request++), session_b, 1, {}, 9).ok());
-    CHECK(store.sequence() == 1 && activator.calls == 1);
+                    unauthenticated, 11)
+              .code == provisioning::Code::AuthenticationRequired);
+    CHECK(fixture.manager
+              .open(request_id(request++), session_b, other_device, provisioning::Transport::Ble,
+                    authorized(), 12)
+              .code == provisioning::Code::WrongDevice);
+    CHECK(fixture.manager
+              .open(request_id(request++), session_b, device, provisioning::Transport::Ble,
+                    authorized(), 13)
+              .code == provisioning::Code::SessionBusy);
+    for (unsigned attempt = 0; attempt < provisioning::replay_capacity + 2; ++attempt)
+        CHECK(fixture.manager
+                  .open(request_id(request++), session_b, device, provisioning::Transport::Ble,
+                        authorized(), 14 + attempt)
+                  .code == provisioning::Code::SessionBusy);
+    CHECK(fixture.manager.status().replay_entries == provisioning::replay_capacity);
 
-    activator.succeed = false;
-    const auto second = provisioning::serialize_profile(profile("activate-B"));
-    CHECK(manager
-              .open(request_id(request++), session_a, device, provisioning::Transport::Ble,
-                    authorized(), 10)
+    const auto replay = session_apply(fixture.manager, staged.request, session_a, 0, {}, 30);
+    CHECK(replay.ok() && replay.replayed && replay.generation == 1);
+    CHECK(fixture.platform.order.empty());
+    CHECK(fixture.manager.release_activation(request_id(request++), 1, 31) ==
+          provisioning::ActivationRelease::Stale);
+    CHECK(fixture.manager.release_activation(staged.request, 2, 32) ==
+          provisioning::ActivationRelease::Stale);
+    CHECK(fixture.platform.order.empty());
+
+    CHECK(fixture.manager.release_activation(staged.request, 1, 33) ==
+          provisioning::ActivationRelease::Executed);
+    using Operation = ActivationPlatformFixture::Operation;
+    const std::vector<Operation> expected{Operation::Prepare, Operation::Activity,
+                                          Operation::Quiesce, Operation::Install,
+                                          Operation::Restart};
+    CHECK(fixture.platform.order == expected);
+    CHECK(fixture.platform.prepared_ssid == "test-network-activate-A");
+    CHECK(fixture.platform.installed_ssid == "test-network-activate-A");
+    CHECK(fixture.platform.generation == 1 && fixture.platform.fail_closed_calls == 0);
+    const auto complete = fixture.manager.status().activation;
+    CHECK(complete.state == provisioning::ActivationState::Complete);
+    CHECK(complete.fault == provisioning::ActivationFault::None);
+    CHECK(!complete.fail_closed_confirmed);
+    CHECK(fixture.manager.release_activation(staged.request, 1, 34) ==
+          provisioning::ActivationRelease::AlreadyTerminal);
+    CHECK(fixture.platform.order == expected);
+
+    CHECK(fixture.manager
+              .open(request_id(request++), session_b, device, provisioning::Transport::Ble,
+                    authorized(), 35)
               .ok());
-    send(manager, session_a, second, request, 11);
-    const auto failed_id = request_id(request++);
-    const auto failed = session_apply(manager, failed_id, session_a, 1, {}, 13);
-    CHECK(failed.code == provisioning::Code::ActivationFault && failed.generation == 2);
-    CHECK(provisioning::code_name(failed.code) == "activation_fault");
-    CHECK(manager.status().state == provisioning::State::Failed &&
-          manager.status().staged_bytes == 0 && store.sequence() == 2);
-    CHECK(activator.calls == 2 && activator.fail_closed_calls == 1 && activator.generation == 2);
-    CHECK(store.data().find("CA-activate-B") != std::string::npos);
-    CHECK(store.data().find("CA-activate-A") == std::string::npos);
-    const auto failed_replay = session_apply(manager, failed_id, session_a, 1, {}, 14);
-    CHECK(failed_replay.code == provisioning::Code::ActivationFault && failed_replay.replayed);
-    CHECK(activator.calls == 2 && activator.fail_closed_calls == 1);
-    provisioning::RuntimeProfile selected;
-    CHECK(selected.load(store, device));
-    CHECK(selected.generation() == 2 && selected.profile());
-    CHECK(selected.profile()->ssid == "test-network-activate-B");
+    CHECK(session_cancel(fixture.manager, request_id(request++), session_b, 36).ok());
+
+    CHECK(fixture.manager
+              .open(request_id(request++), session_a, device, provisioning::Transport::Ble,
+                    authorized(), 37)
+              .ok());
+    const auto same = provisioning::serialize_profile(profile("activate-A"));
+    send(fixture.manager, session_a, same, request, 38);
+    const auto same_result =
+        session_apply(fixture.manager, request_id(request++), session_a, 1, {}, 40);
+    CHECK(same_result.ok() && same_result.generation == 1);
+    CHECK(fixture.manager.status().activation.state == provisioning::ActivationState::Complete);
+    CHECK(fixture.platform.order == expected);
+    fixture.check_standalone();
+}
+
+void deferred_activation_timeout_and_late_activity() {
+    {
+        ActivationFixture fixture;
+        unsigned request = 500;
+        const auto staged = stage_activation(fixture, "timeout", request, 100);
+        fixture.manager.poll(100 + provisioning::activation_delivery_timeout_ms - 1);
+        CHECK(fixture.platform.order.empty());
+        fixture.manager.poll(100 + provisioning::activation_delivery_timeout_ms);
+        CHECK(fixture.manager.status().activation.state == provisioning::ActivationState::Complete);
+        CHECK(fixture.platform.restart_calls == 1);
+        CHECK(fixture.manager.release_activation(staged.request, staged.generation, 6000) ==
+              provisioning::ActivationRelease::AlreadyTerminal);
+        fixture.check_standalone();
+    }
+
+    const std::array<provisioning::Activity, 6> late_activity{{
+        {.owned = true},
+        {.output_known = false},
+        {.output_active = true},
+        {.armed = true},
+        {.running = true},
+        {.failed = true},
+    }};
+    for (std::size_t index = 0; index < late_activity.size(); ++index) {
+        ActivationFixture fixture;
+        unsigned request = 520 + static_cast<unsigned>(index) * 10;
+        const auto staged =
+            stage_activation(fixture, "late-" + std::to_string(index), request, 100);
+        fixture.platform.observed_activity = late_activity[index];
+        fixture.manager.poll(100 + provisioning::activation_delivery_timeout_ms);
+        const auto status = fixture.manager.status();
+        CHECK(status.state == provisioning::State::Failed);
+        CHECK(status.activation.state == provisioning::ActivationState::Fault);
+        CHECK(status.activation.fault == provisioning::ActivationFault::ActivityChanged);
+        CHECK(status.activation.generation == staged.generation);
+        CHECK(status.activation.fail_closed_confirmed);
+        CHECK(fixture.platform.prepare_calls == 1 && fixture.platform.activity_calls == 1);
+        CHECK(fixture.platform.quiesce_calls == 0 && fixture.platform.install_calls == 0);
+        CHECK(fixture.platform.restart_calls == 0 && fixture.platform.fail_closed_calls == 1);
+        CHECK(fixture.store.sequence() == staged.generation);
+        CHECK(fixture.store.data().find("CA-late-") != std::string::npos);
+        CHECK(fixture.manager
+                  .open(request_id(request++), session_b, device, provisioning::Transport::Ble,
+                        authorized(), 6000)
+                  .code == provisioning::Code::ActivationFault);
+        fixture.check_standalone();
+    }
+
+    StandaloneMedia rollback_standalone;
+    const auto rollback_before = initialize_standalone(rollback_standalone);
+    ActivationPlatformFixture rollback_platform;
+    provisioning::ActivationCoordinator rollback(rollback_platform);
+    auto owned = profile("rollback");
+    CHECK(rollback.stage(request_id(599), owned, 7, 100));
+    provisioning::scrub(owned);
+    rollback.poll(99);
+    CHECK(rollback.status().state == provisioning::ActivationState::Complete);
+    CHECK(rollback_platform.installed_ssid == "test-network-rollback");
+    check_standalone_preserved(rollback_standalone, rollback_before);
+}
+
+void deferred_activation_failure_injection_and_retry() {
+    const std::array<provisioning::ActivationFault, 4> faults{
+        provisioning::ActivationFault::Prepare, provisioning::ActivationFault::Quiesce,
+        provisioning::ActivationFault::Install, provisioning::ActivationFault::Restart};
+    for (std::size_t index = 0; index < faults.size(); ++index) {
+        ActivationFixture fixture;
+        switch (faults[index]) {
+        case provisioning::ActivationFault::Prepare:
+            fixture.platform.prepare_ok = false;
+            break;
+        case provisioning::ActivationFault::Quiesce:
+            fixture.platform.quiesce_ok = false;
+            break;
+        case provisioning::ActivationFault::Install:
+            fixture.platform.install_ok = false;
+            break;
+        case provisioning::ActivationFault::Restart:
+            fixture.platform.restart_ok = false;
+            break;
+        default:
+            CHECK(false);
+        }
+        unsigned request = 620 + static_cast<unsigned>(index) * 10;
+        const auto staged =
+            stage_activation(fixture, "failure-" + std::to_string(index), request, 100);
+        CHECK(fixture.manager.release_activation(staged.request, staged.generation, 101) ==
+              provisioning::ActivationRelease::Fault);
+        const auto status = fixture.manager.status();
+        CHECK(status.state == provisioning::State::Failed);
+        CHECK(status.activation.state == provisioning::ActivationState::Fault);
+        CHECK(status.activation.fault == faults[index]);
+        CHECK(status.activation.generation == staged.generation);
+        CHECK(status.activation.fail_closed_confirmed);
+        CHECK(fixture.platform.prepare_calls == 1);
+        CHECK(fixture.platform.activity_calls == (index == 0 ? 0u : 1u));
+        CHECK(fixture.platform.quiesce_calls == (index < 1 ? 0u : 1u));
+        CHECK(fixture.platform.install_calls == (index < 2 ? 0u : 1u));
+        CHECK(fixture.platform.restart_calls == (index < 3 ? 0u : 1u));
+        CHECK(fixture.platform.fail_closed_calls == 1);
+        CHECK(fixture.store.sequence() == staged.generation);
+        CHECK(fixture.store.data().find("CA-failure-") != std::string::npos);
+        fixture.check_standalone();
+    }
+
+    ActivationFixture retry;
+    retry.platform.prepare_ok = false;
+    retry.platform.fail_closed_ok = false;
+    unsigned request = 700;
+    const auto staged = stage_activation(retry, "retry", request, 100);
+    CHECK(retry.manager.release_activation(staged.request, staged.generation, 101) ==
+          provisioning::ActivationRelease::Fault);
+    CHECK(retry.platform.fail_closed_calls == 1);
+    CHECK(!retry.manager.status().activation.fail_closed_confirmed);
+    CHECK(retry.manager.release_activation(request_id(request++), staged.generation, 102) ==
+          provisioning::ActivationRelease::Stale);
+    CHECK(retry.platform.fail_closed_calls == 1);
+    retry.manager.poll(103);
+    CHECK(retry.platform.fail_closed_calls == 2);
+    retry.platform.fail_closed_ok = true;
+    retry.manager.poll(104);
+    CHECK(retry.platform.fail_closed_calls == 3);
+    CHECK(retry.manager.status().activation.fail_closed_confirmed);
+    retry.manager.poll(105);
+    CHECK(retry.platform.fail_closed_calls == 3);
+    CHECK(retry.manager.release_activation(staged.request, staged.generation, 106) ==
+          provisioning::ActivationRelease::AlreadyTerminal);
+    retry.check_standalone();
+
+    ActivationFixture collision;
+    unsigned collision_request = 740;
+    CHECK(collision.manager
+              .open(request_id(collision_request++), session_a, device,
+                    provisioning::Transport::Ble, authorized(), 1)
+              .ok());
+    auto superseded = profile("superseded-pending");
+    CHECK(collision.activation.stage(request_id(collision_request++), superseded, 99, 2));
+    const auto replacement = provisioning::serialize_profile(profile("collision"));
+    send(collision.manager, session_a, replacement, collision_request, 3);
+    const auto collision_apply =
+        session_apply(collision.manager, request_id(collision_request++), session_a, 0, {}, 5);
+    CHECK(collision_apply.code == provisioning::Code::ActivationFault);
+    CHECK(collision_apply.generation == 1 && collision.store.sequence() == 1);
+    CHECK(collision.manager.status().activation.state == provisioning::ActivationState::Fault);
+    CHECK(collision.manager.status().activation.fault == provisioning::ActivationFault::Stage);
+    CHECK(collision.manager.status().activation.generation == 1);
+    CHECK(collision.platform.fail_closed_calls == 1 && collision.platform.generation == 1);
+    collision.check_standalone();
+}
+
+void deferred_activation_destruction_fail_closed() {
+    StandaloneMedia standalone_media;
+    const auto standalone_before = initialize_standalone(standalone_media);
+    ActivationPlatformFixture pending_platform;
+    {
+        provisioning::ActivationCoordinator activation(pending_platform);
+        auto candidate = profile("pending-destroy");
+        CHECK(activation.stage(request_id(800), candidate, 4, 1));
+        CHECK(activation.status().state == provisioning::ActivationState::PendingDelivery);
+    }
+    CHECK(pending_platform.fail_closed_calls == 1);
+    CHECK(pending_platform.prepare_calls == 0);
+
+    ActivationPlatformFixture fault_platform;
+    fault_platform.prepare_ok = false;
+    fault_platform.fail_closed_ok = false;
+    {
+        provisioning::ActivationCoordinator activation(fault_platform);
+        auto candidate = profile("fault-destroy");
+        const auto request = request_id(801);
+        CHECK(activation.stage(request, candidate, 5, 1));
+        CHECK(activation.release(request, 5, 2) == provisioning::ActivationRelease::Fault);
+        CHECK(fault_platform.fail_closed_calls == 1);
+    }
+    CHECK(fault_platform.fail_closed_calls == 2);
+    check_standalone_preserved(standalone_media, standalone_before);
 }
 
 void runtime_selection_and_overlay() {
@@ -956,7 +1260,10 @@ int main() {
     replacement_policy_and_existing_state_preservation();
     command_adapter_contract();
     command_adapter_rejections_and_busy_state();
-    activation_handoff_and_fail_closed_policy();
+    deferred_activation_delivery_replay_and_ownership();
+    deferred_activation_timeout_and_late_activity();
+    deferred_activation_failure_injection_and_retry();
+    deferred_activation_destruction_fail_closed();
     runtime_selection_and_overlay();
     std::cout << "provisioning tests passed\n";
 }

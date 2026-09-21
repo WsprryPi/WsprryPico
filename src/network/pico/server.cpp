@@ -3,7 +3,6 @@
 #include "mbedtls/platform.h"
 #include "pico/time.h"
 #include "provisioning/pico/credential_validator.hpp"
-#include "psa/crypto.h"
 #include "wtp/memory_budget.hpp"
 #ifdef WSPRRY_PICO_HEAP_METRICS
 #include "runtime/pico/heap_metrics.h"
@@ -123,6 +122,12 @@ bool PicoServer::start() {
     mbedtls_entropy_init(&entropy_);
     mbedtls_ctr_drbg_init(&rng_);
     const unsigned char personalization[] = "WsprryPico TLS server";
+    const auto psa_result = psa_.acquire();
+    if (psa_result != PSA_SUCCESS) {
+        last_error_ = psa_result;
+        stop();
+        return false;
+    }
     auto check = [this](int result) {
         last_error_ = result;
         return result != 0;
@@ -135,8 +140,7 @@ bool PicoServer::start() {
     provisioning::MbedTlsCredentialValidator validator(device_id_);
     if (!validator.validate(credentials_))
         return fail(validator.last_error());
-    if (check(psa_crypto_init()) ||
-        check(mbedtls_ctr_drbg_seed(&rng_, mbedtls_entropy_func, &entropy_, personalization,
+    if (check(mbedtls_ctr_drbg_seed(&rng_, mbedtls_entropy_func, &entropy_, personalization,
                                     sizeof(personalization))) ||
         check(mbedtls_x509_crt_parse(
             &cert_, reinterpret_cast<const unsigned char*>(credentials_.server_certificate.data()),
@@ -147,7 +151,7 @@ bool PicoServer::start() {
         check(mbedtls_pk_parse_key(
             &key_, reinterpret_cast<const unsigned char*>(credentials_.server_private_key.data()),
             credentials_.server_private_key.size() + 1, nullptr, 0, mbedtls_ctr_drbg_random,
-                                   &rng_)) ||
+            &rng_)) ||
         check(mbedtls_pk_check_pair(&cert_.pk, &key_, mbedtls_ctr_drbg_random, &rng_)) ||
         check(mbedtls_ssl_config_defaults(&config_, MBEDTLS_SSL_IS_SERVER,
                                           MBEDTLS_SSL_TRANSPORT_STREAM,
@@ -362,13 +366,13 @@ void PicoServer::stop() {
         mbedtls_pk_free(&key_);
         mbedtls_ctr_drbg_free(&rng_);
         mbedtls_entropy_free(&entropy_);
-        mbedtls_psa_crypto_free();
     }
     setup_ = false;
     if (tls_owner == this) {
         time_service = nullptr;
         tls_owner = nullptr;
     }
+    psa_.release();
 }
 void PicoServer::poll(bool link_up, std::string authority, bool allow_http_steps) {
     const auto started = time_us_64();

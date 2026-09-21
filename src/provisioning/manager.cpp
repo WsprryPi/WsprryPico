@@ -58,6 +58,11 @@ void Manager::expire(std::uint64_t now_ms) {
 }
 void Manager::poll(std::uint64_t now_ms) {
     expire(now_ms);
+    if (activation_) {
+        activation_->poll(now_ms);
+        if (activation_->status().state == ActivationState::Fault)
+            state_ = State::Failed;
+    }
 }
 void Manager::terminate(State state) {
     if (session_) {
@@ -94,8 +99,16 @@ std::optional<Result> Manager::replay(std::string_view request_id, const wtp::Pa
 Result Manager::remember(std::string_view request_id, const wtp::PayloadDigest& digest,
                          Result result, std::uint64_t now_ms) {
     if (network::valid_device_id(request_id)) {
-        if (replay_.size() == replay_capacity)
-            replay_.erase(replay_.begin());
+        if (replay_.size() == replay_capacity) {
+            const auto eviction =
+                std::find_if(replay_.begin(), replay_.end(), [this](const auto& entry) {
+                    return !activation_ ||
+                           !activation_->protects_replay(entry.request_id, entry.result.generation);
+                });
+            if (eviction == replay_.end())
+                return result;
+            replay_.erase(eviction);
+        }
         replay_.push_back({std::string(request_id), digest, result, now_ms});
     }
     return result;
@@ -120,6 +133,9 @@ Result Manager::open(std::string_view request_id, std::string_view session_id,
         result.code = Code::AuthenticationRequired;
     else if (requested_device != device_id_ || !network::valid_device_id(requested_device))
         result.code = Code::WrongDevice;
+    else if (activation_ && activation_->blocks_admission())
+        result.code = activation_->status().state == ActivationState::Fault ? Code::ActivationFault
+                                                                            : Code::SessionBusy;
     else if (session_)
         result.code = Code::SessionBusy;
     else {
@@ -226,9 +242,10 @@ Result Manager::apply(std::string_view request_id, std::string_view session_id,
                 for (std::size_t i = 0; i < canonical.size(); ++i)
                     raw[i] = 0;
                 result.generation = store_.sequence();
-                if (activator_ && result.generation != previous_generation &&
-                    !activator_->activate(*profile, result.generation)) {
-                    activator_->fail_closed(result.generation);
+                if (activation_ && result.generation != previous_generation &&
+                    !activation_->stage(request_id, *profile, result.generation, now_ms)) {
+                    activation_->committed_fault(request_id, result.generation,
+                                                 ActivationFault::Stage);
                     result.code = Code::ActivationFault;
                     scrub(*profile);
                     terminate(State::Failed);
@@ -264,6 +281,16 @@ Result Manager::cancel(std::string_view request_id, std::string_view session_id,
     return remember(request_id, digest, result, now_ms);
 }
 
+ActivationRelease Manager::release_activation(std::string_view request_id, std::uint64_t generation,
+                                              std::uint64_t now_ms) {
+    if (!activation_)
+        return ActivationRelease::Stale;
+    const auto result = activation_->release(request_id, generation, now_ms);
+    if (activation_->status().state == ActivationState::Fault)
+        state_ = State::Failed;
+    return result;
+}
+
 Status Manager::status() const {
     Status result;
     result.state = state_;
@@ -272,6 +299,8 @@ Status Manager::status() const {
     result.staged_bytes = session_ ? session_->staged.size() : 0;
     result.fragments = session_ ? session_->fragments : 0;
     result.replay_entries = replay_.size();
+    if (activation_)
+        result.activation = activation_->status();
     return result;
 }
 } // namespace wsprrypico::provisioning

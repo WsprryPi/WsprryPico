@@ -13,6 +13,11 @@
   });
   const MAX_PROFILE_BYTES = 7168;
   const FRAGMENT_BYTES = 64;
+  // Commands and status notifications can exceed a default ATT value. A future
+  // GATT adapter must negotiate a sufficient payload or provide bounded framing
+  // and reassembly in both directions; these are wire bounds, not atomic-MTU claims.
+  const MAX_COMMAND_BYTES = 512;
+  const MAX_STATUS_BYTES = 256;
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
@@ -172,9 +177,11 @@
       }
     }
     onStatus(event) {
+      const value = event && event.target && event.target.value;
+      if (!value || value.byteLength > MAX_STATUS_BYTES) return;
       let response;
       try {
-        response = JSON.parse(text(event.target.value));
+        response = JSON.parse(text(value));
       } catch (_) {
         return;
       }
@@ -196,6 +203,10 @@
       if (!validDeviceId(message.request_id) || this.pending.has(message.request_id))
         fail("request_id");
       const encoded = encoder.encode(JSON.stringify(message));
+      if (encoded.length > MAX_COMMAND_BYTES) {
+        encoded.fill(0);
+        fail("command_oversize");
+      }
       let settle;
       const result = new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
@@ -271,5 +282,6 @@
     }
   }
 
-  return {UUIDS, MAX_PROFILE_BYTES, FRAGMENT_BYTES, validDeviceId, canonicalProfile, Client};
+  return {UUIDS, MAX_PROFILE_BYTES, FRAGMENT_BYTES, MAX_COMMAND_BYTES, MAX_STATUS_BYTES,
+    validDeviceId, canonicalProfile, Client};
 });

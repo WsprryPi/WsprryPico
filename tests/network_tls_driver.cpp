@@ -1,7 +1,9 @@
+#include "network/pico/psa_lifetime.hpp"
 #include "network/pico/server.hpp"
-#include "network_support.hpp"
 #include "network_credentials.hpp"
+#include "network_support.hpp"
 #include "pico/time.h"
+#include "provisioning/pico/credential_validator.hpp"
 #include "rf/worker.hpp"
 #include "wtp/memory_budget.hpp"
 
@@ -125,16 +127,18 @@ int main(int argc, char** argv) {
         &restarts);
     api.set_active_job_connections(true); // Same explicit policy as physical standalone image.
     const provisioning::CredentialMaterial credentials{
-        network::credentials::device_id, network::credentials::hostname, network::credentials::port,
-        network::credentials::certificate, network::credentials::key, network::credentials::ca};
+        network::credentials::device_id, network::credentials::hostname,
+        network::credentials::port,      network::credentials::certificate,
+        network::credentials::key,       network::credentials::ca};
     auto invalid_credentials = credentials;
     invalid_credentials.server_certificate = "not a certificate";
     network::PicoServer invalid_server(service, api, device, "invalid-credentials",
                                        invalid_credentials);
-    if (invalid_server.start())
+    if (invalid_server.start() || network::PsaCryptoOwner::owners())
         std::abort();
     network::PicoServer server(service, api, device, "test-worker-firmware", credentials);
-    if (!server.start()) {
+    if (!server.start() || network::PsaCryptoOwner::owners() != 1 ||
+        network::PsaCryptoOwner::peak_owners() < 2) {
         std::cerr << "TLS start error " << server.last_error() << "\n";
         finished = true;
         worker.join();
@@ -142,22 +146,34 @@ int main(int argc, char** argv) {
     }
     {
         network::PicoServer competing(service, api, device, "duplicate", credentials);
-        if (competing.start())
+        if (competing.start() || network::PsaCryptoOwner::owners() != 1)
             std::abort();
     }
     server.stop();
+    if (network::PsaCryptoOwner::owners())
+        std::abort();
+    {
+        network::PicoServer destructor_server(service, api, device, "destructor", credentials);
+        if (!destructor_server.start() || network::PsaCryptoOwner::owners() != 1)
+            std::abort();
+    }
+    if (network::PsaCryptoOwner::owners() || server.tls_allocated())
+        std::abort();
     wtp::available_memory = []() -> std::size_t { return 0; };
     if (server.start())
         std::abort();
     server.stop();
+    if (network::PsaCryptoOwner::owners())
+        std::abort();
     wtp::available_memory = nullptr;
-    if (server.tls_allocated() || !server.start())
+    if (server.tls_allocated() || !server.start() || network::PsaCryptoOwner::owners() != 1)
         std::abort();
     fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
     bool link = true;
     bool allow_http_steps = true;
     std::string commands;
-    std::cout << "READY " << server.port() << std::endl;
+    std::cout << "READY " << server.port() << " PSA " << network::PsaCryptoOwner::owners()
+              << " PEAK " << network::PsaCryptoOwner::peak_owners() << std::endl;
     while (!stopping) {
         char bytes[128];
         const auto count = read(STDIN_FILENO, bytes, sizeof(bytes));
@@ -172,7 +188,24 @@ int main(int argc, char** argv) {
             else if (command == "CLOSE METRICS")
                 std::cout << "CLOSE " << server.metrics().last_wtp_close_reason << ' '
                           << server.metrics().last_wtp_tls_result << std::endl;
-            else if (command == "CLOCK OFF")
+            else if (command == "PSA STATUS")
+                std::cout << "PSA " << network::PsaCryptoOwner::owners() << ' '
+                          << network::PsaCryptoOwner::peak_owners() << std::endl;
+            else if (command == "VALIDATE GOOD" || command == "VALIDATE BAD") {
+                provisioning::MbedTlsCredentialValidator validator(device);
+                const auto valid = validator.validate(
+                    command == "VALIDATE GOOD" ? credentials : invalid_credentials);
+                std::cout << "VALIDATE " << (valid ? 1 : 0) << ' ' << validator.last_error() << ' '
+                          << network::PsaCryptoOwner::owners() << ' '
+                          << network::PsaCryptoOwner::peak_owners() << std::endl;
+            } else if (command == "SERVER CYCLE") {
+                server.stop();
+                const bool released = !network::PsaCryptoOwner::owners() && !server.tls_allocated();
+                const bool started = released && server.start();
+                std::cout << "CYCLE " << (started ? 1 : 0) << ' '
+                          << network::PsaCryptoOwner::owners() << ' ' << server.tls_allocated()
+                          << std::endl;
+            } else if (command == "CLOCK OFF")
                 clock.invalidate();
             else if (command == "CLOCK ON")
                 (void)clock.observe(utc + now(), now(), 1000, wtp::LeapState::Normal);
@@ -209,6 +242,7 @@ int main(int argc, char** argv) {
         std::this_thread::sleep_for(std::chrono::microseconds(100));
     }
     server.stop();
+    const auto retained_psa_owners = network::PsaCryptoOwner::owners();
     // Test-process teardown explicitly disables before joining the worker. TCP
     // disconnects above do not issue this physical-console-equivalent operation.
     (void)service.local_abort();
@@ -217,6 +251,8 @@ int main(int argc, char** argv) {
     worker.join();
     std::cerr << "TLS peak=" << server.tls_peak() << " retained=" << server.tls_allocated()
               << " allocation_failures=" << server.tls_failures()
+              << " psa_owners=" << retained_psa_owners
+              << " psa_peak=" << network::PsaCryptoOwner::peak_owners()
               << " worker_commands=" << metrics.commands << "\n";
-    return server.tls_allocated() ? 2 : 0;
+    return server.tls_allocated() || retained_psa_owners ? 2 : 0;
 }
