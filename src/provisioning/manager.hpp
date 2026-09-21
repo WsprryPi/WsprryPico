@@ -35,7 +35,8 @@ enum class Code {
     Busy,
     Replay,
     Timeout,
-    StorageFault
+    StorageFault,
+    ActivationFault
 };
 
 struct Result {
@@ -70,10 +71,23 @@ struct Status {
     std::size_t replay_entries = 0;
 };
 
+// The manager calls this only after a genuinely new profile generation has
+// committed and while its caller's job/RF activity observation is idle. The
+// implementation must not retain Profile references. Failure leaves the new
+// generation authoritative and must make the platform fail closed.
+class ProfileActivator {
+  public:
+    virtual ~ProfileActivator() = default;
+    virtual bool activate(const Profile& profile, std::uint64_t generation) = 0;
+    virtual void fail_closed(std::uint64_t generation) = 0;
+};
+
 class Manager {
   public:
-    Manager(ProfileStore& store, CredentialValidator& validator, std::string device_id)
-        : store_(store), validator_(validator), device_id_(std::move(device_id)) {}
+    Manager(ProfileStore& store, CredentialValidator& validator, std::string device_id,
+            ProfileActivator* activator = nullptr)
+        : store_(store), validator_(validator), device_id_(std::move(device_id)),
+          activator_(activator) {}
     ~Manager() {
         terminate(State::Cancelled);
     }
@@ -83,10 +97,13 @@ class Manager {
                 std::string_view requested_device, Transport transport,
                 const Authorization& authorization, std::uint64_t now_ms);
     Result write(std::string_view request_id, std::string_view session_id, std::size_t offset,
-                 std::span<const std::uint8_t> bytes, bool final, std::uint64_t now_ms);
+                 std::span<const std::uint8_t> bytes, bool final, Transport transport,
+                 const Authorization& authorization, std::uint64_t now_ms);
     Result apply(std::string_view request_id, std::string_view session_id,
-                 std::uint64_t expected_generation, const Activity& activity, std::uint64_t now_ms);
-    Result cancel(std::string_view request_id, std::string_view session_id, std::uint64_t now_ms);
+                 std::uint64_t expected_generation, const Activity& activity, Transport transport,
+                 const Authorization& authorization, std::uint64_t now_ms);
+    Result cancel(std::string_view request_id, std::string_view session_id, Transport transport,
+                  const Authorization& authorization, std::uint64_t now_ms);
     void poll(std::uint64_t now_ms);
     Status status() const;
 
@@ -117,6 +134,7 @@ class Manager {
     ProfileStore& store_;
     CredentialValidator& validator_;
     std::string device_id_;
+    ProfileActivator* activator_ = nullptr;
     std::optional<Session> session_;
     std::vector<ReplayEntry> replay_;
     State state_ = State::Idle;

@@ -9,7 +9,9 @@ Phase 12 has a host-tested portable provisioning core, while SoftAP/BLE Pico
 adapters, authenticated live reload and physical acceptance remain open. Its
 hardware-free P12.3 layer now reserves a separate profile region and can select
 a committed runtime Wi-Fi/TLS profile at boot, with Mbed TLS validation before
-the listener starts. Phase 13 retains final RF/timing/reliability qualification.
+the listener starts. P12.4 adds the Bluefy command decoder and an unconnected
+portable post-commit activation/fail-closed handoff. Phase 13 retains final
+RF/timing/reliability qualification.
 
 ## Operator setup and certificates
 
@@ -130,9 +132,10 @@ records replacement-client and actual Chrome IP-SAN results.
 These commands are developer provisioning, not a finished Windows setup flow.
 With no committed runtime profile, firmware uses the device-bound credentials
 embedded at build time. The P12.3 source can boot from a separately committed
-profile and the Bluefy page can create bounded GATT requests, but no authenticated
-target GATT/SoftAP adapter or guided Windows application exists. Therefore there
-is still no supported end-user route that writes that profile. A proposed
+profile, the Bluefy page can create bounded GATT requests and P12.4 can decode
+them into the portable manager, but no authenticated target GATT/SoftAP adapter,
+connected target activator or guided Windows application exists. Therefore
+there is still no supported end-user route that writes that profile. A proposed
 end-user flow would flash a generic UF2, identify the board over USB, collect
 Wi-Fi settings, generate/install its independent credentials and verify the
 short URL without asking the user to compile firmware. That flow is not yet
@@ -297,8 +300,9 @@ rejection, HTTP parsing, CSP hashes, origin checks, revisions, secret redaction,
 queued connections, slow-client deadlines, maximum WTP payloads and 512-event
 local completion after ARM/disconnect. Host socket tests require permission to
 bind loopback in restricted sandboxes. Generated test credentials expire after a
-day; regenerate them with `scripts/generate_network_test_credentials.py`, then
-reconfigure/rebuild the host target when returning later.
+day; host configuration validates the cached fixture and deterministically
+regenerates an expired or incomplete fixed-build-directory copy before compiling
+the tests.
 
 A local simulation preview is available for visual checks:
 

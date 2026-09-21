@@ -30,6 +30,9 @@ std::string number(std::uint64_t value) {
     const auto result = std::to_chars(text.data(), text.data() + text.size(), value);
     return {text.data(), result.ptr};
 }
+std::string_view transport_name(Transport transport) {
+    return transport == Transport::Ble ? "ble" : "softap";
+}
 bool valid_principal(std::string_view principal) {
     return !principal.empty() && principal.size() <= 64 &&
            std::all_of(principal.begin(), principal.end(),
@@ -134,14 +137,24 @@ Result Manager::open(std::string_view request_id, std::string_view session_id,
 }
 
 Result Manager::write(std::string_view request_id, std::string_view session_id, std::size_t offset,
-                      std::span<const std::uint8_t> input, bool final, std::uint64_t now_ms) {
+                      std::span<const std::uint8_t> input, bool final, Transport transport,
+                      const Authorization& authorization, std::uint64_t now_ms) {
     const auto digest =
-        request_digest("write", {session_id, number(offset), final ? "1" : "0"}, input);
+        request_digest("write",
+                       {session_id, number(offset), final ? "1" : "0", transport_name(transport),
+                        authorization.principal, authorization.authenticated ? "1" : "0",
+                        authorization.confidential ? "1" : "0", authorization.local ? "1" : "0"},
+                       input);
     if (auto prior = replay(request_id, digest, now_ms))
         return *prior;
     Result result{Code::Ok, store_.sequence()};
-    if (!session_ || session_->id != session_id)
+    if (!authorization.authenticated || !authorization.confidential || !authorization.local ||
+        !valid_principal(authorization.principal))
+        result.code = Code::AuthenticationRequired;
+    else if (!session_ || session_->id != session_id)
         result.code = Code::SessionNotFound;
+    else if (session_->transport != transport || session_->principal != authorization.principal)
+        result.code = Code::AuthenticationRequired;
     else if (session_->final || offset != session_->staged.size() || input.empty())
         result.code = Code::OutOfOrder;
     else if (session_->fragments == fragment_capacity ||
@@ -161,13 +174,22 @@ Result Manager::write(std::string_view request_id, std::string_view session_id, 
 
 Result Manager::apply(std::string_view request_id, std::string_view session_id,
                       std::uint64_t expected_generation, const Activity& activity,
+                      Transport transport, const Authorization& authorization,
                       std::uint64_t now_ms) {
-    const auto digest = request_digest("apply", {session_id, number(expected_generation)});
+    const auto digest = request_digest(
+        "apply", {session_id, number(expected_generation), transport_name(transport),
+                  authorization.principal, authorization.authenticated ? "1" : "0",
+                  authorization.confidential ? "1" : "0", authorization.local ? "1" : "0"});
     if (auto prior = replay(request_id, digest, now_ms))
         return *prior;
     Result result{Code::Ok, store_.sequence()};
-    if (!session_ || session_->id != session_id)
+    if (!authorization.authenticated || !authorization.confidential || !authorization.local ||
+        !valid_principal(authorization.principal))
+        result.code = Code::AuthenticationRequired;
+    else if (!session_ || session_->id != session_id)
         result.code = Code::SessionNotFound;
+    else if (session_->transport != transport || session_->principal != authorization.principal)
+        result.code = Code::AuthenticationRequired;
     else if (!session_->final)
         result.code = Code::Incomplete;
     else if (expected_generation != store_.sequence())
@@ -191,19 +213,29 @@ Result Manager::apply(std::string_view request_id, std::string_view session_id,
             terminate(State::Failed);
         } else {
             auto canonical = serialize_profile(*profile);
-            scrub(*profile);
+            const auto previous_generation = store_.sequence();
             if (canonical.size() > max_profile_bytes || !store_.replace(canonical)) {
                 result.code = Code::StorageFault;
                 volatile char* raw = canonical.empty() ? nullptr : canonical.data();
                 for (std::size_t i = 0; i < canonical.size(); ++i)
                     raw[i] = 0;
+                scrub(*profile);
                 terminate(State::Failed);
             } else {
                 volatile char* raw = canonical.empty() ? nullptr : canonical.data();
                 for (std::size_t i = 0; i < canonical.size(); ++i)
                     raw[i] = 0;
                 result.generation = store_.sequence();
-                terminate(State::Complete);
+                if (activator_ && result.generation != previous_generation &&
+                    !activator_->activate(*profile, result.generation)) {
+                    activator_->fail_closed(result.generation);
+                    result.code = Code::ActivationFault;
+                    scrub(*profile);
+                    terminate(State::Failed);
+                } else {
+                    scrub(*profile);
+                    terminate(State::Complete);
+                }
             }
         }
     }
@@ -211,13 +243,22 @@ Result Manager::apply(std::string_view request_id, std::string_view session_id,
 }
 
 Result Manager::cancel(std::string_view request_id, std::string_view session_id,
+                       Transport transport, const Authorization& authorization,
                        std::uint64_t now_ms) {
-    const auto digest = request_digest("cancel", {session_id});
+    const auto digest = request_digest(
+        "cancel", {session_id, transport_name(transport), authorization.principal,
+                   authorization.authenticated ? "1" : "0", authorization.confidential ? "1" : "0",
+                   authorization.local ? "1" : "0"});
     if (auto prior = replay(request_id, digest, now_ms))
         return *prior;
     Result result{Code::Ok, store_.sequence()};
-    if (!session_ || session_->id != session_id)
+    if (!authorization.authenticated || !authorization.confidential || !authorization.local ||
+        !valid_principal(authorization.principal))
+        result.code = Code::AuthenticationRequired;
+    else if (!session_ || session_->id != session_id)
         result.code = Code::SessionNotFound;
+    else if (session_->transport != transport || session_->principal != authorization.principal)
+        result.code = Code::AuthenticationRequired;
     else
         terminate(State::Cancelled);
     return remember(request_id, digest, result, now_ms);

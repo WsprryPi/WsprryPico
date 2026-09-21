@@ -44,6 +44,7 @@ add_library(wsprrypico_core
     src/provisioning/profile.cpp
     src/provisioning/storage.cpp
     src/provisioning/manager.cpp
+    src/provisioning/command.cpp
     src/provisioning/runtime.cpp
     src/network/mdns.cpp
     src/network/http.cpp
@@ -249,6 +250,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
         add_test(NAME provisioning_web_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/provisioning_web_tests.js)
     endif()
+    add_test(NAME provisioning_contract_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/provisioning_contract_tests.py)
     set(WSPRRY_PICO_HARNESS_PYTHON "" CACHE FILEPATH "Optional existing Harness Python for offline RF analysis tests")
     if(WSPRRY_PICO_HARNESS_PYTHON)
         add_test(NAME campaign_evidence_tests COMMAND ${WSPRRY_PICO_HARNESS_PYTHON}

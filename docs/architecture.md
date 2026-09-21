@@ -82,10 +82,13 @@ profile; committed corruption/identity failure is a fault and never revives
 factory trust. Provisioned Wi-Fi overlays only the runtime copy of SSID,
 password and time server. Mbed TLS validates chain, key pair, validity, exact
 DNS SAN, server purpose and P-256/SHA-256 material before listening. BLE and
-SoftAP remain unauthenticated platform adapters and therefore are not enabled;
-live reload and physical acceptance remain open. See the
+SoftAP remain unauthenticated platform adapters and therefore are not enabled.
+P12.4 adds one closed transport-neutral command decoder for the Bluefy
+vocabulary and an optional post-commit activator whose failure leaves the new
+generation authoritative and calls a fail-closed hook. No target activator is
+connected; live reload and physical acceptance remain open. See the
 [Phase 12 plan](development/phase12-plan.md) and
-[P12.3 review](development/phase12-3-review.md).
+[P12.4 review](development/phase12-4-review.md).
 
 The browser's compact `LOAD_MESSAGE` path compiles bounded QRSS, FSKCW and DFCW
 messages before entering the same job service. Inputs are limited to 32 characters

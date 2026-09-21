@@ -1,8 +1,9 @@
 # Phase 12 provisioning implementation and acceptance plan
 
-Status: active. P12.1/P12.2 and the bounded hardware-free P12.3 infrastructure
-are implemented and [reviewed](phase12-3-review.md). Authenticated Pico BLE and
-SoftAP transports, live reload and all physical acceptance remain open.
+Status: active. P12.1/P12.2 and the bounded hardware-free P12.3/P12.4
+infrastructure are implemented and reviewed through the
+[P12.4 record](phase12-4-review.md). Authenticated Pico BLE and SoftAP
+transports, actual live reload and all physical acceptance remain open.
 This plan does not authorize target, radio, service, trust-store, certificate-installation or RF
 operations.
 
@@ -124,9 +125,9 @@ The remaining P12.3 work is intentionally open:
 
 - Add BLE GATT and SoftAP/captive HTTPS target adapters only after the security and
   recovery choices below are selected.
-- Add the browser-side Web Bluetooth provisioning client, verify it with an
-  exact Bluefy and iOS version, an approved HTTPS origin/integrity policy and an
-  authenticated target GATT adapter. Keep SoftAP/Safari independent.
+- Verify the existing browser-side Web Bluetooth provisioning client with an
+  exact Bluefy and iOS version, an approved HTTPS origin/integrity policy and
+  an authenticated target GATT adapter. Keep SoftAP/Safari independent.
 - Add idle-only atomic live activation: stop new TLS sessions, validate and
   replace network state without altering RF/job authority. The implemented
   source activates a previously committed profile at boot only.
@@ -134,6 +135,27 @@ The remaining P12.3 work is intentionally open:
 The transport authentication, recovery gesture and at-rest key policy still
 materially change product security and target behavior and were not invented by
 this slice.
+
+### P12.4 Portable command and activation boundary
+
+The next hardware-free boundary is implemented without enabling a radio:
+
+- `provisioning::CommandAdapter` is the single strict C++ decoder for the
+  checked-in Bluefy version-1 `open`, `write`, `apply` and `cancel` vocabulary.
+  It enforces closed objects, exact device identity, bounded canonical base64
+  fragments and correlated nonsensitive replies for BLE or SoftAP labels.
+- Authentication, confidentiality, locality and principal identity remain
+  assertions supplied by a future platform adapter; transport selection or
+  proximity grants no authority. The manager rechecks those assertions for
+  every command and binds the principal and transport into replay identity, so
+  another authenticated path cannot continue or replay that session.
+- `ProfileActivator` is an optional manager handoff after a genuinely new
+  generation validates and commits. Failure returns `activation_fault`, calls
+  the fail-closed hook, scrubs the session and leaves the new generation
+  authoritative. Replay and identical-profile replacement do not reactivate.
+- No Pico activator, GATT service, captive HTTPS service, radio path or page
+  distribution policy is implemented. Without an activator, the existing
+  boot-only application behavior is unchanged.
 
 ## Deterministic acceptance matrix
 
@@ -197,7 +219,7 @@ These choices block Pico transport adapters but not the portable slices:
 
 ## Completion boundary
 
-Phase 12 is not complete at the hardware-free P12.3 checkpoint. Completion
+Phase 12 is not complete at the hardware-free P12.4 checkpoint. Completion
 requires selected security policies, implemented BLE and SoftAP adapters,
 authenticated idle-only live activation, bounded inhibited-target acceptance,
 an authorized physical-plan execution and repaired adversarial reassessment.
