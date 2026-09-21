@@ -68,7 +68,19 @@ treated as long-term product documentation.
     An alternative clock selected during 11.6 must repeat affected 11.5 checks.
     The systematic band x mode x clock comparison, final supported configurations,
     filters, spectral qualification and release firmware belong to Phase 13.
-12. **Planned:** SoftAP and BLE provisioning.
+12. **Current:** BLE-primary and SoftAP-fallback provisioning. The
+    [Phase 12 plan](development/phase12-plan.md) defines the security and
+    acceptance contract. Its portable profile, transactional journal and
+    bounded provisioning state machine are hardware-free implemented and
+    tested. The hardware-free P12.3 slice now reserves the separate profile
+    flash region, selects committed runtime Wi-Fi/TLS material fail closed,
+    validates it through Mbed TLS and supplies a mocked/tested Web Bluetooth
+    UI for Bluefy rather than a WsprryPico-native iOS app. SoftAP remains the
+    Safari fallback. Pico BLE/SoftAP adapters, authenticated live reload and
+    all physical acceptance remain open; the retained pinned SDK checkout also
+    lacks initialized BTstack source. The separate
+    [physical plan](development/phase12-physical-acceptance.md) is planning only
+    and begins RF-inhibited.
 13. **Planned:** final hardware qualification and release, including the output
     network and filters, calibrated GPIO-edge timing, supported mode/band
     combinations and a reproducible release UF2.

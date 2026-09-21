@@ -15,6 +15,8 @@ Use WsprryPico for project, repository and application naming; firmware artifact
 - USB CDC serial is the canonical/reference control transport.
 - Wi-Fi/TCP provides network control; Wi-Fi also supports the embedded web UI.
 - BLE is primarily for provisioning and local management.
+- The selected iPhone BLE client is a Web Bluetooth UI opened in Bluefy; no
+  WsprryPico-native iOS app is planned.
 - SoftAP provides a provisioning fallback.
 - All RF timing is local on RP2350. USB and network connections load and arm complete jobs; packet arrival never sets symbol boundaries.
 
@@ -68,6 +70,23 @@ writes coordinate both cores using SDK lockout. See the
 schedules retain one ownership and execution authority. Network control defaults
 off; physical TLS/RF coexistence and production RF qualification remain open.
 
+Phase 12 keeps provisioning outside that job-control protocol. A portable
+provisioning state machine admits one authenticated, confidential and local
+session, binds it to the existing 32-hex device identity, validates a complete
+Wi-Fi/TLS profile, applies it only while job/RF authority is idle, and replaces
+it through a separate transactional journal. Hardware-free P12.3 integration
+maps that journal to `0x3f7000`–`0x3fafff`, leaving the existing standalone
+records at `0x3fb000`–`0x3fefff` and the E10 sector at `0x3ff000` unchanged.
+Boot selects either no-profile build credentials or one device-bound committed
+profile; committed corruption/identity failure is a fault and never revives
+factory trust. Provisioned Wi-Fi overlays only the runtime copy of SSID,
+password and time server. Mbed TLS validates chain, key pair, validity, exact
+DNS SAN, server purpose and P-256/SHA-256 material before listening. BLE and
+SoftAP remain unauthenticated platform adapters and therefore are not enabled;
+live reload and physical acceptance remain open. See the
+[Phase 12 plan](development/phase12-plan.md) and
+[P12.3 review](development/phase12-3-review.md).
+
 The browser's compact `LOAD_MESSAGE` path compiles bounded QRSS, FSKCW and DFCW
 messages before entering the same job service. Inputs are limited to 32 characters
 including spaces; duration and expanded events independently fit the advertised
@@ -89,8 +108,9 @@ The initial autonomous UTC source is a configured unicast SNTPv4 server with
 bounded uncertainty and an explicit age policy. Physical acquisition and
 standalone execution have bounded bench evidence; calibrated UTC accuracy,
 source authentication and long-duration reliability remain unqualified.
-Alternate UTC sources, clock calibration, production RF engine/pins, runtime
-credential provisioning and shared WsprryPi adoption of browser API v1 remain open.
+Alternate UTC sources, clock calibration, production RF engine/pins, Pico
+provisioning transport authentication/live reload and shared WsprryPi adoption of
+browser API v1 remain open.
 The current Pico browser schemas and bounds are documented in the API contract. WTP/1 defines the interoperable protocol limits and policies
 without selecting those implementations.
 

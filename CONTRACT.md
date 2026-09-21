@@ -54,8 +54,16 @@ Optional [TLS network control](docs/development/network-control.md) supplies
 mutually authenticated WTP/TCP and HTTPS handlers to the existing job service.
 Network status, persistent config and schedules share the standalone adapters.
 Host TLS/browser tests and cross-linking do not qualify physical network/RF
-coexistence. Credential installation currently requires an explicit local build;
-SoftAP/BLE and runtime provisioning remain planned.
+coexistence. Credential installation currently requires an explicit local build.
+The [Phase 12 portable core](docs/development/phase12-plan.md) now defines and
+host-tests bounded profiles, transactional replacement, replay and idle-only
+application for BLE-primary/SoftAP-fallback adapters. P12.3 hardware-free
+integration reserves a separate profile region without moving existing records,
+selects provisioned Wi-Fi/TLS material fail closed at boot, validates the TLS
+bundle on the pinned Mbed TLS stack and supplies a Bluefy Web Bluetooth client.
+The target BLE/SoftAP adapters, proof/recovery policies, live idle-only reload
+and physical acceptance remain open, so this is not yet an end-user
+provisioning path.
 
 Host tests, target execution and RF qualification are distinct evidence classes.
 A successful compile or simulated transmission establishes neither on-device

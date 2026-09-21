@@ -53,10 +53,24 @@ within that scope, including the 11.4 inhibited matrix/eight-hour soak, 11.5 at
 control still defaults off. Broader mode/band/clock, timing, spectra, filtering,
 reliability and release qualification remain in Phase 13.
 
+[Phase 12 provisioning](docs/development/phase12-plan.md) is current. Its
+hardware-free portable profile, transactional replacement journal and bounded
+BLE/SoftAP-neutral state machine are implemented and tested. The hardware-free
+P12.3 infrastructure adds a disjoint 16 KiB Pico profile region, fail-closed
+boot selection, runtime Wi-Fi/TLS views, exact Mbed TLS credential validation
+and a repository-owned Web Bluetooth page for Bluefy. Build-time credentials
+remain the no-profile bootstrap. Pico BLE-primary and SoftAP-fallback radio
+adapters, authenticated live reload, page distribution policy and the
+[RF-inhibited-first physical plan](docs/development/phase12-physical-acceptance.md)
+remain open; no end-to-end or physical provisioning claim is made. See the
+[P12.3 review](docs/development/phase12-3-review.md).
+
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)
 - [Browser API v1](docs/browser-api.md)
 - [Network control and certificate management](docs/development/network-control.md)
+- [Phase 12 provisioning plan](docs/development/phase12-plan.md)
+- [Phase 12.3 hardware-free integration review](docs/development/phase12-3-review.md)
 - [RF feasibility investigation](docs/rf-feasibility.md)
 - [Implementation plan](docs/implementation-plan.md)
 - [WsprryPi host acceptance prerequisites](docs/development/phase10-host-acceptance.md)

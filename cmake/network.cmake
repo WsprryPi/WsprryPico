@@ -18,6 +18,9 @@ if(WSPRRY_PICO_NETWORK_PORT)
         OUTPUT_VARIABLE deployment COMMAND_ERROR_IS_FATAL ANY)
     string(JSON WSPRRY_PICO_NETWORK_HOSTNAME GET "${deployment}" hostname)
     string(JSON WSPRRY_PICO_NETWORK_DEVICE_ID GET "${deployment}" device_id)
+    if(NOT WSPRRY_PICO_NETWORK_HOSTNAME OR NOT WSPRRY_PICO_NETWORK_DEVICE_ID)
+        message(FATAL_ERROR "Network control requires a device-bound .local DNS identity")
+    endif()
     file(READ "${WSPRRY_PICO_NETWORK_CREDENTIAL_DIR}/server.crt" WSPRRY_PICO_CERTIFICATE)
     file(READ "${WSPRRY_PICO_NETWORK_CREDENTIAL_DIR}/server.key" WSPRRY_PICO_PRIVATE_KEY)
     file(READ "${WSPRRY_PICO_NETWORK_CREDENTIAL_DIR}/client-ca.crt" WSPRRY_PICO_CLIENT_CA)
@@ -37,10 +40,13 @@ configure_file(${CMAKE_SOURCE_DIR}/cmake/network_credentials.hpp.in
                ${CMAKE_CURRENT_BINARY_DIR}/generated/network_credentials.hpp @ONLY)
 file(CHMOD ${CMAKE_CURRENT_BINARY_DIR}/generated/network_credentials.hpp PERMISSIONS OWNER_READ OWNER_WRITE)
 foreach(image WsprryPico WsprryPico-StandaloneRF)
-    target_sources(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/network/pico/server.cpp)
+    target_sources(${image} PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/network/pico/server.cpp
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/credential_validator.cpp)
     target_include_directories(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/network/pico)
     target_link_libraries(${image} PRIVATE pico_mbedtls)
 endforeach()
 
 set_source_files_properties(${CMAKE_SOURCE_DIR}/src/network/pico/server.cpp
+    ${CMAKE_SOURCE_DIR}/src/provisioning/pico/credential_validator.cpp
     PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-fstack-usage")

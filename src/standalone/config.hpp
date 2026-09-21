@@ -25,4 +25,6 @@ struct Config {
 std::optional<Config> parse_config(std::string_view text);
 std::string serialize_config(const Config& config);
 bool valid_time_server(std::string_view value);
+bool valid_wifi_credentials(std::string_view ssid, std::string_view password,
+                            std::string_view time_server);
 } // namespace wsprrypico::standalone

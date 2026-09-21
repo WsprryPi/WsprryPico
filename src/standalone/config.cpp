@@ -86,6 +86,10 @@ bool valid_time_server(std::string_view text) {
     }
     return false;
 }
+bool valid_wifi_credentials(std::string_view ssid, std::string_view password,
+                            std::string_view time_server) {
+    return printable(ssid, 1, 32) && printable(password, 8, 63) && valid_time_server(time_server);
+}
 std::optional<Config> parse_config(std::string_view text) {
     using namespace wtp::json;
     if (text.size() > max_config_bytes)
@@ -134,8 +138,7 @@ std::optional<Config> parse_config(std::string_view text) {
             return {};
         c.ntp_ipv4 = time_server->string();
     }
-    if (!printable(c.ssid, 1, 32) || !printable(c.password, 8, 63) ||
-        !valid_time_server(c.ntp_ipv4))
+    if (!valid_wifi_credentials(c.ssid, c.password, c.ntp_ipv4))
         return {};
     const auto schedules = entries.elements(9);
     if (schedules.empty() || schedules.size() > 8)

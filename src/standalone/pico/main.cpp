@@ -6,6 +6,7 @@
 #include "network/pico/server.hpp"
 #include "network_credentials.hpp"
 #include "pico/bootrom.h"
+#include "provisioning/runtime.hpp"
 #include "pico/time.h"
 #include "pico_adapters.hpp"
 #include "runtime/pico/heap_metrics.h"
@@ -166,7 +167,10 @@ int main() {
     static wsprrypico::time::UtcDiscipline clock(monotonic_now, nullptr, discipline);
     static wsprrypico::standalone::PicoFlash flash;
     static wsprrypico::standalone::Store store(flash);
-    (void)store.load();
+    const bool store_loaded = store.load();
+    static wsprrypico::standalone::PicoProfileMedia profile_media;
+    static wsprrypico::provisioning::ProfileStore profile_store(profile_media);
+    const bool profile_store_loaded = profile_store.load();
     // Both adapters claim PIO/DMA resources through the SDK allocator.
 #ifdef WSPRRY_PICO_STANDALONE_RF
     auto& engine = wsprrypico::rf::start_worker(clock);
@@ -174,6 +178,9 @@ int main() {
     static wsprrypico::standalone::DryRunEngine engine;
 #endif
     static wsprrypico::firmware::PicoIdentitySource identities;
+    static wsprrypico::provisioning::RuntimeProfile runtime_profile;
+    const bool runtime_profile_loaded =
+        profile_store_loaded && runtime_profile.load(profile_store, identities.device_id());
 #ifdef WSPRRY_PICO_STANDALONE_RF
     const auto config = wsprrypico::standalone::wtp_profile(true);
 #else
@@ -183,24 +190,37 @@ int main() {
     static wsprrypico::wtp::Endpoint endpoint(service, identities.device_id(),
                                               wsprrypico::firmware::kFirmwareVersion);
     static wsprrypico::standalone::Scheduler scheduler(store, service);
-    const bool deployment_matches = wsprrypico::network::deployment_identity_matches(
-        identities.device_id(), wsprrypico::network::credentials::device_id,
-        wsprrypico::network::credentials::hostname);
-    static wsprrypico::standalone::PicoNetwork network(clock,
-                                                       wsprrypico::network::credentials::hostname);
+    wsprrypico::provisioning::CredentialMaterial tls_credentials;
+    if (runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Provisioned)
+        tls_credentials = wsprrypico::provisioning::credentials(*runtime_profile.profile());
+    else if (runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Factory)
+        tls_credentials = {wsprrypico::network::credentials::device_id,
+                           wsprrypico::network::credentials::hostname,
+                           wsprrypico::network::credentials::port,
+                           wsprrypico::network::credentials::certificate,
+                           wsprrypico::network::credentials::key,
+                           wsprrypico::network::credentials::ca};
+    const bool deployment_matches =
+        runtime_profile_loaded &&
+        wsprrypico::network::deployment_identity_matches(
+            identities.device_id(), tls_credentials.device_id, tls_credentials.hostname);
+    static wsprrypico::standalone::PicoNetwork network(clock, tls_credentials.hostname);
+    std::optional<wsprrypico::standalone::Config> runtime_network_config;
+    if (store_loaded && store.config())
+        runtime_network_config = runtime_profile.overlay(*store.config());
     if (recovery)
         (void)scheduler.command("STOP");
     watchdog_hw->scratch[1] = 2;
-    if (!recovery && store.healthy() && store.config())
-        (void)network.start(*store.config());
+    if (!recovery && runtime_network_config)
+        (void)network.start(*runtime_network_config);
     static wsprrypico::network::BrowserApi browser_api(service, store, scheduler, network,
                                                        identities.device_id(),
                                                        wsprrypico::firmware::kFirmwareVersion);
     static wsprrypico::network::PicoServer server(service, browser_api, identities.device_id(),
-                                                  wsprrypico::firmware::kFirmwareVersion);
+                                                  wsprrypico::firmware::kFirmwareVersion,
+                                                  tls_credentials);
     browser_api.set_active_job_connections(true);
-    if (!recovery && deployment_matches && network.initialized())
-        (void)server.start();
+    bool server_start_attempted = false;
     network.listener_status(server.configured(), server.listening(), deployment_matches);
     watchdog_hw->scratch[1] = 3;
     std::array<std::uint8_t, 64> input{};
@@ -268,6 +288,17 @@ int main() {
                 wsprrypico::wtp::json::quote(wsprrypico::firmware::kFirmwareVersion) +
                 ",\"deployment_identity_matches\":" + (deployment_matches ? "true" : "false") +
                 ",\"recovery_boot\":" + (recovery ? "true" : "false");
+            result += ",\"provisioning_source\":";
+            if (runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Factory)
+                result += "\"factory\"";
+            else if (runtime_profile.source() ==
+                     wsprrypico::provisioning::RuntimeSource::Provisioned)
+                result += "\"provisioned\"";
+            else
+                result += "\"fault\"";
+            number_field(result, "provisioning_generation", runtime_profile.generation(), true);
+            number_field(result, "provisioning_fault",
+                         static_cast<unsigned>(runtime_profile.fault()));
             number_field(result, "fault_stage", fault_stage);
             number_field(result, "fault_hash", fault_hash);
             number_field(result, "fault_pc", fault_pc);
@@ -495,6 +526,13 @@ int main() {
                                    network_state != wsprrypico::wtp::State::Running))
             network.poll();
         service.poll();
+        if (!server_start_attempted && !recovery && deployment_matches && network.initialized() &&
+            service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized) {
+            server_start_attempted = true;
+            (void)server.start();
+            network.listener_status(server.configured(), server.listening(),
+                                    deployment_matches);
+        }
         static wsprrypico::usb::ReplyPriority reply_priority;
         const bool allow_http_steps = !reply_priority.defer_http(
             time_us_64(), wsprrypico::usb::console_output_pending());

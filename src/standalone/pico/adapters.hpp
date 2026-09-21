@@ -5,6 +5,7 @@
 #endif
 #include "network/api.hpp"
 #include "network/mdns.hpp"
+#include "provisioning/storage.hpp"
 #include "standalone/storage.hpp"
 #include "time/server_lookup.hpp"
 #include "time/sntp.hpp"
@@ -14,6 +15,12 @@ class PicoFlash final : public Flash {
   public:
     bool read(std::size_t offset, std::span<std::uint8_t> data) override;
     bool erase(std::size_t sector_offset) override;
+    bool program(std::size_t offset, std::span<const std::uint8_t> page) override;
+};
+class PicoProfileMedia final : public provisioning::Media {
+  public:
+    bool read(std::size_t offset, std::span<std::uint8_t> data) override;
+    bool erase(std::size_t slot_offset) override;
     bool program(std::size_t offset, std::span<const std::uint8_t> page) override;
 };
 class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter {

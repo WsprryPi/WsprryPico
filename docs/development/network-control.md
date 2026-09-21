@@ -5,8 +5,11 @@ operator assets, network status/management and local certificate tooling. Host
 TLS/API/browser tests and firmware cross-linking are distinct from physical
 network/RF acceptance. The [Phase 11.4 record](phase11-4-review.md) identifies the
 inhibited images actually operated and the remaining physical gates.
-Phase 12 retains SoftAP/BLE and runtime credential provisioning;
-Phase 13 retains final RF/timing/reliability qualification.
+Phase 12 has a host-tested portable provisioning core, while SoftAP/BLE Pico
+adapters, authenticated live reload and physical acceptance remain open. Its
+hardware-free P12.3 layer now reserves a separate profile region and can select
+a committed runtime Wi-Fi/TLS profile at boot, with Mbed TLS validation before
+the listener starts. Phase 13 retains final RF/timing/reliability qualification.
 
 ## Operator setup and certificates
 
@@ -102,8 +105,11 @@ contents are `server.crt`, `server.key`, `client-ca.crt` and public `deployment.
 The manifest is the sole build hostname/device-ID input. Configuration verifies
 its exact SANs, fingerprint, keypair, chain, purpose and validity against the
 actual certificate. Wrong-board images fail the runtime deployment identity gate.
-Manifest-less valid IP-only bundles retain legacy operation without mDNS.
-Missing/invalid inputs fail closed; runtime TLS initialization also checks the keypair.
+Network-enabled Phase 12 builds require a device-bound `.local` DNS identity;
+manifest-less/IP-only bundles may still be inspected by the lifecycle tool but
+are rejected by the firmware configuration gate. Missing/invalid inputs fail
+closed; runtime TLS initialization rechecks chain, keypair, validity, exact DNS
+SAN, server purpose and P-256/SHA-256 algorithms after UTC synchronizes.
 The SDK and Mbed TLS source revisions are verified. The SDK's pinned Mbed TLS
 3.6.6 requires its PSA RNG source, absent from the SDK's older source list; the
 firmware build explicitly links that existing source with its upstream license.
@@ -122,8 +128,11 @@ records replacement-client and actual Chrome IP-SAN results.
 ### End-user provisioning limitation
 
 These commands are developer provisioning, not a finished Windows setup flow.
-The current firmware embeds credentials at build time and has no runtime USB
-credential installer or guided Windows provisioning application. A proposed
+With no committed runtime profile, firmware uses the device-bound credentials
+embedded at build time. The P12.3 source can boot from a separately committed
+profile and the Bluefy page can create bounded GATT requests, but no authenticated
+target GATT/SoftAP adapter or guided Windows application exists. Therefore there
+is still no supported end-user route that writes that profile. A proposed
 end-user flow would flash a generic UF2, identify the board over USB, collect
 Wi-Fi settings, generate/install its independent credentials and verify the
 short URL without asking the user to compile firmware. That flow is not yet

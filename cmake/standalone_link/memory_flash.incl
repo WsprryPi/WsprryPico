@@ -1,5 +1,6 @@
-/* Pico 2 W: physical 4 MiB, last 20 KiB: 16 KiB standalone records, then 4 KiB boot workaround. */
+/* Pico 2 W: physical 4 MiB. Reserve 16 KiB provisioning, 16 KiB standalone,
+ * then the final 4 KiB RP2350-E10 boot-workaround sector. */
 MEMORY
 {
-    FLASH(rx) : ORIGIN = 0x10000000, LENGTH = 0x3fb000
+    FLASH(rx) : ORIGIN = 0x10000000, LENGTH = 0x3f7000
 }

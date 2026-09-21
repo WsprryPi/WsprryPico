@@ -41,6 +41,10 @@ execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/genera
     COMMAND_ERROR_IS_FATAL ANY)
 
 add_library(wsprrypico_core
+    src/provisioning/profile.cpp
+    src/provisioning/storage.cpp
+    src/provisioning/manager.cpp
+    src/provisioning/runtime.cpp
     src/network/mdns.cpp
     src/network/http.cpp
     src/network/api.cpp
@@ -233,6 +237,18 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_compile_definitions(standalone_tests PRIVATE WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ})
     target_compile_options(standalone_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME standalone_tests COMMAND standalone_tests)
+    add_executable(provisioning_tests tests/provisioning_tests.cpp)
+    target_link_libraries(provisioning_tests PRIVATE wsprrypico_core)
+    target_compile_options(provisioning_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME provisioning_tests COMMAND provisioning_tests)
+    add_executable(flash_layout_tests tests/flash_layout_tests.cpp)
+    target_include_directories(flash_layout_tests PRIVATE src)
+    target_compile_options(flash_layout_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME flash_layout_tests COMMAND flash_layout_tests)
+    if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME provisioning_web_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/provisioning_web_tests.js)
+    endif()
     set(WSPRRY_PICO_HARNESS_PYTHON "" CACHE FILEPATH "Optional existing Harness Python for offline RF analysis tests")
     if(WSPRRY_PICO_HARNESS_PYTHON)
         add_test(NAME campaign_evidence_tests COMMAND ${WSPRRY_PICO_HARNESS_PYTHON}

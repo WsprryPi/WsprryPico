@@ -14,6 +14,7 @@
 #include "pico/rand.h"
 #include "pico/time.h"
 #include "standalone/pico/mdns_lwip.h"
+#include "standalone/pico/flash_layout.hpp"
 #ifdef WSPRRY_PICO_STANDALONE_RF
 #include "pico/flash.h"
 #endif
@@ -25,11 +26,9 @@
 
 namespace wsprrypico::standalone {
 namespace {
-constexpr std::size_t storage_size = 16 * 1024;
-// RP2350-E10 boot workaround occupies the final physical flash page. Keep
-// its entire erase sector outside both journals.
-constexpr std::size_t flash_base = PICO_FLASH_SIZE_BYTES - 4096 - storage_size;
-static_assert(PICO_FLASH_SIZE_BYTES == 4 * 1024 * 1024);
+constexpr auto storage_size = flash_layout::standalone_size;
+constexpr auto flash_base = flash_layout::standalone_base;
+static_assert(PICO_FLASH_SIZE_BYTES == flash_layout::physical_size);
 static_assert(MEM_ALIGNMENT >= alignof(std::uint32_t));
 PicoNetwork* mdns_owner = nullptr;
 std::string memory_stats(const stats_mem* value) {
@@ -98,6 +97,62 @@ bool PicoFlash::program(std::size_t offset, std::span<const std::uint8_t> page) 
     restore_interrupts(irq);
 #endif
     return true; // Journal independently verifies the complete record.
+}
+bool PicoProfileMedia::read(std::size_t offset, std::span<std::uint8_t> data) {
+    if (offset > provisioning::profile_media_size ||
+        data.size() > provisioning::profile_media_size - offset)
+        return false;
+    std::memcpy(data.data(),
+                reinterpret_cast<const void*>(XIP_BASE + flash_layout::profile_base + offset),
+                data.size());
+    return true;
+}
+bool PicoProfileMedia::erase(std::size_t offset) {
+    if (offset % provisioning::profile_slot_size ||
+        offset > provisioning::profile_media_size - provisioning::profile_slot_size)
+        return false;
+    for (std::size_t sector = 0; sector < provisioning::profile_slot_size;
+         sector += FLASH_SECTOR_SIZE) {
+        const auto physical = flash_layout::profile_base + offset + sector;
+#ifdef WSPRRY_PICO_STANDALONE_RF
+        auto erase = [](void* argument) {
+            flash_range_erase(*static_cast<std::size_t*>(argument), FLASH_SECTOR_SIZE);
+        };
+        auto address = physical;
+        if (flash_safe_execute(erase, &address, 100) != PICO_OK)
+            return false;
+#else
+        const auto irq = save_and_disable_interrupts();
+        flash_range_erase(physical, FLASH_SECTOR_SIZE);
+        restore_interrupts(irq);
+#endif
+    }
+    const auto* bytes = reinterpret_cast<const std::uint8_t*>(
+        XIP_BASE + flash_layout::profile_base + offset);
+    return std::all_of(bytes, bytes + provisioning::profile_slot_size,
+                       [](auto byte) { return byte == 255; });
+}
+bool PicoProfileMedia::program(std::size_t offset, std::span<const std::uint8_t> page) {
+    if (offset % FLASH_PAGE_SIZE || page.size() != FLASH_PAGE_SIZE ||
+        offset > provisioning::profile_media_size - FLASH_PAGE_SIZE)
+        return false;
+#ifdef WSPRRY_PICO_STANDALONE_RF
+    struct Write {
+        std::size_t offset;
+        const std::uint8_t* data;
+    } write{flash_layout::profile_base + offset, page.data()};
+    auto program = [](void* argument) {
+        const auto& write = *static_cast<Write*>(argument);
+        flash_range_program(write.offset, write.data, FLASH_PAGE_SIZE);
+    };
+    if (flash_safe_execute(program, &write, 100) != PICO_OK)
+        return false;
+#else
+    const auto irq = save_and_disable_interrupts();
+    flash_range_program(flash_layout::profile_base + offset, page.data(), page.size());
+    restore_interrupts(irq);
+#endif
+    return true;
 }
 PicoNetwork::PicoNetwork(time::UtcDiscipline& clock, std::string_view configured_hostname)
     : sntp_(clock), mdns_(*this, configured_hostname) {}

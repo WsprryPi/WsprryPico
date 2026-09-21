@@ -1,0 +1,179 @@
+"use strict";
+const assert = require("assert");
+const {canonicalProfile, Client, FRAGMENT_BYTES} = require("../src/provisioning/web/bluefy.js");
+const device = "a".repeat(32);
+
+function profile(change) {
+  return Object.assign({
+    device_id: device,
+    ssid: "test-network",
+    password: "test-password",
+    time_server: "pool.ntp.org",
+    hostname: "WsprryPico-010203.LOCAL.",
+    port: 18443,
+    server_certificate: "-----BEGIN CERTIFICATE-----\nSERVER\n-----END CERTIFICATE-----\n",
+    server_private_key: "-----BEGIN PRIVATE KEY-----\nKEY\n-----END PRIVATE KEY-----\n",
+    client_ca: "-----BEGIN CERTIFICATE-----\nCA\n-----END CERTIFICATE-----\n"
+  }, change || {});
+}
+function cryptoFixture() {
+  let next = 1;
+  return {getRandomValues(bytes) { bytes.fill(0); bytes[bytes.length - 1] = next++; return bytes; }};
+}
+class Characteristic {
+  constructor(value) { this.value = value; this.listeners = []; this.commands = []; this.respond = true; }
+  async readValue() { const bytes = new TextEncoder().encode(JSON.stringify(this.value)); return new DataView(bytes.buffer); }
+  async startNotifications() { return this; }
+  addEventListener(_, callback) { this.listeners.push(callback); }
+  removeEventListener(_, callback) { this.listeners = this.listeners.filter((item) => item !== callback); }
+  emit(value) {
+    const bytes = new TextEncoder().encode(JSON.stringify(value));
+    for (const listener of this.listeners) listener({target: {value: new DataView(bytes.buffer)}});
+  }
+  async writeValueWithResponse(bytes) {
+    const command = JSON.parse(new TextDecoder().decode(bytes));
+    this.commands.push(command);
+    if (!this.respond) return;
+    const response = {request_id: command.request_id, ok: true};
+    if (command.operation === "apply")
+      response.generation = this.applyGeneration === undefined
+        ? command.expected_generation + 1
+        : this.applyGeneration;
+    queueMicrotask(() => this.peer.emit(response));
+  }
+}
+function bluetoothFixture(observedDevice = device, generation = 0) {
+  const identity = new Characteristic({device_id: observedDevice, generation});
+  const command = new Characteristic();
+  const status = new Characteristic();
+  command.peer = status;
+  const characteristics = new Map();
+  const api = require("../src/provisioning/web/bluefy.js");
+  characteristics.set(api.UUIDS.identity, identity);
+  characteristics.set(api.UUIDS.command, command);
+  characteristics.set(api.UUIDS.status, status);
+  const gatt = {connected: false, async connect() { this.connected = true; return this; },
+    disconnect() { this.connected = false; },
+    async getPrimaryService() { return {getCharacteristic: async (uuid) => characteristics.get(uuid)}; }};
+  return {bluetooth: {requestDevice: async () => ({gatt})}, identity, command, status, gatt};
+}
+async function rejectsCode(callback, code) {
+  try { await callback(); assert.fail("expected rejection"); }
+  catch (error) { assert.strictEqual(error.code, code); }
+}
+
+async function run() {
+  const canonical = canonicalProfile(profile());
+  assert(canonical.value.includes('"hostname":"wsprrypico-010203.local"'));
+  canonical.bytes.fill(0);
+  for (const changed of [
+    {device_id: "A".repeat(32)}, {ssid: ""}, {password: "short"},
+    {time_server: "127.0.0.1"}, {hostname: "evil.example"}, {port: 0},
+    {server_certificate: "bad"}, {server_private_key: "bad"}, {client_ca: "bad"}
+  ]) assert.throws(() => canonicalProfile(profile(changed)));
+  assert.throws(() => canonicalProfile(profile({server_certificate:
+    "-----BEGIN CERTIFICATE-----\n" + "A".repeat(7100) + "\n-----END CERTIFICATE-----\n"})),
+  (error) => error.code === "server_certificate");
+  const largeCertificate = "-----BEGIN CERTIFICATE-----\n" + "A".repeat(2940) +
+    "\n-----END CERTIFICATE-----\n";
+  const largeKey = "-----BEGIN PRIVATE KEY-----\n" + "B".repeat(1900) +
+    "\n-----END PRIVATE KEY-----\n";
+  assert.throws(() => canonicalProfile(profile({server_certificate: largeCertificate,
+    server_private_key: largeKey, client_ca: largeCertificate})),
+  (error) => error.code === "profile_oversize");
+  for (const time_server of ["1.01.1.1", "224.0.0.1", "0x7f.0.0.1", "1..example"])
+    assert.throws(() => canonicalProfile(profile({time_server})));
+
+  await rejectsCode(() => new Client(null, cryptoFixture()).connect(device),
+                    "web_bluetooth_unavailable");
+  const wrong = bluetoothFixture("b".repeat(32));
+  await rejectsCode(() => new Client(wrong.bluetooth, cryptoFixture()).connect(device),
+                    "wrong_device");
+  assert.strictEqual(wrong.gatt.connected, false);
+  const badIdentity = bluetoothFixture();
+  badIdentity.identity.readValue = async () => {
+    const bytes = new TextEncoder().encode("{not-json");
+    return new DataView(bytes.buffer);
+  };
+  await rejectsCode(() => new Client(badIdentity.bluetooth, cryptoFixture()).connect(device),
+                    "identity_format");
+  assert.strictEqual(badIdentity.gatt.connected, false);
+
+  const fixture = bluetoothFixture();
+  const client = new Client(fixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  assert.deepStrictEqual(await client.connect(device), {device_id: device, generation: 0});
+  const result = await client.provision(profile());
+  assert.deepStrictEqual(result, {generation: 1});
+  assert.strictEqual(client.pending.size, 0);
+  const writes = fixture.command.commands.filter((command) => command.operation === "write");
+  assert(writes.length > 1);
+  let offset = 0;
+  for (let i = 0; i < writes.length; ++i) {
+    assert.strictEqual(writes[i].offset, offset);
+    const count = Buffer.from(writes[i].payload, "base64").length;
+    assert(count <= FRAGMENT_BYTES && count > 0);
+    offset += count;
+    assert.strictEqual(writes[i].final, i === writes.length - 1);
+  }
+  assert.strictEqual(fixture.command.commands[0].operation, "open");
+  assert.strictEqual(fixture.command.commands.at(-1).operation, "apply");
+  assert(fixture.command.commands.every((command) => command.device_id === device));
+  const unchangedFixture = bluetoothFixture(device, 1);
+  unchangedFixture.command.applyGeneration = 1;
+  const unchangedClient = new Client(unchangedFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  await unchangedClient.connect(device);
+  assert.deepStrictEqual(await unchangedClient.provision(profile()), {generation: 1});
+
+  const duplicateFixture = bluetoothFixture();
+  const duplicateClient = new Client(duplicateFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  await duplicateClient.connect(device);
+  const originalWrite = duplicateFixture.command.writeValueWithResponse.bind(duplicateFixture.command);
+  duplicateFixture.command.writeValueWithResponse = async (bytes) => {
+    await originalWrite(bytes);
+    const command = duplicateFixture.command.commands.at(-1);
+    queueMicrotask(() => duplicateFixture.status.emit({request_id: command.request_id, ok: true,
+      replayed: true}));
+  };
+  await duplicateClient.cancel("1".repeat(32));
+  assert.strictEqual(duplicateClient.pending.size, 0);
+
+  const timeoutFixture = bluetoothFixture();
+  timeoutFixture.command.respond = false;
+  const timeoutClient = new Client(timeoutFixture.bluetooth, cryptoFixture(), {timeoutMs: 5});
+  await timeoutClient.connect(device);
+  await rejectsCode(() => timeoutClient.cancel("1".repeat(32)), "timeout");
+  assert.strictEqual(timeoutClient.pending.size, 0);
+
+  const invalidResponseFixture = bluetoothFixture();
+  invalidResponseFixture.command.respond = false;
+  const invalidResponseClient = new Client(invalidResponseFixture.bluetooth, cryptoFixture(),
+                                           {timeoutMs: 5});
+  await invalidResponseClient.connect(device);
+  const invalidResponse = invalidResponseClient.cancel("3".repeat(32));
+  const invalidRequest = invalidResponseFixture.command.commands.at(-1).request_id;
+  invalidResponseFixture.status.emit({request_id: invalidRequest, ok: "true"});
+  await rejectsCode(() => invalidResponse, "timeout");
+
+  const disconnectFixture = bluetoothFixture();
+  disconnectFixture.command.respond = false;
+  const disconnectClient = new Client(disconnectFixture.bluetooth, cryptoFixture(),
+                                      {timeoutMs: 50});
+  await disconnectClient.connect(device);
+  const disconnected = disconnectClient.cancel("4".repeat(32));
+  disconnectClient.disconnect();
+  await rejectsCode(() => disconnected, "disconnected");
+  assert.strictEqual(disconnectClient.pending.size, 0);
+
+  const malformedFixture = bluetoothFixture();
+  malformedFixture.command.respond = false;
+  const malformedClient = new Client(malformedFixture.bluetooth, cryptoFixture(), {timeoutMs: 5});
+  await malformedClient.connect(device);
+  const pending = malformedClient.cancel("2".repeat(32));
+  malformedFixture.status.emit("not-json-object");
+  await rejectsCode(() => pending, "timeout");
+  malformedClient.disconnect();
+  assert.strictEqual(malformedFixture.gatt.connected, false);
+  assert.strictEqual(malformedClient.pending.size, 0);
+  console.log("provisioning web tests passed");
+}
+run().catch((error) => { console.error(error); process.exit(1); });

@@ -2,9 +2,14 @@
 
 Phase 11 is closed within its documented software, bounded physical and scoped
 conducted-RF acceptance. The authoritative [Phase 11.7 joint review](phase11-7-review.md)
-binds the current source pair, assertion-level applicability, fresh host
-regressions and retained limitations. Phase 12 provisioning and Phase 13 broad
-hardware/release qualification remain open.
+binds its source pair, assertion-level applicability, host regressions and
+retained limitations. Phase 12 is current: its [implementation plan](phase12-plan.md)
+and [portable review](phase12-review.md), the
+[P12.3 hardware-free integration review](phase12-3-review.md), plus the separate
+[RF-inhibited-first physical plan](phase12-physical-acceptance.md), record the
+implemented infrastructure, unresolved transport security choices and fresh
+acceptance required for target adapters. Phase 13 broad hardware/release
+qualification remains open.
 
 Phase 11.5 is CLOSED at 6/6 families for its recorded 138 MHz/divider-1
 configuration. Its [completion matrix](phase11-5-completion-matrix.md) and

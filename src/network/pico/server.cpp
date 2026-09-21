@@ -1,8 +1,8 @@
 #include "network/pico/server.hpp"
 
 #include "mbedtls/platform.h"
-#include "network_credentials.hpp"
 #include "pico/time.h"
+#include "provisioning/pico/credential_validator.hpp"
 #include "psa/crypto.h"
 #include "wtp/memory_budget.hpp"
 #ifdef WSPRRY_PICO_HEAP_METRICS
@@ -76,9 +76,10 @@ bool retry(int result) {
 }
 } // namespace
 PicoServer::PicoServer(wtp::JobService& service, BrowserApi& api, std::string device,
-                       std::string firmware)
-    : service_(service), api_(api),
-      connections_{Connection(*this, device, firmware), Connection(*this, device, firmware)} {}
+                       std::string firmware, provisioning::CredentialMaterial credentials)
+    : service_(service), api_(api), device_id_(device), credentials_(credentials),
+      connections_{Connection(*this, std::move(device), firmware),
+                   Connection(*this, device_id_, std::move(firmware))} {}
 PicoServer::Connection::Connection(PicoServer& owner, std::string device, std::string firmware)
     : owner_(owner), service_(owner.service_), api_(owner.api_),
       endpoint_(service_, std::move(device), std::move(firmware)) {}
@@ -94,12 +95,10 @@ std::size_t PicoServer::tls_peak() {
 std::size_t PicoServer::tls_failures() {
     return tls_failed;
 }
-unsigned PicoServer::port() {
-    return credentials::port;
-}
 bool PicoServer::configured() const {
-    return credentials::port != 0 && sizeof(credentials::certificate) > 1 &&
-           sizeof(credentials::key) > 1 && sizeof(credentials::ca) > 1;
+    return credentials_.device_id == device_id_ && credentials_.port != 0 &&
+           !credentials_.hostname.empty() && !credentials_.server_certificate.empty() &&
+           !credentials_.server_private_key.empty() && !credentials_.client_ca.empty();
 }
 bool PicoServer::busy() const {
     if (api_.active_job_connections())
@@ -110,10 +109,8 @@ bool PicoServer::busy() const {
 bool PicoServer::start() {
     if (!configured() || setup_ || tls_owner)
         return false;
-    api_.hostname_authority(std::string(credentials::hostname).empty()
-                                ? ""
-                                : std::string(credentials::hostname) +
-                                      (port() == 443 ? "" : ":" + std::to_string(port())));
+    api_.hostname_authority(std::string(credentials_.hostname) +
+                            (port() == 443 ? "" : ":" + std::to_string(port())));
     setup_ = true;
     tls_owner = this;
     time_service = &service_;
@@ -130,22 +127,32 @@ bool PicoServer::start() {
         last_error_ = result;
         return result != 0;
     };
+    auto fail = [this](int result) {
+        last_error_ = result;
+        stop();
+        return false;
+    };
+    provisioning::MbedTlsCredentialValidator validator(device_id_);
+    if (!validator.validate(credentials_))
+        return fail(validator.last_error());
     if (check(psa_crypto_init()) ||
         check(mbedtls_ctr_drbg_seed(&rng_, mbedtls_entropy_func, &entropy_, personalization,
                                     sizeof(personalization))) ||
         check(mbedtls_x509_crt_parse(
-            &cert_, reinterpret_cast<const unsigned char*>(credentials::certificate),
-            sizeof(credentials::certificate))) ||
-        check(mbedtls_x509_crt_parse(&ca_, reinterpret_cast<const unsigned char*>(credentials::ca),
-                                     sizeof(credentials::ca))) ||
-        check(mbedtls_pk_parse_key(&key_, reinterpret_cast<const unsigned char*>(credentials::key),
-                                   sizeof(credentials::key), nullptr, 0, mbedtls_ctr_drbg_random,
+            &cert_, reinterpret_cast<const unsigned char*>(credentials_.server_certificate.data()),
+            credentials_.server_certificate.size() + 1)) ||
+        check(mbedtls_x509_crt_parse(
+            &ca_, reinterpret_cast<const unsigned char*>(credentials_.client_ca.data()),
+            credentials_.client_ca.size() + 1)) ||
+        check(mbedtls_pk_parse_key(
+            &key_, reinterpret_cast<const unsigned char*>(credentials_.server_private_key.data()),
+            credentials_.server_private_key.size() + 1, nullptr, 0, mbedtls_ctr_drbg_random,
                                    &rng_)) ||
         check(mbedtls_pk_check_pair(&cert_.pk, &key_, mbedtls_ctr_drbg_random, &rng_)) ||
         check(mbedtls_ssl_config_defaults(&config_, MBEDTLS_SSL_IS_SERVER,
                                           MBEDTLS_SSL_TRANSPORT_STREAM,
                                           MBEDTLS_SSL_PRESET_DEFAULT)))
-        return false;
+        return fail(last_error_);
     mbedtls_ssl_conf_min_tls_version(&config_, MBEDTLS_SSL_VERSION_TLS1_3);
     mbedtls_ssl_conf_max_tls_version(&config_, MBEDTLS_SSL_VERSION_TLS1_3);
     mbedtls_ssl_conf_authmode(&config_, MBEDTLS_SSL_VERIFY_REQUIRED);
@@ -154,21 +161,19 @@ bool PicoServer::start() {
     static const char* protocols[] = {"wtp/1", "http/1.1", nullptr};
     if (check(mbedtls_ssl_conf_alpn_protocols(&config_, protocols)) ||
         check(mbedtls_ssl_conf_own_cert(&config_, &cert_, &key_)))
-        return false;
+        return fail(last_error_);
     auto* pcb = tcp_new_ip_type(IPADDR_TYPE_V4);
-    if (!pcb) {
-        last_error_ = -1;
-        return false;
-    }
-    if ((last_error_ = tcp_bind(pcb, IP_ANY_TYPE, credentials::port)) != ERR_OK) {
+    if (!pcb)
+        return fail(-1);
+    const auto bind_result = tcp_bind(pcb, IP_ANY_TYPE, port());
+    if (bind_result != ERR_OK) {
         tcp_abort(pcb);
-        return false;
+        return fail(bind_result);
     }
     listener_ = tcp_listen_with_backlog(pcb, 1);
     if (!listener_) {
-        last_error_ = -2;
         tcp_abort(pcb);
-        return false;
+        return fail(-2);
     }
     tcp_arg(listener_, this);
     tcp_accept(listener_, accept);

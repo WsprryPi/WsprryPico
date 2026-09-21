@@ -168,14 +168,18 @@ set(PICO_MBEDTLS_PATH "{source}")
 set(CMAKE_SOURCE_DIR "{repo}")
 include("{repo}/cmake/network.cmake")
 ''')
-    for credentials in (bundle, ca/'server'):
-        result = subprocess.run(['cmake', '-S', str(source), '-B', str(root/'cmake-build'),
-            '-DWSPRRY_PICO_NETWORK_PORT=18443', '-DWSPRRY_PICO_NETWORK_CREDENTIAL_DIR='+str(credentials)], capture_output=True, text=True)
-        assert result.returncode == 0, result.stderr
-        header = (root/'cmake-build/generated/network_credentials.hpp').read_text()
-        assert ('hostname[] = "'+(selected if credentials == bundle else '')+'"') in header
-        assert (root/'cmake-build').stat().st_mode & 0o077 == 0
-        assert (root/'cmake-build/generated/network_credentials.hpp').stat().st_mode & 0o077 == 0
+    result = subprocess.run(['cmake', '-S', str(source), '-B', str(root/'cmake-build'),
+        '-DWSPRRY_PICO_NETWORK_PORT=18443', '-DWSPRRY_PICO_NETWORK_CREDENTIAL_DIR='+str(bundle)],
+        capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    header = (root/'cmake-build/generated/network_credentials.hpp').read_text()
+    assert ('hostname[] = "'+selected+'"') in header
+    assert (root/'cmake-build').stat().st_mode & 0o077 == 0
+    assert (root/'cmake-build/generated/network_credentials.hpp').stat().st_mode & 0o077 == 0
+    result = subprocess.run(['cmake', '-S', str(source), '-B', str(root/'cmake-build'),
+        '-DWSPRRY_PICO_NETWORK_PORT=18443', '-DWSPRRY_PICO_NETWORK_CREDENTIAL_DIR='+str(ca/'server')],
+        capture_output=True, text=True)
+    assert result.returncode != 0 and 'device-bound .local DNS identity' in result.stderr
     changed = dict(manifest); changed['hostname'] = 'attacker.local'
     (bundle/'deployment.json').write_text(json.dumps(changed))
     result = subprocess.run(['cmake', '-S', str(source), '-B', str(root/'cmake-build'),

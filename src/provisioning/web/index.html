@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WsprryPico Provisioning</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>WsprryPico provisioning</h1>
+    <p class="warning">Use this page only from the project-approved HTTPS origin in Bluefy. The
+      device must independently authenticate the local operator; proximity is not authorization.</p>
+    <form id="provisioning" autocomplete="off">
+      <label>Device ID <input name="device_id" pattern="[0-9a-f]{32}" maxlength="32" required></label>
+      <button id="connect" type="button">Connect with Bluefy</button>
+      <fieldset disabled>
+        <legend>Replacement profile</legend>
+        <label>Wi-Fi name <input name="ssid" maxlength="32" required></label>
+        <label>Wi-Fi password <input name="password" type="password" minlength="8" maxlength="63" required></label>
+        <label>Time server <input name="time_server" value="pool.ntp.org" required></label>
+        <label>TLS hostname <input name="hostname" placeholder="wsprrypico-xxxxxx.local" required></label>
+        <label>TLS port <input name="port" type="number" min="1" max="65535" value="443" required></label>
+        <label>Server certificate <textarea name="server_certificate" spellcheck="false" required></textarea></label>
+        <label>Server private key <textarea name="server_private_key" spellcheck="false" required></textarea></label>
+        <label>Client CA <textarea name="client_ca" spellcheck="false" required></textarea></label>
+        <div class="actions">
+          <button type="submit">Validate and provision</button>
+          <button id="cancel" type="button">Cancel</button>
+        </div>
+      </fieldset>
+    </form>
+    <output id="status" role="status" aria-live="polite">Not connected.</output>
+    <p>No credential is stored by this page. Clear the Bluefy tab after provisioning.</p>
+  </main>
+  <script src="bluefy.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

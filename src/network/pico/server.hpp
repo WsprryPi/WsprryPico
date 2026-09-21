@@ -4,6 +4,7 @@
 #include "mbedtls/entropy.h"
 #include "mbedtls/ssl.h"
 #include "network/api.hpp"
+#include "provisioning/profile.hpp"
 #include "wtp/endpoint.hpp"
 
 #include <array>
@@ -12,7 +13,8 @@ namespace wsprrypico::network {
 // Core-0-only TLS/lwIP/application owner. Physical waveform servicing is isolated.
 class PicoServer {
   public:
-    PicoServer(wtp::JobService&, BrowserApi&, std::string device, std::string firmware);
+    PicoServer(wtp::JobService&, BrowserApi&, std::string device, std::string firmware,
+               provisioning::CredentialMaterial);
     ~PicoServer();
     PicoServer(const PicoServer&) = delete;
     PicoServer& operator=(const PicoServer&) = delete;
@@ -26,7 +28,9 @@ class PicoServer {
     int last_error() const {
         return last_error_;
     }
-    static unsigned port();
+    unsigned port() const {
+        return credentials_.port;
+    }
     struct Metrics {
         std::uint64_t admitted = 0, rejected = 0, closed = 0, timeouts = 0;
         std::uint64_t max_handshake_us = 0, max_poll_us = 0;
@@ -86,6 +90,8 @@ class PicoServer {
     bool busy() const;
     wtp::JobService& service_;
     BrowserApi& api_;
+    std::string device_id_;
+    provisioning::CredentialMaterial credentials_;
     std::array<Connection, 2> connections_;
     tcp_pcb* listener_ = nullptr;
     tcp_pcb* pending_ = nullptr;

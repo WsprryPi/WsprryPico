@@ -1,5 +1,6 @@
 #include "network/pico/server.hpp"
 #include "network_support.hpp"
+#include "network_credentials.hpp"
 #include "pico/time.h"
 #include "rf/worker.hpp"
 #include "wtp/memory_budget.hpp"
@@ -123,7 +124,16 @@ int main(int argc, char** argv) {
         },
         &restarts);
     api.set_active_job_connections(true); // Same explicit policy as physical standalone image.
-    network::PicoServer server(service, api, device, "test-worker-firmware");
+    const provisioning::CredentialMaterial credentials{
+        network::credentials::device_id, network::credentials::hostname, network::credentials::port,
+        network::credentials::certificate, network::credentials::key, network::credentials::ca};
+    auto invalid_credentials = credentials;
+    invalid_credentials.server_certificate = "not a certificate";
+    network::PicoServer invalid_server(service, api, device, "invalid-credentials",
+                                       invalid_credentials);
+    if (invalid_server.start())
+        std::abort();
+    network::PicoServer server(service, api, device, "test-worker-firmware", credentials);
     if (!server.start()) {
         std::cerr << "TLS start error " << server.last_error() << "\n";
         finished = true;
@@ -131,7 +141,7 @@ int main(int argc, char** argv) {
         return 1;
     }
     {
-        network::PicoServer competing(service, api, device, "duplicate");
+        network::PicoServer competing(service, api, device, "duplicate", credentials);
         if (competing.start())
             std::abort();
     }
