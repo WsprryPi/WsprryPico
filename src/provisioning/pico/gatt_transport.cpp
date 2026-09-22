@@ -137,6 +137,26 @@ void PicoGattTransport::disconnected() {
     admitted_ = false;
 }
 
+void PicoGattTransport::security_lost() {
+    // Do not wait for the asynchronous HCI disconnect event to revoke
+    // application authority. BTstack attribute permissions reject new writes,
+    // but queued server indications and WTP output must also fail closed now.
+    if (admitted_)
+        session_.disconnected();
+    inbound_.reset();
+    if (endpoint_)
+        endpoint_->disconnect();
+    for (auto& frame : outbound_)
+        std::fill(frame.begin(), frame.end(), 0);
+    outbound_.clear();
+    outbound_index_ = 0;
+    send_requested_ = false;
+    status_cccd_ = 0;
+    wtp_cccd_ = 0;
+    indication_ = Indication::None;
+    wtp_indication_bytes_ = 0;
+}
+
 bool PicoGattTransport::queue(std::string_view notification) {
     if (status_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION ||
         !outbound_.empty() || notification.empty() || notification.size() > max_notification_bytes) {
@@ -374,7 +394,12 @@ void PicoGattTransport::hci_callback(std::uint8_t packet_type, std::uint16_t,
         if (hci_event_encryption_change_get_connection_handle(packet) == owner_->connection_) {
             owner_->encrypted_ = hci_event_encryption_change_get_status(packet) == 0 &&
                                 hci_event_encryption_change_get_encryption_enabled(packet);
-            (void)owner_->admit();
+            if (owner_->encrypted_)
+                (void)owner_->admit();
+            else {
+                owner_->security_lost();
+                (void)gap_disconnect(owner_->connection_);
+            }
         }
         break;
     case SM_EVENT_JUST_WORKS_REQUEST:

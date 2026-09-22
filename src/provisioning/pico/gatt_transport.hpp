@@ -77,6 +77,7 @@ class PicoGattTransport {
     bool ensure_wtp_endpoint();
     bool request_send();
     void send_next();
+    void security_lost();
     void disconnected();
     std::uint64_t now() const { return now_ ? now_(context_) : 0; }
 

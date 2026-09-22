@@ -71,5 +71,14 @@ assert gatt.index("if (owner_->status_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFI
 assert "if (session_.authorized())\n            endpoint_->poll(current);" in gatt
 assert "owner_->endpoint_ && !owner_->endpoint_->closed()" in gatt
 assert "if (indication_ == Indication::Wtp)\n        return false;" in gatt
+assert "owner_->security_lost();" in gatt
+security_failure = gatt.index("owner_->security_lost();")
+security_disconnect = gatt.index("(void)gap_disconnect(owner_->connection_);")
+assert security_failure < security_disconnect
+security_lost = gatt[gatt.index("void PicoGattTransport::security_lost()"):
+                     gatt.index("bool PicoGattTransport::queue")]
+for required in ("session_.disconnected()", "endpoint_->disconnect()", "outbound_.clear()",
+                 "status_cccd_ = 0", "wtp_cccd_ = 0", "indication_ = Indication::None"):
+    assert required in security_lost
 
 print("Bluefy/C++ provisioning wire contract is synchronized")
