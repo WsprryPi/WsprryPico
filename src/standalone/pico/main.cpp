@@ -574,6 +574,35 @@ int main() {
                    (local_access.enrollment_open(time_us_64() / 1000ULL) ? "true" : "false") +
                    "}\n";
         }
+        if (text == "BLE STATUS") {
+            const auto ble = gatt.diagnostics();
+            std::string result = "{\"ok\":true";
+            number_field(result, "connections", ble.connections);
+            number_field(result, "disconnections", ble.disconnections);
+            number_field(result, "command_frames", ble.command_frames);
+            number_field(result, "commands_completed", ble.commands_completed);
+            number_field(result, "responses_queued", ble.responses_queued);
+            number_field(result, "queue_failures", ble.queue_failures);
+            number_field(result, "send_requests", ble.send_requests);
+            number_field(result, "can_send_callbacks", ble.can_send_callbacks);
+            number_field(result, "can_send_during_write", ble.can_send_during_write);
+            number_field(result, "indications_started", ble.indications_started);
+            number_field(result, "indication_completions", ble.indication_completions);
+            number_field(result, "responses_delivered", ble.responses_delivered);
+            number_field(result, "last_request_status", ble.last_request_status);
+            number_field(result, "last_indication_status", ble.last_indication_status);
+            number_field(result, "last_completion_status", ble.last_completion_status);
+            number_field(result, "last_disconnect_reason", ble.last_disconnect_reason);
+            number_field(result, "att_mtu", ble.att_mtu);
+            number_field(result, "outbound_frames", ble.outbound_frames);
+            number_field(result, "outbound_index", ble.outbound_index);
+            result += ",\"connected\":" + std::string(ble.connected ? "true" : "false");
+            result += ",\"admitted\":" + std::string(ble.admitted ? "true" : "false");
+            result += ",\"send_requested\":" +
+                      std::string(ble.send_requested ? "true" : "false");
+            result += "}\n";
+            return result;
+        }
         constexpr std::string_view adopt_prefix = "ACCESS ADOPT ";
         constexpr std::string_view enroll_prefix = "ACCESS ENROLL ";
         if (text.starts_with(adopt_prefix) || text.starts_with(enroll_prefix)) {

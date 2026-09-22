@@ -5,6 +5,7 @@
 #include "provisioning/gatt_framing.hpp"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -12,6 +13,30 @@
 namespace wsprrypico::provisioning {
 class PicoGattTransport {
   public:
+    struct Diagnostics {
+        std::uint32_t connections = 0;
+        std::uint32_t disconnections = 0;
+        std::uint32_t command_frames = 0;
+        std::uint32_t commands_completed = 0;
+        std::uint32_t responses_queued = 0;
+        std::uint32_t queue_failures = 0;
+        std::uint32_t send_requests = 0;
+        std::uint32_t can_send_callbacks = 0;
+        std::uint32_t can_send_during_write = 0;
+        std::uint32_t indications_started = 0;
+        std::uint32_t indication_completions = 0;
+        std::uint32_t responses_delivered = 0;
+        std::uint8_t last_request_status = 0;
+        std::uint8_t last_indication_status = 0;
+        std::uint8_t last_completion_status = 0;
+        std::uint8_t last_disconnect_reason = 0;
+        std::uint16_t att_mtu = 0;
+        std::size_t outbound_frames = 0;
+        std::size_t outbound_index = 0;
+        bool connected = false;
+        bool admitted = false;
+        bool send_requested = false;
+    };
     using Now = std::uint64_t (*)(void*);
     PicoGattTransport(BleCommandSession& session, std::string identity,
                       std::string advertising_name, Now now, void* context)
@@ -23,6 +48,7 @@ class PicoGattTransport {
     void stop();
     void poll();
     bool running() const { return running_; }
+    Diagnostics diagnostics() const;
 
   private:
     static std::uint16_t read_callback(hci_con_handle_t connection, std::uint16_t handle,
@@ -66,5 +92,7 @@ class PicoGattTransport {
     btstack_packet_callback_registration_t sm_registration_{};
     btstack_context_callback_registration_t send_request_{};
     bool send_requested_ = false;
+    bool in_write_callback_ = false;
+    Diagnostics diagnostics_{};
 };
 } // namespace wsprrypico::provisioning

@@ -137,11 +137,37 @@ is retained in this review.
 Candidate B, USB serial `CDDBF8767C506C07`, was identified as the comparator
 and left on its existing image without mutation.
 
-No iPhone pairing, application authorization, offline reload, profile transfer,
-activation, controller-time observation, SoftAP, LED-pattern measurement,
-password replacement, reset, fault injection or soak has yet passed. The
-working-tree UF2 above also contains later retained-bond and cache fixes and must
-be flashed and rebound to a clean published revision before those rows execute.
+The original candidate record above is retained as historical evidence.
+Subsequent clean `devel` commits `16d8f0e`, `7ce154d` and `2a4e0e8`
+integrated the BLE path, made the verified online Bluefy page usable when
+Bluefy lacks a service worker, and queued ATT indications outside the write
+callback. The published page release is
+`909e78e8e64a3d274aa8b11886a4fdfb8964a854eccbd6629075388bb33d8e85`.
+An iPhone selected Candidate A and completed first authorization: subsequent
+USB-local status showed healthy access generation 2 and enrollment closed.
+This proves the initial application authorization persisted. On a later
+retained-bond authorization, Bluefy displayed "Authorizing" and timed out.
+The unchanged access generation does not establish whether that retry reached
+the Pico. The return-status path remains under investigation.
+
+On September 22, a bounded diagnostic image from `2a4e0e83c52c-dirty`
+was flashed to Candidate A only. Its UF2 SHA-256 was
+`8901d844c04ba035ace02840083dce9193c7732d445dff0ac0d94b53a756b940`;
+the retained picotool SHA-256 was
+`4a68cfd7fc36002e80857802c8192c9f24c751357c6cb26ad13ad7f38c227921`.
+The flash verified, and the new boot ID was
+`6000b7be75afa1192da394319108fe34`. USB-local postflight confirmed
+`inhibited-standalone-simulator`, empty job state, inactive output, healthy
+access generation 2, BLE running, station `AA0NT/EM18/20`, the 120-second
+schedule and watermark `1789607761000000000` preserved. The new read-only
+`BLE STATUS` command reported zero baseline events. It exposes bounded counts
+for received command frames, queued responses, send callbacks, indications
+started/completed and disconnections without recording credentials. One
+operator retry is pending to locate the timeout stage.
+
+Offline reload, profile transfer, activation, controller-time observation,
+SoftAP, LED-pattern measurement, password replacement, reset, fault injection
+and soak remain unaccepted.
 
 ## Adversarial findings and repairs
 

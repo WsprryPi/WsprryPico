@@ -9,7 +9,8 @@
     "starting_upstream": "7451a4047677cf2f91d790ea5aa9eec1a9015f38",
     "operated_revision": "7451a4047677-dirty",
     "working_tree_uf2_sha256": "708e33c88b273ba3e2ea0a26229d4b695485b5566c9026dc4fa16cbad7e65b27",
-    "operated_uf2_sha256": "8ea4121ebf81cccb1cdaeaae61243f092d4e0acbe1fe89f4d24c7acb8232767b"
+    "operated_uf2_sha256": "8ea4121ebf81cccb1cdaeaae61243f092d4e0acbe1fe89f4d24c7acb8232767b",
+    "latest_clean_head_before_diagnostic": "2a4e0e83c52cd50c6e032b75f82eb7fed5a6859e"
   },
   "dependencies": {
     "pico_sdk": "079c6f39023649b154152db30f1d781e884879bc",
@@ -20,11 +21,11 @@
     "ninja": "1.13.2"
   },
   "bluefy_release": {
-    "sha256_release_id": "51fe7c97ebe3a7a710cda89f5370923bd942f1443df17549054903c69025e56f",
+    "sha256_release_id": "909e78e8e64a3d274aa8b11886a4fdfb8964a854eccbd6629075388bb33d8e85",
     "contains_candidate_identity": false,
     "contains_credentials": false,
     "remote_dependencies": 0,
-    "published": false,
+    "published": true,
     "iphone_offline_accepted": false
   },
   "candidate": {
@@ -39,7 +40,7 @@
     "output_active": false,
     "owner": null,
     "access_state": "healthy",
-    "access_generation": 1,
+    "access_generation": 2,
     "default_password_active": true,
     "enrollment_open": false,
     "ble_running": true,
@@ -92,6 +93,27 @@
     {
       "name": "usb_local_adoption_and_preservation",
       "result": "pass"
+    },
+    {
+      "name": "first_iphone_ble_authorization",
+      "result": "pass",
+      "evidence": "USB access generation advanced to 2 and enrollment closed"
+    },
+    {
+      "name": "retained_bond_bluefy_authorization",
+      "result": "fail",
+      "finding": "Bluefy displayed Authorizing and timed out; device delivery stage not yet known"
+    },
+    {
+      "name": "ble_delivery_diagnostic_flash",
+      "result": "pass",
+      "uf2_sha256": "8901d844c04ba035ace02840083dce9193c7732d445dff0ac0d94b53a756b940",
+      "boot_id": "6000b7be75afa1192da394319108fe34",
+      "revision": "2a4e0e83c52c-dirty",
+      "source_base": "2a4e0e83c52cd50c6e032b75f82eb7fed5a6859e",
+      "baseline_ble_status": "all counters zero",
+      "settings_preserved": true,
+      "rf_output_active": false
     }
   ],
   "separated_checks": [
@@ -119,7 +141,7 @@
   "remaining_gates": [
     "clean committed candidate reflash",
     "exact iPhone iOS and Bluefy identity",
-    "live Bluefy chooser pairing and application authorization",
+    "retained-bond Bluefy terminal status and authenticated provisioning response",
     "verified offline reload with infrastructure networking disabled",
     "physical profile transfer and delivery-safe activation",
     "controller time",

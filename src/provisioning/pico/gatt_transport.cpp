@@ -62,6 +62,17 @@ void PicoGattTransport::poll() {
     session_.poll(now());
 }
 
+PicoGattTransport::Diagnostics PicoGattTransport::diagnostics() const {
+    auto result = diagnostics_;
+    result.connected = connection_ != HCI_CON_HANDLE_INVALID;
+    result.admitted = admitted_;
+    result.send_requested = send_requested_;
+    result.outbound_frames = outbound_.size();
+    result.outbound_index = outbound_index_;
+    result.att_mtu = result.connected ? att_server_get_mtu(connection_) : 0;
+    return result;
+}
+
 void PicoGattTransport::stop() {
     if (!running_ && owner_ != this)
         return;
@@ -110,13 +121,18 @@ void PicoGattTransport::disconnected() {
 }
 
 bool PicoGattTransport::queue(std::string_view notification) {
-    if (!outbound_.empty() || notification.empty() || notification.size() > max_notification_bytes)
+    if (!outbound_.empty() || notification.empty() || notification.size() > max_notification_bytes) {
+        ++diagnostics_.queue_failures;
         return false;
+    }
     outbound_ = gatt_frames(std::span(
         reinterpret_cast<const std::uint8_t*>(notification.data()), notification.size()));
     outbound_index_ = 0;
-    if (request_send())
+    if (request_send()) {
+        ++diagnostics_.responses_queued;
         return true;
+    }
+    ++diagnostics_.queue_failures;
     for (auto& frame : outbound_)
         std::fill(frame.begin(), frame.end(), 0);
     outbound_.clear();
@@ -128,8 +144,10 @@ bool PicoGattTransport::request_send() {
         connection_ == HCI_CON_HANDLE_INVALID)
         return false;
     send_requested_ = true;
-    if (att_server_request_to_send_indication(&send_request_, connection_) ==
-        ERROR_CODE_SUCCESS)
+    ++diagnostics_.send_requests;
+    diagnostics_.last_request_status =
+        att_server_request_to_send_indication(&send_request_, connection_);
+    if (diagnostics_.last_request_status == ERROR_CODE_SUCCESS)
         return true;
     send_requested_ = false;
     return false;
@@ -137,8 +155,12 @@ bool PicoGattTransport::request_send() {
 
 void PicoGattTransport::can_send(void* context) {
     auto* transport = static_cast<PicoGattTransport*>(context);
-    if (transport && transport == owner_)
+    if (transport && transport == owner_) {
+        ++transport->diagnostics_.can_send_callbacks;
+        if (transport->in_write_callback_)
+            ++transport->diagnostics_.can_send_during_write;
         transport->send_next();
+    }
 }
 
 void PicoGattTransport::send_next() {
@@ -146,8 +168,12 @@ void PicoGattTransport::send_next() {
     if (outbound_index_ >= outbound_.size() || connection_ == HCI_CON_HANDLE_INVALID)
         return;
     const auto& frame = outbound_[outbound_index_];
-    if (att_server_indicate(connection_, ATT_CHARACTERISTIC_7D6B0004_5BF1_4F21_A486_3E8F70C12201_01_VALUE_HANDLE,
-                            frame.data(), static_cast<std::uint16_t>(frame.size())) != 0)
+    diagnostics_.last_indication_status =
+        att_server_indicate(connection_, ATT_CHARACTERISTIC_7D6B0004_5BF1_4F21_A486_3E8F70C12201_01_VALUE_HANDLE,
+                            frame.data(), static_cast<std::uint16_t>(frame.size()));
+    if (diagnostics_.last_indication_status == ERROR_CODE_SUCCESS)
+        ++diagnostics_.indications_started;
+    else
         (void)gap_disconnect(connection_);
 }
 
@@ -173,18 +199,23 @@ int PicoGattTransport::write_callback(hci_con_handle_t connection, std::uint16_t
         return ATT_ERROR_INVALID_OFFSET;
     if (!owner_->admit())
         return ATT_ERROR_INSUFFICIENT_AUTHENTICATION;
+    ++owner_->diagnostics_.command_frames;
     const auto result = owner_->inbound_.receive(std::span(buffer, size));
     if (result == FrameResult::Pending)
         return ATT_ERROR_SUCCESS;
     if (result != FrameResult::Complete)
         return result == FrameResult::Oversize ? ATT_ERROR_INVALID_ATTRIBUTE_VALUE_LENGTH
                                                 : ATT_ERROR_VALUE_NOT_ALLOWED;
+    ++owner_->diagnostics_.commands_completed;
     const auto message = owner_->inbound_.message();
     auto response = owner_->session_.handle(
         std::string_view(reinterpret_cast<const char*>(message.data()), message.size()),
         owner_->now());
     owner_->inbound_.reset();
-    if (!response.notify() || !owner_->queue(response.notification))
+    owner_->in_write_callback_ = true;
+    const bool queued = response.notify() && owner_->queue(response.notification);
+    owner_->in_write_callback_ = false;
+    if (!queued)
         return ATT_ERROR_INSUFFICIENT_RESOURCES;
     return ATT_ERROR_SUCCESS;
 }
@@ -204,6 +235,7 @@ void PicoGattTransport::hci_callback(std::uint8_t packet_type, std::uint16_t,
             }
             owner_->connection_ =
                 gap_subevent_le_connection_complete_get_connection_handle(packet);
+            ++owner_->diagnostics_.connections;
             sm_request_pairing(owner_->connection_);
         }
         break;
@@ -231,8 +263,12 @@ void PicoGattTransport::hci_callback(std::uint8_t packet_type, std::uint16_t,
         (void)owner_->admit();
         break;
     case HCI_EVENT_DISCONNECTION_COMPLETE:
-        if (hci_event_disconnection_complete_get_connection_handle(packet) == owner_->connection_)
+        if (hci_event_disconnection_complete_get_connection_handle(packet) == owner_->connection_) {
+            ++owner_->diagnostics_.disconnections;
+            owner_->diagnostics_.last_disconnect_reason =
+                hci_event_disconnection_complete_get_reason(packet);
             owner_->disconnected();
+        }
         break;
     default:
         break;
@@ -245,7 +281,10 @@ void PicoGattTransport::att_callback(std::uint8_t packet_type, std::uint16_t,
         hci_event_packet_get_type(packet) != ATT_EVENT_HANDLE_VALUE_INDICATION_COMPLETE ||
         att_event_handle_value_indication_complete_get_conn_handle(packet) != owner_->connection_)
         return;
-    if (att_event_handle_value_indication_complete_get_status(packet) != 0) {
+    ++owner_->diagnostics_.indication_completions;
+    owner_->diagnostics_.last_completion_status =
+        att_event_handle_value_indication_complete_get_status(packet);
+    if (owner_->diagnostics_.last_completion_status != 0) {
         (void)gap_disconnect(owner_->connection_);
         return;
     }
@@ -259,6 +298,7 @@ void PicoGattTransport::att_callback(std::uint8_t packet_type, std::uint16_t,
         std::fill(frame.begin(), frame.end(), 0);
     owner_->outbound_.clear();
     owner_->outbound_index_ = 0;
+    ++owner_->diagnostics_.responses_delivered;
     owner_->session_.response_delivered(owner_->now());
 }
 } // namespace wsprrypico::provisioning
