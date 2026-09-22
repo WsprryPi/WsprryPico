@@ -161,6 +161,39 @@
       "cccd_baseline": "all counters zero",
       "candidate_b_modified": false,
       "bluefy_interoperability_accepted": false
+    },
+    {
+      "name": "retained_bond_authorization_after_cccd_repair",
+      "result": "pass",
+      "formal_bluefy_acceptance": false,
+      "fresh_password_verification_evidence": false,
+      "acceptance_scope": "single online Bluefy application-authorization exchange only",
+      "page_release": "23ab8f69dcf3ab28186022ce818e280faa98a78b80c0e32e2552323e24f115de",
+      "observed_page": "Authorized on the explicitly selected full device ID; generation 0",
+      "access_generation": 2,
+      "provisioning_source": "factory",
+      "provisioning_generation": 0,
+      "ble_status": {
+        "connections": 1,
+        "disconnections": 0,
+        "cccd_writes": 2,
+        "cccd_rejections": 0,
+        "cccd_value": 2,
+        "command_frames": 4,
+        "commands_completed": 1,
+        "responses_queued": 1,
+        "queue_failures": 0,
+        "indications_started": 2,
+        "indication_completions": 2,
+        "responses_delivered": 1,
+        "last_completion_status": 0,
+        "connected": true,
+        "admitted": true
+      },
+      "rf_output_active": false,
+      "settings_preserved": true,
+      "wifi_profile_submitted": false,
+      "exact_iphone_ios_bluefy_versions_recorded": false
     }
   ],
   "separated_checks": [
@@ -188,7 +221,7 @@
   "remaining_gates": [
     "clean committed candidate reflash",
     "exact iPhone iOS and Bluefy identity",
-    "retained-bond Bluefy terminal status and authenticated provisioning response",
+    "authenticated provisioning response and full profile transfer",
     "verified offline reload with infrastructure networking disabled",
     "physical profile transfer and delivery-safe activation",
     "controller time",
@@ -213,6 +246,6 @@
     "image_layout_check": "pass",
     "focused_host_tests_passed": 5,
     "focused_host_tests_failed": 0,
-    "bluefy_retry": "pending"
+    "bluefy_retry": "pass_authorization_only"
   }
 }

@@ -14,9 +14,10 @@ and [portable review](phase12-review.md), the
 implemented infrastructure and selected product/security policy from open
 SoftAP/local-control and physical work. Provisioning-only GATT and its live
 activator now run in the RF-inhibited production image; candidate
-identity/adoption/advertising are partial physical evidence. Bluefy/iOS offline
-use, provisioning/activation, SoftAP, phone time, reset controls and most Stage A
-rows remain open. P12.3 remains CLOSED_SCOPED within its historical boundary.
+identity/adoption/advertising and one online retained-bond Bluefy
+application-authorization exchange are partial physical evidence. Bluefy/iOS
+offline use, full provisioning/activation, SoftAP, phone time, reset controls
+and most Stage A rows remain open. P12.3 remains CLOSED_SCOPED within its historical boundary.
 Phase 13 broad hardware/release qualification remains open.
 
 Phase 11.5 is CLOSED at 6/6 families for its recorded 138 MHz/divider-1

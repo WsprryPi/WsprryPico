@@ -2,9 +2,11 @@
 
 Status: Stage A partially executed on 2026-09-22 under separate live operator
 authority. Candidate identity/adoption, RF-inhibited boot, preserved operational
-state and BLE advertising passed on the exact device below. Bluefy/iOS,
-offline-cache, provisioning/activation, controller-time, SoftAP, reset/gesture
-and soak rows remain unexecuted. Stage B is not authorized.
+state and BLE advertising passed on the exact device below. One online
+retained-bond Bluefy application-authorization exchange was subsequently
+observed on Candidate A after the CCCD repair. Exact iPhone/iOS/Bluefy
+versions, offline-cache, provisioning/activation, controller-time, SoftAP,
+reset/gesture and soak acceptance remain open. Stage B is not authorized.
 
 ## Purpose and evidence boundary
 
@@ -43,10 +45,12 @@ those buffers into transport lifetime, a bounded wspr5 scan observed
 `WsprryPico-0a60df` with the selected service and public BLE controller
 address `88:A2:9E:0A:60:E0`. That failed attempt is retained, not replaced.
 
-The exact iPhone/iOS/Bluefy version, published Pages origin, effective offline
-cache, pairing/application authorization and every post-selection mutation are
-still required before any Bluefy row passes. The credential-free result and
-review are `phase12-production-acceptance-result.json` and
+The verified online Pages release and one successful application-authorization
+exchange are recorded, but the exact iPhone/iOS/Bluefy versions and effective
+offline cache remain unverified. No Wi-Fi/TLS profile or other post-selection
+mutation was submitted, and broader Bluefy acceptance is still open. The
+credential-free result and review are
+`phase12-production-acceptance-result.json` and
 `phase12-production-acceptance-review.md`.
 
 ## Admission record

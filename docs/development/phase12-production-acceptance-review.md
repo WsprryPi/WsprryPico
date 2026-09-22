@@ -203,8 +203,21 @@ was `a4083142c199d0bb3cfabfd69cedb90b`; the RF-inhibited simulator,
 empty/unowned job, inactive output, healthy access generation 2, BLE running,
 station `AA0NT/EM18/20`, 120-second schedule and watermark
 `1789607761000000000` were preserved. CCCD and BLE counters started at zero.
-The operator's Bluefy retry on this repaired image remains pending; the
-source-level repair is not yet physical interoperability acceptance.
+On the same verified online Bluefy release, the operator's next retry
+displayed `Authorized` for the explicitly selected full device ID and profile
+generation 0. USB-local postflight on that boot showed one connection, two
+accepted CCCD callback writes, CCCD value 2, zero CCCD rejections, four
+command frames, one completed command, one queued and confirmed two-frame
+response, zero queue failures, and an admitted live link. Access remained
+healthy at generation 2; the factory Wi-Fi/TLS profile remained at generation
+0. The RF-inhibited simulator, empty job, inactive output, station, schedule and
+watermark remained unchanged. This passes the observed online retained-bond
+application-authorization exchange after the CCCD repair. The adapter accepts
+a repeated authorize operation idempotently for an already authenticated bond,
+so this retry does not independently prove a fresh password check. Exact
+iPhone/iOS/Bluefy versions, offline delivery, credential transfer, profile activation,
+ordinary local management and a clean committed-image reflash are still
+unaccepted; no Wi-Fi profile was submitted.
 
 Offline reload, profile transfer, activation, controller-time observation,
 SoftAP, LED-pattern measurement, password replacement, reset, fault injection
