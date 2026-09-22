@@ -26,6 +26,9 @@ class PicoGattTransport {
         std::uint32_t indications_started = 0;
         std::uint32_t indication_completions = 0;
         std::uint32_t responses_delivered = 0;
+        std::uint32_t cccd_writes = 0;
+        std::uint32_t cccd_rejections = 0;
+        std::uint16_t cccd_value = 0;
         std::uint8_t last_request_status = 0;
         std::uint8_t last_indication_status = 0;
         std::uint8_t last_completion_status = 0;
@@ -93,6 +96,7 @@ class PicoGattTransport {
     btstack_context_callback_registration_t send_request_{};
     bool send_requested_ = false;
     bool in_write_callback_ = false;
+    std::uint16_t status_cccd_ = 0;
     Diagnostics diagnostics_{};
 };
 } // namespace wsprrypico::provisioning

@@ -589,6 +589,9 @@ int main() {
             number_field(result, "indications_started", ble.indications_started);
             number_field(result, "indication_completions", ble.indication_completions);
             number_field(result, "responses_delivered", ble.responses_delivered);
+            number_field(result, "cccd_writes", ble.cccd_writes);
+            number_field(result, "cccd_rejections", ble.cccd_rejections);
+            number_field(result, "cccd_value", ble.cccd_value);
             number_field(result, "last_request_status", ble.last_request_status);
             number_field(result, "last_indication_status", ble.last_indication_status);
             number_field(result, "last_completion_status", ble.last_completion_status);

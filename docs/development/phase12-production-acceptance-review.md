@@ -174,8 +174,37 @@ gate; no Wi-Fi profile was submitted. A subsequent page-only release adds
 bounded, secret-free write/event/frame/response counters to distinguish
 missing JavaScript events from malformed or unmatched responses. Release
 `23ab8f69dcf3ab28186022ce818e280faa98a78b80c0e32e2552323e24f115de`
-was verified on the public Pages origin by manifest and JavaScript hashes;
-an iPhone retry with this release is pending.
+was verified on the public Pages origin by manifest and JavaScript hashes.
+That retry timed out with `writes 4/4; events 0; frames 0; messages 0;
+matched 0; last none`. USB-local counters advanced from one to two complete
+commands, from two to four confirmed indications and from one to two confirmed
+response sets, with zero queue failures and access generation still 2.
+Consequently, the Pico processed the command but Bluefy dispatched no status
+event to the page.
+
+Pinned BTstack inspection found the status CCCD at ATT handle `0x0010` is
+dynamic. The prior production write callback accepted only the command value
+handle, so it would reject a subscription write; pinned BTstack can nevertheless
+send indications without checking CCCD state and record link-level
+confirmations. No Bluefy CCCD write was captured before the repair, so this
+source-confirmed defect is consistent with, but not yet proven to be the sole
+cause of, the zero-event timeout. A narrow adapter repair now accepts and reads only valid per-connection CCCD
+values (disabled or indications enabled), resets subscription on disconnect,
+and refuses command dispatch before any provisioning mutation when unsubscribed.
+The adversarial pass caught and repaired the initial mutation-before-queue
+ordering. Source-contract and five focused host regressions passed; the
+RF-inhibited standard image and field-access linkcheck cross-built with pinned
+SDK 2.3.1 and BTstack, and the image/layout check passed.
+
+Candidate A alone was flashed with UF2 SHA-256
+`9b4f2925f4294beb2cf674988d4e30752db8a3d138cba47ad045c6f7ef77fcbc`,
+built from `2bb0ef93aef5-dirty`. Picotool verified the load. Postflight boot ID
+was `a4083142c199d0bb3cfabfd69cedb90b`; the RF-inhibited simulator,
+empty/unowned job, inactive output, healthy access generation 2, BLE running,
+station `AA0NT/EM18/20`, 120-second schedule and watermark
+`1789607761000000000` were preserved. CCCD and BLE counters started at zero.
+The operator's Bluefy retry on this repaired image remains pending; the
+source-level repair is not yet physical interoperability acceptance.
 
 Offline reload, profile transfer, activation, controller-time observation,
 SoftAP, LED-pattern measurement, password replacement, reset, fault injection

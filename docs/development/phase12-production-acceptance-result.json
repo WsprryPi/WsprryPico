@@ -130,6 +130,37 @@
         "indication_completions": 2,
         "responses_delivered": 1
       }
+    },
+    {
+      "name": "retained_bond_zero_event_retry",
+      "result": "fail",
+      "page_release": "23ab8f69dcf3ab28186022ce818e280faa98a78b80c0e32e2552323e24f115de",
+      "page_trace": "writes 4/4; events 0; frames 0; messages 0; matched 0; last none",
+      "ble_status_after": {
+        "connections": 2,
+        "disconnections": 2,
+        "command_frames": 8,
+        "commands_completed": 2,
+        "responses_queued": 2,
+        "queue_failures": 0,
+        "indications_started": 4,
+        "indication_completions": 4,
+        "responses_delivered": 2
+      },
+      "finding": "Pico processed the command and the BLE link confirmed both reply frames; Bluefy dispatched no status event to JavaScript"
+    },
+    {
+      "name": "cccd_repair_candidate_a_flash",
+      "result": "pass",
+      "uf2_sha256": "9b4f2925f4294beb2cf674988d4e30752db8a3d138cba47ad045c6f7ef77fcbc",
+      "revision": "2bb0ef93aef5-dirty",
+      "boot_id": "a4083142c199d0bb3cfabfd69cedb90b",
+      "settings_preserved": true,
+      "access_generation": 2,
+      "rf_output_active": false,
+      "cccd_baseline": "all counters zero",
+      "candidate_b_modified": false,
+      "bluefy_interoperability_accepted": false
     }
   ],
   "separated_checks": [
@@ -170,5 +201,18 @@
     "final RF-inhibited output-off and restoration"
   ],
   "stage_b_authorized": false,
-  "phase_complete": false
+  "phase_complete": false,
+  "cccd_repair": {
+    "source_base": "2bb0ef93aef588cb8b311a4ed9a838623881b1b4",
+    "flashed_revision": "2bb0ef93aef5-dirty",
+    "uf2_sha256": "9b4f2925f4294beb2cf674988d4e30752db8a3d138cba47ad045c6f7ef77fcbc",
+    "pinned_sdk": "079c6f39023649b154152db30f1d781e884879bc",
+    "pinned_btstack": "eb0bb8b5ea6d234ccb940313b47f7a5c3b4e20ec",
+    "standard_rf_inhibited_build": "pass",
+    "field_access_linkcheck": "pass",
+    "image_layout_check": "pass",
+    "focused_host_tests_passed": 5,
+    "focused_host_tests_failed": 0,
+    "bluefy_retry": "pending"
+  }
 }

@@ -10,6 +10,8 @@ web = (repo / "src/provisioning/web/bluefy.js").read_text()
 command_header = (repo / "src/provisioning/command.hpp").read_text()
 command_source = (repo / "src/provisioning/command.cpp").read_text()
 profile_header = (repo / "src/provisioning/profile.hpp").read_text()
+gatt = (repo / "src/provisioning/pico/gatt_transport.cpp").read_text()
+gatt_profile = (repo / "src/provisioning/pico/field_access.gatt").read_text()
 
 assert "const MAX_PROFILE_BYTES = 7168;" in web
 assert "max_profile_bytes = 7168;" in profile_header
@@ -47,5 +49,12 @@ for field in (
 ):
     assert f'"{field}"' in command_source
     assert re.search(rf"\b{field}\b", web)
+
+assert "INDICATE | ENCRYPTION_KEY_SIZE_16 | DYNAMIC" in gatt_profile
+assert "CLIENT_CONFIGURATION_HANDLE" in gatt
+assert "att_read_callback_handle_little_endian_16" in gatt
+assert "status_cccd_ = value;" in gatt
+assert "status_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION" in gatt
+assert gatt.index("if (owner_->status_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION)") < gatt.index("owner_->inbound_.receive")
 
 print("Bluefy/C++ provisioning wire contract is synchronized")

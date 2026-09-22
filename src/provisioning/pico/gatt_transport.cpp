@@ -67,6 +67,7 @@ PicoGattTransport::Diagnostics PicoGattTransport::diagnostics() const {
     result.connected = connection_ != HCI_CON_HANDLE_INVALID;
     result.admitted = admitted_;
     result.send_requested = send_requested_;
+    result.cccd_value = status_cccd_;
     result.outbound_frames = outbound_.size();
     result.outbound_index = outbound_index_;
     result.att_mtu = result.connected ? att_server_get_mtu(connection_) : 0;
@@ -113,6 +114,7 @@ void PicoGattTransport::disconnected() {
     outbound_.clear();
     outbound_index_ = 0;
     send_requested_ = false;
+    status_cccd_ = 0;
     connection_ = HCI_CON_HANDLE_INVALID;
     peer_index_ = -1;
     encrypted_ = false;
@@ -121,7 +123,8 @@ void PicoGattTransport::disconnected() {
 }
 
 bool PicoGattTransport::queue(std::string_view notification) {
-    if (!outbound_.empty() || notification.empty() || notification.size() > max_notification_bytes) {
+    if (status_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION ||
+        !outbound_.empty() || notification.empty() || notification.size() > max_notification_bytes) {
         ++diagnostics_.queue_failures;
         return false;
     }
@@ -177,10 +180,15 @@ void PicoGattTransport::send_next() {
         (void)gap_disconnect(connection_);
 }
 
-std::uint16_t PicoGattTransport::read_callback(hci_con_handle_t, std::uint16_t handle,
+std::uint16_t PicoGattTransport::read_callback(hci_con_handle_t connection, std::uint16_t handle,
                                                std::uint16_t offset, std::uint8_t* buffer,
                                                std::uint16_t size) {
-    if (!owner_ || handle != ATT_CHARACTERISTIC_7D6B0002_5BF1_4F21_A486_3E8F70C12201_01_VALUE_HANDLE)
+    if (!owner_ || connection != owner_->connection_)
+        return 0;
+    if (handle == ATT_CHARACTERISTIC_7D6B0004_5BF1_4F21_A486_3E8F70C12201_01_CLIENT_CONFIGURATION_HANDLE)
+        return att_read_callback_handle_little_endian_16(
+            owner_->status_cccd_, offset, buffer, size);
+    if (handle != ATT_CHARACTERISTIC_7D6B0002_5BF1_4F21_A486_3E8F70C12201_01_VALUE_HANDLE)
         return 0;
     return att_read_callback_handle_blob(
         reinterpret_cast<const std::uint8_t*>(owner_->identity_.data()),
@@ -190,8 +198,27 @@ std::uint16_t PicoGattTransport::read_callback(hci_con_handle_t, std::uint16_t h
 int PicoGattTransport::write_callback(hci_con_handle_t connection, std::uint16_t handle,
                                       std::uint16_t transaction, std::uint16_t offset,
                                       std::uint8_t* buffer, std::uint16_t size) {
-    if (!owner_ || connection != owner_->connection_ ||
-        handle != ATT_CHARACTERISTIC_7D6B0003_5BF1_4F21_A486_3E8F70C12201_01_VALUE_HANDLE)
+    if (!owner_ || connection != owner_->connection_)
+        return ATT_ERROR_WRITE_NOT_PERMITTED;
+    if (handle == ATT_CHARACTERISTIC_7D6B0004_5BF1_4F21_A486_3E8F70C12201_01_CLIENT_CONFIGURATION_HANDLE) {
+        ++owner_->diagnostics_.cccd_writes;
+        if (transaction != ATT_TRANSACTION_MODE_NONE || offset || !buffer || size != 2) {
+            ++owner_->diagnostics_.cccd_rejections;
+            if (transaction != ATT_TRANSACTION_MODE_NONE)
+                return ATT_ERROR_REQUEST_NOT_SUPPORTED;
+            return offset ? ATT_ERROR_INVALID_OFFSET : ATT_ERROR_INVALID_ATTRIBUTE_VALUE_LENGTH;
+        }
+        const auto value = little_endian_read_16(buffer, 0);
+        if (value != 0 && value != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION) {
+            ++owner_->diagnostics_.cccd_rejections;
+            return ATT_ERROR_VALUE_NOT_ALLOWED;
+        }
+        owner_->status_cccd_ = value;
+        if (value == 0)
+            owner_->inbound_.reset();
+        return ATT_ERROR_SUCCESS;
+    }
+    if (handle != ATT_CHARACTERISTIC_7D6B0003_5BF1_4F21_A486_3E8F70C12201_01_VALUE_HANDLE)
         return ATT_ERROR_WRITE_NOT_PERMITTED;
     if (transaction != ATT_TRANSACTION_MODE_NONE)
         return ATT_ERROR_REQUEST_NOT_SUPPORTED;
@@ -199,6 +226,10 @@ int PicoGattTransport::write_callback(hci_con_handle_t connection, std::uint16_t
         return ATT_ERROR_INVALID_OFFSET;
     if (!owner_->admit())
         return ATT_ERROR_INSUFFICIENT_AUTHENTICATION;
+    if (owner_->status_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION) {
+        owner_->inbound_.reset();
+        return ATT_ERROR_INSUFFICIENT_RESOURCES;
+    }
     ++owner_->diagnostics_.command_frames;
     const auto result = owner_->inbound_.receive(std::span(buffer, size));
     if (result == FrameResult::Pending)
