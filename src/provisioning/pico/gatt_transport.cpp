@@ -59,7 +59,16 @@ bool PicoGattTransport::start() {
 }
 
 void PicoGattTransport::poll() {
-    session_.poll(now());
+    const auto current = now();
+    session_.poll(current);
+    if (endpoint_ && !endpoint_->closed()) {
+        if (session_.authorized())
+            endpoint_->poll(current);
+        else
+            endpoint_->disconnect();
+    }
+    if (!send_requested_ && indication_ == Indication::None && output_pending())
+        (void)request_send();
 }
 
 PicoGattTransport::Diagnostics PicoGattTransport::diagnostics() const {
@@ -68,6 +77,7 @@ PicoGattTransport::Diagnostics PicoGattTransport::diagnostics() const {
     result.admitted = admitted_;
     result.send_requested = send_requested_;
     result.cccd_value = status_cccd_;
+    result.wtp_cccd_value = wtp_cccd_;
     result.outbound_frames = outbound_.size();
     result.outbound_index = outbound_index_;
     result.att_mtu = result.connected ? att_server_get_mtu(connection_) : 0;
@@ -109,12 +119,17 @@ void PicoGattTransport::disconnected() {
     else if (new_pairing_ && peer_index_ >= 0)
         le_device_db_remove(peer_index_);
     inbound_.reset();
+    if (endpoint_)
+        endpoint_->disconnect();
     for (auto& frame : outbound_)
         std::fill(frame.begin(), frame.end(), 0);
     outbound_.clear();
     outbound_index_ = 0;
     send_requested_ = false;
     status_cccd_ = 0;
+    wtp_cccd_ = 0;
+    indication_ = Indication::None;
+    wtp_indication_bytes_ = 0;
     connection_ = HCI_CON_HANDLE_INVALID;
     peer_index_ = -1;
     encrypted_ = false;
@@ -131,6 +146,10 @@ bool PicoGattTransport::queue(std::string_view notification) {
     outbound_ = gatt_frames(std::span(
         reinterpret_cast<const std::uint8_t*>(notification.data()), notification.size()));
     outbound_index_ = 0;
+    if (send_requested_ || indication_ != Indication::None) {
+        ++diagnostics_.responses_queued;
+        return true;
+    }
     if (request_send()) {
         ++diagnostics_.responses_queued;
         return true;
@@ -142,8 +161,33 @@ bool PicoGattTransport::queue(std::string_view notification) {
     return false;
 }
 
+bool PicoGattTransport::ensure_wtp_endpoint() {
+    if (!endpoint_)
+        return false;
+    if (!endpoint_->closed())
+        return true;
+    // A completion for the former logical endpoint still owns the recorded
+    // byte count. Do not let a reauthorization bind that completion to a new
+    // endpoint generation.
+    if (indication_ == Indication::Wtp)
+        return false;
+    if (!session_.authorized())
+        return false;
+    auto principal = session_.principal();
+    if (principal.empty())
+        return false;
+    endpoint_->connect(std::move(principal));
+    return !endpoint_->closed();
+}
+
+bool PicoGattTransport::output_pending() const {
+    return outbound_index_ < outbound_.size() ||
+           (wtp_cccd_ == GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION &&
+            endpoint_ && !endpoint_->closed() && !endpoint_->output().empty());
+}
+
 bool PicoGattTransport::request_send() {
-    if (send_requested_ || outbound_index_ >= outbound_.size() ||
+    if (send_requested_ || indication_ != Indication::None || !output_pending() ||
         connection_ == HCI_CON_HANDLE_INVALID)
         return false;
     send_requested_ = true;
@@ -168,16 +212,37 @@ void PicoGattTransport::can_send(void* context) {
 
 void PicoGattTransport::send_next() {
     send_requested_ = false;
-    if (outbound_index_ >= outbound_.size() || connection_ == HCI_CON_HANDLE_INVALID)
+    if (indication_ != Indication::None || connection_ == HCI_CON_HANDLE_INVALID)
         return;
-    const auto& frame = outbound_[outbound_index_];
-    diagnostics_.last_indication_status =
-        att_server_indicate(connection_, ATT_CHARACTERISTIC_7D6B0004_5BF1_4F21_A486_3E8F70C12201_01_VALUE_HANDLE,
-                            frame.data(), static_cast<std::uint16_t>(frame.size()));
+    std::uint16_t handle = 0;
+    std::span<const std::uint8_t> bytes;
+    if (outbound_index_ < outbound_.size()) {
+        handle = ATT_CHARACTERISTIC_7D6B0004_5BF1_4F21_A486_3E8F70C12201_01_VALUE_HANDLE;
+        bytes = outbound_[outbound_index_];
+        indication_ = Indication::Provisioning;
+    } else if (wtp_cccd_ == GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION &&
+               endpoint_ && !endpoint_->closed()) {
+        bytes = endpoint_->output();
+        const auto mtu = att_server_get_mtu(connection_);
+        const auto maximum = mtu > 3 ? std::min<std::size_t>(64, mtu - 3) : 0;
+        if (bytes.empty() || !maximum)
+            return;
+        bytes = bytes.first(std::min(bytes.size(), maximum));
+        handle = ATT_CHARACTERISTIC_7D6B0006_5BF1_4F21_A486_3E8F70C12201_01_VALUE_HANDLE;
+        wtp_indication_bytes_ = bytes.size();
+        indication_ = Indication::Wtp;
+    } else {
+        return;
+    }
+    diagnostics_.last_indication_status = att_server_indicate(
+        connection_, handle, bytes.data(), static_cast<std::uint16_t>(bytes.size()));
     if (diagnostics_.last_indication_status == ERROR_CODE_SUCCESS)
         ++diagnostics_.indications_started;
-    else
+    else {
+        indication_ = Indication::None;
+        wtp_indication_bytes_ = 0;
         (void)gap_disconnect(connection_);
+    }
 }
 
 std::uint16_t PicoGattTransport::read_callback(hci_con_handle_t connection, std::uint16_t handle,
@@ -188,6 +253,9 @@ std::uint16_t PicoGattTransport::read_callback(hci_con_handle_t connection, std:
     if (handle == ATT_CHARACTERISTIC_7D6B0004_5BF1_4F21_A486_3E8F70C12201_01_CLIENT_CONFIGURATION_HANDLE)
         return att_read_callback_handle_little_endian_16(
             owner_->status_cccd_, offset, buffer, size);
+    if (handle == ATT_CHARACTERISTIC_7D6B0006_5BF1_4F21_A486_3E8F70C12201_01_CLIENT_CONFIGURATION_HANDLE)
+        return att_read_callback_handle_little_endian_16(
+            owner_->wtp_cccd_, offset, buffer, size);
     if (handle != ATT_CHARACTERISTIC_7D6B0002_5BF1_4F21_A486_3E8F70C12201_01_VALUE_HANDLE)
         return 0;
     return att_read_callback_handle_blob(
@@ -200,7 +268,11 @@ int PicoGattTransport::write_callback(hci_con_handle_t connection, std::uint16_t
                                       std::uint8_t* buffer, std::uint16_t size) {
     if (!owner_ || connection != owner_->connection_)
         return ATT_ERROR_WRITE_NOT_PERMITTED;
-    if (handle == ATT_CHARACTERISTIC_7D6B0004_5BF1_4F21_A486_3E8F70C12201_01_CLIENT_CONFIGURATION_HANDLE) {
+    const bool provisioning_cccd =
+        handle == ATT_CHARACTERISTIC_7D6B0004_5BF1_4F21_A486_3E8F70C12201_01_CLIENT_CONFIGURATION_HANDLE;
+    const bool wtp_cccd =
+        handle == ATT_CHARACTERISTIC_7D6B0006_5BF1_4F21_A486_3E8F70C12201_01_CLIENT_CONFIGURATION_HANDLE;
+    if (provisioning_cccd || wtp_cccd) {
         ++owner_->diagnostics_.cccd_writes;
         if (transaction != ATT_TRANSACTION_MODE_NONE || offset || !buffer || size != 2) {
             ++owner_->diagnostics_.cccd_rejections;
@@ -213,10 +285,36 @@ int PicoGattTransport::write_callback(hci_con_handle_t connection, std::uint16_t
             ++owner_->diagnostics_.cccd_rejections;
             return ATT_ERROR_VALUE_NOT_ALLOWED;
         }
-        owner_->status_cccd_ = value;
-        if (value == 0)
+        (provisioning_cccd ? owner_->status_cccd_ : owner_->wtp_cccd_) = value;
+        if (provisioning_cccd && value == 0)
             owner_->inbound_.reset();
+        if (wtp_cccd && value == 0 && owner_->endpoint_)
+            owner_->endpoint_->disconnect();
         return ATT_ERROR_SUCCESS;
+    }
+    if (handle == ATT_CHARACTERISTIC_7D6B0005_5BF1_4F21_A486_3E8F70C12201_01_VALUE_HANDLE) {
+        if (transaction != ATT_TRANSACTION_MODE_NONE)
+            return ATT_ERROR_REQUEST_NOT_SUPPORTED;
+        if (offset)
+            return ATT_ERROR_INVALID_OFFSET;
+        if (!buffer || !size || size > 64)
+            return ATT_ERROR_INVALID_ATTRIBUTE_VALUE_LENGTH;
+        if (!owner_->admit() || !owner_->session_.authorized())
+            return ATT_ERROR_INSUFFICIENT_AUTHENTICATION;
+        if (owner_->wtp_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION ||
+            !owner_->ensure_wtp_endpoint() || !owner_->endpoint_->can_receive())
+            return ATT_ERROR_INSUFFICIENT_RESOURCES;
+        owner_->in_write_callback_ = true;
+        const auto consumed = owner_->endpoint_->receive(std::span(buffer, size), owner_->now());
+        if (consumed == size) {
+            ++owner_->diagnostics_.wtp_write_segments;
+            owner_->diagnostics_.wtp_write_bytes += size;
+        }
+        if (owner_->output_pending() && owner_->indication_ == Indication::None &&
+            !owner_->send_requested_)
+            (void)owner_->request_send();
+        owner_->in_write_callback_ = false;
+        return consumed == size ? ATT_ERROR_SUCCESS : ATT_ERROR_INSUFFICIENT_RESOURCES;
     }
     if (handle != ATT_CHARACTERISTIC_7D6B0003_5BF1_4F21_A486_3E8F70C12201_01_VALUE_HANDLE)
         return ATT_ERROR_WRITE_NOT_PERMITTED;
@@ -248,6 +346,8 @@ int PicoGattTransport::write_callback(hci_con_handle_t connection, std::uint16_t
     owner_->in_write_callback_ = false;
     if (!queued)
         return ATT_ERROR_INSUFFICIENT_RESOURCES;
+    if (owner_->session_.authorized())
+        (void)owner_->ensure_wtp_endpoint();
     return ATT_ERROR_SUCCESS;
 }
 
@@ -319,17 +419,29 @@ void PicoGattTransport::att_callback(std::uint8_t packet_type, std::uint16_t,
         (void)gap_disconnect(owner_->connection_);
         return;
     }
-    ++owner_->outbound_index_;
-    if (owner_->outbound_index_ < owner_->outbound_.size()) {
-        if (!owner_->request_send())
-            (void)gap_disconnect(owner_->connection_);
-        return;
+    const auto completed = owner_->indication_;
+    owner_->indication_ = Indication::None;
+    if (completed == Indication::Provisioning) {
+        ++owner_->outbound_index_;
+        if (owner_->outbound_index_ == owner_->outbound_.size()) {
+            for (auto& frame : owner_->outbound_)
+                std::fill(frame.begin(), frame.end(), 0);
+            owner_->outbound_.clear();
+            owner_->outbound_index_ = 0;
+            ++owner_->diagnostics_.responses_delivered;
+            owner_->session_.response_delivered(owner_->now());
+        }
+    } else if (completed == Indication::Wtp) {
+        // Authorization expiry or a CCCD write can close the logical endpoint
+        // while the controller still owes this ATT completion.
+        if (owner_->endpoint_ && !owner_->endpoint_->closed()) {
+            owner_->endpoint_->consume_output(owner_->wtp_indication_bytes_, owner_->now());
+            ++owner_->diagnostics_.wtp_indication_segments;
+            owner_->diagnostics_.wtp_indication_bytes += owner_->wtp_indication_bytes_;
+        }
+        owner_->wtp_indication_bytes_ = 0;
     }
-    for (auto& frame : owner_->outbound_)
-        std::fill(frame.begin(), frame.end(), 0);
-    owner_->outbound_.clear();
-    owner_->outbound_index_ = 0;
-    ++owner_->diagnostics_.responses_delivered;
-    owner_->session_.response_delivered(owner_->now());
+    if (owner_->output_pending() && !owner_->request_send())
+        (void)gap_disconnect(owner_->connection_);
 }
 } // namespace wsprrypico::provisioning

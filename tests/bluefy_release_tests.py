@@ -65,6 +65,8 @@ def main():
     assert "Find nearby WsprryPicos" in index and "readonly" in index
     assert 'id="show-access-password"' in index
     assert 'aria-controls="access-password"' in index
+    for control in ("identify", "sync-time", "field-status", "wtp-status"):
+        assert f'id="{control}"' in index
     for name in ("style.css", "bluefy.js", "app.js"):
         assert links.integrity[name] == sha384((RELEASE / name).read_bytes())
 
@@ -78,6 +80,9 @@ def main():
     for required in ("https_required", "release_asset_integrity", "navigator.serviceWorker.ready",
                      "updateViaCache", "client.connect()", "Confirm before authorizing"):
         assert required in app
+    for operation in ("client.identify()", "client.synchronizeTime()",
+                      "client.fieldStatus()", 'client.wtpExchange("STATUS", {})'):
+        assert operation in app
     assert '"serviceWorker" in navigator' in app
     assert "Promise.race" in app and "offline_cache_timeout" in app
     assert 'online verified' in app

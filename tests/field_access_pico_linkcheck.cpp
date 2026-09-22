@@ -83,7 +83,8 @@ int main() {
     Manager manager(profile_store, validator, device, &activation);
     CommandAdapter command(manager, device, Transport::Ble);
     BleCommandSession session(access, command, manager, device, activity, nullptr);
-    PicoGattTransport gatt(session, command.identity(), identity->advertising_name, now, nullptr);
+    PicoGattTransport gatt(session, nullptr, command.identity(), identity->advertising_name, now,
+                           nullptr);
     PicoIndicatorOutput led;
     PicoSoftAp softap;
     std::size_t retained = gatt.running() || softap.running() || session.authorized();

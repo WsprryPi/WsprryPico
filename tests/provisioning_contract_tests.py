@@ -9,6 +9,7 @@ repo = Path(__file__).resolve().parents[1]
 web = (repo / "src/provisioning/web/bluefy.js").read_text()
 command_header = (repo / "src/provisioning/command.hpp").read_text()
 command_source = (repo / "src/provisioning/command.cpp").read_text()
+ble_session = (repo / "src/provisioning/ble_session.cpp").read_text()
 profile_header = (repo / "src/provisioning/profile.hpp").read_text()
 gatt = (repo / "src/provisioning/pico/gatt_transport.cpp").read_text()
 gatt_profile = (repo / "src/provisioning/pico/field_access.gatt").read_text()
@@ -29,12 +30,18 @@ for name, value in {
     "identity": "7d6b0002-5bf1-4f21-a486-3e8f70c12201",
     "command": "7d6b0003-5bf1-4f21-a486-3e8f70c12201",
     "status": "7d6b0004-5bf1-4f21-a486-3e8f70c12201",
+    "wtpCommand": "7d6b0005-5bf1-4f21-a486-3e8f70c12201",
+    "wtpStatus": "7d6b0006-5bf1-4f21-a486-3e8f70c12201",
 }.items():
     assert re.search(rf"{name}: \"{re.escape(value)}\"", web)
 
 for operation in ("open", "write", "apply", "cancel"):
     assert f'operation: "{operation}"' in web
     assert f'operation == "{operation}"' in command_source
+
+for operation in ("identify", "field_status", "time_challenge", "time_submit"):
+    assert f'operation: "{operation}"' in web
+    assert f'name == "{operation}"' in ble_session
 
 for field in (
     "version",
@@ -51,10 +58,18 @@ for field in (
     assert re.search(rf"\b{field}\b", web)
 
 assert "INDICATE | ENCRYPTION_KEY_SIZE_16 | DYNAMIC" in gatt_profile
+assert "WRITE | ENCRYPTION_KEY_SIZE_16 | DYNAMIC" in gatt_profile
+assert "7D6B0005-5BF1-4F21-A486-3E8F70C12201" in gatt_profile
+assert "7D6B0006-5BF1-4F21-A486-3E8F70C12201" in gatt_profile
 assert "CLIENT_CONFIGURATION_HANDLE" in gatt
 assert "att_read_callback_handle_little_endian_16" in gatt
-assert "status_cccd_ = value;" in gatt
+assert "owner_->status_cccd_ : owner_->wtp_cccd_) = value;" in gatt
 assert "status_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION" in gatt
+assert "wtp_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION" in gatt
+assert "endpoint_->receive" in gatt and "endpoint_->consume_output" in gatt
 assert gatt.index("if (owner_->status_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION)") < gatt.index("owner_->inbound_.receive")
+assert "if (session_.authorized())\n            endpoint_->poll(current);" in gatt
+assert "owner_->endpoint_ && !owner_->endpoint_->closed()" in gatt
+assert "if (indication_ == Indication::Wtp)\n        return false;" in gatt
 
 print("Bluefy/C++ provisioning wire contract is synchronized")

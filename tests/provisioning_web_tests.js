@@ -1,7 +1,8 @@
 "use strict";
 const assert = require("assert");
 const {canonicalProfile, Client, FRAGMENT_BYTES, GATT_FRAME_BYTES, MAX_COMMAND_BYTES,
-  MAX_STATUS_BYTES, frames, FrameReceiver} = require("../src/provisioning/web/bluefy.js");
+  MAX_STATUS_BYTES, WTP_SEGMENT_BYTES, frames, FrameReceiver, crc32c, wtpFrame,
+  WtpReceiver} = require("../src/provisioning/web/bluefy.js");
 const device = "a".repeat(32);
 
 function profile(change) {
@@ -58,7 +59,49 @@ class Characteristic {
       response.generation = this.applyGeneration === undefined
         ? command.expected_generation + 1
         : this.applyGeneration;
+    if (command.operation === "identify") response.identified = true;
+    if (command.operation === "time_challenge") {
+      response.nonce = command.nonce;
+      response.sampled_monotonic_ns = "1000000000";
+    }
+    if (command.operation === "time_submit") response.accepted = true;
+    if (command.operation === "field_status") {
+      response.time_source = "controller";
+      response.time_age_ns = "0";
+      response.time_uncertainty_ns = "251000000";
+      response.time_disagreement = false;
+      response.indicator = "off";
+      response.indicator_fault = false;
+    }
     queueMicrotask(() => this.peer.emit(response));
+    return true;
+  }
+}
+class WtpCharacteristic extends Characteristic {
+  constructor() {
+    super();
+    this.receiver = new WtpReceiver();
+  }
+  emitWtp(value) {
+    const encoded = wtpFrame(value);
+    for (let offset = 0; offset < encoded.length; offset += 13)
+      this.emitBytes(encoded.subarray(offset, Math.min(encoded.length, offset + 13)));
+    encoded.fill(0);
+  }
+  async writeValueWithResponse(bytes) {
+    this.writtenSizes.push(bytes.byteLength);
+    for (const command of this.receiver.receive(
+      new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength))) {
+      this.commands.push(command);
+      if (!this.respond) continue;
+      const body = command.op === "HELLO"
+        ? {selected_version: "WTP/1", device_id: device, boot_id: "b".repeat(32),
+          product: "WsprryPico", firmware_version: "test"}
+        : {state: "empty", output_active: false};
+      queueMicrotask(() => this.peer.emitWtp({type: "response", protocol: "WTP/1",
+        session_id: command.session_id, request_id: command.request_id,
+        op: command.op, ok: true, body}));
+    }
     return true;
   }
 }
@@ -66,12 +109,17 @@ function bluetoothFixture(observedDevice = device, generation = 0) {
   const identity = new Characteristic({device_id: observedDevice, generation});
   const command = new Characteristic();
   const status = new Characteristic();
+  const wtpCommand = new WtpCharacteristic();
+  const wtpStatus = new WtpCharacteristic();
   command.peer = status;
+  wtpCommand.peer = wtpStatus;
   const characteristics = new Map();
   const api = require("../src/provisioning/web/bluefy.js");
   characteristics.set(api.UUIDS.identity, identity);
   characteristics.set(api.UUIDS.command, command);
   characteristics.set(api.UUIDS.status, status);
+  characteristics.set(api.UUIDS.wtpCommand, wtpCommand);
+  characteristics.set(api.UUIDS.wtpStatus, wtpStatus);
   const gatt = {connected: false, async connect() { this.connected = true; return this; },
     disconnect() { this.connected = false; },
     async getPrimaryService() { return {getCharacteristic: async (uuid) => characteristics.get(uuid)}; }};
@@ -87,8 +135,8 @@ function bluetoothFixture(observedDevice = device, generation = 0) {
       if (callback) callback({target: this});
     }
   };
-  return {bluetooth: {requestDevice: async () => deviceObject}, identity, command, status, gatt,
-    device: deviceObject};
+  return {bluetooth: {requestDevice: async () => deviceObject}, identity, command, status,
+    wtpCommand, wtpStatus, gatt, device: deviceObject};
 }
 async function rejectsCode(callback, code) {
   try { await callback(); assert.fail("expected rejection"); }
@@ -96,6 +144,20 @@ async function rejectsCode(callback, code) {
 }
 
 async function run() {
+  assert.strictEqual(crc32c(new TextEncoder().encode("123456789")), 0xe3069283);
+  const combinedReceiver = new WtpReceiver();
+  const firstFrame = wtpFrame({one: 1}), secondFrame = wtpFrame({two: 2});
+  const combined = new Uint8Array(firstFrame.length + secondFrame.length);
+  combined.set(firstFrame); combined.set(secondFrame, firstFrame.length);
+  assert.deepStrictEqual(combinedReceiver.receive(new DataView(combined.buffer)),
+    [{one: 1}, {two: 2}]);
+  const corrupt = wtpFrame({corrupt: true});
+  corrupt[corrupt.length - 1] ^= 1;
+  assert.throws(() => new WtpReceiver().receive(new DataView(corrupt.buffer)),
+    (error) => error.code === "wtp_crc");
+  firstFrame.fill(0); secondFrame.fill(0); combined.fill(0);
+  corrupt.fill(0);
+
   const canonical = canonicalProfile(profile());
   assert(canonical.value.includes('"hostname":"wsprrypico-010203.local"'));
   canonical.bytes.fill(0);
@@ -137,6 +199,32 @@ async function run() {
   assert.deepStrictEqual(await client.connect(), {device_id: device, generation: 0});
   await rejectsCode(() => client.provision(profile()), "authentication_required");
   assert.deepStrictEqual(await client.authorize("wspr-0a60df"), {authorized: true});
+  assert.deepStrictEqual(await client.identify(), {identified: true});
+  assert.deepStrictEqual(await client.synchronizeTime(1800000000000), {accepted: true});
+  assert.strictEqual((await client.fieldStatus()).time_source, "controller");
+  const hello = await client.enableLocalControl();
+  assert.strictEqual(hello.device_id, device);
+  assert.deepStrictEqual(await client.wtpExchange("STATUS", {}),
+    {state: "empty", output_active: false});
+  assert.deepStrictEqual(fixture.wtpCommand.commands.map((item) => item.op), ["HELLO", "STATUS"]);
+  assert(fixture.wtpCommand.writtenSizes.every((size) => size <= WTP_SEGMENT_BYTES));
+  fixture.wtpCommand.respond = false;
+  const pendingWtp = client.wtpExchange("PING", {token: "one-at-a-time"});
+  await new Promise((resolve) => setImmediate(resolve));
+  await rejectsCode(() => client.wtpExchange("CAPS", {}), "wtp_busy");
+  const pendingCommand = fixture.wtpCommand.commands.at(-1);
+  fixture.wtpStatus.emitWtp({type: "response", protocol: "WTP/1",
+    session_id: pendingCommand.session_id, request_id: pendingCommand.request_id,
+    op: pendingCommand.op, ok: true, body: {token: "one-at-a-time"}});
+  assert.deepStrictEqual(await pendingWtp, {token: "one-at-a-time"});
+  fixture.wtpCommand.respond = true;
+  fixture.command.respond = false;
+  const invalidFieldStatus = client.fieldStatus();
+  await new Promise((resolve) => setImmediate(resolve));
+  const fieldRequest = fixture.command.commands.at(-1);
+  fixture.status.emit({request_id: fieldRequest.request_id, ok: true});
+  await rejectsCode(() => invalidFieldStatus, "field_status_response");
+  fixture.command.respond = true;
   const result = await client.provision(profile());
   assert.deepStrictEqual(result, {generation: 1});
   assert.strictEqual(client.pending.size, 0);
@@ -151,7 +239,7 @@ async function run() {
     assert.strictEqual(writes[i].final, i === writes.length - 1);
   }
   assert.strictEqual(fixture.command.commands[0].operation, "authorize");
-  assert.strictEqual(fixture.command.commands[1].operation, "open");
+  assert(fixture.command.commands.findIndex((command) => command.operation === "open") > 0);
   assert.strictEqual(fixture.command.commands.at(-1).operation, "apply");
   assert(fixture.command.commands.every((command) => command.device_id === device));
   const commandSizes = fixture.command.commands.map((command) =>
@@ -163,6 +251,21 @@ async function run() {
   assert(fixture.status.emittedSizes.every((size) => size <= GATT_FRAME_BYTES));
   assert(fixture.status.emittedSizes.some((size) => size > 20),
     "mock GATT must not be mistaken for default-ATT-MTU status evidence");
+
+  const corruptWtpFixture = bluetoothFixture();
+  const corruptWtpClient = new Client(corruptWtpFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  await corruptWtpClient.connect(device);
+  await corruptWtpClient.authorize("wspr-0a60df");
+  await corruptWtpClient.enableLocalControl();
+  corruptWtpFixture.wtpCommand.respond = false;
+  const corruptWtpPending = corruptWtpClient.wtpExchange("STATUS", {});
+  await new Promise((resolve) => setImmediate(resolve));
+  const badWtpResponse = wtpFrame({invalid: true});
+  badWtpResponse[badWtpResponse.length - 1] ^= 1;
+  corruptWtpFixture.wtpStatus.emitBytes(badWtpResponse);
+  badWtpResponse.fill(0);
+  await rejectsCode(() => corruptWtpPending, "wtp_crc");
+  assert.strictEqual(corruptWtpFixture.gatt.connected, false);
 
   const returnedStatusFixture = bluetoothFixture();
   const returnedStatus = new Characteristic();

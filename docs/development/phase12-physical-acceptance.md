@@ -22,8 +22,10 @@ It does not reopen or silently extend Phase 11.6, and it cannot establish Phase
 The production-integration tranche enables the provisioning-only GATT service,
 network-only activation platform and indicator controller in the standard
 RF-inhibited image. It retains one CYW43 owner and supplies the repository-owned
-offline Bluefy release. SoftAP DHCP/HTTP/HTTPS, BLE WTP/local job control and
-authenticated controller time are still not connected to production.
+offline Bluefy release. The later source-only continuation production-connects
+authenticated controller time, Identify/status and an unchanged BLE WTP/1
+stream, but none has live acceptance on the candidate. SoftAP DHCP/HTTP/HTTPS
+and its independent browser/control path are still not connected to production.
 
 The operated candidate is Pico 2 W USB serial `0BF4B4AEC9FFB344`, device ID
 `fd6127d11d6aca42a9905fa3fb1bf1d5`, station MAC

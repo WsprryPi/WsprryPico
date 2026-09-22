@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="wsprry-bluefy-release" content="23ab8f69dcf3ab28186022ce818e280faa98a78b80c0e32e2552323e24f115de">
+  <meta name="wsprry-bluefy-release" content="037b80144b7eb8079aca78be42635408530e2752d46fb8112e10f34d41f7916d">
   <title>WsprryPico Provisioning</title>
   <link rel="stylesheet" href="style.css" integrity="sha384-g52748ljPA1dgqckeZjGgZmgURiCfUUiOBtvjALxP+hx1eQO0D/m+qdF+lH9Zcgf" crossorigin="anonymous">
   <link rel="manifest" href="manifest.webmanifest">
@@ -17,6 +17,8 @@
     <form id="provisioning" autocomplete="off">
       <label>Selected device ID <input name="device_id" pattern="[0-9a-f]{32}" maxlength="32" placeholder="Choose a nearby WsprryPico" readonly required></label>
       <label>Local access password <input id="access-password" name="access_password" type="password" minlength="8" maxlength="63" autocomplete="current-password" disabled required></label>
+      <p>A new pairing checks this password. A retained authorized bond resumes ordinary local
+        access without treating this entry as a fresh password proof.</p>
       <div class="actions">
         <button id="show-access-password" type="button" aria-controls="access-password"
           aria-pressed="false" disabled>Show local password</button>
@@ -40,11 +42,21 @@
           <button id="cancel" type="button">Cancel</button>
         </div>
       </fieldset>
+      <fieldset id="local-controls" disabled>
+        <legend>Authenticated local controls</legend>
+        <p>These controls use the same selected Pico and authenticated BLE bond.</p>
+        <div class="actions">
+          <button id="identify" type="button">Identify LED</button>
+          <button id="sync-time" type="button">Sync phone time</button>
+          <button id="field-status" type="button">Read field status</button>
+          <button id="wtp-status" type="button">Read WTP status</button>
+        </div>
+      </fieldset>
     </form>
     <output id="status" role="status" aria-live="polite">Verifying release and offline cache…</output>
     <p>No credential is stored by this page. Clear the Bluefy tab after provisioning.</p>
   </main>
-  <script src="bluefy.js" integrity="sha384-C/4xVKeaQBLkE8pr6EOaGNLe+f78TAfIvVb8OBJVhP/QM4sFSsKcik3MrWqjlmnp" crossorigin="anonymous"></script>
-  <script src="app.js" integrity="sha384-7Y7rcXHgJHyLa1xPHkZAmy2u79wwh0jSpYpvoO0ecn0sM0dY0zZW0Q738pJu+ZgG" crossorigin="anonymous"></script>
+  <script src="bluefy.js" integrity="sha384-2eCUH+/CfCsDHCrgDHEuNar8Q8z3Ib7qsCUI6FvvUi5O9AXZk0T577aS8Jgawhyc" crossorigin="anonymous"></script>
+  <script src="app.js" integrity="sha384-evNh5o5uauXAUQoxbyIgexqoRHMINI9sREuu6fInc6P2aM8EhFtR7RLWleEuSwYs" crossorigin="anonymous"></script>
 </body>
 </html>

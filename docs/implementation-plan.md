@@ -80,10 +80,14 @@ treated as long-term product documentation.
     provisioning-only GATT service, network-only activator and indicator in the
     standard RF-inhibited image and builds an integrity-inventoried offline
     Bluefy release. Candidate adoption, preserved operational state and BLE
-    advertising have partial physical evidence.
+    advertising have partial physical evidence. The subsequent
+    [BLE local-control continuation](development/phase12-ble-local-control-review.md)
+    production-connects controller time, Identify/status and a separate
+    unchanged WTP/1 stream to the same authorized GATT session and one
+    `JobService`; this later slice currently has hardware-free evidence only.
 
     Bluefy/iOS pairing and offline reuse, provisioning/activation, SoftAP,
-    BLE WTP/browser service, phone time, LED behavior, reset controls,
+    physical BLE WTP/browser service, phone time, LED behavior, reset controls,
     coexistence/resource soak and the rest of the RF-inhibited-first physical
     matrix remain open. Phase 12 is active.
 

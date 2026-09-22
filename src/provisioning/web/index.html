@@ -17,6 +17,8 @@
     <form id="provisioning" autocomplete="off">
       <label>Selected device ID <input name="device_id" pattern="[0-9a-f]{32}" maxlength="32" placeholder="Choose a nearby WsprryPico" readonly required></label>
       <label>Local access password <input id="access-password" name="access_password" type="password" minlength="8" maxlength="63" autocomplete="current-password" disabled required></label>
+      <p>A new pairing checks this password. A retained authorized bond resumes ordinary local
+        access without treating this entry as a fresh password proof.</p>
       <div class="actions">
         <button id="show-access-password" type="button" aria-controls="access-password"
           aria-pressed="false" disabled>Show local password</button>
@@ -38,6 +40,16 @@
         <div class="actions">
           <button type="submit">Validate and provision</button>
           <button id="cancel" type="button">Cancel</button>
+        </div>
+      </fieldset>
+      <fieldset id="local-controls" disabled>
+        <legend>Authenticated local controls</legend>
+        <p>These controls use the same selected Pico and authenticated BLE bond.</p>
+        <div class="actions">
+          <button id="identify" type="button">Identify LED</button>
+          <button id="sync-time" type="button">Sync phone time</button>
+          <button id="field-status" type="button">Read field status</button>
+          <button id="wtp-status" type="button">Read WTP status</button>
         </div>
       </fieldset>
     </form>

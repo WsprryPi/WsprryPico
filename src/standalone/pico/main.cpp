@@ -244,6 +244,8 @@ int main() {
     static wsprrypico::wtp::JobService service(clock, engine, identities, config);
     static wsprrypico::wtp::Endpoint endpoint(service, identities.device_id(),
                                               wsprrypico::firmware::kFirmwareVersion);
+    static wsprrypico::wtp::Endpoint ble_endpoint(service, identities.device_id(),
+                                                  wsprrypico::firmware::kFirmwareVersion);
     static wsprrypico::standalone::Scheduler scheduler(store, service);
     wsprrypico::provisioning::CredentialMaterial tls_credentials;
     if (runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Provisioned)
@@ -334,8 +336,9 @@ int main() {
     static wsprrypico::provisioning::BleCommandSession ble_session(
         local_access, provisioning_command, provisioning_manager, identities.device_id(),
         provisioning_activity, &service);
+    ble_session.field_controls(&time_arbiter, &indicator);
     static wsprrypico::provisioning::PicoGattTransport gatt(
-        ble_session, provisioning_command.identity(), local_identity.advertising_name,
+        ble_session, &ble_endpoint, provisioning_command.identity(), local_identity.advertising_name,
         monotonic_ms, nullptr);
     bool gatt_start_attempted = false;
 #ifdef WSPRRY_PICO_STANDALONE_RF
@@ -592,6 +595,11 @@ int main() {
             number_field(result, "cccd_writes", ble.cccd_writes);
             number_field(result, "cccd_rejections", ble.cccd_rejections);
             number_field(result, "cccd_value", ble.cccd_value);
+            number_field(result, "wtp_cccd_value", ble.wtp_cccd_value);
+            number_field(result, "wtp_write_segments", ble.wtp_write_segments);
+            number_field(result, "wtp_write_bytes", ble.wtp_write_bytes);
+            number_field(result, "wtp_indication_segments", ble.wtp_indication_segments);
+            number_field(result, "wtp_indication_bytes", ble.wtp_indication_bytes);
             number_field(result, "last_request_status", ble.last_request_status);
             number_field(result, "last_indication_status", ble.last_indication_status);
             number_field(result, "last_completion_status", ble.last_completion_status);

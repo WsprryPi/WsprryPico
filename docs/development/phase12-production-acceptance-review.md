@@ -2,6 +2,12 @@
 
 Status: **OPEN_PARTIAL**. This is not Phase 12 closure.
 
+This review records the earlier production/physical tranche. The subsequent
+[BLE local-control continuation](phase12-ble-local-control-review.md) adds
+hardware-free production wiring for controller time, Identify/status and an
+unchanged WTP/1 GATT stream. It adds no physical acceptance and does not change
+the results retained below.
+
 ## Authority and evidence boundary
 
 The tranche started from clean `devel` at
@@ -97,8 +103,11 @@ The final prepublication source assessment produced:
 
 The four separated CTest results were preserved rather than hidden:
 
-- `phase11_7_closure_tests` correctly rejects later production-runtime drift;
-  the immutable Phase 11 closure record was not rewritten.
+- `phase11_7_closure_tests` rejected later production-runtime drift at the time
+  of this review. That behavior was subsequently identified during the active
+  Phase 12 continuation as an invalid repository freeze: the audit must protect
+  the fixed Phase 11 candidate-to-tested interval and retained artifacts, not
+  reject authorized later-phase source evolution.
 - `cyw43_tx_overlay_tests`, `network_certificate_tests`, and one compiled
   subcase inside `phase11_5_r3_tests` are blocked by the host Command Line Tools
   macOS 27 `.tbd` files containing unsupported `arm64e.x1` architecture

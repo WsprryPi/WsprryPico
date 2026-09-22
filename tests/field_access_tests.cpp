@@ -443,6 +443,10 @@ provisioning::Activity idle_activity(void*) {
     return {};
 }
 
+std::uint64_t fixture_monotonic(void* context) {
+    return *static_cast<std::uint64_t*>(context);
+}
+
 void ble_command_policy() {
     AccessFixture f;
     auto enroll = binding("ble-enroll");
@@ -455,8 +459,20 @@ void ble_command_policy() {
     provisioning::Manager manager(profile_store, validator, std::string(device));
     provisioning::CommandAdapter command(manager, std::string(device),
                                           provisioning::Transport::Ble);
+    std::uint64_t now_ns = 1'000'000'000ULL;
+    time::DisciplineConfig time_config;
+    time_config.synchronized_for_ns = 90'000'000'000ULL;
+    time_config.holdover_for_ns = 180'000'000'000ULL;
+    time_config.max_observation_age_ns = 90'000'000'000ULL;
+    time_config.max_uncertainty_ns = time::standalone_max_uncertainty_ns;
+    time::UtcDiscipline discipline(fixture_monotonic, &now_ns, time_config);
+    time::ControllerTimeArbiter arbiter(discipline, fixture_monotonic, &now_ns,
+                                        std::string(device));
+    Led led;
+    provisioning::IndicatorController indicator(led, std::string(device));
     provisioning::BleCommandSession session(f.controller, command, manager,
                                              std::string(device), idle_activity, nullptr);
+    session.field_controls(&arbiter, &indicator);
     CHECK(session.connected(9, true, true, "link-a", 1));
     const std::string open =
         "{\"version\":1,\"operation\":\"open\","
@@ -464,6 +480,13 @@ void ble_command_policy() {
         "\"session_id\":\"22222222222222222222222222222222\","
         "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
     CHECK(session.handle(open, 2).code == provisioning::Code::AuthenticationRequired);
+    const std::string unauthorized_identify =
+        "{\"version\":1,\"operation\":\"identify\","
+        "\"request_id\":\"55555555555555555555555555555555\","
+        "\"session_id\":\"44444444444444444444444444444444\","
+        "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
+    CHECK(session.handle(unauthorized_identify, 2).code ==
+          provisioning::Code::AuthenticationRequired);
     const std::string authorize =
         "{\"version\":1,\"operation\":\"authorize\","
         "\"request_id\":\"33333333333333333333333333333333\","
@@ -473,6 +496,49 @@ void ble_command_policy() {
     const auto admitted = session.handle(authorize, 3);
     CHECK(admitted.code == provisioning::Code::Ok);
     CHECK(session.authorized());
+    CHECK(!session.principal().empty());
+    const std::string identify =
+        "{\"version\":1,\"operation\":\"identify\","
+        "\"request_id\":\"66666666666666666666666666666666\","
+        "\"session_id\":\"44444444444444444444444444444444\","
+        "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
+    CHECK(session.handle(identify, 4).code == provisioning::Code::Ok);
+    auto wrong_field_session = identify;
+    wrong_field_session.replace(
+        wrong_field_session.find("44444444444444444444444444444444"), 32,
+        "44444444444444444444444444444445");
+    wrong_field_session.replace(
+        wrong_field_session.find("66666666666666666666666666666666"), 32,
+        "66666666666666666666666666666667");
+    CHECK(session.handle(wrong_field_session, 4).code ==
+          provisioning::Code::AuthenticationRequired);
+    indicator.poll(4);
+    CHECK(indicator.status(4).pattern == provisioning::IndicatorPattern::Identify);
+    const std::string challenge =
+        "{\"version\":1,\"operation\":\"time_challenge\","
+        "\"request_id\":\"88888888888888888888888888888888\","
+        "\"session_id\":\"44444444444444444444444444444444\","
+        "\"device_id\":\"00112233445566778899aabbccddeeff\","
+        "\"nonce\":\"phone-sample-1\"}";
+    CHECK(session.handle(challenge, 5).code == provisioning::Code::Ok);
+    now_ns += 10'000'000ULL;
+    const std::string submit =
+        "{\"version\":1,\"operation\":\"time_submit\","
+        "\"request_id\":\"99999999999999999999999999999999\","
+        "\"session_id\":\"44444444444444444444444444444444\","
+        "\"device_id\":\"00112233445566778899aabbccddeeff\","
+        "\"nonce\":\"phone-sample-1\","
+        "\"utc_ns\":\"1800000000000000000\"}";
+    CHECK(session.handle(submit, 6).code == provisioning::Code::Ok);
+    const std::string field_status =
+        "{\"version\":1,\"operation\":\"field_status\","
+        "\"request_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\","
+        "\"session_id\":\"44444444444444444444444444444444\","
+        "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
+    const auto field = session.handle(field_status, 7);
+    CHECK(field.code == provisioning::Code::Ok);
+    CHECK(field.notification.find("\"time_source\":\"controller\"") != std::string::npos);
+    CHECK(field.notification.size() <= provisioning::max_notification_bytes);
     CHECK(session.handle(open, 4).code == provisioning::Code::Replay);
     auto admitted_open = open;
     admitted_open.replace(admitted_open.find("11111111111111111111111111111111"), 32,

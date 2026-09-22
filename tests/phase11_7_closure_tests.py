@@ -42,6 +42,10 @@ class Phase117ClosureTests(unittest.TestCase):
         self.assertIn("no hardware or RF operations", review)
 
     def test_historical_source_checks_use_fixed_review_cutoffs(self):
+        closure = (ROOT / "scripts/audit_phase11_7.py").read_text()
+        self.assertNotIn("working_names", closure)
+        self.assertIn("PICO_CANDIDATE, PICO_TESTED", closure)
+        self.assertIn("PI_BASE, PI_TESTED", closure)
         package6 = (ROOT / "scripts/audit_phase11_5_package6.py").read_text()
         package7 = (ROOT / "tests/phase11_5_package7_tests.py").read_text()
         package8 = (ROOT / "tests/phase11_5_package8_tests.py").read_text()

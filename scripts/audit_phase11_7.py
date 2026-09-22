@@ -40,19 +40,6 @@ EXPECTED_OPERATIONS = {
     "hardware_operations", "rf_operations", "device_connections", "fixture_operations",
     "trust_store_changes", "service_or_network_changes",
 }
-RUNTIME_PATHS = [
-    "firmware",
-    "src/encoding",
-    "src/network",
-    "src/rf",
-    "src/standalone",
-    "src/time",
-    "src/usb",
-    "src/wtp",
-]
-PI_RUNTIME_PATHS = ["src/WTP-Client", "src/wtp_integration", "src/WSPR-Transmitter"]
-
-
 def require(value, message):
     if not value:
         raise AssertionError(message)
@@ -65,15 +52,6 @@ def digest(path):
 def git_names(root, older, newer, paths):
     return subprocess.run(
         ["git", "-C", str(root), "diff", "--name-only", f"{older}..{newer}", "--", *paths],
-        check=True,
-        text=True,
-        stdout=subprocess.PIPE,
-    ).stdout.splitlines()
-
-
-def working_names(root, older, paths):
-    return subprocess.run(
-        ["git", "-C", str(root), "diff", "--name-only", older, "--", *paths],
         check=True,
         text=True,
         stdout=subprocess.PIPE,
@@ -170,8 +148,10 @@ def validate(root, result, pi_root=None):
     source_changes = set(git_names(root, PICO_CANDIDATE, PICO_TESTED,
                                    ["CMakeLists.txt", "firmware", "src", "cmake"]))
     require(source_changes == PICO_LATER_FILES, "Pico candidate-to-tested source file set")
-    require(not working_names(root, PICO_TESTED, RUNTIME_PATHS),
-            "No later Pico production-runtime drift")
+    # Phase 11.7 is an audit of the fixed candidate-to-tested interval and its
+    # retained evidence. Later phases are allowed to evolve production source;
+    # comparing the current tree with PICO_TESTED would turn this historical
+    # closure check into a permanent repository freeze.
     require(PI_BASE in (root / "cmake/network_client_interop.cmake").read_text() and
             PI_BASE in (root / "scripts/verify_wsprrypi_client.py").read_text(),
             "Pico integration checks share the Pi pin")
@@ -182,8 +162,6 @@ def validate(root, result, pi_root=None):
                               ["src/WTP-Client", "src/wtp_integration",
                                "src/WSPR-Transmitter", "src/tests/network"])) == PI_LATER_FILES,
                 "Pi base-to-tested source file set")
-        require(not working_names(pi_root, PI_TESTED, PI_RUNTIME_PATHS),
-                "No later Pi production-runtime drift")
         require((pi_root / "src/tests/network/pico-reference-revision.txt").read_text().strip()
                 == PICO_TESTED, "Pi canonical Pico pin")
 

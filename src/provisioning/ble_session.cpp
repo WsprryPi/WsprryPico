@@ -2,6 +2,7 @@
 
 #include "wtp/json.hpp"
 
+#include <charconv>
 #include <optional>
 
 namespace wsprrypico::provisioning {
@@ -58,6 +59,64 @@ CommandReply reply(std::string_view request_id, AccessCode code, std::uint64_t g
     notification += ",\"generation\":" + std::to_string(generation) + "}";
     return {manager_code(code), std::move(notification)};
 }
+
+CommandReply field_reply(std::string_view request_id, Code code, std::string body = {}) {
+    if (request_id.size() != 32)
+        return {};
+    std::string notification = "{\"version\":1,\"request_id\":" +
+                               wtp::json::quote(request_id) + ",\"ok\":" +
+                               (code == Code::Ok ? "true" : "false");
+    if (code != Code::Ok)
+        notification += ",\"error\":" + wtp::json::quote(code_name(code));
+    else if (!body.empty())
+        notification += "," + body;
+    notification += '}';
+    if (notification.size() > max_notification_bytes)
+        return {};
+    return {code, std::move(notification)};
+}
+
+Code time_code(time::ControllerTimeCode code) {
+    using time::ControllerTimeCode;
+    switch (code) {
+    case ControllerTimeCode::Ok: return Code::Ok;
+    case ControllerTimeCode::Invalid: return Code::InvalidRequest;
+    case ControllerTimeCode::WrongDevice: return Code::WrongDevice;
+    case ControllerTimeCode::AuthenticationRequired: return Code::AuthenticationRequired;
+    case ControllerTimeCode::Replay: return Code::Replay;
+    case ControllerTimeCode::Timeout: return Code::Timeout;
+    case ControllerTimeCode::SourceBusy: return Code::Busy;
+    case ControllerTimeCode::Disagreement: return Code::Conflict;
+    case ControllerTimeCode::Uncertainty: return Code::InvalidRequest;
+    }
+    return Code::InvalidRequest;
+}
+
+std::string_view source_name(time::ActiveTimeSource source) {
+    switch (source) {
+    case time::ActiveTimeSource::None: return "none";
+    case time::ActiveTimeSource::Sntp: return "sntp";
+    case time::ActiveTimeSource::Controller: return "controller";
+    case time::ActiveTimeSource::Disagreement: return "disagreement";
+    }
+    return "none";
+}
+
+std::string_view pattern_name(IndicatorPattern pattern) {
+    switch (pattern) {
+    case IndicatorPattern::Off: return "off";
+    case IndicatorPattern::SoftApReady: return "softap_ready";
+    case IndicatorPattern::Identify: return "identify";
+    }
+    return "off";
+}
+
+bool decimal(std::string_view value, std::uint64_t& output) {
+    if (value.empty() || (value.size() > 1 && value.front() == '0'))
+        return false;
+    const auto parsed = std::from_chars(value.data(), value.data() + value.size(), output);
+    return parsed.ec == std::errc{} && parsed.ptr == value.data() + value.size();
+}
 } // namespace
 
 bool BleCommandSession::connected(std::uint64_t peer, bool encrypted, bool new_pairing,
@@ -72,6 +131,7 @@ void BleCommandSession::disconnected() {
     if (connected_)
         (void)access_.ble_disconnect();
     connected_ = false;
+    secure_clear(field_session_);
     secure_clear(pending_apply_request_);
     pending_apply_generation_ = 0;
     delivery_confirmed_ = false;
@@ -79,6 +139,10 @@ void BleCommandSession::disconnected() {
 
 bool BleCommandSession::authorized() const {
     return connected_ && access_.ble_authorization().authenticated;
+}
+
+std::string BleCommandSession::principal() const {
+    return connected_ ? access_.ble_authorization().principal : std::string{};
 }
 
 CommandReply BleCommandSession::authorize(std::string_view command, std::uint64_t now_ms) {
@@ -107,7 +171,106 @@ CommandReply BleCommandSession::authorize(std::string_view command, std::uint64_
                                  ? access_.ble_authorize(password, now_ms).code
                                  : AccessCode::AuthenticationRequired);
     secure_clear(password);
+    if (code == AccessCode::Ok)
+        field_session_ = session->string();
     return reply(request_id, code, manager_.status().generation);
+}
+
+CommandReply BleCommandSession::field_command(std::string_view command,
+                                              std::uint64_t now_ms) {
+    const auto root = wtp::json::parse(command);
+    if (!root)
+        return {};
+    const auto version = root->get("version");
+    const auto operation = root->get("operation");
+    const auto request = root->get("request_id");
+    const auto session = root->get("session_id");
+    const auto device = root->get("device_id");
+    if (!version || version->type() != '1' || version->integer() != 1 || !operation ||
+        operation->type() != '"' || !request || !wtp::json::identifier(*request) || !session ||
+        !wtp::json::identifier(*session) || !device || !wtp::json::identifier(*device))
+        return {};
+    const auto request_id = request->string();
+    if (device->string() != device_id_)
+        return field_reply(request_id, Code::WrongDevice);
+    const auto authorization = access_.ble_authorization();
+    if (!authorization.authenticated || !authorization.confidential ||
+        !authorization.local || authorization.principal.empty() || field_session_.empty() ||
+        session->string() != field_session_)
+        return field_reply(request_id, Code::AuthenticationRequired);
+
+    const auto name = operation->string();
+    if (name == "identify") {
+        if (!wtp::json::fields(*root,
+                               {"version", "operation", "request_id", "session_id",
+                                "device_id"}) ||
+            !indicator_)
+            return field_reply(request_id, Code::InvalidRequest);
+        const auto code = indicator_->identify(request_id, device_id_, true, true, now_ms);
+        if (code == IndicatorCode::Ok)
+            return field_reply(request_id, Code::Ok, "\"identified\":true");
+        if (code == IndicatorCode::Busy)
+            return field_reply(request_id, Code::Busy);
+        if (code == IndicatorCode::OutputFault)
+            return field_reply(request_id, Code::ActivationFault);
+        return field_reply(request_id, Code::InvalidRequest);
+    }
+    if (name == "field_status") {
+        if (!wtp::json::fields(*root,
+                               {"version", "operation", "request_id", "session_id",
+                                "device_id"}) ||
+            !controller_time_ || !indicator_)
+            return field_reply(request_id, Code::InvalidRequest);
+        const auto time_status = controller_time_->status();
+        const auto indicator_status = indicator_->status(now_ms);
+        return field_reply(
+            request_id, Code::Ok,
+            "\"time_source\":" + wtp::json::quote(source_name(time_status.source)) +
+                ",\"time_age_ns\":\"" + std::to_string(time_status.age_ns) +
+                "\",\"time_uncertainty_ns\":\"" +
+                std::to_string(time_status.uncertainty_ns) +
+                "\",\"time_disagreement\":" +
+                (time_status.disagreement ? "true" : "false") +
+                ",\"indicator\":" + wtp::json::quote(pattern_name(indicator_status.pattern)) +
+                ",\"indicator_fault\":" +
+                (indicator_status.output_fault ? "true" : "false"));
+    }
+    if (name == "time_challenge") {
+        if (!wtp::json::fields(*root,
+                               {"version", "operation", "request_id", "session_id",
+                                "device_id", "nonce"}) ||
+            !controller_time_)
+            return field_reply(request_id, Code::InvalidRequest);
+        const auto nonce = root->get("nonce");
+        if (!nonce || nonce->type() != '"')
+            return field_reply(request_id, Code::InvalidRequest);
+        auto result = controller_time_->challenge(authorization.principal, session->string(),
+                                                  device_id_, nonce->string());
+        const auto code = time_code(result.code);
+        if (code != Code::Ok)
+            return field_reply(request_id, code);
+        return field_reply(request_id, Code::Ok,
+                           "\"nonce\":" + wtp::json::quote(result.nonce) +
+                               ",\"sampled_monotonic_ns\":\"" +
+                               std::to_string(result.sampled_monotonic_ns) + "\"");
+    }
+    if (name == "time_submit") {
+        if (!wtp::json::fields(*root,
+                               {"version", "operation", "request_id", "session_id",
+                                "device_id", "nonce", "utc_ns"}) ||
+            !controller_time_)
+            return field_reply(request_id, Code::InvalidRequest);
+        const auto nonce = root->get("nonce");
+        const auto utc = root->get("utc_ns");
+        std::uint64_t utc_ns = 0;
+        if (!nonce || nonce->type() != '"' || !utc || utc->type() != '"' ||
+            !decimal(utc->string(), utc_ns))
+            return field_reply(request_id, Code::InvalidRequest);
+        const auto code = time_code(controller_time_->submit(
+            authorization.principal, session->string(), device_id_, nonce->string(), utc_ns));
+        return field_reply(request_id, code, code == Code::Ok ? "\"accepted\":true" : "");
+    }
+    return {};
 }
 
 CommandReply BleCommandSession::handle(std::string_view command, std::uint64_t now_ms) {
@@ -117,6 +280,10 @@ CommandReply BleCommandSession::handle(std::string_view command, std::uint64_t n
     const auto operation = parsed ? parsed->get("operation") : std::nullopt;
     if (operation && operation->type() == '"' && operation->string() == "authorize")
         return authorize(command, now_ms);
+    if (operation && operation->type() == '"' &&
+        (operation->string() == "identify" || operation->string() == "field_status" ||
+         operation->string() == "time_challenge" || operation->string() == "time_submit"))
+        return field_command(command, now_ms);
     const auto authorization = access_.ble_authorization();
     const auto activity = activity_ ? activity_(context_) : Activity{};
     auto response = command_.handle(command, authorization, activity, now_ms);

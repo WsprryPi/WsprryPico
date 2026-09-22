@@ -1,12 +1,15 @@
 # Phase 12 provisioning implementation and acceptance plan
 
 Status: active. P12.1-P12.5 remain accepted within their documented
-hardware-free scopes. P12.6 now production-enables provisioning-only BLE, the
-network-only live activator and indicator construction in the RF-inhibited
-standard image and produces a deterministic offline Bluefy release. Its
-identity/adoption/advertising physical subset has passed. SoftAP,
-BLE WTP/local management, phone time, reset/gesture work and most physical
-acceptance remain open. The revisited P12.3 source slice remains
+hardware-free scopes. P12.6 now production-enables BLE provisioning plus
+authenticated controller time, Identify/status and an unchanged WTP/1 stream,
+the network-only live activator and indicator construction in the RF-inhibited
+standard image, and a deterministic offline Bluefy release. Its
+identity/adoption/advertising physical subset has passed. SoftAP, physical BLE
+WTP/local management and phone-time behavior, reset/gesture work and most
+physical acceptance remain open. The later BLE source boundary is reviewed in
+the [BLE local-control continuation](phase12-ble-local-control-review.md). The
+revisited P12.3 source slice remains
 **CLOSED_SCOPED** by the [P12.3 closeout](phase12-3-review.md); the later
 production work does not rewrite that evidence. The operator-selected
 [field-access and security contract](phase12-field-access-contract.md) is the
@@ -239,6 +242,12 @@ The next hardware-free safety boundary is implemented without enabling a radio:
   the Bluefy/Web Bluetooth chooser, reads and displays the full device identity,
   requires a separate confirmation click, verifies release assets and installs
   a release-keyed atomic offline cache.
+- The later BLE local-control continuation routes authenticated controller-time,
+  Identify/status and a separate WTP/1 byte stream through the same encrypted,
+  application-authorized connection. Its second endpoint shares the one
+  `JobService`; fixed ATT segmentation does not define another protocol. The
+  extended deterministic Bluefy client is source/test evidence only until the
+  physical matrix exercises it.
 - USB-local `ACCESS ADOPT`, `ACCESS ENROLL`, `ACCESS STATUS` and
   `IDENTIFY` are the only implemented physical confirmation/diagnostic
   controls. BOOTSEL-at-boot gestures are not viable because ROM boot selection

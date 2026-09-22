@@ -58,7 +58,11 @@ hardware-free P12.1-P12.5 slices retain their documented scope. The P12.6
 production tranche now starts provisioning-only encrypted GATT in the standard
 RF-inhibited image from healthy adopted access state, constructs a network-only
 delivery-safe activator and indicator, and publishes a deterministic
-repository-owned Bluefy page. Exact candidate identity/adoption, preserved
+repository-owned Bluefy page. A later
+[BLE local-control continuation](docs/development/phase12-ble-local-control-review.md)
+connects authenticated controller time, Identify/status and an unchanged WTP/1
+stream to that production GATT service and extends the offline page. Those new
+paths are hardware-free only. Exact candidate identity/adoption, preserved
 station/schedule/watermark state and BLE advertising have partial physical
 evidence in the
 [production review](docs/development/phase12-production-acceptance-review.md).
@@ -70,8 +74,8 @@ no-infrastructure fallback, Bluetooth uses Just Works plus application-password
 enrollment, the public default comes from the station-MAC suffix, phone time may
 seed bounded offline UTC, and the onboard LED supplies Identify and actual
 SoftAP-ready patterns. Bluefy/iOS and offline reuse, profile activation,
-SoftAP/HTTPS, BLE WTP/local management, phone time, LED patterns, reset
-controls and most of the
+SoftAP/HTTPS, physical BLE WTP/local management, phone-time and LED behavior,
+reset controls and most of the
 [RF-inhibited-first physical plan](docs/development/phase12-physical-acceptance.md)
 remain open. Phase 12 is therefore active; the scoped source closeout is not
 full physical or end-user acceptance.
@@ -87,6 +91,7 @@ full physical or end-user acceptance.
 - [Phase 12.5 activation-safety review](docs/development/phase12-5-review.md)
 - [RF feasibility investigation](docs/rf-feasibility.md)
 - [Phase 12 production/acceptance review](docs/development/phase12-production-acceptance-review.md)
+- [Phase 12 BLE local-control continuation](docs/development/phase12-ble-local-control-review.md)
 - [Bluefy field page](docs/bluefy/)
 - [Implementation plan](docs/implementation-plan.md)
 - [WsprryPi host acceptance prerequisites](docs/development/phase10-host-acceptance.md)

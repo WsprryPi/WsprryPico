@@ -1,10 +1,15 @@
 "use strict";
 const form = document.querySelector("#provisioning");
 const fields = form.querySelector("fieldset");
+const localControls = document.querySelector("#local-controls");
 const status = document.querySelector("#status");
 const connect = document.querySelector("#connect");
 const cancel = document.querySelector("#cancel");
 const authorize = document.querySelector("#authorize");
+const identify = document.querySelector("#identify");
+const syncTime = document.querySelector("#sync-time");
+const fieldStatus = document.querySelector("#field-status");
+const wtpStatus = document.querySelector("#wtp-status");
 const showAccessPassword = document.querySelector("#show-access-password");
 const releaseLabel = document.querySelector("#release");
 const releaseMeta = document.querySelector('meta[name="wsprry-bluefy-release"]');
@@ -125,6 +130,7 @@ connect.addEventListener("click", async () => {
   if (client) client.disconnect();
   client = null;
   fields.disabled = true;
+  localControls.disabled = true;
   clearSecrets();
   form.elements.device_id.value = "";
   setAccessPasswordEnabled(false);
@@ -163,6 +169,7 @@ authorize.addEventListener("click", async () => {
     form.elements.access_password.value = "";
     setAccessPasswordEnabled(false);
     fields.disabled = false;
+    localControls.disabled = false;
     status.value = `Authorized on ${form.elements.device_id.value}; generation ${client.generation}.`;
   } catch (error) {
     client.disconnect();
@@ -170,12 +177,55 @@ authorize.addEventListener("click", async () => {
     form.elements.device_id.value = "";
     clearSecrets();
     setAccessPasswordEnabled(false);
+    localControls.disabled = true;
     connect.disabled = !releaseReady;
     status.value = `Authorization failed: ${message(error)}.`;
   } finally {
     active = false;
   }
 });
+
+async function localOperation(label, operation) {
+  if (!client || active) return;
+  active = true;
+  localControls.disabled = true;
+  status.value = `${label}…`;
+  try {
+    status.value = await operation();
+  } catch (error) {
+    status.value = `${label} failed: ${message(error)}.`;
+  } finally {
+    localControls.disabled = !client || !client.authorized;
+    active = false;
+  }
+}
+identify.addEventListener("click", () => localOperation("Requesting identification", async () => {
+  const result = await client.identify();
+  return result.identified ? `Identify LED active on ${client.expectedDeviceId}.`
+    : "Identify request returned without confirmation.";
+}));
+syncTime.addEventListener("click", () => localOperation("Synchronizing phone time", async () => {
+  const result = await client.synchronizeTime();
+  if (!result.accepted) return "Phone time was not accepted.";
+  const observed = await client.fieldStatus();
+  return `Phone time accepted; source ${observed.time_source}, uncertainty ${observed.time_uncertainty_ns} ns.`;
+}));
+fieldStatus.addEventListener("click", () => localOperation("Reading field status", async () => {
+  const observed = await client.fieldStatus();
+  return `Time ${observed.time_source}; age ${observed.time_age_ns} ns; ` +
+    `LED ${observed.indicator}; fault ${observed.indicator_fault ? "yes" : "no"}.`;
+}));
+wtpStatus.addEventListener("click", () => localOperation("Reading WTP status", async () => {
+  const hello = await client.enableLocalControl();
+  const observed = await client.wtpExchange("STATUS", {});
+  if (typeof observed.state !== "string" || typeof observed.output_active !== "boolean") {
+    const error = new Error("wtp_status_invalid");
+    error.code = "wtp_status_invalid";
+    throw error;
+  }
+  return `WTP ${hello.firmware_version}; state ${observed.state}; ` +
+    `output ${observed.output_active ? "active" : "inactive"}.`;
+}));
 
 function validDeviceSelection() {
   return /^[0-9a-f]{32}$/.test(form.elements.device_id.value);
@@ -186,6 +236,7 @@ form.addEventListener("submit", async (event) => {
   const operationClient = client;
   active = true;
   fields.disabled = true;
+  localControls.disabled = true;
   status.value = "Validating and transferring the replacement profile…";
   try {
     const result = await operationClient.provision(values());
@@ -198,6 +249,7 @@ form.addEventListener("submit", async (event) => {
   } finally {
     if (client === operationClient) {
       fields.disabled = false;
+      localControls.disabled = !client.authorized;
       active = false;
     }
   }
@@ -207,6 +259,7 @@ cancel.addEventListener("click", () => {
   client = null;
   active = false;
   fields.disabled = true;
+  localControls.disabled = true;
   connect.disabled = !releaseReady;
   authorize.disabled = true;
   form.elements.device_id.value = "";
@@ -225,6 +278,7 @@ prepareRelease().catch((error) => {
   releaseReady = false;
   connect.disabled = true;
   fields.disabled = true;
+  localControls.disabled = true;
   clearSecrets();
   status.value = `Release unavailable: ${message(error)}.`;
 });

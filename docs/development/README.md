@@ -9,14 +9,17 @@ and [portable review](phase12-review.md), the
 [P12.3 hardware-free integration review](phase12-3-review.md), the
 [P12.4 portable command/activation review](phase12-4-review.md), the
 [P12.5 activation-safety review](phase12-5-review.md), the
-[production/acceptance review](phase12-production-acceptance-review.md), plus the separate
+[production/acceptance review](phase12-production-acceptance-review.md), the
+[BLE local-control continuation](phase12-ble-local-control-review.md), plus the separate
 [RF-inhibited-first physical plan](phase12-physical-acceptance.md), distinguish
 implemented infrastructure and selected product/security policy from open
 SoftAP/local-control and physical work. Provisioning-only GATT and its live
 activator now run in the RF-inhibited production image; candidate
 identity/adoption/advertising and one online retained-bond Bluefy
-application-authorization exchange are partial physical evidence. Bluefy/iOS
-offline use, full provisioning/activation, SoftAP, phone time, reset controls
+application-authorization exchange are partial physical evidence. Authenticated
+BLE controller time, Identify/status and unchanged WTP/1 transport are now
+production-connected with hardware-free evidence only. Bluefy/iOS offline use,
+full provisioning/activation, SoftAP, physical phone time, reset controls
 and most Stage A rows remain open. P12.3 remains CLOSED_SCOPED within its historical boundary.
 Phase 13 broad hardware/release qualification remains open.
 
