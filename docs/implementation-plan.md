@@ -84,7 +84,9 @@ treated as long-term product documentation.
     [BLE local-control continuation](development/phase12-ble-local-control-review.md)
     production-connects controller time, Identify/status and a separate
     unchanged WTP/1 stream to the same authorized GATT session and one
-    `JobService`; this later slice currently has hardware-free evidence only.
+    `JobService`. Its clean committed standard image has verified Candidate A
+    load/boot, preserved state and final RF-inhibited restoration; the new BLE
+    operations themselves still have hardware-free evidence only.
 
     Bluefy/iOS pairing and offline reuse, provisioning/activation, SoftAP,
     physical BLE WTP/browser service, phone time, LED behavior, reset controls,

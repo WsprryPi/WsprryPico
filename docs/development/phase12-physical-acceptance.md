@@ -7,6 +7,10 @@ retained-bond Bluefy application-authorization exchange was subsequently
 observed on Candidate A after the CCCD repair. Exact iPhone/iOS/Bluefy
 versions, offline-cache, provisioning/activation, controller-time, SoftAP,
 reset/gesture and soak acceptance remain open. Stage B is not authorized.
+The final repaired clean committed standard image at `5afe7576f001` passed a
+serial-targeted load/verify, exact post-boot identity, preserved-state checks
+and final RF-inhibited empty/unowned/inactive-output restoration. That baseline
+does not accept any newly added BLE operation.
 
 ## Purpose and evidence boundary
 
@@ -35,6 +39,21 @@ was based on `7451a4047677-dirty`; its UF2 SHA-256 was
 `8ea4121ebf81cccb1cdaeaae61243f092d4e0acbe1fe89f4d24c7acb8232767b`.
 The linked application ended exactly at `0x103f3000` with a 16 KiB primary
 stack.
+
+The current restored candidate is the clean source commit
+`5afe7576f0016ef3e927090c15232ac5c8daeb4f`, firmware identity
+`5afe7576f001`, with UF2 SHA-256
+`112f798233e12f2e9b7b049412ab428346b9fb1fc734915e823d1cb84feb7c12`.
+Serial-targeted picotool load and verification completed `OK`. Boot ID changed
+from `bb9ab0b52c02b3ddde46b5150cadd449` to
+`e7e8854f51789fb1aef53281c817d588`; the device again reported
+`inhibited-standalone-simulator`, empty/unowned and `output_active=false`.
+Access generation 2, factory profile generation 0, station `AA0NT/EM18/20`,
+the 120/0 schedule, watermark `1789607761000000000`, configuration journal
+sequence 72 and watermark journal sequence 12 were preserved. Storage remained
+healthy, BLE was running and disconnected, and all new WTP counters were zero.
+This is clean-image identity, preservation and restoration evidence only, not
+functional acceptance of controller time, Identify or WTP over BLE.
 
 On that candidate the standard image reported
 `inhibited-standalone-simulator`, empty/unowned and

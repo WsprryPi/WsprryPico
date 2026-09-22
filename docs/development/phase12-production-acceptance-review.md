@@ -5,8 +5,9 @@ Status: **OPEN_PARTIAL**. This is not Phase 12 closure.
 This review records the earlier production/physical tranche. The subsequent
 [BLE local-control continuation](phase12-ble-local-control-review.md) adds
 hardware-free production wiring for controller time, Identify/status and an
-unchanged WTP/1 GATT stream. It adds no physical acceptance and does not change
-the results retained below.
+unchanged WTP/1 GATT stream. Its clean committed image has subsequently passed
+load/boot, preservation and final RF-inhibited restoration, but none of the new
+BLE operations has physical acceptance. The earlier results are retained below.
 
 ## Authority and evidence boundary
 
@@ -225,8 +226,37 @@ application-authorization exchange after the CCCD repair. The adapter accepts
 a repeated authorize operation idempotently for an already authenticated bond,
 so this retry does not independently prove a fresh password check. Exact
 iPhone/iOS/Bluefy versions, offline delivery, credential transfer, profile activation,
-ordinary local management and a clean committed-image reflash are still
-unaccepted; no Wi-Fi profile was submitted.
+ordinary local management and a clean committed-image reflash were still
+unaccepted in that tranche; no Wi-Fi profile was submitted.
+
+## Clean committed-image continuation
+
+The BLE local-control source was first committed and reflashed at `fff9e0e41528`.
+A later adversarial pass found that an HCI encryption-loss event did not revoke
+the application session and queued output until the asynchronous disconnect
+callback. Commit `5afe7576f0016ef3e927090c15232ac5c8daeb4f` closes the
+session, WTP endpoint, subscriptions and queued indications immediately, then
+requests link disconnect. Its standard RF-inhibited firmware identity is
+`5afe7576f001`; the final UF2 SHA-256 is
+`112f798233e12f2e9b7b049412ab428346b9fb1fc734915e823d1cb84feb7c12`.
+Candidate A alone was loaded by exact USB serial with picotool verification
+completing `OK`; the initial clean reflash remains retained evidence rather than
+being rewritten.
+
+The final postflight boot ID was `e7e8854f51789fb1aef53281c817d588`.
+Device identity and station MAC were unchanged. Access generation 2, factory
+profile generation 0, station `AA0NT/EM18/20`, the 120/0 schedule, watermark
+`1789607761000000000`, configuration journal sequence 72 and watermark journal
+sequence 12 were preserved. The candidate again reported the RF-inhibited
+simulator, healthy storage, `empty`, unowned and `output_active=false`; BLE was
+running and disconnected, and all new WTP counters were zero.
+
+This closes only the clean committed-image reflash, exact boot identity,
+preservation and final RF-inhibited restoration baseline. No phone was
+available to identify iPhone/iOS/Bluefy or exercise offline reuse, a fresh
+password, provisioning/activation, controller time, Identify or BLE WTP. Those
+rows remain `NOT_EXECUTED`, and the earlier retained-bond exchange is not
+rebound to the clean source.
 
 Offline reload, profile transfer, activation, controller-time observation,
 SoftAP, LED-pattern measurement, password replacement, reset, fault injection
@@ -282,13 +312,14 @@ Phase 12 remains open for:
 
 - exact iPhone model, iOS and Bluefy version and live chooser/pairing evidence;
 - online install followed by verified no-Wi-Fi/no-cellular offline page reuse;
-- clean committed candidate reflash and full provisioning/activation lifecycle;
+- full provisioning/activation lifecycle on the clean committed candidate;
 - controller-time and Identify physical behavior;
 - production SoftAP, HTTPS, DHCP/mDNS and its independent field-control path;
 - BLE ordinary WTP/browser local management through the one `JobService`;
 - password/bond/reset recovery and safe accepted physical controls;
 - fault-injection, replacement/superseded-trust, resource reclamation,
   concurrency and bounded soak rows;
-- final RF-inhibited/output-off/restoration evidence.
+- final RF-inhibited/output-off/restoration evidence after any later physical
+  mutation; the current tranche ended restored.
 
 Stage B and all RF output remain separate and unauthorized.

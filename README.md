@@ -73,7 +73,10 @@ remains controlling: BLE/Bluefy is primary, SoftAP/Safari is an independent
 no-infrastructure fallback, Bluetooth uses Just Works plus application-password
 enrollment, the public default comes from the station-MAC suffix, phone time may
 seed bounded offline UTC, and the onboard LED supplies Identify and actual
-SoftAP-ready patterns. Bluefy/iOS and offline reuse, profile activation,
+SoftAP-ready patterns. Those new BLE paths remain functionally hardware-free
+only. Their clean committed standard image has verified Candidate A load/boot
+with preserved state and final RF-inhibited empty/unowned/inactive-output
+restoration. Bluefy/iOS and offline reuse, profile activation,
 SoftAP/HTTPS, physical BLE WTP/local management, phone-time and LED behavior,
 reset controls and most of the
 [RF-inhibited-first physical plan](docs/development/phase12-physical-acceptance.md)

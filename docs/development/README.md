@@ -18,7 +18,9 @@ activator now run in the RF-inhibited production image; candidate
 identity/adoption/advertising and one online retained-bond Bluefy
 application-authorization exchange are partial physical evidence. Authenticated
 BLE controller time, Identify/status and unchanged WTP/1 transport are now
-production-connected with hardware-free evidence only. Bluefy/iOS offline use,
+production-connected. Their clean committed image has verified Candidate A
+load/boot, preserved state and final RF-inhibited restoration, but the paths
+themselves retain hardware-free evidence only. Bluefy/iOS offline use,
 full provisioning/activation, SoftAP, physical phone time, reset controls
 and most Stage A rows remain open. P12.3 remains CLOSED_SCOPED within its historical boundary.
 Phase 13 broad hardware/release qualification remains open.

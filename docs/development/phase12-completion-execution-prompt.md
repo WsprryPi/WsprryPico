@@ -5,7 +5,7 @@ Work in `/Users/lbussy/GitHub/WsprryPico` on `devel`.
 ## Starting state, authority and evidence boundary
 
 Begin from clean `devel` at
-`22069831915384500b5128990ce479fe79a7a0f4`, equal to `origin/devel` at the
+`22069839837afdbf5e5799d8834bd65cd66a3526`, equal to `origin/devel` at the
 start of this tranche. Inspect branch, status, HEAD, upstream and the current
 remote-tracking reference before editing and before publication. Preserve all
 later work; do not reset, stash, discard changes, rewrite history or substitute
@@ -18,7 +18,7 @@ Pico 2 W candidate. That finite work may include a clean committed-image flash,
 BLE and Wi-Fi operation, creation/removal of the candidate SoftAP, explicit
 credential transfer, reboots, controller-time and LED observations, bounded
 fault/resource checks and final restoration. It also authorizes adversarial
-review, repairs, one resulting commit and a push to `origin/devel`.
+review, repairs, traceable source/evidence commits and a push to `origin/devel`.
 
 It does not authorize RF output, Stage B, arbitrary endpoints, unbounded scans,
 silent or permanent host/phone trust-store changes, App Store actions,

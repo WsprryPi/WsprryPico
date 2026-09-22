@@ -1,12 +1,13 @@
 # Phase 12 BLE local-control continuation review
 
 Status: **OPEN_PARTIAL**. This source tranche advances P12.6 but does not close
-Phase 12 and supplies no new physical acceptance.
+Phase 12. Its clean committed-image boot/preservation baseline passed on
+Candidate A; none of the new BLE operations has physical acceptance.
 
 ## Authority and starting point
 
 Execution began on clean `devel` at
-`22069831915384500b5128990ce479fe79a7a0f4`, equal to the local
+`22069839837afdbf5e5799d8834bd65cd66a3526`, equal to the local
 `origin/devel` reference. The controlling execution brief is the
 [Phase 12 remaining-production prompt](phase12-completion-execution-prompt.md).
 It authorizes the RF-inhibited work named there and keeps Stage B and RF output
@@ -60,15 +61,16 @@ activation on a device.
 | Check | Result |
 | --- | --- |
 | Host build | passed |
-| Aggregate CTest | 83/83 passed with explicit Xcode 26.5 compiler/SDK paths and loopback permission |
+| Aggregate CTest | initial 83/83; final repaired clean-config run 75/75 with explicit Xcode compiler/SDK paths |
 | Phase 11.7 closure/adversarial audit | passed; all 33 mutations rejected |
 | Focused ASan/UBSan provisioning, field-access and endpoint checks | 3/3 passed |
 | WTP/1 validator | 23 schema, 7 raw JSON, 1 framing and 8 transition cases passed |
 | Bluefy client, release and C++/web contract checks | passed |
 | Pico 2 W standard image plus field/provisioning/RF-driver linkchecks | passed with pinned SDK 2.3.1 / BTstack |
 | Image end/layout, shutdown, heap-hook, stack-guard and inhibited-sync checks | passed |
-| Standard image size | text 1,310,288; BSS 133,708 bytes |
-| Working-tree UF2 SHA-256 | `8d825ec151c0c018e5b0581b4366e8e7b0f625539170eeae3f931f2223367558` |
+| Final clean committed standard image | source `5afe7576f0016ef3e927090c15232ac5c8daeb4f`; firmware `5afe7576f001` |
+| Standard image size | text 1,310,520; BSS 133,708 bytes |
+| Committed-image UF2 SHA-256 | `112f798233e12f2e9b7b049412ab428346b9fb1fc734915e823d1cb84feb7c12` |
 | `git diff --check` and JavaScript syntax | passed |
 
 The initial sandboxed aggregate run exposed a defective Phase 11.7 assumption: its closure
@@ -80,7 +82,9 @@ prevents reintroducing a current-tree comparison. That run also exposed the
 macOS 27 Command Line Tools `.tbd` incompatibility and sandbox denial of the
 loopback-only TLS listener. The final aggregate run pinned the installed Xcode
 26.5 compiler/SDK and permitted only the test's local listener; all 83 tests
-passed. No assertion was hidden or relaxed.
+passed. After the final encryption-loss repair, a fresh clean configuration
+using the then-current Xcode 26.6 compiler/SDK passed all 75 currently
+registered tests. No assertion was hidden or relaxed.
 
 The target build used the already retained clean SDK at
 `079c6f39023649b154152db30f1d781e884879bc` and BTstack at
@@ -126,18 +130,45 @@ leakage. No further actionable source finding remained. Target runtime behavior
 and the additional endpoint's peak-resource coexistence remain physical
 acceptance gates, not source conclusions.
 
+A fresh post-evidence adversarial pass then found that an HCI encryption-loss
+event could leave application authority and queued server output alive until
+the later disconnect callback. Attribute permissions rejected new writes, but
+that was not a sufficient fail-closed boundary for already queued indications.
+The transport now immediately disconnects the application session and WTP
+endpoint, scrubs provisioning output, clears both CCCDs and abandons any active
+indication's completion ownership before requesting link disconnect. The
+wire-contract regression and fresh 75/75 host run, focused 3/3 ASan/UBSan run,
+all target linkchecks and all five image checks passed. A final reassessment
+found no further actionable source issue within the implemented boundary.
+
 ## Physical disposition and remaining gates
 
-No device was flashed or operated in this tranche. The exact iPhone model, iOS
-release, Bluefy identity/version, offline cache state, private provisioning
-credentials and required operator interactions were not available to this
-execution environment. Those rows are `NOT_EXECUTED`; the earlier retained-bond
-online exchange remains the latest physical Bluefy evidence and is not rebound
-to this source.
+Candidate A, and no other Pico, was reflashed with the clean committed standard
+image above by serial-targeted `picotool load -v -x`; verify completed `OK`.
+Preflight established the exact device ID, station MAC, RF-inhibited simulator,
+empty/unowned state, authoritative inactive output and healthy journals. The
+first clean reflash changed boot ID from `a4083142c199d0bb3cfabfd69cedb90b`
+to `bb9ab0b52c02b3ddde46b5150cadd449`. The post-adversarial repaired reflash
+changed it again to `e7e8854f51789fb1aef53281c817d588`. Final postflight
+preserved access generation 2,
+factory profile generation 0, station `AA0NT/EM18/20`, the 120/0 schedule,
+watermark `1789607761000000000`, configuration journal sequence 72 and
+watermark journal sequence 12. It again reported the RF-inhibited simulator,
+healthy storage, `empty`, unowned and `output_active:false`. BLE was running,
+disconnected, and all new WTP counters were zero. The bounded private packet and
+UF2 remain off-repository on `wspr5`; no secret or raw access record entered Git.
 
-Phase 12 remains open for a clean committed-image reflash; exact client/page
-identity and offline reuse; fresh-password/new-pairing and full profile
+This passes only the clean committed-image reflash, identity/preservation boot
+and final RF-inhibited restoration baseline. It does not exercise the new BLE
+command or WTP paths. The exact iPhone model, iOS release, Bluefy identity/
+version, offline cache state, private provisioning credentials and required
+operator interactions were unavailable. Those rows are `NOT_EXECUTED`; the
+earlier retained-bond online exchange is not rebound to this source.
+
+Phase 12 remains open for exact client/page identity and offline reuse;
+fresh-password/new-pairing and full profile
 activation; live controller-time, Identify and BLE WTP behavior; production
 SoftAP DHCP/HTTP/HTTPS and independent cookie-authorized control; password,
 bond and reset/recovery administration; fault/resource/reclamation/soak rows;
-and final RF-inhibited restoration. Stage B and Phase 13 remain separate.
+and restoration again after any future physical mutation. Stage B and Phase 13
+remain separate.

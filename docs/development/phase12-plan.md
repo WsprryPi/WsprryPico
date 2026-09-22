@@ -7,7 +7,11 @@ the network-only live activator and indicator construction in the RF-inhibited
 standard image, and a deterministic offline Bluefy release. Its
 identity/adoption/advertising physical subset has passed. SoftAP, physical BLE
 WTP/local management and phone-time behavior, reset/gesture work and most
-physical acceptance remain open. The later BLE source boundary is reviewed in
+physical acceptance remain open. The clean committed standard image at
+`5afe7576f001` has passed a serial-targeted load/verify, exact boot-identity and
+preserved-state checks, and final RF-inhibited empty/unowned/inactive-output
+restoration. That baseline is not live acceptance of the new BLE paths. The
+later BLE source boundary is reviewed in
 the [BLE local-control continuation](phase12-ble-local-control-review.md). The
 revisited P12.3 source slice remains
 **CLOSED_SCOPED** by the [P12.3 closeout](phase12-3-review.md); the later
@@ -166,8 +170,11 @@ Not claimed by this scoped closure:
 - At the P12.3 checkpoint the production image did not start GATT, SoftAP/HTTPS
   or the indicator controller and had no Pico `ActivationPlatform`. Complete production
   service/activator wiring remains a Phase 12 gate.
-- BLE field job control must still bind to existing WTP/browser semantics; the
-  provisioning vocabulary is not a second job protocol.
+- BLE field job control is now production-connected as a separate unchanged
+  WTP/1 stream backed by an additional endpoint sharing the one `JobService`.
+  Its physical interoperability, complete end-user UI and target resource
+  behavior remain open; the provisioning vocabulary is not a second job
+  protocol.
 - Exact gestures, offline Bluefy origin/integrity/cache behavior, accepted
   iPhone/iOS/Bluefy versions and every live transport/coexistence/resource claim
   require the finite physical plan.
@@ -317,9 +324,10 @@ Remaining questions are target integration details, not license to change that
 policy:
 
 - the exact safe Pico 2 W gestures for enrollment and the three reset levels;
-- production wiring for GATT, SoftAP HTTPS/pre-clock/normal surfaces, full local
-  WTP/browser control and the live activation platform;
-- the integrity-controlled offline Bluefy page-delivery/cache mechanism; and
+- production wiring for SoftAP DHCP, bootstrap HTTP, HTTPS pre-clock/normal
+  surfaces and its independent browser/local-control path;
+- physical validation of the implemented integrity-controlled offline Bluefy
+  page-delivery/cache mechanism; and
 - target resource, radio-coexistence and indicator scheduling needed to meet the
   selected behavior without weakening job/RF authority.
 

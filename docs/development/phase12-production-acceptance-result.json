@@ -219,7 +219,6 @@
     }
   ],
   "remaining_gates": [
-    "clean committed candidate reflash",
     "exact iPhone iOS and Bluefy identity",
     "authenticated provisioning response and full profile transfer",
     "verified offline reload with infrastructure networking disabled",
@@ -231,7 +230,7 @@
     "password bond reset and recovery",
     "fault injection and superseded trust",
     "resource reclamation concurrency and soak",
-    "final RF-inhibited output-off and restoration"
+    "final RF-inhibited output-off and restoration after any later physical mutation"
   ],
   "stage_b_authorized": false,
   "phase_complete": false,
@@ -247,5 +246,53 @@
     "focused_host_tests_passed": 5,
     "focused_host_tests_failed": 0,
     "bluefy_retry": "pass_authorization_only"
+  },
+  "clean_committed_continuation": {
+    "initial_clean_image": {
+      "source_revision": "fff9e0e4152896785e0302185e2392555ad581b6",
+      "firmware_revision": "fff9e0e41528",
+      "uf2_sha256": "1f65bd8cfe82af0b89d749b34e34872b7809c8c90123a8a4ff1f094d016d42b5",
+      "postflight_boot_id": "bb9ab0b52c02b3ddde46b5150cadd449",
+      "disposition": "retained; superseded on the candidate after the final adversarial repair"
+    },
+    "source_revision": "5afe7576f0016ef3e927090c15232ac5c8daeb4f",
+    "firmware_revision": "5afe7576f001",
+    "uf2_sha256": "112f798233e12f2e9b7b049412ab428346b9fb1fc734915e823d1cb84feb7c12",
+    "image_text_bytes": 1310520,
+    "image_bss_bytes": 133708,
+    "pico_sdk": "079c6f39023649b154152db30f1d781e884879bc",
+    "btstack": "eb0bb8b5ea6d234ccb940313b47f7a5c3b4e20ec",
+    "picotool_sha256": "4a68cfd7fc36002e80857802c8192c9f24c751357c6cb26ad13ad7f38c227921",
+    "bluefy_release": "037b80144b7eb8079aca78be42635408530e2752d46fb8112e10f34d41f7916d",
+    "private_evidence_directory": "/tmp/phase12-ble.SSZLZh",
+    "private_evidence_manifest_sha256": "02db170409dae445b8d62028b2936424f7726a4dbab3d579d40c800d24491b7c",
+    "candidate_usb_serial": "0BF4B4AEC9FFB344",
+    "candidate_b_modified": false,
+    "picotool_load_verify": "pass",
+    "preflight_boot_id": "bb9ab0b52c02b3ddde46b5150cadd449",
+    "postflight_boot_id": "e7e8854f51789fb1aef53281c817d588",
+    "device_identity_preserved": true,
+    "station_schedule_watermark_preserved": true,
+    "access_generation": 2,
+    "profile_generation": 0,
+    "configuration_journal_sequence": 72,
+    "watermark_journal_sequence": 12,
+    "storage_healthy": true,
+    "engine": "inhibited-standalone-simulator",
+    "job_state": "empty",
+    "owner": null,
+    "output_active": false,
+    "ble_running": true,
+    "ble_connected": false,
+    "ble_admitted": false,
+    "new_wtp_counters": "all zero",
+    "aggregate_ctest": "initial 83/83 pass; final repaired clean-config 75/75 pass",
+    "focused_sanitizer": "3/3 pass",
+    "phase11_7_audit_mutations_rejected": 33,
+    "historical_separated_checks_disposition": "superseded by passing aggregate runs with explicit Xcode compiler and SDK paths",
+    "final_adversarial_repair": "immediate application session WTP endpoint CCCD and queued-indication revocation on HCI encryption loss",
+    "acceptance_scope": "clean committed image reflash boot preservation and final RF-inhibited restoration only",
+    "new_ble_operations_physically_accepted": false,
+    "phone_dependent_rows": "NOT_EXECUTED"
   }
 }
