@@ -76,6 +76,12 @@ def main():
     for required in ("https_required", "release_asset_integrity", "navigator.serviceWorker.ready",
                      "updateViaCache", "client.connect()", "Confirm before authorizing"):
         assert required in app
+    assert '"serviceWorker" in navigator' in app
+    assert "Promise.race" in app and "offline_cache_timeout" in app
+    assert 'online verified' in app
+    assert 'connect.disabled = false' in app
+    assert app.index("for (const name of releaseFiles) await verifyAsset") < app.index(
+        "connect.disabled = false")
     assert "client.connect(form.elements.device_id.value)" not in app
     generic_release = "".join((RELEASE / name).read_text() for name in (
         "index.html", "app.js", "bluefy.js", "style.css", "sw.js"))

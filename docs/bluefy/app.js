@@ -46,10 +46,29 @@ async function waitForWorker(registration, release) {
       new URL(ready.active.scriptURL).searchParams.get("release") !== release)
     releaseFailure("offline_cache_revision");
 }
+async function prepareOfflineCache(release) {
+  if (!("serviceWorker" in navigator))
+    return {ready: false, code: "offline_cache_unavailable"};
+  try {
+    const serviceWorker = navigator.serviceWorker;
+    if (!serviceWorker)
+      return {ready: false, code: "offline_cache_unavailable"};
+    const attempt = async () => {
+      const registration = await serviceWorker.register(
+        `./sw.js?release=${release}`, {scope: "./", updateViaCache: "none"});
+      await waitForWorker(registration, release);
+      return {ready: true, code: null};
+    };
+    return await Promise.race([attempt(), new Promise((resolve) =>
+      setTimeout(() => resolve({ready: false, code: "offline_cache_timeout"}), 12000))]);
+  } catch (error) {
+    return {ready: false, code: message(error)};
+  }
+}
 async function prepareRelease() {
   if (location.protocol !== "https:") releaseFailure("https_required");
-  if (typeof crypto !== "object" || !crypto.subtle || !navigator.serviceWorker)
-    releaseFailure("offline_cache_unavailable");
+  if (typeof crypto !== "object" || !crypto.subtle)
+    releaseFailure("release_integrity_unavailable");
   const response = await fetch("./release-manifest.json", {
     cache: "no-store", credentials: "omit"
   });
@@ -61,13 +80,16 @@ async function prepareRelease() {
       !manifest.files || Object.keys(manifest.files).sort().join(",") !== releaseFiles.join(","))
     releaseFailure("release_manifest_invalid");
   for (const name of releaseFiles) await verifyAsset(name, manifest.files[name]);
-  const registration = await navigator.serviceWorker.register(
-    `./sw.js?release=${manifest.release}`, {scope: "./", updateViaCache: "none"});
-  await waitForWorker(registration, manifest.release);
-  releaseLabel.textContent = `${manifest.release.slice(0, 12)} · protocol 1 · offline ready`;
+  const offline = await prepareOfflineCache(manifest.release);
+  releaseLabel.textContent = offline.ready
+    ? `${manifest.release.slice(0, 12)} · protocol 1 · offline ready`
+    : `${manifest.release.slice(0, 12)} · protocol 1 · online verified`;
   releaseReady = true;
   connect.disabled = false;
-  status.value = "Release verified. Ready to select the identified Pico.";
+  status.value = offline.ready
+    ? "Release verified. Ready to select the identified Pico."
+    : `Release verified for online use. Offline cache unavailable (${offline.code}); ` +
+      "keep Internet access until this session is finished.";
 }
 
 function values() {
