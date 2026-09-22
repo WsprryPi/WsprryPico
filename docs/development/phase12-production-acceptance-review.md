@@ -162,8 +162,20 @@ access generation 2, BLE running, station `AA0NT/EM18/20`, the 120-second
 schedule and watermark `1789607761000000000` preserved. The new read-only
 `BLE STATUS` command reported zero baseline events. It exposes bounded counts
 for received command frames, queued responses, send callbacks, indications
-started/completed and disconnections without recording credentials. One
-operator retry is pending to locate the timeout stage.
+started/completed and disconnections without recording credentials. On the
+operator's next retained-bond retry, Bluefy again displayed "Authorizing",
+timed out and showed a crossed-out Bluetooth symbol. Candidate A reported one
+connection and disconnection, four command frames, one completed command, one
+queued response, two successful indication starts and two indication
+completions, one delivered response and no queue failure. The stack confirmed
+both indications, but this does not prove delivery to page JavaScript. Access
+remained healthy at generation 2. The page receive path is therefore the next
+gate; no Wi-Fi profile was submitted. A subsequent page-only release adds
+bounded, secret-free write/event/frame/response counters to distinguish
+missing JavaScript events from malformed or unmatched responses. Release
+`23ab8f69dcf3ab28186022ce818e280faa98a78b80c0e32e2552323e24f115de`
+was verified on the public Pages origin by manifest and JavaScript hashes;
+an iPhone retry with this release is pending.
 
 Offline reload, profile transfer, activation, controller-time observation,
 SoftAP, LED-pattern measurement, password replacement, reset, fault injection

@@ -21,7 +21,7 @@
     "ninja": "1.13.2"
   },
   "bluefy_release": {
-    "sha256_release_id": "909e78e8e64a3d274aa8b11886a4fdfb8964a854eccbd6629075388bb33d8e85",
+    "sha256_release_id": "23ab8f69dcf3ab28186022ce818e280faa98a78b80c0e32e2552323e24f115de",
     "contains_candidate_identity": false,
     "contains_credentials": false,
     "remote_dependencies": 0,
@@ -114,6 +114,22 @@
       "baseline_ble_status": "all counters zero",
       "settings_preserved": true,
       "rf_output_active": false
+    },
+    {
+      "name": "retained_bond_diagnostic_retry",
+      "result": "fail",
+      "finding": "Bluefy timed out after the Pico completed one command and confirmed two status indications; page JavaScript delivery remains unproven",
+      "ble_status": {
+        "connections": 1,
+        "disconnections": 1,
+        "command_frames": 4,
+        "commands_completed": 1,
+        "responses_queued": 1,
+        "queue_failures": 0,
+        "indications_started": 2,
+        "indication_completions": 2,
+        "responses_delivered": 1
+      }
     }
   ],
   "separated_checks": [
