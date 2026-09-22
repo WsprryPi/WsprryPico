@@ -20,7 +20,7 @@ class BleCommandSession {
     void disconnected();
     CommandReply handle(std::string_view command, std::uint64_t now_ms);
     void response_delivered(std::uint64_t now_ms);
-    void poll(std::uint64_t now_ms) { manager_.poll(now_ms); }
+    void poll(std::uint64_t now_ms);
     bool authorized() const;
     bool available() const {
         return access_.ble_available();
@@ -40,5 +40,6 @@ class BleCommandSession {
     std::string pending_apply_request_;
     std::uint64_t pending_apply_generation_ = 0;
     bool connected_ = false;
+    bool delivery_confirmed_ = false;
 };
 } // namespace wsprrypico::provisioning

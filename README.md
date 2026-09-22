@@ -53,14 +53,15 @@ within that scope, including the 11.4 inhibited matrix/eight-hour soak, 11.5 at
 control still defaults off. Broader mode/band/clock, timing, spectra, filtering,
 reliability and release qualification remain in Phase 13.
 
-[Phase 12 provisioning](docs/development/phase12-plan.md) is current.
-The hardware-free P12.3 source slice is now
-[CLOSED_SCOPED](docs/development/phase12-3-review.md). It adds the selected
-two-sector access journal, source tombstones and reset recovery, bounded local
-access/session policy, fixed GATT framing, exact clean-BTstack cross-linked Pico
-BLE/SoftAP/LED candidates, controller/SNTP time arbitration, a Bluefy client and
-fail-closed production boot integration. The candidate radio services and live
-activation platform are not started by the production image.
+[Phase 12 provisioning](docs/development/phase12-plan.md) is current. Its
+hardware-free P12.1-P12.5 slices retain their documented scope. The P12.6
+production tranche now starts provisioning-only encrypted GATT in the standard
+RF-inhibited image from healthy adopted access state, constructs a network-only
+delivery-safe activator and indicator, and publishes a deterministic
+repository-owned Bluefy page. Exact candidate identity/adoption, preserved
+station/schedule/watermark state and BLE advertising have partial physical
+evidence in the
+[production review](docs/development/phase12-production-acceptance-review.md).
 
 The operator-selected
 [field-access/security contract](docs/development/phase12-field-access-contract.md)
@@ -68,12 +69,12 @@ remains controlling: BLE/Bluefy is primary, SoftAP/Safari is an independent
 no-infrastructure fallback, Bluetooth uses Just Works plus application-password
 enrollment, the public default comes from the station-MAC suffix, phone time may
 seed bounded offline UTC, and the onboard LED supplies Identify and actual
-SoftAP-ready patterns. Production GATT/SoftAP/HTTPS/local-control and live
-activation wiring, exact gestures, integrity-controlled offline page delivery
-and the
+SoftAP-ready patterns. Bluefy/iOS and offline reuse, profile activation,
+SoftAP/HTTPS, BLE WTP/local management, phone time, LED patterns, reset
+controls and most of the
 [RF-inhibited-first physical plan](docs/development/phase12-physical-acceptance.md)
 remain open. Phase 12 is therefore active; the scoped source closeout is not
-physical or end-user acceptance.
+full physical or end-user acceptance.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)
@@ -85,6 +86,8 @@ physical or end-user acceptance.
 - [Phase 12.4 portable command and activation review](docs/development/phase12-4-review.md)
 - [Phase 12.5 activation-safety review](docs/development/phase12-5-review.md)
 - [RF feasibility investigation](docs/rf-feasibility.md)
+- [Phase 12 production/acceptance review](docs/development/phase12-production-acceptance-review.md)
+- [Bluefy field page](docs/bluefy/)
 - [Implementation plan](docs/implementation-plan.md)
 - [WsprryPi host acceptance prerequisites](docs/development/phase10-host-acceptance.md)
 - [Experimental PIO band campaign](docs/development/band-campaign.md)

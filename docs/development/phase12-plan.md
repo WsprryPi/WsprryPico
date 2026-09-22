@@ -1,14 +1,14 @@
 # Phase 12 provisioning implementation and acceptance plan
 
-Status: active. P12.1, P12.2, P12.4 and P12.5 remain accepted within their
-documented hardware-free scopes. The revisited P12.3 source slice is now
-**CLOSED_SCOPED** by the
-[P12.3 closeout](phase12-3-review.md): access persistence and policy, fixed GATT
-framing, candidate Pico BLE/SoftAP/indicator adapters, controller-time
-arbitration and fail-closed production boot integration are implemented and
-cross-linked. Those adapters are not enabled as a production field path.
-Production service/activator wiring, exact physical gestures, offline-page
-qualification and all physical acceptance remain open. The operator-selected
+Status: active. P12.1-P12.5 remain accepted within their documented
+hardware-free scopes. P12.6 now production-enables provisioning-only BLE, the
+network-only live activator and indicator construction in the RF-inhibited
+standard image and produces a deterministic offline Bluefy release. Its
+identity/adoption/advertising physical subset has passed. SoftAP,
+BLE WTP/local management, phone time, reset/gesture work and most physical
+acceptance remain open. The revisited P12.3 source slice remains
+**CLOSED_SCOPED** by the [P12.3 closeout](phase12-3-review.md); the later
+production work does not rewrite that evidence. The operator-selected
 [field-access and security contract](phase12-field-access-contract.md) is the
 controlling policy.
 This plan does not authorize target, radio, service, trust-store, certificate-installation or RF
@@ -160,8 +160,8 @@ Implemented:
 
 Not claimed by this scoped closure:
 
-- The production image does not start GATT, SoftAP/HTTPS or the indicator
-  controller, and it has no Pico `ActivationPlatform`. Complete production
+- At the P12.3 checkpoint the production image did not start GATT, SoftAP/HTTPS
+  or the indicator controller and had no Pico `ActivationPlatform`. Complete production
   service/activator wiring remains a Phase 12 gate.
 - BLE field job control must still bind to existing WTP/browser semantics; the
   provisioning vocabulary is not a second job protocol.
@@ -217,11 +217,37 @@ The next hardware-free safety boundary is implemented without enabling a radio:
   256 bytes, but both can exceed a default 20-byte ATT value; future GATT code
   must negotiate a sufficient payload or supply bounded bidirectional
   framing/reassembly and prove it on the exact client/target pair.
-- No production activator or authenticated BLE/SoftAP field service is
-  connected. The later P12.3 candidate adapter link and host mocks are not
+- At the P12.5 checkpoint no production activator or authenticated BLE/SoftAP
+  field service was connected. The later P12.3 candidate adapter link and host mocks are not
   evidence of live reload or radio use.
 
 ## Deterministic acceptance matrix
+
+### P12.6 Production integration and partial Stage A
+
+- The standard RF-inhibited `WsprryPico` image now owns one CYW43
+  initialization, derives checked station-MAC identity before local access,
+  constructs the access controller, provisioning manager, strict BLE command
+  adapter, credential validator and network-only activation platform, and starts
+  the encrypted GATT service only from healthy adopted access state.
+- GATT uses fixed bidirectional framing and retains advertisement/scan-response
+  storage for BTstack's asynchronous lifetime. ATT indication completion is
+  deferred into core-0 polling before activation release. Retained authorized
+  bonds treat a repeated page authorization request idempotently.
+- The checked-in `docs/bluefy` artifact is built deterministically from
+  `src/provisioning/web`, contains no candidate identity or credentials, uses
+  the Bluefy/Web Bluetooth chooser, reads and displays the full device identity,
+  requires a separate confirmation click, verifies release assets and installs
+  a release-keyed atomic offline cache.
+- USB-local `ACCESS ADOPT`, `ACCESS ENROLL`, `ACCESS STATUS` and
+  `IDENTIFY` are the only implemented physical confirmation/diagnostic
+  controls. BOOTSEL-at-boot gestures are not viable because ROM boot selection
+  prevents the application from observing the hold; no substitute gesture is
+  claimed.
+- Partial physical evidence proves the exact RF-inhibited candidate identity,
+  healthy adoption, preserved station/schedule/watermark state and repaired BLE
+  advertisement. It does not prove Bluefy interoperability, provisioning,
+  activation, offline reuse, LED waveform, SoftAP or coexistence.
 
 Phase 12 completion evidence must cover:
 

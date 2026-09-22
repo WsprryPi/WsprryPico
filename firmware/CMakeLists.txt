@@ -265,6 +265,27 @@ if(TARGET pico_btstack_ble AND TARGET pico_btstack_cyw43)
             "P12.3 requires clean BTstack ${WSPRRY_PICO_PINNED_BTSTACK_REVISION}; "
             "found ${WSPRRY_PICO_BTSTACK_REVISION} at ${PICO_BTSTACK_PATH}")
     endif()
+
+    # The standard image is RF-inhibited and is the only production field
+    # candidate. BTstack shares the single CYW43 initialization owned by
+    # PicoNetwork; neither diagnostic/RF image advertises a field service.
+    target_sources(WsprryPico PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/activation_platform.cpp
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_platform.cpp
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gatt_transport.cpp)
+    target_include_directories(WsprryPico PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico
+        ${CMAKE_SOURCE_DIR}/src/network/pico
+        ${CMAKE_SOURCE_DIR}/src/standalone/pico)
+    target_link_libraries(WsprryPico PRIVATE pico_btstack_ble pico_btstack_cyw43)
+    pico_btstack_make_gatt_header(WsprryPico PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_access.gatt)
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/activation_platform.cpp
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_platform.cpp
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gatt_transport.cpp
+        PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;-Werror;-fstack-usage")
+
     add_executable(field_access_pico_linkcheck EXCLUDE_FROM_ALL
         ${CMAKE_SOURCE_DIR}/tests/field_access_pico_linkcheck.cpp
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_platform.cpp

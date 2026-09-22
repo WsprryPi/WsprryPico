@@ -1,0 +1,10 @@
+{
+  "name": "WsprryPico Provisioning",
+  "short_name": "WsprryPico",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#111827"
+}

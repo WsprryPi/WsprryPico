@@ -21,6 +21,8 @@ class PicoServer {
     PicoServer& operator=(const PicoServer&) = delete;
     bool start();
     void stop();
+    void set_admission(bool open);
+    bool admission_open() const { return admission_open_; }
     void poll(bool link_up, std::string authority, bool allow_http_steps = true);
     bool listening() const {
         return listener_ != nullptr;
@@ -106,6 +108,7 @@ class PicoServer {
     PsaCryptoOwner psa_{};
     int last_error_ = 0;
     bool setup_ = false;
+    bool admission_open_ = true;
     Metrics metrics_{};
 };
 } // namespace wsprrypico::network

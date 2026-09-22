@@ -71,21 +71,21 @@ treated as long-term product documentation.
 12. **Current:** BLE-primary and SoftAP-fallback provisioning/local control.
     The [Phase 12 plan](development/phase12-plan.md), operator-selected
     [field contract](development/phase12-field-access-contract.md) and
-    [P12.3 scoped closeout](development/phase12-3-review.md) define the current
+    [production review](development/phase12-production-acceptance-review.md) define the current
     boundary.
 
     P12.1/P12.2 provide the portable profile journal and provisioning state
     machine. P12.4/P12.5 provide strict command decoding, delivery-safe
-    activation coordination and shared PSA ownership. The revisited P12.3 source
-    slice is CLOSED_SCOPED: it implements the access journal/source tombstones,
-    reset recovery, local session policy, 64-byte GATT framing, controller-time
-    arbitration, Bluefy behavior, fail-closed boot integration and exact
-    clean-BTstack cross-linked Pico GATT/SoftAP/LED candidates.
+    activation coordination and shared PSA ownership. P12.6 enables the
+    provisioning-only GATT service, network-only activator and indicator in the
+    standard RF-inhibited image and builds an integrity-inventoried offline
+    Bluefy release. Candidate adoption, preserved operational state and BLE
+    advertising have partial physical evidence.
 
-    Production still does not start those field services or provide a Pico live
-    activator. Full local WTP/browser service wiring, exact gestures, offline
-    page integrity/cache proof and all physical acceptance remain open under the
-    RF-inhibited-first plan. Phase 12 is active.
+    Bluefy/iOS pairing and offline reuse, provisioning/activation, SoftAP,
+    BLE WTP/browser service, phone time, LED behavior, reset controls,
+    coexistence/resource soak and the rest of the RF-inhibited-first physical
+    matrix remain open. Phase 12 is active.
 
 13. **Planned:** final hardware qualification and release, including the output
     network and filters, calibrated GPIO-edge timing, supported mode/band

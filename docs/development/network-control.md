@@ -13,8 +13,10 @@ LED indication, trust replacement and recovery. The scoped
 journals, reset recovery, fixed GATT framing, Bluefy behavior, controller/SNTP
 arbitration and cross-linked Pico BLE/SoftAP/LED candidates. P12.4/P12.5 provide
 strict command decoding, shared PSA ownership and delivery-safe activation
-coordination. Production field-service and live-activation wiring,
-offline-page proof and physical acceptance remain open.
+coordination. P12.6 enables provisioning-only GATT and the network-only live
+activator in the RF-inhibited production image and builds the deterministic
+offline page. SoftAP, BLE local WTP/browser control, phone time, full live
+activation and most physical acceptance remain open.
 
 ## Operator setup and certificates
 
@@ -262,15 +264,16 @@ principals to the same Endpoint/JobService. HTTP handlers use the same strict
 codec, persistent Store and Scheduler. Credential/private-key data never appears
 in API status. See the [API contract](../browser-api.md) for schemas and errors.
 
-The candidate BLE adapter frames the bounded provisioning command stream through
-fixed 64-byte records; full BLE field control must reuse the existing
-WTP/browser semantics and JobService. Normal SoftAP authority uses
+The production BLE adapter frames the bounded provisioning command stream
+through fixed 64-byte records and releases activation only after its final ATT
+indication is confirmed on core 0. Full BLE field control must still reuse the
+existing WTP/browser semantics and JobService. Normal SoftAP authority uses
 server-authenticated HTTPS plus a random password-authenticated session
 principal scoped to that interface; station HTTPS and raw TLS-WTP retain mTLS.
 Provisioned pre-clock SoftAP is limited to identity, challenge, password,
 controller time and nonsensitive status. Blank-device SoftAP is read-only.
-These portable admission rules and target primitives are implemented, but the
-production listeners are not wired or physically accepted.
+Those SoftAP admission rules and target primitives are implemented, but the
+production SoftAP listeners are not wired or physically accepted.
 
 The browser offers manual status refresh, station/Wi-Fi/schedule edits, explicit
 reload of saved settings, complete job upload/UTC arm, owner abort/release and

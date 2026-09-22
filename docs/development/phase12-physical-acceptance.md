@@ -1,7 +1,10 @@
 # Phase 12 finite physical acceptance plan
 
-Status: plan only; unexecuted. No authority to contact a Pico, fixture, radio,
-service or physical endpoint is granted by this document.
+Status: Stage A partially executed on 2026-09-22 under separate live operator
+authority. Candidate identity/adoption, RF-inhibited boot, preserved operational
+state and BLE advertising passed on the exact device below. Bluefy/iOS,
+offline-cache, provisioning/activation, controller-time, SoftAP, reset/gesture
+and soak rows remain unexecuted. Stage B is not authorized.
 
 ## Purpose and evidence boundary
 
@@ -14,17 +17,37 @@ It does not reopen or silently extend Phase 11.6, and it cannot establish Phase
 
 ## Current admission state
 
-The [scoped P12.3 closeout](phase12-3-review.md) supplies the access journal,
-portable field policy, fixed GATT framing, controller-time arbiter, Bluefy
-client and exact clean-BTstack cross-linked Pico BLE/SoftAP/LED candidates. Host,
-sanitizer, linked-image and cross-build checks pass. This still does not admit
-the procedure: the production field services and live activator are not wired,
-exact physical gestures and offline-page delivery are unresolved, and no live
-transport or coexistence claim exists.
+The production-integration tranche enables the provisioning-only GATT service,
+network-only activation platform and indicator controller in the standard
+RF-inhibited image. It retains one CYW43 owner and supplies the repository-owned
+offline Bluefy release. SoftAP DHCP/HTTP/HTTPS, BLE WTP/local job control and
+authenticated controller time are still not connected to production.
 
-No exact operated UF2, device, iPhone/Bluefy combination, page origin or
-physical budget has been authorized or recorded. Stage A remains wholly
-unexecuted.
+The operated candidate is Pico 2 W USB serial `0BF4B4AEC9FFB344`, device ID
+`fd6127d11d6aca42a9905fa3fb1bf1d5`, station MAC
+`88:a2:9e:0a:60:df`, suffix `0a60df`. The comparator
+`CDDBF8767C506C07` was identified but not modified. The first candidate build
+was based on `7451a4047677-dirty`; its UF2 SHA-256 was
+`8ea4121ebf81cccb1cdaeaae61243f092d4e0acbe1fe89f4d24c7acb8232767b`.
+The linked application ended exactly at `0x103f3000` with a 16 KiB primary
+stack.
+
+On that candidate the standard image reported
+`inhibited-standalone-simulator`, empty/unowned and
+`output_active=false`. USB-local adoption produced healthy access generation
+1 with the public default active and enrollment closed. Station
+`AA0NT/EM18/20`, the 120-second schedule, and watermark
+`1789607761000000000` were preserved. A first advertisement attempt exposed
+empty data because BTstack retained pointers to temporary buffers; after moving
+those buffers into transport lifetime, a bounded wspr5 scan observed
+`WsprryPico-0a60df` with the selected service and public BLE controller
+address `88:A2:9E:0A:60:E0`. That failed attempt is retained, not replaced.
+
+The exact iPhone/iOS/Bluefy version, published Pages origin, effective offline
+cache, pairing/application authorization and every post-selection mutation are
+still required before any Bluefy row passes. The credential-free result and
+review are `phase12-production-acceptance-result.json` and
+`phase12-production-acceptance-review.md`.
 
 ## Admission record
 

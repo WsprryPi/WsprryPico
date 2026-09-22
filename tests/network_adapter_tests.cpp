@@ -219,19 +219,23 @@ int main(int argc, char** argv) {
     assert(network.association().find("not_connected") != std::string::npos);
     assert(bssid_queries == 0);
     assert(network.status().find("\"stable_hostname\":\"\"") != std::string::npos);
-    assert(network.start(config));
+    const auto started = network.start(config);
     if (argc == 2) {
+        assert(!started);
+        assert(enables == 1 && disables == 1);
         assert(network.status().find("\"station_mac\":\"\"") != std::string::npos);
         assert(network.status().find("\"stable_hostname\":\"\"") != std::string::npos);
         return 0;
     }
     assert(network.status().find("\"station_mac\":\"88:a2:9e:0a:60:df\"") != std::string::npos);
+    assert(started);
     assert(network.status().find("\"stable_hostname\":\"wsprrypico-0a60df.local\"") !=
            std::string::npos);
     assert(network.status().find("\"configured_hostname\":\"pico-a.local\"") != std::string::npos);
     network.listener_status(true, true);
     // OFF before association/probing needs no drain.
-    assert(network.set_enabled(false) && disables == 1);
+    const auto disables_before_off = disables;
+    assert(network.set_enabled(false) && disables == disables_before_off + 1);
     assert(network.set_enabled(true));
     active(network);
     watchdog_hw->scratch[1] = 5;

@@ -27,6 +27,9 @@ class LinkMedia final : public Media {
 
 class LinkActivationPlatform final : public ActivationPlatform {
   public:
+    bool close_admission(std::uint64_t) override {
+        return true;
+    }
     bool prepare(const Profile&, std::uint64_t) override {
         return true;
     }

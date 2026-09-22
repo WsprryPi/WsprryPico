@@ -98,14 +98,17 @@ transport. Candidate Pico GATT, WPA2 SoftAP and onboard-LED adapters cross-link
 against the exact clean pinned BTstack source. The Bluefy page implements the
 matching authorization and framing path.
 
-This is a source boundary, not an enabled field path. Production currently
-instantiates the access journal and time arbiter and enforces fail-closed boot,
-but does not start GATT, SoftAP/HTTPS or the indicator controller and has no
-Pico live `ActivationPlatform`. Complete local WTP/browser control, exact
-gestures, offline page delivery and physical coexistence/resource evidence
-remain Phase 12 gates. See the [Phase 12 plan](development/phase12-plan.md),
+P12.6 makes the provisioning-only BLE path real in the standard RF-inhibited
+image. One CYW43 owner supplies checked station-MAC identity, BTstack GATT,
+station service and core-0 LED access. The production graph constructs the
+portable access/manager state and a network-only `PicoActivationPlatform`;
+neither layer can abort, release or clear JobService/RF ownership. The
+repository-owned Bluefy artifact uses a release-keyed atomic offline cache.
+SoftAP/HTTPS, BLE WTP/browser control, phone time, reset gestures and most
+physical coexistence/resource evidence remain Phase 12 gates. See the
+[Phase 12 plan](development/phase12-plan.md),
 [field contract](development/phase12-field-access-contract.md) and
-[P12.3 closeout](development/phase12-3-review.md).
+[production review](development/phase12-production-acceptance-review.md).
 
 The browser's compact `LOAD_MESSAGE` path compiles bounded QRSS, FSKCW and DFCW
 messages before entering the same job service. Inputs are limited to 32 characters
@@ -129,10 +132,10 @@ adds the portable controller/SNTP arbiter and routes production SNTP
 observations through it. The authenticated controller transport and physical
 phone-time accuracy remain unwired/unqualified.
 
-Remaining Phase 12 details are safe physical gestures, production
-GATT/SoftAP/HTTPS/local-control and live-activation wiring,
-integrity-controlled offline page delivery and target resource/coexistence
-tuning.
+Remaining Phase 12 details are the complete SoftAP/HTTPS and local-control
+surfaces, authenticated phone time, accepted reset controls, physical Bluefy
+offline/interoperability evidence, live profile activation and target
+resource/coexistence tuning.
 Clock calibration, production RF engine/pins and shared WsprryPi adoption of
 browser API v1 remain open. The current Pico browser schemas and bounds are
 documented in the API contract. WTP/1 defines interoperable limits and policies

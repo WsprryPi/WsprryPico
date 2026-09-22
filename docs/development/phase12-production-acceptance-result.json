@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "phase": "12",
+  "status": "OPEN_PARTIAL",
+  "date": "2026-09-22",
+  "source": {
+    "branch": "devel",
+    "starting_head": "7451a4047677cf2f91d790ea5aa9eec1a9015f38",
+    "starting_upstream": "7451a4047677cf2f91d790ea5aa9eec1a9015f38",
+    "operated_revision": "7451a4047677-dirty",
+    "working_tree_uf2_sha256": "708e33c88b273ba3e2ea0a26229d4b695485b5566c9026dc4fa16cbad7e65b27",
+    "operated_uf2_sha256": "8ea4121ebf81cccb1cdaeaae61243f092d4e0acbe1fe89f4d24c7acb8232767b"
+  },
+  "dependencies": {
+    "pico_sdk": "079c6f39023649b154152db30f1d781e884879bc",
+    "pico_sdk_version": "2.3.1",
+    "btstack": "eb0bb8b5ea6d234ccb940313b47f7a5c3b4e20ec",
+    "arm_gnu_toolchain": "15.3.Rel1",
+    "cmake": "4.4.3",
+    "ninja": "1.13.2"
+  },
+  "bluefy_release": {
+    "sha256_release_id": "51fe7c97ebe3a7a710cda89f5370923bd942f1443df17549054903c69025e56f",
+    "contains_candidate_identity": false,
+    "contains_credentials": false,
+    "remote_dependencies": 0,
+    "published": false,
+    "iphone_offline_accepted": false
+  },
+  "candidate": {
+    "host": "wspr5",
+    "board": "Pico 2 W",
+    "usb_serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "station_mac": "88:a2:9e:0a:60:df",
+    "suffix": "0a60df",
+    "ble_controller_address": "88:A2:9E:0A:60:E0",
+    "engine": "inhibited-standalone-simulator",
+    "output_active": false,
+    "owner": null,
+    "access_state": "healthy",
+    "access_generation": 1,
+    "default_password_active": true,
+    "enrollment_open": false,
+    "ble_running": true,
+    "station": {
+      "callsign": "AA0NT",
+      "locator": "EM18",
+      "power_dbm": 20
+    },
+    "schedules": [
+      {
+        "period_s": 120,
+        "phase_s": 0
+      }
+    ],
+    "watermark_utc_ns": "1789607761000000000"
+  },
+  "comparator": {
+    "usb_serial": "CDDBF8767C506C07",
+    "modified": false
+  },
+  "validation": {
+    "host_ctest_passed": 79,
+    "host_ctest_failed": 0,
+    "host_ctest_separated": 4,
+    "sanitizer_focused_passed": 5,
+    "sanitizer_focused_failed": 0,
+    "wtp_schema_cases": 23,
+    "wtp_raw_json_cases": 7,
+    "wtp_framing_cases": 1,
+    "wtp_transition_cases": 8,
+    "pico2_w_cross_build": "pass",
+    "field_access_linkcheck": "pass",
+    "provisioning_linkcheck": "pass",
+    "linked_flash_end": "0x103f3000",
+    "primary_stack_bytes": 16384,
+    "image_text_bytes": 1303984,
+    "image_bss_bytes": 132760
+  },
+  "physical_attempts": [
+    {
+      "name": "initial_ble_advertisement",
+      "result": "fail",
+      "finding": "BTstack retained pointers to temporary advertisement buffers"
+    },
+    {
+      "name": "repaired_ble_advertisement",
+      "result": "pass",
+      "observed_name": "WsprryPico-0a60df"
+    },
+    {
+      "name": "usb_local_adoption_and_preservation",
+      "result": "pass"
+    }
+  ],
+  "separated_checks": [
+    {
+      "name": "phase11_7_closure_tests",
+      "result": "expected_fail",
+      "reason": "immutable guard detects later production runtime drift"
+    },
+    {
+      "name": "cyw43_tx_overlay_tests",
+      "result": "host_toolchain_blocked",
+      "reason": "macOS 27 tbd contains unsupported arm64e.x1 architecture"
+    },
+    {
+      "name": "network_certificate_tests",
+      "result": "host_toolchain_blocked",
+      "reason": "macOS 27 tbd contains unsupported arm64e.x1 architecture"
+    },
+    {
+      "name": "phase11_5_r3_tests",
+      "result": "one_host_toolchain_blocked_subcase",
+      "reason": "macOS 27 tbd contains unsupported arm64e.x1 architecture"
+    }
+  ],
+  "remaining_gates": [
+    "clean committed candidate reflash",
+    "exact iPhone iOS and Bluefy identity",
+    "live Bluefy chooser pairing and application authorization",
+    "verified offline reload with infrastructure networking disabled",
+    "physical profile transfer and delivery-safe activation",
+    "controller time",
+    "physical Identify",
+    "production SoftAP DHCP mDNS HTTP HTTPS",
+    "BLE WTP and browser local management",
+    "password bond reset and recovery",
+    "fault injection and superseded trust",
+    "resource reclamation concurrency and soak",
+    "final RF-inhibited output-off and restoration"
+  ],
+  "stage_b_authorized": false,
+  "phase_complete": false
+}

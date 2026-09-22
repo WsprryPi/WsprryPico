@@ -481,6 +481,17 @@ void ble_command_policy() {
     session.disconnected();
     CHECK(!session.authorized());
     CHECK(f.store.record()->bond_count == 1);
+
+    provisioning::BleCommandSession returning(f.controller, command, manager,
+                                               std::string(device), idle_activity, nullptr);
+    CHECK(returning.connected(9, true, false, "link-return", 6));
+    CHECK(returning.authorized());
+    auto retained_authorize = authorize;
+    retained_authorize.replace(retained_authorize.find("wspr-0a60df"), 11,
+                               "wrong-value");
+    CHECK(returning.handle(retained_authorize, 7).code == provisioning::Code::Ok);
+    CHECK(returning.authorized());
+    returning.disconnected();
 }
 
 void framing_policy() {

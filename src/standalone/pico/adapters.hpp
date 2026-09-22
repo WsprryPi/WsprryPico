@@ -34,6 +34,7 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
   public:
     PicoNetwork(time::ObservationSink& clock, std::string_view configured_hostname);
     bool start(const Config& config);
+    bool initialize_radio();
 #ifndef WSPRRY_PICO_STANDALONE_RF
     std::string trace_page(std::uint64_t after) const { return trace_.page(after); }
     std::string association();
@@ -48,6 +49,8 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     bool initialized() const {
         return initialized_;
     }
+    const std::string& station_mac() const { return station_mac_; }
+    const std::string& stable_hostname() const { return stable_hostname_; }
     void listener_status(bool configured, bool listening, bool identity_matches = true) {
         configured_ = configured;
         listening_ = listening;
@@ -89,7 +92,7 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     std::string ssid_, password_;
     std::uint64_t next_connect_us_ = 0;
     std::optional<std::uint64_t> reconnect_after_leave_us_;
-    bool initialized_ = false, enabled_ = true;
+    bool initialized_ = false, enabled_ = false;
     std::optional<bool> power_save_;
     std::optional<bool> pending_enabled_;
     std::optional<std::uint64_t> withdrawal_started_us_;

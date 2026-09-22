@@ -4,6 +4,7 @@
 #include "provisioning/ble_session.hpp"
 #include "provisioning/gatt_framing.hpp"
 
+#include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -55,6 +56,10 @@ class PicoGattTransport {
     bool new_pairing_ = false;
     bool admitted_ = false;
     bool running_ = false;
+    // BTstack retains these pointers until the asynchronous controller setup
+    // completes; they must outlive start().
+    std::array<std::uint8_t, 21> advertisement_{};
+    std::array<std::uint8_t, 31> scan_response_{};
     btstack_packet_callback_registration_t hci_registration_{};
     btstack_packet_callback_registration_t sm_registration_{};
 };

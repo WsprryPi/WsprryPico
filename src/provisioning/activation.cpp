@@ -30,6 +30,8 @@ bool ActivationCoordinator::stage(std::string_view request_id, const Profile& pr
                                   std::uint64_t generation, std::uint64_t now_ms) {
     if (request_id.empty() || !generation || blocks_admission())
         return false;
+    if (!platform_.close_admission(generation))
+        return false;
     clear_profile();
     has_profile_ = true;
     profile_.device_id = profile.device_id;

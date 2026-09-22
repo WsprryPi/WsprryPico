@@ -262,8 +262,38 @@ void PicoNetwork::mdns_result(struct netif* interface, u8_t result, s8_t slot) {
     if (mdns_owner && interface == &cyw43_state.netif[CYW43_ITF_STA] && slot == 0)
         mdns_owner->mdns_.name_result(result == MDNS_PROBING_SUCCESSFUL);
 }
+bool PicoNetwork::initialize_radio() {
+    if (initialized_)
+        return !station_mac_.empty();
+    watchdog_hw->scratch[1] = 10;
+    if (cyw43_arch_init())
+        return false;
+    initialized_ = true;
+    std::array<std::uint8_t, 6> mac{};
+    // SDK 2.3.1 does not populate the OTP MAC until the first CYW43
+    // ensure-up. Briefly create the station netif solely for that checked read;
+    // no SSID/join/DHCP request is supplied, and the interface is disabled
+    // again before any access-policy decision or field service starts.
+    cyw43_arch_enable_sta_mode();
+    const auto mac_result = cyw43_wifi_get_mac(&cyw43_state, CYW43_ITF_STA, mac.data());
+    cyw43_arch_disable_sta_mode();
+    if (mac_result != 0)
+        return false;
+    constexpr char digits[] = "0123456789abcdef";
+    station_mac_.clear();
+    for (auto byte : mac) {
+        if (!station_mac_.empty())
+            station_mac_ += ':';
+        station_mac_ += digits[byte >> 4];
+        station_mac_ += digits[byte & 15];
+    }
+    stable_hostname_ = network::default_hostname(station_mac_);
+    if (stable_hostname_.empty())
+        station_mac_.clear();
+    return !station_mac_.empty();
+}
 bool PicoNetwork::start(const Config& config) {
-    if (initialized_ || !valid_time_server(config.ntp_ipv4))
+    if (pcb_ || !valid_time_server(config.ntp_ipv4) || !initialize_radio())
         return false;
     time_server_ = config.ntp_ipv4;
     if (!time_server_.empty() && time_server_.back() == '.')
@@ -272,35 +302,16 @@ bool PicoNetwork::start(const Config& config) {
         if (c >= 'A' && c <= 'Z')
             c += 'a' - 'A'; // lwIP's .local selection is case-sensitive.
     server_literal_ = ipaddr_aton(time_server_.c_str(), &server_) != 0;
-    watchdog_hw->scratch[1] = 10;
-    if (cyw43_arch_init())
-        return false;
-    initialized_ = true;
     watchdog_hw->scratch[1] = 11;
     cyw43_arch_enable_sta_mode();
-    std::array<std::uint8_t, 6> mac{};
-    station_mac_.clear();
-    stable_hostname_.clear();
-    if (cyw43_wifi_get_mac(&cyw43_state, CYW43_ITF_STA, mac.data()) == 0) {
-        constexpr char digits[] = "0123456789abcdef";
-        for (auto byte : mac) {
-            if (!station_mac_.empty())
-                station_mac_ += ':';
-            station_mac_ += digits[byte >> 4];
-            station_mac_ += digits[byte & 15];
-        }
-        stable_hostname_ = network::default_hostname(station_mac_);
-        if (stable_hostname_.empty())
-            station_mac_.clear();
-    }
+    enabled_ = true;
     trace_install();
     // USB-powered network control needs continuous receive availability.
     if (!disable_power_save()) {
         trace_mark(4); // Before station disable.
         cyw43_arch_disable_sta_mode();
         trace_mark(5); // After station disable.
-        cyw43_arch_deinit();
-        initialized_ = false;
+        enabled_ = false;
         return false;
     }
     watchdog_hw->scratch[1] = 12;
@@ -311,8 +322,7 @@ bool PicoNetwork::start(const Config& config) {
         trace_mark(4); // Before station disable.
         cyw43_arch_disable_sta_mode();
         trace_mark(5); // After station disable.
-        cyw43_arch_deinit();
-        initialized_ = false;
+        enabled_ = false;
         return false;
     }
     udp_recv(pcb_, receive, this);
@@ -361,11 +371,13 @@ void PicoNetwork::receive(void* context, udp_pcb*, pbuf* packet, const ip_addr_t
         pbuf_free(packet);
 }
 void PicoNetwork::poll() {
-    if (!initialized_ || !pcb_ || (!enabled_ && !withdrawal_started_us_))
+    if (!initialized_)
         return;
     watchdog_hw->scratch[1] = 13;
     cyw43_arch_poll();
     watchdog_hw->scratch[1] = 14;
+    if (!pcb_ || (!enabled_ && !withdrawal_started_us_))
+        return;
     const auto now = time_us_64();
     const auto link = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
     if (withdrawal_started_us_) {

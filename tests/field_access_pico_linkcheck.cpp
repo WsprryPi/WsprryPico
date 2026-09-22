@@ -31,6 +31,7 @@ class Validator final : public CredentialValidator {
 class Platform final : public ActivationPlatform {
   public:
     bool prepare(const Profile&, std::uint64_t) override { return false; }
+    bool close_admission(std::uint64_t) override { return true; }
     Activity activity() const override { return {}; }
     bool quiesce() override { return false; }
     bool install(const Profile&, std::uint64_t) override { return false; }

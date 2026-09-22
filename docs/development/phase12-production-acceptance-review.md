@@ -1,0 +1,205 @@
+# Phase 12 production integration and partial acceptance review
+
+Status: **OPEN_PARTIAL**. This is not Phase 12 closure.
+
+## Authority and evidence boundary
+
+The tranche started from clean `devel` at
+`7451a4047677cf2f91d790ea5aa9eec1a9015f38`, equal to the upstream and local
+`origin/devel` references. The operator authorized the named production
+integration, finite physical work on the two Picos attached to `wspr5`, a
+review/repair/reassessment cycle, commit/push, and later GitHub Pages publication
+from `devel:/docs`. No RF output, Stage B, host reconfiguration, trust-store
+mutation, dependency download or private credential publication was authorized.
+
+This record separates source/test evidence, the operated dirty candidate, and
+unexecuted physical assertions. A linked image is not live-device evidence, BLE
+advertising is not Bluefy interoperability, and a checked-in service worker is
+not proof that iOS retained a usable offline cache.
+
+## Source orientation
+
+Before editing, the production image already had one `JobService`, scheduler,
+portable provisioning manager/profile journal, delivery-safe coordinator,
+access/reset journal, controller-time arbiter, fixed GATT framing, candidate Pico
+GATT/SoftAP/LED adapters, station/TLS server and strict browser/WTP semantics.
+The adapters cross-linked but production did not start GATT or own a live Pico
+activation platform.
+
+The retained dependency boundary is:
+
+- Pico SDK 2.3.1 at `079c6f39023649b154152db30f1d781e884879bc`;
+- clean BTstack at `eb0bb8b5ea6d234ccb940313b47f7a5c3b4e20ec`;
+- Arm GNU Toolchain 15.3.Rel1, CMake 4.4.3 and Ninja 1.13.2;
+- RP2350 Arm-S / Pico 2 W standard RF-inhibited image;
+- application end `0x103f3000`, leaving access, BTstack, profile,
+  standalone and E10 storage unchanged.
+
+The pinned SDK requires CYW43 to be brought up once before its checked OTP station
+MAC is populated. It does not provide an accepted RP2350 application-visible
+BOOTSEL-at-boot gesture: a held BOOTSEL selects ROM mass-storage boot instead of
+starting the application.
+
+## Implemented production boundary
+
+- `PicoNetwork` now separates one-time CYW43/radio identity initialization from
+  station-profile startup. It briefly enables the station netif only for the
+  checked MAC read, disables it again, and keeps one CYW43 owner for station,
+  BTstack and LED service.
+- The RF-inhibited standard image constructs the healthy access controller,
+  provisioning manager, strict BLE command session, credential validator,
+  network-only `PicoActivationPlatform`, GATT transport and indicator.
+- The activation platform can close/restart only network admission. Its type has
+  no abort, release or RF-owner capability. Admission closes immediately after
+  profile commit; the final applying BLE indication is preserved before the
+  core-0 release path runs.
+- GATT requires encryption, stored peer identity and application authorization,
+  admits one connection, uses fixed bounded framing, retains asynchronous
+  advertisement buffers, and cleans provisional bonds on terminal paths.
+  Returning authorized bonds accept the page's repeated authorize operation
+  idempotently because the retained bond is already the selected principal.
+- USB-local `ACCESS STATUS`, `ACCESS ADOPT <full-device-id>`,
+  `ACCESS ENROLL <full-device-id>` and `IDENTIFY <full-device-id>` provide
+  exact device-bound confirmation/diagnostics. They preserve idle/output checks.
+- `docs/bluefy` is a deterministic release built from
+  `src/provisioning/web`. The page asks Bluefy for a service-filtered system
+  chooser, reads and displays the full device ID, and requires a separate
+  confirmation click. It has no remote script, analytics, credential service,
+  candidate identity or persistent credential storage.
+- The release ID covers the raw index, application, client, manifest, stylesheet
+  and service-worker templates. SHA-384 protects loaded script/style references;
+  the page verifies the SHA-256 inventory before enabling selection. A
+  release-keyed service worker installs a complete cache and does not mutate the
+  prior cache during online navigation. This protects against corruption and
+  mixed releases, not a total compromise of the trusted Pages origin.
+
+Not implemented by this tranche: production SoftAP DHCP/mDNS/HTTP/HTTPS,
+SoftAP password/browser service, BLE WTP/job management, authenticated phone
+time, profile activation on the physical candidate, password/reset administration
+surfaces, and an accepted physical gesture. `PicoSoftAp`, portable SoftAP
+admission/time/reset logic and their tests remain source primitives only.
+
+## Deterministic validation
+
+The final prepublication source assessment produced:
+
+| Check | Result |
+| --- | --- |
+| Host build plus CTest excluding four separated records | 79/79 passed |
+| Focused ASan/UBSan provisioning/access/web/contract/release | 5/5 passed |
+| WTP/1 validator | 23 schema, 7 raw JSON, 1 framing and 8 transition cases passed |
+| Pico 2 W standard plus field/provisioning linkchecks | passed |
+| Image/layout/heap-hook/stack-guard checks | passed |
+| Standard image size | text 1,303,984; BSS 132,760 bytes |
+| Working-tree UF2 SHA-256 | `708e33c88b273ba3e2ea0a26229d4b695485b5566c9026dc4fa16cbad7e65b27` |
+| Bluefy release | `51fe7c97ebe3a7a710cda89f5370923bd942f1443df17549054903c69025e56f` |
+| `git diff --check` and JavaScript syntax checks | passed |
+
+The four separated CTest results were preserved rather than hidden:
+
+- `phase11_7_closure_tests` correctly rejects later production-runtime drift;
+  the immutable Phase 11 closure record was not rewritten.
+- `cyw43_tx_overlay_tests`, `network_certificate_tests`, and one compiled
+  subcase inside `phase11_5_r3_tests` are blocked by the host Command Line Tools
+  macOS 27 `.tbd` files containing unsupported `arm64e.x1` architecture
+  entries. The broad host build, 79 unaffected tests, sanitizer checks and the
+  Arm cross-build pass; this host-toolchain failure is not converted into a
+  product pass.
+
+## Partial physical evidence
+
+Candidate A:
+
+- Pico 2 W USB serial `0BF4B4AEC9FFB344`;
+- device ID `fd6127d11d6aca42a9905fa3fb1bf1d5`;
+- station MAC `88:a2:9e:0a:60:df`, suffix `0a60df`;
+- public BLE controller address observed as `88:A2:9E:0A:60:E0`;
+- operated source `7451a4047677-dirty`;
+- operated repaired-advertisement UF2 SHA-256
+  `8ea4121ebf81cccb1cdaeaae61243f092d4e0acbe1fe89f4d24c7acb8232767b`.
+
+Before the flash, Candidate A reported the prior `0e85ff90571c` runtime,
+empty/unowned/output inactive, station `AA0NT/EM18/20`, a 120-second schedule
+and watermark `1789607761000000000`. After the RF-inhibited standard flash and
+USB-local adoption it reported:
+
+- engine `inhibited-standalone-simulator`;
+- empty/unowned, `output_active=false`, unsynchronized;
+- healthy access generation 1, public default active, enrollment closed;
+- BLE running;
+- station, schedule and watermark values preserved.
+
+The first physical BLE scan failed because the advertisement payload had
+temporary storage lifetime. After repair and reflash, a bounded `wspr5` scan
+observed the selected service and name `WsprryPico-0a60df`. The failed attempt
+is retained in this review.
+
+Candidate B, USB serial `CDDBF8767C506C07`, was identified as the comparator
+and left on its existing image without mutation.
+
+No iPhone pairing, application authorization, offline reload, profile transfer,
+activation, controller-time observation, SoftAP, LED-pattern measurement,
+password replacement, reset, fault injection or soak has yet passed. The
+working-tree UF2 above also contains later retained-bond and cache fixes and must
+be flashed and rebound to a clean published revision before those rows execute.
+
+## Adversarial findings and repairs
+
+1. **Double CYW43 ownership risk.** The candidate GATT path could initialize and
+   deinitialize BTstack independently of station ownership. Production now has
+   one `PicoNetwork` CYW43 lifetime and GATT refuses to start without it.
+2. **Wrong callback context for activation.** ATT completion could directly run
+   disruptive activation inside the BTstack callback. Completion now records a
+   flag and core-0 polling performs release exactly once.
+3. **Asynchronous advertisement lifetime.** BTstack retained pointers to local
+   arrays, producing an empty live advertisement. The buffers now live in
+   `PicoGattTransport`; physical rescanning passed.
+4. **Returning-bond page mismatch.** A retained bond was already authorized, but
+   a repeated page authorize command could be rejected because it was not a new
+   provisional pairing. The command is now idempotent for an already authorized
+   encrypted retained bond; a regression covers it.
+5. **Stale/non-atomic offline release.** Index-only or service-worker-only edits
+   did not necessarily change the cache generation, and an online navigation
+   could overwrite the prior cache before the new release completed. Every raw
+   source asset now contributes to the release ID and navigation never mutates
+   the old release cache. Deterministic tests enforce both properties.
+6. **Impossible boot gesture premise.** The requested BOOTSEL-at-boot application
+   gestures cannot execute on the selected board because ROM intercepts the
+   hold. The plan now states USB-local confirmation is the only implemented
+   route and leaves any new hardware/runtime gesture as a fresh design gate.
+7. **Future SoftAP terminal-response risk.** `set_admission(false)` closes TCP
+   connections. That is correct for the current applying BLE transport, but a
+   future SoftAP provisioning adapter must preserve its bounded terminal reply
+   separately before reusing the activation platform. This is an open design
+   gate, not a claim that SoftAP activation works.
+
+A second diff/source/test assessment found no further actionable issue within
+the implemented BLE-only production boundary. It confirmed that unsupported
+SoftAP/WTP/time/reset work remains explicitly unclaimed.
+
+## Phase 11 applicability
+
+Phase 11 closure artifacts remain immutable. The shared TLS/browser/WTP,
+identity/trust, concurrent-management, image-layout, heap/stack, storage and
+network-loss assertions are affected and were rerun where hardware-free. The
+new live radio and memory composition requires new Phase 12 inhibited
+coexistence/resource evidence. Nothing here rebinds Phase 11.4 physical or
+11.5/11.6 RF evidence, expands its 138 MHz/divider-1 boundary, or constitutes
+Phase 13 release qualification.
+
+## Remaining gates
+
+Phase 12 remains open for:
+
+- exact iPhone model, iOS and Bluefy version and live chooser/pairing evidence;
+- online install followed by verified no-Wi-Fi/no-cellular offline page reuse;
+- clean committed candidate reflash and full provisioning/activation lifecycle;
+- controller-time and Identify physical behavior;
+- production SoftAP, HTTPS, DHCP/mDNS and its independent field-control path;
+- BLE ordinary WTP/browser local management through the one `JobService`;
+- password/bond/reset recovery and safe accepted physical controls;
+- fault-injection, replacement/superseded-trust, resource reclamation,
+  concurrency and bounded soak rows;
+- final RF-inhibited/output-off/restoration evidence.
+
+Stage B and all RF output remain separate and unauthorized.

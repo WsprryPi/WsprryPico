@@ -8,13 +8,15 @@ operator-selected [field-access/security contract](phase12-field-access-contract
 and [portable review](phase12-review.md), the
 [P12.3 hardware-free integration review](phase12-3-review.md), the
 [P12.4 portable command/activation review](phase12-4-review.md), the
-[P12.5 activation-safety review](phase12-5-review.md), plus the separate
+[P12.5 activation-safety review](phase12-5-review.md), the
+[production/acceptance review](phase12-production-acceptance-review.md), plus the separate
 [RF-inhibited-first physical plan](phase12-physical-acceptance.md), distinguish
-implemented infrastructure and selected product/security policy from still-open
-production service wiring, live activation, offline delivery proof and physical
-acceptance. P12.3 is CLOSED_SCOPED for the current hardware-free source,
-deterministic-test and RP2350 cross-link boundary; it is not live-device
-acceptance.
+implemented infrastructure and selected product/security policy from open
+SoftAP/local-control and physical work. Provisioning-only GATT and its live
+activator now run in the RF-inhibited production image; candidate
+identity/adoption/advertising are partial physical evidence. Bluefy/iOS offline
+use, provisioning/activation, SoftAP, phone time, reset controls and most Stage A
+rows remain open. P12.3 remains CLOSED_SCOPED within its historical boundary.
 Phase 13 broad hardware/release qualification remains open.
 
 Phase 11.5 is CLOSED at 6/6 families for its recorded 138 MHz/divider-1

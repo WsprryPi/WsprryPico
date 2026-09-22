@@ -106,7 +106,7 @@ bool PicoServer::busy() const {
     return state == wtp::State::Armed || state == wtp::State::Running;
 }
 bool PicoServer::start() {
-    if (!configured() || setup_ || tls_owner)
+    if (!configured() || setup_ || tls_owner || !admission_open_)
         return false;
     api_.hostname_authority(std::string(credentials_.hostname) +
                             (port() == 443 ? "" : ":" + std::to_string(port())));
@@ -204,7 +204,7 @@ bool PicoServer::start() {
 err_t PicoServer::accept(void* context, tcp_pcb* pcb, err_t err) {
     auto& self = *static_cast<PicoServer*>(context);
     const auto clock = self.service_.clock_snapshot();
-    if (err != ERR_OK || self.pending_ || self.busy() ||
+    if (err != ERR_OK || !self.admission_open_ || self.pending_ || self.busy() ||
         clock.state == wtp::ClockState::Unsynchronized || clock.utc_now_ns == 0) {
         ++self.metrics_.rejected;
         tcp_abort(pcb);
@@ -216,6 +216,14 @@ err_t PicoServer::accept(void* context, tcp_pcb* pcb, err_t err) {
     tcp_recv(pcb, pending_receive);
     tcp_err(pcb, pending_error);
     return ERR_OK;
+}
+void PicoServer::set_admission(bool open) {
+    admission_open_ = open;
+    if (open)
+        return;
+    close_pending();
+    for (auto& connection : connections_)
+        connection.close(false, 7);
 }
 void PicoServer::Connection::activate(tcp_pcb* pcb) {
     client_ = pcb;

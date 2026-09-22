@@ -37,6 +37,10 @@ struct ActivationStatus {
 class ActivationPlatform {
   public:
     virtual ~ActivationPlatform() = default;
+    // Called immediately after the new generation commits, before the applying
+    // terminal response is released. This closes application admission without
+    // destroying the applying transport's bounded response path.
+    virtual bool close_admission(std::uint64_t generation) = 0;
     virtual bool prepare(const Profile& profile, std::uint64_t generation) = 0;
     virtual Activity activity() const = 0;
     virtual bool quiesce() = 0;

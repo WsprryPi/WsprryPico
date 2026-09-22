@@ -132,7 +132,8 @@ struct Validator : provisioning::CredentialValidator {
 };
 
 struct ActivationPlatformFixture : provisioning::ActivationPlatform {
-    enum class Operation { Prepare, Activity, Quiesce, Install, Restart, FailClosed };
+    enum class Operation { CloseAdmission, Prepare, Activity, Quiesce, Install, Restart, FailClosed };
+    bool close_admission_ok = true;
     bool prepare_ok = true;
     bool quiesce_ok = true;
     bool install_ok = true;
@@ -140,6 +141,7 @@ struct ActivationPlatformFixture : provisioning::ActivationPlatform {
     bool fail_closed_ok = true;
     provisioning::Activity observed_activity;
     mutable std::vector<Operation> order;
+    unsigned close_admission_calls = 0;
     unsigned prepare_calls = 0;
     mutable unsigned activity_calls = 0;
     unsigned quiesce_calls = 0;
@@ -149,6 +151,13 @@ struct ActivationPlatformFixture : provisioning::ActivationPlatform {
     std::uint64_t generation = 0;
     std::string prepared_ssid;
     std::string installed_ssid;
+
+    bool close_admission(std::uint64_t next) override {
+        order.push_back(Operation::CloseAdmission);
+        ++close_admission_calls;
+        generation = next;
+        return close_admission_ok;
+    }
 
     bool prepare(const provisioning::Profile& candidate, std::uint64_t next) override {
         order.push_back(Operation::Prepare);
@@ -946,7 +955,8 @@ void deferred_activation_delivery_replay_and_ownership() {
     const auto pending = fixture.manager.status();
     CHECK(pending.state == provisioning::State::Complete);
     CHECK(pending.activation.generation == 1);
-    CHECK(fixture.platform.order.empty());
+    CHECK(fixture.platform.order.size() == 1 &&
+          fixture.platform.order.front() == ActivationPlatformFixture::Operation::CloseAdmission);
 
     auto unauthenticated = authorized();
     unauthenticated.authenticated = false;
@@ -971,17 +981,19 @@ void deferred_activation_delivery_replay_and_ownership() {
 
     const auto replay = session_apply(fixture.manager, staged.request, session_a, 0, {}, 30);
     CHECK(replay.ok() && replay.replayed && replay.generation == 1);
-    CHECK(fixture.platform.order.empty());
+    CHECK(fixture.platform.order.size() == 1 &&
+          fixture.platform.order.front() == ActivationPlatformFixture::Operation::CloseAdmission);
     CHECK(fixture.manager.release_activation(request_id(request++), 1, 31) ==
           provisioning::ActivationRelease::Stale);
     CHECK(fixture.manager.release_activation(staged.request, 2, 32) ==
           provisioning::ActivationRelease::Stale);
-    CHECK(fixture.platform.order.empty());
+    CHECK(fixture.platform.order.size() == 1 &&
+          fixture.platform.order.front() == ActivationPlatformFixture::Operation::CloseAdmission);
 
     CHECK(fixture.manager.release_activation(staged.request, 1, 33) ==
           provisioning::ActivationRelease::Executed);
     using Operation = ActivationPlatformFixture::Operation;
-    const std::vector<Operation> expected{Operation::Prepare, Operation::Activity,
+    const std::vector<Operation> expected{Operation::CloseAdmission, Operation::Prepare, Operation::Activity,
                                           Operation::Quiesce, Operation::Install,
                                           Operation::Restart};
     CHECK(fixture.platform.order == expected);
@@ -1022,7 +1034,8 @@ void deferred_activation_timeout_and_late_activity() {
         unsigned request = 500;
         const auto staged = stage_activation(fixture, "timeout", request, 100);
         fixture.manager.poll(100 + provisioning::activation_delivery_timeout_ms - 1);
-        CHECK(fixture.platform.order.empty());
+        CHECK(fixture.platform.order.size() == 1 && fixture.platform.order.front() ==
+                                                        ActivationPlatformFixture::Operation::CloseAdmission);
         fixture.manager.poll(100 + provisioning::activation_delivery_timeout_ms);
         CHECK(fixture.manager.status().activation.state == provisioning::ActivationState::Complete);
         CHECK(fixture.platform.restart_calls == 1);

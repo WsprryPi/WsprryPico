@@ -74,6 +74,7 @@ void BleCommandSession::disconnected() {
     connected_ = false;
     secure_clear(pending_apply_request_);
     pending_apply_generation_ = 0;
+    delivery_confirmed_ = false;
 }
 
 bool BleCommandSession::authorized() const {
@@ -100,9 +101,11 @@ CommandReply BleCommandSession::authorize(std::string_view command, std::uint64_
     if (device->string() != device_id_)
         return reply(request_id, AccessCode::WrongDevice, manager_.status().generation);
     auto password = password_value->string();
-    const auto code = valid_local_password(password)
-                          ? access_.ble_authorize(password, now_ms).code
-                          : AccessCode::AuthenticationRequired;
+    const auto code = authorized()
+                          ? AccessCode::Ok
+                          : (valid_local_password(password)
+                                 ? access_.ble_authorize(password, now_ms).code
+                                 : AccessCode::AuthenticationRequired);
     secure_clear(password);
     return reply(request_id, code, manager_.status().generation);
 }
@@ -129,10 +132,22 @@ CommandReply BleCommandSession::handle(std::string_view command, std::uint64_t n
 }
 
 void BleCommandSession::response_delivered(std::uint64_t now_ms) {
+    (void)now_ms;
     if (pending_apply_request_.empty())
         return;
-    (void)manager_.release_activation(pending_apply_request_, pending_apply_generation_, now_ms);
-    secure_clear(pending_apply_request_);
-    pending_apply_generation_ = 0;
+    delivery_confirmed_ = true;
+}
+
+void BleCommandSession::poll(std::uint64_t now_ms) {
+    if (delivery_confirmed_) {
+        delivery_confirmed_ = false;
+        (void)manager_.release_activation(pending_apply_request_, pending_apply_generation_, now_ms);
+    }
+    manager_.poll(now_ms);
+    if (!pending_apply_request_.empty() &&
+        manager_.status().activation.state != ActivationState::PendingDelivery) {
+        secure_clear(pending_apply_request_);
+        pending_apply_generation_ = 0;
+    }
 }
 } // namespace wsprrypico::provisioning

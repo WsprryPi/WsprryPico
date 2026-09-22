@@ -121,7 +121,7 @@ async function run() {
 
   const fixture = bluetoothFixture();
   const client = new Client(fixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
-  assert.deepStrictEqual(await client.connect(device), {device_id: device, generation: 0});
+  assert.deepStrictEqual(await client.connect(), {device_id: device, generation: 0});
   await rejectsCode(() => client.provision(profile()), "authentication_required");
   assert.deepStrictEqual(await client.authorize("wspr-0a60df"), {authorized: true});
   const result = await client.provision(profile());

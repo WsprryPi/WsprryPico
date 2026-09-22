@@ -19,7 +19,7 @@ PicoGattTransport::~PicoGattTransport() {
 bool PicoGattTransport::start() {
     if (running_ || owner_ || !session_.available() || identity_.empty() ||
         advertising_name_.empty() ||
-        advertising_name_.size() > 29 || !btstack_cyw43_init(cyw43_arch_async_context()))
+        advertising_name_.size() > 29 || !cyw43_is_initialized(&cyw43_state))
         return false;
     owner_ = this;
     l2cap_init();
@@ -33,26 +33,25 @@ bool PicoGattTransport::start() {
     sm_add_event_handler(&sm_registration_);
     att_server_register_packet_handler(att_callback);
 
-    std::array<std::uint8_t, 21> advertisement{
+    advertisement_ = {
         2, BLUETOOTH_DATA_TYPE_FLAGS, 6,
         17, BLUETOOTH_DATA_TYPE_COMPLETE_LIST_OF_128_BIT_SERVICE_CLASS_UUIDS,
         0x01, 0x22, 0xc1, 0x70, 0x8f, 0x3e, 0x86, 0xa4,
         0x21, 0x4f, 0xf1, 0x5b, 0x01, 0x00, 0x6b, 0x7d};
-    std::array<std::uint8_t, 31> scan{};
-    scan[0] = static_cast<std::uint8_t>(advertising_name_.size() + 1);
-    scan[1] = BLUETOOTH_DATA_TYPE_COMPLETE_LOCAL_NAME;
-    std::copy(advertising_name_.begin(), advertising_name_.end(), scan.begin() + 2);
+    scan_response_.fill(0);
+    scan_response_[0] = static_cast<std::uint8_t>(advertising_name_.size() + 1);
+    scan_response_[1] = BLUETOOTH_DATA_TYPE_COMPLETE_LOCAL_NAME;
+    std::copy(advertising_name_.begin(), advertising_name_.end(), scan_response_.begin() + 2);
     bd_addr_t any{};
     gap_advertisements_set_params(0x00a0, 0x00f0, 0, 0, any, 7, 0);
-    gap_advertisements_set_data(static_cast<std::uint8_t>(advertisement.size()),
-                                advertisement.data());
+    gap_advertisements_set_data(static_cast<std::uint8_t>(advertisement_.size()),
+                                advertisement_.data());
     gap_scan_response_set_data(static_cast<std::uint8_t>(advertising_name_.size() + 2),
-                               scan.data());
+                               scan_response_.data());
     gap_advertisements_enable(1);
     running_ = hci_power_control(HCI_POWER_ON) == 0;
     if (!running_) {
         owner_ = nullptr;
-        btstack_cyw43_deinit(cyw43_arch_async_context());
     }
     return running_;
 }
@@ -69,7 +68,6 @@ void PicoGattTransport::stop() {
         (void)gap_disconnect(connection_);
     disconnected();
     (void)hci_power_control(HCI_POWER_OFF);
-    btstack_cyw43_deinit(cyw43_arch_async_context());
     running_ = false;
     if (owner_ == this)
         owner_ = nullptr;

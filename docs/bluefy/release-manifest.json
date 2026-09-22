@@ -1,0 +1,27 @@
+{
+  "files": {
+    "app.js": {
+      "bytes": 7472,
+      "sha256": "23db30257d1fcf4007b8f26a5acf9309d387a80fe5920264519602b331678f0b"
+    },
+    "bluefy.js": {
+      "bytes": 15821,
+      "sha256": "02f9761fdca5b2ec02ab23eedf6ca5f1b48c2614e49a3ec2a19a0773c5bde5fe"
+    },
+    "manifest.webmanifest": {
+      "bytes": 210,
+      "sha256": "dce2851cece9511d6270fdde48ff3deb2525380fecbc1c3e789ec098b3572546"
+    },
+    "style.css": {
+      "bytes": 1180,
+      "sha256": "c0162fdb127ca8a235e94fbb7e90a65baf29d0fa2161820a264a15c3661db5fb"
+    },
+    "sw.js": {
+      "bytes": 1521,
+      "sha256": "ca6e67964bdc406ad52533485ddd5fc8c6114dcc1b7f337bb94426cf5876b2ec"
+    }
+  },
+  "protocol": 1,
+  "release": "51fe7c97ebe3a7a710cda89f5370923bd942f1443df17549054903c69025e56f",
+  "version": 1
+}
