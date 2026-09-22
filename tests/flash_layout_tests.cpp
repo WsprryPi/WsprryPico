@@ -13,7 +13,9 @@
 
 int main() {
     using namespace wsprrypico::standalone::flash_layout;
-    CHECK(linked_flash_size == btstack_base);
+    CHECK(linked_flash_size == access_base);
+    CHECK(access_base == 0x3f3000);
+    CHECK(access_base + access_size == btstack_base);
     CHECK(btstack_base == 0x3f5000);
     CHECK(btstack_base + btstack_size == profile_base);
     CHECK(profile_base == 0x3f7000);
@@ -22,6 +24,7 @@ int main() {
     CHECK(standalone_base + standalone_size == boot_workaround_base);
     CHECK(boot_workaround_base == 0x3ff000);
     CHECK(boot_workaround_base + boot_workaround_size == physical_size);
+    CHECK(access_size == 2 * erase_sector_size);
     CHECK(btstack_size == 2 * erase_sector_size);
     CHECK(profile_size == 2 * 8192);
     CHECK(profile_size % erase_sector_size == 0);

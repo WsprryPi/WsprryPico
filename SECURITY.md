@@ -19,4 +19,14 @@ within an explicitly authorized, bounded setup.
 
 Network control defaults off. See [certificate management](docs/development/network-control.md)
 for local CA handling, renewal, compromise recovery and current provisioning
-limits. Never publish credential-bearing UF2 files or generated build headers.
+limits. The selected
+[Phase 12 field-access/security contract](docs/development/phase12-field-access-contract.md)
+now has a hardware-free portable policy/persistence implementation and
+cross-linked target candidates; see the
+[scoped P12.3 closeout](docs/development/phase12-3-review.md). This is not live or
+physical security evidence. Its station-MAC-derived default is observable and
+convenience-only; customization reduces casual nearby access but does not add
+active-MITM protection to Just Works. Sensitive trust/reset mutations require a
+freshly entered local password and, while the default remains active, physical
+or USB confirmation. Never publish passwords, access-sector contents,
+credential-bearing UF2 files or generated build headers.

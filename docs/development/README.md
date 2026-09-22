@@ -3,15 +3,19 @@
 Phase 11 is closed within its documented software, bounded physical and scoped
 conducted-RF acceptance. The authoritative [Phase 11.7 joint review](phase11-7-review.md)
 binds its source pair, assertion-level applicability, host regressions and
-retained limitations. Phase 12 is current: its [implementation plan](phase12-plan.md)
+retained limitations. Phase 12 is current: its [implementation plan](phase12-plan.md),
+operator-selected [field-access/security contract](phase12-field-access-contract.md)
 and [portable review](phase12-review.md), the
 [P12.3 hardware-free integration review](phase12-3-review.md), the
 [P12.4 portable command/activation review](phase12-4-review.md), the
 [P12.5 activation-safety review](phase12-5-review.md), plus the separate
-[RF-inhibited-first physical plan](phase12-physical-acceptance.md), record the
-implemented infrastructure, unresolved transport security choices and fresh
-acceptance required for target adapters. Phase 13 broad hardware/release
-qualification remains open.
+[RF-inhibited-first physical plan](phase12-physical-acceptance.md), distinguish
+implemented infrastructure and selected product/security policy from still-open
+production service wiring, live activation, offline delivery proof and physical
+acceptance. P12.3 is CLOSED_SCOPED for the current hardware-free source,
+deterministic-test and RP2350 cross-link boundary; it is not live-device
+acceptance.
+Phase 13 broad hardware/release qualification remains open.
 
 Phase 11.5 is CLOSED at 6/6 families for its recorded 138 MHz/divider-1
 configuration. Its [completion matrix](phase11-5-completion-matrix.md) and
@@ -397,8 +401,10 @@ See the [portable-core guide](portable-core.md) and
 [firmware-foundation guide](firmware-foundation.md) for boundaries and
 limitations.
 
-See the [implementation plan](../implementation-plan.md) and
-[WTP/1 contract](../protocol/WTP.md) for the next boundary.
+See the [implementation plan](../implementation-plan.md),
+[Phase 12 field-access/security contract](phase12-field-access-contract.md),
+[RF-inhibited-first physical plan](phase12-physical-acceptance.md) and
+[WTP/1 contract](../protocol/WTP.md) for the current boundary.
 
 The [frequency correction and alias investigation](rf-correction-validation.md) records the
 `CORRECTION` bench command, corrected measurements, remaining frame settling

@@ -19,7 +19,14 @@ bool RuntimeProfile::load(const ProfileStore& store, std::string_view actual_dev
     fault_ = RuntimeFault::Storage;
     if (!store.healthy())
         return false;
-    if (!generation_) {
+    if (store.source() == ProfileSource::Unprovisioned) {
+        if (!store.data().empty())
+            return false;
+        source_ = RuntimeSource::Unprovisioned;
+        fault_ = RuntimeFault::None;
+        return true;
+    }
+    if (store.source() == ProfileSource::BuildBundle || !generation_) {
         if (!store.data().empty())
             return false;
         source_ = RuntimeSource::Factory;

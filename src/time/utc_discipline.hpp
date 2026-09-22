@@ -1,5 +1,6 @@
 #pragma once
 
+#include "time/observation.hpp"
 #include "wtp/job_service.hpp"
 
 namespace wsprrypico::time {
@@ -12,14 +13,25 @@ struct DisciplineConfig {
     std::uint64_t oscillator_drift_ppb = 50'000;
 };
 
-class UtcDiscipline final : public wtp::Clock {
+class UtcDiscipline final : public wtp::Clock, public ObservationSink {
   public:
     using MonotonicNow = std::uint64_t (*)(void*);
     UtcDiscipline(MonotonicNow now, void* context, DisciplineConfig config = {});
     bool observe(std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
                  std::uint64_t uncertainty_ns, wtp::LeapState leap,
                  std::optional<std::uint64_t> leap_transition_utc_ns = {});
+    bool observe(ObservationSource, std::uint64_t utc_ns,
+                 std::uint64_t sampled_monotonic_ns, std::uint64_t uncertainty_ns,
+                 wtp::LeapState leap,
+                 std::optional<std::uint64_t> leap_transition_utc_ns,
+                 std::string_view) override {
+        return observe(utc_ns, sampled_monotonic_ns, uncertainty_ns, leap,
+                       leap_transition_utc_ns);
+    }
     void invalidate();
+    void invalidate(ObservationSource) override {
+        invalidate();
+    }
     [[nodiscard]] wtp::ClockSnapshot snapshot() const override;
 
   private:

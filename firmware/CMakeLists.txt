@@ -195,7 +195,7 @@ add_custom_command(TARGET WsprryPico-StandaloneRF POST_BUILD
 set_property(TARGET WsprryPico-StandaloneRF APPEND PROPERTY LINK_DEPENDS
              ${CMAKE_SOURCE_DIR}/scripts/check_rf_renderer.py)
 
-# Reserve the future SDK BTstack bank, all journals and the RP2350-E10 boot
+# Reserve the access journal, SDK BTstack bank, all remaining journals and the RP2350-E10 boot
 # sector on every maintained image. PICO_FLASH_SIZE_BYTES retains the physical
 # capacity; these definitions also pin the SDK flash-bank implementation to the
 # project-owned, non-overlapping region.
@@ -238,6 +238,60 @@ set_target_properties(provisioning_pico_linkcheck PROPERTIES
     C_STANDARD 11 C_STANDARD_REQUIRED ON C_EXTENSIONS ON)
 wsprry_configure_flash_layout(provisioning_pico_linkcheck)
 pico_add_extra_outputs(provisioning_pico_linkcheck)
+
+# P12.3 hardware-free target proof. The adapter is linked only when the exact
+# pinned BTstack source is supplied at configure time; it is not enabled in a
+# production image and this target is never executed as a hardware test.
+if(TARGET pico_btstack_ble AND TARGET pico_btstack_cyw43)
+    set(WSPRRY_PICO_PINNED_BTSTACK_REVISION
+        eb0bb8b5ea6d234ccb940313b47f7a5c3b4e20ec)
+    find_program(WSPRRY_PICO_GIT_EXECUTABLE git REQUIRED)
+    execute_process(
+        COMMAND ${WSPRRY_PICO_GIT_EXECUTABLE} -C ${PICO_BTSTACK_PATH} rev-parse HEAD
+        OUTPUT_VARIABLE WSPRRY_PICO_BTSTACK_REVISION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE WSPRRY_PICO_BTSTACK_REVISION_RESULT)
+    execute_process(
+        COMMAND ${WSPRRY_PICO_GIT_EXECUTABLE} -C ${PICO_BTSTACK_PATH}
+                status --porcelain --untracked-files=all
+        OUTPUT_VARIABLE WSPRRY_PICO_BTSTACK_DIRTY
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE WSPRRY_PICO_BTSTACK_DIRTY_RESULT)
+    if(NOT WSPRRY_PICO_BTSTACK_REVISION_RESULT EQUAL 0 OR
+       NOT WSPRRY_PICO_BTSTACK_REVISION STREQUAL WSPRRY_PICO_PINNED_BTSTACK_REVISION OR
+       NOT WSPRRY_PICO_BTSTACK_DIRTY_RESULT EQUAL 0 OR
+       NOT WSPRRY_PICO_BTSTACK_DIRTY STREQUAL "")
+        message(FATAL_ERROR
+            "P12.3 requires clean BTstack ${WSPRRY_PICO_PINNED_BTSTACK_REVISION}; "
+            "found ${WSPRRY_PICO_BTSTACK_REVISION} at ${PICO_BTSTACK_PATH}")
+    endif()
+    add_executable(field_access_pico_linkcheck EXCLUDE_FROM_ALL
+        ${CMAKE_SOURCE_DIR}/tests/field_access_pico_linkcheck.cpp
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_platform.cpp
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gatt_transport.cpp)
+    target_link_libraries(field_access_pico_linkcheck PRIVATE
+        wsprrypico_core pico_stdlib pico_rand pico_btstack_ble pico_btstack_cyw43
+        pico_cyw43_arch_lwip_poll)
+    target_include_directories(field_access_pico_linkcheck PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico
+        ${CMAKE_SOURCE_DIR}/src/network/pico
+        ${CMAKE_SOURCE_DIR}/src/standalone/pico)
+    target_compile_features(field_access_pico_linkcheck PRIVATE cxx_std_20)
+    target_compile_options(field_access_pico_linkcheck PRIVATE
+        "$<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic;-Werror;-fstack-usage>"
+        "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fno-unwind-tables;-fno-use-cxa-atexit>")
+    target_compile_definitions(field_access_pico_linkcheck PRIVATE
+        PICO_NO_BI_PROGRAM_BUILD_DATE=1)
+    set_target_properties(field_access_pico_linkcheck PROPERTIES
+        C_STANDARD 11 C_STANDARD_REQUIRED ON C_EXTENSIONS ON)
+    pico_btstack_make_gatt_header(field_access_pico_linkcheck PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_access.gatt)
+    wsprry_configure_flash_layout(field_access_pico_linkcheck)
+    pico_add_extra_outputs(field_access_pico_linkcheck)
+else()
+    message(STATUS "P12.3 BTstack linkcheck unavailable: configure PICO_BTSTACK_PATH at the pinned revision")
+endif()
+
 
 # Immutable pinned lwIP responder plus a narrow lifecycle integration wrapper.
 # Do not also link pico_lwip_mdns: the wrapper includes its mdns.c translation unit.

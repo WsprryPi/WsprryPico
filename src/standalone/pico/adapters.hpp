@@ -5,6 +5,7 @@
 #endif
 #include "network/api.hpp"
 #include "network/mdns.hpp"
+#include "provisioning/access.hpp"
 #include "provisioning/storage.hpp"
 #include "standalone/storage.hpp"
 #include "time/server_lookup.hpp"
@@ -23,9 +24,15 @@ class PicoProfileMedia final : public provisioning::Media {
     bool erase(std::size_t slot_offset) override;
     bool program(std::size_t offset, std::span<const std::uint8_t> page) override;
 };
+class PicoAccessMedia final : public provisioning::AccessMedia {
+  public:
+    bool read(std::size_t offset, std::span<std::uint8_t> data) override;
+    bool erase(std::size_t slot_offset) override;
+    bool program(std::size_t offset, std::span<const std::uint8_t> page) override;
+};
 class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter {
   public:
-    PicoNetwork(time::UtcDiscipline& clock, std::string_view configured_hostname);
+    PicoNetwork(time::ObservationSink& clock, std::string_view configured_hostname);
     bool start(const Config& config);
 #ifndef WSPRRY_PICO_STANDALONE_RF
     std::string trace_page(std::uint64_t after) const { return trace_.page(after); }

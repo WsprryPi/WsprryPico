@@ -5,14 +5,16 @@ operator assets, network status/management and local certificate tooling. Host
 TLS/API/browser tests and firmware cross-linking are distinct from physical
 network/RF acceptance. The [Phase 11.4 record](phase11-4-review.md) identifies the
 inhibited images actually operated and the remaining physical gates.
-Phase 12 has a host-tested portable provisioning core, while SoftAP/BLE Pico
-adapters, authenticated live reload and physical acceptance remain open. Its
-hardware-free P12.3 layer now reserves a separate profile region and can select
-a committed runtime Wi-Fi/TLS profile at boot, with Mbed TLS validation before
-the listener starts. P12.4 adds the Bluefy command decoder. P12.5 adds shared
-PSA lifetime ownership and an unconnected, delivery-safe post-commit activation
-coordinator; target reload and authenticated transport adapters remain open.
-Phase 13 retains final RF/timing/reliability qualification.
+Phase 12 has a host-tested portable provisioning and local-access core. Its
+operator-selected [field-access contract](phase12-field-access-contract.md)
+fixes enrollment, SoftAP field/recovery use, passwords/bonds, controller time,
+LED indication, trust replacement and recovery. The scoped
+[P12.3 closeout](phase12-3-review.md) implements the access/profile source
+journals, reset recovery, fixed GATT framing, Bluefy behavior, controller/SNTP
+arbitration and cross-linked Pico BLE/SoftAP/LED candidates. P12.4/P12.5 provide
+strict command decoding, shared PSA ownership and delivery-safe activation
+coordination. Production field-service and live-activation wiring,
+offline-page proof and physical acceptance remain open.
 
 ## Operator setup and certificates
 
@@ -130,17 +132,26 @@ records replacement-client and actual Chrome IP-SAN results.
 
 ### End-user provisioning limitation
 
-These commands are developer provisioning, not a finished Windows setup flow.
-With no committed runtime profile, firmware uses the device-bound credentials
-embedded at build time. The P12.3 source can boot from a separately committed
-profile, the Bluefy page can create bounded GATT requests and P12.4 can decode
-them into the portable manager, but no authenticated target GATT/SoftAP adapter,
-connected target activator or guided Windows application exists. Therefore
-there is still no supported end-user route that writes that profile. A proposed
-end-user flow would flash a generic UF2, identify the board over USB, collect
-Wi-Fi settings, generate/install its independent credentials and verify the
-short URL without asking the user to compile firmware. That flow is not yet
-implemented. E1 identity/trust acceptance does not qualify end-user setup.
+These commands remain developer provisioning, not a finished end-user setup
+flow. Current production firmware can boot from a committed runtime profile and
+enforces access-journal health fail closed. The source tree also contains the
+portable BLE/SoftAP authority and cross-linked target candidates, but production
+does not start those services or connect the live activator. There is therefore
+still no supported end-user route that writes and activates a profile.
+
+The selected generic flow starts unprovisioned and identifies the full device
+through BLE/Bluefy or explicit USB-local tooling. Blank-device SoftAP remains
+read-only identity/build/wire/status. After a complete device-bound
+Wi-Fi/time-server/TLS bundle commits through BLE or USB, authenticated
+controller time may arrive through enrolled BLE, USB-local tooling or
+server-authenticated provisioned SoftAP. A provisioned device uses
+SoftAP/Safari as an independent no-infrastructure field-control and replacement
+path. The CA private key remains off-device and public server trust is enrolled
+explicitly.
+
+That behavior has deterministic portable tests and target cross-link evidence,
+not enabled-production or physical evidence. E1 identity/trust acceptance does
+not qualify end-user setup.
 
 ### Renewal and compromised credentials
 
@@ -158,12 +169,22 @@ python3 scripts/network_certificates.py renew-server \
 ```
 
 Rebuild using the replacement directory, then separately authorize flashing.
-Clients continue trusting the same CA. DHCP address changes do not require renewal
-for hostname access. There is no on-device CRL/OCSP service or runtime rotation yet. If a
-client credential or the CA is compromised, create a new device CA with `init` in
-a new directory, reissue authorized clients, rebuild/reflash the device with the
-new trust chain and replace client trust. This invalidates **all** old clients for
-that device. Runtime credential installation/revocation remains Phase 12 work.
+Clients continue trusting the same CA. DHCP address changes do not require
+renewal for hostname access. Current firmware has no on-device CRL/OCSP service
+or runtime rotation. If a client credential or CA is compromised today, create
+a new device CA with `init` in a new directory, reissue authorized clients,
+rebuild/reflash with the new trust chain and replace client trust.
+
+The selected Phase 12 runtime policy instead commits one complete replacement
+bundle atomically. Commit immediately supersedes the old client CA and closes
+network admission; only the applying terminal response may complete before
+exactly-once activation after delivery or five seconds. Neither generation may
+admit a new network principal during that interval, so there is no implicit
+dual-trust interval. Committed corruption fails closed without trust
+resurrection. The replacement also invalidates old-generation SNTP authority
+and late DNS/SNTP callbacks. It requires fresh local-password step-up and, while
+the public default is active, physical or USB confirmation. That runtime path
+is not yet implemented.
 
 ### Explicit IP, deliberate hostname change and legacy migration
 
@@ -194,8 +215,11 @@ Six MAC hex characters are a convenient LAN label, not a uniqueness guarantee:
 different MAC prefixes can share the same suffix. Normal probing/conflict handling
 still applies. The full 32-hex WTP device ID remains in the deployment manifest
 and is checked independently of the short name. TLS authenticates the certified
-DNS SAN and CA; knowing a MAC grants no trust. Existing explicit full-ID names
-remain valid aliases and are not automatically renamed.
+DNS SAN and CA; knowing a MAC grants no TLS or WTP trust. Phase 12 deliberately
+uses that observable suffix in the public default local-access password, so a
+nearby party may obtain ordinary field control until the operator customizes it.
+Existing explicit full-ID names remain valid aliases and are not automatically
+renamed.
 
 Firmware reads the station MAC after Wi-Fi driver initialization at boot and
 reports it as `station_mac`; `stable_hostname` is its derived short default.
@@ -238,6 +262,16 @@ principals to the same Endpoint/JobService. HTTP handlers use the same strict
 codec, persistent Store and Scheduler. Credential/private-key data never appears
 in API status. See the [API contract](../browser-api.md) for schemas and errors.
 
+The candidate BLE adapter frames the bounded provisioning command stream through
+fixed 64-byte records; full BLE field control must reuse the existing
+WTP/browser semantics and JobService. Normal SoftAP authority uses
+server-authenticated HTTPS plus a random password-authenticated session
+principal scoped to that interface; station HTTPS and raw TLS-WTP retain mTLS.
+Provisioned pre-clock SoftAP is limited to identity, challenge, password,
+controller time and nonsensitive status. Blank-device SoftAP is read-only.
+These portable admission rules and target primitives are implemented, but the
+production listeners are not wired or physically accepted.
+
 The browser offers manual status refresh, station/Wi-Fi/schedule edits, explicit
 reload of saved settings, complete job upload/UTC arm, owner abort/release and
 Wi-Fi disconnect. Unsaved edits retain their original revision until deliberately
@@ -249,7 +283,12 @@ observed signal.
 Console `INFO` includes IPv4/link, enabled/requested state, SNTP counters and
 whether network control is configured/listening. `WIFI OFF` / `WIFI ON` remain
 inhibited-image Console controls. Browser Wi-Fi disconnect is idle-only and
-volatile; reconnect with Console or restart. Recovery boots start network-free.
+volatile; reconnect with Console or restart. Current firmware recovery boots
+start network-free. The selected Phase 12 access-recovery operation instead
+increments the access epoch and forces persistent field mode while preserving
+the runtime profile, station, schedules and watermark. Provisioning reset also
+commits an unprovisioned tombstone or an explicitly confirmed build-bundle mode;
+it never exposes legacy standalone Wi-Fi or old build trust by absence.
 `ABORT` on the physical Console suspends standalone scheduling and aborts any
 current job through JobService, records its terminal result and releases ownership
 only after verified shutdown. A disable failure remains a latched fault. `STOP`

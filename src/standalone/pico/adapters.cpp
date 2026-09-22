@@ -154,7 +154,59 @@ bool PicoProfileMedia::program(std::size_t offset, std::span<const std::uint8_t>
 #endif
     return true;
 }
-PicoNetwork::PicoNetwork(time::UtcDiscipline& clock, std::string_view configured_hostname)
+bool PicoAccessMedia::read(std::size_t offset, std::span<std::uint8_t> data) {
+    if (offset > provisioning::access_media_size ||
+        data.size() > provisioning::access_media_size - offset)
+        return false;
+    std::memcpy(data.data(),
+                reinterpret_cast<const void*>(XIP_BASE + flash_layout::access_base + offset),
+                data.size());
+    return true;
+}
+bool PicoAccessMedia::erase(std::size_t offset) {
+    if (offset % provisioning::access_slot_size ||
+        offset > provisioning::access_media_size - provisioning::access_slot_size)
+        return false;
+    const auto physical = flash_layout::access_base + offset;
+#ifdef WSPRRY_PICO_STANDALONE_RF
+    auto erase = [](void* argument) {
+        flash_range_erase(*static_cast<std::size_t*>(argument), FLASH_SECTOR_SIZE);
+    };
+    auto address = physical;
+    if (flash_safe_execute(erase, &address, 100) != PICO_OK)
+        return false;
+#else
+    const auto irq = save_and_disable_interrupts();
+    flash_range_erase(physical, FLASH_SECTOR_SIZE);
+    restore_interrupts(irq);
+#endif
+    const auto* bytes = reinterpret_cast<const std::uint8_t*>(XIP_BASE + physical);
+    return std::all_of(bytes, bytes + provisioning::access_slot_size,
+                       [](auto byte) { return byte == 255; });
+}
+bool PicoAccessMedia::program(std::size_t offset, std::span<const std::uint8_t> page) {
+    if (offset % FLASH_PAGE_SIZE || page.size() != FLASH_PAGE_SIZE ||
+        offset > provisioning::access_media_size - FLASH_PAGE_SIZE)
+        return false;
+#ifdef WSPRRY_PICO_STANDALONE_RF
+    struct Write {
+        std::size_t offset;
+        const std::uint8_t* data;
+    } write{flash_layout::access_base + offset, page.data()};
+    auto program = [](void* argument) {
+        const auto& write = *static_cast<Write*>(argument);
+        flash_range_program(write.offset, write.data, FLASH_PAGE_SIZE);
+    };
+    if (flash_safe_execute(program, &write, 100) != PICO_OK)
+        return false;
+#else
+    const auto irq = save_and_disable_interrupts();
+    flash_range_program(flash_layout::access_base + offset, page.data(), page.size());
+    restore_interrupts(irq);
+#endif
+    return true;
+}
+PicoNetwork::PicoNetwork(time::ObservationSink& clock, std::string_view configured_hostname)
     : sntp_(clock), mdns_(*this, configured_hostname) {}
 #ifndef WSPRRY_PICO_STANDALONE_RF
 void PicoNetwork::trace_install() {

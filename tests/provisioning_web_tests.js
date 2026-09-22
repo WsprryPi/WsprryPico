@@ -1,7 +1,7 @@
 "use strict";
 const assert = require("assert");
-const {canonicalProfile, Client, FRAGMENT_BYTES, MAX_COMMAND_BYTES, MAX_STATUS_BYTES} =
-  require("../src/provisioning/web/bluefy.js");
+const {canonicalProfile, Client, FRAGMENT_BYTES, GATT_FRAME_BYTES, MAX_COMMAND_BYTES,
+  MAX_STATUS_BYTES, frames, FrameReceiver} = require("../src/provisioning/web/bluefy.js");
 const device = "a".repeat(32);
 
 function profile(change) {
@@ -26,8 +26,10 @@ class Characteristic {
     this.value = value;
     this.listeners = [];
     this.commands = [];
+    this.writtenSizes = [];
     this.emittedSizes = [];
     this.respond = true;
+    this.receiver = new FrameReceiver(MAX_COMMAND_BYTES);
   }
   async readValue() { const bytes = new TextEncoder().encode(JSON.stringify(this.value)); return new DataView(bytes.buffer); }
   async startNotifications() { return this; }
@@ -39,18 +41,25 @@ class Characteristic {
     for (const listener of this.listeners) listener({target: {value}});
   }
   emit(value) {
-    this.emitBytes(new TextEncoder().encode(JSON.stringify(value)));
+    const encoded = new TextEncoder().encode(JSON.stringify(value));
+    for (const frame of frames(encoded)) this.emitBytes(frame);
+    encoded.fill(0);
   }
   async writeValueWithResponse(bytes) {
-    const command = JSON.parse(new TextDecoder().decode(bytes));
+    this.writtenSizes.push(bytes.byteLength);
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const encoded = this.receiver.receive(view);
+    if (!encoded) return false;
+    const command = JSON.parse(new TextDecoder().decode(encoded)); encoded.fill(0);
     this.commands.push(command);
-    if (!this.respond) return;
+    if (!this.respond) return true;
     const response = {request_id: command.request_id, ok: true};
     if (command.operation === "apply")
       response.generation = this.applyGeneration === undefined
         ? command.expected_generation + 1
         : this.applyGeneration;
     queueMicrotask(() => this.peer.emit(response));
+    return true;
   }
 }
 function bluetoothFixture(observedDevice = device, generation = 0) {
@@ -113,6 +122,8 @@ async function run() {
   const fixture = bluetoothFixture();
   const client = new Client(fixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
   assert.deepStrictEqual(await client.connect(device), {device_id: device, generation: 0});
+  await rejectsCode(() => client.provision(profile()), "authentication_required");
+  assert.deepStrictEqual(await client.authorize("wspr-0a60df"), {authorized: true});
   const result = await client.provision(profile());
   assert.deepStrictEqual(result, {generation: 1});
   assert.strictEqual(client.pending.size, 0);
@@ -126,7 +137,8 @@ async function run() {
     offset += count;
     assert.strictEqual(writes[i].final, i === writes.length - 1);
   }
-  assert.strictEqual(fixture.command.commands[0].operation, "open");
+  assert.strictEqual(fixture.command.commands[0].operation, "authorize");
+  assert.strictEqual(fixture.command.commands[1].operation, "open");
   assert.strictEqual(fixture.command.commands.at(-1).operation, "apply");
   assert(fixture.command.commands.every((command) => command.device_id === device));
   const commandSizes = fixture.command.commands.map((command) =>
@@ -134,7 +146,8 @@ async function run() {
   assert(commandSizes.every((size) => size <= MAX_COMMAND_BYTES));
   assert(commandSizes.some((size) => size > 20),
     "mock GATT must not be mistaken for default-ATT-MTU command evidence");
-  assert(fixture.status.emittedSizes.every((size) => size <= MAX_STATUS_BYTES));
+  assert(fixture.command.writtenSizes.every((size) => size <= GATT_FRAME_BYTES));
+  assert(fixture.status.emittedSizes.every((size) => size <= GATT_FRAME_BYTES));
   assert(fixture.status.emittedSizes.some((size) => size > 20),
     "mock GATT must not be mistaken for default-ATT-MTU status evidence");
 
@@ -142,6 +155,7 @@ async function run() {
   const oversizedClient = new Client(
     oversizedFixture.bluetooth, cryptoFixture(), {timeoutMs: 10});
   await oversizedClient.connect(device);
+  await oversizedClient.authorize("wspr-0a60df");
   oversizedFixture.command.respond = false;
   const oversizedRequest = "d".repeat(32);
   const pendingOversizedStatus = oversizedClient.exchange({
@@ -152,7 +166,7 @@ async function run() {
     request_id: oversizedRequest, ok: true, padding: "x".repeat(MAX_STATUS_BYTES)
   }));
   assert(oversizedStatus.byteLength > MAX_STATUS_BYTES);
-  oversizedFixture.status.emitBytes(oversizedStatus);
+  for (const frame of frames(oversizedStatus)) oversizedFixture.status.emitBytes(frame);
   await rejectsCode(() => pendingOversizedStatus, "timeout");
   assert.strictEqual(oversizedClient.pending.size, 0);
   oversizedClient.disconnect();
@@ -161,52 +175,62 @@ async function run() {
   unchangedFixture.command.applyGeneration = 1;
   const unchangedClient = new Client(unchangedFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
   await unchangedClient.connect(device);
+  await unchangedClient.authorize("wspr-0a60df");
   assert.deepStrictEqual(await unchangedClient.provision(profile()), {generation: 1});
 
   const duplicateFixture = bluetoothFixture();
   const duplicateClient = new Client(duplicateFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
   await duplicateClient.connect(device);
+  await duplicateClient.authorize("wspr-0a60df");
   const originalWrite = duplicateFixture.command.writeValueWithResponse.bind(duplicateFixture.command);
   duplicateFixture.command.writeValueWithResponse = async (bytes) => {
+    const before = duplicateFixture.command.commands.length;
     await originalWrite(bytes);
-    const command = duplicateFixture.command.commands.at(-1);
-    queueMicrotask(() => duplicateFixture.status.emit({request_id: command.request_id, ok: true,
-      replayed: true}));
+    if (duplicateFixture.command.commands.length !== before) {
+      const command = duplicateFixture.command.commands.at(-1);
+      queueMicrotask(() => duplicateFixture.status.emit({request_id: command.request_id, ok: true,
+        replayed: true}));
+    }
   };
   await duplicateClient.cancel("1".repeat(32));
   assert.strictEqual(duplicateClient.pending.size, 0);
 
   const timeoutFixture = bluetoothFixture();
-  timeoutFixture.command.respond = false;
   const timeoutClient = new Client(timeoutFixture.bluetooth, cryptoFixture(), {timeoutMs: 5});
   await timeoutClient.connect(device);
+  await timeoutClient.authorize("wspr-0a60df");
+  timeoutFixture.command.respond = false;
   await rejectsCode(() => timeoutClient.cancel("1".repeat(32)), "timeout");
   assert.strictEqual(timeoutClient.pending.size, 0);
 
   const invalidResponseFixture = bluetoothFixture();
-  invalidResponseFixture.command.respond = false;
   const invalidResponseClient = new Client(invalidResponseFixture.bluetooth, cryptoFixture(),
                                            {timeoutMs: 5});
   await invalidResponseClient.connect(device);
+  await invalidResponseClient.authorize("wspr-0a60df");
+  invalidResponseFixture.command.respond = false;
   const invalidResponse = invalidResponseClient.cancel("3".repeat(32));
+  await new Promise((resolve) => setImmediate(resolve));
   const invalidRequest = invalidResponseFixture.command.commands.at(-1).request_id;
   invalidResponseFixture.status.emit({request_id: invalidRequest, ok: "true"});
   await rejectsCode(() => invalidResponse, "timeout");
 
   const disconnectFixture = bluetoothFixture();
-  disconnectFixture.command.respond = false;
   const disconnectClient = new Client(disconnectFixture.bluetooth, cryptoFixture(),
                                       {timeoutMs: 50});
   await disconnectClient.connect(device);
+  await disconnectClient.authorize("wspr-0a60df");
+  disconnectFixture.command.respond = false;
   const disconnected = disconnectClient.cancel("4".repeat(32));
   disconnectClient.disconnect();
   await rejectsCode(() => disconnected, "disconnected");
   assert.strictEqual(disconnectClient.pending.size, 0);
 
   const malformedFixture = bluetoothFixture();
-  malformedFixture.command.respond = false;
   const malformedClient = new Client(malformedFixture.bluetooth, cryptoFixture(), {timeoutMs: 5});
   await malformedClient.connect(device);
+  await malformedClient.authorize("wspr-0a60df");
+  malformedFixture.command.respond = false;
   const pending = malformedClient.cancel("2".repeat(32));
   malformedFixture.status.emit("not-json-object");
   await rejectsCode(() => pending, "timeout");

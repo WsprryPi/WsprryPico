@@ -68,23 +68,25 @@ treated as long-term product documentation.
     An alternative clock selected during 11.6 must repeat affected 11.5 checks.
     The systematic band x mode x clock comparison, final supported configurations,
     filters, spectral qualification and release firmware belong to Phase 13.
-12. **Current:** BLE-primary and SoftAP-fallback provisioning. The
-    [Phase 12 plan](development/phase12-plan.md) defines the security and
-    acceptance contract. Its portable profile, transactional journal and
-    bounded provisioning state machine are hardware-free implemented and
-    tested. The hardware-free P12.3 slice now reserves the separate profile
-    flash region, selects committed runtime Wi-Fi/TLS material fail closed,
-    validates it through Mbed TLS and supplies a mocked/tested Web Bluetooth
-    UI for Bluefy rather than a WsprryPico-native iOS app. SoftAP remains the
-    Safari fallback. P12.4 adds its strict C++ command decoder. P12.5 adds a
-    response-delivery-safe activation coordinator, shared PSA crypto ownership,
-    a disjoint future BTstack flash bank and a strong provisioning firmware
-    link check, without claiming transport authentication or connecting a
-    target activator. Pico BLE/SoftAP adapters,
-    authenticated live reload and all physical acceptance remain open; the
-    retained pinned SDK checkout also lacks initialized BTstack source. The separate
-    [physical plan](development/phase12-physical-acceptance.md) is planning only
-    and begins RF-inhibited.
+12. **Current:** BLE-primary and SoftAP-fallback provisioning/local control.
+    The [Phase 12 plan](development/phase12-plan.md), operator-selected
+    [field contract](development/phase12-field-access-contract.md) and
+    [P12.3 scoped closeout](development/phase12-3-review.md) define the current
+    boundary.
+
+    P12.1/P12.2 provide the portable profile journal and provisioning state
+    machine. P12.4/P12.5 provide strict command decoding, delivery-safe
+    activation coordination and shared PSA ownership. The revisited P12.3 source
+    slice is CLOSED_SCOPED: it implements the access journal/source tombstones,
+    reset recovery, local session policy, 64-byte GATT framing, controller-time
+    arbitration, Bluefy behavior, fail-closed boot integration and exact
+    clean-BTstack cross-linked Pico GATT/SoftAP/LED candidates.
+
+    Production still does not start those field services or provide a Pico live
+    activator. Full local WTP/browser service wiring, exact gestures, offline
+    page integrity/cache proof and all physical acceptance remain open under the
+    RF-inhibited-first plan. Phase 12 is active.
+
 13. **Planned:** final hardware qualification and release, including the output
     network and filters, calibrated GPIO-edge timing, supported mode/band
     combinations and a reproducible release UF2.
@@ -305,7 +307,8 @@ Phase 13 qualification work.
 1. Phase 11 is closed within its documented software, bounded physical and
    scoped conducted-RF acceptance; do not broaden that result into release
    qualification.
-2. Phase 12: add SoftAP and BLE provisioning/local management with a documented recovery path.
+2. Phase 12: implement the selected BLE/SoftAP field-access contract, offline
+   controller UTC and indicator behavior, with the documented recovery path.
 3. Phase 13: qualify supported engine/mode/band/clock combinations, timing, RF
    and reliability; finish output networks/filters and release a reproducible
    WsprryPico-x.y.z.uf2.

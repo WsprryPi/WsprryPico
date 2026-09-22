@@ -16,6 +16,7 @@
 #include "standalone/scheduler.hpp"
 #include "standalone/wtp_profile.hpp"
 #include "tusb.h"
+#include "time/controller_time.hpp"
 #include "usb/reply_priority.hpp"
 #include "usb/transport.hpp"
 #include "wtp/codec.hpp"
@@ -171,6 +172,14 @@ int main() {
     static wsprrypico::standalone::PicoProfileMedia profile_media;
     static wsprrypico::provisioning::ProfileStore profile_store(profile_media);
     const bool profile_store_loaded = profile_store.load();
+    static wsprrypico::standalone::PicoAccessMedia access_media;
+    static wsprrypico::provisioning::AccessStore access_store(access_media);
+    const bool access_store_loaded = access_store.load();
+    const bool access_recovery =
+        !access_store_loaded || access_store.state() !=
+                                    wsprrypico::provisioning::AccessStoreState::Healthy ||
+        (access_store.record() && access_store.record()->reset.pending());
+    const bool boot_recovery = recovery || access_recovery;
     // Both adapters claim PIO/DMA resources through the SDK allocator.
 #ifdef WSPRRY_PICO_STANDALONE_RF
     auto& engine = wsprrypico::rf::start_worker(clock);
@@ -201,17 +210,19 @@ int main() {
                            wsprrypico::network::credentials::key,
                            wsprrypico::network::credentials::ca};
     const bool deployment_matches =
-        runtime_profile_loaded &&
+        runtime_profile_loaded && !access_recovery &&
         wsprrypico::network::deployment_identity_matches(
             identities.device_id(), tls_credentials.device_id, tls_credentials.hostname);
-    static wsprrypico::standalone::PicoNetwork network(clock, tls_credentials.hostname);
+    static wsprrypico::time::ControllerTimeArbiter time_arbiter(
+        clock, monotonic_now, nullptr, identities.device_id());
+    static wsprrypico::standalone::PicoNetwork network(time_arbiter, tls_credentials.hostname);
     std::optional<wsprrypico::standalone::Config> runtime_network_config;
     if (store_loaded && store.config())
         runtime_network_config = runtime_profile.overlay(*store.config());
-    if (recovery)
+    if (boot_recovery)
         (void)scheduler.command("STOP");
     watchdog_hw->scratch[1] = 2;
-    if (!recovery && runtime_network_config)
+    if (!boot_recovery && runtime_network_config)
         (void)network.start(*runtime_network_config);
     static wsprrypico::network::BrowserApi browser_api(service, store, scheduler, network,
                                                        identities.device_id(),

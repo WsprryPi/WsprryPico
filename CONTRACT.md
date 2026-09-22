@@ -14,8 +14,12 @@ the implemented Pico surface. Shared WsprryPi adoption remains separate work.
 ## Timing and interoperability
 
 - USB CDC is the canonical WTP transport; Wi-Fi/TCP adds network control.
-- BLE primarily serves provisioning/local management, with SoftAP fallback.
-- Transport loads and arms complete jobs. RP2350 owns execution and symbol timing.
+- BLE/Bluefy is the primary local provisioning, management and field-control
+  path; SoftAP/Safari is an independent no-infrastructure fallback. Their
+  selected policy is the
+  [Phase 12 field-access contract](docs/development/phase12-field-access-contract.md).
+- Every job-control path uses the same JobService and loads and arms complete
+  jobs. RP2350 owns execution and symbol timing.
 - WTP is device-neutral and independently versioned. Its specification is
   maintained in WsprryPico, with WsprryPico as the reference implementation.
 - The browser uses a shared JSON API implemented by the relevant application.
@@ -55,22 +59,26 @@ mutually authenticated WTP/TCP and HTTPS handlers to the existing job service.
 Network status, persistent config and schedules share the standalone adapters.
 Host TLS/browser tests and cross-linking do not qualify physical network/RF
 coexistence. Credential installation currently requires an explicit local build.
-The [Phase 12 portable core](docs/development/phase12-plan.md) now defines and
+The [Phase 12 portable core](docs/development/phase12-plan.md) defines and
 host-tests bounded profiles, transactional replacement, replay and idle-only
-application for BLE-primary/SoftAP-fallback adapters. P12.3 hardware-free
-integration reserves a separate profile region without moving existing records,
-selects provisioned Wi-Fi/TLS material fail closed at boot, validates the TLS
-bundle on the pinned Mbed TLS stack and supplies a Bluefy Web Bluetooth client.
-P12.4 supplies the matching closed, bounded C++ command decoder. P12.5 stages a
-genuinely new committed generation until a terminal response-delivery callback
-or bounded timeout, rechecks job/RF activity immediately before disruption and
-fails closed on activation faults. It also gives the listener and credential
-validator shared PSA lifetime ownership and reserves a disjoint future BTstack
-flash bank without moving existing journals. Authentication is still supplied
-by a future platform adapter, and no Pico activator is connected. The target
-BLE/SoftAP adapters, proof/recovery policies, actual live idle-only reload and
-physical acceptance remain open, so this is not yet an end-user provisioning
-path.
+application. The scoped [P12.3 closeout](docs/development/phase12-3-review.md)
+implements the selected access journal, source/reset recovery, session policy,
+GATT framing, Bluefy client, controller-time arbitration and cross-linked Pico
+BLE/SoftAP/LED candidates. Production boot consumes access health fail closed,
+but the production image does not start those field services.
+
+P12.4 supplies the closed C++ command decoder. P12.5 supplies delivery-safe
+activation coordination and shared PSA ownership. The operator-selected
+[field-access contract](docs/development/phase12-field-access-contract.md) fixes
+Just Works plus application-password enrollment, retained bonds, SoftAP field
+recovery, controller-time bootstrap, LED indication, trust replacement and
+reset preservation. The public MAC-derived password and ordinary flash carry no
+confidentiality claim.
+
+Production BLE/SoftAP/HTTPS/local-control wiring, a Pico live-activation
+platform, exact gestures, offline-page qualification and physical acceptance
+remain open. P12.3 is closed only for its documented hardware-free
+source/cross-link boundary; Phase 12 is not yet an accepted end-user path.
 
 Host tests, target execution and RF qualification are distinct evidence classes.
 A successful compile or simulated transmission establishes neither on-device

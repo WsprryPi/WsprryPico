@@ -12,7 +12,7 @@ function values() {
   return Object.fromEntries(data.entries());
 }
 function clearSecrets() {
-  for (const name of ["password", "server_certificate", "server_private_key", "client_ca"])
+  for (const name of ["access_password", "password", "server_certificate", "server_private_key", "client_ca"])
     form.elements[name].value = "";
 }
 function message(error) {
@@ -26,8 +26,10 @@ connect.addEventListener("click", async () => {
   try {
     client = new WsprryBluefy.Client(navigator.bluetooth, crypto);
     const identity = await client.connect(form.elements.device_id.value);
+    await client.authorize(form.elements.access_password.value);
+    form.elements.access_password.value = "";
     fields.disabled = false;
-    status.value = `Connected to ${identity.device_id}; generation ${identity.generation}.`;
+    status.value = `Authorized on ${identity.device_id}; generation ${identity.generation}.`;
   } catch (error) {
     if (client) client.disconnect();
     client = null;

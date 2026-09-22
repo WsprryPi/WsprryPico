@@ -12,8 +12,11 @@ namespace wsprrypico::provisioning {
 namespace {
 constexpr std::uint64_t header_magic = 0x3146525050435057ULL;
 constexpr std::uint64_t commit_magic = 0x31544d4d4f435057ULL;
+constexpr std::uint64_t selection_magic = 0x324c455350435057ULL;
 constexpr std::size_t payload_offset = profile_page_size;
 constexpr std::size_t commit_offset = profile_slot_size - profile_page_size;
+constexpr std::size_t selection_header_size = 16;
+constexpr std::size_t maximum_payload_size = max_profile_bytes + selection_header_size;
 
 void put(std::span<std::uint8_t> out, std::uint64_t value) {
     for (auto& byte : out) {
@@ -92,7 +95,7 @@ Candidate scan(Media& media, std::size_t slot) {
     const auto sequence = get(std::span(header).subspan(8, 8));
     const auto length = get(std::span(header).subspan(16, 4));
     const bool header_valid = !header_erased && get(std::span(header).first(8)) == header_magic &&
-                              sequence != 0 && length != 0 && length <= max_profile_bytes &&
+                              sequence != 0 && length != 0 && length <= maximum_payload_size &&
                               get(std::span(header).last(4)) == checksum;
     if (commit_erased) {
         if (!header_valid) {
@@ -155,6 +158,7 @@ bool ProfileStore::load() {
     healthy_ = false;
     sequence_ = 0;
     active_slot_ = 0;
+    source_ = ProfileSource::LegacyBootstrap;
     secure_clear(data_);
     auto first = scan(media_, 0);
     auto second = scan(media_, 1);
@@ -183,26 +187,60 @@ bool ProfileStore::load() {
     if (best) {
         sequence_ = best->sequence;
         active_slot_ = best_slot;
-        data_ = std::move(best->data);
+        if (best->data.size() >= selection_header_size &&
+            get(std::span(reinterpret_cast<const std::uint8_t*>(best->data.data()), 8)) ==
+                selection_magic) {
+            const auto source = static_cast<std::uint8_t>(best->data[8]);
+            const bool reserved_clear =
+                std::all_of(best->data.begin() + 9,
+                            best->data.begin() + selection_header_size,
+                            [](char byte) { return byte == 0; });
+            if (!reserved_clear || source < static_cast<unsigned>(ProfileSource::RuntimeProfile) ||
+                source > static_cast<unsigned>(ProfileSource::BuildBundle))
+                return false;
+            source_ = static_cast<ProfileSource>(source);
+            if (source_ == ProfileSource::RuntimeProfile) {
+                if (best->data.size() == selection_header_size)
+                    return false;
+                data_.assign(best->data.begin() + selection_header_size, best->data.end());
+            } else if (best->data.size() != selection_header_size)
+                return false;
+        } else {
+            // Version-1 payloads predate source selection. They remain usable
+            // only as the one-way legacy bootstrap state.
+            data_ = std::move(best->data);
+        }
     }
     healthy_ = true;
     return true;
 }
 
 bool ProfileStore::replace(std::string_view canonical_profile) {
-    if (!healthy_ || canonical_profile.empty() || canonical_profile.size() > max_profile_bytes ||
+    return select(ProfileSource::RuntimeProfile, canonical_profile);
+}
+
+bool ProfileStore::select(ProfileSource source, std::string_view canonical_profile) {
+    if (!healthy_ || source == ProfileSource::LegacyBootstrap ||
+        (source == ProfileSource::RuntimeProfile &&
+         (canonical_profile.empty() || canonical_profile.size() > max_profile_bytes)) ||
+        (source != ProfileSource::RuntimeProfile && !canonical_profile.empty()) ||
         sequence_ == std::numeric_limits<std::uint64_t>::max())
         return false;
-    if (canonical_profile == data_)
+    if (source == source_ && canonical_profile == data_)
         return true;
+    std::string payload(selection_header_size, '\0');
+    put(std::span(reinterpret_cast<std::uint8_t*>(payload.data()), 8), selection_magic);
+    payload[8] = static_cast<char>(source);
+    payload.append(canonical_profile);
     const auto target = sequence_ ? 1 - active_slot_ : 0;
     const auto base = target * profile_slot_size;
     if (!media_.erase(base)) {
         healthy_ = false;
+        secure_clear(payload);
         return false;
     }
-    const auto input = std::span(reinterpret_cast<const std::uint8_t*>(canonical_profile.data()),
-                                 canonical_profile.size());
+    const auto input = std::span(reinterpret_cast<const std::uint8_t*>(payload.data()),
+                                 payload.size());
     for (std::size_t offset = 0; offset < input.size(); offset += profile_page_size) {
         std::array<std::uint8_t, profile_page_size> page;
         page.fill(255);
@@ -212,6 +250,7 @@ bool ProfileStore::replace(std::string_view canonical_profile) {
         secure_clear(std::span(page));
         if (!programmed) {
             healthy_ = false;
+            secure_clear(payload);
             return false;
         }
     }
@@ -220,12 +259,13 @@ bool ProfileStore::replace(std::string_view canonical_profile) {
     header.fill(255);
     put(std::span(header).first(8), header_magic);
     put(std::span(header).subspan(8, 8), sequence_ + 1);
-    put(std::span(header).subspan(16, 4), canonical_profile.size());
-    put(std::span(header).subspan(20, 4), 1);
+    put(std::span(header).subspan(16, 4), payload.size());
+    put(std::span(header).subspan(20, 4), 2);
     digest_to(std::span(header).subspan(24, digest.size()), digest);
     put(std::span(header).last(4), crc32(std::span(header).first(profile_page_size - 4)));
     if (!media_.program(base, header)) {
         healthy_ = false;
+        secure_clear(payload);
         return false;
     }
     std::array<std::uint8_t, profile_page_size> commit;
@@ -236,18 +276,22 @@ bool ProfileStore::replace(std::string_view canonical_profile) {
     put(std::span(commit).last(4), crc32(std::span(commit).first(profile_page_size - 4)));
     if (!media_.program(base + commit_offset, commit)) {
         healthy_ = false;
+        secure_clear(payload);
         return false;
     }
     const auto verified = scan(media_, target);
     if (verified.state != Candidate::State::Valid || verified.sequence != sequence_ + 1 ||
-        verified.data != canonical_profile) {
+        verified.data != payload) {
         healthy_ = false;
+        secure_clear(payload);
         return false;
     }
     ++sequence_;
     active_slot_ = target;
     secure_clear(data_);
     data_.assign(canonical_profile);
+    source_ = source;
+    secure_clear(payload);
     return true;
 }
 } // namespace wsprrypico::provisioning

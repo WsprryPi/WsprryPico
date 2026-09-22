@@ -39,11 +39,11 @@ bool Sntp::receive(std::span<const std::uint8_t> packet, std::uint64_t now) {
     last_uncertainty_ns_.reset();
     if (packet[1] == 0) { // Conservatively stop this server for the boot on any KoD.
         denied_ = true;
-        clock_.invalidate();
+        clock_.invalidate(ObservationSource::Sntp);
         return false;
     }
     if ((packet[0] >> 6) != 0 || packet[1] > 15) {
-        clock_.invalidate(); // Pending/unknown leap requires a richer source; fail closed.
+        clock_.invalidate(ObservationSource::Sntp); // Pending/unknown leap requires a richer source; fail closed.
         return false;
     }
     const auto precision = static_cast<std::int8_t>(packet[3]);
@@ -75,6 +75,7 @@ bool Sntp::receive(std::span<const std::uint8_t> packet, std::uint64_t now) {
     // The added 999 ns uncertainty covers flooring this offset, so exact UTC
     // slot requests map to representable local alarm times.
     const auto fraction = (estimate % 1000 + 1000 - now % 1000) % 1000;
-    return clock_.observe(estimate - fraction, now, uncertainty, wtp::LeapState::Normal);
+    return clock_.observe(ObservationSource::Sntp, estimate - fraction, now, uncertainty,
+                          wtp::LeapState::Normal);
 }
 } // namespace wsprrypico::time

@@ -14,10 +14,12 @@ Use WsprryPico for project, repository and application naming; firmware artifact
 
 - USB CDC serial is the canonical/reference control transport.
 - Wi-Fi/TCP provides network control; Wi-Fi also supports the embedded web UI.
-- BLE is primarily for provisioning and local management.
-- The selected iPhone BLE client is a Web Bluetooth UI opened in Bluefy; no
-  WsprryPico-native iOS app is planned.
-- SoftAP provides a provisioning fallback.
+- BLE/Bluefy is the primary local provisioning, management and field-control
+  path. No WsprryPico-native iOS app is planned.
+- SoftAP/Safari is an independent provisioning, recovery and field-control
+  fallback when infrastructure Wi-Fi is absent.
+- The selected authentication, offline-time and indicator behavior is defined
+  by the [Phase 12 field-access contract](development/phase12-field-access-contract.md).
 - All RF timing is local on RP2350. USB and network connections load and arm complete jobs; packet arrival never sets symbol boundaries.
 
 Preserve WsprryPi encoder and scheduler concepts while adapting platform dependencies. RP1 DKMS, kernel interfaces and RP1 register programming are not ported.
@@ -68,35 +70,42 @@ An independently owned UTC discipline copy ages on the RF core; idle-only flash
 writes coordinate both cores using SDK lockout. See the
 [11.2 ownership and acceptance record](development/phase11-2-review.md). USB, WTP/TCP, browser jobs and standalone
 schedules retain one ownership and execution authority. Network control defaults
-off; physical TLS/RF coexistence and production RF qualification remain open.
+off. Phase 12 field-access contention/coexistence still requires its physical
+plan; broader mode/band/clock and production release qualification remain Phase
+13 work.
 
 Phase 12 keeps provisioning outside that job-control protocol. A portable
-provisioning state machine admits one authenticated, confidential and local
-session, binds it to the existing 32-hex device identity, validates a complete
-Wi-Fi/TLS profile, applies it only while job/RF authority is idle, and replaces
-it through a separate transactional journal. Hardware-free P12.3 integration
-maps that journal to `0x3f7000`–`0x3fafff`, leaving the existing standalone
-records at `0x3fb000`–`0x3fefff` and the E10 sector at `0x3ff000` unchanged.
-P12.5 additionally reserves `0x3f5000`–`0x3f6fff` as a project-owned future
-BTstack bank, so linked application FLASH now ends at `0x3f5000`.
-Boot selects either no-profile build credentials or one device-bound committed
-profile; committed corruption/identity failure is a fault and never revives
-factory trust. Provisioned Wi-Fi overlays only the runtime copy of SSID,
-password and time server. Mbed TLS validates chain, key pair, validity, exact
-DNS SAN, server purpose and P-256/SHA-256 material before listening. BLE and
-SoftAP target adapters remain unimplemented; future adapters must supply the
-authenticated, confidential and local session assertions before they are enabled.
-P12.4 adds one closed transport-neutral command decoder for the Bluefy
-vocabulary. P12.5 replaces its synchronous activation handoff with a bounded
-delivery-safe coordinator: a new committed generation is released only after a
-terminal response callback or five-second timeout, activity is checked again
-immediately before quiesce, and any failure leaves the new generation
-authoritative while invoking fail-closed behavior. Shared PSA ownership keeps a
-transient credential validation from freeing a live listener's crypto state.
-No target activator is connected; live reload and physical acceptance remain
-open. See the
-[Phase 12 plan](development/phase12-plan.md) and
-[P12.5 review](development/phase12-5-review.md).
+manager and access controller own bounded profile replacement, local authority
+and recovery while all RF/job control remains in the one existing JobService.
+The selected field contract makes BLE/Bluefy primary and SoftAP/Safari an
+independent no-infrastructure fallback.
+
+The scoped P12.3 implementation reserves the access journal at
+`0x3f3000`–`0x3f4fff`, BTstack at
+`0x3f5000`–`0x3f6fff`, profiles at
+`0x3f7000`–`0x3fafff`, standalone state at
+`0x3fb000`–`0x3fefff` and E10 at `0x3ff000`.
+Access and profile journals are independent. Source-mode tombstones and durable
+reset intent prevent fallback to superseded authority; unhealthy, erased or
+reset-pending access state suppresses station and scheduled work until
+authorized recovery.
+
+The portable access layer implements exact request-bound proofs, enrollment,
+bond capacity/revocation, SoftAP cookies and expiry, field mode, reset levels,
+controller-time/SNTP arbitration and LED priority. Fixed 64-byte frames bridge
+the existing strict provisioning command adapter to the candidate Pico GATT
+transport. Candidate Pico GATT, WPA2 SoftAP and onboard-LED adapters cross-link
+against the exact clean pinned BTstack source. The Bluefy page implements the
+matching authorization and framing path.
+
+This is a source boundary, not an enabled field path. Production currently
+instantiates the access journal and time arbiter and enforces fail-closed boot,
+but does not start GATT, SoftAP/HTTPS or the indicator controller and has no
+Pico live `ActivationPlatform`. Complete local WTP/browser control, exact
+gestures, offline page delivery and physical coexistence/resource evidence
+remain Phase 12 gates. See the [Phase 12 plan](development/phase12-plan.md),
+[field contract](development/phase12-field-access-contract.md) and
+[P12.3 closeout](development/phase12-3-review.md).
 
 The browser's compact `LOAD_MESSAGE` path compiles bounded QRSS, FSKCW and DFCW
 messages before entering the same job service. Inputs are limited to 32 characters
@@ -113,16 +122,20 @@ preparation. [Bounded physical validation](development/standalone-rf-power-valid
 now demonstrates recurring decoded frames after a separate-power boot without
 a USB host on the recorded setup.
 
-## Open design choices
+## Remaining implementation and qualification choices
 
-The initial autonomous UTC source is a configured unicast SNTPv4 server with
-bounded uncertainty and an explicit age policy. Physical acquisition and
-standalone execution have bounded bench evidence; calibrated UTC accuracy,
-source authentication and long-duration reliability remain unqualified.
-Alternate UTC sources, clock calibration, production RF engine/pins, Pico
-provisioning transport authentication/live reload and shared WsprryPi adoption of
-browser API v1 remain open.
-The current Pico browser schemas and bounds are documented in the API contract. WTP/1 defines the interoperable protocol limits and policies
+The implemented autonomous UTC source is configured unicast SNTPv4. Phase 12
+adds the portable controller/SNTP arbiter and routes production SNTP
+observations through it. The authenticated controller transport and physical
+phone-time accuracy remain unwired/unqualified.
+
+Remaining Phase 12 details are safe physical gestures, production
+GATT/SoftAP/HTTPS/local-control and live-activation wiring,
+integrity-controlled offline page delivery and target resource/coexistence
+tuning.
+Clock calibration, production RF engine/pins and shared WsprryPi adoption of
+browser API v1 remain open. The current Pico browser schemas and bounds are
+documented in the API contract. WTP/1 defines interoperable limits and policies
 without selecting those implementations.
 
 Estimates of reusable code and expected spectral behavior remain hypotheses until verified.

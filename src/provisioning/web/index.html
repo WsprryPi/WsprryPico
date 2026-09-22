@@ -13,7 +13,8 @@
       device must independently authenticate the local operator; proximity is not authorization.</p>
     <form id="provisioning" autocomplete="off">
       <label>Device ID <input name="device_id" pattern="[0-9a-f]{32}" maxlength="32" required></label>
-      <button id="connect" type="button">Connect with Bluefy</button>
+      <label>Local access password <input name="access_password" type="password" minlength="8" maxlength="63" autocomplete="current-password" required></label>
+      <button id="connect" type="button">Connect and authorize with Bluefy</button>
       <fieldset disabled>
         <legend>Replacement profile</legend>
         <label>Wi-Fi name <input name="ssid" maxlength="32" required></label>

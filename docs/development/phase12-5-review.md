@@ -249,10 +249,12 @@ scope. P12.5 neither rewrites nor promotes that evidence.
 | 11.6 conducted RF | No accepted, failed, blocked, unsupported or excluded row changes, and no WSPR row is promoted. Repeat only source-impact-affected coexistence rows under new finite authority after inhibited acceptance. |
 | 11.7 closure | The expected current-source drift is retained and proves the historical closure is not current-image evidence. Attach Phase 12 evidence separately and keep the closure artifacts immutable. |
 
-## Open product and security decisions
+## Historical open product and security decisions
 
-The following remain explicit inputs rather than implementation choices made by
-this tranche:
+Later status: on 2026-09-21 the operator selected the
+[field-access/security contract](phase12-field-access-contract.md). The list
+below accurately records what P12.5 did not select at its checkpoint, but it is
+superseded for current policy and does not reopen those decisions:
 
 - BLE proof of possession; bonding retention/deletion; recovery and CA-rotation
   authority;
@@ -272,10 +274,11 @@ this tranche:
 ## Remaining implementation and physical gates
 
 Remaining implementation is an authenticated Pico BLE GATT adapter with real
-bounded long-write/notification handling, an independent SoftAP/captive HTTPS
-fallback and an owned `ActivationPlatform` that performs the selected
-network-only quiesce/install/restart policy. These require the unresolved
-security decisions above and another source/adversarial review.
+bounded long-write/notification handling, an independent pre-clock
+SoftAP/captive service plus normal HTTPS fallback, controller-time and indicator
+adapters, and an owned `ActivationPlatform` that performs the selected
+network-only quiesce/install/restart policy. These must conform to the later
+field-access/security contract and require another source/adversarial review.
 
 With a committed target candidate and fresh explicit authority, execute the
 finite RF-inhibited-first plan in

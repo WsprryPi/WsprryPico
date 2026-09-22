@@ -21,10 +21,11 @@ def block(address, workaround=False):
 
 class ImageTests(unittest.TestCase):
     def test_separate_application_journal_and_boot_regions(self):
-        validate_uf2(block(0x103F4F00) + block(0x10FFFF00, True))
-        # Reject ordinary writes and relocated boot blocks in the BTstack,
+        validate_uf2(block(0x103F2F00) + block(0x10FFFF00, True))
+        # Reject ordinary writes and relocated boot blocks in the access, BTstack,
         # profile, standalone and E10-reserved regions.
-        for address in (0x103F5000, 0x103F6000, 0x103F7000, 0x103F8000,
+        for address in (0x103F3000, 0x103F4000, 0x103F5000, 0x103F6000,
+                        0x103F7000, 0x103F8000,
                         0x103FB000, 0x103FC000,
                         0x103FEF00, 0x103FFF00):
             for workaround in (False, True):

@@ -13,9 +13,11 @@
   });
   const MAX_PROFILE_BYTES = 7168;
   const FRAGMENT_BYTES = 64;
-  // Commands and status notifications can exceed a default ATT value. A future
-  // GATT adapter must negotiate a sufficient payload or provide bounded framing
-  // and reassembly in both directions; these are wire bounds, not atomic-MTU claims.
+  // Fixed framing and bounded reassembly in both directions are part of the wire contract.
+  const GATT_FRAME_BYTES = 64;
+  const GATT_FRAME_HEADER_BYTES = 4;
+  const GATT_FRAME_PAYLOAD_BYTES = GATT_FRAME_BYTES - GATT_FRAME_HEADER_BYTES;
+  const GATT_FRAME_COUNT = 16;
   const MAX_COMMAND_BYTES = 512;
   const MAX_STATUS_BYTES = 256;
   const encoder = new TextEncoder();
@@ -117,6 +119,52 @@
     return decoder.decode(new Uint8Array(value.buffer, value.byteOffset || 0, value.byteLength));
   }
 
+  function frames(bytes) {
+    if (!(bytes instanceof Uint8Array) || !bytes.length ||
+        bytes.length > GATT_FRAME_PAYLOAD_BYTES * GATT_FRAME_COUNT) fail("frame_oversize");
+    const result = [];
+    for (let offset = 0, sequence = 0; offset < bytes.length; ++sequence) {
+      const count = Math.min(GATT_FRAME_PAYLOAD_BYTES, bytes.length - offset);
+      const frame = new Uint8Array(GATT_FRAME_HEADER_BYTES + count);
+      frame[0] = 1;
+      frame[1] = (offset === 0 ? 1 : 0) | (offset + count === bytes.length ? 2 : 0);
+      frame[2] = sequence;
+      frame[3] = count;
+      frame.set(bytes.subarray(offset, offset + count), GATT_FRAME_HEADER_BYTES);
+      result.push(frame);
+      offset += count;
+    }
+    return result;
+  }
+  class FrameReceiver {
+    constructor(maximum) { this.maximum = maximum; this.reset(); }
+    reset() { if (this.message) this.message.fill(0); this.message = new Uint8Array(0); this.next = 0; this.active = false; }
+    receive(value) {
+      const frame = new Uint8Array(value.buffer, value.byteOffset || 0, value.byteLength);
+      if (frame.length < GATT_FRAME_HEADER_BYTES || frame.length > GATT_FRAME_BYTES ||
+          frame[0] !== 1 || (frame[1] & ~3) || frame[3] !== frame.length - GATT_FRAME_HEADER_BYTES) {
+        this.reset(); fail("frame_invalid");
+      }
+      const first = Boolean(frame[1] & 1), last = Boolean(frame[1] & 2);
+      if ((first && (this.active || frame[2] !== 0)) || (!first && !this.active) ||
+          frame[2] !== this.next || frame[2] >= GATT_FRAME_COUNT) {
+        this.reset(); fail("frame_order");
+      }
+      if (first) { this.reset(); this.active = true; }
+      const payload = frame.subarray(GATT_FRAME_HEADER_BYTES);
+      if (!payload.length || this.message.length + payload.length > this.maximum) {
+        this.reset(); fail("frame_oversize");
+      }
+      const joined = new Uint8Array(this.message.length + payload.length);
+      joined.set(this.message); joined.set(payload, this.message.length); this.message.fill(0);
+      this.message = joined; ++this.next;
+      if (!last) return null;
+      const complete = this.message;
+      this.message = new Uint8Array(0); this.next = 0; this.active = false;
+      return complete;
+    }
+  }
+
   class Client {
     constructor(bluetooth, cryptoObject, options) {
       this.bluetooth = bluetooth;
@@ -129,6 +177,8 @@
       this.pending = new Map();
       this.expectedDeviceId = "";
       this.generation = 0;
+      this.authorized = false;
+      this.statusReceiver = new FrameReceiver(MAX_STATUS_BYTES);
       this.onStatus = this.onStatus.bind(this);
     }
     async connect(expectedDeviceId) {
@@ -173,22 +223,23 @@
         this.device = this.command = this.status = this.identity = null;
         this.expectedDeviceId = "";
         this.generation = 0;
+        this.authorized = false;
+        this.statusReceiver.reset();
         throw error;
       }
     }
     onStatus(event) {
       const value = event && event.target && event.target.value;
-      if (!value || value.byteLength > MAX_STATUS_BYTES) return;
+      if (!value) return;
+      let encoded;
+      try { encoded = this.statusReceiver.receive(value); } catch (_) { return; }
+      if (!encoded) return;
       let response;
-      try {
-        response = JSON.parse(text(value));
-      } catch (_) {
-        return;
-      }
+      try { response = JSON.parse(text(encoded)); } catch (_) { encoded.fill(0); return; }
+      encoded.fill(0);
       if (!response || !validDeviceId(response.request_id)) return;
       const pending = this.pending.get(response.request_id);
-      if (!pending) return;
-      if (typeof response.ok !== "boolean") return;
+      if (!pending || typeof response.ok !== "boolean") return;
       clearTimeout(pending.timer);
       this.pending.delete(response.request_id);
       if (response.ok) pending.resolve(response);
@@ -203,32 +254,37 @@
       if (!validDeviceId(message.request_id) || this.pending.has(message.request_id))
         fail("request_id");
       const encoded = encoder.encode(JSON.stringify(message));
-      if (encoded.length > MAX_COMMAND_BYTES) {
-        encoded.fill(0);
-        fail("command_oversize");
-      }
+      if (encoded.length > MAX_COMMAND_BYTES) { encoded.fill(0); fail("command_oversize"); }
       let settle;
       const result = new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
           this.pending.delete(message.request_id);
-          const error = new Error("timeout");
-          error.code = "timeout";
-          reject(error);
+          const error = new Error("timeout"); error.code = "timeout"; reject(error);
         }, this.timeoutMs);
-        settle = {resolve, reject, timer};
-        this.pending.set(message.request_id, settle);
+        settle = {resolve, reject, timer}; this.pending.set(message.request_id, settle);
       });
+      const outbound = frames(encoded);
       try {
-        const write = this.command.writeValueWithResponse || this.command.writeValue;
-        await write.call(this.command, encoded);
+        const command = this.command;
+        const write = command.writeValueWithResponse || command.writeValue;
+        for (const frame of outbound) await write.call(command, frame);
       } catch (error) {
-        clearTimeout(settle.timer);
-        this.pending.delete(message.request_id);
-        throw error;
+        clearTimeout(settle.timer); this.pending.delete(message.request_id); throw error;
       } finally {
-        encoded.fill(0);
+        encoded.fill(0); for (const frame of outbound) frame.fill(0);
       }
       return result;
+    }
+    async authorize(password) {
+      if (!printable(password, 8, 63)) fail("local_password");
+      const sessionId = randomId(this.crypto);
+      try {
+        await this.exchange({version: 1, operation: "authorize",
+          request_id: randomId(this.crypto), session_id: sessionId,
+          device_id: this.expectedDeviceId, password});
+        this.authorized = true;
+        return {authorized: true};
+      } finally { password = ""; }
     }
     async cancel(sessionId) {
       return this.exchange({version: 1, operation: "cancel", request_id: randomId(this.crypto),
@@ -236,6 +292,7 @@
     }
     async provision(input) {
       if (!this.command || input.device_id !== this.expectedDeviceId) fail("wrong_device");
+      if (!this.authorized) fail("authentication_required");
       const profile = canonicalProfile(input);
       const sessionId = randomId(this.crypto);
       let opened = false;
@@ -279,9 +336,12 @@
       this.device = this.command = this.status = this.identity = null;
       this.expectedDeviceId = "";
       this.generation = 0;
+      this.authorized = false;
+      this.statusReceiver.reset();
     }
   }
 
-  return {UUIDS, MAX_PROFILE_BYTES, FRAGMENT_BYTES, MAX_COMMAND_BYTES, MAX_STATUS_BYTES,
-    validDeviceId, canonicalProfile, Client};
+  return {UUIDS, MAX_PROFILE_BYTES, FRAGMENT_BYTES, GATT_FRAME_BYTES,
+    GATT_FRAME_HEADER_BYTES, GATT_FRAME_PAYLOAD_BYTES, GATT_FRAME_COUNT, MAX_COMMAND_BYTES,
+    MAX_STATUS_BYTES, validDeviceId, canonicalProfile, frames, FrameReceiver, Client};
 });

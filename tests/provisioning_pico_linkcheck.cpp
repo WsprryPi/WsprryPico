@@ -52,6 +52,8 @@ int main() {
     using namespace wsprrypico;
     using namespace provisioning;
 
+    static_assert(standalone::flash_layout::access_base == 0x3f3000);
+    static_assert(standalone::flash_layout::access_size == 0x2000);
     static_assert(standalone::flash_layout::btstack_base == 0x3f5000);
     static_assert(standalone::flash_layout::btstack_size == 0x2000);
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "time/observation.hpp"
 #include "time/utc_discipline.hpp"
 
 #include <array>
@@ -40,7 +41,7 @@ class SntpPollSchedule {
 // Minimal unicast SNTP exchange. The transport must verify peer IPv4 and UDP 123.
 class Sntp {
   public:
-    explicit Sntp(UtcDiscipline& clock) : clock_(clock) {}
+    explicit Sntp(ObservationSink& clock) : clock_(clock) {}
     std::array<std::uint8_t, 48> request(std::uint64_t monotonic_ns, std::uint64_t nonce);
     bool receive(std::span<const std::uint8_t> packet, std::uint64_t monotonic_ns);
     void cancel() {
@@ -57,7 +58,7 @@ class Sntp {
     }
 
   private:
-    UtcDiscipline& clock_;
+    ObservationSink& clock_;
     std::uint64_t sent_ = 0, nonce_ = 0;
     bool pending_ = false, denied_ = false;
     std::uint64_t last_rtt_ns_ = 0;

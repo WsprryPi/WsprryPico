@@ -9,6 +9,7 @@ namespace wsprrypico::provisioning {
 enum class RuntimeSource {
     Factory,
     Provisioned,
+    Unprovisioned,
     Fault
 };
 enum class RuntimeFault {

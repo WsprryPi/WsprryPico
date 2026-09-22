@@ -14,6 +14,18 @@ path. The authenticated principal is the SHA-256 fingerprint of the leaf client
 certificate. Device-specific credential setup and renewal are described in
 [network control](development/network-control.md).
 
+The selected
+[Phase 12 field-access contract](development/phase12-field-access-contract.md)
+has a hardware-free portable admission implementation, while production
+SoftAP/HTTPS wiring and physical acceptance remain open. It adds an
+interface-scoped SoftAP exception after clock admission: server-authenticated
+TLS plus a password login issues a random, boot/access-epoch-bound session-cookie
+principal. It reuses these API schemas, Origin/Host/Fetch Metadata rules and
+JobService semantics without requiring a client certificate. It never applies
+to the station interface or raw TLS-WTP, which retain the certificate principal
+above. The limited pre-clock bootstrap adds no API-v1 routes. BLE frames existing
+WTP semantics through a separately bounded adapter.
+
 Allowed authorities are the certified deployment hostname and the current IPv4
 address, each with the configured port (omit `:443` at port 443). DNS case and a
 single terminal root dot canonicalize before validation. Host and any supplied
@@ -31,7 +43,9 @@ Browser mutations require all of:
 Responses use `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, a
 restrictive CSP with hashes for embedded styles/scripts, and no referrer. API
 keys, passwords and certificates do not belong in URLs. The UI neither stores
-credentials in browser storage nor prints Wi-Fi passwords.
+credentials in script-readable Web Storage/IndexedDB nor prints Wi-Fi passwords.
+The selected Phase 12 SoftAP bearer is instead an opaque Secure, HttpOnly
+session cookie that page script cannot read.
 
 ## Resources
 
@@ -139,8 +153,11 @@ and identical body; do not generate a new LOAD or ARM after an ambiguous failure
 without reconciling status. Claims last 5–60 seconds; RENEW is explicit. A browser
 must HELLO, CLAIM, LOAD and ARM; it may ABORT only its own job. RELEASE is rejected
 while armed/running/failed or output remains active. Complete job timing continues
-locally after a connection closes. A refreshed browser gets a new session and
-cannot silently take over the previous session's job.
+locally after a connection closes. Under the current mTLS browser behavior, a
+refreshed page gets a new WTP session and cannot silently take over the previous
+session's job. The selected Phase 12 SoftAP same-token reconnect preserves the
+authentication principal only; owner resume must also recover the original WTP
+session and satisfy its replay rules. The password token alone adopts nothing.
 
 Nanosecond timestamps, durations, frequencies in nanohertz and other WTP 64-bit
 quantities remain decimal strings. JavaScript must use BigInt for exact arithmetic.
@@ -211,8 +228,10 @@ estimated elapsed progress from device UTC. Only authoritative job status
 establishes completion: reaching 100% does not override Running, an unavailable
 connection leaves output unknown, and a different boot/job clears old progress.
 Timer throttling or closing the page cannot change the Pico's local job timing.
-These product changes have host/browser validation; final long-job physical
-acceptance remains open in Phase 11.5 R3.
+These product changes have host/browser validation, and Phase 11.5 is closed
+6/6 within its recorded 138 MHz/divider-1 scope. That scoped closure does not
+establish broader mode/band/clock or release qualification, which remains Phase
+13.
 
 ## Bounds and errors
 
@@ -255,8 +274,12 @@ standalone images set it true: the physical image isolates waveform servicing
 on core 1, and the standard image remains RF-inhibited. The browser continues
 status refresh and owner-authorized abort after ARM. Configuration, persistent
 schedules and disruptive Wi-Fi changes remain idle-only. A different certificate
-or browser session cannot adopt or abort the controller's job. Refreshing the
-page creates a new session, even with the same client certificate.
+or WTP session cannot adopt or abort the controller's job. The current mTLS UI
+creates a new WTP session on page refresh, even with the same client certificate.
+The selected SoftAP adapter may reauthenticate the same principal with its live
+cookie, including restricted owner-only grace for STATUS, ABORT and same-
+principal controller-time refresh, but owner resume still requires the original
+WTP session.
 
 A failed read makes state/output/clock/owner/network unknown and disables controls;
 unsaved drafts remain. Capacity exhaustion may require retrying a read. No LOAD

@@ -53,29 +53,34 @@ within that scope, including the 11.4 inhibited matrix/eight-hour soak, 11.5 at
 control still defaults off. Broader mode/band/clock, timing, spectra, filtering,
 reliability and release qualification remain in Phase 13.
 
-[Phase 12 provisioning](docs/development/phase12-plan.md) is current. Its
-hardware-free portable profile, transactional replacement journal and bounded
-BLE/SoftAP-neutral state machine are implemented and tested. The hardware-free
-P12.3 infrastructure adds a disjoint 16 KiB Pico profile region, fail-closed
-boot selection, runtime Wi-Fi/TLS views, exact Mbed TLS credential validation
-and a repository-owned Web Bluetooth page for Bluefy. P12.4 adds the strict
-transport-neutral C++ decoder for that page's closed JSON vocabulary. P12.5
-adds a delivery-safe post-commit activation coordinator, shared PSA crypto
-lifetime ownership, a disjoint 8 KiB future BTstack bank and a strong firmware
-link check for the provisioning boundary. The coordinator is still only a
-portable platform boundary; no production runtime reload path is connected.
-Build-time credentials remain the no-profile bootstrap. Pico BLE-primary and
-SoftAP-fallback radio adapters, authenticated platform sessions, actual live
-network reload, page distribution policy and the
+[Phase 12 provisioning](docs/development/phase12-plan.md) is current.
+The hardware-free P12.3 source slice is now
+[CLOSED_SCOPED](docs/development/phase12-3-review.md). It adds the selected
+two-sector access journal, source tombstones and reset recovery, bounded local
+access/session policy, fixed GATT framing, exact clean-BTstack cross-linked Pico
+BLE/SoftAP/LED candidates, controller/SNTP time arbitration, a Bluefy client and
+fail-closed production boot integration. The candidate radio services and live
+activation platform are not started by the production image.
+
+The operator-selected
+[field-access/security contract](docs/development/phase12-field-access-contract.md)
+remains controlling: BLE/Bluefy is primary, SoftAP/Safari is an independent
+no-infrastructure fallback, Bluetooth uses Just Works plus application-password
+enrollment, the public default comes from the station-MAC suffix, phone time may
+seed bounded offline UTC, and the onboard LED supplies Identify and actual
+SoftAP-ready patterns. Production GATT/SoftAP/HTTPS/local-control and live
+activation wiring, exact gestures, integrity-controlled offline page delivery
+and the
 [RF-inhibited-first physical plan](docs/development/phase12-physical-acceptance.md)
-remain open; no end-to-end or physical provisioning claim is made. See the
-[P12.5 review](docs/development/phase12-5-review.md).
+remain open. Phase 12 is therefore active; the scoped source closeout is not
+physical or end-user acceptance.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)
 - [Browser API v1](docs/browser-api.md)
 - [Network control and certificate management](docs/development/network-control.md)
 - [Phase 12 provisioning plan](docs/development/phase12-plan.md)
+- [Phase 12 field-access/security contract](docs/development/phase12-field-access-contract.md)
 - [Phase 12.3 hardware-free integration review](docs/development/phase12-3-review.md)
 - [Phase 12.4 portable command and activation review](docs/development/phase12-4-review.md)
 - [Phase 12.5 activation-safety review](docs/development/phase12-5-review.md)

@@ -36,16 +36,24 @@ Standalone and USB WTP share one `JobService`. The scheduler claims a distinct
 local principal, encodes a complete Type 1 WSPR job, then LOADs and ARMs it. It
 never steals an external ownership lease, depends on a USB connection, or sends
 per-symbol requests. USB disconnect does not invalidate SNTP time. WTP/1 itself
-is unchanged. Authenticated HTTPS/browser APIs and WTP/TCP now share this service; see
-[network control](network-control.md). SoftAP and BLE provisioning remain planned.
+is unchanged. Authenticated HTTPS/browser APIs and WTP/TCP now share this service;
+see [network control](network-control.md). The
+[Phase 12 field-access contract](phase12-field-access-contract.md) selects
+BLE/Bluefy primary and SoftAP/Safari fallback provisioning and local control
+through this same service. Their portable policy and target candidates are
+implemented and cross-linked, but production service wiring and physical
+acceptance remain open.
 
 ## Configuration
 
-One-time configuration uses the **Console** CDC interface, not WTP. Send a single
-ASCII line `CONFIG ` followed by the complete JSON document and a newline.
-The administration commands below share this interface. Send one command at a time and wait for
-its JSON response; diagnostics use the bounded existing Console queue. A client
-must inspect `ok`, not assume a successful serial write saved anything.
+Current one-time configuration uses the **Console** CDC interface, not WTP.
+Send a single ASCII line `CONFIG ` followed by the complete JSON document and a
+newline. The administration commands below share this implemented interface.
+Send one command at a time and wait for its JSON response; diagnostics use the
+bounded existing Console queue. A client must inspect `ok`, not assume a
+successful serial write saved anything. The candidate BLE/SoftAP source does
+not change this current-firmware procedure until production wiring and physical
+acceptance are complete.
 
 Sanitized document (replace all station/network fields before using it):
 
@@ -152,6 +160,24 @@ local schedules and skips networking. Intentional Console reboot starts a normal
 boot. Recovery reports the failed stage and retained panic/processor diagnostic
 values; it does not automatically clear credentials, watermarks or faults.
 
+The selected Phase 12 access-recovery operation is separate: it clears local
+password/bond state, increments the access epoch, restores the public default,
+sets persistent field mode, opens one confirmed volatile enrollment window,
+forces SoftAP and preserves the runtime profile, station, schedules and
+no-repeat watermark. A reboot before or during that window closes it without
+automatic reopening; fresh physical/USB-local confirmation is required.
+Provisioning reset produces those access-recovery end effects and also selects
+an unprovisioned tombstone or a separately confirmed device-bound
+build-bundle mode; it never falls through to legacy Wi-Fi/trust. Its durable
+`reset_pending` transaction commits source mode before public-default activation
+and clears intent before enrollment or SoftAP starts. Neither operation is the
+full operational erase.
+The core-0-owned onboard LED identifies a device and slow-blinks only while
+SoftAP is actually ready. It is advisory and never proves RF or output safety.
+These behaviors are implemented in the portable access/reset/indicator core
+and cross-linked target candidates, but the production image does not start
+their services.
+
 ## Time policy
 
 The original portable parser implements a restricted unicast SNTPv4 exchange;
@@ -202,6 +228,15 @@ this image admits/launches jobs only with source age at most 90 s and uncertaint
 at most 500 ms. An outage can skip slots; no schedule is guaranteed to transmit.
 RF frequency correction is separate and is not inferred from SNTP observations.
 
+Phase 12 selects authenticated controller/phone time when SNTP is unavailable.
+The device computes uncertainty from a fixed 250 ms phone allowance, the full
+round trip and local margins; it retains the 500 ms uncertainty and 90-second
+ARM-age gates, requests refresh no slower than 60 seconds and starts every reboot
+unsynchronized. Phone time reports `leap=normal` as an explicit limitation.
+The controller/SNTP arbiter is implemented and production SNTP uses it; the
+authenticated controller transport is not production-wired and its physical
+accuracy remains unqualified.
+
 ## Scheduling, flash and failures
 
 The scheduler considers a future occurrence only 2–10 seconds ahead. It never
@@ -213,14 +248,21 @@ erroneous forward clock step can therefore suspend scheduling until UTC catches
 up or an operator deliberately resets storage; this favors no repeats over
 availability. This is an at-most-once attempt policy, not guaranteed delivery.
 
-A project-owned 8 KiB future BTstack bank occupies `0x3f5000`–`0x3f6fff`, and
-a separate Phase 12 profile journal occupies `0x3f7000`–`0x3fafff`. The four
-existing 4 KiB standalone sectors remain at their original flash offsets
-`0x3fb000`–`0x3fefff` in every maintained image; no migration or reinterpretation
-occurs. The final sector (`0x3ff000`–`0x3fffff`) remains separately reserved for
-the RP2350-E10 boot workaround, observed in its last page. Linked application
-FLASH ends at `0x3f5000`, and the image checker rejects ordinary UF2 payloads in
-all reserved regions.
+A two-sector 8 KiB access journal occupies
+`0x3f3000`–`0x3f4fff`, the project-owned BTstack bank occupies
+`0x3f5000`–`0x3f6fff`, and the profile journal occupies
+`0x3f7000`–`0x3fafff`. The four existing standalone sectors remain
+at `0x3fb000`–`0x3fefff`, and E10 remains at
+`0x3ff000`–`0x3fffff`. Linked application FLASH ends at
+`0x3f3000`; every maintained linker layout and the image checker reject
+ordinary image content in all reserved regions. Station, schedules and watermark
+addresses are unchanged.
+
+The access journal holds password state, access epoch, authorized stable bond
+identities, field mode and durable reset intent. Source mode/tombstones remain
+inside the profile transaction. Erased access storage requires a separately
+authorized confirmation path; corrupt or pending state fails closed.
+
 The initial, physically unvalidated layout overlapped that page and failed
 closed on this board. It must not be used for persisted configuration.
 Two sectors hold 2,048-byte configuration records; two hold
@@ -238,12 +280,17 @@ multicore lockout. See the [11.2 ownership record](phase11-2-review.md).
 CRC32 detects torn writes and accidental corruption; it is not a security MAC.
 A non-erased invalid record in **either** journal latches a storage fault. The
 firmware does not silently restore an older enabled configuration or ambiguous
-watermark. Torn writes can therefore require operator recovery. Recovery is a
-separately authorized full-device flash erase in BOOTSEL, followed by reflashing
-and reprovisioning; this clears credentials and the no-repeat history. A normal
-UF2 update preserves the reserved region. Do not erase storage as an automatic
-response to a CRC error. Future storage-schema changes require an explicit
-migration design, not reinterpretation of old records.
+watermark. Torn writes can therefore require operator recovery. The current
+remedy for these standalone-journal faults is separately authorized
+**full-device/BOOTSEL flash recovery**: erase the device flash, reflash and
+reprovision. That manual path clears credentials and no-repeat history; it is
+not the selected Phase 12 **full operational erase**, whose future implementation
+uses a durable `reset_pending` transaction and leaves E10 under its existing
+recovery contract. Both are distinct from access recovery and provisioning reset,
+which preserve station, schedules and watermark. A normal UF2 update preserves
+the reserved region. Do not erase storage as an automatic response to a CRC
+error. Future storage-schema changes require an explicit migration design, not
+reinterpretation of old records.
 
 At the maximum two-minute schedule, watermark storage programs 720 pages/day,
 with about 45 sector erases/day shared between the two banks. This is 16
@@ -255,9 +302,13 @@ The current physical image services RF on core 1; core 0 owns authority and
 transports. When the TLS listener is available, Wi-Fi remains polled through
 Armed/Running for network control. Without a listener, the earlier armed/running
 Wi-Fi deferral remains. The accepted clock observation ages locally and USB WTP
-remains serviced, including ABORT. The earlier RF/wall-power campaign qualified
-only its recorded image/path; it does not qualify this concurrent network image.
-Physical contention and conducted RF acceptance remain Phase 11.5/11.6 gates.
+remains serviced, including ABORT. Future BTstack, SoftAP and controller-time
+adapters remain on core 0; only the core-0 IndicatorController may write the
+CYW43 LED. The earlier RF/wall-power campaign qualified only its recorded
+image/path; it does not qualify this concurrent network or future field-access
+image. Phase 12 field-access contention/coexistence remains subject to the
+RF-inhibited-first physical plan and separately authorized affected revalidation.
+Broader mode/band/clock and release qualification remain Phase 13 work.
 
 ## Reproduction and evidence
 

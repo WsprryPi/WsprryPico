@@ -1,10 +1,16 @@
 # Phase 12 provisioning implementation and acceptance plan
 
-Status: active. P12.1/P12.2 and the bounded hardware-free P12.3–P12.5
-infrastructure are implemented and reviewed through the
-[P12.5 record](phase12-5-review.md). Authenticated Pico BLE and SoftAP
-transports, an actual live-reload platform implementation and all physical
-acceptance remain open.
+Status: active. P12.1, P12.2, P12.4 and P12.5 remain accepted within their
+documented hardware-free scopes. The revisited P12.3 source slice is now
+**CLOSED_SCOPED** by the
+[P12.3 closeout](phase12-3-review.md): access persistence and policy, fixed GATT
+framing, candidate Pico BLE/SoftAP/indicator adapters, controller-time
+arbitration and fail-closed production boot integration are implemented and
+cross-linked. Those adapters are not enabled as a production field path.
+Production service/activator wiring, exact physical gestures, offline-page
+qualification and all physical acceptance remain open. The operator-selected
+[field-access and security contract](phase12-field-access-contract.md) is the
+controlling policy.
 This plan does not authorize target, radio, service, trust-store, certificate-installation or RF
 operations.
 
@@ -25,12 +31,14 @@ recorded by the Phase 11.7 joint review. The P12.5 tranche started from clean
 
 ## Source and dependency findings
 
-- The existing `standalone::Store` uses four 4 KiB sectors: two configuration
-  banks followed by two watermark banks. Its Pico mapping reserves the final
-  16 KiB before the separate RP2350-E10 boot-workaround sector. P12.3 leaves
-  those addresses unchanged and reserves the preceding 16 KiB for profiles.
-  P12.5 reserves the preceding 8 KiB at `0x3f5000`–`0x3f6fff` for a future
-  project-owned BTstack bank and ends linked application FLASH at `0x3f5000`.
+- The existing `standalone::Store` still uses four 4 KiB sectors at
+  `0x3fb000`–`0x3fefff`, followed by the E10 sector at `0x3ff000`. P12.3 now
+  reserves and implements the selected two-sector access journal at
+  `0x3f3000`–`0x3f4fff`, retains the BTstack bank at
+  `0x3f5000`–`0x3f6fff` and the profile journal at
+  `0x3f7000`–`0x3fafff`, and ends application FLASH at `0x3f3000`. Station,
+  schedules and watermark addresses are unchanged. Cross-linked image bounds
+  and the standalone image checker enforce every boundary.
 - Wi-Fi settings currently live inside the version-1 standalone configuration,
   together with station and schedules. A committed provisioned profile now
   overlays only Wi-Fi fields in RAM and provides stable TLS credential views;
@@ -39,14 +47,13 @@ recorded by the Phase 11.7 joint review. The P12.5 tranche started from clean
   bounded bodies, revision preconditions, idempotency keys, same-origin/mTLS
   authority, idle-only persistent changes and explicit reboot requirements.
 - The clean retained Pico SDK is 2.3.1 at
-  `079c6f39023649b154152db30f1d781e884879bc`. Its CMake files define
-  `pico_btstack_ble` and `pico_btstack_cyw43` and require a project-owned
-  `btstack_config.h`. The project-local retained SDK checkout has no initialized
-  BTstack submodule. A second pre-existing cache contains a clean standalone
-  BTstack checkout at the recorded `eb0bb8b5ea6d234ccb940313b47f7a5c3b4e20ec`
-  revision, but the parent SDK still reports the submodule uninitialized. P12.5
-  does not initialize BTstack or build an adapter; exact source presence is not
-  target, authentication, ATT-interoperability or coexistence evidence.
+  `079c6f39023649b154152db30f1d781e884879bc`. Its own BTstack submodule is
+  uninitialized, but an existing clean checkout at the exact recorded
+  `eb0bb8b5ea6d234ccb940313b47f7a5c3b4e20ec` revision is available.
+  The P12.3 candidate adapter cross-links against that exact checkout. Configure
+  rejects a different revision or any tracked/untracked change. This proves
+  source compatibility, not live authentication, ATT interoperability or
+  coexistence.
 - Existing generated test identities show that a server certificate, private
   key and client CA fit comfortably inside a bounded 7 KiB canonical profile.
   The bound is nevertheless an implementation limit, not a promise that every
@@ -65,9 +72,12 @@ These decisions are sufficiently established for hardware-free implementation:
 3. Exactly one provisioning session and one staged profile are admitted. A
    session is bound to the full 32-hex WTP device ID and a nonempty principal.
 4. A canonical profile replaces Wi-Fi and the complete TLS server trust bundle
-   atomically. A successful new generation immediately supersedes the prior
-   client CA; there is no implicit dual-trust grace period. A failed or
-   interrupted write leaves the last committed generation authoritative.
+   atomically. At commit, the new generation immediately supersedes the prior
+   client CA and closes network admission; only the applying terminal response
+   may complete before exactly-once activation after delivery or five seconds.
+   Neither generation admits new network principals in that interval, so there
+   is no implicit dual-trust grace period. A failed or interrupted pre-commit
+   write leaves the last committed generation authoritative.
 5. A corrupted newest committed generation fails closed. It must never revive
    an older superseded trust bundle. An incomplete, never-committed newer slot
    may be ignored after restart.
@@ -92,6 +102,12 @@ These decisions are sufficiently established for hardware-free implementation:
     the SoftAP fallback. Bluefy and the delivered web page are explicit
     provisioning trust dependencies and must be identity/version-bound in
     acceptance evidence.
+12. The [selected field-access contract](phase12-field-access-contract.md)
+    defines no-infrastructure operation, Just Works plus application-password
+    enrollment, retained bonds, SoftAP field mode, controller-supplied UTC,
+    onboard-LED behavior, trust step-up and reset preservation. It does not
+    weaken the authorization, confidentiality, locality, job/RF or storage rules
+    above.
 
 ## Implementation slices
 
@@ -115,33 +131,43 @@ These decisions are sufficiently established for hardware-free implementation:
 
 ### P12.3 Pico adapters
 
-The bounded hardware-free infrastructure is implemented:
+Status: **CLOSED_SCOPED** for hardware-free source, deterministic tests and
+RP2350 cross-link evidence. See
+[phase12-3-review.md](phase12-3-review.md).
 
-- A disjoint `provisioning::Media` Pico adapter and every maintained linker
-  layout reserve `0x3f7000`–`0x3fafff` without moving existing journals.
-- Fail-closed boot selection uses a committed profile for runtime Wi-Fi/TLS or
-  the device-bound build bundle only when no profile exists. The listener waits
-  for synchronized UTC and validates chain, key pair, exact DNS SAN, server EKU,
-  validity, device binding and P-256/SHA-256 algorithms through Mbed TLS.
-- The repository-owned standalone Web Bluetooth page validates, fragments,
-  times out and cancels bounded requests through fixed project UUIDs. Mock GATT
-  tests exercise it without contacting Bluefy or a radio.
+Implemented:
 
-The remaining P12.3 work is intentionally open:
+- The access journal, source-mode tombstones and resumable reset coordinator
+  occupy the selected disjoint layout and fail closed on unhealthy or pending
+  state. Production boot suppresses station startup and schedules until access
+  authority is healthy.
+- Portable access policy implements the selected password/confirmation,
+  enrollment, bond, session, field-mode, SoftAP-cookie, reset, controller-time
+  and LED behavior with bounded state and deterministic fault coverage.
+- Fixed 64-byte GATT framing and the candidate Pico GATT adapter cross-link
+  against the exact clean BTstack revision. The adapter requires encryption,
+  application-password promotion, one connection, indication delivery and
+  stable stored peer identities.
+- The candidate Pico WPA2 SoftAP and onboard-LED adapters cross-link. Portable
+  HTTP admission supplies strict same-origin cookie authority and blank,
+  pre-clock and normal surfaces without changing the ordinary station-interface
+  trust contract.
+- The Bluefy page uses the same framing and authorization sequence and covers
+  malformed, oversize, wrong-device, replay, timeout, cancel and disconnect
+  paths.
+- SNTP and authenticated controller observations share one source arbiter;
+  source disagreement fails closed.
 
-- Add BLE GATT and SoftAP/captive HTTPS target adapters only after the security and
-  recovery choices below are selected.
-- Verify the existing browser-side Web Bluetooth provisioning client with an
-  exact Bluefy and iOS version, an approved HTTPS origin/integrity policy and
-  an authenticated target GATT adapter. Keep SoftAP/Safari independent.
-- Connect the P12.5 delivery-safe coordinator to an idle-only target
-  activator that stops new TLS sessions and replaces network state without
-  altering RF/job authority. The production source still activates a previously
-  committed profile at boot only.
+Not claimed by this scoped closure:
 
-The transport authentication, recovery gesture and at-rest key policy still
-materially change product security and target behavior and were not invented by
-this slice.
+- The production image does not start GATT, SoftAP/HTTPS or the indicator
+  controller, and it has no Pico `ActivationPlatform`. Complete production
+  service/activator wiring remains a Phase 12 gate.
+- BLE field job control must still bind to existing WTP/browser semantics; the
+  provisioning vocabulary is not a second job protocol.
+- Exact gestures, offline Bluefy origin/integrity/cache behavior, accepted
+  iPhone/iOS/Bluefy versions and every live transport/coexistence/resource claim
+  require the finite physical plan.
 
 ### P12.4 Portable command and activation boundary
 
@@ -159,9 +185,10 @@ The next hardware-free boundary is implemented without enabling a radio:
 - The P12.4 synchronous `ProfileActivator` boundary was an intermediate
   hardware-free seam. P12.5 replaces it because a disruptive implementation
   could otherwise destroy its own apply response before delivery.
-- No Pico activator, GATT service, captive HTTPS service, radio path or page
-  distribution policy is implemented. Without an activator, the existing
-  boot-only application behavior is unchanged.
+- At the P12.4 checkpoint no Pico activator, GATT service, captive HTTPS
+  service, radio path or page distribution policy existed. The later scoped
+  P12.3 closeout adds cross-linked adapter candidates but still does not enable
+  them or connect a production activator.
 
 ### P12.5 Delivery-safe activation and target admission
 
@@ -190,12 +217,13 @@ The next hardware-free safety boundary is implemented without enabling a radio:
   256 bytes, but both can exceed a default 20-byte ATT value; future GATT code
   must negotiate a sufficient payload or supply bounded bidirectional
   framing/reassembly and prove it on the exact client/target pair.
-- No production activator or authenticated BLE/SoftAP adapter is connected.
-  Firmware links and host mocks are not evidence of live reload or radio use.
+- No production activator or authenticated BLE/SoftAP field service is
+  connected. The later P12.3 candidate adapter link and host mocks are not
+  evidence of live reload or radio use.
 
 ## Deterministic acceptance matrix
 
-The portable slice must cover:
+Phase 12 completion evidence must cover:
 
 | Area | Required assertions |
 | --- | --- |
@@ -208,7 +236,7 @@ The portable slice must cover:
 | Existing data | station, schedules and watermark survive provisioning success, cancellation, interruption and reload unchanged |
 | RF/ownership | owner, armed, running, failed, output-active and output-unknown states reject apply without abort/release side effects |
 | Activation | reply precedes release; exact callback or five-second timeout executes once; stale callbacks do nothing; activity drift and injected prepare/quiesce/install/restart faults fail closed |
-| Target admission | server survives nested valid/invalid credential validation; PSA last-owner release is balanced; BTstack/profile/standalone/E10 ranges do not overlap; strong linkcheck retains P12.5 symbols |
+| Future target admission | server survives nested valid/invalid credential validation; PSA last-owner release is balanced; access/BTstack/profile/standalone/E10 ranges do not overlap; app ends at `0x3f3000`; updated strong linkcheck retains the provisioning/activation symbols inherited from P12.5 |
 | Resources | one session, fragment-count/payload/replay bounds, secret-free status and RAM reclamation after every terminal path |
 
 Run the documented host configure/build/CTest suite, the WTP contract validator,
@@ -228,38 +256,43 @@ layout; a cross-build is not BLE, Wi-Fi, timing or RF evidence.
 | 11.6 conducted RF | No row is changed or promoted by host work | After adapters, repeat only source-impact-affected coexistence rows under new finite authority; preserve all excluded rows |
 | 11.7 closure | Remains the Phase 11 record, not Phase 12 evidence | New Phase 12 review and ledger must cite, not rewrite, Phase 11 artifacts |
 
-## Open product and security decisions
+## Selected field-access/security policy
 
-These choices block Pico transport adapters but not the portable slices:
+The operator selected the complete
+[Phase 12 field-access and security contract](phase12-field-access-contract.md)
+on 2026-09-21. It resolves the earlier product/security choices: BLE uses Just
+Works with no PIN plus application-password enrollment; the shared default is
+`wspr-<last-six-station-MAC-hex>` and is explicitly public; four bonds are
+retained and revoked on password change; SoftAP remains a field-control and
+recovery path; authenticated phone time supplies bounded offline UTC; the
+onboard LED identifies a device and shows actual SoftAP readiness; sensitive
+trust/reset work requires fresh password step-up and, while the default is
+active, physical or USB confirmation; the CA private key stays off-device;
+ordinary flash has no confidentiality claim; and every recovery level preserves
+station, schedules and watermark unless full operational erase is explicit.
 
-- BLE proof of possession: numeric comparison/passkey, QR/out-of-band secret,
-  USB-established bootstrap secret or another explicit mechanism.
-- Whether BLE bonding is retained, how it is deleted and whether a bonded
-  principal may rotate the client CA without a second local proof.
-- The BLE local-management surface and authority: read-only status versus
-  allowed mutations, without creating a second job-control authority.
-- SoftAP activation and recovery gesture, timeout, SSID naming, WPA policy and
-  whether the fallback is disabled after successful provisioning.
-- Where the per-device CA and server private key are generated, and whether the
-  RP2350 ever receives a CA private key. The current per-device CA private key
-  must not be placed on the device by default.
-- Private-key-at-rest policy: plaintext flash (matching the present embedded-key
-  exposure), OTP-derived wrapping or external secure storage, including recovery
-  and replacement consequences.
-- Factory reset/recovery semantics and the physical action required to erase
-  Wi-Fi, TLS credentials and BLE bonds without erasing station/schedules or the
-  no-repeat watermark unintentionally.
-- The Web Bluetooth page origin, delivery, release integrity, update/cache and
-  offline policy. Selecting Bluefy resolves the iPhone client choice, not the
-  provenance of the provisioning page it executes.
-- Operator-client enrollment and trust-store UX for Windows/macOS/Linux. Device
-  provisioning must not silently install host trust or bypass warnings.
+The first profile on a blank generic image is BLE- or explicit USB-local-only;
+its SoftAP page is unauthenticated read-only identity/build/wire/status. After
+device-bound server trust exists, first authenticated UTC may also arrive
+through provisioned pre-clock SoftAP; normal SoftAP is an independent control
+and replacement path. The access journal now occupies `0x3f3000`–`0x3f4fff`
+and its all-erased, fault and reset-pending states fail closed.
+
+Remaining questions are target integration details, not license to change that
+policy:
+
+- the exact safe Pico 2 W gestures for enrollment and the three reset levels;
+- production wiring for GATT, SoftAP HTTPS/pre-clock/normal surfaces, full local
+  WTP/browser control and the live activation platform;
+- the integrity-controlled offline Bluefy page-delivery/cache mechanism; and
+- target resource, radio-coexistence and indicator scheduling needed to meet the
+  selected behavior without weakening job/RF authority.
 
 ## Completion boundary
 
-Phase 12 is not complete at the hardware-free P12.5 checkpoint. Completion
-requires selected security policies, implemented BLE and SoftAP adapters, a
-connected authenticated idle-only live activator, bounded inhibited-target
-acceptance, an authorized physical-plan execution and repaired adversarial
-reassessment.
+Phase 12 is not complete at the scoped P12.3 source closeout. Completion
+requires production BLE/SoftAP/HTTPS and local-control wiring conforming to the
+selected policy, a connected authenticated idle-only live activator, exact
+gesture selection, bounded inhibited-target acceptance, an authorized
+physical-plan execution and a repaired post-physical adversarial reassessment.
 Phase 13 RF qualification remains separate.

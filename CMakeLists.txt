@@ -42,6 +42,13 @@ execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/genera
 
 add_library(wsprrypico_core
     src/provisioning/profile.cpp
+    src/provisioning/access.cpp
+    src/provisioning/ble_session.cpp
+    src/provisioning/field_runtime.cpp
+    src/provisioning/gatt_framing.cpp
+    src/provisioning/local_access.cpp
+    src/provisioning/reset.cpp
+    src/provisioning/softap_http.cpp
     src/provisioning/activation.cpp
     src/provisioning/storage.cpp
     src/provisioning/manager.cpp
@@ -57,6 +64,7 @@ add_library(wsprrypico_core
     src/standalone/storage.cpp
     src/standalone/scheduler.cpp
     src/time/sntp.cpp
+    src/time/controller_time.cpp
     src/time/utc_discipline.cpp
     src/time/usb_time_source.cpp
     src/wtp/json.cpp
@@ -243,6 +251,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(provisioning_tests PRIVATE wsprrypico_core)
     target_compile_options(provisioning_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME provisioning_tests COMMAND provisioning_tests)
+    add_executable(field_access_tests tests/field_access_tests.cpp)
+    target_link_libraries(field_access_tests PRIVATE wsprrypico_core)
+    target_compile_options(field_access_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME field_access_tests COMMAND field_access_tests)
     add_executable(flash_layout_tests tests/flash_layout_tests.cpp)
     target_include_directories(flash_layout_tests PRIVATE src)
     target_compile_options(flash_layout_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
