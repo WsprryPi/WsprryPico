@@ -113,7 +113,8 @@ function clearSecrets() {
   setAccessPasswordVisible(false);
 }
 function message(error) {
-  return error && error.code ? error.code : "operation_failed";
+  const code = error && error.code ? error.code : "operation_failed";
+  return error && error.detail ? `${code} (${error.detail})` : code;
 }
 showAccessPassword.addEventListener("click", () => {
   if (!showAccessPassword.disabled)

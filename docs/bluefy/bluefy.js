@@ -179,6 +179,9 @@
       this.generation = 0;
       this.authorized = false;
       this.statusReceiver = new FrameReceiver(MAX_STATUS_BYTES);
+      // Counts and fixed error codes only; never retain a command, reply or secret.
+      this.trace = {writes: 0, written: 0, events: 0, frames: 0,
+        messages: 0, matched: 0, last: "none"};
       this.onStatus = this.onStatus.bind(this);
       this.onDisconnected = this.onDisconnected.bind(this);
     }
@@ -213,7 +216,11 @@
             !validDeviceId(observed.device_id) || (verifyExpected && observed.device_id !== expectedDeviceId) ||
             !Number.isSafeInteger(observed.generation) || observed.generation < 0)
           fail("wrong_device");
-        await status.startNotifications();
+        const notifying = await status.startNotifications();
+        // Web Bluetooth returns the characteristic; use that returned event source
+        // when an implementation provides a distinct wrapper.
+        if (notifying && typeof notifying.addEventListener === "function")
+          status = notifying;
         status.addEventListener("characteristicvaluechanged", this.onStatus);
         listenerAdded = true;
         this.device = device;
@@ -237,18 +244,41 @@
         throw error;
       }
     }
+    diagnosticSummary() {
+      const t = this.trace;
+      return `writes ${t.written}/${t.writes}; events ${t.events}; frames ${t.frames}; ` +
+        `messages ${t.messages}; matched ${t.matched}; last ${t.last}`;
+    }
     onStatus(event) {
+      ++this.trace.events;
       const value = event && event.target && event.target.value;
-      if (!value) return;
+      if (!value) { this.trace.last = "status_value_missing"; return; }
       let encoded;
-      try { encoded = this.statusReceiver.receive(value); } catch (_) { return; }
+      try {
+        encoded = this.statusReceiver.receive(value);
+        ++this.trace.frames;
+      } catch (error) {
+        this.trace.last = error && error.code ? error.code : "frame_decode";
+        return;
+      }
       if (!encoded) return;
+      ++this.trace.messages;
       let response;
-      try { response = JSON.parse(text(encoded)); } catch (_) { encoded.fill(0); return; }
+      try { response = JSON.parse(text(encoded)); }
+      catch (_) { encoded.fill(0); this.trace.last = "status_json"; return; }
       encoded.fill(0);
-      if (!response || !validDeviceId(response.request_id)) return;
+      if (!response || !validDeviceId(response.request_id)) {
+        this.trace.last = "response_id_invalid";
+        return;
+      }
       const pending = this.pending.get(response.request_id);
-      if (!pending || typeof response.ok !== "boolean") return;
+      if (!pending) { this.trace.last = "response_unmatched"; return; }
+      if (typeof response.ok !== "boolean") {
+        this.trace.last = "response_invalid";
+        return;
+      }
+      ++this.trace.matched;
+      this.trace.last = "matched";
       clearTimeout(pending.timer);
       this.pending.delete(response.request_id);
       if (response.ok) pending.resolve(response);
@@ -263,6 +293,7 @@
         clearTimeout(entry.timer);
         const error = new Error("bluetooth_disconnected");
         error.code = "bluetooth_disconnected";
+        error.detail = this.diagnosticSummary();
         entry.reject(error);
       }
       this.pending.clear();
@@ -283,21 +314,31 @@
         fail("request_id");
       const encoded = encoder.encode(JSON.stringify(message));
       if (encoded.length > MAX_COMMAND_BYTES) { encoded.fill(0); fail("command_oversize"); }
+      const outbound = frames(encoded);
+      this.trace.writes += outbound.length;
       let settle;
       const result = new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
           this.pending.delete(message.request_id);
-          const error = new Error("timeout"); error.code = "timeout"; reject(error);
+          const error = new Error("timeout");
+          error.code = "timeout";
+          error.detail = this.diagnosticSummary();
+          reject(error);
         }, this.timeoutMs);
         settle = {resolve, reject, timer}; this.pending.set(message.request_id, settle);
       });
-      const outbound = frames(encoded);
       try {
         const command = this.command;
         const write = command.writeValueWithResponse || command.writeValue;
-        for (const frame of outbound) await write.call(command, frame);
+        for (const frame of outbound) {
+          await write.call(command, frame);
+          ++this.trace.written;
+        }
       } catch (error) {
-        clearTimeout(settle.timer); this.pending.delete(message.request_id); throw error;
+        clearTimeout(settle.timer);
+        this.pending.delete(message.request_id);
+        if (error && typeof error === "object") error.detail = this.diagnosticSummary();
+        throw error;
       } finally {
         encoded.fill(0); for (const frame of outbound) frame.fill(0);
       }

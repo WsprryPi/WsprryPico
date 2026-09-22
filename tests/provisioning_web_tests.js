@@ -164,6 +164,33 @@ async function run() {
   assert(fixture.status.emittedSizes.some((size) => size > 20),
     "mock GATT must not be mistaken for default-ATT-MTU status evidence");
 
+  const returnedStatusFixture = bluetoothFixture();
+  const returnedStatus = new Characteristic();
+  returnedStatusFixture.status.startNotifications = async () => returnedStatus;
+  returnedStatusFixture.command.peer = returnedStatus;
+  const returnedStatusClient = new Client(returnedStatusFixture.bluetooth, cryptoFixture(),
+                                          {timeoutMs: 50});
+  await returnedStatusClient.connect(device);
+  assert.deepStrictEqual(await returnedStatusClient.authorize("wspr-0a60df"),
+                         {authorized: true});
+  assert.strictEqual(returnedStatusClient.trace.events, 1);
+  assert.strictEqual(returnedStatusFixture.status.listeners.length, 0);
+  returnedStatusClient.disconnect();
+  assert.strictEqual(returnedStatus.listeners.length, 0);
+
+  const silentFixture = bluetoothFixture();
+  silentFixture.command.respond = false;
+  const silentClient = new Client(silentFixture.bluetooth, cryptoFixture(), {timeoutMs: 5});
+  await silentClient.connect(device);
+  await assert.rejects(() => silentClient.authorize("wspr-0a60df"), (error) => {
+    assert.strictEqual(error.code, "timeout");
+    assert.match(error.detail,
+      /^writes [0-9]+\/[0-9]+; events 0; frames 0; messages 0; matched 0; last none$/);
+    assert(!error.detail.includes("wspr-0a60df"));
+    return true;
+  });
+  silentClient.disconnect();
+
   const oversizedFixture = bluetoothFixture();
   const oversizedClient = new Client(
     oversizedFixture.bluetooth, cryptoFixture(), {timeoutMs: 10});
