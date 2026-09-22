@@ -5,6 +5,7 @@ const status = document.querySelector("#status");
 const connect = document.querySelector("#connect");
 const cancel = document.querySelector("#cancel");
 const authorize = document.querySelector("#authorize");
+const showAccessPassword = document.querySelector("#show-access-password");
 const releaseLabel = document.querySelector("#release");
 const releaseMeta = document.querySelector('meta[name="wsprry-bluefy-release"]');
 const releaseFiles = Object.freeze([
@@ -96,13 +97,28 @@ function values() {
   const data = new FormData(form);
   return Object.fromEntries(data.entries());
 }
+function setAccessPasswordVisible(visible) {
+  form.elements.access_password.type = visible ? "text" : "password";
+  showAccessPassword.textContent = visible ? "Hide local password" : "Show local password";
+  showAccessPassword.setAttribute("aria-pressed", visible ? "true" : "false");
+}
+function setAccessPasswordEnabled(enabled) {
+  form.elements.access_password.disabled = !enabled;
+  showAccessPassword.disabled = !enabled;
+  if (!enabled) setAccessPasswordVisible(false);
+}
 function clearSecrets() {
   for (const name of ["access_password", "password", "server_certificate", "server_private_key", "client_ca"])
     form.elements[name].value = "";
+  setAccessPasswordVisible(false);
 }
 function message(error) {
   return error && error.code ? error.code : "operation_failed";
 }
+showAccessPassword.addEventListener("click", () => {
+  if (!showAccessPassword.disabled)
+    setAccessPasswordVisible(form.elements.access_password.type === "password");
+});
 connect.addEventListener("click", async () => {
   if (active || !releaseReady) return;
   if (client) client.disconnect();
@@ -110,7 +126,7 @@ connect.addEventListener("click", async () => {
   fields.disabled = true;
   clearSecrets();
   form.elements.device_id.value = "";
-  form.elements.access_password.disabled = true;
+  setAccessPasswordEnabled(false);
   authorize.disabled = true;
   active = true;
   connect.disabled = true;
@@ -119,7 +135,7 @@ connect.addEventListener("click", async () => {
     client = new WsprryBluefy.Client(navigator.bluetooth, crypto);
     const identity = await client.connect();
     form.elements.device_id.value = identity.device_id;
-    form.elements.access_password.disabled = false;
+    setAccessPasswordEnabled(true);
     authorize.disabled = false;
     connect.disabled = false;
     status.value = `Selected ${identity.device_id}; generation ${identity.generation}. Confirm before authorizing.`;
@@ -127,7 +143,7 @@ connect.addEventListener("click", async () => {
     if (client) client.disconnect();
     client = null;
     form.elements.device_id.value = "";
-    form.elements.access_password.disabled = true;
+    setAccessPasswordEnabled(false);
     authorize.disabled = true;
     status.value = `Connection failed: ${message(error)}.`;
     connect.disabled = !releaseReady;
@@ -144,7 +160,7 @@ authorize.addEventListener("click", async () => {
   try {
     await client.authorize(form.elements.access_password.value);
     form.elements.access_password.value = "";
-    form.elements.access_password.disabled = true;
+    setAccessPasswordEnabled(false);
     fields.disabled = false;
     status.value = `Authorized on ${form.elements.device_id.value}; generation ${client.generation}.`;
   } catch (error) {
@@ -152,7 +168,7 @@ authorize.addEventListener("click", async () => {
     client = null;
     form.elements.device_id.value = "";
     clearSecrets();
-    form.elements.access_password.disabled = true;
+    setAccessPasswordEnabled(false);
     connect.disabled = !releaseReady;
     status.value = `Authorization failed: ${message(error)}.`;
   } finally {
@@ -193,7 +209,7 @@ cancel.addEventListener("click", () => {
   connect.disabled = !releaseReady;
   authorize.disabled = true;
   form.elements.device_id.value = "";
-  form.elements.access_password.disabled = true;
+  setAccessPasswordEnabled(false);
   clearSecrets();
   status.value = "Cancelled and disconnected.";
 });
@@ -204,7 +220,7 @@ window.addEventListener("pagehide", () => {
 
 prepareRelease().catch((error) => {
   authorize.disabled = true;
-  form.elements.access_password.disabled = true;
+  setAccessPasswordEnabled(false);
   releaseReady = false;
   connect.disabled = true;
   fields.disabled = true;

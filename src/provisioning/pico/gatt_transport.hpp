@@ -35,8 +35,10 @@ class PicoGattTransport {
                              std::uint8_t* packet, std::uint16_t size);
     static void att_callback(std::uint8_t packet_type, std::uint16_t channel,
                              std::uint8_t* packet, std::uint16_t size);
+    static void can_send(void* context);
     bool admit();
     bool queue(std::string_view notification);
+    bool request_send();
     void send_next();
     void disconnected();
     std::uint64_t now() const { return now_ ? now_(context_) : 0; }
@@ -62,5 +64,7 @@ class PicoGattTransport {
     std::array<std::uint8_t, 31> scan_response_{};
     btstack_packet_callback_registration_t hci_registration_{};
     btstack_packet_callback_registration_t sm_registration_{};
+    btstack_context_callback_registration_t send_request_{};
+    bool send_requested_ = false;
 };
 } // namespace wsprrypico::provisioning

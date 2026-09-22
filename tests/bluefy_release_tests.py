@@ -63,6 +63,8 @@ def main():
     assert all(not value.startswith(("http:", "https:", "//")) for value in links.references)
     assert manifest["release"] in index and "source-only" not in index
     assert "Find nearby WsprryPicos" in index and "readonly" in index
+    assert 'id="show-access-password"' in index
+    assert 'aria-controls="access-password"' in index
     for name in ("style.css", "bluefy.js", "app.js"):
         assert links.integrity[name] == sha384((RELEASE / name).read_bytes())
 
@@ -80,6 +82,8 @@ def main():
     assert "Promise.race" in app and "offline_cache_timeout" in app
     assert 'online verified' in app
     assert 'connect.disabled = false' in app
+    assert 'setAccessPasswordVisible' in app
+    assert 'setAccessPasswordEnabled' in app
     assert app.index("for (const name of releaseFiles) await verifyAsset") < app.index(
         "connect.disabled = false")
     assert "client.connect(form.elements.device_id.value)" not in app

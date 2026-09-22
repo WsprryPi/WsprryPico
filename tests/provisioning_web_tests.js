@@ -75,7 +75,20 @@ function bluetoothFixture(observedDevice = device, generation = 0) {
   const gatt = {connected: false, async connect() { this.connected = true; return this; },
     disconnect() { this.connected = false; },
     async getPrimaryService() { return {getCharacteristic: async (uuid) => characteristics.get(uuid)}; }};
-  return {bluetooth: {requestDevice: async () => ({gatt})}, identity, command, status, gatt};
+  const deviceObject = {
+    gatt,
+    listeners: new Map(),
+    addEventListener(name, callback) { this.listeners.set(name, callback); },
+    removeEventListener(name, callback) {
+      if (this.listeners.get(name) === callback) this.listeners.delete(name);
+    },
+    emit(name) {
+      const callback = this.listeners.get(name);
+      if (callback) callback({target: this});
+    }
+  };
+  return {bluetooth: {requestDevice: async () => deviceObject}, identity, command, status, gatt,
+    device: deviceObject};
 }
 async function rejectsCode(callback, code) {
   try { await callback(); assert.fail("expected rejection"); }
@@ -225,6 +238,19 @@ async function run() {
   disconnectClient.disconnect();
   await rejectsCode(() => disconnected, "disconnected");
   assert.strictEqual(disconnectClient.pending.size, 0);
+
+  const nativeDisconnectFixture = bluetoothFixture();
+  const nativeDisconnectClient = new Client(nativeDisconnectFixture.bluetooth, cryptoFixture(),
+                                            {timeoutMs: 50});
+  await nativeDisconnectClient.connect(device);
+  await nativeDisconnectClient.authorize("wspr-0a60df");
+  nativeDisconnectFixture.command.respond = false;
+  const nativeDisconnected = nativeDisconnectClient.cancel("5".repeat(32));
+  await new Promise((resolve) => setImmediate(resolve));
+  nativeDisconnectFixture.gatt.connected = false;
+  nativeDisconnectFixture.device.emit("gattserverdisconnected");
+  await rejectsCode(() => nativeDisconnected, "bluetooth_disconnected");
+  assert.strictEqual(nativeDisconnectClient.pending.size, 0);
 
   const malformedFixture = bluetoothFixture();
   const malformedClient = new Client(malformedFixture.bluetooth, cryptoFixture(), {timeoutMs: 5});

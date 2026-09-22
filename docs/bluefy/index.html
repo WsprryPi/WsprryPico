@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="wsprry-bluefy-release" content="b5e6d36938a4f57971b49934a50626e5e9d4052b963008d75b5efde87af318ed">
+  <meta name="wsprry-bluefy-release" content="909e78e8e64a3d274aa8b11886a4fdfb8964a854eccbd6629075388bb33d8e85">
   <title>WsprryPico Provisioning</title>
   <link rel="stylesheet" href="style.css" integrity="sha384-g52748ljPA1dgqckeZjGgZmgURiCfUUiOBtvjALxP+hx1eQO0D/m+qdF+lH9Zcgf" crossorigin="anonymous">
   <link rel="manifest" href="manifest.webmanifest">
@@ -16,7 +16,11 @@
     <p>Release <code id="release">not verified</code></p>
     <form id="provisioning" autocomplete="off">
       <label>Selected device ID <input name="device_id" pattern="[0-9a-f]{32}" maxlength="32" placeholder="Choose a nearby WsprryPico" readonly required></label>
-      <label>Local access password <input name="access_password" type="password" minlength="8" maxlength="63" autocomplete="current-password" disabled required></label>
+      <label>Local access password <input id="access-password" name="access_password" type="password" minlength="8" maxlength="63" autocomplete="current-password" disabled required></label>
+      <div class="actions">
+        <button id="show-access-password" type="button" aria-controls="access-password"
+          aria-pressed="false" disabled>Show local password</button>
+      </div>
       <div class="actions">
         <button id="connect" type="button" disabled>Find nearby WsprryPicos</button>
         <button id="authorize" type="button" disabled>Use this Pico and authorize</button>
@@ -40,7 +44,7 @@
     <output id="status" role="status" aria-live="polite">Verifying release and offline cache…</output>
     <p>No credential is stored by this page. Clear the Bluefy tab after provisioning.</p>
   </main>
-  <script src="bluefy.js" integrity="sha384-AAc6pV3VNzAJ/FoCm5uUm3DA5i9jh+OWJ6iN3WltfjpgQv6cR1vVyqmRd363rPVb" crossorigin="anonymous"></script>
-  <script src="app.js" integrity="sha384-DcxQv3J+FJDW6W1bPZl6cm59f3utRehB0iRgR6i7hGNEl6EtCrvnttCkwCnThgDJ" crossorigin="anonymous"></script>
+  <script src="bluefy.js" integrity="sha384-9OmW/KvV+IJNYB6Af2a6nYMS3SWegPhW6z0IAq1H2BcdFEqyNgq86UFBFRCGGNNK" crossorigin="anonymous"></script>
+  <script src="app.js" integrity="sha384-SQheIHrIGKJjFiiL8TTakyLXf3pvYmdiEHUsJ5IuQyMk0TwRXHGEpBiy8gzxt4ks" crossorigin="anonymous"></script>
 </body>
 </html>

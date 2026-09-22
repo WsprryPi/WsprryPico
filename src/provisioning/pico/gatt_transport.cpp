@@ -32,6 +32,8 @@ bool PicoGattTransport::start() {
     sm_registration_.callback = hci_callback;
     sm_add_event_handler(&sm_registration_);
     att_server_register_packet_handler(att_callback);
+    send_request_.callback = can_send;
+    send_request_.context = this;
 
     advertisement_ = {
         2, BLUETOOTH_DATA_TYPE_FLAGS, 6,
@@ -99,6 +101,7 @@ void PicoGattTransport::disconnected() {
         std::fill(frame.begin(), frame.end(), 0);
     outbound_.clear();
     outbound_index_ = 0;
+    send_requested_ = false;
     connection_ = HCI_CON_HANDLE_INVALID;
     peer_index_ = -1;
     encrypted_ = false;
@@ -112,11 +115,34 @@ bool PicoGattTransport::queue(std::string_view notification) {
     outbound_ = gatt_frames(std::span(
         reinterpret_cast<const std::uint8_t*>(notification.data()), notification.size()));
     outbound_index_ = 0;
-    send_next();
-    return !outbound_.empty();
+    if (request_send())
+        return true;
+    for (auto& frame : outbound_)
+        std::fill(frame.begin(), frame.end(), 0);
+    outbound_.clear();
+    return false;
+}
+
+bool PicoGattTransport::request_send() {
+    if (send_requested_ || outbound_index_ >= outbound_.size() ||
+        connection_ == HCI_CON_HANDLE_INVALID)
+        return false;
+    send_requested_ = true;
+    if (att_server_request_to_send_indication(&send_request_, connection_) ==
+        ERROR_CODE_SUCCESS)
+        return true;
+    send_requested_ = false;
+    return false;
+}
+
+void PicoGattTransport::can_send(void* context) {
+    auto* transport = static_cast<PicoGattTransport*>(context);
+    if (transport && transport == owner_)
+        transport->send_next();
 }
 
 void PicoGattTransport::send_next() {
+    send_requested_ = false;
     if (outbound_index_ >= outbound_.size() || connection_ == HCI_CON_HANDLE_INVALID)
         return;
     const auto& frame = outbound_[outbound_index_];
@@ -225,7 +251,8 @@ void PicoGattTransport::att_callback(std::uint8_t packet_type, std::uint16_t,
     }
     ++owner_->outbound_index_;
     if (owner_->outbound_index_ < owner_->outbound_.size()) {
-        owner_->send_next();
+        if (!owner_->request_send())
+            (void)gap_disconnect(owner_->connection_);
         return;
     }
     for (auto& frame : owner_->outbound_)

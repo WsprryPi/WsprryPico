@@ -180,6 +180,7 @@
       this.authorized = false;
       this.statusReceiver = new FrameReceiver(MAX_STATUS_BYTES);
       this.onStatus = this.onStatus.bind(this);
+      this.onDisconnected = this.onDisconnected.bind(this);
     }
     async connect(expectedDeviceId) {
       const verifyExpected = expectedDeviceId !== undefined && expectedDeviceId !== "";
@@ -190,7 +191,12 @@
       const device = await this.bluetooth.requestDevice({filters: [{services: [UUIDS.service]}]});
       let status = null;
       let listenerAdded = false;
+      let disconnectListenerAdded = false;
       try {
+        if (typeof device.addEventListener === "function") {
+          device.addEventListener("gattserverdisconnected", this.onDisconnected);
+          disconnectListenerAdded = true;
+        }
         const server = await device.gatt.connect();
         const service = await server.getPrimaryService(UUIDS.service);
         const identity = await service.getCharacteristic(UUIDS.identity);
@@ -220,6 +226,8 @@
       } catch (error) {
         if (listenerAdded && status)
           status.removeEventListener("characteristicvaluechanged", this.onStatus);
+        if (disconnectListenerAdded)
+          device.removeEventListener("gattserverdisconnected", this.onDisconnected);
         if (device.gatt && device.gatt.connected) device.gatt.disconnect();
         this.device = this.command = this.status = this.identity = null;
         this.expectedDeviceId = "";
@@ -249,6 +257,25 @@
         error.code = response.error || "device_rejected";
         pending.reject(error);
       }
+    }
+    onDisconnected(event) {
+      for (const entry of this.pending.values()) {
+        clearTimeout(entry.timer);
+        const error = new Error("bluetooth_disconnected");
+        error.code = "bluetooth_disconnected";
+        entry.reject(error);
+      }
+      this.pending.clear();
+      if (this.status)
+        this.status.removeEventListener("characteristicvaluechanged", this.onStatus);
+      const device = event && event.target ? event.target : this.device;
+      if (device && typeof device.removeEventListener === "function")
+        device.removeEventListener("gattserverdisconnected", this.onDisconnected);
+      this.device = this.command = this.status = this.identity = null;
+      this.expectedDeviceId = "";
+      this.generation = 0;
+      this.authorized = false;
+      this.statusReceiver.reset();
     }
     async exchange(message) {
       if (!this.command) fail("not_connected");
@@ -333,6 +360,8 @@
       }
       this.pending.clear();
       if (this.status) this.status.removeEventListener("characteristicvaluechanged", this.onStatus);
+      if (this.device && typeof this.device.removeEventListener === "function")
+        this.device.removeEventListener("gattserverdisconnected", this.onDisconnected);
       if (this.device && this.device.gatt.connected) this.device.gatt.disconnect();
       this.device = this.command = this.status = this.identity = null;
       this.expectedDeviceId = "";

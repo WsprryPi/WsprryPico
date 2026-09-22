@@ -16,7 +16,11 @@
     <p>Release <code id="release">not verified</code></p>
     <form id="provisioning" autocomplete="off">
       <label>Selected device ID <input name="device_id" pattern="[0-9a-f]{32}" maxlength="32" placeholder="Choose a nearby WsprryPico" readonly required></label>
-      <label>Local access password <input name="access_password" type="password" minlength="8" maxlength="63" autocomplete="current-password" disabled required></label>
+      <label>Local access password <input id="access-password" name="access_password" type="password" minlength="8" maxlength="63" autocomplete="current-password" disabled required></label>
+      <div class="actions">
+        <button id="show-access-password" type="button" aria-controls="access-password"
+          aria-pressed="false" disabled>Show local password</button>
+      </div>
       <div class="actions">
         <button id="connect" type="button" disabled>Find nearby WsprryPicos</button>
         <button id="authorize" type="button" disabled>Use this Pico and authorize</button>
