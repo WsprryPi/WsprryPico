@@ -522,10 +522,10 @@ void ble_command_policy() {
         "\"device_id\":\"00112233445566778899aabbccddeeff\","
         "\"nonce\":\"phone-sample-1\"}";
     CHECK(session.handle(challenge, 5).code == provisioning::Code::Ok);
-    // Confirmed indication delivery, not command receipt, starts the latency
-    // charged to the controller-time uncertainty budget.
+    // Starting the final response indication, not command receipt, starts the
+    // conservative latency charged to the controller-time uncertainty budget.
     now_ns += 400'000'000ULL;
-    session.response_delivered(5);
+    session.response_started(5);
     now_ns += 10'000'000ULL;
     const std::string submit =
         "{\"version\":1,\"operation\":\"time_submit\","
@@ -535,6 +535,7 @@ void ble_command_policy() {
         "\"nonce\":\"phone-sample-1\","
         "\"utc_ns\":\"1800000000000000000\"}";
     CHECK(session.handle(submit, 6).code == provisioning::Code::Ok);
+    session.response_delivered(6);
     const std::string field_status =
         "{\"version\":1,\"operation\":\"field_status\","
         "\"request_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\","
@@ -570,6 +571,7 @@ void ble_command_policy() {
     abandoned_challenge.replace(abandoned_challenge.find("phone-sample-1"), 14,
                                 "disconnect-one");
     CHECK(returning.handle(abandoned_challenge, 8).code == provisioning::Code::Ok);
+    returning.response_started(8);
     returning.disconnected();
 
     provisioning::BleCommandSession after_disconnect(
@@ -826,8 +828,8 @@ void controller_time_policy() {
     auto challenge = arbiter.challenge("phone-a", "session-a", device, "nonce-a");
     CHECK(challenge.code == time::ControllerTimeCode::Ok);
     clock_now += 400'000'000ULL;
-    CHECK(!arbiter.challenge_delivered("phone-b", "session-a", device, "nonce-a"));
-    CHECK(arbiter.challenge_delivered("phone-a", "session-a", device, "nonce-a"));
+    CHECK(!arbiter.challenge_response_started("phone-b", "session-a", device, "nonce-a"));
+    CHECK(arbiter.challenge_response_started("phone-a", "session-a", device, "nonce-a"));
     clock_now += 10'000'000ULL;
     CHECK(arbiter.submit("phone-a", "session-a", device, "nonce-a", utc) ==
           time::ControllerTimeCode::Ok);

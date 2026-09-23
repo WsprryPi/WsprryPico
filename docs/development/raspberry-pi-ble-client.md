@@ -79,8 +79,8 @@ python3 scripts/wsprrypico_ble.py --address AA:BB:CC:DD:EE:FF \
 ```
 
 `sync-time` uses the same principal/session/device/nonce-bound challenge as
-Bluefy. The target begins charging submission latency only after confirmed
-delivery of the complete challenge response, when the controller can first
+Bluefy. The target begins charging latency when it starts the final challenge
+response indication, a conservative boundary before the controller can first
 sample UTC; the fixed uncertainty ceiling is unchanged. `wtp-status` subscribes
 to the separate encrypted GATT WTP endpoint,
 negotiates `WTP/1`, verifies device and boot identity, and requests `STATUS`.

@@ -26,6 +26,7 @@ class BleCommandSession {
                    std::string link_session, std::uint64_t now_ms);
     void disconnected();
     CommandReply handle(std::string_view command, std::uint64_t now_ms);
+    void response_started(std::uint64_t now_ms);
     void response_delivered(std::uint64_t now_ms);
     void poll(std::uint64_t now_ms);
     bool authorized() const;

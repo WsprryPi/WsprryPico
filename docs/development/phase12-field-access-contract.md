@@ -324,14 +324,16 @@ an authenticated, full-device-ID-bound Bluefy or SoftAP controller supplies an
 experimental phone-time observation to the existing UTC discipline.
 
 The exchange uses a fresh nonce and Pico monotonic challenge timestamp. The
-controller samples POSIX UTC only after the complete challenge indication has
-been confirmed, then returns the exact nonce/session/device binding. Confirmed
-challenge delivery starts the target-side latency interval because the
-controller cannot sample the UTC value before receiving that response. The Pico
+controller samples POSIX UTC only after it receives the complete challenge
+indication, then returns the exact nonce/session/device binding. Starting the
+final challenge-response indication starts the target-side latency interval;
+this is a conservative target-observable boundary before the controller can
+sample the UTC value and avoids racing its next write against the later
+indication-confirmation callback. The Pico
 computes, rather than accepts from the client, a nonzero uncertainty comprising:
 
 - a fixed 250 ms allowance for unverified iPhone clock error;
-- the full measured post-delivery controller-sample and submission latency; and
+- final response delivery plus the controller-sample and submission latency; and
 - local serialization, timer-quantization and configured oscillator-growth
   margins.
 

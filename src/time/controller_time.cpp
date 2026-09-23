@@ -50,16 +50,18 @@ ControllerChallenge ControllerTimeArbiter::challenge(std::string_view principal,
     return {ControllerTimeCode::Ok, pending_.nonce, pending_.started_ns};
 }
 
-bool ControllerTimeArbiter::challenge_delivered(std::string_view principal,
-                                                std::string_view session,
-                                                std::string_view requested_device,
-                                                std::string_view nonce) {
+bool ControllerTimeArbiter::challenge_response_started(std::string_view principal,
+                                                       std::string_view session,
+                                                       std::string_view requested_device,
+                                                       std::string_view nonce) {
     if (!pending_.live || !now_ || principal != pending_.principal ||
         session != pending_.session || requested_device != device_id_ || nonce != pending_.nonce)
         return false;
-    // A controller cannot sample UTC in response to this challenge until the
-    // complete indication is confirmed. Charge only post-delivery client/write
-    // latency against the existing uncertainty budget; do not relax that budget.
+    // Starting the final indication is a conservative boundary before the
+    // controller can receive the complete response and sample UTC. Waiting for
+    // its asynchronous confirmation races with the controller's next write.
+    // Keep the existing uncertainty budget and charge final delivery plus the
+    // controller sample/write latency against it.
     pending_.started_ns = now_(context_);
     return true;
 }

@@ -256,9 +256,12 @@ void PicoGattTransport::send_next() {
     }
     diagnostics_.last_indication_status = att_server_indicate(
         connection_, handle, bytes.data(), static_cast<std::uint16_t>(bytes.size()));
-    if (diagnostics_.last_indication_status == ERROR_CODE_SUCCESS)
+    if (diagnostics_.last_indication_status == ERROR_CODE_SUCCESS) {
         ++diagnostics_.indications_started;
-    else {
+        if (indication_ == Indication::Provisioning &&
+            outbound_index_ + 1 == outbound_.size())
+            session_.response_started(now());
+    } else {
         indication_ = Indication::None;
         wtp_indication_bytes_ = 0;
         (void)gap_disconnect(connection_);

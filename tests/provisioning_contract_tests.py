@@ -84,6 +84,8 @@ assert "7D6B0005-5BF1-4F21-A486-3E8F70C12201" in gatt_profile
 assert "7D6B0006-5BF1-4F21-A486-3E8F70C12201" in gatt_profile
 assert "CLIENT_CONFIGURATION_HANDLE" in gatt
 assert "att_read_callback_handle_little_endian_16" in gatt
+assert "outbound_index_ + 1 == outbound_.size()" in gatt
+assert "session_.response_started(now());" in gatt
 assert "owner_->status_cccd_ : owner_->wtp_cccd_) = value;" in gatt
 assert "status_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION" in gatt
 assert "wtp_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION" in gatt

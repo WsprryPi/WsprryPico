@@ -271,8 +271,10 @@ CommandReply BleCommandSession::field_command(std::string_view command,
         if (!nonce || nonce->type() != '"' || !utc || utc->type() != '"' ||
             !decimal(utc->string(), utc_ns))
             return field_reply(request_id, Code::InvalidRequest);
-        const auto code = time_code(controller_time_->submit(
-            authorization.principal, session->string(), device_id_, nonce->string(), utc_ns));
+        const auto controller_code = controller_time_->submit(
+            authorization.principal, session->string(), device_id_, nonce->string(), utc_ns);
+        secure_clear(pending_time_nonce_);
+        const auto code = time_code(controller_code);
         return field_reply(request_id, code, code == Code::Ok ? "\"accepted\":true" : "");
     }
     return {};
@@ -303,14 +305,17 @@ CommandReply BleCommandSession::handle(std::string_view command, std::uint64_t n
     return response;
 }
 
-void BleCommandSession::response_delivered(std::uint64_t now_ms) {
+void BleCommandSession::response_started(std::uint64_t now_ms) {
     (void)now_ms;
     if (!pending_time_nonce_.empty()) {
         if (controller_time_)
-            (void)controller_time_->challenge_delivered(
+            (void)controller_time_->challenge_response_started(
                 principal(), field_session_, device_id_, pending_time_nonce_);
-        secure_clear(pending_time_nonce_);
     }
+}
+
+void BleCommandSession::response_delivered(std::uint64_t now_ms) {
+    (void)now_ms;
     if (pending_apply_request_.empty())
         return;
     delivery_confirmed_ = true;
