@@ -10,7 +10,9 @@ and [portable review](phase12-review.md), the
 [P12.4 portable command/activation review](phase12-4-review.md), the
 [P12.5 activation-safety review](phase12-5-review.md), the
 [production/acceptance review](phase12-production-acceptance-review.md), the
-[BLE local-control continuation](phase12-ble-local-control-review.md), plus the separate
+[BLE local-control continuation](phase12-ble-local-control-review.md), the
+[Raspberry Pi BLE and first-class TCP/WTP review](phase12-pi-ble-tcp-review.md),
+plus the separate
 [RF-inhibited-first physical plan](phase12-physical-acceptance.md), distinguish
 implemented infrastructure and selected product/security policy from open
 SoftAP/local-control and physical work. Provisioning-only GATT and its live
@@ -19,8 +21,10 @@ identity/adoption/advertising and one online retained-bond Bluefy
 application-authorization exchange are partial physical evidence. Authenticated
 BLE controller time, Identify/status and unchanged WTP/1 transport are now
 production-connected. Their clean committed image has verified Candidate A
-load/boot, preserved state and final RF-inhibited restoration, but the paths
-themselves retain hardware-free evidence only. Bluefy/iOS offline use,
+load/boot, preserved state and final RF-inhibited restoration. The native
+Raspberry Pi/Linux client also has an exact RF-inhibited Candidate A/wspr5 live
+record for identity inspection, authenticated controller time, field status and
+WTP `HELLO`/`STATUS`. Bluefy/iOS offline use,
 full provisioning/activation, SoftAP, physical phone time, reset controls
 and most Stage A rows remain open. P12.3 remains CLOSED_SCOPED within its historical boundary.
 Phase 13 broad hardware/release qualification remains open.
@@ -28,8 +32,9 @@ Phase 13 broad hardware/release qualification remains open.
 The supported [Raspberry Pi/Linux BLE client](raspberry-pi-ble-client.md) adds a
 native BlueZ local/bench workflow using the same production GATT contract.
 Authenticated TLS 1.3/TCP remains a first-class WTP job-control transport while
-USB CDC remains canonical/reference. These are source and deterministic-host
-claims until an exact live client/target record says otherwise.
+USB CDC remains canonical/reference. The Pi BLE claim now has the exact bounded
+live record linked above; TCP/TLS in this slice remains a source and
+deterministic-host contract, not new physical interoperability evidence.
 
 Phase 11.5 is CLOSED at 6/6 families for its recorded 138 MHz/divider-1
 configuration. Its [completion matrix](phase11-5-completion-matrix.md) and

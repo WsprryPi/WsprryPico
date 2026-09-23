@@ -66,8 +66,11 @@ connects authenticated controller time, Identify/status and an unchanged WTP/1
 stream to that production GATT service and extends the offline page. The
 supported [Raspberry Pi/Linux BlueZ client](docs/development/raspberry-pi-ble-client.md)
 adds the same identity-bound local workflow without replacing Bluefy as the
-selected iPhone client. The Linux client currently has deterministic host
-evidence only. Exact candidate identity/adoption, preserved
+selected iPhone client. Its bounded
+[execution and adversarial review](docs/development/phase12-pi-ble-tcp-review.md)
+adds deterministic host evidence and exact RF-inhibited Candidate A/wspr5 live
+evidence for identity inspection, authenticated controller time, field status,
+and WTP `HELLO`/`STATUS`. Exact candidate identity/adoption, preserved
 station/schedule/watermark state and BLE advertising have partial physical
 evidence in the
 [production review](docs/development/phase12-production-acceptance-review.md).
@@ -82,7 +85,8 @@ SoftAP-ready patterns. Those new BLE paths remain functionally hardware-free
 only. Their clean committed standard image has verified Candidate A load/boot
 with preserved state and final RF-inhibited empty/unowned/inactive-output
 restoration. Bluefy/iOS and offline reuse, profile activation,
-SoftAP/HTTPS, physical BLE WTP/local management, phone-time and LED behavior,
+SoftAP/HTTPS, the broader physical BLE job-control/local-management matrix,
+phone-time and LED behavior,
 reset controls and most of the
 [RF-inhibited-first physical plan](docs/development/phase12-physical-acceptance.md)
 remain open. Phase 12 is therefore active; the scoped source closeout is not
@@ -102,6 +106,7 @@ full physical or end-user acceptance.
 - [Phase 12 BLE local-control continuation](docs/development/phase12-ble-local-control-review.md)
 - [Bluefy field page](docs/bluefy/)
 - [Raspberry Pi/Linux BLE client](docs/development/raspberry-pi-ble-client.md)
+- [Raspberry Pi BLE and first-class TCP/WTP execution review](docs/development/phase12-pi-ble-tcp-review.md)
 - [Implementation plan](docs/implementation-plan.md)
 - [WsprryPi host acceptance prerequisites](docs/development/phase10-host-acceptance.md)
 - [Experimental PIO band campaign](docs/development/band-campaign.md)

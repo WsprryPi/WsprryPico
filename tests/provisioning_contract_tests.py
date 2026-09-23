@@ -76,6 +76,8 @@ for required in (
 ):
     assert required in linux_client
 assert '"Trusted"' not in linux_client
+assert "expected_device_path = self.device_path" in linux_client
+assert linux_client.count("pairing_request_allowed(str(device), expected_device_path") == 2
 assert "bus_name=self.BLUEZ" in linux_client
 
 assert "INDICATE | ENCRYPTION_KEY_SIZE_16 | DYNAMIC" in gatt_profile

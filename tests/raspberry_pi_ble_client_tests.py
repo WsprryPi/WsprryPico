@@ -219,6 +219,15 @@ class ClientTests(unittest.TestCase):
             with self.assertRaisesRegex(ble.ClientError, "timeout"):
                 ble.Client(FakeBackend(), timeout=bad)
 
+    def test_pairing_authorization_is_exact(self):
+        expected = "/org/bluez/hci0/dev_2C_CF_67_62_76_68"
+        self.assertTrue(ble.pairing_request_allowed(expected, expected))
+        self.assertTrue(
+            ble.pairing_request_allowed(expected, expected, ble.UUIDS["service"].upper())
+        )
+        self.assertFalse(ble.pairing_request_allowed(expected + "_other", expected))
+        self.assertFalse(ble.pairing_request_allowed(expected, expected, ble.UUIDS["identity"]))
+
     def test_inspect_never_creates_a_provisional_pairing(self):
         backend = FakeBackend()
         output = io.StringIO()

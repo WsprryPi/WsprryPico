@@ -160,8 +160,10 @@ reply or process exit is never evidence that RF output is inactive.
 `tests/raspberry_pi_ble_client_tests.py` deterministically covers framing,
 identity binding, authorization, field controls, WTP negotiation/status, profile
 transaction/cancel and local file controls. The provisioning contract check
-keeps firmware, Bluefy and Linux constants synchronized. Those results are
-source/host evidence only. A physical record must still name the exact Pi,
-controller, firmware, access generation, bond state and inhibited-output proof.
-It does not qualify RF, SoftAP, Bluefy/iOS, radio coexistence or general release
+keeps firmware, Bluefy and Linux constants synchronized. The bounded
+[execution record](phase12-pi-ble-tcp-review.md) adds exact `wspr5`/Candidate A
+RF-inhibited evidence for identity inspection, controller-time submission,
+field status and WTP `HELLO`/`STATUS`; all other deterministic results remain
+source/host evidence. The live subset does not qualify RF, SoftAP, Bluefy/iOS,
+profile activation, radio coexistence, TCP interoperability or general release
 behavior.

@@ -76,6 +76,14 @@ def normalize_address(value: str) -> str:
     return address
 
 
+def pairing_request_allowed(
+    device_path: str, expected_device_path: str, service_uuid: str | None = None
+) -> bool:
+    return device_path == expected_device_path and (
+        service_uuid is None or service_uuid.lower() == UUIDS["service"]
+    )
+
+
 def remote_error(value: Any) -> str:
     return value if isinstance(value, str) and _REMOTE_ERROR.fullmatch(value) else "device_rejected"
 
@@ -811,22 +819,28 @@ class BluezBackend:
         dbus = self.dbus
         service_uuid = UUIDS["service"]
         agent_interface = self.AGENT
+        expected_device_path = self.device_path
 
         class Agent(dbus.service.Object):
+            @staticmethod
+            def reject() -> None:
+                error = dbus.exceptions.DBusException("device or service rejected")
+                error._dbus_error_name = "org.bluez.Error.Rejected"
+                raise error
+
             @dbus.service.method(agent_interface, in_signature="", out_signature="")
             def Release(self) -> None:
                 return None
 
             @dbus.service.method(agent_interface, in_signature="o", out_signature="")
             def RequestAuthorization(self, device: str) -> None:
-                return None
+                if not pairing_request_allowed(str(device), expected_device_path):
+                    self.reject()
 
             @dbus.service.method(agent_interface, in_signature="os", out_signature="")
             def AuthorizeService(self, device: str, uuid: str) -> None:
-                if str(uuid).lower() != service_uuid:
-                    error = dbus.exceptions.DBusException("service rejected")
-                    error._dbus_error_name = "org.bluez.Error.Rejected"
-                    raise error
+                if not pairing_request_allowed(str(device), expected_device_path, str(uuid)):
+                    self.reject()
 
             @dbus.service.method(agent_interface, in_signature="", out_signature="")
             def Cancel(self) -> None:
@@ -1006,7 +1020,7 @@ def _password() -> str:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Authenticated WsprryPico BLE local control")
-    parser.add_argument("--address", required=True, help="exact controller Bluetooth address")
+    parser.add_argument("--address", required=True, help="exact WsprryPico BLE address")
     parser.add_argument("--device-id", required=True, help="expected 32-lowercase-hex device ID")
     parser.add_argument("--adapter", default="hci0", help="BlueZ adapter name (default: hci0)")
     parser.add_argument("--timeout", type=float, default=30.0, help="bounded operation timeout in seconds")

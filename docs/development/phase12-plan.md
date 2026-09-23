@@ -6,13 +6,19 @@ authenticated controller time, Identify/status and an unchanged WTP/1 stream,
 the network-only live activator and indicator construction in the RF-inhibited
 standard image, and a deterministic offline Bluefy release. Its
 identity/adoption/advertising physical subset has passed. SoftAP, physical BLE
-WTP/local management and phone-time behavior, reset/gesture work and most
+job-control/local-management beyond the bounded Raspberry Pi client exercise,
+phone-time behavior, reset/gesture work and most
 physical acceptance remain open. The clean committed standard image at
-`5afe7576f001` has passed a serial-targeted load/verify, exact boot-identity and
-preserved-state checks, and final RF-inhibited empty/unowned/inactive-output
-restoration. That baseline is not live acceptance of the new BLE paths. The
-later BLE source boundary is reviewed in
+`d52a2fa6a3a3` has passed a serial-targeted load/verify plus an exact
+RF-inhibited Candidate A/wspr5 native-client exercise for identity inspection,
+authenticated controller time, field status and WTP `HELLO`/`STATUS`. The run
+preserved station/schedule/watermark state and ended
+empty/unowned/inactive-output. This is not Bluefy/iOS, SoftAP, RF or broad
+interoperability acceptance. The later BLE source boundary is reviewed in
 the [BLE local-control continuation](phase12-ble-local-control-review.md). The
+bounded Pi/TCP slice is recorded in the
+[Raspberry Pi BLE and first-class TCP/WTP review](phase12-pi-ble-tcp-review.md).
+The
 revisited P12.3 source slice remains
 **CLOSED_SCOPED** by the [P12.3 closeout](phase12-3-review.md); the later
 production work does not rewrite that evidence. The operator-selected
