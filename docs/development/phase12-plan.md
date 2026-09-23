@@ -293,6 +293,12 @@ The next hardware-free safety boundary is implemented without enabling a radio:
   storage for BTstack's asynchronous lifetime. ATT indication completion is
   deferred into core-0 polling before activation release. Retained authorized
   bonds treat a repeated page authorization request idempotently.
+- BLE profile apply does not inherit ordinary retained-bond authority. The page
+  must provide a fresh password proof bound to the final staged digest, exact
+  apply request and expected generation. While the public default is active,
+  Candidate A must also receive `ACCESS CONFIRM PROFILE <full-device-id>` over
+  USB within the same 30-second staging session. Failure, cancellation,
+  disconnect or expiry invalidates the one-use proof.
 - The checked-in `docs/bluefy` artifact is built deterministically from
   `src/provisioning/web`, contains no candidate identity or credentials, uses
   the Bluefy/Web Bluetooth chooser, reads and displays the full device identity,

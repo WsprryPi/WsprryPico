@@ -92,7 +92,11 @@ bounded native-Pi Candidate A evidence for WPA2/DHCP/mDNS/TLS,
 password/cookie admission, controller time and basic local ownership, but no
 phone/Safari/Bluefy or provisioning acceptance. BLE provisioning,
 controller-time, Identify/status, unchanged WTP/1 and the network-only live
-activator are also wired, but their remaining physical rows stay open. P12.3 is
+activator are also wired. BLE profile apply now requires a fresh password proof
+bound to the exact staged bytes, applying request and generation; the public
+default additionally requires an identity-bound USB-local confirmation within
+the 30-second staging session. Those controls are host-tested but their phone
+and target acceptance remains open. P12.3 is
 closed only for its documented hardware-free
 source/cross-link boundary; Phase 12 is not yet an accepted end-user path.
 

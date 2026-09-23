@@ -70,12 +70,9 @@ LocalAccessController::~LocalAccessController() {
 }
 
 bool LocalAccessController::valid_binding(const RequestBinding& binding) const {
-    return binding.device_id == device_id_ &&
-           bounded_text(binding.principal, 64) &&
-           bounded_text(binding.session_id, 64) &&
-           bounded_text(binding.operation, 32) &&
-           bounded_text(binding.nonce, 64) &&
-           !zero_digest(binding.parameters);
+    return binding.device_id == device_id_ && bounded_text(binding.principal, 64) &&
+           bounded_text(binding.session_id, 64) && bounded_text(binding.operation, 32) &&
+           bounded_text(binding.nonce, 64) && !zero_digest(binding.parameters);
 }
 
 bool LocalAccessController::password_matches(std::string_view candidate) const {
@@ -125,7 +122,8 @@ AccessCode LocalAccessController::consume(const RequestBinding& binding, bool ne
                        (!store_.record() || proof_.epoch == store_.record()->epoch);
     AccessCode result = AccessCode::Ok;
     if (!valid)
-        result = need_password ? AccessCode::AuthenticationRequired : AccessCode::ConfirmationRequired;
+        result =
+            need_password ? AccessCode::AuthenticationRequired : AccessCode::ConfirmationRequired;
     else if (need_password && !proof_.password)
         result = AccessCode::AuthenticationRequired;
     else if (need_confirmation && !proof_.confirmation)
@@ -173,8 +171,7 @@ AccessCode LocalAccessController::initialize_default(const RequestBinding& bindi
 }
 
 AccessCode LocalAccessController::open_enrollment(const RequestBinding& binding,
-                                                  const Activity& activity,
-                                                  std::uint64_t now_ms) {
+                                                  const Activity& activity, std::uint64_t now_ms) {
     if (!store_.healthy())
         return AccessCode::StorageFault;
     if (!idle_for_access(activity) || ble_.peer)
@@ -182,8 +179,8 @@ AccessCode LocalAccessController::open_enrollment(const RequestBinding& binding,
     if (enrollment_open(now_ms))
         return AccessCode::Busy;
     const bool public_default = store_.record()->default_password;
-    const auto permit = public_default ? consume(binding, false, true, now_ms)
-                                       : consume_either(binding, now_ms);
+    const auto permit =
+        public_default ? consume(binding, false, true, now_ms) : consume_either(binding, now_ms);
     if (permit != AccessCode::Ok)
         return permit;
     enrollment_started_ms_ = now_ms;
@@ -234,8 +231,7 @@ BleAdmission LocalAccessController::ble_connect(std::uint64_t peer, bool encrypt
     return {AccessCode::Ok, retained ? bond_principal(peer) : std::string{}, new_pairing};
 }
 
-BleAdmission LocalAccessController::ble_authorize(std::string_view password,
-                                                  std::uint64_t now_ms) {
+BleAdmission LocalAccessController::ble_authorize(std::string_view password, std::uint64_t now_ms) {
     if (!ble_.peer || !ble_.encrypted || !ble_.provisional || !enrollment_open(now_ms))
         return {AccessCode::AuthenticationRequired};
     if (!password_matches(password)) {
@@ -294,10 +290,8 @@ bool LocalAccessController::mark_ble_disabled() {
     return result;
 }
 
-AccessCode LocalAccessController::remove_bond(std::uint64_t peer,
-                                              const RequestBinding& binding,
-                                              const Activity& activity,
-                                              std::uint64_t now_ms) {
+AccessCode LocalAccessController::remove_bond(std::uint64_t peer, const RequestBinding& binding,
+                                              const Activity& activity, std::uint64_t now_ms) {
     if (!store_.healthy())
         return AccessCode::StorageFault;
     if (!idle_for_access(activity))
@@ -344,9 +338,8 @@ void LocalAccessController::reclaim(std::uint64_t now_ms, std::string_view prote
             !protected_wtp_session.empty() && session.wtp_session == protected_wtp_session;
         if (session.boot_id != boot_id_ || !store_.record() ||
             session.epoch != store_.record()->epoch ||
-            (!protected_owner &&
-             (elapsed(now_ms, session.created_ms, softap_absolute_ms) ||
-              elapsed(now_ms, session.last_activity_ms, softap_inactivity_ms))))
+            (!protected_owner && (elapsed(now_ms, session.created_ms, softap_absolute_ms) ||
+                                  elapsed(now_ms, session.last_activity_ms, softap_inactivity_ms))))
             clear_session(session);
     }
 }
@@ -470,8 +463,7 @@ std::size_t LocalAccessController::live_softap_sessions(std::uint64_t now_ms,
 
 AccessCode LocalAccessController::change_password(std::string_view replacement,
                                                   const RequestBinding& binding,
-                                                  const Activity& activity,
-                                                  std::uint64_t now_ms) {
+                                                  const Activity& activity, std::uint64_t now_ms) {
     if (!store_.healthy())
         return AccessCode::StorageFault;
     if (!idle_for_access(activity))
@@ -506,16 +498,13 @@ AccessCode LocalAccessController::change_password(std::string_view replacement,
     return AccessCode::Ok;
 }
 
-AccessCode LocalAccessController::set_field_mode(bool enabled,
-                                                 const RequestBinding& binding,
-                                                 const Activity& activity,
-                                                 std::uint64_t now_ms) {
+AccessCode LocalAccessController::set_field_mode(bool enabled, const RequestBinding& binding,
+                                                 const Activity& activity, std::uint64_t now_ms) {
     if (!store_.healthy())
         return AccessCode::StorageFault;
     if (!idle_for_access(activity))
         return AccessCode::Busy;
-    const auto permit =
-        consume(binding, true, store_.record()->default_password, now_ms);
+    const auto permit = consume(binding, true, store_.record()->default_password, now_ms);
     if (permit != AccessCode::Ok)
         return permit;
     auto changed = *store_.record();
@@ -526,6 +515,35 @@ AccessCode LocalAccessController::set_field_mode(bool enabled,
     }
     scrub(changed);
     return AccessCode::Ok;
+}
+
+AccessCode LocalAccessController::sensitive_ready(const RequestBinding& binding,
+                                                  const Activity& activity,
+                                                  std::uint64_t now_ms) const {
+    if (!store_.healthy())
+        return AccessCode::StorageFault;
+    if (!idle_for_access(activity))
+        return AccessCode::Busy;
+    if (!valid_binding(binding))
+        return binding.device_id == device_id_ ? AccessCode::Invalid : AccessCode::WrongDevice;
+    const bool valid = proof_.active && proof_.binding == binding &&
+                       !elapsed(now_ms, proof_.issued_ms, proof_lifetime_ms) && store_.record() &&
+                       proof_.epoch == store_.record()->epoch;
+    if (!valid || !proof_.password)
+        return AccessCode::AuthenticationRequired;
+    if (store_.record()->default_password && !proof_.confirmation)
+        return AccessCode::ConfirmationRequired;
+    return AccessCode::Ok;
+}
+
+AccessCode LocalAccessController::authorize_sensitive(const RequestBinding& binding,
+                                                      const Activity& activity,
+                                                      std::uint64_t now_ms) {
+    if (!store_.healthy())
+        return AccessCode::StorageFault;
+    if (!idle_for_access(activity))
+        return AccessCode::Busy;
+    return consume(binding, true, store_.record()->default_password, now_ms);
 }
 
 void LocalAccessController::invalidate_all_volatile() {
@@ -547,8 +565,8 @@ std::string LocalAccessController::cookie_header(std::string_view token) {
 }
 
 Authorization LocalAccessController::ble_authorization() const {
-    if (!ble_.authorized || !ble_.encrypted || !store_.record() ||
-        !retained_bond(ble_.peer) || store_.record()->ble_disabled)
+    if (!ble_.authorized || !ble_.encrypted || !store_.record() || !retained_bond(ble_.peer) ||
+        store_.record()->ble_disabled)
         return {};
     return {true, true, true, bond_principal(ble_.peer)};
 }

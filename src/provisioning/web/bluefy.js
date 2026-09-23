@@ -235,6 +235,11 @@
       this.bluetooth = bluetooth;
       this.crypto = cryptoObject;
       this.timeoutMs = options && options.timeoutMs ? options.timeoutMs : 30000;
+      this.confirmationTimeoutMs = options && options.confirmationTimeoutMs
+        ? options.confirmationTimeoutMs : 25000;
+      this.onConfirmationRequired = options &&
+        typeof options.onConfirmationRequired === "function"
+        ? options.onConfirmationRequired : null;
       this.device = null;
       this.command = null;
       this.status = null;
@@ -579,12 +584,18 @@
       }
     }
     async provision(input) {
-      if (!this.command || input.device_id !== this.expectedDeviceId) fail("wrong_device");
-      if (!this.authorized) fail("authentication_required");
-      const profile = canonicalProfile(input);
-      const sessionId = randomId(this.crypto);
+      let profile = null;
+      let accessPassword = input && typeof input.access_password === "string"
+        ? input.access_password : "";
+      let sessionId = "";
       let opened = false;
       try {
+        if (!this.command || !input || input.device_id !== this.expectedDeviceId)
+          fail("wrong_device");
+        if (!this.authorized) fail("authentication_required");
+        if (!printable(accessPassword, 8, 63)) fail("local_password");
+        profile = canonicalProfile(input);
+        sessionId = randomId(this.crypto);
         await this.exchange({version: 1, operation: "open", request_id: randomId(this.crypto),
           session_id: sessionId, device_id: this.expectedDeviceId});
         opened = true;
@@ -594,8 +605,29 @@
             session_id: sessionId, device_id: this.expectedDeviceId, offset,
             final: end === profile.bytes.length, payload: base64(profile.bytes.subarray(offset, end))});
         }
+        const applyRequestId = randomId(this.crypto);
+        let stepUp = await this.exchange({version: 1, operation: "profile_step_up",
+          request_id: randomId(this.crypto), session_id: this.fieldSession,
+          device_id: this.expectedDeviceId, profile_session_id: sessionId,
+          apply_request_id: applyRequestId, expected_generation: this.generation,
+          password: accessPassword});
+        if (typeof stepUp.confirmation_required !== "boolean" ||
+            typeof stepUp.ready !== "boolean") fail("profile_step_up_response");
+        if (stepUp.confirmation_required && !stepUp.ready) {
+          if (this.onConfirmationRequired) this.onConfirmationRequired();
+          const deadline = Date.now() + this.confirmationTimeoutMs;
+          do {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            stepUp = await this.exchange({version: 1, operation: "profile_step_up_status",
+              request_id: randomId(this.crypto), session_id: this.fieldSession,
+              device_id: this.expectedDeviceId, apply_request_id: applyRequestId});
+            if (typeof stepUp.confirmation_required !== "boolean" ||
+                typeof stepUp.ready !== "boolean") fail("profile_step_up_response");
+          } while (!stepUp.ready && Date.now() < deadline);
+          if (!stepUp.ready) fail("confirmation_timeout");
+        }
         const response = await this.exchange({version: 1, operation: "apply",
-          request_id: randomId(this.crypto), session_id: sessionId,
+          request_id: applyRequestId, session_id: sessionId,
           device_id: this.expectedDeviceId, expected_generation: this.generation});
         if (!Number.isSafeInteger(response.generation) || response.generation < this.generation)
           fail("generation");
@@ -607,8 +639,16 @@
         }
         throw error;
       } finally {
-        profile.bytes.fill(0);
-        profile.value = "";
+        accessPassword = "";
+        if (input && typeof input === "object") {
+          for (const field of ["access_password", "password", "server_certificate",
+            "server_private_key", "client_ca"])
+            try { input[field] = ""; } catch (_) { /* immutable caller input */ }
+        }
+        if (profile) {
+          profile.bytes.fill(0);
+          profile.value = "";
+        }
       }
     }
     disconnect() {

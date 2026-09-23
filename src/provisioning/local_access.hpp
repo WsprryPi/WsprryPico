@@ -77,7 +77,6 @@ struct SoftApLogin {
         : code(value), token(std::move(issued)), principal(std::move(identity)) {}
 };
 
-
 struct SoftApAuthority {
     AccessCode code = AccessCode::Invalid;
     std::string principal;
@@ -90,7 +89,6 @@ struct SoftApAuthority {
           wtp_session(std::move(mapped_session)) {}
 };
 
-
 struct BleAdmission {
     AccessCode code = AccessCode::Invalid;
     std::string principal;
@@ -99,7 +97,6 @@ struct BleAdmission {
     BleAdmission(AccessCode value, std::string identity = {}, bool pending = false)
         : code(value), principal(std::move(identity)), provisional(pending) {}
 };
-
 
 class LocalAccessController {
   public:
@@ -142,8 +139,12 @@ class LocalAccessController {
 
     AccessCode change_password(std::string_view replacement, const RequestBinding& binding,
                                const Activity& activity, std::uint64_t now_ms);
-    AccessCode set_field_mode(bool enabled, const RequestBinding& binding,
-                              const Activity& activity, std::uint64_t now_ms);
+    AccessCode set_field_mode(bool enabled, const RequestBinding& binding, const Activity& activity,
+                              std::uint64_t now_ms);
+    AccessCode sensitive_ready(const RequestBinding& binding, const Activity& activity,
+                               std::uint64_t now_ms) const;
+    AccessCode authorize_sensitive(const RequestBinding& binding, const Activity& activity,
+                                   std::uint64_t now_ms);
     void invalidate_all_volatile();
 
     static std::string cookie_header(std::string_view token);
@@ -186,8 +187,8 @@ class LocalAccessController {
     };
 
     bool valid_binding(const RequestBinding& binding) const;
-    AccessCode consume(const RequestBinding& binding, bool need_password,
-                       bool need_confirmation, std::uint64_t now_ms);
+    AccessCode consume(const RequestBinding& binding, bool need_password, bool need_confirmation,
+                       std::uint64_t now_ms);
     AccessCode consume_either(const RequestBinding& binding, std::uint64_t now_ms);
     bool password_matches(std::string_view candidate) const;
     bool retained_bond(std::uint64_t peer) const;

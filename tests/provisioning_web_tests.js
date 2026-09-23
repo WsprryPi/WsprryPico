@@ -8,6 +8,7 @@ const device = "a".repeat(32);
 function profile(change) {
   return Object.assign({
     device_id: device,
+    access_password: "wspr-0a60df",
     ssid: "test-network",
     password: "test-password",
     time_server: "pool.ntp.org",
@@ -59,6 +60,11 @@ class Characteristic {
       response.generation = this.applyGeneration === undefined
         ? command.expected_generation + 1
         : this.applyGeneration;
+    if (command.operation === "profile_step_up" ||
+        command.operation === "profile_step_up_status") {
+      response.confirmation_required = Boolean(this.confirmationRequired);
+      response.ready = !this.confirmationRequired || Boolean(this.confirmationReady);
+    }
     if (command.operation === "identify") response.identified = true;
     if (command.operation === "time_challenge") {
       response.nonce = command.nonce;
@@ -225,8 +231,12 @@ async function run() {
   fixture.status.emit({request_id: fieldRequest.request_id, ok: true});
   await rejectsCode(() => invalidFieldStatus, "field_status_response");
   fixture.command.respond = true;
-  const result = await client.provision(profile());
+  const submittedProfile = profile();
+  const result = await client.provision(submittedProfile);
   assert.deepStrictEqual(result, {generation: 1});
+  for (const field of ["access_password", "password", "server_certificate",
+    "server_private_key", "client_ca"])
+    assert.strictEqual(submittedProfile[field], "");
   assert.strictEqual(client.pending.size, 0);
   const writes = fixture.command.commands.filter((command) => command.operation === "write");
   assert(writes.length > 1);
@@ -240,6 +250,8 @@ async function run() {
   }
   assert.strictEqual(fixture.command.commands[0].operation, "authorize");
   assert(fixture.command.commands.findIndex((command) => command.operation === "open") > 0);
+  assert(fixture.command.commands.findIndex((command) => command.operation === "profile_step_up") >
+    fixture.command.commands.findIndex((command) => command.operation === "write"));
   assert.strictEqual(fixture.command.commands.at(-1).operation, "apply");
   assert(fixture.command.commands.every((command) => command.device_id === device));
   const commandSizes = fixture.command.commands.map((command) =>
@@ -251,6 +263,31 @@ async function run() {
   assert(fixture.status.emittedSizes.every((size) => size <= GATT_FRAME_BYTES));
   assert(fixture.status.emittedSizes.some((size) => size > 20),
     "mock GATT must not be mistaken for default-ATT-MTU status evidence");
+
+  const invalidProfile = profile({port: 0});
+  await rejectsCode(() => client.provision(invalidProfile), "port");
+  for (const field of ["access_password", "password", "server_certificate",
+    "server_private_key", "client_ca"])
+    assert.strictEqual(invalidProfile[field], "");
+
+  const confirmationFixture = bluetoothFixture();
+  confirmationFixture.command.confirmationRequired = true;
+  let confirmationRequests = 0;
+  const confirmationClient = new Client(
+    confirmationFixture.bluetooth, cryptoFixture(), {
+      timeoutMs: 50,
+      confirmationTimeoutMs: 2000,
+      onConfirmationRequired() {
+        ++confirmationRequests;
+        confirmationFixture.command.confirmationReady = true;
+      }
+    });
+  await confirmationClient.connect(device);
+  await confirmationClient.authorize("wspr-0a60df");
+  assert.deepStrictEqual(await confirmationClient.provision(profile()), {generation: 1});
+  assert.strictEqual(confirmationRequests, 1);
+  assert(confirmationFixture.command.commands.some(
+    (command) => command.operation === "profile_step_up_status"));
 
   const corruptWtpFixture = bluetoothFixture();
   const corruptWtpClient = new Client(corruptWtpFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});

@@ -37,6 +37,12 @@ withdrawal, reset controls and most Stage A rows remain open. P12.3 remains
 CLOSED_SCOPED within its historical boundary.
 Phase 13 broad hardware/release qualification remains open.
 
+The phone-assisted continuation now has a host-tested fresh-password profile
+step-up bound to the exact staged digest, apply request and generation. The
+public default additionally requires exact-device USB-local confirmation before
+apply, and the proof dies with the 30-second provisioning session. Physical
+Bluefy/iPhone execution of that path remains open.
+
 The supported [Raspberry Pi/Linux BLE client](raspberry-pi-ble-client.md) adds a
 native BlueZ local/bench workflow using the same production GATT contract.
 Authenticated TLS 1.3/TCP remains a first-class WTP job-control transport while

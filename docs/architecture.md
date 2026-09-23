@@ -100,7 +100,11 @@ controller-time/SNTP arbitration and LED priority. Fixed 64-byte frames bridge
 the existing strict provisioning command adapter to the candidate Pico GATT
 transport. Candidate Pico GATT, WPA2 SoftAP and onboard-LED adapters cross-link
 against the exact clean pinned BTstack source. The Bluefy page implements the
-matching authorization and framing path.
+matching authorization and framing path. Profile application over BLE adds a
+fresh one-use password proof bound to the final staged digest, apply request and
+generation. While the public default remains active, that same proof also needs
+an exact-device USB-local confirmation and expires with the 30-second staging
+session; ordinary retained-bond authority alone cannot apply credentials.
 
 P12.6 makes the BLE path and the independent SoftAP fallback real in the
 standard RF-inhibited image. One CYW43 owner supplies checked station-MAC

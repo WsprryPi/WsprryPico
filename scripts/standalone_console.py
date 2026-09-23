@@ -16,6 +16,8 @@ ACTIONS = {"info": "INFO", "status": "STATUS", "storage": "STORAGE", "stop": "ST
 def command_for(action, device_id):
     if action == "softap":
         return "ACCESS SOFTAP " + device_id
+    if action == "confirm-profile":
+        return "ACCESS CONFIRM PROFILE " + device_id
     if action == "identify":
         return "IDENTIFY " + device_id
     return ACTIONS[action]
@@ -42,7 +44,7 @@ def configuration(path, enable_schedule, now):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=[*ACTIONS, "softap", "identify", "config"])
+    parser.add_argument("action", choices=[*ACTIONS, "softap", "confirm-profile", "identify", "config"])
     parser.add_argument("--port", required=True)
     parser.add_argument("--device-id", required=True)
     parser.add_argument("--revision")

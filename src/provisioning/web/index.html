@@ -18,7 +18,8 @@
       <label>Selected device ID <input name="device_id" pattern="[0-9a-f]{32}" maxlength="32" placeholder="Choose a nearby WsprryPico" readonly required></label>
       <label>Local access password <input id="access-password" name="access_password" type="password" minlength="8" maxlength="63" autocomplete="current-password" disabled required></label>
       <p>A new pairing checks this password. A retained authorized bond resumes ordinary local
-        access without treating this entry as a fresh password proof.</p>
+        access, but provisioning requires re-entering the current password after profile staging.
+        While the public default is active, the page also waits for exact USB-local confirmation.</p>
       <div class="actions">
         <button id="show-access-password" type="button" aria-controls="access-password"
           aria-pressed="false" disabled>Show local password</button>

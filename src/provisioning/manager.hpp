@@ -88,6 +88,10 @@ class Manager {
                   const Authorization& authorization, std::uint64_t now_ms);
     ActivationRelease release_activation(std::string_view request_id, std::uint64_t generation,
                                          std::uint64_t now_ms);
+    std::optional<wtp::PayloadDigest> staged_digest(std::string_view session_id,
+                                                    Transport transport,
+                                                    const Authorization& authorization,
+                                                    std::uint64_t expected_generation) const;
     void poll(std::uint64_t now_ms);
     Status status() const;
 

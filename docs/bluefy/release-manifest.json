@@ -1,12 +1,12 @@
 {
   "files": {
     "app.js": {
-      "bytes": 11555,
-      "sha256": "3be9ff3367a3cf8950ec34aa9c2709067d89053bf1d33ec6e7992d2ef61ebce3"
+      "bytes": 11827,
+      "sha256": "5abe0a56d12cc951e607ba4f6c0ca51083bdfe4a28a51e644fa373fc9d8ba2e0"
     },
     "bluefy.js": {
-      "bytes": 29763,
-      "sha256": "135913b52e6fe82188f4cd90117921953bba0ce19bce2bd2046d2279406a3470"
+      "bytes": 32014,
+      "sha256": "da07ec46e9053621276544174cccedd967db8eabecbe9aba8f095818873d5802"
     },
     "manifest.webmanifest": {
       "bytes": 210,
@@ -18,10 +18,10 @@
     },
     "sw.js": {
       "bytes": 1521,
-      "sha256": "c6d435269eba1c236f8dd944bc5c907de59c201e53fa61571da6df1d836aa71f"
+      "sha256": "71231833a2998238adb68166f6e67fd3bed4acd834ffbb55b1e5ebe258f200d6"
     }
   },
   "protocol": 1,
-  "release": "037b80144b7eb8079aca78be42635408530e2752d46fb8112e10f34d41f7916d",
+  "release": "95ea68b23bf3e076d023d6dbe9ca39b1de37627876e433beb660c7ef536e6f6b",
   "version": 1
 }

@@ -164,17 +164,28 @@ wsprrypico::provisioning::Activity provisioning_activity(void* context) {
 std::string_view access_code_name(wsprrypico::provisioning::AccessCode code) {
     using wsprrypico::provisioning::AccessCode;
     switch (code) {
-    case AccessCode::Ok: return "ok";
-    case AccessCode::Invalid: return "invalid_request";
-    case AccessCode::AuthenticationRequired: return "authentication_required";
-    case AccessCode::ConfirmationRequired: return "confirmation_required";
-    case AccessCode::WrongDevice: return "wrong_device";
-    case AccessCode::Busy: return "busy";
-    case AccessCode::Capacity: return "capacity";
-    case AccessCode::Expired: return "expired";
-    case AccessCode::Conflict: return "conflict";
-    case AccessCode::StorageFault: return "storage_fault";
-    case AccessCode::BondEraseFault: return "bond_erase_fault";
+    case AccessCode::Ok:
+        return "ok";
+    case AccessCode::Invalid:
+        return "invalid_request";
+    case AccessCode::AuthenticationRequired:
+        return "authentication_required";
+    case AccessCode::ConfirmationRequired:
+        return "confirmation_required";
+    case AccessCode::WrongDevice:
+        return "wrong_device";
+    case AccessCode::Busy:
+        return "busy";
+    case AccessCode::Capacity:
+        return "capacity";
+    case AccessCode::Expired:
+        return "expired";
+    case AccessCode::Conflict:
+        return "conflict";
+    case AccessCode::StorageFault:
+        return "storage_fault";
+    case AccessCode::BondEraseFault:
+        return "bond_erase_fault";
     }
     return "invalid_request";
 }
@@ -183,8 +194,7 @@ std::string access_reply(wsprrypico::provisioning::AccessCode code) {
            (code == wsprrypico::provisioning::AccessCode::Ok ? "true" : "false") +
            (code == wsprrypico::provisioning::AccessCode::Ok
                 ? "}\n"
-                : ",\"error\":" + wsprrypico::wtp::json::quote(access_code_name(code)) +
-                      "}\n");
+                : ",\"error\":" + wsprrypico::wtp::json::quote(access_code_name(code)) + "}\n");
 }
 } // namespace
 int main() {
@@ -229,8 +239,8 @@ int main() {
     static wsprrypico::provisioning::AccessStore access_store(access_media);
     const bool access_store_loaded = access_store.load();
     const bool access_recovery =
-        !access_store_loaded || access_store.state() !=
-                                    wsprrypico::provisioning::AccessStoreState::Healthy ||
+        !access_store_loaded ||
+        access_store.state() != wsprrypico::provisioning::AccessStoreState::Healthy ||
         (access_store.record() && access_store.record()->reset.pending());
     const bool boot_recovery = recovery || access_recovery;
     // Both adapters claim PIO/DMA resources through the SDK allocator.
@@ -268,21 +278,21 @@ int main() {
         runtime_profile_loaded && !access_recovery &&
         wsprrypico::network::deployment_identity_matches(
             identities.device_id(), tls_credentials.device_id, tls_credentials.hostname);
-    static wsprrypico::time::ControllerTimeArbiter time_arbiter(
-        clock, monotonic_now, nullptr, identities.device_id());
+    static wsprrypico::time::ControllerTimeArbiter time_arbiter(clock, monotonic_now, nullptr,
+                                                                identities.device_id());
     static wsprrypico::standalone::PicoNetwork network(time_arbiter, tls_credentials.hostname);
     const bool radio_identity_ok = network.initialize_radio();
-    const auto derived_identity = radio_identity_ok
-                                      ? wsprrypico::provisioning::derive_local_identity(
-                                            identities.device_id(), network.station_mac())
-                                      : std::nullopt;
-    const auto local_identity = derived_identity.value_or(
-        wsprrypico::provisioning::LocalIdentity{});
+    const auto derived_identity =
+        radio_identity_ok ? wsprrypico::provisioning::derive_local_identity(identities.device_id(),
+                                                                            network.station_mac())
+                          : std::nullopt;
+    const auto local_identity =
+        derived_identity.value_or(wsprrypico::provisioning::LocalIdentity{});
     static wsprrypico::provisioning::PicoBondStore bond_store;
     static wsprrypico::provisioning::PicoRandomSource random_source;
     static wsprrypico::provisioning::LocalAccessController local_access(
-        access_store, bond_store, random_source, identities.device_id(),
-        service.status().boot_id, local_identity);
+        access_store, bond_store, random_source, identities.device_id(), service.status().boot_id,
+        local_identity);
     static wsprrypico::provisioning::SoftApCoordinator softap_coordinator(access_store);
     softap_coordinator.no_profile(runtime_profile.source() ==
                                   wsprrypico::provisioning::RuntimeSource::Unprovisioned);
@@ -322,8 +332,8 @@ int main() {
     browser_api.set_active_job_connections(true);
     bool server_start_attempted = false;
     static wsprrypico::provisioning::PicoIndicatorOutput indicator_output;
-    static wsprrypico::provisioning::IndicatorController indicator(
-        indicator_output, identities.device_id());
+    static wsprrypico::provisioning::IndicatorController indicator(indicator_output,
+                                                                   identities.device_id());
     network.listener_status(server.configured(), server.listening(), deployment_matches);
     watchdog_hw->scratch[1] = 3;
     std::array<std::uint8_t, 64> input{};
@@ -355,8 +365,8 @@ int main() {
     static wsprrypico::provisioning::MbedTlsCredentialValidator credential_validator(
         identities.device_id());
     static wsprrypico::provisioning::PicoActivationPlatform activation_platform(
-        profile_store, runtime_profile, service, server, identities.device_id(),
-        schedule_restart, &restart_context);
+        profile_store, runtime_profile, service, server, identities.device_id(), schedule_restart,
+        &restart_context);
     static wsprrypico::provisioning::ActivationCoordinator activation(activation_platform);
     static wsprrypico::provisioning::Manager provisioning_manager(
         profile_store, credential_validator, identities.device_id(), &activation);
@@ -367,8 +377,8 @@ int main() {
         provisioning_activity, &service);
     ble_session.field_controls(&time_arbiter, &indicator);
     static wsprrypico::provisioning::PicoGattTransport gatt(
-        ble_session, &ble_endpoint, provisioning_command.identity(), local_identity.advertising_name,
-        monotonic_ms, nullptr);
+        ble_session, &ble_endpoint, provisioning_command.identity(),
+        local_identity.advertising_name, monotonic_ms, nullptr);
     bool gatt_start_attempted = false;
 #ifdef WSPRRY_PICO_STANDALONE_RF
     std::uint64_t last_loop_us = 0, max_loop_us = 0, max_refill_us = 0;
@@ -424,8 +434,7 @@ int main() {
                          static_cast<unsigned>(runtime_profile.fault()));
             result += ",\"radio_identity_valid\":";
             result += derived_identity ? "true" : "false";
-            result += ",\"local_suffix\":" +
-                      wsprrypico::wtp::json::quote(local_identity.suffix);
+            result += ",\"local_suffix\":" + wsprrypico::wtp::json::quote(local_identity.suffix);
             result += ",\"access_state\":";
             switch (access_store.state()) {
             case wsprrypico::provisioning::AccessStoreState::Unloaded:
@@ -443,10 +452,12 @@ int main() {
             }
             number_field(result, "access_generation", access_store.sequence(), true);
             result += ",\"access_default_password\":";
-            result += access_store.record() && access_store.record()->default_password ? "true" : "false";
+            result +=
+                access_store.record() && access_store.record()->default_password ? "true" : "false";
             result += ",\"ble_running\":" + std::string(gatt.running() ? "true" : "false");
             result += ",\"ble_enrollment_open\":" +
-                      std::string(local_access.enrollment_open(time_us_64() / 1000ULL) ? "true" : "false");
+                      std::string(local_access.enrollment_open(time_us_64() / 1000ULL) ? "true"
+                                                                                       : "false");
             number_field(result, "fault_stage", fault_stage);
             number_field(result, "fault_hash", fault_hash);
             number_field(result, "fault_pc", fault_pc);
@@ -587,8 +598,7 @@ int main() {
             std::string state = "unloaded";
             if (access_store.state() == wsprrypico::provisioning::AccessStoreState::Erased)
                 state = "erased";
-            else if (access_store.state() ==
-                     wsprrypico::provisioning::AccessStoreState::Healthy)
+            else if (access_store.state() == wsprrypico::provisioning::AccessStoreState::Healthy)
                 state = "healthy";
             else if (access_store.state() == wsprrypico::provisioning::AccessStoreState::Fault)
                 state = "fault";
@@ -638,8 +648,7 @@ int main() {
             number_field(result, "outbound_index", ble.outbound_index);
             result += ",\"connected\":" + std::string(ble.connected ? "true" : "false");
             result += ",\"admitted\":" + std::string(ble.admitted ? "true" : "false");
-            result += ",\"send_requested\":" +
-                      std::string(ble.send_requested ? "true" : "false");
+            result += ",\"send_requested\":" + std::string(ble.send_requested ? "true" : "false");
             result += "}\n";
             return result;
         }
@@ -668,8 +677,8 @@ int main() {
             binding.nonce = std::to_string(time_us_64());
             binding.current_generation = access_store.sequence();
             binding.target_generation = access_store.sequence() + 1;
-            binding.parameters = wsprrypico::wtp::sha256(std::span(
-                reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
+            binding.parameters = wsprrypico::wtp::sha256(
+                std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
             const auto now = time_us_64() / 1000ULL;
             auto code = local_access.confirm_local(binding, now);
             if (code == wsprrypico::provisioning::AccessCode::Ok) {
@@ -680,6 +689,11 @@ int main() {
             return access_reply(code);
         }
         constexpr std::string_view identify_prefix = "IDENTIFY ";
+        constexpr std::string_view confirm_profile_prefix = "ACCESS CONFIRM PROFILE ";
+        if (text.starts_with(confirm_profile_prefix)) {
+            const auto requested = text.substr(confirm_profile_prefix.size());
+            return access_reply(ble_session.confirm_profile(requested, time_us_64() / 1000ULL));
+        }
         if (text.starts_with(identify_prefix)) {
             const auto requested = text.substr(identify_prefix.size());
             const auto code = indicator.identify(std::string(text), requested, true, true,
@@ -821,12 +835,11 @@ int main() {
         if (!server_start_attempted && deployment_matches && network.initialized()) {
             server_start_attempted = true;
             (void)server.start();
-            network.listener_status(server.configured(), server.listening(),
-                                    deployment_matches);
+            network.listener_status(server.configured(), server.listening(), deployment_matches);
         }
         static wsprrypico::usb::ReplyPriority reply_priority;
-        const bool allow_http_steps = !reply_priority.defer_http(
-            time_us_64(), wsprrypico::usb::console_output_pending());
+        const bool allow_http_steps =
+            !reply_priority.defer_http(time_us_64(), wsprrypico::usb::console_output_pending());
         server.poll(network.link_up(), softap.ready(),
                     network.ipv4() +
                         (server.port() == 443 ? "" : ":" + std::to_string(server.port())),

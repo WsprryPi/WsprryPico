@@ -19,7 +19,7 @@
 #define CHECK(condition)                                                                           \
     do {                                                                                           \
         if (!(condition)) {                                                                        \
-            std::cerr << __LINE__ << ": " #condition "\n";                                    \
+            std::cerr << __LINE__ << ": " #condition "\n";                                         \
             std::exit(1);                                                                          \
         }                                                                                          \
     } while (false)
@@ -129,7 +129,9 @@ class Random final : public provisioning::RandomSource {
 
 class RejectingValidator final : public provisioning::CredentialValidator {
   public:
-    bool validate(const provisioning::Profile&) override { return false; }
+    bool validate(const provisioning::Profile&) override {
+        return false;
+    }
 };
 
 class ResetFixture final : public provisioning::ResetTargets {
@@ -154,9 +156,8 @@ class ResetFixture final : public provisioning::ResetTargets {
         return true;
     }
     bool operational_erased() const override {
-        return operation_done &&
-               std::all_of(operational.begin(), operational.end(),
-                           [](std::uint8_t value) { return value == 255; });
+        return operation_done && std::all_of(operational.begin(), operational.end(),
+                                             [](std::uint8_t value) { return value == 255; });
     }
     bool erase_bonds() override {
         if (!bond_result)
@@ -189,9 +190,41 @@ provisioning::RequestBinding binding(std::string operation = "access") {
     value.operation = std::move(operation);
     value.nonce = "nonce-a";
     const std::string parameters = "canonical-parameters";
-    value.parameters = wtp::sha256(std::span(
-        reinterpret_cast<const std::uint8_t*>(parameters.data()), parameters.size()));
+    value.parameters = wtp::sha256(
+        std::span(reinterpret_cast<const std::uint8_t*>(parameters.data()), parameters.size()));
     return value;
+}
+
+std::string base64(std::span<const std::uint8_t> input) {
+    constexpr char alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    std::string output;
+    output.reserve((input.size() + 2) / 3 * 4);
+    for (std::size_t offset = 0; offset < input.size(); offset += 3) {
+        const auto remaining = input.size() - offset;
+        const std::uint32_t value =
+            static_cast<std::uint32_t>(input[offset]) << 16 |
+            (remaining > 1 ? static_cast<std::uint32_t>(input[offset + 1]) << 8 : 0) |
+            (remaining > 2 ? input[offset + 2] : 0);
+        output.push_back(alphabet[(value >> 18) & 63]);
+        output.push_back(alphabet[(value >> 12) & 63]);
+        output.push_back(remaining > 1 ? alphabet[(value >> 6) & 63] : '=');
+        output.push_back(remaining > 2 ? alphabet[value & 63] : '=');
+    }
+    return output;
+}
+
+provisioning::Profile replacement_profile() {
+    provisioning::Profile profile;
+    profile.device_id = device;
+    profile.ssid = "replacement-network";
+    profile.password = "replacement-password";
+    profile.time_server = "time.example";
+    profile.hostname = "wsprrypico-0a60df.local";
+    profile.port = 18443;
+    profile.server_certificate = "-----BEGIN CERTIFICATE-----\nSERVER\n-----END CERTIFICATE-----\n";
+    profile.server_private_key = "-----BEGIN PRIVATE KEY-----\nKEY\n-----END PRIVATE KEY-----\n";
+    profile.client_ca = "-----BEGIN CERTIFICATE-----\nCA\n-----END CERTIFICATE-----\n";
+    return profile;
 }
 
 provisioning::AccessRecord initial_record(const provisioning::LocalIdentity& identity) {
@@ -294,8 +327,8 @@ struct AccessFixture {
     Random random;
     provisioning::LocalIdentity identity =
         *provisioning::derive_local_identity(device, "02:11:22:0a:60:df");
-    provisioning::LocalAccessController controller{store, bonds, random, std::string(device),
-                                                    "boot-a", identity};
+    provisioning::LocalAccessController controller{store,    bonds,   random, std::string(device),
+                                                   "boot-a", identity};
     AccessFixture() {
         CHECK(store.load());
         auto record = initial_record(identity);
@@ -306,8 +339,7 @@ struct AccessFixture {
 
 void access_policy() {
     AccessFixture collision;
-    auto first_token =
-        collision.controller.softap_login(collision.identity.default_password, 0);
+    auto first_token = collision.controller.softap_login(collision.identity.default_password, 0);
     CHECK(first_token.code == provisioning::AccessCode::Ok);
     collision.random.next = 1;
     CHECK(collision.controller.softap_login(collision.identity.default_password, 1).code ==
@@ -362,8 +394,7 @@ void access_policy() {
         CHECK(login.code == provisioning::AccessCode::Ok);
         token = login.token;
         CHECK(provisioning::LocalAccessController::cookie_header(token) ==
-              "__Host-wsprrypico=" + token +
-                  "; Path=/; Secure; HttpOnly; SameSite=Strict");
+              "__Host-wsprrypico=" + token + "; Path=/; Secure; HttpOnly; SameSite=Strict");
     }
     CHECK(f.controller.softap_login(f.identity.default_password, 600'000).code ==
           provisioning::AccessCode::Capacity);
@@ -444,12 +475,11 @@ void access_policy() {
 
     auto custom_enroll = binding("custom-enroll");
     CHECK(f.controller.confirm_local(custom_enroll, 800000) == provisioning::AccessCode::Ok);
-    CHECK(f.controller.open_enrollment(custom_enroll, {}, 800001) ==
-          provisioning::AccessCode::Ok);
+    CHECK(f.controller.open_enrollment(custom_enroll, {}, 800001) == provisioning::AccessCode::Ok);
 
     AccessFixture protected_owner;
-    auto protected_login = protected_owner.controller.softap_login(
-        protected_owner.identity.default_password, 0);
+    auto protected_login =
+        protected_owner.controller.softap_login(protected_owner.identity.default_password, 0);
     CHECK(protected_login.code == provisioning::AccessCode::Ok);
     CHECK(protected_owner.controller.bind_softap_session(protected_login.token, "owned-session",
                                                          1) == provisioning::AccessCode::Ok);
@@ -480,7 +510,7 @@ void ble_command_policy() {
     RejectingValidator validator;
     provisioning::Manager manager(profile_store, validator, std::string(device));
     provisioning::CommandAdapter command(manager, std::string(device),
-                                          provisioning::Transport::Ble);
+                                         provisioning::Transport::Ble);
     std::uint64_t now_ns = 1'000'000'000ULL;
     time::DisciplineConfig time_config;
     time_config.synchronized_for_ns = 90'000'000'000ULL;
@@ -492,77 +522,68 @@ void ble_command_policy() {
                                         std::string(device));
     Led led;
     provisioning::IndicatorController indicator(led, std::string(device));
-    provisioning::BleCommandSession session(f.controller, command, manager,
-                                             std::string(device), idle_activity, nullptr);
+    provisioning::BleCommandSession session(f.controller, command, manager, std::string(device),
+                                            idle_activity, nullptr);
     session.field_controls(&arbiter, &indicator);
     CHECK(session.connected(9, true, true, "link-a", 1));
-    const std::string open =
-        "{\"version\":1,\"operation\":\"open\","
-        "\"request_id\":\"11111111111111111111111111111111\","
-        "\"session_id\":\"22222222222222222222222222222222\","
-        "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
+    const std::string open = "{\"version\":1,\"operation\":\"open\","
+                             "\"request_id\":\"11111111111111111111111111111111\","
+                             "\"session_id\":\"22222222222222222222222222222222\","
+                             "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
     CHECK(session.handle(open, 2).code == provisioning::Code::AuthenticationRequired);
-    const std::string unauthorized_identify =
-        "{\"version\":1,\"operation\":\"identify\","
-        "\"request_id\":\"55555555555555555555555555555555\","
-        "\"session_id\":\"44444444444444444444444444444444\","
-        "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
+    const std::string unauthorized_identify = "{\"version\":1,\"operation\":\"identify\","
+                                              "\"request_id\":\"55555555555555555555555555555555\","
+                                              "\"session_id\":\"44444444444444444444444444444444\","
+                                              "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
     CHECK(session.handle(unauthorized_identify, 2).code ==
           provisioning::Code::AuthenticationRequired);
-    const std::string authorize =
-        "{\"version\":1,\"operation\":\"authorize\","
-        "\"request_id\":\"33333333333333333333333333333333\","
-        "\"session_id\":\"44444444444444444444444444444444\","
-        "\"device_id\":\"00112233445566778899aabbccddeeff\","
-        "\"password\":\"wspr-0a60df\"}";
+    const std::string authorize = "{\"version\":1,\"operation\":\"authorize\","
+                                  "\"request_id\":\"33333333333333333333333333333333\","
+                                  "\"session_id\":\"44444444444444444444444444444444\","
+                                  "\"device_id\":\"00112233445566778899aabbccddeeff\","
+                                  "\"password\":\"wspr-0a60df\"}";
     const auto admitted = session.handle(authorize, 3);
     CHECK(admitted.code == provisioning::Code::Ok);
     session.response_delivered(3);
     CHECK(session.authorized());
     CHECK(!session.principal().empty());
-    const std::string identify =
-        "{\"version\":1,\"operation\":\"identify\","
-        "\"request_id\":\"66666666666666666666666666666666\","
-        "\"session_id\":\"44444444444444444444444444444444\","
-        "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
+    const std::string identify = "{\"version\":1,\"operation\":\"identify\","
+                                 "\"request_id\":\"66666666666666666666666666666666\","
+                                 "\"session_id\":\"44444444444444444444444444444444\","
+                                 "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
     CHECK(session.handle(identify, 4).code == provisioning::Code::Ok);
     auto wrong_field_session = identify;
-    wrong_field_session.replace(
-        wrong_field_session.find("44444444444444444444444444444444"), 32,
-        "44444444444444444444444444444445");
-    wrong_field_session.replace(
-        wrong_field_session.find("66666666666666666666666666666666"), 32,
-        "66666666666666666666666666666667");
+    wrong_field_session.replace(wrong_field_session.find("44444444444444444444444444444444"), 32,
+                                "44444444444444444444444444444445");
+    wrong_field_session.replace(wrong_field_session.find("66666666666666666666666666666666"), 32,
+                                "66666666666666666666666666666667");
     CHECK(session.handle(wrong_field_session, 4).code ==
           provisioning::Code::AuthenticationRequired);
     indicator.poll(4);
     CHECK(indicator.status(4).pattern == provisioning::IndicatorPattern::Identify);
-    const std::string challenge =
-        "{\"version\":1,\"operation\":\"time_challenge\","
-        "\"request_id\":\"88888888888888888888888888888888\","
-        "\"session_id\":\"44444444444444444444444444444444\","
-        "\"device_id\":\"00112233445566778899aabbccddeeff\","
-        "\"nonce\":\"phone-sample-1\"}";
+    const std::string challenge = "{\"version\":1,\"operation\":\"time_challenge\","
+                                  "\"request_id\":\"88888888888888888888888888888888\","
+                                  "\"session_id\":\"44444444444444444444444444444444\","
+                                  "\"device_id\":\"00112233445566778899aabbccddeeff\","
+                                  "\"nonce\":\"phone-sample-1\"}";
     CHECK(session.handle(challenge, 5).code == provisioning::Code::Ok);
     // Starting the final response indication, not command receipt, starts the
     // conservative latency charged to the controller-time uncertainty budget.
     now_ns += 400'000'000ULL;
     session.response_started(5);
     now_ns += 10'000'000ULL;
-    const std::string submit =
-        "{\"version\":1,\"operation\":\"time_submit\","
-        "\"request_id\":\"99999999999999999999999999999999\","
-        "\"session_id\":\"44444444444444444444444444444444\","
-        "\"device_id\":\"00112233445566778899aabbccddeeff\","
-        "\"nonce\":\"phone-sample-1\","
-        "\"utc_ns\":\"1800000000000000000\"}";
+    const std::string submit = "{\"version\":1,\"operation\":\"time_submit\","
+                               "\"request_id\":\"99999999999999999999999999999999\","
+                               "\"session_id\":\"44444444444444444444444444444444\","
+                               "\"device_id\":\"00112233445566778899aabbccddeeff\","
+                               "\"nonce\":\"phone-sample-1\","
+                               "\"utc_ns\":\"1800000000000000000\"}";
     CHECK(session.handle(submit, 6).code == provisioning::Code::Ok);
     session.response_delivered(6);
-    const std::string field_status =
-        "{\"version\":1,\"operation\":\"field_status\","
-        "\"request_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\","
-        "\"session_id\":\"44444444444444444444444444444444\","
-        "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
+    const std::string field_status = "{\"version\":1,\"operation\":\"field_status\","
+                                     "\"request_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\","
+                                     "\"session_id\":\"44444444444444444444444444444444\","
+                                     "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
     const auto field = session.handle(field_status, 7);
     CHECK(field.code == provisioning::Code::Ok);
     CHECK(field.notification.find("\"time_source\":\"controller\"") != std::string::npos);
@@ -576,28 +597,25 @@ void ble_command_policy() {
     CHECK(!session.authorized());
     CHECK(f.store.record()->bond_count == 1);
 
-    provisioning::BleCommandSession returning(f.controller, command, manager,
-                                               std::string(device), idle_activity, nullptr);
+    provisioning::BleCommandSession returning(f.controller, command, manager, std::string(device),
+                                              idle_activity, nullptr);
     returning.field_controls(&arbiter, &indicator);
     CHECK(returning.connected(9, true, false, "link-return", 6));
     CHECK(returning.authorized());
     auto retained_authorize = authorize;
-    retained_authorize.replace(retained_authorize.find("wspr-0a60df"), 11,
-                               "wrong-value");
+    retained_authorize.replace(retained_authorize.find("wspr-0a60df"), 11, "wrong-value");
     CHECK(returning.handle(retained_authorize, 7).code == provisioning::Code::Ok);
     CHECK(returning.authorized());
     auto abandoned_challenge = challenge;
-    abandoned_challenge.replace(
-        abandoned_challenge.find("88888888888888888888888888888888"), 32,
-        "88888888888888888888888888888889");
-    abandoned_challenge.replace(abandoned_challenge.find("phone-sample-1"), 14,
-                                "disconnect-one");
+    abandoned_challenge.replace(abandoned_challenge.find("88888888888888888888888888888888"), 32,
+                                "88888888888888888888888888888889");
+    abandoned_challenge.replace(abandoned_challenge.find("phone-sample-1"), 14, "disconnect-one");
     CHECK(returning.handle(abandoned_challenge, 8).code == provisioning::Code::Ok);
     returning.response_started(8);
     returning.disconnected();
 
-    provisioning::BleCommandSession after_disconnect(
-        f.controller, command, manager, std::string(device), idle_activity, nullptr);
+    provisioning::BleCommandSession after_disconnect(f.controller, command, manager,
+                                                     std::string(device), idle_activity, nullptr);
     after_disconnect.field_controls(&arbiter, &indicator);
     CHECK(after_disconnect.connected(9, true, false, "link-after-disconnect", 9));
     CHECK(after_disconnect.handle(retained_authorize, 10).code == provisioning::Code::Ok);
@@ -609,6 +627,165 @@ void ble_command_policy() {
     after_disconnect.disconnected();
 }
 
+void ble_profile_step_up_policy() {
+    AccessFixture f;
+    auto enroll = binding("ble-enroll");
+    CHECK(f.controller.confirm_local(enroll, 0) == provisioning::AccessCode::Ok);
+    CHECK(f.controller.open_enrollment(enroll, {}, 0) == provisioning::AccessCode::Ok);
+    ProfileMemory profile_media;
+    provisioning::ProfileStore profile_store(profile_media);
+    CHECK(profile_store.load());
+    RejectingValidator validator;
+    provisioning::Manager manager(profile_store, validator, std::string(device));
+    provisioning::CommandAdapter command(manager, std::string(device),
+                                         provisioning::Transport::Ble);
+    provisioning::BleCommandSession session(f.controller, command, manager, std::string(device),
+                                            idle_activity, nullptr);
+    CHECK(session.connected(17, true, true, "link-profile", 1));
+    const std::string field_session = "44444444444444444444444444444444";
+    const std::string authorize = "{\"version\":1,\"operation\":\"authorize\","
+                                  "\"request_id\":\"11111111111111111111111111111111\","
+                                  "\"session_id\":\"" +
+                                  field_session +
+                                  "\","
+                                  "\"device_id\":\"00112233445566778899aabbccddeeff\","
+                                  "\"password\":\"wspr-0a60df\"}";
+    CHECK(session.handle(authorize, 2).code == provisioning::Code::Ok);
+
+    const std::string profile_session = "22222222222222222222222222222222";
+    const std::string open = "{\"version\":1,\"operation\":\"open\","
+                             "\"request_id\":\"33333333333333333333333333333333\","
+                             "\"session_id\":\"" +
+                             profile_session +
+                             "\","
+                             "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
+    CHECK(session.handle(open, 3).code == provisioning::Code::Ok);
+    auto serialized = provisioning::serialize_profile(replacement_profile());
+    std::size_t offset = 0;
+    unsigned request = 5;
+    while (offset < serialized.size()) {
+        const auto count =
+            std::min<std::size_t>(provisioning::max_fragment_bytes, serialized.size() - offset);
+        const auto encoded = base64(
+            std::span(reinterpret_cast<const std::uint8_t*>(serialized.data() + offset), count));
+        const bool final = offset + count == serialized.size();
+        std::array<char, 33> request_id{};
+        std::fill_n(request_id.begin(), 32, static_cast<char>('0' + request % 10));
+        const std::string write =
+            "{\"version\":1,\"operation\":\"write\",\"request_id\":\"" +
+            std::string(request_id.data(), 32) + "\",\"session_id\":\"" + profile_session +
+            "\",\"device_id\":\"00112233445566778899aabbccddeeff\",\"offset\":" +
+            std::to_string(offset) + ",\"final\":" + (final ? "true" : "false") +
+            ",\"payload\":\"" + encoded + "\"}";
+        CHECK(session.handle(write, 4 + request).code == provisioning::Code::Ok);
+        offset += count;
+        ++request;
+    }
+
+    const std::string apply_request = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const auto step_up = "{\"version\":1,\"operation\":\"profile_step_up\","
+                         "\"request_id\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\","
+                         "\"session_id\":\"" +
+                         field_session + "\",\"device_id\":\"" + std::string(device) +
+                         "\",\"profile_session_id\":\"" + profile_session +
+                         "\",\"apply_request_id\":\"" + apply_request +
+                         "\",\"expected_generation\":0,\"password\":\"wspr-0a60df\"}";
+    auto wrong_step_up = step_up;
+    wrong_step_up.replace(wrong_step_up.find("wspr-0a60df"), 11, "wrong-value");
+    CHECK(session.handle(wrong_step_up, 99).code == provisioning::Code::AuthenticationRequired);
+    CHECK(session.confirm_profile(device, 99) == provisioning::AccessCode::AuthenticationRequired);
+    const auto stepped = session.handle(step_up, 100);
+    CHECK(stepped.code == provisioning::Code::Ok);
+    CHECK(stepped.notification.find("\"confirmation_required\":true") != std::string::npos);
+    CHECK(stepped.notification.find("\"ready\":false") != std::string::npos);
+    const auto apply = "{\"version\":1,\"operation\":\"apply\",\"request_id\":\"" + apply_request +
+                       "\",\"session_id\":\"" + profile_session +
+                       "\",\"device_id\":\"00112233445566778899aabbccddeeff\","
+                       "\"expected_generation\":0}";
+    CHECK(session.handle(apply, 101).code == provisioning::Code::AuthenticationRequired);
+
+    CHECK(session.handle(step_up, 102).code == provisioning::Code::Ok);
+    CHECK(session.confirm_profile("ffffffffffffffffffffffffffffffff", 103) ==
+          provisioning::AccessCode::WrongDevice);
+    CHECK(session.confirm_profile(device, 103) == provisioning::AccessCode::Ok);
+    const std::string status = "{\"version\":1,\"operation\":\"profile_step_up_status\","
+                               "\"request_id\":\"cccccccccccccccccccccccccccccccc\","
+                               "\"session_id\":\"" +
+                               field_session + "\",\"device_id\":\"" + std::string(device) +
+                               "\",\"apply_request_id\":\"" + apply_request + "\"}";
+    const auto ready = session.handle(status, 104);
+    CHECK(ready.code == provisioning::Code::Ok);
+    CHECK(ready.notification.find("\"ready\":true") != std::string::npos);
+    CHECK(session.handle(apply, 105).code == provisioning::Code::CredentialInvalid);
+    CHECK(session.confirm_profile(device, 106) == provisioning::AccessCode::AuthenticationRequired);
+    session.disconnected();
+}
+
+void ble_profile_step_up_timeout_policy() {
+    AccessFixture f;
+    auto enroll = binding("ble-enroll-timeout");
+    CHECK(f.controller.confirm_local(enroll, 0) == provisioning::AccessCode::Ok);
+    CHECK(f.controller.open_enrollment(enroll, {}, 0) == provisioning::AccessCode::Ok);
+    ProfileMemory profile_media;
+    provisioning::ProfileStore profile_store(profile_media);
+    CHECK(profile_store.load());
+    RejectingValidator validator;
+    provisioning::Manager manager(profile_store, validator, std::string(device));
+    provisioning::CommandAdapter command(manager, std::string(device),
+                                         provisioning::Transport::Ble);
+    provisioning::BleCommandSession session(f.controller, command, manager, std::string(device),
+                                            idle_activity, nullptr);
+    CHECK(session.connected(18, true, true, "link-profile-timeout", 1));
+    const std::string field_session = "44444444444444444444444444444445";
+    const std::string authorize = "{\"version\":1,\"operation\":\"authorize\","
+                                  "\"request_id\":\"11111111111111111111111111111112\","
+                                  "\"session_id\":\"" +
+                                  field_session +
+                                  "\",\"device_id\":\"00112233445566778899aabbccddeeff\","
+                                  "\"password\":\"wspr-0a60df\"}";
+    CHECK(session.handle(authorize, 2).code == provisioning::Code::Ok);
+
+    const std::string profile_session = "22222222222222222222222222222223";
+    const auto authorization = f.controller.ble_authorization();
+    CHECK(manager
+              .open("33333333333333333333333333333334", profile_session, device,
+                    provisioning::Transport::Ble, authorization, 3)
+              .ok());
+    const auto serialized = provisioning::serialize_profile(replacement_profile());
+    std::size_t offset = 0;
+    unsigned request = 5;
+    while (offset < serialized.size()) {
+        const auto count =
+            std::min<std::size_t>(provisioning::max_fragment_bytes, serialized.size() - offset);
+        const bool final = offset + count == serialized.size();
+        std::array<char, 33> request_id{};
+        std::fill_n(request_id.begin(), 32, static_cast<char>('0' + request % 10));
+        const auto bytes =
+            std::span(reinterpret_cast<const std::uint8_t*>(serialized.data() + offset), count);
+        CHECK(manager
+                  .write(std::string(request_id.data(), 32), profile_session, offset, bytes, final,
+                         provisioning::Transport::Ble, authorization, 4 + request)
+                  .ok());
+        offset += count;
+        ++request;
+    }
+
+    const std::string apply_request = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab";
+    const auto step_up = "{\"version\":1,\"operation\":\"profile_step_up\","
+                         "\"request_id\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc\","
+                         "\"session_id\":\"" +
+                         field_session + "\",\"device_id\":\"" + std::string(device) +
+                         "\",\"profile_session_id\":\"" + profile_session +
+                         "\",\"apply_request_id\":\"" + apply_request +
+                         "\",\"expected_generation\":0,\"password\":\"wspr-0a60df\"}";
+    CHECK(session.handle(step_up, 100).code == provisioning::Code::Ok);
+    session.poll(40'000);
+    CHECK(manager.status().state == provisioning::State::Expired);
+    CHECK(session.confirm_profile(device, 40'001) ==
+          provisioning::AccessCode::AuthenticationRequired);
+    session.disconnected();
+}
+
 void framing_policy() {
     std::vector<std::uint8_t> message(provisioning::gatt_frame_payload_bytes * 3 + 1);
     for (std::size_t i = 0; i < message.size(); ++i)
@@ -617,9 +794,9 @@ void framing_policy() {
     CHECK(frames.size() == 4);
     provisioning::GattFrameReceiver receiver(message.size());
     for (std::size_t i = 0; i < frames.size(); ++i)
-        CHECK(receiver.receive(frames[i]) ==
-              (i + 1 == frames.size() ? provisioning::FrameResult::Complete
-                                      : provisioning::FrameResult::Pending));
+        CHECK(receiver.receive(frames[i]) == (i + 1 == frames.size()
+                                                  ? provisioning::FrameResult::Complete
+                                                  : provisioning::FrameResult::Pending));
     CHECK(std::equal(receiver.message().begin(), receiver.message().end(), message.begin()));
     receiver.reset();
     CHECK(receiver.message().empty());
@@ -639,28 +816,28 @@ void framing_policy() {
 
 void softap_http_policy() {
     AccessFixture f;
-    provisioning::SoftApHttpAdmission admission(
-        f.controller, std::string(device), f.identity.hostname);
+    provisioning::SoftApHttpAdmission admission(f.controller, std::string(device),
+                                                f.identity.hostname);
     network::HttpRequest login;
     login.method = "POST";
     login.path = "/local/v1/login";
-    login.body =
-        "{\"version\":1,\"device_id\":\"00112233445566778899aabbccddeeff\","
-        "\"password\":\"wspr-0a60df\"}";
+    login.body = "{\"version\":1,\"device_id\":\"00112233445566778899aabbccddeeff\","
+                 "\"password\":\"wspr-0a60df\"}";
     login.headers = {{"host", f.identity.hostname},
                      {"origin", "https://" + f.identity.hostname},
                      {"content-type", "application/json"},
                      {"x-wsprrypico-request", "1"},
                      {"sec-fetch-site", "same-origin"}};
 
-    CHECK(admission.login(login, provisioning::SoftApSurface::BlankReadOnly, "", 0).response.status ==
-          401);
+    CHECK(
+        admission.login(login, provisioning::SoftApSurface::BlankReadOnly, "", 0).response.status ==
+        401);
     auto wrong_origin = login;
     wrong_origin.headers["origin"] = "https://attacker.local";
-    CHECK(admission.login(wrong_origin, provisioning::SoftApSurface::Normal, "", 0).response.status ==
-          400);
-    auto response =
-        admission.login(login, provisioning::SoftApSurface::ProvisionedPreClock, "", 1);
+    CHECK(
+        admission.login(wrong_origin, provisioning::SoftApSurface::Normal, "", 0).response.status ==
+        400);
+    auto response = admission.login(login, provisioning::SoftApSurface::ProvisionedPreClock, "", 1);
     CHECK(response.response.status == 200);
     CHECK(response.set_cookie.starts_with("__Host-wsprrypico="));
     CHECK(response.set_cookie.ends_with("; Path=/; Secure; HttpOnly; SameSite=Strict"));
@@ -674,9 +851,9 @@ void softap_http_policy() {
     request.headers = {{"host", f.identity.hostname},
                        {"cookie", response.set_cookie.substr(0, separator)},
                        {"sec-fetch-site", "same-origin"}};
-    const auto status = admission.authorize(
-        request, provisioning::SoftApSurface::ProvisionedPreClock,
-        provisioning::SoftApOperation::Status, "softap-session", {}, 2);
+    const auto status =
+        admission.authorize(request, provisioning::SoftApSurface::ProvisionedPreClock,
+                            provisioning::SoftApOperation::Status, "softap-session", {}, 2);
     CHECK(status.code == provisioning::AccessCode::Ok);
     CHECK(status.authorization.authenticated && status.authorization.confidential &&
           status.authorization.local && !status.authorization.principal.empty());
@@ -688,20 +865,20 @@ void softap_http_policy() {
               .authorize(request, provisioning::SoftApSurface::ProvisionedPreClock,
                          provisioning::SoftApOperation::Hello, "softap-session", {}, 2, {}, true)
               .code == provisioning::AccessCode::Ok);
-    CHECK(admission.authorize(
-              request, provisioning::SoftApSurface::ProvisionedPreClock,
-              provisioning::SoftApOperation::Status, "different-session", {}, 2)
+    CHECK(admission
+              .authorize(request, provisioning::SoftApSurface::ProvisionedPreClock,
+                         provisioning::SoftApOperation::Status, "different-session", {}, 2)
               .code == provisioning::AccessCode::Conflict);
-    CHECK(admission.authorize(
-              request, provisioning::SoftApSurface::ProvisionedPreClock,
-              provisioning::SoftApOperation::Load, "softap-session", {}, 3)
+    CHECK(admission
+              .authorize(request, provisioning::SoftApSurface::ProvisionedPreClock,
+                         provisioning::SoftApOperation::Load, "softap-session", {}, 3)
               .code == provisioning::AccessCode::AuthenticationRequired);
 
     auto ambiguous = request;
     ambiguous.headers["cookie"] += "; another=value";
-    CHECK(admission.authorize(ambiguous, provisioning::SoftApSurface::Normal,
-                              provisioning::SoftApOperation::Status,
-                              "softap-session", {}, 4)
+    CHECK(admission
+              .authorize(ambiguous, provisioning::SoftApSurface::Normal,
+                         provisioning::SoftApOperation::Status, "softap-session", {}, 4)
               .code == provisioning::AccessCode::AuthenticationRequired);
 
     network::HttpRequest logout = request;
@@ -713,9 +890,9 @@ void softap_http_policy() {
     logout.headers["x-wsprrypico-request"] = "1";
     CHECK(admission.logout(logout, provisioning::SoftApSurface::Normal, "softap-session", "", {},
                            5) == provisioning::AccessCode::Ok);
-    CHECK(admission.authorize(request, provisioning::SoftApSurface::Normal,
-                              provisioning::SoftApOperation::Status,
-                              "softap-session", {}, 6)
+    CHECK(admission
+              .authorize(request, provisioning::SoftApSurface::Normal,
+                         provisioning::SoftApOperation::Status, "softap-session", {}, 6)
               .code == provisioning::AccessCode::Expired);
 
     provisioning::SoftApHttpResponse injected;
@@ -738,10 +915,8 @@ void runtime_policy() {
     ap.ready(true);
     CHECK(ap.status(provisioning::softap_fallback_ms).ready);
     ap.station(true, provisioning::softap_fallback_ms + 1);
-    CHECK(ap.poll(provisioning::softap_fallback_ms +
-                  provisioning::softap_station_stable_ms));
-    CHECK(!ap.poll(provisioning::softap_fallback_ms +
-                   provisioning::softap_station_stable_ms + 1));
+    CHECK(ap.poll(provisioning::softap_fallback_ms + provisioning::softap_station_stable_ms));
+    CHECK(!ap.poll(provisioning::softap_fallback_ms + provisioning::softap_station_stable_ms + 1));
     CHECK(ap.request_join_grace(100'000));
     CHECK(!ap.request_join_grace(100'001));
     CHECK(ap.poll(100'001));
@@ -801,11 +976,11 @@ void reset_policy() {
     const auto preserved = targets.operational;
     provisioning::ResetCoordinator reset(access, profiles, targets, identity);
     const std::string request = "reset-request";
-    const auto digest = wtp::sha256(std::span(
-        reinterpret_cast<const std::uint8_t*>(request.data()), request.size()));
+    const auto digest = wtp::sha256(
+        std::span(reinterpret_cast<const std::uint8_t*>(request.data()), request.size()));
     CHECK(reset.begin(provisioning::ResetLevel::Provisioning,
-                      provisioning::ProfileSource::Unprovisioned, digest) ==
-          provisioning::ResetResult::Pending);
+                      provisioning::ProfileSource::Unprovisioned,
+                      digest) == provisioning::ResetResult::Pending);
     targets.bond_result = false;
     CHECK(reset.resume() == provisioning::ResetResult::TargetFault);
     CHECK(reset.pending());
@@ -823,12 +998,11 @@ void reset_policy() {
     CHECK(targets.operational == preserved);
 
     const std::string full_request = "full-reset-request";
-    const auto full_digest = wtp::sha256(std::span(
-        reinterpret_cast<const std::uint8_t*>(full_request.data()), full_request.size()));
+    const auto full_digest = wtp::sha256(
+        std::span(reinterpret_cast<const std::uint8_t*>(full_request.data()), full_request.size()));
     targets.bond_done = false;
-    CHECK(reset.begin(provisioning::ResetLevel::Full,
-                      provisioning::ProfileSource::Unprovisioned, full_digest) ==
-          provisioning::ResetResult::Pending);
+    CHECK(reset.begin(provisioning::ResetLevel::Full, provisioning::ProfileSource::Unprovisioned,
+                      full_digest) == provisioning::ResetResult::Pending);
     CHECK(reset.resume() == provisioning::ResetResult::Complete);
     CHECK(targets.operational_erased());
     CHECK(!access.record()->field_mode);
@@ -877,8 +1051,8 @@ void controller_time_policy() {
           time::ControllerTimeCode::SourceBusy);
 
     const auto sample = clock_now;
-    CHECK(arbiter.observe(time::ObservationSource::Sntp, utc + 10'000'000ULL, sample,
-                          10'000'000ULL, wtp::LeapState::Normal));
+    CHECK(arbiter.observe(time::ObservationSource::Sntp, utc + 10'000'000ULL, sample, 10'000'000ULL,
+                          wtp::LeapState::Normal));
     CHECK(arbiter.status().source == time::ActiveTimeSource::Sntp);
     CHECK(arbiter.challenge("phone-a", "session-a", device, "nonce-c").code ==
           time::ControllerTimeCode::Ok);
@@ -890,13 +1064,12 @@ void controller_time_policy() {
     CHECK(arbiter.challenge("phone-a", "session-a", device, "nonce-d").code ==
           time::ControllerTimeCode::Ok);
     clock_now += 1'000'000ULL;
-    CHECK(arbiter.submit("phone-a", "session-a", device, "nonce-d",
-                         utc + 91'001'000'000ULL) == time::ControllerTimeCode::Ok);
+    CHECK(arbiter.submit("phone-a", "session-a", device, "nonce-d", utc + 91'001'000'000ULL) ==
+          time::ControllerTimeCode::Ok);
     CHECK(arbiter.challenge("phone-a", "session-a", device, "nonce-e").code ==
           time::ControllerTimeCode::Ok);
     clock_now += 1'000'000ULL;
-    CHECK(arbiter.submit("phone-a", "session-a", device, "nonce-e",
-                         utc + 120'000'000'000ULL) ==
+    CHECK(arbiter.submit("phone-a", "session-a", device, "nonce-e", utc + 120'000'000'000ULL) ==
           time::ControllerTimeCode::Disagreement);
     CHECK(arbiter.status().disagreement);
     for (unsigned i = 0; i < 2; ++i) {
@@ -906,8 +1079,8 @@ void controller_time_policy() {
         clock_now += 1'000'000ULL;
         const auto result = arbiter.submit("phone-a", "session-a", device, nonce,
                                            utc + 120'000'000'000ULL + i * 1'000'000ULL);
-        CHECK(result == (i ? time::ControllerTimeCode::Ok
-                           : time::ControllerTimeCode::Disagreement));
+        CHECK(result ==
+              (i ? time::ControllerTimeCode::Ok : time::ControllerTimeCode::Disagreement));
     }
     CHECK(arbiter.status().source == time::ActiveTimeSource::Controller);
     arbiter.invalidate(time::ObservationSource::Sntp);
@@ -928,6 +1101,8 @@ int main() {
     profile_selection();
     access_policy();
     ble_command_policy();
+    ble_profile_step_up_policy();
+    ble_profile_step_up_timeout_policy();
     framing_policy();
     softap_http_policy();
     runtime_policy();

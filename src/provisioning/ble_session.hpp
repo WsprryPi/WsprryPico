@@ -22,13 +22,14 @@ class BleCommandSession {
         controller_time_ = controller_time;
         indicator_ = indicator;
     }
-    bool connected(std::uint64_t peer, bool encrypted, bool new_pairing,
-                   std::string link_session, std::uint64_t now_ms);
+    bool connected(std::uint64_t peer, bool encrypted, bool new_pairing, std::string link_session,
+                   std::uint64_t now_ms);
     void disconnected();
     CommandReply handle(std::string_view command, std::uint64_t now_ms);
     void response_started(std::uint64_t now_ms);
     void response_delivered(std::uint64_t now_ms);
     void poll(std::uint64_t now_ms);
+    AccessCode confirm_profile(std::string_view requested_device, std::uint64_t now_ms);
     bool authorized() const;
     std::string principal() const;
     bool available() const {
@@ -41,6 +42,8 @@ class BleCommandSession {
   private:
     CommandReply authorize(std::string_view command, std::uint64_t now_ms);
     CommandReply field_command(std::string_view command, std::uint64_t now_ms);
+    void clear_profile_step_up(bool invalidate);
+    bool profile_step_up_matches() const;
     LocalAccessController& access_;
     CommandAdapter& command_;
     Manager& manager_;
@@ -53,6 +56,9 @@ class BleCommandSession {
     std::string pending_time_nonce_;
     std::string pending_apply_request_;
     std::uint64_t pending_apply_generation_ = 0;
+    RequestBinding pending_profile_binding_;
+    std::string pending_profile_session_;
+    bool pending_profile_step_up_ = false;
     bool connected_ = false;
     bool delivery_confirmed_ = false;
 };

@@ -451,6 +451,26 @@ A second diff/source/test assessment found no further actionable issue within
 the implemented BLE-only production boundary. It confirmed that unsupported
 SoftAP/WTP/time/reset work remains explicitly unclaimed.
 
+## Phone-assisted continuation preflight
+
+The next acceptance prompt is
+[phase12-phone-assisted-acceptance-prompt.md](phase12-phone-assisted-acceptance-prompt.md).
+Its first adversarial source pass found that retained-bond `authorize` correctly
+restored ordinary local authority but the Bluefy provisioning transaction did
+not independently validate a fresh password. Treating that exchange as proof
+of fresh-password provisioning would have overstated the earlier physical
+evidence.
+
+The repaired path now binds a one-use password proof to the final staged-profile
+SHA-256 digest, profile session, apply request, principal and expected/current
+generation. The public default also requires the exact device ID to be
+confirmed through `ACCESS CONFIRM PROFILE` on USB. Status polling cannot extend
+the 30-second manager session; cancel, disconnect, mismatch, timeout and every
+terminal apply path invalidate the proof. The Bluefy client clears submitted
+password and TLS material on success, transport failure and local validation
+failure. These are source and deterministic-test claims only until the recorded
+iPhone and Candidate A exercise completes.
+
 ## Phase 11 applicability
 
 Phase 11 closure artifacts remain immutable. The shared TLS/browser/WTP,

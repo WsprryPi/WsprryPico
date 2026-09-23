@@ -291,6 +291,18 @@ ActivationRelease Manager::release_activation(std::string_view request_id, std::
     return result;
 }
 
+std::optional<wtp::PayloadDigest> Manager::staged_digest(std::string_view session_id,
+                                                         Transport transport,
+                                                         const Authorization& authorization,
+                                                         std::uint64_t expected_generation) const {
+    if (!authorization.authenticated || !authorization.confidential || !authorization.local ||
+        !valid_principal(authorization.principal) || !session_ || !session_->final ||
+        session_->id != session_id || session_->transport != transport ||
+        session_->principal != authorization.principal || expected_generation != store_.sequence())
+        return {};
+    return wtp::sha256(session_->staged);
+}
+
 Status Manager::status() const {
     Status result;
     result.state = state_;

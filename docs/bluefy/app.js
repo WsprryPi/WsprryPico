@@ -139,7 +139,11 @@ connect.addEventListener("click", async () => {
   connect.disabled = true;
   status.value = "Waiting for Bluefy device selection…";
   try {
-    client = new WsprryBluefy.Client(navigator.bluetooth, crypto);
+    client = new WsprryBluefy.Client(navigator.bluetooth, crypto, {
+      onConfirmationRequired: () => {
+        status.value = "Profile staged. Confirm this exact profile on the Pico USB console within 30 seconds.";
+      }
+    });
     const identity = await client.connect();
     form.elements.device_id.value = identity.device_id;
     setAccessPasswordEnabled(true);
@@ -167,10 +171,11 @@ authorize.addEventListener("click", async () => {
   try {
     await client.authorize(form.elements.access_password.value);
     form.elements.access_password.value = "";
-    setAccessPasswordEnabled(false);
+    setAccessPasswordEnabled(true);
     fields.disabled = false;
     localControls.disabled = false;
-    status.value = `Authorized on ${form.elements.device_id.value}; generation ${client.generation}.`;
+    status.value = `Authorized on ${form.elements.device_id.value}; generation ${client.generation}. ` +
+      "Re-enter the current local password before provisioning.";
   } catch (error) {
     client.disconnect();
     client = null;
@@ -242,13 +247,14 @@ form.addEventListener("submit", async (event) => {
     const result = await operationClient.provision(values());
     if (client !== operationClient) return;
     status.value = `Profile generation ${result.generation} committed.`;
-    clearSecrets();
   } catch (error) {
     if (client === operationClient)
       status.value = `Provisioning failed: ${message(error)}.`;
   } finally {
+    clearSecrets();
     if (client === operationClient) {
       fields.disabled = false;
+      setAccessPasswordEnabled(true);
       localControls.disabled = !client.authorized;
       active = false;
     }

@@ -155,10 +155,12 @@ later pass.
    leave no provisional authority. A retained bond is ordinary authority but
    not fresh-password proof.
 4. **Fresh password.** Enter the current local-access password into the page and
-   prove that the target actually validates it in this session. If the current
-   source cannot prove fresh validation for a retained bond, do not claim the
-   row: use a genuinely new authorized pairing only when its cleanup and
-   restoration are available, otherwise record `NOT_EXECUTED_SOURCE_GAP`.
+   prove that the target actually validates it as a fresh, one-use proof bound
+   to the exact staged profile, apply request and current generation—even when
+   the connection uses a retained bond. While the public default is active, use
+   `ACCESS CONFIRM PROFILE <full-device-id>` on Candidate A's USB console within
+   the same 30-second provisioning session. A mismatch, timeout, cancel or
+   disconnect must invalidate the proof and staged session.
 5. **Phone time and indicator.** Submit authenticated phone time, retain the
    challenge-to-submit interval, and verify source, age, uncertainty and the
    unchanged 500 ms admission bound. Observe the five-cycle Identify pattern
@@ -174,8 +176,8 @@ later pass.
    production BLE provisioning service, validate it, commit one new generation
    and allow the delivery-safe activator to run once after the terminal response
    or bounded timeout. Never place secret values in evidence. If the current
-   retained-bond UI cannot supply the required fresh step-up, stop this row as a
-   source gap rather than weakening the contract.
+   page does not complete the required fresh step-up, stop this row rather than
+   weakening the contract.
 8. **New runtime.** After the required reboot, prove the new generation alone is
    selected; station association, DHCP, certified mDNS and new server/client
    trust work; superseded station/TLS authority does not return; and station,
