@@ -328,6 +328,14 @@ Command Line Tools SDK still has the previously documented malformed
 `arm64e.x1` text-stub problem; no failing product test was hidden or converted
 to a pass.
 
+The reviewed implementation was then frozen at clean source commit
+`b28400e114abb68566eef2154361e7d541069ff0`. Rebuilding that exact commit
+repeated the 87/87 host suite, WTP validator, browser checks, standard Pico 2 W
+image and both target linkchecks. The clean linked image is text 1,361,536,
+BSS 134,396 bytes, and its UF2 SHA-256 is
+`d5c99b97709f547ff8b0533ab60921e069deabccac4414f74e38229e298f253b`.
+It was not flashed; these are artifact results, not live-device acceptance.
+
 The first adversarial pass found and repaired:
 
 1. AP surface selection was used before it was computed in the production

@@ -57,8 +57,10 @@ recorded by the Phase 11.7 joint review. The P12.5 tranche started from clean
 
 The production SoftAP continuation started from clean `devel` at
 `ae21bc7b9dd772b0b37cf52b288a2544e848ea9f`, equal to `origin/devel`. Its
-candidate was frozen only after implementation and review; no pre-freeze
-repository drift sentinel was installed.
+candidate was frozen only after implementation and review at
+`b28400e114abb68566eef2154361e7d541069ff0`; no pre-freeze repository drift
+sentinel was installed. That clean RF-inhibited image was built and hashed but
+not flashed, so it is not physical evidence.
 
 ## Source and dependency findings
 
