@@ -36,6 +36,10 @@ struct HttpResponse {
     // Optional response cookie owned by trusted application code. The wire
     // encoder rejects control characters before emitting it.
     std::string set_cookie{};
+    // The pre-clock controller-time challenge keeps its authenticated TLS
+    // connection alive for the immediately following submit. Other responses
+    // retain the one-request fail-closed transport.
+    bool keep_alive = false;
     std::size_t body_size() const {
         if (!static_body.empty())
             return static_body.size();
@@ -56,7 +60,8 @@ struct HttpResponse {
     std::string wire_headers() const;
     std::string wire() const;
 };
-// One request per TLS connection. The owner enforces a total connection deadline.
+// One request per TLS connection except the bounded controller-time
+// challenge/submit pair. The owner enforces a total connection deadline.
 class HttpParser {
   public:
     std::size_t receive(std::span<const std::uint8_t> bytes);

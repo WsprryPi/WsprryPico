@@ -30,7 +30,8 @@ std::string HttpResponse::wire_headers() const {
         !set_cookie.empty() && set_cookie.find_first_of("\r\n") == std::string::npos;
     return "HTTP/1.1 " + std::to_string(status) + " Response\r\nContent-Type: " + type +
            "\r\nContent-Length: " + std::to_string(body_size()) +
-           "\r\nConnection: close\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\n"
+           "\r\nConnection: " + (keep_alive ? "keep-alive" : "close") +
+           "\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\n"
            "Content-Security-Policy: " +
            std::string(web_csp()) + "\r\nReferrer-Policy: no-referrer\r\n" +
            (etag.empty() ? "" : "ETag: " + etag + "\r\n") +

@@ -167,9 +167,11 @@ void policy() {
                            "\",\"nonce\":\"22222222222222222222222222222222\"}";
     auto challenge = request("POST", "/local/v1/time/challenge", time_body);
     challenge.headers["cookie"] = cookie;
-    REQUIRE(
-        f.api.handle(challenge, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 4, 7)
-            .status == 200);
+    const auto first_challenge =
+        f.api.handle(challenge, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 4, 7);
+    REQUIRE(first_challenge.status == 200);
+    REQUIRE(first_challenge.keep_alive);
+    REQUIRE(first_challenge.wire_headers().find("Connection: keep-alive\r\n") != std::string::npos);
     f.api.finish_request(7, false);
     auto submit =
         request("POST", "/local/v1/time/submit",

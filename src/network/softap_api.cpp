@@ -220,13 +220,15 @@ HttpResponse SoftApApi::challenge(const HttpRequest& request, std::string_view p
         return http_error(503, "resource_exhausted");
     }
     *slot = {transaction, std::string(principal), std::string(session), true};
-    return {200,
-            "{\"ok\":true,\"device_id\":" + wtp::json::quote(device_) +
-                ",\"session_id\":" + wtp::json::quote(session) +
-                ",\"nonce\":" + wtp::json::quote(result.nonce) + ",\"sampled_monotonic_ns\":\"" +
-                std::to_string(result.sampled_monotonic_ns) + "\"}",
-            "application/json",
-            {}};
+    HttpResponse response{200,
+                          "{\"ok\":true,\"device_id\":" + wtp::json::quote(device_) +
+                              ",\"session_id\":" + wtp::json::quote(session) + ",\"nonce\":" +
+                              wtp::json::quote(result.nonce) + ",\"sampled_monotonic_ns\":\"" +
+                              std::to_string(result.sampled_monotonic_ns) + "\"}",
+                          "application/json",
+                          {}};
+    response.keep_alive = true;
+    return response;
 }
 
 HttpResponse SoftApApi::submit_time(const HttpRequest& request, std::string_view principal,

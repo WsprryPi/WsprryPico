@@ -576,6 +576,25 @@ void PicoServer::Connection::poll(bool link_up, std::string_view authority,
         return;
     }
     if (!wtp_ && responded_) {
+        if (response_.keep_alive) {
+            if (!response_acknowledged())
+                return;
+            if (softap_ && owner_.softap_)
+                owner_.softap_->finish_request(generation_, true);
+            else
+                api_.finish_request(generation_, true);
+            generation_ = ++owner_.generation_;
+            response_tcp_remaining_.reset();
+            response_offset_ = 0;
+            scrub(response_.set_cookie);
+            response_ = HttpResponse{};
+            scrub(response_headers_);
+            http_.reset_secure();
+            http_ = HttpParser{};
+            responded_ = close_notify_ = false;
+            progress_ms_ = now;
+            return;
+        }
         if (!close_notify_) {
             const auto result = mbedtls_ssl_close_notify(&ssl_);
             if (result == 0)
