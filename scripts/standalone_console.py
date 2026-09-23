@@ -9,7 +9,16 @@ from check_usb_target import port, write_all
 from rf_wtp import read_line
 
 ACTIONS = {"info": "INFO", "status": "STATUS", "storage": "STORAGE", "stop": "STOP", "abort": "ABORT", "reboot": "REBOOT",
-           "bootsel": "BOOTSEL", "wifi-off": "WIFI OFF", "wifi-on": "WIFI ON", "netlink": "NETLINK"}
+           "bootsel": "BOOTSEL", "wifi-off": "WIFI OFF", "wifi-on": "WIFI ON", "netlink": "NETLINK",
+           "access-status": "ACCESS STATUS", "ble-status": "BLE STATUS"}
+
+
+def command_for(action, device_id):
+    if action == "softap":
+        return "ACCESS SOFTAP " + device_id
+    if action == "identify":
+        return "IDENTIFY " + device_id
+    return ACTIONS[action]
 
 
 def configuration(path, enable_schedule, now):
@@ -33,7 +42,7 @@ def configuration(path, enable_schedule, now):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=[*ACTIONS, "config"])
+    parser.add_argument("action", choices=[*ACTIONS, "softap", "identify", "config"])
     parser.add_argument("--port", required=True)
     parser.add_argument("--device-id", required=True)
     parser.add_argument("--revision")
@@ -51,7 +60,7 @@ def main():
         except ValueError as error:
             parser.error(str(error))
     else:
-        command = ACTIONS[args.action]
+        command = command_for(args.action, args.device_id)
     with port(args.port) as fd:
         write_all(fd, b"INFO\n")
         identity = read_line(fd, time.monotonic() + 5)

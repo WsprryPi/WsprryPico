@@ -5,12 +5,14 @@ authority. Candidate identity/adoption, RF-inhibited boot, preserved operational
 state and BLE advertising passed on the exact device below. One online
 retained-bond Bluefy application-authorization exchange was subsequently
 observed on Candidate A after the CCCD repair. Exact iPhone/iOS/Bluefy
-versions, offline-cache, provisioning/activation, controller-time, SoftAP,
-reset/gesture and soak acceptance remain open. Stage B is not authorized.
-The final repaired clean committed standard image at `5afe7576f001` passed a
-serial-targeted load/verify, exact post-boot identity, preserved-state checks
-and final RF-inhibited empty/unowned/inactive-output restoration. That baseline
-does not accept any newly added BLE operation.
+versions, offline-cache, provisioning/activation, phone controller-time,
+SoftAP, reset/gesture and soak acceptance remain open. A bounded native-Pi BLE
+exercise has separately passed device identity, controller time, field status
+and WTP `HELLO`/`STATUS`; it is not an iPhone/Bluefy result. Stage B is not
+authorized. The final repaired clean committed standard image at
+`5afe7576f001` passed a serial-targeted load/verify, exact post-boot identity,
+preserved-state checks and final RF-inhibited empty/unowned/inactive-output
+restoration. That baseline does not accept any newly added BLE operation.
 
 ## Purpose and evidence boundary
 
@@ -23,13 +25,15 @@ It does not reopen or silently extend Phase 11.6, and it cannot establish Phase
 
 ## Current admission state
 
-The production-integration tranche enables the provisioning-only GATT service,
-network-only activation platform and indicator controller in the standard
-RF-inhibited image. It retains one CYW43 owner and supplies the repository-owned
-offline Bluefy release. The later source-only continuation production-connects
-authenticated controller time, Identify/status and an unchanged BLE WTP/1
-stream, but none has live acceptance on the candidate. SoftAP DHCP/HTTP/HTTPS
-and its independent browser/control path are still not connected to production.
+The production-integration tranche enables the GATT service, network-only
+activation platform and indicator controller in the standard RF-inhibited
+image. It retains one CYW43 owner and supplies the repository-owned offline
+Bluefy release. Later continuations production-connect authenticated controller
+time, Identify/status, an unchanged BLE WTP/1 stream and the independent
+SoftAP DHCP/mDNS/HTTP/HTTPS browser/control path. The BLE subset has the bounded
+native-Pi evidence described above. SoftAP has hardware-free build/test evidence
+only at this point; credential provisioning and reset administration are not
+production-wired.
 
 The operated candidate is Pico 2 W USB serial `0BF4B4AEC9FFB344`, device ID
 `fd6127d11d6aca42a9905fa3fb1bf1d5`, station MAC

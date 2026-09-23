@@ -10,8 +10,15 @@ import standalone_console
 
 
 class ConsoleTests(unittest.TestCase):
+    def test_access_commands_are_exact_and_device_bound(self):
+        self.assertEqual(standalone_console.command_for('access-status', 'device'), 'ACCESS STATUS')
+        self.assertEqual(standalone_console.command_for('ble-status', 'device'), 'BLE STATUS')
+        self.assertEqual(standalone_console.command_for('softap', '0123'), 'ACCESS SOFTAP 0123')
+        self.assertEqual(standalone_console.command_for('identify', 'abcd'), 'IDENTIFY abcd')
+
     def test_no_device_io_without_opt_in(self):
-        for action in ('info', 'storage', 'netlink'):
+        for action in ('info', 'storage', 'netlink', 'access-status', 'ble-status',
+                       'softap', 'identify'):
             with self.subTest(action=action):
                 result = subprocess.run([sys.executable, standalone_console.__file__, action,
                                          '--port', '/missing-device', '--device-id', 'test'],

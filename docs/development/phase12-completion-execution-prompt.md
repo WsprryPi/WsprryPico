@@ -5,9 +5,9 @@ Work in `/Users/lbussy/GitHub/WsprryPico` on `devel`.
 ## Starting state, authority and evidence boundary
 
 Begin from clean `devel` at
-`ae21bc7b9dd772b0b37cf52b288a2544e848ea9f`, equal to `origin/devel` at the
-start of this tranche. Inspect branch, status, HEAD, upstream and the current
-remote-tracking reference before editing and before publication. Preserve all
+`c84fa157b93493cf0c28fa2e96c30e0beeabe7e2`, equal to `origin/devel` at the
+start of this tranche on 2026-09-23. Inspect branch, status, HEAD, upstream and
+the current remote-tracking reference before editing and before publication. Preserve all
 later work; do not reset, stash, discard changes, rewrite history or substitute
 another checkout.
 
@@ -24,9 +24,13 @@ hardware-free builds and tests; cross-builds using the already retained pinned
 dependencies; and finite RF-inhibited work on the already identified Phase 12
 Pico 2 W candidate. That finite work may include a clean committed-image flash,
 BLE and Wi-Fi operation, creation/removal of the candidate SoftAP, explicit
-credential transfer, reboots, controller-time and LED observations, bounded
-fault/resource checks and final restoration. It also authorizes adversarial
-review, repairs, traceable source/evidence commits and a push to `origin/devel`.
+credential transfer when the required client and private profile exist,
+reboots, controller-time and LED observations, bounded fault/resource checks
+and final restoration. It also authorizes one temporary NetworkManager profile
+on an otherwise unused `wspr5` Wi-Fi interface solely for the candidate SoftAP;
+remove it and return that interface to disconnected state before closure. It
+also authorizes adversarial review, repairs, traceable source/evidence commits
+and a push to `origin/devel`.
 
 It does not authorize RF output, Stage B, arbitrary endpoints, unbounded scans,
 silent or permanent host/phone trust-store changes, App Store actions,
@@ -55,7 +59,7 @@ Read `AGENTS.md`, `README.md`, `CONTRACT.md`, `SECURITY.md`,
 `docs/development/network-control.md`, `docs/development/standalone.md`,
 `docs/browser-api.md` and `docs/protocol/WTP.md`.
 
-Review the recent `16d8f0e` through `ae21bc7` changes and the complete current
+Review the recent `16d8f0e` through `c84fa15` changes and the complete current
 production graph: access/profile/reset journals, one `JobService`, scheduler,
 output authority, runtime profile overlay, CYW43 ownership, station/SNTP/TLS
 server, provisioning manager, delivery-safe activation, GATT framing and CCCD
@@ -70,8 +74,10 @@ implementation.
   hardware-free scopes. P12.3 is `CLOSED_SCOPED`, not physical acceptance.
 - P12.6 production-wires encrypted BLE provisioning, controller time,
   Identify/status, the unchanged WTP/1 GATT stream, a network-only live
-  activator, the indicator and the deterministic Bluefy artifact. Production
-  SoftAP and reset administration remain source gaps.
+  activator, the indicator, the deterministic Bluefy artifact and the SoftAP
+  DHCP/mDNS/HTTP/HTTPS browser path. SoftAP credential provisioning and reset
+  administration remain source gaps. The SoftAP continuation is build/test
+  evidence only at the start of this execution.
 - Candidate identity/adoption, preservation, advertising and one online
   retained-bond Bluefy authorization exchange passed. That exchange proves
   neither a fresh password nor credential provisioning.
@@ -80,15 +86,19 @@ implementation.
   iPhone/Bluefy, SoftAP, job execution, credential activation, TCP physical
   interoperability or RF evidence.
 - Fresh iPhone pairing/password, offline Bluefy reuse, full profile transfer,
-  BLE WTP job execution, production SoftAP local control, reset/recovery,
+  BLE WTP job execution, production SoftAP target control, reset/recovery,
   fault/resource/soak and most remaining Stage A rows remain open.
 - The standard image must remain RF inhibited. Phase 13 remains separate.
 
 ## Objective and production requirements
 
-Advance the selected field-access contract from provisioning-only BLE to a
-coherent RF-inhibited field path without creating a second job service,
-scheduler, protocol, timing owner, RF owner or output-state authority.
+Advance the selected field-access contract to the strongest evidence actually
+available for its current RF-inhibited BLE and SoftAP field path without
+creating a second job service, scheduler, protocol, timing owner, RF owner or
+output-state authority. Correct maintained documents that still describe the
+now-wired SoftAP path as a source gap. Extend the bounded USB helper only as
+needed to issue the existing exact device-bound access/status commands; it must
+still identify the device before mutation and must not expose credentials.
 
 ### BLE/Bluefy
 
@@ -110,10 +120,11 @@ scheduler, protocol, timing owner, RF owner or output-state authority.
 
 ### SoftAP/Safari
 
-- Connect `SoftApCoordinator`, `PicoSoftAp`, `SoftApHttpAdmission` and the
-  existing browser API to production. Start the AP only for the selected
-  no-profile, recovery, field-mode, fallback, join-grace or retained-session
-  causes. The ready LED begins only when the AP netif and service are usable.
+- Review and regress the production connection of `SoftApCoordinator`,
+  `PicoSoftAp`, `SoftApHttpAdmission` and the existing browser API. Start the AP
+  only for the selected no-profile, recovery, field-mode, fallback, join-grace
+  or retained-session causes. The ready LED begins only when the AP netif and
+  service are usable.
 - Use the station-MAC-derived SSID and current local password with WPA2-AES.
   Record the fixed DHCP subnet and manual Safari URL. Do not intercept arbitrary
   DNS and do not treat WPA association as application authority.
@@ -179,24 +190,55 @@ phone/Bluefy/page identities, admitted credentials/trust scope, finite time
 budgets and restoration plan. Preserve all attempts and failures.
 
 Execute only rows whose source support, client interaction, credentials and
-restoration path are actually available. The immediate sequence is:
+restoration path are actually available. Do not turn an unavailable iPhone,
+visual observer, private provisioning packet or implemented reset surface into
+a failed test; record the corresponding row as `NOT_EXECUTED` with its exact
+missing prerequisite. The immediate sequence is:
 
-1. Build from a clean committed candidate, hash it, reflash Candidate A only,
+1. After the source/test review, commit the candidate to freeze its identity.
+   Build that exact clean commit with the
+   pinned Pico SDK 2.3.1 and clean BTstack revision. Use the already retained,
+   ignored Candidate A device-bound network credential directory at
+   `config/local/network/phase11-4-fd6127d1/server-mac-suffix` and port `18443`
+   so this physical image can exercise the provisioned SoftAP HTTPS surface.
+   Record public certificate identity and build inputs without printing,
+   copying to Git or otherwise disclosing the private key. This is still the
+   standard RF-inhibited image, not a fault or RF image.
+2. Hash the image, reflash Candidate A USB serial `0BF4B4AEC9FFB344` only,
    verify the load and re-establish exact identity, inhibited engine, empty/
    unowned/inactive output and preserved station/schedule/watermark/access state.
-2. Record the exact iPhone/iOS/Bluefy/page release identity. Verify online
+   Do not mutate comparator `CDDBF8767C506C07`.
+3. On `wspr5`, use an interface that is disconnected before the test while
+   retaining SSH on Ethernet and the existing infrastructure association on
+   its other Wi-Fi interface. Request SoftAP through the exact device-bound USB
+   command, associate only to the station-MAC-derived SSID using the current
+   local password, and verify DHCP `192.168.4.1/24`, gateway, AP-interface mDNS,
+   presented certificate identity and hostname. Do not install a CA or alter a
+   host trust store; use a test-process-local CA file or direct public
+   certificate comparison.
+4. Verify blank port 80 is read-only and rejects mutation. On HTTPS verify
+   login failure and success, exact cookie attributes, Host/Origin/fetch/header
+   enforcement, controller-time if the 250 ms bound is feasible, field status
+   and ordinary `HELLO`/`STATUS`/ownership operations through the one
+   `JobService`. Use only empty or RF-inhibited simulated state and release any
+   acquired owner. Preserve failures; do not relax latency or security checks.
+5. Record the exact iPhone/iOS/Bluefy/page release identity. Verify online
    install, then disable infrastructure Wi-Fi and cellular data and prove the
-   accepted page/release is reused offline.
-3. Exercise fresh-password authorization where applicable, complete credential
+   accepted page/release is reused offline, but only if that actual client and
+   operator interactions are available.
+6. Exercise fresh-password authorization where applicable, complete credential
    transfer, committed activation, reboot, station association, DHCP/mDNS and
    new-only TLS trust. Retain private credentials outside Git.
-4. Exercise BLE and SoftAP controller time, Identify and actual-ready LED
+7. Exercise BLE and SoftAP controller time, Identify and actual-ready LED
    timing; then ordinary BLE WTP and SoftAP browser/local control through the one
    `JobService` using only RF-inhibited simulated jobs.
-5. Run admitted reset/recovery, storage/activation fault, busy/output-unknown
+8. Run admitted reset/recovery, storage/activation fault, busy/output-unknown
    rejection, resource-bound/reclamation and bounded soak rows. A fault harness
    never becomes candidate-image evidence.
-6. End with the standard RF-inhibited image, output authoritatively inactive,
+9. Log out, delete the temporary NetworkManager connection, disconnect the
+   test-only interface, reboot if needed to clear volatile SoftAP state and
+   verify the AP is no longer advertised within a bounded scan.
+10. End with the standard RF-inhibited image, output authoritatively inactive,
    empty/unowned state, provisioning closed, SoftAP stopped, intended station/
    trust state restored and every journal healthy.
 

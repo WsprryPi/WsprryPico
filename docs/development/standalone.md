@@ -141,6 +141,12 @@ and RF timing effects require their own measurements.
 Use `scripts/standalone_console.py ACTION --port DEVICE --device-id ID --run`.
 Configuration also requires `--revision REV --config PRIVATE_JSON`; the tool
 checks device identity before issuing the command and never echoes credentials.
+The bounded diagnostic actions include `info`, `status`, `storage`, `netlink`,
+`access-status` and `ble-status`. Device-bound local actions include `softap`
+and `identify`; the helper appends the already checked full device ID rather
+than accepting an independently typed command payload. Existing `stop`,
+`abort`, `reboot`, `bootsel`, `wifi-off` and `wifi-on` actions retain their
+documented administration semantics.
 Capture INFO and image hashes before a campaign. Closing this client leaves no
 per-job commands from it; physical USB absence is stronger evidence that no USB
 host can control the device.

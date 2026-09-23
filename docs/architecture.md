@@ -102,14 +102,18 @@ transport. Candidate Pico GATT, WPA2 SoftAP and onboard-LED adapters cross-link
 against the exact clean pinned BTstack source. The Bluefy page implements the
 matching authorization and framing path.
 
-P12.6 makes the provisioning-only BLE path real in the standard RF-inhibited
-image. One CYW43 owner supplies checked station-MAC identity, BTstack GATT,
-station service and core-0 LED access. The production graph constructs the
-portable access/manager state and a network-only `PicoActivationPlatform`;
-neither layer can abort, release or clear JobService/RF ownership. The
-repository-owned Bluefy artifact uses a release-keyed atomic offline cache.
-SoftAP/HTTPS, BLE WTP/browser control, phone time, reset gestures and most
-physical coexistence/resource evidence remain Phase 12 gates. See the
+P12.6 makes the BLE path and the independent SoftAP fallback real in the
+standard RF-inhibited image. One CYW43 owner supplies checked station-MAC
+identity, BTstack GATT, station service, SoftAP netif and core-0 LED access. The
+production graph constructs the portable access/manager state and a
+network-only `PicoActivationPlatform`; neither layer can abort, release or
+clear JobService/RF ownership. The SoftAP graph supplies DHCP on
+`192.168.4.1/24`, AP-interface mDNS, blank read-only HTTP, device-bound HTTPS,
+password/cookie admission, controller time and the existing browser API backed
+by that same `JobService`. The repository-owned Bluefy artifact uses a
+release-keyed atomic offline cache. SoftAP credential provisioning, phone
+acceptance, reset gestures and most physical coexistence/resource evidence
+remain Phase 12 gates. See the
 [Phase 12 plan](development/phase12-plan.md),
 [field contract](development/phase12-field-access-contract.md) and
 [production review](development/phase12-production-acceptance-review.md).
@@ -132,14 +136,15 @@ a USB host on the recorded setup.
 ## Remaining implementation and qualification choices
 
 The implemented autonomous UTC source is configured unicast SNTPv4. Phase 12
-adds the portable controller/SNTP arbiter and routes production SNTP
-observations through it. The authenticated controller transport and physical
-phone-time accuracy remain unwired/unqualified.
+adds the portable controller/SNTP arbiter and routes production SNTP, BLE and
+SoftAP controller observations through it. Physical phone-time accuracy remains
+unqualified.
 
-Remaining Phase 12 details are the complete SoftAP/HTTPS and local-control
-surfaces, authenticated phone time, accepted reset controls, physical Bluefy
-offline/interoperability evidence, live profile activation and target
-resource/coexistence tuning.
+Remaining Phase 12 details are SoftAP credential provisioning, authenticated
+phone-time acceptance, accepted reset controls, physical Bluefy offline/
+interoperability evidence, live profile activation and target resource/
+coexistence tuning. The wired SoftAP/HTTPS and local-control surfaces still
+require target acceptance.
 Clock calibration, production RF engine/pins and shared WsprryPi adoption of
 browser API v1 remain open. The current Pico browser schemas and bounds are
 documented in the API contract. WTP/1 defines interoperable limits and policies

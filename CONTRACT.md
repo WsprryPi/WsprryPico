@@ -83,11 +83,14 @@ recovery, controller-time bootstrap, LED indication, trust replacement and
 reset preservation. The public MAC-derived password and ordinary flash carry no
 confidentiality claim.
 
-Production SoftAP/HTTPS wiring, exact gestures, offline-page qualification and
-most physical acceptance remain open. BLE provisioning, controller-time,
-Identify/status, unchanged WTP/1 and the network-only live activator are wired
-in the RF-inhibited standard image, but their unexecuted physical rows remain
-open. P12.3 is closed only for its documented hardware-free
+Production SoftAP DHCP/mDNS/HTTP/HTTPS, password/cookie admission,
+controller-time and browser/local control are now wired to the same
+`JobService` in the RF-inhibited standard image. SoftAP credential
+provisioning, reset administration, exact gestures, offline-page qualification
+and most physical acceptance remain open. BLE provisioning, controller-time,
+Identify/status, unchanged WTP/1 and the network-only live activator are also
+wired, but their unexecuted physical rows remain open. P12.3 is closed only for
+its documented hardware-free
 source/cross-link boundary; Phase 12 is not yet an accepted end-user path.
 
 Host tests, target execution and RF qualification are distinct evidence classes.
