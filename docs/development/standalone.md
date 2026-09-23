@@ -42,7 +42,10 @@ see [network control](network-control.md). The
 BLE/Bluefy primary and SoftAP/Safari fallback provisioning and local control
 through this same service. BLE and the browser/local-control portion of SoftAP
 are now production-wired and cross-linked. SoftAP credential provisioning,
-reset administration and all physical SoftAP acceptance remain open.
+reset administration and the remaining physical SoftAP matrix remain open. A
+bounded native-Pi Candidate A run passed the provisioned
+association/DHCP/mDNS/HTTPS/time/status/ownership/reconnect path; it is not
+phone/Safari/Bluefy or full Stage A acceptance.
 
 ## Configuration
 

@@ -6,10 +6,13 @@ state and BLE advertising passed on the exact device below. One online
 retained-bond Bluefy application-authorization exchange was subsequently
 observed on Candidate A after the CCCD repair. Exact iPhone/iOS/Bluefy
 versions, offline-cache, provisioning/activation, phone controller-time,
-SoftAP, reset/gesture and soak acceptance remain open. A bounded native-Pi BLE
-exercise has separately passed device identity, controller time, field status
-and WTP `HELLO`/`STATUS`; it is not an iPhone/Bluefy result. Stage B is not
-authorized. The final repaired clean committed standard image at
+the remaining SoftAP matrix, reset/gesture and soak acceptance remain open. A
+bounded native-Pi BLE exercise has separately passed device identity,
+controller time, field status
+and WTP `HELLO`/`STATUS`; a later native-Pi run passed the bounded provisioned
+SoftAP association/DHCP/mDNS/HTTPS/time/status/ownership/reconnect path. Neither
+is an iPhone/Bluefy result. Stage B is not authorized. The earlier repaired
+clean committed standard image at
 `5afe7576f001` passed a serial-targeted load/verify, exact post-boot identity,
 preserved-state checks and final RF-inhibited empty/unowned/inactive-output
 restoration. That baseline does not accept any newly added BLE operation.
@@ -32,8 +35,9 @@ Bluefy release. Later continuations production-connect authenticated controller
 time, Identify/status, an unchanged BLE WTP/1 stream and the independent
 SoftAP DHCP/mDNS/HTTP/HTTPS browser/control path. The BLE subset has the bounded
 native-Pi evidence described above. SoftAP has hardware-free build/test evidence
-only at this point; credential provisioning and reset administration are not
-production-wired.
+plus the bounded native-Pi physical evidence recorded in the
+[SoftAP review](phase12-softap-physical-review.md). Credential provisioning and
+reset administration are not production-wired.
 
 The operated candidate is Pico 2 W USB serial `0BF4B4AEC9FFB344`, device ID
 `fd6127d11d6aca42a9905fa3fb1bf1d5`, station MAC
@@ -44,7 +48,7 @@ was based on `7451a4047677-dirty`; its UF2 SHA-256 was
 The linked application ended exactly at `0x103f3000` with a 16 KiB primary
 stack.
 
-The current restored candidate is the clean source commit
+The earlier clean restored baseline was source commit
 `5afe7576f0016ef3e927090c15232ac5c8daeb4f`, firmware identity
 `5afe7576f001`, with UF2 SHA-256
 `112f798233e12f2e9b7b049412ab428346b9fb1fc734915e823d1cb84feb7c12`.
@@ -59,7 +63,22 @@ healthy, BLE was running and disconnected, and all new WTP counters were zero.
 This is clean-image identity, preservation and restoration evidence only, not
 functional acceptance of controller time, Identify or WTP over BLE.
 
-On that candidate the standard image reported
+The latest operated candidate is clean source
+`0ecf9c170384fd2cc3ba802515e1d2c1396ab9fa`, firmware identity
+`0ecf9c170384`, and UF2 SHA-256
+`6261e322884a280afcd997537d6248fbbf0033b879fab1b2a661acd3a3575e23`.
+Serial-targeted load/verify passed. This image retained factory profile
+generation 0, healthy access generation 3, station `AA0NT/EM18/20`, the 120/0
+schedule, watermark `1789607761000000000`, configuration sequence 72 and
+watermark sequence 12. The target passed bounded WPA2, DHCP, mDNS, TLS 1.3,
+password/origin/cookie, controller-time, status, `HELLO`/`CLAIM`/`RELEASE`,
+logout, reconnect and resource-return checks without `LOAD`, `ARM` or RF. The
+native-Pi result does not accept any phone-dependent row. After cleanup and
+reboot, automatic fallback remained applicable because the preserved factory
+station configuration was unavailable; stable-station AP withdrawal remains
+open.
+
+On the original dirty production candidate the standard image reported
 `inhibited-standalone-simulator`, empty/unowned and
 `output_active=false`. USB-local adoption produced healthy access generation
 1 with the public default active and enrollment closed. Station

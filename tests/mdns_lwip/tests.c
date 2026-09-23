@@ -129,7 +129,7 @@ static unsigned query(unsigned char* data, int truncated) {
 }
 int main(void) {
     struct netif interface;
-    ip4_addr_t address, mask, gateway, group1, group2;
+    ip4_addr_t address, mask, gateway, groups[MEMP_NUM_IGMP_GROUP];
     struct udp_pcb* pcbs[MEMP_NUM_UDP_PCB];
     unsigned char data[1500];
     unsigned i, count, before, memory, timeout_count;
@@ -165,14 +165,21 @@ int main(void) {
     while (count)
         mem_free(allocations[--count]);
     memory = lwip_stats.mem.used;
-    IP4_ADDR(&group1, 224, 0, 0, 252);
-    IP4_ADDR(&group2, 224, 0, 0, 253);
-    assert(igmp_joingroup_netif(&interface, &group1) == ERR_OK);
-    assert(igmp_joingroup_netif(&interface, &group2) == ERR_OK);
+    count = 0;
+    for (i = 0; i < MEMP_NUM_IGMP_GROUP; ++i) {
+        err_t join_result;
+        IP4_ADDR(&groups[i], 239, 255, 0, 1 + i);
+        join_result = igmp_joingroup_netif(&interface, &groups[i]);
+        if (join_result == ERR_MEM)
+            break;
+        assert(join_result == ERR_OK);
+        ++count;
+    }
+    assert(count);
     assert(wsprry_mdns_add(&interface, "pico-a") == ERR_MEM);
     assert(!mdns_resp_netif_active(&interface) && lwip_stats.mem.used == memory);
-    igmp_leavegroup_netif(&interface, &group1);
-    igmp_leavegroup_netif(&interface, &group2);
+    while (count)
+        igmp_leavegroup_netif(&interface, &groups[--count]);
     // Exclude deliberate startup heap exhaustion from normal responder highwater.
     lwip_stats.mem.max = lwip_stats.mem.used;
     timeout_count = lwip_stats.memp[MEMP_SYS_TIMEOUT]->used;

@@ -87,10 +87,13 @@ Production SoftAP DHCP/mDNS/HTTP/HTTPS, password/cookie admission,
 controller-time and browser/local control are now wired to the same
 `JobService` in the RF-inhibited standard image. SoftAP credential
 provisioning, reset administration, exact gestures, offline-page qualification
-and most physical acceptance remain open. BLE provisioning, controller-time,
-Identify/status, unchanged WTP/1 and the network-only live activator are also
-wired, but their unexecuted physical rows remain open. P12.3 is closed only for
-its documented hardware-free
+and most physical acceptance remain open. The provisioned SoftAP path now has
+bounded native-Pi Candidate A evidence for WPA2/DHCP/mDNS/TLS,
+password/cookie admission, controller time and basic local ownership, but no
+phone/Safari/Bluefy or provisioning acceptance. BLE provisioning,
+controller-time, Identify/status, unchanged WTP/1 and the network-only live
+activator are also wired, but their remaining physical rows stay open. P12.3 is
+closed only for its documented hardware-free
 source/cross-link boundary; Phase 12 is not yet an accepted end-user path.
 
 Host tests, target execution and RF qualification are distinct evidence classes.

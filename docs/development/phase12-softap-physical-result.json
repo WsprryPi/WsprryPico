@@ -1,0 +1,189 @@
+{
+  "schema": "phase12-softap-physical-result-v1",
+  "date": "2026-09-23",
+  "status": "PARTIAL_PASS",
+  "phase_complete": false,
+  "stage_b_authorized": false,
+  "rf_output_authorized": false,
+  "execution_prompt": "phase12-completion-execution-prompt.md",
+  "source": {
+    "starting_revision": "c84fa157b93493cf0c28fa2e96c30e0beeabe7e2",
+    "final_candidate_revision": "0ecf9c170384fd2cc3ba802515e1d2c1396ab9fa",
+    "firmware_revision": "0ecf9c170384",
+    "branch": "devel",
+    "pre_freeze_drift_sentinel_used": false
+  },
+  "dependencies": {
+    "pico_sdk_version": "2.3.1",
+    "pico_sdk_revision": "079c6f39023649b154152db30f1d781e884879bc",
+    "btstack_revision": "eb0bb8b5ea6d234ccb940313b47f7a5c3b4e20ec",
+    "picotool_revision": "6f6458d792b93685a11423b244a585eaa99eafcf"
+  },
+  "artifact": {
+    "type": "standard RF-inhibited Pico 2 W image",
+    "uf2_sha256": "6261e322884a280afcd997537d6248fbbf0033b879fab1b2a661acd3a3575e23",
+    "uf2_bytes": 2699776,
+    "text_bytes": 1367880,
+    "bss_bytes": 134560,
+    "rf_engine": "inhibited-standalone-simulator",
+    "target_linkchecks": [
+      "provisioning_pico_linkcheck",
+      "field_access_pico_linkcheck",
+      "rf_driver_linkcheck"
+    ]
+  },
+  "candidate": {
+    "board": "Pico 2 W / RP2350",
+    "usb_serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "station_mac": "88:a2:9e:0a:60:df",
+    "ble_address": "88:A2:9E:0A:60:E0",
+    "softap_ssid": "WsprryPico-0a60df",
+    "hostname": "wsprrypico-0a60df.local",
+    "comparator_usb_serial": "CDDBF8767C506C07",
+    "comparator_modified": false
+  },
+  "preserved_state": {
+    "profile_source": "factory",
+    "profile_generation": 0,
+    "access_state": "healthy",
+    "access_generation": 3,
+    "default_password_active": true,
+    "station": {
+      "callsign": "AA0NT",
+      "locator": "EM18",
+      "power_dbm": 20
+    },
+    "schedule": {
+      "period_s": 120,
+      "phase_s": 0
+    },
+    "watermark_utc_ns": "1789607761000000000",
+    "configuration_journal_sequence": 72,
+    "watermark_journal_sequence": 12,
+    "storage_healthy": true
+  },
+  "retained_failed_attempts": [
+    {
+      "revision": "46e21069ac2a",
+      "result": "FAIL",
+      "failure": "WPA association succeeded but the target issued no DHCP lease",
+      "repair": "added a bounded project-owned AP-netif-bound DHCP server with checked startup"
+    },
+    {
+      "revision": "9bd0d7057128",
+      "result": "FAIL",
+      "failure": "DHCP and mDNS passed but HTTPS refused connections",
+      "repair": "reserved the sole TCP listen PCB for the active provisioned surface instead of also starting blank bootstrap HTTP"
+    },
+    {
+      "revision": "45d0a9215e3a",
+      "uf2_sha256": "78c1487584d31ca673ba0d7f1438e4d54f846580f8fbeba9d8101443e897394a",
+      "result": "FAIL",
+      "failure": "three controller-time attempts exceeded the unchanged 500 ms uncertainty limit because challenge and submit each required a separate TLS handshake",
+      "observed_round_trip_s": [1.46, 1.73],
+      "repair": "kept only the immediate time challenge/submit pair on one authenticated TLS connection"
+    }
+  ],
+  "final_adversarial_test_repair": {
+    "finding": "the real-lwIP mDNS exhaustion test hard-coded the pre-expansion IGMP pool occupancy",
+    "repair": "fill and release the configured IGMP pool dynamically before asserting mDNS ERR_MEM and unwind",
+    "focused_sanitizer_reassessment": "12/12 passed"
+  },
+  "final_candidate_checks": {
+    "serial_targeted_picotool_load_verify": "PASS",
+    "identity_and_preservation": "PASS",
+    "wpa2_association": "PASS",
+    "dhcp": {
+      "result": "PASS",
+      "client_address": "192.168.4.16/24",
+      "gateway": "192.168.4.1"
+    },
+    "mdns": {
+      "result": "PASS",
+      "name": "wsprrypico-0a60df.local",
+      "address": "192.168.4.1"
+    },
+    "https": {
+      "result": "PASS",
+      "tls": "TLSv1.3",
+      "alpn": "http/1.1",
+      "device_bound_certificate": true,
+      "trust_scope": "process-local CA file only",
+      "wrong_password_rejected": true,
+      "cross_origin_login_rejected": true,
+      "cookie_attributes": [
+        "Path=/",
+        "Secure",
+        "HttpOnly",
+        "SameSite=Strict"
+      ],
+      "logout_invalidated_cookie": true
+    },
+    "controller_time": {
+      "result": "PASS_NATIVE_PI_CONTROLLER_ONLY",
+      "same_tls_connection": true,
+      "accepted_exchange_ns": [277132467, 277595784],
+      "maximum_uncertainty_ns": 500000000,
+      "clock_state_after": "synchronized",
+      "reported_uncertainty_after_first_ns": 307049485,
+      "iphone_phone_time_accepted": false
+    },
+    "local_control": {
+      "identity": "PASS",
+      "status": "PASS",
+      "capabilities": "PASS",
+      "wtp_hello": "PASS",
+      "wtp_claim": "PASS",
+      "wtp_release": "PASS",
+      "load_or_arm_executed": false
+    },
+    "reconnect_and_reclamation": {
+      "result": "PASS_BOUNDED",
+      "dhcp_address_reused": "192.168.4.16/24",
+      "mdns_after_reconnect": true,
+      "https_after_reconnect": true,
+      "allocator_failures": 0,
+      "tls_allocation_failures": 0,
+      "tcp_pcbs_used_after": 0,
+      "tcp_segments_used_after": 0,
+      "packet_pool_used_after": 0
+    }
+  },
+  "restoration": {
+    "temporary_networkmanager_profiles_removed": true,
+    "test_interface": "wlan2",
+    "test_interface_disconnected": true,
+    "management_interfaces_preserved": [
+      "eth0",
+      "wlan1"
+    ],
+    "candidate_rebooted": true,
+    "final_boot_id": "889776ed08c5da0743cfa62b224062ac",
+    "job_state": "empty",
+    "owner": null,
+    "output_active": false,
+    "clock_state": "unsynchronized after reboot",
+    "ble_running": true,
+    "ble_connected": false,
+    "journals_healthy": true,
+    "explicit_join_grace_reboot_clear": "not independently distinguishable from automatic fallback",
+    "softap_final_state": "automatic fallback active because the preserved factory station configuration remained unavailable",
+    "softap_stop_row": "NOT_MET_PREREQUISITE_STATION_UNAVAILABLE"
+  },
+  "not_executed": [
+    "exact iPhone model iOS release and Bluefy App Store identity",
+    "offline Bluefy page reuse with Wi-Fi and cellular data disabled",
+    "fresh-password iPhone or Bluefy authorization",
+    "full credential transfer and delivery-safe profile activation",
+    "iPhone phone-time exchange",
+    "visual SoftAP-ready and Identify LED timing",
+    "blank unprovisioned HTTP surface on a generic image",
+    "SoftAP credential provisioning and reset administration because those surfaces are not implemented",
+    "BLE simulated job execution",
+    "password bond reset and recovery matrix",
+    "fault injection replacement trust concurrency and bounded soak",
+    "any RF output or Phase 13 qualification"
+  ],
+  "private_evidence_directory": "/home/pi/phase12-softap-acceptance-20260923.1cFDeq"
+}

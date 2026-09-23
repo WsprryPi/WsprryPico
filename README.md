@@ -81,14 +81,19 @@ remains controlling: BLE/Bluefy is primary, SoftAP/Safari is an independent
 no-infrastructure fallback, Bluetooth uses Just Works plus application-password
 enrollment, the public default comes from the station-MAC suffix, phone time may
 seed bounded offline UTC, and the onboard LED supplies Identify and actual
-SoftAP-ready patterns. A hardware-free continuation production-connects SoftAP
+SoftAP-ready patterns. The production continuation connects SoftAP
 DHCP/mDNS, blank read-only HTTP, provisioned pre-clock/normal HTTPS,
 password/cookie admission, controller time and the existing browser/one-
-`JobService` API. It has no physical acceptance. The clean committed BLE image
-has verified Candidate A load/boot
+`JobService` API. Its clean RF-inhibited Candidate A image has bounded
+native-Pi evidence for WPA2/DHCP/mDNS/TLS, password/cookie admission,
+same-connection controller time, status and `HELLO`/`CLAIM`/`RELEASE`; see the
+[SoftAP physical review](docs/development/phase12-softap-physical-review.md).
+This is not phone/Safari/Bluefy or provisioning acceptance. The clean committed
+BLE image has verified Candidate A load/boot
 with preserved state and final RF-inhibited empty/unowned/inactive-output
-restoration. Bluefy/iOS and offline reuse, profile activation,
-physical SoftAP/HTTPS, the broader physical BLE job-control/local-management
+restoration. Bluefy/iOS and offline reuse, profile activation, blank generic
+SoftAP HTTP, stable-station AP withdrawal, the broader physical BLE
+job-control/local-management
 matrix, phone-time and LED behavior,
 reset controls and most of the
 [RF-inhibited-first physical plan](docs/development/phase12-physical-acceptance.md)

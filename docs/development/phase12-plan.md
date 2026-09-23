@@ -4,21 +4,28 @@ Status: active. P12.1-P12.5 remain accepted within their documented
 hardware-free scopes. P12.6 now production-enables BLE provisioning plus
 authenticated controller time, Identify/status and an unchanged WTP/1 stream,
 the network-only live activator and indicator construction in the RF-inhibited
-standard image, a deterministic offline Bluefy release, and a hardware-free
-production SoftAP path. The SoftAP path includes the bounded project-owned DHCP
+standard image, a deterministic offline Bluefy release, and the production
+SoftAP path. The SoftAP path includes the bounded project-owned DHCP
 server on `192.168.4.1/24`, AP-interface mDNS, blank read-only HTTP, provisioned
 pre-clock/normal HTTPS, password/cookie admission, controller time and the
-existing browser/`JobService` API. It has build/test evidence only. Its
-identity/adoption/advertising physical subset has passed. Physical SoftAP,
-physical BLE job-control/local-management beyond the bounded Raspberry Pi
-client exercise, phone-time behavior, reset/gesture work and most physical
-acceptance remain open. The clean committed standard image at
+existing browser/`JobService` API. Its final RF-inhibited Candidate A image now
+has bounded native-Pi target evidence for WPA2 association, DHCP, mDNS,
+device-bound TLS 1.3, wrong-password/cross-origin rejection, correct-password
+cookie admission, same-connection controller time, status/capabilities,
+`HELLO`/`CLAIM`/`RELEASE`, logout, reconnect and resource return. This is not
+iPhone/Safari/Bluefy or credential-provisioning acceptance. Physical BLE
+job-control/local-management beyond the bounded Raspberry Pi client exercise,
+phone-time behavior, reset/gesture work and most physical acceptance remain
+open. The clean committed standard image at
 `d52a2fa6a3a3` has passed a serial-targeted load/verify plus an exact
 RF-inhibited Candidate A/wspr5 native-client exercise for identity inspection,
 authenticated controller time, field status and WTP `HELLO`/`STATUS`. The run
 preserved station/schedule/watermark state and ended
-empty/unowned/inactive-output. This is not Bluefy/iOS, SoftAP, RF or broad
-interoperability acceptance. The later BLE source boundary is reviewed in
+empty/unowned/inactive-output. The later SoftAP physical continuation is
+recorded in the
+[RF-inhibited SoftAP review](phase12-softap-physical-review.md). Neither result
+is Bluefy/iOS, RF or broad interoperability acceptance. The later BLE source
+boundary is reviewed in
 the [BLE local-control continuation](phase12-ble-local-control-review.md). The
 bounded Pi/TCP slice is recorded in the
 [Raspberry Pi BLE and first-class TCP/WTP review](phase12-pi-ble-tcp-review.md).
@@ -36,8 +43,8 @@ operations.
 | P12.1-P12.2: profile journal and provisioning state machine | Accepted in their hardware-free scope. |
 | P12.3: Pico adapter source | **CLOSED_SCOPED** for source, deterministic tests and RP2350 cross-links; not physical acceptance. |
 | P12.4-P12.5: commands, delivery-safe activation and admission | Implemented and accepted in their hardware-free scope. |
-| P12.6: production integration | **Partial.** BLE provisioning/local control and the hardware-free SoftAP browser path are production-wired. SoftAP credential provisioning, reset administration and target acceptance remain open. |
-| Physical Stage A | **Partial.** Candidate identity, adoption, preserved settings, BLE advertising, one online retained-bond Bluefy authorization exchange and one native-Pi BLE identity/time/status/HELLO/STATUS exercise passed within their recorded bounds. Fresh password, iPhone/Bluefy identity, offline reuse, full credential activation, SoftAP, LED, reset/fault/resource and soak rows remain open. |
+| P12.6: production integration | **Partial.** BLE provisioning/local control and the SoftAP browser path are production-wired. The basic target SoftAP control path has bounded native-Pi evidence; SoftAP credential provisioning and reset administration are not implemented, and broad target acceptance remains open. |
+| Physical Stage A | **Partial.** Candidate identity, adoption, preserved settings, BLE advertising, one online retained-bond Bluefy authorization exchange, a native-Pi BLE identity/time/status/HELLO/STATUS exercise and the bounded native-Pi SoftAP path passed within their recorded limits. Exact iPhone/Bluefy identity, offline reuse, fresh phone password, full credential activation, phone time, LED, reset/fault/trust/soak and stable-station AP-withdrawal rows remain open. |
 | Physical Stage B / RF output | Not authorized or performed. Phase 13 remains separate. |
 
 ## Scope and starting point
@@ -61,6 +68,13 @@ candidate was frozen only after implementation and review at
 `b28400e114abb68566eef2154361e7d541069ff0`; no pre-freeze repository drift
 sentinel was installed. That clean RF-inhibited image was built and hashed but
 not flashed, so it is not physical evidence.
+
+The RF-inhibited SoftAP target continuation started from clean `devel` at
+`c84fa157b93493cf0c28fa2e96c30e0beeabe7e2`, equal to `origin/devel`.
+Source was again allowed to evolve before each candidate was committed. The
+final exact target candidate is `0ecf9c170384fd2cc3ba802515e1d2c1396ab9fa`;
+its retained failures, repairs and partial target acceptance are recorded in
+the [SoftAP physical result](phase12-softap-physical-result.json).
 
 ## Source and dependency findings
 
@@ -309,9 +323,11 @@ The next hardware-free safety boundary is implemented without enabling a radio:
   claimed.
 - Partial physical evidence proves the exact RF-inhibited candidate identity,
   healthy adoption, preserved station/schedule/watermark state and repaired BLE
-  advertisement. It does not prove Bluefy interoperability, provisioning,
-  activation, offline reuse, LED waveform, SoftAP or coexistence. The SoftAP
-  continuation did not flash hardware and adds no physical acceptance.
+  advertisement. The later native-Pi SoftAP run additionally proves its bounded
+  association, DHCP/mDNS, authenticated HTTPS/time/local-control and resource
+  rows. It does not prove iPhone/Safari/Bluefy interoperability,
+  provisioning/activation, offline reuse, LED waveform, fault/soak coverage or
+  broad coexistence.
 
 Phase 12 completion evidence must cover:
 
@@ -372,9 +388,10 @@ Remaining questions are target integration details, not license to change that
 policy:
 
 - the exact safe Pico 2 W gestures for enrollment and the three reset levels;
-- physical validation of SoftAP DHCP/mDNS, blank bootstrap HTTP,
-  pre-clock/normal HTTPS, cookie/session expiry, controller time and independent
-  browser/local control on the exact candidate/client pair;
+- physical validation of blank bootstrap HTTP, Safari/Bluefy, cookie/session
+  expiry, stable-station AP withdrawal and the broader controller-time/local-
+  control matrix; the bounded native-Pi provisioned SoftAP path is accepted
+  only as recorded in its physical review;
 - a delivery-safe SoftAP provisioning/activation surface if credential transfer
   is to be supported there; the implemented SoftAP browser surface does not
   expose provisioning commands;

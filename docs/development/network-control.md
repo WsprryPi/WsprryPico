@@ -164,10 +164,12 @@ explicitly.
 
 The BLE portion has deterministic portable/client tests, target cross-linking
 and limited enabled-production evidence. The SoftAP portion now has production
-source, deterministic policy/API tests and an RP2350 cross-build. Complete
-profile transfer and activation, physical SoftAP/Safari, Bluefy/iOS offline
-operation and the broader physical matrix remain open. E1 identity/trust
-acceptance does not qualify end-user setup.
+source, deterministic policy/API tests, an RP2350 cross-build and bounded
+native-Pi Candidate A evidence for the provisioned
+WPA2/DHCP/mDNS/HTTPS/time/local-control path. Complete profile transfer and
+activation, blank generic HTTP, stable-station AP withdrawal, physical
+Safari/Bluefy/iOS offline operation and the broader physical matrix remain
+open. E1 identity/trust acceptance does not qualify end-user setup.
 
 ### Renewal and compromised credentials
 

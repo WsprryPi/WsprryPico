@@ -7,11 +7,14 @@ This review records the earlier production/physical tranche. The subsequent
 hardware-free production wiring for controller time, Identify/status and an
 unchanged WTP/1 GATT stream. Its clean committed image has subsequently passed
 load/boot, preservation and final RF-inhibited restoration, but none of the new
-BLE operations has iPhone/Bluefy physical acceptance. A later hardware-free
-SoftAP continuation now connects the production AP, blank bootstrap,
-pre-clock/normal HTTPS, password/cookie admission, controller time and existing
-browser/`JobService` API. That continuation was not flashed and has no physical
-acceptance. The earlier results are retained below.
+BLE operations has iPhone/Bluefy physical acceptance. A later SoftAP
+continuation now connects the production AP, blank bootstrap, pre-clock/normal
+HTTPS, password/cookie admission, controller time and existing
+browser/`JobService` API. A subsequent RF-inhibited native-Pi run partially
+accepted the provisioned SoftAP path after three retained target failures and
+repairs. It is not iPhone/Safari/Bluefy, blank-device,
+provisioning/activation or broad Stage A acceptance. The earlier results are
+retained below.
 
 ## Authority and evidence boundary
 
@@ -370,6 +373,50 @@ The repaired paths have focused regressions. The second assessment found items
 assessment found no further actionable issue in the hardware-free SoftAP
 boundary. It did not convert the unexecuted target rows into passes.
 
+## RF-inhibited SoftAP physical continuation
+
+The continuation began at clean `devel`
+`c84fa157b93493cf0c28fa2e96c30e0beeabe7e2`. Source was deliberately not
+guarded by a pre-freeze drift sentinel. Four committed candidate revisions were
+built and affected physical rows were repeated on Candidate A only. The first
+three retained failures were: no DHCP service at `46e21069ac2a`; listener
+refusal after DHCP repair at `9bd0d7057128`; and correct controller-time
+rejection at `45d0a9215e3a` because separate TLS handshakes made the unchanged
+500 ms uncertainty limit impossible. Repairs added the bounded DHCP server,
+reserved the one listener for the active surface, and kept only the immediate
+time challenge/submit pair on one authenticated TLS connection.
+
+The final exact candidate is clean source
+`0ecf9c170384fd2cc3ba802515e1d2c1396ab9fa`, firmware identity
+`0ecf9c170384`, and UF2 SHA-256
+`6261e322884a280afcd997537d6248fbbf0033b879fab1b2a661acd3a3575e23`.
+Serial-targeted picotool load/verify passed. Candidate A preserved profile
+generation 0, access generation 3, station/schedule/watermark values and healthy
+configuration/watermark journals. The final image passed exact SSID WPA2,
+DHCP, AP mDNS, process-local certificate validation, TLS 1.3, wrong-password
+and cross-origin rejection, correct-password cookie admission, two accepted
+same-connection controller-time exchanges of 277,132,467 ns and 277,595,784 ns,
+normal status/capabilities,
+`HELLO`/`CLAIM`/`RELEASE`, logout, reconnect and bounded resource return. The
+clock reported synchronized with 307,049,485 ns uncertainty. No `LOAD`, `ARM`
+or RF operation occurred.
+
+All temporary NetworkManager profiles were removed, the test interface was
+disconnected and Candidate A was rebooted. Final boot
+`889776ed08c5da0743cfa62b224062ac` again reported the inhibited simulator,
+empty/unowned state, inactive output, healthy journals, unsynchronized clock
+and disconnected BLE. The AP-stop row remains unmet because the preserved
+factory station configuration is unavailable and the selected contract
+therefore requires automatic fallback to advertise. A later usable-station run
+must prove withdrawal after 30 seconds of station stability; disabling fallback
+to manufacture a stop would violate the contract.
+
+The exact credential-free evidence, remaining rows and restoration limitation
+are in the [SoftAP review](phase12-softap-physical-review.md) and
+[result](phase12-softap-physical-result.json). This accepts a bounded native-Pi
+control path only, not iPhone phone time, Safari/Bluefy behavior, credential
+provisioning, reset/fault/soak or Stage B.
+
 ## Adversarial findings and repairs
 
 1. **Double CYW43 ownership risk.** The candidate GATT path could initialize and
@@ -421,16 +468,18 @@ Phase 12 remains open for:
 - exact iPhone model, iOS and Bluefy version and live chooser/pairing evidence;
 - online install followed by verified no-Wi-Fi/no-cellular offline page reuse;
 - full provisioning/activation lifecycle on the clean committed candidate;
-- controller-time and Identify physical behavior;
-- physical SoftAP DHCP/mDNS, blank HTTP, pre-clock/normal HTTPS, Safari
-  certificate behavior, controller time and independent field-control path;
+- iPhone controller-time and visual Identify/ready-LED behavior;
+- blank generic HTTP, Safari/Bluefy certificate behavior, cookie lifetime and
+  stable-station AP withdrawal; the bounded native-Pi provisioned SoftAP path
+  is accepted only as recorded above;
 - any SoftAP credential-provisioning/activation surface, which is not exposed by
   the current browser integration;
 - BLE ordinary WTP/browser local management through the one `JobService`;
 - password/bond/reset recovery and safe accepted physical controls;
-- fault-injection, replacement/superseded-trust, resource reclamation,
+- fault-injection, replacement/superseded-trust, broader resource reclamation,
   concurrency and bounded soak rows;
 - final RF-inhibited/output-off/restoration evidence after any later physical
-  mutation; the current tranche ended restored.
+  mutation; this tranche ended RF-inhibited with the exact fallback limitation
+  recorded above.
 
 Stage B and all RF output remain separate and unauthorized.

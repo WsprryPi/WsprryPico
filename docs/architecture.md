@@ -112,9 +112,11 @@ AP-interface-bound DHCP service on
 `192.168.4.1/24`, AP-interface mDNS, blank read-only HTTP, device-bound HTTPS,
 password/cookie admission, controller time and the existing browser API backed
 by that same `JobService`. The repository-owned Bluefy artifact uses a
-release-keyed atomic offline cache. SoftAP credential provisioning, phone
-acceptance, reset gestures and most physical coexistence/resource evidence
-remain Phase 12 gates. See the
+release-keyed atomic offline cache. A bounded native-Pi Candidate A run has
+accepted the provisioned SoftAP association/DHCP/mDNS/HTTPS/time/basic-control
+path only. SoftAP credential provisioning, phone/Safari/Bluefy acceptance,
+reset gestures and most physical coexistence/resource evidence remain Phase 12
+gates. See the
 [Phase 12 plan](development/phase12-plan.md),
 [field contract](development/phase12-field-access-contract.md) and
 [production review](development/phase12-production-acceptance-review.md).
@@ -142,10 +144,11 @@ SoftAP controller observations through it. Physical phone-time accuracy remains
 unqualified.
 
 Remaining Phase 12 details are SoftAP credential provisioning, authenticated
-phone-time acceptance, accepted reset controls, physical Bluefy offline/
-interoperability evidence, live profile activation and target resource/
-coexistence tuning. The wired SoftAP/HTTPS and local-control surfaces still
-require target acceptance.
+phone-time acceptance, accepted reset controls, blank generic HTTP,
+stable-station AP withdrawal, physical Bluefy offline/interoperability
+evidence, live profile activation and broader target resource/coexistence
+tuning. The wired SoftAP/HTTPS and local-control surfaces have only the bounded
+native-Pi target acceptance recorded above.
 Clock calibration, production RF engine/pins and shared WsprryPi adoption of
 browser API v1 remain open. The current Pico browser schemas and bounds are
 documented in the API contract. WTP/1 defines interoperable limits and policies
