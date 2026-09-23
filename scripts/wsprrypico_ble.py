@@ -468,7 +468,9 @@ class Client:
             self.backend.pump(min(0.05, max(0.0, deadline - time.monotonic())))
         fail(code)
 
-    def exchange(self, message: dict[str, Any]) -> dict[str, Any]:
+    def exchange(
+        self, message: dict[str, Any], without_response: bool = False
+    ) -> dict[str, Any]:
         request_id = message.get("request_id")
         if not valid_device_id(request_id):
             fail("request_id")
@@ -482,7 +484,7 @@ class Client:
                 fail("command_oversize")
             frames = gatt_frames(encoded)
             for frame in frames:
-                self.backend.write(UUIDS["command"], frame)
+                self.backend.write(UUIDS["command"], frame, response=not without_response)
             response = self._wait(self._field_responses, request_id, "timeout")
             if response["ok"]:
                 return response
@@ -512,7 +514,9 @@ class Client:
         finally:
             password = ""
 
-    def _field(self, operation: str, **fields: Any) -> dict[str, Any]:
+    def _field(
+        self, operation: str, *, without_response: bool = False, **fields: Any
+    ) -> dict[str, Any]:
         if not self.authorized:
             fail("authentication_required")
         message = {
@@ -523,7 +527,7 @@ class Client:
             "device_id": self.expected_device_id,
         }
         message.update(fields)
-        return self.exchange(message)
+        return self.exchange(message, without_response)
 
     def identify(self) -> None:
         if self._field("identify").get("identified") is not True:
@@ -552,7 +556,12 @@ class Client:
         sampled = int(time.time_ns() // 1_000_000) if milliseconds is None else milliseconds
         if isinstance(sampled, bool) or not isinstance(sampled, int) or sampled < 0:
             fail("controller_time")
-        response = self._field("time_submit", nonce=nonce, utc_ns=str(sampled * 1_000_000))
+        response = self._field(
+            "time_submit",
+            without_response=True,
+            nonce=nonce,
+            utc_ns=str(sampled * 1_000_000),
+        )
         if response.get("accepted") is not True:
             fail("controller_time_response")
 
@@ -576,7 +585,9 @@ class Client:
         self._wtp_pending_op = operation
         try:
             for offset in range(0, len(frame), WTP_SEGMENT_BYTES):
-                self.backend.write(UUIDS["wtpCommand"], frame[offset : offset + WTP_SEGMENT_BYTES])
+                self.backend.write(
+                    UUIDS["wtpCommand"], frame[offset : offset + WTP_SEGMENT_BYTES]
+                )
             response = self._wait(self._wtp_responses, request_id, "wtp_timeout")
             if response.get("op") != operation:
                 fail("wtp_response_mismatch")
@@ -920,12 +931,12 @@ class BluezBackend:
         except Exception:
             fail("gatt_read")
 
-    def write(self, uuid: str, value: bytes | bytearray) -> None:
+    def write(self, uuid: str, value: bytes | bytearray, response: bool = True) -> None:
         _, characteristic = self._characteristic(uuid)
         try:
             characteristic.WriteValue(
                 self.dbus.Array([self.dbus.Byte(byte) for byte in value], signature="y"),
-                {"type": self.dbus.String("request")},
+                {"type": self.dbus.String("request" if response else "command")},
             )
         except Exception:
             fail("gatt_write")

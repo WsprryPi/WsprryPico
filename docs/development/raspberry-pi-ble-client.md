@@ -81,7 +81,12 @@ python3 scripts/wsprrypico_ble.py --address AA:BB:CC:DD:EE:FF \
 `sync-time` uses the same principal/session/device/nonce-bound challenge as
 Bluefy. The target begins charging latency when it starts the final challenge
 response indication, a conservative boundary before the controller can first
-sample UTC; the fixed uncertainty ceiling is unchanged. `wtp-status` subscribes
+sample UTC. The Linux client sends the ordered `time_submit` fragments with the
+encrypted GATT write-without-response property so per-fragment ATT replies do
+not consume that fixed budget; the bound response indication remains the
+end-to-end success/failure result. Missing or reordered fragments still time
+out or fail closed, and the fixed uncertainty ceiling is unchanged.
+`wtp-status` subscribes
 to the separate encrypted GATT WTP endpoint,
 negotiates `WTP/1`, verifies device and boot identity, and requests `STATUS`.
 It proves the local client can carry the unchanged WTP stream; it does not start

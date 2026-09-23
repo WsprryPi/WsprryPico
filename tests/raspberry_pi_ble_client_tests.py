@@ -49,6 +49,7 @@ class FakeBackend:
         self.profile = bytearray()
         self.generation = 7
         self.fail_write = False
+        self.write_responses = []
 
     def connect(self, address, service, timeout, allow_pairing=True):
         if address != ADDRESS or service != ble.UUIDS["service"] or timeout <= 0:
@@ -147,8 +148,9 @@ class FakeBackend:
         for offset in range(0, len(response), 19):
             self.callbacks[ble.UUIDS["wtpStatus"]](bytes(response[offset:offset + 19]))
 
-    def write(self, uuid, value):
+    def write(self, uuid, value, response=True):
         if uuid == ble.UUIDS["command"]:
+            self.write_responses.append(response)
             complete = self.command_receiver.receive(value)
             if complete is not None:
                 self._handle_field(json.loads(complete))
@@ -259,6 +261,7 @@ class ClientTests(unittest.TestCase):
             backend.operations,
             ["authorize", "identify", "field_status", "time_challenge", "time_submit"],
         )
+        self.assertIn(False, backend.write_responses)
         with self.assertRaisesRegex(ble.ClientError, "local_password") as caught:
             ble.Client(FakeBackend()).authorize("secret")
         self.assertNotIn("secret", str(caught.exception))
