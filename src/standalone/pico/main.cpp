@@ -312,7 +312,13 @@ int main() {
     server.softap_handler(&softap_api, softap_interface, nullptr);
     static wsprrypico::network::PicoBootstrapServer bootstrap(
         identities.device_id(), wsprrypico::firmware::kFirmwareVersion, softap_interface, nullptr);
-    const bool bootstrap_started = derived_identity && bootstrap.start();
+    // The plaintext listener is exclusive to a truly unprovisioned recovery
+    // surface.  Starting it for provisioned images would consume the single
+    // bounded lwIP listen PCB before the authenticated TLS listener starts.
+    const bool bootstrap_started =
+        derived_identity &&
+        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned &&
+        bootstrap.start();
     browser_api.set_active_job_connections(true);
     bool server_start_attempted = false;
     static wsprrypico::provisioning::PicoIndicatorOutput indicator_output;

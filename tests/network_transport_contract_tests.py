@@ -45,6 +45,12 @@ assert "static wsprrypico::wtp::Endpoint ble_endpoint(service," in main
 assert "static wsprrypico::network::PicoServer server(service," in main
 assert "static wsprrypico::standalone::Scheduler scheduler(store, service);" in main
 
+# The bounded listen-PCB slot belongs to exactly one surface. A provisioned
+# image must not reserve the blank-device plaintext listener ahead of TLS.
+bootstrap_gate = main.index("const bool bootstrap_started")
+bootstrap_call = main.index("bootstrap.start();", bootstrap_gate)
+assert "RuntimeSource::Unprovisioned" in main[bootstrap_gate:bootstrap_call]
+
 # Normative transport text explicitly rejects plaintext and downgrade.
 for required in ("identical frame stream", "TLS 1.3", "ALPN", "wtp/1", "Plaintext TCP"):
     assert required in protocol
