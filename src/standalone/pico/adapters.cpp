@@ -239,11 +239,14 @@ std::string PicoNetwork::association() {
 }
 #endif
 bool PicoNetwork::initialize() {
+    if (mdns_initialized_)
+        return true;
     if (mdns_owner && mdns_owner != this)
         return false;
     if (wsprry_mdns_init(mdns_result) != ERR_OK)
         return false;
     mdns_owner = this;
+    mdns_initialized_ = true;
     return true;
 }
 bool PicoNetwork::add(std::string_view label) {
@@ -261,6 +264,38 @@ void PicoNetwork::withdraw() {
 void PicoNetwork::mdns_result(struct netif* interface, u8_t result, s8_t slot) {
     if (mdns_owner && interface == &cyw43_state.netif[CYW43_ITF_STA] && slot == 0)
         mdns_owner->mdns_.name_result(result == MDNS_PROBING_SUCCESSFUL);
+    if (mdns_owner && interface == &cyw43_state.netif[CYW43_ITF_AP] && slot == 0) {
+        mdns_owner->softap_mdns_active_ = result == MDNS_PROBING_SUCCESSFUL;
+        mdns_owner->softap_mdns_conflict_ = result == MDNS_PROBING_CONFLICT;
+    }
+}
+bool PicoNetwork::softap_name(bool enabled, std::string_view hostname) {
+    auto* interface = &cyw43_state.netif[CYW43_ITF_AP];
+    if (!enabled) {
+        if (softap_mdns_registered_)
+            wsprry_mdns_remove(interface, false);
+        softap_mdns_registered_ = softap_mdns_active_ = false;
+        softap_mdns_conflict_ = false;
+        softap_hostname_.clear();
+        return false;
+    }
+    const auto canonical = network::canonical_local_hostname(hostname);
+    if (!canonical || !netif_is_up(interface) || !netif_is_link_up(interface) ||
+        ip4_addr_isany_val(*netif_ip4_addr(interface)) || softap_mdns_conflict_)
+        return false;
+    if (softap_mdns_registered_)
+        return softap_mdns_active_ && softap_hostname_ == *canonical;
+    if (!initialize())
+        return false;
+    softap_hostname_ = *canonical;
+    const auto label = softap_hostname_.substr(0, softap_hostname_.size() - 6);
+    if (wsprry_mdns_add(interface, label.c_str()) != ERR_OK) {
+        softap_hostname_.clear();
+        return false;
+    }
+    softap_mdns_registered_ = true;
+    softap_mdns_active_ = false;
+    return false; // Probing; callback promotes it to usable.
 }
 bool PicoNetwork::initialize_radio() {
     if (initialized_)

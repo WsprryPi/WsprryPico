@@ -5,11 +5,19 @@ Work in `/Users/lbussy/GitHub/WsprryPico` on `devel`.
 ## Starting state, authority and evidence boundary
 
 Begin from clean `devel` at
-`22069839837afdbf5e5799d8834bd65cd66a3526`, equal to `origin/devel` at the
+`ae21bc7b9dd772b0b37cf52b288a2544e848ea9f`, equal to `origin/devel` at the
 start of this tranche. Inspect branch, status, HEAD, upstream and the current
 remote-tracking reference before editing and before publication. Preserve all
 later work; do not reset, stash, discard changes, rewrite history or substitute
 another checkout.
+
+Do not install a source-drift sentinel while implementation is still changing.
+Complete the source work, tests and adversarial review first, then commit the
+candidate to freeze its identity. Build and flash only that exact clean commit.
+If an actionable later finding changes source, create a new candidate commit
+and repeat only the affected physical rows against that new identity. A
+post-freeze source/evidence binding may detect movement away from the committed
+candidate; it must not pretend unfinished source is immutable.
 
 This prompt authorizes source, test and maintained-documentation changes;
 hardware-free builds and tests; cross-builds using the already retained pinned
@@ -47,7 +55,7 @@ Read `AGENTS.md`, `README.md`, `CONTRACT.md`, `SECURITY.md`,
 `docs/development/network-control.md`, `docs/development/standalone.md`,
 `docs/browser-api.md` and `docs/protocol/WTP.md`.
 
-Review the recent `16d8f0e` through `2206983` changes and the complete current
+Review the recent `16d8f0e` through `ae21bc7` changes and the complete current
 production graph: access/profile/reset journals, one `JobService`, scheduler,
 output authority, runtime profile overlay, CYW43 ownership, station/SNTP/TLS
 server, provisioning manager, delivery-safe activation, GATT framing and CCCD
@@ -60,14 +68,20 @@ implementation.
 
 - P12.1-P12.2 and P12.4-P12.5 are accepted only in their documented
   hardware-free scopes. P12.3 is `CLOSED_SCOPED`, not physical acceptance.
-- P12.6 production-starts provisioning-only encrypted GATT, constructs a
-  network-only live activator and indicator, and publishes the deterministic
-  Bluefy artifact.
+- P12.6 production-wires encrypted BLE provisioning, controller time,
+  Identify/status, the unchanged WTP/1 GATT stream, a network-only live
+  activator, the indicator and the deterministic Bluefy artifact. Production
+  SoftAP and reset administration remain source gaps.
 - Candidate identity/adoption, preservation, advertising and one online
-  retained-bond authorization exchange passed. That exchange proves neither a
-  fresh password nor profile provisioning.
-- Production SoftAP, BLE ordinary WTP/local management, authenticated phone
-  time, reset administration and most Stage A rows remain open.
+  retained-bond Bluefy authorization exchange passed. That exchange proves
+  neither a fresh password nor credential provisioning.
+- A clean RF-inhibited `d52a2fa6a3a3` image passed Candidate A/wspr5 native-Pi
+  BLE identity, controller-time, status and WTP HELLO/STATUS checks. That is not
+  iPhone/Bluefy, SoftAP, job execution, credential activation, TCP physical
+  interoperability or RF evidence.
+- Fresh iPhone pairing/password, offline Bluefy reuse, full profile transfer,
+  BLE WTP job execution, production SoftAP local control, reset/recovery,
+  fault/resource/soak and most remaining Stage A rows remain open.
 - The standard image must remain RF inhibited. Phase 13 remains separate.
 
 ## Objective and production requirements
@@ -78,23 +92,21 @@ scheduler, protocol, timing owner, RF owner or output-state authority.
 
 ### BLE/Bluefy
 
-- Retain encrypted one-connection GATT, retained-bond/application-password
-  authority, four-bond policy, fixed provisioning framing, CCCD admission and
-  delivery-confirmed activation.
-- Add authenticated controller-time challenge/submission, Identify and bounded
-  nonsensitive status to the existing authorized BLE session. Bind every request
-  to the full device ID, bond principal and live link session.
-- Add a separately bounded GATT stream for the unchanged WTP/1 byte stream.
-  Feed one additional `wtp::Endpoint` backed by the one `JobService`; preserve
-  HELLO, session/principal resume, replay, lease, STATUS and terminal semantics.
-  Fragment only the transport bytes. Never translate WTP into a second job API
-  or accept WTP before application authorization and indication subscription.
+- Preserve and regress the already production-wired encrypted one-connection
+  GATT, retained-bond/application-password authority, four-bond policy, fixed
+  provisioning framing, CCCD admission, controller time, Identify/status,
+  delivery-confirmed activation and separately bounded unchanged WTP/1 stream.
+- Keep the BLE endpoint backed by the one `JobService`; preserve HELLO,
+  session/principal resume, replay, lease, STATUS and terminal semantics. Never
+  translate WTP into a second job API or accept WTP before application
+  authorization and indication subscription.
 - Keep provisioning and WTP receive/output buffers separately bounded and scrub
   terminal secret-bearing data. A disconnect causes only the ordinary endpoint
   disconnect and WTP lease behavior.
-- Extend the checked-in Bluefy source/release only for implemented operations.
-  Keep it deterministic, self-contained and release-inventoried; clear password,
-  profile and transient request material on every terminal path.
+- Change the checked-in Bluefy source/release only when required by an
+  implemented operation. Keep it deterministic, self-contained and
+  release-inventoried; clear password, profile and transient request material on
+  every terminal path.
 
 ### SoftAP/Safari
 

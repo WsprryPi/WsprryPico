@@ -6,25 +6,29 @@ The browser, USB WTP, TCP WTP and standalone scheduler use one JobService.
 
 ## Transport and trust
 
-The Pico serves HTTPS and WTP on an explicitly configured TLS port. TLS 1.3,
-client certificate verification and ALPN are mandatory: `http/1.1` selects this
-API; `wtp/1` selects the unchanged WTP frame stream. There is no plaintext
-listener, TLS downgrade, anonymous access, CORS, session ticket or early-data
-path. The authenticated principal is the SHA-256 fingerprint of the leaf client
-certificate. Device-specific credential setup and renewal are described in
+The Pico serves HTTPS and WTP on an explicitly configured TLS port. On the
+station interface, TLS 1.3, client certificate verification and ALPN are
+mandatory: `http/1.1` selects this API; `wtp/1` selects the unchanged WTP frame
+stream. The only plaintext exception is AP-interface port 80 on a blank device;
+it is read-only identity/recovery content and has no API-v1, password, time,
+provisioning or job mutation. There is no TLS downgrade, CORS, session ticket or
+early-data path. The station authenticated principal is the SHA-256 fingerprint
+of the leaf client certificate. Device-specific credential setup and renewal are described in
 [network control](development/network-control.md).
 
 The selected
 [Phase 12 field-access contract](development/phase12-field-access-contract.md)
-has a hardware-free portable admission implementation, while production
-SoftAP/HTTPS wiring and physical acceptance remain open. It adds an
-interface-scoped SoftAP exception after clock admission: server-authenticated
+has a hardware-free portable admission implementation and production wiring;
+physical acceptance remains open. It adds an interface-scoped SoftAP exception:
+server-authenticated
 TLS plus a password login issues a random, boot/access-epoch-bound session-cookie
 principal. It reuses these API schemas, Origin/Host/Fetch Metadata rules and
 JobService semantics without requiring a client certificate. It never applies
 to the station interface or raw TLS-WTP, which retain the certificate principal
-above. The limited pre-clock bootstrap adds no API-v1 routes. BLE frames existing
-WTP semantics through a separately bounded adapter.
+above. Before usable device UTC, a provisioned SoftAP permits only local
+identity/login/status/controller-time plus API capabilities, status and WTP
+HELLO. A blank-device bootstrap adds no API-v1 routes. BLE frames existing WTP
+semantics through a separately bounded adapter.
 
 Allowed authorities are the certified deployment hostname and the current IPv4
 address, each with the configured port (omit `:443` at port 443). DNS case and a
@@ -64,7 +68,9 @@ session cookie that page script cannot read.
 | PUT `/api/v1/network` | `{"enabled":true|false}`; idle-only volatile change with If-Match |
 | POST `/api/v1/restart` | Empty object `{}`; idle-only, If-Match; returns 202 before deferred restart |
 
-Static `/`, `/style.css` and `/app.js` require the same authenticated transport.
+Static `/`, `/style.css` and `/app.js` require station mTLS or the provisioned
+SoftAP's server-authenticated TLS transport. SoftAP API calls additionally
+require the HttpOnly application cookie.
 The document embeds styles and scripts so a browser does not need concurrent
 asset connections. The individual asset paths remain available to tooling.
 

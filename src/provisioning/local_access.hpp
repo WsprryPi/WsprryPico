@@ -82,9 +82,12 @@ struct SoftApAuthority {
     AccessCode code = AccessCode::Invalid;
     std::string principal;
     bool owner_only_grace = false;
+    std::string wtp_session;
     SoftApAuthority() = default;
-    SoftApAuthority(AccessCode value, std::string identity = {}, bool grace = false)
-        : code(value), principal(std::move(identity)), owner_only_grace(grace) {}
+    SoftApAuthority(AccessCode value, std::string identity = {}, bool grace = false,
+                    std::string mapped_session = {})
+        : code(value), principal(std::move(identity)), owner_only_grace(grace),
+          wtp_session(std::move(mapped_session)) {}
 };
 
 
@@ -124,16 +127,18 @@ class LocalAccessController {
                            const Activity& activity, std::uint64_t now_ms);
 
     SoftApLogin softap_login(std::string_view password, std::uint64_t now_ms,
-                             std::string_view protected_principal = {});
+                             std::string_view protected_wtp_session = {});
     AccessCode bind_softap_session(std::string_view token, std::string_view wtp_session,
                                    std::uint64_t now_ms);
     SoftApAuthority softap_authorize(std::string_view token, SoftApOperation operation,
-                                     std::string_view wtp_session, const Activity& activity,
-                                     std::uint64_t now_ms);
+                                     std::string_view wtp_session,
+                                     std::string_view active_owner_session,
+                                     const Activity& activity, std::uint64_t now_ms);
     AccessCode softap_logout(std::string_view token, std::string_view wtp_session,
-                             const Activity& activity, std::uint64_t now_ms);
+                             std::string_view active_owner_session, const Activity& activity,
+                             std::uint64_t now_ms);
     std::size_t live_softap_sessions(std::uint64_t now_ms,
-                                     std::string_view protected_principal = {});
+                                     std::string_view protected_wtp_session = {});
 
     AccessCode change_password(std::string_view replacement, const RequestBinding& binding,
                                const Activity& activity, std::uint64_t now_ms);
@@ -148,6 +153,9 @@ class LocalAccessController {
     Authorization ble_authorization() const;
     const LocalIdentity& identity() const {
         return identity_;
+    }
+    bool default_password_active() const {
+        return store_.record() && store_.record()->default_password;
     }
 
   private:
@@ -186,7 +194,7 @@ class LocalAccessController {
     std::string bond_principal(std::uint64_t peer) const;
     void clear_ble();
     void clear_session(SoftApSession& session);
-    void reclaim(std::uint64_t now_ms, std::string_view protected_principal);
+    void reclaim(std::uint64_t now_ms, std::string_view protected_wtp_session);
     SoftApSession* find_session(std::string_view token);
     bool mark_ble_disabled();
 

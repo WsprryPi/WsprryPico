@@ -57,6 +57,7 @@ add_library(wsprrypico_core
     src/network/mdns.cpp
     src/network/http.cpp
     src/network/api.cpp
+    src/network/softap_api.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
     src/encoding/wspr.cpp
     src/standalone/dry_run_engine.cpp
@@ -255,6 +256,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(field_access_tests PRIVATE wsprrypico_core)
     target_compile_options(field_access_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME field_access_tests COMMAND field_access_tests)
+    add_executable(softap_api_tests tests/softap_api_tests.cpp)
+    target_link_libraries(softap_api_tests PRIVATE wsprrypico_core)
+    target_compile_options(softap_api_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME softap_api_tests COMMAND softap_api_tests)
     add_executable(flash_layout_tests tests/flash_layout_tests.cpp)
     target_include_directories(flash_layout_tests PRIVATE src)
     target_compile_options(flash_layout_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)

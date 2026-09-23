@@ -250,7 +250,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 "\"tail_ns\":\"1000\",\"max_repeat_count\":512,\"modes\":[\"qrss\",\"fskcw\","
                 "\"dfcw\"]}"
                 ",\"features\":{\"config\":true,\"schedules\":true,\"jobs\":true,\"network\":true,"
-                "\"softap\":false,\"ble\":false,\"restart\":" +
+                "\"softap\":true,\"ble\":true,\"restart\":" +
                 (restart_ ? "true" : "false") +
                 "},\"active_job_connections\":" + (active_job_connections_ ? "true" : "false") +
                 ",\"max_network_connections\":2,\"max_wtp_connections\":1,\"max_pending_"

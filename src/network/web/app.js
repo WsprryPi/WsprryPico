@@ -1,11 +1,13 @@
 'use strict';
 const $ = id => document.getElementById(id);
-const session = crypto.randomUUID().replaceAll('-', '');
+let session = crypto.randomUUID().replaceAll('-', '');
 let activePlan = null, capabilitiesBoot = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
+let localIdentity = null, localAuthenticated = false;
 const notice = (text, error = false) => { $('notice').textContent = text; $('notice').classList.toggle('error', error); };
 async function api(path, method = 'GET', body, etag, timeout = 30000) {
   const headers = {};
+  if (localIdentity) headers['X-WsprryPico-Session'] = session;
   if (method !== 'GET') Object.assign(headers, {'Content-Type':'application/json','X-WsprryPico-Request':'1'});
   if (etag) headers['If-Match'] = etag;
   const response = await fetch('/api/v1/' + path, {method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(timeout), cache:'no-store'});
@@ -26,6 +28,39 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
     const error = new Error(message); error.code = code; throw error;
   }
   return {data, revision:response.headers.get('ETag')};
+}
+async function local(path, method = 'GET', body, timeout = 30000) {
+  const headers = {'X-WsprryPico-Session':session};
+  if (method !== 'GET') Object.assign(headers, {'Content-Type':'application/json','X-WsprryPico-Request':'1'});
+  const response = await fetch('/local/v1/' + path, {method, headers, body:body === undefined ? undefined : JSON.stringify(body), signal:AbortSignal.timeout(timeout), cache:'no-store'});
+  const data = await response.json();
+  if (!response.ok) { const error = new Error(data.error?.code || 'Local request rejected'); error.code = data.error?.code; throw error; }
+  return data;
+}
+async function supplyPhoneTime() {
+  const nonce = crypto.randomUUID().replaceAll('-', '');
+  const common = {version:1,device_id:localIdentity.device_id,session_id:session,nonce};
+  await local('time/challenge','POST',common);
+  await local('time/submit','POST',{...common,utc_ns:(BigInt(Date.now())*1000000n).toString()});
+}
+async function discoverLocal() {
+  try {
+    const response = await fetch('/local/v1/identity', {cache:'no-store', signal:AbortSignal.timeout(5000)});
+    if (!response.ok) return false;
+    localIdentity = await response.json();
+    $('local-access').hidden = false;
+    $('local-status').textContent = `Device ${localIdentity.device_id} · ${localIdentity.surface}`;
+    try {
+      const state = await local('status');
+      if (state.wtp_session) session = state.wtp_session;
+    } catch (_) { notice('Enter the local-access password to authorize this SoftAP browser.'); return true; }
+    localAuthenticated = true; $('local-login').hidden = true;
+    if (localIdentity.surface === 'provisioned_preclock') {
+      try { await supplyPhoneTime(); }
+      catch (e) { notice('Local session authorized, but phone time was rejected: ' + e.message + '.', true); }
+    }
+    return true;
+  } catch (_) { return false; }
 }
 function controls(connected) {
   online = connected;
@@ -83,6 +118,18 @@ async function action(fn) {
   finally { busy = false; controls(online); }
 }
 $('refresh').onclick = () => action(() => refresh());
+$('local-login').onsubmit = event => { event.preventDefault(); return action(async () => {
+  const password = $('local-password').value;
+  try {
+    await local('login','POST',{version:1,device_id:localIdentity.device_id,password});
+  } finally { $('local-password').value = ''; }
+  localAuthenticated = true; $('local-login').hidden = true;
+  if (localIdentity.surface === 'provisioned_preclock') {
+    try { await supplyPhoneTime(); }
+    catch (e) { notice('Local session authorized, but phone time was rejected: ' + e.message + '.', true); return; }
+  }
+  await refresh(true); notice('Local SoftAP session authorized.');
+}); };
 $('config').oninput = () => { dirty = true; };
 $('reload-config').onclick = () => action(async () => {
   if (dirty && !confirm('Discard your unsaved changes and reload saved settings?')) return;
@@ -246,4 +293,4 @@ if (typeof setInterval === 'function') setInterval(() => {
   if (!busy && online && activePlan && ['armed','running'].includes(snapshot?.job.state)) action(() => refresh());
 }, 5000);
 
-action(() => refresh(true));
+action(async () => { await discoverLocal(); if (!localIdentity || localAuthenticated) await refresh(true); });

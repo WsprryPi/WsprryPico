@@ -5,6 +5,7 @@
 #include "mbedtls/ssl.h"
 #include "network/api.hpp"
 #include "network/pico/psa_lifetime.hpp"
+#include "network/softap_api.hpp"
 #include "provisioning/profile.hpp"
 #include "wtp/endpoint.hpp"
 
@@ -21,13 +22,28 @@ class PicoServer {
     PicoServer& operator=(const PicoServer&) = delete;
     bool start();
     void stop();
+    using InterfaceClassifier = bool (*)(const tcp_pcb*, void*);
+    void softap_handler(SoftApApi* handler, InterfaceClassifier classifier, void* context) {
+        softap_ = handler;
+        classifier_ = classifier;
+        classifier_context_ = context;
+    }
     void set_admission(bool open);
     bool admission_open() const { return admission_open_; }
     void poll(bool link_up, std::string authority, bool allow_http_steps = true);
+    void poll(bool station_link_up, bool softap_link_up, std::string station_authority,
+              std::string softap_authority, provisioning::SoftApSurface softap_surface,
+              bool allow_http_steps = true);
     bool listening() const {
         return listener_ != nullptr;
     }
     bool configured() const;
+    bool softap_active() const {
+        for (const auto& connection : connections_)
+            if (connection.client_ && connection.softap_)
+                return true;
+        return pending_ && pending_softap_;
+    }
     int last_error() const {
         return last_error_;
     }
@@ -52,8 +68,9 @@ class PicoServer {
   private:
     struct Connection {
         Connection(PicoServer&, std::string device, std::string firmware);
-        void activate(tcp_pcb*);
-        void poll(std::string_view authority, bool allow_http_steps);
+        void activate(tcp_pcb*, bool softap);
+        void poll(bool link_up, std::string_view authority,
+                  provisioning::SoftApSurface softap_surface, bool allow_http_steps);
         void close(bool apply = false, unsigned reason = 0, int tls_result = 0);
         static err_t receive(void*, tcp_pcb*, pbuf*, err_t);
         static void error(void*, err_t);
@@ -84,7 +101,7 @@ class PicoServer {
         std::size_t response_offset_ = 0;
         std::uint64_t accepted_ms_ = 0, progress_ms_ = 0;
         bool setup_ = false, handshake_ = false, wtp_ = false, peer_closed_ = false,
-             responded_ = false, close_notify_ = false, handshake_failed_ = false;
+             responded_ = false, close_notify_ = false, handshake_failed_ = false, softap_ = false;
     };
     static err_t accept(void*, tcp_pcb*, err_t);
     static err_t pending_receive(void*, tcp_pcb*, pbuf*, err_t);
@@ -98,6 +115,7 @@ class PicoServer {
     std::array<Connection, 2> connections_;
     tcp_pcb* listener_ = nullptr;
     tcp_pcb* pending_ = nullptr;
+    bool pending_softap_ = false;
     std::uint64_t pending_since_ms_ = 0, generation_ = 0;
     std::size_t turn_ = 0;
     mbedtls_ssl_config config_{};
@@ -109,6 +127,9 @@ class PicoServer {
     int last_error_ = 0;
     bool setup_ = false;
     bool admission_open_ = true;
+    SoftApApi* softap_ = nullptr;
+    InterfaceClassifier classifier_ = nullptr;
+    void* classifier_context_ = nullptr;
     Metrics metrics_{};
 };
 } // namespace wsprrypico::network

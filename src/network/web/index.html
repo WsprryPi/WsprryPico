@@ -2,6 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>WsprryPico · Station control</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
 <body><header><a href="/">WsprryPico</a><span>Station control</span></header>
 <main><h1>Your station</h1><p id="notice" role="status" aria-live="polite">Connecting securely to the transmitter…</p>
+<section id="local-access" aria-labelledby="local-heading" hidden><h2 id="local-heading">Local access</h2><p id="local-description">This SoftAP uses a password-authenticated local session. Wi-Fi association alone does not authorize control.</p><form id="local-login"><label>Local-access password<input id="local-password" type="password" minlength="8" maxlength="63" autocomplete="current-password" required></label><button class="primary" type="submit">Authorize this browser</button></form><p id="local-status" class="muted"></p></section>
 <section aria-labelledby="status-heading"><div class="section-title"><h2 id="status-heading">Transmitter status</h2><button id="refresh" type="button">Refresh</button></div>
 <dl><div><dt>Job</dt><dd id="state">Unavailable</dd></div><div><dt>RF output</dt><dd id="output">Unknown</dd></div><div><dt>Clock</dt><dd id="clock">Unavailable</dd></div><div><dt>Owner</dt><dd id="owner">Unavailable</dd></div><div><dt>Engine</dt><dd id="engine">Unavailable</dd></div><div><dt>Wi-Fi</dt><dd id="network">Unavailable</dd></div></dl>
 <dl class="identity"><div><dt>Device hostname</dt><dd id="hostname">Unavailable</dd></div><div><dt>Name discovery</dt><dd id="discovery">Unavailable</dd></div></dl><p id="discovery-help" class="muted"></p>
@@ -15,7 +16,7 @@
 <label>Schedule expiry (UTC)<input name="expiry" type="datetime-local" step="1"><small>Leave blank for no expiry.</small></label>
 <button type="submit" class="primary">Save settings</button></fieldset></form>
 <button id="restart" type="button" disabled>Restart device</button>
-<button id="wifi-off" type="button" disabled>Disconnect Wi-Fi</button><p class="muted">Disconnecting closes this page’s connection. Re-enable Wi-Fi through USB Console or restart the device. SoftAP and BLE setup are planned.</p></section>
+<button id="wifi-off" type="button" disabled>Disconnect Wi-Fi</button><p class="muted">Disconnecting station Wi-Fi closes that interface. An enabled SoftAP and encrypted BLE remain independent local paths.</p></section>
 <section aria-labelledby="job-heading"><h2 id="job-heading">Send a message</h2><p>QRSS, FSKCW or DFCW · Up to 32 characters and 60 minutes, including repeats and gaps.</p>
 <form id="message-form"><fieldset id="message-settings" disabled>
 <label>Message<input id="message-text" autocomplete="off" required aria-describedby="message-help"><small id="message-help">Letters, numbers, spaces and / ? . , - + =. Spaces count toward the 32-character limit.</small></label>

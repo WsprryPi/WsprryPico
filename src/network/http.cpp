@@ -8,6 +8,15 @@
 #include <charconv>
 
 namespace wsprrypico::network {
+namespace {
+void scrub(std::string& value) {
+    volatile char* bytes = value.empty() ? nullptr : value.data();
+    for (std::size_t i = 0; i < value.size(); ++i)
+        bytes[i] = 0;
+    std::string{}.swap(value);
+}
+} // namespace
+
 std::string_view HttpRequest::header(std::string_view name) const {
     auto it = headers.find(std::string(name));
     return it == headers.end() ? std::string_view{} : it->second;
@@ -17,12 +26,15 @@ HttpResponse http_error(unsigned status, std::string_view code) {
         status, "{\"error\":{\"code\":" + wtp::json::quote(code) + "}}", "application/json", {}};
 }
 std::string HttpResponse::wire_headers() const {
+    const bool safe_cookie =
+        !set_cookie.empty() && set_cookie.find_first_of("\r\n") == std::string::npos;
     return "HTTP/1.1 " + std::to_string(status) + " Response\r\nContent-Type: " + type +
            "\r\nContent-Length: " + std::to_string(body_size()) +
            "\r\nConnection: close\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\n"
            "Content-Security-Policy: " +
            std::string(web_csp()) + "\r\nReferrer-Policy: no-referrer\r\n" +
-           (etag.empty() ? "" : "ETag: " + etag + "\r\n") + "\r\n";
+           (etag.empty() ? "" : "ETag: " + etag + "\r\n") +
+           (safe_cookie ? "Set-Cookie: " + set_cookie + "\r\n" : "") + "\r\n";
 }
 std::string HttpResponse::wire() const {
     auto out = wire_headers();
@@ -154,5 +166,20 @@ std::size_t HttpParser::receive(std::span<const std::uint8_t> bytes) {
         }
     }
     return used;
+}
+
+void HttpParser::reset_secure() {
+    scrub(request_.method);
+    scrub(request_.path);
+    scrub(request_.body);
+    for (auto& [name, value] : request_.headers) {
+        (void)name;
+        scrub(value);
+    }
+    request_.headers.clear();
+    request_.buffered_body.reset();
+    scrub(headers_);
+    content_length_ = 0;
+    exhausted_ = headers_done_ = ready_ = failed_ = false;
 }
 } // namespace wsprrypico::network

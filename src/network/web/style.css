@@ -3,3 +3,4 @@
 .identity>div:first-child{grid-column:span 2}#discovery-help{overflow-wrap:anywhere}@media(max-width:650px){.identity{grid-template-columns:1fr}.identity>div:first-child{grid-column:auto}}
 
 summary{font-weight:600;cursor:pointer;padding:.65rem 0;min-height:44px}details{margin:.5rem 0 1rem}#message-preview,#job-progress{font-variant-numeric:tabular-nums}#message-preview.error{color:#882b19}::selection{background:#d2e7f5;color:#203a50}input,textarea{caret-color:#225e8a}
+#local-access{background:#fff8e8;border:1px solid #d7bb78;border-radius:6px;padding:1.25rem;margin-top:1.5rem}#local-access[hidden]{display:none}#local-login{max-width:28rem}

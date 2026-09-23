@@ -40,9 +40,9 @@ is unchanged. Authenticated HTTPS/browser APIs and WTP/TCP now share this servic
 see [network control](network-control.md). The
 [Phase 12 field-access contract](phase12-field-access-contract.md) selects
 BLE/Bluefy primary and SoftAP/Safari fallback provisioning and local control
-through this same service. Their portable policy and target candidates are
-implemented and cross-linked, but production service wiring and physical
-acceptance remain open.
+through this same service. BLE and the browser/local-control portion of SoftAP
+are now production-wired and cross-linked. SoftAP credential provisioning,
+reset administration and all physical SoftAP acceptance remain open.
 
 ## Configuration
 
@@ -51,9 +51,10 @@ Send a single ASCII line `CONFIG ` followed by the complete JSON document and a
 newline. The administration commands below share this implemented interface.
 Send one command at a time and wait for its JSON response; diagnostics use the
 bounded existing Console queue. A client must inspect `ok`, not assume a
-successful serial write saved anything. The candidate BLE/SoftAP source does
-not change this current-firmware procedure until production wiring and physical
-acceptance are complete.
+successful serial write saved anything. `ACCESS SOFTAP <full-device-id>` now
+requests one nonextending 120-second SoftAP join/login grace while access
+storage is healthy. It neither changes credentials nor authorizes the browser;
+the page still requires the local-access password.
 
 Sanitized document (replace all station/network fields before using it):
 

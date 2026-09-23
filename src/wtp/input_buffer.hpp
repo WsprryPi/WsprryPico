@@ -29,6 +29,7 @@ class InputBuffer {
         return *this;
     }
     ~InputBuffer() {
+        wipe();
         deallocate_input(data_);
     }
     bool reserve(std::size_t capacity) {
@@ -39,6 +40,7 @@ class InputBuffer {
             return false;
         if (size_)
             std::memcpy(next, data_, size_);
+        wipe();
         deallocate_input(data_);
         data_ = next;
         capacity_ = capacity;
@@ -98,6 +100,11 @@ class InputBuffer {
     }
 
   private:
+    void wipe() noexcept {
+        volatile std::uint8_t* bytes = data_;
+        for (std::size_t i = 0; i < capacity_; ++i)
+            bytes[i] = 0;
+    }
     void swap(InputBuffer& other) noexcept {
         std::swap(data_, other.data_);
         std::swap(size_, other.size_);

@@ -33,6 +33,9 @@ struct HttpResponse {
     // bytes lets the target stream them from flash without a same-size heap
     // copy while another authenticated connection remains active.
     std::string_view static_body{};
+    // Optional response cookie owned by trusted application code. The wire
+    // encoder rejects control characters before emitting it.
+    std::string set_cookie{};
     std::size_t body_size() const {
         if (!static_body.empty())
             return static_body.size();
@@ -57,6 +60,7 @@ struct HttpResponse {
 class HttpParser {
   public:
     std::size_t receive(std::span<const std::uint8_t> bytes);
+    void reset_secure();
     bool ready() const {
         return ready_;
     }

@@ -566,6 +566,9 @@ class JobService {
         return job_ && (state_ == State::Loaded || state_ == State::Armed) ? job_->job_id : "";
     }
     [[nodiscard]] ServiceStatus status() const;
+    [[nodiscard]] std::string_view owner_session_id() const {
+        return owner_ ? std::string_view(owner_->session_id) : std::string_view{};
+    }
     [[nodiscard]] ClockSnapshot clock_snapshot() const {
         return clock_.snapshot();
     }

@@ -3,9 +3,14 @@
 #include "hardware/structs/watchdog.h"
 #include "hardware/watchdog.h"
 #include "network/identity.hpp"
+#include "network/pico/bootstrap_server.hpp"
 #include "network/pico/server.hpp"
+#include "network/softap_api.hpp"
 #include "network_credentials.hpp"
 #include "pico/bootrom.h"
+#include "pico/cyw43_arch.h"
+#include "pico/time.h"
+#include "pico_adapters.hpp"
 #include "provisioning/access.hpp"
 #include "provisioning/ble_session.hpp"
 #include "provisioning/command.hpp"
@@ -16,16 +21,14 @@
 #include "provisioning/pico/field_platform.hpp"
 #include "provisioning/pico/gatt_transport.hpp"
 #include "provisioning/runtime.hpp"
-#include "pico/time.h"
-#include "pico_adapters.hpp"
 #include "runtime/pico/heap_metrics.h"
 #include "runtime/pico/stack_guard.h"
 #include "standalone/heap_probe.hpp"
 #include "standalone/pico/adapters.hpp"
 #include "standalone/scheduler.hpp"
 #include "standalone/wtp_profile.hpp"
-#include "tusb.h"
 #include "time/controller_time.hpp"
+#include "tusb.h"
 #include "usb/reply_priority.hpp"
 #include "usb/transport.hpp"
 #include "wtp/codec.hpp"
@@ -144,6 +147,10 @@ std::uint64_t monotonic_now(void*) {
 }
 std::uint64_t monotonic_ms(void*) {
     return time_us_64() / 1000ULL;
+}
+bool softap_interface(const tcp_pcb* pcb, void*) {
+    return pcb && IP_IS_V4(&pcb->local_ip) &&
+           ip4_addr_cmp(ip_2_ip4(&pcb->local_ip), netif_ip4_addr(&cyw43_state.netif[CYW43_ITF_AP]));
 }
 wsprrypico::provisioning::Activity provisioning_activity(void* context) {
     const auto current = static_cast<wsprrypico::wtp::JobService*>(context)->activity();
@@ -276,6 +283,11 @@ int main() {
     static wsprrypico::provisioning::LocalAccessController local_access(
         access_store, bond_store, random_source, identities.device_id(),
         service.status().boot_id, local_identity);
+    static wsprrypico::provisioning::SoftApCoordinator softap_coordinator(access_store);
+    softap_coordinator.no_profile(runtime_profile.source() ==
+                                  wsprrypico::provisioning::RuntimeSource::Unprovisioned);
+    softap_coordinator.recovery(boot_recovery);
+    static wsprrypico::provisioning::PicoSoftAp softap;
     std::optional<wsprrypico::standalone::Config> runtime_network_config;
     if (store_loaded && store.config())
         runtime_network_config = runtime_profile.overlay(*store.config());
@@ -290,6 +302,17 @@ int main() {
     static wsprrypico::network::PicoServer server(service, browser_api, identities.device_id(),
                                                   wsprrypico::firmware::kFirmwareVersion,
                                                   tls_credentials);
+    const auto softap_authority =
+        local_identity.hostname + (server.port() == 443 ? "" : ":" + std::to_string(server.port()));
+    static wsprrypico::provisioning::SoftApHttpAdmission softap_admission(
+        local_access, identities.device_id(), softap_authority);
+    static wsprrypico::network::SoftApApi softap_api(browser_api, softap_admission, local_access,
+                                                     time_arbiter, service, identities.device_id(),
+                                                     wsprrypico::firmware::kFirmwareVersion);
+    server.softap_handler(&softap_api, softap_interface, nullptr);
+    static wsprrypico::network::PicoBootstrapServer bootstrap(
+        identities.device_id(), wsprrypico::firmware::kFirmwareVersion, softap_interface, nullptr);
+    const bool bootstrap_started = derived_identity && bootstrap.start();
     browser_api.set_active_job_connections(true);
     bool server_start_attempted = false;
     static wsprrypico::provisioning::PicoIndicatorOutput indicator_output;
@@ -614,6 +637,16 @@ int main() {
             result += "}\n";
             return result;
         }
+        constexpr std::string_view softap_prefix = "ACCESS SOFTAP ";
+        if (text.starts_with(softap_prefix)) {
+            if (text.substr(softap_prefix.size()) != identities.device_id())
+                return "{\"ok\":false,\"error\":\"wrong_device\"}\n";
+            if (!derived_identity || !access_store.healthy() || !access_store.record())
+                return "{\"ok\":false,\"error\":\"access_unavailable\"}\n";
+            return softap_coordinator.request_join_grace(time_us_64() / 1000ULL)
+                       ? "{\"ok\":true,\"join_grace_ms\":120000}\n"
+                       : "{\"ok\":false,\"error\":\"busy\"}\n";
+        }
         constexpr std::string_view adopt_prefix = "ACCESS ADOPT ";
         constexpr std::string_view enroll_prefix = "ACCESS ENROLL ";
         if (text.starts_with(adopt_prefix) || text.starts_with(enroll_prefix)) {
@@ -751,11 +784,35 @@ int main() {
         }
         if (gatt.running())
             gatt.poll();
-        indicator.softap_ready(false);
+        softap_coordinator.station(network.link_up(), field_now_ms);
+        softap_coordinator.token_records(
+            local_access.live_softap_sessions(field_now_ms, service.owner_session_id()));
+        softap_coordinator.reply_active(server.softap_active());
+        const bool request_softap = softap_coordinator.poll(field_now_ms);
+        const auto surface = softap_coordinator.surface(
+            service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized);
+        if (request_softap && !softap.running() && derived_identity) {
+            const auto* access = access_store.record();
+            if (access_store.healthy() && access)
+                (void)softap.start(local_identity, access->password);
+            else if (surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly)
+                (void)softap.start(local_identity, local_identity.default_password);
+        } else if (!request_softap && softap.running()) {
+            (void)network.softap_name(false, {});
+            softap.stop();
+        }
+        const bool softap_name_ready = network.softap_name(softap.ready(), local_identity.hostname);
+        bootstrap.poll(bootstrap_started && softap.ready() &&
+                       surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly);
+        const bool softap_service_ready =
+            softap.ready() && (surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly
+                                   ? bootstrap.listening()
+                                   : softap_name_ready && server.listening());
+        softap_coordinator.ready(softap_service_ready);
+        indicator.softap_ready(softap_coordinator.status(field_now_ms).ready);
         indicator.poll(field_now_ms);
         service.poll();
-        if (!server_start_attempted && !recovery && deployment_matches && network.initialized() &&
-            service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized) {
+        if (!server_start_attempted && deployment_matches && network.initialized()) {
             server_start_attempted = true;
             (void)server.start();
             network.listener_status(server.configured(), server.listening(),
@@ -764,10 +821,10 @@ int main() {
         static wsprrypico::usb::ReplyPriority reply_priority;
         const bool allow_http_steps = !reply_priority.defer_http(
             time_us_64(), wsprrypico::usb::console_output_pending());
-        server.poll(network.link_up(),
+        server.poll(network.link_up(), softap.ready(),
                     network.ipv4() +
                         (server.port() == 443 ? "" : ":" + std::to_string(server.port())),
-                    allow_http_steps);
+                    softap_authority, surface, allow_http_steps);
         service.poll();
         watchdog_hw->scratch[1] = 5;
 #ifdef WSPRRY_PICO_STANDALONE_RF

@@ -74,6 +74,15 @@ bool MbedTlsCredentialValidator::validate(const Profile& profile) {
 }
 
 bool MbedTlsCredentialValidator::validate(CredentialMaterial material) {
+    return validate_impl(material, false);
+}
+
+bool MbedTlsCredentialValidator::validate_for_server_boot(CredentialMaterial material) {
+    return validate_impl(material, true);
+}
+
+bool MbedTlsCredentialValidator::validate_impl(CredentialMaterial material,
+                                               bool allow_time_unknown) {
     last_error_ = 0;
     verify_flags_ = 0;
     if (!network::valid_device_id(expected_device_id_) ||
@@ -130,9 +139,13 @@ bool MbedTlsCredentialValidator::validate(CredentialMaterial material) {
         return false;
     }
     const std::string hostname(material.hostname);
+    const auto ignore_time = [](void*, mbedtls_x509_crt*, int, std::uint32_t* flags) {
+        *flags &= ~(MBEDTLS_X509_BADCERT_EXPIRED | MBEDTLS_X509_BADCERT_FUTURE);
+        return 0;
+    };
     last_error_ = mbedtls_x509_crt_verify_with_profile(
         &context.certificate, &context.ca, nullptr, &mbedtls_x509_crt_profile_suiteb,
-        hostname.c_str(), &verify_flags_, nullptr, nullptr);
+        hostname.c_str(), &verify_flags_, allow_time_unknown ? ignore_time : nullptr, nullptr);
     return last_error_ == 0 && verify_flags_ == 0;
 }
 } // namespace wsprrypico::provisioning

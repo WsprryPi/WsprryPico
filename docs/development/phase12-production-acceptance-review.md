@@ -7,7 +7,11 @@ This review records the earlier production/physical tranche. The subsequent
 hardware-free production wiring for controller time, Identify/status and an
 unchanged WTP/1 GATT stream. Its clean committed image has subsequently passed
 load/boot, preservation and final RF-inhibited restoration, but none of the new
-BLE operations has physical acceptance. The earlier results are retained below.
+BLE operations has iPhone/Bluefy physical acceptance. A later hardware-free
+SoftAP continuation now connects the production AP, blank bootstrap,
+pre-clock/normal HTTPS, password/cookie admission, controller time and existing
+browser/`JobService` API. That continuation was not flashed and has no physical
+acceptance. The earlier results are retained below.
 
 ## Authority and evidence boundary
 
@@ -85,6 +89,8 @@ SoftAP password/browser service, BLE WTP/job management, authenticated phone
 time, profile activation on the physical candidate, password/reset administration
 surfaces, and an accepted physical gesture. `PicoSoftAp`, portable SoftAP
 admission/time/reset logic and their tests remain source primitives only.
+The hardware-free SoftAP continuation below supersedes only that source-wiring
+gap; it does not rewrite this tranche's physical evidence.
 
 ## Deterministic validation
 
@@ -262,6 +268,98 @@ Offline reload, profile transfer, activation, controller-time observation,
 SoftAP, LED-pattern measurement, password replacement, reset, fault injection
 and soak remain unaccepted.
 
+## Hardware-free production SoftAP continuation
+
+This continuation started from clean `devel` at
+`ae21bc7b9dd772b0b37cf52b288a2544e848ea9f`, equal to `origin/devel`. Source
+was allowed to evolve through implementation and adversarial repair; no
+pre-freeze drift sentinel was added.
+
+The standard RF-inhibited image now:
+
+- runs the selected WPA2-AES SoftAP causes through `SoftApCoordinator` and
+  `PicoSoftAp`, using the station-MAC-derived SSID and current local-access
+  password;
+- uses the pinned CYW43 DHCP service and fixed AP address
+  `192.168.4.1/24`, registers the certified `.local` hostname on the AP netif,
+  and keeps station and AP service under the one CYW43 owner;
+- exposes plaintext port 80 only on the AP interface and only for blank,
+  read-only identity/recovery information; it accepts no password, controller
+  time, provisioning or job mutation;
+- starts the existing TLS listener before device UTC is available, while still
+  validating its device binding, chain, key pair, SAN, purpose and accepted
+  algorithms. Only certificate future/expiry flags are deferred at server boot;
+  the phone validates server time. Station TLS remains clock-gated and mTLS;
+  AP HTTPS is server-authenticated and rejects raw WTP ALPN;
+- provides strict same-origin password login, Secure/HttpOnly/SameSite cookies,
+  authenticated controller-time challenge/submit and the existing browser API
+  against the one `JobService`. A cookie binds to one exact WTP session only
+  after successful `HELLO`; absolute owner grace remains STATUS/ABORT/time-only;
+  and
+- drives the LED's SoftAP-ready state from an actually usable blank HTTP or
+  provisioned HTTPS surface. Parsed request storage and response cookie/header
+  copies are scrubbed on teardown.
+
+The browser page discovers the local surface, keeps the cookie inaccessible to
+script, clears the entered password, supplies bounded phone time on a pre-clock
+surface and then reuses its existing status/config/job UI. A failed phone-time
+submission is reported separately from login failure.
+
+This slice does **not** expose credential provisioning through SoftAP, implement
+password/bond/reset administration or select a new physical reset gesture.
+Access-journal recovery remains fail closed. It also does not prove AP startup,
+DHCP, mDNS, Safari certificate behavior, cookie expiry, phone time, LED timing,
+coexistence or resource margins on a Pico 2 W.
+
+Pre-freeze deterministic validation produced:
+
+| Check | Result |
+| --- | --- |
+| Host debug build and aggregate CTest | 87/87 passed |
+| Focused ASan/UBSan network, field-access and SoftAP API tests | 3/3 passed |
+| WTP/1 validator | 23 schema, 7 raw JSON, 1 framing and 8 transition cases passed |
+| Browser JavaScript syntax and behavioral test | passed |
+| Pico 2 W standard image plus field/provisioning linkchecks | passed with pinned SDK 2.3.1 and BTstack |
+| Linked standard image | text 1,361,328; BSS 134,396 bytes; image/layout, heap-hook and stack-guard post-link checks passed |
+| Formatting/whitespace | changed C/C++ lines and new files clang-formatted; `git diff --check` passed |
+
+The aggregate run explicitly selected the retained Xcode 26.5 SDK. The default
+Command Line Tools SDK still has the previously documented malformed
+`arm64e.x1` text-stub problem; no failing product test was hidden or converted
+to a pass.
+
+The first adversarial pass found and repaired:
+
+1. AP surface selection was used before it was computed in the production
+   loop.
+2. A cookie could bind on first API use instead of only after a successful WTP
+   `HELLO`.
+3. capacity reclamation, owner-only grace and logout initially depended on a
+   caller-supplied owner/session value rather than the `JobService`'s exact
+   active owner session.
+4. `CLAIM`, `RENEW` and `RELEASE` were initially classified as STATUS and would
+   have been too permissive during owner-only grace.
+5. a stale controller-time challenge could hold the single slot forever after
+   a lost response.
+6. repeated AP mDNS initialization could make AP name registration fail after
+   station mDNS had already initialized.
+7. parsed password/cookie copies survived ordinary string/buffer destruction,
+   and the browser conflated phone-time rejection with login failure.
+8. a page reload generated a new WTP session ID but had no authoritative way to
+   recover the cookie's existing mapped session. Authenticated local status now
+   returns that nonsecret mapping without rebinding it, and the page reattaches
+   before making API requests.
+9. an acknowledged controller-time challenge abandoned by the browser left its
+   response-delivery bookkeeping slot occupied after the arbiter reaped the
+   challenge. Repeated abandoned challenges could exhaust both bounded slots;
+   each newly accepted challenge now retires the necessarily stale bookkeeping,
+   with a three-cycle expiry/reuse regression.
+
+The repaired paths have focused regressions. The second assessment found items
+3 and 8; the third found item 9. After that repair, a fresh fourth source/diff
+assessment found no further actionable issue in the hardware-free SoftAP
+boundary. It did not convert the unexecuted target rows into passes.
+
 ## Adversarial findings and repairs
 
 1. **Double CYW43 ownership risk.** The candidate GATT path could initialize and
@@ -314,7 +412,10 @@ Phase 12 remains open for:
 - online install followed by verified no-Wi-Fi/no-cellular offline page reuse;
 - full provisioning/activation lifecycle on the clean committed candidate;
 - controller-time and Identify physical behavior;
-- production SoftAP, HTTPS, DHCP/mDNS and its independent field-control path;
+- physical SoftAP DHCP/mDNS, blank HTTP, pre-clock/normal HTTPS, Safari
+  certificate behavior, controller time and independent field-control path;
+- any SoftAP credential-provisioning/activation surface, which is not exposed by
+  the current browser integration;
 - BLE ordinary WTP/browser local management through the one `JobService`;
 - password/bond/reset recovery and safe accepted physical controls;
 - fault-injection, replacement/superseded-trust, resource reclamation,

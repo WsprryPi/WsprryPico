@@ -18,7 +18,9 @@ controller-time/Identify/status and unchanged WTP/1 local control in the
 RF-inhibited production image and builds the deterministic offline page. The
 native Raspberry Pi/Linux client reuses that GATT service. SoftAP, physical
 BLE/Bluefy/Linux interoperability, offline-page acceptance and most physical
-acceptance remain open.
+acceptance remain open. A later hardware-free continuation connects the
+production SoftAP DHCP/mDNS, blank HTTP, provisioned HTTPS and browser/local
+control path; it has no target or Safari acceptance.
 
 ## Operator setup and certificates
 
@@ -161,10 +163,11 @@ path. The CA private key remains off-device and public server trust is enrolled
 explicitly.
 
 The BLE portion has deterministic portable/client tests, target cross-linking
-and limited enabled-production evidence. Complete profile transfer and
-activation, SoftAP/Safari, Bluefy/iOS offline operation and the broader physical
-matrix remain open. E1 identity/trust acceptance does not qualify end-user
-setup.
+and limited enabled-production evidence. The SoftAP portion now has production
+source, deterministic policy/API tests and an RP2350 cross-build. Complete
+profile transfer and activation, physical SoftAP/Safari, Bluefy/iOS offline
+operation and the broader physical matrix remain open. E1 identity/trust
+acceptance does not qualify end-user setup.
 
 ### Renewal and compromised credentials
 
@@ -284,8 +287,18 @@ server-authenticated HTTPS plus a random password-authenticated session
 principal scoped to that interface; station HTTPS and raw TLS-WTP retain mTLS.
 Provisioned pre-clock SoftAP is limited to identity, challenge, password,
 controller time and nonsensitive status. Blank-device SoftAP is read-only.
-Those SoftAP admission rules and target primitives are implemented, but the
-production SoftAP listeners are not wired or physically accepted.
+Those rules now run through the production image's interface-classified HTTP/
+TLS listeners and the one browser API/`JobService`; they are not physically
+accepted.
+
+The pinned CYW43 driver supplies DHCP on `192.168.4.1/24`. A blank device's
+manual recovery URL is `http://192.168.4.1/`; it contains no credential input.
+A provisioned device uses
+`https://<station-MAC-derived-hostname>[<configured-port>]/`, normally resolved
+by AP-interface mDNS, so Safari validates the existing device certificate by
+hostname. `ACCESS SOFTAP <full-device-id>` requests one nonextending 120-second
+join/login grace while access storage is healthy; persistent field mode,
+recovery and station-fallback causes remain controlled by the selected contract.
 
 The browser offers manual status refresh, station/Wi-Fi/schedule edits, explicit
 reload of saved settings, complete job upload/UTC arm, owner abort/release and

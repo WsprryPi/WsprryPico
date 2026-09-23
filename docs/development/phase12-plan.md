@@ -4,11 +4,15 @@ Status: active. P12.1-P12.5 remain accepted within their documented
 hardware-free scopes. P12.6 now production-enables BLE provisioning plus
 authenticated controller time, Identify/status and an unchanged WTP/1 stream,
 the network-only live activator and indicator construction in the RF-inhibited
-standard image, and a deterministic offline Bluefy release. Its
-identity/adoption/advertising physical subset has passed. SoftAP, physical BLE
-job-control/local-management beyond the bounded Raspberry Pi client exercise,
-phone-time behavior, reset/gesture work and most
-physical acceptance remain open. The clean committed standard image at
+standard image, a deterministic offline Bluefy release, and a hardware-free
+production SoftAP path. The SoftAP path includes the SDK DHCP server on
+`192.168.4.1/24`, AP-interface mDNS, blank read-only HTTP, provisioned
+pre-clock/normal HTTPS, password/cookie admission, controller time and the
+existing browser/`JobService` API. It has build/test evidence only. Its
+identity/adoption/advertising physical subset has passed. Physical SoftAP,
+physical BLE job-control/local-management beyond the bounded Raspberry Pi
+client exercise, phone-time behavior, reset/gesture work and most physical
+acceptance remain open. The clean committed standard image at
 `d52a2fa6a3a3` has passed a serial-targeted load/verify plus an exact
 RF-inhibited Candidate A/wspr5 native-client exercise for identity inspection,
 authenticated controller time, field status and WTP `HELLO`/`STATUS`. The run
@@ -27,6 +31,15 @@ controlling policy.
 This plan does not authorize target, radio, service, trust-store, certificate-installation or RF
 operations.
 
+| Roadmap slice | Current position |
+| --- | --- |
+| P12.1-P12.2: profile journal and provisioning state machine | Accepted in their hardware-free scope. |
+| P12.3: Pico adapter source | **CLOSED_SCOPED** for source, deterministic tests and RP2350 cross-links; not physical acceptance. |
+| P12.4-P12.5: commands, delivery-safe activation and admission | Implemented and accepted in their hardware-free scope. |
+| P12.6: production integration | **Partial.** BLE provisioning/local control and the hardware-free SoftAP browser path are production-wired. SoftAP credential provisioning, reset administration and target acceptance remain open. |
+| Physical Stage A | **Partial.** Candidate identity, adoption, preserved settings, BLE advertising, one online retained-bond Bluefy authorization exchange and one native-Pi BLE identity/time/status/HELLO/STATUS exercise passed within their recorded bounds. Fresh password, iPhone/Bluefy identity, offline reuse, full credential activation, SoftAP, LED, reset/fault/resource and soak rows remain open. |
+| Physical Stage B / RF output | Not authorized or performed. Phase 13 remains separate. |
+
 ## Scope and starting point
 
 Phase 12 adds BLE-primary provisioning/local management, a SoftAP fallback and
@@ -41,6 +54,11 @@ The reviewed starting point is clean `devel` at
 recorded by the Phase 11.7 joint review. The P12.5 tranche started from clean
 `devel` at `2bc90b1fe59b7f2470ddda031fd666af76d91e87`, equal to
 `origin/devel`. Phase 13 remains open.
+
+The production SoftAP continuation started from clean `devel` at
+`ae21bc7b9dd772b0b37cf52b288a2544e848ea9f`, equal to `origin/devel`. Its
+candidate was frozen only after implementation and review; no pre-freeze
+repository drift sentinel was installed.
 
 ## Source and dependency findings
 
@@ -265,6 +283,18 @@ The next hardware-free safety boundary is implemented without enabling a radio:
   `JobService`; fixed ATT segmentation does not define another protocol. The
   extended deterministic Bluefy client is source/test evidence only until the
   physical matrix exercises it.
+- The production SoftAP continuation connects the existing coordinator and
+  WPA2-AES adapter to the standard image. A blank device exposes only fixed-IP
+  read-only HTTP identity/recovery information. A provisioned device uses its
+  device-bound TLS server identity for pre-clock login/controller time and the
+  normal browser API without a client certificate; station HTTPS and raw WTP
+  remain mTLS-only. The SoftAP cookie binds to one exact WTP session only after
+  a successful `HELLO`, and absolute-expiry grace permits only STATUS, ABORT
+  and controller-time operations for that exact armed/running session.
+- AP and station traffic share the one bounded TLS listener and one
+  `JobService`. Interface classification selects SoftAP server-auth-only TLS;
+  the station path retains client-certificate verification and clock gating.
+  Parsed HTTP/password/cookie storage is scrubbed on connection teardown.
 - USB-local `ACCESS ADOPT`, `ACCESS ENROLL`, `ACCESS STATUS` and
   `IDENTIFY` are the only implemented physical confirmation/diagnostic
   controls. BOOTSEL-at-boot gestures are not viable because ROM boot selection
@@ -273,7 +303,8 @@ The next hardware-free safety boundary is implemented without enabling a radio:
 - Partial physical evidence proves the exact RF-inhibited candidate identity,
   healthy adoption, preserved station/schedule/watermark state and repaired BLE
   advertisement. It does not prove Bluefy interoperability, provisioning,
-  activation, offline reuse, LED waveform, SoftAP or coexistence.
+  activation, offline reuse, LED waveform, SoftAP or coexistence. The SoftAP
+  continuation did not flash hardware and adds no physical acceptance.
 
 Phase 12 completion evidence must cover:
 
@@ -334,8 +365,12 @@ Remaining questions are target integration details, not license to change that
 policy:
 
 - the exact safe Pico 2 W gestures for enrollment and the three reset levels;
-- production wiring for SoftAP DHCP, bootstrap HTTP, HTTPS pre-clock/normal
-  surfaces and its independent browser/local-control path;
+- physical validation of SoftAP DHCP/mDNS, blank bootstrap HTTP,
+  pre-clock/normal HTTPS, cookie/session expiry, controller time and independent
+  browser/local control on the exact candidate/client pair;
+- a delivery-safe SoftAP provisioning/activation surface if credential transfer
+  is to be supported there; the implemented SoftAP browser surface does not
+  expose provisioning commands;
 - physical validation of the implemented integrity-controlled offline Bluefy
   page-delivery/cache mechanism; and
 - target resource, radio-coexistence and indicator scheduling needed to meet the
@@ -344,8 +379,9 @@ policy:
 ## Completion boundary
 
 Phase 12 is not complete at the scoped P12.3 source closeout. Completion
-requires production BLE/SoftAP/HTTPS and local-control wiring conforming to the
-selected policy, a connected authenticated idle-only live activator, exact
-gesture selection, bounded inhibited-target acceptance, an authorized
-physical-plan execution and a repaired post-physical adversarial reassessment.
+requires physical BLE/SoftAP/HTTPS and local-control acceptance conforming to
+the selected policy, a connected authenticated idle-only live activator, exact
+gesture/reset selection, bounded inhibited-target acceptance, the remaining
+authorized physical-plan execution and a repaired post-physical adversarial
+reassessment.
 Phase 13 RF qualification remains separate.

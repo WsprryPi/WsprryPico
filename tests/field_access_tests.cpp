@@ -374,10 +374,11 @@ void access_policy() {
     CHECK(f.controller.bind_softap_session(tokens[0], "wtp-b", 600'002) ==
           provisioning::AccessCode::Conflict);
     auto ordinary = f.controller.softap_authorize(tokens[0], provisioning::SoftApOperation::Status,
-                                                   "wtp-a", {}, 600'003);
+                                                  "wtp-a", "", {}, 600'003);
     CHECK(ordinary.code == provisioning::AccessCode::Ok && !ordinary.owner_only_grace);
-    CHECK(f.controller.softap_authorize(tokens[1], provisioning::SoftApOperation::Status, "", {},
-                                        600'000 + provisioning::softap_inactivity_ms)
+    CHECK(f.controller
+              .softap_authorize(tokens[1], provisioning::SoftApOperation::Status, "", "", {},
+                                600'000 + provisioning::softap_inactivity_ms)
               .code == provisioning::AccessCode::Expired);
 
     AccessFixture grace;
@@ -387,13 +388,33 @@ void access_policy() {
           provisioning::AccessCode::Ok);
     provisioning::Activity running{.owned = true, .armed = true};
     auto owner = grace.controller.softap_authorize(
-        login.token, provisioning::SoftApOperation::Status, "owned", running,
+        login.token, provisioning::SoftApOperation::Status, "owned", "owned", running,
         provisioning::softap_absolute_ms);
     CHECK(owner.code == provisioning::AccessCode::Ok && owner.owner_only_grace);
     CHECK(grace.controller
-              .softap_authorize(login.token, provisioning::SoftApOperation::Load, "owned", running,
-                                provisioning::softap_absolute_ms + 1)
+              .softap_authorize(login.token, provisioning::SoftApOperation::Load, "owned", "owned",
+                                running, provisioning::softap_absolute_ms + 1)
               .code == provisioning::AccessCode::Expired);
+
+    AccessFixture foreign_owner;
+    auto foreign_login =
+        foreign_owner.controller.softap_login(foreign_owner.identity.default_password, 0);
+    CHECK(foreign_owner.controller.bind_softap_session(foreign_login.token, "mapped", 1) ==
+          provisioning::AccessCode::Ok);
+    CHECK(foreign_owner.controller
+              .softap_authorize(foreign_login.token, provisioning::SoftApOperation::Status,
+                                "mapped", "actual-owner", running, provisioning::softap_absolute_ms)
+              .code == provisioning::AccessCode::Expired);
+
+    AccessFixture logout_owner;
+    auto logout_login =
+        logout_owner.controller.softap_login(logout_owner.identity.default_password, 0);
+    CHECK(logout_owner.controller.bind_softap_session(logout_login.token, "owned", 1) ==
+          provisioning::AccessCode::Ok);
+    CHECK(logout_owner.controller.softap_logout(logout_login.token, "different", "owned", running,
+                                                2) == provisioning::AccessCode::Conflict);
+    CHECK(logout_owner.controller.softap_logout(logout_login.token, "owned", "owned", running, 2) ==
+          provisioning::AccessCode::Busy);
 
     auto change = binding("password-change");
     CHECK(f.controller.prove_password(f.identity.default_password, change, 700'000) ==
@@ -430,13 +451,14 @@ void access_policy() {
     auto protected_login = protected_owner.controller.softap_login(
         protected_owner.identity.default_password, 0);
     CHECK(protected_login.code == provisioning::AccessCode::Ok);
-    CHECK(protected_owner.controller.softap_login(
-              protected_owner.identity.default_password,
-              provisioning::softap_absolute_ms,
-              protected_login.principal)
+    CHECK(protected_owner.controller.bind_softap_session(protected_login.token, "owned-session",
+                                                         1) == provisioning::AccessCode::Ok);
+    CHECK(protected_owner.controller
+              .softap_login(protected_owner.identity.default_password,
+                            provisioning::softap_absolute_ms, "owned-session")
               .code == provisioning::AccessCode::Ok);
-    CHECK(protected_owner.controller.live_softap_sessions(
-              provisioning::softap_absolute_ms, protected_login.principal) == 2);
+    CHECK(protected_owner.controller.live_softap_sessions(provisioning::softap_absolute_ms,
+                                                          "owned-session") == 2);
 }
 
 provisioning::Activity idle_activity(void*) {
@@ -658,6 +680,14 @@ void softap_http_policy() {
     CHECK(status.code == provisioning::AccessCode::Ok);
     CHECK(status.authorization.authenticated && status.authorization.confidential &&
           status.authorization.local && !status.authorization.principal.empty());
+    CHECK(admission
+              .authorize(request, provisioning::SoftApSurface::ProvisionedPreClock,
+                         provisioning::SoftApOperation::Status, "different-session", {}, 2)
+              .code == provisioning::AccessCode::Ok);
+    CHECK(admission
+              .authorize(request, provisioning::SoftApSurface::ProvisionedPreClock,
+                         provisioning::SoftApOperation::Hello, "softap-session", {}, 2, {}, true)
+              .code == provisioning::AccessCode::Ok);
     CHECK(admission.authorize(
               request, provisioning::SoftApSurface::ProvisionedPreClock,
               provisioning::SoftApOperation::Status, "different-session", {}, 2)
@@ -681,8 +711,8 @@ void softap_http_policy() {
     logout.headers["origin"] = "https://" + f.identity.hostname;
     logout.headers["content-type"] = "application/json";
     logout.headers["x-wsprrypico-request"] = "1";
-    CHECK(admission.logout(logout, provisioning::SoftApSurface::Normal,
-                           "softap-session", {}, 5) == provisioning::AccessCode::Ok);
+    CHECK(admission.logout(logout, provisioning::SoftApSurface::Normal, "softap-session", "", {},
+                           5) == provisioning::AccessCode::Ok);
     CHECK(admission.authorize(request, provisioning::SoftApSurface::Normal,
                               provisioning::SoftApOperation::Status,
                               "softap-session", {}, 6)
@@ -884,6 +914,12 @@ void controller_time_policy() {
     CHECK(arbiter.status().source == time::ActiveTimeSource::Controller);
     clock_now += time::controller_source_lifetime_ns + 1;
     CHECK(arbiter.status().source == time::ActiveTimeSource::None);
+    CHECK(arbiter.challenge("phone-a", "stale", device, "stale-nonce").code ==
+          time::ControllerTimeCode::Ok);
+    clock_now += time::controller_challenge_lifetime_ns + 1;
+    CHECK(
+        arbiter.challenge("phone-a", "stale-replacement", device, "stale-replacement-nonce").code ==
+        time::ControllerTimeCode::Ok);
 }
 } // namespace
 

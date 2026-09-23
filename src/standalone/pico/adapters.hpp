@@ -51,6 +51,9 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     }
     const std::string& station_mac() const { return station_mac_; }
     const std::string& stable_hostname() const { return stable_hostname_; }
+    // Register the same certified local hostname on the AP netif. The AP has
+    // an independent responder record but shares the one bounded lwIP mDNS PCB.
+    bool softap_name(bool enabled, std::string_view hostname);
     void listener_status(bool configured, bool listening, bool identity_matches = true) {
         configured_ = configured;
         listening_ = listening;
@@ -99,6 +102,11 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     bool resume_after_withdrawal_ = false;
     bool configured_ = false, listening_ = false;
     bool identity_matches_ = true;
+    std::string softap_hostname_;
+    bool mdns_initialized_ = false;
+    bool softap_mdns_registered_ = false;
+    bool softap_mdns_active_ = false;
+    bool softap_mdns_conflict_ = false;
     std::uint32_t queries_ = 0, accepted_ = 0, rejected_ = 0;
 };
 } // namespace wsprrypico::standalone

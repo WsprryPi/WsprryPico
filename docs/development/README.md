@@ -15,7 +15,7 @@ and [portable review](phase12-review.md), the
 plus the separate
 [RF-inhibited-first physical plan](phase12-physical-acceptance.md), distinguish
 implemented infrastructure and selected product/security policy from open
-SoftAP/local-control and physical work. Provisioning-only GATT and its live
+physical/local-control work. Provisioning-only GATT and its live
 activator now run in the RF-inhibited production image; candidate
 identity/adoption/advertising and one online retained-bond Bluefy
 application-authorization exchange are partial physical evidence. Authenticated
@@ -24,9 +24,12 @@ production-connected. Their clean committed image has verified Candidate A
 load/boot, preserved state and final RF-inhibited restoration. The native
 Raspberry Pi/Linux client also has an exact RF-inhibited Candidate A/wspr5 live
 record for identity inspection, authenticated controller time, field status and
-WTP `HELLO`/`STATUS`. Bluefy/iOS offline use,
-full provisioning/activation, SoftAP, physical phone time, reset controls
-and most Stage A rows remain open. P12.3 remains CLOSED_SCOPED within its historical boundary.
+WTP `HELLO`/`STATUS`. A later hardware-free continuation production-connects
+SoftAP DHCP/mDNS, blank read-only HTTP, provisioned pre-clock/normal HTTPS,
+password/cookie admission, controller time and the existing browser/one-
+`JobService` API; it has no physical acceptance. Bluefy/iOS offline use, full
+provisioning/activation, physical SoftAP and phone time, reset controls and most
+Stage A rows remain open. P12.3 remains CLOSED_SCOPED within its historical boundary.
 Phase 13 broad hardware/release qualification remains open.
 
 The supported [Raspberry Pi/Linux BLE client](raspberry-pi-ble-client.md) adds a

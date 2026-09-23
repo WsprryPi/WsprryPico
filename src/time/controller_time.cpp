@@ -40,8 +40,17 @@ ControllerChallenge ControllerTimeArbiter::challenge(std::string_view principal,
         return {ControllerTimeCode::AuthenticationRequired};
     if (requested_device != device_id_)
         return {ControllerTimeCode::WrongDevice};
-    if (pending_.live)
-        return {ControllerTimeCode::SourceBusy};
+    if (pending_.live) {
+        const auto now = now_(context_);
+        if (now >= pending_.started_ns &&
+            now - pending_.started_ns > controller_challenge_lifetime_ns) {
+            clear(pending_.principal);
+            clear(pending_.session);
+            clear(pending_.nonce);
+            pending_ = {};
+        } else
+            return {ControllerTimeCode::SourceBusy};
+    }
     pending_.principal.assign(principal);
     pending_.session.assign(session);
     pending_.nonce = std::move(nonce);
