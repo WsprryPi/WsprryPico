@@ -265,6 +265,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     endif()
     add_test(NAME provisioning_contract_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/provisioning_contract_tests.py)
+    add_test(NAME raspberry_pi_ble_client_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/raspberry_pi_ble_client_tests.py)
+    add_test(NAME network_transport_contract_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/network_transport_contract_tests.py)
     add_test(NAME bluefy_release_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/bluefy_release_tests.py)
     set(WSPRRY_PICO_HARNESS_PYTHON "" CACHE FILEPATH "Optional existing Harness Python for offline RF analysis tests")

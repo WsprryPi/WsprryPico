@@ -49,6 +49,7 @@ class BleCommandSession {
     time::ControllerTimeArbiter* controller_time_ = nullptr;
     IndicatorController* indicator_ = nullptr;
     std::string field_session_;
+    std::string pending_time_nonce_;
     std::string pending_apply_request_;
     std::uint64_t pending_apply_generation_ = 0;
     bool connected_ = false;

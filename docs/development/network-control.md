@@ -1,6 +1,6 @@
 # Phase 11 network control
 
-The implementation provides optional TLS WTP/TCP, HTTPS browser API v1, embedded
+The implementation provides first-class authenticated TLS WTP/TCP, HTTPS browser API v1, embedded
 operator assets, network status/management and local certificate tooling. Host
 TLS/API/browser tests and firmware cross-linking are distinct from physical
 network/RF acceptance. The [Phase 11.4 record](phase11-4-review.md) identifies the
@@ -13,14 +13,21 @@ LED indication, trust replacement and recovery. The scoped
 journals, reset recovery, fixed GATT framing, Bluefy behavior, controller/SNTP
 arbitration and cross-linked Pico BLE/SoftAP/LED candidates. P12.4/P12.5 provide
 strict command decoding, shared PSA ownership and delivery-safe activation
-coordination. P12.6 enables provisioning-only GATT and the network-only live
-activator in the RF-inhibited production image and builds the deterministic
-offline page. SoftAP, BLE local WTP/browser control, phone time, full live
-activation and most physical acceptance remain open.
+coordination. P12.6 enables encrypted GATT, the network-only live activator,
+controller-time/Identify/status and unchanged WTP/1 local control in the
+RF-inhibited production image and builds the deterministic offline page. The
+native Raspberry Pi/Linux client reuses that GATT service. SoftAP, physical
+BLE/Bluefy/Linux interoperability, offline-page acceptance and most physical
+acceptance remain open.
 
 ## Operator setup and certificates
 
-Network control is disabled by default (`WSPRRY_PICO_NETWORK_PORT=0`). Existing
+Network control is disabled by default (`WSPRRY_PICO_NETWORK_PORT=0`). When
+explicitly configured, raw WTP is accepted only through TLS 1.3, mutual
+device-specific certificate authentication and ALPN `wtp/1`; plaintext,
+opportunistic downgrade and a protocol-assigned default port do not exist. The
+TCP adapter passes the identical WTP/1 frame stream and certificate-derived
+principal to the same portable endpoint and `JobService` as USB. Existing
 Wi-Fi/SNTP/USB and recovery behavior remains available. Use the existing Console
 configuration to join Wi-Fi; the TLS server requires usable device UTC before
 accepting clients. Use DHCP with the stable per-device `.local` hostname; no
@@ -132,14 +139,16 @@ hash-checked fixes applied when building the pinned Mbed TLS sources; the SDK
 checkout stays unchanged. [F2/F3/F6 acceptance](phase11-4-f2-f3-f6-results.md)
 records replacement-client and actual Chrome IP-SAN results.
 
-### End-user provisioning limitation
+### End-user provisioning boundary
 
 These commands remain developer provisioning, not a finished end-user setup
-flow. Current production firmware can boot from a committed runtime profile and
-enforces access-journal health fail closed. The source tree also contains the
-portable BLE/SoftAP authority and cross-linked target candidates, but production
-does not start those services or connect the live activator. There is therefore
-still no supported end-user route that writes and activates a profile.
+flow. Current production firmware can boot from a committed runtime profile,
+enforces access-journal health fail closed, starts encrypted BLE provisioning
+and local control, and connects the network-only delivery-safe profile
+activator. The checked-in Bluefy page and Raspberry Pi/Linux client can write
+the complete profile transaction. Their deterministic coverage and bounded
+live local-control evidence do not by themselves qualify a general end-user
+provisioning path.
 
 The selected generic flow starts unprovisioned and identifies the full device
 through BLE/Bluefy or explicit USB-local tooling. Blank-device SoftAP remains
@@ -151,9 +160,11 @@ SoftAP/Safari as an independent no-infrastructure field-control and replacement
 path. The CA private key remains off-device and public server trust is enrolled
 explicitly.
 
-That behavior has deterministic portable tests and target cross-link evidence,
-not enabled-production or physical evidence. E1 identity/trust acceptance does
-not qualify end-user setup.
+The BLE portion has deterministic portable/client tests, target cross-linking
+and limited enabled-production evidence. Complete profile transfer and
+activation, SoftAP/Safari, Bluefy/iOS offline operation and the broader physical
+matrix remain open. E1 identity/trust acceptance does not qualify end-user
+setup.
 
 ### Renewal and compromised credentials
 
@@ -177,7 +188,7 @@ or runtime rotation. If a client credential or CA is compromised today, create
 a new device CA with `init` in a new directory, reissue authorized clients,
 rebuild/reflash with the new trust chain and replace client trust.
 
-The selected Phase 12 runtime policy instead commits one complete replacement
+The Phase 12 runtime path commits one complete replacement
 bundle atomically. Commit immediately supersedes the old client CA and closes
 network admission; only the applying terminal response may complete before
 exactly-once activation after delivery or five seconds. Neither generation may
@@ -186,7 +197,8 @@ dual-trust interval. Committed corruption fails closed without trust
 resurrection. The replacement also invalidates old-generation SNTP authority
 and late DNS/SNTP callbacks. It requires fresh local-password step-up and, while
 the public default is active, physical or USB confirmation. That runtime path
-is not yet implemented.
+is implemented in the RF-inhibited standard image; complete physical
+provisioning/activation acceptance remains open.
 
 ### Explicit IP, deliberate hostname change and legacy migration
 

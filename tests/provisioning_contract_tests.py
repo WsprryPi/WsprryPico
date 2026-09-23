@@ -7,6 +7,7 @@ import re
 
 repo = Path(__file__).resolve().parents[1]
 web = (repo / "src/provisioning/web/bluefy.js").read_text()
+linux_client = (repo / "scripts/wsprrypico_ble.py").read_text()
 command_header = (repo / "src/provisioning/command.hpp").read_text()
 command_source = (repo / "src/provisioning/command.cpp").read_text()
 ble_session = (repo / "src/provisioning/ble_session.cpp").read_text()
@@ -15,12 +16,16 @@ gatt = (repo / "src/provisioning/pico/gatt_transport.cpp").read_text()
 gatt_profile = (repo / "src/provisioning/pico/field_access.gatt").read_text()
 
 assert "const MAX_PROFILE_BYTES = 7168;" in web
+assert "MAX_PROFILE_BYTES = 7168" in linux_client
 assert "max_profile_bytes = 7168;" in profile_header
 assert "const FRAGMENT_BYTES = 64;" in web
+assert "FRAGMENT_BYTES = 64" in linux_client
 assert "max_fragment_bytes = 64;" in command_header
 assert "const MAX_COMMAND_BYTES = 512;" in web
+assert "MAX_COMMAND_BYTES = 512" in linux_client
 assert "max_command_bytes = 512;" in command_header
 assert "const MAX_STATUS_BYTES = 256;" in web
+assert "MAX_STATUS_BYTES = 256" in linux_client
 assert "max_notification_bytes = 256;" in command_header
 assert "framing" in web and "reassembly in both directions" in web
 assert "max_wire_integer = 2147483647;" in command_header
@@ -34,14 +39,17 @@ for name, value in {
     "wtpStatus": "7d6b0006-5bf1-4f21-a486-3e8f70c12201",
 }.items():
     assert re.search(rf"{name}: \"{re.escape(value)}\"", web)
+    assert re.search(rf'\"{name}\": \"{re.escape(value)}\"', linux_client)
 
 for operation in ("open", "write", "apply", "cancel"):
     assert f'operation: "{operation}"' in web
     assert f'operation == "{operation}"' in command_source
+    assert f'"{operation}"' in linux_client
 
 for operation in ("identify", "field_status", "time_challenge", "time_submit"):
     assert f'operation: "{operation}"' in web
     assert f'name == "{operation}"' in ble_session
+    assert f'"{operation}"' in linux_client
 
 for field in (
     "version",
@@ -56,6 +64,19 @@ for field in (
 ):
     assert f'"{field}"' in command_source
     assert re.search(rf"\b{field}\b", web)
+    assert re.search(rf"\b{field}\b", linux_client)
+
+for required in (
+    '"HELLO"',
+    '"STATUS"',
+    '"WTP/1"',
+    '"NoInputNoOutput"',
+    '"profile_permissions"',
+    'getpass.getpass',
+):
+    assert required in linux_client
+assert '"Trusted"' not in linux_client
+assert "bus_name=self.BLUEZ" in linux_client
 
 assert "INDICATE | ENCRYPTION_KEY_SIZE_16 | DYNAMIC" in gatt_profile
 assert "WRITE | ENCRYPTION_KEY_SIZE_16 | DYNAMIC" in gatt_profile

@@ -108,7 +108,11 @@ These decisions are sufficiently established for hardware-free implementation:
     Bluefy; no WsprryPico-native iOS app is planned. The Safari-only path remains
     the SoftAP fallback. Bluefy and the delivered web page are explicit
     provisioning trust dependencies and must be identity/version-bound in
-    acceptance evidence.
+    acceptance evidence. A native Raspberry Pi/Linux BlueZ command-line client
+    is an additional supported local/bench client using the same encrypted GATT
+    service, full-device-ID binding, application authorization, provisioning
+    transaction and unchanged WTP/1 stream. It does not replace or qualify the
+    selected Bluefy/iOS acceptance path.
 12. The [selected field-access contract](phase12-field-access-contract.md)
     defines no-infrastructure operation, Just Works plus application-password
     enrollment, retained bonds, SoftAP field mode, controller-supplied UTC,

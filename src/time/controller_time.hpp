@@ -56,6 +56,9 @@ class ControllerTimeArbiter final : public ObservationSink {
 
     ControllerChallenge challenge(std::string_view principal, std::string_view session,
                                   std::string_view requested_device, std::string nonce);
+    bool challenge_delivered(std::string_view principal, std::string_view session,
+                             std::string_view requested_device, std::string_view nonce);
+    void cancel_challenge(std::string_view principal, std::string_view session);
     ControllerTimeCode submit(std::string_view principal, std::string_view session,
                               std::string_view requested_device, std::string_view nonce,
                               std::uint64_t utc_ns);

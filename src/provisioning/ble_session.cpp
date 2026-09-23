@@ -128,10 +128,14 @@ bool BleCommandSession::connected(std::uint64_t peer, bool encrypted, bool new_p
 }
 
 void BleCommandSession::disconnected() {
-    if (connected_)
+    if (connected_) {
+        if (controller_time_ && !pending_time_nonce_.empty())
+            controller_time_->cancel_challenge(principal(), field_session_);
         (void)access_.ble_disconnect();
+    }
     connected_ = false;
     secure_clear(field_session_);
+    secure_clear(pending_time_nonce_);
     secure_clear(pending_apply_request_);
     pending_apply_generation_ = 0;
     delivery_confirmed_ = false;
@@ -249,6 +253,7 @@ CommandReply BleCommandSession::field_command(std::string_view command,
         const auto code = time_code(result.code);
         if (code != Code::Ok)
             return field_reply(request_id, code);
+        pending_time_nonce_ = result.nonce;
         return field_reply(request_id, Code::Ok,
                            "\"nonce\":" + wtp::json::quote(result.nonce) +
                                ",\"sampled_monotonic_ns\":\"" +
@@ -300,6 +305,12 @@ CommandReply BleCommandSession::handle(std::string_view command, std::uint64_t n
 
 void BleCommandSession::response_delivered(std::uint64_t now_ms) {
     (void)now_ms;
+    if (!pending_time_nonce_.empty()) {
+        if (controller_time_)
+            (void)controller_time_->challenge_delivered(
+                principal(), field_session_, device_id_, pending_time_nonce_);
+        secure_clear(pending_time_nonce_);
+    }
     if (pending_apply_request_.empty())
         return;
     delivery_confirmed_ = true;

@@ -495,6 +495,7 @@ void ble_command_policy() {
         "\"password\":\"wspr-0a60df\"}";
     const auto admitted = session.handle(authorize, 3);
     CHECK(admitted.code == provisioning::Code::Ok);
+    session.response_delivered(3);
     CHECK(session.authorized());
     CHECK(!session.principal().empty());
     const std::string identify =
@@ -521,6 +522,10 @@ void ble_command_policy() {
         "\"device_id\":\"00112233445566778899aabbccddeeff\","
         "\"nonce\":\"phone-sample-1\"}";
     CHECK(session.handle(challenge, 5).code == provisioning::Code::Ok);
+    // Confirmed indication delivery, not command receipt, starts the latency
+    // charged to the controller-time uncertainty budget.
+    now_ns += 400'000'000ULL;
+    session.response_delivered(5);
     now_ns += 10'000'000ULL;
     const std::string submit =
         "{\"version\":1,\"operation\":\"time_submit\","
@@ -550,6 +555,7 @@ void ble_command_policy() {
 
     provisioning::BleCommandSession returning(f.controller, command, manager,
                                                std::string(device), idle_activity, nullptr);
+    returning.field_controls(&arbiter, &indicator);
     CHECK(returning.connected(9, true, false, "link-return", 6));
     CHECK(returning.authorized());
     auto retained_authorize = authorize;
@@ -557,7 +563,26 @@ void ble_command_policy() {
                                "wrong-value");
     CHECK(returning.handle(retained_authorize, 7).code == provisioning::Code::Ok);
     CHECK(returning.authorized());
+    auto abandoned_challenge = challenge;
+    abandoned_challenge.replace(
+        abandoned_challenge.find("88888888888888888888888888888888"), 32,
+        "88888888888888888888888888888889");
+    abandoned_challenge.replace(abandoned_challenge.find("phone-sample-1"), 14,
+                                "disconnect-one");
+    CHECK(returning.handle(abandoned_challenge, 8).code == provisioning::Code::Ok);
     returning.disconnected();
+
+    provisioning::BleCommandSession after_disconnect(
+        f.controller, command, manager, std::string(device), idle_activity, nullptr);
+    after_disconnect.field_controls(&arbiter, &indicator);
+    CHECK(after_disconnect.connected(9, true, false, "link-after-disconnect", 9));
+    CHECK(after_disconnect.handle(retained_authorize, 10).code == provisioning::Code::Ok);
+    auto next_challenge = abandoned_challenge;
+    next_challenge.replace(next_challenge.find("88888888888888888888888888888889"), 32,
+                           "8888888888888888888888888888888a");
+    next_challenge.replace(next_challenge.find("disconnect-one"), 14, "disconnect-two");
+    CHECK(after_disconnect.handle(next_challenge, 11).code == provisioning::Code::Ok);
+    after_disconnect.disconnected();
 }
 
 void framing_policy() {
@@ -800,10 +825,19 @@ void controller_time_policy() {
           time::ControllerTimeCode::AuthenticationRequired);
     auto challenge = arbiter.challenge("phone-a", "session-a", device, "nonce-a");
     CHECK(challenge.code == time::ControllerTimeCode::Ok);
+    clock_now += 400'000'000ULL;
+    CHECK(!arbiter.challenge_delivered("phone-b", "session-a", device, "nonce-a"));
+    CHECK(arbiter.challenge_delivered("phone-a", "session-a", device, "nonce-a"));
     clock_now += 10'000'000ULL;
     CHECK(arbiter.submit("phone-a", "session-a", device, "nonce-a", utc) ==
           time::ControllerTimeCode::Ok);
     CHECK(arbiter.status().source == time::ActiveTimeSource::Controller);
+    CHECK(arbiter.challenge("phone-a", "cancel-a", device, "cancel-nonce").code ==
+          time::ControllerTimeCode::Ok);
+    arbiter.cancel_challenge("phone-b", "cancel-a");
+    CHECK(arbiter.challenge("phone-a", "blocked", device, "blocked-nonce").code ==
+          time::ControllerTimeCode::SourceBusy);
+    arbiter.cancel_challenge("phone-a", "cancel-a");
     CHECK(arbiter.challenge("phone-b", "session-b", device, "nonce-b").code ==
           time::ControllerTimeCode::Ok);
     clock_now += 10'000'000ULL;

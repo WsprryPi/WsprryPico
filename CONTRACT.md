@@ -13,11 +13,18 @@ the implemented Pico surface. Shared WsprryPi adoption remains separate work.
 
 ## Timing and interoperability
 
-- USB CDC is the canonical WTP transport; Wi-Fi/TCP adds network control.
+- USB CDC is the canonical/reference WTP transport. Mutually authenticated
+  TLS 1.3/TCP with ALPN `wtp/1` is an implemented first-class WTP job-transfer
+  and job-control transport; it carries the identical WTP/1 stream to the same
+  `JobService`, has no plaintext fallback and has no protocol-assigned default
+  port. Network control remains product-gated and default-off.
 - BLE/Bluefy is the primary local provisioning, management and field-control
   path; SoftAP/Safari is an independent no-infrastructure fallback. Their
   selected policy is the
   [Phase 12 field-access contract](docs/development/phase12-field-access-contract.md).
+  The native [Raspberry Pi/Linux BlueZ client](docs/development/raspberry-pi-ble-client.md)
+  is an additional supported local/bench client; it does not replace Bluefy or
+  qualify the iPhone/offline acceptance path.
 - Every job-control path uses the same JobService and loads and arms complete
   jobs. RP2350 owns execution and symbol timing.
 - WTP is device-neutral and independently versioned. Its specification is
@@ -54,7 +61,7 @@ covers configuration retention, autonomous SNTP and outage/reconnection.
 adds independent decoding of recurring frames without a USB host on the recorded
 setup. Calibrated timing and general RF/reliability qualification remain open.
 
-Optional [TLS network control](docs/development/network-control.md) supplies
+First-class [TLS network control](docs/development/network-control.md) supplies
 mutually authenticated WTP/TCP and HTTPS handlers to the existing job service.
 Network status, persistent config and schedules share the standalone adapters.
 Host TLS/browser tests and cross-linking do not qualify physical network/RF
@@ -64,8 +71,9 @@ host-tests bounded profiles, transactional replacement, replay and idle-only
 application. The scoped [P12.3 closeout](docs/development/phase12-3-review.md)
 implements the selected access journal, source/reset recovery, session policy,
 GATT framing, Bluefy client, controller-time arbitration and cross-linked Pico
-BLE/SoftAP/LED candidates. Production boot consumes access health fail closed,
-but the production image does not start those field services.
+BLE/SoftAP/LED candidates. Production boot consumes access health fail closed
+and now starts the encrypted GATT provisioning/local-control service from a
+healthy adopted access state. The Linux BlueZ client reuses that exact service.
 
 P12.4 supplies the closed C++ command decoder. P12.5 supplies delivery-safe
 activation coordination and shared PSA ownership. The operator-selected
@@ -75,9 +83,11 @@ recovery, controller-time bootstrap, LED indication, trust replacement and
 reset preservation. The public MAC-derived password and ordinary flash carry no
 confidentiality claim.
 
-Production BLE/SoftAP/HTTPS/local-control wiring, a Pico live-activation
-platform, exact gestures, offline-page qualification and physical acceptance
-remain open. P12.3 is closed only for its documented hardware-free
+Production SoftAP/HTTPS wiring, exact gestures, offline-page qualification and
+most physical acceptance remain open. BLE provisioning, controller-time,
+Identify/status, unchanged WTP/1 and the network-only live activator are wired
+in the RF-inhibited standard image, but their unexecuted physical rows remain
+open. P12.3 is closed only for its documented hardware-free
 source/cross-link boundary; Phase 12 is not yet an accepted end-user path.
 
 Host tests, target execution and RF qualification are distinct evidence classes.

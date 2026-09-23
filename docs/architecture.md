@@ -13,9 +13,12 @@ Use WsprryPico for project, repository and application naming; firmware artifact
 ## Transport and timing
 
 - USB CDC serial is the canonical/reference control transport.
-- Wi-Fi/TCP provides network control; Wi-Fi also supports the embedded web UI.
+- Mutually authenticated TLS 1.3/TCP with ALPN `wtp/1` is a first-class WTP
+  job-transfer and job-control transport; Wi-Fi also supports the embedded web
+  UI. Network control remains product-gated and default-off.
 - BLE/Bluefy is the primary local provisioning, management and field-control
-  path. No WsprryPico-native iOS app is planned.
+  path. No WsprryPico-native iOS app is planned. A native Raspberry Pi/Linux
+  BlueZ client is an additional supported local/bench controller.
 - SoftAP/Safari is an independent provisioning, recovery and field-control
   fallback when infrastructure Wi-Fi is absent.
 - The selected authentication, offline-time and indicator behavior is defined
@@ -60,9 +63,10 @@ console diagnostics from WTP framing. The [USB adapter contract](development/usb
 defines bounded servicing and connection semantics; logging must never enter WTP.
 The [strict WTP endpoint](development/wtp-endpoint.md) performs JSON validation,
 request dispatch and ordered response/event transmission. The [standalone scheduler](development/standalone.md) now shares this service
-with USB WTP and the [HTTPS browser API](browser-api.md). Optional TLS 1.3
-network control uses certificate principals and ALPN dispatch above raw lwIP
-callbacks. Core 0 retains application/USB/network/storage ownership. The physical
+with USB WTP and the [HTTPS browser API](browser-api.md). First-class TLS 1.3
+WTP/TCP uses device-specific certificate principals and ALPN `wtp/1` dispatch
+above raw lwIP callbacks; plaintext and downgrade are not supported. Core 0
+retains application/USB/network/storage ownership. The physical
 standalone image dedicates core 1 to the RF engine/sink/peripheral and local launch
 interrupts, using a one-command synchronous ownership-transfer mailbox. Two TLS
 contexts on core 0 allow a persistent WTP owner plus an independent HTTPS browser.

@@ -25,6 +25,12 @@ full provisioning/activation, SoftAP, physical phone time, reset controls
 and most Stage A rows remain open. P12.3 remains CLOSED_SCOPED within its historical boundary.
 Phase 13 broad hardware/release qualification remains open.
 
+The supported [Raspberry Pi/Linux BLE client](raspberry-pi-ble-client.md) adds a
+native BlueZ local/bench workflow using the same production GATT contract.
+Authenticated TLS 1.3/TCP remains a first-class WTP job-control transport while
+USB CDC remains canonical/reference. These are source and deterministic-host
+claims until an exact live client/target record says otherwise.
+
 Phase 11.5 is CLOSED at 6/6 families for its recorded 138 MHz/divider-1
 configuration. Its [completion matrix](phase11-5-completion-matrix.md) and
 [September 15 standing authorization](phase11-5-completion-authorization-20260915.md)

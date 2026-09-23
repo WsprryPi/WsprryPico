@@ -323,13 +323,15 @@ including a local LAN server that needs no Internet. When none is reachable,
 an authenticated, full-device-ID-bound Bluefy or SoftAP controller supplies an
 experimental phone-time observation to the existing UTC discipline.
 
-The exchange uses a fresh nonce and sampled Pico monotonic timestamp. The page
-brackets the exchange with its monotonic clock, supplies POSIX UTC from the
-iPhone system clock and returns the exact nonce/session/device binding. The Pico
+The exchange uses a fresh nonce and Pico monotonic challenge timestamp. The
+controller samples POSIX UTC only after the complete challenge indication has
+been confirmed, then returns the exact nonce/session/device binding. Confirmed
+challenge delivery starts the target-side latency interval because the
+controller cannot sample the UTC value before receiving that response. The Pico
 computes, rather than accepts from the client, a nonzero uncertainty comprising:
 
 - a fixed 250 ms allowance for unverified iPhone clock error;
-- the full measured request/response round trip; and
+- the full measured post-delivery controller-sample and submission latency; and
 - local serialization, timer-quantization and configured oscillator-growth
   margins.
 
@@ -632,6 +634,15 @@ native app is planned. Its version/integrity identity must be visible; it may
 not load unapproved remote scripts, analytics or credential services. It must
 clear temporary secrets and work from an integrity-controlled offline delivery
 or cache on the accepted Bluefy/iOS pair.
+
+The repository also supplies a native Raspberry Pi/Linux BlueZ command-line
+client as an additional local/bench controller. It selects an exact Bluetooth
+address, verifies the full encrypted device identity, uses the same Just Works
+enrollment, retained-bond and application-password policy, and reuses the exact
+provisioning and WTP GATT characteristics. It must not set the BlueZ device
+globally trusted or accept passwords through arguments/environment variables.
+Its host or live-Pi evidence is independent of, and cannot substitute for, the
+selected Bluefy/iOS offline acceptance rows.
 
 Physical acceptance disables infrastructure Wi-Fi and cellular data and proves
 the exact page remains usable. If reliable offline delivery cannot be proven,
