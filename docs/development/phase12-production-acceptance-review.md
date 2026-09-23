@@ -280,9 +280,11 @@ The standard RF-inhibited image now:
 - runs the selected WPA2-AES SoftAP causes through `SoftApCoordinator` and
   `PicoSoftAp`, using the station-MAC-derived SSID and current local-access
   password;
-- uses the pinned CYW43 DHCP service and fixed AP address
+- uses a bounded project-owned DHCP service and fixed AP address
   `192.168.4.1/24`, registers the certified `.local` hostname on the AP netif,
-  and keeps station and AP service under the one CYW43 owner;
+  and keeps station and AP service under the one CYW43 owner. The server is
+  derived from the MIT MicroPython implementation carried by Raspberry Pi's
+  `pico-examples`, is bound to the AP netif and has checked startup;
 - exposes plaintext port 80 only on the AP interface and only for blank,
   read-only identity/recovery information; it accepts no password, controller
   time, provisioning or job mutation;

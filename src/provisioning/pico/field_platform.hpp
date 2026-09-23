@@ -1,5 +1,6 @@
 #pragma once
 
+#include "provisioning/pico/dhcp_server.h"
 #include "provisioning/field_runtime.hpp"
 #include "provisioning/local_access.hpp"
 
@@ -31,6 +32,7 @@ class PicoSoftAp {
     bool running() const { return running_; }
 
   private:
+    wsprry_dhcp_server_t dhcp_{};
     bool running_ = false;
 };
 } // namespace wsprrypico::provisioning

@@ -107,7 +107,8 @@ standard RF-inhibited image. One CYW43 owner supplies checked station-MAC
 identity, BTstack GATT, station service, SoftAP netif and core-0 LED access. The
 production graph constructs the portable access/manager state and a
 network-only `PicoActivationPlatform`; neither layer can abort, release or
-clear JobService/RF ownership. The SoftAP graph supplies DHCP on
+clear JobService/RF ownership. The SoftAP graph supplies a bounded,
+AP-interface-bound DHCP service on
 `192.168.4.1/24`, AP-interface mDNS, blank read-only HTTP, device-bound HTTPS,
 password/cookie admission, controller time and the existing browser API backed
 by that same `JobService`. The repository-owned Bluefy artifact uses a

@@ -33,6 +33,13 @@ if(WSPRRY_PICO_TEST_LWIP_PATH)
     target_link_libraries(mdns_lwip_tests PRIVATE mdns_test_stack)
     target_compile_options(mdns_lwip_tests PRIVATE -Wall -Wextra -Werror -UNDEBUG)
     add_test(NAME mdns_lwip_tests COMMAND mdns_lwip_tests)
+    add_executable(dhcp_server_tests tests/dhcp_server_tests.c
+        src/provisioning/pico/dhcp_server.c)
+    target_include_directories(dhcp_server_tests PRIVATE src)
+    set_target_properties(dhcp_server_tests PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
+    target_link_libraries(dhcp_server_tests PRIVATE mdns_test_stack)
+    target_compile_options(dhcp_server_tests PRIVATE -Wall -Wextra -Werror -UNDEBUG)
+    add_test(NAME dhcp_server_tests COMMAND dhcp_server_tests)
     add_executable(network_adapter_tests tests/network_adapter_tests.cpp
         src/standalone/pico/adapters.cpp src/standalone/pico/net_trace.cpp)
     target_include_directories(network_adapter_tests BEFORE PRIVATE tests/network_adapter_mock)

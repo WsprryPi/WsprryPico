@@ -31,7 +31,7 @@
 #define MDNS_RESP_USENETIF_EXTCALLBACK 0
 // Probe + two delayed replies + three cooldowns + two retained TC questions.
 #define MEMP_NUM_SYS_TIMEOUT (LWIP_NUM_SYS_TIMEOUT_INTERNAL + 8)
-#define MEMP_NUM_IGMP_GROUP 3
+#define MEMP_NUM_IGMP_GROUP 4 // All-systems and mDNS memberships on station and AP.
 #define LWIP_IPV6 0
 #define LWIP_RAW 0
 #define LWIP_NETIF_STATUS_CALLBACK 1
@@ -40,7 +40,7 @@
 #define MEM_ALIGNMENT 4
 #define MEM_SIZE 32768
 #define PBUF_POOL_SIZE 8
-#define MEMP_NUM_UDP_PCB 4 // DHCP, SNTP, mDNS responder and asynchronous DNS.
+#define MEMP_NUM_UDP_PCB 5 // Station/AP DHCP, SNTP, mDNS responder and asynchronous DNS.
 #define LWIP_STATS 1
 #define LWIP_STATS_LARGE 1
 #define LWIP_STATS_DISPLAY 0

@@ -77,17 +77,27 @@ bool PicoSoftAp::start(const LocalIdentity& identity, std::string_view password)
     cyw43_arch_enable_ap_mode(identity.softap_ssid.c_str(), owned.c_str(),
                               CYW43_AUTH_WPA2_AES_PSK);
     clear(owned);
+    ip_addr_t gateway = IPADDR4_INIT(PP_HTONL(CYW43_DEFAULT_IP_AP_ADDRESS));
+    ip_addr_t netmask = IPADDR4_INIT(PP_HTONL(CYW43_DEFAULT_IP_MASK));
+    if (!wsprry_dhcp_server_init(&dhcp_, &cyw43_state.netif[CYW43_ITF_AP], &gateway,
+                                  &netmask)) {
+        cyw43_arch_disable_ap_mode();
+        return false;
+    }
     running_ = true;
     return true;
 }
 
 void PicoSoftAp::stop() {
-    if (running_)
+    if (running_) {
+        wsprry_dhcp_server_deinit(&dhcp_);
         cyw43_arch_disable_ap_mode();
+    }
     running_ = false;
 }
 
 bool PicoSoftAp::ready() const {
-    return running_ && netif_is_up(&cyw43_state.netif[CYW43_ITF_AP]);
+    return running_ && wsprry_dhcp_server_ready(&dhcp_) &&
+           netif_is_up(&cyw43_state.netif[CYW43_ITF_AP]);
 }
 } // namespace wsprrypico::provisioning

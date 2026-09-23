@@ -60,6 +60,15 @@ Standalone Wi-Fi builds also link the pinned SDK's network dependencies:
   from the project's MIT license. Preserve the applicable notices and
   disclaimers in documentation/materials accompanying firmware distribution.
 
+The SoftAP DHCP server in `src/provisioning/pico/dhcp_server.c` and its header
+are derived from the MicroPython DHCP server carried by Raspberry Pi's
+`pico-examples` at commit `0d62f75bafc2c8120d3276c3343d1a9195e909e9`, files
+`pico_w/wifi/access_point/dhcpserver/dhcpserver.c` and `dhcpserver.h`. MIT,
+copyright 2018-2019 Damien P. George. The retained source headers contain the
+complete license. WsprryPico adds bounded packet parsing, checked initialization,
+an explicit AP-netif binding and deterministic packet tests; no SDK source is
+modified.
+
 No NTP implementation was copied from another project. The portable exchange
 parser is original project code based on the published packet format.
 

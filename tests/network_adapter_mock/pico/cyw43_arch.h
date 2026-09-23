@@ -3,10 +3,10 @@
 
 #include <cstdint>
 struct cyw43_t {
-    struct netif netif[1];
+    struct netif netif[2];
 };
 extern cyw43_t cyw43_state;
-constexpr int CYW43_ITF_STA = 0, CYW43_LINK_BADAUTH = -3, CYW43_LINK_NONET = -2,
+constexpr int CYW43_ITF_STA = 0, CYW43_ITF_AP = 1, CYW43_LINK_BADAUTH = -3, CYW43_LINK_NONET = -2,
               CYW43_LINK_FAIL = -1, CYW43_LINK_DOWN = 0, CYW43_LINK_JOIN = 1, CYW43_LINK_NOIP = 2,
               CYW43_LINK_UP = 3, CYW43_AUTH_WPA2_AES_PSK = 1;
 constexpr int CYW43_NONE_PM = 0, CYW43_NO_POWERSAVE_MODE = 0;

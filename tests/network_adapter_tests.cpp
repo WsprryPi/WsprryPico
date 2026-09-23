@@ -203,6 +203,7 @@ static void active(PicoNetwork& network) {
     assert(network.status().find("\"mdns_state\":\"active\"") != std::string::npos);
 }
 int main(int argc, char** argv) {
+    static_assert(MEMP_NUM_IGMP_GROUP == 4);
     if (argc == 2) {
         const std::string mode(argv[1]);
         assert(mode == "mac-error" || mode == "mac-invalid");
@@ -238,6 +239,19 @@ int main(int argc, char** argv) {
     assert(network.set_enabled(false) && disables == disables_before_off + 1);
     assert(network.set_enabled(true));
     active(network);
+    ip4_addr_t ap_address{}, ap_mask{}, ap_gateway{};
+    IP4_ADDR(&ap_address, 192, 168, 4, 1);
+    IP4_ADDR(&ap_mask, 255, 255, 255, 0);
+    IP4_ADDR(&ap_gateway, 192, 168, 4, 1);
+    assert(netif_add(&cyw43_state.netif[CYW43_ITF_AP], &ap_address, &ap_mask, &ap_gateway, nullptr,
+                     setup, ip_input));
+    netif_set_link_up(&cyw43_state.netif[CYW43_ITF_AP]);
+    netif_set_up(&cyw43_state.netif[CYW43_ITF_AP]);
+    assert(!network.softap_name(true, "wsprrypico-0a60df.local"));
+    advance(network, 5'000'000);
+    assert(network.softap_name(true, "wsprrypico-0a60df.local"));
+    assert(!network.softap_name(false, {}));
+    netif_remove(&cyw43_state.netif[CYW43_ITF_AP]);
     watchdog_hw->scratch[1] = 5;
     assert(network.association() == "{\"valid\":true,\"bssid\":\"42:98:b5:fe:36:a1\"}");
     assert(watchdog_hw->scratch[1] == 5);

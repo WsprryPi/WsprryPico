@@ -5,8 +5,8 @@ hardware-free scopes. P12.6 now production-enables BLE provisioning plus
 authenticated controller time, Identify/status and an unchanged WTP/1 stream,
 the network-only live activator and indicator construction in the RF-inhibited
 standard image, a deterministic offline Bluefy release, and a hardware-free
-production SoftAP path. The SoftAP path includes the SDK DHCP server on
-`192.168.4.1/24`, AP-interface mDNS, blank read-only HTTP, provisioned
+production SoftAP path. The SoftAP path includes the bounded project-owned DHCP
+server on `192.168.4.1/24`, AP-interface mDNS, blank read-only HTTP, provisioned
 pre-clock/normal HTTPS, password/cookie admission, controller time and the
 existing browser/`JobService` API. It has build/test evidence only. Its
 identity/adoption/advertising physical subset has passed. Physical SoftAP,
@@ -91,6 +91,11 @@ not flashed, so it is not physical evidence.
   key and client CA fit comfortably inside a bounded 7 KiB canonical profile.
   The bound is nevertheless an implementation limit, not a promise that every
   possible PEM encoding is accepted.
+- The pinned SDK does not enable or supply the CYW43 driver's optional DHCP
+  utility. The production SoftAP therefore owns a bounded DHCP server derived
+  from the MIT MicroPython implementation carried by Raspberry Pi's
+  `pico-examples`; it is AP-netif-bound, checked at startup and covered by
+  hardware-free packet, pool-exhaustion and Pico cross-link tests.
 
 ## Selected portable contract
 
