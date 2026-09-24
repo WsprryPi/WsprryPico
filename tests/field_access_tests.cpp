@@ -571,6 +571,8 @@ void ble_command_policy() {
     // conservative latency charged to the controller-time uncertainty budget.
     now_ns += 400'000'000ULL;
     session.response_started(5);
+    now_ns += 200'000'000ULL;
+    session.response_delivered(5);
     now_ns += 10'000'000ULL;
     const std::string submit = "{\"version\":1,\"operation\":\"time_submit\","
                                "\"request_id\":\"99999999999999999999999999999999\","
@@ -580,6 +582,25 @@ void ble_command_policy() {
                                "\"utc_ns\":\"1800000000000000000\"}";
     CHECK(session.handle(submit, 6).code == provisioning::Code::Ok);
     session.response_delivered(6);
+    const std::string over_challenge =
+        "{\"version\":1,\"operation\":\"time_challenge\","
+        "\"request_id\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\","
+        "\"session_id\":\"44444444444444444444444444444444\","
+        "\"device_id\":\"00112233445566778899aabbccddeeff\","
+        "\"nonce\":\"phone-sample-over\"}";
+    CHECK(session.handle(over_challenge, 7).code == provisioning::Code::Ok);
+    session.response_started(7);
+    now_ns += 249'000'000ULL;
+    const std::string over_submit =
+        "{\"version\":1,\"operation\":\"time_submit\","
+        "\"request_id\":\"cccccccccccccccccccccccccccccccc\","
+        "\"session_id\":\"44444444444444444444444444444444\","
+        "\"device_id\":\"00112233445566778899aabbccddeeff\","
+        "\"nonce\":\"phone-sample-over\","
+        "\"utc_ns\":\"1800000000249000000\"}";
+    const auto over_budget = session.handle(over_submit, 8);
+    CHECK(over_budget.code == provisioning::Code::Uncertainty);
+    CHECK(over_budget.notification.find("\"error\":\"uncertainty\"") != std::string::npos);
     const std::string field_status = "{\"version\":1,\"operation\":\"field_status\","
                                      "\"request_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\","
                                      "\"session_id\":\"44444444444444444444444444444444\","
@@ -1034,9 +1055,19 @@ void controller_time_policy() {
     clock_now += 400'000'000ULL;
     CHECK(!arbiter.challenge_response_started("phone-b", "session-a", device, "nonce-a"));
     CHECK(arbiter.challenge_response_started("phone-a", "session-a", device, "nonce-a"));
+    clock_now += 200'000'000ULL;
+    CHECK(!arbiter.challenge_response_delivered("phone-b", "session-a", device, "nonce-a"));
+    CHECK(arbiter.challenge_response_delivered("phone-a", "session-a", device, "nonce-a"));
+    CHECK(!arbiter.challenge_response_delivered("phone-a", "session-a", device, "nonce-a"));
     clock_now += 10'000'000ULL;
     CHECK(arbiter.submit("phone-a", "session-a", device, "nonce-a", utc) ==
           time::ControllerTimeCode::Ok);
+    CHECK(arbiter.challenge("phone-a", "race-a", device, "race-nonce").code ==
+          time::ControllerTimeCode::Ok);
+    CHECK(arbiter.challenge_response_started("phone-a", "race-a", device, "race-nonce"));
+    clock_now += 249'000'000ULL;
+    CHECK(arbiter.submit("phone-a", "race-a", device, "race-nonce", utc + 249'000'000ULL) ==
+          time::ControllerTimeCode::Uncertainty);
     CHECK(arbiter.status().source == time::ActiveTimeSource::Controller);
     CHECK(arbiter.challenge("phone-a", "cancel-a", device, "cancel-nonce").code ==
           time::ControllerTimeCode::Ok);

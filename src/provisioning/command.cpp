@@ -125,6 +125,8 @@ std::string_view code_name(Code code) {
         return "replay";
     case Code::Timeout:
         return "timeout";
+    case Code::Uncertainty:
+        return "uncertainty";
     case Code::StorageFault:
         return "storage_fault";
     case Code::ActivationFault:

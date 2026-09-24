@@ -35,6 +35,7 @@ enum class Code {
     Busy,
     Replay,
     Timeout,
+    Uncertainty,
     StorageFault,
     ActivationFault
 };

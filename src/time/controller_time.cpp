@@ -64,7 +64,8 @@ bool ControllerTimeArbiter::challenge_response_started(std::string_view principa
                                                        std::string_view requested_device,
                                                        std::string_view nonce) {
     if (!pending_.live || !now_ || principal != pending_.principal ||
-        session != pending_.session || requested_device != device_id_ || nonce != pending_.nonce)
+        session != pending_.session || requested_device != device_id_ || nonce != pending_.nonce ||
+        pending_.response_started || pending_.response_delivered)
         return false;
     // Starting the final indication is a conservative boundary before the
     // controller can receive the complete response and sample UTC. Waiting for
@@ -72,6 +73,27 @@ bool ControllerTimeArbiter::challenge_response_started(std::string_view principa
     // Keep the existing uncertainty budget and charge final delivery plus the
     // controller sample/write latency against it.
     pending_.started_ns = now_(context_);
+    pending_.response_started = true;
+    return true;
+}
+
+bool ControllerTimeArbiter::challenge_response_delivered(std::string_view principal,
+                                                         std::string_view session,
+                                                         std::string_view requested_device,
+                                                         std::string_view nonce) {
+    if (!pending_.live || !now_ || principal != pending_.principal ||
+        session != pending_.session || requested_device != device_id_ || nonce != pending_.nonce ||
+        !pending_.response_started || pending_.response_delivered)
+        return false;
+    // An ATT indication confirmation proves that the complete challenge has
+    // reached the controller. If it wins the race with the submit write, this
+    // is the tighter target-observed boundary for the later UTC sample. A
+    // submit that arrives first retains the conservative send-start boundary.
+    const auto now = now_(context_);
+    if (now < pending_.started_ns)
+        return false;
+    pending_.started_ns = now;
+    pending_.response_delivered = true;
     return true;
 }
 

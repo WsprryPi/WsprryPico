@@ -327,9 +327,11 @@ The exchange uses a fresh nonce and Pico monotonic challenge timestamp. The
 controller samples POSIX UTC only after it receives the complete challenge
 indication, then returns the exact nonce/session/device binding. Starting the
 final challenge-response indication starts the target-side latency interval;
-this is a conservative target-observable boundary before the controller can
-sample the UTC value and avoids racing its next write against the later
-indication-confirmation callback. The Pico
+this is the conservative fallback boundary if the controller's submit write
+races the later indication-confirmation callback. When the target receives the
+successful ATT indication confirmation first, confirmed delivery becomes the
+tighter target-observed boundary because the controller cannot sample the UTC
+value before it receives the complete challenge. The Pico
 computes, rather than accepts from the client, a nonzero uncertainty comprising:
 
 - a fixed 250 ms allowance for unverified iPhone clock error;

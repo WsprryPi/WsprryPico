@@ -59,6 +59,9 @@ class ControllerTimeArbiter final : public ObservationSink {
     bool challenge_response_started(std::string_view principal, std::string_view session,
                                     std::string_view requested_device,
                                     std::string_view nonce);
+    bool challenge_response_delivered(std::string_view principal, std::string_view session,
+                                      std::string_view requested_device,
+                                      std::string_view nonce);
     void cancel_challenge(std::string_view principal, std::string_view session);
     ControllerTimeCode submit(std::string_view principal, std::string_view session,
                               std::string_view requested_device, std::string_view nonce,
@@ -86,6 +89,8 @@ class ControllerTimeArbiter final : public ObservationSink {
         std::string nonce;
         std::uint64_t started_ns = 0;
         bool live = false;
+        bool response_started = false;
+        bool response_delivered = false;
     };
 
     bool current_valid(std::uint64_t now) const;

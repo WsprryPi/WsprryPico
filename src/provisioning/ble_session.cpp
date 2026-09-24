@@ -115,7 +115,7 @@ Code time_code(time::ControllerTimeCode code) {
     case ControllerTimeCode::Disagreement:
         return Code::Conflict;
     case ControllerTimeCode::Uncertainty:
-        return Code::InvalidRequest;
+        return Code::Uncertainty;
     }
     return Code::InvalidRequest;
 }
@@ -517,6 +517,9 @@ void BleCommandSession::response_started(std::uint64_t now_ms) {
 
 void BleCommandSession::response_delivered(std::uint64_t now_ms) {
     (void)now_ms;
+    if (!pending_time_nonce_.empty() && controller_time_)
+        (void)controller_time_->challenge_response_delivered(
+            principal(), field_session_, device_id_, pending_time_nonce_);
     if (pending_apply_request_.empty())
         return;
     delivery_confirmed_ = true;
