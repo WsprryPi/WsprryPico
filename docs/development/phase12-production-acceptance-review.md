@@ -658,6 +658,36 @@ that fixture passed separately with its local socket permitted. The three
 initial bare-compiler failures also passed with the pinned Xcode 26.5 SDK. No
 further actionable issue was found in this page-only repair.
 
+The bounded physical retry then passed on the same target firmware and boot.
+Bluefy displayed and verified exact online release
+`e1e6caa574a0e5c75cfd8c0a168c3ec8c2b896322ec7a7acc20d555f357f0625`.
+Blank retained-bond authorization succeeded on the exact device. Before the
+WTP action, the target had one new connection, no new disconnection, one new
+completed field command/reply and no WTP traffic. One `Read WTP status` action
+displayed `WTP 0.0.0-devel; state empty; output inactive.` Device-side
+diagnostics bound that result to two unchanged WTP/1 requests (`HELLO` and
+`STATUS`): 420 accepted bytes in seven write segments and 675 delivered bytes
+in thirteen confirmed indication segments. The link stayed connected through
+the exchange with zero queue, CCCD, request, indication or completion error.
+
+The operator then used the page's `Cancel` control. Final evidence showed two
+connections and two disconnections, both CCCDs cleared, no active admission,
+no pending output and the field/WTP selector reset. Access remained healthy at
+generation 3; journals remained healthy at configuration/watermark sequences
+72/12. The same boot remained RF-inhibited, `empty`, unowned and
+`output_active:false`, with the stored station, schedule and watermark
+unchanged. This before/after result on unchanged target firmware supports the
+compact-buffer diagnosis and accepts Bluefy `HELLO` plus read-only `STATUS` on
+Candidate A. It does not accept offline reuse, arbitrary WTP transfer or job
+control, provisioning/activation, coexistence/soak, RF output or Stage B.
+
+The final adversarial evidence assessment checked page/firmware/device/boot
+binding, cumulative-counter deltas, error counters, connection teardown,
+selector reset, journal preservation and RF-inhibited restoration. The UI
+result is corroborated by target byte and indication counters rather than
+treated as standalone evidence. No actionable inconsistency was found; the
+remaining limits above stay explicit Phase 12 gates.
+
 ## Phase 11 applicability
 
 Phase 11 closure artifacts remain immutable. The shared TLS/browser/WTP,
