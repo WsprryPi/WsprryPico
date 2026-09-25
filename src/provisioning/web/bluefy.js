@@ -549,7 +549,13 @@
       return result;
     }
     async authorize(password) {
-      if (!printable(password, 8, 63)) fail("local_password");
+      // An empty application credential asks the target to resume ordinary
+      // authority from an already-authorized retained bond. A new or
+      // provisional bond still fails closed on the target. Any supplied value
+      // must remain a valid local-access password; fresh provisioning step-up
+      // is performed later against the exact staged profile.
+      if (typeof password !== "string" || (password !== "" && !printable(password, 8, 63)))
+        fail("local_password");
       const sessionId = randomId(this.crypto);
       try {
         await this.exchange({version: 1, operation: "authorize",

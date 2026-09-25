@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="wsprry-bluefy-release" content="91eead11fface0ec16122b274974ad9a6c816a393d916ece0f8ee3efbde27a5b">
+  <meta name="wsprry-bluefy-release" content="6963416017f04ae2e1c0f9c4967a890ac5b64331dd684067a61b1fb6a35f1315">
   <title>WsprryPico Provisioning</title>
   <link rel="stylesheet" href="style.css" integrity="sha384-g52748ljPA1dgqckeZjGgZmgURiCfUUiOBtvjALxP+hx1eQO0D/m+qdF+lH9Zcgf" crossorigin="anonymous">
   <link rel="manifest" href="manifest.webmanifest">
@@ -17,8 +17,9 @@
     <form id="provisioning" autocomplete="off">
       <label>Selected device ID <input name="device_id" pattern="[0-9a-f]{32}" maxlength="32" placeholder="Choose a nearby WsprryPico" readonly required></label>
       <label>Local access password <input id="access-password" name="access_password" type="password" minlength="8" maxlength="63" autocomplete="current-password" disabled required></label>
-      <p>A new pairing checks this password. A retained authorized bond resumes ordinary local
-        access, but provisioning requires re-entering the current password after profile staging.
+      <p>Enter this password for a new pairing. Leave it blank to resume ordinary local access
+        from a retained authorized bond. Provisioning still requires re-entering the current
+        password after profile staging.
         While the public default is active, the page also waits for exact USB-local confirmation.</p>
       <div class="actions">
         <button id="show-access-password" type="button" aria-controls="access-password"
@@ -57,7 +58,7 @@
     <output id="status" role="status" aria-live="polite">Verifying release and offline cache…</output>
     <p>No credential is stored by this page. Clear the Bluefy tab after provisioning.</p>
   </main>
-  <script src="bluefy.js" integrity="sha384-dyelwXoHfFasB7BTVSQy4asG3R4Wdtn9Ilp9XPoc4FGLR34xBVHTs2WbP1jyRR2B" crossorigin="anonymous"></script>
+  <script src="bluefy.js" integrity="sha384-V0K8k8MqEbEzzZVA7ifDDp+jkPsczpL7kIXZSMdXygQoWcvaPD504CtdT0avPr9o" crossorigin="anonymous"></script>
   <script src="app.js" integrity="sha384-Z4TqXlrig8YzsTMIs00VaMuIqvFezM0coXqaeMBQLHT1dhphDHKmlQBwngF2NCvr" crossorigin="anonymous"></script>
 </body>
 </html>

@@ -624,7 +624,7 @@ void ble_command_policy() {
     CHECK(returning.connected(9, true, false, "link-return", 6));
     CHECK(returning.authorized());
     auto retained_authorize = authorize;
-    retained_authorize.replace(retained_authorize.find("wspr-0a60df"), 11, "wrong-value");
+    retained_authorize.replace(retained_authorize.find("wspr-0a60df"), 11, "");
     CHECK(returning.handle(retained_authorize, 7).code == provisioning::Code::Ok);
     CHECK(returning.authorized());
     auto abandoned_challenge = challenge;

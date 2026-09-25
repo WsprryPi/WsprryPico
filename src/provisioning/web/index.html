@@ -17,8 +17,9 @@
     <form id="provisioning" autocomplete="off">
       <label>Selected device ID <input name="device_id" pattern="[0-9a-f]{32}" maxlength="32" placeholder="Choose a nearby WsprryPico" readonly required></label>
       <label>Local access password <input id="access-password" name="access_password" type="password" minlength="8" maxlength="63" autocomplete="current-password" disabled required></label>
-      <p>A new pairing checks this password. A retained authorized bond resumes ordinary local
-        access, but provisioning requires re-entering the current password after profile staging.
+      <p>Enter this password for a new pairing. Leave it blank to resume ordinary local access
+        from a retained authorized bond. Provisioning still requires re-entering the current
+        password after profile staging.
         While the public default is active, the page also waits for exact USB-local confirmation.</p>
       <div class="actions">
         <button id="show-access-password" type="button" aria-controls="access-password"

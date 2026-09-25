@@ -37,6 +37,7 @@ class Characteristic {
     this.writeKinds = [];
     this.emittedSizes = [];
     this.respond = true;
+    this.rejectEmptyAuthorization = false;
     this.receiver = new FrameReceiver(MAX_COMMAND_BYTES);
   }
   async readValue() { const bytes = new TextEncoder().encode(JSON.stringify(this.value)); return new DataView(bytes.buffer); }
@@ -74,6 +75,11 @@ class Characteristic {
     this.commands.push(command);
     if (!this.respond) return true;
     const response = {request_id: command.request_id, ok: true};
+    if (command.operation === "authorize" && command.password === "" &&
+        this.rejectEmptyAuthorization) {
+      response.ok = false;
+      response.error = "authentication_required";
+    }
     if (command.operation === "apply")
       response.generation = this.applyGeneration === undefined
         ? command.expected_generation + 1
@@ -226,7 +232,10 @@ async function run() {
   const client = new Client(fixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
   assert.deepStrictEqual(await client.connect(), {device_id: device, generation: 0});
   await rejectsCode(() => client.provision(profile()), "authentication_required");
-  assert.deepStrictEqual(await client.authorize("wspr-0a60df"), {authorized: true});
+  assert.deepStrictEqual(await client.authorize(""), {authorized: true});
+  assert.strictEqual(fixture.command.commands[0].password, "");
+  await rejectsCode(() => client.authorize("short"), "local_password");
+  assert.strictEqual(fixture.command.commands.length, 1);
   assert.deepStrictEqual(await client.identify(), {identified: true});
   assert.deepStrictEqual(await client.synchronizeTime(1800000000000), {accepted: true});
   const submitIndex = fixture.command.commands.findIndex(
@@ -240,6 +249,16 @@ async function run() {
   assert.deepStrictEqual(submitKinds,
     Array(submitFrameCount - 1).fill("without-response").concat("with-response"));
   assert.strictEqual((await client.fieldStatus()).time_source, "controller");
+
+  const provisionalFixture = bluetoothFixture();
+  provisionalFixture.command.rejectEmptyAuthorization = true;
+  const provisionalClient = new Client(
+    provisionalFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  await provisionalClient.connect(device);
+  await rejectsCode(() => provisionalClient.authorize(""), "authentication_required");
+  assert.strictEqual(provisionalClient.authorized, false);
+  assert.strictEqual(provisionalFixture.command.commands[0].password, "");
+  provisionalClient.disconnect();
 
   const acknowledgedOnlyFixture = bluetoothFixture();
   acknowledgedOnlyFixture.command.writeValueWithoutResponse = undefined;
