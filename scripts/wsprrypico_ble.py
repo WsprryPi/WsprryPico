@@ -1138,7 +1138,11 @@ def run(arguments: list[str] | None = None, backend_factory: Callable[[str], Any
         if args.command == "inspect":
             output = {"address": address, "device_id": identity["device_id"], "generation": identity["generation"]}
         else:
-            password = _password()
+            password = _password(
+                "WsprryPico application password (checked only for first enrollment): "
+                if args.command == "provision"
+                else "WsprryPico application password: "
+            )
             try:
                 client.authorize(password)
             finally:
@@ -1169,8 +1173,9 @@ def run(arguments: list[str] | None = None, backend_factory: Callable[[str], Any
                 step_up_password = ""
                 try:
                     step_up_password = _password(
-                        "Re-enter current local password for profile apply: "
+                        "Current WsprryPico application password for profile apply: "
                     )
+                    print("Transferring profile over BLE; wait for the result...", file=sys.stderr)
                     output = {"generation": client.provision(
                         profile,
                         step_up_password,

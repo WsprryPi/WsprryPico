@@ -59,6 +59,11 @@ prompts a second time immediately before profile apply. Only that second entry
 is sent as the fresh, transaction-bound `profile_step_up` proof. It authorizes
 only the exact staged profile, apply request and observed generation; it does
 not authorize password, bond, trust or reset mutation.
+The CLI labels the two prompts accordingly and prints a transfer notice after
+the second entry because staging the profile can take time over BLE. A wrong
+second entry is rejected by the device as `authentication_required`; this is
+the Field-GATT error for a failed fresh-password proof. The client cancels the
+staged transaction and disconnects after that rejection.
 
 If enrollment expires while a provisional link remains open, the target erases
 the provisional bond, invalidates its authority and requests link closure.
