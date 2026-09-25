@@ -154,8 +154,14 @@ function bluetoothFixture(observedDevice = device, generation = 0) {
   characteristics.set(api.UUIDS.status, status);
   characteristics.set(api.UUIDS.wtpCommand, wtpCommand);
   characteristics.set(api.UUIDS.wtpStatus, wtpStatus);
-  const gatt = {connected: false, async connect() { this.connected = true; return this; },
-    disconnect() { this.connected = false; },
+  const gatt = {connected: false, connections: 0, disconnections: 0,
+    async connect() { ++this.connections; this.connected = true; return this; },
+    disconnect() {
+      if (this.connected) ++this.disconnections;
+      this.connected = false;
+      status.notificationsActive = false;
+      wtpStatus.notificationsActive = false;
+    },
     async getPrimaryService() { return {getCharacteristic: async (uuid) => characteristics.get(uuid)}; }};
   const deviceObject = {
     gatt,
@@ -169,8 +175,9 @@ function bluetoothFixture(observedDevice = device, generation = 0) {
       if (callback) callback({target: this});
     }
   };
-  return {bluetooth: {requestDevice: async () => deviceObject}, identity, command, status,
-    wtpCommand, wtpStatus, notificationLog, gatt, device: deviceObject};
+  const bluetooth = {requests: 0, async requestDevice() { ++this.requests; return deviceObject; }};
+  return {bluetooth, identity, command, status, wtpCommand, wtpStatus, notificationLog,
+    gatt, device: deviceObject};
 }
 async function rejectsCode(callback, code) {
   try { await callback(); assert.fail("expected rejection"); }
@@ -228,8 +235,23 @@ async function run() {
                     "identity_format");
   assert.strictEqual(badIdentity.gatt.connected, false);
 
+  const lostDuringSubscription = bluetoothFixture();
+  const originalStart = lostDuringSubscription.status.startNotifications.bind(
+    lostDuringSubscription.status);
+  lostDuringSubscription.status.startNotifications = async () => {
+    const result = await originalStart();
+    lostDuringSubscription.gatt.disconnect();
+    return result;
+  };
+  await rejectsCode(
+    () => new Client(lostDuringSubscription.bluetooth, cryptoFixture()).connect(device),
+    "bluetooth_disconnected");
+  assert.strictEqual(lostDuringSubscription.status.listeners.length, 0);
+  assert.strictEqual(lostDuringSubscription.gatt.connected, false);
+
   const fixture = bluetoothFixture();
-  const client = new Client(fixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  const client = new Client(
+    fixture.bluetooth, cryptoFixture(), {timeoutMs: 50, reconnectDelayMs: 0});
   assert.deepStrictEqual(await client.connect(), {device_id: device, generation: 0});
   await rejectsCode(() => client.provision(profile()), "authentication_required");
   assert.deepStrictEqual(await client.authorize(""), {authorized: true});
@@ -301,9 +323,14 @@ async function run() {
 
   const hello = await client.enableLocalControl();
   assert.strictEqual(hello.device_id, device);
-  assert.deepStrictEqual(fixture.notificationLog.slice(-2), ["status:stop", "wtp-status:start"]);
+  assert.deepStrictEqual(fixture.notificationLog.slice(-1), ["wtp-status:start"]);
+  assert.strictEqual(fixture.bluetooth.requests, 1);
+  assert.strictEqual(fixture.gatt.connections, 2);
+  assert.strictEqual(fixture.gatt.disconnections, 1);
   assert.strictEqual(fixture.status.notificationsActive, false);
   assert.strictEqual(fixture.wtpStatus.notificationsActive, true);
+  assert.strictEqual(fixture.status.listeners.length, 0);
+  assert.strictEqual(fixture.wtpStatus.listeners.length, 1);
   assert.deepStrictEqual(await client.wtpExchange("STATUS", {}),
     {state: "empty", output_active: false});
   assert.deepStrictEqual(fixture.wtpCommand.commands.map((item) => item.op), ["HELLO", "STATUS"]);
@@ -318,12 +345,20 @@ async function run() {
     op: pendingCommand.op, ok: true, body: {token: "one-at-a-time"}});
   assert.deepStrictEqual(await pendingWtp, {token: "one-at-a-time"});
   fixture.wtpCommand.respond = true;
+  await client.selectFieldChannel();
+  assert.strictEqual(fixture.command.commands.at(-1).operation, "authorize");
+  assert.strictEqual(fixture.command.commands.at(-1).password, "");
   fixture.command.respond = false;
   const invalidFieldStatus = client.fieldStatus();
   await new Promise((resolve) => setImmediate(resolve));
-  assert.deepStrictEqual(fixture.notificationLog.slice(-2), ["wtp-status:stop", "status:start"]);
+  assert.deepStrictEqual(fixture.notificationLog.slice(-1), ["status:start"]);
+  assert.strictEqual(fixture.bluetooth.requests, 1);
+  assert.strictEqual(fixture.gatt.connections, 3);
+  assert.strictEqual(fixture.gatt.disconnections, 2);
   assert.strictEqual(fixture.status.notificationsActive, true);
   assert.strictEqual(fixture.wtpStatus.notificationsActive, false);
+  assert.strictEqual(fixture.status.listeners.length, 1);
+  assert.strictEqual(fixture.wtpStatus.listeners.length, 0);
   const fieldRequest = fixture.command.commands.at(-1);
   fixture.status.emit({request_id: fieldRequest.request_id, ok: true});
   await rejectsCode(() => invalidFieldStatus, "field_status_response");
@@ -362,33 +397,35 @@ async function run() {
     "mock GATT must not be mistaken for default-ATT-MTU status evidence");
 
   const noSwitchFixture = bluetoothFixture();
-  const noSwitchClient = new Client(noSwitchFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  const noSwitchClient = new Client(
+    noSwitchFixture.bluetooth, cryptoFixture(), {timeoutMs: 50, reconnectDelayMs: 0});
   await noSwitchClient.connect(device);
   await noSwitchClient.authorize("wspr-0a60df");
   noSwitchFixture.status.stopNotifications = undefined;
-  await rejectsCode(() => noSwitchClient.enableLocalControl(), "notification_switch_unavailable");
+  assert.strictEqual((await noSwitchClient.enableLocalControl()).device_id, device);
   assert.strictEqual(noSwitchFixture.gatt.connected, true);
-  assert.strictEqual(noSwitchFixture.status.notificationsActive, true);
-  assert.strictEqual(noSwitchFixture.wtpStatus.notificationStarts, 0);
+  assert.strictEqual(noSwitchFixture.status.notificationsActive, false);
+  assert.strictEqual(noSwitchFixture.wtpStatus.notificationStarts, 1);
+  assert.strictEqual(noSwitchFixture.bluetooth.requests, 1);
 
   const stopFailureFixture = bluetoothFixture();
   const stopFailureClient = new Client(
-    stopFailureFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+    stopFailureFixture.bluetooth, cryptoFixture(), {timeoutMs: 50, reconnectDelayMs: 0});
   await stopFailureClient.connect(device);
   await stopFailureClient.authorize("wspr-0a60df");
   stopFailureFixture.status.stopNotifications = async () => {
     throw new Error("native stop failure");
   };
-  await assert.rejects(() => stopFailureClient.enableLocalControl(), /native stop failure/);
+  assert.strictEqual((await stopFailureClient.enableLocalControl()).device_id, device);
   assert.strictEqual(stopFailureFixture.gatt.connected, true);
-  assert.strictEqual(stopFailureFixture.status.notificationsActive, true);
-  assert.strictEqual(stopFailureFixture.status.listeners.length, 1);
-  assert.strictEqual(stopFailureClient.fieldListening, true);
-  assert.strictEqual(stopFailureFixture.wtpStatus.notificationStarts, 0);
+  assert.strictEqual(stopFailureFixture.status.notificationsActive, false);
+  assert.strictEqual(stopFailureFixture.status.notificationStops, 0);
+  assert.strictEqual(stopFailureClient.wtpListening, true);
+  assert.strictEqual(stopFailureFixture.wtpStatus.notificationStarts, 1);
 
   const failedSwitchFixture = bluetoothFixture();
   const failedSwitchClient = new Client(
-    failedSwitchFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+    failedSwitchFixture.bluetooth, cryptoFixture(), {timeoutMs: 50, reconnectDelayMs: 0});
   await failedSwitchClient.connect(device);
   await failedSwitchClient.authorize("wspr-0a60df");
   failedSwitchFixture.wtpStatus.startNotifications = async () => {
@@ -396,12 +433,35 @@ async function run() {
   };
   await assert.rejects(() => failedSwitchClient.enableLocalControl(),
                        /native subscription failure/);
-  assert.strictEqual(failedSwitchFixture.gatt.connected, true);
-  assert.strictEqual(failedSwitchFixture.status.notificationsActive, true);
-  assert.strictEqual(failedSwitchClient.fieldListening, true);
+  assert.strictEqual(failedSwitchFixture.gatt.connected, false);
+  assert.strictEqual(failedSwitchFixture.status.notificationsActive, false);
+  assert.strictEqual(failedSwitchClient.device, null);
+  assert.strictEqual(failedSwitchClient.fieldListening, false);
   assert.strictEqual(failedSwitchClient.wtpListening, false);
-  assert.deepStrictEqual(failedSwitchFixture.notificationLog.slice(-2),
-    ["status:stop", "status:start"]);
+  assert.deepStrictEqual(failedSwitchFixture.notificationLog, ["status:start"]);
+
+  const changedIdentityFixture = bluetoothFixture();
+  const changedIdentityClient = new Client(
+    changedIdentityFixture.bluetooth, cryptoFixture(), {timeoutMs: 50, reconnectDelayMs: 0});
+  await changedIdentityClient.connect(device);
+  await changedIdentityClient.authorize("wspr-0a60df");
+  changedIdentityFixture.identity.value = {device_id: "b".repeat(32), generation: 0};
+  await rejectsCode(() => changedIdentityClient.enableLocalControl(), "wrong_device");
+  assert.strictEqual(changedIdentityFixture.gatt.connected, false);
+  assert.strictEqual(changedIdentityClient.device, null);
+  assert.strictEqual(changedIdentityFixture.bluetooth.requests, 1);
+
+  const failedFieldResumeFixture = bluetoothFixture();
+  const failedFieldResumeClient = new Client(
+    failedFieldResumeFixture.bluetooth, cryptoFixture(), {timeoutMs: 50, reconnectDelayMs: 0});
+  await failedFieldResumeClient.connect(device);
+  await failedFieldResumeClient.authorize("wspr-0a60df");
+  await failedFieldResumeClient.enableLocalControl();
+  failedFieldResumeFixture.command.rejectEmptyAuthorization = true;
+  await rejectsCode(() => failedFieldResumeClient.fieldStatus(), "authentication_required");
+  assert.strictEqual(failedFieldResumeFixture.gatt.connected, false);
+  assert.strictEqual(failedFieldResumeClient.device, null);
+  assert.strictEqual(failedFieldResumeClient.authorized, false);
 
   const invalidProfile = profile({port: 0});
   await rejectsCode(() => client.provision(invalidProfile), "port");
@@ -429,7 +489,8 @@ async function run() {
     (command) => command.operation === "profile_step_up_status"));
 
   const corruptWtpFixture = bluetoothFixture();
-  const corruptWtpClient = new Client(corruptWtpFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  const corruptWtpClient = new Client(
+    corruptWtpFixture.bluetooth, cryptoFixture(), {timeoutMs: 50, reconnectDelayMs: 0});
   await corruptWtpClient.connect(device);
   await corruptWtpClient.authorize("wspr-0a60df");
   await corruptWtpClient.enableLocalControl();
@@ -541,6 +602,7 @@ async function run() {
   await disconnectClient.authorize("wspr-0a60df");
   disconnectFixture.command.respond = false;
   const disconnected = disconnectClient.cancel("4".repeat(32));
+  await new Promise((resolve) => setImmediate(resolve));
   disconnectClient.disconnect();
   await rejectsCode(() => disconnected, "disconnected");
   assert.strictEqual(disconnectClient.pending.size, 0);

@@ -235,6 +235,8 @@
       this.bluetooth = bluetooth;
       this.crypto = cryptoObject;
       this.timeoutMs = options && options.timeoutMs ? options.timeoutMs : 30000;
+      this.reconnectDelayMs = options && Number.isSafeInteger(options.reconnectDelayMs) &&
+        options.reconnectDelayMs >= 0 ? options.reconnectDelayMs : 250;
       this.confirmationTimeoutMs = options && options.confirmationTimeoutMs
         ? options.confirmationTimeoutMs : 25000;
       this.onConfirmationRequired = options &&
@@ -266,28 +268,17 @@
       this.onWtpStatus = this.onWtpStatus.bind(this);
       this.onDisconnected = this.onDisconnected.bind(this);
     }
-    async connect(expectedDeviceId) {
-      const verifyExpected = expectedDeviceId !== undefined && expectedDeviceId !== "";
-      if (verifyExpected && !validDeviceId(expectedDeviceId)) fail("device_id");
-      if (!this.bluetooth || typeof this.bluetooth.requestDevice !== "function")
-        fail("web_bluetooth_unavailable");
-      if (this.device || this.command) fail("already_connected");
-      const device = await this.bluetooth.requestDevice({filters: [{services: [UUIDS.service]}]});
-      let status = null;
-      let listenerAdded = false;
-      let disconnectListenerAdded = false;
+    async openChannel(device, expectedDeviceId, channel) {
+      let activeStatus = null;
+      let listener = null;
       try {
-        if (typeof device.addEventListener === "function") {
-          device.addEventListener("gattserverdisconnected", this.onDisconnected);
-          disconnectListenerAdded = true;
-        }
         const server = await device.gatt.connect();
         const service = await server.getPrimaryService(UUIDS.service);
         const identity = await service.getCharacteristic(UUIDS.identity);
         const command = await service.getCharacteristic(UUIDS.command);
-        status = await service.getCharacteristic(UUIDS.status);
+        let status = await service.getCharacteristic(UUIDS.status);
         const wtpCommand = await service.getCharacteristic(UUIDS.wtpCommand);
-        const wtpStatus = await service.getCharacteristic(UUIDS.wtpStatus);
+        let wtpStatus = await service.getCharacteristic(UUIDS.wtpStatus);
         let observed;
         try {
           observed = JSON.parse(text(await identity.readValue()));
@@ -296,31 +287,63 @@
         }
         if (!observed || typeof observed !== "object" ||
             Object.keys(observed).sort().join(",") !== "device_id,generation" ||
-            !validDeviceId(observed.device_id) || (verifyExpected && observed.device_id !== expectedDeviceId) ||
+            !validDeviceId(observed.device_id) ||
+            (expectedDeviceId !== null && observed.device_id !== expectedDeviceId) ||
             !Number.isSafeInteger(observed.generation) || observed.generation < 0)
           fail("wrong_device");
-        const notifying = await status.startNotifications();
-        // Web Bluetooth returns the characteristic; use that returned event source
-        // when an implementation provides a distinct wrapper.
-        if (notifying && typeof notifying.addEventListener === "function")
-          status = notifying;
-        status.addEventListener("characteristicvaluechanged", this.onStatus);
-        listenerAdded = true;
-        this.device = device;
-        this.identity = identity;
-        this.command = command;
-        this.status = status;
-        this.wtpCommand = wtpCommand;
-        this.wtpStatus = wtpStatus;
-        this.expectedDeviceId = observed.device_id;
-        this.generation = observed.generation;
-        this.fieldListening = true;
-        return {device_id: observed.device_id, generation: observed.generation};
+        if (channel === "field") {
+          activeStatus = status;
+          listener = this.onStatus;
+          const notifying = await activeStatus.startNotifications();
+          if (notifying && typeof notifying.addEventListener === "function")
+            activeStatus = status = notifying;
+        } else if (channel === "wtp") {
+          activeStatus = wtpStatus;
+          listener = this.onWtpStatus;
+          const notifying = await activeStatus.startNotifications();
+          if (notifying && typeof notifying.addEventListener === "function")
+            activeStatus = wtpStatus = notifying;
+        } else {
+          fail("notification_channel");
+        }
+        if (!device.gatt.connected) fail("bluetooth_disconnected");
+        activeStatus.addEventListener("characteristicvaluechanged", listener);
+        return {identity, command, status, wtpCommand, wtpStatus, observed};
       } catch (error) {
-        if (listenerAdded && status)
-          status.removeEventListener("characteristicvaluechanged", this.onStatus);
-        if (disconnectListenerAdded)
-          device.removeEventListener("gattserverdisconnected", this.onDisconnected);
+        if (activeStatus && listener)
+          activeStatus.removeEventListener("characteristicvaluechanged", listener);
+        if (device.gatt && device.gatt.connected) device.gatt.disconnect();
+        throw error;
+      }
+    }
+    adoptChannel(device, binding, channel, authorized) {
+      this.device = device;
+      this.identity = binding.identity;
+      this.command = binding.command;
+      this.status = binding.status;
+      this.wtpCommand = binding.wtpCommand;
+      this.wtpStatus = binding.wtpStatus;
+      this.expectedDeviceId = binding.observed.device_id;
+      this.generation = binding.observed.generation;
+      this.authorized = authorized;
+      this.fieldListening = channel === "field";
+      this.wtpListening = channel === "wtp";
+      if (typeof device.addEventListener === "function")
+        device.addEventListener("gattserverdisconnected", this.onDisconnected);
+    }
+    async connect(expectedDeviceId) {
+      const verifyExpected = expectedDeviceId !== undefined && expectedDeviceId !== "";
+      if (verifyExpected && !validDeviceId(expectedDeviceId)) fail("device_id");
+      if (!this.bluetooth || typeof this.bluetooth.requestDevice !== "function")
+        fail("web_bluetooth_unavailable");
+      if (this.device || this.command) fail("already_connected");
+      const device = await this.bluetooth.requestDevice({filters: [{services: [UUIDS.service]}]});
+      const expected = verifyExpected ? expectedDeviceId : null;
+      try {
+        const binding = await this.openChannel(device, expected, "field");
+        this.adoptChannel(device, binding, "field", false);
+        return {device_id: binding.observed.device_id, generation: binding.observed.generation};
+      } catch (error) {
         if (device.gatt && device.gatt.connected) device.gatt.disconnect();
         this.device = this.command = this.status = this.identity = null;
         this.wtpCommand = this.wtpStatus = null;
@@ -331,6 +354,7 @@
         this.fieldListening = false;
         this.wtpListening = false;
         this.wtpHello = null;
+        this.lastWtpEvent = null;
         this.statusReceiver.reset();
         this.wtpReceiver.reset();
         throw error;
@@ -446,71 +470,70 @@
       this.fieldListening = false;
       this.wtpListening = false;
       this.wtpHello = null;
+      this.lastWtpEvent = null;
       this.statusReceiver.reset();
       this.wtpReceiver.reset();
     }
-    async selectFieldChannel() {
-      if (!this.status) fail("not_connected");
-      if (this.fieldListening) return;
-      if (this.wtpPending.size) fail("wtp_busy");
-      if (this.wtpStatus && this.wtpListening) {
-        if (typeof this.wtpStatus.stopNotifications !== "function")
-          fail("notification_switch_unavailable");
-        const activeWtpStatus = this.wtpStatus;
-        await activeWtpStatus.stopNotifications();
-        activeWtpStatus.removeEventListener("characteristicvaluechanged", this.onWtpStatus);
-        this.wtpListening = false;
-        this.wtpSession = "";
-        this.wtpHello = null;
-        this.lastWtpEvent = null;
-        this.wtpReceiver.reset();
-      }
-      let notifying = await this.status.startNotifications();
-      if (notifying && typeof notifying.addEventListener === "function")
-        this.status = notifying;
-      this.status.addEventListener("characteristicvaluechanged", this.onStatus);
-      this.fieldListening = true;
-    }
-    async selectWtpChannel() {
-      if (!this.status || !this.wtpStatus) fail("not_connected");
-      if (this.wtpListening) return;
+    async reconnectChannel(channel) {
+      if (!this.device || !this.device.gatt || !validDeviceId(this.expectedDeviceId))
+        fail("not_connected");
       if (this.pending.size) fail("field_busy");
-      if (this.fieldListening) {
-        if (typeof this.status.stopNotifications !== "function")
-          fail("notification_switch_unavailable");
-        const activeStatus = this.status;
-        await activeStatus.stopNotifications();
-        activeStatus.removeEventListener("characteristicvaluechanged", this.onStatus);
-        this.fieldListening = false;
-        this.statusReceiver.reset();
-      }
+      if (this.wtpPending.size) fail("wtp_busy");
+      const device = this.device;
+      const expectedDeviceId = this.expectedDeviceId;
+      const wasAuthorized = this.authorized;
+      if (this.status && this.fieldListening)
+        this.status.removeEventListener("characteristicvaluechanged", this.onStatus);
+      if (this.wtpStatus && this.wtpListening)
+        this.wtpStatus.removeEventListener("characteristicvaluechanged", this.onWtpStatus);
+      if (typeof device.removeEventListener === "function")
+        device.removeEventListener("gattserverdisconnected", this.onDisconnected);
+      if (device.gatt.connected) device.gatt.disconnect();
+      this.device = this.command = this.status = this.identity = null;
+      this.wtpCommand = this.wtpStatus = null;
+      this.expectedDeviceId = "";
+      this.generation = 0;
+      this.authorized = false;
+      this.fieldSession = this.wtpSession = "";
+      this.fieldListening = false;
+      this.wtpListening = false;
+      this.wtpHello = null;
+      this.lastWtpEvent = null;
+      this.statusReceiver.reset();
+      this.wtpReceiver.reset();
       try {
-        if (!this.wtpStatus) fail("not_connected");
-        let notifying = await this.wtpStatus.startNotifications();
-        if (notifying && typeof notifying.addEventListener === "function")
-          this.wtpStatus = notifying;
-        this.wtpListening = true;
-        this.wtpStatus.addEventListener("characteristicvaluechanged", this.onWtpStatus);
+        if (this.reconnectDelayMs)
+          await new Promise((resolve) => setTimeout(resolve, this.reconnectDelayMs));
+        const binding = await this.openChannel(device, expectedDeviceId, channel);
+        this.adoptChannel(device, binding, channel, channel === "wtp" && wasAuthorized);
+        return wasAuthorized;
       } catch (error) {
-        if (this.wtpStatus && this.wtpListening) {
-          const activeWtpStatus = this.wtpStatus;
-          try {
-            if (typeof activeWtpStatus.stopNotifications === "function")
-              await activeWtpStatus.stopNotifications();
-          } catch (_) { /* best-effort rollback */ }
-          activeWtpStatus.removeEventListener("characteristicvaluechanged", this.onWtpStatus);
-          this.wtpListening = false;
-        }
-        try { await this.selectFieldChannel(); } catch (_) { /* preserve original failure */ }
+        if (device.gatt && device.gatt.connected) device.gatt.disconnect();
         throw error;
       }
     }
+    async selectFieldChannel() {
+      if (!this.device) fail("not_connected");
+      if (this.fieldListening) return;
+      if (this.wtpPending.size) fail("wtp_busy");
+      const wasAuthorized = await this.reconnectChannel("field");
+      if (!wasAuthorized) return;
+      try {
+        await this.authorizeCurrent("");
+      } catch (error) {
+        this.disconnect();
+        throw error;
+      }
+    }
+    async selectWtpChannel() {
+      if (!this.device) fail("not_connected");
+      if (this.wtpListening) return;
+      if (this.pending.size) fail("field_busy");
+      await this.reconnectChannel("wtp");
+    }
     async exchange(message, acceleratedTail = false) {
       if (!this.command) fail("not_connected");
-      if (!this.fieldListening) {
-        await this.selectFieldChannel();
-        if (!this.command || !this.status) fail("not_connected");
-      }
+      if (!this.fieldListening || !this.status) fail("field_unavailable");
       if (!validDeviceId(message.request_id) || this.pending.has(message.request_id))
         fail("request_id");
       const encoded = encoder.encode(JSON.stringify(message));
@@ -548,6 +571,15 @@
       }
       return result;
     }
+    async authorizeCurrent(password) {
+      const sessionId = randomId(this.crypto);
+      await this.exchange({version: 1, operation: "authorize",
+        request_id: randomId(this.crypto), session_id: sessionId,
+        device_id: this.expectedDeviceId, password});
+      this.authorized = true;
+      this.fieldSession = sessionId;
+      return {authorized: true};
+    }
     async authorize(password) {
       // An empty application credential asks the target to resume ordinary
       // authority from an already-authorized retained bond. A new or
@@ -556,21 +588,19 @@
       // is performed later against the exact staged profile.
       if (typeof password !== "string" || (password !== "" && !printable(password, 8, 63)))
         fail("local_password");
-      const sessionId = randomId(this.crypto);
       try {
-        await this.exchange({version: 1, operation: "authorize",
-          request_id: randomId(this.crypto), session_id: sessionId,
-          device_id: this.expectedDeviceId, password});
-        this.authorized = true;
-        this.fieldSession = sessionId;
-        return {authorized: true};
+        if (!this.fieldListening) await this.reconnectChannel("field");
+        return await this.authorizeCurrent(password);
       } finally { password = ""; }
     }
     async cancel(sessionId) {
+      await this.selectFieldChannel();
+      if (!this.authorized) fail("authentication_required");
       return this.exchange({version: 1, operation: "cancel", request_id: randomId(this.crypto),
         session_id: sessionId, device_id: this.expectedDeviceId});
     }
     async identify() {
+      await this.selectFieldChannel();
       if (!this.authorized) fail("authentication_required");
       const response = await this.exchange({version: 1, operation: "identify",
         request_id: randomId(this.crypto), session_id: this.fieldSession,
@@ -579,6 +609,7 @@
       return {identified: true};
     }
     async fieldStatus() {
+      await this.selectFieldChannel();
       if (!this.authorized) fail("authentication_required");
       const response = await this.exchange({version: 1, operation: "field_status",
         request_id: randomId(this.crypto), session_id: this.fieldSession,
@@ -592,6 +623,7 @@
       return response;
     }
     async synchronizeTime(nowMilliseconds) {
+      await this.selectFieldChannel();
       if (!this.authorized) fail("authentication_required");
       const nonce = randomId(this.crypto);
       const challenge = await this.exchange({version: 1, operation: "time_challenge",
@@ -666,6 +698,9 @@
         if (!this.command || !input || input.device_id !== this.expectedDeviceId)
           fail("wrong_device");
         if (!this.authorized) fail("authentication_required");
+        await this.selectFieldChannel();
+        if (!this.command || !this.authorized || input.device_id !== this.expectedDeviceId)
+          fail("authentication_required");
         if (!printable(accessPassword, 8, 63)) fail("local_password");
         profile = canonicalProfile(input);
         sessionId = randomId(this.crypto);
@@ -753,6 +788,7 @@
       this.fieldListening = false;
       this.wtpListening = false;
       this.wtpHello = null;
+      this.lastWtpEvent = null;
       this.statusReceiver.reset();
       this.wtpReceiver.reset();
     }

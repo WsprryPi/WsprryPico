@@ -128,6 +128,19 @@ function message(error) {
   const code = error && error.code ? error.code : "operation_failed";
   return error && error.detail ? `${code} (${error.detail})` : code;
 }
+function resetDisconnectedClient() {
+  if (!client || client.device) return false;
+  client.disconnect();
+  client = null;
+  form.elements.device_id.value = "";
+  fields.disabled = true;
+  localControls.disabled = true;
+  setAccessPasswordEnabled(false);
+  authorize.disabled = true;
+  connect.disabled = !releaseReady;
+  clearSecrets();
+  return true;
+}
 showAccessPassword.addEventListener("click", () => {
   if (!showAccessPassword.disabled)
     setAccessPasswordVisible(form.elements.access_password.type === "password");
@@ -210,7 +223,9 @@ async function localOperation(label, operation) {
   try {
     status.value = await operation();
   } catch (error) {
-    status.value = `${label} failed: ${message(error)}.`;
+    const disconnected = resetDisconnectedClient();
+    status.value = `${label} failed: ${message(error)}.` +
+      (disconnected ? " Select the Pico again." : "");
   } finally {
     localControls.disabled = !client || !client.authorized;
     active = false;

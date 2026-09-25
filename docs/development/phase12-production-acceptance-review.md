@@ -471,6 +471,61 @@ password and TLS material on success, transport failure and local validation
 failure. These are source and deterministic-test claims only until the recorded
 iPhone and Candidate A exercise completes.
 
+## Phone-assisted BLE interoperability continuation
+
+Candidate A remains the exact Pico 2 W with USB serial `0BF4B4AEC9FFB344`,
+device ID `fd6127d11d6aca42a9905fa3fb1bf1d5`, station MAC
+`88:a2:9e:0a:60:df` and public BLE address `88:A2:9E:0A:60:E0`. The clean
+RF-inhibited image has firmware identity `31d1603ee834`, UF2 SHA-256
+`958ebd765ac4d346da6485c25d66d9e19c8fae2c6904394a8452afd97e494fbe`
+and boot ID `5b2e36e4eed555e5dc0f3b363d003817`. Candidate B was not changed.
+
+The operator recorded an iPhone 17 Pro Max running iOS 27.0 and Bluefy 3.9.3.
+Online release `91eead11ffac...` established retained-bond authorization but
+also exposed that the page incorrectly required an entered password. Release
+`6963416017f0...` repaired that mismatch: an empty application credential now
+asks the target to resume authority only for an already-authorized retained
+bond, while a new or provisional bond still fails closed. Release
+`2a7d2563c0b1...` replaced the misleading separate password-visibility button
+with a bounded inline eye control that disappears with the empty field. The
+operator confirmed authorization without re-entering the password and the
+absence of the eye control when no password was present. Authenticated phone
+time and the Identify/SoftAP-ready LED observations also completed, but those
+rows do not establish BLE WTP interoperability.
+
+The subsequent single `Read WTP status` attempt failed in Bluefy with
+`operation_failed` and disconnected. The preserved before/after diagnostics
+showed connection/disconnection counts moving from 9/8 to 9/9 and two accepted
+CCCD writes, with zero CCCD rejections, but no WTP write segment, WTP byte or
+WTP indication. Candidate A remained RF-inhibited, empty and output inactive.
+This localizes the observed failure before any WTP/1 `HELLO`; it is not evidence
+of a WTP parser or `JobService` rejection.
+
+The page-only repair no longer stops one indication characteristic and starts
+the other within the same Bluefy GATT connection. A field/WTP channel change
+now intentionally disconnects, waits a bounded interval, reconnects the same
+previously selected `BluetoothDevice` without another chooser, re-reads and
+verifies the full device ID, and subscribes to only the requested indication
+characteristic. Returning to field control repeats empty authorization on the
+retained bond to establish a fresh field-session identifier. Any reconnect,
+identity, subscription or reauthorization failure clears the client and leaves
+it disconnected. Host regressions cover one chooser request, exact identity
+revalidation, lack of any `stopNotifications()` dependency, one active channel,
+field-session renewal and fail-closed subscription failure. The deterministic
+candidate page release is
+`2c1c0ac2a326ab4c20393a4a6f7dda50751547c4075554d7ba4c0662e28e3b87`.
+The first adversarial pass found that a failed reconnect cleared the client
+correctly but could leave the page's main Connect control disabled. The page
+now clears the stale selection, disables authenticated controls, re-enables the
+release-gated chooser and explicitly tells the operator to select the Pico
+again. The repaired client also clears stale WTP event state and rejects a link
+lost during subscription setup. Focused regressions cover both repairs. A
+second adversarial assessment found no further actionable issue in this
+page-only boundary.
+It remains a source/host result until the operator repeats the one bounded WTP
+status attempt and target counters show actual WTP request and indication
+bytes.
+
 ## Phase 11 applicability
 
 Phase 11 closure artifacts remain immutable. The shared TLS/browser/WTP,

@@ -94,6 +94,8 @@ def main():
     assert 'setAccessPasswordEnabled' in app
     assert 'updateAccessPasswordToggle' in app
     assert 'access_password.addEventListener("input"' in app
+    assert 'resetDisconnectedClient' in app
+    assert 'Select the Pico again.' in app
     style = (RELEASE / "style.css").read_text()
     assert ".password-control input" in style
     assert "padding-inline-end" in style and "inset-inline-end" in style
