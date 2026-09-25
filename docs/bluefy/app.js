@@ -104,18 +104,25 @@ function values() {
 }
 function setAccessPasswordVisible(visible) {
   form.elements.access_password.type = visible ? "text" : "password";
-  showAccessPassword.textContent = visible ? "Hide local password" : "Show local password";
+  const label = visible ? "Hide local password" : "Show local password";
+  showAccessPassword.setAttribute("aria-label", label);
+  showAccessPassword.title = label;
   showAccessPassword.setAttribute("aria-pressed", visible ? "true" : "false");
+}
+function updateAccessPasswordToggle() {
+  showAccessPassword.disabled = form.elements.access_password.disabled ||
+    form.elements.access_password.value.length === 0;
 }
 function setAccessPasswordEnabled(enabled) {
   form.elements.access_password.disabled = !enabled;
-  showAccessPassword.disabled = !enabled;
   if (!enabled) setAccessPasswordVisible(false);
+  updateAccessPasswordToggle();
 }
 function clearSecrets() {
   for (const name of ["access_password", "password", "server_certificate", "server_private_key", "client_ca"])
     form.elements[name].value = "";
   setAccessPasswordVisible(false);
+  updateAccessPasswordToggle();
 }
 function message(error) {
   const code = error && error.code ? error.code : "operation_failed";
@@ -124,6 +131,11 @@ function message(error) {
 showAccessPassword.addEventListener("click", () => {
   if (!showAccessPassword.disabled)
     setAccessPasswordVisible(form.elements.access_password.type === "password");
+});
+form.elements.access_password.addEventListener("input", () => {
+  if (!form.elements.access_password.value)
+    setAccessPasswordVisible(false);
+  updateAccessPasswordToggle();
 });
 connect.addEventListener("click", async () => {
   if (active || !releaseReady) return;

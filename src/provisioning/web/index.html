@@ -16,15 +16,26 @@
     <p>Release <code id="release">not verified</code></p>
     <form id="provisioning" autocomplete="off">
       <label>Selected device ID <input name="device_id" pattern="[0-9a-f]{32}" maxlength="32" placeholder="Choose a nearby WsprryPico" readonly required></label>
-      <label>Local access password <input id="access-password" name="access_password" type="password" minlength="8" maxlength="63" autocomplete="current-password" disabled required></label>
+      <div class="password-group">
+        <label for="access-password">Local access password</label>
+        <div class="password-control">
+          <input id="access-password" name="access_password" type="password" minlength="8"
+            maxlength="63" autocomplete="current-password" disabled required>
+          <button id="show-access-password" class="password-toggle" type="button"
+            aria-controls="access-password" aria-label="Show local password"
+            title="Show local password" aria-pressed="false" disabled>
+            <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">
+              <path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"/>
+              <circle cx="12" cy="12" r="2.5"/>
+              <path class="password-toggle-slash" d="M4 4l16 16"/>
+            </svg>
+          </button>
+        </div>
+      </div>
       <p>Enter this password for a new pairing. Leave it blank to resume ordinary local access
         from a retained authorized bond. Provisioning still requires re-entering the current
         password after profile staging.
         While the public default is active, the page also waits for exact USB-local confirmation.</p>
-      <div class="actions">
-        <button id="show-access-password" type="button" aria-controls="access-password"
-          aria-pressed="false" disabled>Show local password</button>
-      </div>
       <div class="actions">
         <button id="connect" type="button" disabled>Find nearby WsprryPicos</button>
         <button id="authorize" type="button" disabled>Use this Pico and authorize</button>

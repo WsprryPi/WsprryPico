@@ -65,6 +65,9 @@ def main():
     assert "Find nearby WsprryPicos" in index and "readonly" in index
     assert 'id="show-access-password"' in index
     assert 'aria-controls="access-password"' in index
+    assert 'aria-label="Show local password"' in index
+    assert 'class="password-toggle"' in index
+    assert '<svg aria-hidden="true"' in index
     for control in ("identify", "sync-time", "field-status", "wtp-status"):
         assert f'id="{control}"' in index
     for name in ("style.css", "bluefy.js", "app.js"):
@@ -89,6 +92,13 @@ def main():
     assert 'connect.disabled = false' in app
     assert 'setAccessPasswordVisible' in app
     assert 'setAccessPasswordEnabled' in app
+    assert 'updateAccessPasswordToggle' in app
+    assert 'access_password.addEventListener("input"' in app
+    style = (RELEASE / "style.css").read_text()
+    assert ".password-control input" in style
+    assert "padding-inline-end" in style and "inset-inline-end" in style
+    assert ".password-toggle:focus-visible" in style
+    assert ".password-toggle:disabled { visibility: hidden; }" in style
     assert app.index("for (const name of releaseFiles) await verifyAsset") < app.index(
         "connect.disabled = false")
     assert "client.connect(form.elements.device_id.value)" not in app

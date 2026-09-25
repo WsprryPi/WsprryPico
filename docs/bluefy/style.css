@@ -8,6 +8,39 @@ fieldset { margin: 1rem 0; border: 1px solid #4b5563; border-radius: .5rem; }
 label { display: grid; gap: .35rem; font-weight: 650; }
 input, textarea, button { font: inherit; border-radius: .35rem; }
 input, textarea { padding: .7rem; border: 1px solid #6b7280; background: #0f172a; color: inherit; }
+.password-group { display: grid; gap: .35rem; }
+.password-control { position: relative; }
+.password-control input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.875rem;
+  padding-inline-end: 3.25rem;
+}
+.password-toggle {
+  position: absolute;
+  inset-block: 1px;
+  inset-inline-end: 1px;
+  display: grid;
+  width: 3rem;
+  padding: 0;
+  place-items: center;
+  border-radius: 0 .3rem .3rem 0;
+  background: transparent;
+  color: #cbd5e1;
+}
+.password-toggle svg {
+  width: 1.4rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+.password-toggle:hover:not(:disabled) { background: #1e293b; }
+.password-toggle:focus-visible { outline: 2px solid #38bdf8; outline-offset: -3px; }
+.password-toggle:disabled { visibility: hidden; }
+.password-toggle-slash { display: none; }
+.password-toggle[aria-pressed="true"] .password-toggle-slash { display: block; }
 textarea { min-height: 8rem; font-family: ui-monospace, monospace; font-size: .8rem; }
 button { padding: .7rem 1rem; border: 0; background: #38bdf8; color: #082f49; font-weight: 750; }
 button:disabled { opacity: .5; }
@@ -17,4 +50,6 @@ output { display: block; min-height: 1.5rem; margin-top: 1rem; font-weight: 700;
   body { background: #f8fafc; color: #111827; }
   .warning { background: #fff7ed; }
   input, textarea { background: white; }
+  .password-toggle { color: #475569; }
+  .password-toggle:hover:not(:disabled) { background: #e2e8f0; }
 }

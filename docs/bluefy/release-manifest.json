@@ -1,8 +1,8 @@
 {
   "files": {
     "app.js": {
-      "bytes": 11827,
-      "sha256": "5abe0a56d12cc951e607ba4f6c0ca51083bdfe4a28a51e644fa373fc9d8ba2e0"
+      "bytes": 12273,
+      "sha256": "bc61e2cb9ea06e6298c60c2647db89d848b9dab39302a33a53554518403dec32"
     },
     "bluefy.js": {
       "bytes": 35667,
@@ -13,15 +13,15 @@
       "sha256": "dce2851cece9511d6270fdde48ff3deb2525380fecbc1c3e789ec098b3572546"
     },
     "style.css": {
-      "bytes": 1180,
-      "sha256": "c0162fdb127ca8a235e94fbb7e90a65baf29d0fa2161820a264a15c3661db5fb"
+      "bytes": 2207,
+      "sha256": "2f8508f05fa19a1d73df013ace943a30239ad7d68c38268953278c332b37ddb3"
     },
     "sw.js": {
       "bytes": 1521,
-      "sha256": "7f5f2de795b7df263b0ad59bfe87fb4353676f9e3f76ba6b78050c19a8348081"
+      "sha256": "0f18067b583291a7c4d4599485ba2709f275ba7c1b7c0dc4b47727054d695d65"
     }
   },
   "protocol": 1,
-  "release": "6963416017f04ae2e1c0f9c4967a890ac5b64331dd684067a61b1fb6a35f1315",
+  "release": "2a7d2563c0b140e8f3b2b37831a58fd5eb6cf3b7c9c9e6a94d8bc0e48f031769",
   "version": 1
 }
