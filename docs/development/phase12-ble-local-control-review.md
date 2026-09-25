@@ -36,6 +36,13 @@ SoftAP still lacked a production DHCP and HTTP/HTTPS service.
   authorization and indication subscription. Input and output use bounded
   64-byte ATT segments, one confirmed indication at a time, and ordinary
   endpoint disconnect/lease semantics.
+- A later Bluefy interoperability repair adds the authenticated,
+  connection-scoped `select_wtp_status_carrier` field command. It lets the
+  browser receive those same WTP/1 bytes on the already-active field-status
+  indication when Bluefy cannot activate the dedicated WTP indication. The
+  mode is cleared on authorization and disconnect, requires the current field
+  session and never changes the Raspberry Pi/BlueZ client's dedicated WTP
+  characteristic path.
 - Provisioning indications retain priority and their existing delivery-confirmed
   activation boundary. WTP and provisioning CCCDs, buffers and diagnostics are
   separate. The standard image reports bounded WTP segment and byte counters.
@@ -45,6 +52,11 @@ SoftAP still lacked a production DHCP and HTTP/HTTPS service.
   fail-closed disconnect on a corrupt stream. The page offers explicit
   authenticated controls for Identify, phone time, field status and read-only
   WTP STATUS; its client API can carry all unchanged WTP operations.
+- Bluefy enters local WTP control without a disconnect, a second
+  `startNotifications()` call or any CCCD transition. It first selects the
+  field-status carrier through the authenticated command/reply path, then
+  changes only its parser on that existing indication. Returning to field
+  control deliberately reconnects and renews the retained-bond field session.
 - The deterministic `docs/bluefy` release was regenerated as
   `037b80144b7eb8079aca78be42635408530e2752d46fb8112e10f34d41f7916d`.
   The page explicitly warns that a retained authorized bond resumes ordinary

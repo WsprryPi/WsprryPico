@@ -32,6 +32,9 @@ class BleCommandSession {
     AccessCode confirm_profile(std::string_view requested_device, std::uint64_t now_ms);
     bool authorized() const;
     std::string principal() const;
+    bool wtp_over_field_status() const {
+        return connected_ && wtp_over_field_status_;
+    }
     bool available() const {
         return access_.ble_available();
     }
@@ -61,5 +64,6 @@ class BleCommandSession {
     bool pending_profile_step_up_ = false;
     bool connected_ = false;
     bool delivery_confirmed_ = false;
+    bool wtp_over_field_status_ = false;
 };
 } // namespace wsprrypico::provisioning

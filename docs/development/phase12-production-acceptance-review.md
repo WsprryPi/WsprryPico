@@ -522,9 +522,59 @@ again. The repaired client also clears stale WTP event state and rejects a link
 lost during subscription setup. Focused regressions cover both repairs. A
 second adversarial assessment found no further actionable issue in this
 page-only boundary.
-It remains a source/host result until the operator repeats the one bounded WTP
-status attempt and target counters show actual WTP request and indication
-bytes.
+
+The operator then repeated the bounded attempt on that exact
+`2c1c0ac2a326...` release. Before selection the target reported 9 connections
+and 9 disconnections, 29 accepted CCCD writes and no WTP traffic. Selection
+advanced connections to 10 without a disconnect and added two accepted CCCD
+writes; both CCCD values read 2 because iOS restored the retained bond's prior
+subscriptions. Blank retained-bond authorization succeeded. `Read WTP status`
+then displayed `Reading WTP status failed: operation_failed. Select the Pico
+again.` The final counters showed 11 connections, 11 disconnections and 34
+accepted CCCD writes, but still zero WTP segments, bytes or indications and no
+CCCD rejection or queue failure. The final disconnect reason was 19. The
+RF-inhibited simulator remained empty and output inactive. This preserves a
+second failure before WTP/1 `HELLO`: the reconnect reached the target, but
+Bluefy still failed while activating the dedicated WTP indication.
+
+The next repair removes that second notification-context dependency. An exact,
+authenticated `select_wtp_status_carrier` field command now selects the
+already-active field-status indication as the WTP output carrier for only the
+current BLE connection. It requires the current device, retained-bond
+principal and field session, rejects extra fields, is cleared by authorization,
+disconnect or security loss, and disconnects the logical WTP endpoint when the
+carrier changes so no byte stream can span carriers. Provisioning replies keep
+priority on the same handle; after the selection reply is confirmed, Bluefy
+changes only its local parser and sends an ordinary unchanged WTP/1 `HELLO` on
+the existing WTP command characteristic. It makes no reconnect, no
+`stopNotifications()` call and no WTP-status `startNotifications()` call.
+Returning to field control still uses a deliberate reconnect and blank
+retained-bond authorization. The native Raspberry Pi/BlueZ client never sends
+the browser-specific selector and continues to use the dedicated WTP status
+characteristic.
+
+Focused browser regressions prove one connection, one status subscription,
+zero WTP-status subscription attempts, exact authenticated carrier selection,
+unchanged WTP framing, return-to-field session renewal and fail-closed carrier,
+HELLO and CRC failures. C++ tests cover unauthenticated, wrong-session,
+extra-field, accepted and disconnect-cleared selector states; the synchronized
+wire-contract test covers carrier-aware CCCD gating and indication routing.
+The deterministic candidate page release is
+`4601c8a180676ff051db0839540c186ec558a25396c80712d80f04d9cd8de5a9`.
+These are source/host results until the repaired firmware is flashed and the
+operator's single bounded WTP status retry produces real WTP request and
+indication bytes.
+
+The first adversarial review of this repair found two fail-closed gaps. A
+direct caller of the browser's channel-selection method could bypass the outer
+HELLO cleanup wrapper, and a target carrier change whose reply could not be
+queued could remain selected until the asynchronous link disconnect. Carrier
+selection now owns its browser disconnect-on-failure behavior, while the target
+immediately revokes the application session and requests link disconnect if a
+changed-carrier reply cannot be queued. Focused host and sanitizer regressions,
+the full 87-test host suite, WTP validator, four target links and five linked-
+image checks passed after the repairs. A second adversarial assessment found no
+further actionable issue within this RF-inhibited BLE transport boundary.
 
 ## Phase 11 applicability
 

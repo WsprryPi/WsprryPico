@@ -649,6 +649,8 @@ int main() {
             result += ",\"connected\":" + std::string(ble.connected ? "true" : "false");
             result += ",\"admitted\":" + std::string(ble.admitted ? "true" : "false");
             result += ",\"send_requested\":" + std::string(ble.send_requested ? "true" : "false");
+            result += ",\"wtp_over_field_status\":" +
+                      std::string(ble.wtp_over_field_status ? "true" : "false");
             result += "}\n";
             return result;
         }

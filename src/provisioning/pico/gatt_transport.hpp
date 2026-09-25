@@ -45,6 +45,7 @@ class PicoGattTransport {
         bool connected = false;
         bool admitted = false;
         bool send_requested = false;
+        bool wtp_over_field_status = false;
     };
     using Now = std::uint64_t (*)(void*);
     PicoGattTransport(BleCommandSession& session, wtp::Endpoint* endpoint, std::string identity,
@@ -56,7 +57,9 @@ class PicoGattTransport {
     bool start();
     void stop();
     void poll();
-    bool running() const { return running_; }
+    bool running() const {
+        return running_;
+    }
     Diagnostics diagnostics() const;
 
   private:
@@ -64,22 +67,26 @@ class PicoGattTransport {
                                        std::uint16_t offset, std::uint8_t* buffer,
                                        std::uint16_t size);
     static int write_callback(hci_con_handle_t connection, std::uint16_t handle,
-                              std::uint16_t transaction, std::uint16_t offset,
-                              std::uint8_t* buffer, std::uint16_t size);
-    static void hci_callback(std::uint8_t packet_type, std::uint16_t channel,
-                             std::uint8_t* packet, std::uint16_t size);
-    static void att_callback(std::uint8_t packet_type, std::uint16_t channel,
-                             std::uint8_t* packet, std::uint16_t size);
+                              std::uint16_t transaction, std::uint16_t offset, std::uint8_t* buffer,
+                              std::uint16_t size);
+    static void hci_callback(std::uint8_t packet_type, std::uint16_t channel, std::uint8_t* packet,
+                             std::uint16_t size);
+    static void att_callback(std::uint8_t packet_type, std::uint16_t channel, std::uint8_t* packet,
+                             std::uint16_t size);
     static void can_send(void* context);
     bool admit();
     bool queue(std::string_view notification);
     bool output_pending() const;
+    bool wtp_indications_enabled() const;
+    std::uint16_t wtp_status_handle() const;
     bool ensure_wtp_endpoint();
     bool request_send();
     void send_next();
     void security_lost();
     void disconnected();
-    std::uint64_t now() const { return now_ ? now_(context_) : 0; }
+    std::uint64_t now() const {
+        return now_ ? now_(context_) : 0;
+    }
 
     static PicoGattTransport* owner_;
     BleCommandSession& session_;

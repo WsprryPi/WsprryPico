@@ -51,6 +51,10 @@ for operation in ("identify", "field_status", "time_challenge", "time_submit"):
     assert f'name == "{operation}"' in ble_session
     assert f'"{operation}"' in linux_client
 
+assert 'operation: "select_wtp_status_carrier"' in web
+assert 'name == "select_wtp_status_carrier"' in ble_session
+assert '"select_wtp_status_carrier"' not in linux_client
+
 for field in (
     "version",
     "operation",
@@ -91,15 +95,21 @@ assert "session_.response_started(now());" in gatt
 assert '"request" if response else "command"' in linux_client
 assert "owner_->status_cccd_ : owner_->wtp_cccd_) = value;" in gatt
 assert "status_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION" in gatt
-assert "wtp_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION" in gatt
+assert "wtp_indications_enabled()" in gatt
+assert "session_.wtp_over_field_status() ? status_cccd_ : wtp_cccd_" in gatt
+assert "handle = wtp_status_handle();" in gatt
+assert "if (wtp_carrier_changed)" in gatt
+assert "owner_->session_.disconnected();" in gatt
 assert "endpoint_->receive" in gatt and "endpoint_->consume_output" in gatt
 assert gatt.index("if (owner_->status_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION)") < gatt.index("owner_->inbound_.receive")
 assert "if (session_.authorized())\n            endpoint_->poll(current);" in gatt
 assert "owner_->endpoint_ && !owner_->endpoint_->closed()" in gatt
 assert "if (indication_ == Indication::Wtp)\n        return false;" in gatt
 assert "owner_->security_lost();" in gatt
-security_failure = gatt.index("owner_->security_lost();")
-security_disconnect = gatt.index("(void)gap_disconnect(owner_->connection_);")
+security_callback = gatt[gatt.index("case HCI_EVENT_ENCRYPTION_CHANGE:"):
+                         gatt.index("case SM_EVENT_JUST_WORKS_REQUEST:")]
+security_failure = security_callback.index("owner_->security_lost();")
+security_disconnect = security_callback.index("(void)gap_disconnect(owner_->connection_);")
 assert security_failure < security_disconnect
 security_lost = gatt[gatt.index("void PicoGattTransport::security_lost()"):
                      gatt.index("bool PicoGattTransport::queue")]

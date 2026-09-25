@@ -278,7 +278,7 @@
         const command = await service.getCharacteristic(UUIDS.command);
         let status = await service.getCharacteristic(UUIDS.status);
         const wtpCommand = await service.getCharacteristic(UUIDS.wtpCommand);
-        let wtpStatus = await service.getCharacteristic(UUIDS.wtpStatus);
+        const wtpStatus = await service.getCharacteristic(UUIDS.wtpStatus);
         let observed;
         try {
           observed = JSON.parse(text(await identity.readValue()));
@@ -291,21 +291,12 @@
             (expectedDeviceId !== null && observed.device_id !== expectedDeviceId) ||
             !Number.isSafeInteger(observed.generation) || observed.generation < 0)
           fail("wrong_device");
-        if (channel === "field") {
-          activeStatus = status;
-          listener = this.onStatus;
-          const notifying = await activeStatus.startNotifications();
-          if (notifying && typeof notifying.addEventListener === "function")
-            activeStatus = status = notifying;
-        } else if (channel === "wtp") {
-          activeStatus = wtpStatus;
-          listener = this.onWtpStatus;
-          const notifying = await activeStatus.startNotifications();
-          if (notifying && typeof notifying.addEventListener === "function")
-            activeStatus = wtpStatus = notifying;
-        } else {
-          fail("notification_channel");
-        }
+        if (channel !== "field") fail("notification_channel");
+        activeStatus = status;
+        listener = this.onStatus;
+        const notifying = await activeStatus.startNotifications();
+        if (notifying && typeof notifying.addEventListener === "function")
+          activeStatus = status = notifying;
         if (!device.gatt.connected) fail("bluetooth_disconnected");
         activeStatus.addEventListener("characteristicvaluechanged", listener);
         return {identity, command, status, wtpCommand, wtpStatus, observed};
@@ -327,7 +318,7 @@
       this.generation = binding.observed.generation;
       this.authorized = authorized;
       this.fieldListening = channel === "field";
-      this.wtpListening = channel === "wtp";
+      this.wtpListening = false;
       if (typeof device.addEventListener === "function")
         device.addEventListener("gattserverdisconnected", this.onDisconnected);
     }
@@ -454,10 +445,10 @@
         entry.reject(error);
       }
       this.wtpPending.clear();
-      if (this.status)
+      if (this.status && this.fieldListening)
         this.status.removeEventListener("characteristicvaluechanged", this.onStatus);
-      if (this.wtpStatus && this.wtpListening)
-        this.wtpStatus.removeEventListener("characteristicvaluechanged", this.onWtpStatus);
+      if (this.status && this.wtpListening)
+        this.status.removeEventListener("characteristicvaluechanged", this.onWtpStatus);
       const device = event && event.target ? event.target : this.device;
       if (device && typeof device.removeEventListener === "function")
         device.removeEventListener("gattserverdisconnected", this.onDisconnected);
@@ -482,10 +473,11 @@
       const device = this.device;
       const expectedDeviceId = this.expectedDeviceId;
       const wasAuthorized = this.authorized;
+      if (channel !== "field") fail("notification_channel");
       if (this.status && this.fieldListening)
         this.status.removeEventListener("characteristicvaluechanged", this.onStatus);
-      if (this.wtpStatus && this.wtpListening)
-        this.wtpStatus.removeEventListener("characteristicvaluechanged", this.onWtpStatus);
+      if (this.status && this.wtpListening)
+        this.status.removeEventListener("characteristicvaluechanged", this.onWtpStatus);
       if (typeof device.removeEventListener === "function")
         device.removeEventListener("gattserverdisconnected", this.onDisconnected);
       if (device.gatt.connected) device.gatt.disconnect();
@@ -529,7 +521,21 @@
       if (!this.device) fail("not_connected");
       if (this.wtpListening) return;
       if (this.pending.size) fail("field_busy");
-      await this.reconnectChannel("wtp");
+      if (!this.fieldListening || !this.status || !this.authorized) fail("field_unavailable");
+      try {
+        const response = await this.exchange({version: 1,
+          operation: "select_wtp_status_carrier", request_id: randomId(this.crypto),
+          session_id: this.fieldSession, device_id: this.expectedDeviceId});
+        if (response.carrier !== "field_status") fail("wtp_status_carrier");
+        this.status.removeEventListener("characteristicvaluechanged", this.onStatus);
+        this.statusReceiver.reset();
+        this.status.addEventListener("characteristicvaluechanged", this.onWtpStatus);
+        this.fieldListening = false;
+        this.wtpListening = true;
+      } catch (error) {
+        this.disconnect();
+        throw error;
+      }
     }
     async exchange(message, acceleratedTail = false) {
       if (!this.command) fail("not_connected");
@@ -671,11 +677,11 @@
       return result;
     }
     async enableLocalControl() {
-      if (!this.authorized || !this.wtpStatus) fail("authentication_required");
+      if (!this.authorized || !this.wtpCommand) fail("authentication_required");
       if (this.wtpHello) return this.wtpHello;
-      await this.selectWtpChannel();
-      this.wtpSession = randomId(this.crypto);
       try {
+        await this.selectWtpChannel();
+        this.wtpSession = randomId(this.crypto);
         const hello = await this.wtpExchange("HELLO", {versions: ["WTP/1"],
           client_name: "WsprryPico Bluefy", client_version: "1"});
         if (hello.selected_version !== "WTP/1" || hello.device_id !== this.expectedDeviceId ||
@@ -773,9 +779,10 @@
         entry.reject(error);
       }
       this.wtpPending.clear();
-      if (this.status) this.status.removeEventListener("characteristicvaluechanged", this.onStatus);
-      if (this.wtpStatus && this.wtpListening)
-        this.wtpStatus.removeEventListener("characteristicvaluechanged", this.onWtpStatus);
+      if (this.status && this.fieldListening)
+        this.status.removeEventListener("characteristicvaluechanged", this.onStatus);
+      if (this.status && this.wtpListening)
+        this.status.removeEventListener("characteristicvaluechanged", this.onWtpStatus);
       if (this.device && typeof this.device.removeEventListener === "function")
         this.device.removeEventListener("gattserverdisconnected", this.onDisconnected);
       if (this.device && this.device.gatt.connected) this.device.gatt.disconnect();

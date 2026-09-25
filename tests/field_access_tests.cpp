@@ -537,6 +537,14 @@ void ble_command_policy() {
                                               "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
     CHECK(session.handle(unauthorized_identify, 2).code ==
           provisioning::Code::AuthenticationRequired);
+    const std::string unauthorized_carrier =
+        "{\"version\":1,\"operation\":\"select_wtp_status_carrier\","
+        "\"request_id\":\"55555555555555555555555555555556\","
+        "\"session_id\":\"44444444444444444444444444444444\","
+        "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
+    CHECK(session.handle(unauthorized_carrier, 2).code ==
+          provisioning::Code::AuthenticationRequired);
+    CHECK(!session.wtp_over_field_status());
     const std::string authorize = "{\"version\":1,\"operation\":\"authorize\","
                                   "\"request_id\":\"33333333333333333333333333333333\","
                                   "\"session_id\":\"44444444444444444444444444444444\","
@@ -547,6 +555,30 @@ void ble_command_policy() {
     session.response_delivered(3);
     CHECK(session.authorized());
     CHECK(!session.principal().empty());
+    auto wrong_carrier_session = unauthorized_carrier;
+    wrong_carrier_session.replace(wrong_carrier_session.find("44444444444444444444444444444444"),
+                                  32, "44444444444444444444444444444445");
+    CHECK(session.handle(wrong_carrier_session, 3).code ==
+          provisioning::Code::AuthenticationRequired);
+    CHECK(!session.wtp_over_field_status());
+    auto carrier_with_extra_field = unauthorized_carrier;
+    carrier_with_extra_field.insert(carrier_with_extra_field.size() - 1, ",\"enabled\":true");
+    CHECK(session.handle(carrier_with_extra_field, 3).code == provisioning::Code::InvalidRequest);
+    CHECK(!session.wtp_over_field_status());
+    const auto carrier = session.handle(unauthorized_carrier, 3);
+    CHECK(carrier.code == provisioning::Code::Ok);
+    CHECK(carrier.notification.find("\"carrier\":\"field_status\"") != std::string::npos);
+    CHECK(session.wtp_over_field_status());
+    auto reauthorize = authorize;
+    reauthorize.replace(reauthorize.find("33333333333333333333333333333333"), 32,
+                        "33333333333333333333333333333334");
+    CHECK(session.handle(reauthorize, 3).code == provisioning::Code::Ok);
+    CHECK(!session.wtp_over_field_status());
+    auto reselected_carrier = unauthorized_carrier;
+    reselected_carrier.replace(reselected_carrier.find("55555555555555555555555555555556"), 32,
+                               "55555555555555555555555555555557");
+    CHECK(session.handle(reselected_carrier, 3).code == provisioning::Code::Ok);
+    CHECK(session.wtp_over_field_status());
     const std::string identify = "{\"version\":1,\"operation\":\"identify\","
                                  "\"request_id\":\"66666666666666666666666666666666\","
                                  "\"session_id\":\"44444444444444444444444444444444\","
@@ -582,22 +614,20 @@ void ble_command_policy() {
                                "\"utc_ns\":\"1800000000000000000\"}";
     CHECK(session.handle(submit, 6).code == provisioning::Code::Ok);
     session.response_delivered(6);
-    const std::string over_challenge =
-        "{\"version\":1,\"operation\":\"time_challenge\","
-        "\"request_id\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\","
-        "\"session_id\":\"44444444444444444444444444444444\","
-        "\"device_id\":\"00112233445566778899aabbccddeeff\","
-        "\"nonce\":\"phone-sample-over\"}";
+    const std::string over_challenge = "{\"version\":1,\"operation\":\"time_challenge\","
+                                       "\"request_id\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\","
+                                       "\"session_id\":\"44444444444444444444444444444444\","
+                                       "\"device_id\":\"00112233445566778899aabbccddeeff\","
+                                       "\"nonce\":\"phone-sample-over\"}";
     CHECK(session.handle(over_challenge, 7).code == provisioning::Code::Ok);
     session.response_started(7);
     now_ns += 249'000'000ULL;
-    const std::string over_submit =
-        "{\"version\":1,\"operation\":\"time_submit\","
-        "\"request_id\":\"cccccccccccccccccccccccccccccccc\","
-        "\"session_id\":\"44444444444444444444444444444444\","
-        "\"device_id\":\"00112233445566778899aabbccddeeff\","
-        "\"nonce\":\"phone-sample-over\","
-        "\"utc_ns\":\"1800000000249000000\"}";
+    const std::string over_submit = "{\"version\":1,\"operation\":\"time_submit\","
+                                    "\"request_id\":\"cccccccccccccccccccccccccccccccc\","
+                                    "\"session_id\":\"44444444444444444444444444444444\","
+                                    "\"device_id\":\"00112233445566778899aabbccddeeff\","
+                                    "\"nonce\":\"phone-sample-over\","
+                                    "\"utc_ns\":\"1800000000249000000\"}";
     const auto over_budget = session.handle(over_submit, 8);
     CHECK(over_budget.code == provisioning::Code::Uncertainty);
     CHECK(over_budget.notification.find("\"error\":\"uncertainty\"") != std::string::npos);
@@ -616,6 +646,7 @@ void ble_command_policy() {
     CHECK(session.handle(admitted_open, 5).code == provisioning::Code::Ok);
     session.disconnected();
     CHECK(!session.authorized());
+    CHECK(!session.wtp_over_field_status());
     CHECK(f.store.record()->bond_count == 1);
 
     provisioning::BleCommandSession returning(f.controller, command, manager, std::string(device),

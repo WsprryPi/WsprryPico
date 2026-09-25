@@ -187,6 +187,7 @@ wtp::PayloadDigest profile_parameters(std::string_view profile_session,
 
 bool BleCommandSession::connected(std::uint64_t peer, bool encrypted, bool new_pairing,
                                   std::string link_session, std::uint64_t now_ms) {
+    wtp_over_field_status_ = false;
     const auto admitted =
         access_.ble_connect(peer, encrypted, new_pairing, std::move(link_session), now_ms);
     connected_ = admitted.code == AccessCode::Ok;
@@ -200,6 +201,7 @@ void BleCommandSession::disconnected() {
         (void)access_.ble_disconnect();
     }
     connected_ = false;
+    wtp_over_field_status_ = false;
     secure_clear(field_session_);
     secure_clear(pending_time_nonce_);
     secure_clear(pending_apply_request_);
@@ -262,8 +264,10 @@ CommandReply BleCommandSession::authorize(std::string_view command, std::uint64_
                                           ? access_.ble_authorize(password, now_ms).code
                                           : AccessCode::AuthenticationRequired);
     secure_clear(password);
-    if (code == AccessCode::Ok)
+    if (code == AccessCode::Ok) {
         field_session_ = session->string();
+        wtp_over_field_status_ = false;
+    }
     return reply(request_id, code, manager_.status().generation);
 }
 
@@ -291,6 +295,13 @@ CommandReply BleCommandSession::field_command(std::string_view command, std::uin
     const auto activity = activity_ ? activity_(context_) : Activity{};
 
     const auto name = operation->string();
+    if (name == "select_wtp_status_carrier") {
+        if (!wtp::json::fields(*root,
+                               {"version", "operation", "request_id", "session_id", "device_id"}))
+            return field_reply(request_id, Code::InvalidRequest);
+        wtp_over_field_status_ = true;
+        return field_reply(request_id, Code::Ok, "\"carrier\":\"field_status\"");
+    }
     if (name == "profile_step_up") {
         if (!wtp::json::fields(*root, {"version", "operation", "request_id", "session_id",
                                        "device_id", "profile_session_id", "apply_request_id",
@@ -439,6 +450,7 @@ CommandReply BleCommandSession::handle(std::string_view command, std::uint64_t n
     if (operation && operation->type() == '"' &&
         (operation->string() == "identify" || operation->string() == "field_status" ||
          operation->string() == "time_challenge" || operation->string() == "time_submit" ||
+         operation->string() == "select_wtp_status_carrier" ||
          operation->string() == "profile_step_up" ||
          operation->string() == "profile_step_up_status"))
         return field_command(command, now_ms);
@@ -518,8 +530,8 @@ void BleCommandSession::response_started(std::uint64_t now_ms) {
 void BleCommandSession::response_delivered(std::uint64_t now_ms) {
     (void)now_ms;
     if (!pending_time_nonce_.empty() && controller_time_)
-        (void)controller_time_->challenge_response_delivered(
-            principal(), field_session_, device_id_, pending_time_nonce_);
+        (void)controller_time_->challenge_response_delivered(principal(), field_session_,
+                                                             device_id_, pending_time_nonce_);
     if (pending_apply_request_.empty())
         return;
     delivery_confirmed_ = true;
