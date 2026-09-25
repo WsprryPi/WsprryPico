@@ -51,6 +51,12 @@ WTP means WsprryPi Transmitter Protocol. It is device-neutral and versioned inde
 
 The authoritative specification lives at docs/protocol/WTP.md in WsprryPico. WsprryPico is the reference implementation; implementation accidents do not define the protocol. WTP does not have a separate protocol repository.
 
+The custom BLE provisioning and local-control wire interface is documented in
+the [Field GATT protocol and super-user guide](protocol/Field-GATT.md). Field
+commands remain outside WTP/1. When GATT carries WTP, it transports the
+unchanged WTP/1 byte stream to the same `JobService`; ATT segmentation does not
+define another job-control protocol.
+
 ## Internal boundary
 
 Browser handlers, standalone scheduler, USB WTP and TCP WTP submit work to one application job service. That service owns validation, transmitter ownership and state. A local execution layer controls interchangeable RF engines. Time synchronization estimates UTC relative to a monotonic device clock; RF frequency calibration is tracked separately.
@@ -147,12 +153,14 @@ adds the portable controller/SNTP arbiter and routes production SNTP, BLE and
 SoftAP controller observations through it. Physical phone-time accuracy remains
 unqualified.
 
-Remaining Phase 12 details are SoftAP credential provisioning, authenticated
-phone-time acceptance, accepted reset controls, blank generic HTTP,
-stable-station AP withdrawal, physical Bluefy offline/interoperability
-evidence, live profile activation and broader target resource/coexistence
-tuning. The wired SoftAP/HTTPS and local-control surfaces have only the bounded
-native-Pi target acceptance recorded above.
+Remaining Phase 12 details are SoftAP credential provisioning, broader
+authenticated phone-time accuracy/disagreement/recovery acceptance, accepted
+reset controls, blank generic HTTP, stable-station AP withdrawal, physical
+Bluefy offline reuse and broader interoperability evidence, live profile
+activation and broader target resource/coexistence tuning. The wired
+SoftAP/HTTPS surface has only the bounded native-Pi target acceptance recorded
+above; the current production review separately records the bounded iPhone/
+Bluefy retained-bond, time, Identify/status and read-only WTP subset.
 Clock calibration, production RF engine/pins and shared WsprryPi adoption of
 browser API v1 remain open. The current Pico browser schemas and bounds are
 documented in the API contract. WTP/1 defines interoperable limits and policies

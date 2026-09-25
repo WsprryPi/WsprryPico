@@ -3,7 +3,9 @@
 Phase 11 is closed within its documented software, bounded physical and scoped
 conducted-RF acceptance. The authoritative [Phase 11.7 joint review](phase11-7-review.md)
 binds its source pair, assertion-level applicability, host regressions and
-retained limitations. Phase 12 is current: its [implementation plan](phase12-plan.md),
+retained limitations. Phase 12 is current: its
+[field GATT protocol and super-user guide](../protocol/Field-GATT.md),
+[implementation plan](phase12-plan.md),
 operator-selected [field-access/security contract](phase12-field-access-contract.md)
 and [portable review](phase12-review.md), the
 [P12.3 hardware-free integration review](phase12-3-review.md), the
@@ -16,7 +18,7 @@ the [RF-inhibited SoftAP review](phase12-softap-physical-review.md), plus the
 separate
 [RF-inhibited-first physical plan](phase12-physical-acceptance.md), distinguish
 implemented infrastructure and selected product/security policy from open
-physical/local-control work. Provisioning-only GATT and its live
+physical/local-control work. Provisioning/local-control GATT and its live
 activator now run in the RF-inhibited production image; candidate
 identity/adoption/advertising and one online retained-bond Bluefy
 application-authorization exchange are partial physical evidence. Authenticated
@@ -31,10 +33,13 @@ password/cookie admission, controller time and the existing browser/one-
 `JobService` API. Its clean RF-inhibited Candidate A image now has bounded
 native-Pi evidence for provisioned WPA2/DHCP/mDNS/TLS, password/cookie
 admission, same-connection controller time, local status and
-`HELLO`/`CLAIM`/`RELEASE`. Bluefy/iOS offline use, full
-provisioning/activation, phone time, blank generic HTTP, stable-station AP
-withdrawal, reset controls and most Stage A rows remain open. P12.3 remains
-CLOSED_SCOPED within its historical boundary.
+`HELLO`/`CLAIM`/`RELEASE`. A later bounded iPhone 17 Pro Max/iOS 27.0/
+Bluefy 3.9.3 continuation accepts retained-bond authorization, one authenticated
+phone-time exchange, Identify LED/field status and WTP `HELLO` plus read-only
+`STATUS`. Bluefy/iOS offline reuse, fresh-password/new-pairing behavior, full
+provisioning/activation, arbitrary BLE job control, broader time/LED matrices,
+blank generic HTTP, stable-station AP withdrawal, reset controls and most Stage
+A rows remain open. P12.3 remains CLOSED_SCOPED within its historical boundary.
 Phase 13 broad hardware/release qualification remains open.
 
 The phone-assisted continuation now has a host-tested fresh-password profile

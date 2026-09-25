@@ -2,7 +2,11 @@
 
 Status: **OPEN_PARTIAL**. This source tranche advances P12.6 but does not close
 Phase 12. Its clean committed-image boot/preservation baseline passed on
-Candidate A; none of the new BLE operations has physical acceptance.
+Candidate A; at this tranche checkpoint none of the new BLE operations had
+physical acceptance. Later page/transport repairs and bounded iPhone/Bluefy
+evidence are recorded in the current
+[production acceptance review](phase12-production-acceptance-review.md); they do
+not retroactively change this historical candidate or its validation record.
 
 ## Authority and starting point
 

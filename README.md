@@ -91,11 +91,13 @@ same-connection controller time, status and `HELLO`/`CLAIM`/`RELEASE`; see the
 This is not phone/Safari/Bluefy or provisioning acceptance. The clean committed
 BLE image has verified Candidate A load/boot
 with preserved state and final RF-inhibited empty/unowned/inactive-output
-restoration. Bluefy/iOS and offline reuse, profile activation, blank generic
-SoftAP HTTP, stable-station AP withdrawal, the broader physical BLE
-job-control/local-management
-matrix, phone-time and LED behavior,
-reset controls and most of the
+restoration. A later bounded iPhone 17 Pro Max/iOS 27.0/Bluefy 3.9.3 exercise
+accepts retained-bond authorization, one authenticated phone-time exchange,
+Identify LED/field status and Bluefy read-only WTP `HELLO`/`STATUS`. Offline
+reuse, fresh-password/new-pairing behavior, profile activation, blank generic
+SoftAP HTTP, stable-station AP withdrawal, the broader physical BLE job-
+control/local-management, controller-time and LED matrices, reset controls and
+most of the
 [RF-inhibited-first physical plan](docs/development/phase12-physical-acceptance.md)
 remain open. Phase 12 is therefore active; the scoped source closeout is not
 full physical or end-user acceptance.
@@ -108,6 +110,7 @@ yet phone/target acceptance.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)
+- [Field GATT protocol and super-user guide](docs/protocol/Field-GATT.md)
 - [Browser API v1](docs/browser-api.md)
 - [Network control and certificate management](docs/development/network-control.md)
 - [Phase 12 provisioning plan](docs/development/phase12-plan.md)

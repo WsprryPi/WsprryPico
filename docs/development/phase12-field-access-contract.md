@@ -14,6 +14,14 @@ Contemporaneous P12.1-P12.5 review records remain accurate descriptions of what
 was and was not selected at their checkpoints; their old open-decision lists do
 not override this later contract.
 
+This document controls authority, recovery and acceptance policy. The custom
+BLE UUIDs, framing and operation schemas are documented separately in the
+[Field GATT protocol and super-user guide](../protocol/Field-GATT.md).
+That guide also records current implementation/client conformance gaps. In
+particular, the selected immediate cleanup of a timed-out or abandoned
+provisional bond is not yet autonomous while its BLE link remains open; clients
+must disconnect on authorization failure or timeout until that gap is repaired.
+
 ## Purpose and authority boundary
 
 WsprryPico must remain useful at a field event with one or more Picos, an iPhone

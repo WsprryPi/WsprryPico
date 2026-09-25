@@ -8,8 +8,11 @@ backend. The defined hardware target is Pico 2 W / RP2350.
 
 The accepted architectural record is [docs/architecture.md](docs/architecture.md).
 This contract summarizes durable boundaries. The normative WTP/1 contract is
-[docs/protocol/WTP.md](docs/protocol/WTP.md); the independently versioned [browser API v1](docs/browser-api.md) records
-the implemented Pico surface. Shared WsprryPi adoption remains separate work.
+[docs/protocol/WTP.md](docs/protocol/WTP.md). The working Phase 12
+[Field-GATT contract](docs/protocol/Field-GATT.md) records the custom BLE wire
+surface without changing WTP/1; it is not yet a released compatibility promise.
+The independently versioned [browser API v1](docs/browser-api.md) records the
+implemented Pico surface. Shared WsprryPi adoption remains separate work.
 
 ## Timing and interoperability
 
@@ -24,7 +27,8 @@ the implemented Pico surface. Shared WsprryPi adoption remains separate work.
   [Phase 12 field-access contract](docs/development/phase12-field-access-contract.md).
   The native [Raspberry Pi/Linux BlueZ client](docs/development/raspberry-pi-ble-client.md)
   is an additional supported local/bench client; it does not replace Bluefy or
-  qualify the iPhone/offline acceptance path.
+  qualify the iPhone/offline acceptance path. Its profile-apply command is
+  currently unsupported pending conformance repairs documented by that guide.
 - Every job-control path uses the same JobService and loads and arms complete
   jobs. RP2350 owns execution and symbol timing.
 - WTP is device-neutral and independently versioned. Its specification is
@@ -95,8 +99,13 @@ controller-time, Identify/status, unchanged WTP/1 and the network-only live
 activator are also wired. BLE profile apply now requires a fresh password proof
 bound to the exact staged bytes, applying request and generation; the public
 default additionally requires an identity-bound USB-local confirmation within
-the 30-second staging session. Those controls are host-tested but their phone
-and target acceptance remains open. P12.3 is
+the 30-second staging session. Those profile controls are host-tested but their
+phone and target acceptance remains open. A separate bounded iPhone 17 Pro
+Max/iOS 27.0/Bluefy 3.9.3 exercise accepts retained-bond authorization, one
+authenticated controller-time exchange, Identify LED/field status and WTP
+`HELLO` plus read-only `STATUS`. It does not accept offline reuse, fresh pairing,
+profile activation, arbitrary WTP job control or the broader time/LED matrices.
+P12.3 is
 closed only for its documented hardware-free
 source/cross-link boundary; Phase 12 is not yet an accepted end-user path.
 

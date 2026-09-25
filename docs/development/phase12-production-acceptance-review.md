@@ -1,13 +1,18 @@
 # Phase 12 production integration and partial acceptance review
 
-Status: **OPEN_PARTIAL**. This is not Phase 12 closure.
+Status: **OPEN_PARTIAL**. This is not Phase 12 closure. Later bounded Candidate
+A evidence now accepts exact iPhone/iOS/Bluefy identification, one authenticated
+phone-time exchange, Identify LED/field status, retained-bond authorization and
+Bluefy WTP `HELLO` plus read-only `STATUS`; their broader matrices remain open.
 
 This review records the earlier production/physical tranche. The subsequent
 [BLE local-control continuation](phase12-ble-local-control-review.md) adds
 hardware-free production wiring for controller time, Identify/status and an
 unchanged WTP/1 GATT stream. Its clean committed image has subsequently passed
-load/boot, preservation and final RF-inhibited restoration, but none of the new
-BLE operations has iPhone/Bluefy physical acceptance. A later SoftAP
+load/boot, preservation and final RF-inhibited restoration. At that checkpoint
+none of the new BLE operations had iPhone/Bluefy physical acceptance; the later
+phone-assisted continuation recorded below now accepts only the bounded rows
+named in the status above. A later SoftAP
 continuation now connects the production AP, blank bootstrap, pre-clock/normal
 HTTPS, password/cookie admission, controller time and existing
 browser/`JobService` API. A subsequent RF-inhibited native-Pi run partially
@@ -69,9 +74,15 @@ starting the application.
   core-0 release path runs.
 - GATT requires encryption, stored peer identity and application authorization,
   admits one connection, uses fixed bounded framing, retains asynchronous
-  advertisement buffers, and cleans provisional bonds on terminal paths.
+  advertisement buffers, and cleans provisional bonds on implemented wrong-
+  password and disconnect terminal paths. Autonomous cleanup after enrollment-
+  window expiry on an otherwise open link remains a tracked conformance gap.
   Returning authorized bonds accept the page's repeated authorize operation
   idempotently because the retained bond is already the selected principal.
+  The working
+  [field-GATT protocol and super-user guide](../protocol/Field-GATT.md) now
+  documents this surface. Final implementation/client/test conformance and
+  protocol freeze remain an explicit Phase 12 gate.
 - USB-local `ACCESS STATUS`, `ACCESS ADOPT <full-device-id>`,
   `ACCESS ENROLL <full-device-id>` and `IDENTIFY <full-device-id>` provide
   exact device-bound confirmation/diagnostics. They preserve idle/output checks.
@@ -702,16 +713,29 @@ Phase 13 release qualification.
 
 Phase 12 remains open for:
 
-- exact iPhone model, iOS and Bluefy version and live chooser/pairing evidence;
+- fresh-password/new-pairing behavior beyond the accepted retained-bond path;
 - online install followed by verified no-Wi-Fi/no-cellular offline page reuse;
 - full provisioning/activation lifecycle on the clean committed candidate;
-- iPhone controller-time and visual Identify/ready-LED behavior;
+- the broader controller-time disagreement/recovery and complete LED priority,
+  timing and fault matrix beyond the accepted single phone-time and Identify
+  observations;
 - blank generic HTTP, Safari/Bluefy certificate behavior, cookie lifetime and
   stable-station AP withdrawal; the bounded native-Pi provisioned SoftAP path
   is accepted only as recorded above;
 - any SoftAP credential-provisioning/activation surface, which is not exposed by
   the current browser integration;
 - BLE ordinary WTP/browser local management through the one `JobService`;
+- final review and freeze of the normative, independently implementable
+  `docs/protocol/Field-GATT.md`, covering the UUID/characteristic contract,
+  provisioning framing and schemas, authorization/time/indication/error state
+  machines, and unchanged WTP/1 GATT mapping, with firmware, Bluefy and
+  native-Pi conformance evidence;
+- repair and conformance coverage for three open protocol mismatches: the native
+  Pi client omits the required fresh `profile_step_up` before profile `apply`,
+  and the manager's 64-fragment counter imposes a 4,096-byte effective ceiling
+  despite the declared 7,168-byte profile boundary; enrollment-window expiry
+  also does not autonomously erase a provisional bond while its BLE link remains
+  open, so clients must disconnect on authorization failure or timeout;
 - password/bond/reset recovery and safe accepted physical controls;
 - fault-injection, replacement/superseded-trust, broader resource reclamation,
   concurrency and bounded soak rows;

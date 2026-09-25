@@ -4,6 +4,19 @@
 existing WsprryPico Phase 12 GATT service. It gives a Raspberry Pi the same
 encrypted, application-authorized local-control path used by the checked-in
 Bluefy page without adding another device protocol or job service.
+The UUIDs, framing, authorization exchanges, provisioning vocabulary and WTP
+mapping are defined by the
+[Field GATT protocol and super-user guide](../protocol/Field-GATT.md).
+
+> **Current Phase 12 conformance warning:** use the native client for
+> `inspect`, `status`, `identify`, `sync-time` and `wtp-status`, but do not use
+> `provision`. The current `provision` implementation sends `apply` without the
+> required fresh `profile_step_up`, and the target must reject it. The manager
+> also currently accepts only 64 64-byte fragments (4,096 bytes) despite the
+> declared 7,168-byte profile boundary. Target-side enrollment-window expiry
+> also does not autonomously erase a provisional bond while its link remains
+> open, so the client must close the link after authorization failure or timeout.
+> All three defects are Phase 12 backlog gates.
 
 This tool is an additional local/bench client. Bluefy remains the selected
 iPhone client, and a Raspberry Pi run is not evidence for Bluefy/iOS offline
@@ -46,7 +59,10 @@ ACCESS ENROLL <full-device-id>
 The client cannot open enrollment through BLE. Outside that window a new peer
 fails closed, while an already authorized retained bond may reconnect normally.
 The application password is read from a non-echoing terminal prompt; there is
-no command-line, environment-variable or file option for it.
+no command-line, environment-variable or file option for it. The current CLI
+prompts even on a retained bond, but the target does not validate that field
+during retained-bond reauthorization. Entering it there is not fresh step-up
+proof and does not authorize profile, password, bond, trust or reset mutation.
 
 ## Commands
 
@@ -99,6 +115,10 @@ target bonds.
 
 ## Atomic profile transfer
 
+This section records the intended native-client workflow. It is not currently
+operator-ready: the warning above remains in force until the step-up and
+profile-capacity mismatches are repaired and covered by conformance tests.
+
 The input is the existing canonical version-1 profile, not a new Linux-specific
 format:
 
@@ -121,9 +141,10 @@ format:
 }
 ```
 
-Keep the real file outside Git. It must be an absolute, nonsymlink, regular file
-owned by the invoking user with no group or other permission bits and no more
-than 7,168 bytes:
+After that repair, keep the real file outside Git. It must be an absolute,
+nonsymlink, regular file owned by the invoking user with no group or other
+permission bits and no more than 7,168 bytes. The following is the intended
+post-repair invocation and MUST NOT be used against the current implementation:
 
 ```sh
 chmod 600 /absolute/private/path/profile.json

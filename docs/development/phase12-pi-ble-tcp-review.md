@@ -5,6 +5,15 @@ complete. The second assessment's peer-binding finding was repaired, and the
 final assessment found no actionable issue. Phase 12 is not complete: the open
 gates at the end of this record remain open.
 
+This is a historical slice record. It implemented profile transfer against the
+then-current target contract. Later fresh-password `profile_step_up` hardening
+made the current native client's `provision` command nonconforming, so that
+operation is now unsupported until repaired. Use the current
+[Raspberry Pi client guide](raspberry-pi-ble-client.md) and working
+[Field-GATT contract](../protocol/Field-GATT.md) for the operative boundary;
+the identity, status, Identify, controller-time and WTP-status subset remains
+supported.
+
 ## Authority and source boundary
 
 The executed contract is the
@@ -18,8 +27,10 @@ The implemented boundary is:
 
 - a native Raspberry Pi/Linux BlueZ D-Bus client for the existing encrypted
   Phase 12 GATT service;
-- authenticated field status, Identify, controller-time, WTP `HELLO`/`STATUS`
-  and atomic profile-transfer support without an RF-start shortcut;
+- at that checkpoint, authenticated field status, Identify, controller-time,
+  WTP `HELLO`/`STATUS` and atomic profile-transfer support without an RF-start
+  shortcut; the later step-up change supersedes only the profile-apply claim as
+  noted above;
 - an explicit, tested contract that TLS 1.3/TCP is a first-class carrier of the
   same WTP/1 stream and the same `JobService` used by canonical/reference USB
   CDC; and

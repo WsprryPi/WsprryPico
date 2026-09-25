@@ -71,8 +71,11 @@ treated as long-term product documentation.
 12. **Current:** BLE-primary and SoftAP-fallback provisioning/local control.
     The [Phase 12 plan](development/phase12-plan.md), operator-selected
     [field contract](development/phase12-field-access-contract.md) and
-    [production review](development/phase12-production-acceptance-review.md) define the current
-    boundary.
+    [production review](development/phase12-production-acceptance-review.md)
+    define the current boundary. The working
+    [Field-GATT contract](protocol/Field-GATT.md) documents the custom BLE wire
+    surface; implementation/client/test conformance and protocol freeze remain
+    open P12.6 work.
 
     P12.1/P12.2 provide the portable profile journal and provisioning state
     machine. P12.4/P12.5 provide strict command decoding, delivery-safe
@@ -85,13 +88,18 @@ treated as long-term product documentation.
     production-connects controller time, Identify/status and a separate
     unchanged WTP/1 stream to the same authorized GATT session and one
     `JobService`. Its clean committed standard image has verified Candidate A
-    load/boot, preserved state and final RF-inhibited restoration; the new BLE
-    operations themselves still have hardware-free evidence only.
+    load/boot, preserved state and final RF-inhibited restoration. Later bounded
+    iPhone 17 Pro Max/iOS 27.0/Bluefy 3.9.3 evidence accepts retained-bond
+    authorization, one controller-time exchange, Identify LED/field status and
+    WTP `HELLO` plus read-only `STATUS`. The native-Pi BLE subset and provisioned
+    SoftAP control subset have separate bounded Candidate A evidence.
 
-    Bluefy/iOS pairing and offline reuse, provisioning/activation, SoftAP,
-    physical BLE WTP/browser service, phone time, LED behavior, reset controls,
-    coexistence/resource soak and the rest of the RF-inhibited-first physical
-    matrix remain open. Phase 12 is active.
+    Offline Bluefy reuse, fresh-password/new-pairing behavior, full profile
+    provisioning/activation, arbitrary BLE job control, blank generic SoftAP
+    HTTP, stable-station AP withdrawal, broader phone-time/LED matrices, reset
+    controls, trust/fault/coexistence/resource soak and the rest of the
+    RF-inhibited-first physical matrix remain open. Phase 12 is active and
+    `OPEN_PARTIAL`; Stage B is not authorized or performed.
 
 13. **Planned:** final hardware qualification and release, including the output
     network and filters, calibrated GPIO-edge timing, supported mode/band

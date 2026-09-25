@@ -1,21 +1,26 @@
 # Phase 12 finite physical acceptance plan
 
-Status: Stage A partially executed on 2026-09-22 under separate live operator
-authority. Candidate identity/adoption, RF-inhibited boot, preserved operational
-state and BLE advertising passed on the exact device below. One online
-retained-bond Bluefy application-authorization exchange was subsequently
-observed on Candidate A after the CCCD repair. Exact iPhone/iOS/Bluefy
-versions, offline-cache, provisioning/activation, phone controller-time,
-the remaining SoftAP matrix, reset/gesture and soak acceptance remain open. A
-bounded native-Pi BLE exercise has separately passed device identity,
-controller time, field status
-and WTP `HELLO`/`STATUS`; a later native-Pi run passed the bounded provisioned
-SoftAP association/DHCP/mDNS/HTTPS/time/status/ownership/reconnect path. Neither
-is an iPhone/Bluefy result. Stage B is not authorized. The earlier repaired
-clean committed standard image at
-`5afe7576f001` passed a serial-targeted load/verify, exact post-boot identity,
-preserved-state checks and final RF-inhibited empty/unowned/inactive-output
-restoration. That baseline does not accept any newly added BLE operation.
+Status: **OPEN_PARTIAL**. Stage A has been partially executed under separate
+live operator authority. Candidate identity/adoption, RF-inhibited boot,
+preserved operational state and BLE advertising passed on the exact device
+below. The phone-assisted continuation records an iPhone 17 Pro Max, iOS 27.0
+and Bluefy 3.9.3. Retained-bond authorization, one authenticated phone-time
+exchange, Identify LED and field-status observation, and Bluefy WTP `HELLO`
+plus read-only `STATUS` passed within their recorded limits. The final Bluefy
+WTP combination used exact RF-inhibited firmware `4377d2ded8e3`, boot
+`331e555683a5d6c6122735a07883e0a8` and release
+`e1e6caa574a0e5c75cfd8c0a168c3ec8c2b896322ec7a7acc20d555f357f0625`,
+then ended disconnected, empty, unowned and output inactive with healthy
+journals.
+
+Offline-cache reuse, fresh-password/new-pairing behavior, complete profile
+provisioning/activation, arbitrary BLE job control, the broader phone-time and
+LED matrices, the remaining SoftAP matrix, reset/gesture, trust/fault/resource
+and soak acceptance remain open. A bounded native-Pi BLE exercise separately
+passed device identity, controller time, field status and WTP
+`HELLO`/`STATUS`; a later native-Pi run passed the bounded provisioned SoftAP
+association/DHCP/mDNS/HTTPS/time/status/ownership/reconnect path. Stage B is
+not authorized.
 
 ## Purpose and evidence boundary
 
@@ -36,8 +41,9 @@ time, Identify/status, an unchanged BLE WTP/1 stream and the independent
 SoftAP DHCP/mDNS/HTTP/HTTPS browser/control path. The BLE subset has the bounded
 native-Pi evidence described above. SoftAP has hardware-free build/test evidence
 plus the bounded native-Pi physical evidence recorded in the
-[SoftAP review](phase12-softap-physical-review.md). Credential provisioning and
-reset administration are not production-wired.
+[SoftAP review](phase12-softap-physical-review.md). SoftAP credential
+provisioning and reset administration are not production-wired. BLE profile
+provisioning is wired but has not passed physical acceptance.
 
 The operated candidate is Pico 2 W USB serial `0BF4B4AEC9FFB344`, device ID
 `fd6127d11d6aca42a9905fa3fb1bf1d5`, station MAC
@@ -63,7 +69,7 @@ healthy, BLE was running and disconnected, and all new WTP counters were zero.
 This is clean-image identity, preservation and restoration evidence only, not
 functional acceptance of controller time, Identify or WTP over BLE.
 
-The latest operated candidate is clean source
+The bounded native-Pi SoftAP candidate is clean source
 `0ecf9c170384fd2cc3ba802515e1d2c1396ab9fa`, firmware identity
 `0ecf9c170384`, and UF2 SHA-256
 `6261e322884a280afcd997537d6248fbbf0033b879fab1b2a661acd3a3575e23`.
@@ -78,6 +84,15 @@ reboot, automatic fallback remained applicable because the preserved factory
 station configuration was unavailable; stable-station AP withdrawal remains
 open.
 
+The later phone-assisted BLE continuation kept Candidate B untouched and used
+Candidate A with exact RF-inhibited firmware `4377d2ded8e3`, UF2 SHA-256
+`048c3feef2536b7e17c74edc153d4f25a4fa1980e4910566d7d7aaba677ef22a`
+and boot `331e555683a5d6c6122735a07883e0a8`. The final bounded WTP pass used
+the exact Bluefy release
+`e1e6caa574a0e5c75cfd8c0a168c3ec8c2b896322ec7a7acc20d555f357f0625`.
+The accepted rows and remaining limits are summarized in the status above and
+recorded in detail by the production acceptance review.
+
 On the original dirty production candidate the standard image reported
 `inhibited-standalone-simulator`, empty/unowned and
 `output_active=false`. USB-local adoption produced healthy access generation
@@ -89,11 +104,14 @@ those buffers into transport lifetime, a bounded wspr5 scan observed
 `WsprryPico-0a60df` with the selected service and public BLE controller
 address `88:A2:9E:0A:60:E0`. That failed attempt is retained, not replaced.
 
-The verified online Pages release and one successful application-authorization
-exchange are recorded, but the exact iPhone/iOS/Bluefy versions and effective
-offline cache remain unverified. No Wi-Fi/TLS profile or other post-selection
-mutation was submitted, and broader Bluefy acceptance is still open. The
-credential-free result and review are
+In the initial online Pages tranche, one successful application-authorization
+exchange was recorded, but the exact iPhone/iOS/Bluefy versions and effective
+offline cache were still unverified. The later phone-assisted continuation in
+the production review records the exact versions and bounded phone-time, LED,
+field-status and Bluefy read-only WTP passes summarized above. Offline reuse,
+profile provisioning/activation and broader Bluefy acceptance remain open. No
+Wi-Fi/TLS profile or other post-selection mutation was submitted. The
+credential-free result and continuing review are
 `phase12-production-acceptance-result.json` and
 `phase12-production-acceptance-review.md`.
 
