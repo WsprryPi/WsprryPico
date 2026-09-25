@@ -357,6 +357,15 @@
         `messages ${t.messages}; matched ${t.matched}; last ${t.last}`;
     }
     onStatus(event) {
+      // Keep one listener attached to the already-subscribed status
+      // characteristic for the life of the connection. The observed Bluefy
+      // failure occurred in a transition that replaced this listener after an
+      // indication. The connection-scoped carrier selection makes the framing
+      // mode unambiguous without depending on that replacement.
+      if (this.wtpListening) {
+        this.onWtpStatus(event);
+        return;
+      }
       ++this.trace.events;
       const value = event && event.target && event.target.value;
       if (!value) { this.trace.last = "status_value_missing"; return; }
@@ -445,10 +454,8 @@
         entry.reject(error);
       }
       this.wtpPending.clear();
-      if (this.status && this.fieldListening)
+      if (this.status)
         this.status.removeEventListener("characteristicvaluechanged", this.onStatus);
-      if (this.status && this.wtpListening)
-        this.status.removeEventListener("characteristicvaluechanged", this.onWtpStatus);
       const device = event && event.target ? event.target : this.device;
       if (device && typeof device.removeEventListener === "function")
         device.removeEventListener("gattserverdisconnected", this.onDisconnected);
@@ -474,10 +481,8 @@
       const expectedDeviceId = this.expectedDeviceId;
       const wasAuthorized = this.authorized;
       if (channel !== "field") fail("notification_channel");
-      if (this.status && this.fieldListening)
+      if (this.status)
         this.status.removeEventListener("characteristicvaluechanged", this.onStatus);
-      if (this.status && this.wtpListening)
-        this.status.removeEventListener("characteristicvaluechanged", this.onWtpStatus);
       if (typeof device.removeEventListener === "function")
         device.removeEventListener("gattserverdisconnected", this.onDisconnected);
       if (device.gatt.connected) device.gatt.disconnect();
@@ -526,10 +531,9 @@
         const response = await this.exchange({version: 1,
           operation: "select_wtp_status_carrier", request_id: randomId(this.crypto),
           session_id: this.fieldSession, device_id: this.expectedDeviceId});
-        if (response.carrier !== "field_status") fail("wtp_status_carrier");
-        this.status.removeEventListener("characteristicvaluechanged", this.onStatus);
+        if (response.carrier !== "field_status" ||
+            response.command_carrier !== "field_command") fail("wtp_status_carrier");
         this.statusReceiver.reset();
-        this.status.addEventListener("characteristicvaluechanged", this.onWtpStatus);
         this.fieldListening = false;
         this.wtpListening = true;
       } catch (error) {
@@ -667,9 +671,15 @@
         settle = {resolve, reject, timer, op}; this.wtpPending.set(requestId, settle);
       });
       try {
-        const write = this.wtpCommand.writeValueWithResponse || this.wtpCommand.writeValue;
+        // The observed Bluefy failure occurred between the carrier reply and
+        // the first WTP byte, while the old transition replaced a listener and
+        // moved to a second write characteristic. The authenticated selection
+        // makes the existing field pair a raw WTP/1 byte transport until the
+        // deliberate reconnect back to field mode.
+        const transport = this.command;
+        const write = transport.writeValueWithResponse || transport.writeValue;
         for (let offset = 0; offset < frame.length; offset += WTP_SEGMENT_BYTES)
-          await write.call(this.wtpCommand, frame.subarray(
+          await write.call(transport, frame.subarray(
             offset, Math.min(frame.length, offset + WTP_SEGMENT_BYTES)));
       } catch (error) {
         clearTimeout(settle.timer); this.wtpPending.delete(requestId); throw error;
@@ -779,10 +789,8 @@
         entry.reject(error);
       }
       this.wtpPending.clear();
-      if (this.status && this.fieldListening)
+      if (this.status)
         this.status.removeEventListener("characteristicvaluechanged", this.onStatus);
-      if (this.status && this.wtpListening)
-        this.status.removeEventListener("characteristicvaluechanged", this.onWtpStatus);
       if (this.device && typeof this.device.removeEventListener === "function")
         this.device.removeEventListener("gattserverdisconnected", this.onDisconnected);
       if (this.device && this.device.gatt.connected) this.device.gatt.disconnect();

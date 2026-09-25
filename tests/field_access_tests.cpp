@@ -568,6 +568,8 @@ void ble_command_policy() {
     const auto carrier = session.handle(unauthorized_carrier, 3);
     CHECK(carrier.code == provisioning::Code::Ok);
     CHECK(carrier.notification.find("\"carrier\":\"field_status\"") != std::string::npos);
+    CHECK(carrier.notification.find("\"command_carrier\":\"field_command\"") !=
+          std::string::npos);
     CHECK(session.wtp_over_field_status());
     auto reauthorize = authorize;
     reauthorize.replace(reauthorize.find("33333333333333333333333333333333"), 32,

@@ -97,6 +97,9 @@ assert "owner_->status_cccd_ : owner_->wtp_cccd_) = value;" in gatt
 assert "status_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION" in gatt
 assert "wtp_indications_enabled()" in gatt
 assert "session_.wtp_over_field_status() ? status_cccd_ : wtp_cccd_" in gatt
+assert "selected_field_wtp_command" in gatt
+assert "owner_->session_.wtp_over_field_status();" in gatt
+assert "!field_wtp_selected;" in gatt
 assert "handle = wtp_status_handle();" in gatt
 assert "if (wtp_carrier_changed)" in gatt
 assert "owner_->session_.disconnected();" in gatt

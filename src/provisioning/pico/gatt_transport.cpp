@@ -346,7 +346,14 @@ int PicoGattTransport::write_callback(hci_con_handle_t connection, std::uint16_t
             owner_->endpoint_->disconnect();
         return ATT_ERROR_SUCCESS;
     }
-    if (handle == ATT_CHARACTERISTIC_7D6B0005_5BF1_4F21_A486_3E8F70C12201_01_VALUE_HANDLE) {
+    const bool field_wtp_selected = owner_->session_.wtp_over_field_status();
+    const bool dedicated_wtp_command =
+        handle == ATT_CHARACTERISTIC_7D6B0005_5BF1_4F21_A486_3E8F70C12201_01_VALUE_HANDLE &&
+        !field_wtp_selected;
+    const bool selected_field_wtp_command =
+        handle == ATT_CHARACTERISTIC_7D6B0003_5BF1_4F21_A486_3E8F70C12201_01_VALUE_HANDLE &&
+        field_wtp_selected;
+    if (dedicated_wtp_command || selected_field_wtp_command) {
         if (transaction != ATT_TRANSACTION_MODE_NONE)
             return ATT_ERROR_REQUEST_NOT_SUPPORTED;
         if (offset)

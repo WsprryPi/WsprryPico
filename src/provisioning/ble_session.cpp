@@ -300,7 +300,9 @@ CommandReply BleCommandSession::field_command(std::string_view command, std::uin
                                {"version", "operation", "request_id", "session_id", "device_id"}))
             return field_reply(request_id, Code::InvalidRequest);
         wtp_over_field_status_ = true;
-        return field_reply(request_id, Code::Ok, "\"carrier\":\"field_status\"");
+        return field_reply(request_id, Code::Ok,
+                           "\"carrier\":\"field_status\","
+                           "\"command_carrier\":\"field_command\"");
     }
     if (name == "profile_step_up") {
         if (!wtp::json::fields(*root, {"version", "operation", "request_id", "session_id",

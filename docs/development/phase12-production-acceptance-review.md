@@ -576,6 +576,43 @@ the full 87-test host suite, WTP validator, four target links and five linked-
 image checks passed after the repairs. A second adversarial assessment found no
 further actionable issue within this RF-inhibited BLE transport boundary.
 
+The subsequent physical retry used the published
+`4601c8a180676ff051db0839540c186ec558a25396c80712d80f04d9cd8de5a9`
+page and exact RF-inhibited firmware `47e8e39d5b49` on Candidate A. The USB
+baseline was zero. Blank retained-bond authorization succeeded with one
+connection, no disconnection or error, three accepted CCCD writes, both CCCDs
+reading 2 and no WTP traffic. The single `Read WTP status` attempt again
+displayed `operation_failed` and disconnected. The preserved post-failure
+counters showed one completed carrier-selection command and delivered reply,
+one disconnection with reason 19, zero queue or CCCD failures, and still zero
+WTP write or indication bytes. The simulator remained RF-inhibited, empty and
+output inactive. This localizes the remaining failure to the browser transition
+after the selector reply and before the dedicated WTP-command write reached the
+target; it does not indict WTP parsing or the shared `JobService`.
+
+The follow-up repair removes both remaining browser context changes. One stable
+event listener now dispatches field-framed or WTP-framed bytes according to the
+authenticated connection mode, and the selector reply binds raw WTP input to
+the already-proven field-command characteristic as well as WTP output to the
+field-status indication. The target accepts raw WTP on that field command only
+while the authenticated connection-scoped selector is active; reconnect,
+reauthorization or security loss restores field framing. The dedicated WTP
+command/status path and Raspberry Pi/BlueZ client remain unchanged. Browser
+regressions make listener replacement throw if attempted, require both carrier
+bindings, and prove HELLO/STATUS use no dedicated WTP write. The new
+deterministic page release is
+`35bd0b872dd19ff50f9d467a1437729c77d384917dae7982639ef4ca6b8d1778`.
+This is source/host evidence pending a new exact-firmware flash and one bounded
+physical retry.
+
+The first adversarial pass over this follow-up found that the target selected
+field-command input without rejecting the dedicated WTP-command input on that
+same connection. Although the browser uses only one, a malicious or defective
+client could interleave both into one endpoint stream. The repaired dispatch
+now admits exactly one command characteristic: dedicated before selection,
+field after selection. A second adversarial assessment found no further
+actionable issue in this bounded transition.
+
 ## Phase 11 applicability
 
 Phase 11 closure artifacts remain immutable. The shared TLS/browser/WTP,
