@@ -29,6 +29,7 @@ class Characteristic {
     this.listeners = [];
     this.commands = [];
     this.writtenSizes = [];
+    this.writeKinds = [];
     this.emittedSizes = [];
     this.respond = true;
     this.receiver = new FrameReceiver(MAX_COMMAND_BYTES);
@@ -47,8 +48,9 @@ class Characteristic {
     for (const frame of frames(encoded)) this.emitBytes(frame);
     encoded.fill(0);
   }
-  async writeValueWithResponse(bytes) {
+  async write(bytes, kind) {
     this.writtenSizes.push(bytes.byteLength);
+    this.writeKinds.push(kind);
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     const encoded = this.receiver.receive(view);
     if (!encoded) return false;
@@ -82,6 +84,8 @@ class Characteristic {
     queueMicrotask(() => this.peer.emit(response));
     return true;
   }
+  async writeValueWithResponse(bytes) { return this.write(bytes, "with-response"); }
+  async writeValueWithoutResponse(bytes) { return this.write(bytes, "without-response"); }
 }
 class WtpCharacteristic extends Characteristic {
   constructor() {
@@ -207,7 +211,57 @@ async function run() {
   assert.deepStrictEqual(await client.authorize("wspr-0a60df"), {authorized: true});
   assert.deepStrictEqual(await client.identify(), {identified: true});
   assert.deepStrictEqual(await client.synchronizeTime(1800000000000), {accepted: true});
+  const submitIndex = fixture.command.commands.findIndex(
+    (command) => command.operation === "time_submit");
+  assert(submitIndex > 0);
+  const submitFrameCount = frames(new TextEncoder().encode(
+    JSON.stringify(fixture.command.commands[submitIndex]))).length;
+  assert(submitFrameCount > 1);
+  const submitKinds = fixture.command.writeKinds.slice(
+    fixture.command.writeKinds.length - submitFrameCount);
+  assert.deepStrictEqual(submitKinds,
+    Array(submitFrameCount - 1).fill("without-response").concat("with-response"));
   assert.strictEqual((await client.fieldStatus()).time_source, "controller");
+
+  const acknowledgedOnlyFixture = bluetoothFixture();
+  acknowledgedOnlyFixture.command.writeValueWithoutResponse = undefined;
+  const acknowledgedOnlyClient = new Client(
+    acknowledgedOnlyFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  await acknowledgedOnlyClient.connect(device);
+  await acknowledgedOnlyClient.authorize("wspr-0a60df");
+  await acknowledgedOnlyClient.synchronizeTime(1800000000000);
+  const acknowledgedSubmit = acknowledgedOnlyFixture.command.commands.find(
+    (command) => command.operation === "time_submit");
+  const acknowledgedSubmitFrames = frames(new TextEncoder().encode(
+    JSON.stringify(acknowledgedSubmit))).length;
+  assert(acknowledgedSubmitFrames > 1);
+  assert.deepStrictEqual(
+    acknowledgedOnlyFixture.command.writeKinds.slice(-acknowledgedSubmitFrames),
+    Array(acknowledgedSubmitFrames).fill("with-response"));
+
+  const droppedLeadingFixture = bluetoothFixture();
+  const droppedLeadingClient = new Client(
+    droppedLeadingFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  await droppedLeadingClient.connect(device);
+  await droppedLeadingClient.authorize("wspr-0a60df");
+  const originalUnacknowledged =
+    droppedLeadingFixture.command.writeValueWithoutResponse.bind(droppedLeadingFixture.command);
+  let droppedLeading = false;
+  droppedLeadingFixture.command.writeValueWithoutResponse = async (bytes) => {
+    if (!droppedLeading) {
+      droppedLeading = true;
+      droppedLeadingFixture.command.writtenSizes.push(bytes.byteLength);
+      droppedLeadingFixture.command.writeKinds.push("without-response-dropped");
+      return true;
+    }
+    return originalUnacknowledged(bytes);
+  };
+  await rejectsCode(() => droppedLeadingClient.synchronizeTime(1800000000000), "frame_order");
+  assert.strictEqual(droppedLeading, true);
+  assert.strictEqual(droppedLeadingFixture.command.commands.some(
+    (command) => command.operation === "time_submit"), false);
+  assert.strictEqual(droppedLeadingClient.pending.size, 0);
+
   const hello = await client.enableLocalControl();
   assert.strictEqual(hello.device_id, device);
   assert.deepStrictEqual(await client.wtpExchange("STATUS", {}),

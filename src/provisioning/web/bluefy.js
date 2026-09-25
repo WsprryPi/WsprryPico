@@ -445,7 +445,7 @@
       this.statusReceiver.reset();
       this.wtpReceiver.reset();
     }
-    async exchange(message) {
+    async exchange(message, acceleratedTail = false) {
       if (!this.command) fail("not_connected");
       if (!validDeviceId(message.request_id) || this.pending.has(message.request_id))
         fail("request_id");
@@ -466,9 +466,12 @@
       });
       try {
         const command = this.command;
-        const write = command.writeValueWithResponse || command.writeValue;
-        for (const frame of outbound) {
-          await write.call(command, frame);
+        const acknowledgedWrite = command.writeValueWithResponse || command.writeValue;
+        const unacknowledgedWrite = acceleratedTail && command.writeValueWithoutResponse;
+        for (let index = 0; index < outbound.length; ++index) {
+          const write = unacknowledgedWrite && index + 1 < outbound.length
+            ? unacknowledgedWrite : acknowledgedWrite;
+          await write.call(command, outbound[index]);
           ++this.trace.written;
         }
       } catch (error) {
@@ -527,10 +530,14 @@
       if (challenge.nonce !== nonce) fail("time_challenge_binding");
       const sampled = nowMilliseconds === undefined ? Date.now() : nowMilliseconds;
       if (!Number.isSafeInteger(sampled) || sampled < 0) fail("controller_time");
+      // The command characteristic preserves ATT ordering. Queue leading
+      // fragments as write commands, then use one acknowledged tail fragment
+      // so the complete authenticated sample remains ordered and loss-detecting
+      // without spending the controller-time budget on one round trip per frame.
       const response = await this.exchange({version: 1, operation: "time_submit",
         request_id: randomId(this.crypto), session_id: this.fieldSession,
         device_id: this.expectedDeviceId, nonce,
-        utc_ns: (BigInt(sampled) * 1000000n).toString()});
+        utc_ns: (BigInt(sampled) * 1000000n).toString()}, true);
       if (response.accepted !== true) fail("controller_time_response");
       return {accepted: true};
     }
