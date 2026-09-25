@@ -15,7 +15,9 @@ namespace wsprrypico::provisioning {
 inline constexpr std::uint64_t session_timeout_ms = 30'000;
 inline constexpr std::uint64_t replay_retention_ms = 300'000;
 inline constexpr std::size_t replay_capacity = 8;
-inline constexpr unsigned fragment_capacity = 64;
+// Every accepted fragment is nonempty, so the byte ceiling also bounds the
+// worst-case one-byte fragmentation without imposing a smaller transfer limit.
+inline constexpr std::size_t fragment_capacity = max_profile_bytes;
 
 enum class Transport { Ble, SoftAp };
 enum class State { Idle, Receiving, Ready, Complete, Cancelled, Expired, Failed };
@@ -60,7 +62,7 @@ struct Status {
     Transport transport = Transport::Ble;
     std::uint64_t generation = 0;
     std::size_t staged_bytes = 0;
-    unsigned fragments = 0;
+    std::size_t fragments = 0;
     std::size_t replay_entries = 0;
     ActivationStatus activation;
 };
@@ -103,7 +105,7 @@ class Manager {
         Transport transport = Transport::Ble;
         std::uint64_t last_progress_ms = 0;
         std::vector<std::uint8_t> staged;
-        unsigned fragments = 0;
+        std::size_t fragments = 0;
         bool final = false;
     };
     struct ReplayEntry {

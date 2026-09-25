@@ -20,7 +20,9 @@ and soak acceptance remain open. A bounded native-Pi BLE exercise separately
 passed device identity, controller time, field status and WTP
 `HELLO`/`STATUS`; a later native-Pi run passed the bounded provisioned SoftAP
 association/DHCP/mDNS/HTTPS/time/status/ownership/reconnect path. Stage B is
-not authorized.
+not authorized. The Field-GATT/1 source contract is now frozen and conforming
+across firmware, Bluefy and the native-Pi client; that result does not replace
+the open physical profile-activation and failure-cleanup rows in this plan.
 
 ## Purpose and evidence boundary
 

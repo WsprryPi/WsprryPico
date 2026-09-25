@@ -200,6 +200,10 @@ void BleCommandSession::disconnected() {
             controller_time_->cancel_challenge(principal(), field_session_);
         (void)access_.ble_disconnect();
     }
+    clear_connection_state();
+}
+
+void BleCommandSession::clear_connection_state() {
     connected_ = false;
     wtp_over_field_status_ = false;
     secure_clear(field_session_);
@@ -539,7 +543,10 @@ void BleCommandSession::response_delivered(std::uint64_t now_ms) {
     delivery_confirmed_ = true;
 }
 
-void BleCommandSession::poll(std::uint64_t now_ms) {
+bool BleCommandSession::poll(std::uint64_t now_ms) {
+    const bool disconnect = connected_ && access_.expire_provisional_bond(now_ms);
+    if (disconnect)
+        clear_connection_state();
     if (delivery_confirmed_) {
         delivery_confirmed_ = false;
         (void)manager_.release_activation(pending_apply_request_, pending_apply_generation_,
@@ -553,5 +560,6 @@ void BleCommandSession::poll(std::uint64_t now_ms) {
         secure_clear(pending_apply_request_);
         pending_apply_generation_ = 0;
     }
+    return disconnect;
 }
 } // namespace wsprrypico::provisioning

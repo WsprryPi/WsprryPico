@@ -75,7 +75,12 @@ bool PicoGattTransport::start() {
 
 void PicoGattTransport::poll() {
     const auto current = now();
-    session_.poll(current);
+    if (session_.poll(current)) {
+        security_lost();
+        if (connection_ != HCI_CON_HANDLE_INVALID)
+            (void)gap_disconnect(connection_);
+        return;
+    }
     if (endpoint_ && !endpoint_->closed()) {
         if (session_.authorized())
             endpoint_->poll(current);

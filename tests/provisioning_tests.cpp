@@ -132,7 +132,15 @@ struct Validator : provisioning::CredentialValidator {
 };
 
 struct ActivationPlatformFixture : provisioning::ActivationPlatform {
-    enum class Operation { CloseAdmission, Prepare, Activity, Quiesce, Install, Restart, FailClosed };
+    enum class Operation {
+        CloseAdmission,
+        Prepare,
+        Activity,
+        Quiesce,
+        Install,
+        Restart,
+        FailClosed
+    };
     bool close_admission_ok = true;
     bool prepare_ok = true;
     bool quiesce_ok = true;
@@ -515,14 +523,44 @@ void timeout_cancel_and_resource_bounds() {
     for (unsigned i = 0; i < provisioning::fragment_capacity; ++i) {
         const std::uint8_t value = 'x';
         CHECK(session_write(f.manager, request_id(request++), session_a, i, std::span(&value, 1),
-                            false, 400001 + i)
+                            i + 1 == provisioning::fragment_capacity, 400001 + i)
                   .ok());
     }
-    const std::uint8_t excess = 'y';
-    CHECK(session_write(f.manager, request_id(request++), session_a,
-                        provisioning::fragment_capacity, std::span(&excess, 1), true, 400100)
-              .code == provisioning::Code::Oversize);
-    CHECK(f.manager.status().staged_bytes == 0);
+    CHECK(f.manager.status().staged_bytes == provisioning::max_profile_bytes);
+    CHECK(f.manager.status().fragments == provisioning::fragment_capacity);
+    CHECK(f.manager.status().state == provisioning::State::Ready);
+}
+
+void profile_transfer_boundaries() {
+    for (const auto size : {std::size_t{4096}, std::size_t{4097}, provisioning::max_profile_bytes,
+                            provisioning::max_profile_bytes + 1}) {
+        Fixture f;
+        unsigned request = 900;
+        CHECK(f.manager
+                  .open(request_id(request++), session_a, device, provisioning::Transport::Ble,
+                        authorized(), 1)
+                  .ok());
+        std::vector<std::uint8_t> profile(size, 'x');
+        provisioning::Code final_code = provisioning::Code::Ok;
+        for (std::size_t offset = 0; offset < profile.size(); offset += 64) {
+            const auto count = std::min<std::size_t>(64, profile.size() - offset);
+            const auto result = session_write(f.manager, request_id(request++), session_a, offset,
+                                              std::span(profile).subspan(offset, count),
+                                              offset + count == profile.size(), 2 + offset);
+            final_code = result.code;
+            if (!result.ok())
+                break;
+        }
+        if (size <= provisioning::max_profile_bytes) {
+            CHECK(final_code == provisioning::Code::Ok);
+            CHECK(f.manager.status().state == provisioning::State::Ready);
+            CHECK(f.manager.status().staged_bytes == size);
+        } else {
+            CHECK(final_code == provisioning::Code::Oversize);
+            CHECK(f.manager.status().state == provisioning::State::Failed);
+            CHECK(f.manager.status().staged_bytes == 0);
+        }
+    }
 }
 
 void busy_state_and_rf_ownership() {
@@ -993,9 +1031,9 @@ void deferred_activation_delivery_replay_and_ownership() {
     CHECK(fixture.manager.release_activation(staged.request, 1, 33) ==
           provisioning::ActivationRelease::Executed);
     using Operation = ActivationPlatformFixture::Operation;
-    const std::vector<Operation> expected{Operation::CloseAdmission, Operation::Prepare, Operation::Activity,
-                                          Operation::Quiesce, Operation::Install,
-                                          Operation::Restart};
+    const std::vector<Operation> expected{Operation::CloseAdmission, Operation::Prepare,
+                                          Operation::Activity,       Operation::Quiesce,
+                                          Operation::Install,        Operation::Restart};
     CHECK(fixture.platform.order == expected);
     CHECK(fixture.platform.prepared_ssid == "test-network-activate-A");
     CHECK(fixture.platform.installed_ssid == "test-network-activate-A");
@@ -1034,8 +1072,9 @@ void deferred_activation_timeout_and_late_activity() {
         unsigned request = 500;
         const auto staged = stage_activation(fixture, "timeout", request, 100);
         fixture.manager.poll(100 + provisioning::activation_delivery_timeout_ms - 1);
-        CHECK(fixture.platform.order.size() == 1 && fixture.platform.order.front() ==
-                                                        ActivationPlatformFixture::Operation::CloseAdmission);
+        CHECK(fixture.platform.order.size() == 1 &&
+              fixture.platform.order.front() ==
+                  ActivationPlatformFixture::Operation::CloseAdmission);
         fixture.manager.poll(100 + provisioning::activation_delivery_timeout_ms);
         CHECK(fixture.manager.status().activation.state == provisioning::ActivationState::Complete);
         CHECK(fixture.platform.restart_calls == 1);
@@ -1268,6 +1307,7 @@ int main() {
     malformed_oversize_and_ordering();
     duplicate_replay_and_generation();
     timeout_cancel_and_resource_bounds();
+    profile_transfer_boundaries();
     busy_state_and_rf_ownership();
     replacement_and_transaction_recovery();
     replacement_policy_and_existing_state_preservation();

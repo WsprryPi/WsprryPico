@@ -16,11 +16,11 @@ not override this later contract.
 
 This document controls authority, recovery and acceptance policy. The custom
 BLE UUIDs, framing and operation schemas are documented separately in the
-[Field GATT protocol and super-user guide](../protocol/Field-GATT.md).
-That guide also records current implementation/client conformance gaps. In
-particular, the selected immediate cleanup of a timed-out or abandoned
-provisional bond is not yet autonomous while its BLE link remains open; clients
-must disconnect on authorization failure or timeout until that gap is repaired.
+frozen [Field-GATT/1 protocol and super-user guide](../protocol/Field-GATT.md)
+and [conformance vectors](../protocol/Field-GATT-v1-vectors.json). Firmware and
+both maintained clients are source/host conforming. Enrollment expiry now
+erases an open-link provisional bond, invalidates authority and requests link
+closure. Physical profile-flow and cleanup acceptance remain open.
 
 ## Purpose and authority boundary
 

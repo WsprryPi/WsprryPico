@@ -119,6 +119,7 @@ class LocalAccessController {
     BleAdmission ble_connect(std::uint64_t peer, bool encrypted, bool new_pairing,
                              std::string session_id, std::uint64_t now_ms);
     BleAdmission ble_authorize(std::string_view password, std::uint64_t now_ms);
+    bool expire_provisional_bond(std::uint64_t now_ms);
     bool ble_disconnect();
     AccessCode remove_bond(std::uint64_t peer, const RequestBinding& binding,
                            const Activity& activity, std::uint64_t now_ms);

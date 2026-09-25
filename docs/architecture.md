@@ -51,11 +51,15 @@ WTP means WsprryPi Transmitter Protocol. It is device-neutral and versioned inde
 
 The authoritative specification lives at docs/protocol/WTP.md in WsprryPico. WsprryPico is the reference implementation; implementation accidents do not define the protocol. WTP does not have a separate protocol repository.
 
-The custom BLE provisioning and local-control wire interface is documented in
-the [Field GATT protocol and super-user guide](protocol/Field-GATT.md). Field
-commands remain outside WTP/1. When GATT carries WTP, it transports the
-unchanged WTP/1 byte stream to the same `JobService`; ATT segmentation does not
-define another job-control protocol.
+The custom BLE provisioning and local-control wire interface is the frozen
+[Field-GATT/1 protocol](protocol/Field-GATT.md), with checked
+[conformance vectors](protocol/Field-GATT-v1-vectors.json) shared by firmware,
+Bluefy and the native-Pi client. Incompatible wire changes require a new
+Field-GATT protocol version. Field commands remain outside WTP/1. When GATT
+carries WTP, it transports the unchanged WTP/1 byte stream to the same
+`JobService`; ATT segmentation does not define another job-control protocol.
+This source contract does not claim physical interoperability or end-user
+acceptance.
 
 ## Internal boundary
 

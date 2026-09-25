@@ -1,0 +1,68 @@
+{
+  "protocol": "Field-GATT/1",
+  "wire_version": 1,
+  "status": "frozen",
+  "uuids": {
+    "service": "7d6b0001-5bf1-4f21-a486-3e8f70c12201",
+    "identity": "7d6b0002-5bf1-4f21-a486-3e8f70c12201",
+    "command": "7d6b0003-5bf1-4f21-a486-3e8f70c12201",
+    "status": "7d6b0004-5bf1-4f21-a486-3e8f70c12201",
+    "wtp_command": "7d6b0005-5bf1-4f21-a486-3e8f70c12201",
+    "wtp_status": "7d6b0006-5bf1-4f21-a486-3e8f70c12201"
+  },
+  "limits": {
+    "max_command_bytes": 512,
+    "max_status_bytes": 256,
+    "max_profile_bytes": 7168,
+    "max_fragment_bytes": 64,
+    "max_profile_fragments": 7168,
+    "profile_session_timeout_ms": 30000,
+    "profile_confirmation_timeout_ms": 25000,
+    "enrollment_window_ms": 120000
+  },
+  "profile_apply": {
+    "required_order": [
+      "open",
+      "write",
+      "profile_step_up",
+      "apply"
+    ],
+    "optional_between_step_up_and_apply": "profile_step_up_status",
+    "step_up_bindings": [
+      "field_session",
+      "profile_session_id",
+      "apply_request_id",
+      "expected_generation",
+      "staged_digest",
+      "current_local_password"
+    ],
+    "apply_reuses_bound_request_id": true,
+    "direct_apply_rejected": "authentication_required",
+    "not_required_and_not_ready_rejected": "profile_step_up_response"
+  },
+  "profile_transfer_cases": [
+    {
+      "bytes": 4096,
+      "result": "accepted"
+    },
+    {
+      "bytes": 4097,
+      "result": "accepted"
+    },
+    {
+      "bytes": 7168,
+      "result": "accepted"
+    },
+    {
+      "bytes": 7169,
+      "result": "oversize"
+    }
+  ],
+  "provisional_bond_expiry": {
+    "erase_bond": true,
+    "invalidate_application_session": true,
+    "disconnect_link": true,
+    "retained_bond_unchanged": true,
+    "erase_failure": "fail_closed"
+  }
+}

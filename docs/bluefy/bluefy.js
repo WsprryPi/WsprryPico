@@ -237,8 +237,11 @@
       this.timeoutMs = options && options.timeoutMs ? options.timeoutMs : 30000;
       this.reconnectDelayMs = options && Number.isSafeInteger(options.reconnectDelayMs) &&
         options.reconnectDelayMs >= 0 ? options.reconnectDelayMs : 250;
-      this.confirmationTimeoutMs = options && options.confirmationTimeoutMs
+      this.confirmationTimeoutMs = options && options.confirmationTimeoutMs !== undefined
         ? options.confirmationTimeoutMs : 25000;
+      if (!Number.isSafeInteger(this.confirmationTimeoutMs) ||
+          this.confirmationTimeoutMs <= 0 || this.confirmationTimeoutMs > 25000)
+        fail("confirmation_timeout");
       this.onConfirmationRequired = options &&
         typeof options.onConfirmationRequired === "function"
         ? options.onConfirmationRequired : null;
@@ -542,7 +545,7 @@
         throw error;
       }
     }
-    async exchange(message, acceleratedTail = false) {
+    async exchange(message, acceleratedTail = false, timeoutMs = this.timeoutMs) {
       if (!this.command) fail("not_connected");
       if (!this.fieldListening || !this.status) fail("field_unavailable");
       if (!validDeviceId(message.request_id) || this.pending.has(message.request_id))
@@ -559,7 +562,7 @@
           error.code = "timeout";
           error.detail = this.diagnosticSummary();
           reject(error);
-        }, this.timeoutMs);
+        }, timeoutMs);
         settle = {resolve, reject, timer}; this.pending.set(message.request_id, settle);
       });
       try {
@@ -722,6 +725,7 @@
         ? input.access_password : "";
       let sessionId = "";
       let opened = false;
+      let applyAccepted = false;
       try {
         if (!this.command || !input || input.device_id !== this.expectedDeviceId)
           fail("wrong_device");
@@ -749,28 +753,41 @@
           password: accessPassword});
         if (typeof stepUp.confirmation_required !== "boolean" ||
             typeof stepUp.ready !== "boolean") fail("profile_step_up_response");
+        if (!stepUp.confirmation_required && !stepUp.ready) fail("profile_step_up_response");
         if (stepUp.confirmation_required && !stepUp.ready) {
           if (this.onConfirmationRequired) this.onConfirmationRequired();
           const deadline = Date.now() + this.confirmationTimeoutMs;
           do {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            stepUp = await this.exchange({version: 1, operation: "profile_step_up_status",
-              request_id: randomId(this.crypto), session_id: this.fieldSession,
-              device_id: this.expectedDeviceId, apply_request_id: applyRequestId});
+            let remaining = deadline - Date.now();
+            if (remaining <= 0) fail("confirmation_timeout");
+            await new Promise((resolve) => setTimeout(resolve, Math.min(500, remaining)));
+            remaining = deadline - Date.now();
+            if (remaining <= 0) fail("confirmation_timeout");
+            try {
+              stepUp = await this.exchange({version: 1,
+                operation: "profile_step_up_status", request_id: randomId(this.crypto),
+                session_id: this.fieldSession, device_id: this.expectedDeviceId,
+                apply_request_id: applyRequestId}, false, Math.min(this.timeoutMs, remaining));
+            } catch (error) {
+              if (error && error.code === "timeout") fail("confirmation_timeout");
+              throw error;
+            }
             if (typeof stepUp.confirmation_required !== "boolean" ||
                 typeof stepUp.ready !== "boolean") fail("profile_step_up_response");
+            if (!stepUp.confirmation_required && !stepUp.ready) fail("profile_step_up_response");
           } while (!stepUp.ready && Date.now() < deadline);
           if (!stepUp.ready) fail("confirmation_timeout");
         }
         const response = await this.exchange({version: 1, operation: "apply",
           request_id: applyRequestId, session_id: sessionId,
           device_id: this.expectedDeviceId, expected_generation: this.generation});
+        applyAccepted = true;
         if (!Number.isSafeInteger(response.generation) || response.generation < this.generation)
           fail("generation");
         this.generation = response.generation;
         return {generation: response.generation};
       } catch (error) {
-        if (opened) {
+        if (opened && !applyAccepted) {
           try { await this.cancel(sessionId); } catch (_) { /* best-effort bounded cleanup */ }
         }
         throw error;

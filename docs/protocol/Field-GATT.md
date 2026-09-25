@@ -1,10 +1,12 @@
-# WsprryPico field GATT protocol and super-user guide
+# WsprryPico Field-GATT/1 protocol and super-user guide
 
-Status: Phase 12 working protocol contract. This document describes the current
-custom Bluetooth Low Energy interface in `devel`. Phase 12 remains active, and
-the interface is not yet a released compatibility promise. Changes to the
-custom wire behavior must update this document. Automated document-drift gates
-are deferred until the Phase 12 protocol is frozen.
+Status: frozen Field-GATT/1 source contract. This document defines the custom
+Bluetooth Low Energy interface implemented in `devel`. The checked-in
+[conformance vectors](Field-GATT-v1-vectors.json) bind its UUIDs, limits,
+profile-apply sequence and provisional-bond expiry policy across firmware,
+Bluefy and the native Raspberry Pi client. An incompatible wire change requires
+a new Field-GATT protocol version. Phase 12 remains active: this source/host
+freeze is not physical interoperability or end-user acceptance.
 
 This document is written for technically experienced operators, client authors
 and maintainers. It explains how to identify the correct Pico, establish the
@@ -59,12 +61,13 @@ write characteristic stable for the life of the connection.
 
 The native client is `scripts/wsprrypico_ble.py`. Its operator guide is
 [Raspberry Pi/Linux BLE local control](../development/raspberry-pi-ble-client.md).
-Its identity, authorization, status, Identify, time and dedicated-WTP paths are
-the supported native-client subset. Profile application is temporarily blocked:
-the current client does not perform the fresh `profile_step_up` required before
-`apply`. It selects an exact Bluetooth address, verifies the full device ID,
-prompts for the application password without echo and does not set the BlueZ
-`Trusted` property.
+Its identity, authorization, status, Identify, time, dedicated-WTP and profile-
+application paths implement the frozen source contract. Profile application
+re-prompts for the current local password, performs bound `profile_step_up`,
+waits for required USB-local confirmation and reuses the bound request ID for
+`apply`. It selects an exact Bluetooth address, verifies the full device ID and
+does not set the BlueZ `Trusted` property. Physical native-Pi profile acceptance
+remains open.
 
 ### Generic GATT tools
 
@@ -143,12 +146,12 @@ wspr-<station-MAC-suffix>
 For the earlier example it is `wspr-0a60df`. This default is intentionally
 public; the physical enrollment window is the proof of possession. A
 syntactically valid but incorrect password or a disconnect deletes the
-provisional bond. The current target does not autonomously erase it when the
-enrollment window expires, the authorization request is malformed or the
-controller abandons an otherwise open link. Until that conformance gap is
-repaired, a supported client MUST disconnect after any authorization rejection
-or timeout. A successful authorization promotes the bond to an application-
-authorized principal.
+provisional bond. If the enrollment window expires while the provisional link
+remains open, the target erases that bond, invalidates the application session
+and requests link closure. Erasure failure disables BLE local control. A client
+SHOULD still disconnect promptly after an authorization rejection rather than
+holding an unusable link until timeout. A successful authorization promotes the
+bond to an application-authorized principal.
 
 An already-authorized retained bond is admitted when the encrypted link is
 restored. It still sends `authorize` to establish a new field session, but the
@@ -447,13 +450,11 @@ it, commits one new generation, returns the nonsensitive apply result and only
 then releases network activation after the final response indication is
 confirmed.
 
-The intended transaction permits one active profile session, no more than
-7,168 staged bytes, ordered nonempty fragments and 30 seconds without progress.
-The current `devel` manager has an open conformance defect: its 64-fragment
-counter combined with 64-byte fragments limits the command path to 4,096 bytes.
-Super-users MUST NOT attempt a larger profile until that implementation limit
-is repaired and covered by conformance tests, or the 7,168-byte contract is
-formally revised. A terminal failure, cancellation or timeout scrubs staged
+The transaction permits one active profile session, no more than 7,168 staged
+bytes, ordered nonempty fragments and 30 seconds without progress. Because each
+fragment contains at least one byte, the byte ceiling also bounds the worst case
+to 7,168 fragments; the preferred 64-byte client chunk does not impose a lower
+4,096-byte limit. A terminal failure, cancellation or timeout scrubs staged
 secrets. A BLE disconnect invalidates the field session and any fresh profile
 step-up, but the manager retains an open staged transaction until bounded
 cancellation, same-principal/session reconciliation or the 30-second
@@ -709,9 +710,9 @@ display name alone.
 Verify the exact BLE address and full device ID, open the 120-second enrollment
 window, confirm that fewer than four authorized bonds exist and ensure no other
 BLE controller is connected. Do not mark the peer globally trusted or weaken
-the target policy as a workaround. If application authorization is rejected or
-times out, disconnect immediately so the provisional target bond is erased;
-enrollment-window expiry alone does not yet clean up an otherwise open link.
+the target policy as a workaround. If application authorization is rejected,
+disconnect promptly. An otherwise abandoned provisional link is erased and
+closed by the target when the enrollment window expires.
 
 ### Field commands time out
 
@@ -768,24 +769,12 @@ The wire behavior is implemented by:
 - `scripts/wsprrypico_ble.py` for the supported BlueZ client.
 
 Those files are implementations, not an excuse to leave behavior undocumented.
-If code and this contract disagree, Phase 12 must review the mismatch and repair
-either the implementation or this document before freezing the protocol.
-
-Three mismatches are currently open Phase 12 backlog gates:
-
-- `scripts/wsprrypico_ble.py provision` sends `apply` without the required
-  fresh `profile_step_up`, so native-Pi profile application is not presently a
-  conforming or supported operation; and
-- the provisioning manager accepts at most 64 64-byte fragments (4,096 bytes)
-  even though the profile and client boundary declares 7,168 bytes; and
-- enrollment-window expiry does not autonomously erase a provisional bond while
-  its BLE connection remains open; wrong-password and disconnect paths do erase
-  it, so supported clients must disconnect on authorization failure or timeout
-  until the target implements and tests the selected immediate-cleanup policy.
-
-None of these mismatches may be hidden by a pre-freeze drift sentinel.
-Implementation, clients, tests and this contract must agree before the protocol
-is frozen.
+The machine-readable [Field-GATT/1 vectors](Field-GATT-v1-vectors.json) and
+deterministic firmware, Bluefy and native-Pi tests enforce the frozen constants,
+profile sequence, 7,168-byte transfer boundary, bound step-up/apply behavior and
+provisional-bond expiry cleanup. If code, vectors and this contract disagree,
+the change is not conforming. Compatible clarifications must update all affected
+artifacts; incompatible wire behavior requires a new protocol version.
 
 Host tests and cross-links establish source behavior only. The current physical
 acceptance state is maintained in the

@@ -265,6 +265,13 @@ BleAdmission LocalAccessController::ble_authorize(std::string_view password, std
     return {AccessCode::Ok, bond_principal(ble_.peer), false};
 }
 
+bool LocalAccessController::expire_provisional_bond(std::uint64_t now_ms) {
+    if (!ble_.peer || !ble_.provisional || enrollment_open(now_ms))
+        return false;
+    (void)ble_disconnect();
+    return true;
+}
+
 void LocalAccessController::clear_ble() {
     secure_clear(ble_.session_id);
     ble_ = {};

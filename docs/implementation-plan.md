@@ -72,9 +72,11 @@ treated as long-term product documentation.
     The [Phase 12 plan](development/phase12-plan.md), operator-selected
     [field contract](development/phase12-field-access-contract.md) and
     [production review](development/phase12-production-acceptance-review.md)
-    define the current boundary. The working
-    [Field-GATT contract](protocol/Field-GATT.md) documents the custom BLE wire
-    surface; implementation/client/test conformance and protocol freeze remain
+    define the current boundary. The frozen
+    [Field-GATT/1 contract](protocol/Field-GATT.md) and
+    [conformance vectors](protocol/Field-GATT-v1-vectors.json) bind the custom
+    BLE wire surface across firmware, Bluefy, the native-Pi client and host
+    tests. Physical profile activation and broader end-user acceptance remain
     open P12.6 work.
 
     P12.1/P12.2 provide the portable profile journal and provisioning state

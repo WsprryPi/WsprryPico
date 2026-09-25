@@ -8,9 +8,12 @@ backend. The defined hardware target is Pico 2 W / RP2350.
 
 The accepted architectural record is [docs/architecture.md](docs/architecture.md).
 This contract summarizes durable boundaries. The normative WTP/1 contract is
-[docs/protocol/WTP.md](docs/protocol/WTP.md). The working Phase 12
-[Field-GATT contract](docs/protocol/Field-GATT.md) records the custom BLE wire
-surface without changing WTP/1; it is not yet a released compatibility promise.
+[docs/protocol/WTP.md](docs/protocol/WTP.md). The frozen
+[Field-GATT/1 contract](docs/protocol/Field-GATT.md) and
+[conformance vectors](docs/protocol/Field-GATT-v1-vectors.json) define the
+custom BLE wire surface without changing WTP/1. Incompatible changes require a
+new Field-GATT protocol version. Physical interoperability and end-user
+acceptance remain Phase 12 gates.
 The independently versioned [browser API v1](docs/browser-api.md) records the
 implemented Pico surface. Shared WsprryPi adoption remains separate work.
 
@@ -28,7 +31,8 @@ implemented Pico surface. Shared WsprryPi adoption remains separate work.
   The native [Raspberry Pi/Linux BlueZ client](docs/development/raspberry-pi-ble-client.md)
   is an additional supported local/bench client; it does not replace Bluefy or
   qualify the iPhone/offline acceptance path. Its profile-apply command is
-  currently unsupported pending conformance repairs documented by that guide.
+  source/host conforming to Field-GATT/1; native-Pi physical profile activation
+  remains unaccepted.
 - Every job-control path uses the same JobService and loads and arms complete
   jobs. RP2350 owns execution and symbol timing.
 - WTP is device-neutral and independently versioned. Its specification is

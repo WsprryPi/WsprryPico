@@ -46,7 +46,7 @@ operations.
 | P12.1-P12.2: profile journal and provisioning state machine | Accepted in their hardware-free scope. |
 | P12.3: Pico adapter source | **CLOSED_SCOPED** for source, deterministic tests and RP2350 cross-links; not physical acceptance. |
 | P12.4-P12.5: commands, delivery-safe activation and admission | Implemented and accepted in their hardware-free scope. |
-| P12.6: production integration | **Partial.** BLE provisioning/local control and the SoftAP browser path are production-wired. The basic target SoftAP control path has bounded native-Pi evidence. A working super-user field-GATT protocol guide now exists; final implementation/client/test conformance and protocol freeze remain open alongside SoftAP credential provisioning, reset administration and broad target acceptance. |
+| P12.6: production integration | **Partial.** BLE provisioning/local control and the SoftAP browser path are production-wired. The basic target SoftAP control path has bounded native-Pi evidence. The Field-GATT/1 source contract is frozen and vector-checked across firmware, Bluefy, the native-Pi client and documentation. Native-Pi/Bluefy physical profile activation, SoftAP credential provisioning, reset administration and broad target acceptance remain open. |
 | Physical Stage A | **Partial.** Candidate identity, adoption, preserved settings, BLE advertising, exact iPhone/iOS/Bluefy identity, retained-bond authorization, one authenticated phone-time exchange, Identify LED/field status, Bluefy read-only `HELLO`/`STATUS`, the native-Pi BLE subset and the bounded native-Pi SoftAP path passed within their recorded limits. Offline reuse, fresh-password/new-pairing behavior, full credential activation, arbitrary BLE job control, broader time/LED, reset/fault/trust/soak and stable-station AP-withdrawal matrices remain open. |
 | Physical Stage B / RF output | Not authorized or performed. Phase 13 remains separate. |
 
@@ -340,14 +340,15 @@ The next hardware-free safety boundary is implemented without enabling a radio:
 
 ### P12.6 normative field-GATT protocol contract
 
-Status: **IN PROGRESS**. The working
-[field-GATT protocol and super-user guide](../protocol/Field-GATT.md) now brings
-the custom wire behavior into one user-facing contract. Final implementation,
-Bluefy, Raspberry Pi client and test conformance review and the Phase 12
-protocol freeze remain open.
+Status: **FROZEN_SOURCE**. The
+[Field-GATT/1 protocol and super-user guide](../protocol/Field-GATT.md) and
+[machine-readable vectors](../protocol/Field-GATT-v1-vectors.json) bind the
+custom wire behavior across firmware, Bluefy, the native Raspberry Pi client,
+documentation and deterministic tests. Incompatible wire changes require a new
+Field-GATT protocol version. This source/host freeze does not close the Phase
+12 physical interoperability or end-user acceptance gates.
 
-Before Phase 12 closure, review and freeze `docs/protocol/Field-GATT.md` as the
-authoritative custom BLE wire contract. At minimum it must define:
+The frozen authoritative custom BLE wire contract defines:
 
 - protocol scope, versioning, compatibility rules and its separation from
   WTP/1;
@@ -368,28 +369,25 @@ authoritative custom BLE wire contract. At minimum it must define:
   Raspberry Pi clients so implementation drift is caught by tests after the
   contract is frozen.
 
-The document must describe the reviewed implementation or identify and repair a
-mismatch; it must not retroactively declare an implementation accident
-normative. The contract is frozen only after implementation, client and test
-agreement is reviewed. No pre-freeze drift sentinel is required or permitted as
-a Phase 12 completion shortcut.
+The document describes the reviewed implementation rather than declaring an
+implementation accident normative. Vector-driven tests enforce agreement after
+freeze. No source freeze or drift sentinel substitutes for physical acceptance.
 
-The initial conformance review found three implementation backlogs that must be
-closed before freeze:
+The freeze tranche repaired and retested the three mismatches found by the
+initial conformance review:
 
-- the native Raspberry Pi/Linux `provision` path sends `apply` without the
-  required fresh `profile_step_up`; and
-- the manager's 64-entry fragment counter limits 64-byte profile writes to
-  4,096 bytes while the declared profile boundary is 7,168 bytes; and
-- enrollment-window expiry does not autonomously erase a provisional bond while
-  its BLE connection remains open, although wrong-password and disconnect paths
-  do erase it.
+- the native Raspberry Pi/Linux `provision` path now requires a fresh
+  `profile_step_up` bound to the profile session, apply request and generation,
+  including bounded USB-confirmation polling;
+- the manager admits the complete 7,168-byte profile contract even with
+  one-byte fragments, while retaining the 64-byte per-fragment limit; and
+- enrollment-window expiry erases an open-link provisional bond, invalidates
+  its authority and requests controller link closure.
 
-Until repaired and retested, native-Pi profile apply is unsupported and
-profiles larger than 4,096 bytes must not be attempted through the command
-path. A client must also disconnect on authorization failure or timeout so the
-provisional bond is erased. These are tracked mismatches, not permission to
-weaken the intended security, cleanup or size contract.
+The checked vectors cover 4,096-, 4,097-, 7,168- and 7,169-byte boundaries,
+direct-apply rejection, exact step-up binding, impossible step-up state and
+expiry cleanup. Client-side prompt/secret hygiene and cancellation remain part
+of the deterministic conformance suite.
 
 Phase 12 completion evidence must cover:
 
@@ -458,13 +456,9 @@ policy:
 - a delivery-safe SoftAP provisioning/activation surface if credential transfer
   is to be supported there; the implemented SoftAP browser surface does not
   expose provisioning commands;
-- final review and freeze of the normative, independently implementable
-  field-GATT protocol contract, including implementation/client/test
-  conformance;
-- repair and conformance coverage for the native-Pi profile step-up omission
-  and the 4,096-byte effective fragment-counter ceiling against the declared
-  7,168-byte profile boundary, plus autonomous provisional-bond cleanup when an
-  enrollment window expires on an open link;
+- physical native-Pi and Bluefy validation of the frozen profile apply flow,
+  including the 7,168-byte boundary, fresh bound step-up, USB confirmation and
+  failure cleanup; source/host conformance is frozen and checked;
 - physical validation of the implemented integrity-controlled offline Bluefy
   page-delivery/cache mechanism; and
 - target resource, radio-coexistence and indicator scheduling needed to meet the
@@ -475,8 +469,8 @@ policy:
 Phase 12 is not complete at the scoped P12.3 source closeout. Completion
 requires physical BLE/SoftAP/HTTPS and local-control acceptance conforming to
 the selected policy, a connected authenticated idle-only live activator, exact
-gesture/reset selection, the normative field-GATT protocol contract and its
-conformance evidence, bounded inhibited-target acceptance, the remaining
+gesture/reset selection, physical validation of the frozen Field-GATT/1
+contract, bounded inhibited-target acceptance, the remaining
 authorized physical-plan execution and a repaired post-physical adversarial
 reassessment.
 Phase 13 RF qualification remains separate.

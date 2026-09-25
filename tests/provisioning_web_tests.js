@@ -1,6 +1,7 @@
 "use strict";
 const assert = require("assert");
-const {canonicalProfile, Client, FRAGMENT_BYTES, GATT_FRAME_BYTES, MAX_COMMAND_BYTES,
+const vectors = require("../docs/protocol/Field-GATT-v1-vectors.json");
+const {canonicalProfile, Client, MAX_PROFILE_BYTES, FRAGMENT_BYTES, GATT_FRAME_BYTES, MAX_COMMAND_BYTES,
   MAX_STATUS_BYTES, WTP_SEGMENT_BYTES, frames, FrameReceiver, crc32c, wtpFrame,
   WtpReceiver} = require("../src/provisioning/web/bluefy.js");
 const device = "a".repeat(32);
@@ -18,6 +19,25 @@ function profile(change) {
     server_private_key: "-----BEGIN PRIVATE KEY-----\nKEY\n-----END PRIVATE KEY-----\n",
     client_ca: "-----BEGIN CERTIFICATE-----\nCA\n-----END CERTIFICATE-----\n"
   }, change || {});
+}
+function profileAtSerializedSize(target) {
+  const candidate = profile();
+  const base = canonicalProfile(candidate);
+  let needed = target - base.bytes.length;
+  base.bytes.fill(0);
+  assert(needed >= 0);
+  for (const [field, maximum] of [
+    ["server_certificate", 3072], ["server_private_key", 2048], ["client_ca", 3072]
+  ]) {
+    const available = maximum - candidate[field].length;
+    const count = Math.min(needed, available);
+    const marker = candidate[field].lastIndexOf("\n-----END");
+    candidate[field] = candidate[field].slice(0, marker) + "X".repeat(count) +
+      candidate[field].slice(marker);
+    needed -= count;
+  }
+  assert.strictEqual(needed, 0);
+  return candidate;
 }
 function cryptoFixture() {
   let next = 1;
@@ -49,6 +69,11 @@ class Characteristic {
     this.wtpMode = false;
     this.wtpRespond = true;
     this.wtpCommands = [];
+    this.stepUp = null;
+    this.rejectStepUpPassword = false;
+    this.forceStepUpNotReady = false;
+    this.dropStepUpStatus = false;
+    this.fieldSession = null;
   }
   async readValue() { const bytes = new TextEncoder().encode(JSON.stringify(this.value)); return new DataView(bytes.buffer); }
   async startNotifications() {
@@ -101,21 +126,51 @@ class Characteristic {
     const command = JSON.parse(new TextDecoder().decode(encoded)); encoded.fill(0);
     this.commands.push(command);
     if (!this.respond) return true;
+    if (command.operation === "profile_step_up_status" && this.dropStepUpStatus) return true;
     const response = {request_id: command.request_id, ok: true};
     if (command.operation === "authorize" && command.password === "" &&
         this.rejectEmptyAuthorization) {
       response.ok = false;
       response.error = "authentication_required";
     }
-    if (command.operation === "apply")
-      response.generation = this.applyGeneration === undefined
-        ? command.expected_generation + 1
-        : this.applyGeneration;
-    if (command.operation === "profile_step_up" ||
-        command.operation === "profile_step_up_status") {
-      response.confirmation_required = Boolean(this.confirmationRequired);
-      response.ready = !this.confirmationRequired || Boolean(this.confirmationReady);
+    if (command.operation === "authorize" && response.ok)
+      this.fieldSession = command.session_id;
+    if (command.operation === "open") this.stepUp = null;
+    if (command.operation === "profile_step_up") {
+      if (this.rejectStepUpPassword || command.session_id !== this.fieldSession) {
+        response.ok = false;
+        response.error = "authentication_required";
+      } else {
+        this.stepUp = [command.session_id, command.profile_session_id, command.apply_request_id,
+          command.expected_generation];
+      }
     }
+    if (command.operation === "profile_step_up_status" &&
+        (!this.stepUp || command.session_id !== this.stepUp[0] ||
+         command.apply_request_id !== this.stepUp[2])) {
+      response.ok = false;
+      response.error = "authentication_required";
+    }
+    if ((command.operation === "profile_step_up" ||
+         command.operation === "profile_step_up_status") && response.ok) {
+      response.confirmation_required = Boolean(this.confirmationRequired);
+      response.ready = this.forceStepUpNotReady
+        ? false : !this.confirmationRequired || Boolean(this.confirmationReady);
+    }
+    if (command.operation === "apply") {
+      const expected = [this.fieldSession, command.session_id, command.request_id,
+        command.expected_generation];
+      if (!this.stepUp || !expected.every((value, index) => value === this.stepUp[index])) {
+        response.ok = false;
+        response.error = "authentication_required";
+      } else {
+        this.stepUp = null;
+        response.generation = this.applyGeneration === undefined
+          ? command.expected_generation + 1
+          : this.applyGeneration;
+      }
+    }
+    if (command.operation === "cancel") this.stepUp = null;
     if (command.operation === "identify") response.identified = true;
     if (command.operation === "time_challenge") {
       response.nonce = command.nonce;
@@ -226,6 +281,23 @@ async function rejectsCode(callback, code) {
 }
 
 async function run() {
+  assert.throws(() => new Client(null, cryptoFixture(), {confirmationTimeoutMs: 0}),
+    (error) => error.code === "confirmation_timeout");
+  assert.strictEqual(vectors.protocol, "Field-GATT/1");
+  assert.strictEqual(vectors.status, "frozen");
+  assert.strictEqual(vectors.limits.max_profile_bytes, MAX_PROFILE_BYTES);
+  assert.strictEqual(vectors.limits.max_fragment_bytes, FRAGMENT_BYTES);
+  for (const entry of vectors.profile_transfer_cases) {
+    const candidate = profileAtSerializedSize(entry.bytes);
+    if (entry.result === "accepted") {
+      const encoded = canonicalProfile(candidate);
+      assert.strictEqual(encoded.bytes.length, entry.bytes);
+      encoded.bytes.fill(0);
+    } else {
+      assert.throws(() => canonicalProfile(candidate),
+        (error) => error.code === entry.result.replace("oversize", "profile_oversize"));
+    }
+  }
   assert.strictEqual(crc32c(new TextEncoder().encode("123456789")), 0xe3069283);
   const combinedReceiver = new WtpReceiver();
   const firstFrame = wtpFrame({one: 1}), secondFrame = wtpFrame({two: 2});
@@ -434,6 +506,18 @@ async function run() {
   assert(fixture.command.commands.findIndex((command) => command.operation === "profile_step_up") >
     fixture.command.commands.findIndex((command) => command.operation === "write"));
   assert.strictEqual(fixture.command.commands.at(-1).operation, "apply");
+  const profileOperations = fixture.command.commands
+    .map((command) => command.operation)
+    .filter((operation) => vectors.profile_apply.required_order.includes(operation));
+  assert.strictEqual(profileOperations[0], "open");
+  assert.strictEqual(profileOperations.at(-2), "profile_step_up");
+  assert.strictEqual(profileOperations.at(-1), "apply");
+  const stepUpCommand = fixture.command.commands.find(
+    (command) => command.operation === "profile_step_up");
+  const applyCommand = fixture.command.commands.find((command) => command.operation === "apply");
+  assert.strictEqual(stepUpCommand.apply_request_id, applyCommand.request_id);
+  assert.strictEqual(stepUpCommand.profile_session_id, applyCommand.session_id);
+  assert.strictEqual(stepUpCommand.expected_generation, applyCommand.expected_generation);
   assert(fixture.command.commands.every((command) => command.device_id === device));
   const commandSizes = fixture.command.commands.map((command) =>
     new TextEncoder().encode(JSON.stringify(command)).length);
@@ -444,6 +528,17 @@ async function run() {
   assert(fixture.status.emittedSizes.every((size) => size <= GATT_FRAME_BYTES));
   assert(fixture.status.emittedSizes.some((size) => size > 20),
     "mock GATT must not be mistaken for default-ATT-MTU status evidence");
+
+  const maximumProfileFixture = bluetoothFixture();
+  const maximumProfileClient = new Client(
+    maximumProfileFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  await maximumProfileClient.connect(device);
+  await maximumProfileClient.authorize("wspr-0a60df");
+  assert.deepStrictEqual(await maximumProfileClient.provision(
+    profileAtSerializedSize(vectors.limits.max_profile_bytes)), {generation: 1});
+  assert.strictEqual(maximumProfileFixture.command.commands.filter(
+    (command) => command.operation === "write").length,
+  vectors.limits.max_profile_bytes / vectors.limits.max_fragment_bytes);
 
   const noSwitchFixture = bluetoothFixture();
   const noSwitchClient = new Client(
@@ -564,6 +659,56 @@ async function run() {
   assert.strictEqual(confirmationRequests, 1);
   assert(confirmationFixture.command.commands.some(
     (command) => command.operation === "profile_step_up_status"));
+
+  const confirmationTimeoutFixture = bluetoothFixture();
+  confirmationTimeoutFixture.command.confirmationRequired = true;
+  confirmationTimeoutFixture.command.dropStepUpStatus = true;
+  const confirmationTimeoutClient = new Client(
+    confirmationTimeoutFixture.bluetooth, cryptoFixture(), {
+      timeoutMs: 5000, confirmationTimeoutMs: 600
+    });
+  await confirmationTimeoutClient.connect(device);
+  await confirmationTimeoutClient.authorize("wspr-0a60df");
+  await rejectsCode(() => confirmationTimeoutClient.provision(profile()),
+                    "confirmation_timeout");
+  assert.strictEqual(confirmationTimeoutFixture.command.commands.at(-1).operation, "cancel");
+
+  const directApplyFixture = bluetoothFixture();
+  const directApplyClient = new Client(
+    directApplyFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  await directApplyClient.connect(device);
+  await directApplyClient.authorize("wspr-0a60df");
+  await rejectsCode(() => directApplyClient.exchange({version: 1, operation: "apply",
+    request_id: "a".repeat(32), session_id: "b".repeat(32), device_id: device,
+    expected_generation: 0}), vectors.profile_apply.direct_apply_rejected);
+
+  const invalidStepUpFixture = bluetoothFixture();
+  invalidStepUpFixture.command.forceStepUpNotReady = true;
+  const invalidStepUpClient = new Client(
+    invalidStepUpFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  await invalidStepUpClient.connect(device);
+  await invalidStepUpClient.authorize("wspr-0a60df");
+  await rejectsCode(() => invalidStepUpClient.provision(profile()),
+                    vectors.profile_apply.not_required_and_not_ready_rejected);
+  assert.strictEqual(invalidStepUpFixture.command.commands.at(-1).operation, "cancel");
+
+  const rejectedStepUpFixture = bluetoothFixture();
+  rejectedStepUpFixture.command.rejectStepUpPassword = true;
+  const rejectedStepUpClient = new Client(
+    rejectedStepUpFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  await rejectedStepUpClient.connect(device);
+  await rejectedStepUpClient.authorize("wspr-0a60df");
+  await rejectsCode(() => rejectedStepUpClient.provision(profile()), "authentication_required");
+  assert.strictEqual(rejectedStepUpFixture.command.commands.at(-1).operation, "cancel");
+
+  const malformedApplyFixture = bluetoothFixture();
+  malformedApplyFixture.command.applyGeneration = "invalid";
+  const malformedApplyClient = new Client(
+    malformedApplyFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  await malformedApplyClient.connect(device);
+  await malformedApplyClient.authorize("wspr-0a60df");
+  await rejectsCode(() => malformedApplyClient.provision(profile()), "generation");
+  assert.strictEqual(malformedApplyFixture.command.commands.at(-1).operation, "apply");
 
   const corruptWtpFixture = bluetoothFixture();
   const corruptWtpClient = new Client(

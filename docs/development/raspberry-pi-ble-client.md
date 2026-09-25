@@ -5,18 +5,11 @@ existing WsprryPico Phase 12 GATT service. It gives a Raspberry Pi the same
 encrypted, application-authorized local-control path used by the checked-in
 Bluefy page without adding another device protocol or job service.
 The UUIDs, framing, authorization exchanges, provisioning vocabulary and WTP
-mapping are defined by the
-[Field GATT protocol and super-user guide](../protocol/Field-GATT.md).
-
-> **Current Phase 12 conformance warning:** use the native client for
-> `inspect`, `status`, `identify`, `sync-time` and `wtp-status`, but do not use
-> `provision`. The current `provision` implementation sends `apply` without the
-> required fresh `profile_step_up`, and the target must reject it. The manager
-> also currently accepts only 64 64-byte fragments (4,096 bytes) despite the
-> declared 7,168-byte profile boundary. Target-side enrollment-window expiry
-> also does not autonomously erase a provisional bond while its link remains
-> open, so the client must close the link after authorization failure or timeout.
-> All three defects are Phase 12 backlog gates.
+mapping are defined by the frozen
+[Field-GATT/1 protocol and super-user guide](../protocol/Field-GATT.md) and its
+[machine-readable conformance vectors](../protocol/Field-GATT-v1-vectors.json).
+Firmware, Bluefy and this client are source/host conforming to that contract.
+Physical native-Pi profile activation remains an open Phase 12 acceptance row.
 
 This tool is an additional local/bench client. Bluefy remains the selected
 iPhone client, and a Raspberry Pi run is not evidence for Bluefy/iOS offline
@@ -59,10 +52,18 @@ ACCESS ENROLL <full-device-id>
 The client cannot open enrollment through BLE. Outside that window a new peer
 fails closed, while an already authorized retained bond may reconnect normally.
 The application password is read from a non-echoing terminal prompt; there is
-no command-line, environment-variable or file option for it. The current CLI
-prompts even on a retained bond, but the target does not validate that field
-during retained-bond reauthorization. Entering it there is not fresh step-up
-proof and does not authorize profile, password, bond, trust or reset mutation.
+no command-line, environment-variable or file option for it. The CLI prompts
+for authorization even on a retained bond, but the target does not validate
+that field during retained-bond reauthorization. For `provision`, the CLI then
+prompts a second time immediately before profile apply. Only that second entry
+is sent as the fresh, transaction-bound `profile_step_up` proof. It authorizes
+only the exact staged profile, apply request and observed generation; it does
+not authorize password, bond, trust or reset mutation.
+
+If enrollment expires while a provisional link remains open, the target erases
+the provisional bond, invalidates its authority and requests link closure.
+Clients still disconnect promptly after rejection or timeout rather than
+keeping a failed session alive.
 
 ## Commands
 
@@ -115,9 +116,9 @@ target bonds.
 
 ## Atomic profile transfer
 
-This section records the intended native-client workflow. It is not currently
-operator-ready: the warning above remains in force until the step-up and
-profile-capacity mismatches are repaired and covered by conformance tests.
+The native client implements the frozen Field-GATT/1 profile workflow. Its
+source/host conformance is accepted; use on a physical target remains subject
+to the open Phase 12 native-Pi profile-activation acceptance row.
 
 The input is the existing canonical version-1 profile, not a new Linux-specific
 format:
@@ -141,10 +142,9 @@ format:
 }
 ```
 
-After that repair, keep the real file outside Git. It must be an absolute,
+Keep the real file outside Git. It must be an absolute,
 nonsymlink, regular file owned by the invoking user with no group or other
-permission bits and no more than 7,168 bytes. The following is the intended
-post-repair invocation and MUST NOT be used against the current implementation:
+permission bits and no more than 7,168 bytes:
 
 ```sh
 chmod 600 /absolute/private/path/profile.json
@@ -154,12 +154,23 @@ python3 scripts/wsprrypico_ble.py --address AA:BB:CC:DD:EE:FF \
 ```
 
 The client validates and canonicalizes the entire profile, requires its device
-ID to match the connected target, transfers ordered 64-byte fragments, applies
-against the observed generation and attempts a bounded cancel after any
-post-open failure. It never prints the profile, Wi-Fi password, private key or
-application password. Python cannot guarantee destruction of every immutable
-interpreter copy, so the process remains a secret-bearing endpoint; use an
-owner-controlled host and terminate it after use.
+ID to match the connected target, transfers ordered 64-byte fragments, binds a
+fresh password step-up to the exact profile session, apply request and observed
+generation, and attempts a bounded cancel after any post-open failure. The
+target admits the full 7,168-byte contract limit, including one-byte
+fragmentation; 64 bytes is the client-preferred chunk size, not a lower 4,096-
+byte ceiling.
+
+When the public default password is active, the target also requires the
+identity-bound USB command `ACCESS CONFIRM PROFILE <full-device-id>`. The client
+prints that instruction and polls the bound step-up status for at most 25
+seconds, within the 30-second profile-session lifetime. A timeout fails closed
+and cancels the staged transaction.
+
+The client never prints the profile, Wi-Fi password, private key or application
+password. Python cannot guarantee destruction of every immutable interpreter
+copy, so the process remains a secret-bearing endpoint; use an owner-controlled
+host and terminate it after use.
 
 ## Failure and recovery
 
@@ -179,12 +190,15 @@ reply or process exit is never evidence that RF output is inactive.
 ## Evidence boundary
 
 `tests/raspberry_pi_ble_client_tests.py` deterministically covers framing,
-identity binding, authorization, field controls, WTP negotiation/status, profile
-transaction/cancel and local file controls. The provisioning contract check
-keeps firmware, Bluefy and Linux constants synchronized. The bounded
+identity binding, authorization, field controls, WTP negotiation/status, the
+bound step-up/apply transaction, confirmation polling, cancellation, the exact
+7,168-byte transfer and local file controls. The vector-driven provisioning
+contract check keeps firmware, Bluefy, Linux, documentation and the frozen
+limits synchronized. The bounded
 [execution record](phase12-pi-ble-tcp-review.md) adds exact `wspr5`/Candidate A
 RF-inhibited evidence for identity inspection, controller-time submission,
 field status and WTP `HELLO`/`STATUS`; all other deterministic results remain
 source/host evidence. The live subset does not qualify RF, SoftAP, Bluefy/iOS,
 profile activation, radio coexistence, TCP interoperability or general release
-behavior.
+behavior. In particular, this source freeze does not retroactively turn the
+historical live subset into native-Pi profile-activation evidence.

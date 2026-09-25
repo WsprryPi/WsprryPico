@@ -372,6 +372,13 @@ void access_policy() {
           provisioning::AccessCode::AuthenticationRequired);
     CHECK(f.bonds.erased.back() == 1);
 
+    CHECK(f.controller.ble_connect(3, true, true, "gatt-expiry", 205'001).code ==
+          provisioning::AccessCode::Ok);
+    CHECK(!f.controller.expire_provisional_bond(319'999));
+    CHECK(f.controller.expire_provisional_bond(320'000));
+    CHECK(f.bonds.erased.back() == 3);
+    CHECK(!f.controller.ble_authorization().authenticated);
+
     proof.nonce = "nonce-c";
     CHECK(f.controller.confirm_local(proof, 330'000) == provisioning::AccessCode::Ok);
     CHECK(f.controller.open_enrollment(proof, {}, 330'000) == provisioning::AccessCode::Ok);
@@ -386,6 +393,10 @@ void access_policy() {
     CHECK(f.controller.ble_connect(2, true, false, "gatt-return", 500'000).code ==
           provisioning::AccessCode::Ok);
     CHECK(f.controller.ble_authorization().principal == promoted.principal);
+    const auto erased_before_retained_expiry = f.bonds.erased.size();
+    CHECK(!f.controller.expire_provisional_bond(1'000'000));
+    CHECK(f.controller.ble_authorization().authenticated);
+    CHECK(f.bonds.erased.size() == erased_before_retained_expiry);
     f.controller.ble_disconnect();
 
     std::array<std::string, provisioning::softap_session_capacity> tokens;
@@ -568,8 +579,7 @@ void ble_command_policy() {
     const auto carrier = session.handle(unauthorized_carrier, 3);
     CHECK(carrier.code == provisioning::Code::Ok);
     CHECK(carrier.notification.find("\"carrier\":\"field_status\"") != std::string::npos);
-    CHECK(carrier.notification.find("\"command_carrier\":\"field_command\"") !=
-          std::string::npos);
+    CHECK(carrier.notification.find("\"command_carrier\":\"field_command\"") != std::string::npos);
     CHECK(session.wtp_over_field_status());
     auto reauthorize = authorize;
     reauthorize.replace(reauthorize.find("33333333333333333333333333333333"), 32,
@@ -838,6 +848,40 @@ void ble_profile_step_up_timeout_policy() {
     CHECK(session.confirm_profile(device, 40'001) ==
           provisioning::AccessCode::AuthenticationRequired);
     session.disconnected();
+}
+
+void ble_provisional_expiry_requests_disconnect() {
+    AccessFixture f;
+    auto enroll = binding("ble-enroll-expiry");
+    CHECK(f.controller.confirm_local(enroll, 0) == provisioning::AccessCode::Ok);
+    CHECK(f.controller.open_enrollment(enroll, {}, 0) == provisioning::AccessCode::Ok);
+    ProfileMemory profile_media;
+    provisioning::ProfileStore profile_store(profile_media);
+    CHECK(profile_store.load());
+    RejectingValidator validator;
+    provisioning::Manager manager(profile_store, validator, std::string(device));
+    provisioning::CommandAdapter command(manager, std::string(device),
+                                         provisioning::Transport::Ble);
+    provisioning::BleCommandSession session(f.controller, command, manager, std::string(device),
+                                            idle_activity, nullptr);
+    CHECK(session.connected(19, true, true, "link-provisional-expiry", 1));
+    CHECK(!session.poll(provisioning::enrollment_window_ms - 1));
+    CHECK(session.poll(provisioning::enrollment_window_ms));
+    CHECK(f.bonds.erased.back() == 19);
+    CHECK(!session.authorized());
+    CHECK(!session.poll(provisioning::enrollment_window_ms + 1));
+
+    AccessFixture erase_failure;
+    auto failed_enroll = binding("ble-enroll-erase-failure");
+    CHECK(erase_failure.controller.confirm_local(failed_enroll, 0) == provisioning::AccessCode::Ok);
+    CHECK(erase_failure.controller.open_enrollment(failed_enroll, {}, 0) ==
+          provisioning::AccessCode::Ok);
+    erase_failure.bonds.erase_result = false;
+    CHECK(erase_failure.controller.ble_connect(20, true, true, "link-erase-failure", 1).code ==
+          provisioning::AccessCode::Ok);
+    CHECK(erase_failure.controller.expire_provisional_bond(provisioning::enrollment_window_ms));
+    CHECK(erase_failure.store.record()->ble_disabled);
+    CHECK(!erase_failure.controller.ble_authorization().authenticated);
 }
 
 void framing_policy() {
@@ -1167,6 +1211,7 @@ int main() {
     ble_command_policy();
     ble_profile_step_up_policy();
     ble_profile_step_up_timeout_policy();
+    ble_provisional_expiry_requests_disconnect();
     framing_policy();
     softap_http_policy();
     runtime_policy();

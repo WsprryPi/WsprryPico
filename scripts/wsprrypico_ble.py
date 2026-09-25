@@ -44,6 +44,8 @@ WTP_HEADER_BYTES = 16
 WTP_MAX_PAYLOAD_BYTES = 65536
 WTP_SEGMENT_BYTES = 64
 WTP_REASSEMBLY_BYTES = 131072
+PROFILE_CONFIRMATION_TIMEOUT_SECONDS = 25.0
+PROFILE_CONFIRMATION_POLL_SECONDS = 0.5
 
 _DEVICE_ID = re.compile(r"^[0-9a-f]{32}$")
 _ADDRESS = re.compile(r"^(?:[0-9A-F]{2}:){5}[0-9A-F]{2}$")
@@ -370,11 +372,23 @@ class WtpReceiver:
 class Client:
     """Transport-neutral synchronous BLE client."""
 
-    def __init__(self, backend: Any, timeout: float = 30.0):
+    def __init__(
+        self,
+        backend: Any,
+        timeout: float = 30.0,
+        confirmation_timeout: float = PROFILE_CONFIRMATION_TIMEOUT_SECONDS,
+    ):
         if not math.isfinite(timeout) or timeout <= 0 or timeout > 120:
             fail("timeout")
+        if (
+            not math.isfinite(confirmation_timeout)
+            or confirmation_timeout <= 0
+            or confirmation_timeout > PROFILE_CONFIRMATION_TIMEOUT_SECONDS
+        ):
+            fail("confirmation_timeout")
         self.backend = backend
         self.timeout = timeout
+        self.confirmation_timeout = confirmation_timeout
         self.expected_device_id = ""
         self.generation = 0
         self.authorized = False
@@ -465,8 +479,14 @@ class Client:
         except ClientError as error:
             self._fatal = error
 
-    def _wait(self, responses: dict[str, dict[str, Any]], request_id: str, code: str) -> dict[str, Any]:
-        deadline = time.monotonic() + self.timeout
+    def _wait(
+        self,
+        responses: dict[str, dict[str, Any]],
+        request_id: str,
+        code: str,
+        timeout: float | None = None,
+    ) -> dict[str, Any]:
+        deadline = time.monotonic() + (self.timeout if timeout is None else timeout)
         while time.monotonic() < deadline:
             if self._fatal:
                 error, self._fatal = self._fatal, None
@@ -477,7 +497,10 @@ class Client:
         fail(code)
 
     def exchange(
-        self, message: dict[str, Any], without_response: bool = False
+        self,
+        message: dict[str, Any],
+        without_response: bool = False,
+        timeout: float | None = None,
     ) -> dict[str, Any]:
         request_id = message.get("request_id")
         if not valid_device_id(request_id):
@@ -493,7 +516,7 @@ class Client:
             frames = gatt_frames(encoded)
             for frame in frames:
                 self.backend.write(UUIDS["command"], frame, response=not without_response)
-            response = self._wait(self._field_responses, request_id, "timeout")
+            response = self._wait(self._field_responses, request_id, "timeout", timeout)
             if response["ok"]:
                 return response
             fail(remote_error(response.get("error")))
@@ -523,7 +546,12 @@ class Client:
             password = ""
 
     def _field(
-        self, operation: str, *, without_response: bool = False, **fields: Any
+        self,
+        operation: str,
+        *,
+        without_response: bool = False,
+        timeout: float | None = None,
+        **fields: Any,
     ) -> dict[str, Any]:
         if not self.authorized:
             fail("authentication_required")
@@ -535,7 +563,7 @@ class Client:
             "device_id": self.expected_device_id,
         }
         message.update(fields)
-        return self.exchange(message, without_response)
+        return self.exchange(message, without_response, timeout)
 
     def identify(self) -> None:
         if self._field("identify").get("identified") is not True:
@@ -687,15 +715,35 @@ class Client:
                 fail("wtp_status_response")
         return status
 
-    def provision(self, profile: bytearray) -> int:
+    @staticmethod
+    def _step_up_ready(response: dict[str, Any]) -> tuple[bool, bool]:
+        confirmation = response.get("confirmation_required")
+        ready = response.get("ready")
+        if (
+            not isinstance(confirmation, bool)
+            or not isinstance(ready, bool)
+            or (not confirmation and not ready)
+        ):
+            fail("profile_step_up_response")
+        return confirmation, ready
+
+    def provision(
+        self,
+        profile: bytearray,
+        password: str,
+        on_confirmation_required: Callable[[str], None] | None = None,
+    ) -> int:
         if not self.authorized:
             fail("authentication_required")
+        if not _printable(password, 8, 63):
+            fail("local_password")
         try:
             parsed = json.loads(profile.decode("ascii"))
             if parsed.get("device_id") != self.expected_device_id:
                 fail("wrong_device")
             session = secrets.token_hex(16)
             opened = False
+            apply_accepted = False
             try:
                 self._field("open", session_id=session)
                 opened = True
@@ -708,20 +756,62 @@ class Client:
                         final=end == len(profile),
                         payload=base64.b64encode(profile[offset:end]).decode("ascii"),
                     )
-                response = self._field("apply", session_id=session, expected_generation=self.generation)
+                apply_request = secrets.token_hex(16)
+                step_up = self._field(
+                    "profile_step_up",
+                    profile_session_id=session,
+                    apply_request_id=apply_request,
+                    expected_generation=self.generation,
+                    password=password,
+                )
+                password = ""
+                confirmation, ready = self._step_up_ready(step_up)
+                if confirmation and not ready:
+                    if on_confirmation_required is not None:
+                        on_confirmation_required(self.expected_device_id)
+                    deadline = time.monotonic() + self.confirmation_timeout
+                    while not ready:
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            fail("confirmation_timeout")
+                        self.backend.pump(min(PROFILE_CONFIRMATION_POLL_SECONDS, remaining))
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            fail("confirmation_timeout")
+                        try:
+                            step_up = self._field(
+                                "profile_step_up_status",
+                                timeout=min(self.timeout, remaining),
+                                apply_request_id=apply_request,
+                            )
+                        except ClientError as error:
+                            if error.code == "timeout":
+                                fail("confirmation_timeout")
+                            raise
+                        confirmation, ready = self._step_up_ready(step_up)
+                response = self.exchange({
+                    "version": 1,
+                    "operation": "apply",
+                    "request_id": apply_request,
+                    "session_id": session,
+                    "device_id": self.expected_device_id,
+                    "expected_generation": self.generation,
+                })
+                apply_accepted = True
                 generation = response.get("generation")
                 if isinstance(generation, bool) or not isinstance(generation, int) or generation < self.generation:
                     fail("generation")
                 self.generation = generation
                 return generation
             except Exception:
-                if opened:
+                if opened and not apply_accepted:
                     try:
                         self._field("cancel", session_id=session)
                     except Exception:
                         pass
                 raise
         finally:
+            password = ""
             profile[:] = b"\x00" * len(profile)
 
     def close(self) -> None:
@@ -1007,9 +1097,9 @@ class BluezBackend:
             self.agent = None
 
 
-def _password() -> str:
+def _password(prompt: str = "WsprryPico application password: ") -> str:
     try:
-        value = getpass.getpass("WsprryPico application password: ")
+        value = getpass.getpass(prompt)
     except (EOFError, KeyboardInterrupt):
         fail("password_input")
     if not _printable(value, 8, 63):
@@ -1076,7 +1166,22 @@ def run(arguments: list[str] | None = None, backend_factory: Callable[[str], Any
                 }
             elif args.command == "provision":
                 profile = load_profile_file(args.profile)
-                output = {"generation": client.provision(profile)}
+                step_up_password = ""
+                try:
+                    step_up_password = _password(
+                        "Re-enter current local password for profile apply: "
+                    )
+                    output = {"generation": client.provision(
+                        profile,
+                        step_up_password,
+                        lambda device_id: print(
+                            f"USB confirmation required: ACCESS CONFIRM PROFILE {device_id}",
+                            file=sys.stderr,
+                        ),
+                    )}
+                finally:
+                    step_up_password = ""
+                    profile[:] = b"\x00" * len(profile)
             else:
                 fail("command")
         print(json.dumps(output, sort_keys=True, separators=(",", ":")))

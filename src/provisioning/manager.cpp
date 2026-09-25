@@ -173,7 +173,7 @@ Result Manager::write(std::string_view request_id, std::string_view session_id, 
         result.code = Code::AuthenticationRequired;
     else if (session_->final || offset != session_->staged.size() || input.empty())
         result.code = Code::OutOfOrder;
-    else if (session_->fragments == fragment_capacity ||
+    else if (session_->fragments >= fragment_capacity ||
              input.size() > max_profile_bytes - session_->staged.size()) {
         result.code = Code::Oversize;
         terminate(State::Failed);

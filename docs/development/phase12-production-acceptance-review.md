@@ -74,15 +74,16 @@ starting the application.
   core-0 release path runs.
 - GATT requires encryption, stored peer identity and application authorization,
   admits one connection, uses fixed bounded framing, retains asynchronous
-  advertisement buffers, and cleans provisional bonds on implemented wrong-
-  password and disconnect terminal paths. Autonomous cleanup after enrollment-
-  window expiry on an otherwise open link remains a tracked conformance gap.
+  advertisement buffers, and cleans provisional bonds on wrong-password,
+  disconnect and enrollment-window-expiry terminal paths. Expiry invalidates
+  live authority and requests controller link closure.
   Returning authorized bonds accept the page's repeated authorize operation
   idempotently because the retained bond is already the selected principal.
-  The working
-  [field-GATT protocol and super-user guide](../protocol/Field-GATT.md) now
-  documents this surface. Final implementation/client/test conformance and
-  protocol freeze remain an explicit Phase 12 gate.
+  The frozen
+  [Field-GATT/1 protocol and super-user guide](../protocol/Field-GATT.md) and
+  [vectors](../protocol/Field-GATT-v1-vectors.json) now bind this surface across
+  firmware, Bluefy, the native-Pi client and deterministic tests. Physical
+  interoperability and end-user acceptance remain explicit Phase 12 gates.
 - USB-local `ACCESS STATUS`, `ACCESS ADOPT <full-device-id>`,
   `ACCESS ENROLL <full-device-id>` and `IDENTIFY <full-device-id>` provide
   exact device-bound confirmation/diagnostics. They preserve idle/output checks.
@@ -725,17 +726,9 @@ Phase 12 remains open for:
 - any SoftAP credential-provisioning/activation surface, which is not exposed by
   the current browser integration;
 - BLE ordinary WTP/browser local management through the one `JobService`;
-- final review and freeze of the normative, independently implementable
-  `docs/protocol/Field-GATT.md`, covering the UUID/characteristic contract,
-  provisioning framing and schemas, authorization/time/indication/error state
-  machines, and unchanged WTP/1 GATT mapping, with firmware, Bluefy and
-  native-Pi conformance evidence;
-- repair and conformance coverage for three open protocol mismatches: the native
-  Pi client omits the required fresh `profile_step_up` before profile `apply`,
-  and the manager's 64-fragment counter imposes a 4,096-byte effective ceiling
-  despite the declared 7,168-byte profile boundary; enrollment-window expiry
-  also does not autonomously erase a provisional bond while its BLE link remains
-  open, so clients must disconnect on authorization failure or timeout;
+- physical Bluefy and native-Pi profile-activation acceptance against the
+  frozen Field-GATT/1 source contract, including exact step-up/apply binding,
+  USB confirmation, the 7,168-byte boundary and failure cleanup;
 - password/bond/reset recovery and safe accepted physical controls;
 - fault-injection, replacement/superseded-trust, broader resource reclamation,
   concurrency and bounded soak rows;

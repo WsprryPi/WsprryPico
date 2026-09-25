@@ -4,7 +4,8 @@ Phase 11 is closed within its documented software, bounded physical and scoped
 conducted-RF acceptance. The authoritative [Phase 11.7 joint review](phase11-7-review.md)
 binds its source pair, assertion-level applicability, host regressions and
 retained limitations. Phase 12 is current: its
-[field GATT protocol and super-user guide](../protocol/Field-GATT.md),
+frozen [Field-GATT/1 protocol and super-user guide](../protocol/Field-GATT.md)
+and [conformance vectors](../protocol/Field-GATT-v1-vectors.json),
 [implementation plan](phase12-plan.md),
 operator-selected [field-access/security contract](phase12-field-access-contract.md)
 and [portable review](phase12-review.md), the
@@ -45,8 +46,12 @@ Phase 13 broad hardware/release qualification remains open.
 The phone-assisted continuation now has a host-tested fresh-password profile
 step-up bound to the exact staged digest, apply request and generation. The
 public default additionally requires exact-device USB-local confirmation before
-apply, and the proof dies with the 30-second provisioning session. Physical
-Bluefy/iPhone execution of that path remains open.
+apply, and the proof dies with the 30-second provisioning session. The
+native-Pi client now implements the same bound step-up and confirmation flow.
+Firmware and both clients agree on the full 7,168-byte boundary, including
+one-byte fragmentation, and target enrollment expiry revokes and closes an open
+provisional session. These are source/host results; physical Bluefy/iPhone and
+native-Pi profile activation remain open.
 
 The supported [Raspberry Pi/Linux BLE client](raspberry-pi-ble-client.md) adds a
 native BlueZ local/bench workflow using the same production GATT contract.

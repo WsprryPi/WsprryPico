@@ -28,7 +28,8 @@ class BleCommandSession {
     CommandReply handle(std::string_view command, std::uint64_t now_ms);
     void response_started(std::uint64_t now_ms);
     void response_delivered(std::uint64_t now_ms);
-    void poll(std::uint64_t now_ms);
+    // Returns true when policy requires the target transport to close the link.
+    bool poll(std::uint64_t now_ms);
     AccessCode confirm_profile(std::string_view requested_device, std::uint64_t now_ms);
     bool authorized() const;
     std::string principal() const;
@@ -45,6 +46,7 @@ class BleCommandSession {
   private:
     CommandReply authorize(std::string_view command, std::uint64_t now_ms);
     CommandReply field_command(std::string_view command, std::uint64_t now_ms);
+    void clear_connection_state();
     void clear_profile_step_up(bool invalidate);
     bool profile_step_up_matches() const;
     LocalAccessController& access_;

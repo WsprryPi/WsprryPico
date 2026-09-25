@@ -9,9 +9,11 @@ from pathlib import Path
 import tempfile
 import unittest
 from contextlib import redirect_stdout
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
+VECTORS = json.loads((ROOT / "docs/protocol/Field-GATT-v1-vectors.json").read_text())
 SPEC = importlib.util.spec_from_file_location("wsprrypico_ble", ROOT / "scripts/wsprrypico_ble.py")
 ble = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
@@ -37,6 +39,28 @@ def profile(device=DEVICE):
     }
 
 
+def profile_at_serialized_size(target):
+    candidate = profile()
+    encoded = ble.canonical_profile(candidate)
+    needed = target - len(encoded)
+    encoded[:] = b"\x00" * len(encoded)
+    if needed < 0:
+        raise AssertionError("target smaller than base profile")
+    for field, maximum in (
+        ("server_certificate", 3072),
+        ("server_private_key", 2048),
+        ("client_ca", 3072),
+    ):
+        value = candidate["tls"][field]
+        count = min(needed, maximum - len(value))
+        marker = value.rfind("\n-----END")
+        candidate["tls"][field] = value[:marker] + "X" * count + value[marker:]
+        needed -= count
+    if needed:
+        raise AssertionError("target exceeds field capacities")
+    return candidate
+
+
 class FakeBackend:
     def __init__(self, device=DEVICE):
         self.device = device
@@ -50,6 +74,13 @@ class FakeBackend:
         self.generation = 7
         self.fail_write = False
         self.write_responses = []
+        self.confirmation_required = False
+        self.confirmation_ready = True
+        self.force_step_up_not_ready = False
+        self.drop_step_up_status = False
+        self.apply_generation_response = None
+        self.field_session = None
+        self.step_up = None
 
     def connect(self, address, service, timeout, allow_pairing=True):
         if address != ADDRESS or service != ble.UUIDS["service"] or timeout <= 0:
@@ -79,6 +110,7 @@ class FakeBackend:
             if request["password"] != "app-secret":
                 self._field_reply(request, ok=False, error="authentication_required")
             else:
+                self.field_session = request["session_id"]
                 self._field_reply(request, generation=self.generation)
         elif operation == "identify":
             self._field_reply(request, identified=True)
@@ -98,6 +130,7 @@ class FakeBackend:
             self._field_reply(request, accepted=True)
         elif operation == "open":
             self.profile.clear()
+            self.step_up = None
             self._field_reply(request, generation=self.generation, activation="unchanged")
         elif operation == "write":
             if self.fail_write:
@@ -108,10 +141,67 @@ class FakeBackend:
                     raise AssertionError("noncontiguous profile")
                 self.profile.extend(chunk)
                 self._field_reply(request, generation=self.generation, activation="unchanged")
+        elif operation == "profile_step_up":
+            if (
+                request["password"] != "app-secret"
+                or request["session_id"] != self.field_session
+            ):
+                self._field_reply(request, ok=False, error="authentication_required")
+            else:
+                self.step_up = (
+                    request["session_id"],
+                    request["profile_session_id"],
+                    request["apply_request_id"],
+                    request["expected_generation"],
+                )
+                self._field_reply(
+                    request,
+                    confirmation_required=self.confirmation_required,
+                    ready=(
+                        False
+                        if self.force_step_up_not_ready
+                        else not self.confirmation_required or self.confirmation_ready
+                    ),
+                )
+        elif operation == "profile_step_up_status":
+            if self.drop_step_up_status:
+                return
+            if (
+                self.step_up is None
+                or request["session_id"] != self.step_up[0]
+                or request["apply_request_id"] != self.step_up[2]
+            ):
+                self._field_reply(request, ok=False, error="authentication_required")
+            else:
+                self._field_reply(
+                    request,
+                    confirmation_required=self.confirmation_required,
+                    ready=(
+                        False
+                        if self.force_step_up_not_ready
+                        else not self.confirmation_required or self.confirmation_ready
+                    ),
+                )
         elif operation == "apply":
-            self.generation += 1
-            self._field_reply(request, generation=self.generation, activation="pending_delivery")
+            expected = (
+                self.field_session,
+                request["session_id"],
+                request["request_id"],
+                request["expected_generation"],
+            )
+            if self.step_up != expected:
+                self._field_reply(request, ok=False, error="authentication_required")
+            else:
+                self.step_up = None
+                self.generation += 1
+                generation = (
+                    self.generation
+                    if self.apply_generation_response is None
+                    else self.apply_generation_response
+                )
+                self._field_reply(request, generation=generation, activation="pending_delivery")
         elif operation == "cancel":
+            self.step_up = None
             self._field_reply(request, generation=self.generation, activation="unchanged")
         else:
             raise AssertionError(f"unexpected operation {operation}")
@@ -218,6 +308,9 @@ class ClientTests(unittest.TestCase):
         for bad in (0, 121, float("inf"), float("nan")):
             with self.assertRaisesRegex(ble.ClientError, "timeout"):
                 ble.Client(FakeBackend(), timeout=bad)
+        for bad in (0, 26, float("inf"), float("nan")):
+            with self.assertRaisesRegex(ble.ClientError, "confirmation_timeout"):
+                ble.Client(FakeBackend(), confirmation_timeout=bad)
 
     def test_pairing_authorization_is_exact(self):
         expected = "/org/bluez/hci0/dev_2C_CF_67_62_76_68"
@@ -289,15 +382,120 @@ class ClientTests(unittest.TestCase):
         client.authorize("app-secret")
         encoded = ble.canonical_profile(profile())
         retained = bytes(encoded)
-        self.assertEqual(client.provision(encoded), 8)
+        self.assertEqual(client.provision(encoded, "app-secret"), 8)
         self.assertTrue(all(byte == 0 for byte in encoded))
         self.assertEqual(bytes(backend.profile), retained)
+        required = VECTORS["profile_apply"]["required_order"]
+        profile_operations = [operation for operation in backend.operations if operation in required]
+        self.assertEqual(profile_operations[0], "open")
+        self.assertEqual(profile_operations[-2:], ["profile_step_up", "apply"])
         backend.fail_write = True
         rejected = ble.canonical_profile(profile())
         with self.assertRaisesRegex(ble.ClientError, "storage_fault"):
-            client.provision(rejected)
+            client.provision(rejected, "app-secret")
         self.assertEqual(backend.operations[-1], "cancel")
         self.assertTrue(all(byte == 0 for byte in rejected))
+
+        backend.fail_write = False
+        wrong_password = ble.canonical_profile(profile())
+        with self.assertRaisesRegex(ble.ClientError, "authentication_required"):
+            client.provision(wrong_password, "wrong-pass")
+        self.assertEqual(backend.operations[-1], "cancel")
+        self.assertTrue(all(byte == 0 for byte in wrong_password))
+
+    def test_profile_confirmation_and_apply_binding(self):
+        backend, client = self.connected()
+        client.authorize("app-secret")
+        backend.confirmation_required = True
+        backend.confirmation_ready = False
+        confirmations = []
+
+        def confirm(device_id):
+            confirmations.append(device_id)
+            backend.confirmation_ready = True
+
+        encoded = ble.canonical_profile(profile())
+        self.assertEqual(client.provision(encoded, "app-secret", confirm), 8)
+        self.assertEqual(confirmations, [DEVICE])
+        self.assertIn("profile_step_up_status", backend.operations)
+
+        direct_apply = {
+            "version": 1,
+            "operation": "apply",
+            "request_id": "a" * 32,
+            "session_id": "b" * 32,
+            "device_id": DEVICE,
+            "expected_generation": client.generation,
+        }
+        with self.assertRaisesRegex(ble.ClientError, "authentication_required"):
+            client.exchange(direct_apply)
+
+        invalid_backend, invalid_client = self.connected()
+        invalid_client.authorize("app-secret")
+        invalid_backend.force_step_up_not_ready = True
+        invalid = ble.canonical_profile(profile())
+        with self.assertRaisesRegex(ble.ClientError, "profile_step_up_response"):
+            invalid_client.provision(invalid, "app-secret")
+        self.assertEqual(invalid_backend.operations[-1], "cancel")
+
+        timeout_backend = FakeBackend()
+        timeout_client = ble.Client(
+            timeout_backend, timeout=0.1, confirmation_timeout=0.001
+        )
+        timeout_client.connect(ADDRESS, DEVICE)
+        timeout_client.authorize("app-secret")
+        timeout_backend.confirmation_required = True
+        timeout_backend.confirmation_ready = False
+        timeout_backend.drop_step_up_status = True
+        pending = ble.canonical_profile(profile())
+        with self.assertRaisesRegex(ble.ClientError, "confirmation_timeout"):
+            timeout_client.provision(pending, "app-secret")
+        self.assertEqual(timeout_backend.operations[-1], "cancel")
+        self.assertTrue(all(byte == 0 for byte in pending))
+
+        malformed_backend, malformed_client = self.connected()
+        malformed_client.authorize("app-secret")
+        malformed_backend.apply_generation_response = "invalid"
+        committed = ble.canonical_profile(profile())
+        with self.assertRaisesRegex(ble.ClientError, "generation"):
+            malformed_client.provision(committed, "app-secret")
+        self.assertEqual(malformed_backend.operations[-1], "apply")
+        self.assertTrue(all(byte == 0 for byte in committed))
+
+    def test_maximum_profile_transfer(self):
+        backend, client = self.connected()
+        client.authorize("app-secret")
+        encoded = ble.canonical_profile(profile_at_serialized_size(ble.MAX_PROFILE_BYTES))
+        self.assertEqual(len(encoded), VECTORS["limits"]["max_profile_bytes"])
+        self.assertEqual(client.provision(encoded, "app-secret"), 8)
+        self.assertEqual(len(backend.profile), VECTORS["limits"]["max_profile_bytes"])
+        self.assertEqual(
+            backend.operations.count("write"),
+            VECTORS["limits"]["max_profile_bytes"] // VECTORS["limits"]["max_fragment_bytes"],
+        )
+
+    def test_second_password_prompt_failure_scrubs_loaded_profile(self):
+        backend = FakeBackend()
+        loaded = ble.canonical_profile(profile())
+        with (
+            patch.object(ble, "load_profile_file", return_value=loaded),
+            patch.object(ble.getpass, "getpass", side_effect=["app-secret", EOFError]),
+        ):
+            with self.assertRaisesRegex(ble.ClientError, "password_input"):
+                ble.run(
+                    [
+                        "--address",
+                        ADDRESS,
+                        "--device-id",
+                        DEVICE,
+                        "provision",
+                        "--profile",
+                        "/unused/profile.json",
+                    ],
+                    backend_factory=lambda adapter: backend,
+                )
+        self.assertTrue(all(byte == 0 for byte in loaded))
+        self.assertTrue(backend.closed)
 
 
 class ProfileFileTests(unittest.TestCase):
@@ -312,6 +510,19 @@ class ProfileFileTests(unittest.TestCase):
         changed = profile("A" * 32)
         with self.assertRaisesRegex(ble.ClientError, "device_id"):
             ble.canonical_profile(changed)
+
+    def test_frozen_profile_transfer_boundaries(self):
+        self.assertEqual(VECTORS["protocol"], "Field-GATT/1")
+        self.assertEqual(VECTORS["status"], "frozen")
+        for entry in VECTORS["profile_transfer_cases"]:
+            candidate = profile_at_serialized_size(entry["bytes"])
+            if entry["result"] == "accepted":
+                encoded = ble.canonical_profile(candidate)
+                self.assertEqual(len(encoded), entry["bytes"])
+                encoded[:] = b"\x00" * len(encoded)
+            else:
+                with self.assertRaisesRegex(ble.ClientError, "profile_oversize"):
+                    ble.canonical_profile(candidate)
 
     def test_owner_only_regular_absolute_file(self):
         with tempfile.TemporaryDirectory() as directory:
