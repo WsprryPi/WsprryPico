@@ -34,6 +34,8 @@ class Characteristic {
     this.listeners = [];
     this.commands = [];
     this.writtenSizes = [];
+    this.writtenBufferSizes = [];
+    this.writtenOffsets = [];
     this.writeKinds = [];
     this.emittedSizes = [];
     this.respond = true;
@@ -75,6 +77,8 @@ class Characteristic {
   }
   async write(bytes, kind) {
     this.writtenSizes.push(bytes.byteLength);
+    this.writtenBufferSizes.push(bytes.buffer.byteLength);
+    this.writtenOffsets.push(bytes.byteOffset);
     this.writeKinds.push(kind);
     if (this.wtpMode) {
       for (const command of this.wtpReceiver.receive(
@@ -376,6 +380,10 @@ async function run() {
   assert.deepStrictEqual(fixture.command.wtpCommands.map((item) => item.op), ["HELLO", "STATUS"]);
   assert.strictEqual(fixture.wtpCommand.commands.length, 0);
   assert(fixture.command.writtenSizes.every((size) => size <= WTP_SEGMENT_BYTES));
+  assert(fixture.command.writtenSizes.every(
+    (size, index) => size === fixture.command.writtenBufferSizes[index] &&
+      fixture.command.writtenOffsets[index] === 0),
+  "Bluefy writes must use compact buffers rather than views into larger frames");
   fixture.command.wtpRespond = false;
   const pendingWtp = client.wtpExchange("PING", {token: "one-at-a-time"});
   await new Promise((resolve) => setImmediate(resolve));
@@ -594,7 +602,7 @@ async function run() {
   await assert.rejects(() => silentClient.authorize("wspr-0a60df"), (error) => {
     assert.strictEqual(error.code, "timeout");
     assert.match(error.detail,
-      /^writes [0-9]+\/[0-9]+; events 0; frames 0; messages 0; matched 0; last none$/);
+      /^writes [0-9]+\/[0-9]+; events 0; frames 0; messages 0; matched 0; wtp writes 0\/0; last none$/);
     assert(!error.detail.includes("wspr-0a60df"));
     return true;
   });

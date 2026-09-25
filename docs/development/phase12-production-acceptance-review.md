@@ -613,6 +613,51 @@ now admits exactly one command characteristic: dedicated before selection,
 field after selection. A second adversarial assessment found no further
 actionable issue in this bounded transition.
 
+Candidate A was then serial-targeted with exact RF-inhibited firmware
+`4377d2ded8e3` (UF2 SHA-256
+`048c3feef2536b7e17c74edc153d4f25a4fa1980e4910566d7d7aaba677ef22a`).
+Postflight preserved access generation 3, profile generation 0, station
+`AA0NT/EM18/20`, the 120/0 schedule, watermark
+`1789607761000000000`, configuration/watermark journal sequences 72/12 and
+reported boot ID `331e555683a5d6c6122735a07883e0a8`, healthy storage,
+`empty` and `output_active:false`. The published page exactly matched release
+`35bd0b872dd19ff50f9d467a1437729c77d384917dae7982639ef4ca6b8d1778`.
+Blank retained-bond authorization again succeeded. Before WTP selection the
+target showed one connection, no disconnection, one completed command/reply,
+two completed indication fragments and zero WTP traffic. The single WTP status
+attempt again displayed `operation_failed` and disconnected. Preserved final
+counters showed two completed commands/replies, five completed indication
+fragments, no queue/CCCD/indication errors, disconnect reason 19 and still zero
+WTP write or indication bytes. Runtime remained RF-inhibited, empty and output
+inactive. This proves the selector response completed but the browser again
+failed before the target accepted a first raw WTP segment.
+
+The next page-only repair addresses the remaining data-shape difference between
+the proven field writes and the failing raw WTP write. Field fragments were
+independently allocated 64-byte arrays, while WTP fragments were
+`Uint8Array.subarray()` views whose backing buffer still held the complete WTP
+frame. Although valid `BufferSource` values in the web contract, that ownership
+shape crosses Bluefy's native Core Bluetooth bridge and was not represented by
+the prior mocks. WTP transmission now copies each bounded fragment into a
+compact, independently owned array, waits for the acknowledged write and
+scrubs that array. Safe diagnostics report requested/completed WTP write counts
+if the bridge still refuses an operation. A regression now requires every
+submitted buffer to start at offset zero and have a backing-buffer length equal
+to its submitted byte length; it fails against the previous `subarray()` path.
+The deterministic candidate page release is
+`e1e6caa574a0e5c75cfd8c0a168c3ec8c2b896322ec7a7acc20d555f357f0625`.
+This repair is source/host evidence pending one bounded physical retry; it does
+not yet prove that buffer ownership was Bluefy's root cause.
+
+The adversarial reassessment checked compact-buffer ownership, 64-byte bounds,
+ordered acknowledged writes, post-write scrubbing, pending-request cleanup,
+diagnostic secrecy, deterministic release generation and the unchanged
+firmware/RF boundary. The focused four-test release/contract set passed. The
+95-test host suite passed except for the loopback TLS fixture while sandboxed;
+that fixture passed separately with its local socket permitted. The three
+initial bare-compiler failures also passed with the pinned Xcode 26.5 SDK. No
+further actionable issue was found in this page-only repair.
+
 ## Phase 11 applicability
 
 Phase 11 closure artifacts remain immutable. The shared TLS/browser/WTP,

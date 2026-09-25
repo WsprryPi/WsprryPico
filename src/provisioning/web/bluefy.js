@@ -263,7 +263,7 @@
       this.wtpReceiver = new WtpReceiver();
       // Counts and fixed error codes only; never retain a command, reply or secret.
       this.trace = {writes: 0, written: 0, events: 0, frames: 0,
-        messages: 0, matched: 0, last: "none"};
+        messages: 0, matched: 0, wtpWrites: 0, wtpWritten: 0, last: "none"};
       this.onStatus = this.onStatus.bind(this);
       this.onWtpStatus = this.onWtpStatus.bind(this);
       this.onDisconnected = this.onDisconnected.bind(this);
@@ -354,7 +354,8 @@
     diagnosticSummary() {
       const t = this.trace;
       return `writes ${t.written}/${t.writes}; events ${t.events}; frames ${t.frames}; ` +
-        `messages ${t.messages}; matched ${t.matched}; last ${t.last}`;
+        `messages ${t.messages}; matched ${t.matched}; ` +
+        `wtp writes ${t.wtpWritten}/${t.wtpWrites}; last ${t.last}`;
     }
     onStatus(event) {
       // Keep one listener attached to the already-subscribed status
@@ -678,11 +679,22 @@
         // deliberate reconnect back to field mode.
         const transport = this.command;
         const write = transport.writeValueWithResponse || transport.writeValue;
-        for (let offset = 0; offset < frame.length; offset += WTP_SEGMENT_BYTES)
-          await write.call(transport, frame.subarray(
-            offset, Math.min(frame.length, offset + WTP_SEGMENT_BYTES)));
+        this.trace.wtpWrites += Math.ceil(frame.length / WTP_SEGMENT_BYTES);
+        for (let offset = 0; offset < frame.length; offset += WTP_SEGMENT_BYTES) {
+          // Bluefy bridges the BufferSource into Core Bluetooth. Give it a
+          // compact, independently owned byte buffer rather than a view whose
+          // backing ArrayBuffer still contains the complete WTP frame.
+          const segment = frame.slice(
+            offset, Math.min(frame.length, offset + WTP_SEGMENT_BYTES));
+          try {
+            await write.call(transport, segment);
+            ++this.trace.wtpWritten;
+          } finally { segment.fill(0); }
+        }
       } catch (error) {
-        clearTimeout(settle.timer); this.wtpPending.delete(requestId); throw error;
+        clearTimeout(settle.timer); this.wtpPending.delete(requestId);
+        if (error && typeof error === "object") error.detail = this.diagnosticSummary();
+        throw error;
       } finally { frame.fill(0); }
       return result;
     }
