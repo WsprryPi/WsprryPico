@@ -1,5 +1,5 @@
 "use strict";
-const CACHE_NAME = "wsprrypico-bluefy-29f589b86f61dd9e7c0ed594db130df00edd37ec907e1c60a869639eef8a4cb2";
+const CACHE_NAME = "wsprrypico-bluefy-91eead11fface0ec16122b274974ad9a6c816a393d916ece0f8ee3efbde27a5b";
 const CACHE_PREFIX = "wsprrypico-bluefy-";
 const ASSETS = Object.freeze([
   "./", "./index.html", "./app.js", "./bluefy.js", "./manifest.webmanifest",

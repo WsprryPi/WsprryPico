@@ -253,6 +253,7 @@
       this.authorized = false;
       this.fieldSession = "";
       this.wtpSession = "";
+      this.fieldListening = false;
       this.wtpListening = false;
       this.wtpHello = null;
       this.lastWtpEvent = null;
@@ -313,6 +314,7 @@
         this.wtpStatus = wtpStatus;
         this.expectedDeviceId = observed.device_id;
         this.generation = observed.generation;
+        this.fieldListening = true;
         return {device_id: observed.device_id, generation: observed.generation};
       } catch (error) {
         if (listenerAdded && status)
@@ -326,6 +328,7 @@
         this.generation = 0;
         this.authorized = false;
         this.fieldSession = this.wtpSession = "";
+        this.fieldListening = false;
         this.wtpListening = false;
         this.wtpHello = null;
         this.statusReceiver.reset();
@@ -440,13 +443,74 @@
       this.generation = 0;
       this.authorized = false;
       this.fieldSession = this.wtpSession = "";
+      this.fieldListening = false;
       this.wtpListening = false;
       this.wtpHello = null;
       this.statusReceiver.reset();
       this.wtpReceiver.reset();
     }
+    async selectFieldChannel() {
+      if (!this.status) fail("not_connected");
+      if (this.fieldListening) return;
+      if (this.wtpPending.size) fail("wtp_busy");
+      if (this.wtpStatus && this.wtpListening) {
+        if (typeof this.wtpStatus.stopNotifications !== "function")
+          fail("notification_switch_unavailable");
+        const activeWtpStatus = this.wtpStatus;
+        await activeWtpStatus.stopNotifications();
+        activeWtpStatus.removeEventListener("characteristicvaluechanged", this.onWtpStatus);
+        this.wtpListening = false;
+        this.wtpSession = "";
+        this.wtpHello = null;
+        this.lastWtpEvent = null;
+        this.wtpReceiver.reset();
+      }
+      let notifying = await this.status.startNotifications();
+      if (notifying && typeof notifying.addEventListener === "function")
+        this.status = notifying;
+      this.status.addEventListener("characteristicvaluechanged", this.onStatus);
+      this.fieldListening = true;
+    }
+    async selectWtpChannel() {
+      if (!this.status || !this.wtpStatus) fail("not_connected");
+      if (this.wtpListening) return;
+      if (this.pending.size) fail("field_busy");
+      if (this.fieldListening) {
+        if (typeof this.status.stopNotifications !== "function")
+          fail("notification_switch_unavailable");
+        const activeStatus = this.status;
+        await activeStatus.stopNotifications();
+        activeStatus.removeEventListener("characteristicvaluechanged", this.onStatus);
+        this.fieldListening = false;
+        this.statusReceiver.reset();
+      }
+      try {
+        if (!this.wtpStatus) fail("not_connected");
+        let notifying = await this.wtpStatus.startNotifications();
+        if (notifying && typeof notifying.addEventListener === "function")
+          this.wtpStatus = notifying;
+        this.wtpListening = true;
+        this.wtpStatus.addEventListener("characteristicvaluechanged", this.onWtpStatus);
+      } catch (error) {
+        if (this.wtpStatus && this.wtpListening) {
+          const activeWtpStatus = this.wtpStatus;
+          try {
+            if (typeof activeWtpStatus.stopNotifications === "function")
+              await activeWtpStatus.stopNotifications();
+          } catch (_) { /* best-effort rollback */ }
+          activeWtpStatus.removeEventListener("characteristicvaluechanged", this.onWtpStatus);
+          this.wtpListening = false;
+        }
+        try { await this.selectFieldChannel(); } catch (_) { /* preserve original failure */ }
+        throw error;
+      }
+    }
     async exchange(message, acceleratedTail = false) {
       if (!this.command) fail("not_connected");
+      if (!this.fieldListening) {
+        await this.selectFieldChannel();
+        if (!this.command || !this.status) fail("not_connected");
+      }
       if (!validDeviceId(message.request_id) || this.pending.has(message.request_id))
         fail("request_id");
       const encoded = encoder.encode(JSON.stringify(message));
@@ -571,11 +635,7 @@
     async enableLocalControl() {
       if (!this.authorized || !this.wtpStatus) fail("authentication_required");
       if (this.wtpHello) return this.wtpHello;
-      let notifying = await this.wtpStatus.startNotifications();
-      if (notifying && typeof notifying.addEventListener === "function")
-        this.wtpStatus = notifying;
-      this.wtpStatus.addEventListener("characteristicvaluechanged", this.onWtpStatus);
-      this.wtpListening = true;
+      await this.selectWtpChannel();
       this.wtpSession = randomId(this.crypto);
       try {
         const hello = await this.wtpExchange("HELLO", {versions: ["WTP/1"],
@@ -684,6 +744,7 @@
       this.generation = 0;
       this.authorized = false;
       this.fieldSession = this.wtpSession = "";
+      this.fieldListening = false;
       this.wtpListening = false;
       this.wtpHello = null;
       this.statusReceiver.reset();

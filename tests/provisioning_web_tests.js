@@ -24,8 +24,13 @@ function cryptoFixture() {
   return {getRandomValues(bytes) { bytes.fill(0); bytes[bytes.length - 1] = next++; return bytes; }};
 }
 class Characteristic {
-  constructor(value) {
+  constructor(value, label = "", notificationLog = []) {
     this.value = value;
+    this.label = label;
+    this.notificationLog = notificationLog;
+    this.notificationStarts = 0;
+    this.notificationStops = 0;
+    this.notificationsActive = false;
     this.listeners = [];
     this.commands = [];
     this.writtenSizes = [];
@@ -35,7 +40,18 @@ class Characteristic {
     this.receiver = new FrameReceiver(MAX_COMMAND_BYTES);
   }
   async readValue() { const bytes = new TextEncoder().encode(JSON.stringify(this.value)); return new DataView(bytes.buffer); }
-  async startNotifications() { return this; }
+  async startNotifications() {
+    ++this.notificationStarts;
+    this.notificationsActive = true;
+    this.notificationLog.push(`${this.label}:start`);
+    return this;
+  }
+  async stopNotifications() {
+    ++this.notificationStops;
+    this.notificationsActive = false;
+    this.notificationLog.push(`${this.label}:stop`);
+    return this;
+  }
   addEventListener(_, callback) { this.listeners.push(callback); }
   removeEventListener(_, callback) { this.listeners = this.listeners.filter((item) => item !== callback); }
   emitBytes(bytes) {
@@ -88,8 +104,8 @@ class Characteristic {
   async writeValueWithoutResponse(bytes) { return this.write(bytes, "without-response"); }
 }
 class WtpCharacteristic extends Characteristic {
-  constructor() {
-    super();
+  constructor(label = "", notificationLog = []) {
+    super(undefined, label, notificationLog);
     this.receiver = new WtpReceiver();
   }
   emitWtp(value) {
@@ -116,11 +132,13 @@ class WtpCharacteristic extends Characteristic {
   }
 }
 function bluetoothFixture(observedDevice = device, generation = 0) {
-  const identity = new Characteristic({device_id: observedDevice, generation});
-  const command = new Characteristic();
-  const status = new Characteristic();
-  const wtpCommand = new WtpCharacteristic();
-  const wtpStatus = new WtpCharacteristic();
+  const notificationLog = [];
+  const identity = new Characteristic({device_id: observedDevice, generation}, "identity",
+                                      notificationLog);
+  const command = new Characteristic(undefined, "command", notificationLog);
+  const status = new Characteristic(undefined, "status", notificationLog);
+  const wtpCommand = new WtpCharacteristic("wtp-command", notificationLog);
+  const wtpStatus = new WtpCharacteristic("wtp-status", notificationLog);
   command.peer = status;
   wtpCommand.peer = wtpStatus;
   const characteristics = new Map();
@@ -146,7 +164,7 @@ function bluetoothFixture(observedDevice = device, generation = 0) {
     }
   };
   return {bluetooth: {requestDevice: async () => deviceObject}, identity, command, status,
-    wtpCommand, wtpStatus, gatt, device: deviceObject};
+    wtpCommand, wtpStatus, notificationLog, gatt, device: deviceObject};
 }
 async function rejectsCode(callback, code) {
   try { await callback(); assert.fail("expected rejection"); }
@@ -264,6 +282,9 @@ async function run() {
 
   const hello = await client.enableLocalControl();
   assert.strictEqual(hello.device_id, device);
+  assert.deepStrictEqual(fixture.notificationLog.slice(-2), ["status:stop", "wtp-status:start"]);
+  assert.strictEqual(fixture.status.notificationsActive, false);
+  assert.strictEqual(fixture.wtpStatus.notificationsActive, true);
   assert.deepStrictEqual(await client.wtpExchange("STATUS", {}),
     {state: "empty", output_active: false});
   assert.deepStrictEqual(fixture.wtpCommand.commands.map((item) => item.op), ["HELLO", "STATUS"]);
@@ -281,6 +302,9 @@ async function run() {
   fixture.command.respond = false;
   const invalidFieldStatus = client.fieldStatus();
   await new Promise((resolve) => setImmediate(resolve));
+  assert.deepStrictEqual(fixture.notificationLog.slice(-2), ["wtp-status:stop", "status:start"]);
+  assert.strictEqual(fixture.status.notificationsActive, true);
+  assert.strictEqual(fixture.wtpStatus.notificationsActive, false);
   const fieldRequest = fixture.command.commands.at(-1);
   fixture.status.emit({request_id: fieldRequest.request_id, ok: true});
   await rejectsCode(() => invalidFieldStatus, "field_status_response");
@@ -317,6 +341,48 @@ async function run() {
   assert(fixture.status.emittedSizes.every((size) => size <= GATT_FRAME_BYTES));
   assert(fixture.status.emittedSizes.some((size) => size > 20),
     "mock GATT must not be mistaken for default-ATT-MTU status evidence");
+
+  const noSwitchFixture = bluetoothFixture();
+  const noSwitchClient = new Client(noSwitchFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  await noSwitchClient.connect(device);
+  await noSwitchClient.authorize("wspr-0a60df");
+  noSwitchFixture.status.stopNotifications = undefined;
+  await rejectsCode(() => noSwitchClient.enableLocalControl(), "notification_switch_unavailable");
+  assert.strictEqual(noSwitchFixture.gatt.connected, true);
+  assert.strictEqual(noSwitchFixture.status.notificationsActive, true);
+  assert.strictEqual(noSwitchFixture.wtpStatus.notificationStarts, 0);
+
+  const stopFailureFixture = bluetoothFixture();
+  const stopFailureClient = new Client(
+    stopFailureFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  await stopFailureClient.connect(device);
+  await stopFailureClient.authorize("wspr-0a60df");
+  stopFailureFixture.status.stopNotifications = async () => {
+    throw new Error("native stop failure");
+  };
+  await assert.rejects(() => stopFailureClient.enableLocalControl(), /native stop failure/);
+  assert.strictEqual(stopFailureFixture.gatt.connected, true);
+  assert.strictEqual(stopFailureFixture.status.notificationsActive, true);
+  assert.strictEqual(stopFailureFixture.status.listeners.length, 1);
+  assert.strictEqual(stopFailureClient.fieldListening, true);
+  assert.strictEqual(stopFailureFixture.wtpStatus.notificationStarts, 0);
+
+  const failedSwitchFixture = bluetoothFixture();
+  const failedSwitchClient = new Client(
+    failedSwitchFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  await failedSwitchClient.connect(device);
+  await failedSwitchClient.authorize("wspr-0a60df");
+  failedSwitchFixture.wtpStatus.startNotifications = async () => {
+    throw new Error("native subscription failure");
+  };
+  await assert.rejects(() => failedSwitchClient.enableLocalControl(),
+                       /native subscription failure/);
+  assert.strictEqual(failedSwitchFixture.gatt.connected, true);
+  assert.strictEqual(failedSwitchFixture.status.notificationsActive, true);
+  assert.strictEqual(failedSwitchClient.fieldListening, true);
+  assert.strictEqual(failedSwitchClient.wtpListening, false);
+  assert.deepStrictEqual(failedSwitchFixture.notificationLog.slice(-2),
+    ["status:stop", "status:start"]);
 
   const invalidProfile = profile({port: 0});
   await rejectsCode(() => client.provision(invalidProfile), "port");
