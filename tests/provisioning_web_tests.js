@@ -1,7 +1,8 @@
 "use strict";
 const assert = require("assert");
 const vectors = require("../docs/protocol/Field-GATT-v1-vectors.json");
-const {canonicalProfile, Client, MAX_PROFILE_BYTES, FRAGMENT_BYTES, GATT_FRAME_BYTES, MAX_COMMAND_BYTES,
+const {canonicalProfile, profileInputFromFile, Client, MAX_PROFILE_BYTES, FRAGMENT_BYTES,
+  GATT_FRAME_BYTES, MAX_COMMAND_BYTES,
   MAX_STATUS_BYTES, WTP_SEGMENT_BYTES, frames, FrameReceiver, crc32c, wtpFrame,
   WtpReceiver} = require("../src/provisioning/web/bluefy.js");
 const device = "a".repeat(32);
@@ -18,6 +19,16 @@ function profile(change) {
     server_certificate: "-----BEGIN CERTIFICATE-----\nSERVER\n-----END CERTIFICATE-----\n",
     server_private_key: "-----BEGIN PRIVATE KEY-----\nKEY\n-----END PRIVATE KEY-----\n",
     client_ca: "-----BEGIN CERTIFICATE-----\nCA\n-----END CERTIFICATE-----\n"
+  }, change || {});
+}
+function preparedFile(change) {
+  const flat = profile();
+  return Object.assign({
+    version: 1, device_id: flat.device_id,
+    wifi: {ssid: flat.ssid, password: flat.password, time_server: flat.time_server},
+    tls: {hostname: flat.hostname, port: flat.port,
+      server_certificate: flat.server_certificate,
+      server_private_key: flat.server_private_key, client_ca: flat.client_ca}
   }, change || {});
 }
 function profileAtSerializedSize(target) {
@@ -315,6 +326,42 @@ async function run() {
   const canonical = canonicalProfile(profile());
   assert(canonical.value.includes('"hostname":"wsprrypico-010203.local"'));
   canonical.bytes.fill(0);
+  const fileBytes = new TextEncoder().encode(JSON.stringify(preparedFile()));
+  const imported = profileInputFromFile(fileBytes, device);
+  assert.strictEqual(imported.device_id, device);
+  assert.strictEqual(imported.password, profile().password);
+  assert.strictEqual(imported.server_private_key, profile().server_private_key);
+  const importedCanonical = canonicalProfile(imported);
+  assert(importedCanonical.bytes.length <= MAX_PROFILE_BYTES);
+  importedCanonical.bytes.fill(0);
+  fileBytes.fill(0);
+  const importFixture = bluetoothFixture();
+  const importClient = new Client(importFixture.bluetooth, cryptoFixture(), {timeoutMs: 50});
+  await importClient.connect(device);
+  await importClient.authorize("wspr-0a60df");
+  imported.access_password = "wspr-0a60df";
+  assert.deepStrictEqual(await importClient.provision(imported), {generation: 1});
+  assert.strictEqual(imported.access_password, "");
+  assert.strictEqual(imported.server_private_key, "");
+  importClient.disconnect();
+  for (const [source, expected] of [
+    [new Uint8Array(0), "profile_file_size"],
+    [new Uint8Array(MAX_PROFILE_BYTES + 1), "profile_file_size"],
+    [new Uint8Array([0xc3, 0x28]), "profile_file_invalid"],
+    [new TextEncoder().encode("{not-json"), "profile_file_invalid"],
+    [new TextEncoder().encode(JSON.stringify(preparedFile({extra: 1}))),
+      "profile_file_format"],
+    [new TextEncoder().encode(JSON.stringify(preparedFile({version: 2}))),
+      "profile_file_format"],
+    [new TextEncoder().encode(JSON.stringify(preparedFile({tls: {...preparedFile().tls,
+      port: "18443"}}))), "profile_file_format"],
+    [new TextEncoder().encode(JSON.stringify(preparedFile({device_id: "b".repeat(32)}))),
+      "profile_file_wrong_device"]
+  ]) {
+    assert.throws(() => profileInputFromFile(source, device),
+      (error) => error.code === expected);
+    source.fill(0);
+  }
   for (const changed of [
     {device_id: "A".repeat(32)}, {ssid: ""}, {password: "short"},
     {time_server: "127.0.0.1"}, {hostname: "evil.example"}, {port: 0},

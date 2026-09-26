@@ -11,6 +11,8 @@ const syncTime = document.querySelector("#sync-time");
 const fieldStatus = document.querySelector("#field-status");
 const wtpStatus = document.querySelector("#wtp-status");
 const showAccessPassword = document.querySelector("#show-access-password");
+const profileFile = document.querySelector("#profile-file");
+const provisionFile = document.querySelector("#provision-file");
 const releaseLabel = document.querySelector("#release");
 const releaseMeta = document.querySelector('meta[name="wsprry-bluefy-release"]');
 const releaseFiles = Object.freeze([
@@ -121,11 +123,20 @@ function setAccessPasswordEnabled(enabled) {
 function clearSecrets() {
   for (const name of ["access_password", "password", "server_certificate", "server_private_key", "client_ca"])
     form.elements[name].value = "";
+  profileFile.value = "";
   setAccessPasswordVisible(false);
   updateAccessPasswordToggle();
 }
 function message(error) {
   const code = error && error.code ? error.code : "operation_failed";
+  const fileGuidance = {
+    profile_file_size: "choose a prepared JSON file of 7,168 bytes or less",
+    profile_file_unreadable: "the file could not be read; choose it again",
+    profile_file_invalid: "the file is not valid UTF-8 JSON",
+    profile_file_format: "the file is not a version-1 WsprryPico profile",
+    profile_file_wrong_device: "the file does not match the selected Pico"
+  };
+  if (fileGuidance[code]) return `${code} (${fileGuidance[code]})`;
   return error && error.detail ? `${code} (${error.detail})` : code;
 }
 function resetDisconnectedClient() {
@@ -262,30 +273,79 @@ wtpStatus.addEventListener("click", () => localOperation("Reading WTP status", a
 function validDeviceSelection() {
   return /^[0-9a-f]{32}$/.test(form.elements.device_id.value);
 }
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
+async function runProvision(inputFactory, label) {
   if (!client || active) return;
   const operationClient = client;
+  let input = null;
   active = true;
   fields.disabled = true;
   localControls.disabled = true;
-  status.value = "Validating and transferring the replacement profile…";
+  status.value = label;
   try {
-    const result = await operationClient.provision(values());
+    input = await inputFactory();
+    if (client !== operationClient) return;
+    status.value = "Validating and transferring the replacement profile…";
+    const result = await operationClient.provision(input);
     if (client !== operationClient) return;
     status.value = `Profile generation ${result.generation} committed.`;
   } catch (error) {
     if (client === operationClient)
       status.value = `Provisioning failed: ${message(error)}.`;
   } finally {
-    clearSecrets();
+    if (input) {
+      for (const name of ["access_password", "password", "server_certificate",
+        "server_private_key", "client_ca"])
+        input[name] = "";
+    }
     if (client === operationClient) {
+      clearSecrets();
       fields.disabled = false;
       setAccessPasswordEnabled(true);
       localControls.disabled = !client.authorized;
       active = false;
     }
   }
+}
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  void runProvision(() => values(), "Validating and transferring the replacement profile…");
+});
+provisionFile.addEventListener("click", () => {
+  if (!client || active) return;
+  const selectedDeviceId = client.expectedDeviceId;
+  const selected = profileFile.files && profileFile.files[0];
+  if (!selected) {
+    status.value = "Choose the prepared profile JSON file first.";
+    profileFile.focus();
+    return;
+  }
+  if (!form.elements.access_password.value) {
+    status.value = "Re-enter the current local password before provisioning.";
+    form.elements.access_password.focus();
+    return;
+  }
+  void runProvision(async () => {
+    if (!Number.isSafeInteger(selected.size) || selected.size < 2 ||
+        selected.size > WsprryBluefy.MAX_PROFILE_BYTES)
+      throw Object.assign(new Error("profile_file_size"), {code: "profile_file_size"});
+    if (typeof selected.arrayBuffer !== "function")
+      throw Object.assign(new Error("profile_file_unreadable"), {code: "profile_file_unreadable"});
+    let bytes;
+    try {
+      let buffer;
+      try { buffer = await selected.arrayBuffer(); }
+      catch (_) {
+        throw Object.assign(new Error("profile_file_unreadable"),
+          {code: "profile_file_unreadable"});
+      }
+      bytes = new Uint8Array(buffer);
+      const input = WsprryBluefy.profileInputFromFile(bytes, selectedDeviceId);
+      input.access_password = form.elements.access_password.value;
+      return input;
+    } finally {
+      if (bytes) bytes.fill(0);
+    }
+  }, "Reading and validating the prepared profile file…");
 });
 cancel.addEventListener("click", () => {
   if (client) client.disconnect();

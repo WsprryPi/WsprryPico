@@ -19,14 +19,24 @@ class Links(HTMLParser):
         super().__init__()
         self.references = []
         self.integrity = {}
+        self.fieldset_depth = 0
+        self.control_depth = {}
 
     def handle_starttag(self, tag, attrs):
         values = dict(attrs)
+        if tag == "fieldset":
+            self.fieldset_depth += 1
+        if values.get("id") in ("profile-file", "provision-file", "cancel"):
+            self.control_depth[values["id"]] = self.fieldset_depth
         reference = values.get("src") or values.get("href")
         if reference:
             self.references.append(reference)
             if "integrity" in values:
                 self.integrity[reference] = values["integrity"]
+
+    def handle_endtag(self, tag):
+        if tag == "fieldset":
+            self.fieldset_depth -= 1
 
 
 def sha384(data):
@@ -60,6 +70,8 @@ def main():
 
     index = (RELEASE / "index.html").read_text()
     links = Links(); links.feed(index)
+    assert links.fieldset_depth == 0
+    assert links.control_depth == {"profile-file": 1, "provision-file": 1, "cancel": 0}
     assert all(not value.startswith(("http:", "https:", "//")) for value in links.references)
     assert manifest["release"] in index and "source-only" not in index
     assert "Find nearby WsprryPicos" in index and "readonly" in index

@@ -181,6 +181,27 @@ RF-inhibited evidence qualify physical RF output. The public default local
 password remains active on this test device; no credential rotation was
 authorized or attempted.
 
+## Operator-reported Bluefy continuation
+
+On 2026-09-25 the operator reported the checked-in online-verified Bluefy
+release `45041c11076f` on the iPhone; offline cache remained unavailable.
+The page selected the exact Candidate A ID at profile generation 1, authorized
+the selected device, returned read-only WTP `0.0.0-devel`/empty/inactive, and
+reported field time `sntp`, LED off and no indicator fault. A contemporaneous
+USB Console read showed generation 1, healthy access/storage, the inhibited
+engine, empty state and inactive output. No Bluefy profile transfer, failure
+case or apply was attempted because the prepared private profile was not on
+the phone. The operator was asked to cancel and clear the tab; completion of
+that cleanup was not independently observed.
+
+The checked-in Bluefy page now offers a **test-only** prepared JSON file import
+so the operator need not copy individual PEM fields. It reads a bounded file
+locally, requires the exact selected device ID and the usual fresh password,
+uses the unchanged Field-GATT/1 apply path and clears file selection on every
+terminal path. It neither generates nor distributes that file; this is not a
+consumer commissioning solution. Bluefy physical apply and negative rows
+remain open until they are run on the published matching release.
+
 ## Remaining gates
 
 1. Complete the ordinary-profile Bluefy/iPhone apply and its negative,

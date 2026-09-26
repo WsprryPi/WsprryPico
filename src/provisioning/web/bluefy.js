@@ -106,6 +106,36 @@
     }
     return {value, bytes};
   }
+  function exactKeys(value, keys) {
+    return value && typeof value === "object" && !Array.isArray(value) &&
+      Object.keys(value).length === keys.length &&
+      keys.every((key) => Object.prototype.hasOwnProperty.call(value, key));
+  }
+  function profileInputFromFile(bytes, expectedDeviceId) {
+    if (!(bytes instanceof Uint8Array) || bytes.length < 2 ||
+        bytes.length > MAX_PROFILE_BYTES) fail("profile_file_size");
+    let parsed;
+    try {
+      parsed = JSON.parse(new TextDecoder("utf-8", {fatal: true}).decode(bytes));
+    } catch (_) {
+      fail("profile_file_invalid");
+    }
+    if (!exactKeys(parsed, ["version", "device_id", "wifi", "tls"]) ||
+        parsed.version !== 1 ||
+        !exactKeys(parsed.wifi, ["ssid", "password", "time_server"]) ||
+        !exactKeys(parsed.tls, ["hostname", "port", "server_certificate",
+          "server_private_key", "client_ca"]) ||
+        !Number.isInteger(parsed.tls.port)) fail("profile_file_format");
+    if (!validDeviceId(expectedDeviceId) || parsed.device_id !== expectedDeviceId)
+      fail("profile_file_wrong_device");
+    return {
+      device_id: parsed.device_id,
+      ssid: parsed.wifi.ssid, password: parsed.wifi.password,
+      time_server: parsed.wifi.time_server, hostname: parsed.tls.hostname,
+      port: parsed.tls.port, server_certificate: parsed.tls.server_certificate,
+      server_private_key: parsed.tls.server_private_key, client_ca: parsed.tls.client_ca
+    };
+  }
   function randomId(cryptoObject) {
     if (!cryptoObject || typeof cryptoObject.getRandomValues !== "function") fail("secure_random");
     const bytes = new Uint8Array(16);
@@ -841,5 +871,6 @@
   return {UUIDS, MAX_PROFILE_BYTES, FRAGMENT_BYTES, GATT_FRAME_BYTES,
     GATT_FRAME_HEADER_BYTES, GATT_FRAME_PAYLOAD_BYTES, GATT_FRAME_COUNT, MAX_COMMAND_BYTES,
     MAX_STATUS_BYTES, WTP_HEADER_BYTES, WTP_MAX_PAYLOAD_BYTES, WTP_SEGMENT_BYTES,
-    validDeviceId, canonicalProfile, frames, FrameReceiver, crc32c, wtpFrame, WtpReceiver, Client};
+    validDeviceId, canonicalProfile, profileInputFromFile, frames, FrameReceiver, crc32c,
+    wtpFrame, WtpReceiver, Client};
 });

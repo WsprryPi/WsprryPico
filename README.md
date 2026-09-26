@@ -106,11 +106,15 @@ The current Bluefy source requires a fresh password step-up for each exact
 staged profile even on a retained bond. While the public default password is
 active, the page also waits for an identity-bound USB-local confirmation within
 the 30-second provisioning session. This is host-tested source behavior, not
-yet phone/target acceptance. The same bound profile sequence is implemented by
-the native-Pi client. The frozen [Field-GATT/1 contract](docs/protocol/Field-GATT.md)
+yet Bluefy/iPhone acceptance; the native-Pi client has separate bounded
+[target activation evidence](docs/development/phase12-profile-activation-attempt.md).
+The frozen [Field-GATT/1 contract](docs/protocol/Field-GATT.md)
 and [machine-readable vectors](docs/protocol/Field-GATT-v1-vectors.json) now
 keep firmware, both clients and host conformance checks aligned through the
-7,168-byte profile limit; physical profile activation remains open.
+7,168-byte profile limit; physical profile activation remains open. Bluefy also
+has a test-only prepared-JSON-file import for operator-assisted acceptance. It
+does not create or deliver a profile and is not an end-user commissioning flow;
+that flow requires a separate operator design discussion.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)

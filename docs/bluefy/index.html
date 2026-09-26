@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="wsprry-bluefy-release" content="45041c11076fe09e709b85513078a52ebaf4a40c06894dd609e2ae8ed0aa1651">
+  <meta name="wsprry-bluefy-release" content="9f4272fa74579119965beb55257d33368915499b21d08c3f25055d6b01e55523">
   <title>WsprryPico Provisioning</title>
   <link rel="stylesheet" href="style.css" integrity="sha384-/2U6/4lT+oRQRyzXZ3EW3JZdNJ6F2gUnCCm69IXXLkHPPPz7rqeh0bhKGM3lKfT8" crossorigin="anonymous">
   <link rel="manifest" href="manifest.webmanifest">
@@ -42,6 +42,19 @@
       </div>
       <fieldset disabled>
         <legend>Replacement profile</legend>
+        <div class="file-import">
+          <p id="file-import-help">Engineering test only: choose a prepared WsprryPico profile JSON file
+            for this Pico (7,168 bytes or less). This page does not create the file or upload it to the web server.
+            Re-enter the current local password above before provisioning.</p>
+          <label>Prepared profile file
+            <input id="profile-file" type="file" accept=".json,application/json"
+              aria-describedby="file-import-help">
+          </label>
+          <div class="actions">
+            <button id="provision-file" type="button">Validate and provision from file</button>
+          </div>
+        </div>
+        <p>Or enter the replacement profile fields manually:</p>
         <label>Wi-Fi name <input name="ssid" maxlength="32" required></label>
         <label>Wi-Fi password <input name="password" type="password" minlength="8" maxlength="63" required></label>
         <label>Time server <input name="time_server" value="pool.ntp.org" required></label>
@@ -52,9 +65,11 @@
         <label>Client CA <textarea name="client_ca" spellcheck="false" required></textarea></label>
         <div class="actions">
           <button type="submit">Validate and provision</button>
-          <button id="cancel" type="button">Cancel</button>
         </div>
       </fieldset>
+      <div class="actions">
+        <button id="cancel" type="button">Cancel and disconnect</button>
+      </div>
       <fieldset id="local-controls" disabled>
         <legend>Authenticated local controls</legend>
         <p>These controls use the same selected Pico and authenticated BLE bond.</p>
@@ -69,7 +84,7 @@
     <output id="status" role="status" aria-live="polite">Verifying release and offline cache…</output>
     <p>No credential is stored by this page. Clear the Bluefy tab after provisioning.</p>
   </main>
-  <script src="bluefy.js" integrity="sha384-9Xc1/hwUzTWDvsij/V+8i0bwYgD8uCk6g7mlzh9mczGRR5HUQKIYqPqVAHSGz2Ru" crossorigin="anonymous"></script>
-  <script src="app.js" integrity="sha384-gX/dtu8cEj8YM4zV9CURCahvXLizjqLEJgOHjR/NEpwXAcvOiltSK/jP1UPBWlA5" crossorigin="anonymous"></script>
+  <script src="bluefy.js" integrity="sha384-w+YlG3CtAXaI6DVkoM7Sb4rMHaLzp1HSPYxAPUtJmxwdT5OZqrLXddDApE1lfKbz" crossorigin="anonymous"></script>
+  <script src="app.js" integrity="sha384-1D9tlidgKdtkW6jXiLke324VBp7jQQmYh4doCVpHo2kbQ2pUMI1c3PcVVPM6vXkW" crossorigin="anonymous"></script>
 </body>
 </html>

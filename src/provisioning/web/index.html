@@ -42,6 +42,19 @@
       </div>
       <fieldset disabled>
         <legend>Replacement profile</legend>
+        <div class="file-import">
+          <p id="file-import-help">Engineering test only: choose a prepared WsprryPico profile JSON file
+            for this Pico (7,168 bytes or less). This page does not create the file or upload it to the web server.
+            Re-enter the current local password above before provisioning.</p>
+          <label>Prepared profile file
+            <input id="profile-file" type="file" accept=".json,application/json"
+              aria-describedby="file-import-help">
+          </label>
+          <div class="actions">
+            <button id="provision-file" type="button">Validate and provision from file</button>
+          </div>
+        </div>
+        <p>Or enter the replacement profile fields manually:</p>
         <label>Wi-Fi name <input name="ssid" maxlength="32" required></label>
         <label>Wi-Fi password <input name="password" type="password" minlength="8" maxlength="63" required></label>
         <label>Time server <input name="time_server" value="pool.ntp.org" required></label>
@@ -52,9 +65,11 @@
         <label>Client CA <textarea name="client_ca" spellcheck="false" required></textarea></label>
         <div class="actions">
           <button type="submit">Validate and provision</button>
-          <button id="cancel" type="button">Cancel</button>
         </div>
       </fieldset>
+      <div class="actions">
+        <button id="cancel" type="button">Cancel and disconnect</button>
+      </div>
       <fieldset id="local-controls" disabled>
         <legend>Authenticated local controls</legend>
         <p>These controls use the same selected Pico and authenticated BLE bond.</p>
