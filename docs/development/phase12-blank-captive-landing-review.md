@@ -1,6 +1,8 @@
 # Phase 12 blank-AP captive landing: source and adversarial review
 
-Status: **source-validated read-only landing; iPhone/target behavior open**.
+Status: **source-validated read-only landing; bounded Candidate A/iPhone result
+recorded separately** in the
+[physical result](phase12-blank-captive-physical-result.md).
 This bounded change is the operator-selected best-effort captive launch for the
 existing blank SoftAP. It is not the proposed [Wi-Fi-only credential
 bootstrap](phase12-wifi-only-bootstrap-proposal.md), whose policy, physical
@@ -20,9 +22,9 @@ was flashed, joined, reset or operated for this review.
   provisioned surface can run. Provisioned SoftAP keeps its existing DHCP and
   mDNS behavior. The listener remains AP-interface classified; HTTPS and
   station traffic are not intercepted.
-- The current blank AP still uses its existing WPA2 passphrase. This change
-  does not supply an open AP, Wi-Fi credential form, browser encryption,
-  physical claim, owner or station join.
+- At source commit `a8834cd4b172`, the blank AP still used its existing WPA2
+  passphrase. That original change supplied no Wi-Fi credential form, browser
+  encryption, physical claim, owner or station join.
 
 ## Evidence
 
@@ -53,5 +55,40 @@ another repair. It does **not** establish that iOS opens the captive screen,
 that Safari remains associated with the Pico AP, or that AP/STA coexistence is
 safe. Those require a separately authorized, finite RF-inhibited target run
 with the exact board, image, iPhone/iOS, network and restoration recorded.
-The full network-only credential bootstrap and P12.7-12.12 commissioning
-roadmap remain open.
+The later Candidate A result confirmed DHCP, AP DNS, HTTP redirect, the local
+page, and operator-reported automatic captive launch and Safari fallback on one
+iPhone. It also exposed the legacy factory-bundle selection after full erase;
+the test required a manually seeded unprovisioned journal. That result does
+not close generic blank first-run, station-join bootstrap, AP/STA coexistence
+or P12.7-12.12 commissioning.
+
+## Open blank-AP amendment
+
+The operator then selected passwordless association for the blank read-only
+SoftAP. `PicoSoftAp::start_blank` now has no password argument and passes a
+null password with `CYW43_AUTH_OPEN` to the pinned SDK. The separate provisioned
+`start` path still validates and uses its WPA2 password. Blank AP startup now
+requires the explicit unprovisioned source, a healthy non-pending or exactly
+erased access journal, no watchdog recovery, an idle/inactive job and a live
+read-only HTTP listener. If that listener is absent, the prior fallback that
+could advertise an unusable blank AP no longer runs. The identity page now
+states only that this page is read-only and has no Wi-Fi setup form.
+The unprovisioned source also suppresses the legacy standalone station
+network overlay and suspends autonomous scheduling, including when an old
+standalone config remains in flash.
+
+The adversarial pass found and closed three issues during this amendment: a
+faulted or pending access journal could otherwise expose the new open AP; a
+failed blank HTTP listener could leave an AP with no usable page; and an
+unprovisioned tombstone could otherwise reuse legacy standalone Wi-Fi and
+schedules. The startup/runtime gates above close those paths. The pinned SDK
+source confirms that a null
+password selects open auth, while the non-null path retains WPA2. The
+`bootstrap_http_tests` page assertion, runtime overlay test and the existing
+focused network suite passed; the RP2350 standard image and field-access
+linkcheck linked. The exact open-AP target and iPhone retest is recorded in the
+[physical result](phase12-blank-captive-physical-result.md).
+
+The all-erased factory-bundle selection remains a separate deferred first-run
+cleanup. This open, read-only AP does not accept station credentials and cannot
+be counted as the proposed Wi-Fi-only network-join flow.

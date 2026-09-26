@@ -1305,6 +1305,15 @@ void runtime_selection_and_overlay() {
     const auto factory_config = factory.overlay(*base);
     CHECK(factory_config && *factory_config == *base);
 
+    MemoryMedia unprovisioned_media;
+    provisioning::ProfileStore unprovisioned_store(unprovisioned_media);
+    CHECK(unprovisioned_store.load());
+    CHECK(unprovisioned_store.select(provisioning::ProfileSource::Unprovisioned));
+    provisioning::RuntimeProfile unprovisioned;
+    CHECK(unprovisioned.load(unprovisioned_store, device));
+    CHECK(unprovisioned.source() == provisioning::RuntimeSource::Unprovisioned);
+    CHECK(!unprovisioned.overlay(*base));
+
     MemoryMedia provisioned_media;
     provisioning::ProfileStore provisioned_store(provisioned_media);
     CHECK(provisioned_store.load());

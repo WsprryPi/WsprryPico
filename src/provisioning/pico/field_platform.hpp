@@ -28,7 +28,7 @@ class PicoIndicatorOutput final : public IndicatorOutput {
 class PicoSoftAp {
   public:
     bool start(const LocalIdentity& identity, std::string_view password);
-    bool start_blank(const LocalIdentity& identity, std::string_view password);
+    bool start_blank(const LocalIdentity& identity);
     void stop();
     bool ready() const;
     bool running() const {

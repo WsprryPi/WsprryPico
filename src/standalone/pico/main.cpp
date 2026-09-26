@@ -301,7 +301,8 @@ int main() {
     std::optional<wsprrypico::standalone::Config> runtime_network_config;
     if (store_loaded && store.config())
         runtime_network_config = runtime_profile.overlay(*store.config());
-    if (boot_recovery)
+    if (boot_recovery ||
+        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned)
         (void)scheduler.command("STOP");
     watchdog_hw->scratch[1] = 2;
     if (!boot_recovery && radio_identity_ok && runtime_network_config)
@@ -326,8 +327,12 @@ int main() {
     // The plaintext listener is exclusive to a truly unprovisioned recovery
     // surface.  Starting it for provisioned images would consume the single
     // bounded lwIP listen PCB before the authenticated TLS listener starts.
+    const bool blank_access_available =
+        access_store.state() == wsprrypico::provisioning::AccessStoreState::Erased ||
+        (access_store.state() == wsprrypico::provisioning::AccessStoreState::Healthy &&
+         access_store.record() && !access_store.record()->reset.pending());
     const bool bootstrap_started =
-        derived_identity &&
+        derived_identity && blank_access_available && !recovery &&
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned &&
         bootstrap.start();
     browser_api.set_active_job_connections(true);
@@ -815,7 +820,9 @@ int main() {
         const auto surface = softap_coordinator.surface(
             service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized);
         const bool blank_captive =
-            bootstrap_started && surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly;
+            bootstrap_started &&
+            surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly &&
+            wsprrypico::provisioning::idle_for_access(provisioning_activity(&service));
         if (softap.running() && softap.captive() != blank_captive) {
             (void)network.softap_name(false, {});
             softap.stop();
@@ -823,13 +830,10 @@ int main() {
         if (request_softap && !softap.running() && derived_identity) {
             const auto* access = access_store.record();
             if (blank_captive)
-                (void)softap.start_blank(local_identity, access_store.healthy() && access
-                                                             ? access->password
-                                                             : local_identity.default_password);
-            else if (access_store.healthy() && access)
+                (void)softap.start_blank(local_identity);
+            else if (surface != wsprrypico::provisioning::SoftApSurface::BlankReadOnly &&
+                     access_store.healthy() && access)
                 (void)softap.start(local_identity, access->password);
-            else if (surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly)
-                (void)softap.start(local_identity, local_identity.default_password);
         } else if (!request_softap && softap.running()) {
             (void)network.softap_name(false, {});
             softap.stop();

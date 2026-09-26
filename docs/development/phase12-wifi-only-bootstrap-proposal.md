@@ -187,7 +187,7 @@ it deliberately does not authenticate the page against active replacement.
 
 | Existing boundary | Required change |
 | --- | --- |
-| `PicoSoftAp` and `SoftApCoordinator` | Add an explicitly unprovisioned open-AP mode, keep the provisioned WPA2 fallback distinct and bound AP lifetime and AP/STA coexistence. The pinned SDK supports `CYW43_AUTH_OPEN`, but the current adapter always chooses WPA2. |
+| `PicoSoftAp` and `SoftApCoordinator` | The read-only, explicitly unprovisioned captive AP now uses open Wi-Fi, while the provisioned fallback retains WPA2. Preserve that boundary while adding the later network-only transaction, and bound AP lifetime and AP/STA coexistence. The pinned SDK supports `CYW43_AUTH_OPEN`; open association alone grants no write authority. |
 | AP-local DNS and HTTP captive detection | Extend the read-only captive landing with the later bootstrap page while retaining AP-interface-only DNS answers and safe HTTP GET redirects. Never intercept TLS or enable this on the provisioned AP or station interface. |
 | `PicoBootstrapServer` and HTTP parser | Preserve the public GET identity surface; add only the versioned challenge, physically authorized encrypted submission and bounded network status. The current server rejects every non-GET request. |
 | Access journal and BOOTSEL adapter | Add healthy-unclaimed initialization and a one-slot physical grant without interpreting erased or corrupt records as general authority. Prove safe runtime BOOTSEL sampling first. |

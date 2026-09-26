@@ -76,18 +76,22 @@ bool PicoSoftAp::start(const LocalIdentity& identity, std::string_view password)
     return start_impl(identity, password, false);
 }
 
-bool PicoSoftAp::start_blank(const LocalIdentity& identity, std::string_view password) {
-    return start_impl(identity, password, true);
+bool PicoSoftAp::start_blank(const LocalIdentity& identity) {
+    return start_impl(identity, {}, true);
 }
 
 bool PicoSoftAp::start_impl(const LocalIdentity& identity, std::string_view password,
                             bool captive) {
-    if (running_ || identity.softap_ssid.empty() || !valid_local_password(password))
+    if (running_ || identity.softap_ssid.empty() || (!captive && !valid_local_password(password)))
         return false;
-    std::string owned(password);
-    cyw43_arch_enable_ap_mode(identity.softap_ssid.c_str(), owned.c_str(),
-                              CYW43_AUTH_WPA2_AES_PSK);
-    clear(owned);
+    if (captive)
+        cyw43_arch_enable_ap_mode(identity.softap_ssid.c_str(), nullptr, CYW43_AUTH_OPEN);
+    else {
+        std::string owned(password);
+        cyw43_arch_enable_ap_mode(identity.softap_ssid.c_str(), owned.c_str(),
+                                  CYW43_AUTH_WPA2_AES_PSK);
+        clear(owned);
+    }
     ip_addr_t gateway = IPADDR4_INIT(PP_HTONL(CYW43_DEFAULT_IP_AP_ADDRESS));
     ip_addr_t netmask = IPADDR4_INIT(PP_HTONL(CYW43_DEFAULT_IP_MASK));
     if (captive && !wsprry_captive_dns_init(&dns_, &cyw43_state.netif[CYW43_ITF_AP], &gateway)) {

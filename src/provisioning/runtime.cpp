@@ -52,7 +52,7 @@ bool RuntimeProfile::load(const ProfileStore& store, std::string_view actual_dev
 }
 
 std::optional<standalone::Config> RuntimeProfile::overlay(const standalone::Config& base) const {
-    if (source_ == RuntimeSource::Fault)
+    if (source_ == RuntimeSource::Fault || source_ == RuntimeSource::Unprovisioned)
         return {};
     auto result = base;
     if (has_profile_) {

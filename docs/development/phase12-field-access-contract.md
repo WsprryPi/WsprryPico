@@ -71,8 +71,10 @@ resumes only after the full device identity and station MAC are both valid.
 
 ## Local-access password
 
-One local-access password is shared by SoftAP WPA2 access, SoftAP application
-authorization and new BLE-bond application authorization. It is separate from
+One local-access password is shared by provisioned SoftAP WPA2 access, SoftAP
+application authorization and new BLE-bond application authorization. The
+unprovisioned read-only captive AP is open and has no application login. The
+local-access password is separate from
 the upstream station-network password, TLS client identities, TLS server key,
 WTP session IDs and Bluetooth bond keys.
 
@@ -213,8 +215,11 @@ lease expiry. Ordinary reboot reevaluates station fallback rather than persistin
 that runtime cause. Successful provisioning never permanently disables SoftAP
 recovery.
 
-SoftAP uses WPA2-Personal or a stronger target-supported mode and the
-local-access password. Association alone is not application authorization.
+Provisioned SoftAP uses WPA2-Personal or a stronger target-supported mode and
+the local-access password. Association alone is not application authorization.
+The explicitly unprovisioned, read-only captive AP uses open Wi-Fi; its HTTP
+surface accepts no credentials or mutation. It must not inherit the
+provisioned SoftAP login or job-control surface.
 When a valid device-bound TLS server identity exists and usable UTC has been
 accepted, normal SoftAP browser control uses server-authenticated HTTPS plus a
 password-authenticated SoftAP-only application session. It reuses browser API

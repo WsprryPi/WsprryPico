@@ -25,9 +25,9 @@ std::string bootstrap_http_wire(const HttpRequest& request, std::string_view dev
         return HttpResponse{200,
                             "<!doctype html><meta charset=utf-8><meta name=viewport "
                             "content=\"width=device-width,initial-scale=1\"><title>WsprryPico "
-                            "recovery</title><h1>WsprryPico recovery</h1><p>This device has no "
-                            "authenticated server identity. This page is read-only. Provision it "
-                            "over encrypted BLE or USB before entering any credential.</p><p>"
+                            "recovery</title><h1>WsprryPico recovery</h1><p>Connected to "
+                            "WsprryPico. This page shows device identity only. Wi-Fi setup is "
+                            "not available here.</p><p>"
                             "Device: <code>" +
                                 std::string(device) + "</code></p><p>Firmware: <code>" +
                                 std::string(firmware) + "</code></p>",

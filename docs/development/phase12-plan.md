@@ -609,7 +609,20 @@ target operation.
 The separate [blank read-only captive landing review](phase12-blank-captive-landing-review.md)
 records a source-tested, RF-inhibited-image implementation of AP-only DNS and
 safe HTTP redirection. It adds no credential input or station-join authority;
-iPhone automatic-launch and AP/STA behavior remain unaccepted target gates.
+one Candidate A/iPhone run observed automatic launch and Safari fallback for
+this read-only page. AP/STA behavior and the full Wi-Fi-only form remain
+unaccepted target gates.
+
+**Deferred first-run cleanup:** the
+[Candidate A blank-AP physical check](phase12-blank-captive-physical-result.md)
+showed that an all-erased generic Pico selects the legacy factory-bundle source
+and cannot expose the blank captive page until an explicit unprovisioned
+selection is written. Before approving or implementing Wi-Fi-only first setup,
+decide how an all-erased generic image selects its source and retire or tightly
+scope the implicit factory-bundle fallback. Prove that valid device-bound
+bundles still behave as intended, corrupt journals fail closed, and neither
+legacy Wi-Fi nor trust material reappears after reset or power loss. Repeat the
+physical blank-device test without a manually seeded journal.
 
 ### P12.12 Stage A robustness and closure
 
