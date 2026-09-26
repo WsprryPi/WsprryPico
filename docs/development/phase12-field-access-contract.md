@@ -300,15 +300,25 @@ a device-bound profile commits, first authenticated UTC may arrive through that
 BLE/USB-local path or the provisioned pre-clock SoftAP service; the authenticated
 SoftAP path then remains available for offline time, control and replacement.
 
-The supported iPhone route is manual Safari, never a captive-sheet credential
-flow. SoftAP DHCP supplies a bounded, implementation-recorded local subnet and
-mDNS maps `wsprrypico-<suffix>.local` to the Pico without DNS interception. A
-blank device's read-only page is
-`http://wsprrypico-<suffix>.local/` and visibly unauthenticated. A provisioned
-device uses only `https://wsprrypico-<suffix>.local/`; that exact hostname is
-the certificate DNS SAN and Host/Origin authority. The captive sheet, if iOS
-opens one, accepts no password or control input and directs the operator to
-Safari.
+The blank read-only AP may attempt a captive-browser landing. Only while that
+AP is active, its DHCP advertises the Pico as DNS server and a bounded
+AP-interface DNS responder maps IPv4 queries to `192.168.4.1`. Safe plain-HTTP
+GET requests with a foreign Host redirect to `http://192.168.4.1/`. The
+captive sheet, if iOS opens one, shows only read-only identity/recovery
+information and accepts no password or control input. The fixed local Safari
+address is the supported fallback when the sheet does not appear or closes.
+This read-only landing does not authorize blank-device Wi-Fi credential input;
+the separate [Wi-Fi-only bootstrap proposal](phase12-wifi-only-bootstrap-proposal.md)
+remains a design gate.
+
+SoftAP DHCP supplies a bounded, implementation-recorded local subnet and mDNS
+maps `wsprrypico-<suffix>.local` to the Pico. Provisioned SoftAP has no DNS
+interception and retains manual Safari at
+`https://wsprrypico-<suffix>.local/`; that exact hostname is the certificate
+DNS SAN and Host/Origin authority under the current implemented contract.
+The blank read-only page is also available at
+`http://wsprrypico-<suffix>.local/` and is visibly unauthenticated. Neither
+the read-only captive redirect nor the HTTP listener intercepts HTTPS.
 
 Before provisioned SoftAP use, the operator explicitly trusts the public
 CA/server identity from the same off-device profile or device-bound bundle;

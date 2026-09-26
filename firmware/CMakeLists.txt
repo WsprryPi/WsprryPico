@@ -271,6 +271,7 @@ if(TARGET pico_btstack_ble AND TARGET pico_btstack_cyw43)
     # PicoNetwork; neither diagnostic/RF image advertises a field service.
     target_sources(WsprryPico PRIVATE
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/activation_platform.cpp
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/captive_dns.c
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/dhcp_server.c
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_platform.cpp
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gatt_transport.cpp)
@@ -283,6 +284,7 @@ if(TARGET pico_btstack_ble AND TARGET pico_btstack_cyw43)
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_access.gatt)
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/activation_platform.cpp
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/captive_dns.c
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/dhcp_server.c
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_platform.cpp
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gatt_transport.cpp
@@ -290,6 +292,7 @@ if(TARGET pico_btstack_ble AND TARGET pico_btstack_cyw43)
 
     add_executable(field_access_pico_linkcheck EXCLUDE_FROM_ALL
         ${CMAKE_SOURCE_DIR}/tests/field_access_pico_linkcheck.cpp
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/captive_dns.c
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/dhcp_server.c
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_platform.cpp
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gatt_transport.cpp)

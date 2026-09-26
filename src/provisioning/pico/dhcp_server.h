@@ -51,10 +51,11 @@ typedef struct {
     ip_addr_t netmask;
     wsprry_dhcp_lease_t lease[WSPRRY_DHCPS_MAX_IP];
     struct udp_pcb* udp;
+    bool captive_dns;
 } wsprry_dhcp_server_t;
 
 bool wsprry_dhcp_server_init(wsprry_dhcp_server_t* server, struct netif* interface,
-                             const ip_addr_t* ip, const ip_addr_t* netmask);
+                             const ip_addr_t* ip, const ip_addr_t* netmask, bool captive_dns);
 void wsprry_dhcp_server_deinit(wsprry_dhcp_server_t* server);
 bool wsprry_dhcp_server_ready(const wsprry_dhcp_server_t* server);
 

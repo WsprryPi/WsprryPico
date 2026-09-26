@@ -814,9 +814,19 @@ int main() {
         const bool request_softap = softap_coordinator.poll(field_now_ms);
         const auto surface = softap_coordinator.surface(
             service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized);
+        const bool blank_captive =
+            bootstrap_started && surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly;
+        if (softap.running() && softap.captive() != blank_captive) {
+            (void)network.softap_name(false, {});
+            softap.stop();
+        }
         if (request_softap && !softap.running() && derived_identity) {
             const auto* access = access_store.record();
-            if (access_store.healthy() && access)
+            if (blank_captive)
+                (void)softap.start_blank(local_identity, access_store.healthy() && access
+                                                             ? access->password
+                                                             : local_identity.default_password);
+            else if (access_store.healthy() && access)
                 (void)softap.start(local_identity, access->password);
             else if (surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly)
                 (void)softap.start(local_identity, local_identity.default_password);

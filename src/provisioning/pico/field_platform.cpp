@@ -9,6 +9,8 @@
 #include <array>
 
 namespace wsprrypico::provisioning {
+static_assert(CYW43_DEFAULT_IP_AP_ADDRESS == LWIP_MAKEU32(192, 168, 4, 1));
+
 bool PicoRandomSource::fill(std::span<std::uint8_t> bytes) {
     for (std::size_t offset = 0; offset < bytes.size();) {
         const auto random = get_rand_64();
@@ -71,6 +73,15 @@ void clear(std::string& value) {
 } // namespace
 
 bool PicoSoftAp::start(const LocalIdentity& identity, std::string_view password) {
+    return start_impl(identity, password, false);
+}
+
+bool PicoSoftAp::start_blank(const LocalIdentity& identity, std::string_view password) {
+    return start_impl(identity, password, true);
+}
+
+bool PicoSoftAp::start_impl(const LocalIdentity& identity, std::string_view password,
+                            bool captive) {
     if (running_ || identity.softap_ssid.empty() || !valid_local_password(password))
         return false;
     std::string owned(password);
@@ -79,25 +90,34 @@ bool PicoSoftAp::start(const LocalIdentity& identity, std::string_view password)
     clear(owned);
     ip_addr_t gateway = IPADDR4_INIT(PP_HTONL(CYW43_DEFAULT_IP_AP_ADDRESS));
     ip_addr_t netmask = IPADDR4_INIT(PP_HTONL(CYW43_DEFAULT_IP_MASK));
-    if (!wsprry_dhcp_server_init(&dhcp_, &cyw43_state.netif[CYW43_ITF_AP], &gateway,
-                                  &netmask)) {
+    if (captive && !wsprry_captive_dns_init(&dns_, &cyw43_state.netif[CYW43_ITF_AP], &gateway)) {
+        cyw43_arch_disable_ap_mode();
+        return false;
+    }
+    if (!wsprry_dhcp_server_init(&dhcp_, &cyw43_state.netif[CYW43_ITF_AP], &gateway, &netmask,
+                                 captive)) {
+        wsprry_captive_dns_deinit(&dns_);
         cyw43_arch_disable_ap_mode();
         return false;
     }
     running_ = true;
+    captive_ = captive;
     return true;
 }
 
 void PicoSoftAp::stop() {
     if (running_) {
         wsprry_dhcp_server_deinit(&dhcp_);
+        wsprry_captive_dns_deinit(&dns_);
         cyw43_arch_disable_ap_mode();
     }
     running_ = false;
+    captive_ = false;
 }
 
 bool PicoSoftAp::ready() const {
     return running_ && wsprry_dhcp_server_ready(&dhcp_) &&
+           (!captive_ || wsprry_captive_dns_ready(&dns_)) &&
            netif_is_up(&cyw43_state.netif[CYW43_ITF_AP]);
 }
 } // namespace wsprrypico::provisioning

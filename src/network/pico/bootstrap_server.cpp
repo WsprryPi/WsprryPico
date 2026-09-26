@@ -1,7 +1,7 @@
 #include "network/pico/bootstrap_server.hpp"
 
+#include "network/bootstrap_http.hpp"
 #include "pico/time.h"
-#include "wtp/json.hpp"
 
 #include <algorithm>
 
@@ -82,31 +82,10 @@ void PicoBootstrapServer::error(void* context, err_t) {
 }
 
 void PicoBootstrapServer::dispatch() {
-    HttpResponse response;
     if (parser_.failed())
-        response = http_error(400, "invalid_http");
-    else if (parser_.request().method != "GET")
-        response = http_error(405, "read_only");
-    else if (parser_.request().path == "/local/v1/identity")
-        response = {200,
-                    "{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
-                        ",\"firmware\":" + wtp::json::quote(firmware_) +
-                        ",\"surface\":\"blank_read_only\",\"authenticated\":false}",
-                    "application/json",
-                    {}};
-    else if (parser_.request().path == "/")
-        response = {200,
-                    "<!doctype html><meta charset=utf-8><meta name=viewport "
-                    "content=\"width=device-width,initial-scale=1\"><title>WsprryPico "
-                    "recovery</title><h1>WsprryPico recovery</h1><p>This device has no "
-                    "authenticated server identity. This page is read-only. Provision it over "
-                    "encrypted BLE or USB before entering any credential.</p><p>Device: <code>" +
-                        device_ + "</code></p><p>Firmware: <code>" + firmware_ + "</code></p>",
-                    "text/html; charset=utf-8",
-                    {}};
+        wire_ = http_error(400, "invalid_http").wire();
     else
-        response = http_error(404, "not_found");
-    wire_ = response.wire();
+        wire_ = bootstrap_http_wire(parser_.request(), device_, firmware_);
 }
 
 void PicoBootstrapServer::close() {

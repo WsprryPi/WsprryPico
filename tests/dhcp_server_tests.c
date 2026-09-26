@@ -13,6 +13,7 @@
 enum {
     message_type_option = 53,
     requested_ip_option = 50,
+    dns_server_option = 6,
     option_end = 255,
     discover = 1,
     offer = 2,
@@ -72,6 +73,22 @@ static uint8_t reply_type(const uint8_t* packet, size_t size) {
     return 0;
 }
 
+static bool has_dns_option(const uint8_t* packet, size_t size) {
+    for (size_t offset = 240; offset + 2 < size && packet[offset] != option_end;) {
+        if (packet[offset] == 0) {
+            ++offset;
+            continue;
+        }
+        const size_t length = packet[offset + 1];
+        if (offset + 2 + length > size)
+            return false;
+        if (packet[offset] == dns_server_option)
+            return length == 4 && memcmp(packet + offset + 2, "\xc0\xa8\x04\x01", 4) == 0;
+        offset += 2 + length;
+    }
+    return false;
+}
+
 static wsprry_dhcp_server_t server(void) {
     wsprry_dhcp_server_t result = {0};
     IP4_ADDR(ip_2_ip4(&result.ip), 192, 168, 4, 1);
@@ -80,7 +97,7 @@ static wsprry_dhcp_server_t server(void) {
 }
 
 int main(void) {
-    _Static_assert(MEMP_NUM_UDP_PCB == 5, "firmware must reserve station and AP DHCP PCBs");
+    _Static_assert(MEMP_NUM_UDP_PCB == 6, "firmware must reserve blank AP DNS PCB");
     const uint8_t first_mac[6] = {0x02, 0, 0, 0, 0, 1};
     uint8_t input[WSPRRY_DHCPS_PACKET_CAPACITY];
     uint8_t output[WSPRRY_DHCPS_PACKET_CAPACITY];
@@ -94,6 +111,13 @@ int main(void) {
     assert(memcmp(output + 4, input + 4, 4) == 0);
     assert(memcmp(output + 16, "\xc0\xa8\x04\x10", 4) == 0);
     assert(reply_type(output, output_size) == offer);
+    assert(!has_dns_option(output, output_size));
+
+    wsprry_dhcp_server_t captive_state = server();
+    captive_state.captive_dns = true;
+    output_size =
+        wsprry_dhcp_server_reply(&captive_state, input, input_size, output, sizeof(output), 1000);
+    assert(output_size > 240 && has_dns_option(output, output_size));
 
     const uint8_t concurrent_mac[6] = {0x02, 0, 0, 0, 0, 2};
     input_size = make_request(input, sizeof(input), discover, concurrent_mac, 0);
@@ -154,7 +178,7 @@ int main(void) {
     struct netif interface = {0};
     interface.num = 0;
     state = server();
-    assert(wsprry_dhcp_server_init(&state, &interface, &state.ip, &state.netmask));
+    assert(wsprry_dhcp_server_init(&state, &interface, &state.ip, &state.netmask, false));
     assert(wsprry_dhcp_server_ready(&state));
     assert(udp_new() == NULL);
     wsprry_dhcp_server_deinit(&state);

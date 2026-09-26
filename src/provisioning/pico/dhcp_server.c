@@ -47,6 +47,7 @@ enum {
     dhcp_option_pad = 0,
     dhcp_option_subnet_mask = 1,
     dhcp_option_router = 3,
+    dhcp_option_dns_server = 6,
     dhcp_option_requested_ip = 50,
     dhcp_option_lease_time = 51,
     dhcp_option_message_type = 53,
@@ -227,6 +228,8 @@ size_t wsprry_dhcp_server_reply(wsprry_dhcp_server_t* server, const uint8_t* req
                        &ip4_addr_get_u32(ip_2_ip4(&server->netmask)), 4U) ||
         !append_option(&option, end, dhcp_option_router, &ip4_addr_get_u32(ip_2_ip4(&server->ip)),
                        4U) ||
+        (server->captive_dns && !append_option(&option, end, dhcp_option_dns_server,
+                                               &ip4_addr_get_u32(ip_2_ip4(&server->ip)), 4U)) ||
         !append_u32(&option, end, dhcp_option_lease_time, dhcp_lease_seconds) || option >= end)
         return 0;
     *option++ = dhcp_option_end;
@@ -265,11 +268,12 @@ static void receive(void* argument, struct udp_pcb* pcb, struct pbuf* packet,
 }
 
 bool wsprry_dhcp_server_init(wsprry_dhcp_server_t* server, struct netif* interface,
-                             const ip_addr_t* ip, const ip_addr_t* netmask) {
+                             const ip_addr_t* ip, const ip_addr_t* netmask, bool captive_dns) {
     if (server == NULL || interface == NULL || ip == NULL || netmask == NULL || server->udp != NULL)
         return false;
     ip_addr_copy(server->ip, *ip);
     ip_addr_copy(server->netmask, *netmask);
+    server->captive_dns = captive_dns;
     memset(server->lease, 0, sizeof(server->lease));
     server->udp = udp_new();
     if (server->udp == NULL)

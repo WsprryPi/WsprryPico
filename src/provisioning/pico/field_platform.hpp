@@ -1,8 +1,9 @@
 #pragma once
 
-#include "provisioning/pico/dhcp_server.h"
 #include "provisioning/field_runtime.hpp"
 #include "provisioning/local_access.hpp"
+#include "provisioning/pico/captive_dns.h"
+#include "provisioning/pico/dhcp_server.h"
 
 #include <string>
 
@@ -27,12 +28,21 @@ class PicoIndicatorOutput final : public IndicatorOutput {
 class PicoSoftAp {
   public:
     bool start(const LocalIdentity& identity, std::string_view password);
+    bool start_blank(const LocalIdentity& identity, std::string_view password);
     void stop();
     bool ready() const;
-    bool running() const { return running_; }
+    bool running() const {
+        return running_;
+    }
+    bool captive() const {
+        return running_ && captive_;
+    }
 
   private:
+    bool start_impl(const LocalIdentity& identity, std::string_view password, bool captive);
     wsprry_dhcp_server_t dhcp_{};
+    wsprry_captive_dns_t dns_{};
     bool running_ = false;
+    bool captive_ = false;
 };
 } // namespace wsprrypico::provisioning

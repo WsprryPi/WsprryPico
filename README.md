@@ -108,6 +108,11 @@ most of the
 remain open. Phase 12 is therefore active; the scoped source closeout is not
 full physical or end-user acceptance.
 
+The blank read-only SoftAP now has a source-tested
+[best-effort captive landing](docs/development/phase12-blank-captive-landing-review.md)
+with AP-only DNS and a fixed-address Safari fallback. It accepts no Wi-Fi
+credential; iPhone launch and the proposed Wi-Fi-only bootstrap remain open.
+
 The current Bluefy source requires a fresh password step-up for each exact
 staged profile even on a retained bond. While the public default password is
 active, the page also waits for an identity-bound USB-local confirmation within

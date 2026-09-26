@@ -46,8 +46,8 @@ operations.
 | P12.1-P12.2: profile journal and provisioning state machine | Accepted in their hardware-free scope. |
 | P12.3: Pico adapter source | **CLOSED_SCOPED** for source, deterministic tests and RP2350 cross-links; not physical acceptance. |
 | P12.4-P12.5: commands, delivery-safe activation and admission | Implemented and accepted in their hardware-free scope. |
-| P12.6: production integration | **Partial.** BLE provisioning/local control and the SoftAP browser path are production-wired. The basic target SoftAP control path has bounded native-Pi evidence. The Field-GATT/1 source contract is frozen and vector-checked across firmware, Bluefy, the native-Pi client and documentation. Candidate A has bounded RF-inhibited native-Pi maximum-profile and repaired Bluefy prepared-file activation evidence through a normal generation-3 restart, BLE readback and positive mTLS/WTP/HTTPS readback. SoftAP credential provisioning, reset administration and broad target acceptance remain open. |
-| Physical Stage A | **Partial.** Candidate identity, adoption, preserved settings, BLE advertising, exact iPhone/iOS/Bluefy identity, retained-bond authorization, one authenticated phone-time exchange, Identify LED/field status, Bluefy read-only `HELLO`/`STATUS`, native-Pi BLE/SoftAP subsets, and bounded profile activation passed within their recorded limits. Offline reuse, fresh-password/new-pairing behavior, end-user commissioning, arbitrary BLE job control, broader time/LED, reset/fault/trust/soak and stable-station AP-withdrawal matrices remain open. |
+| P12.6: production integration | **Partial.** BLE provisioning/local control and the SoftAP browser path are production-wired. The Field-GATT/1 source contract is frozen and vector-checked. Candidate A has bounded RF-inhibited native-Pi maximum-profile and repaired Bluefy prepared-file activation evidence through a normal generation-3 restart, BLE readback and positive mTLS/WTP/HTTPS readback. The engineering path works; the consumer commissioning, recovery and broad target-acceptance milestones below remain open. |
+| Physical Stage A | **Partial.** Candidate identity, adoption, preserved settings, BLE advertising, exact iPhone/iOS/Bluefy identity, retained-bond authorization, one authenticated phone-time exchange, Identify LED/field status, Bluefy read-only `HELLO`/`STATUS`, native-Pi BLE/SoftAP subsets, and bounded profile activation passed within their recorded limits. Consumer first-run commissioning, offline reuse, owner enrollment/replacement, recovery, broader BLE controls, time/LED, fault/trust/resource/soak and stable-station AP-withdrawal matrices remain open. |
 | Physical Stage B / RF output | Not authorized or performed. Phase 13 remains separate. |
 
 ## Scope and starting point
@@ -423,54 +423,210 @@ layout; a cross-build is not BLE, Wi-Fi, timing or RF evidence.
 | 11.6 conducted RF | No row is changed or promoted by host work | After adapters, repeat only source-impact-affected coexistence rows under new finite authority; preserve all excluded rows |
 | 11.7 closure | Remains the Phase 11 record, not Phase 12 evidence | New Phase 12 review and ledger must cite, not rewrite, Phase 11 artifacts |
 
-## Selected field-access/security policy
+## Remaining Phase 12 roadmap
 
-The operator selected the complete
-[Phase 12 field-access and security contract](phase12-field-access-contract.md)
-on 2026-09-21. It resolves the earlier product/security choices: BLE uses Just
-Works with no PIN plus application-password enrollment; the shared default is
-`wspr-<last-six-station-MAC-hex>` and is explicitly public; four bonds are
-retained and revoked on password change; SoftAP remains a field-control and
-recovery path; authenticated phone time supplies bounded offline UTC; the
-onboard LED identifies a device and shows actual SoftAP readiness; sensitive
-trust/reset work requires fresh password step-up and, while the default is
-active, physical or USB confirmation; the CA private key stays off-device;
-ordinary flash has no confidentiality claim; and every recovery level preserves
-station, schedules and watermark unless full operational erase is explicit.
+The existing
+[field-access and security contract](phase12-field-access-contract.md) remains
+the implemented engineering baseline until the first milestone below replaces
+its user-facing commissioning rules. Its fail-closed storage, identity,
+ownership, transactional activation and RF-authority boundaries remain in
+force. The roadmap does not expose those mechanisms as an acceptable consumer
+workflow.
 
-The first profile on a blank generic image is BLE- or explicit USB-local-only;
-its SoftAP page is unauthenticated read-only identity/build/wire/status. After
-device-bound server trust exists, first authenticated UTC may also arrive
-through provisioned pre-clock SoftAP; normal SoftAP is an independent control
-and replacement path. The access journal now occupies `0x3f3000`–`0x3f4fff`
-and its all-erased, fault and reset-pending states fail closed.
+The disconnect-related timeout observed during physical work is closed as a
+non-qualifying test run. It is not an open device defect or a Phase 12
+implementation milestone.
 
-Remaining questions are target integration details, not license to change that
-policy:
+| Milestone | Status | Outcome required to advance |
+| --- | --- | --- |
+| P12.7 — Consumer commissioning contract | **NEXT — DESIGN ONLY** | Approve the complete first-run experience, physical claim gesture, ownership model, generated credential lifecycle and recovery behavior before code changes. |
+| P12.8 — Commissioning foundation | **BLOCKED ON P12.7** | Implement the approved device-side claim, owner, identity-generation and atomic configuration/activation state machines with deterministic failure coverage. |
+| P12.9 — Guided Bluefy setup | **BLOCKED ON P12.8** | Deliver one simple Bluefy setup flow that hides protocol, certificate and journal mechanics from the user. |
+| P12.10 — RF-inhibited commissioning acceptance | **BLOCKED ON P12.9** | Commission a blank Candidate A from the selected iPhone, activate generation 1, reboot and prove BLE plus station-side readback without RF. |
+| P12.11 — Ownership, recovery and fallback | **BLOCKED ON P12.10** | Accept additional-phone enrollment, owner loss, access recovery, provisioning reset, full erase and provisioned SoftAP fallback with unambiguous physical controls. |
+| P12.12 — Stage A robustness and closure | **BLOCKED ON P12.11** | Close the remaining fault, trust, resource, concurrency, soak, controller-time, LED and restoration rows and complete the final adversarial review. |
 
-- the exact safe Pico 2 W gestures for enrollment and the three reset levels;
-- physical validation of blank bootstrap HTTP, Safari/Bluefy, cookie/session
-  expiry, stable-station AP withdrawal and the broader controller-time/local-
-  control matrix; the bounded native-Pi provisioned SoftAP path is accepted
-  only as recorded in its physical review;
-- a delivery-safe SoftAP provisioning/activation surface if credential transfer
-  is to be supported there; the implemented SoftAP browser surface does not
-  expose provisioning commands;
-- physical native-Pi and Bluefy validation of the frozen profile apply flow,
-  including the 7,168-byte boundary, fresh bound step-up, USB confirmation and
-  failure cleanup; source/host conformance is frozen and checked;
-- physical validation of the implemented integrity-controlled offline Bluefy
-  page-delivery/cache mechanism; and
-- target resource, radio-coexistence and indicator scheduling needed to meet the
-  selected behavior without weakening job/RF authority.
+### P12.7 Consumer commissioning contract
 
-## Completion boundary
+This milestone is discussion and documentation only. No commissioning code is
+authorized until its exit gate is accepted.
+The [gated execution prompt](phase12-7-12-execution-prompt.md) and
+[consumer contract proposal](phase12-7-consumer-commissioning-proposal.md)
+record a concrete candidate and its unresolved trust and recovery decisions.
+They are proposals, not approval or evidence that this milestone has closed.
+On 2026-09-26 the operator paused Bluefy work. The P12.9 client label and the
+five-step screen draft below need a replacement-client decision before they
+can become an approved implementation contract.
 
-Phase 12 is not complete at the scoped P12.3 source closeout. Completion
-requires physical BLE/SoftAP/HTTPS and local-control acceptance conforming to
-the selected policy, a connected authenticated idle-only live activator, exact
-gesture/reset selection, physical validation of the frozen Field-GATT/1
-contract, bounded inhibited-target acceptance, the remaining
-authorized physical-plan execution and a repaired post-physical adversarial
-reassessment.
-Phase 13 RF qualification remains separate.
+The selected end-user journey must be no more complicated than:
+
+1. Power on an uncommissioned WsprryPico.
+2. In Bluefy, choose **Set up WsprryPico** and select the advertised device.
+3. Confirm the physical device once when its LED identifies it.
+4. Enter ordinary Wi-Fi and station settings and choose **Connect**.
+5. Wait for **Setup complete** after activation and verified readback.
+
+Ordinary commissioning must not ask the user for a MAC-derived password, full
+device ID, USB-console command, PEM certificate, private key, profile JSON,
+protocol session identifier or second password entry. Advanced service tooling
+may retain explicit forms of those mechanisms, but it does not define the
+consumer path.
+
+Before P12.8 begins, select and document:
+
+- the exact safe runtime physical claim gesture; BOOTSEL held at boot is not
+  viable because it enters ROM boot rather than the application;
+- how the gesture binds the currently displayed device, BLE connection, boot,
+  provisional bond and one bounded claim attempt;
+- the minimal settings requested from the user, with Wi-Fi and station identity
+  separated from advanced options;
+- whether cryptographic identity is generated on-device at first claim or
+  installed as a factory identity; manual PEM entry is not an end-user option;
+- how the first owner obtains station-server trust and how later mTLS clients
+  are enrolled without asking a normal user to manipulate CA files, client
+  certificates, private keys or operating-system trust stores during setup;
+- whether the existing application password is retired from first-run authority
+  or retained only as an invisible implementation proof; either choice must
+  leave physical claim plus the retained owner credential as the user model;
+- how a retained owner bond authorizes normal reconnects and how a physical
+  action deliberately admits another phone;
+- the success, retry and unknown-result language for disconnects before, during
+  and after commit; and
+- the exact physical recovery actions for access recovery, provisioning reset
+  and full operational erase.
+
+Exit gate: an accepted state/UX/security contract updates the roadmap,
+field-access contract, Field-GATT compatibility decision, Bluefy screen flow,
+recovery semantics and Stage A acceptance cases. No unresolved user-visible
+security ceremony may be deferred into implementation.
+
+### P12.8 Commissioning foundation
+
+Implement only the accepted P12.7 contract. The device must:
+
+- advertise a clear uncommissioned/setup state without treating a name or MAC
+  suffix as identity proof;
+- bind one physical claim to the exact current connection and provisional bond,
+  then promote that bond to the retained owner only after the claim succeeds;
+- create or install its device-specific TLS identity without asking the user to
+  handle certificate or key material;
+- establish the selected station-server trust and bounded advanced-client
+  enrollment path without making certificate handling part of ordinary setup;
+- accept the minimal user configuration as one validated transaction, preserve
+  station/schedule/watermark data outside its scope and activate exactly once
+  after the terminal response boundary;
+- report an unambiguous committed generation and survive reboot selecting only
+  the new complete generation or a fail-closed recovery state; and
+- scrub transient Wi-Fi and cryptographic material on success, rejection,
+  cancellation, timeout, disconnect and reboot.
+
+Existing low-level passwords, proofs or profile records may remain internal
+implementation details only if they add no user step and cannot grant authority
+beyond the physically claimed session. Hardware-free acceptance must cover
+wrong-device, competing claimant, expired gesture, replay, interrupted journal,
+activation failure, response-loss reconciliation and secret-free diagnostics.
+
+### P12.9 Guided Bluefy setup
+
+Bluefy must present one linear product flow rather than a protocol console:
+
+- **Select device** uses the chooser and then verifies the complete encrypted
+  identity internally;
+- **Confirm device** runs Identify and waits for the selected physical claim;
+- **Connect** requests only the accepted Wi-Fi/station fields, validates them
+  locally and submits the single commissioning transaction; and
+- **Setup complete** appears only after generation, reboot/reconnect, device
+  identity and network-readiness checks succeed.
+
+The page must never display internal operation names or tell a normal user to
+enter a default password, profile JSON, PEM data or USB command. It must retain
+the existing release-integrity and offline-cache controls, avoid persistent
+secret storage, clear entered values on every terminal path and distinguish
+retryable transport loss from committed-but-not-yet-reconciled state.
+
+Exit gate: deterministic browser/device conformance tests and an adversarial
+review cover the happy path, every screen transition, back/cancel/reload,
+chooser rejection, wrong device, gesture expiry, connection loss at each
+transaction boundary, activation failure and safe retry.
+
+### P12.10 RF-inhibited commissioning acceptance
+
+Using a clean committed RF-inhibited image on Candidate A and the recorded
+iPhone/iOS/Bluefy combination:
+
+1. Start from the documented blank/uncommissioned state with no retained owner.
+2. Install and verify the exact Bluefy release, then prove offline page reuse
+   with Wi-Fi and cellular disabled.
+3. Select and Identify the exact device, perform the physical claim and complete
+   setup without a console, manual identifier, default-password prompt, file
+   import or certificate handling.
+4. Enter ordinary Wi-Fi/station settings, commit generation 1 and preserve the
+   terminal response before activation.
+5. Reboot/reconnect and verify the same device, generation and retained owner;
+   station association, DHCP/mDNS, controller time and positive mTLS WTP/HTTPS
+   readback must agree with the committed configuration.
+6. Confirm RF remains inhibited, the job service is empty/unowned, output is
+   inactive and all unrelated journals and settings are preserved.
+
+Repeat only the predetermined negative and interruption cases needed to prove
+wrong-device rejection, competing claim exclusion, safe cancellation,
+unknown-result reconciliation and old-or-fail-closed activation behavior.
+Retain failures instead of rewriting them with retries.
+
+### P12.11 Ownership, recovery and fallback
+
+Finish the consumer lifecycle after first setup:
+
+- enroll a second phone only after a fresh physical action and prove a nearby
+  unconfirmed phone cannot claim or displace the owner;
+- define bounded owner/bond capacity, deliberate removal and replacement without
+  silent eviction;
+- recover from a lost phone without requiring the old phone, while preserving
+  the operational profile during access recovery;
+- make provisioning reset and full operational erase visibly distinct,
+  resistant to accidental invocation and power-loss safe;
+- verify post-reset advertisement, owner state, settings preservation/clearing
+  and RF-inhibited restoration exactly match the selected reset level; and
+- retain blank-device SoftAP as read-only identity/status. Provisioned SoftAP
+  remains an authenticated recovery/control fallback after device TLS identity
+  exists; blank-device credential submission is not a hidden Phase 12
+  requirement.
+
+If a future product requires commissioning without BLE, it needs a separate
+approved bootstrap design with a factory or device-specific secret. It must not
+quietly send Wi-Fi or trust credentials through the current public bootstrap
+surface.
+The [Wi-Fi-only network bootstrap proposal](phase12-wifi-only-bootstrap-proposal.md)
+is a design-only candidate for the narrower task of joining a blank Pico to a
+station network without an app or setup code. It would require an explicit
+exception to both the read-only and factory/device-secret rules above and does
+not establish owner, TLS or job authority. The candidate attempts an
+AP-local captive-browser launch on iPhone, with a fixed-address Safari
+fallback; neither an automatic launch nor captive-sheet crypto capability is
+assumed without target evidence. It is not approved for implementation or
+target operation.
+
+The separate [blank read-only captive landing review](phase12-blank-captive-landing-review.md)
+records a source-tested, RF-inhibited-image implementation of AP-only DNS and
+safe HTTP redirection. It adds no credential input or station-join authority;
+iPhone automatic-launch and AP/STA behavior remain unaccepted target gates.
+
+### P12.12 Stage A robustness and closure
+
+Complete the remaining RF-inhibited matrix after the consumer flow is stable:
+
+- malformed, replayed, timed-out and interrupted requests at every transaction
+  and journal boundary;
+- superseded-trust rejection, credential replacement and reboot recovery;
+- broader BLE control, TCP/WTP/HTTPS concurrency and one-`JobService` ownership;
+- controller-time disagreement/recovery and complete LED priority/fault timing;
+- heap, stack, lwIP/BTstack pools, TLS allocation, flash serialization, session
+  reclamation and bounded soak; and
+- final disconnected, provisioning-closed, SoftAP-stopped where applicable,
+  empty/unowned, RF-inhibited, output-inactive and healthy-journal restoration.
+
+Phase 12 closes only after the acceptance ledger maps every required Stage A
+row to exact source, image, device, client and result evidence and a final
+adversarial review finds no actionable issue. Stage B RF coexistence remains
+separately authorized work, and Phase 13 remains the separate broad
+band-by-mode-by-clock RF qualification phase.

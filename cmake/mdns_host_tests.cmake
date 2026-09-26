@@ -40,6 +40,13 @@ if(WSPRRY_PICO_TEST_LWIP_PATH)
     target_link_libraries(dhcp_server_tests PRIVATE mdns_test_stack)
     target_compile_options(dhcp_server_tests PRIVATE -Wall -Wextra -Werror -UNDEBUG)
     add_test(NAME dhcp_server_tests COMMAND dhcp_server_tests)
+    add_executable(captive_dns_tests tests/captive_dns_tests.c
+        src/provisioning/pico/captive_dns.c)
+    target_include_directories(captive_dns_tests PRIVATE src)
+    set_target_properties(captive_dns_tests PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
+    target_link_libraries(captive_dns_tests PRIVATE mdns_test_stack)
+    target_compile_options(captive_dns_tests PRIVATE -Wall -Wextra -Werror -UNDEBUG)
+    add_test(NAME captive_dns_tests COMMAND captive_dns_tests)
     add_executable(network_adapter_tests tests/network_adapter_tests.cpp
         src/standalone/pico/adapters.cpp src/standalone/pico/net_trace.cpp)
     target_include_directories(network_adapter_tests BEFORE PRIVATE tests/network_adapter_mock)

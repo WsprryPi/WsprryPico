@@ -56,6 +56,7 @@ add_library(wsprrypico_core
     src/provisioning/runtime.cpp
     src/network/mdns.cpp
     src/network/http.cpp
+    src/network/bootstrap_http.cpp
     src/network/api.cpp
     src/network/softap_api.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
@@ -234,6 +235,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(network_tests PRIVATE wsprrypico_core)
     target_compile_options(network_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME network_tests COMMAND network_tests)
+    add_executable(bootstrap_http_tests tests/bootstrap_http_tests.cpp)
+    target_link_libraries(bootstrap_http_tests PRIVATE wsprrypico_core)
+    target_compile_options(bootstrap_http_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME bootstrap_http_tests COMMAND bootstrap_http_tests)
     find_program(WSPRRY_PICO_NODE_EXECUTABLE node)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
         add_test(NAME network_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
