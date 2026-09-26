@@ -1,11 +1,12 @@
 # Phase 12 profile activation: Candidate A physical attempt
 
-Status: **native-Pi maximum profile accepted; Bluefy/iPhone gate open**
-(2026-09-25 CDT).
+Status: **native-Pi maximum profile accepted; repaired Bluefy/iPhone
+profile activation and BLE readback accepted; generation-3 mTLS still open**
+(2026-09-26 CDT).
 
 This record preserves the first physical failures, their repairs, and the
-subsequent RF-inhibited native-Pi acceptance. It does not claim Bluefy/iPhone,
-RF, full Step 1 or Phase 12 acceptance.
+subsequent RF-inhibited native-Pi and bounded Bluefy/iPhone acceptance. It
+does not claim full Bluefy/iPhone, RF, Step 1 or Phase 12 acceptance.
 Only Candidate A was operated. Candidate B was observation-only.
 
 ## Exact candidate and boundary
@@ -240,16 +241,87 @@ bootstrap listener. Both now use lwIP `tcp_close()` with an asserted successful
 LISTEN close. The transport contract check guards both call sites. The pinned
 SDK 2.3.1 RF-inhibited target links, and the full host suite passes 95/95 with
 the Xcode 26.5 SDK and loopback access. A clean-revision flash and affected
-physical retest are still required before this repair can be accepted.
+physical retest were subsequently performed as recorded below.
+
+### Repaired activation retest
+
+The repaired source was committed locally as `932d10d` and built against
+pinned Pico SDK 2.3.1. Its RF-inhibited UF2 SHA-256 was
+`03aaa25cd58c389292bbad583b4584b113df442295c3654f60b087bf9d3913c0`.
+Serial-targeted `picotool load -v -x` verified the image on the exact Candidate
+A serial. Postflash Console identified revision `932d10dc1c43`, generation 2,
+non-recovery boot `2195e13093a6a43431bd9d9615f0dd84`, healthy access and
+storage, and unchanged config/watermark sequences 72/12. Station Wi-Fi, mDNS
+and SNTP returned; WTP was empty and output inactive under the inhibited
+engine. No RF-starting command was sent.
+
+Applying the *identical* original ordinary profile returned Bluefy `Profile
+generation 2 committed.` after exact USB confirmation, but the target retained
+generation 2 and its boot ID. Source review showed this is an intentional
+idempotent no-op, not an activation test. The owner-only 1,973-byte retest file
+therefore changed only the JSON `wifi.time_server` spelling from `time.local`
+to `time.local.`; the network adapter strips the terminal dot, preserving the
+same runtime SNTP endpoint. No credential material is recorded here.
+
+The first attempted retest after AirDrop did **not** commit: Console
+confirmation returned `authentication_required`, Bluefy later reported a
+timeout after all 281 writes, and the target remained generation 2, healthy
+and inactive. The selected file was not independently verified for this
+attempt, and the reason confirmation had no valid pending step-up was not
+established; this attempt is not counted as acceptance. On the next attempt
+the operator reported `Profile staged`, exact identity-bound USB
+confirmation returned `{"ok":true}`, and Bluefy reported `Profile generation
+3 committed.`
+
+The target then reported provisioned generation 3 on new boot
+`904b2699bec96e09249d4ba9f50591b9`, **not** a recovery boot, with fault
+stage/hash/status zero and provisioning fault zero. Config/watermark journal
+sequences remained 72/12 and storage was healthy. Access generation 3 remained
+healthy; station link acquired `192.168.1.47`, mDNS was active for
+`wsprrypico-0a60df.local`, and `time.local` resolved to `192.168.1.54` with
+accepted SNTP samples and synchronized clock. Console WTP readback was empty,
+output inactive and `reboot_required=false`. The operator reconnected and
+reauthorized Bluefy, then reported read-only WTP `0.0.0-devel; state empty;
+output inactive.` The listener-close assertion did not recur on this affected
+activation path.
+
+From `wspr5`, a TCP connection to the configured port 18443 succeeded and an
+uncredentialed OpenSSL probe negotiated TLS 1.3 with the expected server
+certificate CN. That probe did not authenticate a client or perform WTP, and
+OpenSSL did not verify the issuer; it is **not** positive mTLS acceptance. A
+direct Mac TCP probe timed out, despite the Pi-to-Pico TCP result. Matching
+client private credentials were not copied to `wspr5`, so positive
+generation-3 mTLS/WTP and HTTPS readback remain unperformed. Generation-1
+positive mTLS evidence above cannot be silently promoted to generation 3.
+
+The operator confirmed that Bluefy cleared both the password field and
+selected-file name after the successful apply, deleted both AirDropped JSON
+files from the iPhone, and closed the Bluefy tab. The two owner-only temporary
+JSON files and their temporary folder were deleted from this Mac after exact
+path/mode/size checks. The pre-existing private source profile on `wspr5` was
+not changed.
+
+The final adversarial assessment separates three superficially similar
+outcomes: the generation-2 identical-profile response did not activate; the
+first attempted retest timed out without a commit; only the subsequent
+changed-profile attempt both incremented generation and survived a normal
+activation boot.
+The independent Console and Bluefy readbacks agree on inactive WTP authority.
+The earlier watchdog recovery and the unexplained first attempted retest's
+confirmation rejection remain in this record; neither was relabeled as a
+passing row.
+Source, host and target results still do not qualify RF output or replace
+positive generation-3 client-authenticated TCP reads.
 
 ## Remaining gates
 
-1. Build, hash and flash a clean revision with the listener-close repair;
-   repeat the affected Bluefy apply, activation restart and generation/network/
-   TLS/mTLS/authority checks. Preserve the failed first boot as evidence.
-2. Verify the Bluefy password and file selection clear, delete the private
-   temporary profile from the Mac and operator's iPhone, and clear the Bluefy
-   tab after testing. Offline-cache and end-user commissioning remain separate.
-3. Perform a final adversarial review of the repaired physical tranche and
-   publish the evidence. Step 1 and Phase 12 remain open until all applicable
+1. Complete positive generation-3 TLS 1.3/mTLS `wtp/1` and HTTPS read-only
+   checks using the matching existing client identities, after resolving the
+   Mac-to-Pico reachability problem or using an authorized private-key-safe
+   path. Preserve the failed first activation boot as evidence.
+2. Resolve the unexplained first attempted retest's confirmation rejection
+   before treating this flow as robust or operator-ready. Offline cache and
+   end-user commissioning remain separate open gates.
+3. Preserve this bounded adversarial assessment and complete the remaining
+   physical matrices. Step 1 and Phase 12 remain open until all applicable
    gates pass; RF-inhibited work never qualifies RF output.

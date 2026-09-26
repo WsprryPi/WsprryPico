@@ -93,8 +93,13 @@ BLE image has verified Candidate A load/boot
 with preserved state and final RF-inhibited empty/unowned/inactive-output
 restoration. A later bounded iPhone 17 Pro Max/iOS 27.0/Bluefy 3.9.3 exercise
 accepts retained-bond authorization, one authenticated phone-time exchange,
-Identify LED/field status and Bluefy read-only WTP `HELLO`/`STATUS`. Offline
-reuse, fresh-password/new-pairing behavior, profile activation, blank generic
+Identify LED/field status and Bluefy read-only WTP `HELLO`/`STATUS`. A later
+RF-inhibited Candidate A test accepted native-Pi maximum-profile activation
+and repaired Bluefy prepared-file activation through generation 3, a normal
+restart, and post-restart BLE readback; see the
+[target activation record](docs/development/phase12-profile-activation-attempt.md).
+Offline reuse, fresh-password/new-pairing behavior, full commissioning,
+generation-3 positive mTLS readback, blank generic
 SoftAP HTTP, stable-station AP withdrawal, the broader physical BLE job-
 control/local-management, controller-time and LED matrices, reset controls and
 most of the
@@ -105,13 +110,13 @@ full physical or end-user acceptance.
 The current Bluefy source requires a fresh password step-up for each exact
 staged profile even on a retained bond. While the public default password is
 active, the page also waits for an identity-bound USB-local confirmation within
-the 30-second provisioning session. This is host-tested source behavior, not
-yet Bluefy/iPhone acceptance; the native-Pi client has separate bounded
-[target activation evidence](docs/development/phase12-profile-activation-attempt.md).
+the 30-second provisioning session. The bounded Bluefy/iPhone apply above
+exercised this path; it is not full commissioning acceptance.
 The frozen [Field-GATT/1 contract](docs/protocol/Field-GATT.md)
 and [machine-readable vectors](docs/protocol/Field-GATT-v1-vectors.json) now
 keep firmware, both clients and host conformance checks aligned through the
-7,168-byte profile limit; physical profile activation remains open. Bluefy also
+7,168-byte profile limit; broader physical profile-activation qualification
+remains open. Bluefy also
 has a test-only prepared-JSON-file import for operator-assisted acceptance. It
 does not create or deliver a profile and is not an end-user commissioning flow;
 that flow requires a separate operator design discussion.

@@ -9,7 +9,9 @@ mapping are defined by the frozen
 [Field-GATT/1 protocol and super-user guide](../protocol/Field-GATT.md) and its
 [machine-readable conformance vectors](../protocol/Field-GATT-v1-vectors.json).
 Firmware, Bluefy and this client are source/host conforming to that contract.
-Physical native-Pi profile activation remains an open Phase 12 acceptance row.
+Candidate A has bounded RF-inhibited native-Pi maximum-profile activation
+evidence in the [target activation record](phase12-profile-activation-attempt.md).
+Broader commissioning and Phase 12 acceptance remain open.
 
 This tool is an additional local/bench client. Bluefy remains the selected
 iPhone client, and a Raspberry Pi run is not evidence for Bluefy/iOS offline
@@ -206,8 +208,9 @@ contract check keeps firmware, Bluefy, Linux, documentation and the frozen
 limits synchronized. The bounded
 [execution record](phase12-pi-ble-tcp-review.md) adds exact `wspr5`/Candidate A
 RF-inhibited evidence for identity inspection, controller-time submission,
-field status and WTP `HELLO`/`STATUS`; all other deterministic results remain
-source/host evidence. The live subset does not qualify RF, SoftAP, Bluefy/iOS,
-profile activation, radio coexistence, TCP interoperability or general release
-behavior. In particular, this source freeze does not retroactively turn the
-historical live subset into native-Pi profile-activation evidence.
+field status and WTP `HELLO`/`STATUS`; all other deterministic results in that
+record remain source/host evidence. The separate
+[target activation record](phase12-profile-activation-attempt.md) reports a
+later native-Pi maximum-profile apply and reboot. Neither live subset
+qualifies RF, general release behavior or full Bluefy/iOS commissioning;
+generation-3 positive mTLS readback also remains open.

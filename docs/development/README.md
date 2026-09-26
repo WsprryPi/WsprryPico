@@ -50,8 +50,11 @@ apply, and the proof dies with the 30-second provisioning session. The
 native-Pi client now implements the same bound step-up and confirmation flow.
 Firmware and both clients agree on the full 7,168-byte boundary, including
 one-byte fragmentation, and target enrollment expiry revokes and closes an open
-provisional session. These are source/host results; physical Bluefy/iPhone and
-native-Pi profile activation remain open.
+provisional session. The source/host contract also has bounded RF-inhibited
+native-Pi maximum-profile and Bluefy/iPhone prepared-file activation evidence
+on Candidate A; see the [activation record](phase12-profile-activation-attempt.md).
+The repaired Bluefy apply reached generation 3 and a normal restart with BLE
+readback. Generation-3 positive mTLS and broader commissioning remain open.
 
 The supported [Raspberry Pi/Linux BLE client](raspberry-pi-ble-client.md) adds a
 native BlueZ local/bench workflow using the same production GATT contract.
