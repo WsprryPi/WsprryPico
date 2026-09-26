@@ -460,6 +460,10 @@ step-up, but the manager retains an open staged transaction until bounded
 cancellation, same-principal/session reconciliation or the 30-second
 no-progress timeout. Clients MUST NOT assume that link loss cancelled it. Flash
 is not claimed to provide confidentiality against physical extraction.
+The 7,168-byte ceiling applies to the complete canonical wire JSON, including
+PEM line breaks encoded as the short JSON `\\r` and `\\n` escapes. A valid
+document at that boundary must remain storable after target-side validation;
+an internal reserialization must not silently lower the effective limit.
 
 ### Profile document
 

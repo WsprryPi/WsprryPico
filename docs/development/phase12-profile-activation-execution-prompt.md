@@ -168,7 +168,8 @@ Use an owner-controlled interactive terminal for all non-echoing password entry.
 4. Open another valid transaction, disconnect/cancel before apply, reconnect and
    prove no staged authority or provisional generation survived.
 5. Establish accepted UTC with the native client's authenticated `sync-time`
-   command and verify a non-`none` field time source before certificate-validity
+   command immediately before the valid transfer, and verify a non-`none` field
+   time source before certificate-validity
    admission. The unprovisioned target cannot obtain station SNTP yet; this is
    a prerequisite for profile apply, not the broader controller-time matrix.
 6. Run `provision` with the exact 7,168-byte canonical profile. Confirm that the

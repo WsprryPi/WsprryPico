@@ -34,6 +34,49 @@ void secure_clear(std::string& value) {
         bytes[i] = 0;
     std::string{}.swap(value);
 }
+
+// Match the compact JSON escapes used by field clients. Expanding PEM CR/LF
+// into six-byte Unicode escapes would make a valid 7,168-byte wire profile
+// exceed the durable profile limit after validation.
+std::string profile_quote(std::string_view text) {
+    std::string out;
+    out.reserve(text.size() + 2);
+    out += '"';
+    constexpr char digits[] = "0123456789abcdef";
+    for (unsigned char c : text) {
+        switch (c) {
+        case '"':
+            out += "\\\"";
+            break;
+        case '\\':
+            out += "\\\\";
+            break;
+        case '\b':
+            out += "\\b";
+            break;
+        case '\f':
+            out += "\\f";
+            break;
+        case '\n':
+            out += "\\n";
+            break;
+        case '\r':
+            out += "\\r";
+            break;
+        case '\t':
+            out += "\\t";
+            break;
+        default:
+            if (c < 32) {
+                out += "\\u00";
+                out += digits[c >> 4];
+                out += digits[c & 15];
+            } else
+                out += static_cast<char>(c);
+        }
+    }
+    return out + '"';
+}
 } // namespace
 
 CredentialMaterial credentials(const Profile& profile) {
@@ -97,16 +140,15 @@ std::optional<Profile> parse_profile(std::string_view text) {
 }
 
 std::string serialize_profile(const Profile& profile) {
-    using wtp::json::quote;
-    return "{\"version\":1,\"device_id\":" + quote(profile.device_id) +
-           ",\"wifi\":{\"ssid\":" + quote(profile.ssid) +
-           ",\"password\":" + quote(profile.password) +
-           ",\"time_server\":" + quote(profile.time_server) +
-           "},\"tls\":{\"hostname\":" + quote(profile.hostname) +
+    return "{\"version\":1,\"device_id\":" + profile_quote(profile.device_id) +
+           ",\"wifi\":{\"ssid\":" + profile_quote(profile.ssid) +
+           ",\"password\":" + profile_quote(profile.password) +
+           ",\"time_server\":" + profile_quote(profile.time_server) +
+           "},\"tls\":{\"hostname\":" + profile_quote(profile.hostname) +
            ",\"port\":" + std::to_string(profile.port) +
-           ",\"server_certificate\":" + quote(profile.server_certificate) +
-           ",\"server_private_key\":" + quote(profile.server_private_key) +
-           ",\"client_ca\":" + quote(profile.client_ca) + "}}";
+           ",\"server_certificate\":" + profile_quote(profile.server_certificate) +
+           ",\"server_private_key\":" + profile_quote(profile.server_private_key) +
+           ",\"client_ca\":" + profile_quote(profile.client_ca) + "}}";
 }
 
 void scrub(Profile& profile) {

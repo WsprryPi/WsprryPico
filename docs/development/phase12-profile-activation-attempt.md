@@ -1,6 +1,6 @@
 # Phase 12 profile activation: Candidate A physical attempt
 
-Status: **open; profile activation not yet accepted** (2026-09-25).
+Status: **open; profile activation not yet accepted** (2026-09-25 CDT).
 
 This record preserves the first physical failure and the preceding negative
 tests. It does not claim completed station, TLS, Bluefy or Phase 12 acceptance.
@@ -71,9 +71,51 @@ proves accepted UTC permits validation and loss of UTC rejects it again.
 
 ## Gates still open
 
-1. Commit and build a clean repaired RF-inhibited image, then flash only this
-   exact Candidate A after a fresh serial/identity/output preflight.
-2. Obtain accepted controller UTC on the repaired target and verify field
+The repaired source was committed as `3844769f8423`. A clean build embedded
+`Standalone RF-inhibited 3844769f8423`; the UF2 SHA-256 was
+`efea4ac3b204feb4a56ceef525dcb4762ea4d1b41b7c3370a29e69bf6e95402b`.
+Before flash, Candidate A still identified as `ef33ec27953c`, profile
+generation 0, healthy storage (config sequence 72, watermark sequence 12),
+access generation 3, empty WTP state and inactive output. A serial-targeted
+BOOTSEL transition exposed RP2350 chip ID `0x0bf4b4aec9ffb344`; serial-targeted
+`picotool load -v -x` verified the new UF2 and rebooted it. Postflash Console
+`INFO`, `STATUS`, `STORAGE`, `ACCESS STATUS` and `BLE STATUS` identified
+`3844769f8423`, boot ID `7254cc35e44ddb36b8fd124c4fc9168c`, profile
+generation 0, the same journal sequences and access generation, healthy storage,
+empty WTP state and inactive output. The engine remained
+`inhibited-standalone-simulator`. No profile was applied in this boot yet; the
+clock was unsynchronized, as expected after reboot.
+
+Authenticated native-Pi `sync-time` on the repaired image returned
+`{"accepted":true}`. An authenticated field-status read then reported
+`time_source=controller`, `time_disagreement=false`, and finite uncertainty
+(`352102498` ns). The owner-only 7,168-byte private file still had SHA-256
+`f73da469459ee8174fc2750cb70a089fe0d7f036a7b1c709db42517e5a84f2ac`.
+A subsequent BLE transfer reached the identity-bound USB confirmation prompt;
+Console confirmation on Candidate A returned `{"ok":true}`. The BLE client
+then returned `storage_fault`. No retry was made. Post-failure Console reads
+showed generation 0/factory, healthy profile/config/watermark journals with
+unchanged config sequence 72 and watermark sequence 12, access generation 3,
+empty WTP state and inactive output. The clock later aged back to
+`unsynchronized`; a new accepted sync is required before any further apply.
+
+Source review identified a boundary mismatch: the native client serialized PEM
+CR/LF as short JSON escapes, but firmware `serialize_profile()` expanded them
+to six-byte Unicode escapes. The 7,168-byte input has 2,628 CR/LF characters;
+the longer reserialization exceeds `max_profile_bytes` before storage is
+called, and the manager incorrectly mapped that condition to `storage_fault`.
+This is a source-backed explanation for this exact failure, not yet a physical
+proof of the next repair. A profile-local compact quote and a separate
+`oversize` mapping passed the exact 7,168-byte host apply/reload regression
+without private material. The full host suite passed 87/87 with the Xcode 26.5
+SDK, the focused sanitizer suite passed 5/5, and RF-inhibited Pico firmware and
+both provisioning/field-access link checks built. The first full host run used
+the broken CommandLineTools 27.0 SDK and failed three unrelated linker tests;
+the correctly configured full rerun passed.
+
+1. Validate, commit, rebuild and flash the compact-quote repair after a fresh
+   Candidate A safety/identity preflight.
+2. Obtain fresh accepted controller UTC on the repaired target and verify field
    status before another profile apply.
 3. Physically repeat the 7,168-byte apply/confirmation and verify generation,
    activation, station, TLS identity, client CA, WTP and cleanup.

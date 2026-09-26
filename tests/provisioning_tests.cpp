@@ -324,6 +324,49 @@ void profile_validation() {
     CHECK(!provisioning::parse_profile(std::string(provisioning::max_profile_bytes + 1, 'x')));
 }
 
+void maximum_profile_with_compact_pem_newlines() {
+    auto boundary = profile("CRLF");
+    boundary.hostname = "wsprrypico-010203.local";
+    const auto baseline = provisioning::serialize_profile(boundary);
+    CHECK(baseline.size() < provisioning::max_profile_bytes);
+    const auto available = provisioning::max_profile_bytes - baseline.size();
+    const auto pairs = available / 5;
+    std::array<std::string*, 3> pem_fields{&boundary.server_certificate,
+                                           &boundary.server_private_key, &boundary.client_ca};
+    for (std::size_t field = 0; field < pem_fields.size(); ++field) {
+        const auto count = pairs / pem_fields.size() + (field < pairs % pem_fields.size());
+        std::string filler;
+        filler.reserve(count * 3);
+        for (std::size_t i = 0; i < count; ++i)
+            filler += "A\r\n";
+        const auto end = pem_fields[field]->find("-----END");
+        CHECK(end != std::string::npos);
+        pem_fields[field]->insert(end, filler);
+    }
+    boundary.server_certificate.insert(boundary.server_certificate.find("-----END"), available % 5,
+                                       'A');
+    const auto encoded = provisioning::serialize_profile(boundary);
+    CHECK(encoded.size() == provisioning::max_profile_bytes);
+    CHECK(encoded.find("\\r\\n") != std::string::npos);
+    CHECK(encoded.find("\\u000d") == std::string::npos);
+    CHECK(encoded.find("\\u000a") == std::string::npos);
+    const auto parsed = provisioning::parse_profile(encoded);
+    CHECK(parsed && provisioning::serialize_profile(*parsed).size() == encoded.size());
+
+    Fixture fixture;
+    unsigned request = 1000;
+    CHECK(fixture.manager
+              .open(request_id(request++), session_a, device, provisioning::Transport::Ble,
+                    authorized(), 1)
+              .ok());
+    send(fixture.manager, session_a, encoded, request, 2);
+    const auto applied = session_apply(fixture.manager, request_id(request++), session_a, 0, {}, 4);
+    CHECK(applied.ok() && applied.generation == 1);
+    CHECK(fixture.store.data().size() == provisioning::max_profile_bytes);
+    provisioning::ProfileStore recovered(fixture.media);
+    CHECK(recovered.load() && recovered.sequence() == 1 && recovered.data() == encoded);
+}
+
 void lifecycle_and_transport() {
     Fixture f;
     unsigned request = 1;
@@ -1302,6 +1345,7 @@ void runtime_selection_and_overlay() {
 
 int main() {
     profile_validation();
+    maximum_profile_with_compact_pem_newlines();
     lifecycle_and_transport();
     authentication_identity_and_concurrency();
     malformed_oversize_and_ordering();

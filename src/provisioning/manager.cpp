@@ -231,7 +231,8 @@ Result Manager::apply(std::string_view request_id, std::string_view session_id,
             auto canonical = serialize_profile(*profile);
             const auto previous_generation = store_.sequence();
             if (canonical.size() > max_profile_bytes || !store_.replace(canonical)) {
-                result.code = Code::StorageFault;
+                result.code =
+                    canonical.size() > max_profile_bytes ? Code::Oversize : Code::StorageFault;
                 volatile char* raw = canonical.empty() ? nullptr : canonical.data();
                 for (std::size_t i = 0; i < canonical.size(); ++i)
                     raw[i] = 0;
