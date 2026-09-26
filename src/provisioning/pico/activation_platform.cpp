@@ -1,8 +1,7 @@
 #include "provisioning/pico/activation_platform.hpp"
 
 namespace wsprrypico::provisioning {
-bool PicoActivationPlatform::committed(const Profile& profile,
-                                       std::uint64_t generation) const {
+bool PicoActivationPlatform::committed(const Profile& profile, std::uint64_t generation) const {
     if (!generation || generation != store_.sequence() || !store_.healthy() ||
         store_.source() != ProfileSource::RuntimeProfile || profile.device_id != device_id_)
         return false;
@@ -55,7 +54,7 @@ bool PicoActivationPlatform::install(const Profile& profile, std::uint64_t gener
     if (!quiesced_ || generation != generation_ || !committed(profile, generation))
         return false;
     if (!installed_)
-        installed_ = runtime_.load(store_, device_id_) &&
+        installed_ = runtime_.load(store_, device_id_, BuildBundleState::Absent) &&
                      runtime_.source() == RuntimeSource::Provisioned &&
                      runtime_.generation() == generation;
     return installed_;

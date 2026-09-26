@@ -88,8 +88,23 @@ Candidate scan(Media& media, std::size_t slot) {
     }
     const bool header_erased = erased(header);
     const bool commit_erased = erased(commit);
-    if (header_erased && commit_erased)
+    if (header_erased && commit_erased) {
+        // A power cut can leave only payload pages programmed. Such a slot is
+        // not virgin storage, even though its header and commit are erased.
+        std::array<std::uint8_t, profile_page_size> page{};
+        for (std::size_t offset = payload_offset; offset < commit_offset;
+             offset += profile_page_size) {
+            if (!media.read(base + offset, page)) {
+                result.state = Candidate::State::InvalidUnknown;
+                return result;
+            }
+            if (!erased(page)) {
+                result.state = Candidate::State::Pending;
+                return result;
+            }
+        }
         return result;
+    }
 
     const auto checksum = crc32(std::span(header).first(profile_page_size - 4));
     const auto sequence = get(std::span(header).subspan(8, 8));
@@ -184,6 +199,11 @@ bool ProfileStore::load() {
             (!best || candidate->sequence >= best->sequence))
             return false;
     }
+    // An incomplete first adoption has no older authority to fall back to.
+    // Do not present it as an all-erased, generic device.
+    if (!best &&
+        (first.state != Candidate::State::Empty || second.state != Candidate::State::Empty))
+        return false;
     if (best) {
         sequence_ = best->sequence;
         active_slot_ = best_slot;
@@ -192,8 +212,7 @@ bool ProfileStore::load() {
                 selection_magic) {
             const auto source = static_cast<std::uint8_t>(best->data[8]);
             const bool reserved_clear =
-                std::all_of(best->data.begin() + 9,
-                            best->data.begin() + selection_header_size,
+                std::all_of(best->data.begin() + 9, best->data.begin() + selection_header_size,
                             [](char byte) { return byte == 0; });
             if (!reserved_clear || source < static_cast<unsigned>(ProfileSource::RuntimeProfile) ||
                 source > static_cast<unsigned>(ProfileSource::BuildBundle))
@@ -239,8 +258,8 @@ bool ProfileStore::select(ProfileSource source, std::string_view canonical_profi
         secure_clear(payload);
         return false;
     }
-    const auto input = std::span(reinterpret_cast<const std::uint8_t*>(payload.data()),
-                                 payload.size());
+    const auto input =
+        std::span(reinterpret_cast<const std::uint8_t*>(payload.data()), payload.size());
     for (std::size_t offset = 0; offset < input.size(); offset += profile_page_size) {
         std::array<std::uint8_t, profile_page_size> page;
         page.fill(255);

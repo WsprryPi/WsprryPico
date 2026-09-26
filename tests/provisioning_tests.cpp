@@ -694,6 +694,32 @@ void replacement_and_transaction_recovery() {
     std::fill_n(partial_erase_media.data.begin() + active_second_sector, 4096, 255);
     provisioning::ProfileStore erased_active_commit(partial_erase_media);
     CHECK(!erased_active_commit.load());
+
+    // A first source selection interrupted after payload or header programming
+    // must not make partially written flash look like a virgin generic image.
+    for (unsigned failed_call : {2U, 3U}) {
+        MemoryMedia initial_media;
+        provisioning::ProfileStore initial(initial_media);
+        CHECK(initial.load());
+        initial_media.fail_program_call = failed_call;
+        CHECK(!initial.select(provisioning::ProfileSource::Unprovisioned));
+        provisioning::ProfileStore interrupted(initial_media);
+        CHECK(!interrupted.load());
+        provisioning::RuntimeProfile runtime;
+        CHECK(!runtime.load(interrupted, device, provisioning::BuildBundleState::Absent));
+        CHECK(runtime.source() == provisioning::RuntimeSource::Fault);
+    }
+
+    // An older committed source remains usable when an inactive replacement
+    // has only its first payload page written.
+    MemoryMedia payload_only_media;
+    provisioning::ProfileStore payload_only(payload_only_media);
+    CHECK(payload_only.load());
+    CHECK(payload_only.select(provisioning::ProfileSource::Unprovisioned));
+    payload_only_media.data[provisioning::profile_slot_size + provisioning::profile_page_size] = 0;
+    provisioning::ProfileStore payload_only_recovered(payload_only_media);
+    CHECK(payload_only_recovered.load());
+    CHECK(payload_only_recovered.source() == provisioning::ProfileSource::Unprovisioned);
 }
 
 void replacement_policy_and_existing_state_preservation() {
@@ -1290,6 +1316,27 @@ void deferred_activation_destruction_fail_closed() {
 }
 
 void runtime_selection_and_overlay() {
+    using provisioning::BuildBundleState;
+    CHECK(provisioning::classify_build_bundle(device, {}) == BuildBundleState::Absent);
+    const provisioning::BuildBundleDescriptor bound_bundle{
+        device, "wsprrypico-010203.local", 18443, "certificate", "private-key", "ca"};
+    CHECK(provisioning::classify_build_bundle(device, bound_bundle) == BuildBundleState::Matching);
+    CHECK(provisioning::classify_build_bundle(other_device, bound_bundle) ==
+          BuildBundleState::Mismatched);
+    auto incomplete_bundle = bound_bundle;
+    incomplete_bundle.device_id = {};
+    incomplete_bundle.hostname = {};
+    CHECK(provisioning::classify_build_bundle(device, incomplete_bundle) ==
+          BuildBundleState::Mismatched);
+    incomplete_bundle = bound_bundle;
+    incomplete_bundle.private_key = {};
+    CHECK(provisioning::classify_build_bundle(device, incomplete_bundle) ==
+          BuildBundleState::Mismatched);
+    incomplete_bundle = {};
+    incomplete_bundle.device_id = device;
+    CHECK(provisioning::classify_build_bundle(device, incomplete_bundle) ==
+          BuildBundleState::Mismatched);
+
     const auto base = standalone::parse_config(
         R"({"version":1,"enabled":true,"station":{"callsign":"AA0NT","locator":"EM18","power_dbm":37},"wifi":{"ssid":"old-network","password":"old-password","ntp_ipv4":"pool.ntp.org"},"schedules":[{"period_s":120,"phase_s":0}]})");
     CHECK(base);
@@ -1297,29 +1344,51 @@ void runtime_selection_and_overlay() {
     MemoryMedia empty_media;
     provisioning::ProfileStore empty_store(empty_media);
     CHECK(empty_store.load());
+    provisioning::RuntimeProfile blank;
+    CHECK(blank.load(empty_store, device, provisioning::BuildBundleState::Absent));
+    CHECK(blank.source() == provisioning::RuntimeSource::Unprovisioned);
+    CHECK(blank.fault() == provisioning::RuntimeFault::None);
+    CHECK(blank.generation() == 0 && !blank.profile());
+    CHECK(!blank.overlay(*base));
+
     provisioning::RuntimeProfile factory;
-    CHECK(factory.load(empty_store, device));
+    CHECK(factory.load(empty_store, device, provisioning::BuildBundleState::Matching));
     CHECK(factory.source() == provisioning::RuntimeSource::Factory);
     CHECK(factory.fault() == provisioning::RuntimeFault::None);
-    CHECK(factory.generation() == 0 && !factory.profile());
     const auto factory_config = factory.overlay(*base);
     CHECK(factory_config && *factory_config == *base);
+
+    provisioning::RuntimeProfile mismatched_bundle;
+    CHECK(!mismatched_bundle.load(empty_store, device, provisioning::BuildBundleState::Mismatched));
+    CHECK(mismatched_bundle.source() == provisioning::RuntimeSource::Fault);
+    CHECK(mismatched_bundle.fault() == provisioning::RuntimeFault::WrongDevice);
+    CHECK(!mismatched_bundle.overlay(*base));
 
     MemoryMedia unprovisioned_media;
     provisioning::ProfileStore unprovisioned_store(unprovisioned_media);
     CHECK(unprovisioned_store.load());
     CHECK(unprovisioned_store.select(provisioning::ProfileSource::Unprovisioned));
     provisioning::RuntimeProfile unprovisioned;
-    CHECK(unprovisioned.load(unprovisioned_store, device));
+    CHECK(
+        unprovisioned.load(unprovisioned_store, device, provisioning::BuildBundleState::Matching));
     CHECK(unprovisioned.source() == provisioning::RuntimeSource::Unprovisioned);
     CHECK(!unprovisioned.overlay(*base));
+    CHECK(unprovisioned_store.select(provisioning::ProfileSource::BuildBundle));
+    provisioning::RuntimeProfile selected_bundle;
+    CHECK(selected_bundle.load(unprovisioned_store, device,
+                               provisioning::BuildBundleState::Matching));
+    CHECK(selected_bundle.source() == provisioning::RuntimeSource::Factory);
+    provisioning::RuntimeProfile missing_selected_bundle;
+    CHECK(!missing_selected_bundle.load(unprovisioned_store, device,
+                                        provisioning::BuildBundleState::Absent));
+    CHECK(missing_selected_bundle.source() == provisioning::RuntimeSource::Fault);
 
     MemoryMedia provisioned_media;
     provisioning::ProfileStore provisioned_store(provisioned_media);
     CHECK(provisioned_store.load());
     CHECK(provisioned_store.replace(provisioning::serialize_profile(profile("runtime"))));
     provisioning::RuntimeProfile provisioned;
-    CHECK(provisioned.load(provisioned_store, device));
+    CHECK(provisioned.load(provisioned_store, device, provisioning::BuildBundleState::Absent));
     CHECK(provisioned.source() == provisioning::RuntimeSource::Provisioned);
     CHECK(provisioned.generation() == 1 && provisioned.profile());
     const auto selected = provisioned.overlay(*base);
@@ -1336,7 +1405,8 @@ void runtime_selection_and_overlay() {
           material.server_private_key.find("KEY-runtime") != material.server_private_key.npos);
 
     provisioning::RuntimeProfile wrong_device;
-    CHECK(!wrong_device.load(provisioned_store, other_device));
+    CHECK(!wrong_device.load(provisioned_store, other_device,
+                             provisioning::BuildBundleState::Absent));
     CHECK(wrong_device.source() == provisioning::RuntimeSource::Fault);
     CHECK(wrong_device.fault() == provisioning::RuntimeFault::WrongDevice);
     CHECK(!wrong_device.overlay(*base));
@@ -1345,7 +1415,7 @@ void runtime_selection_and_overlay() {
     provisioning::ProfileStore malformed_store(malformed_media);
     CHECK(malformed_store.load() && malformed_store.replace("{}"));
     provisioning::RuntimeProfile malformed;
-    CHECK(!malformed.load(malformed_store, device));
+    CHECK(!malformed.load(malformed_store, device, provisioning::BuildBundleState::Absent));
     CHECK(malformed.source() == provisioning::RuntimeSource::Fault);
     CHECK(malformed.fault() == provisioning::RuntimeFault::Malformed);
     CHECK(!malformed.overlay(*base));

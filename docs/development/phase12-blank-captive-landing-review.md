@@ -58,9 +58,11 @@ with the exact board, image, iPhone/iOS, network and restoration recorded.
 The later Candidate A result confirmed DHCP, AP DNS, HTTP redirect, the local
 page, and operator-reported automatic captive launch and Safari fallback on one
 iPhone. It also exposed the legacy factory-bundle selection after full erase;
-the test required a manually seeded unprovisioned journal. That result does
-not close generic blank first-run, station-join bootstrap, AP/STA coexistence
-or P12.7-12.12 commissioning.
+the test required a manually seeded unprovisioned journal. That result did
+not close generic blank first-run; the later
+[full-erase result](phase12-generic-first-run-physical-result.md) addresses
+that specific gap. Station-join bootstrap, AP/STA coexistence and P12.7-12.12
+commissioning remain open.
 
 ## Open blank-AP amendment
 
@@ -92,8 +94,9 @@ focused network suite passed; the RP2350 standard image and field-access
 linkcheck linked. The exact open-AP target and iPhone retest is recorded in the
 [physical result](phase12-blank-captive-physical-result.md).
 
-The all-erased factory-bundle selection remains a separate deferred first-run
-cleanup. This open, read-only AP does not accept station credentials and cannot
+The all-erased factory-bundle selection was resolved in the separate
+[generic first-run cleanup](phase12-generic-first-run-review.md). This open,
+read-only AP does not accept station credentials and cannot
 be counted as the proposed Wi-Fi-only network-join flow.
 The final `e481bac807ab` image was flashed only to Candidate A; a passwordless
 host association, DNS, redirect, page and inactive-output readback passed.

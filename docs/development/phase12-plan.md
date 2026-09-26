@@ -615,16 +615,22 @@ host association, and the operator reported passwordless iPhone association
 and automatic captive launch. AP/STA behavior and the full Wi-Fi-only form
 remain unaccepted target gates.
 
-**Deferred first-run cleanup:** the
+**Generic first-run cleanup:** the
 [Candidate A blank-AP physical check](phase12-blank-captive-physical-result.md)
 showed that an all-erased generic Pico selects the legacy factory-bundle source
 and cannot expose the blank captive page until an explicit unprovisioned
-selection is written. Before approving or implementing Wi-Fi-only first setup,
-decide how an all-erased generic image selects its source and retire or tightly
-scope the implicit factory-bundle fallback. Prove that valid device-bound
-bundles still behave as intended, corrupt journals fail closed, and neither
-legacy Wi-Fi nor trust material reappears after reset or power loss. Repeat the
-physical blank-device test without a manually seeded journal.
+selection is written. The
+[bounded cleanup execution](phase12-generic-first-run-execution-prompt.md)
+now selects generation-zero unprovisioned mode for an erased profile
+journal in a generic image; matching device-bound compiled bundles retain
+factory behavior, while mismatched or incomplete bundles and interrupted
+first selections fail closed. Host tests and an RF-inhibited cross-build cover
+this rule. The [Candidate A full-erase result](phase12-generic-first-run-physical-result.md)
+accepted generation-zero unprovisioned selection and the passwordless
+read-only AP without a seeded journal. The
+[adversarial review](phase12-generic-first-run-review.md) records the repaired
+findings and evidence limits. This cleanup does not approve the Wi-Fi-only
+credential-submission proposal or close P12.7.
 
 ### P12.12 Stage A robustness and closure
 

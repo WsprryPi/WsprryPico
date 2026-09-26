@@ -103,6 +103,10 @@ Access and profile journals are independent. Source-mode tombstones and durable
 reset intent prevent fallback to superseded authority; unhealthy, erased or
 reset-pending access state suppresses station and scheduled work until
 authorized recovery.
+An exactly erased profile journal in a generic image selects unprovisioned
+generation zero and the bounded read-only open SoftAP. A complete, matching
+device-bound compiled bundle may retain factory source behavior; incomplete
+or wrong-device bundles and interrupted first profile selections fail closed.
 
 The portable access layer implements exact request-bound proofs, enrollment,
 bond capacity/revocation, SoftAP cookies and expiry, field mode, reset levels,

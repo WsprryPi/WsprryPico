@@ -482,7 +482,13 @@ resolved or queried and its observations accepted.
 The profile journal also stores a transactional source mode: legacy bootstrap,
 runtime profile, unprovisioned tombstone or explicitly selected device-bound
 build bundle. Legacy bootstrap is permitted only before the first Phase 12
-profile/reset adoption. Once a runtime profile or unprovisioned tombstone has
+profile/reset adoption. An exactly erased profile journal in a generic image
+selects unprovisioned mode at generation zero. An image with a complete,
+matching device-bound compiled bundle may retain factory behavior at
+generation zero; a partial or wrong-device compiled bundle fails closed.
+An explicit build-bundle selection also requires a matching compiled bundle.
+An interrupted first source selection fails closed until recovery rather than
+appearing erased. Once a runtime profile or unprovisioned tombstone has
 committed, deleting or corrupting a profile never exposes Wi-Fi credentials from
 the standalone version-1 base configuration and never silently selects build
 trust. Those legacy Wi-Fi bytes may remain stored but are ignored. Returning to

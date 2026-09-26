@@ -1,8 +1,23 @@
 #include "provisioning/runtime.hpp"
 
+#include "network/identity.hpp"
+
 #include <utility>
 
 namespace wsprrypico::provisioning {
+BuildBundleState classify_build_bundle(std::string_view actual_device_id,
+                                       const BuildBundleDescriptor& bundle) {
+    if (!bundle.port && bundle.device_id.empty() && bundle.hostname.empty() &&
+        bundle.certificate.empty() && bundle.private_key.empty() && bundle.client_ca.empty())
+        return BuildBundleState::Absent;
+    if (bundle.port && bundle.port <= 65535 && network::valid_device_id(bundle.device_id) &&
+        !bundle.hostname.empty() && !bundle.certificate.empty() && !bundle.private_key.empty() &&
+        !bundle.client_ca.empty() &&
+        network::deployment_identity_matches(actual_device_id, bundle.device_id, bundle.hostname))
+        return BuildBundleState::Matching;
+    return BuildBundleState::Mismatched;
+}
+
 RuntimeProfile::~RuntimeProfile() {
     clear();
 }
@@ -12,23 +27,31 @@ void RuntimeProfile::clear() {
     has_profile_ = false;
 }
 
-bool RuntimeProfile::load(const ProfileStore& store, std::string_view actual_device_id) {
+bool RuntimeProfile::load(const ProfileStore& store, std::string_view actual_device_id,
+                          BuildBundleState build_bundle) {
     clear();
     generation_ = store.sequence();
     source_ = RuntimeSource::Fault;
     fault_ = RuntimeFault::Storage;
     if (!store.healthy())
         return false;
-    if (store.source() == ProfileSource::Unprovisioned) {
+    if (store.source() == ProfileSource::Unprovisioned ||
+        (store.source() == ProfileSource::LegacyBootstrap && !generation_ &&
+         build_bundle == BuildBundleState::Absent)) {
         if (!store.data().empty())
             return false;
         source_ = RuntimeSource::Unprovisioned;
         fault_ = RuntimeFault::None;
         return true;
     }
-    if (store.source() == ProfileSource::BuildBundle || !generation_) {
+    if (store.source() == ProfileSource::BuildBundle ||
+        (store.source() == ProfileSource::LegacyBootstrap && !generation_)) {
         if (!store.data().empty())
             return false;
+        if (build_bundle != BuildBundleState::Matching) {
+            fault_ = RuntimeFault::WrongDevice;
+            return false;
+        }
         source_ = RuntimeSource::Factory;
         fault_ = RuntimeFault::None;
         return true;

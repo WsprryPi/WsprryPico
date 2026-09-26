@@ -1,7 +1,9 @@
 # Phase 12 blank captive landing: Candidate A physical check
 
 Status: **PASS for the bounded read-only open-AP and iPhone captive path** on
-2026-09-26. Generic all-erased first-run and Wi-Fi station setup remain open.
+2026-09-26. The later [generic full-erase result](phase12-generic-first-run-physical-result.md)
+closes the source-selection gap found in this run; Wi-Fi station setup remains
+open.
 This is a read-only captive landing check. It does not test station credential
 entry or joining, owner claim, TLS setup, RF scheduling or Stage B.
 
@@ -130,8 +132,7 @@ reported no memory-pool errors and the allocator reported zero failures.
 Candidate A remains on the blank read-only image with the explicit
 unprovisioned journal; the old state is intentionally not restored.
 
-The legacy factory-bundle selection on fully erased flash needs a separate
-design and source repair before a generic blank-device experience can be
-accepted. Preserve explicit source selection, reject corrupt journals, avoid
-legacy Wi-Fi/trust resurrection, and test power-cut recovery. Repeat this
-physical check from an all-erased device without a manually seeded journal.
+The legacy factory-bundle selection on fully erased flash required a separate
+source repair. The subsequent
+[generic full-erase result](phase12-generic-first-run-physical-result.md)
+records the repaired image and a repeat without a manually seeded journal.

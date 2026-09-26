@@ -88,8 +88,10 @@ certificate-free mechanism and must not be advertised as implemented.
 
 ## Admission and authority
 
-- Only an explicitly unprovisioned device with checked full identity, checked
-  station MAC and authoritatively inactive output may expose the bootstrap AP.
+- Only a device selected into the unprovisioned runtime source (either an
+  explicit tombstone or an exactly erased profile journal in a generic image)
+  with checked full identity, checked station MAC and authoritatively inactive
+  output may expose the bootstrap AP.
   A healthy-unclaimed access record may expose read-only status; an exactly
   all-erased access journal may expose the same read-only page only after those
   checks and must be durably initialized by the later physical action before

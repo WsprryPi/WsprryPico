@@ -251,8 +251,14 @@ int main() {
 #endif
     static wsprrypico::firmware::PicoIdentitySource identities;
     static wsprrypico::provisioning::RuntimeProfile runtime_profile;
+    const auto build_bundle = wsprrypico::provisioning::classify_build_bundle(
+        identities.device_id(),
+        {wsprrypico::network::credentials::device_id, wsprrypico::network::credentials::hostname,
+         wsprrypico::network::credentials::port, wsprrypico::network::credentials::certificate,
+         wsprrypico::network::credentials::key, wsprrypico::network::credentials::ca});
     const bool runtime_profile_loaded =
-        profile_store_loaded && runtime_profile.load(profile_store, identities.device_id());
+        profile_store_loaded &&
+        runtime_profile.load(profile_store, identities.device_id(), build_bundle);
 #ifdef WSPRRY_PICO_STANDALONE_RF
     const auto config = wsprrypico::standalone::wtp_profile(true);
 #else
@@ -275,7 +281,8 @@ int main() {
                            wsprrypico::network::credentials::key,
                            wsprrypico::network::credentials::ca};
     const bool deployment_matches =
-        runtime_profile_loaded && !access_recovery &&
+        runtime_profile_loaded && !access_recovery && !tls_credentials.device_id.empty() &&
+        !tls_credentials.hostname.empty() && tls_credentials.port != 0 &&
         wsprrypico::network::deployment_identity_matches(
             identities.device_id(), tls_credentials.device_id, tls_credentials.hostname);
     static wsprrypico::time::ControllerTimeArbiter time_arbiter(clock, monotonic_now, nullptr,
@@ -834,7 +841,7 @@ int main() {
             if (blank_captive)
                 (void)softap.start_blank(local_identity);
             else if (surface != wsprrypico::provisioning::SoftApSurface::BlankReadOnly &&
-                     access_store.healthy() && access)
+                     runtime_profile_loaded && access_store.healthy() && access)
                 (void)softap.start(local_identity, access->password);
         } else if (!request_softap && softap.running()) {
             (void)network.softap_name(false, {});
