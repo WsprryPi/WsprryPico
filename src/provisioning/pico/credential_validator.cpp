@@ -7,6 +7,7 @@
 #include "mbedtls/x509_crt.h"
 #include "network/identity.hpp"
 #include "network/pico/psa_lifetime.hpp"
+#include "wtp/job_service.hpp"
 
 #include <string_view>
 
@@ -16,6 +17,7 @@ constexpr int identity_error = -0x7f01;
 constexpr int hostname_san_error = -0x7f02;
 constexpr int algorithm_error = -0x7f03;
 constexpr int purpose_error = -0x7f04;
+constexpr int time_error = -0x7f05;
 
 bool exact_dns_san(const mbedtls_x509_crt& certificate, std::string_view expected) {
     for (auto* entry = &certificate.subject_alt_names; entry && entry->buf.p; entry = entry->next) {
@@ -85,6 +87,13 @@ bool MbedTlsCredentialValidator::validate_impl(CredentialMaterial material,
                                                bool allow_time_unknown) {
     last_error_ = 0;
     verify_flags_ = 0;
+    if (!allow_time_unknown && trusted_clock_) {
+        const auto clock = trusted_clock_->clock_snapshot();
+        if (clock.state == wtp::ClockState::Unsynchronized || clock.utc_now_ns == 0) {
+            last_error_ = time_error;
+            return false;
+        }
+    }
     if (!network::valid_device_id(expected_device_id_) ||
         material.device_id != expected_device_id_ || !material.port || material.port > 65535 ||
         !network::canonical_local_hostname(material.hostname) ||

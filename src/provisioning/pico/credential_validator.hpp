@@ -6,13 +6,18 @@
 #include <string>
 #include <utility>
 
+namespace wsprrypico::wtp {
+class JobService;
+}
+
 namespace wsprrypico::provisioning {
 // This validator owns one shared PSA lease only for the duration of validate().
 // Its certificate/key contexts remain independent from an active TLS server.
 class MbedTlsCredentialValidator final : public CredentialValidator {
   public:
-    explicit MbedTlsCredentialValidator(std::string expected_device_id)
-        : expected_device_id_(std::move(expected_device_id)) {}
+    explicit MbedTlsCredentialValidator(std::string expected_device_id,
+                                        const wtp::JobService* trusted_clock = nullptr)
+        : expected_device_id_(std::move(expected_device_id)), trusted_clock_(trusted_clock) {}
     bool validate(const Profile& profile) override;
     bool validate(CredentialMaterial material);
     // A committed profile was already validated against trusted UTC before it
@@ -30,6 +35,7 @@ class MbedTlsCredentialValidator final : public CredentialValidator {
   private:
     bool validate_impl(CredentialMaterial material, bool allow_time_unknown);
     std::string expected_device_id_;
+    const wtp::JobService* trusted_clock_ = nullptr;
     int last_error_ = 0;
     std::uint32_t verify_flags_ = 0;
 };

@@ -493,6 +493,9 @@ PEM certificate blocks no larger than 3,072 bytes each. The private key is a
 PKCS#8 `PRIVATE KEY` or SEC1 `EC PRIVATE KEY` PEM block no larger than 2,048
 bytes. The platform additionally verifies certificate chain, key pair, exact
 SAN/device binding, purpose, validity and accepted algorithms.
+Certificate validity at apply uses accepted device UTC. A target that has not
+yet joined a station network needs authenticated controller time before its
+first profile can pass this check.
 
 Real profiles contain private material. Keep them outside Git, do not paste
 them into issue reports or logs, and clear the Bluefy form/tab after use.

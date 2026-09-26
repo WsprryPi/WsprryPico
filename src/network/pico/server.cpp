@@ -20,6 +20,7 @@ extern "C" mbedtls_ms_time_t mbedtls_ms_time(void) {
 namespace wsprrypico::network {
 namespace {
 wtp::JobService* time_service = nullptr;
+wtp::JobService* validation_time_service = nullptr;
 PicoServer* tls_owner = nullptr;
 // TLS is entirely core-0 owned, including PSA and this allocator. Exhaustion
 // fails the allocating handshake/session; no allocation can consume RF memory.
@@ -64,8 +65,9 @@ void tls_free(void* pointer) {
     std::free(allocation);
 }
 mbedtls_time_t tls_time(mbedtls_time_t* output) {
+    const auto* source = time_service ? time_service : validation_time_service;
     const auto value = static_cast<mbedtls_time_t>(
-        time_service ? time_service->clock_snapshot().utc_now_ns / 1'000'000'000ULL : 0);
+        source ? source->clock_snapshot().utc_now_ns / 1'000'000'000ULL : 0);
     if (output)
         *output = value;
     return value;
@@ -80,6 +82,11 @@ void scrub(std::string& value) {
     std::string{}.swap(value);
 }
 } // namespace
+void install_tls_time_source(wtp::JobService& service) {
+    validation_time_service = &service;
+    mbedtls_platform_set_time(tls_time);
+}
+
 PicoServer::PicoServer(wtp::JobService& service, BrowserApi& api, std::string device,
                        std::string firmware, provisioning::CredentialMaterial credentials)
     : service_(service), api_(api), device_id_(device), credentials_(credentials),

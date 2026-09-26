@@ -64,6 +64,10 @@ the second entry because staging the profile can take time over BLE. A wrong
 second entry is rejected by the device as `authentication_required`; this is
 the Field-GATT error for a failed fresh-password proof. The client cancels the
 staged transaction and disconnects after that rejection.
+Before applying a profile to a target without station time, use the authenticated
+`sync-time` command and verify that field status reports an accepted time source.
+The Pico checks certificate validity against that UTC before committing the
+profile. USB confirmation does not bypass certificate validation.
 
 If enrollment expires while a provisional link remains open, the target erases
 the provisional bond, invalidates its authority and requests link closure.

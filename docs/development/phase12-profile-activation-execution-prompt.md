@@ -167,15 +167,19 @@ Use an owner-controlled interactive terminal for all non-echoing password entry.
    unchanged generation and healthy reconnect.
 4. Open another valid transaction, disconnect/cancel before apply, reconnect and
    prove no staged authority or provisional generation survived.
-5. Run `provision` with the exact 7,168-byte canonical profile. Confirm that the
+5. Establish accepted UTC with the native client's authenticated `sync-time`
+   command and verify a non-`none` field time source before certificate-validity
+   admission. The unprovisioned target cannot obtain station SNTP yet; this is
+   a prerequisite for profile apply, not the broader controller-time matrix.
+6. Run `provision` with the exact 7,168-byte canonical profile. Confirm that the
    client reports the identity-bound USB instruction, issue
    `ACCESS CONFIRM PROFILE fd6127d11d6aca42a9905fa3fb1bf1d5` on Candidate A's
    Console within the bounded confirmation window, and require an accepted
    apply response before treating activation as committed.
-6. Verify exactly one generation increment, delivery-safe exactly-once
+7. Verify exactly one generation increment, delivery-safe exactly-once
    activation, expected BLE disconnect if activation closes the link, journal
    health and successful post-activation authorized reconnect.
-7. Verify station association, DHCP, certified hostname, device-bound server
+8. Verify station association, DHCP, certified hostname, device-bound server
    certificate/key, client-CA authentication, controller time/SNTP behavior and
    WTP `HELLO`/read-only `STATUS` through the new runtime without starting work.
    Verify no prior credential generation is selected.

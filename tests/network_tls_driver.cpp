@@ -1,3 +1,4 @@
+#include "mbedtls/platform.h"
 #include "network/pico/psa_lifetime.hpp"
 #include "network/pico/server.hpp"
 #include "network_credentials.hpp"
@@ -30,6 +31,11 @@ void wait() {
 }
 void failure() {
     std::abort();
+}
+mbedtls_time_t unset_tls_time(mbedtls_time_t* output) {
+    if (output)
+        *output = 0;
+    return 0;
 }
 // A hardware-free locally scheduled timeline: elapsed time advances the finite
 // device job independently of the application thread. No host wakeup-latency
@@ -130,6 +136,22 @@ int main(int argc, char** argv) {
         network::credentials::device_id, network::credentials::hostname,
         network::credentials::port,      network::credentials::certificate,
         network::credentials::key,       network::credentials::ca};
+    // First provisioning validates before any TLS server has started. Its
+    // certificate clock must already be the disciplined device clock.
+    mbedtls_platform_set_time(unset_tls_time);
+    provisioning::MbedTlsCredentialValidator unbound_validator(device);
+    if (unbound_validator.validate(credentials) || network::PsaCryptoOwner::owners())
+        std::abort();
+    network::install_tls_time_source(service);
+    provisioning::MbedTlsCredentialValidator startup_validator(device, &service);
+    if (!startup_validator.validate(credentials) || network::PsaCryptoOwner::owners())
+        std::abort();
+    clock.invalidate();
+    if (startup_validator.validate(credentials) || network::PsaCryptoOwner::owners())
+        std::abort();
+    if (!clock.observe(utc + now(), now(), 1000, wtp::LeapState::Normal) ||
+        !startup_validator.validate(credentials) || network::PsaCryptoOwner::owners())
+        std::abort();
     auto invalid_credentials = credentials;
     invalid_credentials.server_certificate = "not a certificate";
     network::PicoServer invalid_server(service, api, device, "invalid-credentials",
@@ -192,7 +214,7 @@ int main(int argc, char** argv) {
                 std::cout << "PSA " << network::PsaCryptoOwner::owners() << ' '
                           << network::PsaCryptoOwner::peak_owners() << std::endl;
             else if (command == "VALIDATE GOOD" || command == "VALIDATE BAD") {
-                provisioning::MbedTlsCredentialValidator validator(device);
+                provisioning::MbedTlsCredentialValidator validator(device, &service);
                 const auto valid = validator.validate(
                     command == "VALIDATE GOOD" ? credentials : invalid_credentials);
                 std::cout << "VALIDATE " << (valid ? 1 : 0) << ' ' << validator.last_error() << ' '

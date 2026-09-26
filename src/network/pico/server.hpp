@@ -12,6 +12,10 @@
 #include <array>
 
 namespace wsprrypico::network {
+// Install the disciplined UTC source before first profile validation, including
+// a boot with no configured TLS server. The service must outlive the firmware.
+void install_tls_time_source(wtp::JobService& service);
+
 // Core-0-only TLS/lwIP/application owner. Physical waveform servicing is isolated.
 class PicoServer {
   public:

@@ -219,6 +219,10 @@ try:
     # Unusable UTC cancels a pending handshake; coherent restoration admits TLS.
     with socket.create_connection(('127.0.0.1',18443),timeout=3):
         control('CLOCK OFF')
+        control('VALIDATE GOOD')
+        result = process.stdout.readline().strip().split()
+        assert result[0] == 'VALIDATE' and result[1] == '0' and result[2] != '0', result
+        assert result[3:] == ['1', '2'], result
         try:
             with connect() as stream:
                 assert not stream.recv(1024)

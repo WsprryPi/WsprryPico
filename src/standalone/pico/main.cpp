@@ -312,6 +312,7 @@ int main() {
     static wsprrypico::network::PicoServer server(service, browser_api, identities.device_id(),
                                                   wsprrypico::firmware::kFirmwareVersion,
                                                   tls_credentials);
+    wsprrypico::network::install_tls_time_source(service);
     const auto softap_authority =
         local_identity.hostname + (server.port() == 443 ? "" : ":" + std::to_string(server.port()));
     static wsprrypico::provisioning::SoftApHttpAdmission softap_admission(
@@ -363,7 +364,7 @@ int main() {
     };
     browser_api.restart_control(schedule_restart, &restart_context);
     static wsprrypico::provisioning::MbedTlsCredentialValidator credential_validator(
-        identities.device_id());
+        identities.device_id(), &service);
     static wsprrypico::provisioning::PicoActivationPlatform activation_platform(
         profile_store, runtime_profile, service, server, identities.device_id(), schedule_restart,
         &restart_context);
