@@ -36,8 +36,10 @@ remaining hard gates are safe runtime BOOTSEL sampling, browser-side crypto
 availability and source provenance, the new journal/runtime migration, AP/STA
 behavior on Pico 2 W, full encrypted-form behavior in the captive screen, and
 exact user-visible disclosure of active relay risk.
-The separate read-only physical check observed automatic captive launch and
-Safari fallback on one iPhone; it did not exercise a credential form.
+The separate read-only WPA2 physical check observed automatic captive launch
+and Safari fallback on one iPhone. The later open AP passed passwordless host
+association, and the operator reported passwordless iPhone association and
+automatic captive launch. A credential form remains open.
 The last risk is a chosen limitation, not evidence of prevention. The
 consumer owner/TLS path, broader Stage A ledger and Phase 12 closure remain
 open. Stage B RF coexistence is separate and has not been operated.

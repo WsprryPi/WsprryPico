@@ -1,7 +1,7 @@
 # Phase 12 blank captive landing: Candidate A physical check
 
-Status: **WPA2 captive launch and Safari fallback reported; open-AP host path
-passed; passwordless iPhone retest pending** on 2026-09-26.
+Status: **PASS for the bounded read-only open-AP and iPhone captive path** on
+2026-09-26. Generic all-erased first-run and Wi-Fi station setup remain open.
 This is a read-only captive landing check. It does not test station credential
 entry or joining, owner claim, TLS setup, RF scheduling or Stage B.
 
@@ -83,11 +83,42 @@ RF-inhibited engine.
 | DNS and redirect | The Pico again answered A with `192.168.4.1`, AAAA with no address, and an iOS-style HTTP GET with a no-store `302` to `http://192.168.4.1/`. |
 | Local page | HTTP 200 returned the revised read-only identity page. It says Wi-Fi setup is unavailable here and contains no form or password request. |
 | Host cleanup | The temporary open-AP NetworkManager profile was deactivated and deleted; management remained on `eth0` and `wlan1`. |
-| iPhone passwordless join and captive launch | Pending operator retest on the same phone after forgetting the old WPA2 profile. |
+| iPhone passwordless join and captive launch | After forgetting the old WPA2 profile, the operator reported that the same iPhone joined with no password prompt and the captive page opened. The current iOS build was not reconfirmed. |
 
 The open AP exposes only the read-only captive surface. Station credential
 submission, browser encryption, network join, owner claim and job control are
 still design-only future work.
+
+### Final reviewed image
+
+The post-review repair to withdraw an open AP when its access journal becomes
+unsafe was committed as `e481bac807ab`. A clean RF-inhibited build produced UF2
+SHA-256 `08bc2337ed5ad4d0178d2ea08b6043d8f4008ed02f069f77213967ba1e483f1f`.
+Candidate A alone was serial-targeted, identified in BOOTSEL by chip ID, and
+loaded, verified and rebooted with picotool. Boot ID
+`63e4f58e2e1181d8e00a623d06ad68db` reported the exact new revision,
+unprovisioned generation 1, erased access state, no station configuration,
+healthy storage, a suspended/empty job, `output_active=false` and zero allocator
+failures. The comparator remained untouched.
+
+A fresh independent `wlan0` scan again showed the exact open BSSID without a
+Privacy bit or WPA/RSN element. `wlan2` joined that BSSID with an explicit
+passwordless profile, obtained `192.168.4.16/24` and DNS `192.168.4.1`, and
+passed the A/AAAA DNS responses, no-store `302` captive redirect and local
+read-only page. Its temporary profile was then deactivated and deleted;
+`wlan2` remained disconnected, while `eth0` and `wlan1` retained management.
+Final Console readback showed the same boot/revision, inactive output, zero
+allocator and lwIP pool errors, and no live TCP or packet-pool allocation.
+While the final image was installed, the operator reported passwordless iPhone
+association and automatic captive-page launch. This is an operator observation;
+the phone did not report the firmware revision directly. The Safari fallback
+was separately reported on the earlier WPA2 image and was not repeated on the
+final open image.
+A post-phone Console read still showed the same boot and revision, healthy
+storage, empty job, inactive output, zero allocator failures and zero lwIP
+pool errors. Three of four TCP PCBs were in use (peak four) while the phone
+was connected, so this run does not close broader concurrency or resource-soak
+acceptance.
 
 ## Remaining observations
 

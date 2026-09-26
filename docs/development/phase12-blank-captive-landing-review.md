@@ -95,3 +95,9 @@ linkcheck linked. The exact open-AP target and iPhone retest is recorded in the
 The all-erased factory-bundle selection remains a separate deferred first-run
 cleanup. This open, read-only AP does not accept station credentials and cannot
 be counted as the proposed Wi-Fi-only network-join flow.
+The final `e481bac807ab` image was flashed only to Candidate A; a passwordless
+host association, DNS, redirect, page and inactive-output readback passed.
+The operator reported passwordless iPhone association and automatic captive
+launch while that final image was installed. The final adversarial reassessment
+found no further actionable defect in this bounded read-only AP path; it does
+not qualify the full-erased first-run or network-join proposal.

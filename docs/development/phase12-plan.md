@@ -610,8 +610,10 @@ The separate [blank read-only captive landing review](phase12-blank-captive-land
 records a source-tested, RF-inhibited-image implementation of AP-only DNS and
 safe HTTP redirection. It adds no credential input or station-join authority;
 one Candidate A/iPhone run observed automatic launch and Safari fallback for
-this read-only page. AP/STA behavior and the full Wi-Fi-only form remain
-unaccepted target gates.
+the original WPA2 read-only page. The later open-AP image passed passwordless
+host association, and the operator reported passwordless iPhone association
+and automatic captive launch. AP/STA behavior and the full Wi-Fi-only form
+remain unaccepted target gates.
 
 **Deferred first-run cleanup:** the
 [Candidate A blank-AP physical check](phase12-blank-captive-physical-result.md)
