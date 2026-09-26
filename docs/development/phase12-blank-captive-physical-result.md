@@ -1,7 +1,7 @@
 # Phase 12 blank captive landing: Candidate A physical check
 
-Status: **Pico/AP path passed; automatic iPhone captive launch and Safari
-fallback reported** on 2026-09-26.
+Status: **WPA2 captive launch and Safari fallback reported; open-AP host path
+passed; passwordless iPhone retest pending** on 2026-09-26.
 This is a read-only captive landing check. It does not test station credential
 entry or joining, owner claim, TLS setup, RF scheduling or Stage B.
 
@@ -57,10 +57,37 @@ a test fixture, not proof that a fully erased consumer device can start its AP.
 | iPhone captive launch | The operator used the same iPhone 17 Pro Max as the earlier Phase 12 phone work and reported that the page popped up automatically after a short delay on joining the AP. The current iOS build was not reconfirmed. |
 | iPhone Safari fallback | While still joined to the Pico AP, the operator opened `http://192.168.4.1/` in Safari and reported that the same read-only recovery page loaded. |
 
-The current page still directs setup through BLE or USB and the blank AP still
-uses a MAC-derived WPA2 passphrase. Neither is the proposed code-free Wi-Fi-only
-station-join flow. The page copy must be revised when that separate design is
-approved and implemented.
+In this first check, the page still directed setup through BLE or USB and the
+blank AP used a MAC-derived WPA2 passphrase. Neither was the proposed code-free
+Wi-Fi-only station-join flow. The later open-AP retest below removes the AP
+password and revises this page copy, but still has no station-join form.
+
+## Passwordless open-AP retest
+
+The operator then required the blank SoftAP to join without a Wi-Fi password.
+The bounded source change was committed as `23c49a403679`; a clean build
+embedded `Standalone RF-inhibited 23c49a403679`. Its UF2 SHA-256 was
+`b220a7582b28ba676731d38e6b2b9ef0d020239bdd88b959b584ed726a51ea18`.
+Before flash, Candidate A still reported the explicit unprovisioned journal at
+generation 1, an empty job and inactive output. Serial-targeted BOOTSEL and
+picotool load/verify/reboot updated only Candidate A, preserving the journal.
+The new boot ID was `d7313d801c652bbbb2e8e20fc9f968ef`; Console reported
+the exact new revision, `unprovisioned` generation 1, erased access state, no
+station config, suspended/empty job and `output_active=false` under the
+RF-inhibited engine.
+
+| Check | Observed result |
+| --- | --- |
+| Beacon security | A fresh scan from independent `wlan0` showed the exact BSSID `88:a2:9e:0a:60:df`, no beacon Privacy bit and no WPA/RSN information element. `wlan2` NetworkManager's prior cached scan still labeled the SSID WPA2, so its label was not used as security evidence. |
+| Passwordless association | An explicit `wlan2` connection pinned to that BSSID and containing no Wi-Fi security method or PSK joined successfully and received `192.168.4.16/24`, DNS `192.168.4.1`. |
+| DNS and redirect | The Pico again answered A with `192.168.4.1`, AAAA with no address, and an iOS-style HTTP GET with a no-store `302` to `http://192.168.4.1/`. |
+| Local page | HTTP 200 returned the revised read-only identity page. It says Wi-Fi setup is unavailable here and contains no form or password request. |
+| Host cleanup | The temporary open-AP NetworkManager profile was deactivated and deleted; management remained on `eth0` and `wlan1`. |
+| iPhone passwordless join and captive launch | Pending operator retest on the same phone after forgetting the old WPA2 profile. |
+
+The open AP exposes only the read-only captive surface. Station credential
+submission, browser encryption, network join, owner claim and job control are
+still design-only future work.
 
 ## Remaining observations
 

@@ -73,6 +73,8 @@ erased access journal, no watchdog recovery, an idle/inactive job and a live
 read-only HTTP listener. If that listener is absent, the prior fallback that
 could advertise an unusable blank AP no longer runs. The identity page now
 states only that this page is read-only and has no Wi-Fi setup form.
+The access-journal condition is rechecked each poll, so a later fault or reset
+intent withdraws an already running open AP.
 The unprovisioned source also suppresses the legacy standalone station
 network overlay and suspends autonomous scheduling, including when an old
 standalone config remains in flash.
@@ -81,9 +83,10 @@ The adversarial pass found and closed three issues during this amendment: a
 faulted or pending access journal could otherwise expose the new open AP; a
 failed blank HTTP listener could leave an AP with no usable page; and an
 unprovisioned tombstone could otherwise reuse legacy standalone Wi-Fi and
-schedules. The startup/runtime gates above close those paths. The pinned SDK
-source confirms that a null
-password selects open auth, while the non-null path retains WPA2. The
+schedules. A reassessment found that boot-only access validation could leave
+an already running open AP after a later journal fault; the poll-time recheck
+closes that path. The pinned SDK source confirms that a null password selects
+open auth, while the non-null path retains WPA2. The
 `bootstrap_http_tests` page assertion, runtime overlay test and the existing
 focused network suite passed; the RP2350 standard image and field-access
 linkcheck linked. The exact open-AP target and iPhone retest is recorded in the

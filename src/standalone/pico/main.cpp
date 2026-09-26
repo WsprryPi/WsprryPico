@@ -327,12 +327,13 @@ int main() {
     // The plaintext listener is exclusive to a truly unprovisioned recovery
     // surface.  Starting it for provisioned images would consume the single
     // bounded lwIP listen PCB before the authenticated TLS listener starts.
-    const bool blank_access_available =
-        access_store.state() == wsprrypico::provisioning::AccessStoreState::Erased ||
-        (access_store.state() == wsprrypico::provisioning::AccessStoreState::Healthy &&
-         access_store.record() && !access_store.record()->reset.pending());
+    const auto blank_access_available = []() {
+        return access_store.state() == wsprrypico::provisioning::AccessStoreState::Erased ||
+               (access_store.state() == wsprrypico::provisioning::AccessStoreState::Healthy &&
+                access_store.record() && !access_store.record()->reset.pending());
+    };
     const bool bootstrap_started =
-        derived_identity && blank_access_available && !recovery &&
+        derived_identity && blank_access_available() && !recovery &&
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned &&
         bootstrap.start();
     browser_api.set_active_job_connections(true);
@@ -822,6 +823,7 @@ int main() {
         const bool blank_captive =
             bootstrap_started &&
             surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly &&
+            blank_access_available() &&
             wsprrypico::provisioning::idle_for_access(provisioning_activity(&service));
         if (softap.running() && softap.captive() != blank_captive) {
             (void)network.softap_name(false, {});
