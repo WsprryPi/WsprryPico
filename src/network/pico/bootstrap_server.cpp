@@ -129,7 +129,9 @@ void PicoBootstrapServer::stop() {
     if (listener_) {
         tcp_arg(listener_, nullptr);
         tcp_accept(listener_, nullptr);
-        tcp_abort(listener_);
+        // lwIP requires tcp_close for a LISTEN PCB; tcp_abort panics here.
+        const auto closed = tcp_close(listener_);
+        LWIP_ASSERT("bootstrap listener close must succeed", closed == ERR_OK);
         listener_ = nullptr;
     }
 }

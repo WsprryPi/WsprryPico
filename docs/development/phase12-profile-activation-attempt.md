@@ -199,15 +199,57 @@ so the operator need not copy individual PEM fields. It reads a bounded file
 locally, requires the exact selected device ID and the usual fresh password,
 uses the unchanged Field-GATT/1 apply path and clears file selection on every
 terminal path. It neither generates nor distributes that file; this is not a
-consumer commissioning solution. Bluefy physical apply and negative rows
-remain open until they are run on the published matching release.
+consumer commissioning solution.
+
+## Bluefy file-import physical continuation (2026-09-26)
+
+The operator reported the online-verified page release `9f4272fa7457` in
+Bluefy. The owner-only 1,972-byte ordinary profile was AirDropped to the
+operator's confirmed iPhone without pasting any credential into chat. Current
+iPhone, iOS and Bluefy version numbers were not re-reported for this session;
+the earlier model/version report is historical, not a fresh observation.
+Candidate A remained the exact Pico 2 W/device ID above, running RF-inhibited
+firmware `969473d2ef17` with profile generation 1, healthy config/watermark
+journals at sequences 72/12, empty WTP state and inactive output.
+
+| Bluefy row | Operator-visible result | Independent target check |
+| --- | --- | --- |
+| Select/authorize | Same exact Candidate A selected and authorized | Generation 1; BLE healthy; inhibited/empty/inactive |
+| Deliberately wrong fresh password | `Provisioning failed: authentication_required.` | Generation 1; healthy storage; no activation |
+| Correct password, no USB confirmation | `Profile staged` followed by `Provisioning failed: confirmation_timeout` | Generation 1; journals 72/12; no activation |
+| Cancel at staged confirmation | `Cancelled and disconnected.` | Generation 1; journals 72/12; new authorized BLE WTP read returned empty/inactive |
+| Ordinary profile, correct fresh password, exact USB confirmation | Console `{"ok":true}`; Bluefy `Profile generation 2 committed.` | Generation 2 persisted across activation restart; journals 72/12; empty/inactive |
+
+The first activation restart entered **watchdog recovery**, boot
+`d9def09a1b2cb6a71acd0600bfed8deb`, with fault stage 14 and panic-format
+hash `2090325528`. The exact installed ELF maps that hash to lwIP's
+`don't call tcp_abort/tcp_abandon for listen-pcbs` assertion. This is a real
+post-commit failure: network startup was suppressed, so the generation-2
+station/TLS row did **not** pass on the activation boot. A single controlled
+idle USB reboot returned `{"ok":true,"rebooting":true}`. The subsequent
+boot `d6f6b06263e03211e42530f2b0d6d241` was not a recovery boot: it
+retained generation 2, associated at `192.168.1.47`, activated mDNS and SNTP,
+and kept WTP empty/output inactive under the inhibited engine. The operator
+also reauthorized Bluefy and obtained read-only WTP empty/inactive after the
+activation. This secondary recovery does not erase the failed activation-boot
+gate or qualify TLS/mTLS on generation 2.
+
+Adversarial source review found that `PicoServer::stop()` aborted its LISTEN
+PCB during profile activation. The same invalid close existed in the blank
+bootstrap listener. Both now use lwIP `tcp_close()` with an asserted successful
+LISTEN close. The transport contract check guards both call sites. The pinned
+SDK 2.3.1 RF-inhibited target links, and the full host suite passes 95/95 with
+the Xcode 26.5 SDK and loopback access. A clean-revision flash and affected
+physical retest are still required before this repair can be accepted.
 
 ## Remaining gates
 
-1. Complete the ordinary-profile Bluefy/iPhone apply and its negative,
-   disconnect and cleanup rows. The Mac was locked during this run and could
-   not expose iPhone Mirroring; the operator was away, so no phone action was
-   attempted or claimed.
-2. Perform a final adversarial review of the whole tranche, repair any new
-   findings, recheck RF-inhibited restoration, and publish the evidence. Until
-   the phone gate is satisfied, Step 1 and Phase 12 remain open.
+1. Build, hash and flash a clean revision with the listener-close repair;
+   repeat the affected Bluefy apply, activation restart and generation/network/
+   TLS/mTLS/authority checks. Preserve the failed first boot as evidence.
+2. Verify the Bluefy password and file selection clear, delete the private
+   temporary profile from the Mac and operator's iPhone, and clear the Bluefy
+   tab after testing. Offline-cache and end-user commissioning remain separate.
+3. Perform a final adversarial review of the repaired physical tranche and
+   publish the evidence. Step 1 and Phase 12 remain open until all applicable
+   gates pass; RF-inhibited work never qualifies RF output.

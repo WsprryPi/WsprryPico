@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 server = (ROOT / "src/network/pico/server.cpp").read_text()
+bootstrap = (ROOT / "src/network/pico/bootstrap_server.cpp").read_text()
 server_header = (ROOT / "src/network/pico/server.hpp").read_text()
 main = (ROOT / "src/standalone/pico/main.cpp").read_text()
 network_cmake = (ROOT / "cmake/network.cmake").read_text()
@@ -36,6 +37,12 @@ assert 'principal_ = "tls-cert:";' in server
 assert "endpoint_.connect(principal_);" in server
 assert "plain_offset_ += endpoint_.receive(bytes, now);" in server
 assert "wtp::Endpoint endpoint_;" in server_header
+
+# Activation closes the TLS listener before reboot, and recovery can close the
+# bootstrap listener. lwIP panics if tcp_abort is used on either LISTEN PCB.
+for source in (server, bootstrap):
+    assert "tcp_close(listener_)" in source
+    assert "tcp_abort(listener_)" not in source
 
 # USB, BLE and TCP endpoints share the one production JobService. Complete-job
 # execution therefore retains one ownership, scheduler and local timing source.
