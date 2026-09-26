@@ -732,8 +732,9 @@ Phase 12 remains open for:
 - broader physical Bluefy and native-Pi profile-activation acceptance against
   the frozen Field-GATT/1 source contract, beyond the later bounded
   [target activation record](phase12-profile-activation-attempt.md), including
-  the unexplained first attempted retest's confirmation rejection and
-  generation-3 mTLS;
+  generation-3 mTLS and broader failure/recovery coverage. The first attempted
+  retest's confirmation rejection may reflect a missed reconnect/authorization,
+  per the operator's later recollection, but this was not independently proven;
 - password/bond/reset recovery and safe accepted physical controls;
 - fault-injection, replacement/superseded-trust, broader resource reclamation,
   concurrency and bounded soak rows;

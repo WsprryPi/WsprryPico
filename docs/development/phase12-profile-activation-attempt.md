@@ -267,8 +267,10 @@ The first attempted retest after AirDrop did **not** commit: Console
 confirmation returned `authentication_required`, Bluefy later reported a
 timeout after all 281 writes, and the target remained generation 2, healthy
 and inactive. The selected file was not independently verified for this
-attempt, and the reason confirmation had no valid pending step-up was not
-established; this attempt is not counted as acceptance. On the next attempt
+attempt. The operator subsequently recalled that they may not have reconnected
+and reauthorized before this failed pass. That is a plausible explanation for
+`authentication_required`, not independently proven as its root cause; this
+attempt is not counted as acceptance. On the next attempt
 the operator reported `Profile staged`, exact identity-bound USB
 confirmation returned `{"ok":true}`, and Bluefy reported `Profile generation
 3 committed.`
@@ -307,9 +309,10 @@ first attempted retest timed out without a commit; only the subsequent
 changed-profile attempt both incremented generation and survived a normal
 activation boot.
 The independent Console and Bluefy readbacks agree on inactive WTP authority.
-The earlier watchdog recovery and the unexplained first attempted retest's
-confirmation rejection remain in this record; neither was relabeled as a
-passing row.
+The earlier watchdog recovery and the first attempted retest's confirmation
+rejection remain in this record. The operator's possible missed
+reconnect/authorization is noted without turning it into a proven device
+defect or a passing row.
 Source, host and target results still do not qualify RF output or replace
 positive generation-3 client-authenticated TCP reads.
 
@@ -319,9 +322,8 @@ positive generation-3 client-authenticated TCP reads.
    checks using the matching existing client identities, after resolving the
    Mac-to-Pico reachability problem or using an authorized private-key-safe
    path. Preserve the failed first activation boot as evidence.
-2. Resolve the unexplained first attempted retest's confirmation rejection
-   before treating this flow as robust or operator-ready. Offline cache and
-   end-user commissioning remain separate open gates.
+2. Keep reconnect/authorization explicit in the operator sequence. Offline
+   cache and end-user commissioning remain separate open gates.
 3. Preserve this bounded adversarial assessment and complete the remaining
    physical matrices. Step 1 and Phase 12 remain open until all applicable
    gates pass; RF-inhibited work never qualifies RF output.
