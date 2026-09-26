@@ -8,6 +8,11 @@ station Wi-Fi credentials and proves network join. Owner claim, station TLS,
 mTLS-client enrollment, scheduling and job control remain later work. The
 operator chose fresh Pico/browser encryption for the submitted Wi-Fi password
 and accepted the remaining active relay risk.
+The [proposed version-1 wire contract](../protocol/WiFi-Bootstrap-v1-proposal.md),
+[synthetic vectors](../protocol/WiFi-Bootstrap-v1-vectors.json) and
+[contract execution prompt](phase12-wifi-only-contract-execution-prompt.md)
+now make the encryption and generation decisions reviewable; they do not
+remove the approval or target feasibility gates.
 
 This is the separate bootstrap design required by the
 [Phase 12 roadmap](phase12-plan.md) for commissioning without BLE. It would
@@ -125,25 +130,30 @@ certificate-free mechanism and must not be advertised as implemented.
 Use a fresh Pico X25519 key pair and browser X25519 key pair for each attempt.
 The proposed suite is X25519, HKDF-SHA-256 and ChaCha20-Poly1305 with a
 256-bit derived key, 96-bit random AEAD nonce and 128-bit tag. The `start`
-request carries the browser's 32-byte public key and 128-bit random request
-nonce as unpadded base64url in strict JSON. Its reply carries a one-use slot,
-Pico 32-byte public key, boot ID and monotonic deadline. The Pico starts
+request carries the browser's 32-byte public key as unpadded base64url and a
+128-bit random request nonce as lowercase hex in strict JSON. Its reply carries
+a one-use slot, Pico 32-byte public key, boot ID and remaining-time hints. The Pico starts
 Identify only for that slot. The physical tap grants it once. The later
 `submit` request carries a fresh request ID, AEAD nonce and ciphertext over
-the exact `{ssid,password}` JSON. HKDF salt and AEAD associated data bind the
+the exact length-prefixed binary SSID/password encoding. HKDF salt and AEAD associated data bind the
 protocol version, full device ID, boot ID, slot, both public keys, request
 nonce and request ID in a fixed canonical encoding. A read-only status route
-reports only the source mode, generation, join/address state and a request-ID
-digest for response-loss reconciliation; no key or password appears there.
+reports only the source mode, generation, slot state/digest, join/address
+state and a request-ID digest for response-loss reconciliation; no key or
+password appears there.
 Use SHA-256 of that canonical transcript as the HKDF salt and the fixed label
 `WsprryPico network-only AEAD v1` as HKDF info; use the transcript itself as
-AEAD associated data. The same fixed field order and encoding must appear in
-cross-language vectors.
+AEAD associated data. The exact encoding and synthetic vectors are in the
+proposed wire contract. Its v1 station inputs intentionally match the current
+printable-ASCII, 1–32-byte SSID and 8–63-byte password validator. Non-ASCII
+SSID, open station networks and raw 64-hex-digit PSKs need a later version.
 Reject invalid/all-zero shared secrets, reused nonces, wrong device/boot/slot,
 stale or replayed requests, invalid tags and any plaintext credential
-submission. Scrub transient secrets on every terminal path. Fix exact JSON
-field names, byte encoding, bounds and known-answer vectors in a versioned
-wire document before implementing the parser or browser page.
+submission. Scrub transient secrets on every terminal path except the bounded
+post-commit acknowledgement verifier. The exact JSON
+field names, byte encoding, bounds and synthetic known-answer vector are in
+the proposed versioned wire document; independent Pico/browser conformance
+remains an implementation gate.
 
 The page is served over HTTP, so it cannot assume browser secure-context APIs
 such as `crypto.subtle`; the [Web Cryptography specification](https://www.w3.org/TR/WebCryptoAPI/)
@@ -180,10 +190,10 @@ it deliberately does not authenticate the page against active replacement.
   listener, browser job API, credential enrollment or scheduler/RF authority
   becomes available as a consequence of this bootstrap. Existing USB-local
   engineering authority is a separate path and gains no new permission.
-- This journal write consumes a profile generation. The roadmap's old
-  full-commissioning `generation 1` expectation cannot also describe a later
-  full profile unless generation numbering is redesigned. Record exact
-  network-only and later full-profile generations in the revised plan.
+- This journal write consumes a profile generation. A blank generation-0 device
+  becomes network-only generation 1, and its later full-profile upgrade is
+  generation 2. Direct full commissioning from blank may still be generation 1;
+  the old P12.10 claim must identify which path it tests.
 
 ## Expected source changes after approval
 

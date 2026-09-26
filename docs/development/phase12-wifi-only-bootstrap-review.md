@@ -1,6 +1,11 @@
 # Wi-Fi-only bootstrap adversarial design review
 
 Status: **PROPOSAL REVIEW — NO IMPLEMENTATION OR TARGET ACCEPTANCE**.
+The later [contract feasibility and adversarial review](phase12-wifi-only-contract-review.md)
+fixes the proposed version-1 wire encoding, synthetic vector and generation
+semantics. The historical open findings below describe the earlier draft;
+runtime BOOTSEL safety, selected-iPhone crypto behavior, AP/STA target behavior
+and explicit operator approval remain open.
 This review covers the
 [blank-device SoftAP network-only proposal](phase12-wifi-only-bootstrap-proposal.md)
 against the current source and [Phase 12 roadmap](phase12-plan.md). It does not

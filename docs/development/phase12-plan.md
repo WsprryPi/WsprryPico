@@ -439,10 +439,10 @@ implementation milestone.
 
 | Milestone | Status | Outcome required to advance |
 | --- | --- | --- |
-| P12.7 — Consumer commissioning contract | **NEXT — DESIGN ONLY** | Approve the complete first-run experience, physical claim gesture, ownership model, generated credential lifecycle and recovery behavior before code changes. |
+| P12.7 — Consumer commissioning contract | **NEXT — DESIGN ONLY** | Approve the complete first-run experience, physical claim gesture, ownership model, generated credential lifecycle and recovery behavior before commissioning implementation. |
 | P12.8 — Commissioning foundation | **BLOCKED ON P12.7** | Implement the approved device-side claim, owner, identity-generation and atomic configuration/activation state machines with deterministic failure coverage. |
 | P12.9 — Guided Bluefy setup | **BLOCKED ON P12.8** | Deliver one simple Bluefy setup flow that hides protocol, certificate and journal mechanics from the user. |
-| P12.10 — RF-inhibited commissioning acceptance | **BLOCKED ON P12.9** | Commission a blank Candidate A from the selected iPhone, activate generation 1, reboot and prove BLE plus station-side readback without RF. |
+| P12.10 — RF-inhibited commissioning acceptance | **BLOCKED ON P12.9** | Commission a blank Candidate A from the selected iPhone, reboot and prove BLE plus station-side readback without RF. Record the actual generation: direct full commissioning from blank can be generation 1; an upgrade after the separate Wi-Fi-only bootstrap would be generation 2. |
 | P12.11 — Ownership, recovery and fallback | **BLOCKED ON P12.10** | Accept additional-phone enrollment, owner loss, access recovery, provisioning reset, full erase and provisioned SoftAP fallback with unambiguous physical controls. |
 | P12.12 — Stage A robustness and closure | **BLOCKED ON P12.11** | Close the remaining fault, trust, resource, concurrency, soak, controller-time, LED and restoration rows and complete the final adversarial review. |
 
@@ -450,6 +450,15 @@ implementation milestone.
 
 This milestone is discussion and documentation only. No commissioning code is
 authorized until its exit gate is accepted.
+The operator has paused the Bluefy/native-app path and selected a separate
+[Wi-Fi-only network bootstrap proposal](phase12-wifi-only-bootstrap-proposal.md)
+for a blank device. The [proposed wire contract](../protocol/WiFi-Bootstrap-v1-proposal.md)
+and [contract-gate execution prompt](phase12-wifi-only-contract-execution-prompt.md)
+specify its network-only exception. Its first journal commit would be
+generation 1; upgrading that device later to a full profile would be
+generation 2. This separate exception remains unapproved, so the implemented
+blank AP still accepts no credentials. It does not close the consumer owner,
+credential and recovery decisions in P12.7 or authorize P12.8–P12.12.
 The [gated execution prompt](phase12-7-12-execution-prompt.md) and
 [consumer contract proposal](phase12-7-consumer-commissioning-proposal.md)
 record a concrete candidate and its unresolved trust and recovery decisions.
