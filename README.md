@@ -98,8 +98,9 @@ RF-inhibited Candidate A test accepted native-Pi maximum-profile activation
 and repaired Bluefy prepared-file activation through generation 3, a normal
 restart, and post-restart BLE readback; see the
 [target activation record](docs/development/phase12-profile-activation-attempt.md).
-Offline reuse, fresh-password/new-pairing behavior, full commissioning,
-generation-3 positive mTLS readback, blank generic
+The later generation-3 positive mTLS/WTP and HTTPS readback also passed on the
+Mac. Offline reuse, fresh-password/new-pairing behavior, full commissioning,
+blank generic
 SoftAP HTTP, stable-station AP withdrawal, the broader physical BLE job-
 control/local-management, controller-time and LED matrices, reset controls and
 most of the

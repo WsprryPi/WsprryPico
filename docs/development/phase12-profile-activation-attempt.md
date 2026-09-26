@@ -1,8 +1,8 @@
 # Phase 12 profile activation: Candidate A physical attempt
 
-Status: **native-Pi maximum profile accepted; repaired Bluefy/iPhone
-profile activation and BLE readback accepted; generation-3 mTLS still open**
-(2026-09-26 CDT).
+Status: **native-Pi maximum profile, repaired Bluefy/iPhone activation, and
+generation-3 BLE/mTLS readback accepted within this RF-inhibited Candidate A
+slice** (2026-09-26 CDT).
 
 This record preserves the first physical failures, their repairs, and the
 subsequent RF-inhibited native-Pi and bounded Bluefy/iPhone acceptance. It
@@ -267,10 +267,10 @@ The first attempted retest after AirDrop did **not** commit: Console
 confirmation returned `authentication_required`, Bluefy later reported a
 timeout after all 281 writes, and the target remained generation 2, healthy
 and inactive. The selected file was not independently verified for this
-attempt. The operator subsequently recalled that they may not have reconnected
-and reauthorized before this failed pass. That is a plausible explanation for
-`authentication_required`, not independently proven as its root cause; this
-attempt is not counted as acceptance. On the next attempt
+attempt. The operator subsequently confirmed they had not disconnected before
+this retry. The required fresh reconnect/authorization sequence was therefore
+not performed; this attempt is an invalid operator sequence, not an open device
+defect or an acceptance pass. On the next attempt
 the operator reported `Profile staged`, exact identity-bound USB
 confirmation returned `{"ok":true}`, and Bluefy reported `Profile generation
 3 committed.`
@@ -291,10 +291,32 @@ From `wspr5`, a TCP connection to the configured port 18443 succeeded and an
 uncredentialed OpenSSL probe negotiated TLS 1.3 with the expected server
 certificate CN. That probe did not authenticate a client or perform WTP, and
 OpenSSL did not verify the issuer; it is **not** positive mTLS acceptance. A
-direct Mac TCP probe timed out, despite the Pi-to-Pico TCP result. Matching
-client private credentials were not copied to `wspr5`, so positive
-generation-3 mTLS/WTP and HTTPS readback remain unperformed. Generation-1
-positive mTLS evidence above cannot be silently promoted to generation 3.
+direct Mac TCP probe timed out, despite the Pi-to-Pico TCP result. The operator
+confirmed they had not disconnected the preceding session before this probe,
+so it did not meet the intended independent-client test setup. It is closed as
+a non-qualifying run, not evidence of a Pico reachability or sandbox defect;
+broader concurrent-client behavior remains a separate matrix. Matching client
+private credentials were not copied to `wspr5`. These initial probes were not
+positive generation-3 mTLS/WTP or HTTPS evidence.
+
+On a later direct Mac retry **outside the sandbox** on 2026-09-26, mDNS
+resolved `wsprrypico-0a60df.local` to `192.168.1.47` and TCP port 18443
+connected. The existing local controller identity verified the server chain
+and hostname, established TLS 1.3 with ALPN `wtp/1`, and completed read-only
+WTP `HELLO` and `STATUS`. The reply identified Candidate A and boot
+`904b2699bec96e09249d4ba9f50591b9`, with state empty and output inactive.
+The existing browser identity separately established verified TLS 1.3 with
+ALPN `http/1.1`; `GET /api/v1/status` returned HTTP 200, the same boot ID,
+empty state and inactive output. Both connections observed server certificate
+SHA-256 `06496fe4d7a1ab45791d85cb0797fa55f76b8dc7ee931f9c7fa70823fef46016`.
+The subsequent USB Console `INFO` still reported generation 3, healthy storage,
+no recovery/provisioning fault, synchronized time, active station control,
+zero TLS allocation failures and inactive RF output. No client private key was
+copied to `wspr5`, pasted into chat or committed to Git. This closes
+the **positive generation-3** mTLS/WTP and HTTPS readback row; it does not
+repeat the separate negative-client-auth or broader network matrices. The
+later positive retry supersedes the invalid first Mac probe; no internal TCP
+cause is inferred from that timeout.
 
 The operator confirmed that Bluefy cleared both the password field and
 selected-file name after the successful apply, deleted both AirDropped JSON
@@ -309,21 +331,18 @@ first attempted retest timed out without a commit; only the subsequent
 changed-profile attempt both incremented generation and survived a normal
 activation boot.
 The independent Console and Bluefy readbacks agree on inactive WTP authority.
-The earlier watchdog recovery and the first attempted retest's confirmation
-rejection remain in this record. The operator's possible missed
-reconnect/authorization is noted without turning it into a proven device
-defect or a passing row.
-Source, host and target results still do not qualify RF output or replace
-positive generation-3 client-authenticated TCP reads.
+The earlier watchdog recovery and first attempted retest's confirmation
+rejection remain in this record. The operator confirmed they omitted the
+required disconnect before the latter retry, so it is closed as an invalid
+test sequence rather than a device defect or passing row. The later positive
+generation-3 client-authenticated TCP reads passed independently. Source,
+host and RF-inhibited target results still do not qualify RF output.
 
 ## Remaining gates
 
-1. Complete positive generation-3 TLS 1.3/mTLS `wtp/1` and HTTPS read-only
-   checks using the matching existing client identities, after resolving the
-   Mac-to-Pico reachability problem or using an authorized private-key-safe
-   path. Preserve the failed first activation boot as evidence.
-2. Keep reconnect/authorization explicit in the operator sequence. Offline
-   cache and end-user commissioning remain separate open gates.
-3. Preserve this bounded adversarial assessment and complete the remaining
+1. Complete offline-cache, end-user commissioning and the other Stage A
+   matrices. Keep disconnect/reconnect/authorization explicit in the operator
+   sequence.
+2. Preserve this bounded adversarial assessment and complete the remaining
    physical matrices. Step 1 and Phase 12 remain open until all applicable
    gates pass; RF-inhibited work never qualifies RF output.

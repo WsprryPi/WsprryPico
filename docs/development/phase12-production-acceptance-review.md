@@ -5,8 +5,8 @@ A evidence now accepts exact iPhone/iOS/Bluefy identification, one authenticated
 phone-time exchange, Identify LED/field status, retained-bond authorization and
 Bluefy WTP `HELLO` plus read-only `STATUS`; their broader matrices remain open.
 The later [target activation record](phase12-profile-activation-attempt.md)
-adds bounded RF-inhibited native-Pi and Bluefy/iPhone profile activation, but
-does not close generation-3 mTLS or broader Stage A.
+adds bounded RF-inhibited native-Pi and Bluefy/iPhone profile activation plus
+positive generation-3 mTLS/WTP/HTTPS readback, but not broader Stage A.
 
 This review records the earlier production/physical tranche. The subsequent
 [BLE local-control continuation](phase12-ble-local-control-review.md) adds
@@ -732,9 +732,7 @@ Phase 12 remains open for:
 - broader physical Bluefy and native-Pi profile-activation acceptance against
   the frozen Field-GATT/1 source contract, beyond the later bounded
   [target activation record](phase12-profile-activation-attempt.md), including
-  generation-3 mTLS and broader failure/recovery coverage. The first attempted
-  retest's confirmation rejection may reflect a missed reconnect/authorization,
-  per the operator's later recollection, but this was not independently proven;
+  broader failure/recovery coverage;
 - password/bond/reset recovery and safe accepted physical controls;
 - fault-injection, replacement/superseded-trust, broader resource reclamation,
   concurrency and bounded soak rows;

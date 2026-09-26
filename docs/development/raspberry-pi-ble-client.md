@@ -212,5 +212,6 @@ field status and WTP `HELLO`/`STATUS`; all other deterministic results in that
 record remain source/host evidence. The separate
 [target activation record](phase12-profile-activation-attempt.md) reports a
 later native-Pi maximum-profile apply and reboot. Neither live subset
-qualifies RF, general release behavior or full Bluefy/iOS commissioning;
-generation-3 positive mTLS readback also remains open.
+qualifies RF, general release behavior or full Bluefy/iOS commissioning. The
+later positive generation-3 mTLS/WTP/HTTPS readback is recorded separately in
+the target activation record.
