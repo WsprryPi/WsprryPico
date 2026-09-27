@@ -14,6 +14,14 @@ Contemporaneous P12.1-P12.5 review records remain accurate descriptions of what
 was and was not selected at their checkpoints; their old open-decision lists do
 not override this later contract.
 
+On 2026-09-26 the operator approved a narrower
+[Wi-Fi-only network bootstrap exception](phase12-wifi-only-bootstrap-proposal.md)
+for a truly blank device. It may eventually replace the blank read-only AP
+surface after its runtime BOOTSEL and encrypted-submission gates pass. It saves
+only station credentials; it does not change the owner, TLS, provisioned SoftAP,
+job or RF authority rules here. The currently implemented blank AP remains
+read-only. Complete owner commissioning without BLE remains a separate design.
+
 This document controls authority, recovery and acceptance policy. The custom
 BLE UUIDs, framing and operation schemas are documented separately in the
 frozen [Field-GATT/1 protocol and super-user guide](../protocol/Field-GATT.md)

@@ -1,11 +1,12 @@
 # Wi-Fi-only bootstrap adversarial design review
 
-Status: **PROPOSAL REVIEW — NO IMPLEMENTATION OR TARGET ACCEPTANCE**.
+Status: **DESIGN REVIEW — NO CREDENTIAL ENDPOINT OR TARGET ACCEPTANCE**.
 The later [contract feasibility and adversarial review](phase12-wifi-only-contract-review.md)
 fixes the proposed version-1 wire encoding, synthetic vector and generation
 semantics. The historical open findings below describe the earlier draft;
 runtime BOOTSEL safety, selected-iPhone crypto behavior, AP/STA target behavior
-and explicit operator approval remain open.
+remain open. The operator approved the bounded network-only design on
+2026-09-26, after this review.
 This review covers the
 [blank-device SoftAP network-only proposal](phase12-wifi-only-bootstrap-proposal.md)
 against the current source and [Phase 12 roadmap](phase12-plan.md). It does not
@@ -36,7 +37,7 @@ authorize a firmware change, an AP, credential submission or an RF operation.
 The corrected design is internally coherent as a **network-only** bootstrap:
 no setup code, app, certificate or BLE is required for the user to enter
 station Wi-Fi, and the ordinary success claim stops at durable network join.
-It is not yet an approved exception to the current blank-AP policy. The
+It is now an approved exception to the current blank-AP policy. The
 remaining hard gates are safe runtime BOOTSEL sampling, browser-side crypto
 availability and source provenance, the new journal/runtime migration, AP/STA
 behavior on Pico 2 W, full encrypted-form behavior in the captive screen, and

@@ -328,9 +328,16 @@ bool PicoNetwork::initialize_radio() {
     return !station_mac_.empty();
 }
 bool PicoNetwork::start(const Config& config) {
-    if (pcb_ || !valid_time_server(config.ntp_ipv4) || !initialize_radio())
+    return start_credentials(config.ssid, config.password, config.ntp_ipv4);
+}
+bool PicoNetwork::start_network_only(std::string_view ssid, std::string_view password) {
+    return start_credentials(ssid, password, "pool.ntp.org");
+}
+bool PicoNetwork::start_credentials(std::string_view ssid, std::string_view password,
+                                    std::string_view time_server) {
+    if (pcb_ || !valid_time_server(time_server) || !initialize_radio())
         return false;
-    time_server_ = config.ntp_ipv4;
+    time_server_ = time_server;
     if (!time_server_.empty() && time_server_.back() == '.')
         time_server_.pop_back();
     for (auto& c : time_server_)
@@ -350,8 +357,8 @@ bool PicoNetwork::start(const Config& config) {
         return false;
     }
     watchdog_hw->scratch[1] = 12;
-    ssid_ = config.ssid;
-    password_ = config.password;
+    ssid_ = ssid;
+    password_ = password;
     pcb_ = udp_new_ip_type(IPADDR_TYPE_V4);
     if (!pcb_) {
         trace_mark(4); // Before station disable.

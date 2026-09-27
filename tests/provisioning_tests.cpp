@@ -1420,6 +1420,53 @@ void runtime_selection_and_overlay() {
     CHECK(malformed.fault() == provisioning::RuntimeFault::Malformed);
     CHECK(!malformed.overlay(*base));
 }
+
+void network_only_source_and_recovery() {
+    provisioning::NetworkProfile candidate{device, "Home Net", "test-password"};
+    const auto payload = provisioning::serialize_network_profile(candidate);
+    CHECK(!payload.empty());
+    CHECK(provisioning::parse_network_profile(payload));
+    CHECK(!provisioning::parse_network_profile(
+        "{\"version\":1,\"device_id\":\"" + std::string(device) +
+        "\",\"ssid\":\"x\",\"password\":\"test-password\",\"tls\":{}}"));
+    candidate.password = "short";
+    CHECK(provisioning::serialize_network_profile(candidate).empty());
+
+    MemoryMedia media;
+    provisioning::ProfileStore store(media);
+    CHECK(store.load());
+    CHECK(store.select(provisioning::ProfileSource::NetworkOnly, payload));
+    CHECK(store.sequence() == 1);
+    provisioning::ProfileStore recovered(media);
+    CHECK(recovered.load());
+    CHECK(recovered.source() == provisioning::ProfileSource::NetworkOnly);
+    provisioning::RuntimeProfile runtime;
+    CHECK(runtime.load(recovered, device, provisioning::BuildBundleState::Absent));
+    CHECK(runtime.source() == provisioning::RuntimeSource::NetworkOnly);
+    CHECK(runtime.network_profile() && runtime.network_profile()->ssid == "Home Net");
+    provisioning::RuntimeProfile wrong;
+    CHECK(!wrong.load(recovered, other_device, provisioning::BuildBundleState::Absent));
+    CHECK(wrong.fault() == provisioning::RuntimeFault::WrongDevice);
+    CHECK(!recovered.select(provisioning::ProfileSource::NetworkOnly, "{}"));
+    CHECK(recovered.replace(provisioning::serialize_profile(profile("upgraded"))));
+    CHECK(recovered.sequence() == 2);
+    CHECK(!recovered.select(provisioning::ProfileSource::NetworkOnly, payload));
+
+    MemoryMedia tombstone_media;
+    provisioning::ProfileStore tombstone(tombstone_media);
+    CHECK(tombstone.load());
+    CHECK(tombstone.select(provisioning::ProfileSource::Unprovisioned));
+    CHECK(tombstone.sequence() == 1);
+    CHECK(!tombstone.select(provisioning::ProfileSource::NetworkOnly, payload));
+
+    MemoryMedia interrupted_media;
+    provisioning::ProfileStore first(interrupted_media);
+    CHECK(first.load());
+    interrupted_media.fail_program_call = 2;
+    CHECK(!first.select(provisioning::ProfileSource::NetworkOnly, payload));
+    provisioning::ProfileStore interrupted(interrupted_media);
+    CHECK(!interrupted.load());
+}
 } // namespace
 
 int main() {
@@ -1441,5 +1488,6 @@ int main() {
     deferred_activation_failure_injection_and_retry();
     deferred_activation_destruction_fail_closed();
     runtime_selection_and_overlay();
+    network_only_source_and_recovery();
     std::cout << "provisioning tests passed\n";
 }

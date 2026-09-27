@@ -34,6 +34,7 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
   public:
     PicoNetwork(time::ObservationSink& clock, std::string_view configured_hostname);
     bool start(const Config& config);
+    bool start_network_only(std::string_view ssid, std::string_view password);
     bool initialize_radio();
 #ifndef WSPRRY_PICO_STANDALONE_RF
     std::string trace_page(std::uint64_t after) const { return trace_.page(after); }
@@ -72,6 +73,8 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     void trace_install() {}
 #endif
     bool disable_power_save();
+    bool start_credentials(std::string_view ssid, std::string_view password,
+                           std::string_view time_server);
     bool initialize() override;
     bool add(std::string_view label) override;
     void withdraw() override;

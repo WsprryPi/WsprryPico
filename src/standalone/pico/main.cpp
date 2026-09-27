@@ -47,6 +47,7 @@ extern "C" char __HeapLimit, __end__, __StackLimit, __StackTop;
 static_assert(WSPRRY_PICO_RF_OUTPUT_DISABLED == 1);
 #endif
 #include "runtime/allocation_fault.h"
+#include "provisioning/pico/bootsel_sampler.hpp"
 
 #include <array>
 #include <charconv>
@@ -301,19 +302,24 @@ int main() {
         access_store, bond_store, random_source, identities.device_id(), service.status().boot_id,
         local_identity);
     static wsprrypico::provisioning::SoftApCoordinator softap_coordinator(access_store);
-    softap_coordinator.no_profile(runtime_profile.source() ==
-                                  wsprrypico::provisioning::RuntimeSource::Unprovisioned);
+    softap_coordinator.no_profile(
+        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned ||
+        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly);
     softap_coordinator.recovery(boot_recovery);
     static wsprrypico::provisioning::PicoSoftAp softap;
     std::optional<wsprrypico::standalone::Config> runtime_network_config;
     if (store_loaded && store.config())
         runtime_network_config = runtime_profile.overlay(*store.config());
     if (boot_recovery ||
-        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned)
+        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned ||
+        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly)
         (void)scheduler.command("STOP");
     watchdog_hw->scratch[1] = 2;
     if (!boot_recovery && radio_identity_ok && runtime_network_config)
         (void)network.start(*runtime_network_config);
+    else if (!boot_recovery && radio_identity_ok && runtime_profile.network_profile())
+        (void)network.start_network_only(runtime_profile.network_profile()->ssid,
+                                         runtime_profile.network_profile()->password);
     static wsprrypico::network::BrowserApi browser_api(service, store, scheduler, network,
                                                        identities.device_id(),
                                                        wsprrypico::firmware::kFirmwareVersion);
@@ -341,7 +347,8 @@ int main() {
     };
     const bool bootstrap_started =
         derived_identity && blank_access_available() && !recovery &&
-        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned &&
+        (runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned ||
+         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly) &&
         bootstrap.start();
     browser_api.set_active_job_connections(true);
     bool server_start_attempted = false;
@@ -441,6 +448,9 @@ int main() {
             else if (runtime_profile.source() ==
                      wsprrypico::provisioning::RuntimeSource::Unprovisioned)
                 result += "\"unprovisioned\"";
+            else if (runtime_profile.source() ==
+                     wsprrypico::provisioning::RuntimeSource::NetworkOnly)
+                result += "\"network_only\"";
             else
                 result += "\"fault\"";
             number_field(result, "provisioning_generation", runtime_profile.generation(), true);
@@ -740,6 +750,15 @@ int main() {
             bootloader = text == "BOOTSEL";
             reboot_at = time_us_64() + 250'000;
             return "{\"ok\":true,\"rebooting\":true}\n";
+        }
+        if (text == "BOOTSEL PROBE") {
+            if (!scheduler.idle() || engine.output_active())
+                return "{\"ok\":false,\"error\":\"not_idle\"}\n";
+            const auto sample = wsprrypico::provisioning::sample_runtime_bootsel();
+            return "{\"ok\":" + std::string(sample.safe ? "true" : "false") +
+                   ",\"pressed\":" + (sample.pressed ? "true" : "false") +
+                   ",\"elapsed_us\":" + std::to_string(sample.elapsed_us) +
+                   ",\"result\":" + std::to_string(sample.result) + "}\n";
         }
 #ifndef WSPRRY_PICO_STANDALONE_RF
         if (text == "NETLINK") {

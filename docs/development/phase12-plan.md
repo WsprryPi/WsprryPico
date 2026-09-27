@@ -450,14 +450,14 @@ implementation milestone.
 
 This milestone is discussion and documentation only. No commissioning code is
 authorized until its exit gate is accepted.
-The operator has paused the Bluefy/native-app path and selected a separate
-[Wi-Fi-only network bootstrap proposal](phase12-wifi-only-bootstrap-proposal.md)
-for a blank device. The [proposed wire contract](../protocol/WiFi-Bootstrap-v1-proposal.md)
-and [contract-gate execution prompt](phase12-wifi-only-contract-execution-prompt.md)
+The operator has paused the Bluefy/native-app path and approved a separate
+[Wi-Fi-only network bootstrap design](phase12-wifi-only-bootstrap-proposal.md)
+for a blank device on 2026-09-26. The [version-1 wire contract](../protocol/WiFi-Bootstrap-v1-proposal.md)
+and [implementation prompt](phase12-wifi-only-implementation-prompt.md)
 specify its network-only exception. Its first journal commit would be
 generation 1; upgrading that device later to a full profile would be
-generation 2. This separate exception remains unapproved, so the implemented
-blank AP still accepts no credentials. It does not close the consumer owner,
+generation 2. The implemented blank AP still accepts no credentials while
+the runtime BOOTSEL and target gates remain open. This exception does not close the consumer owner,
 credential and recovery decisions in P12.7 or authorize P12.8–P12.12.
 The [gated execution prompt](phase12-7-12-execution-prompt.md) and
 [consumer contract proposal](phase12-7-consumer-commissioning-proposal.md)
@@ -596,24 +596,24 @@ Finish the consumer lifecycle after first setup:
   resistant to accidental invocation and power-loss safe;
 - verify post-reset advertisement, owner state, settings preservation/clearing
   and RF-inhibited restoration exactly match the selected reset level; and
-- retain blank-device SoftAP as read-only identity/status. Provisioned SoftAP
-  remains an authenticated recovery/control fallback after device TLS identity
-  exists; blank-device credential submission is not a hidden Phase 12
-  requirement.
+- retain blank-device SoftAP as read-only identity/status under the current
+  implementation. The separately approved network-only exception has its own
+  physical and encrypted-credential gates. Provisioned SoftAP remains an
+  authenticated recovery/control fallback after device TLS identity exists.
 
-If a future product requires commissioning without BLE, it needs a separate
-approved bootstrap design with a factory or device-specific secret. It must not
-quietly send Wi-Fi or trust credentials through the current public bootstrap
-surface.
+Complete owner commissioning without BLE still requires its own approved
+bootstrap design. The separately approved Wi-Fi-only network join does not
+grant an owner, station trust, job control or RF authority; it protects the
+submitted Wi-Fi credentials against passive AP listeners with a fresh key
+exchange and accepts active page replacement/relay risk.
 The [Wi-Fi-only network bootstrap proposal](phase12-wifi-only-bootstrap-proposal.md)
-is a design-only candidate for the narrower task of joining a blank Pico to a
-station network without an app or setup code. It would require an explicit
-exception to both the read-only and factory/device-secret rules above and does
-not establish owner, TLS or job authority. The candidate attempts an
+is the approved exception for the narrower task of joining a blank Pico to a
+station network without an app or setup code. It does not establish owner, TLS
+or job authority. The candidate attempts an
 AP-local captive-browser launch on iPhone, with a fixed-address Safari
 fallback; neither an automatic launch nor captive-sheet crypto capability is
-assumed without target evidence. It is not approved for implementation or
-target operation.
+assumed without target evidence. Implementation is approved subject to the
+hard runtime BOOTSEL gate; target operations need separate exact authority.
 
 The separate [blank read-only captive landing review](phase12-blank-captive-landing-review.md)
 records a source-tested, RF-inhibited-image implementation of AP-only DNS and
@@ -638,8 +638,8 @@ this rule. The [Candidate A full-erase result](phase12-generic-first-run-physica
 accepted generation-zero unprovisioned selection and the passwordless
 read-only AP without a seeded journal. The
 [adversarial review](phase12-generic-first-run-review.md) records the repaired
-findings and evidence limits. This cleanup does not approve the Wi-Fi-only
-credential-submission proposal or close P12.7.
+findings and evidence limits. The later operator approval of the Wi-Fi-only
+design does not make that earlier read-only image credential-capable or close P12.7.
 
 ### P12.12 Stage A robustness and closure
 

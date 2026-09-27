@@ -1,5 +1,7 @@
 #include "provisioning/storage.hpp"
 
+#include "provisioning/network_profile.hpp"
+
 #include "wtp/sha256.hpp"
 
 #include <algorithm>
@@ -215,10 +217,10 @@ bool ProfileStore::load() {
                 std::all_of(best->data.begin() + 9, best->data.begin() + selection_header_size,
                             [](char byte) { return byte == 0; });
             if (!reserved_clear || source < static_cast<unsigned>(ProfileSource::RuntimeProfile) ||
-                source > static_cast<unsigned>(ProfileSource::BuildBundle))
+                source > static_cast<unsigned>(ProfileSource::NetworkOnly))
                 return false;
             source_ = static_cast<ProfileSource>(source);
-            if (source_ == ProfileSource::RuntimeProfile) {
+            if (source_ == ProfileSource::RuntimeProfile || source_ == ProfileSource::NetworkOnly) {
                 if (best->data.size() == selection_header_size)
                     return false;
                 data_.assign(best->data.begin() + selection_header_size, best->data.end());
@@ -238,11 +240,28 @@ bool ProfileStore::replace(std::string_view canonical_profile) {
     return select(ProfileSource::RuntimeProfile, canonical_profile);
 }
 
+namespace {
+bool valid_network_payload(std::string_view payload) {
+    auto parsed = parse_network_profile(payload);
+    if (!parsed)
+        return false;
+    scrub(*parsed);
+    return true;
+}
+} // namespace
+
 bool ProfileStore::select(ProfileSource source, std::string_view canonical_profile) {
     if (!healthy_ || source == ProfileSource::LegacyBootstrap ||
-        (source == ProfileSource::RuntimeProfile &&
+        ((source == ProfileSource::RuntimeProfile || source == ProfileSource::NetworkOnly) &&
          (canonical_profile.empty() || canonical_profile.size() > max_profile_bytes)) ||
-        (source != ProfileSource::RuntimeProfile && !canonical_profile.empty()) ||
+        (source != ProfileSource::RuntimeProfile && source != ProfileSource::NetworkOnly &&
+         !canonical_profile.empty()) ||
+        (source == ProfileSource::NetworkOnly &&
+         ((source_ != ProfileSource::NetworkOnly &&
+           !((source_ == ProfileSource::Unprovisioned ||
+              source_ == ProfileSource::LegacyBootstrap) &&
+             sequence_ == 0)) ||
+          !valid_network_payload(canonical_profile))) ||
         sequence_ == std::numeric_limits<std::uint64_t>::max())
         return false;
     if (source == source_ && canonical_profile == data_)

@@ -25,6 +25,8 @@ RuntimeProfile::~RuntimeProfile() {
 void RuntimeProfile::clear() {
     scrub(profile_);
     has_profile_ = false;
+    scrub(network_profile_);
+    has_network_profile_ = false;
 }
 
 bool RuntimeProfile::load(const ProfileStore& store, std::string_view actual_device_id,
@@ -56,6 +58,24 @@ bool RuntimeProfile::load(const ProfileStore& store, std::string_view actual_dev
         fault_ = RuntimeFault::None;
         return true;
     }
+    if (store.source() == ProfileSource::NetworkOnly) {
+        auto parsed = parse_network_profile(store.data());
+        if (!parsed) {
+            fault_ = RuntimeFault::Malformed;
+            return false;
+        }
+        if (parsed->device_id != actual_device_id) {
+            fault_ = RuntimeFault::WrongDevice;
+            scrub(*parsed);
+            return false;
+        }
+        network_profile_ = std::move(*parsed);
+        scrub(*parsed);
+        has_network_profile_ = true;
+        source_ = RuntimeSource::NetworkOnly;
+        fault_ = RuntimeFault::None;
+        return true;
+    }
     auto parsed = parse_profile(store.data());
     if (!parsed) {
         fault_ = RuntimeFault::Malformed;
@@ -75,7 +95,8 @@ bool RuntimeProfile::load(const ProfileStore& store, std::string_view actual_dev
 }
 
 std::optional<standalone::Config> RuntimeProfile::overlay(const standalone::Config& base) const {
-    if (source_ == RuntimeSource::Fault || source_ == RuntimeSource::Unprovisioned)
+    if (source_ == RuntimeSource::Fault || source_ == RuntimeSource::Unprovisioned ||
+        source_ == RuntimeSource::NetworkOnly)
         return {};
     auto result = base;
     if (has_profile_) {

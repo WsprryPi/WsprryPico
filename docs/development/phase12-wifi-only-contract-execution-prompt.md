@@ -1,6 +1,10 @@
 # Phase 12 Wi-Fi-only bootstrap contract: execution prompt
 
 Status: **EXECUTED FOR DESIGN AND HOST FEASIBILITY ONLY; IMPLEMENTATION GATE OPEN**.
+The operator later approved the resulting network-only design on 2026-09-26;
+the [implementation prompt](phase12-wifi-only-implementation-prompt.md)
+records the current execution sequence. The historical approval instructions
+below describe this prompt's original gate.
 
 Work on `devel` in `/Users/lbussy/GitHub/WsprryPico`. Read `README.md`,
 `CONTRACT.md`, `docs/architecture.md`, the Phase 12 roadmap, the current

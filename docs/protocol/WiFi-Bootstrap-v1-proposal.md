@@ -1,6 +1,6 @@
 # WiFi-Bootstrap/1 proposed wire contract
 
-Status: **PROPOSED, NOT APPROVED OR IMPLEMENTED**. This describes only a
+Status: **DESIGN APPROVED 2026-09-26; NOT IMPLEMENTED OR TARGET ACCEPTED**. This describes only a
 blank-device, network-only bootstrap over the open, AP-local HTTP captive
 page. It does not grant an owner, station API, TLS trust, scheduler or RF
 authority. The [execution prompt](../development/phase12-wifi-only-contract-execution-prompt.md)

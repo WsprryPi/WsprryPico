@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "name": "wsprrypico-bootstrap-web",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild crypto.js --bundle --minify --format=iife --global-name=WsprryBootstrapCrypto --target=es2020 --legal-comments=eof --outfile=../../../build/bootstrap-crypto.js",
+    "test": "node crypto.test.mjs"
+  },
+  "dependencies": {
+    "@noble/ciphers": "2.3.0",
+    "@noble/curves": "2.3.0",
+    "@noble/hashes": "2.3.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

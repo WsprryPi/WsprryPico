@@ -16,6 +16,7 @@ enum class ProfileSource : std::uint8_t {
     RuntimeProfile = 1,
     Unprovisioned = 2,
     BuildBundle = 3,
+    NetworkOnly = 4,
 };
 
 class Media {

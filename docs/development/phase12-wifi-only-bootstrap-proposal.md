@@ -1,6 +1,6 @@
 # Phase 12 Wi-Fi-only network bootstrap proposal
 
-Status: **DESIGN ONLY — NOT APPROVED FOR IMPLEMENTATION OR HARDWARE**.
+Status: **APPROVED NETWORK-ONLY DESIGN — IMPLEMENTATION AND TARGET ACCEPTANCE OPEN**.
 On 2026-09-26 the operator chose a first-run path for a blank Pico that uses
 its own SoftAP and a browser, without BLE, Bluefy, a native iPhone app, a setup
 code, a certificate installation or a USB command. This slice saves only
@@ -11,16 +11,16 @@ and accepted the remaining active relay risk.
 The [proposed version-1 wire contract](../protocol/WiFi-Bootstrap-v1-proposal.md),
 [synthetic vectors](../protocol/WiFi-Bootstrap-v1-vectors.json) and
 [contract execution prompt](phase12-wifi-only-contract-execution-prompt.md)
-now make the encryption and generation decisions reviewable; they do not
-remove the approval or target feasibility gates.
+define the approved encryption and generation decisions. The runtime BOOTSEL,
+browser and target feasibility gates below remain open.
 
 This is the separate bootstrap design required by the
 [Phase 12 roadmap](phase12-plan.md) for commissioning without BLE. It would
 replace the [field-access contract](phase12-field-access-contract.md) rule that
-blank SoftAP is read-only **only after this proposal is accepted**. The current
-read-only implementation, including its best-effort captive landing, remains
-the baseline until then. That landing accepts no credential and does not join
-station Wi-Fi. It is Stage A
+blank SoftAP is read-only. The operator approved this bounded exception on
+2026-09-26. The current read-only implementation, including its best-effort
+captive landing, remains the baseline until the required gates pass. That
+landing accepts no credential and does not join station Wi-Fi. It is Stage A
 network/provisioning work, not Stage B RF coexistence. The
 [adversarial design review](phase12-wifi-only-bootstrap-review.md) records
 corrected findings and remaining feasibility gates.
@@ -207,10 +207,11 @@ it deliberately does not authenticate the page against active replacement.
 | Network, scheduler and browser admission | Trial AP/STA networking without station TLS or job authority; preserve the existing one-`JobService` and output gates. |
 | Browser artifact | Bundle the reviewed offline page and crypto implementation without external fetches or persistent credentials; test on the selected browser. |
 
-## Required acceptance before implementation and physical work
+## Implementation and physical acceptance gates
 
-Approve this bounded change to blank-AP policy, owner semantics, credential
-confidentiality limit, storage source and generation meaning in P12.7. Update
+The operator approved the bounded change to blank-AP policy, owner semantics,
+credential confidentiality limit, storage source and generation meaning for
+this network-only exception on 2026-09-26. Update
 the normative field-access/security contract, protocol version, Stage A cases
 and user-facing wording together. Hardware-free tests must cover malformed
 requests, competing claimants, physical-window expiry, AEAD vectors and

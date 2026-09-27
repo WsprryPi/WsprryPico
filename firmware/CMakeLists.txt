@@ -54,6 +54,7 @@ target_link_libraries(WsprryPico PRIVATE
     pico_time
     pico_unique_id
     hardware_flash
+    pico_flash
     pico_cyw43_arch_lwip_poll
     tinyusb_device
 )
@@ -155,7 +156,8 @@ pico_set_program_version(WsprryPico-StandaloneRF "${WSPRRY_PICO_FIRMWARE_VERSION
 pico_set_program_description(WsprryPico-StandaloneRF "Standalone GP2 integration ${WSPRRY_PICO_GIT_REVISION}")
 pico_add_extra_outputs(WsprryPico-StandaloneRF)
 foreach(image WsprryPico WsprryPico-StandaloneRF)
-    target_sources(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/runtime/pico/heap_metrics.c
+    target_sources(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/provisioning/pico/bootsel_sampler.cpp
+        ${CMAKE_SOURCE_DIR}/src/runtime/pico/heap_metrics.c
         ${CMAKE_SOURCE_DIR}/src/runtime/pico/stack_guard.c)
     target_compile_definitions(${image} PRIVATE WSPRRY_PICO_HEAP_METRICS=1
         PICO_RUNTIME_SKIP_INIT_PER_CORE_INSTALL_STACK_GUARD=0
