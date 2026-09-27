@@ -74,6 +74,13 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     target_compile_options(bootstrap_crypto_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME bootstrap_crypto_tests COMMAND bootstrap_crypto_tests
         ${CMAKE_SOURCE_DIR}/docs/protocol/WiFi-Bootstrap-v1-vectors.json)
+    add_executable(owner_signature_tests tests/owner_signature_tests.cpp
+        src/network/pico/owner_signature.cpp src/network/pico/psa_lifetime.cpp)
+    target_compile_definitions(owner_signature_tests PRIVATE
+        MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}")
+    target_link_libraries(owner_signature_tests PRIVATE wsprrypico_core mbedcrypto)
+    target_compile_options(owner_signature_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME owner_signature_tests COMMAND owner_signature_tests)
 endif()
 
 include(${CMAKE_SOURCE_DIR}/cmake/network_client_interop.cmake)

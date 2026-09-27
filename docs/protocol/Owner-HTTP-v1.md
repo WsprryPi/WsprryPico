@@ -1,6 +1,6 @@
 # Owner-HTTP/1: Safari commissioning and AP owner channel
 
-Status: **P12.8 WIRE DESIGN WITH PORTABLE CLAIM SLOT; HTTP/CRYPTO NOT
+Status: **P12.8 WIRE DESIGN WITH PORTABLE CLAIM AND SIGNING-DIGEST CODE; HTTP/CRYPTO NOT
 IMPLEMENTED OR TARGET ACCEPTED** (2026-09-27). This version specifies the approved
 [P12.7 Safari/SoftAP design](../development/phase12-7-decision.md) when code
 and target gates pass. Until then, the running image offers only the separate
@@ -79,6 +79,53 @@ an authorized operation is attempted. An expired, duplicate or unknown
 challenge fails. Time for challenge expiry is monotonic and does not depend
 on UTC. Resend after an unknown result opens a new read-only reconciliation
 session; it never reuses a mutation challenge.
+The pending challenge also binds the current encrypted session ID. The first
+complete decrypted attempt consumes it before ECDSA verification, including
+an invalid signature or changed binding. A monotonic rollback cancels it.
+Issuing a challenge requires an existing consumer profile generation above
+zero and a nonzero owner epoch; the Pico supplies every random field from
+checked entropy. The portable slot does not generate randomness or check
+the current journal on its own.
+
+The Owner-HTTP/1 signed-operation registry is fixed below. All entries use
+`POST` so the encrypted request body, including private readback, is carried
+with one exact route. The client and handler must reject a numeric operation
+whose method or path differs from its row, including extra slashes, query
+strings or case changes. Session start/finish and the public claim routes are
+outside this registry and have separate transcripts and authority checks.
+
+| Hex operation | Exact path |
+| --- | --- |
+| `10` | `/api/owner/v1/readback` |
+| `11` | `/api/owner/v1/owners/propose` |
+| `12` | `/api/owner/v1/owners/approve` |
+| `13` | `/api/owner/v1/owners/remove` |
+| `20` | `/api/owner/v1/clients/enroll` |
+| `21` | `/api/owner/v1/clients/revoke` |
+| `30` | `/api/owner/v1/network/replace` |
+| `31` | `/api/owner/v1/trust/renew` |
+| `40` | `/api/owner/v1/reset/intent` |
+
+The portable digest builder enforces the registry and decoded sealed-body
+sizes: 16–1,024 bytes for ordinary operations and 16–2,048 bytes for client
+enrollment. An independent SHA-256 vector uses operation `30`, device bytes
+`00..0f`, boot `10..1f`, epoch 5, generation 9, request `20..2f`, challenge
+`30..3f`, expiry 123456789 ms, and body
+`01020304a0a1a2a3a4a5a6a7a8a9aaabacadaeaf`.
+Its body digest is
+`d5862faec4476b11187e16e8ddd7e9806d6978e62c2248c361c719ce9806aebb`;
+the complete signing digest is
+`2d7abd422c7760352607cf9521a840535e4610b19f11536c0fbfde7338dc337f`.
+These bytes were calculated independently with Python `hashlib` and `struct`
+and are asserted by `owner_wire_tests`. A fixed test P-256 scalar of one has
+SEC1 public point
+`046b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c2964fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5`
+and a low-S raw signature over that digest:
+`089f7a5717765e2149dcbddbc8064b1adf91b177180675b574b15f03bd95a59815ed308ef6e56ed09ddafffa114a046e197434d6be77001c6cd43d86e75d0d81`.
+The signature was independently generated with the pinned Noble P-256
+implementation and checked by the pinned Mbed TLS PSA verifier in host
+tests. These portable components do not yet authorize an owner or expose an
+HTTP route; journal and session admission remain P12.8 gates.
 
 ## Encrypted owner session
 

@@ -66,6 +66,8 @@ add_library(wsprrypico_core
     src/network/bootstrap_join.cpp
     src/network/bootstrap_slot.cpp
     src/network/bootstrap_wire.cpp
+    src/network/owner_wire.cpp
+    src/network/owner_challenge.cpp
     src/network/api.cpp
     src/network/softap_api.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
@@ -294,6 +296,14 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(consumer_claim_tests PRIVATE wsprrypico_core)
     target_compile_options(consumer_claim_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME consumer_claim_tests COMMAND consumer_claim_tests)
+    add_executable(owner_wire_tests tests/owner_wire_tests.cpp)
+    target_link_libraries(owner_wire_tests PRIVATE wsprrypico_core)
+    target_compile_options(owner_wire_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME owner_wire_tests COMMAND owner_wire_tests)
+    add_executable(owner_challenge_tests tests/owner_challenge_tests.cpp)
+    target_link_libraries(owner_challenge_tests PRIVATE wsprrypico_core)
+    target_compile_options(owner_challenge_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME owner_challenge_tests COMMAND owner_challenge_tests)
     add_executable(softap_api_tests tests/softap_api_tests.cpp)
     target_link_libraries(softap_api_tests PRIVATE wsprrypico_core)
     target_compile_options(softap_api_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)

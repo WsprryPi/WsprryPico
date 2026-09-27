@@ -27,9 +27,54 @@ page and AP-return rows remain open in the
 ## Starting state and source of truth
 
 Inspect branch, HEAD, upstream, worktree status and the complete diff before
-editing. This continuation started from clean `devel` at pushed `fb091f8`;
-verify current state before any further edit and preserve subsequent changes. Do not
+editing. The original continuation started from `fb091f8`; the present
+continuation starts from clean, pushed `devel` `5cccb16`, after the approved
+P12.7 decision, inert profile journal and portable claim slot. Verify current
+state before any further edit and preserve subsequent changes. Do not
 reset, stash or overwrite them.
+
+## Immediate P12.8 execution packet
+
+1. Close the Owner-HTTP/1 wire ambiguities before enabling a route: fix the
+   operation registry and exact method/path binding, session-finish signing
+   transcript, claim AEAD transcript/plaintext, canonical encodings, challenge
+   consumption and response-loss readback. Generate independent browser/host
+   vectors for positive and altered device, boot, epoch, generation, operation,
+   challenge, request, body, sequence and signature cases. Keep owner requests
+   on the AP interface only.
+2. Implement the portable admission and one-request state machines with hard
+   body/slot/capacity bounds, monotonic deadlines, one claimant, one live owner
+   session, duplicate/replay rejection and secret scrubbing. Wire the Pico
+   X25519/HKDF/ChaCha20-Poly1305 and P-256 verification adapters to the
+   pinned crypto library. No parsed or authenticated result may bypass exact
+   current profile/access journal, full identity, inactive output, owner epoch
+   and generation checks.
+3. Generate the per-device CA and server key/certificate on the Pico only
+   after entropy and bounded UTC are valid. Validate key/cert pairing, SAN,
+   EKU, serial, validity and exact device identity before any journal write.
+   Implement owner/client trust activation from the committed consumer source,
+   with all engineering password/GATT/factory mutation authority cut off.
+4. Implement one transactional claim: trial Wi-Fi and DHCP, validate ordinary
+   station fields, stage owner and TLS materials, commit one consumer generation,
+   deliver a terminal result, then activate or safely recover after a cut. On
+   unknown result, read back exact request digest, owner key digest, generation,
+   station and trust; never retry a consumed mutation.
+5. Build the Safari page only after the route and vectors pass. Keep it under
+   five screens, offline bundled, full-ID-indexed and free of codes, PEMs,
+   certificates and manual protocol fields. Prove persistent owner-key write,
+   readback and sign/verify on the selected iPhone before any claim.
+6. Resolve the failed provisioned/core-1 BOOTSEL press gate in source and
+   controlled RF-inhibited target evidence before enabling owner claim or
+   recovery in a provisioned image. A released-button cross-build or
+   single-core pass cannot close this gate. Prepare a complete bounded image
+   and procedure first; request separate authority for flash, USB, button and
+   radio/phone operations. Never perform RF output under this packet.
+7. Complete P12.10 phone acceptance, P12.11 owner/recovery lifecycle and
+   P12.12 Stage A matrix in milestone order, keeping every exact-image failure
+   in the record. Review adversarially, repair actionable findings, rerun
+   affected checks, then reassess. Commit and push only truthful validated
+   checkpoints to `devel`; never label an intermediate source build Phase 12
+   closure.
 Read `AGENTS.md`, `README.md`, `CONTRACT.md`, `SECURITY.md`,
 `docs/architecture.md`, `docs/development/README.md`, the Phase 12 roadmap,
 field-access contract, Field-GATT/1 contract and vectors, physical plan,
@@ -181,9 +226,10 @@ material change to those user-facing terms requires a new design decision.
 ## P12.8: commissioning foundation
 
 The current source has an inert Consumer-Profile/1 journal format and a
-portable one-claim slot. Their separate
+portable one-claim slot plus owner signing/challenge/verification primitives. Their separate
 [structural](phase12-8-structural-foundation-review.md) and
-[claim-slot](phase12-8-claim-slot-review.md) reviews keep owner HTTP, crypto,
+[claim-slot](phase12-8-claim-slot-review.md) and
+[owner-wire](phase12-8-owner-wire-review.md) reviews keep the HTTP route, full session crypto,
 credential activation and physical acceptance explicitly open.
 
 After P12.7 approval, implement portable state machines under `src/` and Pico

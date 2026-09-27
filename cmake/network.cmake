@@ -44,6 +44,7 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
         ${CMAKE_SOURCE_DIR}/src/network/pico/psa_lifetime.cpp
         ${CMAKE_SOURCE_DIR}/src/network/pico/server.cpp
         ${CMAKE_SOURCE_DIR}/src/network/pico/bootstrap_server.cpp
+        ${CMAKE_SOURCE_DIR}/src/network/pico/owner_signature.cpp
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/credential_validator.cpp)
     target_include_directories(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/network/pico)
     target_link_libraries(${image} PRIVATE pico_mbedtls)
@@ -52,5 +53,6 @@ endforeach()
 set_source_files_properties(${CMAKE_SOURCE_DIR}/src/network/pico/psa_lifetime.cpp
     ${CMAKE_SOURCE_DIR}/src/network/pico/server.cpp
     ${CMAKE_SOURCE_DIR}/src/network/pico/bootstrap_server.cpp
+    ${CMAKE_SOURCE_DIR}/src/network/pico/owner_signature.cpp
     ${CMAKE_SOURCE_DIR}/src/provisioning/pico/credential_validator.cpp
     PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-fstack-usage")

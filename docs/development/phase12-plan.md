@@ -540,6 +540,9 @@ BOOTSEL remain open.
 The [portable claim-slot review](phase12-8-claim-slot-review.md) adds one
 physically bound claim state machine and completed-reset tombstone progression;
 it is not connected to HTTP or target BOOTSEL sampling.
+The [owner-wire review](phase12-8-owner-wire-review.md) adds a fixed signing
+registry, one-use challenge and P-256 verifier with independent vectors. These
+remain disconnected from firmware owner routes and do not close P12.8.
 
 Implement only the accepted P12.7 contract. The device must:
 
