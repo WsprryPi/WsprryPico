@@ -545,6 +545,11 @@ The [owner-wire review](phase12-8-owner-wire-review.md) adds a fixed signing
 registry, one-use challenge, P-256 verifier and canonical session-finish
 transcript with independent vectors. These remain disconnected from firmware
 owner routes and do not close P12.8.
+The [claim-wire review](phase12-8-claim-wire-review.md) freezes the claim AEAD
+AAD/plaintext and distinct wire/decoded body limits. A browser-sealed vector
+opens with the pinned Pico Mbed TLS adapter in host tests. The browser helper
+is not yet served by the captive page, and the Pico opener is not yet called
+by an owner HTTP route.
 The [whole-gesture BOOTSEL source review](phase12-8-bootsel-window-review.md)
 adds an opt-in RF-inhibited core-1 diagnostic and a bounded SRAM window. The
 [target record](phase12-8-bootsel-window-target.md) observes a physical
@@ -642,13 +647,14 @@ Finish the consumer lifecycle after first setup:
 - verify post-reset advertisement, owner state, settings preservation/clearing
   and RF-inhibited restoration exactly match the selected reset level; and
 - retain only the approved encrypted Wi-Fi-only mutation and read-only
-  identity/status on the current blank AP. The proposed full commissioning
-  and provisioned owner-control AP surfaces need P12.7 approval and separate
-  physical acceptance. Station TLS identity does not make Safari trust an
-  AP certificate automatically.
+  identity/status on the current blank AP until the approved P12.7 owner
+  routes are implemented and independently accepted. Provisioned owner-control
+  AP surfaces still need physical acceptance. Station TLS identity does not
+  make Safari trust an AP certificate automatically.
 
-Full Safari/SoftAP owner commissioning still requires its own approved
-bootstrap design. The separately approved Wi-Fi-only network join does not
+Full Safari/SoftAP owner commissioning has the approved P12.7 design but still
+requires P12.8–P12.12 implementation and acceptance. The separately approved
+Wi-Fi-only network join does not
 grant an owner, station trust, job control or RF authority; it protects the
 submitted Wi-Fi credentials against passive AP listeners with a fresh key
 exchange and accepts active page replacement/relay risk.

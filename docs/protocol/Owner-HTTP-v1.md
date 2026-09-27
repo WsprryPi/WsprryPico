@@ -1,6 +1,7 @@
 # Owner-HTTP/1: Safari commissioning and AP owner channel
 
-Status: **P12.8 WIRE DESIGN WITH PORTABLE CLAIM, SIGNING AND SESSION-DIGEST CODE; HTTP/CRYPTO NOT
+Status: **P12.8 WIRE DESIGN WITH DISCONNECTED CLAIM TRANSCRIPT, BROWSER SEALER,
+PICO AEAD OPENER, SIGNING AND SESSION-DIGEST CODE; OWNER ROUTES/ACTIVATION NOT
 IMPLEMENTED OR TARGET ACCEPTED** (2026-09-27). This version specifies the approved
 [P12.7 Safari/SoftAP design](../development/phase12-7-decision.md) when code
 and target gates pass. Until then, the running image offers only the separate
@@ -17,9 +18,13 @@ duplicate/unknown JSON keys, ambiguous encodings, pipelining and oversized
 bodies. Do not enable CORS, cookies, HTTP Basic authentication, URL bearer
 tokens, redirects from an owner route, or station-interface HTTP access.
 Responses and the locally bundled page use `Cache-Control: no-store`; the page
-uses a restrictive CSP and no remote resources. Ordinary bodies are at most
-1,024 bytes; a separately bounded advanced CSR body may be at most 2,048
-bytes. Every private request and response is encrypted even though the AP is
+uses a restrictive CSP and no remote resources. A complete raw JSON owner
+request is at most 4,096 bytes for ordinary routes and 6,144 bytes for
+advanced client enrollment; claim start/submit are at most 1,024 raw bytes
+each. Independently, decoded ciphertext plus its 16-byte tag is at most 1,024
+bytes for ordinary signed operations and 2,048 for client enrollment. These
+are distinct limits because base64url expands the decoded bytes; enforce both
+before allocating or authenticating a body. Every private request and response is encrypted even though the AP is
 open. Public identity/setup-state responses contain no credentials, owner key,
 client material, station settings or job state.
 
@@ -199,7 +204,22 @@ consumer claim. Network-only association grants no owner or station control.
 returns a random slot ID, Pico ephemeral X25519 public key and a 60-second
 physical window. It binds the full ID, boot, browser owner public key,
 browser ephemeral X25519 public key, browser nonce, expected source and
-generation. Identify LED denotes this one slot. One fresh runtime BOOTSEL
+generation. The start request carries version `1`, `device_id`,
+`owner_public_key` (canonical base64url SEC1 point),
+`browser_public_key` (canonical base64url X25519 point), `browser_nonce`,
+`profile_source` (integer `0`, `2` or `4`) and `generation` (decimal string).
+The response carries exactly `version`, `device_id`, `boot_id`, `slot_id`,
+`profile_source`, `generation`, `owner_key_sha256`, `browser_public_key`,
+`browser_nonce`, `pico_public_key` and `physical_window_ms`. The owner digest
+is SHA-256 of the decoded SEC1 point; the physical window is `60000`.
+Source `0` means healthy virgin blank at
+generation 0, source `2` means a completed unprovisioned reset tombstone at
+nonzero generation and source `4` means network-only at nonzero generation.
+Public status includes both its human-readable `source` and the exact numeric
+`profile_source`. The browser must compare the exact full ID, source and
+generation from public status and claim start, plus its owner-key digest,
+browser point and nonce in the start response. Identify LED denotes this one
+slot. One fresh runtime BOOTSEL
 press/release grants it without asking the user to time the hold; device-side
 debounce and stuck-hold bounds still apply. A stale level, held-on-boot press, second
 claimant, timeout, changed key/source, output activity or unsafe sampler
@@ -210,11 +230,51 @@ monotonic clock. The
 provisioned/core-1 safe-sampling gate must pass before this route can be
 enabled in consumer firmware.
 
-`POST /api/owner/v1/claim/submit` carries one AEAD envelope under a fresh
-X25519/HKDF-SHA-256/ChaCha20-Poly1305 key with a domain-separated
-`WsprryPico/Owner-Claim/1\0` transcript of every bound field plus a new
-request ID. Its authenticated plaintext contains exactly the validated Wi-Fi
-SSID/password and callsign, four-character locator, and supported WSPR power.
+`POST /api/owner/v1/claim/submit` carries version `1`, full `device_id`,
+`boot_id`, `slot_id`, a fresh `request_id`, 12-byte `aead_nonce`, `ciphertext`
+and 16-byte `tag`. Binary fields are canonical base64url except the four
+IDs, which are lowercase hex. Its single AEAD envelope uses a fresh
+X25519/HKDF-SHA-256/ChaCha20-Poly1305 key. The exact AAD transcript `C` is:
+
+```
+UTF8("WsprryPico/Owner-Claim/1\0")
+|| device_id[16] || boot_id[16] || slot_id[16]
+|| UTF8("http://192.168.4.1") || u8(profile_source) || u64be(generation)
+|| owner_public_key[65] || browser_public_key[32] || pico_public_key[32]
+|| browser_nonce[16] || request_id[16]
+```
+
+It is 261 bytes. Derive one 32-byte key with `IKM = X25519(browser_private,
+pico_public)`, `salt = SHA256(C)`, and
+`info = UTF8("WsprryPico owner claim AEAD v1")`. Reject an all-zero shared
+secret. The browser generates a random 12-byte nonce for its one submit; the
+slot and ephemeral keys are consumed on the first complete submit even if
+authentication fails. The authenticated plaintext is exactly:
+
+```
+u8(ssid_length) || ssid[1..32 printable ASCII]
+|| u8(password_length) || password[8..63 printable ASCII]
+|| u8(callsign_length) || callsign[3..6 uppercase WSPR type-1]
+|| locator[4 uppercase Maidenhead] || u8(supported_power_dbm)
+```
+
+The plaintext is 20–109 bytes; no trailing bytes, JSON, time server or
+certificate fields are permitted inside it. `time_server` is the firmware's
+validated default `pool.ntp.org`, and HTTPS port is 443. These defaults do
+not add user input. The portable C++ and browser builders share independent
+Python `hashlib`/`struct` transcript and plaintext vectors: network-only
+source `4`, generation `1`, device bytes `01..10`, boot `11..20`, slot
+`21..30`, P-256 generator point, synthetic browser field bytes `31..50`, Pico field bytes
+`51..70`, browser nonce `71..80`, request `81..90`, producing `SHA256(C) =
+b13fd05696af4d82e4684aacdde110cefbfe3918a65b3da56dc4451f020d988f`.
+For `LabNet`, test-only password `test-only-password`, `K1ABC`, `FN20` and
+30 dBm, the plaintext hex is
+`064c61624e657412746573742d6f6e6c792d70617373776f7264054b31414243464e32301e`.
+The browser-sealed test envelope opens with the pinned Pico Mbed TLS adapter;
+altered bindings fail. These builders and the Pico opener remain disconnected
+from owner routes; neither provides a physical claim or an active owner by
+itself.
+
 The public owner key is bound in AAD. The browser never sends its private
 owner key. A slot and its key are consumed on the first complete submit,
 whether the station trial or later commit succeeds. The Pico trials

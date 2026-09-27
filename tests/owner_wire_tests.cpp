@@ -177,4 +177,94 @@ int main() {
     changed_session.owner_epoch = 0;
     assert(network::owner_session_start_digest(changed_session) == start_digest);
     assert(!network::owner_session_finish_digest(changed_session));
+
+    network::OwnerClaimFields claim;
+    for (std::size_t i = 0; i < 16; ++i) {
+        claim.device_id[i] = static_cast<std::uint8_t>(i + 1);
+        claim.boot_id[i] = static_cast<std::uint8_t>(i + 17);
+        claim.slot_id[i] = static_cast<std::uint8_t>(i + 33);
+        claim.browser_nonce[i] = static_cast<std::uint8_t>(i + 113);
+        claim.request_id[i] = static_cast<std::uint8_t>(i + 129);
+    }
+    for (std::size_t i = 0; i < 32; ++i) {
+        claim.browser_public_key[i] = static_cast<std::uint8_t>(i + 49);
+        claim.pico_public_key[i] = static_cast<std::uint8_t>(i + 81);
+    }
+    assert(network::bootstrap_unhex(
+        "046b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c2964fe342e2fe1a7f9b8ee7eb4a"
+        "7c0f9e162bce33576b315ececbb6406837bf51f5",
+        claim.owner_public_key));
+    claim.source = provisioning::ProfileSource::NetworkOnly;
+    claim.generation = 1;
+    const auto transcript = network::owner_claim_transcript(claim);
+    assert(transcript && transcript->size == 261);
+    assert(network::bootstrap_digest(transcript->view()) ==
+           "b13fd05696af4d82e4684aacdde110cefbfe3918a65b3da56dc4451f020d988f");
+    const auto claim_differs = [&](const network::OwnerClaimFields& candidate) {
+        const auto other = network::owner_claim_transcript(candidate);
+        return other && network::bootstrap_digest(other->view()) !=
+                            network::bootstrap_digest(transcript->view());
+    };
+    auto changed_claim = claim;
+    changed_claim.device_id[0] ^= 1;
+    assert(claim_differs(changed_claim));
+    changed_claim = claim;
+    changed_claim.boot_id[0] ^= 1;
+    assert(claim_differs(changed_claim));
+    changed_claim = claim;
+    changed_claim.slot_id[0] ^= 1;
+    assert(claim_differs(changed_claim));
+    changed_claim = claim;
+    changed_claim.owner_public_key[1] ^= 1;
+    assert(claim_differs(changed_claim));
+    changed_claim = claim;
+    changed_claim.browser_public_key[0] ^= 1;
+    assert(claim_differs(changed_claim));
+    changed_claim = claim;
+    changed_claim.pico_public_key[0] ^= 1;
+    assert(claim_differs(changed_claim));
+    changed_claim = claim;
+    changed_claim.browser_nonce[0] ^= 1;
+    assert(claim_differs(changed_claim));
+    changed_claim = claim;
+    changed_claim.request_id[0] ^= 1;
+    assert(claim_differs(changed_claim));
+    changed_claim = claim;
+    changed_claim.generation = 2;
+    assert(claim_differs(changed_claim));
+    changed_claim = claim;
+    changed_claim.source = provisioning::ProfileSource::Unprovisioned;
+    assert(claim_differs(changed_claim));
+    changed_claim.source = provisioning::ProfileSource::ConsumerProfile;
+    assert(!network::owner_claim_transcript(changed_claim));
+    changed_claim = claim;
+    changed_claim.owner_public_key[0] = 0;
+    assert(!network::owner_claim_transcript(changed_claim));
+
+    const network::OwnerClaimPlaintext value{"LabNet", "test-only-password", "K1ABC", "FN20", 30};
+    const auto encoded = network::encode_owner_claim_plaintext(value);
+    assert(encoded && encoded->size == 37);
+    assert(network::bootstrap_hex(encoded->view()) ==
+           "064c61624e657412746573742d6f6e6c792d70617373776f7264054b31414243464e32301e");
+    const auto decoded = network::decode_owner_claim_plaintext(encoded->view());
+    assert(decoded && decoded->ssid == value.ssid && decoded->password == value.password &&
+           decoded->callsign == value.callsign && decoded->locator == value.locator &&
+           decoded->power_dbm == value.power_dbm);
+    auto malformed = *encoded;
+    malformed.bytes[0] = 33;
+    assert(!network::decode_owner_claim_plaintext(malformed.view()));
+    malformed = *encoded;
+    malformed.bytes[malformed.size - 1] = 31;
+    assert(!network::decode_owner_claim_plaintext(malformed.view()));
+    malformed = *encoded;
+    malformed.bytes[malformed.size++] = 0;
+    assert(!network::decode_owner_claim_plaintext(malformed.view()));
+    assert(!network::encode_owner_claim_plaintext({"LabNet", "short", "K1ABC", "FN20", 30}));
+    const auto maximum = network::encode_owner_claim_plaintext(
+        {std::string(32, 'A'), std::string(63, 'p'), "KA1BCD", "FN20", 60});
+    assert(maximum && maximum->size == 109);
+    assert(network::decode_owner_claim_plaintext(maximum->view()));
+    const auto minimum = network::encode_owner_claim_plaintext({"a", "12345678", "K1A", "AA00", 0});
+    assert(minimum && minimum->size == 20);
+    assert(network::decode_owner_claim_plaintext(minimum->view()));
 }

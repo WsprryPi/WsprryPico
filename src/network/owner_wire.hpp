@@ -1,5 +1,6 @@
 #pragma once
 
+#include "provisioning/storage.hpp"
 #include "wtp/sha256.hpp"
 
 #include <array>
@@ -70,5 +71,51 @@ struct OwnerSessionFields {
 std::optional<wtp::PayloadDigest> owner_session_start_digest(const OwnerSessionFields& fields);
 std::optional<wtp::PayloadDigest> owner_session_finish_digest(const OwnerSessionFields& fields);
 std::optional<wtp::PayloadDigest> owner_session_salt(const OwnerSessionFields& fields);
+
+// Claim AEAD AAD is the complete fixed-order transcript. The caller must
+// validate the P-256 point and X25519 exchange, bind these fields to the live
+// claim slot and current journal, and consume the slot before a trial.
+struct OwnerClaimFields {
+    std::array<std::uint8_t, 16> device_id{}, boot_id{}, slot_id{};
+    std::array<std::uint8_t, 65> owner_public_key{};
+    std::array<std::uint8_t, 32> browser_public_key{}, pico_public_key{};
+    std::array<std::uint8_t, 16> browser_nonce{}, request_id{};
+    provisioning::ProfileSource source = provisioning::ProfileSource::LegacyBootstrap;
+    std::uint64_t generation = 0;
+};
+
+struct OwnerClaimTranscript {
+    std::array<std::uint8_t, 320> bytes{};
+    std::size_t size = 0;
+    std::span<const std::uint8_t> view() const {
+        return {bytes.data(), size};
+    }
+};
+
+std::optional<OwnerClaimTranscript> owner_claim_transcript(const OwnerClaimFields& fields);
+
+// This compact plaintext is encrypted in its entirety. Views returned by the
+// decoder alias caller-owned decrypted storage; clear that storage after use.
+struct OwnerClaimPlaintext {
+    std::string_view ssid, password, callsign, locator;
+    unsigned power_dbm = 0;
+};
+struct OwnerClaimEncodedPlaintext {
+    std::array<std::uint8_t, 109> bytes{};
+    std::size_t size = 0;
+    ~OwnerClaimEncodedPlaintext() {
+        volatile std::uint8_t* writable = bytes.data();
+        for (std::size_t i = 0; i < bytes.size(); ++i)
+            writable[i] = 0;
+        size = 0;
+    }
+    std::span<const std::uint8_t> view() const {
+        return {bytes.data(), size};
+    }
+};
+std::optional<OwnerClaimEncodedPlaintext>
+encode_owner_claim_plaintext(const OwnerClaimPlaintext& value);
+std::optional<OwnerClaimPlaintext>
+decode_owner_claim_plaintext(std::span<const std::uint8_t> bytes);
 
 } // namespace wsprrypico::network

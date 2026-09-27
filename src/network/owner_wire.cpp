@@ -1,7 +1,11 @@
 #include "network/owner_wire.hpp"
 
+#include "encoding/wspr.hpp"
+#include "standalone/config.hpp"
+
 #include <algorithm>
 #include <array>
+#include <cstring>
 
 namespace wsprrypico::network {
 namespace {
@@ -20,6 +24,8 @@ constexpr char prefix[] = "WsprryPico/Owner-HTTP/1";
 constexpr char session_start_prefix[] = "WsprryPico/Owner-Session-Start/1";
 constexpr char session_prefix[] = "WsprryPico/Owner-Session/1";
 constexpr char session_finish_prefix[] = "WsprryPico/Owner-Session-Finish/1";
+constexpr char claim_prefix[] = "WsprryPico/Owner-Claim/1";
+constexpr char claim_origin[] = "http://192.168.4.1";
 
 template <typename T> bool nonzero(const T& bytes) {
     return std::any_of(bytes.begin(), bytes.end(), [](std::uint8_t byte) { return byte != 0; });
@@ -143,6 +149,98 @@ std::optional<wtp::PayloadDigest> owner_session_salt(const OwnerSessionFields& f
     wtp::Sha256 hash;
     update_session(hash, fields);
     return hash.finish();
+}
+
+std::optional<OwnerClaimTranscript> owner_claim_transcript(const OwnerClaimFields& fields) {
+    const bool claimable =
+        (fields.source == provisioning::ProfileSource::LegacyBootstrap && fields.generation == 0) ||
+        ((fields.source == provisioning::ProfileSource::Unprovisioned ||
+          fields.source == provisioning::ProfileSource::NetworkOnly) &&
+         fields.generation > 0 && fields.generation < UINT64_MAX);
+    if (!claimable || !nonzero(fields.device_id) || !nonzero(fields.boot_id) ||
+        !nonzero(fields.slot_id) || fields.owner_public_key[0] != 4 ||
+        !nonzero(fields.browser_public_key) || !nonzero(fields.pico_public_key) ||
+        !nonzero(fields.browser_nonce) || !nonzero(fields.request_id))
+        return std::nullopt;
+
+    OwnerClaimTranscript result;
+    auto append = [&](const void* bytes, std::size_t size) {
+        if (size > result.bytes.size() - result.size)
+            return false;
+        std::memcpy(result.bytes.data() + result.size, bytes, size);
+        result.size += size;
+        return true;
+    };
+    const auto source = static_cast<std::uint8_t>(fields.source);
+    std::array<std::uint8_t, 8> generation{};
+    auto value = fields.generation;
+    for (int i = 7; i >= 0; --i) {
+        generation[static_cast<std::size_t>(i)] = static_cast<std::uint8_t>(value);
+        value >>= 8;
+    }
+    if (!append(claim_prefix, sizeof(claim_prefix)) ||
+        !append(fields.device_id.data(), fields.device_id.size()) ||
+        !append(fields.boot_id.data(), fields.boot_id.size()) ||
+        !append(fields.slot_id.data(), fields.slot_id.size()) ||
+        !append(claim_origin, sizeof(claim_origin) - 1) || !append(&source, 1) ||
+        !append(generation.data(), generation.size()) ||
+        !append(fields.owner_public_key.data(), fields.owner_public_key.size()) ||
+        !append(fields.browser_public_key.data(), fields.browser_public_key.size()) ||
+        !append(fields.pico_public_key.data(), fields.pico_public_key.size()) ||
+        !append(fields.browser_nonce.data(), fields.browser_nonce.size()) ||
+        !append(fields.request_id.data(), fields.request_id.size()))
+        return std::nullopt;
+    return result;
+}
+
+std::optional<OwnerClaimEncodedPlaintext>
+encode_owner_claim_plaintext(const OwnerClaimPlaintext& value) {
+    if (!standalone::valid_wifi_credentials(value.ssid, value.password,
+                                            standalone::default_time_server) ||
+        !encoding::wspr_type1(value.callsign, value.locator, value.power_dbm))
+        return std::nullopt;
+    OwnerClaimEncodedPlaintext result;
+    auto append_text = [&](std::string_view part) {
+        result.bytes[result.size++] = static_cast<std::uint8_t>(part.size());
+        std::memcpy(result.bytes.data() + result.size, part.data(), part.size());
+        result.size += part.size();
+    };
+    append_text(value.ssid);
+    append_text(value.password);
+    append_text(value.callsign);
+    std::memcpy(result.bytes.data() + result.size, value.locator.data(), 4);
+    result.size += 4;
+    result.bytes[result.size++] = static_cast<std::uint8_t>(value.power_dbm);
+    return result;
+}
+
+std::optional<OwnerClaimPlaintext>
+decode_owner_claim_plaintext(std::span<const std::uint8_t> bytes) {
+    if (bytes.size() < 20 || bytes.size() > 109)
+        return std::nullopt;
+    std::size_t at = 0;
+    auto read_text = [&](std::size_t minimum, std::size_t maximum, std::string_view& out) {
+        if (at >= bytes.size())
+            return false;
+        const auto size = bytes[at++];
+        if (size < minimum || size > maximum || size > bytes.size() - at)
+            return false;
+        out = {reinterpret_cast<const char*>(bytes.data() + at), size};
+        at += size;
+        return true;
+    };
+    OwnerClaimPlaintext result;
+    if (!read_text(1, 32, result.ssid) || !read_text(8, 63, result.password) ||
+        !read_text(3, 6, result.callsign) || bytes.size() - at != 5)
+        return std::nullopt;
+    result.locator = {reinterpret_cast<const char*>(bytes.data() + at), 4};
+    at += 4;
+    result.power_dbm = bytes[at];
+    if (!standalone::valid_wifi_credentials(result.ssid, result.password,
+                                            standalone::default_time_server) ||
+        !encoding::wspr_type1(result.callsign, result.locator, result.power_dbm))
+        return std::nullopt;
+    return result;
 }
 
 } // namespace wsprrypico::network

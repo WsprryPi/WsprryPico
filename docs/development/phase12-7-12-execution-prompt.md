@@ -2,7 +2,10 @@
 
 Status: **EXECUTION RESUMED 2026-09-27; P12.7 DESIGN APPROVED; WI-FI-ONLY
 GENERATION-1 READBACK PASSED; P12.8–P12.12 OPEN**. The operator directed resumption of all
-Phase 12 milestones. This prompt is the execution order and does not authorize
+Phase 12 milestones. Execute the hardware-free implementation and review gates
+continuously. Record each milestone's actual evidence and continue to the next
+independent task. A live-device gate needs action-specific authority and cannot
+be satisfied by a source build. This prompt is not standing authority for
 unspecified live hardware operations.
 
 Work in `/Users/lbussy/GitHub/WsprryPico` on `devel`. Complete the remaining
@@ -37,19 +40,21 @@ resumed from clean, pushed `devel` `040eaee`, after the approved P12.7
 decision, inert profile journal, portable claim slot, Owner-HTTP signing
 digest, single-use challenge and P-256 verifier. Verify current state before
 editing; preserve subsequent changes. Do not reset, stash or overwrite them.
-The next committed BOOTSEL diagnostic checkpoint is `3f56f5e`; current work
-must be inspected from the actual `devel` HEAD and worktree, not inferred from
-those historical starting hashes.
+The BOOTSEL diagnostic checkpoint is `3f56f5e`; the physical result and
+ordinary press/release correction are committed at `6baef03`, and the
+canonical owner-session transcript at `d126c6f`. Current work must be
+inspected from the actual `devel` HEAD and worktree, not inferred from those
+historical hashes.
 
 ## Immediate P12.8 execution packet
 
-1. Close the Owner-HTTP/1 wire ambiguities before enabling a route: fix the
-   operation registry and exact method/path binding, session-finish signing
-   transcript, claim AEAD transcript/plaintext, canonical encodings, challenge
-   consumption and response-loss readback. Generate independent browser/host
-   vectors for positive and altered device, boot, epoch, generation, operation,
-   challenge, request, body, sequence and signature cases. Keep owner requests
-   on the AP interface only.
+1. Close the remaining Owner-HTTP/1 wire ambiguities before enabling a route.
+   The operation registry, method/path binding, session-finish transcript,
+   challenge consumption and signature vectors are already committed. Freeze
+   the claim AEAD transcript, plaintext/defaults and exact encoded versus
+   decoded body bounds; generate independent browser/host vectors. Then cover
+   altered device, boot, source, generation, slot, key, nonce, request, body,
+   sequence and signature cases. Keep owner requests on the AP interface only.
 2. Implement the portable admission and one-request state machines with hard
    body/slot/capacity bounds, monotonic deadlines, one claimant, one live owner
    session, duplicate/replay rejection and secret scrubbing. Wire the Pico
@@ -86,10 +91,11 @@ those historical starting hashes.
    checkpoints to `devel`; never label an intermediate source build Phase 12
    closure.
 
-Work through these gates in order and report the first unsatisfied hard gate
-honestly. Do not substitute speculative threat work for the measured BOOTSEL,
-AP continuity, transactional activation and iPhone checks. The operator
-accepted the P12.7 physical-extraction and active-relay limits.
+Work through these gates in order. Continue independent source and documentation
+work when a later physical gate is unavailable; report every unsatisfied exit
+gate honestly. Do not substitute speculative threat work for the measured
+BOOTSEL, AP continuity, transactional activation and iPhone checks. The
+operator accepted the P12.7 physical-extraction and active-relay limits.
 Read `AGENTS.md`, `README.md`, `CONTRACT.md`, `SECURITY.md`,
 `docs/architecture.md`, `docs/development/README.md`, the Phase 12 roadmap,
 field-access contract, Field-GATT/1 contract and vectors, physical plan,
@@ -138,8 +144,8 @@ incidental step. Do not edit another WsprryPi-family repository.
 ## Separate Wi-Fi-only target result and remaining rows
 
 The network-only path is an approved exception to the P12.7 commissioning
-gate. Candidate A retains the RF-inhibited `fb091f8` image that was flashed
-and verified under exact authority, UF2 SHA-256
+gate. Candidate A's **historical network-only transaction image** was
+`fb091f8`, UF2 SHA-256
 `d262c9a92a0b7ec3be4739e50e39c8b7ac59a80f25863e4bf840e40b38a18ce2`.
 The selected iPhone made one BOOTSEL-confirmed credential submission, and
 the approved single reboot independently selected network-only generation 1,
@@ -154,12 +160,15 @@ UF2 was SHA-256
 The current P12.8 structural-source and fail-closed runtime cross-build
 produced an unflashed UF2 SHA-256
 `d2988dbf3a930b3c60b3f851f13651fa32c0e1812a41c3ae6f3eca0f5121b97f`.
-The current P12.8 portable-claim build overwrote that build path with an
+The P12.8 portable-claim build overwrote that build path with an
 unflashed UF2 SHA-256
 `7849b5b041e3212c032dcef8f65c6223d16c785170f71aceb34924d0c9ca1c39`.
-None of these newer images is the installed `fb091f8` image or physically accepted.
-The current linked image has one SRAM BOOTSEL callback and no core-1 launcher,
-a source/link result only. A future exact new flash or
+Candidate A now retains the later RF-inhibited `3f56f5e` core-1 diagnostic,
+UF2 SHA-256
+`03611155a0f7302d5fe4ad069e6a2c18d8872dcd2dc1fd7a0a541400ab428c66`.
+Its physical press/release and AP recovery are recorded, while the current
+source correction and Safari claim integration remain unflashed and unaccepted.
+A future exact new flash or
 other live operation requires action-specific authority and fresh device,
 source, hash, journal, output and inhibited-engine admission.
 
@@ -348,9 +357,10 @@ rotation; BLE/TCP/WTP/HTTPS concurrence with one owner and one `JobService`;
 controller-time disagreement; full LED priority and faults; heap, stack,
 lwIP/BTstack pools, TLS allocation, flash serialization, reclamation and soak.
 Record exact source, image, device, client, clock, mode, setup, case and result
-for every accepted row. End disconnected, provisioning closed, SoftAP stopped
-when no cause remains, healthy journals, empty/unowned, RF-inhibited and output
-inactive; explicitly report any restoration limitation.
+for every accepted row. End disconnected, provisioning closed, the approved
+consumer AP available, healthy journals, empty/unowned, RF-inhibited and
+output inactive; explicitly report any restoration limitation. Roll forward
+with a verified image; do not routinely restore an older UF2.
 
 Conduct an adversarial source, UX, security, evidence and restoration review.
 For each actionable finding: repair, rerun affected tests and physical rows,
