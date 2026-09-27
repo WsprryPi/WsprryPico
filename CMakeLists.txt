@@ -37,6 +37,8 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/index.html src/network/web/style.css src/network/web/app.js
     src/network/bootstrap_web/index.html src/network/bootstrap_web/style.css
     src/network/bootstrap_web/bundle.js
+    src/network/bootstrap_web/owner.html src/network/bootstrap_web/owner-bundle.js
+    src/network/bootstrap_web/owner-key-bundle.js
     scripts/generate_web_assets.py)
 execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_web_assets.py
     ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp

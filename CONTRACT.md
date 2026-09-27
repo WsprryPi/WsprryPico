@@ -28,8 +28,9 @@ implemented Pico surface. Shared WsprryPi adoption remains separate work.
   BLE/Bluefy under the
   [Phase 12 field-access contract](docs/development/phase12-field-access-contract.md).
   The later [approved P12.7 consumer contract](docs/development/phase12-7-decision.md)
-  selects Safari/SoftAP only, with a physical owner claim; its owner path is
-  still being implemented.
+  selects Safari/SoftAP only, with a physical owner claim. The claim path is
+  source-linked but not physically accepted; owner sessions and activation
+  remain open.
   The native [Raspberry Pi/Linux BlueZ client](docs/development/raspberry-pi-ble-client.md)
   is an additional supported local/bench client; it does not qualify the
   selected iPhone consumer acceptance path. Its profile-apply command is

@@ -25,6 +25,31 @@ bool scalar(std::span<const std::uint8_t, 32> value, bool low_s) {
 }
 } // namespace
 
+bool valid_owner_public_key(std::span<const std::uint8_t, 65> public_key) {
+    if (public_key[0] != 4)
+        return false;
+    PsaCryptoOwner psa;
+    if (psa.acquire() != PSA_SUCCESS)
+        return false;
+    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
+    psa_set_key_type(&attributes, PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1));
+    psa_set_key_bits(&attributes, 256);
+    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_VERIFY_HASH);
+    psa_set_key_algorithm(&attributes, PSA_ALG_ECDSA(PSA_ALG_SHA_256));
+    psa_key_id_t key = 0;
+    const auto imported = psa_import_key(&attributes, public_key.data(), public_key.size(), &key);
+    psa_reset_key_attributes(&attributes);
+    if (imported != PSA_SUCCESS)
+        return false;
+    std::array<std::uint8_t, 65> exported{};
+    std::size_t exported_size = 0;
+    const bool canonical = psa_export_public_key(key, exported.data(), exported.size(),
+                                                 &exported_size) == PSA_SUCCESS &&
+                           exported_size == exported.size() &&
+                           std::equal(exported.begin(), exported.end(), public_key.begin());
+    return psa_destroy_key(key) == PSA_SUCCESS && canonical;
+}
+
 bool verify_owner_signature(std::span<const std::uint8_t, 65> public_key,
                             std::span<const std::uint8_t, 32> digest,
                             std::span<const std::uint8_t, 64> signature) {

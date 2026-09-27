@@ -1,13 +1,17 @@
 # Owner-HTTP/1: Safari commissioning and AP owner channel
 
-Status: **P12.8 WIRE DESIGN WITH DISCONNECTED CLAIM ADMISSION, COMMIT,
-TRANSCRIPT, BROWSER SEALER, PICO AEAD OPENER, SIGNING AND SESSION-DIGEST CODE;
-OWNER ROUTES/ACTIVATION NOT IMPLEMENTED OR TARGET ACCEPTED** (2026-09-27). This version specifies the approved
-[P12.7 Safari/SoftAP design](../development/phase12-7-decision.md) when code
-and target gates pass. Until then, the blank AP offers only the separate
-[WiFi-Bootstrap/1](WiFi-Bootstrap-v1-proposal.md) network-only transaction;
-a structurally admitted source-5 profile has a read-only pre-clock recovery
-surface. This document neither changes Field-GATT/1 nor grants RF output.
+Status: **P12.8 WIRE DESIGN WITH A SOURCE-LINKED CLAIM CANDIDATE;
+OWNER SESSION, POST-CLOCK ACTIVATION AND TARGET ACCEPTANCE OPEN** (2026-09-27).
+The candidate connects public claim status/start/submit, Safari sealing,
+physical admission and one journal write. It has no authenticated owner
+session or final private readback. This version specifies the approved
+[P12.7 Safari/SoftAP design](../development/phase12-7-decision.md) as its
+implementation gates pass. The source candidate admits both a separate
+[WiFi-Bootstrap/1](WiFi-Bootstrap-v1-proposal.md) network-only transaction and
+one physically granted owner claim on a healthy blank or network-only AP.
+A structurally admitted source-5 profile has public claim status and a local
+page, with private owner control still unavailable. This document neither
+changes Field-GATT/1 nor grants RF output.
 
 ## Identity, authority and transport
 
@@ -200,6 +204,8 @@ source (`unprovisioned`, `network_only`, `consumer`, or `fault`), generation,
 whether an owner exists, and nonsensitive link/clock readiness. A source
 other than healthy unprovisioned or healthy network-only cannot begin a
 consumer claim. Network-only association grants no owner or station control.
+`claim_available` reports the current admission gate separately from `source`;
+an unsafe or busy output does not relabel a healthy profile as a fault.
 
 `POST /api/owner/v1/claim/start` admits exactly one pending claimant and
 returns a random slot ID, Pico ephemeral X25519 public key and a 60-second
@@ -272,9 +278,9 @@ For `LabNet`, test-only password `test-only-password`, `K1ABC`, `FN20` and
 30 dBm, the plaintext hex is
 `064c61624e657412746573742d6f6e6c792d70617373776f7264054b31414243464e32301e`.
 The browser-sealed test envelope opens with the pinned Pico Mbed TLS adapter;
-altered bindings fail. These builders and the Pico opener remain disconnected
-from owner routes; neither provides a physical claim or an active owner by
-itself.
+altered bindings fail. These builders and the Pico opener now meet in the
+bounded claim candidate; their source connection does not qualify physical
+claim or active owner control.
 
 The public owner key is bound in AAD. The browser never sends its private
 owner key. A slot and its key are consumed on the first complete submit,

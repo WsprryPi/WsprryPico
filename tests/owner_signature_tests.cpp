@@ -38,6 +38,7 @@ int main() {
     auto digest = decode<32>("2d7abd422c7760352607cf9521a840535e4610b19f11536c0fbfde7338dc337f");
     auto signature = decode<64>("089f7a5717765e2149dcbddbc8064b1adf91b177180675b574b15f03bd95a5981"
                                 "5ed308ef6e56ed09ddafffa114a046e197434d6be77001c6cd43d86e75d0d81");
+    assert(wsprrypico::network::valid_owner_public_key(point));
     assert(wsprrypico::network::verify_owner_signature(point, digest, signature));
     digest[0] ^= 1;
     assert(!wsprrypico::network::verify_owner_signature(point, digest, signature));
@@ -46,9 +47,11 @@ int main() {
     assert(!wsprrypico::network::verify_owner_signature(point, digest, signature));
     signature[0] ^= 1;
     point[0] = 2;
+    assert(!wsprrypico::network::valid_owner_public_key(point));
     assert(!wsprrypico::network::verify_owner_signature(point, digest, signature));
     point[0] = 4;
     point[10] ^= 1;
+    assert(!wsprrypico::network::valid_owner_public_key(point));
     assert(!wsprrypico::network::verify_owner_signature(point, digest, signature));
     point[10] ^= 1;
     auto high_s = decode<64>("089f7a5717765e2149dcbddbc8064b1adf91b177180675b574b15f03bd95a598e"

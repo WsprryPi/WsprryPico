@@ -21,7 +21,8 @@ Use WsprryPico for project, repository and application naming; firmware artifact
   controller. No WsprryPico-native iOS app is planned.
 - The [approved P12.7 consumer contract](development/phase12-7-decision.md)
   selects Safari/SoftAP only for consumer commissioning and owner recovery.
-  That owner path is not implemented yet. The earlier
+  A bounded claim candidate is source-linked, but owner session/activation and
+  physical acceptance remain open. The earlier
   [Phase 12 field-access contract](development/phase12-field-access-contract.md)
   still describes the running engineering authority until consumer mode is
   implemented and accepted.
@@ -107,7 +108,9 @@ reset intent prevent fallback to superseded authority; unhealthy, erased or
 reset-pending access state suppresses station and scheduled work until
 authorized recovery.
 An exactly erased profile journal in a generic image selects unprovisioned
-generation zero and the bounded read-only open SoftAP. A complete, matching
+generation zero and the bounded open SoftAP. Its accepted Wi-Fi-only path and
+source-linked consumer-claim candidate have separate physical gates; no blank
+mutation grants owner authority until a complete source-5 commit. A complete, matching
 device-bound compiled bundle may retain factory source behavior; incomplete
 or wrong-device bundles and interrupted first profile selections fail closed.
 The separately approved

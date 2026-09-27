@@ -81,7 +81,9 @@ The operator-selected
 describes the running engineering BLE/password baseline. The later
 [approved P12.7 consumer contract](docs/development/phase12-7-decision.md)
 selects Safari and SoftAP only for consumer commissioning, with an owner key
-and a physical claim; that owner route remains unimplemented. The production
+and a physical claim. A source-linked claim candidate is prepared for a
+bounded button and journal test; authenticated owner readback and consumer
+activation remain open. The production
 continuation connects SoftAP
 DHCP/mDNS, blank captive HTTP, provisioned pre-clock/normal HTTPS,
 password/cookie admission, controller time and the existing browser/one-

@@ -17,6 +17,7 @@
 #include "provisioning/local_access.hpp"
 #include "provisioning/manager.hpp"
 #include "provisioning/pico/activation_platform.hpp"
+#include "provisioning/pico/consumer_claim_platform.hpp"
 #include "provisioning/pico/credential_validator.hpp"
 #include "provisioning/pico/field_platform.hpp"
 #include "provisioning/pico/gatt_transport.hpp"
@@ -293,8 +294,9 @@ int main() {
         runtime_profile.load(profile_store, identities.device_id(), build_bundle);
     // Source 5 may join station for time, but owner and TLS authority are not
     // active at structural admission. Deny every legacy control path.
-    const bool unsupported_consumer_source =
-        profile_store.source() == wsprrypico::provisioning::ProfileSource::ConsumerProfile;
+    const auto consumer_source_selected = [&]() {
+        return profile_store.source() == wsprrypico::provisioning::ProfileSource::ConsumerProfile;
+    };
 #ifdef WSPRRY_PICO_STANDALONE_RF
     const auto config = wsprrypico::standalone::wtp_profile(true);
 #else
@@ -340,7 +342,8 @@ int main() {
     softap_coordinator.no_profile(
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned ||
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly ||
-        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock);
+        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock ||
+        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Fault);
     softap_coordinator.recovery(boot_recovery);
     static wsprrypico::provisioning::PicoSoftAp softap;
     std::optional<wsprrypico::standalone::Config> runtime_network_config;
@@ -377,18 +380,20 @@ int main() {
     server.softap_handler(&softap_api, softap_interface, nullptr);
     static wsprrypico::network::PicoBootstrapServer bootstrap(
         identities.device_id(), wsprrypico::firmware::kFirmwareVersion, softap_interface, nullptr);
-    // Source 5 has only the read-only recovery surface here. The plaintext
-    // listener must not expose a legacy mutation route to a consumer profile.
+    // Source 5 exposes public owner claim status only. The plaintext listener
+    // must not expose a legacy mutation route to a consumer profile.
     const auto blank_access_available = []() {
         return access_store.state() == wsprrypico::provisioning::AccessStoreState::Erased ||
                (access_store.state() == wsprrypico::provisioning::AccessStoreState::Healthy &&
                 access_store.record() && !access_store.record()->reset.pending());
     };
     const bool bootstrap_started =
-        derived_identity && blank_access_available() && !recovery &&
+        derived_identity && blank_access_available() &&
+        (!recovery || runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Fault) &&
         (runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned ||
          runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly ||
-         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock) &&
+         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock ||
+         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Fault) &&
         bootstrap.start();
     browser_api.set_active_job_connections(true);
     bool server_start_attempted = false;
@@ -396,8 +401,11 @@ int main() {
     static wsprrypico::provisioning::IndicatorController indicator(indicator_output,
                                                                    identities.device_id());
 #ifndef WSPRRY_PICO_STANDALONE_RF
+    static wsprrypico::provisioning::PicoConsumerClaimPlatform claim_platform(
+        access_store, network, service, time_arbiter, local_identity.hostname);
     bootstrap.configure(service.status().boot_id, access_store, profile_store, random_source,
-                        indicator, network, local_identity.default_password);
+                        indicator, network, runtime_profile, claim_platform,
+                        local_identity.default_password);
 #endif
     network.listener_status(server.configured(), server.listening(), deployment_matches);
     watchdog_hw->scratch[1] = 3;
@@ -427,6 +435,7 @@ int main() {
         return true;
     };
     browser_api.restart_control(schedule_restart, &restart_context);
+    bootstrap.restart_control(schedule_restart, &restart_context);
     static wsprrypico::provisioning::MbedTlsCredentialValidator credential_validator(
         identities.device_id(), &service);
     static wsprrypico::provisioning::PicoActivationPlatform activation_platform(
@@ -659,8 +668,9 @@ int main() {
             result += "}\n";
             return result;
         }
-        if ((unsupported_consumer_source || !runtime_profile_loaded) && text != "ABORT" &&
-            text != "REBOOT" && text != "BOOTSEL")
+        if ((consumer_source_selected() || bootstrap.owner_claim_pending() ||
+             !runtime_profile_loaded) &&
+            text != "ABORT" && text != "REBOOT" && text != "BOOTSEL")
             return "{\"ok\":false,\"error\":\"profile_runtime_unavailable\"}\n";
         if (text.starts_with("HEAP PROBE ")) {
             const auto capacity = reinterpret_cast<std::uintptr_t>(&__HeapLimit) -
@@ -906,8 +916,11 @@ int main() {
                                    network_state != wsprrypico::wtp::State::Running))
             network.poll();
         const auto field_now_ms = time_us_64() / 1000ULL;
-        if (runtime_profile_loaded && !unsupported_consumer_source && !gatt.running() &&
-            !gatt_start_attempted && derived_identity && local_access.ble_available()) {
+        if ((consumer_source_selected() || bootstrap.owner_claim_pending()) && gatt.running())
+            gatt.stop();
+        if (runtime_profile_loaded && !consumer_source_selected() &&
+            !bootstrap.owner_claim_pending() && !gatt.running() && !gatt_start_attempted &&
+            derived_identity && local_access.ble_available()) {
             gatt_start_attempted = true;
             (void)gatt.start();
         }
@@ -1014,15 +1027,17 @@ int main() {
         if (wsprrypico::usb::take_wtp_reset()) {
             offset = size = 0;
             if (wsprrypico::usb::wtp_connected() && runtime_profile_loaded &&
-                !unsupported_consumer_source)
+                !consumer_source_selected() && !bootstrap.owner_claim_pending())
                 endpoint.connect("usb-physical");
             else
                 endpoint.disconnect();
         }
         const auto now_ms = time_us_64() / 1000ULL;
+        if ((consumer_source_selected() || bootstrap.owner_claim_pending()) && !endpoint.closed())
+            endpoint.disconnect();
         endpoint.poll(now_ms);
         if (wsprrypico::usb::wtp_connected() && runtime_profile_loaded &&
-            !unsupported_consumer_source) {
+            !consumer_source_selected() && !bootstrap.owner_claim_pending()) {
             if (!reboot_at && endpoint.can_receive()) {
                 if (offset == size) {
                     size = wsprrypico::usb::wtp_transport_read(input);

@@ -4,10 +4,14 @@
 #ifndef WSPRRY_PICO_STANDALONE_RF
 #include "network/bootstrap_codec.hpp"
 #include "network/bootstrap_wire.hpp"
+#include "network/owner_claim_http.hpp"
+#include "network/owner_wire.hpp"
 #include "provisioning/access.hpp"
 #include "provisioning/field_runtime.hpp"
 #include "provisioning/local_access.hpp"
 #include "provisioning/pico/bootsel_sampler.hpp"
+#include "provisioning/pico/consumer_claim_platform.hpp"
+#include "provisioning/runtime.hpp"
 #include "provisioning/storage.hpp"
 #include "standalone/pico/adapters.hpp"
 #include "wtp/json.hpp"
@@ -113,12 +117,24 @@ void PicoBootstrapServer::dispatch() {
                 : http_error(400, "invalid_request");
     else if (parser_.request().path.starts_with("/api/bootstrap/v1/"))
         response_ = mutation(parser_.request());
+    else if (parser_.request().path == "/api/owner/v1/public-status" ||
+             parser_.request().path == "/api/owner/v1/claim/status")
+        response_ = owner_public_get_admitted(parser_.request(), parser_.request().path)
+                        ? owner_status(parser_.request().path == "/api/owner/v1/claim/status")
+                        : http_error(400, "invalid_request");
+    else if (parser_.request().path.starts_with("/api/owner/v1/claim/"))
+        response_ = owner_mutation(parser_.request());
 #endif
     else
-        response_ = bootstrap_http_response(parser_.request(), device_, firmware_
+        response_ = bootstrap_http_response(
+            parser_.request(), device_, firmware_
 #ifndef WSPRRY_PICO_STANDALONE_RF
-                                            ,
-                                            blank_authority() && mutation_safe_
+            ,
+            blank_authority() && mutation_safe_,
+            owner_claimable() ||
+                (runtime_ && runtime_->source() == provisioning::RuntimeSource::ConsumerPreClock &&
+                 profile_ && profile_->healthy() &&
+                 profile_->source() == provisioning::ProfileSource::ConsumerProfile)
 #endif
         );
     headers_ = response_.wire_headers();
@@ -160,6 +176,11 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
 #ifndef WSPRRY_PICO_STANDALONE_RF
     mutation_safe_ = mutation_safe;
     const auto now_ms = time_us_64() / 1000;
+    // AP/STA channel changes may briefly remove the captive listener after
+    // submit. Keep the consumed trial alive until it commits or expires.
+    if (!active_ && (owner_slot_.state() == provisioning::ConsumerClaimState::Identify ||
+                     owner_slot_.state() == provisioning::ConsumerClaimState::Granted))
+        cancel_owner_slot(owner_trial_active_);
     if (slot_.state() != BootstrapSlotState::None &&
         slot_.state() != BootstrapSlotState::Terminal && (!mutation_safe_ || !blank_authority()))
         cancel_slot();
@@ -175,6 +196,70 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
     if (slot_.state() == BootstrapSlotState::None) {
         crypto_.clear();
         slot_digest_.clear();
+    }
+    const auto old_owner_state = owner_slot_.state();
+    owner_slot_.expire(now_ms);
+    if (old_owner_state != provisioning::ConsumerClaimState::None &&
+        owner_slot_.state() == provisioning::ConsumerClaimState::None)
+        cancel_owner_slot(owner_trial_active_);
+    if (active_ && owner_slot_.state() == provisioning::ConsumerClaimState::Identify &&
+        (owner_last_sample_ms_ == 0 || now_ms - owner_last_sample_ms_ >= 25)) {
+        owner_last_sample_ms_ = now_ms;
+        const auto sample = provisioning::sample_runtime_bootsel();
+        owner_slot_.sample(now_ms, sample.safe, sample.pressed,
+                           claim_platform_ && claim_platform_->safe_to_commit());
+        if (owner_slot_.state() == provisioning::ConsumerClaimState::Granted && access_ &&
+            access_->state() == provisioning::AccessStoreState::Erased) {
+            provisioning::AccessRecord record;
+            record.epoch = 1;
+            record.password = default_password_;
+            const bool initialized = !record.password.empty() && access_->initialize(record);
+            provisioning::scrub(record);
+            if (!initialized)
+                cancel_owner_slot(false);
+        }
+        if (owner_slot_.state() == provisioning::ConsumerClaimState::None)
+            cancel_owner_slot(false);
+    }
+    if (owner_trial_start_pending_ && !client_ &&
+        (owner_submit_delivered_ ||
+         (now_ms >= owner_submit_ms_ && now_ms - owner_submit_ms_ >= 10'000))) {
+        owner_trial_start_pending_ = false;
+        claim_platform_->begin_station_trial();
+        network_->stop_network_only_trial();
+        if (network_->start_network_only(owner_trial_.ssid, owner_trial_.password))
+            owner_trial_active_ = true;
+        else
+            end_owner_trial(false, now_ms);
+    }
+    if (owner_trial_active_ && owner_slot_.state() == provisioning::ConsumerClaimState::Trial &&
+        claim_platform_ && claim_platform_->station_ready(owner_trial_.ssid) &&
+        claim_platform_->trusted_utc_now()) {
+        const auto* binding = owner_slot_.binding();
+        const auto result =
+            binding && profile_ && runtime_
+                ? provisioning::commit_consumer_claim(
+                      *profile_, owner_slot_, *binding,
+                      {owner_request_id_, owner_trial_.ssid, owner_trial_.password,
+                       owner_trial_.callsign, owner_trial_.locator, owner_trial_.power_dbm},
+                      *claim_platform_, runtime_->source(), now_ms)
+                : provisioning::ConsumerCommitResult{};
+        owner_reconcile_ = result.state == provisioning::ConsumerCommitState::Reconcile;
+        if (owner_reconcile_) {
+            const auto digest = owner_request_digest_;
+            cancel_owner_slot(false);
+            owner_request_digest_ = digest;
+            owner_committed_ms_ = time_us_64() / 1000;
+            owner_restart_pending_ = true;
+            owner_status_delivered_ = false;
+        } else {
+            end_owner_trial(result.state == provisioning::ConsumerCommitState::Committed, now_ms);
+            if (result.state == provisioning::ConsumerCommitState::Committed) {
+                owner_committed_ms_ = time_us_64() / 1000;
+                owner_restart_pending_ = true;
+                owner_status_delivered_ = false;
+            }
+        }
     }
     if (active_ && slot_.state() == BootstrapSlotState::Identify &&
         (last_sample_ms_ == 0 || now_ms - last_sample_ms_ >= 25)) {
@@ -213,6 +298,13 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
                 end_trial(false, now_ms);
         } else if (result == BootstrapJoinResult::TimedOut)
             end_trial(false, now_ms);
+    }
+    const auto restart_now_ms = time_us_64() / 1000;
+    if (!client_ && owner_restart_pending_ && restart_ &&
+        (owner_status_delivered_ || (restart_now_ms >= owner_committed_ms_ &&
+                                     restart_now_ms - owner_committed_ms_ >= 60'000))) {
+        if (restart_(restart_context_))
+            owner_restart_pending_ = false;
     }
 #endif
     if (!active_) {
@@ -256,6 +348,15 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
         pending_bytes_ += count;
         (void)tcp_output(client_);
     } else if (!pending_bytes_) {
+#ifndef WSPRRY_PICO_STANDALONE_RF
+        const bool delivered_owner_status =
+            parser_.ready() && parser_.request().method == "GET" &&
+            parser_.request().path == "/api/owner/v1/claim/status" && response_.status == 200;
+        const bool delivered_owner_submit =
+            parser_.ready() && parser_.request().method == "POST" &&
+            parser_.request().path == "/api/owner/v1/claim/submit" && response_.status == 200 &&
+            owner_trial_start_pending_;
+#endif
         auto* completed = client_;
         client_ = nullptr;
         tcp_arg(completed, nullptr);
@@ -269,6 +370,12 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
         response_ = {};
         headers_.clear();
         header_offset_ = body_offset_ = 0;
+#ifndef WSPRRY_PICO_STANDALONE_RF
+        if (delivered_owner_status)
+            owner_status_delivered_ = true;
+        if (delivered_owner_submit)
+            owner_submit_delivered_ = true;
+#endif
     }
 }
 
@@ -309,18 +416,19 @@ void erase(std::array<std::uint8_t, 32>& bytes) {
 }
 } // namespace
 
-void PicoBootstrapServer::configure(std::string boot_id, provisioning::AccessStore& access,
-                                    provisioning::ProfileStore& profile,
-                                    provisioning::RandomSource& random,
-                                    provisioning::IndicatorController& indicator,
-                                    standalone::PicoNetwork& network,
-                                    std::string default_password) {
+void PicoBootstrapServer::configure(
+    std::string boot_id, provisioning::AccessStore& access, provisioning::ProfileStore& profile,
+    provisioning::RandomSource& random, provisioning::IndicatorController& indicator,
+    standalone::PicoNetwork& network, provisioning::RuntimeProfile& runtime,
+    provisioning::PicoConsumerClaimPlatform& claim_platform, std::string default_password) {
     boot_id_ = std::move(boot_id);
     access_ = &access;
     profile_ = &profile;
     random_ = &random;
     indicator_ = &indicator;
     network_ = &network;
+    runtime_ = &runtime;
+    claim_platform_ = &claim_platform;
     default_password_ = std::move(default_password);
 }
 
@@ -386,8 +494,225 @@ HttpResponse PicoBootstrapServer::status() const {
         "}");
 }
 
+HttpResponse PicoBootstrapServer::owner_status(bool claim_status) {
+    const bool healthy = profile_ && profile_->healthy();
+    const bool runtime_ok = runtime_ && runtime_->source() != provisioning::RuntimeSource::Fault;
+    const auto source = healthy ? profile_->source() : provisioning::ProfileSource::LegacyBootstrap;
+    const auto label = !healthy || !runtime_ok                                  ? "fault"
+                       : source == provisioning::ProfileSource::ConsumerProfile ? "consumer"
+                       : source == provisioning::ProfileSource::NetworkOnly     ? "network_only"
+                       : source == provisioning::ProfileSource::Unprovisioned ||
+                               (source == provisioning::ProfileSource::LegacyBootstrap &&
+                                !profile_->sequence() && profile_->data().empty())
+                           ? "unprovisioned"
+                           : "fault";
+    const auto generation = healthy ? profile_->sequence() : 0;
+    const bool address = network_ && network_->link_up() && !network_->ipv4().empty() &&
+                         network_->ipv4() != "0.0.0.0";
+    std::string body =
+        "{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
+        ",\"boot_id\":" + wtp::json::quote(boot_id_) + ",\"source\":" + wtp::json::quote(label) +
+        ",\"profile_source\":" +
+        std::to_string(healthy && runtime_ok ? static_cast<unsigned>(source) : 255) +
+        ",\"generation\":" + wtp::json::quote(std::to_string(generation)) + ",\"owner_exists\":" +
+        (healthy && runtime_ok && source == provisioning::ProfileSource::ConsumerProfile
+             ? "true"
+             : "false") +
+        ",\"claim_available\":" + (owner_claimable() ? "true" : "false") +
+        ",\"address_ready\":" + (address ? "true" : "false") + ",\"clock_ready\":" +
+        (claim_platform_ && claim_platform_->trusted_utc_now() ? "true" : "false");
+    if (claim_status) {
+        const std::string_view request_digest =
+            owner_request_digest_.empty() && runtime_ && runtime_->consumer_profile()
+                ? std::string_view(runtime_->consumer_profile()->request_sha256)
+                : std::string_view(owner_request_digest_);
+        const char* state = "none";
+        switch (owner_slot_.state()) {
+        case provisioning::ConsumerClaimState::None:
+            break;
+        case provisioning::ConsumerClaimState::Identify:
+            state = "identify";
+            break;
+        case provisioning::ConsumerClaimState::Granted:
+            state = "granted";
+            break;
+        case provisioning::ConsumerClaimState::Trial:
+            state = "trial";
+            break;
+        case provisioning::ConsumerClaimState::Terminal:
+            state = "terminal";
+            break;
+        }
+        if (owner_reconcile_)
+            state = "reconcile";
+        body += ",\"slot_state\":" + wtp::json::quote(state) + ",\"slot_id_digest\":" +
+                (owner_slot_digest_.empty() ? "null" : wtp::json::quote(owner_slot_digest_)) +
+                ",\"request_id_digest\":" +
+                (request_digest.empty() ? "null" : wtp::json::quote(request_digest));
+    }
+    body += '}';
+    return json(std::move(body));
+}
+
+HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
+    const auto now_ms = time_us_64() / 1000;
+    if (request.path == "/api/owner/v1/claim/start") {
+        const auto parsed = parse_owner_claim_start(request);
+        if (!parsed)
+            return http_error(400, "invalid_request");
+        if (!owner_claimable() || parsed->device_id != device_ ||
+            parsed->source != profile_->source() || parsed->generation != profile_->sequence())
+            return http_error(403, "unavailable");
+        if (slot_.state() != BootstrapSlotState::None ||
+            owner_slot_.state() != provisioning::ConsumerClaimState::None || owner_reconcile_)
+            return http_error(409, "busy");
+        if (!claim_platform_->valid_owner_point(parsed->owner_public_key))
+            return http_error(400, "invalid_owner_key");
+        const auto sample = provisioning::sample_runtime_bootsel();
+        if (!sample.safe || sample.pressed)
+            return http_error(503, "button_unavailable");
+        std::array<std::uint8_t, 16> slot_id{};
+        std::array<std::uint8_t, 65> point{};
+        if (!random_->fill(slot_id) || !decode_b64(parsed->owner_public_key, point) ||
+            !owner_crypto_.begin()) {
+            owner_crypto_.clear();
+            return http_error(503, "crypto_unavailable");
+        }
+        const auto slot_hex = bootstrap_hex(slot_id);
+        const auto pico_public_key = bootstrap_b64url(owner_crypto_.public_key());
+        if (!owner_slot_.start(
+                {device_, boot_id_, slot_hex, parsed->owner_public_key, parsed->browser_public_key,
+                 parsed->browser_nonce, "http://192.168.4.1", parsed->source, parsed->generation},
+                now_ms, sample.safe, sample.pressed, claim_platform_->safe_to_commit())) {
+            owner_crypto_.clear();
+            return http_error(409, "busy");
+        }
+        owner_slot_digest_ = bootstrap_digest(slot_id);
+        owner_request_digest_.clear();
+        if (indicator_->identify(slot_hex, device_, true, true, now_ms) !=
+            provisioning::IndicatorCode::Ok) {
+            cancel_owner_slot(false);
+            return http_error(503, "indicator_unavailable");
+        }
+        return json("{\"version\":1,\"device_id\":" + wtp::json::quote(device_) + ",\"boot_id\":" +
+                    wtp::json::quote(boot_id_) + ",\"slot_id\":" + wtp::json::quote(slot_hex) +
+                    ",\"profile_source\":" + std::to_string(static_cast<unsigned>(parsed->source)) +
+                    ",\"generation\":" + wtp::json::quote(std::to_string(parsed->generation)) +
+                    ",\"owner_key_sha256\":" + wtp::json::quote(bootstrap_digest(point)) +
+                    ",\"browser_public_key\":" + wtp::json::quote(parsed->browser_public_key) +
+                    ",\"browser_nonce\":" + wtp::json::quote(parsed->browser_nonce) +
+                    ",\"pico_public_key\":" + wtp::json::quote(pico_public_key) +
+                    ",\"physical_window_ms\":60000}");
+    }
+    if (request.path == "/api/owner/v1/claim/submit") {
+        const auto parsed = parse_owner_claim_submit(request);
+        if (!parsed)
+            return http_error(400, "invalid_request");
+        const auto* binding = owner_slot_.binding();
+        if (!owner_claimable() ||
+            owner_slot_.state() != provisioning::ConsumerClaimState::Granted || !binding ||
+            parsed->device_id != binding->device_id || parsed->boot_id != binding->boot_id ||
+            parsed->slot_id != binding->slot_id || binding->source != profile_->source() ||
+            binding->generation != profile_->sequence())
+            return http_error(403, "unavailable");
+        const auto sample = provisioning::sample_runtime_bootsel();
+        if (!owner_slot_.consume(*binding, parsed->request_id, now_ms,
+                                 sample.safe && !sample.pressed, claim_platform_->safe_to_commit()))
+            return http_error(409, "busy");
+        owner_request_id_ = parsed->request_id;
+        OwnerClaimFields fields;
+        std::array<std::uint8_t, 12> nonce{};
+        std::array<std::uint8_t, 16> tag{};
+        std::vector<std::uint8_t> ciphertext;
+        const bool decoded = decode_hex(binding->device_id, fields.device_id) &&
+                             decode_hex(binding->boot_id, fields.boot_id) &&
+                             decode_hex(binding->slot_id, fields.slot_id) &&
+                             decode_hex(binding->browser_nonce, fields.browser_nonce) &&
+                             decode_hex(parsed->request_id, fields.request_id) &&
+                             decode_b64(binding->owner_public_key, fields.owner_public_key) &&
+                             decode_b64(binding->browser_public_key, fields.browser_public_key) &&
+                             decode_b64(parsed->aead_nonce, nonce) &&
+                             decode_b64(parsed->tag, tag) &&
+                             bootstrap_unb64url(parsed->ciphertext, ciphertext, 20, 109);
+        owner_request_digest_ = bootstrap_digest(fields.request_id);
+        fields.pico_public_key = owner_crypto_.public_key();
+        fields.source = binding->source;
+        fields.generation = binding->generation;
+        if (!decoded || !owner_crypto_.open(fields, nonce, ciphertext, tag, owner_trial_)) {
+            end_owner_trial(false, now_ms);
+            return json("{\"version\":1,\"state\":\"failed\",\"generation\":\"0\"}");
+        }
+        if (runtime_->network_profile())
+            previous_network_ = *runtime_->network_profile();
+        owner_trial_start_pending_ = true;
+        owner_submit_delivered_ = false;
+        owner_submit_ms_ = now_ms;
+        return json("{\"version\":1,\"state\":\"checking\",\"generation\":\"0\","
+                    "\"request_id_digest\":" +
+                    wtp::json::quote(owner_request_digest_) + "}");
+    }
+    return http_error(404, "not_found");
+}
+
+bool PicoBootstrapServer::owner_claimable() const {
+    if (!profile_ || !runtime_ || !claim_platform_ || !random_ || !indicator_ || !network_ ||
+        !profile_->healthy() || !claim_platform_->safe_to_commit())
+        return false;
+    switch (profile_->source()) {
+    case provisioning::ProfileSource::LegacyBootstrap:
+        return !profile_->sequence() && profile_->data().empty() &&
+               runtime_->source() == provisioning::RuntimeSource::Unprovisioned;
+    case provisioning::ProfileSource::Unprovisioned:
+        return profile_->sequence() && profile_->data().empty() &&
+               runtime_->source() == provisioning::RuntimeSource::Unprovisioned;
+    case provisioning::ProfileSource::NetworkOnly:
+        return profile_->sequence() && runtime_->network_profile() &&
+               runtime_->network_profile()->device_id == device_ &&
+               runtime_->source() == provisioning::RuntimeSource::NetworkOnly;
+    default:
+        return false;
+    }
+}
+
+void PicoBootstrapServer::cancel_owner_slot(bool restore_network) {
+    if (restore_network && network_) {
+        network_->stop_network_only_trial();
+        if (!previous_network_.ssid.empty())
+            (void)network_->start_network_only(previous_network_.ssid, previous_network_.password);
+    }
+    owner_slot_.cancel();
+    owner_crypto_.clear();
+    owner_trial_.clear();
+    provisioning::scrub(previous_network_);
+    owner_request_id_.clear();
+    owner_slot_digest_.clear();
+    owner_request_digest_.clear();
+    owner_trial_active_ = false;
+    owner_trial_start_pending_ = owner_submit_delivered_ = false;
+}
+
+void PicoBootstrapServer::end_owner_trial(bool committed, std::uint64_t now_ms) {
+    if (!committed && network_) {
+        network_->stop_network_only_trial();
+        if (!previous_network_.ssid.empty())
+            (void)network_->start_network_only(previous_network_.ssid, previous_network_.password);
+    }
+    if (!committed && claim_platform_ && claim_platform_->safe_to_commit())
+        (void)owner_slot_.finish(false, {}, 0, now_ms, true);
+    else if (!committed)
+        owner_slot_.cancel();
+    owner_crypto_.clear();
+    owner_trial_.clear();
+    provisioning::scrub(previous_network_);
+    owner_request_id_.clear();
+    owner_trial_active_ = false;
+    owner_trial_start_pending_ = owner_submit_delivered_ = false;
+}
+
 HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
     const auto now_ms = time_us_64() / 1000;
+    if (owner_slot_.state() != provisioning::ConsumerClaimState::None || owner_reconcile_)
+        return http_error(409, "busy");
     if (request.path == "/api/bootstrap/v1/start") {
         const auto parsed = parse_bootstrap_start(request);
         if (!parsed)

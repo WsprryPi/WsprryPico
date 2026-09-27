@@ -46,6 +46,20 @@ int main() {
                                                                     "device-id", "firmware", true);
     assert(setup.status == 200 && setup.static_body.find("wifi-form") != std::string_view::npos);
     assert(setup.wire_headers().find("Cache-Control: no-store") != std::string::npos);
+    const auto owner_root = wsprrypico::network::bootstrap_http_response(
+        page_request.request(), "device-id", "firmware", false, true);
+    assert(owner_root.status == 200 &&
+           owner_root.static_body.find("owner-form") != std::string_view::npos);
+    assert(owner_root.static_body.find("owner-key-bundle.js") != std::string_view::npos);
+
+    HttpParser owner_script_request;
+    send("GET /owner-key-bundle.js HTTP/1.1\r\nHost: 192.168.4.1\r\n\r\n", owner_script_request);
+    const auto owner_script = wsprrypico::network::bootstrap_http_response(
+        owner_script_request.request(), "device-id", "firmware", false, true);
+    assert(owner_script.status == 200 && owner_script.static_body.size() > 30000);
+    assert(wsprrypico::network::bootstrap_http_response(owner_script_request.request(), "device-id",
+                                                        "firmware")
+               .status == 404);
 
     HttpParser bundle_request;
     assert(send("GET /bundle.js HTTP/1.1\r\nHost: 192.168.4.1\r\n\r\n", bundle_request) ==

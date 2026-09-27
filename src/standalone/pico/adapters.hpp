@@ -59,6 +59,9 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     const std::string& stable_hostname() const {
         return stable_hostname_;
     }
+    std::string_view station_ssid() const {
+        return ssid_;
+    }
     // Register the same certified local hostname on the AP netif. The AP has
     // an independent responder record but shares the one bounded lwIP mDNS PCB.
     bool softap_name(bool enabled, std::string_view hostname);

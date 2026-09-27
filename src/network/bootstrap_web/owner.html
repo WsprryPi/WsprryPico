@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#263e52">
+  <title>Set up WsprryPico</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./owner-key-bundle.js" defer></script>
+  <script src="./owner-bundle.js" defer></script>
+</head>
+<body>
+  <header><strong>WsprryPico</strong><span>Setup</span></header>
+  <main>
+    <h1>Set up this Pico</h1>
+    <p class="intro">Confirm the Pico with one button press, then enter your Wi-Fi and station settings.</p>
+    <p id="device" class="device">Checking Pico identity…</p>
+    <div id="notice" role="status" aria-live="polite">Checking this browser…</div>
+
+    <section id="owner-ready" hidden>
+      <h2>Confirm your Pico</h2>
+      <p>Choose Begin setup, then press and release BOOTSEL on this Pico when its light identifies it.</p>
+      <button id="owner-start" type="button" class="primary">Begin setup</button>
+    </section>
+
+    <section id="owner-tap" hidden>
+      <h2>Press BOOTSEL once</h2>
+      <p>Press and release BOOTSEL on this Pico. You do not need to time the press.</p>
+    </section>
+
+    <section id="owner-settings" hidden>
+      <h2>Connect and configure</h2>
+      <form id="owner-form" autocomplete="off">
+        <label for="owner-ssid">Home Wi-Fi network</label>
+        <input id="owner-ssid" name="ssid" type="text" minlength="1" maxlength="32"
+               required autocapitalize="none" autocomplete="off" spellcheck="false">
+        <label for="owner-password">Wi-Fi password</label>
+        <input id="owner-password" name="password" type="password" minlength="8" maxlength="63"
+               required autocomplete="off" spellcheck="false">
+        <label for="owner-callsign">Callsign</label>
+        <input id="owner-callsign" name="callsign" type="text" minlength="3" maxlength="6"
+               required autocapitalize="characters" autocomplete="off" spellcheck="false">
+        <label for="owner-locator">Four-character grid locator</label>
+        <input id="owner-locator" name="locator" type="text" minlength="4" maxlength="4"
+               required autocapitalize="characters" autocomplete="off" spellcheck="false">
+        <label for="owner-power">Transmit power setting</label>
+        <select id="owner-power" name="power">
+          <option value="0">0 dBm</option><option value="3">3 dBm</option>
+          <option value="7">7 dBm</option><option value="10">10 dBm</option>
+          <option value="13">13 dBm</option><option value="17">17 dBm</option>
+          <option value="20">20 dBm</option><option value="23">23 dBm</option>
+          <option value="27">27 dBm</option><option value="30" selected>30 dBm</option>
+          <option value="33">33 dBm</option><option value="37">37 dBm</option>
+          <option value="40">40 dBm</option><option value="43">43 dBm</option>
+          <option value="47">47 dBm</option><option value="50">50 dBm</option>
+          <option value="53">53 dBm</option><option value="57">57 dBm</option>
+          <option value="60">60 dBm</option>
+        </select>
+        <button id="owner-submit" type="submit" class="primary">Save setup</button>
+      </form>
+    </section>
+
+    <section id="owner-checking" hidden>
+      <h2>Checking setup</h2>
+      <p>The Pico is joining your network and saving its setup. Keep this page open. If your phone leaves the Pico Wi-Fi, reconnect and reopen this page.</p>
+    </section>
+
+    <section id="owner-saved" hidden>
+      <h2>Setup saved</h2>
+      <p>The Pico saved the owner and station profile. Final authenticated owner readback is still pending; this page does not yet qualify the complete setup.</p>
+    </section>
+
+    <section id="owner-retry" hidden>
+      <h2>Setup not saved</h2>
+      <p>This attempt ended without a verified save. Check your settings and start again.</p>
+      <button id="owner-retry-button" type="button">Try again</button>
+    </section>
+
+    <section id="owner-service" hidden>
+      <h2>Setup needs attention</h2>
+      <p>The Pico could not verify its saved state. Keep it powered for recovery.</p>
+    </section>
+
+    <section id="owner-safari" hidden>
+      <h2>Open in Safari</h2>
+      <p>Stay connected to the Pico Wi-Fi and open <a href="http://192.168.4.1/owner.html">this setup page</a> in Safari.</p>
+    </section>
+  </main>
+  <footer>The Pico setup Wi-Fi is open. The setup details are encrypted by this page before they cross the connection.</footer>
+</body>
+</html>

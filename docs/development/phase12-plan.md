@@ -570,6 +570,10 @@ press/release with core 1 active and AP recovery. The human press lasted
 702 ms; its rejection by the installed image's 600 ms cutoff was a design
 mistake, now removed in source. This is not yet wired to Safari or owner
 claim; the older short-sample core-1 failure remains historical evidence.
+The later [live claim preparation](phase12-8-live-claim-preparation.md) links
+the AP claim route and local Safari page in source, with a bounded RF-inhibited
+image and host/browser checks. No new Candidate A or iPhone acceptance is
+recorded there; post-clock owner activation and private readback remain open.
 
 Implement only the accepted P12.7 contract. The device must:
 
