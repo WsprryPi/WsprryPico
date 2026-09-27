@@ -102,6 +102,21 @@ void ConsumerClaimSlot::sample(std::uint64_t now_ms, bool sampler_safe, bool but
         saw_press_ = false; // Ignore contact bounce; require a new press.
 }
 
+bool ConsumerClaimSlot::grant_captured(std::uint64_t now_ms, bool sampler_safe, bool valid_press,
+                                       std::uint32_t duration_ms, bool idle_output) {
+    // The capture itself enforces the prompt deadline. Do not run expire(now)
+    // here: a valid release near the end of the window can arrive after its
+    // start timestamp plus 60 seconds because of debounce and return time.
+    if (state_ != ConsumerClaimState::Identify || !sampler_safe || !valid_press || !idle_output ||
+        duration_ms < minimum_press_ms || duration_ms > maximum_press_ms) {
+        cancel();
+        return false;
+    }
+    granted_ms_ = now_ms;
+    state_ = ConsumerClaimState::Granted;
+    return true;
+}
+
 bool ConsumerClaimSlot::consume(const ConsumerClaimBinding& current, std::string_view request_id,
                                 std::uint64_t now_ms, bool sampler_safe, bool idle_output) {
     expire(now_ms);

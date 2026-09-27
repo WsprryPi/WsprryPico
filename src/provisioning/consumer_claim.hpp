@@ -50,6 +50,11 @@ class ConsumerClaimSlot {
     bool start(ConsumerClaimBinding binding, std::uint64_t now_ms, bool sampler_safe,
                bool button_pressed, bool idle_output);
     void sample(std::uint64_t now_ms, bool sampler_safe, bool button_pressed, bool idle_output);
+    // The target's flash-safe callback observes the whole press and release
+    // before returning to XIP. Its validity includes the bounded prompt
+    // window; this transition must not resample a held BOOTSEL button.
+    bool grant_captured(std::uint64_t now_ms, bool sampler_safe, bool valid_press,
+                        std::uint32_t duration_ms, bool idle_output);
     bool consume(const ConsumerClaimBinding& current, std::string_view request_id,
                  std::uint64_t now_ms, bool sampler_safe, bool idle_output);
     bool finish(bool committed, std::string_view request_sha256, std::uint64_t generation,

@@ -571,9 +571,11 @@ press/release with core 1 active and AP recovery. The human press lasted
 mistake, now removed in source. This is not yet wired to Safari or owner
 claim; the older short-sample core-1 failure remains historical evidence.
 The later [live claim preparation](phase12-8-live-claim-preparation.md) links
-the AP claim route and local Safari page in source, with a bounded RF-inhibited
-image and host/browser checks. No new Candidate A or iPhone acceptance is
-recorded there; post-clock owner activation and private readback remain open.
+the AP claim route and local Safari page in source. Candidate A accepted the
+image and read-only AP checks, but the [first Safari claim attempt](phase12-8-live-claim-first-attempt.md)
+entered recovery after the BOOTSEL press, before credential submission or a
+consumer commit. A whole-gesture source repair is not yet target accepted;
+post-clock owner activation and private readback remain open.
 
 Implement only the accepted P12.7 contract. The device must:
 

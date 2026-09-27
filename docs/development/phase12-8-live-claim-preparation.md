@@ -1,7 +1,8 @@
 # P12.8 live claim preparation and adversarial review
 
-Status: **CANDIDATE A FLASH AND READ-ONLY AP CHECK PASSED; PHYSICAL CLAIM AND
-PHONE ACCEPTANCE OPEN** (2026-09-27). This is a continuation of
+Status: **CANDIDATE A FLASH AND READ-ONLY AP CHECK PASSED; LATER PHYSICAL
+CLAIM ATTEMPT FAILED** (2026-09-27). See the separate
+[first-attempt record](phase12-8-live-claim-first-attempt.md). This is a continuation of
 the approved [P12.7 Safari/SoftAP contract](phase12-7-decision.md), not P12.8
 closure or a consumer release.
 

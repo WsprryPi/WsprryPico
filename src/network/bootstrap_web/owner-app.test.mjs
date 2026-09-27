@@ -10,7 +10,7 @@ const hex = (bytes) => Buffer.from(bytes).toString('hex');
 const digest = (value) => hex(sha256(Buffer.from(value, 'hex')));
 const peer = x25519.keygen();
 const elements = new Map();
-for (const name of ['owner-ready', 'owner-tap', 'owner-settings', 'owner-checking',
+for (const name of ['owner-ready', 'owner-arming', 'owner-tap', 'owner-settings', 'owner-checking',
                     'owner-saved', 'owner-retry', 'owner-service', 'owner-safari',
                     'notice', 'device', 'owner-start', 'owner-retry-button', 'owner-form',
                     'owner-ssid', 'owner-password', 'owner-callsign', 'owner-locator',
@@ -30,11 +30,13 @@ globalThis.localStorage = {
 };
 const timers = [];
 globalThis.setTimeout = (callback, delay) => { timers.push({callback, delay}); return timers.length; };
-const nextPoll = async () => {
-  const entry = timers.pop();
-  assert.equal(entry.delay, 1000);
+const runTimer = async (delay) => {
+  const index = timers.findIndex((entry) => entry.delay === delay);
+  assert.notEqual(index, -1);
+  const [entry] = timers.splice(index, 1);
   await entry.callback();
 };
+const nextPoll = () => runTimer(1000);
 let status = {version: 1, device_id: device, boot_id: boot, source: 'network_only',
   profile_source: 4, generation: '1', owner_exists: false, claim_available: true,
   address_ready: true, clock_ready: true, slot_state: 'none', slot_id_digest: null,
@@ -79,6 +81,9 @@ await import('./owner-app.js');
 await new Promise(setImmediate);
 assert.equal(elements.get('owner-ready').hidden, false);
 await elements.get('owner-start').events.click();
+assert.equal(elements.get('owner-arming').hidden, false);
+assert.equal(elements.get('owner-tap').hidden, true);
+await runTimer(2000);
 assert.equal(elements.get('owner-tap').hidden, false);
 const savedKey = storage.get(`WsprryPico/owner/v1/${device}`);
 assert.match(savedKey, /^[0-9a-f]{64}$/);

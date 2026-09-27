@@ -148,4 +148,24 @@ int main() {
     assert(slot.consume(expected, request_id, 11201, true, true));
     assert(!slot.finish(true, digest(), 2, 11202, false)); // Output drift.
     assert(slot.state() == provisioning::ConsumerClaimState::None);
+
+    // A whole-gesture callback returns only after release. Its late return
+    // must not invalidate a press captured inside the device's prompt window.
+    assert(slot.start(expected, 12000, true, false, true));
+    assert(slot.grant_captured(12000 + provisioning::ConsumerClaimSlot::physical_window_ms + 50,
+                               true, true, 702, true));
+    assert(slot.state() == provisioning::ConsumerClaimState::Granted);
+    assert(slot.consume(expected, request_id,
+                        12000 + provisioning::ConsumerClaimSlot::physical_window_ms + 51, true,
+                        true));
+    slot.cancel();
+    assert(slot.start(expected, 13000, true, false, true));
+    assert(!slot.grant_captured(13100, false, true, 702, true));
+    assert(slot.state() == provisioning::ConsumerClaimState::None);
+    assert(slot.start(expected, 14000, true, false, true));
+    assert(!slot.grant_captured(14100, true, false, 0, true));
+    assert(slot.state() == provisioning::ConsumerClaimState::None);
+    assert(slot.start(expected, 15000, true, false, true));
+    assert(!slot.grant_captured(15100, true, true, 11'000, true));
+    assert(slot.state() == provisioning::ConsumerClaimState::None);
 }

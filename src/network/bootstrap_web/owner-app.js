@@ -5,7 +5,7 @@ import {sealOwnerClaim} from './owner-claim.js';
 
 const host = 'http://192.168.4.1';
 const p256 = globalThis.WsprryPicoOwnerKey;
-const sections = ['owner-ready', 'owner-tap', 'owner-settings', 'owner-checking',
+const sections = ['owner-ready', 'owner-arming', 'owner-tap', 'owner-settings', 'owner-checking',
   'owner-saved', 'owner-retry', 'owner-service', 'owner-safari'];
 const $ = (name) => document.getElementById(name);
 const hex = (bytes) => [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
@@ -193,8 +193,14 @@ async function start() {
         started.physical_window_ms !== 60000)
       throw new Error('start binding changed');
     started.digest = hex(sha256(fromHex(started.slot_id, 16)));
-    show('owner-tap');
-    notice('Press and release BOOTSEL on the identifying Pico.');
+    show('owner-arming');
+    notice('Preparing button confirmation. Wait for the prompt.');
+    setTimeout(() => {
+      if (started && pending && !submitted && !$('owner-arming').hidden) {
+        show('owner-tap');
+        notice('Press and release BOOTSEL on this Pico.');
+      }
+    }, 2000);
   } catch {
     clearAttempt();
     show('owner-retry');

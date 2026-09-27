@@ -49,7 +49,11 @@ bool PicoBootstrapServer::start() {
 
 err_t PicoBootstrapServer::accept(void* context, tcp_pcb* pcb, err_t err) {
     auto& self = *static_cast<PicoBootstrapServer*>(context);
-    if (err != ERR_OK || !self.active_ || self.client_ ||
+    bool capture_reserved = false;
+#ifndef WSPRRY_PICO_STANDALONE_RF
+    capture_reserved = self.owner_capture_pending_ && self.owner_start_reply_queued_;
+#endif
+    if (err != ERR_OK || !self.active_ || self.client_ || capture_reserved ||
         !self.classifier_(pcb, self.classifier_context_)) {
         tcp_abort(pcb);
         return ERR_ABRT;
@@ -202,12 +206,23 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
     if (old_owner_state != provisioning::ConsumerClaimState::None &&
         owner_slot_.state() == provisioning::ConsumerClaimState::None)
         cancel_owner_slot(owner_trial_active_);
-    if (active_ && owner_slot_.state() == provisioning::ConsumerClaimState::Identify &&
-        (owner_last_sample_ms_ == 0 || now_ms - owner_last_sample_ms_ >= 25)) {
-        owner_last_sample_ms_ = now_ms;
-        const auto sample = provisioning::sample_runtime_bootsel();
-        owner_slot_.sample(now_ms, sample.safe, sample.pressed,
-                           claim_platform_ && claim_platform_->safe_to_commit());
+    if (owner_capture_pending_ && !client_ && !owner_start_reply_queued_)
+        cancel_owner_slot(false);
+    // A lost ACK must not leave Safari showing a physical prompt while the
+    // Pico is still outside the flash-safe gesture window.
+    if (owner_capture_pending_ && owner_start_reply_queued_ && client_ && pending_bytes_ &&
+        now_ms >= owner_start_reply_queued_ms_ && now_ms - owner_start_reply_queued_ms_ >= 500)
+        close();
+    if (active_ && owner_capture_pending_ && owner_start_reply_queued_ && !client_ &&
+        owner_slot_.state() == provisioning::ConsumerClaimState::Identify) {
+        owner_capture_pending_ = false;
+        // The complete start reply was queued before blocking USB/Wi-Fi. A
+        // short sampler must never return to flash while BOOTSEL is held.
+        const auto gesture = provisioning::capture_runtime_bootsel_gesture(
+            static_cast<std::uint32_t>(provisioning::ConsumerClaimSlot::physical_window_ms));
+        (void)owner_slot_.grant_captured(time_us_64() / 1000, gesture.safe, gesture.valid_press,
+                                         gesture.duration_ms,
+                                         claim_platform_ && claim_platform_->safe_to_commit());
         if (owner_slot_.state() == provisioning::ConsumerClaimState::Granted && access_ &&
             access_->state() == provisioning::AccessStoreState::Erased) {
             provisioning::AccessRecord record;
@@ -346,6 +361,15 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
         else
             body_offset_ += count;
         pending_bytes_ += count;
+#ifndef WSPRRY_PICO_STANDALONE_RF
+        if (owner_capture_pending_ && !owner_start_reply_queued_ && parser_.ready() &&
+            parser_.request().method == "POST" &&
+            parser_.request().path == "/api/owner/v1/claim/start" && response_.status == 200 &&
+            header_offset_ == headers_.size() && body_offset_ == response_.body_size()) {
+            owner_start_reply_queued_ = true;
+            owner_start_reply_queued_ms_ = time_us_64() / 1000;
+        }
+#endif
         (void)tcp_output(client_);
     } else if (!pending_bytes_) {
 #ifndef WSPRRY_PICO_STANDALONE_RF
@@ -568,9 +592,6 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
             return http_error(409, "busy");
         if (!claim_platform_->valid_owner_point(parsed->owner_public_key))
             return http_error(400, "invalid_owner_key");
-        const auto sample = provisioning::sample_runtime_bootsel();
-        if (!sample.safe || sample.pressed)
-            return http_error(503, "button_unavailable");
         std::array<std::uint8_t, 16> slot_id{};
         std::array<std::uint8_t, 65> point{};
         if (!random_->fill(slot_id) || !decode_b64(parsed->owner_public_key, point) ||
@@ -580,15 +601,18 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
         }
         const auto slot_hex = bootstrap_hex(slot_id);
         const auto pico_public_key = bootstrap_b64url(owner_crypto_.public_key());
-        if (!owner_slot_.start(
-                {device_, boot_id_, slot_hex, parsed->owner_public_key, parsed->browser_public_key,
-                 parsed->browser_nonce, "http://192.168.4.1", parsed->source, parsed->generation},
-                now_ms, sample.safe, sample.pressed, claim_platform_->safe_to_commit())) {
+        if (!owner_slot_.start({device_, boot_id_, slot_hex, parsed->owner_public_key,
+                                parsed->browser_public_key, parsed->browser_nonce,
+                                "http://192.168.4.1", parsed->source, parsed->generation},
+                               now_ms, true, false, claim_platform_->safe_to_commit())) {
             owner_crypto_.clear();
             return http_error(409, "busy");
         }
         owner_slot_digest_ = bootstrap_digest(slot_id);
         owner_request_digest_.clear();
+        owner_capture_pending_ = true;
+        owner_start_reply_queued_ = false;
+        owner_start_reply_queued_ms_ = 0;
         if (indicator_->identify(slot_hex, device_, true, true, now_ms) !=
             provisioning::IndicatorCode::Ok) {
             cancel_owner_slot(false);
@@ -615,9 +639,10 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
             parsed->slot_id != binding->slot_id || binding->source != profile_->source() ||
             binding->generation != profile_->sequence())
             return http_error(403, "unavailable");
-        const auto sample = provisioning::sample_runtime_bootsel();
-        if (!owner_slot_.consume(*binding, parsed->request_id, now_ms,
-                                 sample.safe && !sample.pressed, claim_platform_->safe_to_commit()))
+        // Granted means the whole flash-safe callback returned after release;
+        // resampling here could fault if the button were held again.
+        if (!owner_slot_.consume(*binding, parsed->request_id, now_ms, true,
+                                 claim_platform_->safe_to_commit()))
             return http_error(409, "busy");
         owner_request_id_ = parsed->request_id;
         OwnerClaimFields fields;
@@ -688,6 +713,8 @@ void PicoBootstrapServer::cancel_owner_slot(bool restore_network) {
     owner_slot_digest_.clear();
     owner_request_digest_.clear();
     owner_trial_active_ = false;
+    owner_capture_pending_ = owner_start_reply_queued_ = false;
+    owner_start_reply_queued_ms_ = 0;
     owner_trial_start_pending_ = owner_submit_delivered_ = false;
 }
 
@@ -706,6 +733,8 @@ void PicoBootstrapServer::end_owner_trial(bool committed, std::uint64_t now_ms) 
     provisioning::scrub(previous_network_);
     owner_request_id_.clear();
     owner_trial_active_ = false;
+    owner_capture_pending_ = owner_start_reply_queued_ = false;
+    owner_start_reply_queued_ms_ = 0;
     owner_trial_start_pending_ = owner_submit_delivered_ = false;
 }
 
