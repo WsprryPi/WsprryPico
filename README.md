@@ -82,9 +82,9 @@ describes the running engineering BLE/password baseline. The later
 [approved P12.7 consumer contract](docs/development/phase12-7-decision.md)
 selects Safari and SoftAP only for consumer commissioning, with an owner key
 and a physical claim. Its first source-linked physical button attempt entered
-recovery before credential submission; a whole-gesture repair awaits target
-acceptance. Authenticated owner readback and consumer activation remain open. The production
-continuation connects SoftAP
+recovery before credential submission. The whole-gesture repair is installed
+on Candidate A and passed read-only USB/AP checks; a physical claim retry and
+consumer activation remain open. The production continuation connects SoftAP
 DHCP/mDNS, blank captive HTTP, provisioned pre-clock/normal HTTPS,
 password/cookie admission, controller time and the existing browser/one-
 `JobService` API. Its clean RF-inhibited Candidate A image has bounded

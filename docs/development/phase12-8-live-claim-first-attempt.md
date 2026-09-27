@@ -1,8 +1,8 @@
 # P12.8 first Safari claim attempt and recovery candidate
 
-Status: **PHYSICAL CLAIM FAILED; SOURCE REPAIR BUILT, NOT YET FLASHED OR
-TARGET ACCEPTED** (2026-09-27). The installed image remains the earlier
-RF-inhibited candidate. The repaired UF2 SHA-256 is
+Status: **FIRST PHYSICAL CLAIM FAILED; REPAIRED IMAGE FLASHED AND READ-ONLY
+TARGET CHECKS PASSED; CLAIM RETRY OPEN** (2026-09-27). The installed image is
+the repaired RF-inhibited candidate. Its UF2 SHA-256 is
 `ad8778ae3b7d05a7ebb506f5e624fe700f58d57e24e1cc1db043b570d0bd1d3e`.
 This record does not close P12.8 or Phase 12.
 
@@ -57,7 +57,7 @@ pass. The RF-inhibited Pico 2 W cross-build links the whole-gesture callback
 and reports no linked core-1 launcher/reader. Formatting, diff and changed
 documentation links pass. These are source/build results; the repaired owner
 route has not survived a target button press. The final target hash above
-binds this candidate, not an installed image.
+now binds the installed image through the verified flash below.
 
 An adversarial pass found that waiting indefinitely for a TCP acknowledgement
 could show Safari the delayed prompt before the Pico entered its safe zone.
@@ -70,12 +70,32 @@ physical guarantee under all AP or phone failures; the next target attempt
 must verify the actual prompt and whole-gesture behavior before any credential
 submission is credited.
 
-## Next gate
+## Recovery rollout gate
 
-Do not ask the operator to press BOOTSEL on the installed image again. The
-recovery boot is left untouched pending a reviewed replacement image. A new
-flash needs action-specific approval for Candidate A and the exact UF2 hash
-under `AGENTS.md`. Re-read the exact USB identity and preserved profile,
-flash and verify only Candidate A, leave the newer image installed, then
-check AP recovery without a button. A later prompted Safari press/release and
-generation-2 journal readback remain separate physical acceptance steps.
+The operator approved flashing Candidate A with the exact repaired UF2 hash.
+Before the flash, USB `INFO` and `STATUS` showed the exact device ID, healthy
+network-only generation 1, recovery boot, inactive output and the inhibited
+engine. The transferred UF2 matched the approved SHA-256 on `wspr5`. Candidate
+A acknowledged USB `BOOTSEL`, enumerated as bootrom with the same USB serial,
+and serial-targeted `picotool load -v -x` verified Flash with `OK` and rebooted.
+The repaired image was left installed; no profile erase, restoration or
+physical button press occurred during this rollout.
+
+The repaired firmware reports revision `8d8944951d3a-dirty`, 150 MHz and boot
+ID `d873ede8a3d63a1b5091a3f89a22f04a`. Postflash USB `INFO`, `STATUS` and
+`ACCESS STATUS` showed the same full device ID, healthy network-only profile
+generation 1, healthy access generation 1, valid core-0 stack guard, fault
+stage/status zero, provisioning fault zero, Empty job state, inactive output,
+healthy storage and the inhibited engine. The first isolated `wspr5` `wlan2`
+scan did not show the AP; a later fresh scan saw `WsprryPico-0a60df` on channel
+3. The Pi joined the open AP and read `/api/owner/v1/public-status`: source
+`network_only`, profile source 4, generation `"1"`, no owner,
+`claim_available=true` and the same boot/device IDs. `/owner.html`, both
+scripts referenced by that page and `/style.css` returned HTTP 200. USB health
+remained unchanged under AP load. The temporary `wlan2` connections were
+removed and `wlan2` disconnected; `eth0` and `wlan1` stayed connected.
+
+This verifies the repaired image's load, boot and read-only AP surface. The
+physical owner gesture, encrypted settings submission, consumer journal commit,
+generation 2 and post-clock owner readback remain untested on this image. Do
+not credit the earlier failed button attempt to the repaired image.

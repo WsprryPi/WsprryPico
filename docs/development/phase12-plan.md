@@ -574,7 +574,8 @@ The later [live claim preparation](phase12-8-live-claim-preparation.md) links
 the AP claim route and local Safari page in source. Candidate A accepted the
 image and read-only AP checks, but the [first Safari claim attempt](phase12-8-live-claim-first-attempt.md)
 entered recovery after the BOOTSEL press, before credential submission or a
-consumer commit. A whole-gesture source repair is not yet target accepted;
+consumer commit. The whole-gesture repair is now installed on Candidate A and
+passed read-only USB/AP checks. It has not passed a physical owner gesture;
 post-clock owner activation and private readback remain open.
 
 Implement only the accepted P12.7 contract. The device must:
