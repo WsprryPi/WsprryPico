@@ -47,6 +47,7 @@ add_library(wsprrypico_core
     src/provisioning/network_profile.cpp
     src/provisioning/consumer_profile.cpp
     src/provisioning/consumer_claim.cpp
+    src/provisioning/consumer_claim_commit.cpp
     src/provisioning/access.cpp
     src/provisioning/ble_session.cpp
     src/provisioning/field_runtime.cpp
@@ -68,6 +69,7 @@ add_library(wsprrypico_core
     src/network/bootstrap_wire.cpp
     src/network/owner_wire.cpp
     src/network/owner_challenge.cpp
+    src/network/owner_claim_http.cpp
     src/network/api.cpp
     src/network/softap_api.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
@@ -296,6 +298,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(consumer_claim_tests PRIVATE wsprrypico_core)
     target_compile_options(consumer_claim_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME consumer_claim_tests COMMAND consumer_claim_tests)
+    add_executable(consumer_claim_commit_tests tests/consumer_claim_commit_tests.cpp)
+    target_link_libraries(consumer_claim_commit_tests PRIVATE wsprrypico_core)
+    target_compile_options(consumer_claim_commit_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME consumer_claim_commit_tests COMMAND consumer_claim_commit_tests)
     add_executable(owner_wire_tests tests/owner_wire_tests.cpp)
     target_link_libraries(owner_wire_tests PRIVATE wsprrypico_core)
     target_compile_options(owner_wire_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
@@ -304,6 +310,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(owner_challenge_tests PRIVATE wsprrypico_core)
     target_compile_options(owner_challenge_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME owner_challenge_tests COMMAND owner_challenge_tests)
+    add_executable(owner_claim_http_tests tests/owner_claim_http_tests.cpp)
+    target_link_libraries(owner_claim_http_tests PRIVATE wsprrypico_core)
+    target_compile_options(owner_claim_http_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME owner_claim_http_tests COMMAND owner_claim_http_tests)
     add_executable(softap_api_tests tests/softap_api_tests.cpp)
     target_link_libraries(softap_api_tests PRIVATE wsprrypico_core)
     target_compile_options(softap_api_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)

@@ -69,6 +69,9 @@ class ConsumerClaimSlot {
     bool committed() const {
         return state_ == ConsumerClaimState::Terminal && committed_;
     }
+    bool trial_request_matches(std::string_view request_id) const {
+        return state_ == ConsumerClaimState::Trial && request_id_ == request_id;
+    }
     std::uint64_t committed_generation() const {
         return committed() ? committed_generation_ : 0;
     }

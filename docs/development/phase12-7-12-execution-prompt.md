@@ -54,6 +54,10 @@ its numerical range check does not itself establish clock trust. Its host
 certificates fit the Consumer-Profile/1 TLS cap, and the Pico cross-build
 passes. Heap/stack use and generation latency on the exact target remain
 unmeasured. See the [TLS checkpoint review](phase12-8-tls-review.md).
+The later [claim admission and commit checkpoint](phase12-8-claim-admission-commit-review.md)
+adds bounded owner-request parsing and a portable single-generation commit
+boundary. Neither is connected to the AP listener. Source-5 boot remains
+fail-closed until the complete consumer authority path is installed.
 
 ## Immediate P12.8 execution packet
 

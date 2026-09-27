@@ -15,6 +15,7 @@ and [conformance vectors](../protocol/Field-GATT-v1-vectors.json),
 [P12.8 owner-wire and signature review](phase12-8-owner-wire-review.md),
 [P12.8 claim-wire and AEAD review](phase12-8-claim-wire-review.md),
 [P12.8 TLS material review](phase12-8-tls-review.md),
+[P12.8 claim admission and commit review](phase12-8-claim-admission-commit-review.md),
 [P12.8 BOOTSEL whole-gesture source review](phase12-8-bootsel-window-review.md),
 [P12.8 core-1 BOOTSEL target diagnostic](phase12-8-bootsel-window-target.md),
 operator-selected [field-access/security contract](phase12-field-access-contract.md)

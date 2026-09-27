@@ -116,7 +116,10 @@ void HttpParser::parse_headers() {
             std::from_chars(length.data(), length.data() + length.size(), content_length_);
         if (result.ec != std::errc{} || result.ptr != length.data() + length.size() ||
             content_length_ > max_http_body ||
-            (request_.path.starts_with("/api/bootstrap/v1/") && content_length_ > 512)) {
+            (request_.path.starts_with("/api/bootstrap/v1/") && content_length_ > 512) ||
+            (request_.path.starts_with("/api/owner/v1/claim/") && content_length_ > 1024) ||
+            (request_.path.starts_with("/api/owner/v1/") &&
+             content_length_ > (request_.path == "/api/owner/v1/clients/enroll" ? 6144 : 4096))) {
             failed_ = true;
             return;
         }

@@ -555,6 +555,10 @@ CA/server generation and persisted-material validation with host failure
 tests and a Pico cross-build. Trusted-UTC admission, target resource and
 latency measurements, claim-route use, journal commit and consumer activation
 remain open.
+The [claim admission and commit review](phase12-8-claim-admission-commit-review.md)
+adds strict owner-request bounds and a disconnected, source-checked single
+consumer-generation commit boundary. Live AP dispatch, trusted clock and
+station adapters, source-5 boot activation and target acceptance remain open.
 The [whole-gesture BOOTSEL source review](phase12-8-bootsel-window-review.md)
 adds an opt-in RF-inhibited core-1 diagnostic and a bounded SRAM window. The
 [target record](phase12-8-bootsel-window-target.md) observes a physical
