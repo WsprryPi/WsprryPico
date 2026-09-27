@@ -65,8 +65,9 @@ repository-owned Bluefy page. A later
 connects authenticated controller time, Identify/status and an unchanged WTP/1
 stream to that production GATT service and extends the offline page. The
 supported [Raspberry Pi/Linux BlueZ client](docs/development/raspberry-pi-ble-client.md)
-adds the same identity-bound local workflow without replacing Bluefy as the
-selected iPhone client. Its bounded
+adds the same identity-bound local engineering workflow. Bluefy was the
+historical engineering iPhone client; Safari is the approved consumer client.
+The Pi client's bounded
 [execution and adversarial review](docs/development/phase12-pi-ble-tcp-review.md)
 adds deterministic host evidence and exact RF-inhibited Candidate A/wspr5 live
 evidence for identity inspection, authenticated controller time, field status,
@@ -77,12 +78,12 @@ evidence in the
 
 The operator-selected
 [field-access/security contract](docs/development/phase12-field-access-contract.md)
-remains controlling: BLE/Bluefy is primary, SoftAP/Safari is an independent
-no-infrastructure fallback, Bluetooth uses Just Works plus application-password
-enrollment, the public default comes from the station-MAC suffix, phone time may
-seed bounded offline UTC, and the onboard LED supplies Identify and actual
-SoftAP-ready patterns. The production continuation connects SoftAP
-DHCP/mDNS, blank read-only HTTP, provisioned pre-clock/normal HTTPS,
+describes the running engineering BLE/password baseline. The later
+[approved P12.7 consumer contract](docs/development/phase12-7-decision.md)
+selects Safari and SoftAP only for consumer commissioning, with an owner key
+and a physical claim; that owner route remains unimplemented. The production
+continuation connects SoftAP
+DHCP/mDNS, blank captive HTTP, provisioned pre-clock/normal HTTPS,
 password/cookie admission, controller time and the existing browser/one-
 `JobService` API. Its clean RF-inhibited Candidate A image has bounded
 native-Pi evidence for WPA2/DHCP/mDNS/TLS, password/cookie admission,
@@ -100,8 +101,8 @@ restart, and post-restart BLE readback; see the
 [target activation record](docs/development/phase12-profile-activation-attempt.md).
 The later generation-3 positive mTLS/WTP and HTTPS readback also passed on the
 Mac. Offline reuse, fresh-password/new-pairing behavior, full commissioning,
-blank generic
-SoftAP HTTP, stable-station AP withdrawal, the broader physical BLE job-
+broader blank
+SoftAP HTTP, network-only AP continuity after station join, the broader physical BLE job-
 control/local-management, controller-time and LED matrices, reset controls and
 most of the
 [RF-inhibited-first physical plan](docs/development/phase12-physical-acceptance.md)
@@ -122,8 +123,13 @@ standard image with core 1 absent; the claim design is narrowed to that
 RF-inhibited topology. Current devel source serves the local setup document,
 admits one physically granted encrypted credential submission on the blank AP,
 trials station join and commits a network-only generation after address readback.
-The source build is not flashed; selected-iPhone and target network-join
-acceptance remain open. The last flashed image remains GET-only.
+Candidate A runs the exact `fb091f8` RF-inhibited image. The selected iPhone
+submitted station credentials, and a separately approved USB reboot/readback
+proved network-only generation 1 and station address `192.168.1.47`; the final
+phone page and AP return after station loss remain open. A newer source change
+keeps the network-only AP available after station join for the later Safari
+upgrade, but that newer image is not flashed. See the
+[target record](docs/development/phase12-wifi-only-physical-result.md).
 
 The current Bluefy source requires a fresh password step-up for each exact
 staged profile even on a retained bond. While the public default password is
@@ -137,7 +143,7 @@ keep firmware, both clients and host conformance checks aligned through the
 remains open. Bluefy also
 has a test-only prepared-JSON-file import for operator-assisted acceptance. It
 does not create or deliver a profile and is not an end-user commissioning flow;
-that flow requires a separate operator design discussion.
+the approved Safari consumer flow is tracked in P12.7–P12.12.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)

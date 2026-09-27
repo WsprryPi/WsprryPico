@@ -4,6 +4,10 @@ Status: **P12.7 APPROVED DESIGN; NETWORK-ONLY GENERATION-1 TARGET READBACK
 PASSED; P12.8 PARTIAL; P12.9–P12.12 OPEN** (2026-09-27).
 This is an adversarial review of this bounded continuation, not a Phase 12
 closure or RF authorization.
+Its statement that Consumer-Profile/1 had no parser or journal code describes
+the pushed P12.7 checkpoint. The later
+[P12.8 structural-foundation review](phase12-8-structural-foundation-review.md)
+records the current inert source and its remaining gates.
 
 ## Exact scope and evidence
 

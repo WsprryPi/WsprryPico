@@ -24,13 +24,15 @@ implemented Pico surface. Shared WsprryPi adoption remains separate work.
   and job-control transport; it carries the identical WTP/1 stream to the same
   `JobService`, has no plaintext fallback and has no protocol-assigned default
   port. Network control remains product-gated and default-off.
-- BLE/Bluefy is the primary local provisioning, management and field-control
-  path; SoftAP/Safari is an independent no-infrastructure fallback. Their
-  selected policy is the
+- The implemented engineering provisioning and field-control path uses
+  BLE/Bluefy under the
   [Phase 12 field-access contract](docs/development/phase12-field-access-contract.md).
+  The later [approved P12.7 consumer contract](docs/development/phase12-7-decision.md)
+  selects Safari/SoftAP only, with a physical owner claim; its owner path is
+  still being implemented.
   The native [Raspberry Pi/Linux BlueZ client](docs/development/raspberry-pi-ble-client.md)
-  is an additional supported local/bench client; it does not replace Bluefy or
-  qualify the iPhone/offline acceptance path. Its profile-apply command is
+  is an additional supported local/bench client; it does not qualify the
+  selected iPhone consumer acceptance path. Its profile-apply command is
   source/host conforming to Field-GATT/1; native-Pi physical profile activation
   remains unaccepted.
 - Every job-control path uses the same JobService and loads and arms complete
@@ -118,10 +120,12 @@ The operator separately approved a
 that would save station credentials without owner or RF authority. It is an
 explicit exception to the blank-AP read-only policy for that bounded first
 join, contingent on the documented physical BOOTSEL and transaction gates.
-The current devel source admits the bounded encrypted transaction on a blank
-RF-inhibited AP; the last flashed image remains read-only. A bounded
-RF-inhibited released-button probe and independently checked browser/Pico crypto vector
-are evidence within their recorded limits, not an accepted network-join flow.
+The `fb091f8` RF-inhibited image admits the bounded encrypted transaction on a
+blank AP. Candidate A passed selected-iPhone submission and post-reboot
+network-only generation-1/station-address readback within the
+[recorded setup](docs/development/phase12-wifi-only-physical-result.md). The
+final phone page and AP return after station loss remain open. This grants no
+owner, station API, TLS, job or RF authority.
 
 Host tests, target execution and RF qualification are distinct evidence classes.
 A successful compile or simulated transmission establishes neither on-device

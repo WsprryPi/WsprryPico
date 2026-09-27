@@ -16,13 +16,15 @@ Use WsprryPico for project, repository and application naming; firmware artifact
 - Mutually authenticated TLS 1.3/TCP with ALPN `wtp/1` is a first-class WTP
   job-transfer and job-control transport; Wi-Fi also supports the embedded web
   UI. Network control remains product-gated and default-off.
-- BLE/Bluefy is the primary local provisioning, management and field-control
-  path. No WsprryPico-native iOS app is planned. A native Raspberry Pi/Linux
-  BlueZ client is an additional supported local/bench controller.
-- SoftAP/Safari is an independent provisioning, recovery and field-control
-  fallback when infrastructure Wi-Fi is absent.
-- The selected authentication, offline-time and indicator behavior is defined
-  by the [Phase 12 field-access contract](development/phase12-field-access-contract.md).
+- BLE/Bluefy remains the implemented engineering provisioning and field-control
+  path. A native Raspberry Pi/Linux BlueZ client is an additional local/bench
+  controller. No WsprryPico-native iOS app is planned.
+- The [approved P12.7 consumer contract](development/phase12-7-decision.md)
+  selects Safari/SoftAP only for consumer commissioning and owner recovery.
+  That owner path is not implemented yet. The earlier
+  [Phase 12 field-access contract](development/phase12-field-access-contract.md)
+  still describes the running engineering authority until consumer mode is
+  implemented and accepted.
 - All RF timing is local on RP2350. USB and network connections load and arm complete jobs; packet arrival never sets symbol boundaries.
 
 Preserve WsprryPi encoder and scheduler concepts while adapting platform dependencies. RP1 DKMS, kernel interfaces and RP1 register programming are not ported.
@@ -91,8 +93,9 @@ plan; broader mode/band/clock and production release qualification remain Phase
 Phase 12 keeps provisioning outside that job-control protocol. A portable
 manager and access controller own bounded profile replacement, local authority
 and recovery while all RF/job control remains in the one existing JobService.
-The selected field contract makes BLE/Bluefy primary and SoftAP/Safari an
-independent no-infrastructure fallback.
+The implemented engineering field contract uses BLE/Bluefy and a SoftAP
+fallback. The later approved consumer contract selects Safari/SoftAP only;
+consumer owner authority and recovery are still implementation gates.
 
 The scoped P12.3 implementation reserves the access journal at
 `0x3f3000`–`0x3f4fff`, BTstack at
@@ -111,9 +114,10 @@ The separately approved
 [Wi-Fi-only network bootstrap](development/phase12-wifi-only-bootstrap-proposal.md)
 permits a one-use, physically granted encrypted credential submission
 from that blank AP and commit a device-bound network-only generation 1. It
-adds no owner, station API, scheduler or RF authority. The source transaction
-has not been flashed or accepted on a target; the last flashed image remains
-read-only.
+adds no owner, station API, scheduler or RF authority. The `fb091f8`
+RF-inhibited image passed selected-iPhone submission and generation-one
+station readback on Candidate A; the final phone page and AP-return rows
+remain open in the [target record](development/phase12-wifi-only-physical-result.md).
 
 The portable access layer implements exact request-bound proofs, enrollment,
 bond capacity/revocation, SoftAP cookies and expiry, field mode, reset levels,
@@ -134,7 +138,8 @@ production graph constructs the portable access/manager state and a
 network-only `PicoActivationPlatform`; neither layer can abort, release or
 clear JobService/RF ownership. The SoftAP graph supplies a bounded,
 AP-interface-bound DHCP service on
-`192.168.4.1/24`, AP-interface mDNS, blank read-only HTTP, device-bound HTTPS,
+`192.168.4.1/24`, AP-interface mDNS, blank captive HTTP with the bounded
+encrypted Wi-Fi-only transaction, device-bound HTTPS,
 password/cookie admission, controller time and the existing browser API backed
 by that same `JobService`. The repository-owned Bluefy artifact uses a
 release-keyed atomic offline cache. A bounded native-Pi Candidate A run has
@@ -168,9 +173,10 @@ adds the portable controller/SNTP arbiter and routes production SNTP, BLE and
 SoftAP controller observations through it. Physical phone-time accuracy remains
 unqualified.
 
-Remaining Phase 12 details are SoftAP credential provisioning, broader
+Remaining Phase 12 details include the Safari owner commissioning path, broader
 authenticated phone-time accuracy/disagreement/recovery acceptance, accepted
-reset controls, blank generic HTTP, stable-station AP withdrawal, physical
+reset controls, broader captive HTTP, network-only AP continuity after station
+join, physical
 Bluefy offline reuse and broader interoperability evidence, live profile
 activation and broader target resource/coexistence tuning. The wired
 SoftAP/HTTPS surface has only the bounded native-Pi target acceptance recorded

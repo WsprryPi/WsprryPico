@@ -88,12 +88,15 @@ rejoined at `192.168.1.47`, and reported empty/inactive output. See the
 flash, button press or credential submission as routine setup.
 
 The later source change keeps the network-only AP available after station
-join for Safari owner upgrade. Its new cross-built UF2 at
-`build/phase12-captive-pico231/firmware/WsprryPico.uf2` has SHA-256
-`3be01934bde3c8c337629b964fc76cc0fbc45715b126a25b988d737e17f1efda`
-and is **not** the installed `fb091f8` image. It has not been flashed or
-physically accepted. Its linked image has one SRAM BOOTSEL callback and no
-core-1 launcher, a source/link result only. A future exact new flash or
+join for Safari owner upgrade. At the pushed P12.7 checkpoint, its unflashed
+UF2 was SHA-256
+`3be01934bde3c8c337629b964fc76cc0fbc45715b126a25b988d737e17f1efda`.
+The current P12.8 structural-source and fail-closed runtime cross-build
+overwrote that build path with an unflashed UF2 SHA-256
+`d2988dbf3a930b3c60b3f851f13651fa32c0e1812a41c3ae6f3eca0f5121b97f`.
+Neither newer image is the installed `fb091f8` image or physically accepted.
+The current linked image has one SRAM BOOTSEL callback and no core-1 launcher,
+a source/link result only. A future exact new flash or
 other live operation requires action-specific authority and fresh device,
 source, hash, journal, output and inhibited-engine admission.
 

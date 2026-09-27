@@ -260,6 +260,10 @@ int main() {
     const bool runtime_profile_loaded =
         profile_store_loaded &&
         runtime_profile.load(profile_store, identities.device_id(), build_bundle);
+    // Source 5 is journal-readable for migration tests, but its owner and
+    // credential runtime is not installed. Deny every existing control path.
+    const bool unsupported_consumer_source =
+        profile_store.source() == wsprrypico::provisioning::ProfileSource::ConsumerProfile;
 #ifdef WSPRRY_PICO_STANDALONE_RF
     const auto config = wsprrypico::standalone::wtp_profile(true);
 #else
@@ -310,7 +314,7 @@ int main() {
     std::optional<wsprrypico::standalone::Config> runtime_network_config;
     if (store_loaded && store.config())
         runtime_network_config = runtime_profile.overlay(*store.config());
-    if (boot_recovery ||
+    if (boot_recovery || !runtime_profile_loaded ||
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned ||
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly)
         (void)scheduler.command("STOP");
@@ -616,6 +620,9 @@ int main() {
             result += "}\n";
             return result;
         }
+        if ((unsupported_consumer_source || !runtime_profile_loaded) && text != "ABORT" &&
+            text != "REBOOT" && text != "BOOTSEL")
+            return "{\"ok\":false,\"error\":\"profile_runtime_unavailable\"}\n";
         if (text.starts_with("HEAP PROBE ")) {
             const auto capacity = reinterpret_cast<std::uintptr_t>(&__HeapLimit) -
                                   reinterpret_cast<std::uintptr_t>(&__end__);
@@ -836,8 +843,8 @@ int main() {
                                    network_state != wsprrypico::wtp::State::Running))
             network.poll();
         const auto field_now_ms = time_us_64() / 1000ULL;
-        if (!gatt.running() && !gatt_start_attempted && derived_identity &&
-            local_access.ble_available()) {
+        if (runtime_profile_loaded && !gatt.running() && !gatt_start_attempted &&
+            derived_identity && local_access.ble_available()) {
             gatt_start_attempted = true;
             (void)gatt.start();
         }
@@ -941,14 +948,14 @@ int main() {
         }
         if (wsprrypico::usb::take_wtp_reset()) {
             offset = size = 0;
-            if (wsprrypico::usb::wtp_connected())
+            if (wsprrypico::usb::wtp_connected() && runtime_profile_loaded)
                 endpoint.connect("usb-physical");
             else
                 endpoint.disconnect();
         }
         const auto now_ms = time_us_64() / 1000ULL;
         endpoint.poll(now_ms);
-        if (wsprrypico::usb::wtp_connected()) {
+        if (wsprrypico::usb::wtp_connected() && runtime_profile_loaded) {
             if (!reboot_at && endpoint.can_receive()) {
                 if (offset == size) {
                     size = wsprrypico::usb::wtp_transport_read(input);

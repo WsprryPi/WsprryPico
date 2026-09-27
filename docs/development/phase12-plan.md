@@ -532,6 +532,12 @@ milestones; no user-visible security ceremony is left to implementation choice.
 
 ### P12.8 Commissioning foundation
 
+The bounded [structural profile review](phase12-8-structural-foundation-review.md)
+records a canonical parser, size and write-cut tests, and an inert journal
+source that cannot grant legacy job control. It does not close this milestone;
+owner routes, cryptographic validation, generated trust and safe provisioned
+BOOTSEL remain open.
+
 Implement only the accepted P12.7 contract. The device must:
 
 - advertise a clear uncommissioned/setup state without treating a name or MAC

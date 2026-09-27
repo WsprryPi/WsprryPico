@@ -37,6 +37,12 @@ bool RuntimeProfile::load(const ProfileStore& store, std::string_view actual_dev
     fault_ = RuntimeFault::Storage;
     if (!store.healthy())
         return false;
+    // Source 5 is intentionally inert until the complete owner, certificate
+    // and station authority path is installed. Never parse it as legacy data.
+    if (store.source() == ProfileSource::ConsumerProfile) {
+        fault_ = RuntimeFault::Malformed;
+        return false;
+    }
     if (store.source() == ProfileSource::Unprovisioned ||
         (store.source() == ProfileSource::LegacyBootstrap && !generation_ &&
          build_bundle == BuildBundleState::Absent)) {

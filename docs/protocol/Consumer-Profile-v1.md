@@ -1,17 +1,19 @@
 # Consumer-Profile/1 journal payload
 
-Status: **P12.8 STORAGE DESIGN; NOT IMPLEMENTED OR ACCEPTED**
-(2026-09-27). This payload is the intended atomic authority record for
+Status: **P12.8 STRUCTURAL PARSER AND INERT JOURNAL SOURCE IMPLEMENTED;
+CONSUMER ACTIVATION NOT IMPLEMENTED OR ACCEPTED** (2026-09-27). This payload
+is the intended atomic authority record for
 [Owner-HTTP/1](Owner-HTTP-v1.md). Existing engineering profile formats and
 [WiFi-Bootstrap/1](WiFi-Bootstrap-v1-proposal.md) retain their meanings.
 
 ## Slot and source contract
 
-Add `ProfileSource::ConsumerProfile = 5` to the existing two-slot profile
+`ProfileSource::ConsumerProfile = 5` uses the existing two-slot profile
 journal, with a version-1 UTF-8 JSON payload of at most 7,168 bytes under
 the existing committed slot header/digest/sequence rules. A consumer source
-is selected only when its complete payload parses and validates; source 5
-with an absent, unknown-version, noncanonical or invalid payload is a fault,
+passes journal selection only when its complete payload parses canonically;
+source 5 with an absent, unknown-version, noncanonical or structurally invalid
+payload is a fault,
 not a legacy profile. A newer corrupt committed slot prevents rollback to an
 older owner or factory authority. Unknown selection values remain faults.
 The journal sequence is the externally reported profile generation; it is
@@ -31,7 +33,7 @@ order, with no duplicate keys or trailing data:
 | `network` | Object with exactly `ssid` (1–32 printable ASCII bytes), `password` (8–63 printable ASCII bytes) and `time_server` (validated hostname, maximum 253 bytes). |
 | `station` | Object with exactly `callsign`, four-character `locator` and integer `power_dbm`; validate through the existing WSPR type-1 encoder rules. |
 | `tls` | Object with exactly `hostname`, `port`, `ca_certificate`, `ca_private_key`, `server_certificate`, `server_private_key`, `ca_not_after_utc`, and `server_not_after_utc`. Hostname is the exact derived local hostname; port is 443; private keys are P-256 and the certificates are P-256/SHA-256 with exact SAN/device identity and purpose. Dates are UTC seconds encoded as decimal strings. The aggregate serialized `tls` object is at most 2,304 bytes. |
-| `clients` | Array of zero to four unique client entries; each entry has exactly `name` (1–32 printable bytes), `csr_der` (canonical base64url of 1–320 DER bytes), `csr_sha256`, `public_key_sha256` (both 64 lowercase hex characters), `serial` (nonzero unsigned 64-bit decimal string) and `not_after_utc` (UTC seconds decimal string). The CSR must parse, bind the stored public key and digest, and be client-auth-only. Entries are sorted by public-key digest. |
+| `clients` | Array of zero to four unique client entries; each entry has exactly `name` (1–32 printable bytes), `csr_der` (canonical base64url of 1–320 DER bytes), `csr_sha256`, `public_key_sha256` (both 64 lowercase hex characters), `serial` (unique nonzero unsigned 64-bit decimal string) and `not_after_utc` (UTC seconds decimal string). The CSR must parse, bind the stored public key and digest, and be client-auth-only. Entries are sorted by public-key digest. |
 | `request_sha256` | Lowercase 64-character SHA-256 hex of the completing claim or replacement request ID. |
 
 Within objects, keys use the table order and the nested order shown above.
@@ -47,7 +49,9 @@ points, four 427-character maximum CSR encodings, 32-character names with
 worst-case JSON escaping, 20-digit counters and expiry values, a 253-byte
 time server, maximally escaped SSID/password and the 2,304-byte TLS cap
 totals **6,457 bytes**. That leaves 711 bytes under the slot payload cap;
-actual certificate generation and parser tests must confirm these limits.
+the structural parser's four-owner/four-client boundary test confirms the
+7,168-byte payload and 2,304-byte TLS limits with maximum CSR DER and JSON
+escaping. Actual certificate generation still must confirm the limits.
 
 The device stores only public owner keys; Safari holds the private owner
 keys. The CA and server private keys are in ordinary Pico flash, as accepted
@@ -90,8 +94,13 @@ payload with a new owner epoch/key and unchanged operational fields.
 
 ## Implementation gates
 
-Before enabling source 5 in production, implement independent parse and
-canonical round-trip tests, four-owner/four-client worst-case sizing, exact
-identity/certificate checks, old-source migration, every journal power-cut
-marker, reset-intent recovery, and no trust resurrection. Cross-builds do
-not qualify flash timing, provisioned BOOTSEL, AP/STA concurrency or RF.
+The current source 5 journal reader and writer enforce canonical **structural**
+form, source transitions and same-device upgrade. Runtime loading deliberately
+faults on source 5 until platform cryptographic validation and consumer
+authority are wired. A structurally valid record is not an activated profile.
+
+Before enabling source 5 in production, complete exact identity/certificate
+checks, old-source migration, reset-intent recovery, and no trust resurrection.
+The current host test cuts every journal write page; broader access-journal
+and activation cuts remain open. Cross-builds do not qualify flash timing,
+provisioned BOOTSEL, AP/STA concurrency or RF.

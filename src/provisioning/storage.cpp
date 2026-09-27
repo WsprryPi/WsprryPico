@@ -1,7 +1,7 @@
 #include "provisioning/storage.hpp"
 
+#include "provisioning/consumer_profile.hpp"
 #include "provisioning/network_profile.hpp"
-
 #include "wtp/sha256.hpp"
 
 #include <algorithm>
@@ -217,10 +217,11 @@ bool ProfileStore::load() {
                 std::all_of(best->data.begin() + 9, best->data.begin() + selection_header_size,
                             [](char byte) { return byte == 0; });
             if (!reserved_clear || source < static_cast<unsigned>(ProfileSource::RuntimeProfile) ||
-                source > static_cast<unsigned>(ProfileSource::NetworkOnly))
+                source > static_cast<unsigned>(ProfileSource::ConsumerProfile))
                 return false;
             source_ = static_cast<ProfileSource>(source);
-            if (source_ == ProfileSource::RuntimeProfile || source_ == ProfileSource::NetworkOnly) {
+            if (source_ == ProfileSource::RuntimeProfile || source_ == ProfileSource::NetworkOnly ||
+                source_ == ProfileSource::ConsumerProfile) {
                 if (best->data.size() == selection_header_size)
                     return false;
                 data_.assign(best->data.begin() + selection_header_size, best->data.end());
@@ -231,6 +232,14 @@ bool ProfileStore::load() {
             // only as the one-way legacy bootstrap state.
             data_ = std::move(best->data);
         }
+    }
+    if (source_ == ProfileSource::ConsumerProfile) {
+        auto parsed = parse_consumer_profile(data_);
+        if (!parsed) {
+            secure_clear(data_);
+            return false;
+        }
+        scrub(*parsed);
     }
     healthy_ = true;
     return true;
@@ -248,20 +257,49 @@ bool valid_network_payload(std::string_view payload) {
     scrub(*parsed);
     return true;
 }
+bool valid_consumer_payload(std::string_view payload, ProfileSource prior_source,
+                            std::string_view prior_data) {
+    auto parsed = parse_consumer_profile(payload);
+    if (!parsed)
+        return false;
+    bool match = true;
+    if (prior_source == ProfileSource::NetworkOnly) {
+        auto prior = parse_network_profile(prior_data);
+        match = prior && prior->device_id == parsed->device_id;
+        if (prior)
+            scrub(*prior);
+    } else if (prior_source == ProfileSource::ConsumerProfile) {
+        auto prior = parse_consumer_profile(prior_data);
+        match = prior && prior->device_id == parsed->device_id &&
+                parsed->owner_epoch >= prior->owner_epoch &&
+                (payload == prior_data || parsed->request_sha256 != prior->request_sha256);
+        if (prior)
+            scrub(*prior);
+    }
+    scrub(*parsed);
+    return match;
+}
 } // namespace
 
 bool ProfileStore::select(ProfileSource source, std::string_view canonical_profile) {
     if (!healthy_ || source == ProfileSource::LegacyBootstrap ||
-        ((source == ProfileSource::RuntimeProfile || source == ProfileSource::NetworkOnly) &&
+        source > ProfileSource::ConsumerProfile ||
+        ((source == ProfileSource::RuntimeProfile || source == ProfileSource::NetworkOnly ||
+          source == ProfileSource::ConsumerProfile) &&
          (canonical_profile.empty() || canonical_profile.size() > max_profile_bytes)) ||
         (source != ProfileSource::RuntimeProfile && source != ProfileSource::NetworkOnly &&
-         !canonical_profile.empty()) ||
+         source != ProfileSource::ConsumerProfile && !canonical_profile.empty()) ||
+        (source_ == ProfileSource::ConsumerProfile && source != ProfileSource::ConsumerProfile &&
+         source != ProfileSource::Unprovisioned) ||
         (source == ProfileSource::NetworkOnly &&
-         ((source_ != ProfileSource::NetworkOnly &&
-           !((source_ == ProfileSource::Unprovisioned ||
-              source_ == ProfileSource::LegacyBootstrap) &&
-             sequence_ == 0)) ||
+         ((source_ != ProfileSource::NetworkOnly && !((source_ == ProfileSource::Unprovisioned ||
+                                                       source_ == ProfileSource::LegacyBootstrap) &&
+                                                      sequence_ == 0)) ||
           !valid_network_payload(canonical_profile))) ||
+        (source == ProfileSource::ConsumerProfile &&
+         (!((source_ == ProfileSource::LegacyBootstrap && sequence_ == 0) ||
+            source_ == ProfileSource::NetworkOnly || source_ == ProfileSource::ConsumerProfile) ||
+          !valid_consumer_payload(canonical_profile, source_, data_))) ||
         sequence_ == std::numeric_limits<std::uint64_t>::max())
         return false;
     if (source == source_ && canonical_profile == data_)
