@@ -55,4 +55,4 @@ output.parent.mkdir(parents=True, exist_ok=True)
 if not output.exists() or output.read_text() != source:
     output.write_text(source)
 print(f'Browser document: {len(html.encode())} bytes; gzip: {len(gzip.compress(html.encode(), mtime=0))} bytes (informational; served uncompressed)')
-print(f'Bootstrap bundle embedded: {len(bootstrap_js.encode())} bytes (inert until the credential route is enabled)')
+print(f'Bootstrap bundle embedded: {len(bootstrap_js.encode())} bytes')

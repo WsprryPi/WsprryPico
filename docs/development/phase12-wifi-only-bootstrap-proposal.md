@@ -1,6 +1,6 @@
 # Phase 12 Wi-Fi-only network bootstrap proposal
 
-Status: **APPROVED NETWORK-ONLY DESIGN — IMPLEMENTATION AND TARGET ACCEPTANCE OPEN**.
+Status: **APPROVED NETWORK-ONLY DESIGN — SOURCE TRANSACTION IMPLEMENTED; TARGET ACCEPTANCE OPEN**.
 On 2026-09-26 the operator chose a first-run path for a blank Pico that uses
 its own SoftAP and a browser, without BLE, Bluefy, a native iPhone app, a setup
 code, a certificate installation or a USB command. This slice saves only
@@ -19,9 +19,9 @@ This is the separate bootstrap design required by the
 [Phase 12 roadmap](phase12-plan.md) for commissioning without BLE. It would
 replace the [field-access contract](phase12-field-access-contract.md) rule that
 blank SoftAP is read-only. The operator approved this bounded exception on
-2026-09-26. The current read-only implementation, including its best-effort
-captive landing, remains the baseline until the required gates pass. That
-landing accepts no credential and does not join station Wi-Fi. It is Stage A
+2026-09-26. The last flashed read-only implementation, including its best-effort
+captive landing, remains the live-device baseline until target gates pass. The
+devel source now includes the encrypted transaction and station trial. It is Stage A
 network/provisioning work, not Stage B RF coexistence. The
 [adversarial design review](phase12-wifi-only-bootstrap-review.md) records
 corrected findings and remaining feasibility gates.

@@ -60,6 +60,8 @@ add_library(wsprrypico_core
     src/network/mdns.cpp
     src/network/http.cpp
     src/network/bootstrap_http.cpp
+    src/network/bootstrap_codec.cpp
+    src/network/bootstrap_join.cpp
     src/network/bootstrap_slot.cpp
     src/network/bootstrap_wire.cpp
     src/network/api.cpp
@@ -248,6 +250,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(bootstrap_slot_tests PRIVATE wsprrypico_core)
     target_compile_options(bootstrap_slot_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME bootstrap_slot_tests COMMAND bootstrap_slot_tests)
+    add_executable(bootstrap_join_tests tests/bootstrap_join_tests.cpp)
+    target_link_libraries(bootstrap_join_tests PRIVATE wsprrypico_core)
+    target_compile_options(bootstrap_join_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME bootstrap_join_tests COMMAND bootstrap_join_tests)
     add_executable(bootstrap_wire_tests tests/bootstrap_wire_tests.cpp)
     target_link_libraries(bootstrap_wire_tests PRIVATE wsprrypico_core)
     target_compile_options(bootstrap_wire_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)

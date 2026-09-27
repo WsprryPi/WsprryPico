@@ -1,6 +1,6 @@
 # Phase 12 Wi-Fi-only network bootstrap: implementation prompt
 
-Status: **APPROVED DESIGN; EXECUTION IN PROGRESS; TARGET GATES OPEN**.
+Status: **APPROVED DESIGN; SOURCE TRANSACTION IMPLEMENTED; TARGET GATES OPEN**.
 The operator approved the bounded [product design](phase12-wifi-only-bootstrap-proposal.md)
 and [WiFi-Bootstrap/1 wire contract](../protocol/WiFi-Bootstrap-v1-proposal.md)
 on 2026-09-26. Work in `/Users/lbussy/GitHub/WsprryPico` on `devel`.

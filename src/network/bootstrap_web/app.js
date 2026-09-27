@@ -1,6 +1,6 @@
 import {available, begin, seal, slotDigest} from './crypto.js';
 
-const names = ['ready', 'tap', 'credentials', 'checking', 'connected', 'saved', 'retry', 'safari'];
+const names = ['ready', 'tap', 'credentials', 'checking', 'connected', 'saved', 'retry', 'service', 'safari'];
 const $ = (id) => document.getElementById(id);
 const show = (name) => {
   for (const section of names) $(section).hidden = section !== name;
@@ -33,6 +33,7 @@ function clearAttempt() {
   pending = started = sealed = undefined;
   acknowledged = false;
   $('password').value = '';
+  $('ssid').value = '';
 }
 
 async function acknowledge() {
@@ -51,7 +52,11 @@ async function update() {
   polling = true;
   try {
     const status = await json('/api/bootstrap/v1/status');
-    if (durableJoin(status) &&
+    if (status.source === 'fault') {
+      show('service');
+      notice('The Pico could not verify its saved setup state.', true);
+      clearAttempt();
+    } else if (durableJoin(status) &&
         (!sealed || status.request_id_digest === sealed.requestDigest ||
          status.request_id_digest === null)) {
       show('connected');

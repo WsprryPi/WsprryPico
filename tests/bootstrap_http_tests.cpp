@@ -1,5 +1,5 @@
-#include "network/bootstrap_http.hpp"
 #include "network/assets.hpp"
+#include "network/bootstrap_http.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -42,11 +42,16 @@ int main() {
     assert(page.find("<form") == std::string::npos);
     assert(page.find("password") == std::string::npos);
 
+    const auto setup = wsprrypico::network::bootstrap_http_response(page_request.request(),
+                                                                    "device-id", "firmware", true);
+    assert(setup.status == 200 && setup.static_body.find("wifi-form") != std::string_view::npos);
+    assert(setup.wire_headers().find("Cache-Control: no-store") != std::string::npos);
+
     HttpParser bundle_request;
     assert(send("GET /bundle.js HTTP/1.1\r\nHost: 192.168.4.1\r\n\r\n", bundle_request) ==
            "192.168.4.1");
-    const auto bundle = wsprrypico::network::bootstrap_http_response(
-        bundle_request.request(), "device-id", "firmware");
+    const auto bundle = wsprrypico::network::bootstrap_http_response(bundle_request.request(),
+                                                                     "device-id", "firmware");
     const auto asset = wsprrypico::network::bootstrap_asset("/bundle.js");
     assert(asset && asset->body.size() > 50000);
     assert(bundle.status == 200 && bundle.static_body.data() == asset->body.data());
@@ -66,9 +71,9 @@ int main() {
 
     HttpParser hidden_form;
     send("GET /index.html HTTP/1.1\r\nHost: 192.168.4.1\r\n\r\n", hidden_form);
-    assert(wsprrypico::network::bootstrap_http_response(hidden_form.request(), "device-id",
-                                                         "firmware")
-               .status == 404);
+    assert(
+        wsprrypico::network::bootstrap_http_response(hidden_form.request(), "device-id", "firmware")
+            .status == 404);
 
     HttpParser foreign_post;
     assert(send("POST /local/v1/identity HTTP/1.1\r\nHost: captive.apple.com\r\n"

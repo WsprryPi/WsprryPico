@@ -13,8 +13,8 @@
 #include "pico/cyw43_arch.h"
 #include "pico/rand.h"
 #include "pico/time.h"
-#include "standalone/pico/mdns_lwip.h"
 #include "standalone/pico/flash_layout.hpp"
+#include "standalone/pico/mdns_lwip.h"
 #ifdef WSPRRY_PICO_STANDALONE_RF
 #include "pico/flash.h"
 #endif
@@ -127,8 +127,8 @@ bool PicoProfileMedia::erase(std::size_t offset) {
         restore_interrupts(irq);
 #endif
     }
-    const auto* bytes = reinterpret_cast<const std::uint8_t*>(
-        XIP_BASE + flash_layout::profile_base + offset);
+    const auto* bytes =
+        reinterpret_cast<const std::uint8_t*>(XIP_BASE + flash_layout::profile_base + offset);
     return std::all_of(bytes, bytes + provisioning::profile_slot_size,
                        [](auto byte) { return byte == 255; });
 }
@@ -332,6 +332,30 @@ bool PicoNetwork::start(const Config& config) {
 }
 bool PicoNetwork::start_network_only(std::string_view ssid, std::string_view password) {
     return start_credentials(ssid, password, "pool.ntp.org");
+}
+void PicoNetwork::stop_network_only_trial() {
+    sntp_.cancel();
+    lookup_.link(false);
+    mdns_.disable(false);
+    if (enabled_)
+        cyw43_arch_disable_sta_mode();
+    if (pcb_)
+        udp_remove(pcb_);
+    pcb_ = nullptr;
+    auto erase = [](std::string& value) {
+        volatile char* bytes = value.empty() ? nullptr : value.data();
+        for (std::size_t i = 0; i < value.size(); ++i)
+            bytes[i] = 0;
+        std::string{}.swap(value);
+    };
+    erase(ssid_);
+    erase(password_);
+    enabled_ = false;
+    next_connect_us_ = 0;
+    reconnect_after_leave_us_.reset();
+    withdrawal_started_us_.reset();
+    resume_after_withdrawal_ = false;
+    pending_enabled_.reset();
 }
 bool PicoNetwork::start_credentials(std::string_view ssid, std::string_view password,
                                     std::string_view time_server) {

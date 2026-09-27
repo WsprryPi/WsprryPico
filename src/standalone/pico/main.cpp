@@ -355,6 +355,10 @@ int main() {
     static wsprrypico::provisioning::PicoIndicatorOutput indicator_output;
     static wsprrypico::provisioning::IndicatorController indicator(indicator_output,
                                                                    identities.device_id());
+#ifndef WSPRRY_PICO_STANDALONE_RF
+    bootstrap.configure(service.status().boot_id, access_store, profile_store, random_source,
+                        indicator, network, local_identity.default_password);
+#endif
     network.listener_status(server.configured(), server.listening(), deployment_matches);
     watchdog_hw->scratch[1] = 3;
     std::array<std::uint8_t, 64> input{};
@@ -843,7 +847,11 @@ int main() {
         softap_coordinator.token_records(
             local_access.live_softap_sessions(field_now_ms, service.owner_session_id()));
         softap_coordinator.reply_active(server.softap_active());
-        const bool request_softap = softap_coordinator.poll(field_now_ms);
+        bool request_softap = softap_coordinator.poll(field_now_ms);
+#ifndef WSPRRY_PICO_STANDALONE_RF
+        if (bootstrap.withdraw_ready())
+            request_softap = false;
+#endif
         const auto surface = softap_coordinator.surface(
             service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized);
         const bool blank_captive =
@@ -867,8 +875,19 @@ int main() {
             softap.stop();
         }
         const bool softap_name_ready = network.softap_name(softap.ready(), local_identity.hostname);
-        bootstrap.poll(bootstrap_started && softap.ready() &&
-                       surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly);
+        const bool bootstrap_active =
+            bootstrap_started && softap.ready() &&
+            surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly;
+        bool bootstrap_mutation = false;
+#ifndef WSPRRY_PICO_STANDALONE_RF
+        bootstrap_mutation =
+            bootstrap_active &&
+            runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned &&
+            profile_store.healthy() && profile_store.sequence() == 0 && !engine.output_active() &&
+            scheduler.idle() &&
+            wsprrypico::provisioning::idle_for_access(provisioning_activity(&service));
+#endif
+        bootstrap.poll(bootstrap_active, bootstrap_mutation);
         const bool softap_service_ready =
             softap.ready() && (surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly
                                    ? bootstrap.listening()

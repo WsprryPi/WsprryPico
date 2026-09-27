@@ -35,9 +35,12 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     PicoNetwork(time::ObservationSink& clock, std::string_view configured_hostname);
     bool start(const Config& config);
     bool start_network_only(std::string_view ssid, std::string_view password);
+    void stop_network_only_trial();
     bool initialize_radio();
 #ifndef WSPRRY_PICO_STANDALONE_RF
-    std::string trace_page(std::uint64_t after) const { return trace_.page(after); }
+    std::string trace_page(std::uint64_t after) const {
+        return trace_.page(after);
+    }
     std::string association();
 #endif
     void poll();
@@ -50,8 +53,12 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     bool initialized() const {
         return initialized_;
     }
-    const std::string& station_mac() const { return station_mac_; }
-    const std::string& stable_hostname() const { return stable_hostname_; }
+    const std::string& station_mac() const {
+        return station_mac_;
+    }
+    const std::string& stable_hostname() const {
+        return stable_hostname_;
+    }
     // Register the same certified local hostname on the AP netif. The AP has
     // an independent responder record but shares the one bounded lwIP mDNS PCB.
     bool softap_name(bool enabled, std::string_view hostname);
@@ -66,7 +73,9 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
   private:
 #ifndef WSPRRY_PICO_STANDALONE_RF
     NetTrace trace_;
-    void trace_mark(unsigned code) { trace_.mark(code); }
+    void trace_mark(unsigned code) {
+        trace_.mark(code);
+    }
     void trace_install();
 #else
     void trace_mark(unsigned) {}

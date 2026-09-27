@@ -7,7 +7,7 @@ const slot = '2031425364758697a8b9cadbecfd0e1f';
 const picoPublic = '3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08';
 const elements = new Map();
 for (const name of ['ready', 'tap', 'credentials', 'checking', 'connected', 'saved', 'retry',
-                    'safari', 'notice', 'device', 'start', 'retry-button', 'wifi-form',
+                    'service', 'safari', 'notice', 'device', 'start', 'retry-button', 'wifi-form',
                     'ssid', 'password', 'submit']) {
   elements.set(name, {hidden: true, textContent: '', value: '', disabled: false,
     events: {}, classList: {toggle() {}}, addEventListener(event, handler) {
@@ -86,6 +86,11 @@ status = {...status, join: 'disconnected', address_ready: false,
 await timers.findLast((item) => item.delay === 1000).callback();
 assert.equal(elements.get('saved').hidden, false);
 assert.equal(elements.get('connected').hidden, true);
+
+status = {...status, source: 'fault'};
+await timers.findLast((item) => item.delay === 1000).callback();
+assert.equal(elements.get('service').hidden, false);
+assert.equal(elements.get('ssid').value, '');
 
 globalThis.location.origin = 'http://example.invalid';
 await import('./app.js?fallback');

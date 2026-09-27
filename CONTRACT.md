@@ -118,7 +118,8 @@ The operator separately approved a
 that would save station credentials without owner or RF authority. It is an
 explicit exception to the blank-AP read-only policy for that bounded first
 join, contingent on the documented physical BOOTSEL and transaction gates.
-The current blank AP still rejects every credential submission. A bounded
+The current devel source admits the bounded encrypted transaction on a blank
+RF-inhibited AP; the last flashed image remains read-only. A bounded
 RF-inhibited released-button probe and independently checked browser/Pico crypto vector
 are evidence within their recorded limits, not an accepted network-join flow.
 

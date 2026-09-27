@@ -456,8 +456,9 @@ for a blank device on 2026-09-26. The [version-1 wire contract](../protocol/WiFi
 and [implementation prompt](phase12-wifi-only-implementation-prompt.md)
 specify its network-only exception. Its first journal commit would be
 generation 1; upgrading that device later to a full profile would be
-generation 2. The implemented blank AP still accepts no credentials while
-the runtime BOOTSEL and target gates remain open. This exception does not close the consumer owner,
+generation 2. The devel source now includes the encrypted AP transaction and
+network-only commit, but its image has not been flashed or accepted on the
+target. This exception does not close the consumer owner,
 credential and recovery decisions in P12.7 or authorize P12.8–P12.12.
 The [gated execution prompt](phase12-7-12-execution-prompt.md) and
 [consumer contract proposal](phase12-7-consumer-commissioning-proposal.md)
@@ -626,8 +627,10 @@ The operator directed future image testing to
 roll forward rather than routinely restoring an older UF2.
 The next [source-only delivery review](phase12-wifi-only-foundation-review.md#source-only-asset-delivery-continuation-2026-09-26)
 embeds the local browser bundle and streams its static assets in bounded
-chunks. The setup document and credential POST remain disabled, and this new
-image has not been flashed.
+chunks. At that checkpoint the setup document and credential POST remained
+disabled. The subsequent [transaction source review](phase12-wifi-only-transaction-review.md)
+records their source implementation and remaining target gate; neither new
+image has been flashed.
 
 The separate [blank read-only captive landing review](phase12-blank-captive-landing-review.md)
 records a source-tested, RF-inhibited-image implementation of AP-only DNS and

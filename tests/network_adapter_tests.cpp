@@ -401,6 +401,17 @@ int main(int argc, char** argv) {
     power_failure = true;
     assert(!network.set_enabled(true) && !network.link_up());
     assert(network.status().find("\"withdrawal_pending\":false") != std::string::npos);
+    power_failure = false;
+    network.stop_network_only_trial();
+    assert(network.start_network_only("FirstTrial", "first-password"));
+    network.poll();
+    assert(network.link_up());
+    network.stop_network_only_trial();
+    assert(!network.link_up());
+    assert(network.start_network_only("SecondTrial", "second-password"));
+    network.poll();
+    assert(network.link_up());
+    network.stop_network_only_trial();
     std::cout << "actual network lifecycle: nonblocking drain, rapid toggles, idle cancellation, "
-                 "link loss, 50 resource-stable cycles and enable failure passed\n";
+                 "link loss, 50 resource-stable cycles, enable failure and network-only retry passed\n";
 }

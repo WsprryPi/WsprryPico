@@ -5,7 +5,7 @@
 
 namespace wsprrypico::network {
 HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_view device,
-                                     std::string_view firmware) {
+                                     std::string_view firmware, bool setup_enabled) {
     if (request.method != "GET")
         return http_error(405, "read_only");
     if (request.header("host") != "192.168.4.1") {
@@ -22,10 +22,9 @@ HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_vie
                                 ",\"surface\":\"blank_read_only\",\"authenticated\":false}",
                             "application/json",
                             {}};
-    // Keep the landing page read-only. The script and stylesheet are inert
-    // until a separately reviewed credential route serves the setup document.
-    if (request.path == "/style.css" || request.path == "/bundle.js") {
-        const auto asset = bootstrap_asset(request.path);
+    if ((setup_enabled && (request.path == "/" || request.path == "/index.html")) ||
+        request.path == "/style.css" || request.path == "/bundle.js") {
+        const auto asset = bootstrap_asset(request.path == "/" ? "/index.html" : request.path);
         if (!asset)
             return http_error(404, "not_found");
         HttpResponse response{200, "", std::string(asset->type), {}};
