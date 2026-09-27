@@ -1,6 +1,6 @@
 # Owner-HTTP/1: Safari commissioning and AP owner channel
 
-Status: **P12.8 WIRE DESIGN WITH PORTABLE CLAIM AND SIGNING-DIGEST CODE; HTTP/CRYPTO NOT
+Status: **P12.8 WIRE DESIGN WITH PORTABLE CLAIM, SIGNING AND SESSION-DIGEST CODE; HTTP/CRYPTO NOT
 IMPLEMENTED OR TARGET ACCEPTED** (2026-09-27). This version specifies the approved
 [P12.7 Safari/SoftAP design](../development/phase12-7-decision.md) when code
 and target gates pass. Until then, the running image offers only the separate
@@ -134,15 +134,39 @@ browser ephemeral X25519 public key and a browser nonce. The Pico permits at
 most one pending session, returns current boot/epoch/generation, a random
 session ID, fresh challenge, its ephemeral X25519 public key and an expiry.
 `POST /api/owner/v1/session/finish` supplies the owner's canonical P-256
-signature over those values and the session-start body digest. The signature
+signature over the fixed-order finish digest below. The signature
 is checked against a committed owner key before the session becomes live.
 Both ephemeral private keys are destroyed after derivation or failure. Reject
 an all-zero X25519 shared secret.
 
-The transcript `S` is the fixed-order concatenation of the prefix
-`WsprryPico/Owner-Session/1\0`, full device ID, boot ID, owner epoch,
-profile generation, session ID, browser and Pico X25519 public keys, browser
-nonce and Pico challenge. Derive 64 bytes with HKDF-SHA-256 using
+The canonical start-request digest is
+`SHA256(UTF8("WsprryPico/Owner-Session-Start/1\0") || device_id[16] ||
+owner_key_sha256[32] || browser_public_key[32] || browser_nonce[16])`.
+It binds the decoded fields, independent of JSON property order and
+whitespace. The transcript `S` is the fixed-order concatenation of
+`UTF8("WsprryPico/Owner-Session/1\0") || device_id[16] || boot_id[16] ||
+owner_key_sha256[32] || u64be(owner_epoch) ||
+u64be(profile_generation) || session_id[16] || browser_public_key[32] ||
+pico_public_key[32] || browser_nonce[16] || pico_challenge[16] ||
+u64be(expiry_monotonic_ms)`. The exact 32-byte finish-signature digest is
+`SHA256(UTF8("WsprryPico/Owner-Session-Finish/1\0") || S ||
+start_request_digest)`. A finish request must match the saved, unexpired
+start fields exactly; the first complete finish attempt consumes them before
+signature verification. A changed binding or invalid signature fails closed.
+The public key and signature encodings are the canonical P-256 forms above.
+
+An independent Python `hashlib`/`struct` vector uses device bytes `00..0f`,
+boot `10..1f`, owner-key digest `20..3f`, epoch 5, generation 9,
+session `40..4f`, browser public `50..6f`, Pico public `70..8f`, browser
+nonce `90..9f`, Pico challenge `a0..af`, and expiry 123456789 ms. Its start,
+finish and salt digests are respectively
+`d9ae570529415c35a6b879873740fbc6d283202f08191d2d0c7a931307ec4396`,
+`3f2463922847a96b5b3e21fbf668203fa54e7ec10a80206452809e34db787131`
+and `bea5a3bb64ef326c01a1339bc042f7ea0714f533ec9032d82309e148a047bfdc`.
+The portable digest builders and `owner_wire_tests` assert these bytes but do
+not create a live session or validate X25519 points.
+
+Derive 64 bytes with HKDF-SHA-256 using
 `IKM = X25519(...)`, `salt = SHA256(S)` and
 `info = UTF8("WsprryPico owner AP traffic v1")`. The first 32 bytes are the
 browser-to-Pico ChaCha20-Poly1305 key, the next 32 the Pico-to-browser key.

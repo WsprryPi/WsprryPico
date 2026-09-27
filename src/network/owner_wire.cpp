@@ -17,6 +17,9 @@ constexpr std::array<OwnerRoute, 9> routes{{
     {OwnerOperation::ResetIntent, "POST", "/api/owner/v1/reset/intent"},
 }};
 constexpr char prefix[] = "WsprryPico/Owner-HTTP/1";
+constexpr char session_start_prefix[] = "WsprryPico/Owner-Session-Start/1";
+constexpr char session_prefix[] = "WsprryPico/Owner-Session/1";
+constexpr char session_finish_prefix[] = "WsprryPico/Owner-Session-Finish/1";
 
 template <typename T> bool nonzero(const T& bytes) {
     return std::any_of(bytes.begin(), bytes.end(), [](std::uint8_t byte) { return byte != 0; });
@@ -35,6 +38,33 @@ void update_u64(wtp::Sha256& hash, std::uint64_t value) {
 }
 void update_text(wtp::Sha256& hash, std::string_view text) {
     update(hash, text.data(), text.size());
+}
+
+bool valid_session_start(const OwnerSessionFields& fields) {
+    return nonzero(fields.device_id) && nonzero(fields.owner_key_sha256) &&
+           nonzero(fields.browser_public_key) && nonzero(fields.browser_nonce);
+}
+
+bool valid_session(const OwnerSessionFields& fields) {
+    return valid_session_start(fields) && nonzero(fields.boot_id) && fields.owner_epoch &&
+           fields.profile_generation && nonzero(fields.session_id) &&
+           nonzero(fields.pico_public_key) && nonzero(fields.pico_challenge) &&
+           fields.expiry_monotonic_ms;
+}
+
+void update_session(wtp::Sha256& hash, const OwnerSessionFields& fields) {
+    update(hash, session_prefix, sizeof(session_prefix));
+    hash.update(fields.device_id);
+    hash.update(fields.boot_id);
+    hash.update(fields.owner_key_sha256);
+    update_u64(hash, fields.owner_epoch);
+    update_u64(hash, fields.profile_generation);
+    hash.update(fields.session_id);
+    hash.update(fields.browser_public_key);
+    hash.update(fields.pico_public_key);
+    hash.update(fields.browser_nonce);
+    hash.update(fields.pico_challenge);
+    update_u64(hash, fields.expiry_monotonic_ms);
 }
 } // namespace
 
@@ -80,6 +110,39 @@ std::optional<wtp::PayloadDigest> owner_signing_digest(const OwnerSigningFields&
     update_u64(signing, fields.expiry_monotonic_ms);
     signing.update(body_digest);
     return signing.finish();
+}
+
+std::optional<wtp::PayloadDigest> owner_session_start_digest(const OwnerSessionFields& fields) {
+    if (!valid_session_start(fields))
+        return std::nullopt;
+    wtp::Sha256 hash;
+    update(hash, session_start_prefix, sizeof(session_start_prefix));
+    hash.update(fields.device_id);
+    hash.update(fields.owner_key_sha256);
+    hash.update(fields.browser_public_key);
+    hash.update(fields.browser_nonce);
+    return hash.finish();
+}
+
+std::optional<wtp::PayloadDigest> owner_session_finish_digest(const OwnerSessionFields& fields) {
+    if (!valid_session(fields))
+        return std::nullopt;
+    const auto start = owner_session_start_digest(fields);
+    if (!start)
+        return std::nullopt;
+    wtp::Sha256 hash;
+    update(hash, session_finish_prefix, sizeof(session_finish_prefix));
+    update_session(hash, fields);
+    hash.update(*start);
+    return hash.finish();
+}
+
+std::optional<wtp::PayloadDigest> owner_session_salt(const OwnerSessionFields& fields) {
+    if (!valid_session(fields))
+        return std::nullopt;
+    wtp::Sha256 hash;
+    update_session(hash, fields);
+    return hash.finish();
 }
 
 } // namespace wsprrypico::network

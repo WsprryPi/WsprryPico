@@ -51,10 +51,32 @@ identity, transactional activation, Safari client and station mTLS enrollment
 are still missing. The raw HTTP parser must cap body size independently of
 the decoded sealed-body cap.
 
-The measured core-1 BOOTSEL physical-press failure remains a hard gate. A
-brief flash-safe sampling call can return while the button is still held; the
-current evidence does not prove that core 1 and flash/XIP remain safe for the
-whole press. Do not enable provisioned owner claim or recovery by treating
-the single-core pass or this cross-build as that proof. Candidate A still runs
-the earlier `fb091f8` RF-inhibited network-only image. No flash, button,
-credential, USB control or RF operation occurred in this source slice.
+The historical brief core-1 sampler failed under a physical press. A later
+[whole-gesture target run](phase12-8-bootsel-window-target.md) observed a
+human press/release with core 1 active and AP recovery; it did not implement
+an owner claim. The exact `fb091f8` image and no-hardware statement above
+describe this earlier owner-wire source slice, not Candidate A's current
+installed image.
+
+## Session-finish transcript continuation
+
+The initial wire document said the finish signature covered the start body
+without defining exact bytes. The continuation defines a canonical decoded
+start-request digest, a fixed-order session transcript `S`, a
+domain-separated finish digest and `SHA256(S)` HKDF salt. All bound fields,
+including the owner-key digest and session expiry, have exact positions and
+encodings. Independent Python `hashlib`/`struct` vectors for all three
+digests agree with the portable C++ builders; altered-binding cases reject
+the original digest.
+
+Adversarial review found that the first start-digest helper incorrectly
+required boot/response fields that do not exist at session start. It now
+validates only the four decoded start fields; finish and salt require the
+complete session. A focused test caught the old all-fields expectation and
+was corrected to assert that a start-only request can be hashed while finish
+cannot. The focused owner wire/challenge/signature tests pass 3/3, and the
+RF-inhibited Pico 2 W default image cross-links with its topology checks.
+The second assessment found no further defect in these disconnected
+transcript builders. Session routes, X25519/HKDF/AEAD execution, owner-key
+selection, expiry and journal admission remain open; no live owner authority
+is enabled.
