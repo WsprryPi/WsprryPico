@@ -298,7 +298,8 @@ bool ProfileStore::select(ProfileSource source, std::string_view canonical_profi
           !valid_network_payload(canonical_profile))) ||
         (source == ProfileSource::ConsumerProfile &&
          (!((source_ == ProfileSource::LegacyBootstrap && sequence_ == 0) ||
-            source_ == ProfileSource::NetworkOnly || source_ == ProfileSource::ConsumerProfile) ||
+            source_ == ProfileSource::Unprovisioned || source_ == ProfileSource::NetworkOnly ||
+            source_ == ProfileSource::ConsumerProfile) ||
           !valid_consumer_payload(canonical_profile, source_, data_))) ||
         sequence_ == std::numeric_limits<std::uint64_t>::max())
         return false;

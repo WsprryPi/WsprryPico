@@ -11,6 +11,7 @@ and [conformance vectors](../protocol/Field-GATT-v1-vectors.json),
 [Wi-Fi-only Candidate A target record](phase12-wifi-only-physical-result.md),
 [P12.7/P12.8 continuation and adversarial review](phase12-7-8-continuation-review.md),
 [P12.8 structural-foundation adversarial review](phase12-8-structural-foundation-review.md),
+[P12.8 portable claim-slot review](phase12-8-claim-slot-review.md),
 operator-selected [field-access/security contract](phase12-field-access-contract.md)
 and [portable review](phase12-review.md), the
 [P12.3 hardware-free integration review](phase12-3-review.md), the

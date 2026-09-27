@@ -46,6 +46,7 @@ add_library(wsprrypico_core
     src/provisioning/profile.cpp
     src/provisioning/network_profile.cpp
     src/provisioning/consumer_profile.cpp
+    src/provisioning/consumer_claim.cpp
     src/provisioning/access.cpp
     src/provisioning/ble_session.cpp
     src/provisioning/field_runtime.cpp
@@ -289,6 +290,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(consumer_storage_tests PRIVATE wsprrypico_core)
     target_compile_options(consumer_storage_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME consumer_storage_tests COMMAND consumer_storage_tests)
+    add_executable(consumer_claim_tests tests/consumer_claim_tests.cpp)
+    target_link_libraries(consumer_claim_tests PRIVATE wsprrypico_core)
+    target_compile_options(consumer_claim_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME consumer_claim_tests COMMAND consumer_claim_tests)
     add_executable(softap_api_tests tests/softap_api_tests.cpp)
     target_link_libraries(softap_api_tests PRIVATE wsprrypico_core)
     target_compile_options(softap_api_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)

@@ -1,7 +1,7 @@
 # Owner-HTTP/1: Safari commissioning and AP owner channel
 
-Status: **P12.8 WIRE DESIGN; NOT IMPLEMENTED OR TARGET ACCEPTED**
-(2026-09-27). This version implements the approved
+Status: **P12.8 WIRE DESIGN WITH PORTABLE CLAIM SLOT; HTTP/CRYPTO NOT
+IMPLEMENTED OR TARGET ACCEPTED** (2026-09-27). This version specifies the approved
 [P12.7 Safari/SoftAP design](../development/phase12-7-decision.md) when code
 and target gates pass. Until then, the running image offers only the separate
 [WiFi-Bootstrap/1](WiFi-Bootstrap-v1-proposal.md) network-only transaction on
@@ -130,7 +130,11 @@ physical window. It binds the full ID, boot, browser owner public key,
 browser ephemeral X25519 public key, browser nonce, expected source and
 generation. Identify LED denotes this one slot. One fresh 100–600 ms runtime
 BOOTSEL press/release grants it; a stale level, held-on-boot press, second
-claimant, timeout, changed key/source or unsafe sampler cancels it. The
+claimant, timeout, changed key/source, output activity or unsafe sampler
+cancels it. After the physical grant, the submit deadline is five minutes;
+once consumed, the station/commit trial deadline is 90 seconds and the
+terminal receipt remains available for 60 seconds. All deadlines use a
+monotonic clock. The
 provisioned/core-1 safe-sampling gate must pass before this route can be
 enabled in consumer firmware.
 
@@ -146,8 +150,11 @@ association/DHCP, establishes bounded UTC, generates per-device CA and
 server key/certificate, validates the complete consumer profile, and commits
 owner, Wi-Fi, station and trust data as **one** profile-journal generation.
 No owner credential is committed earlier. An interrupted, unconfigured claim
-simply expires and can be retried with a new slot. A direct blank commit is
-generation 1; upgrade from network-only generation 1 is generation 2.
+simply expires and can be retried with a new slot. A direct virgin-blank
+commit is generation 1; upgrade from network-only generation 1 is generation
+2. A completed reset tombstone at generation N may be claimed at N+1 after
+reset intent completes. `request_sha256` hashes the 16 **decoded** bytes of
+the completing request ID.
 
 `GET /api/owner/v1/claim/status` is public but returns only source,
 generation, request-ID digest, slot-ID digest and readiness flags. It never

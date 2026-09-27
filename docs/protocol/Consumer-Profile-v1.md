@@ -17,8 +17,10 @@ payload is a fault,
 not a legacy profile. A newer corrupt committed slot prevents rollback to an
 older owner or factory authority. Unknown selection values remain faults.
 The journal sequence is the externally reported profile generation; it is
-not a separate claim counter. A direct blank commit selects generation 1;
-network-only generation 1 upgrades to consumer generation 2. Later owner,
+not a separate claim counter. A direct virgin-blank commit selects generation 1;
+network-only generation 1 upgrades to consumer generation 2. A completed
+unprovisioned reset tombstone at generation N may be claimed at N+1 after
+the access reset intent has completed. Later owner,
 trust or network replacements advance the sequence exactly once each.
 
 The version-1 JSON object has **exactly** these keys in this serialization
@@ -34,7 +36,7 @@ order, with no duplicate keys or trailing data:
 | `station` | Object with exactly `callsign`, four-character `locator` and integer `power_dbm`; validate through the existing WSPR type-1 encoder rules. |
 | `tls` | Object with exactly `hostname`, `port`, `ca_certificate`, `ca_private_key`, `server_certificate`, `server_private_key`, `ca_not_after_utc`, and `server_not_after_utc`. Hostname is the exact derived local hostname; port is 443; private keys are P-256 and the certificates are P-256/SHA-256 with exact SAN/device identity and purpose. Dates are UTC seconds encoded as decimal strings. The aggregate serialized `tls` object is at most 2,304 bytes. |
 | `clients` | Array of zero to four unique client entries; each entry has exactly `name` (1–32 printable bytes), `csr_der` (canonical base64url of 1–320 DER bytes), `csr_sha256`, `public_key_sha256` (both 64 lowercase hex characters), `serial` (unique nonzero unsigned 64-bit decimal string) and `not_after_utc` (UTC seconds decimal string). The CSR must parse, bind the stored public key and digest, and be client-auth-only. Entries are sorted by public-key digest. |
-| `request_sha256` | Lowercase 64-character SHA-256 hex of the completing claim or replacement request ID. |
+| `request_sha256` | Lowercase 64-character SHA-256 hex of the completing claim or replacement request ID's 16 decoded bytes. |
 
 Within objects, keys use the table order and the nested order shown above.
 JSON strings use the project canonical serializer, not arbitrary caller
@@ -79,9 +81,10 @@ before commit leaves the previous complete source selected, or a fault if
 storage is ambiguous. Never report setup complete from a sent write alone.
 
 On migration, `LegacyBootstrap`, `RuntimeProfile`, `BuildBundle` and
-`NetworkOnly` retain their existing parser and authority rules. Only the
-approved network-only source may upgrade through the ordinary consumer claim
-route. Adopting an engineering runtime/factory source needs an explicit
+`NetworkOnly` retain their existing parser and authority rules. Only a
+healthy virgin blank, completed unprovisioned reset tombstone or the approved
+network-only source may enter the ordinary consumer claim route. Adopting an
+engineering runtime/factory source needs an explicit
 separate physical transaction that revokes its password/BLE sessions and
 trust; there is no automatic migration or factory-bundle fallback.
 Consumer mode denies legacy password, cookie, GATT and factory-bundle

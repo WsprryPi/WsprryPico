@@ -92,6 +92,14 @@ int main() {
     assert(!inert.load(direct_readback, device, provisioning::BuildBundleState::Absent));
     assert(inert.source() == provisioning::RuntimeSource::Fault);
 
+    MemoryMedia after_reset;
+    provisioning::ProfileStore tombstone(after_reset);
+    assert(tombstone.load());
+    assert(tombstone.select(provisioning::ProfileSource::Unprovisioned));
+    assert(tombstone.sequence() == 1);
+    assert(tombstone.select(provisioning::ProfileSource::ConsumerProfile, payload));
+    assert(tombstone.sequence() == 2);
+
     MemoryMedia media;
     provisioning::ProfileStore initial(media);
     assert(initial.load());

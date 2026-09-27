@@ -537,6 +537,9 @@ records a canonical parser, size and write-cut tests, and an inert journal
 source that cannot grant legacy job control. It does not close this milestone;
 owner routes, cryptographic validation, generated trust and safe provisioned
 BOOTSEL remain open.
+The [portable claim-slot review](phase12-8-claim-slot-review.md) adds one
+physically bound claim state machine and completed-reset tombstone progression;
+it is not connected to HTTP or target BOOTSEL sampling.
 
 Implement only the accepted P12.7 contract. The device must:
 
