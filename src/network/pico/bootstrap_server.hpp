@@ -43,7 +43,6 @@ class PicoBootstrapServer {
                    provisioning::ProfileStore& profile, provisioning::RandomSource& random,
                    provisioning::IndicatorController& indicator, standalone::PicoNetwork& network,
                    std::string default_password);
-    bool withdraw_ready() const;
 #endif
     bool listening() const {
         return listener_ != nullptr;
@@ -74,7 +73,7 @@ class PicoBootstrapServer {
     provisioning::NetworkProfile trial_;
     std::array<std::uint8_t, 32> ack_verifier_{};
     std::uint64_t last_sample_ms_ = 0;
-    bool mutation_safe_ = false, acked_ = false;
+    bool mutation_safe_ = false;
 #endif
 
     std::string device_;

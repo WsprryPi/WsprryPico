@@ -14,25 +14,14 @@ int main() {
     assert(gate.trial(200, false, false) == BootstrapJoinResult::Waiting);
     assert(gate.trial(300, true, false) == BootstrapJoinResult::Waiting); // DHCP not ready.
     assert(gate.trial(45'100, true, true) == BootstrapJoinResult::TimedOut);
-    gate.finish(false);
-    gate.service(45'200, true, true);
-    assert(!gate.withdraw(200'000, true, false)); // Failure cannot withdraw AP.
+    gate.finish();
+    assert(gate.trial(45'200, true, true) == BootstrapJoinResult::TimedOut);
     gate.begin(300'000);
     assert(gate.trial(301'000, true, true) == BootstrapJoinResult::Ready);
-    gate.finish(true);
-    gate.service(301'000, true, true);
-    assert(!gate.withdraw(304'000, true, true)); // Reply still in flight.
-    assert(gate.withdraw(304'000, true, false));
-    gate.service(304'001, false, false);
-    assert(!gate.withdraw(400'000, true, false));
-    gate.service(400'001, true, true);
-    assert(!gate.withdraw(403'000, true, false));
-    assert(gate.withdraw(403'001, true, false));
+    gate.finish();
+    assert(gate.trial(301'001, true, true) == BootstrapJoinResult::TimedOut);
     BootstrapJoinGate reboot;
-    reboot.finish(true);
-    reboot.service(1'000, true, true);
-    assert(!reboot.withdraw(60'999, false, false));
-    assert(reboot.withdraw(61'000, false, false));
+    assert(reboot.trial(1'000, true, true) == BootstrapJoinResult::TimedOut);
 
     const std::array<std::uint8_t, 4> bytes{0, 0xff, 0x10, 0x42};
     assert(bootstrap_hex(bytes) == "00ff1042");

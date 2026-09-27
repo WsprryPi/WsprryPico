@@ -19,9 +19,11 @@ This is the separate bootstrap design required by the
 [Phase 12 roadmap](phase12-plan.md) for commissioning without BLE. It would
 replace the [field-access contract](phase12-field-access-contract.md) rule that
 blank SoftAP is read-only. The operator approved this bounded exception on
-2026-09-26. The last flashed read-only implementation, including its best-effort
-captive landing, remains the live-device baseline until target gates pass. The
-devel source now includes the encrypted transaction and station trial. It is Stage A
+2026-09-26. The `fb091f8` encrypted-transaction image was flashed to
+Candidate A on 2026-09-27 and passed isolated-Pi open-AP preflight and
+selected-iPhone network-only generation-one reboot readback in the
+[target record](phase12-wifi-only-physical-result.md). The devel source
+includes the encrypted transaction and station trial. It is Stage A
 network/provisioning work, not Stage B RF coexistence. The
 [adversarial design review](phase12-wifi-only-bootstrap-review.md) records
 corrected findings and remaining feasibility gates.

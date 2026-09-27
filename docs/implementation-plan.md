@@ -68,7 +68,7 @@ treated as long-term product documentation.
     An alternative clock selected during 11.6 must repeat affected 11.5 checks.
     The systematic band x mode x clock comparison, final supported configurations,
     filters, spectral qualification and release firmware belong to Phase 13.
-12. **Current:** BLE-primary and SoftAP-fallback provisioning/local control.
+12. **Current:** Phase 12 provisioning/local control and consumer commissioning.
     The [Phase 12 plan](development/phase12-plan.md), operator-selected
     [field contract](development/phase12-field-access-contract.md) and
     [production review](development/phase12-production-acceptance-review.md)
@@ -96,12 +96,20 @@ treated as long-term product documentation.
     WTP `HELLO` plus read-only `STATUS`. The native-Pi BLE subset and provisioned
     SoftAP control subset have separate bounded Candidate A evidence.
 
-    Offline Bluefy reuse, fresh-password/new-pairing behavior, full profile
-    provisioning/activation, arbitrary BLE job control, blank generic SoftAP
-    HTTP, stable-station AP withdrawal, broader phone-time/LED matrices, reset
-    controls, trust/fault/coexistence/resource soak and the rest of the
-    RF-inhibited-first physical matrix remain open. Phase 12 is active and
-    `OPEN_PARTIAL`; Stage B is not authorized or performed.
+    The separate blank-device Wi-Fi-only encrypted SoftAP transaction is
+    implemented at `fb091f8`; its RF-inhibited Candidate A open-AP preflight
+    and selected-iPhone network-only generation-one reboot readback passed;
+    final phone-page and AP-return rows remain open in the
+    [target record](development/phase12-wifi-only-physical-result.md).
+    On 2026-09-27 the operator selected Safari and SoftAP only for the
+    P12.7–P12.12 consumer path. The complete design was approved in the
+    [P12.7 decision](development/phase12-7-decision.md), while P12.8 source and
+    later target acceptance remain open. The earlier
+    BLE/Bluefy evidence remains bounded engineering evidence. Full profile
+    commissioning, owner recovery, broader BLE controls, time/LED, trust,
+    fault/concurrency/resource soak and the rest of the RF-inhibited Stage A
+    matrix remain open. Phase 12 is active and `OPEN_PARTIAL`; Stage B and
+    Phase 13 remain separate.
 
 13. **Planned:** final hardware qualification and release, including the output
     network and filters, calibrated GPIO-edge timing, supported mode/band
@@ -323,8 +331,9 @@ Phase 13 qualification work.
 1. Phase 11 is closed within its documented software, bounded physical and
    scoped conducted-RF acceptance; do not broaden that result into release
    qualification.
-2. Phase 12: implement the selected BLE/SoftAP field-access contract, offline
-   controller UTC and indicator behavior, with the documented recovery path.
+2. Phase 12: finish the accepted BLE/SoftAP engineering boundary and the
+   separately gated Safari/SoftAP consumer contract, offline controller UTC,
+   indicator behavior and recovery acceptance.
 3. Phase 13: qualify supported engine/mode/band/clock combinations, timing, RF
    and reliability; finish output networks/filters and release a reproducible
    WsprryPico-x.y.z.uf2.

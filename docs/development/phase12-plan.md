@@ -4,10 +4,22 @@ Status: active and **OPEN_PARTIAL**. P12.1-P12.5 remain accepted within their
 documented hardware-free scopes. P12.6 production-enables BLE provisioning,
 authenticated controller time, Identify/status, an unchanged WTP/1 stream, the
 network-only live activator and indicator, a deterministic offline-capable
-Bluefy release, and the production SoftAP path. The SoftAP path includes the
-bounded project-owned DHCP server on `192.168.4.1/24`, AP-interface mDNS, blank
-read-only HTTP, provisioned pre-clock/normal HTTPS, password/cookie admission,
+Bluefy release, and the production SoftAP path. At that historical checkpoint,
+the SoftAP path included the bounded project-owned DHCP server on
+`192.168.4.1/24`, AP-interface mDNS, blank read-only HTTP,
+provisioned pre-clock/normal HTTPS, password/cookie admission,
 controller time and the existing browser/`JobService` API.
+
+**Current continuation (2026-09-27):** the separate approved blank-device
+Wi-Fi-only encrypted transaction is implemented on `devel` at `fb091f8` and
+its physical iPhone/network target acceptance remains open. The operator
+selected Safari and SoftAP only for the proposed P12.7–P12.12 consumer
+commissioning path. The historical BLE/Bluefy engineering evidence below
+remains valid only within its recorded scope; it does not approve the new
+Safari browser-owner contract or alter the current Field-GATT/1 engineering
+baseline. The complete revised consumer contract was approved in the
+[P12.7 decision](phase12-7-decision.md); implementation and target acceptance
+remain open.
 
 Bounded native-Pi target evidence covers BLE identity/time/status and WTP
 `HELLO`/`STATUS`, plus the provisioned SoftAP WPA2/DHCP/mDNS/TLS,
@@ -37,7 +49,8 @@ revisited P12.3 source slice remains
 **CLOSED_SCOPED** by the [P12.3 closeout](phase12-3-review.md); the later
 production work does not rewrite that evidence. The operator-selected
 [field-access and security contract](phase12-field-access-contract.md) is the
-controlling policy.
+implemented engineering baseline until an approved P12.7 revision supersedes
+its consumer rules.
 This plan does not authorize target, radio, service, trust-store, certificate-installation or RF
 operations.
 
@@ -52,7 +65,8 @@ operations.
 
 ## Scope and starting point
 
-Phase 12 adds BLE-primary provisioning/local management, a SoftAP fallback and
+The initial Phase 12 architecture added BLE-primary provisioning/local
+management, a SoftAP fallback and
 runtime Wi-Fi/TLS credential lifecycle. The implementation must preserve the
 single `JobService` ownership authority, local RP2350 timing, output-state
 authority, persistent station/schedule configuration and no-repeat watermark.
@@ -152,15 +166,17 @@ These decisions are sufficiently established for hardware-free implementation:
 10. Secrets never appear in status, logs, errors or replay entries. Staged RAM
     is scrubbed on apply, cancel, timeout and terminal failure. Persistence at
     rest is not claimed confidential by the portable implementation.
-11. The selected iPhone BLE client is a Web Bluetooth provisioning UI opened in
-    Bluefy; no WsprryPico-native iOS app is planned. The Safari-only path remains
-    the SoftAP fallback. Bluefy and the delivered web page are explicit
+11. At the P12.6 engineering checkpoint, the selected iPhone BLE client was a
+    Web Bluetooth provisioning UI opened in Bluefy. On 2026-09-27 the operator
+    selected Safari/SoftAP only for the proposed consumer P12.7–P12.12 path;
+    this earlier client rule remains a historical engineering baseline until
+    P12.7 approval. Bluefy and the delivered web page were explicit
     provisioning trust dependencies and must be identity/version-bound in
     acceptance evidence. A native Raspberry Pi/Linux BlueZ command-line client
     is an additional supported local/bench client using the same encrypted GATT
     service, full-device-ID binding, application authorization, provisioning
-    transaction and unchanged WTP/1 stream. It does not replace or qualify the
-    selected Bluefy/iOS acceptance path.
+    transaction and unchanged WTP/1 stream. It did not replace or qualify the
+    then-selected Bluefy/iOS acceptance path.
 12. The [selected field-access contract](phase12-field-access-contract.md)
     defines no-infrastructure operation, Just Works plus application-password
     enrollment, retained bonds, SoftAP field mode, controller-supplied UTC,
@@ -439,39 +455,50 @@ implementation milestone.
 
 | Milestone | Status | Outcome required to advance |
 | --- | --- | --- |
-| P12.7 — Consumer commissioning contract | **NEXT — DESIGN ONLY** | Approve the complete first-run experience, physical claim gesture, ownership model, generated credential lifecycle and recovery behavior before commissioning implementation. |
-| P12.8 — Commissioning foundation | **BLOCKED ON P12.7** | Implement the approved device-side claim, owner, identity-generation and atomic configuration/activation state machines with deterministic failure coverage. |
-| P12.9 — Guided Bluefy setup | **BLOCKED ON P12.8** | Deliver one simple Bluefy setup flow that hides protocol, certificate and journal mechanics from the user. |
-| P12.10 — RF-inhibited commissioning acceptance | **BLOCKED ON P12.9** | Commission a blank Candidate A from the selected iPhone, reboot and prove BLE plus station-side readback without RF. Record the actual generation: direct full commissioning from blank can be generation 1; an upgrade after the separate Wi-Fi-only bootstrap would be generation 2. |
+| P12.7 — Consumer commissioning contract | **APPROVED DESIGN** | The [decision](phase12-7-decision.md) accepts the Safari/SoftAP experience, physical claim, browser owner model, generated credential lifecycle and recovery contract. |
+| P12.8 — Commissioning foundation | **IN PROGRESS — IMPLEMENTATION OPEN** | Finish and vector-review [Owner-HTTP/1](../protocol/Owner-HTTP-v1.md) and [Consumer-Profile/1](../protocol/Consumer-Profile-v1.md), then implement the approved device-side claim, owner, identity-generation and atomic configuration/activation state machines with deterministic failure coverage. |
+| P12.9 — Guided Safari/SoftAP setup | **BLOCKED ON P12.8** | Deliver one simple Safari setup flow that hides protocol, certificate and journal mechanics from the user. |
+| P12.10 — RF-inhibited commissioning acceptance | **BLOCKED ON P12.9** | Commission Candidate A from the selected iPhone, reboot and prove Safari-owner plus station-side readback without RF. Record the actual generation: direct full commissioning from blank can be generation 1; an upgrade after the separate Wi-Fi-only bootstrap would be generation 2. |
 | P12.11 — Ownership, recovery and fallback | **BLOCKED ON P12.10** | Accept additional-phone enrollment, owner loss, access recovery, provisioning reset, full erase and provisioned SoftAP fallback with unambiguous physical controls. |
 | P12.12 — Stage A robustness and closure | **BLOCKED ON P12.11** | Close the remaining fault, trust, resource, concurrency, soak, controller-time, LED and restoration rows and complete the final adversarial review. |
 
 ### P12.7 Consumer commissioning contract
 
-This milestone is discussion and documentation only. No commissioning code is
-authorized until its exit gate is accepted.
-The operator has paused the Bluefy/native-app path and approved a separate
+This milestone was discussion and documentation only. The operator approved
+the complete [P12.7 decision](phase12-7-decision.md) on 2026-09-27, selecting
+Safari and SoftAP only for consumer commissioning. P12.8 may now implement
+that design, subject to its wire/storage and safety gates.
+The operator previously approved a separate
 [Wi-Fi-only network bootstrap design](phase12-wifi-only-bootstrap-proposal.md)
 for a blank device on 2026-09-26. The [version-1 wire contract](../protocol/WiFi-Bootstrap-v1-proposal.md)
 and [implementation prompt](phase12-wifi-only-implementation-prompt.md)
 specify its network-only exception. Its first journal commit would be
 generation 1; upgrading that device later to a full profile would be
 generation 2. The devel source now includes the encrypted AP transaction and
-network-only commit, but its image has not been flashed or accepted on the
-target. This exception does not close the consumer owner,
+network-only commit. The exact `fb091f8` image was flashed to Candidate A
+and passed isolated-Pi open-AP preflight and selected-iPhone network-only
+generation-one reboot readback on 2026-09-27; final phone-page and AP-return
+rows remain open in the
+[target record](phase12-wifi-only-physical-result.md). The later working
+source keeps that AP available for Safari upgrade after station join; its
+target AP/STA continuity is not covered by the installed-image result. This
+exception does not close the consumer owner,
 credential and recovery decisions in P12.7 or authorize P12.8–P12.12.
-The [gated execution prompt](phase12-7-12-execution-prompt.md) and
+The [gated execution prompt](phase12-7-12-execution-prompt.md),
+[Owner-HTTP/1 design](../protocol/Owner-HTTP-v1.md),
+[Consumer-Profile/1 storage design](../protocol/Consumer-Profile-v1.md) and
 [consumer contract proposal](phase12-7-consumer-commissioning-proposal.md)
-record a concrete candidate and its unresolved trust and recovery decisions.
-They are proposals, not approval or evidence that this milestone has closed.
-On 2026-09-26 the operator paused Bluefy work. The P12.9 client label and the
-five-step screen draft below need a replacement-client decision before they
-can become an approved implementation contract.
+record the accepted trust and recovery decisions. The
+[decision record](phase12-7-decision.md) closes this design milestone, while
+implementation and target acceptance remain open.
+The [revised P12.7 proposal](phase12-7-consumer-commissioning-proposal.md)
+replaces the Bluefy/BLE-owner draft with the approved Safari owner-key design.
+It is not implementation or physical acceptance evidence.
 
 The selected end-user journey must be no more complicated than:
 
 1. Power on an uncommissioned WsprryPico.
-2. In Bluefy, choose **Set up WsprryPico** and select the advertised device.
+2. Join its open SoftAP and choose **Set up this Pico** in Safari.
 3. Confirm the physical device once when its LED identifies it.
 4. Enter ordinary Wi-Fi and station settings and choose **Connect**.
 5. Wait for **Setup complete** after activation and verified readback.
@@ -482,33 +509,26 @@ protocol session identifier or second password entry. Advanced service tooling
 may retain explicit forms of those mechanisms, but it does not define the
 consumer path.
 
-Before P12.8 begins, select and document:
+The approved P12.7 contract selects:
 
-- the exact safe runtime physical claim gesture; BOOTSEL held at boot is not
-  viable because it enters ROM boot rather than the application;
-- how the gesture binds the currently displayed device, BLE connection, boot,
-  provisional bond and one bounded claim attempt;
-- the minimal settings requested from the user, with Wi-Fi and station identity
-  separated from advanced options;
-- whether cryptographic identity is generated on-device at first claim or
-  installed as a factory identity; manual PEM entry is not an end-user option;
-- how the first owner obtains station-server trust and how later mTLS clients
-  are enrolled without asking a normal user to manipulate CA files, client
-  certificates, private keys or operating-system trust stores during setup;
-- whether the existing application password is retired from first-run authority
-  or retained only as an invisible implementation proof; either choice must
-  leave physical claim plus the retained owner credential as the user model;
-- how a retained owner bond authorizes normal reconnects and how a physical
-  action deliberately admits another phone;
-- the success, retry and unknown-result language for disconnects before, during
-  and after commit; and
-- the exact physical recovery actions for access recovery, provisioning reset
-  and full operational erase.
+- one prompted 100–600 ms runtime BOOTSEL press/release bound to full device
+  ID, exact Safari origin, browser owner key, boot and one request; the
+  provisioned/core-1 safety proof remains a hard implementation gate;
+- ordinary Wi-Fi and station fields, with advanced time, trust and protocol
+  settings outside the five-step consumer flow;
+- a per-device CA and server key generated on the Pico after checked entropy
+  and UTC, with separately approved station-client CSRs and no user PEM work;
+- a retained Safari owner key as consumer authority; the old application
+  password and BLE bond do not become consumer ownership;
+- an always-available open AP in network-only and consumer modes, encrypted
+  owner traffic, one physical second-phone approval, explicit access recovery
+  and distinct network/full reset ceremonies; and
+- **Checking setup** through unknown results, with **Setup complete** only
+  after exact owner, profile generation, station and trust readback.
 
-Exit gate: an accepted state/UX/security contract updates the roadmap,
-field-access contract, Field-GATT compatibility decision, Bluefy screen flow,
-recovery semantics and Stage A acceptance cases. No unresolved user-visible
-security ceremony may be deferred into implementation.
+The design exit gate is closed by the [P12.7 decision](phase12-7-decision.md).
+The wire, storage, source, target and Stage A proof gates remain in the later
+milestones; no user-visible security ceremony is left to implementation choice.
 
 ### P12.8 Commissioning foundation
 
@@ -516,8 +536,8 @@ Implement only the accepted P12.7 contract. The device must:
 
 - advertise a clear uncommissioned/setup state without treating a name or MAC
   suffix as identity proof;
-- bind one physical claim to the exact current connection and provisional bond,
-  then promote that bond to the retained owner only after the claim succeeds;
+- bind one physical claim to the exact Safari origin, browser public key and
+  request, then retain that key as owner only after the claim succeeds;
 - create or install its device-specific TLS identity without asking the user to
   handle certificate or key material;
 - establish the selected station-server trust and bounded advanced-client
@@ -532,16 +552,16 @@ Implement only the accepted P12.7 contract. The device must:
 
 Existing low-level passwords, proofs or profile records may remain internal
 implementation details only if they add no user step and cannot grant authority
-beyond the physically claimed session. Hardware-free acceptance must cover
+beyond the physically claimed browser owner. Hardware-free acceptance must cover
 wrong-device, competing claimant, expired gesture, replay, interrupted journal,
 activation failure, response-loss reconciliation and secret-free diagnostics.
 
-### P12.9 Guided Bluefy setup
+### P12.9 Guided Safari/SoftAP setup
 
-Bluefy must present one linear product flow rather than a protocol console:
+Safari must present one linear product flow rather than a protocol console:
 
-- **Select device** uses the chooser and then verifies the complete encrypted
-  identity internally;
+- **Select device** joins the open AP and verifies the full device identity
+  internally before using its full-ID-indexed owner key at the AP-local origin;
 - **Confirm device** runs Identify and waits for the selected physical claim;
 - **Connect** requests only the accepted Wi-Fi/station fields, validates them
   locally and submits the single commissioning transaction; and
@@ -549,29 +569,32 @@ Bluefy must present one linear product flow rather than a protocol console:
   identity and network-readiness checks succeed.
 
 The page must never display internal operation names or tell a normal user to
-enter a default password, profile JSON, PEM data or USB command. It must retain
-the existing release-integrity and offline-cache controls, avoid persistent
-secret storage, clear entered values on every terminal path and distinguish
-retryable transport loss from committed-but-not-yet-reconciled state.
+enter a default password, profile JSON, PEM data or USB command. It must use
+locally bundled assets and persist only the proposed Safari owner private key
+after its storage/readback gate; Wi-Fi and transient crypto secrets are cleared
+on every terminal path. It must distinguish retryable transport loss from
+committed-but-not-yet-reconciled state. The captive sheet may be a launch aid
+but must not silently become the owner credential store.
 
 Exit gate: deterministic browser/device conformance tests and an adversarial
 review cover the happy path, every screen transition, back/cancel/reload,
-chooser rejection, wrong device, gesture expiry, connection loss at each
+Safari storage failure, wrong device/origin, gesture expiry, connection loss at each
 transaction boundary, activation failure and safe retry.
 
 ### P12.10 RF-inhibited commissioning acceptance
 
 Using a clean committed RF-inhibited image on Candidate A and the recorded
-iPhone/iOS/Bluefy combination:
+iPhone/iOS/Safari combination:
 
 1. Start from the documented blank/uncommissioned state with no retained owner.
-2. Install and verify the exact Bluefy release, then prove offline page reuse
-   with Wi-Fi and cellular disabled.
+2. Verify the exact locally bundled Safari page and phone capability, then
+   prove offline page use with infrastructure Wi-Fi and cellular disabled.
 3. Select and Identify the exact device, perform the physical claim and complete
    setup without a console, manual identifier, default-password prompt, file
    import or certificate handling.
-4. Enter ordinary Wi-Fi/station settings, commit generation 1 and preserve the
-   terminal response before activation.
+4. Enter ordinary Wi-Fi/station settings, commit the actual generation (1 for
+   direct blank full setup or 2 after network-only generation 1) and preserve
+   the terminal response before activation.
 5. Reboot/reconnect and verify the same device, generation and retained owner;
    station association, DHCP/mDNS, controller time and positive mTLS WTP/HTTPS
    readback must agree with the committed configuration.
@@ -589,7 +612,7 @@ Finish the consumer lifecycle after first setup:
 
 - enroll a second phone only after a fresh physical action and prove a nearby
   unconfirmed phone cannot claim or displace the owner;
-- define bounded owner/bond capacity, deliberate removal and replacement without
+- define bounded owner-key capacity, deliberate removal and replacement without
   silent eviction;
 - recover from a lost phone without requiring the old phone, while preserving
   the operational profile during access recovery;
@@ -597,12 +620,13 @@ Finish the consumer lifecycle after first setup:
   resistant to accidental invocation and power-loss safe;
 - verify post-reset advertisement, owner state, settings preservation/clearing
   and RF-inhibited restoration exactly match the selected reset level; and
-- retain blank-device SoftAP as read-only identity/status under the current
-  implementation. The separately approved network-only exception has its own
-  physical and encrypted-credential gates. Provisioned SoftAP remains an
-  authenticated recovery/control fallback after device TLS identity exists.
+- retain only the approved encrypted Wi-Fi-only mutation and read-only
+  identity/status on the current blank AP. The proposed full commissioning
+  and provisioned owner-control AP surfaces need P12.7 approval and separate
+  physical acceptance. Station TLS identity does not make Safari trust an
+  AP certificate automatically.
 
-Complete owner commissioning without BLE still requires its own approved
+Full Safari/SoftAP owner commissioning still requires its own approved
 bootstrap design. The separately approved Wi-Fi-only network join does not
 grant an owner, station trust, job control or RF authority; it protects the
 submitted Wi-Fi credentials against passive AP listeners with a fresh key
@@ -622,15 +646,17 @@ remains disabled. A later no-flash run on the standard image passed physical
 press/release with concurrent AP traffic while core 1 was absent. The
 physical-claim design is now narrowed to blank, RF-inhibited, core-1-absent
 operation. The fail-closed source/link guards cross-build and are reviewed;
-their new image has not been flashed. The failed core-1 row is not accepted.
+the later `fb091f8` guarded image was flashed for the bounded 2026-09-27
+open-AP preflight, but its live physical press remains untested. The failed
+core-1 row is not accepted.
 The operator directed future image testing to
 roll forward rather than routinely restoring an older UF2.
 The next [source-only delivery review](phase12-wifi-only-foundation-review.md#source-only-asset-delivery-continuation-2026-09-26)
 embeds the local browser bundle and streams its static assets in bounded
 chunks. At that checkpoint the setup document and credential POST remained
 disabled. The subsequent [transaction source review](phase12-wifi-only-transaction-review.md)
-records their source implementation and remaining target gate; neither new
-image has been flashed.
+records their source implementation and remaining target gate. The later
+`fb091f8` image passed the separate open-AP preflight, not the phone join.
 
 The separate [blank read-only captive landing review](phase12-blank-captive-landing-review.md)
 records a source-tested, RF-inhibited-image implementation of AP-only DNS and

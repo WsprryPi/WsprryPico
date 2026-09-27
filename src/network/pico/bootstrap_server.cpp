@@ -168,7 +168,7 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
     if (before_expiry != BootstrapSlotState::None && slot_.state() == BootstrapSlotState::None) {
         if (before_expiry == BootstrapSlotState::Trial) {
             network_->stop_network_only_trial();
-            join_.finish(false);
+            join_.finish();
         }
         cancel_slot();
     }
@@ -214,13 +214,10 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
         } else if (result == BootstrapJoinResult::TimedOut)
             end_trial(false, now_ms);
     }
-    const bool linked = network_ && network_->link_up();
-    const auto address = linked ? network_->ipv4() : std::string{};
-    join_.service(now_ms, linked, !address.empty() && address != "0.0.0.0");
 #endif
     if (!active_) {
         // Do not leave a wildcard port-80 listener on the station interface
-        // after the captive AP withdraws. Fallback reopens it on AP return.
+        // if the AP stops or the service is otherwise unavailable.
         stop();
         return;
     }
@@ -325,8 +322,6 @@ void PicoBootstrapServer::configure(std::string boot_id, provisioning::AccessSto
     indicator_ = &indicator;
     network_ = &network;
     default_password_ = std::move(default_password);
-    if (profile.healthy() && profile.source() == provisioning::ProfileSource::NetworkOnly)
-        join_.finish(true); // Reboot preserves the durable record, not the ACK.
 }
 
 bool PicoBootstrapServer::blank_authority() const {
@@ -346,7 +341,7 @@ bool PicoBootstrapServer::blank_authority() const {
 void PicoBootstrapServer::cancel_slot() {
     if (slot_.state() == BootstrapSlotState::Trial && network_) {
         network_->stop_network_only_trial();
-        join_.finish(false);
+        join_.finish();
     }
     slot_.cancel();
     crypto_.clear();
@@ -361,7 +356,7 @@ void PicoBootstrapServer::end_trial(bool committed, std::uint64_t now_ms) {
     provisioning::scrub(trial_);
     if (!committed)
         erase(ack_verifier_);
-    join_.finish(committed);
+    join_.finish();
     (void)slot_.finish(committed, now_ms);
 }
 
@@ -487,7 +482,6 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
             difference |= tag[i] ^ ack_verifier_[i];
         if (difference || !slot_.acknowledge(true, now_ms))
             return http_error(403, "unavailable");
-        acked_ = true;
         erase(ack_verifier_);
         slot_digest_.clear();
         return json("{\"version\":1,\"state\":\"accepted\"}");
@@ -495,13 +489,6 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
     return http_error(404, "not_found");
 }
 
-bool PicoBootstrapServer::withdraw_ready() const {
-    if (!profile_ || profile_->source() != provisioning::ProfileSource::NetworkOnly || !network_ ||
-        !network_->link_up() || client_)
-        return false;
-    const auto now_ms = time_us_64() / 1000;
-    return join_.withdraw(now_ms, acked_, false);
-}
 #endif
 
 } // namespace wsprrypico::network

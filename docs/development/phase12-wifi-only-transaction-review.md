@@ -1,10 +1,22 @@
 # Phase 12 Wi-Fi-only transaction source review
 
-Status: **SOURCE IMPLEMENTED AND REVIEWED; TARGET ACCEPTANCE OPEN** (2026-09-26).
+The approved P12.7 Safari-only path subsequently requires the network-only
+AP to remain available for full setup. Current working source removes the
+post-commit withdrawal override; the findings below describe the exact
+`fb091f8` implementation and Candidate A image, not acceptance of the new
+AP lifetime or its AP/STA resource cost.
+
+Status: **SOURCE IMPLEMENTED AND REVIEWED; NETWORK-ONLY GENERATION-1
+REBOOT READBACK PASSED; FINAL PHONE PAGE/AP-RETURN ROWS OPEN** (2026-09-27).
 This is the approved network-only exception to P12.7. It does not approve
 consumer ownership, station API, RF output, or the rest of P12.7–P12.12.
-The latest source image has not been flashed. Candidate A still runs the
-previous GET-only diagnostic.
+The exact `fb091f8` RF-inhibited image was flashed to Candidate A on
+2026-09-27 and passed the bounded USB/open-AP preflight recorded in the
+[target result](phase12-wifi-only-physical-result.md). The selected-iPhone
+credential submission reached a station trial with an address, and the
+approved restart independently selected network-only generation 1 at that
+address with inactive output. The iPhone final-page result and AP fallback
+remain open.
 
 ## Implemented boundary
 
@@ -62,7 +74,8 @@ BTstack include in `gatt_transport.hpp`.
   core-1 launcher or reader. A cross-build is not a flashed or physical test.
 - `git diff --check` and local documentation links were checked before commit.
 
-The next target run needs separate authority for the exact image, Candidate A,
-station attempt and button. It should roll forward, record the post-test image
-and state, and cover captive-sheet/Safari completion, failed join and retry,
-generation-one reboot readback, AP withdrawal/fallback and output inhibition.
+The bounded target continuation recorded the selected iPhone's
+BOOTSEL-confirmed station attempt, address and generation-one reboot
+readback. Captive-sheet final completion, failed-join retry and AP return
+after station loss were not exercised. The installed image remains the
+RF-inhibited `fb091f8` image unless a later exact authorization changes it.

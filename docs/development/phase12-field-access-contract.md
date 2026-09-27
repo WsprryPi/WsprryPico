@@ -1,6 +1,7 @@
 # Phase 12 field-access and security contract
 
-Status: operator-selected on 2026-09-21. The policy is complete. Its portable
+Status: **2026-09-27 SAFARI/SOFTAP CONSUMER AMENDMENT APPROVED; IMPLEMENTATION
+OPEN**. The engineering policy below was operator-selected on 2026-09-21. Its portable
 access/persistence implementation and candidate BLE, SoftAP, controller-time and
 indicator adapters are hardware-free source-complete under the scoped P12.3
 review; production service wiring, exact gestures, offline-page qualification
@@ -8,19 +9,57 @@ and all physical acceptance remain open.
 This document grants no authority to operate hardware, enable a
 radio, alter a trust store, flash firmware or emit RF.
 
-This is the canonical product/security decision record for Phase 12. It resolves
-the choices that were still open in the [Phase 12 plan](phase12-plan.md).
+This is the canonical implemented engineering policy for Phase 12. The
+accepted [P12.7 Safari/SoftAP decision](phase12-7-decision.md) supersedes the
+consumer rules identified in the amendment below; it is not yet implemented.
+The engineering policy resolved
+the choices that were still open at its [Phase 12 plan](phase12-plan.md) checkpoint.
 Contemporaneous P12.1-P12.5 review records remain accurate descriptions of what
 was and was not selected at their checkpoints; their old open-decision lists do
 not override this later contract.
 
 On 2026-09-26 the operator approved a narrower
 [Wi-Fi-only network bootstrap exception](phase12-wifi-only-bootstrap-proposal.md)
-for a truly blank device. It may eventually replace the blank read-only AP
-surface after its runtime BOOTSEL and encrypted-submission gates pass. It saves
-only station credentials; it does not change the owner, TLS, provisioned SoftAP,
-job or RF authority rules here. The currently implemented blank AP remains
-read-only. Complete owner commissioning without BLE remains a separate design.
+for a truly blank device. Its encrypted-submission source is implemented at
+`fb091f8` and a bounded Candidate A/iPhone station trial with durable
+generation-one reboot readback is recorded in the
+[target result](phase12-wifi-only-physical-result.md); the final phone-page
+and AP-return rows remain open. It saves only station credentials and does not
+grant owner, TLS, job or RF authority. The later complete owner-commissioning design was separately
+approved in P12.7.
+
+## Approved 2026-09-27 consumer amendment
+
+For new consumer commissioning, **Safari and SoftAP only** replace the older
+BLE-primary/Bluefy and WPA2/HTTPS Safari setup rules below. The blank AP is
+open and currently accepts only the separate encrypted Wi-Fi-only
+transaction. The approved full path adds a one-tap, exact-device Safari
+owner claim, locally retained browser signing key, generated per-device
+CA/server identity, owner-authenticated encrypted AP sessions and a single
+transactional full profile. Ordinary setup has no AP password, setup code,
+QR/PIN, Bluefy, native app, manual ID, JSON/PEM, USB command or certificate
+installation. The owner enters only ordinary home Wi-Fi and station settings.
+
+The open AP remains available in network-only and full consumer modes so
+Safari can complete setup and later owner actions while station Wi-Fi is
+healthy. Its AP/STA, memory and RF coexistence cost remains an acceptance
+gate. The fixed numeric Safari HTTP origin is shared across Pico APs;
+full-ID-indexed honest selection does not prevent a malicious same-origin
+page from reading other Pico owner keys. The operator accepted that active
+page-substitution risk. Sensitive AP reads and writes require the versioned
+owner signature and encrypted session; WiFi-Bootstrap/1 grants no owner or
+job authority. Station mTLS/HTTPS remains independent, with a per-device CA
+in ordinary Pico flash and owner/physical approval for each client CSR.
+
+The [approved design](phase12-7-consumer-commissioning-proposal.md) defines
+second-phone keys, lost-owner access recovery, reset levels, trust renewal,
+power-cut rules and generation semantics. The owner HTTP wire and storage
+migration must be versioned and reviewed before P12.8 source implementation.
+The runtime BOOTSEL gesture is not qualified on a provisioned core-1/RF
+image; it requires a hard safe-mode and target gate. Until that implementation
+passes, the older engineering password/PEM/Field-GATT/1 behavior below remains
+the running firmware baseline. Field-GATT/1 remains frozen and is not
+silently redefined by this consumer amendment.
 
 This document controls authority, recovery and acceptance policy. The custom
 BLE UUIDs, framing and operation schemas are documented separately in the

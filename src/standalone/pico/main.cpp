@@ -337,9 +337,9 @@ int main() {
     server.softap_handler(&softap_api, softap_interface, nullptr);
     static wsprrypico::network::PicoBootstrapServer bootstrap(
         identities.device_id(), wsprrypico::firmware::kFirmwareVersion, softap_interface, nullptr);
-    // The plaintext listener is exclusive to a truly unprovisioned recovery
-    // surface.  Starting it for provisioned images would consume the single
-    // bounded lwIP listen PCB before the authenticated TLS listener starts.
+    // The plaintext listener is exclusive to unprovisioned or network-only
+    // surfaces. Starting it for a full profile would consume the bounded
+    // lwIP listen PCB before the authenticated TLS listener starts.
     const auto blank_access_available = []() {
         return access_store.state() == wsprrypico::provisioning::AccessStoreState::Erased ||
                (access_store.state() == wsprrypico::provisioning::AccessStoreState::Healthy &&
@@ -847,11 +847,7 @@ int main() {
         softap_coordinator.token_records(
             local_access.live_softap_sessions(field_now_ms, service.owner_session_id()));
         softap_coordinator.reply_active(server.softap_active());
-        bool request_softap = softap_coordinator.poll(field_now_ms);
-#ifndef WSPRRY_PICO_STANDALONE_RF
-        if (bootstrap.withdraw_ready())
-            request_softap = false;
-#endif
+        const bool request_softap = softap_coordinator.poll(field_now_ms);
         const auto surface = softap_coordinator.surface(
             service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized);
         const bool blank_captive =

@@ -7,6 +7,13 @@ authority. The [execution prompt](../development/phase12-wifi-only-contract-exec
 and [product proposal](../development/phase12-wifi-only-bootstrap-proposal.md)
 carry the approval and target gates.
 
+The later approved [P12.7 Safari/SoftAP contract](../development/phase12-7-decision.md)
+changes **AP lifetime only**, without changing WiFi-Bootstrap/1 request or
+crypto encoding: a network-only AP remains available after station join for
+later full commissioning. The `fb091f8` physical trial used the prior
+post-commit withdrawal behavior; its evidence is not rebound to this source
+change. The historical withdrawal paragraphs below describe that image.
+
 ## Admission and state
 
 The device must be authoritatively unprovisioned at generation 0, with a
