@@ -1,8 +1,8 @@
 # Phase 12 Wi-Fi-only runtime BOOTSEL gate
 
-Status: **SINGLE-CORE RELEASED-BUTTON PROBE PASS; TARGET GATE OPEN**. No
-credential-accepting HTTP route is enabled. A physical press/release and the
-second-core interaction remain unqualified.
+Status: **SINGLE-CORE PRESS/RELEASE AND CORE-1 RELEASED/AP PROBES PASS;
+TARGET GATE OPEN**. No credential-accepting HTTP route is enabled. The physical
+press while core 1 is active remains unqualified.
 
 ## Candidate and source checks
 
@@ -51,22 +51,85 @@ and zero lwIP heap errors. The temporary NetworkManager connection on
 The comparator was not operated.
 
 This proves only the released-button single-core path under that bounded AP
-load. It does not show a physical press edge, grant, flash-write overlap or
-second-core coordination. The diagnostic remains flashed and exposes the
-same GET-only blank AP. No station credentials were submitted and no RF job
-ran.
+load. It does not show a flash-write overlap or second-core coordination. No
+station credentials were submitted and no RF job ran.
+
+The operator then approved a separate exact RF-inhibited core-1 image, UF2
+SHA-256 `fe574c9ad0cd1fbecf2063e9eeeec33b929e0b95975a30e74915c575e54d0f6d`,
+and restoration of the standard diagnostic. Serial-targeted picotool load and
+verify passed, but two USB-local `BOOTSEL PROBE` calls returned
+`{"ok":false,"error":"core1_unready"}`. No BOOTSEL press was attempted on
+that image. Source review found that its explicit core-1 stack was 4 KiB,
+exactly the reserve required by `wsprry_stack_limit_for`: the guard rejects a
+stack pointer at or below bottom plus 4 KiB before the diagnostic entry can
+set its ready flag. This is a concrete defect in that diagnostic, not evidence
+of a failed SDK flash lockout. The second-core gate stays open.
+
+The approved standard UF2 `0bc63856...` was restored with serial-targeted
+load and verify. The final running image reported revision
+`fc9caab158b7-dirty`, boot ID `150e65b6c16005a9f6727459584bd676`,
+unprovisioned generation 0, erased access generation 0, healthy storage,
+empty job, inactive output, zero allocator failures and zero lwIP heap errors.
+The operator held and released BOOTSEL while the 50-second USB-local probe ran
+on this restored image. Nine consecutive samples reported `pressed=true`,
+followed by `pressed=false`; all 100 safe-zone calls returned `ok=true`, SDK
+result 0 and 33–38 microseconds. This qualifies the single-core press/release
+transition for this exact RF-inhibited image, without AP traffic during the
+press. The blank AP remains GET-only; the comparator was untouched.
+
+The source repair supplies 8 KiB to the opt-in core-1 diagnostic, retaining
+4 KiB beyond the project guard reserve. Its cross-build and linked heap/both-
+core stack checks pass. The repaired candidate UF2 SHA-256 is
+`e35431ef397ffd5ee6ebc3405e9d5f165c1db76f6ef7329aedcd86ed963570b6`.
+The operator approved flashing that exact RF-inhibited image, testing the
+released-button path with AP traffic and restoring the prior image. The copied
+UF2 on `wspr5` matched the hash; serial-targeted picotool read RP2350 chip ID
+`0x0bf4b4aec9ffb344` and load/verify/execute succeeded. The running diagnostic
+reported revision `192bfc028958-dirty`, boot ID
+`281143e2fd97104691de2df73e886edc`, inhibited standalone simulator,
+healthy generation-0/erased state, empty job and inactive output. One initial
+released-button probe returned `ok=true`, result 0, 84 microseconds and an
+advancing core-1 read counter. On isolated `wspr5` `wlan2`, twenty further
+released-button safe-zone probes returned result 0 and 82–85 microseconds while
+the flash-reading core counter advanced across every call. Concurrent blank-AP
+traffic completed 52 HTTP 200 GETs with zero failures. The final core-1 image
+read retained generation 0, erased access, healthy storage, empty job, inactive
+output and zero allocator failures. No credential POST or RF job ran.
+
+The temporary Pi AP profile was deleted and `wlan2` left disconnected;
+`eth0` and `wlan1` remained connected. The approved standard GET-only UF2
+`0bc63856...` was then serial-targeted loaded and Candidate A booted it with
+revision `fc9caab158b7-dirty`, boot ID
+`120ff9cfac570eb33fcc68b6ec790e94`, generation 0, erased access, healthy
+storage, empty job, inactive output and zero allocator failures. A final
+released-button probe returned result 0 in 36 microseconds. The comparator was
+untouched. This bounds the second-core result to released-button/AP activity;
+there was no physical press on the core-1 image.
 
 ## Remaining target procedure
 
-1. Have the operator press and release BOOTSEL; probe while held and after
-   release. Require safe completion, correct transitions, restored USB/AP
-   service and no flash/journal corruption or reboot.
-2. Repeat with the second core running a flash-using idle diagnostic and its
-   SDK flash-safe victim initialized. The current standard RF-inhibited image
-   does not start core 1; the single-core probe cannot by itself close this
-   row. A separate exact RF-inhibited diagnostic image and authority are
-   needed if the static audit cannot prove the second-core interaction.
-3. Record exact timings, flash/core/radio result and final restoration before
+1. Under a separate exact-image authorization and with the operator at the
+   device, repeat the press/release transition while the repaired core-1
+   diagnostic runs and AP traffic continues. Require safe completion, correct
+   transitions, resumed core-1 reads, restored USB/AP service, no reboot and
+   preserved journal. The current standard RF-inhibited image does not start
+   core 1; the separate opt-in `WSPRRY_PICO_BOOTSEL_CORE1_DIAGNOSTIC` image is
+   RF-inhibited and has no HTTP write route. It uses an 8-KiB explicit core-1
+   stack, repeated XIP flash reads, SDK `flash_safe_execute_core_init()` on
+   core 1 and a progress counter in `BOOTSEL PROBE`. The repaired diagnostic
+   was built from `devel` commit `192bfc028958f4726f6a2f849c2c30a7a1db9ab5`
+   plus the repaired core-1 candidate patch (`git diff` over
+   `firmware/CMakeLists.txt` and `src/standalone/pico/main.cpp`, SHA-256
+   `a415c0d32425c7f11ae485680c3911288c721d829298b66e1c38f6379e0dabaa`),
+   Pico SDK 2.3.1 commit
+   `079c6f39023649b154152db30f1d781e884879bc` and Arm GNU 15.3.1.
+   Its linked image contains the SDK multicore lockout handler and the
+   56-byte SRAM BOOTSEL callback; heap and both-core stack link checks pass.
+   The build required the full Xcode 26.5 SDK environment for SDK-hosted
+   `pioasm` and picotool; the default command-line SDK failed those host
+   linker probes. The final build passed with `DEVELOPER_DIR` and `SDKROOT`
+   pointed at Xcode.
+2. Record exact timings, flash/core/radio result and final restoration before
    enabling the physical-grant or encrypted submission path. A failed or
    inconclusive run keeps the blank captive page read-only.
 

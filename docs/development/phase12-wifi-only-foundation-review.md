@@ -4,7 +4,7 @@ Status: **SOURCE FOUNDATION REVIEWED; CREDENTIAL FLOW AND TARGET ACCEPTANCE OPEN
 This review covers the bounded source changes made after the operator approved
 the [network-only exception](phase12-wifi-only-bootstrap-proposal.md) on
 2026-09-26. It does not claim an implemented Wi-Fi credential form or a
-complete physical BOOTSEL result. The current AP HTTP handler still returns `405`
+complete second-core BOOTSEL result. The current AP HTTP handler still returns `405`
 for every non-GET request.
 
 ## First adversarial assessment and repairs
@@ -77,11 +77,43 @@ does not prove target entropy, heap or concurrency under an enabled route.
 
 The first physical continuation used an exact serial-targeted diagnostic
 flash. Thirty released-button BOOTSEL probes passed, including twenty during
-77 successful open-AP GETs from isolated `wspr5` `wlan2`. The final Pico read
-retained erased profile/access state, inactive output and an empty job. The
-[target record](phase12-wifi-only-bootsel-gate.md) names the image and scope;
-press/release and core-1 interaction remain open. The temporary Pi AP profile
-was removed.
+77 successful open-AP GETs from isolated `wspr5` `wlan2`. After the separate
+core-1 attempt, the standard image was restored and a 50-second USB probe
+observed nine consecutive held-button samples followed by release; all 100
+safe-zone calls succeeded. The final Pico read retained erased profile/access
+state, inactive output and an empty job. The [target record](phase12-wifi-only-bootsel-gate.md)
+names both images and their limits. The temporary Pi AP profile was removed.
+
+The first opt-in RF-inhibited core-1 diagnostic was flashed under separate
+exact-image authority. It booted, but two `BOOTSEL PROBE` calls returned
+`core1_unready`, so no second-core BOOTSEL sampling was attempted. Adversarial
+review found the diagnostic supplied a 4-KiB stack to a startup guard that
+requires a 4-KiB reserve plus working room; this prevents the core-1 entry
+from publishing readiness. The repaired candidate supplies an 8-KiB stack and
+passes a fresh cross-build plus both-core stack and heap link checks. It then
+passed 20 released-button safe-zone probes on Candidate A, with the flash-reading
+core advancing across every call while the isolated Pi completed 52 open-AP
+GETs without failure. The former GET-only image was restored and verified.
+This bounded result does not prove a physical press transition with core 1
+active; the target gate remains open.
+
+The core-1 adversarial pass also found no build-time check tying the opt-in
+stack to the project guard reserve. The repair adds a compile-time requirement
+for 4 KiB of working stack beyond that reserve and host boundary assertions
+for rejected 4-KiB and admitted 8-KiB stacks. The focused `stack_bounds_tests`
+and `stack_guard_image_tests` pass; the ordinary RF-inhibited image also
+cross-builds after the diagnostic changes. A fresh assessment of the repaired
+source and target trace finds no further stack-admission or released-button
+coordination defect. A separately authorized live press/release run is still
+required before enabling the credential route; the blank captive page remains
+GET-only.
+
+The final probe-script review found that its core-1 assertion required only a
+nonzero starting count and end-to-end progress. Each individual sample now
+also requires an advancing read counter, with subtraction interpreted modulo
+the 32-bit counter width. The captured target trace already showed progress
+within all twenty calls; this repair makes that requirement executable for
+subsequent runs. Python syntax and the affected source checks pass.
 
 The second source assessment found no enabled credential-write route. The
 `PicoBootstrapServer` still dispatches through the GET-only
@@ -109,8 +141,8 @@ network-only route and was not repaired by enabling field service in an RF
 diagnostic image. The separately verified standard RF-inhibited diagnostic
 was flashed for the bounded single-core probe.
 
-Open implementation gates remain the exact runtime BOOTSEL press/core-1
-proof, AP-local mutating protocol,
+Open implementation gates remain exact runtime BOOTSEL press/release with core 1,
+AP-local mutating protocol,
 transactional AP/STA trial and commit, streaming the roughly 50-KiB browser
 bundle within the target heap and a matching CSP, stable AP withdrawal,
 failed-join/response-loss tests and selected-iPhone acceptance. The

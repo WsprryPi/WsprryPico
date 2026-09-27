@@ -26,6 +26,7 @@ def main():
     parser.add_argument("--interval", type=float, default=0.25)
     parser.add_argument("--ap-traffic", action="store_true")
     parser.add_argument("--expect-press-release", action="store_true")
+    parser.add_argument("--expect-core1", action="store_true")
     parser.add_argument("--run", action="store_true")
     args = parser.parse_args()
     if not args.run or not 1 <= args.samples <= 100 or not 0 <= args.interval <= 5:
@@ -60,6 +61,7 @@ def main():
         if worker:
             worker.start()
         saw_press = saw_release = False
+        first_core1_reads = last_core1_reads = None
         try:
             for _ in range(args.samples):
                 sample = exchange(port, "BOOTSEL PROBE")
@@ -77,6 +79,15 @@ def main():
                     raise RuntimeError("Missing BOOTSEL button state")
                 if not args.expect_press_release and saw_press:
                     raise RuntimeError("Unexpected BOOTSEL press during released check")
+                if args.expect_core1:
+                    before = sample.get("core1_reads_before")
+                    after = sample.get("core1_reads_after")
+                    if (type(before) is not int or type(after) is not int or
+                            before == 0 or not ((after - before) & 0xffffffff)):
+                        raise RuntimeError("Core 1 flash reader was not reported")
+                    if first_core1_reads is None:
+                        first_core1_reads = before
+                    last_core1_reads = after
                 time.sleep(args.interval)
         finally:
             stop.set()
@@ -88,6 +99,8 @@ def main():
                     raise RuntimeError("AP traffic failed during BOOTSEL probe")
         if args.expect_press_release and not (saw_press and saw_release):
             raise RuntimeError("BOOTSEL press/release transition was not observed")
+        if args.expect_core1 and not ((last_core1_reads - first_core1_reads) & 0xffffffff):
+            raise RuntimeError("Core 1 flash reader did not resume after the probes")
 
 
 if __name__ == "__main__":

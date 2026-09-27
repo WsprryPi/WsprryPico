@@ -7,6 +7,9 @@ int main(void) {
     // Both actual allocation styles: linker stack and a BSS worker stack.
     assert(wsprry_stack_limit_for(0x2007c000u, 0x2007ff00u) == 0x2007d000u);
     assert(wsprry_stack_limit_for(0x20003488u, 0x20007440u) == 0x20004488u);
+    // A 4-KiB core-1 diagnostic stack leaves no room beyond the guard reserve.
+    assert(!wsprry_stack_limit_for(0x20003000u, 0x20004000u));
+    assert(wsprry_stack_limit_for(0x20003000u, 0x20005000u) == 0x20004000u);
     assert(wsprry_stack_limit_matches(0x2007c000u, 0x2007d000u, 0x2007ff00u, 4));
     // A below-reserve or foreign/disabled limit cannot be reported as protected.
     assert(!wsprry_stack_limit_matches(0x2007c000u, 0, 0x2007ff00u, 0));

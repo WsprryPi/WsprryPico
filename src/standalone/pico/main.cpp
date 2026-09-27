@@ -9,6 +9,10 @@
 #include "network_credentials.hpp"
 #include "pico/bootrom.h"
 #include "pico/cyw43_arch.h"
+#ifdef WSPRRY_PICO_BOOTSEL_CORE1_DIAGNOSTIC
+#include "pico/flash.h"
+#include "pico/multicore.h"
+#endif
 #include "pico/time.h"
 #include "pico_adapters.hpp"
 #include "provisioning/access.hpp"
@@ -39,6 +43,9 @@
 #include <malloc.h>
 extern "C" char __HeapLimit, __end__, __StackLimit, __StackTop;
 #include "hardware/sync.h"
+#ifdef WSPRRY_PICO_BOOTSEL_CORE1_DIAGNOSTIC
+#include "hardware/regs/addressmap.h"
+#endif
 #ifdef WSPRRY_PICO_STANDALONE_RF
 #include "rf/pico/worker.hpp"
 #include "rf/waveform.hpp"
@@ -46,10 +53,16 @@ extern "C" char __HeapLimit, __end__, __StackLimit, __StackTop;
 #include "standalone/dry_run_engine.hpp"
 static_assert(WSPRRY_PICO_RF_OUTPUT_DISABLED == 1);
 #endif
-#include "runtime/allocation_fault.h"
 #include "provisioning/pico/bootsel_sampler.hpp"
+#include "runtime/allocation_fault.h"
+#ifdef WSPRRY_PICO_BOOTSEL_CORE1_DIAGNOSTIC
+#include "runtime/stack_bounds.h"
+#endif
 
 #include <array>
+#ifdef WSPRRY_PICO_BOOTSEL_CORE1_DIAGNOSTIC
+#include <atomic>
+#endif
 #include <charconv>
 
 // Capture the exception's PC without allocating or relying on USB. The
@@ -90,6 +103,27 @@ extern "C" [[noreturn]] void wsprrypico_panic(const char* format, ...) {
         tight_loop_contents();
 }
 namespace {
+#ifdef WSPRRY_PICO_BOOTSEL_CORE1_DIAGNOSTIC
+// The project MSP guard reserves the first 4 KiB before core-1 startup work.
+// Keep another 4 KiB available to the diagnostic after that reserve.
+alignas(8) std::array<std::uint32_t, 2048> bootsel_core1_stack{};
+static_assert(sizeof(bootsel_core1_stack) >= WSPRRY_STACK_RESERVE_BYTES + 4096);
+std::atomic<bool> bootsel_core1_ready{false};
+std::atomic<bool> bootsel_core1_failed{false};
+std::atomic<std::uint32_t> bootsel_core1_reads{0};
+void bootsel_flash_reader() {
+    const bool ready = flash_safe_execute_core_init();
+    bootsel_core1_failed.store(!ready, std::memory_order_release);
+    bootsel_core1_ready.store(ready, std::memory_order_release);
+    const auto* flash_word = reinterpret_cast<volatile const std::uint32_t*>(XIP_BASE + 0x1000);
+    while (true) {
+        // Executing this loop and reading this word both require XIP flash.
+        (void)*flash_word;
+        bootsel_core1_reads.fetch_add(1, std::memory_order_relaxed);
+        tight_loop_contents();
+    }
+}
+#endif
 constexpr std::uint32_t stack_pattern = 0xa59c37e1;
 __attribute__((noinline)) void paint_stack() {
     const auto saved = save_and_disable_interrupts();
@@ -249,6 +283,10 @@ int main() {
     auto& engine = wsprrypico::rf::start_worker(clock);
 #else
     static wsprrypico::standalone::DryRunEngine engine;
+#endif
+#ifdef WSPRRY_PICO_BOOTSEL_CORE1_DIAGNOSTIC
+    multicore_launch_core1_with_stack(bootsel_flash_reader, bootsel_core1_stack.data(),
+                                      sizeof(bootsel_core1_stack));
 #endif
     static wsprrypico::firmware::PicoIdentitySource identities;
     static wsprrypico::provisioning::RuntimeProfile runtime_profile;
@@ -754,11 +792,24 @@ int main() {
         if (text == "BOOTSEL PROBE") {
             if (!scheduler.idle() || engine.output_active())
                 return "{\"ok\":false,\"error\":\"not_idle\"}\n";
+#ifdef WSPRRY_PICO_BOOTSEL_CORE1_DIAGNOSTIC
+            if (!bootsel_core1_ready.load(std::memory_order_acquire) ||
+                bootsel_core1_failed.load(std::memory_order_acquire) ||
+                !bootsel_core1_reads.load(std::memory_order_relaxed))
+                return "{\"ok\":false,\"error\":\"core1_unready\"}\n";
+            const auto before_reads = bootsel_core1_reads.load(std::memory_order_relaxed);
+#endif
             const auto sample = wsprrypico::provisioning::sample_runtime_bootsel();
-            return "{\"ok\":" + std::string(sample.safe ? "true" : "false") +
-                   ",\"pressed\":" + (sample.pressed ? "true" : "false") +
-                   ",\"elapsed_us\":" + std::to_string(sample.elapsed_us) +
-                   ",\"result\":" + std::to_string(sample.result) + "}\n";
+            auto result = "{\"ok\":" + std::string(sample.safe ? "true" : "false") +
+                          ",\"pressed\":" + (sample.pressed ? "true" : "false") +
+                          ",\"elapsed_us\":" + std::to_string(sample.elapsed_us) +
+                          ",\"result\":" + std::to_string(sample.result);
+#ifdef WSPRRY_PICO_BOOTSEL_CORE1_DIAGNOSTIC
+            result += ",\"core1_reads_before\":" + std::to_string(before_reads) +
+                      ",\"core1_reads_after\":" +
+                      std::to_string(bootsel_core1_reads.load(std::memory_order_relaxed));
+#endif
+            return result + "}\n";
         }
 #ifndef WSPRRY_PICO_STANDALONE_RF
         if (text == "NETLINK") {
