@@ -4,7 +4,7 @@ Status: **SOURCE FOUNDATION REVIEWED; CREDENTIAL FLOW AND TARGET ACCEPTANCE OPEN
 This review covers the bounded source changes made after the operator approved
 the [network-only exception](phase12-wifi-only-bootstrap-proposal.md) on
 2026-09-26. It does not claim an implemented Wi-Fi credential form or a
-physical BOOTSEL result. The current AP HTTP handler still returns `405`
+complete physical BOOTSEL result. The current AP HTTP handler still returns `405`
 for every non-GET request.
 
 ## First adversarial assessment and repairs
@@ -53,6 +53,36 @@ gates; source and mock-browser tests cannot establish those behaviors.
 
 ## Reassessment and evidence boundary
 
+The continuation adversarial pass found three actionable source/documentation
+gaps: a failed PSA key-destroy result was ignored; the Pico test did not
+tamper the ciphertext or cover a valid AEAD tag over invalid credential
+bytes; and the top-level project documents still described the approved
+network-only exception as merely proposed or left the earlier iPhone captive
+observation ambiguous. The crypto path now fails closed on key-destroy
+failure, the negative cases run against the vector, and README, CONTRACT and
+architecture describe the exception and its current GET-only boundary.
+The second assessment found no remaining actionable issue within this
+disabled-route foundation. It did not clear the physical and transaction
+gates listed below.
+
+The independent Pico-side crypto adapter now reproduces the synthetic browser
+vector using the pinned Mbed TLS/PSA implementation: X25519 public key,
+authenticated plaintext and derived acknowledgement verifier agree. The
+focused host test rejects replay, changes to each transcript field, ciphertext, tag and
+nonce, an all-zero browser public key and an authenticated but invalid binary
+credential payload. Its ephemeral PSA key is consumed by the first open
+attempt; failed key destruction now fails closed. The adapter is compiled into
+the RF-inhibited image but has no caller in its HTTP route. This validation
+does not prove target entropy, heap or concurrency under an enabled route.
+
+The first physical continuation used an exact serial-targeted diagnostic
+flash. Thirty released-button BOOTSEL probes passed, including twenty during
+77 successful open-AP GETs from isolated `wspr5` `wlan2`. The final Pico read
+retained erased profile/access state, inactive output and an empty job. The
+[target record](phase12-wifi-only-bootsel-gate.md) names the image and scope;
+press/release and core-1 interaction remain open. The temporary Pi AP profile
+was removed.
+
 The second source assessment found no enabled credential-write route. The
 `PicoBootstrapServer` still dispatches through the GET-only
 `bootstrap_http_wire`; neither a physical grant nor a browser form is wired to
@@ -63,21 +93,24 @@ schedules and TLS deployment credentials. The USB-local BOOTSEL probe is
 read-only, requires idle/inactive output, uses SDK flash-safe coordination,
 and retains a failure result rather than treating it as a button reading.
 
-Validation on the current source: 90/90 host CTests passed with the full Xcode
+Validation on the preceding foundation source: 90/90 host CTests passed with the full Xcode
 compiler and macOS 26.5 SDK environment; `npm test`, `npm run build`, the
 RF-inhibited `WsprryPico` cross-build, image heap/stack checks,
 `network_transport_contract_tests.py`, two browser tests, `git diff --check` and the ten-document
-local-link check passed. The default shell's command-line SDK fails three
+local-link check passed. The focused Pico crypto host test and standard
+RF-inhibited cross-build passed on this continuation. The default shell's
+command-line SDK fails three
 temporary native-link tests on macOS 27 `.tbd` architecture entries; rerunning
 the full suite with the selected Xcode compiler resolves that environment
 failure. `WsprryPico-StandaloneRF` did not cross-build: its shared main includes
 Field-GATT types but the diagnostic RF target does not receive the production
 BTstack include/link configuration. This target issue predates the new
 network-only route and was not repaired by enabling field service in an RF
-diagnostic image. No RF target was flashed.
+diagnostic image. The separately verified standard RF-inhibited diagnostic
+was flashed for the bounded single-core probe.
 
-Open implementation gates remain the exact runtime BOOTSEL physical/core-1
-proof, AP-local mutating protocol, Pico-side independent AEAD vector,
+Open implementation gates remain the exact runtime BOOTSEL press/core-1
+proof, AP-local mutating protocol,
 transactional AP/STA trial and commit, streaming the roughly 50-KiB browser
 bundle within the target heap and a matching CSP, stable AP withdrawal,
 failed-join/response-loss tests and selected-iPhone acceptance. The

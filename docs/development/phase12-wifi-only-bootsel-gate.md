@@ -1,7 +1,8 @@
 # Phase 12 Wi-Fi-only runtime BOOTSEL gate
 
-Status: **STATIC PROBE BUILT; TARGET GATE OPEN**. No credential-accepting
-HTTP route is enabled. This is a diagnostic record, not BOOTSEL acceptance.
+Status: **SINGLE-CORE RELEASED-BUTTON PROBE PASS; TARGET GATE OPEN**. No
+credential-accepting HTTP route is enabled. A physical press/release and the
+second-core interaction remain unqualified.
 
 ## Candidate and source checks
 
@@ -27,21 +28,45 @@ HTTP route is enabled. This is a diagnostic record, not BOOTSEL acceptance.
   output is inactive. It reports `ok` (safe-zone success), `pressed`, elapsed microseconds and
   the SDK result. It grants no network credential authority.
 
-## Target procedure after separate authority
+## Bounded Candidate A result, 2026-09-26
 
-1. Verify the exact serial/chip ID and UF2 hash, flash only Candidate A and
-   verify RF-inhibited boot, empty job, inactive output and blank open AP.
-2. Run repeated probe commands with the button released while AP traffic is
-   active. Require safe completion, bounded timing and `pressed=false`.
-3. Have the operator press and release BOOTSEL; probe while held and after
+The operator approved flashing the exact image above and running the
+RF-inhibited probe on Candidate A. The preflash USB `INFO` showed the exact
+device ID, unprovisioned generation 0, erased access journal, empty job and
+inactive output. The USB-local `BOOTSEL` command was accepted; picotool then
+read RP2350 chip ID `0x0bf4b4aec9ffb344`. The copied UF2 matched the hash
+above on `wspr5`, and serial-targeted `picotool load -v -x` completed `OK`.
+
+The running diagnostic reported revision `fc9caab158b7-dirty`, boot ID
+`fb8a0352d3500e3d1ae8b8987b36a396` and the inhibited standalone
+simulator. Ten released-button samples returned safe-zone result 0,
+`pressed=false` and 33–37 microseconds. On isolated `wspr5` `wlan2`, the
+open AP served `http://192.168.4.1/` with HTTP 200. Twenty more released
+samples during concurrent AP requests returned result 0, `pressed=false`
+and 36–37 microseconds; 77 AP GETs succeeded and none failed. The final USB
+`INFO` retained unprovisioned generation 0, erased access generation 0,
+healthy storage, empty job, `output_active=false`, zero allocator failures
+and zero lwIP heap errors. The temporary NetworkManager connection on
+`wlan2` was deactivated and deleted; `eth0` and `wlan1` remained connected.
+The comparator was not operated.
+
+This proves only the released-button single-core path under that bounded AP
+load. It does not show a physical press edge, grant, flash-write overlap or
+second-core coordination. The diagnostic remains flashed and exposes the
+same GET-only blank AP. No station credentials were submitted and no RF job
+ran.
+
+## Remaining target procedure
+
+1. Have the operator press and release BOOTSEL; probe while held and after
    release. Require safe completion, correct transitions, restored USB/AP
    service and no flash/journal corruption or reboot.
-4. Repeat with the second core running a flash-using idle diagnostic and its
+2. Repeat with the second core running a flash-using idle diagnostic and its
    SDK flash-safe victim initialized. The current standard RF-inhibited image
    does not start core 1; the single-core probe cannot by itself close this
    row. A separate exact RF-inhibited diagnostic image and authority are
    needed if the static audit cannot prove the second-core interaction.
-5. Record exact timings, flash/core/radio result and final restoration before
+3. Record exact timings, flash/core/radio result and final restoration before
    enabling the physical-grant or encrypted submission path. A failed or
    inconclusive run keeps the blank captive page read-only.
 

@@ -113,6 +113,15 @@ P12.3 is
 closed only for its documented hardware-free
 source/cross-link boundary; Phase 12 is not yet an accepted end-user path.
 
+The operator separately approved a
+[Wi-Fi-only blank-device bootstrap](docs/development/phase12-wifi-only-bootstrap-proposal.md)
+that would save station credentials without owner or RF authority. It is an
+explicit exception to the blank-AP read-only policy for that bounded first
+join, contingent on the documented physical BOOTSEL and transaction gates.
+The current blank AP still rejects every credential submission. A bounded
+RF-inhibited released-button probe and independently checked browser/Pico crypto vector
+are evidence within their recorded limits, not an accepted network-join flow.
+
 Host tests, target execution and RF qualification are distinct evidence classes.
 A successful compile or simulated transmission establishes neither on-device
 symbol timing nor spectral performance.

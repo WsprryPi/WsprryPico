@@ -272,6 +272,7 @@ if(TARGET pico_btstack_ble AND TARGET pico_btstack_cyw43)
     # candidate. BTstack shares the single CYW43 initialization owned by
     # PicoNetwork; neither diagnostic/RF image advertises a field service.
     target_sources(WsprryPico PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/network/pico/bootstrap_crypto.cpp
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/activation_platform.cpp
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/captive_dns.c
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/dhcp_server.c

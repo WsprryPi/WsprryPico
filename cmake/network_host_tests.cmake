@@ -66,6 +66,14 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     add_test(NAME network_tls_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/network_tls_tests.py
         $<TARGET_FILE:network_tls_driver> ${WSPRRY_PICO_TEST_CREDENTIAL_DIR})
     set_tests_properties(network_tls_tests PROPERTIES TIMEOUT 90 RUN_SERIAL TRUE)
+    add_executable(bootstrap_crypto_tests tests/bootstrap_crypto_tests.cpp
+        src/network/pico/bootstrap_crypto.cpp src/network/pico/psa_lifetime.cpp)
+    target_compile_definitions(bootstrap_crypto_tests PRIVATE
+        MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}" WSPRRY_PICO_BOOTSTRAP_CRYPTO_TEST=1)
+    target_link_libraries(bootstrap_crypto_tests PRIVATE wsprrypico_core mbedcrypto)
+    target_compile_options(bootstrap_crypto_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME bootstrap_crypto_tests COMMAND bootstrap_crypto_tests
+        ${CMAKE_SOURCE_DIR}/docs/protocol/WiFi-Bootstrap-v1-vectors.json)
 endif()
 
 include(${CMAKE_SOURCE_DIR}/cmake/network_client_interop.cmake)

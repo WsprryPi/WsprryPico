@@ -108,10 +108,17 @@ most of the
 remain open. Phase 12 is therefore active; the scoped source closeout is not
 full physical or end-user acceptance.
 
-The blank read-only SoftAP now has a source-tested
+The blank SoftAP now has a source-tested
 [best-effort captive landing](docs/development/phase12-blank-captive-landing-review.md)
-with AP-only DNS and a fixed-address Safari fallback. It accepts no Wi-Fi
-credential; iPhone launch and the proposed Wi-Fi-only bootstrap remain open.
+with AP-only DNS and a fixed-address Safari fallback. The selected iPhone
+automatically opened an earlier open-AP test page; the full-erase generic image
+has bounded native-Pi evidence only. A separate
+[Wi-Fi-only network bootstrap](docs/development/phase12-wifi-only-bootstrap-proposal.md)
+is approved for a code-free first station join without Bluefy. Its current
+foundation includes a browser/Pico crypto vector and a partial RF-inhibited
+[BOOTSEL probe](docs/development/phase12-wifi-only-bootsel-gate.md). The
+running blank AP remains GET-only; credential submission and end-user network
+join acceptance are open.
 
 The current Bluefy source requires a fresh password step-up for each exact
 staged profile even on a retained bond. While the public default password is

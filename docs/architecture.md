@@ -107,6 +107,13 @@ An exactly erased profile journal in a generic image selects unprovisioned
 generation zero and the bounded read-only open SoftAP. A complete, matching
 device-bound compiled bundle may retain factory source behavior; incomplete
 or wrong-device bundles and interrupted first profile selections fail closed.
+The separately approved
+[Wi-Fi-only network bootstrap](development/phase12-wifi-only-bootstrap-proposal.md)
+would permit a one-use, physically granted encrypted credential submission
+from that blank AP and commit a device-bound network-only generation 1. It
+adds no owner, station API, scheduler or RF authority. The current firmware
+still exposes the read-only AP while the BOOTSEL and transaction gates remain
+open.
 
 The portable access layer implements exact request-bound proofs, enrollment,
 bond capacity/revocation, SoftAP cookies and expiry, field mode, reset levels,
