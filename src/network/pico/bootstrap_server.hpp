@@ -8,8 +8,9 @@
 
 namespace wsprrypico::network {
 
-// One-connection plaintext server for an unprovisioned AP. It intentionally
-// exposes only read-only identity/build data and never receives credentials.
+// One-connection plaintext server for an unprovisioned AP. It exposes only
+// read-only identity/build data and inert static assets. Static bodies stream
+// from flash in bounded chunks; it does not receive credentials.
 class PicoBootstrapServer {
   public:
     using InterfaceClassifier = bool (*)(const tcp_pcb*, void*);
@@ -40,8 +41,10 @@ class PicoBootstrapServer {
     tcp_pcb* listener_ = nullptr;
     tcp_pcb* client_ = nullptr;
     HttpParser parser_;
-    std::string wire_;
-    std::size_t output_offset_ = 0;
+    HttpResponse response_;
+    std::string headers_;
+    std::size_t header_offset_ = 0;
+    std::size_t body_offset_ = 0;
     std::size_t pending_bytes_ = 0;
     std::uint64_t accepted_ms_ = 0;
     bool active_ = false;

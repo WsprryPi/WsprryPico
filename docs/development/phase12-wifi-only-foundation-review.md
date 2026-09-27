@@ -185,8 +185,40 @@ was flashed for the bounded single-core probe.
 
 Open implementation gates now start with review of the narrowed physical-claim
 design and its source guards, then AP-local mutating protocol,
-transactional AP/STA trial and commit, streaming the roughly 50-KiB browser
-bundle within the target heap and a matching CSP, stable AP withdrawal,
+transactional AP/STA trial and commit, target delivery of the roughly 50-KiB
+browser bundle and a matching CSP, stable AP withdrawal,
 failed-join/response-loss tests and selected-iPhone acceptance. The
 [probe record](phase12-wifi-only-bootsel-gate.md) defines the next target
 measurement. No source or host result closes Phase 12, Stage B or RF work.
+
+## Source-only asset delivery continuation, 2026-09-26
+
+The generated firmware asset source now embeds the checked-in 50,679-byte
+bootstrap JavaScript bundle, CSS and setup document. The blank AP serves only
+the inert CSS and JavaScript on exact-host GETs; `/` still shows its read-only
+landing, `/index.html` remains unavailable, and valid POST requests return
+`405`. The target server sends response headers separately from flash-backed
+asset chunks of at most 1,024 bytes, rather than allocating a full wire
+response. The eventual document has a dedicated same-origin CSS/script/API
+CSP. The browser bundle retains its pinned dependency licenses.
+
+Adversarial review found that a second request on the same TCP connection
+could replace a partly transmitted response. The server now aborts that
+connection instead. The broad host build also exposed an earlier TLS mock
+header that omitted the production listener's `LWIP_ASSERT`; the mock now
+defines it as a host assertion. A second source assessment found no
+credential route, station-interface listener or change to the AP classifier;
+the setup form remains inaccessible. This checks source behavior, not iPhone
+delivery or target heap behavior under a live client.
+
+The host build, four focused host CTests (`network_tests`,
+`bootstrap_http_tests`, `bootstrap_slot_tests`, `bootstrap_wire_tests`), two
+browser tests and RF-inhibited Pico 2 W cross-build passed. The cross-build
+passed the SRAM BOOTSEL callback, known core-1 symbol, heap-hook and stack
+checks. The first full 92-test CTest run passed 89 and hit three nested
+compiler tests using the incompatible Command Line Tools SDK; all three
+passed when rerun with the build's Xcode compiler and macOS 26.5 SDK, giving
+92 passing cases across the two runs. No device, button, USB, Pi or station
+operation occurred, and the new image was not flashed. Full credential
+submission, AP/STA transaction, end-user join and target delivery remain
+open.

@@ -28,12 +28,17 @@ HttpResponse http_error(unsigned status, std::string_view code) {
 std::string HttpResponse::wire_headers() const {
     const bool safe_cookie =
         !set_cookie.empty() && set_cookie.find_first_of("\r\n") == std::string::npos;
-    return "HTTP/1.1 " + std::to_string(status) + " Response\r\nContent-Type: " + type +
+    const bool safe_location =
+        !location.empty() && location.find_first_of("\r\n") == std::string_view::npos;
+    const auto policy = content_security_policy.empty() ? web_csp() : content_security_policy;
+    return "HTTP/1.1 " + std::to_string(status) +
+           (status == 302 ? " Found\r\nContent-Type: " : " Response\r\nContent-Type: ") + type +
            "\r\nContent-Length: " + std::to_string(body_size()) +
            "\r\nConnection: " + (keep_alive ? "keep-alive" : "close") +
            "\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\n"
-           "Content-Security-Policy: " +
-           std::string(web_csp()) + "\r\nReferrer-Policy: no-referrer\r\n" +
+           "Content-Security-Policy: " + std::string(policy) +
+           "\r\nReferrer-Policy: no-referrer\r\n" +
+           (safe_location ? "Location: " + std::string(location) + "\r\n" : "") +
            (etag.empty() ? "" : "ETag: " + etag + "\r\n") +
            (safe_cookie ? "Set-Cookie: " + set_cookie + "\r\n" : "") + "\r\n";
 }

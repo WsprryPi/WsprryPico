@@ -1,5 +1,7 @@
 #include "network/bootstrap_http.hpp"
+#include "network/assets.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <span>
@@ -39,6 +41,34 @@ int main() {
     assert(page.find("Wi-Fi setup is not available here.") != std::string::npos);
     assert(page.find("<form") == std::string::npos);
     assert(page.find("password") == std::string::npos);
+
+    HttpParser bundle_request;
+    assert(send("GET /bundle.js HTTP/1.1\r\nHost: 192.168.4.1\r\n\r\n", bundle_request) ==
+           "192.168.4.1");
+    const auto bundle = wsprrypico::network::bootstrap_http_response(
+        bundle_request.request(), "device-id", "firmware");
+    const auto asset = wsprrypico::network::bootstrap_asset("/bundle.js");
+    assert(asset && asset->body.size() > 50000);
+    assert(bundle.status == 200 && bundle.static_body.data() == asset->body.data());
+    assert(bundle.body.empty() && bundle.buffered_body.empty());
+    assert(bundle.body_size() == asset->body.size());
+    assert(bundle.wire_headers().find("Content-Length: " + std::to_string(asset->body.size())) !=
+           std::string::npos);
+    assert(bundle.wire_headers().find("script-src 'self'") != std::string::npos);
+    std::string delivered;
+    for (std::size_t offset = 0; offset < bundle.body_size();) {
+        const auto chunk = bundle.body_at(offset).first(
+            std::min<std::size_t>(1024, bundle.body_at(offset).size()));
+        delivered.append(reinterpret_cast<const char*>(chunk.data()), chunk.size());
+        offset += chunk.size();
+    }
+    assert(delivered == asset->body);
+
+    HttpParser hidden_form;
+    send("GET /index.html HTTP/1.1\r\nHost: 192.168.4.1\r\n\r\n", hidden_form);
+    assert(wsprrypico::network::bootstrap_http_response(hidden_form.request(), "device-id",
+                                                         "firmware")
+               .status == 404);
 
     HttpParser foreign_post;
     assert(send("POST /local/v1/identity HTTP/1.1\r\nHost: captive.apple.com\r\n"

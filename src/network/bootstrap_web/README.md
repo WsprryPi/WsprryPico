@@ -2,10 +2,12 @@
 
 This directory holds a browser-side page candidate for the approved
 [WiFi-Bootstrap/1](../../../docs/protocol/WiFi-Bootstrap-v1-proposal.md)
-transcript. It is **not served by firmware yet**. The current blank AP remains
-read-only until the runtime BOOTSEL safety gate and mutating protocol tests
-pass. The selected iPhone captive sheet and Safari remain untested for this
-crypto code.
+transcript. The document is **not served by firmware yet**. The newly
+cross-built RF-inhibited image embeds it and streams its CSS and JavaScript
+assets on exact-host GETs, but the blank AP landing remains read-only and
+valid POST requests return `405`. This image has not been flashed.
+The selected iPhone captive sheet and Safari remain untested for this crypto
+code.
 
 The exact locked dependencies are `@noble/curves`, `@noble/hashes` and
 `@noble/ciphers` 2.3.0. Their source repositories are
@@ -18,11 +20,13 @@ build uses pinned `esbuild` 0.28.2, with its own
 [MIT license](https://github.com/evanw/esbuild/blob/master/LICENSE.md).
 The generated bundle retains esbuild's bundled license notice. The package
 lock fixes the fetched versions and integrity hashes. No remote import is
-used by the resulting browser code.
+used by the resulting browser code. The eventual document uses only local
+CSS, script and API requests under a dedicated bootstrap CSP.
 
 From this directory, `npm ci`, `npm test`, and `npm run build` reproduce the
-candidate. The build emits `bundle.js` beside the page source; firmware does
-not consume it yet. The crypto known-answer test matches the synthetic vector
+candidate. The build emits `bundle.js` beside the page source; the firmware
+asset generator embeds that checked-in bundle as flash-resident data. The
+crypto known-answer test matches the synthetic vector
 and changes bound transcript fields to check that the tag changes. The page
 test exercises the no-code confirmation, encrypted submit, durable status,
 acknowledgement and Safari fallback through mocked local responses. The page

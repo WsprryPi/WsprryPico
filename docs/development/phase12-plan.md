@@ -624,6 +624,10 @@ operation. The fail-closed source/link guards cross-build and are reviewed;
 their new image has not been flashed. The failed core-1 row is not accepted.
 The operator directed future image testing to
 roll forward rather than routinely restoring an older UF2.
+The next [source-only delivery review](phase12-wifi-only-foundation-review.md#source-only-asset-delivery-continuation-2026-09-26)
+embeds the local browser bundle and streams its static assets in bounded
+chunks. The setup document and credential POST remain disabled, and this new
+image has not been flashed.
 
 The separate [blank read-only captive landing review](phase12-blank-captive-landing-review.md)
 records a source-tested, RF-inhibited-image implementation of AP-only DNS and

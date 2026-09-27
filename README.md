@@ -119,8 +119,10 @@ foundation includes a browser/Pico crypto vector and an RF-inhibited
 [BOOTSEL gate record](docs/development/phase12-wifi-only-bootsel-gate.md). The
 core-1 physical-press run failed. A later no-flash press/AP run passed on the
 standard image with core 1 absent; the claim design is narrowed to that
-RF-inhibited topology. The running blank AP remains GET-only; credential
-submission and end-user network join acceptance are open.
+RF-inhibited topology. Current source embeds the local setup bundle
+and streams its inert CSS/JavaScript assets from flash. The setup document is
+not served; the running blank AP remains GET-only, and credential submission
+and end-user network join acceptance are open.
 
 The current Bluefy source requires a fresh password step-up for each exact
 staged profile even on a retained bond. While the public default password is

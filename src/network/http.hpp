@@ -40,6 +40,9 @@ struct HttpResponse {
     // connection alive for the immediately following submit. Other responses
     // retain the one-request fail-closed transport.
     bool keep_alive = false;
+    // An empty override retains the main browser policy.
+    std::string_view content_security_policy{};
+    std::string_view location{};
     std::size_t body_size() const {
         if (!static_body.empty())
             return static_body.size();

@@ -1,6 +1,10 @@
 #pragma once
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
+#ifndef LWIP_ASSERT
+#define LWIP_ASSERT(message, expression) assert((expression) && (message))
+#endif
 using u16_t = std::uint16_t;
 using err_t = int;
 inline constexpr int ERR_OK = 0, ERR_ABRT = -1, ERR_MEM = -2;

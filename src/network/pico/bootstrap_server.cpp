@@ -54,6 +54,13 @@ err_t PicoBootstrapServer::receive(void* context, tcp_pcb*, pbuf* packet, err_t 
         self.close();
         return ERR_ABRT;
     }
+    // A connection carries one request. Never let a pipelined request replace
+    // a partially transmitted static response.
+    if (!self.headers_.empty()) {
+        pbuf_free(packet);
+        self.close();
+        return ERR_ABRT;
+    }
     std::array<std::uint8_t, 1024> bytes{};
     if (packet->tot_len > bytes.size())
         return ERR_MEM;
@@ -77,15 +84,17 @@ void PicoBootstrapServer::error(void* context, err_t) {
     self.client_ = nullptr;
     self.parser_.reset_secure();
     self.parser_ = {};
-    self.wire_.clear();
-    self.output_offset_ = self.pending_bytes_ = 0;
+    self.response_ = {};
+    self.headers_.clear();
+    self.header_offset_ = self.body_offset_ = self.pending_bytes_ = 0;
 }
 
 void PicoBootstrapServer::dispatch() {
     if (parser_.failed())
-        wire_ = http_error(400, "invalid_http").wire();
+        response_ = http_error(400, "invalid_http");
     else
-        wire_ = bootstrap_http_wire(parser_.request(), device_, firmware_);
+        response_ = bootstrap_http_response(parser_.request(), device_, firmware_);
+    headers_ = response_.wire_headers();
 }
 
 void PicoBootstrapServer::close() {
@@ -99,8 +108,9 @@ void PicoBootstrapServer::close() {
     client_ = nullptr;
     parser_.reset_secure();
     parser_ = {};
-    wire_.clear();
-    output_offset_ = pending_bytes_ = 0;
+    response_ = {};
+    headers_.clear();
+    header_offset_ = body_offset_ = pending_bytes_ = 0;
 }
 
 void PicoBootstrapServer::stop() {
@@ -127,22 +137,30 @@ void PicoBootstrapServer::poll(bool active) {
         close();
         return;
     }
-    if (wire_.empty())
+    if (headers_.empty())
         return;
-    if (output_offset_ < wire_.size()) {
-        const auto count =
-            std::min<std::size_t>({wire_.size() - output_offset_, tcp_sndbuf(client_), 1024});
+    if (header_offset_ < headers_.size() || body_offset_ < response_.body_size()) {
+        const bool header = header_offset_ < headers_.size();
+        const auto body = header ? std::span<const std::uint8_t>{}
+                                 : response_.body_at(body_offset_);
+        const auto* data = header ? headers_.data() + header_offset_
+                                  : reinterpret_cast<const char*>(body.data());
+        const auto remaining = header ? headers_.size() - header_offset_ : body.size();
+        const auto count = std::min<std::size_t>({remaining, tcp_sndbuf(client_), 1024});
         if (!count)
             return;
-        const auto result = tcp_write(client_, wire_.data() + output_offset_,
-                                      static_cast<u16_t>(count), TCP_WRITE_FLAG_COPY);
+        const auto result =
+            tcp_write(client_, data, static_cast<u16_t>(count), TCP_WRITE_FLAG_COPY);
         if (result == ERR_MEM)
             return;
         if (result != ERR_OK) {
             close();
             return;
         }
-        output_offset_ += count;
+        if (header)
+            header_offset_ += count;
+        else
+            body_offset_ += count;
         pending_bytes_ += count;
         (void)tcp_output(client_);
     } else if (!pending_bytes_) {
@@ -156,8 +174,9 @@ void PicoBootstrapServer::poll(bool active) {
             tcp_abort(completed);
         parser_.reset_secure();
         parser_ = {};
-        wire_.clear();
-        output_offset_ = 0;
+        response_ = {};
+        headers_.clear();
+        header_offset_ = body_offset_ = 0;
     }
 }
 

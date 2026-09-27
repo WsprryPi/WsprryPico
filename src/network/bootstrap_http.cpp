@@ -1,17 +1,19 @@
 #include "network/bootstrap_http.hpp"
 
+#include "network/assets.hpp"
 #include "wtp/json.hpp"
 
 namespace wsprrypico::network {
-std::string bootstrap_http_wire(const HttpRequest& request, std::string_view device,
-                                std::string_view firmware) {
+HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_view device,
+                                     std::string_view firmware) {
     if (request.method != "GET")
-        return http_error(405, "read_only").wire();
+        return http_error(405, "read_only");
     if (request.header("host") != "192.168.4.1") {
         // Captive probes retain their original Host. Redirect safe GETs only.
-        return "HTTP/1.1 302 Found\r\nLocation: http://192.168.4.1/\r\n"
-               "Content-Length: 0\r\nConnection: close\r\nCache-Control: no-store\r\n"
-               "Referrer-Policy: no-referrer\r\n\r\n";
+        HttpResponse response{302, "", "text/plain; charset=utf-8", {}};
+        response.location = "http://192.168.4.1/";
+        response.content_security_policy = bootstrap_csp();
+        return response;
     }
     if (request.path == "/local/v1/identity")
         return HttpResponse{200,
@@ -19,8 +21,18 @@ std::string bootstrap_http_wire(const HttpRequest& request, std::string_view dev
                                 ",\"firmware\":" + wtp::json::quote(firmware) +
                                 ",\"surface\":\"blank_read_only\",\"authenticated\":false}",
                             "application/json",
-                            {}}
-            .wire();
+                            {}};
+    // Keep the landing page read-only. The script and stylesheet are inert
+    // until a separately reviewed credential route serves the setup document.
+    if (request.path == "/style.css" || request.path == "/bundle.js") {
+        const auto asset = bootstrap_asset(request.path);
+        if (!asset)
+            return http_error(404, "not_found");
+        HttpResponse response{200, "", std::string(asset->type), {}};
+        response.static_body = asset->body;
+        response.content_security_policy = bootstrap_csp();
+        return response;
+    }
     if (request.path == "/")
         return HttpResponse{200,
                             "<!doctype html><meta charset=utf-8><meta name=viewport "
@@ -32,8 +44,12 @@ std::string bootstrap_http_wire(const HttpRequest& request, std::string_view dev
                                 std::string(device) + "</code></p><p>Firmware: <code>" +
                                 std::string(firmware) + "</code></p>",
                             "text/html; charset=utf-8",
-                            {}}
-            .wire();
-    return http_error(404, "not_found").wire();
+                            {}};
+    return http_error(404, "not_found");
+}
+
+std::string bootstrap_http_wire(const HttpRequest& request, std::string_view device,
+                                std::string_view firmware) {
+    return bootstrap_http_response(request, device, firmware).wire();
 }
 } // namespace wsprrypico::network
