@@ -291,8 +291,8 @@ int main() {
     const bool runtime_profile_loaded =
         profile_store_loaded &&
         runtime_profile.load(profile_store, identities.device_id(), build_bundle);
-    // Source 5 is journal-readable for migration tests, but its owner and
-    // credential runtime is not installed. Deny every existing control path.
+    // Source 5 may join station for time, but owner and TLS authority are not
+    // active at structural admission. Deny every legacy control path.
     const bool unsupported_consumer_source =
         profile_store.source() == wsprrypico::provisioning::ProfileSource::ConsumerProfile;
 #ifdef WSPRRY_PICO_STANDALONE_RF
@@ -339,15 +339,20 @@ int main() {
     static wsprrypico::provisioning::SoftApCoordinator softap_coordinator(access_store);
     softap_coordinator.no_profile(
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned ||
-        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly);
+        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly ||
+        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock);
     softap_coordinator.recovery(boot_recovery);
     static wsprrypico::provisioning::PicoSoftAp softap;
     std::optional<wsprrypico::standalone::Config> runtime_network_config;
     if (store_loaded && store.config())
         runtime_network_config = runtime_profile.overlay(*store.config());
+    else if (store_loaded &&
+             runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock)
+        runtime_network_config = runtime_profile.overlay(wsprrypico::standalone::Config{});
     if (boot_recovery || !runtime_profile_loaded ||
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned ||
-        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly)
+        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly ||
+        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock)
         (void)scheduler.command("STOP");
     watchdog_hw->scratch[1] = 2;
     if (!boot_recovery && radio_identity_ok && runtime_network_config)
@@ -372,9 +377,8 @@ int main() {
     server.softap_handler(&softap_api, softap_interface, nullptr);
     static wsprrypico::network::PicoBootstrapServer bootstrap(
         identities.device_id(), wsprrypico::firmware::kFirmwareVersion, softap_interface, nullptr);
-    // The plaintext listener is exclusive to unprovisioned or network-only
-    // surfaces. Starting it for a full profile would consume the bounded
-    // lwIP listen PCB before the authenticated TLS listener starts.
+    // Source 5 has only the read-only recovery surface here. The plaintext
+    // listener must not expose a legacy mutation route to a consumer profile.
     const auto blank_access_available = []() {
         return access_store.state() == wsprrypico::provisioning::AccessStoreState::Erased ||
                (access_store.state() == wsprrypico::provisioning::AccessStoreState::Healthy &&
@@ -383,7 +387,8 @@ int main() {
     const bool bootstrap_started =
         derived_identity && blank_access_available() && !recovery &&
         (runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned ||
-         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly) &&
+         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly ||
+         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock) &&
         bootstrap.start();
     browser_api.set_active_job_connections(true);
     bool server_start_attempted = false;
@@ -490,6 +495,9 @@ int main() {
             else if (runtime_profile.source() ==
                      wsprrypico::provisioning::RuntimeSource::NetworkOnly)
                 result += "\"network_only\"";
+            else if (runtime_profile.source() ==
+                     wsprrypico::provisioning::RuntimeSource::ConsumerPreClock)
+                result += "\"consumer_preclock\"";
             else
                 result += "\"fault\"";
             number_field(result, "provisioning_generation", runtime_profile.generation(), true);
@@ -898,8 +906,8 @@ int main() {
                                    network_state != wsprrypico::wtp::State::Running))
             network.poll();
         const auto field_now_ms = time_us_64() / 1000ULL;
-        if (runtime_profile_loaded && !gatt.running() && !gatt_start_attempted &&
-            derived_identity && local_access.ble_available()) {
+        if (runtime_profile_loaded && !unsupported_consumer_source && !gatt.running() &&
+            !gatt_start_attempted && derived_identity && local_access.ble_available()) {
             gatt_start_attempted = true;
             (void)gatt.start();
         }
@@ -1005,14 +1013,16 @@ int main() {
         }
         if (wsprrypico::usb::take_wtp_reset()) {
             offset = size = 0;
-            if (wsprrypico::usb::wtp_connected() && runtime_profile_loaded)
+            if (wsprrypico::usb::wtp_connected() && runtime_profile_loaded &&
+                !unsupported_consumer_source)
                 endpoint.connect("usb-physical");
             else
                 endpoint.disconnect();
         }
         const auto now_ms = time_us_64() / 1000ULL;
         endpoint.poll(now_ms);
-        if (wsprrypico::usb::wtp_connected() && runtime_profile_loaded) {
+        if (wsprrypico::usb::wtp_connected() && runtime_profile_loaded &&
+            !unsupported_consumer_source) {
             if (!reboot_at && endpoint.can_receive()) {
                 if (offset == size) {
                     size = wsprrypico::usb::wtp_transport_read(input);

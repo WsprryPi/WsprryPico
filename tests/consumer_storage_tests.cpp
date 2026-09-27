@@ -88,17 +88,44 @@ int main() {
     assert(direct.sequence() == 1);
     provisioning::ProfileStore direct_readback(blank);
     assert(direct_readback.load() && direct_readback.data() == payload);
-    provisioning::RuntimeProfile inert;
-    assert(!inert.load(direct_readback, device, provisioning::BuildBundleState::Absent));
-    assert(inert.source() == provisioning::RuntimeSource::Fault);
+    provisioning::RuntimeProfile preclock;
+    assert(preclock.load(direct_readback, device, provisioning::BuildBundleState::Absent));
+    assert(preclock.source() == provisioning::RuntimeSource::ConsumerPreClock);
+    assert(preclock.consumer_profile() && preclock.consumer_profile()->device_id == device);
+    assert(!preclock.profile() && !preclock.network_profile());
+    const standalone::Config empty_config{};
+    const auto selected = preclock.overlay(empty_config);
+    assert(selected && selected->ssid == "Home Net" && selected->password == "test-password");
+    assert(selected->callsign == "K1ABC" && selected->locator == "FN20");
+    assert(selected->schedules == empty_config.schedules && !selected->enabled);
+    auto retained = empty_config;
+    retained.enabled = true;
+    retained.expires_utc_s = 1'900'000'000;
+    retained.schedules = {{120, 0}};
+    const auto retained_overlay = preclock.overlay(retained);
+    assert(retained_overlay && retained_overlay->enabled == retained.enabled);
+    assert(retained_overlay->expires_utc_s == retained.expires_utc_s);
+    assert(retained_overlay->schedules == retained.schedules);
+    provisioning::RuntimeProfile wrong_device;
+    assert(!wrong_device.load(direct_readback, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                              provisioning::BuildBundleState::Absent));
+    assert(wrong_device.source() == provisioning::RuntimeSource::Fault);
+    assert(wrong_device.fault() == provisioning::RuntimeFault::WrongDevice);
+    assert(!wrong_device.consumer_profile());
 
     MemoryMedia after_reset;
     provisioning::ProfileStore tombstone(after_reset);
     assert(tombstone.load());
     assert(tombstone.select(provisioning::ProfileSource::Unprovisioned));
     assert(tombstone.sequence() == 1);
+    assert(preclock.load(tombstone, device, provisioning::BuildBundleState::Absent));
+    assert(preclock.source() == provisioning::RuntimeSource::Unprovisioned);
+    assert(!preclock.consumer_profile() && !preclock.overlay(empty_config));
     assert(tombstone.select(provisioning::ProfileSource::ConsumerProfile, payload));
     assert(tombstone.sequence() == 2);
+    assert(preclock.load(tombstone, device, provisioning::BuildBundleState::Absent));
+    assert(preclock.source() == provisioning::RuntimeSource::ConsumerPreClock);
+    assert(preclock.generation() == 2);
 
     MemoryMedia media;
     provisioning::ProfileStore initial(media);

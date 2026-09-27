@@ -4,9 +4,10 @@ Status: **P12.8 WIRE DESIGN WITH DISCONNECTED CLAIM ADMISSION, COMMIT,
 TRANSCRIPT, BROWSER SEALER, PICO AEAD OPENER, SIGNING AND SESSION-DIGEST CODE;
 OWNER ROUTES/ACTIVATION NOT IMPLEMENTED OR TARGET ACCEPTED** (2026-09-27). This version specifies the approved
 [P12.7 Safari/SoftAP design](../development/phase12-7-decision.md) when code
-and target gates pass. Until then, the running image offers only the separate
-[WiFi-Bootstrap/1](WiFi-Bootstrap-v1-proposal.md) network-only transaction on
-the blank AP. This document neither changes Field-GATT/1 nor grants RF output.
+and target gates pass. Until then, the blank AP offers only the separate
+[WiFi-Bootstrap/1](WiFi-Bootstrap-v1-proposal.md) network-only transaction;
+a structurally admitted source-5 profile has a read-only pre-clock recovery
+surface. This document neither changes Field-GATT/1 nor grants RF output.
 
 ## Identity, authority and transport
 

@@ -27,6 +27,8 @@ void RuntimeProfile::clear() {
     has_profile_ = false;
     scrub(network_profile_);
     has_network_profile_ = false;
+    scrub(consumer_profile_);
+    has_consumer_profile_ = false;
 }
 
 bool RuntimeProfile::load(const ProfileStore& store, std::string_view actual_device_id,
@@ -37,11 +39,26 @@ bool RuntimeProfile::load(const ProfileStore& store, std::string_view actual_dev
     fault_ = RuntimeFault::Storage;
     if (!store.healthy())
         return false;
-    // Source 5 is intentionally inert until the complete owner, certificate
-    // and station authority path is installed. Never parse it as legacy data.
+    // Structural admission permits only station association for time and a
+    // read-only recovery surface. Owner and TLS authority require separate
+    // post-clock validation; source 5 must never fall through to legacy data.
     if (store.source() == ProfileSource::ConsumerProfile) {
-        fault_ = RuntimeFault::Malformed;
-        return false;
+        auto parsed = parse_consumer_profile(store.data());
+        if (!parsed) {
+            fault_ = RuntimeFault::Malformed;
+            return false;
+        }
+        if (parsed->device_id != actual_device_id) {
+            fault_ = RuntimeFault::WrongDevice;
+            scrub(*parsed);
+            return false;
+        }
+        consumer_profile_ = std::move(*parsed);
+        scrub(*parsed);
+        has_consumer_profile_ = true;
+        source_ = RuntimeSource::ConsumerPreClock;
+        fault_ = RuntimeFault::None;
+        return true;
     }
     if (store.source() == ProfileSource::Unprovisioned ||
         (store.source() == ProfileSource::LegacyBootstrap && !generation_ &&
@@ -109,6 +126,15 @@ std::optional<standalone::Config> RuntimeProfile::overlay(const standalone::Conf
         result.ssid = profile_.ssid;
         result.password = profile_.password;
         result.ntp_ipv4 = profile_.time_server;
+    }
+    if (has_consumer_profile_) {
+        result.ssid = consumer_profile_.ssid;
+        result.password = consumer_profile_.password;
+        result.ntp_ipv4 = consumer_profile_.time_server;
+        // Keep standalone schedules and watermark data outside the claim.
+        result.callsign = consumer_profile_.callsign;
+        result.locator = consumer_profile_.locator;
+        result.power_dbm = consumer_profile_.power_dbm;
     }
     return result;
 }

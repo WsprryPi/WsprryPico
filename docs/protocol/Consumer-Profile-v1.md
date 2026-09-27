@@ -98,10 +98,13 @@ payload with a new owner epoch/key and unchanged operational fields.
 
 ## Implementation gates
 
-The current source 5 journal reader and writer enforce canonical **structural**
-form, source transitions and same-device upgrade. Runtime loading deliberately
-faults on source 5 until platform cryptographic validation and consumer
-authority are wired. A structurally valid record is not an activated profile.
+The source 5 journal reader and writer enforce canonical **structural** form,
+source transitions and same-device upgrade. Runtime loading now selects a
+same-device source 5 record into a restricted pre-clock state. That state may
+join station for UTC and serve a read-only AP recovery page; it has no owner,
+TLS, legacy job, BLE or autonomous schedule authority. Cryptographic boot
+validation and consumer authority remain disconnected. A structurally valid
+record is not an activated profile.
 
 Before enabling source 5 in production, complete exact identity/certificate
 checks, old-source migration, reset-intent recovery, and no trust resurrection.

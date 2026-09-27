@@ -1,5 +1,11 @@
 # P12.8 consumer profile structural foundation review
 
+Historical checkpoint: the later
+[consumer pre-clock boot review](phase12-8-consumer-preclock-review.md)
+supersedes this record's statement that runtime loading always faults on
+source 5. Structural admission now permits station time and read-only AP
+recovery while all consumer authority remains disabled.
+
 Status: **BOUNDED SOURCE FOUNDATION; CONSUMER COMMISSIONING OPEN**
 (2026-09-27). This review follows the approved
 [P12.7 Safari/SoftAP contract](phase12-7-decision.md) and the

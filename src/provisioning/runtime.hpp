@@ -1,14 +1,22 @@
 #pragma once
 
-#include "provisioning/storage.hpp"
+#include "provisioning/consumer_profile.hpp"
 #include "provisioning/network_profile.hpp"
+#include "provisioning/storage.hpp"
 #include "standalone/config.hpp"
 
 #include <optional>
 #include <string_view>
 
 namespace wsprrypico::provisioning {
-enum class RuntimeSource { Factory, Provisioned, NetworkOnly, Unprovisioned, Fault };
+enum class RuntimeSource {
+    Factory,
+    Provisioned,
+    NetworkOnly,
+    ConsumerPreClock,
+    Unprovisioned,
+    Fault
+};
 enum class RuntimeFault { None, Storage, Malformed, WrongDevice };
 enum class BuildBundleState { Absent, Matching, Mismatched };
 
@@ -50,6 +58,9 @@ class RuntimeProfile {
     const NetworkProfile* network_profile() const {
         return has_network_profile_ ? &network_profile_ : nullptr;
     }
+    const ConsumerProfile* consumer_profile() const {
+        return has_consumer_profile_ ? &consumer_profile_ : nullptr;
+    }
     std::optional<standalone::Config> overlay(const standalone::Config& base) const;
 
   private:
@@ -61,5 +72,7 @@ class RuntimeProfile {
     bool has_profile_ = false;
     NetworkProfile network_profile_{};
     bool has_network_profile_ = false;
+    ConsumerProfile consumer_profile_{};
+    bool has_consumer_profile_ = false;
 };
 } // namespace wsprrypico::provisioning

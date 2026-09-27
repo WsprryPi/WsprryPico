@@ -363,13 +363,16 @@ void PicoBootstrapServer::end_trial(bool committed, std::uint64_t now_ms) {
 HttpResponse PicoBootstrapServer::status() const {
     const bool healthy = profile_ && profile_->healthy();
     const bool saved = healthy && profile_->source() == provisioning::ProfileSource::NetworkOnly;
+    const bool consumer =
+        healthy && profile_->source() == provisioning::ProfileSource::ConsumerProfile;
     const auto source = !healthy            ? "fault"
                         : saved             ? "network_only"
+                        : consumer          ? "consumer_preclock"
                         : blank_authority() ? "unprovisioned"
                                             : "fault";
     const bool address = network_ && network_->link_up() && !network_->ipv4().empty() &&
                          network_->ipv4() != "0.0.0.0";
-    const auto join = saved ? (address ? "connected" : "disconnected")
+    const auto join = (saved || consumer) ? (address ? "connected" : "disconnected")
                       : slot_.state() == BootstrapSlotState::Trial    ? "connecting"
                       : slot_.state() == BootstrapSlotState::Terminal ? "failed"
                                                                       : "idle";

@@ -559,6 +559,10 @@ The [claim admission and commit review](phase12-8-claim-admission-commit-review.
 adds strict owner-request bounds and a disconnected, source-checked single
 consumer-generation commit boundary. Live AP dispatch, trusted clock and
 station adapters, source-5 boot activation and target acceptance remain open.
+The [consumer pre-clock boot review](phase12-8-consumer-preclock-review.md)
+records same-device source-5 structural selection, station time acquisition,
+read-only AP recovery and explicit legacy transport/schedule denial. It does
+not enable owner routes, validate persisted cryptography or activate source 5.
 The [whole-gesture BOOTSEL source review](phase12-8-bootsel-window-review.md)
 adds an opt-in RF-inhibited core-1 diagnostic and a bounded SRAM window. The
 [target record](phase12-8-bootsel-window-target.md) observes a physical
