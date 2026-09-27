@@ -550,6 +550,11 @@ AAD/plaintext and distinct wire/decoded body limits. A browser-sealed vector
 opens with the pinned Pico Mbed TLS adapter in host tests. The browser helper
 is not yet served by the captive page, and the Pico opener is not yet called
 by an owner HTTP route.
+The [TLS material review](phase12-8-tls-review.md) adds on-device P-256
+CA/server generation and persisted-material validation with host failure
+tests and a Pico cross-build. Trusted-UTC admission, target resource and
+latency measurements, claim-route use, journal commit and consumer activation
+remain open.
 The [whole-gesture BOOTSEL source review](phase12-8-bootsel-window-review.md)
 adds an opt-in RF-inhibited core-1 diagnostic and a bounded SRAM window. The
 [target record](phase12-8-bootsel-window-target.md) observes a physical

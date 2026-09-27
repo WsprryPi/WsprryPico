@@ -88,6 +88,18 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     target_link_libraries(owner_signature_tests PRIVATE wsprrypico_core mbedcrypto)
     target_compile_options(owner_signature_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME owner_signature_tests COMMAND owner_signature_tests)
+    add_executable(consumer_tls_generator_tests tests/consumer_tls_generator_tests.cpp
+        src/provisioning/pico/consumer_tls_generator.cpp
+        src/provisioning/pico/consumer_tls_validator.cpp
+        src/provisioning/pico/credential_validator.cpp
+        src/network/pico/psa_lifetime.cpp)
+    target_compile_definitions(consumer_tls_generator_tests PRIVATE
+        MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}")
+    target_link_libraries(consumer_tls_generator_tests PRIVATE
+        wsprrypico_core wsprrypico_rf mbedx509 mbedcrypto)
+    target_compile_options(consumer_tls_generator_tests PRIVATE
+        -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME consumer_tls_generator_tests COMMAND consumer_tls_generator_tests)
 endif()
 
 include(${CMAKE_SOURCE_DIR}/cmake/network_client_interop.cmake)

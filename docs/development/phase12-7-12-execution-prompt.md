@@ -46,6 +46,15 @@ canonical owner-session transcript at `d126c6f`. Current work must be
 inspected from the actual `devel` HEAD and worktree, not inferred from those
 historical hashes.
 
+The current P12.8 source checkpoint adds a Pico-compatible, device-bound
+P-256 CA and separate server certificate generator, plus a persisted-material
+validator and host failure tests. It is deliberately disconnected from the
+claim route and journal activation. The generator requires a trusted UTC input;
+its numerical range check does not itself establish clock trust. Its host
+certificates fit the Consumer-Profile/1 TLS cap, and the Pico cross-build
+passes. Heap/stack use and generation latency on the exact target remain
+unmeasured. See the [TLS checkpoint review](phase12-8-tls-review.md).
+
 ## Immediate P12.8 execution packet
 
 1. Close the remaining Owner-HTTP/1 wire ambiguities before enabling a route.
@@ -62,9 +71,11 @@ historical hashes.
    pinned crypto library. No parsed or authenticated result may bypass exact
    current profile/access journal, full identity, inactive output, owner epoch
    and generation checks.
-3. Generate the per-device CA and server key/certificate on the Pico only
-   after entropy and bounded UTC are valid. Validate key/cert pairing, SAN,
-   EKU, serial, validity and exact device identity before any journal write.
+3. Connect the existing on-device CA/server generator and persisted-material
+   validator only after a trusted, bounded UTC reading and measured entropy
+   are available. Validate key/cert pairing, SAN, EKU, serial, validity and
+   exact device identity before any journal write. Measure generation
+   latency, heap and stack on the exact target before making the route live.
    Implement owner/client trust activation from the committed consumer source,
    with all engineering password/GATT/factory mutation authority cut off.
 4. Implement one transactional claim: trial Wi-Fi and DHCP, validate ordinary

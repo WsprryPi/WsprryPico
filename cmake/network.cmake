@@ -50,9 +50,16 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
     target_link_libraries(${image} PRIVATE pico_mbedtls)
 endforeach()
 
+# Consumer commissioning exists only in the RF-inhibited field image.
+target_sources(WsprryPico PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/provisioning/pico/consumer_tls_generator.cpp
+    ${CMAKE_SOURCE_DIR}/src/provisioning/pico/consumer_tls_validator.cpp)
+
 set_source_files_properties(${CMAKE_SOURCE_DIR}/src/network/pico/psa_lifetime.cpp
     ${CMAKE_SOURCE_DIR}/src/network/pico/server.cpp
     ${CMAKE_SOURCE_DIR}/src/network/pico/bootstrap_server.cpp
     ${CMAKE_SOURCE_DIR}/src/network/pico/owner_signature.cpp
+    ${CMAKE_SOURCE_DIR}/src/provisioning/pico/consumer_tls_generator.cpp
+    ${CMAKE_SOURCE_DIR}/src/provisioning/pico/consumer_tls_validator.cpp
     ${CMAKE_SOURCE_DIR}/src/provisioning/pico/credential_validator.cpp
     PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-fstack-usage")

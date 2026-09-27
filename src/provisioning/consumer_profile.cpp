@@ -294,6 +294,15 @@ std::optional<ConsumerProfile> parse_consumer_profile(std::string_view text) {
     return out;
 }
 
+void scrub(ConsumerTls& tls) {
+    clear(tls.hostname);
+    clear(tls.ca_certificate);
+    clear(tls.ca_private_key);
+    clear(tls.server_certificate);
+    clear(tls.server_private_key);
+    tls.ca_not_after_utc = tls.server_not_after_utc = 0;
+}
+
 void scrub(ConsumerProfile& profile) {
     clear(profile.device_id);
     profile.owner_epoch = 0;
@@ -306,12 +315,7 @@ void scrub(ConsumerProfile& profile) {
     clear(profile.callsign);
     clear(profile.locator);
     profile.power_dbm = 0;
-    clear(profile.tls.hostname);
-    clear(profile.tls.ca_certificate);
-    clear(profile.tls.ca_private_key);
-    clear(profile.tls.server_certificate);
-    clear(profile.tls.server_private_key);
-    profile.tls.ca_not_after_utc = profile.tls.server_not_after_utc = 0;
+    scrub(profile.tls);
     for (auto& client : profile.clients) {
         clear(client.name);
         clear(client.csr_der);

@@ -53,7 +53,8 @@ time server, maximally escaped SSID/password and the 2,304-byte TLS cap
 totals **6,457 bytes**. That leaves 711 bytes under the slot payload cap;
 the structural parser's four-owner/four-client boundary test confirms the
 7,168-byte payload and 2,304-byte TLS limits with maximum CSR DER and JSON
-escaping. Actual certificate generation still must confirm the limits.
+escaping. The P12.8 host generator now confirms that its actual CA/server PEM
+material fits the TLS cap; target resource and activation checks remain open.
 
 The device stores only public owner keys; Safari holds the private owner
 keys. The CA and server private keys are in ordinary Pico flash, as accepted

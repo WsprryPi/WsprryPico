@@ -47,5 +47,6 @@ struct ConsumerProfile {
 // key pairs, validity, SAN and exact device identity before activation.
 std::optional<ConsumerProfile> parse_consumer_profile(std::string_view text);
 std::string serialize_consumer_profile(const ConsumerProfile& profile);
+void scrub(ConsumerTls& tls);
 void scrub(ConsumerProfile& profile);
 } // namespace wsprrypico::provisioning
