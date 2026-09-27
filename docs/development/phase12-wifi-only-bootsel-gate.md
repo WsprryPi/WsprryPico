@@ -45,6 +45,8 @@ HTTP route is enabled. This is a diagnostic record, not BOOTSEL acceptance.
    enabling the physical-grant or encrypted submission path. A failed or
    inconclusive run keeps the blank captive page read-only.
 
-The optional `WsprryPico-StandaloneRF` cross-build did not complete in this
-local SDK checkout because its BTstack headers are absent. That target is not
-the RF-inhibited diagnostic image and is not flashed under this plan.
+The optional `WsprryPico-StandaloneRF` cross-build did not complete because
+its shared main includes Field-GATT types while that RF diagnostic target
+does not receive the production BTstack include/link configuration. The SDK
+has BTstack sources, but this target is not the RF-inhibited diagnostic image
+and is not flashed under this plan.

@@ -110,7 +110,8 @@ void HttpParser::parse_headers() {
         const auto result =
             std::from_chars(length.data(), length.data() + length.size(), content_length_);
         if (result.ec != std::errc{} || result.ptr != length.data() + length.size() ||
-            content_length_ > max_http_body) {
+            content_length_ > max_http_body ||
+            (request_.path.starts_with("/api/bootstrap/v1/") && content_length_ > 512)) {
             failed_ = true;
             return;
         }

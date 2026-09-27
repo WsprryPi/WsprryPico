@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "esbuild crypto.js --bundle --minify --format=iife --global-name=WsprryBootstrapCrypto --target=es2020 --legal-comments=eof --outfile=../../../build/bootstrap-crypto.js",
-    "test": "node crypto.test.mjs"
+    "build": "esbuild app.js --bundle --minify --format=iife --target=es2020 --legal-comments=eof --outfile=bundle.js",
+    "test": "node --test crypto.test.mjs app.test.mjs"
   },
   "dependencies": {
     "@noble/ciphers": "2.3.0",

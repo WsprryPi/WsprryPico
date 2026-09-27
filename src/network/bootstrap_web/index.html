@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#263e52">
+  <title>Connect WsprryPico to Wi-Fi</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./bundle.js" defer></script>
+</head>
+<body>
+  <header><strong>WsprryPico</strong><span>Wi-Fi setup</span></header>
+  <main>
+    <h1>Connect this Pico to Wi-Fi</h1>
+    <p class="intro">Choose your home network and this Pico will connect to it. You can do the rest of setup later.</p>
+    <p id="device" class="device">Checking Pico identity…</p>
+    <div id="notice" role="status" aria-live="polite">Checking this browser…</div>
+
+    <section id="ready" hidden>
+      <h2>Confirm the Pico</h2>
+      <p>Choose Connect, then briefly tap BOOTSEL on the Pico when its light identifies it.</p>
+      <button id="start" type="button" class="primary">Connect this Pico</button>
+    </section>
+
+    <section id="tap" hidden>
+      <h2>Tap BOOTSEL once</h2>
+      <p>Press and release the BOOTSEL button on this Pico within one minute. Keep this page open.</p>
+      <p class="quiet">If the light is not identifying the Pico, wait for this attempt to end and try again.</p>
+    </section>
+
+    <section id="credentials" hidden>
+      <h2>Enter your Wi-Fi network</h2>
+      <form id="wifi-form" autocomplete="off">
+        <label for="ssid">Network name</label>
+        <input id="ssid" name="ssid" type="text" minlength="1" maxlength="32"
+               required autocapitalize="none" autocomplete="off" spellcheck="false">
+        <label for="password">Wi-Fi password</label>
+        <input id="password" name="password" type="password" minlength="8" maxlength="63"
+               required autocomplete="off" spellcheck="false">
+        <p class="quiet">The network name and password are encrypted in this browser before they cross the Pico’s open Wi-Fi.</p>
+        <button id="submit" type="submit" class="primary">Connect to network</button>
+      </form>
+    </section>
+
+    <section id="checking" hidden>
+      <h2>Checking connection</h2>
+      <p>The Pico is trying your network. Keep your phone connected to the Pico Wi-Fi while this page checks the result.</p>
+    </section>
+
+    <section id="connected" hidden>
+      <h2>Network connected</h2>
+      <p>The Pico saved the Wi-Fi settings and joined the network. Owner setup and station control are later steps.</p>
+    </section>
+
+    <section id="saved" hidden>
+      <h2>Wi-Fi saved; connection lost</h2>
+      <p>The Pico saved the network settings but is not connected right now. It will keep trying. Stay on or reconnect to the Pico Wi-Fi to check again.</p>
+    </section>
+
+    <section id="retry" hidden>
+      <h2>Connection not saved</h2>
+      <p>The Pico could not confirm and save this network. Check the name and password, then start a fresh attempt.</p>
+      <button id="retry-button" type="button">Try again</button>
+    </section>
+
+    <section id="safari" hidden>
+      <h2>Open in Safari</h2>
+      <p>This browser cannot complete encrypted Wi-Fi setup. Stay connected to the Pico Wi-Fi and open
+        <a href="http://192.168.4.1/">http://192.168.4.1/</a> in Safari.</p>
+      <p class="quiet">The Pico will not ask for your home Wi-Fi password on this screen.</p>
+    </section>
+  </main>
+  <footer>Connected to the Pico’s open setup network. Anyone who actively replaces this page could see the Wi-Fi details you enter.</footer>
+</body>
+</html>
