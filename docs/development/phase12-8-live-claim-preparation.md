@@ -1,7 +1,7 @@
 # P12.8 live claim preparation and adversarial review
 
-Status: **SOURCE CANDIDATE READY FOR BOUNDED HARDWARE PREFLIGHT; NO NEW DEVICE
-ACTION OR PHONE ACCEPTANCE RECORDED** (2026-09-27). This is a continuation of
+Status: **CANDIDATE A FLASH AND READ-ONLY AP CHECK PASSED; PHYSICAL CLAIM AND
+PHONE ACCEPTANCE OPEN** (2026-09-27). This is a continuation of
 the approved [P12.7 Safari/SoftAP contract](phase12-7-decision.md), not P12.8
 closure or a consumer release.
 
@@ -50,8 +50,8 @@ authority is denied while a claim is pending and whenever source 5 is selected.
   `consumer_claim_commit_tests` pass in `build/host-debug`.
   `owner_signature_tests` passes in `build/phase12-captive-host`.
 - The standard `WsprryPico` Pico 2 W target cross-build passes with the
-  project-pinned SDK/toolchain. No flash, USB control or RF action occurred
-  during this preparation.
+  project-pinned SDK/toolchain. The source/build review preceded the separate
+  authorized Candidate A flash below.
 
 ## Adversarial findings and repairs
 
@@ -72,18 +72,51 @@ actionable source defect was found. AP/STA continuity and trial timing on the
 Pico remain target gates; this assessment is a source review, not device
 acceptance.
 
+## Candidate A flash and read-only AP check
+
+The operator authorized preflight and flashing this exact RF-inhibited UF2 on
+Candidate A, leaving it installed. On `wspr5` boot
+`ffe09284-0e6b-41ee-9fe7-092867f72107`, USB serial
+`0BF4B4AEC9FFB344` identified the Pico 2 W / RP2350. Before writing, the
+correct USB command console (`if00`) returned full device ID
+`fd6127d11d6aca42a9905fa3fb1bf1d5`, revision `3f56f5e1aaa9`, healthy
+network-only generation 1, healthy access generation 1, no recovery or
+provisioning fault, and `STATUS` Empty with inactive output and the
+`inhibited-standalone-simulator` engine. The open AP independently returned
+that same device ID and network-only generation 1. A first console attempt on
+the WTP CDC interface (`if02`) received no reply; switching to `if00` resolved
+it without a device reset or write.
+
+The UF2 hash matched the candidate value on `wspr5`. The Pico acknowledged a
+USB software `BOOTSEL` command, then enumerated as bootrom with the exact USB
+serial. Serial-targeted `picotool load -v -x` finished verification with `OK`
+and rebooted the new image. An earlier malformed `picotool -f` invocation was
+rejected by its argument parser before any flash write. The newer image was
+left installed; no restoration or erase occurred. The firmware reports build
+revision `35415c3f8dba-dirty` because it was built before the source commit;
+the verified UF2 SHA-256 above identifies the flashed artifact.
+
+Postflash USB `INFO` reported the same full device ID, healthy network-only
+generation 1, healthy access generation 1, 150 MHz system clock, valid core-0
+stack guard, fault stage/status zero and provisioning fault zero. `STATUS`
+reported new boot ID `b195eb9d1da741db1c4af6b5911237e5`, Empty,
+`output_active=false`, healthy storage and the inhibited engine. From isolated
+`wspr5` `wlan2`, `/api/owner/v1/public-status` returned HTTP 200, source
+`network_only`, profile source 4, generation `"1"`, no owner and
+`claim_available=true`; `/owner.html` and both local owner script assets
+returned HTTP 200. `wlan2` was disconnected and its temporary profile deleted;
+`eth0` and `wlan1` remained connected. No button press, credential submission,
+consumer journal write, phone or RF output occurred.
+
 ## Next physical gate and limits
 
-When the operator returns to Candidate A, first obtain action-specific
-authorization for the exact device preflight and this UF2 flash. Read back the
-full USB identity and journal source/generation before writing anything. If
-Candidate A still holds the recorded network-only generation 1, its claim
-should target generation 2. Leave the newer image installed. Then exercise
-the open AP and Safari page, request one untimed press/release when the page
-prompts it, submit settings without copying the Wi-Fi password into evidence,
-and compare full identity, request digest, source and generation before and
-after the scheduled reboot. Preserve any failure as evidence; do not call a
-link, host test or earlier diagnostic a new physical result.
+When the operator returns to Candidate A, obtain action-specific authority
+for the physical claim. Use the open AP and Safari page, request one untimed
+press/release when the page prompts it, submit settings without copying the
+Wi-Fi password into evidence, and compare full identity, request digest,
+source and expected generation 2 before and after the scheduled reboot.
+Preserve any failure as evidence; the read-only AP check does not qualify the
+physical claim or iPhone flow.
 
 P12.8 still needs post-clock cryptographic validation and activation of the
 same persisted source-5 generation, authenticated encrypted owner sessions,
