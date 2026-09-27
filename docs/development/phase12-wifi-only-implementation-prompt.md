@@ -26,14 +26,17 @@ stores. Stage B and Phase 13 are separate.
    vectors, design review and latest blank-AP physical result. Inspect the
    current checkout, target SDK, storage, access journal, flash coordination,
    RF worker, SoftAP, DNS, HTTP, station state and tests. Preserve user edits.
-2. Prove a bounded runtime BOOTSEL sampler on the exact RF-inhibited target
-   before enabling credential submission. It must run from SRAM in an SDK
-   flash-safe zone, stop or coordinate the other core, tolerate CYW43 load,
-   preserve QSPI control state, reject a held/stale level and fail closed on
-   coordination error or timing overrun. The diagnostic image may expose only
-   a USB-local probe. Obtain explicit authority for the exact flash, device,
-   BOOTSEL operation, AP use, duration and restoration before target action.
-   If this gate fails, keep every mutating HTTP route disabled.
+2. Keep runtime BOOTSEL sampling confined to the blank, RF-inhibited standard
+   image with no core-1 launcher. The [target gate](phase12-wifi-only-bootsel-gate.md)
+   failed for a physical press with a continuously flash-reading core 1, then
+   passed a no-flash press/release run with 424 concurrent AP GETs in the
+   core-1-absent image. Preserve the SRAM callback, SDK flash-safe zone,
+   exact QSPI control restoration, idle/inactive-output check and fail-closed
+   link/runtime guards. Reject held/stale levels and timing/coordination
+   errors in the eventual claim state machine. Do not enable credential
+   submission in a core-1/RF image. Obtain explicit authority for each exact
+   device, image, USB/button, AP or station operation; roll image changes
+   forward and record the final state without routine older-image restoration.
 3. Implement one slot and the exact version-1 request/response schema. Admit
    only AP-interface requests with the specified Host, Origin, content type,
    header, length and canonical encodings. Reject duplicate/unknown JSON
@@ -77,7 +80,8 @@ stores. Stage B and Phase 13 are separate.
 On the exact blank Pico and selected iPhone, separately record automatic
 captive launch, captive-sheet crypto/form completion, Safari fallback, one
 encrypted join, journal generation/readback after reboot, failed join/retry,
-AP withdrawal/fallback and final RF-inhibited, output-inactive restoration.
+AP withdrawal/fallback and a final RF-inhibited, output-inactive state without
+routine image rollback.
 An isolated Raspberry Pi can exercise the AP protocol and network path but
 cannot qualify the selected iPhone behavior. Do not close Phase 12, Stage B or
 any RF row from this network-only result.

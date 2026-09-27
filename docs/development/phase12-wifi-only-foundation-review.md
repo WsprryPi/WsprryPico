@@ -115,6 +115,48 @@ the 32-bit counter width. The captured target trace already showed progress
 within all twenty calls; this repair makes that requirement executable for
 subsequent runs. Python syntax and the affected source checks pass.
 
+The next authorized live run **failed the hard physical gate**. With the same
+RF-inhibited core-1 image, a timed probe saw one valid held-button sample,
+then lost the USB reply while AP traffic also failed. Candidate A rebooted into
+recovery with `UFSR.INVSTATE`; the available fault PC does not locate the
+faulting instruction or core. The restored GET-only image booted healthy with
+generation 0, erased access and inactive output. The [exact run](phase12-wifi-only-bootsel-gate.md)
+is non-qualifying. The previous source reassessment covered the released-button
+path only and cannot be extended to a held-button/core-1 claim.
+
+Adversarial review of the probe harness found that its `finally` block raised
+an AP-traffic failure over the primary USB timeout. The repair still reports
+both AP counters and observed button transitions, then lets the original USB
+exception propagate. The captured run remains failed under either error. No
+credential POST or journal mutation was enabled. The contract sends a failed
+sampler gate back to design; a narrowed core-1-absent/parked topology or a new
+physical gesture requires fresh review and target evidence. The operator also
+directed future image changes to roll forward without routine restores.
+
+The separately authorized **no-flash** test on the installed standard image
+provided the missing narrow-topology evidence: all 60 safe-zone calls passed
+while the operator pressed and released BOOTSEL, and 424 AP GETs succeeded with
+none failing. The boot ID, generation-0/erased state, healthy storage and
+inactive output were unchanged. The standard ELF contains no linked core-1
+launcher or flash reader. The failed core-1 diagnostic build option has been
+removed; the StandaloneRF worker build refuses runtime BOOTSEL sampling. A
+standard-image link check requires a single SRAM callback and rejects known
+core-1 launcher symbols, with a source review confirming no core-1 start. This
+narrows the proposed physical-claim design to a blank RF-inhibited image with
+core 1 absent; it does not erase the failed core-1 row or enable credential
+POST.
+
+The follow-up adversarial pass found that the failed flash-reading diagnostic
+remained an opt-in build target, which could reproduce the unsafe physical
+button combination. That option and its launcher were removed. The ordinary
+RF-inhibited image cross-build passes the new single-core/SRAM-callback link
+check; the checker rejects the retained historical diagnostic ELF. The
+StandaloneRF sampler object cross-compiles to a direct
+`PICO_ERROR_NOT_PERMITTED` return with no button callback. A second source
+assessment found no remaining actionable issue in this narrowed BOOTSEL
+admission layer. The credential route and end-user join flow remain open and
+the newly guarded image has not been flashed.
+
 The second source assessment found no enabled credential-write route. The
 `PicoBootstrapServer` still dispatches through the GET-only
 `bootstrap_http_wire`; neither a physical grant nor a browser form is wired to
@@ -141,8 +183,8 @@ network-only route and was not repaired by enabling field service in an RF
 diagnostic image. The separately verified standard RF-inhibited diagnostic
 was flashed for the bounded single-core probe.
 
-Open implementation gates remain exact runtime BOOTSEL press/release with core 1,
-AP-local mutating protocol,
+Open implementation gates now start with review of the narrowed physical-claim
+design and its source guards, then AP-local mutating protocol,
 transactional AP/STA trial and commit, streaming the roughly 50-KiB browser
 bundle within the target heap and a matching CSP, stable AP withdrawal,
 failed-join/response-loss tests and selected-iPhone acceptance. The

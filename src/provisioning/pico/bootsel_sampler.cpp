@@ -5,12 +5,14 @@
 #include "hardware/gpio.h"
 #include "hardware/structs/io_qspi.h"
 #include "hardware/structs/sio.h"
+#include "pico/error.h"
 #include "pico/flash.h"
 #include "pico/platform.h"
 #include "pico/time.h"
 
 namespace wsprrypico::provisioning {
 namespace {
+#ifndef WSPRRY_PICO_STANDALONE_RF
 struct SampleState {
     bool pressed = false;
 };
@@ -29,9 +31,15 @@ void __no_inline_not_in_flash_func(sample_chip_select)(void* argument) {
     state.pressed = !(sio_hw->gpio_hi_in & SIO_GPIO_HI_IN_QSPI_CSN_BITS);
     io_qspi_hw->io[chip_select].ctrl = before;
 }
+#endif
 } // namespace
 
 BootselSample sample_runtime_bootsel() {
+#ifdef WSPRRY_PICO_STANDALONE_RF
+    // A held physical BOOTSEL press faulted a target with a flash-reading
+    // core 1. The StandaloneRF worker must not sample it at runtime.
+    return {false, false, 0, PICO_ERROR_NOT_PERMITTED};
+#else
     SampleState state;
     const auto before = time_us_64();
     const int result = flash_safe_execute(sample_chip_select, &state, 5);
@@ -39,5 +47,6 @@ BootselSample sample_runtime_bootsel() {
     // An exit timeout can follow an executed callback; it is still unsafe.
     return {result == PICO_OK, result == PICO_OK && state.pressed,
             static_cast<std::uint32_t>(elapsed > UINT32_MAX ? UINT32_MAX : elapsed), result};
+#endif
 }
 } // namespace wsprrypico::provisioning

@@ -11,8 +11,9 @@ and accepted the remaining active relay risk.
 The [proposed version-1 wire contract](../protocol/WiFi-Bootstrap-v1-proposal.md),
 [synthetic vectors](../protocol/WiFi-Bootstrap-v1-vectors.json) and
 [contract execution prompt](phase12-wifi-only-contract-execution-prompt.md)
-define the approved encryption and generation decisions. The runtime BOOTSEL,
-browser and target feasibility gates below remain open.
+define the approved encryption and generation decisions. The runtime BOOTSEL
+gate is now bounded to a blank RF-inhibited image with core 1 absent; the
+browser and network-join target gates below remain open.
 
 This is the separate bootstrap design required by the
 [Phase 12 roadmap](phase12-plan.md) for commissioning without BLE. It would
@@ -115,10 +116,15 @@ certificate-free mechanism and must not be advertised as implemented.
   JSON content type and request header, bounded body and no cross-origin
   credential submission. The ephemeral key/nonce and physical grant still
   carry authority; HTTP cookies and an IP address do not.
-- The selected BOOTSEL sampler remains subject to the P12.7 flash/XIP,
-  second-core and radio-scheduling safety gate. No implementation may copy a
-  stock polling example and infer safety. If the sampler fails the gate,
-  return to design; do not substitute an unconfirmed remote button press.
+- Runtime BOOTSEL sampling is confined to the blank, RF-inhibited standard
+  image with no linked core-1 launcher or flash reader. A held-button test
+  with a continuously flash-reading core 1 lost USB/AP service and rebooted
+  into recovery, so core-1/RF builds must refuse the sampler. The later
+  no-flash standard-image press/release run passed with concurrent AP traffic
+  within its exact recorded setup. This narrowed boundary does not authorize
+  a credential route yet; any future core-1 or RF topology requires a new
+  physical-claim design and target gate. No implementation may copy a stock
+  polling example or substitute an unconfirmed remote button press.
 - The open AP and local HTTP page do **not** authenticate the Pico to the
   browser. An active nearby relay can replace the page or intercept the key
   exchange and obtain Wi-Fi credentials. The operator accepted this risk.
@@ -221,9 +227,11 @@ scrubbing, AP-only DNS and redirects, HTTPS non-interception and Safari
 fallback. Cross-build the exact RF-inhibited image and verify resource bounds.
 
 Target acceptance requires separate explicit authority for the exact Pico,
-flash/BOOTSEL operation, AP and station radio operation, credential use,
-duration and restoration. First prove blank read-only admission, then the
+flash/BOOTSEL operation, AP and station radio operation, credential use and
+duration. First prove blank read-only admission, then the
 physical gate and one network-only join, durable readback after reboot,
-wrong-device and failed-join paths, AP withdrawal/fallback and final
-empty/unowned, RF-inhibited, output-inactive restoration. Neither source tests
+wrong-device and failed-join paths, AP withdrawal/fallback and a final
+empty/unowned, RF-inhibited, output-inactive state. Image changes roll forward
+under the operator's later direction; routine restoration to an older UF2 is
+not part of the test cycle. Neither source tests
 nor native-Pi exercises substitute for the selected phone/browser acceptance.

@@ -10,7 +10,8 @@ struct BootselSample {
     int result = 0;
 };
 
-// Call only on core 0 while output is authoritatively inactive. A failed
-// flash-safe zone never returns a usable button value.
+// Call only on core 0 in the RF-inhibited, core-1-absent image while output is
+// authoritatively inactive. The StandaloneRF worker build refuses sampling.
+// A failed flash-safe zone never returns a usable button value.
 BootselSample sample_runtime_bootsel();
 } // namespace wsprrypico::provisioning

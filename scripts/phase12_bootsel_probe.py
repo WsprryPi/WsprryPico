@@ -94,9 +94,13 @@ def main():
             if worker:
                 worker.join(timeout=3)
                 print(json.dumps({"ap_get_200": traffic["ok"],
-                                  "ap_get_fail": traffic["fail"]}), flush=True)
-                if traffic["ok"] == 0 or traffic["fail"]:
-                    raise RuntimeError("AP traffic failed during BOOTSEL probe")
+                                  "ap_get_fail": traffic["fail"],
+                                  "saw_press": saw_press,
+                                  "saw_release": saw_release}), flush=True)
+        # Keep a lost USB response as the primary failure even if AP traffic
+        # failed at the same time. Raising from finally masked that evidence.
+        if worker and (traffic["ok"] == 0 or traffic["fail"]):
+            raise RuntimeError("AP traffic failed during BOOTSEL probe")
         if args.expect_press_release and not (saw_press and saw_release):
             raise RuntimeError("BOOTSEL press/release transition was not observed")
         if args.expect_core1 and not ((last_core1_reads - first_core1_reads) & 0xffffffff):

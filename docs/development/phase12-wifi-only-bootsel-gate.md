@@ -1,8 +1,7 @@
 # Phase 12 Wi-Fi-only runtime BOOTSEL gate
 
-Status: **SINGLE-CORE PRESS/RELEASE AND CORE-1 RELEASED/AP PROBES PASS;
-TARGET GATE OPEN**. No credential-accepting HTTP route is enabled. The physical
-press while core 1 is active remains unqualified.
+Status: **CORE-1 PHYSICAL-PRESS GATE FAILED; SINGLE-CORE AP/PRESS PATH PASSED
+WITHIN THE RECORDED SETUP**. No credential-accepting HTTP route is enabled.
 
 ## Candidate and source checks
 
@@ -104,20 +103,85 @@ revision `fc9caab158b7-dirty`, boot ID
 storage, empty job, inactive output and zero allocator failures. A final
 released-button probe returned result 0 in 36 microseconds. The comparator was
 untouched. This bounds the second-core result to released-button/AP activity;
-there was no physical press on the core-1 image.
+there was no physical press on the core-1 image in that earlier run.
+
+## Failed core-1 physical-press run, 2026-09-26
+
+After the operator returned to Candidate A, they authorized a second flash of
+the exact repaired core-1 UF2 above, a live BOOTSEL press/release probe with AP
+traffic and final restoration. The preflash device remained generation 0 with
+erased access, healthy storage, empty job and inactive output. The Pi copy's
+SHA-256 matched; serial-targeted picotool verified chip ID
+`0x0bf4b4aec9ffb344` and reported `OK` for load/verify/execute. The running
+diagnostic was RF-inhibited, revision `192bfc028958-dirty`, boot ID
+`1d1ae2ee61194a42efd3a7bb9ce82cac`.
+
+The timed probe began with released-button result 0, advancing core-1 flash
+reads and successful open-AP traffic on isolated `wspr5` `wlan2`. It observed
+`pressed=true` once, with `ok=true`, result 0 and an advancing read counter.
+The next USB `BOOTSEL PROBE` received no response. The same run recorded 116
+HTTP 200 GETs and 12 failed AP requests. The probe exited nonzero; its script
+then masked the primary USB timeout with an AP-failure exception, repaired in
+source after the run. No release edge was observed by the diagnostic, so no
+physical grant may be inferred.
+
+Candidate A re-enumerated and reported `recovery_boot=true`, fault stage 5,
+fault status `0x00020000` (RP2350 `UFSR.INVSTATE`), fault PC placeholder 1,
+generation 0, erased access, healthy storage, empty job and inactive output.
+The fault data does not identify which core failed or prove its cause. The
+combination of the physical press and continuously flash-reading core 1 is
+unsafe in this measured topology, regardless of the earlier released-button
+and single-core passes. The gate is failed, not merely untested.
+
+The already approved restore was completed before the operator directed future
+work to **roll forward without restoring older images**. Serial-targeted
+picotool load/verify/execute of the standard GET-only UF2 returned `OK`.
+Candidate A now reports revision `fc9caab158b7-dirty`, boot ID
+`c7cbd524bbe03db02c8b609e65bf5804`, `recovery_boot=false`, generation 0,
+erased access, healthy storage, empty job, inactive output and a safe released
+probe result 0 in 36 microseconds. The Pi test AP profile was deleted;
+`wlan2` is disconnected while `eth0` and `wlan1` remain connected. The
+comparator was untouched. No credentials or RF jobs were used.
+
+## No-flash single-core AP/press run, 2026-09-26
+
+The operator then authorized a separate BOOTSEL press/release with concurrent
+AP traffic on the installed standard RF-inhibited image, with **no flash or
+restore**. The linked standard ELF has the BOOTSEL callback in SRAM and no
+`multicore_launch_core1`, `core1_wrapper` or diagnostic flash reader. Candidate
+A began with revision `fc9caab158b7-dirty`, boot ID
+`c7cbd524bbe03db02c8b609e65bf5804`, generation 0, erased access, healthy
+storage, empty job and inactive output. Isolated `wspr5` `wlan2` joined the
+open blank AP.
+
+The 30-second probe completed all 60 safe-zone calls with result 0 and
+36–37 microseconds, including seven consecutive `pressed=true` samples
+followed by `pressed=false`. The Pi completed 424 AP HTTP 200 GETs with zero
+failures. Final USB `INFO`/`STATUS` retained the same boot ID, no recovery,
+generation 0, erased access, healthy storage, empty job, inactive output,
+zero allocator failures and zero lwIP heap errors. The temporary Pi AP
+connection was deleted; `wlan2` is disconnected and `eth0`/`wlan1` remain
+connected. The standard GET-only image remains installed. The comparator,
+station credentials and RF output were untouched.
+
+This result supports only a **blank, RF-inhibited, core-1-absent** BOOTSEL
+topology. The failed flash-reading diagnostic build option has been removed;
+the StandaloneRF worker build returns `PICO_ERROR_NOT_PERMITTED` for BOOTSEL
+sampling. The standard image link check rejects the known core-1 launcher and
+flash-reader symbols; source review also confirms that the standard image does
+not start core 1. The standard image cross-build passes the new link check; the
+StandaloneRF sampler object cross-compiles to an immediate not-permitted
+result. This new guarded source has not been flashed. The failed core-1 press
+remains a failed row; the successful single-core run does not convert it to a
+pass.
 
 ## Remaining target procedure
 
-1. Under a separate exact-image authorization and with the operator at the
-   device, repeat the press/release transition while the repaired core-1
-   diagnostic runs and AP traffic continues. Require safe completion, correct
-   transitions, resumed core-1 reads, restored USB/AP service, no reboot and
-   preserved journal. The current standard RF-inhibited image does not start
-   core 1; the separate opt-in `WSPRRY_PICO_BOOTSEL_CORE1_DIAGNOSTIC` image is
-   RF-inhibited and has no HTTP write route. It uses an 8-KiB explicit core-1
-   stack, repeated XIP flash reads, SDK `flash_safe_execute_core_init()` on
-   core 1 and a progress counter in `BOOTSEL PROBE`. The repaired diagnostic
-   was built from `devel` commit `192bfc028958f4726f6a2f849c2c30a7a1db9ab5`
+1. Review the narrowed blank/core-1-absent design and verify its new build and
+   runtime guards. The core-1 physical press remains disallowed; do not repeat
+   the failed run or enable credential POST in a core-1 image. The failed
+   core-1 diagnostic was built from `devel` commit
+   `192bfc028958f4726f6a2f849c2c30a7a1db9ab5`
    plus the repaired core-1 candidate patch (`git diff` over
    `firmware/CMakeLists.txt` and `src/standalone/pico/main.cpp`, SHA-256
    `a415c0d32425c7f11ae485680c3911288c721d829298b66e1c38f6379e0dabaa`),
@@ -129,9 +193,11 @@ there was no physical press on the core-1 image.
    `pioasm` and picotool; the default command-line SDK failed those host
    linker probes. The final build passed with `DEVELOPER_DIR` and `SDKROOT`
    pointed at Xcode.
-2. Record exact timings, flash/core/radio result and final restoration before
-   enabling the physical-grant or encrypted submission path. A failed or
-   inconclusive run keeps the blank captive page read-only.
+2. Complete the remaining browser/session/transaction and station-join gates
+   before enabling the physical-grant or encrypted submission path. The blank
+   captive page stays read-only until those gates pass. Future authorized
+   image changes move forward; the operator has withdrawn the routine
+   restore-to-older-image practice.
 
 The optional `WsprryPico-StandaloneRF` cross-build did not complete because
 its shared main includes Field-GATT types while that RF diagnostic target

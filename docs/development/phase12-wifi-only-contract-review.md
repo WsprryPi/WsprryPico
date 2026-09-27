@@ -70,9 +70,14 @@ reconciliation without replaying a write.
 
 The main implementation hazards remain **gates**, not closed findings:
 
-- Inspect the actual RAM callback and generated machine code; prove flash/XIP,
-  second-core lockout and exact CS restoration on the production topology.
-  Measure bounded CYW43/DHCP/HTTP impact in an RF-inhibited target run.
+- Inspect the actual RAM callback and generated machine code; prove flash/XIP
+  and exact CS restoration on the admitted production topology. The
+  [target gate](phase12-wifi-only-bootsel-gate.md) failed with a held button
+  and a flash-reading core 1, then passed with press/release and concurrent AP
+  traffic in the core-1-absent RF-inhibited standard image. The design now
+  excludes core-1/RF builds from BOOTSEL sampling; any future second-core
+  topology requires a new target gate. Continue to measure CYW43/DHCP/HTTP
+  effects when the credential route is eventually enabled.
 - Pin, vendor and license the browser crypto bundle; verify its output
   independently against the synthetic vector and prove `getRandomValues`,
   Origin/header behavior and the full encrypted form in the selected iPhone

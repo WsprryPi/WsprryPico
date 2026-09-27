@@ -59,15 +59,13 @@ target_link_libraries(WsprryPico PRIVATE
     tinyusb_device
 )
 
-# Opt-in RF-inhibited BOOTSEL coordination diagnostic. Build in a separate
-# configured tree; the standard image keeps core 1 unused.
-option(WSPRRY_PICO_BOOTSEL_CORE1_DIAGNOSTIC "Run a flash-reading core 1 for BOOTSEL probing" OFF)
-if(WSPRRY_PICO_BOOTSEL_CORE1_DIAGNOSTIC)
-    target_compile_definitions(WsprryPico PRIVATE
-        WSPRRY_PICO_BOOTSEL_CORE1_DIAGNOSTIC=1 PICO_FLASH_ASSERT_ON_UNSAFE=0
-        PICO_CORE1_STACK_SIZE=0)
-    target_link_libraries(WsprryPico PRIVATE pico_multicore)
-endif()
+# Network-only BOOTSEL is allowed only in the standard RF-inhibited image
+# with no linked core-1 launcher. The physical core-1 press gate failed.
+add_custom_command(TARGET WsprryPico POST_BUILD
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_bootsel_topology.py
+            $<TARGET_FILE:WsprryPico> VERBATIM)
+set_property(TARGET WsprryPico APPEND PROPERTY LINK_DEPENDS
+             ${CMAKE_SOURCE_DIR}/scripts/check_bootsel_topology.py)
 
 # Reserve 16 KiB at the top of RP2350 main SRAM for the primary stack.
 # SDK linker symbols relocate SCRATCH_Y without overlapping the heap or core 1.
@@ -181,8 +179,7 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
                 $<TARGET_FILE:${image}> VERBATIM)
     set_property(TARGET ${image} APPEND PROPERTY LINK_DEPENDS
                  ${CMAKE_SOURCE_DIR}/scripts/check_heap_hooks.py)
-    if(image STREQUAL "WsprryPico-StandaloneRF" OR
-       (image STREQUAL "WsprryPico" AND WSPRRY_PICO_BOOTSEL_CORE1_DIAGNOSTIC))
+    if(image STREQUAL "WsprryPico-StandaloneRF")
         set(stack_guard_arguments --physical)
     else()
         set(stack_guard_arguments)

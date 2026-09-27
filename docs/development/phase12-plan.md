@@ -614,6 +614,16 @@ AP-local captive-browser launch on iPhone, with a fixed-address Safari
 fallback; neither an automatic launch nor captive-sheet crypto capability is
 assumed without target evidence. Implementation is approved subject to the
 hard runtime BOOTSEL gate; target operations need separate exact authority.
+The [Candidate A gate record](phase12-wifi-only-bootsel-gate.md) now includes a
+failed physical press while core 1 continuously reads flash: USB/AP service
+was lost and the RF-inhibited device rebooted into recovery. Credential POST
+remains disabled. A later no-flash run on the standard image passed physical
+press/release with concurrent AP traffic while core 1 was absent. The
+physical-claim design is now narrowed to blank, RF-inhibited, core-1-absent
+operation. The fail-closed source/link guards cross-build and are reviewed;
+their new image has not been flashed. The failed core-1 row is not accepted.
+The operator directed future image testing to
+roll forward rather than routinely restoring an older UF2.
 
 The separate [blank read-only captive landing review](phase12-blank-captive-landing-review.md)
 records a source-tested, RF-inhibited-image implementation of AP-only DNS and
