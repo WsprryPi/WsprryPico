@@ -1,5 +1,13 @@
 # P12.7 Safari/SoftAP consumer contract decision
 
+**Superseded for the consumer journey on 2026-09-27.** The operator selected
+the [immediate Safari setup contract](phase12-safari-open-setup-revision.md):
+visible Wi-Fi/station fields, optional LED identification, no BOOTSEL or code,
+no retained phone owner, any phone for later changes, and an open portal when
+station Wi-Fi is unavailable. The owner-key, physical claim, second-phone and
+reset ceremonies below are the earlier approved design, retained for history;
+they are not current implementation requirements.
+
 Status: **APPROVED DESIGN; IMPLEMENTATION AND TARGET ACCEPTANCE OPEN**
 (2026-09-27).
 

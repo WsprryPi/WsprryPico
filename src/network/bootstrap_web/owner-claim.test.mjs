@@ -36,7 +36,8 @@ for (const patch of [{deviceId: 'ff' + fields.deviceId.slice(2)},
   assert.notEqual(Buffer.from(sha256(claimTranscript({...fields, ...patch}))).toString('hex'),
     Buffer.from(sha256(aad)).toString('hex'));
 assert.throws(() => claimTranscript({...fields, origin: 'http://192.168.4.2'}));
-assert.throws(() => claimTranscript({...fields, source: 5}));
+assert.notEqual(Buffer.from(sha256(claimTranscript({...fields, source: 5}))).toString('hex'),
+  Buffer.from(sha256(aad)).toString('hex'));
 assert.throws(() => claimTranscript({...fields, generation: '01'}));
 assert.throws(() => claimTranscript({...fields, generation: '1\n'}));
 assert.throws(() => claimTranscript({...fields, deviceId: fields.deviceId + '\n'}));

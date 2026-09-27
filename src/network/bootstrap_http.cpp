@@ -23,14 +23,16 @@ HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_vie
                                 ",\"surface\":\"blank_read_only\",\"authenticated\":false}",
                             "application/json",
                             {}};
-    if ((setup_enabled && (request.path == "/" || request.path == "/index.html")) ||
-        (owner_page &&
-         (request.path == "/owner.html" || (!setup_enabled && request.path == "/"))) ||
-        request.path == "/style.css" || request.path == "/bundle.js" ||
+    if (((setup_enabled || owner_page) && request.path == "/index.html") ||
+        (owner_page && (request.path == "/owner.html" || request.path == "/")) ||
+        (setup_enabled && !owner_page && request.path == "/") || request.path == "/style.css" ||
+        request.path == "/bundle.js" ||
         (owner_page &&
          (request.path == "/owner-bundle.js" || request.path == "/owner-key-bundle.js"))) {
-        const auto path =
-            request.path == "/" ? (setup_enabled ? "/index.html" : "/owner.html") : request.path;
+        const auto path = owner_page && (request.path == "/" || request.path == "/index.html")
+                              ? "/owner.html"
+                          : request.path == "/" ? "/index.html"
+                                                : request.path;
         const auto asset = bootstrap_asset(path);
         if (!asset)
             return http_error(404, "not_found");

@@ -29,8 +29,8 @@ class PicoNetwork;
 namespace wsprrypico::network {
 
 // One-connection AP-local plaintext server. The standard RF-inhibited image
-// admits one physically granted encrypted credential transaction on a blank
-// profile; the RF worker build remains read-only. Static bodies stream from
+// admits one encrypted setup transaction from the open AP; the RF worker
+// build remains read-only. Static bodies stream from
 // flash in bounded chunks.
 class PicoBootstrapServer {
   public:
@@ -106,8 +106,6 @@ class PicoBootstrapServer {
     OwnerClaimCredentials owner_trial_;
     provisioning::NetworkProfile previous_network_;
     std::string owner_slot_digest_, owner_request_digest_, owner_request_id_;
-    bool owner_capture_pending_ = false, owner_start_reply_queued_ = false;
-    std::uint64_t owner_start_reply_queued_ms_ = 0;
     std::uint64_t owner_submit_ms_ = 0;
     bool owner_trial_active_ = false, owner_trial_start_pending_ = false;
     bool owner_submit_delivered_ = false, owner_reconcile_ = false;

@@ -74,8 +74,22 @@ int main() {
     const auto admitted = network::parse_owner_claim_start(start);
     assert(admitted && admitted->device_id == device && admitted->generation == 1 &&
            admitted->source == provisioning::ProfileSource::NetworkOnly);
-
     auto changed = start;
+    changed.body.replace(changed.body.find("\"profile_source\":4"), 18, "\"profile_source\":5");
+    assert(network::parse_owner_claim_start(changed));
+
+    auto identify = post("/api/owner/v1/identify", std::string("{\"version\":1,\"device_id\":\"") +
+                                                       device + "\",\"boot_id\":\"" + boot +
+                                                       "\",\"request_id\":\"" + request_id + "\"}");
+    const auto identified = network::parse_owner_identify(identify);
+    assert(identified && identified->device_id == device && identified->boot_id == boot);
+    identify.headers["origin"] = "http://other.local";
+    assert(!network::parse_owner_identify(identify));
+    identify.headers["origin"] = "http://192.168.4.1";
+    identify.body.insert(identify.body.size() - 1, ",\"extra\":1");
+    assert(!network::parse_owner_identify(identify));
+
+    changed = start;
     changed.headers["host"] = "captive.apple.com";
     assert(!network::parse_owner_claim_start(changed));
     changed = start;

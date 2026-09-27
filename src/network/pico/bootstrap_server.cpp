@@ -49,11 +49,7 @@ bool PicoBootstrapServer::start() {
 
 err_t PicoBootstrapServer::accept(void* context, tcp_pcb* pcb, err_t err) {
     auto& self = *static_cast<PicoBootstrapServer*>(context);
-    bool capture_reserved = false;
-#ifndef WSPRRY_PICO_STANDALONE_RF
-    capture_reserved = self.owner_capture_pending_ && self.owner_start_reply_queued_;
-#endif
-    if (err != ERR_OK || !self.active_ || self.client_ || capture_reserved ||
+    if (err != ERR_OK || !self.active_ || self.client_ ||
         !self.classifier_(pcb, self.classifier_context_)) {
         tcp_abort(pcb);
         return ERR_ABRT;
@@ -126,7 +122,8 @@ void PicoBootstrapServer::dispatch() {
         response_ = owner_public_get_admitted(parser_.request(), parser_.request().path)
                         ? owner_status(parser_.request().path == "/api/owner/v1/claim/status")
                         : http_error(400, "invalid_request");
-    else if (parser_.request().path.starts_with("/api/owner/v1/claim/"))
+    else if (parser_.request().path == "/api/owner/v1/identify" ||
+             parser_.request().path.starts_with("/api/owner/v1/claim/"))
         response_ = owner_mutation(parser_.request());
 #endif
     else
@@ -206,36 +203,6 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
     if (old_owner_state != provisioning::ConsumerClaimState::None &&
         owner_slot_.state() == provisioning::ConsumerClaimState::None)
         cancel_owner_slot(owner_trial_active_);
-    if (owner_capture_pending_ && !client_ && !owner_start_reply_queued_)
-        cancel_owner_slot(false);
-    // A lost ACK must not leave Safari showing a physical prompt while the
-    // Pico is still outside the flash-safe gesture window.
-    if (owner_capture_pending_ && owner_start_reply_queued_ && client_ && pending_bytes_ &&
-        now_ms >= owner_start_reply_queued_ms_ && now_ms - owner_start_reply_queued_ms_ >= 500)
-        close();
-    if (active_ && owner_capture_pending_ && owner_start_reply_queued_ && !client_ &&
-        owner_slot_.state() == provisioning::ConsumerClaimState::Identify) {
-        owner_capture_pending_ = false;
-        // The complete start reply was queued before blocking USB/Wi-Fi. A
-        // short sampler must never return to flash while BOOTSEL is held.
-        const auto gesture = provisioning::capture_runtime_bootsel_gesture(
-            static_cast<std::uint32_t>(provisioning::ConsumerClaimSlot::physical_window_ms));
-        (void)owner_slot_.grant_captured(time_us_64() / 1000, gesture.safe, gesture.valid_press,
-                                         gesture.duration_ms,
-                                         claim_platform_ && claim_platform_->safe_to_commit());
-        if (owner_slot_.state() == provisioning::ConsumerClaimState::Granted && access_ &&
-            access_->state() == provisioning::AccessStoreState::Erased) {
-            provisioning::AccessRecord record;
-            record.epoch = 1;
-            record.password = default_password_;
-            const bool initialized = !record.password.empty() && access_->initialize(record);
-            provisioning::scrub(record);
-            if (!initialized)
-                cancel_owner_slot(false);
-        }
-        if (owner_slot_.state() == provisioning::ConsumerClaimState::None)
-            cancel_owner_slot(false);
-    }
     if (owner_trial_start_pending_ && !client_ &&
         (owner_submit_delivered_ ||
          (now_ms >= owner_submit_ms_ && now_ms - owner_submit_ms_ >= 10'000))) {
@@ -361,15 +328,6 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
         else
             body_offset_ += count;
         pending_bytes_ += count;
-#ifndef WSPRRY_PICO_STANDALONE_RF
-        if (owner_capture_pending_ && !owner_start_reply_queued_ && parser_.ready() &&
-            parser_.request().method == "POST" &&
-            parser_.request().path == "/api/owner/v1/claim/start" && response_.status == 200 &&
-            header_offset_ == headers_.size() && body_offset_ == response_.body_size()) {
-            owner_start_reply_queued_ = true;
-            owner_start_reply_queued_ms_ = time_us_64() / 1000;
-        }
-#endif
         (void)tcp_output(client_);
     } else if (!pending_bytes_) {
 #ifndef WSPRRY_PICO_STANDALONE_RF
@@ -531,18 +489,27 @@ HttpResponse PicoBootstrapServer::owner_status(bool claim_status) {
                            ? "unprovisioned"
                            : "fault";
     const auto generation = healthy ? profile_->sequence() : 0;
+    // The runtime snapshot predates a just-committed generation. Every new
+    // open-setup commit writes an empty owners list; do not report its old one.
+    const bool owner_exists = runtime_ && runtime_->consumer_profile() &&
+                              runtime_->generation() == generation &&
+                              !runtime_->consumer_profile()->owners.empty();
     const bool address = network_ && network_->link_up() && !network_->ipv4().empty() &&
                          network_->ipv4() != "0.0.0.0";
+    const bool claim_available = owner_claimable() && !owner_reconcile_ &&
+                                 slot_.state() == BootstrapSlotState::None &&
+                                 owner_slot_.state() == provisioning::ConsumerClaimState::None;
     std::string body =
         "{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
         ",\"boot_id\":" + wtp::json::quote(boot_id_) + ",\"source\":" + wtp::json::quote(label) +
         ",\"profile_source\":" +
         std::to_string(healthy && runtime_ok ? static_cast<unsigned>(source) : 255) +
         ",\"generation\":" + wtp::json::quote(std::to_string(generation)) + ",\"owner_exists\":" +
-        (healthy && runtime_ok && source == provisioning::ProfileSource::ConsumerProfile
+        (healthy && runtime_ok && source == provisioning::ProfileSource::ConsumerProfile &&
+                 owner_exists
              ? "true"
              : "false") +
-        ",\"claim_available\":" + (owner_claimable() ? "true" : "false") +
+        ",\"claim_available\":" + (claim_available ? "true" : "false") +
         ",\"address_ready\":" + (address ? "true" : "false") + ",\"clock_ready\":" +
         (claim_platform_ && claim_platform_->trusted_utc_now() ? "true" : "false");
     if (claim_status) {
@@ -580,6 +547,18 @@ HttpResponse PicoBootstrapServer::owner_status(bool claim_status) {
 
 HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
     const auto now_ms = time_us_64() / 1000;
+    if (request.path == "/api/owner/v1/identify") {
+        const auto parsed = parse_owner_identify(request);
+        if (!parsed)
+            return http_error(400, "invalid_request");
+        if (!owner_claimable() || parsed->device_id != device_ || parsed->boot_id != boot_id_)
+            return http_error(403, "unavailable");
+        if (indicator_->identify(parsed->request_id, device_, true, true, now_ms) !=
+            provisioning::IndicatorCode::Ok)
+            return http_error(409, "busy");
+        return json("{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
+                    ",\"pattern\":\"three_short_flashes\",\"duration_ms\":10000}");
+    }
     if (request.path == "/api/owner/v1/claim/start") {
         const auto parsed = parse_owner_claim_start(request);
         if (!parsed)
@@ -610,13 +589,20 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
         }
         owner_slot_digest_ = bootstrap_digest(slot_id);
         owner_request_digest_.clear();
-        owner_capture_pending_ = true;
-        owner_start_reply_queued_ = false;
-        owner_start_reply_queued_ms_ = 0;
-        if (indicator_->identify(slot_hex, device_, true, true, now_ms) !=
-            provisioning::IndicatorCode::Ok) {
+        if (!owner_slot_.grant_open_setup(now_ms, claim_platform_->safe_to_commit())) {
             cancel_owner_slot(false);
-            return http_error(503, "indicator_unavailable");
+            return http_error(503, "setup_unavailable");
+        }
+        if (access_ && access_->state() == provisioning::AccessStoreState::Erased) {
+            provisioning::AccessRecord record;
+            record.epoch = 1;
+            record.password = default_password_;
+            const bool initialized = !record.password.empty() && access_->initialize(record);
+            provisioning::scrub(record);
+            if (!initialized) {
+                cancel_owner_slot(false);
+                return http_error(503, "access_unavailable");
+            }
         }
         return json("{\"version\":1,\"device_id\":" + wtp::json::quote(device_) + ",\"boot_id\":" +
                     wtp::json::quote(boot_id_) + ",\"slot_id\":" + wtp::json::quote(slot_hex) +
@@ -625,8 +611,7 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
                     ",\"owner_key_sha256\":" + wtp::json::quote(bootstrap_digest(point)) +
                     ",\"browser_public_key\":" + wtp::json::quote(parsed->browser_public_key) +
                     ",\"browser_nonce\":" + wtp::json::quote(parsed->browser_nonce) +
-                    ",\"pico_public_key\":" + wtp::json::quote(pico_public_key) +
-                    ",\"physical_window_ms\":60000}");
+                    ",\"pico_public_key\":" + wtp::json::quote(pico_public_key) + "}");
     }
     if (request.path == "/api/owner/v1/claim/submit") {
         const auto parsed = parse_owner_claim_submit(request);
@@ -639,8 +624,7 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
             parsed->slot_id != binding->slot_id || binding->source != profile_->source() ||
             binding->generation != profile_->sequence())
             return http_error(403, "unavailable");
-        // Granted means the whole flash-safe callback returned after release;
-        // resampling here could fault if the button were held again.
+        // This open-AP setup slot was granted without a physical button.
         if (!owner_slot_.consume(*binding, parsed->request_id, now_ms, true,
                                  claim_platform_->safe_to_commit()))
             return http_error(409, "busy");
@@ -669,6 +653,17 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
         }
         if (runtime_->network_profile())
             previous_network_ = *runtime_->network_profile();
+        else if (profile_->source() == provisioning::ProfileSource::ConsumerProfile) {
+            // The persisted generation may have changed since the boot-time
+            // runtime snapshot if another save completed before restart.
+            auto current = provisioning::parse_consumer_profile(profile_->data());
+            if (!current) {
+                end_owner_trial(false, now_ms);
+                return http_error(503, "profile_unavailable");
+            }
+            previous_network_ = {current->device_id, current->ssid, current->password};
+            provisioning::scrub(*current);
+        }
         owner_trial_start_pending_ = true;
         owner_submit_delivered_ = false;
         owner_submit_ms_ = now_ms;
@@ -694,6 +689,10 @@ bool PicoBootstrapServer::owner_claimable() const {
         return profile_->sequence() && runtime_->network_profile() &&
                runtime_->network_profile()->device_id == device_ &&
                runtime_->source() == provisioning::RuntimeSource::NetworkOnly;
+    case provisioning::ProfileSource::ConsumerProfile:
+        return profile_->sequence() && runtime_->consumer_profile() &&
+               runtime_->consumer_profile()->device_id == device_ &&
+               runtime_->source() == provisioning::RuntimeSource::ConsumerPreClock;
     default:
         return false;
     }
@@ -713,8 +712,6 @@ void PicoBootstrapServer::cancel_owner_slot(bool restore_network) {
     owner_slot_digest_.clear();
     owner_request_digest_.clear();
     owner_trial_active_ = false;
-    owner_capture_pending_ = owner_start_reply_queued_ = false;
-    owner_start_reply_queued_ms_ = 0;
     owner_trial_start_pending_ = owner_submit_delivered_ = false;
 }
 
@@ -733,8 +730,6 @@ void PicoBootstrapServer::end_owner_trial(bool committed, std::uint64_t now_ms) 
     provisioning::scrub(previous_network_);
     owner_request_id_.clear();
     owner_trial_active_ = false;
-    owner_capture_pending_ = owner_start_reply_queued_ = false;
-    owner_start_reply_queued_ms_ = 0;
     owner_trial_start_pending_ = owner_submit_delivered_ = false;
 }
 

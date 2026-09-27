@@ -1,12 +1,12 @@
 import {x25519} from '@noble/curves/ed25519.js';
 import {sha256} from '@noble/hashes/sha2.js';
 import {available} from './crypto.js';
-import {sealOwnerClaim} from './owner-claim.js';
+import {claimPlaintext, sealOwnerClaim} from './owner-claim.js';
 
 const host = 'http://192.168.4.1';
 const p256 = globalThis.WsprryPicoOwnerKey;
-const sections = ['owner-ready', 'owner-arming', 'owner-tap', 'owner-settings', 'owner-checking',
-  'owner-saved', 'owner-retry', 'owner-service', 'owner-safari'];
+const sections = ['owner-settings', 'owner-checking', 'owner-saved', 'owner-retry',
+  'owner-service', 'owner-safari'];
 const $ = (name) => document.getElementById(name);
 const hex = (bytes) => [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 const fromHex = (value, size) => {
@@ -36,57 +36,31 @@ const notice = (message, error = false) => {
   $('notice').textContent = message;
   $('notice').classList.toggle('error', error);
 };
-const keyName = (deviceId) => `WsprryPico/owner/v1/${deviceId}`;
-let deviceId, status, started, pending, submitted, polling = false;
+let deviceId, status, submitted, polling = false, saving = false;
+let complete = false, retryVisible = false;
 
 async function request(path, body) {
-  const options = {cache: 'no-store', credentials: 'omit', redirect: 'error'};
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  const options = {cache: 'no-store', credentials: 'omit', redirect: 'error',
+    signal: controller.signal};
   if (body) {
     options.method = 'POST';
     options.headers = {'Content-Type': 'application/json', 'X-WsprryPico-Owner': '1'};
     options.body = JSON.stringify(body);
   }
-  const response = await fetch(host + path, options);
-  if (!response.ok) throw new Error('Pico request failed');
-  return response.json();
-}
-
-function ownerKey(device) {
-  const name = keyName(device);
-  let record = localStorage.getItem(name);
-  let created = false;
-  if (record === null) {
-    const pair = p256.keygen();
-    record = hex(pair.secretKey);
-    pair.secretKey.fill(0);
-    created = true;
-    localStorage.setItem(name, record);
-  }
-  const saved = localStorage.getItem(name);
-  if (saved !== record) throw new Error('owner key storage failed');
-  const secret = fromHex(saved, 32);
   try {
-    const publicKey = p256.getPublicKey(secret, false);
-    if (publicKey.length !== 65 || publicKey[0] !== 4)
-      throw new Error('invalid owner key');
-    const challenge = random(32);
-    const signature = p256.sign(challenge, secret);
-    if (!p256.verify(signature, challenge, publicKey)) throw new Error('owner key self-test failed');
-    return publicKey;
-  } catch (error) {
-    if (created) localStorage.removeItem(name);
-    throw error;
-  } finally {
-    secret.fill(0);
-  }
+    const response = await fetch(host + path, options);
+    if (!response.ok) throw new Error('Pico request failed');
+    return await response.json();
+  } finally { clearTimeout(timeout); }
 }
 
-function clearAttempt() {
-  pending?.secretKey?.fill(0);
-  pending = started = undefined;
-  submitted = undefined;
-  $('owner-password').value = '';
-  $('owner-ssid').value = '';
+function settings() {
+  return {ssid: $('owner-ssid').value, password: $('owner-password').value,
+    callsign: $('owner-callsign').value.trim().toUpperCase(),
+    locator: $('owner-locator').value.trim().toUpperCase(),
+    powerDbm: Number($('owner-power').value)};
 }
 
 function validStatus(value) {
@@ -106,6 +80,11 @@ function validStatus(value) {
     (value.source === 'unprovisioned' || value.source === 'fault' || generation > 0n);
 }
 
+function clearTransaction() {
+  submitted = undefined;
+  $('owner-password').value = '';
+}
+
 async function update() {
   if (polling) return;
   polling = true;
@@ -113,52 +92,62 @@ async function update() {
     const current = await request('/api/owner/v1/claim/status');
     if (!validStatus(current)) throw new Error('wrong Pico status');
     status = current;
+    if (saving) return;
+    if (complete || retryVisible) return;
     if (current.source === 'fault') {
-      clearAttempt();
+      clearTransaction();
       show('owner-service');
       notice('The Pico could not verify its setup state.', true);
-    } else if (current.slot_state === 'reconcile') {
-      show('owner-checking');
-      notice('The Pico is resolving the saved result. Reconnect after it restarts.');
-    } else if (current.source === 'consumer') {
-      const expected = submitted &&
+    } else if (submitted) {
+      const saved = current.source === 'consumer' &&
         BigInt(current.generation) === submitted.expectedGeneration &&
         current.request_id_digest === submitted.requestDigest;
-      show('owner-saved');
-      notice(expected ? 'Setup was saved. Final owner readback is pending.' :
-        'A consumer profile is saved on this Pico. Final owner readback is pending.');
-      pending?.secretKey?.fill(0);
-      pending = undefined;
-    } else if (started && current.slot_id_digest === started.digest) {
-      if (current.slot_state === 'granted' && !submitted) {
-        show('owner-settings');
-        notice('Pico confirmed. Enter your settings.');
-      } else if (current.slot_state === 'terminal' && submitted) {
-        clearAttempt();
+      if (saved) {
+        clearTransaction();
+        complete = true;
+        show('owner-saved');
+        notice('The Pico saved your network and station settings.');
+      } else if (current.source === 'consumer' &&
+                 BigInt(current.generation) >= submitted.expectedGeneration &&
+                 current.request_id_digest !== submitted.requestDigest) {
+        clearTransaction();
+        show('owner-service');
+        notice('The saved result changed. Reload this page to check the Pico.', true);
+      } else if (current.slot_state === 'terminal' ||
+                 (current.slot_state === 'none' &&
+                  BigInt(current.generation) < submitted.expectedGeneration)) {
+        clearTransaction();
+        retryVisible = true;
         show('owner-retry');
-        notice('The Pico did not save this setup. Start a fresh attempt.', true);
+        notice('Setup was not saved. Check your settings and try again.', true);
+      } else {
+        show('owner-checking');
+        notice('Checking the saved result. Keep this page open.');
       }
-    } else if (started && current.slot_id_digest &&
-               current.slot_id_digest !== started.digest) {
-      clearAttempt();
-      show('owner-retry');
-      notice('Another setup attempt is active. Wait, then try again.', true);
-    } else if (started && submitted && current.slot_state === 'none') {
-      clearAttempt();
-      show('owner-retry');
-      notice('This setup was not saved. Start a new attempt.', true);
-    } else if (started && !submitted && current.slot_state === 'none') {
-      clearAttempt();
-      show('owner-retry');
-      notice('The confirmation window ended. Start again.', true);
-    } else if (!started && current.claim_available &&
-               (current.source === 'network_only' || current.source === 'unprovisioned')) {
-      show('owner-ready');
+    } else if (current.claim_available) {
+      $('owner-submit').disabled = false;
+      $('owner-identify').disabled = false;
+      if (!$('owner-settings').hidden) return;
+      show('owner-settings');
+      notice(current.source === 'consumer' ?
+        'Ready to update this Pico. Enter the settings you want it to use.' :
+        'Ready to connect this Pico.');
+    } else {
+      $('owner-submit').disabled = true;
+      $('owner-identify').disabled = true;
+      if (current.slot_state !== 'none') {
+        retryVisible = true;
+        show('owner-retry');
+        notice('Another setup is in progress. Wait a moment and try again.', true);
+      } else {
+        show('owner-service');
+        notice('Setup is temporarily unavailable on this Pico.', true);
+      }
     }
   } catch {
     if (submitted) {
       show('owner-checking');
-      notice('Checking the saved result. Reconnect to the Pico Wi-Fi and reopen this page if needed.');
+      notice('Checking the saved result. Reconnect to the Pico Wi-Fi if needed.');
     }
   } finally {
     polling = false;
@@ -166,19 +155,46 @@ async function update() {
   }
 }
 
-async function start() {
-  if (!status || !status.claim_available ||
-      !['network_only', 'unprovisioned'].includes(status.source)) return;
-  clearAttempt();
-  $('owner-start').disabled = true;
+async function identify() {
+  if (!status?.claim_available || saving) return;
+  $('owner-identify').disabled = true;
   try {
-    const ownerPublic = ownerKey(deviceId);
+    const result = await request('/api/owner/v1/identify', {version: 1,
+      device_id: deviceId, boot_id: status.boot_id, request_id: hex(random(16))});
+    if (result.version !== 1 || result.device_id !== deviceId ||
+        result.pattern !== 'three_short_flashes') throw new Error('wrong Pico');
+    notice('Watch for three quick LED flashes, repeated for about 10 seconds.');
+  } catch {
+    notice('Could not blink the LED. You can still save setup.', true);
+  } finally { $('owner-identify').disabled = false; }
+}
+
+async function submit(event) {
+  event.preventDefault();
+  if (!status?.claim_available || saving) return;
+  const proposed = settings();
+  try { claimPlaintext(proposed).fill(0); }
+  catch {
+    notice('Check the Wi-Fi name, password, callsign and four-character grid.', true);
+    return;
+  }
+  saving = true;
+  $('owner-submit').disabled = true;
+  $('owner-identify').disabled = true;
+  let browserSecret;
+  try {
+    // The P-256 point binds this one exchange and is never stored as an owner.
+    const transaction = p256.keygen();
+    const transactionPublic = p256.getPublicKey(transaction.secretKey, false);
+    transaction.secretKey.fill(0);
     const pair = x25519.keygen();
-    pending = {secretKey: pair.secretKey, ownerPublic,
-      browserPublic: pair.publicKey, browserNonce: hex(random(16))};
-    started = await request('/api/owner/v1/claim/start', {
-      version: 1, device_id: deviceId, owner_public_key: b64u(ownerPublic),
-      browser_public_key: b64u(pair.publicKey), browser_nonce: pending.browserNonce,
+    browserSecret = pair.secretKey;
+    const browserNonce = hex(random(16));
+    show('owner-checking');
+    notice('Connecting and saving setup.');
+    const started = await request('/api/owner/v1/claim/start', {
+      version: 1, device_id: deviceId, owner_public_key: b64u(transactionPublic),
+      browser_public_key: b64u(pair.publicKey), browser_nonce: browserNonce,
       profile_source: status.profile_source, generation: status.generation,
     });
     if (started.version !== 1 || started.device_id !== deviceId ||
@@ -186,56 +202,27 @@ async function start() {
         !/^[0-9a-f]{32}$/.test(started.slot_id) ||
         started.profile_source !== status.profile_source ||
         started.generation !== status.generation ||
-        started.owner_key_sha256 !== hex(sha256(ownerPublic)) ||
+        started.owner_key_sha256 !== hex(sha256(transactionPublic)) ||
         started.browser_public_key !== b64u(pair.publicKey) ||
-        started.browser_nonce !== pending.browserNonce ||
-        fromB64u(started.pico_public_key, 32).length !== 32 ||
-        started.physical_window_ms !== 60000)
+        started.browser_nonce !== browserNonce ||
+        fromB64u(started.pico_public_key, 32).length !== 32)
       throw new Error('start binding changed');
-    started.digest = hex(sha256(fromHex(started.slot_id, 16)));
-    show('owner-arming');
-    notice('Preparing button confirmation. Wait for the prompt.');
-    setTimeout(() => {
-      if (started && pending && !submitted && !$('owner-arming').hidden) {
-        show('owner-tap');
-        notice('Press and release BOOTSEL on this Pico.');
-      }
-    }, 2000);
-  } catch {
-    clearAttempt();
-    show('owner-retry');
-    notice('Could not begin setup. Reconnect and try again.', true);
-  } finally { $('owner-start').disabled = false; }
-}
-
-async function submit(event) {
-  event.preventDefault();
-  if (!pending || !started || !status || status.slot_state !== 'granted') return;
-  $('owner-submit').disabled = true;
-  try {
     const requestId = hex(random(16));
     const nonce = random(12);
     const fields = {
       origin: host, deviceId, bootId: started.boot_id, slotId: started.slot_id,
-      ownerPublicKey: pending.ownerPublic, browserPublicKey: pending.browserPublic,
+      ownerPublicKey: transactionPublic, browserPublicKey: pair.publicKey,
       picoPublicKey: fromB64u(started.pico_public_key, 32),
-      browserNonce: pending.browserNonce, requestId,
-      source: started.profile_source, generation: started.generation,
+      browserNonce, requestId, source: started.profile_source,
+      generation: started.generation,
     };
-    const settings = {ssid: $('owner-ssid').value, password: $('owner-password').value,
-      callsign: $('owner-callsign').value.trim().toUpperCase(),
-      locator: $('owner-locator').value.trim().toUpperCase(),
-      powerDbm: Number($('owner-power').value)};
-    const envelope = sealOwnerClaim(fields, pending.secretKey, nonce, settings);
+    const envelope = sealOwnerClaim(fields, browserSecret, nonce, proposed);
+    browserSecret = undefined;
     submitted = {requestDigest: hex(sha256(fromHex(requestId, 16))),
       expectedGeneration: BigInt(started.generation) + 1n};
     $('owner-password').value = '';
-    $('owner-ssid').value = '';
-    $('owner-callsign').value = '';
-    $('owner-locator').value = '';
-    show('owner-checking');
-    notice('Trying your network and checking the saved result.');
-    // Unknown response is reconciled by read-only status. Never replay submit.
+    // The result may be lost when station association changes; reconcile by
+    // status without replaying this one encrypted POST.
     await request('/api/owner/v1/claim/submit', {
       version: 1, device_id: deviceId, boot_id: started.boot_id,
       slot_id: started.slot_id, request_id: requestId, aead_nonce: b64u(nonce),
@@ -246,23 +233,31 @@ async function submit(event) {
       show('owner-checking');
       notice('Checking the saved result. Keep this page open.');
     } else {
-      clearAttempt();
+      retryVisible = true;
       show('owner-retry');
-      notice('Could not encrypt these settings. Start again.', true);
+      notice('Could not start setup. Wait a moment, then try again.', true);
     }
-  } finally { $('owner-submit').disabled = false; }
+  } finally {
+    browserSecret?.fill(0);
+    saving = false;
+    $('owner-submit').disabled = !status?.claim_available;
+    $('owner-identify').disabled = !status?.claim_available;
+  }
 }
 
 async function boot() {
-  $('owner-start').addEventListener('click', start);
+  $('owner-identify').addEventListener('click', identify);
   $('owner-retry-button').addEventListener('click', () => {
-    clearAttempt(); show('owner-ready'); notice('Ready for another attempt.');
+    clearTransaction();
+    retryVisible = false;
+    show('owner-settings');
+    notice('Check your settings, then save again.');
   });
   $('owner-form').addEventListener('submit', submit);
   if (location.origin !== host || !available() || !p256 ||
-      typeof localStorage === 'undefined') {
+      typeof AbortController !== 'function') {
     show('owner-safari');
-    notice('Open this page in Safari to save this phone’s owner key.', true);
+    notice('Open this page in Safari to set up the Pico.', true);
     return;
   }
   try {
@@ -271,27 +266,21 @@ async function boot() {
       throw new Error('invalid Pico identity');
     deviceId = publicStatus.device_id;
     if (!validStatus(publicStatus)) throw new Error('invalid Pico state');
-    // A storage read/write failure must appear before the physical prompt.
-    const probe = `WsprryPico/storage-check/${deviceId}`;
-    localStorage.setItem(probe, 'ok');
-    if (localStorage.getItem(probe) !== 'ok') throw new Error('storage unavailable');
-    localStorage.removeItem(probe);
     status = publicStatus;
     $('device').textContent = 'Pico ' + deviceId.slice(-6);
-    if (status.source === 'consumer') {
-      show('owner-saved');
-      notice('A consumer profile is saved on this Pico. Final owner readback is pending.');
-    } else if (status.claim_available) {
-      show('owner-ready');
-      notice('Ready to set up this Pico.');
+    if (status.claim_available) {
+      $('owner-submit').disabled = false;
+      $('owner-identify').disabled = false;
+      notice(status.source === 'consumer' ?
+        'Ready to update this Pico. Enter the settings you want it to use.' :
+        'Ready to connect this Pico.');
     } else {
       show('owner-service');
       notice('Setup is temporarily unavailable on this Pico.', true);
     }
     update();
   } catch {
-    show('owner-safari');
-    notice('Could not verify the Pico or Safari storage. Reconnect and reopen this page.', true);
+    notice('Could not verify this Pico. Reconnect to its Wi-Fi and reload.', true);
   }
 }
 boot();

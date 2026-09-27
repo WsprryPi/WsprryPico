@@ -53,6 +53,21 @@ bool owner_public_get_admitted(const HttpRequest& request, std::string_view rout
            common(request, route, false);
 }
 
+std::optional<OwnerIdentifyRequest> parse_owner_identify(const HttpRequest& request) {
+    if (!common(request, "/api/owner/v1/identify", true))
+        return {};
+    const auto root = wtp::json::parse(request.body_view());
+    if (!root || !wtp::json::fields(*root, {"version", "device_id", "boot_id", "request_id"}) ||
+        root->get("version")->raw != "1")
+        return {};
+    const auto device = field(*root, "device_id"), boot = field(*root, "boot_id"),
+               request_id = field(*root, "request_id");
+    if (!device || !network::valid_device_id(*device) || !boot || !hex16(*boot) || !request_id ||
+        !hex16(*request_id))
+        return {};
+    return OwnerIdentifyRequest{*device, *boot, *request_id};
+}
+
 std::optional<OwnerClaimStartRequest> parse_owner_claim_start(const HttpRequest& request) {
     if (!common(request, "/api/owner/v1/claim/start", true))
         return {};
@@ -77,6 +92,8 @@ std::optional<OwnerClaimStartRequest> parse_owner_claim_start(const HttpRequest&
         selected = provisioning::ProfileSource::Unprovisioned;
     else if (source->raw == "4" && sequence > 0)
         selected = provisioning::ProfileSource::NetworkOnly;
+    else if (source->raw == "5" && sequence > 0)
+        selected = provisioning::ProfileSource::ConsumerProfile;
     else
         return {};
     return OwnerClaimStartRequest{*device, *owner, *browser, *nonce, selected, sequence};

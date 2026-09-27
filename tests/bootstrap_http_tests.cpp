@@ -51,6 +51,12 @@ int main() {
     assert(owner_root.status == 200 &&
            owner_root.static_body.find("owner-form") != std::string_view::npos);
     assert(owner_root.static_body.find("owner-key-bundle.js") != std::string_view::npos);
+    const auto captive_setup = wsprrypico::network::bootstrap_http_response(
+        page_request.request(), "device-id", "firmware", true, true);
+    assert(captive_setup.status == 200 &&
+           captive_setup.static_body.find("owner-form") != std::string_view::npos);
+    assert(captive_setup.static_body.find("owner-submit") != std::string_view::npos);
+    assert(captive_setup.static_body.find("BOOTSEL") == std::string_view::npos);
 
     HttpParser owner_script_request;
     send("GET /owner-key-bundle.js HTTP/1.1\r\nHost: 192.168.4.1\r\n\r\n", owner_script_request);
@@ -85,6 +91,10 @@ int main() {
 
     HttpParser hidden_form;
     send("GET /index.html HTTP/1.1\r\nHost: 192.168.4.1\r\n\r\n", hidden_form);
+    const auto owner_alias = wsprrypico::network::bootstrap_http_response(
+        hidden_form.request(), "device-id", "firmware", false, true);
+    assert(owner_alias.status == 200 &&
+           owner_alias.static_body.find("owner-form") != std::string_view::npos);
     assert(
         wsprrypico::network::bootstrap_http_response(hidden_form.request(), "device-id", "firmware")
             .status == 404);

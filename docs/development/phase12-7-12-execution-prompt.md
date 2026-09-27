@@ -1,5 +1,10 @@
 # Phase 12 remaining work: gated execution prompt
 
+**Historical execution brief.** The later
+[immediate Safari setup revision](phase12-safari-open-setup-revision.md)
+supersedes its physical claim, retained owner and second-phone ceremony
+requirements. The revised brief contains the current execution prompt.
+
 Status: **EXECUTION RESUMED 2026-09-27; P12.7 DESIGN APPROVED; WI-FI-ONLY
 GENERATION-1 READBACK PASSED; P12.8–P12.12 OPEN**. The operator directed resumption of all
 Phase 12 milestones. Execute the hardware-free implementation and review gates

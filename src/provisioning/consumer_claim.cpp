@@ -47,7 +47,8 @@ bool valid(const ConsumerClaimBinding& binding) {
         binding.origin != "http://192.168.4.1" ||
         !((binding.source == ProfileSource::LegacyBootstrap && binding.generation == 0) ||
           (binding.source == ProfileSource::Unprovisioned && binding.generation > 0) ||
-          (binding.source == ProfileSource::NetworkOnly && binding.generation > 0)) ||
+          (binding.source == ProfileSource::NetworkOnly && binding.generation > 0) ||
+          (binding.source == ProfileSource::ConsumerProfile && binding.generation > 0)) ||
         binding.generation == std::numeric_limits<std::uint64_t>::max())
         return false;
     std::vector<std::uint8_t> point;
@@ -109,6 +110,17 @@ bool ConsumerClaimSlot::grant_captured(std::uint64_t now_ms, bool sampler_safe, 
     // start timestamp plus 60 seconds because of debounce and return time.
     if (state_ != ConsumerClaimState::Identify || !sampler_safe || !valid_press || !idle_output ||
         duration_ms < minimum_press_ms || duration_ms > maximum_press_ms) {
+        cancel();
+        return false;
+    }
+    granted_ms_ = now_ms;
+    state_ = ConsumerClaimState::Granted;
+    return true;
+}
+
+bool ConsumerClaimSlot::grant_open_setup(std::uint64_t now_ms, bool idle_output) {
+    expire(now_ms);
+    if (state_ != ConsumerClaimState::Identify || !idle_output) {
         cancel();
         return false;
     }

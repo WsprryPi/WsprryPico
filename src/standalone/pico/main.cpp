@@ -957,18 +957,9 @@ int main() {
         const bool bootstrap_active =
             bootstrap_started && softap.ready() &&
             surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly;
-        bool bootstrap_mutation = false;
-#ifndef WSPRRY_PICO_STANDALONE_RF
-#ifndef WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
-        bootstrap_mutation =
-            bootstrap_active &&
-            runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned &&
-            profile_store.healthy() && profile_store.sequence() == 0 && !engine.output_active() &&
-            scheduler.idle() &&
-            wsprrypico::provisioning::idle_for_access(provisioning_activity(&service));
-#endif
-#endif
-        bootstrap.poll(bootstrap_active, bootstrap_mutation);
+        // The old network-only POST requires BOOTSEL. Consumer setup now uses
+        // the encrypted one-page transaction, so do not admit that mutation.
+        bootstrap.poll(bootstrap_active, false);
         const bool softap_service_ready =
             softap.ready() && (surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly
                                    ? bootstrap.listening()

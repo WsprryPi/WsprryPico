@@ -156,6 +156,7 @@ with tempfile.TemporaryDirectory() as temporary:
     source = root/'cmake-source'; source.mkdir()
     (source/'library').mkdir()
     (source/'library/psa_crypto_random.c').write_text('/* configure-only fixture */')
+    (source/'library/x509write.c').write_text('/* configure-only fixture */')
     (source/'empty.cpp').write_text('// configure-only fixture')
     repo = script.parents[1]
     (source/'CMakeLists.txt').write_text(f'''cmake_minimum_required(VERSION 3.24)

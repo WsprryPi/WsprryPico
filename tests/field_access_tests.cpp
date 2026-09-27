@@ -1023,6 +1023,9 @@ void runtime_policy() {
     ap.station(true, 100'002);
     CHECK(ap.poll(100'002)); // Network-only AP remains available after station join.
     CHECK(ap.status(100'002).requested);
+    ap.station(false, 100'003);
+    CHECK(ap.poll(100'003)); // A configured field-day AP does not wait for fallback.
+    CHECK(ap.surface(false) == provisioning::SoftApSurface::BlankReadOnly);
     ap.no_profile(false);
     CHECK(ap.surface(false) == provisioning::SoftApSurface::ProvisionedPreClock);
     CHECK(ap.surface(true) == provisioning::SoftApSurface::Normal);

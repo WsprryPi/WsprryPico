@@ -44,6 +44,13 @@ bool current_source(const ProfileStore& store, const ConsumerClaimBinding& bindi
             scrub(*previous);
         return matches;
     }
+    case ProfileSource::ConsumerProfile: {
+        auto previous = parse_consumer_profile(store.data());
+        const bool matches = previous && previous->device_id == binding.device_id;
+        if (previous)
+            scrub(*previous);
+        return matches;
+    }
     default:
         return false;
     }
@@ -57,7 +64,10 @@ ConsumerCommitResult commit_consumer_claim(ProfileStore& store, ConsumerClaimSlo
                                            RuntimeSource runtime_source, std::uint64_t now_ms) {
     if ((binding.source == ProfileSource::NetworkOnly &&
          runtime_source != RuntimeSource::NetworkOnly) ||
+        (binding.source == ProfileSource::ConsumerProfile &&
+         runtime_source != RuntimeSource::ConsumerPreClock) ||
         (binding.source != ProfileSource::NetworkOnly &&
+         binding.source != ProfileSource::ConsumerProfile &&
          runtime_source != RuntimeSource::Unprovisioned))
         return {};
     const auto fresh_ms = platform.monotonic_now_ms();
@@ -82,8 +92,9 @@ ConsumerCommitResult commit_consumer_claim(ProfileStore& store, ConsumerClaimSlo
     Proposal proposal;
     auto& profile = proposal.value;
     profile.device_id = binding.device_id;
-    profile.owner_epoch = 1;
-    profile.owners = {binding.owner_public_key};
+    // The browser's P-256 point binds this transaction only. No phone gains
+    // durable authority; another phone may repeat setup through the open AP.
+    profile.owner_epoch = 0;
     profile.ssid = values.ssid;
     profile.password = values.password;
     profile.time_server = standalone::default_time_server;
@@ -93,9 +104,25 @@ ConsumerCommitResult commit_consumer_claim(ProfileStore& store, ConsumerClaimSlo
     profile.request_sha256 = network::bootstrap_digest(request);
     const auto hostname = platform.local_hostname();
     const auto canonical_hostname = network::canonical_local_hostname(hostname);
-    if (!canonical_hostname || *canonical_hostname != hostname ||
-        !platform.generate_tls(binding.device_id, hostname, *utc, profile.tls) ||
-        profile.tls.hostname != hostname ||
+    if (!canonical_hostname || *canonical_hostname != hostname)
+        return {};
+    bool reuse_tls = false;
+    if (binding.source == ProfileSource::ConsumerProfile) {
+        auto previous = parse_consumer_profile(store.data());
+        if (!previous)
+            return {};
+        profile.tls = previous->tls;
+        profile.clients = previous->clients;
+        scrub(*previous);
+        reuse_tls = platform.valid_tls(profile.tls, binding.device_id, *utc);
+    }
+    if (!reuse_tls) {
+        scrub(profile.tls);
+        profile.clients.clear();
+        if (!platform.generate_tls(binding.device_id, hostname, *utc, profile.tls))
+            return {};
+    }
+    if (profile.tls.hostname != hostname ||
         !platform.valid_tls(profile.tls, binding.device_id, *utc))
         return {};
     proposal.payload = serialize_consumer_profile(profile);

@@ -1,5 +1,10 @@
 # P12.7 Safari and SoftAP commissioning proposal
 
+**Historical proposal.** The operator superseded its physical claim and
+retained-owner requirements with the
+[immediate Safari setup contract](phase12-safari-open-setup-revision.md) on
+2026-09-27. Use the revision for current implementation and acceptance.
+
 Status: **APPROVED DESIGN; IMPLEMENTATION OPEN** (2026-09-27).
 The operator selected **Safari and SoftAP only** as the consumer client for
 P12.7–P12.12. Bluefy, BLE ownership and a native app are outside this proposed

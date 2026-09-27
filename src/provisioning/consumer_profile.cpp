@@ -94,8 +94,8 @@ void clear(std::string& value);
 
 bool valid(const ConsumerProfile& profile) {
     const auto hostname = network::canonical_local_hostname(profile.tls.hostname);
-    if (!network::valid_device_id(profile.device_id) || !profile.owner_epoch ||
-        profile.owners.empty() || profile.owners.size() > 4 ||
+    if (!network::valid_device_id(profile.device_id) ||
+        (profile.owner_epoch == 0) != profile.owners.empty() || profile.owners.size() > 4 ||
         !standalone::valid_wifi_credentials(profile.ssid, profile.password, profile.time_server) ||
         !encoding::wspr_type1(profile.callsign, profile.locator, profile.power_dbm) ||
         !lower_hex(profile.request_sha256, 64) || profile.tls.port != 443 || !hostname ||
@@ -222,7 +222,7 @@ std::optional<ConsumerProfile> parse_consumer_profile(std::string_view text) {
                station = root->get("station"), tls = root->get("tls"),
                clients = root->get("clients");
     if (!text_field(*root, "device_id", out.device_id) ||
-        !decimal_field(*root, "owner_epoch", out.owner_epoch) ||
+        !decimal_field(*root, "owner_epoch", out.owner_epoch, false) ||
         !text_field(*root, "request_sha256", out.request_sha256) || !owners ||
         owners->type() != '[' || !network_value ||
         !fields(*network_value, {"ssid", "password", "time_server"}) || !station ||

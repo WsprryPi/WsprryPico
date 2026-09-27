@@ -79,12 +79,16 @@ evidence in the
 The operator-selected
 [field-access/security contract](docs/development/phase12-field-access-contract.md)
 describes the running engineering BLE/password baseline. The later
-[approved P12.7 consumer contract](docs/development/phase12-7-decision.md)
-selects Safari and SoftAP only for consumer commissioning, with an owner key
-and a physical claim. Its first source-linked physical button attempt entered
-recovery before credential submission. The whole-gesture repair is installed
-on Candidate A and passed read-only USB/AP checks; a physical claim retry and
-consumer activation remain open. The production continuation connects SoftAP
+[revised Safari setup contract](docs/development/phase12-safari-open-setup-revision.md)
+selects an immediate Wi-Fi/station form on the open SoftAP, optional LED
+identification, no BOOTSEL step and no retained phone owner. The same page may
+change settings from another phone, and the portal remains available when
+station Wi-Fi is unavailable. Source and browser tests cover this revision;
+the revised image and flow have not been accepted on Candidate A. The
+[source review](docs/development/phase12-safari-open-setup-review.md) records
+the fixes and remaining target gates. The earlier
+[physical-owner contract](docs/development/phase12-7-decision.md) and failed
+button attempt remain historical. The production continuation connects SoftAP
 DHCP/mDNS, blank captive HTTP, provisioned pre-clock/normal HTTPS,
 password/cookie admission, controller time and the existing browser/one-
 `JobService` API. Its clean RF-inhibited Candidate A image has bounded
@@ -122,10 +126,13 @@ foundation includes a browser/Pico crypto vector and an RF-inhibited
 [BOOTSEL gate record](docs/development/phase12-wifi-only-bootsel-gate.md). The
 core-1 physical-press run failed. A later no-flash press/AP run passed on the
 standard image with core 1 absent; the claim design is narrowed to that
-RF-inhibited topology. Current devel source serves the local setup document,
-admits one physically granted encrypted credential submission on the blank AP,
-trials station join and commits a network-only generation after address readback.
-Candidate A runs the exact `fb091f8` RF-inhibited image. The selected iPhone
+RF-inhibited topology. Earlier devel source served the local network-only
+form, admitted one physically granted encrypted submission, trialed station
+join and committed a network-only generation after address readback. The
+revised consumer image disables that BOOTSEL mutation and serves the immediate
+Safari form at the captive root and old page alias.
+During the Wi-Fi-only physical run, Candidate A ran the exact `fb091f8`
+RF-inhibited image. The selected iPhone
 submitted station credentials, and a separately approved USB reboot/readback
 proved network-only generation 1 and station address `192.168.1.47`; the final
 phone page and AP return after station loss remain open. A newer source change

@@ -455,14 +455,22 @@ implementation milestone.
 
 | Milestone | Status | Outcome required to advance |
 | --- | --- | --- |
-| P12.7 — Consumer commissioning contract | **APPROVED DESIGN** | The [decision](phase12-7-decision.md) accepts the Safari/SoftAP experience, physical claim, browser owner model, generated credential lifecycle and recovery contract. |
-| P12.8 — Commissioning foundation | **IN PROGRESS — IMPLEMENTATION OPEN** | Finish and vector-review [Owner-HTTP/1](../protocol/Owner-HTTP-v1.md) and [Consumer-Profile/1](../protocol/Consumer-Profile-v1.md), then implement the approved device-side claim, owner, identity-generation and atomic configuration/activation state machines with deterministic failure coverage. |
-| P12.9 — Guided Safari/SoftAP setup | **BLOCKED ON P12.8** | Deliver one simple Safari setup flow that hides protocol, certificate and journal mechanics from the user. |
-| P12.10 — RF-inhibited commissioning acceptance | **BLOCKED ON P12.9** | Commission Candidate A from the selected iPhone, reboot and prove Safari-owner plus station-side readback without RF. Record the actual generation: direct full commissioning from blank can be generation 1; an upgrade after the separate Wi-Fi-only bootstrap would be generation 2. |
-| P12.11 — Ownership, recovery and fallback | **BLOCKED ON P12.10** | Accept additional-phone enrollment, owner loss, access recovery, provisioning reset, full erase and provisioned SoftAP fallback with unambiguous physical controls. |
-| P12.12 — Stage A robustness and closure | **BLOCKED ON P12.11** | Close the remaining fault, trust, resource, concurrency, soak, controller-time, LED and restoration rows and complete the final adversarial review. |
+| P12.7 — Consumer commissioning contract | **REVISED DESIGN SELECTED** | The [current decision](phase12-safari-open-setup-revision.md) selects immediate fields, optional LED identification, no physical press or retained phone owner, and the same open AP page for later changes. The [earlier owner decision](phase12-7-decision.md) is historical. |
+| P12.8 — Commissioning foundation | **SOURCE CANDIDATE; TARGET OPEN** | One-use encrypted AP setup, no-owner source-5 journal, generated TLS and atomic activation need final review and target proof. A different phone may submit a later update. |
+| P12.9 — Guided Safari/SoftAP setup | **SOURCE CANDIDATE; PHONE OPEN** | The form appears immediately on `/`; optional LED and save share one page. Verify real iPhone captive/Safari behavior and failed/retried saves. |
+| P12.10 — RF-inhibited commissioning acceptance | **OPEN** | On Candidate A, save from Safari without a button, reboot and prove exact generation, station and trust readback. |
+| P12.11 — Recovery and fallback | **OPEN** | Prove different-phone replacement, old-profile recovery, station-loss portal availability, field-network operation, reset and full erase. No retained-owner recovery is required. |
+| P12.12 — Stage A robustness and closure | **OPEN** | Close fault, trust, resource, concurrency, soak, controller-time, LED and restoration rows and complete the final adversarial review. |
 
 ### P12.7 Consumer commissioning contract
+
+The operator's later [immediate Safari setup decision](phase12-safari-open-setup-revision.md)
+supersedes the retained-owner and physical-claim requirements recorded in the
+earlier [P12.7 decision](phase12-7-decision.md). The paragraphs below that
+describe the earlier claim remain as historical context for tests and failed
+attempts; the current contract and open gates are in the revision and table
+above. No BOOTSEL action, code, AP password or retained owner belongs in the
+consumer setup flow.
 
 This milestone was discussion and documentation only. The operator approved
 the complete [P12.7 decision](phase12-7-decision.md) on 2026-09-27, selecting
@@ -495,13 +503,14 @@ The [revised P12.7 proposal](phase12-7-consumer-commissioning-proposal.md)
 replaces the Bluefy/BLE-owner draft with the approved Safari owner-key design.
 It is not implementation or physical acceptance evidence.
 
-The selected end-user journey must be no more complicated than:
+The current end-user journey is:
 
 1. Power on an uncommissioned WsprryPico.
 2. Join its open SoftAP and choose **Set up this Pico** in Safari.
-3. Confirm the physical device once when its LED identifies it.
-4. Enter ordinary Wi-Fi and station settings and choose **Connect**.
-5. Wait for **Setup complete** after activation and verified readback.
+3. Immediately see ordinary Wi-Fi and station fields; optionally choose
+   **Blink Pico LED** to identify it.
+4. Enter those settings and choose **Save setup**.
+5. Wait for a verified saved result, or receive a clear retry path.
 
 Ordinary commissioning must not ask the user for a MAC-derived password, full
 device ID, USB-console command, PEM certificate, private key, profile JSON,
@@ -509,25 +518,23 @@ protocol session identifier or second password entry. Advanced service tooling
 may retain explicit forms of those mechanisms, but it does not define the
 consumer path.
 
-The approved P12.7 contract selects:
+The revised P12.7 contract selects:
 
-- one prompted runtime BOOTSEL press/release, with no timed hold required of a
-  person, bound to full device
-  ID, exact Safari origin, browser owner key, boot and one request; the
-  provisioned/core-1 safety proof remains a hard implementation gate;
+- no button step or retained browser owner; fresh per-transaction browser keys
+  bind the full device ID, exact Safari origin, boot and one request;
 - ordinary Wi-Fi and station fields, with advanced time, trust and protocol
   settings outside the five-step consumer flow;
 - a per-device CA and server key generated on the Pico after checked entropy
   and UTC, with separately approved station-client CSRs and no user PEM work;
-- a retained Safari owner key as consumer authority; the old application
-  password and BLE bond do not become consumer ownership;
 - an always-available open AP in network-only and consumer modes, encrypted
-  owner traffic, one physical second-phone approval, explicit access recovery
-  and distinct network/full reset ceremonies; and
-- **Checking setup** through unknown results, with **Setup complete** only
-  after exact owner, profile generation, station and trust readback.
+  setup credentials, and the same page from another phone for later changes;
+- separate network/full reset behavior without a retained-owner ceremony; and
+- **Checking setup** through unknown results, with **Setup saved** only after
+  exact request digest and generation readback. Station trust and reboot
+  acceptance are separate target gates.
 
-The design exit gate is closed by the [P12.7 decision](phase12-7-decision.md).
+The revised design is selected in the
+[Safari setup decision](phase12-safari-open-setup-revision.md).
 The wire, storage, source, target and Stage A proof gates remain in the later
 milestones; no user-visible security ceremony is left to implementation choice.
 
@@ -578,17 +585,18 @@ consumer commit. The whole-gesture repair is now installed on Candidate A and
 passed read-only USB/AP checks. It has not passed a physical owner gesture;
 post-clock owner activation and private readback remain open.
 
-Implement only the accepted P12.7 contract. The device must:
+Implement the revised Safari setup contract. The device must:
 
 - advertise a clear uncommissioned/setup state without treating a name or MAC
   suffix as identity proof;
-- bind one physical claim to the exact Safari origin, browser public key and
-  request, then retain that key as owner only after the claim succeeds;
+- bind one encrypted transaction to the exact Safari origin, device, browser
+  public key, boot and request, then discard browser authority after save;
 - create or install its device-specific TLS identity without asking the user to
   handle certificate or key material;
 - establish the selected station-server trust and bounded advanced-client
   enrollment path without making certificate handling part of ordinary setup;
-- accept the minimal user configuration as one validated transaction, preserve
+- accept the minimal user configuration as one validated transaction from any
+  phone, preserve
   station/schedule/watermark data outside its scope and activate exactly once
   after the terminal response boundary;
 - report an unambiguous committed generation and survive reboot selecting only
@@ -597,34 +605,33 @@ Implement only the accepted P12.7 contract. The device must:
   cancellation, timeout, disconnect and reboot.
 
 Existing low-level passwords, proofs or profile records may remain internal
-implementation details only if they add no user step and cannot grant authority
-beyond the physically claimed browser owner. Hardware-free acceptance must cover
-wrong-device, competing claimant, expired gesture, replay, interrupted journal,
+implementation details only if they add no user step or retained phone owner.
+Hardware-free acceptance must cover
+wrong-device, competing setup, expired slot, replay, interrupted journal,
 activation failure, response-loss reconciliation and secret-free diagnostics.
 
 ### P12.9 Guided Safari/SoftAP setup
 
-Safari must present one linear product flow rather than a protocol console:
+Safari must present one immediate setup form rather than a protocol console:
 
-- **Select device** joins the open AP and verifies the full device identity
-  internally before using its full-ID-indexed owner key at the AP-local origin;
-- **Confirm device** runs Identify and waits for the selected physical claim;
-- **Connect** requests only the accepted Wi-Fi/station fields, validates them
-  locally and submits the single commissioning transaction; and
-- **Setup complete** appears only after generation, reboot/reconnect, device
-  identity and network-readiness checks succeed.
+- The Wi-Fi and station fields are visible on page load; full identity is
+  verified internally before Save enables.
+- **Blink Pico LED** is optional and does not gate Save.
+- **Save setup** validates the fields and submits one encrypted transaction.
+- **Setup saved** appears only after exact request digest and generation
+  readback; network and post-restart acceptance remain separate gates.
 
 The page must never display internal operation names or tell a normal user to
 enter a default password, profile JSON, PEM data or USB command. It must use
-locally bundled assets and persist only the proposed Safari owner private key
-after its storage/readback gate; Wi-Fi and transient crypto secrets are cleared
+locally bundled assets and persist no Safari owner key; Wi-Fi and transient
+crypto secrets are cleared
 on every terminal path. It must distinguish retryable transport loss from
 committed-but-not-yet-reconciled state. The captive sheet may be a launch aid
-but must not silently become the owner credential store.
+and must not become a credential store.
 
 Exit gate: deterministic browser/device conformance tests and an adversarial
 review cover the happy path, every screen transition, back/cancel/reload,
-Safari storage failure, wrong device/origin, gesture expiry, connection loss at each
+wrong device/origin, slot expiry, connection loss at each
 transaction boundary, activation failure and safe retry.
 
 ### P12.10 RF-inhibited commissioning acceptance
@@ -632,47 +639,45 @@ transaction boundary, activation failure and safe retry.
 Using a clean committed RF-inhibited image on Candidate A and the recorded
 iPhone/iOS/Safari combination:
 
-1. Start from the documented blank/uncommissioned state with no retained owner.
+1. Start from the documented blank/uncommissioned state, or record the exact
+   existing network-only generation.
 2. Verify the exact locally bundled Safari page and phone capability, then
    prove offline page use with infrastructure Wi-Fi and cellular disabled.
-3. Select and Identify the exact device, perform the physical claim and complete
-   setup without a console, manual identifier, default-password prompt, file
-   import or certificate handling.
+3. See fields immediately, optionally blink the exact device's LED, and
+   complete setup without a button, code, console, manual identifier,
+   default-password prompt, file import or certificate handling.
 4. Enter ordinary Wi-Fi/station settings, commit the actual generation (1 for
    direct blank full setup or 2 after network-only generation 1) and preserve
    the terminal response before activation.
-5. Reboot/reconnect and verify the same device, generation and retained owner;
+5. Reboot/reconnect and verify the same device, generation and no retained owner;
    station association, DHCP/mDNS, controller time and positive mTLS WTP/HTTPS
    readback must agree with the committed configuration.
 6. Confirm RF remains inhibited, the job service is empty/unowned, output is
    inactive and all unrelated journals and settings are preserved.
 
 Repeat only the predetermined negative and interruption cases needed to prove
-wrong-device rejection, competing claim exclusion, safe cancellation,
+wrong-device rejection, competing transaction exclusion, safe cancellation,
 unknown-result reconciliation and old-or-fail-closed activation behavior.
 Retain failures instead of rewriting them with retries.
 
-### P12.11 Ownership, recovery and fallback
+### P12.11 Recovery and fallback
 
 Finish the consumer lifecycle after first setup:
 
-- enroll a second phone only after a fresh physical action and prove a nearby
-  unconfirmed phone cannot claim or displace the owner;
-- define bounded owner-key capacity, deliberate removal and replacement without
-  silent eviction;
-- recover from a lost phone without requiring the old phone, while preserving
-  the operational profile during access recovery;
+- replace Wi-Fi and station settings from a different phone using the same
+  page, without a physical action or saved owner credential;
+- prove the portal loads when saved station Wi-Fi is unavailable, including
+  a field-site network change, and resolve the current fresh-SNTP requirement
+  for networks without time service;
 - make provisioning reset and full operational erase visibly distinct,
   resistant to accidental invocation and power-loss safe;
-- verify post-reset advertisement, owner state, settings preservation/clearing
+- verify post-reset advertisement, no-owner state, settings preservation/clearing
   and RF-inhibited restoration exactly match the selected reset level; and
-- retain only the approved encrypted Wi-Fi-only mutation and read-only
-  identity/status on the current blank AP until the approved P12.7 owner
-  routes are implemented and independently accepted. Provisioned owner-control
-  AP surfaces still need physical acceptance. Station TLS identity does not
-  make Safari trust an AP certificate automatically.
+- retain encrypted setup on the open AP and AP-local identity/status; the
+  provisioned setup surface still needs physical acceptance. Station TLS
+  identity does not make Safari trust an AP certificate automatically.
 
-Full Safari/SoftAP owner commissioning has the approved P12.7 design but still
+Full Safari/SoftAP setup has the revised P12.7 design but still
 requires P12.8–P12.12 implementation and acceptance. The separately approved
 Wi-Fi-only network join does not
 grant an owner, station trust, job control or RF authority; it protects the

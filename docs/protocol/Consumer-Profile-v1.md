@@ -1,5 +1,13 @@
 # Consumer-Profile/1 journal payload
 
+**Current-scope notice (2026-09-27):** The
+[immediate Safari setup contract](../development/phase12-safari-open-setup-revision.md)
+stores `owner_epoch` as decimal string `"0"` and `owners` as an empty array.
+These paired values mean that no phone has retained setup authority. The
+nonzero owner form described below is retained for parsing older profiles;
+new open-AP setup transactions write the no-owner form. This notice takes
+precedence over conflicting owner requirements below.
+
 Status: **P12.8 STRUCTURAL PARSER AND INERT JOURNAL SOURCE IMPLEMENTED;
 CONSUMER ACTIVATION NOT IMPLEMENTED OR ACCEPTED** (2026-09-27). This payload
 is the intended atomic authority record for

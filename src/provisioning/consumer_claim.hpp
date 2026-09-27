@@ -23,14 +23,14 @@ struct ConsumerClaimBinding {
     bool operator==(const ConsumerClaimBinding&) const = default;
 };
 
-// Portable one-claim authority. The HTTP/Pico adapter must independently
-// validate the on-curve owner key, X25519 and AEAD transcript, exact current
-// journal/boot identity, physical sampler topology, and idle output before
-// calling start/consume. This class never grants a job or TLS principal.
+// Portable one-transaction slot. The HTTP/Pico adapter independently validates
+// the ephemeral P-256 point, X25519/AEAD transcript, exact journal/boot
+// identity and idle output before start/consume. Legacy gesture helpers remain
+// for their existing tests, but the open-AP setup route grants without them.
 class ConsumerClaimSlot {
   public:
     static constexpr std::uint64_t physical_window_ms = 60'000;
-    static constexpr std::uint64_t submit_window_ms = 300'000;
+    static constexpr std::uint64_t submit_window_ms = 60'000;
     static constexpr std::uint64_t trial_window_ms = 90'000;
     static constexpr std::uint64_t terminal_window_ms = 60'000;
     // Mechanical bounce and a stuck button are device-side limits, not a
@@ -55,6 +55,9 @@ class ConsumerClaimSlot {
     // window; this transition must not resample a held BOOTSEL button.
     bool grant_captured(std::uint64_t now_ms, bool sampler_safe, bool valid_press,
                         std::uint32_t duration_ms, bool idle_output);
+    // Open-AP setup starts only when the user submits the filled form. There
+    // is no physical gesture or retained browser principal in this policy.
+    bool grant_open_setup(std::uint64_t now_ms, bool idle_output);
     bool consume(const ConsumerClaimBinding& current, std::string_view request_id,
                  std::uint64_t now_ms, bool sampler_safe, bool idle_output);
     bool finish(bool committed, std::string_view request_sha256, std::uint64_t generation,

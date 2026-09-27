@@ -115,11 +115,11 @@ provisioning::ConsumerClaimBinding binding(provisioning::ProfileSource source,
     return value;
 }
 
-void grant(provisioning::ConsumerClaimSlot& slot, const provisioning::ConsumerClaimBinding& value) {
+void grant(provisioning::ConsumerClaimSlot& slot, const provisioning::ConsumerClaimBinding& value,
+           std::string_view selected_request = request) {
     assert(slot.start(value, 100, true, false, true));
-    slot.sample(200, true, true, true);
-    slot.sample(300, true, false, true);
-    assert(slot.consume(value, request, 400, true, true));
+    assert(slot.grant_open_setup(200, true));
+    assert(slot.consume(value, selected_request, 400, true, true));
 }
 
 const provisioning::ConsumerClaimValues values{request, "Home Net", "test-password",
@@ -188,14 +188,29 @@ int main() {
     assert(result.generation == 1 && slot.committed());
     assert(store.sequence() == 1 && store.source() == provisioning::ProfileSource::ConsumerProfile);
     const auto parsed = provisioning::parse_consumer_profile(store.data());
-    assert(parsed && parsed->device_id == device && parsed->owner_epoch == 1 &&
-           parsed->owners.size() == 1 && parsed->ssid == values.ssid &&
+    assert(parsed && parsed->device_id == device && parsed->owner_epoch == 0 &&
+           parsed->owners.empty() && parsed->ssid == values.ssid &&
            parsed->callsign == values.callsign && parsed->request_sha256 == result.request_sha256);
     provisioning::ProfileStore rebooted(media);
     assert(rebooted.load() && rebooted.data() == store.data());
     assert(provisioning::commit_consumer_claim(store, slot, claim, values, platform,
                                                provisioning::RuntimeSource::Unprovisioned, 500)
                .state == provisioning::ConsumerCommitState::Rejected);
+
+    auto update = binding(provisioning::ProfileSource::ConsumerProfile, 1);
+    provisioning::ConsumerClaimSlot update_slot;
+    constexpr auto update_request = "44444444444444444444444444444444";
+    grant(update_slot, update, update_request);
+    const auto original_tls = parsed->tls;
+    const provisioning::ConsumerClaimValues update_values{
+        update_request, "Home Net", "test-password", "K1ABC", "FN20", 30};
+    const auto updated =
+        provisioning::commit_consumer_claim(store, update_slot, update, update_values, platform,
+                                            provisioning::RuntimeSource::ConsumerPreClock, 500);
+    assert(updated.state == provisioning::ConsumerCommitState::Committed);
+    const auto updated_profile = provisioning::parse_consumer_profile(store.data());
+    assert(updated_profile && store.sequence() == 2 && updated_profile->owner_epoch == 0 &&
+           updated_profile->owners.empty() && updated_profile->tls == original_tls);
 
     MemoryMedia network_media;
     provisioning::ProfileStore network_store(network_media);

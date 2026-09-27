@@ -168,4 +168,20 @@ int main() {
     assert(slot.start(expected, 15000, true, false, true));
     assert(!slot.grant_captured(15100, true, true, 11'000, true));
     assert(slot.state() == provisioning::ConsumerClaimState::None);
+
+    // Open-AP setup grants only one exact transaction without a button.
+    assert(slot.start(expected, 16000, true, false, true));
+    assert(!slot.grant_open_setup(16001, false));
+    assert(slot.state() == provisioning::ConsumerClaimState::None);
+    assert(slot.start(expected, 17000, true, false, true));
+    assert(slot.grant_open_setup(17001, true));
+    assert(slot.state() == provisioning::ConsumerClaimState::Granted);
+    assert(!slot.start(expected, 17002, true, false, true));
+    assert(slot.consume(expected, request_id, 17003, true, true));
+    slot.cancel();
+    expected.source = provisioning::ProfileSource::ConsumerProfile;
+    assert(slot.start(expected, 18000, true, false, true));
+    assert(slot.grant_open_setup(18001, true));
+    slot.expire(18001 + provisioning::ConsumerClaimSlot::submit_window_ms);
+    assert(slot.state() == provisioning::ConsumerClaimState::None);
 }

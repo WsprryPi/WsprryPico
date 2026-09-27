@@ -29,7 +29,7 @@ const ascii = (value, minimum, maximum) => {
   return text(value);
 };
 const sourceAndGeneration = (source, generation) => {
-  if (![0, 2, 4].includes(source) || typeof generation !== 'string' ||
+  if (![0, 2, 4, 5].includes(source) || typeof generation !== 'string' ||
       !/^(0|[1-9][0-9]*)$/.test(generation)) throw new Error('invalid claim source');
   const n = BigInt(generation);
   if (generation !== n.toString() || n > 0xffffffffffffffffn ||

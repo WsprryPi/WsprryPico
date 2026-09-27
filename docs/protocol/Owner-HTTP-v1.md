@@ -1,5 +1,19 @@
 # Owner-HTTP/1: Safari commissioning and AP owner channel
 
+**Current-scope notice (2026-09-27):** The retained owner-session and physical
+claim design in this document was superseded by the
+[immediate Safari setup contract](../development/phase12-safari-open-setup-revision.md).
+The source candidate reuses the public status and one-use encrypted
+`claim/start` and `claim/submit` wire shapes, plus AP-local `identify`, for an
+ephemeral setup transaction. It admits profile source `5` for later changes,
+grants the slot without BOOTSEL, has a 60-second submit deadline, and does not
+persist the browser's P-256 point as an owner. The response omits
+`physical_window_ms`. The owner session, signature, enrollment, physical
+approval and reset portions below are historical design only and must not be
+read as current consumer requirements or implemented routes. Names containing
+`owner` remain internal wire names until a separately reviewed protocol
+revision. This notice takes precedence over conflicting statements below.
+
 Status: **P12.8 WIRE DESIGN WITH A SOURCE-LINKED CLAIM CANDIDATE;
 OWNER SESSION, POST-CLOCK ACTIVATION AND TARGET ACCEPTANCE OPEN** (2026-09-27).
 The candidate connects public claim status/start/submit, Safari sealing,

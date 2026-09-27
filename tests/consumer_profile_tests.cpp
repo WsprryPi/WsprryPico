@@ -63,6 +63,15 @@ int main() {
     provisioning::scrub(*decoded);
     assert(decoded->password.empty() && decoded->tls.ca_private_key.empty());
 
+    auto open_setup = value;
+    open_setup.owner_epoch = 0;
+    open_setup.owners.clear();
+    const auto open_wire = provisioning::serialize_consumer_profile(open_setup);
+    assert(!open_wire.empty());
+    assert(provisioning::parse_consumer_profile(open_wire) == open_setup);
+    open_setup.owner_epoch = 1;
+    assert(provisioning::serialize_consumer_profile(open_setup).empty());
+
     auto changed = canonical;
     replace(changed, "\"owner_epoch\":\"1\"", "\"owner_epoch\":\"01\"");
     assert(!provisioning::parse_consumer_profile(changed));

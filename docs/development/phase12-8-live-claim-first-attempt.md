@@ -1,5 +1,15 @@
 # P12.8 first Safari claim attempt and recovery candidate
 
+**Later operator observation:** With the repaired image and the page's
+BOOTSEL prompt visible, the operator pressed the button once. The page
+remained on **Press BOOTSEL once**. A read-only check later showed a healthy
+network-only generation 1, claim slot `none`, no retained owner and no
+consumer commit; reloading Safari returned **Set up this Pico**. This does not
+establish why the page missed the press. The operator then replaced the
+physical-owner UX with the
+[immediate Safari setup contract](phase12-safari-open-setup-revision.md), so
+another button retry is no longer a Phase 12 consumer gate.
+
 Status: **FIRST PHYSICAL CLAIM FAILED; REPAIRED IMAGE FLASHED AND READ-ONLY
 TARGET CHECKS PASSED; CLAIM RETRY OPEN** (2026-09-27). The installed image is
 the repaired RF-inhibited candidate. Its UF2 SHA-256 is

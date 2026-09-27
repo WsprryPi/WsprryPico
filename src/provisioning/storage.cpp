@@ -271,7 +271,8 @@ bool valid_consumer_payload(std::string_view payload, ProfileSource prior_source
     } else if (prior_source == ProfileSource::ConsumerProfile) {
         auto prior = parse_consumer_profile(prior_data);
         match = prior && prior->device_id == parsed->device_id &&
-                parsed->owner_epoch >= prior->owner_epoch &&
+                (parsed->owner_epoch >= prior->owner_epoch ||
+                 (parsed->owner_epoch == 0 && parsed->owners.empty())) &&
                 (payload == prior_data || parsed->request_sha256 != prior->request_sha256);
         if (prior)
             scrub(*prior);

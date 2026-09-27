@@ -13,28 +13,16 @@
   <header><strong>WsprryPico</strong><span>Setup</span></header>
   <main>
     <h1>Set up this Pico</h1>
-    <p class="intro">Confirm the Pico with one button press, then enter your Wi-Fi and station settings.</p>
-    <p id="device" class="device">Checking Pico identity…</p>
+    <p class="intro">Enter your Wi-Fi and station settings to connect this Pico.</p>
+    <div class="device-row">
+      <p id="device" class="device">Checking Pico identity…</p>
+      <button id="owner-identify" type="button" disabled>Blink Pico LED</button>
+    </div>
+    <p class="quiet">Optional: blink the LED to check which Pico you are setting up.</p>
     <div id="notice" role="status" aria-live="polite">Checking this browser…</div>
 
-    <section id="owner-ready" hidden>
-      <h2>Confirm your Pico</h2>
-      <p>Choose Begin setup, then press and release BOOTSEL when this page asks you to.</p>
-      <button id="owner-start" type="button" class="primary">Begin setup</button>
-    </section>
-
-    <section id="owner-arming" hidden>
-      <h2>Preparing confirmation</h2>
-      <p>Wait for this page to ask you to press BOOTSEL.</p>
-    </section>
-
-    <section id="owner-tap" hidden>
-      <h2>Press BOOTSEL once</h2>
-      <p>Press and release BOOTSEL on this Pico. You do not need to time the press.</p>
-    </section>
-
-    <section id="owner-settings" hidden>
-      <h2>Connect and configure</h2>
+    <section id="owner-settings">
+      <h2>Network and station</h2>
       <form id="owner-form" autocomplete="off">
         <label for="owner-ssid">Home Wi-Fi network</label>
         <input id="owner-ssid" name="ssid" type="text" minlength="1" maxlength="32"
@@ -61,24 +49,24 @@
           <option value="53">53 dBm</option><option value="57">57 dBm</option>
           <option value="60">60 dBm</option>
         </select>
-        <button id="owner-submit" type="submit" class="primary">Save setup</button>
+        <button id="owner-submit" type="submit" class="primary" disabled>Save setup</button>
       </form>
     </section>
 
     <section id="owner-checking" hidden>
       <h2>Checking setup</h2>
-      <p>The Pico is joining your network and saving its setup. Keep this page open. If your phone leaves the Pico Wi-Fi, reconnect and reopen this page.</p>
+      <p>The Pico is joining your network and saving these settings. Keep this page open. If your phone leaves the Pico Wi-Fi, reconnect and reopen this page.</p>
     </section>
 
     <section id="owner-saved" hidden>
       <h2>Setup saved</h2>
-      <p>The Pico saved the owner and station profile. Final authenticated owner readback is still pending; this page does not yet qualify the complete setup.</p>
+      <p>The Pico saved the network and station settings. It will use them after restart.</p>
     </section>
 
     <section id="owner-retry" hidden>
       <h2>Setup not saved</h2>
-      <p>This attempt ended without a verified save. Check your settings and start again.</p>
-      <button id="owner-retry-button" type="button">Try again</button>
+      <p>This attempt ended without a verified save. Check your settings and try again.</p>
+      <button id="owner-retry-button" type="button">Back to settings</button>
     </section>
 
     <section id="owner-service" hidden>
@@ -88,7 +76,7 @@
 
     <section id="owner-safari" hidden>
       <h2>Open in Safari</h2>
-      <p>Stay connected to the Pico Wi-Fi and open <a href="http://192.168.4.1/owner.html">this setup page</a> in Safari.</p>
+      <p>Stay connected to the Pico Wi-Fi and open <a href="http://192.168.4.1/">this setup page</a> in Safari.</p>
     </section>
   </main>
   <footer>The Pico setup Wi-Fi is open. The setup details are encrypted by this page before they cross the connection.</footer>
