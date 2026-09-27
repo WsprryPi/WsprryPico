@@ -1,7 +1,8 @@
 # P12.8 BOOTSEL whole-gesture source review
 
-Status: **SOURCE DIAGNOSTIC BUILT; PROVISIONED/CORE-1 PHYSICAL PRESS STILL FAILED/OPEN;
-P12.8–P12.12 OPEN** (2026-09-27). This is a bounded step toward the approved
+Status: **CORE-1 PHYSICAL PRESS/RELEASE SAFETY OBSERVED; CONSUMER CLAIM OPEN;
+P12.8–P12.12 OPEN** (2026-09-27). See the
+[exact target result](phase12-8-bootsel-window-target.md). This is a bounded step toward the approved
 [P12.7 consumer contract](phase12-7-decision.md), not a consumer claim route or
 Phase 12 acceptance.
 
@@ -26,8 +27,10 @@ behavior and still rejects a linked core-1 launcher.
 
 The new SRAM callback holds the QSPI CS output override and SDK flash-safe
 zone through an entire press and stable release. It rejects a stale press,
-requires 10 ms stable edges, accepts one 100–600 ms press, waits another
-50 ms of release and rejects a second press before exit. It reads the RP2350
+requires 10 ms stable edges and 20 ms of observed press to filter bounce,
+accepts an ordinary press and release inside the prompted window without a
+user-timed hold, waits another 50 ms of release and rejects a second press
+before exit. It reads the RP2350
 timer and GPIO registers and feeds the already configured eight-second
 watchdog from a register during the window. If a button remains held past
 the window plus two seconds, feeding stops; the watchdog resets rather than
@@ -64,30 +67,53 @@ separate unsatisfied gates.
 | The diagnostic could accidentally admit the existing Wi-Fi-only transaction and invoke the brief sampler with core 1 running. | Disable bootstrap mutations and the old USB probe in the opt-in build; keep them in the default build. Both variants cross-link. |
 | A future callback edit could add a flash call or literal XIP reference while retaining an SRAM entry point. | Extend the linked-image checker to inspect callback disassembly. Both variants pass. |
 
-The second assessment found no further actionable source defect in this
-**opt-in diagnostic**. It does not establish safe timing before the callback
-starts, radio behavior during a five-second pause, physical core-1 safety,
-or an end-user Safari prompt. The diagnostic must not be treated as a
-shipping owner-claim implementation. Source pass cannot reverse the earlier
+The pre-target source assessment found no further actionable defect in this
+**opt-in diagnostic**. At that stage it did not establish physical core-1
+safety or an end-user Safari prompt. The diagnostic must not be treated as a
+shipping owner-claim implementation. Source pass could not reverse the earlier
 failed target run.
+
+The subsequent target run observed a 702 ms physical press/release with core 1
+active, no reset or fault, and AP recovery. The installed image rejected that
+press only because the 600 ms duration rule was too strict for normal use.
+The operator rejected timed button presses; the current source removes that
+cutoff. The target result proves the bounded hardware safety behavior, while
+the revised gesture-validity source has not been reflashed or accepted on a
+target. The earlier failed short-sample core-1 run remains a historical
+failure of that old topology.
+
+## Post-target adversarial reassessment
+
+The target run exposed one actionable consumer defect: a real 702 ms press
+was rejected by the 600 ms upper limit. The operator clarified the intended
+action as one ordinary press/release. The P12.7 decision, proposal,
+Owner-HTTP/1 design, portable claim slot and SRAM diagnostic now agree:
+device-side 20 ms bounce filtering and a bounded prompt/stuck-hold window,
+with no user-timed hold. The first prompted run had no physical press and is
+recorded as non-qualifying, not counted as a target failure. The AP could not
+serve HTTP while the safe zone paused both cores, then recovered; future
+Safari integration must send its prompt and terminal acknowledgement before
+entering the pause.
+
+After the repair, the focused consumer claim/storage tests passed 2/2, and
+both opt-in core-1 and default RF-inhibited Pico 2 W images cross-linked with
+their respective BOOTSEL topology and stack checks. `clang-format --dry-run
+--Werror`, changed-document link checks and `git diff --check` passed. The
+second assessment found no further actionable defect in this diagnostic
+slice. It does not claim a reflashed valid-gesture result or P12.8 completion.
 
 ## Next bounded target gate
 
-After a clean committed build provides an exact UF2 hash, request fresh
-action-specific authority for Candidate A USB serial `0BF4B4AEC9FFB344`:
-read identity/source/generation/output state, flash only the RF-inhibited
-diagnostic, verify `BOOTSEL DIAG` advances, run one released-button window,
-then one prompted 100–600 ms press/release window while isolated `wspr5`
-loads the Pico AP. Allow at least 15 seconds for the USB command to return
-after the five-second window. Read the window result, boot/recovery state, healthy
-journals, empty/unowned job and inactive output; check AP service after
-the pause. Leave the newer image installed if safe and do not restore an
-older image. Candidate B, station credentials and RF output are excluded.
-Any timeout, fault, unready core, wrong identity, storage anomaly or
-unexpected output stops the attempt and remains in the result record.
+The [bounded target gate](phase12-8-bootsel-window-target.md) was executed on
+Candidate A and the newer image was left installed. Do not repeat button
+presses merely to satisfy the removed 600 ms rule. Before owner claim is
+enabled, connect the revised gesture source to a delivered Safari prompt and
+prove the end-to-end grant/release boundary on an exact later image under
+fresh action-specific authority. Candidate B, station credentials and RF
+output remain outside this gate.
 
-If that target gate passes, P12.8 still needs a Safari-visible ready prompt,
-safe window entry after response delivery, full owner HTTP/crypto, generated
-trust and atomic activation. P12.9–P12.12 retain their own phone, recovery
+P12.8 still needs a Safari-visible ready prompt, safe window entry after
+response delivery, full owner HTTP/crypto, generated trust and atomic
+activation. P12.9–P12.12 retain their own phone, recovery
 and Stage A acceptance rows. The [execution prompt](phase12-7-12-execution-prompt.md)
 keeps their order.

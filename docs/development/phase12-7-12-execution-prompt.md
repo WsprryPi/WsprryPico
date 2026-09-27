@@ -18,20 +18,28 @@ no-certificate-installation and physical-claim decisions. The
 approved exception that is now source-implemented on `devel` at `fb091f8`.
 Its exact [transaction review](phase12-wifi-only-transaction-review.md) leaves
 target acceptance open. It grants network join only, no owner, TLS, station
-API, job or RF authority. Candidate A now runs the exact `fb091f8`
-RF-inhibited transaction image and has passed isolated-Pi open-AP preflight
+API, job or RF authority. Candidate A passed the exact `fb091f8`
+RF-inhibited transaction image's isolated-Pi open-AP preflight
 and selected-iPhone network-only generation-one reboot readback; final phone
 page and AP-return rows remain open in the
 [target record](phase12-wifi-only-physical-result.md).
+Candidate A now retains the newer RF-inhibited `3f56f5e` core-1 BOOTSEL
+diagnostic. Its [target result](phase12-8-bootsel-window-target.md) observed
+one human press/release, healthy core-1/flash continuity and AP recovery.
+The operator removed the timed-hold requirement; the revised source has not
+been flashed or integrated with Safari claim.
 
 ## Starting state and source of truth
 
 Inspect branch, HEAD, upstream, worktree status and the complete diff before
 editing. The original continuation started from `fb091f8`. This execution
-resumes from clean, pushed `devel` `040eaee`, after the approved P12.7
+resumed from clean, pushed `devel` `040eaee`, after the approved P12.7
 decision, inert profile journal, portable claim slot, Owner-HTTP signing
 digest, single-use challenge and P-256 verifier. Verify current state before
 editing; preserve subsequent changes. Do not reset, stash or overwrite them.
+The next committed BOOTSEL diagnostic checkpoint is `3f56f5e`; current work
+must be inspected from the actual `devel` HEAD and worktree, not inferred from
+those historical starting hashes.
 
 ## Immediate P12.8 execution packet
 
@@ -63,15 +71,14 @@ editing; preserve subsequent changes. Do not reset, stash or overwrite them.
    five screens, offline bundled, full-ID-indexed and free of codes, PEMs,
    certificates and manual protocol fields. Prove persistent owner-key write,
    readback and sign/verify on the selected iPhone before any claim.
-6. Resolve the failed provisioned/core-1 BOOTSEL press gate before enabling
-   owner claim or recovery. First review a whole-gesture SRAM/flash-safe
-   window that does not resume flash/XIP or core 1 while BOOTSEL is held;
-   inspect its linked code and watchdog behavior. Then prove a prompt can be
-   delivered before the window and Safari/AP service can recover after the
-   bounded pause. A released-button cross-build or single-core pass cannot
-   close this gate. Prepare one exact RF-inhibited core-1 candidate and finite
-   procedure, request action-specific flash/USB/button/radio authority, and
-   retain any failed run. Never perform RF output here.
+6. Carry the observed core-1 physical press/release safety into a Safari
+   owner claim without a user-timed hold. The historical short-sample image
+   failed; the later whole-gesture diagnostic survived a human press and AP
+   recovery. Prove the prompt is delivered before entering the bounded
+   flash-safe zone, then prove exact grant/release readback on the later
+   implementation image. A source cross-build or the diagnostic alone cannot
+   close that end-to-end gate. Request action-specific live authority for each
+   later image and retain failed runs. Never perform RF output here.
 7. Complete P12.10 phone acceptance, P12.11 owner/recovery lifecycle and
    P12.12 Stage A matrix in milestone order, keeping every exact-image failure
    in the record. Review adversarially, repair actionable findings, rerun
@@ -178,8 +185,9 @@ engineering evidence. The accepted contract covers:
    session ID in ordinary setup.
 2. An exact stock Pico 2 W runtime physical claim gesture. BOOTSEL held during
    boot enters ROM; any runtime BOOTSEL sampler must first prove safe with both
-   cores, flash/XIP, journals and radio scheduling. Define press duration,
-   debounce, timeout, LED feedback and what an unsafe or unavailable sampler
+   cores, flash/XIP, journals and radio scheduling. Make a normal press and
+   release sufficient without asking the user to time it. Define device-side
+   debounce, stuck-hold timeout, LED feedback and what an unsafe or unavailable sampler
    does. Bind one gesture to the displayed full identity, AP-local Safari
    origin, browser owner public key, boot, request nonce and one claimant.
    An AP association alone is not ownership.

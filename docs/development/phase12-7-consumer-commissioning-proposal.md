@@ -120,8 +120,9 @@ without a code or certificate step added to the consumer flow.
 
 A single pending claim slot binds full device ID, boot ID, browser owner
 public key, fresh request nonce, exact page origin and deadline. Identify
-starts only for that slot. One 100–600 ms runtime BOOTSEL press/release
-within the prompted window grants it once. A held-on-boot button, stale
+starts only for that slot. One ordinary runtime BOOTSEL press and release
+within the prompted window grants it once; the user does not time the hold.
+The device debounces the edges and bounds a stuck hold. A held-on-boot button, stale
 level, timeout, second claimant, wrong board or changed owner key fails
 closed. The owner public key commits only after physical confirmation and
 a complete journal operation. A claimed but unconfigured owner may return

@@ -33,8 +33,10 @@ class ConsumerClaimSlot {
     static constexpr std::uint64_t submit_window_ms = 300'000;
     static constexpr std::uint64_t trial_window_ms = 90'000;
     static constexpr std::uint64_t terminal_window_ms = 60'000;
-    static constexpr std::uint64_t minimum_press_ms = 100;
-    static constexpr std::uint64_t maximum_press_ms = 600;
+    // Mechanical bounce and a stuck button are device-side limits, not a
+    // timed action for the person performing the claim.
+    static constexpr std::uint64_t minimum_press_ms = 20;
+    static constexpr std::uint64_t maximum_press_ms = 10'000;
 
     ConsumerClaimSlot() = default;
     ~ConsumerClaimSlot() {

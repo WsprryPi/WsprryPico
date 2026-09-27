@@ -511,7 +511,8 @@ consumer path.
 
 The approved P12.7 contract selects:
 
-- one prompted 100–600 ms runtime BOOTSEL press/release bound to full device
+- one prompted runtime BOOTSEL press/release, with no timed hold required of a
+  person, bound to full device
   ID, exact Safari origin, browser owner key, boot and one request; the
   provisioned/core-1 safety proof remains a hard implementation gate;
 - ordinary Wi-Fi and station fields, with advanced time, trust and protocol
@@ -544,9 +545,12 @@ The [owner-wire review](phase12-8-owner-wire-review.md) adds a fixed signing
 registry, one-use challenge and P-256 verifier with independent vectors. These
 remain disconnected from firmware owner routes and do not close P12.8.
 The [whole-gesture BOOTSEL source review](phase12-8-bootsel-window-review.md)
-adds an opt-in RF-inhibited core-1 diagnostic and a bounded SRAM window.
-It has no target press evidence, is not wired to Safari or owner claim, and
-does not reverse the failed provisioned/core-1 gate.
+adds an opt-in RF-inhibited core-1 diagnostic and a bounded SRAM window. The
+[target record](phase12-8-bootsel-window-target.md) observes a physical
+press/release with core 1 active and AP recovery. The human press lasted
+702 ms; its rejection by the installed image's 600 ms cutoff was a design
+mistake, now removed in source. This is not yet wired to Safari or owner
+claim; the older short-sample core-1 failure remains historical evidence.
 
 Implement only the accepted P12.7 contract. The device must:
 

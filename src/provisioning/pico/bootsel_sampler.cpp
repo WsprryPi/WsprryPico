@@ -85,8 +85,9 @@ void __no_inline_not_in_flash_func(capture_chip_select_gesture)(void* argument) 
                 press_at = edge_at;
             } else if (!finished) {
                 state.duration_us = edge_at - press_at;
-                state.valid_press = state.duration_us >= 100'000u &&
-                                    state.duration_us <= 600'000u && !window_elapsed;
+                // Filter mechanical bounce, then accept an ordinary press
+                // and release. The user must never time a button hold.
+                state.valid_press = state.duration_us >= 20'000u && !window_elapsed;
                 finished = true;
             }
         }

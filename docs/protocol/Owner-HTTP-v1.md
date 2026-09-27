@@ -175,8 +175,9 @@ consumer claim. Network-only association grants no owner or station control.
 returns a random slot ID, Pico ephemeral X25519 public key and a 60-second
 physical window. It binds the full ID, boot, browser owner public key,
 browser ephemeral X25519 public key, browser nonce, expected source and
-generation. Identify LED denotes this one slot. One fresh 100–600 ms runtime
-BOOTSEL press/release grants it; a stale level, held-on-boot press, second
+generation. Identify LED denotes this one slot. One fresh runtime BOOTSEL
+press/release grants it without asking the user to time the hold; device-side
+debounce and stuck-hold bounds still apply. A stale level, held-on-boot press, second
 claimant, timeout, changed key/source, output activity or unsafe sampler
 cancels it. After the physical grant, the submit deadline is five minutes;
 once consumed, the station/commit trial deadline is 90 seconds and the

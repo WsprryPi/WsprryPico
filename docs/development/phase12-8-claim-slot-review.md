@@ -8,8 +8,9 @@ Status: **PORTABLE AUTHORITY STATE ONLY; NO OWNER HTTP ROUTE OR TARGET CLAIM**
 The new `ConsumerClaimSlot` permits one exact bound claimant. It checks the
 full device, boot and slot IDs; owner and browser public-key encodings;
 browser nonce; fixed Safari AP origin; and current journal source/generation.
-A held button at start cannot claim. One 100–600 ms press/release in 60 seconds
-grants the slot; the user then has five minutes to submit. Submit consumes the
+A held button at start cannot claim. One ordinary press/release in 60 seconds
+grants the slot; 20 ms debounce and a 10-second stuck-hold bound are internal,
+not instructions to time a press. The user then has five minutes to submit. Submit consumes the
 slot once and must match the original binding. A trial has 90 seconds, and a
 terminal result lasts 60 seconds. All deadlines use monotonic time; clock
 rollback cancels the slot. A committed result requires generation exactly one
@@ -33,7 +34,7 @@ occurred in this slice.
 | The slot initially accepted a caller-provided request digest at finish. | Recompute SHA-256 over the decoded 16-byte request ID and require an exact match before reporting a committed generation. |
 | Output could become active after the slot was consumed but before its terminal result. | Require idle output again at finish; cancel the slot on drift. A focused regression covers this final boundary. |
 
-The second assessment traced start, bounce, held/long press, wrong current
+The second assessment traced start, bounce, stuck hold, wrong current
 binding, single consumption, commit generation, digest, activity/sampler drift,
 deadline and terminal cleanup. Focused `consumer_claim_tests` and
 `consumer_storage_tests` pass 2/2 after the final repair. The complete host

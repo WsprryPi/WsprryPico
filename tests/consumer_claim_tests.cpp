@@ -56,10 +56,10 @@ int main() {
     assert(!slot.start(expected, 1001, true, false, true)); // One claimant.
     assert(slot.binding() && *slot.binding() == expected);
     slot.sample(1100, true, true, true);
-    slot.sample(1199, true, false, true); // 99 ms is contact bounce.
+    slot.sample(1119, true, false, true); // 19 ms is contact bounce.
     assert(slot.state() == provisioning::ConsumerClaimState::Identify);
     slot.sample(1200, true, true, true);
-    slot.sample(1300, true, false, true);
+    slot.sample(1220, true, false, true); // Device-side bounce threshold.
     assert(slot.state() == provisioning::ConsumerClaimState::Granted);
     bad = expected;
     bad.boot_id = "55555555555555555555555555555555";
@@ -81,10 +81,10 @@ int main() {
     expected.generation = 1;
     assert(slot.start(expected, 2000, true, false, true));
     slot.sample(2100, true, true, true);
-    slot.sample(2700, true, false, true); // 600 ms accepted.
+    slot.sample(2802, true, false, true); // Ordinary 702 ms human press.
     assert(slot.state() == provisioning::ConsumerClaimState::Granted);
-    assert(slot.consume(expected, request_id, 2701, true, true));
-    assert(slot.finish(true, digest(), 2, 2702, true));
+    assert(slot.consume(expected, request_id, 2803, true, true));
+    assert(slot.finish(true, digest(), 2, 2804, true));
     slot.cancel();
 
     expected.source = provisioning::ProfileSource::Unprovisioned;
@@ -104,7 +104,7 @@ int main() {
 
     assert(slot.start(expected, 3000, true, false, true));
     slot.sample(3100, true, true, true);
-    slot.sample(3701, true, false, true); // Long press rejected.
+    slot.sample(13101, true, false, true); // Stuck hold is bounded internally.
     assert(slot.state() == provisioning::ConsumerClaimState::None);
     assert(slot.start(expected, 4000, true, false, true));
     slot.expire(4000 + provisioning::ConsumerClaimSlot::physical_window_ms);

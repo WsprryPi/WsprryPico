@@ -44,6 +44,16 @@ implemented or physically accepted.
 
 ## Boundaries before code and acceptance
 
+On 2026-09-27, the operator clarified that a person must never time a
+BOOTSEL hold. The approved physical action is an ordinary press and release
+once when prompted. The original proposal's 100–600 ms acceptance band is
+superseded. Device-side debounce, a bounded prompt window and stuck-hold
+recovery remain implementation safeguards. The
+[core-1 target diagnostic](phase12-8-bootsel-window-target.md) observed one
+702 ms press/release without fault or reboot; the installed diagnostic
+rejected it solely under the superseded duration rule. This clarification
+does not approve or imply an implemented consumer claim route.
+
 P12.8 must first version the owner-HTTP wire and storage schema, specify
 canonical crypto encodings/vectors and migration from the engineering
 password/PEM model, then implement the exact accepted state machine. The
