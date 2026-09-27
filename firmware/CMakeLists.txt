@@ -44,6 +44,13 @@ target_compile_definitions(WsprryPico PRIVATE
     WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ}
     PICO_PANIC_FUNCTION=wsprrypico_panic
 )
+option(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
+    "Link the RF-inhibited USB BOOTSEL safe-zone window diagnostic" OFF)
+if(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC)
+    target_compile_definitions(WsprryPico PRIVATE WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC=1
+        PICO_CORE1_STACK_SIZE=0)
+    target_link_libraries(WsprryPico PRIVATE pico_multicore)
+endif()
 set_source_files_properties(pico_adapters.cpp usb_descriptors.c ../src/usb/transport.cpp PROPERTIES
     COMPILE_OPTIONS "-Wall;-Wextra;-Werror"
 )
@@ -59,11 +66,18 @@ target_link_libraries(WsprryPico PRIVATE
     tinyusb_device
 )
 
-# Network-only BOOTSEL is allowed only in the standard RF-inhibited image
-# with no linked core-1 launcher. The physical core-1 press gate failed.
-add_custom_command(TARGET WsprryPico POST_BUILD
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_bootsel_topology.py
-            $<TARGET_FILE:WsprryPico> VERBATIM)
+# The standard RF-inhibited image must have no linked core-1 launcher. The
+# explicit diagnostic reverses only this link rule and disables mutations;
+# the physical core-1 press gate remains failed until a bounded target pass.
+if(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC)
+    add_custom_command(TARGET WsprryPico POST_BUILD
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_bootsel_topology.py
+                $<TARGET_FILE:WsprryPico> --expect-core1 VERBATIM)
+else()
+    add_custom_command(TARGET WsprryPico POST_BUILD
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_bootsel_topology.py
+                $<TARGET_FILE:WsprryPico> VERBATIM)
+endif()
 set_property(TARGET WsprryPico APPEND PROPERTY LINK_DEPENDS
              ${CMAKE_SOURCE_DIR}/scripts/check_bootsel_topology.py)
 
@@ -179,7 +193,8 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
                 $<TARGET_FILE:${image}> VERBATIM)
     set_property(TARGET ${image} APPEND PROPERTY LINK_DEPENDS
                  ${CMAKE_SOURCE_DIR}/scripts/check_heap_hooks.py)
-    if(image STREQUAL "WsprryPico-StandaloneRF")
+    if(image STREQUAL "WsprryPico-StandaloneRF" OR
+       (image STREQUAL "WsprryPico" AND WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC))
         set(stack_guard_arguments --physical)
     else()
         set(stack_guard_arguments)

@@ -27,11 +27,11 @@ page and AP-return rows remain open in the
 ## Starting state and source of truth
 
 Inspect branch, HEAD, upstream, worktree status and the complete diff before
-editing. The original continuation started from `fb091f8`; the present
-continuation starts from clean, pushed `devel` `5cccb16`, after the approved
-P12.7 decision, inert profile journal and portable claim slot. Verify current
-state before any further edit and preserve subsequent changes. Do not
-reset, stash or overwrite them.
+editing. The original continuation started from `fb091f8`. This execution
+resumes from clean, pushed `devel` `040eaee`, after the approved P12.7
+decision, inert profile journal, portable claim slot, Owner-HTTP signing
+digest, single-use challenge and P-256 verifier. Verify current state before
+editing; preserve subsequent changes. Do not reset, stash or overwrite them.
 
 ## Immediate P12.8 execution packet
 
@@ -63,18 +63,26 @@ reset, stash or overwrite them.
    five screens, offline bundled, full-ID-indexed and free of codes, PEMs,
    certificates and manual protocol fields. Prove persistent owner-key write,
    readback and sign/verify on the selected iPhone before any claim.
-6. Resolve the failed provisioned/core-1 BOOTSEL press gate in source and
-   controlled RF-inhibited target evidence before enabling owner claim or
-   recovery in a provisioned image. A released-button cross-build or
-   single-core pass cannot close this gate. Prepare a complete bounded image
-   and procedure first; request separate authority for flash, USB, button and
-   radio/phone operations. Never perform RF output under this packet.
+6. Resolve the failed provisioned/core-1 BOOTSEL press gate before enabling
+   owner claim or recovery. First review a whole-gesture SRAM/flash-safe
+   window that does not resume flash/XIP or core 1 while BOOTSEL is held;
+   inspect its linked code and watchdog behavior. Then prove a prompt can be
+   delivered before the window and Safari/AP service can recover after the
+   bounded pause. A released-button cross-build or single-core pass cannot
+   close this gate. Prepare one exact RF-inhibited core-1 candidate and finite
+   procedure, request action-specific flash/USB/button/radio authority, and
+   retain any failed run. Never perform RF output here.
 7. Complete P12.10 phone acceptance, P12.11 owner/recovery lifecycle and
    P12.12 Stage A matrix in milestone order, keeping every exact-image failure
    in the record. Review adversarially, repair actionable findings, rerun
    affected checks, then reassess. Commit and push only truthful validated
    checkpoints to `devel`; never label an intermediate source build Phase 12
    closure.
+
+Work through these gates in order and report the first unsatisfied hard gate
+honestly. Do not substitute speculative threat work for the measured BOOTSEL,
+AP continuity, transactional activation and iPhone checks. The operator
+accepted the P12.7 physical-extraction and active-relay limits.
 Read `AGENTS.md`, `README.md`, `CONTRACT.md`, `SECURITY.md`,
 `docs/architecture.md`, `docs/development/README.md`, the Phase 12 roadmap,
 field-access contract, Field-GATT/1 contract and vectors, physical plan,

@@ -543,6 +543,10 @@ it is not connected to HTTP or target BOOTSEL sampling.
 The [owner-wire review](phase12-8-owner-wire-review.md) adds a fixed signing
 registry, one-use challenge and P-256 verifier with independent vectors. These
 remain disconnected from firmware owner routes and do not close P12.8.
+The [whole-gesture BOOTSEL source review](phase12-8-bootsel-window-review.md)
+adds an opt-in RF-inhibited core-1 diagnostic and a bounded SRAM window.
+It has no target press evidence, is not wired to Safari or owner claim, and
+does not reverse the failed provisioned/core-1 gate.
 
 Implement only the accepted P12.7 contract. The device must:
 

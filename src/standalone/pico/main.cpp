@@ -39,6 +39,12 @@
 #include <malloc.h>
 extern "C" char __HeapLimit, __end__, __StackLimit, __StackTop;
 #include "hardware/sync.h"
+#ifdef WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
+#include "pico/flash.h"
+#include "pico/multicore.h"
+
+#include <atomic>
+#endif
 #ifdef WSPRRY_PICO_STANDALONE_RF
 #include "rf/pico/worker.hpp"
 #include "rf/waveform.hpp"
@@ -90,6 +96,26 @@ extern "C" [[noreturn]] void wsprrypico_panic(const char* format, ...) {
         tight_loop_contents();
 }
 namespace {
+#ifdef WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
+alignas(8) std::uint32_t bootsel_reader_stack[2048]; // 8 KiB, including 4 KiB guard reserve.
+std::atomic<std::uint32_t> bootsel_reader_ready{0};
+std::atomic<std::uint32_t> bootsel_reader_count{0};
+void bootsel_flash_reader() {
+    const auto guard = wsprry_stack_guard_snapshot();
+    if (!guard.valid || guard.bottom != reinterpret_cast<std::uintptr_t>(bootsel_reader_stack) ||
+        !flash_safe_execute_core_init()) {
+        bootsel_reader_ready.store(2, std::memory_order_release);
+        while (true)
+            tight_loop_contents();
+    }
+    bootsel_reader_ready.store(1, std::memory_order_release);
+    const auto* flash = reinterpret_cast<const volatile std::uint32_t*>(0x10010000u);
+    while (true) {
+        const auto word = *flash;
+        bootsel_reader_count.fetch_add(word | 1u, std::memory_order_relaxed);
+    }
+}
+#endif
 constexpr std::uint32_t stack_pattern = 0xa59c37e1;
 __attribute__((noinline)) void paint_stack() {
     const auto saved = save_and_disable_interrupts();
@@ -223,6 +249,11 @@ int main() {
     watchdog_hw->scratch[3] = 0;
     watchdog_hw->scratch[1] = 1;
     watchdog_enable(8000, true);
+
+#ifdef WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
+    multicore_launch_core1_with_stack(bootsel_flash_reader, bootsel_reader_stack,
+                                      sizeof(bootsel_reader_stack));
+#endif
 
 #ifdef WSPRRY_PICO_STANDALONE_RF
     set_sys_clock_khz(wsprrypico::rf::sample_rate / 1000, true);
@@ -763,6 +794,9 @@ int main() {
             return "{\"ok\":true,\"rebooting\":true}\n";
         }
         if (text == "BOOTSEL PROBE") {
+#ifdef WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
+            return "{\"ok\":false,\"error\":\"use_bootsel_window\"}\n";
+#else
             if (!scheduler.idle() || engine.output_active())
                 return "{\"ok\":false,\"error\":\"not_idle\"}\n";
             const auto sample = wsprrypico::provisioning::sample_runtime_bootsel();
@@ -770,7 +804,28 @@ int main() {
                    ",\"pressed\":" + (sample.pressed ? "true" : "false") +
                    ",\"elapsed_us\":" + std::to_string(sample.elapsed_us) +
                    ",\"result\":" + std::to_string(sample.result) + "}\n";
+#endif
         }
+#ifdef WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
+        if (text == "BOOTSEL DIAG")
+            return "{\"ok\":true,\"core1_ready\":" +
+                   std::to_string(bootsel_reader_ready.load(std::memory_order_acquire)) +
+                   ",\"core1_reads\":" +
+                   std::to_string(bootsel_reader_count.load(std::memory_order_relaxed)) + "}\n";
+        if (text == "BOOTSEL WINDOW") {
+            if (!scheduler.idle() || engine.output_active() ||
+                bootsel_reader_ready.load(std::memory_order_acquire) != 1)
+                return "{\"ok\":false,\"error\":\"not_idle\"}\n";
+            // An opt-in diagnostic only. The USB reply arrives after this
+            // five-second flash-safe window, never as owner authority.
+            const auto gesture = wsprrypico::provisioning::capture_runtime_bootsel_gesture(5000);
+            return "{\"ok\":" + std::string(gesture.safe ? "true" : "false") +
+                   ",\"valid_press\":" + (gesture.valid_press ? "true" : "false") +
+                   ",\"duration_ms\":" + std::to_string(gesture.duration_ms) +
+                   ",\"elapsed_us\":" + std::to_string(gesture.elapsed_us) +
+                   ",\"result\":" + std::to_string(gesture.result) + "}\n";
+        }
+#endif
 #ifndef WSPRRY_PICO_STANDALONE_RF
         if (text == "NETLINK") {
             return "{\"ok\":true,\"device_id\":" +
@@ -883,12 +938,14 @@ int main() {
             surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly;
         bool bootstrap_mutation = false;
 #ifndef WSPRRY_PICO_STANDALONE_RF
+#ifndef WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
         bootstrap_mutation =
             bootstrap_active &&
             runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned &&
             profile_store.healthy() && profile_store.sequence() == 0 && !engine.output_active() &&
             scheduler.idle() &&
             wsprrypico::provisioning::idle_for_access(provisioning_activity(&service));
+#endif
 #endif
         bootstrap.poll(bootstrap_active, bootstrap_mutation);
         const bool softap_service_ready =
