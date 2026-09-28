@@ -1,5 +1,70 @@
 # Immediate Safari setup source review
 
+## 2026-09-28 AP lifetime and replacement-save review
+
+Status: **SOURCE REVIEWED; NEW TARGET IMAGE/PHONE ACCEPTANCE OPEN**. The
+current [setup contract](phase12-safari-open-setup-revision.md) now starts the
+open AP immediately only for an erased network profile. Saved network-only or
+consumer profiles keep it off during a healthy station connection, return it
+after 60 seconds without a usable station address, and withdraw it after 30
+seconds of stable service once transactions and replies are clear. A 10-second
+runtime BOOTSEL hold opens it until reboot in the idle, RF-inhibited,
+core-1-absent image. The ready LED gives two short flashes every two seconds;
+the Identify pattern gives three.
+
+The previous replacement path called `start_network_only` while the existing
+STA adapter still owned a UDP PCB. That returned failure before a new Wi-Fi
+trial, explaining the reported unsuccessful save on a connected Pico. The
+repaired path reuses a live station only when the submitted SSID/password,
+current journal and active station SSID agree. Different credentials stop the
+old station before trial and restore its credentials on a failed start, failed
+join, cancellation or expiry. A repeated same-network save commits a distinct
+request-bound journal generation without dropping the connection. The page
+reports a missing terminal result as unverified, not as a proven failed save.
+
+Adversarial review found two additional edge cases and repaired both before
+reassessment. A diagnostic image with a core-1 flash reader must not run the
+background BOOTSEL sampler; the automatic hold code is now excluded from that
+image as well as the StandaloneRF worker image. A connected station on a
+different SSID must not satisfy the reuse path; the active station SSID is now
+checked. The second source assessment found no further actionable issue in
+this slice. Physical long-hold, AP withdrawal/return, failed replacement and
+phone save remain target gates.
+
+Four browser tests, the host C++ build and all 98 host tests passed with the
+installed Xcode SDK/compiler selected. The first host run used the broken
+Command Line Tools `.tbd` linker and failed three unrelated compiler/link
+fixtures; the Xcode rerun passed 98/98. The Pico 2 W Release target built with
+the pinned SDK 2.3.1; the final clean-commit image and live result are recorded
+separately in the [flash record](phase12-wifi-first-flash.md). These are source
+and build checks, not phone acceptance.
+
+## Later Wi-Fi-first revision (2026-09-27)
+
+The earlier review below describes the superseded single-screen source. The
+current source serves Wi-Fi fields and a password reveal control at
+`/`, saves the network in its own encrypted transaction, and offers optional
+station settings at `/owner.html` after Wi-Fi is saved. The captive window is
+used when it supports the required cryptography; any capable regular browser
+can use the Pico address. The current implementation does not require Safari.
+The firmware trial restores the saved network on failure or slot expiry.
+Browser requests have bounded timeouts, and a committed result with the wrong
+request digest is reported as unverified rather than as this attempt's save.
+An explicit repeat save of the same network now advances the journal
+generation so it can be verified as a distinct transaction.
+The browser and host checks for this revision must be read separately from the
+older 111-test and physical-image results below; no new phone/target acceptance
+is claimed by this note.
+
+For this revision, four browser tests, all 103 host tests, the host build, and
+a Pico 2 W target build with the pinned complete SDK passed. The host TLS case
+needs localhost socket access: it failed at bind with `TLS start error -1`
+under the restricted sandbox and passed in an isolated run with localhost
+access. An older target build cache missing BTstack could not compile and was
+superseded by the complete pinned SDK build. The resulting UF2 was later
+[flashed and boot-verified on Candidate A](phase12-wifi-first-flash.md); no phone
+flow was accepted by that delivery check.
+
 Status: **SOURCE CANDIDATE REVIEWED; PHYSICAL ACCEPTANCE OPEN** (2026-09-27).
 The current contract and execution brief are in the
 [setup revision](phase12-safari-open-setup-revision.md). This review does not

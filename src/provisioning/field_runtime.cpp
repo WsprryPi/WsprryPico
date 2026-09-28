@@ -37,24 +37,46 @@ bool SoftApCoordinator::poll(std::uint64_t now_ms) {
     const bool retained = token_records_ || reply_active_ || grace(now_ms);
     if (fallback_ && station_usable_ &&
         elapsed(now_ms, station_changed_ms_, softap_station_stable_ms) && !retained &&
-        !no_profile_ && !field_mode && !recovery_)
+        !field_mode && !recovery_)
         fallback_ = false;
-    requested_ = no_profile_ || field_mode || recovery_ || fallback_ || retained;
+    requested_ = blank_profile_ || field_mode || recovery_ || fallback_ || retained || manual_open_;
     if (!requested_)
         ready_ = false;
     return requested_;
 }
 
+bool BootselSoftApHold::observe(bool safe, bool pressed, std::uint64_t now_ms) {
+    if (!safe) {
+        armed_ = false;
+        holding_ = false;
+        triggered_ = false;
+        return false;
+    }
+    if (!pressed) {
+        const bool completed = holding_ && !triggered_ && now_ms >= pressed_at_ms_ &&
+                               now_ms - pressed_at_ms_ >= softap_bootsel_hold_ms;
+        holding_ = false;
+        triggered_ = false;
+        armed_ = true;
+        return completed;
+    }
+    if (armed_ && !holding_) {
+        pressed_at_ms_ = now_ms;
+        holding_ = true;
+    }
+    if (holding_ && !triggered_ && now_ms >= pressed_at_ms_ &&
+        now_ms - pressed_at_ms_ >= softap_bootsel_hold_ms) {
+        triggered_ = true;
+        return true;
+    }
+    return false;
+}
+
 SoftApStatus SoftApCoordinator::status(std::uint64_t now_ms) const {
-    return {requested_,
-            ready_,
-            no_profile_,
-            access_.record() && access_.record()->field_mode,
-            recovery_,
-            fallback_,
-            grace(now_ms),
-            token_records_,
-            reply_active_};
+    return {
+        requested_,   ready_,    no_profile_,   access_.record() && access_.record()->field_mode,
+        recovery_,    fallback_, grace(now_ms), token_records_,
+        reply_active_};
 }
 
 SoftApSurface SoftApCoordinator::surface(bool clock_usable) const {
@@ -64,9 +86,8 @@ SoftApSurface SoftApCoordinator::surface(bool clock_usable) const {
 }
 
 IndicatorCode IndicatorController::identify(std::string_view request_id,
-                                             std::string_view requested_device,
-                                             bool authenticated, bool local,
-                                             std::uint64_t now_ms) {
+                                            std::string_view requested_device, bool authenticated,
+                                            bool local, std::uint64_t now_ms) {
     if (!authenticated || !local)
         return IndicatorCode::AuthenticationRequired;
     if (requested_device != device_id_)
@@ -98,9 +119,8 @@ bool IndicatorController::desired(std::uint64_t now_ms) const {
                             ? (now_ms - identify_started_ms_) % 2'000
                             : now_ms % 2'000;
     if (active == IndicatorPattern::SoftApReady)
-        return offset < 200;
-    return offset < 150 || (offset >= 300 && offset < 450) ||
-           (offset >= 600 && offset < 750);
+        return offset < 150 || (offset >= 300 && offset < 450);
+    return offset < 150 || (offset >= 300 && offset < 450) || (offset >= 600 && offset < 750);
 }
 
 void IndicatorController::poll(std::uint64_t now_ms) {

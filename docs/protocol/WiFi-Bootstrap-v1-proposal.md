@@ -1,5 +1,29 @@
 # WiFi-Bootstrap/1 proposed wire contract
 
+## Current UI correction
+
+The [Wi-Fi-first portal correction](../development/phase12-safari-open-setup-revision.md#wi-fi-first-correction)
+supersedes this proposal's BOOTSEL and Safari instructions. The encrypted
+request format remains version 1. The current source grants one open-AP
+transaction without a button, accepts later network-only and consumer Wi-Fi
+replacement, and restarts after a saved result. The older sections below are
+retained as historical proposal text.
+
+The current `POST start` response has `version`, `device_id`, `boot_id`,
+`slot_id`, `pico_public_key` and `slot_expires_in_ms`; it has no tap deadline.
+The browser displays Wi-Fi fields immediately, opens a slot only on Save, and
+reconciles a verified commit using the exact request digest and next journal
+generation. `GET status` may report `consumer` as well as `unprovisioned`,
+`network_only` and `fault`. A replacement retains the prior network if the
+trial fails. A successful save leaves the open AP available through its terminal
+reply and schedules a restart after the ACK is delivered, with a bounded
+fallback. After restart, the AP is normally off while saved station Wi-Fi is
+usable. It starts immediately with an erased journal, returns after station
+loss, or opens after an idle RF-inhibited 10-second BOOTSEL hold and release.
+The AP-only request envelope, encrypted plaintext, header checks and one-use
+slot remain as specified below; historical press-to-save, blank-only and
+generation-1-only statements no longer apply.
+
 Status: **DESIGN APPROVED; SOURCE TRANSACTION IMPLEMENTED; TARGET ACCEPTANCE OPEN**. This describes only a
 blank-device, network-only bootstrap over the open, AP-local HTTP captive
 page. It does not grant an owner, station API, TLS trust, scheduler or RF
@@ -7,10 +31,10 @@ authority. The [execution prompt](../development/phase12-wifi-only-contract-exec
 and [product proposal](../development/phase12-wifi-only-bootstrap-proposal.md)
 carry the approval and target gates.
 
-The later approved [P12.7 Safari/SoftAP contract](../development/phase12-7-decision.md)
-changes **AP lifetime only**, without changing WiFi-Bootstrap/1 request or
-crypto encoding: a network-only AP remains available after station join for
-later full commissioning. The `fb091f8` physical trial used the prior
+The historical [P12.7 Safari/SoftAP contract](../development/phase12-7-decision.md)
+changed **AP lifetime only** at that time: a network-only AP remained available
+after station join for later full commissioning. The current lifetime is
+specified above. The `fb091f8` physical trial used the prior
 post-commit withdrawal behavior; its evidence is not rebound to this source
 change. The historical withdrawal paragraphs below describe that image.
 

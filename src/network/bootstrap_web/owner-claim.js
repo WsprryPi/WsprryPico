@@ -54,8 +54,9 @@ export function claimTranscript(fields) {
 }
 
 export function claimPlaintext({ssid, password, callsign, locator, powerDbm}) {
-  const network = ascii(ssid, 1, 32);
-  const secret = ascii(password, 8, 63);
+  const savedNetwork = ssid === '' && password === '';
+  const network = ascii(ssid, savedNetwork ? 0 : 1, 32);
+  const secret = ascii(password, savedNetwork ? 0 : 8, 63);
   try {
     if (typeof callsign !== 'string' || callsign.length < 3 || callsign.length > 6 ||
         [...callsign].some((c) => !((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) ||

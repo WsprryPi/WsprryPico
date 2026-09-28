@@ -344,7 +344,13 @@ int main() {
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly ||
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock ||
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Fault);
+    softap_coordinator.blank_profile(runtime_profile.source() ==
+                                     wsprrypico::provisioning::RuntimeSource::Unprovisioned);
     softap_coordinator.recovery(boot_recovery);
+#if !defined(WSPRRY_PICO_STANDALONE_RF) && !defined(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC)
+    static wsprrypico::provisioning::BootselSoftApHold softap_button_hold;
+    std::uint64_t last_softap_button_sample_ms = 0;
+#endif
     static wsprrypico::provisioning::PicoSoftAp softap;
     std::optional<wsprrypico::standalone::Config> runtime_network_config;
     if (store_loaded && store.config())
@@ -400,7 +406,7 @@ int main() {
     static wsprrypico::provisioning::PicoIndicatorOutput indicator_output;
     static wsprrypico::provisioning::IndicatorController indicator(indicator_output,
                                                                    identities.device_id());
-#ifndef WSPRRY_PICO_STANDALONE_RF
+#if !defined(WSPRRY_PICO_STANDALONE_RF) && !defined(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC)
     static wsprrypico::provisioning::PicoConsumerClaimPlatform claim_platform(
         access_store, network, service, time_arbiter, local_identity.hostname);
     bootstrap.configure(service.status().boot_id, access_store, profile_store, random_source,
@@ -926,10 +932,24 @@ int main() {
         }
         if (gatt.running())
             gatt.poll();
-        softap_coordinator.station(network.link_up(), field_now_ms);
+#ifndef WSPRRY_PICO_STANDALONE_RF
+        if (field_now_ms < last_softap_button_sample_ms ||
+            field_now_ms - last_softap_button_sample_ms >= 100) {
+            last_softap_button_sample_ms = field_now_ms;
+            const bool safe_to_sample = scheduler.idle() && !engine.output_active();
+            const auto button = safe_to_sample ? wsprrypico::provisioning::sample_runtime_bootsel()
+                                               : wsprrypico::provisioning::BootselSample{};
+            if (softap_button_hold.observe(safe_to_sample && button.safe, button.pressed,
+                                           field_now_ms))
+                softap_coordinator.request_manual_open();
+        }
+#endif
+        softap_coordinator.station(network.link_up() && !network.ipv4().empty() &&
+                                       network.ipv4() != "0.0.0.0",
+                                   field_now_ms);
         softap_coordinator.token_records(
             local_access.live_softap_sessions(field_now_ms, service.owner_session_id()));
-        softap_coordinator.reply_active(server.softap_active());
+        softap_coordinator.reply_active(server.softap_active() || bootstrap.setup_pending());
         const bool request_softap = softap_coordinator.poll(field_now_ms);
         const auto surface = softap_coordinator.surface(
             service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized);
@@ -957,9 +977,12 @@ int main() {
         const bool bootstrap_active =
             bootstrap_started && softap.ready() &&
             surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly;
-        // The old network-only POST requires BOOTSEL. Consumer setup now uses
-        // the encrypted one-page transaction, so do not admit that mutation.
+        // The open AP accepts encrypted Wi-Fi setup before optional station setup.
+#ifndef WSPRRY_PICO_STANDALONE_RF
+        bootstrap.poll(bootstrap_active, claim_platform.safe_to_commit());
+#else
         bootstrap.poll(bootstrap_active, false);
+#endif
         const bool softap_service_ready =
             softap.ready() && (surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly
                                    ? bootstrap.listening()

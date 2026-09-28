@@ -54,9 +54,17 @@ int main() {
     const auto captive_setup = wsprrypico::network::bootstrap_http_response(
         page_request.request(), "device-id", "firmware", true, true);
     assert(captive_setup.status == 200 &&
-           captive_setup.static_body.find("owner-form") != std::string_view::npos);
-    assert(captive_setup.static_body.find("owner-submit") != std::string_view::npos);
+           captive_setup.static_body.find("wifi-form") != std::string_view::npos);
+    assert(captive_setup.static_body.find("owner-callsign") == std::string_view::npos);
     assert(captive_setup.static_body.find("BOOTSEL") == std::string_view::npos);
+
+    HttpParser station_request;
+    send("GET /owner.html HTTP/1.1\r\nHost: 192.168.4.1\r\n\r\n", station_request);
+    const auto station_page = wsprrypico::network::bootstrap_http_response(
+        station_request.request(), "device-id", "firmware", true, true);
+    assert(station_page.status == 200 &&
+           station_page.static_body.find("owner-callsign") != std::string_view::npos);
+    assert(station_page.static_body.find("owner-password") == std::string_view::npos);
 
     HttpParser owner_script_request;
     send("GET /owner-key-bundle.js HTTP/1.1\r\nHost: 192.168.4.1\r\n\r\n", owner_script_request);

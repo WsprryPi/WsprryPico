@@ -7,7 +7,7 @@ retained limitations. Phase 12 is current: its
 frozen [Field-GATT/1 protocol and super-user guide](../protocol/Field-GATT.md)
 and [conformance vectors](../protocol/Field-GATT-v1-vectors.json),
 [implementation plan](phase12-plan.md),
-[approved P12.7 Safari/SoftAP decision](phase12-7-decision.md),
+[revised captive SoftAP decision](phase12-safari-open-setup-revision.md),
 [Wi-Fi-only Candidate A target record](phase12-wifi-only-physical-result.md),
 [P12.7/P12.8 continuation and adversarial review](phase12-7-8-continuation-review.md),
 [P12.8 structural-foundation adversarial review](phase12-8-structural-foundation-review.md),
@@ -55,7 +55,8 @@ Bluefy 3.9.3 continuation accepts retained-bond authorization, one authenticated
 phone-time exchange, Identify LED/field status and WTP `HELLO` plus read-only
 `STATUS`. Bluefy/iOS offline reuse, fresh-password/new-pairing behavior, full
 provisioning/activation, arbitrary BLE job control, broader time/LED matrices,
-broader captive HTTP, network-only AP continuity after station join, reset controls and most Stage
+broader captive HTTP, healthy-station AP withdrawal and station-loss/manual
+reopening, reset controls and most Stage
 A rows remain open. P12.3 remains CLOSED_SCOPED within its historical boundary.
 Phase 13 broad hardware/release qualification remains open.
 

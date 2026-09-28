@@ -132,6 +132,16 @@ int main() {
     assert(initial.load());
     assert(initial.select(provisioning::ProfileSource::NetworkOnly, network_payload));
     assert(initial.sequence() == 1);
+    // Re-entering the same Wi-Fi settings is still a distinct browser save.
+    MemoryMedia repeat_media;
+    provisioning::ProfileStore repeat(repeat_media);
+    assert(repeat.load());
+    assert(repeat.select(provisioning::ProfileSource::NetworkOnly, network_payload));
+    assert(repeat.select(provisioning::ProfileSource::NetworkOnly, network_payload));
+    assert(repeat.sequence() == 2);
+    provisioning::ProfileStore repeat_readback(repeat_media);
+    assert(repeat_readback.load() && repeat_readback.sequence() == 2 &&
+           repeat_readback.data() == network_payload);
     const auto base = media;
     const auto pages = (payload.size() + 16 + provisioning::profile_page_size - 1) /
                        provisioning::profile_page_size;

@@ -9,7 +9,6 @@
 #include "provisioning/access.hpp"
 #include "provisioning/field_runtime.hpp"
 #include "provisioning/local_access.hpp"
-#include "provisioning/pico/bootsel_sampler.hpp"
 #include "provisioning/pico/consumer_claim_platform.hpp"
 #include "provisioning/runtime.hpp"
 #include "provisioning/storage.hpp"
@@ -20,6 +19,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <limits>
 #include <vector>
 
 namespace wsprrypico::network {
@@ -127,15 +127,10 @@ void PicoBootstrapServer::dispatch() {
         response_ = owner_mutation(parser_.request());
 #endif
     else
-        response_ = bootstrap_http_response(
-            parser_.request(), device_, firmware_
+        response_ = bootstrap_http_response(parser_.request(), device_, firmware_
 #ifndef WSPRRY_PICO_STANDALONE_RF
-            ,
-            blank_authority() && mutation_safe_,
-            owner_claimable() ||
-                (runtime_ && runtime_->source() == provisioning::RuntimeSource::ConsumerPreClock &&
-                 profile_ && profile_->healthy() &&
-                 profile_->source() == provisioning::ProfileSource::ConsumerProfile)
+                                            ,
+                                            active_, active_
 #endif
         );
     headers_ = response_.wire_headers();
@@ -183,13 +178,14 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
                      owner_slot_.state() == provisioning::ConsumerClaimState::Granted))
         cancel_owner_slot(owner_trial_active_);
     if (slot_.state() != BootstrapSlotState::None &&
-        slot_.state() != BootstrapSlotState::Terminal && (!mutation_safe_ || !blank_authority()))
+        slot_.state() != BootstrapSlotState::Terminal &&
+        (!mutation_safe_ || !network_setup_authority()))
         cancel_slot();
     const auto before_expiry = slot_.state();
     slot_.expire(now_ms);
     if (before_expiry != BootstrapSlotState::None && slot_.state() == BootstrapSlotState::None) {
         if (before_expiry == BootstrapSlotState::Trial) {
-            network_->stop_network_only_trial();
+            restore_bootstrap_network();
             join_.finish();
         }
         cancel_slot();
@@ -243,34 +239,26 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
             }
         }
     }
-    if (active_ && slot_.state() == BootstrapSlotState::Identify &&
-        (last_sample_ms_ == 0 || now_ms - last_sample_ms_ >= 25)) {
-        last_sample_ms_ = now_ms;
-        const auto sample = provisioning::sample_runtime_bootsel();
-        slot_.sample(now_ms, sample.safe, sample.pressed);
-        if (slot_.state() == BootstrapSlotState::Granted && access_ &&
-            access_->state() == provisioning::AccessStoreState::Erased) {
-            provisioning::AccessRecord record;
-            record.epoch = 1;
-            record.password = default_password_;
-            const bool initialized = access_->initialize(record);
-            provisioning::scrub(record);
-            if (!initialized)
-                cancel_slot();
-        }
-    }
     if (slot_.state() == BootstrapSlotState::Trial) {
         const bool linked = network_ && network_->link_up();
         const auto address = linked ? network_->ipv4() : std::string{};
         const auto result = join_.trial(now_ms, linked, !address.empty() && address != "0.0.0.0");
-        if (result == BootstrapJoinResult::Ready && profile_ && blank_authority()) {
-            auto payload = provisioning::serialize_network_profile(trial_);
-            const bool committed =
-                !payload.empty() &&
-                profile_->select(provisioning::ProfileSource::NetworkOnly, payload) &&
-                profile_->healthy() &&
-                profile_->source() == provisioning::ProfileSource::NetworkOnly &&
-                profile_->sequence() == 1;
+        if (result == BootstrapJoinResult::Ready && profile_ && network_setup_authority()) {
+            const auto source = profile_->source();
+            std::string payload;
+            if (source == provisioning::ProfileSource::NetworkOnly || blank_authority())
+                payload = provisioning::serialize_network_profile(trial_);
+            else if (source == provisioning::ProfileSource::ConsumerProfile)
+                payload = provisioning::replace_consumer_network(profile_->data(), device_,
+                                                                 trial_.ssid, trial_.password,
+                                                                 slot_.request_id_digest());
+            const auto expected_generation = profile_->sequence() + 1;
+            const auto target_source = source == provisioning::ProfileSource::ConsumerProfile
+                                           ? provisioning::ProfileSource::ConsumerProfile
+                                           : provisioning::ProfileSource::NetworkOnly;
+            const bool committed = !payload.empty() && profile_->select(target_source, payload) &&
+                                   profile_->healthy() && profile_->source() == target_source &&
+                                   profile_->sequence() == expected_generation;
             volatile char* bytes = payload.empty() ? nullptr : payload.data();
             for (std::size_t i = 0; i < payload.size(); ++i)
                 bytes[i] = 0;
@@ -282,6 +270,12 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
             end_trial(false, now_ms);
     }
     const auto restart_now_ms = time_us_64() / 1000;
+    if (!client_ && bootstrap_restart_pending_ && restart_ &&
+        (bootstrap_ack_delivered_ || (restart_now_ms >= bootstrap_committed_ms_ &&
+                                      restart_now_ms - bootstrap_committed_ms_ >= 60'000))) {
+        if (restart_(restart_context_))
+            bootstrap_restart_pending_ = false;
+    }
     if (!client_ && owner_restart_pending_ && restart_ &&
         (owner_status_delivered_ || (restart_now_ms >= owner_committed_ms_ &&
                                      restart_now_ms - owner_committed_ms_ >= 60'000))) {
@@ -338,6 +332,10 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
             parser_.ready() && parser_.request().method == "POST" &&
             parser_.request().path == "/api/owner/v1/claim/submit" && response_.status == 200 &&
             owner_trial_start_pending_;
+        const bool delivered_bootstrap_ack = parser_.ready() &&
+                                             parser_.request().method == "POST" &&
+                                             parser_.request().path == "/api/bootstrap/v1/ack" &&
+                                             response_.status == 200 && bootstrap_restart_pending_;
 #endif
         auto* completed = client_;
         client_ = nullptr;
@@ -357,6 +355,8 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
             owner_status_delivered_ = true;
         if (delivered_owner_submit)
             owner_submit_delivered_ = true;
+        if (delivered_bootstrap_ack)
+            bootstrap_ack_delivered_ = true;
 #endif
     }
 }
@@ -428,26 +428,61 @@ bool PicoBootstrapServer::blank_authority() const {
            record->default_password && record->password == default_password_;
 }
 
-void PicoBootstrapServer::cancel_slot() {
-    if (slot_.state() == BootstrapSlotState::Trial && network_) {
+bool PicoBootstrapServer::network_setup_authority() const {
+    if (blank_authority())
+        return true;
+    if (!profile_ || !runtime_ || !claim_platform_ || !profile_->healthy() ||
+        (profile_->source() != provisioning::ProfileSource::NetworkOnly &&
+         profile_->source() != provisioning::ProfileSource::ConsumerProfile) ||
+        !profile_->sequence() ||
+        profile_->sequence() == std::numeric_limits<std::uint64_t>::max() ||
+        !claim_platform_->safe_to_commit())
+        return false;
+    return (profile_->source() == provisioning::ProfileSource::NetworkOnly &&
+            runtime_->source() == provisioning::RuntimeSource::NetworkOnly &&
+            runtime_->network_profile() && runtime_->network_profile()->device_id == device_) ||
+           (profile_->source() == provisioning::ProfileSource::ConsumerProfile &&
+            runtime_->source() == provisioning::RuntimeSource::ConsumerPreClock &&
+            runtime_->consumer_profile() && runtime_->consumer_profile()->device_id == device_);
+}
+
+void PicoBootstrapServer::restore_bootstrap_network() {
+    if (bootstrap_trial_switched_network_ && network_) {
         network_->stop_network_only_trial();
-        join_.finish();
+        if (!bootstrap_previous_network_.ssid.empty())
+            (void)network_->start_network_only(bootstrap_previous_network_.ssid,
+                                               bootstrap_previous_network_.password);
     }
+    bootstrap_trial_switched_network_ = false;
+}
+
+void PicoBootstrapServer::cancel_slot() {
+    if (slot_.state() == BootstrapSlotState::Trial)
+        restore_bootstrap_network();
+    join_.finish();
     slot_.cancel();
     crypto_.clear();
     slot_digest_.clear();
     erase(ack_verifier_);
     provisioning::scrub(trial_);
+    provisioning::scrub(bootstrap_previous_network_);
 }
 
 void PicoBootstrapServer::end_trial(bool committed, std::uint64_t now_ms) {
-    if (!committed && network_)
-        network_->stop_network_only_trial();
+    if (!committed)
+        restore_bootstrap_network();
+    bootstrap_trial_switched_network_ = false;
     provisioning::scrub(trial_);
+    provisioning::scrub(bootstrap_previous_network_);
     if (!committed)
         erase(ack_verifier_);
     join_.finish();
     (void)slot_.finish(committed, now_ms);
+    if (committed) {
+        bootstrap_restart_pending_ = true;
+        bootstrap_ack_delivered_ = false;
+        bootstrap_committed_ms_ = now_ms;
+    }
 }
 
 HttpResponse PicoBootstrapServer::status() const {
@@ -457,7 +492,7 @@ HttpResponse PicoBootstrapServer::status() const {
         healthy && profile_->source() == provisioning::ProfileSource::ConsumerProfile;
     const auto source = !healthy            ? "fault"
                         : saved             ? "network_only"
-                        : consumer          ? "consumer_preclock"
+                        : consumer          ? "consumer"
                         : blank_authority() ? "unprovisioned"
                                             : "fault";
     const bool address = network_ && network_->link_up() && !network_->ipv4().empty() &&
@@ -642,7 +677,7 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
                              decode_b64(binding->browser_public_key, fields.browser_public_key) &&
                              decode_b64(parsed->aead_nonce, nonce) &&
                              decode_b64(parsed->tag, tag) &&
-                             bootstrap_unb64url(parsed->ciphertext, ciphertext, 20, 109);
+                             bootstrap_unb64url(parsed->ciphertext, ciphertext, 11, 109);
         owner_request_digest_ = bootstrap_digest(fields.request_id);
         fields.pico_public_key = owner_crypto_.public_key();
         fields.source = binding->source;
@@ -651,18 +686,32 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
             end_owner_trial(false, now_ms);
             return json("{\"version\":1,\"state\":\"failed\",\"generation\":\"0\"}");
         }
-        if (runtime_->network_profile())
-            previous_network_ = *runtime_->network_profile();
-        else if (profile_->source() == provisioning::ProfileSource::ConsumerProfile) {
-            // The persisted generation may have changed since the boot-time
-            // runtime snapshot if another save completed before restart.
+        provisioning::scrub(previous_network_);
+        if (profile_->source() == provisioning::ProfileSource::NetworkOnly) {
+            auto current = provisioning::parse_network_profile(profile_->data());
+            if (!current || current->device_id != device_) {
+                end_owner_trial(false, now_ms);
+                return http_error(503, "profile_unavailable");
+            }
+            previous_network_ = *current;
+            provisioning::scrub(*current);
+        } else if (profile_->source() == provisioning::ProfileSource::ConsumerProfile) {
+            // The persisted generation may have changed since the boot-time runtime snapshot.
             auto current = provisioning::parse_consumer_profile(profile_->data());
-            if (!current) {
+            if (!current || current->device_id != device_) {
                 end_owner_trial(false, now_ms);
                 return http_error(503, "profile_unavailable");
             }
             previous_network_ = {current->device_id, current->ssid, current->password};
             provisioning::scrub(*current);
+        }
+        if (owner_trial_.ssid.empty()) {
+            if (!owner_trial_.password.empty() || previous_network_.ssid.empty()) {
+                end_owner_trial(false, now_ms);
+                return http_error(403, "network_unavailable");
+            }
+            owner_trial_.ssid = previous_network_.ssid;
+            owner_trial_.password = previous_network_.password;
         }
         owner_trial_start_pending_ = true;
         owner_submit_delivered_ = false;
@@ -680,11 +729,8 @@ bool PicoBootstrapServer::owner_claimable() const {
         return false;
     switch (profile_->source()) {
     case provisioning::ProfileSource::LegacyBootstrap:
-        return !profile_->sequence() && profile_->data().empty() &&
-               runtime_->source() == provisioning::RuntimeSource::Unprovisioned;
     case provisioning::ProfileSource::Unprovisioned:
-        return profile_->sequence() && profile_->data().empty() &&
-               runtime_->source() == provisioning::RuntimeSource::Unprovisioned;
+        return false; // Station setup begins only after Wi-Fi is saved.
     case provisioning::ProfileSource::NetworkOnly:
         return profile_->sequence() && runtime_->network_profile() &&
                runtime_->network_profile()->device_id == device_ &&
@@ -741,13 +787,10 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
         const auto parsed = parse_bootstrap_start(request);
         if (!parsed)
             return http_error(400, "invalid_request");
-        if (!mutation_safe_ || !blank_authority() || parsed->device_id != device_)
+        if (!mutation_safe_ || !network_setup_authority() || parsed->device_id != device_)
             return http_error(403, "unavailable");
-        if (slot_.state() != BootstrapSlotState::None)
+        if (slot_.state() != BootstrapSlotState::None || bootstrap_restart_pending_)
             return http_error(409, "busy");
-        const auto sample = provisioning::sample_runtime_bootsel();
-        if (!sample.safe || sample.pressed)
-            return http_error(503, "button_unavailable");
         std::array<std::uint8_t, 16> slot_id{};
         std::array<std::uint8_t, 32> browser_key{};
         if (!random_->fill(slot_id) || !decode_b64(parsed->browser_public_key, browser_key) ||
@@ -759,26 +802,34 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
         const auto key = bootstrap_b64url(crypto_.public_key());
         if (!slot_.start(
                 {device_, boot_id_, slot_hex, parsed->browser_public_key, parsed->request_nonce},
-                now_ms, sample.safe, sample.pressed)) {
+                now_ms, true, false) ||
+            !slot_.grant_open_setup(now_ms)) {
             crypto_.clear();
             return http_error(409, "busy");
         }
         slot_digest_ = bootstrap_digest(slot_id);
-        if (indicator_->identify(slot_hex, device_, true, true, now_ms) !=
-            provisioning::IndicatorCode::Ok) {
-            cancel_slot();
-            return http_error(503, "indicator_unavailable");
+        if (access_ && access_->state() == provisioning::AccessStoreState::Erased) {
+            provisioning::AccessRecord record;
+            record.epoch = 1;
+            record.password = default_password_;
+            const bool initialized = access_->initialize(record);
+            provisioning::scrub(record);
+            if (!initialized) {
+                cancel_slot();
+                return http_error(503, "access_unavailable");
+            }
         }
         return json("{\"version\":1,\"device_id\":" + wtp::json::quote(device_) + ",\"boot_id\":" +
                     wtp::json::quote(boot_id_) + ",\"slot_id\":" + wtp::json::quote(slot_hex) +
                     ",\"pico_public_key\":" + wtp::json::quote(key) +
-                    ",\"tap_expires_in_ms\":60000,\"slot_expires_in_ms\":180000}");
+                    ",\"slot_expires_in_ms\":180000}");
     }
     if (request.path == "/api/bootstrap/v1/submit") {
         const auto parsed = parse_bootstrap_submit(request);
         if (!parsed)
             return http_error(400, "invalid_request");
-        if (!mutation_safe_ || !blank_authority() || slot_.state() != BootstrapSlotState::Granted)
+        if (!mutation_safe_ || !network_setup_authority() ||
+            slot_.state() != BootstrapSlotState::Granted)
             return http_error(409, "busy");
         const auto* binding = slot_.binding();
         if (!binding || parsed->device_id != binding->device_id ||
@@ -804,13 +855,54 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
                            digest, box_digest, now_ms))
             return http_error(409, "busy");
         trial_.device_id = device_;
+        provisioning::scrub(bootstrap_previous_network_);
+        if (profile_->source() == provisioning::ProfileSource::NetworkOnly) {
+            auto saved = provisioning::parse_network_profile(profile_->data());
+            if (!saved || saved->device_id != device_) {
+                if (saved)
+                    provisioning::scrub(*saved);
+                end_trial(false, now_ms);
+                return http_error(503, "profile_unavailable");
+            }
+            bootstrap_previous_network_ = *saved;
+            provisioning::scrub(*saved);
+        } else if (profile_->source() == provisioning::ProfileSource::ConsumerProfile) {
+            auto saved = provisioning::parse_consumer_profile(profile_->data());
+            if (!saved || saved->device_id != device_) {
+                if (saved)
+                    provisioning::scrub(*saved);
+                end_trial(false, now_ms);
+                return http_error(503, "profile_unavailable");
+            }
+            bootstrap_previous_network_ = {saved->device_id, saved->ssid, saved->password};
+            provisioning::scrub(*saved);
+        }
         if (!crypto_.open(transcript, nonce, ciphertext, tag, trial_.ssid, trial_.password,
-                          ack_verifier_) ||
-            !network_->start_network_only(trial_.ssid, trial_.password)) {
+                          ack_verifier_)) {
             end_trial(false, now_ms);
             return json("{\"version\":1,\"state\":\"failed\",\"generation\":0,"
                         "\"request_id_digest\":" +
                         wtp::json::quote(digest) + "}");
+        }
+        const bool reuse_connected_station =
+            !bootstrap_previous_network_.ssid.empty() &&
+            bootstrap_previous_network_.ssid == trial_.ssid &&
+            bootstrap_previous_network_.password == trial_.password &&
+            network_->station_ssid() == trial_.ssid && network_->link_up() &&
+            !network_->ipv4().empty() && network_->ipv4() != "0.0.0.0";
+        if (!reuse_connected_station) {
+            // A saved profile already owns the STA adapter. Stop it before
+            // trying a replacement, then restore the old profile on failure.
+            if (!bootstrap_previous_network_.ssid.empty()) {
+                network_->stop_network_only_trial();
+            }
+            bootstrap_trial_switched_network_ = true;
+            if (!network_->start_network_only(trial_.ssid, trial_.password)) {
+                end_trial(false, now_ms);
+                return json("{\"version\":1,\"state\":\"failed\",\"generation\":0,"
+                            "\"request_id_digest\":" +
+                            wtp::json::quote(digest) + "}");
+            }
         }
         join_.begin(now_ms);
         return json("{\"version\":1,\"state\":\"checking\",\"generation\":0,"
@@ -823,7 +915,9 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
             return http_error(400, "invalid_request");
         std::array<std::uint8_t, 16> slot_id{}, request_id{};
         std::array<std::uint8_t, 32> tag{};
-        if (!profile_ || profile_->source() != provisioning::ProfileSource::NetworkOnly ||
+        if (!profile_ ||
+            (profile_->source() != provisioning::ProfileSource::NetworkOnly &&
+             profile_->source() != provisioning::ProfileSource::ConsumerProfile) ||
             parsed->device_id != device_ || parsed->boot_id != boot_id_ ||
             !decode_hex(parsed->slot_id, slot_id) || !decode_hex(parsed->request_id, request_id) ||
             !decode_b64(parsed->ack_tag, tag) || bootstrap_digest(slot_id) != slot_digest_ ||

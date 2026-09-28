@@ -9,17 +9,18 @@ const hex = (bytes) => Buffer.from(bytes).toString('hex');
 const digest = (value) => hex(sha256(Buffer.from(value, 'hex')));
 const peer = x25519.keygen();
 const elements = new Map();
-for (const name of ['owner-settings', 'owner-checking', 'owner-saved', 'owner-retry',
-                    'owner-service', 'owner-safari', 'notice', 'device',
+for (const name of ['owner-settings', 'owner-wifi-first', 'owner-checking', 'owner-saved',
+                    'owner-retry', 'owner-service', 'owner-browser', 'notice', 'device',
                     'owner-identify', 'owner-retry-button', 'owner-form',
-                    'owner-ssid', 'owner-password', 'owner-callsign', 'owner-locator',
+                    'owner-callsign', 'owner-locator',
                     'owner-power', 'owner-submit']) {
-  elements.set(name, {hidden: true, textContent: '', value: '', disabled: false,
+  elements.set(name, {hidden: true, textContent: '', value: '', type: 'password', disabled: false,
+    attributes: {}, setAttribute(key, value) { this.attributes[key] = value; },
     events: {}, classList: {toggle() {}}, addEventListener(event, handler) {
       this.events[event] = handler;
     }});
 }
-elements.get('owner-settings').hidden = false; // The form is visible in the HTML.
+elements.get('owner-settings').hidden = true; // The form waits for source status.
 elements.get('owner-submit').disabled = true;
 elements.get('owner-identify').disabled = true;
 globalThis.document = {getElementById: (name) => elements.get(name)};
@@ -103,8 +104,6 @@ assert.equal(identify.boot_id, boot);
 assert.match(elements.get('notice').textContent, /three quick LED flashes/);
 
 const fill = () => {
-  elements.get('owner-ssid').value = 'LabNet';
-  elements.get('owner-password').value = 'test-only-password';
   elements.get('owner-callsign').value = 'K1ABC';
   elements.get('owner-locator').value = 'FN20';
   elements.get('owner-power').value = '30';
@@ -112,7 +111,6 @@ const fill = () => {
 fill();
 await elements.get('owner-form').events.submit({preventDefault() {}});
 assert.ok(start && submitted, elements.get('notice').textContent);
-assert.equal(elements.get('owner-password').value, '');
 assert.equal(elements.get('owner-checking').hidden, false);
 const firstTransaction = start.owner_public_key;
 status = {...status, source: 'consumer', profile_source: 5, generation: '2',
@@ -120,7 +118,7 @@ status = {...status, source: 'consumer', profile_source: 5, generation: '2',
   request_id_digest: digest(submitted.request_id)};
 await runTimer(1000);
 assert.equal(elements.get('owner-saved').hidden, false);
-assert.match(elements.get('notice').textContent, /saved your network/);
+assert.match(elements.get('notice').textContent, /saved your station settings/);
 await runTimer(1000);
 assert.equal(elements.get('owner-saved').hidden, false); // Success stays visible.
 
@@ -152,4 +150,4 @@ await runTimer(8000);
 await stalledPoll;
 assert.ok([...timers.values()].some((timer) => timer.delay === 1000));
 peer.secretKey.fill(0);
-console.log('immediate setup form, LED, another-phone update and polling recovery passed');
+console.log('separate station setup, LED, another-phone update and polling recovery passed');

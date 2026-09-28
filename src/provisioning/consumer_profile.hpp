@@ -47,6 +47,11 @@ struct ConsumerProfile {
 // key pairs, validity, SAN and exact device identity before activation.
 std::optional<ConsumerProfile> parse_consumer_profile(std::string_view text);
 std::string serialize_consumer_profile(const ConsumerProfile& profile);
+// Replace only the network fields of a canonical consumer profile. Empty on
+// wrong-device, invalid credentials or malformed source; caller scrubs result.
+std::string replace_consumer_network(std::string_view current, std::string_view device_id,
+                                     std::string_view ssid, std::string_view password,
+                                     std::string_view request_sha256);
 void scrub(ConsumerTls& tls);
 void scrub(ConsumerProfile& profile);
 } // namespace wsprrypico::provisioning

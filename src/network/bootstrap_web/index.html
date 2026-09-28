@@ -12,34 +12,31 @@
   <header><strong>WsprryPico</strong><span>Wi-Fi setup</span></header>
   <main>
     <h1>Connect this Pico to Wi-Fi</h1>
-    <p class="intro">Choose your home network and this Pico will connect to it. You can do the rest of setup later.</p>
+    <p class="intro">Enter your network details to connect this Pico. Station settings can wait.</p>
     <p id="device" class="device">Checking Pico identity…</p>
     <div id="notice" role="status" aria-live="polite">Checking this browser…</div>
 
-    <section id="ready" hidden>
-      <h2>Confirm the Pico</h2>
-      <p>Choose Connect, then briefly tap BOOTSEL on the Pico when its light identifies it.</p>
-      <button id="start" type="button" class="primary">Connect this Pico</button>
-      <p><a href="/owner.html">Set up owner and station now</a></p>
-    </section>
-
-    <section id="tap" hidden>
-      <h2>Tap BOOTSEL once</h2>
-      <p>Press and release the BOOTSEL button on this Pico within one minute. Keep this page open.</p>
-      <p class="quiet">If the light is not identifying the Pico, wait for this attempt to end and try again.</p>
-    </section>
-
-    <section id="credentials" hidden>
-      <h2>Enter your Wi-Fi network</h2>
+    <section id="credentials">
       <form id="wifi-form" autocomplete="off">
-        <label for="ssid">Network name</label>
+        <label for="ssid">Wi-Fi network name</label>
         <input id="ssid" name="ssid" type="text" minlength="1" maxlength="32"
                required autocapitalize="none" autocomplete="off" spellcheck="false">
         <label for="password">Wi-Fi password</label>
-        <input id="password" name="password" type="password" minlength="8" maxlength="63"
-               required autocomplete="off" spellcheck="false">
-        <p class="quiet">The network name and password are encrypted in this browser before they cross the Pico’s open Wi-Fi.</p>
-        <button id="submit" type="submit" class="primary">Connect to network</button>
+        <div class="password-field">
+          <input id="password" name="password" type="password" minlength="8" maxlength="63"
+                 required autocomplete="off" spellcheck="false">
+          <button id="password-toggle" type="button" class="password-toggle"
+                  aria-label="Show Wi-Fi password" aria-pressed="false" title="Show Wi-Fi password">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z"/>
+              <circle cx="12" cy="12" r="3"/>
+              <path id="password-slash" d="m3 21 18-18" hidden/>
+            </svg>
+          </button>
+        </div>
+        <p class="quiet">This page encrypts your network details before sending them over the Pico setup Wi-Fi.</p>
+        <button id="submit" type="submit" class="primary" disabled>Connect to Wi-Fi</button>
       </form>
     </section>
 
@@ -49,21 +46,30 @@
     </section>
 
     <section id="connected" hidden>
-      <h2>Network connected</h2>
-      <p>The Pico saved the Wi-Fi settings and joined the network.</p>
-      <p><a href="/owner.html">Finish setting up this Pico in Safari</a></p>
+      <h2>Wi-Fi connected</h2>
+      <p>The Pico saved its Wi-Fi settings and joined the network. It will restart to use the saved setup.</p>
+      <div class="form-actions">
+        <button id="change-connected" type="button">Change Wi-Fi</button>
+        <a href="/owner.html">Set station details after restart</a>
+      </div>
     </section>
 
     <section id="saved" hidden>
       <h2>Wi-Fi saved; connection lost</h2>
-      <p>The Pico saved the network settings but is not connected right now. It will keep trying. Stay on or reconnect to the Pico Wi-Fi to check again.</p>
-      <p><a href="/owner.html">Continue setup in Safari</a></p>
+      <p>The Pico saved the network settings but is not connected right now. It will keep trying.</p>
+      <button id="change-saved" type="button">Change Wi-Fi</button>
     </section>
 
     <section id="retry" hidden>
       <h2>Connection not saved</h2>
-      <p>The Pico could not confirm and save this network. Check the name and password, then start a fresh attempt.</p>
-      <button id="retry-button" type="button">Try again</button>
+      <p>The Pico could not save this network. Check its name and password, then try again.</p>
+      <button id="retry-button" type="button">Back to Wi-Fi settings</button>
+    </section>
+
+    <section id="unknown" hidden>
+      <h2>Check saved Wi-Fi</h2>
+      <p>The Pico has a saved network, but this page cannot verify whether it came from your latest attempt. Reload to check its current connection.</p>
+      <button id="unknown-button" type="button">Reload setup page</button>
     </section>
 
     <section id="service" hidden>
@@ -71,13 +77,12 @@
       <p>The Pico could not verify its saved setup state. Keep it powered and use the documented recovery procedure.</p>
     </section>
 
-    <section id="safari" hidden>
-      <h2>Open in Safari</h2>
-      <p>This browser cannot complete encrypted Wi-Fi setup. Stay connected to the Pico Wi-Fi and open
-        <a href="http://192.168.4.1/">http://192.168.4.1/</a> in Safari.</p>
-      <p class="quiet">The Pico will not ask for your home Wi-Fi password on this screen.</p>
+    <section id="browser" hidden>
+      <h2>Open in your browser</h2>
+      <p>This window cannot run encrypted Wi-Fi setup. Stay connected to the Pico Wi-Fi and open
+        <a href="http://192.168.4.1/">http://192.168.4.1/</a> in your regular browser.</p>
     </section>
   </main>
-  <footer>Connected to the Pico’s open setup network. Anyone who actively replaces this page could see the Wi-Fi details you enter.</footer>
+  <footer>The Pico setup Wi-Fi is open. Your network details are encrypted by this page before they cross the connection.</footer>
 </body>
 </html>

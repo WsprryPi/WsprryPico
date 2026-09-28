@@ -78,6 +78,14 @@ int main() {
     assert(!crypto.open(fields, nonce, ciphertext, tag, out));
     assert(out.ssid.empty() && out.password.empty() && out.callsign.empty() && out.locator.empty());
 
+    network::PicoOwnerClaimCrypto station_crypto;
+    assert(station_crypto.begin_for_test(private_key));
+    const auto station_ciphertext = b64("oMh8Z5gapBYpnZ3mfA", 13);
+    const auto station_tag = fixed<16>("Efn-qQlKJWRvZ39KFA-oPQ");
+    assert(station_crypto.open(fields, nonce, station_ciphertext, station_tag, out));
+    assert(out.ssid.empty() && out.password.empty() && out.callsign == "K1ABC" &&
+           out.locator == "FN20" && out.power_dbm == 30);
+
     const auto rejects = [&](network::OwnerClaimFields candidate,
                              std::array<std::uint8_t, 12> candidate_nonce,
                              std::span<const std::uint8_t> candidate_ciphertext,

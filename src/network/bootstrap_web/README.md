@@ -1,35 +1,34 @@
-# Wi-Fi bootstrap browser crypto candidate
+# Pico setup pages
 
-This directory holds a browser-side page candidate for the approved
-[WiFi-Bootstrap/1](../../../docs/protocol/WiFi-Bootstrap-v1-proposal.md)
-transcript. The document is **not served by firmware yet**. The newly
-cross-built RF-inhibited image embeds it and streams its CSS and JavaScript
-assets on exact-host GETs, but the blank AP landing remains read-only and
-valid POST requests return `405`. This image has not been flashed.
-The selected iPhone captive sheet and Safari remain untested for this crypto
-code.
+The firmware embeds these local pages and their bundles for the open Pico
+setup AP. `/` and `/index.html` show Wi-Fi setup when it is available;
+`/owner.html` shows the separate, optional station-settings flow. No external
+scripts, fonts, analytics, or phone storage are required.
 
-The exact locked dependencies are `@noble/curves`, `@noble/hashes` and
-`@noble/ciphers` 2.3.0. Their source repositories are
-[curves](https://github.com/paulmillr/noble-curves),
-[hashes](https://github.com/paulmillr/noble-hashes) and
-[ciphers](https://github.com/paulmillr/noble-ciphers); all are MIT licensed.
-The tracked [`licenses/`](licenses/) directory carries the full upstream
-licenses for the browser dependencies. The
-build uses pinned `esbuild` 0.28.2, with its own
-[MIT license](https://github.com/evanw/esbuild/blob/master/LICENSE.md).
-The generated bundle retains esbuild's bundled license notice. The package
-lock fixes the fetched versions and integrity hashes. No remote import is
-used by the resulting browser code. The eventual document uses only local
-CSS, script and API requests under a dedicated bootstrap CSP.
+The Wi-Fi page shows the network and password fields immediately. A show/hide
+control changes only the password field's visibility. The browser creates a
+fresh encrypted WiFi-Bootstrap/1 submission for each save; the Pico checks the
+candidate network before committing the next journal generation. The page
+uses the exact request digest and generation to reconcile a lost response.
+It also supports later network replacement without discarding a consumer
+profile's station, TLS, or client material. The Pico restarts after a verified
+save so the new profile loads from the journal.
 
-From this directory, `npm ci`, `npm test`, and `npm run build` reproduce the
-candidate. The build emits `bundle.js` beside the page source; the firmware
-asset generator embeds that checked-in bundle as flash-resident data. The
-crypto known-answer test matches the synthetic vector
-and changes bound transcript fields to check that the tag changes. The page
-test exercises the no-code confirmation, encrypted submit, durable status,
-acknowledgement and Safari fallback through mocked local responses. The page
-checks `crypto.getRandomValues` and an actual crypto self-test before showing
-the password field. These source tests do not establish that the selected
-iPhone captive sheet or Safari can finish the form.
+The station page is a separate encrypted transaction. It sends an empty
+network pair as a wire marker to use the Pico's saved Wi-Fi credentials;
+firmware rejects that marker on a blank device. It does not expose or request
+the saved Wi-Fi password. The existing TLS lifecycle still requires trusted
+time, so a network with no usable time service cannot yet complete station
+setup. The `owner` names in legacy wire and files do not grant persistent
+phone authority.
+
+A captive sign-in window can perform setup if it has the required browser
+cryptography. The fallback names a regular browser and the Pico URL, not a
+specific browser brand. The same-origin and cryptography checks are functional
+requirements; they are not a user-agent check.
+
+The locked dependencies are `@noble/curves`, `@noble/hashes`, and
+`@noble/ciphers` 2.3.0, with upstream MIT licenses in [`licenses/`](licenses/).
+The build uses pinned esbuild 0.28.2. Run `npm test` and `npm run build` in
+this directory to validate and regenerate the checked-in bundles before a
+firmware build. Browser and host tests do not replace an iPhone target test.

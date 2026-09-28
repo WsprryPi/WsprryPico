@@ -19,10 +19,14 @@ Use WsprryPico for project, repository and application naming; firmware artifact
 - BLE/Bluefy remains the implemented engineering provisioning and field-control
   path. A native Raspberry Pi/Linux BlueZ client is an additional local/bench
   controller. No WsprryPico-native iOS app is planned.
-- The [approved P12.7 consumer contract](development/phase12-7-decision.md)
-  selects Safari/SoftAP only for consumer commissioning and owner recovery.
-  A bounded claim candidate is source-linked, but owner session/activation and
-  physical acceptance remain open. The earlier
+- The [revised open setup contract](development/phase12-safari-open-setup-revision.md)
+  selects a captive SoftAP Wi-Fi page followed by optional station settings.
+  Saving settings requires no button, code or retained phone owner. With saved
+  credentials the AP is normally off during a healthy station connection; a
+  10-second runtime BOOTSEL hold and release opens it on demand in the idle
+  RF-inhibited image, and station loss brings it back. Safari is one possible
+  browser, not a required step. Source implementation exists, while target
+  acceptance remains open. The earlier
   [Phase 12 field-access contract](development/phase12-field-access-contract.md)
   still describes the running engineering authority until consumer mode is
   implemented and accepted.
@@ -95,8 +99,9 @@ Phase 12 keeps provisioning outside that job-control protocol. A portable
 manager and access controller own bounded profile replacement, local authority
 and recovery while all RF/job control remains in the one existing JobService.
 The implemented engineering field contract uses BLE/Bluefy and a SoftAP
-fallback. The later approved consumer contract selects Safari/SoftAP only;
-consumer owner authority and recovery are still implementation gates.
+fallback. The revised consumer contract selects an open SoftAP portal with
+Wi-Fi first, optional station details later, and no persistent phone owner;
+physical acceptance and recovery remain open.
 
 The scoped P12.3 implementation reserves the access journal at
 `0x3f3000`–`0x3f4fff`, BTstack at
@@ -176,10 +181,11 @@ adds the portable controller/SNTP arbiter and routes production SNTP, BLE and
 SoftAP controller observations through it. Physical phone-time accuracy remains
 unqualified.
 
-Remaining Phase 12 details include the Safari owner commissioning path, broader
+Remaining Phase 12 details include physical acceptance of the captive Wi-Fi
+and optional station setup path, broader
 authenticated phone-time accuracy/disagreement/recovery acceptance, accepted
-reset controls, broader captive HTTP, network-only AP continuity after station
-join, physical
+reset controls, broader captive HTTP, healthy-station AP withdrawal and
+station-loss/manual AP return, physical
 Bluefy offline reuse and broader interoperability evidence, live profile
 activation and broader target resource/coexistence tuning. The wired
 SoftAP/HTTPS surface has only the bounded native-Pi target acceptance recorded

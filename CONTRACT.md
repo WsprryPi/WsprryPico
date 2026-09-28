@@ -27,10 +27,15 @@ implemented Pico surface. Shared WsprryPi adoption remains separate work.
 - The implemented engineering provisioning and field-control path uses
   BLE/Bluefy under the
   [Phase 12 field-access contract](docs/development/phase12-field-access-contract.md).
-  The later [approved P12.7 consumer contract](docs/development/phase12-7-decision.md)
-  selects Safari/SoftAP only, with a physical owner claim. The claim path is
-  source-linked but not physically accepted; owner sessions and activation
-  remain open.
+  The later [open setup revision](docs/development/phase12-safari-open-setup-revision.md)
+  selects an open SoftAP portal with Wi-Fi first and optional station settings
+  later. Saving settings requires no button or retained phone owner. A blank
+  Pico starts its open AP automatically; a saved Pico normally keeps it off
+  while station Wi-Fi is healthy. Station loss brings the AP back, and an idle
+  RF-inhibited Pico can open it on demand after a 10-second BOOTSEL hold and
+  release. The earlier
+  [P12.7 physical-owner decision](docs/development/phase12-7-decision.md) is
+  historical; the revised portal is source-linked but not physically accepted.
   The native [Raspberry Pi/Linux BlueZ client](docs/development/raspberry-pi-ble-client.md)
   is an additional supported local/bench client; it does not qualify the
   selected iPhone consumer acceptance path. Its profile-apply command is

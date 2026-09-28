@@ -66,7 +66,9 @@ connects authenticated controller time, Identify/status and an unchanged WTP/1
 stream to that production GATT service and extends the offline page. The
 supported [Raspberry Pi/Linux BlueZ client](docs/development/raspberry-pi-ble-client.md)
 adds the same identity-bound local engineering workflow. Bluefy was the
-historical engineering iPhone client; Safari is the approved consumer client.
+historical engineering iPhone client; the open SoftAP portal is the selected
+consumer setup surface and can run in a capable captive sign-in window or
+regular browser.
 The Pi client's bounded
 [execution and adversarial review](docs/development/phase12-pi-ble-tcp-review.md)
 adds deterministic host evidence and exact RF-inhibited Candidate A/wspr5 live
@@ -79,12 +81,18 @@ evidence in the
 The operator-selected
 [field-access/security contract](docs/development/phase12-field-access-contract.md)
 describes the running engineering BLE/password baseline. The later
-[revised Safari setup contract](docs/development/phase12-safari-open-setup-revision.md)
-selects an immediate Wi-Fi/station form on the open SoftAP, optional LED
-identification, no BOOTSEL step and no retained phone owner. The same page may
-change settings from another phone, and the portal remains available when
-station Wi-Fi is unavailable. Source and browser tests cover this revision;
-the revised image and flow have not been accepted on Candidate A. The
+[revised open setup contract](docs/development/phase12-safari-open-setup-revision.md)
+shows Wi-Fi fields immediately, with a show/hide password control, and saves
+the network before optional station details on a separate page. It requires
+no BOOTSEL step or retained phone owner. Another phone may change settings.
+The portal starts automatically with no saved credentials or after a saved
+station network is unavailable for 60 seconds. A healthy station normally
+withdraws the AP after a stable connection; holding and releasing BOOTSEL for
+10 seconds while the idle RF-inhibited image is running opens it on demand.
+Two short LED flashes every two seconds identify an available AP. Source
+and browser tests cover this revision. The
+[new image booted on Candidate A](docs/development/phase12-wifi-first-flash.md),
+while the revised phone flow remains unaccepted. The
 [source review](docs/development/phase12-safari-open-setup-review.md) records
 the fixes and remaining target gates. The earlier
 [physical-owner contract](docs/development/phase12-7-decision.md) and failed
@@ -108,7 +116,7 @@ restart, and post-restart BLE readback; see the
 The later generation-3 positive mTLS/WTP and HTTPS readback also passed on the
 Mac. Offline reuse, fresh-password/new-pairing behavior, full commissioning,
 broader blank
-SoftAP HTTP, network-only AP continuity after station join, the broader physical BLE job-
+SoftAP HTTP, station-loss AP fallback and BOOTSEL manual opening, the broader physical BLE job-
 control/local-management, controller-time and LED matrices, reset controls and
 most of the
 [RF-inhibited-first physical plan](docs/development/phase12-physical-acceptance.md)
@@ -117,7 +125,7 @@ full physical or end-user acceptance.
 
 The blank SoftAP now has a source-tested
 [best-effort captive landing](docs/development/phase12-blank-captive-landing-review.md)
-with AP-only DNS and a fixed-address Safari fallback. The selected iPhone
+with AP-only DNS and a fixed-address browser fallback. The selected iPhone
 automatically opened an earlier open-AP test page; the full-erase generic image
 has bounded native-Pi evidence only. A separate
 [Wi-Fi-only network bootstrap](docs/development/phase12-wifi-only-bootstrap-proposal.md)
@@ -129,15 +137,17 @@ standard image with core 1 absent; the claim design is narrowed to that
 RF-inhibited topology. Earlier devel source served the local network-only
 form, admitted one physically granted encrypted submission, trialed station
 join and committed a network-only generation after address readback. The
-revised consumer image disables that BOOTSEL mutation and serves the immediate
-Safari form at the captive root and old page alias.
+revised consumer source replaces the BOOTSEL mutation with an immediate Wi-Fi
+form at the captive root. Optional station details use a separate page.
 During the Wi-Fi-only physical run, Candidate A ran the exact `fb091f8`
 RF-inhibited image. The selected iPhone
 submitted station credentials, and a separately approved USB reboot/readback
 proved network-only generation 1 and station address `192.168.1.47`; the final
 phone page and AP return after station loss remain open. A newer source change
-keeps the network-only AP available after station join for the later Safari
-upgrade, but that newer image is not flashed. See the
+temporarily kept the network-only AP available after station join for later
+setup upgrade. The current candidate instead withdraws it on a healthy station
+and uses the manual BOOTSEL hold or station-loss fallback; it still needs a
+repeat target acceptance run. See the
 [target record](docs/development/phase12-wifi-only-physical-result.md).
 
 The current Bluefy source requires a fresh password step-up for each exact
@@ -152,7 +162,7 @@ keep firmware, both clients and host conformance checks aligned through the
 remains open. Bluefy also
 has a test-only prepared-JSON-file import for operator-assisted acceptance. It
 does not create or deliver a profile and is not an end-user commissioning flow;
-the approved Safari consumer flow is tracked in P12.7–P12.12.
+the revised captive-portal flow is tracked in P12.7–P12.12.
 
 - [Accepted architecture](docs/architecture.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)

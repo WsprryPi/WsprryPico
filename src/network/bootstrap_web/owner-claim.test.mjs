@@ -26,6 +26,9 @@ assert.equal(Buffer.from(sha256(aad)).toString('hex'),
   'b13fd05696af4d82e4684aacdde110cefbfe3918a65b3da56dc4451f020d988f');
 assert.equal(Buffer.from(claimPlaintext(settings)).toString('hex'),
   '064c61624e657412746573742d6f6e6c792d70617373776f7264054b31414243464e32301e');
+assert.equal(Buffer.from(claimPlaintext({...settings, ssid: '', password: ''})).toString('hex'),
+  '0000054b31414243464e32301e');
+assert.throws(() => claimPlaintext({...settings, ssid: '', password: 'test-only-password'}));
 for (const patch of [{deviceId: 'ff' + fields.deviceId.slice(2)},
   {bootId: 'ff' + fields.bootId.slice(2)}, {slotId: 'ff' + fields.slotId.slice(2)},
   {ownerPublicKey: Uint8Array.from(owner, (b, i) => i === 1 ? b ^ 1 : b)},

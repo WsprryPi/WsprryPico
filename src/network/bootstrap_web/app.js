@@ -1,6 +1,6 @@
-import {available, begin, seal, slotDigest} from './crypto.js';
+import {available, begin, seal} from './crypto.js';
 
-const names = ['ready', 'tap', 'credentials', 'checking', 'connected', 'saved', 'retry', 'service', 'safari'];
+const names = ['credentials', 'checking', 'connected', 'saved', 'retry', 'unknown', 'service', 'browser'];
 const $ = (id) => document.getElementById(id);
 const show = (name) => {
   for (const section of names) $(section).hidden = section !== name;
@@ -10,41 +10,59 @@ const notice = (message, error = false) => {
   $('notice').classList.toggle('error', error);
 };
 const host = 'http://192.168.4.1';
-let deviceId, pending, started, sealed, polling = false, acknowledged = false;
+let deviceId, pending, started, sealed, expectedGeneration, currentGeneration;
+let polling = false, acknowledging = false, completed = false, saving = false;
 const hexId = (value) => typeof value === 'string' && /^[0-9a-f]{32}$/.test(value);
-const durableJoin = (status) => status.source === 'network_only' &&
-  typeof status.generation === 'number' && Number.isSafeInteger(status.generation) &&
-  status.generation >= 1 && status.join === 'connected' && status.address_ready === true;
+const hasSavedNetwork = (status) =>
+  status.source === 'network_only' || status.source === 'consumer';
+const durableJoin = (status) => hasSavedNetwork(status) &&
+  Number.isSafeInteger(status.generation) && status.generation >= 1 &&
+  status.join === 'connected' && status.address_ready === true;
 
 async function json(path, body) {
-  const options = {cache: 'no-store', credentials: 'omit', redirect: 'error'};
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  const options = {cache: 'no-store', credentials: 'omit', redirect: 'error',
+    signal: controller.signal};
   if (body) {
     options.method = 'POST';
     options.headers = {'Content-Type': 'application/json', 'X-WsprryPico-Bootstrap': '1'};
     options.body = JSON.stringify(body);
   }
-  const response = await fetch(host + path, options);
-  if (!response.ok) throw new Error('Pico request failed');
-  return response.json();
+  try {
+    const response = await fetch(host + path, options);
+    if (!response.ok) throw new Error('Pico request failed');
+    return await response.json();
+  } finally { clearTimeout(timeout); }
+}
+
+function setPasswordVisible(visible) {
+  $('password').type = visible ? 'text' : 'password';
+  const toggle = $('password-toggle');
+  const label = visible ? 'Hide Wi-Fi password' : 'Show Wi-Fi password';
+  toggle.setAttribute('aria-label', label);
+  toggle.setAttribute('aria-pressed', String(visible));
+  toggle.title = label;
+  $('password-slash').hidden = !visible;
 }
 
 function clearAttempt() {
   pending?.secretKey?.fill(0);
-  pending = started = sealed = undefined;
-  acknowledged = false;
+  pending = started = sealed = expectedGeneration = undefined;
   $('password').value = '';
-  $('ssid').value = '';
+  setPasswordVisible(false);
 }
 
 async function acknowledge() {
-  if (acknowledged || !started || !sealed) return;
-  acknowledged = true;
+  if (acknowledging || !started || !sealed) return;
+  acknowledging = true;
   try {
     await json('/api/bootstrap/v1/ack', {version: 1, device_id: deviceId,
       boot_id: started.boot_id, slot_id: started.slot_id,
       request_id: sealed.submit.request_id, ack_tag: sealed.ackTag});
-  } catch { /* The AP may withdraw after success; the durable result is unchanged. */ }
+  } catch { /* A lost ACK does not undo the verified journal save. */ }
   clearAttempt();
+  acknowledging = false;
 }
 
 async function update() {
@@ -52,51 +70,59 @@ async function update() {
   polling = true;
   try {
     const status = await json('/api/bootstrap/v1/status');
+    if (!Number.isSafeInteger(status.generation) || status.generation < 0)
+      throw new Error('invalid generation');
+    currentGeneration = status.generation;
     if (status.source === 'fault') {
       show('service');
       notice('The Pico could not verify its saved setup state.', true);
       clearAttempt();
-    } else if (durableJoin(status) &&
-        (!sealed || status.request_id_digest === sealed.requestDigest ||
-         status.request_id_digest === null)) {
-      show('connected');
-      notice('The Pico joined the network and saved its Wi-Fi settings.');
-      // Let the result render before acknowledging an AP withdrawal.
-      setTimeout(acknowledge, 250);
-    } else if (status.source === 'network_only' &&
-               typeof status.generation === 'number' && status.generation >= 1 &&
-               (!sealed || status.request_id_digest === sealed.requestDigest ||
-                status.request_id_digest === null)) {
-      show('saved');
-      notice('Wi-Fi settings were saved, but the station connection is down.');
-    } else if (started && status.slot_id_digest === slotDigest(started.slot_id)) {
-      if (status.slot_state === 'granted' && !sealed) {
-        show('credentials');
-        notice('Pico confirmed. Enter your network name and password.');
-      } else if (status.slot_state === 'terminal' && sealed &&
-                 status.request_id_digest === sealed.requestDigest &&
-                 status.source === 'unprovisioned') {
-        show('retry');
-        notice('The connection was not saved. Start a new attempt.', true);
+    } else if (sealed) {
+      const saved = hasSavedNetwork(status) &&
+        status.generation === expectedGeneration &&
+        status.request_id_digest === sealed.requestDigest;
+      if (saved) {
+        completed = true;
+        show(durableJoin(status) ? 'connected' : 'saved');
+        notice(durableJoin(status) ? 'Wi-Fi saved and connected.' :
+          'Wi-Fi saved. The station connection is down.');
+        setTimeout(acknowledge, 250);
+      } else if (hasSavedNetwork(status) && status.generation >= expectedGeneration &&
+                 (status.slot_state === 'terminal' || status.slot_state === 'none')) {
         clearAttempt();
+        show('unknown');
+        notice('The Pico has a saved network, but this page cannot verify this attempt.', true);
+      } else if (status.slot_state === 'terminal') {
+        clearAttempt();
+        show('retry');
+        notice('The Wi-Fi connection was not saved. Check the details and try again.', true);
+      } else if (status.slot_state === 'none' && !saving) {
+        clearAttempt();
+        show('unknown');
+        notice('This page cannot verify the save. Reconnect to the Pico Wi-Fi and check again.', true);
+      } else {
+        show('checking');
+        notice('Trying your network and checking the saved result.');
       }
-    } else if (started && !sealed && status.slot_id_digest &&
-               status.slot_id_digest !== slotDigest(started.slot_id)) {
-      show('retry');
-      notice('Another setup attempt is active. Wait for it to end, then try again.', true);
-      clearAttempt();
-    } else if (started && !sealed && status.slot_state === 'none') {
-      show('retry');
-      notice('The confirmation window ended. Start a new attempt.', true);
-      clearAttempt();
-    } else if (!started && durableJoin(status)) {
-      show('connected');
-      notice('The Pico is connected to the network.');
+    } else if (completed) {
+      if (hasSavedNetwork(status)) {
+        show(durableJoin(status) ? 'connected' : 'saved');
+        notice(durableJoin(status) ? 'Wi-Fi saved and connected.' :
+          'Wi-Fi saved. The station connection is down.');
+      }
+    } else if (status.source === 'unprovisioned' || hasSavedNetwork(status)) {
+      $('submit').disabled = false;
+      if (!$('credentials').hidden) notice(durableJoin(status) ?
+        'Connected to a network. Enter new details to change it.' :
+        'Enter your Wi-Fi network and password.');
+    } else {
+      show('service');
+      notice('Wi-Fi setup is unavailable on this Pico.', true);
     }
   } catch {
     if (sealed) {
       show('checking');
-      notice('Checking connection. Reconnect to the Pico Wi-Fi if this page lost it.');
+      notice('Checking the saved result. Reconnect to the Pico Wi-Fi if needed.');
     }
   } finally {
     polling = false;
@@ -104,9 +130,17 @@ async function update() {
   }
 }
 
-async function start() {
-  clearAttempt();
-  $('start').disabled = true;
+async function submit(event) {
+  event.preventDefault();
+  if (!deviceId || !Number.isSafeInteger(currentGeneration) ||
+      currentGeneration >= Number.MAX_SAFE_INTEGER || saving) return;
+  const ssid = $('ssid').value, password = $('password').value;
+  if (!/^[\x20-\x7e]{1,32}$/.test(ssid) || !/^[\x20-\x7e]{8,63}$/.test(password)) {
+    notice('Enter a 1–32 character network name and an 8–63 character Wi-Fi password.', true);
+    return;
+  }
+  saving = true;
+  $('submit').disabled = true;
   try {
     pending = begin();
     started = await json('/api/bootstrap/v1/start', {version: 1,
@@ -116,50 +150,54 @@ async function start() {
         !hexId(started.slot_id) || typeof started.pico_public_key !== 'string' ||
         !/^[A-Za-z0-9_-]{43}$/.test(started.pico_public_key))
       throw new Error('invalid Pico start');
-    show('tap');
-    notice('Tap and release BOOTSEL on this Pico.');
-  } catch {
-    show('retry');
-    notice('Could not start confirmation. Wait for the current attempt to end, then try again.', true);
-    clearAttempt();
-  } finally { $('start').disabled = false; }
-}
-
-async function submit(event) {
-  event.preventDefault();
-  if (!pending || !started) return;
-  const ssid = $('ssid').value, password = $('password').value;
-  if (!/^[\x20-\x7e]{1,32}$/.test(ssid) || !/^[\x20-\x7e]{8,63}$/.test(password)) {
-    notice('Use a 1–32 character network name and an 8–63 character password with printable characters.', true);
-    return;
-  }
-  $('submit').disabled = true;
-  try {
     sealed = seal(pending, started, deviceId, ssid, password);
+    expectedGeneration = currentGeneration + 1;
     $('password').value = '';
+    setPasswordVisible(false);
+    completed = false;
     show('checking');
     notice('Trying your network and checking the saved result.');
-    // A lost response must be reconciled by status; never replay this POST.
-    await json('/api/bootstrap/v1/submit', sealed.submit);
-  } catch {
-    if (!sealed) {
+    // Reconcile a lost response by the exact request digest; never replay this POST.
+    const result = await json('/api/bootstrap/v1/submit', sealed.submit);
+    if (result.state === 'failed') {
       clearAttempt();
-      notice('This attempt could not encrypt the network details. Start again.', true);
       show('retry');
-    } else {
-      show('checking');
-      notice('Checking connection. Keep this page open.');
+      notice('The Wi-Fi connection was not saved. Check the details and try again.', true);
     }
-  } finally { $('submit').disabled = false; }
+  } catch {
+    if (sealed) {
+      show('checking');
+      notice('Checking the saved result. Keep this page open.');
+    } else {
+      clearAttempt();
+      show('retry');
+      notice('Could not start Wi-Fi setup. Wait a moment, then try again.', true);
+    }
+  } finally {
+    saving = false;
+    $('submit').disabled = false;
+  }
+}
+
+function change() {
+  clearAttempt();
+  completed = false;
+  show('credentials');
+  notice('Enter the Wi-Fi network this Pico should use.');
 }
 
 async function boot() {
-  $('start').addEventListener('click', start);
-  $('retry-button').addEventListener('click', () => { clearAttempt(); show('ready'); notice('Ready for a fresh attempt.'); });
+  $('password-toggle').addEventListener('click', () =>
+    setPasswordVisible($('password').type === 'password'));
+  $('change-connected').addEventListener('click', change);
+  $('change-saved').addEventListener('click', change);
+  $('retry-button').addEventListener('click', change);
+  $('unknown-button').addEventListener('click', () => location.reload());
   $('wifi-form').addEventListener('submit', submit);
-  if (location.origin !== host || typeof fetch !== 'function' || !available()) {
-    show('safari');
-    notice('This browser cannot run encrypted Wi-Fi setup.', true);
+  if (location.origin !== host || typeof fetch !== 'function' ||
+      typeof AbortController !== 'function' || !available()) {
+    show('browser');
+    notice('This window cannot run encrypted setup. Open the Pico page in a regular browser.', true);
     return;
   }
   try {
@@ -167,8 +205,7 @@ async function boot() {
     if (!hexId(identity.device_id)) throw new Error('invalid identity');
     deviceId = identity.device_id;
     $('device').textContent = 'Pico ' + deviceId.slice(-6);
-    show('ready');
-    notice('Ready to connect this Pico.');
+    show('credentials');
     update();
   } catch {
     show('retry');

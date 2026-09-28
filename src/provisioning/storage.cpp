@@ -304,7 +304,10 @@ bool ProfileStore::select(ProfileSource source, std::string_view canonical_profi
           !valid_consumer_payload(canonical_profile, source_, data_))) ||
         sequence_ == std::numeric_limits<std::uint64_t>::max())
         return false;
-    if (source == source_ && canonical_profile == data_)
+    // An explicit Wi-Fi setup save must create a new generation even when
+    // the credentials are unchanged, so the browser can reconcile this exact
+    // one-use request after a lost response.
+    if (source == source_ && canonical_profile == data_ && source != ProfileSource::NetworkOnly)
         return true;
     std::string payload(selection_header_size, '\0');
     put(std::span(reinterpret_cast<std::uint8_t*>(payload.data()), 8), selection_magic);

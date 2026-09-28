@@ -195,8 +195,10 @@ std::optional<OwnerClaimTranscript> owner_claim_transcript(const OwnerClaimField
 
 std::optional<OwnerClaimEncodedPlaintext>
 encode_owner_claim_plaintext(const OwnerClaimPlaintext& value) {
-    if (!standalone::valid_wifi_credentials(value.ssid, value.password,
-                                            standalone::default_time_server) ||
+    const bool saved_network = value.ssid.empty() && value.password.empty();
+    if ((!saved_network &&
+         !standalone::valid_wifi_credentials(value.ssid, value.password,
+                                             standalone::default_time_server)) ||
         !encoding::wspr_type1(value.callsign, value.locator, value.power_dbm))
         return std::nullopt;
     OwnerClaimEncodedPlaintext result;
@@ -216,7 +218,7 @@ encode_owner_claim_plaintext(const OwnerClaimPlaintext& value) {
 
 std::optional<OwnerClaimPlaintext>
 decode_owner_claim_plaintext(std::span<const std::uint8_t> bytes) {
-    if (bytes.size() < 20 || bytes.size() > 109)
+    if (bytes.size() < 11 || bytes.size() > 109)
         return std::nullopt;
     std::size_t at = 0;
     auto read_text = [&](std::size_t minimum, std::size_t maximum, std::string_view& out) {
@@ -230,14 +232,16 @@ decode_owner_claim_plaintext(std::span<const std::uint8_t> bytes) {
         return true;
     };
     OwnerClaimPlaintext result;
-    if (!read_text(1, 32, result.ssid) || !read_text(8, 63, result.password) ||
+    if (!read_text(0, 32, result.ssid) || !read_text(0, 63, result.password) ||
         !read_text(3, 6, result.callsign) || bytes.size() - at != 5)
         return std::nullopt;
     result.locator = {reinterpret_cast<const char*>(bytes.data() + at), 4};
     at += 4;
     result.power_dbm = bytes[at];
-    if (!standalone::valid_wifi_credentials(result.ssid, result.password,
-                                            standalone::default_time_server) ||
+    const bool saved_network = result.ssid.empty() && result.password.empty();
+    if ((!saved_network &&
+         !standalone::valid_wifi_credentials(result.ssid, result.password,
+                                             standalone::default_time_server)) ||
         !encoding::wspr_type1(result.callsign, result.locator, result.power_dbm))
         return std::nullopt;
     return result;

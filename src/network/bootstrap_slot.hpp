@@ -16,8 +16,8 @@ struct BootstrapSlotBinding {
 };
 
 // Portable authority state only. The target adapter owns ephemeral keys,
-// cryptographic validation, flash and network I/O. No HTTP route calls this
-// class until the runtime BOOTSEL target gate passes.
+// cryptographic validation, flash and network I/O. Open setup grants a slot
+// directly; the older physical-confirmation path remains for historical tests.
 class BootstrapSlot {
   public:
     BootstrapSlot() = default;
@@ -36,6 +36,7 @@ class BootstrapSlot {
 
     bool start(BootstrapSlotBinding binding, std::uint64_t now_ms, bool sample_safe,
                bool button_pressed);
+    bool grant_open_setup(std::uint64_t now_ms);
     void sample(std::uint64_t now_ms, bool sample_safe, bool button_pressed);
     bool consume(std::string_view device_id, std::string_view boot_id, std::string_view slot_id,
                  std::string_view request_id, std::string_view request_id_digest,

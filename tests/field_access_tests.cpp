@@ -1018,17 +1018,47 @@ void runtime_policy() {
     CHECK(ap.request_join_grace(100'000));
     CHECK(!ap.request_join_grace(100'001));
     CHECK(ap.poll(100'001));
-    ap.no_profile(true);
-    CHECK(ap.surface(false) == provisioning::SoftApSurface::BlankReadOnly);
-    ap.station(true, 100'002);
-    CHECK(ap.poll(100'002)); // Network-only AP remains available after station join.
-    CHECK(ap.status(100'002).requested);
-    ap.station(false, 100'003);
-    CHECK(ap.poll(100'003)); // A configured field-day AP does not wait for fallback.
-    CHECK(ap.surface(false) == provisioning::SoftApSurface::BlankReadOnly);
+    provisioning::SoftApCoordinator saved_ap(store);
+    saved_ap.no_profile(true); // Network-only and consumer pre-clock use the open page.
+    CHECK(saved_ap.surface(false) == provisioning::SoftApSurface::BlankReadOnly);
+    saved_ap.station(true, 0);
+    CHECK(!saved_ap.poll(0)); // Saved credentials with a healthy station withdraw AP.
+    saved_ap.station(false, 1'000);
+    CHECK(!saved_ap.poll(60'999));
+    CHECK(saved_ap.poll(61'000)); // Field-site station loss brings the portal back.
+    saved_ap.station(true, 61'001);
+    CHECK(saved_ap.poll(91'000));
+    CHECK(!saved_ap.poll(91'001));
+    saved_ap.request_manual_open();
+    CHECK(saved_ap.poll(91'002)); // Physical request stays open until reboot.
+
+    provisioning::SoftApCoordinator blank_ap(store);
+    blank_ap.no_profile(true);
+    blank_ap.blank_profile(true);
+    blank_ap.station(false, 0);
+    CHECK(blank_ap.poll(0)); // An erased profile opens AP immediately.
+    blank_ap.station(true, 1'000);
+    CHECK(blank_ap.poll(1'000)); // Setup remains available until activation restart.
     ap.no_profile(false);
     CHECK(ap.surface(false) == provisioning::SoftApSurface::ProvisionedPreClock);
     CHECK(ap.surface(true) == provisioning::SoftApSurface::Normal);
+
+    provisioning::BootselSoftApHold hold;
+    CHECK(!hold.observe(false, false, 0));
+    CHECK(!hold.observe(true, true, 50)); // An initial held sample cannot arm.
+    CHECK(!hold.observe(true, false, 100));
+    CHECK(!hold.observe(true, true, 200));
+    CHECK(!hold.observe(true, true, 10'199));
+    CHECK(hold.observe(true, true, 10'200)); // Full hold opens AP without precise release timing.
+    CHECK(!hold.observe(true, true, 10'300));
+    CHECK(!hold.observe(true, false, 10'400));
+    CHECK(!hold.observe(true, true, 11'000));
+    CHECK(!hold.observe(true, false, 11'500)); // A tap is not a long hold.
+    CHECK(!hold.observe(true, true, 12'000));
+    CHECK(!hold.observe(false, true, 20'000));
+    CHECK(!hold.observe(true, false, 22'500)); // Unsafe sample cancels the hold.
+    CHECK(!hold.observe(true, true, 23'000));
+    CHECK(hold.observe(true, false, 33'000)); // Release at ten seconds also qualifies.
 
     Led led;
     provisioning::IndicatorController indicator(led, std::string(device));
@@ -1040,6 +1070,10 @@ void runtime_policy() {
     indicator.poll(0);
     CHECK(led.writes.back());
     indicator.poll(200);
+    CHECK(!led.writes.back());
+    indicator.poll(300);
+    CHECK(led.writes.back());
+    indicator.poll(450);
     CHECK(!led.writes.back());
     CHECK(indicator.identify("identify-a", device, true, true, 1'000) ==
           provisioning::IndicatorCode::Ok);

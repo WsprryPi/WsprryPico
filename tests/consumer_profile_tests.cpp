@@ -63,6 +63,23 @@ int main() {
     provisioning::scrub(*decoded);
     assert(decoded->password.empty() && decoded->tls.ca_private_key.empty());
 
+    const auto replacement = provisioning::replace_consumer_network(
+        canonical, value.device_id, "FieldNet", "field-password", std::string(64, 'b'));
+    auto updated = provisioning::parse_consumer_profile(replacement);
+    value.ssid = "FieldNet";
+    value.password = "field-password";
+    value.request_sha256 = std::string(64, 'b');
+    assert(updated && *updated == value); // Station, owners, TLS and clients are retained.
+    provisioning::scrub(*updated);
+    assert(provisioning::replace_consumer_network(canonical, std::string(32, '0'),
+                                                  "FieldNet", "field-password",
+                                                  std::string(64, 'b')).empty());
+    assert(provisioning::replace_consumer_network(canonical, value.device_id,
+                                                  "FieldNet", "short",
+                                                  std::string(64, 'b')).empty());
+    provisioning::scrub(value);
+    value = profile();
+
     auto open_setup = value;
     open_setup.owner_epoch = 0;
     open_setup.owners.clear();

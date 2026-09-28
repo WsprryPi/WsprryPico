@@ -455,11 +455,11 @@ implementation milestone.
 
 | Milestone | Status | Outcome required to advance |
 | --- | --- | --- |
-| P12.7 — Consumer commissioning contract | **REVISED DESIGN SELECTED** | The [current decision](phase12-safari-open-setup-revision.md) selects immediate fields, optional LED identification, no physical press or retained phone owner, and the same open AP page for later changes. The [earlier owner decision](phase12-7-decision.md) is historical. |
+| P12.7 — Consumer commissioning contract | **REVISED DESIGN SELECTED** | The [current decision](phase12-safari-open-setup-revision.md) selects immediate Wi-Fi fields, optional station details later, no press to save and no retained phone owner. The AP starts on a blank profile, returns after station loss, and can be opened by a 10-second runtime BOOTSEL hold on the idle RF-inhibited image. The [earlier owner decision](phase12-7-decision.md) is historical. |
 | P12.8 — Commissioning foundation | **SOURCE CANDIDATE; TARGET OPEN** | One-use encrypted AP setup, no-owner source-5 journal, generated TLS and atomic activation need final review and target proof. A different phone may submit a later update. |
-| P12.9 — Guided Safari/SoftAP setup | **SOURCE CANDIDATE; PHONE OPEN** | The form appears immediately on `/`; optional LED and save share one page. Verify real iPhone captive/Safari behavior and failed/retried saves. |
-| P12.10 — RF-inhibited commissioning acceptance | **OPEN** | On Candidate A, save from Safari without a button, reboot and prove exact generation, station and trust readback. |
-| P12.11 — Recovery and fallback | **OPEN** | Prove different-phone replacement, old-profile recovery, station-loss portal availability, field-network operation, reset and full erase. No retained-owner recovery is required. |
+| P12.9 — Guided captive SoftAP setup | **SOURCE CANDIDATE; PHONE OPEN** | Wi-Fi fields and a password reveal control appear immediately on `/`; station settings are optional later on `/owner.html`. Verify real iPhone captive/browser behavior and failed/retried saves. |
+| P12.10 — RF-inhibited commissioning acceptance | **IMAGE BOOT VERIFIED; PHONE OPEN** | The [Wi-Fi-first image](phase12-wifi-first-flash.md) booted on Candidate A. Save Wi-Fi from the phone without a button, then separately save optional station settings and prove actual generations and readback. |
+| P12.11 — Recovery and fallback | **OPEN** | Prove healthy-station AP withdrawal, manual BOOTSEL opening, different-phone replacement, old-profile recovery, station-loss portal return, field-network operation, reset and full erase. No retained-owner recovery is required. |
 | P12.12 — Stage A robustness and closure | **OPEN** | Close fault, trust, resource, concurrency, soak, controller-time, LED and restoration rows and complete the final adversarial review. |
 
 ### P12.7 Consumer commissioning contract
@@ -488,8 +488,10 @@ and passed isolated-Pi open-AP preflight and selected-iPhone network-only
 generation-one reboot readback on 2026-09-27; final phone-page and AP-return
 rows remain open in the
 [target record](phase12-wifi-only-physical-result.md). The later working
-source keeps that AP available for Safari upgrade after station join; its
-target AP/STA continuity is not covered by the installed-image result. This
+source temporarily kept that AP available for Safari upgrade after station
+join. The current candidate instead withdraws it on a healthy station and
+uses station-loss or manual BOOTSEL reopening; neither behavior is covered by
+the installed-image result. This
 exception does not close the consumer owner,
 credential and recovery decisions in P12.7 or authorize P12.8–P12.12.
 The [gated execution prompt](phase12-7-12-execution-prompt.md),
@@ -506,11 +508,11 @@ It is not implementation or physical acceptance evidence.
 The current end-user journey is:
 
 1. Power on an uncommissioned WsprryPico.
-2. Join its open SoftAP and choose **Set up this Pico** in Safari.
-3. Immediately see ordinary Wi-Fi and station fields; optionally choose
-   **Blink Pico LED** to identify it.
-4. Enter those settings and choose **Save setup**.
-5. Wait for a verified saved result, or receive a clear retry path.
+2. Join its open SoftAP and open the captive page or Pico address in a capable
+   regular browser.
+3. Immediately see Wi-Fi network and password fields, with a show/hide control.
+4. Choose **Connect to Wi-Fi** and wait for verified save or a clear retry path.
+5. Add optional station details on the separate station page after Wi-Fi is saved.
 
 Ordinary commissioning must not ask the user for a MAC-derived password, full
 device ID, USB-console command, PEM certificate, private key, profile JSON,
@@ -521,9 +523,10 @@ consumer path.
 The revised P12.7 contract selects:
 
 - no button step or retained browser owner; fresh per-transaction browser keys
-  bind the full device ID, exact Safari origin, boot and one request;
-- ordinary Wi-Fi and station fields, with advanced time, trust and protocol
-  settings outside the five-step consumer flow;
+  bind the full device ID, exact Pico origin, boot and one request;
+- Wi-Fi fields on the landing page and optional station fields on a separate
+  page, with advanced time, trust and protocol settings outside the consumer
+  flow;
 - a per-device CA and server key generated on the Pico after checked entropy
   and UTC, with separately approved station-client CSRs and no user PEM work;
 - an always-available open AP in network-only and consumer modes, encrypted
@@ -585,18 +588,18 @@ consumer commit. The whole-gesture repair is now installed on Candidate A and
 passed read-only USB/AP checks. It has not passed a physical owner gesture;
 post-clock owner activation and private readback remain open.
 
-Implement the revised Safari setup contract. The device must:
+Implement the revised open SoftAP setup contract. The device must:
 
 - advertise a clear uncommissioned/setup state without treating a name or MAC
   suffix as identity proof;
-- bind one encrypted transaction to the exact Safari origin, device, browser
+- bind one encrypted transaction to the exact Pico HTTP origin, device, browser
   public key, boot and request, then discard browser authority after save;
 - create or install its device-specific TLS identity without asking the user to
   handle certificate or key material;
 - establish the selected station-server trust and bounded advanced-client
   enrollment path without making certificate handling part of ordinary setup;
-- accept the minimal user configuration as one validated transaction from any
-  phone, preserve
+- accept Wi-Fi first and optional station details later as separate validated
+  transactions from any phone, preserve
   station/schedule/watermark data outside its scope and activate exactly once
   after the terminal response boundary;
 - report an unambiguous committed generation and survive reboot selecting only
@@ -610,20 +613,23 @@ Hardware-free acceptance must cover
 wrong-device, competing setup, expired slot, replay, interrupted journal,
 activation failure, response-loss reconciliation and secret-free diagnostics.
 
-### P12.9 Guided Safari/SoftAP setup
+### P12.9 Guided captive SoftAP setup
 
-Safari must present one immediate setup form rather than a protocol console:
+The captive page or a capable regular browser must present the Wi-Fi form
+immediately, with station details optional later:
 
-- The Wi-Fi and station fields are visible on page load; full identity is
-  verified internally before Save enables.
-- **Blink Pico LED** is optional and does not gate Save.
-- **Save setup** validates the fields and submits one encrypted transaction.
-- **Setup saved** appears only after exact request digest and generation
+- Wi-Fi name and password fields are visible on page load, with a password
+  reveal control; full identity is verified internally before Save enables.
+- **Connect to Wi-Fi** validates and saves only the network in one encrypted
+  transaction. Verified save requires exact request digest and generation
   readback; network and post-restart acceptance remain separate gates.
+- The separate station page accepts callsign, locator and power, reuses the
+  saved network inside the Pico and never asks for that password again.
+- **Blink Pico LED** is optional on the station page and does not gate Save.
 
 The page must never display internal operation names or tell a normal user to
 enter a default password, profile JSON, PEM data or USB command. It must use
-locally bundled assets and persist no Safari owner key; Wi-Fi and transient
+locally bundled assets and persist no browser owner key; Wi-Fi and transient
 crypto secrets are cleared
 on every terminal path. It must distinguish retryable transport loss from
 committed-but-not-yet-reconciled state. The captive sheet may be a launch aid
@@ -636,20 +642,21 @@ transaction boundary, activation failure and safe retry.
 
 ### P12.10 RF-inhibited commissioning acceptance
 
-Using a clean committed RF-inhibited image on Candidate A and the recorded
-iPhone/iOS/Safari combination:
+Using a clean committed RF-inhibited image on Candidate A and a recorded
+iPhone/iOS/browser combination:
 
 1. Start from the documented blank/uncommissioned state, or record the exact
    existing network-only generation.
-2. Verify the exact locally bundled Safari page and phone capability, then
+2. Verify the exact locally bundled captive page and phone capability, then
    prove offline page use with infrastructure Wi-Fi and cellular disabled.
 3. See fields immediately, optionally blink the exact device's LED, and
    complete setup without a button, code, console, manual identifier,
    default-password prompt, file import or certificate handling.
-4. Enter ordinary Wi-Fi/station settings, commit the actual generation (1 for
-   direct blank full setup or 2 after network-only generation 1) and preserve
-   the terminal response before activation.
-5. Reboot/reconnect and verify the same device, generation and no retained owner;
+4. Enter Wi-Fi settings, commit network-only generation 1 from blank, and
+   preserve the terminal response before activation. On a separate later
+   visit, enter optional station details without re-entering the Wi-Fi password.
+5. Reboot/reconnect and verify the same device, actual generations and no
+   retained owner;
    station association, DHCP/mDNS, controller time and positive mTLS WTP/HTTPS
    readback must agree with the committed configuration.
 6. Confirm RF remains inhibited, the job service is empty/unowned, output is
@@ -664,8 +671,10 @@ Retain failures instead of rewriting them with retries.
 
 Finish the consumer lifecycle after first setup:
 
-- replace Wi-Fi and station settings from a different phone using the same
-  page, without a physical action or saved owner credential;
+- replace Wi-Fi and station settings from a different phone using their
+  respective pages, without a physical action to save or a saved owner
+  credential; opening the AP while a station connection is healthy requires
+  the separate 10-second BOOTSEL hold on the idle RF-inhibited image;
 - prove the portal loads when saved station Wi-Fi is unavailable, including
   a field-site network change, and resolve the current fresh-SNTP requirement
   for networks without time service;
@@ -677,7 +686,7 @@ Finish the consumer lifecycle after first setup:
   provisioned setup surface still needs physical acceptance. Station TLS
   identity does not make Safari trust an AP certificate automatically.
 
-Full Safari/SoftAP setup has the revised P12.7 design but still
+Full captive SoftAP setup has the revised P12.7 design but still
 requires P12.8–P12.12 implementation and acceptance. The separately approved
 Wi-Fi-only network join does not
 grant an owner, station trust, job control or RF authority; it protects the

@@ -72,7 +72,7 @@ bool PicoOwnerClaimCrypto::open(const OwnerClaimFields& fields,
                                 std::span<const std::uint8_t, 16> tag, OwnerClaimCredentials& out) {
     out.clear();
     const auto aad = owner_claim_transcript(fields);
-    if (!private_key_ || !aad || fields.pico_public_key != public_key_ || ciphertext.size() < 20 ||
+    if (!private_key_ || !aad || fields.pico_public_key != public_key_ || ciphertext.size() < 11 ||
         ciphertext.size() > 109) {
         clear();
         return false;

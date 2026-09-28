@@ -28,6 +28,14 @@ bool BootstrapSlot::start(BootstrapSlotBinding binding, std::uint64_t now_ms, bo
     return true;
 }
 
+bool BootstrapSlot::grant_open_setup(std::uint64_t now_ms) {
+    expire(now_ms);
+    if (state_ != BootstrapSlotState::Identify || now_ms < started_ms_)
+        return false;
+    state_ = BootstrapSlotState::Granted;
+    return true;
+}
+
 void BootstrapSlot::sample(std::uint64_t now_ms, bool sample_safe, bool button_pressed) {
     expire(now_ms);
     if (state_ != BootstrapSlotState::Identify)

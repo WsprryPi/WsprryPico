@@ -134,6 +134,12 @@ int main() {
     auto submit = post("/api/owner/v1/claim/submit", submit_body);
     assert(parsed(submit));
     assert(network::parse_owner_claim_submit(submit));
+    std::array<std::uint8_t, 13> station_cipher{};
+    station_cipher[0] = 1;
+    changed = submit;
+    changed.body.replace(changed.body.find(cipher_key), cipher_key.size(),
+                         network::bootstrap_b64url(station_cipher));
+    assert(network::parse_owner_claim_submit(changed));
     changed = submit;
     changed.body.replace(changed.body.find(cipher_key), cipher_key.size(), "AA");
     assert(!network::parse_owner_claim_submit(changed));

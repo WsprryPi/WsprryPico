@@ -69,10 +69,20 @@ void expiry_and_terminal_reconciliation() {
     slot.expire(260'200);
     assert(slot.state() == BootstrapSlotState::None);
 }
+void open_setup_without_button() {
+    BootstrapSlot slot;
+    assert(slot.start(binding(), 10, true, false));
+    assert(slot.grant_open_setup(10));
+    assert(slot.state() == BootstrapSlotState::Granted);
+    assert(!slot.grant_open_setup(11));
+    assert(slot.consume("device", "boot", "slot", "request", "digest", "box", 12));
+    assert(slot.finish(true, 13));
+}
 } // namespace
 
 int main() {
     fresh_press_and_single_use();
     held_button_and_failure_paths();
     expiry_and_terminal_reconciliation();
+    open_setup_without_button();
 }

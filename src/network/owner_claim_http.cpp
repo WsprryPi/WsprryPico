@@ -114,7 +114,7 @@ std::optional<OwnerClaimSubmitRequest> parse_owner_claim_submit(const HttpReques
                tag = field(*root, "tag");
     if (!device || !boot || !slot || !request_id || !nonce || !cipher || !tag ||
         !network::valid_device_id(*device) || !hex16(*boot) || !hex16(*slot) ||
-        !hex16(*request_id) || !b64(*nonce, 12, 12) || !b64(*cipher, 20, 109) || !b64(*tag, 16, 16))
+        !hex16(*request_id) || !b64(*nonce, 12, 12) || !b64(*cipher, 11, 109) || !b64(*tag, 16, 16))
         return {};
     return OwnerClaimSubmitRequest{*device, *boot, *slot, *request_id, *nonce, *cipher, *tag};
 }
