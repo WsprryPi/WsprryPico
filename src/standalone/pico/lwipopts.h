@@ -10,7 +10,8 @@
 #define TCP_SND_BUF (4 * TCP_MSS)
 #define TCP_SND_QUEUELEN 32
 #define MEMP_NUM_TCP_PCB 4
-#define MEMP_NUM_TCP_PCB_LISTEN 1
+// Captive setup HTTP, provisioned HTTPS and station Plain LAN can coexist.
+#define MEMP_NUM_TCP_PCB_LISTEN 3
 #define MEMP_NUM_TCP_SEG 32
 #define TCP_LISTEN_BACKLOG 1
 #define LWIP_UDP 1

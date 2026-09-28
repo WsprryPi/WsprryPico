@@ -2,6 +2,7 @@
 """Guard first-class, fail-closed TCP/WTP production invariants."""
 
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -12,13 +13,14 @@ main = (ROOT / "src/standalone/pico/main.cpp").read_text()
 network_cmake = (ROOT / "cmake/network.cmake").read_text()
 mbedtls = (ROOT / "src/network/pico/mbedtls_config.h").read_text()
 protocol = (ROOT / "docs/protocol/WTP.md").read_text()
+lwipopts = (ROOT / "src/standalone/pico/lwipopts.h").read_text()
 
 # Product default is off; a deployment selects its port explicitly.
 assert 'set(WSPRRY_PICO_NETWORK_PORT "0"' in network_cmake
 assert "TLS listener port; 0 disables network control" in network_cmake
 assert "port() const" in server_header and "return credentials_.port;" in server_header
 
-# The only production TCP listener is certificate-authenticated TLS 1.3.
+# The engineering TLS binding remains certificate authenticated.
 assert "MBEDTLS_SSL_VERSION_TLS1_3" in server
 assert "mbedtls_ssl_conf_min_tls_version" in server
 assert "mbedtls_ssl_conf_max_tls_version" in server
@@ -34,6 +36,7 @@ assert '#undef MBEDTLS_SSL_EARLY_DATA' in mbedtls
 # Certificate identity becomes the transport principal; WTP is not decoded or
 # authorized by a parallel network-specific job implementation.
 assert 'principal_ = "tls-cert:";' in server
+assert 'principal_ = "local-network";' in server
 assert "endpoint_.connect(principal_);" in server
 assert "plain_offset_ += endpoint_.receive(bytes, now);" in server
 assert "wtp::Endpoint endpoint_;" in server_header
@@ -49,17 +52,20 @@ for source in (server, bootstrap):
 assert main.count("static wsprrypico::wtp::JobService service(") == 1
 assert "static wsprrypico::wtp::Endpoint endpoint(service," in main
 assert "static wsprrypico::wtp::Endpoint ble_endpoint(service," in main
-assert "static wsprrypico::network::PicoServer server(service," in main
+assert re.search(r"static wsprrypico::network::PicoServer server\s*\(\s*service,", main)
 assert "static wsprrypico::standalone::Scheduler scheduler(store, service);" in main
 
-# The bounded listen-PCB slot belongs to exactly one surface. A provisioned
-# image must not reserve the blank-device plaintext listener ahead of TLS.
+# The captive setup listener is restricted to the selected consumer sources.
+# It can coexist with the provisioned HTTPS and station Plain LAN listeners.
 bootstrap_gate = main.index("const bool bootstrap_started")
 bootstrap_call = main.index("bootstrap.start();", bootstrap_gate)
 assert "RuntimeSource::Unprovisioned" in main[bootstrap_gate:bootstrap_call]
+assert "server.start_plain(plain_lan_port)" in main
+listener_slots = re.search(r"#define MEMP_NUM_TCP_PCB_LISTEN\s+(\d+)", lwipopts)
+assert listener_slots and int(listener_slots.group(1)) >= 3
 
-# Normative transport text explicitly rejects plaintext and downgrade.
-for required in ("identical frame stream", "TLS 1.3", "ALPN", "wtp/1", "Plaintext TCP"):
+# Normative transport text defines explicit TLS and Plain LAN bindings.
+for required in ("identical frame stream", "TLS 1.3", "ALPN", "wtp/1", "Plain LAN", "MUST NOT automatically fall back"):
     assert required in protocol
 
 print("Production TCP/WTP remains first-class, shared and fail closed")
