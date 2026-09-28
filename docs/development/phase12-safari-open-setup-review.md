@@ -518,3 +518,21 @@ empty job, inactive output and zero fault stage/status. This confirms the
 running revision and preserved state; picotool's final byte-for-byte verify
 output is unavailable for A. Neither board's new browser retry behavior has
 yet been retested on an iPhone.
+
+### Bounded phone setup closure
+
+The two-board phone evidence closes these network-only setup rows for the
+recorded RF-inhibited image sequence: immediate Wi-Fi form on Candidate A,
+password reveal, no-button submission, selected `pool.ntp.org` readback, an
+accepted HTTP reply, durable generation-1 station join and time sync on A and
+B, and failed-join rollback to generation 0 on B. The postflash USB checks
+also show both saved profiles survived the retry/style roll-forward.
+
+The guided consumer flow as a whole remains open. Automatic captive opening
+failed in the earlier A attempt and was not reported for B; the exact success
+message before AP withdrawal was not captured; B's second attempt displayed
+an unstyled “Setup interrupted” page on the preceding image; and the installed
+repair has not been phone retested. Optional station settings, a different
+phone's later update, field-network-loss fallback and the wider P12.10–P12.12
+matrices retain their separate gates. These bounded passes do not qualify
+those unobserved paths.

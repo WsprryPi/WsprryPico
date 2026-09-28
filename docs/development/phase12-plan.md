@@ -468,9 +468,9 @@ findings, host checks and remaining physical gate.
 | Milestone | Status | Outcome required to advance |
 | --- | --- | --- |
 | P12.7 — Consumer commissioning contract | **REVISION REQUIRED FOR MANUAL AP OPENING** | The [current decision](phase12-safari-open-setup-revision.md) selects immediate Wi-Fi fields, optional station details later, no press to save and no retained phone owner. The AP starts on a blank profile and returns after station loss. A physical long hold coincided with lost Candidate A application service and an RP2350 ROM bootloader on the Pi, so the selected runtime BOOTSEL opener is withdrawn; choose a safe connected-station action. The [earlier owner decision](phase12-7-decision.md) is historical. |
-| P12.8 — Commissioning foundation | **SOURCE CANDIDATE; TARGET OPEN** | One-use encrypted AP setup, no-owner source-5 journal, selected LAN WTP mode and atomic activation need final review and target proof. A different phone may submit a later update. |
-| P12.9 — Guided captive SoftAP setup | **SOURCE CANDIDATE; PHONE OPEN** | Wi-Fi fields and a password reveal control appear immediately on `/`; station settings are optional later on `/owner.html`. Verify real iPhone captive/browser behavior and failed/retried saves. |
-| P12.10 — RF-inhibited commissioning acceptance | **CLEAN IMAGE BOOT/AP WITHDRAWAL VERIFIED; PHONE OPEN** | The [clean Wi-Fi-first image](phase12-wifi-first-flash.md) booted on Candidate A with generation 2 and a healthy station; two Pi scans did not see its AP. Save Wi-Fi from the phone without a button, then separately save optional station settings and prove actual generations and readback. |
+| P12.8 — Commissioning foundation | **SOURCE CANDIDATE; TARGET PARTIAL** | One-use encrypted AP setup and the network-only journal have bounded A/B target evidence, including a failed join that left generation 0 and later successful generation-1 saves. The full foundation and later-update path remain open. |
+| P12.9 — Guided captive SoftAP setup | **WI-FI FORM/NETWORK SAVE PHONE SUBSET PASSED; UX OPEN** | Candidate A's iPhone form showed immediate Wi-Fi fields and password reveal; it saved without a button, and device readback selected `pool.ntp.org`. Candidate B's wrong-password attempt preserved generation 0 and a later correct-password attempt saved generation 1. The observed unstyled “Setup interrupted” second attempt, automatic captive opening and exact final success-page behavior remain open; [the retry/style repair](phase12-safari-open-setup-review.md) is now installed but has not had an iPhone retest. Optional station settings remain separate. |
+| P12.10 — RF-inhibited commissioning acceptance | **A/B NETWORK-ONLY PHONE CORE PASSED; FULL GATE OPEN** | A and B each have a phone-submitted network-only generation-1 profile, station address, accepted NTP time and inactive output. Both retained those profiles after the [committed retry/style image](phase12-safari-open-setup-review.md) was flashed. Offline captive capability, automatic launch, terminal success-page observation, optional station settings, full readback and negative/concurrency rows remain open. |
 | P12.11 — Recovery and fallback | **OPEN** | Prove healthy-station AP withdrawal, select and verify a safe connected-station AP opening action, different-phone replacement, old-profile recovery, station-loss portal return, field-network operation, reset and full erase. No retained-owner recovery is required. |
 | P12.12 — Stage A robustness and closure | **OPEN** | Close fault, trust, resource, concurrency, soak, controller-time, LED and restoration rows and complete the final adversarial review. |
 
@@ -685,8 +685,9 @@ iPhone/iOS/browser combination:
    visit, enter optional station details without re-entering the Wi-Fi password.
 5. Reboot/reconnect and verify the same device, actual generations and no
    retained owner;
-   station association, DHCP/mDNS, controller time and positive mTLS WTP/HTTPS
-   readback must agree with the committed configuration.
+   station association, DHCP/mDNS, controller time and positive Plain LAN WTP
+   readback must agree with the committed configuration in the default consumer
+   build. TLS/mTLS readback applies only when that explicit build mode is selected.
 6. Confirm RF remains inhibited, the job service is empty/unowned, output is
    inactive and all unrelated journals and settings are preserved.
 
