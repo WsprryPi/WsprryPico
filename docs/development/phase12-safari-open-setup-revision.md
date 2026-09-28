@@ -13,8 +13,8 @@ single-screen wording. The filename is retained for existing links.
 
 After the reported physical 11-second BOOTSEL attempt, Candidate A's application
 USB serial was absent, its previous station address did not answer, and an
-RP2350 USB bootloader was present on the Pi. A serial-targeted bootloader read
-is still needed to bind that enumeration to Candidate A. The background sampler
+RP2350 USB bootloader was present on the Pi. A later serial-targeted ROM read
+bound that bootloader to Candidate A. The background sampler
 could return to flash execution while the button remained held; this is an
 unsafe implementation of the selected manual AP gesture. The source
 removes that sampler and the USB single-sample probe. Do not use a runtime

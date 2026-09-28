@@ -2,13 +2,13 @@
 
 ## 2026-09-28 long-hold incident and source repair
 
-Status: **UNSAFE MANUAL BOOTSEL OPENER REMOVED IN SOURCE; TARGET RECOVERY AND
+Status: **UNSAFE MANUAL BOOTSEL OPENER REMOVED; TARGET ROLL-FORWARD VERIFIED;
 SAFE CONNECTED-STATION OPENING OPEN**. The operator reported holding BOOTSEL
 for about 11 seconds without seeing the AP. A read-only `wspr5` check found
 Candidate A's application USB serial absent, no answer at its previous station
-address `192.168.1.47`, and one RP2350 USB bootloader enumerated. The
-bootloader has not yet been serial-bound to Candidate A. This is consistent
-with a reset while BOOTSEL was held, but the exact reset cause is unproven.
+address `192.168.1.47`, and one RP2350 USB bootloader enumerated. The later
+serial-targeted ROM read bound it to Candidate A. This is consistent with a
+reset while BOOTSEL was held, but the exact reset cause is unproven.
 
 Source review found that the 100 ms background sampler returned from its
 flash-safe callback after a short button sample, potentially resuming XIP
@@ -21,8 +21,30 @@ open the AP while station Wi-Fi is healthy remains a product/target gate.
 
 After this repair, the full Xcode host run passed 89/89 tests and the pinned
 SDK 2.3.1 Pico 2 W RF-inhibited target linked with no runtime sampler or
-core-1 reader. This is source/build evidence only; no repaired image has yet
-been flashed or tested on the physical Pico.
+core-1 reader. The clean committed image was then flashed as recorded below.
+
+### Candidate A roll-forward after the long hold
+
+The operator explicitly requested this reflash. Source `42ff62f832cd` on
+`devel` produced UF2 SHA-256
+`2c4319ad5c23645141617645d2a45059390b84627d21ad4efe524a597e4e9a4b`.
+The same hash was checked after transfer to `wspr5`; the existing picotool
+binary matched SHA-256
+`4a68cfd7fc36002e80857802c8192c9f24c751357c6cb26ad13ad7f38c227921`.
+Serial-targeted ROM `picotool info -d` identified RP2350 QFN60 chip ID
+`0x0bf4b4aec9ffb344`, binding the bootloader to Candidate A. A serial-targeted
+`picotool load -v -x` loaded and verified the UF2 with `OK`, then rebooted the
+application. Candidate B was not addressed.
+
+The application USB serial `0BF4B4AEC9FFB344` returned. `INFO` reported
+device ID `fd6127d11d6aca42a9905fa3fb1bf1d5`, revision `42ff62f832cd`,
+consumer pre-clock profile generation 2, access generation 1, 150 MHz system
+clock, RF-inhibited standalone simulator, Empty job state, inactive output,
+no recovery boot and zero fault stage/PC/status. The station address
+`192.168.1.47` answered from `wspr5`; `INFO` read it back with
+`pool.ntp.org`. No physical button retry or AP-opening acceptance is claimed.
+The newer image remains installed. With healthy station Wi-Fi, the AP is
+normally withdrawn; a safe connected-station opening action is still open.
 
 ## 2026-09-28 AP lifetime and replacement-save review
 
