@@ -21,7 +21,8 @@ elements.get('credentials').hidden = false;
 elements.get('time-server').value = 'time.example.org';
 elements.get('submit').disabled = true;
 globalThis.document = {getElementById: (name) => elements.get(name)};
-globalThis.location = {origin: 'http://192.168.4.1', reload() {}};
+let reloads = 0;
+globalThis.location = {origin: 'http://192.168.4.1', reload() { reloads++; }};
 const timers = [];
 globalThis.setTimeout = (callback, delay) => { timers.push({callback, delay}); return timers.length; };
 globalThis.clearTimeout = (id) => { timers[id - 1].cleared = true; };
@@ -207,15 +208,6 @@ failSubmit = false;
 elements.get('retry-button').events.click();
 elements.get('ssid').value = 'LabNet';
 elements.get('password').value = 'test-only-password';
-failStart = true;
-await elements.get('wifi-form').events.submit({preventDefault() {}});
-assert.equal(elements.get('interrupted').hidden, false); // No POST, so save is unknown.
-assert.equal(elements.get('retry').hidden, true);
-
-failStart = false;
-elements.get('interrupted-button').events.click();
-elements.get('ssid').value = 'LabNet';
-elements.get('password').value = 'test-only-password';
 dropSubmitResponse = true;
 await elements.get('wifi-form').events.submit({preventDefault() {}});
 assert.equal(elements.get('unconfirmed').hidden, false); // Response loss proves neither save nor failure.
@@ -229,6 +221,16 @@ status = {...status, source: 'network_only', generation: 4, slot_state: 'termina
   request_id_digest: slotDigest(submitted.request_id)};
 await poll();
 assert.equal(elements.get('connected').hidden, false); // Exact readback resolves lost reply.
+
+elements.get('change-connected').events.click();
+elements.get('ssid').value = 'LabNet';
+elements.get('password').value = 'test-only-password';
+failStart = true;
+await elements.get('wifi-form').events.submit({preventDefault() {}});
+assert.equal(elements.get('interrupted').hidden, false); // No POST, so save is unknown.
+assert.equal(elements.get('retry').hidden, true);
+elements.get('interrupted-button').events.click();
+assert.equal(reloads, 1); // Recover identity and generation before another save.
 
 globalThis.location.origin = 'http://example.invalid';
 await import('./app.js?fallback');

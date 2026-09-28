@@ -265,7 +265,7 @@ async function boot() {
   $('change-connected').addEventListener('click', change);
   $('change-saved').addEventListener('click', change);
   $('retry-button').addEventListener('click', change);
-  $('interrupted-button').addEventListener('click', change);
+  $('interrupted-button').addEventListener('click', () => location.reload());
   $('unknown-button').addEventListener('click', () => location.reload());
   $('wifi-form').addEventListener('submit', submit);
   if (location.origin !== host || typeof fetch !== 'function' ||
