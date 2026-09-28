@@ -91,6 +91,27 @@ was its retained 513-byte rejection expectation; the updated parser boundary
 and streamed maximum request passed before the final full run. These results
 establish source and build behavior; no new phone or RF acceptance is claimed.
 
+### Candidate A roll-forward (2026-09-28)
+
+After source commit `f452044ac913` was pushed to `origin/devel`, a clean
+RF-inhibited Pico 2 W build used the pinned SDK 2.3.1 checkout and Arm GNU
+15.3.1. The UF2 SHA-256 was
+`7325d639a2f35564009bfef34dcaeda0372ed0833cd6ab6bb769179252c442b9`.
+The exact Candidate A USB serial `0BF4B4AEC9FFB344` and device ID
+`fd6127d11d6aca42a9905fa3fb1bf1d5` matched preflight. Its old revision
+was `b14022c77319`; job state was Empty and output inactive. `picotool` found
+the same RP2350 chip ID in BOOTSEL, loaded and verified the UF2, and rebooted
+it. Candidate B (`CDDBF8767C506C07`) was not used.
+
+Post-boot USB `INFO` reported revision `f452044ac913`, consumer pre-clock
+profile generation 2, access generation 1, valid radio identity, 150 MHz
+system clock, inhibited standalone simulator, Empty job, no schedules, no
+active output and healthy storage. Station Wi-Fi had address `192.168.1.47`
+and `pool.ntp.org`; UTC was synchronized from the station path. The newer
+image remains installed. The captive time-server field, phone browser clock
+exchange and infrastructure-free job operation have no new physical acceptance
+in this record.
+
 ## Earlier automatic SoftAP browser time hint (2026-09-28)
 
 The Wi-Fi and station pages now submit the browser's current UTC after their
