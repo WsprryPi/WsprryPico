@@ -330,8 +330,9 @@ bool PicoNetwork::initialize_radio() {
 bool PicoNetwork::start(const Config& config) {
     return start_credentials(config.ssid, config.password, config.ntp_ipv4);
 }
-bool PicoNetwork::start_network_only(std::string_view ssid, std::string_view password) {
-    return start_credentials(ssid, password, "pool.ntp.org");
+bool PicoNetwork::start_network_only(std::string_view ssid, std::string_view password,
+                                     std::string_view time_server) {
+    return start_credentials(ssid, password, time_server);
 }
 void PicoNetwork::stop_network_only_trial() {
     sntp_.cancel();

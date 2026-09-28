@@ -4,6 +4,7 @@
 #include "mbedtls/hkdf.h"
 #include "mbedtls/md.h"
 #include "mbedtls/sha256.h"
+#include "standalone/config.hpp"
 
 #include <algorithm>
 #include <array>
@@ -88,17 +89,19 @@ bool PicoBootstrapCrypto::open(const BootstrapTranscriptFields& fields,
                                std::span<const std::uint8_t, 12> nonce,
                                std::span<const std::uint8_t> ciphertext,
                                std::span<const std::uint8_t, 16> tag, std::string& ssid,
-                               std::string& password, std::array<std::uint8_t, 32>& ack_verifier) {
+                               std::string& password, std::string& time_server,
+                               std::array<std::uint8_t, 32>& ack_verifier) {
     erase(ssid);
     erase(password);
+    erase(time_server);
     erase(ack_verifier);
-    if (!private_key_ || ciphertext.size() < 11 || ciphertext.size() > 97 ||
+    if (!private_key_ || ciphertext.size() < 11 || ciphertext.size() > 351 ||
         fields.pico_public_key != public_key_) {
         clear();
         return false;
     }
     std::array<std::uint8_t, 32> shared{}, salt{}, key{};
-    std::array<std::uint8_t, 97> plain{};
+    std::array<std::uint8_t, 351> plain{};
     std::array<std::uint8_t, sizeof(ack_prefix) - 1 + transcript_size> ack_input{};
     const auto aad = transcript(fields);
     std::size_t shared_size = 0;
@@ -129,12 +132,25 @@ bool PicoBootstrapCrypto::open(const BootstrapTranscriptFields& fields,
         const auto ssid_size = plain[0];
         if (ssid_size >= 1 && ssid_size <= 32 && 1 + ssid_size < ciphertext.size()) {
             const auto password_size = plain[1 + ssid_size];
-            valid = 2 + ssid_size + password_size == ciphertext.size() && password_size >= 8 &&
-                    password_size <= 63;
+            const auto after_password = 2 + ssid_size + password_size;
+            valid =
+                after_password <= ciphertext.size() && password_size >= 8 && password_size <= 63;
             if (valid) {
                 auto ssid_bytes = std::span(plain).subspan(1, ssid_size);
                 auto password_bytes = std::span(plain).subspan(2 + ssid_size, password_size);
                 valid = printable(ssid_bytes, 1, 32) && printable(password_bytes, 8, 63);
+                if (valid && after_password == ciphertext.size())
+                    time_server = standalone::default_time_server; // Historical v1 payload.
+                else if (valid && after_password < ciphertext.size()) {
+                    const auto length = plain[after_password];
+                    valid = length > 0 && after_password + 1 + length == ciphertext.size();
+                    if (valid) {
+                        auto bytes = std::span(plain).subspan(after_password + 1, length);
+                        time_server.assign(reinterpret_cast<const char*>(bytes.data()),
+                                           bytes.size());
+                        valid = standalone::valid_time_server(time_server);
+                    }
+                }
                 if (valid) {
                     ssid.assign(reinterpret_cast<const char*>(ssid_bytes.data()),
                                 ssid_bytes.size());
@@ -160,6 +176,7 @@ bool PicoBootstrapCrypto::open(const BootstrapTranscriptFields& fields,
     if (!valid) {
         erase(ssid);
         erase(password);
+        erase(time_server);
         erase(ack_verifier);
     }
     return valid;

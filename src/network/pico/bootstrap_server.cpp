@@ -23,6 +23,12 @@
 #include <vector>
 
 namespace wsprrypico::network {
+#ifndef WSPRRY_PICO_STANDALONE_RF
+namespace {
+HttpResponse json(std::string body);
+}
+#endif
+
 PicoBootstrapServer::~PicoBootstrapServer() {
     stop();
 }
@@ -79,12 +85,25 @@ err_t PicoBootstrapServer::receive(void* context, tcp_pcb*, pbuf* packet, err_t 
         return ERR_ABRT;
     }
     std::array<std::uint8_t, 1024> bytes{};
-    if (packet->tot_len > bytes.size())
-        return ERR_MEM;
-    const auto count = pbuf_copy_partial(packet, bytes.data(), packet->tot_len, 0);
+    const auto total = packet->tot_len;
+    std::size_t offset = 0;
+    while (offset < total && !self.parser_.failed() && !self.parser_.ready()) {
+        const auto wanted = std::min<std::size_t>(bytes.size(), total - offset);
+        const auto count = pbuf_copy_partial(packet, bytes.data(), wanted, offset);
+        if (count != wanted) {
+            pbuf_free(packet);
+            self.close();
+            return ERR_ABRT;
+        }
+        (void)self.parser_.receive(std::span(bytes).first(count));
+        offset += count;
+    }
     pbuf_free(packet);
-    tcp_recved(self.client_, count);
-    (void)self.parser_.receive(std::span(bytes).first(count));
+    if (offset != total) {
+        self.close(); // One HTTP request per connection; reject pipelined bytes.
+        return ERR_ABRT;
+    }
+    tcp_recved(self.client_, total);
     if (self.parser_.failed() || self.parser_.ready())
         self.dispatch();
     return ERR_OK;
@@ -115,6 +134,12 @@ void PicoBootstrapServer::dispatch() {
             parser_.request().method == "GET" && parser_.request().header("host") == "192.168.4.1"
                 ? status()
                 : http_error(400, "invalid_request");
+    else if (parser_.request().path == "/api/bootstrap/v1/time" &&
+             parser_.request().method == "GET")
+        response_ = parser_.request().header("host") == "192.168.4.1"
+                        ? json("{\"version\":1,\"challenge_ns\":\"" +
+                               std::to_string(time_us_64() * 1000) + "\"}")
+                        : http_error(400, "invalid_request");
     else if (parser_.request().path.starts_with("/api/bootstrap/v1/"))
         response_ = mutation(parser_.request());
     else if (parser_.request().path == "/api/owner/v1/public-status" ||
@@ -205,7 +230,8 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
         owner_trial_start_pending_ = false;
         claim_platform_->begin_station_trial();
         network_->stop_network_only_trial();
-        if (network_->start_network_only(owner_trial_.ssid, owner_trial_.password))
+        if (network_->start_network_only(owner_trial_.ssid, owner_trial_.password,
+                                         previous_network_.time_server))
             owner_trial_active_ = true;
         else
             end_owner_trial(false, now_ms);
@@ -214,14 +240,14 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
         claim_platform_ && claim_platform_->station_ready(owner_trial_.ssid) &&
         claim_platform_->trusted_utc_now()) {
         const auto* binding = owner_slot_.binding();
-        const auto result =
-            binding && profile_ && runtime_
-                ? provisioning::commit_consumer_claim(
-                      *profile_, owner_slot_, *binding,
-                      {owner_request_id_, owner_trial_.ssid, owner_trial_.password,
-                       owner_trial_.callsign, owner_trial_.locator, owner_trial_.power_dbm},
-                      *claim_platform_, runtime_->source(), now_ms)
-                : provisioning::ConsumerCommitResult{};
+        const auto result = binding && profile_ && runtime_
+                                ? provisioning::commit_consumer_claim(
+                                      *profile_, owner_slot_, *binding,
+                                      {owner_request_id_, owner_trial_.ssid, owner_trial_.password,
+                                       owner_trial_.callsign, owner_trial_.locator,
+                                       owner_trial_.power_dbm, previous_network_.time_server},
+                                      *claim_platform_, runtime_->source(), now_ms)
+                                : provisioning::ConsumerCommitResult{};
         owner_reconcile_ = result.state == provisioning::ConsumerCommitState::Reconcile;
         if (owner_reconcile_) {
             const auto digest = owner_request_digest_;
@@ -249,9 +275,9 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
             if (source == provisioning::ProfileSource::NetworkOnly || blank_authority())
                 payload = provisioning::serialize_network_profile(trial_);
             else if (source == provisioning::ProfileSource::ConsumerProfile)
-                payload = provisioning::replace_consumer_network(profile_->data(), device_,
-                                                                 trial_.ssid, trial_.password,
-                                                                 slot_.request_id_digest());
+                payload = provisioning::replace_consumer_network(
+                    profile_->data(), device_, trial_.ssid, trial_.password, trial_.time_server,
+                    slot_.request_id_digest());
             const auto expected_generation = profile_->sequence() + 1;
             const auto target_source = source == provisioning::ProfileSource::ConsumerProfile
                                            ? provisioning::ProfileSource::ConsumerProfile
@@ -451,7 +477,8 @@ void PicoBootstrapServer::restore_bootstrap_network() {
         network_->stop_network_only_trial();
         if (!bootstrap_previous_network_.ssid.empty())
             (void)network_->start_network_only(bootstrap_previous_network_.ssid,
-                                               bootstrap_previous_network_.password);
+                                               bootstrap_previous_network_.password,
+                                               bootstrap_previous_network_.time_server);
     }
     bootstrap_trial_switched_network_ = false;
 }
@@ -702,7 +729,8 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
                 end_owner_trial(false, now_ms);
                 return http_error(503, "profile_unavailable");
             }
-            previous_network_ = {current->device_id, current->ssid, current->password};
+            previous_network_ = {current->device_id, current->ssid, current->password,
+                                 current->time_server};
             provisioning::scrub(*current);
         }
         if (owner_trial_.ssid.empty()) {
@@ -748,7 +776,8 @@ void PicoBootstrapServer::cancel_owner_slot(bool restore_network) {
     if (restore_network && network_) {
         network_->stop_network_only_trial();
         if (!previous_network_.ssid.empty())
-            (void)network_->start_network_only(previous_network_.ssid, previous_network_.password);
+            (void)network_->start_network_only(previous_network_.ssid, previous_network_.password,
+                                               previous_network_.time_server);
     }
     owner_slot_.cancel();
     owner_crypto_.clear();
@@ -765,7 +794,8 @@ void PicoBootstrapServer::end_owner_trial(bool committed, std::uint64_t now_ms) 
     if (!committed && network_) {
         network_->stop_network_only_trial();
         if (!previous_network_.ssid.empty())
-            (void)network_->start_network_only(previous_network_.ssid, previous_network_.password);
+            (void)network_->start_network_only(previous_network_.ssid, previous_network_.password,
+                                               previous_network_.time_server);
     }
     if (!committed && claim_platform_ && claim_platform_->safe_to_commit())
         (void)owner_slot_.finish(false, {}, 0, now_ms, true);
@@ -785,10 +815,16 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
         const auto parsed = parse_bootstrap_time(request);
         if (!parsed)
             return http_error(400, "invalid_request");
-        if (!mutation_safe_ || !claim_platform_ || parsed->device_id != device_)
+        if (!claim_platform_ || parsed->device_id != device_)
             return http_error(403, "unavailable");
+        const auto now_ns = time_us_64() * 1000;
+        const bool fresh = now_ns >= parsed->challenge_ns &&
+                           now_ns - parsed->challenge_ns <= time::browser_challenge_max_age_ns;
         return json(std::string("{\"version\":1,\"state\":\"") +
-                    (claim_platform_->seed_browser_utc(parsed->utc_ms) ? "accepted" : "ignored") +
+                    (fresh && claim_platform_->seed_browser_utc(parsed->utc_ms,
+                                                                now_ns - parsed->challenge_ns)
+                         ? "accepted"
+                         : "ignored") +
                     "\"}");
     }
     if (owner_slot_.state() != provisioning::ConsumerClaimState::None || owner_reconcile_)
@@ -856,7 +892,7 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
             !decode_hex(parsed->request_id, transcript.request_id) ||
             !decode_b64(binding->browser_public_key, transcript.browser_public_key) ||
             !decode_b64(parsed->aead_nonce, nonce) || !decode_b64(parsed->tag, tag) ||
-            !bootstrap_unb64url(parsed->ciphertext, ciphertext, 11, 97))
+            !bootstrap_unb64url(parsed->ciphertext, ciphertext, 11, 351))
             return http_error(400, "invalid_request");
         transcript.pico_public_key = crypto_.public_key();
         const auto digest = bootstrap_digest(transcript.request_id);
@@ -884,11 +920,12 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
                 end_trial(false, now_ms);
                 return http_error(503, "profile_unavailable");
             }
-            bootstrap_previous_network_ = {saved->device_id, saved->ssid, saved->password};
+            bootstrap_previous_network_ = {saved->device_id, saved->ssid, saved->password,
+                                           saved->time_server};
             provisioning::scrub(*saved);
         }
         if (!crypto_.open(transcript, nonce, ciphertext, tag, trial_.ssid, trial_.password,
-                          ack_verifier_)) {
+                          trial_.time_server, ack_verifier_)) {
             end_trial(false, now_ms);
             return json("{\"version\":1,\"state\":\"failed\",\"generation\":0,"
                         "\"request_id_digest\":" +
@@ -907,7 +944,7 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
                 network_->stop_network_only_trial();
             }
             bootstrap_trial_switched_network_ = true;
-            if (!network_->start_network_only(trial_.ssid, trial_.password)) {
+            if (!network_->start_network_only(trial_.ssid, trial_.password, trial_.time_server)) {
                 end_trial(false, now_ms);
                 return json("{\"version\":1,\"state\":\"failed\",\"generation\":0,"
                             "\"request_id_digest\":" +

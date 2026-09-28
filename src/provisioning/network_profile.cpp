@@ -22,19 +22,32 @@ void clear(std::string& value) {
 
 bool valid_network_profile(const NetworkProfile& profile) {
     return network::valid_device_id(profile.device_id) && printable(profile.ssid, 1, 32) &&
-           printable(profile.password, 8, 63);
+           printable(profile.password, 8, 63) && standalone::valid_time_server(profile.time_server);
 }
 
 std::optional<NetworkProfile> parse_network_profile(std::string_view text) {
-    if (text.empty() || text.size() > 512)
+    if (text.empty() || text.size() > 640)
         return {};
     auto root = wtp::json::parse(text);
-    if (!root || !wtp::json::fields(*root, {"version", "device_id", "ssid", "password"}) ||
-        root->get("version")->raw != "1" || root->get("device_id")->type() != '"' ||
-        root->get("ssid")->type() != '"' || root->get("password")->type() != '"')
+    if (!root || !root->get("version"))
+        return {};
+    const bool old = root->get("version")->raw == "1";
+    if ((!old && root->get("version")->raw != "2") ||
+        !wtp::json::fields(
+            *root, old ? std::initializer_list<std::string_view>{"version", "device_id", "ssid",
+                                                                 "password"}
+                       : std::initializer_list<std::string_view>{"version", "device_id", "ssid",
+                                                                 "password", "time_server"}) ||
+        root->get("device_id")->type() != '"' || root->get("ssid")->type() != '"' ||
+        root->get("password")->type() != '"')
         return {};
     NetworkProfile profile{root->get("device_id")->string(), root->get("ssid")->string(),
                            root->get("password")->string()};
+    if (!old) {
+        if (root->get("time_server")->type() != '"')
+            return {};
+        profile.time_server = root->get("time_server")->string();
+    }
     if (!valid_network_profile(profile)) {
         scrub(profile);
         return {};
@@ -45,14 +58,16 @@ std::optional<NetworkProfile> parse_network_profile(std::string_view text) {
 std::string serialize_network_profile(const NetworkProfile& profile) {
     if (!valid_network_profile(profile))
         return {};
-    return "{\"version\":1,\"device_id\":" + wtp::json::quote(profile.device_id) +
+    return "{\"version\":2,\"device_id\":" + wtp::json::quote(profile.device_id) +
            ",\"ssid\":" + wtp::json::quote(profile.ssid) +
-           ",\"password\":" + wtp::json::quote(profile.password) + "}";
+           ",\"password\":" + wtp::json::quote(profile.password) +
+           ",\"time_server\":" + wtp::json::quote(profile.time_server) + "}";
 }
 
 void scrub(NetworkProfile& profile) {
     clear(profile.device_id);
     clear(profile.ssid);
     clear(profile.password);
+    clear(profile.time_server);
 }
 } // namespace wsprrypico::provisioning

@@ -38,18 +38,19 @@ ActiveTimeSource ControllerTimeArbiter::label(ObservationSource source) {
     return ActiveTimeSource::None;
 }
 
-bool ControllerTimeArbiter::seed_browser_hint(std::uint64_t utc_ms) {
+bool ControllerTimeArbiter::seed_browser_hint(std::uint64_t utc_ms,
+                                              std::uint64_t challenge_age_ns) {
     if (!now_ || utc_ms < sntp_min_utc_ns / 1'000'000ULL ||
-        utc_ms >= sntp_max_utc_ns / 1'000'000ULL)
+        utc_ms >= sntp_max_utc_ns / 1'000'000ULL || challenge_age_ns > browser_challenge_max_age_ns)
         return false;
     return observe(ObservationSource::Browser, utc_ms * 1'000'000ULL, now_(context_),
-                   browser_hint_uncertainty_ns, wtp::LeapState::Normal);
+                   browser_clock_uncertainty_ns + challenge_age_ns, wtp::LeapState::Normal);
 }
 
 ControllerChallenge ControllerTimeArbiter::challenge(std::string_view principal,
-                                                      std::string_view session,
-                                                      std::string_view requested_device,
-                                                      std::string nonce) {
+                                                     std::string_view session,
+                                                     std::string_view requested_device,
+                                                     std::string nonce) {
     if (!now_ || !bounded_identifier(principal) || !bounded_identifier(session) ||
         !bounded_identifier(nonce))
         return {ControllerTimeCode::AuthenticationRequired};
@@ -78,9 +79,9 @@ bool ControllerTimeArbiter::challenge_response_started(std::string_view principa
                                                        std::string_view session,
                                                        std::string_view requested_device,
                                                        std::string_view nonce) {
-    if (!pending_.live || !now_ || principal != pending_.principal ||
-        session != pending_.session || requested_device != device_id_ || nonce != pending_.nonce ||
-        pending_.response_started || pending_.response_delivered)
+    if (!pending_.live || !now_ || principal != pending_.principal || session != pending_.session ||
+        requested_device != device_id_ || nonce != pending_.nonce || pending_.response_started ||
+        pending_.response_delivered)
         return false;
     // Starting the final indication is a conservative boundary before the
     // controller can receive the complete response and sample UTC. Waiting for
@@ -96,9 +97,9 @@ bool ControllerTimeArbiter::challenge_response_delivered(std::string_view princi
                                                          std::string_view session,
                                                          std::string_view requested_device,
                                                          std::string_view nonce) {
-    if (!pending_.live || !now_ || principal != pending_.principal ||
-        session != pending_.session || requested_device != device_id_ || nonce != pending_.nonce ||
-        !pending_.response_started || pending_.response_delivered)
+    if (!pending_.live || !now_ || principal != pending_.principal || session != pending_.session ||
+        requested_device != device_id_ || nonce != pending_.nonce || !pending_.response_started ||
+        pending_.response_delivered)
         return false;
     // An ATT indication confirmation proves that the complete challenge has
     // reached the controller. If it wins the race with the submit write, this
@@ -112,8 +113,7 @@ bool ControllerTimeArbiter::challenge_response_delivered(std::string_view princi
     return true;
 }
 
-void ControllerTimeArbiter::cancel_challenge(std::string_view principal,
-                                             std::string_view session) {
+void ControllerTimeArbiter::cancel_challenge(std::string_view principal, std::string_view session) {
     if (!pending_.live || principal != pending_.principal || session != pending_.session)
         return;
     clear(pending_.principal);
@@ -125,8 +125,7 @@ void ControllerTimeArbiter::cancel_challenge(std::string_view principal,
 ControllerTimeCode ControllerTimeArbiter::submit(std::string_view principal,
                                                  std::string_view session,
                                                  std::string_view requested_device,
-                                                 std::string_view nonce,
-                                                 std::uint64_t utc_ns) {
+                                                 std::string_view nonce, std::uint64_t utc_ns) {
     if (!pending_.live)
         return ControllerTimeCode::Replay;
     const auto now = now_(context_);
@@ -173,7 +172,7 @@ bool ControllerTimeArbiter::interval(const Observation& observation, std::uint64
     drift += fraction / 1'000'000'000ULL + (fraction % 1'000'000'000ULL != 0);
     return add(observation.uncertainty_ns, drift, uncertainty) &&
            uncertainty <= (observation.source == ObservationSource::Browser
-                               ? 2 * browser_hint_uncertainty_ns
+                               ? 2 * (browser_clock_uncertainty_ns + browser_challenge_max_age_ns)
                                : standalone_max_uncertainty_ns);
 }
 
@@ -195,8 +194,8 @@ bool ControllerTimeArbiter::overlaps(const Observation& left, const Observation&
 }
 
 bool ControllerTimeArbiter::accept(const Observation& observation) {
-    if (!clock_.observe(observation.utc_ns, observation.monotonic_ns,
-                        observation.uncertainty_ns, wtp::LeapState::Normal))
+    if (!clock_.observe(observation.utc_ns, observation.monotonic_ns, observation.uncertainty_ns,
+                        wtp::LeapState::Normal))
         return false;
     current_ = observation;
     recovery_ = {};
@@ -218,9 +217,10 @@ bool ControllerTimeArbiter::observe(ObservationSource source, std::uint64_t utc_
                                     std::optional<std::uint64_t> leap_transition_utc_ns,
                                     std::string_view principal) {
     if (!now_ || leap != wtp::LeapState::Normal || leap_transition_utc_ns ||
-        uncertainty_ns > (source == ObservationSource::Browser ? browser_hint_uncertainty_ns
-                                                               : standalone_max_uncertainty_ns) ||
-        (source == ObservationSource::Browser && uncertainty_ns != browser_hint_uncertainty_ns) ||
+        uncertainty_ns > (source == ObservationSource::Browser
+                              ? browser_clock_uncertainty_ns + browser_challenge_max_age_ns
+                              : standalone_max_uncertainty_ns) ||
+        (source == ObservationSource::Browser && uncertainty_ns < browser_clock_uncertainty_ns) ||
         utc_ns < sntp_min_utc_ns || utc_ns >= sntp_max_utc_ns ||
         (source == ObservationSource::Controller && principal.empty()) ||
         (source != ObservationSource::Controller && !principal.empty()))

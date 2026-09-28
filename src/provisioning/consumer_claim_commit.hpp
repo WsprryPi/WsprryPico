@@ -4,6 +4,7 @@
 #include "provisioning/consumer_profile.hpp"
 #include "provisioning/runtime.hpp"
 #include "provisioning/storage.hpp"
+#include "standalone/config.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -14,6 +15,7 @@ namespace wsprrypico::provisioning {
 struct ConsumerClaimValues {
     std::string_view request_id, ssid, password, callsign, locator;
     unsigned power_dbm = 0;
+    std::string_view time_server = standalone::default_time_server;
 };
 
 // The Pico adapter supplies fresh observations, not values cached at claim

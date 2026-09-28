@@ -18,7 +18,7 @@ Use WsprryPico for project, repository and application naming; firmware artifact
   UI. Network control remains product-gated and default-off.
 - BLE/Bluefy remains the implemented engineering provisioning and field-control
   path. A native Raspberry Pi/Linux BlueZ client is an additional local/bench
-  controller. No WsprryPico-native iOS app is planned.
+  controller. If consumer BLE work resumes, it will use a dedicated iPhone app.
 - The [revised open setup contract](development/phase12-safari-open-setup-revision.md)
   selects a captive SoftAP Wi-Fi page followed by optional station settings.
   Saving settings requires no button, code or retained phone owner. With saved
@@ -58,11 +58,12 @@ WTP means WsprryPi Transmitter Protocol. It is device-neutral and versioned inde
 
 The authoritative specification lives at docs/protocol/WTP.md in WsprryPico. WsprryPico is the reference implementation; implementation accidents do not define the protocol. WTP does not have a separate protocol repository.
 
-The custom BLE provisioning and local-control wire interface is the frozen
+The custom BLE provisioning and local-control wire interface is the versioned
 [Field-GATT/1 protocol](protocol/Field-GATT.md), with checked
 [conformance vectors](protocol/Field-GATT-v1-vectors.json) shared by firmware,
-Bluefy and the native-Pi client. Incompatible wire changes require a new
-Field-GATT protocol version. Field commands remain outside WTP/1. When GATT
+Bluefy and the native-Pi client. It is an engineering baseline, not a product
+release freeze. Incompatible wire changes should use a new Field-GATT protocol
+version. Field commands remain outside WTP/1. When GATT
 carries WTP, it transports the unchanged WTP/1 byte stream to the same
 `JobService`; ATT segmentation does not define another job-control protocol.
 This source contract does not claim physical interoperability or end-user

@@ -52,7 +52,8 @@ bool bootstrap_mutation_admitted(const HttpRequest& request, std::string_view ro
            request.header("origin") == "http://192.168.4.1" &&
            request.header("content-type") == "application/json" &&
            request.header("x-wsprrypico-bootstrap") == "1" &&
-           !request.headers.contains("transfer-encoding") && request.body_view().size() <= 512;
+           !request.headers.contains("transfer-encoding") &&
+           request.body_view().size() <= (route == "/api/bootstrap/v1/submit" ? 768 : 512);
 }
 
 std::optional<BootstrapStartRequest> parse_bootstrap_start(const HttpRequest& request) {
@@ -85,7 +86,7 @@ std::optional<BootstrapSubmitRequest> parse_bootstrap_submit(const HttpRequest& 
     if (!device || !boot || !slot || !request_id || !nonce || !ciphertext || !tag ||
         !lowercase_hex(*device, 16) || !lowercase_hex(*boot, 16) || !lowercase_hex(*slot, 16) ||
         !lowercase_hex(*request_id, 16) || !canonical_base64url(*nonce, 12, 12) ||
-        !canonical_base64url(*ciphertext, 11, 97) || !canonical_base64url(*tag, 16, 16))
+        !canonical_base64url(*ciphertext, 11, 351) || !canonical_base64url(*tag, 16, 16))
         return {};
     return BootstrapSubmitRequest{*device, *boot, *slot, *request_id, *nonce, *ciphertext, *tag};
 }
@@ -113,13 +114,16 @@ std::optional<BootstrapTimeRequest> parse_bootstrap_time(const HttpRequest& requ
         return {};
     const auto root = wtp::json::parse(request.body_view());
     if (!root || !version_one(*root) ||
-        !wtp::json::fields(*root, {"version", "device_id", "utc_ms"}))
+        !wtp::json::fields(*root, {"version", "device_id", "utc_ms", "challenge_ns"}))
         return {};
     const auto device = field(*root, "device_id");
     const auto utc = root->get("utc_ms");
-    std::uint64_t utc_ms = 0;
-    if (!device || !utc || !lowercase_hex(*device, 16) || !wtp::json::decimal(*utc, utc_ms, true))
+    const auto challenge = root->get("challenge_ns");
+    std::uint64_t utc_ms = 0, challenge_ns = 0;
+    if (!device || !utc || !challenge || !lowercase_hex(*device, 16) ||
+        !wtp::json::decimal(*utc, utc_ms, true) ||
+        !wtp::json::decimal(*challenge, challenge_ns, true) || !challenge_ns)
         return {};
-    return BootstrapTimeRequest{*device, utc_ms};
+    return BootstrapTimeRequest{*device, utc_ms, challenge_ns};
 }
 } // namespace wsprrypico::network

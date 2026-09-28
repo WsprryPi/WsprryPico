@@ -22,6 +22,15 @@ assert.equal(result.ackTag, vector.ack_tag);
 assert.equal(result.requestDigest, vector.request_id_digest_hex);
 assert.equal(slotDigest(vector.slot_id), vector.slot_id_digest_hex);
 assert.equal(Buffer.from(pending.secretKey).toString('hex'), '00'.repeat(32));
+const extendedPending = {secretKey: Buffer.from(vector.browser_private_key_hex, 'hex'),
+  browserPublicKey: vector.browser_public_key, requestNonce: vector.request_nonce};
+const extended = seal(extendedPending, start, vector.device_id, 'LabNet',
+  'test-only-password', {timeServer: 'time.example.org', requestId: vector.request_id,
+    nonce: Buffer.from('000102030405060708090a0b', 'hex')});
+assert.equal(extended.submit.ciphertext,
+  'FJTGUpCIDXYs7-VUUQFFmyqG1ZUYQ9izbcZY10fTV6sJ_HtGa3WmsYxv8Q');
+assert.equal(extended.submit.tag, 'HII10AR1dDkiyuRlftsVQw');
+assert.equal(extended.ackTag, vector.ack_tag);
 assert.throws(() => seal(begin(), start, vector.device_id, 'Bad\nSSID', 'test-only-password'));
 const invalidPeer = begin();
 assert.throws(() => seal(invalidPeer, {...start, pico_public_key: 'bad'},

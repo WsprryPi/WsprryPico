@@ -104,19 +104,29 @@ int main(int argc, char** argv) {
     PicoBootstrapCrypto crypto;
     assert(crypto.begin_for_test(private_key));
     assert(crypto.public_key() == expected_public);
-    std::string ssid, password;
+    std::string ssid, password, time_server;
     std::array<std::uint8_t, 32> ack{};
-    assert(crypto.open(fields, nonce, ciphertext, tag, ssid, password, ack));
-    assert(ssid == "LabNet" && password == "test-only-password");
+    assert(crypto.open(fields, nonce, ciphertext, tag, ssid, password, time_server, ack));
+    assert(ssid == "LabNet" && password == "test-only-password" && time_server == "pool.ntp.org");
     assert(ack == expected_ack);
-    assert(!crypto.open(fields, nonce, ciphertext, tag, ssid, password, ack));
-    assert(ssid.empty() && password.empty());
+    assert(!crypto.open(fields, nonce, ciphertext, tag, ssid, password, time_server, ack));
+    assert(ssid.empty() && password.empty() && time_server.empty());
+
+    // The browser's extended sealed payload carries the selected server.
+    const auto extended_body = b64u("FJTGUpCIDXYs7-VUUQFFmyqG1ZUYQ9izbcZY10fTV6sJ_HtGa3WmsYxv8Q");
+    const auto extended_tag = fixed<16>(b64u("HII10AR1dDkiyuRlftsVQw"));
+    PicoBootstrapCrypto extended;
+    assert(extended.begin_for_test(private_key));
+    assert(extended.open(fields, nonce, extended_body, extended_tag, ssid, password, time_server,
+                         ack));
+    assert(ssid == "LabNet" && password == "test-only-password" &&
+           time_server == "time.example.org" && ack == expected_ack);
 
     auto rejects = [&](BootstrapTranscriptFields altered, std::array<std::uint8_t, 12> n,
                        std::array<std::uint8_t, 16> t) {
         PicoBootstrapCrypto attempt;
         assert(attempt.begin_for_test(private_key));
-        assert(!attempt.open(altered, n, ciphertext, t, ssid, password, ack));
+        assert(!attempt.open(altered, n, ciphertext, t, ssid, password, time_server, ack));
         assert(ssid.empty() && password.empty());
         assert(std::all_of(ack.begin(), ack.end(), [](std::uint8_t c) { return c == 0; }));
     };
@@ -151,7 +161,8 @@ int main(int argc, char** argv) {
     bad_ciphertext[0] ^= 1;
     PicoBootstrapCrypto changed_body;
     assert(changed_body.begin_for_test(private_key));
-    assert(!changed_body.open(fields, nonce, bad_ciphertext, tag, ssid, password, ack));
+    assert(
+        !changed_body.open(fields, nonce, bad_ciphertext, tag, ssid, password, time_server, ack));
     assert(ssid.empty() && password.empty());
     assert(std::all_of(ack.begin(), ack.end(), [](std::uint8_t c) { return c == 0; }));
     changed = fields;
@@ -172,7 +183,8 @@ int main(int argc, char** argv) {
     mbedtls_chachapoly_free(&context);
     PicoBootstrapCrypto malformed;
     assert(malformed.begin_for_test(private_key));
-    assert(!malformed.open(fields, nonce, invalid_cipher, invalid_tag, ssid, password, ack));
+    assert(!malformed.open(fields, nonce, invalid_cipher, invalid_tag, ssid, password, time_server,
+                           ack));
     assert(ssid.empty() && password.empty());
     assert(std::all_of(ack.begin(), ack.end(), [](std::uint8_t c) { return c == 0; }));
 }

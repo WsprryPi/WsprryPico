@@ -3,8 +3,8 @@
 ## Current UI correction
 
 The [Wi-Fi-first portal correction](../development/phase12-safari-open-setup-revision.md#wi-fi-first-correction)
-supersedes this proposal's BOOTSEL and Safari instructions. The encrypted
-request format remains version 1. The current source grants one open-AP
+supersedes this proposal's BOOTSEL and Safari instructions. The request
+envelope remains version 1. The current source grants one open-AP
 transaction without a button, accepts later network-only and consumer Wi-Fi
 replacement, and restarts after a saved result. The older sections below are
 retained as historical proposal text.
@@ -22,16 +22,26 @@ usable. It starts immediately with an erased journal, returns after station
 loss, or opens after an idle RF-inhibited 10-second BOOTSEL hold and release.
 The AP-only request envelope, encrypted plaintext, header checks and one-use
 slot remain as specified below; historical press-to-save, blank-only and
-generation-1-only statements no longer apply.
+generation-1-only statements no longer apply. The sealed plaintext now accepts
+an optional one-byte length plus a 1–253-byte time-server name after the Wi-Fi
+password. An older plaintext without this suffix uses `pool.ntp.org`. The
+browser sends the suffix, and the target validates it before trial or journal
+commit. The maximum ciphertext is 351 bytes and the submit body limit is 768
+bytes. New network-only journal records are version 2 and include `time_server`;
+version-1 records load with the default.
 
-The current optional `POST /api/bootstrap/v1/time` route accepts exactly
-`version`, `device_id` and decimal-string `utc_ms` under the same AP-local
-Host, Origin, content-type and bootstrap-header admission. It replies with
-`version` and `state` (`accepted` or `ignored`). The portal sends this hint on
-opening and about every 30 seconds; it creates no setup slot and contains no
-credentials. The Pico bounds UTC to 2025–2099, assigns one second of
-uncertainty, ignores inconsistent browser jumps, and never lets browser time
-replace a trusted source. Fresh SNTP remains required for TLS generation.
+The current optional `GET /api/bootstrap/v1/time` returns a decimal-string
+`challenge_ns` from the Pico monotonic clock. `POST /api/bootstrap/v1/time`
+then accepts exactly `version`, `device_id`, decimal-string `utc_ms` and the
+challenge under the same AP-local Host, Origin, content-type and bootstrap-
+header admission. It replies with `version` and `state` (`accepted` or
+`ignored`). A challenge older than 200 ms is ignored. The portal exchanges
+time on opening and about every 30 seconds; it creates no setup slot and
+contains no credentials. The Pico bounds UTC to 2025–2099, assumes a 250 ms
+phone-clock allowance, adds challenge age, ignores inconsistent browser jumps,
+and gives SNTP and authenticated controller time priority. Fresh SNTP remains
+required for consumer TLS generation. The later operational SoftAP browser
+page is a separate slice.
 
 Status: **DESIGN APPROVED; SOURCE TRANSACTION IMPLEMENTED; TARGET ACCEPTANCE OPEN**. This describes only a
 blank-device, network-only bootstrap over the open, AP-local HTTP captive

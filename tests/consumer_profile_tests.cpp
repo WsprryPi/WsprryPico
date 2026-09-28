@@ -64,19 +64,22 @@ int main() {
     assert(decoded->password.empty() && decoded->tls.ca_private_key.empty());
 
     const auto replacement = provisioning::replace_consumer_network(
-        canonical, value.device_id, "FieldNet", "field-password", std::string(64, 'b'));
+        canonical, value.device_id, "FieldNet", "field-password", "time.example.org",
+        std::string(64, 'b'));
     auto updated = provisioning::parse_consumer_profile(replacement);
     value.ssid = "FieldNet";
     value.password = "field-password";
+    value.time_server = "time.example.org";
     value.request_sha256 = std::string(64, 'b');
     assert(updated && *updated == value); // Station, owners, TLS and clients are retained.
     provisioning::scrub(*updated);
-    assert(provisioning::replace_consumer_network(canonical, std::string(32, '0'),
-                                                  "FieldNet", "field-password",
-                                                  std::string(64, 'b')).empty());
-    assert(provisioning::replace_consumer_network(canonical, value.device_id,
-                                                  "FieldNet", "short",
-                                                  std::string(64, 'b')).empty());
+    assert(provisioning::replace_consumer_network(canonical, std::string(32, '0'), "FieldNet",
+                                                  "field-password", "time.example.org",
+                                                  std::string(64, 'b'))
+               .empty());
+    assert(provisioning::replace_consumer_network(canonical, value.device_id, "FieldNet", "short",
+                                                  "time.example.org", std::string(64, 'b'))
+               .empty());
     provisioning::scrub(value);
     value = profile();
 

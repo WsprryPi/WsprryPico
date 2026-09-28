@@ -4,7 +4,7 @@ Phase 11 is closed within its documented software, bounded physical and scoped
 conducted-RF acceptance. The authoritative [Phase 11.7 joint review](phase11-7-review.md)
 binds its source pair, assertion-level applicability, host regressions and
 retained limitations. Phase 12 is current: its
-frozen [Field-GATT/1 protocol and super-user guide](../protocol/Field-GATT.md)
+versioned [Field-GATT/1 engineering protocol](../protocol/Field-GATT.md)
 and [conformance vectors](../protocol/Field-GATT-v1-vectors.json),
 [implementation plan](phase12-plan.md),
 [revised captive SoftAP decision](phase12-safari-open-setup-revision.md),
@@ -59,6 +59,13 @@ broader captive HTTP, healthy-station AP withdrawal and station-loss/manual
 reopening, reset controls and most Stage
 A rows remain open. P12.3 remains CLOSED_SCOPED within its historical boundary.
 Phase 13 broad hardware/release qualification remains open.
+
+On macOS, run `bash scripts/check_host.sh` from the repository root for host
+configure, build and CTest. It selects full Xcode for the test subprocesses.
+For an RF-inhibited Pico build, set `PICO_SDK_PATH` to the locally retained
+pinned SDK 2.3.1 checkout and run `bash scripts/build_pico.sh`; the script uses
+the same Xcode host tools for SDK helper builds and the pinned Arm compiler for
+firmware. It requires an already populated local picotool source tree.
 
 The phone-assisted continuation now has a host-tested fresh-password profile
 step-up bound to the exact staged digest, apply request and generation. The

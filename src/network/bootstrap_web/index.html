@@ -35,6 +35,11 @@
             </svg>
           </button>
         </div>
+        <label for="time-server">Time server</label>
+        <input id="time-server" name="time-server" type="text" maxlength="253"
+               value="pool.ntp.org" required autocapitalize="none" autocomplete="off"
+               spellcheck="false">
+        <p class="quiet">Used when the Pico joins Wi-Fi. You can keep the suggested server.</p>
         <p class="quiet">This page encrypts your network details before sending them over the Pico setup Wi-Fi.</p>
         <button id="submit" type="submit" class="primary" disabled>Connect to Wi-Fi</button>
       </form>

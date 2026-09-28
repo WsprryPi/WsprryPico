@@ -7,7 +7,7 @@ const slot = '2031425364758697a8b9cadbecfd0e1f';
 const picoPublic = '3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08';
 const elements = new Map();
 for (const name of ['credentials', 'checking', 'connected', 'saved', 'retry', 'unknown', 'service',
-                    'browser', 'notice', 'device', 'wifi-form', 'ssid', 'password',
+                    'browser', 'notice', 'device', 'wifi-form', 'ssid', 'password', 'time-server',
                     'password-toggle', 'password-slash', 'submit', 'change-connected',
                     'change-saved', 'retry-button', 'unknown-button']) {
   elements.set(name, {hidden: true, textContent: '', value: '', type: 'password', disabled: false,
@@ -17,6 +17,7 @@ for (const name of ['credentials', 'checking', 'connected', 'saved', 'retry', 'u
     }});
 }
 elements.get('credentials').hidden = false;
+elements.get('time-server').value = 'time.example.org';
 elements.get('submit').disabled = true;
 globalThis.document = {getElementById: (name) => elements.get(name)};
 globalThis.location = {origin: 'http://192.168.4.1', reload() {}};
@@ -34,10 +35,13 @@ globalThis.fetch = async (url, options = {}) => {
   const path = new URL(url).pathname;
   if (path === '/local/v1/identity') return {ok: true, json: async () => ({device_id: device})};
   if (path === '/api/bootstrap/v1/status') return {ok: true, json: async () => status};
+  if (path === '/api/bootstrap/v1/time' && !options.body)
+    return {ok: true, json: async () => ({version: 1, challenge_ns: '1234567890'})};
   const body = JSON.parse(options.body);
   if (path === '/api/bootstrap/v1/time') {
     assert.equal(options.headers['X-WsprryPico-Bootstrap'], '1');
     assert.equal(body.device_id, device);
+    assert.equal(body.challenge_ns, '1234567890');
     timeHints.push(body.utc_ms);
     if (failNextTimeHint) {
       failNextTimeHint = false;

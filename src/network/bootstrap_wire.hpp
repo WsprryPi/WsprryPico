@@ -20,6 +20,7 @@ struct BootstrapAckRequest {
 struct BootstrapTimeRequest {
     std::string device_id;
     std::uint64_t utc_ms = 0;
+    std::uint64_t challenge_ns = 0;
 };
 
 bool bootstrap_mutation_admitted(const HttpRequest& request, std::string_view route);

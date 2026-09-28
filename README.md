@@ -95,8 +95,10 @@ and browser tests cover this revision. The
 [station settings page](http://192.168.4.1/owner.html) use HTTP port 80 while
 connected to the Pico AP. A station DHCP address such as `192.168.1.47` has
 no consumer web page in the current pre-clock image. While either setup page
-is open, it sends a provisional phone time hint about every 30 seconds;
-station SNTP remains the trusted source for TLS. The
+is open, it supplies phone UTC about every 30 seconds through a short Pico
+challenge. A fresh browser observation can satisfy the job clock limit under
+the assumed 250 ms phone-clock error; station SNTP replaces it when available.
+The Wi-Fi form includes a prefilled `pool.ntp.org` time-server field. The
 [new image booted on Candidate A](docs/development/phase12-wifi-first-flash.md),
 while the revised phone flow remains unaccepted. The
 [source review](docs/development/phase12-safari-open-setup-review.md) records
@@ -161,7 +163,7 @@ staged profile even on a retained bond. While the public default password is
 active, the page also waits for an identity-bound USB-local confirmation within
 the 30-second provisioning session. The bounded Bluefy/iPhone apply above
 exercised this path; it is not full commissioning acceptance.
-The frozen [Field-GATT/1 contract](docs/protocol/Field-GATT.md)
+The versioned engineering [Field-GATT/1 contract](docs/protocol/Field-GATT.md)
 and [machine-readable vectors](docs/protocol/Field-GATT-v1-vectors.json) now
 keep firmware, both clients and host conformance checks aligned through the
 7,168-byte profile limit; broader physical profile-activation qualification

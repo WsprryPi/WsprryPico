@@ -70,6 +70,8 @@ export function begin() {
 export function seal(pending, start, deviceId, ssidText, passwordText, fixed = {}) {
   const ssid = ascii(ssidText, 1, 32);
   const password = ascii(passwordText, 8, 63);
+  const timeServer = fixed.timeServer === undefined ? undefined :
+    ascii(fixed.timeServer, 1, 253);
   let shared, key, plain;
   try {
     const requestId = fixed.requestId || hex(random(16));
@@ -84,7 +86,8 @@ export function seal(pending, start, deviceId, ssidText, passwordText, fixed = {
     key = hkdf(sha256, shared, sha256(transcript),
       text('WsprryPico network-only AEAD v1'), 32);
     plain = join(Uint8Array.of(ssid.length), ssid,
-      Uint8Array.of(password.length), password);
+      Uint8Array.of(password.length), password,
+      ...(timeServer ? [Uint8Array.of(timeServer.length), timeServer] : []));
     const sealed = chacha20poly1305(key, nonce, transcript).encrypt(plain);
     const ackTag = hmac(sha256, key,
       join(text('WsprryPico network-only ACK v1'), transcript));
@@ -96,7 +99,7 @@ export function seal(pending, start, deviceId, ssidText, passwordText, fixed = {
     };
   } finally {
     pending.secretKey.fill(0); shared?.fill(0); key?.fill(0);
-    ssid.fill(0); password.fill(0); plain?.fill(0);
+    ssid.fill(0); password.fill(0); timeServer?.fill(0); plain?.fill(0);
   }
 }
 

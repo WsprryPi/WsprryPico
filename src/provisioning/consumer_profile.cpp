@@ -329,8 +329,9 @@ void scrub(ConsumerProfile& profile) {
 
 std::string replace_consumer_network(std::string_view current, std::string_view device_id,
                                      std::string_view ssid, std::string_view password,
+                                     std::string_view time_server,
                                      std::string_view request_sha256) {
-    if (!standalone::valid_wifi_credentials(ssid, password, standalone::default_time_server) ||
+    if (!standalone::valid_wifi_credentials(ssid, password, time_server) ||
         !lower_hex(request_sha256, 64))
         return {};
     auto profile = parse_consumer_profile(current);
@@ -340,6 +341,7 @@ std::string replace_consumer_network(std::string_view current, std::string_view 
     if (profile->device_id == device_id) {
         profile->ssid = ssid;
         profile->password = password;
+        profile->time_server = time_server;
         profile->request_sha256 = request_sha256;
         result = serialize_consumer_profile(*profile);
     }

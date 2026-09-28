@@ -129,7 +129,7 @@ std::string_view source_name(time::ActiveTimeSource source) {
     case time::ActiveTimeSource::Controller:
         return "controller";
     case time::ActiveTimeSource::Browser:
-        return "none"; // Keep the frozen Field-GATT/1 trusted-source values.
+        return "none"; // Browser is not one of Field-GATT/1's named time sources.
     case time::ActiveTimeSource::Disagreement:
         return "disagreement";
     }

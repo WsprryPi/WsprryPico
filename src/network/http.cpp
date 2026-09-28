@@ -36,8 +36,8 @@ std::string HttpResponse::wire_headers() const {
            "\r\nContent-Length: " + std::to_string(body_size()) +
            "\r\nConnection: " + (keep_alive ? "keep-alive" : "close") +
            "\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\n"
-           "Content-Security-Policy: " + std::string(policy) +
-           "\r\nReferrer-Policy: no-referrer\r\n" +
+           "Content-Security-Policy: " +
+           std::string(policy) + "\r\nReferrer-Policy: no-referrer\r\n" +
            (safe_location ? "Location: " + std::string(location) + "\r\n" : "") +
            (etag.empty() ? "" : "ETag: " + etag + "\r\n") +
            (safe_cookie ? "Set-Cookie: " + set_cookie + "\r\n" : "") + "\r\n";
@@ -116,7 +116,8 @@ void HttpParser::parse_headers() {
             std::from_chars(length.data(), length.data() + length.size(), content_length_);
         if (result.ec != std::errc{} || result.ptr != length.data() + length.size() ||
             content_length_ > max_http_body ||
-            (request_.path.starts_with("/api/bootstrap/v1/") && content_length_ > 512) ||
+            (request_.path.starts_with("/api/bootstrap/v1/") &&
+             content_length_ > (request_.path == "/api/bootstrap/v1/submit" ? 768 : 512)) ||
             (request_.path.starts_with("/api/owner/v1/claim/") && content_length_ > 1024) ||
             (request_.path.starts_with("/api/owner/v1/") &&
              content_length_ > (request_.path == "/api/owner/v1/clients/enroll" ? 6144 : 4096))) {

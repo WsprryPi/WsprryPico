@@ -8,7 +8,7 @@ backend. The defined hardware target is Pico 2 W / RP2350.
 
 The accepted architectural record is [docs/architecture.md](docs/architecture.md).
 This contract summarizes durable boundaries. The normative WTP/1 contract is
-[docs/protocol/WTP.md](docs/protocol/WTP.md). The frozen
+[docs/protocol/WTP.md](docs/protocol/WTP.md). The versioned engineering
 [Field-GATT/1 contract](docs/protocol/Field-GATT.md) and
 [conformance vectors](docs/protocol/Field-GATT-v1-vectors.json) define the
 custom BLE wire surface without changing WTP/1. Incompatible changes require a

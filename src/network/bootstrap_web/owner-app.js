@@ -65,8 +65,12 @@ async function hintTime() {
        now - lastTimeHintMs < 30000)) return;
   lastTimeHintMs = now;
   try {
-    await request('/api/bootstrap/v1/time', {version: 1, device_id: deviceId,
-      utc_ms: String(now)}, true, 2000);
+    const challenge = await request('/api/bootstrap/v1/time', undefined, true, 2000);
+    if (!/^[1-9][0-9]*$/.test(challenge.challenge_ns))
+      throw new Error('invalid time challenge');
+    const result = await request('/api/bootstrap/v1/time', {version: 1, device_id: deviceId,
+      utc_ms: String(Date.now()), challenge_ns: challenge.challenge_ns}, true, 2000);
+    if (result.state !== 'accepted') throw new Error('time challenge expired');
   } catch { lastTimeHintMs = now - 25000; /* Retry a lost hint in five seconds. */ }
 }
 

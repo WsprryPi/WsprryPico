@@ -34,7 +34,8 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
   public:
     PicoNetwork(time::ObservationSink& clock, std::string_view configured_hostname);
     bool start(const Config& config);
-    bool start_network_only(std::string_view ssid, std::string_view password);
+    bool start_network_only(std::string_view ssid, std::string_view password,
+                            std::string_view time_server = default_time_server);
     void stop_network_only_trial();
     bool initialize_radio();
 #ifndef WSPRRY_PICO_STANDALONE_RF

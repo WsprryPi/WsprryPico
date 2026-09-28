@@ -51,7 +51,7 @@ std::string serialize_consumer_profile(const ConsumerProfile& profile);
 // wrong-device, invalid credentials or malformed source; caller scrubs result.
 std::string replace_consumer_network(std::string_view current, std::string_view device_id,
                                      std::string_view ssid, std::string_view password,
-                                     std::string_view request_sha256);
+                                     std::string_view time_server, std::string_view request_sha256);
 void scrub(ConsumerTls& tls);
 void scrub(ConsumerProfile& profile);
 } // namespace wsprrypico::provisioning

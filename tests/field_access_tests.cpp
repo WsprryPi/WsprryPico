@@ -1251,24 +1251,25 @@ void browser_time_hint_policy() {
     time::ControllerTimeArbiter arbiter(discipline, monotonic, nullptr, std::string(device));
     constexpr std::uint64_t utc_ms = 1'800'000'000'000ULL;
     clock_now = 1'000'000'000ULL;
-    CHECK(!arbiter.seed_browser_hint(time::sntp_min_utc_ns / 1'000'000ULL - 1));
-    CHECK(!arbiter.seed_browser_hint(time::sntp_max_utc_ns / 1'000'000ULL));
-    CHECK(arbiter.seed_browser_hint(utc_ms));
+    CHECK(!arbiter.seed_browser_hint(time::sntp_min_utc_ns / 1'000'000ULL - 1, 0));
+    CHECK(!arbiter.seed_browser_hint(time::sntp_max_utc_ns / 1'000'000ULL, 0));
+    CHECK(!arbiter.seed_browser_hint(utc_ms, time::browser_challenge_max_age_ns + 1));
+    CHECK(arbiter.seed_browser_hint(utc_ms, 50'000'000ULL));
     CHECK(arbiter.status().source == time::ActiveTimeSource::Browser);
     CHECK(discipline.snapshot().state == wtp::ClockState::Synchronized);
-    CHECK(discipline.snapshot().uncertainty_ns > time::standalone_max_uncertainty_ns);
+    CHECK(discipline.snapshot().uncertainty_ns < time::standalone_max_uncertainty_ns);
     clock_now += 30'000'000'000ULL;
-    CHECK(arbiter.seed_browser_hint(utc_ms + 30'000));
-    CHECK(!arbiter.seed_browser_hint(utc_ms + 60'000)); // A bad phone jump is ignored.
+    CHECK(arbiter.seed_browser_hint(utc_ms + 30'000, 50'000'000ULL));
+    CHECK(!arbiter.seed_browser_hint(utc_ms + 60'000, 50'000'000ULL)); // Bad phone jump.
     CHECK(arbiter.status().source == time::ActiveTimeSource::Browser);
     clock_now += 1;
     CHECK(arbiter.observe(time::ObservationSource::Sntp, (utc_ms + 60'000) * 1'000'000ULL,
                           clock_now, 10'000'000ULL, wtp::LeapState::Normal));
     CHECK(arbiter.status().source == time::ActiveTimeSource::Sntp);
-    CHECK(!arbiter.seed_browser_hint(utc_ms + 30'000));
+    CHECK(!arbiter.seed_browser_hint(utc_ms + 30'000, 50'000'000ULL));
     clock_now += 181'000'000'000ULL;
     CHECK(discipline.snapshot().state == wtp::ClockState::Unsynchronized);
-    CHECK(arbiter.seed_browser_hint(utc_ms + 211'000));
+    CHECK(arbiter.seed_browser_hint(utc_ms + 211'000, 50'000'000ULL));
     CHECK(arbiter.status().source == time::ActiveTimeSource::Browser);
 }
 } // namespace

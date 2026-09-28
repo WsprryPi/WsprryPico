@@ -59,7 +59,7 @@ operations.
 | P12.1-P12.2: profile journal and provisioning state machine | Accepted in their hardware-free scope. |
 | P12.3: Pico adapter source | **CLOSED_SCOPED** for source, deterministic tests and RP2350 cross-links; not physical acceptance. |
 | P12.4-P12.5: commands, delivery-safe activation and admission | Implemented and accepted in their hardware-free scope. |
-| P12.6: production integration | **Partial.** BLE provisioning/local control and the SoftAP browser path are production-wired. The Field-GATT/1 source contract is frozen and vector-checked. Candidate A has bounded RF-inhibited native-Pi maximum-profile and repaired Bluefy prepared-file activation evidence through a normal generation-3 restart, BLE readback and positive mTLS/WTP/HTTPS readback. The engineering path works; the consumer commissioning, recovery and broad target-acceptance milestones below remain open. |
+| P12.6: production integration | **Partial.** BLE provisioning/local control and the SoftAP browser path are production-wired. The Field-GATT/1 engineering source contract is versioned and vector-checked; it is not a product release freeze. If consumer BLE returns, use a dedicated iPhone app. Candidate A has bounded RF-inhibited native-Pi maximum-profile and repaired Bluefy prepared-file activation evidence through a normal generation-3 restart, BLE readback and positive mTLS/WTP/HTTPS readback. The engineering path works; the consumer commissioning, recovery and broad target-acceptance milestones below remain open. |
 | Physical Stage A | **Partial.** Candidate identity, adoption, preserved settings, BLE advertising, exact iPhone/iOS/Bluefy identity, retained-bond authorization, one authenticated phone-time exchange, Identify LED/field status, Bluefy read-only `HELLO`/`STATUS`, native-Pi BLE/SoftAP subsets, and bounded profile activation passed within their recorded limits. Consumer first-run commissioning, offline reuse, owner enrollment/replacement, recovery, broader BLE controls, time/LED, fault/trust/resource/soak and stable-station AP-withdrawal matrices remain open. |
 | Physical Stage B / RF output | Not authorized or performed. Phase 13 remains separate. |
 
@@ -472,6 +472,11 @@ are `http://192.168.4.1/` and `http://192.168.4.1/owner.html` on port 80 after
 joining the Pico AP. Design the station page's purpose, access rules, port and
 activation state as a separate follow-up; this request does not change the
 P12.7–P12.12 captive setup gates.
+
+Also deferred: an operational page on the Pico SoftAP that can submit and
+control jobs without infrastructure Wi-Fi. The browser UTC challenge and
+periodic refresh implemented in the setup portal provide a clock source for
+that later work; the current captive pages still expose setup and status only.
 
 ### P12.7 Consumer commissioning contract
 

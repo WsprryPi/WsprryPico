@@ -53,6 +53,8 @@ const timeHints = [];
 globalThis.fetch = async (url, options = {}) => {
   const path = new URL(url).pathname;
   if (path === '/api/owner/v1/public-status') return {ok: true, json: async () => status};
+  if (path === '/api/bootstrap/v1/time' && !options.body)
+    return {ok: true, json: async () => ({version: 1, challenge_ns: '1234567890'})};
   if (path === '/api/owner/v1/claim/status') {
     if (hangNextStatus) {
       hangNextStatus = false;
@@ -66,6 +68,7 @@ globalThis.fetch = async (url, options = {}) => {
   if (path === '/api/bootstrap/v1/time') {
     assert.equal(options.headers['X-WsprryPico-Bootstrap'], '1');
     assert.equal(body.device_id, device);
+    assert.equal(body.challenge_ns, '1234567890');
     timeHints.push(body.utc_ms);
     return {ok: true, json: async () => ({version: 1, state: 'accepted'})};
   }

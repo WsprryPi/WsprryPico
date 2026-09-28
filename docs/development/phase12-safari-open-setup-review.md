@@ -45,7 +45,53 @@ the clean image with its saved profile and station address intact; two isolated
 Pi scans did not see its AP while station Wi-Fi was healthy. These are bounded
 source, build and target checks, not phone or manual-button acceptance.
 
-## Automatic SoftAP browser time hint (2026-09-28)
+## Browser time and Wi-Fi time-server continuation (2026-09-28)
+
+The Wi-Fi form now shows `pool.ntp.org` as an editable time server. The value
+is included in the sealed setup payload, used for the station trial and saved
+with the network profile. Existing version-1 network profiles load with that
+default; new profiles serialize as version 2. A later station-details commit
+preserves the chosen server. The 351-byte maximum plaintext and 745-byte
+maximum JSON submit fit the new 768-byte route limit. The target rejects an
+invalid server before it writes a profile.
+
+The browser clock now uses `GET /api/bootstrap/v1/time` for a fresh Pico
+monotonic challenge, then sends its UTC sample and challenge in the POST. A
+challenge older than 200 ms is ignored. The 250 ms phone-clock allowance plus
+the measured challenge age stays below the 500 ms job-clock admission limit;
+another hint arrives about every 30 seconds while the page remains open.
+SNTP and authenticated controller time still supersede browser time, and a
+large browser-clock jump is rejected. This is an operator-selected clock
+assumption, not a measurement of the phone's UTC error. The operational
+SoftAP browser page and job controls are a later slice.
+
+The repeatable `scripts/check_host.sh` and `scripts/build_pico.sh` source
+`scripts/xcode_env.sh`, which selects the full Xcode compiler and SDK for
+host fixtures and nested target-build tools. This removes dependence on the
+broken Command Line Tools linker on this Mac. Field-GATT/1 remains a versioned
+engineering interface; Bluefy is a historical client, and any resumed
+consumer BLE client will be a dedicated iPhone app.
+
+The first adversarial pass found two size paths left at the prior 512-byte
+envelope: the shared HTTP parser would reject a valid long server name before
+route validation, and the target receive callback assumed every pbuf fit a
+1 KiB stack buffer. The parser now gives only the submit route 768 bytes, and
+the callback feeds larger pbuf chains in bounded chunks. A streamed maximum
+submit and 769-byte rejection are covered by host tests. The second pass also
+found that the time-only POST inherited the idle credential-save gate. It now
+accepts fresh clock observations while credential writes remain gated. The
+SoftAP service lifetime during an operational job belongs to the later
+offline browser-control slice.
+
+The final source checks passed: four bootstrap browser tests, all 89 host
+CTest cases through the Xcode wrapper, the pinned SDK 2.3.1 / Arm GCC 15.3.1
+RF-inhibited Pico 2 W link, `git diff --check`, shell syntax, changed C++
+formatting and changed-document relative links. The earlier failed host test
+was its retained 513-byte rejection expectation; the updated parser boundary
+and streamed maximum request passed before the final full run. These results
+establish source and build behavior; no new phone or RF acceptance is claimed.
+
+## Earlier automatic SoftAP browser time hint (2026-09-28)
 
 The Wi-Fi and station pages now submit the browser's current UTC after their
 first status read and about every 30 seconds while open. A busy/lost AP
@@ -66,7 +112,7 @@ browser's inability to replace fresh SNTP. A target/browser time exchange is
 still open and is not implied by the firmware build or later flash.
 
 The first full host run found that mapping the new provisional source to a new
-Field-GATT wire string would require changing the frozen Bluefy release. The
+Field-GATT wire string would have changed the historical Bluefy artifact. The
 field APIs now report that provisional source as `none`; their existing wire
 values remain intact. The other failures in that first run came from the
 Command Line Tools `.tbd` linker used by fixture subprocesses. With the

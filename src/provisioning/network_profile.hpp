@@ -1,5 +1,7 @@
 #pragma once
 
+#include "standalone/config.hpp"
+
 #include <optional>
 #include <string>
 #include <string_view>
@@ -9,6 +11,8 @@ struct NetworkProfile {
     std::string device_id;
     std::string ssid;
     std::string password;
+    std::string time_server = standalone::default_time_server;
+    bool operator==(const NetworkProfile&) const = default;
 };
 
 bool valid_network_profile(const NetworkProfile& profile);

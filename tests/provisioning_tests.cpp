@@ -1422,10 +1422,21 @@ void runtime_selection_and_overlay() {
 }
 
 void network_only_source_and_recovery() {
-    provisioning::NetworkProfile candidate{device, "Home Net", "test-password"};
+    provisioning::NetworkProfile candidate{device, "Home Net", "test-password", "time.example.org"};
     const auto payload = provisioning::serialize_network_profile(candidate);
     CHECK(!payload.empty());
     CHECK(provisioning::parse_network_profile(payload));
+    CHECK(provisioning::parse_network_profile(payload)->time_server == "time.example.org");
+    provisioning::NetworkProfile largest{device, std::string(32, '"'), std::string(63, '\\'),
+                                         std::string(63, 'a') + "." + std::string(63, 'b') + "." +
+                                             std::string(63, 'c') + "." + std::string(61, 'd')};
+    const auto largest_payload = provisioning::serialize_network_profile(largest);
+    CHECK(!largest_payload.empty() && largest_payload.size() <= 640);
+    CHECK(provisioning::parse_network_profile(largest_payload) == largest);
+    CHECK(provisioning::parse_network_profile(
+              "{\"version\":1,\"device_id\":\"" + std::string(device) +
+              "\",\"ssid\":\"Home Net\",\"password\":\"test-password\"}")
+              ->time_server == "pool.ntp.org");
     CHECK(!provisioning::parse_network_profile(
         "{\"version\":1,\"device_id\":\"" + std::string(device) +
         "\",\"ssid\":\"x\",\"password\":\"test-password\",\"tls\":{}}"));
@@ -1444,6 +1455,7 @@ void network_only_source_and_recovery() {
     CHECK(runtime.load(recovered, device, provisioning::BuildBundleState::Absent));
     CHECK(runtime.source() == provisioning::RuntimeSource::NetworkOnly);
     CHECK(runtime.network_profile() && runtime.network_profile()->ssid == "Home Net");
+    CHECK(runtime.network_profile()->time_server == "time.example.org");
     provisioning::RuntimeProfile wrong;
     CHECK(!wrong.load(recovered, other_device, provisioning::BuildBundleState::Absent));
     CHECK(wrong.fault() == provisioning::RuntimeFault::WrongDevice);

@@ -368,7 +368,8 @@ int main() {
         (void)network.start(*runtime_network_config);
     else if (!boot_recovery && radio_identity_ok && runtime_profile.network_profile())
         (void)network.start_network_only(runtime_profile.network_profile()->ssid,
-                                         runtime_profile.network_profile()->password);
+                                         runtime_profile.network_profile()->password,
+                                         runtime_profile.network_profile()->time_server);
     static wsprrypico::network::BrowserApi browser_api(service, store, scheduler, network,
                                                        identities.device_id(),
                                                        wsprrypico::firmware::kFirmwareVersion);

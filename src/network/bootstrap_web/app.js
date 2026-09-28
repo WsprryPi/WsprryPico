@@ -19,6 +19,18 @@ const hasSavedNetwork = (status) =>
 const durableJoin = (status) => hasSavedNetwork(status) &&
   Number.isSafeInteger(status.generation) && status.generation >= 1 &&
   status.join === 'connected' && status.address_ready === true;
+const validTimeServer = (value) => {
+  if (value.length < 1 || value.length > 253) return false;
+  const parts = value.replace(/\.$/, '').split('.');
+  if (parts.length === 4 && parts.every((part) => /^(0|[1-9][0-9]{0,2})$/.test(part))) {
+    const octets = parts.map(Number);
+    if (octets.every((part) => part <= 255) && octets[0] > 0 &&
+        octets[0] < 224 && octets[0] !== 127 && !value.endsWith('.')) return true;
+  }
+  if (parts.every((part) => /^(?:0[xX][0-9a-fA-F]+|[0-9]+)$/.test(part))) return false;
+  return parts.every((part) => part.length <= 63 &&
+    /^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/.test(part));
+};
 
 async function json(path, body, timeoutMs = 8000) {
   const controller = new AbortController();
@@ -44,8 +56,13 @@ async function hintTime() {
        now - lastTimeHintMs < 30000)) return;
   lastTimeHintMs = now;
   try {
-    await json('/api/bootstrap/v1/time', {version: 1, device_id: deviceId,
-      utc_ms: String(now)}, 2000);
+    const challenge = await json('/api/bootstrap/v1/time', undefined, 2000);
+    if (!/^[1-9][0-9]*$/.test(challenge.challenge_ns))
+      throw new Error('invalid time challenge');
+    const sampledUtcMs = Date.now();
+    const result = await json('/api/bootstrap/v1/time', {version: 1, device_id: deviceId,
+      utc_ms: String(sampledUtcMs), challenge_ns: challenge.challenge_ns}, 2000);
+    if (result.state !== 'accepted') throw new Error('time challenge expired');
   } catch { lastTimeHintMs = now - 25000; /* Retry a lost hint in five seconds. */ }
 }
 
@@ -149,8 +166,13 @@ async function submit(event) {
   if (!deviceId || !Number.isSafeInteger(currentGeneration) ||
       currentGeneration >= Number.MAX_SAFE_INTEGER || saving) return;
   const ssid = $('ssid').value, password = $('password').value;
+  const timeServer = $('time-server').value.trim();
   if (!/^[\x20-\x7e]{1,32}$/.test(ssid) || !/^[\x20-\x7e]{8,63}$/.test(password)) {
     notice('Enter a 1–32 character network name and an 8–63 character Wi-Fi password.', true);
+    return;
+  }
+  if (!validTimeServer(timeServer)) {
+    notice('Enter a valid time server name or IPv4 address.', true);
     return;
   }
   saving = true;
@@ -164,7 +186,7 @@ async function submit(event) {
         !hexId(started.slot_id) || typeof started.pico_public_key !== 'string' ||
         !/^[A-Za-z0-9_-]{43}$/.test(started.pico_public_key))
       throw new Error('invalid Pico start');
-    sealed = seal(pending, started, deviceId, ssid, password);
+    sealed = seal(pending, started, deviceId, ssid, password, {timeServer});
     expectedGeneration = currentGeneration + 1;
     $('password').value = '';
     setPasswordVisible(false);

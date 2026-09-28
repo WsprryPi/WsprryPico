@@ -81,8 +81,7 @@ ConsumerCommitResult commit_consumer_claim(ProfileStore& store, ConsumerClaimSlo
         !network::bootstrap_unhex(values.request_id, request) ||
         !network::valid_device_id(binding.device_id) || !current_source(store, binding) ||
         !platform.safe_to_commit() || !platform.valid_owner_point(binding.owner_public_key) ||
-        !standalone::valid_wifi_credentials(values.ssid, values.password,
-                                            standalone::default_time_server) ||
+        !standalone::valid_wifi_credentials(values.ssid, values.password, values.time_server) ||
         !platform.station_ready(values.ssid))
         return {};
     const auto utc = platform.trusted_utc_now();
@@ -97,7 +96,7 @@ ConsumerCommitResult commit_consumer_claim(ProfileStore& store, ConsumerClaimSlo
     profile.owner_epoch = 0;
     profile.ssid = values.ssid;
     profile.password = values.password;
-    profile.time_server = standalone::default_time_server;
+    profile.time_server = values.time_server;
     profile.callsign = values.callsign;
     profile.locator = values.locator;
     profile.power_dbm = values.power_dbm;
