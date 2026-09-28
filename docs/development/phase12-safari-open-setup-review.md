@@ -486,3 +486,35 @@ failure result. That change was removed. The final browser retry waits for
 the retained slot to expire; the four browser tests, affected bootstrap HTTP
 host test, pinned target rebuild, C++ formatting check and `git diff --check`
 passed again after the correction.
+
+## Committed retry/style image on both candidates (2026-09-28)
+
+Commit `5aab673a8f0f39843d3160bd2bc73cba090f74ea` was pushed to
+`origin/devel` and rebuilt from clean source. The RF-inhibited Pico 2 W UF2
+had SHA-256
+`5e20a9f4eb36de102b1e31ad3d59c830cfac5039008087f29b5a84791fc71cae`,
+checked again after transfer to `wspr5`. Preflight USB `INFO` on Candidate A
+(`0BF4B4AEC9FFB344`) and B (`CDDBF8767C506C07`) showed each at
+network-only generation 1 with empty jobs, inactive output, station addresses
+`192.168.1.47` and `192.168.1.53`, synchronized clocks and zero fault stage.
+
+The operator authorized a serial-targeted flash of both boards with this exact
+image. B entered ROM BOOTSEL by its Console command; picotool reported RP2350
+QFN60 chip ID `0xcddbf8767c506c07`, then `load -v -x --ser` completed with
+`OK` and rebooted. B's new USB `INFO` showed revision `5aab673a8f0f`, new
+boot ID `8adf8ffdde6fa32094e4b39dcedd32f5`, retained network-only
+generation 1, station `192.168.1.53`, `pool.ntp.org` with an accepted NTP
+sample, synchronized time, Plain LAN ready, empty job, inactive output and
+zero fault stage/status.
+
+A then entered ROM BOOTSEL by its Console command. Picotool reported RP2350
+QFN60 chip ID `0x0bf4b4aec9ffb344`; its flash command started, but the SSH
+session did not return a final verification message and was interrupted after
+the application USB serial reappeared. Independent A USB `INFO` showed revision
+`5aab673a8f0f`, new boot ID `3bf97db1bd5d4061724f0c1ea6d1f937`,
+retained network-only generation 1, station `192.168.1.47`,
+`pool.ntp.org` with accepted NTP samples, synchronized time, Plain LAN ready,
+empty job, inactive output and zero fault stage/status. This confirms the
+running revision and preserved state; picotool's final byte-for-byte verify
+output is unavailable for A. Neither board's new browser retry behavior has
+yet been retested on an iPhone.
