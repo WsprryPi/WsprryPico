@@ -404,9 +404,12 @@ TCP carries the identical frame stream in one explicitly selected binding:
   control commands, subject to the same ownership and lifecycle rules. The
   server MUST NOT automatically fall back between Plain LAN and TLS.
 
-Provisioning and credential rotation are outside WTP/1. WTP/1 does not assign
-a default TCP port. Plain LAN is a product deployment choice, not a new wire
-protocol version.
+Provisioning and credential rotation are outside WTP/1. The optional DNS-SD
+profile requests IANA assignment of TCP port 31417 as a conventional default
+for direct connections when discovery is unavailable; no port has yet been
+assigned. A DNS-SD client uses the port in the selected instance's SRV record,
+which may differ from that requested default. Plain LAN is a product deployment
+choice, not a new wire protocol version.
 
 Transport adapters supply the admitted principal to the common job service.
 They MUST NOT implement separate ownership, lifecycle or timing rules.

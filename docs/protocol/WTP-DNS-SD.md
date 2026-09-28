@@ -3,25 +3,33 @@
 Status: proposed, not implemented or registered. This document defines a
 candidate discovery profile for the device-neutral [WTP/1 protocol](WTP.md).
 It does not change WTP frames, USB CDC, TCP admission, or transmitter authority.
-Initial releases may ship before IANA approves the name. If such a release
-advertises `_wtp._tcp.local.`, that use is experimental: the name is not
-reserved, may collide, and may need to change. IANA advises against using an
-unassigned name before approval; see the
+Initial releases may ship before IANA approves the requested name and port. If
+such a release advertises `_wtp._tcp.local.` or uses TCP port 31417, those
+values are provisional: neither is reserved, and either may need to change.
+IANA advises against using unassigned names and ports before approval; see the
 [application guidance](https://www.iana.org/form/ports-services).
 
 ## Service type and scope
 
-Request the service name `wtp` through the
+Request TCP port 31417 and the service name `wtp` through the
 [IANA service-name application](https://www.iana.org/form/ports-services):
 
 | Form field | Proposed value |
 |---|---|
-| Resources required | Service name only |
+| Resources required | Port number and service name |
 | Transport Protocols | TCP |
 | Service Code | Leave blank; it applies only to DCCP. |
 | Service Name | `wtp` |
-| Desired Port Number | Leave blank. |
+| Desired Port Number | `31417` (TCP; requested, not assigned). |
 | Description | Finite radio-transmitter job control. |
+
+The requested port would be a conventional default for direct WTP/TCP
+connections when DNS-SD is unavailable, such as on routed or multicast-filtered
+networks or in manually configured headless installations. A stable default
+also permits common firewall rules without per-device port coordination. The
+current WsprryPico consumer image uses TCP port 31417 provisionally; this does
+not reserve it, and an assignment of another port would require a migration.
+No separate port is requested for the TLS and Plain LAN bindings.
 
 Here WTP means **WsprryPi Transmitter Protocol**. Suggested text for the
 IANA **Reference** field:
@@ -82,9 +90,11 @@ remain the sources for those facts.
 ## Resolution and connection
 
 Resolve the selected instance's SRV record, then resolve its target hostname
-and connect to the **SRV port**. WTP has no protocol-assigned TCP port; a
-product's current configured port is not a default for other WTP devices.
-Read the TXT record before choosing the explicitly supported binding below.
+and connect to the **SRV port**. No WTP TCP port has been assigned yet; TCP
+port 31417 is requested as the default for direct connections without DNS-SD.
+The requested default does not override a discovered SRV port, and a WTP
+listener may use another configured port. Read the TXT record before choosing
+the explicitly supported binding below.
 The client must not silently try the other binding after a connection,
 authentication, ALPN, or WTP failure.
 
