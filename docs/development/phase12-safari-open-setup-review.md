@@ -336,3 +336,153 @@ both boards.
 This delivery verifies the image and readback. The updated iPhone result page
 has not yet been retested physically; an accepted POST is not itself proof of
 a durable save, and the captive window is controlled by iOS after AP withdrawal.
+
+## First blank Candidate A iPhone save attempt and stack repair (2026-09-28)
+
+The operator joined Candidate A's open setup AP, opened `192.168.4.1` manually
+after iOS did not open a captive window, and verified the password reveal
+control. After Save, the page showed “Could not start Wi-Fi setup” and “Setup
+interrupted”; the AP disconnected. USB readback on Candidate A
+(`0BF4B4AEC9FFB344`, device ID ending `1bf1d5`) showed source
+`unprovisioned`, profile generation 0, no station address and unsynchronized
+time. The Wi-Fi settings were not saved. Its new boot reported recovery mode,
+watchdog stage 13 (network poll) and CFSR `0x00100000` (stack overflow). The
+access journal had reached generation 1 during `/api/bootstrap/v1/start`.
+The recorded fault proves a stack overflow in that network-poll interval; it
+does not identify one exact C++ instruction.
+
+The access journal's slot scan previously placed a 4096-byte image on the
+primary stack during the HTTP callback. It now reads 256-byte pages and
+preserves detection of a partially written middle page. The standard
+RF-inhibited image reserves a 32 KiB primary stack (28 KiB above the existing
+4 KiB guard), and the ELF memory-layout check enforces that bound. The host
+suite passed 89/89 tests, including the access-journal interrupted-write and
+read-size assertions. The pinned Pico SDK 2.3.1 cross-build, linked-image
+memory and flash checks, and `git diff --check` passed.
+
+The repair candidate is a source-dirty `c13fc1681974-dirty` RF-inhibited
+image, UF2 SHA-256
+`7e7bbbfe6b868f022310f27590cc95c14068c7e4cad92392086e491cd59804f5`.
+Serial-targeted picotool verification loaded it on erased Candidate B
+(`CDDBF8767C506C07`) first. From isolated `wspr5` `wlan2`, B returned an
+Apple captive redirect, the immediate Wi-Fi form, and a 200 response to a
+credential-free `/api/bootstrap/v1/start`. USB then showed the same boot ID,
+no recovery fault, healthy access generation 1, unprovisioned profile
+generation 0 and inactive output. The first Pi HTTP attempt was invalid
+because another process deactivated `wlan2`; NetworkManager recorded a
+`user-requested` disconnect, and the immediate connected retry passed.
+
+The same image was then verified on Candidate A. It booted out of recovery
+with its prior healthy access generation 1, still unprovisioned at profile
+generation 0, no station address, no fault and inactive output. A separate
+isolated-Pi check received a captive DNS A answer of `192.168.4.1`, an Apple
+probe 302 redirect to the local page, and a 200 root page containing Wi-Fi
+fields, the password eye and `pool.ntp.org`. The temporary Pi Wi-Fi profiles
+were removed. Neither Pi check establishes that iOS will automatically open
+the captive window. A new iPhone save, accepted result message, durable
+generation 1, station connection and time sync remain to be verified.
+
+## Adversarial reply-order repair and second target check (2026-09-28)
+
+Review found that `/api/bootstrap/v1/submit` started the station connection
+inside its HTTP callback, before the `checking` reply reached the browser.
+That could remove the AP while the page still waited for the reply. The
+station trial now starts at least three seconds after the full accepted reply
+is delivered and the HTTP client has closed. A lost or partial reply cancels
+the pending trial; a normal client FIN after reading the complete reply keeps
+it. The initial Candidate B dummy trial exposed the latter close-path error:
+its 200 `checking` reply reached the Pi, but its slot was immediately cleared.
+The close handler was repaired and retested.
+
+The final source-dirty RF-inhibited candidate UF2 SHA-256 is
+`866661bcb1b008a0bca03bb12e6dabfcbfe0d5711ffb44215d2f86bf7076524b`.
+It passed the pinned Pico 2 W cross-build, linked stack and flash checks,
+89/89 host tests, 4/4 browser tests, formatting of the changed server files
+and `git diff --check`. Serial-targeted picotool loaded and verified this image
+on Candidate B before Candidate A. The second B dummy encrypted transaction
+used a deliberately nonexistent SSID and temporary password. It returned a
+200 `checking` reply with the matching request digest in 239 ms. The AP
+returned status immediately and one second later, both with a trial slot and
+profile generation 0. After the three-second display interval, USB showed
+station activation, unchanged boot ID, no recovery fault and inactive output.
+After the failed network trial timed out, both boards remained unprovisioned
+at profile generation 0 with no station address, no fault and unsynchronized
+time. Their access journals were healthy at generation 1 from the setup-start
+probes. Candidate A final boot ID was `4ab68d160ffa92a0b3fe981ce39c0085`;
+Candidate B was `93c28d1d67bdec5ca8784a9ef094599f`. Isolated `wspr5`
+`wlan2` was disconnected and its temporary AP profiles removed.
+
+This proves an accepted HTTP reply can reach a client before a station trial
+starts on the final image. The dummy SSID cannot qualify a successful Wi-Fi
+save or time sync. The iPhone captive auto-open, page acceptance message,
+generation-1 commit, station join and SNTP readback remain open until a fresh
+phone run on Candidate A.
+
+An optional `WsprryPico-StandaloneRF` cross-build was attempted separately.
+It stopped while compiling that target's `main.cpp` because `btstack.h` was
+not found, before the changed bootstrap server compiled for that target. The
+standard RF-inhibited image used above built and linked successfully.
+
+## Candidate A iPhone retry and station readback (2026-09-28)
+
+The operator reported that the iPhone retry appeared to work, but thought the
+SoftAP remained up. A serial-bound USB readback on Candidate A
+(`0BF4B4AEC9FFB344`) showed the final image booted without a recovery fault,
+source `network_only`, durable profile generation 1, healthy access generation
+1, station link up at `192.168.1.47`, `pool.ntp.org` selected, one accepted NTP
+observation, a synchronized clock and inactive output. Candidate B
+(`CDDBF8767C506C07`) remained unprovisioned at profile generation 0 with no
+station address. An isolated `wspr5` Wi-Fi scan saw only
+`WsprryPico-0a9d89`, Candidate B's AP; Candidate A's
+`WsprryPico-0a60df` AP was absent. The apparent remaining AP is therefore
+consistent with B still being blank. The operator's exact iPhone SSID and
+post-Save page message are being confirmed. The earlier report that the
+captive page did not open automatically remains an unpassed phone gate.
+
+## Candidate B iPhone failed join and retry (2026-09-28)
+
+The operator joined blank Candidate B's `WsprryPico-0a9d89` AP, submitted the
+home SSID with a deliberately wrong password, saw “Wi-Fi settings accepted,”
+and found the AP still available. Serial-bound USB `INFO` then reported device
+`29f20b7342051ef947aa56cb9d4fab42`, revision `c13fc1681974-dirty`,
+source `unprovisioned`, profile generation 0, no station address, no recovery
+boot and zero provisioning/fault status. This bounds the negative result: the
+accepted HTTP reply was not a durable save.
+
+The operator's next attempt used the correct password but displayed “Setup
+interrupted” on a page whose styling had not loaded. A subsequent retry
+worked. Candidate B then rebooted to boot ID
+`03d7e43e3859aa743830f1881141cfb2`; USB `INFO` reported source
+`network_only`, durable profile generation 1, station address
+`192.168.1.53`, `pool.ntp.org` resolved with one accepted NTP sample, a
+synchronized clock, Plain LAN WTP ready, inactive output and zero reported
+provisioning/fault status. This is the first real-phone failed-join/retry and
+successful network save on B. The operator has not confirmed automatic captive
+opening on B or the exact final success page.
+
+Source inspection found a plausible cause for the second-attempt interruption:
+an active trial or the failed trial's retained terminal slot makes
+`/api/bootstrap/v1/start` return HTTP 409, which the page formerly rendered
+as a generic interruption. The phone session has no HTTP capture, so the
+precise cause is not proven. The staged repair automatically retries a busy
+start for up to about two minutes while keeping the submitted form active.
+It preserves the previous attempt's terminal result for its original page.
+It also embeds the setup
+CSS in the HTML response with a matching CSP hash, so a separately dropped
+stylesheet request cannot leave that page unstyled. Four browser tests and
+89/89 host tests pass, including a busy-start retry and the inline style/CSP
+checks. A clean target directory built the standard RF-inhibited Pico 2 W
+image against pinned SDK 2.3.1 and GNU Arm 15.3.1; UF2 SHA-256 is
+`be35c3001de223adfef9d711d39d43edc371ec71f74d6ba37a9075371b66cd11`.
+The first target build attempt used a stale cache that mixed SDK paths, and
+a subsequent build without the Xcode environment failed in the nested host
+linker. The clean pinned configuration with the repository's Xcode wrapper
+built successfully. This new image has not been flashed; B's physical result
+remains evidence for the preceding `c13fc1681974-dirty` image.
+
+Adversarial review rejected an initial source change that would have cleared
+the failed terminal slot immediately: another open page could then lose its
+failure result. That change was removed. The final browser retry waits for
+the retained slot to expire; the four browser tests, affected bootstrap HTTP
+host test, pinned target rebuild, C++ formatting check and `git diff --check`
+passed again after the correction.

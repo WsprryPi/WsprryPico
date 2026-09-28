@@ -32,6 +32,7 @@ class AccessMemory final : public provisioning::AccessMedia {
     std::array<std::uint8_t, provisioning::access_media_size> bytes;
     int fail_at = -1;
     int operation = 0;
+    std::size_t largest_read = 0;
     AccessMemory() {
         bytes.fill(255);
     }
@@ -41,6 +42,7 @@ class AccessMemory final : public provisioning::AccessMedia {
     bool read(std::size_t offset, std::span<std::uint8_t> out) override {
         if (offset + out.size() > bytes.size())
             return false;
+        largest_read = std::max(largest_read, out.size());
         std::copy_n(bytes.begin() + offset, out.size(), out.begin());
         return true;
     }
@@ -255,9 +257,15 @@ void identity_and_journal() {
     provisioning::AccessStore store(media);
     CHECK(store.load());
     CHECK(store.state() == provisioning::AccessStoreState::Erased);
+    AccessMemory interrupted_middle;
+    interrupted_middle.bytes[3 * provisioning::access_page_size] = 0;
+    provisioning::AccessStore interrupted_store(interrupted_middle);
+    CHECK(!interrupted_store.load());
+    CHECK(interrupted_store.state() == provisioning::AccessStoreState::Fault);
     auto record = initial_record(*identity);
     CHECK(store.initialize(record));
     CHECK(store.sequence() == 1);
+    CHECK(media.largest_read <= provisioning::access_page_size);
     CHECK(store.record()->password == "wspr-0a60df");
     provisioning::AccessStore reloaded(media);
     CHECK(reloaded.load());

@@ -151,53 +151,75 @@ struct Candidate {
     }
 };
 
+struct ClearPage {
+    std::array<std::uint8_t, access_page_size>& bytes;
+    ~ClearPage() {
+        secure_clear(std::span(bytes));
+    }
+};
+
 Candidate scan(AccessMedia& media, std::size_t slot) {
     Candidate result;
     const auto base = slot * access_slot_size;
-    std::array<std::uint8_t, access_slot_size> image{};
-    if (!media.read(base, image)) {
+    std::array<std::uint8_t, access_page_size> header{}, payload{}, commit{};
+    ClearPage clear_payload{payload};
+    if (!media.read(base, header) || !media.read(base + payload_offset, payload) ||
+        !media.read(base + commit_offset, commit)) {
         result.state = Candidate::State::Invalid;
         return result;
     }
-    if (erased(image))
-        return result;
-    const auto header = std::span<const std::uint8_t>(image).first(access_page_size);
-    const auto payload = std::span<const std::uint8_t>(image).subspan(payload_offset, access_page_size);
-    const auto commit = std::span<const std::uint8_t>(image).subspan(commit_offset, access_page_size);
-    if (erased(header) || erased(commit)) {
+    const bool header_erased = erased(header);
+    const bool commit_erased = erased(commit);
+    if (header_erased && commit_erased && erased(payload)) {
+        // An interrupted write can leave only a later page programmed.
+        std::array<std::uint8_t, access_page_size> page{};
+        ClearPage clear_page{page};
+        bool empty = true;
+        for (std::size_t offset = payload_offset + access_page_size; offset < commit_offset;
+             offset += access_page_size) {
+            if (!media.read(base + offset, page)) {
+                result.state = Candidate::State::Invalid;
+                return result;
+            }
+            if (!erased(page)) {
+                empty = false;
+                break;
+            }
+        }
+        if (empty)
+            return result;
+    }
+    if (header_erased || commit_erased) {
         result.state = Candidate::State::Pending;
-        secure_clear(image);
         return result;
     }
-    const auto header_crc = crc32(header.first(access_page_size - 4));
-    const auto commit_crc = crc32(commit.first(access_page_size - 4));
-    const auto sequence = get(header.subspan(8, 8));
-    const auto commit_sequence = get(commit.subspan(8, 8));
+    const auto header_crc = crc32(std::span(header).first(access_page_size - 4));
+    const auto commit_crc = crc32(std::span(commit).first(access_page_size - 4));
+    const auto sequence = get(std::span(header).subspan(8, 8));
+    const auto commit_sequence = get(std::span(commit).subspan(8, 8));
     const auto digest = wtp::sha256(payload);
-    const bool valid = get(header.first(8)) == header_magic && sequence &&
-                       get(header.subspan(16, 4)) == access_page_size &&
-                       get(header.subspan(20, 4)) == 2 &&
-                       get(header.last(4)) == header_crc &&
+    const bool valid = get(std::span(header).first(8)) == header_magic && sequence &&
+                       get(std::span(header).subspan(16, 4)) == access_page_size &&
+                       get(std::span(header).subspan(20, 4)) == 2 &&
+                       get(std::span(header).last(4)) == header_crc &&
                        std::equal(digest.begin(), digest.end(), header.begin() + 24) &&
-                       get(commit.first(8)) == commit_magic && commit_sequence == sequence &&
-                       get(commit.last(4)) == commit_crc &&
+                       get(std::span(commit).first(8)) == commit_magic &&
+                       commit_sequence == sequence &&
+                       get(std::span(commit).last(4)) == commit_crc &&
                        std::equal(digest.begin(), digest.end(), commit.begin() + 16);
     if (!valid) {
         result.state = Candidate::State::Invalid;
-        secure_clear(image);
         return result;
     }
     auto decoded = deserialize(payload);
     if (!decoded) {
         result.state = Candidate::State::Invalid;
-        secure_clear(image);
         return result;
     }
     result.sequence = sequence;
     result.record = std::move(*decoded);
     scrub(*decoded);
     result.state = Candidate::State::Valid;
-    secure_clear(image);
     return result;
 }
 } // namespace

@@ -50,9 +50,25 @@ async function json(path, body, timeoutMs = 8000) {
   }
   try {
     const response = await fetch(host + path, options);
-    if (!response.ok) throw new Error('Pico request failed');
+    if (!response.ok) {
+      const error = new Error('Pico request failed');
+      error.status = response.status;
+      throw error;
+    }
     return await response.json();
   } finally { clearTimeout(timeout); }
+}
+
+async function startWhenAvailable(body) {
+  for (let attempt = 0; attempt < 61; attempt++) {
+    try { return await json('/api/bootstrap/v1/start', body); }
+    catch (error) {
+      if (error.status !== 409 || attempt === 60) throw error;
+      show('checking');
+      notice('Finishing the previous Wi-Fi attempt. This can take up to two minutes.');
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  }
 }
 
 async function hintTime() {
@@ -207,7 +223,7 @@ async function submit(event) {
   $('submit').disabled = true;
   try {
     pending = begin();
-    started = await json('/api/bootstrap/v1/start', {version: 1,
+    started = await startWhenAvailable({version: 1,
       device_id: deviceId, browser_public_key: pending.browserPublicKey,
       request_nonce: pending.requestNonce});
     if (started.device_id !== deviceId || !hexId(started.boot_id) ||

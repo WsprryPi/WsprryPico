@@ -14,6 +14,9 @@ bootstrap_html, bootstrap_css, bootstrap_js = [
     (bootstrap_web / name).read_text()
     for name in ('index.html', 'style.css', 'bundle.js')
 ]
+bootstrap_html = bootstrap_html.replace(
+    '<link rel="stylesheet" href="./style.css">',
+    '<style>' + bootstrap_css + '</style>')
 owner_html, owner_js, owner_key_js = [
     (bootstrap_web / name).read_text()
     for name in ('owner.html', 'owner-bundle.js', 'owner-key-bundle.js')
@@ -23,7 +26,8 @@ html = html.replace('<script src="/app.js" defer></script>', '')
 html = html.replace('</body>', '<script>' + js + '</script></body>')
 hash_for = lambda text: base64.b64encode(hashlib.sha256(text.encode()).digest()).decode()
 csp = "default-src 'self'; style-src 'sha256-" + hash_for(css) + "'; script-src 'sha256-" + hash_for(js) + "'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
-bootstrap_policy = ("default-src 'none'; script-src 'self'; style-src 'self'; "
+bootstrap_policy = ("default-src 'none'; script-src 'self'; "
+                    "style-src 'self' 'sha256-" + hash_for(bootstrap_css) + "'; "
                     "connect-src 'self'; img-src 'self' data:; "
                     "frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 source = '#include "network/assets.hpp"\nnamespace wsprrypico::network {\nnamespace {\n'

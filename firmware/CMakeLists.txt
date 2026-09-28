@@ -39,7 +39,7 @@ target_include_directories(WsprryPico PRIVATE
 )
 target_compile_definitions(WsprryPico PRIVATE
     PICO_NO_BI_PROGRAM_BUILD_DATE=1
-    PICO_STACK_SIZE=0x4000
+    PICO_STACK_SIZE=0x8000
     WSPRRY_PICO_RF_OUTPUT_DISABLED=1
     WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ}
     PICO_PANIC_FUNCTION=wsprrypico_panic
@@ -96,13 +96,14 @@ endif()
 set_property(TARGET WsprryPico APPEND PROPERTY LINK_DEPENDS
              ${CMAKE_SOURCE_DIR}/scripts/check_bootsel_topology.py)
 
-# Reserve 16 KiB at the top of RP2350 main SRAM for the primary stack.
-# SDK linker symbols relocate SCRATCH_Y without overlapping the heap or core 1.
-# Recursive depth-16 JSON validation exceeds the default 2 KiB scratch stack.
+# Reserve 32 KiB at the top of RP2350 main SRAM for the primary stack.
+# Captive setup enters flash/crypto from an lwIP callback; 16 KiB overflowed
+# during the first physical Wi-Fi setup attempt. The MSPLIM guard still reserves
+# the bottom 4 KiB, leaving 28 KiB usable without overlapping heap or core 1.
 target_link_options(WsprryPico PRIVATE
-    "LINKER:--defsym=RAM_LENGTH=0x7c000"
-    "LINKER:--defsym=SCRATCH_Y_ORIGIN=0x2007c000"
-    "LINKER:--defsym=SCRATCH_Y_LENGTH=0x4000"
+    "LINKER:--defsym=RAM_LENGTH=0x78000"
+    "LINKER:--defsym=SCRATCH_Y_ORIGIN=0x20078000"
+    "LINKER:--defsym=SCRATCH_Y_LENGTH=0x8000"
 )
 
 set_target_properties(WsprryPico PROPERTIES

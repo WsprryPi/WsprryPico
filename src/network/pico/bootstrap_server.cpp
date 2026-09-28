@@ -74,7 +74,7 @@ err_t PicoBootstrapServer::receive(void* context, tcp_pcb*, pbuf* packet, err_t 
     if (!packet || err != ERR_OK) {
         if (packet)
             pbuf_free(packet);
-        self.close();
+        self.close(!packet && err == ERR_OK);
         return ERR_ABRT;
     }
     // A connection carries one request. Never let a pipelined request replace
@@ -117,12 +117,29 @@ err_t PicoBootstrapServer::sent(void* context, tcp_pcb*, u16_t count) {
 
 void PicoBootstrapServer::error(void* context, err_t) {
     auto& self = *static_cast<PicoBootstrapServer*>(context);
+#ifndef WSPRRY_PICO_STANDALONE_RF
+    const bool submit_response = self.bootstrap_trial_start_pending_ &&
+                                 !self.bootstrap_submit_delivered_ && self.parser_.ready() &&
+                                 self.parser_.request().path == "/api/bootstrap/v1/submit" &&
+                                 self.response_.status == 200 && !self.headers_.empty();
+    const bool delivered_submit = submit_response && self.header_offset_ == self.headers_.size() &&
+                                  self.body_offset_ == self.response_.body_size() &&
+                                  self.pending_bytes_ == 0;
+    if (delivered_submit) {
+        self.bootstrap_submit_delivered_ = true;
+        self.bootstrap_submit_delivered_ms_ = time_us_64() / 1000;
+    }
+#endif
     self.client_ = nullptr;
     self.parser_.reset_secure();
     self.parser_ = {};
     self.response_ = {};
     self.headers_.clear();
     self.header_offset_ = self.body_offset_ = self.pending_bytes_ = 0;
+#ifndef WSPRRY_PICO_STANDALONE_RF
+    if (submit_response && !delivered_submit)
+        self.cancel_slot();
+#endif
 }
 
 void PicoBootstrapServer::dispatch() {
@@ -161,7 +178,22 @@ void PicoBootstrapServer::dispatch() {
     headers_ = response_.wire_headers();
 }
 
-void PicoBootstrapServer::close() {
+void PicoBootstrapServer::close(bool peer_finished) {
+#ifdef WSPRRY_PICO_STANDALONE_RF
+    (void)peer_finished;
+#else
+    const bool submit_response = bootstrap_trial_start_pending_ && !bootstrap_submit_delivered_ &&
+                                 parser_.ready() &&
+                                 parser_.request().path == "/api/bootstrap/v1/submit" &&
+                                 response_.status == 200 && !headers_.empty();
+    const bool delivered_submit = submit_response && header_offset_ == headers_.size() &&
+                                  body_offset_ == response_.body_size() &&
+                                  (peer_finished || pending_bytes_ == 0);
+    if (delivered_submit) {
+        bootstrap_submit_delivered_ = true;
+        bootstrap_submit_delivered_ms_ = time_us_64() / 1000;
+    }
+#endif
     if (client_) {
         tcp_arg(client_, nullptr);
         tcp_recv(client_, nullptr);
@@ -175,6 +207,10 @@ void PicoBootstrapServer::close() {
     response_ = {};
     headers_.clear();
     header_offset_ = body_offset_ = pending_bytes_ = 0;
+#ifndef WSPRRY_PICO_STANDALONE_RF
+    if (submit_response && !delivered_submit)
+        cancel_slot();
+#endif
 }
 
 void PicoBootstrapServer::stop() {
@@ -219,6 +255,12 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
         crypto_.clear();
         slot_digest_.clear();
     }
+    // Leave the AP on long enough for the browser to render the accepted POST
+    // result. A station channel change can otherwise destroy that response.
+    if (bootstrap_trial_start_pending_ && bootstrap_submit_delivered_ && !client_ &&
+        now_ms >= bootstrap_submit_delivered_ms_ &&
+        now_ms - bootstrap_submit_delivered_ms_ >= 3'000)
+        start_bootstrap_trial(now_ms);
     const auto old_owner_state = owner_slot_.state();
     owner_slot_.expire(now_ms);
     if (old_owner_state != provisioning::ConsumerClaimState::None &&
@@ -265,7 +307,7 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
             }
         }
     }
-    if (slot_.state() == BootstrapSlotState::Trial) {
+    if (slot_.state() == BootstrapSlotState::Trial && !bootstrap_trial_start_pending_) {
         const bool linked = network_ && network_->link_up();
         const auto address = linked ? network_->ipv4() : std::string{};
         const auto result = join_.trial(now_ms, linked, !address.empty() && address != "0.0.0.0");
@@ -312,6 +354,8 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
     if (!active_) {
         // Do not leave a wildcard port-80 listener on the station interface
         // if the AP stops or the service is otherwise unavailable.
+        if (bootstrap_trial_start_pending_)
+            cancel_slot();
         stop();
         return;
     }
@@ -358,6 +402,10 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
             parser_.ready() && parser_.request().method == "POST" &&
             parser_.request().path == "/api/owner/v1/claim/submit" && response_.status == 200 &&
             owner_trial_start_pending_;
+        const bool delivered_bootstrap_submit =
+            parser_.ready() && parser_.request().method == "POST" &&
+            parser_.request().path == "/api/bootstrap/v1/submit" && response_.status == 200 &&
+            bootstrap_trial_start_pending_;
         const bool delivered_bootstrap_ack = parser_.ready() &&
                                              parser_.request().method == "POST" &&
                                              parser_.request().path == "/api/bootstrap/v1/ack" &&
@@ -381,6 +429,10 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
             owner_status_delivered_ = true;
         if (delivered_owner_submit)
             owner_submit_delivered_ = true;
+        if (delivered_bootstrap_submit) {
+            bootstrap_submit_delivered_ = true;
+            bootstrap_submit_delivered_ms_ = time_us_64() / 1000;
+        }
         if (delivered_bootstrap_ack)
             bootstrap_ack_delivered_ = true;
 #endif
@@ -493,6 +545,33 @@ void PicoBootstrapServer::cancel_slot() {
     erase(ack_verifier_);
     provisioning::scrub(trial_);
     provisioning::scrub(bootstrap_previous_network_);
+    bootstrap_trial_start_pending_ = bootstrap_submit_delivered_ = false;
+    bootstrap_submit_delivered_ms_ = 0;
+}
+
+void PicoBootstrapServer::start_bootstrap_trial(std::uint64_t now_ms) {
+    bootstrap_trial_start_pending_ = bootstrap_submit_delivered_ = false;
+    bootstrap_submit_delivered_ms_ = 0;
+    if (!network_ || slot_.state() != BootstrapSlotState::Trial) {
+        cancel_slot();
+        return;
+    }
+    const bool reuse_connected_station = !bootstrap_previous_network_.ssid.empty() &&
+                                         bootstrap_previous_network_.ssid == trial_.ssid &&
+                                         bootstrap_previous_network_.password == trial_.password &&
+                                         network_->station_ssid() == trial_.ssid &&
+                                         network_->link_up() && !network_->ipv4().empty() &&
+                                         network_->ipv4() != "0.0.0.0";
+    if (!reuse_connected_station) {
+        if (!bootstrap_previous_network_.ssid.empty())
+            network_->stop_network_only_trial();
+        bootstrap_trial_switched_network_ = true;
+        if (!network_->start_network_only(trial_.ssid, trial_.password, trial_.time_server)) {
+            end_trial(false, now_ms);
+            return;
+        }
+    }
+    join_.begin(now_ms);
 }
 
 void PicoBootstrapServer::end_trial(bool committed, std::uint64_t now_ms) {
@@ -504,6 +583,8 @@ void PicoBootstrapServer::end_trial(bool committed, std::uint64_t now_ms) {
     if (!committed)
         erase(ack_verifier_);
     join_.finish();
+    bootstrap_trial_start_pending_ = bootstrap_submit_delivered_ = false;
+    bootstrap_submit_delivered_ms_ = 0;
     (void)slot_.finish(committed, now_ms);
     if (committed) {
         bootstrap_restart_pending_ = true;
@@ -931,27 +1012,9 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
                         "\"request_id_digest\":" +
                         wtp::json::quote(digest) + "}");
         }
-        const bool reuse_connected_station =
-            !bootstrap_previous_network_.ssid.empty() &&
-            bootstrap_previous_network_.ssid == trial_.ssid &&
-            bootstrap_previous_network_.password == trial_.password &&
-            network_->station_ssid() == trial_.ssid && network_->link_up() &&
-            !network_->ipv4().empty() && network_->ipv4() != "0.0.0.0";
-        if (!reuse_connected_station) {
-            // A saved profile already owns the STA adapter. Stop it before
-            // trying a replacement, then restore the old profile on failure.
-            if (!bootstrap_previous_network_.ssid.empty()) {
-                network_->stop_network_only_trial();
-            }
-            bootstrap_trial_switched_network_ = true;
-            if (!network_->start_network_only(trial_.ssid, trial_.password, trial_.time_server)) {
-                end_trial(false, now_ms);
-                return json("{\"version\":1,\"state\":\"failed\",\"generation\":0,"
-                            "\"request_id_digest\":" +
-                            wtp::json::quote(digest) + "}");
-            }
-        }
-        join_.begin(now_ms);
+        bootstrap_trial_start_pending_ = true;
+        bootstrap_submit_delivered_ = false;
+        bootstrap_submit_delivered_ms_ = 0;
         return json("{\"version\":1,\"state\":\"checking\",\"generation\":0,"
                     "\"request_id_digest\":" +
                     wtp::json::quote(digest) + "}");

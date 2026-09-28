@@ -30,6 +30,7 @@ let status = {source: 'unprovisioned', generation: 0, slot_state: 'none',
   join: 'idle', address_ready: false, request_id_digest: null};
 let submitted, ack, starts = 0, dropStatus = false, holdStatus = false, releaseStatus;
 let holdSubmit = false, releaseSubmit, failSubmit = false, failStart = false;
+let busyStarts = 0;
 let dropSubmitResponse = false;
 let now = 1_800_000_000_000;
 Date.now = () => now;
@@ -63,6 +64,10 @@ globalThis.fetch = async (url, options = {}) => {
   if (path === '/api/bootstrap/v1/start') {
     starts++;
     if (failStart) throw new Error('setup Wi-Fi disconnected');
+    if (busyStarts > 0) {
+      busyStarts--;
+      return {ok: false, status: 409};
+    }
     assert.equal(body.device_id, device);
     assert.equal(body.browser_public_key.length, 43);
     return {ok: true, json: async () => ({device_id: device, boot_id: boot,
@@ -231,6 +236,18 @@ assert.equal(elements.get('interrupted').hidden, false); // No POST, so save is 
 assert.equal(elements.get('retry').hidden, true);
 elements.get('interrupted-button').events.click();
 assert.equal(reloads, 1); // Recover identity and generation before another save.
+
+failStart = false;
+busyStarts = 1;
+elements.get('ssid').value = 'LabNet';
+elements.get('password').value = 'correct-test-password';
+const delayedStart = elements.get('wifi-form').events.submit({preventDefault() {}});
+await new Promise(setImmediate);
+assert.equal(elements.get('checking').hidden, false);
+assert.match(elements.get('notice').textContent, /previous Wi-Fi attempt/);
+await timers.findLast((item) => item.delay === 2000).callback();
+await delayedStart;
+assert.equal(elements.get('accepted').hidden, false); // A busy prior slot is retried without another Save.
 
 globalThis.location.origin = 'http://example.invalid';
 await import('./app.js?fallback');

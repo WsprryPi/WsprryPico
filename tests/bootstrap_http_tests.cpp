@@ -45,7 +45,10 @@ int main() {
     const auto setup = wsprrypico::network::bootstrap_http_response(page_request.request(),
                                                                     "device-id", "firmware", true);
     assert(setup.status == 200 && setup.static_body.find("wifi-form") != std::string_view::npos);
+    assert(setup.static_body.find("<style>") != std::string_view::npos);
+    assert(setup.static_body.find("rel=\"stylesheet\"") == std::string_view::npos);
     assert(setup.wire_headers().find("Cache-Control: no-store") != std::string::npos);
+    assert(setup.wire_headers().find("style-src 'self' 'sha256-") != std::string::npos);
     const auto owner_root = wsprrypico::network::bootstrap_http_response(
         page_request.request(), "device-id", "firmware", false, true);
     assert(owner_root.status == 200 &&

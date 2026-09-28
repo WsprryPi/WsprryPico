@@ -81,7 +81,7 @@ class PicoBootstrapServer {
     static err_t receive(void*, tcp_pcb*, pbuf*, err_t);
     static err_t sent(void*, tcp_pcb*, u16_t);
     static void error(void*, err_t);
-    void close();
+    void close(bool peer_finished = false);
     void dispatch();
 #ifndef WSPRRY_PICO_STANDALONE_RF
     HttpResponse mutation(const HttpRequest& request);
@@ -92,6 +92,7 @@ class PicoBootstrapServer {
     bool network_setup_authority() const;
     bool owner_claimable() const;
     void end_trial(bool committed, std::uint64_t now_ms);
+    void start_bootstrap_trial(std::uint64_t now_ms);
     void cancel_slot();
     void restore_bootstrap_network();
     void end_owner_trial(bool committed, std::uint64_t now_ms);
@@ -123,6 +124,8 @@ class PicoBootstrapServer {
     bool owner_restart_pending_ = false, owner_status_delivered_ = false;
     bool bootstrap_restart_pending_ = false, bootstrap_ack_delivered_ = false;
     bool bootstrap_trial_switched_network_ = false;
+    bool bootstrap_trial_start_pending_ = false, bootstrap_submit_delivered_ = false;
+    std::uint64_t bootstrap_submit_delivered_ms_ = 0;
     std::uint64_t bootstrap_committed_ms_ = 0;
 #endif
 
