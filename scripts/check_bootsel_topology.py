@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reject known core-1 launch code in the BOOTSEL-capable image."""
+"""Check BOOTSEL callbacks against the standard or core-1 diagnostic topology."""
 
 import re
 import subprocess
@@ -22,9 +22,11 @@ def validate(symbols, disassembly, expect_core1=False):
     elif any(present.values()):
         raise ValueError(f"Core-1 launch/reader linked into production image: {present}")
 
-    for symbol, required in (("sample_chip_select", True),
+    for symbol, required in (("sample_chip_select", not expect_core1),
                              ("capture_chip_select_gesture", expect_core1)):
         callback = [(address, kind) for address, kind, name in entries if symbol in name]
+        if expect_core1 and symbol == "sample_chip_select" and callback:
+            raise ValueError("Runtime sampler linked into core-1 diagnostic image")
         wrong_count = len(callback) != 1 if required else len(callback) > 1
         wrong_address = any(kind.lower() != "t" or not 0x20000000 <= address < 0x20082000
                             for address, kind in callback)
@@ -38,7 +40,10 @@ def validate(symbols, disassembly, expect_core1=False):
                     r"\.word\s+0x10[0-3][0-9a-f]{5}\b", body[1]):
                 raise ValueError(f"BOOTSEL callback calls out or reads XIP: {symbol}")
 
-    if not any("sample_runtime_bootsel" in name for _, _, name in entries):
+    sampler = any("sample_runtime_bootsel" in name for _, _, name in entries)
+    if expect_core1 and sampler:
+        raise ValueError("Runtime BOOTSEL sampler linked into core-1 diagnostic image")
+    if not expect_core1 and not sampler:
         raise ValueError("Runtime BOOTSEL sampler is absent")
 
 

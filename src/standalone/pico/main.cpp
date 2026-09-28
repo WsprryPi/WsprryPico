@@ -406,7 +406,7 @@ int main() {
     static wsprrypico::provisioning::PicoIndicatorOutput indicator_output;
     static wsprrypico::provisioning::IndicatorController indicator(indicator_output,
                                                                    identities.device_id());
-#if !defined(WSPRRY_PICO_STANDALONE_RF) && !defined(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC)
+#ifndef WSPRRY_PICO_STANDALONE_RF
     static wsprrypico::provisioning::PicoConsumerClaimPlatform claim_platform(
         access_store, network, service, time_arbiter, local_identity.hostname);
     bootstrap.configure(service.status().boot_id, access_store, profile_store, random_source,
@@ -932,7 +932,7 @@ int main() {
         }
         if (gatt.running())
             gatt.poll();
-#ifndef WSPRRY_PICO_STANDALONE_RF
+#if !defined(WSPRRY_PICO_STANDALONE_RF) && !defined(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC)
         if (field_now_ms < last_softap_button_sample_ms ||
             field_now_ms - last_softap_button_sample_ms >= 100) {
             last_softap_button_sample_ms = field_now_ms;

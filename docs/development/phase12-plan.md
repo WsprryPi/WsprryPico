@@ -462,6 +462,17 @@ implementation milestone.
 | P12.11 — Recovery and fallback | **OPEN** | Prove healthy-station AP withdrawal, manual BOOTSEL opening, different-phone replacement, old-profile recovery, station-loss portal return, field-network operation, reset and full erase. No retained-owner recovery is required. |
 | P12.12 — Stage A robustness and closure | **OPEN** | Close fault, trust, resource, concurrency, soak, controller-time, LED and restoration rows and complete the final adversarial review. |
 
+### Deferred station-network web page
+
+The operator wants a user-facing page at the Pico's infrastructure address,
+but deferred that feature while using the on-demand SoftAP for setup. The
+current consumer pre-clock image has no station HTTP/HTTPS listener: a DHCP
+address confirms a network join, not a browser service. Current setup pages
+are `http://192.168.4.1/` and `http://192.168.4.1/owner.html` on port 80 after
+joining the Pico AP. Design the station page's purpose, access rules, port and
+activation state as a separate follow-up; this request does not change the
+P12.7–P12.12 captive setup gates.
+
 ### P12.7 Consumer commissioning contract
 
 The operator's later [immediate Safari setup decision](phase12-safari-open-setup-revision.md)

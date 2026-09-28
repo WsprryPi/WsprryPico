@@ -22,14 +22,18 @@ join, cancellation or expiry. A repeated same-network save commits a distinct
 request-bound journal generation without dropping the connection. The page
 reports a missing terminal result as unverified, not as a proven failed save.
 
-Adversarial review found two additional edge cases and repaired both before
-reassessment. A diagnostic image with a core-1 flash reader must not run the
-background BOOTSEL sampler; the automatic hold code is now excluded from that
-image as well as the StandaloneRF worker image. A connected station on a
+Adversarial review found two additional edge cases. A connected station on a
 different SSID must not satisfy the reuse path; the active station SSID is now
-checked. The second source assessment found no further actionable issue in
-this slice. Physical long-hold, AP withdrawal/return, failed replacement and
-phone save remain target gates.
+checked. A diagnostic image with a core-1 flash reader must not run the
+background BOOTSEL sampler. A subsequent source inspection found that the
+first diagnostic exclusion guarded the claim platform declaration instead of
+the background sampler. The guard now encloses the sampler, while claim
+platform initialization remains available in every RF-inhibited build.
+The standard and core-1 diagnostic target builds now both pass the BOOTSEL
+topology check, which requires the runtime sampler only in the standard image
+and rejects it in the diagnostic image.
+Physical long-hold, station-loss AP return, failed replacement and phone save
+remain target gates.
 
 Four browser tests, the host C++ build and all 98 host tests passed with the
 installed Xcode SDK/compiler selected. The first host run used the broken

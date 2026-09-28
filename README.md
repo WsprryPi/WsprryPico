@@ -91,6 +91,10 @@ withdraws the AP after a stable connection; holding and releasing BOOTSEL for
 10 seconds while the idle RF-inhibited image is running opens it on demand.
 Two short LED flashes every two seconds identify an available AP. Source
 and browser tests cover this revision. The
+[Wi-Fi setup page](http://192.168.4.1/) and optional
+[station settings page](http://192.168.4.1/owner.html) use HTTP port 80 while
+connected to the Pico AP. A station DHCP address such as `192.168.1.47` has
+no consumer web page in the current pre-clock image. The
 [new image booted on Candidate A](docs/development/phase12-wifi-first-flash.md),
 while the revised phone flow remains unaccepted. The
 [source review](docs/development/phase12-safari-open-setup-review.md) records
