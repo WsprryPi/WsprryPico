@@ -87,8 +87,9 @@ the network before optional station details on a separate page. It requires
 no BOOTSEL step or retained phone owner. Another phone may change settings.
 The portal starts automatically with no saved credentials or after a saved
 station network is unavailable for 60 seconds. A healthy station normally
-withdraws the AP after a stable connection; holding and releasing BOOTSEL for
-10 seconds while the idle RF-inhibited image is running opens it on demand.
+withdraws the AP after a stable connection. The previously documented runtime
+BOOTSEL hold is unsafe on the flashed image and is being removed; do not use it
+to request the AP. A lost station connection still brings the AP back.
 Two short LED flashes every two seconds identify an available AP. Source
 and browser tests cover this revision. The
 [Wi-Fi setup page](http://192.168.4.1/) and optional
@@ -124,7 +125,7 @@ restart, and post-restart BLE readback; see the
 The later generation-3 positive mTLS/WTP and HTTPS readback also passed on the
 Mac. Offline reuse, fresh-password/new-pairing behavior, full commissioning,
 broader blank
-SoftAP HTTP, station-loss AP fallback and BOOTSEL manual opening, the broader physical BLE job-
+SoftAP HTTP, station-loss AP fallback and a safe manual opening path, the broader physical BLE job-
 control/local-management, controller-time and LED matrices, reset controls and
 most of the
 [RF-inhibited-first physical plan](docs/development/phase12-physical-acceptance.md)
@@ -154,7 +155,8 @@ proved network-only generation 1 and station address `192.168.1.47`; the final
 phone page and AP return after station loss remain open. A newer source change
 temporarily kept the network-only AP available after station join for later
 setup upgrade. The current candidate instead withdraws it on a healthy station
-and uses the manual BOOTSEL hold or station-loss fallback; it still needs a
+and uses station-loss fallback; a safe connected-station opening path remains
+to be selected. It still needs a
 repeat target acceptance run. See the
 [target record](docs/development/phase12-wifi-only-physical-result.md).
 

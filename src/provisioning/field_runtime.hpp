@@ -10,7 +10,6 @@ namespace wsprrypico::provisioning {
 inline constexpr std::uint64_t softap_fallback_ms = 60'000;
 inline constexpr std::uint64_t softap_station_stable_ms = 30'000;
 inline constexpr std::uint64_t softap_join_grace_ms = 120'000;
-inline constexpr std::uint64_t softap_bootsel_hold_ms = 10'000;
 
 enum class SoftApSurface { BlankReadOnly, ProvisionedPreClock, Normal };
 
@@ -35,9 +34,6 @@ class SoftApCoordinator {
     void blank_profile(bool value) {
         blank_profile_ = value;
     }
-    void request_manual_open() {
-        manual_open_ = true;
-    }
     void recovery(bool value) {
         recovery_ = value;
     }
@@ -61,7 +57,6 @@ class SoftApCoordinator {
     const AccessStore& access_;
     bool no_profile_ = false;
     bool blank_profile_ = false;
-    bool manual_open_ = false;
     bool recovery_ = false;
     bool station_usable_ = false;
     bool fallback_ = false;
@@ -73,19 +68,6 @@ class SoftApCoordinator {
     std::uint64_t grace_started_ms_ = 0;
     bool station_seen_ = false;
     bool grace_active_ = false;
-};
-
-// One uninterrupted, safe ten-second hold opens the AP. The first released
-// sample arms it so a stale press cannot open the AP at startup.
-class BootselSoftApHold {
-  public:
-    bool observe(bool safe, bool pressed, std::uint64_t now_ms);
-
-  private:
-    bool armed_ = false;
-    bool holding_ = false;
-    bool triggered_ = false;
-    std::uint64_t pressed_at_ms_ = 0;
 };
 
 class IndicatorOutput {

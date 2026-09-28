@@ -22,12 +22,10 @@ def validate(symbols, disassembly, expect_core1=False):
     elif any(present.values()):
         raise ValueError(f"Core-1 launch/reader linked into production image: {present}")
 
-    for symbol, required in (("sample_chip_select", not expect_core1),
+    for symbol, required in (("sample_chip_select", False),
                              ("capture_chip_select_gesture", expect_core1)):
         callback = [(address, kind) for address, kind, name in entries if symbol in name]
-        if expect_core1 and symbol == "sample_chip_select" and callback:
-            raise ValueError("Runtime sampler linked into core-1 diagnostic image")
-        wrong_count = len(callback) != 1 if required else len(callback) > 1
+        wrong_count = len(callback) != 1 if required else bool(callback)
         wrong_address = any(kind.lower() != "t" or not 0x20000000 <= address < 0x20082000
                             for address, kind in callback)
         if wrong_count or wrong_address:
@@ -40,11 +38,8 @@ def validate(symbols, disassembly, expect_core1=False):
                     r"\.word\s+0x10[0-3][0-9a-f]{5}\b", body[1]):
                 raise ValueError(f"BOOTSEL callback calls out or reads XIP: {symbol}")
 
-    sampler = any("sample_runtime_bootsel" in name for _, _, name in entries)
-    if expect_core1 and sampler:
-        raise ValueError("Runtime BOOTSEL sampler linked into core-1 diagnostic image")
-    if not expect_core1 and not sampler:
-        raise ValueError("Runtime BOOTSEL sampler is absent")
+    if any("sample_runtime_bootsel" in name for _, _, name in entries):
+        raise ValueError("Unsafe runtime BOOTSEL sampler linked into image")
 
 
 if __name__ == "__main__":
@@ -54,6 +49,6 @@ if __name__ == "__main__":
     symbols = subprocess.check_output(["arm-none-eabi-nm", sys.argv[1]], text=True)
     disassembly = subprocess.check_output(["arm-none-eabi-objdump", "-d", sys.argv[1]], text=True)
     validate(symbols, disassembly, expect_core1)
-    print("BOOTSEL topology: SRAM callback(s); " +
-          ("diagnostic core-1 flash reader linked" if expect_core1
-           else "no linked core-1 launcher/reader"))
+    print("BOOTSEL topology: " +
+          ("diagnostic SRAM gesture callback and core-1 reader linked" if expect_core1
+           else "no runtime sampler or core-1 reader linked"))

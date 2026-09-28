@@ -23,8 +23,9 @@ Use WsprryPico for project, repository and application naming; firmware artifact
   selects a captive SoftAP Wi-Fi page followed by optional station settings.
   Saving settings requires no button, code or retained phone owner. With saved
   credentials the AP is normally off during a healthy station connection; a
-  10-second runtime BOOTSEL hold and release opens it on demand in the idle
-  RF-inhibited image, and station loss brings it back. Safari is one possible
+  previously selected runtime BOOTSEL hold is withdrawn after a physical
+  failure, and station loss brings the AP back. A safe connected-station
+  opening path remains to be selected. Safari is one possible
   browser, not a required step. Source implementation exists, while target
   acceptance remains open. The earlier
   [Phase 12 field-access contract](development/phase12-field-access-contract.md)

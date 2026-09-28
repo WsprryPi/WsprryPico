@@ -1029,9 +1029,6 @@ void runtime_policy() {
     saved_ap.station(true, 61'001);
     CHECK(saved_ap.poll(91'000));
     CHECK(!saved_ap.poll(91'001));
-    saved_ap.request_manual_open();
-    CHECK(saved_ap.poll(91'002)); // Physical request stays open until reboot.
-
     provisioning::SoftApCoordinator blank_ap(store);
     blank_ap.no_profile(true);
     blank_ap.blank_profile(true);
@@ -1042,23 +1039,6 @@ void runtime_policy() {
     ap.no_profile(false);
     CHECK(ap.surface(false) == provisioning::SoftApSurface::ProvisionedPreClock);
     CHECK(ap.surface(true) == provisioning::SoftApSurface::Normal);
-
-    provisioning::BootselSoftApHold hold;
-    CHECK(!hold.observe(false, false, 0));
-    CHECK(!hold.observe(true, true, 50)); // An initial held sample cannot arm.
-    CHECK(!hold.observe(true, false, 100));
-    CHECK(!hold.observe(true, true, 200));
-    CHECK(!hold.observe(true, true, 10'199));
-    CHECK(hold.observe(true, true, 10'200)); // Full hold opens AP without precise release timing.
-    CHECK(!hold.observe(true, true, 10'300));
-    CHECK(!hold.observe(true, false, 10'400));
-    CHECK(!hold.observe(true, true, 11'000));
-    CHECK(!hold.observe(true, false, 11'500)); // A tap is not a long hold.
-    CHECK(!hold.observe(true, true, 12'000));
-    CHECK(!hold.observe(false, true, 20'000));
-    CHECK(!hold.observe(true, false, 22'500)); // Unsafe sample cancels the hold.
-    CHECK(!hold.observe(true, true, 23'000));
-    CHECK(hold.observe(true, false, 33'000)); // Release at ten seconds also qualifies.
 
     Led led;
     provisioning::IndicatorController indicator(led, std::string(device));

@@ -39,37 +39,10 @@ bool SoftApCoordinator::poll(std::uint64_t now_ms) {
         elapsed(now_ms, station_changed_ms_, softap_station_stable_ms) && !retained &&
         !field_mode && !recovery_)
         fallback_ = false;
-    requested_ = blank_profile_ || field_mode || recovery_ || fallback_ || retained || manual_open_;
+    requested_ = blank_profile_ || field_mode || recovery_ || fallback_ || retained;
     if (!requested_)
         ready_ = false;
     return requested_;
-}
-
-bool BootselSoftApHold::observe(bool safe, bool pressed, std::uint64_t now_ms) {
-    if (!safe) {
-        armed_ = false;
-        holding_ = false;
-        triggered_ = false;
-        return false;
-    }
-    if (!pressed) {
-        const bool completed = holding_ && !triggered_ && now_ms >= pressed_at_ms_ &&
-                               now_ms - pressed_at_ms_ >= softap_bootsel_hold_ms;
-        holding_ = false;
-        triggered_ = false;
-        armed_ = true;
-        return completed;
-    }
-    if (armed_ && !holding_) {
-        pressed_at_ms_ = now_ms;
-        holding_ = true;
-    }
-    if (holding_ && !triggered_ && now_ms >= pressed_at_ms_ &&
-        now_ms - pressed_at_ms_ >= softap_bootsel_hold_ms) {
-        triggered_ = true;
-        return true;
-    }
-    return false;
 }
 
 SoftApStatus SoftApCoordinator::status(std::uint64_t now_ms) const {

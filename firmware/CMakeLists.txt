@@ -66,9 +66,9 @@ target_link_libraries(WsprryPico PRIVATE
     tinyusb_device
 )
 
-# The standard RF-inhibited image must have no linked core-1 launcher. The
-# explicit diagnostic reverses only this link rule and disables mutations;
-# the physical core-1 press gate remains failed until a bounded target pass.
+# The standard RF-inhibited image must have no runtime BOOTSEL sampler or
+# linked core-1 launcher. The explicit diagnostic links only the bounded
+# whole-gesture callback and its core-1 flash reader.
 if(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC)
     add_custom_command(TARGET WsprryPico POST_BUILD
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_bootsel_topology.py

@@ -1,6 +1,7 @@
 # Phase 12 Safari setup revision and execution brief
 
-Status: **OPERATOR-SELECTED CONTRACT; SOURCE CANDIDATE; TARGET ACCEPTANCE OPEN**
+Status: **WI-FI-FIRST CONTRACT SELECTED; MANUAL AP ACTION REQUIRES REVISION;
+TARGET ACCEPTANCE OPEN**
 (2026-09-27). This decision supersedes the owner and physical-claim portions
 of the earlier [P12.7 decision](phase12-7-decision.md). The earlier design and
 failed physical claim attempts remain historical evidence.
@@ -8,20 +9,32 @@ failed physical claim attempts remain historical evidence.
 The 2026-09-27 Wi-Fi-first correction below supersedes this document's original
 single-screen wording. The filename is retained for existing links.
 
-## 2026-09-28 SoftAP lifetime correction
+## 2026-09-28 BOOTSEL long-hold correction
+
+After the reported physical 11-second BOOTSEL attempt, Candidate A's application
+USB serial was absent, its previous station address did not answer, and an
+RP2350 USB bootloader was present on the Pi. A serial-targeted bootloader read
+is still needed to bind that enumeration to Candidate A. The background sampler
+could return to flash execution while the button remained held; this is an
+unsafe implementation of the selected manual AP gesture. The source
+removes that sampler and the USB single-sample probe. Do not use a runtime
+BOOTSEL hold on the flashed image. Automatic AP startup for a blank profile
+and station-loss fallback remain selected. Opening an AP while station Wi-Fi
+is healthy needs a new, physically safe action and target acceptance before
+this contract can be considered complete.
+
+## 2026-09-28 SoftAP lifetime correction (manual gesture superseded)
 
 The open AP starts immediately when the profile journal has no saved Wi-Fi
 credentials. With a saved network and a usable station address, it is normally
 off. If the saved station is unusable for 60 seconds, the AP returns so the
 same Wi-Fi-first page can replace settings at a field site. Once station Wi-Fi
 has been stable for 30 seconds and no setup transaction or reply needs the AP,
-it withdraws. An idle RF-inhibited Pico can also open the AP on demand by
-holding runtime BOOTSEL for at least 10 seconds and then releasing it. That
-manual opening lasts until reboot. A two-short-flash LED pattern every two
+it withdraws. The previously selected manual BOOTSEL opening is superseded by
+the correction above. A two-short-flash LED pattern every two
 seconds marks an available AP; the three-flash Identify pattern remains
-distinct. The BOOTSEL hold opens the AP only; saving on the page still has no
-button step. The StandaloneRF worker image does not sample BOOTSEL at runtime
-because its second core reads flash.
+distinct. Saving on the page still has no button step. Neither production
+image samples BOOTSEL at runtime.
 
 The captive DNS responder maps ordinary A queries to `192.168.4.1`, and the
 HTTP service redirects foreign hosts to the local setup root. The automatic
@@ -84,7 +97,7 @@ explicitly accepts open-AP active page replacement and relay risk for this
 code-free, button-free local flow. No ordinary setup path grants RF authority.
 
 The open setup AP returns when a saved network cannot be joined at a field
-site, or after the manual BOOTSEL hold while connected. The local page and
+site. The local page and
 status must load without station association. A save
 still requires the candidate station network to associate and receive an IP
 address. The current full consumer commit also requires fresh trustworthy

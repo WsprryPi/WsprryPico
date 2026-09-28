@@ -347,10 +347,6 @@ int main() {
     softap_coordinator.blank_profile(runtime_profile.source() ==
                                      wsprrypico::provisioning::RuntimeSource::Unprovisioned);
     softap_coordinator.recovery(boot_recovery);
-#if !defined(WSPRRY_PICO_STANDALONE_RF) && !defined(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC)
-    static wsprrypico::provisioning::BootselSoftApHold softap_button_hold;
-    std::uint64_t last_softap_button_sample_ms = 0;
-#endif
     static wsprrypico::provisioning::PicoSoftAp softap;
     std::optional<wsprrypico::standalone::Config> runtime_network_config;
     if (store_loaded && store.config())
@@ -818,19 +814,6 @@ int main() {
             reboot_at = time_us_64() + 250'000;
             return "{\"ok\":true,\"rebooting\":true}\n";
         }
-        if (text == "BOOTSEL PROBE") {
-#ifdef WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
-            return "{\"ok\":false,\"error\":\"use_bootsel_window\"}\n";
-#else
-            if (!scheduler.idle() || engine.output_active())
-                return "{\"ok\":false,\"error\":\"not_idle\"}\n";
-            const auto sample = wsprrypico::provisioning::sample_runtime_bootsel();
-            return "{\"ok\":" + std::string(sample.safe ? "true" : "false") +
-                   ",\"pressed\":" + (sample.pressed ? "true" : "false") +
-                   ",\"elapsed_us\":" + std::to_string(sample.elapsed_us) +
-                   ",\"result\":" + std::to_string(sample.result) + "}\n";
-#endif
-        }
 #ifdef WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
         if (text == "BOOTSEL DIAG")
             return "{\"ok\":true,\"core1_ready\":" +
@@ -933,18 +916,6 @@ int main() {
         }
         if (gatt.running())
             gatt.poll();
-#if !defined(WSPRRY_PICO_STANDALONE_RF) && !defined(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC)
-        if (field_now_ms < last_softap_button_sample_ms ||
-            field_now_ms - last_softap_button_sample_ms >= 100) {
-            last_softap_button_sample_ms = field_now_ms;
-            const bool safe_to_sample = scheduler.idle() && !engine.output_active();
-            const auto button = safe_to_sample ? wsprrypico::provisioning::sample_runtime_bootsel()
-                                               : wsprrypico::provisioning::BootselSample{};
-            if (softap_button_hold.observe(safe_to_sample && button.safe, button.pressed,
-                                           field_now_ms))
-                softap_coordinator.request_manual_open();
-        }
-#endif
         softap_coordinator.station(network.link_up() && !network.ipv4().empty() &&
                                        network.ipv4() != "0.0.0.0",
                                    field_now_ms);

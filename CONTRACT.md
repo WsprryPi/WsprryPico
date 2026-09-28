@@ -31,9 +31,9 @@ implemented Pico surface. Shared WsprryPi adoption remains separate work.
   selects an open SoftAP portal with Wi-Fi first and optional station settings
   later. Saving settings requires no button or retained phone owner. A blank
   Pico starts its open AP automatically; a saved Pico normally keeps it off
-  while station Wi-Fi is healthy. Station loss brings the AP back, and an idle
-  RF-inhibited Pico can open it on demand after a 10-second BOOTSEL hold and
-  release. The earlier
+  while station Wi-Fi is healthy. Station loss brings the AP back. The earlier
+  runtime BOOTSEL hold design failed a physical long-hold check and has been
+  withdrawn pending a safe connected-station opening path. The earlier
   [P12.7 physical-owner decision](docs/development/phase12-7-decision.md) is
   historical; the revised portal is source-linked but not physically accepted.
   The native [Raspberry Pi/Linux BlueZ client](docs/development/raspberry-pi-ble-client.md)

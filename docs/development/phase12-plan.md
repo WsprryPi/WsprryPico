@@ -455,11 +455,11 @@ implementation milestone.
 
 | Milestone | Status | Outcome required to advance |
 | --- | --- | --- |
-| P12.7 — Consumer commissioning contract | **REVISED DESIGN SELECTED** | The [current decision](phase12-safari-open-setup-revision.md) selects immediate Wi-Fi fields, optional station details later, no press to save and no retained phone owner. The AP starts on a blank profile, returns after station loss, and can be opened by a 10-second runtime BOOTSEL hold on the idle RF-inhibited image. The [earlier owner decision](phase12-7-decision.md) is historical. |
+| P12.7 — Consumer commissioning contract | **REVISION REQUIRED FOR MANUAL AP OPENING** | The [current decision](phase12-safari-open-setup-revision.md) selects immediate Wi-Fi fields, optional station details later, no press to save and no retained phone owner. The AP starts on a blank profile and returns after station loss. A physical long hold coincided with lost Candidate A application service and an RP2350 ROM bootloader on the Pi, so the selected runtime BOOTSEL opener is withdrawn; choose a safe connected-station action. The [earlier owner decision](phase12-7-decision.md) is historical. |
 | P12.8 — Commissioning foundation | **SOURCE CANDIDATE; TARGET OPEN** | One-use encrypted AP setup, no-owner source-5 journal, generated TLS and atomic activation need final review and target proof. A different phone may submit a later update. |
 | P12.9 — Guided captive SoftAP setup | **SOURCE CANDIDATE; PHONE OPEN** | Wi-Fi fields and a password reveal control appear immediately on `/`; station settings are optional later on `/owner.html`. Verify real iPhone captive/browser behavior and failed/retried saves. |
 | P12.10 — RF-inhibited commissioning acceptance | **CLEAN IMAGE BOOT/AP WITHDRAWAL VERIFIED; PHONE OPEN** | The [clean Wi-Fi-first image](phase12-wifi-first-flash.md) booted on Candidate A with generation 2 and a healthy station; two Pi scans did not see its AP. Save Wi-Fi from the phone without a button, then separately save optional station settings and prove actual generations and readback. |
-| P12.11 — Recovery and fallback | **OPEN** | Prove healthy-station AP withdrawal, manual BOOTSEL opening, different-phone replacement, old-profile recovery, station-loss portal return, field-network operation, reset and full erase. No retained-owner recovery is required. |
+| P12.11 — Recovery and fallback | **OPEN** | Prove healthy-station AP withdrawal, select and verify a safe connected-station AP opening action, different-phone replacement, old-profile recovery, station-loss portal return, field-network operation, reset and full erase. No retained-owner recovery is required. |
 | P12.12 — Stage A robustness and closure | **OPEN** | Close fault, trust, resource, concurrency, soak, controller-time, LED and restoration rows and complete the final adversarial review. |
 
 ### Deferred station-network web page
@@ -506,7 +506,7 @@ rows remain open in the
 [target record](phase12-wifi-only-physical-result.md). The later working
 source temporarily kept that AP available for Safari upgrade after station
 join. The current candidate instead withdraws it on a healthy station and
-uses station-loss or manual BOOTSEL reopening; neither behavior is covered by
+uses station-loss reopening; that behavior is not covered by
 the installed-image result. This
 exception does not close the consumer owner,
 credential and recovery decisions in P12.7 or authorize P12.8–P12.12.
@@ -689,8 +689,7 @@ Finish the consumer lifecycle after first setup:
 
 - replace Wi-Fi and station settings from a different phone using their
   respective pages, without a physical action to save or a saved owner
-  credential; opening the AP while a station connection is healthy requires
-  the separate 10-second BOOTSEL hold on the idle RF-inhibited image;
+  credential; select a safe way to open the AP while station Wi-Fi is healthy;
 - prove the portal loads when saved station Wi-Fi is unavailable, including
   a field-site network change, and resolve the current fresh-SNTP requirement
   for networks without time service;

@@ -1,8 +1,32 @@
 # Immediate Safari setup source review
 
+## 2026-09-28 long-hold incident and source repair
+
+Status: **UNSAFE MANUAL BOOTSEL OPENER REMOVED IN SOURCE; TARGET RECOVERY AND
+SAFE CONNECTED-STATION OPENING OPEN**. The operator reported holding BOOTSEL
+for about 11 seconds without seeing the AP. A read-only `wspr5` check found
+Candidate A's application USB serial absent, no answer at its previous station
+address `192.168.1.47`, and one RP2350 USB bootloader enumerated. The
+bootloader has not yet been serial-bound to Candidate A. This is consistent
+with a reset while BOOTSEL was held, but the exact reset cause is unproven.
+
+Source review found that the 100 ms background sampler returned from its
+flash-safe callback after a short button sample, potentially resuming XIP
+while the physical BOOTSEL button still grounded flash chip select. The
+sampler, its manual-AP hold state, the single-sample USB diagnostic and its
+obsolete probe script are removed. The linked-image topology check now
+rejects a runtime sampler in both standard and core-1 diagnostic images.
+Blank-profile startup and station-loss fallback are unchanged. A safe way to
+open the AP while station Wi-Fi is healthy remains a product/target gate.
+
+After this repair, the full Xcode host run passed 89/89 tests and the pinned
+SDK 2.3.1 Pico 2 W RF-inhibited target linked with no runtime sampler or
+core-1 reader. This is source/build evidence only; no repaired image has yet
+been flashed or tested on the physical Pico.
+
 ## 2026-09-28 AP lifetime and replacement-save review
 
-Status: **SOURCE REVIEWED; CLEAN IMAGE BOOTED; PHONE ACCEPTANCE OPEN**. The
+Historical status: **SOURCE REVIEWED; CLEAN IMAGE BOOTED; PHONE ACCEPTANCE OPEN**. The
 current [setup contract](phase12-safari-open-setup-revision.md) now starts the
 open AP immediately only for an erased network profile. Saved network-only or
 consumer profiles keep it off during a healthy station connection, return it
