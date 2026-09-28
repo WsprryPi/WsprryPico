@@ -11,8 +11,8 @@
 <body>
   <header><strong>WsprryPico</strong><span>Wi-Fi setup</span></header>
   <main>
-    <h1>Connect this Pico to Wi-Fi</h1>
-    <p class="intro">Enter your network details to connect this Pico. Station settings can wait.</p>
+    <h1 id="page-title">Connect this Pico to Wi-Fi</h1>
+    <p id="setup-intro" class="intro">Enter your network details to connect this Pico. Station settings can wait.</p>
     <p id="device" class="device">Checking Pico identity…</p>
     <div id="notice" role="status" aria-live="polite">Checking this browser…</div>
 
@@ -50,9 +50,16 @@
       <p>The Pico is trying your network. Keep your phone connected to the Pico Wi-Fi while this page checks the result.</p>
     </section>
 
+    <section id="accepted" hidden>
+      <p>The Pico is applying your new Wi-Fi settings. Its setup Wi-Fi will close as it joins your network. This window should close automatically; if it stays open, tap X.</p>
+    </section>
+
+    <section id="unconfirmed" hidden>
+      <p>The Pico may have joined your network and closed its setup Wi-Fi. This page cannot confirm the result after losing contact. You can close this window; if setup Wi-Fi returns, reconnect and check.</p>
+    </section>
+
     <section id="connected" hidden>
-      <h2>Wi-Fi connected</h2>
-      <p>The Pico saved its Wi-Fi settings and joined the network. It will restart to use the saved setup.</p>
+      <p>The Pico saved the new Wi-Fi settings and joined your network. Its setup Wi-Fi will disconnect. If this window stays open, tap X.</p>
       <div class="form-actions">
         <button id="change-connected" type="button">Change Wi-Fi</button>
         <a href="/owner.html">Set station details after restart</a>
@@ -69,6 +76,12 @@
       <h2>Connection not saved</h2>
       <p>The Pico could not save this network. Check its name and password, then try again.</p>
       <button id="retry-button" type="button">Back to Wi-Fi settings</button>
+    </section>
+
+    <section id="interrupted" hidden>
+      <h2>Setup interrupted</h2>
+      <p>This page could not start or resume setup. It cannot tell whether an earlier attempt was saved. If the Pico setup Wi-Fi is still available, reconnect and try again.</p>
+      <button id="interrupted-button" type="button">Back to Wi-Fi settings</button>
     </section>
 
     <section id="unknown" hidden>
@@ -88,6 +101,6 @@
         <a href="http://192.168.4.1/">http://192.168.4.1/</a> in your regular browser.</p>
     </section>
   </main>
-  <footer>The Pico setup Wi-Fi is open. Your network details are encrypted by this page before they cross the connection.</footer>
+  <footer id="setup-footer">The Pico setup Wi-Fi is open. Your network details are encrypted by this page before they cross the connection.</footer>
 </body>
 </html>

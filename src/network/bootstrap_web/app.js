@@ -1,9 +1,14 @@
 import {available, begin, seal} from './crypto.js';
 
-const names = ['credentials', 'checking', 'connected', 'saved', 'retry', 'unknown', 'service', 'browser'];
+const names = ['credentials', 'checking', 'accepted', 'unconfirmed', 'connected',
+  'saved', 'retry', 'interrupted', 'unknown', 'service', 'browser'];
 const $ = (id) => document.getElementById(id);
 const show = (name) => {
   for (const section of names) $(section).hidden = section !== name;
+  $('page-title').textContent = name === 'accepted' ? 'Wi-Fi settings accepted' :
+    name === 'connected' ? 'Wi-Fi connected' : 'Connect this Pico to Wi-Fi';
+  $('setup-intro').hidden = name !== 'credentials';
+  $('setup-footer').hidden = name !== 'credentials';
 };
 const notice = (message, error = false) => {
   $('notice').textContent = message;
@@ -12,6 +17,7 @@ const notice = (message, error = false) => {
 const host = 'http://192.168.4.1';
 let deviceId, pending, started, sealed, expectedGeneration, currentGeneration;
 let polling = false, acknowledging = false, completed = false, saving = false;
+let postAccepted = false, responseLost = false;
 let lastTimeHintMs;
 const hexId = (value) => typeof value === 'string' && /^[0-9a-f]{32}$/.test(value);
 const hasSavedNetwork = (status) =>
@@ -79,8 +85,19 @@ function setPasswordVisible(visible) {
 function clearAttempt() {
   pending?.secretKey?.fill(0);
   pending = started = sealed = expectedGeneration = undefined;
+  postAccepted = responseLost = false;
   $('password').value = '';
   setPasswordVisible(false);
+}
+
+function showAccepted() {
+  show('accepted');
+  notice('The Pico accepted your new Wi-Fi settings. It is joining your network.');
+}
+
+function showUnconfirmed() {
+  show('unconfirmed');
+  notice('The page lost contact before the Pico confirmed the Wi-Fi change.');
 }
 
 async function acknowledge() {
@@ -98,8 +115,12 @@ async function acknowledge() {
 async function update() {
   if (polling) return;
   polling = true;
+  const attemptAtStart = sealed;
   try {
+    if (saving) return;
     const status = await json('/api/bootstrap/v1/status');
+    // A status request started before the POST can describe the old slot.
+    if (saving || attemptAtStart !== sealed) return;
     if (!Number.isSafeInteger(status.generation) || status.generation < 0)
       throw new Error('invalid generation');
     currentGeneration = status.generation;
@@ -122,14 +143,19 @@ async function update() {
         clearAttempt();
         show('unknown');
         notice('The Pico has a saved network, but this page cannot verify this attempt.', true);
-      } else if (status.slot_state === 'terminal') {
+      } else if (status.slot_state === 'terminal' &&
+                 status.request_id_digest === sealed.requestDigest) {
         clearAttempt();
         show('retry');
         notice('The Wi-Fi connection was not saved. Check the details and try again.', true);
-      } else if (status.slot_state === 'none' && !saving) {
+      } else if (status.slot_state === 'none' && !postAccepted && !responseLost) {
         clearAttempt();
         show('unknown');
         notice('This page cannot verify the save. Reconnect to the Pico Wi-Fi and check again.', true);
+      } else if (postAccepted) {
+        showAccepted();
+      } else if (responseLost) {
+        showUnconfirmed();
       } else {
         show('checking');
         notice('Trying your network and checking the saved result.');
@@ -150,7 +176,9 @@ async function update() {
       notice('Wi-Fi setup is unavailable on this Pico.', true);
     }
   } catch {
-    if (sealed) {
+    if (!saving && sealed && postAccepted) showAccepted();
+    else if (!saving && sealed && responseLost) showUnconfirmed();
+    else if (!saving && sealed) {
       show('checking');
       notice('Checking the saved result. Reconnect to the Pico Wi-Fi if needed.');
     }
@@ -191,6 +219,7 @@ async function submit(event) {
     $('password').value = '';
     setPasswordVisible(false);
     completed = false;
+    postAccepted = responseLost = false;
     show('checking');
     notice('Trying your network and checking the saved result.');
     // Reconcile a lost response by the exact request digest; never replay this POST.
@@ -199,14 +228,22 @@ async function submit(event) {
       clearAttempt();
       show('retry');
       notice('The Wi-Fi connection was not saved. Check the details and try again.', true);
+    } else if (result.state === 'checking' &&
+               result.request_id_digest === sealed.requestDigest) {
+      postAccepted = true;
+      showAccepted();
+    } else {
+      responseLost = true;
+      showUnconfirmed();
     }
   } catch {
+    if (completed || postAccepted) return;
     if (sealed) {
-      show('checking');
-      notice('Checking the saved result. Keep this page open.');
+      responseLost = true;
+      showUnconfirmed();
     } else {
       clearAttempt();
-      show('retry');
+      show('interrupted');
       notice('Could not start Wi-Fi setup. Wait a moment, then try again.', true);
     }
   } finally {
@@ -228,6 +265,7 @@ async function boot() {
   $('change-connected').addEventListener('click', change);
   $('change-saved').addEventListener('click', change);
   $('retry-button').addEventListener('click', change);
+  $('interrupted-button').addEventListener('click', change);
   $('unknown-button').addEventListener('click', () => location.reload());
   $('wifi-form').addEventListener('submit', submit);
   if (location.origin !== host || typeof fetch !== 'function' ||
@@ -244,7 +282,7 @@ async function boot() {
     show('credentials');
     update();
   } catch {
-    show('retry');
+    show('interrupted');
     notice('Could not read the Pico identity. Reconnect to its Wi-Fi and reload.', true);
   }
 }
