@@ -13,8 +13,10 @@
 
 #include <array>
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <optional>
+#include <string_view>
 #include <vector>
 
 extern "C" void wsprry_cyw43_tx_diagnostics(uint32_t* waits, uint32_t* preserved,
@@ -30,6 +32,9 @@ static watchdog_hw_t watchdog{};
 watchdog_hw_t* watchdog_hw = &watchdog;
 static std::uint64_t now_us;
 static unsigned enables, disables, driver_polls, delivered_goodbyes, lost_goodbyes;
+static unsigned station_service_ptr, station_service_goodbye, ap_service_ptr;
+static unsigned station_plain_txt, station_tls_txt;
+static unsigned station_service_port;
 static unsigned connect_calls;
 static unsigned leave_calls;
 static std::optional<int> forced_link_status;
@@ -50,7 +55,20 @@ extern "C" u32_t sys_now() {
 static unsigned read16(const unsigned char* p) {
     return (p[0] << 8) | p[1];
 }
-static err_t output(netif*, pbuf* packet, const ip4_addr_t*) {
+static bool domain_is(const mdns_domain& actual, std::string_view name) {
+    unsigned offset = 0;
+    while (!name.empty()) {
+        const auto dot = name.find('.');
+        const auto label = name.substr(0, dot);
+        if (offset + label.size() + 1 >= actual.length || actual.name[offset] != label.size() ||
+            std::memcmp(actual.name + offset + 1, label.data(), label.size()) != 0)
+            return false;
+        offset += label.size() + 1;
+        name = dot == std::string_view::npos ? std::string_view{} : name.substr(dot + 1);
+    }
+    return offset + 1 == actual.length && actual.name[offset] == 0;
+}
+static err_t output(netif* interface, pbuf* packet, const ip4_addr_t*) {
     std::vector<unsigned char> bytes(packet->tot_len);
     pbuf_copy_partial(packet, bytes.data(), bytes.size(), 0);
     assert(bytes.size() >= 20 && (bytes[0] >> 4) == 4);
@@ -78,6 +96,36 @@ static err_t output(netif*, pbuf* packet, const ip4_addr_t*) {
         const auto length = read16(dns + end + 8);
         assert(end + 10 + length <= dns_size);
         const bool positive = dns[end + 4] | dns[end + 5] | dns[end + 6] | dns[end + 7];
+        if (read16(dns + end) == 12 && domain_is(name, "_wtp._tcp.local")) {
+            mdns_domain instance{};
+            assert(mdns_readname(message, end + 10, &instance) != MDNS_READNAME_ERROR);
+            assert(domain_is(instance, "pico-a._wtp._tcp.local"));
+            if (interface == &cyw43_state.netif[CYW43_ITF_AP])
+                ++ap_service_ptr;
+            else {
+                ++station_service_ptr;
+                if (!positive)
+                    ++station_service_goodbye;
+            }
+        }
+        if (interface == &cyw43_state.netif[CYW43_ITF_STA] &&
+            domain_is(name, "pico-a._wtp._tcp.local")) {
+            if (read16(dns + end) == 33) {
+                assert(length >= 8);
+                station_service_port = read16(dns + end + 14);
+            } else if (read16(dns + end) == 16) {
+                const auto* txt = dns + end + 10;
+                assert(length >= 11 && txt[0] == 9 && std::memcmp(txt + 1, "txtvers=1", 9) == 0);
+                if (length == 1 + 9 + 1 + 13 && txt[10] == 13 &&
+                    std::memcmp(txt + 11, "binding=plain", 13) == 0)
+                    ++station_plain_txt;
+                else if (length == 1 + 9 + 1 + 11 && txt[10] == 11 &&
+                         std::memcmp(txt + 11, "binding=tls", 11) == 0)
+                    ++station_tls_txt;
+                else
+                    assert(false);
+            }
+        }
         if (read16(dns + end) == 1 && positive) {
             assert(length == 4 && read16(dns + end + 2) == 0x8001);
             positive_addresses.push_back(
@@ -239,6 +287,11 @@ int main(int argc, char** argv) {
     assert(network.set_enabled(false) && disables == disables_before_off + 1);
     assert(network.set_enabled(true));
     active(network);
+    assert(station_service_ptr == 0);
+    network.wtp_listener_status(PicoNetwork::WtpBinding::Plain, 31417);
+    assert(network.status().find("\"mdns_state\":\"withdrawing\"") != std::string::npos);
+    advance(network, 4'000'000);
+    assert(station_service_ptr && station_plain_txt && station_service_port == 31417);
     ip4_addr_t ap_address{}, ap_mask{}, ap_gateway{};
     IP4_ADDR(&ap_address, 192, 168, 4, 1);
     IP4_ADDR(&ap_mask, 255, 255, 255, 0);
@@ -250,8 +303,20 @@ int main(int argc, char** argv) {
     assert(!network.softap_name(true, "wsprrypico-0a60df.local"));
     advance(network, 5'000'000);
     assert(network.softap_name(true, "wsprrypico-0a60df.local"));
+    assert(ap_service_ptr == 0);
     assert(!network.softap_name(false, {}));
     netif_remove(&cyw43_state.netif[CYW43_ITF_AP]);
+    const auto ptr_before_switch = station_service_ptr;
+    network.wtp_listener_status(PicoNetwork::WtpBinding::Tls, 42424);
+    advance(network, 4'000'000);
+    assert(station_service_goodbye && station_service_ptr > ptr_before_switch && station_tls_txt &&
+           station_service_port == 42424);
+    const auto goodbyes_before_stop = station_service_goodbye;
+    const auto ptr_before_stop = station_service_ptr;
+    network.wtp_listener_status(PicoNetwork::WtpBinding::None, 0);
+    advance(network, 4'000'000);
+    assert(station_service_goodbye == goodbyes_before_stop + 1);
+    assert(station_service_ptr == ptr_before_stop + 1);
     watchdog_hw->scratch[1] = 5;
     assert(network.association() == "{\"valid\":true,\"bssid\":\"42:98:b5:fe:36:a1\"}");
     assert(watchdog_hw->scratch[1] == 5);
@@ -338,12 +403,15 @@ int main(int argc, char** argv) {
     const auto before = now_us;
     const auto down = disables;
     const auto polls = driver_polls;
+    const auto delivered_before_off = delivered_goodbyes;
+    const auto lost_before_off = lost_goodbyes;
     assert(network.set_enabled(false));
     assert(now_us == before && disables == down && queued_goodbye && !network.link_up());
     assert(network.status().find("\"withdrawal_pending\":true") != std::string::npos);
     assert(network.status().find("\"mdns_state\":\"withdrawing\"") != std::string::npos);
     advance(network, 100'000);
-    assert(delivered_goodbyes == 1 && !lost_goodbyes && driver_polls > polls);
+    assert(delivered_goodbyes == delivered_before_off + 1 && lost_goodbyes == lost_before_off &&
+           driver_polls > polls);
     // Duplicate OFF neither resends nor extends the deadline.
     assert(network.set_enabled(false));
     advance(network, 899'999);

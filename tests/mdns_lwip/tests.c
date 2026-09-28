@@ -16,6 +16,10 @@
 
 static u32_t now_ms;
 static unsigned successes, conflicts, packets, answers, zero_ttl;
+static unsigned service_ptr, service_srv, service_txt, service_goodbyes;
+static unsigned service_srv_goodbyes, service_txt_goodbyes;
+static const char* expected_binding;
+static unsigned expected_port;
 static unsigned char last_address[4];
 static unsigned char dns_packet[1500];
 static size_t dns_size;
@@ -29,6 +33,21 @@ static unsigned read16(const unsigned char* p) {
 static void put16(unsigned char* p, unsigned n) {
     p[0] = n >> 8;
     p[1] = n;
+}
+static int domain_is(const struct mdns_domain* actual, const char* name) {
+    unsigned offset = 0;
+    while (*name) {
+        const char* dot = strchr(name, '.');
+        const size_t length = dot ? (size_t)(dot - name) : strlen(name);
+        if (offset + length + 1 >= actual->length || actual->name[offset] != length ||
+            memcmp(actual->name + offset + 1, name, length) != 0)
+            return 0;
+        offset += length + 1;
+        name += length;
+        if (*name == '.')
+            ++name;
+    }
+    return offset + 1 == actual->length && actual->name[offset] == 0;
 }
 static void result(struct netif* interface, u8_t outcome, s8_t slot) {
     (void)interface;
@@ -57,7 +76,9 @@ static err_t output(struct netif* interface, struct pbuf* p, const ip4_addr_t* d
     dns_size = p->tot_len - offset;
     memcpy(dns_packet, bytes + offset, dns_size);
     ++packets;
-    count = read16(dns_packet + 6);
+    if (!(dns_packet[2] & 0x80))
+        return ERR_OK; // Probes carry proposed records in the authority section.
+    count = read16(dns_packet + 6) + read16(dns_packet + 8) + read16(dns_packet + 10);
     if (!count)
         return ERR_OK; // probes are exercised but have no answer section.
     assert((dns_packet[2] & 0x84) == 0x84);
@@ -69,11 +90,43 @@ static err_t output(struct netif* interface, struct pbuf* p, const ip4_addr_t* d
         assert(dns);
         pbuf_take(dns, dns_packet, dns_size);
         end = mdns_readname(dns, offset, &domain);
-        pbuf_free(dns);
         assert(end != MDNS_READNAME_ERROR && end + 10 <= dns_size);
         type = read16(dns_packet + end);
         length = read16(dns_packet + end + 8);
         assert(end + 10 + length <= dns_size);
+        if (expected_binding && domain_is(&domain, "_wtp._tcp.local") && type == 12) {
+            struct mdns_domain instance = {0};
+            assert(mdns_readname(dns, end + 10, &instance) != MDNS_READNAME_ERROR);
+            assert(domain_is(&instance, "pico-a._wtp._tcp.local"));
+            ++service_ptr;
+            if (!(dns_packet[end + 4] | dns_packet[end + 5] | dns_packet[end + 6] |
+                  dns_packet[end + 7]))
+                ++service_goodbyes;
+        }
+        if (expected_binding && domain_is(&domain, "pico-a._wtp._tcp.local")) {
+            if (type == 33) {
+                struct mdns_domain target = {0};
+                assert(length >= 8 && read16(dns_packet + end + 14) == expected_port);
+                assert(mdns_readname(dns, end + 16, &target) != MDNS_READNAME_ERROR);
+                assert(domain_is(&target, "pico-a.local"));
+                ++service_srv;
+                if (!(dns_packet[end + 4] | dns_packet[end + 5] | dns_packet[end + 6] |
+                      dns_packet[end + 7]))
+                    ++service_srv_goodbyes;
+            } else if (type == 16) {
+                const unsigned char* txt = dns_packet + end + 10;
+                const size_t binding_length = strlen(expected_binding);
+                assert(length == 1 + 9 + 1 + binding_length);
+                assert(txt[0] == 9 && memcmp(txt + 1, "txtvers=1", 9) == 0);
+                assert(txt[10] == binding_length &&
+                       memcmp(txt + 11, expected_binding, binding_length) == 0);
+                ++service_txt;
+                if (!(dns_packet[end + 4] | dns_packet[end + 5] | dns_packet[end + 6] |
+                      dns_packet[end + 7]))
+                    ++service_txt_goodbyes;
+            }
+        }
+        pbuf_free(dns);
         if (type == 1) {
             assert(length == 4);
             assert(read16(dns_packet + end + 2) & 0x8000); // Cache flush.
@@ -124,6 +177,16 @@ static unsigned query(unsigned char* data, int truncated) {
     data[5] = 1;
     memcpy(data + 12, name, sizeof(name));
     put16(data + 12 + sizeof(name), 1);
+    put16(data + 14 + sizeof(name), 1);
+    return 16 + sizeof(name);
+}
+static unsigned service_query(unsigned char* data) {
+    static const unsigned char name[] = {4,   '_', 'w', 't', 'p', 4,   '_', 't', 'c',
+                                         'p', 5,   'l', 'o', 'c', 'a', 'l', 0};
+    memset(data, 0, 64);
+    data[5] = 1;
+    memcpy(data + 12, name, sizeof(name));
+    put16(data + 12 + sizeof(name), 12);
     put16(data + 14 + sizeof(name), 1);
     return 16 + sizeof(name);
 }
@@ -310,6 +373,44 @@ int main(void) {
         assert(lwip_stats.mem.used == memory);
         assert(lwip_stats.memp[MEMP_SYS_TIMEOUT]->used == timeout_count);
     }
+    // The actual pinned responder must publish and withdraw the full DNS-SD
+    // browse chain, with the listener port in SRV and exactly two TXT keys.
+    expected_binding = "binding=plain";
+    expected_port = 31417;
+    assert(wsprry_mdns_add(&interface, "pico-a") == ERR_OK);
+    assert(wsprry_mdns_add_wtp_service(&interface, "pico-a", 0, "plain") == ERR_VAL);
+    assert(wsprry_mdns_add_wtp_service(&interface, "pico-a", 31417, "bogus") == ERR_VAL);
+    count = 0;
+    while (count < 512 && (allocations[count] = mem_malloc(64)))
+        ++count;
+    assert(wsprry_mdns_add_wtp_service(&interface, "pico-a", 31417, "plain") == ERR_MEM);
+    while (count)
+        mem_free(allocations[--count]);
+    lwip_stats.mem.max = lwip_stats.mem.used; // Exclude deliberate service-allocation exhaustion.
+    assert(wsprry_mdns_add_wtp_service(&interface, "pico-a", 31417, "plain") == ERR_OK);
+    advance(5000);
+    assert(service_ptr && service_srv && service_txt);
+    before = service_ptr;
+    count = service_query(data);
+    receive(&interface, data, count);
+    advance(1000);
+    assert(service_ptr > before);
+    before = service_goodbyes;
+    assert(wsprry_mdns_withdraw(&interface) == ERR_OK);
+    assert(service_goodbyes == before + 1);
+    assert(service_srv_goodbyes == 1 && service_txt_goodbyes == 1);
+    wsprry_mdns_remove(&interface, 0);
+    assert(lwip_stats.mem.used == memory);
+    expected_binding = "binding=tls";
+    expected_port = 42424;
+    assert(wsprry_mdns_add(&interface, "pico-a") == ERR_OK);
+    assert(wsprry_mdns_add_wtp_service(&interface, "pico-a", 42424, "tls") == ERR_OK);
+    before = service_txt;
+    advance(5000);
+    assert(service_txt > before);
+    wsprry_mdns_remove(&interface, 0);
+    assert(lwip_stats.mem.used == memory);
+    expected_binding = NULL;
     // Local send failure is observable and does not leak retained registration.
     assert(wsprry_mdns_add(&interface, "pico-a") == ERR_OK);
     advance(2000);
@@ -326,7 +427,8 @@ int main(void) {
     assert(lwip_stats.mem.used == memory);
     assert(lwip_stats.memp[MEMP_SYS_TIMEOUT]->used == timeout_count);
     fail_mdns_output = 0;
-    printf("actual pinned lwIP mDNS passed: host=%zu packet=%zu, heap peak=%u, timers peak=%u, "
+    printf("actual pinned lwIP mDNS passed: host=%zu packet=%zu, post-fault heap peak=%u, timers "
+           "peak=%u, "
            "UDP=%u\n",
            wsprry_mdns_host_bytes(), wsprry_mdns_packet_bytes(), lwip_stats.mem.max,
            lwip_stats.memp[MEMP_SYS_TIMEOUT]->max, lwip_stats.memp[MEMP_UDP_PCB]->used);

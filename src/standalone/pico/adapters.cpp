@@ -251,7 +251,33 @@ bool PicoNetwork::initialize() {
 }
 bool PicoNetwork::add(std::string_view label) {
     const std::string owned(label);
-    return wsprry_mdns_add(&cyw43_state.netif[CYW43_ITF_STA], owned.c_str()) == ERR_OK;
+    auto* station = &cyw43_state.netif[CYW43_ITF_STA];
+    if (wsprry_mdns_add(station, owned.c_str()) != ERR_OK)
+        return false;
+    if (wtp_binding_ != WtpBinding::None &&
+        wsprry_mdns_add_wtp_service(station, owned.c_str(), static_cast<u16_t>(wtp_port_),
+                                    wtp_binding_ == WtpBinding::Plain ? "plain" : "tls") !=
+            ERR_OK) {
+        wsprry_mdns_remove(station, 0);
+        return false;
+    }
+    return true;
+}
+void PicoNetwork::wtp_listener_status(WtpBinding binding, unsigned port) {
+    if (binding == WtpBinding::None || port == 0 || port > 65535) {
+        binding = WtpBinding::None;
+        port = 0;
+    }
+    if (binding == wtp_binding_ && port == wtp_port_)
+        return;
+    wtp_binding_ = binding;
+    wtp_port_ = port;
+    if (withdrawal_started_us_ || service_withdrawal_started_us_)
+        return;
+    if (mdns_.withdraw(link_up()))
+        service_withdrawal_started_us_ = time_us_64();
+    else
+        mdns_.disable(false);
 }
 void PicoNetwork::remove(bool goodbye) {
     wsprry_mdns_remove(&cyw43_state.netif[CYW43_ITF_STA], goodbye);
@@ -338,6 +364,7 @@ void PicoNetwork::stop_network_only_trial() {
     sntp_.cancel();
     lookup_.link(false);
     mdns_.disable(false);
+    service_withdrawal_started_us_.reset();
     if (enabled_)
         cyw43_arch_disable_sta_mode();
     if (pcb_)
@@ -454,6 +481,7 @@ void PicoNetwork::poll() {
         if (link != CYW43_LINK_UP || now - *withdrawal_started_us_ >= 1'000'000ULL) {
             watchdog_hw->scratch[1] = 15;
             mdns_.disable(false);
+            service_withdrawal_started_us_.reset();
             watchdog_hw->scratch[1] = 16;
             trace_mark(4); // Before station disable.
             cyw43_arch_disable_sta_mode();
@@ -471,6 +499,11 @@ void PicoNetwork::poll() {
     const auto* station = &cyw43_state.netif[CYW43_ITF_STA];
     if (wsprry_mdns_network_changed())
         mdns_.network_changed();
+    if (service_withdrawal_started_us_ &&
+        (!link_up() || now - *service_withdrawal_started_us_ >= 1'000'000ULL)) {
+        mdns_.disable(false);
+        service_withdrawal_started_us_.reset();
+    }
     mdns_.poll(enabled_ && listening_ && link_up(),
                link_up() ? ip4_addr_get_u32(netif_ip4_addr(station)) : 0, now);
     if (link != CYW43_LINK_UP) {

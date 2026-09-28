@@ -32,6 +32,7 @@ class PicoAccessMedia final : public provisioning::AccessMedia {
 };
 class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter {
   public:
+    enum class WtpBinding { None, Plain, Tls };
     PicoNetwork(time::ObservationSink& clock, std::string_view configured_hostname);
     bool start(const Config& config);
     bool start_network_only(std::string_view ssid, std::string_view password,
@@ -79,6 +80,8 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
         if (!identity_matches)
             mdns_.identity_failure();
     }
+    // Reflect the admitted station WTP listener, independently of HTTPS/SoftAP.
+    void wtp_listener_status(WtpBinding binding, unsigned port);
 
   private:
 #ifndef WSPRRY_PICO_STANDALONE_RF
@@ -124,6 +127,9 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     bool resume_after_withdrawal_ = false;
     bool configured_ = false, listening_ = false;
     bool identity_matches_ = true;
+    WtpBinding wtp_binding_ = WtpBinding::None;
+    unsigned wtp_port_ = 0;
+    std::optional<std::uint64_t> service_withdrawal_started_us_;
     std::string softap_hostname_;
     bool mdns_initialized_ = false;
     bool softap_mdns_registered_ = false;

@@ -1,7 +1,8 @@
-# WTP DNS-SD discovery profile (proposal)
+# WTP DNS-SD discovery profile
 
-Status: proposed, not implemented or registered. This document defines a
-candidate discovery profile for the device-neutral [WTP/1 protocol](WTP.md).
+Status: implemented in WsprryPico for public beta; the service name and port
+are requested but not yet registered. This document defines the discovery
+profile for the device-neutral [WTP/1 protocol](WTP.md).
 It does not change WTP frames, USB CDC, TCP admission, or transmitter authority.
 Initial releases may ship before IANA approves the requested name and port. If
 such a release advertises `_wtp._tcp.local.` or uses TCP port 31417, those
@@ -44,7 +45,7 @@ IANA **Reference** field:
 > the listener and the TXT record identifies its binding. This WTP is distinct
 > from the historical Wireless Transaction Protocol.
 
-Public references for the form after this change has been pushed:
+Public references for the form:
 
 - WTP specification: <https://github.com/WsprryPi/WsprryPico/blob/devel/docs/protocol/WTP.md>
 - DNS-SD profile and defined TXT keys: <https://github.com/WsprryPi/WsprryPico/blob/devel/docs/protocol/WTP-DNS-SD.md>
@@ -59,7 +60,7 @@ local link would browse `_wtp._tcp.local.`. The name describes the WTP service,
 not WsprryPico hardware;
 another WTP server may use the same service type. This profile covers mDNS on
 operational local links. It does not specify discovery across routed links.
-WsprryPico would advertise only on its infrastructure station link, never on
+WsprryPico advertises only on its infrastructure station link, never on
 its provisioning SoftAP.
 Multicast is used only by mDNS discovery on those links; WTP control traffic
 uses the discovered TCP endpoint. No UDP service name or dedicated port is
@@ -70,16 +71,16 @@ explicitly selected TCP binding. If an implementation supports both TLS and
 Plain LAN listeners under its applicable
 [WTP transport contract](WTP.md#13-transport-bindings-and-trust),
 they need separate instances with their own SRV ports and TXT binding values.
-This discovery proposal alone does not make Plain LAN a conforming binding.
+Discovery alone does not make Plain LAN a conforming binding.
 The instance label is a user-facing name; clients must not treat it as a
 durable device identifier.
 
 ## Advertisement lifecycle
 
-An implementation of this proposed profile would advertise an instance only
+An implementation of this profile advertises an instance only
 on an operational interface where its WTP/TCP listener is actually bound and
 admitting connections, after its product-specific readiness gates pass. It
-would withdraw the instance when the listener stops, the interface or address
+withdraws the instance when the listener stops, the interface or address
 is lost, or admission closes. WsprryPico must not publish its WTP listener on
 SoftAP. A cached DNS-SD result may outlive withdrawal, so a client must handle
 failed connections and remove stale candidates from its live
@@ -113,7 +114,7 @@ not be silently replaced on the strength of discovery or `HELLO` alone.
 
 ## TXT format, version 1
 
-The proposed TXT format defines two required keys, with ASCII values:
+TXT format version 1 defines two required keys, with ASCII values:
 
 | Key | Value | Meaning |
 |---|---|---|

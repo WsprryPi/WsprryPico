@@ -2,7 +2,8 @@
 
 The [shared identity contract](phase11-3-identity.md) selects one certified IPv4
 station hostname. Discovery runs only on core 0 in the existing foreground
-CYW43/lwIP context. There is no DNS-SD service advertisement or discovery client.
+CYW43/lwIP context. The later WTP DNS-SD extension advertises an admitted
+station WTP listener as described below; there is no discovery client in firmware.
 The stable default uses the final six hexadecimal digits of the station MAC
 read by the Pico after Wi-Fi initialization: `wsprrypico-0a60df.local`, for
 example. It is empty before a valid MAC read. The full WTP ID independently
@@ -79,6 +80,29 @@ Already cached remote records can remain until their TTL expires. Recovery boot
 does not initialize Wi-Fi, TLS or mDNS. Network-control-disabled builds allocate
 no mDNS PCB or host helper and make no discovery announcements.
 
+## WTP DNS-SD beta extension
+
+The same pinned responder publishes `_wtp._tcp.local.` on the station netif
+when an admitted WTP/TCP listener is active. It uses the station hostname label
+as the instance name, the actual listener port in SRV, and exactly two TXT
+entries: `txtvers=1` followed by `binding=tls` or `binding=plain`. The TXT version
+does not version WTP/1. No WTP service is registered on the provisioning SoftAP.
+See the [DNS-SD profile](../protocol/WTP-DNS-SD.md) for client and trust rules.
+
+The foreground loop observes the listener after the server polls. A change to
+the binding or port, or loss of admission, sends a zero-TTL service PTR goodbye
+with zero-TTL SRV/TXT additions while the station is usable, drains for one
+second, removes the old responder registration, and reprobes the current
+hostname and service. Link or address loss quiesces the responder immediately.
+If service allocation fails, registration is rolled back and the existing mDNS
+failure state is reported; no partial service is announced. The one-service
+limit matches the product's selected single WTP/TCP binding.
+
+Pinned lwIP host tests inspect the emitted PTR, SRV target/port, TXT bytes and
+service goodbye; adapter tests exercise station-only registration, binding/port
+changes and removal. These tests do not establish physical Pico/CYW43 multicast
+delivery or receiver cache behavior.
+
 ## Resource bounds and measurements
 
 The firmware keeps its 32,768-byte lwIP heap and eight-packet pool. mDNS adds one
@@ -88,7 +112,9 @@ with three bounded group slots, and eight timeout slots beyond
 two truncated-question slots. The responder keeps at most two incoming packets,
 each admitted only up to 1,472 payload bytes. Output payload allocation is 512
 bytes plus lwIP headers/metadata. `MDNS_MAX_SERVICES=1` preserves standard arrays
-in upstream structures, but no service object is allocated. Search is disabled.
+in upstream structures. The original hostname-only measurements below allocated
+no service object; the WTP extension allocates one while the listener is
+advertised. Search is disabled.
 The fixed pools and packet parser bound memory use; hostile traffic can still
 consume core-0 time, which remains a physical contention gate in 11.5.
 

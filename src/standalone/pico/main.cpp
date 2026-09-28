@@ -1082,6 +1082,20 @@ int main() {
         server.poll(network.link_up(), softap.ready(),
                     station_ip + (server.port() == 443 ? "" : ":" + std::to_string(server.port())),
                     softap_authority, surface, allow_http_steps);
+        auto wtp_binding = wsprrypico::standalone::PicoNetwork::WtpBinding::None;
+        unsigned wtp_port = 0;
+        if (station_ready && server.admission_open() && local_wtp_time_ready &&
+            clock_now.state != wsprrypico::wtp::ClockState::Unsynchronized &&
+            clock_now.utc_now_ns != 0) {
+            if (plain_lan_wtp && server.plain_listening()) {
+                wtp_binding = wsprrypico::standalone::PicoNetwork::WtpBinding::Plain;
+                wtp_port = server.plain_port();
+            } else if (!plain_lan_wtp && server.listening() && (!local_wtp || tls_lan_wtp)) {
+                wtp_binding = wsprrypico::standalone::PicoNetwork::WtpBinding::Tls;
+                wtp_port = server.port();
+            }
+        }
+        network.wtp_listener_status(wtp_binding, wtp_port);
         service.poll();
         watchdog_hw->scratch[1] = 5;
 #ifdef WSPRRY_PICO_STANDALONE_RF

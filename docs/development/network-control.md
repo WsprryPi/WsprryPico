@@ -289,6 +289,12 @@ Resolve the duplicate device/name, then explicitly retry with idle Console
 or establish inactive output. See the [shared identity contract](phase11-3-identity.md)
 and [responder implementation](mdns-responder.md).
 
+An admitted WTP/TCP listener also advertises `_wtp._tcp.local.` on the station
+interface. Its SRV record carries the current listener port; TXT carries
+`txtvers=1` and the selected `binding`. SoftAP does not publish this service.
+Listener or binding changes withdraw the old instance before reprobe. See the
+[WTP DNS-SD profile](../protocol/WTP-DNS-SD.md).
+
 Linux clients need functioning system `.local` resolution, such as a properly
 configured Avahi/NSS mDNS integration or systemd-resolved mDNS on the active link.
 Check `getent ahostsv4 <hostname>` and, where installed, `resolvectl query <hostname>`

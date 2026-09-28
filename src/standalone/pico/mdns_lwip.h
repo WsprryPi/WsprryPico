@@ -8,6 +8,10 @@ extern "C" {
 // One IPv4 station, one boot-long PCB. No socket or hardware dependency.
 err_t wsprry_mdns_init(mdns_name_result_cb_t callback);
 err_t wsprry_mdns_add(struct netif* interface, const char* label);
+// Add one WTP/TCP instance to an already registered station hostname.
+// binding is exactly "plain" or "tls"; the SRV record carries port.
+err_t wsprry_mdns_add_wtp_service(struct netif* interface, const char* instance, u16_t port,
+                                  const char* binding);
 // Quiesce replies and submit one goodbye, retaining membership/netif resources.
 // Success is local stack submission, not radio transmission or peer delivery.
 err_t wsprry_mdns_withdraw(struct netif* interface);

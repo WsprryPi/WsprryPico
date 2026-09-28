@@ -3,8 +3,9 @@
 Status: normative protocol contract. No implementation or compliance claim is
 made by this document.
 
-The separate [DNS-SD discovery profile](WTP-DNS-SD.md) is a proposal; it does
-not alter this WTP/1 contract or claim an assigned service name.
+The separate [DNS-SD discovery profile](WTP-DNS-SD.md) is implemented in
+WsprryPico for public beta. It does not alter this WTP/1 contract or claim an
+assigned service name.
 
 The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHOULD**, **SHOULD NOT**
 and **MAY** describe conformance requirements.

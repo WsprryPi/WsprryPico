@@ -102,11 +102,36 @@ err_t wsprry_mdns_add(struct netif* interface, const char* label) {
     changed = 0;
     return mdns_resp_add_netif(interface, label);
 }
+static void wtp_txt(struct mdns_service* service, void* binding) {
+    static const char version[] = "txtvers=1";
+    const char* selected = (const char*)binding;
+    (void)mdns_resp_add_service_txtitem(service, version, sizeof(version) - 1);
+    (void)mdns_resp_add_service_txtitem(service, selected, (u8_t)strlen(selected));
+}
+err_t wsprry_mdns_add_wtp_service(struct netif* interface, const char* instance, u16_t port,
+                                  const char* binding) {
+    static char plain[] = "binding=plain";
+    static char tls[] = "binding=tls";
+    s8_t slot;
+    if (!interface || !NETIF_TO_HOST(interface) || !instance || !*instance ||
+        strlen(instance) > MDNS_LABEL_MAXLEN || !port || !binding)
+        return ERR_VAL;
+    if (strcmp(binding, "plain") == 0)
+        binding = plain;
+    else if (strcmp(binding, "tls") == 0)
+        binding = tls;
+    else
+        return ERR_VAL;
+    slot = mdns_resp_add_service(interface, instance, "_wtp", DNSSD_PROTO_TCP, port, wtp_txt,
+                                 (void*)binding);
+    return slot < 0 ? (err_t)slot : ERR_OK;
+}
 static err_t goodbye(struct netif* interface) {
     // Reuse upstream's A/PTR generation, including compressed domain encoding.
     struct mdns_outmsg message;
     struct mdns_outpacket packet;
     struct dns_hdr header;
+    struct mdns_host* host = NETIF_TO_HOST(interface);
     err_t result;
     u16_t offset = SIZEOF_DNS_HDR;
     unsigned record;
@@ -116,10 +141,14 @@ static err_t goodbye(struct netif* interface) {
     message.flags = DNS_FLAG1_RESPONSE | DNS_FLAG1_AUTHORATIVE;
     message.cache_flush = 1;
     message.host_replies = REPLY_HOST_A | REPLY_HOST_PTR_V4;
+    // The service-instance PTR is the shared browse record. lwIP adds its
+    // SRV, TXT and host A as additional records; all must carry zero TTL.
+    if (host->services[0])
+        message.serv_replies[0] = REPLY_SERVICE_NAME_PTR;
     result = mdns_create_outpacket(interface, &message, &packet);
     if (result != ERR_OK || !packet.pbuf)
         goto done;
-    for (record = 0; record < packet.answers; ++record) {
+    for (record = 0; record < packet.answers + packet.additional; ++record) {
         struct mdns_domain domain;
         u16_t end = mdns_readname(packet.pbuf, offset, &domain);
         u16_t length;
@@ -135,6 +164,7 @@ static err_t goodbye(struct netif* interface) {
     }
     header.flags1 = message.flags;
     header.numanswers = lwip_htons(packet.answers);
+    header.numextrarr = lwip_htons(packet.additional);
     pbuf_take(packet.pbuf, &header, sizeof(header));
     pbuf_realloc(packet.pbuf, packet.write_offset);
     result = udp_sendto_if(mdns_pcb, packet.pbuf, &v4group, LWIP_IANA_PORT_MDNS, interface);
