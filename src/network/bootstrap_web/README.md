@@ -27,6 +27,13 @@ cryptography. The fallback names a regular browser and the Pico URL, not a
 specific browser brand. The same-origin and cryptography checks are functional
 requirements; they are not a user-agent check.
 
+After reading Pico identity/status, each page sends the browser's UTC once and
+then about every 30 seconds while it remains open. No user action is needed.
+The Pico treats this as a provisional browser hint with one second of
+uncertainty. It cannot replace trusted SNTP/controller time, authorize a
+scheduled job, or satisfy the fresh-SNTP requirement for TLS generation.
+Opening the page is required; Wi-Fi association alone supplies no client UTC.
+
 The locked dependencies are `@noble/curves`, `@noble/hashes`, and
 `@noble/ciphers` 2.3.0, with upstream MIT licenses in [`licenses/`](licenses/).
 The build uses pinned esbuild 0.28.2. Run `npm test` and `npm run build` in

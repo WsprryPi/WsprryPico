@@ -128,6 +128,8 @@ std::string_view source_name(time::ActiveTimeSource source) {
         return "sntp";
     case time::ActiveTimeSource::Controller:
         return "controller";
+    case time::ActiveTimeSource::Browser:
+        return "none"; // Keep the frozen Field-GATT/1 trusted-source values.
     case time::ActiveTimeSource::Disagreement:
         return "disagreement";
     }

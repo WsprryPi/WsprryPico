@@ -16,6 +16,7 @@ inline constexpr std::uint64_t controller_challenge_lifetime_ns = 10'000'000'000
 inline constexpr std::uint64_t controller_source_lifetime_ns = 90'000'000'000ULL;
 inline constexpr std::uint64_t controller_local_margin_ns = 1'050'999ULL;
 inline constexpr std::uint64_t controller_drift_ppb = 50'000ULL;
+inline constexpr std::uint64_t browser_hint_uncertainty_ns = 1'000'000'000ULL;
 
 enum class ControllerTimeCode {
     Ok,
@@ -28,7 +29,7 @@ enum class ControllerTimeCode {
     Disagreement,
     Uncertainty,
 };
-enum class ActiveTimeSource { None, Sntp, Controller, Disagreement };
+enum class ActiveTimeSource { None, Sntp, Controller, Browser, Disagreement };
 
 struct ControllerChallenge {
     ControllerTimeCode code = ControllerTimeCode::Invalid;
@@ -60,15 +61,14 @@ class ControllerTimeArbiter final : public ObservationSink {
                                     std::string_view requested_device,
                                     std::string_view nonce);
     bool challenge_response_delivered(std::string_view principal, std::string_view session,
-                                      std::string_view requested_device,
-                                      std::string_view nonce);
+                                      std::string_view requested_device, std::string_view nonce);
     void cancel_challenge(std::string_view principal, std::string_view session);
     ControllerTimeCode submit(std::string_view principal, std::string_view session,
                               std::string_view requested_device, std::string_view nonce,
                               std::uint64_t utc_ns);
-    bool observe(ObservationSource source, std::uint64_t utc_ns,
-                 std::uint64_t sampled_monotonic_ns, std::uint64_t uncertainty_ns,
-                 wtp::LeapState leap,
+    bool seed_browser_hint(std::uint64_t utc_ms);
+    bool observe(ObservationSource source, std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
+                 std::uint64_t uncertainty_ns, wtp::LeapState leap,
                  std::optional<std::uint64_t> leap_transition_utc_ns = {},
                  std::string_view principal = {}) override;
     void invalidate(ObservationSource source) override;

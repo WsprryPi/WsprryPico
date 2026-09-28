@@ -46,6 +46,8 @@ std::string_view source_name(time::ActiveTimeSource source) {
         return "sntp";
     case ActiveTimeSource::Controller:
         return "controller";
+    case ActiveTimeSource::Browser:
+        return "none"; // Provisional browser time is not a trusted field source.
     case ActiveTimeSource::Disagreement:
         return "disagreement";
     }

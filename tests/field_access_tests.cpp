@@ -1242,6 +1242,35 @@ void controller_time_policy() {
         arbiter.challenge("phone-a", "stale-replacement", device, "stale-replacement-nonce").code ==
         time::ControllerTimeCode::Ok);
 }
+
+void browser_time_hint_policy() {
+    time::DisciplineConfig config;
+    config.synchronized_for_ns = 90'000'000'000ULL;
+    config.holdover_for_ns = 180'000'000'000ULL;
+    time::UtcDiscipline discipline(monotonic, nullptr, config);
+    time::ControllerTimeArbiter arbiter(discipline, monotonic, nullptr, std::string(device));
+    constexpr std::uint64_t utc_ms = 1'800'000'000'000ULL;
+    clock_now = 1'000'000'000ULL;
+    CHECK(!arbiter.seed_browser_hint(time::sntp_min_utc_ns / 1'000'000ULL - 1));
+    CHECK(!arbiter.seed_browser_hint(time::sntp_max_utc_ns / 1'000'000ULL));
+    CHECK(arbiter.seed_browser_hint(utc_ms));
+    CHECK(arbiter.status().source == time::ActiveTimeSource::Browser);
+    CHECK(discipline.snapshot().state == wtp::ClockState::Synchronized);
+    CHECK(discipline.snapshot().uncertainty_ns > time::standalone_max_uncertainty_ns);
+    clock_now += 30'000'000'000ULL;
+    CHECK(arbiter.seed_browser_hint(utc_ms + 30'000));
+    CHECK(!arbiter.seed_browser_hint(utc_ms + 60'000)); // A bad phone jump is ignored.
+    CHECK(arbiter.status().source == time::ActiveTimeSource::Browser);
+    clock_now += 1;
+    CHECK(arbiter.observe(time::ObservationSource::Sntp, (utc_ms + 60'000) * 1'000'000ULL,
+                          clock_now, 10'000'000ULL, wtp::LeapState::Normal));
+    CHECK(arbiter.status().source == time::ActiveTimeSource::Sntp);
+    CHECK(!arbiter.seed_browser_hint(utc_ms + 30'000));
+    clock_now += 181'000'000'000ULL;
+    CHECK(discipline.snapshot().state == wtp::ClockState::Unsynchronized);
+    CHECK(arbiter.seed_browser_hint(utc_ms + 211'000));
+    CHECK(arbiter.status().source == time::ActiveTimeSource::Browser);
+}
 } // namespace
 
 int main() {
@@ -1257,5 +1286,6 @@ int main() {
     runtime_policy();
     reset_policy();
     controller_time_policy();
+    browser_time_hint_policy();
     std::cout << "field access tests passed\n";
 }

@@ -7,7 +7,7 @@
 #include <string_view>
 
 namespace wsprrypico::time {
-enum class ObservationSource { Sntp, Controller };
+enum class ObservationSource { Sntp, Controller, Browser };
 
 class ObservationSink {
   public:

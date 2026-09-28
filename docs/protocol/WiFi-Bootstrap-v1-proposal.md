@@ -24,6 +24,15 @@ The AP-only request envelope, encrypted plaintext, header checks and one-use
 slot remain as specified below; historical press-to-save, blank-only and
 generation-1-only statements no longer apply.
 
+The current optional `POST /api/bootstrap/v1/time` route accepts exactly
+`version`, `device_id` and decimal-string `utc_ms` under the same AP-local
+Host, Origin, content-type and bootstrap-header admission. It replies with
+`version` and `state` (`accepted` or `ignored`). The portal sends this hint on
+opening and about every 30 seconds; it creates no setup slot and contains no
+credentials. The Pico bounds UTC to 2025–2099, assigns one second of
+uncertainty, ignores inconsistent browser jumps, and never lets browser time
+replace a trusted source. Fresh SNTP remains required for TLS generation.
+
 Status: **DESIGN APPROVED; SOURCE TRANSACTION IMPLEMENTED; TARGET ACCEPTANCE OPEN**. This describes only a
 blank-device, network-only bootstrap over the open, AP-local HTTP captive
 page. It does not grant an owner, station API, TLS trust, scheduler or RF

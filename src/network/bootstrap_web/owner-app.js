@@ -38,15 +38,17 @@ const notice = (message, error = false) => {
 };
 let deviceId, status, submitted, polling = false, saving = false;
 let complete = false, retryVisible = false;
+let lastTimeHintMs;
 
-async function request(path, body) {
+async function request(path, body, bootstrap = false, timeoutMs = 8000) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const options = {cache: 'no-store', credentials: 'omit', redirect: 'error',
     signal: controller.signal};
   if (body) {
     options.method = 'POST';
-    options.headers = {'Content-Type': 'application/json', 'X-WsprryPico-Owner': '1'};
+    options.headers = {'Content-Type': 'application/json',
+      [bootstrap ? 'X-WsprryPico-Bootstrap' : 'X-WsprryPico-Owner']: '1'};
     options.body = JSON.stringify(body);
   }
   try {
@@ -54,6 +56,18 @@ async function request(path, body) {
     if (!response.ok) throw new Error('Pico request failed');
     return await response.json();
   } finally { clearTimeout(timeout); }
+}
+
+async function hintTime() {
+  const now = Date.now();
+  if (!deviceId || !Number.isSafeInteger(now) ||
+      (lastTimeHintMs !== undefined && now >= lastTimeHintMs &&
+       now - lastTimeHintMs < 30000)) return;
+  lastTimeHintMs = now;
+  try {
+    await request('/api/bootstrap/v1/time', {version: 1, device_id: deviceId,
+      utc_ms: String(now)}, true, 2000);
+  } catch { lastTimeHintMs = now - 25000; /* Retry a lost hint in five seconds. */ }
 }
 
 function settings() {
@@ -154,6 +168,7 @@ async function update() {
       notice('Checking the saved result. Reconnect to the Pico Wi-Fi if needed.');
     }
   } finally {
+    if (!saving && !submitted) await hintTime();
     polling = false;
     setTimeout(update, 1000);
   }

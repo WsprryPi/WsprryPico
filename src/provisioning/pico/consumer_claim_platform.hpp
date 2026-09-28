@@ -24,6 +24,9 @@ class PicoConsumerClaimPlatform final : public ConsumerClaimCommitPlatform {
     std::uint64_t monotonic_now_ms() override;
     bool station_ready(std::string_view ssid) override;
     std::optional<std::uint64_t> trusted_utc_now() override;
+    bool seed_browser_utc(std::uint64_t utc_ms) {
+        return arbiter_.seed_browser_hint(utc_ms);
+    }
     std::string_view local_hostname() override {
         return hostname_;
     }

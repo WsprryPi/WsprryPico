@@ -107,4 +107,19 @@ std::optional<BootstrapAckRequest> parse_bootstrap_ack(const HttpRequest& reques
         return {};
     return BootstrapAckRequest{*device, *boot, *slot, *request_id, *tag};
 }
+
+std::optional<BootstrapTimeRequest> parse_bootstrap_time(const HttpRequest& request) {
+    if (!bootstrap_mutation_admitted(request, "/api/bootstrap/v1/time"))
+        return {};
+    const auto root = wtp::json::parse(request.body_view());
+    if (!root || !version_one(*root) ||
+        !wtp::json::fields(*root, {"version", "device_id", "utc_ms"}))
+        return {};
+    const auto device = field(*root, "device_id");
+    const auto utc = root->get("utc_ms");
+    std::uint64_t utc_ms = 0;
+    if (!device || !utc || !lowercase_hex(*device, 16) || !wtp::json::decimal(*utc, utc_ms, true))
+        return {};
+    return BootstrapTimeRequest{*device, utc_ms};
+}
 } // namespace wsprrypico::network

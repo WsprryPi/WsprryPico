@@ -12,6 +12,7 @@ const notice = (message, error = false) => {
 const host = 'http://192.168.4.1';
 let deviceId, pending, started, sealed, expectedGeneration, currentGeneration;
 let polling = false, acknowledging = false, completed = false, saving = false;
+let lastTimeHintMs;
 const hexId = (value) => typeof value === 'string' && /^[0-9a-f]{32}$/.test(value);
 const hasSavedNetwork = (status) =>
   status.source === 'network_only' || status.source === 'consumer';
@@ -19,9 +20,9 @@ const durableJoin = (status) => hasSavedNetwork(status) &&
   Number.isSafeInteger(status.generation) && status.generation >= 1 &&
   status.join === 'connected' && status.address_ready === true;
 
-async function json(path, body) {
+async function json(path, body, timeoutMs = 8000) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const options = {cache: 'no-store', credentials: 'omit', redirect: 'error',
     signal: controller.signal};
   if (body) {
@@ -34,6 +35,18 @@ async function json(path, body) {
     if (!response.ok) throw new Error('Pico request failed');
     return await response.json();
   } finally { clearTimeout(timeout); }
+}
+
+async function hintTime() {
+  const now = Date.now();
+  if (!deviceId || !Number.isSafeInteger(now) ||
+      (lastTimeHintMs !== undefined && now >= lastTimeHintMs &&
+       now - lastTimeHintMs < 30000)) return;
+  lastTimeHintMs = now;
+  try {
+    await json('/api/bootstrap/v1/time', {version: 1, device_id: deviceId,
+      utc_ms: String(now)}, 2000);
+  } catch { lastTimeHintMs = now - 25000; /* Retry a lost hint in five seconds. */ }
 }
 
 function setPasswordVisible(visible) {
@@ -125,6 +138,7 @@ async function update() {
       notice('Checking the saved result. Reconnect to the Pico Wi-Fi if needed.');
     }
   } finally {
+    if (!saving && !sealed) await hintTime();
     polling = false;
     setTimeout(update, 1000);
   }

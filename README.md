@@ -94,7 +94,9 @@ and browser tests cover this revision. The
 [Wi-Fi setup page](http://192.168.4.1/) and optional
 [station settings page](http://192.168.4.1/owner.html) use HTTP port 80 while
 connected to the Pico AP. A station DHCP address such as `192.168.1.47` has
-no consumer web page in the current pre-clock image. The
+no consumer web page in the current pre-clock image. While either setup page
+is open, it sends a provisional phone time hint about every 30 seconds;
+station SNTP remains the trusted source for TLS. The
 [new image booted on Candidate A](docs/development/phase12-wifi-first-flash.md),
 while the revised phone flow remains unaccepted. The
 [source review](docs/development/phase12-safari-open-setup-review.md) records

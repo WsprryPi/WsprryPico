@@ -781,6 +781,16 @@ void PicoBootstrapServer::end_owner_trial(bool committed, std::uint64_t now_ms) 
 
 HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
     const auto now_ms = time_us_64() / 1000;
+    if (request.path == "/api/bootstrap/v1/time") {
+        const auto parsed = parse_bootstrap_time(request);
+        if (!parsed)
+            return http_error(400, "invalid_request");
+        if (!mutation_safe_ || !claim_platform_ || parsed->device_id != device_)
+            return http_error(403, "unavailable");
+        return json(std::string("{\"version\":1,\"state\":\"") +
+                    (claim_platform_->seed_browser_utc(parsed->utc_ms) ? "accepted" : "ignored") +
+                    "\"}");
+    }
     if (owner_slot_.state() != provisioning::ConsumerClaimState::None || owner_reconcile_)
         return http_error(409, "busy");
     if (request.path == "/api/bootstrap/v1/start") {

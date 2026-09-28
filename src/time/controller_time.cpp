@@ -27,8 +27,23 @@ bool bounded_identifier(std::string_view value) {
 } // namespace
 
 ActiveTimeSource ControllerTimeArbiter::label(ObservationSource source) {
-    return source == ObservationSource::Sntp ? ActiveTimeSource::Sntp
-                                             : ActiveTimeSource::Controller;
+    switch (source) {
+    case ObservationSource::Sntp:
+        return ActiveTimeSource::Sntp;
+    case ObservationSource::Controller:
+        return ActiveTimeSource::Controller;
+    case ObservationSource::Browser:
+        return ActiveTimeSource::Browser;
+    }
+    return ActiveTimeSource::None;
+}
+
+bool ControllerTimeArbiter::seed_browser_hint(std::uint64_t utc_ms) {
+    if (!now_ || utc_ms < sntp_min_utc_ns / 1'000'000ULL ||
+        utc_ms >= sntp_max_utc_ns / 1'000'000ULL)
+        return false;
+    return observe(ObservationSource::Browser, utc_ms * 1'000'000ULL, now_(context_),
+                   browser_hint_uncertainty_ns, wtp::LeapState::Normal);
 }
 
 ControllerChallenge ControllerTimeArbiter::challenge(std::string_view principal,
@@ -143,8 +158,7 @@ ControllerTimeCode ControllerTimeArbiter::submit(std::string_view principal,
 }
 
 bool ControllerTimeArbiter::interval(const Observation& observation, std::uint64_t now,
-                                     std::uint64_t& estimate,
-                                     std::uint64_t& uncertainty) const {
+                                     std::uint64_t& estimate, std::uint64_t& uncertainty) const {
     if (!observation.valid || now < observation.monotonic_ns)
         return false;
     const auto age = now - observation.monotonic_ns;
@@ -158,7 +172,9 @@ bool ControllerTimeArbiter::interval(const Observation& observation, std::uint64
     const auto fraction = remainder * controller_drift_ppb;
     drift += fraction / 1'000'000'000ULL + (fraction % 1'000'000'000ULL != 0);
     return add(observation.uncertainty_ns, drift, uncertainty) &&
-           uncertainty <= standalone_max_uncertainty_ns;
+           uncertainty <= (observation.source == ObservationSource::Browser
+                               ? 2 * browser_hint_uncertainty_ns
+                               : standalone_max_uncertainty_ns);
 }
 
 bool ControllerTimeArbiter::current_valid(std::uint64_t now) const {
@@ -202,17 +218,28 @@ bool ControllerTimeArbiter::observe(ObservationSource source, std::uint64_t utc_
                                     std::optional<std::uint64_t> leap_transition_utc_ns,
                                     std::string_view principal) {
     if (!now_ || leap != wtp::LeapState::Normal || leap_transition_utc_ns ||
-        uncertainty_ns > standalone_max_uncertainty_ns || utc_ns < sntp_min_utc_ns ||
-        utc_ns >= sntp_max_utc_ns ||
+        uncertainty_ns > (source == ObservationSource::Browser ? browser_hint_uncertainty_ns
+                                                               : standalone_max_uncertainty_ns) ||
+        (source == ObservationSource::Browser && uncertainty_ns != browser_hint_uncertainty_ns) ||
+        utc_ns < sntp_min_utc_ns || utc_ns >= sntp_max_utc_ns ||
         (source == ObservationSource::Controller && principal.empty()) ||
-        (source == ObservationSource::Sntp && !principal.empty()))
+        (source != ObservationSource::Controller && !principal.empty()))
         return false;
     const auto now = now_(context_);
-    Observation candidate{source, utc_ns, sampled_monotonic_ns, uncertainty_ns,
-                          std::string(principal), true};
+    Observation candidate{
+        source, utc_ns, sampled_monotonic_ns, uncertainty_ns, std::string(principal), true};
     std::uint64_t estimate{}, grown{};
     if (!interval(candidate, now, estimate, grown))
         return false;
+    if (source == ObservationSource::Browser) {
+        if (source_ == ActiveTimeSource::Disagreement ||
+            (current_.source != ObservationSource::Browser &&
+             clock_.snapshot().state != wtp::ClockState::Unsynchronized))
+            return false;
+        if (current_valid(now) && current_.source == ObservationSource::Browser &&
+            !overlaps(current_, candidate, now))
+            return false;
+    }
     if (source_ == ActiveTimeSource::Disagreement) {
         if (!recovery_.valid || recovery_.source != source ||
             recovery_.principal != candidate.principal || !overlaps(recovery_, candidate, now)) {
@@ -226,10 +253,14 @@ bool ControllerTimeArbiter::observe(ObservationSource source, std::uint64_t utc_
         source_ = ActiveTimeSource::None;
         return accept(candidate);
     }
+    if (current_.source == ObservationSource::Browser && source != ObservationSource::Browser)
+        return accept(candidate);
+    if (source == ObservationSource::Browser && current_.source != ObservationSource::Browser)
+        return false;
     if (current_.source == ObservationSource::Sntp && source == ObservationSource::Controller)
         return false;
-    if (current_.source == ObservationSource::Controller && source == ObservationSource::Controller &&
-        current_.principal != candidate.principal)
+    if (current_.source == ObservationSource::Controller &&
+        source == ObservationSource::Controller && current_.principal != candidate.principal)
         return false;
     if (!overlaps(current_, candidate, now)) {
         disagreement(candidate);

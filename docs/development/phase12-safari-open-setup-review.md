@@ -45,6 +45,36 @@ the clean image with its saved profile and station address intact; two isolated
 Pi scans did not see its AP while station Wi-Fi was healthy. These are bounded
 source, build and target checks, not phone or manual-button acceptance.
 
+## Automatic SoftAP browser time hint (2026-09-28)
+
+The Wi-Fi and station pages now submit the browser's current UTC after their
+first status read and about every 30 seconds while open. A busy/lost AP
+connection retries the hint after five seconds. The AP-local endpoint accepts
+only the exact identity-bound JSON request and uses a distinct provisional
+browser time source. The review found that treating browser time like a trusted
+observation could block or invalidate a later, correct SNTP sample. The
+arbiter now gives fresh SNTP and authenticated controller observations priority
+even when they disagree with the browser, and rejects a large jump between
+browser hints. Browser time carries one second of uncertainty, exceeding the
+job-arm limit, while consumer TLS generation still requires fresh SNTP.
+Opening the page is required; AP association alone carries no client clock.
+
+The browser tests cover first and periodic hints plus a lost-request retry;
+host wire tests cover malformed and foreign-origin requests. The clock host
+test covers bad dates, repeated hints, a bad jump, SNTP replacement and the
+browser's inability to replace fresh SNTP. A target/browser time exchange is
+still open and is not implied by the firmware build or later flash.
+
+The first full host run found that mapping the new provisional source to a new
+Field-GATT wire string would require changing the frozen Bluefy release. The
+field APIs now report that provisional source as `none`; their existing wire
+values remain intact. The other failures in that first run came from the
+Command Line Tools `.tbd` linker used by fixture subprocesses. With the
+installed Xcode compiler/SDK selected and the field mapping repaired, all
+98 host tests passed. The four bootstrap browser tests and the RF-inhibited
+Pico 2 W Release cross-build also passed. This second adversarial assessment
+found no remaining source issue in the browser-time slice.
+
 ## Later Wi-Fi-first revision (2026-09-27)
 
 The earlier review below describes the superseded single-screen source. The

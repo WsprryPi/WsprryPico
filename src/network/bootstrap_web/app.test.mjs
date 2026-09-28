@@ -26,11 +26,25 @@ globalThis.clearTimeout = (id) => { timers[id - 1].cleared = true; };
 let status = {source: 'unprovisioned', generation: 0, slot_state: 'none',
   join: 'idle', address_ready: false, request_id_digest: null};
 let submitted, ack, starts = 0;
+let now = 1_800_000_000_000;
+Date.now = () => now;
+const timeHints = [];
+let failNextTimeHint = false;
 globalThis.fetch = async (url, options = {}) => {
   const path = new URL(url).pathname;
   if (path === '/local/v1/identity') return {ok: true, json: async () => ({device_id: device})};
   if (path === '/api/bootstrap/v1/status') return {ok: true, json: async () => status};
   const body = JSON.parse(options.body);
+  if (path === '/api/bootstrap/v1/time') {
+    assert.equal(options.headers['X-WsprryPico-Bootstrap'], '1');
+    assert.equal(body.device_id, device);
+    timeHints.push(body.utc_ms);
+    if (failNextTimeHint) {
+      failNextTimeHint = false;
+      throw new Error('connection busy');
+    }
+    return {ok: true, json: async () => ({version: 1, state: 'accepted'})};
+  }
   if (path === '/api/bootstrap/v1/start') {
     starts++;
     assert.equal(body.device_id, device);
@@ -63,6 +77,23 @@ await new Promise(setImmediate);
 assert.equal(elements.get('credentials').hidden, false);
 assert.equal(elements.get('submit').disabled, false);
 assert.equal(starts, 0); // Opening the page does not consume a setup slot.
+assert.deepEqual(timeHints, [String(now)]); // No extra tap to seed the clock.
+await poll();
+assert.equal(timeHints.length, 1); // Not every status request.
+now += 30000;
+await poll();
+assert.deepEqual(timeHints, [String(1_800_000_000_000), String(now)]);
+failNextTimeHint = true;
+now += 30000;
+await poll();
+assert.equal(timeHints.at(-1), String(now));
+now += 4000;
+await poll();
+assert.equal(timeHints.length, 3);
+now += 1000;
+await poll();
+assert.equal(timeHints.at(-1), String(now));
+assert.equal(timeHints.length, 4); // Busy connection retries after five seconds.
 
 elements.get('ssid').value = 'LabNet';
 elements.get('password').value = 'test-only-password';

@@ -11,6 +11,7 @@ using wsprrypico::network::HttpRequest;
 using wsprrypico::network::parse_bootstrap_ack;
 using wsprrypico::network::parse_bootstrap_start;
 using wsprrypico::network::parse_bootstrap_submit;
+using wsprrypico::network::parse_bootstrap_time;
 
 constexpr auto device = "00112233445566778899aabbccddeeff";
 constexpr auto boot = "102132435465768798a9bacbdcedfe0f";
@@ -71,6 +72,20 @@ void valid_envelopes_and_admission() {
     assert(parse_bootstrap_ack(ack));
     ack.headers["host"] = "evil.example";
     assert(!parse_bootstrap_ack(ack));
+
+    auto time = post("/api/bootstrap/v1/time",
+                     "{\"version\":1,\"device_id\":\"00112233445566778899aabbccddeeff\","
+                     "\"utc_ms\":\"1800000000000\"}");
+    const auto hint = parse_bootstrap_time(time);
+    assert(hint && hint->device_id == device && hint->utc_ms == 1'800'000'000'000ULL);
+    time.headers["origin"] = "http://other.example";
+    assert(!parse_bootstrap_time(time));
+    time.headers["origin"] = "http://192.168.4.1";
+    time.body.insert(time.body.size() - 1, ",\"extra\":1");
+    assert(!parse_bootstrap_time(time));
+    time.body = "{\"version\":1,\"device_id\":\"00112233445566778899aabbccddeeff\","
+                "\"utc_ms\":1800000000000}";
+    assert(!parse_bootstrap_time(time));
 }
 
 void parser_rejects_oversize_before_body_allocation() {

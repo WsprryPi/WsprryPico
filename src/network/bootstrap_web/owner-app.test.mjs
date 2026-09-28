@@ -47,6 +47,9 @@ let status = {version: 1, device_id: device, boot_id: boot, source: 'network_onl
   address_ready: true, clock_ready: true, slot_state: 'none', slot_id_digest: null,
   request_id_digest: null};
 let start, submitted, identify, hangNextStatus = false;
+let now = 1_800_000_000_000;
+Date.now = () => now;
+const timeHints = [];
 globalThis.fetch = async (url, options = {}) => {
   const path = new URL(url).pathname;
   if (path === '/api/owner/v1/public-status') return {ok: true, json: async () => status};
@@ -60,6 +63,12 @@ globalThis.fetch = async (url, options = {}) => {
     return {ok: true, json: async () => status};
   }
   const body = JSON.parse(options.body);
+  if (path === '/api/bootstrap/v1/time') {
+    assert.equal(options.headers['X-WsprryPico-Bootstrap'], '1');
+    assert.equal(body.device_id, device);
+    timeHints.push(body.utc_ms);
+    return {ok: true, json: async () => ({version: 1, state: 'accepted'})};
+  }
   assert.equal(options.headers['X-WsprryPico-Owner'], '1');
   assert.equal(options.headers['Content-Type'], 'application/json');
   if (path === '/api/owner/v1/identify') {
@@ -98,6 +107,12 @@ await import('./owner-app.js');
 await new Promise(setImmediate);
 assert.equal(elements.get('owner-settings').hidden, false);
 assert.equal(elements.get('owner-submit').disabled, false);
+assert.deepEqual(timeHints, [String(now)]);
+await runTimer(1000);
+assert.equal(timeHints.length, 1);
+now += 30000;
+await runTimer(1000);
+assert.deepEqual(timeHints, [String(1_800_000_000_000), String(now)]);
 await elements.get('owner-identify').events.click();
 assert.equal(identify.device_id, device);
 assert.equal(identify.boot_id, boot);

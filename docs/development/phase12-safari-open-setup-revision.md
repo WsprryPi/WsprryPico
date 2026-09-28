@@ -57,6 +57,13 @@ a regular browser; Safari is one option, not a required product step. The
 source checks browser capability and the exact Pico origin, not a Safari user
 agent. Physical iPhone acceptance of this revised flow remains open.
 
+Both local pages send the browser's UTC when opened and about every 30 seconds
+while open. The Pico may use that lower-confidence hint while it lacks a
+trusted source, and fresh SNTP or authenticated controller time supersedes it.
+The browser hint has one second of uncertainty, so it cannot authorize a
+scheduled job or satisfy the fresh-SNTP gate for TLS credential generation.
+Merely joining the SoftAP does not transfer time; the portal must load.
+
 ## Consumer contract
 
 Opening the Pico's open setup AP launches the captive page when iOS permits;
