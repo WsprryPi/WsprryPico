@@ -19,11 +19,16 @@ implemented Pico surface. Shared WsprryPi adoption remains separate work.
 
 ## Timing and interoperability
 
-- USB CDC is the canonical/reference WTP transport. Mutually authenticated
-  TLS 1.3/TCP with ALPN `wtp/1` is an implemented first-class WTP job-transfer
-  and job-control transport; it carries the identical WTP/1 stream to the same
-  `JobService`, has no plaintext fallback and has no protocol-assigned default
-  port. Network control remains product-gated and default-off.
+- USB CDC is the canonical/reference WTP transport. TLS 1.3/TCP with ALPN
+  `wtp/1` is an implemented first-class WTP job-transfer and job-control
+  transport; it carries the identical WTP/1 stream to the same `JobService`
+  and has no plaintext fallback. Engineering profiles require mutual
+  certificate authentication. A committed consumer profile with usable
+  infrastructure Wi-Fi and SNTP may admit LAN WTP without a client certificate,
+  using its validated device certificate. A Wi-Fi-only profile generates a
+  temporary device TLS identity after SNTP for the same LAN WTP mode. No
+  browser API is admitted by that mode. Its physical acceptance and separate
+  WsprryPi client integration remain open.
 - The implemented engineering provisioning and field-control path uses
   BLE/Bluefy under the
   [Phase 12 field-access contract](docs/development/phase12-field-access-contract.md).
@@ -78,7 +83,8 @@ adds independent decoding of recurring frames without a USB host on the recorded
 setup. Calibrated timing and general RF/reliability qualification remain open.
 
 First-class [TLS network control](docs/development/network-control.md) supplies
-mutually authenticated WTP/TCP and HTTPS handlers to the existing job service.
+engineering mTLS WTP/TCP and HTTPS handlers, plus the consumer LAN WTP mode,
+to the existing job service.
 Network status, persistent config and schedules share the standalone adapters.
 Host TLS/browser tests and cross-linking do not qualify physical network/RF
 coexistence. Credential installation currently requires an explicit local build.

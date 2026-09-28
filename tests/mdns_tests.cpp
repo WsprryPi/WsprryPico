@@ -62,6 +62,17 @@ static void unexpected_link_loss() {
 }
 int main() {
     unexpected_link_loss();
+    {
+        Adapter late_adapter;
+        Mdns late(late_adapter, {});
+        late.poll(true, 7, 1);
+        assert(late.state() == "unconfigured" && late_adapter.adds == 0);
+        assert(late.configure_hostname("wsprrypico-0a60df.local"));
+        assert(!late.configure_hostname("other.local"));
+        late.poll(true, 7, 2);
+        late.name_result(true);
+        assert(late.advertised() == "wsprrypico-0a60df.local");
+    }
     Adapter a;
     Mdns m(a, "Pico-A.LOCAL.");
     m.poll(false, 0, 0);

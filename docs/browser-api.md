@@ -6,14 +6,17 @@ The browser, USB WTP, TCP WTP and standalone scheduler use one JobService.
 
 ## Transport and trust
 
-The Pico serves HTTPS and WTP on an explicitly configured TLS port. On the
-station interface, TLS 1.3, client certificate verification and ALPN are
-mandatory: `http/1.1` selects this API; `wtp/1` selects the unchanged WTP frame
-stream. The only plaintext exception is AP-interface port 80 on a blank device;
+The Pico serves HTTPS and WTP on an explicitly configured TLS port. In the
+engineering profile, station TLS 1.3, client certificate verification and ALPN
+are mandatory: `http/1.1` selects this API; `wtp/1` selects the unchanged WTP
+frame stream. The consumer LAN WTP mode starts after infrastructure SNTP,
+uses TLS 1.3 with ALPN `wtp/1` and no client certificate, and does not expose
+this browser API. The only plaintext exception is AP-interface port 80 on a blank device;
 it is read-only identity/recovery content and has no API-v1, password, time,
 provisioning or job mutation. There is no TLS downgrade, CORS, session ticket or
-early-data path. The station authenticated principal is the SHA-256 fingerprint
-of the leaf client certificate. Device-specific credential setup and renewal are described in
+early-data path. The engineering station authenticated principal is the SHA-256
+fingerprint of the leaf client certificate. Consumer LAN WTP uses one shared
+local-network principal. Device-specific credential setup and renewal are described in
 [network control](development/network-control.md).
 
 The selected
@@ -24,8 +27,8 @@ server-authenticated
 TLS plus a password login issues a random, boot/access-epoch-bound session-cookie
 principal. It reuses these API schemas, Origin/Host/Fetch Metadata rules and
 JobService semantics without requiring a client certificate. It never applies
-to the station interface or raw TLS-WTP, which retain the certificate principal
-above. Before usable device UTC, a provisioned SoftAP permits only local
+to the station browser API or engineering raw TLS-WTP, which retain the
+certificate principal above. Before usable device UTC, a provisioned SoftAP permits only local
 identity/login/status/controller-time plus API capabilities, status and WTP
 HELLO. A blank-device bootstrap adds no API-v1 routes. BLE frames existing WTP
 semantics through a separately bounded adapter.

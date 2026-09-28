@@ -19,12 +19,20 @@ void install_tls_time_source(wtp::JobService& service);
 // Core-0-only TLS/lwIP/application owner. Physical waveform servicing is isolated.
 class PicoServer {
   public:
+    enum class Admission { ClientCertificate, LocalWtp };
     PicoServer(wtp::JobService&, BrowserApi&, std::string device, std::string firmware,
-               provisioning::CredentialMaterial);
+               provisioning::CredentialMaterial,
+               Admission admission = Admission::ClientCertificate);
     ~PicoServer();
     PicoServer(const PicoServer&) = delete;
     PicoServer& operator=(const PicoServer&) = delete;
     bool start();
+    bool configure_credentials(provisioning::CredentialMaterial credentials) {
+        if (setup_)
+            return false;
+        credentials_ = credentials;
+        return true;
+    }
     void stop();
     using InterfaceClassifier = bool (*)(const tcp_pcb*, void*);
     void softap_handler(SoftApApi* handler, InterfaceClassifier classifier, void* context) {
@@ -33,7 +41,9 @@ class PicoServer {
         classifier_context_ = context;
     }
     void set_admission(bool open);
-    bool admission_open() const { return admission_open_; }
+    bool admission_open() const {
+        return admission_open_;
+    }
     void poll(bool link_up, std::string authority, bool allow_http_steps = true);
     void poll(bool station_link_up, bool softap_link_up, std::string station_authority,
               std::string softap_authority, provisioning::SoftApSurface softap_surface,
@@ -116,6 +126,7 @@ class PicoServer {
     BrowserApi& api_;
     std::string device_id_;
     provisioning::CredentialMaterial credentials_;
+    Admission admission_;
     std::array<Connection, 2> connections_;
     tcp_pcb* listener_ = nullptr;
     tcp_pcb* pending_ = nullptr;

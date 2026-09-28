@@ -388,13 +388,17 @@ USB uses CDC ACM and carries the frame stream unchanged. Its trust boundary is
 physical access plus host operating-system device permissions.
 
 TCP carries the identical frame stream inside TLS 1.3 or later and uses ALPN
-`wtp/1`. Plaintext TCP is not conforming. Network control requires mutual
-authentication with a device-specific credential; a fleet-wide shared secret
-is forbidden. Provisioning and credential rotation are outside WTP/1. WTP/1
-does not assign a default TCP port.
+`wtp/1`. Plaintext TCP is not conforming. Engineering network deployments
+require mutual authentication with a device-specific credential; a fleet-wide
+shared secret is forbidden. A product may select a local-network admission
+policy after its own Wi-Fi and time gates. That policy still requires a
+device-specific TLS server identity, but it may admit a WTP client without a
+client certificate and assign a network-local principal. Such a principal is
+shared by clients on that local network. Provisioning and credential rotation
+are outside WTP/1. WTP/1 does not assign a default TCP port.
 
-Transport adapters supply the authenticated principal to the common job
-service. They MUST NOT implement separate ownership, lifecycle or timing rules.
+Transport adapters supply the admitted principal to the common job service.
+They MUST NOT implement separate ownership, lifecycle or timing rules.
 
 ## 14. Capabilities and conformance
 

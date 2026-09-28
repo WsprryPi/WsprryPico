@@ -50,6 +50,9 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     void finish_request(bool idle) override;
     std::string status() const override;
     bool link_up() const;
+    bool accepted_sntp() const {
+        return accepted_ != 0;
+    }
     std::string ipv4() const;
     bool initialized() const {
         return initialized_;
@@ -62,6 +65,9 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     }
     std::string_view station_ssid() const {
         return ssid_;
+    }
+    bool configure_hostname(std::string_view hostname) {
+        return mdns_.configure_hostname(hostname);
     }
     // Register the same certified local hostname on the AP netif. The AP has
     // an independent responder record but shares the one bounded lwIP mDNS PCB.

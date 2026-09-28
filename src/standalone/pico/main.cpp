@@ -18,6 +18,8 @@
 #include "provisioning/manager.hpp"
 #include "provisioning/pico/activation_platform.hpp"
 #include "provisioning/pico/consumer_claim_platform.hpp"
+#include "provisioning/pico/consumer_tls_generator.hpp"
+#include "provisioning/pico/consumer_tls_validator.hpp"
 #include "provisioning/pico/credential_validator.hpp"
 #include "provisioning/pico/field_platform.hpp"
 #include "provisioning/pico/gatt_transport.hpp"
@@ -318,7 +320,21 @@ int main() {
                            wsprrypico::network::credentials::certificate,
                            wsprrypico::network::credentials::key,
                            wsprrypico::network::credentials::ca};
-    const bool deployment_matches =
+    else if (runtime_profile.consumer_profile()) {
+        const auto& tls = runtime_profile.consumer_profile()->tls;
+        tls_credentials = {runtime_profile.consumer_profile()->device_id,
+                           tls.hostname,
+                           tls.port,
+                           tls.server_certificate,
+                           tls.server_private_key,
+                           tls.ca_certificate};
+    }
+    const bool network_only_source =
+        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly;
+    const bool local_wtp =
+        network_only_source ||
+        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock;
+    bool deployment_matches =
         runtime_profile_loaded && !access_recovery && !tls_credentials.device_id.empty() &&
         !tls_credentials.hostname.empty() && tls_credentials.port != 0 &&
         wsprrypico::network::deployment_identity_matches(
@@ -333,6 +349,9 @@ int main() {
                           : std::nullopt;
     const auto local_identity =
         derived_identity.value_or(wsprrypico::provisioning::LocalIdentity{});
+    const bool network_hostname_ready =
+        !network_only_source ||
+        (derived_identity && network.configure_hostname(local_identity.hostname));
     static wsprrypico::provisioning::PicoBondStore bond_store;
     static wsprrypico::provisioning::PicoRandomSource random_source;
     static wsprrypico::provisioning::LocalAccessController local_access(
@@ -369,12 +388,16 @@ int main() {
     static wsprrypico::network::BrowserApi browser_api(service, store, scheduler, network,
                                                        identities.device_id(),
                                                        wsprrypico::firmware::kFirmwareVersion);
-    static wsprrypico::network::PicoServer server(service, browser_api, identities.device_id(),
-                                                  wsprrypico::firmware::kFirmwareVersion,
-                                                  tls_credentials);
+    static wsprrypico::provisioning::ConsumerTls network_only_tls;
+    static wsprrypico::network::PicoServer server(
+        service, browser_api, identities.device_id(), wsprrypico::firmware::kFirmwareVersion,
+        tls_credentials,
+        local_wtp ? wsprrypico::network::PicoServer::Admission::LocalWtp
+                  : wsprrypico::network::PicoServer::Admission::ClientCertificate);
     wsprrypico::network::install_tls_time_source(service);
     const auto softap_authority =
-        local_identity.hostname + (server.port() == 443 ? "" : ":" + std::to_string(server.port()));
+        local_identity.hostname +
+        (server.port() == 0 || server.port() == 443 ? "" : ":" + std::to_string(server.port()));
     static wsprrypico::provisioning::SoftApHttpAdmission softap_admission(
         local_access, identities.device_id(), softap_authority);
     static wsprrypico::network::SoftApApi softap_api(browser_api, softap_admission, local_access,
@@ -400,6 +423,7 @@ int main() {
         bootstrap.start();
     browser_api.set_active_job_connections(true);
     bool server_start_attempted = false;
+    std::uint64_t local_wtp_retry_at_ms = 0;
     static wsprrypico::provisioning::PicoIndicatorOutput indicator_output;
     static wsprrypico::provisioning::IndicatorController indicator(indicator_output,
                                                                    identities.device_id());
@@ -410,7 +434,10 @@ int main() {
                         indicator, network, runtime_profile, claim_platform,
                         local_identity.default_password);
 #endif
-    network.listener_status(server.configured(), server.listening(), deployment_matches);
+    // A Wi-Fi-only source has not generated its TLS identity yet. Do not turn
+    // that pending state into a permanent mDNS identity failure.
+    network.listener_status(server.configured(), server.listening(),
+                            deployment_matches || network_only_source);
     watchdog_hw->scratch[1] = 3;
     std::array<std::uint8_t, 64> input{};
     std::size_t offset = 0, size = 0;
@@ -512,6 +539,13 @@ int main() {
                 result += "\"consumer_preclock\"";
             else
                 result += "\"fault\"";
+            result += ",\"lan_wtp_ready\":" +
+                      std::string(local_wtp && server.listening() && network.link_up() &&
+                                          !network.ipv4().empty() && network.ipv4() != "0.0.0.0" &&
+                                          service.clock_snapshot().state !=
+                                              wsprrypico::wtp::ClockState::Unsynchronized
+                                      ? "true"
+                                      : "false");
             number_field(result, "provisioning_generation", runtime_profile.generation(), true);
             number_field(result, "provisioning_fault",
                          static_cast<unsigned>(runtime_profile.fault()));
@@ -916,9 +950,10 @@ int main() {
         }
         if (gatt.running())
             gatt.poll();
-        softap_coordinator.station(network.link_up() && !network.ipv4().empty() &&
-                                       network.ipv4() != "0.0.0.0",
-                                   field_now_ms);
+        const auto station_ip = network.ipv4();
+        const bool station_ready =
+            network.link_up() && !station_ip.empty() && station_ip != "0.0.0.0";
+        softap_coordinator.station(station_ready, field_now_ms);
         softap_coordinator.token_records(
             local_access.live_softap_sessions(field_now_ms, service.owner_session_id()));
         softap_coordinator.reply_active(server.softap_active() || bootstrap.setup_pending());
@@ -963,17 +998,55 @@ int main() {
         indicator.softap_ready(softap_coordinator.status(field_now_ms).ready);
         indicator.poll(field_now_ms);
         service.poll();
-        if (!server_start_attempted && deployment_matches && network.initialized()) {
+        const auto clock_now = service.clock_snapshot();
+        const bool local_wtp_time_ready =
+            !local_wtp ||
+            (station_ready && network.accepted_sntp() &&
+             time_arbiter.status().source == wsprrypico::time::ActiveTimeSource::Sntp &&
+             clock_now.state == wsprrypico::wtp::ClockState::Synchronized &&
+             clock_now.utc_now_ns != 0);
+        const bool server_attempt_due =
+            !server_start_attempted ||
+            (local_wtp && !server.listening() && field_now_ms >= local_wtp_retry_at_ms);
+        if (network_only_source && local_wtp_time_ready && network_hostname_ready &&
+            network_only_tls.server_certificate.empty() && field_now_ms >= local_wtp_retry_at_ms &&
+            network_state != wsprrypico::wtp::State::Armed &&
+            network_state != wsprrypico::wtp::State::Running) {
+            local_wtp_retry_at_ms = field_now_ms + 30'000;
+            if (wsprrypico::provisioning::generate_consumer_tls(
+                    identities.device_id(), local_identity.hostname,
+                    clock_now.utc_now_ns / 1'000'000'000ULL, network_only_tls)) {
+                tls_credentials = {identities.device_id(),
+                                   network_only_tls.hostname,
+                                   network_only_tls.port,
+                                   network_only_tls.server_certificate,
+                                   network_only_tls.server_private_key,
+                                   network_only_tls.ca_certificate};
+                if (server.configure_credentials(tls_credentials))
+                    deployment_matches = wsprrypico::network::deployment_identity_matches(
+                        identities.device_id(), tls_credentials.device_id,
+                        tls_credentials.hostname);
+            }
+        }
+        if (server_attempt_due && deployment_matches && network.initialized() &&
+            local_wtp_time_ready && network_state != wsprrypico::wtp::State::Armed &&
+            network_state != wsprrypico::wtp::State::Running) {
             server_start_attempted = true;
-            (void)server.start();
+            if (local_wtp)
+                local_wtp_retry_at_ms = field_now_ms + 30'000;
+            if (network_only_source || !local_wtp ||
+                (runtime_profile.consumer_profile()->tls.hostname == local_identity.hostname &&
+                 wsprrypico::provisioning::validate_consumer_tls(
+                     runtime_profile.consumer_profile()->tls, identities.device_id(),
+                     clock_now.utc_now_ns / 1'000'000'000ULL)))
+                (void)server.start();
             network.listener_status(server.configured(), server.listening(), deployment_matches);
         }
         static wsprrypico::usb::ReplyPriority reply_priority;
         const bool allow_http_steps =
             !reply_priority.defer_http(time_us_64(), wsprrypico::usb::console_output_pending());
         server.poll(network.link_up(), softap.ready(),
-                    network.ipv4() +
-                        (server.port() == 443 ? "" : ":" + std::to_string(server.port())),
+                    station_ip + (server.port() == 443 ? "" : ":" + std::to_string(server.port())),
                     softap_authority, surface, allow_http_steps);
         service.poll();
         watchdog_hw->scratch[1] = 5;

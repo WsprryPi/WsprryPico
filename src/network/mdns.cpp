@@ -12,17 +12,24 @@ void count(std::uint32_t& value) {
 }
 } // namespace
 Mdns::Mdns(MdnsAdapter& adapter, std::string_view hostname) : adapter_(adapter) {
+    if (!hostname.empty())
+        (void)configure_hostname(hostname);
+}
+bool Mdns::configure_hostname(std::string_view hostname) {
+    if (state_ != State::Unconfigured)
+        return hostname == hostname_;
     if (hostname.empty())
-        return;
+        return false;
     const auto canonical = canonical_local_hostname(hostname);
     if (!canonical) {
         permanent_failure_ = true;
         fail("invalid_hostname");
-        return;
+        return false;
     }
     hostname_ = *canonical;
     label_ = hostname_.substr(0, hostname_.size() - 6);
     state_ = State::Waiting;
+    return true;
 }
 void Mdns::stop(bool goodbye) {
     if (registered_)

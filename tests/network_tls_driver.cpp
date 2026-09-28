@@ -158,7 +158,17 @@ int main(int argc, char** argv) {
                                        invalid_credentials);
     if (invalid_server.start() || network::PsaCryptoOwner::owners())
         std::abort();
-    network::PicoServer server(service, api, device, "test-worker-firmware", credentials);
+    const auto admission = argc > 3 && std::string_view(argv[3]) == "--local-wtp"
+                               ? network::PicoServer::Admission::LocalWtp
+                               : network::PicoServer::Admission::ClientCertificate;
+    network::PicoServer server(service, api, device, "test-worker-firmware",
+                               admission == network::PicoServer::Admission::LocalWtp
+                                   ? provisioning::CredentialMaterial{}
+                                   : credentials,
+                               admission);
+    if (admission == network::PicoServer::Admission::LocalWtp &&
+        (server.configured() || !server.configure_credentials(credentials) || !server.configured()))
+        std::abort();
     if (!server.start() || network::PsaCryptoOwner::owners() != 1 ||
         network::PsaCryptoOwner::peak_owners() < 2) {
         std::cerr << "TLS start error " << server.last_error() << "\n";
@@ -166,6 +176,9 @@ int main(int argc, char** argv) {
         worker.join();
         return 1;
     }
+    if (admission == network::PicoServer::Admission::LocalWtp &&
+        server.configure_credentials(credentials))
+        std::abort();
     {
         network::PicoServer competing(service, api, device, "duplicate", credentials);
         if (competing.start() || network::PsaCryptoOwner::owners() != 1)

@@ -24,6 +24,18 @@ control path; it has no target or Safari acceptance.
 
 ## Operator setup and certificates
 
+The Phase 11 engineering behavior below remains available. A later Phase 12
+consumer-profile LAN mode uses the committed device certificate but does not
+require client-certificate enrollment for WTP. It waits for infrastructure
+Wi-Fi, an IPv4 address and accepted SNTP before starting the listener, accepts
+only ALPN `wtp/1`, and denies that mode on SoftAP. A Wi-Fi-only profile
+generates a temporary device TLS identity after SNTP, without changing its
+saved network-only journal or station settings. That certificate changes on
+each boot. WsprryPi's separate TLS client still requires client certificate
+settings; its automatic LAN connection is separate integration work.
+USB `INFO` keeps `provisioning_source` as the journal source and reports
+`lan_wtp_ready` separately once the LAN listener starts.
+
 Network control is disabled by default (`WSPRRY_PICO_NETWORK_PORT=0`). When
 explicitly configured, raw WTP is accepted only through TLS 1.3, mutual
 device-specific certificate authentication and ALPN `wtp/1`; plaintext,
@@ -286,7 +298,9 @@ through fixed 64-byte records and releases activation only after its final ATT
 indication is confirmed on core 0. Full BLE field control must still reuse the
 existing WTP/browser semantics and JobService. Normal SoftAP authority uses
 server-authenticated HTTPS plus a random password-authenticated session
-principal scoped to that interface; station HTTPS and raw TLS-WTP retain mTLS.
+principal scoped to that interface; engineering station HTTPS and raw TLS-WTP
+retain mTLS. The consumer LAN WTP mode described above is a separate admission
+policy and does not expose HTTP.
 Provisioned pre-clock SoftAP is limited to identity, challenge, password,
 controller time and nonsensitive status. Blank-device SoftAP is read-only.
 Those rules now run through the production image's interface-classified HTTP/

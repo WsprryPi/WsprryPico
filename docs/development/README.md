@@ -23,6 +23,7 @@ and [conformance vectors](../protocol/Field-GATT-v1-vectors.json),
 [P12.8 first Safari claim attempt and recovery candidate](phase12-8-live-claim-first-attempt.md),
 [P12.8 live claim execution prompt](phase12-8-live-claim-execution-prompt.md),
 [P12.8 core-1 BOOTSEL target diagnostic](phase12-8-bootsel-window-target.md),
+[Phase 12 LAN WTP source review](phase12-lan-wtp-review.md),
 operator-selected [field-access/security contract](phase12-field-access-contract.md)
 and [portable review](phase12-review.md), the
 [P12.3 hardware-free integration review](phase12-3-review.md), the

@@ -333,8 +333,9 @@ The next hardware-free safety boundary is implemented without enabling a radio:
   WPA2-AES adapter to the standard image. A blank device exposes only fixed-IP
   read-only HTTP identity/recovery information. A provisioned device uses its
   device-bound TLS server identity for pre-clock login/controller time and the
-  normal browser API without a client certificate; station HTTPS and raw WTP
-  remain mTLS-only. The SoftAP cookie binds to one exact WTP session only after
+  normal browser API without a client certificate; engineering station HTTPS
+  and raw WTP remain mTLS-only. The later consumer LAN WTP mode is separately
+  described below. The SoftAP cookie binds to one exact WTP session only after
   a successful `HELLO`, and absolute-expiry grace permits only STATUS, ABORT
   and controller-time operations for that exact armed/running session.
 - AP and station traffic share the one bounded TLS listener and one
@@ -452,6 +453,14 @@ workflow.
 The disconnect-related timeout observed during physical work is closed as a
 non-qualifying test run. It is not an open device defect or a Phase 12
 implementation milestone.
+
+The operator selected automatic local-network WTP after infrastructure Wi-Fi
+and accepted SNTP, without client-certificate enrollment. The source candidate
+uses the committed consumer device certificate when present and generates a
+temporary device TLS identity on a Wi-Fi-only boot. Both modes admit ALPN
+`wtp/1` only on the infrastructure interface; engineering mTLS stays intact.
+Host TLS and target cross-build checks do not qualify physical operation or
+the separate WsprryPi client, which still requires certificate settings.
 
 | Milestone | Status | Outcome required to advance |
 | --- | --- | --- |
@@ -703,14 +712,14 @@ Finish the consumer lifecycle after first setup:
 
 Full captive SoftAP setup has the revised P12.7 design but still
 requires P12.8–P12.12 implementation and acceptance. The separately approved
-Wi-Fi-only network join does not
-grant an owner, station trust, job control or RF authority; it protects the
-submitted Wi-Fi credentials against passive AP listeners with a fresh key
+Wi-Fi-only network join protects the submitted Wi-Fi credentials against passive
+AP listeners with a fresh key
 exchange and accepts active page replacement/relay risk.
 The [Wi-Fi-only network bootstrap proposal](phase12-wifi-only-bootstrap-proposal.md)
 is the approved exception for the narrower task of joining a blank Pico to a
-station network without an app or setup code. It does not establish owner, TLS
-or job authority. The candidate attempts an
+station network without an app or setup code. It does not establish a retained
+owner. The later LAN WTP source candidate creates temporary TLS identity and
+job-control access only after infrastructure SNTP. The setup candidate attempts an
 AP-local captive-browser launch on iPhone, with a fixed-address Safari
 fallback; neither an automatic launch nor captive-sheet crypto capability is
 assumed without target evidence. Implementation is approved subject to the

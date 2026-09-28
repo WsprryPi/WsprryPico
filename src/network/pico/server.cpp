@@ -88,10 +88,11 @@ void install_tls_time_source(wtp::JobService& service) {
 }
 
 PicoServer::PicoServer(wtp::JobService& service, BrowserApi& api, std::string device,
-                       std::string firmware, provisioning::CredentialMaterial credentials)
+                       std::string firmware, provisioning::CredentialMaterial credentials,
+                       Admission admission)
     : service_(service), api_(api), device_id_(device), credentials_(credentials),
-      connections_{Connection(*this, std::move(device), firmware),
-                   Connection(*this, device_id_, std::move(firmware))} {}
+      admission_(admission), connections_{Connection(*this, std::move(device), firmware),
+                                          Connection(*this, device_id_, std::move(firmware))} {}
 PicoServer::Connection::Connection(PicoServer& owner, std::string device, std::string firmware)
     : owner_(owner), service_(owner.service_), api_(owner.api_),
       endpoint_(service_, std::move(device), std::move(firmware)) {}
@@ -220,6 +221,7 @@ err_t PicoServer::accept(void* context, tcp_pcb* pcb, err_t err) {
     const bool softap =
         self.softap_ && self.classifier_ && self.classifier_(pcb, self.classifier_context_);
     if (err != ERR_OK || !self.admission_open_ || self.pending_ || self.busy() ||
+        (softap && self.admission_ == Admission::LocalWtp) ||
         (!softap && (clock.state == wtp::ClockState::Unsynchronized || clock.utc_now_ns == 0))) {
         ++self.metrics_.rejected;
         tcp_abort(pcb);
@@ -255,7 +257,7 @@ void PicoServer::Connection::activate(tcp_pcb* pcb, bool softap) {
     setup_ = true;
     if (mbedtls_ssl_setup(&ssl_, &owner_.config_))
         close(false);
-    else if (softap_)
+    else if (softap_ || owner_.admission_ == Admission::LocalWtp)
         mbedtls_ssl_set_hs_authmode(&ssl_, MBEDTLS_SSL_VERIFY_NONE);
 }
 err_t PicoServer::pending_receive(void* context, tcp_pcb* pcb, pbuf* packet, err_t) {
@@ -514,13 +516,16 @@ void PicoServer::Connection::poll(bool link_up, std::string_view authority,
             return;
         const auto* peer = mbedtls_ssl_get_peer_cert(&ssl_);
         const auto* protocol = mbedtls_ssl_get_alpn_protocol(&ssl_);
-        if ((!softap_ && (!peer || mbedtls_ssl_get_verify_result(&ssl_))) ||
+        if ((!softap_ && owner_.admission_ == Admission::ClientCertificate &&
+             (!peer || mbedtls_ssl_get_verify_result(&ssl_))) ||
             (protocol && std::strcmp(protocol, "wtp/1") && std::strcmp(protocol, "http/1.1")) ||
-            (!protocol && !softap_)) {
+            (!protocol && !softap_) ||
+            (owner_.admission_ == Admission::LocalWtp &&
+             (!protocol || std::strcmp(protocol, "wtp/1")))) {
             close();
             return;
         }
-        if (!softap_) {
+        if (!softap_ && owner_.admission_ == Admission::ClientCertificate) {
             const auto digest = wtp::sha256(std::span(peer->raw.p, peer->raw.len));
             principal_ = "tls-cert:";
             for (auto b : digest) {
@@ -528,6 +533,8 @@ void PicoServer::Connection::poll(bool link_up, std::string_view authority,
                 principal_ += "0123456789abcdef"[b & 15];
             }
         }
+        if (owner_.admission_ == Admission::LocalWtp)
+            principal_ = "local-network";
         wtp_ = protocol && std::strcmp(protocol, "wtp/1") == 0;
         if (softap_ && wtp_) {
             close();

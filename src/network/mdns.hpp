@@ -16,6 +16,8 @@ class MdnsAdapter {
 class Mdns {
   public:
     Mdns(MdnsAdapter& adapter, std::string_view hostname);
+    // A Wi-Fi-only boot learns its stable hardware hostname after radio init.
+    bool configure_hostname(std::string_view hostname);
     void poll(bool enabled, std::uint32_t address, std::uint64_t now_us);
     void name_result(bool success);
     // Retain registration resources while the caller services a bounded drain.

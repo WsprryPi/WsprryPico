@@ -66,6 +66,10 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     add_test(NAME network_tls_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/network_tls_tests.py
         $<TARGET_FILE:network_tls_driver> ${WSPRRY_PICO_TEST_CREDENTIAL_DIR})
     set_tests_properties(network_tls_tests PROPERTIES TIMEOUT 90 RUN_SERIAL TRUE)
+    add_test(NAME network_local_wtp_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/network_local_wtp_tests.py
+        $<TARGET_FILE:network_tls_driver> ${WSPRRY_PICO_TEST_CREDENTIAL_DIR})
+    set_tests_properties(network_local_wtp_tests PROPERTIES TIMEOUT 30 RUN_SERIAL TRUE)
     add_executable(bootstrap_crypto_tests tests/bootstrap_crypto_tests.cpp
         src/network/pico/bootstrap_crypto.cpp src/network/pico/psa_lifetime.cpp)
     target_compile_definitions(bootstrap_crypto_tests PRIVATE
