@@ -280,3 +280,59 @@ a field network without time service can open the portal but cannot complete
 that save. Resolve this before crediting field-day reconfiguration. Broader
 TLS/client enrollment, resets, resource/concurrency/soak and restoration rows
 remain open in the [Phase 12 roadmap](phase12-plan.md).
+
+## Captive Wi-Fi result repair and two-board delivery (2026-09-28)
+
+An iPhone captive page showed both “Could not start Wi-Fi setup” and
+“Connection not saved” after the Pico joined infrastructure Wi-Fi and withdrew
+its setup AP. Source commit `9693c59c19245d510e1f75811861b37cc6616b41`
+separates an accepted `/api/bootstrap/v1/submit` reply from the later durable
+save. An accepted reply now displays “Wi-Fi settings accepted,” explains that
+setup Wi-Fi will close and the captive window should close, and keeps that
+result visible when the AP disappears. A lost submit reply reports an
+unconfirmed result;
+an interrupted start no longer claims the connection was not saved. A status
+poll started before the POST cannot clear the pending attempt. Exact request
+digest and generation readback still control the saved/connected result, and
+an explicit failed reply still reports failure.
+
+The adversarial reassessment found that “Back to Wi-Fi settings” after a
+failed initial identity read could open a form unable to submit. Commit
+`2bde30bd1128197c66f84bcef4b9cc0116016c08` makes the interrupted-page
+action reload setup, allowing a fresh identity and generation read. The
+affected browser and host tests passed again after this repair.
+
+The four browser/crypto tests passed, including AP withdrawal, lost reply,
+stale poll, confirmed failure and exact saved readback. Five affected host
+bootstrap tests passed; the Pico 2 W/RP2350 Arm secure Release image built
+from a clean worktree at the final commit using pinned SDK 2.3.1 and GNU Arm
+15.3.1.
+
+The standard image is RF-inhibited and reports the
+`inhibited-standalone-simulator` engine. The first `9693c59` image (UF2
+SHA-256 `6d10d58605a416897e99953c96714d81f12c06ab5af98622c2030dcb8c85dee7`)
+was flashed and verified on both boards, then superseded by the final clean
+`2bde30b` image. The final 3,317,760-byte UF2 SHA-256 was
+`f2b8dd678ecee11b69f72eeb6bfc707feb302bc3d6ce76b0f67ad591b8632a47`;
+the copy on `wspr5` matched. The existing Linux picotool SHA-256 was
+`4a68cfd7fc36002e80857802c8192c9f24c751357c6cb26ad13ad7f38c227921`.
+
+Both boards were USB idle with output inactive before the flash. Candidate A
+had USB serial/ROM chip ID `0BF4B4AEC9FFB344`, device ID
+`fd6127d11d6aca42a9905fa3fb1bf1d5`; Candidate B had USB serial/ROM chip
+ID `CDDBF8767C506C07`, device ID
+`29f20b7342051ef947aa56cb9d4fab42`. Each serial-targeted
+`picotool load -v -x` verified `OK`, rebooted, and returned USB `INFO` with
+final revision `2bde30bd1128`, a new boot ID, 150 MHz system clock, empty job
+state, inactive output, valid core-0 stack guard and no fault. A retained its
+consumer pre-clock generation-2 profile, synchronized UTC, station address
+`192.168.1.47`, and Plain LAN listener on TCP 31417; a TCP connection passed.
+B remained unprovisioned at generation 0 without a station address or LAN
+listener, and its UTC clock was unsynchronized. Final boot IDs were
+`669f7ce38fe85857711f146336b4bab3` for A and
+`140ee5b5b32127246771130af007675d` for B. The final image remains on
+both boards.
+
+This delivery verifies the image and readback. The updated iPhone result page
+has not yet been retested physically; an accepted POST is not itself proof of
+a durable save, and the captive window is controlled by iOS after AP withdrawal.
