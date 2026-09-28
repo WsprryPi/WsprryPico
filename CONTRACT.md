@@ -19,16 +19,16 @@ implemented Pico surface. Shared WsprryPi adoption remains separate work.
 
 ## Timing and interoperability
 
-- USB CDC is the canonical/reference WTP transport. TLS 1.3/TCP with ALPN
-  `wtp/1` is an implemented first-class WTP job-transfer and job-control
-  transport; it carries the identical WTP/1 stream to the same `JobService`
-  and has no plaintext fallback. Engineering profiles require mutual
-  certificate authentication. A committed consumer profile with usable
-  infrastructure Wi-Fi and SNTP may admit LAN WTP without a client certificate,
-  using its validated device certificate. A Wi-Fi-only profile generates a
-  temporary device TLS identity after SNTP for the same LAN WTP mode. No
-  browser API is admitted by that mode. Its physical acceptance and separate
-  WsprryPi client integration remain open.
+- USB CDC is the canonical/reference WTP transport. Network WTP/TCP is a
+  first-class job-transfer and job-control transport carrying the identical
+  WTP/1 stream to the same `JobService`. Engineering profiles retain TLS 1.3,
+  ALPN `wtp/1` and mutual certificate authentication. The standard consumer
+  image defaults to Plain LAN on station TCP port 31417 after infrastructure
+  Wi-Fi and accepted SNTP; build-time `off` and `tls` selections remain. Plain
+  LAN has no automatic TLS fallback and no browser API. Any client that can
+  reach the local port can submit WTP commands under the shared LAN principal.
+  WsprryPi supports an explicit Plain LAN connection; new-image physical
+  interoperability remains open.
 - The implemented engineering provisioning and field-control path uses
   BLE/Bluefy under the
   [Phase 12 field-access contract](docs/development/phase12-field-access-contract.md).

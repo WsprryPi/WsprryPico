@@ -39,6 +39,10 @@
 #include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
 
+#ifndef WSPRRY_PICO_CONSUMER_LAN_MODE
+#define WSPRRY_PICO_CONSUMER_LAN_MODE 2
+#endif
+
 #include <malloc.h>
 extern "C" char __HeapLimit, __end__, __StackLimit, __StackTop;
 #include "hardware/sync.h"
@@ -334,6 +338,9 @@ int main() {
     const bool local_wtp =
         network_only_source ||
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock;
+    const bool plain_lan_wtp = local_wtp && WSPRRY_PICO_CONSUMER_LAN_MODE == 1;
+    const bool tls_lan_wtp = local_wtp && WSPRRY_PICO_CONSUMER_LAN_MODE == 2;
+    constexpr unsigned plain_lan_port = 31417;
     bool deployment_matches =
         runtime_profile_loaded && !access_recovery && !tls_credentials.device_id.empty() &&
         !tls_credentials.hostname.empty() && tls_credentials.port != 0 &&
@@ -392,8 +399,9 @@ int main() {
     static wsprrypico::network::PicoServer server(
         service, browser_api, identities.device_id(), wsprrypico::firmware::kFirmwareVersion,
         tls_credentials,
-        local_wtp ? wsprrypico::network::PicoServer::Admission::LocalWtp
-                  : wsprrypico::network::PicoServer::Admission::ClientCertificate);
+        tls_lan_wtp ? wsprrypico::network::PicoServer::Admission::LocalWtp
+        : local_wtp ? wsprrypico::network::PicoServer::Admission::SoftApOnly
+                    : wsprrypico::network::PicoServer::Admission::ClientCertificate);
     wsprrypico::network::install_tls_time_source(service);
     const auto softap_authority =
         local_identity.hostname +
@@ -423,7 +431,9 @@ int main() {
         bootstrap.start();
     browser_api.set_active_job_connections(true);
     bool server_start_attempted = false;
-    std::uint64_t local_wtp_retry_at_ms = 0;
+    bool plain_start_attempted = false;
+    std::uint64_t tls_retry_at_ms = 0;
+    std::uint64_t plain_retry_at_ms = 0;
     static wsprrypico::provisioning::PicoIndicatorOutput indicator_output;
     static wsprrypico::provisioning::IndicatorController indicator(indicator_output,
                                                                    identities.device_id());
@@ -436,7 +446,8 @@ int main() {
 #endif
     // A Wi-Fi-only source has not generated its TLS identity yet. Do not turn
     // that pending state into a permanent mDNS identity failure.
-    network.listener_status(server.configured(), server.listening(),
+    network.listener_status(server.configured() || plain_lan_wtp,
+                            server.listening() || server.plain_listening(),
                             deployment_matches || network_only_source);
     watchdog_hw->scratch[1] = 3;
     std::array<std::uint8_t, 64> input{};
@@ -539,8 +550,17 @@ int main() {
                 result += "\"consumer_preclock\"";
             else
                 result += "\"fault\"";
+            result += ",\"lan_wtp_mode\":\"" +
+                      std::string(local_wtp ? (plain_lan_wtp ? "plain" : tls_lan_wtp ? "tls" : "off")
+                                            : "engineering-tls") +
+                      "\"";
+            result += ",\"lan_wtp_port\":" +
+                      std::to_string(plain_lan_wtp ? plain_lan_port : tls_lan_wtp ? server.port() : 0);
             result += ",\"lan_wtp_ready\":" +
-                      std::string(local_wtp && server.listening() && network.link_up() &&
+                      std::string(local_wtp &&
+                                          (plain_lan_wtp ? server.plain_listening()
+                                                         : tls_lan_wtp && server.listening()) &&
+                                          network.link_up() &&
                                           !network.ipv4().empty() && network.ipv4() != "0.0.0.0" &&
                                           service.clock_snapshot().state !=
                                               wsprrypico::wtp::ClockState::Unsynchronized
@@ -936,7 +956,8 @@ int main() {
 #endif
         watchdog_hw->scratch[1] = 4;
         const auto network_state = service.activity().state;
-        if (server.listening() || (network_state != wsprrypico::wtp::State::Armed &&
+        if (server.listening() || server.plain_listening() ||
+            (network_state != wsprrypico::wtp::State::Armed &&
                                    network_state != wsprrypico::wtp::State::Running))
             network.poll();
         const auto field_now_ms = time_us_64() / 1000ULL;
@@ -1005,14 +1026,14 @@ int main() {
              time_arbiter.status().source == wsprrypico::time::ActiveTimeSource::Sntp &&
              clock_now.state == wsprrypico::wtp::ClockState::Synchronized &&
              clock_now.utc_now_ns != 0);
-        const bool server_attempt_due =
-            !server_start_attempted ||
-            (local_wtp && !server.listening() && field_now_ms >= local_wtp_retry_at_ms);
-        if (network_only_source && local_wtp_time_ready && network_hostname_ready &&
-            network_only_tls.server_certificate.empty() && field_now_ms >= local_wtp_retry_at_ms &&
+        const bool server_attempt_due = !server_start_attempted ||
+                                        (tls_lan_wtp && !server.listening() &&
+                                         field_now_ms >= tls_retry_at_ms);
+        if (network_only_source && tls_lan_wtp && local_wtp_time_ready && network_hostname_ready &&
+            network_only_tls.server_certificate.empty() && field_now_ms >= tls_retry_at_ms &&
             network_state != wsprrypico::wtp::State::Armed &&
             network_state != wsprrypico::wtp::State::Running) {
-            local_wtp_retry_at_ms = field_now_ms + 30'000;
+            tls_retry_at_ms = field_now_ms + 30'000;
             if (wsprrypico::provisioning::generate_consumer_tls(
                     identities.device_id(), local_identity.hostname,
                     clock_now.utc_now_ns / 1'000'000'000ULL, network_only_tls)) {
@@ -1029,19 +1050,32 @@ int main() {
             }
         }
         if (server_attempt_due && deployment_matches && network.initialized() &&
-            local_wtp_time_ready && network_state != wsprrypico::wtp::State::Armed &&
+            (!local_wtp || local_wtp_time_ready) &&
+            network_state != wsprrypico::wtp::State::Armed &&
             network_state != wsprrypico::wtp::State::Running) {
             server_start_attempted = true;
-            if (local_wtp)
-                local_wtp_retry_at_ms = field_now_ms + 30'000;
-            if (network_only_source || !local_wtp ||
+            if (tls_lan_wtp)
+                tls_retry_at_ms = field_now_ms + 30'000;
+            if (network_only_source || !tls_lan_wtp ||
                 (runtime_profile.consumer_profile()->tls.hostname == local_identity.hostname &&
                  wsprrypico::provisioning::validate_consumer_tls(
                      runtime_profile.consumer_profile()->tls, identities.device_id(),
                      clock_now.utc_now_ns / 1'000'000'000ULL)))
                 (void)server.start();
-            network.listener_status(server.configured(), server.listening(), deployment_matches);
         }
+        if (plain_lan_wtp && network_hostname_ready && local_wtp_time_ready &&
+            !server.plain_listening() &&
+            (!plain_start_attempted || field_now_ms >= plain_retry_at_ms) &&
+            network_state != wsprrypico::wtp::State::Armed &&
+            network_state != wsprrypico::wtp::State::Running) {
+            plain_start_attempted = true;
+            plain_retry_at_ms = field_now_ms + 30'000;
+            (void)server.start_plain(plain_lan_port);
+        }
+        network.listener_status(server.configured() || plain_lan_wtp,
+                                server.listening() || server.plain_listening(),
+                                deployment_matches || (plain_lan_wtp && network_hostname_ready) ||
+                                    network_only_source);
         static wsprrypico::usb::ReplyPriority reply_priority;
         const bool allow_http_steps =
             !reply_priority.defer_http(time_us_64(), wsprrypico::usb::console_output_pending());

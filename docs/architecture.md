@@ -13,12 +13,13 @@ Use WsprryPico for project, repository and application naming; firmware artifact
 ## Transport and timing
 
 - USB CDC serial is the canonical/reference control transport.
-- TLS 1.3/TCP with ALPN `wtp/1` is a first-class WTP job-transfer and
-  job-control transport; Wi-Fi also supports the embedded web UI. Engineering
-  profiles require mutual certificate authentication. The consumer-profile
-  LAN mode starts after infrastructure Wi-Fi and SNTP and admits WTP without
-  a client certificate. A Wi-Fi-only profile generates a temporary device TLS
-  identity after SNTP for the same WTP mode.
+- Network WTP/TCP is a first-class job-transfer and job-control transport;
+  Wi-Fi also supports the embedded web UI. Engineering profiles retain TLS 1.3,
+  ALPN `wtp/1` and mutual certificate authentication. The standard consumer
+  image defaults to Plain LAN on station port 31417 after infrastructure Wi-Fi
+  and accepted SNTP. Build-time `off` and `tls` choices remain; TLS is never an
+  automatic fallback. A Wi-Fi-only profile needs no TLS identity in Plain LAN
+  mode.
 - BLE/Bluefy remains the implemented engineering provisioning and field-control
   path. A native Raspberry Pi/Linux BlueZ client is an additional local/bench
   controller. If consumer BLE work resumes, it will use a dedicated iPhone app.
@@ -85,11 +86,11 @@ console diagnostics from WTP framing. The [USB adapter contract](development/usb
 defines bounded servicing and connection semantics; logging must never enter WTP.
 The [strict WTP endpoint](development/wtp-endpoint.md) performs JSON validation,
 request dispatch and ordered response/event transmission. The [standalone scheduler](development/standalone.md) now shares this service
-with USB WTP and the [HTTPS browser API](browser-api.md). First-class TLS 1.3
-WTP/TCP uses ALPN `wtp/1` dispatch above raw lwIP callbacks. Engineering
-profiles use device-specific client-certificate principals; the consumer LAN
-mode uses a local-network principal after validated device TLS and SNTP.
-Plaintext and downgrade are not supported. Core 0
+with USB WTP and the [HTTPS browser API](browser-api.md). Network WTP/TCP
+dispatches above raw lwIP callbacks. Engineering TLS uses ALPN `wtp/1` and
+device-specific client-certificate principals. The standard consumer Plain LAN
+binding uses a shared local-network principal after station IPv4 and accepted
+SNTP, without an automatic downgrade path. Core 0
 retains application/USB/network/storage ownership. The physical
 standalone image dedicates core 1 to the RF engine/sink/peripheral and local launch
 interrupts, using a one-command synchronous ownership-transfer mailbox. Two TLS

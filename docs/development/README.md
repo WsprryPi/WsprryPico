@@ -84,10 +84,13 @@ broader commissioning remains open.
 
 The supported [Raspberry Pi/Linux BLE client](raspberry-pi-ble-client.md) adds a
 native BlueZ local/bench workflow using the same production GATT contract.
-Authenticated TLS 1.3/TCP remains a first-class WTP job-control transport while
-USB CDC remains canonical/reference. The Pi BLE claim now has the exact bounded
-live record linked above; TCP/TLS in this slice remains a source and
-deterministic-host contract, not new physical interoperability evidence.
+Network WTP/TCP remains first-class while USB CDC remains canonical/reference.
+The standard RF-inhibited consumer image now defaults to station-only Plain LAN
+WTP after accepted SNTP; engineering mTLS and explicit consumer `tls`/`off`
+choices remain. The [Plain LAN review](phase12-plain-lan-review.md) records
+source and host evidence. The Pi BLE claim has the exact bounded live record
+linked above; this new Plain LAN binding has no physical interoperability
+evidence yet.
 
 Phase 11.5 is CLOSED at 6/6 families for its recorded 138 MHz/divider-1
 configuration. Its [completion matrix](phase11-5-completion-matrix.md) and

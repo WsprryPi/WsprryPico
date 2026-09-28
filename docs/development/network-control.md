@@ -24,22 +24,35 @@ control path; it has no target or Safari acceptance.
 
 ## Operator setup and certificates
 
-The Phase 11 engineering behavior below remains available. A later Phase 12
+The standard RF-inhibited consumer image now selects `WSPRRY_PICO_CONSUMER_LAN_MODE=plain`
+at build time. `off` disables consumer station WTP and `tls` retains the
+certificate-based consumer station binding. Plain LAN listens on station TCP
+port 31417 only after station IPv4 and accepted SNTP establish usable UTC.
+It uses the same WTP/1 frames, job service, ownership and output rules as USB
+and TLS. A client on the local network that can reach the port can control the
+Pico. The listener rejects SoftAP clients and does not auto-downgrade TLS.
+Console `INFO` reports `lan_wtp_mode`, `lan_wtp_port` and `lan_wtp_ready`.
+The Wi-Fi-only network journal does not need to generate a per-boot TLS identity
+in Plain LAN mode. This is a source and host-test change; new-image physical
+Pico-to-WsprryPi interoperability remains to be checked.
+
+The Phase 11 engineering behavior below remains available. The optional Phase 12
 consumer-profile LAN mode uses the committed device certificate but does not
 require client-certificate enrollment for WTP. It waits for infrastructure
 Wi-Fi, an IPv4 address and accepted SNTP before starting the listener, accepts
-only ALPN `wtp/1`, and denies that mode on SoftAP. A Wi-Fi-only profile
+only ALPN `wtp/1`, and denies that mode on SoftAP. A Wi-Fi-only profile in TLS mode
 generates a temporary device TLS identity after SNTP, without changing its
 saved network-only journal or station settings. That certificate changes on
 each boot. WsprryPi's separate TLS client still requires client certificate
-settings; its automatic LAN connection is separate integration work.
+settings. WsprryPi also has an explicitly selected Plain LAN connection using
+only Pico host and port.
 USB `INFO` keeps `provisioning_source` as the journal source and reports
 `lan_wtp_ready` separately once the LAN listener starts.
 
-Network control is disabled by default (`WSPRRY_PICO_NETWORK_PORT=0`). When
-explicitly configured, raw WTP is accepted only through TLS 1.3, mutual
-device-specific certificate authentication and ALPN `wtp/1`; plaintext,
-opportunistic downgrade and a protocol-assigned default port do not exist. The
+Engineering TLS network control is disabled by default (`WSPRRY_PICO_NETWORK_PORT=0`). When
+explicitly configured, the engineering binding accepts WTP only through TLS 1.3, mutual
+device-specific certificate authentication and ALPN `wtp/1`; it does not
+opportunistically downgrade. The
 TCP adapter passes the identical WTP/1 frame stream and certificate-derived
 principal to the same portable endpoint and `JobService` as USB. Existing
 Wi-Fi/SNTP/USB and recovery behavior remains available. Use the existing Console

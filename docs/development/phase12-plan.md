@@ -455,17 +455,20 @@ non-qualifying test run. It is not an open device defect or a Phase 12
 implementation milestone.
 
 The operator selected automatic local-network WTP after infrastructure Wi-Fi
-and accepted SNTP, without client-certificate enrollment. The source candidate
-uses the committed consumer device certificate when present and generates a
-temporary device TLS identity on a Wi-Fi-only boot. Both modes admit ALPN
-`wtp/1` only on the infrastructure interface; engineering mTLS stays intact.
-Host TLS and target cross-build checks do not qualify physical operation or
-the separate WsprryPi client, which still requires certificate settings.
+and accepted SNTP, without certificate administration. The standard consumer
+build now defaults to station-only Plain LAN WTP on TCP port 31417, with
+explicit build-time `off` and `tls` modes. Plain LAN requires no per-boot TLS
+identity for a Wi-Fi-only profile. Engineering mTLS stays intact. WsprryPi has
+an explicit Plain LAN transport that can learn the Pico device ID from `HELLO`
+when no ID is configured. Host and cross-build checks do not qualify new-image
+physical interoperability or RF operation.
+The [Plain LAN source review](phase12-plain-lan-review.md) records the repaired
+findings, host checks and remaining physical gate.
 
 | Milestone | Status | Outcome required to advance |
 | --- | --- | --- |
 | P12.7 — Consumer commissioning contract | **REVISION REQUIRED FOR MANUAL AP OPENING** | The [current decision](phase12-safari-open-setup-revision.md) selects immediate Wi-Fi fields, optional station details later, no press to save and no retained phone owner. The AP starts on a blank profile and returns after station loss. A physical long hold coincided with lost Candidate A application service and an RP2350 ROM bootloader on the Pi, so the selected runtime BOOTSEL opener is withdrawn; choose a safe connected-station action. The [earlier owner decision](phase12-7-decision.md) is historical. |
-| P12.8 — Commissioning foundation | **SOURCE CANDIDATE; TARGET OPEN** | One-use encrypted AP setup, no-owner source-5 journal, generated TLS and atomic activation need final review and target proof. A different phone may submit a later update. |
+| P12.8 — Commissioning foundation | **SOURCE CANDIDATE; TARGET OPEN** | One-use encrypted AP setup, no-owner source-5 journal, selected LAN WTP mode and atomic activation need final review and target proof. A different phone may submit a later update. |
 | P12.9 — Guided captive SoftAP setup | **SOURCE CANDIDATE; PHONE OPEN** | Wi-Fi fields and a password reveal control appear immediately on `/`; station settings are optional later on `/owner.html`. Verify real iPhone captive/browser behavior and failed/retried saves. |
 | P12.10 — RF-inhibited commissioning acceptance | **CLEAN IMAGE BOOT/AP WITHDRAWAL VERIFIED; PHONE OPEN** | The [clean Wi-Fi-first image](phase12-wifi-first-flash.md) booted on Candidate A with generation 2 and a healthy station; two Pi scans did not see its AP. Save Wi-Fi from the phone without a button, then separately save optional station settings and prove actual generations and readback. |
 | P12.11 — Recovery and fallback | **OPEN** | Prove healthy-station AP withdrawal, select and verify a safe connected-station AP opening action, different-phone replacement, old-profile recovery, station-loss portal return, field-network operation, reset and full erase. No retained-owner recovery is required. |
@@ -718,8 +721,9 @@ exchange and accepts active page replacement/relay risk.
 The [Wi-Fi-only network bootstrap proposal](phase12-wifi-only-bootstrap-proposal.md)
 is the approved exception for the narrower task of joining a blank Pico to a
 station network without an app or setup code. It does not establish a retained
-owner. The later LAN WTP source candidate creates temporary TLS identity and
-job-control access only after infrastructure SNTP. The setup candidate attempts an
+owner. The later LAN WTP source candidate provides Plain LAN job-control access
+only after infrastructure SNTP by default; explicit TLS mode creates a temporary
+identity when needed. The setup candidate attempts an
 AP-local captive-browser launch on iPhone, with a fixed-address Safari
 fallback; neither an automatic launch nor captive-sheet crypto capability is
 assumed without target evidence. Implementation is approved subject to the

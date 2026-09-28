@@ -158,7 +158,22 @@ int main(int argc, char** argv) {
                                        invalid_credentials);
     if (invalid_server.start() || network::PsaCryptoOwner::owners())
         std::abort();
-    const auto admission = argc > 3 && std::string_view(argv[3]) == "--local-wtp"
+    bool softap_interface = std::getenv("WSPRRY_TEST_SOFTAP_INTERFACE") != nullptr;
+    auto classify_softap = [](const tcp_pcb*, void* context) {
+        return *static_cast<bool*>(context);
+    };
+    {
+        network::PicoServer no_tls(service, api, device, "plain-only", {},
+                                   network::PicoServer::Admission::SoftApOnly);
+        no_tls.softap_handler(nullptr, classify_softap, &softap_interface);
+        if (no_tls.configured() || !no_tls.start_plain(18445) ||
+            network::PsaCryptoOwner::owners() || no_tls.tls_allocated())
+            std::abort();
+        no_tls.stop();
+    }
+    const bool plain = argc > 3 && std::string_view(argv[3]) == "--plain-wtp";
+    const auto admission = plain ? network::PicoServer::Admission::SoftApOnly
+                           : argc > 3 && std::string_view(argv[3]) == "--local-wtp"
                                ? network::PicoServer::Admission::LocalWtp
                                : network::PicoServer::Admission::ClientCertificate;
     network::PicoServer server(service, api, device, "test-worker-firmware",
@@ -166,6 +181,7 @@ int main(int argc, char** argv) {
                                    ? provisioning::CredentialMaterial{}
                                    : credentials,
                                admission);
+    server.softap_handler(nullptr, classify_softap, &softap_interface);
     if (admission == network::PicoServer::Admission::LocalWtp &&
         (server.configured() || !server.configure_credentials(credentials) || !server.configured()))
         std::abort();
@@ -178,6 +194,9 @@ int main(int argc, char** argv) {
     }
     if (admission == network::PicoServer::Admission::LocalWtp &&
         server.configure_credentials(credentials))
+        std::abort();
+    if (plain && (!server.start_plain(18444) || !server.plain_listening() ||
+                  server.start_plain(18444)))
         std::abort();
     {
         network::PicoServer competing(service, api, device, "duplicate", credentials);
@@ -203,12 +222,15 @@ int main(int argc, char** argv) {
     wtp::available_memory = nullptr;
     if (server.tls_allocated() || !server.start() || network::PsaCryptoOwner::owners() != 1)
         std::abort();
+    if (plain && !server.start_plain(18444))
+        std::abort();
     fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
     bool link = true;
     bool allow_http_steps = true;
     std::string commands;
     std::cout << "READY " << server.port() << " PSA " << network::PsaCryptoOwner::owners()
-              << " PEAK " << network::PsaCryptoOwner::peak_owners() << std::endl;
+              << " PEAK " << network::PsaCryptoOwner::peak_owners()
+              << (plain ? " PLAIN 18444" : "") << std::endl;
     while (!stopping) {
         char bytes[128];
         const auto count = read(STDIN_FILENO, bytes, sizeof(bytes));

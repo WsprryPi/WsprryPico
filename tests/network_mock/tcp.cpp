@@ -15,7 +15,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <vector>
-static tcp_pcb* listener;
+static std::vector<tcp_pcb*> listeners;
 static bool fragment_writes = false, block_write = false, hold_next_ack = false;
 void mock_tcp_hold_next_ack() {
     hold_next_ack = true;
@@ -67,7 +67,7 @@ err_t tcp_bind(tcp_pcb* pcb, const void*, unsigned port) {
 tcp_pcb* tcp_listen_with_backlog(tcp_pcb* pcb, int backlog) {
     if (listen(pcb->fd, backlog))
         return nullptr;
-    listener = pcb;
+    listeners.push_back(pcb);
     return pcb;
 }
 void tcp_arg(tcp_pcb* p, void* a) {
@@ -86,8 +86,7 @@ void tcp_sent(tcp_pcb* p, err_t (*f)(void*, tcp_pcb*, u16_t)) {
     p->sent = f;
 }
 void tcp_abort(tcp_pcb* p) {
-    if (listener == p)
-        listener = nullptr;
+    listeners.erase(std::remove(listeners.begin(), listeners.end(), p), listeners.end());
     close(p->fd);
     clients.erase(std::remove(clients.begin(), clients.end(), p), clients.end());
     delete p;
@@ -153,17 +152,17 @@ void mock_tcp_ack_and_close(bool reset) {
         pcb->receive(pcb->arg, pcb, nullptr, ERR_OK);
 }
 void mock_tcp_poll() {
-    if (!listener)
-        return;
-    int fd = accept(listener->fd, nullptr, nullptr);
-    if (fd >= 0) {
-        fcntl(fd, F_SETFL, O_NONBLOCK);
-        auto* pcb = new tcp_pcb;
-        pcb->fd = fd;
-        pcb->hold_ack = hold_next_ack;
-        hold_next_ack = false;
-        clients.push_back(pcb);
-        listener->accept(listener->arg, pcb, ERR_OK);
+    for (auto* listener : listeners) {
+        int fd = accept(listener->fd, nullptr, nullptr);
+        if (fd >= 0) {
+            fcntl(fd, F_SETFL, O_NONBLOCK);
+            auto* pcb = new tcp_pcb;
+            pcb->fd = fd;
+            pcb->hold_ack = hold_next_ack;
+            hold_next_ack = false;
+            clients.push_back(pcb);
+            listener->accept(listener->arg, pcb, ERR_OK);
+        }
     }
     const auto copy = clients;
     for (auto* pcb : copy) {

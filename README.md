@@ -30,13 +30,15 @@ The later [focused 2200 m investigation](docs/development/2200m-investigation.md
 passes all five operational modes at 138 MHz with QRSS3 workloads, compares
 132/138/150 MHz clocks and retains an unfiltered Pi GPIO4 benchmark.
 
-TLS 1.3 WTP/TCP is a first-class job-transfer and job-control transport
+Network WTP/TCP is a first-class job-transfer and job-control transport
 alongside canonical USB CDC/WTP; it carries the identical WTP/1 byte stream
 into the same `JobService`. Engineering profiles use mutual certificate
-authentication. The consumer-profile LAN mode starts after infrastructure
-Wi-Fi and accepted SNTP and admits WTP without a client certificate. A
-Wi-Fi-only profile generates a temporary TLS identity after SNTP for the same
-LAN WTP mode. The separate WsprryPi client still needs an integration change.
+authentication. The standard consumer image defaults to Plain LAN on station
+port 31417 after infrastructure Wi-Fi and accepted SNTP; no certificates are
+needed for its Wi-Fi-only profile. Build-time `off` and `tls` choices remain.
+Plain LAN admits any client that can reach the port on the local network.
+WsprryPi has a matching explicit Plain LAN host connection; new-image physical
+interoperability remains open.
 The HTTPS browser API and operator UI are implemented
 and include bounded QRSS/FSKCW/DFCW message entry: 32 characters including spaces,
 up to 60 minutes per complete job, subject to the independent 512-event capacity.

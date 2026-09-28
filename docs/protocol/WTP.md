@@ -111,7 +111,7 @@ boot change invalidates ownership, loaded jobs, replay entries and terminal
 records. A client MUST NOT automatically reload or rearm work after observing
 a different boot identity.
 
-A server may resume a session only for the same authenticated principal. A new
+A server may resume a session only for the same transport-admitted principal. A new
 connection that resumes it replaces the old connection; the old connection
 receives `SESSION_REPLACED` when possible and then closes.
 
@@ -142,7 +142,7 @@ the current owner. `CLAIM` requires an unowned transmitter.
 
 `CLAIM` requests a lease from 5,000 through 60,000 ms. A success identifies the
 owner and returns the granted lease and monotonic expiry. Ownership is bound to
-the authenticated principal and resumable session, not merely to the supplied
+the transport-admitted principal and resumable session, not merely to the supplied
 `owner_id`. Only that session can `RENEW`, `RELEASE`, `LOAD`, `ARM` or `ABORT`.
 Standalone and browser-originated jobs MUST enter the same ownership service as
 host clients; they do not form a second control path.
@@ -378,7 +378,7 @@ emit an `INVALID_FRAME` event only when a session is already established.
 state transitions.
 
 For deterministic failure handling, a server evaluates a request in this
-order: frame; UTF-8/JSON/scalar/envelope; transport authentication; `HELLO` and
+order: frame; UTF-8/JSON/scalar/envelope; transport admission; `HELLO` and
 version; session replacement and request replay; operation recognition;
 operation-body schema; ownership and lease; lifecycle and job identity;
 advertised limits and engine capability; clock policy; execution. It returns
@@ -390,15 +390,23 @@ continuing evaluation could enable or leave output active.
 USB uses CDC ACM and carries the frame stream unchanged. Its trust boundary is
 physical access plus host operating-system device permissions.
 
-TCP carries the identical frame stream inside TLS 1.3 or later and uses ALPN
-`wtp/1`. Plaintext TCP is not conforming. Engineering network deployments
-require mutual authentication with a device-specific credential; a fleet-wide
-shared secret is forbidden. A product may select a local-network admission
-policy after its own Wi-Fi and time gates. That policy still requires a
-device-specific TLS server identity, but it may admit a WTP client without a
-client certificate and assign a network-local principal. Such a principal is
-shared by clients on that local network. Provisioning and credential rotation
-are outside WTP/1. WTP/1 does not assign a default TCP port.
+TCP carries the identical frame stream in one explicitly selected binding:
+
+- **TLS:** TLS 1.3 with ALPN `wtp/1`. Engineering network deployments require
+  mutual authentication with a device-specific credential; a fleet-wide shared
+  secret is forbidden. A product may instead admit a client without a client
+  certificate after validating the device-specific TLS server identity and
+  assign a shared local-network principal.
+- **Plain LAN:** raw WTP/1 frames on a configured TCP port, with no TLS or
+  certificate exchange. The server MUST restrict this binding to its station
+  interface and MUST NOT expose it on SoftAP. Every admitted client shares the
+  `local-network` principal. Any client able to reach the port can submit WTP
+  control commands, subject to the same ownership and lifecycle rules. The
+  server MUST NOT automatically fall back between Plain LAN and TLS.
+
+Provisioning and credential rotation are outside WTP/1. WTP/1 does not assign
+a default TCP port. Plain LAN is a product deployment choice, not a new wire
+protocol version.
 
 Transport adapters supply the admitted principal to the common job service.
 They MUST NOT implement separate ownership, lifecycle or timing rules.
