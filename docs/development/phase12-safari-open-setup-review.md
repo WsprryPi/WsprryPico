@@ -2,7 +2,7 @@
 
 ## 2026-09-28 AP lifetime and replacement-save review
 
-Status: **SOURCE REVIEWED; NEW TARGET IMAGE/PHONE ACCEPTANCE OPEN**. The
+Status: **SOURCE REVIEWED; CLEAN IMAGE BOOTED; PHONE ACCEPTANCE OPEN**. The
 current [setup contract](phase12-safari-open-setup-revision.md) now starts the
 open AP immediately only for an erased network profile. Saved network-only or
 consumer profiles keep it off during a healthy station connection, return it
@@ -36,8 +36,10 @@ installed Xcode SDK/compiler selected. The first host run used the broken
 Command Line Tools `.tbd` linker and failed three unrelated compiler/link
 fixtures; the Xcode rerun passed 98/98. The Pico 2 W Release target built with
 the pinned SDK 2.3.1; the final clean-commit image and live result are recorded
-separately in the [flash record](phase12-wifi-first-flash.md). These are source
-and build checks, not phone acceptance.
+separately in the [flash record](phase12-wifi-first-flash.md). Candidate A booted
+the clean image with its saved profile and station address intact; two isolated
+Pi scans did not see its AP while station Wi-Fi was healthy. These are bounded
+source, build and target checks, not phone or manual-button acceptance.
 
 ## Later Wi-Fi-first revision (2026-09-27)
 
