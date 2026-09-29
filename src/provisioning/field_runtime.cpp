@@ -15,12 +15,21 @@ bool SoftApCoordinator::request_join_grace(std::uint64_t now_ms) {
     return true;
 }
 
-bool SoftApCoordinator::request_manual_setup(std::uint64_t now_ms, bool shutdown_complete) {
+bool SoftApCoordinator::request_manual_setup(std::uint64_t now_ms, bool shutdown_complete,
+                                             bool button_held) {
     if (!shutdown_complete || manual_setup(now_ms))
         return false;
     manual_started_ms_ = now_ms;
     manual_active_ = true;
+    manual_button_held_ = button_held;
     return true;
+}
+
+void SoftApCoordinator::manual_button_released(std::uint64_t now_ms) {
+    if (manual_active_ && manual_button_held_) {
+        manual_button_held_ = false;
+        manual_started_ms_ = now_ms;
+    }
 }
 
 void SoftApCoordinator::station(bool usable, std::uint64_t now_ms) {
@@ -36,7 +45,8 @@ bool SoftApCoordinator::grace(std::uint64_t now_ms) const {
 }
 
 bool SoftApCoordinator::manual_setup(std::uint64_t now_ms) const {
-    return manual_active_ && !elapsed(now_ms, manual_started_ms_, softap_manual_setup_ms);
+    return manual_active_ &&
+           (manual_button_held_ || !elapsed(now_ms, manual_started_ms_, softap_manual_setup_ms));
 }
 
 bool SoftApCoordinator::poll(std::uint64_t now_ms) {

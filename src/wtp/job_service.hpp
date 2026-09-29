@@ -559,6 +559,13 @@ class JobService {
     Response handle(Request&& request);
     // Physical Console safety control only; never exposed as a network operation.
     Response local_abort();
+    // Local physical output interlock. Once set, no transport or scheduler may
+    // acquire or launch RF until a new firmware boot. Failed shutdown remains
+    // inhibited and must not authorize manual AP admission.
+    bool local_inhibit_output();
+    [[nodiscard]] bool output_inhibited() const {
+        return output_inhibited_;
+    }
     void poll();
     void reset();
     [[nodiscard]] ServiceActivity activity() const;
@@ -652,6 +659,7 @@ class JobService {
     std::string boot_id_;
     std::uint64_t lru_sequence_ = 0;
     bool ready_ = false;
+    bool output_inhibited_ = false;
 };
 
 } // namespace wsprrypico::wtp

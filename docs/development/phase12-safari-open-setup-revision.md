@@ -39,7 +39,10 @@ full erase remain distinct P12.11 decisions. The current
 release-only policy; it is not an adapter for the selected GP14 behavior.
 The separate [GP14 diagnostic](phase12-gp14-button-diagnostic.md) evaluates
 input timing and both-core flash continuity but performs no reset, RF stop or
-SoftAP action. No production image currently advertises this GP14 feature.
+SoftAP action. A later [opt-in runtime source candidate](phase12-gp14-runtime-review.md)
+connects PIO capture, normal reset and the existing SoftAP coordinator in an
+RF-inhibited image. The default image does not advertise GP14, and real RF
+shutdown, integrated AP operation and physical timing remain unaccepted.
 
 The [arbitrary BOOTSEL feasibility gate](phase12-bootsel-arbitrary-press-feasibility.md)
 found no safe way to capture an unprompted BOOTSEL press while both cores may

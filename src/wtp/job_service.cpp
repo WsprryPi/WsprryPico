@@ -153,6 +153,11 @@ Response JobService::handle_owned(Request& request) {
         response.close_connection = true;
         return response;
     }
+    // Check before replay as well as dispatch. An earlier successful ARM must
+    // never be acknowledged as a live permission after a physical stop.
+    if (output_inhibited_ && (request.operation == "CLAIM" || request.operation == "RENEW" ||
+                              request.operation == "LOAD" || request.operation == "ARM"))
+        return reject(ErrorCode::Busy);
 
     auto session = std::find_if(sessions_.begin(), sessions_.end(), [&](const Session& candidate) {
         return candidate.session_id == request.session_id;
@@ -547,6 +552,17 @@ Response JobService::local_abort() {
     if (response.ok)
         owner_.reset();
     return response;
+}
+
+bool JobService::local_inhibit_output() {
+    output_inhibited_ = true;
+    const auto aborted = local_abort().ok;
+    const auto now = clock_.snapshot().monotonic_now_ns;
+    const auto disabled = engine_.disable(saturating_add(now, config_.output_disable_timeout_ns));
+    const auto activity = this->activity();
+    return aborted && disabled && !activity.output_active && !activity.owned &&
+           activity.state != State::Armed && activity.state != State::Running &&
+           activity.state != State::Failed;
 }
 
 void JobService::poll() {

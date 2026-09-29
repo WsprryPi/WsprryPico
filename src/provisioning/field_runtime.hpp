@@ -40,7 +40,9 @@ class SoftApCoordinator {
         recovery_ = value;
     }
     bool request_join_grace(std::uint64_t now_ms);
-    bool request_manual_setup(std::uint64_t now_ms, bool shutdown_complete);
+    bool request_manual_setup(std::uint64_t now_ms, bool shutdown_complete,
+                              bool button_held = false);
+    void manual_button_released(std::uint64_t now_ms);
     void station(bool usable, std::uint64_t now_ms);
     void token_records(std::size_t count) {
         token_records_ = count;
@@ -74,6 +76,7 @@ class SoftApCoordinator {
     bool grace_active_ = false;
     std::uint64_t manual_started_ms_ = 0;
     bool manual_active_ = false;
+    bool manual_button_held_ = false;
 };
 
 class IndicatorOutput {

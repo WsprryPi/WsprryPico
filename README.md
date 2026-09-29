@@ -99,8 +99,9 @@ withdraws the AP after a stable connection. The selected separate GP14 button
 seconds, transmission shutdown on reaching 0.9 seconds held, and setup AP on
 reaching 9 seconds held after shutdown is confirmed. Keeping GP14 low past 10
 seconds must not repeat the actions or impair the AP. A release from 0.4 to
-under 0.9 seconds requests shutdown on release. These actions are not
-implemented or physically accepted in the production image. The previous
+  under 0.9 seconds requests shutdown on release. An opt-in RF-inhibited
+  runtime candidate connects these controls in source; the default image
+  leaves GP14 disabled, and physical/RF acceptance remains open. The previous
 runtime BOOTSEL sampler was unsafe and has been removed; do not use BOOTSEL to
 request the AP on the current image. A lost station connection still brings
 the AP back.

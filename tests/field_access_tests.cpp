@@ -1042,6 +1042,14 @@ void runtime_policy() {
     CHECK(!manual_ap.status(provisioning::softap_manual_setup_ms + 1).manual_setup);
     manual_ap.reply_active(false);
     CHECK(!manual_ap.poll(provisioning::softap_manual_setup_ms + 2));
+    provisioning::SoftApCoordinator held_ap(store);
+    held_ap.station(true, 0);
+    CHECK(held_ap.request_manual_setup(9'000, true, true));
+    CHECK(held_ap.poll(9'000 + provisioning::softap_manual_setup_ms * 3));
+    CHECK(held_ap.status(9'000 + provisioning::softap_manual_setup_ms * 3).manual_setup);
+    held_ap.manual_button_released(9'000 + provisioning::softap_manual_setup_ms * 3);
+    CHECK(held_ap.poll(9'000 + provisioning::softap_manual_setup_ms * 4 - 1));
+    CHECK(!held_ap.poll(9'000 + provisioning::softap_manual_setup_ms * 4));
     CHECK(media.bytes == access_before_manual);
     provisioning::SoftApCoordinator saved_ap(store);
     saved_ap.no_profile(true); // Network-only and consumer pre-clock use the open page.

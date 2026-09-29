@@ -658,12 +658,12 @@ void test_endpoint_unread_output_timeout_and_reconnect() {
     MockRfEngine engine;
     JobService service(clock, engine, identities);
     Endpoint endpoint(service, id('d'), "test");
-    const auto hello = "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":\"" +
-                       id('1') + "\",\"request_id\":\"" + id('2') +
+    const auto hello = "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":\"" + id('1') +
+                       "\",\"request_id\":\"" + id('2') +
                        "\",\"op\":\"HELLO\",\"body\":{\"versions\":[\"WTP/1\"],"
                        "\"client_name\":\"timeout\",\"client_version\":\"1\"}}";
-    const auto wire = encode_frame(
-        {reinterpret_cast<const std::uint8_t*>(hello.data()), hello.size()});
+    const auto wire =
+        encode_frame({reinterpret_cast<const std::uint8_t*>(hello.data()), hello.size()});
     auto offer = [&] {
         std::size_t offset = 0;
         while (offset < wire.size())
@@ -1898,6 +1898,46 @@ void test_physical_console_abort() {
     }
 }
 
+void test_physical_output_inhibit() {
+    for (bool fail_disable : {false, true}) {
+        VirtualClock clock;
+        MockRfEngine engine;
+        TestIdentitySource identities;
+        ServiceConfig config;
+        config.minimum_arm_lead_ns = 10;
+        JobService service(clock, engine, identities, config);
+        establish_owner(service); // Model an owner independent of the scheduler.
+        CHECK(service.handle(request("LOAD", sample_job(), 'c')).ok);
+        CHECK(
+            service.handle(request("ARM", ArmBody{id('3'), clock.value.utc_now_ns + 10, 1000}, 'd'))
+                .ok);
+        clock.advance(10);
+        service.poll();
+        CHECK(engine.output_active());
+        engine.reject_disable = fail_disable;
+        CHECK(service.local_inhibit_output() == !fail_disable);
+        CHECK(service.output_inhibited());
+        CHECK(service.handle(request("CLAIM", ClaimBody{id('2'), 10'000}, 'e')).error ==
+              ErrorCode::Busy);
+        CHECK(
+            service.handle(request("ARM", ArmBody{id('3'), clock.value.utc_now_ns + 10, 1000},
+                                   'd'))
+                .error == ErrorCode::Busy); // Prior success replay.
+        CHECK(service.handle(request("STATUS", {}, 'f')).ok);
+        if (!fail_disable) {
+            CHECK(!engine.output_active());
+            CHECK(!service.status().owner_id);
+            service.reset();
+            CHECK(service.output_inhibited());
+            CHECK(service.handle(request("CLAIM", ClaimBody{id('2'), 10'000}, 'a')).error ==
+                  ErrorCode::Busy);
+        } else {
+            CHECK(engine.output_active());
+            CHECK(service.status().state == State::Failed);
+        }
+    }
+}
+
 void test_activity_with_retained_history() {
     VirtualClock clock;
     MockRfEngine engine;
@@ -1987,6 +2027,7 @@ int main() {
          test_identical_adjustments_preserve_distinct_job_replays},
         {"allocation-free activity with retained history", test_activity_with_retained_history},
         {"physical Console abort", test_physical_console_abort},
+        {"physical output inhibit", test_physical_output_inhibit},
         {"crc and frame encoding", test_crc_and_frame_encoding},
         {"WSPR-sized frame allocation", test_wspr_sized_frame_allocation},
         {"allocation-free SHA padding", test_sha256_allocation_free_padding_boundaries},

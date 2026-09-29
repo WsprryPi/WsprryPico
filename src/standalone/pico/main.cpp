@@ -22,6 +22,10 @@
 #include "provisioning/pico/consumer_tls_validator.hpp"
 #include "provisioning/pico/credential_validator.hpp"
 #include "provisioning/pico/field_platform.hpp"
+#ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
+#include "provisioning/button_runtime.hpp"
+#include "provisioning/pico/gp14_capture.hpp"
+#endif
 #include "provisioning/pico/gatt_transport.hpp"
 #include "provisioning/runtime.hpp"
 #include "runtime/pico/heap_metrics.h"
@@ -244,6 +248,12 @@ int main() {
     // SDK uses scratch 4..7 for reboot bookkeeping. Preserve a small diagnostic
     // in 0..3, and enter an unowned, network-free recovery boot after a stall.
     const bool recovery = watchdog_enable_caused_reboot();
+#ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
+    constexpr std::uint32_t gp14_reset_magic = 0x47503152; // GP1R
+    const bool gp14_prior_reset =
+        watchdog_caused_reboot() && !recovery && watchdog_hw->scratch[0] == gp14_reset_magic;
+    const auto gp14_prior_duration_ms = gp14_prior_reset ? watchdog_hw->scratch[2] : 0u;
+#endif
     const auto fault_stage = recovery ? watchdog_hw->scratch[1] : 0;
     const auto fault_hash = recovery ? watchdog_hw->scratch[2] : 0;
     const auto saved_pc = recovery ? watchdog_hw->scratch[3] : 0;
@@ -314,6 +324,26 @@ int main() {
     static wsprrypico::wtp::Endpoint ble_endpoint(service, identities.device_id(),
                                                   wsprrypico::firmware::kFirmwareVersion);
     static wsprrypico::standalone::Scheduler scheduler(store, service);
+#ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
+    static wsprrypico::provisioning::PicoGp14Capture gp14_button;
+    bool gp14_fault_handled = false;
+    bool gp14_reset_pending = false;
+    const auto stop_for_gp14 = [&]() {
+        const bool verified = service.local_inhibit_output();
+        (void)scheduler.command("STOP");
+        if (!verified && engine.output_active()) {
+            watchdog_hw->scratch[2] = 0x47503146; // GP1F: failed physical output stop.
+            while (true)
+                tight_loop_contents(); // Watchdog enters inhibited recovery.
+        }
+        return verified;
+    };
+    const bool gp14_capture_ready = gp14_button.start();
+    if (!gp14_capture_ready) {
+        (void)stop_for_gp14();
+        gp14_fault_handled = true;
+    }
+#endif
     wsprrypico::provisioning::CredentialMaterial tls_credentials;
     if (runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Provisioned)
         tls_credentials = wsprrypico::provisioning::credentials(*runtime_profile.profile());
@@ -457,6 +487,22 @@ int main() {
     bool overflow = false;
     std::uint64_t reboot_at = 0;
     bool bootloader = false, browser_reboot = false;
+#ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
+    auto gp14_runtime = wsprrypico::provisioning::ButtonRuntime{
+        stop_for_gp14,
+        [&](std::uint64_t now_ms, bool held) {
+            return softap_coordinator.request_manual_setup(now_ms, true, held);
+        },
+        [&](std::uint64_t now_ms) { softap_coordinator.manual_button_released(now_ms); },
+        [&]() {
+            if (!reboot_at) {
+                gp14_reset_pending = true;
+                bootloader = false;
+                browser_reboot = false;
+                reboot_at = time_us_64() + 250'000;
+            }
+        }};
+#endif
     struct RestartContext {
         wsprrypico::standalone::Scheduler* scheduler;
         wsprrypico::wtp::RfEngine* output_engine;
@@ -551,17 +597,20 @@ int main() {
             else
                 result += "\"fault\"";
             result += ",\"lan_wtp_mode\":\"" +
-                      std::string(local_wtp ? (plain_lan_wtp ? "plain" : tls_lan_wtp ? "tls" : "off")
+                      std::string(local_wtp ? (plain_lan_wtp ? "plain"
+                                               : tls_lan_wtp ? "tls"
+                                                             : "off")
                                             : "engineering-tls") +
                       "\"";
-            result += ",\"lan_wtp_port\":" +
-                      std::to_string(plain_lan_wtp ? plain_lan_port : tls_lan_wtp ? server.port() : 0);
+            result += ",\"lan_wtp_port\":" + std::to_string(plain_lan_wtp ? plain_lan_port
+                                                            : tls_lan_wtp ? server.port()
+                                                                          : 0);
             result += ",\"lan_wtp_ready\":" +
                       std::string(local_wtp &&
                                           (plain_lan_wtp ? server.plain_listening()
                                                          : tls_lan_wtp && server.listening()) &&
-                                          network.link_up() &&
-                                          !network.ipv4().empty() && network.ipv4() != "0.0.0.0" &&
+                                          network.link_up() && !network.ipv4().empty() &&
+                                          network.ipv4() != "0.0.0.0" &&
                                           service.clock_snapshot().state !=
                                               wsprrypico::wtp::ClockState::Unsynchronized
                                       ? "true"
@@ -605,6 +654,25 @@ int main() {
                          allocation_fault ? saved_status : 0);
             result += ",\"fault_allocation_returned_null\":";
             result += allocation_fault ? ((saved_pc & 1U) ? "true" : "false") : "null";
+#ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
+            result += ",\"gp14_capture_fault\":";
+            result += gp14_button.fault() ? "true" : "false";
+            result += ",\"gp14_held\":";
+            result += gp14_button.held() ? "true" : "false";
+            result += ",\"gp14_output_inhibited\":";
+            result += service.output_inhibited() ? "true" : "false";
+            result += ",\"gp14_stop_verified\":";
+            result += gp14_runtime.stop_verified() ? "true" : "false";
+            result += ",\"gp14_prior_reset\":";
+            result += gp14_prior_reset ? "true" : "false";
+            number_field(result, "gp14_prior_duration_ms", gp14_prior_duration_ms);
+            number_field(result, "gp14_last_duration_us", gp14_runtime.last_duration_us());
+            number_field(result, "gp14_stop_events", gp14_runtime.stop_events());
+            number_field(result, "gp14_ap_events", gp14_runtime.setup_events());
+            number_field(result, "gp14_reset_events", gp14_runtime.reset_events());
+            number_field(result, "gp14_samples", gp14_button.samples());
+            number_field(result, "gp14_max_backlog_words", gp14_button.maximum_backlog_words());
+#endif
             result += ",\"network\":";
             result += network_status;
             std::string{}.swap(network_status);
@@ -921,6 +989,15 @@ int main() {
         return scheduler.command(text);
     };
     while (true) {
+#ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
+        wsprrypico::provisioning::DiagnosticButtonEvents button_event;
+        while (gp14_button.next(button_event))
+            gp14_runtime.observe(button_event, time_us_64() / 1000ULL, gp14_button.held());
+        if (gp14_button.fault() && !gp14_fault_handled) {
+            gp14_fault_handled = true;
+            gp14_runtime.capture_fault();
+        }
+#endif
         if (reboot_at && time_us_64() >= reboot_at) {
             // Network ownership can change while the response/USB ACK drains.
             // A new owner cancels reset rather than losing its accepted job.
@@ -934,6 +1011,13 @@ int main() {
             }
             if (bootloader)
                 reset_usb_boot(0, 0);
+#ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
+            if (gp14_reset_pending) {
+                watchdog_hw->scratch[0] = gp14_reset_magic;
+                watchdog_hw->scratch[2] = static_cast<std::uint32_t>(
+                    std::min<std::uint64_t>(gp14_runtime.last_duration_us() / 1000ULL, UINT32_MAX));
+            }
+#endif
             watchdog_reboot(0, 0, 0);
             while (true)
                 tight_loop_contents();
@@ -958,7 +1042,7 @@ int main() {
         const auto network_state = service.activity().state;
         if (server.listening() || server.plain_listening() ||
             (network_state != wsprrypico::wtp::State::Armed &&
-                                   network_state != wsprrypico::wtp::State::Running))
+             network_state != wsprrypico::wtp::State::Running))
             network.poll();
         const auto field_now_ms = time_us_64() / 1000ULL;
         if ((consumer_source_selected() || bootstrap.owner_claim_pending()) && gatt.running())
@@ -1026,9 +1110,9 @@ int main() {
              time_arbiter.status().source == wsprrypico::time::ActiveTimeSource::Sntp &&
              clock_now.state == wsprrypico::wtp::ClockState::Synchronized &&
              clock_now.utc_now_ns != 0);
-        const bool server_attempt_due = !server_start_attempted ||
-                                        (tls_lan_wtp && !server.listening() &&
-                                         field_now_ms >= tls_retry_at_ms);
+        const bool server_attempt_due =
+            !server_start_attempted ||
+            (tls_lan_wtp && !server.listening() && field_now_ms >= tls_retry_at_ms);
         if (network_only_source && tls_lan_wtp && local_wtp_time_ready && network_hostname_ready &&
             network_only_tls.server_certificate.empty() && field_now_ms >= tls_retry_at_ms &&
             network_state != wsprrypico::wtp::State::Armed &&
@@ -1072,10 +1156,9 @@ int main() {
             plain_retry_at_ms = field_now_ms + 30'000;
             (void)server.start_plain(plain_lan_port);
         }
-        network.listener_status(server.configured() || plain_lan_wtp,
-                                server.listening() || server.plain_listening(),
-                                deployment_matches || (plain_lan_wtp && network_hostname_ready) ||
-                                    network_only_source);
+        network.listener_status(
+            server.configured() || plain_lan_wtp, server.listening() || server.plain_listening(),
+            deployment_matches || (plain_lan_wtp && network_hostname_ready) || network_only_source);
         static wsprrypico::usb::ReplyPriority reply_priority;
         const bool allow_http_steps =
             !reply_priority.defer_http(time_us_64(), wsprrypico::usb::console_output_pending());

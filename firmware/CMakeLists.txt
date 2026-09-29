@@ -61,6 +61,11 @@ target_compile_definitions(WsprryPico PRIVATE
     WSPRRY_PICO_CONSUMER_LAN_MODE=${WSPRRY_PICO_CONSUMER_LAN_MODE_VALUE})
 option(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
     "Link the RF-inhibited USB BOOTSEL safe-zone window diagnostic" OFF)
+option(WSPRRY_PICO_GP14_RUNTIME_BUTTON
+    "Opt in to the unaccepted GP14 runtime button and PIO capture" OFF)
+if(WSPRRY_PICO_GP14_RUNTIME_BUTTON AND WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC)
+    message(FATAL_ERROR "GP14 runtime input and the BOOTSEL window diagnostic are separate image modes")
+endif()
 if(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC)
     target_compile_definitions(WsprryPico PRIVATE WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC=1
         PICO_CORE1_STACK_SIZE=0)
@@ -193,6 +198,17 @@ pico_set_program_name(WsprryPico-StandaloneRF "WsprryPico-StandaloneRF")
 pico_set_program_version(WsprryPico-StandaloneRF "${WSPRRY_PICO_FIRMWARE_VERSION}")
 pico_set_program_description(WsprryPico-StandaloneRF "Standalone GP2 integration ${WSPRRY_PICO_GIT_REVISION}")
 pico_add_extra_outputs(WsprryPico-StandaloneRF)
+
+if(WSPRRY_PICO_GP14_RUNTIME_BUTTON)
+    target_sources(WsprryPico PRIVATE ../src/provisioning/pico/gp14_capture.cpp)
+    target_include_directories(WsprryPico PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_compile_definitions(WsprryPico PRIVATE WSPRRY_PICO_GP14_RUNTIME_BUTTON=1)
+    target_link_libraries(WsprryPico PRIVATE hardware_pio hardware_dma)
+    pico_generate_pio_header(WsprryPico
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gp14_sampler.pio)
+    set_source_files_properties(../src/provisioning/pico/gp14_capture.cpp PROPERTIES
+        COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-fstack-usage")
+endif()
 
 # Explicit GP14 input diagnostic. It links no RF engine, Wi-Fi, or storage
 # writer, and never performs the actions that it reports.

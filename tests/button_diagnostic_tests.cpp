@@ -1,9 +1,12 @@
 #include "provisioning/button_diagnostic.hpp"
+#include "provisioning/button_runtime.hpp"
+#include "provisioning/button_sample_stream.hpp"
 
 #include <cassert>
 #include <initializer_list>
 
 using wsprrypico::provisioning::ButtonDiagnostic;
+using wsprrypico::provisioning::ButtonSampleStream;
 
 namespace {
 void edge(ButtonDiagnostic& button, std::uint64_t at_us, bool pressed) {
@@ -73,10 +76,91 @@ void startup_low_bounce_and_clock_fault() {
     assert(!button.observe(209'999, true).request_stop);
     assert(button.fault());
 }
+
+void packed_samples_survive_foreground_blackout() {
+    ButtonSampleStream stream;
+    unsigned reset = 0, stop = 0, ap = 0, release = 0;
+    auto replay_word = [&](std::uint32_t word) {
+        for (unsigned bit = 0; bit < 8; ++bit) {
+            const auto event = stream.observe_word(word, bit);
+            reset += event.request_reset;
+            stop += event.request_stop;
+            ap += event.request_setup_ap;
+            release += event.released;
+        }
+    };
+    // 200 ms of samples may be delivered in one batch after flash writing.
+    // A complete 104 ms tap inside that interval must still request reset.
+    for (unsigned i = 0; i < 16; ++i)
+        replay_word(0xff);
+    for (unsigned i = 0; i < 13; ++i)
+        replay_word(0x00);
+    for (unsigned i = 0; i < 16; ++i)
+        replay_word(0xff);
+    assert(reset == 1 && stop == 0 && ap == 0 && release == 1);
+    // A later held jumper crosses both thresholds, remains down beyond 10 s,
+    // then releases without a duplicate request.
+    for (unsigned i = 0; i < 1'375; ++i)
+        replay_word(0x00);
+    for (unsigned i = 0; i < 2; ++i)
+        replay_word(0xff);
+    assert(reset == 1 && stop == 1 && ap == 1 && release == 2);
+    assert(!stream.fault());
+    assert(ButtonSampleStream::backlog_valid(2048, 0, 2048));
+    assert(!ButtonSampleStream::backlog_valid(2049, 0, 2048));
+    assert(!ButtonSampleStream::backlog_valid(1, 2, 2048));
+}
+
+void runtime_actions_require_verified_stop() {
+    unsigned stops = 0, setups = 0, releases = 0, resets = 0;
+    bool stop_succeeds = false;
+    auto runtime = wsprrypico::provisioning::ButtonRuntime{[&]() {
+                                                               ++stops;
+                                                               return stop_succeeds;
+                                                           },
+                                                           [&](std::uint64_t, bool) {
+                                                               ++setups;
+                                                               return true;
+                                                           },
+                                                           [&](std::uint64_t) { ++releases; },
+                                                           [&]() { ++resets; }};
+    runtime.observe({.request_stop = true}, 900, true);
+    runtime.observe({.request_setup_ap = true}, 9'000, true);
+    runtime.observe({.request_reset = true, .released = true, .duration_us = 285'000}, 9'300,
+                    false);
+    assert(stops == 1 && setups == 0 && resets == 0 && releases == 1);
+    assert(runtime.last_duration_us() == 285'000);
+    runtime.capture_fault();
+    runtime.observe({.request_setup_ap = true}, 20'000, true);
+    assert(stops == 2 && setups == 0 && resets == 0);
+
+    stop_succeeds = true;
+    auto accepted = wsprrypico::provisioning::ButtonRuntime{[&]() {
+                                                                ++stops;
+                                                                return stop_succeeds;
+                                                            },
+                                                            [&](std::uint64_t, bool held) {
+                                                                assert(held && stops == 3);
+                                                                ++setups;
+                                                                return true;
+                                                            },
+                                                            [&](std::uint64_t) { ++releases; },
+                                                            [&]() { ++resets; }};
+    accepted.observe({.request_stop = true}, 900, true);
+    accepted.observe({.request_setup_ap = true}, 9'000, true);
+    accepted.observe({.released = true, .duration_us = 9'100'000}, 9'100, false);
+    accepted.observe({.request_reset = true, .released = true, .duration_us = 285'000}, 10'000,
+                     false);
+    assert(accepted.stop_verified() && setups == 1 && resets == 1 && releases == 3);
+    assert(accepted.stop_events() == 1 && accepted.setup_events() == 1 &&
+           accepted.reset_events() == 1);
+}
 } // namespace
 
 int main() {
     thresholds_and_stuck_hold();
     release_boundaries();
     startup_low_bounce_and_clock_fault();
+    packed_samples_survive_foreground_blackout();
+    runtime_actions_require_verified_stop();
 }

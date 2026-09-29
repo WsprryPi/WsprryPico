@@ -1,0 +1,5 @@
+.program gp14_sampler
+; One sample each 32 state-machine clocks. Autopush after eight samples.
+.wrap_target
+    in pins, 1 [31]
+.wrap
