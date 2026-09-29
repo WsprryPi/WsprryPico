@@ -1,7 +1,7 @@
 # GP14 diagnostic delivery to Pico 0a9d89
 
-Status: **SERIAL-TARGETED FLASH VERIFIED; ONE CORRECTLY WIRED GP14 HOLD
-OBSERVED; LONG HOLD AND INTEGRATED ACTIONS UNTESTED** (2026-09-29). The operator
+Status: **SERIAL-TARGETED FLASH VERIFIED; TWO GP14 HOLDS OBSERVED THROUGH THE
+9-SECOND THRESHOLD; OVER-10-SECOND HOLD PENDING** (2026-09-29). The operator
 authorized “Flash 0a9d89” after the exact normal GP14 diagnostic image was
 identified. This was
 an image delivery and idle observation, not RF shutdown, reset, SoftAP or
@@ -142,3 +142,30 @@ watchdog recovery, actual RF shutdown, reset or SoftAP service. The private
 raw stream is `build/gp14-physical-0a9d89-20260929/hold-corrected-usb.log`
 with SHA-256
 `d70f314503a1a3e3dfa6e4744dac24efd7ce4bb584b48074d04ac2ea2e9c51b2`.
+
+## Hold reaching the 9-second threshold
+
+The operator requested a hold past 10 seconds. With the same GP14-to-ground
+connection, a read-only monitor opened before the gesture and ran for 180
+seconds. It recorded one debounced `press`, one `would_stop` at duration
+900,066 microseconds, one `would_setup_ap` at 9,000,050 microseconds while
+`held=1`, `release` at **9,867,649 microseconds**, and `post_release` one
+second later. The requested past-10-second hold was therefore **not reached**.
+No second press occurred in that monitor window. Duration here is the
+firmware's measurement; no independent external timer was used.
+
+The five events had consecutive sequence numbers 5–9 and increasing flash
+read counts on both cores. Across 91 periodic reports, core-0 reads advanced
+from 1,374,957,312 to 1,643,244,032 and core-1 reads from 1,425,451,008
+to 1,701,529,856. The event ring reported no loss, the boot number stayed
+1, `prior_watchdog=0`, and the largest reported sample gap was 2,445
+microseconds. After release, `held=0` and `events=9` remained stable while
+both cores kept advancing. The host kernel log showed no new USB
+over-current or disconnect through this completed monitor.
+
+This validates one physical crossing of both diagnostic thresholds and
+post-release continuity. It does not show behavior beyond 10 seconds, a
+30-second stuck hold, or actual RF shutdown or SoftAP service. Private raw
+evidence is `build/gp14-physical-0a9d89-20260929/hold-over-10s-usb.log`
+with SHA-256
+`54e7cc5e89150593ecf29aff0774d8bdf6f0a36f239d1a1fa01b7ff7d7cab655`.
