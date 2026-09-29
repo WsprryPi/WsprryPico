@@ -1028,6 +1028,7 @@ void runtime_policy() {
     CHECK(!ap.request_join_grace(100'001));
     CHECK(ap.poll(100'001));
     provisioning::SoftApCoordinator manual_ap(store);
+    const auto access_before_manual = media.bytes;
     manual_ap.station(true, 0);
     CHECK(!manual_ap.poll(0));
     CHECK(!manual_ap.request_manual_setup(1, false));
@@ -1041,6 +1042,7 @@ void runtime_policy() {
     CHECK(!manual_ap.status(provisioning::softap_manual_setup_ms + 1).manual_setup);
     manual_ap.reply_active(false);
     CHECK(!manual_ap.poll(provisioning::softap_manual_setup_ms + 2));
+    CHECK(media.bytes == access_before_manual);
     provisioning::SoftApCoordinator saved_ap(store);
     saved_ap.no_profile(true); // Network-only and consumer pre-clock use the open page.
     CHECK(saved_ap.surface(false) == provisioning::SoftApSurface::BlankReadOnly);
@@ -1104,12 +1106,19 @@ void button_action_policy() {
     CHECK(short_press.observe(110, true, true) == ButtonAction::None);
     CHECK(short_press.observe(121, false, true) == ButtonAction::Restart);
     CHECK(short_press.observe(122, false, true) == ButtonAction::None);
+    CHECK(short_press.observe(200, true, true) == ButtonAction::StopOutput);
+    CHECK(short_press.observe(220, false, true) == ButtonAction::Restart);
 
     provisioning::ButtonControl long_press;
     CHECK(long_press.observe(500, true, true) == ButtonAction::StopOutput);
     CHECK(long_press.observe(10'499, true, true) == ButtonAction::None);
     CHECK(long_press.observe(10'500, true, false) == ButtonAction::StopOutput);
-    CHECK(long_press.observe(10'500, false, true) == ButtonAction::OpenSetupAp);
+    CHECK(long_press.observe(20'500, true, true) == ButtonAction::None);
+    CHECK(long_press.observe(20'500, false, true) == ButtonAction::OpenSetupAp);
+
+    provisioning::ButtonControl exact_long;
+    CHECK(exact_long.observe(500, true, true) == ButtonAction::StopOutput);
+    CHECK(exact_long.observe(10'500, false, true) == ButtonAction::OpenSetupAp);
 
     provisioning::ButtonControl just_short;
     CHECK(just_short.observe(500, true, true) == ButtonAction::StopOutput);
@@ -1129,6 +1138,9 @@ void button_action_policy() {
     provisioning::ButtonControl time_rollback;
     CHECK(time_rollback.observe(100, true, true) == ButtonAction::StopOutput);
     CHECK(time_rollback.observe(99, true, true) == ButtonAction::Fault);
+    provisioning::ButtonControl time_wrap;
+    CHECK(time_wrap.observe(UINT64_MAX - 1, true, true) == ButtonAction::StopOutput);
+    CHECK(time_wrap.observe(1, false, true) == ButtonAction::Fault);
 }
 
 void reset_policy() {

@@ -30,7 +30,7 @@ recording the operator-selected button behavior were preserved and included.
 | --- | --- |
 | A manual AP lease could be requested with output state unknown if the API accepted only a timestamp. | Added a required `shutdown_complete` admission argument; a failed admission leaves the AP off. The host test exercises this path. |
 | A mere inactive GPIO indication would not prove an armed autonomous schedule or `JobService` was stopped. | Renamed the policy input to `shutdown_complete` and documented that it includes scheduler, service and physical engine. Production integration must establish that composite state before using an action. |
-| A short press could be restarted before a ten-second hold was distinguished, or a boundary could classify both actions. | The policy decides only on release. Host cases cover 9,999 ms, 10,000 ms, bounce, failed shutdown and clock rollback. |
+| A short press could be restarted before a ten-second hold was distinguished, or a boundary could classify both actions. | The policy decides only on release. Host cases cover 9,999 ms, 10,000 ms, bounce, repeated press, held press, failed shutdown, clock rollback and wrap. |
 
 ## Second adversarial assessment: blocking integration facts
 
@@ -51,6 +51,10 @@ recording the operator-selected button behavior were preserved and included.
 3. The manual AP lease is volatile. If a future adapter must reboot to obtain
    a safe AP state, it needs a bounded boot-continuation marker
    that survives only that restart. No such marker is implemented here.
+4. Autonomous rearm prevention and exact settings preservation across a
+   device restart cannot be tested in this disconnected source slice. The
+   host test confirms the manual AP lease does not write the access record,
+   but a production adapter must stop the scheduler and prove reboot behavior.
 
 These are acceptance blockers, not closed findings. The reassessment finds no
 additional actionable issue in the disconnected portable policy and AP lease.
