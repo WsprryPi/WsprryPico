@@ -19,8 +19,8 @@ failure as historical evidence.
 
 - A debounced press released before 0.4 seconds requests a device reset. This
   is a restart, not a settings erase.
-- A press from 0.4 to less than 0.9 seconds has no selected action pending
-  confirmation of that interval.
+- A press released from 0.4 to less than 0.9 seconds requests transmission
+  shutdown on release.
 - At 0.9 seconds of continuous hold, request an immediate stop of active and
   autonomous transmissions; release is not required.
 - At 9 seconds of the same hold, request setup SoftAP. AP admission must wait

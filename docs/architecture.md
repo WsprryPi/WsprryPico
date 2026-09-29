@@ -32,7 +32,8 @@ Use WsprryPico for project, repository and application naming; firmware artifact
   selected for a connected-station opening gesture: stop is requested at 0.9
   seconds held and setup AP at 9 seconds held after confirmed shutdown. A hold
   beyond 10 seconds must leave AP available. A release under 0.4 seconds
-  requests reset. The production path is not connected or target accepted.
+  requests reset; a release from 0.4 to under 0.9 seconds requests shutdown.
+  The production path is not connected or target accepted.
   Safari is one possible
   browser, not a required step. Source implementation exists, while target
   acceptance remains open. The earlier

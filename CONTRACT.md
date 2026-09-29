@@ -41,7 +41,7 @@ implemented Pico surface. Shared WsprryPi adoption remains separate work.
   release under 0.4 seconds requests reset; reaching 0.9 seconds held requests
   transmission shutdown; reaching 9 seconds held requests setup AP after
   shutdown is confirmed. A held jumper must not repeat actions or impair AP.
-  The 0.4 to under 0.9 second interval is provisionally no action. These
+  A release from 0.4 to under 0.9 seconds requests shutdown. These
   actions are not implemented or physically accepted in production. The
   runtime BOOTSEL sampler failed a physical long-hold check and remains
   withdrawn. The earlier

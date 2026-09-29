@@ -58,7 +58,7 @@ class ButtonDiagnostic {
                     events.duration_us = duration;
                     if (duration < reset_limit_us)
                         events.request_reset = true;
-                    if (duration >= stop_limit_us && !stop_emitted_)
+                    if (duration >= reset_limit_us && !stop_emitted_)
                         events.request_stop = true;
                     if (duration >= ap_limit_us && !setup_emitted_)
                         events.request_setup_ap = true;

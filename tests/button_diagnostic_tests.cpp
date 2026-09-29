@@ -45,7 +45,7 @@ void release_boundaries() {
         const auto done = button.observe(110'000 + duration, false);
         assert(done.released && done.duration_us == duration);
         assert(done.request_reset == (duration < 400'000));
-        assert(done.request_stop == false);
+        assert(done.request_stop == (duration >= 400'000 && duration < 900'000));
         assert(done.request_setup_ap == false);
     }
     ButtonDiagnostic button;

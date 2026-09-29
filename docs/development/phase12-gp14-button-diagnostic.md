@@ -19,9 +19,9 @@ grounds external flash chip select and is rejected for this test by the
 [feasibility gate](phase12-bootsel-arbitrary-press-feasibility.md).
 
 The portable diagnostic accepts an edge only after a 10 ms stable level.
-Recognized releases before 400 ms report `would_reset`; 400 to under 900 ms
-currently report no action, pending operator confirmation of that gap. At 900
-ms of continuous low, it reports `would_stop` once without waiting for release.
+Recognized releases before 400 ms report `would_reset`; releases from 400 to
+under 900 ms report `would_stop` on release. At 900 ms of continuous low, it
+reports `would_stop` once without waiting for release.
 At 9,000 ms of the same hold, it reports `would_setup_ap` once. A jumper left
 on GP14 for 30 seconds or longer produces no repeated request; a debounced
 release rearms the next gesture. A low input present at boot is ignored until
@@ -103,12 +103,31 @@ python3 scripts/check_stack_guards.py \
   build/pico2-w-gp14/firmware/WsprryPico-GP14ButtonDiag.elf --physical
 ```
 
-The opt-in watchdog-injection variant uses
-`-DWSPRRY_PICO_GP14_DIAG_INJECT_WATCHDOG=ON` in a *separate* build directory
-and needs its own source review, exact image hash and physical authorization.
-No USB, GPIO, RF or board action is authorized by these source commands.
+The opt-in watchdog-injection variant was built from the same clean source
+commit in a separate directory:
 
-Build result and image SHA-256: **to be filled after final review and rebuild**.
+```sh
+source scripts/xcode_env.sh
+PICO_SDK_PATH=/private/tmp/wsprrypico-sdk-profile-079c6f3 \
+  cmake -S . -B build/pico2-w-gp14-inject -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DWSPRRY_PICO_BUILD_FIRMWARE=ON -DWSPRRY_PICO_BUILD_TESTS=OFF \
+  -DWSPRRY_PICO_GP14_BUTTON_DIAGNOSTIC=ON \
+  -DWSPRRY_PICO_GP14_DIAG_INJECT_WATCHDOG=ON -DPICO_BOARD=pico2_w \
+  -DPICOTOOL_FETCH_FROM_GIT_PATH=/Users/lbussy/GitHub/WsprryPico/build/pico2-w/_deps
+cmake --build build/pico2-w-gp14-inject --target WsprryPico-GP14ButtonDiag -j 4
+```
+
+Clean source commit and image SHA-256: **to be updated after the operator's
+400–<900 ms stop-on-release correction is committed and rebuilt**.
+
+`bash scripts/check_host.sh` passed 90/90 deterministic host groups. The
+pinned `bash scripts/build_pico.sh` standard image cross-build passed. Both
+GP14 image modes passed the post-link XIP/RF/storage topology and physical
+stack-guard checks; the GP14 checker correctly rejected the standard image
+as a negative case. `clang-format --dry-run --Werror` on changed C/C++ and
+`git diff --check` passed. No board, USB, GPIO or RF action was performed.
+The SDK/picotool sources were already local; no tool was downloaded. Physical
+use of either hash needs exact-device and exact-action authorization.
 
 ## Adversarial source review
 
@@ -134,6 +153,11 @@ both image modes, host tests, formatting, linked-image and stack checks are
 rerun. Physical press timing, USB continuity, watchdog recovery and actual AP
 behavior remain unverified until the bounded authorized procedure.
 
+The operator then clarified the 400–<900 ms interval as stop-on-release and
+confirmed that this step remains diagnostic only. The portable policy,
+boundary tests and contract text were corrected before final rebuild; the
+earlier clean image hashes were invalidated.
+
 ## Bounded later physical procedure (not authorized)
 
 1. Select one exact Pico 2 W, inspect its GP14-to-ground wiring, isolate its RF
@@ -144,7 +168,7 @@ behavior remain unverified until the bounded authorized procedure.
    Observe both core read counts and digests advancing before any gesture.
    Apply presses at unpredictable phases of their flash loops. Use an external
    timer for at least five repetitions each of a recognized <400 ms tap,
-   400–<900 ms middle press, 900 ms–<9 s stop hold and 9–12 s long hold.
+   400–<900 ms stop-on-release press, 900 ms–<9 s stop hold and 9–12 s long hold.
    Include samples near both thresholds. For each, compare event time,
    duration and one-time classification with the external record.
 3. Keep a jumper fitted for at least 30 seconds, including after the 9-second
