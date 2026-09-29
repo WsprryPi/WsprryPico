@@ -528,11 +528,15 @@ accepted HTTP reply, durable generation-1 station join and time sync on A and
 B, and failed-join rollback to generation 0 on B. The postflash USB checks
 also show both saved profiles survived the retry/style roll-forward.
 
-The guided consumer flow as a whole remains open. Automatic captive opening
-failed in the earlier A attempt and was not reported for B; the exact success
-message before AP withdrawal was not captured; B's second attempt displayed
-an unstyled “Setup interrupted” page on the preceding image; and the installed
-repair has not been phone retested. Optional station settings, a different
+The operator subsequently accepted the successful retry as the P12.9
+guided-setup outcome (2026-09-29). P12.9 is therefore closed for the selected
+Wi-Fi-first flow, including manual browser entry at `http://192.168.4.1/`.
+Automatic captive opening failed in the earlier A attempt and was not
+reported for B; it is a convenience observation rather than a requirement
+for this accepted flow. B's unstyled “Setup interrupted” second attempt on
+the preceding image remains recorded, and the installed retry/style repair
+has not been phone retested. Its physical reliability belongs to P12.12.
+The exact final success message, optional station settings, a different
 phone's later update, field-network-loss fallback and the wider P12.10–P12.12
-matrices retain their separate gates. These bounded passes do not qualify
-those unobserved paths.
+matrices retain their separate gates. P12.9 closure does not qualify those
+unobserved paths.

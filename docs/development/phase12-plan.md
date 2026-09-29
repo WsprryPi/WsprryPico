@@ -469,8 +469,8 @@ findings, host checks and remaining physical gate.
 | --- | --- | --- |
 | P12.7 — Consumer commissioning contract | **REVISION REQUIRED FOR MANUAL AP OPENING** | The [current decision](phase12-safari-open-setup-revision.md) selects immediate Wi-Fi fields, optional station details later, no press to save and no retained phone owner. The AP starts on a blank profile and returns after station loss. A physical long hold coincided with lost Candidate A application service and an RP2350 ROM bootloader on the Pi, so the selected runtime BOOTSEL opener is withdrawn; choose a safe connected-station action. The [earlier owner decision](phase12-7-decision.md) is historical. |
 | P12.8 — Commissioning foundation | **SOURCE CANDIDATE; TARGET PARTIAL** | One-use encrypted AP setup and the network-only journal have bounded A/B target evidence, including a failed join that left generation 0 and later successful generation-1 saves. The full foundation and later-update path remain open. |
-| P12.9 — Guided captive SoftAP setup | **WI-FI FORM/NETWORK SAVE PHONE SUBSET PASSED; UX OPEN** | Candidate A's iPhone form showed immediate Wi-Fi fields and password reveal; it saved without a button, and device readback selected `pool.ntp.org`. Candidate B's wrong-password attempt preserved generation 0 and a later correct-password attempt saved generation 1. The observed unstyled “Setup interrupted” second attempt, automatic captive opening and exact final success-page behavior remain open; [the retry/style repair](phase12-safari-open-setup-review.md) is now installed but has not had an iPhone retest. Optional station settings remain separate. |
-| P12.10 — RF-inhibited commissioning acceptance | **A/B NETWORK-ONLY PHONE CORE PASSED; FULL GATE OPEN** | A and B each have a phone-submitted network-only generation-1 profile, station address, accepted NTP time and inactive output. Both retained those profiles after the [committed retry/style image](phase12-safari-open-setup-review.md) was flashed. Offline captive capability, automatic launch, terminal success-page observation, optional station settings, full readback and negative/concurrency rows remain open. |
+| P12.9 — Guided captive SoftAP setup | **CLOSED — WI-FI-FIRST GUIDED SETUP** | The operator accepted the successful retry after B's interrupted second attempt. A and B completed phone-driven, no-button Wi-Fi setup with durable generation-1 readback; B's wrong-password attempt left generation 0. Opening `http://192.168.4.1/` manually is an accepted entry path. The [retry/style repair](phase12-safari-open-setup-review.md) is installed and browser/host tested; its phone retest and automatic launch are tracked as robustness observations, not P12.9 exit gates. Optional station settings retain their P12.10 physical gate. |
+| P12.10 — RF-inhibited commissioning acceptance | **A/B NETWORK-ONLY PHONE CORE PASSED; FULL GATE OPEN** | A and B each have a phone-submitted network-only generation-1 profile, station address, accepted NTP time and inactive output. Both retained those profiles after the [committed retry/style image](phase12-safari-open-setup-review.md) was flashed. Offline captive capability, terminal success-page observation, optional station settings, full transport readback and negative/concurrency rows remain open. |
 | P12.11 — Recovery and fallback | **OPEN** | Prove healthy-station AP withdrawal, select and verify a safe connected-station AP opening action, different-phone replacement, old-profile recovery, station-loss portal return, field-network operation, reset and full erase. No retained-owner recovery is required. |
 | P12.12 — Stage A robustness and closure | **OPEN** | Close fault, trust, resource, concurrency, soak, controller-time, LED and restoration rows and complete the final adversarial review. |
 
@@ -663,10 +663,17 @@ on every terminal path. It must distinguish retryable transport loss from
 committed-but-not-yet-reconciled state. The captive sheet may be a launch aid
 and must not become a credential store.
 
-Exit gate: deterministic browser/device conformance tests and an adversarial
-review cover the happy path, every screen transition, back/cancel/reload,
-wrong device/origin, slot expiry, connection loss at each
-transaction boundary, activation failure and safe retry.
+Accepted P12.9 exit gate (operator decision, 2026-09-29): the Wi-Fi-first form
+and manual browser entry work on the iPhone, an incorrect Wi-Fi password does
+not save a profile, and retry reaches a durable station connection without a
+button. The operator accepted B's successful retry after the interrupted page
+load. Deterministic browser tests and adversarial review cover the guided
+screens, exact-result handling and safe retry. The earlier requirement for
+every fault/transition permutation moves to P12.12 robustness; optional
+station-details physical acceptance remains P12.10. Automatic captive-window
+launch is a convenience because the fixed-address browser path works. The
+installed retry/style image has not had a separate iPhone retest, so its
+hardening is source/host/target-build evidence rather than a new phone claim.
 
 ### P12.10 RF-inhibited commissioning acceptance
 
@@ -714,8 +721,9 @@ Finish the consumer lifecycle after first setup:
   provisioned setup surface still needs physical acceptance. Station TLS
   identity does not make Safari trust an AP certificate automatically.
 
-Full captive SoftAP setup has the revised P12.7 design but still
-requires P12.8–P12.12 implementation and acceptance. The separately approved
+The Wi-Fi-first guided P12.9 flow is accepted within its revised exit gate.
+The wider captive SoftAP lifecycle still requires the open P12.7, P12.8 and
+P12.10–P12.12 work. The separately approved
 Wi-Fi-only network join protects the submitted Wi-Fi credentials against passive
 AP listeners with a fresh key
 exchange and accepts active page replacement/relay risk.
