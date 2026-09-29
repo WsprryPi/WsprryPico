@@ -117,8 +117,18 @@ PICO_SDK_PATH=/private/tmp/wsprrypico-sdk-profile-079c6f3 \
 cmake --build build/pico2-w-gp14-inject --target WsprryPico-GP14ButtonDiag -j 4
 ```
 
-Clean source commit and image SHA-256: **to be updated after the operator's
-400–<900 ms stop-on-release correction is committed and rebuilt**.
+Both images embed the clean source commit
+`17851aee2db1d68e69c40d75ad2ee1d7f293c7e1` (program description
+`17851aee2db1`). The final documentation-only commit does not change image
+source; a later fresh configure from a different HEAD will change this
+embedded revision and therefore its image hash.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `build/pico2-w-gp14/firmware/WsprryPico-GP14ButtonDiag.elf` | `70d5b2a7274c6334034d246d57a804911a2a82cf2301cc397cf24189c91a15cd` |
+| `build/pico2-w-gp14/firmware/WsprryPico-GP14ButtonDiag.uf2` | `d1a97341ddad1e9b526968db84f0f6ac2a236f1672f02e4310a620c916ef28a2` |
+| `build/pico2-w-gp14-inject/firmware/WsprryPico-GP14ButtonDiag.elf` | `06b47a5d3d13f6e0e741cade3bece70a87ad8df71e83b6abe2756cd71311e5f1` |
+| `build/pico2-w-gp14-inject/firmware/WsprryPico-GP14ButtonDiag.uf2` | `3ac2a641c831933de9773f664b8b4bb44562f68f5588ef2d6c4874a1601af6b9` |
 
 `bash scripts/check_host.sh` passed 90/90 deterministic host groups. The
 pinned `bash scripts/build_pico.sh` standard image cross-build passed. Both
