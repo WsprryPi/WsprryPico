@@ -15,8 +15,9 @@ Eight samples are packed into a word and moved by one DMA channel into an
 the joined PIO receive FIFO adds up to eight pending words. Core 0 consumes
 ordered samples through `ButtonSampleStream` and the existing 10 ms debounced
 `ButtonDiagnostic` policy. `ButtonRuntime` sequences the resulting requests
-through the Pico adapter on core 0. A complete short contact during a flash-write
-blackout can therefore be replayed with its sampled duration. Ring overrun,
+through the Pico adapter on core 0. The stream is designed to replay a
+complete short contact during a flash-write blackout with its sampled
+duration; target capture remains unverified. Ring overrun,
 DMA stop, PIO receive stall or lack of producer progress marks capture faulty
 and latches an output inhibit. The finite DMA count reaches its fail-closed
 limit after about 397 days at the nominal rate; long-uptime renewal remains
@@ -25,8 +26,8 @@ for a later release-quality implementation.
 The core-0 runtime dispatcher is ahead of `Scheduler::poll()` and transport
 service. On the first stop or reset request it latches
 `JobService::local_inhibit_output()` and suspends autonomous scheduling in the
-same dispatch, aborts the current job regardless
-of owner, disables the engine and verifies output inactivity. The interlock
+same dispatch. It aborts the current job regardless of owner, disables the
+engine and verifies output inactivity. The interlock
 rejects new `CLAIM`, `RENEW`, `LOAD` and `ARM` before replay lookup, while
 read-only status remains available. A failed physical disable stops feeding
 the watchdog and enters the existing inhibited recovery boot. A failed or
@@ -82,15 +83,21 @@ The host suite passed 90/90. Focused tests cover packed-sample replay of a
 stop/AP once through 11 seconds, ring accounting, service-wide inhibit with
 an external WTP owner, pre-replay rejection of a prior ARM, output-disable
 failure and status access, reset and AP gating on confirmed shutdown, and a
-manual AP retained past 30 minutes then
-released into a 10-minute lease. The pinned default image and the opt-in
+manual AP retained past 30 minutes then released into a 10-minute lease.
+The pinned default image and the opt-in
 RF-inhibited image cross-built. Linked flash reservation, stack guard and
 BOOTSEL topology checks passed on the opt-in image. The default image has no
 GP14 sampler/capture symbols; the opt-in image has them.
 
 | Image | ELF SHA-256 | UF2 SHA-256 |
 | --- | --- | --- |
-| Opt-in RF-inhibited source candidate | To be recorded after a clean source commit | To be recorded after a clean source commit |
+| Opt-in RF-inhibited source candidate from `f6cb413bd469a5fb28443b0010a7ff4166de6093` | `75c90851c6c9788b7366042ed353d35d8a8f4a023947f8330ebfe995f5becd5d` | `9e733c791e791b00ec62cf1427874862c390d01fef432ec43116a80dec406268` |
+
+The hashes above were measured after configuring and building with a clean
+`f6cb413` worktree. The later documentation-only record commit changes Git
+HEAD; a fresh configure from that later HEAD embeds a different revision and
+will yield different image hashes. The linked opt-in ELF used 1,725,720
+bytes of text and 136,652 bytes of BSS according to `arm-none-eabi-size`.
 
 ## Adversarial review and repair
 
@@ -108,8 +115,11 @@ The second source pass checked PIO/DMA producer accounting, first-sample boot
 arming, debounced sample ordering, flash-write blackout replay, one-time
 thresholds, delayed AP admission, reset scratch semantics and default-image
 separation. Formatting, host suite, pinned/default and opt-in builds and
-linked-image checks were rerun after the repairs. No remaining source finding
-was promoted into physical timing or RF acceptance.
+linked-image checks were rerun after the repairs. It also moved the PIO input
+direction setup after state-machine initialization and placed the service-wide
+output latch before scheduler cleanup. A clean `f6cb413` opt-in rebuild and
+the linked-image checks passed after this reassessment. No remaining source
+finding was promoted into physical timing or RF acceptance.
 
 ## Remaining gates and bounded physical procedure
 
