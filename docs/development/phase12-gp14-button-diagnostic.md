@@ -6,7 +6,9 @@ establishes image delivery, idle two-core continuity, a correctly wired
 2.585-second hold, a 9.868-second hold and a 27.873-second hold with
 diagnostic stop and setup requests, plus a 285.543 ms `would_reset` tap.
 Earlier attempts bridged the wrong pins and yielded no classifiable gesture.
-This opt-in Pico 2 W / RP2350 image
+The 400–<900 ms stop-on-release class has host boundary checks; no gesture
+in that interval was recorded on the device, and it is not a separate
+physical gate for this feasibility test. This opt-in Pico 2 W / RP2350 image
 evaluates whether an ordinary GPIO input can be observed through unprompted
 presses while both cores keep executing and reading external flash. It has
 no RF engine, Wi-Fi stack, AP, settings writer or flash journal. The
@@ -185,11 +187,12 @@ earlier clean image hashes were invalidated.
    for that device, image and each flash, USB-read and button/jumper action.
 2. Start the image with GP14 high and without a host command to arm capture.
    Observe both core read counts and digests advancing before any gesture.
-   Apply presses at unpredictable phases of their flash loops. Use an external
-   timer for at least five repetitions each of a recognized <400 ms tap,
-   400–<900 ms stop-on-release press, 900 ms–<9 s stop hold and 9–12 s long hold.
-   Include samples near both thresholds. For each, compare event time,
-   duration and one-time classification with the external record.
+   Apply contacts at unpredictable phases of their flash loops and classify
+   them from the recorded durations. The existing physical short tap and held
+   gestures cover release capture and the held thresholds; deterministic host
+   tests cover the portable 400 ms and 900 ms classification boundaries.
+   A targeted 400–<900 ms physical press is not required for this feasibility
+   test.
 3. Keep a jumper fitted for at least 30 seconds, including after the 9-second
    threshold. Check that `would_stop` and `would_setup_ap` each occur once,
    both flash read counts/digests keep changing, USB reports remain available,

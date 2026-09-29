@@ -231,3 +231,13 @@ no independent external timer or production reset-path acceptance is
 claimed. The private raw stream is
 `build/gp14-physical-0a9d89-20260929/quick-tap-usb.log` with SHA-256
 `1cbe2c71f971d74ea516b145cc6f29152d0a7c6710b918fc25925c3be9ab4609`.
+
+The current operator setup has only DuPont jumpers. No 400–<900 ms gesture
+was deliberately sampled on the device. A separate physical row for that
+interval is not required for this GP14 feasibility test: deterministic host
+boundary checks in `tests/button_diagnostic_tests.cpp` cover the portable
+classification at 400 ms and 900 ms, while the physical runs cover unprompted
+GP14 capture, release, held stop/setup thresholds and post-release continuity.
+This does not claim device timing in the unsampled interval. The focused
+`ctest --test-dir build/host-xcode -R '^button_diagnostic_tests$' --output-on-failure`
+check passed 1/1 after this procedure correction.
