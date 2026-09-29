@@ -1,13 +1,59 @@
 # Phase 12 Safari setup revision and execution brief
 
-Status: **WI-FI-FIRST CONTRACT SELECTED; MANUAL AP ACTION REQUIRES REVISION;
-TARGET ACCEPTANCE OPEN**
-(2026-09-27). This decision supersedes the owner and physical-claim portions
-of the earlier [P12.7 decision](phase12-7-decision.md). The earlier design and
-failed physical claim attempts remain historical evidence.
+Status: **WI-FI-FIRST CONTRACT SELECTED; BOOTSEL BUTTON BEHAVIOR SELECTED;
+SAFE IMPLEMENTATION AND TARGET ACCEPTANCE OPEN**
+(last revised 2026-09-29). This decision supersedes the owner and physical-claim
+portions of the earlier [P12.7 decision](phase12-7-decision.md). The earlier
+design and failed physical claim attempts remain historical evidence.
 
 The 2026-09-27 Wi-Fi-first correction below supersedes this document's original
 single-screen wording. The filename is retained for existing links.
+
+## 2026-09-29 BOOTSEL button decision
+
+The operator selected these actions for the only onboard button, BOOTSEL:
+
+- A short press stops any active transmission and restarts the application.
+- A continuous press reaching ten seconds stops any active transmission and
+  presents the setup SoftAP. Restart only if required to enter a safe working
+  state. The long press must not also trigger the short-press restart.
+- Neither action erases the Wi-Fi profile, station settings, schedules,
+  watermarks or other journals. Reset and full erase remain distinct P12.11
+  actions; this button decision does not silently select either erase action.
+
+The device must request output shutdown as soon as a press is safely detected,
+without waiting for the ten-second threshold. Classification occurs at release
+for a short press or at the ten-second threshold for a long press. The output
+must be confirmed inactive before either restart or SoftAP admission, including
+an armed, running or autonomous job. The long-press AP action follows button
+release because flash access must remain protected while BOOTSEL is held. An
+unconfirmed output-off state is a failed action, not permission to open
+setup or resume RF. A short press must not be acted on early in a way that
+prevents recognition of the ten-second hold. The setup AP must remain available
+long enough to perform a settings transaction while station Wi-Fi is healthy;
+its exact lifetime and feedback are implementation decisions still to be
+specified.
+
+This selects the user-visible behavior, **not** the withdrawn background
+sampler or a working firmware feature. BOOTSEL is tied to flash chip select:
+holding it during power-up enters ROM USB boot mode before the application can
+interpret a gesture. During runtime, an unprompted press can overlap flash
+execution on either core. The
+[long-hold incident and review](phase12-safari-open-setup-review.md) found that
+the earlier sampler could resume flash execution while the button remained
+held. A separately
+[bounded prompted diagnostic](phase12-8-bootsel-window-target.md) survived one
+press/release with both cores coordinated, but paused USB and network service
+and did not demonstrate an always-available input or ten-second hold. The
+[Raspberry Pi BOOTSEL example](https://github.com/raspberrypi/pico-examples/blob/master/picoboard/button/button.c)
+also requires temporarily suspending flash access and warns about concurrent
+flash users. No production image should advertise these button actions until
+host fault tests cover shutdown and unknown-output paths, an exact RF-inhibited
+target test proves arbitrary press timing, ten-second and stuck holds, both-core
+flash use, AP recovery and reboot, and separately authorized conducted testing
+proves actual transmission interruption. If the stock button cannot meet that
+gate, the selected behavior needs a different physical or control input; it
+must not be approximated by the removed short sampler.
 
 ## 2026-09-28 BOOTSEL long-hold correction
 
@@ -30,9 +76,10 @@ credentials. With a saved network and a usable station address, it is normally
 off. If the saved station is unusable for 60 seconds, the AP returns so the
 same Wi-Fi-first page can replace settings at a field site. Once station Wi-Fi
 has been stable for 30 seconds and no setup transaction or reply needs the AP,
-it withdraws. The previously selected manual BOOTSEL opening is superseded by
-the correction above. A two-short-flash LED pattern every two
-seconds marks an available AP; the three-flash Identify pattern remains
+it withdraws. The previously selected background BOOTSEL opener was superseded
+by the correction above; the 2026-09-29 button behavior is a later selected
+requirement with safe implementation still open. A two-short-flash LED pattern
+every two seconds marks an available AP; the three-flash Identify pattern remains
 distinct. Saving on the page still has no button step. Neither production
 image samples BOOTSEL at runtime.
 

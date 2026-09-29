@@ -467,11 +467,11 @@ findings, host checks and remaining physical gate.
 
 | Milestone | Status | Outcome required to advance |
 | --- | --- | --- |
-| P12.7 — Consumer commissioning contract | **REVISION REQUIRED FOR MANUAL AP OPENING** | The [current decision](phase12-safari-open-setup-revision.md) selects immediate Wi-Fi fields, optional station details later, no press to save and no retained phone owner. The AP starts on a blank profile and returns after station loss. A physical long hold coincided with lost Candidate A application service and an RP2350 ROM bootloader on the Pi, so the selected runtime BOOTSEL opener is withdrawn; choose a safe connected-station action. The [earlier owner decision](phase12-7-decision.md) is historical. |
+| P12.7 — Consumer commissioning contract | **BUTTON BEHAVIOR SELECTED; SAFE REALIZATION OPEN** | The [current decision](phase12-safari-open-setup-revision.md) keeps immediate Wi-Fi fields, optional station details later and no press to save. The operator selected short BOOTSEL press for output-off/restart and ten-second hold for output-off/setup AP, restarting only if needed. A [disconnected source candidate](phase12-bootsel-button-review.md) now has portable gesture policy and a guarded manual AP lease; the failed background sampler remains withdrawn, and an always-available safe implementation and exact target acceptance are open. The AP still starts on a blank profile and returns after station loss. The [earlier owner decision](phase12-7-decision.md) is historical. |
 | P12.8 — Commissioning foundation | **SOURCE CANDIDATE; TARGET PARTIAL** | One-use encrypted AP setup and the network-only journal have bounded A/B target evidence, including a failed join that left generation 0 and later successful generation-1 saves. The full foundation and later-update path remain open. |
 | P12.9 — Guided captive SoftAP setup | **CLOSED — WI-FI-FIRST GUIDED SETUP** | The operator accepted the successful retry after B's interrupted second attempt. A and B completed phone-driven, no-button Wi-Fi setup with durable generation-1 readback; B's wrong-password attempt left generation 0. Opening `http://192.168.4.1/` manually is an accepted entry path. The [retry/style repair](phase12-safari-open-setup-review.md) is installed and browser/host tested; its phone retest and automatic launch are tracked as robustness observations, not P12.9 exit gates. Optional station settings retain their P12.10 physical gate. |
 | P12.10 — RF-inhibited commissioning acceptance | **A/B NETWORK-ONLY PHONE CORE PASSED; FULL GATE OPEN** | A and B each have a phone-submitted network-only generation-1 profile, station address, accepted NTP time and inactive output. Both retained those profiles after the [committed retry/style image](phase12-safari-open-setup-review.md) was flashed. Offline captive capability, terminal success-page observation, optional station settings, full transport readback and negative/concurrency rows remain open. |
-| P12.11 — Recovery and fallback | **OPEN** | Prove healthy-station AP withdrawal, select and verify a safe connected-station AP opening action, different-phone replacement, old-profile recovery, station-loss portal return, field-network operation, reset and full erase. No retained-owner recovery is required. |
+| P12.11 — Recovery and fallback | **OPEN** | Prove healthy-station AP withdrawal, safe realization of the selected BOOTSEL opening behavior, different-phone replacement, old-profile recovery, station-loss portal return, field-network operation, reset and full erase. No retained-owner recovery is required. |
 | P12.12 — Stage A robustness and closure | **OPEN** | Close fault, trust, resource, concurrency, soak, controller-time, LED and restoration rows and complete the final adversarial review. |
 
 ### Deferred station-network web page
@@ -709,7 +709,8 @@ Finish the consumer lifecycle after first setup:
 
 - replace Wi-Fi and station settings from a different phone using their
   respective pages, without a physical action to save or a saved owner
-  credential; select a safe way to open the AP while station Wi-Fi is healthy;
+  credential; prove the selected BOOTSEL opening action can safely open the AP
+  while station Wi-Fi is healthy;
 - prove the portal loads when saved station Wi-Fi is unavailable, including
   a field-site network change, and resolve the current fresh-SNTP requirement
   for networks without time service;

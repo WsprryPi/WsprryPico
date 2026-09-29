@@ -36,8 +36,11 @@ implemented Pico surface. Shared WsprryPi adoption remains separate work.
   selects an open SoftAP portal with Wi-Fi first and optional station settings
   later. Saving settings requires no button or retained phone owner. A blank
   Pico starts its open AP automatically; a saved Pico normally keeps it off
-  while station Wi-Fi is healthy. Station loss brings the AP back. The earlier
-  runtime BOOTSEL hold design failed a physical long-hold check and has been
+  while station Wi-Fi is healthy. Station loss brings the AP back. The operator
+  selected a short BOOTSEL press for output-off/restart and a ten-second hold
+  for output-off/setup AP, with restart only if needed for the latter. These
+  button actions are not implemented or physically accepted. The earlier
+  runtime BOOTSEL sampler failed a physical long-hold check and remains
   withdrawn pending a safe connected-station opening path. The earlier
   [P12.7 physical-owner decision](docs/development/phase12-7-decision.md) is
   historical; the revised portal is source-linked but not physically accepted.

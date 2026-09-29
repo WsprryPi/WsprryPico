@@ -10,6 +10,7 @@ namespace wsprrypico::provisioning {
 inline constexpr std::uint64_t softap_fallback_ms = 60'000;
 inline constexpr std::uint64_t softap_station_stable_ms = 30'000;
 inline constexpr std::uint64_t softap_join_grace_ms = 120'000;
+inline constexpr std::uint64_t softap_manual_setup_ms = 600'000;
 
 enum class SoftApSurface { BlankReadOnly, ProvisionedPreClock, Normal };
 
@@ -23,6 +24,7 @@ struct SoftApStatus {
     bool join_grace = false;
     std::size_t token_records = 0;
     bool reply_active = false;
+    bool manual_setup = false;
 };
 
 class SoftApCoordinator {
@@ -38,6 +40,7 @@ class SoftApCoordinator {
         recovery_ = value;
     }
     bool request_join_grace(std::uint64_t now_ms);
+    bool request_manual_setup(std::uint64_t now_ms, bool shutdown_complete);
     void station(bool usable, std::uint64_t now_ms);
     void token_records(std::size_t count) {
         token_records_ = count;
@@ -54,6 +57,7 @@ class SoftApCoordinator {
 
   private:
     bool grace(std::uint64_t now_ms) const;
+    bool manual_setup(std::uint64_t now_ms) const;
     const AccessStore& access_;
     bool no_profile_ = false;
     bool blank_profile_ = false;
@@ -68,6 +72,8 @@ class SoftApCoordinator {
     std::uint64_t grace_started_ms_ = 0;
     bool station_seen_ = false;
     bool grace_active_ = false;
+    std::uint64_t manual_started_ms_ = 0;
+    bool manual_active_ = false;
 };
 
 class IndicatorOutput {

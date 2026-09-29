@@ -8,6 +8,8 @@ versioned [Field-GATT/1 engineering protocol](../protocol/Field-GATT.md)
 and [conformance vectors](../protocol/Field-GATT-v1-vectors.json),
 [implementation plan](phase12-plan.md),
 [revised captive SoftAP decision](phase12-safari-open-setup-revision.md),
+[BOOTSEL button execution brief](phase12-bootsel-button-execution-prompt.md)
+and [source review](phase12-bootsel-button-review.md),
 [Wi-Fi-only Candidate A target record](phase12-wifi-only-physical-result.md),
 [P12.7/P12.8 continuation and adversarial review](phase12-7-8-continuation-review.md),
 [P12.8 structural-foundation adversarial review](phase12-8-structural-foundation-review.md),

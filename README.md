@@ -94,9 +94,13 @@ the network before optional station details on a separate page. It requires
 no BOOTSEL step or retained phone owner. Another phone may change settings.
 The portal starts automatically with no saved credentials or after a saved
 station network is unavailable for 60 seconds. A healthy station normally
-withdraws the AP after a stable connection. The previously documented runtime
-BOOTSEL hold is unsafe on the flashed image and is being removed; do not use it
-to request the AP. A lost station connection still brings the AP back.
+withdraws the AP after a stable connection. The operator selected a short
+BOOTSEL press for output-off/restart and a ten-second hold for
+output-off/setup AP, with restart only if needed for the latter. These button
+actions are not implemented or physically accepted. The previous runtime
+BOOTSEL sampler was unsafe and has been removed; do not use the button to
+request the AP on the current image. A lost station connection still brings
+the AP back.
 Two short LED flashes every two seconds identify an available AP. Source
 and browser tests cover this revision. The
 [Wi-Fi setup page](http://192.168.4.1/) and optional

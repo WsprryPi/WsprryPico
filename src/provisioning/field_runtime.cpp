@@ -15,6 +15,14 @@ bool SoftApCoordinator::request_join_grace(std::uint64_t now_ms) {
     return true;
 }
 
+bool SoftApCoordinator::request_manual_setup(std::uint64_t now_ms, bool shutdown_complete) {
+    if (!shutdown_complete || manual_setup(now_ms))
+        return false;
+    manual_started_ms_ = now_ms;
+    manual_active_ = true;
+    return true;
+}
+
 void SoftApCoordinator::station(bool usable, std::uint64_t now_ms) {
     if (!station_seen_ || usable != station_usable_) {
         station_changed_ms_ = now_ms;
@@ -27,14 +35,20 @@ bool SoftApCoordinator::grace(std::uint64_t now_ms) const {
     return grace_active_ && !elapsed(now_ms, grace_started_ms_, softap_join_grace_ms);
 }
 
+bool SoftApCoordinator::manual_setup(std::uint64_t now_ms) const {
+    return manual_active_ && !elapsed(now_ms, manual_started_ms_, softap_manual_setup_ms);
+}
+
 bool SoftApCoordinator::poll(std::uint64_t now_ms) {
     if (grace_active_ && !grace(now_ms))
         grace_active_ = false;
+    if (manual_active_ && !manual_setup(now_ms))
+        manual_active_ = false;
     if (station_seen_ && !station_usable_ &&
         elapsed(now_ms, station_changed_ms_, softap_fallback_ms))
         fallback_ = true;
     const bool field_mode = access_.record() && access_.record()->field_mode;
-    const bool retained = token_records_ || reply_active_ || grace(now_ms);
+    const bool retained = token_records_ || reply_active_ || grace(now_ms) || manual_setup(now_ms);
     if (fallback_ && station_usable_ &&
         elapsed(now_ms, station_changed_ms_, softap_station_stable_ms) && !retained &&
         !field_mode && !recovery_)
@@ -46,10 +60,11 @@ bool SoftApCoordinator::poll(std::uint64_t now_ms) {
 }
 
 SoftApStatus SoftApCoordinator::status(std::uint64_t now_ms) const {
-    return {
-        requested_,   ready_,    no_profile_,   access_.record() && access_.record()->field_mode,
-        recovery_,    fallback_, grace(now_ms), token_records_,
-        reply_active_};
+    return {requested_,    ready_,
+            no_profile_,   access_.record() && access_.record()->field_mode,
+            recovery_,     fallback_,
+            grace(now_ms), token_records_,
+            reply_active_, manual_setup(now_ms)};
 }
 
 SoftApSurface SoftApCoordinator::surface(bool clock_usable) const {

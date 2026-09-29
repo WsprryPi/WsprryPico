@@ -1,5 +1,6 @@
 #include "provisioning/access.hpp"
 #include "provisioning/ble_session.hpp"
+#include "provisioning/button_control.hpp"
 #include "provisioning/field_runtime.hpp"
 #include "provisioning/gatt_framing.hpp"
 #include "provisioning/local_access.hpp"
@@ -1026,6 +1027,20 @@ void runtime_policy() {
     CHECK(ap.request_join_grace(100'000));
     CHECK(!ap.request_join_grace(100'001));
     CHECK(ap.poll(100'001));
+    provisioning::SoftApCoordinator manual_ap(store);
+    manual_ap.station(true, 0);
+    CHECK(!manual_ap.poll(0));
+    CHECK(!manual_ap.request_manual_setup(1, false));
+    CHECK(!manual_ap.poll(1));
+    CHECK(manual_ap.request_manual_setup(1, true));
+    CHECK(!manual_ap.request_manual_setup(2, true));
+    CHECK(manual_ap.poll(2));
+    CHECK(manual_ap.status(2).manual_setup);
+    manual_ap.reply_active(true);
+    CHECK(manual_ap.poll(provisioning::softap_manual_setup_ms + 1));
+    CHECK(!manual_ap.status(provisioning::softap_manual_setup_ms + 1).manual_setup);
+    manual_ap.reply_active(false);
+    CHECK(!manual_ap.poll(provisioning::softap_manual_setup_ms + 2));
     provisioning::SoftApCoordinator saved_ap(store);
     saved_ap.no_profile(true); // Network-only and consumer pre-clock use the open page.
     CHECK(saved_ap.surface(false) == provisioning::SoftApSurface::BlankReadOnly);
@@ -1080,6 +1095,40 @@ void runtime_policy() {
     CHECK(indicator.identify("identify-a", device, true, true, 11001) ==
           provisioning::IndicatorCode::Ok);
     CHECK(indicator.status(11001).pattern == provisioning::IndicatorPattern::SoftApReady);
+}
+
+void button_action_policy() {
+    using provisioning::ButtonAction;
+    provisioning::ButtonControl short_press;
+    CHECK(short_press.observe(100, true, false) == ButtonAction::StopOutput);
+    CHECK(short_press.observe(110, true, true) == ButtonAction::None);
+    CHECK(short_press.observe(121, false, true) == ButtonAction::Restart);
+    CHECK(short_press.observe(122, false, true) == ButtonAction::None);
+
+    provisioning::ButtonControl long_press;
+    CHECK(long_press.observe(500, true, true) == ButtonAction::StopOutput);
+    CHECK(long_press.observe(10'499, true, true) == ButtonAction::None);
+    CHECK(long_press.observe(10'500, true, false) == ButtonAction::StopOutput);
+    CHECK(long_press.observe(10'500, false, true) == ButtonAction::OpenSetupAp);
+
+    provisioning::ButtonControl just_short;
+    CHECK(just_short.observe(500, true, true) == ButtonAction::StopOutput);
+    CHECK(just_short.observe(10'499, false, true) == ButtonAction::Restart);
+
+    provisioning::ButtonControl bounce;
+    CHECK(bounce.observe(1, true, true) == ButtonAction::StopOutput);
+    CHECK(bounce.observe(10, false, true) == ButtonAction::None);
+    CHECK(bounce.observe(20, true, true) == ButtonAction::StopOutput);
+    CHECK(bounce.observe(40, false, true) == ButtonAction::Restart);
+
+    provisioning::ButtonControl failed_stop;
+    CHECK(failed_stop.observe(10, true, false) == ButtonAction::StopOutput);
+    CHECK(failed_stop.observe(40, false, false) == ButtonAction::Fault);
+    CHECK(failed_stop.observe(50, true, true) == ButtonAction::Fault);
+
+    provisioning::ButtonControl time_rollback;
+    CHECK(time_rollback.observe(100, true, true) == ButtonAction::StopOutput);
+    CHECK(time_rollback.observe(99, true, true) == ButtonAction::Fault);
 }
 
 void reset_policy() {
@@ -1273,6 +1322,7 @@ int main() {
     framing_policy();
     softap_http_policy();
     runtime_policy();
+    button_action_policy();
     reset_policy();
     controller_time_policy();
     browser_time_hint_policy();
