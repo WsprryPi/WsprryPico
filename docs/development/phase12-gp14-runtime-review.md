@@ -186,6 +186,25 @@ opt-in cross-build and linked checks passed again. The count's 24.85-day
 limit remains an explicit fail-closed diagnostic boundary. Target capture,
 flash-write overlap, AP service and real-RF cutoff remain open.
 
+The repaired candidate was configured from clean source commit
+`c806890fc361d7ac64f525b84a79d0d0dfcdc275` using the opt-in CMake
+command above, then built with
+`cmake --build build/pico2-w-gp14-runtime --target WsprryPico -j 4`.
+The ELF embeds revision `c806890fc361`; linked text is 1,725,920 bytes and
+BSS is 136,652 bytes. Immutable copies in the ignored private local evidence
+directory preserve this image even when a later documentation commit changes
+Git HEAD. Its build log has SHA-256
+`003891f96447493b56ef826c0fb086ee3eb093bbef9729aaf7ad6221cd9e35f6`.
+
+| Repaired candidate artifact | SHA-256 |
+| --- | --- |
+| `build/gp14-runtime-b-20260929/repaired-c806890.elf` | `1a08c7034b31af0010d35aaf6848d1552dc2656b2ec25a069803afef763321d5` |
+| `build/gp14-runtime-b-20260929/repaired-c806890.uf2` | `10e7ff2a99bce561eb0cbbea7cf95bff91f8f3c52b4c4077be504108cc910252` |
+
+No load of this repaired image is authorized by the earlier exact-image
+approval. Candidate B still runs the fail-closed `f6cb413` image. A new
+authorization must identify B, this UF2 hash and the bounded retest action.
+
 ## Remaining gates and bounded physical procedure
 
 The opt-in image has the dry-run engine. It cannot establish actual RF stop
