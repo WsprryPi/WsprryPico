@@ -1,8 +1,9 @@
 # GP14 diagnostic delivery to Pico 0a9d89
 
 Status: **SERIAL-TARGETED FLASH VERIFIED; IDLE TWO-CORE CONTINUITY OBSERVED;
-NO BUTTON GESTURE TESTED** (2026-09-29). The operator authorized “Flash
-0a9d89” after the exact normal GP14 diagnostic image was identified. This was
+BUTTON ATTEMPTS INTERRUPTED BY USB OVER-CURRENT** (2026-09-29). The operator
+authorized “Flash 0a9d89” after the exact normal GP14 diagnostic image was
+identified. This was
 an image delivery and idle observation, not RF shutdown, reset, SoftAP or
 button acceptance. P12.7, P12.11 and Phase 12 remain open.
 
@@ -77,6 +78,37 @@ Private raw evidence is retained in the two directories above: preflight
 preflight, backup size/hash, picotool `OK`, and increasing counts in all three
 complete status reports. The diagnostic remains installed on B. The original
 settings are backed up but not restored; this image intentionally offers no
-network or SoftAP service. No press, stuck hold, watchdog injection or
-post-release continuity test was authorized or run. Those are separate
+network or SoftAP service. At the time of flashing, no press, stuck hold,
+watchdog injection or post-release continuity test was authorized or run.
+Those are separate
 physical gates under the [bounded procedure](phase12-gp14-button-diagnostic.md).
+
+## Interrupted GP14 hold attempts
+
+Later on 2026-09-29, the operator announced a 2–3 second GP14-to-ground hold
+and a repeat while the read-only USB monitor was open. The first monitor
+connection exited early. Recovery reports contained `events=0` and advancing
+read counts, so no duration or action can be assigned to that attempt. Before
+the repeat, the monitor showed `boot=1`, `prior_watchdog=0`, `held=0`,
+`events=0` and advancing read counts on both cores. It stopped receiving
+reports during the repeat.
+
+The `wspr5` kernel log shows USB over-current warnings at 09:03:35 and
+09:06:50 CDT, during the two attempt windows. At each time, the host's USB
+hubs and multiple attached devices disconnected, including B. At 09:06:54,
+B re-enumerated with the same USB serial. The reopened diagnostic stream
+reported `boot=1`, `prior_watchdog=0`, `prior_reason=00000000`, `held=0`,
+`events=0` and again showed advancing read counts on both cores. The host
+itself did not reboot. The volatile event ring contains no recoverable gesture
+record; neither press classification nor continuity across either USB outage
+was established. The temporal correlation does not identify the electrical
+source of the over-current warning.
+
+Private evidence is in `build/gp14-physical-0a9d89-20260929/` as
+`hold-2-3s-usb.log`, `hold-2-3s-recovered.log`, `hold-retry-usb.log`,
+`hold-retry-after-reenum.log` and `usb-overcurrent-summary.log`. The last
+file's SHA-256 is
+`c8077f783ecc0ed69f30973532abd45d39b32a045ea9175e6e7b5116eb5edbfd`.
+Further physical holds are paused pending inspection of the GP14-to-ground
+wiring and host USB power path. No additional flash or GPIO action was taken
+by the monitor.

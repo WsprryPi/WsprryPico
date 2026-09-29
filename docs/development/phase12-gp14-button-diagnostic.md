@@ -1,11 +1,13 @@
 # P12 GP14 arbitrary-press diagnostic
 
-Status: **FLASHED TO 0a9d89; GESTURES UNTESTED; NO PRODUCTION BUTTON PATH**
+Status: **FLASHED TO 0a9d89; GESTURE ATTEMPTS INTERRUPTED; NO PRODUCTION BUTTON PATH**
 (2026-09-29). The [bounded flash record](phase12-gp14-button-flash-0a9d89.md)
-establishes only image delivery and short idle two-core continuity. This
-opt-in Pico 2 W / RP2350 image evaluates whether an ordinary GPIO input can
-be observed through unprompted presses while both cores keep
-executing and reading external flash. It has no RF engine, Wi-Fi stack, AP,
+establishes image delivery and short idle two-core continuity. Later
+GP14 hold attempts coincided with host USB over-current and yielded no
+classifiable gesture. This opt-in Pico 2 W / RP2350 image evaluates whether
+an ordinary GPIO input can be observed through unprompted presses while both
+cores keep executing and reading external flash. It has no RF engine, Wi-Fi
+stack, AP,
 settings writer or flash journal. The production BOOTSEL path remains
 disconnected. This record does not close P12.7, P12.11 or Phase 12.
 
@@ -173,7 +175,7 @@ confirmed that this step remains diagnostic only. The portable policy,
 boundary tests and contract text were corrected before final rebuild; the
 earlier clean image hashes were invalidated.
 
-## Bounded later physical procedure (not authorized)
+## Bounded physical procedure (remaining steps require separate authorization)
 
 1. Select one exact Pico 2 W, inspect its GP14-to-ground wiring, isolate its RF
    output, record settings/evidence baseline, clock and power setup, and match
