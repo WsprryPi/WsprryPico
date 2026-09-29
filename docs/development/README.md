@@ -9,7 +9,7 @@ and [conformance vectors](../protocol/Field-GATT-v1-vectors.json),
 [implementation plan](phase12-plan.md),
 [revised captive SoftAP decision](phase12-safari-open-setup-revision.md),
 [GP14 arbitrary-press source diagnostic](phase12-gp14-button-diagnostic.md),
-[GP14 Candidate B flash and idle record](phase12-gp14-button-flash-0a9d89.md),
+[GP14 Candidate B flash and physical test record](phase12-gp14-button-flash-0a9d89.md),
 [arbitrary BOOTSEL feasibility gate](phase12-bootsel-arbitrary-press-feasibility.md),
 [historical BOOTSEL button execution brief](phase12-bootsel-button-execution-prompt.md)
 and [release-time source review](phase12-bootsel-button-review.md),

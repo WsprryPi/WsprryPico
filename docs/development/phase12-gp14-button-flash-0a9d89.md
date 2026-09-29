@@ -1,7 +1,7 @@
 # GP14 diagnostic delivery to Pico 0a9d89
 
-Status: **SERIAL-TARGETED FLASH VERIFIED; TWO GP14 HOLDS OBSERVED THROUGH THE
-9-SECOND THRESHOLD; OVER-10-SECOND HOLD PENDING** (2026-09-29). The operator
+Status: **SERIAL-TARGETED FLASH VERIFIED; GP14 HOLD OVER 10 SECONDS OBSERVED;
+30-SECOND STUCK HOLD AND INTEGRATED ACTIONS PENDING** (2026-09-29). The operator
 authorized “Flash 0a9d89” after the exact normal GP14 diagnostic image was
 identified. This was
 an image delivery and idle observation, not RF shutdown, reset, SoftAP or
@@ -169,3 +169,35 @@ post-release continuity. It does not show behavior beyond 10 seconds, a
 evidence is `build/gp14-physical-0a9d89-20260929/hold-over-10s-usb.log`
 with SHA-256
 `54e7cc5e89150593ecf29aff0774d8bdf6f0a36f239d1a1fa01b7ff7d7cab655`.
+
+## Confirmed hold past 10 seconds
+
+After the previous 9.868-second release, the operator requested a repeat and
+kept the correctly connected GP14-to-ground jumper fitted until a held
+report after the 9-second event was observed. The read-only USB monitor was
+open before contact. It recorded one `press` (sequence 10), one `would_stop`
+at 900,155 microseconds (sequence 11), and one `would_setup_ap` at 9,000,192
+microseconds (sequence 12). Multiple subsequent periodic reports still had
+`held=1` and `events=12`, with both cores' flash-read counts advancing and
+no repeated action request. The operator then removed the jumper. `release`
+was recorded at **27,872,981 microseconds** (sequence 13), followed by
+`post_release` one second later (sequence 14).
+
+At these five events, core-0 reads increased from 2,507,807,232 to
+2,549,612,800 and core-1 reads from 2,599,427,072 to 2,643,084,544. The
+240-second monitor completed with 121 periodic reports. Across the window,
+core-0 reads advanced from 2,471,844,864 to 2,828,875,008 and core-1 reads
+from 2,562,449,920 to 2,930,211,328. The boot number remained 1,
+`prior_watchdog=0`, and later reports kept `held=0` and `events=14` while
+both cores advanced. The maximum reported sample gap remained 2,445
+microseconds; no lost-event marker appeared. The host kernel log showed no
+new USB over-current or disconnect through the completed monitor. Duration
+is the firmware's measurement; no independent external timer was used.
+
+This meets the requested diagnostic **past-10-second hold** observation and
+shows the setup request stays one-shot during a roughly 28-second hold. It
+does not establish a 30-second or indefinite stuck hold, watchdog recovery,
+actual RF shutdown or actual SoftAP service. The private raw stream is
+`build/gp14-physical-0a9d89-20260929/hold-over-10s-retry-usb.log` with
+SHA-256
+`7b54fd3b5d6a7037bf2a85eb31c36690f61a8f88a709b7248c303093ba8b480d`.
