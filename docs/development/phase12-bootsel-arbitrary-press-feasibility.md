@@ -1,5 +1,12 @@
 # P12 arbitrary BOOTSEL press feasibility gate
 
+Later decision: the operator selected a separate GP14 input (Pico 2 W physical
+pin 19) with hold-time actions. The [separate GP14 diagnostic](phase12-gp14-button-diagnostic.md)
+follows this gate. This record remains the reason the onboard BOOTSEL switch is
+not used for arbitrary runtime capture; its release-only policy discussion and
+unselected-GPIO candidate describe the earlier decision, not the current GP14
+contract.
+
 Status: **BLOCKED BEFORE DIAGNOSTIC LINK; NO TARGET TEST AUTHORIZED**
 (2026-09-29). This is a source and hardware-interface assessment for Pico 2 W /
 RP2350. It neither implements the selected button actions nor closes P12.7,

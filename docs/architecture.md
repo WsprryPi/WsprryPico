@@ -28,8 +28,12 @@ Use WsprryPico for project, repository and application naming; firmware artifact
   Saving settings requires no button, code or retained phone owner. With saved
   credentials the AP is normally off during a healthy station connection; a
   previously selected runtime BOOTSEL hold is withdrawn after a physical
-  failure, and station loss brings the AP back. A safe connected-station
-  opening path remains to be selected. Safari is one possible
+  failure, and station loss brings the AP back. A separate GP14 input is now
+  selected for a connected-station opening gesture: stop is requested at 0.9
+  seconds held and setup AP at 9 seconds held after confirmed shutdown. A hold
+  beyond 10 seconds must leave AP available. A release under 0.4 seconds
+  requests reset. The production path is not connected or target accepted.
+  Safari is one possible
   browser, not a required step. Source implementation exists, while target
   acceptance remains open. The earlier
   [Phase 12 field-access contract](development/phase12-field-access-contract.md)

@@ -193,6 +193,51 @@ pico_set_program_name(WsprryPico-StandaloneRF "WsprryPico-StandaloneRF")
 pico_set_program_version(WsprryPico-StandaloneRF "${WSPRRY_PICO_FIRMWARE_VERSION}")
 pico_set_program_description(WsprryPico-StandaloneRF "Standalone GP2 integration ${WSPRRY_PICO_GIT_REVISION}")
 pico_add_extra_outputs(WsprryPico-StandaloneRF)
+
+# Explicit GP14 input diagnostic. It links no RF engine, Wi-Fi, or storage
+# writer, and never performs the actions that it reports.
+option(WSPRRY_PICO_GP14_BUTTON_DIAGNOSTIC "Enable the opt-in GP14 button image" OFF)
+option(WSPRRY_PICO_GP14_DIAG_INJECT_WATCHDOG
+       "Inject one watchdog reset 15 seconds after the diagnostic's first boot" OFF)
+if(WSPRRY_PICO_GP14_BUTTON_DIAGNOSTIC)
+    add_executable(WsprryPico-GP14ButtonDiag EXCLUDE_FROM_ALL
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gp14_button_diagnostic.cpp
+        ${CMAKE_SOURCE_DIR}/src/runtime/pico/stack_guard.c)
+    target_include_directories(WsprryPico-GP14ButtonDiag PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_compile_features(WsprryPico-GP14ButtonDiag PRIVATE cxx_std_20)
+    # pico_multicore compiles SDK C sources in this target. Keep warnings as
+    # errors on our diagnostic source without imposing them on SDK sources.
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gp14_button_diagnostic.cpp
+        PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;-Werror;-fstack-usage")
+    target_compile_definitions(WsprryPico-GP14ButtonDiag PRIVATE
+        WSPRRY_GP14_DIAG_INJECT_WATCHDOG=$<BOOL:${WSPRRY_PICO_GP14_DIAG_INJECT_WATCHDOG}>
+        PICO_NO_BI_PROGRAM_BUILD_DATE=1 PICO_STACK_SIZE=0x4000 PICO_CORE1_STACK_SIZE=0
+        PICO_STDIO_USB_STDOUT_TIMEOUT_US=1000
+        PICO_STDIO_DEADLOCK_TIMEOUT_MS=2
+        PICO_ENABLE_USB_RESET_VIA_BAUD_RATE=0
+        PICO_ENABLE_USB_RESET_VIA_VENDOR_INTERFACE=0
+        PICO_RUNTIME_SKIP_INIT_PER_CORE_INSTALL_STACK_GUARD=0
+        PICO_RUNTIME_NO_INIT_PER_CORE_INSTALL_STACK_GUARD=1)
+    target_link_libraries(WsprryPico-GP14ButtonDiag PRIVATE
+        pico_stdlib pico_multicore hardware_watchdog hardware_exception)
+    target_link_options(WsprryPico-GP14ButtonDiag PRIVATE
+        "LINKER:--defsym=RAM_LENGTH=0x7c000"
+        "LINKER:--defsym=SCRATCH_Y_ORIGIN=0x2007c000"
+        "LINKER:--defsym=SCRATCH_Y_LENGTH=0x4000")
+    pico_enable_stdio_uart(WsprryPico-GP14ButtonDiag 0)
+    pico_enable_stdio_usb(WsprryPico-GP14ButtonDiag 1)
+    pico_set_program_name(WsprryPico-GP14ButtonDiag "WsprryPico-GP14ButtonDiag")
+    pico_set_program_version(WsprryPico-GP14ButtonDiag "${WSPRRY_PICO_FIRMWARE_VERSION}")
+    pico_set_program_description(WsprryPico-GP14ButtonDiag
+        "RF-inhibited GP14 input diagnostic ${WSPRRY_PICO_GIT_REVISION}")
+    pico_add_extra_outputs(WsprryPico-GP14ButtonDiag)
+    add_custom_command(TARGET WsprryPico-GP14ButtonDiag POST_BUILD
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_stack_guards.py
+                $<TARGET_FILE:WsprryPico-GP14ButtonDiag> --physical
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_gp14_button_image.py
+                $<TARGET_FILE:WsprryPico-GP14ButtonDiag> VERBATIM)
+endif()
 foreach(image WsprryPico WsprryPico-StandaloneRF)
     target_sources(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/provisioning/pico/bootsel_sampler.cpp
         ${CMAKE_SOURCE_DIR}/src/runtime/pico/heap_metrics.c
@@ -253,6 +298,9 @@ foreach(image WsprryPico WsprryPico-RFBench WsprryPico-RFWTP WsprryPico-Standalo
               rf_driver_linkcheck)
     wsprry_configure_flash_layout(${image})
 endforeach()
+if(WSPRRY_PICO_GP14_BUTTON_DIAGNOSTIC)
+    wsprry_configure_flash_layout(WsprryPico-GP14ButtonDiag)
+endif()
 
 include(${CMAKE_SOURCE_DIR}/cmake/mbedtls_alert_overlay.cmake)
 wsprry_mbedtls_alert_overlay(pico_mbedtls_tls INTERFACE_SOURCES "${PICO_MBEDTLS_PATH}")

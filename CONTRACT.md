@@ -37,12 +37,14 @@ implemented Pico surface. Shared WsprryPi adoption remains separate work.
   later. Saving settings requires no button or retained phone owner. A blank
   Pico starts its open AP automatically; a saved Pico normally keeps it off
   while station Wi-Fi is healthy. Station loss brings the AP back. The operator
-  selected release-time BOOTSEL actions: under one second stops transmissions;
-  over nine seconds stops transmissions and opens the setup AP after shutdown.
-  Presses from one through nine seconds have no action. These
-  button actions are not implemented or physically accepted. The earlier
+  selected a separate active-low GP14 button (physical pin 19): a debounced
+  release under 0.4 seconds requests reset; reaching 0.9 seconds held requests
+  transmission shutdown; reaching 9 seconds held requests setup AP after
+  shutdown is confirmed. A held jumper must not repeat actions or impair AP.
+  The 0.4 to under 0.9 second interval is provisionally no action. These
+  actions are not implemented or physically accepted in production. The
   runtime BOOTSEL sampler failed a physical long-hold check and remains
-  withdrawn pending a safe connected-station opening path. The earlier
+  withdrawn. The earlier
   [P12.7 physical-owner decision](docs/development/phase12-7-decision.md) is
   historical; the revised portal is source-linked but not physically accepted.
   The native [Raspberry Pi/Linux BlueZ client](docs/development/raspberry-pi-ble-client.md)

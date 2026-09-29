@@ -1,7 +1,7 @@
 # Phase 12 Safari setup revision and execution brief
 
-Status: **WI-FI-FIRST CONTRACT SELECTED; BOOTSEL BUTTON BEHAVIOR SELECTED;
-SAFE IMPLEMENTATION AND TARGET ACCEPTANCE OPEN**
+Status: **WI-FI-FIRST CONTRACT SELECTED; GP14 BUTTON TIMING SELECTED;
+PRODUCTION IMPLEMENTATION AND TARGET ACCEPTANCE OPEN**
 (last revised 2026-09-29). This decision supersedes the owner and physical-claim
 portions of the earlier [P12.7 decision](phase12-7-decision.md). The earlier
 design and failed physical claim attempts remain historical evidence.
@@ -9,50 +9,47 @@ design and failed physical claim attempts remain historical evidence.
 The 2026-09-27 Wi-Fi-first correction below supersedes this document's original
 single-screen wording. The filename is retained for existing links.
 
-## 2026-09-29 BOOTSEL button decision (revised after release-time correction)
+## 2026-09-29 GP14 button decision
 
-The operator selected these actions for the only onboard button, BOOTSEL:
+The operator selected a separate active-low button on **GP14, Pico 2 W physical
+pin 19**. A normally open switch to ground, or a test jumper to ground, is the
+intended input. The internal pull-up holds the unpressed level high. This
+supersedes the release-only BOOTSEL timing below, while preserving the BOOTSEL
+failure as historical evidence.
 
-- A valid press released before one second stops active and autonomous
-  transmissions. It does not request a restart.
-- A press released after nine seconds stops active and autonomous
-  transmissions, then presents the setup SoftAP once shutdown is confirmed.
-  Restart only if needed to enter a safe working AP state.
-- A press lasting from one through nine seconds, inclusive, has no action.
-- Neither action erases the Wi-Fi profile, station settings, schedules,
-  watermarks or other journals. Reset and full erase remain distinct P12.11
-  actions; this button decision does not silently select either erase action.
+- A debounced press released before 0.4 seconds requests a device reset. This
+  is a restart, not a settings erase.
+- A press from 0.4 to less than 0.9 seconds has no selected action pending
+  confirmation of that interval.
+- At 0.9 seconds of continuous hold, request an immediate stop of active and
+  autonomous transmissions; release is not required.
+- At 9 seconds of the same hold, request setup SoftAP. AP admission must wait
+  for confirmed RF shutdown. If shutdown is not confirmed, the AP request
+  fails closed.
+- Each threshold acts once per press. Keeping a jumper on GP14 past 10 seconds
+  must neither repeat either action nor withdraw or impair an opened SoftAP.
+  The next gesture is armed only after a debounced release. A low input already
+  present at boot is ignored until release, preventing a reset or AP loop.
 
-Classification and the stop request occur only after button release. Shutdown
-must cover the autonomous scheduler, `JobService` and physical engine, including
-an armed or running job. The output must be confirmed inactive before SoftAP
-admission. An unconfirmed shutdown is a failed action, not permission to open
-setup or resume RF. A release in the middle range must not interrupt a job.
-The setup AP must remain available
-long enough to perform a settings transaction while station Wi-Fi is healthy;
-its exact lifetime and feedback are implementation decisions still to be
-specified.
+The shutdown path must cover the autonomous scheduler, `JobService` and the
+physical engine, including an armed or running job. No gesture erases the
+Wi-Fi profile, station settings, schedules, watermarks or journals. Reset and
+full erase remain distinct P12.11 decisions. The current
+`src/provisioning/button_control.hpp` still records the older disconnected
+release-only policy; it is not an adapter for the selected GP14 behavior.
+The separate [GP14 diagnostic](phase12-gp14-button-diagnostic.md) evaluates
+input timing and both-core flash continuity but performs no reset, RF stop or
+SoftAP action. No production image currently advertises this GP14 feature.
 
-This selects the user-visible behavior, **not** the withdrawn background
-sampler or a working firmware feature. BOOTSEL is tied to flash chip select:
-holding it during power-up enters ROM USB boot mode before the application can
-interpret a gesture. During runtime, an unprompted press can overlap flash
-execution on either core. The
-[long-hold incident and review](phase12-safari-open-setup-review.md) found that
-the earlier sampler could resume flash execution while the button remained
-held. A separately
-[bounded prompted diagnostic](phase12-8-bootsel-window-target.md) survived one
-press/release with both cores coordinated, but paused USB and network service
-and did not demonstrate an always-available input or long hold. The
-[Raspberry Pi BOOTSEL example](https://github.com/raspberrypi/pico-examples/blob/master/picoboard/button/button.c)
-also requires temporarily suspending flash access and warns about concurrent
-flash users. No production image should advertise these button actions until
-host fault tests cover shutdown and unknown-output paths, an exact RF-inhibited
-target test proves arbitrary press timing, long and stuck holds, both-core
-flash use, AP recovery and reboot, and separately authorized conducted testing
-proves actual transmission interruption. If the stock button cannot meet that
-gate, the selected behavior needs a different physical or control input; it
-must not be approximated by the removed short sampler.
+The [arbitrary BOOTSEL feasibility gate](phase12-bootsel-arbitrary-press-feasibility.md)
+found no safe way to capture an unprompted BOOTSEL press while both cores may
+access XIP flash. The stock switch is tied to flash chip select. The
+[long-hold incident](phase12-safari-open-setup-review.md) and the
+[prompted-window result](phase12-8-bootsel-window-target.md) remain bounded
+evidence, not GP14 acceptance. Production needs host fault tests, an exact
+RF-inhibited GP14 physical test for arbitrary presses and stuck holds, AP
+recovery after confirmed shutdown, then separately authorized conducted RF
+testing of actual transmission interruption.
 
 ## 2026-09-28 BOOTSEL long-hold correction
 

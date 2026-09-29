@@ -94,14 +94,15 @@ the network before optional station details on a separate page. It requires
 no BOOTSEL step or retained phone owner. Another phone may change settings.
 The portal starts automatically with no saved credentials or after a saved
 station network is unavailable for 60 seconds. A healthy station normally
-withdraws the AP after a stable connection. The operator selected release-time
-BOOTSEL actions: a press shorter than one second stops transmissions; a press
-longer than nine seconds stops transmissions and opens the setup AP after
-shutdown. Presses from one through nine seconds have no action. These button
-actions are not implemented or physically accepted. The previous runtime
-BOOTSEL sampler was unsafe and has been removed; do not use the button to
-request the AP on the current image. A lost station connection still brings
-the AP back.
+withdraws the AP after a stable connection. The selected separate GP14 button
+(physical pin 19) requests a device reset on a debounced release under 0.4
+seconds, transmission shutdown on reaching 0.9 seconds held, and setup AP on
+reaching 9 seconds held after shutdown is confirmed. Keeping GP14 low past 10
+seconds must not repeat the actions or impair the AP. The 0.4 to under 0.9
+second interval is provisionally no action. These actions are not implemented
+or physically accepted in the production image. The previous runtime BOOTSEL
+sampler was unsafe and has been removed; do not use BOOTSEL to request the AP
+on the current image. A lost station connection still brings the AP back.
 Two short LED flashes every two seconds identify an available AP. Source
 and browser tests cover this revision. The
 [Wi-Fi setup page](http://192.168.4.1/) and optional

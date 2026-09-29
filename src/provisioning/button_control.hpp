@@ -6,9 +6,10 @@ namespace wsprrypico::provisioning {
 
 enum class ButtonAction { None, StopOutput, OpenSetupAp, Fault };
 
-// Portable policy for a debounced runtime button level. The Pico adapter must
-// capture the complete press/release safely. This policy does not make BOOTSEL
-// safe to sample while either core may access external flash.
+// Historical, disconnected release-time BOOTSEL policy. The current selected
+// GP14 hold-time timing is exercised by button_diagnostic.hpp; no production
+// Pico adapter calls either policy. This class does not make BOOTSEL safe to
+// sample while either core may access external flash.
 class ButtonControl {
   public:
     static constexpr std::uint64_t minimum_press_ms = 20;
