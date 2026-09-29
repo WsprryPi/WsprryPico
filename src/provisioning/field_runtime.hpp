@@ -25,6 +25,7 @@ struct SoftApStatus {
     std::size_t token_records = 0;
     bool reply_active = false;
     bool manual_setup = false;
+    bool manual_button_held = false;
 };
 
 class SoftApCoordinator {

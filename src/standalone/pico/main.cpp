@@ -655,6 +655,9 @@ int main() {
             result += ",\"fault_allocation_returned_null\":";
             result += allocation_fault ? ((saved_pc & 1U) ? "true" : "false") : "null";
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
+            const auto gp14_softap = softap_coordinator.status(time_us_64() / 1000ULL);
+            const bool gp14_softap_adapter_running = softap.running();
+            const bool gp14_softap_adapter_ready = softap.ready();
             result += ",\"gp14_capture_fault\":";
             result += gp14_button.fault() ? "true" : "false";
             number_field(result, "gp14_capture_fault_code",
@@ -671,6 +674,20 @@ int main() {
             number_field(result, "gp14_last_duration_us", gp14_runtime.last_duration_us());
             number_field(result, "gp14_stop_events", gp14_runtime.stop_events());
             number_field(result, "gp14_ap_events", gp14_runtime.setup_events());
+            number_field(result, "gp14_ap_request_attempts", gp14_runtime.setup_attempts());
+            number_field(result, "gp14_ap_request_accepts", gp14_runtime.setup_accepts());
+            result += ",\"gp14_softap_manual_lease_active\":";
+            result += gp14_softap.manual_setup ? "true" : "false";
+            result += ",\"gp14_softap_manual_lease_held\":";
+            result += gp14_softap.manual_button_held ? "true" : "false";
+            result += ",\"gp14_softap_requested\":";
+            result += gp14_softap.requested ? "true" : "false";
+            result += ",\"gp14_softap_adapter_running\":";
+            result += gp14_softap_adapter_running ? "true" : "false";
+            result += ",\"gp14_softap_adapter_ready\":";
+            result += gp14_softap_adapter_ready ? "true" : "false";
+            result += ",\"gp14_softap_service_ready\":";
+            result += gp14_softap.ready ? "true" : "false";
             number_field(result, "gp14_reset_events", gp14_runtime.reset_events());
             number_field(result, "gp14_samples", gp14_button.samples());
             number_field(result, "gp14_max_backlog_words", gp14_button.maximum_backlog_words());

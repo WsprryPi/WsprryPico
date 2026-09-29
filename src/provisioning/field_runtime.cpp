@@ -70,11 +70,18 @@ bool SoftApCoordinator::poll(std::uint64_t now_ms) {
 }
 
 SoftApStatus SoftApCoordinator::status(std::uint64_t now_ms) const {
-    return {requested_,    ready_,
-            no_profile_,   access_.record() && access_.record()->field_mode,
-            recovery_,     fallback_,
-            grace(now_ms), token_records_,
-            reply_active_, manual_setup(now_ms)};
+    const bool manual = manual_setup(now_ms);
+    return {requested_,
+            ready_,
+            no_profile_,
+            access_.record() && access_.record()->field_mode,
+            recovery_,
+            fallback_,
+            grace(now_ms),
+            token_records_,
+            reply_active_,
+            manual,
+            manual && manual_button_held_};
 }
 
 SoftApSurface SoftApCoordinator::surface(bool clock_usable) const {

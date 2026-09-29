@@ -142,6 +142,8 @@ void runtime_actions_require_verified_stop() {
     runtime.observe({.request_reset = true, .released = true, .duration_us = 285'000}, 9'300,
                     false);
     assert(stops == 1 && setups == 0 && resets == 0 && releases == 1);
+    assert(runtime.setup_events() == 1 && runtime.setup_attempts() == 0 &&
+           runtime.setup_accepts() == 0);
     assert(runtime.last_duration_us() == 285'000);
     runtime.capture_fault();
     runtime.observe({.request_setup_ap = true}, 20'000, true);
@@ -166,7 +168,19 @@ void runtime_actions_require_verified_stop() {
                      false);
     assert(accepted.stop_verified() && setups == 1 && resets == 1 && releases == 3);
     assert(accepted.stop_events() == 1 && accepted.setup_events() == 1 &&
+           accepted.setup_attempts() == 1 && accepted.setup_accepts() == 1 &&
            accepted.reset_events() == 1);
+
+    auto rejected = wsprrypico::provisioning::ButtonRuntime{[]() { return true; },
+                                                            [&](std::uint64_t, bool) {
+                                                                ++setups;
+                                                                return false;
+                                                            },
+                                                            [](std::uint64_t) {}, []() {}};
+    rejected.observe({.request_stop = true}, 900, true);
+    rejected.observe({.request_setup_ap = true}, 9'000, true);
+    assert(rejected.stop_verified() && rejected.setup_events() == 1 &&
+           rejected.setup_attempts() == 1 && rejected.setup_accepts() == 0 && setups == 2);
 }
 } // namespace
 

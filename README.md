@@ -99,11 +99,13 @@ withdraws the AP after a stable connection. The selected separate GP14 button
 seconds, transmission shutdown on reaching 0.9 seconds held, and setup AP on
 reaching 9 seconds held after shutdown is confirmed. Keeping GP14 low past 10
 seconds must not repeat the actions or impair the AP. A release from 0.4 to
-  under 0.9 seconds requests shutdown on release. An opt-in RF-inhibited
-  runtime candidate connects these controls in source; the default image
-  leaves GP14 disabled. Its first Candidate B target load failed closed on a
-  DMA count-mode error; repaired source awaits target retest and physical/RF
-  acceptance remains open. The previous
+under 0.9 seconds requests shutdown on release. An opt-in RF-inhibited
+runtime candidate connects these controls in source; the default image
+leaves GP14 disabled. Its first Candidate B load failed closed on a DMA
+count-mode error. The repaired image passed bounded idle, short-hold and
+long-hold event checks; [read-only SoftAP telemetry](docs/development/phase12-gp14-runtime-review.md)
+is source-built but has not run on B. AP readiness, actual RF cutoff and
+integrated acceptance remain open. The previous
 runtime BOOTSEL sampler was unsafe and has been removed; do not use BOOTSEL to
 request the AP on the current image. A lost station connection still brings
 the AP back.

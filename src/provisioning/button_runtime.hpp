@@ -31,8 +31,11 @@ template <class Stop, class Setup, class Release, class Reset> class ButtonRunti
             stop_attempted_ = true;
             stop_verified_ = stop_();
         }
-        if (event.request_setup_ap && stop_verified_)
-            (void)setup_(now_ms, held);
+        if (event.request_setup_ap && stop_verified_) {
+            ++setup_attempts_;
+            if (setup_(now_ms, held))
+                ++setup_accepts_;
+        }
         if (event.request_reset && stop_verified_)
             reset_();
     }
@@ -57,6 +60,12 @@ template <class Stop, class Setup, class Release, class Reset> class ButtonRunti
     [[nodiscard]] std::uint32_t setup_events() const {
         return setup_events_;
     }
+    [[nodiscard]] std::uint32_t setup_attempts() const {
+        return setup_attempts_;
+    }
+    [[nodiscard]] std::uint32_t setup_accepts() const {
+        return setup_accepts_;
+    }
     [[nodiscard]] std::uint32_t reset_events() const {
         return reset_events_;
     }
@@ -69,6 +78,8 @@ template <class Stop, class Setup, class Release, class Reset> class ButtonRunti
     std::uint64_t last_duration_us_ = 0;
     std::uint32_t stop_events_ = 0;
     std::uint32_t setup_events_ = 0;
+    std::uint32_t setup_attempts_ = 0;
+    std::uint32_t setup_accepts_ = 0;
     std::uint32_t reset_events_ = 0;
     bool stop_attempted_ = false;
     bool stop_verified_ = false;
