@@ -1,8 +1,11 @@
 # Phase 12 BOOTSEL button execution brief
 
-Status: **EXECUTED TO DISCONNECTED SOURCE CANDIDATE; PHYSICAL BUTTON AND RF
-ACCEPTANCE OPEN**
-(2026-09-29). Work on `devel`. The selected behavior is in the
+Status: **EXECUTED HISTORICAL BRIEF; BUTTON TIMING SUPERSEDED; PHYSICAL BUTTON
+AND RF ACCEPTANCE OPEN**
+(2026-09-29). Work on `devel`. The objective below records the original
+request; the operator subsequently changed classification to occur only on
+release, with stop for under one second and stop plus AP for over nine seconds.
+The current behavior is in the
 [P12.7 revision](phase12-safari-open-setup-revision.md). This brief does not
 authorize flashing, a physical button press, GPIO operation or RF output.
 
@@ -67,7 +70,7 @@ P12.8, P12.11, P12.12 or Phase 12 based only on this source execution.
 
 ## Execution result
 
-The [adversarial review](phase12-bootsel-button-review.md) records the portable
-policy and guarded AP lease, repaired source findings, passing checks and the
-blocking RF/core-1 integration fact. The prompt's fail-closed rule stopped
-production gesture wiring before an unsafe sampler could be introduced.
+The [adversarial review](phase12-bootsel-button-review.md) records the original
+source attempt and the later release-time correction. The prompt's fail-closed
+rule stopped production gesture wiring before an unsafe sampler could be
+introduced.

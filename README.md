@@ -94,9 +94,10 @@ the network before optional station details on a separate page. It requires
 no BOOTSEL step or retained phone owner. Another phone may change settings.
 The portal starts automatically with no saved credentials or after a saved
 station network is unavailable for 60 seconds. A healthy station normally
-withdraws the AP after a stable connection. The operator selected a short
-BOOTSEL press for output-off/restart and a ten-second hold for
-output-off/setup AP, with restart only if needed for the latter. These button
+withdraws the AP after a stable connection. The operator selected release-time
+BOOTSEL actions: a press shorter than one second stops transmissions; a press
+longer than nine seconds stops transmissions and opens the setup AP after
+shutdown. Presses from one through nine seconds have no action. These button
 actions are not implemented or physically accepted. The previous runtime
 BOOTSEL sampler was unsafe and has been removed; do not use the button to
 request the AP on the current image. A lost station connection still brings

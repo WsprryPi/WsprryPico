@@ -37,8 +37,9 @@ implemented Pico surface. Shared WsprryPi adoption remains separate work.
   later. Saving settings requires no button or retained phone owner. A blank
   Pico starts its open AP automatically; a saved Pico normally keeps it off
   while station Wi-Fi is healthy. Station loss brings the AP back. The operator
-  selected a short BOOTSEL press for output-off/restart and a ten-second hold
-  for output-off/setup AP, with restart only if needed for the latter. These
+  selected release-time BOOTSEL actions: under one second stops transmissions;
+  over nine seconds stops transmissions and opens the setup AP after shutdown.
+  Presses from one through nine seconds have no action. These
   button actions are not implemented or physically accepted. The earlier
   runtime BOOTSEL sampler failed a physical long-hold check and remains
   withdrawn pending a safe connected-station opening path. The earlier

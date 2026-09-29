@@ -1102,45 +1102,73 @@ void runtime_policy() {
 void button_action_policy() {
     using provisioning::ButtonAction;
     provisioning::ButtonControl short_press;
-    CHECK(short_press.observe(100, true, false) == ButtonAction::StopOutput);
-    CHECK(short_press.observe(110, true, true) == ButtonAction::None);
-    CHECK(short_press.observe(121, false, true) == ButtonAction::Restart);
-    CHECK(short_press.observe(122, false, true) == ButtonAction::None);
-    CHECK(short_press.observe(200, true, true) == ButtonAction::StopOutput);
-    CHECK(short_press.observe(220, false, true) == ButtonAction::Restart);
+    CHECK(short_press.observe(100, true) == ButtonAction::None);
+    CHECK(short_press.observe(110, true) == ButtonAction::None);
+    CHECK(short_press.observe(121, false) == ButtonAction::StopOutput);
+    CHECK(short_press.awaiting_shutdown());
+    CHECK(short_press.observe(122, false) == ButtonAction::None);
+    CHECK(short_press.complete_shutdown(true) == ButtonAction::None);
+    CHECK(!short_press.awaiting_shutdown());
+    CHECK(short_press.observe(200, true) == ButtonAction::None);
+    CHECK(short_press.observe(220, false) == ButtonAction::StopOutput);
+    CHECK(short_press.complete_shutdown(true) == ButtonAction::None);
 
     provisioning::ButtonControl long_press;
-    CHECK(long_press.observe(500, true, true) == ButtonAction::StopOutput);
-    CHECK(long_press.observe(10'499, true, true) == ButtonAction::None);
-    CHECK(long_press.observe(10'500, true, false) == ButtonAction::StopOutput);
-    CHECK(long_press.observe(20'500, true, true) == ButtonAction::None);
-    CHECK(long_press.observe(20'500, false, true) == ButtonAction::OpenSetupAp);
+    CHECK(long_press.observe(500, true) == ButtonAction::None);
+    CHECK(long_press.observe(10'499, true) == ButtonAction::None);
+    CHECK(long_press.observe(10'500, true) == ButtonAction::None);
+    CHECK(long_press.observe(20'500, true) == ButtonAction::None);
+    CHECK(long_press.observe(20'500, false) == ButtonAction::StopOutput);
+    CHECK(long_press.complete_shutdown(true) == ButtonAction::OpenSetupAp);
 
-    provisioning::ButtonControl exact_long;
-    CHECK(exact_long.observe(500, true, true) == ButtonAction::StopOutput);
-    CHECK(exact_long.observe(10'500, false, true) == ButtonAction::OpenSetupAp);
+    provisioning::ButtonControl just_long;
+    CHECK(just_long.observe(500, true) == ButtonAction::None);
+    CHECK(just_long.observe(9'501, false) == ButtonAction::StopOutput);
+    CHECK(just_long.complete_shutdown(true) == ButtonAction::OpenSetupAp);
 
     provisioning::ButtonControl just_short;
-    CHECK(just_short.observe(500, true, true) == ButtonAction::StopOutput);
-    CHECK(just_short.observe(10'499, false, true) == ButtonAction::Restart);
+    CHECK(just_short.observe(500, true) == ButtonAction::None);
+    CHECK(just_short.observe(1'499, false) == ButtonAction::StopOutput);
+    CHECK(just_short.complete_shutdown(true) == ButtonAction::None);
+
+    for (const auto duration : {1'000ULL, 5'000ULL, 9'000ULL}) {
+        provisioning::ButtonControl middle;
+        CHECK(middle.observe(1, true) == ButtonAction::None);
+        CHECK(middle.observe(1 + duration, false) == ButtonAction::None);
+        CHECK(!middle.awaiting_shutdown());
+    }
 
     provisioning::ButtonControl bounce;
-    CHECK(bounce.observe(1, true, true) == ButtonAction::StopOutput);
-    CHECK(bounce.observe(10, false, true) == ButtonAction::None);
-    CHECK(bounce.observe(20, true, true) == ButtonAction::StopOutput);
-    CHECK(bounce.observe(40, false, true) == ButtonAction::Restart);
+    CHECK(bounce.observe(1, true) == ButtonAction::None);
+    CHECK(bounce.observe(10, false) == ButtonAction::None);
+    CHECK(bounce.observe(20, true) == ButtonAction::None);
+    CHECK(bounce.observe(40, false) == ButtonAction::StopOutput);
+    CHECK(bounce.complete_shutdown(true) == ButtonAction::None);
 
     provisioning::ButtonControl failed_stop;
-    CHECK(failed_stop.observe(10, true, false) == ButtonAction::StopOutput);
-    CHECK(failed_stop.observe(40, false, false) == ButtonAction::Fault);
-    CHECK(failed_stop.observe(50, true, true) == ButtonAction::Fault);
+    CHECK(failed_stop.observe(10, true) == ButtonAction::None);
+    CHECK(failed_stop.observe(40, false) == ButtonAction::StopOutput);
+    CHECK(failed_stop.complete_shutdown(false) == ButtonAction::Fault);
+    CHECK(failed_stop.observe(50, true) == ButtonAction::Fault);
+
+    provisioning::ButtonControl failed_long_stop;
+    CHECK(failed_long_stop.observe(10, true) == ButtonAction::None);
+    CHECK(failed_long_stop.observe(9'011, false) == ButtonAction::StopOutput);
+    CHECK(failed_long_stop.complete_shutdown(false) == ButtonAction::Fault);
+    CHECK(failed_long_stop.complete_shutdown(true) == ButtonAction::Fault);
+
+    provisioning::ButtonControl pending_stop;
+    CHECK(pending_stop.observe(10, true) == ButtonAction::None);
+    CHECK(pending_stop.observe(40, false) == ButtonAction::StopOutput);
+    CHECK(pending_stop.observe(50, true) == ButtonAction::Fault);
+    CHECK(pending_stop.complete_shutdown(true) == ButtonAction::Fault);
 
     provisioning::ButtonControl time_rollback;
-    CHECK(time_rollback.observe(100, true, true) == ButtonAction::StopOutput);
-    CHECK(time_rollback.observe(99, true, true) == ButtonAction::Fault);
+    CHECK(time_rollback.observe(100, true) == ButtonAction::None);
+    CHECK(time_rollback.observe(99, true) == ButtonAction::Fault);
     provisioning::ButtonControl time_wrap;
-    CHECK(time_wrap.observe(UINT64_MAX - 1, true, true) == ButtonAction::StopOutput);
-    CHECK(time_wrap.observe(1, false, true) == ButtonAction::Fault);
+    CHECK(time_wrap.observe(UINT64_MAX - 1, true) == ButtonAction::None);
+    CHECK(time_wrap.observe(1, false) == ButtonAction::Fault);
 }
 
 void reset_policy() {

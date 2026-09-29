@@ -9,27 +9,26 @@ design and failed physical claim attempts remain historical evidence.
 The 2026-09-27 Wi-Fi-first correction below supersedes this document's original
 single-screen wording. The filename is retained for existing links.
 
-## 2026-09-29 BOOTSEL button decision
+## 2026-09-29 BOOTSEL button decision (revised after release-time correction)
 
 The operator selected these actions for the only onboard button, BOOTSEL:
 
-- A short press stops any active transmission and restarts the application.
-- A continuous press reaching ten seconds stops any active transmission and
-  presents the setup SoftAP. Restart only if required to enter a safe working
-  state. The long press must not also trigger the short-press restart.
+- A valid press released before one second stops active and autonomous
+  transmissions. It does not request a restart.
+- A press released after nine seconds stops active and autonomous
+  transmissions, then presents the setup SoftAP once shutdown is confirmed.
+  Restart only if needed to enter a safe working AP state.
+- A press lasting from one through nine seconds, inclusive, has no action.
 - Neither action erases the Wi-Fi profile, station settings, schedules,
   watermarks or other journals. Reset and full erase remain distinct P12.11
   actions; this button decision does not silently select either erase action.
 
-The device must request output shutdown as soon as a press is safely detected,
-without waiting for the ten-second threshold. Classification occurs at release
-for a short press or at the ten-second threshold for a long press. The output
-must be confirmed inactive before either restart or SoftAP admission, including
-an armed, running or autonomous job. The long-press AP action follows button
-release because flash access must remain protected while BOOTSEL is held. An
-unconfirmed output-off state is a failed action, not permission to open
-setup or resume RF. A short press must not be acted on early in a way that
-prevents recognition of the ten-second hold. The setup AP must remain available
+Classification and the stop request occur only after button release. Shutdown
+must cover the autonomous scheduler, `JobService` and physical engine, including
+an armed or running job. The output must be confirmed inactive before SoftAP
+admission. An unconfirmed shutdown is a failed action, not permission to open
+setup or resume RF. A release in the middle range must not interrupt a job.
+The setup AP must remain available
 long enough to perform a settings transaction while station Wi-Fi is healthy;
 its exact lifetime and feedback are implementation decisions still to be
 specified.
@@ -44,12 +43,12 @@ the earlier sampler could resume flash execution while the button remained
 held. A separately
 [bounded prompted diagnostic](phase12-8-bootsel-window-target.md) survived one
 press/release with both cores coordinated, but paused USB and network service
-and did not demonstrate an always-available input or ten-second hold. The
+and did not demonstrate an always-available input or long hold. The
 [Raspberry Pi BOOTSEL example](https://github.com/raspberrypi/pico-examples/blob/master/picoboard/button/button.c)
 also requires temporarily suspending flash access and warns about concurrent
 flash users. No production image should advertise these button actions until
 host fault tests cover shutdown and unknown-output paths, an exact RF-inhibited
-target test proves arbitrary press timing, ten-second and stuck holds, both-core
+target test proves arbitrary press timing, long and stuck holds, both-core
 flash use, AP recovery and reboot, and separately authorized conducted testing
 proves actual transmission interruption. If the stock button cannot meet that
 gate, the selected behavior needs a different physical or control input; it
