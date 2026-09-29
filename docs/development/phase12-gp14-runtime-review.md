@@ -2,7 +2,8 @@
 
 Status: **REPAIRED OPT-IN IMAGE PASSED SHORT/LONG-HOLD CHECKS;
 TELEMETRY FLASHED TO A AND B; B PASSED 49.557-SECOND HOLD, POST-RELEASE
-AP READINESS AND PHONE SAVE/STATION READBACK; NO REAL-RF ACCEPTANCE**
+AP READINESS, PHONE SAVE/STATION READBACK AND 218 MS ACTUAL BUTTON RESET;
+NO REAL-RF ACCEPTANCE**
 (2026-09-29). This record executes the
 [integration brief](phase12-gp14-runtime-integration-prompt.md) within the
 safe linked-image boundary. The default `WsprryPico` image and the separate
@@ -716,6 +717,70 @@ readback and the new boot from the earlier hold-continuity interval.
 `git diff --check` passed; this record changes no firmware implementation.
 P12.7, P12.11 and Phase 12 remain open.
 
+## Candidate B actual quick-tap reset
+
+The operator authorized preparing B for an actual quick-tap reset and
+performed the contacts using physical pin 19 (GP14) to pin 18 (GND). The
+same `fce8776f6f4e` image, B identity and UF2 hash above were retained, with
+150 MHz and `inhibited-standalone-simulator`. An INFO-only monitor saved a
+baseline before inviting the tap and then followed B's serial-targeted console
+across reboot. It sent no REBOOT, BOOTSEL, configuration or RF command. The
+monitor was bounded to 15 minutes or 60 seconds after observing a new boot.
+
+The first contact lasted **624,000 microseconds**. B recorded one verified
+stop on release, latched output inhibition and retained the same boot ID,
+with no reset/AP event. The operator was told the measured duration and made
+a shorter contact while the same monitor remained open. The second contact
+caused a real application reboot. The retained telemetry reported
+`gp14_prior_reset=true` and `gp14_prior_duration_ms=218`; these are the
+firmware's GP14-specific normal-watchdog-reset marker and millisecond duration.
+`recovery_boot=false` distinguished it from watchdog fault recovery.
+
+| Readback | Before tap | After actual reset |
+| --- | --- | --- |
+| Boot ID | `28fb667e7b0bb55dca12fcac5cc6e968` | `6bfffb4cf8c8edf8ef3cd353be00c761` |
+| Profile source / generation | `network_only` / 2 | `network_only` / 2 |
+| Access state / generation | healthy / 1 | healthy / 1 |
+| Station connection | link 3, `192.168.1.53` | link 3, `192.168.1.53` |
+| Storage / output | healthy / inactive | healthy / inactive |
+
+The capture contains 141 successful INFO reads. Two INFO command failures
+occurred only between the last old-boot read and first new-boot read; both
+were recorded as `CalledProcessError`, and subsequent reads recovered.
+There was exactly one observed boot transition. The post-reboot observation
+covered **60.284604 device-monotonic seconds** from the first new-boot read.
+Capture samples increased from 2,256 to 62,544 in that interval; maximum
+backlog remained 131 words. No capture fault, fault stage/hash/PC, recovery
+boot or further reboot was observed. GP14 was released; the stop latch and
+per-boot gesture counters were clear after reset.
+
+Every successful read retained the baseline profile/access generations and
+source, standalone configured/enabled flags, station/schedules, schedule
+frequency, expiry and watermark reported by INFO. Network reconnection provides
+additional evidence that the saved network remained usable. This verifies
+reported settings retention across the normal reset; it is not a raw
+byte-for-byte flash comparison. The reset occurred after the first contact had
+already confirmed simulated shutdown, so this does not qualify shutdown of
+active RF. The earlier diagnostic's `would_reset` result is now supplemented
+by a bounded actual runtime-reset result on B.
+
+The completed monitor stopped automatically. Private evidence remains on
+`wspr5` under `/home/pi/gp14-telemetry-both-20260929/b-quick-reset-01/` and
+in the matching ignored local `build/` directory. The raw `info.jsonl` hash is
+`f673a1e4ddafe8c276c70bf3ab26a5bac6be651f1e3f7ccf51f659eda4b1ff0e`;
+the evidence bundle hash is
+`30d8a38f1af4d745a75837681e7c99ce60df752d0e30f68455be7d7135da9758`.
+The pre-tap `baseline-info.json` hash is
+`f18350a62155787885e36b95ed7ea8be851f7c72bad4022cc89ff37c3345d50e`.
+Hashes match the local copies. Evidence assertions verified every successful
+record's identity, revision, clock, reported settings, health, per-boot capture
+progress, the sole boot transition and the retained reset marker/duration.
+They also verified that both read failures fell within the reboot interval.
+Adversarial review kept these transient read failures, the earlier stop latch,
+millisecond duration precision and settings-readback limits explicit; no
+firmware defect was established by this test. Private file modes and
+`git diff --check` passed. No implementation changed or source suite was rerun.
+
 ## Remaining gates and bounded physical procedure
 
 The opt-in image has the dry-run engine. It cannot establish actual RF stop
@@ -734,8 +799,9 @@ bound before the selected immediate-stop behavior can be accepted.
 
 For later exact-device, exact-image authorizations, first inspect the GP14
 pin-19 to ground wiring, RF isolation, device identity and preserved settings.
-Use read-only INFO to record idle capture samples and faults, then make an
-unprompted quick tap and a stuck hold through the manual AP lease. Confirm
+The bounded actual quick-tap reset is accepted above. For a remaining stuck-hold
+test, use read-only INFO to record idle capture samples and faults, then hold
+through the manual AP lease. Confirm
 one event per gesture, no boot-held loop, AP readiness and retention during
 the held jumper, and post-release continuity. Separately authorize a controlled
 flash-write overlap to verify PIO/DMA survival and exact duration; preserve
@@ -744,5 +810,6 @@ accepted should a newly reviewed, conducted RF image test active and armed
 job stop latency, watchdog recovery and AP admission after confirmed output
 shutdown. The earlier repaired image was loaded to B, and short and long GP14
 holds passed the bounded event-capture checks above. The telemetry continuation
-is now loaded to both A and B, with idle checks on both and the bounded B
-long-hold/readiness check recorded above. P12.7, P12.11 and Phase 12 remain open.
+is now loaded to both A and B, with idle checks on both and B long-hold/readiness,
+phone save/station readback and actual quick-tap reset recorded above. P12.7,
+P12.11 and Phase 12 remain open.

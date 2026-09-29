@@ -108,8 +108,9 @@ is loaded on A and B and passed bounded idle continuity checks. On B, it also
 reports AP/service readiness during a 49.557-second hold and for 60.7 seconds
 after release. The operator then confirmed B's phone setup page showed
 “Saved and connected”; post-reboot readback verified profile generation 2
-and a station address. This accepts that bounded B setup flow. Actual RF
-cutoff and broader integrated acceptance remain open. The previous
+and a station address. A 218 ms GP14 tap also verified an actual normal reset,
+retained settings and Wi-Fi return. This accepts those bounded B behaviors.
+Actual RF cutoff and broader integrated acceptance remain open. The previous
 runtime BOOTSEL sampler was unsafe and has been removed; do not use BOOTSEL to
 request the AP on the current image. A lost station connection still brings
 the AP back.
