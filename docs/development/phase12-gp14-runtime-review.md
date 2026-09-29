@@ -1,8 +1,8 @@
 # GP14 runtime source integration and adversarial review
 
-Status: **FIRST TARGET LOAD FAILED CLOSED; REPAIRED OPT-IN IMAGE PASSED IDLE,
-SHORT-HOLD AND 35.6-SECOND LONG-HOLD EVENT CHECKS; NEW SOFTAP TELEMETRY
-SOURCE-BUILT BUT NOT FLASHED; NO REAL-RF ACCEPTANCE**
+Status: **REPAIRED OPT-IN IMAGE PASSED SHORT/LONG-HOLD CHECKS;
+TELEMETRY FLASHED TO A AND B; B PASSED 49.557-SECOND HOLD, POST-RELEASE
+AP READINESS AND PHONE SAVE/STATION READBACK; NO REAL-RF ACCEPTANCE**
 (2026-09-29). This record executes the
 [integration brief](phase12-gp14-runtime-integration-prompt.md) within the
 safe linked-image boundary. The default `WsprryPico` image and the separate
@@ -19,7 +19,7 @@ ordered samples through `ButtonSampleStream` and the existing 10 ms debounced
 `ButtonDiagnostic` policy. `ButtonRuntime` sequences the resulting requests
 through the Pico adapter on core 0. The stream is designed to replay a
 complete short contact during a flash-write blackout with its sampled
-duration; target capture remains unverified. Ring overrun,
+duration; target replay through a flash-write blackout remains unverified. Ring overrun,
 DMA stop, PIO receive stall or lack of producer progress marks capture faulty
 and latches an output inhibit. RP2350's 28-bit normal transfer count reaches
 its fail-closed limit after about 24.85 days at the nominal rate; long-uptime
