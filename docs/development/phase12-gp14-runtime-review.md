@@ -1,7 +1,7 @@
 # GP14 runtime source integration and adversarial review
 
-Status: **FIRST TARGET LOAD FAILED CLOSED; REPAIRED OPT-IN SOURCE AWAITS TARGET RETEST;
-NO REAL-RF ACCEPTANCE**
+Status: **FIRST TARGET LOAD FAILED CLOSED; REPAIRED OPT-IN IMAGE PASSED IDLE
+AND ONE SHORT-HOLD TARGET CHECK; NO REAL-RF ACCEPTANCE**
 (2026-09-29). This record executes the
 [integration brief](phase12-gp14-runtime-integration-prompt.md) within the
 safe linked-image boundary. The default `WsprryPico` image and the separate
