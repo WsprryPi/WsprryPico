@@ -1,7 +1,8 @@
 # GP14 runtime source integration and adversarial review
 
 Status: **FIRST TARGET LOAD FAILED CLOSED; REPAIRED OPT-IN IMAGE PASSED IDLE,
-SHORT-HOLD AND 35.6-SECOND LONG-HOLD EVENT CHECKS; NO REAL-RF ACCEPTANCE**
+SHORT-HOLD AND 35.6-SECOND LONG-HOLD EVENT CHECKS; NEW SOFTAP TELEMETRY
+SOURCE-BUILT BUT NOT FLASHED; NO REAL-RF ACCEPTANCE**
 (2026-09-29). This record executes the
 [integration brief](phase12-gp14-runtime-integration-prompt.md) within the
 safe linked-image boundary. The default `WsprryPico` image and the separate
@@ -389,6 +390,112 @@ Private mode-600 evidence is retained on `wspr5` and in the ignored local
 | `long-pre-status.json` | `f134596e7efc54a40d9badf70e0277c96d9fb972aa0fd74d2e1ba34949fc8e2e` |
 | `long-pre-access.json` | `75ea3702763c593c3839531cc46cb61d216b39f32231770d85304ebbe333de9c` |
 | `monitor-long.log` | `f5d79b768bf818e56d0995d243a4375298037e11cedf3fcacf609b237b013256` |
+
+## Opt-in read-only SoftAP telemetry source continuation
+
+The [execution brief](phase12-gp14-softap-telemetry-prompt.md) was carried out
+on `devel` from clean `cfa14e22f89786f94044e9979ebe98b38fcbdbb1`.
+Source commit `fce8776f6f4e3500fabfffb7604a2867c2ee6448` adds only read-only
+telemetry to the opt-in GP14 path. `ButtonRuntime` retains the existing
+`gp14_ap_events` meaning and separately counts callback attempts after
+verified shutdown and callback returns accepted by the manual-setup
+coordinator. The portable coordinator reports whether its manual lease is
+active and whether it is held by the button. INFO in the opt-in image adds:
+
+| Field | Meaning |
+| --- | --- |
+| `gp14_ap_request_attempts`, `gp14_ap_request_accepts` | Setup callback invocations after verified stop and successful callback returns; an event can exist with zero attempts or accepts. |
+| `gp14_softap_manual_lease_active`, `gp14_softap_manual_lease_held` | Current manual lease and coordinator-held state; release begins the ordinary ten-minute period. |
+| `gp14_softap_requested` | Coordinator AP request from any reason, including fallback or field mode. |
+| `gp14_softap_adapter_running`, `gp14_softap_adapter_ready` | Pico AP adapter running and its netif/DHCP (and captive DNS when applicable) readiness checks. |
+| `gp14_softap_service_ready` | Coordinator service readiness after its AP and HTTP/listener checks. |
+
+All fields are booleans or counts. They expose no SSID, password, certificate,
+cookie or journal content. The adapter and coordinator values are captured
+together before INFO formatting on core 0. A radio/netif transition can still
+occur between samples, so repeated reads are needed around an edge. The
+requested/running/ready fields describe the whole AP, not proof that GP14
+caused its state; correlate them with the manual lease and accepted callback
+count. Adapter/service readiness does not prove phone association, DHCP
+assignment, HTTPS admission or captive portal behavior. The default image
+omits the new INFO labels; the GP14 gesture policy, WTP/1, browser API, RF
+inhibition and disconnected production BOOTSEL path are unchanged.
+
+The source checks used the existing local SDK 2.3.1 checkout at commit
+`079c6f39023649b154152db30f1d781e884879bc`, CMake 4.4.3 and Arm GNU
+Toolchain 15.3.1. No dependency was downloaded. From the repository root:
+
+```sh
+bash scripts/check_host.sh
+clang-format --dry-run --Werror src/provisioning/button_runtime.hpp \
+  src/provisioning/field_runtime.hpp src/provisioning/field_runtime.cpp \
+  src/standalone/pico/main.cpp tests/button_diagnostic_tests.cpp \
+  tests/field_access_tests.cpp
+ctest --test-dir build/host-xcode --output-on-failure \
+  -R 'button_diagnostic_tests|field_access_tests'
+git diff --check
+PICO_SDK_PATH=/private/tmp/wsprrypico-sdk-profile-079c6f3 \
+  bash scripts/build_pico.sh
+source scripts/xcode_env.sh
+PICO_SDK_PATH=/private/tmp/wsprrypico-sdk-profile-079c6f3 \
+  cmake -S . -B build/pico2-w-gp14-runtime -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release -DWSPRRY_PICO_BUILD_FIRMWARE=ON \
+  -DWSPRRY_PICO_BUILD_TESTS=OFF -DWSPRRY_PICO_GP14_RUNTIME_BUTTON=ON \
+  -DPICO_BOARD=pico2_w \
+  -DPICOTOOL_FETCH_FROM_GIT_PATH=/Users/lbussy/GitHub/WsprryPico/build/pico2-w/_deps
+cmake --build build/pico2-w-gp14-runtime --target WsprryPico -j 4
+python3 scripts/check_standalone_image.py \
+  build/pico2-w-gp14-runtime/firmware/WsprryPico.elf
+python3 scripts/check_stack_guards.py \
+  build/pico2-w-gp14-runtime/firmware/WsprryPico.elf
+python3 scripts/check_bootsel_topology.py \
+  build/pico2-w-gp14-runtime/firmware/WsprryPico.elf
+```
+
+The host suite passed 90/90; focused button and field-access tests passed
+2/2 after the review repair. Both clean-source RF-inhibited Pico 2 W builds
+and the linked checks passed. The opt-in ELF has 1,726,720 text and 136,652
+BSS bytes; the default ELF has 1,699,144 text and 136,652 BSS bytes. Both
+link with the application FLASH end at `0x103f3000`, a 32 KiB primary stack,
+and no BOOTSEL runtime sampler or core-1 reader. The new INFO label strings
+are present in the opt-in ELF and absent from the default ELF. A prior
+Candidate B INFO response was 4,104 bytes; the eight new fields need at
+most 287 additional bytes with 32-bit decimal counts, projecting 4,391
+bytes for that observed state against the 8,192-byte console queue. This
+is an observed-state headroom check, not a bound on every future network
+status. No target INFO response from the new image has been observed.
+
+| Clean `fce8776` artifact | SHA-256 |
+| --- | --- |
+| Ignored `build/gp14-runtime-b-20260929/telemetry-fce8776.elf` | `a85b5bf3914449d737da48cc44835ee186afc741aae780bd2b31bccb7acfa258` |
+| Ignored `build/gp14-runtime-b-20260929/telemetry-fce8776.uf2` | `716e165e1f74212bdf297ff6f50e467dba7f4cab55ca3e879f94dd271155d7f4` |
+| Default RF-inhibited `WsprryPico.elf` | `e5ceb9415a88eb47a15b9eaeb3d3c5cc403cff7f2afdfeb07d70c57e619fba38` |
+| Default RF-inhibited `WsprryPico.uf2` | `4aed8c062414487e660ea036a9f424f232e86a962339ccd866b20526516cd9a2` |
+
+The ignored clean default build log has SHA-256
+`99666528ca677cbaf5c7a7d01ef2a468cd17b46ffc6d27de8b9b40cb46207ea4`;
+the opt-in configure and build logs have SHA-256
+`9805de9319543d4ca670b1f90824627c636b46cef0ebf24f14eee68f268ffdef`
+and `a46fa6a4b857c53655f19a4003144ab1ef7169d4bdcb3b43ea827be9c0b1d0f5`.
+The immutable opt-in copy and canonical build-tree ELF have identical hashes.
+The linked-image checker requires the canonical `WsprryPico.elf` basename
+and adjacent map file; invoking it on the renamed copy first produced a
+filename-dependent stack assertion. It passed when invoked on the canonical
+identical build-tree artifact.
+
+The first adversarial pass found a possible mixed-state INFO response: AP
+adapter values were queried during formatting, after the coordinator
+snapshot. The repair captures both adapter booleans next to the coordinator
+snapshot before formatting. It also clarified that whole-AP requested/ready
+state can arise without GP14 and that a callback acceptance is not AP
+readiness. Formatting, focused host tests, opt-in cross-build and linked
+checks passed after this repair. The second pass checked callback ordering,
+failed-stop and rejected-callback counts, ten-minute held/released lease
+status, default-image separation, read-only getters, sensitive-data
+exposure, INFO capacity and unchanged RF/BOOTSEL paths; it found no further
+actionable source issue in this bounded slice. Target AP observation, AP
+retention through a full held lease, flash-write overlap, quick-tap reset,
+measured RF cutoff and phone admission remain open.
 
 ## Remaining gates and bounded physical procedure
 

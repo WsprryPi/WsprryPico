@@ -1,8 +1,8 @@
 # GP14 opt-in SoftAP telemetry: execution brief
 
-Status: execution authorized for source, host checks, pinned Pico 2 W builds,
-review, commit and push on `devel`. No flash or physical operation is
-authorized by this brief.
+Status: source execution and checks are recorded in the
+[runtime review](phase12-gp14-runtime-review.md). No flash or physical
+operation is authorized by this brief.
 
 Work in `/Users/lbussy/GitHub/WsprryPico` on `devel` from the clean
 `cfa14e22f89786f94044e9979ebe98b38fcbdbb1` handoff. Read `AGENTS.md`,
