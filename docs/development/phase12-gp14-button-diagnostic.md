@@ -1,8 +1,10 @@
 # P12 GP14 arbitrary-press diagnostic
 
-Status: **SOURCE DIAGNOSTIC ONLY; NO DEVICE TEST OR PRODUCTION BUTTON PATH**
-(2026-09-29). This opt-in Pico 2 W / RP2350 image evaluates whether an ordinary
-GPIO input can be observed through unprompted presses while both cores keep
+Status: **FLASHED TO 0a9d89; GESTURES UNTESTED; NO PRODUCTION BUTTON PATH**
+(2026-09-29). The [bounded flash record](phase12-gp14-button-flash-0a9d89.md)
+establishes only image delivery and short idle two-core continuity. This
+opt-in Pico 2 W / RP2350 image evaluates whether an ordinary GPIO input can
+be observed through unprompted presses while both cores keep
 executing and reading external flash. It has no RF engine, Wi-Fi stack, AP,
 settings writer or flash journal. The production BOOTSEL path remains
 disconnected. This record does not close P12.7, P12.11 or Phase 12.
@@ -135,9 +137,12 @@ pinned `bash scripts/build_pico.sh` standard image cross-build passed. Both
 GP14 image modes passed the post-link XIP/RF/storage topology and physical
 stack-guard checks; the GP14 checker correctly rejected the standard image
 as a negative case. `clang-format --dry-run --Werror` on changed C/C++ and
-`git diff --check` passed. No board, USB, GPIO or RF action was performed.
-The SDK/picotool sources were already local; no tool was downloaded. Physical
-use of either hash needs exact-device and exact-action authorization.
+`git diff --check` passed. Those source checks performed no board, USB, GPIO
+or RF action. The SDK/picotool sources were already local; no tool was
+downloaded. The normal image was subsequently flashed to B under the
+[separate authorization and record](phase12-gp14-button-flash-0a9d89.md).
+Physical use of the injection variant or GP14 input needs separate
+exact-device and exact-action authorization.
 
 ## Adversarial source review
 
