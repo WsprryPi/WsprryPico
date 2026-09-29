@@ -10,6 +10,19 @@ namespace wsprrypico::provisioning {
 
 class PicoGp14Capture {
   public:
+    enum class Fault : std::uint8_t {
+        None,
+        AlreadyStarted,
+        PioClaim,
+        DmaClaim,
+        Clock,
+        DmaCount,
+        RingOverrun,
+        DmaStopped,
+        RxStall,
+        NoProgress,
+        SampleStream,
+    };
     static constexpr unsigned pin = 14;
     static constexpr std::uint32_t ring_words = 2048;
 
@@ -18,6 +31,9 @@ class PicoGp14Capture {
     bool next(DiagnosticButtonEvents& event);
     [[nodiscard]] bool fault() const {
         return fault_ || stream_.fault();
+    }
+    [[nodiscard]] Fault fault_code() const {
+        return fault_code_;
     }
     [[nodiscard]] bool held() const {
         return stream_.held();
@@ -43,6 +59,7 @@ class PicoGp14Capture {
     std::uint64_t last_progress_us_ = 0;
     std::uint64_t maximum_backlog_words_ = 0;
     bool fault_ = false;
+    Fault fault_code_ = Fault::None;
 };
 
 } // namespace wsprrypico::provisioning

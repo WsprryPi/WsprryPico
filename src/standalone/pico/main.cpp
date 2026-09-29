@@ -657,6 +657,8 @@ int main() {
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
             result += ",\"gp14_capture_fault\":";
             result += gp14_button.fault() ? "true" : "false";
+            number_field(result, "gp14_capture_fault_code",
+                         static_cast<unsigned>(gp14_button.fault_code()));
             result += ",\"gp14_held\":";
             result += gp14_button.held() ? "true" : "false";
             result += ",\"gp14_output_inhibited\":";

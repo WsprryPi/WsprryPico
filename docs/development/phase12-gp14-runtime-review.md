@@ -1,6 +1,7 @@
 # GP14 runtime source integration and adversarial review
 
-Status: **OPT-IN RF-INHIBITED SOURCE CANDIDATE; NO PHYSICAL OR REAL-RF ACCEPTANCE**
+Status: **FIRST TARGET LOAD FAILED CLOSED; REPAIRED OPT-IN SOURCE AWAITS TARGET RETEST;
+NO REAL-RF ACCEPTANCE**
 (2026-09-29). This record executes the
 [integration brief](phase12-gp14-runtime-integration-prompt.md) within the
 safe linked-image boundary. The default `WsprryPico` image and the separate
@@ -19,9 +20,9 @@ through the Pico adapter on core 0. The stream is designed to replay a
 complete short contact during a flash-write blackout with its sampled
 duration; target capture remains unverified. Ring overrun,
 DMA stop, PIO receive stall or lack of producer progress marks capture faulty
-and latches an output inhibit. The finite DMA count reaches its fail-closed
-limit after about 397 days at the nominal rate; long-uptime renewal remains
-for a later release-quality implementation.
+and latches an output inhibit. RP2350's 28-bit normal transfer count reaches
+its fail-closed limit after about 24.85 days at the nominal rate; long-uptime
+renewal remains for a later release-quality implementation.
 
 The core-0 runtime dispatcher is ahead of `Scheduler::poll()` and transport
 service. On the first stop or reset request it latches
@@ -120,6 +121,70 @@ direction setup after state-machine initialization and placed the service-wide
 output latch before scheduler cleanup. A clean `f6cb413` opt-in rebuild and
 the linked-image checks passed after this reassessment. No remaining source
 finding was promoted into physical timing or RF acceptance.
+
+## First Candidate B target load and source repair
+
+On 2026-09-29 the operator authorized the exact RF-inhibited runtime image on
+Candidate B (`0a9d89`, chip/USB serial `CDDBF8767C506C07`, application device ID
+`29f20b7342051ef947aa56cb9d4fab42`). The existing GP14 diagnostic first
+reported `held=0` and increasing XIP read counts on both cores. It lacked a
+compatible USB reset interface, so the operator manually entered ROM BOOTSEL
+mode by power cycling B with BOOTSEL held. ROM reported RP2350 QFN60, ARM,
+4,096 KiB flash and the expected chip ID. The other Pico remained enumerated.
+
+Before load, `picotool save -a -v` saved and verified all 4,194,304 bytes of
+B's flash. Private mode-600 copies on `wspr5` and in the ignored local
+`build/gp14-runtime-b-20260929/` directory both have SHA-256
+`136c58506802dbe7ced310040b0999283e95da79e8e6f829a2116ee42ddf53ca`.
+The prior full-flash backup remains separate. The staged UF2 matched
+`9e733c791e791b00ec62cf1427874862c390d01fef432ec43116a80dec406268`
+on both hosts. The exact load command on `wspr5`
+was:
+
+```sh
+/home/pi/phase11-4-e1/picotool-build/picotool load -v -x \
+  /home/pi/gp14-runtime-b-20260929/runtime-gp14-rf-inhibited.uf2 \
+  --ser CDDBF8767C506C07
+```
+
+Picotool verified the load with `OK` and rebooted the application. Its private
+load log has SHA-256 `1cb3345250cf60d37170a434be62f81fc8b2bfa9a5bb285a5d120d87ca9845c9`.
+Read-only INFO then matched the application ID and embedded source revision
+`f6cb413bd469`, showed healthy access generation 1 and network-only profile
+generation 1, but reported `gp14_capture_fault=true`, `gp14_samples=0`,
+`gp14_output_inhibited=true`, `gp14_stop_verified=false`, and no button events.
+Read-only STATUS reported the `inhibited-standalone-simulator` engine,
+`state=empty`, `output_active=false`, and healthy storage. The private INFO
+and STATUS responses have SHA-256 `2df25408e47454b1417012c9b79b7762c89e283c3467240dc8c1f43d06ab3b74`
+and `edf4253e500ab44fe64bfccf0201c36e4d35144dda9772dbbff6be2a4dfab735`.
+No GP14 contact, settings command, GP2 transmission or SoftAP acceptance test
+was performed after the fault. B remains on this RF-inhibited, fail-closed
+image pending an exact-image retest or authorized restoration.
+
+Source inspection found that the sampler passed `0xffffffff` as RP2350's DMA
+transfer count. In the pinned SDK, bits 31:28 select DMA mode and this value
+selects endless mode, whose count never decreases. The no-progress fault after
+100 ms is consistent with the observed zero samples; no live DMA register
+trace was captured. The repair uses the SDK-encoded maximum 28-bit normal
+count, derives completed words from that field, and rejects non-normal mode.
+It adds a deterministic host regression for the initial, decrementing, zero
+and endless-mode values. INFO now exposes a numeric fault code (0 none, 1
+already started, 2 PIO claim, 3 DMA claim, 4 clock, 5 DMA count, 6 ring
+overrun, 7 DMA stopped, 8 RX stall, 9 no progress, 10 sample stream). The
+repaired source passed 90/90 host tests, then the focused button test after
+the decoder move, formatting, the default and opt-in Pico 2 W cross-builds,
+and linked flash/stack/BOOTSEL checks. This is a source repair;
+the repaired PIO/DMA path has not yet run on the board.
+
+The repair review checked normal/endless mode decoding against the pinned
+RP2350 register definitions, SDK transfer-count encoding, decrement and
+producer/consumer monotonicity, ring exhaustion, DMA completion, fault
+reporting, default-image separation and preserved storage bounds. It found a
+hardware-specific decoder in the portable gesture stream; that decoder was
+moved to a Pico-specific header, and the focused host test, formatting,
+opt-in cross-build and linked checks passed again. The count's 24.85-day
+limit remains an explicit fail-closed diagnostic boundary. Target capture,
+flash-write overlap, AP service and real-RF cutoff remain open.
 
 ## Remaining gates and bounded physical procedure
 

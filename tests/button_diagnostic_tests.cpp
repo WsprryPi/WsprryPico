@@ -1,12 +1,14 @@
 #include "provisioning/button_diagnostic.hpp"
 #include "provisioning/button_runtime.hpp"
 #include "provisioning/button_sample_stream.hpp"
+#include "provisioning/pico/rp2350_dma_progress.hpp"
 
 #include <cassert>
 #include <initializer_list>
 
 using wsprrypico::provisioning::ButtonDiagnostic;
 using wsprrypico::provisioning::ButtonSampleStream;
+using wsprrypico::provisioning::Rp2350DmaProgress;
 
 namespace {
 void edge(ButtonDiagnostic& button, std::uint64_t at_us, bool pressed) {
@@ -111,6 +113,17 @@ void packed_samples_survive_foreground_blackout() {
     assert(!ButtonSampleStream::backlog_valid(1, 2, 2048));
 }
 
+void rp2350_dma_count_is_not_endless_mode() {
+    constexpr auto initial = Rp2350DmaProgress::transfer_words;
+    static_assert(initial == 0x0fffffffU);
+    assert(Rp2350DmaProgress::produced(initial) == 0);
+    assert(Rp2350DmaProgress::produced(initial - 1) == 1);
+    assert(Rp2350DmaProgress::produced(0) == initial);
+    // The old 0xffffffff configuration selects RP2350 endless mode: it
+    // cannot provide a monotonically decreasing producer count.
+    assert(!Rp2350DmaProgress::produced(0xffffffffU));
+}
+
 void runtime_actions_require_verified_stop() {
     unsigned stops = 0, setups = 0, releases = 0, resets = 0;
     bool stop_succeeds = false;
@@ -162,5 +175,6 @@ int main() {
     release_boundaries();
     startup_low_bounce_and_clock_fault();
     packed_samples_survive_foreground_blackout();
+    rp2350_dma_count_is_not_endless_mode();
     runtime_actions_require_verified_stop();
 }
