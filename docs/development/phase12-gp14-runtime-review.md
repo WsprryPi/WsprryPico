@@ -494,9 +494,9 @@ checks passed after this repair. The second pass checked callback ordering,
 failed-stop and rejected-callback counts, ten-minute held/released lease
 status, default-image separation, read-only getters, sensitive-data
 exposure, INFO capacity and unchanged RF/BOOTSEL paths; it found no further
-actionable source issue in this bounded slice. Target AP observation, AP
-retention through a full held lease, flash-write overlap, quick-tap reset,
-measured RF cutoff and phone admission remain open.
+actionable source issue in this bounded slice. At that stage, target AP
+observation, AP retention through a full held lease, flash-write overlap,
+quick-tap reset, measured RF cutoff and phone admission remained open.
 
 ## Authorized telemetry flash to A and B
 
@@ -601,6 +601,66 @@ actionable issue in this flash-only slice. No implementation changed, so the
 existing source checks above were not rerun; evidence assertions and
 `git diff --check` passed for this update.
 
+## Candidate B long hold with SoftAP telemetry
+
+After the pair flash, the operator authorized preparing B, reported “On”
+after connecting physical pin 19 (GP14) to pin 18 (GND), and reported “Off”
+after the requested release. This used the same Pico 2 W / RP2350 B identity,
+`fce8776f6f4e` image and UF2 hash recorded above, at 150 MHz with engine
+`inhibited-standalone-simulator`. The baseline was released, fault-free and
+empty/inactive, with zero gesture/request counters, no manual AP lease, and
+all AP readiness values false. Boot ID was
+`87dc065155e033fc4490670a29763b92` throughout the test.
+
+An INFO-only monitor on `wspr5` called the existing console client with
+`--device-id 29f20b7342051ef947aa56cb9d4fab42 --revision fce8776f6f4e --run`
+on B's serial-targeted `if00` port. It started before the press, polled about
+once per second, and was bounded to 15 minutes or 60 seconds after release.
+The operator held the jumper until told to remove it. The capture contains
+117 successful INFO records with no read or parse error:
+
+| Observation | INFO sample | Result |
+| --- | --- | --- |
+| First held input | 17 | `gp14_held=true` |
+| First stop event | 18 | One stop event, confirmed stop and output-inhibit latch, still held |
+| First setup request and readiness | 25 | One AP event, one request attempt and one acceptance; manual lease active/held; requested, adapter running/ready and service ready all true |
+| First released input | 62 | Recorded duration 49,557,000 microseconds; lease held flag false, lease active and all AP readiness values still true |
+| Final observation | 117 | 60.742601 device-monotonic seconds after the first released observation; lease active and AP/service ready |
+
+All five lease/request/adapter/service readiness values stayed true from
+sample 25 through the final sample. The manual lease held flag cleared on
+release. Stop/AP/attempt/acceptance counters each advanced exactly once from
+zero to one while held, with no repeated action; reset events stayed zero.
+Capture samples rose from 494,976 to 623,304 with no backwards or stagnant
+sample and a maximum backlog of 131 words. Capture fault/code, fault
+stage/hash/PC and reboot detection remained clear. Storage stayed healthy,
+access/profile generations stayed at 1, and output remained inactive. The
+board was left released with the stop latch and manual AP lease active.
+
+This passes the bounded B telemetry test: an arbitrary 49.557-second hold
+produced one accepted setup request after confirmed simulated shutdown, AP
+and service readiness were reported while held, and readiness plus application
+continuity survived at least 60 seconds after release. INFO polling does not
+measure the exact 0.9-second dispatch or RF cutoff latency. The record does
+not establish phone association/page access, ten-minute held-lease behavior,
+lease expiry, flash-write overlap, quick-tap reset or watchdog recovery.
+Candidate A has only the idle telemetry evidence above.
+
+The completed monitor stopped automatically. Raw INFO, the transition log,
+final snapshot and monitor script are retained privately on `wspr5` under
+`/home/pi/gp14-telemetry-both-20260929/b-softap-hold-01/` and in the matching
+ignored local `build/` directory. The raw `info.jsonl` SHA-256 is
+`b077c4d599cedba76ba8bde75a713f05f58d09179215cc38ffbe1d943b2081e3`;
+the matching evidence bundle SHA-256 is
+`b605ee0e5b2e355a15dd822918e843fa8bb52db33b7aae5dd116ad6c0f22a9c3`.
+Local evidence assertions checked all records for identity, revision, clock,
+boot continuity, counter transitions, release, readiness retention, advancing
+capture, faults and preserved generations. Bundle/file hashes and private
+file modes were verified. Adversarial reassessment kept readiness telemetry
+separate from phone/RF acceptance and found no actionable firmware issue in
+this bounded record. This documentation-only update passed `git diff --check`;
+the previously recorded source/build checks were not rerun.
+
 ## Remaining gates and bounded physical procedure
 
 The opt-in image has the dry-run engine. It cannot establish actual RF stop
@@ -628,5 +688,5 @@ accepted should a newly reviewed, conducted RF image test active and armed
 job stop latency, watchdog recovery and AP admission after confirmed output
 shutdown. The earlier repaired image was loaded to B, and short and long GP14
 holds passed the bounded event-capture checks above. The telemetry continuation
-is now loaded to both A and B, with the idle checks recorded above. P12.7,
-P12.11 and Phase 12 remain open.
+is now loaded to both A and B, with idle checks on both and the bounded B
+long-hold/readiness check recorded above. P12.7, P12.11 and Phase 12 remain open.
