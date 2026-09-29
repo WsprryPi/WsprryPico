@@ -1,7 +1,7 @@
 # GP14 runtime source integration and adversarial review
 
-Status: **FIRST TARGET LOAD FAILED CLOSED; REPAIRED OPT-IN IMAGE PASSED IDLE
-AND ONE SHORT-HOLD TARGET CHECK; NO REAL-RF ACCEPTANCE**
+Status: **FIRST TARGET LOAD FAILED CLOSED; REPAIRED OPT-IN IMAGE PASSED IDLE,
+SHORT-HOLD AND 35.6-SECOND LONG-HOLD EVENT CHECKS; NO REAL-RF ACCEPTANCE**
 (2026-09-29). This record executes the
 [integration brief](phase12-gp14-runtime-integration-prompt.md) within the
 safe linked-image boundary. The default `WsprryPico` image and the separate
@@ -338,6 +338,58 @@ Private mode-600 precheck, reboot and postcheck responses are retained on
 | `post-usb-reboot-info2.json` | `9e16e02160590ed39bc4ecf375145b0bbf0046a30c695bfbd8874ac8d6372dd0` |
 | `post-usb-reboot-status.json` | `53cd058d3848f2e36cae542d27d0f7c02c7fd3ef447937aadbd04375b581960b` |
 
+## Candidate B long hold past the setup threshold
+
+The operator authorized a long GP14-to-ground hold on the same repaired,
+RF-inhibited image (UF2 SHA-256
+`10e7ff2a99bce561eb0cbbea7cf95bff91f8f3c52b4c4077be504108cc910252`).
+Before the contact, USB INFO and STATUS matched Candidate B's application
+device ID `29f20b7342051ef947aa56cb9d4fab42`, revision `c806890fc361`,
+boot ID `8c2fb3deef92e526722322991bbb7480`, capture fault code 0,
+GP14 released, output inhibit clear, inactive simulator output and healthy
+storage. Read-only `ACCESS STATUS` reported a healthy generation-1 access
+record. The operator was told to connect physical pin 19 (GP14) to pin 18
+(ground) and keep the jumper in place until the monitor reported the setup
+event. The wiring was not independently inspected.
+
+The private monitor issued identity-checked USB INFO and STATUS commands
+approximately once per second. It ran from `2026-09-29T20:20:22.775Z` to
+`2026-09-29T20:22:28.457Z`, collecting 103 complete INFO/STATUS pairs with
+no read or parse failure. The first observed held sample was at
+`20:20:47.423Z`; the stop event appeared while held at `20:20:48.671Z` and
+the setup event while held at `20:20:57.303Z`. The operator kept the jumper
+connected until told to remove it. The first observed released sample was
+at `20:21:24.032Z`, and the device recorded a 35,587,000 µs hold. The
+monitor ran another 64.4 seconds after the first observed release. The stop
+and setup counts remained exactly one each, with no reset event or capture
+fault. The sample count increased monotonically from 403,224 to 527,680,
+maximum backlog was 131 words, all STATUS responses kept the same boot ID,
+and the inhibited simulator remained empty with inactive output and healthy
+storage. The final GP14 state was released, fault code 0, output inhibited
+and stop verified in the dry-run engine.
+
+The event timing shows foreground dispatch of stop and setup while the input
+was held, and the release duration and post-release sampling show continuity.
+The approximately 1.2-second console poll interval does not bound dispatch
+latency at the 900 ms and 9-second thresholds. Source review also found that
+`ButtonRuntime::setup_events()` increments before its setup callback and
+discards that callback's return value. Thus the observed setup count proves
+that the setup event was dispatched, but it does not prove that the manual
+SoftAP request was accepted, that the AP became ready, or that the AP lease
+stayed active during the held jumper. Those require separate target
+observability or an authorized external AP check. The 35.6-second contact
+does not test a hold through the full 10-minute manual AP lease.
+
+Private mode-600 evidence is retained on `wspr5` and in the ignored local
+`build/gp14-runtime-b-20260929/` directory:
+
+| Response | SHA-256 |
+| --- | --- |
+| `long-pre-info.json` | `1e7485cf5a8aea2959379afd48f546f0752e6e4fb751b24c6340bd09100e637d` |
+| `long-pre-status.json` | `f134596e7efc54a40d9badf70e0277c96d9fb972aa0fd74d2e1ba34949fc8e2e` |
+| `long-pre-access.json` | `75ea3702763c593c3839531cc46cb61d216b39f32231770d85304ebbe333de9c` |
+| `monitor-long.log` | `f5d79b768bf818e56d0995d243a4375298037e11cedf3fcacf609b237b013256` |
+
 ## Remaining gates and bounded physical procedure
 
 The opt-in image has the dry-run engine. It cannot establish actual RF stop
@@ -355,14 +407,14 @@ bound before the selected immediate-stop behavior can be accepted.
 
 For later exact-device, exact-image authorizations, first inspect the GP14
 pin-19 to ground wiring, RF isolation, device identity and preserved settings.
-Use read-only INFO to record idle capture samples and faults, then make
-unprompted quick tap, 9+ second and stuck holds at arbitrary times.
-Confirm one event per gesture, no boot-held loop, AP availability during a
-held jumper and post-release continuity. Separately authorize a controlled
+Use read-only INFO to record idle capture samples and faults, then make an
+unprompted quick tap and a stuck hold through the manual AP lease. Confirm
+one event per gesture, no boot-held loop, AP readiness and retention during
+the held jumper, and post-release continuity. Separately authorize a controlled
 flash-write overlap to verify PIO/DMA survival and exact duration; preserve
 the original settings and journal evidence. Only after the inhibited path is
 accepted should a newly reviewed, conducted RF image test active and armed
 job stop latency, watchdog recovery and AP admission after confirmed output
-shutdown. The repaired image was loaded to B, and one GP14 short hold passed
-the bounded dry-run checks above. P12.7,
+shutdown. The repaired image was loaded to B, and short and long GP14 holds
+passed the bounded event-capture checks above. P12.7,
 P12.11 and Phase 12 remain open.
