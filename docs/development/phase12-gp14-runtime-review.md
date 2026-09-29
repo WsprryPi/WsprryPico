@@ -262,6 +262,44 @@ capture fault on B. It did not exercise a GP14 press, an arbitrary arrival
 during flash access, a flash write, a stuck hold, watchdog recovery, RF
 shutdown or SoftAP admission. Those remain separate physical gates.
 
+## Candidate B continuously sampled short hold
+
+The operator later authorized a 2–3 second GP14-to-ground hold on the same
+repaired, RF-inhibited image. A read-only monitor was started first on
+Candidate B's serial port
+`/dev/serial/by-id/usb-WsprryPi_WsprryPico_CDDBF8767C506C07-if00`.
+It used `standalone_console.py info` and `status`, each with the exact
+application device ID `29f20b7342051ef947aa56cb9d4fab42` and revision
+`c806890fc361`, approximately once per second. The operator was told to
+connect physical pin 19 (GP14) to pin 18 (ground) and remove the jumper
+after roughly 2–3 seconds; the wiring was not independently inspected.
+The monitor sent no capture or arming command to the device; the sampler was
+already running before the user chose when to connect the jumper.
+
+The device measured the hold as 1,665,000 µs. The first monitor sample that
+reported `gp14_held=true` also reported one stop event and
+`gp14_stop_verified=true`; the first released sample followed about 1.26
+seconds later. This shows the stop request was recorded while held, but the
+approximately 1.2-second console polling interval cannot bound the time
+from the 0.9-second threshold to foreground dispatch. There were no AP or
+reset events. All 87 INFO samples had capture fault false and fault code 0;
+the sample count increased monotonically from 1,271,712 to 1,377,728 with
+maximum backlog 131 words. All 87 STATUS responses had the same boot ID,
+healthy storage, `state=empty`, `output_active=false` and the
+`inhibited-standalone-simulator` engine. The monitor ran from
+`2026-09-29T19:22:58.592Z` to `2026-09-29T19:24:45.842Z`, ending 67.8
+seconds after the first observed release. One stop event and no other button
+events remained at the end; `gp14_output_inhibited=true` and
+`gp14_stop_verified=true` are dry-run state, not a measured RF shutdown.
+
+The private mode-600 raw monitor is retained on `wspr5` and in the ignored
+local `build/gp14-runtime-b-20260929/monitor-short.log`; both copies have
+SHA-256 `b86a87378de8aa5d02594b0d3fa498af1f6f37eef50bee786d21f504b197eaae`.
+The monitor contained only read-only INFO and STATUS commands. No settings
+mutation, GP2 transmission or SoftAP admission was requested. This one hold
+supports held-stop behavior with continuous sampling and post-release
+continuity on B; the other physical gates below remain open.
+
 ## Remaining gates and bounded physical procedure
 
 The opt-in image has the dry-run engine. It cannot establish actual RF stop
@@ -277,16 +315,16 @@ does not force RF off at the exact 900 ms edge while core 0 is busy; that
 requires a separately reviewed RF-core safety path and a measured latency
 bound before the selected immediate-stop behavior can be accepted.
 
-For a later exact-device, exact-image authorization, first inspect the GP14
+For later exact-device, exact-image authorizations, first inspect the GP14
 pin-19 to ground wiring, RF isolation, device identity and preserved settings.
 Use read-only INFO to record idle capture samples and faults, then make
-unprompted short, 2–3 second, 9+ second and stuck holds at arbitrary times.
+unprompted quick tap, 9+ second and stuck holds at arbitrary times.
 Confirm one event per gesture, no boot-held loop, AP availability during a
 held jumper and post-release continuity. Separately authorize a controlled
 flash-write overlap to verify PIO/DMA survival and exact duration; preserve
 the original settings and journal evidence. Only after the inhibited path is
 accepted should a newly reviewed, conducted RF image test active and armed
 job stop latency, watchdog recovery and AP admission after confirmed output
-shutdown. The repaired image was loaded to B with idle read-only checks;
-no GP14 contact was performed. P12.7,
+shutdown. The repaired image was loaded to B, and one GP14 short hold passed
+the bounded dry-run checks above. P12.7,
 P12.11 and Phase 12 remain open.
