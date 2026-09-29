@@ -300,6 +300,44 @@ mutation, GP2 transmission or SoftAP admission was requested. This one hold
 supports held-stop behavior with continuous sampling and post-release
 continuity on B; the other physical gates below remain open.
 
+## Candidate B normal USB reboot
+
+The operator asked for a USB reboot to clear the stop latch before another
+gesture test. On the same repaired image, read-only INFO verified the exact
+application device ID and revision, GP14 released, capture fault code 0,
+and `gp14_output_inhibited=true`. STATUS reported boot ID
+`91209a1b2aef7a5b2047cf5f113e8418`, healthy storage, empty state and
+inactive output. The exact command on `wspr5` was:
+
+```sh
+python3 /home/pi/phase11-4-e1/scripts/standalone_console.py reboot \
+  --port /dev/serial/by-id/usb-WsprryPi_WsprryPico_CDDBF8767C506C07-if00 \
+  --device-id 29f20b7342051ef947aa56cb9d4fab42 \
+  --revision c806890fc361 --run
+```
+
+The response was `{"ok":true,"rebooting":true}`. B returned on the same
+device ID and revision with new boot ID
+`8c2fb3deef92e526722322991bbb7480`, recovery boot false, capture fault
+code 0, GP14 released, stop/AP/reset counters zero and output inhibit clear.
+Samples advanced from 14,056 to 27,368 on two post-reboot reads. STATUS
+again showed the inhibited simulator, empty state, inactive output and healthy
+storage. Access and profile generations remained 1. This was a normal
+application reboot; no ROM BOOTSEL command or settings change was requested,
+and no GP14 contact was observed during this step.
+
+Private mode-600 precheck, reboot and postcheck responses are retained on
+`wspr5` and in the ignored local `build/gp14-runtime-b-20260929/` directory:
+
+| Response | SHA-256 |
+| --- | --- |
+| `pre-usb-reboot-info.json` | `47871d40eb436a6269214063fa61bf68638036ec7098f05f593dcabedc709e92` |
+| `pre-usb-reboot-status.json` | `4e472ec93eb76363de74e06aa07d28f16e0b36472a362e516b1befefa5a1b2b1` |
+| `usb-reboot-response.json` | `f83f9f27a7e859db453690ad52a40adfbc4d3eabcc91b19e77264366142fbba8` |
+| `post-usb-reboot-info.json` | `30e41429098eb1dcebf92c0f519f3dcafbd1d79ce9dcf5eca3b110f97240df76` |
+| `post-usb-reboot-info2.json` | `9e16e02160590ed39bc4ecf375145b0bbf0046a30c695bfbd8874ac8d6372dd0` |
+| `post-usb-reboot-status.json` | `53cd058d3848f2e36cae542d27d0f7c02c7fd3ef447937aadbd04375b581960b` |
+
 ## Remaining gates and bounded physical procedure
 
 The opt-in image has the dry-run engine. It cannot establish actual RF stop
