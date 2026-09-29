@@ -1,7 +1,7 @@
 # GP14 diagnostic delivery to Pico 0a9d89
 
-Status: **SERIAL-TARGETED FLASH VERIFIED; GP14 HOLD OVER 10 SECONDS OBSERVED;
-30-SECOND STUCK HOLD AND INTEGRATED ACTIONS PENDING** (2026-09-29). The operator
+Status: **SERIAL-TARGETED FLASH VERIFIED; SHORT RESET REQUEST AND HOLD OVER
+10 SECONDS OBSERVED; 30-SECOND STUCK HOLD PENDING** (2026-09-29). The operator
 authorized “Flash 0a9d89” after the exact normal GP14 diagnostic image was
 identified. This was
 an image delivery and idle observation, not RF shutdown, reset, SoftAP or
@@ -201,3 +201,33 @@ actual RF shutdown or actual SoftAP service. The private raw stream is
 `build/gp14-physical-0a9d89-20260929/hold-over-10s-retry-usb.log` with
 SHA-256
 `7b54fd3b5d6a7037bf2a85eb31c36690f61a8f88a709b7248c303093ba8b480d`.
+
+## Quick-tap release classification
+
+With the same correctly wired GP14-to-ground input, the operator requested a
+quick tap while a fresh read-only USB monitor was open. The first contact
+lasted 974,262 microseconds by the firmware clock. It crossed the 900 ms
+threshold, so the diagnostic emitted one `would_stop`, then `release` and
+`post_release` (event sequences 15–18). That contact did not exercise the
+under-400 ms reset class.
+
+The operator made a second, briefer contact in the same monitor window. It
+lasted **285,543 microseconds** and emitted one `would_reset` at release,
+followed by `release` at the same timestamp and `post_release` one second
+later (sequences 19–22). No `would_stop` or `would_setup_ap` was emitted for
+that gesture. Core-0 read counts rose from 3,762,614,528 at press to
+3,764,519,168 at post-release; core-1 counts rose from 3,899,371,264 to
+3,901,335,296. The 180-second monitor completed with 91 periodic reports.
+Across the window, core-0 reads rose from 3,668,426,496 to 3,937,131,008
+and core-1 reads from 3,802,508,800 to 4,078,808,320. Subsequent reports
+kept `boot=1`, `prior_watchdog=0`, `held=0` and `events=22`, with both cores
+advancing. The maximum reported sample gap was 2,805 microseconds; no
+lost-event marker appeared. The host kernel log showed no new USB
+over-current or disconnect through the completed monitor. The image did not
+actually reset the RP2350.
+
+This is one physical diagnostic sample of the under-400 ms release class;
+no independent external timer or production reset-path acceptance is
+claimed. The private raw stream is
+`build/gp14-physical-0a9d89-20260929/quick-tap-usb.log` with SHA-256
+`1cbe2c71f971d74ea516b145cc6f29152d0a7c6710b918fc25925c3be9ab4609`.

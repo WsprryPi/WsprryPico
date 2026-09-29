@@ -1,16 +1,17 @@
 # P12 GP14 arbitrary-press diagnostic
 
-Status: **FLASHED TO 0a9d89; HOLD OVER 10 SECONDS OBSERVED; PRODUCTION PATH DISCONNECTED**
+Status: **FLASHED TO 0a9d89; SHORT TAP AND HOLD OVER 10 SECONDS OBSERVED; PRODUCTION PATH DISCONNECTED**
 (2026-09-29). The [bounded flash record](phase12-gp14-button-flash-0a9d89.md)
 establishes image delivery, idle two-core continuity, a correctly wired
 2.585-second hold, a 9.868-second hold and a 27.873-second hold with
-diagnostic stop and setup requests. Earlier attempts bridged the wrong pins
-and yielded no classifiable gesture. This opt-in Pico 2 W / RP2350 image
+diagnostic stop and setup requests, plus a 285.543 ms `would_reset` tap.
+Earlier attempts bridged the wrong pins and yielded no classifiable gesture.
+This opt-in Pico 2 W / RP2350 image
 evaluates whether an ordinary GPIO input can be observed through unprompted
 presses while both cores keep executing and reading external flash. It has
 no RF engine, Wi-Fi stack, AP, settings writer or flash journal. The
-production BOOTSEL path remains
-disconnected. This record does not close P12.7, P12.11 or Phase 12.
+production BOOTSEL path remains disconnected. This record does not close
+P12.7, P12.11 or Phase 12.
 
 ## Selected input and timing
 
