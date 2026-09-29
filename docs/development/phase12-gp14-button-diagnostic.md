@@ -1,10 +1,11 @@
 # P12 GP14 arbitrary-press diagnostic
 
-Status: **FLASHED TO 0a9d89; GESTURE ATTEMPTS INTERRUPTED; NO PRODUCTION BUTTON PATH**
+Status: **FLASHED TO 0a9d89; ONE CORRECTED HOLD OBSERVED; NO PRODUCTION BUTTON PATH**
 (2026-09-29). The [bounded flash record](phase12-gp14-button-flash-0a9d89.md)
-establishes image delivery and short idle two-core continuity. Later
-GP14 hold attempts coincided with host USB over-current and yielded no
-classifiable gesture. This opt-in Pico 2 W / RP2350 image evaluates whether
+establishes image delivery, short idle two-core continuity and one correctly
+wired 2.585-second hold with a stop request at 0.9 seconds. Earlier attempts
+bridged the wrong pins and yielded no classifiable gesture. This opt-in Pico
+2 W / RP2350 image evaluates whether
 an ordinary GPIO input can be observed through unprompted presses while both
 cores keep executing and reading external flash. It has no RF engine, Wi-Fi
 stack, AP,

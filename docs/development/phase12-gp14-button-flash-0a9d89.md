@@ -1,7 +1,7 @@
 # GP14 diagnostic delivery to Pico 0a9d89
 
-Status: **SERIAL-TARGETED FLASH VERIFIED; IDLE TWO-CORE CONTINUITY OBSERVED;
-BUTTON ATTEMPTS INTERRUPTED BY USB OVER-CURRENT** (2026-09-29). The operator
+Status: **SERIAL-TARGETED FLASH VERIFIED; ONE CORRECTLY WIRED GP14 HOLD
+OBSERVED; LONG HOLD AND INTEGRATED ACTIONS UNTESTED** (2026-09-29). The operator
 authorized “Flash 0a9d89” after the exact normal GP14 diagnostic image was
 identified. This was
 an image delivery and idle observation, not RF shutdown, reset, SoftAP or
@@ -23,7 +23,8 @@ button acceptance. P12.7, P12.11 and Phase 12 remain open.
 - Engine/mode: this separate image links no RF engine, Wi-Fi, SoftAP or
   settings writer; both cores execute the XIP flash workload. The pinned
   RP2350 SDK default system clock is 150 MHz; this diagnostic has no target
-  clock readback. No GP14 wire, jumper, button press or RF output was used.
+  clock readback. During flashing, no GP14 wire, jumper, button press or RF
+  output was used.
 
 ## Preflight and preservation
 
@@ -109,6 +110,35 @@ Private evidence is in `build/gp14-physical-0a9d89-20260929/` as
 `hold-retry-after-reenum.log` and `usb-overcurrent-summary.log`. The last
 file's SHA-256 is
 `c8077f783ecc0ed69f30973532abd45d39b32a045ea9175e6e7b5116eb5edbfd`.
-Further physical holds are paused pending inspection of the GP14-to-ground
-wiring and host USB power path. No additional flash or GPIO action was taken
-by the monitor.
+Further physical holds were paused pending inspection of the GP14-to-ground
+wiring and host USB power path. No flash or GPIO action was taken by the
+monitor.
+
+## Corrected 2–3 second hold
+
+The operator subsequently reported that the first two attempts had bridged
+physical pins **38 and 39** by mistake. The [Pico 2 W pinout](https://datasheets.raspberrypi.com/picow/pico-2-w-pinout.pdf)
+labels these GND and VSYS. Shorting that pair is consistent with the host
+over-current warnings, although no independent electrical measurement was
+made. The operator changed the jumper to physical pins **18 (GND) and 19
+(GP14)** and announced another hold. The read-only monitor was already open
+and receiving B's idle diagnostic reports before contact.
+
+The stream recorded one debounced `press`, one `would_stop` at duration
+900,062 microseconds while `held=1`, `release` at duration 2,584,876
+microseconds, and `post_release` one second later. Core-0 flash read counts
+at these four events advanced from 689,997,568 to 695,236,096, and core-1
+counts from 716,226,560 to 721,670,400. The 180-second monitor completed
+with 91 periodic reports and no lost-event marker. Subsequent reports kept
+`boot=1`, `prior_watchdog=0`, `held=0`, `events=4`, with both read counts
+advancing to 920,114,432 and 952,882,688. The largest reported sample gap
+after this gesture was 2,389 microseconds. No further USB over-current or
+disconnect was present in the host kernel log through the completed monitor.
+
+This is one valid 0.9-second stop-threshold and post-release continuity
+observation with both cores active in XIP. It does not qualify a polling
+latency bound, the shorter release classifications, a 9-second/stuck hold,
+watchdog recovery, actual RF shutdown, reset or SoftAP service. The private
+raw stream is `build/gp14-physical-0a9d89-20260929/hold-corrected-usb.log`
+with SHA-256
+`d70f314503a1a3e3dfa6e4744dac24efd7ce4bb584b48074d04ac2ea2e9c51b2`.
