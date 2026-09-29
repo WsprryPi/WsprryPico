@@ -106,8 +106,10 @@ count-mode error. The repaired image passed bounded idle, short-hold and
 long-hold event checks; [read-only SoftAP telemetry](docs/development/phase12-gp14-runtime-review.md)
 is loaded on A and B and passed bounded idle continuity checks. On B, it also
 reports AP/service readiness during a 49.557-second hold and for 60.7 seconds
-after release. Phone access, actual RF cutoff and integrated acceptance remain
-open. The previous
+after release. The operator then confirmed B's phone setup page showed
+“Saved and connected”; post-reboot readback verified profile generation 2
+and a station address. This accepts that bounded B setup flow. Actual RF
+cutoff and broader integrated acceptance remain open. The previous
 runtime BOOTSEL sampler was unsafe and has been removed; do not use BOOTSEL to
 request the AP on the current image. A lost station connection still brings
 the AP back.
@@ -121,8 +123,9 @@ is open, it supplies phone UTC about every 30 seconds through a short Pico
 challenge. A fresh browser observation can satisfy the job clock limit under
 the assumed 250 ms phone-clock error; station SNTP replaces it when available.
 The Wi-Fi form includes a prefilled `pool.ntp.org` time-server field. The
-[new image booted on Candidate A](docs/development/phase12-wifi-first-flash.md),
-while the revised phone flow remains unaccepted. The
+[new image booted on Candidate A](docs/development/phase12-wifi-first-flash.md);
+the later bounded B phone setup result is recorded above, with broader phone
+flow acceptance still open. The
 [source review](docs/development/phase12-safari-open-setup-review.md) records
 the fixes and remaining target gates. The earlier
 [physical-owner contract](docs/development/phase12-7-decision.md) and failed

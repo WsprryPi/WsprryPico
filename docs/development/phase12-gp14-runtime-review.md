@@ -661,10 +661,66 @@ separate from phone/RF acceptance and found no actionable firmware issue in
 this bounded record. This documentation-only update passed `git diff --check`;
 the previously recorded source/build checks were not rerun.
 
+## Candidate B phone save and station connection
+
+After the long-hold test, the operator reported “Saved and connected” and
+confirmed this was the message on B's setup page, using the same phone as
+the earlier setup trials. This is the operator's direct screen observation;
+the browser/captive-window variant and version were not separately identified
+for this run. No repeat on Candidate A is required for this bounded B result.
+
+An independent read-only USB INFO check confirmed B's device ID
+`29f20b7342051ef947aa56cb9d4fab42`, unchanged firmware `fce8776f6f4e` and
+150 MHz RF-inhibited simulator. The previous completed monitor was stopped
+before this read. On `wspr5`, the exact read command was:
+
+```sh
+python3 /home/pi/phase11-4-e1/scripts/standalone_console.py info \
+  --port /dev/serial/by-id/usb-WsprryPi_WsprryPico_CDDBF8767C506C07-if00 \
+  --device-id 29f20b7342051ef947aa56cb9d4fab42 \
+  --revision fce8776f6f4e --run
+```
+
+The profile source remained `network_only` and its durable generation advanced
+from 1 to **2**, with provisioning fault 0. The new boot ID was
+`28fb667e7b0bb55dca12fcac5cc6e968`, independently confirming a reboot since
+the held-button trial. Station link status was 3, IPv4 was `192.168.1.53`,
+and mDNS was active for `wsprrypico-0a9d89.local`. Access remained healthy at
+generation 1; storage remained healthy and recovery boot was false.
+
+GP14 was released with a capture sample count of 59,784, no capture fault
+and no reset event recorded in this boot. This single read does not measure
+post-save capture continuity.
+The manual lease and AP requested/running/ready states were false in this
+post-reboot read. Stop/AP/request counters and the output-inhibit latch had
+cleared. Fault stage/hash/PC were zero; the simulator remained empty with
+output inactive. The assistant issued only INFO for this verification and
+preserved the operator's newly saved settings without restoring the earlier
+generation-1 backup.
+
+The operator-confirmed page result together with this post-reboot readback
+accepts the bounded **GP14-opened AP → phone setup/save → durable existing-profile
+update → station connection** flow on B and this image. It is not evidence
+for blank-device bootstrap, a particular captive-window auto-open behavior,
+RF cutoff, or the remaining Phase 12 matrix. The earlier hold-only record
+remains a separate observation of readiness and continuity.
+
+The private readback is retained as
+`/home/pi/gp14-telemetry-both-20260929/b-portal-save-01/info.json` on `wspr5`
+and under the matching ignored local `build/` directory. Both copies have
+SHA-256 `45a1e1648effb0c4b06c91d10f6907fe0cdf9069426116142ef2a4491bd5ebbe`.
+Local assertions verified the recorded identity, revision, generations,
+network state, health, RF inhibition and private file permissions.
+Evidence review distinguishes the operator's page observation from device
+readback and the new boot from the earlier hold-continuity interval.
+`git diff --check` passed; this record changes no firmware implementation.
+P12.7, P12.11 and Phase 12 remain open.
+
 ## Remaining gates and bounded physical procedure
 
 The opt-in image has the dry-run engine. It cannot establish actual RF stop
-latency, RF-core coordination or a working phone SoftAP. The existing
+latency or RF-core coordination. B now has the bounded phone setup result
+above; broader phone/recovery coverage remains separate. The existing
 `WsprryPico-StandaloneRF` target currently fails to compile the shared main
 (`cmake --build build/pico2-w-gp14-runtime --target WsprryPico-StandaloneRF -j 4`)
 because it lacks `btstack.h` and the consumer field-service sources linked
