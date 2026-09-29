@@ -8,7 +8,8 @@ Work in `/Users/lbussy/GitHub/WsprryPico` on `devel` from the clean
 `cfa14e22f89786f94044e9979ebe98b38fcbdbb1` handoff. Read `AGENTS.md`,
 `README.md`, `CONTRACT.md`, `docs/architecture.md`, the GP14 runtime review
 and this brief before editing. Preserve device settings, private captures,
-generated firmware, and unrelated work. The installed Candidate B image is
+generated firmware, and unrelated work. At the start of this source work,
+the installed Candidate B image was
 the RF-inhibited `c806890fc361` revision with UF2 SHA-256
 `10e7ff2a99bce561eb0cbbea7cf95bff91f8f3c52b4c4077be504108cc910252`;
 do not assume a new source build is running on that board.

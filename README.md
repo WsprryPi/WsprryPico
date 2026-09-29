@@ -104,8 +104,8 @@ runtime candidate connects these controls in source; the default image
 leaves GP14 disabled. Its first Candidate B load failed closed on a DMA
 count-mode error. The repaired image passed bounded idle, short-hold and
 long-hold event checks; [read-only SoftAP telemetry](docs/development/phase12-gp14-runtime-review.md)
-is source-built but has not run on B. AP readiness, actual RF cutoff and
-integrated acceptance remain open. The previous
+is loaded on A and B and passed bounded idle continuity checks. AP readiness,
+actual RF cutoff and integrated acceptance remain open. The previous
 runtime BOOTSEL sampler was unsafe and has been removed; do not use BOOTSEL to
 request the AP on the current image. A lost station connection still brings
 the AP back.

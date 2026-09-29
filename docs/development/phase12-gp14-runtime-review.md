@@ -463,7 +463,8 @@ Candidate B INFO response was 4,104 bytes; the eight new fields need at
 most 287 additional bytes with 32-bit decimal counts, projecting 4,391
 bytes for that observed state against the 8,192-byte console queue. This
 is an observed-state headroom check, not a bound on every future network
-status. No target INFO response from the new image has been observed.
+status. At source-review time, no target INFO response from the new image
+had been observed; the subsequent authorized pair flash is recorded below.
 
 | Clean `fce8776` artifact | SHA-256 |
 | --- | --- |
@@ -497,6 +498,109 @@ actionable source issue in this bounded slice. Target AP observation, AP
 retention through a full held lease, flash-write overlap, quick-tap reset,
 measured RF cutoff and phone admission remain open.
 
+## Authorized telemetry flash to A and B
+
+Following the explicit instruction “Flash both devices,” the reviewed opt-in
+UF2 above was loaded to both Pico 2 W / RP2350 candidates. The checkout was
+clean on `devel` at `eb214c3418a89d74eb46615b543727c5d234fee9` before this
+operation. The image was not rebuilt: local and staged copies both matched
+SHA-256 `716e165e1f74212bdf297ff6f50e467dba7f4cab55ca3e879f94dd271155d7f4`.
+Device access used `wspr5` at `192.168.1.54`, retaining the `wspr5.local`
+SSH host-key alias, and its existing picotool 2.3.0. No tools were downloaded.
+
+| Candidate | USB serial / ROM chip ID | Application device ID | Previous revision |
+| --- | --- | --- | --- |
+| A | `0BF4B4AEC9FFB344` | `fd6127d11d6aca42a9905fa3fb1bf1d5` | `5aab673a8f0f` |
+| B | `CDDBF8767C506C07` | `29f20b7342051ef947aa56cb9d4fab42` | `c806890fc361` |
+
+Before each load, INFO verified the expected identity, empty/inactive dry-run
+engine, healthy storage and access/profile generation 1. The ordinary console
+`BOOTSEL` command successfully entered ROM on each device; no physical BOOTSEL
+hold or forced USB reset was needed. A's first immediate ROM lookup preceded
+the deferred reset and found no device; a later lookup confirmed its exact
+chip ID before any successful save or load. Each full 4,194,304-byte flash
+backup passed picotool verification and was copied locally with a matching
+hash before loading the application:
+
+| Private full backup | SHA-256 |
+| --- | --- |
+| `a-before-flash.bin` | `f0aedcac1d7a6375c3bbcdde8ddca032c79d65b4ed4861648784bb185a33f38d` |
+| `b-before-flash.bin` | `b1e335e29e82adbce0a03848eedd528893dd58a1455a9e36648efaeeccddbf43` |
+
+The commands below were run separately for each candidate, substituting the
+literal serial, device ID, previous revision and lowercase `a`/`b` label from
+the table. Paths are on `wspr5`; the private directory is
+`/home/pi/gp14-telemetry-both-20260929`. Load intentionally omitted `-x` so
+reserved bytes could be checked before the first application boot.
+
+```sh
+python3 /home/pi/phase11-4-e1/scripts/standalone_console.py bootsel \
+  --port /dev/serial/by-id/usb-WsprryPi_WsprryPico_SERIAL-if00 \
+  --device-id DEVICE_ID --revision PREVIOUS_REVISION --run
+/home/pi/phase11-4-e1/picotool-build/picotool info -d --ser SERIAL
+/home/pi/phase11-4-e1/picotool-build/picotool save -a -v \
+  /home/pi/gp14-telemetry-both-20260929/LABEL-before-flash.bin \
+  -t bin --ser SERIAL
+/home/pi/phase11-4-e1/picotool-build/picotool load -v \
+  /home/pi/gp14-telemetry-both-20260929/telemetry-fce8776.uf2 --ser SERIAL
+/home/pi/phase11-4-e1/picotool-build/picotool save \
+  -r 0x103f3000 0x10400000 -v \
+  /home/pi/gp14-telemetry-both-20260929/LABEL-after-reserved.bin \
+  -t bin --ser SERIAL
+python3 /home/pi/gp14-telemetry-both-20260929/check_reserved.py LABEL
+/home/pi/phase11-4-e1/picotool-build/picotool reboot -a --ser SERIAL
+python3 /home/pi/phase11-4-e1/scripts/standalone_console.py info \
+  --port /dev/serial/by-id/usb-WsprryPi_WsprryPico_SERIAL-if00 \
+  --device-id DEVICE_ID --revision fce8776f6f4e --run
+```
+
+Both loads passed flash verification. The full reserved range was read back
+and verified before reboot. Access (`0x3f3000–0x3f5000`), BTstack
+(`0x3f5000–0x3f7000`), profile (`0x3f7000–0x3fb000`), standalone
+(`0x3fb000–0x3ff000`) and boot (`0x3ff000–0x400000`) regions were each
+byte-identical to that device's preflash backup. These are flash offsets;
+the read command uses the corresponding XIP addresses. No settings command
+or whole-flash erase was issued.
+
+After reboot, a bounded read-only monitor took eight INFO samples per device,
+five seconds apart plus command time. Both reported revision `fce8776f6f4e`,
+150 MHz, engine `inhibited-standalone-simulator`, empty/inactive output,
+healthy storage and unchanged access/profile generations. Both retained one
+boot ID throughout the observation:
+
+| Candidate | Stable postflash boot ID | Device-monotonic interval | GP14 samples, first → last |
+| --- | --- | --- | --- |
+| A | `dc20b8d8d182d9bc20cd0fd4e8de058b` | 36.701044 s | 127024 → 163728 |
+| B | `87dc065155e033fc4490670a29763b92` | 36.729049 s | 8688 → 45424 |
+
+All samples showed no held input, capture fault, stop/AP/reset event or manual
+lease. Both new request counters were zero and all six new lease/AP booleans
+were false. Capture backlog peaked at 131 words; output-inhibit and
+stop-verified latches were false. Fault stage/PC/hash were zero. This proves
+the new telemetry is present and readable at idle, with continuing capture;
+it does not prove AP startup or retention during a held jumper. No GP14
+gesture, settings-write overlap, phone admission or RF test was performed.
+The largest captured INFO records were 4,370 bytes for A and 4,368 for B,
+including the newline; both fit within the 8,192-byte console queue.
+
+Private evidence is retained on `wspr5` in the directory above and locally
+under ignored `build/gp14-telemetry-both-20260929/`, with private file modes.
+The complete evidence manifest was verified against the local copies.
+The log `postflash-monitor.log` has SHA-256
+`990c70f24fa629b74a0d8d7f726886e97f9ccbf01821f470cf167486c9f9d113`;
+the bundle `evidence.tar.gz` has SHA-256
+`6bd0e16b86514356f59bbce284556e1f9f33cca328735868ab01ec2b6e4c4ad5`.
+The bundle contains INFO records, operation logs, reserved-range readbacks,
+read-only check scripts and the manifest; full backups are retained separately
+on both hosts. Firmware and private evidence remain outside source control.
+An adversarial evidence review checked exact device/image binding, backup
+verification, reserved-range coverage, postflash revision/boot continuity,
+telemetry semantics and acceptance limits. It corrected stale documentation
+that still described telemetry as unflashed; the reassessment found no further
+actionable issue in this flash-only slice. No implementation changed, so the
+existing source checks above were not rerun; evidence assertions and
+`git diff --check` passed for this update.
+
 ## Remaining gates and bounded physical procedure
 
 The opt-in image has the dry-run engine. It cannot establish actual RF stop
@@ -522,6 +626,7 @@ flash-write overlap to verify PIO/DMA survival and exact duration; preserve
 the original settings and journal evidence. Only after the inhibited path is
 accepted should a newly reviewed, conducted RF image test active and armed
 job stop latency, watchdog recovery and AP admission after confirmed output
-shutdown. The repaired image was loaded to B, and short and long GP14 holds
-passed the bounded event-capture checks above. P12.7,
+shutdown. The earlier repaired image was loaded to B, and short and long GP14
+holds passed the bounded event-capture checks above. The telemetry continuation
+is now loaded to both A and B, with the idle checks recorded above. P12.7,
 P12.11 and Phase 12 remain open.
