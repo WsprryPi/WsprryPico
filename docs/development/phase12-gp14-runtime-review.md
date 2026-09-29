@@ -158,8 +158,8 @@ Read-only STATUS reported the `inhibited-standalone-simulator` engine,
 and STATUS responses have SHA-256 `2df25408e47454b1417012c9b79b7762c89e283c3467240dc8c1f43d06ab3b74`
 and `edf4253e500ab44fe64bfccf0201c36e4d35144dda9772dbbff6be2a4dfab735`.
 No GP14 contact, settings command, GP2 transmission or SoftAP acceptance test
-was performed after the fault. B remains on this RF-inhibited, fail-closed
-image pending an exact-image retest or authorized restoration.
+was performed after the fault. B remained on this RF-inhibited, fail-closed
+image until the separately authorized repaired-image load below.
 
 Source inspection found that the sampler passed `0xffffffff` as RP2350's DMA
 transfer count. In the pinned SDK, bits 31:28 select DMA mode and this value
@@ -173,8 +173,8 @@ already started, 2 PIO claim, 3 DMA claim, 4 clock, 5 DMA count, 6 ring
 overrun, 7 DMA stopped, 8 RX stall, 9 no progress, 10 sample stream). The
 repaired source passed 90/90 host tests, then the focused button test after
 the decoder move, formatting, the default and opt-in Pico 2 W cross-builds,
-and linked flash/stack/BOOTSEL checks. This is a source repair;
-the repaired PIO/DMA path has not yet run on the board.
+and linked flash/stack/BOOTSEL checks. These checks preceded the bounded
+Candidate B idle retest below.
 
 The repair review checked normal/endless mode decoding against the pinned
 RP2350 register definitions, SDK transfer-count encoding, decrement and
@@ -201,9 +201,66 @@ Git HEAD. Its build log has SHA-256
 | `build/gp14-runtime-b-20260929/repaired-c806890.elf` | `1a08c7034b31af0010d35aaf6848d1552dc2656b2ec25a069803afef763321d5` |
 | `build/gp14-runtime-b-20260929/repaired-c806890.uf2` | `10e7ff2a99bce561eb0cbbea7cf95bff91f8f3c52b4c4077be504108cc910252` |
 
-No load of this repaired image is authorized by the earlier exact-image
-approval. Candidate B still runs the fail-closed `f6cb413` image. A new
-authorization must identify B, this UF2 hash and the bounded retest action.
+The earlier exact-image approval did not cover this UF2. The operator later
+authorized flashing the repaired image to Candidate B and put B in ROM
+BOOTSEL mode. That authorization covered the load and read-only idle checks;
+no GP14 contact was made.
+
+## Repaired Candidate B load and idle retest
+
+On 2026-09-29, the ROM again identified Candidate B as chip
+`CDDBF8767C506C07`, RP2350 QFN60 ARM with 4,096 KiB flash. The other Pico
+remained enumerated. Before the repaired load, `picotool save -a -v` saved
+and verified a new 4,194,304-byte backup. Its private copies on `wspr5`
+and in the ignored local evidence directory have SHA-256
+`21f66e8e4763bdfbe75b5d519fc34ea87b4bb63203979fceb3494798146a81ef`.
+Comparison with the backup before the first runtime load showed the access
+(`0x3f3000`–`0x3f5000`), BTstack (`0x3f5000`–`0x3f7000`), profile
+(`0x3f7000`–`0x3fb000`), standalone (`0x3fb000`–`0x3ff000`) and boot
+(`0x3ff000`–`0x400000`) regions byte-identical. The application region
+changed as expected. The verified backup command on `wspr5` was:
+
+```sh
+/home/pi/phase11-4-e1/picotool-build/picotool save -a -v \
+  /home/pi/gp14-runtime-b-20260929/before-repaired-flash.bin \
+  -t bin --ser CDDBF8767C506C07
+```
+
+The staged UF2 matched SHA-256
+`10e7ff2a99bce561eb0cbbea7cf95bff91f8f3c52b4c4077be504108cc910252`
+on both hosts. The exact load command was:
+
+```sh
+/home/pi/phase11-4-e1/picotool-build/picotool load -v -x \
+  /home/pi/gp14-runtime-b-20260929/repaired-c806890.uf2 \
+  --ser CDDBF8767C506C07
+```
+
+Picotool returned success, verified the load with `OK`, and rebooted the
+application. The private save and load logs have SHA-256
+`184c815e99dc65f9b0f7c83de625d508b57d3d6eec1e22bd6cb948f65872c2b6`
+and `1cb3345250cf60d37170a434be62f81fc8b2bfa9a5bb285a5d120d87ca9845c9`,
+respectively. Read-only console INFO matched application device ID
+`29f20b7342051ef947aa56cb9d4fab42` and embedded revision
+`c806890fc361`. It reported recovery boot false, healthy access and profile
+generation 1, capture fault false, fault code 0, held false, no stop/AP/reset
+events, and no output inhibit. The sample count advanced from 15,912 to
+20,968 over approximately five seconds, then to 108,256 after more than a
+minute. The maximum reported backlog was 131 words. At each check, STATUS
+reported `inhibited-standalone-simulator`, `state=empty`,
+`output_active=false` and healthy storage. The three private INFO response
+hashes are `c080dda88b72334841b9b3ca1111ed9e81011234e2234d1d001ee62026777f61`,
+`ef15cf457f140ff2a4d0d818ef3e577e2c51e7ce60a5e60f0d50ccb97d329832`,
+and `13efebb0a4cad8892eaecab200eab7acf62524dd7bfa33d5229133595d6f374d`.
+The matching STATUS response hashes are
+`3d0ab8ccb5aaad4ea962993bda9310576870ab807b9b6d19b7c95c6e15896a36`,
+`9915773db83663b75f1427a665461d94650f40cbd24e0f05d36b9b0b2ae109d3`,
+and `32586b655c3e67326c53a77cd3a1738af52e37dc7e850711b0fc489b38bf2f89`.
+
+This retest establishes idle PIO/DMA sampler progress and no immediate
+capture fault on B. It did not exercise a GP14 press, an arbitrary arrival
+during flash access, a flash write, a stuck hold, watchdog recovery, RF
+shutdown or SoftAP admission. Those remain separate physical gates.
 
 ## Remaining gates and bounded physical procedure
 
@@ -230,5 +287,6 @@ flash-write overlap to verify PIO/DMA survival and exact duration; preserve
 the original settings and journal evidence. Only after the inhibited path is
 accepted should a newly reviewed, conducted RF image test active and armed
 job stop latency, watchdog recovery and AP admission after confirmed output
-shutdown. No physical action was performed for this source task. P12.7,
+shutdown. The repaired image was loaded to B with idle read-only checks;
+no GP14 contact was performed. P12.7,
 P12.11 and Phase 12 remain open.
