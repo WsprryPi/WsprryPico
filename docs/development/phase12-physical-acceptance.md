@@ -609,9 +609,23 @@ identity-checked direct USB request for the source-defined `ACCESS SOFTAP`
 command returned `profile_runtime_unavailable` for this consumer runtime.
 The established GP14 opening path was therefore used in the phone instruction;
 the USB administration guard was not changed as part of a form-prefill fix.
-A finite six-minute read-only observer was started. Phone-observed prefill is
-pending at this deployment checkpoint and is not inferred from USB station
-readback or host DOM tests. The accepted generation-4 Save is unchanged.
+A finite six-minute read-only observer was started and ended before the later
+phone confirmation. Its last captured state had unchanged generation 4 and
+inactive output; it did not capture the successful phone visit or AP opening.
+
+- [x] **PASSED / CLOSED SCOPED — saved station form prefill.** The operator
+  confirmed "That works, cross it off" after checking the deployed page on the
+  same iPhone 17 Pro in DuckDuckGo. This accepts opening the owner page with
+  AA0NT / EM18 / 20 dBm filled from the saved settings. This confirms fresh-page
+  prefill; a separate induced privacy refresh was not reported. The refresh
+  behavior has the browser-test coverage above. This is operator-attested phone
+  evidence, separate from the deployment/USB and host checks above. No
+  screenshot or exact browser/iOS version was supplied for this confirmation;
+  the finite observer does not establish the device state during that visit.
+
+No additional Save was requested for this check. The accepted generation-4
+Save remains the prior save evidence; this prefill pass does not close its
+historical lost-tab terminal-result limitation or the wider P12.8/P12.10 gates.
 
 ### Following packets and closure gates
 
