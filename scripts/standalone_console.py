@@ -14,6 +14,8 @@ ACTIONS = {"info": "INFO", "status": "STATUS", "storage": "STORAGE", "stop": "ST
 
 
 def command_for(action, device_id):
+    if action == "gp14-flash":
+        return "GP14 FLASH " + device_id
     if action == "softap":
         return "ACCESS SOFTAP " + device_id
     if action == "confirm-profile":
@@ -21,6 +23,15 @@ def command_for(action, device_id):
     if action == "identify":
         return "IDENTIFY " + device_id
     return ACTIONS[action]
+
+
+def flash_probe_ready(identity):
+    return (identity.get('gp14_flash_probe') is True and
+            identity.get('gp14_flash_probe_failed') is False and
+            identity.get('gp14_capture_fault') is False and
+            identity.get('recovery_boot') is False and
+            identity.get('status', {}).get('engine') == 'inhibited-standalone-simulator' and
+            identity.get('status', {}).get('output_active') is False)
 
 
 def configuration(path, enable_schedule, now):
@@ -44,7 +55,7 @@ def configuration(path, enable_schedule, now):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=[*ACTIONS, "softap", "confirm-profile", "identify", "config"])
+    parser.add_argument("action", choices=[*ACTIONS, "softap", "confirm-profile", "identify", "config", "gp14-flash"])
     parser.add_argument("--port", required=True)
     parser.add_argument("--device-id", required=True)
     parser.add_argument("--revision")
@@ -54,6 +65,8 @@ def main():
     args = parser.parse_args()
     if not args.run:
         parser.error("--run is required for device I/O")
+    if args.action == "gp14-flash" and not args.revision:
+        parser.error("gp14-flash requires --revision for the exact test image")
     if args.action == "config":
         if not args.config or not args.revision:
             parser.error("configuration requires --config and --revision")
@@ -69,6 +82,8 @@ def main():
         if (not identity.get("ok") or identity.get("device_id") != args.device_id or
                 (args.revision and identity.get("revision") != args.revision)):
             raise RuntimeError("Firmware/device identity mismatch")
+        if args.action == "gp14-flash" and not flash_probe_ready(identity):
+            raise RuntimeError("Healthy RF-inhibited GP14 flash-test variant required")
         if args.action == "info":
             result = identity
         else:

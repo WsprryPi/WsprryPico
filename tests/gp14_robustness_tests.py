@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 import gp14_robustness_campaign as campaign
 from check_standalone_image import validate_uf2
 from check_gp14_robustness_image import validate as validate_image
+from check_gp14_flash_probe_image import validate as validate_flash_probe
 
 
 class CampaignTests(unittest.TestCase):
@@ -131,6 +132,33 @@ class CampaignTests(unittest.TestCase):
         for address in (0x103F2000, 0x103F3000, 0x103F5000, 0x103FF000):
             with self.subTest(address=address), self.assertRaises(ValueError):
                 validate_uf2(block(address), 0x103F2000)
+
+    def test_runtime_flash_probe_rejects_unsafe_image(self):
+        symbols = ('20000100 00000080 T gp14_probe_flash_write\n'
+                   '20000200 00000040 T flash_range_erase\n'
+                   '20000300 00000040 T flash_range_program\n')
+        code = ('20000100 <gp14_probe_flash_write>:\n'
+                '  bl 20000200 <flash_range_erase>\n'
+                '  bl 20000300 <flash_range_program>\n'
+                '  .word\t0x003f2000\n')
+        memory = 'FLASH 0x10000000 0x003f2000 xr'
+        uf2 = bytearray(512)
+        struct.pack_into('<5I',uf2,0,0x0A324655,0x9E5D5157,0,0x10000000,256)
+        struct.pack_into('<I',uf2,508,0x0AB16F30)
+        validate_flash_probe(symbols,code,memory,bytes(uf2))
+        # The normal runtime also has XIP-to-RAM veneers. Only the actual SDK
+        # routine may satisfy the RAM callback dependency check.
+        validate_flash_probe(symbols+'10001000 00000008 T __flash_range_erase_veneer\n',
+                             code,memory,bytes(uf2))
+        for bad in (code.replace('bl 20000200','bl 10000200'),
+                    code.replace('0x003f2000','0x003f3000'),
+                    code+'  blx r3\n',code+'  .word\t0x10009000\n'):
+            with self.assertRaises(ValueError):
+                validate_flash_probe(symbols,bad,memory,bytes(uf2))
+        with self.assertRaises(ValueError):
+            validate_flash_probe(symbols,code,memory.replace('3f2000','3f3000'),bytes(uf2))
+        with self.assertRaises(ValueError):
+            validate_flash_probe(symbols+'20005000 00000010 T sample_override\n',code,memory,bytes(uf2))
 
 
 if __name__ == '__main__':

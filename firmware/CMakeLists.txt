@@ -63,6 +63,19 @@ option(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
     "Link the RF-inhibited USB BOOTSEL safe-zone window diagnostic" OFF)
 option(WSPRRY_PICO_GP14_RUNTIME_BUTTON
     "Opt in to the unaccepted GP14 runtime button and PIO capture" OFF)
+option(WSPRRY_PICO_GP14_FLASH_PROBE
+    "Temporary RF-inhibited runtime variant with a guarded scratch flash probe" OFF)
+if(WSPRRY_PICO_GP14_FLASH_PROBE AND NOT WSPRRY_PICO_GP14_RUNTIME_BUTTON)
+    message(FATAL_ERROR "GP14 flash probe requires the opt-in runtime button")
+endif()
+if(WSPRRY_PICO_GP14_FLASH_PROBE)
+    target_sources(WsprryPico PRIVATE ../src/provisioning/pico/gp14_flash_probe.cpp)
+    target_compile_definitions(WsprryPico PRIVATE WSPRRY_PICO_GP14_FLASH_PROBE=1)
+    set_source_files_properties(../src/provisioning/pico/gp14_flash_probe.cpp PROPERTIES
+        COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;-Werror;-fstack-usage")
+    set_property(TARGET WsprryPico APPEND PROPERTY LINK_DEPENDS
+                 ${CMAKE_SOURCE_DIR}/scripts/check_gp14_flash_probe_image.py)
+endif()
 if(WSPRRY_PICO_GP14_RUNTIME_BUTTON AND WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC)
     message(FATAL_ERROR "GP14 runtime input and the BOOTSEL window diagnostic are separate image modes")
 endif()
@@ -307,8 +320,13 @@ function(wsprry_configure_flash_layout image)
     target_compile_definitions(${image} PRIVATE
         PICO_FLASH_BANK_STORAGE_OFFSET=${WSPRRY_PICO_BTSTACK_FLASH_OFFSET}
         PICO_FLASH_BANK_TOTAL_SIZE=${WSPRRY_PICO_BTSTACK_FLASH_SIZE})
-    pico_add_linker_script_override_path(${image}
-        ${CMAKE_SOURCE_DIR}/cmake/standalone_link FILES memory_flash.incl)
+    if(image STREQUAL "WsprryPico" AND WSPRRY_PICO_GP14_FLASH_PROBE)
+        pico_add_linker_script_override_path(${image}
+            ${CMAKE_SOURCE_DIR}/cmake/gp14_robustness_link FILES memory_flash.incl)
+    else()
+        pico_add_linker_script_override_path(${image}
+            ${CMAKE_SOURCE_DIR}/cmake/standalone_link FILES memory_flash.incl)
+    endif()
 endfunction()
 foreach(image WsprryPico WsprryPico-RFBench WsprryPico-RFWTP WsprryPico-StandaloneRF
               rf_driver_linkcheck)
@@ -451,6 +469,13 @@ foreach(operation cyw43_cb_tcpip_deinit dhcp_stop netif_remove igmp_stop
 endforeach()
 set_source_files_properties(../src/standalone/pico/shutdown_trace.cpp PROPERTIES
     COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-fstack-usage")
+
+if(WSPRRY_PICO_GP14_FLASH_PROBE)
+    # Run after pico_add_extra_outputs has generated the UF2 to inspect.
+    add_custom_command(TARGET WsprryPico POST_BUILD
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_gp14_flash_probe_image.py
+                $<TARGET_FILE:WsprryPico> VERBATIM)
+endif()
 
 # Standalone unattended capture campaign. No network/RF/settings adapter is linked.
 option(WSPRRY_PICO_GP14_ROBUSTNESS "Build the opt-in GP14 robustness test image" OFF)

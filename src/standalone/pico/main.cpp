@@ -26,6 +26,9 @@
 #include "provisioning/button_runtime.hpp"
 #include "provisioning/pico/gp14_capture.hpp"
 #endif
+#ifdef WSPRRY_PICO_GP14_FLASH_PROBE
+#include "provisioning/pico/gp14_flash_probe.hpp"
+#endif
 #include "provisioning/pico/gatt_transport.hpp"
 #include "provisioning/runtime.hpp"
 #include "runtime/pico/heap_metrics.h"
@@ -550,6 +553,10 @@ int main() {
             peak = elapsed;
     };
 #endif
+#ifdef WSPRRY_PICO_GP14_FLASH_PROBE
+    unsigned gp14_flash_probe_runs = 0;
+    bool gp14_flash_probe_failed = false;
+#endif
     auto command = [&](std::string_view text) -> std::string {
         if (text == "INFO") {
             // One allocator snapshot before response formatting. These are arena
@@ -692,6 +699,12 @@ int main() {
             number_field(result, "gp14_samples", gp14_button.samples());
             number_field(result, "gp14_dma_blocks", gp14_button.completed_blocks());
             number_field(result, "gp14_max_backlog_words", gp14_button.maximum_backlog_words());
+#ifdef WSPRRY_PICO_GP14_FLASH_PROBE
+            result += ",\"gp14_flash_probe\":true";
+            number_field(result, "gp14_flash_probe_runs", gp14_flash_probe_runs);
+            result += ",\"gp14_flash_probe_failed\":";
+            result += gp14_flash_probe_failed ? "true" : "false";
+#endif
 #endif
             result += ",\"network\":";
             result += network_status;
@@ -813,6 +826,29 @@ int main() {
             result += "}\n";
             return result;
         }
+#ifdef WSPRRY_PICO_GP14_FLASH_PROBE
+        if (text.starts_with("GP14 FLASH ")) {
+            if (text.substr(11) != identities.device_id() || !scheduler.idle() || recovery ||
+                engine.output_active() || reboot_at || gp14_button.fault() ||
+                gp14_flash_probe_failed || gp14_flash_probe_runs >= 16)
+                return "{\"ok\":false,\"error\":\"flash_probe_refused\"}\n";
+            ++gp14_flash_probe_runs;
+            const auto probe = wsprrypico::provisioning::run_gp14_flash_probe();
+            gp14_flash_probe_failed = !probe.ok;
+            std::string result = probe.ok ? "{\"ok\":true" : "{\"ok\":false";
+            number_field(result, "run", gp14_flash_probe_runs);
+            number_field(result, "pattern_ok", probe.pattern_ok);
+            number_field(result, "restore_ok", probe.restore_ok);
+            number_field(result, "begin_us", probe.begin_us);
+            number_field(result, "write_end_us", probe.write_end_us);
+            number_field(result, "end_us", probe.end_us);
+            number_field(result, "low_before", probe.low_before);
+            number_field(result, "low_after_write", probe.low_after_write);
+            number_field(result, "low_after", probe.low_after);
+            result += "}\n";
+            return result;
+        }
+#endif
         if ((consumer_source_selected() || bootstrap.owner_claim_pending() ||
              !runtime_profile_loaded) &&
             text != "ABORT" && text != "REBOOT" && text != "BOOTSEL")
