@@ -13,6 +13,28 @@ ACTIONS = ('SHORT', 'MIDDLE', 'LONG', 'STUCK', 'FLASH', 'DMA_STOP', 'PIO_STOP',
 RESET_ACTIONS = ('RESET', 'WATCHDOG', 'FAULT', 'BOOT_HELD')
 FAULT_CODES = {'DMA_STOP': 7, 'PIO_STOP': 9, 'OVERRUN': 6}
 BUDGET = {'STUCK': 640, 'RELOAD': 90, 'OVERRUN': 30, 'BOOT_HELD': 35}
+INTEGER_FIELDS = ('synthetic', 'rf_output', 'active', 'sequence', 'prior_action',
+                  'prior_sequence', 'prior_watchdog', 'boot_id', 'prior_fault',
+                  'uptime_us', 'clock_hz', 'started', 'capture_fault', 'fault_code',
+                  'held', 'samples', 'blocks', 'backlog', 'stops', 'aps',
+                  'would_reset', 'releases', 'duration_us', 'low_at_us',
+                  'high_at_us', 'reads0', 'reads1', 'flash_ok', 'settings_before',
+                  'settings_now')
+
+
+def decode_record(raw, serial, revision):
+    """Reject incomplete telemetry even when lost bytes leave valid JSON."""
+    row = json.loads(raw)
+    if not isinstance(row, dict):
+        raise ValueError('Diagnostic status is not an object')
+    for key in ('image', 'serial', 'revision', 'result', 'action'):
+        if not isinstance(row.get(key), str):
+            raise ValueError(f'Missing or invalid diagnostic field: {key}')
+    for key in INTEGER_FIELDS:
+        if type(row.get(key)) is not int or row[key] < 0:
+            raise ValueError(f'Missing or invalid diagnostic field: {key}')
+    identity(row, serial, revision)
+    return row
 
 
 def identity(row, serial, revision):
@@ -110,8 +132,7 @@ class Connection:
                 continue
             self.log.write(json.dumps({'host_time': time.time(), 'raw': raw.decode('utf-8', 'replace')}) + '\n')
             self.log.flush()
-            row = json.loads(raw)
-            identity(row, self.args.serial, self.args.revision)
+            row = decode_record(raw, self.args.serial, self.args.revision)
             # Completion notifications may precede a requested STATUS reply.
             if row['result'] == 'done':
                 continue

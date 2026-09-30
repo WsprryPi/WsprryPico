@@ -7,6 +7,36 @@ P12.7, P12.11 and Phase 12 remain open. The standard image still defaults
 GP14 off; the RF image has no GP14 integration. BOOTSEL remains disconnected
 from runtime button policy.
 
+## Target-discovered telemetry repair
+
+The authorized 2026-09-30 B campaign on clean `ae6fd97d71a6` passed SHORT,
+MIDDLE, LONG, STUCK, FLASH, DMA_STOP, PIO_STOP, OVERRUN, RESET, WATCHDOG and
+FAULT, then stopped during BOOT_HELD. A USB status record lost a middle
+chunk; its remaining bytes were valid JSON, but omitted `reads0` and other
+required fields. The runner stopped with `KeyError` and did not produce a
+success record. The private `campaign-01` failure and raw bytes are retained.
+
+The diagnostic had a 1 ms USB stdout timeout. The pinned SDK discards the
+remaining output chunk when that timeout expires; the observed missing bytes
+are consistent with this path. Its diagnostic-only timeout is now 100 ms,
+allowing ordinary host scheduling gaps while retaining a finite no-progress
+wait. Capture still runs in PIO/DMA; the watchdog still limits a wedged main
+loop. The runner validates every required telemetry field and integer type
+before using it, so valid-but-incomplete JSON fails with an explicit message.
+Malformed records are never silently skipped or retried as passing evidence.
+Host negative checks exercise deletion of every field and invalid value types.
+The firmware and runner repairs require a new clean diagnostic build and a
+fresh full target campaign; the first attempt is not full acceptance.
+
+Repair review checked the SDK's 128-byte printf chunks and timeout discard
+path, continued autonomous PIO/DMA capture, watchdog behavior, explicit
+schema failure and preservation of the failed run. The timeout change is
+confined to the diagnostic target; production USB behavior is unchanged.
+All 91 host tests, the eight focused runner/link tests, Python compilation,
+whitespace checks and the pinned diagnostic cross-build/SRAM/stack/reserved
+flash/RF-exclusion gates passed. Reassessment found no further actionable
+repair issue before the new clean-image attempt. No C/C++ source changed.
+
 ## Renewal and capture design
 
 The [RP2350 datasheet](https://datasheets.raspberrypi.com/rp2350/rp2350-datasheet.pdf),

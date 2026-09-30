@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Hardware-free negative cases for diagnostic evidence and image boundaries."""
 from pathlib import Path
+import json
 import struct
 import subprocess
 import sys
@@ -29,6 +30,24 @@ class CampaignTests(unittest.TestCase):
             bad = self.row | {key: value}
             with self.subTest(key=key), self.assertRaises(ValueError):
                 campaign.identity(bad, self.row['serial'], self.row['revision'])
+
+    def test_incomplete_telemetry_fails_closed(self):
+        row = dict.fromkeys(campaign.INTEGER_FIELDS, 0) | self.row | {'result': 'status'}
+        decode = lambda v: campaign.decode_record(json.dumps(v), row['serial'], row['revision'])
+        self.assertEqual(decode(row), row)
+        # Observed target failure: a dropped middle chunk left valid JSON with
+        # merged sample digits and missing core/policy fields. Never retry or
+        # silently accept a later status as proof of the missing interval.
+        for key in row:
+            bad = row.copy()
+            del bad[key]
+            with self.subTest(missing=key), self.assertRaises(ValueError):
+                decode(bad)
+        for value in (-1, True, '123', None, 1.5):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                decode(row | {'samples': value})
+        with self.assertRaises(ValueError):
+            decode([])
 
     def test_bad_results_cannot_pass(self):
         after = self.row | dict(action='SHORT', sequence=1, releases=1, would_reset=1, duration_us=200_000)

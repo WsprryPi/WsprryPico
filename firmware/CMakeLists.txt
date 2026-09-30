@@ -468,10 +468,13 @@ if(WSPRRY_PICO_GP14_ROBUSTNESS)
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gp14_robustness.cpp
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gp14_capture.cpp
         PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;-Werror;-fstack-usage")
+    # A 1 ms host scheduling gap can discard a chunk of a JSON status record.
+    # Allow ordinary USB scheduling latency. A host making no read progress
+    # times out each chunk; the watchdog still bounds a wedged foreground loop.
     target_compile_definitions(WsprryPico-GP14Robustness PRIVATE
         WSPRRY_PICO_GP14_ROBUSTNESS=1 PICO_NO_BI_PROGRAM_BUILD_DATE=1
         PICO_STACK_SIZE=0x4000 PICO_CORE1_STACK_SIZE=0
-        PICO_STDIO_USB_STDOUT_TIMEOUT_US=1000 PICO_STDIO_DEADLOCK_TIMEOUT_MS=2
+        PICO_STDIO_USB_STDOUT_TIMEOUT_US=100000 PICO_STDIO_DEADLOCK_TIMEOUT_MS=2
         PICO_ENABLE_USB_RESET_VIA_BAUD_RATE=0 PICO_ENABLE_USB_RESET_VIA_VENDOR_INTERFACE=0
         PICO_RUNTIME_SKIP_INIT_PER_CORE_INSTALL_STACK_GUARD=0
         PICO_RUNTIME_NO_INIT_PER_CORE_INSTALL_STACK_GUARD=1)
