@@ -284,6 +284,23 @@ would require a separately authorized additional save. Different-phone
 updates, no-SNTP station policy, station-loss fallback and broader robustness
 remain open. This packet does not close P12.7, P12.11 or Phase 12.
 
+### Clean retained station repair candidates
+
+Both inhibited targets were rebuilt from clean source
+`dd49d049daf24717aa3346edf1691ac3dfc9d2b3`, then passed reserved-flash/UF2,
+linked shutdown, BOOTSEL topology and stack-guard checks. The clean revision
+is present in each ELF. Neither repair image has been deployed.
+
+| Candidate | UF2 bytes | SHA-256 |
+| --- | --- | --- |
+| Opt-in GP14 runtime | 3,360,768 | `b604f4a365c7c117b145ca224f0131b0b0463fab036b9400d383cb2bb343ddcf` |
+| Default, GP14 off | 3,350,016 | `6b0a269e587f67b998eefad8353a4c75c0863e075e6e27d6e0db02a5dbada296` |
+
+The ignored `build/phase12-portal-repair-dd49d04/` directory retains both
+UF2/ELF/BIN/map sets and their size/hash/options manifest. A future manual-GP14
+phone packet must use the opt-in image and remain separate from production
+RF integration and default GP14 enablement.
+
 ### Following packets and closure gates
 
 | Packet | Required outcome | Evidence still needed |
