@@ -107,10 +107,50 @@ def cleanup_owned(peer, boot, job_id, owner):
             status['output_active'] is False, 'cleanup unconfirmed')
 
 
-def acquire(packet, case, campaign):
+def review_no_input_retry(path):
+    """Resolve an operator timing miss without promoting it to RF acceptance."""
+    attempt = json.loads(path.read_text())
+    require(attempt['case'] == 'active_stop' and attempt['charged_jobs'] == 1 and
+            attempt['status'] == 'FAILED_STOP_CAMPAIGN' and
+            attempt.get('error') == 'RuntimeError: physical action timeout' and
+            attempt.get('cleanup_verified') is True, 'not a resolved no-input timeout')
+    events_path = path.with_name('events.jsonl')
+    events = [json.loads(line) for line in events_path.read_text().splitlines()]
+    observations = [event['value'] for event in events
+                    if event['kind'] in ('before_action_info', 'action_info')]
+    require(observations and any(info['status']['output_active'] for info in observations),
+            'no positive launch observation')
+    for info in observations:
+        require(info['status']['boot_id'] == attempt['boot_id'] and
+                info['gp14_held'] is False and info['gp14_capture_fault'] is False and
+                info['gp14_stop_events'] == 0 and info['gp14_reset_events'] == 0 and
+                info['rf_safety_inhibited'] is False and
+                type(info['rf_safety_input_fault']) is int and info['rf_safety_input_fault'] == 0 and
+                int(info['rf_safety_requested_ns']) == 0, 'input or safety fault was observed')
+    responses = [event['value'] for event in events if event['kind'] == 'received' and
+                 event['value'].get('type') == 'response' and
+                 event['value'].get('op') == 'STATUS' and event['value'].get('ok') is True]
+    require(responses, 'cleanup status missing')
+    final = responses[-1]['body']
+    require(final['boot_id'] == attempt['boot_id'] and final['state'] == 'empty' and
+            final['owner_id'] is None and final['job_id'] is None and
+            final['output_active'] is False and
+            any(record['job_id'] == attempt['job_id'] and record['state'] == 'complete' and
+                record['output_active'] is False for record in final['terminal_records']),
+            'finite completion and inactive cleanup unconfirmed')
+    return dict(run=path.parent.name, attempt_sha256=digest(path),
+                events_sha256=digest(events_path), independent_rf_pass=False,
+                reason='Explicit operator retry after reviewed no-input finite completion')
+
+
+def acquire(packet, case, campaign, retry_no_input_run=None):
     previous = sorted(campaign.glob('run-*/attempt.json'))
     require(len(previous) < 8, 'initial eight-attempt budget exhausted')
+    retry_review = None
     for path in previous:
+        if path.parent.name == retry_no_input_run:
+            retry_review = review_no_input_retry(path)
+            continue
         assessment = path.with_name('analysis.json')
         require(assessment.exists(), 'preceding independent RF assessment pending')
         result = json.loads(assessment.read_text())
@@ -118,10 +158,13 @@ def acquire(packet, case, campaign):
                  json.loads(path.read_text())['charged_jobs'] == 0)
         require((result.get('independent_rf_pass') is True or no_rf) and
                 result.get('attempt_sha256') == digest(path), 'preceding RF assessment failed/unbound')
+    require(retry_no_input_run is None or retry_review is not None, 'retry run not found')
     root = campaign / ('run-' + uuid.uuid4().hex)
     evidence = Evidence(root)
     attempt = dict(case=case, packet_sha256=digest(campaign/'packet.json'), status='STARTING',
                    charged_jobs=0, duration_ns='20000000000', independent_rf_pass=False)
+    if retry_review:
+        attempt['reviewed_no_input_retry'] = retry_review
     def save():
         (root/'attempt.json').write_text(json.dumps(attempt, indent=2) + '\n')
     save()
@@ -292,12 +335,14 @@ def main():
     parser.add_argument('campaign', type=Path)
     parser.add_argument('--case', choices=CASES, required=True)
     parser.add_argument('--run', action='store_true')
+    parser.add_argument('--retry-no-input-run',
+                        help='Explicit operator-authorized retry of a reviewed finite no-input timeout')
     args = parser.parse_args()
     os.umask(0o077)
     packet = json.loads((args.campaign/'packet.json').read_text())
     validate_packet(packet)
     require(args.run, 'explicit --run required for physical USB/receiver/RF actions')
-    acquire(packet, args.case, args.campaign)
+    acquire(packet, args.case, args.campaign, args.retry_no_input_run)
 
 
 if __name__ == '__main__':

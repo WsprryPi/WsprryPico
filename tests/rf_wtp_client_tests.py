@@ -115,3 +115,42 @@ except RuntimeError: pass
 else: raise AssertionError('foreign owner touched')
 assert peer.calls == ['STATUS']
 print('GP14 finite job and schema-valid claim-only/active/terminal cleanup passed')
+
+# A reviewed operator timing miss may be retried explicitly, but an observed
+# gesture, input fault, foreign completion or absent cleanup still blocks RF.
+from phase12_gp14_rf import review_no_input_retry
+from tempfile import TemporaryDirectory
+import copy
+with TemporaryDirectory() as directory:
+    root = Path(directory)/'run-no-input'; root.mkdir()
+    attempt = dict(case='active_stop', charged_jobs=1, status='FAILED_STOP_CAMPAIGN',
+                   error='RuntimeError: physical action timeout', cleanup_verified=True,
+                   boot_id='boot', job_id='1'*32)
+    (root/'attempt.json').write_text(json.dumps(attempt))
+    observation = dict(status=dict(boot_id='boot', output_active=True), gp14_held=False,
+                       gp14_capture_fault=False, gp14_stop_events=0, gp14_reset_events=0,
+                       rf_safety_inhibited=False, rf_safety_input_fault=0,
+                       rf_safety_requested_ns='0')
+    final = dict(boot_id='boot', state='empty', owner_id=None, job_id=None,
+                 output_active=False, terminal_records=[dict(job_id='1'*32, state='complete',
+                                                            output_active=False)])
+    events = [dict(kind='action_info', value=observation),
+              dict(kind='received', value=dict(type='response', op='STATUS', ok=True, body=final))]
+    def check_retry(values, accepted):
+        (root/'events.jsonl').write_text('\n'.join(json.dumps(value) for value in values))
+        try: result = review_no_input_retry(root/'attempt.json')
+        except RuntimeError:
+            assert not accepted
+        else:
+            assert accepted and result['independent_rf_pass'] is False
+    check_retry(events, True)
+    for key, value in [('gp14_held', True), ('gp14_stop_events', 1),
+                       ('rf_safety_inhibited', True), ('rf_safety_input_fault', 1),
+                       ('rf_safety_requested_ns', '1')]:
+        rejected = copy.deepcopy(events); rejected[0]['value'][key] = value
+        check_retry(rejected, False)
+    rejected = copy.deepcopy(events)
+    rejected[1]['value']['body']['terminal_records'][0]['job_id'] = 'f'*32
+    check_retry(rejected, False)
+    check_retry(events[:1], False)
+print('Explicit no-input retry preserves failed qualification and rejects safety/cleanup ambiguity')

@@ -69,6 +69,13 @@ Record each attempt, including failed starts. Keep the core-0 busy interval
 below the existing 8-second watchdog. A watchdog recovery row may require a
 separate reviewed stimulus; do not improvise a destructive fault.
 
+An operator-requested retry of a finite active-stop timeout with no recorded
+input may proceed only after reviewing positive launch, exact finite job/boot
+completion and inactive cleanup. The explicit retry flag binds those retained
+events and keeps the failed attempt counted and unaccepted. It cannot resolve
+an observed gesture, safety fault or ambiguous cleanup. An unexpected reset
+still stops the campaign for review and restoration.
+
 Finish with inactive, empty/unowned, healthy storage and exact settings
 comparison, then restore the retained inhibited image. Enable GP14 by default
 only after source review and the required target rows pass; the standard image

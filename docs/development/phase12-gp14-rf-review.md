@@ -131,7 +131,53 @@ foreign-owner refusal checks plus the existing real stream-planner rounding
 tests pass (**2/2 affected groups**). The firmware image remains unchanged;
 only the acquisition helper is revised for the retest.
 
+## Physical continuation and restoration
+
+The second attempt launched one finite 20-second tone, but no GP14 gesture
+was recorded before finite completion. Cleanup verified empty/unowned/inactive
+output. The operator subsequently requested another attempt. An inhibited
+contact check then recorded a 2,526,000 us hold and one verified stop request.
+That establishes the contact in the inhibited check; it does not qualify RF
+cutoff. B was restored to `615888e5364b` with all 57,344 reserved bytes identical
+before the check.
+
+The explicitly requested retry preserves the initial campaign's attempt count.
+The helper permits this reviewed no-input timeout only with a positive launch,
+no recorded input/safety fault, exact job/boot completion and verified inactive
+cleanup. It binds both attempt and event hashes, retains
+`independent_rf_pass: false`, and cannot waive an observed gesture, fault or
+ambiguous cleanup. Boundary/refusal tests and the affected stream/client groups
+pass (**2/2**). This is an operational retry
+authorization, not a passing RF assessment.
+
+The third attempt used the unchanged clean RF image and a new boot
+`b9ee1bb6343c67f66f1080cb74ae0b2b`. The operator supplied the hold/release cue;
+USB closed unexpectedly during acquisition. Fresh readback identified a normal
+GP14 reset, a **27 ms** recorded release and a worker decision 12,637,844 us
+after RF launch. The new boot was empty/inactive, with no recovery or stack/
+capture fault and consumer generation 5 preserved. The selected quick-release
+reset path is therefore observed, but the requested active-stop row is
+unaccepted. A partial 52,448,256-byte receiver file remains; receiver completion,
+integrity metadata and independent cutoff analysis are absent. It does not
+close the quick-reset RF row. The cause of the short recorded contact is not
+established by this evidence.
+
+B was restored again to inhibited `615888e5364b`, boot
+`4c8a0398698188bf5f593c2a565dccf1`, with all 57,344 reserved bytes identical,
+consumer generation 5, access generation 1 and exact saved station/profile
+preserved. It reports healthy storage and inactive output. A remains on
+inhibited `615888e5364b`; wspr4 was not contacted. **Three attempts and two
+finite RF jobs are charged; no physical cutoff row has passed.** GP14 default
+enablement remains off. Further RF acquisition requires review of the failed
+row and a verified physical hold; no automatic retry is authorized by the
+runner.
+
 Private image/backup/capture/readback evidence is under
-`build/phase12-gp14-rf-b-20260930/` and its matching wspr5 directory. B remains
-on the explicit RF acceptance image, inactive, awaiting the operator's next
-cue. A remains on inhibited `615888e5364b`; wspr4 was not contacted.
+`build/phase12-gp14-rf-b-20260930/` and its matching wspr5 directory.
+
+Reassessment of the retry guard rejects observed input, a latched stop, input
+faults, missing final status and a foreign terminal job. The unexpected reset
+remains a failed acquisition and its partial IQ is excluded from acceptance.
+Fresh identity-bound LAN readback after restoration confirms empty/unowned/
+inactive authority. No further actionable source finding was identified;
+physical hold, cutoff measurement and default enablement remain open.
