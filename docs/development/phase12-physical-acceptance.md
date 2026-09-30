@@ -334,8 +334,9 @@ available for copying or hashing; no file hash is claimed.
 
 Source review found that the one-connection AP server aborts additional
 connections while a response is active. The station HTML requested two script
-files in parallel; a refused script can prevent startup entirely. This is a
-reproducible transport failure mechanism, not a captured Safari HTTP trace.
+files in parallel; a refused script can prevent startup entirely. This mechanism
+follows from server admission and HTML asset requests; no Safari HTTP trace
+was captured.
 The correction streams each setup document with its scripts in order from
 separate flash literals, under exact CSP hashes, without a combined heap copy.
 The initial identity GET permits three bounded attempts for the final document
@@ -356,6 +357,33 @@ one-connection refusal behavior. Its browser launch was blocked by automatic
 approval-review deadline timeouts on both permitted attempts, so it did not
 produce a rendered result. The precise Safari request ordering remains
 unmeasured. Actual phone rendering and station save remain the next gate.
+
+The subsequently retained clean opt-in replacement is source
+`79843646e89cc2a53209f65b8cececba3b32e4ad`, UF2 **3,363,328 bytes**, SHA-256
+`d8b5f6d97867f728f0a7475688b8037157e0181b736ebad99fc4bcea49e5d226`.
+It passed the linked flash/UF2 reservation and shutdown interception checks
+again, then loaded and verified on B. All **57,344 reserved bytes** stayed
+identical; the fresh 4,194,304-byte backup SHA-256 is
+`c44034bbc8ed1643c9c642ab2e29fcb67fe3cd5e7ce47f68a7d33f895e0b10c3`.
+Boot `9095b1994562b7e73e0c3c2dc1f7ddc2` reports firmware `79843646e89c`,
+consumer generation **3**, access generation **1**, preserved AA0NT / EM18 /
+20 dBm and independent standalone state, healthy guards/storage, no recorded
+fault/allocation failure, empty/unowned jobs and inactive inhibited output.
+It rejoined `192.168.1.53`, acquired synchronized time and passed LAN
+`HELLO`/`STATUS`; GP14 is released and AP is off at this readiness checkpoint.
+The exact prior `dd49d049daf2` restoration image and private full backup remain
+retained under ignored `build/phase12-owner-startup-b-7984364/` and the
+corresponding `wspr5` directory. No station save has been made on this image.
+
+Preparation events are retained separately: the old image lacked fresh clock
+readiness after the elapsed repair, so it was not credited with a new LAN pass;
+fresh synchronized readiness passed after replacement/restart. An initial
+runner invocation preceded completion of file staging and found no runner,
+performing no hardware action. It ran only after staging completed. A managed
+checkout build could not update its source timestamp under the sandbox, and
+automatic approval review timed out. A clean checkout inside the permitted
+workspace produced the retained image. These are preparation/readiness events,
+not firmware fault or phone-success evidence.
 
 The revised source and its next target/phone evidence are separate from the
 failed `dd49d049daf2` packet. P12.8/P12.10 remain open until the repaired page
