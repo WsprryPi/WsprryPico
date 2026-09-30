@@ -474,7 +474,73 @@ The five unrelated operator documentation paths remain byte-for-byte unchanged.
 A fresh 20-minute read-only collector is running for the next guided GP14
 opening and **one** same-iPhone station-only Save. No new successful phone
 terminal result or durable generation 4 is claimed at this deployment
-checkpoint. That result and the remaining physical rows are still required.
+checkpoint. The accepted result is recorded below; the remaining physical rows are still required.
+
+### B station update accepted in DuckDuckGo (2026-09-30)
+
+**Accepted within this packet by the operator.** The same iPhone 17 Pro used
+DuckDuckGo; its version and the exact iOS build were not recorded for this
+packet. The operator's 1:59 screenshot shows the correct Pico `4fab42`,
+“The Pico received your station settings. Checking the saved result” and
+“Station settings accepted.” This is the accepted-request display, not an
+observed terminal “saved” display. When asked to reopen the AP and return to
+the original tab, the operator reported that DuckDuckGo privacy settings had
+refreshed the page and explicitly accepted this run without switching
+browsers or repeating Save. No further phone action or Save was requested.
+The browser-refresh result is retained as a robustness observation; no final
+browser confirmation is invented.
+
+On exact inhibited firmware `4d46a23253ee`, B's first GP14 opening was
+15,095,000 microseconds held and one accepted AP request. Read-only monitoring
+recorded a station rejoin and fresh synchronized time, then durable consumer
+generation **3 -> 4** and a single observed activation boot change from
+`9df4f4d37dc0234126cab8355ce3f390` to
+`f65ac883a080f8f57bf4e490b4ee9519`. The new request SHA-256 is
+`e7418f3417fde09fb9288b8d15b0c9c80d1ec6b11a04f5248cf3c02676ac57b5`.
+B rejoined `192.168.1.53`, with synchronized clock, LAN readiness, healthy
+storage/guards, no recorded fault/allocation failure and inactive output,
+for **61.6106 seconds** of post-activation continuity. One USB read failed
+because the device path briefly disappeared at the activation restart; the
+collector recovered. This interruption is recorded, not counted as a firmware
+fault. No second generation increment or activation restart was observed.
+
+The later AP reopening was 15,891,000 microseconds. A subsequent fresh-clock
+check found holdover with a joined station and LAN readiness, and did not
+recover synchronized status in its bounded 90-second read-only wait. This is
+a retained clock/AP robustness gap, separate from the accepted commit and
+previous 61-second continuity result. It does not qualify extended AP/time
+coexistence. The cause was not established by this packet.
+
+A separately recorded, authorized ROM **readback only** then captured all
+57,344 reserved bytes, SHA-256
+`155143a2740f5bf275a08ae7bf8fbe68312956142750b4ee753464d7b9fd0b80`.
+The canonical read-only journal comparison proves generation 3 -> 4, the exact
+new INFO request digest, AA0NT / EM18 / 20 dBm, zero retained owners/owner
+epoch, byte-identical saved SSID/password/time-server and **identical TLS
+material**. The existing client list also remained identical; it was empty,
+so this does not qualify preservation of populated client records. Every
+reserved byte outside the profile journal was identical, including access,
+BTstack and the independent standalone journal. No firmware load, erase,
+station Save or RF job occurred during this inspection.
+
+The inspection's deliberate normal restart is separate from the activation
+budget. Final boot `53a0f79bb8c4109d892e208d491fe161` retained generation 4
+and the exact profile, rejoined its saved network, acquired synchronized time
+and passed exact-device plain LAN HELLO/STATUS, empty/unowned with inactive
+inhibited output. GP14 was released and AP off. All captures, parsed comparisons
+and restoration artifacts are retained privately under ignored
+`build/phase12-owner-update-b-4d46a23/` and the matching wspr5 directory.
+
+Adversarial evidence reassessment verified the authoritative journal against
+USB rather than treating the screenshot as a durable-save proof, separated
+activation from maintenance restarts, retained the restart readback gap,
+operator acceptance/browser-refresh limitation and extended AP/clock gap,
+and confirmed that empty-client preservation is a bounded result. No new
+source change was made in this evidence closeout. Same-phone station setup
+and the later source-5 station transaction are accepted within this packet;
+P12.8/P12.10 remain open for different-phone, offline, negative/concurrency,
+populated-client preservation and other named physical gates. Phase 12 is
+still active.
 
 ### Following packets and closure gates
 
