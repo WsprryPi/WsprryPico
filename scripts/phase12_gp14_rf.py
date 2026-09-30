@@ -56,9 +56,17 @@ def validate_packet(packet):
 
 def console(text='INFO', deadline_s=5):
     path = '/dev/serial/by-id/usb-WsprryPi_WsprryPico_' + SERIAL + '-if00'
-    with exclusive_port(path) as fd:
-        write_all(fd, (text + '\n').encode(), time.monotonic() + 2)
-        result = read_line(fd, time.monotonic() + deadline_s)
+    try:
+        with exclusive_port(path) as fd:
+            write_all(fd, (text + '\n').encode(), time.monotonic() + 2)
+            result = read_line(fd, time.monotonic() + deadline_s)
+    except ValueError as error:
+        # fuser can see the old CDC node disappear before os.open during an
+        # expected reset. Retry only a demonstrably absent path; an occupied
+        # existing endpoint or failed ownership check must still stop the run.
+        if str(error) == 'Endpoint occupied or ownership check unavailable' and not Path(path).exists():
+            raise FileNotFoundError(path) from error
+        raise
     require(result.get('ok') is True, 'Console command refused')
     return result
 

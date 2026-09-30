@@ -225,3 +225,14 @@ readback and missing decision evidence; real subprocess checks cover receiver
 completion and forced reaping at its deadline. Affected stream/client groups
 pass **2/2**. Reassessment found no additional source finding; physical cutoff,
 busy-core behavior, reset/AP acceptance and default enablement remain open.
+
+The first physical-ready wait stopped before any receiver, CLAIM, LOAD or ARM
+because the exclusive USB ownership preflight raced CDC disappearance during
+a real reset. Fresh readback records a 57 ms GP14 reset and exact-device
+empty/unowned/inactive USB/LAN authority. It charges one acquisition attempt
+and **zero RF jobs**. The repaired console wrapper treats that ownership
+error as reconnectable only when the exact CDC path is demonstrably absent;
+occupied or unverifiable existing endpoints and unrelated parse errors remain
+fatal. Refusal tests prove no console request is written without exclusive
+access; affected groups pass **2/2**. Reassessment retains the fail-closed
+ownership gate and the unchanged eight-RF-job bound.

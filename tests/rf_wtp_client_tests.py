@@ -230,3 +230,18 @@ try: wait_button_reset(packet,old,ReadyEvidence(),read=lambda:old,
 except RuntimeError as error: assert 'no RF job submitted' in str(error)
 else: raise AssertionError('ready wait exceeded its no-RF deadline')
 print('Physical readiness rejects premature, faulted, held and unsignaled starts')
+
+# An absent CDC path during the ownership preflight is a reconnect condition.
+# Existing endpoints with unknown/occupied ownership and other ValueErrors
+# remain fatal, and no console request is written before exclusive access.
+import phase12_gp14_rf as gp14
+for exists,message,exception in [(False,'Endpoint occupied or ownership check unavailable',FileNotFoundError),
+                                 (True,'Endpoint occupied or ownership check unavailable',ValueError),
+                                 (False,'malformed console readback',ValueError)]:
+    with patch.object(gp14,'exclusive_port',side_effect=ValueError(message)), \
+            patch.object(gp14.Path,'exists',return_value=exists),patch.object(gp14,'write_all') as write:
+        try: gp14.console()
+        except exception: pass
+        else: raise AssertionError('ownership error misclassified')
+        write.assert_not_called()
+print('CDC reconnect classification retains exclusive endpoint refusal')
