@@ -9,6 +9,10 @@
 #include <string>
 #include <string_view>
 
+namespace wsprrypico::provisioning {
+class RuntimeProfile;
+}
+
 namespace wsprrypico::network {
 struct OwnerClaimStartRequest {
     std::string device_id, owner_public_key, browser_public_key, browser_nonce;
@@ -40,6 +44,11 @@ class OwnerResultRestart {
 };
 
 bool owner_public_get_admitted(const HttpRequest& request, std::string_view route);
+// Public AP readback of the selected generation's station fields only.
+// A stale boot snapshot, fault, wrong device or non-consumer source returns null.
+std::string owner_saved_station_json(const provisioning::ProfileStore& store,
+                                     const provisioning::RuntimeProfile& runtime,
+                                     std::string_view device_id);
 std::optional<OwnerIdentifyRequest> parse_owner_identify(const HttpRequest& request);
 std::optional<OwnerClaimStartRequest> parse_owner_claim_start(const HttpRequest& request);
 std::optional<OwnerClaimSubmitRequest> parse_owner_claim_submit(const HttpRequest& request);

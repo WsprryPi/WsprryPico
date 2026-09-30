@@ -45,7 +45,10 @@ bytes for ordinary signed operations and 2,048 for client enrollment. These
 are distinct limits because base64url expands the decoded bytes; enforce both
 before allocating or authenticating a body. Every private request and response is encrypted even though the AP is
 open. Public identity/setup-state responses contain no credentials, owner key,
-client material, station settings or job state.
+client material or job state. The consumer setup status additionally exposes
+only the saved callsign, four-character grid and power in its `station` field,
+as specified below; these three fields are public on the open setup AP.
+Wi-Fi credentials and TLS/private client material are never returned by it.
 
 The authority identity is the full 16-byte device ID, represented on JSON
 wire as exactly 32 lowercase hex digits. `boot_id`, `request_id`, `slot_id`
@@ -218,6 +221,25 @@ source (`unprovisioned`, `network_only`, `consumer`, or `fault`), generation,
 whether an owner exists, and nonsensitive link/clock readiness. A source
 other than healthy unprovisioned or healthy network-only cannot begin a
 consumer claim. Network-only association grants no owner or station control.
+The current consumer setup continuation adds `station` to both public-status
+and claim/status: either `null` or exactly `{"callsign":"AA0NT","locator":"EM18","power_dbm":20}`
+(the values here are an example). It is `null` for non-consumer/fault/wrong-device
+selection and while the boot snapshot has a different generation from the
+committed journal. It serializes only those three station fields from the
+matching selected runtime profile, without copying or exposing the full
+profile or its network/TLS/owner/client data. This is AP-local plaintext public
+readback for the requested form prefill; station **changes** remain encrypted.
+A source-5 update awaiting activation is unavailable for a new claim, so a
+transient null station cannot be mistaken for an empty saved station.
+
+On every fresh page, including browser privacy refresh, the form reads those
+values from the Pico without phone storage or a Save. Later polling can refresh
+an untouched form for a new committed generation. Any input/change protects
+the whole current draft from polling; pending submissions and terminal displays
+are not replaced by prefill. Non-consumer profiles retain empty station inputs
+and the selected new-station default power. A malformed or wrong-device
+readback does not populate or enable the form.
+
 `claim_available` reports the current admission gate separately from `source`;
 an unsafe or busy output does not relabel a healthy profile as a fault.
 

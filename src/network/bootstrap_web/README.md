@@ -22,6 +22,14 @@ time, so a network with no usable time service cannot yet complete station
 setup. The `owner` names in legacy wire and files do not grant persistent
 phone authority.
 
+Every fresh station page loads the saved callsign, grid and power from the
+Pico's AP-local public status. This also works after a browser privacy refresh;
+it uses no phone storage and does not issue Save. The status omits saved
+Wi-Fi credentials and TLS/owner/client material. Polling can update an untouched
+form when the committed generation changes; editing any field protects the
+whole draft. Readback uses only a healthy matching device/generation snapshot,
+so an old boot snapshot is not paired with a newly committed generation.
+
 A captive sign-in window can perform setup if it has the required browser
 cryptography. The fallback names a regular browser and the Pico URL, not a
 specific browser brand. The same-origin and cryptography checks are functional

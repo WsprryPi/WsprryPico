@@ -38,6 +38,7 @@ const notice = (message, error = false) => {
 };
 let deviceId, status, submitted, polling = false, saving = false;
 let complete = false, retryVisible = false;
+let formEdited = false, filledGeneration;
 let lastTimeHintMs;
 let resultTimer, resultTimedOut = false;
 
@@ -95,11 +96,35 @@ function settings() {
     powerDbm: Number($('owner-power').value)};
 }
 
+function validStation(value) {
+  if (value === null) return true;
+  if (!value || typeof value !== 'object' ||
+      Object.keys(value).sort().join(',') !== 'callsign,locator,power_dbm' ||
+      !Number.isInteger(value.power_dbm)) return false;
+  try {
+    claimPlaintext({ssid: '', password: '', callsign: value.callsign,
+      locator: value.locator, powerDbm: value.power_dbm}).fill(0);
+    return true;
+  } catch { return false; }
+}
+
+function fillSavedStation(current) {
+  if (formEdited || saving || submitted || !current.station ||
+      filledGeneration === current.generation) return;
+  $('owner-callsign').value = current.station.callsign;
+  $('owner-locator').value = current.station.locator;
+  $('owner-power').value = String(current.station.power_dbm);
+  filledGeneration = current.generation;
+}
+
 function validStatus(value) {
   if (!value || value.version !== 1 || value.device_id !== deviceId ||
       !/^[0-9a-f]{32}$/.test(value.boot_id) ||
       typeof value.generation !== 'string' ||
-      !/^(0|[1-9][0-9]*)$/.test(value.generation)) return false;
+      !/^(0|[1-9][0-9]*)$/.test(value.generation) ||
+      !validStation(value.station) ||
+      (value.station !== null && value.source !== 'consumer') ||
+      (value.source === 'consumer' && value.claim_available && value.station === null)) return false;
   const generation = BigInt(value.generation);
   if (generation > 0xffffffffffffffffn) return false;
   const expectedSource = value.source === 'unprovisioned'
@@ -130,6 +155,7 @@ async function update() {
     const wasClaimAvailable = status?.claim_available === true;
     status = current;
     if (complete || retryVisible) return;
+    fillSavedStation(current);
     if (current.source === 'fault') {
       clearTransaction();
       complete = true;
@@ -306,6 +332,10 @@ async function submit(event) {
 }
 
 async function boot() {
+  for (const name of ['owner-callsign', 'owner-locator', 'owner-power']) {
+    $(name).addEventListener('input', () => { formEdited = true; });
+    $(name).addEventListener('change', () => { formEdited = true; });
+  }
   $('owner-identify').addEventListener('click', identify);
   $('owner-retry-button').addEventListener('click', () => {
     clearTransaction();
@@ -341,6 +371,7 @@ async function boot() {
     deviceId = publicStatus.device_id;
     if (!validStatus(publicStatus)) throw new Error('invalid Pico state');
     status = publicStatus;
+    fillSavedStation(status);
     $('device').textContent = 'Pico ' + deviceId.slice(-6);
     if (status.source === 'unprovisioned') {
       show('owner-wifi-first');

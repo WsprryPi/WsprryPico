@@ -542,6 +542,45 @@ P12.8/P12.10 remain open for different-phone, offline, negative/concurrency,
 populated-client preservation and other named physical gates. Phase 12 is
 still active.
 
+### Saved station form prefill continuation (2026-09-30)
+
+The operator requested that `/owner.html` show the last saved station details
+on opening, including after a DuckDuckGo privacy refresh. The bounded repair
+adds exactly callsign, four-character grid and power to AP-local public setup
+status. It uses the already parsed, matching device/generation consumer runtime
+snapshot: no profile/TLS reparse or whole-profile response is introduced.
+Non-consumer, faulty, wrong-device or stale-generation snapshots return null.
+This explicitly revises the previous public-status exclusion for these three
+station fields; Wi-Fi credentials and TLS/owner/client material remain absent.
+Station changes still use the existing one-use encrypted submission.
+
+Every fresh document fills the existing form from that readback without phone
+storage or Save. Polling may refresh an untouched form after a generation
+change. Input/change in any field protects the whole draft; pending Save,
+retry and terminal states retain their existing behavior. The new-station
+network-only form retains blank callsign/grid and its default power.
+
+Validation covers exact three-field serialization with secret-bearing profile
+fixtures, current-generation selection, stale snapshot, wrong device,
+non-consumer/fault selection, fresh/private-browser refresh, draft preservation,
+malformed/extra-field responses and no POST during loading. The first host run
+exposed an invalid test fixture transition (its retained-owner epoch and
+request digest were unchanged), corrected by using an admissible new fixture;
+the storage admission contract was preserved. An initial browser assertion
+incorrectly treated a fresh authoritative device identity as an identity swap;
+it was corrected to test an actual later-poll swap. A local test-edit invocation
+used the wrong directory and changed nothing; it was rerun from the repository.
+These are retained test/preparation findings, not target firmware faults.
+
+Adversarial review checks public field minimization, device/generation binding,
+no secret serialization, browser input races, pending Save/unknown-result
+handling and source-5 activation. After repairs, **91/91 host checks** and **4/4 browser tests** passed.
+Adversarial reassessment found no remaining actionable finding in this slice.
+The deployment packet is B only, inhibited,
+with a fresh full backup and all reserved bytes preserved; no additional Save,
+RF job, erase, A change or wspr4 access is included. Phone observation of the
+prefilled form remains distinct from source/host and deployment evidence.
+
 ### Following packets and closure gates
 
 | Packet | Required outcome | Evidence still needed |

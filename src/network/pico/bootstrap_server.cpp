@@ -693,6 +693,9 @@ HttpResponse PicoBootstrapServer::owner_status(bool claim_status) {
                 ",\"request_id_digest\":" +
                 (request_digest.empty() ? "null" : wtp::json::quote(request_digest));
     }
+    body += ",\"station\":" + (healthy && runtime_ok
+                                   ? owner_saved_station_json(*profile_, *runtime_, device_)
+                                   : std::string("null"));
     body += '}';
     return json(std::move(body));
 }

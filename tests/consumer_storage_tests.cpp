@@ -1,4 +1,5 @@
 #include "network/bootstrap_codec.hpp"
+#include "network/owner_claim_http.hpp"
 #include "provisioning/consumer_profile.hpp"
 #include "provisioning/network_profile.hpp"
 #include "provisioning/runtime.hpp"
@@ -93,6 +94,24 @@ int main() {
     assert(preclock.source() == provisioning::RuntimeSource::ConsumerPreClock);
     assert(preclock.consumer_profile() && preclock.consumer_profile()->device_id == device);
     assert(!preclock.profile() && !preclock.network_profile());
+    const auto station = network::owner_saved_station_json(direct_readback, preclock, device);
+    assert(station == "{\"callsign\":\"K1ABC\",\"locator\":\"FN20\",\"power_dbm\":30}");
+    assert(network::owner_saved_station_json(direct_readback, preclock,
+                                             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa") == "null");
+    // A new journal generation must not be paired with the old boot's fields.
+    auto changed_station = profile;
+    changed_station.callsign = "AA0NT";
+    changed_station.locator = "EM18";
+    changed_station.power_dbm = 20;
+    changed_station.owner_epoch = 2;
+    changed_station.request_sha256 = std::string(64, 'b');
+    assert(direct_readback.select(provisioning::ProfileSource::ConsumerProfile,
+                                  provisioning::serialize_consumer_profile(changed_station)));
+    assert(network::owner_saved_station_json(direct_readback, preclock, device) == "null");
+    provisioning::RuntimeProfile updated_runtime;
+    assert(updated_runtime.load(direct_readback, device, provisioning::BuildBundleState::Absent));
+    assert(network::owner_saved_station_json(direct_readback, updated_runtime, device) ==
+           "{\"callsign\":\"AA0NT\",\"locator\":\"EM18\",\"power_dbm\":20}");
     const standalone::Config empty_config{};
     const auto selected = preclock.overlay(empty_config);
     assert(selected && selected->ssid == "Home Net" && selected->password == "test-password");
@@ -112,6 +131,7 @@ int main() {
     assert(wrong_device.source() == provisioning::RuntimeSource::Fault);
     assert(wrong_device.fault() == provisioning::RuntimeFault::WrongDevice);
     assert(!wrong_device.consumer_profile());
+    assert(network::owner_saved_station_json(direct_readback, wrong_device, device) == "null");
 
     MemoryMedia after_reset;
     provisioning::ProfileStore tombstone(after_reset);
@@ -121,6 +141,7 @@ int main() {
     assert(preclock.load(tombstone, device, provisioning::BuildBundleState::Absent));
     assert(preclock.source() == provisioning::RuntimeSource::Unprovisioned);
     assert(!preclock.consumer_profile() && !preclock.overlay(empty_config));
+    assert(network::owner_saved_station_json(tombstone, preclock, device) == "null");
     assert(tombstone.select(provisioning::ProfileSource::ConsumerProfile, payload));
     assert(tombstone.sequence() == 2);
     assert(preclock.load(tombstone, device, provisioning::BuildBundleState::Absent));
@@ -132,6 +153,9 @@ int main() {
     assert(initial.load());
     assert(initial.select(provisioning::ProfileSource::NetworkOnly, network_payload));
     assert(initial.sequence() == 1);
+    provisioning::RuntimeProfile network_runtime;
+    assert(network_runtime.load(initial, device, provisioning::BuildBundleState::Absent));
+    assert(network::owner_saved_station_json(initial, network_runtime, device) == "null");
     // Re-entering the same Wi-Fi settings is still a distinct browser save.
     MemoryMedia repeat_media;
     provisioning::ProfileStore repeat(repeat_media);

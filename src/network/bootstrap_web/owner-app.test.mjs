@@ -46,7 +46,7 @@ const runTimer = async (delay) => {
 let status = {version: 1, device_id: device, boot_id: boot, source: 'network_only',
   profile_source: 4, generation: '1', owner_exists: false, claim_available: true,
   address_ready: true, clock_ready: true, slot_state: 'none', slot_id_digest: null,
-  request_id_digest: null};
+  request_id_digest: null, station: null};
 let start, submitted, identify, hangNextStatus = false;
 let holdStatus = false, releaseStatus, dropStatus = false, submitReply = 'lost', posts = 0;
 let now = 1_800_000_000_000;
@@ -154,6 +154,7 @@ assert.ok(start && submitted, elements.get('notice').textContent);
 assert.equal(elements.get('owner-checking').hidden, false);
 const firstTransaction = start.owner_public_key;
 status = {...status, source: 'consumer', profile_source: 5, generation: '2',
+  station: {callsign: 'K1ABC', locator: 'FN20', power_dbm: 30},
   owner_exists: false, claim_available: true, slot_state: 'reconcile',
   request_id_digest: digest(submitted.request_id)};
 await runTimer(1000);
@@ -282,6 +283,82 @@ assert.equal(elements.get('owner-retry').hidden, true);
 assert.match(elements.get('notice').textContent, /Setup is busy/);
 status = {...status, slot_state: 'none', claim_available: true};
 await runTimer(1000);
+assert.equal(elements.get('owner-submit').disabled, false);
+assert.equal(posts, failedPostCount);
+// Every fresh document loads device values, including a privacy-triggered reload.
+timers.clear();
+status = {...status, source: 'consumer', profile_source: 5, generation: '4',
+  slot_state: 'none', claim_available: true,
+  station: {callsign: 'AA0NT', locator: 'EM18', power_dbm: 20}};
+for (const name of ['owner-callsign', 'owner-locator', 'owner-power']) elements.get(name).value = '';
+await import('./owner-app.js?saved-values');
+await new Promise(setImmediate);
+assert.equal(elements.get('owner-callsign').value, 'AA0NT');
+assert.equal(elements.get('owner-locator').value, 'EM18');
+assert.equal(elements.get('owner-power').value, '20');
+assert.equal(posts, failedPostCount); // Opening or reloading never saves.
+
+// An unedited open form follows a new committed generation.
+status = {...status, generation: '5', station: {callsign: 'K1ABC', locator: 'FN20', power_dbm: 30}};
+await runTimer(1000);
+assert.equal(elements.get('owner-callsign').value, 'K1ABC');
+assert.equal(elements.get('owner-power').value, '30');
+
+// An edit, even to one field, protects the whole draft from future polling.
+elements.get('owner-locator').value = 'EM19';
+elements.get('owner-locator').events.input();
+status = {...status, generation: '6', station: {callsign: 'AA0NT', locator: 'EM18', power_dbm: 20}};
+await runTimer(1000);
+assert.equal(elements.get('owner-locator').value, 'EM19');
+assert.equal(elements.get('owner-callsign').value, 'K1ABC');
+assert.equal(elements.get('owner-power').value, '30');
+
+// Reload obtains the actual saved profile again, without phone storage.
+timers.clear();
+await import('./owner-app.js?privacy-refresh');
+await new Promise(setImmediate);
+assert.equal(elements.get('owner-callsign').value, 'AA0NT');
+assert.equal(elements.get('owner-locator').value, 'EM18');
+assert.equal(elements.get('owner-power').value, '20');
+assert.equal(posts, failedPostCount);
+
+// A different device on a later poll cannot replace the bound Pico's values.
+status = {...status, device_id: 'f'.repeat(32), generation: '7',
+  station: {callsign: 'K1ABC', locator: 'FN20', power_dbm: 30}};
+await runTimer(1000);
+assert.equal(elements.get('owner-callsign').value, 'AA0NT');
+status = {...status, device_id: device};
+
+// Reject malformed, secret-bearing and non-consumer station data.
+for (const [tag, patch] of [
+  ['bad-power', {station: {...status.station, power_dbm: 21}}],
+  ['extra-field', {station: {...status.station, password: 'test-only'}}],
+  ['wrong-source', {source: 'network_only', profile_source: 4}],
+  ['missing-station', {station: null}],
+]) {
+  timers.clear();
+  const previous = status;
+  status = {...previous, ...patch};
+  for (const name of ['owner-callsign', 'owner-locator', 'owner-power']) elements.get(name).value = '';
+  elements.get('owner-submit').disabled = true;
+  await import('./owner-app.js?invalid-saved-' + tag);
+  await new Promise(setImmediate);
+  assert.equal(elements.get('owner-callsign').value, '');
+  assert.equal(elements.get('owner-submit').disabled, true);
+  assert.equal(posts, failedPostCount);
+  status = previous;
+}
+// A new network-only station form has no fabricated saved values.
+timers.clear();
+status = {...status, source: 'network_only', profile_source: 4, station: null};
+elements.get('owner-callsign').value = '';
+elements.get('owner-locator').value = '';
+elements.get('owner-power').value = '30';
+await import('./owner-app.js?no-saved-station');
+await new Promise(setImmediate);
+assert.equal(elements.get('owner-callsign').value, '');
+assert.equal(elements.get('owner-locator').value, '');
+assert.equal(elements.get('owner-power').value, '30');
 assert.equal(elements.get('owner-submit').disabled, false);
 assert.equal(posts, failedPostCount);
 peer.secretKey.fill(0);

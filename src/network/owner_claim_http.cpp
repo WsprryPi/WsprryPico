@@ -2,6 +2,7 @@
 
 #include "network/bootstrap_codec.hpp"
 #include "network/identity.hpp"
+#include "provisioning/runtime.hpp"
 #include "wtp/json.hpp"
 
 #include <algorithm>
@@ -88,6 +89,19 @@ bool OwnerResultRestart::ready(std::uint64_t now_ms) const {
 bool owner_public_get_admitted(const HttpRequest& request, std::string_view route) {
     return (route == "/api/owner/v1/public-status" || route == "/api/owner/v1/claim/status") &&
            common(request, route, false);
+}
+
+std::string owner_saved_station_json(const provisioning::ProfileStore& store,
+                                     const provisioning::RuntimeProfile& runtime,
+                                     std::string_view device_id) {
+    const auto* saved = runtime.consumer_profile();
+    if (!store.healthy() || store.source() != provisioning::ProfileSource::ConsumerProfile ||
+        !store.sequence() || runtime.source() != provisioning::RuntimeSource::ConsumerPreClock ||
+        runtime.generation() != store.sequence() || !saved || saved->device_id != device_id)
+        return "null";
+    return "{\"callsign\":" + wtp::json::quote(saved->callsign) +
+           ",\"locator\":" + wtp::json::quote(saved->locator) +
+           ",\"power_dbm\":" + std::to_string(saved->power_dbm) + "}";
 }
 
 std::optional<OwnerIdentifyRequest> parse_owner_identify(const HttpRequest& request) {
