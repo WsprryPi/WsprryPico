@@ -291,10 +291,11 @@ status = {...status, source: 'consumer', profile_source: 5, generation: '4',
   slot_state: 'none', claim_available: true,
   station: {callsign: 'AA0NT', locator: 'EM18', power_dbm: 20}};
 for (const name of ['owner-callsign', 'owner-locator', 'owner-power']) elements.get(name).value = '';
+status.station = {callsign: 'AA0NT/P', locator: 'EM18AA', power_dbm: 20};
 await import('./owner-app.js?saved-values');
 await new Promise(setImmediate);
-assert.equal(elements.get('owner-callsign').value, 'AA0NT');
-assert.equal(elements.get('owner-locator').value, 'EM18');
+assert.equal(elements.get('owner-callsign').value, 'AA0NT/P');
+assert.equal(elements.get('owner-locator').value, 'EM18AA');
 assert.equal(elements.get('owner-power').value, '20');
 assert.equal(posts, failedPostCount); // Opening or reloading never saves.
 
@@ -307,7 +308,7 @@ assert.equal(elements.get('owner-power').value, '30');
 // An edit, even to one field, protects the whole draft from future polling.
 elements.get('owner-locator').value = 'EM19';
 elements.get('owner-locator').events.input();
-status = {...status, generation: '6', station: {callsign: 'AA0NT', locator: 'EM18', power_dbm: 20}};
+status = {...status, generation: '6', station: {callsign: 'PJ4/AA0NT', locator: 'EM18XX', power_dbm: 20}};
 await runTimer(1000);
 assert.equal(elements.get('owner-locator').value, 'EM19');
 assert.equal(elements.get('owner-callsign').value, 'K1ABC');
@@ -317,8 +318,8 @@ assert.equal(elements.get('owner-power').value, '30');
 timers.clear();
 await import('./owner-app.js?privacy-refresh');
 await new Promise(setImmediate);
-assert.equal(elements.get('owner-callsign').value, 'AA0NT');
-assert.equal(elements.get('owner-locator').value, 'EM18');
+assert.equal(elements.get('owner-callsign').value, 'PJ4/AA0NT');
+assert.equal(elements.get('owner-locator').value, 'EM18XX');
 assert.equal(elements.get('owner-power').value, '20');
 assert.equal(posts, failedPostCount);
 
@@ -326,12 +327,14 @@ assert.equal(posts, failedPostCount);
 status = {...status, device_id: 'f'.repeat(32), generation: '7',
   station: {callsign: 'K1ABC', locator: 'FN20', power_dbm: 30}};
 await runTimer(1000);
-assert.equal(elements.get('owner-callsign').value, 'AA0NT');
+assert.equal(elements.get('owner-callsign').value, 'PJ4/AA0NT');
 status = {...status, device_id: device};
 
 // Reject malformed, secret-bearing and non-consumer station data.
 for (const [tag, patch] of [
   ['bad-power', {station: {...status.station, power_dbm: 21}}],
+  ['bad-grid-length', {station: {...status.station, locator: 'EM18A'}}],
+  ['bad-grid-subsquare', {station: {...status.station, locator: 'EM18AY'}}],
   ['extra-field', {station: {...status.station, password: 'test-only'}}],
   ['wrong-source', {source: 'network_only', profile_source: 4}],
   ['missing-station', {station: null}],

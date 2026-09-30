@@ -24,10 +24,12 @@
     <section id="owner-settings" hidden>
       <form id="owner-form" autocomplete="off">
         <label for="owner-callsign">Callsign</label>
-        <input id="owner-callsign" name="callsign" type="text" minlength="3" maxlength="6"
+        <input id="owner-callsign" name="callsign" type="text" minlength="3" maxlength="12"
+               pattern="[A-Za-z0-9]+(/[A-Za-z0-9]+)*"
                required autocapitalize="characters" autocomplete="off" spellcheck="false">
-        <label for="owner-locator">Four-character grid locator</label>
-        <input id="owner-locator" name="locator" type="text" minlength="4" maxlength="4"
+        <label for="owner-locator">Grid locator (4 or 6 characters)</label>
+        <input id="owner-locator" name="locator" type="text" minlength="4" maxlength="6"
+               pattern="[A-Ra-r]{2}[0-9]{2}([A-Xa-x]{2})?"
                required autocapitalize="characters" autocomplete="off" spellcheck="false">
         <label for="owner-power">Transmit power setting</label>
         <select id="owner-power" name="power">

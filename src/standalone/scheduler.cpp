@@ -89,6 +89,12 @@ void Scheduler::poll() {
     const auto expiry = store_.config()->expires_utc_s * ns;
     if (expiry && (candidate >= expiry || expiry - candidate < 110'592'000'000ULL))
         return;
+    const auto& c = *store_.config();
+    auto symbols = encoding::wspr_type1_from_station(c.callsign, c.locator, c.power_dbm);
+    if (!symbols) {
+        last_error_ = wtp::ErrorCode::UnsupportedMode;
+        return;
+    }
     if (!request("HELLO", wtp::HelloBody{{"WTP/1"}}).ok)
         return;
     auto response = request("CLAIM", wtp::ClaimBody{local_id, 5000});
@@ -99,12 +105,6 @@ void Scheduler::poll() {
     // Durable at-most-once reservation BEFORE preparation/arming. A failure
     // after this point skips the occurrence; it never retries an ambiguous job.
     if (!store_.reserve(candidate)) {
-        (void)request("RELEASE");
-        return;
-    }
-    const auto& c = *store_.config();
-    auto symbols = encoding::wspr_type1(c.callsign, c.locator, c.power_dbm);
-    if (!symbols) {
         (void)request("RELEASE");
         return;
     }

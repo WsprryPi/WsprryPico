@@ -80,6 +80,18 @@ int main() {
         CHECK(!encoding::wspr_type1("AA0NT", "EM18", 61));
         CHECK(encoding::wspr_type1("K1ABC", "AA00", 0));
         CHECK(encoding::wspr_type1("A12ABC", "RR99", 60));
+        CHECK(encoding::wspr_type1_from_station("AA0NT", "EM18", 20) == encoded);
+        CHECK(encoding::wspr_type1_from_station("AA0NT", "EM18AA", 20) == encoded);
+        CHECK(encoding::wspr_type1_from_station("AA0NT", "EM18XX", 20) == encoded);
+        for (auto grid : {"", "EM1", "EM18A", "EM18AAA", "SM18AA", "EM1AAA", "EM18AY", "EM18ZA",
+                          "EM18aa", "EM18\n"})
+            CHECK(!encoding::wspr_type1_from_station("AA0NT", grid, 20));
+        CHECK(!encoding::wspr_type1_from_station("bad", "EM18AA", 20));
+        CHECK(!encoding::wspr_type1_from_station("AA0NT", "EM18AA", 21));
+        for (auto call : {"AA0NT/P", "PJ4/AA0NT", "PJ4/AA0NT/P", "AA0NT/ABCDEF", "3DA0ABC"}) {
+            CHECK(encoding::valid_station_details(call, "EM18AA", 20));
+            CHECK(!encoding::wspr_type1_from_station(call, "EM18AA", 20));
+        }
         wtp::allocate_input = [](std::size_t) -> void* { return nullptr; };
         {
             const auto failed_frame = rf::diagnostic_frame();

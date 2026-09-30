@@ -143,6 +143,35 @@ int main() {
     assert(update_crypto.open(update_fields, nonce, update_ciphertext, update_tag, out));
     assert(out.ssid.empty() && out.password.empty() && out.callsign == "AA0NT" &&
            out.locator == "EM18" && out.power_dbm == 20);
+    // Six-character and maximum-size envelopes independently sealed by Noble.
+    const auto six_ciphertext = b64("U4dqWEtiMhoFzBnBtfg6", 15);
+    const auto six_tag = fixed<16>("XQVKa1R4zGBUIvIM6TAjEA");
+    network::PicoOwnerClaimCrypto six_crypto;
+    assert(six_crypto.begin_for_test(private_key));
+    assert(six_crypto.open(update_fields, nonce, six_ciphertext, six_tag, out));
+    assert(out.locator == "EM18AA" && out.power_dbm == 20);
+    const auto maximum_ciphertext =
+        b64("c8YuWEsTPQ8BwGm4tfhv1wJ0opkd68Mv3bPB6mOzKWDl_Ew3pGkcC_0Xn3eC7gywq0N_JsqSraAK-gs6HLC5"
+            "EEGK82O9dhD3n2by2ZeeJsMoekf5PnY1ABUmIsbJPsthb_dkXNPK_HxD4mnn3NGR",
+            111);
+    const auto maximum_tag = fixed<16>("DBWKeXp9RLkWZZTqUsyAGw");
+    network::PicoOwnerClaimCrypto maximum_crypto;
+    assert(maximum_crypto.begin_for_test(private_key));
+    assert(maximum_crypto.open(update_fields, nonce, maximum_ciphertext, maximum_tag, out));
+    assert(out.ssid == std::string(32, 'A') && out.password == std::string(63, 'p') &&
+           out.callsign == "KA1BCD" && out.locator == "FN20XX" && out.power_dbm == 60);
+    const auto extended_ciphertext =
+        b64("c8YuWEsTPQ8BwGm4tfhv1wJ0opkd68Mv3bPB6mOzKWDl_Ew3pGkcC_0Xn3eC7gywq0N_JsqSraAK-gs6HLC5"
+            "EEGK82O9dhD3n2by2ZeeJsMoekf5PnY1ABUmIsbJPsthb_1uXNLG6xdE7hiTwc_ow2Dg_nER",
+            117);
+    const auto extended_tag = fixed<16>("vY0RtxhmK1balnTmctLM7Q");
+    network::PicoOwnerClaimCrypto extended_crypto;
+    assert(extended_crypto.begin_for_test(private_key));
+    assert(extended_crypto.open(update_fields, nonce, extended_ciphertext, extended_tag, out));
+    assert(out.callsign == "AA0NT/ABCDEF" && out.locator == "EM18XX" && out.power_dbm == 60);
+    auto bad_six_tag = six_tag;
+    bad_six_tag[0] ^= 1;
+    rejects(update_fields, nonce, six_ciphertext, bad_six_tag);
     changed = update_fields;
     changed.generation = 4;
     rejects(changed, nonce, update_ciphertext, update_tag);

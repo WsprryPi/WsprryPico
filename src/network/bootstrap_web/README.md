@@ -22,6 +22,17 @@ time, so a network with no usable time service cannot yet complete station
 setup. The `owner` names in legacy wire and files do not grant persistent
 phone authority.
 
+Grid locators accept exactly four or six characters, for example `EM18` or
+`EM18AA`. The page normalizes typed letters to uppercase; fields are A–R and
+optional subsquare letters A–X. The full locator survives save and prefill.
+The existing standalone Type 1 WSPR frame carries its first four characters.
+Callsigns accept 3–12 uppercase letters/digits with nonempty prefix/suffix
+segments separated by slashes, with at least one letter and one digit. The
+full value survives save and prefill, including `AA0NT/P` or `PJ4/AA0NT`.
+Extended callsigns are stored independently of transmission support: the
+current automatic Type 1 encoder reports `UNSUPPORTED_MODE` and starts no job
+for a callsign it cannot encode; it never drops an affix to transmit a base call.
+
 Every fresh station page loads the saved callsign, grid and power from the
 Pico's AP-local public status. This also works after a browser privacy refresh;
 it uses no phone storage and does not issue Save. The status omits saved

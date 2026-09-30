@@ -203,7 +203,7 @@ int main() {
     grant(update_slot, update, update_request);
     const auto original_tls = parsed->tls;
     const provisioning::ConsumerClaimValues update_values{
-        update_request, "Home Net", "test-password", "K1ABC", "FN20", 30};
+        update_request, "Home Net", "test-password", "PJ4/K1ABC", "FN20XX", 30};
     const auto updated =
         provisioning::commit_consumer_claim(store, update_slot, update, update_values, platform,
                                             provisioning::RuntimeSource::ConsumerPreClock, 500);
@@ -211,6 +211,8 @@ int main() {
     const auto updated_profile = provisioning::parse_consumer_profile(store.data());
     assert(updated_profile && store.sequence() == 2 && updated_profile->owner_epoch == 0 &&
            updated_profile->owners.empty() && updated_profile->tls == original_tls);
+    assert(updated_profile->locator == "FN20XX");
+    assert(updated_profile->callsign == "PJ4/K1ABC");
 
     MemoryMedia network_media;
     provisioning::ProfileStore network_store(network_media);

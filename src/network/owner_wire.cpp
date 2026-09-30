@@ -199,7 +199,7 @@ encode_owner_claim_plaintext(const OwnerClaimPlaintext& value) {
     const bool saved_network = value.ssid.empty() && value.password.empty();
     if ((!saved_network && !standalone::valid_wifi_credentials(value.ssid, value.password,
                                                                standalone::default_time_server)) ||
-        !encoding::wspr_type1(value.callsign, value.locator, value.power_dbm))
+        !encoding::valid_station_details(value.callsign, value.locator, value.power_dbm))
         return std::nullopt;
     OwnerClaimEncodedPlaintext result;
     auto append_text = [&](std::string_view part) {
@@ -210,15 +210,15 @@ encode_owner_claim_plaintext(const OwnerClaimPlaintext& value) {
     append_text(value.ssid);
     append_text(value.password);
     append_text(value.callsign);
-    std::memcpy(result.bytes.data() + result.size, value.locator.data(), 4);
-    result.size += 4;
+    std::memcpy(result.bytes.data() + result.size, value.locator.data(), value.locator.size());
+    result.size += value.locator.size();
     result.bytes[result.size++] = static_cast<std::uint8_t>(value.power_dbm);
     return result;
 }
 
 std::optional<OwnerClaimPlaintext>
 decode_owner_claim_plaintext(std::span<const std::uint8_t> bytes) {
-    if (bytes.size() < 11 || bytes.size() > 109)
+    if (bytes.size() < 11 || bytes.size() > OwnerClaimEncodedPlaintext::max_size)
         return std::nullopt;
     std::size_t at = 0;
     auto read_text = [&](std::size_t minimum, std::size_t maximum, std::string_view& out) {
@@ -233,15 +233,16 @@ decode_owner_claim_plaintext(std::span<const std::uint8_t> bytes) {
     };
     OwnerClaimPlaintext result;
     if (!read_text(0, 32, result.ssid) || !read_text(0, 63, result.password) ||
-        !read_text(3, 6, result.callsign) || bytes.size() - at != 5)
+        !read_text(3, 12, result.callsign) || (bytes.size() - at != 5 && bytes.size() - at != 7))
         return std::nullopt;
-    result.locator = {reinterpret_cast<const char*>(bytes.data() + at), 4};
-    at += 4;
+    const auto locator_size = bytes.size() - at - 1;
+    result.locator = {reinterpret_cast<const char*>(bytes.data() + at), locator_size};
+    at += locator_size;
     result.power_dbm = bytes[at];
     const bool saved_network = result.ssid.empty() && result.password.empty();
     if ((!saved_network && !standalone::valid_wifi_credentials(result.ssid, result.password,
                                                                standalone::default_time_server)) ||
-        !encoding::wspr_type1(result.callsign, result.locator, result.power_dbm))
+        !encoding::valid_station_details(result.callsign, result.locator, result.power_dbm))
         return std::nullopt;
     return result;
 }

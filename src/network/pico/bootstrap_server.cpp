@@ -797,7 +797,8 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
                              decode_b64(binding->browser_public_key, fields.browser_public_key) &&
                              decode_b64(parsed->aead_nonce, nonce) &&
                              decode_b64(parsed->tag, tag) &&
-                             bootstrap_unb64url(parsed->ciphertext, ciphertext, 11, 109);
+                             bootstrap_unb64url(parsed->ciphertext, ciphertext, 11,
+                                                OwnerClaimEncodedPlaintext::max_size);
         owner_request_digest_ = bootstrap_digest(fields.request_id);
         fields.pico_public_key = owner_crypto_.public_key();
         fields.source = binding->source;

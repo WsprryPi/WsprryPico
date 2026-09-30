@@ -9,6 +9,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 using namespace wsprrypico;
 
@@ -166,6 +167,14 @@ int main() {
     changed.body.replace(changed.body.find(cipher_key), cipher_key.size(),
                          network::bootstrap_b64url(station_cipher));
     assert(network::parse_owner_claim_submit(changed));
+    for (std::size_t length : {15U, 111U, 117U, 118U}) {
+        std::vector<std::uint8_t> extended(length, 1);
+        changed = submit;
+        changed.body.replace(changed.body.find(cipher_key), cipher_key.size(),
+                             network::bootstrap_b64url(extended));
+        assert(parsed(changed));
+        assert(network::parse_owner_claim_submit(changed).has_value() == (length <= 117));
+    }
     changed = submit;
     changed.body.replace(changed.body.find(cipher_key), cipher_key.size(), "AA");
     assert(!network::parse_owner_claim_submit(changed));

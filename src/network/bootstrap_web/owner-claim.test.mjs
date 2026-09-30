@@ -48,6 +48,16 @@ assert.throws(() => claimPlaintext({...settings, password: 'short'}));
 assert.throws(() => claimPlaintext({...settings, password: settings.password + '\n'}));
 assert.throws(() => claimPlaintext({...settings, callsign: 'bad'}));
 assert.throws(() => claimPlaintext({...settings, locator: settings.locator + '\n'}));
+assert.equal(Buffer.from(claimPlaintext({...settings, ssid: '', password: '', locator: 'FN20XX'}))
+  .toString('hex'), '0000054b31414243464e323058581e');
+assert.equal(claimPlaintext({ssid: 'A'.repeat(32), password: 'p'.repeat(63),
+  callsign: 'KA1BCD', locator: 'FN20AA', powerDbm: 60}).length, 111);
+for (const locator of ['FN20A', 'FN20AAA', 'FN20AY', 'FN20ZA', 'SN20AA', 'FN20aa'])
+  assert.throws(() => claimPlaintext({...settings, locator}));
+for (const callsign of ['AA0NT/P', 'PJ4/AA0NT', 'PJ4/AA0NT/P', 'AA0NT/ABCDEF', '3DA0ABC'])
+  assert.ok(claimPlaintext({...settings, callsign, locator: 'EM18AA'}));
+for (const callsign of ['AA0NT/ABCDEFG', '/AA0NT', 'AA0NT/', 'AA0NT//P', 'AA0NT-P', 'aa0nt/P',
+  'AAAAAA', '123456', 'AA0NT\n']) assert.throws(() => claimPlaintext({...settings, callsign}));
 
 const browserSecret = hex('77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a');
 const picoSecret = hex('5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb');
@@ -80,5 +90,26 @@ const update = sealOwnerClaim(updateFields,
   nonce, {ssid: '', password: '', callsign: 'AA0NT', locator: 'EM18', powerDbm: 20});
 assert.equal(update.ciphertext, 'U4dqWEtiMhoFzBnB4A');
 assert.equal(update.tag, 'FBv45vIeTQCvbHa4kRE6NA');
+const six = sealOwnerClaim(updateFields,
+  hex('77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a'),
+  nonce, {ssid: '', password: '', callsign: 'AA0NT', locator: 'EM18AA', powerDbm: 20});
+assert.equal(six.ciphertext, 'U4dqWEtiMhoFzBnBtfg6');
+assert.equal(six.tag, 'XQVKa1R4zGBUIvIM6TAjEA');
+const maximum = sealOwnerClaim(updateFields,
+  hex('77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a'),
+  nonce, {ssid: 'A'.repeat(32), password: 'p'.repeat(63), callsign: 'KA1BCD',
+    locator: 'FN20XX', powerDbm: 60});
+assert.equal(maximum.ciphertext,
+  'c8YuWEsTPQ8BwGm4tfhv1wJ0opkd68Mv3bPB6mOzKWDl_Ew3pGkcC_0Xn3eC7gywq0N_JsqSraAK-gs6HLC5' +
+  'EEGK82O9dhD3n2by2ZeeJsMoekf5PnY1ABUmIsbJPsthb_dkXNPK_HxD4mnn3NGR');
+assert.equal(maximum.tag, 'DBWKeXp9RLkWZZTqUsyAGw');
+const extended = sealOwnerClaim(updateFields,
+  hex('77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a'),
+  nonce, {ssid: 'A'.repeat(32), password: 'p'.repeat(63), callsign: 'AA0NT/ABCDEF',
+    locator: 'EM18XX', powerDbm: 60});
+assert.equal(extended.ciphertext,
+  'c8YuWEsTPQ8BwGm4tfhv1wJ0opkd68Mv3bPB6mOzKWDl_Ew3pGkcC_0Xn3eC7gywq0N_JsqSraAK-gs6HLC5' +
+  'EEGK82O9dhD3n2by2ZeeJsMoekf5PnY1ABUmIsbJPsthb_1uXNLG6xdE7hiTwc_ow2Dg_nER');
+assert.equal(extended.tag, 'vY0RtxhmK1balnTmctLM7Q');
 peerShared.fill(0); key.fill(0); picoSecret.fill(0);
 console.log('owner claim browser transcript and envelope passed');

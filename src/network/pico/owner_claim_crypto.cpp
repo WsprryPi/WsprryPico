@@ -73,12 +73,12 @@ bool PicoOwnerClaimCrypto::open(const OwnerClaimFields& fields,
     out.clear();
     const auto aad = owner_claim_transcript(fields);
     if (!private_key_ || !aad || fields.pico_public_key != public_key_ || ciphertext.size() < 11 ||
-        ciphertext.size() > 109) {
+        ciphertext.size() > OwnerClaimEncodedPlaintext::max_size) {
         clear();
         return false;
     }
     std::array<std::uint8_t, 32> shared{}, salt{}, key{};
-    std::array<std::uint8_t, 109> plain{};
+    std::array<std::uint8_t, OwnerClaimEncodedPlaintext::max_size> plain{};
     std::size_t shared_size = 0;
     const auto agreed = psa_raw_key_agreement(
         PSA_ALG_ECDH, private_key_, fields.browser_public_key.data(),

@@ -23,10 +23,36 @@ constexpr bool digit(char c) {
 constexpr unsigned code(char c) {
     return digit(c) ? unsigned(c - '0') : letter(c) ? unsigned(c - 'A' + 10) : 36;
 }
+constexpr std::array powers{0U,  3U,  7U,  10U, 13U, 17U, 20U, 23U, 27U, 30U,
+                            33U, 37U, 40U, 43U, 47U, 50U, 53U, 57U, 60U};
 } // namespace
+bool valid_station_details(std::string_view call, std::string_view locator, unsigned dbm) {
+    if (call.size() < 3 || call.size() > 12 || call.front() == '/' || call.back() == '/' ||
+        (locator.size() != 4 && locator.size() != 6) || locator[0] < 'A' || locator[0] > 'R' ||
+        locator[1] < 'A' || locator[1] > 'R' || !digit(locator[2]) || !digit(locator[3]) ||
+        (locator.size() == 6 &&
+         (locator[4] < 'A' || locator[4] > 'X' || locator[5] < 'A' || locator[5] > 'X')) ||
+        std::find(powers.begin(), powers.end(), dbm) == powers.end())
+        return false;
+    bool has_letter = false, has_digit = false, slash = false;
+    for (char c : call) {
+        if ((!letter(c) && !digit(c) && c != '/') || (c == '/' && slash))
+            return false;
+        has_letter |= letter(c);
+        has_digit |= digit(c);
+        slash = c == '/';
+    }
+    return has_letter && has_digit;
+}
+
+std::optional<Symbols> wspr_type1_from_station(std::string_view call, std::string_view locator,
+                                               unsigned dbm) {
+    if (!valid_station_details(call, locator, dbm))
+        return {};
+    return wspr_type1(call, locator.substr(0, 4), dbm);
+}
+
 std::optional<Symbols> wspr_type1(std::string_view call, std::string_view grid, unsigned dbm) {
-    constexpr std::array powers{0U,  3U,  7U,  10U, 13U, 17U, 20U, 23U, 27U, 30U,
-                                33U, 37U, 40U, 43U, 47U, 50U, 53U, 57U, 60U};
     if (call.size() < 3 || call.size() > 6 || grid.size() != 4 || grid[0] < 'A' || grid[0] > 'R' ||
         grid[1] < 'A' || grid[1] > 'R' || !digit(grid[2]) || !digit(grid[3]) ||
         std::find(powers.begin(), powers.end(), dbm) == powers.end())

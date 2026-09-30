@@ -101,7 +101,8 @@ struct OwnerClaimPlaintext {
     unsigned power_dbm = 0;
 };
 struct OwnerClaimEncodedPlaintext {
-    std::array<std::uint8_t, 109> bytes{};
+    static constexpr std::size_t max_size = 117;
+    std::array<std::uint8_t, max_size> bytes{};
     std::size_t size = 0;
     ~OwnerClaimEncodedPlaintext() {
         volatile std::uint8_t* writable = bytes.data();

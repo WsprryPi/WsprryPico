@@ -245,7 +245,7 @@ async function submit(event) {
   const proposed = settings();
   try { claimPlaintext(proposed).fill(0); }
   catch {
-    notice('Check the callsign, four-character grid and transmit power.', true);
+    notice('Check the callsign, four- or six-character grid and transmit power.', true);
     return;
   }
   saving = true;

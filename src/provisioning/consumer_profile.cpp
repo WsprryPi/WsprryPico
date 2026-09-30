@@ -97,7 +97,7 @@ bool valid(const ConsumerProfile& profile) {
     if (!network::valid_device_id(profile.device_id) ||
         (profile.owner_epoch == 0) != profile.owners.empty() || profile.owners.size() > 4 ||
         !standalone::valid_wifi_credentials(profile.ssid, profile.password, profile.time_server) ||
-        !encoding::wspr_type1(profile.callsign, profile.locator, profile.power_dbm) ||
+        !encoding::valid_station_details(profile.callsign, profile.locator, profile.power_dbm) ||
         !lower_hex(profile.request_sha256, 64) || profile.tls.port != 443 || !hostname ||
         *hostname != profile.tls.hostname ||
         !pem(profile.tls.ca_certificate, "-----BEGIN CERTIFICATE-----",

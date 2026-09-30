@@ -58,16 +58,14 @@ export function claimPlaintext({ssid, password, callsign, locator, powerDbm}) {
   const network = ascii(ssid, savedNetwork ? 0 : 1, 32);
   const secret = ascii(password, savedNetwork ? 0 : 8, 63);
   try {
-    if (typeof callsign !== 'string' || callsign.length < 3 || callsign.length > 6 ||
-        [...callsign].some((c) => !((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) ||
-        typeof locator !== 'string' || locator.length !== 4 ||
-        !/^[A-R]{2}[0-9]{2}$/.test(locator) ||
+    if (typeof callsign !== 'string' || callsign.length < 3 || callsign.length > 12 ||
+        /[^A-Z0-9/]/.test(callsign) || !/^[A-Z0-9]+(\/[A-Z0-9]+)*$/.test(callsign) ||
+        !/[A-Z]/.test(callsign) ||
+        !/[0-9]/.test(callsign) ||
+        typeof locator !== 'string' || ![4, 6].includes(locator.length) ||
+        !/^[A-R]{2}[0-9]{2}([A-X]{2})?$/.test(locator) ||
         ![0, 3, 7, 10, 13, 17, 20, 23, 27, 30, 33, 37, 40, 43, 47, 50, 53, 57, 60]
           .includes(powerDbm)) throw new Error('invalid station input');
-    const padded = callsign[2] >= '0' && callsign[2] <= '9' ?
-      callsign.padEnd(6, ' ') : (' ' + callsign).padEnd(6, ' ');
-    if (!/^[ A-Z0-9][A-Z0-9][0-9][A-Z][ A-Z]{2}$/.test(padded))
-      throw new Error('invalid WSPR callsign');
     return join(Uint8Array.of(network.length), network,
       Uint8Array.of(secret.length), secret,
       Uint8Array.of(callsign.length), text(callsign), text(locator),

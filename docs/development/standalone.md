@@ -91,14 +91,22 @@ Credentials are stored in flash without encryption, but never returned by
 `STATUS` or included in maintained firmware build inputs. Configuration is available through Console or authenticated browser management.
 
 The document is limited to 1,800 bytes and eight schedules. Station validation
-uses the existing strict uppercase callsign, four-character Maidenhead locator
-and supported exact WSPR dBm values. The dBm value is encoded message content;
+uses the existing strict uppercase callsign, four- or six-character Maidenhead locator
+and supported exact WSPR dBm values. The full locator is saved, and the existing
+Type 1 frame uses its first four characters. The dBm value is encoded message content;
 it does not set or measure physical output power. Unknown or duplicate fields,
 noncanonical numeric types, unsupported versions and intersecting schedules are
 rejected. Schedules require an even-minute `period_s` from 120 through 86,400,
 dividing one day exactly. `phase_s` is an even-minute offset less than the period.
 The occurrence is `UTC period boundary + phase_s + 1 second`, with no local time
 zone or daylight-saving interpretation.
+
+Saved callsigns accept 3–12 uppercase letters/digits and nonempty slash-separated
+prefix/suffix segments, with at least one letter and digit. An extended callsign
+is preserved in storage and readback. The current automatic WSPR encoder
+supports Type 1 only: an unencodable callsign reports `UNSUPPORTED_MODE` before
+claiming the transmitter or reserving a watermark. It does not strip an affix
+or add Type 2/3 transmissions.
 
 A new/erased device has no configuration and cannot schedule. Saving requires
 an idle unowned service and verified flash writes. It returns `reboot_required`

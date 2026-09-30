@@ -129,10 +129,10 @@ bool PicoBootstrapCrypto::open(const BootstrapTranscriptFields& fields,
         mbedtls_chachapoly_free(&context);
     }
     if (valid) {
-        const auto ssid_size = plain[0];
+        const std::size_t ssid_size = plain[0];
         if (ssid_size >= 1 && ssid_size <= 32 && 1 + ssid_size < ciphertext.size()) {
             const auto password_size = plain[1 + ssid_size];
-            const auto after_password = 2 + ssid_size + password_size;
+            const std::size_t after_password = 2 + ssid_size + password_size;
             valid =
                 after_password <= ciphertext.size() && password_size >= 8 && password_size <= 63;
             if (valid) {

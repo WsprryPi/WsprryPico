@@ -46,7 +46,7 @@ are distinct limits because base64url expands the decoded bytes; enforce both
 before allocating or authenticating a body. Every private request and response is encrypted even though the AP is
 open. Public identity/setup-state responses contain no credentials, owner key,
 client material or job state. The consumer setup status additionally exposes
-only the saved callsign, four-character grid and power in its `station` field,
+only the saved callsign, four- or six-character grid and power in its `station` field,
 as specified below; these three fields are public on the open setup AP.
 Wi-Fi credentials and TLS/private client material are never returned by it.
 
@@ -297,11 +297,25 @@ authentication fails. The authenticated plaintext is exactly:
 ```
 u8(ssid_length) || ssid[1..32 printable ASCII]
 || u8(password_length) || password[8..63 printable ASCII]
-|| u8(callsign_length) || callsign[3..6 uppercase WSPR type-1]
-|| locator[4 uppercase Maidenhead] || u8(supported_power_dbm)
+|| u8(callsign_length) || callsign[3..12 uppercase letters/digits/slashes]
+|| locator[4 or 6 uppercase Maidenhead] || u8(supported_power_dbm)
 ```
 
-The plaintext is 20–109 bytes; no trailing bytes, JSON, time server or
+The plaintext is 20–117 bytes (11–22 bytes for the saved-network marker).
+The full callsign may include prefix/suffix segments separated by single
+slashes, for example `AA0NT/P`, `PJ4/AA0NT` or `PJ4/AA0NT/P`. It must contain
+at least one letter and one digit, with no empty slash segments, whitespace
+or punctuation. Saving is independent of WSPR Type 1 encodability. An
+extended or non-Type-1 callsign is preserved exactly; the current standalone
+encoder reports `UNSUPPORTED_MODE` and creates no job or watermark for it.
+Locator format is `[A-R]{2}[0-9]{2}([A-X]{2})?`: the first pair identifies the
+field, the digits its square, and the optional last pair its subsquare. There
+is no locator-length byte; after the three length-prefixed fields, exactly
+five or seven bytes remain (locator plus power). Existing four-character
+plaintexts remain byte-for-byte compatible. All six characters are saved and
+returned in public station readback. Standalone Type 1 WSPR uses the first
+four characters; this does not add Type 3 or a two-message transmission.
+No trailing bytes, JSON, time server or
 certificate fields are permitted inside it. `time_server` is the firmware's
 validated default `pool.ntp.org`, and HTTPS port is 443. These defaults do
 not add user input. The portable C++ and browser builders share independent

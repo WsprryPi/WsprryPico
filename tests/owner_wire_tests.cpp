@@ -1,6 +1,7 @@
 #include "network/bootstrap_codec.hpp"
 #include "network/owner_wire.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstdint>
@@ -281,4 +282,32 @@ int main() {
     const auto minimum = network::encode_owner_claim_plaintext({"a", "12345678", "K1A", "AA00", 0});
     assert(minimum && minimum->size == 20);
     assert(network::decode_owner_claim_plaintext(minimum->view()));
+    const auto six = network::encode_owner_claim_plaintext({"", "", "K1ABC", "FN20XX", 30});
+    assert(six && network::bootstrap_hex(six->view()) == "0000054b31414243464e323058581e");
+    const auto six_decoded = network::decode_owner_claim_plaintext(six->view());
+    assert(six_decoded && six_decoded->locator == "FN20XX" && six_decoded->power_dbm == 30);
+    const auto max_six = network::encode_owner_claim_plaintext(
+        {std::string(32, 'A'), std::string(63, 'p'), "KA1BCD", "FN20AA", 60});
+    assert(max_six && max_six->size == 111);
+    assert(network::decode_owner_claim_plaintext(max_six->view()));
+    const auto extended =
+        network::encode_owner_claim_plaintext({"", "", "PJ4/AA0NT/P", "EM18AA", 20});
+    assert(extended);
+    const auto extended_decoded = network::decode_owner_claim_plaintext(extended->view());
+    assert(extended_decoded && extended_decoded->callsign == "PJ4/AA0NT/P");
+    const auto max_call = network::encode_owner_claim_plaintext(
+        {std::string(32, 'A'), std::string(63, 'p'), "AA0NT/ABCDEF", "EM18XX", 60});
+    assert(max_call && max_call->size == 117);
+    assert(network::decode_owner_claim_plaintext(max_call->view())->callsign == "AA0NT/ABCDEF");
+    for (auto call : {"AA0NT/ABCDEFG", "/AA0NT", "AA0NT/", "AA0NT//P", "AA0NT-P", "aa0nt/P",
+                      "AAAAAA", "123456", "AA0NT\n"})
+        assert(!network::encode_owner_claim_plaintext({"", "", call, "EM18AA", 20}));
+    for (auto grid : {"FN20A", "FN20AAA", "FN20AY", "FN20ZA", "SN20AA", "FN20aa"}) {
+        assert(!network::encode_owner_claim_plaintext({"", "", "K1ABC", grid, 30}));
+        auto invalid = *six;
+        invalid.size = 3 + 5 + std::string_view(grid).size() + 1;
+        std::copy_n(grid, std::string_view(grid).size(), invalid.bytes.begin() + 8);
+        invalid.bytes[invalid.size - 1] = 30;
+        assert(!network::decode_owner_claim_plaintext(invalid.view()));
+    }
 }

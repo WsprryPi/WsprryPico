@@ -100,8 +100,8 @@ int main() {
                                              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa") == "null");
     // A new journal generation must not be paired with the old boot's fields.
     auto changed_station = profile;
-    changed_station.callsign = "AA0NT";
-    changed_station.locator = "EM18";
+    changed_station.callsign = "AA0NT/P";
+    changed_station.locator = "EM18AA";
     changed_station.power_dbm = 20;
     changed_station.owner_epoch = 2;
     changed_station.request_sha256 = std::string(64, 'b');
@@ -111,7 +111,7 @@ int main() {
     provisioning::RuntimeProfile updated_runtime;
     assert(updated_runtime.load(direct_readback, device, provisioning::BuildBundleState::Absent));
     assert(network::owner_saved_station_json(direct_readback, updated_runtime, device) ==
-           "{\"callsign\":\"AA0NT\",\"locator\":\"EM18\",\"power_dbm\":20}");
+           "{\"callsign\":\"AA0NT/P\",\"locator\":\"EM18AA\",\"power_dbm\":20}");
     const standalone::Config empty_config{};
     const auto selected = preclock.overlay(empty_config);
     assert(selected && selected->ssid == "Home Net" && selected->password == "test-password");

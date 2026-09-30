@@ -62,6 +62,23 @@ int main() {
     assert(decoded && *decoded == value);
     provisioning::scrub(*decoded);
     assert(decoded->password.empty() && decoded->tls.ca_private_key.empty());
+    auto six = value;
+    six.callsign = "PJ4/K1ABC/P";
+    six.locator = "FN20XX";
+    const auto six_wire = provisioning::serialize_consumer_profile(six);
+    assert(provisioning::parse_consumer_profile(six_wire) == six);
+    const auto six_network = provisioning::replace_consumer_network(
+        six_wire, six.device_id, "FieldNet", "field-password", "time.example.org",
+        std::string(64, 'b'));
+    const auto six_readback = provisioning::parse_consumer_profile(six_network);
+    assert(six_readback && six_readback->locator == "FN20XX");
+    for (auto grid : {"FN20A", "FN20AAA", "FN20AY", "FN20aa", "SN20AA"}) {
+        six.locator = grid;
+        assert(provisioning::serialize_consumer_profile(six).empty());
+        auto invalid = six_wire;
+        replace(invalid, "FN20XX", grid);
+        assert(!provisioning::parse_consumer_profile(invalid));
+    }
 
     const auto replacement = provisioning::replace_consumer_network(
         canonical, value.device_id, "FieldNet", "field-password", "time.example.org",
@@ -143,6 +160,8 @@ int main() {
     // limit even with maximum CSR DER, JSON escaping and the full TLS budget.
     value = profile();
     value.owner_epoch = std::numeric_limits<std::uint64_t>::max();
+    value.callsign = "AA0NT/ABCDEF";
+    value.locator = "EM18XX";
     value.owners = {owner(1), owner(2), owner(3), owner(4)};
     value.ssid = std::string(32, '"');
     value.password = std::string(63, '"');

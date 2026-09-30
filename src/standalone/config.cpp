@@ -128,7 +128,7 @@ std::optional<Config> parse_config(std::string_view text) {
     c.locator = station.get("locator")->string();
     std::uint32_t power = 0;
     if (!integer(*station.get("power_dbm"), power) ||
-        !encoding::wspr_type1(c.callsign, c.locator, power))
+        !encoding::valid_station_details(c.callsign, c.locator, power))
         return {};
     c.power_dbm = power;
     c.ssid = wifi.get("ssid")->string();

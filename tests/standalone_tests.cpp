@@ -93,6 +93,10 @@ void lookup_tests() {
 void config_tests() {
     const auto valid = standalone::parse_config(example);
     CHECK(valid);
+    auto six = *valid;
+    six.locator = "EM18AA";
+    six.callsign = "AA0NT/P";
+    CHECK(standalone::parse_config(standalone::serialize_config(six)) == six);
     auto omitted = example;
     const std::string time_member = ",\"ntp_ipv4\":\"192.0.2.1\"";
     omitted.erase(omitted.find(time_member), time_member.size());
@@ -113,6 +117,8 @@ void config_tests() {
     bad("\"enabled\":true", "\"enabled\":true,\"enabled\":false");
     bad("AA0NT", "aa0nt");
     bad("EM18", "EM18xx");
+    for (auto grid : {"EM18A", "EM18AAA", "EM18AY", "EM18ZA", "SM18AA"})
+        bad("EM18", grid);
     bad(":37", ":38");
     bad(":37", ":-1");
     bad(":37", ":3.7e1");
@@ -156,6 +162,8 @@ void storage_tests() {
           store.config_record_size() == 2048 && store.cursor_sequence() == 0 &&
           store.cursor_offset() == 0 && store.cursor_record_size() == 256);
     auto c = *standalone::parse_config(example);
+    c.locator = "EM18AA";
+    c.callsign = "PJ4/AA0NT";
     CHECK(store.save(c));
     CHECK(store.config_sequence() == 1 && store.config_offset() == 0);
     // A checksum-valid record from the overlapping layout must not be
@@ -360,6 +368,7 @@ void scheduler_tests() {
     standalone::Store store(flash);
     CHECK(store.load());
     auto schedule_config = *standalone::parse_config(example);
+    schedule_config.locator = "EM18AA";
     schedule_config.schedules = {{240, 0}};
     CHECK(store.save(schedule_config));
     Clock clock;
@@ -418,6 +427,24 @@ void scheduler_tests() {
     reboot.poll();
     CHECK(other.prepared == 2); // Saving unchanged network settings permits the next slot.
     // Every unavailable/unsafe source must leave flash and engine untouched.
+    {
+        MemoryFlash f;
+        standalone::Store s(f);
+        auto config = *standalone::parse_config(example);
+        config.callsign = "AA0NT/P";
+        config.locator = "EM18AA";
+        CHECK(s.load() && s.save(config));
+        const auto erases = f.erases;
+        Clock clk;
+        clk.advance(116 * ns);
+        Engine e;
+        wtp::JobService jobs(clk, e, identity);
+        standalone::Scheduler unsupported(s, jobs);
+        unsupported.poll();
+        CHECK(e.prepared == 0 && s.watermark() == 0 && f.erases == erases);
+        CHECK(!jobs.status().owner_id && !jobs.status().output_active);
+        CHECK(unsupported.status().find("UNSUPPORTED_MODE") != std::string::npos);
+    }
     for (unsigned fault = 0; fault < 5; ++fault) {
         MemoryFlash f;
         standalone::Store s(f);
