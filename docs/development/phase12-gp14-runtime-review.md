@@ -10,6 +10,15 @@ safe linked-image boundary. The default `WsprryPico` image and the separate
 GP14 diagnostic remain distinct; the new runtime path is selected only with
 `WSPRRY_PICO_GP14_RUNTIME_BUTTON=ON`.
 
+## Subsequent robustness source work
+
+The [2026-09-30 robustness review](phase12-gp14-robustness-review.md) replaces
+finite-count capture in current source with hardware self-retriggering DMA
+and 64-bit progress accounting, and supplies a separate automated diagnostic.
+The installed `fce8776` evidence below still describes finite-count firmware.
+The new source/build results do not retroactively qualify it or establish
+physical renewal, flash-overlap, SoftAP or RF acceptance.
+
 ## Source design
 
 `src/provisioning/pico/gp14_sampler.pio` samples GP14 once per millisecond.

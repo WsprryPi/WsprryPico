@@ -12,7 +12,7 @@ namespace wsprrypico::provisioning {
 class ButtonSampleStream {
   public:
     static constexpr std::uint64_t sample_period_us = 1'000;
-    static constexpr bool backlog_valid(std::uint32_t produced, std::uint32_t consumed,
+    static constexpr bool backlog_valid(std::uint64_t produced, std::uint64_t consumed,
                                         std::uint32_t capacity) {
         return produced >= consumed && produced - consumed <= capacity;
     }

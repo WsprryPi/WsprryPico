@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 
-def validate_uf2(uf2):
+def validate_uf2(uf2, application_end=0x103F3000):
     if not uf2 or len(uf2) % 512:
         raise ValueError("Invalid UF2 block length")
     for offset in range(0, len(uf2), 512):
@@ -24,7 +24,7 @@ def validate_uf2(uf2):
                       uf2[offset + 32:offset + 288] == bytes([0xEF]) * 256 and
                       struct.unpack_from("<I", uf2, offset + 288)[0] == 0x9957E304)
         if not workaround and not flags & 1 and not (
-                0x10000000 <= address < address + size <= 0x103F3000):
+                0x10000000 <= address < address + size <= application_end):
             raise ValueError("UF2 payload outside reserved application region")
 
 

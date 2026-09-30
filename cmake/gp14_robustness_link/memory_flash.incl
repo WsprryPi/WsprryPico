@@ -1,0 +1,5 @@
+/* Diagnostic-only scratch: [0x3f2000,0x3f3000). All existing settings stay above it. */
+MEMORY
+{
+    FLASH(rx) : ORIGIN = 0x10000000, LENGTH = 0x3f2000
+}

@@ -114,14 +114,37 @@ void packed_samples_survive_foreground_blackout() {
 }
 
 void rp2350_dma_count_is_not_endless_mode() {
-    constexpr auto initial = Rp2350DmaProgress::transfer_words;
-    static_assert(initial == 0x0fffffffU);
-    assert(Rp2350DmaProgress::produced(initial) == 0);
-    assert(Rp2350DmaProgress::produced(initial - 1) == 1);
-    assert(Rp2350DmaProgress::produced(0) == initial);
-    // The old 0xffffffff configuration selects RP2350 endless mode: it
-    // cannot provide a monotonically decreasing producer count.
-    assert(!Rp2350DmaProgress::produced(0xffffffffU));
+    constexpr auto block = Rp2350DmaProgress::transfer_words;
+    constexpr auto mode = Rp2350DmaProgress::self_trigger;
+    Rp2350DmaProgress progress;
+    assert(progress.observe(mode | block, 0) == 0);
+    // More than 400 days of 1 kHz sampling, including the old 28-bit finite
+    // limit and the 32-bit software word counter limit, in seconds of host time.
+    std::uint64_t words = 0;
+    for (; words < 4'400'000'000ULL; words += 1000) {
+        auto remaining = block - static_cast<std::uint32_t>(words % block);
+        assert(progress.observe(mode | remaining, words * 8000) == words);
+    }
+    assert(progress.blocks() > 1'000'000);
+    Rp2350DmaProgress boundary;
+    for (unsigned word = 0; word <= block; ++word)
+        assert(boundary.observe(mode | (block - word), word * 8000ULL) == word);
+    assert(boundary.observe(mode | block, block * 8000ULL) == block);
+    assert(boundary.observe(mode | (block - 1), (block + 1) * 8000ULL) == block + 1);
+    for (auto invalid : {0xffffffffU, block, mode | (block + 1)}) {
+        Rp2350DmaProgress broken;
+        assert(!broken.observe(invalid, 0));
+        assert(!broken.observe(mode | block, 0)); // sticky fault
+    }
+    Rp2350DmaProgress gap;
+    assert(!gap.observe(mode | block, Rp2350DmaProgress::maximum_gap_us + 1));
+    Rp2350DmaProgress backwards(100);
+    assert(!backwards.observe(mode | block, 99));
+    Rp2350DmaProgress reset;
+    assert(reset.observe(mode | (block - 1), 8000) == 1);
+    assert(!reset.observe(mode | block, 8001));
+    assert(ButtonSampleStream::backlog_valid(0x100000001ULL, 0xffffffffULL, 2048));
+    assert(!ButtonSampleStream::backlog_valid(0x100001000ULL, 0xffffffffULL, 2048));
 }
 
 void runtime_actions_require_verified_stop() {

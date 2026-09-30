@@ -690,6 +690,7 @@ int main() {
             result += gp14_softap.ready ? "true" : "false";
             number_field(result, "gp14_reset_events", gp14_runtime.reset_events());
             number_field(result, "gp14_samples", gp14_button.samples());
+            number_field(result, "gp14_dma_blocks", gp14_button.completed_blocks());
             number_field(result, "gp14_max_backlog_words", gp14_button.maximum_backlog_words());
 #endif
             result += ",\"network\":";

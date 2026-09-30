@@ -451,3 +451,54 @@ foreach(operation cyw43_cb_tcpip_deinit dhcp_stop netif_remove igmp_stop
 endforeach()
 set_source_files_properties(../src/standalone/pico/shutdown_trace.cpp PROPERTIES
     COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-fstack-usage")
+
+# Standalone unattended capture campaign. No network/RF/settings adapter is linked.
+option(WSPRRY_PICO_GP14_ROBUSTNESS "Build the opt-in GP14 robustness test image" OFF)
+if(WSPRRY_PICO_GP14_ROBUSTNESS)
+    add_executable(WsprryPico-GP14Robustness EXCLUDE_FROM_ALL
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gp14_robustness.cpp
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gp14_capture.cpp
+        ${CMAKE_SOURCE_DIR}/src/runtime/pico/stack_guard.c)
+    target_include_directories(WsprryPico-GP14Robustness PRIVATE
+        ${CMAKE_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/generated)
+    target_compile_features(WsprryPico-GP14Robustness PRIVATE cxx_std_20)
+    set_target_properties(WsprryPico-GP14Robustness PROPERTIES
+        C_STANDARD 11 C_STANDARD_REQUIRED ON C_EXTENSIONS ON)
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gp14_robustness.cpp
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gp14_capture.cpp
+        PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;-Werror;-fstack-usage")
+    target_compile_definitions(WsprryPico-GP14Robustness PRIVATE
+        WSPRRY_PICO_GP14_ROBUSTNESS=1 PICO_NO_BI_PROGRAM_BUILD_DATE=1
+        PICO_STACK_SIZE=0x4000 PICO_CORE1_STACK_SIZE=0
+        PICO_STDIO_USB_STDOUT_TIMEOUT_US=1000 PICO_STDIO_DEADLOCK_TIMEOUT_MS=2
+        PICO_ENABLE_USB_RESET_VIA_BAUD_RATE=0 PICO_ENABLE_USB_RESET_VIA_VENDOR_INTERFACE=0
+        PICO_RUNTIME_SKIP_INIT_PER_CORE_INSTALL_STACK_GUARD=0
+        PICO_RUNTIME_NO_INIT_PER_CORE_INSTALL_STACK_GUARD=1)
+    target_link_libraries(WsprryPico-GP14Robustness PRIVATE
+        pico_stdlib pico_multicore pico_unique_id pico_rand pico_flash hardware_flash
+        hardware_watchdog hardware_exception hardware_pio hardware_dma)
+    target_link_options(WsprryPico-GP14Robustness PRIVATE
+        "LINKER:--defsym=RAM_LENGTH=0x7c000"
+        "LINKER:--defsym=SCRATCH_Y_ORIGIN=0x2007c000"
+        "LINKER:--defsym=SCRATCH_Y_LENGTH=0x4000")
+    pico_add_linker_script_override_path(WsprryPico-GP14Robustness
+        ${CMAKE_SOURCE_DIR}/cmake/gp14_robustness_link FILES memory_flash.incl)
+    pico_generate_pio_header(WsprryPico-GP14Robustness
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gp14_sampler.pio)
+    pico_enable_stdio_uart(WsprryPico-GP14Robustness 0)
+    pico_enable_stdio_usb(WsprryPico-GP14Robustness 1)
+    pico_set_program_name(WsprryPico-GP14Robustness "WsprryPico-GP14Robustness")
+    pico_set_program_description(WsprryPico-GP14Robustness
+        "RF-inhibited GP14 robustness ${WSPRRY_PICO_GIT_REVISION}")
+    pico_add_extra_outputs(WsprryPico-GP14Robustness)
+    add_custom_command(TARGET WsprryPico-GP14Robustness POST_BUILD
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_stack_guards.py
+                $<TARGET_FILE:WsprryPico-GP14Robustness> --physical
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_gp14_robustness_image.py
+                $<TARGET_FILE:WsprryPico-GP14Robustness>
+        VERBATIM)
+    set_property(TARGET WsprryPico-GP14Robustness APPEND PROPERTY LINK_DEPENDS
+        ${CMAKE_SOURCE_DIR}/scripts/check_gp14_robustness_image.py
+        ${CMAKE_SOURCE_DIR}/scripts/check_standalone_image.py)
+endif()

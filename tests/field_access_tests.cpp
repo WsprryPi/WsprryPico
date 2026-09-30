@@ -1055,6 +1055,19 @@ void runtime_policy() {
     CHECK(!held_ap.poll(9'000 + provisioning::softap_manual_setup_ms * 4));
     CHECK(!held_ap.status(9'000 + provisioning::softap_manual_setup_ms * 4).manual_setup);
     CHECK(!held_ap.status(9'000 + provisioning::softap_manual_setup_ms * 4).manual_button_held);
+    // Accelerate past 32-bit milliseconds and hundreds of days without
+    // shortening the production lease. A continuous hold must still retain AP.
+    provisioning::SoftApCoordinator ancient_ap(store);
+    constexpr std::uint64_t far_future = 400ULL * 24 * 60 * 60 * 1000;
+    ancient_ap.station(true, 0);
+    CHECK(ancient_ap.request_manual_setup(9'000, true, true));
+    CHECK(ancient_ap.poll(far_future));
+    ancient_ap.ready(true);
+    CHECK(ancient_ap.status(far_future).ready);
+    CHECK(ancient_ap.status(far_future).manual_button_held);
+    ancient_ap.manual_button_released(far_future);
+    CHECK(ancient_ap.poll(far_future + provisioning::softap_manual_setup_ms - 1));
+    CHECK(!ancient_ap.poll(far_future + provisioning::softap_manual_setup_ms));
     CHECK(media.bytes == access_before_manual);
     provisioning::SoftApCoordinator saved_ap(store);
     saved_ap.no_profile(true); // Network-only and consumer pre-clock use the open page.

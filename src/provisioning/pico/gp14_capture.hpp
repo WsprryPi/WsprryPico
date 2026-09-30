@@ -2,6 +2,7 @@
 
 #include "hardware/pio.h"
 #include "provisioning/button_sample_stream.hpp"
+#include "provisioning/pico/rp2350_dma_progress.hpp"
 
 #include <array>
 #include <cstdint>
@@ -26,7 +27,21 @@ class PicoGp14Capture {
     static constexpr unsigned pin = 14;
     static constexpr std::uint32_t ring_words = 2048;
 
+#ifdef WSPRRY_PICO_GP14_ROBUSTNESS
+    bool start(bool boot_held = false);
+    void sample_override(bool pressed);
+    volatile std::uint32_t* sample_instruction();
+#else
     bool start();
+#endif
+    bool poll_progress();
+    [[nodiscard]] std::uint64_t completed_blocks() const {
+        return progress_.blocks();
+    }
+#ifdef WSPRRY_PICO_GP14_ROBUSTNESS
+    void inject_dma_stop();
+    void inject_pio_stop();
+#endif
     // Returns one release or threshold event. Call until false each loop.
     bool next(DiagnosticButtonEvents& event);
     [[nodiscard]] bool fault() const {
@@ -48,12 +63,13 @@ class PicoGp14Capture {
   private:
     alignas(8192) std::array<std::uint32_t, ring_words> words_{};
     ButtonSampleStream stream_;
+    Rp2350DmaProgress progress_;
     PIO pio_ = nullptr;
     unsigned sm_ = 0;
     unsigned offset_ = 0;
     int dma_ = -1;
-    std::uint32_t consumed_words_ = 0;
-    std::uint32_t last_produced_words_ = 0;
+    std::uint64_t consumed_words_ = 0;
+    std::uint64_t last_produced_words_ = 0;
     std::uint32_t current_word_ = 0;
     unsigned next_bit_ = 8;
     std::uint64_t last_progress_us_ = 0;
