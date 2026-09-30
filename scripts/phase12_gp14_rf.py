@@ -2,7 +2,7 @@
 """Opt-in, B-only, one finite physical GP14/RF acquisition per invocation.
 
 No flashing, station Save, clock setting, synthetic GPIO or automatic retry.
-Each next run requires the preceding independent RF assessment to pass.
+Each next run requires passing RF assessment or a bound reviewed nonqualifying resolution.
 """
 import argparse
 import hashlib
@@ -143,9 +143,94 @@ def review_no_input_retry(path):
                 reason='Explicit operator retry after reviewed no-input finite completion')
 
 
-def acquire(packet, case, campaign, retry_no_input_run=None):
+def review_quick_reset_mismatch(path):
+    """Close an observed normal reset operationally; RF acceptance stays false."""
+    attempt = json.loads(path.read_text())
+    require(attempt['case'] == 'active_stop' and attempt['charged_jobs'] == 1 and
+            attempt['status'] == 'FAILED_STOP_CAMPAIGN' and
+            attempt.get('error') == 'ConnectionError: serial device closed',
+            'not the reviewed unexpected quick-reset acquisition')
+    info_path = path.with_name('post-failure-info.json')
+    info = json.loads(info_path.read_text())
+    events_path = path.with_name('events.jsonl')
+    events = [json.loads(line) for line in events_path.read_text().splitlines()]
+    initial = [event['value'] for event in events if event['kind'] == 'initial_info']
+    require(len(initial) == 1 and initial[0]['device_id'] == DEVICE and
+            initial[0]['revision'] == info['revision'] and
+            initial[0]['status']['boot_id'] == attempt['boot_id'] and
+            info['system_clock_hz'] == 138000000 and info['status']['engine'] == 'pio-dma-gp2' and
+            any(event['kind'] in ('before_action_info', 'action_info') and
+                event['value']['status']['boot_id'] == attempt['boot_id'] and
+                event['value']['status']['output_active'] is True for event in events),
+            'reset/launch image identity unconfirmed')
+    require(info['device_id'] == DEVICE and info.get('gp14_rf_acceptance') is True and
+            info['status']['boot_id'] != attempt['boot_id'] and
+            info['gp14_prior_reset'] is True and 0 < info['gp14_prior_duration_ms'] < 400 and
+            info['gp14_prior_rf_decision_after_launch_us'] > 0 and
+            info['status']['state'] == 'empty' and info['status']['output_active'] is False and
+            info['status']['enabled'] is False and info['status']['storage_healthy'] is True and
+            info['gp14_held'] is False and info['gp14_capture_fault'] is False and
+            info['recovery_boot'] is False, 'normal reset and inactive readback unconfirmed')
+    for key in ('fault_stage', 'fault_hash', 'fault_pc', 'fault_status', 'provisioning_fault',
+                'core0_stack_fault_status', 'core1_stack_fault_status', 'dma_errors'):
+        require(info[key] == 0, 'reset readback fault: ' + key)
+    require(info['core0_stack_guard_valid'] == 1 and info['core1_stack_guard_valid'] == 1 and
+            info['allocator_failures'] == '0', 'reset resource health')
+    return dict(attempt_sha256=digest(path),
+                events_sha256=digest(events_path),
+                post_failure_info_sha256=digest(info_path), independent_rf_pass=False)
+
+
+def finish_capture(capture, deadline):
+    """Retain finite receiver completion even when a target action fails."""
+    try:
+        return capture.wait(timeout=max(0, deadline - time.monotonic()))
+    except subprocess.TimeoutExpired:
+        capture.terminate()
+        try:
+            capture.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            capture.kill()
+            capture.wait(timeout=5)
+        return None
+
+
+def wait_button_reset(packet, initial, evidence, *, read=console, now=time.monotonic,
+                      pause=time.sleep):
+    """No output job is created until an operator's idle quick tap starts a new boot."""
+    require(initial['status']['state'] == 'empty' and
+            initial['status']['output_active'] is False, 'ready signal requires inactive empty B')
+    old_boot = initial['status']['boot_id']
+    end = now() + 600
+    print('WAITING: quick-tap B GP14, release, then watch for triple LED flashes', flush=True)
+    while now() < end:
+        try:
+            info = read()
+        except (OSError, ConnectionError, TimeoutError):
+            pause(.1)
+            continue
+        check_info(info, packet)
+        require(info['status']['state'] == 'empty' and info['status']['output_active'] is False,
+                'unexpected activity while waiting for operator')
+        if info['status']['boot_id'] != old_boot:
+            require(info['gp14_prior_reset'] is True and 0 < info['gp14_prior_duration_ms'] < 400,
+                    'operator quick-reset marker missing')
+            require(info['gp14_held'] is False and info['gp14_output_inhibited'] is False and
+                    info['rf_safety_inhibited'] is False, 'ready tap did not finish released')
+            if info['status']['clock_state'] == 'synchronized' and \
+                    info['network']['ipv4'] == packet['address']:
+                evidence.record('physical_start_info', info)
+                return info
+        pause(.2)
+    raise RuntimeError('physical ready signal timeout; no RF job submitted')
+
+
+def acquire(packet, case, campaign, retry_no_input_run=None, wait_for_button=False):
     previous = sorted(campaign.glob('run-*/attempt.json'))
-    require(len(previous) < 8, 'initial eight-attempt budget exhausted')
+    require(len(previous) < 10, 'ten-attempt acquisition budget exhausted')
+    charges = [json.loads(path.read_text())['charged_jobs'] for path in previous]
+    require(all(type(charge) is int and charge in (0, 1) for charge in charges) and
+            sum(charges) < 8, 'initial eight-RF-job budget exhausted/invalid')
     retry_review = None
     for path in previous:
         if path.parent.name == retry_no_input_run:
@@ -154,6 +239,16 @@ def acquire(packet, case, campaign, retry_no_input_run=None):
         assessment = path.with_name('analysis.json')
         require(assessment.exists(), 'preceding independent RF assessment pending')
         result = json.loads(assessment.read_text())
+        if result.get('resolved_no_input_timeout') is True:
+            review = review_no_input_retry(path)
+            require(all(result.get(key) == value for key, value in review.items()),
+                    'no-input resolution unbound')
+            continue
+        if result.get('resolved_wrong_gesture') is True:
+            review = review_quick_reset_mismatch(path)
+            require(all(result.get(key) == value for key, value in review.items()),
+                    'wrong-gesture resolution unbound')
+            continue
         no_rf = (result.get('resolved_without_rf') is True and
                  json.loads(path.read_text())['charged_jobs'] == 0)
         require((result.get('independent_rf_pass') is True or no_rf) and
@@ -170,6 +265,7 @@ def acquire(packet, case, campaign, retry_no_input_run=None):
     save()
     peer = None
     capture = None
+    capture_deadline = None
     owner = uuid.uuid4().hex
     job = job_value(uuid.uuid4().hex)
     boot = None
@@ -177,6 +273,8 @@ def acquire(packet, case, campaign, retry_no_input_run=None):
     try:
         initial = console()
         check_info(initial, packet)
+        if wait_for_button:
+            initial = wait_button_reset(packet, initial, evidence)
         require(not initial['gp14_held'] and not initial['gp14_output_inhibited'] and
                 not initial['rf_safety_inhibited'] and initial['gp14_rf_busy_used'] == 0,
                 'new released-input boot required')
@@ -199,6 +297,7 @@ def acquire(packet, case, campaign, retry_no_input_run=None):
         evidence.record('capture_argv', argv)
         with (root/'receiver.log').open('w') as receiver_log:
             capture = subprocess.Popen(argv, stdout=receiver_log, stderr=subprocess.STDOUT)
+        capture_deadline = time.monotonic() + 55
         ready_end = time.monotonic() + 8
         while not (root/'capture.cf32.incomplete').exists() or \
                 (root/'capture.cf32.incomplete').stat().st_size < 65536:
@@ -235,6 +334,8 @@ def acquire(packet, case, campaign, retry_no_input_run=None):
             require(time.monotonic() < action_end, 'finite launch timeout')
             time.sleep(.05)
         print('CONTACT NOW: ' + case + ' on B', flush=True)
+        if wait_for_button:
+            evidence.record('physical_led_cue', console('IDENTIFY ' + DEVICE))
         busy = None
         final = None
         while time.monotonic() < action_end:
@@ -289,7 +390,7 @@ def acquire(packet, case, campaign, retry_no_input_run=None):
                         'one verified AP request')
         evidence.record('final_info', final)
         attempt['final_boot_id'] = final['status']['boot_id']
-        require(capture.wait(timeout=55) == 0, 'receiver capture failed')
+        require(finish_capture(capture, capture_deadline) == 0, 'receiver capture failed')
         meta = json.loads((root/'capture.json').read_text())
         require(meta['actual_settings'] == SETTINGS and
                 meta['resolved_device'] == dict(driver='sdrplay', serial='2404058C60') and
@@ -321,12 +422,8 @@ def acquire(packet, case, campaign, retry_no_input_run=None):
         if peer:
             peer.close()
         if capture and capture.poll() is None:
-            capture.terminate()
-            try:
-                capture.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                capture.kill()
-                capture.wait(timeout=5)
+            attempt['receiver_completion_after_target_failure'] = finish_capture(capture, capture_deadline)
+            save()
         evidence.file.close()
 
 
@@ -337,12 +434,14 @@ def main():
     parser.add_argument('--run', action='store_true')
     parser.add_argument('--retry-no-input-run',
                         help='Explicit operator-authorized retry of a reviewed finite no-input timeout')
+    parser.add_argument('--wait-button-reset', action='store_true',
+                        help='Wait RF-inactive for an operator quick tap, then cue the action with LED flashes')
     args = parser.parse_args()
     os.umask(0o077)
     packet = json.loads((args.campaign/'packet.json').read_text())
     validate_packet(packet)
     require(args.run, 'explicit --run required for physical USB/receiver/RF actions')
-    acquire(packet, args.case, args.campaign, args.retry_no_input_run)
+    acquire(packet, args.case, args.campaign, args.retry_no_input_run, args.wait_button_reset)
 
 
 if __name__ == '__main__':

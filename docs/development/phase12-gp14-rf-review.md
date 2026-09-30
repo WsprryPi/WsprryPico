@@ -30,7 +30,7 @@ neither the command nor this marker, verified by the linked-image checker.
 
 `phase12_gp14_rf.py` acquires one identified B-only finite 20-second tone and
 40-second receiver capture per invocation. It charges ambiguous ARM attempts,
-limits the initial campaign to eight attempts, stops on failed evidence and
+limits the initial campaign to eight RF jobs and ten acquisition attempts, stops on failed evidence and
 requires a bound, passing independent RF analysis before the next attempt.
 It does not flash, save station settings, inject input or set the clock.
 
@@ -181,3 +181,47 @@ remains a failed acquisition and its partial IQ is excluded from acceptance.
 Fresh identity-bound LAN readback after restoration confirms empty/unowned/
 inactive authority. No further actionable source finding was identified;
 physical hold, cutoff measurement and default enablement remain open.
+
+## Physical readiness and retained receiver completion
+
+The subsequent inhibited hold check recorded **5,707,000 us**, one verified
+stop and no reset/capture fault. B's exact RF acceptance application was then
+reloaded with a fresh retained full backup and all 57,344 reserved bytes
+identical. Firmware source/image remain `62ae4c2c2567` and the same UF2 hash.
+The fourth acquisition, boot `1e378e6b7b6ce2d0d29cdbd25dc190bc`, completed its
+20-second tone before any recorded input. Its later physical hold was
+**6,356,000 us**; the worker requested stop **108.211701 seconds after launch**
+and acknowledged inactive output in **77 us**, with no input fault. That
+acknowledgement occurred with the tone already ended and does not qualify
+live RF cutoff.
+
+The repaired finalizer retained all ten million CF32 samples after the target
+timeout, with exact receiver/settings, no overflow/timeout/clipping, verified
+cleanup and SHA-256
+`c5337d9ffcfe10dcbeef01832b971e6cac39b57235fdb6f6e3bef8d08a83a013`.
+An independent 1 ms Fourier-window observation finds a continuous carrier
+from nominal receiver sample times 5.373 to 25.374 seconds, 64.59 dB above the
+inactive baseline. This is a finite-tone observation, not cutoff acceptance;
+no calibrated receiver-time bound is claimed. **Four acquisition attempts and
+three RF jobs are charged; all required cutoff rows remain open.**
+
+The host helper now retains finite receiver completion even if a target action
+fails. A bounded reviewed resolution of the earlier normal quick-reset mismatch
+requires positive prior launch, the same image/device, a distinct normal-reset
+boot, under-400 ms marker, positive relative worker decision, empty/inactive
+output and fault/resource health. It remains `independent_rf_pass: false` and
+cannot waive a recovery/fault boot or an unbound readback. Reviewed no-input
+timeouts are likewise bound to exact finite completion/cleanup and remain
+unaccepted. Initial RF authority stays bounded at eight charged jobs; rejected
+LOAD attempts are recorded separately under a ten-attempt ceiling.
+
+To remove chat timing from the short acquisition window, an explicit
+`--wait-button-reset` flow waits empty/inactive for the operator's local quick
+tap, admits only a new released healthy synchronized boot, and sends B's
+existing triple-flash identify cue after active/armed confirmation. It submits
+one finite job. The unsignaled ten-minute wait submits no job. Adversarial
+checks reject premature/held/faulted ready signals, foreign image/reset
+readback and missing decision evidence; real subprocess checks cover receiver
+completion and forced reaping at its deadline. Affected stream/client groups
+pass **2/2**. Reassessment found no additional source finding; physical cutoff,
+busy-core behavior, reset/AP acceptance and default enablement remain open.

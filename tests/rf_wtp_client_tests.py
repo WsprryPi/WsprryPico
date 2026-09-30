@@ -154,3 +154,79 @@ with TemporaryDirectory() as directory:
     check_retry(rejected, False)
     check_retry(events[:1], False)
 print('Explicit no-input retry preserves failed qualification and rejects safety/cleanup ambiguity')
+
+from phase12_gp14_rf import review_quick_reset_mismatch, finish_capture, DEVICE
+import subprocess
+import time
+with TemporaryDirectory() as directory:
+    root=Path(directory)
+    attempt=dict(case='active_stop', charged_jobs=1, status='FAILED_STOP_CAMPAIGN',
+                 error='ConnectionError: serial device closed', boot_id='old')
+    (root/'attempt.json').write_text(json.dumps(attempt))
+    initial=dict(device_id=DEVICE, revision='62ae4c2c2567', status=dict(boot_id='old'))
+    events=[dict(kind='initial_info', value=initial),
+            dict(kind='action_info', value=dict(status=dict(boot_id='old',output_active=True)))]
+    (root/'events.jsonl').write_text('\n'.join(json.dumps(value) for value in events))
+    healthy=dict(device_id=DEVICE, revision='62ae4c2c2567', system_clock_hz=138000000,
+                 gp14_rf_acceptance=True, gp14_prior_reset=True, gp14_prior_duration_ms=27,
+                 gp14_prior_rf_decision_after_launch_us=12637844,
+                 status=dict(boot_id='new', engine='pio-dma-gp2', state='empty',
+                             output_active=False, enabled=False, storage_healthy=True),
+                 gp14_held=False, gp14_capture_fault=False, recovery_boot=False,
+                 core0_stack_guard_valid=1, core1_stack_guard_valid=1, allocator_failures='0')
+    for key in ('fault_stage','fault_hash','fault_pc','fault_status','provisioning_fault',
+                'core0_stack_fault_status','core1_stack_fault_status','dma_errors'):
+        healthy[key]=0
+    def reset_review(info, accepted):
+        (root/'post-failure-info.json').write_text(json.dumps(info))
+        try: result=review_quick_reset_mismatch(root/'attempt.json')
+        except RuntimeError: assert not accepted
+        else: assert accepted and result['independent_rf_pass'] is False
+    reset_review(healthy,True)
+    for key,value in [('gp14_prior_duration_ms',400),('gp14_prior_reset',False),
+                      ('recovery_boot',True),('fault_stage',1),('revision','other'),
+                      ('gp14_prior_rf_decision_after_launch_us',0)]:
+        rejected=copy.deepcopy(healthy);rejected[key]=value;reset_review(rejected,False)
+    rejected=copy.deepcopy(healthy);rejected['status']['output_active']=True
+    reset_review(rejected,False)
+
+# Receiver completion is retained after a target failure; a stuck receiver is
+# forcibly reaped at the finite deadline and cannot be mistaken for success.
+capture=subprocess.Popen([sys.executable,'-c','import time;time.sleep(.03)'])
+assert finish_capture(capture,time.monotonic()+2)==0
+capture=subprocess.Popen([sys.executable,'-c','import time;time.sleep(60)'])
+assert finish_capture(capture,time.monotonic()+.03) is None and capture.poll() is not None
+print('Normal-reset resolution remains nonqualifying; finite receiver completion/reaping passed')
+
+# Physical readiness is consumed only after a distinct healthy quick-reset
+# boot is released and synchronized. No cue/job can precede that signal.
+from phase12_gp14_rf import wait_button_reset
+class ReadyEvidence:
+    def __init__(self): self.values=[]
+    def record(self,kind,value): self.values.append((kind,value))
+ready=copy.deepcopy(healthy)
+ready.update(gp14_samples='100',gp14_output_inhibited=False,rf_safety_inhibited=False)
+ready['status'].update(clock_state='synchronized')
+ready['network']=dict(ipv4='192.168.1.53')
+old=copy.deepcopy(ready);old['status']['boot_id']='old'
+old.update(gp14_output_inhibited=True,rf_safety_inhibited=True)
+packet=dict(revision=ready['revision'],address='192.168.1.53')
+unsynced=copy.deepcopy(ready);unsynced['status']['clock_state']='unsynchronized'
+values=iter([old,unsynced,ready]);evidence=ReadyEvidence()
+assert wait_button_reset(packet,old,evidence,read=lambda:next(values),
+                         now=lambda:0,pause=lambda _:None)==ready
+assert [kind for kind,_ in evidence.values]==['physical_start_info']
+for field,value in [('gp14_prior_reset',False),('gp14_held',True),
+                    ('rf_safety_inhibited',True),('gp14_capture_fault',True)]:
+    rejected=copy.deepcopy(ready);rejected[field]=value;evidence=ReadyEvidence()
+    try: wait_button_reset(packet,old,evidence,read=lambda:rejected,
+                           now=lambda:0,pause=lambda _:None)
+    except RuntimeError: pass
+    else: raise AssertionError('unqualified physical ready signal accepted')
+    assert evidence.values==[]
+times=iter([0,601])
+try: wait_button_reset(packet,old,ReadyEvidence(),read=lambda:old,
+                       now=lambda:next(times),pause=lambda _:None)
+except RuntimeError as error: assert 'no RF job submitted' in str(error)
+else: raise AssertionError('ready wait exceeded its no-RF deadline')
+print('Physical readiness rejects premature, faulted, held and unsignaled starts')

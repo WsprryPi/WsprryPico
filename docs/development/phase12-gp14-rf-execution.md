@@ -65,7 +65,9 @@ launch. New output admission after the stop latch must fail.
 
 Use no more than eight finite RF jobs of at most 30 seconds each in the initial
 packet, no unattended repetition and stop on the first unexpected result.
-Record each attempt, including failed starts. Keep the core-0 busy interval
+Record each attempt, including failed starts. The controller separately caps
+acquisition attempts at ten; a rejected LOAD with no ARM consumes an attempt,
+and every possibly sent ARM consumes one of the eight RF-job charges. Keep the core-0 busy interval
 below the existing 8-second watchdog. A watchdog recovery row may require a
 separate reviewed stimulus; do not improvise a destructive fault.
 
@@ -75,6 +77,16 @@ completion and inactive cleanup. The explicit retry flag binds those retained
 events and keeps the failed attempt counted and unaccepted. It cannot resolve
 an observed gesture, safety fault or ambiguous cleanup. An unexpected reset
 still stops the campaign for review and restoration.
+
+Chat cue delivery proved too slow for a 20-second tone. The physical-ready
+flow waits RF-inactive for one operator quick tap/reset, then requires a new
+healthy, released, synchronized boot and fresh empty/unowned WTP admission.
+It starts one finite acquisition and uses the existing identity-bound triple
+LED identify pattern only after positive active RF (or positive armed state
+for armed rows). The operator watches B locally and performs the required
+gesture at that cue. An unsignaled wait ends after ten minutes without an RF
+job; faults, unqualified resets and early input refuse admission. No firmware
+input injection or new automatic output policy is introduced.
 
 Finish with inactive, empty/unowned, healthy storage and exact settings
 comparison, then restore the retained inhibited image. Enable GP14 by default
