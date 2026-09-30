@@ -257,5 +257,32 @@ await elements.get('owner-form').events.submit({preventDefault() {}});
 assert.equal(elements.get('owner-retry').hidden, false);
 assert.equal(elements.get('owner-saved').hidden, true);
 assert.equal([...timers.values()].some((timer) => timer.delay === 180000), false);
+// Back checks a terminal slot without replaying or falsely blaming another setup.
+status = {...status, slot_state: 'terminal', claim_available: false};
+const failedPostCount = posts;
+await elements.get('owner-retry-button').events.click();
+await new Promise(setImmediate);
+assert.equal(elements.get('owner-submit').disabled, true);
+assert.equal(elements.get('owner-retry').hidden, true);
+assert.match(elements.get('notice').textContent, /previous setup attempt is finishing/);
+await elements.get('owner-form').events.submit({preventDefault() {}});
+assert.equal(posts, failedPostCount);
+status = {...status, slot_state: 'none', claim_available: true};
+await runTimer(1000);
+assert.equal(elements.get('owner-submit').disabled, false);
+assert.match(elements.get('notice').textContent, /Ready to update/);
+
+// A newly opened page waits through a busy slot, then recovers automatically.
+timers.clear();
+status = {...status, slot_state: 'trial', claim_available: false};
+await import('./owner-app.js?busy-slot');
+await new Promise(setImmediate);
+assert.equal(elements.get('owner-submit').disabled, true);
+assert.equal(elements.get('owner-retry').hidden, true);
+assert.match(elements.get('notice').textContent, /Setup is busy/);
+status = {...status, slot_state: 'none', claim_available: true};
+await runTimer(1000);
+assert.equal(elements.get('owner-submit').disabled, false);
+assert.equal(posts, failedPostCount);
 peer.secretKey.fill(0);
 console.log('separate station setup, LED, another-phone update and polling recovery passed');

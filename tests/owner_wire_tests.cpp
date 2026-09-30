@@ -236,6 +236,13 @@ int main() {
     changed_claim.source = provisioning::ProfileSource::Unprovisioned;
     assert(claim_differs(changed_claim));
     changed_claim.source = provisioning::ProfileSource::ConsumerProfile;
+    assert(claim_differs(changed_claim));
+    changed_claim.generation = 0;
+    assert(!network::owner_claim_transcript(changed_claim));
+    changed_claim.generation = UINT64_MAX;
+    assert(!network::owner_claim_transcript(changed_claim));
+    changed_claim = claim;
+    changed_claim.source = provisioning::ProfileSource::RuntimeProfile;
     assert(!network::owner_claim_transcript(changed_claim));
     changed_claim = claim;
     changed_claim.owner_public_key[0] = 0;
@@ -260,13 +267,12 @@ int main() {
     malformed.bytes[malformed.size++] = 0;
     assert(!network::decode_owner_claim_plaintext(malformed.view()));
     assert(!network::encode_owner_claim_plaintext({"LabNet", "short", "K1ABC", "FN20", 30}));
-    const auto station_only =
-        network::encode_owner_claim_plaintext({"", "", "K1ABC", "FN20", 30});
+    const auto station_only = network::encode_owner_claim_plaintext({"", "", "K1ABC", "FN20", 30});
     assert(station_only && station_only->size == 13);
     assert(network::bootstrap_hex(station_only->view()) == "0000054b31414243464e32301e");
     const auto station_decoded = network::decode_owner_claim_plaintext(station_only->view());
-    assert(station_decoded && station_decoded->ssid.empty() &&
-           station_decoded->password.empty() && station_decoded->callsign == "K1ABC");
+    assert(station_decoded && station_decoded->ssid.empty() && station_decoded->password.empty() &&
+           station_decoded->callsign == "K1ABC");
     assert(!network::encode_owner_claim_plaintext({"LabNet", "", "K1ABC", "FN20", 30}));
     const auto maximum = network::encode_owner_claim_plaintext(
         {std::string(32, 'A'), std::string(63, 'p'), "KA1BCD", "FN20", 60});

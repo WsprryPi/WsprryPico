@@ -155,7 +155,8 @@ std::optional<OwnerClaimTranscript> owner_claim_transcript(const OwnerClaimField
     const bool claimable =
         (fields.source == provisioning::ProfileSource::LegacyBootstrap && fields.generation == 0) ||
         ((fields.source == provisioning::ProfileSource::Unprovisioned ||
-          fields.source == provisioning::ProfileSource::NetworkOnly) &&
+          fields.source == provisioning::ProfileSource::NetworkOnly ||
+          fields.source == provisioning::ProfileSource::ConsumerProfile) &&
          fields.generation > 0 && fields.generation < UINT64_MAX);
     if (!claimable || !nonzero(fields.device_id) || !nonzero(fields.boot_id) ||
         !nonzero(fields.slot_id) || fields.owner_public_key[0] != 4 ||
@@ -196,9 +197,8 @@ std::optional<OwnerClaimTranscript> owner_claim_transcript(const OwnerClaimField
 std::optional<OwnerClaimEncodedPlaintext>
 encode_owner_claim_plaintext(const OwnerClaimPlaintext& value) {
     const bool saved_network = value.ssid.empty() && value.password.empty();
-    if ((!saved_network &&
-         !standalone::valid_wifi_credentials(value.ssid, value.password,
-                                             standalone::default_time_server)) ||
+    if ((!saved_network && !standalone::valid_wifi_credentials(value.ssid, value.password,
+                                                               standalone::default_time_server)) ||
         !encoding::wspr_type1(value.callsign, value.locator, value.power_dbm))
         return std::nullopt;
     OwnerClaimEncodedPlaintext result;
@@ -239,9 +239,8 @@ decode_owner_claim_plaintext(std::span<const std::uint8_t> bytes) {
     at += 4;
     result.power_dbm = bytes[at];
     const bool saved_network = result.ssid.empty() && result.password.empty();
-    if ((!saved_network &&
-         !standalone::valid_wifi_credentials(result.ssid, result.password,
-                                             standalone::default_time_server)) ||
+    if ((!saved_network && !standalone::valid_wifi_credentials(result.ssid, result.password,
+                                                               standalone::default_time_server)) ||
         !encoding::wspr_type1(result.callsign, result.locator, result.power_dbm))
         return std::nullopt;
     return result;

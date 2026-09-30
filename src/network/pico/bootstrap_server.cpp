@@ -240,7 +240,7 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
     // submit. Keep the consumed trial alive until it commits or expires.
     if (!active_ && (owner_slot_.state() == provisioning::ConsumerClaimState::Identify ||
                      owner_slot_.state() == provisioning::ConsumerClaimState::Granted))
-        cancel_owner_slot(owner_trial_active_);
+        cancel_owner_slot(true);
     if (slot_.state() != BootstrapSlotState::None &&
         slot_.state() != BootstrapSlotState::Terminal &&
         (!mutation_safe_ || !network_setup_authority()))
@@ -268,12 +268,14 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
     owner_slot_.expire(now_ms);
     if (old_owner_state != provisioning::ConsumerClaimState::None &&
         owner_slot_.state() == provisioning::ConsumerClaimState::None)
-        cancel_owner_slot(owner_trial_active_);
+        cancel_owner_slot(true);
     if (owner_trial_start_pending_ && !client_ &&
         (owner_submit_delivered_ ||
          (now_ms >= owner_submit_ms_ && now_ms - owner_submit_ms_ >= 10'000))) {
         owner_trial_start_pending_ = false;
         claim_platform_->begin_station_trial();
+        // Set before stopping the station: a failed start must restore it too.
+        owner_trial_switched_network_ = true;
         network_->stop_network_only_trial();
         if (network_->start_network_only(owner_trial_.ssid, owner_trial_.password,
                                          previous_network_.time_server))
@@ -861,13 +863,20 @@ bool PicoBootstrapServer::owner_claimable() const {
     }
 }
 
-void PicoBootstrapServer::cancel_owner_slot(bool restore_network) {
-    if (restore_network && network_) {
+void PicoBootstrapServer::restore_owner_network() {
+    if (owner_trial_switched_network_ && network_) {
         network_->stop_network_only_trial();
         if (!previous_network_.ssid.empty())
             (void)network_->start_network_only(previous_network_.ssid, previous_network_.password,
                                                previous_network_.time_server);
     }
+    owner_trial_switched_network_ = false;
+}
+
+void PicoBootstrapServer::cancel_owner_slot(bool restore_network) {
+    if (restore_network)
+        restore_owner_network();
+    owner_trial_switched_network_ = false;
     owner_slot_.cancel();
     owner_crypto_.clear();
     owner_trial_.clear();
@@ -883,12 +892,9 @@ void PicoBootstrapServer::cancel_owner_slot(bool restore_network) {
 }
 
 void PicoBootstrapServer::end_owner_trial(bool committed, std::uint64_t now_ms) {
-    if (!committed && network_) {
-        network_->stop_network_only_trial();
-        if (!previous_network_.ssid.empty())
-            (void)network_->start_network_only(previous_network_.ssid, previous_network_.password,
-                                               previous_network_.time_server);
-    }
+    if (!committed)
+        restore_owner_network();
+    owner_trial_switched_network_ = false;
     if (!committed && claim_platform_ && claim_platform_->safe_to_commit())
         (void)owner_slot_.finish(false, {}, 0, now_ms, true);
     else if (!committed)

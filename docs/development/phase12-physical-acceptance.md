@@ -373,7 +373,7 @@ It rejoined `192.168.1.53`, acquired synchronized time and passed LAN
 `HELLO`/`STATUS`; GP14 is released and AP is off at this readiness checkpoint.
 The exact prior `dd49d049daf2` restoration image and private full backup remain
 retained under ignored `build/phase12-owner-startup-b-7984364/` and the
-corresponding `wspr5` directory. No station save has been made on this image.
+corresponding `wspr5` directory. The subsequent station attempt is recorded below.
 
 Preparation events are retained separately: the old image lacked fresh clock
 readiness after the elapsed repair, so it was not credited with a new LAN pass;
@@ -389,6 +389,65 @@ The revised source and its next target/phone evidence are separate from the
 failed `dd49d049daf2` packet. P12.8/P12.10 remain open until the repaired page
 and save have target evidence; different-phone and broader acceptance gates
 remain unchanged.
+
+### B later-station rejection and repair (2026-09-30)
+
+The operator's 1:28 screenshot shows the styled station form, correct Pico
+suffix `4fab42`, and AA0NT / EM18 / 20 dBm. The following attempt reported
+rejection; the 1:32 screenshot shows “Another setup is in progress” and
+“Station settings not saved.” The exact browser for that failure is not
+verified by the screenshot. The operator also tried returning to the form;
+the count of submitted requests is not established by these images.
+
+The finite private USB collector on firmware `79843646e89c`, boot
+`9095b1994562b7e73e0c3c2dc1f7ddc2`, retained consumer generation 3 and its
+original request digest throughout. At host epoch `1790793157.072441`, the
+station link changed from joined `192.168.1.53` to link 0/no address without a
+restart or durable update. Inhibited output remained inactive; no recorded
+fault or allocation failure appeared. This attempt failed acceptance.
+
+Review found three actionable defects, repaired in this continuation:
+
+- The real Pico AEAD transcript rejected consumer source 5 even though the
+  browser, slot and commit path support later station updates. Source 5 is
+  now accepted only for a nonzero generation below UINT64_MAX; the transcript
+  continues binding the exact source and generation.
+- Rejection before a station trial disconnected the existing station without
+  having captured its saved network. Cleanup now restores only after an actual
+  station switch, with the switch recorded before stopping/starting so a
+  failed start and trial expiry also restore the previous network.
+- A terminal slot was mislabeled as another setup, and the retry display
+  stopped further recovery polling. Busy/terminal slots now retain polling and
+  disable Save until available. Returning after a definite failure rechecks
+  availability before enabling a deliberate new Save; there is no POST replay.
+
+The failed collector was stopped and B normally restarted with its saved
+profile unchanged. Boot `808210c531eec40120960a83a6e6ff2f` rejoined the saved
+station, synchronized time and reported healthy LAN readiness, generation 3,
+AA0NT / EM18 / 20, access generation 1 and inactive inhibited output.
+Private failed evidence remains under ignored
+`build/phase12-station-save-b-7984364/station-monitor/` and the matching wspr5
+packet directory. Screenshot attachments are operator evidence; no unavailable
+local attachment bytes or hashes are claimed.
+
+Validation passed: **91/91 host checks** (including the real Pico crypto
+interop regression) and **4/4 browser tests**. Adversarial reassessment checked
+source/generation/tag binding, rejection before network mutation, failed-start
+and expiry restoration, committed/reconcile preservation, busy-slot recovery
+and stale status before retry. It found no remaining actionable issue in this
+bounded repair; target cleanup and terminal Save evidence remain separate.
+
+The bounded next packet is: run host/browser regressions including a source-5
+Noble-to-real-Pico crypto vector and tampered source/generation/tag rejection;
+review cancellation, failed-start, expiry and committed/reconcile paths;
+reassess after repair; build a clean-source GP14 opt-in inhibited image; retain
+its artifacts and restoration image; serial-bound deploy B with all reserved
+bytes preserved; verify saved profile/network/time/LAN readiness; then guide
+one station-only Save and compare terminal result, generation/request digest,
+activation restart and continuity. No RF job, erase, A operation, wspr4 access
+or host route mutation is included. Negative target cleanup is not yet
+physically requalified by this source repair. P12.8/P12.10 and Phase 12 remain
+open pending the named physical and broader gates.
 
 ### Following packets and closure gates
 

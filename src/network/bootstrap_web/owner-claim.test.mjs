@@ -70,5 +70,15 @@ assert.deepEqual(chacha20poly1305(key, nonce, exchangeAad).decrypt(sealed),
   claimPlaintext(settings));
 const alteredAad = claimTranscript({...exchange, generation: '2'});
 assert.throws(() => chacha20poly1305(key, nonce, alteredAad).decrypt(sealed));
+// This exact source-5 station-only envelope is opened by the real Pico crypto
+// host test, rather than a mock HTTP handler that never decrypts the request.
+const updateFields = {...exchange, source: 5, generation: '3'};
+assert.equal(Buffer.from(sha256(claimTranscript(updateFields))).toString('hex'),
+  '8d9b7141924fe6a5b3ff430ccb75a9f004989587e20e533a80f515c1398efdb9');
+const update = sealOwnerClaim(updateFields,
+  hex('77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a'),
+  nonce, {ssid: '', password: '', callsign: 'AA0NT', locator: 'EM18', powerDbm: 20});
+assert.equal(update.ciphertext, 'U4dqWEtiMhoFzBnB4A');
+assert.equal(update.tag, 'FBv45vIeTQCvbHa4kRE6NA');
 peerShared.fill(0); key.fill(0); picoSecret.fill(0);
 console.log('owner claim browser transcript and envelope passed');

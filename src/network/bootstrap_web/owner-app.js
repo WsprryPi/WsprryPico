@@ -127,6 +127,7 @@ async function update() {
     if (!validStatus(current)) throw new Error('wrong Pico status');
     // A poll issued before this POST cannot decide the new attempt's outcome.
     if (saving || pending !== submitted) return;
+    const wasClaimAvailable = status?.claim_available === true;
     status = current;
     if (complete || retryVisible) return;
     if (current.source === 'fault') {
@@ -168,7 +169,7 @@ async function update() {
     } else if (current.claim_available) {
       $('owner-submit').disabled = false;
       $('owner-identify').disabled = false;
-      if (!$('owner-settings').hidden) return;
+      if (!$('owner-settings').hidden && wasClaimAvailable) return;
       show('owner-settings');
       notice(current.source === 'consumer' ?
         'Ready to update this Pico’s station details.' :
@@ -177,9 +178,10 @@ async function update() {
       $('owner-submit').disabled = true;
       $('owner-identify').disabled = true;
       if (current.slot_state !== 'none') {
-        retryVisible = true;
-        show('owner-retry');
-        notice('Another setup is in progress. Wait a moment and try again.', true);
+        show('owner-settings');
+        notice(current.slot_state === 'terminal' ?
+          'The previous setup attempt is finishing. This page will be ready shortly.' :
+          'Setup is busy. This page will be ready when it finishes.');
       } else {
         show('owner-service');
         notice('Setup is temporarily unavailable on this Pico.', true);
@@ -308,8 +310,13 @@ async function boot() {
   $('owner-retry-button').addEventListener('click', () => {
     clearTransaction();
     retryVisible = false;
+    // Recheck the slot before permitting a new POST; the old status may predate rejection.
+    if (status) status = {...status, claim_available: false};
+    $('owner-submit').disabled = true;
+    $('owner-identify').disabled = true;
     show('owner-settings');
-    notice('Check your settings, then save again.');
+    notice('Checking when this Pico is ready.');
+    update();
   });
   $('owner-form').addEventListener('submit', submit);
   if (location.origin !== host || !available() || !p256 ||

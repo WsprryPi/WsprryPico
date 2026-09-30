@@ -97,6 +97,7 @@ class PicoBootstrapServer {
     void cancel_slot();
     void restore_bootstrap_network();
     void end_owner_trial(bool committed, std::uint64_t now_ms);
+    void restore_owner_network();
     void cancel_owner_slot(bool restore_network);
     std::string boot_id_, default_password_, slot_digest_;
     provisioning::AccessStore* access_ = nullptr;
@@ -120,6 +121,7 @@ class PicoBootstrapServer {
     std::string owner_slot_digest_, owner_request_digest_, owner_request_id_;
     std::uint64_t owner_submit_ms_ = 0;
     bool owner_trial_active_ = false, owner_trial_start_pending_ = false;
+    bool owner_trial_switched_network_ = false;
     bool owner_submit_delivered_ = false, owner_reconcile_ = false;
     OwnerResultRestart owner_result_restart_;
     bool owner_restart_pending_ = false, owner_status_committed_reply_ = false;

@@ -127,6 +127,31 @@ int main() {
     changed = fields;
     changed.source = provisioning::ProfileSource::Unprovisioned;
     rejects(changed, nonce, ciphertext, tag);
+    // Independently sealed by the browser's Noble implementation for a later
+    // station-only update of consumer generation 3 (the physical regression).
+    auto update_fields = fields;
+    update_fields.source = provisioning::ProfileSource::ConsumerProfile;
+    update_fields.generation = 3;
+    const auto update_transcript = network::owner_claim_transcript(update_fields);
+    assert(update_transcript &&
+           network::bootstrap_digest(update_transcript->view()) ==
+               "8d9b7141924fe6a5b3ff430ccb75a9f004989587e20e533a80f515c1398efdb9");
+    const auto update_ciphertext = b64("U4dqWEtiMhoFzBnB4A", 13);
+    const auto update_tag = fixed<16>("FBv45vIeTQCvbHa4kRE6NA");
+    network::PicoOwnerClaimCrypto update_crypto;
+    assert(update_crypto.begin_for_test(private_key));
+    assert(update_crypto.open(update_fields, nonce, update_ciphertext, update_tag, out));
+    assert(out.ssid.empty() && out.password.empty() && out.callsign == "AA0NT" &&
+           out.locator == "EM18" && out.power_dbm == 20);
+    changed = update_fields;
+    changed.generation = 4;
+    rejects(changed, nonce, update_ciphertext, update_tag);
+    changed = update_fields;
+    changed.source = provisioning::ProfileSource::NetworkOnly;
+    rejects(changed, nonce, update_ciphertext, update_tag);
+    auto bad_update_tag = update_tag;
+    bad_update_tag[0] ^= 1;
+    rejects(update_fields, nonce, update_ciphertext, bad_update_tag);
     auto bad_nonce = nonce;
     bad_nonce[0] ^= 1;
     rejects(fields, bad_nonce, ciphertext, tag);
