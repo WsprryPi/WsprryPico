@@ -1,8 +1,8 @@
 # Phase 12 Safari setup revision and execution brief
 
 Status: **WI-FI-FIRST CONTRACT SELECTED; GP14 BUTTON TIMING SELECTED;
-PRODUCTION IMPLEMENTATION AND TARGET ACCEPTANCE OPEN**
-(last revised 2026-09-29). This decision supersedes the owner and physical-claim
+BOUNDED INHIBITED GP14 ACCEPTED; PRODUCTION AND PORTAL GATES OPEN**
+(last revised 2026-09-30). This decision supersedes the owner and physical-claim
 portions of the earlier [P12.7 decision](phase12-7-decision.md). The earlier
 design and failed physical claim attempts remain historical evidence.
 
@@ -41,8 +41,14 @@ The separate [GP14 diagnostic](phase12-gp14-button-diagnostic.md) evaluates
 input timing and both-core flash continuity but performs no reset, RF stop or
 SoftAP action. A later [opt-in runtime source candidate](phase12-gp14-runtime-review.md)
 connects PIO capture, normal reset and the existing SoftAP coordinator in an
-RF-inhibited image. The default image does not advertise GP14, and real RF
-shutdown, integrated AP operation and physical timing remain unaccepted.
+RF-inhibited image. The [integrated closeout](phase12-gp14-integrated-acceptance.md)
+records bounded B evidence for shutdown requests, normal reset, long-held AP
+availability, release lease expiry, recurring DMA renewal, recovery and settings
+preservation. The default image leaves GP14 off. RF target build repairs,
+active/armed RF cutoff including busy core 0, and default enablement remain
+open and are parked while portal/recovery acceptance continues. Input capture
+during an extended flash-safe pause passed; exact coincidence with the short
+erase/program operation was not measured.
 
 The [arbitrary BOOTSEL feasibility gate](phase12-bootsel-arbitrary-press-feasibility.md)
 found no safe way to capture an unprompted BOOTSEL press while both cores may

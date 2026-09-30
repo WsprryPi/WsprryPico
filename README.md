@@ -110,7 +110,12 @@ after release. The operator then confirmed B's phone setup page showed
 “Saved and connected”; post-reboot readback verified profile generation 2
 and a station address. A 218 ms GP14 tap also verified an actual normal reset,
 retained settings and Wi-Fi return. This accepts those bounded B behaviors.
-Actual RF cutoff and broader integrated acceptance remain open. The previous
+The later [integrated closeout](docs/development/phase12-gp14-integrated-acceptance.md)
+accepts B's bounded long-held AP availability, release lease expiry, recurring
+DMA renewal, recovery and settings preservation. Actual RF cutoff and default
+enablement remain open and are parked while portal/recovery acceptance continues.
+Capture during an extended flash-safe pause passed; exact coincidence with the
+short erase/program operation was not measured. The previous
 runtime BOOTSEL sampler was unsafe and has been removed; do not use BOOTSEL to
 request the AP on the current image. A lost station connection still brings
 the AP back.

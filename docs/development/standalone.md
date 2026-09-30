@@ -130,6 +130,14 @@ hour before provisioning an enabled schedule.
 `INFO` adds device/build identity, recovery diagnostics, network link state,
 SNTP counters and latest correlated RTT/sample uncertainty. It includes the
 sanitized schedule status; RF images also report launch and DMA diagnostics.
+`saved_consumer_profile` is a redacted view of the consumer journal selected
+at boot: station callsign/grid/power, saved SSID/time server, owner count/epoch
+and request SHA-256. It is `null` for other sources and on failed admission.
+Bind it to the outer device ID, `provisioning_source` and generation; it does
+not assert clock/TLS readiness or expose passwords, keys or client material.
+The nested `status.station` still describes the separate standalone store.
+Consumer save acceptance uses the new readback after activation restart;
+an unknown pre-restart result requires journal reconciliation.
 `REBOOT` and `BOOTSEL` first stop local scheduling and require an unowned,
 inactive state. A latched failure is eligible only when storage is healthy and
 autonomous scheduling is persistently disabled. The engine must then disable

@@ -33,7 +33,11 @@ Use WsprryPico for project, repository and application naming; firmware artifact
   seconds held and setup AP at 9 seconds held after confirmed shutdown. A hold
   beyond 10 seconds must leave AP available. A release under 0.4 seconds
   requests reset; a release from 0.4 to under 0.9 seconds requests shutdown.
-  The production path is not connected or target accepted.
+  The opt-in RF-inhibited runtime has bounded B target acceptance for reset,
+  shutdown requests, AP retention/expiry, DMA renewal, recovery and settings
+  preservation; see the [integrated closeout](development/phase12-gp14-integrated-acceptance.md).
+  Production RF cutoff integration and default enablement remain open and are
+  parked while portal/recovery acceptance continues.
   Safari is one possible
   browser, not a required step. Source implementation exists, while target
   acceptance remains open. The earlier

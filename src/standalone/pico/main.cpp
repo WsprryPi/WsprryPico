@@ -625,6 +625,8 @@ int main() {
             number_field(result, "provisioning_generation", runtime_profile.generation(), true);
             number_field(result, "provisioning_fault",
                          static_cast<unsigned>(runtime_profile.fault()));
+            result += ",\"saved_consumer_profile\":";
+            result += runtime_profile.consumer_readback_json();
             result += ",\"radio_identity_valid\":";
             result += derived_identity ? "true" : "false";
             result += ",\"local_suffix\":" + wsprrypico::wtp::json::quote(local_identity.suffix);

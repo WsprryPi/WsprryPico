@@ -33,6 +33,166 @@ candidate image have passed hardware-free review. It begins with RF-inhibited fi
 It does not reopen or silently extend Phase 11.6, and it cannot establish Phase
 13 timing, spectrum, band/mode/clock or release qualification.
 
+## Current consumer portal and recovery continuation (2026-09-30)
+
+The Wi-Fi-first consumer decision and P12.9 closure supersede the consumer
+BLE/password/retained-owner rows below. Those rows remain historical engineering
+acceptance. Use this section for the resumed consumer work. Phase 12 remains
+**OPEN_PARTIAL**.
+
+The [GP14 integrated closeout](phase12-gp14-integrated-acceptance.md) closes the
+bounded diagnostic and opt-in RF-inhibited runtime scope: reset, shutdown
+requests, long-held AP availability, release lease expiry, DMA renewal,
+recovery and settings preservation. The captured real gesture overlapped the
+extended flash-safe pause; exact coincidence with the shorter erase/program
+operation is not established. Production GP14 work is parked: RF target
+dependencies/stack checks, active/armed cutoff including busy core 0, then
+default enablement after review and exact target acceptance. Do not repeat
+the accepted inhibited hold/renewal campaign as a portal prerequisite.
+
+### Source admission findings
+
+The reviewed source baseline was clean `devel` at `9f48277` before this roadmap
+reconciliation and readback change. `PicoBootstrapServer` accepts a separate
+station transaction only after a same-device network-only or consumer profile
+exists. Its encrypted
+request omits Wi-Fi credentials; the device obtains them from the current
+journal, then trials the station before creating or reusing the device TLS
+identity and committing exactly the next generation. The browser verifies
+generation plus request digest before saying station settings were saved.
+Fresh browser keys are transient, and the new profile stores no phone owner.
+
+The existing browser test exercises a lost submit reply, exact committed
+readback, a fresh second-phone transaction, retained success and polling
+timeout recovery. The portable commit tests cover source/device mismatch,
+missing station/time, expiry, TLS failure, write interruption and later-update
+TLS reuse. These are source/host checks, not phone acceptance.
+
+The source still requires fresh SNTP for station-profile commits. Starting a
+station trial invalidates the prior SNTP observation; the commit platform
+requires a new SNTP source no older than ten seconds. Browser UTC hints do
+not satisfy this admission. Network-only Wi-Fi replacement does not require
+SNTP. A field network without time service therefore has a distinct open
+station-save policy/acceptance gate; do not silently change that time authority
+or count a successful ordinary-network test as resolving it.
+
+USB `INFO.status.station` reads the separate standalone store and cannot
+prove the saved consumer station values. This continuation adds
+`INFO.saved_consumer_profile`, read from the selected journal after boot:
+station callsign/grid/power, saved SSID/time server, owner count/epoch and
+request SHA-256. It is `null` without an admitted consumer payload and emits
+no Wi-Fi password, owner key, TLS material or client material. Its structural
+readback does not claim clock or TLS readiness. Use the outer device ID,
+source and generation to bind it. Keep exact credential/settings comparisons
+in private journal evidence; public summaries cannot prove password equality.
+
+### Source checks and adversarial review
+
+The resumed source checks passed `bash scripts/check_host.sh` (91/91) and
+`npm test` in `src/network/bootstrap_web` (4/4). The new runtime test reloads
+the committed journal, checks separate consumer/standalone station values,
+later generation selection, JSON escaping, maximum SSID/time-server/epoch
+values, an exact diagnostic field allowlist and fault/wrong-device clearing.
+
+First assessment found three actionable preparation issues:
+
+| Finding | Repair and reassessment |
+| --- | --- |
+| The roadmap still called bounded GP14 reset/AP/hold/expiry acceptance open and named BOOTSEL as the current action. | Reconciled the accepted GP14 closeout and parked production RF build/cutoff/default gates. Historical BOOTSEL records stay identified as historical. |
+| The next station packet could mistake `INFO.status.station` for consumer readback. | Added the redacted selected-journal view above and explicit private settings comparison after activation restart. Exact field and reload tests passed. |
+| The initial readback formatter retained too many string temporaries: a 896-byte Arm stack frame. | Reused one buffer and appended fields sequentially; the frame is now 520 bytes in both inhibited builds. The affected runtime test passed again after repair. |
+
+Both default GP14-off and opt-in GP14 runtime Pico 2 W inhibited builds passed
+with the locally retained SDK 2.3.1 at
+`079c6f39023649b154152db30f1d781e884879bc`, Arm GNU 15.3.1 and CMake 4.4.3.
+No dependency was downloaded. The first default attempt found the old
+temporary SDK absent, and that cache still retained its platform path; the
+successful default build uses a fresh `build/pico2-w-portal-default` directory.
+The opt-in build uses `build/pico2-w-gp14-robustness` with robustness/flash probe
+off. Both passed `check_standalone_image.py`, `check_stack_guards.py`,
+`check_bootsel_topology.py` and `check_shutdown_image.py`. FLASH ends at
+`0x103f3000`, journals remain reserved, the primary stack is 32 KiB and no
+runtime BOOTSEL sampler is linked. Formatting and `git diff --check` passed.
+
+The repaired default image has 1,704,360 text / 136,652 BSS bytes; the opt-in
+image has 1,709,672 text / 153,040 BSS bytes. Arm compiler frames are 3,352 /
+1,120 bytes for default `main` / Console handler and 3,464 / 1,160 bytes for
+opt-in. These static frames are not a complete call-chain peak or target
+resource qualification. The tested maximum readback stays under 768 bytes;
+complete INFO delivery through the 8,192-byte queue remains a target check.
+
+Second assessment rechecked privacy, selected-generation consistency, reload
+failure clearing, unchanged boot/transport/RF admission, AP lifecycle evidence
+boundaries and operator authority. No further actionable source issue remained
+in this readback/acceptance preparation slice. No device operation occurred.
+The RF build remains parked, and P12.8/P12.10/P12.11/P12.12 remain open.
+
+### Next bounded packet: optional station details on B
+
+Prepare this packet completely, then obtain action-specific operator authority.
+This document itself authorizes no device operation. The packet needs the
+selected phone/browser, station callsign/grid/power, B USB monitoring, private
+journal backup/readback, serial-targeted deployment of the reviewed inhibited
+readback candidate, one manual GP14 AP opening, AP association, one encrypted station save and its
+automatic activation restart, plus read-only station WTP `HELLO`/`STATUS`.
+No network replacement, erase or transmitted job is required.
+
+1. Bind B to USB serial `CDDBF8767C506C07` and device ID
+   `29f20b7342051ef947aa56cb9d4fab42`. Reverify its current image, clock,
+   RF-inhibited engine, inactive output, empty/unowned state, released/fault-free
+   GP14 and healthy journals. The last closeout restored runtime `6105f9d8da2e`,
+   network-only generation 2, access generation 1 and station `192.168.1.53`;
+   these are a recorded baseline, not a fresh device observation. Identify A
+   separately and leave it outside this packet. Disable no working host route
+   or device schedule merely to make an assertion pass.
+2. Capture private recoverable baseline/settings evidence before the save.
+   Verify the preserved restoration image against the closeout's
+   `7d2df90f236a6e5d8b5626caac37a542783d50dbd0db81d3fffb4780f74f80ab`
+   UF2 hash; a missing or mismatched restoration artifact stops deployment.
+   Deploy only the exact reviewed opt-in inhibited image to B, verify its
+   hash/revision and preserved journals, then recheck the admission in step 1.
+   Record the exact phone/iOS/browser and artifact identity. With an already
+   prepared bounded read-only monitor, invite one GP14 hold to open the AP,
+   then release. Join B's AP and manually open
+   `http://192.168.4.1/owner.html`; automatic captive launch is optional.
+3. Enter the operator-approved callsign, four-character grid and power. Save
+   once without re-entering Wi-Fi credentials, a code, password step-up, owner
+   key, console command or certificate file. Record the phone's terminal page
+   and any interruption. The retained source requires infrastructure SNTP for
+   this packet; an unavailable time service leaves the result open.
+4. Verify the exact device and request digest, one generation increment, a
+   consumer source with no retained phone owner and expected saved station
+   values using `saved_consumer_profile`. Compare the private committed
+   journal to prove unchanged saved Wi-Fi/time-server values. From the recorded
+   generation-2 baseline, success is generation 3; if preflight differs,
+   bind assertions to its actual generation instead of manufacturing 3.
+   Confirm the activation restart, healthy journals, inactive output, empty
+   ownership, Wi-Fi/time return and positive station Plain LAN WTP readback.
+   The effective station values are the intended change; preserve unrelated
+   persistent schedules, watermark and access state.
+5. Observe at least 60 seconds of post-restart continuity with a finite total
+   packet budget of 20 minutes. Retain the accepted new station settings on
+   success. Check complete INFO delivery, allocation/fault counters and stack
+   guards throughout; any new failure leaves acceptance open.
+   On loss of reply, reconcile the exact authoritative journal before
+   retrying or restoring anything. A partial/corrupt commit, identity drift,
+   fault or unknown output stops further mutation. Record the actual final
+   image, generations, AP/network state and cleanup; a failed attempt remains
+   in evidence.
+
+### Following packets and closure gates
+
+| Packet | Required outcome | Evidence still needed |
+| --- | --- | --- |
+| Different phone, later station and Wi-Fi changes | A fresh phone saves without a retained owner; expected generation and request digest agree after activation. Existing station/TLS data survive a Wi-Fi-only update. | Separate phone identity, exact terminal result, device readback and settings comparison. B's existing same-phone network update is already recorded. |
+| Failed replacement and unknown result | Bad network credentials preserve the last committed profile and restore its usable network; lost replies never create an unsupported success/failure claim or duplicate activation. | Predetermined negative/disconnect stimulus and exact old/new generation/result evidence. |
+| Station loss and field network | AP returns after 60 seconds of unusable saved station Wi-Fi; the local portal loads offline and can replace the network. Stable reconnection withdraws AP after 30 seconds when no lease or reply retains it. | Controlled network loss with approved host route restoration; phone offline capability, identity and reconnect/withdrawal observations. Station save without SNTP remains a separate decision. |
+| Provisioning reset and full erase | Distinct visible actions have the selected preservation/clearing behavior and recover safely from interrupted intent. | Consumer controls/design completion, deterministic failure checks, then separately authorized destructive target cases. GP14 normal reset is already accepted in its bounded inhibited scope. |
+| P12.12 robustness | Fault, trust, resource, concurrency, controller-time, LED, soak and final restoration assertions each have bounded evidence. | A finite matrix based on the accepted consumer path; no renewed BLE-owner ceremony or repetition of closed P12.9/GP14 scopes. |
+
+P12.7, P12.8, P12.10, P12.11 and P12.12 remain open at their named gates.
+The historical Stage A matrix below does not authorize these new packets.
+
 ## Current admission state
 
 The production-integration tranche enables the GATT service, network-only

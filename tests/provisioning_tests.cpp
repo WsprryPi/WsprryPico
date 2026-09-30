@@ -3,6 +3,7 @@
 #include "provisioning/runtime.hpp"
 #include "standalone/config.hpp"
 #include "standalone/storage.hpp"
+#include "wtp/json.hpp"
 
 #include <algorithm>
 #include <array>
@@ -1421,6 +1422,101 @@ void runtime_selection_and_overlay() {
     CHECK(!malformed.overlay(*base));
 }
 
+void consumer_runtime_readback_and_reload() {
+    provisioning::ConsumerProfile candidate;
+    candidate.device_id = device;
+    candidate.ssid = "Home \"Net\\";
+    candidate.password = "private-wifi-password";
+    candidate.time_server = "time.example.org";
+    candidate.callsign = "K1ABC";
+    candidate.locator = "FN20";
+    candidate.power_dbm = 30;
+    candidate.tls.hostname = "wsprrypico-010203.local";
+    candidate.tls.ca_certificate = candidate.tls.server_certificate =
+        "-----BEGIN CERTIFICATE-----\nAQ==\n-----END CERTIFICATE-----\n";
+    candidate.tls.ca_private_key = candidate.tls.server_private_key =
+        "-----BEGIN PRIVATE KEY-----\nAQ==\n-----END PRIVATE KEY-----\n";
+    candidate.tls.ca_not_after_utc = 2'000'000'000;
+    candidate.tls.server_not_after_utc = 1'800'000'000;
+    candidate.request_sha256 = std::string(64, 'a');
+    MemoryMedia media;
+    provisioning::ProfileStore store(media);
+    CHECK(store.load());
+    provisioning::RuntimeProfile runtime;
+    CHECK(runtime.load(store, device, provisioning::BuildBundleState::Absent));
+    CHECK(runtime.consumer_readback_json() == "null");
+    CHECK(store.select(provisioning::ProfileSource::ConsumerProfile,
+                       provisioning::serialize_consumer_profile(candidate)));
+
+    auto check_readback = [&] {
+        const auto text = runtime.consumer_readback_json();
+        const auto readback = wtp::json::parse(text);
+        CHECK(readback && wtp::json::fields(*readback, {"station", "network", "owner_count",
+                                                        "owner_epoch", "request_sha256"}));
+        const auto station = readback->get("station");
+        CHECK(station && wtp::json::fields(*station, {"callsign", "locator", "power_dbm"}));
+        CHECK(station->get("callsign")->string() == candidate.callsign);
+        CHECK(station->get("locator")->string() == candidate.locator);
+        CHECK(station->get("power_dbm")->integer() == static_cast<int>(candidate.power_dbm));
+        const auto network = readback->get("network");
+        CHECK(network && wtp::json::fields(*network, {"ssid", "time_server"}));
+        CHECK(network->get("ssid")->string() == candidate.ssid);
+        CHECK(network->get("time_server")->string() == candidate.time_server);
+        CHECK(readback->get("owner_count")->integer() == static_cast<int>(candidate.owners.size()));
+        CHECK(readback->get("owner_epoch")->string() == std::to_string(candidate.owner_epoch));
+        CHECK(readback->get("request_sha256")->string() == candidate.request_sha256);
+        CHECK(text.find(candidate.password) == text.npos);
+        CHECK(text.find("PRIVATE KEY") == text.npos && text.find("CERTIFICATE") == text.npos);
+        for (const auto& key : candidate.owners)
+            CHECK(text.find(key) == text.npos);
+        CHECK(text.size() < 768);
+    };
+    provisioning::ProfileStore rebooted(media);
+    CHECK(rebooted.load());
+    CHECK(runtime.load(rebooted, device, provisioning::BuildBundleState::Absent));
+    CHECK(runtime.source() == provisioning::RuntimeSource::ConsumerPreClock);
+    CHECK(runtime.generation() == 1);
+    check_readback();
+    const auto base = standalone::parse_config(
+        R"({"version":1,"enabled":true,"station":{"callsign":"AA0NT","locator":"EM18","power_dbm":37},"wifi":{"ssid":"old-network","password":"old-password","ntp_ipv4":"pool.ntp.org"},"schedules":[{"period_s":120,"phase_s":0}]})");
+    CHECK(base);
+    const auto effective = runtime.overlay(*base);
+    CHECK(effective && effective->callsign == candidate.callsign &&
+          effective->locator == candidate.locator && effective->power_dbm == candidate.power_dbm);
+    CHECK(effective->ssid == candidate.ssid && effective->password == candidate.password &&
+          effective->ntp_ipv4 == candidate.time_server && effective->schedules == base->schedules &&
+          effective->enabled == base->enabled);
+
+    // Later station updates must read the newly committed journal, never the
+    // unrelated standalone station record or an earlier runtime selection.
+    candidate.callsign = "W2XYZ";
+    candidate.locator = "EM18";
+    candidate.power_dbm = 20;
+    candidate.request_sha256 = std::string(64, 'b');
+    candidate.ssid = std::string(32, '"');
+    candidate.time_server = std::string(63, 'a') + "." + std::string(63, 'b') + "." +
+                            std::string(63, 'c') + "." + std::string(61, 'd');
+    candidate.owner_epoch = UINT64_MAX;
+    std::array<std::uint8_t, 65> point{};
+    point[0] = 4;
+    point[64] = 1;
+    candidate.owners = {base64(point)};
+    // The profile uses URL-safe base64 without padding.
+    candidate.owners[0].erase(candidate.owners[0].find('='));
+    CHECK(rebooted.select(provisioning::ProfileSource::ConsumerProfile,
+                          provisioning::serialize_consumer_profile(candidate)));
+    CHECK(rebooted.load());
+    CHECK(runtime.load(rebooted, device, provisioning::BuildBundleState::Absent));
+    CHECK(runtime.generation() == 2);
+    check_readback();
+    CHECK(!runtime.load(rebooted, other_device, provisioning::BuildBundleState::Absent));
+    CHECK(runtime.consumer_readback_json() == "null");
+    CHECK(runtime.load(rebooted, device, provisioning::BuildBundleState::Absent));
+    provisioning::ProfileStore unloaded(media);
+    CHECK(!runtime.load(unloaded, device, provisioning::BuildBundleState::Absent));
+    CHECK(runtime.consumer_readback_json() == "null");
+}
+
 void network_only_source_and_recovery() {
     provisioning::NetworkProfile candidate{device, "Home Net", "test-password", "time.example.org"};
     const auto payload = provisioning::serialize_network_profile(candidate);
@@ -1500,6 +1596,7 @@ int main() {
     deferred_activation_failure_injection_and_retry();
     deferred_activation_destruction_fail_closed();
     runtime_selection_and_overlay();
+    consumer_runtime_readback_and_reload();
     network_only_source_and_recovery();
     std::cout << "provisioning tests passed\n";
 }

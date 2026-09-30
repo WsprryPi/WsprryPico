@@ -467,11 +467,11 @@ findings, host checks and remaining physical gate.
 
 | Milestone | Status | Outcome required to advance |
 | --- | --- | --- |
-| P12.7 — Consumer commissioning contract | **GP14 BEHAVIOR SELECTED; INTEGRATED TARGET ACCEPTANCE OPEN** | The [current decision](phase12-safari-open-setup-revision.md) keeps immediate Wi-Fi fields, optional station details later and no press to save. GP14 pin 19 requests reset on a debounced release under 0.4 seconds, transmission stop on release from 0.4 to under 0.9 seconds or at 0.9 seconds held, and setup AP at 9 seconds held after confirmed shutdown. The [opt-in RF-inhibited runtime candidate](phase12-gp14-runtime-review.md) connects PIO capture, output inhibition, normal reset and the existing AP coordinator in source. Its physical timing, integrated AP behavior and real-RF stop path remain open. The BOOTSEL policy and failed sampler are historical. The AP still starts on a blank profile and returns after station loss. The [earlier owner decision](phase12-7-decision.md) is historical. |
-| P12.8 — Commissioning foundation | **SOURCE CANDIDATE; TARGET PARTIAL** | One-use encrypted AP setup and the network-only journal have bounded A/B target evidence, including a failed join that left generation 0 and later successful generation-1 saves. The full foundation and later-update path remain open. |
+| P12.7 — Consumer commissioning contract | **GP14 INHIBITED SCOPE ACCEPTED; PRODUCTION GATE OPEN** | The [current decision](phase12-safari-open-setup-revision.md) keeps immediate Wi-Fi fields, optional station details later and no press to save. GP14 pin 19 requests reset on a debounced release under 0.4 seconds, transmission stop on release from 0.4 to under 0.9 seconds or at 0.9 seconds held, and setup AP at 9 seconds held after confirmed shutdown. B's [bounded integrated closeout](phase12-gp14-integrated-acceptance.md) records inhibited shutdown requests, normal reset, long-held AP retention, release lease expiry, DMA renewal, recovery and settings preservation. Production GP14 work is parked: repair the RF target dependencies/stack checks, connect and measure active/armed cutoff including busy core 0, then enable by default only after review and target acceptance. Exact input coincidence with flash erase/program remains unmeasured. The BOOTSEL policy and failed sampler are historical. |
+| P12.8 — Commissioning foundation | **SOURCE CANDIDATE; TARGET PARTIAL** | One-use encrypted Wi-Fi setup has bounded A/B target evidence; B also has a later network-only update to generation 2. The station transaction reuses the saved network, creates or reuses device TLS material and commits the next consumer generation without a retained phone owner. Redacted USB readback now prepares its target acceptance. Fresh SNTP admission, later station/TLS/client preservation, failure reconciliation and the full foundation remain open at their source/physical gates. |
 | P12.9 — Guided captive SoftAP setup | **CLOSED — WI-FI-FIRST GUIDED SETUP** | The operator accepted the successful retry after B's interrupted second attempt. A and B completed phone-driven, no-button Wi-Fi setup with durable generation-1 readback; B's wrong-password attempt left generation 0. Opening `http://192.168.4.1/` manually is an accepted entry path. The [retry/style repair](phase12-safari-open-setup-review.md) is installed and browser/host tested; its phone retest and automatic launch are tracked as robustness observations, not P12.9 exit gates. Optional station settings retain their P12.10 physical gate. |
-| P12.10 — RF-inhibited commissioning acceptance | **A/B NETWORK-ONLY PHONE CORE PASSED; FULL GATE OPEN** | A and B each have a phone-submitted network-only generation-1 profile, station address, accepted NTP time and inactive output. Both retained those profiles after the [committed retry/style image](phase12-safari-open-setup-review.md) was flashed. Offline captive capability, terminal success-page observation, optional station settings, full transport readback and negative/concurrency rows remain open. |
-| P12.11 — Recovery and fallback | **OPEN** | Prove healthy-station AP withdrawal, safe realization of the selected BOOTSEL opening behavior, different-phone replacement, old-profile recovery, station-loss portal return, field-network operation, reset and full erase. No retained-owner recovery is required. |
+| P12.10 — RF-inhibited commissioning acceptance | **NETWORK-ONLY PHONE CORE PASSED; FULL GATE OPEN** | The recorded A/B phone runs saved network-only generation 1, station addresses and accepted NTP time with inactive output. B later completed a GP14-opened phone network update to generation 2 with a reported "Saved and connected" page and durable readback in the [runtime review](phase12-gp14-runtime-review.md). Optional station setup, a different-phone update, offline capability, full transport readback and negative/concurrency rows remain open. The [current consumer packet](phase12-physical-acceptance.md#current-consumer-portal-and-recovery-continuation-2026-09-30) starts with station details on the existing saved network. |
+| P12.11 — Recovery and fallback | **OPEN; BOUNDED GP14 INHIBITED ROWS ACCEPTED** | Preserve the GP14 closeout above. Prove different-phone replacement, failed-update recovery, station-loss portal return, field-network operation and selected provisioning/full erase behavior. Manual-lease withdrawal on a healthy station passed on B; broader automatic withdrawal/reconnect remains open. No retained-owner recovery is required. Production GP14 cutoff and default enablement stay parked. |
 | P12.12 — Stage A robustness and closure | **OPEN** | Close fault, trust, resource, concurrency, soak, controller-time, LED and restoration rows and complete the final adversarial review. |
 
 ### Deferred station-network web page
@@ -557,8 +557,9 @@ The revised P12.7 contract selects:
   flow;
 - a per-device CA and server key generated on the Pico after checked entropy
   and UTC, with separately approved station-client CSRs and no user PEM work;
-- an always-available open AP in network-only and consumer modes, encrypted
-  setup credentials, and the same page from another phone for later changes;
+- an open AP for blank setup, station-loss fallback and a bounded manual
+  lease, with encrypted setup credentials and the same page from another
+  phone for later changes; healthy station Wi-Fi normally withdraws the AP;
 - separate network/full reset behavior without a retained-owner ceremony; and
 - **Checking setup** through unknown results, with **Setup saved** only after
   exact request digest and generation readback. Station trust and reboot
@@ -570,6 +571,20 @@ The wire, storage, source, target and Stage A proof gates remain in the later
 milestones; no user-visible security ceremony is left to implementation choice.
 
 ### P12.8 Commissioning foundation
+
+The current Wi-Fi-first source supports a separate station save from an
+already saved network-only or consumer profile, later network replacement and
+exact generation/request-result reconciliation. B has bounded later Wi-Fi
+update evidence, but optional station commit, different-phone updates and
+broader recovery remain physically open. The
+[current continuation packet](phase12-physical-acceptance.md#current-consumer-portal-and-recovery-continuation-2026-09-30)
+starts with station save and redacted USB readback. Station commits still
+require fresh SNTP; a network without time service has a separate open policy
+gate. Source implementation and bounded tests do not close P12.8.
+
+The following checkpoint summaries retain the implementation chronology.
+Their references to owner ceremony and BOOTSEL, and their then-open wiring
+gates, are historical under the selected Wi-Fi-first/GP14 decision.
 
 The bounded [structural profile review](phase12-8-structural-foundation-review.md)
 records a canonical parser, size and write-cut tests, and an inert journal
@@ -709,8 +724,8 @@ Finish the consumer lifecycle after first setup:
 
 - replace Wi-Fi and station settings from a different phone using their
   respective pages, without a physical action to save or a saved owner
-  credential; prove the selected BOOTSEL opening action can safely open the AP
-  while station Wi-Fi is healthy;
+  credential; use the accepted opt-in RF-inhibited GP14 opening path for the
+  bounded portal tests while production GP14 integration remains parked;
 - prove the portal loads when saved station Wi-Fi is unavailable, including
   a field-site network change, and resolve the current fresh-SNTP requirement
   for networks without time service;

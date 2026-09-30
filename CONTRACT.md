@@ -42,7 +42,9 @@ implemented Pico surface. Shared WsprryPi adoption remains separate work.
   transmission shutdown; reaching 9 seconds held requests setup AP after
   shutdown is confirmed. A held jumper must not repeat actions or impair AP.
   A release from 0.4 to under 0.9 seconds requests shutdown. These
-  actions are not implemented or physically accepted in production. The
+  actions have bounded acceptance in the opt-in RF-inhibited B runtime; see
+  the [integrated closeout](docs/development/phase12-gp14-integrated-acceptance.md).
+  Production RF cutoff integration and default enablement remain open. The
   runtime BOOTSEL sampler failed a physical long-hold check and remains
   withdrawn. The earlier
   [P12.7 physical-owner decision](docs/development/phase12-7-decision.md) is

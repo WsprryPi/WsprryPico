@@ -6,6 +6,7 @@
 #include "standalone/config.hpp"
 
 #include <optional>
+#include <string>
 #include <string_view>
 
 namespace wsprrypico::provisioning {
@@ -62,6 +63,9 @@ class RuntimeProfile {
         return has_consumer_profile_ ? &consumer_profile_ : nullptr;
     }
     std::optional<standalone::Config> overlay(const standalone::Config& base) const;
+    // Redacted committed selection for USB INFO. This is structural readback,
+    // not post-clock TLS admission. Never serialize credentials or owner keys.
+    std::string consumer_readback_json() const;
 
   private:
     void clear();

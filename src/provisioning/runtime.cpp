@@ -1,6 +1,7 @@
 #include "provisioning/runtime.hpp"
 
 #include "network/identity.hpp"
+#include "wtp/json.hpp"
 
 #include <utility>
 
@@ -136,6 +137,35 @@ std::optional<standalone::Config> RuntimeProfile::overlay(const standalone::Conf
         result.locator = consumer_profile_.locator;
         result.power_dbm = consumer_profile_.power_dbm;
     }
+    return result;
+}
+
+std::string RuntimeProfile::consumer_readback_json() const {
+    if (!has_consumer_profile_)
+        return "null";
+    const auto& profile = consumer_profile_;
+    // Explicit allowlist: the full profile contains Wi-Fi and TLS secrets.
+    // Reuse one buffer rather than retaining a chain of string temporaries
+    // on the target stack while the outer INFO buffer is also resident.
+    std::string result;
+    result.reserve(768);
+    result += "{\"station\":{\"callsign\":";
+    result += wtp::json::quote(profile.callsign);
+    result += ",\"locator\":";
+    result += wtp::json::quote(profile.locator);
+    result += ",\"power_dbm\":";
+    result += std::to_string(profile.power_dbm);
+    result += "},\"network\":{\"ssid\":";
+    result += wtp::json::quote(profile.ssid);
+    result += ",\"time_server\":";
+    result += wtp::json::quote(profile.time_server);
+    result += "},\"owner_count\":";
+    result += std::to_string(profile.owners.size());
+    result += ",\"owner_epoch\":";
+    result += wtp::json::quote(std::to_string(profile.owner_epoch));
+    result += ",\"request_sha256\":";
+    result += wtp::json::quote(profile.request_sha256);
+    result += "}";
     return result;
 }
 } // namespace wsprrypico::provisioning
