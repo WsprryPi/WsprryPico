@@ -449,6 +449,33 @@ or host route mutation is included. Negative target cleanup is not yet
 physically requalified by this source repair. P12.8/P12.10 and Phase 12 remain
 open pending the named physical and broader gates.
 
+The repaired clean-source opt-in image is commit
+`4d46a23253eed7906eec59e8a34c5cdf32250f95`, firmware `4d46a23253ee`,
+UF2 **3,363,328 bytes**, SHA-256
+`83f3265dea30e637bcddd9a4c6a03812f53e32cce63b9d2ac73123b24b8f98ea`.
+GP14 runtime is enabled; BOOTSEL diagnostic, flash probe and robustness hooks
+are disabled. Pico SDK 2.3.1 (`079c6f39023649b154152db30f1d781e884879bc`)
+and Arm GNU 15.3.1 produced it. Linked stack, allocator, BOOTSEL topology,
+reserved flash/UF2 and network shutdown interception checks passed.
+
+The image loaded and verified on the same inhibited B, serial
+`CDDBF8767C506C07`. All **57,344 reserved bytes** were identical before and
+after loading. The fresh private 4,194,304-byte backup SHA-256 is
+`895b20c903dafb6bde3d993bddf80bb422f07893ccc24ecfb7637f2017b3854e`.
+Boot `9df4f4d37dc0234126cab8355ce3f390` retained generation 3, access
+generation 1, AA0NT / EM18 / 20 and independent standalone state. It rejoined
+`192.168.1.53`, acquired synchronized time and passed exact-device read-only
+LAN HELLO/STATUS: empty, unowned and inactive. The previous `79843646e89c`
+application, all four new artifacts and manifest are retained privately under
+ignored `build/phase12-owner-update-b-4d46a23/` and matching wspr5 directory.
+The owned clean build checkout was removed after copying the artifacts.
+The five unrelated operator documentation paths remain byte-for-byte unchanged.
+
+A fresh 20-minute read-only collector is running for the next guided GP14
+opening and **one** same-iPhone station-only Save. No new successful phone
+terminal result or durable generation 4 is claimed at this deployment
+checkpoint. That result and the remaining physical rows are still required.
+
 ### Following packets and closure gates
 
 | Packet | Required outcome | Evidence still needed |
