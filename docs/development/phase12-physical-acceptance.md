@@ -114,8 +114,8 @@ off. Both passed `check_standalone_image.py`, `check_stack_guards.py`,
 `0x103f3000`, journals remain reserved, the primary stack is 32 KiB and no
 runtime BOOTSEL sampler is linked. Formatting and `git diff --check` passed.
 
-The repaired default image has 1,704,360 text / 136,652 BSS bytes; the opt-in
-image has 1,709,672 text / 153,040 BSS bytes. Arm compiler frames are 3,352 /
+The clean default image has 1,704,352 text / 136,652 BSS bytes; the opt-in
+image has 1,709,664 text / 153,040 BSS bytes. Arm compiler frames are 3,352 /
 1,120 bytes for default `main` / Console handler and 3,464 / 1,160 bytes for
 opt-in. These static frames are not a complete call-chain peak or target
 resource qualification. The tested maximum readback stays under 768 bytes;
@@ -127,14 +127,35 @@ boundaries and operator authority. No further actionable source issue remained
 in this readback/acceptance preparation slice. No device operation occurred.
 The RF build remains parked, and P12.8/P12.10/P12.11/P12.12 remain open.
 
+### Exact clean candidate (prepared; not installed)
+
+Source commit `cac1d581cfb5b835561bb5abfe84496c22f9957b` was built with a
+clean tracked tree. Both images embed revision `cac1d581cfb5`, use the inhibited
+simulator and passed all four linked checks again. The readback label is in
+both; GP14 capture is linked only in the opt-in image. Robustness, flash probe
+and BOOTSEL diagnostic options are off.
+
+| Image | UF2 SHA-256 | Intended use |
+| --- | --- | --- |
+| Opt-in GP14 runtime | `d55caf49334c51af5696f1f369a8589d23a618d00be7f26c19e187b562dd12de` | The next bounded B portal packet only after scoped operator authority. |
+| Default, GP14 off | `fec40698ad0719ceed0b4433b53e346e08bfdf48daaa85b46453a1d80e846fa3` | Default build comparison; not selected for the manual-GP14 packet. |
+
+The local ignored artifacts are retained in
+`build/phase12-portal-cac1d58/{gp14-runtime,default}/WsprryPico.{uf2,elf,bin,elf.map}`;
+`manifest.json` records source/options and every file's size/hash. The separate
+`build/gp14-integrated-b-20260930/runtime-6105f9d.uf2` restoration artifact
+still matches its closeout hash. Hash verification is file evidence only;
+neither candidate has been flashed or observed on a device.
+
 ### Next bounded packet: optional station details on B
 
 Prepare this packet completely, then obtain action-specific operator authority.
 This document itself authorizes no device operation. The packet needs the
 selected phone/browser, station callsign/grid/power, B USB monitoring, private
 journal backup/readback, serial-targeted deployment of the reviewed inhibited
-readback candidate, one manual GP14 AP opening, AP association, one encrypted station save and its
-automatic activation restart, plus read-only station WTP `HELLO`/`STATUS`.
+readback candidate, one manual GP14 AP opening, AP association, one encrypted
+station save and its automatic activation restart, plus read-only station WTP
+`HELLO`/`STATUS`.
 No network replacement, erase or transmitted job is required.
 
 1. Bind B to USB serial `CDDBF8767C506C07` and device ID
