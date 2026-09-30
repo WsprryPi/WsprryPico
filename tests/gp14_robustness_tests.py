@@ -13,6 +13,7 @@ import gp14_robustness_campaign as campaign
 from check_standalone_image import validate_uf2
 from check_gp14_robustness_image import validate as validate_image
 from check_gp14_flash_probe_image import validate as validate_flash_probe
+from gp14_flash_overlap import bound_overlap
 
 
 class CampaignTests(unittest.TestCase):
@@ -159,6 +160,44 @@ class CampaignTests(unittest.TestCase):
             validate_flash_probe(symbols,code,memory.replace('3f2000','3f3000'),bytes(uf2))
         with self.assertRaises(ValueError):
             validate_flash_probe(symbols+'20005000 00000010 T sample_override\n',code,memory,bytes(uf2))
+
+    def test_real_gesture_with_equal_callback_endpoint_levels(self):
+        result = bound_overlap(142208, 142226881, 142378245, 144378245,
+                               144586718, 1340000)
+        self.assertTrue(result['at_least_one_edge_inside_callback'])
+        self.assertEqual(result['minimum_gesture_overlap_us'], 950282)
+
+    def test_outside_and_surrounding_gestures_do_not_prove_an_edge(self):
+        # Earliest raw start is zero; before/after gaps are 100 ms each.
+        for duration in (1, 100000, 2000000, 2100000, 2200000):
+            with self.subTest(duration=duration):
+                result = bound_overlap(1, 0, 100000, 2100000, 2200000, duration)
+                self.assertFalse(result['at_least_one_edge_inside_callback'])
+
+    def test_overlap_claim_is_sound_for_every_possible_placement(self):
+        # Exhaust possible placements independently of the bound calculation.
+        for duration in range(10000, 2200001, 10000):
+            result = bound_overlap(1, 0, 100000, 2100000, 2200000, duration)
+            if not result['at_least_one_edge_inside_callback']:
+                continue
+            for start in range(0, 2200000-duration+1, 10000):
+                self.assertTrue(100000 < start < 2100000 or
+                                100000 < start+duration < 2100000)
+
+    def test_overlap_rejects_bad_or_incomplete_timing(self):
+        good = (142208, 142226881, 142378245, 144378245, 144586718, 1340000)
+        for index in range(len(good)):
+            for value in (-1, True, None, '1'):
+                bad = list(good)
+                bad[index] = value
+                with self.subTest(index=index, value=value), self.assertRaises(ValueError):
+                    bound_overlap(*bad)
+        for bad in ((0, *good[1:]), good[:-1]+(0,), good[:-1]+(3000000,),
+                    (11, 0, 100000, 2100000, 2200000, 1340000),
+                    (142208, 1, *good[2:]),
+                    (*good[:3], good[2], *good[4:])):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                bound_overlap(*bad)
 
 
 if __name__ == '__main__':
