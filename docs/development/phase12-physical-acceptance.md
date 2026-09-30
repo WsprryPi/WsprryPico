@@ -581,6 +581,38 @@ with a fresh full backup and all reserved bytes preserved; no additional Save,
 RF job, erase, A change or wspr4 access is included. Phone observation of the
 prefilled form remains distinct from source/host and deployment evidence.
 
+The retained clean opt-in image is source
+`8d0ad7273707cda924f65b9e67fd29bf0f350739`, firmware `8d0ad7273707`,
+UF2 **3,367,936 bytes**, SHA-256
+`260a03a9b23eb0c6af91b33c3870964176a9d70a20be37a2d4d0f0f13b08dd02`.
+The pinned SDK/toolchain and GP14-only options are unchanged from the prior
+packet. Target build, linked stack/allocator/BOOTSEL topology, reserved
+flash/UF2 and shutdown interception checks passed. The clean temporary source
+checkout was removed after retaining all four artifacts and manifest.
+
+It loaded and verified on B serial `CDDBF8767C506C07`; all **57,344 reserved
+bytes** were identical before and after loading. The fresh 4,194,304-byte backup
+SHA-256 is `f05a4697e0475992d54209c7a35499021e6476a262cfb08f652045af4d8f128a`.
+Boot `ea5d36416cced917ffd3cf679d428edc` retained consumer generation 4,
+access generation 1 and the exact saved-profile readback: AA0NT / EM18 / 20,
+request digest `e7418f3417fde09fb9288b8d15b0c9c80d1ec6b11a04f5248cf3c02676ac57b5`,
+zero owners and unchanged independent standalone state. It rejoined
+`192.168.1.53`, synchronized time and passed exact-device plain LAN
+HELLO/STATUS, empty/unowned with inactive output. No station Save occurred.
+Artifacts, full backup and exact `4d46a23253ee` restoration image are retained
+privately under ignored `build/phase12-owner-prefill-b-8d0ad72/` and the matching
+wspr5 directory.
+
+Two attempts to avoid another physical opening were unsuccessful and did not
+open the AP: the retained older console CLI lacks a `softap` action, and an
+identity-checked direct USB request for the source-defined `ACCESS SOFTAP`
+command returned `profile_runtime_unavailable` for this consumer runtime.
+The established GP14 opening path was therefore used in the phone instruction;
+the USB administration guard was not changed as part of a form-prefill fix.
+A finite six-minute read-only observer was started. Phone-observed prefill is
+pending at this deployment checkpoint and is not inferred from USB station
+readback or host DOM tests. The accepted generation-4 Save is unchanged.
+
 ### Following packets and closure gates
 
 | Packet | Required outcome | Evidence still needed |
