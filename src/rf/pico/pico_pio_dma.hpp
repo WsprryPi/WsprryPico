@@ -3,6 +3,8 @@
 #include "rf/pio_dma_sink.hpp"
 #include "rf/refill_metrics.hpp"
 
+#include <atomic>
+
 namespace wsprrypico::rf {
 
 // Dedicated instance on one core. Constructing it does not access peripherals.
@@ -36,6 +38,10 @@ class PicoPioDma final : public PioDmaHardware {
     PicoDriverMetrics metrics();
     bool stalled() const override;
     bool active() const override;
+    // Bind before worker startup; never clear or replace during execution.
+    void set_output_inhibit(const std::atomic<bool>& latch) {
+        output_inhibit_ = &latch;
+    }
 
   private:
     static void dma_irq();
@@ -60,6 +66,7 @@ class PicoPioDma final : public PioDmaHardware {
     unsigned core_ = 0;
     bool installed_ = false;
     bool launched_ = false;
+    const std::atomic<bool>* output_inhibit_ = nullptr;
     RefillMetrics refill_metrics_;
     PicoDriverMetrics metrics_{};
 };

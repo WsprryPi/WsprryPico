@@ -30,7 +30,22 @@ void WorkerEngine::call(Op op) const {
     max_roundtrip_ = std::max(max_roundtrip_, now_() - start);
     phase_.store(0, std::memory_order_release);
 }
+void WorkerEngine::check_safety() {
+    if (safety_probe_ && safety_probe_(safety_context_))
+        safety_inhibited_.store(true, std::memory_order_release);
+    if (!safety_inhibited() || safety_stopped_)
+        return;
+    const auto requested = now_();
+    if (!engine_.disable(requested + 100'000'000ULL) || engine_.output_active()) {
+        failure_();
+        std::abort();
+    }
+    safety_stopped_ = true;
+    worker_metrics_.safety_requested_ns = requested;
+    worker_metrics_.safety_stopped_ns = now_();
+}
 void WorkerEngine::step() {
+    check_safety();
     const auto now = now_();
     const bool executing =
         worker_state_ == wtp::EngineState::Armed || worker_state_ == wtp::EngineState::Running;
@@ -54,21 +69,30 @@ void WorkerEngine::step() {
     case Op::Metrics:
         break;
     case Op::Prepare:
-        prepared_ = engine_.prepare(*job_);
+        prepared_ = safety_inhibited() ? wtp::PrepareResult{} : engine_.prepare(*job_);
         break;
     case Op::Schedule:
         conditions_.clock = &worker_clock_;
-        result_ = engine_.schedule(*job_, instant_, conditions_);
+        result_ = !safety_inhibited() && engine_.schedule(*job_, instant_, conditions_);
         break;
     case Op::Disable:
         result_ = engine_.disable(instant_);
         break;
     case Op::Correct:
-        result_ = engine_.set_frequency_correction_ppb(correction_);
+        result_ = !safety_inhibited() && engine_.set_frequency_correction_ppb(correction_);
         break;
     }
-    report_ = op_ == Op::Inspect || op_ == Op::Metrics ? observed : engine_.poll(now_());
-    diagnostic_ = engine_.diagnostic(); // Engine diagnostics are static immutable literals.
+    check_safety();
+    if (safety_inhibited()) {
+        if (op_ == Op::Prepare)
+            prepared_ = {};
+        if (op_ == Op::Schedule || op_ == Op::Correct)
+            result_ = false;
+    }
+    report_ = (op_ == Op::Inspect || op_ == Op::Metrics) && !safety_inhibited()
+                  ? observed
+                  : engine_.poll(now_());
+    diagnostic_ = safety_inhibited() ? "gp14_safety_inhibit" : engine_.diagnostic();
     ++worker_metrics_.commands;
     // Stack scans and driver snapshots are diagnostic work, not ordinary RPC work.
     // Execute only on an explicit metrics request, retaining single-core ownership.

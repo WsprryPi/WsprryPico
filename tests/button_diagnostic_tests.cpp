@@ -1,5 +1,6 @@
 #include "provisioning/button_diagnostic.hpp"
 #include "provisioning/button_runtime.hpp"
+#include "provisioning/button_safety.hpp"
 #include "provisioning/button_sample_stream.hpp"
 #include "provisioning/pico/rp2350_dma_progress.hpp"
 
@@ -7,10 +8,46 @@
 #include <initializer_list>
 
 using wsprrypico::provisioning::ButtonDiagnostic;
+using wsprrypico::provisioning::ButtonSafety;
 using wsprrypico::provisioning::ButtonSampleStream;
 using wsprrypico::provisioning::Rp2350DmaProgress;
 
 namespace {
+void independent_safety_policy() {
+    ButtonSafety held;
+    assert(!held.observe(0, false));
+    assert(!held.observe(100'000, true));
+    assert(!held.observe(110'000, true));
+    assert(!held.observe(999'999, true));
+    assert(held.observe(1'000'000, true));
+    assert(held.requested_at_us() == 1'000'000 && held.duration_us() == 900'000);
+    assert(!held.reset() && !held.fault());
+    assert(held.observe(20'000'000, false));
+    assert(held.observe(20'010'000, false));
+    assert(held.requested_at_us() == 1'000'000); // Never rearm after release.
+
+    for (const auto duration : {20'000ULL, 399'999ULL, 400'000ULL, 899'999ULL}) {
+        ButtonSafety release;
+        assert(!release.observe(0, false));
+        assert(!release.observe(100'000, true));
+        assert(!release.observe(110'000, true));
+        assert(!release.observe(100'000 + duration, false));
+        assert(release.observe(110'000 + duration, false));
+        assert(release.reset() == (duration < 400'000));
+        assert(release.duration_us() == duration);
+    }
+    ButtonSafety boot;
+    assert(!boot.observe(0, true));
+    assert(!boot.observe(12'000'000, true));
+    assert(!boot.observe(12'001'000, false));
+    assert(!boot.observe(12'011'000, false));
+    // Sub-debounce noise cannot trigger a worker stop.
+    assert(!boot.observe(12'100'000, true));
+    assert(!boot.observe(12'109'999, false));
+    assert(!boot.observe(12'120'000, false));
+    assert(boot.observe(12'119'999, false));
+    assert(boot.fault() && boot.inhibited());
+}
 void edge(ButtonDiagnostic& button, std::uint64_t at_us, bool pressed) {
     assert(!button.observe(at_us, pressed).released);
     assert(!button.observe(at_us + ButtonDiagnostic::debounce_us, pressed).released);
@@ -208,6 +245,7 @@ void runtime_actions_require_verified_stop() {
 } // namespace
 
 int main() {
+    independent_safety_policy();
     thresholds_and_stuck_hold();
     release_boundaries();
     startup_low_bounce_and_clock_fault();

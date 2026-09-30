@@ -1,6 +1,10 @@
 #include "rf/pico/worker.hpp"
 
 #include "hardware/structs/watchdog.h"
+#ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
+#include "hardware/gpio.h"
+#include "provisioning/button_safety.hpp"
+#endif
 #include "hardware/sync.h"
 #include "pico/flash.h"
 #include "pico/multicore.h"
@@ -44,9 +48,28 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock) {
                               restore_interrupts);
     if (worker)
         failure();
+#ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
+    gpio_init(14);
+    gpio_set_dir(14, GPIO_IN);
+    gpio_pull_up(14);
+    static provisioning::ButtonSafety safety;
+    proxy.set_safety(
+        [](void* context) {
+            return static_cast<provisioning::ButtonSafety*>(context)->observe(time_us_64(),
+                                                                              !gpio_get(14));
+        },
+        &safety);
+    hardware.set_output_inhibit(proxy.safety_latch());
+#endif
     std::fill(std::begin(worker_stack), std::end(worker_stack), 0xa59c37e1U);
     proxy.set_probe(
         [](WorkerEngine::Metrics& result, void* context) {
+#ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
+            result.safety_input_requested_us = safety.requested_at_us();
+            result.safety_input_duration_us = safety.duration_us();
+            result.safety_input_reset = safety.reset();
+            result.safety_input_fault = safety.fault();
+#endif
             const auto driver = static_cast<PicoPioDma*>(context)->metrics();
             result.dma_irqs = driver.dma_irqs;
             result.max_irq_ns = driver.max_irq_ns;
@@ -66,8 +89,8 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock) {
             result.stack_guard_bottom = guard.bottom;
             result.stack_guard_limit = guard.limit;
             result.stack_fault_status = guard.fault_status;
-            result.stack_guard_valid = guard.valid &&
-                guard.bottom == reinterpret_cast<std::uintptr_t>(worker_stack);
+            result.stack_guard_valid =
+                guard.valid && guard.bottom == reinterpret_cast<std::uintptr_t>(worker_stack);
         },
         &hardware);
     worker = &proxy;

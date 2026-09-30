@@ -1,0 +1,86 @@
+# GP14 production RF integration and acceptance
+
+Status: **ACTIVE; RF CUTOFF AND DEFAULT ENABLEMENT UNACCEPTED** (2026-09-30).
+
+## Authorization and scope
+
+The operator answered "Let's do it" to the proposed RF build repair,
+independent worker shutdown, bounded active/armed cutoff measurements,
+adversarial repair/reassessment and eventual default enablement/commit/push.
+Use `devel`, preserve the existing unrelated changes and all adapter settings.
+Use Candidate B (`CDDBF8767C506C07`, device
+`29f20b7342051ef947aa56cb9d4fab42`) for the RF acceptance candidate and the
+established closed conducted path on wspr5. A remains inhibited during the
+cutoff campaign. wspr4 is offline and must not be contacted or changed.
+
+The current retained inhibited restoration image is `615888e5364b`, UF2
+SHA-256 `81361b105def84231c23853507bad81f992426260b9c935061fab82081d5239f`.
+Bind each deployment to fresh USB identity/readback, its exact committed image,
+a fresh full backup and identical reserved storage before/after loading.
+Recheck the receiver identity and existing helper before capture. No incidental
+tool/SDK installation, network replacement, station Save or journal erase.
+
+## Implementation packet
+
+1. Repair `WsprryPico-StandaloneRF`: share the provisioning/crypto/BTstack
+   dependencies used by its common main, configure a 32 KiB guarded primary
+   stack, retain the independent 16 KiB worker stack and verify memory bounds.
+2. Keep PIO/DMA GP14 capture for core-0 blackout/replay handling. Add a portable,
+   latched safety policy sampled by the RF-owning worker. Recognized stop/reset
+   or safety faults inhibit further preparation/arming and synchronously stop
+   the engine without a core-0 RPC. Refuse launch after the latch. Never call
+   engine, flash, reset or CYW43 operations from the input sampler interrupt.
+3. Core 0 reconciles the same JobService/scheduler before other admissions,
+   confirms inactive output and then admits AP or normal reset. Preserve the
+   selected 10 ms debounce, under-400 ms reset, 900 ms held stop, 9 s held AP,
+   boot-held ignore and one action per gesture. The latch persists to reboot.
+4. Add an explicit RF acceptance build option with an identity-bound, finite
+   core-0 busy operation and timing/status readback. Keep that operation absent
+   from normal images. No job may start automatically in the test image.
+5. Run deterministic boundary, race, failure, busy-producer and latch tests;
+   build inhibited, RF and acceptance variants with pinned existing SDK/tools.
+   Review PIO/DMA/IRQ ownership, clocks, heap/stack, flash-safe pauses and launch
+   races. Repair findings, rerun affected checks and reassess before deployment.
+
+## Bounded target packet
+
+Prepare the exact image/receiver/job settings and finite host runner before
+each output action. Use finite tone jobs on the already recorded conducted
+frequency path; independent capture must establish actual carrier cutoff.
+No broad mode/band or Stage B coexistence campaign is included.
+The explicit RF target retains its existing read-only bootstrap surface;
+the AP row qualifies network/listener availability after shutdown. It does
+not claim station-save functionality on that RF variant. The normal inhibited
+image retains the accepted editable portal.
+
+Required rows are active stop, armed cancellation, active and armed stop while
+core 0 is deliberately busy, quick-release reset and long-held AP after stop.
+The operator supplies real GP14 contact; firmware injection cannot replace
+physical input or independent RF evidence. Record input/classification and
+worker cutoff timestamps, RF launch/termination, busy interval and the exact
+job/boot identity. The proposed acceptance bound is 50 ms from the selected
+stop/reset decision to inactive RF; retain measured uncertainty and reject
+evidence that cannot resolve that bound. Armed cancellation must prevent later
+launch. New output admission after the stop latch must fail.
+
+Use no more than eight finite RF jobs of at most 30 seconds each in the initial
+packet, no unattended repetition and stop on the first unexpected result.
+Record each attempt, including failed starts. Keep the core-0 busy interval
+below the existing 8-second watchdog. A watchdog recovery row may require a
+separate reviewed stimulus; do not improvise a destructive fault.
+
+Finish with inactive, empty/unowned, healthy storage and exact settings
+comparison, then restore the retained inhibited image. Enable GP14 by default
+only after source review and the required target rows pass; the standard image
+must remain RF-inhibited. Capture during the extended flash-safe pause remains
+accepted in its existing scope; exact coincidence with erase/program remains
+unmeasured and is not silently promoted by this packet.
+
+## Closeout
+
+Retain private captures/backups/image manifests under ignored `build/` and
+the matching wspr5 packet directory. Publish redacted assertion-level evidence,
+source/image identities, timing bounds, restoration and remaining limitations.
+Perform adversarial review, repair and reassessment, commit and push, and
+independently verify remote parity. Update P12.7's production gate only to the
+scope actually established; the broader Phase 12 gates remain separate.

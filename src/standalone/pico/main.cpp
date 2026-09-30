@@ -256,6 +256,10 @@ int main() {
     const bool gp14_prior_reset =
         watchdog_caused_reboot() && !recovery && watchdog_hw->scratch[0] == gp14_reset_magic;
     const auto gp14_prior_duration_ms = gp14_prior_reset ? watchdog_hw->scratch[2] : 0u;
+#ifdef WSPRRY_PICO_GP14_RF_ACCEPTANCE
+    const auto gp14_prior_rf_decision_after_launch_us =
+        gp14_prior_reset ? watchdog_hw->scratch[3] : 0u;
+#endif
 #endif
     const auto fault_stage = recovery ? watchdog_hw->scratch[1] : 0;
     const auto fault_hash = recovery ? watchdog_hw->scratch[2] : 0;
@@ -331,6 +335,9 @@ int main() {
     static wsprrypico::provisioning::PicoGp14Capture gp14_button;
     bool gp14_fault_handled = false;
     bool gp14_reset_pending = false;
+#ifdef WSPRRY_PICO_STANDALONE_RF
+    bool gp14_worker_inhibit_handled = false;
+#endif
     const auto stop_for_gp14 = [&]() {
         const bool verified = service.local_inhibit_output();
         (void)scheduler.command("STOP");
@@ -556,6 +563,9 @@ int main() {
 #ifdef WSPRRY_PICO_GP14_FLASH_PROBE
     unsigned gp14_flash_probe_runs = 0;
     bool gp14_flash_probe_failed = false;
+#endif
+#ifdef WSPRRY_PICO_GP14_RF_ACCEPTANCE
+    bool gp14_rf_busy_used = false;
 #endif
     auto command = [&](std::string_view text) -> std::string {
         if (text == "INFO") {
@@ -812,6 +822,21 @@ int main() {
             number_field(result, "rf_max_service_gap_ns", metrics.max_service_gap_ns, true);
             number_field(result, "rf_max_poll_ns", metrics.max_poll_ns, true);
             number_field(result, "rf_max_roundtrip_ns", metrics.max_roundtrip_ns, true);
+            number_field(result, "rf_safety_requested_ns", metrics.safety_requested_ns, true);
+            number_field(result, "rf_safety_stopped_ns", metrics.safety_stopped_ns, true);
+            number_field(result, "rf_safety_input_requested_us", metrics.safety_input_requested_us,
+                         true);
+            number_field(result, "rf_safety_input_duration_us", metrics.safety_input_duration_us);
+            number_field(result, "rf_safety_input_reset", metrics.safety_input_reset);
+            number_field(result, "rf_safety_input_fault", metrics.safety_input_fault);
+#ifdef WSPRRY_PICO_GP14_RF_ACCEPTANCE
+            result += ",\"gp14_rf_acceptance\":true";
+            number_field(result, "gp14_rf_busy_used", gp14_rf_busy_used);
+            number_field(result, "gp14_prior_rf_decision_after_launch_us",
+                         gp14_prior_rf_decision_after_launch_us);
+#endif
+            result += ",\"rf_safety_inhibited\":";
+            result += engine.safety_inhibited() ? "true" : "false";
             number_field(result, "max_loop_us", max_loop_us);
             number_field(result, "max_authority_poll_us", max_refill_us);
             number_field(result, "max_usb_us", max_usb_us);
@@ -847,6 +872,33 @@ int main() {
             number_field(result, "low_before", probe.low_before);
             number_field(result, "low_after_write", probe.low_after_write);
             number_field(result, "low_after", probe.low_after);
+            result += "}\n";
+            return result;
+        }
+#endif
+#ifdef WSPRRY_PICO_GP14_RF_ACCEPTANCE
+        if (text.starts_with("GP14 RF BUSY ")) {
+            const auto activity = service.activity();
+            if (text.substr(13) != identities.device_id() || gp14_rf_busy_used || recovery ||
+                reboot_at || gp14_button.fault() || engine.safety_inhibited() ||
+                (activity.state != wsprrypico::wtp::State::Armed &&
+                 activity.state != wsprrypico::wtp::State::Running))
+                return "{\"ok\":false,\"error\":\"rf_busy_refused\"}\n";
+            gp14_rf_busy_used = true;
+            watchdog_update();
+            const auto begin = time_us_64();
+            while (time_us_64() - begin < 5'000'000)
+                tight_loop_contents();
+            const auto end = time_us_64();
+            // Reconcile before USB dispatch can admit any subsequent command.
+            if (engine.safety_inhibited() && !gp14_worker_inhibit_handled) {
+                (void)stop_for_gp14();
+                gp14_worker_inhibit_handled = true;
+            }
+            watchdog_update();
+            std::string result = "{\"ok\":true";
+            number_field(result, "busy_begin_us", begin, true);
+            number_field(result, "busy_end_us", end, true);
             result += "}\n";
             return result;
         }
@@ -1048,6 +1100,12 @@ int main() {
     };
     while (true) {
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
+#ifdef WSPRRY_PICO_STANDALONE_RF
+        if (engine.safety_inhibited() && !gp14_worker_inhibit_handled) {
+            (void)stop_for_gp14();
+            gp14_worker_inhibit_handled = true;
+        }
+#endif
         wsprrypico::provisioning::DiagnosticButtonEvents button_event;
         while (gp14_button.next(button_event))
             gp14_runtime.observe(button_event, time_us_64() / 1000ULL, gp14_button.held());
@@ -1074,6 +1132,16 @@ int main() {
                 watchdog_hw->scratch[0] = gp14_reset_magic;
                 watchdog_hw->scratch[2] = static_cast<std::uint32_t>(
                     std::min<std::uint64_t>(gp14_runtime.last_duration_us() / 1000ULL, UINT32_MAX));
+#ifdef WSPRRY_PICO_GP14_RF_ACCEPTANCE
+                const auto metrics = engine.metrics();
+                const bool relative_valid =
+                    metrics.launch_ns && metrics.safety_requested_ns >= metrics.launch_ns;
+                watchdog_hw->scratch[3] =
+                    relative_valid ? static_cast<std::uint32_t>(std::min<std::uint64_t>(
+                                         (metrics.safety_requested_ns - metrics.launch_ns) / 1000ULL,
+                                         UINT32_MAX))
+                                   : 0;
+#endif
             }
 #endif
             watchdog_reboot(0, 0, 0);

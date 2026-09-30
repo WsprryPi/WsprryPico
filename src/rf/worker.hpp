@@ -48,6 +48,9 @@ class WorkerEngine final : public wtp::RfEngine {
         std::uint64_t commands = 0, max_service_gap_ns = 0, max_poll_ns = 0;
         std::uint64_t max_roundtrip_ns = 0;
         std::uint64_t probes = 0, max_probe_ns = 0;
+        std::uint64_t safety_requested_ns = 0, safety_stopped_ns = 0;
+        std::uint64_t safety_input_requested_us = 0, safety_input_duration_us = 0;
+        bool safety_input_reset = false, safety_input_fault = false;
         std::uint64_t dma_irqs = 0, max_irq_ns = 0, launch_ns = 0;
         std::uint64_t launch_epoch = 0, launch_target_ns = 0;
         std::uint64_t alarm_irqs = 0, max_alarm_irq_ns = 0, tail_irqs = 0, dma_errors = 0;
@@ -62,10 +65,23 @@ class WorkerEngine final : public wtp::RfEngine {
         probe_ = probe;
         probe_context_ = context;
     }
+    // Configure before starting the worker. The probe observes input only;
+    // physical disable remains on the engine-owning worker, never in an ISR.
+    void set_safety(bool (*probe)(void*), void* context) {
+        safety_probe_ = probe;
+        safety_context_ = context;
+    }
+    [[nodiscard]] bool safety_inhibited() const {
+        return safety_inhibited_.load(std::memory_order_acquire);
+    }
+    [[nodiscard]] const std::atomic<bool>& safety_latch() const {
+        return safety_inhibited_;
+    }
 
   private:
     enum class Op { Inspect, Metrics, Prepare, Schedule, Disable, Correct };
     void call(Op) const;
+    void check_safety();
     wtp::RfEngine& engine_;
     time::UtcDiscipline& clock_;
     mutable time::UtcDiscipline staged_clock_;
@@ -93,7 +109,12 @@ class WorkerEngine final : public wtp::RfEngine {
     wtp::EngineState worker_state_ = wtp::EngineState::Idle;
     std::uint64_t last_step_ = 0;
     Metrics worker_metrics_{}, reply_metrics_{};
+    bool (*safety_probe_)(void*) = nullptr;
+    void* safety_context_ = nullptr;
+    std::atomic<bool> safety_inhibited_{false};
+    bool safety_stopped_ = false;
     mutable std::uint64_t max_roundtrip_ = 0;
 };
 static_assert(std::atomic<unsigned>::is_always_lock_free);
+static_assert(std::atomic<bool>::is_always_lock_free);
 } // namespace wsprrypico::rf

@@ -359,8 +359,10 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
     if (!active_) {
         // Do not leave a wildcard port-80 listener on the station interface
         // if the AP stops or the service is otherwise unavailable.
+#ifndef WSPRRY_PICO_STANDALONE_RF
         if (bootstrap_trial_start_pending_)
             cancel_slot();
+#endif
         stop();
         return;
     }

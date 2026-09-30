@@ -50,12 +50,14 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
     target_link_libraries(${image} PRIVATE pico_mbedtls)
 endforeach()
 
-# Consumer commissioning exists only in the RF-inhibited field image.
-target_sources(WsprryPico PRIVATE
-    ${PICO_MBEDTLS_PATH}/library/x509write.c
-    ${CMAKE_SOURCE_DIR}/src/provisioning/pico/consumer_claim_platform.cpp
-    ${CMAKE_SOURCE_DIR}/src/provisioning/pico/consumer_tls_generator.cpp
-    ${CMAKE_SOURCE_DIR}/src/provisioning/pico/consumer_tls_validator.cpp)
+# Common main requires these adapters; the RF bootstrap remains read-only.
+foreach(image WsprryPico WsprryPico-StandaloneRF)
+    target_sources(${image} PRIVATE
+        ${PICO_MBEDTLS_PATH}/library/x509write.c
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/consumer_claim_platform.cpp
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/consumer_tls_generator.cpp
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/consumer_tls_validator.cpp)
+endforeach()
 
 set_source_files_properties(${CMAKE_SOURCE_DIR}/src/network/pico/psa_lifetime.cpp
     ${CMAKE_SOURCE_DIR}/src/network/pico/server.cpp

@@ -237,8 +237,9 @@ bool PicoPioDma::alarm(std::uint64_t start_ns, std::uint64_t epoch) {
 LaunchResult PicoPioDma::launch(std::uint64_t start_ns, std::uint64_t deadline_ns) {
     const auto target_us = start_ns / 1000;
     auto observed_us = time_us_64();
-    if (!installed_ || start_ns % 1000 != 0 || deadline_ns <= start_ns ||
-        observed_us * 1000 >= deadline_ns || pio_sm_is_tx_fifo_empty(pio_, sm_)) {
+    if ((output_inhibit_ && output_inhibit_->load(std::memory_order_acquire)) || !installed_ ||
+        start_ns % 1000 != 0 || deadline_ns <= start_ns || observed_us * 1000 >= deadline_ns ||
+        pio_sm_is_tx_fifo_empty(pio_, sm_)) {
         return LaunchResult::Rejected;
     }
     if (observed_us < target_us && target_us - observed_us > 250) {
@@ -254,7 +255,8 @@ LaunchResult PicoPioDma::launch(std::uint64_t start_ns, std::uint64_t deadline_n
     // requested UTC second. Never wait a whole second in this interrupt.
     while (observed_us < target_us)
         observed_us = time_us_64();
-    if (observed_us * 1000 >= deadline_ns)
+    if (observed_us * 1000 >= deadline_ns ||
+        (output_inhibit_ && output_inhibit_->load(std::memory_order_acquire)))
         return LaunchResult::Rejected;
     pio_->fdebug = 1U << (PIO_FDEBUG_TXSTALL_LSB + sm_);
     gpio_set_outover(rf_pin, GPIO_OVERRIDE_NORMAL);

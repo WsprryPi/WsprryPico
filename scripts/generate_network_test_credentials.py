@@ -25,13 +25,15 @@ def openssl(*args):
 
 openssl('req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', '-nodes',
         '-keyout', 'ca.key', '-out', 'client-ca.crt', '-days', '2', '-subj', '/CN=Ephemeral Pico test CA',
-        '-addext', 'basicConstraints=critical,CA:TRUE', '-addext', 'keyUsage=critical,keyCertSign,cRLSign')
+        '-addext', 'basicConstraints=critical,CA:TRUE', '-addext', 'keyUsage=critical,keyCertSign,cRLSign',
+        '-addext', 'subjectKeyIdentifier=hash')
 for name, usage in [('server', 'serverAuth'), ('client', 'clientAuth'), ('other', 'clientAuth'), ('expired', 'clientAuth')]:
     openssl('req', '-new', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', '-nodes',
             '-keyout', name + '.key', '-out', name + '.csr', '-subj', '/CN=Ephemeral ' + name)
     sans = 'DNS:' + selected_hostname + ('' if args.dns_only else ',IP:127.0.0.1') if name == 'server' else 'IP:127.0.0.1'
-    (out / (name + '.ext')).write_text('basicConstraints=CA:FALSE\nextendedKeyUsage=' + usage +
-                                       '\nsubjectAltName=' + sans + '\nkeyUsage=digitalSignature\n')
+    (out / (name + '.ext')).write_text('basicConstraints=critical,CA:FALSE\nextendedKeyUsage=' + usage +
+                                       '\nsubjectAltName=' + sans + '\nkeyUsage=digitalSignature\n'
+                                       'subjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid:always\n')
     openssl('x509', '-req', '-in', name + '.csr', '-CA', 'client-ca.crt', '-CAkey', 'ca.key',
             '-CAcreateserial', '-out', name + '.crt', '-days', '1', '-extfile', name + '.ext')
 # Explicit historical validity works across OpenSSL versions via the CA command.

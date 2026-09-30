@@ -10,7 +10,7 @@ for line in result.stdout.splitlines():
     parts = line.split()
     if len(parts) == 3:
         symbols[parts[2]] = int(parts[0], 16)
-expected_stack = 32768 if Path(sys.argv[1]).stem == "WsprryPico" else 16384
+expected_stack = 32768 if Path(sys.argv[1]).stem in {"WsprryPico", "WsprryPico-StandaloneRF"} else 16384
 assert symbols["__StackTop"] - symbols["__StackBottom"] == expected_stack
 assert symbols["__HeapLimit"] <= symbols["__StackBottom"]
 assert symbols["__bss_end__"] < symbols["__HeapLimit"]

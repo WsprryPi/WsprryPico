@@ -92,9 +92,9 @@ static err_t output(netif* interface, pbuf* packet, const ip4_addr_t*) {
     for (unsigned i = 0; i < records; ++i) {
         mdns_domain name{};
         const auto end = mdns_readname(message, offset, &name);
-        assert(end != MDNS_READNAME_ERROR && end + 10 <= dns_size);
+        assert(end != MDNS_READNAME_ERROR && static_cast<std::size_t>(end) + 10 <= dns_size);
         const auto length = read16(dns + end + 8);
-        assert(end + 10 + length <= dns_size);
+        assert(static_cast<std::size_t>(end) + 10 + length <= dns_size);
         const bool positive = dns[end + 4] | dns[end + 5] | dns[end + 6] | dns[end + 7];
         if (read16(dns + end) == 12 && domain_is(name, "_wtp._tcp.local")) {
             mdns_domain instance{};

@@ -65,6 +65,11 @@ option(WSPRRY_PICO_GP14_RUNTIME_BUTTON
     "Opt in to the unaccepted GP14 runtime button and PIO capture" OFF)
 option(WSPRRY_PICO_GP14_FLASH_PROBE
     "Temporary RF-inhibited runtime variant with a guarded scratch flash probe" OFF)
+option(WSPRRY_PICO_GP14_RF_ACCEPTANCE
+    "Temporary RF worker variant with an identity-bound finite core-0 busy operation" OFF)
+if(WSPRRY_PICO_GP14_RF_ACCEPTANCE AND NOT WSPRRY_PICO_GP14_RUNTIME_BUTTON)
+    message(FATAL_ERROR "GP14 RF acceptance requires the runtime button")
+endif()
 if(WSPRRY_PICO_GP14_FLASH_PROBE AND NOT WSPRRY_PICO_GP14_RUNTIME_BUTTON)
     message(FATAL_ERROR "GP14 flash probe requires the opt-in runtime button")
 endif()
@@ -193,18 +198,23 @@ target_include_directories(WsprryPico-StandaloneRF PRIVATE
     ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated
     ${CMAKE_SOURCE_DIR}/src/standalone/pico)
 target_compile_definitions(WsprryPico-StandaloneRF PRIVATE
-    WSPRRY_PICO_STANDALONE_RF=1 PICO_NO_BI_PROGRAM_BUILD_DATE=1 PICO_STACK_SIZE=0x4000
+    WSPRRY_PICO_STANDALONE_RF=1 PICO_NO_BI_PROGRAM_BUILD_DATE=1 PICO_STACK_SIZE=0x8000
+    WSPRRY_PICO_CONSUMER_LAN_MODE=${WSPRRY_PICO_CONSUMER_LAN_MODE_VALUE}
     PICO_PANIC_FUNCTION=wsprrypico_panic PICO_CORE1_STACK_SIZE=0)
-target_sources(WsprryPico-StandaloneRF PRIVATE ../src/rf/pico/worker.cpp)
+target_sources(WsprryPico-StandaloneRF PRIVATE ../src/rf/pico/worker.cpp
+    ../src/standalone/pico/net_trace.cpp)
+if(WSPRRY_PICO_GP14_RF_ACCEPTANCE)
+    target_compile_definitions(WsprryPico-StandaloneRF PRIVATE WSPRRY_PICO_GP14_RF_ACCEPTANCE=1)
+endif()
 target_link_libraries(WsprryPico-StandaloneRF PRIVATE
     wsprrypico_pico_rf pico_rand pico_time pico_unique_id hardware_flash pico_flash pico_multicore
     pico_cyw43_arch_lwip_poll tinyusb_device)
 set_target_properties(WsprryPico-StandaloneRF PROPERTIES
     C_STANDARD 11 C_STANDARD_REQUIRED ON C_EXTENSIONS ON)
 target_link_options(WsprryPico-StandaloneRF PRIVATE
-    "LINKER:--defsym=RAM_LENGTH=0x7c000"
-    "LINKER:--defsym=SCRATCH_Y_ORIGIN=0x2007c000"
-    "LINKER:--defsym=SCRATCH_Y_LENGTH=0x4000")
+    "LINKER:--defsym=RAM_LENGTH=0x78000"
+    "LINKER:--defsym=SCRATCH_Y_ORIGIN=0x20078000"
+    "LINKER:--defsym=SCRATCH_Y_LENGTH=0x8000")
 pico_enable_stdio_uart(WsprryPico-StandaloneRF 0)
 pico_enable_stdio_usb(WsprryPico-StandaloneRF 0)
 pico_set_program_name(WsprryPico-StandaloneRF "WsprryPico-StandaloneRF")
@@ -213,12 +223,23 @@ pico_set_program_description(WsprryPico-StandaloneRF "Standalone GP2 integration
 pico_add_extra_outputs(WsprryPico-StandaloneRF)
 
 if(WSPRRY_PICO_GP14_RUNTIME_BUTTON)
-    target_sources(WsprryPico PRIVATE ../src/provisioning/pico/gp14_capture.cpp)
-    target_include_directories(WsprryPico PRIVATE ${CMAKE_SOURCE_DIR}/src)
-    target_compile_definitions(WsprryPico PRIVATE WSPRRY_PICO_GP14_RUNTIME_BUTTON=1)
-    target_link_libraries(WsprryPico PRIVATE hardware_pio hardware_dma)
-    pico_generate_pio_header(WsprryPico
-        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gp14_sampler.pio)
+    foreach(image WsprryPico WsprryPico-StandaloneRF)
+        target_sources(${image} PRIVATE ../src/provisioning/pico/gp14_capture.cpp)
+        target_include_directories(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src)
+        target_compile_definitions(${image} PRIVATE WSPRRY_PICO_GP14_RUNTIME_BUTTON=1)
+        target_link_libraries(${image} PRIVATE hardware_pio hardware_dma)
+        pico_generate_pio_header(${image}
+            ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gp14_sampler.pio)
+    endforeach()
+    set(gp14_rf_check_args)
+    if(WSPRRY_PICO_GP14_RF_ACCEPTANCE)
+        list(APPEND gp14_rf_check_args --acceptance)
+    endif()
+    add_custom_command(TARGET WsprryPico-StandaloneRF POST_BUILD
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_gp14_rf_image.py
+            $<TARGET_FILE:WsprryPico-StandaloneRF> ${gp14_rf_check_args} VERBATIM)
+    set_property(TARGET WsprryPico-StandaloneRF APPEND PROPERTY LINK_DEPENDS
+        ${CMAKE_SOURCE_DIR}/scripts/check_gp14_rf_image.py)
     set_source_files_properties(../src/provisioning/pico/gp14_capture.cpp PROPERTIES
         COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-fstack-usage")
 endif()
@@ -389,24 +410,25 @@ if(TARGET pico_btstack_ble AND TARGET pico_btstack_cyw43)
             "found ${WSPRRY_PICO_BTSTACK_REVISION} at ${PICO_BTSTACK_PATH}")
     endif()
 
-    # The standard image is RF-inhibited and is the only production field
-    # candidate. BTstack shares the single CYW43 initialization owned by
-    # PicoNetwork; neither diagnostic/RF image advertises a field service.
-    target_sources(WsprryPico PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/network/pico/bootstrap_crypto.cpp
-        ${CMAKE_SOURCE_DIR}/src/network/pico/owner_claim_crypto.cpp
-        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/activation_platform.cpp
-        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/captive_dns.c
-        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/dhcp_server.c
-        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_platform.cpp
-        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gatt_transport.cpp)
-    target_include_directories(WsprryPico PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/provisioning/pico
-        ${CMAKE_SOURCE_DIR}/src/network/pico
-        ${CMAKE_SOURCE_DIR}/src/standalone/pico)
-    target_link_libraries(WsprryPico PRIVATE pico_btstack_ble pico_btstack_cyw43)
-    pico_btstack_make_gatt_header(WsprryPico PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_access.gatt)
+    # Both maintained standalone variants use this common main and the single
+    # CYW43 owner. Bench/diagnostic images retain their separate dependencies.
+    foreach(image WsprryPico WsprryPico-StandaloneRF)
+        target_sources(${image} PRIVATE
+            ${CMAKE_SOURCE_DIR}/src/network/pico/bootstrap_crypto.cpp
+            ${CMAKE_SOURCE_DIR}/src/network/pico/owner_claim_crypto.cpp
+            ${CMAKE_SOURCE_DIR}/src/provisioning/pico/activation_platform.cpp
+            ${CMAKE_SOURCE_DIR}/src/provisioning/pico/captive_dns.c
+            ${CMAKE_SOURCE_DIR}/src/provisioning/pico/dhcp_server.c
+            ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_platform.cpp
+            ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gatt_transport.cpp)
+        target_include_directories(${image} PRIVATE
+            ${CMAKE_SOURCE_DIR}/src/provisioning/pico
+            ${CMAKE_SOURCE_DIR}/src/network/pico
+            ${CMAKE_SOURCE_DIR}/src/standalone/pico)
+        target_link_libraries(${image} PRIVATE pico_btstack_ble pico_btstack_cyw43)
+        pico_btstack_make_gatt_header(${image} PRIVATE
+            ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_access.gatt)
+    endforeach()
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/activation_platform.cpp
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/captive_dns.c
@@ -461,11 +483,13 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
         WSPRRY_PICO_LWIP_MDNS_SOURCE="${PICO_LWIP_PATH}/src/apps/mdns/mdns.c")
 endforeach()
 
-# Reset-surviving nested shutdown breadcrumbs; never patch SDK or physical RF images.
-target_sources(WsprryPico PRIVATE ../src/standalone/pico/shutdown_trace.cpp)
-foreach(operation cyw43_cb_tcpip_deinit dhcp_stop netif_remove igmp_stop
-                  cyw43_wifi_update_multicast_filter cyw43_wifi_leave)
-    target_link_options(WsprryPico PRIVATE "LINKER:--wrap=${operation}")
+# The common bootstrap adapter uses these reset-surviving shutdown breadcrumbs.
+foreach(image WsprryPico WsprryPico-StandaloneRF)
+    target_sources(${image} PRIVATE ../src/standalone/pico/shutdown_trace.cpp)
+    foreach(operation cyw43_cb_tcpip_deinit dhcp_stop netif_remove igmp_stop
+                      cyw43_wifi_update_multicast_filter cyw43_wifi_leave)
+        target_link_options(${image} PRIVATE "LINKER:--wrap=${operation}")
+    endforeach()
 endforeach()
 set_source_files_properties(../src/standalone/pico/shutdown_trace.cpp PROPERTIES
     COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-fstack-usage")
