@@ -91,3 +91,47 @@ Private development logs are under ignored `build/phase12-gp14-rf-*`.
 These dirty development builds are not deployable evidence. A fresh clean
 committed build, B's preflight/backup, verified application load and reserved
 storage comparison are required before the physical packet.
+
+## Clean candidate and B deployment
+
+Clean firmware source is `62ae4c2c25675631c6094f669cc0f74722987bdd`;
+the RF acceptance UF2 is 3,210,752 bytes, SHA-256
+`3d2d336e0136be5078ac9ef3377487dce9d3b82ef76dab4fe3c366f18308462f`.
+Both clean normal variants passed; the normal RF image contains no busy
+control. The separate acceptance image passed memory/flash, renderer,
+allocator/guard and shutdown checks and the test-control presence check.
+
+B's fresh 4 MiB backup SHA-256 is
+`e77aa61396cda525c1ad2d437e69ac30ed4f52cec7cc302261839e816c8b7d99`.
+It was retained and independently verified on the Mac before loading.
+Serial-targeted load/verify and normal boot succeeded; all 57,344 reserved
+bytes matched, and consumer generation 5 / AA1NT / EM18 / 20 dBm, access
+generation 1 and standalone configuration were preserved. Boot ID
+`26a72ec6e80cf4cd25c3ca4ff6e5ee7f` reports the physical engine at 138 MHz,
+guarded primary/worker stacks, zero allocator/capture faults and inactive
+output. Later USB and Plain LAN HELLO/CAPS/STATUS/GET_CLOCK confirm the same
+boot, empty/unowned authority, `192.168.1.53` and synchronized time.
+
+One receiver-only three-second baseline verified RSP1B `2404058C60`, CF32 at
+250 kS/s, 200 kHz bandwidth, 3.55 MHz center, gain 20 dB, channel 0, AGC/bias
+off. All 750,000 samples were retained without overflow, timeout or clipping;
+cleanup passed. IQ SHA-256 is
+`b98ac0600009b75c1765400247caeacb7f80ba668a2302ffd97de450f3b3befd`.
+No physical cutoff is claimed from inactive capture.
+
+The first active-stop acquisition failed at LOAD with `FREQUENCY_REJECTED`:
+the helper incorrectly disallowed NCO frequency rounding. Retained requests
+prove no ARM was sent. Fresh WTP confirms empty/unowned/inactive output.
+The attempt is retained and counts toward the eight-attempt limit; it is not
+RF acceptance. Permit the normal bounded frequency realization, validate its
+returned adjustment within 50 Hz of the conducted tone, and repair claim-only
+failure cleanup. Adversarial reassessment also repaired the ABORT body and
+terminal cleanup. Schema-valid claim-only, loaded, running, terminal and
+foreign-owner refusal checks plus the existing real stream-planner rounding
+tests pass (**2/2 affected groups**). The firmware image remains unchanged;
+only the acquisition helper is revised for the retest.
+
+Private image/backup/capture/readback evidence is under
+`build/phase12-gp14-rf-b-20260930/` and its matching wspr5 directory. B remains
+on the explicit RF acceptance image, inactive, awaiting the operator's next
+cue. A remains on inhibited `615888e5364b`; wspr4 was not contacted.

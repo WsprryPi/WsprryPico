@@ -33,6 +33,13 @@ def digest(path):
         return hashlib.file_digest(source, 'sha256').hexdigest()
 
 
+def job_value(job_id):
+    return dict(job_id=job_id, profile='rf-events/1', mode='tone',
+                total_duration_ns='20000000000', allow_frequency_adjustment=True,
+                events=[dict(offset_ns='0', duration_ns='20000000000', rf_on=True,
+                             frequency_nhz='3570100000000000')])
+
+
 def validate_packet(packet):
     require(packet['schema'] == 'phase12-gp14-rf-v1', 'packet schema')
     require(packet['serial'] == SERIAL and packet['device_id'] == DEVICE, 'B-only target')
@@ -74,6 +81,32 @@ def check_info(info, packet, boot=None):
         require(info['status']['boot_id'] == boot, 'unexpected reboot')
 
 
+def cleanup_owned(peer, boot, job_id, owner):
+    status = peer.request('STATUS', {})
+    require(status['boot_id'] == boot, 'cleanup boot mismatch')
+    if status['owner_id'] is None:
+        require(status['output_active'] is False, 'unowned output during cleanup')
+        return
+    require(status['owner_id'] == owner, 'cleanup foreign owner')
+    if status['job_id'] == job_id:
+        if status['state'] in ('loaded', 'armed', 'running'):
+            peer.request('ABORT', dict(job_id=job_id))
+            status = peer.request('STATUS', {})
+        require(status['boot_id'] == boot and status['output_active'] is False and
+                status['state'] in ('aborted', 'complete', 'missed'), 'cleanup terminal unconfirmed')
+        if status['owner_id'] is None:
+            return
+        require(status['owner_id'] == owner, 'cleanup owner changed')
+    else:
+        require(status['job_id'] is None and status['state'] == 'empty' and
+                status['output_active'] is False, 'cleanup foreign job')
+    peer.request('RELEASE', {})
+    status = peer.request('STATUS', {})
+    require(status['boot_id'] == boot and status['owner_id'] is None and
+            status['job_id'] is None and status['state'] == 'empty' and
+            status['output_active'] is False, 'cleanup unconfirmed')
+
+
 def acquire(packet, case, campaign):
     previous = sorted(campaign.glob('run-*/attempt.json'))
     require(len(previous) < 8, 'initial eight-attempt budget exhausted')
@@ -81,7 +114,9 @@ def acquire(packet, case, campaign):
         assessment = path.with_name('analysis.json')
         require(assessment.exists(), 'preceding independent RF assessment pending')
         result = json.loads(assessment.read_text())
-        require(result.get('independent_rf_pass') is True and
+        no_rf = (result.get('resolved_without_rf') is True and
+                 json.loads(path.read_text())['charged_jobs'] == 0)
+        require((result.get('independent_rf_pass') is True or no_rf) and
                 result.get('attempt_sha256') == digest(path), 'preceding RF assessment failed/unbound')
     root = campaign / ('run-' + uuid.uuid4().hex)
     evidence = Evidence(root)
@@ -93,11 +128,9 @@ def acquire(packet, case, campaign):
     peer = None
     capture = None
     owner = uuid.uuid4().hex
-    job = dict(job_id=uuid.uuid4().hex, profile='rf-events/1', mode='tone',
-               total_duration_ns='20000000000', allow_frequency_adjustment=False,
-               events=[dict(offset_ns='0', duration_ns='20000000000', rf_on=True,
-                            frequency_nhz='3570100000000000')])
+    job = job_value(uuid.uuid4().hex)
     boot = None
+    claim_pending = False
     try:
         initial = console()
         check_info(initial, packet)
@@ -128,8 +161,17 @@ def acquire(packet, case, campaign):
                 (root/'capture.cf32.incomplete').stat().st_size < 65536:
             require(time.monotonic() < ready_end and capture.poll() is None, 'receiver readiness')
             time.sleep(.05)
+        attempt.update(boot_id=boot, job_id=job['job_id'], owner_id=owner)
+        save()
+        claim_pending = True
         peer.request('CLAIM', dict(owner_id=owner, lease_ms=60000))
-        peer.request('LOAD', job)
+        loaded = peer.request('LOAD', job)
+        require(loaded['job_id'] == job['job_id'] and len(loaded['adjustments']) == 1,
+                'complete frequency realization')
+        adjustment = loaded['adjustments'][0]
+        require(adjustment['requested_frequency_nhz'] == '3570100000000000' and
+                abs(int(adjustment['realized_frequency_nhz']) - 3570100000000000) <= 50000000000,
+                'realization outside conducted tone window')
         clock = peer.request('GET_CLOCK', {})
         require(clock['state'] == 'synchronized' and clock['leap'] == 'normal' and
                 int(clock['uncertainty_ns']) <= 500000000, 'clock admission')
@@ -223,12 +265,11 @@ def acquire(packet, case, campaign):
         attempt.update(status='FAILED_STOP_CAMPAIGN', error=type(error).__name__ + ': ' + str(error))
         save()
         # No mutation replay. Only reconcile this connection's finite, identified job.
-        if peer is not None and attempt['charged_jobs']:
+        if peer is not None and claim_pending:
             try:
-                status = peer.request('STATUS', {})
-                if status['boot_id'] == boot and status['job_id'] == job['job_id'] and \
-                        status['owner_id'] == owner:
-                    peer.request('ABORT', {})
+                cleanup_owned(peer, boot, job['job_id'], owner)
+                attempt['cleanup_verified'] = True
+                save()
             except BaseException:
                 attempt['abort_unconfirmed'] = True
                 save()

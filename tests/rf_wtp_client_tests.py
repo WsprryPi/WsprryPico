@@ -78,3 +78,40 @@ with patch.object(rf_wtp, "write_all") as write, \
 request = json.loads(write.call_args.args[1][16:])
 assert request["session_id"] == old.session and request["request_id"] == f"{28:032x}"
 assert not reconnected.pending
+
+# The GP14 finite tone permits the RF planner's unavoidable frequency rounding.
+# Failure cleanup is bound to the known owner/job even before ARM is attempted.
+from phase12_gp14_rf import job_value, cleanup_owned
+from validate_wtp_contract import SchemaValidator
+schema = json.loads((ROOT/'docs/protocol/wtp-1.schema.json').read_text())
+validator = SchemaValidator(schema)
+finite = job_value('1'*32)
+assert finite['allow_frequency_adjustment'] is True
+assert finite['total_duration_ns'] == finite['events'][0]['duration_ns'] == '20000000000'
+class CleanupPeer:
+    def __init__(self, state, *, foreign=False):
+        self.state, self.calls = state, []
+        self.owner = 'f'*32 if foreign else '2'*32
+        self.job = None if state == 'empty' else '1'*32
+    def request(self, operation, body):
+        request = dict(type='request', protocol='WTP/1', session_id='3'*32,
+                       request_id='4'*32, op=operation, body=body)
+        assert not validator.errors(request, schema), (operation, body)
+        self.calls.append(operation)
+        if operation == 'ABORT': self.state = 'aborted'
+        if operation == 'RELEASE': self.state, self.owner, self.job = 'empty', None, None
+        if operation == 'STATUS':
+            return dict(boot_id='boot', state=self.state, owner_id=self.owner,
+                        job_id=self.job, output_active=self.state == 'running')
+for state, expected in [('empty',['STATUS','RELEASE','STATUS']),
+                        ('loaded',['STATUS','ABORT','STATUS','RELEASE','STATUS']),
+                        ('running',['STATUS','ABORT','STATUS','RELEASE','STATUS']),
+                        ('complete',['STATUS','RELEASE','STATUS'])]:
+    peer = CleanupPeer(state);cleanup_owned(peer,'boot','1'*32,'2'*32)
+    assert peer.calls == expected
+peer = CleanupPeer('loaded',foreign=True)
+try: cleanup_owned(peer,'boot','1'*32,'2'*32)
+except RuntimeError: pass
+else: raise AssertionError('foreign owner touched')
+assert peer.calls == ['STATUS']
+print('GP14 finite job and schema-valid claim-only/active/terminal cleanup passed')
