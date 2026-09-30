@@ -236,3 +236,27 @@ occupied or unverifiable existing endpoints and unrelated parse errors remain
 fatal. Refusal tests prove no console request is written without exclusive
 access; affected groups pass **2/2**. Reassessment retains the fail-closed
 ownership gate and the unchanged eight-RF-job bound.
+
+The next local-ready attempt observed the operator's 395 ms normal reset and
+admitted a finite tone, but the legacy `IDENTIFY` command was denied by the
+consumer-profile guard. The runner aborted the same owned job and verified
+inactive/empty/unowned cleanup; the completed receiver evidence is retained.
+This is a failed acquisition, not cutoff acceptance. **Six attempts and four
+RF jobs are charged.** B was restored to inhibited `615888e5364b`, boot
+`41c8399cebe99a162604f7cf69611f77`, with all 57,344 reserved bytes identical and
+exact settings/profile preserved.
+
+The repair adds `GP14 RF CUE` only inside the explicit acceptance build.
+Its identity-bound `READY` probe is allowed only with empty/inactive authority
+and does not blink or change output. A fresh hexadecimal nonce may start the
+existing ten-second triple-flash identify pattern only with armed/running
+authority and healthy input/network/indicator state. Recovery, pending reboot,
+latched safety and malformed/foreign requests are refused. Consumer legacy
+controls retain their existing guard. The host requires the new capability
+marker and a positive readiness probe before any CLAIM/LOAD/ARM, then verifies
+the action-cue acknowledgement. The linked-image checker requires the new cue
+markers in the acceptance image and forbids them in normal images. Affected
+worker/failure/field/button/stream/client groups pass **6/6**. Clean SDK rebuild,
+image checks and target readiness verification are the remaining deployment
+gates for this revised test image; no additional RF has been authorized by
+the software repair itself.

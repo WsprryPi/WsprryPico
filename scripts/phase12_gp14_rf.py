@@ -67,7 +67,7 @@ def console(text='INFO', deadline_s=5):
         if str(error) == 'Endpoint occupied or ownership check unavailable' and not Path(path).exists():
             raise FileNotFoundError(path) from error
         raise
-    require(result.get('ok') is True, 'Console command refused')
+    require(result.get('ok') is True, 'Console command refused: ' + str(result.get('error', 'unspecified')))
     return result
 
 
@@ -282,12 +282,17 @@ def acquire(packet, case, campaign, retry_no_input_run=None, wait_for_button=Fal
         initial = console()
         check_info(initial, packet)
         if wait_for_button:
+            require(initial.get('gp14_rf_cue_supported') is True, 'physical cue unsupported by image')
             initial = wait_button_reset(packet, initial, evidence)
         require(not initial['gp14_held'] and not initial['gp14_output_inhibited'] and
                 not initial['rf_safety_inhibited'] and initial['gp14_rf_busy_used'] == 0,
                 'new released-input boot required')
         boot = initial['status']['boot_id']
         evidence.record('initial_info', initial)
+        if wait_for_button:
+            cue_ready = console('GP14 RF CUE ' + DEVICE + ' READY')
+            require(cue_ready.get('ready') is True, 'physical cue readiness unconfirmed')
+            evidence.record('physical_led_ready', cue_ready)
         peer = Peer(types.SimpleNamespace(boot_id=boot), evidence)
         peer.stream = socket.create_connection((packet['address'], packet['port']), timeout=5)
         hello = peer.request('HELLO', dict(versions=['WTP/1'], client_name='GP14-RF-acceptance',
@@ -343,7 +348,9 @@ def acquire(packet, case, campaign, retry_no_input_run=None, wait_for_button=Fal
             time.sleep(.05)
         print('CONTACT NOW: ' + case + ' on B', flush=True)
         if wait_for_button:
-            evidence.record('physical_led_cue', console('IDENTIFY ' + DEVICE))
+            cue = console('GP14 RF CUE ' + DEVICE + ' ' + uuid.uuid4().hex)
+            require(cue.get('cue') is True, 'physical cue activation unconfirmed')
+            evidence.record('physical_led_cue', cue)
         busy = None
         final = None
         while time.monotonic() < action_end:

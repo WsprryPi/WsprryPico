@@ -831,6 +831,14 @@ int main() {
             number_field(result, "rf_safety_input_fault", metrics.safety_input_fault);
 #ifdef WSPRRY_PICO_GP14_RF_ACCEPTANCE
             result += ",\"gp14_rf_acceptance\":true";
+            result += ",\"gp14_rf_cue_supported\":true";
+            const auto cue_status = indicator.status(time_us_64() / 1000ULL);
+            result += ",\"gp14_rf_cue_active\":";
+            result += cue_status.pattern == wsprrypico::provisioning::IndicatorPattern::Identify
+                          ? "true"
+                          : "false";
+            result += ",\"gp14_rf_cue_fault\":";
+            result += cue_status.output_fault ? "true" : "false";
             number_field(result, "gp14_rf_busy_used", gp14_rf_busy_used);
             number_field(result, "gp14_prior_rf_decision_after_launch_us",
                          gp14_prior_rf_decision_after_launch_us);
@@ -877,6 +885,31 @@ int main() {
         }
 #endif
 #ifdef WSPRRY_PICO_GP14_RF_ACCEPTANCE
+        if (text.starts_with("GP14 RF CUE ")) {
+            const auto arguments = text.substr(12);
+            const auto split = arguments.find(' ');
+            const auto requested = arguments.substr(0, split);
+            const auto nonce =
+                split == std::string_view::npos ? std::string_view{} : arguments.substr(split + 1);
+            const bool probe = nonce == "READY";
+            const auto activity = service.activity();
+            if (requested != identities.device_id() || recovery || reboot_at ||
+                gp14_button.fault() || engine.safety_inhibited() || !network.initialized() ||
+                indicator.status(time_us_64() / 1000ULL).output_fault ||
+                (probe ? activity.state != wsprrypico::wtp::State::Empty
+                       : activity.state != wsprrypico::wtp::State::Armed &&
+                             activity.state != wsprrypico::wtp::State::Running) ||
+                (!probe && (nonce.size() != 32 ||
+                            nonce.find_first_not_of("0123456789abcdef") != std::string_view::npos)))
+                return "{\"ok\":false,\"error\":\"rf_cue_refused\"}\n";
+            if (probe)
+                return "{\"ok\":true,\"ready\":true}\n";
+            const auto code =
+                indicator.identify(text, requested, true, true, time_us_64() / 1000ULL);
+            if (code != wsprrypico::provisioning::IndicatorCode::Ok)
+                return "{\"ok\":false,\"error\":\"rf_cue_refused\"}\n";
+            return "{\"ok\":true,\"cue\":true}\n";
+        }
         if (text.starts_with("GP14 RF BUSY ")) {
             const auto activity = service.activity();
             if (text.substr(13) != identities.device_id() || gp14_rf_busy_used || recovery ||

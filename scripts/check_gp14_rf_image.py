@@ -10,7 +10,8 @@ parser.add_argument('--acceptance', action='store_true')
 args = parser.parse_args()
 data = args.elf.read_bytes()
 markers = (b'GP14 RF BUSY ', b'rf_busy_refused', b'gp14_rf_acceptance',
-           b'gp14_prior_rf_decision_after_launch_us')
+           b'gp14_prior_rf_decision_after_launch_us', b'GP14 RF CUE ',
+           b'rf_cue_refused', b'gp14_rf_cue_supported')
 assert all((marker in data) == args.acceptance for marker in markers), 'RF acceptance control mismatch'
 symbols = subprocess.check_output(['arm-none-eabi-nm', '-C', str(args.elf)], text=True)
 assert 'wsprrypico::rf::WorkerEngine::check_safety()' in symbols
