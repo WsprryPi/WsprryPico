@@ -49,6 +49,32 @@ bool parsed(const network::HttpRequest& request) {
 } // namespace
 
 int main() {
+    network::OwnerResultRestart restart;
+    const auto result_digest = std::string(64, 'a');
+    const auto consumer = provisioning::ProfileSource::ConsumerProfile;
+    const bool old_reply = restart.matches(consumer, 3, result_digest);
+    assert(!restart.ready(100'000));
+    restart.begin(3, result_digest, 100);
+    // A reply built before commit may be ACKed after it; it must not restart.
+    restart.delivered(old_reply, 110);
+    assert(!restart.ready(3'110));
+    assert(!restart.matches(provisioning::ProfileSource::NetworkOnly, 3, result_digest));
+    assert(!restart.matches(consumer, 2, result_digest));
+    assert(!restart.matches(consumer, 3, std::string(64, 'b')));
+    assert(restart.matches(consumer, 3, result_digest));
+    assert(!restart.ready(60'099));
+    assert(restart.ready(60'100)); // Lost result still has a finite activation path.
+    restart.delivered(true, 60'090);
+    assert(!restart.ready(60'100));  // A late exact reply gets its display interval.
+    restart.delivered(true, 62'000); // Repeated polls cannot extend that interval.
+    assert(!restart.ready(63'089));
+    assert(restart.ready(63'090));
+    assert(!restart.ready(99));
+    restart.begin(4, "bad digest", UINT64_MAX - 100);
+    assert(!restart.matches(consumer, 4, "bad digest"));
+    assert(!restart.ready(UINT64_MAX));
+    assert(!restart.ready(0)); // Do not treat clock wrap/rollback as expiry.
+
     std::array<std::uint8_t, 65> owner{};
     owner[0] = 4;
     std::array<std::uint8_t, 32> browser{};

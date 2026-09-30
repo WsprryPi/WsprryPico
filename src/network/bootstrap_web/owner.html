@@ -42,7 +42,9 @@
           <option value="53">53 dBm</option><option value="57">57 dBm</option>
           <option value="60">60 dBm</option>
         </select>
-        <button id="owner-submit" type="submit" class="primary" disabled>Save station settings</button>
+        <div class="form-actions">
+          <button id="owner-submit" type="submit" class="primary" disabled>Save station settings</button>
+        </div>
       </form>
     </section>
 
@@ -54,7 +56,19 @@
 
     <section id="owner-checking" hidden>
       <h2>Checking station settings</h2>
-      <p>The Pico is saving your station details. Keep this page open. If your phone leaves the Pico Wi-Fi, reconnect and reopen this page.</p>
+      <p>Keep this page open while it checks the result. If your phone leaves the Pico Wi-Fi, reconnect and return to this open page. Do not tap Save again while the result is unknown.</p>
+    </section>
+
+    <section id="owner-accepted" hidden>
+      <h2>Station settings accepted</h2>
+      <p>The Pico received your details. This page is checking that they were saved. The Pico may restart and close its setup Wi-Fi.</p>
+      <p>Keep this page open. If disconnected, reopen the Pico setup Wi-Fi, reconnect your phone and return to this open page. Do not tap Save again while the result is unknown.</p>
+    </section>
+
+    <section id="owner-unconfirmed" hidden>
+      <h2>Saved result not confirmed</h2>
+      <p>This page could not verify the saved result within three minutes. The settings may have been saved.</p>
+      <p>Keep this page open. Reopen the Pico setup Wi-Fi and reconnect your phone; this page will check again. Do not tap Save again until the result is known.</p>
     </section>
 
     <section id="owner-saved" hidden>

@@ -10,6 +10,7 @@ const digest = (value) => hex(sha256(Buffer.from(value, 'hex')));
 const peer = x25519.keygen();
 const elements = new Map();
 for (const name of ['owner-settings', 'owner-wifi-first', 'owner-checking', 'owner-saved',
+                    'owner-accepted', 'owner-unconfirmed',
                     'owner-retry', 'owner-service', 'owner-browser', 'notice', 'device',
                     'owner-identify', 'owner-retry-button', 'owner-form',
                     'owner-callsign', 'owner-locator',
@@ -47,6 +48,7 @@ let status = {version: 1, device_id: device, boot_id: boot, source: 'network_onl
   address_ready: true, clock_ready: true, slot_state: 'none', slot_id_digest: null,
   request_id_digest: null};
 let start, submitted, identify, hangNextStatus = false;
+let holdStatus = false, releaseStatus, dropStatus = false, submitReply = 'lost', posts = 0;
 let now = 1_800_000_000_000;
 Date.now = () => now;
 const timeHints = [];
@@ -56,6 +58,14 @@ globalThis.fetch = async (url, options = {}) => {
   if (path === '/api/bootstrap/v1/time' && !options.body)
     return {ok: true, json: async () => ({version: 1, challenge_ns: '1234567890'})};
   if (path === '/api/owner/v1/claim/status') {
+    if (dropStatus) throw new Error('setup AP closed');
+    if (holdStatus) {
+      holdStatus = false;
+      const snapshot = {...status};
+      return new Promise((resolve) => {
+        releaseStatus = () => resolve({ok: true, json: async () => snapshot});
+      });
+    }
     if (hangNextStatus) {
       hangNextStatus = false;
       return new Promise((resolve, reject) => {
@@ -94,13 +104,16 @@ globalThis.fetch = async (url, options = {}) => {
       pico_public_key: Buffer.from(peer.publicKey).toString('base64url')})};
   }
   if (path === '/api/owner/v1/claim/submit') {
+    posts++;
     submitted = body;
     assert.equal(body.device_id, device);
     assert.equal(body.boot_id, boot);
     assert.equal(body.slot_id, slot);
     assert.equal(body.ssid, undefined);
     assert.equal(body.password, undefined);
-    throw new Error('reply lost after complete request');
+    if (submitReply === 'lost') throw new Error('reply lost after complete request');
+    return {ok: true, json: async () => ({version: 1, state: submitReply,
+      generation: '0', request_id_digest: digest(body.request_id)})};
   }
   throw new Error('unexpected route ' + path);
 };
@@ -132,8 +145,11 @@ assert.ok(start && submitted, elements.get('notice').textContent);
 assert.equal(elements.get('owner-checking').hidden, false);
 const firstTransaction = start.owner_public_key;
 status = {...status, source: 'consumer', profile_source: 5, generation: '2',
-  owner_exists: false, claim_available: true, slot_state: 'terminal',
+  owner_exists: false, claim_available: true, slot_state: 'reconcile',
   request_id_digest: digest(submitted.request_id)};
+await runTimer(1000);
+assert.equal(elements.get('owner-saved').hidden, true); // Await journal reconciliation.
+status = {...status, slot_state: 'terminal'};
 await runTimer(1000);
 assert.equal(elements.get('owner-saved').hidden, false);
 assert.match(elements.get('notice').textContent, /saved your station settings/);
@@ -167,5 +183,70 @@ await new Promise(setImmediate);
 await runTimer(8000);
 await stalledPoll;
 assert.ok([...timers.values()].some((timer) => timer.delay === 1000));
+
+// A poll issued before the POST must not turn a lost reply into "not saved".
+timers.clear();
+status = {...status, slot_state: 'none'};
+await import('./owner-app.js?stale-poll');
+await new Promise(setImmediate);
+holdStatus = true;
+const oldPoll = runTimer(1000);
+await new Promise(setImmediate);
+fill();
+await elements.get('owner-form').events.submit({preventDefault() {}});
+const postCount = posts;
+releaseStatus();
+await oldPoll;
+assert.equal(elements.get('owner-checking').hidden, false);
+assert.equal(elements.get('owner-retry').hidden, true);
+assert.equal(elements.get('owner-submit').disabled, true);
+dropStatus = true;
+await runTimer(1000);
+await runTimer(180000);
+assert.equal(elements.get('owner-unconfirmed').hidden, false);
+await elements.get('owner-form').events.submit({preventDefault() {}});
+assert.equal(posts, postCount); // No automatic or manual replay while unknown.
+dropStatus = false;
+status = {...status, generation: '4', boot_id: 'a'.repeat(32),
+  request_id_digest: digest(submitted.request_id)};
+await runTimer(1000);
+assert.equal(elements.get('owner-saved').hidden, false);
+assert.equal(elements.get('owner-unconfirmed').hidden, true);
+
+// Acceptance remains truthful across AP withdrawal; only exact readback saves.
+timers.clear();
+submitReply = 'checking';
+await import('./owner-app.js?accepted-reply');
+await new Promise(setImmediate);
+fill();
+await elements.get('owner-form').events.submit({preventDefault() {}});
+assert.equal(elements.get('owner-accepted').hidden, false);
+assert.equal(elements.get('owner-saved').hidden, true);
+dropStatus = true;
+await runTimer(1000);
+assert.equal(elements.get('owner-accepted').hidden, false);
+await runTimer(180000);
+assert.equal(elements.get('owner-unconfirmed').hidden, false);
+dropStatus = false;
+status = {...status, device_id: 'f'.repeat(32), generation: '5',
+  request_id_digest: digest(submitted.request_id)};
+await runTimer(1000);
+assert.equal(elements.get('owner-unconfirmed').hidden, false); // Wrong Pico cannot save.
+status = {...status, device_id: device, request_id_digest: 'b'.repeat(64)};
+await runTimer(1000);
+assert.equal(elements.get('owner-service').hidden, false); // Another commit cannot save.
+await runTimer(1000);
+assert.equal(elements.get('owner-service').hidden, false); // Terminal outcome stays visible.
+
+// A definite rejection ends the attempt and permits a deliberate later retry.
+timers.clear();
+submitReply = 'failed';
+await import('./owner-app.js?failed-reply');
+await new Promise(setImmediate);
+fill();
+await elements.get('owner-form').events.submit({preventDefault() {}});
+assert.equal(elements.get('owner-retry').hidden, false);
+assert.equal(elements.get('owner-saved').hidden, true);
+assert.equal([...timers.values()].some((timer) => timer.delay === 180000), false);
 peer.secretKey.fill(0);
 console.log('separate station setup, LED, another-phone update and polling recovery passed');

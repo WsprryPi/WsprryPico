@@ -5,6 +5,7 @@
 #ifndef WSPRRY_PICO_STANDALONE_RF
 #include "network/bootstrap_join.hpp"
 #include "network/bootstrap_slot.hpp"
+#include "network/owner_claim_http.hpp"
 #include "network/pico/bootstrap_crypto.hpp"
 #include "network/pico/owner_claim_crypto.hpp"
 #include "provisioning/consumer_claim.hpp"
@@ -60,7 +61,7 @@ class PicoBootstrapServer {
     }
     bool owner_claim_pending() const {
 #ifndef WSPRRY_PICO_STANDALONE_RF
-        return owner_reconcile_ ||
+        return owner_reconcile_ || owner_restart_pending_ ||
                (owner_slot_.state() != provisioning::ConsumerClaimState::None &&
                 owner_slot_.state() != provisioning::ConsumerClaimState::Terminal);
 #else
@@ -120,8 +121,8 @@ class PicoBootstrapServer {
     std::uint64_t owner_submit_ms_ = 0;
     bool owner_trial_active_ = false, owner_trial_start_pending_ = false;
     bool owner_submit_delivered_ = false, owner_reconcile_ = false;
-    std::uint64_t owner_committed_ms_ = 0;
-    bool owner_restart_pending_ = false, owner_status_delivered_ = false;
+    OwnerResultRestart owner_result_restart_;
+    bool owner_restart_pending_ = false, owner_status_committed_reply_ = false;
     bool bootstrap_restart_pending_ = false, bootstrap_ack_delivered_ = false;
     bool bootstrap_trial_switched_network_ = false;
     bool bootstrap_trial_start_pending_ = false, bootstrap_submit_delivered_ = false;

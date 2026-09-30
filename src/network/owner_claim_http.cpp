@@ -48,6 +48,43 @@ bool common(const HttpRequest& request, std::string_view route, bool post) {
 }
 } // namespace
 
+void OwnerResultRestart::begin(std::uint64_t generation, std::string_view digest,
+                               std::uint64_t now_ms) {
+    generation_ = generation;
+    committed_ms_ = now_ms;
+    delivered_ = false;
+    pending_ = true;
+    digest_valid_ =
+        digest.size() == digest_.size() && std::all_of(digest.begin(), digest.end(), [](char c) {
+            return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+        });
+    if (digest_valid_)
+        std::copy(digest.begin(), digest.end(), digest_.begin());
+}
+
+bool OwnerResultRestart::matches(provisioning::ProfileSource source, std::uint64_t generation,
+                                 std::string_view digest) const {
+    return pending_ && digest_valid_ && generation_ &&
+           source == provisioning::ProfileSource::ConsumerProfile && generation == generation_ &&
+           digest.size() == digest_.size() &&
+           std::equal(digest.begin(), digest.end(), digest_.begin());
+}
+
+void OwnerResultRestart::delivered(bool committed_reply, std::uint64_t now_ms) {
+    if (pending_ && committed_reply && !delivered_ && now_ms >= committed_ms_) {
+        delivered_ = true;
+        delivered_ms_ = now_ms;
+    }
+}
+
+bool OwnerResultRestart::ready(std::uint64_t now_ms) const {
+    if (!pending_ || now_ms < committed_ms_)
+        return false;
+    // Give the browser time to render the received result before AP withdrawal.
+    return delivered_ ? now_ms >= delivered_ms_ && now_ms - delivered_ms_ >= 3'000
+                      : now_ms - committed_ms_ >= 60'000;
+}
+
 bool owner_public_get_admitted(const HttpRequest& request, std::string_view route) {
     return (route == "/api/owner/v1/public-status" || route == "/api/owner/v1/claim/status") &&
            common(request, route, false);

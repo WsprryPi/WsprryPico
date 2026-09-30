@@ -143,6 +143,9 @@ void PicoBootstrapServer::error(void* context, err_t) {
 }
 
 void PicoBootstrapServer::dispatch() {
+#ifndef WSPRRY_PICO_STANDALONE_RF
+    owner_status_committed_reply_ = false;
+#endif
     if (parser_.failed())
         response_ = http_error(400, "invalid_http");
 #ifndef WSPRRY_PICO_STANDALONE_RF
@@ -295,15 +298,15 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
             const auto digest = owner_request_digest_;
             cancel_owner_slot(false);
             owner_request_digest_ = digest;
-            owner_committed_ms_ = time_us_64() / 1000;
+            owner_result_restart_.begin(profile_->sequence(), owner_request_digest_,
+                                        time_us_64() / 1000);
             owner_restart_pending_ = true;
-            owner_status_delivered_ = false;
         } else {
             end_owner_trial(result.state == provisioning::ConsumerCommitState::Committed, now_ms);
             if (result.state == provisioning::ConsumerCommitState::Committed) {
-                owner_committed_ms_ = time_us_64() / 1000;
+                owner_result_restart_.begin(profile_->sequence(), owner_request_digest_,
+                                            time_us_64() / 1000);
                 owner_restart_pending_ = true;
-                owner_status_delivered_ = false;
             }
         }
     }
@@ -345,10 +348,10 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
             bootstrap_restart_pending_ = false;
     }
     if (!client_ && owner_restart_pending_ && restart_ &&
-        (owner_status_delivered_ || (restart_now_ms >= owner_committed_ms_ &&
-                                     restart_now_ms - owner_committed_ms_ >= 60'000))) {
-        if (restart_(restart_context_))
-            owner_restart_pending_ = false;
+        owner_result_restart_.ready(restart_now_ms)) {
+        // Keep setup admission blocked until the actual reboot. A scheduled
+        // restart may be cancelled by a newly accepted job; retry when safe.
+        (void)restart_(restart_context_);
     }
 #endif
     if (!active_) {
@@ -397,7 +400,8 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
 #ifndef WSPRRY_PICO_STANDALONE_RF
         const bool delivered_owner_status =
             parser_.ready() && parser_.request().method == "GET" &&
-            parser_.request().path == "/api/owner/v1/claim/status" && response_.status == 200;
+            parser_.request().path == "/api/owner/v1/claim/status" && response_.status == 200 &&
+            owner_status_committed_reply_;
         const bool delivered_owner_submit =
             parser_.ready() && parser_.request().method == "POST" &&
             parser_.request().path == "/api/owner/v1/claim/submit" && response_.status == 200 &&
@@ -426,7 +430,7 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
         header_offset_ = body_offset_ = 0;
 #ifndef WSPRRY_PICO_STANDALONE_RF
         if (delivered_owner_status)
-            owner_status_delivered_ = true;
+            owner_result_restart_.delivered(true, time_us_64() / 1000);
         if (delivered_owner_submit)
             owner_submit_delivered_ = true;
         if (delivered_bootstrap_submit) {
@@ -660,6 +664,9 @@ HttpResponse PicoBootstrapServer::owner_status(bool claim_status) {
             owner_request_digest_.empty() && runtime_ && runtime_->consumer_profile()
                 ? std::string_view(runtime_->consumer_profile()->request_sha256)
                 : std::string_view(owner_request_digest_);
+        owner_status_committed_reply_ =
+            healthy && runtime_ok && !owner_reconcile_ && owner_restart_pending_ &&
+            owner_result_restart_.matches(source, generation, request_digest);
         const char* state = "none";
         switch (owner_slot_.state()) {
         case provisioning::ConsumerClaimState::None:
@@ -833,8 +840,9 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
 }
 
 bool PicoBootstrapServer::owner_claimable() const {
-    if (!profile_ || !runtime_ || !claim_platform_ || !random_ || !indicator_ || !network_ ||
-        !profile_->healthy() || !claim_platform_->safe_to_commit())
+    if (owner_restart_pending_ || bootstrap_restart_pending_ || !profile_ || !runtime_ ||
+        !claim_platform_ || !random_ || !indicator_ || !network_ || !profile_->healthy() ||
+        !claim_platform_->safe_to_commit())
         return false;
     switch (profile_->source()) {
     case provisioning::ProfileSource::LegacyBootstrap:
@@ -866,7 +874,10 @@ void PicoBootstrapServer::cancel_owner_slot(bool restore_network) {
     provisioning::scrub(previous_network_);
     owner_request_id_.clear();
     owner_slot_digest_.clear();
-    owner_request_digest_.clear();
+    // The terminal slot can expire while a response or safe restart is pending.
+    // Retain its non-secret result identity until the new journal is booted.
+    if (!owner_restart_pending_)
+        owner_request_digest_.clear();
     owner_trial_active_ = false;
     owner_trial_start_pending_ = owner_submit_delivered_ = false;
 }
@@ -908,7 +919,8 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
                          : "ignored") +
                     "\"}");
     }
-    if (owner_slot_.state() != provisioning::ConsumerClaimState::None || owner_reconcile_)
+    if (owner_slot_.state() != provisioning::ConsumerClaimState::None || owner_reconcile_ ||
+        owner_restart_pending_)
         return http_error(409, "busy");
     if (request.path == "/api/bootstrap/v1/start") {
         const auto parsed = parse_bootstrap_start(request);

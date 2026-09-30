@@ -68,6 +68,13 @@ int main() {
     assert(station_page.status == 200 &&
            station_page.static_body.find("owner-callsign") != std::string_view::npos);
     assert(station_page.static_body.find("owner-password") == std::string_view::npos);
+    assert(station_page.static_body.find("rel=\"stylesheet\"") == std::string_view::npos);
+    const auto style_start = station_page.static_body.find("<style>");
+    const auto style_end = station_page.static_body.find("</style>", style_start);
+    assert(style_start != std::string_view::npos && style_end != std::string_view::npos);
+    assert(station_page.static_body.substr(style_start + 7, style_end - style_start - 7) ==
+           wsprrypico::network::bootstrap_asset("/style.css")->body);
+    assert(station_page.content_security_policy == setup.content_security_policy);
 
     HttpParser owner_script_request;
     send("GET /owner-key-bundle.js HTTP/1.1\r\nHost: 192.168.4.1\r\n\r\n", owner_script_request);

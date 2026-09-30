@@ -145,9 +145,10 @@ The local ignored artifacts are retained in
 `manifest.json` records source/options and every file's size/hash. The separate
 `build/gp14-integrated-b-20260930/runtime-6105f9d.uf2` restoration artifact
 still matches its closeout hash. Hash verification is file evidence only;
-neither candidate has been flashed or observed on a device.
+neither candidate had been flashed at preparation. The opt-in candidate was
+subsequently deployed in the B packet below; the default candidate was not.
 
-### Next bounded packet: optional station details on B
+### Bounded packet: optional station details on B
 
 Prepare this packet completely, then obtain action-specific operator authority.
 This document itself authorizes no device operation. The packet needs the
@@ -200,6 +201,88 @@ No network replacement, erase or transmitted job is required.
    fault or unknown output stops further mutation. Record the actual final
    image, generations, AP/network state and cleanup; a failed attempt remains
    in evidence.
+
+### Executed B station packet and result repair (2026-09-30)
+
+The operator authorized B deployment, USB/private journal readback, AP opening
+and **one** station save on the same **iPhone 17 Pro**, with **AA0NT / EM18 /
+20 dBm**. Safari is visible in the supplied screenshot; the iOS version was
+not separately recorded. The operator confirmed the test path was closed.
+`wspr4` was offline and was not contacted or changed. No transmitted job,
+network replacement, erase, second station save or Candidate A operation
+was performed.
+
+| Identity or result | Recorded evidence |
+| --- | --- |
+| Exact target | B USB serial `CDDBF8767C506C07`, device `29f20b7342051ef947aa56cb9d4fab42`, Pico 2 W/RP2350, 150 MHz, `inhibited-standalone-simulator`. |
+| Deployment | Clean source `cac1d581cfb5b835561bb5abfe84496c22f9957b`, opt-in UF2 `d55caf49334c51af5696f1f369a8589d23a618d00be7f26c19e187b562dd12de`. Serial-targeted load/verify passed. Network-only generation 2 and access generation 1 survived. |
+| Recoverable baseline | Private full flash: 4,194,304 bytes, SHA-256 `b21f114c3c70c58c168461c9f2cb0ba2dc2314396ddb35621f1f103c88dbe1be`. All 57,344 reserved bytes read before/after deployment were identical. The separate `6105f9d8da2e` restoration image remains retained. |
+| Connected-station AP opening | One recorded GP14 hold/release, 12,969,000 microseconds; one manual AP request accepted and AP service ready. The phone opened `http://192.168.4.1/owner.html`; its `Pico 4fab42` identity agrees with B. |
+| Durable station save | Selected consumer journal generation **3**, station **AA0NT / EM18 / 20 dBm**, zero owners and owner epoch zero. Request SHA-256 `9690e9c57315196f999d6e7bb933be612d7580d34772ac85090863a00c94f610` agrees between the private admitted journal and USB consumer readback. |
+| Settings preservation | The portable journal reader admitted both private snapshots. Saved SSID, password and time server are byte-for-byte unchanged. Reserved bytes outside the profile journal are identical; access generation 1 and the unrelated standalone store remain unchanged. |
+| Activation and continuity | Automatic activation boot `4078c29dc6f59d71176c6bafd641b07c`, station `192.168.1.53`, synchronized SNTP, healthy journals, empty/unowned jobs and inactive output. **61.55 seconds** of post-restart INFO continuity passed within the 20-minute packet, with about 40 seconds remaining. One readback interruption coincided with the expected activation restart. |
+| Station protocol | Read-only Plain LAN WTP `HELLO`/`STATUS` passed before and after the save, bound to B and its boot, with empty/unowned state and inactive output. The existing wired route did not reach B; individual sockets used existing `wspr5` `wlan1`, without modifying host routes or contacting `wspr4`. |
+| Phone result | **Not passed.** The supplied screenshot is unstyled and still says “Checking station settings.” It is not a terminal saved result, even though the journal proves the save. |
+| Final state | A separate ROM readback of reserved storage required an intentional inspection restart after the packet budget. B returned normally on boot `f5ee83e3d596e04d812e502f6daea36a`, still `cac1d581cfb5`, consumer generation 3, access generation 1, station `192.168.1.53`, synchronized clock, Plain LAN ready, AP off, GP14 released, healthy storage, inactive output and no recorded fault/allocation failure. Core-0 guard is valid; observed use was 8,568 bytes. This cleanup readback is separate from the timed continuity result. |
+
+Private captures, firmware, backups and the screenshot remain ignored under
+`build/phase12-portal-b-20260930-1511/`, with deployment/readback evidence also
+retained in the corresponding private `wspr5` directory. The supplied
+screenshot SHA-256 is
+`4f1ac14c3d8f60ac3d3fb2a55fd47b51e243fc10cbaec741cfe1736eb420d100`.
+An initial preparation check expected unavailable core-1 telemetry, and an
+initial USB probe chose the wrong CDC interface. Neither reached a flash or
+station save; corrected device-bound probes and deployment passed. These
+preparation errors are retained rather than attributed to firmware faults.
+
+Source inspection found two plausible contributors to the phone result:
+`owner.html` still fetched its stylesheet separately, and any successful
+claim-status response could advance restart, including a checking response
+constructed before the commit. The screenshot and USB log do not prove the
+exact Safari HTTP ordering or which request was lost.
+
+The repair embeds the incumbent styles in station HTML under the existing
+matching CSP hash. An exact committed status response must now match the
+consumer generation and request digest at response construction and finish
+delivery before starting a three-second display interval. Without such a
+reply, the existing 60-second activation fallback remains. Its result identity
+survives terminal-slot expiry; further setup admission stays blocked until
+actual activation, including a scheduled restart that is later cancelled and
+retried when safe.
+
+The browser distinguishes a digest-bound accepted reply from durable saved
+readback. A pending attempt cannot submit again. After three minutes without
+confirmation it shows an explicit unknown result and continues checking;
+reconnection must return to the **same open page**, since no browser storage
+or retained phone key is introduced. Exact readback after reconnection can
+still confirm the attempt. A reconciliation state cannot declare success.
+
+Adversarial review repaired the pre-commit status/restart race, a stale poll
+that could declare a new POST unsaved, pending-attempt resubmission, loss of
+result identity/new setup admission during late activation, and premature
+success during journal reconciliation. A subsequent assessment of these
+repairs found no additional actionable issue in this slice.
+
+Validation: **91/91** host checks and **4/4** browser checks passed. The final
+affected host checks and browser checks passed again after repairs. Both
+default and opt-in inhibited Pico builds passed with the retained pinned SDK
+and toolchain, reserved-flash/UF2 checks, stack/BOOTSEL checks and linked
+shutdown checks. The new restart helper's Arm frames are 4–8 bytes; the
+existing status frame is 1,080 bytes. These static frames are not a physical
+peak-stack qualification. Generated HTML/CSP rendered in isolated Chromium at
+desktop/mobile sizes, in form/accepted/unknown/saved states, without horizontal
+overflow at 200% text size. Every endpoint was mocked. The UI detector had no
+regex findings but lacked its HTML parser dependencies; the actual browser
+render verified the inline style policy separately. These software previews
+are not iPhone acceptance.
+
+The repair has **not** been deployed or phone retested. B retains the verified
+new station settings on the recorded `cac1d581cfb5` image. The one authorized
+station save has been used. A new finite packet on the reviewed repair image
+must record the styled iPhone page and an exact terminal saved result; it
+would require a separately authorized additional save. Different-phone
+updates, no-SNTP station policy, station-loss fallback and broader robustness
+remain open. This packet does not close P12.7, P12.11 or Phase 12.
 
 ### Following packets and closure gates
 

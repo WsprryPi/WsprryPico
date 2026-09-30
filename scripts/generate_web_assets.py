@@ -21,6 +21,9 @@ owner_html, owner_js, owner_key_js = [
     (bootstrap_web / name).read_text()
     for name in ('owner.html', 'owner-bundle.js', 'owner-key-bundle.js')
 ]
+owner_html = owner_html.replace(
+    '<link rel="stylesheet" href="./style.css">',
+    '<style>' + bootstrap_css + '</style>')
 html = html.replace('<link rel="stylesheet" href="/style.css">', '<style>' + css + '</style>')
 html = html.replace('<script src="/app.js" defer></script>', '')
 html = html.replace('</body>', '<script>' + js + '</script></body>')
