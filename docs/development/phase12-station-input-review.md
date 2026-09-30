@@ -1,6 +1,6 @@
 # Phase 12 station input review (2026-09-30)
 
-Status: **SOURCE / HOST CHECKED; INHIBITED B DEPLOYED; PHONE SAVE OF NEW FORMATS OPEN**.
+Status: **SOURCE / HOST CHECKED; INHIBITED A AND B DEPLOYED; PHONE SAVE OF NEW FORMATS OPEN**.
 
 ## Requested behavior
 
@@ -58,8 +58,8 @@ inputs; the repository Xcode environment resolves the host-tool SDK mismatch.
 The inhibited Pico 2 W target builds with SDK 2.3.1 / Arm GNU 15.3.1 and GP14
 runtime enabled. Linked stack, allocator and BOOTSEL topology checks pass;
 shutdown interception passes. A clean exact-commit deployment packet follows
-the source commit. No station Save, RF job, erase, A operation or wspr4 access
-is included in this update.
+the source commit. The initial B-only packet included no station Save, RF job,
+erase, A operation or wspr4 access.
 
 ## Clean image and B deployment
 
@@ -101,3 +101,45 @@ verified `8d0ad7273707` restore image remain private under ignored
 The managed clean source worktree was archived after artifact retention.
 No station Save was performed during this packet. Saving the new formats
 on the actual phone remains open; P12.8/P12.10 and Phase 12 remain open.
+
+## Authorized A and B flashes (2026-09-30)
+
+The operator subsequently requested flashing both adapters with this same new
+image. Its four retained artifact hashes were checked against the manifest;
+shutdown interception and linked stack/flash/UF2 checks passed again. The UF2
+hash and source/build options are exactly those recorded above.
+
+Each adapter was bound to its USB serial and full device identity. A fresh
+4,194,304-byte backup preceded each serial-targeted load/verify and normal
+reboot. All **57,344 reserved bytes per adapter** were identical before and
+after flashing, and each adapter retained its own access/profile and
+independent standalone configuration, schedules and watermark.
+
+| Adapter | USB serial | Previous firmware | New boot ID | Preserved profile |
+| --- | --- | --- | --- | --- |
+| A | `0BF4B4AEC9FFB344` | `fce8776f6f4e` | `be86b1504b6cf1f8e380c5004c83b13d` | Network-only generation 1; access generation 1. |
+| B | `CDDBF8767C506C07` | `615888e5364b` | `26cc08a606ee368e75d236d46501ec18` | Consumer generation 5; AA1NT / EM18 / 20 dBm; access generation 1. |
+
+A's full device identity is `fd6127d11d6aca42a9905fa3fb1bf1d5`; B's identity
+is unchanged from the first deployment above. Fresh backup SHA-256 values:
+
+- A: `aa3f33f65a63ac31be808f0842d89a274ca53c25601bfb8f22237b537894631a`.
+- B: `e77aa61396cda525c1ad2d437e69ac30ed4f52cec7cc302261839e816c8b7d99`.
+
+Final exact-device USB readback reports firmware `615888e5364b` on both,
+150 MHz, `inhibited-standalone-simulator`, healthy storage, a valid primary
+stack guard, zero allocator failures and no reported faults. Output is inactive.
+A rejoined `192.168.1.47`
+and B rejoined `192.168.1.53`; both synchronized time and passed read-only
+plain LAN HELLO/STATUS with matching boot identities, empty/unowned and
+inactive output. A's earlier unsynchronized state is recorded separately from
+this fresh-boot synchronization result; no causal repair claim is made.
+
+Packet reassessment verified exact image/target binding, current-image
+restoration hashes, both retained backups, reserved-byte comparisons and
+matching final USB/LAN records. No remaining actionable finding was identified.
+Private evidence and per-adapter verified restoration images are retained
+under ignored `build/phase12-station-input-ab-615888e-20260930/` and the matching
+wspr5 directory. No station Save, RF job, storage erase or wspr4 operation
+occurred. Phone acceptance of the new formats and the wider Phase 12 gates
+remain open.

@@ -659,6 +659,17 @@ No station Save was performed in this packet. The new-format phone save rows
 remain open; the previously accepted saved-form prefill row remains closed
 within its recorded scope. P12.8/P12.10 and Phase 12 remain open.
 
+The operator subsequently authorized flashing **both A and B** with this exact
+image. The [A/B deployment continuation](phase12-station-input-review.md#authorized-a-and-b-flashes-2026-09-30)
+records each identity, prior firmware, new boot, fresh full backup and verified
+restoration image. Both serial-targeted loads verified; all 57,344 reserved
+bytes on each adapter and their own saved settings were preserved. A retains
+network-only generation 1; B retains consumer generation 5 and AA1NT / EM18 /
+20 dBm. Both now report `615888e5364b`, synchronized time, healthy storage and
+inactive inhibited output. Exact-device USB and read-only plain LAN
+HELLO/STATUS checks passed on each. This adds A deployment and B reflash
+evidence without closing the new-format phone save rows or other Phase 12 gates.
+
 ### Following packets and closure gates
 
 | Packet | Required outcome | Evidence still needed |
