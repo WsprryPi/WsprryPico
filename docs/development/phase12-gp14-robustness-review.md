@@ -265,3 +265,40 @@ its own reviewed image and actions. Actual pad/contact overlap needs a real
 contact or separately authorized pulse source; synthetic PIO does not cover
 that path. Conducted active/armed RF latency and physical watchdog output
 safety are later RF gates. No Phase 12 row is closed by this build.
+
+## Clean source artifacts and final repository handoff
+
+Source commit: `ae6fd97d71a63b16248bade1fe71923454e18e5c`.
+All three images embed clean revision `ae6fd97d71a6`. They were rebuilt after
+that commit, with a clean checkout, using the configure options recorded
+above. Both CMake directories were explicitly reconfigured to refresh Git
+identity; `cmake --build` alone must not be relied on to refresh that identity.
+This artifact-record commit changes documentation only and does not change
+the firmware source represented by these hashes.
+
+Immutable local copies, `.bin`, ELF maps, linked-check logs and a machine-readable
+manifest are in ignored `build/gp14-robustness-ae6fd97/`. No firmware or private
+evidence is committed.
+
+| Image file in that directory | ELF SHA-256 | UF2 SHA-256 |
+| --- | --- | --- |
+| `diagnostic-ae6fd97` | `e52cf0a966139c9144ad7c0588ecfa9769a0f9322cad4664e373013d2fba2101` | `d32f6b29005161f578ca6cd41f85a3ce21f78575705fb8aaa8ccaa0b9bbd7ed8` |
+| `runtime-ae6fd97` | `ecec101b92b825cda5268ee3cc62c6124c97304fd7156290be410724c68974b5` | `5d53db0eb6303b83d295c8215f7b5131e51cd3a36e2ed72ff6cfccf2a8431c8f` |
+| `default-ae6fd97` | `ee64c23cbbcba6b9524921522b71f82568f30ee0b92a4d3824a63f7fb95017aa` | `38d8fcd7932f6c0f1f1309df1dadde237c946f6dc7f9654d15b72ad7afa039c8` |
+
+Diagnostic linked text is 93,348 bytes, BSS 35,784 bytes and initialized data
+zero; stack/link reservation checks passed. Runtime/default standalone flash,
+stack, heap, shutdown and BOOTSEL topology gates passed on the clean images.
+Symbol checks confirmed test injection hooks are absent from both field
+images, and GP14 capture itself is absent from the default image. The clean
+diagnostic passed the two-core XIP, SRAM callback/lockout/fault, fixed scratch
+address, UF2 reservation and RF/network exclusion checks. The seven host
+runner/link tests include negative callback branches, wrong scratch address
+and forbidden RF symbols.
+
+No device I/O, flashing, RF output or settings mutation occurred in this source
+campaign. A and B were not live-inspected or changed; their last accepted
+installed state remains the separate `fce8776` evidence record. The operator's
+permission to flash if needed was retained, but no physical result is claimed.
+The new diagnostic campaign, final settings byte comparison, restored runtime
+network readback and real AP/RF acceptance remain unexecuted gates.
