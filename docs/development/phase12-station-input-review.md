@@ -1,6 +1,6 @@
 # Phase 12 station input review (2026-09-30)
 
-Status: **SOURCE / HOST CHECKED; PHONE SAVE OF NEW FORMATS OPEN**.
+Status: **SOURCE / HOST CHECKED; INHIBITED B DEPLOYED; PHONE SAVE OF NEW FORMATS OPEN**.
 
 ## Requested behavior
 
@@ -60,3 +60,44 @@ runtime enabled. Linked stack, allocator and BOOTSEL topology checks pass;
 shutdown interception passes. A clean exact-commit deployment packet follows
 the source commit. No station Save, RF job, erase, A operation or wspr4 access
 is included in this update.
+
+## Clean image and B deployment
+
+The clean committed source is
+`615888e5364be169839ae879d6bb955c84518bab`, firmware `615888e5364b`.
+The standard RF-inhibited Pico 2 W image uses SDK 2.3.1, Arm GNU 15.3.1,
+150 MHz system clock and opt-in GP14 runtime. Diagnostic, robustness, flash
+probe and BOOTSEL capture options are off. The clean build passes linked
+stack, allocator, BOOTSEL topology, shutdown interception, flash reservation
+and UF2 payload checks. The SDK timestamp refresh in the managed source
+worktree required a filesystem permission retry; that retry completed.
+
+Retained UF2: **3,368,448 bytes**, SHA-256
+`81361b105def84231c23853507bad81f992426260b9c935061fab82081d5239f`.
+B serial `CDDBF8767C506C07`, device
+`29f20b7342051ef947aa56cb9d4fab42`, loaded and verified this image from
+`8d0ad7273707`. A fresh 4,194,304-byte flash backup has SHA-256
+`f4453feb106c80fb289fa26b04509f9f746a4b5d6807cfc32d03c7f33088f969`;
+all **57,344 reserved bytes** were identical before and after loading.
+
+Preflight observed a newer generation-5 record, **AA1NT / EM18 / 20 dBm**,
+request digest
+`1f8238e07c7413cbf3ac3df8c360f333b2a5b3498b1f7ab7713f52fc792546fe`.
+The earlier generation-4 expectation stopped before any deployment action;
+the deployment then bound to the actual generation-5 record. No inference is
+made about the phone terminal result of that intervening save. New boot
+`d6f6015528fef0239c373633a4099576` retains the entire saved-profile readback,
+access generation 1, zero owners and unchanged independent standalone state.
+
+Preflight time was unsynchronized; after deployment B rejoined
+`192.168.1.53`, synchronized time and passed exact-device plain LAN
+`HELLO`/`STATUS`. It remained empty/unowned with inactive output, healthy
+storage, valid stack guards and zero allocator failures. This fresh-boot
+result does not establish the cause or repair of the earlier AP/time issue.
+
+The four firmware artifacts, manifest, fresh backup, USB/LAN readbacks and
+verified `8d0ad7273707` restore image remain private under ignored
+`build/phase12-station-input-b-615888e/` and its matching wspr5 directory.
+The managed clean source worktree was archived after artifact retention.
+No station Save was performed during this packet. Saving the new formats
+on the actual phone remains open; P12.8/P12.10 and Phase 12 remain open.

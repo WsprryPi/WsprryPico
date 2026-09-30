@@ -627,6 +627,38 @@ No additional Save was requested for this check. The accepted generation-4
 Save remains the prior save evidence; this prefill pass does not close its
 historical lost-tab terminal-result limitation or the wider P12.8/P12.10 gates.
 
+### Four/six-character grids and extended callsigns (2026-09-30)
+
+The operator requested four- or six-character grid locators and saving an
+extended callsign. The [station input review](phase12-station-input-review.md)
+records validation through forms, encrypted claims, storage and public prefill,
+including the maximum 117-byte envelope and unchanged legacy inputs.
+Six-character locators retain their full saved value and use their first four
+characters for Type 1 WSPR. Extended callsigns are preserved in full; a call
+unsupported by the current encoder is rejected before any scheduling claim
+or watermark reservation. Type 2/3 transmission support is not added.
+
+**10/10 affected host groups**, **4/4 setup browser groups**, the clean Pico
+target and its linked safety/storage checks passed. Adversarial findings were
+repaired and reassessed. The unrelated existing host adapter signed-comparison
+warning prevents a full-suite pass claim for this packet.
+
+Clean source `615888e5364be169839ae879d6bb955c84518bab`, firmware
+`615888e5364b`, is deployed on B serial `CDDBF8767C506C07` in the
+`inhibited-standalone-simulator` engine at 150 MHz. The fresh backup and
+all 57,344 reserved bytes were verified; the complete saved consumer profile
+survived unchanged. Preflight found a newer generation-5 **AA1NT / EM18 / 20**
+record, which was preserved. This readback does not establish the phone's
+terminal result for that intervening save. New boot
+`d6f6015528fef0239c373633a4099576` synchronized time, rejoined
+`192.168.1.53` and passed exact-device read-only plain LAN HELLO/STATUS,
+empty/unowned and output inactive. Artifacts and the verified prior-image
+restoration path are retained privately in the review's deployment directory.
+
+No station Save was performed in this packet. The new-format phone save rows
+remain open; the previously accepted saved-form prefill row remains closed
+within its recorded scope. P12.8/P12.10 and Phase 12 remain open.
+
 ### Following packets and closure gates
 
 | Packet | Required outcome | Evidence still needed |
