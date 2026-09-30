@@ -1,6 +1,7 @@
 # GP14 unattended robustness source and build review
 
-Status: **source/host/build work; target campaign pending** (2026-09-30).
+Status: **source/host/build work complete** (2026-09-30); subsequent device
+execution is recorded in the [bounded B campaign](phase12-gp14-robustness-target.md).
 Executes the [comprehensive brief](phase12-gp14-robustness-prompt.md).
 Started from clean `devel` at `e39d1f4aab807e818b81d2ef803e74e5688111e5`.
 P12.7, P12.11 and Phase 12 remain open. The standard image still defaults
@@ -326,9 +327,10 @@ address, UF2 reservation and RF/network exclusion checks. The seven host
 runner/link tests include negative callback branches, wrong scratch address
 and forbidden RF symbols.
 
-No device I/O, flashing, RF output or settings mutation occurred in this source
-campaign. A and B were not live-inspected or changed; their last accepted
-installed state remains the separate `fce8776` evidence record. The operator's
-permission to flash if needed was retained, but no physical result is claimed.
-The new diagnostic campaign, final settings byte comparison, restored runtime
-network readback and real AP/RF acceptance remain unexecuted gates.
+At the end of that source campaign, no device I/O, flashing, RF output or
+settings mutation had occurred. A and B had not been live-inspected or changed;
+their last accepted installed state was the separate `fce8776` evidence record.
+The operator subsequently authorized the prepared B campaign, recorded in the
+[target result](phase12-gp14-robustness-target.md), including the initial failed
+attempt and telemetry repair above. Consult that record for actual device
+results and restoration; real AP/RF acceptance remains separate.

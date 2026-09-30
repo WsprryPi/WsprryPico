@@ -12,8 +12,9 @@ and [conformance vectors](../protocol/Field-GATT-v1-vectors.json),
 [GP14 Candidate B flash and physical test record](phase12-gp14-button-flash-0a9d89.md),
 [GP14 runtime integration brief](phase12-gp14-runtime-integration-prompt.md),
 [GP14 SoftAP telemetry brief](phase12-gp14-softap-telemetry-prompt.md),
-[unattended robustness brief](phase12-gp14-robustness-prompt.md)
-and [robustness source/build review](phase12-gp14-robustness-review.md)
+[unattended robustness brief](phase12-gp14-robustness-prompt.md),
+[robustness source/build review](phase12-gp14-robustness-review.md),
+[bounded robustness target campaign](phase12-gp14-robustness-target.md)
 and [runtime source/target review](phase12-gp14-runtime-review.md),
 [arbitrary BOOTSEL feasibility gate](phase12-bootsel-arbitrary-press-feasibility.md),
 [historical BOOTSEL button execution brief](phase12-bootsel-button-execution-prompt.md)
