@@ -31,12 +31,13 @@ HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_vie
          (request.path == "/owner-bundle.js" || request.path == "/owner-key-bundle.js"))) {
         const auto path = request.path == "/" ? (setup_enabled ? "/index.html" : "/owner.html")
                           : request.path == "/index.html" && !setup_enabled ? "/owner.html"
-                                                                                : request.path;
+                                                                            : request.path;
         const auto asset = bootstrap_asset(path);
         if (!asset)
             return http_error(404, "not_found");
         HttpResponse response{200, "", std::string(asset->type), {}};
         response.static_body = asset->body;
+        response.static_parts = asset->parts;
         response.content_security_policy = bootstrap_csp();
         return response;
     }

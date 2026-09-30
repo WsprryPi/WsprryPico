@@ -33,6 +33,9 @@ struct HttpResponse {
     // bytes lets the target stream them from flash without a same-size heap
     // copy while another authenticated connection remains active.
     std::string_view static_body{};
+    // Large setup documents borrow several flash literals without allocating
+    // a combined body or requiring parallel browser asset connections.
+    std::span<const std::string_view> static_parts{};
     // Optional response cookie owned by trusted application code. The wire
     // encoder rejects control characters before emitting it.
     std::string set_cookie{};
@@ -44,11 +47,27 @@ struct HttpResponse {
     std::string_view content_security_policy{};
     std::string_view location{};
     std::size_t body_size() const {
+        if (!static_parts.empty()) {
+            std::size_t size = 0;
+            for (const auto part : static_parts)
+                size += part.size();
+            return size;
+        }
         if (!static_body.empty())
             return static_body.size();
         return buffered_body.empty() ? body.size() : buffered_body.size();
     }
     std::span<const std::uint8_t> body_at(std::size_t offset) const {
+        if (!static_parts.empty()) {
+            for (const auto part : static_parts) {
+                if (offset < part.size())
+                    return std::span(reinterpret_cast<const std::uint8_t*>(part.data()),
+                                     part.size())
+                        .subspan(offset);
+                offset -= part.size();
+            }
+            return {};
+        }
         if (!static_body.empty())
             return std::span(reinterpret_cast<const std::uint8_t*>(static_body.data()),
                              static_body.size())

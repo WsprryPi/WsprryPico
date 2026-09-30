@@ -1,7 +1,7 @@
 import {p256} from '@noble/curves/nist.js';
 
-// Separate flash asset keeps each C++ static string within the compiler's
-// supported literal size while retaining the locally pinned P-256 code.
+// A separate flash literal keeps the locally pinned P-256 code within the
+// compiler's literal size; the generated HTML streams it with the app script.
 globalThis.WsprryPicoOwnerKey = Object.freeze({
   keygen: () => p256.keygen(),
   getPublicKey: (secret, compressed) => p256.getPublicKey(secret, compressed),

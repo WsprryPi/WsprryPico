@@ -276,11 +276,10 @@ regex findings but lacked its HTML parser dependencies; the actual browser
 render verified the inline style policy separately. These software previews
 are not iPhone acceptance.
 
-The repair has **not** been deployed or phone retested. B retains the verified
-new station settings on the recorded `cac1d581cfb5` image. The one authorized
-station save has been used. A new finite packet on the reviewed repair image
-must record the styled iPhone page and an exact terminal saved result; it
-would require a separately authorized additional save. Different-phone
+At the first packet's close, the repair had **not** been deployed or phone
+retested. B retained its verified station settings on `cac1d581cfb5`, and that
+packet's one authorized station save had been used. The following continuation
+records the separately requested retest. An exact terminal saved result and different-phone
 updates, no-SNTP station policy, station-loss fallback and broader robustness
 remain open. This packet does not close P12.7, P12.11 or Phase 12.
 
@@ -289,7 +288,8 @@ remain open. This packet does not close P12.7, P12.11 or Phase 12.
 Both inhibited targets were rebuilt from clean source
 `dd49d049daf24717aa3346edf1691ac3dfc9d2b3`, then passed reserved-flash/UF2,
 linked shutdown, BOOTSEL topology and stack-guard checks. The clean revision
-is present in each ELF. Neither repair image has been deployed.
+is present in each ELF. These were undeployed when retained; the continuation
+below subsequently deployed the opt-in image to B.
 
 | Candidate | UF2 bytes | SHA-256 |
 | --- | --- | --- |
@@ -300,6 +300,67 @@ The ignored `build/phase12-portal-repair-dd49d04/` directory retains both
 UF2/ELF/BIN/map sets and their size/hash/options manifest. A future manual-GP14
 phone packet must use the opt-in image and remain separate from production
 RF integration and default GP14 enablement.
+
+### B station-page startup continuation (2026-09-30)
+
+The operator requested P12.8/P12.10 image preparation and guided actions,
+continuing B's deployment/readback/AP authority and a bounded additional
+station save with AA0NT / EM18 / 20 dBm. `wspr4` remained offline and untouched.
+No RF job, erase or network replacement was requested or performed.
+
+The clean opt-in `dd49d049daf2` image above loaded and verified on B serial
+`CDDBF8767C506C07`, device `29f20b7342051ef947aa56cb9d4fab42`, Pico 2 W,
+150 MHz, `inhibited-standalone-simulator`. A fresh private full-flash backup
+contains 4,194,304 bytes, SHA-256
+`ea83f008c30f4ee04494bb6300a95094ef65e782e8e60250723227a35fa98a6f`.
+All 57,344 reserved bytes were identical before and after loading. Consumer
+generation 3, access generation 1 and the unrelated standalone state survived.
+Boot `d04d63b6e2a291553356a8e2a00ccfee` rejoined station `192.168.1.53`,
+synchronized its clock and passed read-only LAN `HELLO`/`STATUS`, empty/unowned
+with inactive output. Existing `wspr5` `wlan1` sockets were used without host
+route changes.
+
+One GP14 opening was recorded: 12,804,000 microseconds held, one accepted AP
+request and service ready after release. The operator's supplied
+`IMG_1689.PNG` shows the styled Safari page, but it remains at “Checking Pico
+identity…” and “Checking this browser…” with no station form. This is a
+**pre-save failure**, not a terminal station result. USB readback still shows
+generation 3 and the same boot, with zero readback errors and no additional
+save. The collector was stopped before preparing a replacement image. Private
+captures and backups remain ignored under
+`build/phase12-station-retry-b-20260930-1624/` and its corresponding `wspr5`
+directory. The chat image was visible but its supplied local path was not
+available for copying or hashing; no file hash is claimed.
+
+Source review found that the one-connection AP server aborts additional
+connections while a response is active. The station HTML requested two script
+files in parallel; a refused script can prevent startup entirely. This is a
+reproducible transport failure mechanism, not a captured Safari HTTP trace.
+The correction streams each setup document with its scripts in order from
+separate flash literals, under exact CSP hashes, without a combined heap copy.
+The initial identity GET permits three bounded attempts for the final document
+acknowledgement; setup POSTs are not replayed. The Wi-Fi page now exposes a
+visible Station settings link independently of its saved-result section.
+
+Validation passed: 91/91 host checks, 4/4 Node browser suites, the three affected
+HTTP/browser checks after formatting, exact inline-script CSP hashes and the
+absence of external setup script/style requests in generated documents. The
+opt-in inhibited target cross-link passed with BOOTSEL topology, allocator and
+stack-guard checks. Adversarial review covered flash-view lifetime, script order,
+stream boundaries/Content-Length, CSP, bounded initial reads and prevention of
+POST replay; reassessment found no additional actionable source issue in this
+slice. These are source/build checks, not target page acceptance.
+
+An isolated rendered-Chromium test was prepared with all requests mocked and
+one-connection refusal behavior. Its browser launch was blocked by automatic
+approval-review deadline timeouts on both permitted attempts, so it did not
+produce a rendered result. The precise Safari request ordering remains
+unmeasured. Actual phone rendering and station save remain the next gate.
+
+The revised source and its next target/phone evidence are separate from the
+failed `dd49d049daf2` packet. P12.8/P12.10 remain open until the repaired page
+and save have target evidence; different-phone and broader acceptance gates
+remain unchanged.
 
 ### Following packets and closure gates
 

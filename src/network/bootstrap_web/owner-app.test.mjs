@@ -50,11 +50,15 @@ let status = {version: 1, device_id: device, boot_id: boot, source: 'network_onl
 let start, submitted, identify, hangNextStatus = false;
 let holdStatus = false, releaseStatus, dropStatus = false, submitReply = 'lost', posts = 0;
 let now = 1_800_000_000_000;
+let identityReads = 0;
 Date.now = () => now;
 const timeHints = [];
 globalThis.fetch = async (url, options = {}) => {
   const path = new URL(url).pathname;
-  if (path === '/api/owner/v1/public-status') return {ok: true, json: async () => status};
+  if (path === '/api/owner/v1/public-status') {
+    if (++identityReads === 1) throw new Error('document acknowledgement still pending');
+    return {ok: true, json: async () => status};
+  }
   if (path === '/api/bootstrap/v1/time' && !options.body)
     return {ok: true, json: async () => ({version: 1, challenge_ns: '1234567890'})};
   if (path === '/api/owner/v1/claim/status') {
@@ -121,6 +125,11 @@ globalThis.fetch = async (url, options = {}) => {
 await import('./owner-key.js');
 await import('./owner-app.js');
 await new Promise(setImmediate);
+assert.equal(elements.get('owner-settings').hidden, true);
+assert.equal(posts, 0);
+await runTimer(250);
+await new Promise(setImmediate);
+assert.equal(identityReads, 2);
 assert.equal(elements.get('owner-settings').hidden, false);
 assert.equal(elements.get('owner-submit').disabled, false);
 assert.deepEqual(timeHints, [String(now)]);

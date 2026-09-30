@@ -291,7 +291,16 @@ async function boot() {
     return;
   }
   try {
-    const identity = await json('/local/v1/identity');
+    // The final document acknowledgement can briefly retain the one AP slot.
+    // Only this initial identity read is retried, never a setup submission.
+    let identity;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try { identity = await json('/local/v1/identity'); break; }
+      catch (error) {
+        if (attempt === 2) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+    }
     if (!hexId(identity.device_id)) throw new Error('invalid identity');
     deviceId = identity.device_id;
     $('device').textContent = 'Pico ' + deviceId.slice(-6);

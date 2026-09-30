@@ -319,7 +319,16 @@ async function boot() {
     return;
   }
   try {
-    const publicStatus = await request('/api/owner/v1/public-status');
+    // The document's last TCP acknowledgement may still occupy the AP slot.
+    // Retry this initial read only; station submissions are never replayed.
+    let publicStatus;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try { publicStatus = await request('/api/owner/v1/public-status'); break; }
+      catch (error) {
+        if (attempt === 2) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+    }
     if (!publicStatus || !/^[0-9a-f]{32}$/.test(publicStatus.device_id))
       throw new Error('invalid Pico identity');
     deviceId = publicStatus.device_id;

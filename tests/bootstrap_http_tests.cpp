@@ -53,7 +53,8 @@ int main() {
         page_request.request(), "device-id", "firmware", false, true);
     assert(owner_root.status == 200 &&
            owner_root.static_body.find("owner-form") != std::string_view::npos);
-    assert(owner_root.static_body.find("owner-key-bundle.js") != std::string_view::npos);
+    assert(owner_root.static_parts.size() == 6);
+    assert(owner_root.body_text().find("<script src=") == std::string::npos);
     const auto captive_setup = wsprrypico::network::bootstrap_http_response(
         page_request.request(), "device-id", "firmware", true, true);
     assert(captive_setup.status == 200 &&
@@ -75,6 +76,26 @@ int main() {
     assert(station_page.static_body.substr(style_start + 7, style_end - style_start - 7) ==
            wsprrypico::network::bootstrap_asset("/style.css")->body);
     assert(station_page.content_security_policy == setup.content_security_policy);
+    assert(setup.static_parts.size() == 4 && setup.body.empty() && setup.buffered_body.empty());
+    assert(setup.body_text().find("<script src=") == std::string::npos);
+    assert(setup.static_body.find("href=\"/owner.html\"") != std::string_view::npos);
+    assert(station_page.body.empty() && station_page.buffered_body.empty());
+    std::string station_delivered;
+    for (std::size_t offset = 0; offset < station_page.body_size();) {
+        const auto bytes = station_page.body_at(offset);
+        assert(!bytes.empty());
+        const auto count = std::min<std::size_t>(1024, bytes.size());
+        station_delivered.append(reinterpret_cast<const char*>(bytes.data()), count);
+        offset += count;
+    }
+    assert(station_delivered == station_page.body_text());
+    assert(station_page.body_at(station_page.body_size()).empty());
+    assert(station_delivered.ends_with("</script></body>\n</html>\n"));
+    assert(station_page.wire_headers().find(
+               "Content-Length: " + std::to_string(station_delivered.size())) != std::string::npos);
+    const auto key_script = wsprrypico::network::bootstrap_asset("/owner-key-bundle.js")->body;
+    const auto app_script = wsprrypico::network::bootstrap_asset("/owner-bundle.js")->body;
+    assert(station_delivered.find(key_script) < station_delivered.find(app_script));
 
     HttpParser owner_script_request;
     send("GET /owner-key-bundle.js HTTP/1.1\r\nHost: 192.168.4.1\r\n\r\n", owner_script_request);

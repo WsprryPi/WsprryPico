@@ -1,9 +1,12 @@
 #pragma once
 #include <optional>
+#include <span>
 #include <string_view>
 namespace wsprrypico::network {
 struct WebAsset {
     std::string_view body, type;
+    // When present, these flash-backed pieces form the complete document.
+    std::span<const std::string_view> parts{};
 };
 std::string_view web_csp();
 std::optional<WebAsset> web_asset(std::string_view path);
