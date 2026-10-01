@@ -353,3 +353,27 @@ bytes match, and exact profile/access/settings and empty/inactive authority
 are verified. A finite read-only contact observer is prepared; no further
 RF job is admitted until that contact check and the next acceptance-image
 preflight pass. Physical release-filter acceptance remains pending.
+
+The subsequent RF-inhibited physical hold on B recorded **6,188,000 us**,
+one verified stop, zero reset/AP requests, released input and the same boot
+`f11d0242b6e9315e1cb94b3badf38d1c`. Guard/capture/storage health and exact
+saved profile/access state pass; read-only LAN STATUS is empty/unowned/inactive
+before and after the gesture. This accepts the revised filter for that
+inhibited contact check. It does not qualify RF cutoff or establish the raw
+electrical cause of the earlier 42 ms observation. A clean acceptance-variant
+build and verified B deployment precede the next single active-stop RF row;
+the initial eight-RF-job/ten-acquisition bounds remain unchanged.
+
+The clean RF acceptance variant of the same source passes the acceptance
+control, guard/heap, worker stack and RAM renderer checks. Its UF2 is
+3,212,800 bytes, SHA-256
+`658605e4bc66094849be71ee6bb59c91d335d6e1fb7fe99ad54d96b27cf09aa5`.
+B's fresh inhibited full backup SHA-256 is
+`75083a4007733f41028c1fed99ecc6652802224d477a31f507d146f6b2ca02b3`,
+retained and verified locally before load. All 57,344 reserved bytes and exact
+saved station/profile/access settings match after programming. RF boot
+`24a9557a4389a982d57e8259237ad17c` is healthy, released, inactive and synchronized;
+the non-output cue readiness probe passes on the saved consumer profile.
+The previous exact `5d951b2b7caa` packet is retained unchanged when selecting
+the new image packet. Deployment/readiness submits no RF job; five charged
+RF jobs remain the current count before the next physical-ready invocation.
