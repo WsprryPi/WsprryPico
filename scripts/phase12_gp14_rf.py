@@ -241,9 +241,16 @@ def review_legacy_cue_failure(path):
 def wait_button_reset(packet, initial, evidence, *, read=console, now=time.monotonic,
                       pause=time.sleep):
     """No output job is created until an operator's idle quick tap starts a new boot."""
-    require(initial['status']['state'] == 'empty' and
-            initial['status']['output_active'] is False, 'ready signal requires inactive empty B')
     old_boot = initial['status']['boot_id']
+    def require_idle(info):
+        stopped = (info['status']['boot_id'] == old_boot and
+                   info['status']['state'] == 'aborted' and
+                   info['gp14_output_inhibited'] is True and
+                   info['rf_safety_inhibited'] is True)
+        require(info['status']['output_active'] is False and
+                (info['status']['state'] == 'empty' or stopped),
+                'ready signal requires empty or GP14-inhibited aborted B')
+    require_idle(initial)
     end = now() + 600
     print('WAITING: quick-tap B GP14, release, then watch for triple LED flashes', flush=True)
     while now() < end:
@@ -253,8 +260,7 @@ def wait_button_reset(packet, initial, evidence, *, read=console, now=time.monot
             pause(.1)
             continue
         check_info(info, packet)
-        require(info['status']['state'] == 'empty' and info['status']['output_active'] is False,
-                'unexpected activity while waiting for operator')
+        require_idle(info)
         if info['status']['boot_id'] != old_boot:
             require(info['gp14_prior_reset'] is True and 0 < info['gp14_prior_duration_ms'] < 400,
                     'operator quick-reset marker missing')

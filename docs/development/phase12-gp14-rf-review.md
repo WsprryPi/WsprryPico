@@ -416,3 +416,16 @@ declared timing margin. This closes only the recorded active-stop operational
 row. Calibrated timing/general RF qualification remains outside this scope.
 **Eight attempts and six RF jobs are charged.** Armed stop, active/armed busy,
 quick reset and long-held AP remain open; GP14 default enablement remains off.
+
+The next armed-stop preflight (`run-8d7702ca07104ae08b7e03cdfdfadc73`)
+rejected the safely aborted job retained after the accepted stop. It reached
+no cue, connection, CLAIM, receiver capture, LOAD or ARM; zero jobs are charged
+and the event log is empty. The bound assessment resolves this host-only
+failure without RF acceptance. The readiness wait now permits a same-boot
+aborted job only with both GP14/worker inhibition latches and output inactive;
+the physical quick tap must still produce a healthy released, synchronized,
+empty new boot before admission. Regression checks reject either missing
+latch and every nonempty new boot. The client suite and whitespace checks
+pass; adversarial reassessment retains fresh-boot admission and finite bounds.
+The campaign now has **nine attempts and six RF jobs**, leaving one attempt
+under the original ten-attempt cap.

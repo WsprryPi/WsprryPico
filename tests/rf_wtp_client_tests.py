@@ -216,6 +216,24 @@ values=iter([old,unsynced,ready]);evidence=ReadyEvidence()
 assert wait_button_reset(packet,old,evidence,read=lambda:next(values),
                          now=lambda:0,pause=lambda _:None)==ready
 assert [kind for kind,_ in evidence.values]==['physical_start_info']
+# A verified GP14 stop retains an aborted job until reset. It may wait for
+# the next ready tap, but cannot admit a job or relax the fresh-boot checks.
+stopped=copy.deepcopy(old);stopped['status']['state']='aborted'
+values=iter([stopped,ready]);evidence=ReadyEvidence()
+assert wait_button_reset(packet,stopped,evidence,read=lambda:next(values),
+                         now=lambda:0,pause=lambda _:None)==ready
+for field,value in [('gp14_output_inhibited',False),('rf_safety_inhibited',False)]:
+    rejected=copy.deepcopy(stopped);rejected[field]=value
+    try: wait_button_reset(packet,rejected,ReadyEvidence(),read=lambda:ready,
+                           now=lambda:0,pause=lambda _:None)
+    except RuntimeError: pass
+    else: raise AssertionError('unlatched aborted job accepted for readiness')
+for state in ('loaded','armed','running','aborted'):
+    rejected=copy.deepcopy(ready);rejected['status']['state']=state
+    try: wait_button_reset(packet,stopped,ReadyEvidence(),read=lambda:rejected,
+                           now=lambda:0,pause=lambda _:None)
+    except RuntimeError: pass
+    else: raise AssertionError('nonempty fresh boot accepted for readiness')
 for field,value in [('gp14_prior_reset',False),('gp14_held',True),
                     ('rf_safety_inhibited',True),('gp14_capture_fault',True)]:
     rejected=copy.deepcopy(ready);rejected[field]=value;evidence=ReadyEvidence()
