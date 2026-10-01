@@ -492,3 +492,36 @@ profile/access preservation across preparation and shutdown. This accepts the
 conducted armed-cancellation row; calibrated timebase/general RF qualification
 remains open. **Eleven attempts and seven RF jobs are charged.** Active busy,
 armed busy, quick reset and long-held AP remain; GP14 default is still off.
+
+## Accepted RF row: active shutdown during core-0 busy interval
+
+Run `run-ac942570c12d4a36a858a4877c30941f` passes **active busy** on clean
+`3e1337074003`, boot `389d894921b51ef32d84565210f44fcb`, job
+`f89f294442a1473f8cfe5a9e857a5cb0`, after verified inactive/unowned USB
+preparation. The 6,653,000 us physical hold produces one stop, zero reset/AP
+requests and a healthy sticky worker latch. The core-0 busy interval is
+22.629482–27.629482 s from boot; worker request/stop are
+23.126283/23.126373 s, both strictly inside that five-second interval.
+Worker acknowledgement is 90 us, separate from measured physical cutoff.
+
+The complete receiver capture has exact settings, zero overflow/timeout/
+clipping and verified cleanup. IQ SHA-256 is
+`79c2f7b4fdef80b61ea077cf7ccc92d04f30ae9f15bdd5e1b7c7f8d67cc36ff3`.
+Independent 1 ms Fourier windows observe one carrier at nominal sample times
+5.338–8.478 s, 63.62 dB above baseline. Thresholds 20/30/40 dB below the on
+level give identical edges. Its 3.140 s interval exceeds the recorded
+decision-after-launch interval by 0.248 ms. The same declared 1% engineering
+clock allowance, 2 ms edge allowance and 202 us launch-alarm allowance total
+33.602 ms, yielding an upper relative cutoff estimate of **33.850 ms**, below
+the 50 ms operational bound. No carrier returns during the remaining
+31.522 nominal seconds. This capture spans 40 nominal seconds and agrees
+with host delivery timestamps within the declared clock allowance.
+
+Adversarial reassessment verified the job/boot/packet/IQ bindings, positive
+physical launch, actual worker cutoff inside the busy interval, stable RF
+edges, independent timing allowance, complete healthy receiver capture,
+same-boot inactive/unowned authority, rejected later CLAIM and exact saved
+profile/access preservation across preparation and shutdown. Calibrated
+timing/general RF qualification remains open. **Twelve attempts and eight RF
+jobs are charged.** Armed busy, quick reset and long-held AP remain;
+production GP14 default stays off until those gates pass.
