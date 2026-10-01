@@ -624,6 +624,60 @@ future admission and exact saved profile/access preservation. This accepts
 conducted armed cancellation while core 0 is blocked, not calibrated timing
 or general RF qualification. **Four of six rows pass; fourteen attempts and
 nine RF jobs are charged.** Quick-release reset and long-held RF-to-AP
-availability remain open. The 15-attempt ceiling leaves one attempt; an
-explicit extension to 16 was requested for both remaining rows, while keeping
-the 11-job limit. No limit is raised until the operator answers.
+availability remain open. At that checkpoint, the 15-attempt ceiling left one
+attempt; an explicit extension to 16 was requested for both remaining rows,
+while keeping the 11-job limit. No limit was raised without an operator answer.
+
+## Nonqualifying quick-reset trial and inhibited restoration
+
+Preparation for trial 15 issued one acknowledged USB REBOOT into healthy,
+released, empty boot `49deed0b0b9b7663139e176ff54f059b`. The new preparation
+helper incorrectly looked for a nonexistent top-level `station_ipv4` field.
+Its inactive poll was stopped and the lookup repaired to `network.ipv4`;
+continued readiness verification used the same acknowledged reset and new
+boot, with no mutation replay or extra job. Private records bind the interrupted
+poll to its continuation. Synchronized station readiness, exact saved
+profile/access equality and the non-output cue readiness check passed.
+
+Run `run-986b41d58b2e46569d7aa24ae2dd84e4` then attempted **quick-release
+reset**, job `d37081f6dca242a58da83239e3b779c4`. The controller started this
+cue without obtaining a fresh operator Ready reply after the preceding Done.
+No held input, stop, reset or AP event was recorded during its 100 observations.
+The tone completed at its finite 20-second limit on the same healthy boot;
+terminal history binds completion to the exact job, and cleanup verifies
+empty/unowned/inactive authority. This does not establish a button failure or
+accept the reset row. The workflow is corrected to require a new explicit
+Ready reply before each acquisition.
+
+The complete receiver capture has exact retained settings, zero overflow,
+timeout or clipping and verified cleanup. IQ SHA-256 is
+`608b3645b791cf2fcb80b971b1f3bb26f310aa1ecc0e806994c14f55f8088e48`.
+The 1 ms Fourier check sees one carrier interval: 5,396–25,396 ms at 20 dB
+below its on level, and 5,395–25,396 ms at 30/40 dB. Thus the finite carrier
+lasts 20.000–20.001 nominal seconds, with another 14.604 seconds free of
+carrier at those thresholds. The analysis binds attempt/events/packet/IQ and
+metadata, records no physical events, and explicitly retains
+`independent_rf_pass=false`. Saved profile/access state is unchanged. This
+nonqualifying review does not admit an automatic retry.
+
+B is restored to inhibited revision `615888e5364b`, UF2 SHA-256
+`81361b105def84231c23853507bad81f992426260b9c935061fab82081d5239f`.
+Fresh full backup SHA-256
+`70ffde9bd6e873ca2dd43ee25bbe19db01481ab2552a75e277d93f566f6244dd`
+was retained and verified locally before load. All 57,344 reserved bytes match
+before/after restoration; saved profile/access generations 5/1 and contents
+also match. USB readback confirms healthy inhibited boot
+`7d92a0a4a8e6efbcc6ff094b225fc442`, empty and inactive, with scheduling disabled.
+Read-only LAN HELLO/STATUS confirms the same boot, empty/unowned state,
+no job and no output. Private evidence is under
+`build/phase12-gp14-rf-b-20260930/` and the matching wspr5 directory. A and
+wspr4 were not operated.
+
+Adversarial reassessment separates the four accepted rows from this failed
+readiness sequence, retains both host findings and repairs, verifies finite
+completion/cleanup, the backup retention barrier, exact reserved state and
+restored inhibited identity, and keeps default enablement off. **Fifteen
+attempts and ten jobs are charged.** Quick-release reset and long-held
+RF-to-AP availability remain open. A new extension to 17 attempts and 12 jobs
+has been requested to cover both rows; the original limits remain enforced
+until an explicit answer. Each further job remains limited to 20 seconds.
