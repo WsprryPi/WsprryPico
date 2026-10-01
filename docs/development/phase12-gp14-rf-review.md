@@ -377,3 +377,42 @@ the non-output cue readiness probe passes on the saved consumer profile.
 The previous exact `5d951b2b7caa` packet is retained unchanged when selecting
 the new image packet. Deployment/readiness submits no RF job; five charged
 RF jobs remain the current count before the next physical-ready invocation.
+
+## First accepted RF row: active stop
+
+Run `run-629ab099557a4540b05c0f305dc2289c` passes the bounded conducted
+**active-stop** row on clean `3e1337074003`, boot
+`56109ffc82f5b6aff4c81f445c0c7595`. The 6,732,000 us hold produces one
+verified stop, zero resets, a sticky healthy worker latch and a rejected later
+CLAIM. Worker acknowledgement is 94 us; this is reported separately from RF.
+
+The complete ten-million-sample capture has exact receiver/settings, no
+overflow/timeout/clipping, verified cleanup and SHA-256
+`3d8b1f2bab3716b89d360d4ed6ebc012b83a4a264af54a025ff2b93854c94db6`.
+Independent 1 ms Fourier windows observe one carrier from nominal sample
+times 5.441 to 8.158 seconds, 60.30 dB above baseline. Thresholds 20, 30 and
+40 dB below the on level give identical edges. The 2.717 s carrier interval
+exceeds the recorded decision-after-launch interval by 0.878 ms. No carrier
+reactivation occurs during the remaining 31.842 nominal seconds.
+
+For this operational row, the assessment includes an explicit conservative
+1% clock-scale allowance (27.170 ms), 2 ms for both Fourier edges and the
+191 us observed maximum launch-alarm interval. The total engineering allowance
+is 29.361 ms, giving an upper relative cutoff estimate of **30.239 ms**, within
+the selected 50 ms bound. Campaign clock agreement includes the retained
+20.001 s finite-tone reference against a requested 20 s, this capture's
+40.030 s delivery interval for 40 nominal sample seconds, and a nominal
+3,570,101 Hz carrier against the realized 3,570,100 Hz job. These support the
+generous engineering allowance; they do not establish certified receiver or
+absolute timebase calibration. The pinned SDK derives the timer tick and
+system PLL from XOSC. SDRplay's [RSP1B datasheet](https://www.sdrplay.com/docs/RSP1BdatasheetV1.0.pdf)
+lists a high temperature stability TCXO; that specification is not substituted
+for measured absolute calibration.
+
+Adversarial assessment verified immutable attempt/packet/IQ bindings, positive
+RF onset, threshold stability, separate worker/RF timestamps, same-boot
+inactive authority, future-admission rejection, receiver integrity and the
+declared timing margin. This closes only the recorded active-stop operational
+row. Calibrated timing/general RF qualification remains outside this scope.
+**Eight attempts and six RF jobs are charged.** Armed stop, active/armed busy,
+quick reset and long-held AP remain open; GP14 default enablement remains off.
