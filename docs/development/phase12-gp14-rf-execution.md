@@ -68,7 +68,12 @@ Use no more than eight finite RF jobs of at most 30 seconds each in the initial
 packet, no unattended repetition and stop on the first unexpected result.
 Record each attempt, including failed starts. The controller separately caps
 acquisition attempts at ten; a rejected LOAD with no ARM consumes an attempt,
-and every possibly sent ARM consumes one of the eight RF-job charges. Keep the core-0 busy interval
+and every possibly sent ARM consumes one of the eight RF-job charges.
+On 2026-10-01, after ten attempts and six charged jobs, the operator explicitly
+authorized extension to **15 total acquisition attempts and 11 total RF jobs**
+to finish the five remaining rows. All further jobs are at most **20 seconds**.
+No counter is reset and historical failed attempts remain counted.
+Keep the core-0 busy interval
 below the existing 8-second watchdog. A watchdog recovery row may require a
 separate reviewed stimulus; do not improvise a destructive fault.
 
@@ -88,6 +93,16 @@ for armed rows). The operator watches B locally and performs the required
 gesture at that cue. An unsignaled wait ends after ten minutes without an RF
 job; faults, unqualified resets and early input refuse admission. No firmware
 input injection or new automatic output policy is introduced.
+
+The operator's later intended tap was recorded as 912 ms, outside the selected
+under-400 ms reset interval. For the authorized continuation, prepare each
+trial with one USB REBOOT after verified inactive/healthy state, then require
+a distinct released, synchronized, healthy boot and empty/unowned admission.
+Use `--led-cue` to verify cue readiness before CLAIM and flash locally only
+after positive armed/active admission. This removes the readiness tap from
+the operator's trial steps. The physical quick-release reset acceptance row
+still requires real GP14 contact and remains a separate gate. Press debounce
+is already 10 ms; the 100 ms release filter does not lengthen measured holds.
 
 Finish with inactive, empty/unowned, healthy storage and exact settings
 comparison, then restore the retained inhibited image. Enable GP14 by default

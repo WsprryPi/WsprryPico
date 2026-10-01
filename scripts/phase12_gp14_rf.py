@@ -274,12 +274,12 @@ def wait_button_reset(packet, initial, evidence, *, read=console, now=time.monot
     raise RuntimeError('physical ready signal timeout; no RF job submitted')
 
 
-def acquire(packet, case, campaign, retry_no_input_run=None, wait_for_button=False):
+def acquire(packet, case, campaign, retry_no_input_run=None, wait_for_button=False, led_cue=False):
     previous = sorted(campaign.glob('run-*/attempt.json'))
-    require(len(previous) < 10, 'ten-attempt acquisition budget exhausted')
+    require(len(previous) < 15, 'approved fifteen-attempt acquisition budget exhausted')
     charges = [json.loads(path.read_text())['charged_jobs'] for path in previous]
     require(all(type(charge) is int and charge in (0, 1) for charge in charges) and
-            sum(charges) < 8, 'initial eight-RF-job budget exhausted/invalid')
+            sum(charges) < 11, 'approved eleven-RF-job budget exhausted/invalid')
     retry_review = None
     for path in previous:
         if path.parent.name == retry_no_input_run:
@@ -338,7 +338,8 @@ def acquire(packet, case, campaign, retry_no_input_run=None, wait_for_button=Fal
                 'new released-input boot required')
         boot = initial['status']['boot_id']
         evidence.record('initial_info', initial)
-        if wait_for_button:
+        if wait_for_button or led_cue:
+            require(initial.get('gp14_rf_cue_supported') is True, 'physical cue unsupported by image')
             cue_ready = console('GP14 RF CUE ' + DEVICE + ' READY')
             require(cue_ready.get('ready') is True, 'physical cue readiness unconfirmed')
             evidence.record('physical_led_ready', cue_ready)
@@ -396,7 +397,7 @@ def acquire(packet, case, campaign, retry_no_input_run=None, wait_for_button=Fal
             require(time.monotonic() < action_end, 'finite launch timeout')
             time.sleep(.05)
         print('CONTACT NOW: ' + case + ' on B', flush=True)
-        if wait_for_button:
+        if wait_for_button or led_cue:
             cue = console('GP14 RF CUE ' + DEVICE + ' ' + uuid.uuid4().hex)
             require(cue.get('cue') is True, 'physical cue activation unconfirmed')
             evidence.record('physical_led_cue', cue)
@@ -500,12 +501,15 @@ def main():
                         help='Explicit operator-authorized retry of a reviewed finite no-input timeout')
     parser.add_argument('--wait-button-reset', action='store_true',
                         help='Wait RF-inactive for an operator quick tap, then cue the action with LED flashes')
+    parser.add_argument('--led-cue', action='store_true',
+                        help='Cue the action on a pre-reset healthy B without waiting for a physical ready tap')
     args = parser.parse_args()
     os.umask(0o077)
     packet = json.loads((args.campaign/'packet.json').read_text())
     validate_packet(packet)
     require(args.run, 'explicit --run required for physical USB/receiver/RF actions')
-    acquire(packet, args.case, args.campaign, args.retry_no_input_run, args.wait_button_reset)
+    acquire(packet, args.case, args.campaign, args.retry_no_input_run,
+            args.wait_button_reset, args.led_cue)
 
 
 if __name__ == '__main__':

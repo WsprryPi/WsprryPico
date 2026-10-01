@@ -429,3 +429,32 @@ latch and every nonempty new boot. The client suite and whitespace checks
 pass; adversarial reassessment retains fresh-boot admission and finite bounds.
 The campaign now has **nine attempts and six RF jobs**, leaving one attempt
 under the original ten-attempt cap.
+
+The repaired armed-stop wait (`run-e7ae625de53945468ea452759dd42445`)
+expired before the required quick-reset boot. Zero jobs are charged; no cue,
+connection, CLAIM, receiver capture, LOAD or ARM occurred. The event log is
+empty and the bound nonqualifying resolution includes a hashed post-wait
+INFO readback. B remains healthy, released, RF inactive and worker inhibited
+in the accepted active-stop boot. It records three stop events, zero reset
+events and a last contact duration of **912,000 us**: that contact selects
+shutdown rather than the under-400 ms reset gesture. The cause of the duration
+difference from the operator's intended tap is not established. Subsequent
+trials will use USB reset for preparation and require only the local LED-cued
+test gesture. **Ten attempts and six RF jobs** exhaust the original acquisition
+cap; no further acquisition begins without an explicit budget extension.
+
+The operator then explicitly authorized **15 attempts / 11 finite RF jobs**
+to finish the five outstanding rows. The runner retains all historical counts,
+20-second jobs and reviewed-assessment admission. Its optional LED cue can
+now operate after verified USB preparation without a physical readiness tap;
+cue readiness remains before CLAIM and cue activation remains after positive
+armed/active state. The already-selected press debounce is 10 ms; no firmware
+change or image replacement is required for that requested value.
+
+The operator proposed an external digital-output rig connected to GP14.
+That can provide actual pad-level low/release stimuli with repeatable timing
+while retaining independent RF measurement. Rig identity, available output,
+grounding and wiring must be established before controlling it; no rig pin
+has been selected or operated. Remaining RF acquisitions are held while that
+setup is chosen. This proposal changes neither the production debounce nor
+the firmware's selected gesture boundaries.
