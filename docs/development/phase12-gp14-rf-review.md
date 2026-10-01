@@ -1,6 +1,6 @@
 # P12.7 GP14 RF integration review
 
-Status: **source gates passed; physical RF acceptance pending** (2026-10-01).
+Status: **source gates passed; three RF rows accepted; remaining trials paused** (2026-10-01).
 Executes the [authorized brief](phase12-gp14-rf-execution.md). GP14 remains
 opt-in pending the required target rows. Phase 12 remains active.
 
@@ -525,3 +525,37 @@ profile/access preservation across preparation and shutdown. Calibrated
 timing/general RF qualification remains open. **Twelve attempts and eight RF
 jobs are charged.** Armed busy, quick reset and long-held AP remain;
 production GP14 default stays off until those gates pass.
+
+## Operator pause and verified inhibited restoration
+
+Preparation for the armed-busy row issued one acknowledged USB REBOOT but
+missed the 60-second readiness deadline before starting the acquisition.
+Post-timeout INFO confirms a healthy released, empty, inactive new boot
+`57b38e1b58d554a28a64fe0e6952e397`, with standalone scheduling disabled and
+the saved station network/time now ready. The exact readiness condition that
+missed the deadline was not recorded and remains unidentified. No LED cue,
+receiver capture, CLAIM, LOAD or ARM occurred. The failed preparation is
+retained as counted attempt `run-e761760476184fefb91f8e8f0df5221b`, charged
+zero jobs, with a bound nonqualifying resolution. **Thirteen attempts and
+eight RF jobs are charged.** No retry follows the operator's requested pause
+for fleet testing; the remaining three rows need a future resumed packet.
+
+B is restored to the retained inhibited baseline `615888e5364b`, UF2 SHA-256
+`81361b105def84231c23853507bad81f992426260b9c935061fab82081d5239f`.
+Fresh full backup SHA-256
+`1181e02c15d8ebda4d853cdcf19113841be4b67f30cc66689a2cf94146b98646`
+was retained and verified locally before load. All 57,344 reserved bytes match
+before/after restoration, as do saved consumer profile generation 5 and
+access generation 1. Readback boot `a6daf58691953440e1dab6d8af329157` is
+healthy and RF inhibited.
+Read-only LAN HELLO/STATUS additionally verifies the same B boot is empty,
+unowned, has no job and no output; standalone scheduling remains disabled.
+Private evidence is under
+`build/phase12-gp14-rf-b-20260930/restoration-release-pause-13/` and the matching
+wspr5 directory. A was not operated by this GP14 campaign; wspr4 was not
+contacted. Adversarial closeout preserves the failed attempt, separates the
+three passing RF rows from this no-RF timeout, verifies the backup barrier,
+exact reserved storage and inhibited readback, and leaves default enablement
+off. Armed busy, quick-release reset and long-held RF-to-AP availability remain
+open. Exact coincidence with the short flash erase/program operation remains
+the previously recorded evidence limitation.

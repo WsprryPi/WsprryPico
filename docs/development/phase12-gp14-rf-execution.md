@@ -1,6 +1,6 @@
 # GP14 production RF integration and acceptance
 
-Status: **ACTIVE; RF CUTOFF AND DEFAULT ENABLEMENT UNACCEPTED** (2026-09-30).
+Status: **PAUSED BY OPERATOR; THREE RF ROWS ACCEPTED; DEFAULT OFF** (2026-10-01).
 
 ## Authorization and scope
 
