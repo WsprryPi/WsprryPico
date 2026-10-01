@@ -340,3 +340,16 @@ groups pass, as do formatting and whitespace checks. Press/hold thresholds
 and source default-off selection remain unchanged. The stronger filter is a
 bounded mitigation, not proof that contact bounce caused this target result;
 RF-inhibited and subsequent active/armed target checks remain required.
+
+The release-filter repair's clean source is
+`3e1337074003616c23d9b8749e728c99c71738c6`. Both normal inhibited and RF images
+build with the retained pinned SDK/toolchain and pass their linked memory,
+guard, renderer and shutdown checks; normal RF contains no acceptance controls.
+B now runs the revised **inhibited** image `3e1337074003`, UF2 SHA-256
+`fbbd2b7b945c0bc334ddd091adb94267504fa848508129bfdc26b4ec4e9c9692`
+(3,368,448 bytes), boot `f11d0242b6e9315e1cb94b3badf38d1c`. Its fresh full
+backup was retained and verified on the Mac before load, all 57,344 reserved
+bytes match, and exact profile/access/settings and empty/inactive authority
+are verified. A finite read-only contact observer is prepared; no further
+RF job is admitted until that contact check and the next acceptance-image
+preflight pass. Physical release-filter acceptance remains pending.
