@@ -1,6 +1,6 @@
 # P12.7 GP14 RF integration review
 
-Status: **source gates passed; three RF rows accepted; remaining trials paused** (2026-10-01).
+Status: **source gates passed; three RF rows accepted; armed-busy trial prepared** (2026-10-01).
 Executes the [authorized brief](phase12-gp14-rf-execution.md). GP14 remains
 opt-in pending the required target rows. Phase 12 remains active.
 
@@ -559,3 +559,37 @@ exact reserved storage and inhibited readback, and leaves default enablement
 off. Armed busy, quick-release reset and long-held RF-to-AP availability remain
 open. Exact coincidence with the short flash erase/program operation remains
 the previously recorded evidence limitation.
+
+## Resumed preparation with the SDR reconnected
+
+The operator reported B reattached to the SDR and requested test preparation.
+Fresh USB readback already showed the reviewed RF acceptance revision
+`3e1337074003`, rather than the earlier inhibited restoration. B was empty,
+inactive, released and synchronized, with scheduling disabled and saved
+profile/access generations 5/1. No image was overwritten. Fresh unowned LAN
+authority was verified before reading flash in BOOTSEL; all **6,274 ARM UF2
+payload blocks** match the retained acceptance image exactly. The readback
+parser initially rejected the additional RP2350 absolute compatibility block;
+it was repaired against the retained SDK/picotool definition, requiring its
+exact ignored-block tag/header/payload before excluding that one nonprogram
+block. No flash write occurred. The fresh full readback and comparison evidence
+were retained locally, then the same verified application was rebooted.
+
+New boot `0076a61b72868ea959213d8126d79334` is healthy, released, empty and
+RF inactive. Passive readiness observations record network/clock transitions
+through synchronization, using a finite 180-second preparation allowance;
+the identity-bound non-output cue readiness probe passes. Exact saved
+profile/access state is unchanged. This does not establish the cause of the
+earlier unrecorded readiness timeout.
+
+The reconnected RSP1B `2404058C60` completes a separate three-second,
+750,000-sample quiet capture with exact retained settings, zero overflow/
+timeout/clipping and verified cleanup. IQ SHA-256 is
+`ffa756c846f2c7f314bf03f51ec26843c0861d175b9d3947cc2762f0b306e6db`.
+The 1 ms Fourier check detects no carrier at thresholds 20/30/40 dB below
+the retained active reference; its maximum is 54.97 dB below that reference.
+Private evidence is under
+`build/phase12-gp14-rf-b-20260930/preflight-resume-armed-busy-14/` and the matching
+wspr5 directory. Preparation submits no RF job; counters remain **13 attempts
+and eight charged jobs**. Armed busy is prepared for the next operator cue;
+all three outstanding RF rows and default enablement remain open.

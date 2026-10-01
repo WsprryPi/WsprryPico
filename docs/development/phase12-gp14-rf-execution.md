@@ -1,6 +1,6 @@
 # GP14 production RF integration and acceptance
 
-Status: **PAUSED BY OPERATOR; THREE RF ROWS ACCEPTED; DEFAULT OFF** (2026-10-01).
+Status: **RESUMED; THREE RF ROWS ACCEPTED; NEXT TRIAL PREPARED; DEFAULT OFF** (2026-10-01).
 
 ## Authorization and scope
 
