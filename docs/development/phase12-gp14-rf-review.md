@@ -458,3 +458,37 @@ grounding and wiring must be established before controlling it; no rig pin
 has been selected or operated. Remaining RF acquisitions are held while that
 setup is chosen. This proposal changes neither the production debounce nor
 the firmware's selected gesture boundaries.
+
+## Accepted RF row: armed cancellation
+
+The operator requested one more manual trial, with a stop if it failed.
+USB preparation checked B's identity, inactive/unowned state and released
+input, issued one REBOOT and verified a distinct empty, healthy, synchronized
+boot. No readiness tap was needed. Run
+`run-75b7f6417ddb4ac99aaa57cd1e16c49c` passes **armed cancellation** on
+unchanged clean `3e1337074003`, boot `ca611516a4b04f0ec2a6e997ca00774d`,
+job `6b6fb7cdd17b412795616f9433e56525`. Positive ARM precedes the local LED
+cue; the recorded 7,517,000 us hold produces one verified stop, zero resets/AP
+requests, a sticky worker latch and `launch_epoch=0`. Later CLAIM is rejected
+BUSY. Worker acknowledgement is 126 us; this row measures prevention of launch,
+not physical RF cutoff latency.
+
+The complete ten-million-sample capture has exact receiver/settings, zero
+overflow/timeout/clipping and verified cleanup. IQ SHA-256 is
+`d95bc31c10e4e624e9ead982513e99c81d61a80157d10de3eb3dba3f14adb405`.
+Independent 1 ms Fourier windows search 19–22 kHz above the 3.55 MHz receiver
+center, covering the realized conducted tone. The maximum is 51.68 dB below
+the previously observed active carrier. Thresholds 20, 30 and 40 dB below
+that reference detect zero carrier windows across all 40 nominal seconds.
+The scheduled launch is bracketed 19.803–20.889 s after capture start using
+same-host clock request/reply timestamps and a 500 ms admission allowance;
+the capture extends another 19.142 s beyond its latest bound.
+
+The hashed assessment binds attempt, packet, events, IQ, capture metadata,
+USB preparation, active reference and quiet reference. Adversarial reassessment
+checked positive job-specific ARM, launch coverage, whole-capture absence,
+receiver integrity, same-boot inhibition/admission refusal and exact saved
+profile/access preservation across preparation and shutdown. This accepts the
+conducted armed-cancellation row; calibrated timebase/general RF qualification
+remains open. **Eleven attempts and seven RF jobs are charged.** Active busy,
+armed busy, quick reset and long-held AP remain; GP14 default is still off.
