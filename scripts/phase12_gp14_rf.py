@@ -203,6 +203,41 @@ def finish_capture(capture, deadline):
         return None
 
 
+def review_legacy_cue_failure(path):
+    """Reconcile the historical consumer-guard denial; do not accept cutoff."""
+    attempt = json.loads(path.read_text())
+    require(attempt['case'] == 'active_stop' and attempt['charged_jobs'] == 1 and
+            attempt['status'] == 'FAILED_STOP_CAMPAIGN' and
+            attempt.get('error') == 'RuntimeError: Console command refused' and
+            attempt.get('cleanup_verified') is True, 'not the reconciled legacy cue failure')
+    events_path = path.with_name('events.jsonl')
+    events = [json.loads(line) for line in events_path.read_text().splitlines()]
+    initial = [event['value'] for event in events if event['kind'] == 'initial_info']
+    require(len(initial) == 1 and initial[0]['device_id'] == DEVICE and
+            initial[0]['revision'] == '62ae4c2c2567' and
+            initial[0]['provisioning_source'] == 'consumer_preclock' and
+            initial[0]['status']['boot_id'] == attempt['boot_id'] and
+            not any(event['kind'] in ('action_info', 'physical_led_cue') for event in events),
+            'legacy denial image/action mismatch')
+    aborts = [event['value'] for event in events if event['kind'] == 'request' and
+              event['value'].get('op') == 'ABORT']
+    require(len(aborts) == 1 and aborts[0]['body'] == dict(job_id=attempt['job_id']),
+            'same-job abort unconfirmed')
+    statuses = [event['value']['body'] for event in events if event['kind'] == 'received' and
+                event['value'].get('type') == 'response' and
+                event['value'].get('op') == 'STATUS' and event['value'].get('ok') is True]
+    require(statuses, 'final status missing')
+    final = statuses[-1]
+    require(final['boot_id'] == attempt['boot_id'] and final['state'] == 'empty' and
+            final['owner_id'] is None and final['job_id'] is None and
+            final['output_active'] is False and
+            any(record['job_id'] == attempt['job_id'] and record['state'] == 'aborted' and
+                record['output_active'] is False for record in final['terminal_records']),
+            'inactive aborted job and release unconfirmed')
+    return dict(attempt_sha256=digest(path), events_sha256=digest(events_path),
+                independent_rf_pass=False)
+
+
 def wait_button_reset(packet, initial, evidence, *, read=console, now=time.monotonic,
                       pause=time.sleep):
     """No output job is created until an operator's idle quick tap starts a new boot."""
@@ -257,14 +292,22 @@ def acquire(packet, case, campaign, retry_no_input_run=None, wait_for_button=Fal
             require(all(result.get(key) == value for key, value in review.items()),
                     'wrong-gesture resolution unbound')
             continue
+        if result.get('resolved_legacy_cue_failure') is True:
+            review = review_legacy_cue_failure(path)
+            require(all(result.get(key) == value for key, value in review.items()),
+                    'legacy cue resolution unbound')
+            continue
         no_rf = (result.get('resolved_without_rf') is True and
                  json.loads(path.read_text())['charged_jobs'] == 0)
         require((result.get('independent_rf_pass') is True or no_rf) and
                 result.get('attempt_sha256') == digest(path), 'preceding RF assessment failed/unbound')
     require(retry_no_input_run is None or retry_review is not None, 'retry run not found')
+    packet_bytes = (campaign/'packet.json').read_bytes()
+    require(json.loads(packet_bytes) == packet, 'packet changed after validation')
     root = campaign / ('run-' + uuid.uuid4().hex)
     evidence = Evidence(root)
-    attempt = dict(case=case, packet_sha256=digest(campaign/'packet.json'), status='STARTING',
+    (root/'packet.json').write_bytes(packet_bytes)
+    attempt = dict(case=case, packet_sha256=digest(root/'packet.json'), status='STARTING',
                    charged_jobs=0, duration_ns='20000000000', independent_rf_pass=False)
     if retry_review:
         attempt['reviewed_no_input_retry'] = retry_review

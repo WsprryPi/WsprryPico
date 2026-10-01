@@ -260,3 +260,29 @@ worker/failure/field/button/stream/client groups pass **6/6**. Clean SDK rebuild
 image checks and target readiness verification are the remaining deployment
 gates for this revised test image; no additional RF has been authorized by
 the software repair itself.
+
+The cue repair's clean source is `5d951b2b7caa37249b0e2aad75bf613000b6860c`;
+UF2 SHA-256 is
+`319a550c41341812ce6037494cb737e6b4d40521f5a257e07ec962b8f1b38889`
+(3,212,288 bytes). Clean inhibited/normal RF builds pass, with cue/busy markers
+absent; the separate acceptance build passes their presence checks. Guard,
+heap, RAM renderer, 32 KiB primary/16 KiB worker, flash/UF2 reservation and
+shutdown interception checks pass using the retained pinned dependencies.
+
+B's fresh full backup was retained/hash-verified on the Mac before load;
+all 57,344 reserved bytes matched and exact saved profile/access settings
+were preserved. Boot `c388b7a417190312774049f485058677` reports inactive output,
+healthy guards/storage and synchronized time at `192.168.1.53`. Its actual
+saved-profile USB path returns a positive `GP14 RF CUE ... READY` response;
+subsequent readback confirms the probe did not activate LED identification or
+RF. No new RF job was submitted by this readiness verification.
+
+The old cue-denial receipt remains explicitly unaccepted and is reusable only
+after verifying its historical image/profile, same-job ABORT, inactive aborted
+terminal record and empty/unowned release. Refusal tests cover foreign jobs,
+uncleared ownership, another image and any recorded physical action. Every
+new attempt stores its exact packet bytes/hash before device actions; old
+packets are retained unchanged when selecting the new image. Affected groups
+pass **6/6** after these additions. Reassessment found no remaining actionable
+source finding in the revised cue/admission path; all physical cutoff rows and
+default enablement remain open.

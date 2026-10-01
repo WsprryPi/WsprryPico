@@ -245,3 +245,31 @@ for exists,message,exception in [(False,'Endpoint occupied or ownership check un
         else: raise AssertionError('ownership error misclassified')
         write.assert_not_called()
 print('CDC reconnect classification retains exclusive endpoint refusal')
+
+from phase12_gp14_rf import review_legacy_cue_failure
+with TemporaryDirectory() as directory:
+    root=Path(directory)
+    attempt=dict(case='active_stop',charged_jobs=1,status='FAILED_STOP_CAMPAIGN',
+                 error='RuntimeError: Console command refused',cleanup_verified=True,
+                 boot_id='boot',job_id='1'*32)
+    (root/'attempt.json').write_text(json.dumps(attempt))
+    events=[dict(kind='initial_info',value=dict(device_id=DEVICE,revision='62ae4c2c2567',
+                 provisioning_source='consumer_preclock',status=dict(boot_id='boot'))),
+            dict(kind='request',value=dict(op='ABORT',body=dict(job_id='1'*32))),
+            dict(kind='received',value=dict(type='response',op='STATUS',ok=True,body=dict(
+                 boot_id='boot',state='empty',output_active=False,owner_id=None,job_id=None,
+                 terminal_records=[dict(job_id='1'*32,state='aborted',output_active=False)])))]
+    def cue_review(values,accepted):
+        (root/'events.jsonl').write_text('\n'.join(json.dumps(v) for v in values))
+        try: result=review_legacy_cue_failure(root/'attempt.json')
+        except RuntimeError: assert not accepted
+        else: assert accepted and result['independent_rf_pass'] is False
+    cue_review(events,True)
+    rejected=copy.deepcopy(events);rejected[1]['value']['body']['job_id']='f'*32
+    cue_review(rejected,False)
+    rejected=copy.deepcopy(events);rejected[-1]['value']['body']['owner_id']='f'*32
+    cue_review(rejected,False)
+    rejected=copy.deepcopy(events);rejected[0]['value']['revision']='5d951b2b7caa'
+    cue_review(rejected,False)
+    cue_review(events+[dict(kind='action_info',value={})],False)
+print('Historical cue failure resolution rejects foreign jobs, uncleared ownership and other images')
