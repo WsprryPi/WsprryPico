@@ -1,6 +1,6 @@
 # P12.7 GP14 RF integration review
 
-Status: **source gates passed; three RF rows accepted; armed-busy trial prepared** (2026-10-01).
+Status: **source gates passed; four RF rows accepted; reset/AP remain open** (2026-10-01).
 Executes the [authorized brief](phase12-gp14-rf-execution.md). GP14 remains
 opt-in pending the required target rows. Phase 12 remains active.
 
@@ -593,3 +593,37 @@ Private evidence is under
 wspr5 directory. Preparation submits no RF job; counters remain **13 attempts
 and eight charged jobs**. Armed busy is prepared for the next operator cue;
 all three outstanding RF rows and default enablement remain open.
+
+## Accepted RF row: armed cancellation during core-0 busy interval
+
+Run `run-242cf6742a2942b98e40fc05b10d93fa` passes **armed busy** on the
+verified `3e1337074003` image, boot `0076a61b72868ea959213d8126d79334`,
+job `22efe9ecdfcf473d800762b134e8080a`. Positive job-specific ARM precedes
+the local cue. The 7,855,000 us physical hold produces one stop, zero reset/AP
+requests and no launch (`launch_epoch=0`). Core 0 is busy from
+749.663179 to 754.663179 s from boot. Worker request/stop at
+750.296838/750.296929 s are strictly inside that interval; acknowledgement
+is 91 us, separate from any RF cutoff latency claim. Healthy same-boot
+inhibition persists and a later CLAIM is rejected BUSY.
+
+The complete ten-million-sample receiver capture has exact retained settings,
+zero overflow/timeout/clipping and verified cleanup. IQ SHA-256 is
+`f6b852c73bf90c631c4119ecfb7fc895b328ca57a3afaa96cd29349fab96844a`.
+Independent 1 ms Fourier windows covering the realized tone detect zero carrier
+at 20/30/40 dB below the retained active reference throughout 40 nominal
+seconds. The maximum is 55.25 dB below that reference. The newly reconnected
+quiet capture is bound separately. Scheduled launch is bracketed at
+19.800–20.921 s from capture start using same-host clock request/reply times
+and a 500 ms admission allowance; another 19.118 s is captured beyond the
+latest launch bound.
+
+Adversarial reassessment checked positive ARM, job/boot/packet/image/IQ
+bindings, actual worker stop inside the busy interval, whole-capture carrier
+absence, planned launch coverage, healthy receiver/worker state, rejected
+future admission and exact saved profile/access preservation. This accepts
+conducted armed cancellation while core 0 is blocked, not calibrated timing
+or general RF qualification. **Four of six rows pass; fourteen attempts and
+nine RF jobs are charged.** Quick-release reset and long-held RF-to-AP
+availability remain open. The 15-attempt ceiling leaves one attempt; an
+explicit extension to 16 was requested for both remaining rows, while keeping
+the 11-job limit. No limit is raised until the operator answers.
