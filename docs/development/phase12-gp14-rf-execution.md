@@ -32,7 +32,8 @@ tool/SDK installation, network replacement, station Save or journal erase.
    engine, flash, reset or CYW43 operations from the input sampler interrupt.
 3. Core 0 reconciles the same JobService/scheduler before other admissions,
    confirms inactive output and then admits AP or normal reset. Preserve the
-   selected 10 ms debounce, under-400 ms reset, 900 ms held stop, 9 s held AP,
+   selected 10 ms press debounce, 100 ms stable release, under-400 ms reset,
+   900 ms held stop, 9 s held AP,
    boot-held ignore and one action per gesture. The latch persists to reboot.
 4. Add an explicit RF acceptance build option with an identity-bound, finite
    core-0 busy operation and timing/status readback. Keep that operation absent

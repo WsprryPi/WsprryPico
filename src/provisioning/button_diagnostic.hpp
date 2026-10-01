@@ -13,11 +13,14 @@ struct DiagnosticButtonEvents {
 };
 
 // GP14 active-low input policy for the separate, output-inhibited diagnostic.
-// Edges must be stable for 10 ms. A level already low at boot is ignored until
-// released, avoiding a reset loop on a fitted jumper. No action is executed.
+// Presses must be stable for 10 ms; releases for 100 ms so a brief open contact
+// does not split a hold into a reset and another gesture. A level already low
+// at boot is ignored until released, avoiding a reset loop on a fitted jumper.
+// No action is executed.
 class ButtonDiagnostic {
   public:
     static constexpr std::uint64_t debounce_us = 10'000;
+    static constexpr std::uint64_t release_debounce_us = 100'000;
     static constexpr std::uint64_t reset_limit_us = 400'000;
     static constexpr std::uint64_t stop_limit_us = 900'000;
     static constexpr std::uint64_t ap_limit_us = 9'000'000;
@@ -42,7 +45,8 @@ class ButtonDiagnostic {
             raw_pressed_ = pressed;
             changed_at_us_ = now_us;
         }
-        if (raw_pressed_ != stable_pressed_ && now_us - changed_at_us_ >= debounce_us) {
+        const auto stable_for_us = raw_pressed_ ? debounce_us : release_debounce_us;
+        if (raw_pressed_ != stable_pressed_ && now_us - changed_at_us_ >= stable_for_us) {
             stable_pressed_ = raw_pressed_;
             if (stable_pressed_) {
                 if (armed_) {

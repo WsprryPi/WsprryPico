@@ -32,7 +32,7 @@ void independent_safety_policy() {
         assert(!release.observe(100'000, true));
         assert(!release.observe(110'000, true));
         assert(!release.observe(100'000 + duration, false));
-        assert(release.observe(110'000 + duration, false));
+        assert(release.observe(100'000 + duration + ButtonDiagnostic::release_debounce_us, false));
         assert(release.reset() == (duration < 400'000));
         assert(release.duration_us() == duration);
     }
@@ -65,12 +65,12 @@ void thresholds_and_stuck_hold() {
     assert(!button.observe(30'100'000, true).request_setup_ap);
     const auto release = button.observe(30'101'000, false);
     assert(!release.released);
-    const auto done = button.observe(30'111'000, false);
+    const auto done = button.observe(30'201'000, false);
     assert(done.released && done.duration_us == 30'001'000);
     assert(!done.request_stop && !done.request_setup_ap && !done.request_reset);
     edge(button, 31'000'000, true);
     button.observe(31'200'000, false);
-    const auto next = button.observe(31'210'000, false);
+    const auto next = button.observe(31'300'000, false);
     assert(next.released && next.request_reset);
 }
 
@@ -84,7 +84,8 @@ void release_boundaries() {
             assert(button.observe(100'000 + duration, true).request_stop);
         const auto first = button.observe(100'000 + duration, false);
         assert(!first.released);
-        const auto done = button.observe(110'000 + duration, false);
+        const auto done =
+            button.observe(100'000 + duration + ButtonDiagnostic::release_debounce_us, false);
         assert(done.released && done.duration_us == duration);
         assert(done.request_reset == (duration < 400'000));
         assert(done.request_stop == (duration >= 400'000 && duration < 900'000));
@@ -95,7 +96,7 @@ void release_boundaries() {
     edge(button, 100'000, true);
     button.observe(999'999, true);
     button.observe(1'000'000, false);
-    const auto done = button.observe(1'010'000, false);
+    const auto done = button.observe(1'100'000, false);
     assert(done.released && done.duration_us == 900'000 && done.request_stop);
 }
 
@@ -104,16 +105,98 @@ void startup_low_bounce_and_clock_fault() {
     button.observe(0, true);
     button.observe(10'000, true);
     button.observe(20'000, false);
-    assert(!button.observe(30'000, false).released);
-    button.observe(40'000, true);
-    button.observe(49'999, false);
-    assert(!button.observe(59'999, false).released);
-    edge(button, 100'000, true);
-    button.observe(200'000, false);
-    const auto done = button.observe(210'000, false);
+    assert(!button.observe(120'000, false).released);
+    button.observe(140'000, true);
+    button.observe(149'999, false);
+    assert(!button.observe(249'999, false).released);
+    edge(button, 300'000, true);
+    button.observe(400'000, false);
+    const auto done = button.observe(500'000, false);
     assert(done.released && done.request_reset);
-    assert(!button.observe(209'999, true).request_stop);
+    assert(!button.observe(499'999, true).request_stop);
     assert(button.fault());
+}
+
+void interrupted_hold_remains_one_gesture() {
+    // A 42 ms initial contact followed by a 50 ms open gap must not turn a
+    // five-second hold into a reset. Exercise both worker sampling and the
+    // packed PIO/DMA replay, including a later 99 ms interruption.
+    ButtonDiagnostic button;
+    ButtonSafety safety;
+    ButtonSampleStream stream;
+    unsigned resets = 0, stops = 0, releases = 0;
+    unsigned packed_resets = 0, packed_stops = 0, packed_releases = 0;
+    std::uint64_t duration = 0, packed_duration = 0;
+    std::uint32_t word = 0;
+    for (std::uint64_t at = 0; at < 5'304'000; at += 1'000) {
+        const bool pressed = at >= 100'000 && at < 5'100'000 && !(at >= 142'000 && at < 192'000) &&
+                             !(at >= 3'000'000 && at < 3'099'000);
+        const auto event = button.observe(at, pressed);
+        resets += event.request_reset;
+        stops += event.request_stop;
+        releases += event.released;
+        if (event.released)
+            duration = event.duration_us;
+        (void)safety.observe(at, pressed);
+        if (at < 1'000'000)
+            assert(!safety.inhibited());
+        word = (word << 1) | !pressed;
+        if ((at / 1'000) % 8 == 7) {
+            for (unsigned bit = 0; bit < 8; ++bit) {
+                const auto packed = stream.observe_word(word, bit);
+                packed_resets += packed.request_reset;
+                packed_stops += packed.request_stop;
+                packed_releases += packed.released;
+                if (packed.released)
+                    packed_duration = packed.duration_us;
+            }
+            word = 0;
+        }
+    }
+    assert(resets == 0 && stops == 1 && releases == 1 && duration == 5'000'000);
+    assert(packed_resets == 0 && packed_stops == 1 && packed_releases == 1 &&
+           packed_duration == duration);
+    assert(safety.inhibited() && !safety.reset() && !safety.fault());
+    assert(safety.requested_at_us() == 1'000'000 && safety.duration_us() == 900'000);
+    assert(!button.fault() && !stream.fault());
+}
+
+void release_confirmation_and_long_hold() {
+    // A confirmed release still resets a genuine quick tap. Its duration is
+    // measured at the first high sample, excluding the confirmation delay.
+    ButtonDiagnostic quick;
+    quick.observe(0, false);
+    edge(quick, 100'000, true);
+    assert(!quick.observe(142'000, false).released);
+    assert(!quick.observe(241'999, false).released);
+    const auto reset = quick.observe(242'000, false);
+    assert(reset.released && reset.request_reset && reset.duration_us == 42'000);
+
+    ButtonDiagnostic held;
+    unsigned resets = 0, stops = 0, setups = 0, releases = 0;
+    std::uint64_t duration = 0;
+    for (std::uint64_t at = 0; at <= 10'300'000; at += 1'000) {
+        const bool pressed = at >= 100'000 && at < 10'100'000 && !(at >= 142'000 && at < 192'000) &&
+                             !(at >= 8'910'000 && at < 9'009'000);
+        const auto event = held.observe(at, pressed);
+        resets += event.request_reset;
+        stops += event.request_stop;
+        setups += event.request_setup_ap;
+        releases += event.released;
+        if (event.released)
+            duration = event.duration_us;
+    }
+    assert(resets == 0 && stops == 1 && setups == 1 && releases == 1 && duration == 10'000'000);
+    assert(!held.fault());
+
+    // A short high interval at boot must not arm a jumper that is still held.
+    ButtonDiagnostic boot;
+    boot.observe(0, true);
+    boot.observe(100'000, false);
+    assert(!boot.observe(199'999, false).released);
+    boot.observe(200'000, true);
+    assert(!boot.observe(20'000'000, true).request_setup_ap);
+    assert(!boot.active());
 }
 
 void packed_samples_survive_foreground_blackout() {
@@ -141,7 +224,7 @@ void packed_samples_survive_foreground_blackout() {
     // then releases without a duplicate request.
     for (unsigned i = 0; i < 1'375; ++i)
         replay_word(0x00);
-    for (unsigned i = 0; i < 2; ++i)
+    for (unsigned i = 0; i < 14; ++i)
         replay_word(0xff);
     assert(reset == 1 && stop == 1 && ap == 1 && release == 2);
     assert(!stream.fault());
@@ -249,6 +332,8 @@ int main() {
     thresholds_and_stuck_hold();
     release_boundaries();
     startup_low_bounce_and_clock_fault();
+    interrupted_hold_remains_one_gesture();
+    release_confirmation_and_long_hold();
     packed_samples_survive_foreground_blackout();
     rp2350_dma_count_is_not_endless_mode();
     runtime_actions_require_verified_stop();

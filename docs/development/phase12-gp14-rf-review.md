@@ -1,6 +1,6 @@
 # P12.7 GP14 RF integration review
 
-Status: **source gates passed; physical RF acceptance pending** (2026-09-30).
+Status: **source gates passed; physical RF acceptance pending** (2026-10-01).
 Executes the [authorized brief](phase12-gp14-rf-execution.md). GP14 remains
 opt-in pending the required target rows. Phase 12 remains active.
 
@@ -286,3 +286,57 @@ packets are retained unchanged when selecting the new image. Affected groups
 pass **6/6** after these additions. Reassessment found no remaining actionable
 source finding in the revised cue/admission path; all physical cutoff rows and
 default enablement remain open.
+
+## October 1 contact discrepancy and release filtering
+
+The first acquisition on clean cue image `5d951b2b7caa` successfully observed
+the ready reset, launched the identified finite tone and acknowledged the
+triple-flash cue. Run `run-a0a57edd9fa9449fabb83c4ff9354ad1` then lost USB.
+The operator reports a five-second hold. Fresh exact-device readback instead
+retains a **42 ms normal GP14 reset**, with a worker decision 3,531,210 us
+after launch, a new empty/unowned/inactive boot and no recovery, capture,
+guard or allocator fault. This discrepancy remains a physical input finding;
+the reset marker cannot establish the raw electrical contact history.
+
+The complete receiver capture contains ten million samples, no overflow,
+timeout or clipping, and verified cleanup. Its SHA-256 is
+`32f59a6fb96d444abadc3db7df8ca2aa423bad632188ec0c2a69679bf3294222`.
+Independent 1 ms Fourier windows observe the carrier from nominal sample
+times 5.320 to 8.851 seconds, 60.49 dB above baseline. The tone ended during
+the reset; this observation does not establish a calibrated decision-to-RF
+latency or accept the selected active-stop row. The reviewed failed receipt
+remains `independent_rf_pass: false`. **Seven attempts and five RF jobs are
+charged; all six required rows remain open.** The initial eight-job cap remains.
+
+B was restored to inhibited `615888e5364b`, boot
+`04334065322060a787ff838e4757fb5a`, after retaining and hash-verifying its
+fresh full backup on the Mac. Backup SHA-256 is
+`2d85d7753f9be1f958472f369c247cd2c49cfc994a380bf34c649ab066b35242`.
+All 57,344 reserved bytes and the exact saved profile/access settings match.
+
+Source inspection found that a high interval of only 10 ms confirmed release,
+which can split a held contact and schedule reset before later contact resumes.
+The revised policy requires **100 ms of stable release**, while retaining the
+10 ms stable press, original raw-edge duration measurement, under-400 ms reset,
+900 ms held stop and 9 s held AP thresholds. The same portable policy is used
+by worker sampling and PIO/DMA replay. Interruptions shorter than 100 ms keep
+one gesture; longer interruptions can still confirm release. The physical
+cause of the October 1 discrepancy is not yet established, and this change
+requires an RF-inhibited contact check before another RF acquisition.
+
+A new regression reproduces premature worker inhibition under the old filter:
+a 42 ms initial contact, 50 ms open gap, continued five-second hold and later
+99 ms gap must remain one shutdown gesture. It also checks packed replay,
+unchanged worker stop time, genuine quick-release confirmation, boot-held
+behavior and a ten-second AP gesture with interruptions. Tests retain exact
+raw-edge duration and gesture boundary assertions; a confirmed release is
+delayed rather than added to the measured hold duration.
+
+Adversarial reassessment checked both shared-policy consumers, the exact
+100 ms release boundary, raw-edge duration classification, startup with a
+held jumper, interruption handling, sticky worker inhibition and one-shot
+stop/AP dispatch. All six affected worker/failure/field/button/stream/client
+groups pass, as do formatting and whitespace checks. Press/hold thresholds
+and source default-off selection remain unchanged. The stronger filter is a
+bounded mitigation, not proof that contact bounce caused this target result;
+RF-inhibited and subsequent active/armed target checks remain required.
