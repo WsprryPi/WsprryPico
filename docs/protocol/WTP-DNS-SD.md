@@ -1,70 +1,28 @@
 # WTP DNS-SD discovery profile
 
-Status: implemented in WsprryPico for public beta; the service name and port
-are requested but not yet registered. This document defines the discovery
-profile for the device-neutral [WTP/1 protocol](WTP.md).
+Status: implemented in WsprryPico for public beta. This document defines the
+discovery profile for the device-neutral [WTP/1 protocol](WTP.md).
 It does not change WTP frames, USB CDC, TCP admission, or transmitter authority.
-Initial releases may ship before IANA approves the requested name and port. If
-such a release advertises `_wtp._tcp.local.` or uses TCP port 31417, those
-values are provisional: neither is reserved, and either may need to change.
-IANA advises against using unassigned names and ports before approval; see the
-[application guidance](https://www.iana.org/form/ports-services).
 
 ## Service type and scope
 
-Request TCP port 31417 and the service name `wtp` through the
-[IANA service-name application](https://www.iana.org/form/ports-services):
+WTP means **WsprryPi Transmitter Protocol**. WsprryPico uses the project-defined
+service type `_wtp._tcp.local.` and TCP port 31417 as its default. These values
+are not reserved for exclusive WTP use.
 
-| Form field | Proposed value |
-|---|---|
-| Resources required | Port number and service name |
-| Transport Protocols | TCP |
-| Service Code | Leave blank; it applies only to DCCP. |
-| Service Name | `wtp` |
-| Desired Port Number | `31417` (TCP; requested, not assigned). |
-| Description | Finite radio-transmitter job control. |
+The default port supports direct WTP/TCP connections when DNS-SD is unavailable,
+such as on routed or multicast-filtered networks or in manually configured
+headless installations. A stable default also permits common firewall rules
+without per-device port coordination. TLS and Plain LAN bindings use the same
+project default; each listener may use another configured port.
 
-The requested port would be a conventional default for direct WTP/TCP
-connections when DNS-SD is unavailable, such as on routed or multicast-filtered
-networks or in manually configured headless installations. A stable default
-also permits common firewall rules without per-device port coordination. The
-current WsprryPico consumer image uses TCP port 31417 provisionally; this does
-not reserve it, and an assignment of another port would require a migration.
-No separate port is requested for the TLS and Plain LAN bindings.
-
-Here WTP means **WsprryPi Transmitter Protocol**. Suggested text for the
-IANA **Reference** field:
-
-> WTP is a device-neutral application for controlling finite radio-transmitter
-> jobs. Messages have a 16-byte `WTPF` header and a bounded UTF-8 JSON payload
-> with CRC-32C for corruption detection. `HELLO` negotiates the wire version
-> and reports device and boot identities. Clients can inspect capabilities and status, claim
-> exclusive control, load a complete job before arming it for locally timed
-> execution, and abort or release it. TCP deployments use an explicitly
-> selected binding, with no automatic fallback. The DNS-SD SRV record locates
-> the listener and the TXT record identifies its binding. This WTP is distinct
-> from the historical Wireless Transaction Protocol.
-
-Public references for the form:
-
-- WTP specification: <https://github.com/WsprryPi/WsprryPico/blob/devel/docs/protocol/WTP.md>
-- DNS-SD profile and defined TXT keys: <https://github.com/WsprryPi/WsprryPico/blob/devel/docs/protocol/WTP-DNS-SD.md>
-
-Use immutable commit or release links for the actual submission if available.
-
-On 2026-09-28, the
-[IANA registry](https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.txt)
-listed no exact `wtp` service-name assignment. This is a registry observation,
-not proof that nobody uses the name. Once assigned, a DNS-SD browser on a
-local link would browse `_wtp._tcp.local.`. The name describes the WTP service,
-not WsprryPico hardware;
-another WTP server may use the same service type. This profile covers mDNS on
-operational local links. It does not specify discovery across routed links.
-WsprryPico advertises only on its infrastructure station link, never on
-its provisioning SoftAP.
+A DNS-SD browser on a local link browses `_wtp._tcp.local.`. The name describes
+the WTP service, not WsprryPico hardware; another WTP server may use the same
+service type. This profile covers mDNS on operational local links. It does not
+specify discovery across routed links. WsprryPico advertises only on its
+infrastructure station link, never on its provisioning SoftAP.
 Multicast is used only by mDNS discovery on those links; WTP control traffic
-uses the discovered TCP endpoint. No UDP service name or dedicated port is
-requested.
+uses the discovered TCP endpoint.
 
 Each advertised instance represents one active WTP/TCP listener and one
 explicitly selected TCP binding. If an implementation supports both TLS and
@@ -91,11 +49,10 @@ remain the sources for those facts.
 ## Resolution and connection
 
 Resolve the selected instance's SRV record, then resolve its target hostname
-and connect to the **SRV port**. No WTP TCP port has been assigned yet; TCP
-port 31417 is requested as the default for direct connections without DNS-SD.
-The requested default does not override a discovered SRV port, and a WTP
-listener may use another configured port. Read the TXT record before choosing
-the explicitly supported binding below.
+and connect to the **SRV port**. TCP port 31417 is the project default for
+direct connections without DNS-SD. This default does not override a discovered
+SRV port, and a WTP listener may use another configured port. Read the TXT
+record before choosing the explicitly supported binding below.
 The client must not silently try the other binding after a connection,
 authentication, ALPN, or WTP failure.
 
@@ -136,6 +93,4 @@ TXT records. Keep TXT small enough for a normal mDNS response.
 The TXT version follows
 [RFC 6763 section 6.7](https://www.rfc-editor.org/rfc/rfc6763.html#section-6.7).
 DNS-SD instance structure, SRV resolution, and TXT records follow
-[RFC 6763](https://www.rfc-editor.org/rfc/rfc6763.html). This profile and its
-TXT keys are proposed material for the IANA service-name request; they are not
-an assertion that `wtp` is currently assigned.
+[RFC 6763](https://www.rfc-editor.org/rfc/rfc6763.html).
