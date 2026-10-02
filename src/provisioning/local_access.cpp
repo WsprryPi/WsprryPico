@@ -61,9 +61,11 @@ bool grace_operation(SoftApOperation operation) {
 
 LocalAccessController::LocalAccessController(AccessStore& store, BondStore& bonds,
                                              RandomSource& random, std::string device_id,
-                                             std::string boot_id, LocalIdentity identity)
+                                             std::string boot_id, LocalIdentity identity,
+                                             SoftApSessionLimits session_limits)
     : store_(store), bonds_(bonds), random_(random), device_id_(std::move(device_id)),
-      boot_id_(std::move(boot_id)), identity_(std::move(identity)) {}
+      boot_id_(std::move(boot_id)), identity_(std::move(identity)),
+      session_limits_(session_limits) {}
 
 LocalAccessController::~LocalAccessController() {
     invalidate_all_volatile();
@@ -345,8 +347,9 @@ void LocalAccessController::reclaim(std::uint64_t now_ms, std::string_view prote
             !protected_wtp_session.empty() && session.wtp_session == protected_wtp_session;
         if (session.boot_id != boot_id_ || !store_.record() ||
             session.epoch != store_.record()->epoch ||
-            (!protected_owner && (elapsed(now_ms, session.created_ms, softap_absolute_ms) ||
-                                  elapsed(now_ms, session.last_activity_ms, softap_inactivity_ms))))
+            (!protected_owner &&
+             (elapsed(now_ms, session.created_ms, session_limits_.absolute_ms) ||
+              elapsed(now_ms, session.last_activity_ms, session_limits_.inactivity_ms))))
             clear_session(session);
     }
 }
@@ -360,6 +363,8 @@ LocalAccessController::SoftApSession* LocalAccessController::find_session(std::s
 
 SoftApLogin LocalAccessController::softap_login(std::string_view password, std::uint64_t now_ms,
                                                 std::string_view protected_wtp_session) {
+    if (!session_limits_.valid())
+        return {AccessCode::Invalid};
     if (!store_.healthy())
         return {AccessCode::StorageFault};
     if (!password_matches(password))
@@ -400,8 +405,8 @@ AccessCode LocalAccessController::bind_softap_session(std::string_view token,
         return AccessCode::Expired;
     if (session->boot_id != boot_id_ || !store_.record() ||
         session->epoch != store_.record()->epoch ||
-        elapsed(now_ms, session->created_ms, softap_absolute_ms) ||
-        elapsed(now_ms, session->last_activity_ms, softap_inactivity_ms)) {
+        elapsed(now_ms, session->created_ms, session_limits_.absolute_ms) ||
+        elapsed(now_ms, session->last_activity_ms, session_limits_.inactivity_ms)) {
         clear_session(*session);
         return AccessCode::Expired;
     }
@@ -425,7 +430,7 @@ SoftApAuthority LocalAccessController::softap_authorize(
     const bool owns_active = activity.owned && (activity.armed || activity.running) &&
                              !session->wtp_session.empty() &&
                              session->wtp_session == active_owner_session;
-    const bool absolute = elapsed(now_ms, session->created_ms, softap_absolute_ms);
+    const bool absolute = elapsed(now_ms, session->created_ms, session_limits_.absolute_ms);
     if (absolute) {
         if (!owns_active || !grace_operation(operation)) {
             clear_session(*session);
@@ -433,7 +438,7 @@ SoftApAuthority LocalAccessController::softap_authorize(
         }
         return {AccessCode::Ok, session->principal, true, session->wtp_session};
     }
-    if (!owns_active && elapsed(now_ms, session->last_activity_ms, softap_inactivity_ms)) {
+    if (!owns_active && elapsed(now_ms, session->last_activity_ms, session_limits_.inactivity_ms)) {
         clear_session(*session);
         return {AccessCode::Expired};
     }

@@ -12,6 +12,16 @@
 #include "time/sntp.hpp"
 
 namespace wsprrypico::standalone {
+// Core-0 journal adapter call counters since boot; no flash addresses/content.
+// Requested bytes include rejected/failed calls. Success means adapter return,
+// not complete durable journal activation (verified separately by each store).
+struct FlashResources {
+    std::uint64_t read_attempts = 0, erase_attempts = 0, program_attempts = 0;
+    std::uint64_t read_failures = 0, erase_failures = 0, program_failures = 0;
+    std::uint64_t read_requested_bytes = 0, erase_requested_bytes = 0;
+    std::uint64_t program_requested_bytes = 0;
+};
+FlashResources flash_resources();
 class PicoFlash final : public Flash {
   public:
     bool read(std::size_t offset, std::span<std::uint8_t> data) override;

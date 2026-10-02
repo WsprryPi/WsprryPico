@@ -101,6 +101,10 @@ PicoGattTransport::Diagnostics PicoGattTransport::diagnostics() const {
     result.wtp_over_field_status = session_.wtp_over_field_status();
     result.outbound_frames = outbound_.size();
     result.outbound_index = outbound_index_;
+    result.inbound_bytes = inbound_.message().size();
+    for (const auto& frame : outbound_)
+        result.outbound_bytes += frame.size();
+    result.indication_pending = indication_ != Indication::None;
     result.att_mtu = result.connected ? att_server_get_mtu(connection_) : 0;
     return result;
 }

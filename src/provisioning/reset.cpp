@@ -12,7 +12,31 @@ bool zero(const wtp::PayloadDigest& digest) {
 
 bool ResetCoordinator::save(AccessRecord& record, ResetPhase phase) {
     record.reset.phase = phase;
-    return access_.replace(record);
+    if (!access_.replace(record))
+        return false;
+    switch (phase) {
+    case ResetPhase::Intent:
+        checkpoint(ResetCheckpoint::Intent);
+        break;
+    case ResetPhase::PreservationComplete:
+        checkpoint(ResetCheckpoint::PreservationComplete);
+        break;
+    case ResetPhase::SourceSelected:
+        checkpoint(ResetCheckpoint::SourceSelected);
+        break;
+    case ResetPhase::AccessReset:
+        checkpoint(ResetCheckpoint::AccessReset);
+        break;
+    case ResetPhase::OperationalErased:
+        checkpoint(ResetCheckpoint::OperationalErased);
+        break;
+    case ResetPhase::BondsCleared:
+        checkpoint(ResetCheckpoint::BondsCleared);
+        break;
+    case ResetPhase::None:
+        break;
+    }
+    return true;
 }
 
 ResetResult ResetCoordinator::begin(ResetLevel level, ProfileSource target_source,
@@ -121,6 +145,7 @@ ResetResult ResetCoordinator::resume() {
         scrub(record);
         return ResetResult::StorageFault;
     }
+    checkpoint(ResetCheckpoint::Complete);
     uncertain_intent_ = false;
     scrub(record);
     return ResetResult::Complete;

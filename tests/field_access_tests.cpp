@@ -382,6 +382,41 @@ struct AccessFixture {
     }
 };
 
+void accelerated_session_deadlines() {
+    AccessFixture f;
+    provisioning::LocalAccessController accelerated(f.store, f.bonds, f.random, std::string(device),
+                                                    "boot-a", f.identity, {15'000, 60'000});
+    CHECK(f.controller.session_limits().absolute_ms == provisioning::softap_absolute_ms);
+    auto inactive = accelerated.softap_login(f.identity.default_password, 0);
+    CHECK(inactive.code == provisioning::AccessCode::Ok);
+    CHECK(accelerated
+              .softap_authorize(inactive.token, provisioning::SoftApOperation::Status, "", "", {},
+                                15'000)
+              .code == provisioning::AccessCode::Expired);
+    auto active = accelerated.softap_login(f.identity.default_password, 20'000);
+    CHECK(active.code == provisioning::AccessCode::Ok);
+    CHECK(accelerated.bind_softap_session(active.token, "owner", 20'000) ==
+          provisioning::AccessCode::Ok);
+    for (std::uint64_t now = 30'000; now < 80'000; now += 10'000)
+        CHECK(accelerated
+                  .softap_authorize(active.token, provisioning::SoftApOperation::Status, "owner",
+                                    "", {}, now)
+                  .code == provisioning::AccessCode::Ok);
+    provisioning::Activity running{.owned = true, .running = true};
+    const auto grace = accelerated.softap_authorize(
+        active.token, provisioning::SoftApOperation::Status, "owner", "owner", running, 80'000);
+    CHECK(grace.code == provisioning::AccessCode::Ok && grace.owner_only_grace);
+    CHECK(accelerated
+              .softap_authorize(active.token, provisioning::SoftApOperation::Load, "owner", "owner",
+                                running, 80'001)
+              .code == provisioning::AccessCode::Expired);
+    CHECK(accelerated.live_softap_sessions(80'002) == 0);
+    provisioning::LocalAccessController invalid(f.store, f.bonds, f.random, std::string(device),
+                                                "boot-a", f.identity, {0, 0});
+    CHECK(invalid.softap_login(f.identity.default_password, 0).code ==
+          provisioning::AccessCode::Invalid);
+}
+
 void access_policy() {
     AccessFixture collision;
     auto first_token = collision.controller.softap_login(collision.identity.default_password, 0);
@@ -390,6 +425,11 @@ void access_policy() {
     CHECK(collision.controller.softap_login(collision.identity.default_password, 1).code ==
           provisioning::AccessCode::Conflict);
     CHECK(collision.controller.live_softap_sessions(1) == 1);
+    CHECK(collision.controller.retained_softap_sessions() == 1);
+    // Observation must not run expiry or refresh the session deadline.
+    CHECK(collision.controller.retained_softap_sessions() == 1);
+    CHECK(collision.controller.live_softap_sessions(provisioning::softap_inactivity_ms) == 0);
+    CHECK(collision.controller.retained_softap_sessions() == 0);
 
     AccessFixture f;
     auto proof = binding("enroll");
@@ -1459,6 +1499,7 @@ void browser_time_hint_policy() {
 int main() {
     identity_and_journal();
     profile_selection();
+    accelerated_session_deadlines();
     access_policy();
     ble_command_policy();
     ble_profile_step_up_policy();

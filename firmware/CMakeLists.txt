@@ -44,6 +44,21 @@ target_compile_definitions(WsprryPico PRIVATE
     WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ}
     PICO_PANIC_FUNCTION=wsprrypico_panic
 )
+
+# Finite fault fixtures affect only the inhibited target. A stage is selected at
+# build time; no arbitrary memory corruption or remotely writable fault switch.
+set(WSPRRY_PICO_PHASE12_FAULT_STAGE "0" CACHE STRING "Phase12 inhibited fault stage 0..10")
+if(NOT WSPRRY_PICO_PHASE12_FAULT_STAGE MATCHES "^([0-9]|10)$")
+    message(FATAL_ERROR "Phase12 fault stage must be 0..10")
+endif()
+if(NOT WSPRRY_PICO_PHASE12_FAULT_STAGE STREQUAL "0")
+    target_sources(WsprryPico PRIVATE ../src/provisioning/pico/phase12_fault_fixture.cpp)
+    target_compile_definitions(WsprryPico PRIVATE
+        WSPRRY_PICO_PHASE12_FAULT_FIXTURE=1)
+    set_source_files_properties(../src/provisioning/pico/phase12_fault_fixture.cpp PROPERTIES
+        COMPILE_DEFINITIONS WSPRRY_PICO_PHASE12_FAULT_STAGE=${WSPRRY_PICO_PHASE12_FAULT_STAGE})
+endif()
+
 set(WSPRRY_PICO_CONSUMER_LAN_MODE "plain" CACHE STRING
     "Consumer LAN WTP mode: off, plain, or tls")
 set_property(CACHE WSPRRY_PICO_CONSUMER_LAN_MODE PROPERTY STRINGS off plain tls)
@@ -59,6 +74,12 @@ else()
 endif()
 target_compile_definitions(WsprryPico PRIVATE
     WSPRRY_PICO_CONSUMER_LAN_MODE=${WSPRRY_PICO_CONSUMER_LAN_MODE_VALUE})
+option(WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE
+    "RF-inhibited engineering session fixture: 15s inactivity/60s absolute" OFF)
+if(WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE)
+    target_compile_definitions(WsprryPico PRIVATE
+        WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE=1)
+endif()
 option(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
     "Link the RF-inhibited USB BOOTSEL safe-zone window diagnostic" OFF)
 option(WSPRRY_PICO_GP14_RUNTIME_BUTTON
@@ -292,6 +313,13 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
     target_sources(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/provisioning/pico/bootsel_sampler.cpp
         ${CMAKE_SOURCE_DIR}/src/runtime/pico/heap_metrics.c
         ${CMAKE_SOURCE_DIR}/src/runtime/pico/stack_guard.c)
+    target_sources(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/runtime/pico/btstack_pool_metrics.cpp)
+    foreach(pool hci_connection l2cap_channel l2cap_service sm_lookup_entry whitelist_entry)
+        foreach(operation get free)
+            target_link_options(${image} PRIVATE "LINKER:--wrap=btstack_memory_${pool}_${operation}")
+            target_link_options(${image} PRIVATE "LINKER:--undefined=__wrap_btstack_memory_${pool}_${operation}")
+        endforeach()
+    endforeach()
     target_compile_definitions(${image} PRIVATE WSPRRY_PICO_HEAP_METRICS=1
         PICO_RUNTIME_SKIP_INIT_PER_CORE_INSTALL_STACK_GUARD=0
         PICO_RUNTIME_NO_INIT_PER_CORE_INSTALL_STACK_GUARD=1)
@@ -299,6 +327,11 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
     foreach(function _malloc_r _calloc_r _realloc_r _free_r mallinfo)
         target_link_options(${image} PRIVATE "LINKER:--wrap=${function}")
     endforeach()
+    add_custom_command(TARGET ${image} POST_BUILD
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_btstack_pool_hooks.py
+                $<TARGET_FILE:${image}> VERBATIM)
+    set_property(TARGET ${image} APPEND PROPERTY LINK_DEPENDS
+                 ${CMAKE_SOURCE_DIR}/scripts/check_btstack_pool_hooks.py)
     add_custom_command(TARGET ${image} POST_BUILD
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_heap_hooks.py
                 $<TARGET_FILE:${image}> VERBATIM)
@@ -554,4 +587,13 @@ if(WSPRRY_PICO_GP14_ROBUSTNESS)
     set_property(TARGET WsprryPico-GP14Robustness APPEND PROPERTY LINK_DEPENDS
         ${CMAKE_SOURCE_DIR}/scripts/check_gp14_robustness_image.py
         ${CMAKE_SOURCE_DIR}/scripts/check_standalone_image.py)
+endif()
+
+# Fault cases are isolated from other deliberate reset/flash experiments.
+if(NOT WSPRRY_PICO_PHASE12_FAULT_STAGE STREQUAL "0" AND
+   (WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC OR WSPRRY_PICO_GP14_RUNTIME_BUTTON OR
+    WSPRRY_PICO_GP14_FLASH_PROBE OR WSPRRY_PICO_GP14_RF_ACCEPTANCE OR
+    WSPRRY_PICO_GP14_BUTTON_DIAGNOSTIC OR WSPRRY_PICO_GP14_DIAG_INJECT_WATCHDOG OR
+    WSPRRY_PICO_GP14_ROBUSTNESS OR WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE))
+    message(FATAL_ERROR "Phase12 fault fixture requires an isolated inhibited configuration")
 endif()

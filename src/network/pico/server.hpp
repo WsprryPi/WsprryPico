@@ -82,6 +82,23 @@ class PicoServer {
     const Metrics& metrics() const {
         return metrics_;
     }
+    struct Resources {
+        unsigned active_connections = 0;
+        unsigned pending_connections = 0;
+        std::size_t buffered_rx_bytes = 0;
+        std::size_t pending_tcp_bytes = 0;
+    };
+    // Core-0-only, no allocation and no principal/session identifiers.
+    Resources resources() const {
+        Resources result;
+        result.pending_connections = pending_ ? 1 : 0;
+        for (const auto& connection : connections_) {
+            result.active_connections += connection.client_ ? 1 : 0;
+            result.buffered_rx_bytes += connection.rx_size_;
+            result.pending_tcp_bytes += connection.pending_tcp_bytes_;
+        }
+        return result;
+    }
     static std::size_t tls_allocated();
     static std::size_t tls_peak();
     static std::size_t tls_failures();

@@ -1,0 +1,37 @@
+{
+  "schema": "phase12-composition/1",
+  "board": "B",
+  "engine": "inhibited-standalone-simulator",
+  "mode": "engineering",
+  "carriers": [
+    "usb",
+    "ble",
+    "tls_wtp",
+    "https"
+  ],
+  "source_commit": "REPLACE_WITH_APPROVED_EXACT_SOURCE_COMMIT",
+  "image_sha256": "REPLACE_WITH_APPROVED_EXACT_IMAGE_SHA256",
+  "device_id": "REPLACE_WITH_APPROVED_EXACT_DEVICE_ID",
+  "boot_id": "REPLACE_WITH_APPROVED_EXACT_BOOT_ID",
+  "firmware": "REPLACE_WITH_APPROVED_EXACT_FIRMWARE",
+  "duration_s": 7200,
+  "cadence_s": 30,
+  "max_gap_s": 45,
+  "pressure_cases": [
+    "maximum_sessions",
+    "maximum_framing",
+    "busy_mutation",
+    "disconnect_reclaim",
+    "provisioning_close",
+    "flash_serialization"
+  ],
+  "quiet_s": 960,
+  "max_simulated_jobs": 12,
+  "max_job_duration_s": 60,
+  "rf_jobs": 0,
+  "flash_cycles": 0,
+  "heap_return_tolerance_bytes": 1024,
+  "pool_return_tolerance": 0,
+  "stack_min_margin_bytes": 256,
+  "core0_stack_capacity_bytes": "REPLACE_FROM_LINKED_ELF_MAP"
+}

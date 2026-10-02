@@ -85,6 +85,28 @@ class PicoBootstrapServer {
         return false;
 #endif
     }
+    struct Resources {
+        bool connected = false;
+        bool setup_pending = false;
+        bool recovery_pending = false;
+        unsigned network_slot_state = 0;
+        unsigned owner_slot_state = 0;
+        unsigned recovery_slot_state = 0;
+        std::size_t pending_tcp_bytes = 0;
+    };
+    Resources resources() const {
+        Resources result;
+        result.connected = client_ != nullptr;
+        result.setup_pending = setup_pending();
+        result.recovery_pending = reset_pending_;
+        result.recovery_slot_state = static_cast<unsigned>(recovery_slot_.state());
+        result.pending_tcp_bytes = pending_bytes_;
+#ifndef WSPRRY_PICO_STANDALONE_RF
+        result.network_slot_state = static_cast<unsigned>(slot_.state());
+        result.owner_slot_state = static_cast<unsigned>(owner_slot_.state());
+#endif
+        return result;
+    }
     bool setup_pending() const {
         if (recovery_slot_.state() != BootstrapSlotState::None || reset_pending_)
             return true;

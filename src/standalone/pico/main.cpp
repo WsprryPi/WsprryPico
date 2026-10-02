@@ -31,7 +31,11 @@
 #endif
 #include "provisioning/pico/gatt_transport.hpp"
 #include "provisioning/reset_storage.hpp"
+#ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
+#include "provisioning/pico/phase12_fault_fixture.hpp"
+#endif
 #include "provisioning/runtime.hpp"
+#include "runtime/pico/btstack_pool_metrics.hpp"
 #include "runtime/pico/heap_metrics.h"
 #include "runtime/pico/stack_guard.h"
 #include "standalone/heap_probe.hpp"
@@ -251,6 +255,9 @@ int main() {
     };
     // SDK uses scratch 4..7 for reboot bookkeeping. Preserve a small diagnostic
     // in 0..3, and enter an unowned, network-free recovery boot after a stall.
+#ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
+    wsprrypico::provisioning::phase12_fault_capture_boot();
+#endif
     const bool recovery = watchdog_enable_caused_reboot();
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
     constexpr std::uint32_t gp14_reset_magic = 0x47503152; // GP1R
@@ -274,6 +281,9 @@ int main() {
     watchdog_hw->scratch[3] = 0;
     watchdog_hw->scratch[1] = 1;
     watchdog_enable(8000, true);
+#ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
+    wsprrypico::provisioning::phase12_fault_restore_marker();
+#endif
 
 #ifdef WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
     multicore_launch_core1_with_stack(bootsel_flash_reader, bootsel_reader_stack,
@@ -404,7 +414,12 @@ int main() {
     static wsprrypico::provisioning::PicoRandomSource random_source;
     static wsprrypico::provisioning::LocalAccessController local_access(
         access_store, bond_store, random_source, identities.device_id(), service.status().boot_id,
-        local_identity);
+        local_identity
+#ifdef WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE
+        ,
+        wsprrypico::provisioning::SoftApSessionLimits{15'000, 60'000}
+#endif
+    );
     static wsprrypico::provisioning::ResetStorageTargets reset_targets(
         store, flash, profile_media, bond_store, provisioning_activity, &service,
         +[](void* p) {
@@ -413,6 +428,9 @@ int main() {
         &bond_store);
     static wsprrypico::provisioning::ResetCoordinator reset_coordinator(
         access_store, profile_store, reset_targets, local_identity);
+#ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
+    reset_coordinator.checkpoint_observer(wsprrypico::provisioning::phase12_reset_checkpoint);
+#endif
     // No network/control runtime has started yet. A persisted intent is the
     // authority to finish the same operation; completion requires a fresh boot.
     if (reset_coordinator.pending() && derived_identity) {
@@ -651,7 +669,7 @@ int main() {
             std::string result;
             // Avoid retaining old and doubled buffers while a maximum WTP
             // input is resident. Reserve the normal INFO size in one allocation.
-            result.reserve(6144);
+            result.reserve(8192);
             result +=
                 "{\"ok\":true,\"device_id\":" +
                 wsprrypico::wtp::json::quote(identities.device_id()) + ",\"revision\":" +
@@ -720,6 +738,12 @@ int main() {
                 break;
             }
             number_field(result, "access_generation", access_store.sequence(), true);
+#ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
+            number_field(result, "phase12_fault_stage",
+                         wsprrypico::provisioning::phase12_fault_stage(), true);
+            result += ",\"phase12_fault_consumed\":";
+            result += wsprrypico::provisioning::phase12_fault_consumed() ? "true" : "false";
+#endif
             result += ",\"access_default_password\":";
             result +=
                 access_store.record() && access_store.record()->default_password ? "true" : "false";
@@ -829,6 +853,78 @@ int main() {
                          core0_guard.valid &&
                              core0_guard.bottom == reinterpret_cast<std::uintptr_t>(&__StackLimit));
             number_field(result, "core0_stack_scan_us", core0_stack_scan_us);
+            const auto flash_resources = wsprrypico::standalone::flash_resources();
+            number_field(result, "flash_read_attempts", flash_resources.read_attempts, true);
+            number_field(result, "flash_erase_attempts", flash_resources.erase_attempts, true);
+            number_field(result, "flash_program_attempts", flash_resources.program_attempts, true);
+            number_field(result, "flash_read_failures", flash_resources.read_failures, true);
+            number_field(result, "flash_erase_failures", flash_resources.erase_failures, true);
+            number_field(result, "flash_program_failures", flash_resources.program_failures, true);
+            number_field(result, "flash_read_requested_bytes", flash_resources.read_requested_bytes,
+                         true);
+            number_field(result, "flash_erase_requested_bytes",
+                         flash_resources.erase_requested_bytes, true);
+            number_field(result, "flash_program_requested_bytes",
+                         flash_resources.program_requested_bytes, true);
+            result += ",\"resource_schema\":1,\"largest_allocation_probe_measured\":false";
+            result += ",\"btstack_pool_occupancy_measured\":true";
+            result += ",\"btstack_controller_buffers_measured\":false,\"btstack_pools\":{";
+            const auto bt_pools = wsprrypico::runtime::btstack_pool_snapshot();
+            constexpr std::array<std::string_view, 5> bt_names{
+                "hci_connections", "l2cap_channels", "l2cap_services", "sm_lookup", "whitelist"};
+            for (std::size_t i = 0; i < bt_pools.size(); ++i) {
+                if (i)
+                    result += ',';
+                result += wsprrypico::wtp::json::quote(bt_names[i]) +
+                          ":{\"used\":" + std::to_string(bt_pools[i].used);
+                number_field(result, "capacity", bt_pools[i].capacity);
+                number_field(result, "peak", bt_pools[i].peak);
+                number_field(result, "failures", bt_pools[i].failures);
+                number_field(result, "faults", bt_pools[i].faults);
+                result += '}';
+            }
+            result += '}';
+            const auto transports = server.resources();
+            number_field(result, "network_active_connections", transports.active_connections);
+            number_field(result, "network_pending_connections", transports.pending_connections);
+            number_field(result, "network_connection_capacity", 2);
+            number_field(result, "network_buffered_rx_bytes", transports.buffered_rx_bytes);
+            number_field(result, "network_pending_tcp_bytes", transports.pending_tcp_bytes);
+            number_field(result, "softap_retained_sessions",
+                         local_access.retained_softap_sessions());
+            number_field(result, "softap_session_capacity",
+                         wsprrypico::provisioning::softap_session_capacity);
+            number_field(result, "softap_session_inactivity_ms",
+                         local_access.session_limits().inactivity_ms, true);
+            number_field(result, "softap_session_absolute_ms",
+                         local_access.session_limits().absolute_ms, true);
+            const auto setup_resources = bootstrap.resources();
+            result += ",\"bootstrap_connected\":";
+            result += setup_resources.connected ? "true" : "false";
+            result += ",\"bootstrap_setup_pending\":";
+            result += setup_resources.setup_pending ? "true" : "false";
+            result += ",\"bootstrap_reset_pending\":";
+            result += setup_resources.recovery_pending ? "true" : "false";
+            number_field(result, "bootstrap_network_slot_state",
+                         setup_resources.network_slot_state);
+            number_field(result, "bootstrap_owner_slot_state", setup_resources.owner_slot_state);
+            number_field(result, "bootstrap_recovery_slot_state",
+                         setup_resources.recovery_slot_state);
+            number_field(result, "bootstrap_pending_tcp_bytes", setup_resources.pending_tcp_bytes);
+            const auto ble_resources = gatt.diagnostics();
+            number_field(result, "ble_active_connections", ble_resources.connected ? 1 : 0);
+            number_field(result, "ble_connection_capacity", 1);
+            number_field(result, "ble_outbound_frames", ble_resources.outbound_frames);
+            number_field(result, "ble_outbound_index", ble_resources.outbound_index);
+            result += ",\"ble_indication_pending\":";
+            result += ble_resources.indication_pending ? "true" : "false";
+            number_field(result, "ble_inbound_bytes", ble_resources.inbound_bytes);
+            number_field(result, "ble_outbound_bytes", ble_resources.outbound_bytes);
+#ifdef WSPRRY_PICO_STANDALONE_RF
+            result += ",\"core1_workload_available\":true";
+#else
+            result += ",\"core1_workload_available\":false";
+#endif
             number_field(result, "tls_peak_bytes", server.tls_peak());
             number_field(result, "tls_allocated_bytes", server.tls_allocated());
             number_field(result, "tls_allocation_failures", server.tls_failures());

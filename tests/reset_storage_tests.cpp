@@ -108,11 +108,113 @@ struct Bonds : provisioning::BondStore {
         return true;
     }
 };
+struct AccessMemory : provisioning::AccessMedia {
+    std::array<std::uint8_t, provisioning::access_media_size> data{};
+    AccessMemory() {
+        data.fill(255);
+    }
+    bool read(std::size_t offset, std::span<std::uint8_t> out) override {
+        std::copy_n(data.begin() + offset, out.size(), out.begin());
+        return true;
+    }
+    bool erase(std::size_t offset) override {
+        std::fill_n(data.begin() + offset, provisioning::access_slot_size, 255);
+        return true;
+    }
+    bool program(std::size_t offset, std::span<const std::uint8_t> page) override {
+        for (std::size_t i = 0; i < page.size(); ++i)
+            data[offset + i] &= page[i];
+        return true;
+    }
+};
+struct Reboot {};
+provisioning::ResetCheckpoint cut_stage;
+void cut(provisioning::ResetCheckpoint stage) {
+    if (stage == cut_stage)
+        throw Reboot{};
+}
 provisioning::Activity idle(void*) {
     return {};
 }
 } // namespace
 int main() {
+    // Each named target checkpoint must have durable authority that survives
+    // destruction/reconstruction of all stores. Cut both destructive levels.
+    for (auto level : {provisioning::ResetLevel::Provisioning, provisioning::ResetLevel::Full}) {
+        for (unsigned stage = 1; stage <= 7; ++stage) {
+            Flash target_flash;
+            MemoryMedia target_media;
+            AccessMemory access_media;
+            Bonds target_bonds;
+            const auto identity = *provisioning::derive_local_identity(device, "02:00:00:00:00:01");
+            {
+                standalone::Store target_store(target_flash);
+                assert(target_store.load());
+                auto config = standalone::Config{};
+                config.callsign = "W1OLD";
+                config.locator = "FN31";
+                config.enabled = true;
+                config.schedules = {{120, 0}};
+                assert(target_store.save(config));
+                assert(target_store.reserve(1800000000000000000ULL));
+                provisioning::ProfileStore target_profiles(target_media);
+                assert(target_profiles.load());
+                assert(
+                    target_profiles.select(provisioning::ProfileSource::ConsumerProfile,
+                                           provisioning::serialize_consumer_profile(consumer())));
+                provisioning::AccessStore access(access_media);
+                assert(access.load());
+                provisioning::AccessRecord record;
+                record.epoch = 1;
+                record.password = identity.default_password;
+                assert(access.initialize(record));
+                record.bonds[0] = 42;
+                record.bond_count = 1;
+                assert(access.replace(record));
+                provisioning::ResetStorageTargets target(target_store, target_flash, target_media,
+                                                         target_bonds, idle, nullptr);
+                provisioning::ResetCoordinator reset(access, target_profiles, target, identity);
+                reset.checkpoint_observer(cut);
+                cut_stage = static_cast<provisioning::ResetCheckpoint>(stage);
+                wtp::PayloadDigest digest{};
+                digest[0] = 1;
+                bool fired = false;
+                try {
+                    assert(reset.begin(level, provisioning::ProfileSource::Unprovisioned, digest) ==
+                           provisioning::ResetResult::Pending);
+                    (void)reset.resume();
+                } catch (const Reboot&) {
+                    fired = true;
+                }
+                assert(fired);
+            }
+            standalone::Store recovered(target_flash);
+            assert(recovered.load());
+            provisioning::ProfileStore recovered_profiles(target_media);
+            assert(recovered_profiles.load());
+            provisioning::AccessStore recovered_access(access_media);
+            assert(recovered_access.load());
+            provisioning::ResetStorageTargets targets(recovered, target_flash, target_media,
+                                                      target_bonds, idle, nullptr);
+            provisioning::ResetCoordinator resumed(recovered_access, recovered_profiles, targets,
+                                                   identity);
+            assert(resumed.resume() == provisioning::ResetResult::Complete);
+            assert(!resumed.pending());
+            assert(recovered_access.record()->epoch == 2);
+            assert(recovered_access.record()->bond_count == 0);
+            assert(recovered_profiles.source() == provisioning::ProfileSource::Unprovisioned);
+            if (level == provisioning::ResetLevel::Full) {
+                assert(!recovered.config() && recovered.watermark() == 0);
+            } else {
+                assert(recovered.config()->callsign == consumer().callsign);
+                assert(recovered.config()->locator == consumer().locator);
+                assert(recovered.config()->schedules.size() == 1);
+                assert(recovered.config()->enabled);
+                assert(recovered.watermark() == 1800000000000000000ULL);
+            }
+        }
+    }
+
     Flash flash;
     standalone::Store store(flash);
     assert(store.load());

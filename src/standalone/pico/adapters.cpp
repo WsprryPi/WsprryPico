@@ -1,3 +1,6 @@
+#ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
+#include "provisioning/pico/phase12_fault_fixture.hpp"
+#endif
 #include "standalone/pico/adapters.hpp"
 
 #ifdef WSPRRY_PICO_CYW43_TX_GUARD
@@ -31,6 +34,26 @@ constexpr auto flash_base = flash_layout::standalone_base;
 static_assert(PICO_FLASH_SIZE_BYTES == flash_layout::physical_size);
 static_assert(MEM_ALIGNMENT >= alignof(std::uint32_t));
 PicoNetwork* mdns_owner = nullptr;
+FlashResources flash_counters;
+struct FlashCall {
+    std::uint64_t& failures;
+    bool ok = false;
+    FlashCall(std::uint64_t& attempts, std::uint64_t& failed, std::uint64_t& bytes,
+              std::size_t requested)
+        : failures(failed) {
+        ++attempts;
+        bytes += requested;
+    }
+    ~FlashCall() {
+        if (!ok)
+            ++failures;
+    }
+    bool finish(bool result) {
+        ok = result;
+        return result;
+    }
+};
+
 std::string memory_stats(const stats_mem* value) {
     if (!value)
         return "null";
@@ -45,20 +68,31 @@ std::string packet_stats(const stats_proto& value) {
            ",\"dropped\":" + std::to_string(value.drop) + "}";
 }
 std::string network_memory() {
-    return "{\"heap\":" + memory_stats(&lwip_stats.mem) +
+    return "{\"statistics_enabled\":true,\"heap\":" + memory_stats(&lwip_stats.mem) +
            ",\"tcp_pcbs\":" + memory_stats(lwip_stats.memp[MEMP_TCP_PCB]) +
+           ",\"tcp_listeners\":" + memory_stats(lwip_stats.memp[MEMP_TCP_PCB_LISTEN]) +
+           ",\"udp_pcbs\":" + memory_stats(lwip_stats.memp[MEMP_UDP_PCB]) +
+           ",\"timeouts\":" + memory_stats(lwip_stats.memp[MEMP_SYS_TIMEOUT]) +
+           ",\"igmp_groups\":" + memory_stats(lwip_stats.memp[MEMP_IGMP_GROUP]) +
            ",\"tcp_segments\":" + memory_stats(lwip_stats.memp[MEMP_TCP_SEG]) +
            ",\"packet_pool\":" + memory_stats(lwip_stats.memp[MEMP_PBUF_POOL]) + "}";
 }
 } // namespace
+FlashResources flash_resources() {
+    return flash_counters;
+}
 bool PicoFlash::read(std::size_t offset, std::span<std::uint8_t> data) {
+    FlashCall call(flash_counters.read_attempts, flash_counters.read_failures,
+                   flash_counters.read_requested_bytes, data.size());
     if (offset > storage_size || data.size() > storage_size - offset)
         return false;
     std::memcpy(data.data(), reinterpret_cast<const void*>(XIP_BASE + flash_base + offset),
                 data.size());
-    return true;
+    return call.finish(true);
 }
 bool PicoFlash::erase(std::size_t offset) {
+    FlashCall call(flash_counters.erase_attempts, flash_counters.erase_failures,
+                   flash_counters.erase_requested_bytes, FLASH_SECTOR_SIZE);
     if (offset % FLASH_SECTOR_SIZE || offset > storage_size - FLASH_SECTOR_SIZE)
         return false;
 #ifdef WSPRRY_PICO_STANDALONE_RF
@@ -74,9 +108,12 @@ bool PicoFlash::erase(std::size_t offset) {
     restore_interrupts(irq);
 #endif
     const auto* bytes = reinterpret_cast<const std::uint8_t*>(XIP_BASE + flash_base + offset);
-    return std::all_of(bytes, bytes + FLASH_SECTOR_SIZE, [](auto b) { return b == 255; });
+    return call.finish(
+        std::all_of(bytes, bytes + FLASH_SECTOR_SIZE, [](auto b) { return b == 255; }));
 }
 bool PicoFlash::program(std::size_t offset, std::span<const std::uint8_t> page) {
+    FlashCall call(flash_counters.program_attempts, flash_counters.program_failures,
+                   flash_counters.program_requested_bytes, page.size());
     if (offset % FLASH_PAGE_SIZE || page.size() != FLASH_PAGE_SIZE ||
         offset > storage_size - FLASH_PAGE_SIZE)
         return false;
@@ -96,18 +133,22 @@ bool PicoFlash::program(std::size_t offset, std::span<const std::uint8_t> page) 
     flash_range_program(flash_base + offset, page.data(), page.size());
     restore_interrupts(irq);
 #endif
-    return true; // Journal independently verifies the complete record.
+    return call.finish(true); // Journal independently verifies the complete record.
 }
 bool PicoProfileMedia::read(std::size_t offset, std::span<std::uint8_t> data) {
+    FlashCall call(flash_counters.read_attempts, flash_counters.read_failures,
+                   flash_counters.read_requested_bytes, data.size());
     if (offset > provisioning::profile_media_size ||
         data.size() > provisioning::profile_media_size - offset)
         return false;
     std::memcpy(data.data(),
                 reinterpret_cast<const void*>(XIP_BASE + flash_layout::profile_base + offset),
                 data.size());
-    return true;
+    return call.finish(true);
 }
 bool PicoProfileMedia::erase(std::size_t offset) {
+    FlashCall call(flash_counters.erase_attempts, flash_counters.erase_failures,
+                   flash_counters.erase_requested_bytes, provisioning::profile_slot_size);
     if (offset % provisioning::profile_slot_size ||
         offset > provisioning::profile_media_size - provisioning::profile_slot_size)
         return false;
@@ -129,10 +170,12 @@ bool PicoProfileMedia::erase(std::size_t offset) {
     }
     const auto* bytes =
         reinterpret_cast<const std::uint8_t*>(XIP_BASE + flash_layout::profile_base + offset);
-    return std::all_of(bytes, bytes + provisioning::profile_slot_size,
-                       [](auto byte) { return byte == 255; });
+    return call.finish(std::all_of(bytes, bytes + provisioning::profile_slot_size,
+                                   [](auto byte) { return byte == 255; }));
 }
 bool PicoProfileMedia::program(std::size_t offset, std::span<const std::uint8_t> page) {
+    FlashCall call(flash_counters.program_attempts, flash_counters.program_failures,
+                   flash_counters.program_requested_bytes, page.size());
     if (offset % FLASH_PAGE_SIZE || page.size() != FLASH_PAGE_SIZE ||
         offset > provisioning::profile_media_size - FLASH_PAGE_SIZE)
         return false;
@@ -152,18 +195,25 @@ bool PicoProfileMedia::program(std::size_t offset, std::span<const std::uint8_t>
     flash_range_program(flash_layout::profile_base + offset, page.data(), page.size());
     restore_interrupts(irq);
 #endif
-    return true;
+#ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
+    provisioning::phase12_profile_programmed(offset);
+#endif
+    return call.finish(true);
 }
 bool PicoAccessMedia::read(std::size_t offset, std::span<std::uint8_t> data) {
+    FlashCall call(flash_counters.read_attempts, flash_counters.read_failures,
+                   flash_counters.read_requested_bytes, data.size());
     if (offset > provisioning::access_media_size ||
         data.size() > provisioning::access_media_size - offset)
         return false;
     std::memcpy(data.data(),
                 reinterpret_cast<const void*>(XIP_BASE + flash_layout::access_base + offset),
                 data.size());
-    return true;
+    return call.finish(true);
 }
 bool PicoAccessMedia::erase(std::size_t offset) {
+    FlashCall call(flash_counters.erase_attempts, flash_counters.erase_failures,
+                   flash_counters.erase_requested_bytes, FLASH_SECTOR_SIZE);
     if (offset % provisioning::access_slot_size ||
         offset > provisioning::access_media_size - provisioning::access_slot_size)
         return false;
@@ -181,10 +231,12 @@ bool PicoAccessMedia::erase(std::size_t offset) {
     restore_interrupts(irq);
 #endif
     const auto* bytes = reinterpret_cast<const std::uint8_t*>(XIP_BASE + physical);
-    return std::all_of(bytes, bytes + provisioning::access_slot_size,
-                       [](auto byte) { return byte == 255; });
+    return call.finish(std::all_of(bytes, bytes + provisioning::access_slot_size,
+                                   [](auto byte) { return byte == 255; }));
 }
 bool PicoAccessMedia::program(std::size_t offset, std::span<const std::uint8_t> page) {
+    FlashCall call(flash_counters.program_attempts, flash_counters.program_failures,
+                   flash_counters.program_requested_bytes, page.size());
     if (offset % FLASH_PAGE_SIZE || page.size() != FLASH_PAGE_SIZE ||
         offset > provisioning::access_media_size - FLASH_PAGE_SIZE)
         return false;
@@ -204,7 +256,7 @@ bool PicoAccessMedia::program(std::size_t offset, std::span<const std::uint8_t> 
     flash_range_program(flash_layout::access_base + offset, page.data(), page.size());
     restore_interrupts(irq);
 #endif
-    return true;
+    return call.finish(true);
 }
 PicoNetwork::PicoNetwork(time::ObservationSink& clock, std::string_view configured_hostname)
     : sntp_(clock), mdns_(*this, configured_hostname) {}

@@ -195,6 +195,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_pilot_tests.py)
     add_test(NAME phase11_5_supervisor_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_supervisor_tests.py)
+    add_test(NAME phase12_candidate_manifest_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase12_candidate_manifest_tests.py)
     add_test(NAME phase11_5_network_fixture_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_network_fixture_tests.py)
     add_test(NAME phase11_5_package8_tests COMMAND ${Python3_EXECUTABLE}
@@ -486,6 +488,19 @@ if(WSPRRY_PICO_BUILD_TESTS)
         endif()
         add_test(NAME usb_descriptor_tests COMMAND usb_descriptor_tests)
     endif()
+    add_executable(pool_metrics_tests tests/pool_metrics_tests.cpp)
+    target_link_libraries(pool_metrics_tests PRIVATE wsprrypico_core)
+    if(MSVC)
+        target_compile_options(pool_metrics_tests PRIVATE /UNDEBUG)
+    else()
+        target_compile_options(pool_metrics_tests PRIVATE -UNDEBUG)
+    endif()
+    add_test(NAME pool_metrics_tests COMMAND pool_metrics_tests)
+    add_test(NAME phase12_composition_audit_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase12_composition_audit_tests.py)
+    add_test(NAME phase12_composition_capture_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase12_composition_capture_tests.py)
+    add_test(NAME btstack_pool_hook_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/btstack_pool_hook_tests.py)
     add_test(NAME wsprrypico_core_tests COMMAND wsprrypico_core_tests)
     add_test(NAME wtp_monitor_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/wtp_monitor_tests.py)
 endif()

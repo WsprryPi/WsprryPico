@@ -16,6 +16,14 @@ inline constexpr std::uint64_t proof_lifetime_ms = 120'000;
 inline constexpr std::uint64_t softap_inactivity_ms = 15 * 60'000;
 inline constexpr std::uint64_t softap_absolute_ms = 12 * 60 * 60'000;
 inline constexpr std::size_t softap_session_capacity = 4;
+struct SoftApSessionLimits {
+    std::uint64_t inactivity_ms = softap_inactivity_ms;
+    std::uint64_t absolute_ms = softap_absolute_ms;
+    bool valid() const {
+        return inactivity_ms > 0 && absolute_ms >= inactivity_ms &&
+               inactivity_ms <= softap_inactivity_ms && absolute_ms <= softap_absolute_ms;
+    }
+};
 
 enum class AccessCode {
     Ok,
@@ -101,7 +109,8 @@ struct BleAdmission {
 class LocalAccessController {
   public:
     LocalAccessController(AccessStore& store, BondStore& bonds, RandomSource& random,
-                          std::string device_id, std::string boot_id, LocalIdentity identity);
+                          std::string device_id, std::string boot_id, LocalIdentity identity,
+                          SoftApSessionLimits session_limits = {});
     ~LocalAccessController();
     LocalAccessController(const LocalAccessController&) = delete;
     LocalAccessController& operator=(const LocalAccessController&) = delete;
@@ -148,11 +157,22 @@ class LocalAccessController {
                                    std::uint64_t now_ms);
     void invalidate_all_volatile();
 
+    // Occupancy of retained records; does not reclaim or extend sessions.
+    // Deadline validity is enforced separately by normal authorization/polling.
+    std::size_t retained_softap_sessions() const {
+        std::size_t result = 0;
+        for (const auto& session : softap_)
+            result += session.live ? 1 : 0;
+        return result;
+    }
     static std::string cookie_header(std::string_view token);
     bool ble_available() const {
         return store_.healthy() && store_.record() && !store_.record()->ble_disabled;
     }
     Authorization ble_authorization() const;
+    const SoftApSessionLimits& session_limits() const {
+        return session_limits_;
+    }
     const LocalIdentity& identity() const {
         return identity_;
     }
@@ -206,6 +226,7 @@ class LocalAccessController {
     std::string device_id_;
     std::string boot_id_;
     LocalIdentity identity_;
+    SoftApSessionLimits session_limits_;
     Proof proof_;
     BleConnection ble_;
     std::array<SoftApSession, softap_session_capacity> softap_{};

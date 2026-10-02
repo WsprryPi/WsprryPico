@@ -42,6 +42,9 @@ class PicoGattTransport {
         std::uint16_t att_mtu = 0;
         std::size_t outbound_frames = 0;
         std::size_t outbound_index = 0;
+        std::size_t inbound_bytes = 0;
+        std::size_t outbound_bytes = 0;
+        bool indication_pending = false;
         bool connected = false;
         bool admitted = false;
         bool send_requested = false;
