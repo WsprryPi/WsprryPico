@@ -1,6 +1,7 @@
 #include "network/bootstrap_codec.hpp"
 #include "provisioning/consumer_claim_commit.hpp"
 #include "provisioning/network_profile.hpp"
+#include "wtp/sha256.hpp"
 
 #include <algorithm>
 #include <array>
@@ -48,7 +49,7 @@ struct Platform : provisioning::ConsumerClaimCommitPlatform {
     bool expire_during_generation = false, lose_station_during_generation = false;
     bool wrong_generated_hostname = false;
     bool expire_during_write = false;
-    unsigned time_reads = 0;
+    unsigned time_reads = 0, tls_generations = 0;
     std::string hostname = "wsprrypico-0a60df.local";
     std::uint64_t ms = 500;
     std::optional<std::uint64_t> utc = 1'800'000'000;
@@ -74,6 +75,7 @@ struct Platform : provisioning::ConsumerClaimCommitPlatform {
     }
     bool generate_tls(std::string_view selected_device, std::string_view hostname,
                       std::uint64_t now, provisioning::ConsumerTls& out) override {
+        ++tls_generations;
         if (!generation || selected_device != device || hostname != "wsprrypico-0a60df.local" ||
             now != 1'800'000'000)
             return false;
@@ -92,7 +94,9 @@ struct Platform : provisioning::ConsumerClaimCommitPlatform {
     }
     bool valid_tls(const provisioning::ConsumerTls& value, std::string_view selected_device,
                    std::uint64_t now) override {
-        return tls && selected_device == device && now == 1'800'000'000 && !value.hostname.empty();
+        return tls && selected_device == device && now == 1'800'000'000 &&
+               !value.hostname.empty() && value.ca_not_after_utc > now &&
+               value.server_not_after_utc > now;
     }
 };
 
@@ -213,6 +217,45 @@ int main() {
            updated_profile->owners.empty() && updated_profile->tls == original_tls);
     assert(updated_profile->locator == "FN20XX");
     assert(updated_profile->callsign == "PJ4/K1ABC");
+
+    // Populated engineering clients survive a station edit. Expired or invalid
+    // reused trust rejects the edit rather than silently generating a new CA.
+    for (unsigned invalid_case = 0; invalid_case < 3; ++invalid_case) {
+        MemoryMedia populated_media;
+        provisioning::ProfileStore populated_store(populated_media);
+        assert(populated_store.load());
+        auto populated = *updated_profile;
+        populated.request_sha256 = std::string(64, 'd');
+        std::array<std::uint8_t, 3> csr{0x30, 0x01, 0x00};
+        populated.clients = {{"wspr5", network::bootstrap_b64url(csr),
+                              network::bootstrap_hex(wtp::sha256(csr)), std::string(64, 'b'), 1,
+                              1'850'000'000}};
+        if (invalid_case == 1)
+            populated.tls.server_not_after_utc = 1'800'000'000;
+        assert(populated_store.select(provisioning::ProfileSource::ConsumerProfile,
+                                      provisioning::serialize_consumer_profile(populated)));
+        const auto original = populated_store.data();
+        auto populated_binding = binding(provisioning::ProfileSource::ConsumerProfile, 1);
+        provisioning::ConsumerClaimSlot populated_slot;
+        grant(populated_slot, populated_binding, update_request);
+        Platform populated_platform;
+        if (invalid_case == 2)
+            populated_platform.tls = false;
+        const auto edited = provisioning::commit_consumer_claim(
+            populated_store, populated_slot, populated_binding, update_values, populated_platform,
+            provisioning::RuntimeSource::ConsumerPreClock, 500);
+        assert(populated_platform.tls_generations == 0);
+        if (invalid_case) {
+            assert(edited.state == provisioning::ConsumerCommitState::Rejected);
+            assert(populated_store.sequence() == 1 && populated_store.data() == original);
+        } else {
+            assert(edited.state == provisioning::ConsumerCommitState::Committed);
+            auto after = provisioning::parse_consumer_profile(populated_store.data());
+            assert(after && after->clients == populated.clients && after->tls == populated.tls);
+            assert(provisioning::setup_request_digest(populated_store, device) ==
+                   edited.request_sha256);
+        }
+    }
 
     MemoryMedia network_media;
     provisioning::ProfileStore network_store(network_media);

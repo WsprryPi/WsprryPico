@@ -10,7 +10,13 @@ the SoftAP path included the bounded project-owned DHCP server on
 provisioned pre-clock/normal HTTPS, password/cookie admission,
 controller time and the existing browser/`JobService` API.
 
-**Current continuation (2026-09-27):** the separate approved blank-device
+The [current closure matrix](phase12-closure-matrix.md) reconciles required
+consumer and supported engineering assertions for the 2026-10-02 follow-up.
+Its product recommendations and finite physical limits are proposals pending
+selection/approval, not new acceptance or hardware authority. P12.9 remains
+closed; GP14 remains default-off; Phase 12 remains `OPEN_PARTIAL`.
+
+**Historical continuation (2026-09-27):** the separate approved blank-device
 Wi-Fi-only encrypted transaction is implemented on `devel` at `fb091f8` and
 its physical iPhone/network target acceptance remains open. The operator
 selected Safari and SoftAP only for the proposed P12.7–P12.12 consumer

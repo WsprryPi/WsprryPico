@@ -114,6 +114,10 @@ ConsumerCommitResult commit_consumer_claim(ProfileStore& store, ConsumerClaimSlo
         profile.clients = previous->clients;
         scrub(*previous);
         reuse_tls = platform.valid_tls(profile.tls, binding.device_id, *utc);
+        // A station edit must not silently rotate trust or erase engineering
+        // clients. Invalid/expired trust requires an explicit engineering replacement.
+        if (!reuse_tls)
+            return {};
     }
     if (!reuse_tls) {
         scrub(profile.tls);

@@ -69,3 +69,14 @@ for required in ("identical frame stream", "TLS 1.3", "ALPN", "wtp/1", "Plain LA
     assert required in protocol
 
 print("Production TCP/WTP remains first-class, shared and fail closed")
+
+# Unknown durable setup outcomes cannot expire/cancel into rollback or accept
+# an ACK/new save before reboot/readback resolves the journal authority.
+mutation = bootstrap[bootstrap.index("HttpResponse PicoBootstrapServer::mutation("):]
+reconcile_guard = mutation.index("if (bootstrap_commit_.reconcile())")
+for route in ("/api/bootstrap/v1/start", "/api/bootstrap/v1/submit", "/api/bootstrap/v1/ack"):
+    assert reconcile_guard < mutation.index(route)
+assert "if (bootstrap_commit_.cancellation_allowed())\n        slot_.expire(now_ms);" in bootstrap
+assert "const bool healthy = profile_ && profile_->healthy() && bootstrap_commit_.result_verified();" in bootstrap
+assert 'bootstrap_commit_.reconcile() ? "reconcile" : slot_name(slot_.state())' in bootstrap
+assert bootstrap.index("void erase(std::array<std::uint8_t, 32>& bytes);") < bootstrap.index("void PicoBootstrapServer::poll(")

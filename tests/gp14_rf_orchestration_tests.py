@@ -175,6 +175,61 @@ class OrchestrationTests(unittest.TestCase):
         self.assertFalse(Path(str(ready)+'.consumed').exists())
 
 
+class LongApTests(unittest.TestCase):
+    def final(self):
+        return dict(gp14_held=False, status=dict(output_active=False),
+                    gp14_stop_verified=True, rf_safety_inhibited=True,
+                    gp14_output_inhibited=True, rf_safety_input_fault=0,
+                    gp14_last_duration_us='13000000', gp14_stop_events=1,
+                    gp14_reset_events=0, gp14_ap_events=1, gp14_ap_request_attempts=1,
+                    gp14_ap_request_accepts=1, gp14_softap_service_ready=True)
+
+    def test_only_12_to_15_second_released_gesture_passes(self):
+        for duration in (12000000, 13000000, 15000000):
+            info = self.final(); info['gp14_last_duration_us'] = str(duration)
+            p.check_long_ap_final(info)
+        for duration in (9000000, 11999999, 15000001):
+            info = self.final(); info['gp14_last_duration_us'] = str(duration)
+            with self.assertRaises(RuntimeError): p.check_long_ap_final(info)
+
+    def test_repeated_actions_carrier_return_held_input_and_missing_latch_refuse(self):
+        for key, value in [('gp14_stop_events', 2), ('gp14_reset_events', 1),
+                           ('gp14_ap_events', 2), ('gp14_ap_request_attempts', 2),
+                           ('gp14_ap_request_accepts', True), ('gp14_held', True),
+                           ('gp14_stop_verified', False), ('gp14_output_inhibited', False),
+                           ('rf_safety_inhibited', False), ('rf_safety_input_fault', 1),
+                           ('gp14_softap_service_ready', False),
+                           ('status', dict(output_active=True))]:
+            info = self.final(); info[key] = value
+            with self.assertRaises(RuntimeError, msg=key): p.check_long_ap_final(info)
+
+    def test_prior_actions_and_manual_lease_refuse_fresh_boot_admission(self):
+        info = dict(gp14_stop_events=0, gp14_reset_events=0, gp14_ap_events=0,
+                    gp14_ap_request_attempts=0, gp14_ap_request_accepts=0,
+                    gp14_stop_verified=False, gp14_softap_manual_lease_active=False)
+        p.check_long_ap_initial(info)
+        for key in info:
+            bad = dict(info); bad[key] = True if isinstance(info[key], bool) else 1
+            with self.assertRaises(RuntimeError, msg=key): p.check_long_ap_initial(bad)
+
+    def test_latch_probe_only_claims_and_never_loads_or_arms(self):
+        from unittest.mock import Mock
+        peer = Mock()
+        peer.request.return_value = dict(boot_id='boot', output_active=False,
+                                         owner_id=None, job_id=None, state='empty')
+        p.check_latched_refusal(peer, 'boot')
+        self.assertEqual([call.args[0] for call in peer.request.call_args_list], ['STATUS', 'CLAIM'])
+        self.assertEqual(peer.request.call_args_list[-1].kwargs, dict(expected_error='BUSY'))
+        for key, value in [('boot_id', 'other'), ('output_active', True),
+                           ('owner_id', 'foreign'), ('job_id', 'old'), ('state', 'complete')]:
+            peer.reset_mock()
+            peer.request.return_value = dict(boot_id='boot', output_active=False,
+                                             owner_id=None, job_id=None, state='empty')
+            peer.request.return_value[key] = value
+            with self.assertRaises(RuntimeError, msg=key): p.check_latched_refusal(peer, 'boot')
+            self.assertEqual(peer.request.call_count, 1)
+
+
 class HistoricalResolutionTests(unittest.TestCase):
     def setUp(self):
         self.tmp = TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)

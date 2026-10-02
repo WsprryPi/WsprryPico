@@ -19,7 +19,8 @@ trial fails. A successful save leaves the open AP available through its terminal
 reply and schedules a restart after the ACK is delivered, with a bounded
 fallback. After restart, the AP is normally off while saved station Wi-Fi is
 usable. It starts immediately with an erased journal, returns after station
-loss, or opens after an idle RF-inhibited 10-second BOOTSEL hold and release.
+loss, or opens through the selected GP14 gesture after confirmed shutdown.
+Runtime BOOTSEL sampling is withdrawn; see the current setup revision.
 The AP-only request envelope, encrypted plaintext, header checks and one-use
 slot remain as specified below; historical press-to-save, blank-only and
 generation-1-only statements no longer apply. The sealed plaintext now accepts
@@ -27,8 +28,22 @@ an optional one-byte length plus a 1–253-byte time-server name after the Wi-Fi
 password. An older plaintext without this suffix uses `pool.ntp.org`. The
 browser sends the suffix, and the target validates it before trial or journal
 commit. The maximum ciphertext is 351 bytes and the submit body limit is 768
-bytes. New network-only journal records are version 2 and include `time_server`;
-version-1 records load with the default.
+bytes. Network-only journal records with a durable setup result are version 3
+and include `time_server` plus `request_sha256`. Version 1 and 2 records remain
+readable; they have no durable request identity. A later save writes version 3.
+Version 1 records load with the default time server.
+
+Current status separates durable result identity from the pending attempt:
+`request_id_digest` comes only from the selected healthy journal and is paired
+with that journal's source/generation. `attempt_request_id_digest` is the
+volatile slot's request digest, used only to correlate a definite terminal
+failure. It must never prove a save. Version 3 retains the durable digest across
+ACK, slot expiry and reboot; consumer profiles retain their existing digest.
+Exact success needs both the expected next generation and the durable digest.
+An uncertain commit blocks new saves, cancellation and ACK, reports unverified
+state, and schedules a safe restart for journal reconciliation. It neither
+restores the old network nor repeats the write without proof of noncommit.
+The old status/result descriptions below are historical where they disagree.
 
 The current optional `GET /api/bootstrap/v1/time` returns a decimal-string
 `challenge_ns` from the Pico monotonic clock. `POST /api/bootstrap/v1/time`

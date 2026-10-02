@@ -65,10 +65,16 @@ struct MemoryMedia : provisioning::Media {
     unsigned program_calls = 0;
     unsigned fail_program_call = 0;
     bool fail_erase = false;
+    unsigned fail_commit_reads = 0;
+    bool commit_written = false;
     MemoryMedia() {
         data.fill(255);
     }
     bool read(std::size_t offset, std::span<std::uint8_t> output) override {
+        if (commit_written && fail_commit_reads) {
+            --fail_commit_reads;
+            return false;
+        }
         if (offset > data.size() || output.size() > data.size() - offset)
             return false;
         std::copy_n(data.begin() + offset, output.size(), output.begin());
@@ -86,6 +92,9 @@ struct MemoryMedia : provisioning::Media {
         CHECK(offset % provisioning::profile_page_size == 0);
         CHECK(page.size() == provisioning::profile_page_size);
         CHECK(offset <= data.size() - page.size());
+        if (offset % provisioning::profile_slot_size ==
+            provisioning::profile_slot_size - provisioning::profile_page_size)
+            commit_written = true;
         ++program_calls;
         if (fail_program_call == program_calls)
             return false;
@@ -1529,6 +1538,10 @@ void network_only_source_and_recovery() {
     const auto largest_payload = provisioning::serialize_network_profile(largest);
     CHECK(!largest_payload.empty() && largest_payload.size() <= 640);
     CHECK(provisioning::parse_network_profile(largest_payload) == largest);
+    largest.request_sha256 = std::string(64, 'a');
+    const auto largest_durable = provisioning::serialize_network_profile(largest);
+    CHECK(!largest_durable.empty() && largest_durable.size() <= 768);
+    CHECK(provisioning::parse_network_profile(largest_durable) == largest);
     CHECK(provisioning::parse_network_profile(
               "{\"version\":1,\"device_id\":\"" + std::string(device) +
               "\",\"ssid\":\"Home Net\",\"password\":\"test-password\"}")
@@ -1575,6 +1588,57 @@ void network_only_source_and_recovery() {
     provisioning::ProfileStore interrupted(interrupted_media);
     CHECK(!interrupted.load());
 }
+void network_setup_durable_reconciliation() {
+    provisioning::NetworkProfile candidate{device, "Home Net", "test-password", "pool.ntp.org",
+                                           std::string(64, 'a')};
+    const auto payload = provisioning::serialize_network_profile(candidate);
+    CHECK(provisioning::parse_network_profile(payload) == candidate);
+    auto invalid = candidate;
+    invalid.request_sha256 = std::string(64, 'z');
+    CHECK(provisioning::serialize_network_profile(invalid).empty());
+    invalid.request_sha256 = "a";
+    CHECK(provisioning::serialize_network_profile(invalid).empty());
+    for (const unsigned read_failures : {0u, 1u, 2u}) {
+        MemoryMedia media;
+        provisioning::ProfileStore store(media);
+        CHECK(store.load());
+        media.fail_commit_reads = read_failures;
+        const auto result = provisioning::commit_setup_profile(
+            store, provisioning::ProfileSource::NetworkOnly, payload);
+        CHECK(result == (read_failures < 2 ? provisioning::SetupCommitResult::Committed
+                                           : provisioning::SetupCommitResult::Reconcile));
+        // Verification failed after the commit, but a reboot proves this exact request.
+        media.fail_commit_reads = 0;
+        provisioning::ProfileStore rebooted(media);
+        CHECK(rebooted.load());
+        CHECK(rebooted.sequence() == 1);
+        CHECK(provisioning::setup_request_digest(rebooted, device) == candidate.request_sha256);
+        CHECK(provisioning::setup_request_digest(rebooted, other_device).empty());
+    }
+    MemoryMedia media;
+    provisioning::ProfileStore store(media);
+    CHECK(store.load());
+    CHECK(provisioning::commit_setup_profile(store, provisioning::ProfileSource::NetworkOnly,
+                                             payload) ==
+          provisioning::SetupCommitResult::Committed);
+    const auto previous = store.data();
+    candidate.request_sha256 = std::string(64, 'b');
+    const auto replacement = provisioning::serialize_network_profile(candidate);
+    media.fail_program_call = media.program_calls + 1;
+    CHECK(provisioning::commit_setup_profile(store, provisioning::ProfileSource::NetworkOnly,
+                                             replacement) ==
+          provisioning::SetupCommitResult::NotCommitted);
+    CHECK(store.healthy() && store.sequence() == 1 && store.data() == previous);
+    media.fail_program_call = 0;
+    CHECK(provisioning::commit_setup_profile(store, provisioning::ProfileSource::NetworkOnly,
+                                             replacement) ==
+          provisioning::SetupCommitResult::Committed);
+    CHECK(store.sequence() == 2 &&
+          provisioning::setup_request_digest(store, device) == candidate.request_sha256);
+    // A subsequent request supersedes the old digest rather than falsely confirming it.
+    CHECK(provisioning::setup_request_digest(store, device) != std::string(64, 'a'));
+}
+
 } // namespace
 
 int main() {
@@ -1598,5 +1662,6 @@ int main() {
     runtime_selection_and_overlay();
     consumer_runtime_readback_and_reload();
     network_only_source_and_recovery();
+    network_setup_durable_reconciliation();
     std::cout << "provisioning tests passed\n";
 }

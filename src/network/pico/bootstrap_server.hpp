@@ -126,6 +126,7 @@ class PicoBootstrapServer {
     OwnerResultRestart owner_result_restart_;
     bool owner_restart_pending_ = false, owner_status_committed_reply_ = false;
     bool bootstrap_restart_pending_ = false, bootstrap_ack_delivered_ = false;
+    BootstrapCommitGate bootstrap_commit_;
     bool bootstrap_trial_switched_network_ = false;
     bool bootstrap_trial_start_pending_ = false, bootstrap_submit_delivered_ = false;
     std::uint64_t bootstrap_submit_delivered_ms_ = 0;

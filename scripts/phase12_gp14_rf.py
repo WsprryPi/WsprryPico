@@ -176,6 +176,43 @@ def check_info(info, packet, boot=None):
         require(info['status']['boot_id'] == boot, 'unexpected reboot')
 
 
+def check_long_ap_initial(info):
+    """A fresh boot must not inherit an earlier physical gesture."""
+    for key in ('gp14_stop_events', 'gp14_reset_events', 'gp14_ap_events',
+                'gp14_ap_request_attempts', 'gp14_ap_request_accepts'):
+        require(type(info.get(key)) is int and info[key] == 0,
+                'prior long-AP action: ' + key)
+    require(info.get('gp14_stop_verified') is False and
+            info.get('gp14_softap_manual_lease_active') is False,
+            'prior stop/manual AP lease')
+
+
+def check_long_ap_final(info):
+    """Target observations prove the gesture and latch, never AP association/HTTP."""
+    require(info['gp14_held'] is False and info['status']['output_active'] is False and
+            info['gp14_stop_verified'] is True and info['rf_safety_inhibited'] is True and
+            info['gp14_output_inhibited'] is True and info['rf_safety_input_fault'] == 0,
+            'long-AP released/inactive latch')
+    require(12000000 <= int(info['gp14_last_duration_us']) <= 15000000,
+            'physical long-AP hold outside 12-15 seconds')
+    for key, expected in (('gp14_stop_events', 1), ('gp14_reset_events', 0),
+                          ('gp14_ap_events', 1), ('gp14_ap_request_attempts', 1),
+                          ('gp14_ap_request_accepts', 1)):
+        require(type(info.get(key)) is int and info[key] == expected,
+                'repeated/missing long-AP action: ' + key)
+    require(info['gp14_softap_service_ready'] is True,
+            'long-AP service readiness unavailable')
+
+
+def check_latched_refusal(peer, boot):
+    status = peer.request('STATUS', {})
+    require(status['boot_id'] == boot and status['output_active'] is False and
+            status['owner_id'] is None and status['job_id'] is None and
+            status['state'] == 'empty', 'post-stop empty/unowned authority')
+    # A rejected CLAIM admits no new job; never LOAD/ARM to test the latch.
+    peer.request('CLAIM', dict(owner_id=uuid.uuid4().hex, lease_ms=5000), expected_error='BUSY')
+
+
 def cleanup_owned(peer, boot, job_id, owner):
     status = peer.request('STATUS', {})
     require(status['boot_id'] == boot, 'cleanup boot mismatch')
@@ -500,6 +537,9 @@ def _acquire_locked(packet, case, campaign, retry_no_input_run=None, wait_for_bu
                 not initial['rf_safety_inhibited'] and initial['gp14_rf_busy_used'] == 0,
                 'new released-input boot required')
         boot = initial['status']['boot_id']
+        if case == 'long_ap':
+            check_long_ap_initial(initial)
+            attempt['firmware'] = initial['firmware']
         evidence.record('initial_info', initial)
         if wait_for_button or led_cue:
             require(initial.get('gp14_rf_cue_supported') is True, 'physical cue unsupported by image')
@@ -555,6 +595,9 @@ def _acquire_locked(packet, case, campaign, retry_no_input_run=None, wait_for_bu
             info = console()
             check_info(info, packet, boot)
             evidence.record('before_action_info', info)
+            if case == 'long_ap':
+                check_long_ap_initial(info)
+                require(info['gp14_held'] is False, 'contact occurred before local LED cue')
             if case.startswith('armed_') or info['status']['output_active']:
                 break
             require(time.monotonic() < action_end, 'finite launch timeout')
@@ -566,7 +609,9 @@ def _acquire_locked(packet, case, campaign, retry_no_input_run=None, wait_for_bu
             evidence.record('physical_led_cue', cue)
         busy = None
         final = None
+        last_held_host_ns = None
         while time.monotonic() < action_end:
+            observation_begin_ns = time.monotonic_ns()
             try:
                 info = console()
             except (OSError, ConnectionError, TimeoutError):
@@ -576,6 +621,20 @@ def _acquire_locked(packet, case, campaign, retry_no_input_run=None, wait_for_bu
                 continue
             check_info(info, packet, None if case == 'quick_reset' else boot)
             evidence.record('action_info', info)
+            if case == 'long_ap':
+                if info['gp14_held']:
+                    last_held_host_ns = observation_begin_ns
+                elif last_held_host_ns is not None and 'release_host_bracket' not in attempt:
+                    attempt['release_host_bracket'] = dict(
+                        earliest_monotonic_ns=str(last_held_host_ns),
+                        latest_monotonic_ns=str(time.monotonic_ns()),
+                        host_boot_id=Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
+                        hostname=socket.gethostname())
+                    save()
+            if case == 'long_ap' and info['gp14_ap_request_attempts']:
+                require(info['gp14_stop_verified'] is True and
+                        info['status']['output_active'] is False,
+                        'AP request before confirmed shutdown')
             if case.endswith('_busy') and info['gp14_held'] and not busy:
                 require(not info['rf_safety_inhibited'], 'stop preceded busy stimulus')
                 busy = console('GP14 RF BUSY ' + DEVICE, 7)
@@ -614,10 +673,26 @@ def _acquire_locked(packet, case, campaign, retry_no_input_run=None, wait_for_bu
                         status['owner_id'] is None and status['state'] != 'failed', 'post-stop authority')
                 peer.request('CLAIM', dict(owner_id=uuid.uuid4().hex, lease_ms=5000), expected_error='BUSY')
             else:
-                require(final['gp14_ap_request_accepts'] == 1 and final['gp14_ap_events'] == 1,
-                        'one verified AP request')
+                check_long_ap_final(final)
+                check_latched_refusal(peer, boot)
+                attempt.update(ap_interface_proof='PENDING', phone_observation='PENDING',
+                               ap_request_order_proof='TARGET_OBSERVATION_ONLY',
+                               target_hold_duration_us=str(final['gp14_last_duration_us']))
         evidence.record('final_info', final)
         attempt['final_boot_id'] = final['status']['boot_id']
+        if case == 'long_ap':
+            # Observe through the remaining capture rather than blocking on the
+            # receiver and missing a reboot, repeated gesture or carrier return.
+            while capture.poll() is None and time.monotonic() < capture_deadline:
+                info = console()
+                check_info(info, packet, boot)
+                check_long_ap_final(info)
+                evidence.record('post_long_ap_info', info)
+                time.sleep(.2)
+            info = console()
+            check_info(info, packet, boot)
+            check_long_ap_final(info)
+            evidence.record('post_long_ap_capture_info', info)
         require(finish_capture(capture, capture_deadline) == 0, 'receiver capture failed')
         meta = json.loads((root/'capture.json').read_text())
         require(meta['actual_settings'] == SETTINGS and
@@ -631,6 +706,9 @@ def _acquire_locked(packet, case, campaign, retry_no_input_run=None, wait_for_bu
                 meta['output']['sha256'] == digest(root/'capture.cf32'), 'capture integrity/settings')
         attempt.update(status='CAPTURED_RF_ASSESSMENT_PENDING', target_checks_passed=True,
                        capture_sha256=digest(root/'capture.cf32'))
+        if case == 'long_ap':
+            attempt.update(status='CAPTURED_RF_AND_AP_INTERFACE_ASSESSMENT_PENDING',
+                           target_checks_passed=False, target_gesture_checks_passed=True)
         save()
         print('CAPTURED: independent RF assessment pending; ' + str(root), flush=True)
     except BaseException as error:

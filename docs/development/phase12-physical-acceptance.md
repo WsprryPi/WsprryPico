@@ -13,6 +13,13 @@ WTP combination used exact RF-inhibited firmware `4377d2ded8e3`, boot
 then ended disconnected, empty, unowned and output inactive with healthy
 journals.
 
+For current required assertions and explicit historical-row classifications,
+use the [2026-10-02 closure matrix](phase12-closure-matrix.md). The historical
+Stage A rows below retain supported engineering obligations and evidence; their
+superseded consumer owner/BOOTSEL/password ceremony is not a commissioning
+requirement. No new physical result or hardware authority is recorded by this
+software follow-up.
+
 Offline-cache reuse, fresh-password/new-pairing behavior, complete profile
 provisioning/activation, arbitrary BLE job control, the broader phone-time and
 LED matrices, the remaining SoftAP matrix, reset/gesture, trust/fault/resource

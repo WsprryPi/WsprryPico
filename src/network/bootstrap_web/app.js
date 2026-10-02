@@ -140,7 +140,15 @@ async function update() {
     if (!Number.isSafeInteger(status.generation) || status.generation < 0)
       throw new Error('invalid generation');
     currentGeneration = status.generation;
-    if (status.source === 'fault') {
+    if (status.source === 'fault' && status.slot_state === 'reconcile' && sealed &&
+        status.attempt_request_id_digest === sealed.requestDigest) {
+      // Retain only the existing encrypted attempt evidence. The private key
+      // and password were already cleared; never replay its POST.
+      postAccepted = false;
+      responseLost = true;
+      showUnconfirmed();
+      notice('The Pico is checking its saved result. Reconnect after it restarts.');
+    } else if (status.source === 'fault') {
       show('service');
       notice('The Pico could not verify its saved setup state.', true);
       clearAttempt();
@@ -160,7 +168,7 @@ async function update() {
         show('unknown');
         notice('The Pico has a saved network, but this page cannot verify this attempt.', true);
       } else if (status.slot_state === 'terminal' &&
-                 status.request_id_digest === sealed.requestDigest) {
+                 status.attempt_request_id_digest === sealed.requestDigest) {
         clearAttempt();
         show('retry');
         notice('The Wi-Fi connection was not saved. Check the details and try again.', true);

@@ -173,7 +173,8 @@ await secondSubmit;
 assert.equal(elements.get('accepted').hidden, false);
 assert.equal(starts, 2);
 status = {...status, generation: 2, slot_state: 'trial',
-  request_id_digest: '0'.repeat(64)};
+  request_id_digest: '0'.repeat(64),
+  attempt_request_id_digest: slotDigest(submitted.request_id)};
 await poll();
 assert.equal(elements.get('connected').hidden, true); // Foreign result is not our save.
 status = {...status, slot_state: 'terminal'};
@@ -248,6 +249,46 @@ assert.match(elements.get('notice').textContent, /previous Wi-Fi attempt/);
 await timers.findLast((item) => item.delay === 2000).callback();
 await delayedStart;
 assert.equal(elements.get('accepted').hidden, false); // A busy prior slot is retried without another Save.
+
+// Ambiguous flash readback preserves the encrypted attempt until the exact
+// committed journal is readable again after restart; it never sends another POST.
+const startsBeforeReconcile = starts;
+const submittedBeforeReconcile = submitted;
+status = {...status, source: 'fault', generation: 0, slot_state: 'reconcile',
+  request_id_digest: null, attempt_request_id_digest: slotDigest(submitted.request_id)};
+await poll();
+assert.equal(elements.get('unconfirmed').hidden, false);
+assert.equal(elements.get('service').hidden, true);
+assert.equal(elements.get('password').value, '');
+assert.equal(starts, startsBeforeReconcile);
+assert.equal(submitted, submittedBeforeReconcile);
+status = {...status, source: 'network_only', generation: 5, slot_state: 'none',
+  request_id_digest: slotDigest(submitted.request_id), attempt_request_id_digest: null};
+await poll();
+assert.equal(elements.get('connected').hidden, false);
+assert.equal(starts, startsBeforeReconcile);
+assert.equal(submitted, submittedBeforeReconcile);
+elements.get('change-connected').events.click();
+elements.get('ssid').value = 'ForeignResult';
+elements.get('password').value = 'test-only-password';
+await elements.get('wifi-form').events.submit({preventDefault() {}});
+
+// A durable foreign result at the expected generation must never borrow
+// our volatile attempt digest to announce a successful save.
+status = {...status, generation: 6, slot_state: 'terminal',
+  request_id_digest: '0'.repeat(64),
+  attempt_request_id_digest: slotDigest(submitted.request_id)};
+await poll();
+assert.equal(elements.get('connected').hidden, true);
+assert.equal(elements.get('unknown').hidden, false);
+elements.get('change-connected').events.click();
+elements.get('ssid').value = 'BadReplacement';
+elements.get('password').value = 'test-only-password';
+await elements.get('wifi-form').events.submit({preventDefault() {}});
+status = {...status, generation: 6, slot_state: 'terminal',
+  attempt_request_id_digest: slotDigest(submitted.request_id)};
+await poll();
+assert.equal(elements.get('retry').hidden, false); // Exact failed attempt on unchanged journal.
 
 globalThis.location.origin = 'http://example.invalid';
 await import('./app.js?fallback');

@@ -26,7 +26,8 @@ namespace wsprrypico::network {
 #ifndef WSPRRY_PICO_STANDALONE_RF
 namespace {
 HttpResponse json(std::string body);
-}
+void erase(std::array<std::uint8_t, 32>& bytes);
+} // namespace
 #endif
 
 PicoBootstrapServer::~PicoBootstrapServer() {
@@ -242,11 +243,12 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
                      owner_slot_.state() == provisioning::ConsumerClaimState::Granted))
         cancel_owner_slot(true);
     if (slot_.state() != BootstrapSlotState::None &&
-        slot_.state() != BootstrapSlotState::Terminal &&
+        slot_.state() != BootstrapSlotState::Terminal && bootstrap_commit_.cancellation_allowed() &&
         (!mutation_safe_ || !network_setup_authority()))
         cancel_slot();
     const auto before_expiry = slot_.state();
-    slot_.expire(now_ms);
+    if (bootstrap_commit_.cancellation_allowed())
+        slot_.expire(now_ms);
     if (before_expiry != BootstrapSlotState::None && slot_.state() == BootstrapSlotState::None) {
         if (before_expiry == BootstrapSlotState::Trial) {
             restore_bootstrap_network();
@@ -312,41 +314,56 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
             }
         }
     }
-    if (slot_.state() == BootstrapSlotState::Trial && !bootstrap_trial_start_pending_) {
+    if (slot_.state() == BootstrapSlotState::Trial && !bootstrap_trial_start_pending_ &&
+        bootstrap_commit_.trial_allowed()) {
         const bool linked = network_ && network_->link_up();
         const auto address = linked ? network_->ipv4() : std::string{};
         const auto result = join_.trial(now_ms, linked, !address.empty() && address != "0.0.0.0");
         if (result == BootstrapJoinResult::Ready && profile_ && network_setup_authority()) {
             const auto source = profile_->source();
             std::string payload;
-            if (source == provisioning::ProfileSource::NetworkOnly || blank_authority())
+            if (source == provisioning::ProfileSource::NetworkOnly || blank_authority()) {
+                trial_.request_sha256 = slot_.request_id_digest();
                 payload = provisioning::serialize_network_profile(trial_);
-            else if (source == provisioning::ProfileSource::ConsumerProfile)
+            } else if (source == provisioning::ProfileSource::ConsumerProfile)
                 payload = provisioning::replace_consumer_network(
                     profile_->data(), device_, trial_.ssid, trial_.password, trial_.time_server,
                     slot_.request_id_digest());
-            const auto expected_generation = profile_->sequence() + 1;
             const auto target_source = source == provisioning::ProfileSource::ConsumerProfile
                                            ? provisioning::ProfileSource::ConsumerProfile
                                            : provisioning::ProfileSource::NetworkOnly;
-            const bool committed = !payload.empty() && profile_->select(target_source, payload) &&
-                                   profile_->healthy() && profile_->source() == target_source &&
-                                   profile_->sequence() == expected_generation;
+            const auto committed =
+                bootstrap_commit_.commit(*profile_, target_source, payload, now_ms);
             volatile char* bytes = payload.empty() ? nullptr : payload.data();
             for (std::size_t i = 0; i < payload.size(); ++i)
                 bytes[i] = 0;
-            if (committed)
+            if (committed == provisioning::SetupCommitResult::Committed)
                 end_trial(true, now_ms);
-            else
+            else if (committed == provisioning::SetupCommitResult::NotCommitted)
                 end_trial(false, now_ms);
+            else {
+                // The flash may contain a durable replacement. Do not roll back,
+                // retry a save, or announce failure until reboot/readback resolves it.
+                bootstrap_restart_pending_ = true;
+                bootstrap_ack_delivered_ = false;
+                bootstrap_committed_ms_ = now_ms;
+                join_.finish();
+                provisioning::scrub(trial_);
+                provisioning::scrub(bootstrap_previous_network_);
+                bootstrap_trial_switched_network_ = false;
+                erase(ack_verifier_);
+                crypto_.clear();
+            }
         } else if (result == BootstrapJoinResult::TimedOut)
             end_trial(false, now_ms);
     }
     const auto restart_now_ms = time_us_64() / 1000;
     if (!client_ && bootstrap_restart_pending_ && restart_ &&
-        (bootstrap_ack_delivered_ || (restart_now_ms >= bootstrap_committed_ms_ &&
-                                      restart_now_ms - bootstrap_committed_ms_ >= 60'000))) {
-        if (restart_(restart_context_))
+        (bootstrap_commit_.reconcile() ? bootstrap_commit_.restart_due(restart_now_ms)
+                                       : (bootstrap_ack_delivered_ ||
+                                          (restart_now_ms >= bootstrap_committed_ms_ &&
+                                           restart_now_ms - bootstrap_committed_ms_ >= 60'000)))) {
+        if (restart_(restart_context_) && !bootstrap_commit_.reconcile())
             bootstrap_restart_pending_ = false;
     }
     if (!client_ && owner_restart_pending_ && restart_ &&
@@ -602,7 +619,7 @@ void PicoBootstrapServer::end_trial(bool committed, std::uint64_t now_ms) {
 }
 
 HttpResponse PicoBootstrapServer::status() const {
-    const bool healthy = profile_ && profile_->healthy();
+    const bool healthy = profile_ && profile_->healthy() && bootstrap_commit_.result_verified();
     const bool saved = healthy && profile_->source() == provisioning::ProfileSource::NetworkOnly;
     const bool consumer =
         healthy && profile_->source() == provisioning::ProfileSource::ConsumerProfile;
@@ -617,12 +634,19 @@ HttpResponse PicoBootstrapServer::status() const {
                       : slot_.state() == BootstrapSlotState::Trial    ? "connecting"
                       : slot_.state() == BootstrapSlotState::Terminal ? "failed"
                                                                       : "idle";
+    // Durable generation and durable digest must come from the same journal.
+    // The in-flight/failed attempt has a separate identity.
+    const auto request_digest =
+        profile_ ? provisioning::setup_request_digest(*profile_, device_) : std::string{};
     return json(
-        "{\"version\":1,\"source\":\"" + std::string(source) +
-        "\",\"generation\":" + std::to_string(healthy ? profile_->sequence() : 0) +
-        ",\"slot_state\":\"" + std::string(slot_name(slot_.state())) + "\",\"slot_id_digest\":" +
+        "{\"version\":1,\"source\":\"" + std::string(source) + "\",\"generation\":" +
+        std::to_string(healthy ? profile_->sequence() : 0) + ",\"slot_state\":\"" +
+        std::string(bootstrap_commit_.reconcile() ? "reconcile" : slot_name(slot_.state())) +
+        "\",\"slot_id_digest\":" +
         (slot_digest_.empty() ? "null" : wtp::json::quote(slot_digest_)) + ",\"join\":\"" + join +
         "\",\"address_ready\":" + (address ? "true" : "false") + ",\"request_id_digest\":" +
+        (request_digest.empty() ? "null" : wtp::json::quote(request_digest)) +
+        ",\"attempt_request_id_digest\":" +
         (slot_.request_id_digest().empty() ? "null" : wtp::json::quote(slot_.request_id_digest())) +
         "}");
 }
@@ -931,6 +955,8 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
                          : "ignored") +
                     "\"}");
     }
+    if (bootstrap_commit_.reconcile())
+        return http_error(409, "busy");
     if (owner_slot_.state() != provisioning::ConsumerClaimState::None || owner_reconcile_ ||
         owner_restart_pending_)
         return http_error(409, "busy");
@@ -940,7 +966,8 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
             return http_error(400, "invalid_request");
         if (!mutation_safe_ || !network_setup_authority() || parsed->device_id != device_)
             return http_error(403, "unavailable");
-        if (slot_.state() != BootstrapSlotState::None || bootstrap_restart_pending_)
+        if (slot_.state() != BootstrapSlotState::None || bootstrap_restart_pending_ ||
+            !bootstrap_commit_.begin())
             return http_error(409, "busy");
         std::array<std::uint8_t, 16> slot_id{};
         std::array<std::uint8_t, 32> browser_key{};
