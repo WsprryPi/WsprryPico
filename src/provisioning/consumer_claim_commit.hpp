@@ -44,6 +44,11 @@ struct ConsumerCommitResult {
     std::string request_sha256;
 };
 
+// Mint only absent TLS after trustworthy time; never rotate retained trust.
+// Retains the original station-save request digest through the journal generation.
+ConsumerCommitResult materialize_consumer_tls(ProfileStore& store, std::string_view device_id,
+                                              ConsumerClaimCommitPlatform& platform);
+
 // One irreversible boundary: no owner, station setting or TLS identity is
 // written before every gate passes. Reconcile means a journal write was
 // attempted but the caller must read back the request digest after reboot.

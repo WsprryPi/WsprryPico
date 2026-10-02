@@ -270,10 +270,20 @@ bool valid_consumer_payload(std::string_view payload, ProfileSource prior_source
             scrub(*prior);
     } else if (prior_source == ProfileSource::ConsumerProfile) {
         auto prior = parse_consumer_profile(prior_data);
+        bool tls_completion = false;
+        if (prior && prior->tls_pending && !parsed->tls_pending && prior->clients.empty() &&
+            parsed->clients.empty()) {
+            auto expected = *prior;
+            expected.tls_pending = false;
+            expected.tls = parsed->tls;
+            tls_completion = expected == *parsed;
+            scrub(expected);
+        }
         match = prior && prior->device_id == parsed->device_id &&
                 (parsed->owner_epoch >= prior->owner_epoch ||
                  (parsed->owner_epoch == 0 && parsed->owners.empty())) &&
-                (payload == prior_data || parsed->request_sha256 != prior->request_sha256);
+                (payload == prior_data || parsed->request_sha256 != prior->request_sha256 ||
+                 tls_completion);
         if (prior)
             scrub(*prior);
     }

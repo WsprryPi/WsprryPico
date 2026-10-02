@@ -36,6 +36,8 @@ struct ConsumerProfile {
     std::string ssid, password, time_server;
     std::string callsign, locator;
     unsigned power_dbm = 0;
+    // Version 2 only: settings durable; TLS has not been minted without trusted UTC.
+    bool tls_pending = false;
     ConsumerTls tls;
     std::vector<ConsumerClient> clients;
     std::string request_sha256;

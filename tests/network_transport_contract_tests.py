@@ -55,11 +55,15 @@ assert "static wsprrypico::wtp::Endpoint ble_endpoint(service," in main
 assert re.search(r"static wsprrypico::network::PicoServer server\s*\(\s*service,", main)
 assert "static wsprrypico::standalone::Scheduler scheduler(store, service);" in main
 
-# The captive setup listener is restricted to the selected consumer sources.
-# It can coexist with the provisioned HTTPS and station Plain LAN listeners.
+# The AP-local listener also serves recovery for engineering/corrupt profiles.
+# Ordinary station mutations retain their independent consumer-source checks.
 bootstrap_gate = main.index("const bool bootstrap_started")
 bootstrap_call = main.index("bootstrap.start();", bootstrap_gate)
-assert "RuntimeSource::Unprovisioned" in main[bootstrap_gate:bootstrap_call]
+assert "derived_identity && blank_access_available()" in main[bootstrap_gate:bootstrap_call]
+assert "network_setup_authority()" in bootstrap
+assert "bootstrap.configure_recovery(" in main
+assert "reset_coordinator.blocks_admission() || recovery_reset_at" in main
+assert "reset_pending" in main[main.index("auto command ="):main.index("if (text == \"INFO\")")]
 assert "server.start_plain(plain_lan_port)" in main
 listener_slots = re.search(r"#define MEMP_NUM_TCP_PCB_LISTEN\s+(\d+)", lwipopts)
 assert listener_slots and int(listener_slots.group(1)) >= 3

@@ -1,6 +1,6 @@
 # Phase 12 closure matrix
 
-Status: **OPEN_PARTIAL — save/harness repairs reviewed; product decisions pending;
+Status: **OPEN_PARTIAL — save/harness and product-decision repairs reviewed;
 no new physical authority**
 (2026-10-02). This is the current reconciliation index. Historical result
 records retain their failures, exact candidates and bounded acceptance. A row
@@ -37,6 +37,11 @@ generations 5/1, disabled scheduling, healthy journals, empty/unowned/inactive
 authority and synchronized time. This is historical evidence; no live facts
 have been refreshed by this software-only follow-up. A and wspr4 are excluded.
 
+The subsequent [product-decision execution review](phase12-product-decisions-review.md)
+records offline saves and durable destructive recovery implemented and reviewed,
+112/112 host checks, 3/3 sanitizers and three linked firmware variants.
+Those results do not close target acceptance.
+
 ## Current assertion groups
 
 Every physical row needs exact source/image/board/boot/client identities,
@@ -52,8 +57,8 @@ ignored. Redacted summaries link their private artifact hashes.
 | C10O / P12.10 | Device-served portal loads and cryptography works without infrastructure Internet or cellular. | Bundled source and browser tests; no full offline phone acceptance. | Phone cellular disabled, isolated field network, AP interface/origin and local asset proof; operator-dependent. Engineering Bluefy offline remains a separate supported-client assertion. | One offline portal visit and one offline-engineering visit, each <=10 min once operator present; no timer while waiting for operator. Restore phone/fixture connectivity afterward. |
 | C10N / P12.10, P12.12 | Wrong device, competing/expired/replayed/malformed/cancelled/interrupted requests cannot mutate; uncertain replies reconcile exact durable result. | Portable/browser subsets; accepted wrong-password/retry under P12.9. | Production fault/negative cases and lost-result/reboot proof. Network-only digest and uncertain-commit defects require repair. | One predetermined case per distinct production failure boundary; deterministic exhaustive journal cuts in host and named inhibited fixture, no automatic physical retries. |
 | R11A / P12.11 | Station loss for 60 s returns AP; stable station for 30 s withdraws absent lease/transaction/reply; manual lease obeys current contract. | Inhibited manual hold/lease expiry bounded pass. | Controlled saved-network loss, offline portal, reconnect/automatic withdrawal and pending-reply retention. | One loss/reconnect cycle <=15 min, existing wspr5 fixture only; preserve management route, restore fixture before proceeding. Do not contact router or unrelated services. |
-| R11F / P12.11 | Field-network replacement without SNTP has selected durable settings and readiness behavior without weakened RF time admission. | Network-only replacement does not require SNTP; station save requires fresh SNTP <=10 s. | Product decision and implementation below, then target test. | One isolated no-SNTP network trial <=15 min. Restore known usable network and synchronized time. |
-| R11P / P12.11 | Provisioning reset and full erase have distinct explicit controls, durable intent, correct clearing/preservation and restart recovery. | Portable `ResetCoordinator` tests only; GP14 normal reset preserves settings. | Consumer semantics/control decision; production target erasure/resume integration and named interrupted-intent fixture. | Two explicitly destructive reset levels; fresh recoverable backup before each. No destructive test until its exact operation is approved. Preserve E10; restore intended operational configuration after full erase. |
+| R11F / P12.11 | Field-network replacement without SNTP has selected durable settings and readiness behavior without weakened RF time admission. | Network-only replacement does not require SNTP; station save requires fresh SNTP <=10 s. | Selected offline-save implementation below, then target test. | One isolated no-SNTP network trial <=15 min. Restore known usable network and synchronized time. |
+| R11P / P12.11 | Provisioning reset and full erase have distinct explicit controls, durable intent, correct clearing/preservation and restart recovery. | Portable `ResetCoordinator` tests only; GP14 normal reset preserves settings. | Selected reset semantics/control implementation below; target erasure/resume and named interrupted-intent acceptance remain. | Two explicitly destructive reset levels; fresh recoverable backup before each. No destructive test until its exact operation is approved. Preserve E10; restore intended operational configuration after full erase. |
 | B12J / P12.12 | Journal corruption/cuts never resurrect superseded trust; activation/response loss runs once; time-peer callbacks cannot cross generations. | P12.1–P12.5 scoped host evidence and bounded profile activation. | Production engineering credential A/B/C and fault-phase evidence. | Finite declared stage list, one case per stage, RF-inhibited fixture separated from production candidate; restore original trust and settings. |
 | B12C / P12.12 | USB, BLE, Plain LAN and explicitly selected engineering TLS/HTTPS share one JobService with principal isolation. | Bounded individual carrier subsets. | Whole supported composition, loaded/armed/running simulator ownership, busy mutation and disconnect/lease evidence. | Complete finite simulated jobs <=60 s each, no RF; one owner and predetermined competing admissions. End empty/unowned with sessions reclaimed. |
 | B12T / P12.12 | Authenticated time disagreement, age, recovery and launch admission behave under selected policy; browser hints grant no RF authority. | Scoped controller-time subsets and host arbiter checks. | Target controlled observations, aging, two-sample recovery and loaded/armed/running distinction. | Named inhibited stimuli; <=5 min per time case; restore real accepted SNTP and unsullied watermark/configuration. |
@@ -101,36 +106,29 @@ recorded narrower scope. Closure needs either exact independent evidence under
 a named inhibited fixture or explicit evidence-backed operator disposition;
 an idle flash test does not resolve it.
 
-## Product decisions required before dependent implementation
+## Selected product decisions and implementation
 
-These recommendations are proposals, not selected contracts:
+The operator selected the [offline-save and reset contract](phase12-product-decisions.md)
+on 2026-10-02. The [execution prompt](phase12-product-decisions-execution-prompt.md)
+authorizes its implementation, deterministic validation, adversarial review and
+scoped commit/push on devel. It grants no hardware authority.
 
-1. **Offline station details:** permit a durable settings-only save without
-   SNTP, with TLS generation/validation and service readiness explicitly pending
-   trustworthy time. Preserve existing populated trust/client material. Do not
-   make unauthenticated browser time trusted, activate unvalidated TLS or relax
-   WTP launch admission. Decide the pending profile/schema and user result before
-   implementation; a successful network-only save does not resolve this policy.
-2. **Destructive controls:** provisioning reset clears network/consumer/TLS
-   provisioning and engineering access/bonds while preserving operational
-   station/schedules/watermark; full erase additionally clears those operational
-   records. Preserve the effective saved station values even when they currently
-   live in the consumer profile being removed; preserving only the unrelated
-   standalone store is insufficient. Preserve E10 for both. Recommend separate
-   recovery-page actions with two explicit confirmations and a one-use USB-local
-   confirmation bound to the exact device, boot, reset level and request. This
-   avoids granting destructive authority merely by joining the open AP. Ordinary
-   commissioning still needs no USB step. Require idle/inactive authority and
-   durable intent/resume.
-   Do not assign either action to existing GP14 gestures. Select the consumer
-   control/confirmation mechanism together with the preservation semantics.
+- Station details may be saved without SNTP with explicit readiness pending.
+  Retained trust/clients remain exact; absent TLS can be materialized only after
+  accepted trustworthy time. Job/RF admission is unchanged.
+- Provisioning reset clears network/TLS/access/bonds while preserving effective
+  station settings, schedules and watermark. Full erase also clears operational
+  records. Both preserve the RP2350-E10 boot-workaround sector.
+- Separate recovery-page actions require two explicit confirmations and typed
+  `reset provisioning` or `erase`. No USB confirmation is required. The open AP
+  does not authenticate the operator. Existing GP14 gestures do not erase.
 
-No hardware approval packet can truthfully name final reset/offline images
-until those decisions are selected and their dependent code is built/reviewed.
-All independent repairs and deterministic validation proceed first. The later
-single hardware packet must name exact committed candidates/hashes, B-only
-flash/reset/network/credential/fault operations, destructive cases separately,
-RF 17/12 limits, second-phone need, finite soak and final restoration image.
+Source implementation and review results are in the
+[product-decision execution review](phase12-product-decisions-review.md).
+These source repairs do not close target reset, offline commissioning, fault,
+resource or RF acceptance. The later consolidated hardware packet must name
+exact committed candidates/hashes, B-only operations, destructive cases
+separately, RF 17/12 limits, second-phone need, finite soak and restoration.
 
 ## Review findings and current result
 
@@ -139,8 +137,8 @@ request digest, false definite failure after a possibly durable commit, and
 missing production reset-resume integration. A further source check found
 station updates could silently discard populated clients when existing TLS
 was invalid. The save-path repairs and their deterministic failure tests are
-complete at source level. Reset integration remains dependent on the decision
-above. Additional assessment separated durable and attempt digests, added the
+complete at source level. Reset integration is implemented in the product-decision follow-up; target
+acceptance remains open. Additional assessment separated durable and attempt digests, added the
 production-used commit lifecycle gate and preserved encrypted attempt evidence
 through uncertain status/reboot without resubmitting. These repairs need target
 acceptance and do not close the physical milestones.
@@ -184,7 +182,7 @@ Current checks:
   controller have not been refreshed or claimed ready.
 
 Final independent reassessment found no remaining actionable finding in the
-reviewed save and AP-evidence harness repairs. It does not cover unimplemented
-consumer reset/offline-time decisions, the remaining target fixture work or
+reviewed save and AP-evidence harness repairs. It does not cover the separately reviewed
+consumer reset/offline-time implementation, remaining target fixture work or
 physical acceptance. No milestone is newly closed by these checks. All named
 P12.7/P12.8/P12.10/P12.11/P12.12 gates remain open; P12.9 remains closed.

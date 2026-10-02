@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WsprryPico recovery</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./recovery-bundle.js" defer></script>
+</head>
+<body>
+  <header><strong>WsprryPico</strong><span>Recovery</span></header>
+  <main>
+    <h1>Reset this Pico</h1>
+    <p><a href="/">Wi-Fi setup</a> · <a href="/owner.html">Station settings</a></p>
+    <p id="device" class="device">Checking Pico identity…</p>
+    <p id="notice" role="status" aria-live="polite">Keep transmission stopped while using recovery.</p>
+    <p class="quiet">Anyone who can access this open setup Wi-Fi can use these actions. Confirmations prevent accidents; they do not authenticate you.</p>
+    <section id="actions">
+      <h2>Provisioning reset</h2>
+      <p>Clear network credentials, certificates, engineering access and Bluetooth bonds. Preserve station details, schedules and the time watermark.</p>
+      <button id="provisioning" type="button" disabled>Reset provisioning…</button>
+      <h2>Full erase</h2>
+      <p>Also clear station details, schedules and the time watermark. Protected platform boot storage is preserved by both actions.</p>
+      <button id="full" type="button" disabled>Erase all settings…</button>
+    </section>
+    <section id="confirm" hidden>
+      <h2 id="operation" tabindex="-1">Confirm reset</h2>
+      <p id="consequences"></p>
+      <form id="reset-form" autocomplete="off">
+        <label><input id="confirm-one" type="checkbox" required> I understand which settings will be cleared.</label>
+        <label><input id="confirm-two" type="checkbox" required> I confirm this is the Pico I intend to reset and transmission is stopped.</label>
+        <label for="phrase" id="phrase-label">Type the confirmation phrase</label>
+        <input id="phrase" type="text" required autocomplete="off" autocapitalize="none" spellcheck="false">
+        <div class="form-actions"><button id="execute" type="submit" disabled>Confirm reset</button><button id="cancel" type="button">Cancel</button></div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

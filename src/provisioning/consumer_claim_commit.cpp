@@ -57,6 +57,43 @@ bool current_source(const ProfileStore& store, const ConsumerClaimBinding& bindi
 }
 } // namespace
 
+ConsumerCommitResult materialize_consumer_tls(ProfileStore& store, std::string_view device_id,
+                                              ConsumerClaimCommitPlatform& platform) {
+    if (!store.healthy() || store.source() != ProfileSource::ConsumerProfile ||
+        !platform.safe_to_commit() || store.sequence() == std::numeric_limits<std::uint64_t>::max())
+        return {};
+    Proposal proposal;
+    auto parsed = parse_consumer_profile(store.data());
+    if (!parsed || !parsed->tls_pending || parsed->device_id != device_id) {
+        if (parsed)
+            scrub(*parsed);
+        return {};
+    }
+    proposal.value = std::move(*parsed);
+    scrub(*parsed);
+    const auto utc = platform.trusted_utc_now();
+    const auto generation = store.sequence();
+    Proposal previous;
+    previous.payload = store.data();
+    auto& profile = proposal.value;
+    if (!utc || !*utc || profile.tls.hostname != platform.local_hostname() ||
+        !platform.generate_tls(device_id, platform.local_hostname(), *utc, profile.tls))
+        return {};
+    profile.tls_pending = false;
+    const auto fresh_utc = platform.trusted_utc_now();
+    if (!fresh_utc || !platform.valid_tls(profile.tls, device_id, *fresh_utc) ||
+        !platform.safe_to_commit() || !store.healthy() || store.sequence() != generation ||
+        store.source() != ProfileSource::ConsumerProfile || store.data() != previous.payload)
+        return {};
+    proposal.payload = serialize_consumer_profile(profile);
+    if (proposal.payload.empty())
+        return {};
+    if (!store.select(ProfileSource::ConsumerProfile, proposal.payload) || !store.healthy() ||
+        store.sequence() != generation + 1 || store.data() != proposal.payload)
+        return {ConsumerCommitState::Reconcile, 0, {}};
+    return {ConsumerCommitState::Committed, generation + 1, profile.request_sha256};
+}
+
 ConsumerCommitResult commit_consumer_claim(ProfileStore& store, ConsumerClaimSlot& slot,
                                            const ConsumerClaimBinding& binding,
                                            const ConsumerClaimValues& values,
@@ -85,8 +122,6 @@ ConsumerCommitResult commit_consumer_claim(ProfileStore& store, ConsumerClaimSlo
         !platform.station_ready(values.ssid))
         return {};
     const auto utc = platform.trusted_utc_now();
-    if (!utc || !*utc)
-        return {};
 
     Proposal proposal;
     auto& profile = proposal.value;
@@ -105,28 +140,25 @@ ConsumerCommitResult commit_consumer_claim(ProfileStore& store, ConsumerClaimSlo
     const auto canonical_hostname = network::canonical_local_hostname(hostname);
     if (!canonical_hostname || *canonical_hostname != hostname)
         return {};
-    bool reuse_tls = false;
     if (binding.source == ProfileSource::ConsumerProfile) {
         auto previous = parse_consumer_profile(store.data());
         if (!previous)
             return {};
+        profile.tls_pending = previous->tls_pending;
         profile.tls = previous->tls;
         profile.clients = previous->clients;
         scrub(*previous);
-        reuse_tls = platform.valid_tls(profile.tls, binding.device_id, *utc);
-        // A station edit must not silently rotate trust or erase engineering
-        // clients. Invalid/expired trust requires an explicit engineering replacement.
-        if (!reuse_tls)
+        // Saving station metadata never rotates retained trust. Its independent
+        // activation validator still rejects expired/invalid certificates.
+    } else if (utc && *utc) {
+        if (!platform.generate_tls(binding.device_id, hostname, *utc, profile.tls) ||
+            !platform.valid_tls(profile.tls, binding.device_id, *utc))
             return {};
+    } else {
+        profile.tls_pending = true;
+        profile.tls.hostname = hostname;
     }
-    if (!reuse_tls) {
-        scrub(profile.tls);
-        profile.clients.clear();
-        if (!platform.generate_tls(binding.device_id, hostname, *utc, profile.tls))
-            return {};
-    }
-    if (profile.tls.hostname != hostname ||
-        !platform.valid_tls(profile.tls, binding.device_id, *utc))
+    if (profile.tls.hostname != hostname)
         return {};
     proposal.payload = serialize_consumer_profile(profile);
     if (proposal.payload.empty())
@@ -140,8 +172,9 @@ ConsumerCommitResult commit_consumer_claim(ProfileStore& store, ConsumerClaimSlo
     const auto fresh_utc = platform.trusted_utc_now();
     if (slot.state() != ConsumerClaimState::Trial ||
         !slot.trial_request_matches(values.request_id) || !current_source(store, binding) ||
-        !platform.safe_to_commit() || !platform.station_ready(values.ssid) || !fresh_utc ||
-        !platform.valid_tls(profile.tls, binding.device_id, *fresh_utc))
+        !platform.safe_to_commit() || !platform.station_ready(values.ssid) ||
+        (binding.source != ProfileSource::ConsumerProfile && !profile.tls_pending &&
+         (!fresh_utc || !platform.valid_tls(profile.tls, binding.device_id, *fresh_utc))))
         return {};
 
     if (!store.select(ProfileSource::ConsumerProfile, proposal.payload))

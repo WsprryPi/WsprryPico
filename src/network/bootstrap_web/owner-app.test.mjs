@@ -159,10 +159,11 @@ status = {...status, source: 'consumer', profile_source: 5, generation: '2',
   request_id_digest: digest(submitted.request_id)};
 await runTimer(1000);
 assert.equal(elements.get('owner-saved').hidden, true); // Await journal reconciliation.
-status = {...status, slot_state: 'terminal'};
+status = {...status, slot_state: 'terminal', generation: '3', tls_ready: false};
 await runTimer(1000);
 assert.equal(elements.get('owner-saved').hidden, false);
 assert.match(elements.get('notice').textContent, /saved your station settings/);
+assert.match(elements.get('notice').textContent, /pending trustworthy time or valid TLS/);
 await runTimer(1000);
 assert.equal(elements.get('owner-saved').hidden, false); // Success stays visible.
 
@@ -170,7 +171,7 @@ assert.equal(elements.get('owner-saved').hidden, false); // Success stays visibl
 timers.clear();
 for (const element of elements.values()) element.hidden = true;
 elements.get('owner-settings').hidden = false;
-status = {...status, slot_state: 'none'}; // The second phone opens after restart.
+status = {...status, slot_state: 'none', generation: '2'}; // The second phone opens after restart.
 start = submitted = undefined;
 await import('./owner-app.js?second-phone');
 await new Promise(setImmediate);

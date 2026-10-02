@@ -1,9 +1,13 @@
 #include "provisioning/pico/field_platform.hpp"
 
 #include "btstack.h"
+#include "hardware/flash.h"
+#include "hardware/regs/addressmap.h"
 #include "lwip/netif.h"
 #include "pico/cyw43_arch.h"
+#include "pico/flash.h"
 #include "pico/rand.h"
+#include "standalone/pico/flash_layout.hpp"
 
 #include <algorithm>
 #include <array>
@@ -30,9 +34,7 @@ std::uint64_t PicoBondStore::identity(int index) {
     le_device_db_info(index, &address_type, address, nullptr);
     if (address_type == BD_ADDR_TYPE_UNKNOWN)
         return 0;
-    std::uint64_t peer = static_cast<std::uint64_t>(
-                             static_cast<unsigned>(address_type) + 1U)
-                         << 48;
+    std::uint64_t peer = static_cast<std::uint64_t>(static_cast<unsigned>(address_type) + 1U) << 48;
     for (std::size_t i = 0; i < sizeof(address); ++i)
         peer |= static_cast<std::uint64_t>(address[i]) << (i * 8);
     return peer;
@@ -56,6 +58,26 @@ bool PicoBondStore::erase_all() {
     for (int index = 0; index < maximum; ++index)
         le_device_db_remove(index);
     return le_device_db_count() == 0;
+}
+
+bool PicoBondStore::erase_reset_storage() {
+    // Called before stack initialization on recovery boot. Never erase a live
+    // database: in-memory peers could otherwise repopulate deleted flash.
+    using namespace standalone::flash_layout;
+    for (std::size_t offset = btstack_base; offset < btstack_base + btstack_size;
+         offset += erase_sector_size) {
+        auto address = offset;
+        auto erase = [](void* p) {
+            flash_range_erase(*static_cast<std::size_t*>(p), FLASH_SECTOR_SIZE);
+        };
+        if (flash_safe_execute(erase, &address, 100) != PICO_OK)
+            return false;
+    }
+    const auto* bytes = reinterpret_cast<const volatile std::uint8_t*>(XIP_BASE + btstack_base);
+    for (std::size_t i = 0; i < btstack_size; ++i)
+        if (bytes[i] != 255)
+            return false;
+    return true;
 }
 
 bool PicoIndicatorOutput::write(bool on) {

@@ -34,6 +34,9 @@ class AccessMemory final : public provisioning::AccessMedia {
     int fail_at = -1;
     int operation = 0;
     std::size_t largest_read = 0;
+    bool fail_commit_after_apply = false;
+    bool fail_readback_after_commit = false;
+    bool reads_failed = false;
     AccessMemory() {
         bytes.fill(255);
     }
@@ -41,7 +44,7 @@ class AccessMemory final : public provisioning::AccessMedia {
         return fail_at < 0 || operation++ != fail_at;
     }
     bool read(std::size_t offset, std::span<std::uint8_t> out) override {
-        if (offset + out.size() > bytes.size())
+        if (reads_failed || offset + out.size() > bytes.size())
             return false;
         largest_read = std::max(largest_read, out.size());
         std::copy_n(bytes.begin() + offset, out.size(), out.begin());
@@ -62,6 +65,13 @@ class AccessMemory final : public provisioning::AccessMedia {
             if ((bytes[offset + i] & page[i]) != page[i])
                 return false;
             bytes[offset + i] &= page[i];
+        }
+        if (offset % provisioning::access_slot_size ==
+            provisioning::access_slot_size - provisioning::access_page_size) {
+            if (fail_readback_after_commit)
+                reads_failed = true;
+            if (fail_commit_after_apply)
+                return false;
         }
         return true;
     }
@@ -297,6 +307,32 @@ void identity_and_journal() {
     provisioning::AccessStore corrupt(complete);
     CHECK(!corrupt.load());
     CHECK(corrupt.state() == provisioning::AccessStoreState::Fault);
+
+    // Only a verified reset intent may survive a corrupt alternate bank.
+    // Ordinary access above remains fail closed under the same corruption.
+    AccessMemory pending_media = media;
+    provisioning::AccessStore pending_store(pending_media);
+    CHECK(pending_store.load());
+    auto pending_record = record;
+    pending_record.reset.level = provisioning::ResetLevel::Provisioning;
+    pending_record.reset.phase = provisioning::ResetPhase::Intent;
+    pending_record.reset.target_source = provisioning::ProfileSource::Unprovisioned;
+    pending_record.reset.request_digest.fill(1);
+    CHECK(pending_store.replace(pending_record));
+    const auto intent_slot = pending_store.active_slot();
+    pending_record.reset.phase = provisioning::ResetPhase::PreservationComplete;
+    CHECK(pending_store.replace(pending_record));
+    pending_media.bytes[pending_store.active_slot() * provisioning::access_slot_size +
+                        provisioning::access_page_size + 4] ^= 1;
+    provisioning::AccessStore reset_recovered(pending_media);
+    CHECK(reset_recovered.load());
+    CHECK(reset_recovered.active_slot() == intent_slot);
+    CHECK(reset_recovered.record()->reset.phase == provisioning::ResetPhase::Intent);
+    CHECK(reset_recovered.record()->reset.pending());
+    CHECK(reset_recovered.replace(pending_record));
+    provisioning::AccessStore verified_reset(pending_media);
+    CHECK(verified_reset.load());
+    CHECK(verified_reset.record()->reset.phase == provisioning::ResetPhase::PreservationComplete);
 
     AccessMemory interrupted_initial;
     interrupted_initial.fail_at = 2;
@@ -1197,6 +1233,38 @@ void button_action_policy() {
     CHECK(time_wrap.observe(1, false) == ButtonAction::Fault);
 }
 
+void ambiguous_reset_intent() {
+    for (bool readback : {false, true}) {
+        const auto identity = *provisioning::derive_local_identity(device, "02:11:22:0a:60:df");
+        AccessMemory media;
+        provisioning::AccessStore access(media);
+        CHECK(access.load());
+        CHECK(access.initialize(initial_record(identity)));
+        ProfileMemory profile_media;
+        provisioning::ProfileStore profiles(profile_media);
+        CHECK(profiles.load());
+        ResetFixture targets;
+        provisioning::ResetCoordinator reset(access, profiles, targets, identity);
+        media.fail_commit_after_apply = !readback;
+        media.fail_readback_after_commit = readback;
+        wtp::PayloadDigest digest{};
+        digest[0] = 1;
+        CHECK(reset.begin(provisioning::ResetLevel::Provisioning,
+                          provisioning::ProfileSource::Unprovisioned,
+                          digest) == provisioning::ResetResult::StorageFault);
+        CHECK(reset.blocks_admission());
+        media.fail_commit_after_apply = false;
+        media.fail_readback_after_commit = false;
+        media.reads_failed = false;
+        provisioning::AccessStore reboot(media);
+        CHECK(reboot.load());
+        CHECK(reboot.record()->reset.pending());
+        provisioning::ResetCoordinator resumed(reboot, profiles, targets, identity);
+        CHECK(resumed.resume() == provisioning::ResetResult::Complete);
+        CHECK(!resumed.blocks_admission());
+    }
+}
+
 void reset_policy() {
     const auto identity = *provisioning::derive_local_identity(device, "02:11:22:0a:60:df");
     AccessMemory access_media;
@@ -1233,7 +1301,7 @@ void reset_policy() {
     CHECK(!reset.pending());
     CHECK(access.record()->epoch == 2);
     CHECK(access.record()->default_password);
-    CHECK(access.record()->field_mode);
+    CHECK(!access.record()->field_mode);
     CHECK(access.record()->bond_count == 0);
     CHECK(!access.record()->ble_disabled);
     CHECK(targets.operational == preserved);
@@ -1242,8 +1310,19 @@ void reset_policy() {
     const auto full_digest = wtp::sha256(
         std::span(reinterpret_cast<const std::uint8_t*>(full_request.data()), full_request.size()));
     targets.bond_done = false;
+    const auto corruption_offset =
+        profiles.active_slot() * provisioning::profile_slot_size + provisioning::profile_page_size;
+    profile_media.bytes[corruption_offset] ^= 1;
+    CHECK(!profiles.load());
+    CHECK(reset.begin(provisioning::ResetLevel::Provisioning,
+                      provisioning::ProfileSource::Unprovisioned,
+                      full_digest) == provisioning::ResetResult::StorageFault);
     CHECK(reset.begin(provisioning::ResetLevel::Full, provisioning::ProfileSource::Unprovisioned,
                       full_digest) == provisioning::ResetResult::Pending);
+    // Production clear_profile repairs raw invalid media; fixture restores
+    // healthy source here to continue its separate operational/bond policy test.
+    profile_media.bytes[corruption_offset] ^= 1;
+    CHECK(profiles.load());
     CHECK(reset.resume() == provisioning::ResetResult::Complete);
     CHECK(targets.operational_erased());
     CHECK(!access.record()->field_mode);
@@ -1389,6 +1468,7 @@ int main() {
     softap_http_policy();
     runtime_policy();
     button_action_policy();
+    ambiguous_reset_intent();
     reset_policy();
     controller_time_policy();
     browser_time_hint_policy();

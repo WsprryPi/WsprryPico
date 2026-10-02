@@ -163,13 +163,13 @@ async function update() {
       notice('The Pico could not verify its setup state.', true);
     } else if (submitted) {
       const saved = current.source === 'consumer' && current.slot_state !== 'reconcile' &&
-        BigInt(current.generation) === submitted.expectedGeneration &&
+        BigInt(current.generation) >= submitted.expectedGeneration &&
         current.request_id_digest === submitted.requestDigest;
       if (saved) {
         clearTransaction();
         complete = true;
         show('owner-saved');
-        notice('The Pico saved your station settings.');
+        notice(current.tls_ready === false ? 'The Pico saved your station settings. Readiness is pending trustworthy time or valid TLS.' : 'The Pico saved your station settings.');
       } else if (current.source === 'consumer' &&
                  BigInt(current.generation) >= submitted.expectedGeneration &&
                  current.request_id_digest !== submitted.requestDigest) {

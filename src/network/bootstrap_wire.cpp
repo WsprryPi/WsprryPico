@@ -71,7 +71,9 @@ std::optional<BootstrapStartRequest> parse_bootstrap_start(const HttpRequest& re
     return BootstrapStartRequest{*device, *key, *nonce};
 }
 
-std::optional<BootstrapSubmitRequest> parse_bootstrap_submit(const HttpRequest& request) {
+std::optional<BootstrapSubmitRequest> parse_bootstrap_submit(const HttpRequest& request,
+                                                             std::size_t minimum_ciphertext,
+                                                             std::size_t maximum_ciphertext) {
     if (!bootstrap_mutation_admitted(request, "/api/bootstrap/v1/submit"))
         return {};
     const auto root = wtp::json::parse(request.body_view());
@@ -86,9 +88,25 @@ std::optional<BootstrapSubmitRequest> parse_bootstrap_submit(const HttpRequest& 
     if (!device || !boot || !slot || !request_id || !nonce || !ciphertext || !tag ||
         !lowercase_hex(*device, 16) || !lowercase_hex(*boot, 16) || !lowercase_hex(*slot, 16) ||
         !lowercase_hex(*request_id, 16) || !canonical_base64url(*nonce, 12, 12) ||
-        !canonical_base64url(*ciphertext, 11, 351) || !canonical_base64url(*tag, 16, 16))
+        !canonical_base64url(*ciphertext, minimum_ciphertext, maximum_ciphertext) ||
+        !canonical_base64url(*tag, 16, 16))
         return {};
     return BootstrapSubmitRequest{*device, *boot, *slot, *request_id, *nonce, *ciphertext, *tag};
+}
+
+std::optional<BootstrapStartRequest> parse_recovery_start(const HttpRequest& request) {
+    if (!bootstrap_mutation_admitted(request, "/api/recovery/v1/start"))
+        return {};
+    auto copy = request;
+    copy.path = "/api/bootstrap/v1/start";
+    return parse_bootstrap_start(copy);
+}
+std::optional<BootstrapSubmitRequest> parse_recovery_submit(const HttpRequest& request) {
+    if (!bootstrap_mutation_admitted(request, "/api/recovery/v1/submit"))
+        return {};
+    auto copy = request;
+    copy.path = "/api/bootstrap/v1/submit";
+    return parse_bootstrap_submit(copy, 9, 22);
 }
 
 std::optional<BootstrapAckRequest> parse_bootstrap_ack(const HttpRequest& request) {

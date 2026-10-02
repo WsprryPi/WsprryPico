@@ -25,6 +25,7 @@ enum class ResetPhase : std::uint8_t {
     AccessReset,
     OperationalErased,
     BondsCleared,
+    PreservationComplete, // Appended: keep persisted phase values compatible.
 };
 
 struct ResetIntent {

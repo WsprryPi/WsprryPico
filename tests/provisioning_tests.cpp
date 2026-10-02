@@ -1460,8 +1460,9 @@ void consumer_runtime_readback_and_reload() {
     auto check_readback = [&] {
         const auto text = runtime.consumer_readback_json();
         const auto readback = wtp::json::parse(text);
-        CHECK(readback && wtp::json::fields(*readback, {"station", "network", "owner_count",
-                                                        "owner_epoch", "request_sha256"}));
+        CHECK(readback &&
+              wtp::json::fields(*readback, {"station", "network", "owner_count", "owner_epoch",
+                                            "tls_pending", "request_sha256"}));
         const auto station = readback->get("station");
         CHECK(station && wtp::json::fields(*station, {"callsign", "locator", "power_dbm"}));
         CHECK(station->get("callsign")->string() == candidate.callsign);

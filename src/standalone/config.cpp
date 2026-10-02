@@ -138,10 +138,11 @@ std::optional<Config> parse_config(std::string_view text) {
             return {};
         c.ntp_ipv4 = time_server->string();
     }
-    if (!valid_wifi_credentials(c.ssid, c.password, c.ntp_ipv4))
+    if (!((c.ssid.empty() && c.password.empty() && valid_time_server(c.ntp_ipv4)) ||
+          valid_wifi_credentials(c.ssid, c.password, c.ntp_ipv4)))
         return {};
     const auto schedules = entries.elements(9);
-    if (schedules.empty() || schedules.size() > 8)
+    if ((c.enabled && schedules.empty()) || schedules.size() > 8)
         return {};
     for (auto entry : schedules) {
         Schedule s;

@@ -1,16 +1,21 @@
 #pragma once
 
 #include "lwip/tcp.h"
+#include "network/bootstrap_slot.hpp"
 #include "network/http.hpp"
+#include "network/pico/recovery_crypto.hpp"
+#include "provisioning/reset.hpp"
 #ifndef WSPRRY_PICO_STANDALONE_RF
 #include "network/bootstrap_join.hpp"
 #include "network/bootstrap_slot.hpp"
 #include "network/owner_claim_http.hpp"
 #include "network/pico/bootstrap_crypto.hpp"
 #include "network/pico/owner_claim_crypto.hpp"
+#include "network/pico/recovery_crypto.hpp"
 #include "provisioning/consumer_claim.hpp"
 #include "provisioning/consumer_claim_commit.hpp"
 #include "provisioning/network_profile.hpp"
+#include "provisioning/reset.hpp"
 #endif
 
 #include <array>
@@ -56,6 +61,18 @@ class PicoBootstrapServer {
                    provisioning::PicoConsumerClaimPlatform& claim_platform,
                    std::string default_password);
 #endif
+    void configure_recovery(std::string boot, provisioning::AccessStore& access,
+                            provisioning::RandomSource& random) {
+        recovery_boot_id_ = std::move(boot);
+        recovery_access_ = &access;
+        recovery_random_ = &random;
+    }
+    void reset_control(provisioning::ResetResult (*begin)(provisioning::ResetLevel,
+                                                          const wtp::PayloadDigest&, void*),
+                       void* context) {
+        reset_begin_ = begin;
+        reset_context_ = context;
+    }
     bool listening() const {
         return listener_ != nullptr;
     }
@@ -69,6 +86,8 @@ class PicoBootstrapServer {
 #endif
     }
     bool setup_pending() const {
+        if (recovery_slot_.state() != BootstrapSlotState::None || reset_pending_)
+            return true;
 #ifndef WSPRRY_PICO_STANDALONE_RF
         return slot_.state() != BootstrapSlotState::None || bootstrap_restart_pending_ ||
                owner_claim_pending() || owner_restart_pending_;
@@ -78,6 +97,16 @@ class PicoBootstrapServer {
     }
 
   private:
+    HttpResponse recovery(const HttpRequest& request);
+    BootstrapSlot recovery_slot_;
+    PicoRecoveryCrypto recovery_crypto_;
+    bool reset_pending_ = false;
+    provisioning::ResetResult (*reset_begin_)(provisioning::ResetLevel, const wtp::PayloadDigest&,
+                                              void*) = nullptr;
+    void* reset_context_ = nullptr;
+    std::string recovery_boot_id_;
+    provisioning::AccessStore* recovery_access_ = nullptr;
+    provisioning::RandomSource* recovery_random_ = nullptr;
     static err_t accept(void*, tcp_pcb*, err_t);
     static err_t receive(void*, tcp_pcb*, pbuf*, err_t);
     static err_t sent(void*, tcp_pcb*, u16_t);

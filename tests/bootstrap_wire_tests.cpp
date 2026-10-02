@@ -30,6 +30,49 @@ HttpRequest post(std::string path, std::string body) {
     return request;
 }
 
+void recovery_envelopes_and_admission() {
+    auto start = post("/api/recovery/v1/start",
+                      "{\"version\":1,\"device_id\":\"00112233445566778899aabbccddeeff\","
+                      "\"browser_public_key\":\"hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo\","
+                      "\"request_nonce\":\"30415263748596a7b8c9daebfc0d1e2f\"}");
+    assert(wsprrypico::network::parse_recovery_start(start));
+    start.headers["origin"] = "http://evil.example";
+    assert(!wsprrypico::network::parse_recovery_start(start));
+    start.headers["origin"] = "http://192.168.4.1";
+    start.headers["content-type"] = "text/plain";
+    assert(!wsprrypico::network::parse_recovery_start(start));
+    start.headers["content-type"] = "application/json";
+    start.body.insert(start.body.size() - 1, ",\"ssid\":\"Secret\"");
+    assert(!wsprrypico::network::parse_recovery_start(start));
+
+    auto submit = post("/api/recovery/v1/submit",
+                       "{\"version\":1,\"device_id\":\"00112233445566778899aabbccddeeff\","
+                       "\"boot_id\":\"102132435465768798a9bacbdcedfe0f\","
+                       "\"slot_id\":\"2031425364758697a8b9cadbecfd0e1f\","
+                       "\"request_id\":\"405162738495a6b7c8d9eafb0c1d2e3f\","
+                       "\"aead_nonce\":\"AAECAwQFBgcICQoL\","
+                       "\"ciphertext\":\"AAAAAAAAAAAA\","
+                       "\"tag\":\"eckho4uf45mkproym74R4w\"}");
+    const auto parsed = wsprrypico::network::parse_recovery_submit(submit);
+    assert(parsed && parsed->device_id == device && parsed->boot_id == boot &&
+           parsed->slot_id == slot && parsed->request_id == request_id);
+    auto noncanonical = submit;
+    noncanonical.body.replace(noncanonical.body.size() - 3, 1, "x");
+    assert(!wsprrypico::network::parse_recovery_submit(noncanonical));
+    auto duplicate = submit;
+    duplicate.body.insert(duplicate.body.size() - 1, ",\"version\":1");
+    assert(!wsprrypico::network::parse_recovery_submit(duplicate));
+
+    submit.headers["x-wsprrypico-bootstrap"] = "0";
+    assert(!wsprrypico::network::parse_recovery_submit(submit));
+    submit.headers["x-wsprrypico-bootstrap"] = "1";
+    submit.headers["host"] = "other";
+    assert(!wsprrypico::network::parse_recovery_submit(submit));
+    submit.headers["host"] = "192.168.4.1";
+    submit.path = "/api/bootstrap/v1/submit";
+    assert(!wsprrypico::network::parse_recovery_submit(submit));
+}
+
 void valid_envelopes_and_admission() {
     auto start = post("/api/bootstrap/v1/start",
                       "{\"version\":1,\"device_id\":\"00112233445566778899aabbccddeeff\","
@@ -132,6 +175,7 @@ void parser_rejects_oversize_before_body_allocation() {
 } // namespace
 
 int main() {
+    recovery_envelopes_and_admission();
     valid_envelopes_and_admission();
     parser_rejects_oversize_before_body_allocation();
 }

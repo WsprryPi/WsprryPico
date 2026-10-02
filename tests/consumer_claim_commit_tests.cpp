@@ -19,6 +19,7 @@ constexpr auto request = "33333333333333333333333333333333";
 struct MemoryMedia : provisioning::Media {
     std::array<std::uint8_t, provisioning::profile_media_size> bytes{};
     unsigned writes = 0, fail_at = 0;
+    bool fail_erase = false, write_then_fail = false;
     MemoryMedia() {
         bytes.fill(255);
     }
@@ -29,6 +30,8 @@ struct MemoryMedia : provisioning::Media {
         return true;
     }
     bool erase(std::size_t at) override {
+        if (fail_erase)
+            return false;
         if (at % provisioning::profile_slot_size ||
             at > bytes.size() - provisioning::profile_slot_size)
             return false;
@@ -36,18 +39,19 @@ struct MemoryMedia : provisioning::Media {
         return true;
     }
     bool program(std::size_t at, std::span<const std::uint8_t> page) override {
-        if (++writes == fail_at)
+        const bool failed = ++writes == fail_at;
+        if (failed && !write_then_fail)
             return false;
         for (std::size_t i = 0; i < page.size(); ++i)
             bytes[at + i] &= page[i];
-        return true;
+        return !failed;
     }
 };
 
 struct Platform : provisioning::ConsumerClaimCommitPlatform {
     bool safe = true, station = true, owner = true, tls = true, generation = true;
     bool expire_during_generation = false, lose_station_during_generation = false;
-    bool wrong_generated_hostname = false;
+    bool wrong_generated_hostname = false, lose_time_during_generation = false;
     bool expire_during_write = false;
     unsigned time_reads = 0, tls_generations = 0;
     std::string hostname = "wsprrypico-0a60df.local";
@@ -86,6 +90,8 @@ struct Platform : provisioning::ConsumerClaimCommitPlatform {
         out.server_private_key = out.ca_private_key;
         out.ca_not_after_utc = 2'000'000'000;
         out.server_not_after_utc = 1'900'000'000;
+        if (lose_time_during_generation)
+            utc.reset();
         if (expire_during_generation)
             ms = 90'500;
         if (lose_station_during_generation)
@@ -152,10 +158,6 @@ int main() {
                                                provisioning::RuntimeSource::Unprovisioned, 500)
                .state == provisioning::ConsumerCommitState::Rejected);
     platform.station = true;
-    platform.utc.reset();
-    assert(provisioning::commit_consumer_claim(store, slot, claim, values, platform,
-                                               provisioning::RuntimeSource::Unprovisioned, 500)
-               .state == provisioning::ConsumerCommitState::Rejected);
     platform.utc = 1'800'000'000;
     platform.owner = false;
     assert(provisioning::commit_consumer_claim(store, slot, claim, values, platform,
@@ -218,9 +220,9 @@ int main() {
     assert(updated_profile->locator == "FN20XX");
     assert(updated_profile->callsign == "PJ4/K1ABC");
 
-    // Populated engineering clients survive a station edit. Expired or invalid
-    // reused trust rejects the edit rather than silently generating a new CA.
-    for (unsigned invalid_case = 0; invalid_case < 3; ++invalid_case) {
+    // Populated engineering clients survive station edits even without UTC or
+    // with expired/invalid trust. Activation independently rejects invalid trust.
+    for (unsigned invalid_case = 0; invalid_case < 4; ++invalid_case) {
         MemoryMedia populated_media;
         provisioning::ProfileStore populated_store(populated_media);
         assert(populated_store.load());
@@ -241,21 +243,123 @@ int main() {
         Platform populated_platform;
         if (invalid_case == 2)
             populated_platform.tls = false;
+        if (invalid_case == 3)
+            populated_platform.utc.reset();
         const auto edited = provisioning::commit_consumer_claim(
             populated_store, populated_slot, populated_binding, update_values, populated_platform,
             provisioning::RuntimeSource::ConsumerPreClock, 500);
         assert(populated_platform.tls_generations == 0);
-        if (invalid_case) {
-            assert(edited.state == provisioning::ConsumerCommitState::Rejected);
-            assert(populated_store.sequence() == 1 && populated_store.data() == original);
-        } else {
-            assert(edited.state == provisioning::ConsumerCommitState::Committed);
-            auto after = provisioning::parse_consumer_profile(populated_store.data());
-            assert(after && after->clients == populated.clients && after->tls == populated.tls);
-            assert(provisioning::setup_request_digest(populated_store, device) ==
-                   edited.request_sha256);
-        }
+        assert(edited.state == provisioning::ConsumerCommitState::Committed);
+        auto after = provisioning::parse_consumer_profile(populated_store.data());
+        assert(after && after->clients == populated.clients && after->tls == populated.tls);
+        assert(provisioning::setup_request_digest(populated_store, device) ==
+               edited.request_sha256);
     }
+
+    // First offline save is durable and structurally loadable, but has no TLS authority.
+    MemoryMedia offline_media;
+    provisioning::ProfileStore offline_store(offline_media);
+    assert(offline_store.load());
+    provisioning::ConsumerClaimSlot offline_slot;
+    grant(offline_slot, claim);
+    Platform offline_platform;
+    offline_platform.utc.reset();
+    const auto offline = provisioning::commit_consumer_claim(
+        offline_store, offline_slot, claim, values, offline_platform,
+        provisioning::RuntimeSource::Unprovisioned, 500);
+    assert(offline.state == provisioning::ConsumerCommitState::Committed);
+    auto offline_profile = provisioning::parse_consumer_profile(offline_store.data());
+    assert(offline_profile && offline_profile->tls_pending && offline_profile->clients.empty());
+    assert(offline_profile->tls.ca_certificate.empty() && offline_platform.tls_generations == 0);
+    provisioning::ProfileStore offline_reboot(offline_media);
+    assert(offline_reboot.load() && offline_reboot.data() == offline_store.data());
+    provisioning::RuntimeProfile offline_runtime;
+    assert(offline_runtime.load(offline_reboot, device, provisioning::BuildBundleState::Absent));
+    assert(offline_runtime.source() == provisioning::RuntimeSource::ConsumerPreClock);
+    standalone::Config base;
+    const auto effective = offline_runtime.overlay(base);
+    assert(effective && effective->callsign == values.callsign &&
+           effective->locator == values.locator);
+    assert(offline_runtime.consumer_profile()->tls_pending);
+
+    assert(provisioning::materialize_consumer_tls(offline_reboot, device, offline_platform).state ==
+           provisioning::ConsumerCommitState::Rejected);
+    assert(offline_platform.tls_generations == 0);
+    offline_platform.utc = 1'800'000'000;
+    offline_platform.generation = false;
+    assert(provisioning::materialize_consumer_tls(offline_reboot, device, offline_platform).state ==
+           provisioning::ConsumerCommitState::Rejected);
+    assert(offline_reboot.sequence() == 1);
+    offline_platform.safe = false;
+    assert(provisioning::materialize_consumer_tls(offline_reboot, device, offline_platform).state ==
+           provisioning::ConsumerCommitState::Rejected);
+    offline_platform.safe = true;
+    offline_platform.generation = true;
+    offline_platform.lose_time_during_generation = true;
+    assert(provisioning::materialize_consumer_tls(offline_reboot, device, offline_platform).state ==
+           provisioning::ConsumerCommitState::Rejected);
+    assert(offline_reboot.sequence() == 1);
+    offline_platform.lose_time_during_generation = false;
+    offline_platform.utc = 1'800'000'000;
+    offline_platform.generation = true;
+    const auto ready =
+        provisioning::materialize_consumer_tls(offline_reboot, device, offline_platform);
+    assert(ready.state == provisioning::ConsumerCommitState::Committed && ready.generation == 2 &&
+           ready.request_sha256 == offline.request_sha256);
+    auto ready_profile = provisioning::parse_consumer_profile(offline_reboot.data());
+    assert(ready_profile && !ready_profile->tls_pending &&
+           ready_profile->callsign == values.callsign);
+    assert(provisioning::materialize_consumer_tls(offline_reboot, device, offline_platform).state ==
+           provisioning::ConsumerCommitState::Rejected);
+    // A pending record cannot smuggle existing trust or engineering clients.
+    auto malformed_pending = *offline_profile;
+    malformed_pending.tls.ca_certificate = parsed->tls.ca_certificate;
+    assert(provisioning::serialize_consumer_profile(malformed_pending).empty());
+
+    // Interrupted TLS completion retains the old pending authority after reboot.
+    MemoryMedia completion_cut_media;
+    provisioning::ProfileStore completion_cut(completion_cut_media);
+    assert(completion_cut.load());
+    assert(completion_cut.select(provisioning::ProfileSource::ConsumerProfile,
+                                 provisioning::serialize_consumer_profile(*offline_profile)));
+    completion_cut_media.fail_at = completion_cut_media.writes + 1;
+    assert(provisioning::materialize_consumer_tls(completion_cut, device, offline_platform).state ==
+           provisioning::ConsumerCommitState::Reconcile);
+    provisioning::ProfileStore completion_reboot(completion_cut_media);
+    assert(completion_reboot.load() && completion_reboot.sequence() == 1);
+    assert(provisioning::parse_consumer_profile(completion_reboot.data())->tls_pending);
+    // Exhaust every program boundary for TLS completion, both before and after
+    // the media applies the page. Reboot must select exact old/new authority.
+    for (bool after_write : {false, true}) {
+        bool reached_success = false;
+        for (unsigned cut = 0; cut < 40 && !reached_success; ++cut) {
+            MemoryMedia cut_media;
+            provisioning::ProfileStore cut_store(cut_media);
+            assert(cut_store.load());
+            assert(cut_store.select(provisioning::ProfileSource::ConsumerProfile,
+                                    provisioning::serialize_consumer_profile(*offline_profile)));
+            cut_media.fail_erase = cut == 0;
+            cut_media.fail_at = cut ? cut_media.writes + cut : 0;
+            cut_media.write_then_fail = after_write;
+            const auto result =
+                provisioning::materialize_consumer_tls(cut_store, device, offline_platform);
+            reached_success = result.state == provisioning::ConsumerCommitState::Committed;
+            cut_media.fail_erase = false;
+            provisioning::ProfileStore boot(cut_media);
+            assert(boot.load());
+            auto chosen = provisioning::parse_consumer_profile(boot.data());
+            assert(chosen && chosen->request_sha256 == offline.request_sha256 &&
+                   chosen->callsign == offline_profile->callsign);
+            assert((boot.sequence() == 1 && chosen->tls_pending) ||
+                   (boot.sequence() == 2 && !chosen->tls_pending));
+        }
+        assert(reached_success);
+    }
+    auto pending_text = provisioning::serialize_consumer_profile(*offline_profile);
+    const auto pending_flag = pending_text.find("\"tls_pending\":true");
+    assert(pending_flag != std::string::npos);
+    pending_text.replace(pending_flag, 18, "\"tls_pending\":false");
+    assert(!provisioning::parse_consumer_profile(pending_text));
 
     MemoryMedia network_media;
     provisioning::ProfileStore network_store(network_media);

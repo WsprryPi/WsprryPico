@@ -24,6 +24,10 @@ owner_html, owner_js, owner_key_js = [
 owner_html = owner_html.replace(
     '<link rel="stylesheet" href="./style.css">',
     '<style>' + bootstrap_css + '</style>')
+recovery_html, recovery_js = [(bootstrap_web / name).read_text()
+    for name in ('recovery.html', 'recovery-bundle.js')]
+recovery_html = recovery_html.replace('<link rel="stylesheet" href="./style.css">',
+    '<style>' + bootstrap_css + '</style>')
 # The AP server admits one connection. Stream each setup document with its
 # scripts, rather than letting browser preload requests compete for that slot.
 # Keep the flash literals separate: the station scripts exceed 64 KiB together.
@@ -40,7 +44,8 @@ bootstrap_html = script_document(bootstrap_html, ['<script src="./bundle.js" def
 owner_html = script_document(owner_html, [
     '<script src="./owner-key-bundle.js" defer></script>',
     '<script src="./owner-bundle.js" defer></script>'])
-for script in (bootstrap_js, owner_key_js, owner_js):
+recovery_html = script_document(recovery_html, ['<script src="./recovery-bundle.js" defer></script>'])
+for script in (bootstrap_js, owner_key_js, owner_js, recovery_js):
     if '</script' in script.lower():
         raise ValueError('Setup script contains an HTML closing tag')
 html = html.replace('<link rel="stylesheet" href="/style.css">', '<style>' + css + '</style>')
@@ -50,7 +55,7 @@ hash_for = lambda text: base64.b64encode(hashlib.sha256(text.encode()).digest())
 csp = "default-src 'self'; style-src 'sha256-" + hash_for(css) + "'; script-src 'sha256-" + hash_for(js) + "'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
 bootstrap_policy = ("default-src 'none'; script-src 'self' " +
                     ' '.join("'sha256-" + hash_for(script) + "'"
-                             for script in (bootstrap_js, owner_key_js, owner_js)) + "; "
+                             for script in (bootstrap_js, owner_key_js, owner_js, recovery_js)) + "; "
                     "style-src 'self' 'sha256-" + hash_for(bootstrap_css) + "'; "
                     "connect-src 'self'; img-src 'self' data:; "
                     "frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
@@ -61,6 +66,8 @@ for name, text, marker in [
     ('bootstrap_html', bootstrap_html, 'WPBHTML'),
     ('bootstrap_css', bootstrap_css, 'WPBCSS'),
     ('bootstrap_js', bootstrap_js, 'WPBJS'),
+    ('recovery_html', recovery_html, 'WPRHTML'),
+    ('recovery_js', recovery_js, 'WPRJS'),
     ('owner_html', owner_html, 'WPOHTML'),
     ('owner_js', owner_js, 'WPOJS'),
     ('owner_key_js', owner_key_js, 'WPOKEY'),
@@ -72,6 +79,8 @@ for name, text, marker in [
 source += '''
 constexpr std::string_view bootstrap_parts[] = {
     bootstrap_html, "<script>", bootstrap_js, "</script></body>\\n</html>\\n"};
+constexpr std::string_view recovery_parts[] = {
+    recovery_html, "<script>", recovery_js, "</script></body>\\n</html>\\n"};
 constexpr std::string_view owner_parts[] = {
     owner_html, "<script>", owner_key_js, "</script><script>", owner_js,
     "</script></body>\\n</html>\\n"};
@@ -88,6 +97,8 @@ std::optional<WebAsset> bootstrap_asset(std::string_view path) {
     if (path == "/index.html") return WebAsset{bootstrap_html, "text/html; charset=utf-8", bootstrap_parts};
     if (path == "/style.css") return WebAsset{bootstrap_css, "text/css; charset=utf-8"};
     if (path == "/bundle.js") return WebAsset{bootstrap_js, "text/javascript; charset=utf-8"};
+    if (path == "/recovery.html") return WebAsset{recovery_html, "text/html; charset=utf-8", recovery_parts};
+    if (path == "/recovery-bundle.js") return WebAsset{recovery_js, "text/javascript; charset=utf-8"};
     if (path == "/owner.html") return WebAsset{owner_html, "text/html; charset=utf-8", owner_parts};
     if (path == "/owner-bundle.js") return WebAsset{owner_js, "text/javascript; charset=utf-8"};
     if (path == "/owner-key-bundle.js") return WebAsset{owner_key_js, "text/javascript; charset=utf-8"};

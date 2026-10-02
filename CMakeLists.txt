@@ -39,6 +39,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/bootstrap_web/bundle.js
     src/network/bootstrap_web/owner.html src/network/bootstrap_web/owner-bundle.js
     src/network/bootstrap_web/owner-key-bundle.js
+    src/network/bootstrap_web/recovery.html src/network/bootstrap_web/recovery-bundle.js
     scripts/generate_web_assets.py)
 execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_web_assets.py
     ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
@@ -56,6 +57,7 @@ add_library(wsprrypico_core
     src/provisioning/gatt_framing.cpp
     src/provisioning/local_access.cpp
     src/provisioning/reset.cpp
+    src/provisioning/reset_storage.cpp
     src/provisioning/softap_http.cpp
     src/provisioning/activation.cpp
     src/provisioning/storage.cpp
@@ -284,6 +286,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(provisioning_tests PRIVATE wsprrypico_core)
     target_compile_options(provisioning_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME provisioning_tests COMMAND provisioning_tests)
+    add_executable(reset_storage_tests tests/reset_storage_tests.cpp)
+    target_link_libraries(reset_storage_tests PRIVATE wsprrypico_core)
+    target_compile_options(reset_storage_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME reset_storage_tests COMMAND reset_storage_tests)
     add_executable(field_access_tests tests/field_access_tests.cpp)
     target_link_libraries(field_access_tests PRIVATE wsprrypico_core)
     target_compile_options(field_access_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -335,6 +341,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_compile_options(flash_layout_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME flash_layout_tests COMMAND flash_layout_tests)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME recovery_web_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/src/network/bootstrap_web/recovery-app.test.mjs)
         add_test(NAME provisioning_web_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/provisioning_web_tests.js)
     endif()

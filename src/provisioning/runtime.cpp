@@ -163,6 +163,8 @@ std::string RuntimeProfile::consumer_readback_json() const {
     result += std::to_string(profile.owners.size());
     result += ",\"owner_epoch\":";
     result += wtp::json::quote(std::to_string(profile.owner_epoch));
+    result += ",\"tls_pending\":";
+    result += profile.tls_pending ? "true" : "false";
     result += ",\"request_sha256\":";
     result += wtp::json::quote(profile.request_sha256);
     result += "}";

@@ -1,8 +1,12 @@
 #include "network/pico/bootstrap_server.hpp"
 
-#include "network/bootstrap_http.hpp"
-#ifndef WSPRRY_PICO_STANDALONE_RF
 #include "network/bootstrap_codec.hpp"
+#include "network/bootstrap_http.hpp"
+#include "network/bootstrap_wire.hpp"
+#include "provisioning/access.hpp"
+#include "provisioning/local_access.hpp"
+#include "wtp/json.hpp"
+#ifndef WSPRRY_PICO_STANDALONE_RF
 #include "network/bootstrap_wire.hpp"
 #include "network/owner_claim_http.hpp"
 #include "network/owner_wire.hpp"
@@ -23,12 +27,14 @@
 #include <vector>
 
 namespace wsprrypico::network {
-#ifndef WSPRRY_PICO_STANDALONE_RF
 namespace {
 HttpResponse json(std::string body);
+template <std::size_t N> bool decode_hex(std::string_view, std::array<std::uint8_t, N>&);
+template <std::size_t N> bool decode_b64(std::string_view, std::array<std::uint8_t, N>&);
+#ifndef WSPRRY_PICO_STANDALONE_RF
 void erase(std::array<std::uint8_t, 32>& bytes);
-} // namespace
 #endif
+} // namespace
 
 PicoBootstrapServer::~PicoBootstrapServer() {
     stop();
@@ -149,6 +155,8 @@ void PicoBootstrapServer::dispatch() {
 #endif
     if (parser_.failed())
         response_ = http_error(400, "invalid_http");
+    else if (parser_.request().path.starts_with("/api/recovery/v1/"))
+        response_ = recovery(parser_.request());
 #ifndef WSPRRY_PICO_STANDALONE_RF
     else if (parser_.request().path == "/api/bootstrap/v1/status")
         response_ =
@@ -173,12 +181,13 @@ void PicoBootstrapServer::dispatch() {
         response_ = owner_mutation(parser_.request());
 #endif
     else
-        response_ = bootstrap_http_response(parser_.request(), device_, firmware_
+        response_ = bootstrap_http_response(parser_.request(), device_, firmware_,
 #ifndef WSPRRY_PICO_STANDALONE_RF
-                                            ,
-                                            active_, active_
+                                            active_, active_,
+#else
+                                            false, false,
 #endif
-        );
+                                            active_ && reset_begin_);
     headers_ = response_.wire_headers();
 }
 
@@ -217,6 +226,86 @@ void PicoBootstrapServer::close(bool peer_finished) {
 #endif
 }
 
+HttpResponse PicoBootstrapServer::recovery(const HttpRequest& request) {
+    if (request.path == "/api/recovery/v1/status") {
+        if (request.method != "GET" || request.header("host") != "192.168.4.1")
+            return http_error(400, "invalid_request");
+        return json("{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
+                    ",\"boot_id\":" + wtp::json::quote(recovery_boot_id_) +
+                    ",\"pending\":" + (reset_pending_ ? "true" : "false") + "}");
+    }
+    if (!active_ || !reset_begin_ || reset_pending_ || !recovery_access_ ||
+        recovery_boot_id_.empty() ||
+        recovery_access_->state() == provisioning::AccessStoreState::Fault ||
+        (recovery_access_->record() && recovery_access_->record()->reset.pending()))
+        return http_error(409, "busy");
+    if (request.path == "/api/recovery/v1/start") {
+        const auto parsed = parse_recovery_start(request);
+        if (!parsed || parsed->device_id != device_)
+            return http_error(400, "invalid_request");
+        if (setup_pending())
+            return http_error(409, "busy");
+        std::array<std::uint8_t, 16> id{};
+        if (!recovery_random_ || !recovery_random_->fill(id) || !recovery_crypto_.begin())
+            return http_error(503, "crypto_unavailable");
+        const auto slot = bootstrap_hex(id);
+        if (!recovery_slot_.start({device_, recovery_boot_id_, slot, parsed->browser_public_key,
+                                   parsed->request_nonce},
+                                  time_us_64() / 1000, true, false) ||
+            !recovery_slot_.grant_open_setup(time_us_64() / 1000)) {
+            recovery_crypto_.clear();
+            return http_error(409, "busy");
+        }
+        return json("{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
+                    ",\"boot_id\":" + wtp::json::quote(recovery_boot_id_) +
+                    ",\"slot_id\":" + wtp::json::quote(slot) + ",\"pico_public_key\":" +
+                    wtp::json::quote(bootstrap_b64url(recovery_crypto_.public_key())) +
+                    ",\"slot_expires_in_ms\":180000}");
+    }
+    if (request.path != "/api/recovery/v1/submit")
+        return http_error(404, "not_found");
+    auto parsed = parse_recovery_submit(request);
+    const auto* binding = recovery_slot_.binding();
+    if (!parsed || !binding || parsed->device_id != device_ ||
+        parsed->boot_id != recovery_boot_id_ || parsed->slot_id != binding->slot_id)
+        return http_error(400, "invalid_request");
+    BootstrapTranscriptFields transcript;
+    std::array<std::uint8_t, 12> nonce{};
+    std::array<std::uint8_t, 16> tag{};
+    std::vector<std::uint8_t> ciphertext;
+    if (!decode_hex(device_, transcript.device_id) ||
+        !decode_hex(recovery_boot_id_, transcript.boot_id) ||
+        !decode_hex(parsed->slot_id, transcript.slot_id) ||
+        !decode_hex(binding->request_nonce, transcript.request_nonce) ||
+        !decode_hex(parsed->request_id, transcript.request_id) ||
+        !decode_b64(binding->browser_public_key, transcript.browser_public_key) ||
+        !decode_b64(parsed->aead_nonce, nonce) || !decode_b64(parsed->tag, tag) ||
+        !bootstrap_unb64url(parsed->ciphertext, ciphertext, 9, 22))
+        return http_error(400, "invalid_request");
+    transcript.pico_public_key = recovery_crypto_.public_key();
+    if (!recovery_slot_.consume(device_, recovery_boot_id_, parsed->slot_id, parsed->request_id,
+                                bootstrap_digest(transcript.request_id),
+                                bootstrap_digest(ciphertext), time_us_64() / 1000))
+        return http_error(409, "busy");
+    std::string command;
+    const bool opened = recovery_crypto_.open(transcript, nonce, ciphertext, tag, command);
+    recovery_slot_.cancel();
+    if (!opened)
+        return http_error(400, "invalid_confirmation");
+    const auto level = command == "1:1:erase" ? provisioning::ResetLevel::Full
+                                              : provisioning::ResetLevel::Provisioning;
+    const auto result = reset_begin_(level, wtp::sha256(ciphertext), reset_context_);
+    if (result != provisioning::ResetResult::Pending &&
+        result != provisioning::ResetResult::Complete)
+        return http_error(result == provisioning::ResetResult::Busy ? 409 : 503,
+                          result == provisioning::ResetResult::Busy ||
+                                  result == provisioning::ResetResult::Invalid
+                              ? "reset_not_started"
+                              : "reset_result_unknown");
+    reset_pending_ = true;
+    return json("{\"version\":1,\"state\":\"reset_pending\"}");
+}
+
 void PicoBootstrapServer::stop() {
     close();
     if (listener_) {
@@ -231,6 +320,12 @@ void PicoBootstrapServer::stop() {
 
 void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
     active_ = active;
+    recovery_slot_.expire(time_us_64() / 1000);
+    if (!active_ && !reset_pending_)
+        recovery_slot_.cancel();
+    if (recovery_slot_.state() == BootstrapSlotState::None)
+        recovery_crypto_.clear();
+
 #ifdef WSPRRY_PICO_STANDALONE_RF
     (void)mutation_safe;
 #endif
@@ -286,8 +381,7 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
             end_owner_trial(false, now_ms);
     }
     if (owner_trial_active_ && owner_slot_.state() == provisioning::ConsumerClaimState::Trial &&
-        claim_platform_ && claim_platform_->station_ready(owner_trial_.ssid) &&
-        claim_platform_->trusted_utc_now()) {
+        claim_platform_ && claim_platform_->station_ready(owner_trial_.ssid)) {
         const auto* binding = owner_slot_.binding();
         const auto result = binding && profile_ && runtime_
                                 ? provisioning::commit_consumer_claim(
@@ -464,7 +558,6 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
     }
 }
 
-#ifndef WSPRRY_PICO_STANDALONE_RF
 namespace {
 template <std::size_t N> bool decode_hex(std::string_view text, std::array<std::uint8_t, N>& out) {
     return bootstrap_unhex(text, out);
@@ -479,6 +572,9 @@ template <std::size_t N> bool decode_b64(std::string_view text, std::array<std::
 HttpResponse json(std::string body) {
     return {200, std::move(body), "application/json", {}};
 }
+} // namespace
+#ifndef WSPRRY_PICO_STANDALONE_RF
+namespace {
 std::string_view slot_name(BootstrapSlotState state) {
     switch (state) {
     case BootstrapSlotState::None:
@@ -687,6 +783,18 @@ HttpResponse PicoBootstrapServer::owner_status(bool claim_status) {
         ",\"claim_available\":" + (claim_available ? "true" : "false") +
         ",\"address_ready\":" + (address ? "true" : "false") + ",\"clock_ready\":" +
         (claim_platform_ && claim_platform_->trusted_utc_now() ? "true" : "false");
+    bool tls_ready = false;
+    if (healthy && source == provisioning::ProfileSource::ConsumerProfile && claim_platform_) {
+        auto saved = provisioning::parse_consumer_profile(profile_->data());
+        const auto utc = claim_platform_->trusted_utc_now();
+        tls_ready = saved && !saved->tls_pending && utc &&
+                    claim_platform_->valid_tls(saved->tls, device_, *utc);
+        if (saved)
+            provisioning::scrub(*saved);
+    }
+    body += ",\"tls_ready\":" + std::string(tls_ready ? "true" : "false");
+    body += ",\"readiness\":" +
+            wtp::json::quote(tls_ready ? "ready" : "pending_trustworthy_time_or_tls");
     if (claim_status) {
         const std::string_view request_digest =
             owner_request_digest_.empty() && runtime_ && runtime_->consumer_profile()
@@ -727,6 +835,8 @@ HttpResponse PicoBootstrapServer::owner_status(bool claim_status) {
 }
 
 HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
+    if (reset_pending_ || recovery_slot_.state() != BootstrapSlotState::None)
+        return http_error(409, "busy");
     const auto now_ms = time_us_64() / 1000;
     if (request.path == "/api/owner/v1/identify") {
         const auto parsed = parse_owner_identify(request);
@@ -938,6 +1048,8 @@ void PicoBootstrapServer::end_owner_trial(bool committed, std::uint64_t now_ms) 
 }
 
 HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
+    if (reset_pending_ || recovery_slot_.state() != BootstrapSlotState::None)
+        return http_error(409, "busy");
     const auto now_ms = time_us_64() / 1000;
     if (request.path == "/api/bootstrap/v1/time") {
         const auto parsed = parse_bootstrap_time(request);

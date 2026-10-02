@@ -415,6 +415,7 @@ if(TARGET pico_btstack_ble AND TARGET pico_btstack_cyw43)
     foreach(image WsprryPico WsprryPico-StandaloneRF)
         target_sources(${image} PRIVATE
             ${CMAKE_SOURCE_DIR}/src/network/pico/bootstrap_crypto.cpp
+            ${CMAKE_SOURCE_DIR}/src/network/pico/recovery_crypto.cpp
             ${CMAKE_SOURCE_DIR}/src/network/pico/owner_claim_crypto.cpp
             ${CMAKE_SOURCE_DIR}/src/provisioning/pico/activation_platform.cpp
             ${CMAKE_SOURCE_DIR}/src/provisioning/pico/captive_dns.c

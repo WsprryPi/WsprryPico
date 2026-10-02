@@ -16,7 +16,8 @@ class Journal {
   public:
     Journal(Flash& flash, std::size_t base, std::size_t record_size)
         : flash_(flash), base_(base), size_(record_size) {}
-    bool load();
+    bool load(bool reset_recovery = false);
+    bool purge_history();
     bool append(std::string_view data);
     const std::string& data() const {
         return data_;
@@ -45,9 +46,10 @@ class Journal {
 class Store {
   public:
     explicit Store(Flash& flash) : config_(flash, 0, 2048), cursor_(flash, 8192, 256) {}
-    bool load();
+    bool load(bool reset_recovery = false);
     bool save(const Config& config);
     bool reserve(std::uint64_t utc_ns);
+    bool purge_config_history(Flash& flash);
     const std::optional<Config>& config() const {
         return current_;
     }

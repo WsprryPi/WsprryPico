@@ -69,13 +69,13 @@ bool valid_record(const AccessRecord& record) {
         if (record.bonds[i])
             return false;
     if (record.reset.level > ResetLevel::Full ||
-        record.reset.phase > ResetPhase::BondsCleared ||
+        record.reset.phase > ResetPhase::PreservationComplete ||
         record.reset.target_source > ProfileSource::BuildBundle)
         return false;
     if (!record.reset.pending())
         return record.reset.phase == ResetPhase::None;
     if (record.reset.phase == ResetPhase::None ||
-        record.reset.phase > ResetPhase::BondsCleared)
+        record.reset.phase > ResetPhase::PreservationComplete)
         return false;
     if (record.reset.level == ResetLevel::Access &&
         record.reset.target_source != ProfileSource::Unprovisioned)
@@ -134,7 +134,8 @@ std::optional<AccessRecord> deserialize(std::span<const std::uint8_t> bytes) {
                 record.reset.request_digest.begin());
     record.password.assign(reinterpret_cast<const char*>(bytes.data() + 97), bytes[96]);
     const auto used = 97 + bytes[96];
-    if (!std::all_of(bytes.begin() + used, bytes.end(), [](std::uint8_t value) { return value == 0; }) ||
+    if (!std::all_of(bytes.begin() + used, bytes.end(),
+                     [](std::uint8_t value) { return value == 0; }) ||
         !valid_record(record)) {
         scrub(record);
         return {};
@@ -255,8 +256,7 @@ std::optional<LocalIdentity> derive_local_identity(std::string_view device_id,
         const auto offset = octet * 3;
         const auto high = digit(station_mac[offset]);
         const auto low = digit(station_mac[offset + 1]);
-        if (high > 15 || low > 15 || (octet != bytes.size() - 1 &&
-                                      station_mac[offset + 2] != ':'))
+        if (high > 15 || low > 15 || (octet != bytes.size() - 1 && station_mac[offset + 2] != ':'))
             return {};
         bytes[octet] = static_cast<std::uint8_t>((high << 4) | low);
     }
@@ -306,8 +306,23 @@ bool AccessStore::load() {
     scrub(record_);
     auto first = scan(media_, 0);
     auto second = scan(media_, 1);
-    if (first.state == Candidate::State::Invalid || second.state == Candidate::State::Invalid)
-        return false;
+    if (first.state == Candidate::State::Invalid || second.state == Candidate::State::Invalid) {
+        // A torn alternate-bank phase write must not strand a durable reset.
+        // Admit only the independently verified pending intent, never ordinary
+        // access authority. Production resumes it before opening transports.
+        auto* pending =
+            first.state == Candidate::State::Valid && first.record.reset.pending()     ? &first
+            : second.state == Candidate::State::Valid && second.record.reset.pending() ? &second
+                                                                                       : nullptr;
+        if (!pending)
+            return false;
+        sequence_ = pending->sequence;
+        active_slot_ = pending == &first ? 0 : 1;
+        record_ = pending->record;
+        secure_clear(pending->record.password);
+        state_ = AccessStoreState::Healthy;
+        return true;
+    }
     if (first.state == Candidate::State::Empty && second.state == Candidate::State::Empty) {
         state_ = AccessStoreState::Erased;
         return true;

@@ -99,15 +99,21 @@ bool valid(const ConsumerProfile& profile) {
         !standalone::valid_wifi_credentials(profile.ssid, profile.password, profile.time_server) ||
         !encoding::valid_station_details(profile.callsign, profile.locator, profile.power_dbm) ||
         !lower_hex(profile.request_sha256, 64) || profile.tls.port != 443 || !hostname ||
-        *hostname != profile.tls.hostname ||
-        !pem(profile.tls.ca_certificate, "-----BEGIN CERTIFICATE-----",
-             "-----END CERTIFICATE-----") ||
-        !private_key(profile.tls.ca_private_key) ||
-        !pem(profile.tls.server_certificate, "-----BEGIN CERTIFICATE-----",
-             "-----END CERTIFICATE-----") ||
-        !private_key(profile.tls.server_private_key) || !profile.tls.server_not_after_utc ||
-        profile.tls.server_not_after_utc > profile.tls.ca_not_after_utc ||
-        profile.clients.size() > 4)
+        *hostname != profile.tls.hostname || profile.clients.size() > 4)
+        return false;
+    if (profile.tls_pending) {
+        if (!profile.clients.empty() || !profile.tls.ca_certificate.empty() ||
+            !profile.tls.ca_private_key.empty() || !profile.tls.server_certificate.empty() ||
+            !profile.tls.server_private_key.empty() || profile.tls.ca_not_after_utc ||
+            profile.tls.server_not_after_utc)
+            return false;
+    } else if (!pem(profile.tls.ca_certificate, "-----BEGIN CERTIFICATE-----",
+                    "-----END CERTIFICATE-----") ||
+               !private_key(profile.tls.ca_private_key) ||
+               !pem(profile.tls.server_certificate, "-----BEGIN CERTIFICATE-----",
+                    "-----END CERTIFICATE-----") ||
+               !private_key(profile.tls.server_private_key) || !profile.tls.server_not_after_utc ||
+               profile.tls.server_not_after_utc > profile.tls.ca_not_after_utc)
         return false;
     std::string tls_check;
     append_tls(tls_check, profile.tls);
@@ -154,7 +160,8 @@ void clear(std::string& value) {
 std::string serialize_consumer_profile(const ConsumerProfile& profile) {
     if (!valid(profile))
         return {};
-    std::string out = "{\"version\":1,\"device_id\":";
+    std::string out = profile.tls_pending ? "{\"version\":2,\"tls_pending\":true,\"device_id\":"
+                                          : "{\"version\":1,\"device_id\":";
     out.reserve(max_profile_bytes);
     append_quote(out, profile.device_id);
     out += ",\"owner_epoch\":";
@@ -211,12 +218,18 @@ std::optional<ConsumerProfile> parse_consumer_profile(std::string_view text) {
     if (text.empty() || text.size() > max_profile_bytes)
         return {};
     const auto root = parse(text);
-    if (!root ||
-        !fields(*root, {"version", "device_id", "owner_epoch", "owners", "network", "station",
-                        "tls", "clients", "request_sha256"}) ||
-        root->get("version")->raw != "1")
+    if (!root || !root->get("version"))
+        return {};
+    const bool pending = root->get("version")->raw == "2";
+    if (pending ? (!fields(*root, {"version", "tls_pending", "device_id", "owner_epoch", "owners",
+                                   "network", "station", "tls", "clients", "request_sha256"}) ||
+                   root->get("tls_pending")->raw != "true")
+                : (!fields(*root, {"version", "device_id", "owner_epoch", "owners", "network",
+                                   "station", "tls", "clients", "request_sha256"}) ||
+                   root->get("version")->raw != "1"))
         return {};
     ConsumerProfile out;
+    out.tls_pending = pending;
     std::uint64_t power = 0;
     const auto owners = root->get("owners"), network_value = root->get("network"),
                station = root->get("station"), tls = root->get("tls"),
@@ -239,8 +252,8 @@ std::optional<ConsumerProfile> parse_consumer_profile(std::string_view text) {
         !text_field(*tls, "ca_private_key", out.tls.ca_private_key) ||
         !text_field(*tls, "server_certificate", out.tls.server_certificate) ||
         !text_field(*tls, "server_private_key", out.tls.server_private_key) ||
-        !decimal_field(*tls, "ca_not_after_utc", out.tls.ca_not_after_utc) ||
-        !decimal_field(*tls, "server_not_after_utc", out.tls.server_not_after_utc)) {
+        !decimal_field(*tls, "ca_not_after_utc", out.tls.ca_not_after_utc, !pending) ||
+        !decimal_field(*tls, "server_not_after_utc", out.tls.server_not_after_utc, !pending)) {
         scrub(out);
         return {};
     }
@@ -315,6 +328,7 @@ void scrub(ConsumerProfile& profile) {
     clear(profile.callsign);
     clear(profile.locator);
     profile.power_dbm = 0;
+    profile.tls_pending = false;
     scrub(profile.tls);
     for (auto& client : profile.clients) {
         clear(client.name);

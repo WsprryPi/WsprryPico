@@ -25,7 +25,11 @@ struct BootstrapTimeRequest {
 
 bool bootstrap_mutation_admitted(const HttpRequest& request, std::string_view route);
 std::optional<BootstrapStartRequest> parse_bootstrap_start(const HttpRequest& request);
-std::optional<BootstrapSubmitRequest> parse_bootstrap_submit(const HttpRequest& request);
+std::optional<BootstrapSubmitRequest> parse_bootstrap_submit(const HttpRequest& request,
+                                                             std::size_t minimum_ciphertext = 11,
+                                                             std::size_t maximum_ciphertext = 351);
+std::optional<BootstrapStartRequest> parse_recovery_start(const HttpRequest& request);
+std::optional<BootstrapSubmitRequest> parse_recovery_submit(const HttpRequest& request);
 std::optional<BootstrapAckRequest> parse_bootstrap_ack(const HttpRequest& request);
 std::optional<BootstrapTimeRequest> parse_bootstrap_time(const HttpRequest& request);
 } // namespace wsprrypico::network

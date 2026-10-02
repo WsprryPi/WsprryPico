@@ -17,7 +17,7 @@ bool ResetCoordinator::save(AccessRecord& record, ResetPhase phase) {
 
 ResetResult ResetCoordinator::begin(ResetLevel level, ProfileSource target_source,
                                     const wtp::PayloadDigest& request_digest) {
-    if (!access_.healthy() || !profiles_.healthy())
+    if (!access_.healthy() || (level != ResetLevel::Full && !profiles_.healthy()))
         return ResetResult::StorageFault;
     if (pending())
         return ResetResult::Pending;
@@ -32,6 +32,7 @@ ResetResult ResetCoordinator::begin(ResetLevel level, ProfileSource target_sourc
     record.reset.level = level;
     record.reset.target_source = target_source;
     record.reset.request_digest = request_digest;
+    uncertain_intent_ = true;
     if (!save(record, ResetPhase::Intent)) {
         scrub(record);
         return ResetResult::StorageFault;
@@ -41,7 +42,7 @@ ResetResult ResetCoordinator::begin(ResetLevel level, ProfileSource target_sourc
 }
 
 ResetResult ResetCoordinator::resume() {
-    if (!access_.healthy() || !profiles_.healthy())
+    if (!access_.healthy())
         return ResetResult::StorageFault;
     if (!pending())
         return ResetResult::Complete;
@@ -50,8 +51,18 @@ ResetResult ResetCoordinator::resume() {
     auto record = *access_.record();
     const auto level = record.reset.level;
     if (record.reset.phase == ResetPhase::Intent) {
+        if (level == ResetLevel::Provisioning && !targets_.preserve_operational(profiles_)) {
+            scrub(record);
+            return ResetResult::TargetFault;
+        }
+        if (!save(record, ResetPhase::PreservationComplete)) {
+            scrub(record);
+            return ResetResult::StorageFault;
+        }
+    }
+    if (record.reset.phase == ResetPhase::PreservationComplete) {
         if (level != ResetLevel::Access &&
-            !profiles_.select(record.reset.target_source)) {
+            !targets_.clear_profile(profiles_, record.reset.target_source)) {
             scrub(record);
             return ResetResult::StorageFault;
         }
@@ -68,7 +79,7 @@ ResetResult ResetCoordinator::resume() {
         ++record.epoch;
         record.password.assign(identity_.default_password);
         record.default_password = true;
-        record.field_mode = level != ResetLevel::Full;
+        record.field_mode = level == ResetLevel::Access;
         record.ble_disabled = false;
         record.bonds.fill(0);
         record.bond_count = 0;
@@ -110,6 +121,7 @@ ResetResult ResetCoordinator::resume() {
         scrub(record);
         return ResetResult::StorageFault;
     }
+    uncertain_intent_ = false;
     scrub(record);
     return ResetResult::Complete;
 }

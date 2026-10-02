@@ -18,6 +18,7 @@ class PicoBondStore final : public BondStore {
     static std::uint64_t identity(int index);
     bool erase(std::uint64_t peer) override;
     bool erase_all() override;
+    bool erase_reset_storage();
 };
 
 class PicoIndicatorOutput final : public IndicatorOutput {

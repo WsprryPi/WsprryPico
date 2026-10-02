@@ -82,6 +82,13 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     target_compile_options(bootstrap_crypto_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME bootstrap_crypto_tests COMMAND bootstrap_crypto_tests
         ${CMAKE_SOURCE_DIR}/docs/protocol/WiFi-Bootstrap-v1-vectors.json)
+    add_executable(recovery_crypto_tests tests/recovery_crypto_tests.cpp
+        src/network/pico/recovery_crypto.cpp src/network/pico/psa_lifetime.cpp)
+    target_compile_definitions(recovery_crypto_tests PRIVATE
+        MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}" WSPRRY_PICO_RECOVERY_CRYPTO_TEST=1)
+    target_link_libraries(recovery_crypto_tests PRIVATE wsprrypico_core mbedcrypto)
+    target_compile_options(recovery_crypto_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME recovery_crypto_tests COMMAND recovery_crypto_tests)
     add_executable(owner_claim_crypto_tests tests/owner_claim_crypto_tests.cpp
         src/network/pico/owner_claim_crypto.cpp src/network/pico/psa_lifetime.cpp)
     target_compile_definitions(owner_claim_crypto_tests PRIVATE

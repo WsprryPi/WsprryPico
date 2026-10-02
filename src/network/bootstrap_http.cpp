@@ -5,8 +5,8 @@
 
 namespace wsprrypico::network {
 HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_view device,
-                                     std::string_view firmware, bool setup_enabled,
-                                     bool owner_page) {
+                                     std::string_view firmware, bool setup_enabled, bool owner_page,
+                                     bool recovery_page) {
     if (request.method != "GET")
         return http_error(405, "read_only");
     if (request.header("host") != "192.168.4.1") {
@@ -25,6 +25,8 @@ HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_vie
                             {}};
     if (((setup_enabled || owner_page) && request.path == "/index.html") ||
         (owner_page && request.path == "/owner.html") ||
+        (recovery_page &&
+         (request.path == "/recovery.html" || request.path == "/recovery-bundle.js")) ||
         ((setup_enabled || owner_page) && request.path == "/") || request.path == "/style.css" ||
         request.path == "/bundle.js" ||
         (owner_page &&

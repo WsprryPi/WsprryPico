@@ -31,13 +31,14 @@ bool erased(std::span<const std::uint8_t> bytes) {
     return std::all_of(bytes.begin(), bytes.end(), [](auto byte) { return byte == 255; });
 }
 } // namespace
-bool Journal::load() {
+bool Journal::load(bool reset_recovery) {
     healthy_ = false;
     sequence_ = 0;
     data_.clear();
     if ((size_ != 256 && size_ != 2048) || base_ % 4096 || base_ > 8192)
         return false;
     std::vector<std::uint8_t> record(size_);
+    bool ignored_torn_record = false;
     for (std::size_t offset = 0; offset < 8192; offset += size_) {
         if (!flash_.read(base_ + offset, record))
             return false;
@@ -48,8 +49,13 @@ bool Journal::load() {
         const auto seq = get(bytes.subspan(8, 8)), length = get(bytes.subspan(16, 4));
         const bool valid = get(bytes.first(8)) == 0x32524f5453505757ULL && seq > 0 &&
                            length <= size_ - 64 && get(bytes.last(4)) == checksum;
-        if (!valid)
-            return false; // Never resurrect an older enabled config or replay an ambiguous slot.
+        if (!valid) {
+            if (reset_recovery) {
+                ignored_torn_record = true;
+                continue;
+            }
+            return false;
+        } // Never resurrect an older enabled config or replay an ambiguous slot.
         if (seq == sequence_)
             return false;
         if (seq > sequence_) {
@@ -58,6 +64,8 @@ bool Journal::load() {
             data_.assign(reinterpret_cast<const char*>(record.data() + 32), length);
         }
     }
+    if (ignored_torn_record && sequence_ == 0)
+        return false;
     healthy_ = true;
     return true;
 }
@@ -108,11 +116,11 @@ bool Journal::append(std::string_view data) {
     data_ = data;
     return true;
 }
-bool Store::load() {
+bool Store::load(bool reset_recovery) {
     healthy_ = false;
     current_.reset();
     watermark_ = 0;
-    if (!config_.load() || !cursor_.load())
+    if (!config_.load(reset_recovery) || !cursor_.load())
         return false;
     if (!config_.data().empty()) {
         current_ = parse_config(config_.data());
@@ -149,5 +157,45 @@ bool Store::reserve(std::uint64_t utc_ns) {
     }
     watermark_ = utc_ns;
     return true;
+}
+} // namespace wsprrypico::standalone
+
+namespace wsprrypico::standalone {
+bool Journal::purge_history() {
+    if (!healthy_ || !sequence_ || sequence_ == std::numeric_limits<std::uint64_t>::max())
+        return false;
+    const auto original_bank = latest_ / 4096;
+    const auto offset = (1 - original_bank) * 4096;
+    if (!flash_.erase(base_ + offset))
+        return false;
+    std::vector<std::uint8_t> record(size_, 255);
+    auto bytes = std::span(record);
+    put(bytes.first(8), 0x32524f5453505757ULL);
+    put(bytes.subspan(8, 8), sequence_ + 1);
+    put(bytes.subspan(16, 4), data_.size());
+    std::copy(data_.begin(), data_.end(), record.begin() + 32);
+    put(bytes.last(4), crc32(bytes.first(size_ - 4)));
+    for (std::size_t page = 0; page < size_; page += 256)
+        if (!flash_.program(base_ + offset + page, bytes.subspan(page, 256)))
+            return false;
+    std::vector<std::uint8_t> verified(size_);
+    if (!flash_.read(base_ + offset, verified) || verified != record)
+        return false;
+    latest_ = offset;
+    ++sequence_;
+    if (!flash_.erase(base_ + original_bank * 4096))
+        return false;
+    std::array<std::uint8_t, 256> erased_page{};
+    for (std::size_t page = 0; page < 4096; page += erased_page.size())
+        if (!flash_.read(base_ + original_bank * 4096 + page, erased_page) || !erased(erased_page))
+            return false;
+    return load();
+}
+bool Store::purge_config_history(Flash&) {
+    if (!healthy_ || !current_ || !config_.purge_history()) {
+        healthy_ = false;
+        return false;
+    }
+    return load();
 }
 } // namespace wsprrypico::standalone
