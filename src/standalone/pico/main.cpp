@@ -451,6 +451,11 @@ int main() {
     softap_coordinator.blank_profile(runtime_profile.source() ==
                                      wsprrypico::provisioning::RuntimeSource::Unprovisioned);
     softap_coordinator.recovery(boot_recovery);
+#ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
+    // Test-only, RF-inhibited access window. Consumer USB field commands remain
+    // unavailable; the unattended recovery observer uses the ordinary AP API.
+    (void)softap_coordinator.request_join_grace(time_us_64() / 1000ULL);
+#endif
     static wsprrypico::provisioning::PicoSoftAp softap;
     std::optional<wsprrypico::standalone::Config> runtime_network_config;
     if (store_loaded && store.config())
@@ -741,6 +746,7 @@ int main() {
 #ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
             number_field(result, "phase12_fault_stage",
                          wsprrypico::provisioning::phase12_fault_stage(), true);
+            result += ",\"phase12_boot_ap_window_ms\":120000";
             result += ",\"phase12_fault_consumed\":";
             result += wsprrypico::provisioning::phase12_fault_consumed() ? "true" : "false";
 #endif

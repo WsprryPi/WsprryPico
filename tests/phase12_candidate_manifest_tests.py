@@ -28,6 +28,7 @@ class ManifestTests(unittest.TestCase):
                  'gp14': role in ('consumer', 'rf_ap'), 'lan_mode': 'tls' if role == 'engineering' else 'plain',
                  'fault_stage': stage, 'session_deadline_fixture': role == 'session_deadline'}
             payload = b'0.0.0-devel\0' + COMMIT[:12].encode() + b'\0'
+            if stage: payload += b'phase12_boot_ap_window_ms'
             elf = bytearray(84 + len(payload))
             elf[:7] = b'\x7fELF\x01\x01\x01'
             struct.pack_into('<H', elf, 18, 40)
@@ -83,6 +84,13 @@ class ManifestTests(unittest.TestCase):
 
     def test_complete_set(self):
         self.assertEqual(self.run_verify()['candidates'], 15)
+
+    def test_recovery_subset_is_exact_and_ap_fixture_bound(self):
+        self.data['schema']=manifest.RECOVERY_SCHEMA
+        self.data['candidates']=[c for c in self.data['candidates'] if c['role'] in manifest.RECOVERY_ROLES]
+        self.assertEqual(self.run_verify()['candidates'],11)
+        self.data['candidates'][0]['role']='rf_ap'
+        with self.assertRaises(ValueError):self.run_verify()
 
     def test_dirty_identity_rejected(self):
         self.data['candidates'][0]['revision'] += '-dirty'

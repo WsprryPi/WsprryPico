@@ -11,6 +11,8 @@ import struct
 from check_standalone_image import validate_uf2
 
 SCHEMA = 'phase12-candidates/1'
+RECOVERY_SCHEMA = 'phase12-recovery-candidates/1'
+RECOVERY_ROLES = {'restore', *('fault_%d' % n for n in range(1, 11))}
 ROLES = {'restore', 'consumer', 'engineering', 'rf_ap', 'session_deadline',
          *('fault_%d' % n for n in range(1, 11))}
 
@@ -146,12 +148,13 @@ def verify(m, root, inspector=inspect_binary):
     root = Path(root).resolve()
     require(set(m) == {'schema', 'source_commit', 'sdk_commit', 'toolchain',
                        'authority', 'candidates'}, 'manifest fields')
-    require(m['schema'] == SCHEMA and m['authority'] == 'NONE_PREPARATION_ONLY', 'schema/authority')
+    require(m['schema'] in (SCHEMA,RECOVERY_SCHEMA) and m['authority'] == 'NONE_PREPARATION_ONLY', 'schema/authority')
+    roles = ROLES if m['schema'] == SCHEMA else RECOVERY_ROLES
     require(isinstance(m['source_commit'], str) and re.fullmatch('[0-9a-f]{40}', m['source_commit']),
             'exact source commit')
     require(m['sdk_commit'] == '079c6f39023649b154152db30f1d781e884879bc' and
             m['toolchain'] == 'GNU Arm 15.3.1', 'pinned build inputs')
-    require(isinstance(m['candidates'], list) and len(m['candidates']) == len(ROLES),
+    require(isinstance(m['candidates'], list) and len(m['candidates']) == len(roles),
             'complete finite candidate set')
     seen = set()
     for c in m['candidates']:
@@ -159,7 +162,7 @@ def verify(m, root, inspector=inspect_binary):
                            'session_deadline_fixture', 'elf', 'uf2', 'map', 'symbols',
                            'build_identity', 'compile_commands'}, 'candidate fields')
         role = c['role']
-        require(role in ROLES and role not in seen, 'unknown/duplicate role')
+        require(role in roles and role not in seen, 'unknown/duplicate role')
         seen.add(role)
         require(c['firmware'] == '0.0.0-devel' and c['revision'] == m['source_commit'][:12],
                 'separate clean firmware/revision identity')
@@ -194,6 +197,9 @@ def verify(m, root, inspector=inspect_binary):
         binary = elf.read_bytes()
         require((c['revision'] + '\0').encode() in binary and
                 (c['firmware'] + '\0').encode() in binary, 'identity absent from ELF')
+        if m['schema'] == RECOVERY_SCHEMA:
+            require((b'phase12_boot_ap_window_ms' in binary) == bool(expected_stage),
+                    'bounded fixture AP window separation')
         require(('wsprrypico::rf::start_worker(' in symbols) == (role == 'rf_ap'), 'RF worker separation')
         require(('DryRunEngine' in symbols) == (role != 'rf_ap'), 'inhibited engine separation')
         require(('PicoGp14Capture' in symbols) == c['gp14'], 'GP14 separation')
@@ -211,7 +217,7 @@ def verify(m, root, inspector=inspect_binary):
                 r'\bbl\s+[^\n]*<wsprrypico::provisioning::phase12_profile_programmed\(', adapter[1]),
                 'profile adapter has no linked hook call')
         require('bootsel_read' not in symbols.lower(), 'runtime BOOTSEL absent')
-    require(seen == ROLES, 'missing candidates')
+    require(seen == roles, 'missing candidates')
     return {'status': 'VERIFIED_PREPARATION_ONLY', 'source_commit': m['source_commit'],
             'candidates': len(seen), 'hardware_accessed': False, 'physical_acceptance': False}
 
