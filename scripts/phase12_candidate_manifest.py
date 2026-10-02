@@ -97,7 +97,7 @@ def inspect_binary(elf):
     def run(tool, args):
         result = subprocess.run([tool, *args, str(elf)], capture_output=True,
                                 text=True, timeout=30, check=True)
-        require(len(result.stdout) <= 16 * 1024 * 1024, 'tool output too large')
+        require(len(result.stdout) <= 64 * 1024 * 1024, 'tool output too large')
         return result.stdout
     return run('arm-none-eabi-nm', ['-C']), run('arm-none-eabi-objdump', ['-d', '-C'])
 
@@ -178,7 +178,7 @@ def verify(m, root, inspector=inspect_binary):
         symbols_path = artifact(root, c['symbols'])
         symbols, assembly = inspector(elf)
         require(symbols_path.read_text() == symbols, 'symbols differ from hashed ELF')
-        verify_compile(c, read_json(artifact(root, c['compile_commands']), 16 * 1024 * 1024))
+        verify_compile(c, read_json(artifact(root, c['compile_commands']), 32 * 1024 * 1024))
         identity = artifact(root, c['build_identity']).read_text()
         require(elf.read_bytes().startswith(b'\x7fELF'), 'ELF magic')
         validate_uf2(uf2.read_bytes())

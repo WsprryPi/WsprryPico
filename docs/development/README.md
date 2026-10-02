@@ -535,3 +535,13 @@ wspr5 GPIO4 tone/QRSS comparison with documented signal-quality criteria.
 The [connectivity, memory and remote settings record](connectivity-memory-remote-settings.md)
 tracks sandbox-separated observations, USB network-pool diagnostics, DNS time
 servers and authenticated browser restart acceptance.
+
+### Phase 12 test preparation
+
+The [test-preparation prompt](phase12-test-preparation-prompt.md),
+[review](phase12-test-preparation-review.md),
+[candidate manifest](phase12-test-preparation-candidates.json) and
+[proposed hardware packet](phase12-test-preparation-packet.md) prepare bounded
+follow-up tests without device access. See [composition tools](phase12-composition-preparation.md)
+and [inhibited fault fixtures](phase12-fault-fixtures.md). Neither offline passes
+nor candidate builds close physical Phase 12 gates.

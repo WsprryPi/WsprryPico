@@ -63,8 +63,10 @@ between baseline and final samples. Retain raw INFO throughout; independent
 carrier observers must record exact HELLO/device/boot, framing, selected wire
 mode and principal identity. INFO alone cannot prove these assertions.
 
-After the warmed baseline, execute each bounded pressure case exactly once
-within the approved two-hour window (minutes 0–20 and 40–100):
+After the warmed baseline, execute cases1–5 exactly once within the approved
+two-hour window (minutes0–20 and40–100). Case6 associates previously collected
+fixture evidence offline; it is not a flash action inside this unchanged-image
+soak and does not prove same-composition flash serialization:
 
 1. Maximum sessions: reach the actual declared capacities (network two,
    retained SoftAP four, BLE one where exposed), then exactly one excess
@@ -82,10 +84,14 @@ within the approved two-hour window (minutes 0–20 and 40–100):
 5. Provisioning close: one explicitly approved temporary setup transaction,
    cancelled before durable save, with transient keys/buffers scrubbed. This
    is not approval for credentials changes or destructive reset.
-6. Flash serialization: retain proof from the separately named inhibited fault
-   fixture's finite approved stages. The soak observer generates zero flash
-   loops. Zero journal failures are required in the ordinary production soak;
-   intentional fault outcomes belong exclusively in the fixture ledger.
+6. Associated flash evidence: retain proof from the separately named inhibited
+   fault fixture's finite approved stages. The `flash_serialization` metadata
+   key is an association, not a completed same-composition assertion. Do not
+   reboot or substitute that image during the soak. The observer generates zero
+   flash loops; zero journal failures are required in the ordinary soak. Actual simultaneous ordinary-carrier/flash serialization uses the separate
+   bounded case below, with its own approval and boot chain. Acceptance remains
+   pending even when the prior fixture artifact is associated.
+
 
 During the two hours, place directed composition interactions in minutes
 0–20 and 40–100. Reserve minutes 20–36 for sixteen uninterrupted minutes of
@@ -198,3 +204,49 @@ exact INFO records into a new `composition-info` directory, derives metrics
 and final authority from actual INFO, audits those files and writes a new
 private evidence file. Failed normalization retains diagnostic artifacts and
 must not be silently rerun over them; the reviewer records failure disposition.
+
+## Separate ordinary-image flash/concurrency case
+
+This is prepared separately from the unchanged-boot two-hour soak. Admit at
+most one case per ordinary composition, ten minutes each, exactly one station
+metadata save, zero retries, zero RF and zero automated flash loops. Approval
+names the exact consumer/engineering candidate, existing intended profile and
+one temporary valid station-field change (for example a different legal
+`station.power_dbm` message value). It is WSPR message metadata, not output drive.
+The complete encrypted request and original profile remain private.
+
+Start empty/unowned/inactive, scheduling disabled, healthy storage and no pending
+TLS materialization/reset. Record the selected journal digest/generation, boot ID, adapter
+read/erase/program attempt/failure counters and resource baseline. Establish
+the selected composition's authenticated clients. Consumer uses USB/Plain LAN;
+engineering uses USB/BLE/TLS-WTP/HTTPS with the current intended trust. Each
+principal issues at most twenty supported STATUS requests during the single
+approved device-served station save, at least100 ms apart. No LOAD/ARM/RUN,
+Identify, credential deployment, reset or network change occurs concurrently.
+Consumer: use the ordinary encrypted portal station save, retain its request
+digest and verify the profile journal. Engineering: FactoryProfile/Provisioned
+profiles cannot use the consumer-claimable portal. Use authenticated HTTPS
+GET `/api/v1/config`, retain ETag, then one PUT `/api/v1/config` with If-Match
+and valid CSRF/session authentication. Replace the complete validated config
+with only the approved station metadata changed; null redacted passwords preserve
+the stored value. This writes the operational config journal, not profile TLS/
+trust. Retain operational generation/digest and require profile/trust unchanged.
+Never introduce a raw flash command or repeat POST/PUT after an uncertain reply.
+
+Observe bounded replies or explicit disconnect while the selected real journal
+programs. A reboot/activation is allowed only if it is the recorded normal
+save outcome: retain before/after boot chain and reestablish clients under the
+new HELLO identity, without claiming same-boot soak continuity. Verify exactly
+one durable selected metadata update in the selected journal, unchanged network/
+trust/clients, all unrelated profile/operational fields and E10, no new flash adapter failure/allocation/guard/pool error, no
+job/output/owner, and used resources returning to baseline within predeclared
+tolerances after all clients disconnect. Counter increments alone cannot prove
+concurrency: wire timestamps must overlap the independently observed save/flash
+interval. If that interval cannot be established independently, mark the overlap
+assertion unmeasured and retain the case as inconclusive, without retry.
+
+Restore the original intended metadata via the separately approved restoration
+procedure and verify exact readback. Do not count restoration as another pressure
+trial. The ordinary soak begins later with its own fresh baseline and boot ID.
+This case exercises actual supported save/service interaction; it does not prove
+GP14 edges coincide with physical erase/program pulses.

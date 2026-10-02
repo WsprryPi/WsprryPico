@@ -1,0 +1,10 @@
+{
+  "schema": "phase12-observer-approval/1",
+  "approved": false,
+  "operation": "composition-info-only",
+  "plan_sha256": "REPLACE_WITH_APPROVED_CANONICAL_PLAN_SHA256",
+  "source_commit": "62fbe96df47d18e35c756c278e8cc087b47123e0",
+  "image_sha256": "REPLACE_WITH_EXACT_APPROVED_MANIFEST_UF2_SHA256",
+  "console": "REPLACE_WITH_VERIFIED_B_USB_BY_ID_CONSOLE",
+  "expires_utc": "REPLACE_WITH_EXPLICITLY_APPROVED_TIMEZONE_AWARE_FULL_RUN_EXPIRY"
+}
