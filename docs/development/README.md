@@ -545,3 +545,18 @@ The [test-preparation prompt](phase12-test-preparation-prompt.md),
 follow-up tests without device access. See [composition tools](phase12-composition-preparation.md)
 and [inhibited fault fixtures](phase12-fault-fixtures.md). Neither offline passes
 nor candidate builds close physical Phase 12 gates.
+
+### Phase 12 unattended recovery campaign
+
+The [execution prompt](phase12-recovery-orchestration-prompt.md) and
+[recovery-only candidate manifest](phase12-recovery-candidates.json) define a
+Candidate B campaign with fourteen reset checkpoints and three profile-page
+interruptions. `scripts/phase12_recovery_orchestrator.py` defaults to offline
+verification; `--run` enables the explicitly authorized inhibited campaign.
+`--run --recover-existing` restores a retained backup without resuming destructive
+cases. An exact-three-case `phase12-profile-continuation/1` plan can use
+`--completed-reset-campaign` only with hashed, restored and reassessed fourteen-case
+reset evidence. Raw backups and credentials stay under ignored, private `build/` paths.
+The [campaign review](phase12-recovery-orchestration-review.md) records actual
+execution, restoration and coverage limits. Production button/AP activation,
+arbitrary power cuts and RF acceptance remain separate gates.

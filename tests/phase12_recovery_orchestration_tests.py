@@ -26,11 +26,17 @@ def inspection():
     return dict(profile_healthy=True,access_loaded=True,access_state=2,operational_healthy=True,profile_source=5,profile_sequence=5,profile_sha256='a'*64,profile_payload=json.dumps(dict(tls_pending=False)),epoch=1,reset_level=0,reset_phase=0,bond_count=0,default_password=True,effective_station=dict(callsign='K1ABC',locator='FN20',power_dbm=30),config=None,watermark=0)
 
 
+def reset_flash():
+    data=bytearray(b'\xff'*r.SIZE)
+    data[0x3f7000:0x3fb000]=r.cleared_profile_journal()
+    return bytes(data)
+
+
 class Fake:
     def __init__(self,root,fail=None): self.root=Path(root);self.fail=fail;self.submissions=0;self.restores=0;self.stage=0
     def setup(self): return info()
     def snapshot(self,name):
-        data=b'\xff'*r.SIZE;(self.root/name).write_bytes(data)
+        data=reset_flash();(self.root/name).write_bytes(data)
         value=inspection()
         if self.fail=='pass' and name.endswith('.after.bin'):
             if self.case['kind']=='reset': value.update(profile_source=2,profile_payload='',epoch=2)
@@ -57,7 +63,7 @@ class Tests(unittest.TestCase):
     def test_all_seventeen_unique_cases_and_restoration(self):
         with tempfile.TemporaryDirectory() as d:
             b=Fake(d,'pass');out=r.campaign(plan(),MANIFEST,d,b)
-            self.assertEqual(out['status'],'PASS_NAMED_SCOPE');self.assertEqual(b.submissions,17);self.assertEqual(len({x['case'] for x in out['cases']}),17);self.assertEqual(b.restores,19)
+            self.assertEqual(out['status'],'PASS_NAMED_SCOPE');self.assertFalse(out['physical_acceptance']);self.assertFalse(out['hardware_accessed']);self.assertEqual(b.submissions,17);self.assertEqual(len({x['case'] for x in out['cases']}),17);self.assertEqual(b.restores,19)
             r.Ledger(Path(d)/'ledger.jsonl')
     def test_recovery_only_refuses_missing_and_changed_backup(self):
         with tempfile.TemporaryDirectory() as d:
@@ -103,15 +109,21 @@ class Tests(unittest.TestCase):
             self.assertIn('error',out['restoration']);self.assertFalse(out['physical_acceptance'])
     def test_e10_and_full_erase_validation(self):
         before=inspection();after=inspection();after.update(profile_source=2,profile_payload='',epoch=2)
-        data=b'\xff'*r.SIZE
+        data=reset_flash()
         r.assess(dict(kind='reset',level='full'),before,after,data,data,{})
         changed=bytearray(data);changed[r.E10]=0
         with self.assertRaisesRegex(ValueError,'E10'): r.assess(dict(kind='reset',level='full'),before,after,data,changed,{})
         changed=bytearray(data);changed[0x3fb000]=0
         with self.assertRaisesRegex(ValueError,'erase'): r.assess(dict(kind='reset',level='full'),before,after,data,changed,{})
+    def test_reset_rejects_secret_in_inactive_profile_bank(self):
+        before=inspection();after=inspection();after.update(profile_source=2,profile_payload='',epoch=2)
+        raw=bytearray(reset_flash());raw[0x3f9100]=42
+        with self.assertRaisesRegex(ValueError,'profile banks'):
+            r.assess(dict(kind='reset',level='full'),before,after,reset_flash(),raw,{})
+
     def test_preservation_compares_effective_station(self):
         before=inspection();after=inspection();after.update(profile_source=2,profile_payload='',epoch=2,effective_station=dict(callsign='K2ABC',locator='FN20',power_dbm=30))
-        with self.assertRaisesRegex(ValueError,'preserved'): r.assess(dict(kind='reset',level='provisioning'),before,after,b'\xff'*r.SIZE,b'\xff'*r.SIZE,{})
+        with self.assertRaisesRegex(ValueError,'preserved'): r.assess(dict(kind='reset',level='provisioning'),before,after,reset_flash(),reset_flash(),{})
     def test_resource_faults_close_authority(self):
         for key in ('allocator_failures','tls_allocation_failures','core0_stack_fault_status','fault_stage','flash_program_failures'):
             value=info();value[key]=1
@@ -133,18 +145,31 @@ class Tests(unittest.TestCase):
         before=inspection();after=inspection();after.update(profile_source=2,profile_payload='',epoch=2)
         raw=bytearray(b'\xff'*r.SIZE);raw[0x3f5080]=0
         with self.assertRaisesRegex(ValueError,'BLE'):r.assess(dict(kind='reset',level='full'),before,after,b'\xff'*r.SIZE,raw,{})
+    def test_fresh_local_btstack_keys_are_not_peer_bonds(self):
+        import struct
+        def bank(value):
+            records=b''.join(struct.pack('>II',tag,16)+bytes([value])*16 for tag in (0x534d4552,0x534d4952))
+            return b'BTstack\0'+records+b'\xff'*(4096-8-len(records))+b'\xff'*4096
+        self.assertTrue(r.empty_bond_bank(bank(1)))
+        peer=bytearray(bank(1));peer[8:12]=struct.pack('>I',0x42544400)
+        self.assertFalse(r.empty_bond_bank(peer))
+        before=inspection();after=inspection();after.update(profile_source=2,profile_payload='',epoch=2)
+        old=bytearray(reset_flash());old[0x3f5000:0x3f7000]=bank(1)
+        new=bytearray(old);new[0x3f5000:0x3f7000]=bank(2)
+        r.assess(dict(kind='reset',level='full'),before,after,old,new,{})
+        with self.assertRaisesRegex(ValueError,'local BLE'):r.assess(dict(kind='reset',level='full'),before,after,old,old,{})
     def test_provisioning_preserves_complete_config(self):
         before=inspection();before['config']=dict(version=1,enabled=False,station=before['effective_station'],wifi=dict(ssid='old',password='secret',ntp_ipv4='old'),schedules=[dict(period_s=120,phase_s=0)],expires_utc_s=1000)
         after=copy.deepcopy(before);after.update(profile_source=2,profile_payload='',epoch=2)
         after['config']['wifi']=dict(ssid='',password='',ntp_ipv4='pool.ntp.org')
-        raw=b'\xff'*r.SIZE
+        raw=reset_flash()
         r.assess(dict(kind='reset',level='provisioning'),before,after,raw,raw,{})
         after['config']['expires_utc_s']=1001
         with self.assertRaisesRegex(ValueError,'configuration'):r.assess(dict(kind='reset',level='provisioning'),before,after,raw,raw,{})
     def test_profile_commit_rejects_foreign_digest(self):
         before=inspection();after=copy.deepcopy(before);after.update(profile_sequence=6,profile_payload=json.dumps(dict(request_sha256='f'*64)))
         with self.assertRaisesRegex(ValueError,'digest'):r.assess(dict(kind='profile',stage=10),before,after,b'\xff'*r.SIZE,b'\xff'*r.SIZE,dict(expected_digest='e'*64))
-    def test_reboot_exhaustion_stops_without_repeat(self):
+    def test_cold_rearming_stops_without_repeat(self):
         with tempfile.TemporaryDirectory() as d:
             b=Fake(d);counter=[0]
             def rebooting():
@@ -152,7 +177,11 @@ class Tests(unittest.TestCase):
                 return info(b.stage,False,f'{counter[0]:032x}')
             b.info=rebooting
             out=r.campaign(plan(),MANIFEST,d,b,sleeper=lambda x:None)
-            self.assertIn('reboot budget',out['error']['message']);self.assertEqual(b.submissions,1);self.assertEqual(b.restores,2)
+            self.assertIn('cold rearming',out['error']['message']);self.assertEqual(b.submissions,1);self.assertEqual(b.restores,2)
+    def test_reboot_bound_with_consumed_fixture(self):
+        boots={'a'*32,'b'*32,'c'*32,'d'*32}
+        with self.assertRaisesRegex(ValueError,'reboot budget'):
+            r.observe_boot(boots,info(1,True,'e'*32),'a'*32,2)
     def test_failed_backup_barrier_prevents_all_writes(self):
         with tempfile.TemporaryDirectory() as d:
             b=Fake(d)
@@ -194,6 +223,40 @@ class Tests(unittest.TestCase):
             if key=='device_id':bad[key]='f'*32
             else:bad[key]['output_active']=True
             with self.assertRaises(ValueError):device.healthy(bad,allow_fault=True,repair=True)
+    def test_ap_suffix_rejects_shell_metacharacters(self):
+        self.assertEqual(r.ap_ssid('abc123'),'WsprryPico-abc123')
+        for value in ('abc123;id','$(id)','ABC123','abc12',None):
+            with self.assertRaisesRegex(ValueError,'suffix'):r.ap_ssid(value)
+    def test_profile_http_uses_owner_marker(self):
+        import phase12_recovery_device as device
+        from unittest.mock import MagicMock,patch
+        for route,marker in (('/api/owner/v1/claim/start',b'Owner'),('/api/recovery/v1/start',b'Bootstrap')):
+            sock=MagicMock();sock.__enter__.return_value=sock
+            sock.recv.return_value=b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}'
+            with patch.object(device.socket,'socket',return_value=sock):device.http('wlan2',route,{})
+            sent=sock.sendall.call_args.args[0]
+            self.assertIn(b'X-WsprryPico-'+marker+b': 1',sent)
+            self.assertNotIn(b'X-WsprryPico-'+(b'Bootstrap' if marker==b'Owner' else b'Owner')+b':',sent)
+    def test_continuation_requires_exact_three_cases_and_bound_evidence(self):
+        p=plan();p.update(schema='phase12-profile-continuation/1',cases=p['cases'][14:],predecessor_ledger_sha256='1'*64,predecessor_result_sha256='2'*64,predecessor_baseline_sha256='3'*64)
+        self.assertEqual(len(r.validate_plan(p,MANIFEST)),3)
+        p['cases'].insert(0,plan()['cases'][0])
+        with self.assertRaises(ValueError):r.validate_plan(p,MANIFEST)
+        with tempfile.TemporaryDirectory() as d:
+            p['cases']=plan()['cases'][14:];b=Fake(d)
+            with self.assertRaisesRegex(ValueError,'requires retained'):r.campaign(p,MANIFEST,d,b)
+            self.assertEqual(b.submissions,0);self.assertEqual(b.restores,0)
+
+    def test_http_trickle_cannot_extend_absolute_deadline(self):
+        import phase12_recovery_device as device
+        from unittest.mock import MagicMock,patch
+        sock=MagicMock();sock.__enter__.return_value=sock
+        sock.recv.return_value=b'x'
+        with patch.object(device.socket,'socket',return_value=sock),patch.object(device.time,'monotonic',side_effect=[0,0,0,5,11]):
+            with self.assertRaisesRegex(TimeoutError,'absolute deadline'):
+                device.http('wlan2','/api/recovery/status')
+        self.assertEqual(sock.recv.call_count,1)
+
     def test_native_inspector_readonly_empty_and_wrong_size(self):
         if not INSPECTOR: self.skipTest('inspector supplied by CTest')
         with tempfile.TemporaryDirectory() as d:

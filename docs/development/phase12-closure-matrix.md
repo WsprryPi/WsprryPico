@@ -1,7 +1,7 @@
 # Phase 12 closure matrix
 
-Status: **OPEN_PARTIAL — test preparation added; source repairs reviewed;
-no new physical authority**
+Status: **OPEN_PARTIAL — seventeen named inhibited recovery cases accepted;
+remaining physical gates open**
 (2026-10-02). This is the current reconciliation index. Historical result
 records retain their failures, exact candidates and bounded acceptance. A row
 below becomes accepted only when its own source and physical evidence establish
@@ -32,10 +32,13 @@ RF or calibrated timing qualification. Counts remain **16 acquisitions / 11
 charged jobs**, with every failed historical attempt retained. The stopped
 17/12 packet grants no standing authority for its unused acquisition/job.
 
-Last verified B restoration is inhibited `615888e5364b`, profile/access
-generations 5/1, disabled scheduling, healthy journals, empty/unowned/inactive
-authority and synchronized time. This is historical evidence; no live facts
-have been refreshed by this software-only follow-up. A and wspr4 are excluded.
+Latest verified B restoration is standard inhibited `cc51be4f3f86`, profile/access
+generations 5/1, original reserved settings/E10, disabled scheduling, healthy
+journals, empty/unowned/inactive authority and synchronized network/time across
+five stable samples. The [unattended recovery record](phase12-recovery-orchestration-review.md)
+and [redacted evidence](phase12-recovery-evidence.json) accept fourteen named reset
+checkpoints and three profile-page/commit interruptions. The earlier stopped
+campaigns remain retained. A and wspr4 are excluded; no RF jobs were added.
 
 The subsequent [product-decision execution review](phase12-product-decisions-review.md)
 records offline saves and durable destructive recovery implemented and reviewed,
@@ -58,13 +61,13 @@ ignored. Redacted summaries link their private artifact hashes.
 | C10N / P12.10, P12.12 | Wrong device, competing/expired/replayed/malformed/cancelled/interrupted requests cannot mutate; uncertain replies reconcile exact durable result. | Portable/browser subsets; accepted wrong-password/retry under P12.9. | Production fault/negative cases and lost-result/reboot proof. Network-only digest and uncertain-commit defects are source-repaired; target acceptance remains. | One predetermined case per distinct production failure boundary; deterministic exhaustive journal cuts in host and named inhibited fixture, no automatic physical retries. |
 | R11A / P12.11 | Station loss for 60 s returns AP; stable station for 30 s withdraws absent lease/transaction/reply; manual lease obeys current contract. | Inhibited manual hold/lease expiry bounded pass. | Controlled saved-network loss, offline portal, reconnect/automatic withdrawal and pending-reply retention. | One loss/reconnect cycle <=15 min, existing wspr5 fixture only; preserve management route, restore fixture before proceeding. Do not contact router or unrelated services. |
 | R11F / P12.11 | Field-network replacement without SNTP has selected durable settings and readiness behavior without weakened RF time admission. | Network and station offline saves are source-implemented; fresh trustworthy time still gates deferred TLS/readiness and RF admission. | Target no-SNTP station/network save and deferred readiness acceptance. | One isolated no-SNTP network trial <=15 min. Restore known usable network and synchronized time. |
-| R11P / P12.11 | Provisioning reset and full erase have distinct explicit controls, durable intent, correct clearing/preservation and restart recovery. | Portable `ResetCoordinator` tests only; GP14 normal reset preserves settings. | Selected reset controls and durable resume are source-implemented; target erasure/resume and named interrupted-intent acceptance remain. | Two explicitly destructive reset levels; fresh recoverable backup before each. No destructive test until its exact operation is approved. Preserve E10; restore intended operational configuration after full erase. |
-| B12J / P12.12 | Journal corruption/cuts never resurrect superseded trust; activation/response loss runs once; time-peer callbacks cannot cross generations. | P12.1–P12.5 scoped host evidence and bounded profile activation. | Production engineering credential A/B/C and fault-phase evidence. | Finite declared stage list, one case per stage, RF-inhibited fixture separated from production candidate; restore original trust and settings. |
+| R11P / P12.11 | Provisioning reset and full erase have distinct explicit controls, durable intent, correct clearing/preservation and restart recovery. | Fourteen actual provisioning/full reset checkpoints accepted on B; epoch once, both profile banks cleared, local BLE roots replaced, effective station preserved for provisioning and E10 unchanged. | Populated schedules/nonzero watermark/preexisting operational records and peer-bond revocation remain; arbitrary/torn-write power cuts remain. | User-authorized seventeen-case inhibited scope completed with per-case backups/restoration. Additional populated-state fixtures require their own finite plan; preserve E10 and restore intended settings. |
+| B12J / P12.12 | Journal corruption/cuts never resurrect superseded trust; activation/response loss runs once; time-peer callbacks cannot cross generations. | P12.1–P12.5 host evidence; actual consumer profile payload/header interruptions retain old authority and commit-marker interruption selects exact new request digest. | Populated engineering credential A/B/C and arbitrary/torn-write interruption evidence remain. | Finite declared stage list, one case per stage, RF-inhibited fixture separated from production candidate; restore original trust and settings. |
 | B12C / P12.12 | USB, BLE, Plain LAN and explicitly selected engineering TLS/HTTPS share one JobService with principal isolation. | Bounded individual carrier subsets. | Whole supported composition, loaded/armed/running simulator ownership, busy mutation and disconnect/lease evidence. | Complete finite simulated jobs <=60 s each, no RF; one owner and predetermined competing admissions. End empty/unowned with sessions reclaimed. |
 | B12T / P12.12 | Authenticated time disagreement, age, recovery and launch admission behave under selected policy; browser hints grant no RF authority. | Scoped controller-time subsets and host arbiter checks. | Target controlled observations, aging, two-sample recovery and loaded/armed/running distinction. | Named inhibited stimuli; <=5 min per time case; restore real accepted SNTP and unsullied watermark/configuration. |
 | B12L / P12.12 | Current AP two-flash cue, Identify priority/nonextension and fault cues have correct timing and no job side effects. | Bounded phone Identify and inhibited GP14 cues. | Independent timing observation and named fault fixture. | One recorded sequence per distinct cue/priority, <=5 min; no RF, restore healthy LED state. |
 | B12R / P12.12 | Heap, guarded stacks, lwIP/BTstack pools, TLS allocations, flash serialization and bounded sessions return resources. | Historical partial resource results and linked guards. | Resource telemetry, isolated fixtures and finite offline tools are prepared; target pressure/composition soak remains. | Proposed 2 h soak after finite cases; no flash loops or autonomous RF; fail on allocation/guard/storage/identity/output fault. Final resource return and disconnected/provisioning-closed state required. |
-| F12 / all | Exact approved standard inhibited image and intended settings are restored; no owner/job/output, healthy journals, AP withdrawn where applicable. | Historical B restoration only. | New candidate selection after conditional GP14 enablement and product repairs, fresh backup, programmed payload and reserved-byte validation, USB/LAN corroboration. | <=5 min final stable observation after required reconnect/time readiness. No restoration claim from flash command or disconnect alone. |
+| F12 / all | Exact approved standard inhibited image and intended settings are restored; no owner/job/output, healthy journals, AP withdrawn where applicable. | New standard inhibited B readback matches UF2 payload and original reserved/E10 bytes; five stable samples prove inactive authority and synchronized network/time. | Conditional GP14 production candidate and actual AP withdrawal where applicable remain. | <=5 min final stable observation after required reconnect/time readiness. No restoration claim from flash command or disconnect alone. |
 
 The two-hour proposed soak covers repeated 30/60/90-second readiness/time
 boundaries, 15-minute inactivity and session reclamation after directed maximum

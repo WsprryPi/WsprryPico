@@ -44,13 +44,14 @@ def digest(path):
 
 def execute(argv, timeout=30):
     p = subprocess.run(argv, capture_output=True, timeout=timeout)
-    require(p.returncode == 0, 'tool failed: ' + argv[0])
+    require(p.returncode == 0, 'tool failed: ' + argv[0] + ' exit=' +
+            str(p.returncode) + ' stderr=' + p.stderr.decode(errors='replace')[:512])
     return p.stdout.decode()
 
 
 def console(command, timeout=5):
     import serial
-    with serial.Serial(CONSOLE, 115200, timeout=.1, exclusive=True) as port:
+    with serial.Serial(CONSOLE, 115200, timeout=.1, write_timeout=2, exclusive=True) as port:
         port.reset_input_buffer()
         port.write((command + '\n').encode())
         data = b''
@@ -188,17 +189,25 @@ def deploy(root, request, restore=False):
 
 def http(interface, path, value=None):
     # Interface-bound socket; management routing is never changed.
+    deadline=time.monotonic()+10
     with socket.socket() as sock:
+        def remaining():
+            seconds=deadline-time.monotonic()
+            if seconds<=0: raise TimeoutError('HTTP absolute deadline')
+            sock.settimeout(min(6,seconds))
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, (interface+'\0').encode())
-        sock.settimeout(6)
+        remaining()
         sock.connect(('192.168.4.1', 80))
         body = b'' if value is None else json.dumps(value, separators=(',', ':')).encode()
         headers = ('GET' if value is None else 'POST') + ' ' + path + ' HTTP/1.1\r\nHost: 192.168.4.1\r\nConnection: close\r\n'
         if value is not None:
-            headers += 'Origin: http://192.168.4.1\r\nContent-Type: application/json\r\nX-WsprryPico-Bootstrap: 1\r\nContent-Length: '+str(len(body))+'\r\n'
+            marker='Owner' if path.startswith('/api/owner/v1/') else 'Bootstrap'
+            headers += 'Origin: http://192.168.4.1\r\nContent-Type: application/json\r\nX-WsprryPico-'+marker+': 1\r\nContent-Length: '+str(len(body))+'\r\n'
+        remaining()
         sock.sendall(headers.encode()+b'\r\n'+body)
         data = b''
         while b'\r\n\r\n' not in data:
+            remaining()
             part = sock.recv(1024)
             require(part, 'HTTP header disconnect')
             data += part
@@ -208,6 +217,7 @@ def http(interface, path, value=None):
         lengths = [int(x.split(b':', 1)[1]) for x in head.split(b'\r\n') if x.lower().startswith(b'content-length:')]
         require(len(lengths) == 1 and 0 <= lengths[0] <= 8192, 'HTTP content length')
         while len(payload) < lengths[0]:
+            remaining()
             part = sock.recv(min(1024, lengths[0]-len(payload)))
             require(part, 'HTTP body disconnect')
             payload += part
