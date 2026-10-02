@@ -695,3 +695,17 @@ record; there is no response deadline or automatic acquisition while waiting.
 Counters remain 15/10. Neither physical row nor default enablement is closed,
 and B's inhibited restoration remains the last recorded physical state rather
 than a new preflight claim.
+
+### Live preparation checkpoint 2026-10-02
+
+The [live preparation record](phase12-gp14-continuation-preparation-review.md#live-preparation-completed-after-premature-ready)
+supersedes that waiting device state. The initial Ready was premature;
+failed read-only baseline handshakes started no acquisition. A fresh full
+backup was retained locally before serial-targeted loading of the reviewed
+acceptance image. Exact programmed readback, all 57,344 reserved bytes, saved
+settings, one preparation reset and synchronized empty/unowned/inactive
+readback passed. B is now idle on `3e1337074003`, boot
+`13f36788c9f2670f1e2dd5c197653c48`, with no Ready record or background acquisition.
+The next fresh Ready begins quick-reset without repeating deployment.
+Counts remain 15 attempts/ten jobs; both physical rows and final inhibited
+restoration remain open. No RF pass or default enablement is added.

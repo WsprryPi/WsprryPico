@@ -1,14 +1,17 @@
 # GP14 reset and AP orchestration preparation review
 
-Status: **SOURCE PREPARATION PASSED; PAUSED FOR OPERATOR READY** (2026-10-02).
+Status: **B PREPARED AND INACTIVE; PAUSED FOR FRESH OPERATOR READY** (2026-10-02).
 
 The operator answered **Execute** to the
 [reset/AP continuation](phase12-gp14-reset-ap-continuation-prompt.md), after
 requiring preparation to stop until they acknowledge readiness. The cumulative
 authority is 17 attempts and 12 RF jobs, with each additional job at most
 20 seconds. The complete wspr5 record still has **15 attempts and ten jobs**.
-There is no fresh human Ready, new acquisition, deployment or physical pass.
-Phase 12 remains `OPEN_PARTIAL`; GP14 default enablement remains off.
+The initial human Ready led to a premature preflight call, not an acquisition.
+That readiness is no longer used. B is now loaded and prepared as recorded
+below; a fresh Ready is required immediately before the first acquisition.
+There is no new RF job or physical pass. Phase 12 remains `OPEN_PARTIAL`;
+GP14 default enablement remains off.
 
 ## Prepared source and operator pause
 
@@ -123,17 +126,17 @@ python3 scripts/phase12_gp14_rf.py build/phase12-gp14-rf-b-20260930 \
   --case long_ap --prepare
 ```
 
-These report fifteen attempts/ten jobs and no hardware access. A controller
-copy of the reviewed runner may likewise be prepared on wspr5 without
-altering the old helper or issuing hardware actions. No Ready record is
-created at this checkpoint.
+These report fifteen attempts/ten jobs and no hardware access. The controller
+copy was also verified and prepared on wspr5 without altering the old helper
+or issuing hardware actions. No Ready record was created at that source-only
+checkpoint.
 
-B's last physical restoration record remains inhibited `615888e5364b`; no USB
-or LAN device preflight refreshed that state during this preparation. When
-the operator returns, confirm the unchanged closed conducted path and exact
-B identity, retain a fresh backup, perform authorized deployment/readback and
-prepare a distinct healthy synchronized boot before a job. Do not flash over
-ambiguous output or use an old backup as the new retention barrier.
+At the source-only checkpoint B's last restoration was inhibited
+`615888e5364b`; no USB or LAN preflight had refreshed it. The live preparation
+below subsequently completed the required path/identity confirmation, fresh
+backup, authorized deployment/readback and distinct synchronized boot without
+an RF job. On the operator's return only a short readiness refresh and the
+one acquisition remain; do not repeat deployment merely to resume waiting.
 
 The first session is a quick tap under 400 ms at the local LED cue; the second
 is a 12–15-second hold followed by AP association/read-only page proof if
@@ -145,4 +148,65 @@ conditional on both rows passing; the broader Phase 12 gates remain open.
 The unrelated README, CONTRACT, architecture, browser API, pin-assignment and
 transmitter-application work retains its original content hashes and is
 excluded from the preparation commit. No Candidate A, wspr4, GPIO, USB device,
-receiver or RF operation occurred in this preparation.
+receiver or RF operation occurred in the source-only preparation. The
+subsequent named B operations are recorded below.
+
+## Live preparation completed after premature Ready
+
+The operator replied Ready and confirmed the unchanged closed conducted
+60 dB path on 2026-10-02. The agent called the operator in before completing
+device preparation. The operator was then released from watching the Pico;
+no acquisition or Ready record was started, and that earlier Ready must not
+be reused. Future preparation must finish before requesting the physical tap.
+
+Read-only controller ownership checks found no B USB user or WTP connection.
+B was inhibited `615888e5364b`, healthy and scheduling-disabled, with saved
+profile/access generations 5/1. An attempted Plain LAN HELLO was reset before
+any ROM entry or image write. An alternate reference USB inventory timed out
+at its first WTP exchange. B subsequently reported `lan_wtp_mode=plain`,
+`lan_wtp_ready=false` and an unsynchronized clock. Using an acquisition LAN
+handshake without checking the baseline readiness gate was a preparation
+error; these observations do not establish a new device defect or RF finding.
+The stopped preflight and failed inventory remain private evidence.
+
+The corrected baseline preparation uses the exact inhibited firmware's
+guarded USB BOOTSEL command. The reviewed source checks unowned/inactive
+authority and confirmed engine disable before acknowledgement and again
+before ROM entry. A refusal, uncertain reply or absent ROM device is not
+forced or replayed. The resulting full flash backup also proved the exact
+guarded firmware: all 6,578 baseline ARM UF2 payload blocks match.
+The fresh 4 MiB backup SHA-256 is
+`e77aa61396cda525c1ad2d437e69ac30ed4f52cec7cc302261839e816c8b7d99`;
+it was independently retained and verified on the Mac before loading.
+
+Serial-targeted load/verify of retained acceptance `3e1337074003` succeeded.
+A full programmed-image readback matches all 6,274 ARM payload blocks;
+all 57,344 reserved bytes and exact saved profile/access/scheduler settings
+remain identical. The checker excludes only the exact hash-bound picotool
+absolute-family ignored block, not arbitrary out-of-range payloads. Positive
+baseline readback and four rejection checks passed: changed payload, shortened
+flash, truncated image and removed metadata block.
+
+One acknowledged USB REBOOT prepared distinct healthy boot
+`13f36788c9f2670f1e2dd5c197653c48`. Fresh station/time readiness, exact Plain LAN
+HELLO identity, GET_CLOCK admission, and empty/unowned/inactive STATUS passed.
+The identity-bound cue READY check passed without flashing the action cue.
+The preparation process has exited; no receiver, RF job, Ready record or
+background acquisition was started. Counts remain **15 attempts/ten jobs**.
+
+Private evidence is in `build/phase12-gp14-rf-b-20260930/` and its matching
+wspr5 directory, under `preflight-continuation-16`,
+`preflight-continuation-16-usb-rom` and `deployment-continuation-16`.
+No old record was overwritten. Candidate A, wspr4 and unrelated services
+were not changed. B is currently the acceptance image, idle and prepared;
+it has **not** been restored again to the inhibited baseline. Final inhibited
+restoration remains mandatory after the bounded physical campaign or its
+cancellation. Both physical rows remain open. On the operator's return,
+refresh readiness without another image load, and require a fresh Ready
+record before the one quick-reset acquisition.
+
+Adversarial reassessment verified the exact baseline reset guard/readback,
+local backup barrier, target/image binding, reserved settings, one non-replayed
+preparation reset, complete helper termination and unused Ready gate. No
+remaining actionable preparation finding was identified. This establishes
+prepared hardware, not an RF pass or default enablement.

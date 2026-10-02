@@ -1,6 +1,6 @@
 # Phase 12 GP14 reset and AP continuation prompt
 
-Status: **EXECUTION AUTHORIZED; SOURCE PREPARATION PASSED; PAUSED FOR FRESH READY**
+Status: **EXECUTION AUTHORIZED; B PREPARED INACTIVE; PAUSED FOR FRESH READY**
 (2026-10-02).
 
 Complete only the two remaining P12.7 conducted GP14 rows: quick-release reset
@@ -25,8 +25,12 @@ That authorizes this continuation, including the following bounded scope:
 > reply before each acquisition. Perform the scoped repairs, adversarial review,
 > reassessment, conditional default enablement and commit/push described below.
 
-The extension is now authorized; a fresh Ready has not been supplied. The
-previous 15 attempts and ten jobs remain charged. The extension permits at most
+The extension is authorized. An initial Ready was followed by a premature
+preflight call; it started no acquisition and is not reused. The
+[live preparation record](phase12-gp14-continuation-preparation-review.md#live-preparation-completed-after-premature-ready)
+now verifies B's loaded image, preserved settings and inactive synchronized
+boot. A fresh Ready is required before the first physical row. The previous
+15 attempts and ten jobs remain charged. The extension permits at most
 **two additional attempts and two additional jobs**, not two passes plus free
 retries. A failed acquisition
 still counts. Charge every possibly transmitted ARM before sending it; never
@@ -171,6 +175,14 @@ Park for the operator without a response deadline, background acquisition or
 assumption that they remain at the screen. Readiness is not created while
 waiting. Refresh device preflight when they return; the finite preparation,
 job and receiver deadlines apply only to the corresponding active steps.
+Complete backup, deployment, programmed-image readback, preparation reset,
+clock/network readiness and unowned/inactive verification before calling the
+operator in. At the Ready boundary, only a short freshness check and the
+single acquisition remain. The baseline's unready/unsynchronized LAN WTP
+admission is not an acquisition endpoint: do not send its handshake merely
+because the saved packet contains a port. Preserve unowned/inactive admission
+through the exact firmware's guarded ROM entry and verified image readback;
+never force a reset after refusal or infer ownership from missing INFO fields.
 Readiness timeout without an acquisition submits no RF job; any acquisition
 already started remains charged even if it fails before ARM.
 
