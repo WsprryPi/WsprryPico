@@ -1,17 +1,20 @@
 # GP14 reset and AP orchestration preparation review
 
-Status: **B PREPARED AND INACTIVE; PAUSED FOR FRESH OPERATOR READY** (2026-10-02).
+Status: **QUICK RESET ACCEPTED; FINAL-ROW PREPARATION STOPPED;
+B RESTORED INHIBITED** (2026-10-02).
 
 The operator answered **Execute** to the
 [reset/AP continuation](phase12-gp14-reset-ap-continuation-prompt.md), after
 requiring preparation to stop until they acknowledge readiness. The cumulative
 authority is 17 attempts and 12 RF jobs, with each additional job at most
-20 seconds. The complete wspr5 record still has **15 attempts and ten jobs**.
+20 seconds. The complete wspr5 record now has **16 attempts and eleven jobs**.
 The initial human Ready led to a premature preflight call, not an acquisition.
-That readiness is no longer used. B is now loaded and prepared as recorded
-below; a fresh Ready is required immediately before the first acquisition.
-There is no new RF job or physical pass. Phase 12 remains `OPEN_PARTIAL`;
-GP14 default enablement remains off.
+That readiness is no longer used. A later fresh Ready preceded the accepted
+quick-reset acquisition, making five of six RF rows accepted. Subsequent
+long-held AP preparation stopped at its initial released-input guard without
+another reset or acquisition. The latest checkpoint is below; the earlier
+prepared checkpoint is historical. Phase 12 remains `OPEN_PARTIAL`; GP14
+default enablement remains off.
 
 ## Prepared source and operator pause
 
@@ -153,6 +156,9 @@ subsequent named B operations are recorded below.
 
 ## Live preparation completed after premature Ready
 
+This is the historical 15/10 prepared checkpoint, superseded by the
+[16/11 stopped checkpoint](#quick-reset-result-and-stopped-final-row-checkpoint).
+
 The operator replied Ready and confirmed the unchanged closed conducted
 60 dB path on 2026-10-02. The agent called the operator in before completing
 device preparation. The operator was then released from watching the Pico;
@@ -210,3 +216,34 @@ local backup barrier, target/image binding, reserved settings, one non-replayed
 preparation reset, complete helper termination and unused Ready gate. No
 remaining actionable preparation finding was identified. This establishes
 prepared hardware, not an RF pass or default enablement.
+
+## Quick-reset result and stopped final-row checkpoint
+
+The [independent reset assessment](phase12-gp14-rf-review.md#quick-release-rf-reset-accepted-2026-10-02)
+accepts the fresh-Ready acquisition's 328 ms normal reset, distinct healthy
+boot, preserved settings and 39.463 ms conservative cutoff upper estimate.
+Five of six rows now pass; the retained campaign has 16 attempts and eleven
+charged jobs. The earlier 15/10 checkpoint is preserved, not reused as current
+accounting. The operator's Done is not readiness for the remaining row.
+
+Inactive preparation for `long_ap` then stopped before REBOOT, Ready creation,
+capture or RF admission. Read-only evidence found a different boot, held GP14,
+asserted RF inhibition, a stop/AP event, empty inactive output and unavailable
+station/time admission. Saved settings and health checks pass. This does not
+qualify long-held RF shutdown/AP access and does not identify a device defect.
+The [stopped continuation record](phase12-gp14-rf-review.md#final-row-preparation-stopped-before-acquisition)
+retains the exact observation and first-unexpected-result boundary.
+
+The operator was asked to release GP14 solely for safe restoration and replied
+Released. No background acquisition or second Ready record exists.
+The remaining attempt/job is not permission
+to bypass the guard or retry automatically. Resumption requires a new reviewed
+packet and explicit approval. Mandatory restoration within the current
+authority is now complete, with a fresh locally retained backup and exact
+image/storage/settings readback: B is inhibited `615888e5364b`, final boot
+`acc79f7a70b9f8a966a0fd76c15e622b`. All 6,578 programmed payload blocks,
+57,344 reserved bytes and exact saved settings verify; fresh USB and LAN
+HELLO/STATUS/GET_CLOCK confirm healthy empty/unowned/inactive synchronized
+authority and disabled scheduling. Counts remain 16/11, with no new RF job.
+The RF review records the full backup/readback hashes and restoration evidence.
+The unrelated repository changes remain outside this slice.

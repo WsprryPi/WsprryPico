@@ -1,10 +1,13 @@
 # Phase 12 GP14 reset and AP continuation prompt
 
-Status: **EXECUTION AUTHORIZED; B PREPARED INACTIVE; PAUSED FOR FRESH READY**
+Status: **QUICK RESET ACCEPTED; CONTINUATION STOPPED; B RESTORED INHIBITED**
 (2026-10-02).
 
-Complete only the two remaining P12.7 conducted GP14 rows: quick-release reset
-and long-held RF-to-AP availability. Four of six rows are accepted. Phase 12
+This packet originally covered the two remaining P12.7 conducted GP14 rows:
+quick-release reset and long-held RF-to-AP availability. Quick reset now passes;
+five of six rows are accepted. Final-row preparation stopped before acquisition
+at its released-input readiness guard. Long-held RF-to-AP availability remains
+open; this stopped packet does not admit its acquisition. Phase 12
 remains `OPEN_PARTIAL`; this packet cannot close commissioning, recovery,
 Stage A robustness or Phase 13 release/RF qualification.
 The [preparation review](phase12-gp14-continuation-preparation-review.md) records
@@ -25,12 +28,12 @@ That authorizes this continuation, including the following bounded scope:
 > reply before each acquisition. Perform the scoped repairs, adversarial review,
 > reassessment, conditional default enablement and commit/push described below.
 
-The extension is authorized. An initial Ready was followed by a premature
-preflight call; it started no acquisition and is not reused. The
+The original extension was authorized. An initial Ready was followed by a
+premature preflight call; it started no acquisition and was not reused. The
 [live preparation record](phase12-gp14-continuation-preparation-review.md#live-preparation-completed-after-premature-ready)
-now verifies B's loaded image, preserved settings and inactive synchronized
-boot. A fresh Ready is required before the first physical row. The previous
-15 attempts and ten jobs remain charged. The extension permits at most
+verified the loaded image, preserved settings and inactive synchronized boot
+before the later fresh-Ready quick reset. All previous
+15 attempts and ten jobs remain charged. The extension originally permitted at most
 **two additional attempts and two additional jobs**, not two passes plus free
 retries. A failed acquisition
 still counts. Charge every possibly transmitted ARM before sending it; never
@@ -38,7 +41,24 @@ replay an ambiguous ARM. Rejected LOAD without ARM consumes an attempt only.
 Stop on the first unexpected result, even if budget remains. Further retries or
 additional affected RF rows require a new reviewed packet and explicit budget.
 
+### Current stopped boundary
+
+The later fresh Ready and Done bind the
+[accepted quick-reset row](phase12-gp14-rf-review.md#quick-release-rf-reset-accepted-2026-10-02),
+not a second acquisition. Counts are **16 attempts/11 jobs** against the 17/12
+ceiling. The [final-row preparation stop](phase12-gp14-rf-review.md#final-row-preparation-stopped-before-acquisition)
+occurred before any new reset, Ready record, receiver capture or RF job.
+The operator answered Released solely for mandatory restoration; B is now
+verified on inhibited baseline `615888e5364b`, with unchanged saved settings
+and empty/unowned/inactive authority. No additional RF job was submitted.
+Obtain a new reviewed continuation packet and explicit
+approval before resuming; the execution instructions below describe this
+packet's original bounded workflow, not permission to bypass its stop.
+
 ## Execution prompt
+
+The following is the original execution workflow. Its stop boundary is now
+reached; only cleanup/restoration and recording remain authorized here.
 
 Work in `/Users/lbussy/GitHub/WsprryPico` on `devel`. Start with code and tooling
 review, respect the Ready boundary above, repair actionable findings,

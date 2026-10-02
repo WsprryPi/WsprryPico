@@ -1,6 +1,7 @@
 # P12.7 GP14 RF integration review
 
-Status: **source gates passed; four RF rows accepted; reset/AP remain open** (2026-10-01).
+Status: **source gates passed; five RF rows accepted; long-held AP open;
+continuation stopped; B restored inhibited** (2026-10-02).
 Executes the [authorized brief](phase12-gp14-rf-execution.md). GP14 remains
 opt-in pending the required target rows. Phase 12 remains active.
 
@@ -709,3 +710,148 @@ readback passed. B is now idle on `3e1337074003`, boot
 The next fresh Ready begins quick-reset without repeating deployment.
 Counts remain 15 attempts/ten jobs; both physical rows and final inhibited
 restoration remain open. No RF pass or default enablement is added.
+
+## Quick-release RF reset accepted 2026-10-02
+
+After a fresh human **Ready**, run
+`run-85db06e513bc47df8678603ee95da255` submitted one complete 20-second tone,
+job `9127ff3215f540daab50fbb6e39a212e`, on prepared boot
+`13f36788c9f2670f1e2dd5c197653c48`. The identity-bound local LED cue followed
+positive active output; the operator subsequently answered **Done**. The
+one-use Ready record, packet, runner, boot, successful LOAD and single ARM are
+bound in the retained evidence. No ambiguous mutation was replayed.
+
+Candidate B remains serial `CDDBF8767C506C07`, device
+`29f20b7342051ef947aa56cb9d4fab42`, acceptance revision `3e1337074003`, engine
+`pio-dma-gp2`, 138 MHz/divider 1 and GP2 RF output. The operator confirmed the
+unchanged closed conducted 60 dB path on wspr5. The requested tone is
+3,570,100 Hz; target realization is `3570100004319102` nHz. Independent RSP1B
+`2404058C60` capture used CF32, 250,000 samples/s, 200,000 Hz bandwidth,
+3,550,000 Hz center, gain 20 dB, channel 0, with AGC and bias tee off.
+
+The exact normal-reset marker records a **328 ms** physical contact and a
+decision **3,664,197 us after RF launch**. Distinct healthy normal boot
+`ac1c5c761775b0b85ba92ca396de8795` is empty and inactive, with no resumed job,
+disabled scheduling and unchanged saved profile/access contents and generations
+5/1. Fresh post-reset USB INFO verifies synchronized time and released input;
+Plain LAN HELLO/STATUS verifies the same boot, empty/unowned authority and no
+job or output. No old-boot
+worker acknowledgement timestamp was captured for this row; the relative reset
+marker, independently observed RF edge and normal boot provide its evidence.
+
+The complete 40-second receiver record has ten million complex samples,
+80,000,000 IQ bytes, finite IQ throughout, zero overflow, timeout or clipping,
+and verified stream/device cleanup. IQ SHA-256 is
+`0ecf01873acf43d69ffa4eeb998927acd37f1aa6607fc2a3d59c3ae95f73b260`;
+metadata SHA-256 is
+`6233603ad23a946136e1941dbe1765039274c07d2e7bd48ecdb8d666d390fa7e`.
+The retained wall span is 40.03 seconds for 40 nominal sample seconds.
+
+Independent 1 ms Hanning Fourier windows, searched 19–22 kHz above receiver
+center, find a 77.033 dB carrier/background contrast. At 20/30 dB below on-level,
+the single carrier interval is nominally 5,328–8,992 ms; at 40 dB it is
+5,327–8,992 ms. The 1 ms onset difference is retained, not reported as identical
+edges. The longest 3.665-second interval is used conservatively. Its relative
+cutoff delay is 0.803 ms beyond the target decision interval. The inherited
+**uncalibrated engineering** 1% clock-scale allowance contributes 36.650 ms;
+two Fourier edges add 2 ms, launch-observation offset adds 0.009 ms and reset
+marker quantization adds 0.001 ms. Total uncertainty is 38.660 ms and the
+conservative upper delay is **39.463 ms**, below the 50 ms operational bound.
+No carrier returns during the remaining 31.008 nominal seconds. This is the
+bounded conducted reset check, not calibrated timing or general RF qualification.
+
+The separate hash-bound assessment sets `independent_rf_pass=true`; the
+acquisition's original pending-assessment record is unchanged. Its attempt,
+events and packet hashes are respectively
+`f87057f57e12ad37e114fb1585802c8896b70f49bdc74755227fbca165e38b7d`,
+`4a592630bad30c25d8d99519a53b6cfb496f2feea0921b8eb33a2a08b51ce57c`
+and `0a52d238dc5bdf175a2fea499a504a8bc969fc0bba411eba3e52b4f8d6977213`.
+Private capture, assessment and `post-quick-reset-16` readback are retained
+locally under `build/phase12-gp14-rf-b-20260930/` and in the matching wspr5
+campaign. All fifteen prior attempts and their charges remain intact.
+
+Adversarial review checked Ready consumption, single complete job/ARM,
+identity/image/boot binding, physical classification, expected disconnect,
+reset marker versus launch, swept thresholds and conservative uncertainty,
+absence of RF restart, preserved settings and fresh post-reset unowned
+authority. **Five of six RF rows are accepted; sixteen attempts and eleven RF
+jobs are charged.** Long-held RF-to-AP availability and default enablement
+remain open. Broader Phase 12 remains `OPEN_PARTIAL`.
+
+## Final-row preparation stopped before acquisition
+
+The next-row helper stopped at its initial released/inactive readiness guard,
+before its preparation REBOOT, a Ready record, receiver capture or RF job.
+Read-only diagnosis subsequently found boot
+`51c960c0b6d8686a8177773620631dd2`, not the accepted row's final boot, with
+GP14 held, both output inhibition latches asserted, one stop and one AP event,
+empty/inactive output, unsynchronized time and unavailable LAN WTP. Storage,
+stack/allocator/capture health and saved profile/access checks pass. No cause
+is inferred from the held-input telemetry, and this is neither acceptance of
+the long-held RF row nor proof of a device defect.
+
+The continuation stopped under its first-unexpected-result rule, despite
+one attempt/job remaining inside the authorized 17/12 ceiling. The operator
+was asked to release GP14 solely for safe restoration and answered **Released**.
+No further RF
+acquisition is authorized by a previous Ready or Done. A new reviewed
+continuation packet and explicit operator approval are required before
+resuming the remaining row. The failed `prepare-long-ap-17` and read-only
+`long-ap-preparation-stopped-16` evidence remain retained; counters are 16/11.
+B was then the acceptance image with RF inhibited by the input/worker latches,
+not the inhibited firmware baseline. The restoration recorded below completes
+that cleanup without a further acquisition.
+Default GP14 remains off; no firmware source safety behavior or default build
+option is changed. The authorized installed-image restoration is below.
+
+## Inhibited restoration verified 2026-10-02
+
+After the operator's Released reply, USB readback confirms released GP14,
+empty inactive output and the known stopped boot. One guarded BOOTSEL command
+entered ROM. The exact acceptance source checks unowned/inactive authority and
+verified engine disable before acknowledgement and again before ROM entry;
+no unready LAN handshake, forced reset or mutation replay was used.
+
+The fresh 4 MiB RF flash backup, SHA-256
+`70ffde9bd6e873ca2dd43ee25bbe19db01481ab2552a75e277d93f566f6244dd`,
+matches all 6,274 acceptance payload blocks and the prior deployment's 57,344
+reserved bytes. It was retained and independently hashed on the Mac before
+the inhibited image write. A second ROM readback matched that exact backup
+before loading the baseline. All 6,578 inhibited payload blocks subsequently
+match UF2 SHA-256
+`81361b105def84231c23853507bad81f992426260b9c935061fab82081d5239f`;
+all reserved bytes remain identical. Independent local verification of the
+full restored readback also passes, with full-flash SHA-256
+`e77aa61396cda525c1ad2d437e69ac30ed4f52cec7cc302261839e816c8b7d99`.
+
+USB INFO verifies revision `615888e5364b`, inhibited simulator engine, healthy
+storage/stack/allocator/input, exact saved profile/access/scheduler settings
+and disabled scheduling. One guarded baseline reset provides a second
+unowned/inactive reset check and distinct healthy final boot
+`acc79f7a70b9f8a966a0fd76c15e622b`. Fresh USB INFO and read-only Plain LAN
+HELLO/STATUS/GET_CLOCK verify that same boot/device, empty/unowned authority,
+no job or active output and synchronized usable time. Saved profile/access
+generations remain 5/1. Receiver cleanup from the completed acquisition is
+verified, and restoration submits no job or Ready record.
+
+Private `restoration-stopped-continuation-16` backup, full readbacks and
+prepare/complete/final-authority records are retained on wspr5 and the Mac.
+A, wspr4 and unrelated Pi services were not operated. **B is restored inhibited;
+five of six RF rows pass; counts remain 16 attempts/11 jobs.** The remaining
+long-held RF-to-AP row and default enablement are open. No further RF is
+admitted by this stopped continuation; broader Phase 12 remains `OPEN_PARTIAL`.
+
+Documentation adversarial review corrected stale prepared/current wording and
+an overstatement of the post-reset operations: that record contains USB INFO
+and LAN HELLO/STATUS, not a GET_CLOCK exchange. The independent assessment was
+revalidated offline against the retained IQ, complete LOAD/ARM, cue/Ready,
+released reset boot, capture format and exact existing assessment; it changes
+no original artifact. Restoration review verified the release boundary,
+single guarded ROM entry, exact images, local backup barrier, invariant reserved
+bytes/settings, guarded baseline reset and direct final unowned readback.
+Reassessment retains the five accepted rows and verified restoration without
+claiming long-held AP acceptance. Fifteen orchestration tests pass normally and
+with Python optimization; WTP contract, changed-file whitespace and 84 local
+Markdown links/anchors pass. These are current affected checks, not new full
+host-suite or firmware cross-build claims. All six unrelated files retain their
+pre-turn content hashes and are excluded from this commit.

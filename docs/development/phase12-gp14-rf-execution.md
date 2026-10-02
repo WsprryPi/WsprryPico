@@ -1,6 +1,6 @@
 # GP14 production RF integration and acceptance
 
-Status: **FOUR RF ROWS ACCEPTED; CONTINUATION AUTHORIZED; WAITING FOR READY; DEFAULT OFF** (2026-10-02).
+Status: **FIVE RF ROWS ACCEPTED; CONTINUATION STOPPED; B RESTORED INHIBITED; DEFAULT OFF** (2026-10-02).
 
 ## Authorization and scope
 
@@ -79,6 +79,16 @@ ten jobs are charged. The operator answered **Execute** on 2026-10-02 to the
 17 total attempts and 12 total jobs for the two outstanding rows. This grants
 no standing Ready: orchestration must park until a fresh acknowledgement for
 each row. The earlier pending request for 16 attempts did not cover both rows.
+The later fresh-Ready quick reset is accepted in the
+[current RF review](phase12-gp14-rf-review.md#quick-release-rf-reset-accepted-2026-10-02).
+Counts are now **16 attempts/11 jobs**. Final-row preparation stopped at its
+released-input readiness guard before another reset or acquisition; long-held
+RF-to-AP availability remains open. After the operator confirmed release,
+mandatory restoration to inhibited `615888e5364b` passed exact image/storage/
+settings checks and direct empty/unowned/inactive USB/LAN readback. The
+remaining budget does not override the stopped packet;
+resumption needs a new reviewed packet and explicit approval. Default GP14
+enablement remains off.
 Keep the core-0 busy interval
 below the existing 8-second watchdog. A watchdog recovery row may require a
 separate reviewed stimulus; do not improvise a destructive fault.
