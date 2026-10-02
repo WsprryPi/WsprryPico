@@ -681,3 +681,17 @@ attempts and ten jobs are charged.** Quick-release reset and long-held
 RF-to-AP availability remain open. A new extension to 17 attempts and 12 jobs
 has been requested to cover both rows; the original limits remain enforced
 until an explicit answer. Each further job remains limited to 20 seconds.
+
+## Authorized orchestration preparation and Ready pause
+
+On 2026-10-02 the operator answered **Execute** to the
+[reset/AP continuation](phase12-gp14-reset-ap-continuation-prompt.md), authorizing
+17 cumulative attempts and 12 jobs while requiring a fresh Ready for each row.
+The [preparation review](phase12-gp14-continuation-preparation-review.md) records
+the repaired accounting/image/Ready gates, concurrent-run interlock, unchanged
+nonqualifying trial-15 resolution, 108/108 host checks, 15 orchestration tests
+and pinned cross-builds. Both rows park without hardware access or a Ready
+record; there is no response deadline or automatic acquisition while waiting.
+Counters remain 15/10. Neither physical row nor default enablement is closed,
+and B's inhibited restoration remains the last recorded physical state rather
+than a new preflight claim.

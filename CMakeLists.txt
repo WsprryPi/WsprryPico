@@ -294,6 +294,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME button_diagnostic_tests COMMAND button_diagnostic_tests)
     add_test(NAME gp14_robustness_tests
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/gp14_robustness_tests.py)
+    add_test(NAME gp14_rf_orchestration_tests
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/gp14_rf_orchestration_tests.py)
     add_executable(consumer_profile_tests tests/consumer_profile_tests.cpp)
     target_link_libraries(consumer_profile_tests PRIVATE wsprrypico_core)
     target_compile_options(consumer_profile_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)

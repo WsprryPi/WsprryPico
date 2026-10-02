@@ -5,6 +5,8 @@ No flashing, station Save, clock setting, synthetic GPIO or automatic retry.
 Each next run requires passing RF assessment or a bound reviewed nonqualifying resolution.
 """
 import argparse
+from contextlib import contextmanager
+import fcntl
 import hashlib
 import json
 import os
@@ -23,9 +25,15 @@ from rf_wtp import read_line, write_all
 SERIAL = 'CDDBF8767C506C07'
 DEVICE = '29f20b7342051ef947aa56cb9d4fab42'
 CASES = ('active_stop', 'armed_stop', 'active_busy', 'armed_busy', 'quick_reset', 'long_ap')
+CONTINUATION_CASES = ('quick_reset', 'long_ap')
+SOURCE_REVISION = '3e1337074003616c23d9b8749e728c99c71738c6'
+IMAGE_SHA256 = '658605e4bc66094849be71ee6bb59c91d335d6e1fb7fe99ad54d96b27cf09aa5'
 SETTINGS = dict(format='CF32', sample_rate_hz=250000, bandwidth_hz=200000,
                 center_frequency_hz=3550000, gain_db=20, channel=0, agc=False, bias_tee=False)
 HELPER_SHA256 = 'b98de116d696846b88eea1b3ad3f1b2a471052fa2ca440f4234fec7087dc5a03'
+ATTEMPT_LIMIT, JOB_LIMIT = 17, 12
+CHECKPOINT_SHA256 = '64256f87d374a459518f876e14b46ce0d8f61d756c05661ab8c27ae01e0b2106'
+READY_MAX_AGE_S = 300
 
 
 def digest(path):
@@ -40,18 +48,97 @@ def job_value(job_id):
                              frequency_nhz='3570100000000000')])
 
 
-def validate_packet(packet):
+def validate_packet(packet, *, verify_files=True):
     require(packet['schema'] == 'phase12-gp14-rf-v1', 'packet schema')
     require(packet['serial'] == SERIAL and packet['device_id'] == DEVICE, 'B-only target')
     require(re.fullmatch('[0-9a-f]{40}', packet['source_revision']) is not None and
             packet['revision'] == packet['source_revision'][:12], 'clean source identity')
+    require(packet['source_revision'] == SOURCE_REVISION and packet['uf2_sha256'] == IMAGE_SHA256,
+            'reviewed continuation image required; do not use the stale original packet')
     require(packet['address'] == '192.168.1.53' and packet['port'] == 31417, 'recorded B LAN')
     require(packet['engine'] == 'pio-dma-gp2' and packet['system_clock_hz'] == 138000000,
             'reviewed RF profile')
     require(packet['attenuation_db'] == 60 and packet['receiver_serial'] == '2404058C60',
             'recorded conducted receiver path')
-    require(digest(packet['uf2']) == packet['uf2_sha256'], 'retained image hash')
-    require(digest(packet['capture_helper']) == HELPER_SHA256, 'retained capture helper hash')
+    if verify_files:
+        require(digest(packet['uf2']) == packet['uf2_sha256'], 'retained image hash')
+        require(digest(packet['capture_helper']) == HELPER_SHA256, 'retained capture helper hash')
+
+
+def campaign_budget(campaign):
+    """The immutable fifteen-attempt checkpoint prevents a partial mirror/reset."""
+    checkpoint = campaign / 'ledger-after-quick-reset-15.json'
+    require(digest(checkpoint) == CHECKPOINT_SHA256, 'original campaign checkpoint changed/missing')
+    ledger = json.loads(checkpoint.read_text())
+    require(ledger['attempts'] == 15 and ledger['charged_jobs'] == 10 and
+            len(ledger['rows']) == 15, 'original campaign accounting invalid')
+    previous = sorted(campaign.glob('run-*/attempt.json'))
+    require(all((root/'attempt.json').is_file() for root in campaign.glob('run-*')),
+            'incomplete acquisition record')
+    for row in ledger['rows']:
+        require(re.fullmatch(r'run-[0-9a-f]{32}', row['run']) is not None, 'checkpoint run path')
+        root = campaign / row['run']
+        require(digest(root/'attempt.json') == row['attempt_sha256'] and
+                digest(root/'analysis.json') == row['analysis_sha256'],
+                'historical campaign record changed/missing')
+    charges = [json.loads(path.read_text())['charged_jobs'] for path in previous]
+    require(all(type(charge) is int and charge in (0, 1) for charge in charges), 'RF charge invalid')
+    require(len(previous) < ATTEMPT_LIMIT and sum(charges) < JOB_LIMIT,
+            'approved cumulative acquisition/RF budget exhausted')
+    return previous, sum(charges)
+
+
+@contextmanager
+def campaign_lock(campaign):
+    """Serialize accounting through receiver finalization; never wait for another run."""
+    fd = os.open(campaign/'.rf-acquisition.lock', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'w') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
+
+
+def ready_binding(campaign, case, packet_bytes, previous, charges):
+    return dict(schema='phase12-gp14-ready-v1', campaign=str(campaign.resolve()),
+                case=case, serial=SERIAL, device_id=DEVICE,
+                packet_sha256=hashlib.sha256(packet_bytes).hexdigest(),
+                attempts=len(previous), charged_jobs=charges,
+                attempt_limit=ATTEMPT_LIMIT, job_limit=JOB_LIMIT,
+                runner_sha256=digest(__file__))
+
+
+def acknowledge_ready(campaign, case, packet_bytes, previous, charges):
+    """Call only AFTER the human's fresh Ready, never while parking preparation."""
+    value = ready_binding(campaign, case, packet_bytes, previous, charges)
+    value.update(acknowledged_utc_s=int(time.time()), ready_id=uuid.uuid4().hex)
+    path = campaign / ('ready-' + value['ready_id'] + '.json')
+    with path.open('x') as out:
+        os.chmod(path, 0o600)
+        out.write(json.dumps(value, indent=2) + '\n')
+    return path
+
+
+def consume_ready(path, campaign, case, packet_bytes, previous, charges, *, now=None):
+    require(path is not None, 'fresh operator Ready acknowledgement required')
+    path = Path(path)
+    require(not path.is_symlink() and path.parent.resolve() == campaign.resolve(),
+            'Ready record must belong to this campaign')
+    value = json.loads(path.read_text())
+    expected = ready_binding(campaign, case, packet_bytes, previous, charges)
+    require(all(type(value.get(key)) is type(item) and value.get(key) == item
+                for key, item in expected.items()), 'stale/wrong Ready binding')
+    require(re.fullmatch('[0-9a-f]{32}', value.get('ready_id', '')) is not None and
+            path.name == 'ready-' + value['ready_id'] + '.json', 'Ready record identity')
+    stamp = value.get('acknowledged_utc_s')
+    require(type(stamp) is int and 0 <= (time.time() if now is None else now) - stamp <= READY_MAX_AGE_S,
+            'Ready acknowledgement expired/future; park and ask again')
+    # Consume before USB/receiver access. Even a failed start cannot reuse Ready.
+    fd = os.open(str(path) + '.consumed', os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, 'w') as out:
+        out.write(digest(path) + '\n')
+    return value
 
 
 def console(text='INFO', deadline_s=5):
@@ -115,10 +202,10 @@ def cleanup_owned(peer, boot, job_id, owner):
             status['output_active'] is False, 'cleanup unconfirmed')
 
 
-def review_no_input_retry(path):
+def _review_no_input_completion(path, case):
     """Resolve an operator timing miss without promoting it to RF acceptance."""
     attempt = json.loads(path.read_text())
-    require(attempt['case'] == 'active_stop' and attempt['charged_jobs'] == 1 and
+    require(attempt['case'] == case and attempt['charged_jobs'] == 1 and
             attempt['status'] == 'FAILED_STOP_CAMPAIGN' and
             attempt.get('error') == 'RuntimeError: physical action timeout' and
             attempt.get('cleanup_verified') is True, 'not a resolved no-input timeout')
@@ -149,6 +236,59 @@ def review_no_input_retry(path):
     return dict(run=path.parent.name, attempt_sha256=digest(path),
                 events_sha256=digest(events_path), independent_rf_pass=False,
                 reason='Explicit operator retry after reviewed no-input finite completion')
+
+
+def review_no_input_retry(path):
+    return _review_no_input_completion(path, 'active_stop')
+
+
+def review_quick_reset_no_input(path):
+    """Resolve only historical trial 15; its RF qualification stays false."""
+    require(path.parent.name == 'run-986b41d58b2e46569d7aa24ae2dd84e4', 'not historical trial 15')
+    review = _review_no_input_completion(path, 'quick_reset')
+    packet_path, meta_path = path.with_name('packet.json'), path.with_name('capture.json')
+    packet = json.loads(packet_path.read_text())
+    validate_packet(packet, verify_files=False)
+    attempt = json.loads(path.read_text())
+    require(attempt['packet_sha256'] == digest(packet_path) and
+            attempt['duration_ns'] == '20000000000' and
+            attempt['receiver_completion_after_target_failure'] == 0, 'finite capture/packet binding')
+    events = [json.loads(line) for line in path.with_name('events.jsonl').read_text().splitlines()]
+    initial = [event['value'] for event in events if event['kind'] == 'initial_info']
+    require(len(initial) == 1, 'initial trial identity missing')
+    keys = ('saved_consumer_profile', 'access_state', 'access_generation',
+            'access_default_password', 'provisioning_source', 'provisioning_generation')
+    for event in events:
+        if event['kind'] not in ('initial_info', 'before_action_info', 'action_info'):
+            continue
+        info = event['value']
+        check_info(info, packet, attempt['boot_id'])
+        require(info['gp14_held'] is False and info['gp14_stop_events'] == 0 and
+                info['gp14_reset_events'] == 0 and info['gp14_ap_events'] == 0 and
+                info['rf_safety_inhibited'] is False and
+                type(info['rf_safety_input_fault']) is int and info['rf_safety_input_fault'] == 0 and
+                int(info['rf_safety_requested_ns']) == 0 and
+                all(info[key] == initial[0][key] for key in keys),
+                'AP event/settings drift observed')
+    # INFO's standalone status does not contain job_id. Bind the actual WTP
+    # LOAD/ARM responses and terminal history instead of inventing an INFO field.
+    for operation in ('LOAD', 'ARM'):
+        replies = [event['value'] for event in events if event['kind'] == 'received' and
+                   event['value'].get('type') == 'response' and event['value'].get('op') == operation]
+        require(len(replies) == 1 and replies[0].get('ok') is True and
+                replies[0]['body']['job_id'] == attempt['job_id'], 'foreign/ambiguous WTP admission')
+    meta = json.loads(meta_path.read_text())
+    require(meta['actual_settings'] == SETTINGS and
+            meta['resolved_device'] == dict(driver='sdrplay', serial='2404058C60') and
+            meta['overflow_count'] == 0 and meta['timeout_count'] == 0 and
+            meta['clipping']['sample_count'] == 0 and meta['cleanup']['outcome'] == 'verified' and
+            meta['primary_outcome'] == 'success' and meta['output']['complete'] is True and
+            meta['retained_sample_count'] == 10000000 and meta['output']['size_bytes'] == 80000000 and
+            path.with_name('capture.cf32').stat().st_size == 80000000 and
+            digest(path.with_name('capture.cf32')) == meta['output']['sha256'], 'capture health/integrity')
+    return dict(attempt_sha256=review['attempt_sha256'], events_sha256=review['events_sha256'],
+                packet_sha256=digest(packet_path), capture_sha256=meta['output']['sha256'],
+                capture_metadata_sha256=digest(meta_path), independent_rf_pass=False)
 
 
 def review_quick_reset_mismatch(path):
@@ -274,12 +414,7 @@ def wait_button_reset(packet, initial, evidence, *, read=console, now=time.monot
     raise RuntimeError('physical ready signal timeout; no RF job submitted')
 
 
-def acquire(packet, case, campaign, retry_no_input_run=None, wait_for_button=False, led_cue=False):
-    previous = sorted(campaign.glob('run-*/attempt.json'))
-    require(len(previous) < 15, 'approved fifteen-attempt acquisition budget exhausted')
-    charges = [json.loads(path.read_text())['charged_jobs'] for path in previous]
-    require(all(type(charge) is int and charge in (0, 1) for charge in charges) and
-            sum(charges) < 11, 'approved eleven-RF-job budget exhausted/invalid')
+def review_campaign(campaign, previous, retry_no_input_run=None):
     retry_review = None
     for path in previous:
         if path.parent.name == retry_no_input_run:
@@ -288,6 +423,13 @@ def acquire(packet, case, campaign, retry_no_input_run=None, wait_for_button=Fal
         assessment = path.with_name('analysis.json')
         require(assessment.exists(), 'preceding independent RF assessment pending')
         result = json.loads(assessment.read_text())
+        if result.get('nonqualifying_no_input_timeout') is True:
+            review = review_quick_reset_no_input(path)
+            require(result.get('schema') == 'phase12-gp14-nonqualifying-v1' and
+                    result.get('case') == 'quick_reset' and
+                    all(result.get(key) == value for key, value in review.items()),
+                    'historical quick-reset resolution unbound')
+            continue
         if result.get('resolved_no_input_timeout') is True:
             review = review_no_input_retry(path)
             require(all(result.get(key) == value for key, value in review.items()),
@@ -308,13 +450,34 @@ def acquire(packet, case, campaign, retry_no_input_run=None, wait_for_button=Fal
         require((result.get('independent_rf_pass') is True or no_rf) and
                 result.get('attempt_sha256') == digest(path), 'preceding RF assessment failed/unbound')
     require(retry_no_input_run is None or retry_review is not None, 'retry run not found')
-    packet_bytes = (campaign/'packet.json').read_bytes()
+    return retry_review
+
+
+def acquire(packet, case, campaign, retry_no_input_run=None, wait_for_button=False, led_cue=False,
+            *, ready_file=None, packet_file=None):
+    require(ready_file is not None, 'fresh operator Ready acknowledgement required')
+    with campaign_lock(campaign):
+        return _acquire_locked(packet, case, campaign, retry_no_input_run, wait_for_button, led_cue,
+                               ready_file=ready_file, packet_file=packet_file)
+
+
+def _acquire_locked(packet, case, campaign, retry_no_input_run=None, wait_for_button=False, led_cue=False,
+                    *, ready_file=None, packet_file=None):
+    require(case in CONTINUATION_CASES and led_cue and not wait_for_button and
+            retry_no_input_run is None, 'only the two reviewed LED-cued continuation rows are authorized')
+    previous, charges = campaign_budget(campaign)
+    retry_review = review_campaign(campaign, previous, retry_no_input_run)
+    packet_file = packet_file or campaign/'packet.json'
+    require(packet_file.parent.resolve() == campaign.resolve(), 'packet must belong to this campaign')
+    packet_bytes = packet_file.read_bytes()
     require(json.loads(packet_bytes) == packet, 'packet changed after validation')
+    ready = consume_ready(ready_file, campaign, case, packet_bytes, previous, charges)
     root = campaign / ('run-' + uuid.uuid4().hex)
     evidence = Evidence(root)
     (root/'packet.json').write_bytes(packet_bytes)
     attempt = dict(case=case, packet_sha256=digest(root/'packet.json'), status='STARTING',
-                   charged_jobs=0, duration_ns='20000000000', independent_rf_pass=False)
+                   charged_jobs=0, duration_ns='20000000000', independent_rf_pass=False,
+                   operator_ready=ready)
     if retry_review:
         attempt['reviewed_no_input_retry'] = retry_review
     def save():
@@ -495,8 +658,14 @@ def acquire(packet, case, campaign, retry_no_input_run=None, wait_for_button=Fal
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('campaign', type=Path)
-    parser.add_argument('--case', choices=CASES, required=True)
-    parser.add_argument('--run', action='store_true')
+    parser.add_argument('--case', choices=CONTINUATION_CASES, required=True)
+    parser.add_argument('--packet-file', type=Path, help='Select the reviewed retained packet explicitly')
+    action = parser.add_mutually_exclusive_group(required=True)
+    action.add_argument('--run', action='store_true')
+    action.add_argument('--prepare', action='store_true', help='Read-only offline checks; park for human Ready')
+    action.add_argument('--acknowledge-ready', action='store_true',
+                        help='Create one-use acknowledgement only after the human says Ready')
+    parser.add_argument('--ready-file', type=Path, help='One-use record required by --run')
     parser.add_argument('--retry-no-input-run',
                         help='Explicit operator-authorized retry of a reviewed finite no-input timeout')
     parser.add_argument('--wait-button-reset', action='store_true',
@@ -505,11 +674,28 @@ def main():
                         help='Cue the action on a pre-reset healthy B without waiting for a physical ready tap')
     args = parser.parse_args()
     os.umask(0o077)
-    packet = json.loads((args.campaign/'packet.json').read_text())
-    validate_packet(packet)
-    require(args.run, 'explicit --run required for physical USB/receiver/RF actions')
+    if args.run:
+        require(args.ready_file is not None, '--run requires a fresh --ready-file')
+    packet_file = args.packet_file or args.campaign/'packet.json'
+    require(packet_file.parent.resolve() == args.campaign.resolve(), 'packet must belong to this campaign')
+    packet_bytes = packet_file.read_bytes()
+    packet = json.loads(packet_bytes)
+    validate_packet(packet, verify_files=args.run)
+    if not args.run:
+        require(args.retry_no_input_run is None and not args.wait_button_reset and not args.led_cue and
+                args.ready_file is None, 'physical/retry arguments are not preparation')
+        previous, charges = campaign_budget(args.campaign)
+        review_campaign(args.campaign, previous)
+        if args.acknowledge_ready:
+            print(acknowledge_ready(args.campaign, args.case, packet_bytes, previous, charges))
+        else:
+            print(json.dumps(dict(status='WAITING_FOR_OPERATOR_READY', case=args.case,
+                                  attempts=len(previous), charged_jobs=charges,
+                                  attempt_limit=ATTEMPT_LIMIT, job_limit=JOB_LIMIT,
+                                  hardware_accessed=False, image_files_verified=False)))
+        return
     acquire(packet, args.case, args.campaign, args.retry_no_input_run,
-            args.wait_button_reset, args.led_cue)
+            args.wait_button_reset, args.led_cue, ready_file=args.ready_file, packet_file=packet_file)
 
 
 if __name__ == '__main__':

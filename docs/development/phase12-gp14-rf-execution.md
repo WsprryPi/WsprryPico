@@ -1,6 +1,6 @@
 # GP14 production RF integration and acceptance
 
-Status: **FOUR RF ROWS ACCEPTED; ATTEMPT LIMIT REACHED; RESET/AP OPEN; DEFAULT OFF** (2026-10-01).
+Status: **FOUR RF ROWS ACCEPTED; CONTINUATION AUTHORIZED; WAITING FOR READY; DEFAULT OFF** (2026-10-02).
 
 ## Authorization and scope
 
@@ -74,10 +74,11 @@ authorized extension to **15 total acquisition attempts and 11 total RF jobs**
 to finish the five remaining rows. All further jobs are at most **20 seconds**.
 No counter is reset and historical failed attempts remain counted.
 After the subsequent nonqualifying quick-reset trial, all 15 attempts and
-ten jobs are charged. An extension to 17 attempts and 12 jobs has been requested
-to finish the two outstanding rows; it is not authorized or applied until the
-operator answers. The earlier pending request for 16 attempts would no longer
-cover both rows.
+ten jobs are charged. The operator answered **Execute** on 2026-10-02 to the
+[reset/AP continuation](phase12-gp14-reset-ap-continuation-prompt.md), authorizing
+17 total attempts and 12 total jobs for the two outstanding rows. This grants
+no standing Ready: orchestration must park until a fresh acknowledgement for
+each row. The earlier pending request for 16 attempts did not cover both rows.
 Keep the core-0 busy interval
 below the existing 8-second watchdog. A watchdog recovery row may require a
 separate reviewed stimulus; do not improvise a destructive fault.
