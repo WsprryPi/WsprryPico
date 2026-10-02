@@ -4,8 +4,10 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <limits>
+#include <new>
 #include <string>
 
 using namespace wsprrypico::wtp;
@@ -17,6 +19,30 @@ std::size_t calls = 0;
 std::size_t fail_call = 0;
 std::size_t live_bytes = 0;
 std::size_t largest_request = 0;
+constexpr char expired_principal[] =
+    "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
+static_assert(sizeof(expired_principal) == 64);
+std::size_t heap_calls = 0;
+std::size_t expired_principal_frees = 0;
+bool watch_principal = false;
+
+void* heap_allocate(std::size_t bytes) {
+    auto* allocation = static_cast<Allocation*>(std::malloc(sizeof(Allocation) + bytes));
+    if (!allocation)
+        throw std::bad_alloc();
+    allocation->bytes = bytes;
+    ++heap_calls;
+    return allocation + 1;
+}
+void heap_free(void* memory) noexcept {
+    if (!memory)
+        return;
+    auto* allocation = static_cast<Allocation*>(memory) - 1;
+    if (watch_principal && allocation->bytes == sizeof(expired_principal) &&
+        std::memcmp(memory, expired_principal, sizeof(expired_principal)) == 0)
+        ++expired_principal_frees;
+    std::free(allocation);
+}
 
 void* bounded_allocate(std::size_t bytes) {
     ++calls;
@@ -68,8 +94,9 @@ Request decode(const std::string& text) {
 
 class TestClock final : public Clock {
   public:
+    std::uint64_t monotonic_ns = 10'000'000'000ULL;
     ClockSnapshot snapshot() const override {
-        return {ClockState::Synchronized, 1'000'000'000'000ULL, 10'000'000'000ULL, 1000, 0,
+        return {ClockState::Synchronized, 1'000'000'000'000ULL, monotonic_ns, 1000, 0,
                 LeapState::Normal,        std::nullopt};
     }
 };
@@ -122,7 +149,56 @@ void admit(JobService& service) {
 }
 } // namespace
 
+void* operator new(std::size_t bytes) {
+    return heap_allocate(bytes);
+}
+void* operator new[](std::size_t bytes) {
+    return heap_allocate(bytes);
+}
+void operator delete(void* memory) noexcept {
+    heap_free(memory);
+}
+void operator delete[](void* memory) noexcept {
+    heap_free(memory);
+}
+void operator delete(void* memory, std::size_t) noexcept {
+    heap_free(memory);
+}
+void operator delete[](void* memory, std::size_t) noexcept {
+    heap_free(memory);
+}
+
 int main() {
+    {
+        TestClock quiet_clock;
+        TestIdentity quiet_identity;
+        TestEngine quiet_engine;
+        JobService quiet_service(quiet_clock, quiet_engine, quiet_identity);
+        const auto admitted_at = quiet_clock.monotonic_ns;
+        {
+            auto hello = request("HELLO", HelloBody{{"WTP/1"}}, '9');
+            hello.principal = expired_principal;
+            assert(quiet_service.handle(hello).ok);
+        }
+        // Only the internal Session retains this identity now. Replay records
+        // retain session/request IDs, not the transport principal. No later
+        // request may prune sessions and hide a missing idle-poll cleanup.
+        watch_principal = true;
+        const auto allocations_before_poll = heap_calls;
+        quiet_clock.monotonic_ns =
+            admitted_at + quiet_service.config().response_cache_ttl_ns - 1;
+        quiet_service.poll();
+        assert(expired_principal_frees == 0 && heap_calls == allocations_before_poll);
+        ++quiet_clock.monotonic_ns;
+        quiet_service.poll();
+        assert(expired_principal_frees == 1 && heap_calls == allocations_before_poll);
+        for (unsigned i = 0; i < 8; ++i) {
+            ++quiet_clock.monotonic_ns;
+            quiet_service.poll();
+        }
+        assert(expired_principal_frees == 1 && heap_calls == allocations_before_poll);
+        watch_principal = false;
+    }
     allocate_input = bounded_allocate;
     deallocate_input = bounded_free;
     const auto text = maximum_load();

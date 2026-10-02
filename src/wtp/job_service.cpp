@@ -570,6 +570,7 @@ void JobService::poll() {
     expire_resources(now.monotonic_now_ns);
     prune_replay(now.monotonic_now_ns);
     prune_terminals(now.monotonic_now_ns);
+    prune_sessions(now.monotonic_now_ns);
     std::optional<EngineReport> local_report;
     if (state_ == State::Armed && arm_ && job_ && arm_->scheduled_locally) {
         const auto report = engine_.poll(now.monotonic_now_ns);
