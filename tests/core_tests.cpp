@@ -1,4 +1,5 @@
 #include "encoding/morse.hpp"
+#include "runtime/activity_trace.hpp"
 #include "time/usb_time_source.hpp"
 #include "time/utc_discipline.hpp"
 #include "wtp/codec.hpp"
@@ -877,6 +878,58 @@ void test_frame_recovery_limits_and_timeout() {
     CHECK(std::any_of(limit_events.begin(), limit_events.end(), [](const FrameEvent& event) {
         return event.kind == FrameEventKind::Closed;
     }));
+}
+
+void test_status_activity_trace_integration() {
+    class CountingClock final : public Clock {
+      public:
+        mutable unsigned calls = 0;
+        ClockSnapshot snapshot() const override {
+            ++calls;
+            ClockSnapshot value{};
+            value.monotonic_now_ns = calls;
+            return value;
+        }
+    } clock;
+    MockRfEngine engine;
+    TestIdentitySource identities;
+    JobService service(clock, engine, identities);
+    auto& trace = wsprrypico::runtime::activity_trace();
+    trace.end();
+    CHECK(hello(service).ok);
+    const auto valid = request("STATUS", std::monostate{}, 'b');
+    CHECK(service.handle(valid).ok);
+    const auto before = clock.calls;
+    CHECK(service.handle(valid).ok); // Baseline the same replay path while disabled.
+    const auto disabled_calls = clock.calls - before;
+    CHECK(trace.records().empty());
+    CHECK(trace.begin());
+    const auto enabled_before = clock.calls;
+    CHECK(service.handle(valid).ok); // Actual replay takes the early return.
+    CHECK(clock.calls - enabled_before == disabled_calls + 2);
+    CHECK(service.handle(request("STATUS", std::monostate{}, 'c')).ok);
+    CHECK(service.handle(request("STATUS", std::monostate{}, 'd', '1', "other")).error ==
+          ErrorCode::AuthenticationRequired);
+    const auto records = trace.records();
+    CHECK(records.size() == 6 && trace.open_spans() == 0 && !trace.overflow());
+    for (std::size_t i = 0; i < records.size(); i += 2) {
+        CHECK(records[i].kind == wsprrypico::runtime::ActivityKind::Status);
+        CHECK(records[i].phase == wsprrypico::runtime::ActivityPhase::Begin);
+        CHECK(records[i + 1].phase == wsprrypico::runtime::ActivityPhase::End);
+        CHECK(records[i].span == records[i + 1].span);
+        CHECK(records[i + 1].outcome == wsprrypico::runtime::ActivityOutcome::Complete);
+        CHECK(records[i].monotonic_ns < records[i + 1].monotonic_ns);
+    }
+    CHECK(!service.activity().owned && !service.activity().output_active);
+    CHECK(service.status().state == State::Empty);
+    trace.end();
+    const auto end_calls = clock.calls;
+    CHECK(service.handle(valid).ok);
+    CHECK(clock.calls - end_calls == disabled_calls);
+    CHECK(trace.records().size() == 6);
+    // Clear the process-global trace so subsequent tests start disabled and empty.
+    CHECK(trace.begin());
+    trace.end();
 }
 
 void test_negotiation_sessions_and_unknown_operations() {
@@ -2045,6 +2098,7 @@ int main() {
         {"extended Morse boundaries", test_extended_morse_message_boundaries},
         {"fragmented and combined frames", test_fragmented_and_combined_frames},
         {"frame recovery limits and timeout", test_frame_recovery_limits_and_timeout},
+        {"status activity trace integration", test_status_activity_trace_integration},
         {"negotiation sessions and unknown operations",
          test_negotiation_sessions_and_unknown_operations},
         {"replay and ownership", test_replay_and_ownership},

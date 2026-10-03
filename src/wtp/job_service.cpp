@@ -1,5 +1,6 @@
 #include "wtp/job_service.hpp"
 
+#include "runtime/activity_trace.hpp"
 #include "wtp/memory_budget.hpp"
 
 #include <algorithm>
@@ -131,6 +132,9 @@ Response JobService::handle(Request&& request) {
 
 Response JobService::handle_owned(Request& request) {
     const auto now = clock_.snapshot();
+    runtime::ActivitySpan status_span(
+        runtime::activity_trace(), runtime::ActivityKind::Status,
+        [this] { return clock_.snapshot().monotonic_now_ns; }, request.operation == "STATUS");
     expire_resources(now.monotonic_now_ns);
     prune_replay(now.monotonic_now_ns);
     prune_terminals(now.monotonic_now_ns);

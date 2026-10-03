@@ -16,6 +16,7 @@
 #include "pico/cyw43_arch.h"
 #include "pico/rand.h"
 #include "pico/time.h"
+#include "runtime/activity_trace.hpp"
 #include "standalone/pico/flash_layout.hpp"
 #include "standalone/pico/mdns_lwip.h"
 #ifdef WSPRRY_PICO_STANDALONE_RF
@@ -35,16 +36,23 @@ static_assert(PICO_FLASH_SIZE_BYTES == flash_layout::physical_size);
 static_assert(MEM_ALIGNMENT >= alignof(std::uint32_t));
 PicoNetwork* mdns_owner = nullptr;
 FlashResources flash_counters;
+std::uint64_t activity_now_ns() {
+    return time_us_64() * 1000ULL;
+}
 struct FlashCall {
+    runtime::ActivitySpan<std::uint64_t (*)()> trace;
     std::uint64_t& failures;
     bool ok = false;
     FlashCall(std::uint64_t& attempts, std::uint64_t& failed, std::uint64_t& bytes,
-              std::size_t requested)
-        : failures(failed) {
+              std::size_t requested, runtime::ActivityKind kind = runtime::ActivityKind::None)
+        : trace(runtime::activity_trace(), kind, activity_now_ns,
+                kind != runtime::ActivityKind::None),
+          failures(failed) {
         ++attempts;
         bytes += requested;
     }
     ~FlashCall() {
+        trace.outcome(ok);
         if (!ok)
             ++failures;
     }
@@ -92,7 +100,8 @@ bool PicoFlash::read(std::size_t offset, std::span<std::uint8_t> data) {
 }
 bool PicoFlash::erase(std::size_t offset) {
     FlashCall call(flash_counters.erase_attempts, flash_counters.erase_failures,
-                   flash_counters.erase_requested_bytes, FLASH_SECTOR_SIZE);
+                   flash_counters.erase_requested_bytes, FLASH_SECTOR_SIZE,
+                   runtime::ActivityKind::StandaloneErase);
     if (offset % FLASH_SECTOR_SIZE || offset > storage_size - FLASH_SECTOR_SIZE)
         return false;
 #ifdef WSPRRY_PICO_STANDALONE_RF
@@ -113,7 +122,8 @@ bool PicoFlash::erase(std::size_t offset) {
 }
 bool PicoFlash::program(std::size_t offset, std::span<const std::uint8_t> page) {
     FlashCall call(flash_counters.program_attempts, flash_counters.program_failures,
-                   flash_counters.program_requested_bytes, page.size());
+                   flash_counters.program_requested_bytes, page.size(),
+                   runtime::ActivityKind::StandaloneProgram);
     if (offset % FLASH_PAGE_SIZE || page.size() != FLASH_PAGE_SIZE ||
         offset > storage_size - FLASH_PAGE_SIZE)
         return false;
@@ -148,7 +158,8 @@ bool PicoProfileMedia::read(std::size_t offset, std::span<std::uint8_t> data) {
 }
 bool PicoProfileMedia::erase(std::size_t offset) {
     FlashCall call(flash_counters.erase_attempts, flash_counters.erase_failures,
-                   flash_counters.erase_requested_bytes, provisioning::profile_slot_size);
+                   flash_counters.erase_requested_bytes, provisioning::profile_slot_size,
+                   runtime::ActivityKind::ProfileErase);
     if (offset % provisioning::profile_slot_size ||
         offset > provisioning::profile_media_size - provisioning::profile_slot_size)
         return false;
@@ -175,7 +186,8 @@ bool PicoProfileMedia::erase(std::size_t offset) {
 }
 bool PicoProfileMedia::program(std::size_t offset, std::span<const std::uint8_t> page) {
     FlashCall call(flash_counters.program_attempts, flash_counters.program_failures,
-                   flash_counters.program_requested_bytes, page.size());
+                   flash_counters.program_requested_bytes, page.size(),
+                   runtime::ActivityKind::ProfileProgram);
     if (offset % FLASH_PAGE_SIZE || page.size() != FLASH_PAGE_SIZE ||
         offset > provisioning::profile_media_size - FLASH_PAGE_SIZE)
         return false;
@@ -213,7 +225,8 @@ bool PicoAccessMedia::read(std::size_t offset, std::span<std::uint8_t> data) {
 }
 bool PicoAccessMedia::erase(std::size_t offset) {
     FlashCall call(flash_counters.erase_attempts, flash_counters.erase_failures,
-                   flash_counters.erase_requested_bytes, FLASH_SECTOR_SIZE);
+                   flash_counters.erase_requested_bytes, FLASH_SECTOR_SIZE,
+                   runtime::ActivityKind::AccessErase);
     if (offset % provisioning::access_slot_size ||
         offset > provisioning::access_media_size - provisioning::access_slot_size)
         return false;
@@ -236,7 +249,8 @@ bool PicoAccessMedia::erase(std::size_t offset) {
 }
 bool PicoAccessMedia::program(std::size_t offset, std::span<const std::uint8_t> page) {
     FlashCall call(flash_counters.program_attempts, flash_counters.program_failures,
-                   flash_counters.program_requested_bytes, page.size());
+                   flash_counters.program_requested_bytes, page.size(),
+                   runtime::ActivityKind::AccessProgram);
     if (offset % FLASH_PAGE_SIZE || page.size() != FLASH_PAGE_SIZE ||
         offset > provisioning::access_media_size - FLASH_PAGE_SIZE)
         return false;

@@ -22,6 +22,7 @@
 #include "provisioning/pico/consumer_tls_validator.hpp"
 #include "provisioning/pico/credential_validator.hpp"
 #include "provisioning/pico/field_platform.hpp"
+#include "runtime/activity_trace.hpp"
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
 #include "provisioning/button_runtime.hpp"
 #include "provisioning/pico/gp14_capture.hpp"
@@ -655,6 +656,93 @@ int main() {
     auto command = [&](std::string_view text) -> std::string {
         if (reset_coordinator.blocks_admission() || recovery_reset_at)
             return "{\"ok\":false,\"error\":\"reset_pending\"}\n";
+        if (text.starts_with("ACTIVITYTRACE ")) {
+            auto& trace = wsprrypico::runtime::activity_trace();
+            const auto identity_reply = [&]() {
+                return "{\"ok\":true,\"schema\":\"wsprrypico-activity-trace/1\",\"device_id\":" +
+                       wsprrypico::wtp::json::quote(identities.device_id()) + ",\"revision\":" +
+                       wsprrypico::wtp::json::quote(wsprrypico::firmware::kBuildRevision) +
+                       ",\"boot_id\":" + wsprrypico::wtp::json::quote(service.status().boot_id);
+            };
+            const auto safety_guard = [&]() {
+#ifdef WSPRRY_PICO_STANDALONE_RF
+                return false;
+#else
+                const auto activity = service.activity();
+                return !recovery && !reboot_at && !bootstrap.setup_pending() && store.healthy() &&
+                       profile_store.healthy() && access_store.healthy() &&
+                       runtime_profile_loaded &&
+                       service.status().state == wsprrypico::wtp::State::Empty && !activity.owned &&
+                       !activity.output_active && scheduler.idle() &&
+                       (!store.config() || !store.config()->enabled) && !engine.output_active();
+#endif
+            };
+            if (text.starts_with("ACTIVITYTRACE BEGIN ") ||
+                text.starts_with("ACTIVITYTRACE END ")) {
+                const bool begin = text.starts_with("ACTIVITYTRACE BEGIN ");
+                const auto device = text.substr(begin ? 20 : 18);
+                if (device != identities.device_id() || !safety_guard())
+                    return "{\"ok\":false,\"error\":\"activity_trace_refused\"}\n";
+                if (begin && !trace.begin())
+                    return "{\"ok\":false,\"error\":\"activity_trace_busy\"}\n";
+                if (!begin)
+                    trace.end();
+                auto result = identity_reply();
+                number_field(result, "capture_epoch", trace.capture_epoch(), true);
+                result += ",\"enabled\":" + std::string(trace.enabled() ? "true" : "false") + "}\n";
+                return result;
+            }
+            if (!text.starts_with("ACTIVITYTRACE READ "))
+                return "{\"ok\":false,\"error\":\"activity_trace_command\"}\n";
+            const auto raw = text.substr(19);
+            std::uint64_t cursor = 0;
+            const auto parsed = std::from_chars(raw.data(), raw.data() + raw.size(), cursor);
+            if (raw.empty() || (raw.size() > 1 && raw.front() == '0') || parsed.ec != std::errc{} ||
+                parsed.ptr != raw.data() + raw.size() || cursor > trace.records().size())
+                return "{\"ok\":false,\"error\":\"activity_trace_cursor\"}\n";
+            auto result = identity_reply();
+            number_field(result, "capture_epoch", trace.capture_epoch(), true);
+            number_field(result, "record_count", trace.records().size(), true);
+            number_field(result, "open_spans", trace.open_spans(), true);
+            number_field(result, "dropped_spans", trace.dropped_spans(), true);
+            result += ",\"enabled\":" + std::string(trace.enabled() ? "true" : "false") +
+                      ",\"overflow\":" + (trace.overflow() ? "true" : "false") +
+                      ",\"clock_regressed\":" + (trace.clock_regressed() ? "true" : "false") +
+                      ",\"records\":[";
+            std::size_t count = 0;
+            std::uint64_t next = cursor;
+            for (const auto& record : trace.records()) {
+                if (record.sequence <= cursor)
+                    continue;
+                if (count == 64)
+                    break;
+                std::string item = count ? ",{\"seq\":\"" : "{\"seq\":\"";
+                item +=
+                    std::to_string(record.sequence) + "\",\"span\":\"" +
+                    std::to_string(record.span) + "\",\"monotonic_ns\":\"" +
+                    std::to_string(record.monotonic_ns) + "\",\"kind\":" +
+                    wsprrypico::wtp::json::quote(
+                        wsprrypico::runtime::activity_kind_name(record.kind)) +
+                    ",\"phase\":\"" +
+                    (record.phase == wsprrypico::runtime::ActivityPhase::Begin ? "begin" : "end") +
+                    "\",\"outcome\":\"" +
+                    (record.outcome == wsprrypico::runtime::ActivityOutcome::Pending ? "pending"
+                     : record.outcome == wsprrypico::runtime::ActivityOutcome::Complete
+                         ? "complete"
+                         : "failed") +
+                    "\"}";
+                if (result.size() + item.size() > 7400)
+                    break;
+                result += item;
+                ++count;
+                next = record.sequence;
+            }
+            result += "]";
+            number_field(result, "next_cursor", next, true);
+            result += ",\"more\":" + std::string(next < trace.records().size() ? "true" : "false") +
+                      "}\n";
+            return result;
+        }
         if (text == "INFO") {
             // One allocator snapshot before response formatting. These are arena
             // statistics, not a destructive largest-allocation probe or a peak
