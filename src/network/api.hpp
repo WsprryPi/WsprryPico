@@ -57,6 +57,9 @@ class BrowserApi {
 
   private:
     HttpResponse config() const;
+    HttpResponse station_config() const;
+    HttpResponse hardware_config() const;
+    HttpResponse application_config() const;
     HttpResponse job(const HttpRequest& request, std::string_view principal);
     wtp::JobService& service_;
     standalone::Store& store_;

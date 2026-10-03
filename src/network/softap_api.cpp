@@ -144,7 +144,9 @@ SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string& se
         if (request.path == "/api/v1/capabilities")
             return SoftApOperation::Hello;
         if (request.path == "/api/v1/config" || request.path == "/api/v1/schedules" ||
-            request.path == "/api/v1/network")
+            request.path == "/api/v1/network" || request.path == "/api/v1/application" ||
+            request.path == "/api/v1/station" || request.path == "/api/v1/hardware" ||
+            request.path == "/api/v1/pins")
             return SoftApOperation::Configure;
         valid = false;
         return SoftApOperation::Status;
@@ -179,8 +181,10 @@ SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string& se
     }
     if ((request.method == "PUT" &&
          (request.path == "/api/v1/config" || request.path == "/api/v1/schedules" ||
-          request.path == "/api/v1/network")) ||
-        (request.method == "POST" && request.path == "/api/v1/restart"))
+          request.path == "/api/v1/network" || request.path == "/api/v1/station" ||
+          request.path == "/api/v1/hardware")) ||
+        (request.method == "POST" &&
+         (request.path == "/api/v1/restart" || request.path == "/api/v1/pins/validate")))
         return SoftApOperation::Configure;
     valid = false;
     return SoftApOperation::Status;

@@ -1,5 +1,7 @@
 #include "network/api.hpp"
 
+#include "application/resources.hpp"
+#include "encoding/wspr.hpp"
 #include "hardware/pins.hpp"
 #include "network/assets.hpp"
 #include "network/identity.hpp"
@@ -31,7 +33,9 @@ void append(std::string& output, InputView input) {
 }
 } // namespace
 std::string BrowserApi::revision() const {
-    const auto data = service_.status().boot_id + ":" + std::to_string(network_revision_) + ":" +
+    const auto data = device_ + ":" + service_.status().boot_id + ":" +
+                      std::to_string(network_revision_) + ":" +
+                      std::to_string(store_.config_sequence()) + ":" +
                       (store_.config() ? standalone::serialize_config(*store_.config()) : "null");
     const auto digest =
         sha256(std::span(reinterpret_cast<const std::uint8_t*>(data.data()), data.size()));
@@ -47,6 +51,61 @@ HttpResponse BrowserApi::config() const {
         body.replace(pos, 13, "\"password\":null");
     }
     auto result = ok("{\"config\":" + body + "}");
+    result.etag = revision();
+    return result;
+}
+HttpResponse BrowserApi::station_config() const {
+    const bool saved = store_.healthy() && store_.config().has_value();
+    auto result = ok("{\"schema\":" + json::quote(application::station_schema) +
+                     ",\"target\":" + application::target(device_, service_.status().boot_id) +
+                     ",\"station\":" + (saved ? application::station(*store_.config()) : "null") +
+                     ",\"saved_generation\":" +
+                     (saved ? json::quote(std::to_string(store_.config_sequence())) : "null") +
+                     ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}"));
+    result.etag = revision();
+    return result;
+}
+HttpResponse BrowserApi::hardware_config() const {
+    const bool saved = store_.healthy() && store_.config().has_value();
+    const auto active = hardware::serialize_plan(scheduler_.active_pins());
+    const auto boot = service_.status().boot_id;
+    const auto data = device_ + ':' + boot + ":hardware:" + active;
+    const auto digest =
+        sha256(std::span(reinterpret_cast<const std::uint8_t*>(data.data()), data.size()));
+    auto result =
+        ok("{\"schema\":" + json::quote(application::hardware_schema) +
+           ",\"target\":" + application::target(device_, boot) +
+           ",\"saved\":" + (saved ? hardware::serialize_plan(store_.config()->pins) : "null") +
+           ",\"saved_generation\":" +
+           (saved ? json::quote(std::to_string(store_.config_sequence())) : "null") +
+           ",\"active\":" + (scheduler_.boot_configured() ? active : "null") +
+           ",\"active_revision\":" +
+           (scheduler_.boot_configured() ? json::quote(hex(digest)) : "null") +
+           ",\"pending_restart\":" + (scheduler_.hardware_restart_required() ? "true" : "false") +
+           ",\"application_error\":" +
+           (scheduler_.hardware_application_failed() ? "\"output_disable_failed\"" : "null") +
+           ",\"execution_engine\":" + json::quote(service_.config().capability_engine) +
+           ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}"));
+    result.etag = revision();
+    return result;
+}
+HttpResponse BrowserApi::application_config() const {
+    const auto status = scheduler_.status();
+    const auto value = json::parse(status);
+    if (!value)
+        return http_error(503, "resource_exhausted");
+    std::string recurrence = "{\"authority\":\"member\"";
+    for (const auto field : {"enabled", "suspended", "schedules", "schedule_base_frequency_nhz"})
+        recurrence += ',' + json::quote(field) + ':' + std::string(value->get(field)->raw);
+    recurrence +=
+        ",\"expires_utc_s\":" + json::quote(std::string(value->get("expires_utc_s")->raw));
+    recurrence += '}';
+    auto result =
+        ok("{\"schema\":" + json::quote(application::application_schema) +
+           ",\"target\":" + application::target(device_, service_.status().boot_id) +
+           ",\"station\":" + station_config().body + ",\"hardware\":" + hardware_config().body +
+           ",\"recurrence\":" + recurrence + ",\"capabilities\":" + application::capabilities() +
+           ",\"reboot_required\":" + (scheduler_.reboot_required() ? "true}" : "false}"));
     result.etag = revision();
     return result;
 }
@@ -251,9 +310,14 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 "\"tail_ns\":\"1000\",\"max_repeat_count\":512,\"modes\":[\"qrss\",\"fskcw\","
                 "\"dfcw\"]}"
                 ",\"features\":{\"config\":true,\"schedules\":true,\"jobs\":true,\"network\":true,"
+                "\"application\":true,\"station\":true,\"hardware\":true,"
                 "\"softap\":true,\"ble\":true,\"restart\":" +
                 (restart_ ? "true" : "false") +
-                "},\"active_job_connections\":" + (active_job_connections_ ? "true" : "false") +
+                "},\"application_resources\":{\"schema\":\"transmitter-application/1\","
+                "\"read\":\"/api/v1/application\",\"station\":\"/api/v1/station\","
+                "\"hardware\":\"/api/v1/hardware\",\"management_carrier\":\"authenticated_https\"},"
+                "\"active_job_connections\":" +
+                (active_job_connections_ ? "true" : "false") +
                 ",\"max_network_connections\":2,\"max_wtp_connections\":1,\"max_pending_"
                 "connections\":1,\"max_handshakes\":1,\"max_body_bytes\":32768}");
         }
@@ -267,6 +331,12 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                       ",\"active\":" + hardware::serialize_plan(scheduler_.active_pins()) + "}");
         if (r.path == "/api/v1/config")
             return config();
+        if (r.path == "/api/v1/application")
+            return application_config();
+        if (r.path == "/api/v1/station")
+            return station_config();
+        if (r.path == "/api/v1/hardware")
+            return hardware_config();
         if (r.path == "/api/v1/network") {
             auto result = ok(network_.status());
             result.etag = revision();
@@ -291,10 +361,15 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     if (r.method == "POST" && (r.path == "/api/v1/jobs" || r.path.starts_with("/api/v1/jobs/")))
         return job(r, principal);
     const bool restart = r.method == "POST" && r.path == "/api/v1/restart";
+    const bool station_resource = r.path == "/api/v1/station";
+    const bool hardware_resource = r.path == "/api/v1/hardware";
+    const bool scoped_resource = station_resource || hardware_resource;
     if (!restart &&
         (r.method != "PUT" || (r.path != "/api/v1/config" && r.path != "/api/v1/schedules" &&
-                               r.path != "/api/v1/network")))
+                               r.path != "/api/v1/network" && !scoped_resource)))
         return http_error(404, "not_found");
+    if (scoped_resource && r.body_view().size() > application::max_update_bytes)
+        return http_error(413, "resource_body_too_large");
     if (r.header("if-match").empty())
         return http_error(428, "revision_required");
     if (r.header("if-match") != revision())
@@ -332,7 +407,43 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         return result;
     }
     std::string candidate;
-    if (r.path == "/api/v1/config") {
+    if (scoped_resource) {
+        const auto field = station_resource ? "station" : "pins";
+        const auto schema =
+            station_resource ? application::station_schema : application::hardware_schema;
+        switch (application::validate_envelope(*root, schema, field, device_,
+                                               service_.status().boot_id)) {
+        case application::Envelope::Invalid:
+            return http_error(400, "invalid_resource");
+        case application::Envelope::UnsupportedSchema:
+            return http_error(400, "unsupported_resource_schema");
+        case application::Envelope::TargetMismatch:
+            return http_error(409, "target_mismatch");
+        case application::Envelope::Valid:
+            break;
+        }
+        if (!store_.healthy())
+            return http_error(503, "storage_fault");
+        if (!store_.config())
+            return http_error(409, "not_configured");
+        auto updated = *store_.config();
+        if (hardware_resource) {
+            const auto pins = hardware::parse_plan(std::string(root->get(field)->raw));
+            if (!pins)
+                return http_error(400, "invalid_pin_plan");
+            if (!hardware::validate(*pins).valid())
+                return {400, hardware::describe(*pins), "application/json", {}};
+            if (!hardware::operational(*pins))
+                return http_error(400, "unsupported_pin_adapter");
+            updated.pins = *pins;
+        }
+        candidate = standalone::serialize_config(updated);
+        if (station_resource) {
+            const auto current = json::parse(candidate);
+            const auto station = current->get("station")->raw;
+            candidate.replace(station.offset(), station.size(), std::string(root->get(field)->raw));
+        }
+    } else if (r.path == "/api/v1/config") {
         auto wifi = root->get("wifi");
         auto password = wifi ? wifi->get("password") : std::nullopt;
         candidate = std::string(r.body_view());
@@ -357,17 +468,29 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             if (!plan)
                 return http_error(400, "invalid_pin_plan");
             if (!hardware::validate(*plan).valid())
-                return {400, {}, "application/json", hardware::describe(*plan), {}};
+                return {400, hardware::describe(*plan), "application/json", {}};
             if (!hardware::operational(*plan))
                 return http_error(400, "unsupported_pin_adapter");
         }
     }
-    if (!standalone::parse_config(candidate))
+    const auto validated = standalone::parse_config(candidate);
+    if (!validated)
         return http_error(400, "invalid_config");
+    if (station_resource && !encoding::wspr_type1_from_station(
+                                validated->callsign, validated->locator, validated->power_dbm))
+        return http_error(400, "unsupported_station_encoding");
     auto response = scheduler_.command("CONFIG " + candidate);
     auto value = json::parse(response);
-    if (!value || value->get("ok")->raw != "true")
+    if (!value || value->get("ok")->raw != "true") {
+        if (scoped_resource && value && value->get("error") &&
+            value->get("error")->string() == "output_disable_failed")
+            return http_error(503, "output_disable_failed");
         return http_error(503, "storage_fault");
+    }
+    if (station_resource)
+        return station_config();
+    if (hardware_resource)
+        return hardware_config();
     auto result = config();
     result.body.pop_back();
     result.body +=

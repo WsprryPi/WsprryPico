@@ -1,3 +1,4 @@
+#include "application/resources.hpp"
 #include "network/softap_api.hpp"
 #include "network_support.hpp"
 #include "provisioning/access.hpp"
@@ -161,6 +162,14 @@ void policy() {
     config.headers["cookie"] = cookie;
     REQUIRE(f.api.handle(config, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 3, 6)
                 .status == 401);
+    for (const auto path :
+         {"/api/v1/application", "/api/v1/station", "/api/v1/hardware", "/api/v1/pins"}) {
+        auto resource = config;
+        resource.path = path;
+        REQUIRE(
+            f.api.handle(resource, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 3, 6)
+                .status == 401);
+    }
 
     const auto time_body = "{\"version\":1,\"device_id\":\"" + std::string(device) +
                            "\",\"session_id\":\"" + std::string(session) +
@@ -199,6 +208,33 @@ void policy() {
     REQUIRE(capabilities.status == 200);
     REQUIRE(capabilities.body.find("\"softap\":true") != std::string::npos);
     REQUIRE(capabilities.body.find("\"ble\":true") != std::string::npos);
+    REQUIRE(capabilities.body.find("\"application\":true") != std::string::npos);
+    for (const auto path :
+         {"/api/v1/application", "/api/v1/station", "/api/v1/hardware", "/api/v1/pins"}) {
+        auto resource = config;
+        resource.path = path;
+        REQUIRE(
+            f.api.handle(resource, provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
+            200);
+        resource.headers.erase("cookie");
+        REQUIRE(
+            f.api.handle(resource, provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
+            401);
+    }
+    const auto standalone_config = standalone::parse_config(network_test::config);
+    REQUIRE(standalone_config && f.store.save(*standalone_config));
+    auto station =
+        request("PUT", "/api/v1/station",
+                "{\"schema\":\"transmitter-station/1\",\"target\":" +
+                    application::target(device, f.service.status().boot_id) +
+                    ",\"station\":{\"callsign\":\"K1ABC\",\"locator\":\"FN42\",\"power_dbm\":10}}");
+    station.headers["cookie"] = cookie;
+    station.headers["if-match"] = f.browser.revision();
+    REQUIRE(f.api.handle(station, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 8, 11)
+                .status == 401);
+    REQUIRE(f.api.handle(station, provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
+            200);
+    REQUIRE(f.store.config()->callsign == "K1ABC");
 
     auto hello = request("POST", "/api/v1/jobs",
                          "{\"session_id\":\"" + std::string(session) +

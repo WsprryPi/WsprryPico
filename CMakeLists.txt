@@ -46,6 +46,7 @@ execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/genera
     COMMAND_ERROR_IS_FATAL ANY)
 
 add_library(wsprrypico_core
+    src/application/resources.cpp
     src/hardware/pins.cpp
     src/provisioning/profile.cpp
     src/provisioning/network_profile.cpp
@@ -296,6 +297,12 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_executable(pin_allocation_tests tests/pin_allocation_tests.cpp)
     target_link_libraries(pin_allocation_tests PRIVATE wsprrypico_core)
     add_test(NAME pin_allocation COMMAND pin_allocation_tests)
+    add_executable(application_resource_tests tests/application_resource_tests.cpp)
+    target_link_libraries(application_resource_tests PRIVATE wsprrypico_core)
+    target_compile_options(application_resource_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME application_resources COMMAND application_resource_tests)
+    add_test(NAME application_schema COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/application_schema_tests.py $<TARGET_FILE:application_resource_tests>)
 
     add_executable(standalone_tests tests/standalone_tests.cpp)
     target_link_libraries(standalone_tests PRIVATE wsprrypico_core)

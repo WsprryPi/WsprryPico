@@ -15,6 +15,15 @@ class Scheduler {
     bool reboot_required() const {
         return reboot_required_;
     }
+    bool hardware_restart_required() const {
+        return pin_restart_required_;
+    }
+    bool boot_configured() const {
+        return boot_configured_;
+    }
+    bool hardware_application_failed() const {
+        return hardware_application_failed_;
+    }
     std::string command(std::string_view line);
     std::string status() const;
 
@@ -26,6 +35,8 @@ class Scheduler {
     wtp::ErrorCode last_error_ = wtp::ErrorCode::None;
     std::string last_job_;
     bool reboot_required_ = false, suspended_ = false, pin_restart_required_ = false;
+    bool boot_configured_ = false;
+    bool hardware_application_failed_ = false;
     std::optional<wtp::PayloadDigest> active_network_;
     hardware::PinPlan active_pins_;
 };

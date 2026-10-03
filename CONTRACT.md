@@ -15,7 +15,15 @@ custom BLE wire surface without changing WTP/1. Incompatible changes require a
 new Field-GATT protocol version. Physical interoperability and end-user
 acceptance remain Phase 12 gates.
 The independently versioned [browser API v1](docs/browser-api.md) records the
-implemented Pico surface. Shared WsprryPi adoption remains separate work.
+implemented Pico surface. WsprryPi's compatible adapter is independently
+maintained; full shared application/configuration parity remains future work.
+The [shared transmitter application and fleet contract](docs/transmitter-application-contract.md)
+defines the selected member/controller arrangement, configuration domains,
+scheduling authority and implementation path. The
+[Pico foundation](docs/development/shared-transmitter-application.md) freezes
+bounded member/station/hardware resources using the existing configuration
+authority. Expanded adapters remain future work; WTP/1 is unchanged and full
+application parity is not claimed.
 
 ## Timing and interoperability
 

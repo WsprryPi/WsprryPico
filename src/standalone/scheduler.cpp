@@ -34,6 +34,7 @@ Scheduler::Scheduler(Store& store, wtp::JobService& service) : store_(store), se
     if (store_.config()) {
         active_network_ = network_digest(*store_.config());
         active_pins_ = store_.config()->pins;
+        boot_configured_ = store_.healthy();
     }
 }
 wtp::Response Scheduler::request(std::string_view operation, wtp::RequestBody body) {
@@ -49,8 +50,9 @@ wtp::Response Scheduler::request(std::string_view operation, wtp::RequestBody bo
 }
 bool Scheduler::idle() const {
     const auto s = service_.activity();
-    return !s.owned && !s.output_active && s.state != wtp::State::Armed &&
-           s.state != wtp::State::Running && s.state != wtp::State::Failed;
+    return !hardware_application_failed_ && !s.owned && !s.output_active &&
+           s.state != wtp::State::Armed && s.state != wtp::State::Running &&
+           s.state != wtp::State::Failed;
 }
 bool Scheduler::reset_permitted() const {
     if (idle())
@@ -219,8 +221,10 @@ std::string Scheduler::command(std::string_view line) {
     if (active_pins_ != config->pins) {
         pin_restart_required_ = true;
         reboot_required_ = true;
-        if (!service_.local_inhibit_output())
+        if (!service_.local_inhibit_output()) {
+            hardware_application_failed_ = true;
             return error("output_disable_failed");
+        }
     }
     reboot_required_ =
         pin_restart_required_ || !active_network_ || *active_network_ != network_digest(*config);

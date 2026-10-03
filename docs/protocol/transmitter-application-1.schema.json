@@ -1,0 +1,800 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:wsprry:transmitter-application:1",
+  "title": "Pico shared transmitter application foundation",
+  "description": "Versioned member resources. Structural conformance is followed by target, encoder, pin ownership, adapter, revision, admission and journal checks. x-maxWireBytes applies to the actual UTF-8 HTTP body. This schema does not define WTP or new storage.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/station_write"
+    },
+    {
+      "$ref": "#/$defs/hardware_write"
+    },
+    {
+      "$ref": "#/$defs/station_read"
+    },
+    {
+      "$ref": "#/$defs/hardware_read"
+    },
+    {
+      "$ref": "#/$defs/application_read"
+    }
+  ],
+  "$defs": {
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "device_id",
+        "boot_id"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "const": "member"
+        },
+        "device_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "boot_id": {
+          "type": "string",
+          "pattern": "[0-9a-f]{32}"
+        }
+      }
+    },
+    "decimal": {
+      "type": "string",
+      "pattern": "0|[1-9][0-9]{0,19}",
+      "x-maximum": "18446744073709551615"
+    },
+    "station": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "callsign",
+        "locator",
+        "power_dbm"
+      ],
+      "properties": {
+        "callsign": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 12,
+          "pattern": "[A-Z0-9]+(?:/[A-Z0-9]+)*"
+        },
+        "locator": {
+          "type": "string",
+          "pattern": "[A-R]{2}[0-9]{2}(?:[A-X]{2})?"
+        },
+        "power_dbm": {
+          "type": "integer",
+          "enum": [
+            0,
+            3,
+            7,
+            10,
+            13,
+            17,
+            20,
+            23,
+            27,
+            30,
+            33,
+            37,
+            40,
+            43,
+            47,
+            50,
+            53,
+            57,
+            60
+          ]
+        }
+      }
+    },
+    "pins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "engine",
+        "rf_gp",
+        "i2c_pair",
+        "button_gp",
+        "amplifier_gp",
+        "lpf_gps",
+        "indicator",
+        "indicator_gp"
+      ],
+      "properties": {
+        "engine": {
+          "type": "string",
+          "enum": [
+            "direct",
+            "i2c"
+          ]
+        },
+        "rf_gp": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "enum": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                26,
+                27,
+                28
+              ]
+            }
+          ]
+        },
+        "i2c_pair": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 11
+            }
+          ]
+        },
+        "button_gp": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "enum": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                26,
+                27,
+                28
+              ]
+            }
+          ]
+        },
+        "amplifier_gp": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "enum": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                26,
+                27,
+                28
+              ]
+            }
+          ]
+        },
+        "lpf_gps": {
+          "type": "array",
+          "maxItems": 26,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              26,
+              27,
+              28
+            ]
+          }
+        },
+        "indicator": {
+          "type": "string",
+          "enum": [
+            "onboard_led",
+            "external",
+            "disabled"
+          ]
+        },
+        "indicator_gp": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "enum": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                26,
+                27,
+                28
+              ]
+            }
+          ]
+        },
+        "indicator_active_high": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "engine": {
+                "const": "direct"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "rf_gp": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  8,
+                  9,
+                  10,
+                  11,
+                  12,
+                  13,
+                  14,
+                  15,
+                  16,
+                  17,
+                  18,
+                  19,
+                  20,
+                  21,
+                  22,
+                  26,
+                  27,
+                  28
+                ]
+              },
+              "i2c_pair": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "rf_gp": {
+                "type": "null"
+              },
+              "i2c_pair": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 11
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "indicator": {
+                "const": "external"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "indicator_gp": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  8,
+                  9,
+                  10,
+                  11,
+                  12,
+                  13,
+                  14,
+                  15,
+                  16,
+                  17,
+                  18,
+                  19,
+                  20,
+                  21,
+                  22,
+                  26,
+                  27,
+                  28
+                ]
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "indicator_gp": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "schedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "period_s",
+        "phase_s"
+      ],
+      "properties": {
+        "period_s": {
+          "type": "integer",
+          "minimum": 120,
+          "maximum": 86400
+        },
+        "phase_s": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86280
+        }
+      }
+    },
+    "recurrence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority",
+        "enabled",
+        "suspended",
+        "expires_utc_s",
+        "schedules",
+        "schedule_base_frequency_nhz"
+      ],
+      "properties": {
+        "authority": {
+          "type": "string",
+          "const": "member"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "suspended": {
+          "type": "boolean"
+        },
+        "expires_utc_s": {
+          "$ref": "#/$defs/decimal"
+        },
+        "schedules": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/schedule"
+          }
+        },
+        "schedule_base_frequency_nhz": {
+          "$ref": "#/$defs/decimal"
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "management_carrier",
+        "application_read",
+        "station_write",
+        "hardware_write",
+        "max_update_bytes",
+        "max_config_bytes",
+        "hardware_activation",
+        "station_encoding",
+        "station_power_meaning",
+        "recurrence_authorities",
+        "autonomous_modes",
+        "unavailable"
+      ],
+      "properties": {
+        "management_carrier": {
+          "type": "string",
+          "const": "authenticated_https"
+        },
+        "application_read": {
+          "type": "boolean",
+          "const": true
+        },
+        "station_write": {
+          "type": "boolean",
+          "const": true
+        },
+        "hardware_write": {
+          "type": "boolean",
+          "const": true
+        },
+        "max_update_bytes": {
+          "type": "integer",
+          "const": 1024
+        },
+        "max_config_bytes": {
+          "type": "integer",
+          "const": 1800
+        },
+        "hardware_activation": {
+          "type": "string",
+          "const": "restart"
+        },
+        "station_encoding": {
+          "type": "string",
+          "const": "wspr_type1"
+        },
+        "station_power_meaning": {
+          "type": "string",
+          "const": "reported_wspr_dbm"
+        },
+        "recurrence_authorities": {
+          "type": "array",
+          "const": [
+            "member"
+          ]
+        },
+        "autonomous_modes": {
+          "type": "array",
+          "const": [
+            "wspr"
+          ]
+        },
+        "unavailable": {
+          "type": "array",
+          "const": [
+            "recurrence_transfer",
+            "si5351",
+            "amplifier",
+            "lpf",
+            "drive",
+            "reference_calibration",
+            "waveform_preferences",
+            "usb_json_management",
+            "plain_lan_json_management",
+            "ble_json_management"
+          ]
+        }
+      }
+    },
+    "station_write": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "target",
+        "station"
+      ],
+      "properties": {
+        "schema": {
+          "type": "string",
+          "const": "transmitter-station/1"
+        },
+        "target": {
+          "$ref": "#/$defs/target"
+        },
+        "station": {
+          "$ref": "#/$defs/station"
+        }
+      },
+      "x-maxWireBytes": 1024
+    },
+    "hardware_write": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "target",
+        "pins"
+      ],
+      "properties": {
+        "schema": {
+          "type": "string",
+          "const": "transmitter-hardware/1"
+        },
+        "target": {
+          "$ref": "#/$defs/target"
+        },
+        "pins": {
+          "$ref": "#/$defs/pins"
+        }
+      },
+      "x-maxWireBytes": 1024
+    },
+    "station_read": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "target",
+        "station",
+        "saved_generation",
+        "storage_healthy"
+      ],
+      "properties": {
+        "schema": {
+          "type": "string",
+          "const": "transmitter-station/1"
+        },
+        "target": {
+          "$ref": "#/$defs/target"
+        },
+        "station": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/station"
+            }
+          ]
+        },
+        "saved_generation": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/decimal"
+            }
+          ]
+        },
+        "storage_healthy": {
+          "type": "boolean"
+        }
+      },
+      "x-maxWireBytes": 4096
+    },
+    "hardware_read": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "target",
+        "saved",
+        "saved_generation",
+        "active",
+        "active_revision",
+        "pending_restart",
+        "execution_engine",
+        "storage_healthy",
+        "application_error"
+      ],
+      "properties": {
+        "schema": {
+          "type": "string",
+          "const": "transmitter-hardware/1"
+        },
+        "target": {
+          "$ref": "#/$defs/target"
+        },
+        "saved": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/pins"
+            }
+          ]
+        },
+        "saved_generation": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/decimal"
+            }
+          ]
+        },
+        "active": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/pins"
+            }
+          ]
+        },
+        "active_revision": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "[0-9a-f]{64}"
+            }
+          ]
+        },
+        "pending_restart": {
+          "type": "boolean"
+        },
+        "execution_engine": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "storage_healthy": {
+          "type": "boolean"
+        },
+        "application_error": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "const": "output_disable_failed"
+            }
+          ]
+        }
+      },
+      "x-maxWireBytes": 4096
+    },
+    "application_read": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "target",
+        "station",
+        "hardware",
+        "recurrence",
+        "capabilities",
+        "reboot_required"
+      ],
+      "properties": {
+        "schema": {
+          "type": "string",
+          "const": "transmitter-application/1"
+        },
+        "target": {
+          "$ref": "#/$defs/target"
+        },
+        "station": {
+          "$ref": "#/$defs/station_read"
+        },
+        "hardware": {
+          "$ref": "#/$defs/hardware_read"
+        },
+        "recurrence": {
+          "$ref": "#/$defs/recurrence"
+        },
+        "capabilities": {
+          "$ref": "#/$defs/capabilities"
+        },
+        "reboot_required": {
+          "type": "boolean"
+        }
+      },
+      "x-maxWireBytes": 4096
+    }
+  }
+}

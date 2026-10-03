@@ -52,8 +52,10 @@ Preserve WsprryPi encoder and scheduler concepts while adapting platform depende
 
 The [RF feasibility study](rf-feasibility.md) selects PIO/DMA packed-bit GPIO
 synthesis for experimental implementation, with Si5351 as an alternative.
-No production engine or band range is qualified. The experimental driver fixes
-GP2 and a build-selected 132, 138 or 150 MHz sample clock (138 MHz default); the standard firmware remains RF-inhibited. The
+No production engine or band range is qualified. The experimental bench defaults
+to GP2 and a build-selected 132, 138 or 150 MHz sample clock (138 MHz default).
+Standalone direct RF uses the validated boot pin plan; newly selected pins are
+not thereby RF-qualified. The standard firmware remains RF-inhibited. The
 [portable stream library](development/rf-stream.md) implements planning, waveform
 generation and an abstract-sink adapter separately from the firmware. The
 [PIO/DMA sink and local timer launch](development/pio-dma-driver.md) are
@@ -65,6 +67,15 @@ Bounded target results exist; calibrated timing and spectral validation remain p
 ## Browser UI
 
 Reuse as much WsprryPi browser UI and UX as practical through a shared browser-facing JSON API. Pico firmware supplies lightweight HTTP handlers and static assets, not Apache/PHP. The browser API and WTP have distinct responsibilities but share application behavior and capability semantics.
+
+The [shared transmitter application and fleet contract](transmitter-application-contract.md)
+extends that direction to the complete member application: hardware, station,
+messages, schedules, ownership, time, status and management. Each member owns
+local execution; each schedule has either controller-owned or member-owned
+recurrence. The [Pico configuration foundation](development/shared-transmitter-application.md)
+adds independently versioned application/station/hardware projections through
+the existing coordinator, journal and authenticated HTTPS policy. Expanded
+adapters and complete application parity remain future implementation work.
 
 ## Protocol
 
@@ -208,9 +219,13 @@ activation and broader target resource/coexistence tuning. The wired
 SoftAP/HTTPS surface has only the bounded native-Pi target acceptance recorded
 above; the current production review separately records the bounded iPhone/
 Bluefy retained-bond, time, Identify/status and read-only WTP subset.
-Clock calibration, production RF engine/pins and shared WsprryPi adoption of
-browser API v1 remain open. The current Pico browser schemas and bounds are
-documented in the API contract. WTP/1 defines interoperable limits and policies
-without selecting those implementations.
+The [pin-assignment contract](pin-assignment-contract.md) selects the eligible
+GPIO set, exclusive role allocations and fixed I²C pairs. Clock calibration and
+production RF engine/pin qualification remain open. WsprryPi has an
+independently implemented browser API adapter; full shared application and
+hardware configuration parity follows the implementation path in the fleet
+contract above. The current Pico browser schemas and bounds are documented in
+the API contract. WTP/1 defines interoperable limits and policies without
+selecting those implementations.
 
 Estimates of reusable code and expected spectral behavior remain hypotheses until verified.

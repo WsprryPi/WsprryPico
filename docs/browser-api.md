@@ -1,8 +1,15 @@
 # Shared browser-facing JSON API v1
 
-Status: implemented by WsprryPico; Linux adoption remains independent work.
+Status: implemented by WsprryPico; compatible WsprryPi adapter adoption is
+independently maintained.
 The version is selected by `/api/v1/`, independently of firmware and WTP/1.
 The browser, USB WTP, TCP WTP and standalone scheduler use one JobService.
+
+The [shared transmitter application and fleet contract](transmitter-application-contract.md)
+defines the application/configuration model for Pi and Pico members. The
+[Pico foundation](development/shared-transmitter-application.md) implements bounded
+member, station and hardware resources with independent schema versions; broader
+adapters remain proposals. Existing routes and Config v1 retain their meanings.
 
 ## Transport and trust
 

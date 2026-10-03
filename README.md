@@ -205,6 +205,9 @@ does not create or deliver a profile and is not an end-user commissioning flow;
 the revised captive-portal flow is tracked in P12.7–P12.12.
 
 - [Accepted architecture](docs/architecture.md)
+- [Shared transmitter application and fleet contract](docs/transmitter-application-contract.md)
+- [Shared member configuration API foundation](docs/development/shared-transmitter-application.md)
+- [Selected Pico 2 W pin-assignment contract](docs/pin-assignment-contract.md)
 - [WTP/1 protocol contract](docs/protocol/WTP.md)
 - [Field GATT protocol and super-user guide](docs/protocol/Field-GATT.md)
 - [Browser API v1](docs/browser-api.md)

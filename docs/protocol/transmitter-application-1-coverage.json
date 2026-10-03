@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "pi_inventory_baseline": "2f67b0003f055bb4a7cc7c72fdf71a2b9c4cab19",
+  "settings": [
+    {
+      "source_setting": "Operation.Transmit Backend",
+      "disposition": "partial_pico_adapter",
+      "resource_field": "hardware.saved.engine",
+      "notes": "Direct PIO assignment only; runtime execution_engine reports inhibited/actual engine. Controller WTP adapter stays controller-local."
+    },
+    {
+      "source_setting": "GPIO.Transmit Pin",
+      "disposition": "implemented_pico_adapter",
+      "resource_field": "hardware.saved.rf_gp",
+      "notes": "Pico GP numbering; boot-applied direct engine only."
+    },
+    {
+      "source_setting": "GPIO.Power Level",
+      "disposition": "unavailable",
+      "resource_field": null,
+      "notes": "Future engine/control/waveform adapter; rejected by the closed current resource."
+    },
+    {
+      "source_setting": "GPIO.RP1 Drive mA",
+      "disposition": "platform_specific",
+      "resource_field": null,
+      "notes": "Pi-specific setting requires an explicit compatibility adapter; unavailable on Pico."
+    },
+    {
+      "source_setting": "GPIO.Use System Clock Frequency Estimate",
+      "disposition": "platform_specific",
+      "resource_field": null,
+      "notes": "Pi-specific setting requires an explicit compatibility adapter; unavailable on Pico."
+    },
+    {
+      "source_setting": "GPIO.Frequency Residual PPM",
+      "disposition": "platform_specific",
+      "resource_field": null,
+      "notes": "Pi-specific setting requires an explicit compatibility adapter; unavailable on Pico."
+    },
+    {
+      "source_setting": "GPIO.Manual PPM",
+      "disposition": "unavailable",
+      "resource_field": null,
+      "notes": "Future engine/control/waveform adapter; rejected by the closed current resource."
+    },
+    {
+      "source_setting": "Calibration.PPM",
+      "disposition": "unavailable",
+      "resource_field": null,
+      "notes": "Future engine/control/waveform adapter; rejected by the closed current resource."
+    },
+    {
+      "source_setting": "Si5351.I2C Bus, I2C Address",
+      "disposition": "unavailable",
+      "resource_field": null,
+      "notes": "Future engine/control/waveform adapter; rejected by the closed current resource."
+    },
+    {
+      "source_setting": "Si5351.Reference Frequency, Reference Source",
+      "disposition": "unavailable",
+      "resource_field": null,
+      "notes": "Future engine/control/waveform adapter; rejected by the closed current resource."
+    },
+    {
+      "source_setting": "Si5351.Crystal Load Capacitance",
+      "disposition": "unavailable",
+      "resource_field": null,
+      "notes": "Future engine/control/waveform adapter; rejected by the closed current resource."
+    },
+    {
+      "source_setting": "Si5351.TX Output",
+      "disposition": "unavailable",
+      "resource_field": null,
+      "notes": "Future engine/control/waveform adapter; rejected by the closed current resource."
+    },
+    {
+      "source_setting": "Si5351.Power Level",
+      "disposition": "unavailable",
+      "resource_field": null,
+      "notes": "Future engine/control/waveform adapter; rejected by the closed current resource."
+    },
+    {
+      "source_setting": "Operation.Use Amp, Amp Pin, Amp Pin Active High",
+      "disposition": "unavailable",
+      "resource_field": null,
+      "notes": "Future engine/control/waveform adapter; rejected by the closed current resource."
+    },
+    {
+      "source_setting": "Band GPIO per-band Enabled, GPIO, Active High",
+      "disposition": "unavailable",
+      "resource_field": null,
+      "notes": "Future engine/control/waveform adapter; rejected by the closed current resource."
+    },
+    {
+      "source_setting": "Frequency-entry @GPIO[H|L]",
+      "disposition": "unavailable",
+      "resource_field": null,
+      "notes": "Future engine/control/waveform adapter; rejected by the closed current resource."
+    },
+    {
+      "source_setting": "Operation.Use LED, LED Pin",
+      "disposition": "implemented_pico_adapter",
+      "resource_field": "hardware.saved.indicator and indicator_gp",
+      "notes": "Onboard, external and disabled; exclusive allocation."
+    },
+    {
+      "source_setting": "Operation.Use Shutdown, Shutdown Button",
+      "disposition": "implemented_pico_adapter",
+      "resource_field": "hardware.saved.button_gp",
+      "notes": "Pico stop/reset/setup gestures, distinct from Linux shutdown."
+    },
+    {
+      "source_setting": "CW Fade Shape, Fade In Ms, Fade Out Ms",
+      "disposition": "unavailable",
+      "resource_field": null,
+      "notes": "Future engine/control/waveform adapter; rejected by the closed current resource."
+    },
+    {
+      "source_setting": "CW Fade Slice Ms",
+      "disposition": "platform_specific",
+      "resource_field": null,
+      "notes": "Pi-specific setting requires an explicit compatibility adapter; unavailable on Pico."
+    }
+  ]
+}

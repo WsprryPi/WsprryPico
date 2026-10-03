@@ -1,0 +1,173 @@
+{
+  "version": 1,
+  "vectors": [
+    {
+      "name": "station-with-reported-power",
+      "resource": "station",
+      "schema_definition": "station_write",
+      "raw": "{\"schema\":\"transmitter-station/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"station\":{\"callsign\":\"K1ABC\",\"locator\":\"FN42AB\",\"power_dbm\":10}}",
+      "structural_valid": true,
+      "http_status": 200
+    },
+    {
+      "name": "direct-hardware-defaults",
+      "resource": "hardware",
+      "schema_definition": "hardware_write",
+      "raw": "{\"schema\":\"transmitter-hardware/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"pins\":{\"engine\":\"direct\",\"rf_gp\":2,\"i2c_pair\":null,\"button_gp\":14,\"amplifier_gp\":null,\"lpf_gps\":[],\"indicator\":\"onboard_led\",\"indicator_gp\":null,\"indicator_active_high\":true}}",
+      "structural_valid": true,
+      "http_status": 200
+    },
+    {
+      "name": "nondefault-rf-gp",
+      "resource": "hardware",
+      "schema_definition": "hardware_write",
+      "raw": "{\"schema\":\"transmitter-hardware/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"pins\":{\"engine\":\"direct\",\"rf_gp\":28,\"i2c_pair\":null,\"button_gp\":14,\"amplifier_gp\":null,\"lpf_gps\":[],\"indicator\":\"onboard_led\",\"indicator_gp\":null,\"indicator_active_high\":true}}",
+      "structural_valid": true,
+      "http_status": 200
+    },
+    {
+      "name": "external-gp-zero",
+      "resource": "hardware",
+      "schema_definition": "hardware_write",
+      "raw": "{\"schema\":\"transmitter-hardware/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"pins\":{\"engine\":\"direct\",\"rf_gp\":2,\"i2c_pair\":null,\"button_gp\":14,\"amplifier_gp\":null,\"lpf_gps\":[],\"indicator\":\"external\",\"indicator_gp\":0,\"indicator_active_high\":true}}",
+      "structural_valid": true,
+      "http_status": 200
+    },
+    {
+      "name": "wrong-device",
+      "resource": "station",
+      "schema_definition": "station_write",
+      "raw": "{\"schema\":\"transmitter-station/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"boot_id\":\"00000000000000000000000000000001\"},\"station\":{\"callsign\":\"K1ABC\",\"locator\":\"FN42AB\",\"power_dbm\":10}}",
+      "structural_valid": true,
+      "http_status": 409
+    },
+    {
+      "name": "wrong-boot",
+      "resource": "station",
+      "schema_definition": "station_write",
+      "raw": "{\"schema\":\"transmitter-station/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000002\"},\"station\":{\"callsign\":\"K1ABC\",\"locator\":\"FN42AB\",\"power_dbm\":10}}",
+      "structural_valid": true,
+      "http_status": 409
+    },
+    {
+      "name": "wrong-scope",
+      "resource": "station",
+      "schema_definition": "station_write",
+      "raw": "{\"schema\":\"transmitter-station/1\",\"target\":{\"scope\":\"controller\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"station\":{\"callsign\":\"K1ABC\",\"locator\":\"FN42AB\",\"power_dbm\":10}}",
+      "structural_valid": false,
+      "http_status": 409
+    },
+    {
+      "name": "unknown-resource-version",
+      "resource": "station",
+      "schema_definition": "station_write",
+      "raw": "{\"schema\":\"transmitter-station/2\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"station\":{\"callsign\":\"K1ABC\",\"locator\":\"FN42AB\",\"power_dbm\":10}}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "cannot-enable-via-station",
+      "resource": "station",
+      "schema_definition": "station_write",
+      "raw": "{\"schema\":\"transmitter-station/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"station\":{\"callsign\":\"K1ABC\",\"locator\":\"FN42AB\",\"power_dbm\":10},\"enabled\":true}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "unsupported-wspr-power",
+      "resource": "station",
+      "schema_definition": "station_write",
+      "raw": "{\"schema\":\"transmitter-station/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"station\":{\"callsign\":\"K1ABC\",\"locator\":\"FN42AB\",\"power_dbm\":11}}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "boolean-power",
+      "resource": "station",
+      "schema_definition": "station_write",
+      "raw": "{\"schema\":\"transmitter-station/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"station\":{\"callsign\":\"K1ABC\",\"locator\":\"FN42AB\",\"power_dbm\":true}}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "non-type1-station",
+      "resource": "station",
+      "schema_definition": "station_write",
+      "raw": "{\"schema\":\"transmitter-station/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"station\":{\"callsign\":\"K1ABC/P\",\"locator\":\"FN42AB\",\"power_dbm\":10}}",
+      "structural_valid": true,
+      "http_status": 400
+    },
+    {
+      "name": "invalid-grid",
+      "resource": "station",
+      "schema_definition": "station_write",
+      "raw": "{\"schema\":\"transmitter-station/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"station\":{\"callsign\":\"K1ABC\",\"locator\":\"FN42abc\",\"power_dbm\":10}}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "rf-button-conflict",
+      "resource": "hardware",
+      "schema_definition": "hardware_write",
+      "raw": "{\"schema\":\"transmitter-hardware/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"pins\":{\"engine\":\"direct\",\"rf_gp\":14,\"i2c_pair\":null,\"button_gp\":14,\"amplifier_gp\":null,\"lpf_gps\":[],\"indicator\":\"onboard_led\",\"indicator_gp\":null,\"indicator_active_high\":true}}",
+      "structural_valid": true,
+      "http_status": 400
+    },
+    {
+      "name": "reserved-gp",
+      "resource": "hardware",
+      "schema_definition": "hardware_write",
+      "raw": "{\"schema\":\"transmitter-hardware/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"pins\":{\"engine\":\"direct\",\"rf_gp\":23,\"i2c_pair\":null,\"button_gp\":14,\"amplifier_gp\":null,\"lpf_gps\":[],\"indicator\":\"onboard_led\",\"indicator_gp\":null,\"indicator_active_high\":true}}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "unavailable-amplifier",
+      "resource": "hardware",
+      "schema_definition": "hardware_write",
+      "raw": "{\"schema\":\"transmitter-hardware/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"pins\":{\"engine\":\"direct\",\"rf_gp\":2,\"i2c_pair\":null,\"button_gp\":14,\"amplifier_gp\":5,\"lpf_gps\":[],\"indicator\":\"onboard_led\",\"indicator_gp\":null,\"indicator_active_high\":true}}",
+      "structural_valid": true,
+      "http_status": 400
+    },
+    {
+      "name": "unavailable-lpf",
+      "resource": "hardware",
+      "schema_definition": "hardware_write",
+      "raw": "{\"schema\":\"transmitter-hardware/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"pins\":{\"engine\":\"direct\",\"rf_gp\":2,\"i2c_pair\":null,\"button_gp\":14,\"amplifier_gp\":null,\"lpf_gps\":[5],\"indicator\":\"onboard_led\",\"indicator_gp\":null,\"indicator_active_high\":true}}",
+      "structural_valid": true,
+      "http_status": 400
+    },
+    {
+      "name": "unavailable-i2c-engine",
+      "resource": "hardware",
+      "schema_definition": "hardware_write",
+      "raw": "{\"schema\":\"transmitter-hardware/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"pins\":{\"engine\":\"i2c\",\"rf_gp\":null,\"i2c_pair\":0,\"button_gp\":14,\"amplifier_gp\":null,\"lpf_gps\":[],\"indicator\":\"onboard_led\",\"indicator_gp\":null,\"indicator_active_high\":true}}",
+      "structural_valid": true,
+      "http_status": 400
+    },
+    {
+      "name": "duplicate-schema",
+      "resource": "station",
+      "schema_definition": "station_write",
+      "raw": "{\"schema\":\"transmitter-station/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"station\":{\"callsign\":\"K1ABC\",\"locator\":\"FN42AB\",\"power_dbm\":10},\"schema\":\"transmitter-station/1\"}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "fractional-power",
+      "resource": "station",
+      "schema_definition": "station_write",
+      "raw": "{\"schema\":\"transmitter-station/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"station\":{\"callsign\":\"K1ABC\",\"locator\":\"FN42AB\",\"power_dbm\":10.0}}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "oversized-wire-body",
+      "resource": "station",
+      "schema_definition": "station_write",
+      "raw": "{\"schema\":\"transmitter-station/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"station\":{\"callsign\":\"K1ABC\",\"locator\":\"FN42AB\",\"power_dbm\":10}}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ",
+      "structural_valid": false,
+      "http_status": 413
+    }
+  ]
+}
