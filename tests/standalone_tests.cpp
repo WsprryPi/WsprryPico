@@ -285,7 +285,7 @@ struct Identity : wtp::IdentitySource {
 struct Engine : wtp::RfEngine {
     wtp::InhibitedRfEngine backing;
     unsigned prepared = 0, began = 0;
-    bool reject = false, active = false;
+    bool reject = false, active = false, disable_allowed = true;
     wtp::Job job;
     wtp::PrepareResult prepare(const wtp::Job& j) override {
         ++prepared;
@@ -300,7 +300,7 @@ struct Engine : wtp::RfEngine {
         return backing.poll(now);
     }
     bool disable(std::uint64_t deadline) override {
-        return backing.disable(deadline);
+        return disable_allowed && backing.disable(deadline);
     }
     bool output_active() const override {
         return active;
@@ -360,6 +360,44 @@ void reset_guard_tests() {
     config.enabled = true;
     CHECK(store.save(config));
     CHECK(!scheduler.reset_permitted());
+}
+
+void configuration_fault_reset_tests() {
+    MemoryFlash flash;
+    standalone::Store store(flash);
+    auto config = *standalone::parse_config(example);
+    config.enabled = false;
+    CHECK(store.load() && store.save(config));
+    Clock clock;
+    Engine engine;
+    Identity identity;
+    wtp::JobService service(clock, engine, identity);
+    standalone::Scheduler scheduler(store, service);
+    config.pins.rf = 28;
+    engine.disable_allowed = false;
+    CHECK(scheduler.command("CONFIG " + standalone::serialize_config(config))
+              .find("output_disable_failed") != std::string::npos);
+    CHECK(service.status().state == wtp::State::Empty);
+    CHECK(scheduler.hardware_application_failed() && scheduler.hardware_restart_required());
+    CHECK(!scheduler.idle() && scheduler.reset_permitted());
+    // Eligibility alone is not output confirmation. Both Console reset checks
+    // must still refuse while the physical disable adapter reports failure.
+    CHECK(!engine.disable(clock.value.monotonic_now_ns + 100'000'000ULL));
+    engine.disable_allowed = true;
+    CHECK(engine.disable(clock.value.monotonic_now_ns + 100'000'000ULL));
+    CHECK(scheduler.reset_permitted());
+    CHECK(service.output_inhibited() && scheduler.hardware_application_failed());
+    CHECK(scheduler.command("CONFIG " + standalone::serialize_config(config)).find("busy") !=
+          std::string::npos);
+    engine.active = true;
+    CHECK(!scheduler.reset_permitted());
+    engine.active = false;
+    config.enabled = true;
+    CHECK(store.save(config) && !scheduler.reset_permitted());
+    config.enabled = false;
+    CHECK(store.save(config) && scheduler.reset_permitted());
+    flash.budget = 0;
+    CHECK(!store.save(config) && !store.healthy() && !scheduler.reset_permitted());
 }
 
 void scheduler_tests() {
@@ -794,6 +832,7 @@ int main() {
     config_tests();
     storage_tests();
     reset_guard_tests();
+    configuration_fault_reset_tests();
     scheduler_tests();
     sntp_tests();
     sntp_poll_schedule_test();

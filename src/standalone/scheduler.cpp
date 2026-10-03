@@ -61,7 +61,10 @@ bool Scheduler::reset_permitted() const {
     // Explicit Console reset can recover a latched fault only without an owner,
     // RF output, or an enabled autonomous schedule. The caller must still verify
     // engine disable before actually resetting; this does not clear WTP state.
-    return s.state == wtp::State::Failed && !s.owned && !s.output_active && store_.healthy() &&
+    const bool recoverable_fault = s.state == wtp::State::Failed ||
+                                   (hardware_application_failed_ && service_.output_inhibited());
+    return recoverable_fault && !s.owned && !s.output_active && s.state != wtp::State::Loaded &&
+           s.state != wtp::State::Armed && s.state != wtp::State::Running && store_.healthy() &&
            store_.config() && !store_.config()->enabled;
 }
 void Scheduler::poll() {

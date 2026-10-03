@@ -92,12 +92,15 @@ class LoadReplyTests(unittest.TestCase):
                 requested_frequency_nhz=str(135500000000000 if i%2==0 else 135495000000000),
                 realized_frequency_nhz=str(135500002652407 if i%2==0 else 135494990274310)) for i in range(512)])
 
-    def run_model(self, background, replay=False, maximum_status=False, distinct=False):
+    def run_model(self, background, replay=False, maximum_status=False, distinct=False, memory_cap=None):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'c7.bin'
             path.write_bytes(c7_frame())
             mode = ('distinct-' if distinct else '') + ('maximum-status' if maximum_status else 'replay')
-            run = subprocess.run([DRIVER, str(path), str(background)] + ([mode] if maximum_status or replay else []), capture_output=True,
+            options = [mode] if maximum_status or replay else ['reply-cap'] if memory_cap is not None else []
+            if memory_cap is not None:
+                options.append(str(memory_cap))
+            run = subprocess.run([DRIVER, str(path), str(background)] + options, capture_output=True,
                                  text=True, check=True, timeout=30)
         result = json.loads(run.stdout)
         self.assertEqual(result['state'], 'loaded')
@@ -202,33 +205,75 @@ class LoadReplyTests(unittest.TestCase):
             self.assertFalse(status['body']['output_active'])
             self.assertEqual(status['body']['job_id'], '8d8734400ddd2d472799f3d08a92e6b5')
             self.assertEqual(len(status['body']['terminal_records']), 1)
-        refused = self.run_model(31384, maximum_status=True, distinct=True)
+        # This formerly relied on a historical host STL allocation total.
+        # Exhaust exactly the maximum input admission boundary instead. The
+        # same job/history and fixed background succeed with one extra byte.
+        required = 65536 + 16 + 1024 + 8192 + 32768
+        adjacent = self.run_model(31384, maximum_status=True, distinct=True, memory_cap=required)
+        self.assertFalse(adjacent['exchanges'][1]['closed'])
+        decoder = FrameDecoder()
+        responses = [json.loads(p) for p in decoder.feed(bytes.fromhex(adjacent['exchanges'][1]['hex']))]
+        self.assertFalse(decoder.buffer)
+        response, = [m for m in responses if m['type'] == 'response']
+        self.assertTrue(response['ok'])
+        self.assertEqual((response['op'], response['body']['state']), ('STATUS', 'loaded'))
+        refused = self.run_model(31384, maximum_status=True, distinct=True, memory_cap=required-1)
+        self.assertFalse(refused['exchanges'][0]['closed'])
         self.assertTrue(refused['exchanges'][1]['closed'])
+        self.assertEqual(refused['exchanges'][1]['memory_cap'], required-1)
+        self.assertEqual(refused['exchanges'][1]['hex'], '')
+        self.assertEqual(refused['exchanges'][1]['after_pages'], self.ACTIVE_EVENT_PAGES)
+        self.assertEqual(refused['preparations'], 2)
         # Input admission refuses before occupying the temporary reserve.
         # Post-admission decode expiry remains covered by endpoint_tests.
         self.assertEqual(refused['exchanges'][1]['wait_ms'], 0)
         self.assertGreaterEqual(219712-31384-refused['exchanges'][1]['peak_bytes'], 32768)
 
-    def test_uncalibrated_tls_sensitivity_preserves_refusal(self):
-        # 31,384 now passes above because replay no longer duplicates events.
-        # A separately declared 48,000-byte background with a nonidentical
-        # retained list still cannot admit even the smaller workspace. Preserve
-        # the same reserve; input admission now refuses before decode waiting.
-        r = self.run_model(48000, replay=True, distinct=True)
+    def test_replay_input_reserve_boundary_preserves_refusal(self):
+        # Keep the separately declared background and nonidentical retained
+        # list; inject one byte below the actual admission reserve. A fixed
+        # background alone is not portable proof of heap exhaustion.
+        required = len(c7_frame()) + 1024 + 8192 + 32768
+        adjacent = self.run_model(48000, replay=True, distinct=True, memory_cap=required)
+        self.assertFalse(adjacent['exchanges'][1]['closed'])
+        self.assertEqual(adjacent['exchanges'][1]['after_pages'], self.ACTIVE_EVENT_PAGES)
+        decoder = FrameDecoder()
+        responses = [json.loads(p) for p in decoder.feed(bytes.fromhex(adjacent['exchanges'][1]['hex']))]
+        self.assertFalse(decoder.buffer)
+        response, = [m for m in responses if m['type'] == 'response']
+        self.assertTrue(response['ok'])
+        self.assertEqual(response['op'], 'LOAD')
+        self.assertEqual(len(response['body']['adjustments']), 512)
+        r = self.run_model(48000, replay=True, distinct=True, memory_cap=required-1)
         self.assertFalse(r['exchanges'][0]['closed'])
         self.assertTrue(r['exchanges'][1]['closed'])
         self.assertEqual(r['exchanges'][1]['hex'], '')
         self.assertEqual(r['exchanges'][1]['after_pages'], self.ACTIVE_EVENT_PAGES)
         self.assertEqual(r['exchanges'][1]['wait_ms'], 0)
+        self.assertEqual(r['exchanges'][1]['memory_cap'], required-1)
         self.assertEqual(r['preparations'], 2)
         self.assertGreaterEqual(219712 - 48000 - r['exchanges'][1]['peak_bytes'], 32768)
 
     def test_reply_reserve_refusal_preserves_inactive_loaded_job(self):
-        r = self.run_model(140000)
+        # The streaming LOAD renderer admits 6 KiB of processing workspace;
+        # wire length is no longer its allocation requirement. Check that
+        # exact boundary while leaving the 32 KiB safety reserve untouched.
+        required = 6144 + 32768
+        adjacent = self.run_model(140000, memory_cap=required)
+        self.assertFalse(adjacent['closed'])
+        decoder = FrameDecoder()
+        responses = [json.loads(p) for p in decoder.feed(bytes.fromhex(adjacent['hex']))]
+        self.assertFalse(decoder.buffer)
+        response, = [m for m in responses if m['type'] == 'response']
+        self.assertTrue(response['ok'])
+        self.assertEqual((response['op'], response['body']['state']), ('LOAD', 'loaded'))
+        self.assertEqual(len(response['body']['adjustments']), 512)
+        r = self.run_model(140000, memory_cap=required-1)
         self.assertTrue(r['closed'])
         self.assertEqual(r['hex'], '')
         self.assertEqual(len(r['samples']), 1)
-        self.assertLess(r['samples'][0]['available'], 54916 + 1024 + 32768)
+        self.assertEqual(r['memory_cap'], required-1)
+        self.assertEqual(r['samples'][0]['available'], required-1)
 
 if __name__ == '__main__':
     unittest.main(argv=[sys.argv[0]])

@@ -119,6 +119,10 @@ struct CountingEngine : wtp::RfEngine {
 };
 constexpr std::size_t heap = 219704;
 std::size_t background = 0, calls = 0, reply_pages = 0;
+// Deterministic exhaustion is separate from the host ABI's allocation model.
+// The optional cap is installed only after the successful initial LOAD, so a
+// one-byte reserve boundary does not depend on STL object sizes or SSO choices.
+std::size_t memory_cap = std::numeric_limits<std::size_t>::max();
 struct Sample {
     std::size_t live, pages, available;
 } samples[16];
@@ -131,7 +135,7 @@ std::size_t available() {
         return std::numeric_limits<std::size_t>::max();
     const auto used = live + (whole ? page_live : reply_pages) + background;
     const auto capacity = whole ? 219712 : heap;
-    const auto free = used < capacity ? capacity - used : 0;
+    const auto free = std::min(memory_cap, used < capacity ? capacity - used : 0);
     if (calls < 16)
         samples[calls] = {live, reply_pages, free};
     ++calls;
@@ -217,10 +221,12 @@ void send(wtp::Endpoint& endpoint, std::span<const std::uint8_t> bytes, bool kee
 }
 } // namespace
 int main(int argc, char** argv) {
-    if (argc != 3 && argc != 4)
+    if (argc != 3 && argc != 4 && argc != 5)
         return 2;
     background = std::stoull(argv[2]);
-    const auto mode = argc == 4 ? std::string_view(argv[3]) : std::string_view{};
+    const auto mode = argc >= 4 ? std::string_view(argv[3]) : std::string_view{};
+    const auto fault_cap =
+        argc == 5 ? std::stoull(argv[4]) : std::numeric_limits<std::size_t>::max();
     const bool distinct = mode == "distinct-replay" || mode == "distinct-maximum-status";
     const bool running_status = mode == "running-status";
     const bool maximum_status =
@@ -378,6 +384,8 @@ int main(int argc, char** argv) {
         auto status_wire = wire(status_text);
         std::cout << "{\"exchanges\":[";
         for (unsigned i = 0; i < 3; ++i) {
+            if (i)
+                memory_cap = fault_cap;
             if (running_status && i == 1) {
                 sink.allow = true;
                 clock.now.state = wtp::ClockState::Synchronized;
@@ -409,7 +417,8 @@ int main(int argc, char** argv) {
             std::cout << "{\"peak_bytes\":" << total_peak << ",\"peak_cpp\":" << peak_cpp
                       << ",\"peak_pages\":" << peak_pages << ",\"after_cpp\":" << live
                       << ",\"after_pages\":" << page_live << ",\"wait_ms\":" << last_wait_ms
-                      << ",\"closed\":" << (endpoint.closed() ? "true" : "false") << ",\"hex\":\"";
+                      << ",\"closed\":" << (endpoint.closed() ? "true" : "false")
+                      << ",\"memory_cap\":" << memory_cap << ",\"hex\":\"";
             for (std::size_t n = 0; n < output_size; ++n)
                 std::printf("%02x", output[n]);
             std::cout << "\"}";
@@ -422,6 +431,7 @@ int main(int argc, char** argv) {
                   << ",\"preparations\":" << engine.preparations << "}\n";
         return 0;
     }
+    memory_cap = fault_cap;
     send(endpoint, c7, true);
     wtp::available_memory = nullptr;
     wtp::allocate_input = std::malloc;
@@ -431,7 +441,7 @@ int main(int argc, char** argv) {
               << ",\"peak_new_bytes\":" << peak
               << ",\"closed\":" << (endpoint.closed() ? "true" : "false") << ",\"state\":\""
               << wtp::state_name(status.state) << "\",\"starts\":" << sink.starts
-              << ",\"samples\":[";
+              << ",\"memory_cap\":" << memory_cap << ",\"samples\":[";
     for (std::size_t i = 0; i < std::min(calls, std::size_t(16)); ++i) {
         if (i)
             std::cout << ',';

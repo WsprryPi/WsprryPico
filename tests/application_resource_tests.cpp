@@ -319,6 +319,50 @@ void disable_failure_and_maximum_response(bool emit_fault = false) {
     auto station = m.station();
     station.headers["if-match"] = api.revision();
     REQUIRE(api.handle(station, "test", "127.0.0.1:8443").status == 409);
+    const auto saved = *m.f.store.config();
+    const auto sequence = m.f.store.config_sequence();
+    const auto watermark = m.f.store.watermark();
+    const auto revision = api.revision();
+    REQUIRE(service.status().state == wtp::State::Empty);
+    REQUIRE(!scheduler.idle() && scheduler.reset_permitted());
+    REQUIRE(!engine.disable(m.f.clock.now + 100'000'000ULL));
+    engine.can_disable = true;
+    REQUIRE(engine.disable(m.f.clock.now + 100'000'000ULL) && !engine.output_active());
+    REQUIRE(scheduler.reset_permitted());
+    REQUIRE(scheduler.hardware_application_failed() && scheduler.hardware_restart_required() &&
+            service.output_inhibited());
+    REQUIRE(m.f.store.config() == saved && m.f.store.config_sequence() == sequence &&
+            m.f.store.watermark() == watermark && api.revision() == revision);
+    auto hello = request(
+        "POST", "/api/v1/jobs",
+        R"({"session_id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","request_id":"dddddddddddddddddddddddddddddddd","operation":"HELLO","body":{"versions":["WTP/1"],"client_name":"fault-recovery-test","client_version":"1"}})");
+    REQUIRE(api.handle(hello, "test", "127.0.0.1:8443").status == 200);
+    auto claim = request(
+        "POST", "/api/v1/jobs",
+        R"({"session_id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","request_id":"cccccccccccccccccccccccccccccccc","operation":"CLAIM","body":{"owner_id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","lease_ms":60000}})");
+    const auto refused = api.handle(claim, "test", "127.0.0.1:8443");
+    REQUIRE(refused.status == 409 &&
+            wtp::json::parse(refused.body)->get("error")->get("code")->string() == "BUSY");
+    REQUIRE(!service.activity().owned);
+    standalone::Store rebooted_store(m.f.flash);
+    REQUIRE(rebooted_store.load() && rebooted_store.config() == saved &&
+            rebooted_store.watermark() == watermark);
+    wtp::JobService rebooted_service(m.f.clock, engine, identity);
+    standalone::Scheduler rebooted_scheduler(rebooted_store, rebooted_service);
+    REQUIRE(rebooted_scheduler.active_pins() == saved.pins && rebooted_scheduler.boot_configured());
+    REQUIRE(!rebooted_scheduler.hardware_application_failed() &&
+            !rebooted_scheduler.hardware_restart_required() &&
+            !rebooted_service.output_inhibited());
+    network::BrowserApi rebooted_api(rebooted_service, rebooted_store, rebooted_scheduler,
+                                     m.f.network, std::string(32, 'a'), "test");
+    REQUIRE(rebooted_api.handle(hello, "test", "127.0.0.1:8443").status == 200);
+    REQUIRE(rebooted_api.handle(claim, "test", "127.0.0.1:8443").status == 200);
+    REQUIRE(rebooted_service.activity().owned);
+    auto release = request(
+        "POST", "/api/v1/jobs",
+        R"({"session_id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","request_id":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","operation":"RELEASE","body":{}})");
+    REQUIRE(rebooted_api.handle(release, "test", "127.0.0.1:8443").status == 200);
+    REQUIRE(!rebooted_service.activity().owned);
     Member maximum;
     auto config = *maximum.f.store.config();
     config.expires_utc_s = 2'147'483'647ULL; // Existing Config v1 signed JSON integer bound.

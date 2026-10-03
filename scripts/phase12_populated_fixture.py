@@ -112,7 +112,7 @@ def build(backup,output_dir,inspector,native,openssl='openssl',network_file=None
     profile['request_sha256']=secrets.token_hex(32)
     require(profile['request_sha256']!=prior['request_sha256'],'new request binding')
     extensions=output_dir/'client-extensions.conf'
-    write(extensions,b'basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=clientAuth\n')
+    write(extensions,b'basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=clientAuth\nsubjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid\n')
     clients=[];serials=set()
     for index in (1,2):
         name='p12-'+str(index);key=output_dir/(name+'.key');csr=output_dir/(name+'.csr');cert=output_dir/(name+'.crt')
@@ -139,9 +139,13 @@ def build(backup,output_dir,inspector,native,openssl='openssl',network_file=None
             serial=str(serial),not_after_utc=str(expires)))
     profile['clients']=sorted(clients,key=lambda value:value['public_key_sha256'])
     network=profile['network'];station=profile['station']
-    config=dict(version=1,enabled=False,station=copy.deepcopy(station),
+    # Retain unrelated operational settings, including the boot-applied pin
+    # plan and recurrence expiry. Only the declared populated-fixture fields
+    # change; rebuilding a legacy object would silently restore default pins.
+    config=copy.deepcopy(loaded['config'])
+    config.update(enabled=False,station=copy.deepcopy(station),
         wifi=dict(ssid=network['ssid'],password=network['password'],ntp_ipv4=network['time_server']),
-        schedules=[dict(period_s=240,phase_s=0),dict(period_s=240,phase_s=120)],expires_utc_s=0)
+        schedules=[dict(period_s=240,phase_s=0),dict(period_s=240,phase_s=120)])
     watermark=max(int(loaded['watermark'])+1,time.time_ns())
     require(0<watermark<=2**64-1,'watermark range')
     profile_path=output_dir/'consumer-profile.json';config_path=output_dir/'config.json';result=output_dir/'populated.bin'

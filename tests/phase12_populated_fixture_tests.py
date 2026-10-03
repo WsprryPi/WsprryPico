@@ -23,13 +23,20 @@ class Tests(unittest.TestCase):
     def setup_credentials(self):
         r=self.root;ca=r/'ca.crt';cakey=r/'ca.key';key=r/'server.key';csr=r/'server.csr';server=r/'server.crt'
         host='wsprrypico-0a9d89.local';ou='/OU='+builder.DEVICE
+        # Compact synthetic DNs retain the device OU and hostname SAN. Explicit
+        # extensions avoid ambient OpenSSL defaults and keep the real P256 TLS
+        # object inside the production 2,304-byte canonical limit.
+        request_config=r/'request.conf'
+        builder.write(request_config,b'[req]\ndistinguished_name=subject\n[subject]\n')
         builder.command([OPENSSL,'req','-new','-x509','-newkey','ec','-pkeyopt','ec_paramgen_curve:P-256','-nodes',
-            '-keyout',cakey,'-out',ca,'-days','365','-subj','/CN=WsprryPico Device CA'+ou,
-            '-addext','basicConstraints=critical,CA:TRUE','-addext','keyUsage=critical,keyCertSign,cRLSign'])
+            '-config',request_config,'-keyout',cakey,'-out',ca,'-days','365','-subj','/CN=CA'+ou,'-sha256',
+            '-addext','basicConstraints=critical,CA:TRUE','-addext','keyUsage=critical,keyCertSign,cRLSign',
+            '-addext','subjectKeyIdentifier=hash','-addext','authorityKeyIdentifier=keyid:always'])
         builder.command([OPENSSL,'req','-new','-newkey','ec','-pkeyopt','ec_paramgen_curve:P-256','-nodes',
-            '-keyout',key,'-out',csr,'-subj','/CN='+host+ou])
-        extensions=r/'extensions';builder.write(extensions,('basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:'+host+'\n').encode())
-        builder.command([OPENSSL,'x509','-req','-in',csr,'-CA',ca,'-CAkey',cakey,'-set_serial','17','-days','30','-extfile',extensions,'-out',server])
+            '-config',request_config,'-keyout',key,'-out',csr,'-subj',ou,'-sha256'])
+        extensions=r/'extensions';builder.write(extensions,('basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=serverAuth\nsubjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid:always\nsubjectAltName=DNS:'+host+'\n').encode())
+        builder.command([OPENSSL,'x509','-req','-in',csr,'-CA',ca,'-CAkey',cakey,'-set_serial','17','-days','30','-sha256','-extfile',extensions,'-out',server])
+        builder.command([OPENSSL,'verify','-x509_strict','-CAfile',ca,'-purpose','sslserver','-verify_hostname',host,server])
         profile=dict(version=1,device_id=builder.DEVICE,owner_epoch='0',owners=[],
             network=dict(ssid='Host Test',password='private-test-password',time_server='time.example.org'),
             station=dict(callsign='K1ABC',locator='FN20',power_dbm=30),
@@ -38,6 +45,7 @@ class Tests(unittest.TestCase):
                 ca_not_after_utc=str(builder.expiry(OPENSSL,ca)),server_not_after_utc=str(builder.expiry(OPENSSL,server))),
             clients=[],request_sha256='a'*64)
         self.profile=profile
+        self.assertLessEqual(len(builder.canonical(profile['tls'])),2304)
         config=dict(version=1,enabled=False,station=profile['station'],wifi=dict(ssid='Host Test',password='private-test-password',ntp_ipv4='time.example.org'),schedules=[dict(period_s=240,phase_s=0)],expires_utc_s=0)
         for name,value in (('profile.json',profile),('config.json',config)):builder.write(r/name,builder.canonical(value))
         backup=r/'empty.bin';builder.write(backup,b'\xff'*4194304)
@@ -57,6 +65,8 @@ class Tests(unittest.TestCase):
             public=builder.public_der(OPENSSL,csr=self.output/(client['name']+'.csr'))
             self.assertEqual(hashlib.sha256(public).hexdigest(),client['public_key_sha256'])
             self.assertEqual(public,builder.public_der(OPENSSL,certificate=self.output/(client['name']+'.crt')))
+            builder.command([OPENSSL,'verify','-x509_strict','-CAfile',self.output/'ca.crt',
+                '-purpose','sslclient',self.output/(client['name']+'.crt')])
         original=self.baseline.read_bytes();result=(self.output/'populated.bin').read_bytes()
         self.assertEqual(result[:0x3f7000],original[:0x3f7000]);self.assertEqual(result[0x3ff000:],original[0x3ff000:])
         self.assertNotIn('private-test-password',json.dumps(receipt))
@@ -72,6 +82,26 @@ class Tests(unittest.TestCase):
         self.assertEqual(generated['network'],network);self.assertEqual(generated['tls'],self.profile['tls'])
         self.assertEqual(loaded['config']['wifi']['ntp_ipv4'],'192.168.84.1');self.assertFalse(loaded['config']['enabled'])
         self.assertEqual(set(receipt['preserved_regions']),{'application','access','ble','E10'})
+
+    def test_population_preserves_nondefault_pin_plan_and_schedule_expiry(self):
+        config=builder.strict((self.root/'config.json').read_bytes())
+        config['expires_utc_s']=2000000000
+        config['pins']=dict(engine='direct',rf_gp=3,i2c_pair=None,button_gp=22,
+            amplifier_gp=None,lpf_gps=[],indicator='external',indicator_gp=16,
+            indicator_active_high=False)
+        (self.root/'config.json').unlink();builder.write(self.root/'config.json',builder.canonical(config))
+        self.baseline.unlink()
+        builder.command([NATIVE,'--backup',self.root/'empty.bin','--consumer-profile',self.root/'profile.json',
+            '--config',self.root/'config.json','--watermark','1','--output',self.baseline])
+        before=builder.strict(builder.command([INSPECTOR,self.baseline]))
+        builder.build(self.baseline,self.output,INSPECTOR,NATIVE,OPENSSL)
+        after=builder.strict(builder.command([INSPECTOR,self.output/'populated.bin']))
+        self.assertEqual(after['config']['pins'],before['config']['pins'])
+        self.assertEqual(after['config']['expires_utc_s'],2000000000)
+        self.assertFalse(after['config']['enabled'])
+        self.assertEqual(after['config']['station'],before['config']['station'])
+        self.assertEqual(after['config']['wifi'],before['config']['wifi'])
+        self.assertEqual(len(after['config']['schedules']),2)
 
     def test_private_inputs_and_existing_output_fail_before_seeding(self):
         self.output.mkdir();(self.output/'keep').write_bytes(b'keep')
