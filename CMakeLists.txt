@@ -183,6 +183,15 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_include_directories(acl_credit_tests PRIVATE tests/acl_mock src)
     target_compile_options(acl_credit_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME acl_credit_tests COMMAND acl_credit_tests)
+
+    add_executable(activity_trace_tests tests/activity_trace_tests.cpp)
+    target_include_directories(activity_trace_tests PRIVATE src)
+    target_compile_options(activity_trace_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME activity_trace_tests COMMAND activity_trace_tests)
+    add_test(NAME phase12_engineering_flash_status_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase12_engineering_flash_status_tests.py)
+    add_test(NAME phase12_engineering_flash_status_dispatch_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase12_engineering_flash_status_dispatch_tests.py)
     add_test(NAME stack_guard_image_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/stack_guard_image_tests.py)
     add_test(NAME heap_hook_image_tests COMMAND ${Python3_EXECUTABLE}
@@ -292,6 +301,20 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(provisioning_tests PRIVATE wsprrypico_core)
     target_compile_options(provisioning_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME provisioning_tests COMMAND provisioning_tests)
+    add_executable(phase12_flash_fixture src/tools/phase12_flash_fixture.cpp)
+    target_link_libraries(phase12_flash_fixture PRIVATE wsprrypico_core)
+    target_compile_options(phase12_flash_fixture PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME phase12_flash_fixture_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase12_flash_fixture_tests.py $<TARGET_FILE:phase12_flash_fixture>
+        $<TARGET_FILE:recovery_flash_inspector>)
+    add_test(NAME phase12_populated_fixture_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase12_populated_fixture_tests.py $<TARGET_FILE:phase12_flash_fixture>
+        $<TARGET_FILE:recovery_flash_inspector>)
+    add_executable(phase12_field_mode_fixture_tests tests/phase12_field_mode_fixture_tests.cpp)
+    target_link_libraries(phase12_field_mode_fixture_tests PRIVATE wsprrypico_core)
+    target_compile_options(phase12_field_mode_fixture_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME phase12_field_mode_fixture_tests COMMAND phase12_field_mode_fixture_tests
+        $<TARGET_FILE:phase12_flash_fixture>)
     add_executable(recovery_flash_inspector src/tools/recovery_flash_inspector.cpp)
     target_link_libraries(recovery_flash_inspector PRIVATE wsprrypico_core)
     target_compile_options(recovery_flash_inspector PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -359,6 +382,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
     endif()
     add_test(NAME provisioning_contract_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/provisioning_contract_tests.py)
+    add_test(NAME capacity_pending_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/capacity_pending_tests.py)
     add_test(NAME raspberry_pi_ble_client_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/raspberry_pi_ble_client_tests.py)
     add_test(NAME network_transport_contract_tests COMMAND ${Python3_EXECUTABLE}
@@ -413,6 +438,7 @@ if(WSPRRY_PICO_BUILD_TESTS)
             ${CMAKE_SOURCE_DIR}/tests/cyw43_tx_overlay_tests.py ${WSPRRY_PICO_TEST_CYW43_PATH})
     endif()
     add_test(NAME network_certificate_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/network_certificate_tests.py)
+    add_test(NAME network_certificate_strict_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/network_certificate_strict_tests.py)
     add_test(NAME shutdown_image_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/shutdown_image_tests.py)
     add_test(NAME inhibited_sync_image_checker_tests COMMAND ${Python3_EXECUTABLE}
@@ -509,6 +535,39 @@ if(WSPRRY_PICO_BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/tests/phase12_composition_audit_tests.py)
     add_test(NAME phase12_composition_capture_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase12_composition_capture_tests.py)
+    add_test(NAME phase12_consumer_composition_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/test_phase12_consumer_composition.py)
+    add_test(NAME phase12_consumer_dispatch_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/test_phase12_consumer_dispatch.py)
+    add_test(NAME phase12_engineering_setup_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase12_engineering_setup_tests.py)
+    add_test(NAME phase12_independent_orchestrator_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase12_independent_orchestrator_tests.py)
+    add_test(NAME phase12_engineering_composition_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase12_engineering_composition_tests.py)
+    add_test(NAME phase12_engineering_sessions_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase12_engineering_sessions_tests.py)
+    add_test(NAME phase12_engineering_time_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase12_engineering_time_tests.py)
+    foreach(phase12_python_test IN ITEMS
+            phase12_authority_capture phase12_serial_observer
+            phase12_engineering_orchestrator phase12_engineering_scope phase12_engineering_fixture
+            phase12_fixture_roles phase12_virtual_observer phase12_beacon_scan
+            phase12_final_collection phase12_target_ap_proof phase12_status_poll
+            phase12_station_trial phase12_consumer_fallback
+            phase12_engineering_staging
+            phase12_engineering_bond_refusal
+            phase12_engineering_time_jobs phase12_time_jobs_sampling phase12_engineering_cookie_grace
+            phase12_engineering_stage_dispatch phase12_engineering_network
+            phase12_engineering_network_dispatch phase12_consumer_negative
+            phase12_consumer_negative_dispatch phase12_consumer_negative_orchestrator
+            phase12_consumer_flash_status
+            phase12_consumer_busy_claim
+            phase12_resource_capture_review phase12_populated phase12_engineering_journal
+            phase12_engineering_repairs)
+        add_test(NAME ${phase12_python_test}_tests COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/${phase12_python_test}_tests.py)
+    endforeach()
     add_test(NAME btstack_pool_hook_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/btstack_pool_hook_tests.py)
     add_test(NAME wsprrypico_core_tests COMMAND wsprrypico_core_tests)
     add_test(NAME wtp_monitor_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/wtp_monitor_tests.py)

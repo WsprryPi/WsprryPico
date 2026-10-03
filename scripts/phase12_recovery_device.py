@@ -103,10 +103,14 @@ def healthy(info, *, allow_fault=False, repair=False):
     require(info.get('device_id') == DEVICE, 'wrong B identity')
     if not repair: resource_health(info)
     s = info['status']
+    states = ('empty', 'failed') if allow_fault else ('empty',)
+    if repair:
+        states += ('aborted', 'complete')
+    retained_terminal = repair and s['state'] in ('aborted', 'complete')
     require(s['engine'] == 'inhibited-standalone-simulator' and
             s['output_active'] is False and s['enabled'] is False and
-            s['state'] in (('empty', 'failed') if allow_fault else ('empty',)) and
-            not s.get('owner_id') and not s.get('job_id'), 'inactive inhibited authority required')
+            s['state'] in states and not s.get('owner_id') and
+            (retained_terminal or not s.get('job_id')), 'inactive inhibited authority required')
     if not allow_fault:
         require(info['access_state'] in ('healthy', 'erased') and s['storage_healthy'] is True
                 and not info.get('bootstrap_reset_pending', False), 'healthy storage required')
@@ -253,6 +257,24 @@ def seal_recovery(level, info, start, private, request_nonce, request_id, nonce)
     return dict(version=1, device_id=DEVICE, boot_id=start['boot_id'], slot_id=start['slot_id'], request_id=request_id, aead_nonce=b64(nonce), ciphertext=b64(sealed[:-16]), tag=b64(sealed[-16:]))
 
 
+def configure_recovery_security(root,info,request):
+    # The original recovery profile is open. Source1 engineering selects the
+    # existing password-protected production SoftAP after enrollment.
+    if info['provisioning_source']!='provisioned':return
+    require(info['access_default_password'] is True and info['access_state']=='healthy',
+            'retained default access required for secured recovery AP')
+    root=Path(root)
+    campaign=re.fullmatch('/home/pi/phase12-recovery-([0-9a-f]{32})',str(root))
+    require(campaign is not None and request['interface']=='wlan2' and
+            request['connection']=='p12-recovery-'+campaign.group(1),
+            'exact campaign-owned recovery connection')
+    suffix=info['local_suffix']
+    require(re.fullmatch('[0-9a-f]{6}',suffix) is not None,'canonical local access suffix')
+    execute(['sudo','-n','nmcli','connection','modify',request['connection'],
+             'wifi-sec.key-mgmt','wpa-psk','wifi-sec.psk','wspr-'+suffix,
+             'wifi-sec.proto','rsn','wifi-sec.pairwise','ccmp','wifi-sec.group','ccmp'],10)
+
+
 def prepare(root, request):
     from cryptography.hazmat.primitives.asymmetric import x25519, ec
     from cryptography.hazmat.primitives import serialization, hashes
@@ -261,6 +283,7 @@ def prepare(root, request):
     info = healthy(console('INFO'))
     require(info['revision'] == request['revision'] and int(info.get('phase12_fault_stage',0)) == request['stage'] and info.get('phase12_fault_consumed') is False, 'pre-mutation fixture binding')
     interface = request['interface']
+    configure_recovery_security(root,info,request)
     execute(['sudo', '-n', 'nmcli', 'connection', 'up', request['connection']], 35)
     status = http(interface, '/api/recovery/v1/status')
     require(status['device_id'] == DEVICE and status['boot_id'] == info['status']['boot_id'] and not status['pending'], 'AP device/boot mismatch')

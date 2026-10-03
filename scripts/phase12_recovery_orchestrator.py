@@ -225,6 +225,7 @@ class Backend:
             require(actual==sha(src),'helper transfer hash')
         for role in ['restore']+[f'fault_{n}' for n in range(1,11)]:
             c=self.roles[role];subprocess.run(['scp','-q',str(self.artifact_root/c['uf2']['path']),'wspr5:'+self.remote+'/'+role+'.uf2'],check=True,timeout=20)
+            subprocess.run(['ssh','wspr5','chmod','600',self.remote+'/'+role+'.uf2'],check=True,timeout=10)
         info=self.call('info');safe_info(info)
         # The unused interface is static-only and never supplies a default route.
         require(info['access_default_password'] is True,'campaign requires retained default local-access password')
@@ -302,6 +303,10 @@ class Backend:
                 existing=subprocess.run(['ssh','-o','BatchMode=yes','wspr5','nmcli','-t','-f','NAME','connection','show'],capture_output=True,text=True,timeout=20,check=True)
                 if self.connection in existing.stdout.splitlines():
                     subprocess.run(['ssh','-o','BatchMode=yes','wspr5','sudo','-n','nmcli','connection','delete',self.connection],capture_output=True,timeout=20,check=True)
+                after=subprocess.run(['ssh','-o','BatchMode=yes','wspr5','nmcli','-t','-f','NAME','connection','show'],capture_output=True,text=True,timeout=20,check=True)
+                require(self.connection not in after.stdout.splitlines(),'owned connection cleanup incomplete')
+                private_write(self.campaign/'host-cleanup-receipt.json',dict(campaign_id=self.plan['campaign_id'],
+                    own_connection_absent=True,connection=self.connection,scope='campaign-owned connection'))
         finally:
             if hasattr(self,'guard'):
                 self.guard.stdin.close();self.guard.wait(timeout=10)
@@ -362,7 +367,11 @@ def campaign(plan,manifest,root,backend,clock=time.monotonic,sleeper=time.sleep,
     require(ledger.seq==0,'existing campaign cannot repeat operations; use recovery-only')
     if plan['schema']=='phase12-profile-continuation/1':
         validate_completed_resets(plan,completed_reset_campaign,backend)
-    baseline=None;rows=[];primary=None;restoration=None
+    baseline=None;rows=[];primary=None;restoration=None;recording_errors=[]
+    def record_failure(event,**payload):
+        try:ledger.record(event,**payload)
+        except BaseException as error:
+            recording_errors.append(dict(event=event,error_type=type(error).__name__))
     ledger.record('campaign_start',plan_sha256=hashlib.sha256(canonical(plan)).hexdigest(),runner_sha256=sha(__file__))
     try:
         safe_info(backend.setup());ledger.record('preflight_pass')
@@ -409,7 +418,7 @@ def campaign(plan,manifest,root,backend,clock=time.monotonic,sleeper=time.sleep,
             backend.restore(baseline,cid+'.restored.bin');ledger.record('case_restored',cid)
             rows.append(row);ledger.record('case_pass',cid,result=row)
     except BaseException as error:
-        primary={'type':type(error).__name__,'message':str(error)};ledger.record('campaign_failed',error=primary)
+        primary={'type':type(error).__name__,'message':str(error)};record_failure('campaign_failed',error=primary)
     finally:
         if baseline:
             try:
@@ -417,11 +426,13 @@ def campaign(plan,manifest,root,backend,clock=time.monotonic,sleeper=time.sleep,
                 restoration['stability']=backend.stable_restore(baseline)
                 ledger.record('final_restoration_pass',readback=restoration['readback'])
             except BaseException as error:
-                restoration={'error':type(error).__name__,'message':str(error)};ledger.record('final_restoration_failed',**restoration)
+                restoration={'error':type(error).__name__,'message':str(error)};record_failure('final_restoration_failed',**restoration)
         try: backend.cleanup()
-        except Exception as error: ledger.record('host_cleanup_failed',error=type(error).__name__);primary=primary or {'type':'HostCleanupFailed','message':str(error)}
+        except Exception as error:
+            primary=primary or {'type':'HostCleanupFailed','message':str(error)}
+            record_failure('host_cleanup_failed',error=type(error).__name__)
     complete=len(rows)==len(cases) and primary is None and restoration and 'error' not in restoration
-    result=dict(schema='phase12-recovery-result/1',status='PASS_NAMED_SCOPE' if complete else 'STOPPED',source_commit=manifest['source_commit'],serial=SERIAL,device_id=DEVICE,hardware_accessed=getattr(backend,'hardware_accessed',False),rf_jobs=0,cases=rows,error=primary,restoration=restoration,physical_acceptance=bool(complete and getattr(backend,'hardware_accessed',False)))
+    result=dict(schema='phase12-recovery-result/1',status='PASS_NAMED_SCOPE' if complete else 'STOPPED',source_commit=manifest['source_commit'],serial=SERIAL,device_id=DEVICE,hardware_accessed=getattr(backend,'hardware_accessed',False),rf_jobs=0,cases=rows,error=primary,restoration=restoration,recording_errors=recording_errors,physical_acceptance=bool(complete and getattr(backend,'hardware_accessed',False)))
     private_write(root/'result.json',result);return result
 
 

@@ -43,11 +43,32 @@ def fixture(mode='consumer'):
 
 original_validate = audit.validate_evidence
 
+
+def authority_fixture(p):
+    from wsprrypico_ble import wtp_frame
+    exchanges=[]
+    for index, op in enumerate(('HELLO','STATUS')):
+        request=dict(type='request',protocol='WTP/1',session_id='1'*32,
+                     request_id=str(index+2)*32,op=op,
+                     body={'versions':['WTP/1']} if op=='HELLO' else {})
+        body=dict(selected_version='WTP/1',device_id=p['device_id'],boot_id=p['boot_id']) if op=='HELLO' else dict(
+            boot_id=p['boot_id'],state='empty',owner_id=None,job_id=None,output_active=False)
+        response=dict(request,type='response',ok=True,body=body)
+        exchanges.append(dict(request_hex=wtp_frame(request).hex(),response_hex=wtp_frame(response).hex()))
+    return dict(schema='phase12-final-authority/1',carrier=p['carriers'][0],
+                elapsed_start_s=7200,elapsed_end_s=7201,exchanges=exchanges)
+
+
+def write_authority(root,p):
+    path=root/'authority.json';path.write_text(json.dumps(authority_fixture(p)))
+    return dict(artifact_path=path.name,artifact_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+
 def with_artifacts(p, e):
     from phase12_composition_capture_tests import info
     with tempfile.TemporaryDirectory() as d:
         root = Path(d)
         raw = info(p)
+        raw['status'].pop('owner_id',None);raw['status'].pop('job_id',None)
         raw['lan_wtp_mode'] = 'plain' if p['mode'] == 'consumer' else 'engineering-tls'
         raw.update(heap_allocated_bytes=1000, core0_stack_used_bytes=3584,
                    softap_retained_sessions=0)
@@ -70,6 +91,7 @@ def with_artifacts(p, e):
             network_requests=[], ble_requests=[], continuous_observation=True)))
         e['quiet_artifact'] = dict(artifact_path='quiet.json',
             artifact_sha256=hashlib.sha256(quiet.read_bytes()).hexdigest())
+        e['final_authority_artifact']=write_authority(root,p)
         return original_validate(p, e, root)
 
 # Synthetic artifact files exercise binding; they grant no target evidence.
@@ -77,6 +99,16 @@ def with_artifacts(p, e):
 
 
 class AuditTests(unittest.TestCase):
+    def test_counter_canonical_and_range(self):
+        for raw, expected in ((0, 0), ('0', 0), ('123', 123),
+                              ('18446744073709551615', 18446744073709551615)):
+            self.assertEqual(audit.counter(raw, 'counter'), expected)
+        for raw in (True, False, -1, '-1', '-0', '+0', '00', '01', ' 0',
+                    '0 ', '0.0', 0.0, '', '٠', '18446744073709551616',
+                    18446744073709551616, None):
+            with self.subTest(raw=raw), self.assertRaises(ValueError):
+                audit.counter(raw, 'counter')
+
     def test_modes_require_independent_coverage(self):
         for mode in audit.CARRIERS:
             p, e = fixture(mode)
@@ -134,6 +166,7 @@ class AuditTests(unittest.TestCase):
         from phase12_composition_capture_tests import info
         p, e = fixture()
         raw = info(p)
+        raw['status'].pop('owner_id',None);raw['status'].pop('job_id',None)
         raw.update(heap_allocated_bytes=1000, core0_stack_used_bytes=3584,
                    softap_retained_sessions=0)
         wire = json.dumps(raw).encode()
@@ -151,6 +184,7 @@ class AuditTests(unittest.TestCase):
                 entry.update(artifact_path='proof.json', artifact_sha256=sha)
             metadata['quiet_artifact'] = dict(artifact_path='quiet.json',
                 artifact_sha256=hashlib.sha256(quiet.read_bytes()).hexdigest())
+            metadata['final_authority_artifact']=write_authority(root,p)
             meta = root / 'meta.json'
             meta.write_text(json.dumps(metadata))
             capture = root / 'capture.jsonl'
@@ -166,7 +200,14 @@ class AuditTests(unittest.TestCase):
             result = audit.normalize_capture(p, capture, meta, root, root / 'evidence.json')
             self.assertEqual(result['status'], 'RESOURCE_EVIDENCE_REVIEW_REQUIRED')
             self.assertTrue(result['independent_coverage_review_pending'])
-            self.assertEqual(len(json.loads((root / 'evidence.json').read_text())['samples']), 241)
+            normalized = json.loads((root / 'evidence.json').read_text())
+            self.assertEqual(len(normalized['samples']), 241)
+            self.assertEqual(normalized['samples'][0]['allocation_failures'], 0)
+            self.assertIs(type(normalized['samples'][0]['allocation_failures']), int)
+            retained = json.loads((root / normalized['samples'][0]['raw_info_path']).read_text())
+            self.assertEqual(retained['info']['allocator_failures'], '0')
+            self.assertEqual(bytes.fromhex(retained['raw_info_hex']), wire)
+            self.assertEqual(capture.read_text(), '\n'.join(json.dumps(r) for r in records))
 
     def test_artifact_hash_and_confinement(self):
         with tempfile.TemporaryDirectory() as d:
@@ -182,6 +223,26 @@ class AuditTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     audit.artifact(root, dict(artifact_path=name,
                                              artifact_sha256=hash_value))
+
+    def test_authority_rejects_fake_uncorrelated_and_wrong_boot(self):
+        from wsprrypico_ble import wtp_frame
+        p,_=fixture()
+        for mutation in ('crc','correlation','boot','owner','early','fake'):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as d:
+                root=Path(d);proof=authority_fixture(p)
+                if mutation in ('correlation','boot','owner'):
+                    item=proof['exchanges'][1]
+                    response=json.loads(bytes.fromhex(item['response_hex'])[16:])
+                    if mutation=='correlation': response['request_id']='f'*32
+                    if mutation=='boot': response['body']['boot_id']='f'*32
+                    if mutation=='owner': response['body']['owner_id']='f'*32
+                    item['response_hex']=wtp_frame(response).hex()
+                elif mutation=='crc': proof['exchanges'][1]['response_hex']=proof['exchanges'][1]['response_hex'][:-2]+'00'
+                elif mutation=='early': proof['elapsed_start_s']=7199
+                else: proof['exchanges'][1]['response_hex']=b'{}\n'.hex()
+                path=root/'authority.json';path.write_text(json.dumps(proof))
+                ref=dict(artifact_path=path.name,artifact_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+                with self.assertRaises(ValueError): audit.final_authority(p,ref,root,7200)
 
     def test_duplicate_and_nonfinite_json(self):
         with tempfile.TemporaryDirectory() as d:

@@ -13,8 +13,9 @@ import json
 import os
 from pathlib import Path
 import time
+import termios
 
-from phase12_composition_audit import require, strict_read, strict_load, validate_plan
+from phase12_composition_audit import require, strict_read, strict_load, validate_plan, counter
 
 
 def pools(info):
@@ -29,6 +30,47 @@ def pools(info):
             require(type(pool[field]) is int and pool[field] >= 0, 'numeric lwIP pool')
         result[key] = pool
     return result
+
+
+def acl_credits(p, info, previous=None, *, final=False, baseline=None):
+    """Validate event-observed controller ACL credits on explicitly bound plans.
+
+    Older captures and the consumer's disabled BLE controller do not establish
+    this measurement. Credits describe the controller's public HCI ledger,
+    never byte occupancy of its internal RAM.
+    """
+    if not p.get('controller_acl_credits_required', False):
+        return None
+    metric = info['btstack_acl_credits']
+    require(info['btstack_controller_buffers_measured'] is True and
+            metric['scope'] == 'controller_reported_hci_acl_credits' and
+            metric['initialized'] is True and metric['measured'] is True,
+            'controller ACL credit measurement unavailable')
+    values = {k: counter(metric[k], 'ACL ' + k) for k in (
+        'capacity', 'free', 'min_free', 'peak_outstanding', 'epoch',
+        'send_events', 'completed_events', 'invalid_samples', 'transport_failures')}
+    require(0 < values['capacity'] <= 65535 and values['epoch'] > 0 and
+            0 <= values['min_free'] <= values['free'] <= values['capacity'] and
+            values['peak_outstanding'] == values['capacity'] - values['min_free'],
+            'controller ACL credit bounds')
+    require(values['invalid_samples'] == values['transport_failures'] == 0 and
+            values['min_free'] >= p['controller_acl_min_free_slots'],
+            'controller ACL credit health/headroom')
+    if previous is not None:
+        require(values['capacity'] == previous['capacity'] and
+                values['epoch'] == previous['epoch'], 'controller ACL epoch changed')
+        require(values['min_free'] <= previous['min_free'] and
+                values['peak_outstanding'] >= previous['peak_outstanding'] and
+                all(values[k] >= previous[k] for k in ('send_events', 'completed_events')),
+                'controller ACL event history regressed')
+    if final:
+        require(baseline is not None and baseline['capacity'] == values['capacity'] and
+                baseline['epoch'] == values['epoch'], 'initial ACL capture baseline required')
+        require(values['send_events'] > baseline['send_events'] and
+                values['completed_events'] > baseline['completed_events'] and
+                values['free'] == values['capacity'],
+                'actual ACL pressure and complete credit return required')
+    return values
 
 
 def check_approval(p, approval, console):
@@ -55,14 +97,17 @@ def check_info(p, info):
             status['output_active'] is False, 'inhibited engine/output required')
     expected = 'plain' if p['mode'] == 'consumer' else 'engineering-tls'
     require(info['lan_wtp_mode'] == expected, 'wire mode mismatch; no fallback')
-    require(info['softap_session_inactivity_ms'] == 900000 and
-            info['softap_session_absolute_ms'] == 43200000, 'ordinary session limits')
+    require(counter(info['softap_session_inactivity_ms'], 'softap_session_inactivity_ms') == 900000 and
+            counter(info['softap_session_absolute_ms'], 'softap_session_absolute_ms') == 43200000,
+            'ordinary session limits')
     require(info['resource_schema'] == 1 and info['core0_stack_guard_valid'] == 1 and
             info['core0_stack_fault_status'] == 0, 'resource schema/guard')
     for field in ('fault_stage', 'fault_hash', 'fault_pc', 'fault_status',
-                  'tls_allocation_failures', 'allocator_failures', 'provisioning_fault',
-                  'flash_read_failures', 'flash_erase_failures', 'flash_program_failures'):
+                  'tls_allocation_failures', 'provisioning_fault'):
         require(info[field] == 0, 'target failure: ' + field)
+    for field in ('allocator_failures', 'flash_read_failures',
+                  'flash_erase_failures', 'flash_program_failures'):
+        require(counter(info[field], field) == 0, 'target failure: ' + field)
     require(info['access_state'] in ('healthy', 'erased'), 'access journal health')
     require(info['deployment_identity_matches'] is True and
             info['radio_identity_valid'] is True, 'deployment/radio identity')
@@ -76,6 +121,7 @@ def check_info(p, info):
         require(pool['failures'] == 0 and pool['faults'] == 0, 'BTstack pool fault')
     for pool in pools(info).values():
         require(pool['errors'] == 0, 'lwIP pool error')
+    acl_credits(p, info)
     return info
 
 
@@ -87,6 +133,7 @@ def capture(p, console, output, *, clock=time.monotonic, sleeper=time.sleep,
         def observer():
             with port(console) as fd:
                 fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                termios.tcflush(fd, termios.TCIFLUSH)
                 write_all(fd, b'INFO\n')
                 deadline = time.monotonic() + 5
                 data = bytearray()
@@ -116,6 +163,8 @@ def capture(p, console, output, *, clock=time.monotonic, sleeper=time.sleep,
             emit({'kind': 'start', 'plan': p, 'physical_acceptance': False})
             try:
                 previous_read = None
+                previous_acl = None
+                baseline_acl = None
                 for index in range(241):
                     due = start + index * p['cadence_s']
                     sleeper(max(0, due - clock()))
@@ -142,6 +191,10 @@ def capture(p, console, output, *, clock=time.monotonic, sleeper=time.sleep,
                           'transport_raw': transport_raw, 'raw_info_hex': wire.hex(),
                           'raw_info_sha256': hashlib.sha256(wire).hexdigest()})
                     check_info(p, info)
+                    previous_acl = acl_credits(p, info, previous_acl, final=index == 240,
+                                               baseline=baseline_acl)
+                    if index == 0:
+                        baseline_acl = previous_acl
                 emit({'kind': 'complete', 'status': 'CAPTURE_COMPLETE_REVIEW_REQUIRED',
                       'physical_acceptance': False,
                       'pending': ['pressure', 'wire', 'principals', 'reclamation',

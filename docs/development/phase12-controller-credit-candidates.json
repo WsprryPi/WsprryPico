@@ -1,0 +1,609 @@
+{
+  "schema": "phase12-candidates/1",
+  "source_commit": "1dab547e17cd01e0562bab5b6b2ee4d652fd7b3a",
+  "sdk_commit": "079c6f39023649b154152db30f1d781e884879bc",
+  "toolchain": "GNU Arm 15.3.1",
+  "authority": "NONE_PREPARATION_ONLY",
+  "candidates": [
+    {
+      "role": "restore",
+      "firmware": "0.0.0-devel",
+      "revision": "1dab547e17cd",
+      "target": "WsprryPico",
+      "gp14": false,
+      "lan_mode": "plain",
+      "fault_stage": 0,
+      "session_deadline_fixture": false,
+      "elf": {
+        "path": "restore/WsprryPico.elf",
+        "bytes": 28819608,
+        "sha256": "514c2bae9b955ef4a3f92a34a0a7840dcdec8a9b021a4c28b110562827d1276c"
+      },
+      "uf2": {
+        "path": "restore/WsprryPico.uf2",
+        "bytes": 3542528,
+        "sha256": "5c9efcaad6ab6f914f2c8807e9a5eb320811c335984394ec8c810c04fa5fcd01"
+      },
+      "map": {
+        "path": "restore/WsprryPico.elf.map",
+        "bytes": 3460422,
+        "sha256": "b45201e74dd9e56d18f113bf214740ec0e93b12dfcdbe2be99fbda8be994895f"
+      },
+      "build_identity": {
+        "path": "restore/firmware_identity.hpp",
+        "bytes": 533,
+        "sha256": "8dc45e4c25a1ba67dd128fb465b3fe1428c81b5523645176da4be92e016fb6f9"
+      },
+      "compile_commands": {
+        "path": "restore/compile_commands.json",
+        "bytes": 17441704,
+        "sha256": "2b42c7392c88ec0b550bc6691a5afa37a724ab91cd17e3edfa3cbaf56a2d732c"
+      },
+      "symbols": {
+        "path": "restore/symbols.txt",
+        "bytes": 264195,
+        "sha256": "1476148f7f5beeca514191cb32749aef8d5a22a134feced402b605535767fd77"
+      }
+    },
+    {
+      "role": "consumer",
+      "firmware": "0.0.0-devel",
+      "revision": "1dab547e17cd",
+      "target": "WsprryPico",
+      "gp14": true,
+      "lan_mode": "plain",
+      "fault_stage": 0,
+      "session_deadline_fixture": false,
+      "elf": {
+        "path": "consumer/WsprryPico.elf",
+        "bytes": 28909032,
+        "sha256": "003f9af377a65d60c76f9243b7324ba9bc99e92a8ddaa21513247efbbddd3947"
+      },
+      "uf2": {
+        "path": "consumer/WsprryPico.uf2",
+        "bytes": 3552768,
+        "sha256": "6a869b5bd1394ad081fe8421c625ffe149051941f40343c2d3b4d42a3f894436"
+      },
+      "map": {
+        "path": "consumer/WsprryPico.elf.map",
+        "bytes": 3464088,
+        "sha256": "239814eaeec66cdb6555555734549b23d628181b6dc62eb6b757a596c68e3a3b"
+      },
+      "build_identity": {
+        "path": "consumer/firmware_identity.hpp",
+        "bytes": 533,
+        "sha256": "8dc45e4c25a1ba67dd128fb465b3fe1428c81b5523645176da4be92e016fb6f9"
+      },
+      "compile_commands": {
+        "path": "consumer/compile_commands.json",
+        "bytes": 17582464,
+        "sha256": "178437205a50e918f9716018ddc226662a99a51683065ec0493bc20456b15ea2"
+      },
+      "symbols": {
+        "path": "consumer/symbols.txt",
+        "bytes": 264714,
+        "sha256": "e7d0ec52e435e2695efde5578f153bd94d4ad90d255dd55be5f0c3c319422d05"
+      }
+    },
+    {
+      "role": "engineering",
+      "firmware": "0.0.0-devel",
+      "revision": "1dab547e17cd",
+      "target": "WsprryPico",
+      "gp14": false,
+      "lan_mode": "tls",
+      "fault_stage": 0,
+      "session_deadline_fixture": false,
+      "elf": {
+        "path": "engineering/WsprryPico.elf",
+        "bytes": 28829184,
+        "sha256": "e10284578cc57d61119f87d82c9054dcd050e71666e7df354dec747901b9943c"
+      },
+      "uf2": {
+        "path": "engineering/WsprryPico.uf2",
+        "bytes": 3543552,
+        "sha256": "b18a3e8709125fa78c3c6a4034281e45008d359465218ab88e5bb6704026877b"
+      },
+      "map": {
+        "path": "engineering/WsprryPico.elf.map",
+        "bytes": 3460485,
+        "sha256": "d7f8effefce88b22edf7ba7de7421743cd7880fabe43103a7f2803bac3a3f56d"
+      },
+      "build_identity": {
+        "path": "engineering/firmware_identity.hpp",
+        "bytes": 533,
+        "sha256": "8dc45e4c25a1ba67dd128fb465b3fe1428c81b5523645176da4be92e016fb6f9"
+      },
+      "compile_commands": {
+        "path": "engineering/compile_commands.json",
+        "bytes": 17474320,
+        "sha256": "73b7c484bb5a85d5b226d8f364843c4fa6231b1c7f092099afee9907bbe5add3"
+      },
+      "symbols": {
+        "path": "engineering/symbols.txt",
+        "bytes": 264263,
+        "sha256": "befea024cb9d1ef74a9f454cb0e8269ec5a5e68f0ad56e7f9f2670c454fae92a"
+      }
+    },
+    {
+      "role": "rf_ap",
+      "firmware": "0.0.0-devel",
+      "revision": "1dab547e17cd",
+      "target": "WsprryPico-StandaloneRF",
+      "gp14": true,
+      "lan_mode": "plain",
+      "fault_stage": 0,
+      "session_deadline_fixture": false,
+      "elf": {
+        "path": "rf_ap/WsprryPico-StandaloneRF.elf",
+        "bytes": 28138116,
+        "sha256": "e804171c8612c2ff3627f88537335b61ae05609be574257309e881ba1dd7faec"
+      },
+      "uf2": {
+        "path": "rf_ap/WsprryPico-StandaloneRF.uf2",
+        "bytes": 3497472,
+        "sha256": "ed7c2ca400f2c925d0d42c8ae9fc13b23c204a5e7dda7bd6d7219dec2eaf2d6c"
+      },
+      "map": {
+        "path": "rf_ap/WsprryPico-StandaloneRF.elf.map",
+        "bytes": 3633451,
+        "sha256": "2c169b99f012ea56b6d2e157524784498cc73a4b60f999132964c444b157e265"
+      },
+      "build_identity": {
+        "path": "rf_ap/firmware_identity.hpp",
+        "bytes": 533,
+        "sha256": "8dc45e4c25a1ba67dd128fb465b3fe1428c81b5523645176da4be92e016fb6f9"
+      },
+      "compile_commands": {
+        "path": "rf_ap/compile_commands.json",
+        "bytes": 17569105,
+        "sha256": "8673c2179ada948b80b17e74a10a88e48dc6c00acfaf98baeed8e5ed1f640c35"
+      },
+      "symbols": {
+        "path": "rf_ap/symbols.txt",
+        "bytes": 263305,
+        "sha256": "50c75850cd8948f40a650cbbfab2df3d2ed0d1c151c4a352bda4dde5c195fbc5"
+      }
+    },
+    {
+      "role": "session_deadline",
+      "firmware": "0.0.0-devel",
+      "revision": "1dab547e17cd",
+      "target": "WsprryPico",
+      "gp14": false,
+      "lan_mode": "plain",
+      "fault_stage": 0,
+      "session_deadline_fixture": true,
+      "elf": {
+        "path": "session_deadline/WsprryPico.elf",
+        "bytes": 28819764,
+        "sha256": "ee2174f34d08fc68852ea38b295e6dc9d1584553eae84af25fb9fd68bb6b81e3"
+      },
+      "uf2": {
+        "path": "session_deadline/WsprryPico.uf2",
+        "bytes": 3542528,
+        "sha256": "544f1e8c9aad6dae1d9a0dd5f4c8accc6d4476c9c7cd41ad186480727d97553f"
+      },
+      "map": {
+        "path": "session_deadline/WsprryPico.elf.map",
+        "bytes": 3460461,
+        "sha256": "d346fc9ebefdfb02281666d17e6b4689ef5d4126e44d08b312f3e408d8202708"
+      },
+      "build_identity": {
+        "path": "session_deadline/firmware_identity.hpp",
+        "bytes": 533,
+        "sha256": "8dc45e4c25a1ba67dd128fb465b3fe1428c81b5523645176da4be92e016fb6f9"
+      },
+      "compile_commands": {
+        "path": "session_deadline/compile_commands.json",
+        "bytes": 17533759,
+        "sha256": "9d49137b04541906b72070beb197fa1ce573abf428d59b9066b53d0720695d2b"
+      },
+      "symbols": {
+        "path": "session_deadline/symbols.txt",
+        "bytes": 264195,
+        "sha256": "43f4e1220f983aacd5f5f5ded15894736d0530ca2ab2406833072070f7045322"
+      }
+    },
+    {
+      "role": "fault_1",
+      "firmware": "0.0.0-devel",
+      "revision": "1dab547e17cd",
+      "target": "WsprryPico",
+      "gp14": false,
+      "lan_mode": "plain",
+      "fault_stage": 1,
+      "session_deadline_fixture": false,
+      "elf": {
+        "path": "fault_1/WsprryPico.elf",
+        "bytes": 28837480,
+        "sha256": "9e92f54326c7be7c286ba72dc0442208893ca517bb4788bfc6d7f41d3e8be762"
+      },
+      "uf2": {
+        "path": "fault_1/WsprryPico.uf2",
+        "bytes": 3543040,
+        "sha256": "f8c9eeb749a23226ede2cbbce14a9d7e27dec27b164e64b6f8a61974899e3923"
+      },
+      "map": {
+        "path": "fault_1/WsprryPico.elf.map",
+        "bytes": 3464503,
+        "sha256": "770dfc8dc87c0d38aa4f29789c1b66a66ca06a6e1b9860d3ca4d9bb5b87452eb"
+      },
+      "build_identity": {
+        "path": "fault_1/firmware_identity.hpp",
+        "bytes": 533,
+        "sha256": "8dc45e4c25a1ba67dd128fb465b3fe1428c81b5523645176da4be92e016fb6f9"
+      },
+      "compile_commands": {
+        "path": "fault_1/compile_commands.json",
+        "bytes": 17453260,
+        "sha256": "7b4b37440de7b659d4d24314527c1d96bcbc329977d3773c26197ba669349a41"
+      },
+      "symbols": {
+        "path": "fault_1/symbols.txt",
+        "bytes": 264736,
+        "sha256": "215a9e4e06f277dd898dff4fc0570efb4d71c9d9fa421224be1fd1944aa41012"
+      }
+    },
+    {
+      "role": "fault_2",
+      "firmware": "0.0.0-devel",
+      "revision": "1dab547e17cd",
+      "target": "WsprryPico",
+      "gp14": false,
+      "lan_mode": "plain",
+      "fault_stage": 2,
+      "session_deadline_fixture": false,
+      "elf": {
+        "path": "fault_2/WsprryPico.elf",
+        "bytes": 28837476,
+        "sha256": "f264262849aabe05625fcde72759299a430a538a4bba917f552c29c320ddf462"
+      },
+      "uf2": {
+        "path": "fault_2/WsprryPico.uf2",
+        "bytes": 3543040,
+        "sha256": "548a4fdcadea5359b860d7c2a5ec3ea5941e2c7f4bcb33dba6484060595df6c0"
+      },
+      "map": {
+        "path": "fault_2/WsprryPico.elf.map",
+        "bytes": 3464503,
+        "sha256": "871981d23d6a9b9e0fe4d8bb03a216ed62f003dcb0bf45a6c689cfd10dc66cfa"
+      },
+      "build_identity": {
+        "path": "fault_2/firmware_identity.hpp",
+        "bytes": 533,
+        "sha256": "8dc45e4c25a1ba67dd128fb465b3fe1428c81b5523645176da4be92e016fb6f9"
+      },
+      "compile_commands": {
+        "path": "fault_2/compile_commands.json",
+        "bytes": 17453260,
+        "sha256": "0d4475dde621b7bb1540d9d7541f14a2403f03202d305e25aaa6e7846ca2fb20"
+      },
+      "symbols": {
+        "path": "fault_2/symbols.txt",
+        "bytes": 264736,
+        "sha256": "215a9e4e06f277dd898dff4fc0570efb4d71c9d9fa421224be1fd1944aa41012"
+      }
+    },
+    {
+      "role": "fault_3",
+      "firmware": "0.0.0-devel",
+      "revision": "1dab547e17cd",
+      "target": "WsprryPico",
+      "gp14": false,
+      "lan_mode": "plain",
+      "fault_stage": 3,
+      "session_deadline_fixture": false,
+      "elf": {
+        "path": "fault_3/WsprryPico.elf",
+        "bytes": 28837476,
+        "sha256": "dd4db462a1abcee12e0669a875f6cad1631b9db9e5bd6deacb68793b2a29b53b"
+      },
+      "uf2": {
+        "path": "fault_3/WsprryPico.uf2",
+        "bytes": 3543040,
+        "sha256": "a2aa76b5393374e4ced7db539c0a469885854dcf8c1e97be96efe60b688045be"
+      },
+      "map": {
+        "path": "fault_3/WsprryPico.elf.map",
+        "bytes": 3464503,
+        "sha256": "871981d23d6a9b9e0fe4d8bb03a216ed62f003dcb0bf45a6c689cfd10dc66cfa"
+      },
+      "build_identity": {
+        "path": "fault_3/firmware_identity.hpp",
+        "bytes": 533,
+        "sha256": "8dc45e4c25a1ba67dd128fb465b3fe1428c81b5523645176da4be92e016fb6f9"
+      },
+      "compile_commands": {
+        "path": "fault_3/compile_commands.json",
+        "bytes": 17453260,
+        "sha256": "00d8887def2e0320fafcb942c005ab5a1bf2c23869cbc87c17b9e02724e271de"
+      },
+      "symbols": {
+        "path": "fault_3/symbols.txt",
+        "bytes": 264736,
+        "sha256": "215a9e4e06f277dd898dff4fc0570efb4d71c9d9fa421224be1fd1944aa41012"
+      }
+    },
+    {
+      "role": "fault_4",
+      "firmware": "0.0.0-devel",
+      "revision": "1dab547e17cd",
+      "target": "WsprryPico",
+      "gp14": false,
+      "lan_mode": "plain",
+      "fault_stage": 4,
+      "session_deadline_fixture": false,
+      "elf": {
+        "path": "fault_4/WsprryPico.elf",
+        "bytes": 28837476,
+        "sha256": "8edbacae9cd61ee7e05ae6a7b53eb890860fbbda40d2631065245240d3341bbf"
+      },
+      "uf2": {
+        "path": "fault_4/WsprryPico.uf2",
+        "bytes": 3543040,
+        "sha256": "e4c26dd3ee20f9f7653dae71022576067c682ae8fc2cce5f9e8989020304c873"
+      },
+      "map": {
+        "path": "fault_4/WsprryPico.elf.map",
+        "bytes": 3464503,
+        "sha256": "871981d23d6a9b9e0fe4d8bb03a216ed62f003dcb0bf45a6c689cfd10dc66cfa"
+      },
+      "build_identity": {
+        "path": "fault_4/firmware_identity.hpp",
+        "bytes": 533,
+        "sha256": "8dc45e4c25a1ba67dd128fb465b3fe1428c81b5523645176da4be92e016fb6f9"
+      },
+      "compile_commands": {
+        "path": "fault_4/compile_commands.json",
+        "bytes": 17453260,
+        "sha256": "47838186f6f93a0e22d173fd57cd60e232a6ea635425895d00e379f82e5b9cfc"
+      },
+      "symbols": {
+        "path": "fault_4/symbols.txt",
+        "bytes": 264736,
+        "sha256": "215a9e4e06f277dd898dff4fc0570efb4d71c9d9fa421224be1fd1944aa41012"
+      }
+    },
+    {
+      "role": "fault_5",
+      "firmware": "0.0.0-devel",
+      "revision": "1dab547e17cd",
+      "target": "WsprryPico",
+      "gp14": false,
+      "lan_mode": "plain",
+      "fault_stage": 5,
+      "session_deadline_fixture": false,
+      "elf": {
+        "path": "fault_5/WsprryPico.elf",
+        "bytes": 28837476,
+        "sha256": "ea94dd62b61ced8fc85312baff9bac99812ce0961d1dee80724340cb34224a63"
+      },
+      "uf2": {
+        "path": "fault_5/WsprryPico.uf2",
+        "bytes": 3543040,
+        "sha256": "05d6f1b51f733f5f53996c3d2dd34fc90a1c5106eb97245f315946b976bdc378"
+      },
+      "map": {
+        "path": "fault_5/WsprryPico.elf.map",
+        "bytes": 3464503,
+        "sha256": "871981d23d6a9b9e0fe4d8bb03a216ed62f003dcb0bf45a6c689cfd10dc66cfa"
+      },
+      "build_identity": {
+        "path": "fault_5/firmware_identity.hpp",
+        "bytes": 533,
+        "sha256": "8dc45e4c25a1ba67dd128fb465b3fe1428c81b5523645176da4be92e016fb6f9"
+      },
+      "compile_commands": {
+        "path": "fault_5/compile_commands.json",
+        "bytes": 17453260,
+        "sha256": "a7b73c099002e10f8ced58cdfb2e8869ed7a0f7b6808bf818dc4eefb9024a440"
+      },
+      "symbols": {
+        "path": "fault_5/symbols.txt",
+        "bytes": 264736,
+        "sha256": "215a9e4e06f277dd898dff4fc0570efb4d71c9d9fa421224be1fd1944aa41012"
+      }
+    },
+    {
+      "role": "fault_6",
+      "firmware": "0.0.0-devel",
+      "revision": "1dab547e17cd",
+      "target": "WsprryPico",
+      "gp14": false,
+      "lan_mode": "plain",
+      "fault_stage": 6,
+      "session_deadline_fixture": false,
+      "elf": {
+        "path": "fault_6/WsprryPico.elf",
+        "bytes": 28837476,
+        "sha256": "15c22e68b759181d689ef801aed4b61a39b6f5695f9ac726e4ff27daa8383e4e"
+      },
+      "uf2": {
+        "path": "fault_6/WsprryPico.uf2",
+        "bytes": 3543040,
+        "sha256": "1a085aa8baa7b1ca3b45b49dec1d90779b38e77c875a71d9423dc0f3b02387d9"
+      },
+      "map": {
+        "path": "fault_6/WsprryPico.elf.map",
+        "bytes": 3464503,
+        "sha256": "871981d23d6a9b9e0fe4d8bb03a216ed62f003dcb0bf45a6c689cfd10dc66cfa"
+      },
+      "build_identity": {
+        "path": "fault_6/firmware_identity.hpp",
+        "bytes": 533,
+        "sha256": "8dc45e4c25a1ba67dd128fb465b3fe1428c81b5523645176da4be92e016fb6f9"
+      },
+      "compile_commands": {
+        "path": "fault_6/compile_commands.json",
+        "bytes": 17453260,
+        "sha256": "c3f68b9928eea6bea14c10e1e7da69f17c410b0a330797fc63d60856683e2d64"
+      },
+      "symbols": {
+        "path": "fault_6/symbols.txt",
+        "bytes": 264736,
+        "sha256": "215a9e4e06f277dd898dff4fc0570efb4d71c9d9fa421224be1fd1944aa41012"
+      }
+    },
+    {
+      "role": "fault_7",
+      "firmware": "0.0.0-devel",
+      "revision": "1dab547e17cd",
+      "target": "WsprryPico",
+      "gp14": false,
+      "lan_mode": "plain",
+      "fault_stage": 7,
+      "session_deadline_fixture": false,
+      "elf": {
+        "path": "fault_7/WsprryPico.elf",
+        "bytes": 28837476,
+        "sha256": "32d6e2d2b99de7f21be2acce1e74ba4e83f2367cc2f827594970a7025e570d00"
+      },
+      "uf2": {
+        "path": "fault_7/WsprryPico.uf2",
+        "bytes": 3543040,
+        "sha256": "f25db6cb4c0b2d2a5f5b188b5be9aa20dd01695bebe8b08c24179d02c4d6a340"
+      },
+      "map": {
+        "path": "fault_7/WsprryPico.elf.map",
+        "bytes": 3464503,
+        "sha256": "871981d23d6a9b9e0fe4d8bb03a216ed62f003dcb0bf45a6c689cfd10dc66cfa"
+      },
+      "build_identity": {
+        "path": "fault_7/firmware_identity.hpp",
+        "bytes": 533,
+        "sha256": "8dc45e4c25a1ba67dd128fb465b3fe1428c81b5523645176da4be92e016fb6f9"
+      },
+      "compile_commands": {
+        "path": "fault_7/compile_commands.json",
+        "bytes": 17453260,
+        "sha256": "cfcd6f320add30340a8fe29d65cf2e45a7634b5fb93b55d743fbf4bd86223a40"
+      },
+      "symbols": {
+        "path": "fault_7/symbols.txt",
+        "bytes": 264736,
+        "sha256": "215a9e4e06f277dd898dff4fc0570efb4d71c9d9fa421224be1fd1944aa41012"
+      }
+    },
+    {
+      "role": "fault_8",
+      "firmware": "0.0.0-devel",
+      "revision": "1dab547e17cd",
+      "target": "WsprryPico",
+      "gp14": false,
+      "lan_mode": "plain",
+      "fault_stage": 8,
+      "session_deadline_fixture": false,
+      "elf": {
+        "path": "fault_8/WsprryPico.elf",
+        "bytes": 28837764,
+        "sha256": "b5c7f6b7a0d87258b651cc113ecec729f3696f10a7079320c8e645a2ab45a14c"
+      },
+      "uf2": {
+        "path": "fault_8/WsprryPico.uf2",
+        "bytes": 3543552,
+        "sha256": "fdc70af2dc10bdd7690e8d79cb889288c208bf0975967149a79418e944d50d42"
+      },
+      "map": {
+        "path": "fault_8/WsprryPico.elf.map",
+        "bytes": 3464464,
+        "sha256": "87bafa63cbbae6201353aed1f83177fdd6213888f3c5f7ee589637592f099936"
+      },
+      "build_identity": {
+        "path": "fault_8/firmware_identity.hpp",
+        "bytes": 533,
+        "sha256": "8dc45e4c25a1ba67dd128fb465b3fe1428c81b5523645176da4be92e016fb6f9"
+      },
+      "compile_commands": {
+        "path": "fault_8/compile_commands.json",
+        "bytes": 17453260,
+        "sha256": "be684a1ecac86275525fc0f38014bcedac6acf3776d74128c0e3eb0d6ceabd36"
+      },
+      "symbols": {
+        "path": "fault_8/symbols.txt",
+        "bytes": 264736,
+        "sha256": "9c55780700b092c07df7df22ccefbb30cc14a14dec613778aa29a4866edb1b86"
+      }
+    },
+    {
+      "role": "fault_9",
+      "firmware": "0.0.0-devel",
+      "revision": "1dab547e17cd",
+      "target": "WsprryPico",
+      "gp14": false,
+      "lan_mode": "plain",
+      "fault_stage": 9,
+      "session_deadline_fixture": false,
+      "elf": {
+        "path": "fault_9/WsprryPico.elf",
+        "bytes": 28837760,
+        "sha256": "62d0433b339a7f15fef0030159c570cfc398075293b2cd990ebb7893addaa097"
+      },
+      "uf2": {
+        "path": "fault_9/WsprryPico.uf2",
+        "bytes": 3543552,
+        "sha256": "a0310d128914887202f9c3dcba67cca3bbfbd3cda6a258abe08724e8821ac343"
+      },
+      "map": {
+        "path": "fault_9/WsprryPico.elf.map",
+        "bytes": 3464503,
+        "sha256": "9b29693466dfbdfb4e9b69252edf33544340f919b775c62ced0c4eb595366b3f"
+      },
+      "build_identity": {
+        "path": "fault_9/firmware_identity.hpp",
+        "bytes": 533,
+        "sha256": "8dc45e4c25a1ba67dd128fb465b3fe1428c81b5523645176da4be92e016fb6f9"
+      },
+      "compile_commands": {
+        "path": "fault_9/compile_commands.json",
+        "bytes": 17453260,
+        "sha256": "f3452b0ec4b04014152fc3d17895119a87347a27f1e0278047e64efbc5b84d77"
+      },
+      "symbols": {
+        "path": "fault_9/symbols.txt",
+        "bytes": 264736,
+        "sha256": "cda53c86aa417b738b44b1053eb80b135813bbedde478a686c65bd5da6e5cfc3"
+      }
+    },
+    {
+      "role": "fault_10",
+      "firmware": "0.0.0-devel",
+      "revision": "1dab547e17cd",
+      "target": "WsprryPico",
+      "gp14": false,
+      "lan_mode": "plain",
+      "fault_stage": 10,
+      "session_deadline_fixture": false,
+      "elf": {
+        "path": "fault_10/WsprryPico.elf",
+        "bytes": 28837788,
+        "sha256": "0880badca338e53b0866c1de43c9bda7df034fc4be38391c4112f95d18279a8f"
+      },
+      "uf2": {
+        "path": "fault_10/WsprryPico.uf2",
+        "bytes": 3543552,
+        "sha256": "fe68d296b79c1af726f2c7817bff0e0aa17d39832cccab509bd9a499f4059a03"
+      },
+      "map": {
+        "path": "fault_10/WsprryPico.elf.map",
+        "bytes": 3464464,
+        "sha256": "d0f9be848368e02ac1ed38916248a83acc33bf68e57640b134c1bc76d8dd00bd"
+      },
+      "build_identity": {
+        "path": "fault_10/firmware_identity.hpp",
+        "bytes": 533,
+        "sha256": "8dc45e4c25a1ba67dd128fb465b3fe1428c81b5523645176da4be92e016fb6f9"
+      },
+      "compile_commands": {
+        "path": "fault_10/compile_commands.json",
+        "bytes": 17453261,
+        "sha256": "b7dfbe1334ca9202158c67961a343bd5e8b6f2a46b16d0c7977982f1f4e54d04"
+      },
+      "symbols": {
+        "path": "fault_10/symbols.txt",
+        "bytes": 264736,
+        "sha256": "9c55780700b092c07df7df22ccefbb30cc14a14dec613778aa29a4866edb1b86"
+      }
+    }
+  ]
+}

@@ -96,12 +96,14 @@ def context(args, browser=False):
     return ctx
 
 
-def connect(args, ctx, alpn, evidence):
+def connect(args, ctx, alpn, evidence, observer_deadline=None):
     # Numeric destination bounds connect without an unbounded system resolver.
+    deadline = time.monotonic() + 10 if observer_deadline is None else observer_deadline
+    remaining = deadline - time.monotonic()
+    require(0 < remaining <= 15, "bounded observer connection")
     raw = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    deadline = time.monotonic() + 10
-    raw.settimeout(10)
     try:
+        raw.settimeout(remaining)
         raw.connect((args.address, args.port))
         raw.settimeout(max(0.001, deadline - time.monotonic()))
         stream = ctx.wrap_socket(raw, server_hostname=args.hostname)

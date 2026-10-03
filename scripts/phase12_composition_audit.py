@@ -10,9 +10,10 @@ import json
 import math
 from pathlib import Path
 import re
+import struct
 
 ENGINE = 'inhibited-standalone-simulator'
-CARRIERS = {'consumer': ['usb', 'plain_lan'],
+CARRIERS = {'consumer': ['plain_lan'],
             'engineering': ['usb', 'ble', 'tls_wtp', 'https']}
 PRESSURE = ['maximum_sessions', 'maximum_framing', 'busy_mutation',
             'disconnect_reclaim', 'provisioning_close', 'flash_serialization']
@@ -21,6 +22,19 @@ PRESSURE = ['maximum_sessions', 'maximum_framing', 'busy_mutation',
 def require(ok, reason):
     if not ok:
         raise ValueError(reason)
+
+
+def counter(value, name):
+    """Decode a target uint64 counter without changing the retained wire record."""
+    if type(value) is int:
+        parsed = value
+    else:
+        require(type(value) is str and re.fullmatch(r'0|[1-9][0-9]{0,19}', value),
+                name + ': canonical unsigned decimal counter required')
+        parsed = int(value)
+    require(0 <= parsed <= 18446744073709551615,
+            name + ': uint64 counter out of range')
+    return parsed
 
 
 def number(value, name, low=0):
@@ -75,6 +89,13 @@ def validate_plan(p):
             'bounded resource tolerance')
     require(type(p['core0_stack_capacity_bytes']) is int and
             256 <= p['core0_stack_capacity_bytes'] <= 65536, 'declared linked stack capacity')
+    if 'controller_acl_credits_required' in p:
+        require(type(p['controller_acl_credits_required']) is bool, 'ACL measurement plan boolean')
+        if p['controller_acl_credits_required']:
+            require(p['mode'] == 'engineering' and
+                    type(p['controller_acl_min_free_slots']) is int and
+                    0 <= p['controller_acl_min_free_slots'] <= 65535,
+                    'engineering ACL headroom predeclared')
     return p
 
 
@@ -89,6 +110,56 @@ def artifact(root, record):
     return path
 
 
+def final_authority(p, reference, root, final_elapsed):
+    """Validate retained complete frames; INFO does not expose ownership IDs."""
+    from wsprrypico_ble import crc32c
+    proof = strict_read(artifact(root, reference))
+    require(proof['schema'] == 'phase12-final-authority/1' and
+            proof['carrier'] in p['carriers'], 'authority schema/carrier')
+    begin = number(proof['elapsed_start_s'], 'authority start')
+    end = number(proof['elapsed_end_s'], 'authority end')
+    require(final_elapsed <= begin <= end <= final_elapsed+30,
+            'authority must follow final sample within 30 seconds')
+    require(len(proof['exchanges']) == 2, 'exact HELLO/STATUS authority exchanges')
+    session = None
+    requests = set()
+    def frame(encoded):
+        require(type(encoded) is str and len(encoded) <= 2*(65536+16), 'bounded raw frame')
+        wire = bytes.fromhex(encoded)
+        require(len(wire) >= 16, 'complete WTP header')
+        header, length, crc = struct.unpack('>8sII', wire[:16])
+        require(header == b'WTPF\x01\x01\x00\x00' and
+                0 < length <= 65536 and len(wire) == length+16 and
+                crc32c(wire[16:]) == crc, 'WTP header/length/CRC')
+        return strict_load(wire[16:])
+    for operation, exchange in zip(('HELLO', 'STATUS'), proof['exchanges']):
+        request = frame(exchange['request_hex'])
+        response = frame(exchange['response_hex'])
+        require(request['type'] == 'request' and response['type'] == 'response' and
+                request['protocol'] == response['protocol'] == 'WTP/1' and
+                request['op'] == response['op'] == operation and response['ok'] is True,
+                'authority operation/protocol')
+        for key in ('request_id', 'session_id'):
+            digest(request[key], key, 32)
+            require(request[key] == response[key], 'authority response correlation')
+        require(request['request_id'] not in requests, 'authority duplicate request ID')
+        requests.add(request['request_id'])
+        session = request['session_id'] if session is None else session
+        require(request['session_id'] == session, 'authority connection/session changed')
+        body = response['body']
+        if operation == 'HELLO':
+            require('WTP/1' in request['body']['versions'] and
+                    body['selected_version'] == 'WTP/1' and
+                    body['device_id'] == p['device_id'] and body['boot_id'] == p['boot_id'],
+                    'authority HELLO device/boot')
+        else:
+            require(request['body'] == {} and body['boot_id'] == p['boot_id'] and
+                    body['state'] == 'empty' and body['owner_id'] is None and
+                    body['job_id'] is None and body['output_active'] is False,
+                    'actual final WTP authority')
+    return body
+
+
 def validate_evidence(p, e, artifact_root=None):
     validate_plan(p)
     encoded = json.dumps(p, sort_keys=True, separators=(',', ':')).encode()
@@ -99,6 +170,8 @@ def validate_evidence(p, e, artifact_root=None):
     require(len(samples) == 241, 'exact bounded two-hour samples required')
     previous = None
     baseline_raw = None
+    previous_acl = None
+    baseline_acl = None
     for s in samples:
         t = number(s['elapsed_s'], 'elapsed')
         require(previous is None or 0 < t - previous <= p['max_gap_s'],
@@ -118,14 +191,17 @@ def validate_evidence(p, e, artifact_root=None):
                 record['raw_info_sha256'], 'raw serial bytes binding')
         raw = strict_load(wire)
         require(raw == record['info'], 'decoded raw INFO differs')
-        from phase12_composition_capture import check_info, pools
+        from phase12_composition_capture import check_info, pools, acl_credits
         check_info(p, raw)
+        previous_acl = acl_credits(p, raw, previous_acl)
+        if baseline_acl is None:
+            baseline_acl = previous_acl
         if baseline_raw is None:
             baseline_raw = raw
         derived = {'heap_used_bytes': raw['heap_allocated_bytes'],
                    'pool_used': sum(pool['used'] for pool in pools(raw).values()),
                    'sessions': raw['softap_retained_sessions'],
-                   'allocation_failures': raw['allocator_failures'],
+                   'allocation_failures': counter(raw['allocator_failures'], 'allocator_failures'),
                    'pool_errors': sum(pool['errors'] for pool in pools(raw).values()),
                    'stack_margin_bytes': p['core0_stack_capacity_bytes'] - raw['core0_stack_used_bytes']}
         require(all(s[k] == v for k, v in derived.items()), 'normalized metrics differ from INFO')
@@ -145,8 +221,12 @@ def validate_evidence(p, e, artifact_root=None):
         require(pool['used'] <= pools(baseline_raw)[key]['used'], 'individual lwIP pool return')
     for key, pool in raw['btstack_pools'].items():
         require(pool['used'] <= baseline_raw['btstack_pools'][key]['used'], 'BTstack pool return')
-    require(raw['status']['state'] == 'empty' and raw['status']['owner_id'] is None
-            and raw['status']['job_id'] is None, 'actual final authority')
+    acl_credits(p, raw, previous_acl, final=True, baseline=baseline_acl)
+    require(raw['status']['state'] == 'empty', 'actual final INFO state')
+    authority = final_authority(p, e['final_authority_artifact'], artifact_root,
+                                record['elapsed_end_s'])
+    require(e['final_state'] == authority['state'] and e['final_owner'] == authority['owner_id']
+            and e['final_job'] == authority['job_id'], 'normalized authority differs')
     for field in ('bootstrap_connected', 'bootstrap_setup_pending', 'bootstrap_reset_pending',
                   'ble_indication_pending'):
         require(raw[field] is False, 'actual final pending provisioning')
@@ -208,7 +288,7 @@ def normalize_capture(p, capture_path, metadata_path, artifact_root, output):
             'partial or failed capture refused')
     metadata = strict_read(metadata_path)
     require(set(metadata) == {'coverage', 'pressure', 'quiet_artifact',
-            'simulated_jobs', 'longest_job_s', 'rf_jobs', 'flash_cycles'},
+            'simulated_jobs', 'longest_job_s', 'rf_jobs', 'flash_cycles', 'final_authority_artifact'},
             'explicit external proof metadata required')
     root = Path(artifact_root).resolve()
     require(root.is_dir(), 'existing private artifact root required')
@@ -233,12 +313,14 @@ def normalize_capture(p, capture_path, metadata_path, artifact_root, output):
             device_id=raw['device_id'], boot_id=raw['status']['boot_id'],
             firmware=raw['firmware'], engine=raw['status']['engine'],
             output_active=raw['status']['output_active'], faults=[], storage_healthy=True,
-            guards_valid=True, allocation_failures=raw['allocator_failures'],
+            guards_valid=True, allocation_failures=counter(raw['allocator_failures'], 'allocator_failures'),
             pool_errors=sum(pool['errors'] for pool in pools(raw).values()),
             heap_used_bytes=raw['heap_allocated_bytes'],
             pool_used=sum(pool['used'] for pool in pools(raw).values()),
             stack_margin_bytes=p['core0_stack_capacity_bytes'] - raw['core0_stack_used_bytes'],
             sessions=raw['softap_retained_sessions']))
+    authority = final_authority(p, metadata['final_authority_artifact'], root,
+                                records[-2]['elapsed_end_s'])
     export.mkdir(mode=0o700)
     for index, (record, sample) in enumerate(zip(records[1:-1], samples)):
         path = export / ('%03d.json' % index)
@@ -251,8 +333,8 @@ def normalize_capture(p, capture_path, metadata_path, artifact_root, output):
         plan_sha256=hashlib.sha256(json.dumps(p, sort_keys=True,
             separators=(',', ':')).encode()).hexdigest(), samples=samples,
         quiet_duration_s=quiet['end_s']-quiet['start_s'], quiet_network_requests=len(quiet['network_requests']),
-        final_state=raw['status']['state'], final_owner=raw['status']['owner_id'],
-        final_job=raw['status']['job_id'], provisioning_closed=not (
+        final_state=authority['state'], final_owner=authority['owner_id'],
+        final_job=authority['job_id'], provisioning_closed=not (
             raw['bootstrap_connected'] or raw['bootstrap_setup_pending'] or raw['bootstrap_reset_pending']))
     result = validate_evidence(p, evidence, root)
     with output.open('x') as handle:

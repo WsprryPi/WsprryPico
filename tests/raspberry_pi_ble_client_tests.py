@@ -543,5 +543,33 @@ class ProfileFileTests(unittest.TestCase):
                 ble.load_profile_file("profile.json")
 
 
+class BluezPumpDeadlineTests(unittest.TestCase):
+ def backend(self):
+  b=ble.BluezBackend.__new__(ble.BluezBackend)
+  class Context:
+   def pending(self):return False
+  b.context=Context();return b
+ def test_deadline_crossed_between_loop_guard_and_sleep(self):
+  sleeps=[]
+  def sleep(value):
+   if value<0:raise ValueError('sleep length must be non-negative')
+   sleeps.append(value)
+  with patch.object(ble.time,'monotonic',side_effect=[0,.009,.011,.012]),patch.object(ble.time,'sleep',side_effect=sleep):self.backend().pump(.01)
+  self.assertEqual(sleeps,[0])
+ def test_does_not_wait_for_zero_or_expired_budget(self):
+  for seconds in (0,-1):
+   with patch.object(ble.time,'monotonic',side_effect=[1,1]),patch.object(ble.time,'sleep') as sleep:self.backend().pump(seconds);sleep.assert_not_called()
+ def test_pending_callback_can_consume_rest_of_budget(self):
+  b=self.backend()
+  class Context:
+   def pending(self):return True
+   def iteration(self,blocking):self.did_run=True
+  c=Context();c.did_run=False;b.context=c
+  states=iter([True,False])
+  c.pending=lambda:next(states)
+  with patch.object(ble.time,'monotonic',side_effect=[0,.02]),patch.object(ble.time,'sleep') as sleep:b.pump(.01);sleep.assert_not_called()
+  self.assertTrue(c.did_run)
+
+
 if __name__ == "__main__":
     unittest.main()

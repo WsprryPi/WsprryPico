@@ -4,7 +4,6 @@
   "engine": "inhibited-standalone-simulator",
   "mode": "consumer",
   "carriers": [
-    "usb",
     "plain_lan"
   ],
   "source_commit": "REPLACE_WITH_APPROVED_EXACT_SOURCE_COMMIT",

@@ -884,7 +884,7 @@ class BluezBackend:
             if self.context.pending():
                 self.context.iteration(False)
             else:
-                time.sleep(min(0.01, deadline - time.monotonic()))
+                time.sleep(max(0.0, min(0.01, deadline - time.monotonic())))
 
     def _wait(self, predicate: Callable[[], bool], timeout: float, code: str) -> None:
         deadline = time.monotonic() + timeout

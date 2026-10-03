@@ -8,18 +8,18 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from phase12_composition_capture import capture, check_info, check_approval
+from phase12_composition_capture import capture, check_info, check_approval, acl_credits
 from phase12_composition_audit_tests import fixture
 
 
 def info(p):
     return dict(ok=True, device_id=p['device_id'], revision=p['source_commit'][:12],
-                firmware=p['firmware'], softap_session_inactivity_ms=900000,
-                softap_session_absolute_ms=43200000, resource_schema=1, lan_wtp_mode='plain',
+                firmware=p['firmware'], softap_session_inactivity_ms="900000",
+                softap_session_absolute_ms="43200000", resource_schema=1, lan_wtp_mode='plain',
                 core0_stack_guard_valid=1, core0_stack_fault_status=0,
                 fault_stage=0, fault_hash=0, fault_pc=0, fault_status=0,
-                tls_allocation_failures=0, allocator_failures=0, provisioning_fault=0,
-                flash_read_failures=0, flash_erase_failures=0, flash_program_failures=0,
+                tls_allocation_failures=0, allocator_failures="0", provisioning_fault=0,
+                flash_read_failures="0", flash_erase_failures="0", flash_program_failures="0",
                 btstack_pool_occupancy_measured=True, btstack_pools={k: dict(used=0,
                 capacity=4, peak=0, failures=0, faults=0) for k in
                 ('hci_connections', 'l2cap_channels', 'l2cap_services', 'sm_lookup', 'whitelist')},
@@ -38,6 +38,76 @@ def info(p):
 
 
 class CaptureTests(unittest.TestCase):
+    def test_event_credit_history_requires_pressure_and_return(self):
+        p, _ = fixture('engineering')
+        p.update(controller_acl_credits_required=True, controller_acl_min_free_slots=0)
+        sample = info(p)
+        sample.update(btstack_controller_buffers_measured=True, btstack_acl_credits=dict(
+            scope='controller_reported_hci_acl_credits', initialized=True, measured=True,
+            capacity=4, free=4, min_free=4, peak_outstanding=0, epoch='1',
+            send_events='0', completed_events='0', invalid_samples='0', transport_failures='0'))
+        baseline = acl_credits(p, sample)
+        with self.assertRaises(ValueError):
+            acl_credits(p, sample, baseline, final=True, baseline=baseline)
+        sample['btstack_acl_credits'].update(free=1, min_free=1, peak_outstanding=3,
+                                           send_events='3')
+        pressure = acl_credits(p, sample, baseline)
+        with self.assertRaises(ValueError):
+            acl_credits(p, sample, pressure, final=True, baseline=baseline)
+        sample['btstack_acl_credits'].update(free=4, completed_events='1')
+        returned = acl_credits(p, sample, pressure, final=True, baseline=baseline)
+        with self.assertRaisesRegex(ValueError, 'actual ACL pressure'):
+            acl_credits(p, sample, returned, final=True, baseline=returned)
+        self.assertEqual(returned['min_free'], 1)
+        for key, value in (('epoch', '2'), ('capacity', 5), ('min_free', 2),
+                           ('send_events', '2'), ('completed_events', '0'),
+                           ('invalid_samples', '1'), ('transport_failures', '1'),
+                           ('measured', False), ('initialized', False)):
+            before = dict(sample['btstack_acl_credits'])
+            sample['btstack_acl_credits'][key] = value
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                acl_credits(p, sample, returned, final=True, baseline=baseline)
+            sample['btstack_acl_credits'] = before
+        sample['btstack_controller_buffers_measured'] = False
+        with self.assertRaises(ValueError):
+            acl_credits(p, sample)
+        historical, _ = fixture()
+        self.assertIsNone(acl_credits(historical, sample, final=True))
+
+    def test_actual_uint64_counter_types(self):
+        p, _ = fixture()
+        sample = info(p)
+        self.assertIs(check_info(p, sample), sample)
+        self.assertEqual(sample['allocator_failures'], '0')
+        for field in ('allocator_failures', 'flash_read_failures',
+                      'flash_erase_failures', 'flash_program_failures'):
+            for value in ('1', 1, True, False, '00', '+0', '-0', ' 0',
+                          '0 ', '0.0', '-1', -1, 0.0, '٠', '',
+                          '18446744073709551616'):
+                changed = info(p)
+                changed[field] = value
+                with self.subTest(field=field, value=value), self.assertRaises(ValueError):
+                    check_info(p, changed)
+            changed = info(p)
+            changed[field] = 0
+            check_info(p, changed)
+
+    def test_actual_uint64_session_policies(self):
+        p, _ = fixture()
+        for field, expected in (('softap_session_inactivity_ms', 900000),
+                                ('softap_session_absolute_ms', 43200000)):
+            for value in (expected, str(expected)):
+                sample = info(p)
+                sample[field] = value
+                check_info(p, sample)
+                self.assertEqual(sample[field], value)
+            for value in (True, False, -1, str(expected - 1), '0' + str(expected),
+                          '+' + str(expected), str(expected) + ' ', float(expected)):
+                sample = info(p)
+                sample[field] = value
+                with self.subTest(field=field, value=value), self.assertRaises(ValueError):
+                    check_info(p, sample)
+
     def test_exact_gates(self):
         p, _ = fixture()
         for key, value in [('device_id', '0'*32), ('revision', 'dirty'),

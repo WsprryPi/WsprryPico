@@ -55,7 +55,9 @@ try:
             second.settimeout(5)
             rejected(second, "second WTP owner was not rejected")
     with socket.create_connection(("127.0.0.1", 18444), timeout=5) as stream:
-        stream.settimeout(5)
+        # Production expires partial frames after 5,000 ms. Leave one second
+        # for host receipt of its close; the target deadline is unchanged.
+        stream.settimeout(6)
         stream.sendall(b"GET /api/v1/status HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
         rejected(stream, "plain WTP port exposed HTTP")
     with socket.create_connection(("127.0.0.1", 18443), timeout=5) as stream:

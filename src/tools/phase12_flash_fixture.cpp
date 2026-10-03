@@ -1,4 +1,5 @@
 // Offline fixture construction through production journals. Never accesses a device.
+#include "provisioning/access.hpp"
 #include "provisioning/consumer_profile.hpp"
 #include "provisioning/storage.hpp"
 #include "standalone/storage.hpp"
@@ -87,6 +88,19 @@ struct Profile : provisioning::Media {
         return m.program(o, b);
     }
 };
+struct Access : provisioning::AccessMedia {
+    Bounded m;
+    explicit Access(std::vector<std::uint8_t>& b) : m{b, 0x3f3000, 8192, 4096} {}
+    bool read(std::size_t o, std::span<std::uint8_t> b) override {
+        return m.read(o, b);
+    }
+    bool erase(std::size_t o) override {
+        return m.erase(o);
+    }
+    bool program(std::size_t o, std::span<const std::uint8_t> b) override {
+        return m.program(o, b);
+    }
+};
 struct Operational : standalone::Flash {
     Bounded m;
     unsigned erases = 0, programs = 0;
@@ -154,6 +168,31 @@ int main(int argc, char** argv) {
         check(argc >= 3 && argc % 2 == 1);
         for (int i = 1; i < argc; i += 2)
             check(args.emplace(argv[i], argv[i + 1]).second);
+        if (args.contains("--enable-field-mode")) {
+            check(args.size() == 3 && args.at("--enable-field-mode") == "yes" &&
+                  args.contains("--backup") && args.contains("--output"));
+            auto bytes = read(args.at("--backup"), flash_size);
+            check(bytes.size() == flash_size);
+            const auto original = bytes;
+            Access media(bytes);
+            provisioning::AccessStore store(media);
+            check(store.load() && store.healthy() && store.record() &&
+                  !store.record()->reset.pending());
+            const auto old = *store.record();
+            auto selected = old;
+            selected.field_mode = true;
+            check(store.replace(selected));
+            provisioning::AccessStore verified(media);
+            check(verified.load() && verified.record() && *verified.record() == selected);
+            auto restored = *verified.record();
+            restored.field_mode = old.field_mode;
+            check(restored == old);
+            check(std::equal(bytes.begin(), bytes.begin() + 0x3f3000, original.begin()) &&
+                  std::equal(bytes.begin() + 0x3f5000, bytes.end(), original.begin() + 0x3f5000));
+            publish(args.at("--output"), bytes);
+            std::cout << "{\"status\":\"OFFLINE_FIELD_MODE_READY\",\"rf_jobs\":0}\n";
+            return 0;
+        }
         if (args.contains("--prepare-config-rollover")) {
             check(args.size() == 3 && args.at("--prepare-config-rollover") == "yes" &&
                   args.contains("--backup") && args.contains("--output"));

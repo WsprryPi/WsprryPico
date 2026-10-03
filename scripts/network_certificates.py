@@ -104,7 +104,7 @@ def validate_bundle(directory):
     if key.stat().st_mode & 0o077:
         raise ValueError('Server private key must not be accessible to group or others')
     # This validates signatures, validity and server purpose, independently of metadata.
-    openssl('verify', '-purpose', 'sslserver', '-CAfile', ca, cert)
+    openssl('verify', '-x509_strict', '-purpose', 'sslserver', '-CAfile', ca, cert)
     if openssl('x509', '-in', cert, '-pubkey', '-noout') != openssl('pkey', '-in', key, '-passin', 'pass:', '-pubout'):
         raise ValueError('Server certificate and private key do not match')
     dns, ips = certificate_sans(cert)
@@ -172,7 +172,7 @@ def issue(ca, destination, common_name, usage, addresses=(), selected_hostname=N
         openssl('req', '-new', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', '-nodes',
                 '-keyout', key, '-out', temp / 'request.csr', '-subj', '/CN=' + common_name)
         key.chmod(0o600)
-        extensions = 'basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=' + usage + '\n'
+        extensions = 'basicConstraints=critical,CA:FALSE\nsubjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid:always,issuer\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=' + usage + '\n'
         sans = (['DNS:' + selected_hostname] if selected_hostname else []) + ['IP:' + str(address) for address in addresses]
         if sans:
             extensions += 'subjectAltName=' + ','.join(sans) + '\n'
@@ -222,7 +222,8 @@ def main(argv=None):
         openssl('req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', '-nodes',
                 '-keyout', directory / 'ca.key', '-out', directory / 'client-ca.crt', '-days', '3650',
                 '-subj', '/CN=' + common_name + ' device CA', '-addext', 'basicConstraints=critical,CA:TRUE',
-                '-addext', 'keyUsage=critical,keyCertSign,cRLSign')
+                '-addext', 'keyUsage=critical,keyCertSign,cRLSign',
+                '-addext', 'subjectKeyIdentifier=hash', '-addext', 'authorityKeyIdentifier=keyid:always')
         (directory / 'ca.key').chmod(0o600)
         bundle = new_directory(directory / 'server')
         issue(directory, bundle, common_name, 'serverAuth', addresses, selected)
