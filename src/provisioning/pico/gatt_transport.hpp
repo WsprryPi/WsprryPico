@@ -3,6 +3,7 @@
 #include "btstack.h"
 #include "provisioning/ble_session.hpp"
 #include "provisioning/gatt_framing.hpp"
+#include "provisioning/gatt_write_admission.hpp"
 #include "wtp/endpoint.hpp"
 
 #include <array>
@@ -83,6 +84,7 @@ class PicoGattTransport {
     bool wtp_indications_enabled() const;
     std::uint16_t wtp_status_handle() const;
     bool ensure_wtp_endpoint();
+    void resume_wtp_write();
     bool request_send();
     void send_next();
     void security_lost();
@@ -121,6 +123,7 @@ class PicoGattTransport {
     enum class Indication { None, Provisioning, Wtp };
     Indication indication_ = Indication::None;
     std::size_t wtp_indication_bytes_ = 0;
+    GattWriteAdmission wtp_write_admission_;
     Diagnostics diagnostics_{};
 };
 } // namespace wsprrypico::provisioning

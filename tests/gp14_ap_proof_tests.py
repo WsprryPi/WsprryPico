@@ -17,18 +17,20 @@ import gp14_rf_orchestration_tests as orchestration
 class ProofTests(unittest.TestCase):
     def setUp(self):
         self.attempt = dict(case='long_ap', boot_id='boot', final_boot_id='boot',
-                            firmware='test-firmware', packet_sha256='packet',
+                            firmware='0.0.0-devel', packet_sha256='packet',
                             target_gesture_checks_passed=True,
                             release_host_bracket=dict(earliest_monotonic_ns='1000000000',
                                                       latest_monotonic_ns='2000000000',
                                                       host_boot_id='host-boot', hostname='host'))
-        self.packet = dict(device_id=rf.DEVICE, revision=rf.SOURCE_REVISION[:12])
+        self.packet = dict(schema='phase12-gp14-rf-v2', device_id=rf.DEVICE,
+                           revision='ec0f68facb50')
         info = orchestration.LongApTests().final()
         info.update(device_id=rf.DEVICE, revision=self.packet['revision'], system_clock_hz=138000000,
                     gp14_rf_acceptance=True, gp14_samples='100', recovery_boot=False,
                     gp14_capture_fault=False, core0_stack_guard_valid=1, core1_stack_guard_valid=1,
-                    allocator_failures='0', firmware='test-firmware')
-        info['status'].update(boot_id='boot', engine='pio-dma-gp2', enabled=False, storage_healthy=True)
+                    allocator_failures='0', firmware='0.0.0-devel')
+        info['status'].update(boot_id='boot', engine='pio-dma-gp2', enabled=False,
+                              storage_healthy=True, reboot_required=False)
         for key in ('fault_stage', 'fault_hash', 'fault_pc', 'fault_status', 'provisioning_fault',
                     'core0_stack_fault_status', 'core1_stack_fault_status', 'dma_errors'):
             info[key] = 0
@@ -40,7 +42,7 @@ class ProofTests(unittest.TestCase):
                           management_interface='eth0', approved_ssid='approved',
                           approved_bssid='00:11:22:33:44:55', association_before=assoc,
                           association_after=copy.deepcopy(assoc),
-                          identity=dict(device_id=rf.DEVICE, firmware='test-firmware'),
+                          identity=dict(device_id=rf.DEVICE, firmware='0.0.0-devel'),
                           usb_before=dict(begin_monotonic_ns='3000000000',
                                           end_monotonic_ns='4000000000', info=info),
                           usb_after=dict(begin_monotonic_ns='80000000000',
@@ -94,7 +96,8 @@ class ProofTests(unittest.TestCase):
     def test_usb_same_boot_health_and_latch_must_bracket_collection(self):
         for key in ('usb_before', 'usb_after'):
             original = copy.deepcopy(self.proof[key])
-            for field, value in [('boot_id', 'other'), ('output_active', True), ('storage_healthy', False)]:
+            for field, value in [('boot_id', 'other'), ('output_active', True),
+                                 ('storage_healthy', False), ('reboot_required', True)]:
                 self.proof[key]['info']['status'][field] = value
                 with self.assertRaises(RuntimeError): self.validate()
                 self.proof[key] = copy.deepcopy(original)

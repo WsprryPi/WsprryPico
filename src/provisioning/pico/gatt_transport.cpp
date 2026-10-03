@@ -89,6 +89,23 @@ void PicoGattTransport::poll() {
     }
     if (!send_requested_ && indication_ == Indication::None && output_pending())
         (void)request_send();
+    resume_wtp_write();
+}
+
+void PicoGattTransport::resume_wtp_write() {
+    const bool valid = connection_ != HCI_CON_HANDLE_INVALID && encrypted_ && admitted_ &&
+                       session_.authorized() && wtp_indications_enabled() && endpoint_ &&
+                       !endpoint_->closed();
+    if (!wtp_write_admission_.resume_due(now(), valid && endpoint_->can_receive(), valid))
+        return;
+    // BTstack owns the unchanged ATT request. It can re-enter write_callback
+    // synchronously here; never clear a newly re-deferred state after success.
+    if (att_server_response_ready(connection_) != ERROR_CODE_SUCCESS) {
+        wtp_write_admission_.reset();
+        security_lost();
+        if (connection_ != HCI_CON_HANDLE_INVALID)
+            (void)gap_disconnect(connection_);
+    }
 }
 
 PicoGattTransport::Diagnostics PicoGattTransport::diagnostics() const {
@@ -139,6 +156,7 @@ bool PicoGattTransport::admit() {
 }
 
 void PicoGattTransport::disconnected() {
+    wtp_write_admission_.reset();
     if (admitted_)
         session_.disconnected();
     else if (new_pairing_ && peer_index_ >= 0)
@@ -163,6 +181,7 @@ void PicoGattTransport::disconnected() {
 }
 
 void PicoGattTransport::security_lost() {
+    wtp_write_admission_.reset();
     // Do not wait for the asynchronous HCI disconnect event to revoke
     // application authority. BTstack attribute permissions reject new writes,
     // but queued server indications and WTP output must also fail closed now.
@@ -351,8 +370,13 @@ int PicoGattTransport::write_callback(hci_con_handle_t connection, std::uint16_t
             owner_->inbound_.reset();
         const bool selected_wtp_cccd =
             owner_->session_.wtp_over_field_status() ? provisioning_cccd : wtp_cccd;
-        if (selected_wtp_cccd && value == 0 && owner_->endpoint_)
+        if (selected_wtp_cccd && value == 0 && owner_->endpoint_) {
             owner_->endpoint_->disconnect();
+            if (owner_->wtp_write_admission_.pending()) {
+                owner_->wtp_write_admission_.reset();
+                (void)gap_disconnect(owner_->connection_);
+            }
+        }
         return ATT_ERROR_SUCCESS;
     }
     const bool field_wtp_selected = owner_->session_.wtp_over_field_status();
@@ -369,10 +393,29 @@ int PicoGattTransport::write_callback(hci_con_handle_t connection, std::uint16_t
             return ATT_ERROR_INVALID_OFFSET;
         if (!buffer || !size || size > 64)
             return ATT_ERROR_INVALID_ATTRIBUTE_VALUE_LENGTH;
-        if (!owner_->admit() || !owner_->session_.authorized())
+        if (!owner_->admit() || !owner_->session_.authorized()) {
+            owner_->wtp_write_admission_.reset();
             return ATT_ERROR_INSUFFICIENT_AUTHENTICATION;
-        if (!owner_->wtp_indications_enabled() || !owner_->ensure_wtp_endpoint() ||
-            !owner_->endpoint_->can_receive())
+        }
+        const bool retained_endpoint_valid = !owner_->wtp_write_admission_.pending() ||
+                                             (owner_->endpoint_ && !owner_->endpoint_->closed());
+        const bool valid = retained_endpoint_valid && owner_->wtp_indications_enabled() &&
+                           owner_->ensure_wtp_endpoint();
+        // Pinned BTstack passes request_buffer+3 only for its retained
+        // acknowledged request. Field Write Commands use a different buffer;
+        // returning pending for them would strand an unrelated transaction.
+        const auto* hci = hci_connection_for_handle(connection);
+        const bool acknowledged =
+            hci && hci->att_server.state == ATT_SERVER_REQUEST_RECEIVED_AND_VALIDATED &&
+            hci->att_server.request_size <= sizeof(hci->att_server.request_buffer) &&
+            GattWriteAdmission::acknowledged_request(
+                std::span(hci->att_server.request_buffer, hci->att_server.request_size), buffer,
+                size, handle);
+        const auto admission = owner_->wtp_write_admission_.admit(
+            owner_->now(), valid && owner_->endpoint_->can_receive(), valid, acknowledged);
+        if (admission == GattWriteAdmission::Result::Deferred)
+            return ATT_ERROR_WRITE_RESPONSE_PENDING;
+        if (admission != GattWriteAdmission::Result::Ready)
             return ATT_ERROR_INSUFFICIENT_RESOURCES;
         owner_->in_write_callback_ = true;
         const auto consumed = owner_->endpoint_->receive(std::span(buffer, size), owner_->now());
@@ -384,6 +427,13 @@ int PicoGattTransport::write_callback(hci_con_handle_t connection, std::uint16_t
             !owner_->send_requested_)
             (void)owner_->request_send();
         owner_->in_write_callback_ = false;
+        if (consumed != size) {
+            // A malformed segment may dispatch a complete frame before its
+            // trailing bytes encounter backpressure. Fail closed; never ask
+            // the SDK or a client to replay an already consumed prefix.
+            owner_->security_lost();
+            (void)gap_disconnect(owner_->connection_);
+        }
         return consumed == size ? ATT_ERROR_SUCCESS : ATT_ERROR_INSUFFICIENT_RESOURCES;
     }
     if (handle != ATT_CHARACTERISTIC_7D6B0003_5BF1_4F21_A486_3E8F70C12201_01_VALUE_HANDLE)
@@ -413,8 +463,13 @@ int PicoGattTransport::write_callback(hci_con_handle_t connection, std::uint16_t
         owner_->now());
     const bool wtp_carrier_changed =
         previous_wtp_carrier != owner_->session_.wtp_over_field_status();
-    if (wtp_carrier_changed && owner_->endpoint_)
+    if (wtp_carrier_changed && owner_->endpoint_) {
         owner_->endpoint_->disconnect();
+        if (owner_->wtp_write_admission_.pending()) {
+            owner_->wtp_write_admission_.reset();
+            (void)gap_disconnect(owner_->connection_);
+        }
+    }
     owner_->inbound_.reset();
     owner_->in_write_callback_ = true;
     const bool queued = response.notify() && owner_->queue(response.notification);

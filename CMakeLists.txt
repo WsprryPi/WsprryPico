@@ -491,6 +491,51 @@ if(WSPRRY_PICO_BUILD_TESTS)
         target_compile_options(wsprrypico_core_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     endif()
     add_executable(endpoint_driver tests/endpoint_driver.cpp)
+    add_executable(gatt_write_admission_tests tests/gatt_write_admission_tests.cpp)
+    target_link_libraries(gatt_write_admission_tests PRIVATE wsprrypico_core)
+    target_compile_options(gatt_write_admission_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME gatt_write_admission_tests COMMAND gatt_write_admission_tests)
+    set(WSPRRY_PICO_BTSTACK_TEST_ROOT "" CACHE PATH
+        "Optional existing pinned BTstack root for hardware-free delayed ATT runtime checks")
+    if(WSPRRY_PICO_BTSTACK_TEST_ROOT)
+        # Compile the original pinned SDK server and upstream host mock in
+        # place. No SDK download, installation, or CppUTest dependency.
+        set(_gatt_sdk_hashes
+            "src/ble/att_db.c|7675e6f2063d3d12ac6f35e652a142c1295cdfd66ba222c235a1f7b67de28c8f"
+            "src/ble/att_server.c|e4b0b07745feef9b803d23bd7d5f32d2253e4421a8add3b72ae4559d74bc2c25"
+            "src/hci.h|2fd4f3169783a306d6bb10f1c0f68748fd95670a56fb014bf282e1530d2aba5a"
+            "test/gatt_server/mock.c|6bf6ad80fcb46517ed18e36d73880730f94e1ed21ce9aa56b428589363c40770"
+            "test/include/coverage-ble/btstack_config.h|6ecabbe390b84aeb27fe34f9ef1fcdd4d27ebef4d470e1d4bf13c6efbf653b64")
+        foreach(_gatt_binding IN LISTS _gatt_sdk_hashes)
+            string(REPLACE "|" ";" _gatt_binding "${_gatt_binding}")
+            list(GET _gatt_binding 0 _gatt_file)
+            list(GET _gatt_binding 1 _gatt_expected)
+            file(SHA256 "${WSPRRY_PICO_BTSTACK_TEST_ROOT}/${_gatt_file}" _gatt_actual)
+            if(NOT _gatt_actual STREQUAL _gatt_expected)
+                message(FATAL_ERROR "Delayed ATT runtime test requires pinned SDK source: ${_gatt_file}")
+            endif()
+        endforeach()
+        enable_language(C)
+        set(_gatt_sdk_sources
+            test/gatt_server/mock.c test/mock/mock_btstack_tlv.c
+            src/ad_parser.c src/ble/att_db.c src/ble/att_db_util.c src/ble/att_server.c
+            src/ble/le_device_db_memory.c src/btstack_crypto.c src/btstack_linked_list.c
+            src/btstack_memory.c src/btstack_memory_pool.c src/btstack_tlv.c
+            src/btstack_util.c src/hci_cmd.c src/hci_dump.c
+            3rd-party/rijndael/rijndael.c 3rd-party/micro-ecc/uECC.c)
+        list(TRANSFORM _gatt_sdk_sources PREPEND "${WSPRRY_PICO_BTSTACK_TEST_ROOT}/")
+        add_executable(gatt_delayed_sdk_tests tests/gatt_delayed_sdk_tests.cpp ${_gatt_sdk_sources})
+        set_target_properties(gatt_delayed_sdk_tests PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
+        target_include_directories(gatt_delayed_sdk_tests PRIVATE
+            "${WSPRRY_PICO_BTSTACK_TEST_ROOT}/test/include/coverage-ble"
+            "${WSPRRY_PICO_BTSTACK_TEST_ROOT}/test/mock"
+            "${WSPRRY_PICO_BTSTACK_TEST_ROOT}/src"
+            "${WSPRRY_PICO_BTSTACK_TEST_ROOT}/3rd-party/rijndael"
+            "${WSPRRY_PICO_BTSTACK_TEST_ROOT}/3rd-party/micro-ecc"
+            "${WSPRRY_PICO_BTSTACK_TEST_ROOT}/platform/posix")
+        target_link_libraries(gatt_delayed_sdk_tests PRIVATE wsprrypico_core)
+        add_test(NAME gatt_delayed_sdk_tests COMMAND gatt_delayed_sdk_tests)
+    endif()
     add_executable(event_storage_tests tests/event_storage_tests.cpp)
     target_link_libraries(event_storage_tests PRIVATE wsprrypico_core)
     target_compile_options(event_storage_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)

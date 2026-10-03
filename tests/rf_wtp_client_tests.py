@@ -198,8 +198,8 @@ capture=subprocess.Popen([sys.executable,'-c','import time;time.sleep(60)'])
 assert finish_capture(capture,time.monotonic()+.03) is None and capture.poll() is not None
 print('Normal-reset resolution remains nonqualifying; finite receiver completion/reaping passed')
 
-# Physical readiness is consumed only after a distinct healthy quick-reset
-# boot is released and synchronized. No cue/job can precede that signal.
+# Historical v1 quick-reset readiness waits for a distinct healthy boot that
+# is released and synchronized. Current execution rejects this legacy packet.
 from phase12_gp14_rf import wait_button_reset
 class ReadyEvidence:
     def __init__(self): self.values=[]
@@ -210,7 +210,7 @@ ready['status'].update(clock_state='synchronized')
 ready['network']=dict(ipv4='192.168.1.53')
 old=copy.deepcopy(ready);old['status']['boot_id']='old'
 old.update(gp14_output_inhibited=True,rf_safety_inhibited=True)
-packet=dict(revision=ready['revision'],address='192.168.1.53')
+packet=dict(schema='phase12-gp14-rf-v1',revision=ready['revision'],address='192.168.1.53')
 unsynced=copy.deepcopy(ready);unsynced['status']['clock_state']='unsynchronized'
 values=iter([old,unsynced,ready]);evidence=ReadyEvidence()
 assert wait_button_reset(packet,old,evidence,read=lambda:next(values),

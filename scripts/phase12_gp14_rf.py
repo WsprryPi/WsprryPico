@@ -8,6 +8,7 @@ import argparse
 from contextlib import contextmanager
 import fcntl
 import hashlib
+import ipaddress
 import json
 import os
 from pathlib import Path
@@ -21,19 +22,29 @@ import uuid
 from inhibited_network_acceptance import Evidence, Peer, require
 from phase11_5_inventory import exclusive_port
 from rf_wtp import read_line, write_all
+from phase12_candidate_manifest import read_json, artifact
+from check_standalone_image import validate_uf2
+from phase12_recovery_device import verify_image
 
 SERIAL = 'CDDBF8767C506C07'
 DEVICE = '29f20b7342051ef947aa56cb9d4fab42'
 CASES = ('active_stop', 'armed_stop', 'active_busy', 'armed_busy', 'quick_reset', 'long_ap')
-CONTINUATION_CASES = ('quick_reset', 'long_ap')
-SOURCE_REVISION = '3e1337074003616c23d9b8749e728c99c71738c6'
-IMAGE_SHA256 = '658605e4bc66094849be71ee6bb59c91d335d6e1fb7fe99ad54d96b27cf09aa5'
+CONTINUATION_CASES = ('long_ap',)
+HISTORICAL_SOURCE = '3e1337074003616c23d9b8749e728c99c71738c6'
+HISTORICAL_IMAGE = '658605e4bc66094849be71ee6bb59c91d335d6e1fb7fe99ad54d96b27cf09aa5'
 SETTINGS = dict(format='CF32', sample_rate_hz=250000, bandwidth_hz=200000,
                 center_frequency_hz=3550000, gain_db=20, channel=0, agc=False, bias_tee=False)
 HELPER_SHA256 = 'b98de116d696846b88eea1b3ad3f1b2a471052fa2ca440f4234fec7087dc5a03'
 ATTEMPT_LIMIT, JOB_LIMIT = 17, 12
 CHECKPOINT_SHA256 = '64256f87d374a459518f876e14b46ce0d8f61d756c05661ab8c27ae01e0b2106'
 READY_MAX_AGE_S = 300
+START_ATTEMPTS, START_JOBS = 16, 11
+ACCEPTED_RESET_RUN = 'run-85db06e513bc47df8678603ee95da255'
+ACCEPTED_RESET_ATTEMPT = 'f87057f57e12ad37e114fb1585802c8896b70f49bdc74755227fbca165e38b7d'
+ACCEPTED_RESET_ANALYSIS = '97cb1dd0f31e789e760b171c77b21d59e3903093ff316dd880856ee0c8c1f186'
+PINS = dict(engine='direct', rf_gp=2, i2c_pair=None, button_gp=14,
+            amplifier_gp=None, lpf_gps=[], indicator='onboard_led',
+            indicator_gp=None, indicator_active_high=True)
 
 
 def digest(path):
@@ -48,14 +59,49 @@ def job_value(job_id):
                              frequency_nhz='3570100000000000')])
 
 
-def validate_packet(packet, *, verify_files=True):
-    require(packet['schema'] == 'phase12-gp14-rf-v1', 'packet schema')
+def validate_packet(packet, *, verify_files=True, historical=False):
+    require(packet['schema'] == ('phase12-gp14-rf-v1' if historical else 'phase12-gp14-rf-v2'),
+            'current packet required; historical packets are review-only')
     require(packet['serial'] == SERIAL and packet['device_id'] == DEVICE, 'B-only target')
     require(re.fullmatch('[0-9a-f]{40}', packet['source_revision']) is not None and
             packet['revision'] == packet['source_revision'][:12], 'clean source identity')
-    require(packet['source_revision'] == SOURCE_REVISION and packet['uf2_sha256'] == IMAGE_SHA256,
-            'reviewed continuation image required; do not use the stale original packet')
-    require(packet['address'] == '192.168.1.53' and packet['port'] == 31417, 'recorded B LAN')
+    if historical:
+        require(packet['source_revision'] == HISTORICAL_SOURCE and packet['uf2_sha256'] == HISTORICAL_IMAGE,
+                'exact historical trial image')
+        require(packet['address'] == '192.168.1.53', 'historical recorded B LAN')
+    else:
+        manifest = packet['candidate_manifest']
+        require(hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()).hexdigest() ==
+                packet['manifest_sha256'], 'planned manifest hash')
+        require(manifest['schema'] == 'phase12-candidates/1' and
+                manifest['authority'] == 'NONE_PREPARATION_ONLY' and
+                manifest['source_commit'] == packet['source_revision'] and
+                manifest['sdk_commit'] == '079c6f39023649b154152db30f1d781e884879bc' and
+                manifest['toolchain'] == 'GNU Arm 15.3.1', 'planned current source/build inputs')
+        for role, target, gp14, field in (('rf_ap', 'WsprryPico-StandaloneRF', True, 'uf2'),
+                                         ('restore', 'WsprryPico', False, 'restore_uf2')):
+            candidates = [c for c in manifest['candidates'] if c['role'] == role]
+            require(len(candidates) == 1, 'exact planned candidate role')
+            c = candidates[0]
+            require(c['target'] == target and c['gp14'] is gp14 and type(c['fault_stage']) is int and
+                    c['fault_stage'] == 0 and
+                    c['session_deadline_fixture'] is False and c['lan_mode'] == 'plain' and
+                    c['revision'] == packet['revision'] and c['firmware'] == '0.0.0-devel' and
+                    c['uf2']['sha256'] == packet[field + '_sha256'], 'planned RF/restore candidate binding')
+        require(packet['case'] == 'long_ap' and packet['start_attempts'] == START_ATTEMPTS and
+                packet['start_charged_jobs'] == START_JOBS and packet['pins'] == PINS and
+                packet['capture_settings'] == SETTINGS and packet['tone_duration_ns'] == '20000000000' and
+                packet['capture_samples'] == 10000000 and packet['hold_us'] == [12000000, 15000000] and
+                packet['ap_proof_seconds'] == 90 and packet['preflight_seconds'] == READY_MAX_AGE_S,
+                'exact remaining long-AP scope/setup/finite limits')
+        require(packet['capture_helper_sha256'] == HELPER_SHA256 and
+                re.fullmatch('[0-9a-f]{64}', packet['inspector_sha256']), 'reviewed retained Linux tools')
+        require(all(isinstance(packet[key], str) and Path(packet[key]).is_absolute()
+                    for key in ('uf2', 'restore_uf2', 'capture_helper', 'inspector')),
+                'absolute retained image/tool paths')
+        require('address' not in packet and 'boot_id' not in packet,
+                'planned packet cannot invent a future boot/address')
+    require(packet['port'] == 31417, 'plain finite WTP port')
     require(packet['engine'] == 'pio-dma-gp2' and packet['system_clock_hz'] == 138000000,
             'reviewed RF profile')
     require(packet['attenuation_db'] == 60 and packet['receiver_serial'] == '2404058C60',
@@ -63,6 +109,172 @@ def validate_packet(packet, *, verify_files=True):
     if verify_files:
         require(digest(packet['uf2']) == packet['uf2_sha256'], 'retained image hash')
         require(digest(packet['capture_helper']) == HELPER_SHA256, 'retained capture helper hash')
+        if not historical:
+            require(digest(packet['restore_uf2']) == packet['restore_uf2_sha256'], 'retained inhibited restoration image')
+
+
+def create_packet(manifest_path, artifact_root, controller_root, capture_helper, inspector, inspector_sha256):
+    """Offline plan only: no future boot/address and no deployment authority."""
+    manifest = read_json(manifest_path)
+    root = Path(artifact_root).resolve()
+    candidates = {}
+    for role in ('rf_ap', 'restore'):
+        matches = [c for c in manifest['candidates'] if c['role'] == role]
+        require(len(matches) == 1, 'exact planned candidate')
+        c = candidates[role] = matches[0]
+        validate_uf2(artifact(root, c['uf2']).read_bytes())
+    value = dict(schema='phase12-gp14-rf-v2', serial=SERIAL, device_id=DEVICE,
+                 source_revision=manifest['source_commit'], revision=manifest['source_commit'][:12],
+                 candidate_manifest=manifest,
+                 manifest_sha256=hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
+                 uf2=str(Path(controller_root)/candidates['rf_ap']['uf2']['path']),
+                 uf2_sha256=candidates['rf_ap']['uf2']['sha256'],
+                 restore_uf2=str(Path(controller_root)/candidates['restore']['uf2']['path']),
+                 restore_uf2_sha256=candidates['restore']['uf2']['sha256'],
+                 capture_helper=str(capture_helper), capture_helper_sha256=HELPER_SHA256,
+                 inspector=str(inspector), inspector_sha256=inspector_sha256,
+                 port=31417, engine='pio-dma-gp2', system_clock_hz=138000000,
+                 attenuation_db=60, receiver_serial='2404058C60', pins=PINS.copy(),
+                 case='long_ap', start_attempts=START_ATTEMPTS, start_charged_jobs=START_JOBS,
+                 capture_settings=SETTINGS.copy(), tone_duration_ns='20000000000',
+                 capture_samples=10000000, hold_us=[12000000, 15000000],
+                 ap_proof_seconds=90, preflight_seconds=READY_MAX_AGE_S)
+    validate_packet(value, verify_files=False)
+    return value
+
+
+def remaining_campaign(campaign, previous, charges):
+    require((len(previous), charges) == (START_ATTEMPTS, START_JOBS),
+            'remaining packet requires complete sixteen-attempt/eleven-job history')
+    accepted = campaign/ACCEPTED_RESET_RUN
+    require(digest(accepted/'attempt.json') == ACCEPTED_RESET_ATTEMPT and
+            digest(accepted/'analysis.json') == ACCEPTED_RESET_ANALYSIS,
+            'accepted physical quick reset checkpoint missing/changed')
+    require(json.loads((accepted/'analysis.json').read_text())['independent_rf_pass'] is True,
+            'preceding quick reset not independently accepted')
+
+
+def ready_value(path, campaign, case, packet_bytes, previous, charges, *, now=None):
+    require(path is not None, 'fresh operator Ready acknowledgement required')
+    path = Path(path)
+    require(not path.is_symlink() and path.parent.resolve() == campaign.resolve(),
+            'Ready record must belong to this campaign')
+    value = read_json(path)
+    expected = ready_binding(campaign, case, packet_bytes, previous, charges)
+    require(all(type(value.get(key)) is type(item) and value.get(key) == item
+                for key, item in expected.items()) and value.get('setup_approved') is True and
+            value.get('physical_bench_ready') is True, 'stale/wrong/unapproved Ready binding')
+    require(re.fullmatch('[0-9a-f]{32}', value.get('ready_id', '')) is not None and
+            path.name == 'ready-' + value['ready_id'] + '.json', 'Ready record identity')
+    stamp = value.get('acknowledged_utc_s')
+    require(type(stamp) is int and 0 <= (time.time() if now is None else now) - stamp <= READY_MAX_AGE_S,
+            'Ready acknowledgement expired/future; park and ask again')
+    require(not Path(str(path)+'.consumed').exists(), 'Ready already consumed')
+    return value
+
+
+def check_native_pins(inspected):
+    config = inspected['config']
+    require(inspected['operational_healthy'] is True and inspected['profile_healthy'] is True and
+            (config is None or config['enabled'] is False) and
+            (PINS if config is None else config.get('pins', PINS)) == PINS,
+            'saved boot pin plan must be RF2/GP14/onboard LED without peripheral roles')
+
+
+def bind_preflight(packet, packet_bytes, ready, campaign, info_path, flash_path, prior_info_path):
+    """Bind root's post-flash originals without another Ready or target access."""
+    previous, charges = campaign_budget(campaign)
+    remaining_campaign(campaign, previous, charges)
+    acknowledgement = ready_value(ready, campaign, 'long_ap', packet_bytes, previous, charges)
+    validate_packet(packet)
+    require(digest(packet['inspector']) == packet['inspector_sha256'], 'retained native inspector changed')
+    info = read_json(info_path)
+    prior = read_json(prior_info_path)
+    info_raw, prior_raw = Path(info_path).read_bytes(), Path(prior_info_path).read_bytes()
+    require(json.loads(info_raw) == info and json.loads(prior_raw) == prior,
+            'preflight INFO originals changed while reading')
+    check_info(info, packet)
+    require(prior['device_id'] == DEVICE and prior['status']['output_active'] is False and
+            prior['status']['enabled'] is False and
+            re.fullmatch('[0-9a-f]{32}', prior['status']['boot_id']) and
+            prior['status']['boot_id'] != info['status']['boot_id'],
+            'fresh RF boot must differ from the inactive original boot')
+    require(info['status']['state'] == 'empty' and info['status']['output_active'] is False and
+            info['status']['clock_state'] == 'synchronized' and info['status']['reboot_required'] is False and
+            info['network']['link_status'] == 3 and info['lan_wtp_ready'] is True,
+            'fresh RF preflight not idle/synchronized/ready')
+    check_long_ap_initial(info)
+    require(info['gp14_held'] is False and info['gp14_output_inhibited'] is False and
+            info['rf_safety_inhibited'] is False and info['gp14_rf_busy_used'] == 0,
+            'fresh released-input RF boot without a previous inhibition/action')
+    address = ipaddress.IPv4Address(info['network']['ipv4'])
+    require(not (address.is_unspecified or address.is_loopback or address.is_multicast or address.is_reserved) and
+            re.fullmatch('[0-9a-f]{32}', info['status']['boot_id']), 'fresh boot/station IPv4')
+    raw = Path(flash_path).read_bytes()
+    require(len(raw) == 4194304, 'exact RF deployment readback')
+    verify_image(raw, Path(packet['uf2']).read_bytes())
+    originals = campaign/('preflight-'+acknowledgement['ready_id'])
+    originals.mkdir(mode=0o700)
+    with (originals/'readback.bin').open('xb') as output:
+        os.chmod(originals/'readback.bin', 0o600); output.write(raw)
+    reply = subprocess.run([packet['inspector'], str(originals/'readback.bin')],
+                           capture_output=True, check=True, timeout=10)
+    require(len(reply.stdout) <= 131072, 'bounded native pin inspection')
+    inspected = json.loads(reply.stdout)
+    check_native_pins(inspected)
+    # Both the core-0 sampler and RF worker take these immutable pins from this
+    # Store at boot. Exact image/readback plus the same fresh boot is the active
+    # plan proof; INFO itself does not serialize physical pin assignments.
+    receipt = dict(schema='phase12-gp14-preflight-v1', packet_sha256=hashlib.sha256(packet_bytes).hexdigest(),
+                   ready_id=acknowledgement['ready_id'], observed_utc_s=int(time.time()),
+                   info=info, info_sha256=hashlib.sha256(info_raw).hexdigest(),
+                   flash_sha256=hashlib.sha256(raw).hexdigest(),
+                   prior_info_sha256=hashlib.sha256(prior_raw).hexdigest(), prior_boot_id=prior['status']['boot_id'],
+                   boot_id=info['status']['boot_id'], address=str(address), pins=PINS.copy(),
+                   pin_evidence_scope='exact native saved boot plan and same fresh RF boot',
+                   native_inspection_sha256=hashlib.sha256(reply.stdout).hexdigest())
+    ready_value(ready, campaign, 'long_ap', packet_bytes, previous, charges)
+    for name, content in (('info.json', info_raw), ('native.json', reply.stdout), ('prior-info.json', prior_raw)):
+        with (originals/name).open('xb') as output:
+            os.chmod(originals/name, 0o600); output.write(content)
+    path = campaign/('preflight-'+acknowledgement['ready_id']+'.json')
+    with path.open('x') as target:
+        os.chmod(path, 0o600); json.dump(receipt, target); target.write('\n')
+    return path
+
+
+def check_preflight(path, packet_bytes, ready, campaign):
+    require(path is not None and not Path(path).is_symlink(), 'fresh root-bound RF preflight required')
+    path = Path(path)
+    require(path.parent.resolve() == campaign.resolve() and
+            path.name == 'preflight-'+ready['ready_id']+'.json', 'preflight campaign/Ready filename')
+    value = read_json(path)
+    require(value['schema'] == 'phase12-gp14-preflight-v1' and
+            value['packet_sha256'] == hashlib.sha256(packet_bytes).hexdigest() and
+            value['ready_id'] == ready['ready_id'] and value['pins'] == PINS and
+            ready['acknowledged_utc_s'] <= value['observed_utc_s'] <= time.time() and
+            time.time()-ready['acknowledged_utc_s'] <= READY_MAX_AGE_S and
+            value['boot_id'] == value['info']['status']['boot_id'] and
+            value['address'] == value['info']['network']['ipv4'], 'fresh packet/Ready/boot/pins preflight binding')
+    originals = campaign/('preflight-'+ready['ready_id'])
+    require(not originals.is_symlink() and originals.is_dir(), 'preflight originals missing')
+    for name, field in (('info.json', 'info_sha256'), ('readback.bin', 'flash_sha256'),
+                        ('native.json', 'native_inspection_sha256'), ('prior-info.json', 'prior_info_sha256')):
+        source = originals/name
+        require(not source.is_symlink() and source.is_file() and digest(source) == value[field],
+                'preflight original missing/changed: '+name)
+    info, prior = read_json(originals/'info.json'), read_json(originals/'prior-info.json')
+    require(value['info'] == info and prior['status']['boot_id'] == value['prior_boot_id'] and
+            prior['device_id'] == DEVICE and prior['status']['output_active'] is False and
+            prior['status']['enabled'] is False and value['prior_boot_id'] != value['boot_id'],
+            'preflight original INFO/boot binding')
+    packet = json.loads(packet_bytes)
+    check_info(info, packet, value['boot_id'])
+    check_native_pins(read_json(originals/'native.json', 131072))
+    raw = (originals/'readback.bin').read_bytes()
+    require(len(raw) == 4194304, 'preflight original complete readback')
+    verify_image(raw, Path(packet['uf2']).read_bytes())
+    return value
 
 
 def campaign_budget(campaign):
@@ -101,7 +313,7 @@ def campaign_lock(campaign):
 
 
 def ready_binding(campaign, case, packet_bytes, previous, charges):
-    return dict(schema='phase12-gp14-ready-v1', campaign=str(campaign.resolve()),
+    return dict(schema='phase12-gp14-ready-v2', campaign=str(campaign.resolve()),
                 case=case, serial=SERIAL, device_id=DEVICE,
                 packet_sha256=hashlib.sha256(packet_bytes).hexdigest(),
                 attempts=len(previous), charged_jobs=charges,
@@ -109,10 +321,14 @@ def ready_binding(campaign, case, packet_bytes, previous, charges):
                 runner_sha256=digest(__file__))
 
 
-def acknowledge_ready(campaign, case, packet_bytes, previous, charges):
+def acknowledge_ready(campaign, case, packet_bytes, previous, charges, *, setup_approved=False):
     """Call only AFTER the human's fresh Ready, never while parking preparation."""
+    require(case == 'long_ap' and setup_approved is True, 'current candidate/setup approval and actual bench Ready required')
+    validate_packet(json.loads(packet_bytes), verify_files=False)
+    remaining_campaign(campaign, previous, charges)
     value = ready_binding(campaign, case, packet_bytes, previous, charges)
-    value.update(acknowledged_utc_s=int(time.time()), ready_id=uuid.uuid4().hex)
+    value.update(acknowledged_utc_s=int(time.time()), ready_id=uuid.uuid4().hex,
+                 setup_approved=True, physical_bench_ready=True)
     path = campaign / ('ready-' + value['ready_id'] + '.json')
     with path.open('x') as out:
         os.chmod(path, 0o600)
@@ -121,19 +337,7 @@ def acknowledge_ready(campaign, case, packet_bytes, previous, charges):
 
 
 def consume_ready(path, campaign, case, packet_bytes, previous, charges, *, now=None):
-    require(path is not None, 'fresh operator Ready acknowledgement required')
-    path = Path(path)
-    require(not path.is_symlink() and path.parent.resolve() == campaign.resolve(),
-            'Ready record must belong to this campaign')
-    value = json.loads(path.read_text())
-    expected = ready_binding(campaign, case, packet_bytes, previous, charges)
-    require(all(type(value.get(key)) is type(item) and value.get(key) == item
-                for key, item in expected.items()), 'stale/wrong Ready binding')
-    require(re.fullmatch('[0-9a-f]{32}', value.get('ready_id', '')) is not None and
-            path.name == 'ready-' + value['ready_id'] + '.json', 'Ready record identity')
-    stamp = value.get('acknowledged_utc_s')
-    require(type(stamp) is int and 0 <= (time.time() if now is None else now) - stamp <= READY_MAX_AGE_S,
-            'Ready acknowledgement expired/future; park and ask again')
+    value = ready_value(path, campaign, case, packet_bytes, previous, charges, now=now)
     # Consume before USB/receiver access. Even a failed start cannot reuse Ready.
     fd = os.open(str(path) + '.consumed', os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, 'w') as out:
@@ -172,6 +376,9 @@ def check_info(info, packet, boot=None):
             'stack guards')
     require(info['allocator_failures'] == '0' and info['status']['storage_healthy'], 'heap/storage')
     require(info['status']['enabled'] is False, 'standalone auto scheduling must be disabled')
+    if packet['schema'] == 'phase12-gp14-rf-v2':
+        require(info['firmware'] == '0.0.0-devel' and info['status']['reboot_required'] is False,
+                'ordinary RF boot with no pending configuration activation')
     if boot is not None:
         require(info['status']['boot_id'] == boot, 'unexpected reboot')
 
@@ -285,7 +492,7 @@ def review_quick_reset_no_input(path):
     review = _review_no_input_completion(path, 'quick_reset')
     packet_path, meta_path = path.with_name('packet.json'), path.with_name('capture.json')
     packet = json.loads(packet_path.read_text())
-    validate_packet(packet, verify_files=False)
+    validate_packet(packet, verify_files=False, historical=True)
     attempt = json.loads(path.read_text())
     require(attempt['packet_sha256'] == digest(packet_path) and
             attempt['duration_ns'] == '20000000000' and
@@ -491,30 +698,37 @@ def review_campaign(campaign, previous, retry_no_input_run=None):
 
 
 def acquire(packet, case, campaign, retry_no_input_run=None, wait_for_button=False, led_cue=False,
-            *, ready_file=None, packet_file=None):
+            *, ready_file=None, packet_file=None, preflight_file=None):
     require(ready_file is not None, 'fresh operator Ready acknowledgement required')
     with campaign_lock(campaign):
         return _acquire_locked(packet, case, campaign, retry_no_input_run, wait_for_button, led_cue,
-                               ready_file=ready_file, packet_file=packet_file)
+                               ready_file=ready_file, packet_file=packet_file, preflight_file=preflight_file)
 
 
 def _acquire_locked(packet, case, campaign, retry_no_input_run=None, wait_for_button=False, led_cue=False,
-                    *, ready_file=None, packet_file=None):
+                    *, ready_file=None, packet_file=None, preflight_file=None):
     require(case in CONTINUATION_CASES and led_cue and not wait_for_button and
-            retry_no_input_run is None, 'only the two reviewed LED-cued continuation rows are authorized')
+            retry_no_input_run is None, 'only the remaining LED-cued long-AP row is authorized')
+    validate_packet(packet)
     previous, charges = campaign_budget(campaign)
+    remaining_campaign(campaign, previous, charges)
     retry_review = review_campaign(campaign, previous, retry_no_input_run)
     packet_file = packet_file or campaign/'packet.json'
-    require(packet_file.parent.resolve() == campaign.resolve(), 'packet must belong to this campaign')
+    require(not packet_file.is_symlink() and packet_file.parent.resolve() == campaign.resolve(),
+            'packet must belong to this campaign without a symlink')
     packet_bytes = packet_file.read_bytes()
     require(json.loads(packet_bytes) == packet, 'packet changed after validation')
+    pending_ready = ready_value(ready_file, campaign, case, packet_bytes, previous, charges)
+    preflight = check_preflight(preflight_file, packet_bytes, pending_ready, campaign)
     ready = consume_ready(ready_file, campaign, case, packet_bytes, previous, charges)
+    admission_deadline = time.monotonic()+READY_MAX_AGE_S-(time.time()-ready['acknowledged_utc_s'])
     root = campaign / ('run-' + uuid.uuid4().hex)
     evidence = Evidence(root)
     (root/'packet.json').write_bytes(packet_bytes)
     attempt = dict(case=case, packet_sha256=digest(root/'packet.json'), status='STARTING',
                    charged_jobs=0, duration_ns='20000000000', independent_rf_pass=False,
-                   operator_ready=ready)
+                   operator_ready=ready, preflight=preflight,
+                   preflight_sha256=digest(preflight_file))
     if retry_review:
         attempt['reviewed_no_input_retry'] = retry_review
     def save():
@@ -529,7 +743,17 @@ def _acquire_locked(packet, case, campaign, retry_no_input_run=None, wait_for_bu
     claim_pending = False
     try:
         initial = console()
-        check_info(initial, packet)
+        check_info(initial, packet, preflight['boot_id'])
+        require(initial['network']['ipv4'] == preflight['address'] and
+                initial['network']['link_status'] == 3 and
+                initial['status']['clock_state'] == 'synchronized' and
+                initial['status']['state'] == 'empty' and initial['status']['output_active'] is False and
+                all(initial[key] == preflight['info'][key] for key in
+                    ('saved_consumer_profile', 'access_state', 'access_generation', 'access_default_password',
+                     'provisioning_source', 'provisioning_generation')),
+                'fresh preflight address/boot/settings/idle state changed')
+        require(time.monotonic() <= admission_deadline,
+                'Ready/preflight deadline expired before receiver')
         if wait_for_button:
             require(initial.get('gp14_rf_cue_supported') is True, 'physical cue unsupported by image')
             initial = wait_button_reset(packet, initial, evidence)
@@ -547,7 +771,7 @@ def _acquire_locked(packet, case, campaign, retry_no_input_run=None, wait_for_bu
             require(cue_ready.get('ready') is True, 'physical cue readiness unconfirmed')
             evidence.record('physical_led_ready', cue_ready)
         peer = Peer(types.SimpleNamespace(boot_id=boot), evidence)
-        peer.stream = socket.create_connection((packet['address'], packet['port']), timeout=5)
+        peer.stream = socket.create_connection((preflight['address'], packet['port']), timeout=5)
         hello = peer.request('HELLO', dict(versions=['WTP/1'], client_name='GP14-RF-acceptance',
                                          client_version='1'))
         require(hello['device_id'] == DEVICE and hello['boot_id'] == boot, 'LAN/USB identity')
@@ -557,6 +781,8 @@ def _acquire_locked(packet, case, campaign, retry_no_input_run=None, wait_for_bu
         require(status['boot_id'] == boot and status['state'] == 'empty' and
                 status['owner_id'] is None and status['job_id'] is None and
                 status['output_active'] is False, 'initial WTP authority')
+        require(time.monotonic() <= admission_deadline,
+                'Ready/preflight deadline expired before receiver launch')
         argv = [packet['capture_helper'], '--enable-physical-sdr', 'sdrplay', '2404058C60',
                 '3550000', '10000000', '20', '250000', '200000', '0', 'false', 'false',
                 '100000', '55', str(root/'capture.cf32'), str(root/'capture.json'), root.name]
@@ -571,6 +797,8 @@ def _acquire_locked(packet, case, campaign, retry_no_input_run=None, wait_for_bu
             time.sleep(.05)
         attempt.update(boot_id=boot, job_id=job['job_id'], owner_id=owner)
         save()
+        require(time.monotonic() <= admission_deadline,
+                'Ready/preflight deadline expired before output admission')
         claim_pending = True
         peer.request('CLAIM', dict(owner_id=owner, lease_ms=60000))
         loaded = peer.request('LOAD', job)
@@ -583,6 +811,8 @@ def _acquire_locked(packet, case, campaign, retry_no_input_run=None, wait_for_bu
         clock = peer.request('GET_CLOCK', {})
         require(clock['state'] == 'synchronized' and clock['leap'] == 'normal' and
                 int(clock['uncertainty_ns']) <= 500000000, 'clock admission')
+        require(time.monotonic() <= admission_deadline,
+                'Ready/preflight deadline expired before ARM')
         lead = 20000000000 if case.startswith('armed_') else 5000000000
         target = (int(clock['utc_now_ns']) + lead + 999) // 1000 * 1000
         attempt.update(boot_id=boot, job_id=job['job_id'], owner_id=owner, charged_jobs=1,
@@ -738,11 +968,25 @@ def main():
     parser.add_argument('campaign', type=Path)
     parser.add_argument('--case', choices=CONTINUATION_CASES, required=True)
     parser.add_argument('--packet-file', type=Path, help='Select the reviewed retained packet explicitly')
-    action = parser.add_mutually_exclusive_group(required=True)
+    action = parser.add_mutually_exclusive_group()
     action.add_argument('--run', action='store_true')
     action.add_argument('--prepare', action='store_true', help='Read-only offline checks; park for human Ready')
     action.add_argument('--acknowledge-ready', action='store_true',
                         help='Create one-use acknowledgement only after the human says Ready')
+    action.add_argument('--create-packet', action='store_true', help='Write a new manifest-bound offline plan')
+    action.add_argument('--bind-preflight', action='store_true', help='Bind root post-flash originals to the same Ready')
+    parser.add_argument('--candidate-manifest', type=Path)
+    parser.add_argument('--artifact-root', type=Path)
+    parser.add_argument('--controller-artifact-root', type=Path)
+    parser.add_argument('--capture-helper', type=Path)
+    parser.add_argument('--inspector', type=Path)
+    parser.add_argument('--inspector-sha256')
+    parser.add_argument('--setup-approved', action='store_true',
+                        help='Record the actual current candidate/setup approval together with bench Ready')
+    parser.add_argument('--info-file', type=Path)
+    parser.add_argument('--prior-info-file', type=Path, help='Inactive original INFO captured by the controller before flashing')
+    parser.add_argument('--readback-file', type=Path)
+    parser.add_argument('--preflight-file', type=Path)
     parser.add_argument('--ready-file', type=Path, help='One-use record required by --run')
     parser.add_argument('--retry-no-input-run',
                         help='Explicit operator-authorized retry of a reviewed finite no-input timeout')
@@ -755,25 +999,64 @@ def main():
     if args.run:
         require(args.ready_file is not None, '--run requires a fresh --ready-file')
     packet_file = args.packet_file or args.campaign/'packet.json'
-    require(packet_file.parent.resolve() == args.campaign.resolve(), 'packet must belong to this campaign')
-    packet_bytes = packet_file.read_bytes()
-    packet = json.loads(packet_bytes)
-    validate_packet(packet, verify_files=args.run)
-    if not args.run:
-        require(args.retry_no_input_run is None and not args.wait_button_reset and not args.led_cue and
-                args.ready_file is None, 'physical/retry arguments are not preparation')
+    require(not packet_file.is_symlink() and packet_file.parent.resolve() == args.campaign.resolve(),
+            'packet must belong to this campaign without a symlink')
+    if args.create_packet:
+        require(all(value is not None for value in (args.candidate_manifest, args.artifact_root,
+                    args.capture_helper, args.inspector, args.inspector_sha256)) and
+                args.ready_file is None and not args.setup_approved and not args.led_cue and
+                not args.wait_button_reset and args.retry_no_input_run is None and
+                args.info_file is None and args.prior_info_file is None and args.readback_file is None and
+                args.preflight_file is None,
+                'offline packet needs explicit candidate/image/tool inputs only')
         previous, charges = campaign_budget(args.campaign)
         review_campaign(args.campaign, previous)
+        remaining_campaign(args.campaign, previous, charges)
+        packet = create_packet(args.candidate_manifest, args.artifact_root,
+                               args.controller_artifact_root or args.artifact_root,
+                               args.capture_helper, args.inspector, args.inspector_sha256)
+        with packet_file.open('x') as output:
+            os.chmod(packet_file, 0o600); json.dump(packet, output, indent=2); output.write('\n')
+        print(json.dumps(dict(status='PLANNED_PACKET_NO_HARDWARE_AUTHORITY', packet=str(packet_file),
+                             packet_sha256=digest(packet_file), source=packet['source_revision'],
+                             attempts=len(previous), charged_jobs=charges, hardware_accessed=False)))
+        return
+    packet_bytes = packet_file.read_bytes()
+    packet = read_json(packet_file)
+    validate_packet(packet, verify_files=args.run)
+    if args.bind_preflight:
+        require(args.ready_file is not None and args.info_file is not None and args.prior_info_file is not None and
+                args.readback_file is not None and args.preflight_file is None and
+                not args.setup_approved and not args.led_cue and not args.wait_button_reset and
+                args.retry_no_input_run is None, 'post-flash binding uses same Ready and exact original files')
+        with campaign_lock(args.campaign):
+            print(bind_preflight(packet, packet_bytes, args.ready_file, args.campaign,
+                                 args.info_file, args.readback_file, args.prior_info_file))
+        return
+    if not args.run:
+        require(args.retry_no_input_run is None and not args.wait_button_reset and not args.led_cue and
+                args.ready_file is None and args.preflight_file is None and args.info_file is None and
+                args.readback_file is None and args.prior_info_file is None and
+                (not args.setup_approved or args.acknowledge_ready),
+                'physical/retry arguments are not preparation')
+        previous, charges = campaign_budget(args.campaign)
+        review_campaign(args.campaign, previous)
+        remaining_campaign(args.campaign, previous, charges)
         if args.acknowledge_ready:
-            print(acknowledge_ready(args.campaign, args.case, packet_bytes, previous, charges))
+            with campaign_lock(args.campaign):
+                previous, charges = campaign_budget(args.campaign)
+                review_campaign(args.campaign, previous)
+                print(acknowledge_ready(args.campaign, args.case, packet_bytes, previous, charges,
+                                        setup_approved=args.setup_approved))
         else:
-            print(json.dumps(dict(status='WAITING_FOR_OPERATOR_READY', case=args.case,
+            print(json.dumps(dict(status='WAITING_FOR_CURRENT_SETUP_APPROVAL_AND_OPERATOR_READY', case=args.case,
                                   attempts=len(previous), charged_jobs=charges,
                                   attempt_limit=ATTEMPT_LIMIT, job_limit=JOB_LIMIT,
                                   hardware_accessed=False, image_files_verified=False)))
         return
     acquire(packet, args.case, args.campaign, args.retry_no_input_run,
-            args.wait_button_reset, args.led_cue, ready_file=args.ready_file, packet_file=packet_file)
+            args.wait_button_reset, args.led_cue, ready_file=args.ready_file, packet_file=packet_file,
+            preflight_file=args.preflight_file)
 
 
 if __name__ == '__main__':
