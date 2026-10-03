@@ -36,6 +36,7 @@
 #include "provisioning/pico/phase12_fault_fixture.hpp"
 #endif
 #include "provisioning/runtime.hpp"
+#include "runtime/pico/btstack_acl_metrics.hpp"
 #include "runtime/pico/btstack_pool_metrics.hpp"
 #include "runtime/pico/heap_metrics.h"
 #include "runtime/pico/stack_guard.h"
@@ -962,7 +963,23 @@ int main() {
                          flash_resources.program_requested_bytes, true);
             result += ",\"resource_schema\":1,\"largest_allocation_probe_measured\":false";
             result += ",\"btstack_pool_occupancy_measured\":true";
-            result += ",\"btstack_controller_buffers_measured\":false,\"btstack_pools\":{";
+            const auto acl = wsprrypico::runtime::btstack_acl_credit_snapshot();
+            result += ",\"btstack_controller_buffers_measured\":" +
+                      std::string(acl.measured ? "true" : "false");
+            result += ",\"btstack_acl_credits\":{\"scope\":\"controller_reported_hci_acl_credits\","
+                      "\"initialized\":" +
+                      std::string(acl.initialized ? "true" : "false") +
+                      ",\"measured\":" + (acl.measured ? "true" : "false");
+            number_field(result, "capacity", acl.capacity);
+            number_field(result, "free", acl.free);
+            number_field(result, "min_free", acl.min_free);
+            number_field(result, "peak_outstanding", acl.peak_outstanding);
+            number_field(result, "epoch", acl.epoch, true);
+            number_field(result, "send_events", acl.send_events, true);
+            number_field(result, "completed_events", acl.completed_events, true);
+            number_field(result, "invalid_samples", acl.invalid_samples, true);
+            number_field(result, "transport_failures", acl.transport_failures, true);
+            result += "},\"btstack_pools\":{";
             const auto bt_pools = wsprrypico::runtime::btstack_pool_snapshot();
             constexpr std::array<std::string_view, 5> bt_names{
                 "hci_connections", "l2cap_channels", "l2cap_services", "sm_lookup", "whitelist"};

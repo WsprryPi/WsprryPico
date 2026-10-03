@@ -179,6 +179,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_include_directories(stack_bounds_tests PRIVATE src)
     target_compile_options(stack_bounds_tests PRIVATE -Wall -Wextra -Werror -UNDEBUG)
     add_test(NAME stack_bounds_tests COMMAND stack_bounds_tests)
+    add_executable(acl_credit_tests tests/acl_credit_tests.cpp src/runtime/pico/btstack_acl_metrics.cpp)
+    target_include_directories(acl_credit_tests PRIVATE tests/acl_mock src)
+    target_compile_options(acl_credit_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME acl_credit_tests COMMAND acl_credit_tests)
     add_test(NAME stack_guard_image_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/stack_guard_image_tests.py)
     add_test(NAME heap_hook_image_tests COMMAND ${Python3_EXECUTABLE}

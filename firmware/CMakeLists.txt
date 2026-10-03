@@ -313,7 +313,10 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
     target_sources(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/provisioning/pico/bootsel_sampler.cpp
         ${CMAKE_SOURCE_DIR}/src/runtime/pico/heap_metrics.c
         ${CMAKE_SOURCE_DIR}/src/runtime/pico/stack_guard.c)
-    target_sources(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/runtime/pico/btstack_pool_metrics.cpp)
+    target_sources(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/runtime/pico/btstack_pool_metrics.cpp
+        ${CMAKE_SOURCE_DIR}/src/runtime/pico/btstack_acl_metrics.cpp)
+    target_link_options(${image} PRIVATE "LINKER:--wrap=hci_transport_cyw43_instance"
+        "LINKER:--undefined=__wrap_hci_transport_cyw43_instance")
     foreach(pool hci_connection l2cap_channel l2cap_service sm_lookup_entry whitelist_entry)
         foreach(operation get free)
             target_link_options(${image} PRIVATE "LINKER:--wrap=btstack_memory_${pool}_${operation}")
