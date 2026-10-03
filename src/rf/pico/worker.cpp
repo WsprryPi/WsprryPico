@@ -40,27 +40,36 @@ void run() {
         worker->step();
 }
 } // namespace
-WorkerEngine& start_worker(time::UtcDiscipline& clock) {
-    static PicoPioDma hardware;
+WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& pins,
+                           bool storage_healthy) {
+    if (!hardware::operational(pins))
+        failure();
+    static PicoPioDma hardware(*pins.rf);
     static PioDmaSink sink(hardware);
     static StreamEngine engine(sink);
     static WorkerEngine proxy(engine, clock, now, wait, failure, save_and_disable_interrupts,
                               restore_interrupts);
     if (worker)
         failure();
+    static const bool boot_safe = storage_healthy;
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
-    gpio_init(14);
-    gpio_set_dir(14, GPIO_IN);
-    gpio_pull_up(14);
+    static const auto button = pins.button;
+    if (button) {
+        gpio_init(*button);
+        gpio_set_dir(*button, GPIO_IN);
+        gpio_pull_up(*button);
+    }
     static provisioning::ButtonSafety safety;
     proxy.set_safety(
         [](void* context) {
-            return static_cast<provisioning::ButtonSafety*>(context)->observe(time_us_64(),
-                                                                              !gpio_get(14));
+            return !boot_safe || static_cast<provisioning::ButtonSafety*>(context)->observe(
+                                     time_us_64(), button && !gpio_get(*button));
         },
         &safety);
-    hardware.set_output_inhibit(proxy.safety_latch());
+#else
+    proxy.set_safety([](void*) { return !boot_safe; }, nullptr);
 #endif
+    hardware.set_output_inhibit(proxy.safety_latch());
     std::fill(std::begin(worker_stack), std::end(worker_stack), 0xa59c37e1U);
     proxy.set_probe(
         [](WorkerEngine::Metrics& result, void* context) {

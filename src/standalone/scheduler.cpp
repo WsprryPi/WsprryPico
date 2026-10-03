@@ -31,8 +31,10 @@ wtp::PayloadDigest network_digest(const Config& config) {
 }
 } // namespace
 Scheduler::Scheduler(Store& store, wtp::JobService& service) : store_(store), service_(service) {
-    if (store_.config())
+    if (store_.config()) {
         active_network_ = network_digest(*store_.config());
+        active_pins_ = store_.config()->pins;
+    }
 }
 wtp::Response Scheduler::request(std::string_view operation, wtp::RequestBody body) {
     wtp::Request r;
@@ -157,8 +159,8 @@ std::string Scheduler::status() const {
            std::to_string(clock.utc_now_ns) + "\"" + ",\"monotonic_now_ns\":\"" +
            std::to_string(clock.monotonic_now_ns) + "\"" + ",\"sync_age_ns\":\"" +
            std::to_string(clock.sync_age_ns) + "\"" + ",\"station\":" + station +
-           ",\"schedules\":" + schedules +
-           ",\"schedule_base_frequency_nhz\":\"" + std::to_string(frequency) + "\"" +
+           ",\"schedules\":" + schedules + ",\"schedule_base_frequency_nhz\":\"" +
+           std::to_string(frequency) + "\"" +
            ",\"engine\":" + wtp::json::quote(service_.config().capability_engine) +
            ",\"storage_healthy\":" + (store_.healthy() ? "true" : "false") +
            ",\"reboot_required\":" + (reboot_required_ ? "true" : "false") +
@@ -181,10 +183,9 @@ std::string Scheduler::command(std::string_view line) {
                ",\"config\":{\"sequence\":\"" + std::to_string(store_.config_sequence()) +
                "\",\"latest_offset\":" + std::to_string(store_.config_offset()) +
                ",\"record_size\":" + std::to_string(store_.config_record_size()) +
-               "},\"watermark\":{\"sequence\":\"" +
-               std::to_string(store_.cursor_sequence()) + "\",\"latest_offset\":" +
-               std::to_string(store_.cursor_offset()) + ",\"record_size\":" +
-               std::to_string(store_.cursor_record_size()) + "}}\n";
+               "},\"watermark\":{\"sequence\":\"" + std::to_string(store_.cursor_sequence()) +
+               "\",\"latest_offset\":" + std::to_string(store_.cursor_offset()) +
+               ",\"record_size\":" + std::to_string(store_.cursor_record_size()) + "}}\n";
     if (line == "STOP") {
         suspended_ = true;
         const auto current = service_.status();
@@ -213,9 +214,16 @@ std::string Scheduler::command(std::string_view line) {
     if (!store_.save(*config))
         return error("storage_fault");
     // The scheduler reads station/schedules from Store on each new job. Only
-    // network settings are boot-initialized. Compare with the active boot, not
+    // network and pin settings are boot-initialized. Compare with the active boot, not
     // the previous save: a later station edit cannot conceal a pending change.
-    reboot_required_ = !active_network_ || *active_network_ != network_digest(*config);
+    if (active_pins_ != config->pins) {
+        pin_restart_required_ = true;
+        reboot_required_ = true;
+        if (!service_.local_inhibit_output())
+            return error("output_disable_failed");
+    }
+    reboot_required_ =
+        pin_restart_required_ || !active_network_ || *active_network_ != network_digest(*config);
     return status();
 }
 } // namespace wsprrypico::standalone

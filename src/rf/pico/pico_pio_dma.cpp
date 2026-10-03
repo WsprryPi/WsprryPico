@@ -4,6 +4,7 @@
 #include "hardware/dma.h"
 #include "hardware/gpio.h"
 #include "hardware/irq.h"
+#include "hardware/pins.hpp"
 #include "hardware/sync.h"
 #include "hardware/timer.h"
 #include "packed_output.pio.h"
@@ -24,9 +25,9 @@ std::uint64_t PicoPioDma::now_ns() const {
 }
 
 bool PicoPioDma::open(Handler handler, void* context) {
-    if (instance_ || !handler || clock_get_hz(clk_sys) != sample_rate ||
-        irq_get_exclusive_handler(DMA_IRQ_3) || irq_has_shared_handler(DMA_IRQ_3) ||
-        dma_hw->inte3 != 0) {
+    if (!hardware::eligible(rf_pin) || instance_ || !handler ||
+        clock_get_hz(clk_sys) != sample_rate || irq_get_exclusive_handler(DMA_IRQ_3) ||
+        irq_has_shared_handler(DMA_IRQ_3) || dma_hw->inte3 != 0) {
         return false;
     }
     core_ = get_core_num();

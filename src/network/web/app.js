@@ -1,7 +1,19 @@
 'use strict';
+// Pure ownership calculation used by the settings selects and offline checks.
+function pinOwners(plan, except) {
+  const owners = new Map();
+  const claim = (gp, role) => { if (gp !== null && gp !== undefined && role !== except) owners.set(gp, role); };
+  claim(plan.rf_gp, 'RF output'); claim(plan.button_gp, 'Switch');
+  claim(plan.amplifier_gp, 'Amplifier');
+  (plan.lpf_gps || []).forEach((gp,i) => claim(gp, 'LPF ' + (i+1)));
+  if (plan.indicator === 'external') claim(plan.indicator_gp, 'Indicator');
+  return owners;
+}
+if (typeof module !== 'undefined') module.exports = {pinOwners};
+
 const $ = id => document.getElementById(id);
 let session = crypto.randomUUID().replaceAll('-', '');
-let activePlan = null, capabilitiesBoot = null;
+let activePlan = null, capabilitiesBoot = null, pinChoices = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
 let localIdentity = null, localAuthenticated = false;
 const notice = (text, error = false) => { $('notice').textContent = text; $('notice').classList.toggle('error', error); };
@@ -13,8 +25,11 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
   const response = await fetch('/api/v1/' + path, {method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(timeout), cache:'no-store'});
   const data = await response.json();
   if (!response.ok || data.ok === false) {
-    const code = data.error?.code;
+    const code = typeof data.error === 'string' ? data.error : data.error?.code;
     const explanation = {
+      pin_conflict:`GP${data.gp} is already assigned to ${data.owner}; choose a different pin for ${data.role}`,
+      invalid_gp:'Choose an exposed Pico GPIO from the listed options',
+      unsupported_pin_adapter:'The selected amplifier, LPF or I²C RF adapter is not implemented',
       message_length_limit_32:'Use at most 32 characters, including spaces',
       unsupported_message_character:'The message contains a character outside the supported Morse alphabet',
       message_has_no_marks:'Include at least one Morse character',
@@ -84,12 +99,14 @@ function fill(c) {
   form.password.value = '';
   form.enabled.checked = c?.enabled ?? false;
   form.schedules.value = (c?.schedules || [{period_s:120,phase_s:0}]).map(s => `${s.period_s} / ${s.phase_s}`).join('\n');
+  fillPins(c?.pins);
   form.expiry.value = c?.expires_utc_s ? new Date(c.expires_utc_s * 1000).toISOString().slice(0,19) : '';
 }
 async function refresh(loadConfig = false) {
   // Keep this browser sequential so the other admitted client can progress.
   try {
     if (!capabilities) capabilities = (await api('capabilities')).data;
+    if (!pinChoices) { try { pinChoices = (await api('pins')).data.choices; } catch (_) {} }
     snapshot = (await api('status')).data; expectedPause = false; observedAt = new Date().toLocaleTimeString();
     if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) capabilities = (await api('capabilities')).data;
     capabilitiesBoot = snapshot.job.boot_id;
@@ -106,7 +123,7 @@ async function refresh(loadConfig = false) {
     $('discovery').textContent = discovery[n.mdns_state] || 'Unavailable';
     $('discovery-help').textContent = n.mdns_state === 'conflict' ? 'Another device is using this hostname. Resolve the duplicate, then retry with USB Console WIFI OFF and WIFI ON while idle. The device will not rename itself.' : n.mdns_reason === 'device_identity_mismatch' ? 'Credentials belong to a different device. Rebuild with this device’s certificate bundle and recover through USB Console.' : n.mdns_state === 'failed' ? 'Name discovery failed. Check USB Console INFO; retry Wi-Fi while idle after resolving the reported cause.' : n.mdns_state === 'active' ? 'Use this hostname after DHCP address changes. An IP URL needs a matching certificate IP address.' : '';
     $('recovery').textContent = !capabilities.active_job_connections ? 'Network connections pause while RF jobs are armed or running. The job owner can abort over an established WTP connection; physical USB Console ABORT can also stop a job. ' : '';
-    $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Network settings saved. Use Restart device to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
+    $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Network or pin settings saved. Use Restart device to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
     if (loadConfig) { const c = await api('config'); revision = c.revision; fill(c.data.config); }
     updateProgress(); messagePreview();
     notice('Connected · Status updated ' + observedAt); controls(true);
@@ -141,9 +158,9 @@ $('config').onsubmit = event => { event.preventDefault(); return action(async ()
     if (!/^\s*\d+\s*\/\s*\d+\s*$/.test(line)) throw new Error('Use period / phase for each schedule');
     const [period_s,phase_s] = line.split('/').map(Number); return {period_s,phase_s};
   });
-  const config = {version:1,enabled:f.enabled.checked,station:{callsign:f.callsign.value.trim().toUpperCase(),locator:f.locator.value.trim().toUpperCase(),power_dbm:Number(f.power_dbm.value)},wifi:{ssid:f.ssid.value,password:f.password.value || null,ntp_ipv4:f.ntp_ipv4.value.trim()},schedules,expires_utc_s:f.expiry.value ? Date.parse(f.expiry.value + 'Z') / 1000 : 0};
+  const config = {version:1,enabled:f.enabled.checked,station:{callsign:f.callsign.value.trim().toUpperCase(),locator:f.locator.value.trim().toUpperCase(),power_dbm:Number(f.power_dbm.value)},wifi:{ssid:f.ssid.value,password:f.password.value || null,ntp_ipv4:f.ntp_ipv4.value.trim()},schedules,pins:pinChoices ? readPins() : currentConfig?.pins,expires_utc_s:f.expiry.value ? Date.parse(f.expiry.value + 'Z') / 1000 : 0};
   const result = await api('config','PUT',config,revision); revision = result.revision; fill(result.data.config);
-  await refresh(); notice(result.data.reboot_required ? 'Settings saved. Use Restart device to apply network changes.' : 'Settings saved and applied.');
+  await refresh(); notice(result.data.reboot_required ? 'Settings saved. Use Restart device to apply network or pin changes.' : 'Settings saved and applied.');
 }); };
 async function job(operation, body = {}) {
   const result = await api('jobs','POST',{session_id:session,request_id:crypto.randomUUID().replaceAll('-',''),operation,body});
@@ -294,3 +311,52 @@ if (typeof setInterval === 'function') setInterval(() => {
 }, 5000);
 
 action(async () => { await discoverLocal(); if (!localIdentity || localAuthenticated) await refresh(true); });
+
+function readPins() {
+  const f = $('config').elements;
+  return {engine:'direct',rf_gp:Number(f.rf_gp.value),i2c_pair:null,
+    button_gp:f.button_gp.value === '' ? null : Number(f.button_gp.value),
+    amplifier_gp:null,lpf_gps:[],indicator:f.indicator.value,
+    indicator_gp:f.indicator.value === 'external' ? Number(f.indicator_gp.value) : null,
+    indicator_active_high:f.indicator_active_high.value === 'true'};
+}
+function pinOptions(select, role, nullable) {
+  const selected = select.value;
+  const owners = pinOwners(readPins(), role);
+  const options = nullable ? [new Option('Disabled','')] : [];
+  for (const gp of pinChoices?.eligible_gps || []) {
+    const owner = owners.get(gp);
+    const option = new Option('GP' + gp + (owner ? ' — used by ' + owner : ''),String(gp));
+    option.disabled = Boolean(owner); options.push(option);
+  }
+  select.replaceChildren(...options); select.value = selected;
+  if (!select.value || select.selectedOptions[0]?.disabled) {
+    const available = options.find(option => !option.disabled);
+    if (available) select.value = available.value;
+  }
+}
+function lockPins() {
+  if (!pinChoices) return;
+  const f = $('config').elements;
+  pinOptions(f.rf_gp,'RF output',false);
+  pinOptions(f.button_gp,'Switch',true);
+  pinOptions(f.indicator_gp,'Indicator',false);
+  f.indicator_gp.disabled = f.indicator.value !== 'external';
+  f.indicator_active_high.disabled = f.indicator.value !== 'external';
+}
+function fillPins(plan) {
+  const f = $('config').elements;
+  const p = plan || {rf_gp:2,button_gp:14,indicator:'onboard_led',indicator_gp:null,indicator_active_high:true};
+  const gps = pinChoices?.eligible_gps || [2,14];
+  for (const key of ['rf_gp','button_gp','indicator_gp']) {
+    const options = key === 'button_gp' ? [new Option('Disabled','')] : [];
+    f[key].replaceChildren(...options,...gps.map(gp=>new Option('GP'+gp,String(gp))));
+    f[key].value = p[key] === null ? (key === 'button_gp' ? '' : '0') : String(p[key]);
+  }
+  f.indicator.value = p.indicator;
+  f.indicator_active_high.value = String(p.indicator_active_high ?? true);
+  $('pin-settings').disabled = !pinChoices;
+  $('i2c-choices').textContent = pinChoices ? pinChoices.i2c_pairs.map(p=>`I²C${p.controller}: GP${p.sda_gp} SDA / GP${p.scl_gp} SCL`).join(' · ') : 'Pin selection is unavailable on this firmware.';
+  lockPins();
+}
+for (const key of ['rf_gp','button_gp','indicator','indicator_gp']) $('config').elements[key].addEventListener('change',lockPins);

@@ -166,3 +166,8 @@ Original contributions use the MIT License in LICENSE.md. Dependencies and
 reused source retain their own notices and obligations. Firmware version and
 protocol version remain separate; release artifacts may use
 WsprryPico-x.y.z.uf2. No release number is assigned by this scaffold.
+
+The [pin assignment contract](docs/pin-assignment-contract.md) selects exclusive
+GP ownership and one direct RF GPIO or one fixed I²C pair. The
+[implementation guide](docs/development/pin-allocation.md) records the supported
+boot-applied subset and unavailable amplifier/LPF/Si5351 adapters.

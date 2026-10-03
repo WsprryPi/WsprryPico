@@ -9,6 +9,9 @@ class Scheduler {
     void poll();
     bool idle() const;
     bool reset_permitted() const;
+    const hardware::PinPlan& active_pins() const {
+        return active_pins_;
+    }
     bool reboot_required() const {
         return reboot_required_;
     }
@@ -22,7 +25,8 @@ class Scheduler {
     std::uint64_t sequence_ = 0;
     wtp::ErrorCode last_error_ = wtp::ErrorCode::None;
     std::string last_job_;
-    bool reboot_required_ = false, suspended_ = false;
+    bool reboot_required_ = false, suspended_ = false, pin_restart_required_ = false;
     std::optional<wtp::PayloadDigest> active_network_;
+    hardware::PinPlan active_pins_;
 };
 } // namespace wsprrypico::standalone

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hardware/pins.hpp"
 #include "provisioning/field_runtime.hpp"
 #include "provisioning/local_access.hpp"
 #include "provisioning/pico/captive_dns.h"
@@ -23,7 +24,12 @@ class PicoBondStore final : public BondStore {
 
 class PicoIndicatorOutput final : public IndicatorOutput {
   public:
+    explicit PicoIndicatorOutput(const hardware::PinPlan& pins = {}) : pins_(pins) {}
     bool write(bool on) override;
+
+  private:
+    hardware::PinPlan pins_;
+    bool initialized_ = false;
 };
 
 class PicoSoftAp {

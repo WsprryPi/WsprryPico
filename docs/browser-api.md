@@ -325,3 +325,10 @@ lookups. They do not certify clock synchronization; use the clock state and age.
 `power_save` reports read-back radio sleep mode (null if unavailable), and
 `packets` reports ARP/IPv4/TCP/UDP received, sent and dropped counters. Counters
 show lwIP activity; they do not prove that an access point forwarded a frame.
+
+## Pin allocation extension
+
+The [pin allocation guide](development/pin-allocation.md) defines authenticated
+GET `/api/v1/pins`, nonmutating POST `/api/v1/pins/validate`, and the optional
+`pins` member of Config v1. Operational pin changes require restart and inhibit
+new RF admissions until then. Read saved versus active plans separately.

@@ -5,22 +5,35 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(__dirname + '/../src/network/web/app.js','utf8');
 async function fixture(activeConnections = true, configured = true, localMode = false) {
-    const ids = ['notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress'];
+    const ids = ['notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
     const elements = Object.fromEntries(ids.map(id => [id,{disabled:false,value:'',textContent:'',classList:{toggle(){}},files:[]}]));
     elements.config.elements = Object.fromEntries(['callsign','locator','power_dbm','ssid','password','ntp_ipv4','enabled','schedules','expiry'].map(id => [id,{value:'',checked:false}]));
+    class Option { constructor(text,value) { this.text = text; this.value = String(value); this.disabled = false; } }
+    class Select {
+        constructor() { this.options = []; this.current = ''; }
+        set value(value) { this.current = String(value); }
+        get value() { return this.options.some(o=>o.value === this.current) ? this.current : ''; }
+        get selectedOptions() { return this.options.filter(o=>o.value===this.value); }
+        replaceChildren(...options) { this.options = options; this.current = options[0]?.value || ''; }
+        addEventListener(type,callback) { this['on'+type] = callback; }
+    }
+    for (const key of ['rf_gp','button_gp','indicator','indicator_gp','indicator_active_high']) elements.config.elements[key] = new Select();
+    elements.config.elements.indicator.replaceChildren(...['onboard_led','external','disabled'].map(x=>new Option(x,x)));
+    elements.config.elements.indicator_active_high.replaceChildren(new Option('Active-high','true'),new Option('Active-low','false'));
     const config = {version:1,enabled:false,station:{callsign:'AA0NT',locator:'EM18',power_dbm:37},wifi:{ssid:'test',password:null,ntp_ipv4:'192.0.2.1'},schedules:[{period_s:120,phase_s:0}],expires_utc_s:0};
     const state = {job:{boot_id:'a'.repeat(32),state:'empty',owner_id:null,output_active:false,job_id:null},standalone:{reboot_required:false,storage_healthy:true,uncertainty_ns:'1000',clock_state:'synchronized',engine:'test'},network:{enabled:true,link_status:3,ipv4:'127.0.0.1'}};
     const calls = [];
     let sequence = 0;
     const f = {elements,state,calls,confirm:true,failArm:false,failConfig:false,offline:false,localMode,mappedSession:'d'.repeat(32),restartMode:'success',now:Date.now(),maximumDuration:'3600000000000',maximumEvents:512};
     class TestDate extends Date { static now() { return f.now; } }
-    const context = vm.createContext({document:{getElementById:id=>elements[id]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>f.confirm,
+    const context = vm.createContext({Option,document:{getElementById:id=>elements[id]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>f.confirm,
         fetch:async (path, options) => {
             calls.push({path,options});
             if (f.offline) throw new Error('offline');
             let data, status = 200;
             if (path === '/local/v1/identity') { status = f.localMode ? 200 : 404; data = f.localMode ? {device_id:'1'.repeat(32),surface:'normal'} : {error:{code:'not_found'}}; }
             else if (path === '/local/v1/status') data = {wtp_session:f.mappedSession};
+            else if (path.endsWith('pins')) data = {choices:{eligible_gps:[...Array(23).keys(),26,27,28],i2c_pairs:[{controller:0,sda_gp:4,scl_gp:5}]}};
             else if (path.endsWith('capabilities')) data = {features:{restart:true},active_job_connections:activeConnections,message_jobs:{max_characters:32},wtp:{maximum_arm_uncertainty_ns:'1000000',max_job_duration_ns:f.maximumDuration,max_events:f.maximumEvents}};
             else if (path.endsWith('restart')) {
                 if (f.restartMode === 'lost') throw new Error('lost restart response');
@@ -212,5 +225,20 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     }
     reboot.state.job.owner_id = 'c'.repeat(32); await reboot.elements.refresh.onclick();
     assert.equal(reboot.elements.restart.disabled,true);
+    const pins = await fixture();
+    const form = pins.elements.config.elements;
+    assert.equal(form.rf_gp.value,'2'); assert.equal(form.button_gp.value,'14');
+    assert.equal(form.indicator.value,'onboard_led'); assert.equal(form.indicator_gp.disabled,true);
+    assert.equal(form.button_gp.options.find(o=>o.value==='2').disabled,true);
+    assert.equal(form.rf_gp.options.find(o=>o.value==='14').disabled,true);
+    form.rf_gp.value='0'; form.rf_gp.onchange();
+    form.indicator.value='external'; form.indicator.onchange();
+    assert.notEqual(form.indicator_gp.value,'0'); assert.notEqual(form.indicator_gp.value,'14');
+    assert.equal(form.indicator_gp.disabled,false);
+    form.button_gp.value=''; form.button_gp.onchange();
+    assert.equal(form.rf_gp.options.find(o=>o.value==='14').disabled,false);
+    form.indicator.value='disabled'; form.indicator.onchange();
+    assert.equal(form.indicator_gp.disabled,true);
+
     console.log('Browser edit preservation, conflicts, ownership, failure and RF pause tests passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});

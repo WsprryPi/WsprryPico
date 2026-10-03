@@ -96,7 +96,8 @@ std::optional<Config> parse_config(std::string_view text) {
         return {};
     auto root = parse(text);
     if (!root ||
-        !fields(*root, {"version", "enabled", "station", "wifi", "schedules"}, {"expires_utc_s"}) ||
+        !fields(*root, {"version", "enabled", "station", "wifi", "schedules"},
+                {"expires_utc_s", "pins"}) ||
         root->get("version")->raw != "1" ||
         (root->get("enabled")->raw != "true" && root->get("enabled")->raw != "false"))
         return {};
@@ -112,6 +113,12 @@ std::optional<Config> parse_config(std::string_view text) {
         if (wifi.get(name)->type() != '"')
             return {};
     Config c;
+    if (const auto pins = root->get("pins")) {
+        auto parsed = hardware::parse_plan(std::string(pins->raw));
+        if (!parsed || !hardware::operational(*parsed))
+            return {};
+        c.pins = *parsed;
+    }
     c.enabled = root->get("enabled")->boolean();
     if (const auto expiry = root->get("expires_utc_s")) {
         if (expiry->type() < '0' || expiry->type() > '9')
@@ -174,6 +181,11 @@ std::string serialize_config(const Config& c) {
         result += "{\"period_s\":" + std::to_string(c.schedules[i].period_s) +
                   ",\"phase_s\":" + std::to_string(c.schedules[i].phase_s) + '}';
     }
-    return result + "],\"expires_utc_s\":" + std::to_string(c.expires_utc_s) + "}";
+    result += "],\"expires_utc_s\":" + std::to_string(c.expires_utc_s);
+    // Keep the legacy canonical payload for default assignments. Nondefault
+    // assignments require the new firmware; older images reject that extension.
+    if (c.pins != hardware::PinPlan{})
+        result += ",\"pins\":" + hardware::serialize_plan(c.pins);
+    return result + "}";
 }
 } // namespace wsprrypico::standalone

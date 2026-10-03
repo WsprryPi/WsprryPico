@@ -1,4 +1,6 @@
 #pragma once
+#include "hardware/pins.hpp"
+
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -13,6 +15,7 @@ struct Schedule {
     bool operator==(const Schedule&) const = default;
 };
 struct Config {
+    hardware::PinPlan pins;
     bool enabled = false;
     std::uint64_t expires_utc_s = 0; // Zero preserves unbounded version-1 schedules.
     std::string callsign, locator;

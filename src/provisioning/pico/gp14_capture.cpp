@@ -4,6 +4,7 @@
 #include "hardware/clocks.h"
 #include "hardware/dma.h"
 #include "hardware/gpio.h"
+#include "hardware/pins.hpp"
 #include "hardware/regs/dma.h"
 #include "hardware/structs/pio.h"
 #include "hardware/sync.h"
@@ -24,6 +25,13 @@ bool PicoGp14Capture::start(bool boot_held) {
 #else
 bool PicoGp14Capture::start() {
 #endif
+    if (!enabled_)
+        return true;
+    if (!hardware::eligible(pin)) {
+        fault_ = true;
+        fault_code_ = Fault::PioClaim;
+        return false;
+    }
     if (pio_ || dma_ >= 0) {
         fault_ = true;
         fault_code_ = Fault::AlreadyStarted;
@@ -81,6 +89,8 @@ bool PicoGp14Capture::start() {
 }
 
 bool PicoGp14Capture::poll_progress() {
+    if (!enabled_)
+        return true;
     if (fault_ || !pio_ || dma_ < 0)
         return false;
     const auto now = time_us_64();
@@ -113,6 +123,8 @@ bool PicoGp14Capture::poll_progress() {
 }
 
 bool PicoGp14Capture::next(DiagnosticButtonEvents& event) {
+    if (!enabled_)
+        return false;
     event = {};
     while (poll_progress()) {
         if (next_bit_ == 8) {

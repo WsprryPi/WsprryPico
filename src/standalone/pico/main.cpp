@@ -312,9 +312,10 @@ int main() {
         access_store.state() != wsprrypico::provisioning::AccessStoreState::Healthy ||
         (access_store.record() && access_store.record()->reset.pending());
     const bool boot_recovery = recovery || access_recovery;
+    const auto boot_pins = store.config() ? store.config()->pins : wsprrypico::hardware::PinPlan{};
     // Both adapters claim PIO/DMA resources through the SDK allocator.
 #ifdef WSPRRY_PICO_STANDALONE_RF
-    auto& engine = wsprrypico::rf::start_worker(clock);
+    auto& engine = wsprrypico::rf::start_worker(clock, boot_pins, store_loaded && store.healthy());
 #else
     static wsprrypico::standalone::DryRunEngine engine;
 #endif
@@ -345,7 +346,7 @@ int main() {
                                                   wsprrypico::firmware::kFirmwareVersion);
     static wsprrypico::standalone::Scheduler scheduler(store, service);
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
-    static wsprrypico::provisioning::PicoGp14Capture gp14_button;
+    static wsprrypico::provisioning::PicoGp14Capture gp14_button(boot_pins.button);
     bool gp14_fault_handled = false;
     bool gp14_reset_pending = false;
 #ifdef WSPRRY_PICO_STANDALONE_RF
@@ -513,11 +514,12 @@ int main() {
     bool plain_start_attempted = false;
     std::uint64_t tls_retry_at_ms = 0;
     std::uint64_t plain_retry_at_ms = 0;
-    static wsprrypico::provisioning::PicoIndicatorOutput indicator_output;
+    static wsprrypico::provisioning::PicoIndicatorOutput indicator_output(boot_pins);
     static wsprrypico::provisioning::IndicatorController indicator(indicator_output,
                                                                    identities.device_id());
     static wsprrypico::provisioning::PicoConsumerClaimPlatform claim_platform(
         access_store, network, service, time_arbiter, local_identity.hostname);
+    indicator.enabled(boot_pins.indicator != wsprrypico::hardware::PinPlan::Indicator::Disabled);
 #ifndef WSPRRY_PICO_STANDALONE_RF
     bootstrap.configure(service.status().boot_id, access_store, profile_store, random_source,
                         indicator, network, runtime_profile, claim_platform,
@@ -1552,6 +1554,7 @@ int main() {
                                    : softap_name_ready && server.listening());
         softap_coordinator.ready(softap_service_ready);
         indicator.softap_ready(softap_coordinator.status(field_now_ms).ready);
+        indicator.transmitting(engine.output_active());
         indicator.poll(field_now_ms);
         service.poll();
         const auto clock_now = service.clock_snapshot();
