@@ -101,6 +101,12 @@ class IndicatorController {
         : output_(output), device_id_(std::move(device_id)) {}
     IndicatorCode identify(std::string_view request_id, std::string_view requested_device,
                            bool authenticated, bool local, std::uint64_t now_ms);
+    void enabled(bool enabled) {
+        enabled_ = enabled;
+    }
+    void transmitting(bool active) {
+        transmitting_ = active;
+    }
     void softap_ready(bool ready) {
         softap_ready_ = ready;
     }
@@ -116,6 +122,8 @@ class IndicatorController {
     std::uint64_t identify_started_ms_ = 0;
     bool identify_active_ = false;
     bool softap_ready_ = false;
+    bool transmitting_ = false;
+    bool enabled_ = true;
     bool output_on_ = false;
     bool output_known_ = false;
     bool output_fault_ = false;

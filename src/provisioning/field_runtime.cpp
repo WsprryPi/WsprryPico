@@ -95,6 +95,8 @@ IndicatorCode IndicatorController::identify(std::string_view request_id,
                                             bool local, std::uint64_t now_ms) {
     if (!authenticated || !local)
         return IndicatorCode::AuthenticationRequired;
+    if (!enabled_)
+        return IndicatorCode::Invalid;
     if (requested_device != device_id_)
         return IndicatorCode::Invalid;
     if (request_id.empty())
@@ -117,7 +119,11 @@ IndicatorPattern IndicatorController::pattern(std::uint64_t now_ms) const {
 }
 
 bool IndicatorController::desired(std::uint64_t now_ms) const {
+    if (!enabled_)
+        return false;
     const auto active = pattern(now_ms);
+    if (transmitting_)
+        return true;
     if (active == IndicatorPattern::Off)
         return false;
     const auto offset = active == IndicatorPattern::Identify

@@ -6,6 +6,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 
 namespace wsprrypico::provisioning {
 
@@ -24,7 +25,9 @@ class PicoGp14Capture {
         NoProgress,
         SampleStream,
     };
-    static constexpr unsigned pin = 14;
+    explicit PicoGp14Capture(std::optional<unsigned> gp = 14)
+        : pin(gp.value_or(14)), enabled_(gp.has_value()) {}
+    const unsigned pin;
     static constexpr std::uint32_t ring_words = 2048;
 
 #ifdef WSPRRY_PICO_GP14_ROBUSTNESS
@@ -61,6 +64,7 @@ class PicoGp14Capture {
     }
 
   private:
+    const bool enabled_;
     alignas(8192) std::array<std::uint32_t, ring_words> words_{};
     ButtonSampleStream stream_;
     Rp2350DmaProgress progress_;

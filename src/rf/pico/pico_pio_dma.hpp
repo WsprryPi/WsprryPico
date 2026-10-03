@@ -18,8 +18,8 @@ struct PicoDriverMetrics {
 
 class PicoPioDma final : public PioDmaHardware {
   public:
-    static constexpr unsigned rf_pin = 2;
-    PicoPioDma() = default;
+    const unsigned rf_pin;
+    explicit PicoPioDma(unsigned pin = 2) : rf_pin(pin) {}
     PicoPioDma(const PicoPioDma&) = delete;
     PicoPioDma& operator=(const PicoPioDma&) = delete;
     std::uint32_t lock() override;

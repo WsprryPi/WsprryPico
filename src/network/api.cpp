@@ -1,5 +1,6 @@
 #include "network/api.hpp"
 
+#include "hardware/pins.hpp"
 #include "network/assets.hpp"
 #include "network/identity.hpp"
 #include "network/message_job.hpp"
@@ -261,6 +262,9 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 "{\"job\":" + status_json(service_.status()) +
                 ",\"standalone\":" + scheduler_.status() + ",\"network\":" + network_.status() +
                 ",\"transport\":" + (transport_ ? transport_(transport_context_) : "null") + "}");
+        if (r.path == "/api/v1/pins")
+            return ok("{\"choices\":" + hardware::choices() +
+                      ",\"active\":" + hardware::serialize_plan(scheduler_.active_pins()) + "}");
         if (r.path == "/api/v1/config")
             return config();
         if (r.path == "/api/v1/network") {
@@ -276,6 +280,13 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return result;
         }
         return http_error(404, "not_found");
+    }
+    // Review candidates without changing Store, scheduler, engine or GPIO state.
+    if (r.path == "/api/v1/pins/validate" && r.method == "POST") {
+        const auto plan = hardware::parse_plan(std::string(r.body_view()));
+        if (!plan)
+            return http_error(400, "invalid_pin_plan");
+        return ok(hardware::describe(*plan));
     }
     if (r.method == "POST" && (r.path == "/api/v1/jobs" || r.path.starts_with("/api/v1/jobs/")))
         return job(r, principal);
@@ -339,6 +350,17 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         auto schedules = current->get("schedules")->raw;
         candidate.replace(schedules.offset(), schedules.size(),
                           static_cast<std::string>(root->get("schedules")->raw));
+    }
+    if (const auto config_root = json::parse(candidate)) {
+        if (const auto pins = config_root->get("pins")) {
+            auto plan = hardware::parse_plan(std::string(pins->raw));
+            if (!plan)
+                return http_error(400, "invalid_pin_plan");
+            if (!hardware::validate(*plan).valid())
+                return {400, {}, "application/json", hardware::describe(*plan), {}};
+            if (!hardware::operational(*plan))
+                return http_error(400, "unsupported_pin_adapter");
+        }
     }
     if (!standalone::parse_config(candidate))
         return http_error(400, "invalid_config");

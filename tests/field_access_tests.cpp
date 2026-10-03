@@ -1199,6 +1199,18 @@ void runtime_policy() {
     CHECK(indicator.identify("identify-a", device, true, true, 11001) ==
           provisioning::IndicatorCode::Ok);
     CHECK(indicator.status(11001).pattern == provisioning::IndicatorPattern::SoftApReady);
+    indicator.transmitting(true);
+    indicator.poll(11'200); // SoftAP cue is normally off here.
+    CHECK(led.writes.back());
+    indicator.transmitting(false);
+    indicator.poll(11'200);
+    CHECK(!led.writes.back());
+    indicator.enabled(false);
+    indicator.transmitting(true);
+    indicator.poll(11'300);
+    CHECK(!led.writes.back());
+    CHECK(indicator.identify("disabled", device, true, true, 11'300) ==
+          provisioning::IndicatorCode::Invalid);
 }
 
 void button_action_policy() {

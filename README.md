@@ -249,3 +249,8 @@ inputs are pinned in the firmware-foundation documentation.
 The [frequency correction and alias investigation](docs/development/rf-correction-validation.md) records the
 `CORRECTION` bench command, corrected measurements, remaining frame settling
 and identified sampled-square-wave alias.
+
+Pin allocation: see the [selected contract](docs/pin-assignment-contract.md) and
+[implemented subset and validation](docs/development/pin-allocation.md). Direct RF,
+button and indicator pins are boot-applied settings; amplifier/LPF and Si5351
+adapters remain unavailable.

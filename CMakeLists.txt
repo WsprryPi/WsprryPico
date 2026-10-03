@@ -46,6 +46,7 @@ execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/genera
     COMMAND_ERROR_IS_FATAL ANY)
 
 add_library(wsprrypico_core
+    src/hardware/pins.cpp
     src/provisioning/profile.cpp
     src/provisioning/network_profile.cpp
     src/provisioning/consumer_profile.cpp
@@ -283,6 +284,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(firmware_profile_tests PRIVATE wsprrypico_rf)
     target_compile_options(firmware_profile_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME firmware_profile_tests COMMAND firmware_profile_tests)
+    add_executable(pin_allocation_tests tests/pin_allocation_tests.cpp)
+    target_link_libraries(pin_allocation_tests PRIVATE wsprrypico_core)
+    add_test(NAME pin_allocation COMMAND pin_allocation_tests)
+
     add_executable(standalone_tests tests/standalone_tests.cpp)
     target_link_libraries(standalone_tests PRIVATE wsprrypico_core)
     target_compile_definitions(standalone_tests PRIVATE WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ})
