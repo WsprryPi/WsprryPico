@@ -571,5 +571,130 @@ class BluezPumpDeadlineTests(unittest.TestCase):
   self.assertTrue(c.did_run)
 
 
+class BluezAsyncDiagnosticTests(unittest.TestCase):
+    def backend(self, sink=None):
+        backend = object.__new__(ble.BluezBackend)
+        backend._diagnostic_sink = sink
+        backend._wait = lambda predicate, timeout, code: self.assertTrue(predicate())
+        return backend
+
+    def test_original_failure_has_one_attempt_bound_clocks_and_exception_cause(self):
+        events, calls = [], []
+        backend = self.backend(events.append)
+        class OriginalError(Exception):
+            def get_dbus_name(self):
+                return "org.bluez.Error.ConnectionAttemptFailed"
+        original = OriginalError("org.bluez.Error.ConnectionAttemptFailed: Page Timeout")
+        class Interface:
+            def Pair(self, *args, **kwargs):
+                calls.append(args)
+                kwargs["error_handler"](original)
+        with self.assertRaises(ble.ClientError) as caught:
+            backend._async(Interface(), "Pair", 1, "pairing_failed", "argument-not-captured")
+        self.assertEqual(caught.exception.code, "pairing_failed")
+        self.assertIs(caught.exception.__cause__, original)
+        self.assertEqual(calls, [("argument-not-captured",)])
+        self.assertEqual([e["kind"] for e in events], ["host_ble_async_attempt", "private_host_ble_async_error"])
+        self.assertEqual(events[-1]["message"], str(original))
+        self.assertEqual(events[0]["operation_id"], events[1]["operation_id"])
+        for event in events:
+            self.assertLessEqual(event["monotonic_before_ns"], event["monotonic_after_ns"])
+            self.assertGreater(event["utc_ns"], 0)
+        self.assertNotIn("argument-not-captured", json.dumps(events))
+
+    def test_disabled_or_failed_logging_preserves_operation_outcome(self):
+        calls = []
+        def broken(event):
+            raise OSError("private observer unavailable")
+        class Interface:
+            def Connect(self, **kwargs):
+                calls.append(True)
+                kwargs["error_handler"](RuntimeError("original failure"))
+        for sink in (None, broken):
+            with self.assertRaises(ble.ClientError) as caught:
+                self.backend(sink)._async(Interface(), "Connect", 1, "connect_failed")
+            self.assertEqual(caught.exception.code, "connect_failed")
+            self.assertEqual(str(caught.exception.__cause__), "original failure")
+        self.assertEqual(len(calls), 2)
+
+    def test_success_logging_failure_does_not_manufacture_transport_failure(self):
+        calls = []
+        def broken(event):
+            raise OSError("private observer unavailable")
+        class Interface:
+            def Connect(self, **kwargs):
+                calls.append(True)
+                kwargs["reply_handler"]()
+        self.backend(broken)._async(Interface(), "Connect", 1, "connect_failed")
+        self.assertEqual(calls, [True])
+
+    def test_slow_capture_and_late_completion_do_not_extend_original_budget(self):
+        for delay_at in ("attempt", "reply", "completion"):
+            now, calls, events = [0.0], [], []
+            def emit(event):
+                events.append(event)
+                if (delay_at == "attempt" and event["kind"] == "host_ble_async_attempt") or (
+                    delay_at == "completion" and event["kind"] == "host_ble_async_complete"
+                ):
+                    now[0] = 2.0
+            class Interface:
+                def Connect(self, **kwargs):
+                    calls.append(True)
+                    if delay_at == "reply":
+                        now[0] = 2.0
+                    kwargs["reply_handler"]()
+            with patch.object(ble.time, "monotonic", side_effect=lambda: now[0]):
+                with self.assertRaises(ble.ClientError) as caught:
+                    self.backend(emit)._async(Interface(), "Connect", 1, "connect_failed")
+            self.assertEqual(caught.exception.code, "connect_failed")
+            self.assertEqual(len(calls), 0 if delay_at == "attempt" else 1)
+
+    def test_synchronous_dispatch_exception_survives_failed_observer(self):
+        original = RuntimeError("original dispatch failure")
+        calls = []
+        class Interface:
+            def Connect(self, **kwargs):
+                calls.append(True)
+                raise original
+        def broken(event):
+            raise OSError("capture failure")
+        with self.assertRaises(RuntimeError) as caught:
+            self.backend(broken)._async(Interface(), "Connect", 1, "connect_failed")
+        self.assertIs(caught.exception, original)
+        self.assertEqual(calls, [True])
+
+    def test_missing_callback_is_timeout_without_fabricated_original_dbus_error(self):
+        events, calls = [], []
+        backend = self.backend(events.append)
+        def expired(predicate, timeout, code):
+            raise ble.ClientError(code)
+        backend._wait = expired
+        class Interface:
+            def Connect(self, **kwargs):
+                calls.append(True)
+        with self.assertRaises(ble.ClientError) as caught:
+            backend._async(Interface(), "Connect", 1, "connect_failed")
+        self.assertEqual(caught.exception.code, "connect_failed")
+        self.assertEqual(calls, [True])
+        self.assertEqual([e["kind"] for e in events], ["host_ble_async_attempt", "host_ble_async_timeout"])
+        self.assertTrue(all("dbus_name" not in e for e in events))
+
+    def test_metadata_is_bounded_and_other_methods_emit_nothing(self):
+        events = []
+        backend = self.backend(events.append)
+        class Interface:
+            def Connect(self, **kwargs):
+                kwargs["error_handler"](RuntimeError("x" * 2048))
+            def Other(self, *args, **kwargs):
+                kwargs["reply_handler"]("not-captured")
+        backend._async(Interface(), "Other", 1, "other", "private-argument")
+        self.assertEqual(events, [])
+        for _ in range(40):
+            with self.assertRaises(ble.ClientError):
+                backend._async(Interface(), "Connect", 1, "connect_failed")
+        self.assertEqual(len(events), backend.DIAGNOSTIC_EVENT_LIMIT)
+        self.assertTrue(all(len(e.get("message", "")) <= backend.DIAGNOSTIC_MESSAGE_LIMIT for e in events))
+
+
 if __name__ == "__main__":
     unittest.main()

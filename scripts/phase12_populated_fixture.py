@@ -142,7 +142,13 @@ def build(backup,output_dir,inspector,native,openssl='openssl',network_file=None
     # Retain unrelated operational settings, including the boot-applied pin
     # plan and recurrence expiry. Only the declared populated-fixture fields
     # change; rebuilding a legacy object would silently restore default pins.
-    config=copy.deepcopy(loaded['config'])
+    # Consumer commissioning may have no operational config record yet. Its
+    # effective pins are the production defaults, represented by omitting the
+    # optional pins extension in the legacy canonical Config serializer.
+    config=copy.deepcopy(loaded['config']) if loaded['config'] is not None else dict(
+        version=1,enabled=False,station=copy.deepcopy(station),
+        wifi=dict(ssid=network['ssid'],password=network['password'],ntp_ipv4=network['time_server']),
+        schedules=[],expires_utc_s=0)
     config.update(enabled=False,station=copy.deepcopy(station),
         wifi=dict(ssid=network['ssid'],password=network['password'],ntp_ipv4=network['time_server']),
         schedules=[dict(period_s=240,phase_s=0),dict(period_s=240,phase_s=120)])

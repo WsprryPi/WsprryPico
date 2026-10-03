@@ -190,16 +190,35 @@ def ap_ssid(suffix):
     return 'WsprryPico-'+suffix
 
 
+def snapshot_settings(info):
+    """Original INFO projection for write-free snapshot-failure recovery."""
+    from phase12_recovery_device import healthy
+    healthy(info,allow_fault=True)
+    saved=info.get('saved_consumer_profile')
+    return dict(station=saved['station'] if saved else info['status']['station'],
+                effective_station=info['status']['station'],
+                time_server=info['network']['ntp_server'],
+                access_generation=info['access_generation'],
+                provisioning_generation=info['provisioning_generation'],
+                provisioning_source=info['provisioning_source'],
+                access_state=info['access_state'],saved_consumer_profile=saved,
+                saved_status={key:info['status'][key] for key in ('expires_utc_s','schedules',
+                    'watermark_utc_ns','schedule_base_frequency_nhz','pins','pin_plan') if key in info['status']},
+                available_config={key:info[key] for key in ('config','pins','pin_plan',
+                    'saved_pins','active_pins','hardware') if key in info})
+
+
 class Backend:
     def __init__(self,plan,manifest,artifact_root,campaign,inspector):
         self.plan=plan;self.manifest=manifest;self.artifact_root=Path(artifact_root);self.campaign=Path(campaign);self.inspector=str(Path(inspector).resolve())
         self.remote='/home/pi/phase12-recovery-'+plan['campaign_id'];self.connection='p12-recovery-'+plan['campaign_id']
         self.hardware_accessed=False
         self.helper=self.remote+'/phase12_recovery_device.py';self.roles={c['role']:c for c in manifest['candidates']}
-    def call(self,action,**args):
+    def call(self,action,*,transport_timeout=270,**args):
         require(not hasattr(self,'guard') or self.guard.poll() is None,'board campaign lock lost')
+        require(0<transport_timeout<=270,'finite transport deadline')
         self.hardware_accessed=True
-        p=subprocess.run(['ssh','-o','BatchMode=yes','-o','ConnectTimeout=5','wspr5','python3',self.helper],input=canonical(dict(root=self.remote,action=action,**args)),capture_output=True,timeout=270)
+        p=subprocess.run(['ssh','-o','BatchMode=yes','-o','ConnectTimeout=5','wspr5','python3',self.helper],input=canonical(dict(root=self.remote,action=action,**args)),capture_output=True,timeout=transport_timeout)
         value=strict(p.stdout)
         if action=='info' and value.get('adapter_error') in ('TimeoutError','SerialException','FileNotFoundError'):
             raise TimeoutError('device observation unavailable: '+value['adapter_error'])
@@ -237,16 +256,56 @@ class Backend:
         self.connection_created=True
         return info
     def snapshot(self,name):
-        result=self.call('snapshot',name=name)
-        local=self.campaign/name
-        require(not local.exists(),'local snapshot exists')
-        subprocess.run(['scp','-q','wspr5:'+self.remote+'/'+name,str(local)],check=True,timeout=30)
-        os.chmod(local,0o600)
-        require(local.stat().st_size==SIZE and sha(local)==result['sha256'],'retained local backup barrier')
-        with local.open('rb') as file: os.fsync(file.fileno())
-        sync_directory(local.parent)
-        result['inspection']=self.inspect(local)
-        return result
+        before=self.info()
+        snapshot_settings(before)
+        try:
+            result=self.call('snapshot',name=name)
+            require(result.get('path')==name and result.get('bytes')==SIZE and
+                    re.fullmatch('[0-9a-f]{64}',result.get('sha256','')),'original snapshot receipt')
+            local=self.campaign/name
+            require(not local.exists() and not local.is_symlink(),'local snapshot exists')
+            subprocess.run(['scp','-q','wspr5:'+self.remote+'/'+name,str(local)],check=True,timeout=30)
+            os.chmod(local,0o600)
+            require(local.stat().st_size==SIZE and sha(local)==result['sha256'],'retained local backup barrier')
+            with local.open('rb') as file: os.fsync(file.fileno())
+            sync_directory(local.parent)
+            # Preserve the validated local image even if receipt recording fails.
+            private_write(self.campaign/(name+'.snapshot-receipt.json'),result)
+            result['inspection']=self.inspect(local)
+            return result
+        except BaseException as original:
+            recovery=dict(original_error_type=type(original).__name__,snapshot_attempts=1,flash_writes=0)
+            try:recovery['outcome']=self.recover_snapshot_runtime(before)
+            except BaseException as error:recovery['error_type']=type(error).__name__
+            try:private_write(self.campaign/(name+'.snapshot-recovery.json'),recovery)
+            except BaseException:pass # Preserve the exact original snapshot/observer failure.
+            self.last_snapshot_recovery=recovery
+            raise
+    def recover_snapshot_runtime(self,before,*,clock=time.monotonic,sleeper=time.sleep):
+        require(hasattr(self,'guard') and self.guard.poll() is None,'live board exclusion lock required')
+        expected=snapshot_settings(before)
+        end=clock()+180
+        rebooted=self.call('reboot_original',transport_timeout=min(60,end-clock())) # One action-flocked reboot, no writes.
+        require(clock()<end,'original runtime reboot deadline')
+        require(rebooted.get('device_id')==before['device_id'] and rebooted.get('revision')==before['revision'] and
+                rebooted.get('firmware')==before['firmware'],'original runtime identity changed')
+        require(snapshot_settings(rebooted)==expected,'original runtime settings changed')
+        boot=rebooted['status']['boot_id']
+        require(boot!=before['status']['boot_id'],'original runtime reboot not observed')
+        observations=[]
+        while clock()<end:
+            try:info=self.call('info',allow_fault=True,transport_timeout=min(6,end-clock()))
+            except (OSError,TimeoutError,subprocess.TimeoutExpired):sleeper(max(0,min(.5,end-clock())));continue
+            require(clock()<end,'original runtime recovery observation deadline')
+            require(info.get('device_id')==before['device_id'] and info.get('revision')==before['revision'] and
+                    info.get('firmware')==before['firmware'],'original runtime identity changed')
+            require(snapshot_settings(info)==expected,'original runtime settings changed')
+            require(info['status']['boot_id']==boot,'unexpected original runtime recovery reboot')
+            observations.append(info)
+            if len(observations)==5:return dict(status='ORIGINAL_RUNTIME_REBOOT_VERIFIED',samples=5,
+                boot_id=boot,flash_writes=0,snapshot_attempts=0,observations=observations)
+            sleeper(2)
+        raise TimeoutError('original runtime recovery deadline')
     def inspect(self,path):
         p=subprocess.run([self.inspector,str(path)],capture_output=True,timeout=10,check=True)
         return strict(p.stdout)

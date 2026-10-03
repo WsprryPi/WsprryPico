@@ -846,8 +846,10 @@ class BluezBackend:
     CHARACTERISTIC = "org.bluez.GattCharacteristic1"
     AGENT_MANAGER = "org.bluez.AgentManager1"
     AGENT = "org.bluez.Agent1"
+    DIAGNOSTIC_EVENT_LIMIT = 64
+    DIAGNOSTIC_MESSAGE_LIMIT = 512
 
-    def __init__(self, adapter: str):
+    def __init__(self, adapter: str, *, diagnostic: Callable[[dict[str, Any]], None] | None = None):
         try:
             import dbus  # type: ignore
             import dbus.mainloop.glib  # type: ignore
@@ -865,6 +867,28 @@ class BluezBackend:
         self.matches: list[Any] = []
         self.agent: Any = None
         self.agent_path = f"/org/wsprrypico/agent_{os.getpid()}_{secrets.token_hex(4)}"
+        self._diagnostic_sink = diagnostic
+
+    def _async_diagnostic(
+        self, kind: str, method: str, code: str, operation: int, error: Exception | None = None
+    ) -> None:
+        """Optional private link metadata; never includes arguments or GATT payloads."""
+        sink = getattr(self, "_diagnostic_sink", None)
+        count = getattr(self, "_diagnostic_count", 0)
+        if sink is None or method not in {"Pair", "Connect", "RemoveDevice"} or count >= self.DIAGNOSTIC_EVENT_LIMIT:
+            return
+        self._diagnostic_count = count + 1
+        try:
+            before = time.monotonic_ns()
+            utc = time.time_ns()
+            value = dict(kind=kind, method=method, code=code, operation_id=operation,
+                         monotonic_before_ns=before, utc_ns=utc, monotonic_after_ns=time.monotonic_ns())
+            if error is not None:
+                name = error.get_dbus_name() if hasattr(error, "get_dbus_name") else type(error).__name__
+                value.update(dbus_name=str(name)[:128], message=str(error)[:self.DIAGNOSTIC_MESSAGE_LIMIT])
+            sink(value)
+        except Exception:
+            pass  # A failed private observer must preserve the original operation outcome.
 
     def _objects(self) -> dict[str, Any]:
         root = self.bus.get_object(self.BLUEZ, "/")
@@ -895,14 +919,36 @@ class BluezBackend:
         fail(code)
 
     def _async(self, interface: Any, method: str, timeout: float, code: str, *arguments: Any) -> None:
+        deadline = time.monotonic() + timeout
+        operation = getattr(self, "_diagnostic_operation", 0) + 1
+        self._diagnostic_operation = operation
         state: dict[str, Any] = {}
-        getattr(interface, method)(
-            *arguments,
-            reply_handler=lambda *unused: state.update(done=True),
-            error_handler=lambda error: state.update(done=True, error=error),
-        )
-        self._wait(lambda: bool(state.get("done")), timeout, code)
+        self._async_diagnostic("host_ble_async_attempt", method, code, operation)
+        try:
+            if time.monotonic() >= deadline:
+                fail(code)
+            getattr(interface, method)(
+                *arguments,
+                reply_handler=lambda *unused: state.update(done=True),
+                error_handler=lambda error: state.update(done=True, error=error),
+            )
+            self._wait(lambda: bool(state.get("done")), max(0.0, deadline - time.monotonic()), code)
+        except Exception as error:
+            if isinstance(error, ClientError) and "error" not in state:
+                self._async_diagnostic("host_ble_async_timeout", method, code, operation)
+            else:
+                original = state.get("error", error)
+                self._async_diagnostic("private_host_ble_async_error", method, code, operation, original)
+            raise
         if "error" in state:
+            self._async_diagnostic("private_host_ble_async_error", method, code, operation, state["error"])
+            raise ClientError(code) from state["error"]
+        if time.monotonic() >= deadline:
+            self._async_diagnostic("host_ble_async_timeout", method, code, operation)
+            fail(code)
+        self._async_diagnostic("host_ble_async_complete", method, code, operation)
+        if time.monotonic() >= deadline:
+            self._async_diagnostic("host_ble_async_timeout", method, code, operation)
             fail(code)
 
     def _register_agent(self) -> None:

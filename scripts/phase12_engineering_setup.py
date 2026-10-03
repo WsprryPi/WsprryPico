@@ -110,25 +110,8 @@ class RecordedBackend(BluezBackend):
         super().__init__(adapter)
         self.emit = emit
     def _async(self,interface,method,timeout,code,*arguments):
-        backend=self
-        class OriginalErrorTap:
-            def __getattr__(self,name):
-                def invoke(*args,**kwargs):
-                    original=kwargs['error_handler']
-                    def observed(error):
-                        try:
-                            backend.emit(dict(kind='private_host_ble_async_error',method=method,code=code,
-                                dbus_name=error.get_dbus_name() if hasattr(error,'get_dbus_name') else type(error).__name__,
-                                message=str(error)))
-                        except Exception:pass
-                        finally:original(error)
-                    kwargs['error_handler']=observed
-                    return getattr(interface,name)(*args,**kwargs)
-                return invoke
-        self.emit(dict(kind='host_ble_async_attempt',method=method,code=code))
-        result=super()._async(OriginalErrorTap(),method,timeout,code,*arguments)
-        self.emit(dict(kind='host_ble_async_complete',method=method,code=code))
-        return result
+        self._diagnostic_sink=self.emit
+        return super()._async(interface,method,timeout,code,*arguments)
     def prepare_new_pair(self,address):
         require(self.adapter_path=='/org/bluez/hci0' and
                 normalize_address(address)=='88:A2:9E:0A:9D:8A','exact B host pairing cache')

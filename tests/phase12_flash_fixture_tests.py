@@ -41,9 +41,9 @@ class Tests(unittest.TestCase):
         self.write('backup',self.original);self.write('profile',compact(profile()).encode());self.write('config',compact(config()).encode())
     def tearDown(self):self.temp.cleanup()
     def write(self,name,value):self.files[name].write_bytes(value);self.files[name].chmod(0o600)
-    def run_tool(self,watermark='123456789'):
+    def run_tool(self,watermark='123456789',extra=()):
         return subprocess.run([FIXTURE,'--backup',str(self.files['backup']),'--consumer-profile',str(self.files['profile']),
-            '--config',str(self.files['config']),'--watermark',watermark,'--output',str(self.files['output'])],capture_output=True)
+            '--config',str(self.files['config']),'--watermark',watermark,'--output',str(self.files['output']),*extra],capture_output=True)
     def refuse(self,watermark='123456789'):
         result=self.run_tool(watermark);self.assertNotEqual(result.returncode,0);self.assertFalse(self.files['output'].exists())
         self.assertNotIn(b'private-test-password',result.stdout+result.stderr)
@@ -112,4 +112,41 @@ class Tests(unittest.TestCase):
         self.files['output'].unlink();self.write('backup',prepared)
         result=prepare();self.assertEqual(result.returncode,0,result.stderr);self.assertEqual(json.loads(result.stdout)['appends'],0)
         self.assertEqual(self.files['output'].read_bytes(),prepared)
+    def pending_seed(self):
+        self.assertEqual(self.run_tool().returncode,0)
+        seeded=self.files['output'].read_bytes();self.files['output'].unlink();self.write('backup',seeded)
+        old=profile();pending=dict(version=2,tls_pending=True)
+        pending.update({key:value for key,value in old.items() if key!='version'})
+        pending['request_sha256']='b'*64
+        pending['clients']=[]
+        for key in ('ca_certificate','ca_private_key','server_certificate','server_private_key'):pending['tls'][key]=''
+        pending['tls']['ca_not_after_utc']='0';pending['tls']['server_not_after_utc']='0'
+        self.write('profile',compact(pending).encode());return seeded,pending
+    def test_named_pending_fixture_uses_production_parser_and_changes_only_profile(self):
+        seeded,pending=self.pending_seed()
+        # Default complete-TLS contract is unchanged.
+        self.refuse('123456790')
+        result=self.run_tool(extra=('--allow-tls-pending','yes'))
+        self.assertEqual(result.returncode,0,result.stderr)
+        output=self.files['output'].read_bytes()
+        self.assertEqual(output[:0x3f7000],seeded[:0x3f7000]);self.assertEqual(output[0x3fb000:],seeded[0x3fb000:])
+        decoded=json.loads(subprocess.check_output([INSPECTOR,str(self.files['output'])]))
+        self.assertEqual(json.loads(decoded['profile_payload']),pending);self.assertEqual(decoded['profile_sequence'],2)
+        self.assertEqual(decoded['config'],config());self.assertEqual(decoded['watermark'],123456789)
+    def test_pending_flag_rejects_material_clients_wrong_flag_and_operational_change(self):
+        seeded,pending=self.pending_seed()
+        for kind in ('material','clients','false-pending','flag','config','watermark','old-request'):
+            value=json.loads(json.dumps(pending));config_value=config();extra=('--allow-tls-pending','yes');watermark='123456789'
+            if kind=='material':value['tls']['ca_certificate']=profile()['tls']['ca_certificate']
+            if kind=='clients':value['clients']=profile()['clients']
+            if kind=='false-pending':value=profile()
+            if kind=='flag':extra=('--allow-tls-pending','no')
+            if kind=='config':config_value['expires_utc_s']=2000000000
+            if kind=='watermark':watermark='123456790'
+            if kind=='old-request':value['request_sha256']=profile()['request_sha256']
+            self.write('profile',compact(value).encode());self.write('config',compact(config_value).encode())
+            result=self.run_tool(watermark,extra)
+            with self.subTest(kind=kind):
+                self.assertNotEqual(result.returncode,0);self.assertFalse(self.files['output'].exists())
+                self.assertEqual(self.files['backup'].read_bytes(),seeded)
 if __name__=='__main__':unittest.main()

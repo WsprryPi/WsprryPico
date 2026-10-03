@@ -242,7 +242,10 @@ int main(int argc, char** argv) {
                       << ",\"next_append_erase_verified_offline\":true,\"rf_jobs\":0}\n";
             return 0;
         }
-        check(argc == 11);
+        const bool pending_fixture = args.contains("--allow-tls-pending");
+        check(argc == (pending_fixture ? 13 : 11));
+        if (pending_fixture)
+            check(args.at("--allow-tls-pending") == "yes");
         for (auto name : {"--backup", "--consumer-profile", "--config", "--watermark", "--output"})
             check(args.contains(name));
         auto bytes = read(args.at("--backup"), flash_size);
@@ -251,7 +254,7 @@ int main(int argc, char** argv) {
         const auto profile_text =
             text(read(args.at("--consumer-profile"), provisioning::max_profile_bytes));
         auto profile = provisioning::parse_consumer_profile(profile_text);
-        check(profile && profile->device_id == device && !profile->tls_pending);
+        check(profile && profile->device_id == device && profile->tls_pending == pending_fixture);
         const auto config_text = text(read(args.at("--config"), standalone::max_config_bytes));
         const auto config = standalone::parse_config(config_text);
         check(config && !config->enabled && !config->schedules.empty() &&
@@ -269,7 +272,13 @@ int main(int argc, char** argv) {
         standalone::Store store(om);
         check(ps.load() && store.load());
         check(ps.select(provisioning::ProfileSource::ConsumerProfile, profile_text));
-        check(store.save(*config) && store.reserve(watermark));
+        if (pending_fixture) {
+            // Explicit offline pending-TLS preparation changes only the profile.
+            // The production parser already requires no TLS material or clients.
+            check(store.config() && standalone::serialize_config(*store.config()) == config_text &&
+                  store.watermark() == watermark);
+        } else
+            check(store.save(*config) && store.reserve(watermark));
         provisioning::ProfileStore verified_profile(pm);
         standalone::Store verified_store(om);
         check(verified_profile.load() && verified_store.load() &&
@@ -281,6 +290,8 @@ int main(int argc, char** argv) {
               verified_store.watermark() == watermark);
         check(std::equal(bytes.begin(), bytes.begin() + begin, original.begin()) &&
               std::equal(bytes.begin() + end, bytes.end(), original.begin() + end));
+        if (pending_fixture)
+            check(std::equal(bytes.begin() + 0x3fb000, bytes.end(), original.begin() + 0x3fb000));
         publish(args.at("--output"), bytes);
         provisioning::scrub(*profile);
         std::cout << "{\"status\":\"OFFLINE_FIXTURE_READY\",\"bytes\":4194304,\"rf_jobs\":0}\n";

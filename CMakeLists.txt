@@ -576,7 +576,7 @@ if(WSPRRY_PICO_BUILD_TESTS)
             phase12_consumer_flash_status
             phase12_consumer_busy_claim
             phase12_resource_capture_review phase12_populated phase12_engineering_journal
-            phase12_engineering_repairs)
+            phase12_engineering_repairs phase12_consumer_readiness)
         add_test(NAME ${phase12_python_test}_tests COMMAND ${Python3_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/${phase12_python_test}_tests.py)
     endforeach()

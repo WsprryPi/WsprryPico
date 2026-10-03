@@ -25,7 +25,7 @@ class Tests(unittest.TestCase):
 class SelectionTests(unittest.TestCase):
  def test_actual_cli_callback_selection_each_scope(self):
   tree=ast.parse(SOURCE.read_text());call=next(n for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id=='execute' and any(k.arg=='scope' for k in n.keywords))
-  for scope in ('all','composition','flash-status','journal','time-jobs','network','sessions','bond-revocation'):
+  for scope in ('all','composition','application','flash-status','journal','time-jobs','network','sessions','bond-revocation'):
    env=dict(a=type('Args',(),{'scope':scope})(),accelerated='accelerated',journal='journal',flash_status='flash',revoke='bond')
    selected={k.arg:eval(compile(ast.Expression(k.value),'private','eval'),env) for k in call.keywords if k.arg in ('accelerated','journal','flash_status','bond_revocation','scope')}
    self.assertEqual(selected['scope'],scope)
@@ -33,6 +33,29 @@ class SelectionTests(unittest.TestCase):
    self.assertEqual(selected['journal'] is not None,scope in ('all','journal'))
    self.assertEqual(selected['flash_status'] is not None,scope in ('all','flash-status'))
    self.assertEqual(selected['bond_revocation'] is not None,scope in ('all','bond-revocation'))
+ def test_actual_application_callback_routes_common_preparation_to_tls_idle_only(self):
+  tree=ast.parse(SOURCE.read_text());node=next(n for n in ast.walk(tree) if isinstance(n,ast.FunctionDef) and n.name=='cases')
+  with tempfile.TemporaryDirectory() as directory:
+   root=Path(directory);calls=[];collections=[]
+   class Remote:
+    backend=SimpleNamespace(remote='/private/no-access')
+    def stage(self,path,name):return 'hash'
+    def fixture(self,*a,**kw):raise AssertionError('application dispatch owns finite warm prerequisite')
+    def invoke(self,name,payload,**kw):calls.append((name,payload,kw));return dict(status='application')
+    def collect(self,names):collections.extend(names)
+   env=dict(remote=Remote(),a=SimpleNamespace(scope='application',skip_accepted_time_cases=False,
+     preparation_manifest=root/'manifest',credential_root=root),Path=Path,__file__=str(SOURCE),
+     subprocess=SimpleNamespace(run=lambda *a,**kw:None),private_write=lambda *a:None,
+     counter=lambda x,*a:int(x),sha=lambda x:'a'*64,preparation={'source_commit':'b'*40},
+     AUTHORITY='authorized',server_sha256='c'*64)
+   exec(compile(ast.fix_missing_locations(ast.Module(body=[node],type_ignores=[])),'actual-cases','exec'),env)
+   result=env['cases'](dict(root=root,info=dict(status={'boot_id':'d'*32},provisioning_generation='7'),
+     profile_path=root/'profile',engineering=dict(uf2={'sha256':'e'*64}),ble_address='required-only-by-preparation'))
+   self.assertEqual(result,dict(status='application'));self.assertEqual(len(calls),1)
+   name,payload,kw=calls[0];self.assertEqual(name,'phase12_engineering_dispatch.py')
+   self.assertEqual(payload['scope'],'application');self.assertTrue(payload['skip_accepted_time_cases'])
+   self.assertEqual(kw,dict(timeout=450,keepalive=True))
+   self.assertIn('application-idle-wire.jsonl',collections);self.assertIn('application-cold-result.json',collections)
  def test_actual_accelerated_named_branches_select_only_requested(self):
   tree=ast.parse(SOURCE.read_text());f=next(n for n in ast.walk(tree) if isinstance(n,ast.FunctionDef) and n.name=='accelerated')
   branches=[n for n in f.body if isinstance(n,ast.If) and 'a.scope' in ast.unparse(n.test)]

@@ -281,6 +281,8 @@ def run(request):
                 # Field authentication credentials are never retained; only WTP bytes.
                 if value.get('kind') in ('private_host_ble_async_error','private_host_ble_sync_error'):
                     evidence.record('ble_host_error',value=value)
+                if value.get('kind') in ('host_ble_async_attempt','host_ble_async_complete','host_ble_async_timeout'):
+                    evidence.record('ble_host_lifecycle',value=value)
                 if value.get('uuid') in (UUIDS['wtpCommand'],UUIDS['wtpStatus']):
                     evidence.record('ble_wtp',value=value)
                     if 'peer' in holder:holder['peer'].emitted(value)

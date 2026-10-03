@@ -401,6 +401,12 @@ class SessionSelectionTests(unittest.TestCase):
    self.assertEqual(result['status'],'STOPPED')
 
 class RadioComparisonTests(unittest.TestCase):
+ def test_skip_accepted_time_cases_wrong_scope_before_input_access(self):
+   argv=['program']
+   for name in ('manifest','artifact-root','preparation-manifest','preparation-artifact-root','campaign','inspector','credential-root'):argv+=['--'+name,'/not/read']
+   for scope in ('time-jobs','network','journal','flash-status','sessions','bond-revocation'):
+    with self.subTest(scope=scope),patch.object(sys,'argv',argv+['--scope',scope,'--skip-accepted-time-cases']),patch.object(run,'read_json',side_effect=AssertionError('input')):
+     with self.assertRaises(ValueError):run.main()
  def test_cli_wrong_scope_before_input_access(self):
    argv=['program']
    for name in ('manifest','artifact-root','preparation-manifest','preparation-artifact-root','campaign','inspector','credential-root'):argv+=['--'+name,'/not/read']

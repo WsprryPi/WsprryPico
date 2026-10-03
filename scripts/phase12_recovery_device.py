@@ -332,6 +332,11 @@ def main():
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     action=request['action']
     if action=='info': result=healthy(console('INFO'),allow_fault=request.get('allow_fault',False))
+    elif action=='reboot_original':
+        # The action flock also excludes a still-running snapshot after SSH loss.
+        # Exact-serial ROM reboot only: never load, erase, or repeat a snapshot.
+        execute([PICOTOOL, 'reboot', '--ser', SERIAL], 30)
+        result=wait_info(30,allow_fault=True)
     elif action=='open_ap':
         info=healthy(console('INFO'))
         require(int(info.get('phase12_fault_stage',0)) in range(1,11) and

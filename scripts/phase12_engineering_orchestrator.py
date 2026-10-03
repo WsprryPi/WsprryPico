@@ -68,7 +68,7 @@ def session_payload(payload, selection):
 
 def execute(recovery, preparation, artifacts, root, inspector, config, *, backend_factory=Backend,
             fixture=None, provision=None, cases=None, accelerated=None, journal=None, flash_status=None, bond_revocation=None, preparation_artifacts=None, clock=time.monotonic, sleeper=time.sleep, scope='all', session_choice=None, fixture_roles='engineering'):
-    require(scope in ('all','composition','flash-status','journal','time-jobs','network','sessions','bond-revocation'),'named engineering scope')
+    require(scope in ('all','composition','application','flash-status','journal','time-jobs','network','sessions','bond-revocation'),'named engineering scope')
     if session_choice is not None:
         require(session_choice==session_selection(scope,'running',session_choice.get('cookie_grace_only',False)),'exact session selection')
     require(fixture_roles in ('engineering','swapped') and (fixture_roles=='engineering' or scope=='network'),'swapped roles require network scope')
@@ -470,13 +470,16 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('manifest','artifact-root','preparation-manifest','preparation-artifact-root','campaign','inspector','credential-root'):
         p.add_argument('--'+name,type=Path,required=True)
-    p.add_argument('--scope',choices=('all','composition','flash-status','journal','time-jobs','network','sessions','bond-revocation'),default='all')
+    p.add_argument('--scope',choices=('all','composition','application','flash-status','journal','time-jobs','network','sessions','bond-revocation'),default='all')
+    p.add_argument('--skip-accepted-time-cases',action='store_true')
     p.add_argument('--cookie-grace-stages',choices=('running',))
     p.add_argument('--cookie-grace-only',action='store_true')
     p.add_argument('--fixture-roles',choices=('engineering','swapped'),default='engineering')
     p.add_argument('--native',type=Path)
     p.add_argument('--run',action='store_true');p.add_argument('--recover-only',action='store_true');a=p.parse_args()
     choice=session_selection(a.scope,a.cookie_grace_stages,a.cookie_grace_only)
+    require(not a.skip_accepted_time_cases or a.scope in ('all','composition','application'),
+            'accepted time continuation requires composition/application scope')
     require(a.fixture_roles=='engineering' or a.scope=='network','swapped roles require network scope')
     recovery=read_json(a.manifest)
     verify(recovery,a.artifact_root)
@@ -533,7 +536,7 @@ def main():
                      'contender-client.key':'contender/client.key'}
         for name,source in credentials.items():inputs[name]=remote.stage(a.credential_root/source,name)
         private_write(context['root']/'dispatch-inputs.json',inputs)
-        if a.scope not in ('all','composition'):
+        if a.scope not in ('all','composition','application'):
             # Independent station-dependent scopes inherit the same owned
             # peer-bound UTC prerequisite normally established by T1-T4.
             if a.scope in ('time-jobs','flash-status','journal','network','sessions'):
@@ -561,13 +564,17 @@ def main():
             boot_id=info['status']['boot_id'],source_commit=preparation['source_commit'],
             profile_generation=counter(info['provisioning_generation'],'generation'),
             profile_sha256=sha(context['profile_path']),image_sha256=context['engineering']['uf2']['sha256'],
-            ble_address=context['ble_address'],server_sha256=server_sha256)
+            ble_address=context['ble_address'],server_sha256=server_sha256,
+            scope='application' if a.scope=='application' else 'composition',
+            skip_accepted_time_cases=a.skip_accepted_time_cases or a.scope=='application')
         try:
-            return remote.invoke('phase12_engineering_dispatch.py',payload,timeout=7900,keepalive=True)
+            return remote.invoke('phase12_engineering_dispatch.py',payload,timeout=450 if a.scope=='application' else 7900,keepalive=True)
         finally:
             remote.collect(('time-wire.jsonl','time-result.json','composition-capture.jsonl','composition-plan.json',
                 'directed-plan.json','directed-wave-1-wire.jsonl','directed-wave-2-wire.jsonl',
-                'directed-wave-timeline.jsonl','directed-failure.json','final-authority.json','remote-result.json'))
+                'directed-wave-timeline.jsonl','directed-failure.json','final-authority.json','remote-result.json',
+                'application-idle-wire.jsonl','application-idle-result.json','application-reboot-attempt.json',
+                'application-reboot-result.json','application-cold-wire.jsonl','application-cold-result.json'))
     def accelerated(context):
         # Predetermined fresh-boot time tranche. Disabling only the campaign's
         # responder before reboot prevents retained SNTP from biasing T5.

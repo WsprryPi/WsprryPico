@@ -8,6 +8,9 @@ import argparse
 from contextlib import ExitStack
 import hashlib
 import base64
+import copy
+import http.client
+import io
 import json
 import ipaddress
 import re
@@ -83,51 +86,244 @@ def wave_job(job):
     value['events'][0]['duration_ns']=str(SIM_DURATION_NS)
     return value
 
-def busy_profile_apply(client, profile, password, generation, verify, emit, *, clock=time.monotonic):
-    """Stage exact retained bytes; default-password confirmation is never given."""
-    require(client.generation==generation,'profile client generation')
-    verify();deadline=clock()+20
-    def field(operation,**values):
-        remaining=deadline-clock();require(remaining>0,'profile pressure deadline')
-        result=client._field(operation,timeout=min(5,remaining),**values)
-        require(clock()<=deadline,'late profile pressure response');return result
-    session=uuid.uuid4().hex;apply_request=uuid.uuid4().hex
-    opened=False
+
+def resource_http(args, evidence, method, path, body=None, revision=None, *, deadline=None):
+    """One exact TLS/HTTPS exchange, retaining original private request/reply bytes."""
+    require(method in ('GET','PUT') and path in ('/api/v1/application','/api/v1/config',
+            '/api/v1/station','/api/v1/hardware'),'bounded application route')
+    require(revision is None or re.fullmatch('"[0-9a-f]{64}"',revision),'canonical revision')
+    deadline=min(deadline if deadline is not None else time.monotonic()+3,time.monotonic()+3)
+    stream=connect(args,context(args,True),'http/1.1',evidence,observer_deadline=deadline)
     try:
-        opened=True
-        field('open',session_id=session)
-        for offset in range(0,len(profile),FRAGMENT_BYTES):
-            end=min(offset+FRAGMENT_BYTES,len(profile))
-            field('write',session_id=session,offset=offset,final=end==len(profile),
-                          payload=base64.b64encode(profile[offset:end]).decode('ascii'))
+        authority=args.hostname+':'+str(args.port)
+        payload=b'' if body is None else json.dumps(body,separators=(',',':')).encode()
+        require(len(payload)<=1024,'application request bound')
+        headers=(f'{method} {path} HTTP/1.1\r\nHost: {authority}\r\n'
+                 f'Origin: https://{authority}\r\nContent-Type: application/json\r\n'
+                 'X-WsprryPico-Request: 1\r\nConnection: close\r\n'+
+                 (f'If-Match: {revision}\r\n' if revision is not None else '')+
+                 f'Content-Length: {len(payload)}\r\n\r\n').encode()
+        wire=headers+payload
+        evidence.record('private_application_https_tx',dict(method=method,path=path,hex=wire.hex()))
+        remaining=deadline-time.monotonic();require(remaining>0,'application send deadline')
+        stream.settimeout(remaining);stream.sendall(wire)
+        raw=bytearray()
+        while True:
+            remaining=deadline-time.monotonic();require(remaining>0,'application reply deadline')
+            stream.settimeout(remaining);chunk=stream.recv(4096)
+            if not chunk:break
+            raw.extend(chunk);require(len(raw)<=6144,'application response bound')
+        evidence.record('private_application_https_rx',dict(method=method,path=path,hex=raw.hex()))
+        class Buffered:
+            def makefile(self,mode):return io.BytesIO(raw)
+        response=http.client.HTTPResponse(Buffered());response.begin()
+        _,separator,raw_body=bytes(raw).partition(b'\r\n\r\n')
+        lengths=[value for name,value in response.getheaders() if name.lower()=='content-length']
+        transfers=[value for name,value in response.getheaders() if name.lower()=='transfer-encoding']
+        require(len(lengths)==1 and re.fullmatch('0|[1-9][0-9]*',lengths[0]) and not transfers,
+                'single canonical application content length')
+        require(separator and not response.chunked and response.length==int(lengths[0]) and
+                response.length<=4096 and len(raw_body)==response.length,
+                'exact application content length')
+        payload=response.read(4097);require(len(payload)<=4096,'application body budget')
+        return response.status,loads_strict(payload.decode()),response.getheader('ETag')
+    finally:stream.close()
+
+
+def application_readback(http,plan,*,deadline=None):
+    code,app,revision=http('GET','/api/v1/application',deadline=deadline)
+    require(code==200 and re.fullmatch('"[0-9a-f]{64}"',revision or ''),'application GET/revision')
+    target=dict(scope='member',device_id=DEVICE,boot_id=plan['boot_id'])
+    require(app['schema']=='transmitter-application/1' and app['target']==target,'application target')
+    for name,schema in (('station','transmitter-station/1'),('hardware','transmitter-hardware/1')):
+        require(app[name]['schema']==schema and app[name]['target']==target and
+                app[name]['storage_healthy'] is True,'embedded resource target/health')
+    require(counter(app['station']['saved_generation'],'station generation')==
+            counter(app['hardware']['saved_generation'],'hardware generation'),'common saved generation')
+    require(app['hardware']['saved'] is not None and app['hardware']['active'] is not None and
+            app['hardware']['application_error'] is None and
+            app['hardware']['execution_engine']=='inhibited-standalone-simulator',
+            'saved/active healthy inhibited hardware')
+    code,config,config_revision=http('GET','/api/v1/config',deadline=deadline)
+    require(code==200 and config_revision==revision and config['config'] is not None and
+            config['config']['enabled'] is False and
+            config['config']['station']==app['station']['station'],'config/resource common authority')
+    return dict(application=app,config=config,revision=revision)
+
+
+def application_candidates(baseline):
+    app=baseline['application'];target=copy.deepcopy(app['target'])
+    station=copy.deepcopy(app['station']['station'])
+    station['power_dbm']=0 if station['power_dbm'] else 10
+    pins=copy.deepcopy(app['hardware']['saved'])
+    require(pins['engine']=='direct' and pins['i2c_pair'] is None and
+            pins['amplifier_gp'] is None and pins['lpf_gps']==[],'supported direct fixture')
+    owned={pins['rf_gp'],pins['button_gp'],pins['indicator_gp']}
+    pins['rf_gp']=next(gp for gp in (28,27,26,*range(22,-1,-1)) if gp not in owned)
+    return (dict(schema='transmitter-station/1',target=target,station=station),
+            dict(schema='transmitter-hardware/1',target=copy.deepcopy(target),pins=pins))
+
+
+def busy_application_resources(http,baseline,plan,verify,emit,*,clock=time.monotonic,deadline=None):
+    """Two nonmutating busy attempts within the existing job/case deadlines."""
+    deadline=min(deadline if deadline is not None else clock()+12,clock()+12)
+    station,pins=application_candidates(baseline)
+    for path,body in (('/api/v1/station',station),('/api/v1/hardware',pins)):
         verify()
-        step=field('profile_step_up',profile_session_id=session,
-            apply_request_id=apply_request,expected_generation=generation,password=password)
-        require(step.get('confirmation_required') is True and step.get('ready') is False,
-                'unconfirmed default-password profile safeguard')
+        code,value,_=http('PUT',path,body,baseline['revision'],deadline=deadline)
+        require(clock()<=deadline and code==409 and value==dict(error=dict(code='busy')),
+                'exact application busy refusal')
         verify()
-        remaining=deadline-clock();require(remaining>0,'profile apply deadline')
-        try:
-            client.exchange(dict(version=1,operation='apply',request_id=apply_request,
-                session_id=session,device_id=DEVICE,expected_generation=generation),timeout=min(5,remaining))
-        except ClientError as error:
-            require(error.code=='busy','exact profile busy required')
-        else:raise ValueError('busy profile apply unexpectedly accepted')
-        require(clock()<=deadline,'late profile busy response')
-        verify()
-        emit('profile_apply_busy',{'generation':generation,'profile_sha256':hashlib.sha256(profile).hexdigest(),
-            'physical_confirmation_sent':False,'apply_request_id':apply_request})
-    finally:
-        if opened:
+        emit('application_busy_refusal',dict(path=path,target=body['target'],revision=baseline['revision']))
+    require(application_readback(http,plan,deadline=deadline)==baseline,
+            'busy application attempt changed durable generation/pins/unrelated config')
+    require(clock()<=deadline,'application busy total deadline')
+    verify()
+    emit('application_busy_unchanged',dict(generation=baseline['application']['hardware']['saved_generation'],
+         saved_pins=baseline['application']['hardware']['saved'],active_pins=baseline['application']['hardware']['active']))
+
+
+def idle_application_resources(http,peer,plan,verify,emit,*,clock=time.monotonic,deadline=None):
+    """Separate 60-second B12C stage: four saves, no job and no automatic restart.
+
+    Run after composition/resource work, or in its own root-prepared engineering
+    setup. The first hardware save inhibits all shared job admissions until boot;
+    the root must perform the planned reboot/readback/restoration afterward.
+    """
+    deadline=min(deadline if deadline is not None else clock()+60,clock()+60)
+    def safe():
+        # INFO plus the existing WTP STATUS each have finite transport bounds.
+        require(deadline-clock()>=14,'idle application guard cannot fit deadline');verify()
+        check_status(peer.request('STATUS',{}),plan['boot_id'],unowned=True)
+        require(clock()<deadline,'idle application guard deadline')
+    safe();baseline=application_readback(http,plan,deadline=deadline)
+    app=baseline['application']
+    require(app['hardware']['pending_restart'] is False and app['reboot_required'] is False,
+            'idle application baseline pending restart')
+    station,hardware=application_candidates(baseline)
+    generation=counter(app['hardware']['saved_generation'],'initial application generation')
+    revision=baseline['revision'];current=baseline;saves=0
+    bad_device=copy.deepcopy(station);bad_device['target']['device_id']='0'*32 if DEVICE!='0'*32 else '1'*32
+    bad_boot=copy.deepcopy(station);bad_boot['target']['boot_id']='0'*32 if plan['boot_id']!='0'*32 else '1'*32
+    stale='"'+('0' if revision[1]!='0' else '1')+revision[2:]
+    for body,token,code,error in ((bad_device,revision,409,'target_mismatch'),
+            (bad_boot,revision,409,'target_mismatch'),(station,None,428,'revision_required'),
+            (station,stale,412,'revision_conflict')):
+        safe();status,value,_=http('PUT','/api/v1/station',body,token,deadline=deadline)
+        require(status==code and value==dict(error=dict(code=error)),'idle target/revision exact refusal')
+        emit('application_idle_negative',dict(code=error,target=body['target']))
+    require(application_readback(http,plan,deadline=deadline)==baseline,'target/revision negative mutation')
+    expected_config=copy.deepcopy(baseline['config'])
+    expected_app=copy.deepcopy(app)
+    def save(path,body,*,pending):
+        nonlocal current,revision,saves
+        safe();require(saves<4,'four application saves ceiling')
+        saves+=1 # Consume before any ambiguous request; no retry after failure.
+        status,_,new_revision=http('PUT',path,body,revision,deadline=deadline)
+        require(status==200 and new_revision!=revision,'idle application save response')
+        current=application_readback(http,plan,deadline=deadline)
+        expected_app['station']['saved_generation']=str(generation+saves)
+        expected_app['hardware']['saved_generation']=str(generation+saves)
+        expected_app['hardware']['pending_restart']=pending
+        expected_app['reboot_required']=pending
+        require(current['application']==expected_app and current['config']==expected_config and
+                current['revision']==new_revision,'exact application save and unrelated preservation')
+        revision=new_revision;safe()
+        emit('application_idle_save',dict(path=path,generation=str(generation+saves),
+             revision=revision,saved_pins=current['application']['hardware']['saved'],
+             active_pins=current['application']['hardware']['active'],pending_restart=pending))
+    expected_config['config']['station']=station['station'];expected_app['station']['station']=station['station']
+    save('/api/v1/station',station,pending=False)
+    restore_station=copy.deepcopy(station);restore_station['station']=app['station']['station']
+    expected_config=copy.deepcopy(baseline['config']);expected_app['station']['station']=app['station']['station']
+    save('/api/v1/station',restore_station,pending=False)
+    expected_config['config']['pins']=hardware['pins'];expected_app['hardware']['saved']=hardware['pins']
+    save('/api/v1/hardware',hardware,pending=True)
+    def inhibited():
+        result=peer.request('CLAIM',{'owner_id':uuid.uuid4().hex,'lease_ms':60000},expected_error='BUSY')
+        require(result.get('code')=='BUSY','pending hardware must inhibit shared CLAIM')
+        safe()
+    inhibited()
+    restore_hardware=copy.deepcopy(hardware);restore_hardware['pins']=app['hardware']['saved']
+    expected_config=copy.deepcopy(baseline['config']);expected_app['hardware']['saved']=app['hardware']['saved']
+    save('/api/v1/hardware',restore_hardware,pending=True)
+    inhibited()
+    require(saves==4 and clock()<=deadline,'idle application finite completion')
+    result=dict(status='PASS_IDLE_APPLICATION_REBOOT_PENDING',saves=saves,simulated_jobs=0,rf_jobs=0,
+         boot_id=plan['boot_id'],initial_generation=str(generation),saved_generation=str(generation+saves),
+         initial_revision=baseline['revision'],final_revision=revision,
+         baseline=baseline,final=current,
+         pending=['root normal reboot, exact cold saved/active readback and planned restoration'])
+    emit('application_idle_complete',result)
+    return result
+
+def prepare_busy_profile(client, profile, password, generation, verify, emit, *, clock=time.monotonic,deadline=None):
+    """Upload retained bytes while loaded; return one apply/cancel continuation."""
+    require(client.generation==generation,'profile client generation')
+    verify();stage_deadline=min(deadline if deadline is not None else clock()+20,clock()+20)
+    def field(operation,end,**values):
+        remaining=end-clock();require(remaining>0,'profile pressure deadline')
+        result=client._field(operation,timeout=min(5,remaining),**values)
+        require(clock()<=end,'late profile pressure response');return result
+    session=uuid.uuid4().hex;apply_request=uuid.uuid4().hex
+    opened=False;cancel_attempted=False;finish_attempted=False
+    def cancel(verify=lambda:None):
+        nonlocal cancel_attempted
+        if opened and not cancel_attempted:
+            cancel_attempted=True
             client._field('cancel',session_id=session,timeout=5)
             verify()
             emit('profile_stage_cancelled',{'profile_session_id':session,'generation':generation})
+    def finish(verify,*,deadline=None):
+        nonlocal finish_attempted
+        require(not finish_attempted,'profile apply continuation must not repeat')
+        finish_attempted=True
+        end=min(deadline if deadline is not None else clock()+20,clock()+20)
+        try:
+            verify()
+            step=field('profile_step_up',end,profile_session_id=session,
+                apply_request_id=apply_request,expected_generation=generation,password=password)
+            require(step.get('confirmation_required') is True and step.get('ready') is False,
+                    'unconfirmed default-password profile safeguard')
+            verify()
+            remaining=end-clock();require(remaining>0,'profile apply deadline')
+            try:
+                client.exchange(dict(version=1,operation='apply',request_id=apply_request,
+                    session_id=session,device_id=DEVICE,expected_generation=generation),timeout=min(5,remaining))
+            except ClientError as error:
+                require(error.code=='busy','exact profile busy required')
+            else:raise ValueError('busy profile apply unexpectedly accepted')
+            require(clock()<=end,'late profile busy response')
+            verify()
+            emit('profile_apply_busy',{'generation':generation,'profile_sha256':hashlib.sha256(profile).hexdigest(),
+                'physical_confirmation_sent':False,'apply_request_id':apply_request})
+        finally:cancel(verify)
+        require(clock()<=end,'profile cancellation exceeded pressure deadline')
+    try:
+        opened=True
+        field('open',stage_deadline,session_id=session)
+        for offset in range(0,len(profile),FRAGMENT_BYTES):
+            end=min(offset+FRAGMENT_BYTES,len(profile))
+            field('write',stage_deadline,session_id=session,offset=offset,final=end==len(profile),
+                          payload=base64.b64encode(profile[offset:end]).decode('ascii'))
+        verify()
+        require(clock()<=stage_deadline,'profile staging total deadline')
+        return SimpleNamespace(finish=finish,cancel=cancel)
+    except BaseException:
+        cancel(verify);raise
+
+
+def busy_profile_apply(client, profile, password, generation, verify, emit, *, clock=time.monotonic,deadline=None):
+    """Stage/apply once; default-password confirmation is never given."""
+    end=min(deadline if deadline is not None else clock()+20,clock()+20)
+    prepared=prepare_busy_profile(client,profile,password,generation,verify,emit,clock=clock,deadline=end)
+    prepared.finish(verify,deadline=end)
 
 
 def directed_wave(plan, owner, contender, usb, ble, http_status, info, pressure,
                   *, clock=time.monotonic, sleeper=time.sleep, emit=lambda k,v:None):
     start=clock();jobs=0;current_owner=None;current_job=None
-    attempted_abort=set();attempted_release=set();case_started=None
+    attempted_abort=set();attempted_release=set();case_started=None;prepared_profile=None
     def safe(empty=False):
         require(clock()-start<240,'wave deadline')
         require(case_started is None or clock()-case_started<60,'case deadline')
@@ -170,9 +366,18 @@ def directed_wave(plan, owner, contender, usb, ble, http_status, info, pressure,
             require(claim['owner_id']==current_owner,'claim identity')
             owner.request('LOAD',wave_job(current_job))
             safe()
+            if target=='running':
+                prepare=getattr(ble,'phase12_profile_prepare',None)
+                require(callable(prepare),'running profile staging callback required')
+                prepared_profile=prepare(current_owner,current_job)
+                require(callable(prepared_profile.finish) and callable(prepared_profile.cancel),'profile continuation required')
+                safe()
+            execution_end=None
             if target!='loaded':
-                at=check_clock(owner.request('GET_CLOCK',{}))
+                arm_marker=clock();clock_value=owner.request('GET_CLOCK',{})
+                at=check_clock(clock_value)
                 if target=='armed':at+=ARMED_LEAD_NS-RUNNING_LEAD_NS
+                execution_end=arm_marker+(at-int(clock_value['utc_now_ns'])+SIM_DURATION_NS)/1e9
                 owner.request('ARM',{'job_id':current_job,'start_utc_ns':str(at),
                                      'max_start_uncertainty_ns':'500000000'})
             if target=='running':
@@ -184,9 +389,19 @@ def directed_wave(plan, owner, contender, usb, ble, http_status, info, pressure,
                     require(state['state']=='armed' and clock()<deadline,'running not observed')
                     sleeper(.1)
             observe(target)
+            application_pressure=getattr(ble,'phase12_application_pressure',None)
+            require(callable(application_pressure),'application busy callback required')
+            pressure_deadline=None
+            if target=='running':
+                # Three seconds remain reserved before conservative job completion.
+                require(execution_end-clock()>=21,'running pressure cannot fit remaining job')
+                pressure_deadline=min(clock()+18,execution_end-3)
+            application_pressure(target,current_owner,current_job,deadline=pressure_deadline)
             profile_pressure=getattr(ble,'phase12_profile_pressure',None)
             require(callable(profile_pressure),'bounded busy profile callback required')
-            profile_pressure(target,current_owner,current_job)
+            profile_pressure(target,current_owner,current_job,deadline=pressure_deadline,prepared=prepared_profile)
+            if pressure_deadline is not None:require(clock()<=pressure_deadline,'combined running pressure deadline')
+            prepared_profile=None
             observe(target)
             attempted_abort.add(current_job)
             owner.request('ABORT',{'job_id':current_job})
@@ -207,12 +422,16 @@ def directed_wave(plan, owner, contender, usb, ble, http_status, info, pressure,
                 'covered':['TLS owner+USB+BLE+HTTPS contender shared status',
                            'loaded/armed/running foreign ABORT refusal',
                            'loaded/armed/running exact busy profile apply and staged cancellation',
+                           'loaded/armed/running exact targeted/revisioned station/hardware busy refusal with unchanged durable config',
                            'maximum 65536-byte valid STATUS framing','third network connection refusal','three oversized WTP headers cause bounded disconnect'],
                 'pending':['SoftAP retained session pressure',
                            'BLE excess peer pressure','two-hour resource return soak',
                            'root profile/image readback and final restoration']}
     except BaseException:
         case_started=None
+        if prepared_profile is not None:
+            try:prepared_profile.cancel()
+            except BaseException:emit('profile_stage_cleanup_unconfirmed',{})
         # Reconcile once through the existing owner connection only. Never
         # reopen/repeat CLAIM, LOAD, ARM or the failed request.
         try:
@@ -436,13 +655,33 @@ def run_device(plan, evidence_path, observe_info, *, observe_original_info=None)
             ble.authorize(password);bh=ble.enable_local_control()
             require(bh['boot_id']==plan['boot_id'],'BLE boot')
             retained_profile=private_bytes(Path(plan['profile_path']),7168)
-            def profile_pressure(target,owner_id,job_id):
+            def http_resource(method,path,body=None,revision=None,*,deadline=None):
+                return resource_http(args,e,method,path,body,revision,deadline=deadline)
+            application_baseline=application_readback(http_resource,plan)
+            require(application_baseline['application']['hardware']['pending_restart'] is False and
+                    application_baseline['application']['reboot_required'] is False,
+                    'application baseline already pending restart')
+            def application_pressure(target,owner_id,job_id,*,deadline=None):
+                def verify():
+                    guard(observe_info(),plan)
+                    check_status(owner.request('STATUS',{}),plan['boot_id'],owner=owner_id,job=job_id,states=(target,))
+                busy_application_resources(http_resource,application_baseline,plan,verify,e.record,deadline=deadline)
+            ble.phase12_application_pressure=application_pressure
+            def profile_verify(target,owner_id,job_id):
                 def verify():
                     value=guard(observe_info(),plan)
                     require(value['access_default_password'] is True and
                             ble.generation==plan['profile_generation'],'unconfirmed profile safety')
                     check_status(owner.request('STATUS',{}),plan['boot_id'],owner=owner_id,job=job_id,states=(target,))
-                busy_profile_apply(ble,retained_profile,password,plan['profile_generation'],verify,e.record)
+                return verify
+            def profile_prepare(owner_id,job_id):
+                return prepare_busy_profile(ble,retained_profile,password,plan['profile_generation'],
+                    profile_verify('loaded',owner_id,job_id),e.record)
+            ble.phase12_profile_prepare=profile_prepare
+            def profile_pressure(target,owner_id,job_id,*,deadline=None,prepared=None):
+                verify=profile_verify(target,owner_id,job_id)
+                if prepared is not None:prepared.finish(verify,deadline=deadline)
+                else:busy_profile_apply(ble,retained_profile,password,plan['profile_generation'],verify,e.record,deadline=deadline)
             ble.phase12_profile_pressure=profile_pressure
             def http_status():
                 code,value=browser(args,e)
@@ -500,6 +739,28 @@ def run_device(plan, evidence_path, observe_info, *, observe_original_info=None)
             return result
     finally:
         password=''
+
+
+def run_idle_device(plan,evidence_path,observe_info):
+    """One post-capture B12C application stage; parent owns reboot/cold proof."""
+    deadline=time.monotonic()+60
+    args,_,password=validate_device_plan(plan)
+    evidence_path=Path(evidence_path)
+    require(evidence_path.is_absolute(),'absolute idle transcript')
+    try:
+        with ExitStack() as stack:
+            fdlog=os.open(evidence_path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+            log=stack.enter_context(os.fdopen(fdlog,'w'));e=Evidence(log)
+            def verify():guard(observe_info(),plan,empty=True)
+            verify()
+            owner=RecordedPeer(args,e);stack.callback(owner.close);owner.open()
+            require(time.monotonic()<deadline,'idle application setup deadline')
+            def http(method,path,body=None,revision=None,*,deadline=None):
+                return resource_http(args,e,method,path,body,revision,deadline=deadline)
+            result=idle_application_resources(http,owner,plan,verify,e.record,deadline=deadline)
+            e.record('result',result)
+            return result
+    finally:password=''
 
 
 def main():

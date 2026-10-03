@@ -13,6 +13,7 @@ import unittest
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 import phase12_engineering_composition as run
+import phase12_engineering_dispatch as dispatch
 from wsprrypico_ble import ClientError
 from validate_wtp_contract import frame
 
@@ -92,12 +93,41 @@ class Tests(unittest.TestCase):
             with self.assertRaises(ValueError):invoke()
             self.assertNotIn('apply',[op for op,_ in calls])
             self.assertEqual(calls[-1][0],'cancel')
+    def test_profile_upload_precedes_running_finish_and_cancel_never_repeats(self):
+        calls=[];events=[];state=['loaded'];now=[0]
+        class Client:
+            generation=7
+            def _field(self,op,**value):
+                calls.append((op,state[0],value))
+                if op=='profile_step_up':return dict(confirmation_required=True,ready=False)
+                return {}
+            def exchange(self,message,**kwargs):
+                calls.append(('apply',state[0],message));raise ClientError('busy')
+        prepared=run.prepare_busy_profile(Client(),b'x'*300,'private',7,
+            lambda:self.assertEqual(state[0],'loaded'),lambda k,v:events.append(k),clock=lambda:now[0])
+        self.assertEqual(calls[0][0],'open');self.assertGreater(len(calls),2)
+        self.assertTrue(all(op=='write' for op,_,_ in calls[1:]))
+        state[0]='running'
+        prepared.finish(lambda:self.assertEqual(state[0],'running'),deadline=18)
+        prepared.cancel()
+        self.assertTrue(all(s=='loaded' for op,s,_ in calls if op in ('open','write')))
+        self.assertTrue(all(s=='running' for op,s,_ in calls if op in ('profile_step_up','apply','cancel')))
+        self.assertEqual(sum(op=='cancel' for op,_,_ in calls),1)
+        with self.assertRaises(ValueError):prepared.finish(lambda:None,deadline=18)
+        self.assertEqual(sum(op=='apply' for op,_,_ in calls),1)
     def setUp(self):
         self.s=State();self.owner=Owner(self.s);self.contender=Foreign(self.s);self.usb=Foreign(self.s);self.ble=Ble(self.s)
         self.p={'source_commit':'1'*40,'boot_id':'2'*32,'profile_generation':7}
         self.events=[];self.reads=0;self.pressures=0
         self.profile_pressures=[]
-        self.ble.phase12_profile_pressure=lambda state,owner,job:self.profile_pressures.append((state,owner,job))
+        self.ble.phase12_profile_pressure=lambda state,owner,job,**kw:self.profile_pressures.append((state,owner,job))
+        self.profile_prepares=[];self.profile_cancels=[]
+        def prepare(owner,job):
+            self.profile_prepares.append((self.s.state,owner,job))
+            return SimpleNamespace(finish=lambda *a,**kw:None,cancel=lambda:self.profile_cancels.append(job))
+        self.ble.phase12_profile_prepare=prepare
+        self.application_pressures=[]
+        self.ble.phase12_application_pressure=lambda state,owner,job,**kw:self.application_pressures.append((state,owner,job))
     def info(self):
         self.reads+=1
         return {'device_id':run.DEVICE,'revision':'1'*12,'firmware':'0.0.0-devel',
@@ -123,6 +153,8 @@ class Tests(unittest.TestCase):
         rows=[v for k,v in self.events if k=='shared_status']
         self.assertEqual(len(rows),24)
         self.assertEqual([v[0] for v in self.profile_pressures],['loaded','armed','running'])
+        self.assertEqual([v[0] for v in self.application_pressures],['loaded','armed','running'])
+        self.assertEqual([v[0] for v in self.profile_prepares],['loaded'])
         self.assertEqual({v['state'] for v in rows},{'loaded','armed','running'})
         self.assertEqual(self.s.state,'empty');self.assertIsNone(self.s.owner)
         self.assertIn('maximum 65536-byte valid STATUS framing',result['covered'])
@@ -193,6 +225,31 @@ class Tests(unittest.TestCase):
         self.assertEqual(self.owner.ops.count('RELEASE'),3)
         self.assertEqual(self.s.state,'empty')
         self.assertFalse(any(k=='case_pass' and v['state']=='running' for k,v in self.events))
+    def test_combined_running_pressure_has_one_deadline_and_no_timer_extension(self):
+        now=[0];deadlines=[]
+        def application(state,owner,job,*,deadline=None):
+            if state=='running':deadlines.append(deadline);now[0]=13
+        def profile(state,owner,job,*,deadline=None,prepared=None):
+            if state=='running':
+                deadlines.append(deadline);self.assertIsNotNone(prepared);now[0]=19
+        self.ble.phase12_application_pressure=application;self.ble.phase12_profile_pressure=profile
+        with patch.object(run,'resource_health'):
+            with self.assertRaisesRegex(ValueError,'combined running pressure deadline'):
+                run.directed_wave(self.p,self.owner,self.contender,self.usb,self.ble,
+                    lambda:self.s.status(),self.info,self.pressure,clock=lambda:now[0])
+        self.assertEqual(deadlines,[18,18]);self.assertEqual(self.owner.ops.count('LOAD'),3)
+        self.assertEqual(self.owner.ops.count('ARM'),2);self.assertEqual(len(self.profile_cancels),1)
+        self.assertEqual(self.s.state,'empty')
+    def test_uncertain_running_arm_cancels_prepared_profile_and_does_not_retry(self):
+        original=self.owner.request
+        def request(op,body,**kwargs):
+            value=original(op,body,**kwargs)
+            if op=='ARM' and self.s.claims==3:raise TimeoutError('ARM reply lost')
+            return value
+        self.owner.request=request
+        with self.assertRaises(TimeoutError):self.invoke()
+        self.assertEqual(self.owner.ops.count('ARM'),2);self.assertEqual(len(self.profile_cancels),1)
+        self.assertEqual(self.s.state,'empty')
     def test_wtp_owner_preflight_requires_explicit_unowned(self):
         self.s.owner='foreign-owner'
         with self.assertRaises((ValueError,RuntimeError)):self.invoke()
@@ -297,6 +354,152 @@ class Tests(unittest.TestCase):
     def test_wrong_rejection_layer_fails(self):
         def call(op,body):raise ClientError('authentication_required')
         with self.assertRaises(ValueError):run.reject_foreign(call,'job')
+
+
+class ApplicationResourceTests(unittest.TestCase):
+    def setUp(self):
+        self.plan=dict(boot_id='2'*32);self.events=[];self.calls=[];self.generation=7
+        self.pending=False;self.busy=False;self.wrong_error=False;self.corrupt=False
+        self.target=dict(scope='member',device_id=run.DEVICE,boot_id=self.plan['boot_id'])
+        self.station=dict(callsign='AA0NT',locator='EM18',power_dbm=37)
+        self.pins=dict(engine='direct',rf_gp=2,i2c_pair=None,button_gp=14,amplifier_gp=None,
+            lpf_gps=[],indicator='onboard_led',indicator_gp=None,indicator_active_high=True)
+        self.saved=copy.deepcopy(self.pins)
+        self.config=dict(config=dict(version=1,enabled=False,station=copy.deepcopy(self.station),
+            wifi=dict(ssid='preserved',password=None,ntp_ipv4='pool.ntp.org'),schedules=[]))
+        self.initial_config=copy.deepcopy(self.config)
+        self.principal=[];test=self
+        class Peer:
+            def request(self,op,body,expected_error=None):
+                test.principal.append((op,expected_error))
+                if op=='STATUS':return dict(boot_id='2'*32,state='empty',owner_id=None,job_id=None,output_active=False)
+                if op=='CLAIM' and test.pending:return dict(code='BUSY')
+                raise AssertionError('unexpected or admitted request')
+        self.peer=Peer()
+    def etag(self):return '"'+format(self.generation,'064x')+'"'
+    def app(self):
+        return dict(schema='transmitter-application/1',target=copy.deepcopy(self.target),
+            station=dict(schema='transmitter-station/1',target=copy.deepcopy(self.target),
+                station=copy.deepcopy(self.station),saved_generation=str(self.generation),storage_healthy=True),
+            hardware=dict(schema='transmitter-hardware/1',target=copy.deepcopy(self.target),
+                saved=copy.deepcopy(self.saved),active=copy.deepcopy(self.pins),active_revision='3'*64,
+                saved_generation=str(self.generation),storage_healthy=True,pending_restart=self.pending,
+                application_error=None,execution_engine='inhibited-standalone-simulator'),
+            recurrence=dict(authority='member',enabled=False,suspended=True,schedules=[]),
+            capabilities=dict(hardware_write=True),reboot_required=self.pending)
+    def http(self,method,path,body=None,revision=None,*,deadline=None):
+        self.calls.append((method,path,copy.deepcopy(body),revision))
+        if method=='GET':return 200,self.app() if path=='/api/v1/application' else copy.deepcopy(self.config),self.etag()
+        if revision is None:return 428,dict(error=dict(code='revision_required')),None
+        if revision!=self.etag():return 412,dict(error=dict(code='revision_conflict')),None
+        if self.busy:
+            if self.corrupt:self.generation+=1
+            return 409,dict(error=dict(code='authentication_required' if self.wrong_error else 'busy')),None
+        if body['target']!=self.target:return 409,dict(error=dict(code='target_mismatch')),None
+        self.generation+=1
+        if path=='/api/v1/station':
+            self.station=copy.deepcopy(body['station']);self.config['config']['station']=copy.deepcopy(self.station)
+        else:
+            self.saved=copy.deepcopy(body['pins']);self.pending|=self.saved!=self.pins
+            if self.saved==self.pins:self.config['config'].pop('pins',None)
+            else:self.config['config']['pins']=copy.deepcopy(self.saved)
+        return 200,{},self.etag()
+    def emit(self,k,v):self.events.append((k,v))
+    def baseline(self):return run.application_readback(self.http,self.plan)
+    def test_busy_uses_exact_targets_revisions_and_retains_every_field(self):
+        baseline=self.baseline();self.busy=True
+        run.busy_application_resources(self.http,baseline,self.plan,lambda:None,self.emit,clock=lambda:0)
+        puts=[call for call in self.calls if call[0]=='PUT']
+        self.assertEqual([call[1] for call in puts],['/api/v1/station','/api/v1/hardware'])
+        self.assertTrue(all(call[2]['target']==self.target and call[3]==baseline['revision'] for call in puts))
+        self.assertNotEqual(puts[1][2]['pins']['rf_gp'],self.pins['rf_gp'])
+        self.assertEqual(self.generation,7);self.assertEqual(self.config,self.initial_config)
+        self.assertEqual([k for k,_ in self.events],['application_busy_refusal']*2+['application_busy_unchanged'])
+    def test_wrong_error_or_changed_generation_cannot_count_as_busy_pass(self):
+        for field in ('wrong_error','corrupt'):
+            with self.subTest(field=field):
+                self.setUp();baseline=self.baseline();self.busy=True;setattr(self,field,True)
+                with self.assertRaises(ValueError):run.busy_application_resources(self.http,baseline,self.plan,lambda:None,self.emit,clock=lambda:0)
+                self.assertFalse(any(k=='application_busy_unchanged' for k,_ in self.events))
+    def test_wrong_target_and_cross_route_revision_cannot_qualify_readback(self):
+        baseline=self.http
+        for fault in ('target','revision'):
+            def http(*a,**kw):
+                code,value,etag=baseline(*a,**kw)
+                if a[1]=='/api/v1/application' and fault=='target':value['target']['boot_id']='0'*32
+                if a[1]=='/api/v1/config' and fault=='revision':etag='"'+'f'*64+'"'
+                return code,value,etag
+            with self.subTest(fault=fault),self.assertRaises(ValueError):run.application_readback(http,self.plan)
+    def test_idle_four_saves_restore_metadata_and_pins_but_keep_admission_latch(self):
+        result=run.idle_application_resources(self.http,self.peer,self.plan,lambda:None,self.emit,clock=lambda:0)
+        self.assertEqual(result['saves'],4);self.assertEqual(result['simulated_jobs'],0)
+        self.assertEqual(self.generation,11);self.assertEqual(self.config,self.initial_config)
+        self.assertEqual(self.saved,self.pins);self.assertTrue(self.pending)
+        self.assertEqual([v for op,v in self.principal if op=='CLAIM'],['BUSY','BUSY'])
+        self.assertEqual(sum(k=='application_idle_negative' for k,_ in self.events),4)
+    def test_uncertain_idle_save_never_repeated_or_reported_complete(self):
+        original=self.http
+        def uncertain(*a,**kw):
+            result=original(*a,**kw)
+            if a[0]=='PUT' and result[0]==200:raise TimeoutError('save applied response lost')
+            return result
+        with self.assertRaises(TimeoutError):run.idle_application_resources(uncertain,self.peer,self.plan,lambda:None,self.emit,clock=lambda:0)
+        self.assertEqual(self.generation,8)
+        self.assertEqual(sum(k=='application_idle_complete' for k,_ in self.events),0)
+    def test_late_busy_reply_fails_without_extended_deadline(self):
+        baseline=self.baseline();self.busy=True;now=[0];original=self.http
+        def late(*a,**kw):now[0]=13;return original(*a,**kw)
+        with self.assertRaises(ValueError):run.busy_application_resources(late,baseline,self.plan,lambda:None,self.emit,clock=lambda:now[0])
+        self.assertEqual(sum(k=='application_busy_unchanged' for k,_ in self.events),0)
+class ApplicationHTTPTests(unittest.TestCase):
+    def exchange(self,raw,*,late=False):
+        events=[];sent=[];now=[0]
+        class Stream:
+            closed=False
+            def settimeout(self,value):pass
+            def sendall(self,value):sent.append(value)
+            def recv(self,size):
+                if late:now[0]=4
+                if raw_chunks:return raw_chunks.pop(0)
+                return b''
+            def close(self):self.closed=True
+        stream=Stream();raw_chunks=[raw]
+        evidence=SimpleNamespace(record=lambda k,v:events.append((k,v)))
+        args=SimpleNamespace(hostname='wsprrypico.test',port=443)
+        def invoke():
+            with patch.object(run,'connect',return_value=stream) as connect,patch.object(run,'context'),patch.object(run.time,'monotonic',side_effect=lambda:now[0]):
+                try:return run.resource_http(args,evidence,'PUT','/api/v1/station',{'target':'known'},'"'+'a'*64+'"')
+                finally:self.assertEqual(connect.call_count,1)
+        return invoke,stream,sent,events
+    def test_original_request_response_retained_and_exact_etag_returned(self):
+        raw=b'HTTP/1.1 409 Conflict\r\nContent-Length: 25\r\nETag: "'+b'a'*64+b'"\r\n\r\n{"error":{"code":"busy"}}'
+        # The actual JSON body is 25 bytes; private evidence keeps all wire bytes.
+        invoke,stream,sent,events=self.exchange(raw)
+        self.assertEqual(invoke(),(409,{'error':{'code':'busy'}},'"'+'a'*64+'"'))
+        self.assertTrue(stream.closed);self.assertEqual(len(sent),1)
+        self.assertIn(b'If-Match: "'+b'a'*64+b'"\r\n',sent[0])
+        self.assertEqual(bytes.fromhex(events[0][1]['hex']),sent[0])
+        self.assertEqual(bytes.fromhex(events[1][1]['hex']),raw)
+    def test_incomplete_extra_or_chunked_response_never_qualifies(self):
+        for headers,body in ((b'Content-Length: 3',b'{}'),(b'Content-Length: 2',b'{}x'),
+                (b'Content-Length: 2\r\nContent-Length: 3',b'{}'),
+                (b'Content-Length: 2\r\nContent-Length: 2',b'{}'),
+                (b'Content-Length: 02',b'{}'),
+                (b'Content-Length: 2\r\nTransfer-Encoding: identity',b'{}'),
+                (b'Transfer-Encoding: chunked',b'2\r\n{}\r\n0\r\n\r\n')):
+            with self.subTest(headers=headers,body=body):
+                invoke,stream,sent,events=self.exchange(b'HTTP/1.1 200 OK\r\n'+headers+b'\r\n\r\n'+body)
+                with self.assertRaises(ValueError):invoke()
+                self.assertTrue(stream.closed);self.assertEqual(len(sent),1)
+                self.assertEqual(len(events),2)
+    def test_duplicate_json_or_expired_transport_never_retries(self):
+        body=b'{"x":1,"x":2}'
+        raw=b'HTTP/1.1 200 OK\r\nContent-Length: '+str(len(body)).encode()+b'\r\n\r\n'+body
+        for late in (False,True):
+            with self.subTest(late=late):
+                invoke,stream,sent,events=self.exchange(raw,late=late)
+                with self.assertRaises(ValueError):invoke()
+                self.assertTrue(stream.closed);self.assertEqual(len(sent),1)
 class FramingWitnessTests(unittest.TestCase):
     def test_partial_advisory_requires_fresh_endpoint_close_and_actual_peer_close(self):
         headers=struct.pack('>4sBBHII',b'WTPF',1,1,0,65537,0)*3
@@ -342,5 +545,142 @@ class FramingWitnessTests(unittest.TestCase):
             def recv(self,size):return values.pop(0)
         with self.assertRaises(ValueError):run.invalid_disconnect(Socket(),'s','2'*32,
             observe_close=lambda:infos.pop(0),headers=struct.pack('>4sBBHII',b'WTPF',1,1,0,65537,0)*3)
+
+class ApplicationDispatchTests(unittest.TestCase):
+    def info(self,boot='2'*32):
+        return dict(device_id=run.DEVICE,revision='1'*12,firmware='0.0.0-devel',
+            provisioning_source='provisioned',provisioning_generation='7',access_generation='3',
+            access_state='healthy',access_default_password=True,saved_consumer_profile=None,
+            lan_wtp_mode='engineering-tls',softap_session_inactivity_ms='900000',softap_session_absolute_ms='43200000',
+            network=dict(link_status=3,ipv4='192.168.84.2',accepted='1',ntp_server='192.168.84.1'),
+            status=dict(boot_id=boot,engine='inhibited-standalone-simulator',output_active=False,
+                enabled=False,storage_healthy=True,state='empty',clock_state='synchronized'))
+    def plan(self):return dict(source_commit='1'*40,boot_id='2'*32,profile_generation=7)
+    def observer(self,value):return lambda:(copy.deepcopy(value),json.dumps(value).encode())
+    def test_fresh_warm_records_prerequisite_without_time_acceptance(self):
+        actions=[];observations=[self.info(),self.info()];observations[-1]['network']['accepted']='2'
+        def observer():
+            value=observations.pop(0);return value,json.dumps(value).encode()
+        with tempfile.TemporaryDirectory() as path,patch.object(run,'resource_health'):
+            result=dispatch.warm_accepted_time(self.plan(),observer,
+                lambda action,**kw:actions.append((action,kw)),Path(path),clock=lambda:0,sleeper=lambda s:None)
+            self.assertEqual(result['cases'],[]);self.assertEqual(result['max_seconds'],180)
+            self.assertEqual([a for a,_ in actions],['bind_peer','sntp_on'])
+            self.assertEqual(len(list(Path(path).glob('continuation-warm-info-*'))),2)
+    def test_warm_late_or_wrong_boot_cannot_enable_fixture(self):
+        for fault in ('late','boot'):
+            info=self.info('3'*32 if fault=='boot' else '2'*32);now=[0];actions=[]
+            def observer():
+                now[0]=181 if fault=='late' else 0
+                return info,json.dumps(info).encode()
+            with tempfile.TemporaryDirectory() as path,patch.object(run,'resource_health'):
+                with self.assertRaises(ValueError):dispatch.warm_accepted_time(self.plan(),observer,
+                    lambda *a,**kw:actions.append(a),Path(path),clock=lambda:now[0])
+            self.assertEqual(actions,[])
+    def test_action_lock_precedes_one_normal_reboot_and_unknown_reply_not_retried(self):
+        for uncertain in (False,True):
+            calls=[]
+            def request(op):
+                calls.append(op)
+                if op=='INFO':return self.info()
+                if uncertain:raise TimeoutError('reboot ack lost')
+                return dict(ok=True,rebooting=True)
+            with patch.object(run,'resource_health'),patch.object(dispatch.os,'open',return_value=99),patch.object(dispatch.os,'close') as close,patch.object(dispatch.fcntl,'flock',side_effect=lambda *a:calls.append('action_flock')):
+                if uncertain:
+                    with self.assertRaises(TimeoutError):dispatch.normal_reboot(self.plan(),request=request)
+                else:self.assertEqual(dispatch.normal_reboot(self.plan(),request=request)['attempts'],1)
+                self.assertEqual(calls,['action_flock','INFO','REBOOT']);close.assert_called_once_with(99)
+    def test_idle_unknown_reboot_stops_before_cold_proof_without_new_jobs(self):
+        stage=dict(saves=4,simulated_jobs=0,rf_jobs=0)
+        with tempfile.TemporaryDirectory() as path,patch.object(run,'resource_health'),patch.object(dispatch,'run_idle_device',return_value=stage) as idle,patch.object(dispatch,'normal_reboot',side_effect=TimeoutError('unknown')) as reboot,patch.object(dispatch,'cold_application') as cold:
+            with self.assertRaises(TimeoutError):dispatch.application_stage(self.plan(),self.observer(self.info()),Path(path),lambda *a,**kw:None)
+            self.assertEqual(idle.call_count,1);self.assertEqual(reboot.call_count,1);cold.assert_not_called()
+    def cold_fixture(self,fault=None):
+        fixture=ApplicationResourceTests();fixture.setUp()
+        baseline=fixture.baseline();app=copy.deepcopy(baseline['application']);target=dict(fixture.target,boot_id='3'*32)
+        for resource in (app,app['station'],app['hardware']):resource['target']=copy.deepcopy(target)
+        for name in ('station','hardware'):app[name]['saved_generation']='11'
+        app['recurrence']['suspended']=False
+        active=':'.join((run.DEVICE,'3'*32,'hardware',json.dumps(app['hardware']['saved'],separators=(',',':'))))
+        app['hardware']['active_revision']=run.hashlib.sha256(active.encode()).hexdigest()
+        info=self.info('3'*32)
+        if fault=='pins':app['hardware']['active']['rf_gp']=28
+        if fault=='pending':app['hardware']['pending_restart']=True
+        if fault=='generation':app['hardware']['saved_generation']='12'
+        if fault=='settings':info['access_generation']='4'
+        if fault=='time':info['network']['ntp_server']='foreign'
+        readback=dict(application=app,config=copy.deepcopy(baseline['config']),revision='"'+'c'*64+'"')
+        if fault=='revision':readback['revision']=baseline['revision']
+        if fault=='config':readback['config']['config']['wifi']['ssid']='foreign'
+        stage=dict(baseline=baseline,before_info=self.info(),saved_generation='11',
+            initial_revision=baseline['revision'],final_revision='"'+'b'*64+'"')
+        return info,readback,stage
+    def test_cold_new_boot_has_exact_saved_active_original_settings_and_shared_authority(self):
+        info,readback,stage=self.cold_fixture();actions=[];calls=[]
+        class Peer:
+            def __init__(self,*a):self.owner=None
+            def open(self):calls.append('HELLO/CAPS')
+            def request(self,op,body):
+                calls.append(op)
+                if op=='CLAIM':self.owner=body['owner_id'];return dict(owner_id=self.owner)
+                if op=='RELEASE':self.owner=None;return {}
+                return dict(boot_id='3'*32,state='empty',output_active=False,owner_id=self.owner,job_id=None)
+            def close(self):calls.append('close')
+        with tempfile.TemporaryDirectory() as path,patch.object(run,'resource_health'),patch.object(dispatch,'validate_device_plan',return_value=(SimpleNamespace(),None,'')),patch.object(dispatch,'application_readback',return_value=readback),patch.object(dispatch,'RecordedPeer',Peer):
+            result=dispatch.cold_application(self.plan(),stage,self.observer(info),Path(path),
+                lambda action,**kw:actions.append(action),clock=lambda:0)
+            self.assertEqual(result['status'],'PASS_IDLE_APPLICATION_COLD_PROOF')
+            self.assertEqual((result['saves'],result['normal_reboots'],result['simulated_jobs']),(4,1,0))
+            self.assertEqual(calls,['HELLO/CAPS','STATUS','CLAIM','STATUS','RELEASE','STATUS','close'])
+            self.assertEqual((result['claims'],result['releases']),(1,1));self.assertEqual(actions,['bind_peer'])
+    def admission(self,*,fault=None,applied=False,record_failure=False):
+        calls=[];events=[];test=self;original=TimeoutError('mutation reply unavailable')
+        class Peer:
+            owner=None
+            def request(self,op,body):
+                calls.append(op)
+                if op=='STATUS':return dict(boot_id='3'*32,state='empty',output_active=False,owner_id=self.owner,job_id=None)
+                if op=='CLAIM':
+                    if fault=='busy':raise RuntimeError({'code':'BUSY'})
+                    if fault!='CLAIM' or applied:self.owner=body['owner_id']
+                    if fault=='CLAIM':raise original
+                    return dict(owner_id=self.owner)
+                if op=='RELEASE':
+                    if fault!='RELEASE' or applied:self.owner=None
+                    if fault=='RELEASE':raise original
+                    return {}
+                test.fail('unexpected job operation')
+        def record(kind,**value):
+            if record_failure:raise OSError('observer unavailable')
+            events.append(kind)
+        return lambda:dispatch.cold_admission(Peer(),'3'*32,SimpleNamespace(record=record),180,clock=lambda:0),calls,events,original
+    def test_healthy_empty_status_with_busy_claim_cannot_qualify_recovered_admission(self):
+        invoke,calls,events,_=self.admission(fault='busy')
+        with self.assertRaises(RuntimeError):invoke()
+        self.assertEqual(calls.count('CLAIM'),1);self.assertNotIn('RELEASE',calls)
+        self.assertNotIn('cold_shared_admission_recovered',events)
+    def test_unknown_cold_claim_or_release_never_repeated_and_original_failure_preserved(self):
+        for fault in ('CLAIM','RELEASE'):
+            for applied in (False,True):
+                for record_failure in (False,True):
+                    with self.subTest(fault=fault,applied=applied,record_failure=record_failure):
+                        invoke,calls,events,original=self.admission(fault=fault,applied=applied,record_failure=record_failure)
+                        with self.assertRaises(TimeoutError) as caught:invoke()
+                        self.assertIs(caught.exception,original);self.assertEqual(calls.count('CLAIM'),1)
+                        self.assertLessEqual(calls.count('RELEASE'),1);self.assertNotIn('LOAD',calls)
+                        self.assertNotIn('cold_shared_admission_recovered',events)
+    def test_cold_pin_pending_config_generation_time_or_revision_mismatch_never_qualifies(self):
+        for fault in ('pins','pending','config','generation','settings','time','revision'):
+            with self.subTest(fault=fault):
+                info,readback,stage=self.cold_fixture(fault)
+                with tempfile.TemporaryDirectory() as path,patch.object(run,'resource_health'),patch.object(dispatch,'validate_device_plan',return_value=(SimpleNamespace(),None,'')),patch.object(dispatch,'application_readback',return_value=readback),patch.object(dispatch,'RecordedPeer') as peer:
+                    with self.assertRaises(ValueError):dispatch.cold_application(self.plan(),stage,self.observer(info),Path(path),lambda *a,**kw:None,clock=lambda:0)
+                    peer.assert_not_called();self.assertFalse((Path(path)/'application-cold-result.json').exists())
+    def test_cold_same_boot_deadline_is_bounded_without_second_reboot(self):
+        info,readback,stage=self.cold_fixture();now=[0]
+        with tempfile.TemporaryDirectory() as path,patch.object(dispatch,'validate_device_plan',return_value=(SimpleNamespace(),None,'')):
+            with self.assertRaisesRegex(ValueError,'cold observer cannot fit deadline'):dispatch.cold_application(self.plan(),stage,self.observer(self.info()),Path(path),lambda *a,**kw:None,
+                clock=lambda:now[0],sleeper=lambda s:now.__setitem__(0,now[0]+s))
+            self.assertLessEqual(now[0],180)
 
 if __name__=='__main__':unittest.main()

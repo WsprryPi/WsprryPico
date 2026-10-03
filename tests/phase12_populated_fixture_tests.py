@@ -103,6 +103,33 @@ class Tests(unittest.TestCase):
         self.assertEqual(after['config']['wifi'],before['config']['wifi'])
         self.assertEqual(len(after['config']['schedules']),2)
 
+    def test_consumer_profile_without_operational_config_gets_declared_defaults(self):
+        original=self.baseline.read_bytes()
+        erased=bytearray(original)
+        # Store's two config banks occupy 0x3fb000..0x3fcfff. Keep both cursor
+        # banks at 0x3fd000..0x3fefff, the consumer profile and E10 untouched.
+        erased[0x3fb000:0x3fd000]=b'\xff'*8192
+        self.baseline.unlink();builder.write(self.baseline,erased)
+        before=builder.strict(builder.command([INSPECTOR,self.baseline]))
+        self.assertTrue(before['profile_healthy']);self.assertTrue(before['operational_healthy'])
+        self.assertEqual(before['profile_source'],5);self.assertIsNone(before['config'])
+        self.assertEqual(before['watermark'],1)
+        self.assertEqual(erased[:0x3fb000],original[:0x3fb000])
+        self.assertEqual(erased[0x3fd000:],original[0x3fd000:])
+        receipt=builder.build(self.baseline,self.output,INSPECTOR,NATIVE,OPENSSL)
+        after=builder.strict(builder.command([INSPECTOR,self.output/'populated.bin']))
+        expected=dict(version=1,enabled=False,station=self.profile['station'],
+            wifi=dict(ssid='Host Test',password='private-test-password',ntp_ipv4='time.example.org'),
+            schedules=[dict(period_s=240,phase_s=0),dict(period_s=240,phase_s=120)],expires_utc_s=0)
+        self.assertEqual(after['config'],expected)
+        self.assertNotIn('pins',after['config']) # Source-defined default plan.
+        self.assertEqual(builder.strict(after['profile_payload'])['tls'],self.profile['tls'])
+        self.assertGreater(after['watermark'],before['watermark'])
+        result=(self.output/'populated.bin').read_bytes()
+        self.assertEqual(result[:0x3f7000],erased[:0x3f7000])
+        self.assertEqual(result[0x3ff000:],erased[0x3ff000:])
+        self.assertEqual(set(receipt['preserved_regions']),{'application','access','ble','E10'})
+
     def test_private_inputs_and_existing_output_fail_before_seeding(self):
         self.output.mkdir();(self.output/'keep').write_bytes(b'keep')
         with self.assertRaises(ValueError):builder.build(self.baseline,self.output,INSPECTOR,NATIVE,OPENSSL)

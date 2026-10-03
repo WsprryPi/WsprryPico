@@ -276,17 +276,16 @@ class FlashHostDiagnosticTests(unittest.TestCase):
                 calls.append(True)
                 kwargs['error_handler'](OriginalError('one original Connect failure'))
 
-        def async_call(self, interface, method, timeout, code, *args):
-            state = []
-            getattr(interface, method)(error_handler=state.append)
-            if state:
-                raise ClientError(code)
-        with patch.object(BluezBackend, '_async', async_call):
-            with self.assertRaises(ClientError):
-                backend._async(Interface(), 'Connect', 5, 'connect_failed')
+        backend._wait = lambda predicate, timeout, code: self.assertTrue(predicate())
+        with self.assertRaises(ClientError):
+            backend._async(Interface(), 'Connect', 5, 'connect_failed')
         self.assertEqual(len(calls), 1)
         self.assertEqual(rows[-1]['value']['dbus_name'], 'org.bluez.Error.Failed')
         self.assertEqual(rows[-1]['value']['message'], 'one original Connect failure')
+        self.assertEqual(rows[-2]['kind'], 'ble_host_lifecycle')
+        self.assertEqual(rows[-2]['value']['operation_id'], rows[-1]['value']['operation_id'])
+        self.assertGreater(rows[-1]['value']['utc_ns'], 0)
+        self.assertNotIn('private-password', str(rows))
 
 class NetworkActivationDiagnosticTests(unittest.TestCase):
 
@@ -595,5 +594,199 @@ class RecoveryLedgerCleanupTests(unittest.TestCase):
         self.assertEqual(events.count('actual_cleanup'),1);self.assertEqual(result['error']['type'],'ValueError')
         self.assertEqual(result['error']['message'],'baseline scheduling enabled')
         self.assertIn('host_cleanup_failed',[v['event'] for v in result['recording_errors']])
+
+class SnapshotFailureRecoveryTests(unittest.TestCase):
+    def setUp(self):
+        import phase12_recovery_orchestrator as recovery
+        import phase12_recovery_device as device
+        self.recovery=recovery;self.device=device
+        self.before=dict(device_id=recovery.DEVICE,revision='original-source',firmware='original-firmware',
+            access_generation='7',provisioning_generation='9',provisioning_source='consumer_preclock',
+            access_state='healthy',saved_consumer_profile=dict(station={'callsign':'SYNTHETIC','locator':'AA00','power_dbm':0}),
+            network={'ntp_server':'192.0.2.1'},active_pins={'rf':3},saved_pins={'rf':3},
+            config={'enabled':False,'expires_utc_s':2000000000},
+            status=dict(boot_id='original-boot',engine='inhibited-standalone-simulator',enabled=False,
+                output_active=False,state='empty',owner_id=None,job_id=None,storage_healthy=True,
+                station={'callsign':'SYNTHETIC','locator':'AA00','power_dbm':0},pins={'rf':3},watermark_utc_ns='0'))
+        self.after=copy.deepcopy(self.before);self.after['status']['boot_id']='fresh-boot'
+        self.health=patch.object(device,'resource_health');self.health.start();self.addCleanup(self.health.stop)
+        self.now=0;self.calls=[]
+        self.backend=recovery.Backend.__new__(recovery.Backend)
+        self.backend.guard=SimpleNamespace(poll=lambda:None)
+        self.backend.remote='/home/pi/phase12-recovery-'+'a'*32
+        self.backend.info=lambda:copy.deepcopy(self.before)
+        def call(action,**args):
+            self.calls.append((action,args));return copy.deepcopy(self.after)
+        self.backend.call=call
+    def advance(self,seconds):self.now+=seconds
+    def recover(self):
+        return self.recovery.Backend.recover_snapshot_runtime(self.backend,self.before,
+            clock=lambda:self.now,sleeper=self.advance)
+    def test_five_actual_samples_bind_reboot_receipt_fresh_boot_settings_and_finite_calls(self):
+        result=self.recover()
+        self.assertEqual(result['samples'],5);self.assertEqual(len(result['observations']),5)
+        self.assertEqual(result['boot_id'],'fresh-boot');self.assertEqual(result['flash_writes'],0)
+        self.assertEqual([c[0] for c in self.calls],['reboot_original']+['info']*5)
+        self.assertEqual(self.calls[0][1],dict(transport_timeout=60))
+        self.assertTrue(all(c[1]['transport_timeout']<=6 for c in self.calls[1:]))
+    def test_missing_or_dead_campaign_lease_never_reboots(self):
+        for guard in (None,SimpleNamespace(poll=lambda:1)):
+            if guard is None:del self.backend.guard
+            else:self.backend.guard=guard
+            with self.assertRaisesRegex(ValueError,'exclusion lock'):self.recover()
+        self.assertEqual(self.calls,[])
+    def test_old_boot_receipt_cannot_claim_verified_recovery(self):
+        self.after['status']['boot_id']=self.before['status']['boot_id']
+        with self.assertRaisesRegex(ValueError,'reboot not observed'):self.recover()
+        self.assertEqual([c[0] for c in self.calls],['reboot_original'])
+    def test_settings_generation_pin_and_authority_drift_refused_without_reboot_retry(self):
+        for field,value in (('access_generation','8'),('provisioning_generation','10'),
+                ('network',{'ntp_server':'192.0.2.2'}),('saved_pins',{'rf':4}),
+                ('active_pins',{'rf':4}),('config',{'enabled':False,'expires_utc_s':0})):
+            self.calls.clear();self.now=0
+            changed=copy.deepcopy(self.after);changed[field]=value
+            def call(action,**args):
+                self.calls.append((action,args));return copy.deepcopy(self.after if action=='reboot_original' else changed)
+            self.backend.call=call
+            with self.subTest(field=field),self.assertRaisesRegex(ValueError,'settings changed'):self.recover()
+            self.assertEqual([c[0] for c in self.calls],['reboot_original','info'])
+        self.calls.clear();self.now=0
+        changed=copy.deepcopy(self.after);changed['status']['output_active']=True
+        self.backend.call=lambda action,**args:changed
+        with self.assertRaisesRegex(ValueError,'inactive inhibited'):self.recover()
+        changed=copy.deepcopy(self.after);changed['status']['station']['locator']='AA01'
+        self.backend.call=lambda action,**args:changed
+        with self.assertRaisesRegex(ValueError,'settings changed'):self.recover()
+    def test_second_boot_after_reboot_receipt_refused(self):
+        def call(action,**args):
+            self.calls.append((action,args));info=copy.deepcopy(self.after)
+            if action=='info':info['status']['boot_id']='another-boot'
+            return info
+        self.backend.call=call
+        with self.assertRaisesRegex(ValueError,'unexpected.*reboot'):self.recover()
+        self.assertEqual([c[0] for c in self.calls],['reboot_original','info'])
+    def test_late_reboot_and_late_fifth_info_never_count_as_success(self):
+        for late_action in ('reboot_original','info'):
+            self.calls.clear();self.now=0
+            def call(action,**args):
+                self.calls.append((action,args))
+                if action==late_action and (action=='reboot_original' or len(self.calls)==6):self.now=181
+                return copy.deepcopy(self.after)
+            self.backend.call=call
+            with self.subTest(action=late_action),self.assertRaisesRegex(ValueError,'deadline'):self.recover()
+            self.assertEqual(sum(c[0]=='reboot_original' for c in self.calls),1)
+    def test_missing_serial_observation_uses_remaining_transport_deadline_without_reboot_retry(self):
+        def call(action,**args):
+            self.calls.append((action,args))
+            if action=='info':
+                self.now+=args['transport_timeout'];raise subprocess.TimeoutExpired('synthetic observer',args['transport_timeout'])
+            return copy.deepcopy(self.after)
+        self.backend.call=call
+        with self.assertRaises(TimeoutError):self.recover()
+        self.assertEqual(self.now,180);self.assertEqual(sum(c[0]=='reboot_original' for c in self.calls),1)
+        self.assertLess(self.calls[-1][1]['transport_timeout'],6)
+    def snapshot_scenario(self,fault):
+        import hashlib
+        import tempfile
+        raw=b'\0'*self.recovery.SIZE;digest=hashlib.sha256(raw).hexdigest()
+        receipt=dict(path='original.bin',bytes=len(raw),sha256=digest)
+        primary=OSError('original '+fault+' failure')
+        writes=[]
+        def call(action,**args):
+            self.calls.append((action,args))
+            if action=='snapshot':
+                if fault=='snapshot':raise primary
+                return receipt.copy()
+            if fault=='recovery' and action=='reboot_original':raise ValueError('reboot unavailable')
+            return copy.deepcopy(self.after)
+        def copy_file(args,**kw):
+            if fault=='copy':raise primary
+            Path(args[-1]).write_bytes(raw)
+        actual_write=self.recovery.private_write
+        def private_write(path,value):
+            writes.append(Path(path).name)
+            if fault=='receipt' or fault=='recovery_receipt' and str(path).endswith('.snapshot-recovery.json'):raise primary
+            actual_write(path,value)
+        def inspect(path):
+            if fault in ('inspect','recovery_receipt','recovery'):raise primary
+            return {'synthetic_native_inspection':True}
+        self.backend.call=call;self.backend.inspect=inspect
+        self.backend.recover_snapshot_runtime=lambda before:self.recover()
+        with tempfile.TemporaryDirectory() as directory:
+            self.backend.campaign=Path(directory)
+            with patch.object(self.recovery.subprocess,'run',side_effect=copy_file),patch.object(self.recovery,'private_write',side_effect=private_write):
+                if fault=='none':result=self.backend.snapshot('original.bin');error=None
+                else:
+                    with self.assertRaises(OSError) as raised:self.backend.snapshot('original.bin')
+                    error=raised.exception;result=self.backend.last_snapshot_recovery
+                local=self.backend.campaign/'original.bin'
+                local_valid=local.exists() and local.stat().st_size==len(raw) and self.recovery.sha(local)==digest
+                if local.exists():self.assertEqual(local.stat().st_mode&0o777,0o600)
+                receipt_exists=(self.backend.campaign/'original.bin.snapshot-receipt.json').exists()
+        return primary,error,result,local_valid,receipt_exists,writes
+    def test_original_snapshot_or_scp_error_recovers_once_without_any_flash_write(self):
+        for fault in ('snapshot','copy'):
+            self.calls.clear();self.now=0
+            primary,error,result,*_=self.snapshot_scenario(fault)
+            self.assertIs(error,primary);self.assertEqual(result['outcome']['samples'],5)
+            self.assertEqual([c[0] for c in self.calls],['snapshot','reboot_original']+['info']*5)
+    def test_native_inspector_failure_retains_validated_private_backup_and_remote_receipt(self):
+        primary,error,result,local_valid,receipt_exists,_=self.snapshot_scenario('inspect')
+        self.assertIs(error,primary);self.assertTrue(local_valid);self.assertTrue(receipt_exists)
+        self.assertEqual(result['outcome']['status'],'ORIGINAL_RUNTIME_REBOOT_VERIFIED')
+    def test_recording_failure_does_not_mask_original_or_repeat_snapshot(self):
+        for fault in ('receipt','recovery_receipt'):
+            self.calls.clear();self.now=0
+            primary,error,result,local_valid,*_=self.snapshot_scenario(fault)
+            self.assertIs(error,primary);self.assertEqual(result['outcome']['flash_writes'],0)
+            self.assertTrue(local_valid)
+            self.assertEqual(sum(c[0]=='snapshot' for c in self.calls),1)
+            self.assertEqual(sum(c[0]=='reboot_original' for c in self.calls),1)
+    def test_success_has_durable_receipt_and_backup_no_recovery(self):
+        _,error,result,local_valid,receipt_exists,_=self.snapshot_scenario('none')
+        self.assertIsNone(error);self.assertTrue(local_valid);self.assertTrue(receipt_exists)
+        self.assertEqual(result['inspection'],{'synthetic_native_inspection':True})
+        self.assertEqual([c[0] for c in self.calls],['snapshot'])
+    def test_failed_recovery_keeps_original_exception_and_retained_backup(self):
+        primary,error,result,local_valid,*_=self.snapshot_scenario('recovery')
+        self.assertIs(error,primary);self.assertTrue(local_valid)
+        self.assertEqual(result['error_type'],'ValueError');self.assertNotIn('outcome',result)
+        self.assertEqual([c[0] for c in self.calls],['snapshot','reboot_original'])
+    def test_actual_transport_uses_given_timeout_and_refuses_unbounded_values(self):
+        backend=self.recovery.Backend.__new__(self.recovery.Backend)
+        backend.guard=SimpleNamespace(poll=lambda:None);backend.helper='/private/no-hardware';backend.remote='/private/no-hardware'
+        with patch.object(self.recovery.subprocess,'run',return_value=SimpleNamespace(stdout=b'{}',returncode=0)) as command:
+            self.assertEqual(backend.call('info',transport_timeout=2.5),{})
+            self.assertEqual(command.call_args.kwargs['timeout'],2.5)
+            for value in (0,-1,271,float('inf')):
+                with self.assertRaisesRegex(ValueError,'finite transport'):backend.call('info',transport_timeout=value)
+            self.assertEqual(command.call_count,1)
+    def test_device_reboot_is_exact_serial_action_locked_and_has_no_write_or_snapshot(self):
+        import contextlib
+        import io
+        device=self.device;events=[]
+        root='/home/pi/phase12-recovery-'+'a'*32
+        request=dict(root=root,action='reboot_original')
+        class Root:
+            def __str__(self):return root
+            def is_dir(self):return True
+            def is_symlink(self):return False
+        def execute(args,seconds):events.append(('execute',args,seconds))
+        def lock(fd,flags):events.append(('flock',flags))
+        with patch.object(device,'Path',return_value=Root()),patch.object(device.os,'umask'),\
+                patch.object(device.os,'open',return_value=123) as opened,patch.object(device.fcntl,'flock',side_effect=lock),\
+                patch.object(device,'execute',side_effect=execute),patch.object(device,'wait_info',return_value=self.after),\
+                patch.object(device.sys,'stdin',SimpleNamespace(buffer=io.BytesIO(json.dumps(request).encode()))),\
+                contextlib.redirect_stdout(io.StringIO()):
+            device.main()
+        self.assertEqual(opened.call_args.args,('/home/pi/.wsprrypico-recovery-action-'+device.SERIAL+'.lock',device.os.O_RDWR|device.os.O_CREAT|device.os.O_NOFOLLOW,0o600))
+        self.assertEqual(events,[('flock',device.fcntl.LOCK_EX|device.fcntl.LOCK_NB),
+            ('execute',[device.PICOTOOL,'reboot','--ser',device.SERIAL],30)])
+        with patch.object(device,'Path',return_value=Root()),patch.object(device.os,'umask'),\
+                patch.object(device.os,'open',return_value=123),patch.object(device.fcntl,'flock',side_effect=BlockingIOError('snapshot still running')),\
+                patch.object(device,'execute') as command,patch.object(device,'wait_info') as observation,\
+                patch.object(device.sys,'stdin',SimpleNamespace(buffer=io.BytesIO(json.dumps(request).encode()))):
+            with self.assertRaises(BlockingIOError):device.main()
+            command.assert_not_called();observation.assert_not_called()
 
 if __name__=='__main__':unittest.main()
