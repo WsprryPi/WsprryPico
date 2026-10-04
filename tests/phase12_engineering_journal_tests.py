@@ -42,9 +42,12 @@ class Tests(unittest.TestCase):
                 server_private_key='-----BEGIN PRIVATE KEY-----\nAA==\n-----END PRIVATE KEY-----\n',client_ca=pem))
         self.payload=canonical_profile(value);self.context=dict(stage=0,generation=7,source_commit='a'*40,
             boot_id='b'*32,ble_address='AA:BB:CC:DD:EE:FF',profile_sha256=hashlib.sha256(self.payload).hexdigest())
-        self.info=dict(device_id=runner.DEVICE,revision='a'*12,phase12_fault_stage=0,phase12_fault_consumed=False,
-            status=dict(boot_id='b'*32,engine='inhibited-standalone-simulator',output_active=False,enabled=False,
-                        state='empty',owner_id=None,job_id=None,storage_healthy=True),access_state='healthy',
+        from phase12_engineering_journal_stimuli_tests import info as serial_info
+        # Use the real USB Scheduler::status schema, including no owner/job keys.
+        projection=serial_info()
+        self.info=dict(ok=True,device_id=runner.DEVICE,revision='a'*12,phase12_fault_stage=0,phase12_fault_consumed=False,
+            status=projection['status'],access_state='healthy',ble_running=True,ble_active_connections=0,
+            lan_wtp_ready=False,lan_wtp_port=0,
             provisioning_source='provisioned',provisioning_generation='7',lan_wtp_mode='engineering-tls',access_default_password=True,local_suffix='0a9d89')
         self.client=Client();self.commands=[];self.evidence=Evidence()
     def observe(self):return copy.deepcopy(self.info),json.dumps(self.info).encode()
@@ -379,7 +382,7 @@ class DispatchTests(unittest.TestCase):
             for name,data in files.items():
                 path=actual/name;path.write_bytes(data);path.chmod(0o600)
             info=copy.deepcopy(setup.info);info['status'].update(boot_id='c'*32,clock_state='synchronized')
-            info['network']=dict(link_status=3,ipv4='192.168.84.2',ntp_server='192.168.84.1',
+            info['network']=dict(enabled=True,link_status=3,ipv4='192.168.84.2',ntp_server='192.168.84.1',
                 ntp_address='192.168.84.1',accepted=1)
             request=dict(root=remote,authority=dispatch.AUTHORITY,stage=0,candidate_role='engineering',
                 source_commit='a'*40,manifest_sha256=hashlib.sha256(manifest_raw).hexdigest(),
@@ -580,8 +583,10 @@ class StimuliDispatchTests(unittest.TestCase):
             self.assertTrue(evidence.closed);self.assertFalse(probes+fixtures)
     def test_five_actual_fault_INFO_samples_before_review_required_publication(self):
         def observe(clock,value,count):
-            value.update(provisioning_source='fault',provisioning_generation='0',provisioning_fault=1,lan_wtp_ready=False)
-            value['network'].update(ipv4='',link_status=0,accepted=0,rejected=0)
+            value.update(provisioning_source='fault',provisioning_generation='0',provisioning_fault=1,lan_wtp_ready=False,
+                         ble_running=False,ble_active_connections=0)
+            value['status']['clock_state']='unsynchronized'
+            value['network'].update(enabled=False,ipv4='',link_status=0,accepted=0,rejected=0)
         with self.deadline_case('observe_fault',observe=observe,remaining=300) as case:
             request,clock,observations,probes,fixtures,sleeps,evidence=case
             request.update(journal_selection='stimuli',boot_id='b'*32)
@@ -591,8 +596,10 @@ class StimuliDispatchTests(unittest.TestCase):
     def test_exact300s_fault_success_or_wrong_fault_source_cannot_publish(self):
         for wrong in (False,True):
             def observe(clock,value,count):
-                value.update(provisioning_source='provisioned' if wrong else 'fault',provisioning_generation='0',provisioning_fault=1,lan_wtp_ready=False)
-                value['network'].update(ipv4='',link_status=0,accepted=0,rejected=0)
+                value.update(provisioning_source='provisioned' if wrong else 'fault',provisioning_generation='0',provisioning_fault=1,lan_wtp_ready=False,
+                             ble_running=False,ble_active_connections=0)
+                value['status']['clock_state']='unsynchronized'
+                value['network'].update(enabled=False,ipv4='',link_status=0,accepted=0,rejected=0)
                 if count==5:clock[0]=300
             with self.subTest(wrong=wrong),self.deadline_case('observe_fault',observe=observe,remaining=300) as case:
                 request,clock,observations,probes,fixtures,sleeps,evidence=case;request.update(journal_selection='stimuli',boot_id='b'*32)
@@ -631,8 +638,9 @@ class StimuliTrancheTests(unittest.TestCase):
                     value.update(phase12_fault_stage=self.stage,phase12_fault_consumed=self.consumed,
                                  access_default_password=True,local_suffix='0a9d89')
                     if self.fault:
-                        value.update(provisioning_source='fault',provisioning_generation='0',provisioning_fault=1,lan_wtp_ready=False)
-                        value['network'].update(ipv4='',link_status=0)
+                        value.update(provisioning_source='fault',provisioning_generation='0',provisioning_fault=1,lan_wtp_ready=False,
+                                     ble_running=False,ble_active_connections=0)
+                        value['network'].update(enabled=False,ipv4='',link_status=0)
                     return value
                 def inspection(self):
                     role={7:'A',8:'B',9:'C'}[self.generation]

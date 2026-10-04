@@ -70,8 +70,31 @@ def publish(path,value):
     finally:os.close(directory)
 
 
+def serial_inactive(info):
+    """Validate INFO's Scheduler::status projection, not WTP STATUS.
+
+    The bound firmware's serial projection has no owner_id or job_id. Empty
+    scheduler state and inactive output do not directly observe WTP ownership.
+    """
+    status=info['status']
+    required={'ok','boot_id','clock_state','engine','state','output_active','enabled',
+              'storage_healthy','reboot_required'}
+    require(type(status) is dict and required<=status.keys(),'complete serial scheduler projection')
+    require('owner_id' not in status and 'job_id' not in status,
+            'serial INFO is not a WTP ownership/job observation')
+    require(info['ok'] is True and status['ok'] is True and
+            type(status['boot_id']) is str and re.fullmatch('[0-9a-f]{32}',status['boot_id']) and
+            status['clock_state'] in ('unsynchronized','synchronized','holdover'),
+            'actual serial INFO boot/clock projection')
+    require(status['engine']=='inhibited-standalone-simulator' and status['output_active'] is False and
+            status['enabled'] is False and status['state']=='empty' and status['storage_healthy'] is True and
+            status['reboot_required'] is False and info['access_state']=='healthy',
+            'serial-visible empty inactive disabled inhibited scheduler; ownership/job identity unobserved')
+    return status
+
+
 def info_binding(raw,source,generation,boot=None):
-    value=strict(raw);status=value['status'];network=value['network']
+    value=strict(raw);status=serial_inactive(value);network=value['network']
     require(value['device_id']==DEVICE and value['revision']==source[:12] and
             re.fullmatch('[0-9a-f]{40}',source) and
             re.fullmatch('[0-9a-f]{32}',status['boot_id']),'stimulus exact B/source/boot')
@@ -79,15 +102,12 @@ def info_binding(raw,source,generation,boot=None):
             value['provisioning_generation']==str(generation) and
             value['provisioning_source']=='provisioned' and value['lan_wtp_mode']=='engineering-tls',
             'stimulus profile authority')
-    require(status['engine']=='inhibited-standalone-simulator' and status['output_active'] is False and
-            status['enabled'] is False and status['state']=='empty' and status['owner_id'] is None and
-            status['job_id'] is None and status['storage_healthy'] is True and value['access_state']=='healthy',
-            'stimulus inactive empty unowned inhibited')
     require(boot is None or status['boot_id']==boot,'stimulus same boot')
     peer=ipaddress.IPv4Address(network['ipv4'])
     unsigned(network['accepted'],'exact accepted counter')
     unsigned(network['rejected'],'exact rejected counter')
-    require(network['link_status']==3 and peer in ipaddress.IPv4Network(ADDRESS+'/24',strict=False) and
+    require(type(network['link_status']) is int and network['link_status']==3 and
+            peer in ipaddress.IPv4Network(ADDRESS+'/24',strict=False) and
             str(peer) not in (ADDRESS,'192.168.84.0','192.168.84.255') and
             network['ntp_server']==ADDRESS,'owned station/time source')
     return value
@@ -313,16 +333,29 @@ def corrupt_newest(raw,expected_profile,expected_generation):
 
 
 def fault_info(raw,source,previous_boot):
-    info=strict(raw);status=info['status']
+    """Observe the fault boot through INFO; owner/job identity is unobserved.
+
+    RuntimeProfile::load returns false for StorageFault. In the bound firmware,
+    main.cpp gates USB WTP and BLE startup on runtime_profile_loaded. Native
+    fail-closed selection, unchanged disabled configuration and the exact seed
+    are separate caller gates; this projection does not qualify those bytes.
+    """
+    info=strict(raw);status=serial_inactive(info);network=info['network']
     require(info['device_id']==DEVICE and info['revision']==source[:12] and
             re.fullmatch('[0-9a-f]{40}',source) and re.fullmatch('[0-9a-f]{32}',status['boot_id']) and
+            type(previous_boot) is str and re.fullmatch('[0-9a-f]{32}',previous_boot) and
             status['boot_id']!=previous_boot,'fresh exact fault B boot')
+    require({'ble_running','ble_active_connections','lan_wtp_ready','lan_wtp_port'}<=info.keys() and
+            {'enabled','ipv4','link_status','accepted','rejected'}<=network.keys(),
+            'present fault carrier/clock observations')
     require(info['provisioning_source']=='fault' and info['provisioning_generation']=='0' and
-            type(info['provisioning_fault']) is int and info['provisioning_fault']==1 and info['lan_wtp_ready'] is False and
-            info['network']['ipv4'] in ('','0.0.0.0') and info['network']['link_status']!=3,
+            type(info['provisioning_fault']) is int and info['provisioning_fault']==1 and
+            info['lan_wtp_ready'] is False and type(info['lan_wtp_port']) is int and info['lan_wtp_port']==0 and
+            network['enabled'] is False and network['ipv4'] in ('','0.0.0.0') and
+            type(network['link_status']) is int and network['link_status']!=3,
             'explicit profile storage fault without old station/TLS authority')
-    require(status['engine']=='inhibited-standalone-simulator' and status['output_active'] is False and
-            status['enabled'] is False and status['state']=='empty' and status['owner_id'] is None and
-            status['job_id'] is None and status['storage_healthy'] is True and info['access_state']=='healthy',
-            'fault admission guard: inactive empty unowned inhibited, unrelated storage healthy')
+    require(info['ble_running'] is False and unsigned(info['ble_active_connections'],'actual BLE connection count')==0,
+            'actual BLE unavailable with zero connections')
+    require(status['clock_state']=='unsynchronized' and unsigned(network['accepted'],'fault accepted counter')==0 and
+            unsigned(network['rejected'],'fault rejected counter')==0,'fresh fault boot has no adopted network time')
     return info

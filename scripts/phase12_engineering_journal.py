@@ -387,7 +387,7 @@ def tranche(context, stage_image, apply_remote, tls_remote, save, *, clock=time.
         fault_info(bytes.fromhex(fault['wire_hex']),source,previous_boot)
         fault=dict(fault,seed_sha256=corrupted['sha256'],seed_receipt_sha256=hashlib.sha256((root/'journal-corrupt-seed.json').read_bytes()).hexdigest(),
             older_committed_B_intact=True,all_other_seed_bytes_equal=True,
-            usb_fault_admission_scope='INFO storage fault plus inactive empty unowned inhibited and absent station/LAN authority; no crypto refusal claim')
+            usb_fault_admission_scope='INFO StorageFault/gen0 with empty inactive disabled inhibited scheduler, BLE unavailable/zero connections and absent station/LAN; bound firmware gates USB/BLE WTP on runtime_profile_loaded=false. WTP ownership/job identity unobserved; native selection/configuration and exact seed are separate gates; no crypto refusal claim')
         save(root/'journal-corrupt-review-required.json',fault);remaining_fault()
     return dict(status='ENGINEERING_JOURNAL_TRANCHE_ACCEPTED' if selection=='standard' else 'ENGINEERING_JOURNAL_STIMULI_REVIEW_REQUIRED',
                 stages=results,corrupted_newest=fault,stale_datagrams=0 if selection=='standard' else 1,rf_jobs=0)

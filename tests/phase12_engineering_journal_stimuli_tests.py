@@ -16,12 +16,28 @@ from phase12_engineering_fixture import ntp_reply
 
 
 def info(generation=7,boot='b'*32,accepted=0,rejected=0):
-    return dict(device_id=s.DEVICE,revision='a'*12,provisioning_source='provisioned',
+    # Exact Scheduler::status keys from the retained c0d source1 USB INFO
+    # (634b7d4e29a3961bb587cdb27a8058364848f8979a3ab25857565c829a3cceb3).
+    # Only identities, clocks and declared fixture values are substituted.
+    # WTP STATUS owner_id/job_id are deliberately absent from this producer.
+    return dict(ok=True,device_id=s.DEVICE,revision='a'*12,provisioning_source='provisioned',
         provisioning_generation=str(generation),lan_wtp_mode='engineering-tls',access_state='healthy',
-        status=dict(boot_id=boot,engine='inhibited-standalone-simulator',output_active=False,enabled=False,
-            state='empty',owner_id=None,job_id=None,storage_healthy=True,
+        ble_running=True,ble_active_connections=0,lan_wtp_ready=bool(accepted),lan_wtp_port=0,
+        status=dict(ok=True,boot_id=boot,engine='inhibited-standalone-simulator',output_active=False,enabled=False,
+            state='empty',storage_healthy=True,reboot_required=False,configured=False,suspended=True,
+            station=None,schedules=[],expires_utc_s=0,last_error=None,last_job='',
+            monotonic_now_ns='1000000000',utc_now_ns='1791100000000000000' if accepted else '0',
+            sync_age_ns='0' if accepted else str(2**64-1),uncertainty_ns='1000' if accepted else str(2**64-1),
+            watermark_utc_ns='0',schedule_base_frequency_nhz='3570100000000000',
             clock_state='synchronized' if accepted else 'unsynchronized'),
-        network=dict(ipv4='192.168.84.2',link_status=3,ntp_server=s.ADDRESS,accepted=accepted,rejected=rejected))
+        network=dict(enabled=True,ipv4='192.168.84.2',link_status=3,ntp_server=s.ADDRESS,accepted=accepted,rejected=rejected))
+
+
+def fault_info():
+    value=info();value.update(provisioning_source='fault',provisioning_generation='0',provisioning_fault=1,
+        lan_wtp_ready=False,lan_wtp_port=0,ble_running=False,ble_active_connections=0)
+    value['network'].update(enabled=False,ipv4='',link_status=0)
+    return value
 
 
 def raw(value):return json.dumps(value).encode()
@@ -172,18 +188,72 @@ class Tests(unittest.TestCase):
             with self.subTest(key=key,value=value):
                 value_info=info(8,'d'*32,rejected=1);value_info['network'][key]=value
                 with self.assertRaises(ValueError):self.control('release',value_info)
-        value=info();value.update(provisioning_source='fault',provisioning_generation='0',provisioning_fault=True,lan_wtp_ready=False)
-        value['network'].update(ipv4='',link_status=0)
+        value=fault_info();value['provisioning_fault']=True
         with self.assertRaises(ValueError):s.fault_info(raw(value),'a'*40,'c'*32)
     def test_fault_guard_requires_actual_fresh_storage_fault_and_inactive_no_network(self):
-        value=info();value.update(provisioning_source='fault',provisioning_generation='0',provisioning_fault=1,lan_wtp_ready=False)
-        value['network'].update(ipv4='',link_status=0)
+        value=fault_info()
         self.assertEqual(s.fault_info(raw(value),'a'*40,'c'*32),value)
         for change in [dict(provisioning_source='provisioned'),dict(provisioning_generation='7'),
                        dict(provisioning_fault=2),dict(lan_wtp_ready=True),dict(status=dict(value['status'],output_active=True))]:
             changed=copy.deepcopy(value);changed.update(change)
             with self.assertRaises(ValueError):s.fault_info(raw(changed),'a'*40,'c'*32)
         with self.assertRaises(ValueError):s.fault_info(raw(value),'a'*40,'b'*32)
+    def test_real_serial_schema_is_admitted_unchanged_without_wtp_identity(self):
+        value=info();wire=raw(value)
+        self.assertEqual(s.info_binding(wire,'a'*40,7,'b'*32),value)
+        self.assertNotIn('owner_id',value['status']);self.assertNotIn('job_id',value['status'])
+        self.control('old_bind',value)
+        original=s.strict((self.root/s.FILES[1]).read_bytes())
+        self.assertEqual(bytes.fromhex(original['info_raw_hex']),wire)
+        self.assertEqual(original['info_sha256'],hashlib.sha256(wire).hexdigest())
+        fault=fault_info();self.assertEqual(s.fault_info(raw(fault),'a'*40,'c'*32),fault)
+        self.assertNotIn('owner_id',fault['status']);self.assertNotIn('job_id',fault['status'])
+    def test_missing_serial_or_pending_active_projection_refuses_before_bind(self):
+        for key in ('ok','boot_id','clock_state','engine','state','output_active','enabled','storage_healthy','reboot_required'):
+            with self.subTest(missing=key):
+                value=info();del value['status'][key]
+                with self.assertRaisesRegex(ValueError,'complete serial scheduler projection'):self.control('old_bind',value)
+        for key,value in [('ok',False),('boot_id','invalid'),('clock_state','unknown'),('engine','pio-dma-gp2'),
+                          ('state','loaded'),('output_active',True),('output_active',0),('enabled',True),
+                          ('storage_healthy',False),('storage_healthy',1),('reboot_required',True),('reboot_required',0)]:
+            with self.subTest(key=key,value=value):
+                changed=info();changed['status'][key]=value
+                with self.assertRaises(ValueError):self.control('old_bind',changed)
+        self.assertFalse((self.root/s.FILES[1]).exists());self.assertEqual(self.sent,[])
+    def test_hybrid_wtp_fields_do_not_turn_serial_INFO_into_owner_evidence(self):
+        for key,value in [('owner_id',None),('owner_id','e'*32),('job_id',None),('job_id','f'*32)]:
+            with self.subTest(key=key,value=value):
+                changed=info();changed['status'][key]=value
+                with self.assertRaisesRegex(ValueError,'not a WTP ownership/job observation'):self.control('old_bind',changed)
+        self.assertFalse((self.root/s.FILES[1]).exists());self.assertEqual(self.sent,[])
+    def test_edited_new_INFO_with_valid_hash_still_cannot_admit_stale_send(self):
+        self.captured();path=self.root/s.FILES[4];receipt=s.strict(path.read_bytes())
+        changed=info(8,'d'*32);changed['status']['reboot_required']=True;wire=raw(changed)
+        receipt.update(info_raw_hex=wire.hex(),info_sha256=s.digest(wire));path.write_bytes(raw(receipt))
+        with self.assertRaisesRegex(ValueError,'serial-visible'):self.respond()
+        self.assertFalse((self.root/s.FILES[5]).exists());self.assertEqual(self.sent,[])
+    def test_fault_requires_present_inactive_BLE_and_no_station_or_clock_authority(self):
+        for key in ('ble_running','ble_active_connections','lan_wtp_ready','lan_wtp_port'):
+            with self.subTest(missing=key):
+                value=fault_info();del value[key]
+                with self.assertRaisesRegex(ValueError,'present fault carrier'):s.fault_info(raw(value),'a'*40,'c'*32)
+        for key in ('enabled','ipv4','link_status','accepted','rejected'):
+            with self.subTest(missing_network=key):
+                value=fault_info();del value['network'][key]
+                with self.assertRaisesRegex(ValueError,'present fault carrier'):s.fault_info(raw(value),'a'*40,'c'*32)
+        for key,value in [('ble_running',True),('ble_running',0),('ble_active_connections',1),
+                          ('ble_active_connections',False),('ble_active_connections',0.0),
+                          ('lan_wtp_ready',True),('lan_wtp_port',443),('lan_wtp_port',False)]:
+            with self.subTest(key=key,value=value):
+                changed=fault_info();changed[key]=value
+                with self.assertRaises(ValueError):s.fault_info(raw(changed),'a'*40,'c'*32)
+        for key,value in [('enabled',True),('enabled',0),('link_status',3),('link_status',False),
+                          ('ipv4','192.168.84.2'),('accepted',1),('accepted',False),('rejected',1)]:
+            with self.subTest(network=key,value=value):
+                changed=fault_info();changed['network'][key]=value
+                with self.assertRaises(ValueError):s.fault_info(raw(changed),'a'*40,'c'*32)
+        changed=fault_info();changed['status']['clock_state']='synchronized'
+        with self.assertRaises(ValueError):s.fault_info(raw(changed),'a'*40,'c'*32)
 
 
 class CorruptionTests(unittest.TestCase):
