@@ -155,6 +155,7 @@ class WarmNetworkTests(unittest.TestCase):
                     raise ValueError(msg)
             retained = []
             ns = dict(a=type('Args', (), dict(scope='network',fixture_roles='engineering', preparation_manifest=P / 'manifest'))(), remote=Remote(), time=type('Clock', (), dict(monotonic=staticmethod(lambda: now[0])))(), private_write=lambda path, value: retained.append((path, value)), safe_info=lambda *a: None, preparation={'source_commit': 'a' * 40, 'candidates': [dict(role='engineering', uf2={'sha256': 'image'})]}, counter=lambda v, *a: int(v), require=require, Path=pathlib.Path, __file__=str(P / 'phase12_engineering_orchestrator.py'), sha=lambda p: 'hash', AUTHORITY='authorized', server_sha256='server',role_map=role_map,ACCELERATED_HELPERS=orchestrator.ACCELERATED_HELPERS)
+            ns['accelerated_helpers'] = orchestrator.accelerated_helpers
             exec(compile(ast.fix_missing_locations(ast.Module(body=[fn], type_ignores=[])), 'actual', 'exec'), ns)
             context = dict(backend=Backend(), info=original, root=P, profile_path='profile', ble_address='peer')
             if fault:

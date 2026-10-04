@@ -55,7 +55,14 @@ FLASH_STATUS_HELPERS=('phase12_engineering_flash_status.py','phase12_engineering
 JOURNAL_HELPERS=('phase12_engineering_journal.py','phase12_engineering_journal_dispatch.py')
 BOND_REFUSAL_HELPERS=('phase12_engineering_bond_refusal_dispatch.py',
     'phase12_engineering_flash_status_dispatch.py','phase12_engineering_flash_status.py')
-SCOPES=('all','composition','application','flash-status','journal','time-jobs','network','sessions','bond-revocation')
+SCOPES=('all','composition','application','flash-status','journal','time-jobs',
+        'time-jobs-invalidation','time-jobs-sntp','network','sessions','bond-revocation')
+
+
+def accelerated_helpers(scope):
+    require(scope in SCOPES,'named engineering scope')
+    return ACCELERATED_HELPERS + (('phase12_engineering_time_invalidation.py',)
+        if scope=='time-jobs-invalidation' else ())
 
 
 def staging_inputs(scope, preparation_manifest, credential_root):
@@ -67,7 +74,8 @@ def staging_inputs(scope, preparation_manifest, credential_root):
     require(scope in SCOPES,'named engineering scope')
     repository=Path(__file__).parents[1];scripts=repository/'scripts'
     helpers=FIXTURE_HELPERS+PROVISION_HELPERS+COMMON_HELPERS
-    if scope in ('all','time-jobs','network','sessions'):helpers+=ACCELERATED_HELPERS
+    if scope in ('all','time-jobs','time-jobs-invalidation','time-jobs-sntp','network','sessions'):
+        helpers+=accelerated_helpers(scope)
     if scope in ('all','flash-status'):helpers+=FLASH_STATUS_HELPERS
     if scope in ('all','journal'):helpers+=JOURNAL_HELPERS+('network_certificates.py',)
     if scope in ('all','bond-revocation'):helpers+=BOND_REFUSAL_HELPERS
@@ -590,7 +598,7 @@ def main():
         if a.scope not in ('all','composition','application'):
             # Independent station-dependent scopes inherit the same owned
             # peer-bound UTC prerequisite normally established by T1-T4.
-            if a.scope in ('time-jobs','flash-status','journal','network','sessions'):
+            if a.scope in ('time-jobs','time-jobs-invalidation','time-jobs-sntp','flash-status','journal','network','sessions'):
                 warm_end=time.monotonic()+180
                 peer_bound=False;warm_observation=0
                 while True:
@@ -606,8 +614,8 @@ def main():
                         require(info['network']['ipv4'].startswith('192.168.84.'),'isolated owned station')
                         if not peer_bound:
                             remote.fixture('bind_peer',dict(address=info['network']['ipv4']));peer_bound=True
-                            if a.scope!='time-jobs':remote.fixture('sntp_on',{})
-                        if a.scope=='time-jobs' or (info['status']['clock_state']=='synchronized' and int(info['network']['accepted'])>0):break
+                            if a.scope not in ('time-jobs','time-jobs-invalidation','time-jobs-sntp'):remote.fixture('sntp_on',{})
+                        if a.scope in ('time-jobs','time-jobs-invalidation','time-jobs-sntp') or (info['status']['clock_state']=='synchronized' and int(info['network']['accepted'])>0):break
                     time.sleep(.5)
             return dict(status='COMMON_INPUTS_STAGED',scope=a.scope)
         info=context['info']
@@ -644,11 +652,12 @@ def main():
                     'exact retained warm network prerequisite')
         else:
             remote.fixture('sntp_off',{})
-            saved=backend.snapshot('before-time-jobs.bin')
+            prefix={'time-jobs-invalidation':'time-invalidation','time-jobs-sntp':'time-sntp'}.get(a.scope,'time-jobs')
+            saved=backend.snapshot('before-'+prefix+'.bin')
             require(saved['inspection']['profile_source']==1 and saved['inspection']['profile_healthy'],
                     'T5 requires exact healthy runtime profile')
-            info=backend.deploy('engineering',saved,'time-jobs-deployment.bin')['info']
-        names=ACCELERATED_HELPERS
+            info=backend.deploy('engineering',saved,prefix+'-deployment.bin')['info']
+        names=accelerated_helpers(a.scope)
         inputs={name:remote.stage(Path(__file__).parent/name,name) for name in names}
         private_write(context['root']/'accelerated-inputs.json',inputs)
         def payload(info,candidate):
@@ -658,10 +667,15 @@ def main():
                 profile_sha256=sha(context['profile_path']),image_sha256=candidate['uf2']['sha256'],
                 ble_address=context['ble_address'],server_sha256=server_sha256)
         engineering=next(c for c in preparation['candidates'] if c['role']=='engineering')
-        if a.scope in ('all','time-jobs'):
+        if a.scope in ('all','time-jobs','time-jobs-invalidation','time-jobs-sntp'):
+          selected=payload(info,engineering)
+          prefix={'time-jobs-invalidation':'time-invalidation','time-jobs-sntp':'time-sntp'}.get(a.scope,'time-jobs')
+          if a.scope=='time-jobs-invalidation':selected['time_selection']='invalidation'
+          if a.scope=='time-jobs-sntp':selected['time_selection']='sntp'
           try:
-            remote.invoke('phase12_engineering_time_dispatch.py',payload(info,engineering),timeout=280,keepalive=True)
-          finally:remote.collect(('time-jobs-wire.jsonl','time-jobs-result.json'))
+            remote.invoke('phase12_engineering_time_dispatch.py',selected,
+                          timeout={'time-jobs-invalidation':220,'time-jobs-sntp':160}.get(a.scope,280),keepalive=True)
+          finally:remote.collect((prefix+'-wire.jsonl',prefix+'-result.json'))
         if a.scope in ('all','network'):
           remote.fixture('sntp_on',{})
           try:
@@ -789,7 +803,7 @@ def main():
     def revoke(context):return revoke_single_bond(context,peer_attempt=old_peer)
     try:
         result=execute(recovery,preparation,a.artifact_root,a.campaign,a.inspector,config,
-            backend_factory=factory,fixture=remote.fixture,provision=remote.provision,cases=cases,accelerated=accelerated if a.scope in ('all','time-jobs','network','sessions') else None,
+            backend_factory=factory,fixture=remote.fixture,provision=remote.provision,cases=cases,accelerated=accelerated if a.scope in ('all','time-jobs','time-jobs-invalidation','time-jobs-sntp','network','sessions') else None,
             journal=journal if a.scope in ('all','journal') else None,
             flash_status=flash_status if a.scope in ('all','flash-status') else None,
             bond_revocation=revoke if a.scope in ('all','bond-revocation') else None,

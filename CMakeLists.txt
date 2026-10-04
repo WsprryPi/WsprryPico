@@ -614,7 +614,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
             phase12_station_trial phase12_consumer_fallback
             phase12_engineering_staging
             phase12_engineering_bond_refusal
-            phase12_engineering_time_jobs phase12_time_jobs_sampling phase12_engineering_cookie_grace
+            phase12_engineering_time_jobs phase12_engineering_time_invalidation
+            phase12_time_jobs_sampling phase12_engineering_cookie_grace
             phase12_engineering_stage_dispatch phase12_engineering_network
             phase12_engineering_network_dispatch phase12_consumer_negative
             phase12_consumer_negative_dispatch phase12_consumer_negative_orchestrator

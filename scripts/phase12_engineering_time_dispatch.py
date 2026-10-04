@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Private fresh-boot T5 dispatcher; no image or host clock mutation."""
 import hashlib
+from contextlib import contextmanager,nullcontext
 import json
 import os
 from pathlib import Path
@@ -20,6 +21,22 @@ from phase12_composition_audit import counter
 from phase12_recovery_device import DEVICE,strict,require
 from check_standalone_image import validate_uf2
 from wsprrypico_ble import ClientError
+
+
+@contextmanager
+def body_deadline(seconds):
+    """Interrupt blocking new-scope transports; restore before external cleanup."""
+    require(seconds in (120,180),'fixed time continuation body deadline')
+    require(threading.current_thread() is threading.main_thread(),'time body timer requires main thread')
+    require(signal.getitimer(signal.ITIMER_REAL)==(0.0,0.0),'existing process timer cannot be replaced')
+    previous=signal.getsignal(signal.SIGALRM)
+    def expired(*unused):raise TimeoutError('whole time continuation body deadline')
+    signal.signal(signal.SIGALRM,expired)
+    signal.setitimer(signal.ITIMER_REAL,seconds)
+    try:yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL,0)
+        signal.signal(signal.SIGALRM,previous)
 
 
 def retain_failure_info(request, observer, evidence, end):
@@ -50,7 +67,16 @@ def retain_failure_info(request, observer, evidence, end):
 
 
 def run(request):
-    dispatcher_end=time.monotonic()+280
+    selection=request.get('time_selection','standard')
+    require(selection in ('standard','invalidation','sntp'),'explicit time selection')
+    selected_runner=run_time
+    timer=nullcontext
+    if selection=='invalidation':
+        from phase12_engineering_time_invalidation import run as selected_runner
+        timer=lambda:body_deadline(180)
+    if selection=='sntp':timer=lambda:body_deadline(120)
+    prefix={'standard':'time-jobs','invalidation':'time-invalidation','sntp':'time-sntp'}[selection]
+    dispatcher_end=time.monotonic()+{'standard':280,'invalidation':220,'sntp':160}[selection]
     require(request['authority']=='USER_AUTHORIZED_UNATTENDED_PHASE12','authority')
     root=Path(request['root']);require(re.fullmatch('/home/pi/phase12-recovery-[0-9a-f]{32}',str(root)) and
             root.is_dir() and not root.is_symlink(),'private root')
@@ -66,7 +92,7 @@ def run(request):
             first['status']['boot_id']==request['boot_id'] and
             counter(first['provisioning_generation'],'generation')==request['profile_generation'],'fresh T5 device binding')
     password=private_bytes(root/'default-password.txt',64).decode('ascii').removesuffix('\n')
-    evidence=Evidence(root/'time-jobs-wire.jsonl')
+    evidence=Evidence(root/(prefix+'-wire.jsonl'))
     client=EvidenceClient(RecordedBackend('hci0',lambda value:evidence.record('gatt',value=value)),evidence=evidence,timeout=5)
     def control(action):return fixture(dict(root=str(root),authority=request['authority'],action=action))
     try:
@@ -74,9 +100,11 @@ def run(request):
         require(identity['generation']==request['profile_generation'],'retained field generation')
         client.authorize(password);hello=client.enable_local_control()
         require(hello['boot_id']==request['boot_id'],'fresh field WTP boot')
-        result=run_time(client,observer,request['source_commit'],request['boot_id'],evidence,
-                        lambda:control('sntp_on'),lambda:control('sntp_off'))
-        save(root/'time-jobs-result.json',result);return result
+        with timer():
+            result=selected_runner(client,observer,request['source_commit'],request['boot_id'],evidence,
+                            lambda:control('sntp_on'),lambda:control('sntp_off'),
+                            **({'selection':'sntp'} if selection=='sntp' else {}))
+        save(root/(prefix+'-result.json'),result);return result
     except Exception as error:
         if isinstance(error,ClientError) and error.code=='gatt_write':
             try:retain_failure_info(request,observer,evidence,dispatcher_end)

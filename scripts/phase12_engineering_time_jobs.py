@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Injected T5 ARM boundary/local execution: exactly three inhibited jobs."""
+"""Injected T5 ARM/local execution: three cases or explicit one-job SNTP continuation."""
 import hashlib
 import secrets
 import re
@@ -12,14 +12,16 @@ from wsprrypico_ble import ClientError
 
 
 def run(client,observe_info,source,boot,evidence,sntp_on,sntp_off,
-        *,clock=time.monotonic,sleeper=time.sleep,utc=time.time_ns):
+        *,clock=time.monotonic,sleeper=time.sleep,utc=time.time_ns,selection='all'):
+    require(type(selection) is str and selection in ('all','sntp'),'explicit T5 case selection')
     require(client.authorized and client.expected_device_id==DEVICE and
             client.field_session and client.wtp_session and
             getattr(client,'evidence',None) is evidence and hasattr(client,'last_response'),
             'authorized exact B EvidenceClient required')
     require(re.fullmatch("[0-9a-f]{40}",source) and re.fullmatch("[0-9a-f]{32}",boot),"exact source/boot identity")
     require(type(client.generation) is int and client.generation>=0,"client profile generation")
-    deadline=clock()+240
+    expected_jobs=3 if selection=='all' else 1
+    deadline=clock()+(240 if selection=='all' else 120)
     backend=client.backend
     class RecordedBackend:
         def __getattr__(self,name):return getattr(backend,name)
@@ -30,25 +32,33 @@ def run(client,observe_info,source,boot,evidence,sntp_on,sntp_off,
             return backend.write(characteristic,value,*args,**kwargs)
     client.backend=RecordedBackend()
     prior_timeout=getattr(client,'timeout',10)
-    def budget_call(method,*args,**kwargs):
-        remaining=deadline-clock()
-        require(remaining>0,'T5 deadline before request')
-        client.timeout=min(prior_timeout,remaining)
+    def remaining(subdeadline=None,label='SNTP prerequisite unavailable'):
+        end=deadline if subdeadline is None else min(deadline,subdeadline)
+        left=end-clock()
+        require(left>0,'T5 deadline before request' if subdeadline is None else label+' before observation')
+        return left
+    def observed(subdeadline=None,label='SNTP prerequisite unavailable'):
+        if subdeadline is None:require(clock()<=deadline,'T5 deadline after request')
+        else:require(clock()<min(deadline,subdeadline),label+' after observation')
+    def budget_call(method,*args,subdeadline=None,deadline_label='SNTP prerequisite unavailable',**kwargs):
+        client.timeout=min(prior_timeout,remaining(subdeadline,deadline_label))
         try:
             result=method(*args,**kwargs)
-            require(clock()<=deadline,'T5 deadline after request')
+            observed(subdeadline,deadline_label)
             return result
         finally:client.timeout=prior_timeout
-    def wtp(operation,body):return budget_call(client.wtp_exchange,operation,body)
+    def wtp(operation,body,subdeadline=None):
+        return budget_call(client.wtp_exchange,operation,body,subdeadline=subdeadline)
     owner=job=None;sent=set();completed=0
-    def status(owner_id=None,job_id=None,state=None,unowned=False):
+    def status(owner_id=None,job_id=None,state=None,unowned=False,subdeadline=None):
         require(clock()<deadline,'T5 total deadline')
-        value=budget_call(client.wtp_status,boot)
+        value=budget_call(client.wtp_status,boot,subdeadline=subdeadline,deadline_label='bounded local completion')
         require(clock()<=deadline,'late STATUS')
         check_status(value,boot,owner=owner_id,job=job_id,
                      states=None if state is None else (state,),unowned=unowned)
         evidence.record('authority',value=value);return value
-    def info():
+    def info(subdeadline=None):
+        remaining(subdeadline)
         value,raw=observe_info();require(isinstance(raw,bytes) and raw and strict(raw)==value,'actual INFO wire')
         resource_health(value)
         require(value['device_id']==DEVICE and value['revision']==source[:12] and
@@ -59,18 +69,20 @@ def run(client,observe_info,source,boot,evidence,sntp_on,sntp_off,
                 counter(value['provisioning_generation'],'profile generation')==client.generation,
                 'B source boot profile storage disabled output')
         evidence.record('usb_info',raw_hex=raw.hex(),sha256=hashlib.sha256(raw).hexdigest())
-        require(clock()<=deadline,'late INFO')
+        require(clock()<=deadline,'late INFO');observed(subdeadline)
     prior_monotonic=None
-    def clock_sample():
+    def clock_sample(subdeadline=None):
         nonlocal prior_monotonic
-        value=wtp('GET_CLOCK',{})
+        value=wtp('GET_CLOCK',{},subdeadline)
         for key in ('utc_now_ns','monotonic_now_ns','uncertainty_ns','sync_age_ns'):counter(value[key],key)
         monotonic=counter(value['monotonic_now_ns'],'clock monotonic')
         require(prior_monotonic is None or monotonic>=prior_monotonic,'T5 clock monotonic regression')
-        prior_monotonic=monotonic;evidence.record('clock',value=value);return value
-    def snapshot():
-        info();value=clock_sample()
-        return budget_call(client.field_status),value
+        prior_monotonic=monotonic;evidence.record('clock',value=value);observed(subdeadline);return value
+    def snapshot(subdeadline=None):
+        remaining(subdeadline)
+        info(subdeadline);value=clock_sample(subdeadline)
+        field=budget_call(client.field_status,subdeadline=subdeadline)
+        observed(subdeadline);return field,value
     def submit(offset,expected):
         nonce=secrets.token_hex(16)
         response=budget_call(client._field,'time_challenge',nonce=nonce)
@@ -98,12 +110,13 @@ def run(client,observe_info,source,boot,evidence,sntp_on,sntp_off,
         sent.add('ARM');wtp('ARM',dict(job_id=job,start_utc_ns=str(start),max_start_uncertainty_ns='500000000'))
         status(owner,job,'armed');end=min(deadline,clock()+25);running=False
         for _ in range(251):
-            value=status(owner,job)
+            value=status(owner,job,subdeadline=end)
+            observed(end,'bounded local completion')
             require(value['state'] in ('armed','running','complete'),'local execution failure')
             if value['state']=='running':running=True
             if value['state']=='complete':
                 require(running,'running state not observed');break
-            require(clock()<end,'bounded local completion');sleeper(.1)
+            sleeper(min(.1,remaining(end,'bounded local completion')))
         else:raise TimeoutError('finite execution poll count')
         release();completed+=1;evidence.record('T5_case_complete',case=case,simulator_jobs=1,rf_jobs=0)
     try:
@@ -111,46 +124,52 @@ def run(client,observe_info,source,boot,evidence,sntp_on,sntp_off,
         sntp_off();field,snap=snapshot()
         require(field['time_source']=='none' and not field['time_disagreement'] and
                 snap['state']=='unsynchronized','fresh no-source T5 prerequisite')
-        submit(0,'accepted');field,snap=snapshot();age=counter(snap['sync_age_ns'],'sync age')
-        # Keep full source/boot guards at the interval boundaries. Poll only
-        # the original accepted clock age inside the three-second expiry window.
-        for _ in range(1024):
-            if age>=91_000_000_000:break
-            sleeper(min(.1,(91_000_000_000-age)/1_000_000_000))
-            snap=clock_sample();evidence.record('expiry_clock_sample',value=snap)
-            next_age=counter(snap['sync_age_ns'],'sync age')
-            require(next_age>=age,'clock age regression');age=next_age
-        else:raise TimeoutError('finite T5 expiry clock polls')
-        require(91_000_000_000<=age<=94_000_000_000,'expired field boundary')
-        # Field validity must follow the qualifying clock sample, not precede it.
-        field=budget_call(client.field_status)
-        require(field['time_source']=='none' and not field['time_disagreement'],'expired field source')
-        evidence.record('expiry_age_boundary',clock=snap,field=field)
-        status(unowned=True);field,snap=snapshot()
-        require(counter(snap['sync_age_ns'],'post-boundary sync age')>=age and
-                field['time_source']=='none' and not field['time_disagreement'],
-                'T5 post-boundary boot/source/age guard')
-        load();before=status(owner,job,'loaded');sent.add('ARM');client.last_response=None
-        try:wtp('ARM',dict(job_id=job,start_utc_ns=str(counter(snap['utc_now_ns'],'utc')+10_000_000_000),max_start_uncertainty_ns='500000000'))
-        except ClientError:
-            response=client.last_response
-            require(response and response.get('ok') is False and response.get('error',{}).get('code')=='CLOCK_UNSYNCHRONIZED','exact expired ARM refusal')
-        else:raise ValueError('expired ARM accepted')
-        after=status(owner,job,'loaded');require(before==after,'expired ARM changed authority')
-        sent.add('ABORT');wtp('ABORT',dict(job_id=job));status(owner,job,'aborted');release();completed+=1
-        evidence.record('T5_case_complete',case='expired_field_arm_refusal',simulator_jobs=1,rf_jobs=0)
-        submit(0,'accepted');execute('fresh_field_local_completion')
+        if selection=='all':
+            submit(0,'accepted');field,snap=snapshot();age=counter(snap['sync_age_ns'],'sync age')
+            # Keep full source/boot guards at the interval boundaries. Poll only
+            # the original accepted clock age inside the three-second expiry window.
+            for _ in range(1024):
+                if age>=91_000_000_000:break
+                sleeper(min(.1,(91_000_000_000-age)/1_000_000_000))
+                snap=clock_sample();evidence.record('expiry_clock_sample',value=snap)
+                next_age=counter(snap['sync_age_ns'],'sync age')
+                require(next_age>=age,'clock age regression');age=next_age
+            else:raise TimeoutError('finite T5 expiry clock polls')
+            require(91_000_000_000<=age<=94_000_000_000,'expired field boundary')
+            # Field validity must follow the qualifying clock sample, not precede it.
+            field=budget_call(client.field_status)
+            require(field['time_source']=='none' and not field['time_disagreement'],'expired field source')
+            evidence.record('expiry_age_boundary',clock=snap,field=field)
+            status(unowned=True);field,snap=snapshot()
+            require(counter(snap['sync_age_ns'],'post-boundary sync age')>=age and
+                    field['time_source']=='none' and not field['time_disagreement'],
+                    'T5 post-boundary boot/source/age guard')
+            load();before=status(owner,job,'loaded');sent.add('ARM');client.last_response=None
+            try:wtp('ARM',dict(job_id=job,start_utc_ns=str(counter(snap['utc_now_ns'],'utc')+10_000_000_000),max_start_uncertainty_ns='500000000'))
+            except ClientError:
+                response=client.last_response
+                require(response and response.get('ok') is False and response.get('error',{}).get('code')=='CLOCK_UNSYNCHRONIZED','exact expired ARM refusal')
+            else:raise ValueError('expired ARM accepted')
+            after=status(owner,job,'loaded');require(before==after,'expired ARM changed authority')
+            sent.add('ABORT');wtp('ABORT',dict(job_id=job));status(owner,job,'aborted');release();completed+=1
+            evidence.record('T5_case_complete',case='expired_field_arm_refusal',simulator_jobs=1,rf_jobs=0)
+            submit(0,'accepted');execute('fresh_field_local_completion')
         sntp_on();end=min(deadline,clock()+60)
+        # One absolute end covers every component of each observation. INFO has
+        # its own bounded read API; reject its late data before the next request.
         for _ in range(61):
-            field,snap=snapshot()
+            field,snap=snapshot(end)
+            observed(end)
             if field['time_source']=='sntp' and snap['state']=='synchronized':break
-            require(clock()<end,'SNTP prerequisite unavailable');sleeper(1)
+            sleeper(min(1,remaining(end)))
         else:raise TimeoutError('finite SNTP observations')
         submit(5_000_000_000,'busy');field,_=snapshot()
         require(field['time_source']=='sntp' and not field['time_disagreement'],'conflicting field changed SNTP')
         execute('sntp_conflict_preserved_local_completion')
-        require(completed==3,'three-job budget');info();status(unowned=True)
-        return dict(status='T5_REVIEW_REQUIRED',simulator_jobs=3,rf_jobs=0,physical_acceptance=False)
+        require(completed==expected_jobs,'selected T5 job budget');info();status(unowned=True)
+        result=dict(status='T5_REVIEW_REQUIRED',simulator_jobs=expected_jobs,rf_jobs=0,physical_acceptance=False)
+        if selection=='sntp':result.update(status='T5_SNTP_REVIEW_REQUIRED',selection='sntp',max_seconds=120)
+        return result
     except BaseException:
         if owner:
             try:
