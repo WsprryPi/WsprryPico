@@ -410,6 +410,8 @@ class StagingPreflightTests(unittest.TestCase):
             ('flash-status','scripts/phase12_engineering_flash_status_dispatch.py'),
             ('journal','scripts/phase12_engineering_journal_dispatch.py'),
             ('journal','scripts/network_certificates.py'),
+            ('journal-stimuli','scripts/phase12_engineering_journal_stimuli.py'),
+            ('journal-stimuli','docs/protocol/wtp-1.schema.json'),
             ('bond-revocation','scripts/phase12_engineering_bond_refusal_dispatch.py'),
             ('all','scripts/phase12_engineering_fixture.py'),
             ('all','scripts/phase12_engineering_setup.py'),
@@ -451,6 +453,69 @@ class StagingPreflightTests(unittest.TestCase):
             process.assert_called_once()
             self.assertEqual(process.call_args.args[0][0],'ssh') # Only a mocked schema-directory command.
 
+    def test_journal_stimuli_actual_callback_creates_private_credentials_in_fresh_source(self):
+        import phase12_engineering_journal as journal
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);module,manifest,credentials,argv=self.inputs(root,'journal-stimuli')
+            repository=module.parents[1]
+            self.assertFalse((repository/'config').exists())
+            with patch.object(run,'__file__',str(module)):
+                admitted=set(run.staging_inputs('journal-stimuli',manifest,credentials))
+            generated=set();staged=[];adapter=MagicMock()
+            backend=SimpleNamespace(remote='/private/no-access',roles={},setup=MagicMock(return_value={}))
+            adapter.backend=backend
+            def stage(source,name):
+                source=Path(source);self.assertIn(source,admitted|generated)
+                self.assertTrue(source.is_file());staged.append((source,name));return run.sha(source)
+            adapter.stage.side_effect=stage
+            def prepare(private_root,baseline,create):
+                self.assertEqual(baseline,b'private retained A profile')
+                self.assertTrue(private_root.is_dir())
+                self.assertEqual(private_root.stat().st_mode&0o777,0o700)
+                self.assertEqual(private_root.parent,repository/'config/local')
+                self.assertEqual(private_root.parent.stat().st_mode&0o777,0o700)
+                principals={}
+                for role in ('B','C'):
+                    principal={}
+                    for key in ('profile_path','ca','cert','key'):
+                        path=private_root/(role+'-'+key);path.write_bytes(b'private generated test input')
+                        generated.add(path);principal[key]=str(path)
+                    principals[role]=principal
+                return principals
+            def tranche(context,stage_image,apply,probe,write,**options):
+                self.assertEqual(options['selection'],'stimuli')
+                self.assertIs(options['stage_seed'],adapter.stage)
+                self.assertEqual(set(context['principal_hashes']),{'A','B','C'})
+                self.assertEqual(context['hostname'],'private.test')
+                self.assertIn((module.with_name('phase12_engineering_journal_stimuli.py'),
+                               'phase12_engineering_journal_stimuli.py'),staged)
+                return dict(status='ENGINEERING_JOURNAL_STIMULI_REVIEW_REQUIRED')
+            def execute(*args,**kwargs):
+                self.assertEqual(kwargs['scope'],'journal-stimuli')
+                for key in ('accelerated','flash_status','bond_revocation'):self.assertIsNone(kwargs[key])
+                campaign=root/'campaign';campaign.mkdir()
+                profile=campaign/'engineering-profile.json';profile.write_bytes(b'private retained A profile')
+                kwargs['backend_factory']().setup()
+                kwargs['journal'](dict(root=campaign,backend=backend,profile_path=profile))
+                return dict(status='PREPARED_CASES_REVIEW_REQUIRED',restoration={'samples':5})
+            with patch.object(run,'__file__',str(module)),patch.object(sys,'argv',argv),patch.object(run,'verify'), \
+                 patch.object(run,'credential_config',return_value={'tls':{'hostname':'private.test'}}), \
+                 patch.object(run,'canonical_profile'),patch.object(run.subprocess,'check_output',return_value=b'der'), \
+                 patch.object(run.signal,'signal'),patch.object(run,'Backend',return_value=backend), \
+                 patch.object(run,'RemoteAdapters',return_value=adapter),patch.object(run,'execute',side_effect=execute), \
+                 patch.object(journal,'prepare',side_effect=prepare),patch.object(journal,'tranche',side_effect=tranche), \
+                 patch.object(run,'return_journal_checkpoint') as checkpoint, \
+                 patch.object(run.subprocess,'run') as process,patch.object(run.subprocess,'Popen') as child,patch('builtins.print'):
+                run.main()
+            self.assertEqual(checkpoint.call_count,1)
+            self.assertEqual(json.loads((root/'campaign/journal-result.json').read_text())['status'],
+                             'ENGINEERING_JOURNAL_STIMULI_REVIEW_REQUIRED')
+            self.assertEqual(sum(name=='phase12_engineering_journal_stimuli.py' for _,name in staged),2)
+            self.assertEqual(set(name for _,name in staged if name.startswith('journal-')),
+                             {'journal-'+role+'-'+key+('.key' if key=='key' else '.crt')
+                              for role in ('A','B','C') for key in ('ca','cert','key')})
+            process.assert_not_called();child.assert_not_called()
+
     def test_all_scope_checks_union_without_requiring_other_scopes(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);module,manifest,credentials,_=self.inputs(root,'composition')
@@ -471,6 +536,23 @@ class StagingPreflightTests(unittest.TestCase):
                  patch.object(run,'preflight_staging',side_effect=AssertionError('must allow restoration')),patch('builtins.print'):
                 run.main()
             recover.assert_called_once();adapter.fixture.assert_called_once_with('stop',{})
+
+class JournalSelectionTests(unittest.TestCase):
+ def test_optional_stimuli_dependency_and_exact_output_names(self):
+  new=Path(run.__file__).with_name('phase12_engineering_journal_stimuli.py')
+  for scope in ('all','journal','journal-stimuli'):
+   paths=run.staging_inputs(scope,'/private/manifest','/private/credentials')
+   self.assertEqual(new in paths,scope=='journal-stimuli')
+  self.assertEqual(run.journal_outputs(dict(stage=0,action='stale_arm')),())
+  self.assertEqual(run.journal_outputs(dict(stage=0,action='stale_suspend')),())
+  self.assertEqual(run.journal_outputs(dict(stage=0,action='stale_a_ready')),('journal-stale_a_ready-wire.jsonl',))
+  self.assertEqual(run.journal_outputs(dict(stage=0,action='stale_prepare')),('journal-stale_prepare-wire.jsonl',))
+  self.assertEqual(run.journal_outputs(dict(stage=0,action='observe_checkpoint',journal_selection='stimuli')),('journal-stale-new-wire.jsonl',))
+  self.assertEqual(run.journal_outputs(dict(stage=8,action='observe_checkpoint',journal_selection='stimuli')),())
+  self.assertEqual(run.journal_outputs(dict(stage=10)),('journal-apply-10-wire.jsonl','journal-apply-10-result.json'))
+  self.assertEqual(run.journal_outputs(dict(stage=0,journal_stage=10,action='tls')),('journal-tls-10-wire.jsonl','journal-tls-10-result.json'))
+  self.assertEqual(run.journal_outputs(dict(stage=0,action='observe_fault')),('journal-observe_fault-wire.jsonl','journal-corrupt-result.json'))
+  with self.assertRaises(ValueError):run.journal_outputs(dict(stage=0,action='replay'))
 
 class SessionSelectionTests(unittest.TestCase):
  def test_default_payload_unchanged_and_explicit_running(self):

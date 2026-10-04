@@ -124,8 +124,13 @@ def serve(root,startup_token):
             if not peer_allowed(root,peer):continue
             count+=1
             if not (root/'ntp-enabled.json').exists():continue
-            try:reply=ntp_reply(query,time.time_ns())
+            utc_ns=time.time_ns()
+            try:reply=ntp_reply(query,utc_ns)
             except ValueError:continue
+            if (root/'journal-stale-arm.json').exists():
+                from phase12_engineering_journal_stimuli import respond
+                selected=respond(root,query,peer,reply,server.sendto,utc_ns=utc_ns)
+                if selected!='normal':continue
             server.sendto(reply,peer);replies+=1
             private_write(root/'ntp-metrics.json',dict(requests=count,replies=replies,
                 last_request_sha256=hashlib.sha256(query).hexdigest(),last_response_hex=reply.hex()))
@@ -464,6 +469,38 @@ def _action(request,roles):
     name='p12-engineering-'+root.name.rsplit('-',1)[1]
     operation=request['action']
     if roles['selection']=='concurrent':require(root.name.rsplit('-',1)[1]==roles['campaign_id'],'concurrent root role binding')
+    if operation.startswith('journal_stale_'):
+        from phase12_engineering_journal_stimuli import arm,control,publish,original
+        require(roles['selection']=='engineering','journal stimulus exact owned engineering fixture')
+        if operation=='journal_stale_suspend':
+            require(re.fullmatch('[0-9a-f]{40}',request['source_commit']) and
+                    type(request['generation']) is int and 0<request['generation']<2**64-1,
+                    'exact suspension source/generation')
+            identity=verify_warmed_ntp(root,roles)
+            require(not (root/'journal-stale-arm.json').exists(),'suspend only before one fresh interval')
+            publish(root/'journal-stale-suspend.json',dict(schema='phase12-journal-suspension/1',root=str(root),
+                source_commit=request['source_commit'],generation=request['generation'],
+                warmed_identity=identity,monotonic_s=time.monotonic(),rf_jobs=0))
+            # Consume the immutable attempt before the only owned suspension.
+            (root/'ntp-enabled.json').unlink()
+            disabled=verify_disabled_ntp(root,roles)
+            require(disabled['pid']==identity['pid'] and disabled['ready']==identity['ready'],'same original responder after suspension')
+            return dict(status='OWNED_SNTP_SUSPENDED_ONCE',rf_jobs=0)
+        if operation in ('journal_stale_arm','journal_stale_old_bind'):
+            verify_disabled_ntp(root,roles)
+            suspended=strict(original(root/'journal-stale-suspend.json'))
+            require(suspended['schema']=='phase12-journal-suspension/1' and suspended['root']==str(root) and
+                    suspended['rf_jobs']==0,'original one-use suspension')
+            if operation=='journal_stale_arm':
+                require(suspended['source_commit']==request['source_commit'] and suspended['generation']==request['generation'],
+                        'same suspended A source/generation')
+        else:verify_warmed_ntp(root,roles)
+        if operation=='journal_stale_arm':
+            return arm(root,request['source_commit'],request['generation'],request['remaining_s'])
+        controls={'journal_stale_old_bind':'old_bind','journal_stale_hold':'hold',
+                  'journal_stale_new_bind':'new_bind','journal_stale_release':'release'}
+        require(operation in controls,'named journal stimulus action')
+        return control(root,controls[operation],bytes.fromhex(request['info_raw_hex']))
     if operation=='prove_target':return target_association_proof(root,roles,request)
     if operation in ('station_ap_down','station_ap_up'):
         saved=root/'fixture-management-before.json'

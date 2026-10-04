@@ -346,4 +346,107 @@ class DiscoveryDiagnosticTests(unittest.TestCase):
         original=OSError('stop failure');calls,result,error,rows,elapsed=self.scenario(True,original)
         self.assertIs(error,original);self.assertEqual(calls.count('start'),1)
 
+
+
+class JournalSuspensionTests(unittest.TestCase):
+    def fixtures(self,root):
+        roles=dict(selection='engineering',host_ap='wlan2',observer='wlan0',sha256='f'*64)
+        identity=dict(pid=dict(pid=17,root=str(root),startup_token='c'*32),ready=dict(pid=17),enabled_sha256='e'*64)
+        original_require=f.require
+        def require(ok,message):
+            if message=='private root':return
+            original_require(ok,message)
+        return roles,identity,require
+    def test_single_owned_suspension_then_arm_disabled_original_and_old_bind_before_enable(self):
+        import phase12_engineering_journal_stimuli as s
+        from phase12_engineering_journal_stimuli_tests import info,raw
+        with tempfile.TemporaryDirectory(prefix="phase12-journal-") as directory:
+            root=Path(directory);roles,identity,require=self.fixtures(root)
+            (root/'ntp-enabled.json').write_text('{}');(root/'ntp-ready.json').write_text('{}')
+            (root/'ntp-peer.json').write_text(json.dumps(dict(address='192.168.84.2')))
+            request=dict(root=str(root),authority='USER_AUTHORIZED_UNATTENDED_PHASE12',source_commit='a'*40,generation=7)
+            with patch.object(f,'require',side_effect=require),patch.object(f,'verify_warmed_ntp',return_value=identity), \
+                 patch.object(f,'verify_disabled_ntp',return_value=dict(pid=identity['pid'],ready=identity['ready'])):
+                result=f._action(dict(request,action='journal_stale_suspend'),roles)
+                self.assertEqual(result['status'],'OWNED_SNTP_SUSPENDED_ONCE');self.assertFalse((root/'ntp-enabled.json').exists())
+                with self.assertRaises(ValueError):f._action(dict(request,action='journal_stale_suspend'),roles)
+                result=f._action(dict(request,action='journal_stale_arm',remaining_s=90),roles)
+                self.assertEqual(result['status'],'STIMULUS_ARMED');self.assertFalse((root/'ntp-enabled.json').exists())
+                result=f._action(dict(request,action='journal_stale_old_bind',info_raw_hex=raw(info()).hex()),roles)
+                self.assertEqual(result['status'],'STIMULUS_OLD_BIND');self.assertFalse((root/'ntp-enabled.json').exists())
+                f._action(dict(request,action='sntp_on'),roles)
+                self.assertTrue((root/'ntp-enabled.json').is_file())
+            original=s.strict((root/'journal-stale-suspend.json').read_bytes())
+            self.assertEqual(original['source_commit'],'a'*40);self.assertEqual(original['generation'],7)
+            self.assertEqual(original['warmed_identity']['pid'],identity['pid'])
+    def test_uncertain_suspension_is_consumed_and_not_repeated_or_overwritten(self):
+        with tempfile.TemporaryDirectory(prefix="phase12-journal-") as directory:
+            root=Path(directory);roles,identity,require=self.fixtures(root);(root/'ntp-enabled.json').write_text('{}')
+            request=dict(root=str(root),authority='USER_AUTHORIZED_UNATTENDED_PHASE12',source_commit='a'*40,generation=7,action='journal_stale_suspend')
+            original=OSError('ambiguous unlink')
+            with patch.object(f,'require',side_effect=require),patch.object(f,'verify_warmed_ntp',return_value=identity), \
+                 patch.object(Path,'unlink',side_effect=original) as unlink:
+                with self.assertRaises(OSError) as caught:f._action(request,roles)
+                self.assertIs(caught.exception,original);receipt=(root/'journal-stale-suspend.json').read_bytes()
+                with self.assertRaises(ValueError):f._action(request,roles)
+                unlink.assert_called_once();self.assertEqual((root/'journal-stale-suspend.json').read_bytes(),receipt)
+    def test_malformed_suspension_identity_or_foreign_roles_cannot_touch_enabled_state(self):
+        with tempfile.TemporaryDirectory(prefix="phase12-journal-") as directory:
+            root=Path(directory);roles,identity,require=self.fixtures(root);(root/'ntp-enabled.json').write_text('{}')
+            request=dict(root=str(root),authority='USER_AUTHORIZED_UNATTENDED_PHASE12',source_commit='a'*40,generation=7,action='journal_stale_suspend')
+            for changes in [dict(generation=True),dict(generation=0),dict(source_commit='bad')]:
+                with self.subTest(changes=changes),patch.object(f,'require',side_effect=require),patch.object(f,'verify_warmed_ntp') as verify:
+                    with self.assertRaises(ValueError):f._action(dict(request,**changes),roles)
+                    verify.assert_not_called();self.assertTrue((root/'ntp-enabled.json').is_file())
+            with patch.object(f,'require',side_effect=require),patch.object(f,'verify_warmed_ntp') as verify:
+                with self.assertRaises(ValueError):f._action(request,dict(roles,selection='swapped'))
+                verify.assert_not_called();self.assertTrue((root/'ntp-enabled.json').is_file())
+
+class JournalResponderBridgeTests(unittest.TestCase):
+    def test_actual_existing_responder_one_old_send_and_no_valid_B_before_release(self):
+        import phase12_engineering_journal_stimuli as s
+        from phase12_engineering_journal_stimuli_tests import info,query,raw
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);now=[0.0];utc=1791100000000000000;peer=('192.168.84.2',49999)
+            replies=[];handlers={};sockopts=[];received=[query(17),query(23),query(29)]
+            roles=dict(host_ap='wlan2',observer='wlan0',sha256='f'*64)
+            (root/'ntp-peer.json').write_text(json.dumps(dict(address=peer[0])))
+            (root/'ntp-enabled.json').write_text(json.dumps(dict(enabled=True)))
+            s.arm(root,'a'*40,7,90,clock=lambda:now[0]);s.control(root,'old_bind',raw(info()),clock=lambda:now[0])
+            class Socket:
+                def __enter__(self):return self
+                def __exit__(self,*args):pass
+                def setsockopt(self,*args):sockopts.append(args)
+                def bind(self,address):self.address=address
+                def settimeout(self,seconds):self.timeout=seconds
+                def recvfrom(self,maximum):
+                    if len(received)==2:
+                        s.control(root,'hold',raw(info(accepted=1)),clock=lambda:now[0])
+                        s.control(root,'new_bind',raw(info(8,'d'*32)),clock=lambda:now[0])
+                    if len(received)==1:
+                        s.control(root,'release',raw(info(8,'d'*32,rejected=1)),clock=lambda:now[0])
+                        now[0]=91
+                    if not received:handlers[f.signal.SIGTERM](0,None);raise f.socket.timeout()
+                    now[0]+=.1;return received.pop(0),peer
+                def sendto(self,response,destination):replies.append((response,destination));return len(response)
+            socket=Socket();original_respond=s.respond;original_require=f.require
+            def require(ok,message):
+                if message=='server private root':return
+                original_require(ok,message)
+            def respond(*args,**kwargs):return original_respond(*args,**kwargs,clock=lambda:now[0])
+            with patch.object(f,'load_roles',return_value=roles),patch.object(f,'require',side_effect=require), \
+                 patch.object(f.socket,'socket',return_value=socket) as factory, \
+                 patch.object(f.signal,'signal',side_effect=lambda number,callback:handlers.__setitem__(number,callback)), \
+                 patch.object(f.time,'monotonic',side_effect=lambda:now[0]),patch.object(f.time,'time_ns',return_value=utc), \
+                 patch.object(s,'respond',side_effect=respond):
+                f.serve(root,'a'*32)
+            factory.assert_called_once_with(f.socket.AF_INET,f.socket.SOCK_DGRAM)
+            self.assertEqual(socket.address,(f.ADDRESS,123));self.assertEqual(socket.timeout,1)
+            self.assertIn((f.socket.SOL_SOCKET,f.socket.SO_BINDTODEVICE,b'wlan2\0'),sockopts)
+            self.assertEqual(len(replies),3);self.assertEqual(replies[0],replies[1])
+            self.assertEqual(replies[2],(f.ntp_reply(query(29),utc),peer))
+            self.assertTrue((root/s.FILES[7]).is_file());self.assertTrue((root/'ntp-stopped.json').is_file())
+            self.assertEqual(s.strict((root/s.FILES[5]).read_bytes())['datagram_attempts'],1)
+            self.assertEqual(json.loads((root/'ntp-stopped.json').read_text()),dict(requests=3,replies=2))
+
 if __name__=='__main__':unittest.main()

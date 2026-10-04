@@ -53,10 +53,24 @@ ACCELERATED_HELPERS=('phase12_engineering_time_jobs.py','phase12_engineering_tim
     'phase12_engineering_network_dispatch.py')
 FLASH_STATUS_HELPERS=('phase12_engineering_flash_status.py','phase12_engineering_flash_status_dispatch.py')
 JOURNAL_HELPERS=('phase12_engineering_journal.py','phase12_engineering_journal_dispatch.py')
+JOURNAL_STIMULI_HELPERS=('phase12_engineering_journal_stimuli.py',)
 BOND_REFUSAL_HELPERS=('phase12_engineering_bond_refusal_dispatch.py',
     'phase12_engineering_flash_status_dispatch.py','phase12_engineering_flash_status.py')
-SCOPES=('all','composition','application','flash-status','journal','time-jobs',
+SCOPES=('all','composition','application','flash-status','journal','journal-stimuli','time-jobs',
         'time-jobs-invalidation','time-jobs-sntp','network','sessions','bond-revocation')
+
+
+def journal_outputs(request):
+    """Retrieve only originals this invocation could create, within its budget."""
+    action=request.get('action');stage=str(request.get('journal_stage',request['stage']))
+    if action is None:return ('journal-apply-'+stage+'-wire.jsonl','journal-apply-'+stage+'-result.json')
+    if action=='tls':return ('journal-tls-'+stage+'-wire.jsonl','journal-tls-'+stage+'-result.json')
+    if action in ('stale_a_ready','stale_prepare'):return ('journal-'+action+'-wire.jsonl',)
+    if action=='observe_fault':return ('journal-observe_fault-wire.jsonl','journal-corrupt-result.json')
+    if action=='observe_checkpoint':
+        return ('journal-stale-new-wire.jsonl',) if request.get('journal_selection')=='stimuli' and request['stage']==0 else ()
+    require(action in ('stale_suspend','stale_arm'),'named journal output scope')
+    return ()
 
 
 def accelerated_helpers(scope):
@@ -77,7 +91,8 @@ def staging_inputs(scope, preparation_manifest, credential_root):
     if scope in ('all','time-jobs','time-jobs-invalidation','time-jobs-sntp','network','sessions'):
         helpers+=accelerated_helpers(scope)
     if scope in ('all','flash-status'):helpers+=FLASH_STATUS_HELPERS
-    if scope in ('all','journal'):helpers+=JOURNAL_HELPERS+('network_certificates.py',)
+    if scope in ('all','journal','journal-stimuli'):helpers+=JOURNAL_HELPERS+('network_certificates.py',)
+    if scope=='journal-stimuli':helpers+=JOURNAL_STIMULI_HELPERS
     if scope in ('all','bond-revocation'):helpers+=BOND_REFUSAL_HELPERS
     paths=[scripts/name for name in helpers]
     paths.extend(repository/source for source,_,_ in COMMON_REPOSITORY_ASSETS)
@@ -584,6 +599,9 @@ def main():
             info=original()
             for name in FIXTURE_HELPERS:
                 remote.stage(Path(__file__).parent/name,name)
+            if a.scope=='journal-stimuli':
+                for name in JOURNAL_STIMULI_HELPERS:
+                    remote.stage(Path(__file__).parent/name,name)
             return info
         b.setup=setup;return b
     def cases(context):
@@ -598,7 +616,7 @@ def main():
         if a.scope not in ('all','composition','application'):
             # Independent station-dependent scopes inherit the same owned
             # peer-bound UTC prerequisite normally established by T1-T4.
-            if a.scope in ('time-jobs','time-jobs-invalidation','time-jobs-sntp','flash-status','journal','network','sessions'):
+            if a.scope in ('time-jobs','time-jobs-invalidation','time-jobs-sntp','flash-status','journal','journal-stimuli','network','sessions'):
                 warm_end=time.monotonic()+180
                 peer_bound=False;warm_observation=0
                 while True:
@@ -756,7 +774,9 @@ def main():
         import sys
         # The supported certificate CLI confines repository keys to config/local.
         credentials_root=Path(__file__).parents[1]/'config/local'/('phase12-journal-'+Path(context['root']).name)
-        credentials_root.mkdir(mode=0o700)
+        # A fresh frozen source tree deliberately contains no private outputs.
+        # Create the supported CLI's private parent as part of this campaign.
+        credentials_root.mkdir(mode=0o700,parents=True)
         def create(args):
             result=subprocess.run([sys.executable,str(Path(__file__).parent/'network_certificates.py'),*args],
                 capture_output=True,timeout=30)
@@ -774,18 +794,20 @@ def main():
                 principal_hashes[role][key]=remote.stage(principal[key],'journal-'+role+'-'+key+('.key' if key=='key' else '.crt'))
         for name in JOURNAL_HELPERS:
             remote.stage(Path(__file__).parent/name,name)
+        if a.scope=='journal-stimuli':
+            for name in JOURNAL_STIMULI_HELPERS:
+                remote.stage(Path(__file__).parent/name,name)
         def stage_image(role,candidate):
             context['backend'].roles[role]=candidate
             remote.stage(Path(context['preparation_artifacts'])/candidate['uf2']['path'],role+'.uf2')
         def invoke(request):
             try:return remote.invoke('phase12_engineering_journal_dispatch.py',request,timeout=min(request['remaining_s'],125 if request.get('action') else 180),keepalive=True)
             finally:
-                n=str(request.get('journal_stage',request['stage']))
-                remote.collect(('journal-apply-'+n+'-wire.jsonl','journal-apply-'+n+'-result.json',
-                                'journal-tls-'+n+'-wire.jsonl','journal-tls-'+n+'-result.json'))
+                remote.collect(journal_outputs(request))
         result=tranche(dict(context,principals=principals,authority=AUTHORITY,
             manifest_sha256=sha(a.preparation_manifest),hostname=config['tls']['hostname'],principal_hashes=principal_hashes),
-            stage_image,invoke,invoke,private_write)
+            stage_image,invoke,invoke,private_write,
+            selection='stimuli' if a.scope=='journal-stimuli' else 'standard',stage_seed=remote.stage)
         private_write(context['root']/'journal-result.json',result)
         # The following time/network/session observers are bound to profile A.
         # Return to its exact pre-journal checkpoint, including the measured
@@ -804,7 +826,7 @@ def main():
     try:
         result=execute(recovery,preparation,a.artifact_root,a.campaign,a.inspector,config,
             backend_factory=factory,fixture=remote.fixture,provision=remote.provision,cases=cases,accelerated=accelerated if a.scope in ('all','time-jobs','time-jobs-invalidation','time-jobs-sntp','network','sessions') else None,
-            journal=journal if a.scope in ('all','journal') else None,
+            journal=journal if a.scope in ('all','journal','journal-stimuli') else None,
             flash_status=flash_status if a.scope in ('all','flash-status') else None,
             bond_revocation=revoke if a.scope in ('all','bond-revocation') else None,
             preparation_artifacts=a.preparation_artifact_root,scope=a.scope,session_choice=choice,fixture_roles=a.fixture_roles)
@@ -814,6 +836,9 @@ def main():
                         'populated-seed-start-ap-inspection.json',
                         'populated-seed-failure-ap-inspection.json',
                         'populated-seed-success-ap-inspection.json'))
+        if a.scope=='journal-stimuli':
+            from phase12_engineering_journal_stimuli import FILES
+            remote.collect(('journal-stale-suspend.json',*FILES))
     print(json.dumps(dict(status=result['status'],restored=bool(result['restoration'] and 'error' not in result['restoration']))))
     if result['status']=='STOPPED':raise SystemExit(1)
 if __name__=='__main__':main()

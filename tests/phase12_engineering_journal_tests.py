@@ -398,7 +398,7 @@ class DispatchTests(unittest.TestCase):
                 return dict(outcome='fixture-deadline-result')
             def call_fixture(value):
                 fixtures.append(value['action'])
-                if fixture is not None:fixture(clock,value['action'])
+                if fixture is not None:return fixture(clock,value['action'])
             def sleep(seconds):sleeps.append(seconds);clock[0]+=seconds
             with ExitStack() as stack:
                 stack.enter_context(patch.object(dispatch,'Path',side_effect=lambda value:root if str(value)==remote else Path(value)))
@@ -528,5 +528,216 @@ class DispatchTests(unittest.TestCase):
                     self.assertEqual(result['info']['phase12_fault_stage'],stage)
                     wrong=dict(request,image_name='fault_7.uf2')
                     with self.assertRaises(ValueError):dispatch.run(wrong)
+
+
+
+
+class StimuliDispatchTests(unittest.TestCase):
+    deadline_case=DispatchTests.deadline_case
+    def test_fresh_A_original_is_bound_then_held_before_parent_apply(self):
+        def observe(clock,value,count):
+            value['network']['rejected']=0;value['network']['accepted']=int(count>1)
+            value['status']['clock_state']='synchronized' if count>1 else 'unsynchronized'
+        def fixture(clock,action):return dict(status='STIMULUS_HOLD')
+        with self.deadline_case('stale_prepare',observe=observe,fixture=fixture) as case:
+            request,clock,observations,probes,fixtures,sleeps,evidence=case;request['journal_selection']='stimuli'
+            result=dispatch.run(request)
+            self.assertEqual(result['status'],'STIMULUS_HOLD')
+            self.assertEqual(fixtures,['bind_peer','journal_stale_old_bind','sntp_on','journal_stale_hold'])
+            self.assertEqual(len(observations),2);self.assertFalse(probes);self.assertTrue(evidence.closed)
+    def test_late_A_success_or_late_bind_cannot_hold_or_allow_onward_apply(self):
+        for kind in ('observer','bind'):
+            def observe(clock,value,count):
+                value['network'].update(accepted=0,rejected=0);value['status']['clock_state']='unsynchronized'
+                if kind=='observer':clock[0]=90
+            def fixture(clock,action):clock[0]=90
+            with self.subTest(kind=kind),self.deadline_case('stale_prepare',observe=observe,fixture=fixture) as case:
+                request,clock,observations,probes,fixtures,sleeps,evidence=case;request['journal_selection']='stimuli'
+                with self.assertRaisesRegex(ValueError,'journal stimulus observation deadline'):dispatch.run(request)
+                self.assertEqual(fixtures,[] if kind=='observer' else ['bind_peer']);self.assertFalse(probes)
+                self.assertTrue(evidence.closed)
+    def test_fresh_B_rejection_before_success_and_late_observer_never_releases(self):
+        for finish,passes in [(89.999,True),(90,False),(90.001,False)]:
+            def observe(clock,value,count):
+                value['provisioning_generation']='8';value['network'].update(accepted=0,rejected=int(count>1))
+                value['status']['clock_state']='unsynchronized'
+                if count>1:clock[0]=finish
+            with self.subTest(finish=finish),self.deadline_case('observe_checkpoint',observe=observe) as case:
+                request,clock,observations,probes,fixtures,sleeps,evidence=case;request['journal_selection']='stimuli'
+                if passes:
+                    result=dispatch.run(request);self.assertTrue(result['stale_time_not_adopted']);self.assertEqual(result['stale_datagrams'],1)
+                    self.assertEqual(fixtures,['bind_peer','journal_stale_new_bind','journal_stale_release'])
+                else:
+                    with self.assertRaisesRegex(ValueError,'checkpoint observation deadline'):dispatch.run(request)
+                    self.assertEqual(fixtures,['bind_peer','journal_stale_new_bind'])
+                self.assertFalse(probes);self.assertTrue(evidence.closed)
+    def test_premature_clock_acceptance_cannot_release_stale_hold(self):
+        def observe(clock,value,count):
+            value['provisioning_generation']='8';value['network']['rejected']=0
+        with self.deadline_case('observe_checkpoint',observe=observe) as case:
+            request,clock,observations,probes,fixtures,sleeps,evidence=case;request['journal_selection']='stimuli'
+            with self.assertRaisesRegex(ValueError,'no premature B time'):dispatch.run(request)
+            self.assertTrue(evidence.closed);self.assertFalse(probes+fixtures)
+    def test_five_actual_fault_INFO_samples_before_review_required_publication(self):
+        def observe(clock,value,count):
+            value.update(provisioning_source='fault',provisioning_generation='0',provisioning_fault=1,lan_wtp_ready=False)
+            value['network'].update(ipv4='',link_status=0,accepted=0,rejected=0)
+        with self.deadline_case('observe_fault',observe=observe,remaining=300) as case:
+            request,clock,observations,probes,fixtures,sleeps,evidence=case
+            request.update(journal_selection='stimuli',boot_id='b'*32)
+            result=dispatch.run(request);self.assertEqual(result['fault_samples'],5)
+            self.assertEqual(observations,[0,2,4,6,8]);self.assertEqual(len(evidence.rows),5)
+            self.assertFalse(probes+fixtures);self.assertEqual(len(evidence.saved),1);self.assertTrue(evidence.closed)
+    def test_exact300s_fault_success_or_wrong_fault_source_cannot_publish(self):
+        for wrong in (False,True):
+            def observe(clock,value,count):
+                value.update(provisioning_source='provisioned' if wrong else 'fault',provisioning_generation='0',provisioning_fault=1,lan_wtp_ready=False)
+                value['network'].update(ipv4='',link_status=0,accepted=0,rejected=0)
+                if count==5:clock[0]=300
+            with self.subTest(wrong=wrong),self.deadline_case('observe_fault',observe=observe,remaining=300) as case:
+                request,clock,observations,probes,fixtures,sleeps,evidence=case;request.update(journal_selection='stimuli',boot_id='b'*32)
+                with self.assertRaises(ValueError):dispatch.run(request)
+                self.assertFalse(evidence.saved+probes+fixtures);self.assertTrue(evidence.closed)
+    def test_stimuli_actions_require_explicit_selection_before_observer_or_fixture(self):
+        for action in ('stale_suspend','stale_a_ready','stale_arm','stale_prepare','observe_fault'):
+            with self.subTest(action=action),self.deadline_case(action) as case:
+                request,clock,observations,probes,fixtures,sleeps,evidence=case
+                with self.assertRaisesRegex(ValueError,'explicit ordinary journal stimuli'):dispatch.run(request)
+                self.assertFalse(observations+fixtures+probes)
+
+class StimuliTrancheTests(unittest.TestCase):
+    @contextmanager
+    def case(self,late=None,bad_native=False):
+        from phase12_engineering_journal_stimuli_tests import bank,info as stimulus_info
+        from phase12_engineering_journal_stimuli import BASE,SLOT
+        setup=Tests();setup.setUp();now=[0.0]
+        base=json.loads(setup.payload);profiles={}
+        for role,encoded in [('A','AA=='),('B','AQ=='),('C','Ag==')]:
+            value=copy.deepcopy(base);value['tls']['client_ca']=value['tls']['client_ca'].replace('AA==',encoded)
+            profiles[role]=bytes(canonical_profile(value))
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);principals={}
+            for role,payload in profiles.items():
+                path=root/(role+'.json');path.write_bytes(payload)
+                principals[role]=dict(profile_path=str(path),profile_sha256=hashlib.sha256(payload).hexdigest(),server_sha256=role.lower()*64)
+            candidates=[dict(role='engineering',target='WsprryPico',uf2=dict(sha256='e'*64))]+[
+                dict(role='fault_'+str(stage),target='WsprryPico',uf2=dict(sha256='f'*64)) for stage in (8,9,10)]
+            calls=[];applies=[];events=[];saved=[]
+            class Backend:
+                remote='/home/pi/phase12-recovery-'+('1'*32)
+                def __init__(self):self.generation=7;self.boot=1;self.stage=0;self.fault=False;self.consumed=False
+                def info(self):
+                    value=stimulus_info(self.generation,f'{self.boot:032x}')
+                    value.update(phase12_fault_stage=self.stage,phase12_fault_consumed=self.consumed,
+                                 access_default_password=True,local_suffix='0a9d89')
+                    if self.fault:
+                        value.update(provisioning_source='fault',provisioning_generation='0',provisioning_fault=1,lan_wtp_ready=False)
+                        value['network'].update(ipv4='',link_status=0)
+                    return value
+                def inspection(self):
+                    role={7:'A',8:'B',9:'C'}[self.generation]
+                    return dict(profile_source=1,bond_count=1,default_password=True,profile_healthy=True,
+                        profile_payload=profiles[role].decode(),profile_sequence=self.generation,
+                        access_loaded=True,access_state=2,access_sequence=1,epoch=1,reset_level=0,reset_phase=0,
+                        operational_healthy=True,config_sequence=0,cursor_sequence=0,watermark=0,config=None,effective_station=None)
+                def snapshot(self,name):
+                    raw=bytearray(b'\xff'*4194304)
+                    previous={7:'A',8:'A',9:'B'}[self.generation];selected={7:'A',8:'B',9:'C'}[self.generation]
+                    raw[BASE:BASE+SLOT]=bank(self.generation-1,profiles[previous])
+                    raw[BASE+SLOT:BASE+2*SLOT]=bank(self.generation,profiles[selected])
+                    (root/name).write_bytes(raw)
+                    return dict(path=name,sha256=hashlib.sha256(raw).hexdigest(),inspection=self.inspection())
+                def inspect(self,path):
+                    from phase12_engineering_journal_stimuli import committed_bank
+                    events.append('native_fault_inspection')
+                    raw=path.read_bytes();self.assert_corruption=committed_bank(raw,0)['payload']==profiles['B']
+                    try:committed_bank(raw,1)
+                    except ValueError:pass
+                    else:raise AssertionError('newest digest must actually fail')
+                    value=self.inspection();value.update(profile_healthy=bad_native,profile_source=0,profile_sequence=0,profile_payload='')
+                    return value
+                def deploy(self,role,backup,name,restore=False):
+                    calls.append((role,name,restore));events.append(name)
+                    self.fault=backup['inspection'].get('profile_healthy') is False
+                    self.generation=backup['inspection']['profile_sequence'] if not self.fault else 0
+                    self.stage=0 if role=='engineering' else int(role.rsplit('_',1)[1]);self.consumed=False;self.boot+=1
+                    if late==name:now[0]+=300
+                    return dict(info=self.info())
+            backend=Backend()
+            def remote(request):
+                action=request.get('action');events.append(action or 'apply')
+                if late is not None and late==action:now[0]+=request['remaining_s']
+                if action=='stale_suspend':return dict(status='OWNED_SNTP_SUSPENDED_ONCE')
+                if action=='stale_a_ready':
+                    value=backend.info();return dict(status='FRESH_A_NO_SNTP_READY',info=value,wire_hex=json.dumps(value).encode().hex())
+                if action=='stale_arm':return dict(status='STIMULUS_ARMED')
+                if action=='stale_prepare':return dict(status='STIMULUS_HOLD')
+                if action=='observe_checkpoint':
+                    value=backend.info();result=dict(info=value,wire_hex=json.dumps(value).encode().hex())
+                    if request.get('journal_selection')=='stimuli':result.update(stale_datagrams=1,stale_time_not_adopted=True)
+                    return result
+                if action=='observe_fault':
+                    value=backend.info();return dict(info=value,wire_hex=json.dumps(value).encode().hex(),fault_samples=5,rf_jobs=0)
+                applies.append(request['stage']);backend.boot+=1;backend.consumed=bool(request['stage'])
+                if request['stage'] in (0,10):backend.generation+=1
+                return dict(applies=1,confirmations=1,rf_jobs=0)
+            def tls(request):
+                probes={role:dict(outcome='tls_auth_refused',reason='TLSV1_ALERT_UNKNOWN_CA',server_sha256=request['server_sha256'],
+                    address='192.168.84.2',hostname=request['hostname']) for role in 'ABC'}
+                probes[request['selected']].update(outcome='accepted',device_id=runner.DEVICE,boot_id=request['boot_id'])
+                return dict(probes=probes)
+            def stage_seed(path,name):
+                events.append('stage_seed');self.assertEqual(path.name,name);self.assertEqual(path.stat().st_size,4194304)
+            def save(path,value):saved.append(path.name);path.write_text(json.dumps(value))
+            context=dict(backend=backend,root=root,preparation=dict(source_commit='a'*40,candidates=candidates),principals=principals,
+                principal_hashes={role:{key:'a'*64 for key in ('ca','cert','key')} for role in 'ABC'},authority='authorized',
+                manifest_sha256='1'*64,ble_address='AA:BB:CC:DD:EE:FF',hostname='pico.local')
+            def run(selection='stimuli'):
+                with patch('phase12_recovery_orchestrator.resource_health'):
+                    return runner.tranche(context,lambda *args:None,remote,tls,save,clock=lambda:now[0],selection=selection,stage_seed=stage_seed)
+            yield run,backend,calls,applies,events,saved
+
+    def test_explicit_stimuli_four_existing_applies_and_one_guarded_fault_seed(self):
+        with self.case() as (run,backend,calls,applies,events,saved):
+            result=run();self.assertEqual(applies,[0,8,9,10]);self.assertEqual(result['stale_datagrams'],1)
+            self.assertEqual(result['status'],'ENGINEERING_JOURNAL_STIMULI_REVIEW_REQUIRED')
+            self.assertEqual(result['corrupted_newest']['fault_samples'],5)
+            self.assertTrue(backend.assert_corruption)
+            self.assertLess(events.index('native_fault_inspection'),events.index('stage_seed'))
+            self.assertLess(events.index('stage_seed'),events.index('journal-corrupt-deploy.bin'))
+            self.assertEqual(len([call for call in calls if call[1]=='journal-corrupt-deploy.bin']),1)
+            self.assertTrue(next(call for call in calls if call[1]=='journal-corrupt-deploy.bin')[2])
+            self.assertEqual(len([call for call in calls if call[1].startswith('journal-b-restore-')]),3)
+    def test_default_standard_never_arms_stimulus_or_constructs_fault_seed(self):
+        with self.case() as (run,backend,calls,applies,events,saved):
+            result=run('standard');self.assertEqual(applies,[0,8,9,10]);self.assertEqual(result['stale_datagrams'],0)
+            self.assertFalse(set(events)&{'stale_suspend','stale_a_ready','stale_arm','stale_prepare','observe_fault','native_fault_inspection','stage_seed'})
+    def test_original90s_expiry_at_arm_prepare_or_checkpoint_stops_without_followon(self):
+        for action,expected in [('stale_arm',[]),('stale_prepare',[]),('observe_checkpoint',[0])]:
+            with self.subTest(action=action),self.case(late=action) as (run,backend,calls,applies,events,saved):
+                with self.assertRaisesRegex(ValueError,'original stale interval'):run()
+                self.assertEqual(applies,expected);self.assertNotIn('native_fault_inspection',events)
+                self.assertFalse(any(call[1].startswith('journal-b-restore-') for call in calls))
+    def test_cold_prefix300s_expiry_or_A_readiness_expiry_never_starts90_or_applies(self):
+        for late in ('journal-deploy-0.bin','stale_a_ready'):
+            with self.subTest(late=late),self.case(late=late) as (run,backend,calls,applies,events,saved):
+                with self.assertRaisesRegex(ValueError,'stage budget'):run()
+                self.assertEqual(applies,[]);self.assertNotIn('stale_arm',events)
+    def test_one_suspension_cold_deploy_readiness_then_first90s_arm_order(self):
+        with self.case() as (run,backend,calls,applies,events,saved):
+            run()
+            sequence=['stale_suspend','journal-deploy-0.bin','stale_a_ready','stale_arm','stale_prepare','apply','observe_checkpoint']
+            self.assertEqual([events.index(name) for name in sequence],sorted(events.index(name) for name in sequence))
+            self.assertEqual(events.count('stale_suspend'),1);self.assertEqual(events.count('stale_arm'),1)
+    def test_native_loader_must_fault_before_seed_transfer_or_deployment(self):
+        with self.case(bad_native=True) as (run,backend,calls,applies,events,saved):
+            with self.assertRaisesRegex(ValueError,'production native loader faults'):run()
+            self.assertEqual(applies,[0,8,9,10]);self.assertNotIn('stage_seed',events)
+            self.assertNotIn('journal-corrupt-deploy.bin',events)
+    def test_original300s_fault_deploy_expiry_admits_no_usb_success_observation(self):
+        with self.case(late='journal-corrupt-deploy.bin') as (run,backend,calls,applies,events,saved):
+            with self.assertRaisesRegex(ValueError,'corrupted journal case deadline'):run()
+            self.assertEqual(applies,[0,8,9,10]);self.assertNotIn('observe_fault',events)
+            self.assertNotIn('journal-corrupt-review-required.json',saved)
 
 if __name__=='__main__':unittest.main()

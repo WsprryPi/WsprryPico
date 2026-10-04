@@ -7,6 +7,8 @@ cancelled or retried. TLS proof is readonly HELLO/STATUS, never jobs/ownership.
 """
 import base64
 import hashlib
+import json
+import os
 import secrets
 import re
 import ssl
@@ -226,7 +228,8 @@ def verify_selection(context, info, raw, exact_payload, observed_payload, before
                 generation=expected, rf_jobs=0)
 
 
-def tranche(context, stage_image, apply_remote, tls_remote, save, *, clock=time.monotonic, sleeper=time.sleep):
+def tranche(context, stage_image, apply_remote, tls_remote, save, *, clock=time.monotonic, sleeper=time.sleep,
+            selection='standard', stage_seed=None):
     """Root-owned parent state machine; callbacks injectable without hardware.
 
     stage_image(role,candidate) stages exact bytes and sets backend.roles.
@@ -234,6 +237,8 @@ def tranche(context, stage_image, apply_remote, tls_remote, save, *, clock=time.
     in execute() finally. Snapshot enters ROM, so ordinary redeployment creates a
     separately bound TLS boot; checkpoint fresh-boot evidence is retained first.
     """
+    require(selection in ('standard','stimuli'),'explicit journal selection')
+    require(selection!='stimuli' or stage_seed is not None,'owned seed staging required')
     backend=context['backend']; root=Path(context['root']); prep=context['preparation']
     candidates={c['role']:c for c in prep['candidates']}
     ordinary=candidates['engineering']; source=prep['source_commit']
@@ -257,7 +262,18 @@ def tranche(context, stage_image, apply_remote, tls_remote, save, *, clock=time.
             backend.deploy('engineering',current,'journal-b-restore-'+str(stage)+'.bin',restore=True)
             role='fault_'+str(stage);stage_image(role,fixture_roles[stage])
         else:role='engineering';stage_image(role,ordinary)
+        stale_end=None
+        if selection=='stimuli' and stage==0:
+            # The original300s stage includes cold deployment. One owned
+            # suspension holds replies without restarting the UDP process.
+            suspension=dict(root=backend.remote,authority=context['authority'],manifest_sha256=context['manifest_sha256'],
+                source_commit=source,stage=0,candidate_role='engineering',image_name='engineering.uf2',
+                image_sha256=ordinary['uf2']['sha256'],profile_generation=current['inspection']['profile_sequence'],
+                action='stale_suspend',journal_selection='stimuli',remaining_s=remaining())
+            suspended=apply_remote(suspension);remaining()
+            require(suspended['status']=='OWNED_SNTP_SUSPENDED_ONCE','one owned SNTP suspension')
         deployed=backend.deploy(role,current,'journal-deploy-'+str(stage)+'.bin');info=deployed['info']
+        remaining()
         safe_info(info,source[:12],stage,False)
         require(info['provisioning_source']=='provisioned' and info['lan_wtp_mode']=='engineering-tls',
                 'source1 engineering TLS carrier')
@@ -267,11 +283,39 @@ def tranche(context, stage_image, apply_remote, tls_remote, save, *, clock=time.
             source_commit=source,stage=stage,candidate_role=role,image_name=role+'.uf2',
             image_sha256=candidates[role]['uf2']['sha256'],profile_generation=generation,
             profile_sha256=replacement['profile_sha256'],boot_id=boot,ble_address=context['ble_address'])
+        if selection=='stimuli' and stage==0:
+            ready=apply_remote(dict(request,action='stale_a_ready',journal_selection='stimuli',remaining_s=remaining()))
+            remaining()
+            require(ready['status']=='FRESH_A_NO_SNTP_READY','fresh connected unsynchronized A prerequisite')
+            from phase12_engineering_journal_stimuli import info_binding
+            ready_wire=bytes.fromhex(ready['wire_hex'])
+            require(strict(ready_wire)==ready['info'],'actual fresh A original')
+            info_binding(ready_wire,source,generation,boot)
+            require(ready['info']['status']['clock_state']=='unsynchronized' and
+                    ready['info']['network']['accepted']==0,'A has no time before first stale interval')
+            # First and only90s interval begins after the cold prefix. It
+            # includes capture/hold, the existing apply and B rejection proof.
+            stale_end=clock()+min(90,remaining())
+            apply_remote(dict(request,action='stale_arm',journal_selection='stimuli',remaining_s=stale_end-clock()))
+            require(clock()<stale_end,'original stale interval')
         # No retry after callback exception or uncertain result.
-        request['remaining_s']=remaining()
+        def apply_remaining():
+            left=remaining() if stale_end is None else min(remaining(),stale_end-clock())
+            require(left>0,'original stale interval');return left
+        if stale_end is not None:
+            prepared=apply_remote(dict(request,action='stale_prepare',journal_selection='stimuli',remaining_s=apply_remaining()))
+            require(prepared['status']=='STIMULUS_HOLD','captured actual A reply before apply')
+            apply_remaining()
+            request['journal_selection']='stimuli'
+        request['remaining_s']=apply_remaining()
         applied=apply_remote(request)
+        apply_remaining()
         require(applied['applies']==applied['confirmations']==1 and applied['rf_jobs']==0,'one bounded apply')
-        checkpoint=apply_remote(dict(request,action='observe_checkpoint',remaining_s=remaining()))
+        checkpoint=apply_remote(dict(request,action='observe_checkpoint',remaining_s=apply_remaining()))
+        apply_remaining()
+        if stale_end is not None:
+            require(checkpoint['stale_datagrams']==1 and checkpoint['stale_time_not_adopted'] is True,
+                    'one old reply rejected before fresh time release')
         after=checkpoint['info'];checkpoint_wire=bytes.fromhex(checkpoint['wire_hex'])
         require(strict(checkpoint_wire)==after,'actual checkpoint USB wire')
         safe_info(after,source[:12],stage,bool(stage))
@@ -303,4 +347,47 @@ def tranche(context, stage_image, apply_remote, tls_remote, save, *, clock=time.
                                 regions(raw_before),regions(raw_after),probes,ParentEvidence())
         results.append(result)
         if stage==0:b_saved=saved
-    return dict(status='ENGINEERING_JOURNAL_TRANCHE_ACCEPTED',stages=results,rf_jobs=0)
+    fault=None
+    if selection=='stimuli':
+        from phase12_engineering_journal_stimuli import corrupt_newest, fault_info, publish
+        start=clock()
+        def remaining_fault():
+            left=300-(clock()-start);require(left>0,'corrupted journal case deadline');return left
+        seed,seed_receipt=corrupt_newest(raw_after,expected,inspection['profile_sequence'])
+        path=root/'journal-corrupt-newest.bin'
+        require(not path.exists() and not path.is_symlink(),'fresh one-byte fault seed')
+        with path.open('xb') as stream:
+            path.chmod(0o600);stream.write(seed);stream.flush()
+            os.fsync(stream.fileno())
+        publish(root/'journal-corrupt-seed.json',seed_receipt)
+        remaining_fault()
+        fault_inspection=backend.inspect(path)
+        remaining_fault()
+        require(fault_inspection['profile_healthy'] is False and fault_inspection['profile_source']==0 and
+                fault_inspection['profile_sequence']==0 and fault_inspection['profile_payload']=='',
+                'production native loader faults instead of selecting intact older B')
+        unrelated={'access_loaded','access_state','access_sequence','epoch','reset_level','reset_phase',
+                   'bond_count','default_password','operational_healthy','config_sequence','cursor_sequence',
+                   'watermark','config','effective_station'}
+        require(all(fault_inspection[key]==inspection[key] for key in unrelated),
+                'native unrelated access/operational selection preserved')
+        save(root/'journal-corrupt-native.json',fault_inspection)
+        corrupted=dict(path=path.name,sha256=hashlib.sha256(seed).hexdigest(),inspection=fault_inspection)
+        remaining_fault();stage_seed(path,path.name);remaining_fault()
+        previous_boot=tls_request['boot_id']
+        # The existing restoration primitive writes only the declared reserved
+        # seed; ordinary deploy intentionally preserves current reserved bytes.
+        deployed=backend.deploy('engineering',corrupted,'journal-corrupt-deploy.bin',restore=True)
+        remaining_fault()
+        fault_info(json.dumps(deployed['info']).encode(),source,previous_boot)
+        fault_request=dict(tls_request,action='observe_fault',journal_selection='stimuli',
+            boot_id=previous_boot,remaining_s=remaining_fault())
+        fault=apply_remote(fault_request);remaining_fault()
+        require(fault['fault_samples']==5 and fault['rf_jobs']==0,'five actual guarded fault observations')
+        fault_info(bytes.fromhex(fault['wire_hex']),source,previous_boot)
+        fault=dict(fault,seed_sha256=corrupted['sha256'],seed_receipt_sha256=hashlib.sha256((root/'journal-corrupt-seed.json').read_bytes()).hexdigest(),
+            older_committed_B_intact=True,all_other_seed_bytes_equal=True,
+            usb_fault_admission_scope='INFO storage fault plus inactive empty unowned inhibited and absent station/LAN authority; no crypto refusal claim')
+        save(root/'journal-corrupt-review-required.json',fault);remaining_fault()
+    return dict(status='ENGINEERING_JOURNAL_TRANCHE_ACCEPTED' if selection=='standard' else 'ENGINEERING_JOURNAL_STIMULI_REVIEW_REQUIRED',
+                stages=results,corrupted_newest=fault,stale_datagrams=0 if selection=='standard' else 1,rf_jobs=0)

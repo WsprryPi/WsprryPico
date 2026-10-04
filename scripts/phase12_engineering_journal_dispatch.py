@@ -41,24 +41,115 @@ def run(request):
     image_name = request['image_name']; require(image_name==role+'.uf2', 'exact stage image basename')
     image = private_bytes(root/image_name, 4*1024*1024); validate_uf2(image)
     require(hashlib.sha256(image).hexdigest() == candidate['uf2']['sha256'] == request['image_sha256'], 'image bytes')
+    if request.get('action') in ('stale_suspend','stale_a_ready','stale_arm','stale_prepare','observe_fault'):
+        from phase12_engineering_journal_stimuli import fault_info
+        require(stage==0 and request.get('journal_selection')=='stimuli','explicit ordinary journal stimuli only')
+        deadline=time.monotonic()+min(300 if request['action'] in ('stale_suspend','stale_a_ready','observe_fault') else 90,request['remaining_s'])
+        def remaining():
+            left=deadline-time.monotonic();require(left>0,'journal stimulus observation deadline');return left
+        if request['action']=='stale_suspend':
+            remaining()
+            result=fixture(dict(root=str(root),authority=request['authority'],action='journal_stale_suspend',
+                source_commit=request['source_commit'],generation=request['profile_generation']))
+            remaining();return result
+        if request['action']=='stale_arm':
+            remaining()
+            result=fixture(dict(root=str(root),authority=request['authority'],action='journal_stale_arm',
+                source_commit=request['source_commit'],generation=request['profile_generation'],remaining_s=remaining()))
+            remaining();return result
+        observer=Observer();evidence=Evidence(root/('journal-'+request['action']+'-wire.jsonl'))
+        try:
+            bound=False;samples=0;boot=None
+            while True:
+                remaining();info,wire=observer();evidence.record('stimulus_usb_info',raw_hex=wire.hex());remaining()
+                require(strict(wire)==info,'actual stimulus INFO original')
+                safe_info(info,request['source_commit'][:12],0,False)
+                if request['action']=='observe_fault':
+                    fault_info(wire,request['source_commit'],request['boot_id'])
+                    boot=info['status']['boot_id'] if boot is None else boot
+                    require(info['status']['boot_id']==boot,'same fault boot')
+                    samples+=1
+                    if samples==5:
+                        remaining()
+                        result=dict(info=info,wire_hex=wire.hex(),fault_samples=5,rf_jobs=0,
+                            status='EXPLICIT_STORAGE_FAULT_INACTIVE_GUARD_REVIEW_REQUIRED')
+                        save(root/'journal-corrupt-result.json',result);remaining();return result
+                    time.sleep(min(2,remaining()));continue
+                require(info['status']['boot_id']==request['boot_id'] and
+                        counter(info['provisioning_generation'],'A generation')==request['profile_generation'] and
+                        info['provisioning_source']=='provisioned','fresh A capture authority')
+                if request['action']=='stale_a_ready':
+                    require(info['status']['clock_state']=='unsynchronized' and
+                            counter(info['network']['accepted'],'accepted')==0,'A stays unsynchronized during owned suspension')
+                    if info['network']['link_status']==3:
+                        from phase12_engineering_journal_stimuli import info_binding
+                        info_binding(wire,request['source_commit'],request['profile_generation'],request['boot_id'])
+                        remaining()
+                        return dict(status='FRESH_A_NO_SNTP_READY',info=info,wire_hex=wire.hex(),rf_jobs=0)
+                    time.sleep(min(.5,remaining()));continue
+                if not bound and info['network']['link_status']==3:
+                    require(info['status']['clock_state']=='unsynchronized' and
+                            counter(info['network']['accepted'],'accepted')==0,'A has no clock before capture bind')
+                    fixture(dict(root=str(root),authority=request['authority'],action='bind_peer',address=info['network']['ipv4']))
+                    remaining()
+                    fixture(dict(root=str(root),authority=request['authority'],action='journal_stale_old_bind',info_raw_hex=wire.hex()))
+                    remaining()
+                    fixture(dict(root=str(root),authority=request['authority'],action='sntp_on'))
+                    remaining();bound=True
+                if bound and info['status']['clock_state']=='synchronized' and counter(info['network']['accepted'],'accepted')>0:
+                    remaining()
+                    result=fixture(dict(root=str(root),authority=request['authority'],action='journal_stale_hold',info_raw_hex=wire.hex()))
+                    remaining();return result
+                time.sleep(min(.5,remaining()))
+        finally:evidence.close()
     if request.get('action') == 'observe_checkpoint':
         observer=Observer();deadline=time.monotonic()+min(90,request['remaining_s'])
         def remaining():
             left=deadline-time.monotonic()
             require(left>0,'checkpoint observation deadline')
             return left
-        while True:
-            remaining()
-            try:info,wire=observer()
-            except (OSError,TimeoutError):
-                time.sleep(min(.5,remaining()));continue
-            remaining()
-            if info['status']['boot_id']==request['boot_id'] or (stage and info.get('phase12_fault_consumed') is not True):
-                time.sleep(min(.5,remaining()));continue
-            safe_info(info,request['source_commit'][:12],stage,bool(stage))
-            require(info['provisioning_source']=='provisioned' and info['lan_wtp_mode']=='engineering-tls','exact source1 carrier')
-            remaining()
-            return dict(info=info,wire_hex=wire.hex(),rf_jobs=0)
+        stale=request.get('journal_selection')=='stimuli' and stage==0
+        bound=False
+        evidence=Evidence(root/'journal-stale-new-wire.jsonl') if stale else None
+        try:
+            while True:
+                remaining()
+                try:info,wire=observer()
+                except (OSError,TimeoutError):
+                    time.sleep(min(.5,remaining()));continue
+                remaining()
+                require(strict(wire)==info,'actual checkpoint USB wire')
+                if evidence is not None:evidence.record('stale_checkpoint_usb_info',raw_hex=wire.hex())
+                remaining()
+                if info['status']['boot_id']==request['boot_id'] or (stage and info.get('phase12_fault_consumed') is not True):
+                    time.sleep(min(.5,remaining()));continue
+                safe_info(info,request['source_commit'][:12],stage,bool(stage))
+                require(info['provisioning_source']=='provisioned' and info['lan_wtp_mode']=='engineering-tls','exact source1 carrier')
+                if stale:
+                    require(counter(info['provisioning_generation'],'fresh B generation')==request['profile_generation']+1,
+                            'fresh B generation before stale delivery')
+                    if not bound and info['network']['link_status']==3:
+                        require(counter(info['network']['accepted'],'accepted')==0 and
+                                counter(info['network']['rejected'],'rejected')==0 and
+                                info['status']['clock_state']=='unsynchronized','no premature B time/rejection')
+                        fixture(dict(root=str(root),authority=request['authority'],action='bind_peer',address=info['network']['ipv4']))
+                        remaining()
+                        fixture(dict(root=str(root),authority=request['authority'],action='journal_stale_new_bind',info_raw_hex=wire.hex()))
+                        remaining();bound=True
+                    if bound and counter(info['network']['rejected'],'rejected')==1:
+                        remaining()
+                        fixture(dict(root=str(root),authority=request['authority'],action='journal_stale_release',info_raw_hex=wire.hex()))
+                        remaining()
+                        return dict(info=info,wire_hex=wire.hex(),rf_jobs=0,stale_datagrams=1,
+                            stale_time_not_adopted=True)
+                    require(counter(info['network']['accepted'],'accepted')==0 and
+                            counter(info['network']['rejected'],'rejected')==0 and
+                            info['status']['clock_state']=='unsynchronized','no premature B time/rejection')
+                    time.sleep(min(.5,remaining()));continue
+                remaining()
+                return dict(info=info,wire_hex=wire.hex(),rf_jobs=0)
+        finally:
+            if evidence is not None:evidence.close()
     if request.get('action') == 'tls':
         require(stage == 0, 'readonly TLS uses ordinary engineering image')
         evidence = Evidence(root/('journal-tls-'+str(request['journal_stage'])+'-wire.jsonl'))
