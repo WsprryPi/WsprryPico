@@ -43,38 +43,55 @@ def run(request):
     require(hashlib.sha256(image).hexdigest() == candidate['uf2']['sha256'] == request['image_sha256'], 'image bytes')
     if request.get('action') == 'observe_checkpoint':
         observer=Observer();deadline=time.monotonic()+min(90,request['remaining_s'])
+        def remaining():
+            left=deadline-time.monotonic()
+            require(left>0,'checkpoint observation deadline')
+            return left
         while True:
-            require(time.monotonic()<deadline,'checkpoint observation deadline')
+            remaining()
             try:info,wire=observer()
-            except (OSError,TimeoutError):time.sleep(.5);continue
+            except (OSError,TimeoutError):
+                time.sleep(min(.5,remaining()));continue
+            remaining()
             if info['status']['boot_id']==request['boot_id'] or (stage and info.get('phase12_fault_consumed') is not True):
-                time.sleep(.5);continue
+                time.sleep(min(.5,remaining()));continue
             safe_info(info,request['source_commit'][:12],stage,bool(stage))
             require(info['provisioning_source']=='provisioned' and info['lan_wtp_mode']=='engineering-tls','exact source1 carrier')
+            remaining()
             return dict(info=info,wire_hex=wire.hex(),rf_jobs=0)
     if request.get('action') == 'tls':
         require(stage == 0, 'readonly TLS uses ordinary engineering image')
         evidence = Evidence(root/('journal-tls-'+str(request['journal_stage'])+'-wire.jsonl'))
         observer = Observer(); deadline = time.monotonic()+min(90,request['remaining_s'])
+        def remaining():
+            left=deadline-time.monotonic()
+            require(left>0,'fresh SNTP TLS readiness')
+            return left
         def guard():
-            info,wire=observer();safe_info(info,request['source_commit'][:12],0,False)
+            remaining()
+            info,wire=observer();evidence.record('tls_usb_info',raw_hex=wire.hex())
+            remaining()
+            require(strict(wire)==info,'actual TLS INFO wire')
+            safe_info(info,request['source_commit'][:12],0,False)
             require(info['status']['boot_id']==request['boot_id'] and
                     counter(info['provisioning_generation'],'gen')==request['profile_generation'], 'TLS boot/gen')
-            evidence.record('tls_usb_info',raw_hex=wire.hex());return info
+            remaining();return info
         try:
             time_started=False
             while True:
                 info=guard()
                 if info['network']['link_status']==3 and info['network']['ipv4'].startswith('192.168.84.') and not time_started:
                     fixture(dict(root=str(root),authority=request['authority'],action='bind_peer',address=info['network']['ipv4']))
+                    remaining()
                     fixture(dict(root=str(root),authority=request['authority'],action='sntp_on'))
+                    remaining()
                     time_started=True
                 if (info['network']['link_status']==3 and info['status']['clock_state']=='synchronized' and
                         info['network']['ipv4'].startswith('192.168.84.') and
                         info['network']['ntp_server']=='192.168.84.1' and
                         info['network']['ntp_address']=='192.168.84.1' and
                         counter(info['network']['accepted'],'SNTP accepted')>0):break
-                require(time.monotonic()<deadline,'fresh SNTP TLS readiness');time.sleep(.5)
+                time.sleep(min(.5,remaining()))
             selected_payload=private_bytes(root/('engineering-profile-'+request['selected']+'.json'),7168)
             require(hashlib.sha256(selected_payload).hexdigest()==request['selected_profile_sha256'], 'selected profile archive hash')
             selected_profile=strict(selected_payload)
@@ -93,10 +110,14 @@ def run(request):
                 for key,path in principal.items():
                     require(hashlib.sha256(private_bytes(Path(path),16384)).hexdigest()==
                             request['principal_hashes'][role][key], 'exact independently staged client identity')
+                remaining()
                 probes[role]=tls_probe(plan,principal,evidence)
+                remaining()
                 guard()
+            remaining()
             result=dict(probes=probes,boot_id=request['boot_id'],rf_jobs=0)
             save(root/('journal-tls-'+str(request['journal_stage'])+'-result.json'),result)
+            remaining()
             return result
         finally:evidence.close()
     selected = 'B' if stage == 0 else 'C'

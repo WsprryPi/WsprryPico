@@ -11,6 +11,7 @@ import ssl
 import shutil
 import subprocess
 import unittest
+from contextlib import contextmanager,ExitStack
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 import phase12_engineering_journal as runner
@@ -206,6 +207,160 @@ class TrancheTests(unittest.TestCase):
             self.assertTrue(primitive_paths);self.assertTrue(all(re.fullmatch('[a-z0-9_.-]+',name) for name in primitive_paths))
 
 class DispatchTests(unittest.TestCase):
+    @contextmanager
+    def deadline_case(self,action,observe=None,probe=None,fixture=None,remaining=90):
+        setup=Tests();setup.setUp();clock=[0.0];observations=[];probes=[];fixtures=[];sleeps=[]
+        evidence=Evidence();evidence.closed=False
+        evidence.saved=[]
+        evidence.close=lambda:setattr(evidence,'closed',True)
+        with tempfile.TemporaryDirectory() as directory:
+            actual=Path(directory);remote='/home/pi/phase12-recovery-'+('1'*32)
+            class Root:
+                def __str__(self):return remote
+                def is_dir(self):return True
+                def is_symlink(self):return False
+                def __truediv__(self,name):return actual/name
+            root=Root();image=b'bounded dispatcher admission fixture'
+            manifest=dict(source_commit='a'*40,candidates=[dict(role='engineering',target='WsprryPico',
+                fault_stage=0,lan_mode='tls',uf2=dict(sha256=hashlib.sha256(image).hexdigest()))])
+            manifest_raw=json.dumps(manifest).encode();payload=bytes(setup.payload)
+            files={'preparation-manifest.json':manifest_raw,'engineering.uf2':image,'engineering-profile-B.json':payload}
+            principal_hashes={}
+            for role in 'ABC':
+                principal_hashes[role]={}
+                for key in ('ca','cert','key'):
+                    data=json.loads(payload)['tls']['client_ca'].encode() if (role,key)==('B','ca') else ('fixture-'+role+'-'+key).encode()
+                    files['journal-'+role+'-'+key+('.key' if key=='key' else '.crt')]=data
+                    principal_hashes[role][key]=hashlib.sha256(data).hexdigest()
+            for name,data in files.items():
+                path=actual/name;path.write_bytes(data);path.chmod(0o600)
+            info=copy.deepcopy(setup.info);info['status'].update(boot_id='c'*32,clock_state='synchronized')
+            info['network']=dict(link_status=3,ipv4='192.168.84.2',ntp_server='192.168.84.1',
+                ntp_address='192.168.84.1',accepted=1)
+            request=dict(root=remote,authority=dispatch.AUTHORITY,stage=0,candidate_role='engineering',
+                source_commit='a'*40,manifest_sha256=hashlib.sha256(manifest_raw).hexdigest(),
+                image_name='engineering.uf2',image_sha256=hashlib.sha256(image).hexdigest(),action=action,
+                boot_id=('b' if action=='observe_checkpoint' else 'c')*32,remaining_s=remaining,
+                journal_stage=0,selected='B',profile_generation=7,hostname=json.loads(payload)['tls']['hostname'],
+                selected_profile_sha256=hashlib.sha256(payload).hexdigest(),server_sha256='d'*64,
+                principal_hashes=principal_hashes)
+            def observer():
+                observations.append(clock[0]);value=copy.deepcopy(info)
+                if observe is not None:observe(clock,value,len(observations))
+                return value,json.dumps(value).encode()
+            def tls(plan,principal,sink):
+                probes.append(principal)
+                if probe is not None:probe(clock,len(probes))
+                return dict(outcome='fixture-deadline-result')
+            def call_fixture(value):
+                fixtures.append(value['action'])
+                if fixture is not None:fixture(clock,value['action'])
+            def sleep(seconds):sleeps.append(seconds);clock[0]+=seconds
+            with ExitStack() as stack:
+                stack.enter_context(patch.object(dispatch,'Path',side_effect=lambda value:root if str(value)==remote else Path(value)))
+                stack.enter_context(patch.object(dispatch,'validate_uf2'))
+                stack.enter_context(patch.object(dispatch,'Observer',return_value=observer))
+                stack.enter_context(patch.object(dispatch,'Evidence',return_value=evidence))
+                stack.enter_context(patch.object(dispatch,'tls_probe',side_effect=tls))
+                stack.enter_context(patch.object(dispatch,'fixture',side_effect=call_fixture))
+                stack.enter_context(patch.object(dispatch,'save',side_effect=lambda path,value:evidence.saved.append((path,value))))
+                stack.enter_context(patch.object(dispatch.time,'monotonic',side_effect=lambda:clock[0]))
+                stack.enter_context(patch.object(dispatch.time,'sleep',side_effect=sleep))
+                stack.enter_context(patch('phase12_recovery_orchestrator.resource_health'))
+                yield request,clock,observations,probes,fixtures,sleeps,evidence
+
+    def test_checkpoint_success_before_short_remaining_deadline(self):
+        def slow(clock,value,count):clock[0]=44.999
+        with self.deadline_case('observe_checkpoint',observe=slow,remaining=45) as case:
+            request,clock,observations,probes,fixtures,sleeps,evidence=case
+            result=dispatch.run(request)
+            self.assertEqual(result['info']['status']['boot_id'],'c'*32)
+            self.assertEqual(len(observations),1);self.assertFalse(probes+fixtures+sleeps)
+
+    def test_checkpoint_pending_boot_sleep_uses_same_remaining_deadline(self):
+        def old_boot(clock,value,count):
+            clock[0]=89.8;value['status']['boot_id']='b'*32
+        with self.deadline_case('observe_checkpoint',observe=old_boot) as case:
+            request,clock,observations,probes,fixtures,sleeps,evidence=case
+            with self.assertRaisesRegex(ValueError,'checkpoint observation deadline'):
+                dispatch.run(request)
+            self.assertEqual(len(observations),1);self.assertFalse(probes+fixtures)
+            self.assertEqual(len(sleeps),1);self.assertAlmostEqual(sleeps[0],.2)
+            self.assertEqual(clock[0],90)
+
+    def test_checkpoint_exact_or_late_success_cannot_escape_deadline(self):
+        for finish in (90,90.001):
+            with self.subTest(finish=finish):
+                def slow(clock,value,count):clock[0]=finish
+                with self.deadline_case('observe_checkpoint',observe=slow) as case:
+                    request,clock,observations,probes,fixtures,sleeps,evidence=case
+                    with self.assertRaisesRegex(ValueError,'checkpoint observation deadline'):
+                        dispatch.run(request)
+                    self.assertEqual(len(observations),1);self.assertFalse(probes+fixtures+sleeps)
+
+    def test_timely_tls_readiness_and_all_three_probes_share_deadline(self):
+        with self.deadline_case('tls') as case:
+            request,clock,observations,probes,fixtures,sleeps,evidence=case
+            result=dispatch.run(request)
+            self.assertEqual(set(result['probes']),set('ABC'));self.assertEqual(len(probes),3)
+            self.assertEqual(fixtures,['bind_peer','sntp_on']);self.assertEqual(len(observations),7)
+            self.assertTrue(evidence.closed)
+
+    def test_exact_or_late_sntp_readiness_admits_no_fixture_or_probe(self):
+        for finish in (90,90.001):
+            with self.subTest(finish=finish):
+                def slow(clock,value,count):clock[0]=finish
+                with self.deadline_case('tls',observe=slow) as case:
+                    request,clock,observations,probes,fixtures,sleeps,evidence=case
+                    with self.assertRaisesRegex(ValueError,'fresh SNTP TLS readiness'):
+                        dispatch.run(request)
+                    self.assertEqual(len(observations),1);self.assertFalse(probes+fixtures+sleeps)
+                    self.assertTrue(evidence.closed)
+                    self.assertEqual([row[0] for row in evidence.rows],['tls_usb_info'])
+                    self.assertFalse(evidence.saved)
+
+    def test_late_fixture_bind_cannot_enable_sntp_or_probe(self):
+        def late(clock,action):clock[0]=90
+        with self.deadline_case('tls',fixture=late) as case:
+            request,clock,observations,probes,fixtures,sleeps,evidence=case
+            with self.assertRaisesRegex(ValueError,'fresh SNTP TLS readiness'):
+                dispatch.run(request)
+            self.assertEqual(fixtures,['bind_peer']);self.assertFalse(probes)
+            self.assertTrue(evidence.closed)
+
+    def test_exact_or_late_tls_probe_cannot_publish_success_or_continue(self):
+        for finish in (90,90.001):
+            with self.subTest(finish=finish):
+                def late(clock,count):clock[0]=finish
+                with self.deadline_case('tls',probe=late) as case:
+                    request,clock,observations,probes,fixtures,sleeps,evidence=case
+                    with self.assertRaisesRegex(ValueError,'fresh SNTP TLS readiness'):
+                        dispatch.run(request)
+                    self.assertEqual(len(probes),1);self.assertEqual(len(observations),2)
+                    self.assertTrue(evidence.closed)
+                    self.assertFalse(evidence.saved)
+
+    def test_late_preprobe_observer_prevents_first_tls_attempt(self):
+        def late(clock,value,count):
+            if count==2:clock[0]=90
+        with self.deadline_case('tls',observe=late) as case:
+            request,clock,observations,probes,fixtures,sleeps,evidence=case
+            with self.assertRaisesRegex(ValueError,'fresh SNTP TLS readiness'):
+                dispatch.run(request)
+            self.assertEqual(len(observations),2);self.assertFalse(probes)
+            self.assertTrue(evidence.closed)
+
+    def test_readiness_sleep_shrinks_to_remaining_absolute_deadline(self):
+        def not_ready(clock,value,count):
+            clock[0]=89.8;value['network']['link_status']=1
+        with self.deadline_case('tls',observe=not_ready) as case:
+            request,clock,observations,probes,fixtures,sleeps,evidence=case
+            with self.assertRaisesRegex(ValueError,'fresh SNTP TLS readiness'):
+                dispatch.run(request)
+            self.assertEqual(len(observations),1);self.assertFalse(probes+fixtures)
+            self.assertEqual(len(sleeps),1);self.assertAlmostEqual(sleeps[0],.2)
+            self.assertEqual(clock[0],90);self.assertTrue(evidence.closed)
+
     def test_actual_dispatch_accepts_exact_stage_UF2_basenames(self):
         setup=Tests();setup.setUp()
         with tempfile.TemporaryDirectory() as directory:
