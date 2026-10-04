@@ -21,6 +21,13 @@ are historical. A remains excluded. Current candidate/setup-bound RF permission
 and actual operator Ready are still required; the stopped17/12 packet is not
 standing RF authority.
 
+The user's direct 2026-10-04 approval includes necessary private B backups,
+profile/configuration credentials and the exact retained historical RF evidence
+bundle. Do not request this transfer approval again. A newer B boot initially
+fails synchronized readiness, then recovers after one normal inhibited reboot.
+Every dependent case still requires fresh current network/time admission. Host NTP replies alone do not qualify B's packet path or clock. Preserve
+the earlier transfer rejections and synchronized exit as historical evidence.
+
 Execute these finite stages, retaining existing stricter case/child limits:
 
 1. Diagnose the populated-fixture and three load-reply failures on merged and
@@ -35,9 +42,11 @@ Execute these finite stages, retaining existing stricter case/child limits:
    not repeat uncertain requests, widen case timers or infer cryptographic
    rejection from transport failure.
 5. Complete remaining consumer deferred-readiness, network recovery, old-peer
-   refusal, engineering A/B/C journal, carrier/API composition, T5 and running
+   refusal, engineering A/B/C journal, carrier/API composition and running
    cookie/resource scopes when their actual prerequisites pass. Retain the
    original two-hour/241-sample/45-second-gap/1024-byte-return resource bounds.
+   Required automatic T5 assertions are accepted across separately bound
+   tranches; preserve those results without replay.
    New station/hardware APIs require targeted live validation of device/boot,
    revision, busy exclusion, saved/active pins and pending-restart inhibition.
 6. Prepare concrete operator/physical cases while autonomous work runs; execute

@@ -42,15 +42,15 @@ its private packet hash is
 `b3dd1e9579a90112ec81361353078f07230a3617f1bfb69f6115c1eafc7511ec`.
 It has no future boot/address or Ready and does not authorize RF deployment.
 
-The new private RF preparation root on wspr5 contains only its reviewed code/image
-bundle, inventory and verifier; it is not assembled or flashed. The separate
+The new private RF preparation root on wspr5 now contains the reviewed code/image
+and historical evidence bundles, inventory and verifier. Inert assembly and
+independent review pass for all 62 assets; no RF image is flashed. The separate
 historical evidence bundle has SHA-256
 `2fd2d9b2df9e1db1059001c0759216d8f01a01ca1334ead9d462c52ae755df90`.
-Automatic approval review rejected that transfer because the existing transfer
-approval covers source/tests, inhibited firmware and helpers, rather than private
-historical captures. Explicit approval for that exact bundle remains deferred
-to the operator steps. No indirect copy or privilege workaround is authorized
-by this packet. The required original eighty-megabyte historical IQ capture
+Automatic approval review initially rejected that transfer because the earlier
+grant covered source/tests, inhibited firmware and helpers. The user's direct
+2026-10-04 approval now includes these private payloads; the exact bundle transfer
+and inert verification succeed. The required original eighty-megabyte historical IQ capture
 and its 16/11 accounting remain part of the unchanged finite-budget review.
 
 Current automated helper source is separately committed at
@@ -59,20 +59,26 @@ Current automated helper source is separately committed at
 record both identities and their exact hashes in the redacted evidence. They
 are prepared only; actual target and original host-before admission occurs
 before any future child starts. The
-reviewed remaining T5 scopes are one SNTP job/120 seconds (sixty-second
+reviewed completed T5 continuations use one SNTP job/120 seconds (sixty-second
 prerequisite, twenty-five-second completion) and two armed/running invalidation
-jobs/180 seconds. Both are inhibited; their live acceptance remains pending.
+jobs/180 seconds. The fresh strict SNTP subset is independently accepted;
+the two-case armed/running invalidation subset is independently accepted too.
+The three separately bound tranches now cover the required automatic T5
+assertions. Both new continuations are inhibited; physical RF/timing remains
+separate.
 The reviewed AP diagnostics make at most one association per explicit mode
 without saving settings or submitting a job.
 
-Automatic approval review separately rejected the file-only diagnostic transfer
-of the retained B flash backup because it can contain stored credentials.
-Necessary private native backup/profile inputs and the exact historical capture
-bundle require explicit transfer approval; the already authorized B inhibited
-operations remain authorized. No dependent transfer or target campaign is
-started while that dataflow approval is missing. The current safe restored exit
-is recorded in the execution review and must be repeated after further target
-operations.
+The initial credential-bearing backup transfer rejection remains historical.
+The user's direct approval covers necessary private backup/profile/credential
+inputs. One file-only inspection of the exact retained B backup passes within
+unchanged limits; no Pico action occurs and the older composition failure's
+cause remains unknown. The 2026-10-03 synchronized restored exit is historical:
+a fresh 2026-10-04 check initially finds inhibited B unsynchronized and stops
+before LAN authority/AP scans. One supported normal reboot recovers trustworthy
+time and five quiet samples within 130.643 seconds; the complete fresh exit
+observer then passes. Independent review accepts the observation scope; final fixture/lock probes remain separate. Each dependent
+campaign still requires fresh admission and complete restoration/exit checks.
 
 ### Historical preparation record
 
@@ -185,7 +191,7 @@ consume an active case timer. Passing a source test does not pass a target row.
 | Remaining engineering composition / B12C, B12R | The consumer ordinary soak is accepted without replay. Separate consumer and engineering plans with the [composition procedure](phase12-composition-preparation.md), five directed pressure boundaries plus associated prior fault evidence, maximum framing/session refusal, loaded/armed/running competing admissions, disconnect and provisioning scrub. INFO observer samples exact identity/resources; independently retained wire evidence proves actual carriers. | Remaining engineering soak: 2 h; 241 samples at 30 s cadence, gap <=45 s, <=12 simulated jobs per composition and <=60 s per job, RF jobs zero, observer flash cycles zero. Reserve 16 min network/BLE quiet and final 20 min disconnect/resource return. |
 | Ordinary flash/concurrency / B12R | Engineering CONFIG/USB-BLE-TLS serialization is accepted under its original binding and is not replayed. Consumer encrypted-portal/profile-journal save with concurrent STATUS remains open; prove original overlap, exact digest/generation/preservation and adapter/resource return. Offline populated-save preservation does not qualify concurrent overlap. | Remaining consumer case: one save, <=10 min, <=20 STATUS per carrier at >=100 ms spacing, no retry/RF, then exact metadata restoration. |
 | Remaining running-cookie / B12R | Accelerated inactivity/absolute expiry and loaded/armed owner grace are accepted without replay. Prove expired-cookie ownership behavior during one running inhibited job, including bounded same-owner STATUS/cancel grace and authority/resource reclamation. | One 45 s job in a 260 s body, RF zero; retain existing 15 s/60 s fixture limits, then restore ordinary 15 min/12 h settings. This does not measure twelve real hours. |
-| Remaining time / B12T | Use explicit reviewed inhibited continuations: one SNTP-priority job with strict prerequisite/completion admission, plus two jobs for armed clock invalidation/MISSED_START and running monotonic completion. Accepted loaded/fresh-field cases are retained without replay. | SNTP: one job/120 s, prerequisite <60 s, completion <25 s; invalidation: two jobs/180 s, 60/75 s stages, <=32 STATUS per stage. RF zero; exact restoration. |
+| Accepted automatic time / B12T | Required T5 assertions are accepted across the separately bound loaded/fresh-field, strict SNTP and armed/running invalidation tranches. Preserve original source and count boundaries; no replay is pending. | Six charged case reservations, four actual completions; five case charges and three completions accepted. Older late-SNTP completion remains unaccepted. RF and independent physical timing remain separate. |
 | LED / B12L | Observe current two-flash AP cue, Identify priority/nonextension independently timed and without job changes. LED output-fault cue acceptance requires a separate reviewed adapter-error fixture; reset/profile faults do not substitute. | One sequence per prepared cue/priority, <=5 min each; fault injection remains unprepared pending its fixture, restore healthy state. |
 | Historical accepted reset checkpoints / R11P, B12J | Do not replay: two reset levels across stages 1–7, freshly backed up under existing B operation approval. Two confirmations plus typed `reset provisioning` or `erase`; verify exact clearing/preservation, physical bonds, epoch advances once and E10 unchanged after reboot/resume. | Fourteen cases, one operation and deliberate cut per case, <=5 min, at most two additional resume boots; restore after every case. |
 | Historical accepted profile interruption / C10N, B12J | Do not replay: stages 8–10, one approved profile save per stage. For 8–9 previous committed authority or fail-closed storage; for 10 exact durable digest/generation reconciliation, no second POST or resurrected old trust. | Three cases, one save/cut each, <=5 min, at most two additional boots; fresh backup and intended-profile restore per case. |

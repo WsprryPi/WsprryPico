@@ -146,22 +146,20 @@ pass again. This remains an unresolved automatic helper failure, with diagnostic
 retention and cause investigation required before a new run. All operator actions
 remain grouped after autonomous work.
 
-The current G7 code and image bundle is staged in a new private wspr5 root only;
-no RF image is flashed and no RF action occurs. Automatic approval review blocks
-the separate historical capture/evidence bundle because the earlier transfer
-approval covered source, firmware and helpers. Its explicit transfer approval
-remains with the final operator steps. Historical counts stay 16 acquisitions
-and 11 charged jobs; current RF setup approval and an actual Ready remain absent.
+The user directly approved the private backup/profile/credential transfers on
+2026-10-04. The exact historical RF bundle is now transferred and inert assembly
+independently verifies all 62 assets, including the original 80 MB capture.
+No RF image is flashed and no RF action occurs; counts remain 16 acquisitions
+and 11 charged jobs. Current RF setup approval and an actual Ready remain absent.
+The initial automatic-review transfer rejections remain historical failures;
+no approval boundary is bypassed.
 
-Automatic approval review also rejects a separate file-only diagnostic that
-would send an existing private B full-flash backup back to wspr5. That operation
-could transfer stored credentials and is outside the recorded source-snapshot
-transfer grant according to the review. No diagnostic retry or indirect
-workaround occurs. Explicit approval for necessary private native backup/profile
-inputs is deferred to the operator steps; dependent campaigns stay automatic
-work. Source checks, packet preparation and read-only exit observation continue.
+One new file-only inspection of the exact retained 4 MiB B backup passes through
+the repaired private native adapter within its unchanged limits. Original
+stdout/stderr are retained privately. This does not recover or explain the older
+lost internal composition error, and does not justify replaying that composition.
 
-The read-only current exit observation passes after the stopped composition
+The 2026-10-03 read-only exit observation passes after the stopped composition
 attempt: six original same-boot INFO records confirm healthy journals, station
 link, accepted synchronized time and disabled inactive state; two correlated
 CRC-valid Plain LAN HELLO/STATUS replies prove empty/unowned authority. Two
@@ -189,8 +187,8 @@ The private native adapter now retains bounded original failure streams without
 changing its one-attempt eight/six/ten-second limits; its independent review
 passes 21/21 controls in both normal and optimized modes. Its prior aliases and hash-bound
 controllers remain preserved. This observability repair does not recover or
-explain the earlier lost internal composition error. Further private-input
-execution remains blocked by the recorded transfer approval boundary.
+explain the earlier lost internal composition error. Private-input transfer approval is now granted; current target prerequisites
+still govern each new campaign.
 
 The new private 372-asset snapshot separates helper revision `226ce6c` from
 unchanged c0d firmware, with 271 production source/helper-build files compared
@@ -198,10 +196,30 @@ byte-for-byte. Both actual staged time closures import successfully. Seven
 fresh scope controllers are prepared with reviewed fixed aliases and original
 2,400/9,500-second controller caps; none is started. Two inert AP configurations
 bind the accepted checkpoint and current source but require actual future
-pre-child host originals. The single requested private-transfer approval is
-pending. Available file-only preparation and review are complete; dependent
-automatic execution remains blocked. No additional target operations follow
-the verified current exit while that approval is absent.
+pre-child host originals. The requested private-transfer approval is now granted. A fresh 2026-10-04
+read-only check finds a different B boot, still healthy/inhibited/disabled/empty
+and inactive with station link3, but zero accepted SNTP and unsynchronized time.
+The complete exit observer stops at its time/readiness gate before LAN exchanges
+and AP scans. The firmware's 1,803 query attempts occurred autonomously since
+boot; this counter increments before allocation/send and does not prove packets
+on the wire or overnight agent execution. No new simulator jobs have started.
+
+Read-only host diagnostics establish valid replies from the exact public server
+currently resolved by B and from wspr5's PPS-synchronized `time.local`. The Mac
+initially times out; a subsequent exact-client packet capture and the actual
+bounded macOS `sntp` command both receive valid stratum1/PPS replies. Chrony
+allows both Mac and B addresses. No service configuration changes occur, and
+these host-path results do not establish B's packet path or failure cause.
+One supported normal reboot now recovers B within the fixed 180-second bound:
+62 successful post-reboot INFO observations end with three accepted SNTP samples,
+synchronized time and five quiet readiness samples at fresh uptime above
+120 seconds. Total observation is 130.643 seconds; INFO-visible saved settings
+match. No flash/profile/time/job writes occur. The complete fresh exit observer
+then passes LAN authority, two fresh AP absence scans and management comparison;
+independent review accepts its observation scope; final fixture/lock probes remain separate. These outcomes do not establish the earlier
+failure cause or qualify T5. The reviewed one-job strict-SNTP continuation subsequently completes under
+its unchanged limits; its separate independent acceptance and exact restoration
+are recorded below.
 
 ## Historical bounded execution
 
@@ -1165,3 +1183,99 @@ external prerequisites. Raw controller RAM has no supported observation API and
 is unsupported rather than operator-dependent. Conditional production GP14
 qualification remains open. A and wspr4 were not used; historical RF counts
 remain sixteen acquisitions and eleven charged jobs.
+
+### 2026-10-04 strict SNTP continuation
+
+Independent original CRC/HCI review accepts the explicit one-job SNTP subset.
+Exactly one CLAIM/LOAD/ARM/RELEASE executes a six-second local simulator job,
+with armed/running/complete observed and no ABORT or replay. The conservative
+post-validation bounds are 56.405 seconds for the sixty-second prerequisite and
+13.854 seconds for the twenty-five-second completion. The recorded span is
+89.419 seconds; exact entry/return are unlogged, with the verified 120-second
+source alarm supplying that body limit. All 478 ATT writes are acknowledged,
+with no write error, 0x11, capture loss or truncation.
+
+Independent restoration verifies the actual complete 4 MiB readback equals
+baseline, all 7,097 UF2 pages match and reserved/E10 bytes are unchanged. The
+new complete exit review proves fresh same-boot INFO, original LAN authority,
+two fresh AP absence scans, unchanged management, fixture/process absence and
+both locks released. The separately bound two-case armed/running invalidation
+continuation also passes independent review, completing the required automatic
+T5 assertions with the retained expired-loaded/fresh-field subset. RF remains
+separate.
+
+### 2026-10-04 armed and running invalidation
+
+Original CRC-valid WTP and passive HCI prove the armed job observes unusable UTC
+14.198 seconds before launch and ends MISSED_START without running. The running
+job retains its owner and selected end after invalidation, completing at selected
+start plus 20.000150 seconds with UTC still unusable. The stage validation
+envelopes end at 30.976 seconds and 43.513 seconds, within the unchanged sixty
+and seventy-five second bounds. Five unique same-session time challenges prove
+contradiction and two-sample recovery. Settings, generations and watermark remain
+unchanged; all 430 ATT writes have acknowledgements and no transport errors.
+
+Independent full-flash/image/reserved/E10 restoration and a fresh complete F12
+exit pass again. Across the three T5 tranches, six charged case reservations
+produce four completions; five case charges and three completions are accepted.
+The expired-loaded and armed-missed cases do not launch. The older late-SNTP
+completion remains unaccepted. These counts are scoped to these tranches.
+
+### 2026-10-04 AP identity diagnosis and helper repairs
+
+The first monitor diagnostic stops before any association at a stale kernel
+radio-number check. A fresh read-only original exactly matches the failed
+command hash and proves the same approved MAC and managed mode, with phy0 where
+the draft expected phy1. This is a demonstrated harness binding defect. No AP
+authentication outcome is inferred. The old draft and run remain immutable.
+Full exact restoration and the subsequent complete F12 exit independently pass,
+including fresh management/owned-state reads and released locks.
+
+The reviewed journal dispatcher deadline repair passes 24/24 normal and optimized
+controls. The reviewed cookie failure-preservation repair passes all 23 affected
+checks in both modes. These and the subsequent journal runner repair are pushed through `9001640`,
+with independent remote parity verified; firmware remains c0d2bd5. The journal
+runner repair passes 33 normal and 33 optimized controls and preserves its
+300-second stage and 25-second confirmation limits. The new clean Linux build
+passes 154 selected tests, with zero failures and seven of 161 registered tests
+excluded for their stated context. Independent original-file review verifies
+all 1,699 committed archive files and all 154 passing names.
+
+The application-only controller stops before application cases at its owned Pi
+AP beacon prerequisite. All three actual native inspections pass. The fixture
+claims the owned AP active, but four bounded independent scans fail to observe
+its exact BSSID or SSID within the original 45-second limit. That observation
+does not establish the driver or environment cause. No application job, save
+case or RF case begins. Independent full-flash restoration and fresh complete
+F12 exit pass, including unchanged management, fixture absence and both locks
+released. The cleanup original proves before equals current; its after field
+is null. A separately prepared radio-bound Pico AP diagnostic retains the
+original finite limits and requires a new real host-before capture and review.
+
+
+### 2026-10-04 corrected radio-bound monitor diagnosis
+
+The fresh corrected draft admits the actual radios and deploys the exact accepted
+generation-seven checkpoint without a save. It creates and raises one temporary
+monitor, then one channel-setting command returns240. The trace retains its
+zero-byte stdout and 46-byte stderr length/hash, but lacks the stderr bytes. The
+exact driver/environment cause remains unknown. No NM activation, association,
+public GET, passive capture, job or RF case begins. The original run remains
+immutable, and the monitor is removed. A separate reviewed diagnostic helper now
+retains bounded raw stdout/stderr for every command and cleanup call; it passes
+46 normal and 46 optimized controls. Its alternate association mode is prepared
+as a distinct, previously unattempted diagnostic, without the monitor requirement.
+
+Independent restoration again verifies complete baseline/readback equality, all
+7,097 programmed pages and reserved/E10 equality. Fresh original host observations
+prove unchanged management and absence of the exact owned connections, UUID,
+monitor and responder processes. Inactive diagnostic ownership metadata is kept
+with the evidence. The complete frozen-source F12 observer independently passes
+six INFOs, two CRC-correlated LAN exchanges, two fresh complete legal AP-absence
+scans and release of both B locks. No AP acceptance is claimed.
+
+One separate fifteen-command read-only inventory collects the two spare radios'
+capability, driver, regulatory and power-save originals, with identical managed
+identity bookends. It performs no scan, association, radio mutation or Pico access.
+These observations guide new diagnostic choices; they do not explain the failed
+monitor channel command or establish Pi AP transmission.
