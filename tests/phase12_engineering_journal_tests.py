@@ -22,7 +22,7 @@ class Evidence:
     def __init__(self):self.rows=[]
     def record(self,kind,*args,**kwargs):self.rows.append((kind,args,kwargs))
 class Client:
-    def __init__(self):self.actions=[];self.fail=False;self.gen=7
+    def __init__(self):self.actions=[];self.fail=False;self.gen=7;self.timeout=8.0
     def connect(self,*args,**kw):self.actions.append('connect');return dict(generation=self.gen)
     def authorize(self,p):self.actions.append('authorize')
     def synchronize_time(self):self.actions.append('time')
@@ -149,6 +149,150 @@ class Tests(unittest.TestCase):
                     self.assertEqual(result['outcome'],'tls_auth_refused')
                 else:
                     with self.assertRaises(ValueError):runner.tls_probe(plan,dict(cert='old',key='old'),self.evidence)
+
+    def timed_case(self,clock,*,observe=None,sleeper=None):
+        with patch('phase12_recovery_orchestrator.resource_health'):
+            return runner.apply_once(self.context,self.payload,'wspr-0a9d89',self.client,
+                self.observe if observe is None else observe,self.command,self.evidence,
+                clock=lambda:clock[0],sleeper=(lambda delay:clock.__setitem__(0,clock[0]+delay))
+                    if sleeper is None else sleeper)
+
+    def test_timely_confirmation_applies_once_without_timeout_renewal(self):
+        clock=[0.0];timeouts=[]
+        class TimedClient(Client):
+            def _field(self,op,**values):
+                value=super()._field(op,**values)
+                if op=='profile_step_up_status':
+                    timeouts.append(self.timeout);clock[0]=24.999
+                return value
+        self.client=TimedClient()
+        result=self.timed_case(clock)
+        self.assertEqual(result['applies'],1);self.assertEqual(result['confirmations'],1)
+        self.assertEqual(self.client.actions.count('apply'),1)
+        self.assertEqual(timeouts,[8.0]);self.assertEqual(self.client.timeout,8.0)
+
+    def test_exact_and_late_confirmation_cannot_apply_or_retry(self):
+        for response_s in (25.0,25.001):
+            with self.subTest(response_s=response_s):
+                case=Tests();case.setUp();clock=[0.0]
+                class TimedClient(Client):
+                    def _field(self,op,**values):
+                        value=super()._field(op,**values)
+                        if op=='profile_step_up_status':clock[0]=response_s
+                        return value
+                case.client=TimedClient()
+                with self.assertRaisesRegex(ValueError,'confirmation deadline'):case.timed_case(clock)
+                self.assertEqual(case.client.actions.count('profile_step_up_status'),1)
+                self.assertNotIn('apply',case.client.actions);self.assertNotIn('cancel',case.client.actions)
+                self.assertEqual(case.client.actions.count('close'),1);self.assertEqual(len(case.commands),1)
+                self.assertEqual(case.client.timeout,8.0);self.assertFalse(any(case.payload))
+
+    def test_exact_and_late_initial_info_cannot_authorize(self):
+        for response_s in (300.0,300.001):
+            with self.subTest(response_s=response_s):
+                case=Tests();case.setUp();clock=[0.0]
+                def observe():
+                    value=case.observe();clock[0]=response_s;return value
+                with self.assertRaisesRegex(ValueError,'whole journal stage deadline'):
+                    case.timed_case(clock,observe=observe)
+                self.assertEqual(case.client.actions,['close']);self.assertFalse(case.commands)
+                self.assertEqual([row[0] for row in case.evidence.rows],['journal_info'])
+
+    def test_late_connect_authorize_or_time_cannot_admit_next_action(self):
+        for operation,next_action in (('connect','authorize'),('authorize','time'),('time','open')):
+            with self.subTest(operation=operation):
+                case=Tests();case.setUp();clock=[0.0]
+                class TimedClient(Client):
+                    def connect(self,*args,**values):
+                        result=super().connect(*args,**values)
+                        if operation=='connect':clock[0]=300.0
+                        return result
+                    def authorize(self,password):
+                        super().authorize(password)
+                        if operation=='authorize':clock[0]=300.0
+                    def synchronize_time(self):
+                        super().synchronize_time()
+                        if operation=='time':clock[0]=300.0
+                case.client=TimedClient()
+                with self.assertRaisesRegex(ValueError,'whole journal stage deadline'):case.timed_case(clock)
+                self.assertNotIn(next_action,case.client.actions);self.assertNotIn('apply',case.client.actions)
+                self.assertFalse(case.commands);self.assertEqual(case.client.timeout,8.0)
+
+    def test_late_field_result_stops_before_follow_on_mutation(self):
+        for operation,next_action in (('open','write'),('write','profile_step_up'),
+                                      ('profile_step_up','profile_step_up_status')):
+            with self.subTest(operation=operation):
+                case=Tests();case.setUp();clock=[0.0]
+                class TimedClient(Client):
+                    def _field(self,op,**values):
+                        result=super()._field(op,**values)
+                        if op==operation:clock[0]=300.0
+                        return result
+                case.client=TimedClient()
+                with self.assertRaisesRegex(ValueError,'whole journal stage deadline'):case.timed_case(clock)
+                self.assertNotIn(next_action,case.client.actions);self.assertNotIn('apply',case.client.actions)
+                self.assertFalse(case.commands);self.assertEqual(case.client.timeout,8.0)
+
+    def test_late_pre_confirmation_or_pre_apply_info_cannot_mutate(self):
+        for observation,forbidden in ((3,'confirmation'),(4,'apply')):
+            with self.subTest(observation=observation):
+                case=Tests();case.setUp();clock=[0.0];observations=[]
+                def observe():
+                    observations.append(True);value=case.observe()
+                    if len(observations)==observation:clock[0]=300.0
+                    return value
+                with self.assertRaisesRegex(ValueError,'whole journal stage deadline'):
+                    case.timed_case(clock,observe=observe)
+                self.assertNotIn('apply',case.client.actions)
+                self.assertEqual(len(case.commands),0 if forbidden=='confirmation' else 1)
+
+    def test_late_confirmation_command_cannot_poll_or_apply(self):
+        clock=[0.0]
+        def command(text):
+            self.commands.append(text);clock[0]=300.0;return dict(ok=True)
+        self.command=command
+        with self.assertRaisesRegex(ValueError,'whole journal stage deadline'):self.timed_case(clock)
+        self.assertEqual(len(self.commands),1);self.assertNotIn('profile_step_up_status',self.client.actions)
+        self.assertNotIn('apply',self.client.actions)
+
+    def test_confirmation_sleep_and_response_timeout_share_original_end(self):
+        clock=[0.0];sleeps=[];timeouts=[]
+        class TimedClient(Client):
+            def _field(self,op,**values):
+                result=super()._field(op,**values)
+                if op=='profile_step_up_status':
+                    timeouts.append(self.timeout);clock[0]=max(clock[0],24.95);result['ready']=False
+                return result
+        self.client=TimedClient()
+        def sleeper(delay):sleeps.append(delay);clock[0]+=delay
+        with self.assertRaisesRegex(ValueError,'confirmation deadline'):
+            self.timed_case(clock,sleeper=sleeper)
+        self.assertEqual(len(timeouts),1);self.assertEqual(sleeps[0],.1)
+        self.assertAlmostEqual(sleeps[1],.05);self.assertEqual(clock[0],25.0)
+        self.assertNotIn('apply',self.client.actions);self.assertEqual(self.client.timeout,8.0)
+        # A smaller stage budget also bounds the confirmation response wait.
+        case=Tests();case.setUp();case.context['remaining_s']=5;clock[0]=0.0;timeouts.clear()
+        class ShortClient(Client):
+            def _field(self,op,**values):
+                result=super()._field(op,**values)
+                if op=='profile_step_up_status':timeouts.append(self.timeout);clock[0]=5.0
+                return result
+        case.client=ShortClient()
+        with self.assertRaisesRegex(ValueError,'confirmation deadline'):case.timed_case(clock)
+        self.assertEqual(timeouts,[4.9]);self.assertNotIn('apply',case.client.actions)
+
+    def test_exact_and_late_apply_ack_cannot_publish_success_or_replay(self):
+        for response_s in (300.0,300.001):
+            with self.subTest(response_s=response_s):
+                case=Tests();case.setUp();clock=[0.0]
+                class TimedClient(Client):
+                    def exchange(self,value):
+                        result=super().exchange(value);clock[0]=response_s;return result
+                case.client=TimedClient()
+                with self.assertRaisesRegex(ValueError,'whole journal stage deadline'):case.timed_case(clock)
+                self.assertEqual(case.client.actions.count('apply'),1)
+                self.assertNotIn('cancel',case.client.actions);self.assertEqual(len(case.commands),1)
+                self.assertEqual(case.client.actions.count('close'),1);self.assertEqual(case.client.timeout,8.0)
 
 class TrancheTests(unittest.TestCase):
     def test_independent_faults_restore_B_once_no_apply_retries(self):

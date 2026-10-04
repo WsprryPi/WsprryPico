@@ -79,9 +79,28 @@ def apply_once(context, payload, password, client, observe, command, evidence,
     require(parsed['device_id'] == DEVICE and
             hashlib.sha256(payload).hexdigest() == context['profile_sha256'], 'profile binding')
     require(bytes(canonical_profile(parsed)) == bytes(payload), 'canonical exact profile')
+    stage_end = start + ceiling
+    def remaining(end=stage_end, message='whole journal stage deadline'):
+        left = end - clock()
+        require(left > 0, message)
+        return left
+    def call(operation, *args, end=stage_end, message='whole journal stage deadline', **values):
+        left = remaining(end, message)
+        timeout = client.timeout
+        client.timeout = min(timeout, left)
+        try:
+            result = operation(*args, **values)
+        finally:
+            client.timeout = timeout
+        remaining(end, message)
+        return result
     def guard():
-        require(clock()-start < ceiling, 'whole journal stage deadline')
-        info, raw = observe(); require(isinstance(raw, bytes) and strict(raw) == info, 'actual INFO wire')
+        remaining()
+        info, raw = observe()
+        require(isinstance(raw, bytes), 'actual INFO wire')
+        evidence.record('journal_info', raw_hex=raw.hex())
+        remaining()
+        require(strict(raw) == info, 'actual INFO wire')
         safe_info(info, context['source_commit'][:12], stage, False)
         require(info['status']['boot_id'] == context['boot_id'] and
                 counter(info['provisioning_generation'], 'generation') == context['generation'] and
@@ -89,45 +108,50 @@ def apply_once(context, payload, password, client, observe, command, evidence,
                 info['lan_wtp_mode'] == 'engineering-tls', 'exact retained profile authority')
         require(info['access_default_password'] is True and
                 password == 'wspr-'+info['local_suffix'], 'exact retained default access credential')
-        evidence.record('journal_info', raw_hex=raw.hex())
+        remaining()
         return info
     try:
         guard()
-        identity = client.connect(context['ble_address'], DEVICE, allow_pairing=False)
+        identity = call(client.connect, context['ble_address'], DEVICE, allow_pairing=False)
         require(identity['generation'] == context['generation'], 'retained BLE generation')
-        client.authorize(password); client.synchronize_time(); guard()
+        call(client.authorize, password); call(client.synchronize_time); guard()
         session = secrets.token_hex(16); request = secrets.token_hex(16)
-        client._field('open', session_id=session)
+        call(client._field, 'open', session_id=session)
         for offset in range(0, len(payload), FRAGMENT_BYTES):
-            require(clock()-start < ceiling, 'fragment deadline')
             end = min(offset+FRAGMENT_BYTES, len(payload))
-            client._field('write', session_id=session, offset=offset, final=end == len(payload),
+            call(client._field, 'write', session_id=session, offset=offset, final=end == len(payload),
                           payload=base64.b64encode(payload[offset:end]).decode('ascii'))
-        step = client._field('profile_step_up', profile_session_id=session,
+        step = call(client._field, 'profile_step_up', profile_session_id=session,
                              apply_request_id=request, expected_generation=context['generation'],
                              password=password)
         confirmation, ready = client._step_up_ready(step)
+        remaining()
         require(confirmation and not ready, 'fresh USB confirmation required')
-        guard(); reply = command('ACCESS CONFIRM PROFILE '+DEVICE)
+        guard(); remaining(); reply = command('ACCESS CONFIRM PROFILE '+DEVICE)
+        remaining()
         require(reply.get('ok') is True, 'USB confirmation rejected'); confirmations += 1
-        deadline = min(start+ceiling, clock()+25)
+        deadline = min(stage_end, clock()+25)
         while not ready:
-            require(clock() < deadline, 'confirmation deadline')
-            sleeper(.1)
-            step = client._field('profile_step_up_status', apply_request_id=request)
+            sleeper(min(.1, remaining(deadline, 'confirmation deadline')))
+            remaining(deadline, 'confirmation deadline')
+            step = call(client._field, 'profile_step_up_status', apply_request_id=request,
+                        end=deadline, message='confirmation deadline')
             _, ready = client._step_up_ready(step)
+            remaining(deadline, 'confirmation deadline')
         guard(); applies += 1
         evidence.record('journal_apply_attempt', stage=stage, expected_generation=context['generation']+1)
         try:
-            reply = client.exchange(dict(version=1, operation='apply', request_id=request,
+            reply = call(client.exchange, dict(version=1, operation='apply', request_id=request,
                 session_id=session, device_id=DEVICE, expected_generation=context['generation']))
         except ClientError as error:
             # Never issue cancel or resend after entering the apply boundary.
             evidence.record('journal_apply_uncertain', code=error.code)
+            remaining()
             return dict(status='APPLY_UNCERTAIN_READBACK_REQUIRED', stage=stage,
                         applies=applies, confirmations=confirmations, rf_jobs=0)
         require(stage == 0 and reply.get('generation') == context['generation']+1,
                 'fault stage unexpectedly acknowledged or wrong generation')
+        remaining()
         return dict(status='APPLY_ACKNOWLEDGED_READBACK_REQUIRED', stage=stage,
                     applies=applies, confirmations=confirmations, rf_jobs=0)
     finally:
