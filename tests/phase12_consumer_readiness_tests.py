@@ -10,6 +10,8 @@ import phase12_consumer_readiness_dispatch as dispatch
 import phase12_consumer_readiness_fixture as fixture
 import phase12_consumer_readiness_orchestrator as parent
 import phase12_engineering_network_dispatch as network
+import phase12_engineering_fixture as station_fixture
+from phase12_fixture_roles import role_map
 from phase12_recovery_device import DEVICE
 
 class Evidence:
@@ -94,6 +96,86 @@ class BodyTests(unittest.TestCase):
             with self.subTest(field=field),self.assertRaises(ValueError):body.bound_public(changed,info)
 
 class HelperTests(unittest.TestCase):
+    def staged_network(self,directory):
+        root=Path(directory)/'controller';root.mkdir(mode=0o700)
+        parent.private_write(root/'observer-inputs.json',{'original_helper':'f'*64})
+        remote_root=Path(directory)/('phase12-recovery-'+'a'*32);remote_root.mkdir(mode=0o700)
+        selected=dict(ssid='p12-'+'1'*12,password='2'*32,time_server='192.168.84.1')
+        calls=[]
+        class Remote:
+            def stage(self,path,name):
+                calls.append(name);destination=remote_root/name
+                destination.write_bytes(Path(path).read_bytes());destination.chmod(0o600)
+                return hashlib.sha256(destination.read_bytes()).hexdigest()
+        inputs=parent.stage_network(root,Remote(),selected)
+        return root,remote_root,selected,inputs,calls
+    def test_parent_staged_inputs_drive_actual_owned_ap_configuration(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root,staged,selected,inputs,calls=self.staged_network(directory)
+            request=dict(network_sha256=inputs['readiness-network.json'],
+                populated_network_sha256=inputs['populated-network.json'],time_server=selected['time_server'])
+            self.assertEqual(dispatch.load_network(staged,request),selected)
+            self.assertEqual(calls,['readiness-network.json','populated-network.json'])
+            self.assertEqual(inputs['readiness-network.json'],inputs['populated-network.json'])
+            self.assertEqual(json.loads((root/'observer-inputs.json').read_bytes()),{'original_helper':'f'*64})
+            self.assertEqual(json.loads((root/'readiness-network-inputs.json').read_bytes()),inputs)
+            self.assertEqual((root/'readiness-network-inputs.json').stat().st_mode&0o777,0o600)
+            observed=[]
+            def read(*argv):
+                observed.append(argv)
+                if argv[:3]==('nmcli','-g','GENERAL.CONNECTION'):
+                    return 'p12-engineering-'+staged.name.rsplit('-',1)[1]+'\n'
+                if argv[0]=='nmcli':
+                    return '\n'.join([selected['ssid'],'ap','3','wpa-psk','rsn','ccmp','ccmp'])+'\n'
+                if argv==('sudo','-n','/usr/sbin/iw','dev','wlan2','info'):
+                    return 'Interface wlan2\n\taddr e8:4e:06:ae:d7:09\n\tssid '+selected['ssid']+'\n\ttype AP\n\tchannel 3 (2422 MHz), width: 20 MHz\n'
+                raise AssertionError('unexpected fixture reader')
+            actual=station_fixture.owned_ap_configuration(staged,role_map(),read)
+            self.assertEqual(actual['ssid'],selected['ssid']);self.assertEqual(actual['interface'],'wlan2')
+            self.assertEqual(actual['frequency_mhz'],2422);self.assertEqual(actual['bssid'],'e8:4e:06:ae:d7:09')
+            self.assertEqual(len(observed),3)
+            for name in calls:
+                self.assertEqual((staged/name).stat().st_mode&0o777,0o600)
+                self.assertEqual((staged/name).read_bytes(),(root/'readiness-network.json').read_bytes())
+            # Regression: removing exactly the formerly omitted staged artifact
+            # must fail in the real production reader, before any host query.
+            (staged/'populated-network.json').unlink();observed.clear()
+            with self.assertRaises(FileNotFoundError):station_fixture.owned_ap_configuration(staged,role_map(),read)
+            self.assertEqual(observed,[])
+    def test_dispatch_rejects_missing_drifted_and_cross_bound_network_artifacts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            _,staged,selected,inputs,_=self.staged_network(directory)
+            request=dict(network_sha256=inputs['readiness-network.json'],
+                populated_network_sha256=inputs['populated-network.json'],time_server=selected['time_server'])
+            original=(staged/'populated-network.json').read_bytes()
+            for kind in ('changed','cross-hash','missing','symlink'):
+                path=staged/'populated-network.json'
+                if path.exists() or path.is_symlink():path.unlink()
+                path.write_bytes(original);path.chmod(0o600);value=request.copy()
+                if kind=='changed':path.write_bytes(original+b' ')
+                if kind=='cross-hash':value['populated_network_sha256']='f'*64
+                if kind=='missing':path.unlink()
+                if kind=='symlink':path.unlink();path.symlink_to(staged/'readiness-network.json')
+                with self.subTest(kind=kind),self.assertRaises((ValueError,FileNotFoundError,OSError)):
+                    dispatch.load_network(staged,value)
+    def test_parent_rejects_swapped_before_inspection_backend_or_staging(self):
+        with patch.object(parent,'accepted_checkpoint') as checkpoint:
+            with self.assertRaisesRegex(ValueError,'engineering radio roles'):
+                parent.execute({},'artifacts','campaign','inspector','native','checkpoint','station',fixture_roles='swapped')
+            checkpoint.assert_not_called()
+    def test_dispatch_rejects_swapped_before_manifest_observer_or_host_queries(self):
+        remote='/home/pi/phase12-recovery-'+'a'*32
+        class Root:
+            def __str__(self):return remote
+            def is_dir(self):return True
+            def is_symlink(self):return False
+        swapped=role_map('swapped')
+        with patch.object(dispatch,'Path',return_value=Root()),patch.object(dispatch,'load_roles',return_value=swapped),\
+                patch.object(dispatch,'private_bytes') as read,patch.object(dispatch,'Observer') as observer,\
+                patch.object(dispatch,'management') as management:
+            with self.assertRaisesRegex(ValueError,'engineering radio roles'):
+                dispatch.run(dict(authority='USER_AUTHORIZED_UNATTENDED_PHASE12',root=remote,roles_sha256=swapped['sha256']))
+            read.assert_not_called();observer.assert_not_called();management.assert_not_called()
     def test_actual_management_tuple_import_and_isolated_staging_closure(self):
         self.assertIs(dispatch.management,network.management)
         with tempfile.TemporaryDirectory() as directory:
@@ -210,6 +292,57 @@ class TimeEvidenceTests(unittest.TestCase):
                 (root/'readiness-alias-cleanup.json').write_text(json.dumps({'status':'OWNED_ALIAS_REMOVED'}))
 
 class ParentFailureTests(unittest.TestCase):
+    def test_actual_parent_handoff_reaches_real_ap_reader_preserving_original_input_receipt(self):
+        raw=bytes(4194304);digest=hashlib.sha256(raw).hexdigest();seen=[]
+        selected=dict(ssid='p12-'+'1'*12,password='2'*32,time_server='192.168.84.1')
+        profile={'network':selected,'station':{'callsign':'SYNTHETIC','locator':'AA00','power_dbm':0}}
+        class Backend:
+            def __init__(self,plan,manifest,artifacts,root,inspector):self.remote='/home/pi/phase12-recovery-'+plan['campaign_id'];self.root=root
+            def setup(self):return {}
+            def snapshot(self,name):
+                (self.root/name).write_bytes(raw);(self.root/name).chmod(0o600)
+                return dict(path=name,sha256=digest,inspection={})
+            def restore(self,saved,name):
+                return dict(readback={'sha256':digest},info={'status':{'boot_id':'b'*32},'local_suffix':'000000'})
+            def stable_restore(self,*args):return {'samples':5}
+            def cleanup(self):pass
+        class Remote:
+            def __init__(self,root):self.root=root
+            def staged(self):return self.root.parent/Path(self.backend.remote).name
+            def stage(self,path,name):
+                staged=self.staged();staged.mkdir(mode=0o700,exist_ok=True)
+                destination=staged/name;destination.write_bytes(Path(path).read_bytes());destination.chmod(0o600)
+                return hashlib.sha256(destination.read_bytes()).hexdigest()
+            def invoke(self,script,request,**kwargs):
+                if script!='phase12_consumer_readiness_dispatch.py':return {}
+                staged=self.staged();seen.append(dispatch.load_network(staged,request))
+                def read(*argv):
+                    if argv[:3]==('nmcli','-g','GENERAL.CONNECTION'):
+                        return 'p12-engineering-'+staged.name.rsplit('-',1)[1]+'\n'
+                    if argv[0]=='nmcli':return '\n'.join([selected['ssid'],'ap','3','wpa-psk','rsn','ccmp','ccmp'])+'\n'
+                    if argv==('sudo','-n','/usr/sbin/iw','dev','wlan2','info'):
+                        return 'Interface wlan2\n\taddr e8:4e:06:ae:d7:09\n\tssid '+selected['ssid']+'\n\ttype AP\n\tchannel 3 (2422 MHz), width: 20 MHz\n'
+                    raise AssertionError('unexpected fixture reader')
+                seen.append(station_fixture.owned_ap_configuration(staged,role_map(),read))
+                raise ValueError('intentional stop after real owned AP reader')
+            def collect(self,names):
+                if names==('final-restoration.bin',):
+                    path=self.root/'final-restoration.bin';path.write_bytes(raw);path.chmod(0o600)
+        with tempfile.TemporaryDirectory() as directory:
+            artifacts=Path(directory)/'artifacts';artifacts.mkdir();(artifacts/'restore.uf2').write_bytes(b'opaque-test-UF2')
+            checkpoint_path=Path(directory)/'checkpoint.bin';checkpoint_path.write_bytes(raw);checkpoint_path.chmod(0o600)
+            manifest=dict(source_commit='a'*40,candidates=[{'role':'restore','uf2':{'path':'restore.uf2'}}])
+            checkpoint=dict(path=checkpoint_path,sha256=digest,inspection={'profile_payload':json.dumps(profile),'profile_sequence':7},original_result_sha256='c'*64)
+            root=Path(directory)/'campaign'
+            with patch.object(parent,'accepted_checkpoint',return_value=checkpoint),patch.object(parent,'safe_info'),patch.object(parent,'verify_image'):
+                result=parent.execute(manifest,artifacts,root,'inspector','native',checkpoint_path,'station',backend_factory=Backend,remote_factory=Remote)
+            self.assertEqual(result['error']['message'],'intentional stop after real owned AP reader')
+            self.assertEqual(len(seen),2);self.assertEqual(seen[0],selected);self.assertEqual(seen[1]['interface'],'wlan2')
+            initial=json.loads((root/'observer-inputs.json').read_bytes());network_inputs=json.loads((root/'readiness-network-inputs.json').read_bytes())
+            self.assertIn('fixture-roles.json',initial);self.assertNotIn('readiness-network.json',initial)
+            self.assertEqual(set(network_inputs),{'readiness-network.json','populated-network.json'})
+            self.assertEqual(len(set(network_inputs.values())),1);self.assertEqual(result['cleanup_errors'],[])
+            self.assertEqual(result['restoration']['stability']['samples'],5)
     def test_body_failure_restores_exact_original_and_releases_guard_without_save(self):
         raw=bytes(4194304);digest=hashlib.sha256(raw).hexdigest();calls=[];source='a'*40
         class Backend:

@@ -14,6 +14,7 @@ from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[1]
 P=ROOT/'scripts'
 sys.path.insert(0,str(P))
+import phase12_engineering_orchestrator as orchestrator
 import phase12_engineering_flash_status_dispatch as flash
 import phase12_engineering_setup as module
 import phase12_engineering_time_dispatch as m
@@ -153,7 +154,7 @@ class WarmNetworkTests(unittest.TestCase):
                 if not ok:
                     raise ValueError(msg)
             retained = []
-            ns = dict(a=type('Args', (), dict(scope='network',fixture_roles='engineering', preparation_manifest=P / 'manifest'))(), remote=Remote(), time=type('Clock', (), dict(monotonic=staticmethod(lambda: now[0])))(), private_write=lambda path, value: retained.append((path, value)), safe_info=lambda *a: None, preparation={'source_commit': 'a' * 40, 'candidates': [dict(role='engineering', uf2={'sha256': 'image'})]}, counter=lambda v, *a: int(v), require=require, Path=pathlib.Path, __file__=str(P / 'phase12_engineering_orchestrator.py'), sha=lambda p: 'hash', AUTHORITY='authorized', server_sha256='server',role_map=role_map)
+            ns = dict(a=type('Args', (), dict(scope='network',fixture_roles='engineering', preparation_manifest=P / 'manifest'))(), remote=Remote(), time=type('Clock', (), dict(monotonic=staticmethod(lambda: now[0])))(), private_write=lambda path, value: retained.append((path, value)), safe_info=lambda *a: None, preparation={'source_commit': 'a' * 40, 'candidates': [dict(role='engineering', uf2={'sha256': 'image'})]}, counter=lambda v, *a: int(v), require=require, Path=pathlib.Path, __file__=str(P / 'phase12_engineering_orchestrator.py'), sha=lambda p: 'hash', AUTHORITY='authorized', server_sha256='server',role_map=role_map,ACCELERATED_HELPERS=orchestrator.ACCELERATED_HELPERS)
             exec(compile(ast.fix_missing_locations(ast.Module(body=[fn], type_ignores=[])), 'actual', 'exec'), ns)
             context = dict(backend=Backend(), info=original, root=P, profile_path='profile', ble_address='peer')
             if fault:

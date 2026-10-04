@@ -25,6 +25,68 @@ from phase12_flash_preservation import preserve as preserve_flash_reserved
 
 AUTHORITY='USER_AUTHORIZED_UNATTENDED_PHASE12'
 
+# These declarations serve both the offline admission check and the actual
+# stage loops. All scopes stage the common inputs before their selected case.
+FIXTURE_HELPERS=('phase12_engineering_fixture.py','phase12_fixture_roles.py','wsprrypico_ble.py')
+PROVISION_HELPERS=('phase12_engineering_setup.py','wsprrypico_ble.py',
+    'phase12_composition_audit.py','phase12_recovery_device.py','standalone_console.py',
+    'validate_wtp_contract.py','check_usb_target.py','wtp_monitor.py','rf_wtp.py')
+COMMON_HELPERS=('capacity_pending.py','phase12_engineering_dispatch.py','phase12_engineering_time.py',
+    'phase12_engineering_composition.py','phase12_engineering_setup.py','phase12_serial_observer.py',
+    'phase12_authority_capture.py','phase12_composition_capture.py','phase12_composition_audit.py',
+    'phase12_consumer_composition.py','phase12_consumer_dispatch.py','phase12_recovery_orchestrator.py',
+    'phase12_candidate_manifest.py','phase12_recovery_device.py','inhibited_network_acceptance.py',
+    'check_standalone_image.py','validate_wtp_contract.py','wtp_monitor.py','rf_wtp.py',
+    'check_usb_target.py','standalone_console.py','wsprrypico_ble.py')
+# (repository input, remote destination, existing dispatch receipt key)
+COMMON_REPOSITORY_ASSETS=(
+    ('docs/development/phase12-composition-engineering-plan-template.json',
+     'engineering-composition-template.json','engineering-composition-template.json'),
+    ('docs/protocol/wtp-1.schema.json','docs/protocol/wtp-1.schema.json','schema'))
+CREDENTIAL_ASSETS=(('client-ca.crt','ca/server/client-ca.crt'),('owner-client.crt','owner/client.crt'),
+    ('owner-client.key','owner/client.key'),('contender-client.crt','contender/client.crt'),
+    ('contender-client.key','contender/client.key'))
+CONFIGURATION_ASSETS=('ca/server/deployment.json','ca/server/server.crt','ca/server/server.key')
+ACCELERATED_HELPERS=('phase12_engineering_time_jobs.py','phase12_engineering_time_dispatch.py',
+    'phase12_engineering_session_dispatch.py','phase12_engineering_sessions.py',
+    'phase12_engineering_cookie_grace.py','phase12_engineering_network.py',
+    'phase12_engineering_network_dispatch.py')
+FLASH_STATUS_HELPERS=('phase12_engineering_flash_status.py','phase12_engineering_flash_status_dispatch.py')
+JOURNAL_HELPERS=('phase12_engineering_journal.py','phase12_engineering_journal_dispatch.py')
+BOND_REFUSAL_HELPERS=('phase12_engineering_bond_refusal_dispatch.py',
+    'phase12_engineering_flash_status_dispatch.py','phase12_engineering_flash_status.py')
+SCOPES=('all','composition','application','flash-status','journal','time-jobs','network','sessions','bond-revocation')
+
+
+def staging_inputs(scope, preparation_manifest, credential_root):
+    """Return the complete static inputs consumed by the selected CLI campaign.
+
+    Candidate image checks remain in manifest verification. Generated profiles,
+    reset requests and per-case fixtures do not exist before the campaign.
+    """
+    require(scope in SCOPES,'named engineering scope')
+    repository=Path(__file__).parents[1];scripts=repository/'scripts'
+    helpers=FIXTURE_HELPERS+PROVISION_HELPERS+COMMON_HELPERS
+    if scope in ('all','time-jobs','network','sessions'):helpers+=ACCELERATED_HELPERS
+    if scope in ('all','flash-status'):helpers+=FLASH_STATUS_HELPERS
+    if scope in ('all','journal'):helpers+=JOURNAL_HELPERS+('network_certificates.py',)
+    if scope in ('all','bond-revocation'):helpers+=BOND_REFUSAL_HELPERS
+    paths=[scripts/name for name in helpers]
+    paths.extend(repository/source for source,_,_ in COMMON_REPOSITORY_ASSETS)
+    paths.append(Path(preparation_manifest))
+    paths.extend(Path(credential_root)/source for _,source in CREDENTIAL_ASSETS)
+    paths.extend(Path(credential_root)/source for source in CONFIGURATION_ASSETS)
+    return tuple(dict.fromkeys(paths))
+
+
+def preflight_staging(scope, preparation_manifest, credential_root):
+    """Fail offline before backend creation, board acquisition or provisioning."""
+    for path in staging_inputs(scope,preparation_manifest,credential_root):
+        require(path.is_file() and not path.is_symlink(),'regular scope staging input: '+str(path))
+        with path.open('rb') as source:
+            require(bool(source.read(1)),'nonempty scope staging input: '+str(path))
+
+
 @contextmanager
 def tranche_deadline(seconds=900):
     """Interrupt blocking calls too; restore the process alarm before cleanup.
@@ -68,7 +130,7 @@ def session_payload(payload, selection):
 
 def execute(recovery, preparation, artifacts, root, inspector, config, *, backend_factory=Backend,
             fixture=None, provision=None, cases=None, accelerated=None, journal=None, flash_status=None, bond_revocation=None, preparation_artifacts=None, clock=time.monotonic, sleeper=time.sleep, scope='all', session_choice=None, fixture_roles='engineering'):
-    require(scope in ('all','composition','application','flash-status','journal','time-jobs','network','sessions','bond-revocation'),'named engineering scope')
+    require(scope in SCOPES,'named engineering scope')
     if session_choice is not None:
         require(session_choice==session_selection(scope,'running',session_choice.get('cookie_grace_only',False)),'exact session selection')
     require(fixture_roles in ('engineering','swapped') and (fixture_roles=='engineering' or scope=='network'),'swapped roles require network scope')
@@ -425,9 +487,7 @@ class RemoteAdapters:
         for key,name in [('profile','engineering-profile.json'),('password_file','default-password.txt'),
                          ('target_bond_clearance_file','fresh-pair-clearance.json')]:
             transfer(self.backend,Path(p[key]),name);p[key]=self.backend.remote+'/'+name
-        names=('phase12_engineering_setup.py','wsprrypico_ble.py',
-               'phase12_composition_audit.py','phase12_recovery_device.py','standalone_console.py',
-               'validate_wtp_contract.py','check_usb_target.py','wtp_monitor.py','rf_wtp.py')
+        names=PROVISION_HELPERS
         for name in names:
             source=Path(__file__).parent/name;transfer(self.backend,source,name)
             saved=self.root/('observer-'+name);saved.write_bytes(source.read_bytes());os.chmod(saved,0o600)
@@ -470,7 +530,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('manifest','artifact-root','preparation-manifest','preparation-artifact-root','campaign','inspector','credential-root'):
         p.add_argument('--'+name,type=Path,required=True)
-    p.add_argument('--scope',choices=('all','composition','application','flash-status','journal','time-jobs','network','sessions','bond-revocation'),default='all')
+    p.add_argument('--scope',choices=SCOPES,default='all')
     p.add_argument('--skip-accepted-time-cases',action='store_true')
     p.add_argument('--cookie-grace-stages',choices=('running',))
     p.add_argument('--cookie-grace-only',action='store_true')
@@ -496,6 +556,7 @@ def main():
         print(json.dumps(result));return
     preparation=read_json(a.preparation_manifest)
     verify(preparation,a.preparation_artifact_root)
+    preflight_staging(a.scope,a.preparation_manifest,a.credential_root)
     config=credential_config(a.credential_root)
     certificate=subprocess.check_output(['openssl','x509','-in',str(a.credential_root/'ca/server/server.crt'),'-outform','DER'],timeout=10)
     server_sha256=hashlib.sha256(certificate).hexdigest()
@@ -513,28 +574,18 @@ def main():
         original=b.setup
         def setup():
             info=original()
-            for name in ('phase12_engineering_fixture.py','phase12_fixture_roles.py','wsprrypico_ble.py'):
+            for name in FIXTURE_HELPERS:
                 remote.stage(Path(__file__).parent/name,name)
             return info
         b.setup=setup;return b
     def cases(context):
-        names=('capacity_pending.py','phase12_engineering_dispatch.py','phase12_engineering_time.py','phase12_engineering_composition.py',
-               'phase12_engineering_setup.py','phase12_serial_observer.py','phase12_authority_capture.py',
-               'phase12_composition_capture.py','phase12_composition_audit.py','phase12_consumer_composition.py',
-               'phase12_consumer_dispatch.py','phase12_recovery_orchestrator.py','phase12_candidate_manifest.py',
-               'phase12_recovery_device.py','inhibited_network_acceptance.py','check_standalone_image.py',
-               'validate_wtp_contract.py','wtp_monitor.py','rf_wtp.py','check_usb_target.py','standalone_console.py',
-               'wsprrypico_ble.py')
-        inputs={name:remote.stage(Path(__file__).parent/name,name) for name in names}
+        inputs={name:remote.stage(Path(__file__).parent/name,name) for name in COMMON_HELPERS}
         repository=Path(__file__).parents[1]
-        inputs['engineering-composition-template.json']=remote.stage(repository/'docs/development/phase12-composition-engineering-plan-template.json','engineering-composition-template.json')
         inputs['preparation-manifest.json']=remote.stage(a.preparation_manifest,'preparation-manifest.json')
         subprocess.run(['ssh','wspr5','mkdir','-p',remote.backend.remote+'/docs/protocol'],check=True,timeout=10)
-        inputs['schema']=remote.stage(repository/'docs/protocol/wtp-1.schema.json','docs/protocol/wtp-1.schema.json')
-        credentials={'client-ca.crt':'ca/server/client-ca.crt','owner-client.crt':'owner/client.crt',
-                     'owner-client.key':'owner/client.key','contender-client.crt':'contender/client.crt',
-                     'contender-client.key':'contender/client.key'}
-        for name,source in credentials.items():inputs[name]=remote.stage(a.credential_root/source,name)
+        for source,name,key in COMMON_REPOSITORY_ASSETS:
+            inputs[key]=remote.stage(repository/source,name)
+        for name,source in CREDENTIAL_ASSETS:inputs[name]=remote.stage(a.credential_root/source,name)
         private_write(context['root']/'dispatch-inputs.json',inputs)
         if a.scope not in ('all','composition','application'):
             # Independent station-dependent scopes inherit the same owned
@@ -597,10 +648,7 @@ def main():
             require(saved['inspection']['profile_source']==1 and saved['inspection']['profile_healthy'],
                     'T5 requires exact healthy runtime profile')
             info=backend.deploy('engineering',saved,'time-jobs-deployment.bin')['info']
-        names=('phase12_engineering_time_jobs.py','phase12_engineering_time_dispatch.py',
-               'phase12_engineering_session_dispatch.py','phase12_engineering_sessions.py',
-               'phase12_engineering_cookie_grace.py','phase12_engineering_network.py',
-               'phase12_engineering_network_dispatch.py')
+        names=ACCELERATED_HELPERS
         inputs={name:remote.stage(Path(__file__).parent/name,name) for name in names}
         private_write(context['root']/'accelerated-inputs.json',inputs)
         def payload(info,candidate):
@@ -662,7 +710,7 @@ def main():
             require(time.monotonic()<end,'ordinary trace station/time readiness');time.sleep(.5)
         config_path=root/'flash-status-config.json';private_write(config_path,prepared['config'])
         config_hash=remote.stage(config_path,'flash-status-config.json')
-        for name in ('phase12_engineering_flash_status.py','phase12_engineering_flash_status_dispatch.py'):
+        for name in FLASH_STATUS_HELPERS:
             remote.stage(Path(__file__).parent/name,name)
         plan=dict(device_id=DEVICE,console=CONSOLE,wtp_console=CONSOLE.replace('-if00','-if02'),
             source_commit=preparation['source_commit'],boot_id=info['status']['boot_id'],profile_generation=prepared['profile_sequence'],
@@ -710,7 +758,7 @@ def main():
             principal_hashes[role]={}
             for key in ('ca','cert','key'):
                 principal_hashes[role][key]=remote.stage(principal[key],'journal-'+role+'-'+key+('.key' if key=='key' else '.crt'))
-        for name in ('phase12_engineering_journal.py','phase12_engineering_journal_dispatch.py'):
+        for name in JOURNAL_HELPERS:
             remote.stage(Path(__file__).parent/name,name)
         def stage_image(role,candidate):
             context['backend'].roles[role]=candidate
@@ -730,8 +778,7 @@ def main():
         # operational save, rather than passing C credentials to A observers.
         return_journal_checkpoint(context)
     def old_peer(context):
-        for name in ('phase12_engineering_bond_refusal_dispatch.py','phase12_engineering_flash_status_dispatch.py',
-                     'phase12_engineering_flash_status.py'):
+        for name in BOND_REFUSAL_HELPERS:
             remote.stage(Path(__file__).parent/name,name)
         info=context['info']
         request=dict(root=context['backend'].remote,authority=AUTHORITY,

@@ -14,10 +14,23 @@ from phase12_recovery_device import strict,require
 from phase12_serial_observer import Observer
 from check_standalone_image import validate_uf2
 
+def load_network(root,request):
+    """Both production readers must consume the exact parent-staged bytes."""
+    raw=private_bytes(root/'readiness-network.json',2048)
+    populated=private_bytes(root/'populated-network.json',2048)
+    require(hashlib.sha256(raw).hexdigest()==request['network_sha256'] and
+            hashlib.sha256(populated).hexdigest()==request['populated_network_sha256'] and raw==populated,
+            'cold readiness/owned-AP selected network binding')
+    network=strict(raw)
+    require(network['time_server']==request['time_server'] and request['time_server'] in ('192.168.84.1','192.168.84.254'),
+            'isolated saved time target')
+    return network
+
 def run(request):
     require(request['authority']=='USER_AUTHORIZED_UNATTENDED_PHASE12','readiness authority')
     root=Path(request['root']);require(re.fullmatch('/home/pi/phase12-recovery-[0-9a-f]{32}',str(root)) and root.is_dir() and not root.is_symlink(),'private readiness root')
-    roles=load_roles(root);require(roles['selection'] in ('engineering','swapped') and request['roles_sha256']==roles['sha256'],'independent readiness radios')
+    roles=load_roles(root);require(roles['selection']=='engineering' and request['roles_sha256']==roles['sha256'],
+        'readiness target AP proof requires engineering radio roles')
     manifest_raw=private_bytes(root/'manifest.json',262144);require(hashlib.sha256(manifest_raw).hexdigest()==request['manifest_sha256'],'readiness manifest')
     manifest=strict(manifest_raw);candidate=next(c for c in manifest['candidates'] if c['role']=='restore')
     image=private_bytes(root/'restore.uf2',4194304);validate_uf2(image)
@@ -25,9 +38,7 @@ def run(request):
             candidate['target']=='WsprryPico' and candidate['fault_stage']==0 and candidate['gp14'] is False and
             candidate['session_deadline_fixture'] is False and candidate['lan_mode']=='plain' and
             hashlib.sha256(image).hexdigest()==candidate['uf2']['sha256'],'ordinary inhibited image binding')
-    network_raw=private_bytes(root/'readiness-network.json',2048)
-    require(hashlib.sha256(network_raw).hexdigest()==request['network_sha256'],'cold selected network binding')
-    network=strict(network_raw);require(network['time_server']==request['time_server'] and request['time_server'] in ('192.168.84.1','192.168.84.254'),'isolated saved time target')
+    network=load_network(root,request)
     evidence=Evidence(root/'consumer-readiness-wire.jsonl');observer=Observer();http=HTTP();http.interface=roles['observer']
     before_management=management();before_identity=management_identity();name='p12-observer-'+root.name.rsplit('-',1)[1];ssid='WsprryPico-'+request['suffix']
     deadline=time.monotonic()+300;created=False;fixture_attempted=False;alias_attempted=False

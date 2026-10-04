@@ -3,6 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 from phase12_recovery_orchestrator import private_write
+from phase12_engineering_orchestrator import COMMON_HELPERS,COMMON_REPOSITORY_ASSETS,CREDENTIAL_ASSETS
 SOURCE=Path(__file__).resolve().parents[1]/'scripts/phase12_engineering_orchestrator.py'
 class Tests(unittest.TestCase):
  def test_isolated_cases_stages_common_schema_credentials_without_composition(self):
@@ -17,7 +18,7 @@ class Tests(unittest.TestCase):
     @staticmethod
     def run(*a,**kw):calls.append('schema-directory')
    args=type('Args',(),dict(scope='bond-revocation',preparation_manifest=Path(d)/'manifest',credential_root=Path(d)))()
-   ns=dict(remote=Remote(),a=args,Path=Path,__file__=str(SOURCE),subprocess=Process,private_write=lambda *a:None)
+   ns=dict(remote=Remote(),a=args,Path=Path,__file__=str(SOURCE),subprocess=Process,private_write=lambda *a:None,COMMON_HELPERS=COMMON_HELPERS,COMMON_REPOSITORY_ASSETS=COMMON_REPOSITORY_ASSETS,CREDENTIAL_ASSETS=CREDENTIAL_ASSETS)
    exec(compile(ast.fix_missing_locations(ast.Module(body=[node],type_ignores=[])),'private','exec'),ns)
    result=ns['cases']({'root':Path(d)})
    self.assertEqual(result['status'],'COMMON_INPUTS_STAGED')
@@ -48,6 +49,7 @@ class SelectionTests(unittest.TestCase):
      subprocess=SimpleNamespace(run=lambda *a,**kw:None),private_write=lambda *a:None,
      counter=lambda x,*a:int(x),sha=lambda x:'a'*64,preparation={'source_commit':'b'*40},
      AUTHORITY='authorized',server_sha256='c'*64)
+   env.update(COMMON_HELPERS=COMMON_HELPERS,COMMON_REPOSITORY_ASSETS=COMMON_REPOSITORY_ASSETS,CREDENTIAL_ASSETS=CREDENTIAL_ASSETS)
    exec(compile(ast.fix_missing_locations(ast.Module(body=[node],type_ignores=[])),'actual-cases','exec'),env)
    result=env['cases'](dict(root=root,info=dict(status={'boot_id':'d'*32},provisioning_generation='7'),
      profile_path=root/'profile',engineering=dict(uf2={'sha256':'e'*64}),ble_address='required-only-by-preparation'))
@@ -86,6 +88,7 @@ class PrerequisiteTests(unittest.TestCase):
      time=SimpleNamespace(monotonic=lambda:now[0],sleep=lambda s:now.__setitem__(0,now[0]+s)),remote=Remote(),
      subprocess=SimpleNamespace(run=lambda *a,**kw:None),private_write=private_write,safe_info=lambda *a:None,
      preparation={'source_commit':'a'*40},require=require,counter=lambda x,*a:int(x))
+    env.update(COMMON_HELPERS=COMMON_HELPERS,COMMON_REPOSITORY_ASSETS=COMMON_REPOSITORY_ASSETS,CREDENTIAL_ASSETS=CREDENTIAL_ASSETS)
     exec(compile(ast.fix_missing_locations(ast.Module(body=[callback],type_ignores=[])),'actual-cases','exec'),env)
     result=env['cases']({'backend':env['remote'].backend,'root':root,'info':base})
     self.assertEqual(result,dict(status='COMMON_INPUTS_STAGED',scope=scope))

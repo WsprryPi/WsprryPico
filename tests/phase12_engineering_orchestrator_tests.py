@@ -361,6 +361,117 @@ class Tests(unittest.TestCase):
                     guard=next(n for n in main.body if isinstance(n,ast.For) and isinstance(n.target,ast.Name) and n.target.id=='name')
                     import re
                     exec(compile(ast.fix_missing_locations(ast.Module(body=[guard],type_ignores=[])),'actual-artifact-guard','exec'),dict(request=dict(image='engineering.uf2',backup=args.args[1]['path'],readback=args.args[2]),root=root,re=re,require=run.require))
+class StagingPreflightTests(unittest.TestCase):
+    def inputs(self,root,scope='all'):
+        repository=root/'source';module=repository/'scripts/phase12_engineering_orchestrator.py'
+        module.parent.mkdir(parents=True);module.write_bytes(b'# private test source\n')
+        manifest=root/'preparation.json';manifest.write_text(json.dumps({'source_commit':'a'*40}))
+        recovery=root/'recovery.json';recovery.write_text(json.dumps({'source_commit':'a'*40}))
+        credentials=root/'credentials'
+        with patch.object(run,'__file__',str(module)):
+            for source in run.staging_inputs(scope,manifest,credentials):
+                source.parent.mkdir(parents=True,exist_ok=True)
+                if not source.exists():source.write_bytes(b'private test input\n')
+        (credentials/'ca/server/deployment.json').write_text(json.dumps({'certificate_sha256':run.hashlib.sha256(b'der').hexdigest()}))
+        native=root/'native';native.write_bytes(b'private test executable')
+        argv=['program','--run','--scope',scope,'--native',str(native)]
+        values=dict(manifest=recovery,artifact_root=root,preparation_manifest=manifest,
+            preparation_artifact_root=root,campaign=root/'campaign',inspector=root/'inspector',credential_root=credentials)
+        for name,value in values.items():argv+=['--'+name.replace('_','-'),str(value)]
+        return module,manifest,credentials,argv
+
+    def assert_refused_before_board(self,root,scope,relative,invalid='missing'):
+        module,manifest,credentials,argv=self.inputs(root,scope)
+        source=(credentials/relative[12:]) if relative.startswith('credentials/') else module.parents[1]/relative
+        source.unlink()
+        if invalid=='empty':source.write_bytes(b'')
+        if invalid=='directory':source.mkdir()
+        if invalid=='symlink':
+            original=root/'original';original.write_bytes(b'private original');source.symlink_to(original)
+        with patch.object(run,'__file__',str(module)),patch.object(sys,'argv',argv),patch.object(run,'verify'), \
+             patch.object(run,'Backend') as backend,patch.object(run,'RemoteAdapters') as remote, \
+             patch.object(run,'execute') as execute,patch.object(run,'credential_config') as config, \
+             patch.object(run.subprocess,'run') as process,patch.object(run.subprocess,'Popen') as child:
+            with self.assertRaisesRegex(ValueError,'scope staging input'):run.main()
+            backend.assert_not_called();remote.assert_not_called();execute.assert_not_called()
+            config.assert_not_called();process.assert_not_called();child.assert_not_called()
+        self.assertFalse((root/'campaign').exists())
+
+    def test_actual_time_jobs_schema_omission_stops_before_backend_or_provision(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.assert_refused_before_board(Path(directory),'time-jobs','docs/protocol/wtp-1.schema.json')
+
+    def test_missing_inputs_for_every_real_stage_precede_board_actions(self):
+        cases=(('composition','docs/development/phase12-composition-engineering-plan-template.json'),
+            ('application','credentials/contender/client.key'),
+            ('time-jobs','scripts/phase12_engineering_time_jobs.py'),
+            ('network','scripts/phase12_engineering_network_dispatch.py'),
+            ('sessions','scripts/phase12_engineering_cookie_grace.py'),
+            ('flash-status','scripts/phase12_engineering_flash_status_dispatch.py'),
+            ('journal','scripts/phase12_engineering_journal_dispatch.py'),
+            ('journal','scripts/network_certificates.py'),
+            ('bond-revocation','scripts/phase12_engineering_bond_refusal_dispatch.py'),
+            ('all','scripts/phase12_engineering_fixture.py'),
+            ('all','scripts/phase12_engineering_setup.py'),
+            ('all','scripts/capacity_pending.py'),
+            ('all','credentials/owner/client.crt'))
+        for scope,source in cases:
+            with self.subTest(scope=scope,source=source),tempfile.TemporaryDirectory() as directory:
+                self.assert_refused_before_board(Path(directory),scope,source)
+
+    def test_empty_directory_and_symlink_are_not_staging_inputs(self):
+        for invalid in ('empty','directory','symlink'):
+            with self.subTest(invalid=invalid),tempfile.TemporaryDirectory() as directory:
+                self.assert_refused_before_board(Path(directory),'time-jobs','docs/protocol/wtp-1.schema.json',invalid)
+
+    def test_common_callback_consumes_the_preflight_checked_inputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);module,manifest,credentials,argv=self.inputs(root,'bond-revocation')
+            admitted=[];staged=[];adapter=MagicMock();adapter.backend=SimpleNamespace(remote='/private/no-access')
+            def stage(source,name):
+                source=Path(source);self.assertIn(source,admitted);staged.append((source,name));return run.sha(source)
+            adapter.stage.side_effect=stage
+            def execute(*args,**kwargs):
+                admitted.extend(run.staging_inputs('bond-revocation',manifest,credentials))
+                campaign=root/'campaign';campaign.mkdir()
+                result=kwargs['cases']({'root':campaign})
+                self.assertEqual(result['status'],'COMMON_INPUTS_STAGED')
+                return dict(status='PASS',restoration={'samples':5})
+            with patch.object(run,'__file__',str(module)),patch.object(sys,'argv',argv),patch.object(run,'verify'), \
+                 patch.object(run,'credential_config',return_value={'tls':{}}),patch.object(run,'canonical_profile'), \
+                 patch.object(run.subprocess,'check_output',return_value=b'der'),patch.object(run.signal,'signal'), \
+                 patch.object(run,'RemoteAdapters',return_value=adapter),patch.object(run,'execute',side_effect=execute), \
+                 patch.object(run.subprocess,'run') as process,patch('builtins.print'):
+                run.main()
+            self.assertIn((module.parents[1]/'docs/protocol/wtp-1.schema.json','docs/protocol/wtp-1.schema.json'),staged)
+            self.assertIn((credentials/'owner/client.key','owner-client.key'),staged)
+            inputs=json.loads((root/'campaign/dispatch-inputs.json').read_text())
+            self.assertEqual(inputs['schema'],run.sha(module.parents[1]/'docs/protocol/wtp-1.schema.json'))
+            self.assertEqual(set(inputs),{name for _,name in staged}-{'docs/protocol/wtp-1.schema.json'}|{'schema'})
+            process.assert_called_once()
+            self.assertEqual(process.call_args.args[0][0],'ssh') # Only a mocked schema-directory command.
+
+    def test_all_scope_checks_union_without_requiring_other_scopes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);module,manifest,credentials,_=self.inputs(root,'composition')
+            with patch.object(run,'__file__',str(module)):
+                run.preflight_staging('composition',manifest,credentials)
+                with self.assertRaisesRegex(ValueError,'phase12_engineering_time_jobs'):run.preflight_staging('time-jobs',manifest,credentials)
+                with self.assertRaisesRegex(ValueError,'phase12_engineering_time_jobs'):run.preflight_staging('all',manifest,credentials)
+
+    def test_recovery_only_does_not_require_missing_case_assets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);module,_,_,argv=self.inputs(root,'time-jobs')
+            (module.parents[1]/'docs/protocol/wtp-1.schema.json').unlink()
+            campaign=root/'campaign';campaign.mkdir();(campaign/'campaign-config.json').write_text(json.dumps({'campaign_id':'b'*32}))
+            adapter=MagicMock()
+            with patch.object(run,'__file__',str(module)),patch.object(sys,'argv',argv+['--recover-only']), \
+                 patch.object(run,'verify'),patch.object(run,'RemoteAdapters',return_value=adapter), \
+                 patch.object(run,'recover_only',return_value={'status':'RESTORED'}) as recover, \
+                 patch.object(run,'preflight_staging',side_effect=AssertionError('must allow restoration')),patch('builtins.print'):
+                run.main()
+            recover.assert_called_once();adapter.fixture.assert_called_once_with('stop',{})
+
 class SessionSelectionTests(unittest.TestCase):
  def test_default_payload_unchanged_and_explicit_running(self):
   self.assertIsNone(run.session_selection('all'))

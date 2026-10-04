@@ -16,6 +16,16 @@ STAGED_HELPERS=SHARED_HELPERS+('phase12_consumer_readiness.py','phase12_consumer
 BODY_SECONDS=340
 TOTAL_SECONDS=900
 
+def stage_network(root,remote,network):
+    """Bind one saved network to both real dispatcher/owned-AP input names."""
+    path=Path(root)/'readiness-network.json'
+    require(not path.exists() and not path.is_symlink(),'fresh readiness network staging')
+    private_write(path,network);expected=sha(path)
+    inputs={name:remote.stage(path,name) for name in ('readiness-network.json','populated-network.json')}
+    require(all(value==expected for value in inputs.values()),'identical staged readiness/owned-AP network')
+    private_write(Path(root)/'readiness-network-inputs.json',inputs)
+    return inputs
+
 def accepted_checkpoint(path,case,inspector):
     require(case in CASES,'named readiness case')
     raw=private_read(path,SIZE);require(len(raw)==SIZE,'exact accepted cold flash')
@@ -119,8 +129,9 @@ class BoundedBackend(Backend):
 
 def execute(manifest,artifacts,root,inspector,native,checkpoint_path,case,*,backend_factory=BoundedBackend,
             remote_factory=RemoteAdapters,clock=time.monotonic,fixture_roles='engineering'):
+    require(fixture_roles=='engineering','readiness target AP proof requires engineering radio roles')
     checkpoint=accepted_checkpoint(Path(checkpoint_path),case,inspector)
-    identity=uuid.uuid4().hex;roles=role_map(fixture_roles,identity);require(roles['selection'] in ('engineering','swapped'),'separate readiness radio roles')
+    identity=uuid.uuid4().hex;roles=role_map(fixture_roles,identity)
     root=Path(root);require(not root.exists(),'fresh readiness campaign');root.mkdir(mode=0o700,parents=True)
     started=clock();backend=backend_factory(dict(campaign_id=identity,interface='wlan2'),manifest,artifacts,root,inspector)
     backend.deadline=time.monotonic()+TOTAL_SECONDS-75 # Reserve bounded Backend.cleanup and lease release.
@@ -144,11 +155,12 @@ def execute(manifest,artifacts,root,inspector,native,checkpoint_path,case,*,back
             private_write(root/'observer-inputs.json',inputs);staged=True
             seed=prepare_pending(checkpoint,root/'pending-fixture',inspector,native) if case=='pending-tls' else checkpoint
             profile=strict(seed['inspection']['profile_payload']);network=profile['network']
-            private_write(root/'readiness-network.json',network);remote.stage(root/'readiness-network.json','readiness-network.json')
+            inputs.update(stage_network(root,remote,network))
             remote.stage(seed['path'],'checkpoint.bin');saved=dict(path='checkpoint.bin',sha256=seed['sha256'],inspection=seed['inspection'])
             deployed=backend.restore(saved,'checkpoint-deployment.bin');private_write(root/'checkpoint-deployment.json',deployed)
             request=dict(root=backend.remote,authority='USER_AUTHORIZED_UNATTENDED_PHASE12',roles_sha256=roles['sha256'],
-                manifest_sha256=sha(root/'manifest.json'),network_sha256=sha(root/'readiness-network.json'),source_commit=manifest['source_commit'],
+                manifest_sha256=sha(root/'manifest.json'),network_sha256=inputs['readiness-network.json'],
+                populated_network_sha256=inputs['populated-network.json'],source_commit=manifest['source_commit'],
                 case=case,generation=seed['inspection']['profile_sequence'],boot_id=deployed['info']['status']['boot_id'],
                 station=profile['station'],time_server=network['time_server'],suffix=deployed['info']['local_suffix'])
             body=remote.invoke('phase12_consumer_readiness_dispatch.py',request,timeout=min(330,BODY_SECONDS-(clock()-started)),keepalive=True)
@@ -190,7 +202,7 @@ def execute(manifest,artifacts,root,inspector,native,checkpoint_path,case,*,back
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('manifest','artifact-root','campaign','inspector','native','checkpoint'):parser.add_argument('--'+name,type=Path,required=True)
-    parser.add_argument('--case',choices=CASES,required=True);parser.add_argument('--fixture-roles',choices=('engineering','swapped'),default='engineering')
+    parser.add_argument('--case',choices=CASES,required=True);parser.add_argument('--fixture-roles',choices=('engineering',),default='engineering')
     parser.add_argument('--run',action='store_true');args=parser.parse_args();manifest=read_json(args.manifest);verify(manifest,args.artifact_root)
     checkpoint=accepted_checkpoint(args.checkpoint,args.case,args.inspector)
     if not args.run:print(json.dumps(dict(status='VALIDATED_NO_DEVICE_ACTION',case=args.case,generation=checkpoint['inspection']['profile_sequence'],max_seconds=TOTAL_SECONDS,submit_attempts=0,rf_jobs=0)));return
