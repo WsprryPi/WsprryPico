@@ -400,3 +400,9 @@ evidence. A future distinct-radio diagnostic must prove a fresh exact beacon
 within its existing finite limits before target association/TLS claims. Repair
 the evidenced daemon buffered-stdin shutdown and original-process-output gaps
 in fresh immutable helpers before use; preserve all old originals.
+
+
+The single distinct-radio attempt now proves a fresh exact beacon but still
+fails station association. Preserve that actual result and accepted inhibited
+restoration. Further automatic work must address this observed blocker; do
+not expand hypothetical cleanup/failure paths or retry unchanged cases.

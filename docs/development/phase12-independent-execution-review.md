@@ -1436,3 +1436,20 @@ isolates an observed name-resolution difference but does not establish the
 underlying alias/resolver fault or cause of every earlier timeout. No clock,
 service or network setting changes. Earlier successful named replies remain
 historical; host replies do not qualify target timing or RF acceptance.
+
+
+### 2026-10-04 actual alternate-radio result
+
+The single alternate-radio run proves the requested wlan0 AP's fresh beacon
+in a complete wlan2 scan, then stops at the original30-second station limit.
+All51 original engineering INFOs lack an address (five JOIN,46 NONET); no
+SNTP query or job occurs. Exact restoration and fresh host cleanup pass.
+A narrow credential-copying/SSID join-path source check finds no concrete
+source defect. The association cause remains unresolved and the network
+acceptance remains automatic/open. Further work must address that observed
+blocker; no additional speculative paths or retries are prepared.
+
+The required final exit is independently clear again: exact image/reserved/E10,
+same-boot synchronized/inactive status, explicit WTP null ownership, two fresh
+AP-absence scans, scoped host cleanup and released locks. The three preserved
+user paths remain untouched. This result does not close the association gate.

@@ -268,8 +268,8 @@ campaign runs. Preserve the original f5 packet and all stopped attempts.
 The reviewed receiver now reaches one owned host AP activation but stops at
 the unchanged station-observation limit with no matching SSID and no address.
 Its standard inhibited restoration and fresh complete wlan2 exit pass. The
-next distinct unused-wlan0 AP/wlan2-observer packet remains inert and must
-prove an actual fresh beacon; it does not extend timers or accept a nominal
-AP configuration. The separately repaired raw-process helper now independently passes with
+single previously inert wlan0 AP/wlan2-observer packet has now run: an actual
+fresh beacon passes, but station association stops at its original deadline.
+No further variant is prepared; timers and acceptance requirements remain. The separately repaired raw-process helper now independently passes with
 seven retained host reads and one exact three-script pgrep exit1/no matches;
 its scope excludes unrelated host processes.

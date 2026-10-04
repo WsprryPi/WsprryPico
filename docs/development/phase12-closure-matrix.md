@@ -274,3 +274,11 @@ one owned AP activation and51 original no-address observations. Its exact
 restoration and fresh wlan2 F12 exit pass independently; no receiver acceptance
 or RF/job count is added. A fresh repaired helper now independently retains an exact three-script
 pgrep exit1/no matches and seven host reads within the original25-second limit. A distinct spare-radio beacon diagnostic is preparation only.
+
+
+The one alternate-radio diagnostic subsequently proves a fresh exact host AP
+beacon but still stops at the station deadline. This supplies actual beacon
+evidence only; no association or network acceptance. Exact standard inhibited
+restoration, host cleanup and final exit are recorded separately. The observed
+association failure remains automatic work, with no concrete source cause
+established by the narrow credential/join-path inspection.
