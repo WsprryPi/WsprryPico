@@ -1279,3 +1279,160 @@ capability, driver, regulatory and power-save originals, with identical managed
 identity bookends. It performs no scan, association, radio mutation or Pico access.
 These observations guide new diagnostic choices; they do not explain the failed
 monitor channel command or establish Pi AP transmission.
+
+
+### 2026-10-04 alternate radio and bounded dispatch preparation
+
+The distinct alternate-radio diagnostic stops at the original 340-second parent
+body deadline. Its 47 completed channel-three scans return empty stdout/stderr;
+all 75 completed main and cleanup commands retain complete, hash-verified
+originals and return zero. The parent interrupts another scan after the recorded
+31.738-second completed scan window. No NM activation, association, public GET,
+save, job or RF case starts. This does not exercise a full association window or
+establish a driver or RF-path cause. The interrupted scan lacks completed stdio.
+
+Independent restoration and a fresh complete F12 exit again pass all 7,097
+programmed pages, full original flash/reserved/E10, six same-boot INFOs, two
+CRC-correlated LAN exchanges, two fresh AP absence scans, unchanged management,
+owned-host cleanup and both released B locks. The original stopped run remains
+immutable. Future diagnostic preparation must fit its entire declared child and
+cleanup windows inside the unchanged parent deadline before invoking the child.
+
+The explicit journal-stimuli source route is committed at f5f8d86. Both
+independent reviews pass 140 normal and 140 optimized methods. It preserves
+the four existing one-apply stages, starts its single ninety-second old-reply
+interval after actual fresh-A unsynchronized station readiness, and adds one
+newest committed payload-byte fault with intact older B. Native failclosed
+admission precedes deployment. The original source controls use five fault
+observations, but a later actual-schema diagnostic proves their INFO fixture
+invented owner/job fields. Serial INFO does not expose ownership; the narrow
+source/schema repair and new preparation are required before live use. The f5
+results remain historical source controls, with live acceptance still pending. Physical torn writes and private
+DNS/activation callbacks retain their separate evidence requirements.
+
+The complete available Linux selection at committed f5f8d86 passes 155 tests,
+with zero failures and seven existing context-dependent exclusions out of 162
+registered tests. Configure/build/test use retained tools and SDK without
+hardware access. The original archive contains 1,701 committed files; independent
+original-file review verifies all1,701 committed blobs, all155 actual passing
+names and the exact seven exclusions. All271 production files remain unchanged
+fromc0d2bd5; real retained SDK compile/runtime tests pass. A final read-only Mac SNTP query succeeds
+against time.local at192.168.1.54, with reported offset−1.662ms±29.195ms. No Mac
+clock, Pi time service or management network setting is changed; the earlier
+timeout's cause remains undetermined.
+
+
+### 2026-10-04 engineering receiver pre-child schema stop
+
+The separately bound engineering receiver diagnostic restores the exact known
+source-one profile into the inhibited candidate, then stops with
+`KeyError("owner_id")` before its diagnostic child. Actual retained serial INFO
+and the c0d producer omit owner/job keys; WTP STATUS exposes those separately.
+The attempted parent validates before saving deployed INFO, so that actual
+projection and its boot are unavailable. The readback remains retained. No
+owned AP activation, association proof, public GET, save, submit, job or RF
+case begins. This identifies a harness defect; it supplies no AP cause or
+acceptance. Failed originals and the attempted packet remain immutable.
+
+Independent review verifies identical full 4 MiB restoration, all7,097 standard
+UF2 pages, reserved/E10, healthy journals and the five-sample report with its
+retained final original. A fresh seven-command host check proves unchanged
+management and absence of owned connection names, monitor and marker files.
+The child UUID was not retained; exact UUID absence is not asserted. Both
+B locks independently acquire nonblocking and release. The frozen complete
+exit observer stops when the built-in wlan0 all-band scan exceeds its unchanged
+15-second limit; this exit is incomplete. Independent original review accepts
+its five same-boot INFOs, two CRC-correlated LAN exchanges with explicit null
+owner/job, one complete fresh legal eleven-frequency AP-absence scan and
+unchanged management through finally. The second scan has no partial output.
+These completed observations do not supply the required two-scan complete exit. A distinct unused USB-radio observer
+is under source review with the same finite scan limits. No new target mutation
+may proceed before the complete exit gate is met.
+
+
+### 2026-10-04 actual serial-schema journal repair
+
+The four-path repair at `943a7d0` replaces the invented serial owner/job fixture
+with the actual Scheduler projection. Both independent and root affected checks
+pass100 normal and100 optimized methods. Serial INFO supplies visible inactive,
+disabled inhibited scheduler and carrier evidence; WTP ownership/job identity
+is expressly unobserved. A fresh storage fault additionally requires actual
+present BLE false/zero, absent station/LAN and no adopted clock. Exact native
+failclosed selection, unchanged disabled configuration and corruption seed
+remain separate gates. Fault controls are deterministic; no new live fault
+acceptance is claimed. All271 production files remain unchanged fromc0d2bd5.
+
+The committed-tree Linux run passes155 selected tests with zero failures,
+out of162 registered with the same seven exclusions. The original archive
+contains1,701 exact committed files. Independent original-log review verifies
+every archived Git blob and all155 passing names against the exact seven
+exclusions; real retained SDK compilation/runtime checks pass. Push succeeds
+and a separate remote read confirms943a7d0 parity. The old f5 source-control results and inert
+packet remain immutable historical preparation. A separately fresh943a packet
+now passes149 normal/optimized preparation controls and independent review;
+it remains inert before any later journal use.
+
+
+### 2026-10-04 distinct USB-radio complete exit
+
+The separately reviewed unused-wlan2 observer passes its21 normal and21
+optimized source controls, including source-before-import admission and strict
+final-save180-second refusal. Its single actual run independently passes six
+original INFOs and two backend bookends on the same restored boot, explicit
+CRC WTP null-owner/job HELLO/STATUS, and two complete fresh legal AP-absence
+scans with12 and16 nearby BSS observations. Actual interface/phy/MAC/driver
+and disconnected guards repeat at five points; management before/after/final
+is identical. The exact prior full607 restoration, all7,097 standard UF2 pages
+and reserved/E10 remain separately verified; no new flash read occurs. Both
+locks independently acquire and release. This completes the current standard
+inhibited exit after the pre-child receiver stop. The prior wlan0 timeout stays
+retained and establishes no driver or AP cause; no association is claimed.
+
+The fresh943a journal-stimuli packet independently passes149 normal and149
+optimized controls, with373 runtime and945 complete source files, actual
+thirty-path staging and95 AST import edges. All1,330 declared old f5 originals
+remain hash-preserved. Its host-before and future boot remain null, with no
+campaign or live execution. The existing finite budgets remain unchanged.
+
+
+### 2026-10-04 receiver network-not-found stop and restored exit
+
+The reviewed receiver attempt stops at its unchanged30-second station bracket
+following one successful owned Pi AP activation. All51 original INFO samples
+remain on the exact engineering boot/generation2: fifty report CYW43
+no-matching-SSID and one joining; none obtains IPv4 or attempts SNTP. The
+original before-AP USB HELLO/STATUS pair proves empty, unowned authority. No
+NETLINK/station/DHCP/after-proof pair or receiver acceptance is claimed. A
+buffered daemon stdin shutdown fatal follows the primary deadline failure;
+it does not explain the preceding station observations. Preserve both errors.
+
+Independent restoration verifies exact full607 bytes,7,097 standard image
+pages and reserved/E10. Fresh original host reads prove management unchanged
+and exact owned AP name/UUID/monitor absent. Their reported empty three-script
+process filter lacks retained raw ps output; this required a fresh bounded
+helper follow-up for that narrow observation. A subsequent repaired helper independently retains seven original host reads
+and one exact three-script pgrep query with exit1 and empty streams. Management
+and owned UUID/name/monitor checks pass within the original25-second bound;
+the earlier ps-output gap stays historical. The distinct wlan2 exit then
+independently passes six same-boot synchronized, connected and inactive INFOs,
+two backend bookends, explicit CRC null-owner/job authority, two complete
+fresh legal AP-absence scans and released locks. No new flash read, SAVE,
+SUBMIT, simulator job or RF job occurs. The failed receiver remains automatic
+work. A distinct unused-wlan0 AP/wlan2-observer diagnostic is being prepared
+inert to require an actual beacon before target proof; its finite limits do
+not change and it has no live result or causal credit.
+
+
+### 2026-10-04 current Mac time.local diagnosis
+
+A fresh default named Mac sntp call times out; the initial wrapper retains no
+partial query streams, so that failed call earns no reply credit. Direct
+`sntp -t 3 192.168.1.54` returns a valid reply in0.175 seconds, and the wspr5
+read-only checks show active PPS/stratum1/normal chrony and an IPv4 UDP123
+listener. Bonjour returns the same IPv4 address; IPv4 getaddrinfo finishes
+in0.033 seconds while the general-family resolver exceeds its5-second limit.
+`sntp -d -n 1 -t 3 time.local` also returns a valid reply in2.144 seconds. This
+isolates an observed name-resolution difference but does not establish the
+underlying alias/resolver fault or cause of every earlier timeout. No clock,
+service or network setting changes. Earlier successful named replies remain
+historical; host replies do not qualify target timing or RF acceptance.

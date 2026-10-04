@@ -53,7 +53,7 @@ grant covered source/tests, inhibited firmware and helpers. The user's direct
 and inert verification succeed. The required original eighty-megabyte historical IQ capture
 and its 16/11 accounting remain part of the unchanged finite-budget review.
 
-Current automated helper source is separately committed at
+Completed T5 helper source is separately committed at
 `226ce6ca5f4eb674e42bf2c82eb9759ea048c942`; firmware remains bound to
 `c0d2bd53e4bde67af64d9528e3ee89efce51b87a`. The new private 372-asset continuation snapshot and seven prepared controllers
 record both identities and their exact hashes in the redacted evidence. They
@@ -68,6 +68,14 @@ assertions. Both new continuations are inhibited; physical RF/timing remains
 separate.
 The reviewed AP diagnostics make at most one association per explicit mode
 without saving settings or submitting a job.
+
+The later explicit journal-stimuli source preparation is committed at `f5f8d86`,
+with two independent reviews passing140 normal and140 optimized methods. It
+has no live acceptance yet. A subsequent actual-schema diagnostic proves that serial INFO omits owner/job fields. Repair the narrow guard and use explicit CRC WTP ownership observations where that carrier is supported before preparing a new live packet. Keep the original f5 controls and packet immutable. The alternate-radio AP diagnostic stops at its
+original parent deadline before association; all completed streams are retained,
+and a fresh complete F12 exit passes. Before a future diagnostic child starts,
+its full declared execution and cleanup windows must fit the unchanged parent
+budget. Preparation repairs must preserve exact source/image bindings.
 
 The initial credential-bearing backup transfer rejection remains historical.
 The user's direct approval covers necessary private backup/profile/credential
@@ -238,3 +246,30 @@ any conditional default-on candidate with fresh hashes before claiming closure.
 Final acceptance must account for every applicable row in the
 [closure matrix](phase12-closure-matrix.md), including gaps above. No physical row
 is waived by this packet or an offline tool result.
+
+
+The actual-serial-schema repair at `943a7d0` passes100 affected normal and100
+optimized controls, independent source review and155 selected Linux tests with
+the same seven exclusions. It is pushed with independently verified remote
+parity. All271 production files remain unchanged. Create a new immutable
+journal-stimuli preparation from this repair; the old f5 packet remains
+historical and has no live acceptance. Source-zero fault ownership remains
+unobserved through INFO, with native configuration/seed and carrier gates
+separate.
+
+
+The distinct USB-radio observer now independently completes the standard
+inhibited exit after the receiver pre-child stop, with unchanged finite limits.
+A fresh943a journal-stimuli packet passes149 normal/optimized preparation
+controls and independent review; host-before/future boot are null and no
+campaign runs. Preserve the original f5 packet and all stopped attempts.
+
+
+The reviewed receiver now reaches one owned host AP activation but stops at
+the unchanged station-observation limit with no matching SSID and no address.
+Its standard inhibited restoration and fresh complete wlan2 exit pass. The
+next distinct unused-wlan0 AP/wlan2-observer packet remains inert and must
+prove an actual fresh beacon; it does not extend timers or accept a nominal
+AP configuration. The separately repaired raw-process helper now independently passes with
+seven retained host reads and one exact three-script pgrep exit1/no matches;
+its scope excludes unrelated host processes.

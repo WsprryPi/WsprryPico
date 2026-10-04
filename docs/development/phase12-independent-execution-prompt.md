@@ -40,7 +40,9 @@ Execute these finite stages, retaining existing stricter case/child limits:
 4. Collect bounded original BLE/BlueZ/HCI and owned-AP diagnostics. Only after a
    demonstrated repair and independent review admit a new finite attempt; do
    not repeat uncertain requests, widen case timers or infer cryptographic
-   rejection from transport failure.
+   rejection from transport failure. Fit each complete declared child and
+   cleanup window inside its unchanged parent budget before child invocation;
+   preserve exact completed command streams and identify interrupted-stream gaps.
 5. Complete remaining consumer deferred-readiness, network recovery, old-peer
    refusal, engineering A/B/C journal, carrier/API composition and running
    cookie/resource scopes when their actual prerequisites pass. Retain the
@@ -382,3 +384,19 @@ cleanup bound to the selected observer. The earlier record did not explicitly
 pin those security fields; neither its failure nor this comparison establishes
 an exclusive adapter/security cause. Retain either actual outcome and restore
 the exact standard image and reserved/E10 bytes.
+
+
+Serial INFO and WTP STATUS have different schemas. Require actual INFO-visible
+fields without fabricating owner/job nulls. For supported engineering source-one
+receiver checks, explicit CRC-correlated WTP HELLO/STATUS supplies ownership
+evidence. A source-zero storage fault disables WTP carriers; record ownership
+as unobserved, with separate native failclosed/disabled configuration and actual
+inactive carrier evidence. Preserve all old attempted packets and originals.
+
+
+Retain the latest automatic receiver no-matching-SSID stop and its exact
+restoration/fresh F12 originals. Host AP activation is insufficient as beacon
+evidence. A future distinct-radio diagnostic must prove a fresh exact beacon
+within its existing finite limits before target association/TLS claims. Repair
+the evidenced daemon buffered-stdin shutdown and original-process-output gaps
+in fresh immutable helpers before use; preserve all old originals.
