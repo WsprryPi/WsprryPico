@@ -177,4 +177,106 @@ class TerminalHistoryTests(unittest.TestCase):
         for stages in [('running','loaded'),('running','running'),('foreign',),()]:
             with self.assertRaises(ValueError):r.run(forbidden,forbidden,forbidden,forbidden,forbidden,None,'private','a'*40,'b'*32,profile_generation=1,stages=stages)
 
+
+class FailureRetentionTests(unittest.TestCase):
+    def run_running(self,f):
+        with patch.object(r,'resource_health'):
+            return r.run(f.exchange,f.info,f.status,f.ap,lambda:None,f,
+                'private','a'*40,'b'*32,profile_generation=1,clock=lambda:f.now,
+                sleeper=lambda seconds:setattr(f,'now',f.now+seconds),stages=('running',))
+
+    def operations(self,f):
+        return [body['operation'] for _,body,_ in f.calls if body and 'operation' in body]
+
+    def test_original_login_error_survives_failed_failure_record(self):
+        f=ProductionHistory();primary=ValueError('original controlled login failure')
+        original_exchange=f.exchange;original_record=f.record
+        def exchange(*args):
+            original_exchange(*args)
+            raise primary
+        def record(kind,**data):
+            if kind=='case_failed':raise OSError('controlled private record failure')
+            original_record(kind,**data)
+        f.exchange=exchange;f.record=record
+        with self.assertRaises(ValueError) as caught:self.run_running(f)
+        self.assertIs(caught.exception,primary)
+        self.assertEqual(self.operations(f),[]);self.assertEqual(len(f.calls),1)
+        self.assertIsNone(f.owner)
+        self.assertFalse(any(kind=='case_complete' for kind,_ in f.evidence))
+
+    def test_original_uncertain_load_error_survives_log_failure_and_still_reclaims(self):
+        f=ProductionHistory();primary=TimeoutError('original controlled LOAD uncertainty')
+        original_exchange=f.exchange;original_record=f.record
+        def exchange(*args):
+            result=original_exchange(*args)
+            if args[2] and args[2].get('operation')=='LOAD':raise primary
+            return result
+        def record(kind,**data):
+            if kind=='case_failed':raise OSError('controlled private record failure')
+            original_record(kind,**data)
+        f.exchange=exchange;f.record=record
+        with self.assertRaises(TimeoutError) as caught:self.run_running(f)
+        self.assertIs(caught.exception,primary)
+        ops=self.operations(f)
+        self.assertEqual(ops.count('CLAIM'),1);self.assertEqual(ops.count('LOAD'),1)
+        self.assertNotIn('ARM',ops);self.assertNotIn('ABORT',ops);self.assertNotIn('RELEASE',ops)
+        self.assertIsNone(f.owner);self.assertEqual(f.state,'empty');self.assertLess(f.now,260)
+        self.assertFalse(any(kind=='case_complete' for kind,_ in f.evidence))
+
+    def test_original_body_error_survives_cleanup_and_record_failures(self):
+        for failed_record in (False,True):
+            with self.subTest(failed_record=failed_record):
+                f=ProductionHistory();primary=TimeoutError('original controlled LOAD uncertainty')
+                cleanup=RuntimeError('controlled cleanup observer failure');body_failed=[False];cleanup_calls=[]
+                original_exchange=f.exchange;original_status=f.status;original_record=f.record
+                def exchange(*args):
+                    result=original_exchange(*args)
+                    if args[2] and args[2].get('operation')=='LOAD':
+                        body_failed[0]=True;raise primary
+                    return result
+                def status():
+                    if body_failed[0]:cleanup_calls.append(f.now);raise cleanup
+                    return original_status()
+                def record(kind,**data):
+                    if failed_record and kind in ('case_failed','case_cleanup_failed'):
+                        raise OSError('controlled private record failure')
+                    original_record(kind,**data)
+                f.exchange=exchange;f.status=status;f.record=record
+                with self.assertRaises(TimeoutError) as caught:self.run_running(f)
+                self.assertIs(caught.exception,primary);self.assertEqual(len(cleanup_calls),1)
+                self.assertTrue(any('lease cleanup failed: RuntimeError' in note for note in primary.__notes__))
+                if failed_record:
+                    self.assertIn('case failure record failed: OSError',primary.__notes__)
+                    self.assertIn('cleanup failure record failed: OSError',cleanup.__notes__)
+                else:self.assertEqual(sum(kind=='case_cleanup_failed' for kind,_ in f.evidence),1)
+                ops=self.operations(f)
+                self.assertEqual(ops.count('CLAIM'),1);self.assertEqual(ops.count('LOAD'),1)
+                self.assertNotIn('ARM',ops);self.assertNotIn('ABORT',ops);self.assertNotIn('RELEASE',ops)
+                self.assertIsNotNone(f.owner);self.assertEqual(f.state,'loaded')
+                self.assertFalse(any(kind=='case_complete' for kind,_ in f.evidence))
+
+    def test_cleanup_failure_after_success_is_primary_even_if_its_record_fails(self):
+        for failed_record in (False,True):
+            with self.subTest(failed_record=failed_record):
+                f=ProductionHistory();cleanup=RuntimeError('controlled successful-body cleanup failure')
+                body_complete=[False];cleanup_calls=[]
+                original_status=f.status;original_record=f.record
+                def status():
+                    if body_complete[0]:cleanup_calls.append(f.now);raise cleanup
+                    return original_status()
+                def record(kind,**data):
+                    if kind=='owner_grace_status_abort_pass':body_complete[0]=True
+                    if failed_record and kind=='case_cleanup_failed':
+                        raise OSError('controlled private cleanup record failure')
+                    original_record(kind,**data)
+                f.status=status;f.record=record
+                with self.assertRaises(RuntimeError) as caught:self.run_running(f)
+                self.assertIs(caught.exception,cleanup);self.assertEqual(len(cleanup_calls),1)
+                if failed_record:self.assertIn('cleanup failure record failed: OSError',cleanup.__notes__)
+                else:self.assertEqual(sum(kind=='case_cleanup_failed' for kind,_ in f.evidence),1)
+                ops=self.operations(f)
+                for op in ('CLAIM','LOAD','ARM','RENEW','ABORT'):self.assertEqual(ops.count(op),1)
+                self.assertNotIn('RELEASE',ops);self.assertLess(f.now,260)
+                self.assertFalse(any(kind=='case_complete' for kind,_ in f.evidence))
+
 if __name__=='__main__':unittest.main()

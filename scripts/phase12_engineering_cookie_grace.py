@@ -81,7 +81,7 @@ def run(exchange, observe_info, observe_status, observe_ap, refresh_time, eviden
     for stage in stages:
         reclaimed_status(status(),boot,prior_job);safe();refresh_time();last_refresh[0]=clock();safe()
         cookie=None;session=uuid.uuid4().hex;owner=uuid.uuid4().hex;job=uuid.uuid4().hex
-        claimed=False
+        claimed=False;primary=None
         try:
             created=clock()
             code,value,headers=call('POST','/local/v1/login',dict(version=1,device_id=DEVICE,password=password))
@@ -149,12 +149,23 @@ def run(exchange, observe_info, observe_status, observe_ap, refresh_time, eviden
                 keepalive(expired=True)
                 evidence.record('owner_grace_status_abort_pass',stage=stage,job_id=job)
         except BaseException as error:
-            evidence.record('case_failed',stage=stage,error_type=type(error).__name__,retry=False)
+            primary=error
+            try:evidence.record('case_failed',stage=stage,error_type=type(error).__name__,retry=False)
+            except BaseException as recording_error:
+                error.add_note('case failure record failed: '+type(recording_error).__name__)
             raise
         finally:
             # Never retry a mutation with an uncertain response. Natural expiry
             # provides bounded cleanup, observed through independent authority.
-            if claimed:reclaim(owner,job)
+            if claimed:
+                try:reclaim(owner,job)
+                except BaseException as cleanup_error:
+                    try:evidence.record('case_cleanup_failed',stage=stage,
+                        error_type=type(cleanup_error).__name__,retry=False)
+                    except BaseException as recording_error:
+                        cleanup_error.add_note('cleanup failure record failed: '+type(recording_error).__name__)
+                    if primary is None:raise
+                    primary.add_note('lease cleanup failed: '+type(cleanup_error).__name__)
         prior_job=job
         evidence.record('case_complete',stage=stage,physical_acceptance=False)
     return dict(status='COOKIE_GRACE_COMPLETE_REVIEW_REQUIRED',stages=list(stages),simulated_jobs=jobs,
