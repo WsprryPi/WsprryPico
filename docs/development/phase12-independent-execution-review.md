@@ -1,5 +1,210 @@
 # Operator-independent Phase 12 execution review
 
+## Merged closeout continuation (2026-10-03)
+
+The current closeout starts on `devel` at
+`f2dd23d0d95dd8dc846e241ce072195ac19db3df`, containing the pin and application
+API merges. The three current user paths are freshly hash-bound in the redacted
+evidence and excluded from owned commits. The older baseline, six-document
+preservation, and source-bound acceptance below remain historical records.
+The user directly approved the wspr5 transfers and B-only inhibited operations.
+RF still requires a current candidate/setup packet and operator readiness.
+
+The fresh merged restoration preflight passed on B: exact approved UF2
+programmed bytes, all original reserved/E10 bytes, and five stable observations
+with synchronized station time, empty/unowned/inactive authority, disabled
+scheduling, healthy journals and owned connection cleanup. Its new image has
+different unused application tails; whole-flash equality is not claimed.
+Final AP withdrawal scans must follow the remaining campaigns.
+
+A separate fresh host-only diagnostic observed the owned WPA2/CCMP AP through
+an independent radio on channel 3 and removed its connection and responder
+without changing management connectivity. It performs zero Pico actions and
+does not establish a cause for the older BLE failures.
+
+The populated-fixture failures reproduce at both merged and unchanged historical
+source. Synthetic OpenSSL credentials exceeded the production TLS size limit;
+compact explicit credentials retain device OU, hostname SAN, strict chain
+validation and the unchanged limit. The three load-reply failures depended on
+historical STL allocation sizes. Exact adjacent reserve boundaries now pass or
+refuse independently of that ABI, and an isolated one-byte reserve reduction
+makes all three refusal checks fail. The production reserve remains 32 KiB.
+Live backup inspection also exposes a supported consumer profile without a
+separate operational configuration; its additional native fixture regression
+passes native positive and preservation negative controls before live fixture use.
+
+Independent review found a production pin-application fault could inhibit an
+empty JobService while preventing Console recovery. `ec0f68f` permits explicit
+reset eligibility only with healthy disabled settings, no owner/job/output and
+inhibited authority; the Console still requires confirmed engine disable.
+Tests retain admission refusal until a fresh boot applies the saved pins.
+
+Review also found initial snapshot observation failures could leave B in ROM.
+The repaired write-free recovery uses the same action flock and exact serial,
+a live exclusion lock, bounded original-source/settings observations, and
+separate primary/recovery/cleanup records. It never repeats an uncertain
+snapshot or starts another acceptance case after failure.
+
+Before the GATT repair, the available Linux selection passes **151/151**, with
+**166/166** cases across eight optimized Python suites. Seven context-dependent suites
+were separately checked using retained local dependencies; optional pinned
+MbedTLS/lwIP/companion configurations are not enabled in this source snapshot.
+The source inventory and exact logs are bound in the redacted evidence.
+`fc9da64` commits the reviewed helper/test work; firmware remains exactly bound
+to the clean `ec0f68f` candidate manifest.
+
+The current journal tranche pairs and provisions engineering A once, proves
+native generation2 and one bond, and reaches an acknowledged B replacement
+with exact native generation3. It then stops before SNTP/TLS admission:
+148 original INFO records on the redeployed B boot show no station address,
+zero SNTP queries and driver no-matching-SSID. Exact native A/B Wi-Fi and
+operational settings, access, bonds, cursor and E10 match; only expected TLS
+material differs. There is no contemporaneous independent host AP observation,
+so host carrier loss and target association remain unresolved. No journal/TLS
+production cause or old-client cryptographic refusal is inferred.
+
+A separate current consumer station-readiness tranche waits until the exact
+fresh open B AP is scanned before one Pi NetworkManager activation. The
+original log states no security/secrets are needed, then association reports
+status16 with zero BSSID and ends in supplicant timeout. This does not establish
+an AP-sent rejection, credential error or driver/firmware root cause. The
+readiness/time body never starts, no save or RF job occurs, and the failure
+remains automatic work. Original failure records and restoration are retained.
+
+The current T5 tranche successfully pairs, provisions and warms engineering A.
+One CLAIM and one LOAD succeed; the next STATUS and cleanup STATUS receive
+original ATT error0x11 while the loaded JOB_STATE indication is still draining.
+The passive HCI capture independently agrees with the CRC-valid WTP ordering.
+Encryption is established, controller credits remain available and retained
+allocator/pool counters show no fault. Source admission rejects new input while
+the endpoint has queued output, even though the client has received the complete
+correlated LOAD response. This establishes a transport backpressure defect.
+No ARM, local execution or T5 case completes. The bounded acknowledged-write
+repair is independently reviewed at `c0d2bd5`; no client retry or timer extension
+substitutes for it. The new complete available Linux selection passes **153/153**,
+including actual Endpoint and pinned-SDK ATT runtime checks. The affected RF
+suites pass another **47/47** optimized cases. One legacy utility fixture
+missing its explicit historical-v1 schema failed the first 153-test selection;
+that original failure is retained, and the narrow fixture repair passes
+independent reassessment before the final complete rerun. These are source
+results; the new firmware candidates still require target validation.
+
+The stopped T5 restoration independently matches the full original 4 MiB
+backup, all 7,092 current UF2 pages and reserved/E10. The source-bound
+five-sample stability receipt ends with retained original INFO confirming
+connected/synchronized, disabled/empty/inactive state. Earlier observations are
+not individually retained by that helper. Fresh original WTP authority and
+complete AP withdrawal scans remain the final exit gate after all testing.
+The available phone and iPad are the two selected iOS clients; record only
+technical outcomes necessary for their acceptance.
+
+The fifteen new c0d2bd5 variants pass content-bound verification. The initial
+upgrade proves exact programmed bytes and unchanged reserved/E10 with stable
+station/time readiness; changed unused application tails are recorded. The
+first new T5 attempt stops before reset/provision/jobs when its reset-before
+native inspection exceeds the unchanged ten-second parent deadline. The
+private adapter performs six sequential SSH/SCP transactions, each separately
+bounded at eight seconds; that aggregate deadline mismatch is now demonstrated.
+The exact individual transaction at expiry is not retained. Write-free snapshot
+recovery and final inhibited restoration complete; independent bytes match all
+7,097 programmed pages, the full 4 MiB baseline and reserved/E10. This early
+stop precedes fixture startup, so no per-run host management before exists and
+the strict checker retains that limitation. The one-transaction adapter and
+fresh host-before instrumentation are independently reviewed and adopted.
+Their normal/optimized controls pass 12/12 and 24/24 respectively; five real
+file-only native controls pass in 0.35–0.64 seconds within unchanged deadlines.
+The first repaired-adapter T5 preparation then exposes an omitted WTP schema in
+the immutable private source snapshot. It stops before dispatch or jobs and
+restores the exact inhibited image, full baseline and reserved/E10, with an
+independent complete host comparison. The old snapshot and failure remain
+unchanged. A new complete 371-file snapshot adds the exact committed schema;
+the reviewed parent now checks shared assets before any hardware operation.
+
+At `6b35f4c`, seven host helper/test changes also repair the consumer readiness
+network handoff and reject incomplete staging before device access. Firmware
+remains bound to `c0d2bd5`; the complete available Linux selection again passes
+**153/153** with all eighteen changed-source hashes verified. The retained
+CTest inventory has 160 registered tests: 153 selected and seven context
+exclusions, rather than a claim that every optional build configuration ran.
+
+The complete-source T5 runner finishes three charged job cases: expired loaded
+ARM refusal with unchanged authority, fresh field-time execution and SNTP-priority
+execution despite a conflicting field submission. Exactly two jobs reach
+running and complete. Original WTP and passive HCI traces directly exercise the
+old LOAD/STATUS backpressure boundary with acknowledged deferred writes and no
+request replay. Independent review still limits broader T5 acceptance: its final
+SNTP prerequisite success arrives beyond the declared sixty-second subdeadline,
+and it never invalidates time after ARM or while running. Those are automatic
+harness/coverage work, not operator dependencies. The final restoration again
+matches the full baseline, 7,097 image pages and reserved/E10; independent host
+comparison passes. A separate current composition attempt stops before
+reset/provision/jobs at another native inspection failure. An identical baseline
+inspection passed in 0.442 seconds earlier in the same tranche; the failed
+wrapper keeps its request receipt but loses the internal error. Its two-hour
+resource capture never starts. Exact restoration and independent host comparison
+pass again. This remains an unresolved automatic helper failure, with diagnostic
+retention and cause investigation required before a new run. All operator actions
+remain grouped after autonomous work.
+
+The current G7 code and image bundle is staged in a new private wspr5 root only;
+no RF image is flashed and no RF action occurs. Automatic approval review blocks
+the separate historical capture/evidence bundle because the earlier transfer
+approval covered source, firmware and helpers. Its explicit transfer approval
+remains with the final operator steps. Historical counts stay 16 acquisitions
+and 11 charged jobs; current RF setup approval and an actual Ready remain absent.
+
+Automatic approval review also rejects a separate file-only diagnostic that
+would send an existing private B full-flash backup back to wspr5. That operation
+could transfer stored credentials and is outside the recorded source-snapshot
+transfer grant according to the review. No diagnostic retry or indirect
+workaround occurs. Explicit approval for necessary private native backup/profile
+inputs is deferred to the operator steps; dependent campaigns stay automatic
+work. Source checks, packet preparation and read-only exit observation continue.
+
+The read-only current exit observation passes after the stopped composition
+attempt: six original same-boot INFO records confirm healthy journals, station
+link, accepted synchronized time and disabled inactive state; two correlated
+CRC-valid Plain LAN HELLO/STATUS replies prove empty/unowned authority. Two
+complete legal 2.4 GHz scans contain fresh nearby observations and omit the exact
+B AP. Management addresses/routes match before and after, campaign fixtures are
+absent, and independent lock probes confirm both B locks are released. Image,
+full-flash and reserved/E10 proof comes from the separately collected restoration
+readback; the observer performs no ROM or flash operation. Repeat the exit check
+after any later target operation. Phase 12 remains open.
+
+The final reviewed host helper revision `226ce6c` enforces strict sixty-second
+SNTP prerequisite and twenty-five-second completion admission. It adds explicit
+continuations of one SNTP job in 120 seconds and two armed/running invalidation
+jobs in 180 seconds, with no accepted-case replay. Independent affected checks
+pass 75/75 for SNTP and 106/106 for invalidation in both normal and optimized
+Python modes. A new clean Linux build passes **154/154** selected tests, with
+**161 registered / seven context exclusions**. Firmware remains `c0d2bd5`;
+these results qualify source/harness behavior, with live continuation pending.
+
+The AP diagnostic is independently cleared in two explicit modes: one exact-B
+association with filtered management-frame observation, or a separate alternate
+radio association plus interface-bound public GET. Its independent controls
+pass 26/26 in both normal and optimized modes. It performs no save or job.
+The private native adapter now retains bounded original failure streams without
+changing its one-attempt eight/six/ten-second limits; its independent review
+passes 21/21 controls in both normal and optimized modes. Its prior aliases and hash-bound
+controllers remain preserved. This observability repair does not recover or
+explain the earlier lost internal composition error. Further private-input
+execution remains blocked by the recorded transfer approval boundary.
+
+The new private 372-asset snapshot separates helper revision `226ce6c` from
+unchanged c0d firmware, with 271 production source/helper-build files compared
+byte-for-byte. Both actual staged time closures import successfully. Seven
+fresh scope controllers are prepared with reviewed fixed aliases and original
+2,400/9,500-second controller caps; none is started. Two inert AP configurations
+bind the accepted checkpoint and current source but require actual future
+pre-child host originals. The single requested private-transfer approval is
+pending. Available file-only preparation and review are complete; dependent
+automatic execution remains blocked. No additional target operations follow
+the verified current exit while that approval is absent.
+
+## Historical bounded execution
+
 Status: **BOUNDED_EXECUTION_FINISHED — partial live acceptance; automatic gates remain open.**
 
 This corrects the earlier execution boundary: missing automation for available

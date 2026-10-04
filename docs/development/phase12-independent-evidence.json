@@ -2153,21 +2153,768 @@
     "owned_source_review_sha256": "29802e2645fa065d764c934c319923963212fe6126069edbcebe579867b73e57"
   },
   "remaining_automatic_existing_IDs": {
-    "C8T/R11F": "Deferred readiness/materialization; warm/save attempt stopped at observer association before these cases. Offline durable populated saves accepted.",
+    "C8T/R11F": "Zero-SUBMIT warming of exact accepted station-generation7 and network-generation8 checkpoints; separately seed absent TLS then prove one deferred materialization and trust/settings preservation. Station scope stopped before time enable at unresolved Pi observer association; accepted offline saves are not repeated.",
     "R11A": "Complete station-loss/reconnect/lease/pending-reply cycle. Final restored AP withdrawal accepted separately.",
     "R11P": "Specific old-peer cryptographic refusal; original connection outcome inconclusive.",
-    "B12J": "Engineering credential A/B/C transitions and supported injected journal faults; repaired producer validated deterministically, fresh live scope stopped at Pair Page Timeout.",
-    "B12C": "Engineering carrier composition, busy mutation and disconnect/lease cases; latest retained-peer Connect fails before cases.",
-    "B12T": "T5 loaded/armed/running time and launch cases; latest Pair Page Timeout before cases.",
-    "B12R": "Engineering composition/ACL resource capture and running cookie ownership; latest scopes stop at BLE Connect or owned AP readiness. Ordinary metadata save serialization accepted separately."
+    "B12J": "Engineering credential A/B/C and injected journal faults remain automatic; latest B acknowledged/native generation3, then stopped at unresolved station association before SNTP/TLS.",
+    "B12C": "Engineering USB/BLE/TLS-WTP/HTTPS ownership, busy/disconnect/lease composition, plus current station/hardware API device/boot/revision validation, exact saved-versus-active pins and pending-reboot inhibition remain automatic.",
+    "B12T": "Original loaded expiry refusal and two local completions plus direct GATT delayed-write repair accepted at c0d2bd5. Sixty-second SNTP deadline defect repaired in source; targeted armed/running clock-invalidation continuation and affected live revalidation remain automatic.",
+    "B12R": "Engineering two-hour composition/ACL resource capture, running-cookie ownership and consumer ordinary save/STATUS overlap remain automatic. Current engineering composition stops before reset at native inspection failure; diagnosis is blocked by private native-input transfer approval. Historical BLE/AP failures remain retained. Ordinary engineering CONFIG metadata save serialization is accepted separately; populated consumer offline-save preservation does not qualify concurrent overlap.",
+    "F12": "Current standard inhibited exit passes exact full/image/reserved/E10 restoration, original Plain LAN empty/unowned/inactive HELLO/STATUS, synchronized station time, two complete fresh AP absence scans, host cleanup and both lock release checks. Repeat after any subsequent target operations; conditional GP14 production qualification remains physical."
   },
   "remaining_external_or_physical_existing_IDs": {
     "G7": "Fresh conducted RF, physical GP14 hold, phone/AP observation and conditional production candidate.",
-    "C8": "Genuinely different phone plus automated readback.",
+    "C8": "Available phone and iPad selected as the two iOS clients by current operator direction; second-client commissioning plus automated readback remains.",
     "C10O": "Actual cellular-off offline phone/local-asset and supported Bluefy acceptance.",
     "R11P/B12J": "Arbitrary physical/torn-write power-cut evidence where claimed.",
     "B12L": "Independent physical LED/cue timing and exact GP14 flash-edge observation; telemetry-only results cannot qualify these.",
-    "F12": "Conditional GP14 production candidate; current inhibited B restoration/authority/AP withdrawal accepted."
+    "F12": "Conditional GP14 production-firmware qualification after G7 physical RF acceptance; standard inhibited restoration and final AP/authority checks stay automatic."
   },
-  "unsupported_observation": "Raw controller RAM has no supported measurement API; it is not an operator prerequisite."
+  "unsupported_observation": "Raw controller RAM has no supported measurement API; it is not an operator prerequisite.",
+  "merged_closeout": {
+    "status": "PARTIAL_UNATTENDED_EXECUTION_PRIVATE_TRANSFERS_AWAIT_APPROVAL",
+    "baseline_source_commit": "f2dd23d0d95dd8dc846e241ce072195ac19db3df",
+    "baseline_remote_parity_verified": true,
+    "preserved_user_files": {
+      "docs/implementation-plan.md": "f17cbb216a5987edd550657f75458791cc24c145e9079c1ecb39e07494fc165f",
+      "docs/development/si5351-transmission-backlog.md": "9b1f5419e1093271543c08cdc4b3be6c509a562ec46171a5ff7ea98d8b780749",
+      "docs/development/transmit-led-backlog.md": "6c233fa824ad1a3aa5b6cb758f361fd52bc2457a994ae1046445975ccbf040b4"
+    },
+    "initial_preflight": {
+      "source_revision": "cc51be4f3f86",
+      "boot_id": "707326791706ff582055470c879c19dd",
+      "engine": "inhibited-standalone-simulator",
+      "state": "empty",
+      "owned": false,
+      "output_active": false,
+      "enabled": false,
+      "storage_healthy": true,
+      "clock_state": "synchronized",
+      "private_info_sha256": "41aad9abc8e3d01e81cb92f8bcdf8459f67ca9cb9b7b061aba4da1166c9833ba"
+    },
+    "merged_candidate_build": {
+      "source_commit": "f2dd23d0d95dd8dc846e241ce072195ac19db3df",
+      "candidates_verified": 15,
+      "manifest_sha256": "0bb3e933d2eb711b263bb7ee4e296f6b1be0bbba1cf41cd471376c88ee8e525b",
+      "restore_uf2_sha256": "4b0e863e0bf80a16ac6a39c6f352261e1ff05c80f15b82a543f7037ec591778b",
+      "hardware_accessed": false,
+      "physical_acceptance": false
+    },
+    "rf_jobs_added": 0,
+    "physical_readiness": {
+      "ios_clients": "available phone and iPad selected by operator",
+      "B_gp14_wiring_reported": true,
+      "rf_setup_bound_authorization": false,
+      "rf_ready": false
+    },
+    "restoration_preflight": {
+      "status": "MERGED_RESTORATION_PROVEN",
+      "source_commit": "f2dd23d0d95dd8dc846e241ce072195ac19db3df",
+      "restore_uf2_sha256": "4b0e863e0bf80a16ac6a39c6f352261e1ff05c80f15b82a543f7037ec591778b",
+      "baseline_sha256": "330566b419059f39532689a7605f19a955a25c8670410df02b231236a024dfaf",
+      "readback_sha256": "b246717f8b78163a3be161f331b169b2aa12747d1ef7faf94b351a5e83ab33b3",
+      "reserved_sha256": "2d1cfb071024e8ba4865f50db8b4894b2a330ba4caa478b894520a3014dc6862",
+      "reserved_and_E10_equal": true,
+      "unused_application_tail_equality": false,
+      "samples": 5,
+      "boot_id": "a92f0783453dcbd8012ee8af939dc145",
+      "state": "empty",
+      "owned": false,
+      "output_active": false,
+      "enabled": false,
+      "storage_healthy": true,
+      "station_link": 3,
+      "clock_state": "synchronized",
+      "owned_connection_absent": true,
+      "private_result_sha256": "6eb7f10aad931b88dc19579cc6318836114c28d63168fc7dab5cbafe3043f61e",
+      "remaining": [
+        "fresh final AP withdrawal scans after all campaigns"
+      ]
+    },
+    "host_beacon_preflight": {
+      "status": "PASS_HOST_BEACON_READY",
+      "independent_beacon_verified": true,
+      "frequency_mhz": 2422,
+      "board_actions": 0,
+      "rf_jobs": 0,
+      "owned_fixture_removed": true,
+      "private_result_sha256": "1afef4ab939cfd6dbc1fcb21cd1346b960ad28be4e8057f27c3e7fce82442569",
+      "private_scan_receipt_sha256": "3697100c83b52873aca4e52e0b38c334a7ee74373bcab75cd1d7927de7f71c5d",
+      "claim": "fresh current host AP readiness only; no target station association or BLE cause attribution"
+    },
+    "repairs": [
+      {
+        "scope": "populated-fixture",
+        "classification": "fixture certificate size plus strict client certificate extensions; existing-config preservation",
+        "production_limits_changed": false,
+        "baseline_config_absent_live_observation": true,
+        "absent_config_regression": "native production-loader positive plus preservation negative control pass"
+      },
+      {
+        "scope": "load-reply",
+        "classification": "outdated fixed STL allocation assumptions",
+        "production_reserve_bytes": 32768,
+        "negative_control": "isolated one-byte reserve reduction fails all three refusal cases"
+      },
+      {
+        "scope": "pin-fault-recovery",
+        "classification": "production Console recovery eligibility defect",
+        "source_commit": "ec0f68f",
+        "invariant": "confirmed engine disable still required; admission remains inhibited until reboot"
+      },
+      {
+        "scope": "BLE diagnostics",
+        "classification": "bounded original Pair/Connect/RemoveDevice lifecycle events; no retries/timer extension"
+      },
+      {
+        "scope": "snapshot failure recovery",
+        "classification": "write-free bounded original-source runtime recovery preserves primary exception"
+      },
+      {
+        "scope": "application API acceptance",
+        "classification": "real HTTPS wire, loaded/armed/running busy guard and exact saved/active pin/reboot admission checks; source-tested only"
+      },
+      {
+        "scope": "consumer deferred readiness",
+        "classification": "native pending seed honors anti-replay; time/INFO/public readiness and exact trust/settings preservation; source-tested, live prerequisite stopped"
+      }
+    ],
+    "repair_source_commit": "ec0f68facb5041e9e1426d20e3c8326567272bb9",
+    "harness_source_commit": "fc9da64",
+    "repair_candidate_build": {
+      "source_commit": "ec0f68facb5041e9e1426d20e3c8326567272bb9",
+      "candidates_verified": 15,
+      "manifest_sha256": "21913b4520cdb4b3b3f53063d14720e492b78b5c2d18433cc017042dc0fd718c",
+      "restore_uf2_sha256": "c7887117ecf27e4f1b92ecbaf7996fdf08a2cba03c758eaee41b9030d3e6fbc4"
+    },
+    "validation": {
+      "linux_available_ctest": {
+        "passed": 151,
+        "failed": 0,
+        "log_sha256": "9a918905a01b6c1904c86ea0458b987070bf3a304e5ae2cb756e789ad807828a"
+      },
+      "optimized_python": {
+        "suites": 8,
+        "cases_passed": 166,
+        "failed": 0
+      },
+      "context_dependent_suites_separately_passed": 7,
+      "optional_not_enabled": [
+        "pinned MbedTLS",
+        "pinned lwIP",
+        "companion-source configurations"
+      ],
+      "source_inventory_sha256": "9556fe2b96826d0150d693728ccf42f33b4ff8095d02a23d32a9f1e4a6953ce4"
+    },
+    "current_automatic_runs": [
+      {
+        "existing_ids": [
+          "B12J"
+        ],
+        "campaign": "journal-live",
+        "status": "STOPPED",
+        "result_sha256": "89ca667ab9b4d305be984c298772ebdf5ef7c12aac8fd8f634be6b62aa48d209",
+        "offline_review_sha256": "c1dd09c45fc9463d87d75dce2f7c706f80dfca817a15157f10cb0152d99b66f2",
+        "stop": "credential B acknowledged once and exact native generation3; subsequent no-matching-SSID/no-address precedes SNTP/TLS",
+        "cause": "unresolved host carrier or target association; exact A/B WiFi and operational settings equal",
+        "rf_jobs": 0,
+        "independent_restoration_sha256": "93c0192456732e6ed42ccda6e2bc286bca8e820a2737b827675aadba12efab81"
+      },
+      {
+        "existing_ids": [
+          "C8T",
+          "R11F"
+        ],
+        "campaign": "consumer-readiness-station",
+        "status": "STOPPED",
+        "result_sha256": "8ee3e8cbe998fd7859cd3d04f202de8db5877654957862301fd19ac04bb93445",
+        "wire_sha256": "877da24f5debbc14fb63172cf8ea533a66c63976a0d2c5f6b67b0695c6f86e11",
+        "stop": "fresh exact open B AP observed; single owned Pi observer association reports supplicant timeout before time enable/readiness body",
+        "cause": "unresolved; no early/cached beacon or credential defect established",
+        "submit_attempts": 0,
+        "rf_jobs": 0,
+        "independent_restoration_sha256": "cd526c628d15465f07448deb41d14e25545b4d548fa82e9f0d1ffb8029246766"
+      },
+      {
+        "existing_ids": [
+          "B12T"
+        ],
+        "campaign": "time-jobs-live",
+        "status": "STOPPED",
+        "result_sha256": "e2bf8b1cb6934a6d4f17f3faf84aca66dd801aa2d2a89d0207b7fa14c762fe72",
+        "wire_sha256": "dba3dc1cd146b262d7f6babe3683c8171b1f9f614b78f40ce694e09cf80173dc",
+        "original_transport_diagnosis_sha256": "0f16baf2390e3b0db63a541fcc9bd6f3dc67d5e52ba10e7d69c18eba321ff08d",
+        "stop": "one CLAIM and LOAD accepted; STATUS and cleanup STATUS refused with ATT error0x11 while trailing loaded JOB_STATE indication drains",
+        "cause": "source-bound endpoint output-empty admission is incompatible with immediate next acknowledged write after a correlated response",
+        "claim_attempts": 1,
+        "load_attempts": 1,
+        "arm_attempts": 0,
+        "jobs_executed": 0,
+        "T5_cases_completed": 0,
+        "rf_jobs": 0,
+        "independent_restoration_sha256": "0210318c36bcdd360711017ca5a7d02037cf883c31c6e36033fb29432b596fde",
+        "restored_full_flash_sha256": "080b8dca060d860b39f456c80302f40b5a09f8b52d98970fd0a4719b6035d283"
+      },
+      {
+        "existing_ids": [
+          "B12T"
+        ],
+        "campaign": "time-jobs-gatt-live",
+        "source_commit": "c0d2bd53e4bde67af64d9528e3ee89efce51b87a",
+        "status": "STOPPED",
+        "result_sha256": "284e96dcaefc4f35ac1fc409eb9f7cfaf71da13c81de5f6479f9bfd4644c226f",
+        "stop": "reset-before backup native inspection exceeds unchanged outer ten-second deadline before any reset/provision/job request",
+        "classification": "private multi-roundtrip Linux inspection adapter deadline defect; no new target GATT acceptance",
+        "reset_attempts": 0,
+        "provision_attempts": 0,
+        "claim_attempts": 0,
+        "load_attempts": 0,
+        "arm_attempts": 0,
+        "rf_jobs": 0,
+        "snapshot_failure_runtime_recovery": "ORIGINAL_RUNTIME_REBOOT_VERIFIED_NO_FLASH_WRITES",
+        "parent_restored_sha256": "607bf46be9ec3670d14047610aa75540944a0ecc4d7ee249b3c1c7a514e42bb0",
+        "parent_stability_samples": 5,
+        "parent_cleanup_failures": [],
+        "independent_byte_verification": "programmed image/full baseline/reserved/E10 checked; original host management before not retained at this pre-fixture stop, checker reports limitation",
+        "independent_bytes_limited_host_review_sha256": "7085b944626573a7dae9caa81a1d1e830cda2e6ba378e9132a7b68d6174b2981",
+        "fresh_host_observation_sha256": "38ec07be38e557ecaec2b26960bdf5b8030e823219a50d50a428bf99e1ba085b",
+        "fresh_host_observation_scope": "read-only current observation; owned connections/responders/virtual observer absent; no original per-run management before/after, so restoration comparison remains limited"
+      },
+      {
+        "existing_ids": [
+          "B12T"
+        ],
+        "campaign": "time-jobs-native-live",
+        "source_commit": "c0d2bd53e4bde67af64d9528e3ee89efce51b87a",
+        "status": "STOPPED",
+        "driver_sha256": "8aa2c23e698f468165e6457442e32d74945625372b83a63343d510a8236573eb",
+        "simulated_job_limit": 3,
+        "case_deadline_seconds": 280,
+        "controller_deadline_seconds": 2400,
+        "rf_jobs": 0,
+        "result_sha256": "a2a5b08fcd83328b6304acc7893a687363e5080b93cae3a895f861c36c756de3",
+        "stop": "immutable private snapshot omitted docs/protocol/wtp-1.schema.json; parent stops before T5 dispatch or jobs",
+        "reset_attempts": 1,
+        "provision_attempts": 1,
+        "simulator_jobs": 0,
+        "independent_restoration_sha256": "159882adf093361db6b83b886f733bdd5bb6b72971d6cfe2e85785612fcd95f1",
+        "independent_host_cleanup_sha256": "04542677b11cece85335cab4629d98bf9f5f8ccdd00646a1ac65b3f215798f8c"
+      },
+      {
+        "existing_ids": [
+          "B12T"
+        ],
+        "campaign": "time-jobs-complete-live",
+        "source_commit": "c0d2bd53e4bde67af64d9528e3ee89efce51b87a",
+        "status": "COMPLETED_PARTIAL_REVIEW",
+        "result_sha256": "cc742bcf4e770f28c66422a2f350e61c52333a457476d0a9725e480d6f2bddde",
+        "wire_sha256": "8b9a4ebd551ef414bdea1d9414938930700f00339004c6e1c00b500a378ca49e",
+        "charged_jobs": 3,
+        "jobs_executed": 2,
+        "claim_attempts": 3,
+        "load_attempts": 3,
+        "arm_attempts": 3,
+        "expired_arm_refusals": 1,
+        "abort_attempts": 1,
+        "release_attempts": 3,
+        "rf_jobs": 0,
+        "cases": [
+          "expired_field_arm_refusal",
+          "fresh_field_local_completion",
+          "sntp_conflict_preserved_local_completion"
+        ],
+        "limitations": [
+          "final SNTP prerequisite success exceeds declared sixty-second subdeadline",
+          "armed and running clock invalidation not exercised"
+        ],
+        "independent_restoration_sha256": "c0dc066e077d795fc560f06495d0b1def5de41da1708f0f61405340d03ed283d",
+        "independent_host_cleanup_sha256": "0027527f4cde3abfb1c970de9c108e13ae582500d2f07859a4f00d88a8ce476b",
+        "independent_raw_frame_review_sha256": "b18c15fa8622be0c4df374f09d9cd9ae434c3546890ca2577797998d59bfcce5",
+        "guarded_request_span_upper_seconds": 237.490454,
+        "qualifying_sntp_response_seconds": [
+          62.628,
+          62.738
+        ],
+        "time_policy_status": "PARTIAL_ACCEPTANCE_SIXTY_SECOND_PREREQUISITE_NOT_ACCEPTED"
+      },
+      {
+        "existing_ids": [
+          "B12C",
+          "B12R"
+        ],
+        "campaign": "composition-complete-live",
+        "source_commit": "c0d2bd53e4bde67af64d9528e3ee89efce51b87a",
+        "status": "STOPPED",
+        "driver_sha256": "f6cf1ebcca5697f0a1f264a927c8255c2912b81595fdefde75e5e2898a2b8fce",
+        "resource_capture_seconds": 7200,
+        "simulated_job_limit": 12,
+        "controller_deadline_seconds": 9500,
+        "rf_jobs": 0,
+        "result_sha256": "1959aa7ebe513ee1178894365724cbc193a66acd3e67d75d448e2611ca1cf52f",
+        "stop": "reset-before native file inspector exits2; identical retained607bf baseline inspection passed0.442s earlier; exact internal error lost by wrapper",
+        "reset_attempts": 0,
+        "provision_attempts": 0,
+        "simulator_jobs": 0,
+        "resource_capture_started": false,
+        "classification": "automatic helper failure, exact cause unresolved; no retry or target attribution",
+        "independent_restoration_sha256": "c379295b6c7b1cf1625cf656c58ece3f90bf800ac97c4849df7c7ef07f8008a1",
+        "independent_host_cleanup_sha256": "7b9b4456bb7d6564081bcd1b4df3843898169120a8550b86c0fb4ab5feaaab2b",
+        "failed_native_request_receipt_sha256": "c403148b15b143977d2e2f5d10c10baee858c18b8f126d3cb59cfdb9670d3ae4"
+      }
+    ],
+    "resume_checkpoint": {
+      "station_source_revision": "ec0f68facb50",
+      "station_boot_id": "d29d76eb0de5e659d04006e386ec30fd",
+      "inhibited_empty_unowned_disabled": true,
+      "clock_synchronized": true,
+      "station_link": 3,
+      "preflight_info_sha256": "6e055bbbdac4ac49bed41602210e90b1b92179085de93a146f90e29bb8e3d845",
+      "campaign_and_action_locks_released": true,
+      "hardware_campaign_active": false,
+      "scope": "historical ec0f68f resume before later c0d2bd5 campaigns; current exit observation separate"
+    },
+    "operator_order": "Finish autonomous scopes first; prepare only meanwhile; group all human actions at the end, or retain prepared packets with B safely inhibited if the operator is unavailable.",
+    "gatt_backpressure_repair": {
+      "source_commit": "c0d2bd53e4bde67af64d9528e3ee89efce51b87a",
+      "independent_source_review": "CLEAR",
+      "real_endpoint_and_pinned_sdk_tests": {
+        "passed": 2,
+        "failed": 0
+      },
+      "guards": [
+        "one exact retained acknowledged WriteRequest",
+        "zero accepted bytes while deferred",
+        "unchanged absolute five-second deadline",
+        "no client or accepted-prefix replay",
+        "fail closed on security/CCC/carrier/connection invalidation"
+      ],
+      "live_acceptance": true,
+      "live_scope": "original WTP and passive HCI directly exercise three post-LOAD next-STATUS writes before trailing JOB_STATE finishes; all complete without client replay or ATT write errors",
+      "wire_sha256": "8b9a4ebd551ef414bdea1d9414938930700f00339004c6e1c00b500a378ca49e",
+      "passive_hci_sha256": "ffd4a178620be1fead174061f87b60efd804423ab835cc147e972bffa8e0d1ef",
+      "independent_raw_frame_review_sha256": "b18c15fa8622be0c4df374f09d9cd9ae434c3546890ca2577797998d59bfcce5",
+      "unique_original_requests": 167,
+      "correlated_original_replies": 167,
+      "wtp_acknowledged_write_segments": 524,
+      "post_load_deferred_status_segments": 3,
+      "att_write_errors": 0,
+      "max_wtp_segment_response_seconds": 1.140037,
+      "absolute_defer_deadline_seconds": 5
+    },
+    "post_gatt_validation": {
+      "source_commit": "c0d2bd53e4bde67af64d9528e3ee89efce51b87a",
+      "linux_available_ctest": {
+        "passed": 153,
+        "failed": 0,
+        "log_sha256": "fbaeb9ce4dd956fdaf94dc6fd83d5bdbf4b8f23bb74d0f35cf2df30053479047"
+      },
+      "context_exclusions": 7,
+      "optimized_rf_orchestration": 35,
+      "optimized_rf_ap_proof": 12,
+      "inventory_sha256": "b73fd40a8ec09abaa285e51f0880dbbef236a9f30652f37e9d341580c6cb6b5f",
+      "summary_sha256": "a48d2b6426718809dc3b4a6dd32ce47a49daf5d5ded0ee7b432a7836e9654946",
+      "prior_failed_selection_retained": {
+        "passed": 152,
+        "failed": 1,
+        "cause": "historical RF utility fixture lacked explicit v1 schema",
+        "log_sha256": "b72dde629653be36920353b9de6ceb8aa66d8adcfabb25127e83cedea7a6cae2"
+      },
+      "hardware_accessed": false,
+      "registered_inventory": {
+        "registered": 160,
+        "selected": 153,
+        "excluded": 7,
+        "excluded_names": [
+          "phase11_5_package8_tests",
+          "phase11_7_closure_tests",
+          "recovery_web_tests",
+          "bluefy_release_tests",
+          "campaign_evidence_tests",
+          "phase11_5_package6_tests",
+          "phase11_5_package7_tests"
+        ],
+        "inventory_sha256": "1f15310a002718228ef8d5071c28e95e54c084762e2868493ef2b289255affe1",
+        "summary_sha256": "0e47c50eb79955ef8de7d3e62d3bf3ad4bf5ba8d2c7e5e4ef21ce117fd61bbe6",
+        "source_overlay_sha256": "b73fd40a8ec09abaa285e51f0880dbbef236a9f30652f37e9d341580c6cb6b5f",
+        "scope": "fresh after-run CTest show-only inventory with all eleven bound source hashes reverified; no tests executed or hardware accessed"
+      }
+    },
+    "gp14_rf_preparation": {
+      "source_commit": "c0d2bd53e4bde67af64d9528e3ee89efce51b87a",
+      "independent_review": "CLEAR_SOURCE_PREPARATION",
+      "current_packet_schema": "phase12-gp14-rf-v2",
+      "remaining_case": "long_ap",
+      "start_acquisitions": 16,
+      "start_charged_jobs": 11,
+      "maximum_acquisitions": 17,
+      "maximum_charged_jobs": 12,
+      "rf_jobs_added": 0,
+      "operator_ready": false,
+      "future_boot_and_ip_bound_by_root_preflight": true,
+      "one_ready_absolute_seconds": 300,
+      "historical_v1_execution_refused": true,
+      "staging_status": "PARTIAL_CODE_IMAGES_ONLY_NOT_ASSEMBLED_NOT_FLASHED",
+      "private_root": "/home/pi/phase12-rf-preparation-c0d2bd5-70f4731020db4405ba4e24744eefadd6",
+      "inventory_sha256": "b6283e8e73e96b9016af17642634c2d9ac4330d2282616fe177e576b86de58a6",
+      "historical_evidence_bundle_sha256": "2fd2d9b2df9e1db1059001c0759216d8f01a01ca1334ead9d462c52ae755df90",
+      "historical_evidence_transfer_status": "AUTO_REVIEW_REJECTED_NOT_EXECUTED_ONE_COMBINED_PRIVATE_TRANSFER_QUESTION_PENDING",
+      "historical_evidence_transfer_block_reason": "prior transfer approval covers source/tests, inhibited firmware and helpers, not private historical captures/evidence",
+      "historical_raw_capture_required_bytes": 80000000,
+      "retained_history_check": "read-only pi access denied; no sudo/chown/copy workaround attempted"
+    },
+    "gatt_repair_candidate_build": {
+      "source_commit": "c0d2bd53e4bde67af64d9528e3ee89efce51b87a",
+      "candidates_verified": 15,
+      "manifest_sha256": "13a56b7bf1822050eb022ca2f3d668fff75fc378123b3481bc4da78b17d33d9e",
+      "restore_uf2_sha256": "7bf7a2b75795aea27f441f554c7ae15c0ce8c437f847e38a9e23b15a0a34a1f4"
+    },
+    "gatt_repair_restoration_preflight": {
+      "status": "EXACT_PROGRAMMED_AND_RESERVED_E10_PASS",
+      "source_commit": "c0d2bd53e4bde67af64d9528e3ee89efce51b87a",
+      "result_sha256": "223dd77aa67c23fbc234a079fcd09ebec5d2d120088c92c4e342c5ac5d46ca1c",
+      "backup_sha256": "080b8dca060d860b39f456c80302f40b5a09f8b52d98970fd0a4719b6035d283",
+      "image_sha256": "7bf7a2b75795aea27f441f554c7ae15c0ce8c437f847e38a9e23b15a0a34a1f4",
+      "readback_sha256": "607bf46be9ec3670d14047610aa75540944a0ecc4d7ee249b3c1c7a514e42bb0",
+      "reserved_sha256": "2d1cfb071024e8ba4865f50db8b4894b2a330ba4caa478b894520a3014dc6862",
+      "unused_application_tail_equality": false,
+      "stability": {
+        "boot_id": "87a86189e18a854be234e2ea4afe5d05",
+        "network_time_applicable": true,
+        "samples": 5
+      },
+      "rf_jobs": 0
+    },
+    "final_observer_preparation": {
+      "source_commit": "c0d2bd53e4bde67af64d9528e3ee89efce51b87a",
+      "status": "EXECUTED_CURRENT_SCOPED_PASS",
+      "independent_review": "CLEAR",
+      "stable_boot_minimum_seconds": 120,
+      "complete_fresh_legal_2_4ghz_scans": 2,
+      "local_helper_sha256": "43d9ff8a0ec17a6e4b733f0143478bb0de7bfa6c71ee80ba4e210119023173b0",
+      "remote_helper_sha256": "b3fca6fc68d94bcaebbccccee2fc2ed8fb17481d8253f22529732483a946c462",
+      "requires_independent_final_restoration_receipt": true
+    },
+    "private_native_adapter_repair": {
+      "status": "REVIEWED_ADOPTED",
+      "cause": "six sequential private SSH/SCP transactions with individual eight-second limits exceeded aggregate unchanged ten-second inspection deadline; exact expired transaction was not retained",
+      "adapter_sha256": "2d0055e9f13670819fceeed68cf52cc8eb9452029f3ef9f969efbd20438555ce",
+      "ssh_transactions_per_call": 1,
+      "ssh_deadline_seconds": 8,
+      "native_deadline_seconds": 6,
+      "inspection_parent_deadline_seconds": 10,
+      "independent_reviews": "CLEAR",
+      "linux_controls": {
+        "normal_passed": 12,
+        "optimized_passed": 12
+      },
+      "actual_file_only_controls": {
+        "passed": 5,
+        "elapsed_seconds_range": [
+          0.35,
+          0.64
+        ],
+        "summary_sha256": "4736dfb1dc098010f651e00d604c307a42ef2526097f62541087025d9e047432",
+        "hardware_actions": 0
+      },
+      "original_draft_control_failures_retained": true
+    },
+    "private_host_before_repair": {
+      "status": "REVIEWED_ADOPTED",
+      "capture_sha256": "b169cd77bbd717638b56416f30faa9df505f8a6db650f08500ac65d5a0bcda15",
+      "checker_sha256": "a77b1a1990c7db207c02b648237038d1746d409e1586063130eeb0e5d50d7776",
+      "normal_controls_passed": 24,
+      "optimized_controls_passed": 24,
+      "child_admission": "exact source/config/campaign-bound original read-only management capture retained before Popen; failure blocks child",
+      "controller_deadline_seconds": {
+        "time_jobs": 2400,
+        "composition": 9500
+      },
+      "original_case_limits_unchanged": true,
+      "current_missing_before_limitation_preserved": true
+    },
+    "shared_asset_staging_repair": {
+      "source_commit": "6b35f4cd1c37b371c03f894109cad443ab9af035",
+      "status": "REVIEWED_ADOPTED",
+      "immutable_complete_snapshot_files": 371,
+      "complete_snapshot_binding_sha256": "4308150cfe7bc689c2b192fc1b2a9938bc5634c22381ddebecc725010cace723",
+      "original_snapshot_unchanged": true,
+      "schema_sha256": "fae1a7f94adb875733f47f22438a0811a3ab7fd9e4b8477780aea77cad62c8a8",
+      "preflight": "same shared asset lists drive dependency validation and actual staging before backend access/reset/provision",
+      "independent_private_preparer_review_sha256": "680bb7dcc44cdc209c85a6b059b9531f5a1e604e7ca10a3e2041e72b90c7113d"
+    },
+    "post_staging_validation": {
+      "source_commit": "6b35f4cd1c37b371c03f894109cad443ab9af035",
+      "firmware_source_unchanged": "c0d2bd53e4bde67af64d9528e3ee89efce51b87a",
+      "linux_selected_passed": 153,
+      "failed": 0,
+      "changed_source_files_verified": 18,
+      "context_exclusions": 7,
+      "summary_sha256": "6ed3d1e25054a43792369317cc2219a179f87e73ea0e39c53f8025aa0d8b291c",
+      "log_sha256": "1175b431eec16e558284318192314aed9572795273051c78ab0209a90b3fc7ec",
+      "hardware_actions": 0
+    },
+    "automatic_native_diagnosis_transfer": {
+      "status": "AUTO_REVIEW_REJECTED_NOT_EXECUTED",
+      "operation": "one file-only native inspection sends exact retained B full-flash input back to wspr5",
+      "input_sha256": "607bf46be9ec3670d14047610aa75540944a0ecc4d7ee249b3c1c7a514e42bb0",
+      "input_bytes": 4194304,
+      "reason": "private backup could contain credentials; prior explicit transfer approval described source/tests, inhibited firmware and helpers and excluded backups/captures from source snapshots",
+      "approval_deferred_to_operator_end": true,
+      "no_workaround_attempted": true,
+      "affected_work": "native diagnostic and further destructive campaign preparation that depends on private native inputs",
+      "unaffected_work": "file-only source/tests/review/packet preparation and read-only current exit observations",
+      "approval_request_status": "ONE_PRECISE_COMBINED_PRIVATE_TRANSFER_QUESTION_PENDING"
+    },
+    "current_restored_exit": {
+      "status": "PASS_CURRENT_STANDARD_INHIBITED_EXIT",
+      "source_commit": "c0d2bd53e4bde67af64d9528e3ee89efce51b87a",
+      "boot_id": "5d484332e8c76bb3e11f5672f298ac68",
+      "full_flash_sha256": "607bf46be9ec3670d14047610aa75540944a0ecc4d7ee249b3c1c7a514e42bb0",
+      "programmed_pages_verified": 7097,
+      "reserved_and_e10_equal": true,
+      "independent_restoration_sha256": "c379295b6c7b1cf1625cf656c58ece3f90bf800ac97c4849df7c7ef07f8008a1",
+      "original_evidence_sha256": "1150b5b47f42c83149022d0af23255b57a6607fa99b14586f1962f8b7f6a3ee2",
+      "independent_observer_review_sha256": "4e5c09f2ba13cdaf5540cbc3dee5176a6b438d2d5f3c9b7c6d532a8d67f73cf5",
+      "fresh_info_count": 6,
+      "original_crc_valid_wtp_exchanges": 2,
+      "complete_fresh_ap_absence_scans": 2,
+      "disabled_empty_unowned_inactive": true,
+      "healthy_station_and_synchronized_time": true,
+      "owned_host_fixtures_absent": true,
+      "exclusion_and_action_locks_released": true,
+      "lock_receipt_sha256": "711bde49ff34056869bbf794c0d40d56991908c8839bc3c14fd0cb8b1e6c63e2",
+      "rf_jobs_added": 0,
+      "scope": "current exit after stopped composition and completed T5; repeat after any subsequent target operations"
+    },
+    "ap_association_diagnostic_preparation": {
+      "status": "INDEPENDENT_SOURCE_REVIEW_CLEAR_NOT_RUN",
+      "manifest_sha256": "c68fc063a568b29312d2c006e23c9c9bdabe9045821ae0e88fe3dc3092b62f1b",
+      "validation_sha256": "26ce48a0edcc282fdd6ad59bb6c0c9ed238831208a4e6e9b9efd738b1a6da4bb",
+      "normal_cases_passed": 26,
+      "optimized_cases_passed": 26,
+      "modes": [
+        "fresh exact B beacon admission then one wlan0 association with own filtered phy2 monitor",
+        "separate one wlan2 association and interface-bound public GET"
+      ],
+      "source_snapshots_preserved": true,
+      "save_attempts": 0,
+      "simulator_jobs": 0,
+      "rf_jobs": 0,
+      "requirements": [
+        "fresh unused-radio/capability admission and current B/source/checkpoint/native/host-before bindings",
+        "private native-input transfer approval"
+      ],
+      "independent_previous_review_sha256": "efe7421268f4af37086fe59c147fb0e3a7b868a7e9fa5002880573f3b37841e7",
+      "review_repairs": [
+        "retain exact bounded NM refusal/timeout originals",
+        "bind NM UUID/ID/interface/SSID before cleanup",
+        "activate by admitted UUID to avoid a connection-name race"
+      ],
+      "independent_final_review_sha256": "ad5c3ccdd28b8f581f2dad5c295dde43ef77ea140249fe5df2d1b1c9277dd8c6",
+      "concrete_source_bound_preparation_sha256": "c1436b5e8bb9e5e69baa206658ab83b51ef903da7628a2077e83153984987b31",
+      "execution_admission": "two immutable inert mode configs bind actual c0d candidate and generation7 checkpoint plus new226 helper snapshot; fresh actual campaign-bound host-before originals remain absent and null; inert authority rejects --run; explicit private transfer answer required"
+    },
+    "t5_continuation_preparation": {
+      "status": "INDEPENDENT_SOURCE_REVIEW_CLEAR_NOT_RUN",
+      "invalidation": {
+        "explicit_scope": "time-jobs-invalidation",
+        "charged_jobs": 2,
+        "rf_jobs": 0,
+        "whole_body_seconds": 180,
+        "stage_seconds": [
+          60,
+          75
+        ],
+        "status_limit_per_stage": 32,
+        "outcomes": [
+          "armed invalid clock refuses scheduled launch with MISSED_START",
+          "running invalid clock preserves selected monotonic duration through completion"
+        ]
+      },
+      "sntp": {
+        "explicit_scope": "time-jobs-sntp",
+        "charged_jobs": 1,
+        "rf_jobs": 0,
+        "whole_body_seconds": 120,
+        "prerequisite_seconds": 60,
+        "completion_seconds": 25,
+        "accepted_case_replays": 0
+      },
+      "firmware_source_unchanged": "c0d2bd53e4bde67af64d9528e3ee89efce51b87a",
+      "private_native_input_transfer_approval_pending": true,
+      "review_repairs_closed": [
+        "strict completion subdeadline before success",
+        "optional literal INFO config preservation",
+        "preserve original failure if cleanup evidence logging fails"
+      ],
+      "source_hashes": {
+        "scripts/phase12_engineering_time_invalidation.py": "eaabcec423b6490122238482bf0a1df50ba2c6d7ccde3734df5ec40938f4282f",
+        "tests/phase12_engineering_time_invalidation_tests.py": "90e2e71bc986b10686a7bc90910596e7ad5a1ad13d67809472d5ac21ed585fed",
+        "scripts/phase12_engineering_time_dispatch.py": "72e44885200342b8d57351cddf3cbfdaf1ce36deea3d789baaa34cc9f0952685",
+        "scripts/phase12_engineering_orchestrator.py": "b427d509945771ae1e0b053e9683a114c0ed6f345e55e194c64f4c5c6cab1326",
+        "CMakeLists.txt": "17b309919189996a9452497207b003244de2a136b1a85635aa8c3f94030647c6"
+      },
+      "independent_normal_cases_passed": 106,
+      "independent_optimized_cases_passed": 106,
+      "independent_review_summary_sha256": "e6537e4a217bc5ddae711a871f66965a6975c281d6f118595c62b1e8b3f1d159",
+      "helper_source_binding": "fresh separately committed harness revision required; c0d firmware source unchanged; retained old snapshots/controllers remain immutable",
+      "harness_source_commit": "226ce6ca5f4eb674e42bf2c82eb9759ea048c942"
+    },
+    "t5_sntp_subdeadline_initial_repair": {
+      "status": "HISTORICAL_REVIEWED_SOURCE_STAGE_SUPERSEDED_BY_FINAL_CONTINUATION",
+      "cause": "success branch preceded sixty-second prerequisite deadline guard; late62.628-62.738s target success was accepted",
+      "script_sha256": "1262ea8ee2182a2ba30e4a0e92bd408942ff717229f99c1a46f7b8dd2410125a",
+      "test_sha256": "692b6b71e5fe0ce354a889fad702d7231c229f2a75c2231044d8e88e3422e54b",
+      "absolute_prerequisite_seconds": 60,
+      "original_total_body_seconds": 240,
+      "original_charged_job_limit": 3,
+      "normal_affected_cases_passed": 68,
+      "optimized_affected_cases_passed": 68,
+      "independent_targeted_cases_normal": 11,
+      "independent_targeted_cases_optimized": 11,
+      "mutation_control": "restoring the original break-before-guard makes exact60 and late62.738 success regressions fail",
+      "known_observer_limit": "existing bounded INFO API can finish after deadline; late data is rejected before next query or dependent mutation",
+      "live_acceptance": false
+    },
+    "t5_sntp_subdeadline_repair": {
+      "status": "INDEPENDENT_SOURCE_REVIEW_CLEAR_LIVE_REVALIDATION_PENDING",
+      "script_sha256": "81aff6bef81795f31493e0d97931520e352d56eb5d65f563f787a5e30fe98874",
+      "test_sha256": "4d80757e110a8bac40681ff71cf31601cc0b881c0057861003b0c80ec20f102c",
+      "cause": "sixty-second prerequisite and twenty-five-second completion success must follow strict absolute deadline admission; historical late prerequisite retains no sixty-second credit",
+      "absolute_prerequisite_seconds": 60,
+      "absolute_completion_seconds": 25,
+      "explicit_scope": "time-jobs-sntp",
+      "explicit_total_body_seconds": 120,
+      "explicit_charged_job_limit": 1,
+      "default_total_body_seconds": 240,
+      "default_charged_job_limit": 3,
+      "normal_affected_cases_passed": 75,
+      "optimized_affected_cases_passed": 75,
+      "independent_targeted_cases_normal": 18,
+      "independent_targeted_cases_optimized": 18,
+      "known_observer_limit": "existing finite INFO transport may return after deadline; late data is rejected before dependent mutation or success",
+      "live_acceptance": false,
+      "source_commit": "226ce6ca5f4eb674e42bf2c82eb9759ea048c942"
+    },
+    "private_native_failure_retention": {
+      "status": "REVIEWED_ADOPTED_FILE_ONLY_NOT_LIVE_RUN",
+      "adapter_sha256": "3554c6f715dd89cce8775bdfd9c2fb0f7184d57f191a6480c2e51cae3a1e74eb",
+      "prior_adapter_sha256": "2d0055e9f13670819fceeed68cf52cc8eb9452029f3ef9f969efbd20438555ce",
+      "independent_review_sha256": "22bb177956b12771a8231c2764ccbe0d69aeaf53b9d4ca1c82a32c32fda6efc0",
+      "adoption_sha256": "bc1b085995f40a5f90736ee9f4e3fb67fcf6bb73f17c0248fa1df4f3bec79f96",
+      "independent_normal_cases_passed": 21,
+      "independent_optimized_cases_passed": 21,
+      "deadlines_seconds": {
+        "ssh": 8,
+        "native": 6,
+        "parent": 10
+      },
+      "failure_originals": "bounded raw SSH streams retained privately with redacted phase/type/timing/hash receipts; primary exception survives logging failure",
+      "remote_protocol_unchanged": true,
+      "old_aliases_preserved": true,
+      "old_controllers_hash_bound_to_prior_aliases": true,
+      "original_composition_failure_cause": "UNRESOLVED",
+      "hardware_actions": 0,
+      "ssh_actions": 0
+    },
+    "final_host_source_validation": {
+      "source_commit": "226ce6ca5f4eb674e42bf2c82eb9759ea048c942",
+      "firmware_source_unchanged": "c0d2bd53e4bde67af64d9528e3ee89efce51b87a",
+      "status": "LINUX_SELECTION_PASS",
+      "registered": 161,
+      "selected_passed": 154,
+      "failed": 0,
+      "context_exclusions": [
+        "phase11_5_package6_tests",
+        "phase11_5_package7_tests",
+        "phase11_5_package8_tests",
+        "phase11_7_closure_tests",
+        "bluefy_release_tests",
+        "recovery_web_tests",
+        "campaign_evidence_tests"
+      ],
+      "source_overlay_files_verified": 8,
+      "inventory_sha256": "0cfb3d10b5ea48289043ab482124874251fe024cf4cd08d1def05a5b8731cff1",
+      "summary_sha256": "4f3b2fb866b1e34e0cf6d6a710a20d34436b14fb1f6ec007a995503b9037a975",
+      "ctest_log_sha256": "be9d1b374b3f5161dbe7be8f93c131902a19629c6a2501e697438c0b9abc1651",
+      "registered_inventory_sha256": "3977bc1645a531967fe058c41fd20a91641001f2f8d14651c46f83ac381411b0",
+      "scope": "clean fresh retained Linux Debug host configuration; real retained BTstack test dependency; no claim of all optional dependency configurations",
+      "hardware_actions": 0
+    },
+    "fresh_continuation_source_and_controllers": {
+      "status": "PREPARED_ONLY_NOT_STARTED",
+      "firmware_source_commit": "c0d2bd53e4bde67af64d9528e3ee89efce51b87a",
+      "harness_source_commit": "226ce6ca5f4eb674e42bf2c82eb9759ea048c942",
+      "snapshot_binding_sha256": "bb3e8621a369336216376f13671783653cdda02ff53cfdee3d9f82833f8474b8",
+      "committed_source_assets": 372,
+      "production_src_cmake_files_byte_identical_to_firmware_source": 271,
+      "prior_snapshot_assets_preserved": 371,
+      "actual_staged_source_assets": {
+        "time-jobs-sntp": 33,
+        "time-jobs-invalidation": 34
+      },
+      "preparer_sha256": "3757f5336e0ad3ee1111a4d97cc180a93195a52433a3628c423c1c0c0d8eeb7c",
+      "independent_review_sha256": "2ac7b1797eed2ec3455780de7ff42ec6d2a6290434e698dc388ea93744046692",
+      "independent_normal_controls": 15,
+      "independent_optimized_controls": 15,
+      "controllers_preparation_sha256": "9d3ad46d8e202a05f87fc365cfef58f86a7299ec49fd60cb61ef42d69e1de079",
+      "controllers": [
+        {
+          "scope": "time-jobs-sntp",
+          "driver_sha256": "17f0bfdc19e52a46d43ead4a93c12d89724d9dcdf441775843962b1401a74d94",
+          "config_sha256": "8e0b96aa43ffc6681cdb605b16dcc716bd9db4af015bc795d262f343f28120e5",
+          "parent_timeout": 2400
+        },
+        {
+          "scope": "time-jobs-invalidation",
+          "driver_sha256": "9003c949b439037ce5170840d1c50c3e14fdde148a7a027c26df7b9954a382ef",
+          "config_sha256": "c6e4b261137858e7a7aebd5ffa34b6e2a0fcf1b05baba1f245df2f02531eb42e",
+          "parent_timeout": 2400
+        },
+        {
+          "scope": "composition",
+          "driver_sha256": "64601b0caeec5c66b542d097a745002582aa5728e2ee7ba5fe0e3e604221661c",
+          "config_sha256": "4bd9a534c284a874b331cdc73e9ee931182e37f00ec0745ebc0c2c22729babe8",
+          "parent_timeout": 9500
+        },
+        {
+          "scope": "application",
+          "driver_sha256": "76ba52e85075dea3e8fa2c8bde3f5adc818a22fc1be236836b1fbf88531d5d8c",
+          "config_sha256": "da04487aa7b9d93f4fd464c3b03746920281ab693ef290b1026b6fcb325d6883",
+          "parent_timeout": 2400
+        },
+        {
+          "scope": "sessions",
+          "driver_sha256": "5c82f69f7073ccc08d03d609569e71f2c28744afab3ca708a6b09c0e9a96f918",
+          "config_sha256": "fa8fa8a8f16ff99592abea1b3b77322ee53cbfe8d83e0b0a49f0e0b1dd9dd012",
+          "parent_timeout": 2400
+        },
+        {
+          "scope": "network",
+          "driver_sha256": "9d341554b76a4fe1c8ab396abe372f0ea32896c45ccb5f92f1b1404a8c03624e",
+          "config_sha256": "2f6c42dcd1d24e413cd6b270d9bdcba334c8c51a7b35b44be9c982f72e542be6",
+          "parent_timeout": 2400
+        },
+        {
+          "scope": "bond-revocation",
+          "driver_sha256": "f0598c3cce28b45582179d98a87aef4974cb4722fa037ed1ad9a3fe18ef8ac34",
+          "config_sha256": "db96d71b3684248f0d6bb9482c4bcf5f94ef49d81f4670bb0312f1574f46bfa5",
+          "parent_timeout": 2400
+        }
+      ],
+      "execution_admission": "fresh actual target/boot/health/backup/restoration and campaign-bound original host-before capture remain mandatory; root investigates original native failure before further hardware campaign; private transfers held pending explicit answer",
+      "hardware_actions": 0,
+      "ssh_actions": 0
+    },
+    "documentation_reassessment": {
+      "status": "CLEAR_AFTER_THREE_FINDINGS_AND_FINAL_PREPARATION_REASSESSMENT",
+      "initial_five_doc_review_sha256": "2cbdf79a758709cd82ae738df9f361ef73ab31391db4c25d45c61e8db7ec1303",
+      "closed_findings": [
+        "select only remaining procedures and preserve accepted checkpoint warming without another SUBMIT",
+        "state AP26/native21 control counts separately",
+        "retain consumer ordinary save/STATUS overlap as open; only engineering CONFIG serialization is accepted"
+      ],
+      "subsequent_additions": "Final file-only preparation/status additions independently reassessed before publication; exact final five-doc hashes retained in private final review receipt."
+    }
+  }
 }

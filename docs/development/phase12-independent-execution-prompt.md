@@ -1,5 +1,63 @@
 # Complete operator-independent Phase 12 acceptance
 
+## Merged-baseline continuation, 2026-10-03
+
+The current user continuation executes on `devel` from merged
+`f2dd23d0d95dd8dc846e241ce072195ac19db3df`; `41e1a98` and `62c0a78` are
+ancestors. No separate pin/application merge is required. The historical prompt
+below retains its finite case limits and evidence, but its six-document
+preservation list and old source/image bindings are superseded. Preserve the
+current user changes in `docs/implementation-plan.md`,
+`docs/development/si5351-transmission-backlog.md` and
+`docs/development/transmit-led-backlog.md`, with fresh hashes before editing.
+Keep all fourteen closure IDs and original failed records.
+
+The continuation authorizes source/harness repairs, retained-tool builds,
+deterministic checks, independent adversarial review, scoped commits and push
+of devel. It authorizes B-only RF-inhibited USB/backup/readback/flash,
+provisioning/reset/full erase, temporary credentials/bonds, simulator jobs and
+restoration through wspr5. The original source-only or unapproved-packet limits
+are historical. A remains excluded. Current candidate/setup-bound RF permission
+and actual operator Ready are still required; the stopped17/12 packet is not
+standing RF authority.
+
+Execute these finite stages, retaining existing stricter case/child limits:
+
+1. Diagnose the populated-fixture and three load-reply failures on merged and
+   unchanged source; repair causes without weakening production assertions.
+2. Rebuild clean source-bound candidates with pinned retained SDK/toolchain and
+   prebuilt helpers. Freeze every staged dependency and source/image hash.
+3. Acquire B exclusion; verify fresh exact identity/boot/source/engine/authority,
+   health and intended pins. Retain a recoverable private full-flash backup and
+   prove compatible exact image/reserved/E10 restoration before destructive work.
+4. Collect bounded original BLE/BlueZ/HCI and owned-AP diagnostics. Only after a
+   demonstrated repair and independent review admit a new finite attempt; do
+   not repeat uncertain requests, widen case timers or infer cryptographic
+   rejection from transport failure.
+5. Complete remaining consumer deferred-readiness, network recovery, old-peer
+   refusal, engineering A/B/C journal, carrier/API composition, T5 and running
+   cookie/resource scopes when their actual prerequisites pass. Retain the
+   original two-hour/241-sample/45-second-gap/1024-byte-return resource bounds.
+   New station/hardware APIs require targeted live validation of device/boot,
+   revision, busy exclusion, saved/active pins and pending-restart inhibition.
+6. Prepare concrete operator/physical cases while autonomous work runs; execute
+   the human steps together at the end per current operator direction. If the
+   operator is unavailable, retain prepared packets and restore B safely inhibited.
+   Use the available phone and iPad as the two iOS clients; collect test outcomes
+   without a device inventory. Human LED observations do
+   not establish exact flash-edge timing; torn-write cuts need their own setup.
+7. Restore the compatible approved inhibited candidate and intended settings
+   after each destructive/fault tranche and final exit. Independently verify
+   programmed bytes/reserved/E10, healthy journals, disabled/empty/unowned/inactive
+   authority, stable station/trustworthy time, complete fresh AP absence scans,
+   owned host cleanup and lock release.
+8. Reassess/repair findings, record actual pass/fail/excluded counts and remaining
+   automatic/physical/unsupported requirements, commit only owned paths, push
+   devel and independently verify remote parity. Phase12 remains open until all
+   required acceptance is evidenced.
+
+## Historical bounded execution prompt
+
 Work on devel in /Users/lbussy/GitHub/WsprryPico, starting bbf41976a2d639518ef7ac4a0cff8e07b97f91bb.
 The original end-to-end request and subsequent correction authorize execution,
 adversarial repair/reassessment, scoped commit and push. The user explicitly

@@ -1,10 +1,18 @@
 # Phase 12 proposed hardware packet
 
-Status: **PREPARED / NOT AUTHORIZED / NOT EXECUTED**. This packet prepares the
-remaining tests; it does not close Phase 12 or permit any hardware operation.
-The [execution prompt](phase12-test-preparation-prompt.md) authorizes source,
-offline validation, build, review and commit/push only. The final
-[test-preparation review](phase12-test-preparation-review.md) records results.
+Status: **CURRENT RF-INHIBITED CLOSEOUT AUTHORIZED; PHYSICAL/RF GATES OPEN**.
+The current user execution request authorizes B-only backups/readback, inhibited
+flashing, simulator jobs, temporary provisioning/reset/credentials/bonds,
+restoration, source repairs and scoped commit/push. Earlier preparation-only
+restrictions below describe historical packets; they do not revoke this current
+approval. RF work still requires a current candidate/setup-bound authorization
+and actual operator Ready. Keep all retained finite limits and failures.
+
+Current operator order: finish autonomous validation and restoration first.
+Group the phone/iPad, LED observation, physical GP14 and power-interruption
+steps at the end. Prepare their exact candidates and finite procedures while
+automatic work runs. If the operator is unavailable, retain the prepared
+packets and leave B safely inhibited; no waiting interval grants RF readiness.
 
 ## Identities, artifacts and authorization
 
@@ -14,11 +22,68 @@ router changes and other repositories are excluded. Historical restoration is
 inhibited revision `615888e5364b`, profile/access generations 5/1. Historical
 station address `192.168.1.53` and boot identity are not current facts.
 
-The committed [candidate manifest](phase12-test-preparation-candidates.json)
+The current fifteen-variant candidate manifest is private and ignored at
+`build/phase12-closeout-candidates-c0d2bd5/candidates.json`, with SHA-256
+`13a56b7bf1822050eb022ca2f3d668fff75fc378123b3481bc4da78b17d33d9e`.
+It binds firmware source `c0d2bd53e4bde67af64d9528e3ee89efce51b87a` and
+artifact root `build/phase12-closeout-candidates-c0d2bd5`. Verify that complete
+current manifest and its artifacts before using a current candidate:
+
+```sh
+python3 scripts/phase12_candidate_manifest.py \
+  build/phase12-closeout-candidates-c0d2bd5/candidates.json \
+  --artifact-root build/phase12-closeout-candidates-c0d2bd5
+```
+
+The current standard inhibited restore UF2 hash is
+`7bf7a2b75795aea27f441f554c7ae15c0ce8c437f847e38a9e23b15a0a34a1f4`.
+The current RF packet is prepared for the remaining `long_ap` case only;
+its private packet hash is
+`b3dd1e9579a90112ec81361353078f07230a3617f1bfb69f6115c1eafc7511ec`.
+It has no future boot/address or Ready and does not authorize RF deployment.
+
+The new private RF preparation root on wspr5 contains only its reviewed code/image
+bundle, inventory and verifier; it is not assembled or flashed. The separate
+historical evidence bundle has SHA-256
+`2fd2d9b2df9e1db1059001c0759216d8f01a01ca1334ead9d462c52ae755df90`.
+Automatic approval review rejected that transfer because the existing transfer
+approval covers source/tests, inhibited firmware and helpers, rather than private
+historical captures. Explicit approval for that exact bundle remains deferred
+to the operator steps. No indirect copy or privilege workaround is authorized
+by this packet. The required original eighty-megabyte historical IQ capture
+and its 16/11 accounting remain part of the unchanged finite-budget review.
+
+Current automated helper source is separately committed at
+`226ce6ca5f4eb674e42bf2c82eb9759ea048c942`; firmware remains bound to
+`c0d2bd53e4bde67af64d9528e3ee89efce51b87a`. The new private 372-asset continuation snapshot and seven prepared controllers
+record both identities and their exact hashes in the redacted evidence. They
+are prepared only; actual target and original host-before admission occurs
+before any future child starts. The
+reviewed remaining T5 scopes are one SNTP job/120 seconds (sixty-second
+prerequisite, twenty-five-second completion) and two armed/running invalidation
+jobs/180 seconds. Both are inhibited; their live acceptance remains pending.
+The reviewed AP diagnostics make at most one association per explicit mode
+without saving settings or submitting a job.
+
+Automatic approval review separately rejected the file-only diagnostic transfer
+of the retained B flash backup because it can contain stored credentials.
+Necessary private native backup/profile inputs and the exact historical capture
+bundle require explicit transfer approval; the already authorized B inhibited
+operations remain authorized. No dependent transfer or target campaign is
+started while that dataflow approval is missing. The current safe restored exit
+is recorded in the execution review and must be repeated after further target
+operations.
+
+### Historical preparation record
+
+The following manifest and commands retain the earlier source-bound preparation;
+they do not select the current deployment candidates.
+
+The historical committed [candidate manifest](phase12-test-preparation-candidates.json)
 binds clean source, pinned SDK/toolchain, fifteen exact private ELF/UF2/map and
 build-evidence records. Artifact root is the ignored
 `build/phase12-preparation-candidates`. The later documentation commit is not
-an embedded source identity. Verify before proposing device work:
+an embedded source identity. Its historical verification command was:
 
 ```sh
 python3 scripts/phase12_candidate_manifest.py \
@@ -26,8 +91,8 @@ python3 scripts/phase12_candidate_manifest.py \
   --artifact-root build/phase12-preparation-candidates
 ```
 
-Reproduce the build into a new private directory with a clean checkout of the
-manifest source, retained SDK and retained picotool import (no downloads):
+The historical build reproduction command used a new private directory, its
+clean manifest source and retained tools (no downloads):
 
 ```sh
 source scripts/xcode_env.sh
@@ -53,18 +118,15 @@ an explicit GP14 acceptance RF image. `session_deadline` is inhibited with
 separate inhibited, GP14-OFF variants. Ordinary candidates use 15 min / 12 h.
 No candidate enables default-on production GP14 as an accepted policy.
 
-Before execution, obtain human approval naming the exact phases and operations,
-board, full source/image hashes, finite cases, physical RF wiring if applicable,
-reset levels, credential changes and restoration candidate. Then record a
-fresh operator **Ready**. Each destructive case must be explicitly included;
-approval for a soak is not approval for reset or credential replacement.
-The private observer approval template has `approved=false`; changing JSON is
-not authorization. A new packet is required after identity/image/wiring changes,
-a cold boot that rearms a fixture, unexpected reset or exhausted budget.
+B-only RF-inhibited operations are explicitly approved by the current user
+request and direct approval replies. Do not request that approval again. Physical
+RF requires a current exact candidate, setup and operator Ready; retain the
+finite acquisition/job budget. Source/image/wiring changes or exhausted bounds
+must be reconciled before a physical RF case proceeds.
 
 ## Prerequisites and stop/restoration rules
 
-1. Under separately authorized USB/readback access, verify exact B serial,
+1. Under the current approved B-only USB/readback access, verify exact B serial,
    device/boot identity, version/revision, selected engine/wire mode and all
    allocation, guards, storage, reset-pending and output fields. No queued or
    loaded job, owner, lease, active output, pending reset or scheduler activity.
@@ -74,9 +136,10 @@ a cold boot that rearms a fixture, unexpected reset or exhausted budget.
    erratum workaround record, not a user profile. Preserve it byte-for-byte.
    Demonstrate the approved restore/readback procedure before destructive work;
    no test starts with a backup that cannot reconstruct intended settings.
-3. Identify phone model/OS/browser and hashes/origins of served local bundles.
-   C8 requires a genuinely different phone from historical same-phone evidence.
-   Record engineering clients/certificates separately; keep keys/passwords private.
+3. Use the available phone and iPad as the two iOS clients per current operator
+   direction. Record served local assets/origins and test outcomes needed for
+   acceptance; no additional model/OS inventory is required. Keep
+   keys/passwords private.
 4. Select the exact candidate per phase. Verify programmed payload and reserved
    bytes using the approved readback method; do not infer success from a flash
    command. Each boot gets a new identity readback. No RF during inhibited phases.
@@ -92,7 +155,21 @@ a cold boot that rearms a fixture, unexpected reset or exhausted budget.
    Observe final stable state for at most five minutes after network/time
    readiness. A disconnect is not proof of restoration.
 
-## Ordered, separately admitted phases
+## Remaining selectors and retained phase procedures
+
+Execute only remaining selectors in the current closure matrix. The table
+retains finite procedures for accepted historical cases as well as open work;
+an accepted row is not a new campaign instruction. Seven AP negatives, fourteen
+reset checkpoints, three profile-page/commit interruptions, populated offline
+saves and the ordinary engineering CONFIG/USB-BLE-TLS serialization case are
+already accepted under their original bindings. Do not replay those without a
+concrete source impact. Deferred-readiness continuation restores the accepted generation-7 station
+and generation-8 network checkpoints and warms each with zero SUBMIT attempts.
+The separate absent-TLS/materialization path remains required. New phone/iPad commissioning
+is a separate physical two-client scope. The consumer ordinary soak is accepted;
+the engineering two-hour soak, old-peer cryptographic refusal, A/B/C replacement,
+application APIs, running-cookie ownership and explicit SNTP/invalidation
+continuations remain automatic where their prerequisites pass.
 
 Every case retains private before/after raw records and wire/phone artifacts;
 redacted summaries name hashes, exact candidate and boot. Record durations,
@@ -101,17 +178,17 @@ consume an active case timer. Passing a source test does not pass a target row.
 
 | Phase / closure rows | Finite actions and expected evidence | Bound |
 | --- | --- | --- |
-| Consumer / C8, C8T, C10O, R11F | On `consumer`, different phone makes one network save and one station save, including isolated no-SNTP station save. Prove exact digest/generation, one activation/reboot, readiness pending, unchanged populated trust/clients and unrelated records. Seed one separately approved populated supported profile; no implicit trust rotation. Cellular disabled and no infrastructure Internet for one local portal visit. | Two successful saves, each <=10 min; one no-SNTP interval <=15 min; one offline visit <=10 min. Explicitly authorize populated seed and restore. |
-| Negatives / C10N | One named request per wrong-device, competing, expired, replayed, malformed and cancelled boundary. Record exact generation/digest/authority unchanged. One deliberate lost-response case reconciles durable result without resubmitting. | Seven cases, <=5 min each; no duplicate POST retry. Lost response is a declared client-side observation/interruption, not arbitrary packet manipulation. |
+| Consumer / C8, C8T, C10O, R11F | Physical phone/iPad commissioning is distinct from accepted populated offline saves. For automatic deferred readiness, restore the accepted generation-7 station and generation-8 network checkpoints and warm each without another SUBMIT; separately prove absent-TLS materialization. Prove exact digest/generation, readiness transition and unchanged populated trust/clients and unrelated records. Cellular-disabled offline portal/Bluefy observation remains a separate operator case. | Remaining physical commissioning: two saves, each <=10 min; checkpoint warming uses its existing bounded automatic runner with zero saves; offline visit <=10 min. |
+| Historical accepted negatives / C10N | Do not replay: one named request per wrong-device, competing, expired, replayed, malformed and cancelled boundary. Record exact generation/digest/authority unchanged. One deliberate lost-response case reconciles durable result without resubmitting. | Seven cases, <=5 min each; no duplicate POST retry. Lost response is a declared client-side observation/interruption, not arbitrary packet manipulation. |
 | Recovery / R11A | One controlled saved-station loss and reconnect using only the approved existing wspr5 fixture. Prove 60 s loss fallback, local offline portal and 30 s stable withdrawal, including one pending reply/transaction retention observation. Keep management route recoverable. | One cycle <=15 min; no router/unrelated network operations. |
-| Engineering / B12J, B12C | Use `engineering` with declared authenticated clients; prove USB/BLE/TLS-WTP/HTTPS principals share one JobService, no fallback to plain. One declared credential A→B→C sequence proves obsolete trust cannot resurrect and generation callbacks cannot cross activation. Offline Bluefy visit is separate from consumer portal. | Three explicitly approved credential deployments, <=10 min each; one offline visit <=10 min. Restore original intended trust; no public secrets. |
-| Ordinary composition / B12C, B12R | Separate consumer and engineering plans with the [composition procedure](phase12-composition-preparation.md), five directed pressure boundaries plus associated prior fault evidence, maximum framing/session refusal, loaded/armed/running competing admissions, disconnect and provisioning scrub. INFO observer samples exact identity/resources; independently retained wire evidence proves actual carriers. | Two independently admitted 2 h soaks; 241 samples each at 30 s cadence, gap <=45 s, <=12 simulated jobs per composition and <=60 s per job, RF jobs zero, observer flash cycles zero. Reserve 16 min network/BLE quiet and final 20 min disconnect/resource return. |
-| Separate ordinary flash/concurrency / B12R | One explicitly approved station metadata save on each selected ordinary image: consumer encrypted portal/profile journal; engineering authenticated HTTPS config PUT/operational journal. Concurrent bounded STATUS observation, exact selected-journal digest/generation/preservation and adapter/resource return. Independently establish overlap; fixture evidence cannot substitute. | At most two separately admitted cases, <=10 min each, one save and <=20 STATUS per carrier at >=100 ms spacing, no retry/RF, then exact original metadata restoration. |
-| Absolute deadline / B12R | `session_deadline` on engineering access proves actual INFO 15 s/60 s limits, activity avoids inactivity yet absolute expiry refuses new mutation; active owner gets bounded status/cancel grace, then session reclamation. Return to ordinary candidate and verify 15 min/12 h plus short-run behavior. | One inactivity and one absolute/grace case, <=5 min each. This checks the same admission policy with shorter constants; it does not measure twelve real hours. |
-| Time / B12T | On inhibited engineering image, declare authenticated disagreement/age/two-sample recovery observations and loaded/armed/running distinction. Use protocol-valid client time stimuli; no arbitrary firmware clock mutation. Verify accepted SNTP priority and browser hints never grant RF authority. | One case per disagreement, age, recovery and job-state distinction, <=5 min each. Restore actual accepted SNTP and watermark. |
+| Engineering / B12J, B12C | Use `engineering` with declared authenticated clients; prove USB/BLE/TLS-WTP/HTTPS principals share one JobService, no fallback to plain. One declared credential A→B→C sequence proves obsolete trust cannot resurrect and generation callbacks cannot cross activation. Offline Bluefy visit is separate from consumer portal. | Three approved inhibited credential deployments, <=10 min each; one offline visit <=10 min. Restore original intended trust; no public secrets. |
+| Remaining engineering composition / B12C, B12R | The consumer ordinary soak is accepted without replay. Separate consumer and engineering plans with the [composition procedure](phase12-composition-preparation.md), five directed pressure boundaries plus associated prior fault evidence, maximum framing/session refusal, loaded/armed/running competing admissions, disconnect and provisioning scrub. INFO observer samples exact identity/resources; independently retained wire evidence proves actual carriers. | Remaining engineering soak: 2 h; 241 samples at 30 s cadence, gap <=45 s, <=12 simulated jobs per composition and <=60 s per job, RF jobs zero, observer flash cycles zero. Reserve 16 min network/BLE quiet and final 20 min disconnect/resource return. |
+| Ordinary flash/concurrency / B12R | Engineering CONFIG/USB-BLE-TLS serialization is accepted under its original binding and is not replayed. Consumer encrypted-portal/profile-journal save with concurrent STATUS remains open; prove original overlap, exact digest/generation/preservation and adapter/resource return. Offline populated-save preservation does not qualify concurrent overlap. | Remaining consumer case: one save, <=10 min, <=20 STATUS per carrier at >=100 ms spacing, no retry/RF, then exact metadata restoration. |
+| Remaining running-cookie / B12R | Accelerated inactivity/absolute expiry and loaded/armed owner grace are accepted without replay. Prove expired-cookie ownership behavior during one running inhibited job, including bounded same-owner STATUS/cancel grace and authority/resource reclamation. | One 45 s job in a 260 s body, RF zero; retain existing 15 s/60 s fixture limits, then restore ordinary 15 min/12 h settings. This does not measure twelve real hours. |
+| Remaining time / B12T | Use explicit reviewed inhibited continuations: one SNTP-priority job with strict prerequisite/completion admission, plus two jobs for armed clock invalidation/MISSED_START and running monotonic completion. Accepted loaded/fresh-field cases are retained without replay. | SNTP: one job/120 s, prerequisite <60 s, completion <25 s; invalidation: two jobs/180 s, 60/75 s stages, <=32 STATUS per stage. RF zero; exact restoration. |
 | LED / B12L | Observe current two-flash AP cue, Identify priority/nonextension independently timed and without job changes. LED output-fault cue acceptance requires a separate reviewed adapter-error fixture; reset/profile faults do not substitute. | One sequence per prepared cue/priority, <=5 min each; fault injection remains unprepared pending its fixture, restore healthy state. |
-| Resets / R11P, B12J | Two reset levels across stages 1–7, each separately approved and freshly backed up. Two confirmations plus typed `reset provisioning` or `erase`; verify exact clearing/preservation, physical bonds, epoch advances once and E10 unchanged after reboot/resume. | Fourteen cases, one operation and deliberate cut per case, <=5 min, at most two additional resume boots; restore after every case. |
-| Profile interruption / C10N, B12J | Stages 8–10, one approved profile save per stage. For 8–9 previous committed authority or fail-closed storage; for 10 exact durable digest/generation reconciliation, no second POST or resurrected old trust. | Three cases, one save/cut each, <=5 min, at most two additional boots; fresh backup and intended-profile restore per case. |
+| Historical accepted reset checkpoints / R11P, B12J | Do not replay: two reset levels across stages 1–7, freshly backed up under existing B operation approval. Two confirmations plus typed `reset provisioning` or `erase`; verify exact clearing/preservation, physical bonds, epoch advances once and E10 unchanged after reboot/resume. | Fourteen cases, one operation and deliberate cut per case, <=5 min, at most two additional resume boots; restore after every case. |
+| Historical accepted profile interruption / C10N, B12J | Do not replay: stages 8–10, one approved profile save per stage. For 8–9 previous committed authority or fail-closed storage; for 10 exact durable digest/generation reconciliation, no second POST or resurrected old trust. | Three cases, one save/cut each, <=5 min, at most two additional boots; fresh backup and intended-profile restore per case. |
 | Remaining RF/AP / G7 | Exact `rf_ap` and conducted `pio-dma-gp2` setup, local complete Tone job, physical long hold, actual RF cutoff then same-boot AP; latch refuses later output. Independent IQ/edge evidence plus real association/interface-bound HTTP and phone proof in the admitted window. | Exactly one acquisition/job: 20 s tone, 40 s IQ, 12–15 s physical hold, AP proof <=90 s after release; cumulative ceiling17 acquisitions/12 jobs from16/11. No retries. Restore `restore` and exact settings. |
 
 The accelerated fixture exercises **engineering** access; its plain consumer
@@ -127,8 +204,9 @@ proof of simultaneous flash and ordinary-carrier composition. No image change
 or fault reboot is allowed within a soak. The composition procedure defines a separate ordinary-image one-save
 concurrency case: at most one per composition, ten minutes, one approved
 station metadata save and at most twenty STATUS requests per selected carrier,
-then exact restoration. Admit it separately from the soak; actual overlap and
-resource acceptance remain pending.
+then exact restoration. The engineering ordinary CONFIG serialization case is accepted under its
+retained binding. Consumer ordinary save/STATUS overlap and the separate
+engineering soak resource acceptance remain pending.
 
 See [concrete time/LED cases](phase12-time-led-preparation.md) for supported
 request paths, stimuli and timing. Unavailable physical fault injections remain
