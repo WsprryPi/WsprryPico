@@ -9,6 +9,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from contextlib import redirect_stdout
+from types import SimpleNamespace
 from unittest.mock import patch
 
 
@@ -541,6 +542,94 @@ class ProfileFileTests(unittest.TestCase):
                 ble.load_profile_file(str(link.absolute()))
             with self.assertRaisesRegex(ble.ClientError, "profile_path_not_absolute"):
                 ble.load_profile_file("profile.json")
+
+
+class BluezCharacteristicProxyTests(unittest.TestCase):
+    def backend(self):
+        backend = object.__new__(ble.BluezBackend)
+        backend.adapter_path = "/org/bluez/hci0"
+        backend.device_path = ""
+        backend.characteristics = {}
+        backend._characteristic_proxies = {}
+        backend.matches = []
+        backend.agent = None
+        device = backend.adapter_path + "/dev_" + ADDRESS.replace(":", "_")
+        service = device + "/service0001"
+        objects = {
+            backend.adapter_path: {backend.ADAPTER: {"Powered": True}},
+            device: {backend.DEVICE: {}},
+            service: {backend.SERVICE: {"UUID": ble.UUIDS["service"]}},
+        }
+        paths = {}
+        for index, (name, uuid) in enumerate(ble.UUIDS.items()):
+            if name == "service":
+                continue
+            paths[uuid] = service + f"/char{index:04d}"
+            objects[paths[uuid]] = {backend.CHARACTERISTIC: {"Service": service, "UUID": uuid}}
+        calls, writes, interfaces = [], [], []
+
+        class Proxy:
+            def __init__(self, path):
+                self.path = path
+
+            def WriteValue(self, value, options):
+                writes.append((self.path, bytes(value), dict(options)))
+
+            def Disconnect(self):
+                pass
+
+        def get_object(bus_name, path):
+            self.assertEqual(bus_name, backend.BLUEZ)
+            calls.append(path)
+            return Proxy(path)
+
+        def interface(proxy, name):
+            interfaces.append((proxy.path, name))
+            return proxy
+
+        backend.bus = SimpleNamespace(get_object=get_object)
+        backend.dbus = SimpleNamespace(Interface=interface, Array=lambda value, **_: value, Byte=int, String=str)
+        backend._objects = lambda: objects
+        backend._property = lambda path, interface, name: True
+        backend._wait = lambda predicate, timeout, code: self.assertTrue(predicate())
+        return backend, paths, calls, writes, interfaces
+
+    def test_fragmented_acknowledged_writes_reuse_one_validated_proxy(self):
+        backend, paths, calls, writes, interfaces = self.backend()
+        backend.connect(ADDRESS, ble.UUIDS["service"], 5, allow_pairing=False)
+        frames = [bytes(frame) for frame in ble.gatt_frames(b"x" * 310)]
+        for frame in frames:
+            backend.write(ble.UUIDS["command"], frame, response=True)
+        path = paths[ble.UUIDS["command"]]
+        self.assertEqual(calls.count(path), 1)
+        self.assertEqual(interfaces.count((path, backend.CHARACTERISTIC)), 1)
+        self.assertEqual(writes, [(path, frame, {"type": "request"}) for frame in frames])
+        before = list(calls)
+        with self.assertRaisesRegex(ble.ClientError, "characteristic_missing"):
+            backend.write("unknown", b"ignored")
+        self.assertEqual(calls, before)
+
+    def test_close_and_reconnect_retire_previous_connection_proxy(self):
+        backend, paths, calls, writes, interfaces = self.backend()
+        uuid = ble.UUIDS["command"]
+        backend.connect(ADDRESS, ble.UUIDS["service"], 5, allow_pairing=False)
+        backend.write(uuid, b"first", response=True)
+        original = backend._characteristic(uuid)[1]
+        backend.close()
+        self.assertEqual(backend._characteristic_proxies, {})
+        backend.connect(ADDRESS, ble.UUIDS["service"], 5, allow_pairing=False)
+        backend.write(uuid, b"second", response=True)
+        second = backend._characteristic(uuid)[1]
+        self.assertIsNot(original, second)
+        # Even an explicit connection attempt without close cannot reuse the
+        # previously validated proxy on the same BlueZ path.
+        backend.connect(ADDRESS, ble.UUIDS["service"], 5, allow_pairing=False)
+        backend.write(uuid, b"third", response=True)
+        self.assertIsNot(second, backend._characteristic(uuid)[1])
+        path = paths[uuid]
+        self.assertEqual(calls.count(path), 3)
+        self.assertEqual([value for _, value, _ in writes], [b"first", b"second", b"third"])
+        self.assertTrue(all(options == {"type": "request"} for _, _, options in writes))
 
 
 class BluezPumpDeadlineTests(unittest.TestCase):

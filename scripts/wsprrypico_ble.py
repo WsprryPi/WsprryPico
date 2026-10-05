@@ -864,6 +864,7 @@ class BluezBackend:
         self.adapter_path = f"/org/bluez/{adapter}"
         self.device_path = ""
         self.characteristics: dict[str, str] = {}
+        self._characteristic_proxies: dict[str, Any] = {}
         self.matches: list[Any] = []
         self.agent: Any = None
         self.agent_path = f"/org/wsprrypico/agent_{os.getpid()}_{secrets.token_hex(4)}"
@@ -1019,6 +1020,7 @@ class BluezBackend:
     def connect(
         self, address: str, service_uuid: str, timeout: float, allow_pairing: bool = True
     ) -> None:
+        self._characteristic_proxies.clear()
         objects = self._objects()
         if self.adapter_path not in objects or self.ADAPTER not in objects[self.adapter_path]:
             fail("adapter_not_found")
@@ -1071,8 +1073,12 @@ class BluezBackend:
         path = self.characteristics.get(uuid)
         if not path:
             fail("characteristic_missing")
-        obj = self.bus.get_object(self.BLUEZ, path)
-        return path, self.dbus.Interface(obj, self.CHARACTERISTIC)
+        if path not in self._characteristic_proxies:
+            # The service/path set was validated for this live connection.
+            # Reusing its proxy avoids per-frame remote D-Bus introspection.
+            obj = self.bus.get_object(self.BLUEZ, path)
+            self._characteristic_proxies[path] = self.dbus.Interface(obj, self.CHARACTERISTIC)
+        return path, self._characteristic_proxies[path]
 
     def read(self, uuid: str) -> bytes:
         _, characteristic = self._characteristic(uuid)
@@ -1116,6 +1122,7 @@ class BluezBackend:
             fail("gatt_notify")
 
     def close(self) -> None:
+        self._characteristic_proxies.clear()
         for match in self.matches:
             try:
                 match.remove()

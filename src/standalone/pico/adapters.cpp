@@ -697,6 +697,11 @@ std::string PicoNetwork::ipv4() const {
     return link_up() ? ip4addr_ntoa(netif_ip4_addr(&cyw43_state.netif[CYW43_ITF_STA])) : "";
 }
 std::string PicoNetwork::status() const {
+    const auto* softap = &cyw43_state.netif[CYW43_ITF_AP];
+    const auto softap_netif =
+        std::string("{\"up\":") + (netif_is_up(softap) ? "true" : "false") +
+        ",\"link_up\":" + (netif_is_link_up(softap) ? "true" : "false") +
+        ",\"ipv4\":" + wtp::json::quote(ip4addr_ntoa(netif_ip4_addr(softap))) + "}";
     const auto uncertainty = sntp_.last_uncertainty_ns();
     std::string tx_guard;
 #ifdef WSPRRY_PICO_CYW43_TX_GUARD
@@ -710,7 +715,8 @@ std::string PicoNetwork::status() const {
            ",\"enabled\":" + (enabled_ ? "true" : "false") + ",\"link_status\":" +
            std::to_string(initialized_ ? cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA)
                                        : -99) +
-           ",\"ipv4\":" + wtp::json::quote(ipv4()) + ",\"requested_enabled\":" +
+           ",\"ipv4\":" + wtp::json::quote(ipv4()) + ",\"softap_netif\":" + softap_netif +
+           ",\"requested_enabled\":" +
            (pending_enabled_ ? (*pending_enabled_ ? "true" : "false") : "null") +
            ",\"withdrawal_pending\":" + (withdrawal_started_us_ ? "true" : "false") +
            ",\"resume_after_withdrawal\":" + (resume_after_withdrawal_ ? "true" : "false") +

@@ -6,9 +6,11 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import struct
 import sys
 import tempfile
 import unittest
+import zlib
 FIXTURE=sys.argv.pop(1);INSPECTOR=sys.argv.pop(1)
 DEVICE='29f20b7342051ef947aa56cb9d4fab42'
 def compact(value):return json.dumps(value,separators=(',',':')).replace('\\n','\\u000a').replace('\\r','\\u000d').replace('\\t','\\u0009')
@@ -69,6 +71,28 @@ class Tests(unittest.TestCase):
         output=self.files['output'].read_bytes()
         self.assertEqual(output[:0x3f7000],seeded[:0x3f7000]);self.assertEqual(output[0x3ff000:],seeded[0x3ff000:])
 
+    def test_explicit_second_board_preserves_its_profile_and_other_flash(self):
+        identity='fd6127d11d6aca42a9905fa3fb1bf1d5'
+        value=profile();value['device_id']=identity;value['tls']['hostname']='wsprrypico-0a60df.local'
+        self.write('profile',compact(value).encode())
+        self.refuse()  # No silent transplant of A's profile under the B default.
+        result=self.run_tool(extra=('--device-id',identity))
+        self.assertEqual(result.returncode,0,result.stderr)
+        decoded=json.loads(subprocess.check_output([INSPECTOR,str(self.files['output'])]))
+        self.assertEqual(json.loads(decoded['profile_payload']),value)
+        output=self.files['output'].read_bytes()
+        self.assertEqual(output[:0x3f7000],self.original[:0x3f7000])
+        self.assertEqual(output[0x3ff000:],self.original[0x3ff000:])
+
+    def test_explicit_identity_must_be_canonical_and_match_profile(self):
+        for identity in ('fd6127d11d6aca42a9905fa3fb1bf1d5','F'*32,'a'*31,'a'*33,'../'+DEVICE):
+            with self.subTest(identity=identity):
+                result=self.run_tool(extra=('--device-id',identity))
+                self.assertNotEqual(result.returncode,0)
+                self.assertFalse(self.files['output'].exists())
+        result=self.run_tool(extra=('--device-id',DEVICE))
+        self.assertEqual(result.returncode,0,result.stderr)
+
     def test_noncanonical_wrong_device_and_enabled_empty_schedule(self):
         for kind in ('noncanonical','wrong-device','enabled','empty','invalid-schedule'):
             with self.subTest(kind=kind):
@@ -95,13 +119,80 @@ class Tests(unittest.TestCase):
     def test_malformed_arguments(self):
         result=subprocess.run([FIXTURE,'--backup',str(self.files['backup'])],capture_output=True)
         self.assertNotEqual(result.returncode,0);self.assertFalse(self.files['output'].exists())
-    def test_reset_intent_refuses_without_actual_one_bond_runtime_checkpoint(self):
+    def test_reset_intent_refuses_without_actual_bonded_runtime_checkpoint(self):
         result=subprocess.run([FIXTURE,'--backup',str(self.files['backup']),
             '--prepare-reset-intent','yes','--request-sha256','a'*64,
             '--output',str(self.files['output'])],capture_output=True)
         self.assertNotEqual(result.returncode,0);self.assertFalse(self.files['output'].exists())
         self.assertEqual(self.files['backup'].read_bytes(),self.original)
         self.assertNotIn(b'private-test-password',result.stdout+result.stderr)
+    def reset_checkpoint(self,bonds):
+        # Keep the operational journal produced by the actual native fixture.
+        # The production loaders, not a mocked inspector, admit these explicit
+        # runtime-profile/access journal bytes before the reset-intent call.
+        self.write('backup',self.original)
+        self.assertEqual(self.run_tool().returncode,0)
+        seeded=bytearray(self.files['output'].read_bytes());self.files['output'].unlink()
+        cert='-----BEGIN CERTIFICATE-----\nAQ==\n-----END CERTIFICATE-----\n'
+        key='-----BEGIN PRIVATE KEY-----\nAQ==\n-----END PRIVATE KEY-----\n'
+        runtime=dict(version=1,device_id=DEVICE,wifi=dict(ssid='Host fixture',
+            password='private-test-password',time_server='time.example.org'),
+            tls=dict(hostname='wsprrypico-0a9d89.local',port=443,
+                server_certificate=cert,server_private_key=key,client_ca=cert))
+        def slot(payload,sequence,size,header_magic,commit_magic,version=None):
+            header=bytearray(256);commit=bytearray(256);hashed=hashlib.sha256(payload).digest()
+            struct.pack_into('<8sQI',header,0,header_magic,sequence,len(payload))
+            if version is not None:struct.pack_into('<I',header,20,version)
+            header[24:56]=hashed;struct.pack_into('<I',header,252,zlib.crc32(header[:252]))
+            struct.pack_into('<8sQ',commit,0,commit_magic,sequence);commit[16:48]=hashed
+            struct.pack_into('<I',commit,252,zlib.crc32(commit[:252]))
+            value=bytearray(b'\xff'*size);value[:256]=header;value[256:256+len(payload)]=payload;value[-256:]=commit
+            return value
+        selected=b'WPCPSEL2'+bytes([1])+bytes(7)+compact(runtime).encode()
+        seeded[0x3f7000:0x3fb000]=b'\xff'*16384
+        seeded[0x3f7000:0x3f9000]=slot(selected,2,8192,b'WPCPPRF1',b'WPCOMMT1')
+        access=bytearray(256);struct.pack_into('<8sI',access,0,b'WSPARED2',2)
+        struct.pack_into('<Q',access,16,7);access[24]=3;access[25]=bonds;access[28]=2
+        for i in range(min(bonds,4)):struct.pack_into('<Q',access,32+8*i,17+12*i)
+        password=b'private-reset-test-password';access[96]=len(password);access[97:97+len(password)]=password
+        seeded[0x3f3000:0x3f5000]=b'\xff'*8192
+        seeded[0x3f3000:0x3f4000]=slot(access,10,4096,b'WSPACCH2',b'WSPACCT2',2)
+        self.write('backup',seeded)
+        return bytes(seeded),bytes(access)
+    def reset_intent(self):
+        return subprocess.run([FIXTURE,'--backup',str(self.files['backup']),
+            '--prepare-reset-intent','yes','--request-sha256','a'*64,
+            '--output',str(self.files['output'])],capture_output=True)
+    def test_reset_intent_preserves_two_and_capacity_bonds_and_all_nonintent_bytes(self):
+        for bonds in (2,4):
+            with self.subTest(bonds=bonds):
+                original,payload=self.reset_checkpoint(bonds)
+                before=json.loads(subprocess.check_output([INSPECTOR,str(self.files['backup'])]))
+                self.assertTrue(before['access_loaded']);self.assertEqual(before['bond_count'],bonds)
+                self.assertEqual(before['profile_source'],1);self.assertTrue(before['profile_healthy'])
+                result=self.reset_intent();self.assertEqual(result.returncode,0,result.stderr)
+                output=self.files['output'].read_bytes()
+                after=json.loads(subprocess.check_output([INSPECTOR,str(self.files['output'])]))
+                self.assertEqual(after['bond_count'],bonds);self.assertEqual(after['epoch'],before['epoch'])
+                self.assertEqual(after['access_sequence'],before['access_sequence']+1)
+                self.assertEqual((after['reset_level'],after['reset_phase']),(2,1))
+                for key in ('profile_payload','profile_sequence','config','config_sequence','watermark','cursor_sequence'):
+                    self.assertEqual(after[key],before[key])
+                actual=bytearray(output[0x3f4100:0x3f4200])
+                self.assertEqual(actual[26:29],bytes([2,1,2]));self.assertEqual(actual[64:96],b'\xaa'*32)
+                actual[26:29]=payload[26:29];actual[64:96]=payload[64:96]
+                self.assertEqual(actual,payload) # Every password/flag/authorized-peer field preserved.
+                self.assertEqual(output[:0x3f3000],original[:0x3f3000])
+                self.assertEqual(output[0x3f5000:],original[0x3f5000:])
+                self.assertEqual(self.files['backup'].read_bytes(),original)
+                self.assertNotIn(b'private-reset-test-password',result.stdout+result.stderr)
+                self.files['output'].unlink()
+    def test_reset_intent_refuses_zero_or_out_of_capacity_bonds_without_publication(self):
+        for bonds in (0,5):
+            with self.subTest(bonds=bonds):
+                original,_=self.reset_checkpoint(bonds)
+                result=self.reset_intent();self.assertNotEqual(result.returncode,0)
+                self.assertFalse(self.files['output'].exists());self.assertEqual(self.files['backup'].read_bytes(),original)
     def test_rollover_preparation_uses_unchanged_disabled_config_and_preserves_other_regions(self):
         self.assertEqual(self.run_tool().returncode,0)
         seeded=self.files['output'].read_bytes();self.files['output'].unlink();self.write('backup',seeded)

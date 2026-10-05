@@ -188,11 +188,15 @@ class Peer:
             return message["body"]
 
 
+def https_authority(args):
+    return args.hostname + ("" if args.port == 443 else ":" + str(args.port))
+
+
 def browser(args, evidence, method="GET", body=None):
     deadline = time.monotonic() + 20
     stream = connect(args, context(args, True), "http/1.1", evidence)
     try:
-        authority = args.hostname + ":" + str(args.port)
+        authority = https_authority(args)
         path = "/api/v1/jobs" if body else "/api/v1/status"
         payload = json.dumps(body, separators=(",", ":")).encode() if body else b""
         headers = (f"{method} {path} HTTP/1.1\r\nHost: {authority}\r\n"

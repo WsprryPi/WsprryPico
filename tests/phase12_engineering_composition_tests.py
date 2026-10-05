@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import copy
+import ast
 import json
 import socket
 import ssl
@@ -526,6 +527,29 @@ class ApplicationHTTPTests(unittest.TestCase):
                 invoke();self.assertIn(('Host: '+authority+'\r\n').encode(),sent[0])
                 self.assertIn(('Origin: https://'+authority+'\r\n').encode(),sent[0])
                 self.assertEqual(len(sent),1);self.assertTrue(stream.closed)
+    def test_actual_capacity_pressure_request_uses_canonical_authority(self):
+        # Execute the actual nested pressure callback without opening carriers.
+        import capacity_pending
+        tree=ast.parse(Path(run.__file__).read_text())
+        wave=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='run_device')
+        pressure=next(n for n in ast.walk(wave) if isinstance(n,ast.FunctionDef) and n.name=='pressure')
+        for port,authority in ((443,'wsprrypico.test'),(8443,'wsprrypico.test:8443')):
+            with self.subTest(port=port):
+                held=SimpleNamespace(sendall=lambda value:sent.append(value),close=lambda:closed.append(True))
+                sent=[];closed=[]
+                owner=SimpleNamespace(session='session',padded_status=lambda:None,request=lambda op,body:{'max_payload_bytes':65536},
+                    stream=SimpleNamespace(sendall=lambda _:None),close=lambda:None,open=lambda:None)
+                namespace=dict(vars(run),args=SimpleNamespace(hostname='wsprrypico.test',port=port),
+                    other=object(),e=SimpleNamespace(record=lambda *a:None),owner=owner,wave_end=240,
+                    observe_original_info=None,observe_info=lambda:{},plan={'boot_id':'2'*32})
+                exec(compile(ast.fix_missing_locations(ast.Module(body=[pressure],type_ignores=[])),'actual-pressure','exec'),namespace)
+                with patch.object(run,'connect',return_value=held),patch.object(run,'context'),patch.object(run,'check_status'),\
+                        patch.object(run,'invalid_disconnect'),patch.object(capacity_pending,'run',return_value={}):
+                    # Function globals were copied above; install only the fake I/O hooks.
+                    for name in ('connect','context','check_status','invalid_disconnect'):namespace[name]=getattr(run,name)
+                    namespace['pressure']()
+                self.assertEqual(sent,[('GET /api/v1/status HTTP/1.1\r\nHost: '+authority+'\r\n').encode()])
+                self.assertEqual(closed,[True])
     def test_fragmented_complete_body_has_exact_original_and_no_eof_read(self):
         raw=b'HTTP/1.1 200 OK\r\nContent-Length: 11\r\n\r\n{"ok":true}'
         chunks=[raw[:9],raw[9:-3],raw[-3:]]

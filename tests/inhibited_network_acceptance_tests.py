@@ -79,6 +79,35 @@ def browser_baseline(*args, **kwargs):
 
 
 class AcceptanceTests(unittest.TestCase):
+    def test_actual_browser_default_and_nondefault_canonical_authority(self):
+        for port, authority in ((443, "wsprrypico.test"), (8443, "wsprrypico.test:8443")):
+            for method, body, route in (("GET", None, "/api/v1/status"),
+                                        ("POST", {"operation": "ABORT"}, "/api/v1/jobs")):
+                with self.subTest(port=port, method=method):
+                    class Stream:
+                        closed = False
+                        def settimeout(self, timeout):
+                            self.timeout = timeout
+                        def sendall(self, request):
+                            self.request = request
+                        def recv(self, count):
+                            response = getattr(self, "response", b"HTTP/1.1 200 Response\r\nContent-Length: 2\r\n\r\n{}")
+                            self.response = b""
+                            return response
+                        def close(self):
+                            self.closed = True
+                    stream = Stream()
+                    args = types.SimpleNamespace(hostname="wsprrypico.test", port=port)
+                    with patch.object(acceptance, "connect", return_value=stream) as connect, \
+                            patch.object(acceptance, "context"):
+                        self.assertEqual(acceptance.browser(args, Log(), method, body), (200, {}))
+                    connect.assert_called_once()
+                    self.assertIn((method + " " + route + " HTTP/1.1\r\n").encode(), stream.request)
+                    self.assertIn(("Host: " + authority + "\r\n").encode(), stream.request)
+                    self.assertIn(("Origin: https://" + authority + "\r\n").encode(), stream.request)
+                    self.assertLessEqual(stream.timeout, 20)
+                    self.assertTrue(stream.closed)
+
     def test_plan_has_no_io_or_required_credentials(self):
         with patch.object(acceptance.socket, "socket", side_effect=AssertionError("network opened")), \
                 patch.object(sys, "argv", ["acceptance"]), patch("builtins.print") as output:

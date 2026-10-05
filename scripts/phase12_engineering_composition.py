@@ -24,7 +24,7 @@ import time
 from types import SimpleNamespace
 import uuid
 import fcntl
-from inhibited_network_acceptance import Peer, browser, connect, context, job_value, check_caps, check_clock, check_status, foreign_checks
+from inhibited_network_acceptance import Peer, browser, connect, context, job_value, check_caps, check_clock, check_status, foreign_checks, https_authority
 from phase12_recovery_device import DEVICE, SERIAL, CONSOLE, console, resource_health, strict
 from phase12_engineering_setup import private_bytes, RecordedBackend
 from phase12_composition_audit import counter
@@ -103,7 +103,7 @@ def resource_http(args, evidence, method, path, body=None, revision=None, *, dea
         marks['connect_started_s']=time.monotonic()
         stream=connect(args,ctx,'http/1.1',evidence,observer_deadline=deadline)
         marks['tls_finished_s']=time.monotonic();require(marks['tls_finished_s']<deadline,'application TLS deadline')
-        authority=args.hostname+('' if args.port==443 else ':'+str(args.port))
+        authority=https_authority(args)
         payload=b'' if body is None else json.dumps(body,separators=(',',':')).encode()
         require(len(payload)<=1024,'application request bound')
         headers=(f'{method} {path} HTTP/1.1\r\nHost: {authority}\r\n'
@@ -728,7 +728,7 @@ def run_device(plan, evidence_path, observe_info, *, observe_original_info=None)
                 # successful handshake is a capacity-contract failure.
                 held=connect(args,context(args,True),'http/1.1',e)
                 try:
-                    held.sendall(('GET /api/v1/status HTTP/1.1\r\nHost: '+args.hostname+':'+str(args.port)+'\r\n').encode())
+                    held.sendall(('GET /api/v1/status HTTP/1.1\r\nHost: '+https_authority(args)+'\r\n').encode())
                     check_status(owner.request('STATUS',{}),plan['boot_id'],unowned=True)
                     held_end=time.monotonic()+12
                     def capacity_info():

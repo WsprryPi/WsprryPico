@@ -20,7 +20,7 @@
 using namespace wsprrypico;
 namespace {
 constexpr std::size_t flash_size = 4194304, begin = 0x3f7000, end = 0x3ff000;
-constexpr auto device = "29f20b7342051ef947aa56cb9d4fab42";
+constexpr auto default_device = "29f20b7342051ef947aa56cb9d4fab42";
 void check(bool ok, std::source_location location = std::source_location::current()) {
     if (!ok)
         throw std::runtime_error("fixture check " + std::to_string(location.line()));
@@ -188,6 +188,18 @@ int main(int argc, char** argv) {
         check(argc >= 3 && argc % 2 == 1);
         for (int i = 1; i < argc; i += 2)
             check(args.emplace(argv[i], argv[i + 1]).second);
+        // Consumer fixtures and reset intents must be bound to their intended
+        // physical identity. Existing B callers retain their default; a second
+        // board requires an explicit canonical identity matching its profile.
+        std::string device = default_device;
+        if (args.contains("--device-id")) {
+            device = args.at("--device-id");
+            check(device.size() == 32 && std::all_of(device.begin(), device.end(), [](char c) {
+                      return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+                  }));
+            check(args.contains("--consumer-profile") || args.contains("--prepare-reset-intent"));
+            args.erase("--device-id");
+        }
         if (args.contains("--prepare-reset-intent")) {
             check(args.size() == 4 && args.at("--prepare-reset-intent") == "yes" &&
                   args.contains("--backup") && args.contains("--output") &&
@@ -214,7 +226,8 @@ int main(int argc, char** argv) {
             provisioning::ProfileStore profiles(profile_media);
             standalone::Store operational(operational_media);
             check(access.load() && access.record() && !access.record()->reset.pending() &&
-                  !access.record()->ble_disabled && access.record()->bond_count == 1 &&
+                  !access.record()->ble_disabled && access.record()->bond_count >= 1 &&
+                  access.record()->bond_count <= provisioning::authorized_bond_capacity &&
                   profiles.load() &&
                   profiles.source() == provisioning::ProfileSource::RuntimeProfile &&
                   operational.load() && (!operational.config() || !operational.config()->enabled));
@@ -323,7 +336,7 @@ int main(int argc, char** argv) {
             return 0;
         }
         const bool pending_fixture = args.contains("--allow-tls-pending");
-        check(argc == (pending_fixture ? 13 : 11));
+        check(args.size() == (pending_fixture ? 6 : 5));
         if (pending_fixture)
             check(args.at("--allow-tls-pending") == "yes");
         for (auto name : {"--backup", "--consumer-profile", "--config", "--watermark", "--output"})
