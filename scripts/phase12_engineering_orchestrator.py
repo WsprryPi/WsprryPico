@@ -152,8 +152,9 @@ def session_payload(payload, selection):
 
 
 def execute(recovery, preparation, artifacts, root, inspector, config, *, backend_factory=Backend,
-            fixture=None, provision=None, cases=None, accelerated=None, journal=None, flash_status=None, bond_revocation=None, preparation_artifacts=None, clock=time.monotonic, sleeper=time.sleep, scope='all', session_choice=None, fixture_roles='engineering'):
+            fixture=None, provision=None, cases=None, accelerated=None, journal=None, flash_status=None, bond_revocation=None, preparation_artifacts=None, clock=time.monotonic, sleeper=time.sleep, scope='all', session_choice=None, fixture_roles='engineering', bound_ble_address=None):
     require(scope in SCOPES,'named engineering scope')
+    require(bound_ble_address in (None,'88:A2:9E:0A:9D:8A'),'explicit verified B address only')
     if session_choice is not None:
         require(session_choice==session_selection(scope,'running',session_choice.get('cookie_grace_only',False)),'exact session selection')
     require(fixture_roles in ('engineering','swapped') and (fixture_roles=='engineering' or scope=='network'),'swapped roles require network scope')
@@ -222,9 +223,20 @@ def execute(recovery, preparation, artifacts, root, inspector, config, *, backen
         raw=bytes(canonical_profile(profile));path=root/'engineering-profile.json'
         path.write_bytes(raw);os.chmod(path,0o600)
         password_path=root/'default-password.txt';password_path.write_text('wspr-'+info['local_suffix']);os.chmod(password_path,0o600)
-        discovery=fixture('discover_ble',dict(expected_name='WsprryPico-0a9d89'))
-        address=discovery['address'];require(discovery['matching_names']==1,'unique named B discovery')
         generation=counter(info['provisioning_generation'],'source2 generation');boot=info['status']['boot_id']
+        if bound_ble_address is not None:
+            before=backend.info();private_write(root/'ble-discovery-usb-before.json',before)
+            safe_info(before,preparation['source_commit'][:12],0,False)
+            require(before['device_id']==DEVICE and before['provisioning_source']=='unprovisioned' and before['status']['boot_id']==boot and counter(before['provisioning_generation'],'source2 generation')==generation,'same fresh USB B boot/generation before discovery')
+        discovery=fixture('discover_ble',dict(expected_name='WsprryPico-0a9d89',**({'expected_address':bound_ble_address} if bound_ble_address is not None else {})))
+        private_write(root/'ble-discovery-selection.json',discovery)
+        address=discovery['address']
+        if bound_ble_address is None:require(discovery['matching_names']==1,'unique named B discovery')
+        else:
+            require(address==bound_ble_address and discovery['matching_bound_addresses']==1 and discovery['selection_mode']=='bound_public_address' and discovery['fresh_advertisement_proven'] is False,'explicit uniquely bound B object; no fresh ADV claim')
+            current=backend.info();private_write(root/'ble-discovery-usb-after.json',current)
+            safe_info(current,preparation['source_commit'][:12],0,False)
+            require(current['device_id']==DEVICE and current['provisioning_source']=='unprovisioned' and current['status']['boot_id']==boot and counter(current['provisioning_generation'],'source2 generation')==generation,'same fresh USB B boot/generation before provisioning')
         clearance_path=root/'fresh-pair-clearance.json'
         private_write(clearance_path,dict(schema='phase12-fresh-pair-clearance/1',device_id=DEVICE,
             serial='CDDBF8767C506C07',source_commit=preparation['source_commit'],boot_id=boot,
@@ -234,7 +246,7 @@ def execute(recovery, preparation, artifacts, root, inspector, config, *, backen
         provision(dict(source_commit=preparation['source_commit'],boot_id=boot,generation=generation,
                        address=address,console=config['console'],profile=str(path),profile_sha256=sha(path),
                        password_file=str(password_path),private_wire_log=str(root/'setup-wire.jsonl'),
-                       target_bond_clearance_file=str(clearance_path),target_bond_clearance_sha256=sha(clearance_path)))
+                       target_bond_clearance_file=str(clearance_path),target_bond_clearance_sha256=sha(clearance_path),**({'bound_ble_address':bound_ble_address} if bound_ble_address is not None else {})))
         started=clock()
         while True:
             require(clock()-started<120,'provision reboot deadline')
@@ -557,6 +569,7 @@ def main():
     p.add_argument('--skip-accepted-time-cases',action='store_true')
     p.add_argument('--cookie-grace-stages',choices=('running',))
     p.add_argument('--cookie-grace-only',action='store_true')
+    p.add_argument('--bound-ble-address',choices=('88:A2:9E:0A:9D:8A',))
     p.add_argument('--fixture-roles',choices=('engineering','swapped'),default='engineering')
     p.add_argument('--native',type=Path)
     p.add_argument('--run',action='store_true');p.add_argument('--recover-only',action='store_true');a=p.parse_args()
@@ -829,7 +842,7 @@ def main():
             journal=journal if a.scope in ('all','journal','journal-stimuli') else None,
             flash_status=flash_status if a.scope in ('all','flash-status') else None,
             bond_revocation=revoke if a.scope in ('all','bond-revocation') else None,
-            preparation_artifacts=a.preparation_artifact_root,scope=a.scope,session_choice=choice,fixture_roles=a.fixture_roles)
+            preparation_artifacts=a.preparation_artifact_root,scope=a.scope,session_choice=choice,fixture_roles=a.fixture_roles,bound_ble_address=a.bound_ble_address)
     finally:
         remote.collect(('fixture-roles.json','fixture-roles-bound.json','fixture-radio-preflight.json','owned-ap-beacon-readiness.json','fixture-management-before.json',
                         'ntp-ready.json','ntp-stopped.json','ntp-startup-failure.json',

@@ -449,4 +449,31 @@ class JournalResponderBridgeTests(unittest.TestCase):
             self.assertEqual(s.strict((root/s.FILES[5]).read_bytes())['datagram_attempts'],1)
             self.assertEqual(json.loads((root/'ntp-stopped.json').read_text()),dict(requests=3,replies=2))
 
+class BoundDiscoveryTests(unittest.TestCase):
+    def test_bound_address_retains_actual_cached_name_without_fresh_ADV_claim(self):
+        import wsprrypico_ble
+        from types import SimpleNamespace
+        calls=[];adapter=SimpleNamespace(SetDiscoveryFilter=lambda *a:calls.append('filter'),StartDiscovery=lambda:calls.append('start'),StopDiscovery=lambda:calls.append('stop'))
+        value=dict(Address='88:A2:9E:0A:9D:8A',AddressType='public',Name='retained-cache-name',UUIDs=[wsprrypico_ble.UUIDS['service']],Connected=False)
+        class Backend:
+            adapter_path='/adapter';ADAPTER='adapter';DEVICE='device';BLUEZ='bluez'
+            dbus=SimpleNamespace(Interface=lambda *a:adapter,String=str,Array=lambda v,**kw:v)
+            bus=SimpleNamespace(get_object=lambda *a:None)
+            def __init__(self,*args):pass
+            def pump(self,seconds):pass
+            def _objects(self):return {'/adapter':{},'/adapter/dev_bound':{'device':value}}
+        with tempfile.TemporaryDirectory() as d,patch.object(wsprrypico_ble,'BluezBackend',Backend):
+            result=f.discover('WsprryPico-0a9d89',Path(d),expected_address='88:A2:9E:0A:9D:8A')
+            rows=[json.loads(x) for x in (Path(d)/'ble-discovery-original.jsonl').read_text().splitlines()]
+        self.assertEqual(calls,['filter','start','stop']);self.assertEqual(result['matching_names'],0);self.assertEqual(result['matching_bound_addresses'],1);self.assertEqual(result['actual_name'],'retained-cache-name');self.assertFalse(result['fresh_advertisement_proven'])
+        original=next(v for v in rows if v['kind']=='original_objects')['candidates'][0];self.assertEqual(original['actual_name'],value['Name']);self.assertEqual(original['object_provenance'],'cached_BlueZ_Device1_not_fresh_advertisement')
+    def test_legacy_name_and_ambiguous_or_other_board_selection_remain_closed(self):
+        from wsprrypico_ble import UUIDS
+        b=dict(Address='88:A2:9E:0A:9D:8A',AddressType='public',Name='cached',UUIDs=[UUIDS['service']])
+        self.assertEqual(f.discovery_selection([b],'WsprryPico-0a9d89'),[])
+        self.assertEqual(f.discovery_selection([b],'WsprryPico-0a9d89','88:A2:9E:0A:9D:8A'),[b])
+        for rows,address in (([b],'88:A2:9E:0A:60:E0'),([b,b],'88:A2:9E:0A:9D:8A'),([b,dict(b,Address='88:A2:9E:0A:60:E0',Name='WsprryPico-0a9d89')],'88:A2:9E:0A:9D:8A'),([dict(b,AddressType='random')],'88:A2:9E:0A:9D:8A')):
+            with self.subTest(rows=rows,address=address),self.assertRaises(ValueError):f.discovery_selection(rows,'WsprryPico-0a9d89',address)
+        self.assertEqual(f.discovery_selection([dict(b,UUIDs=[])],'WsprryPico-0a9d89','88:A2:9E:0A:9D:8A'),[])
+
 if __name__=='__main__':unittest.main()

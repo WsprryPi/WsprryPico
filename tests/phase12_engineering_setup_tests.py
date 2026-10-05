@@ -183,4 +183,34 @@ class Tests(unittest.TestCase):
             link=Path(tmp)/'link';link.symlink_to(p)
             with self.assertRaises(OSError):runner.private_bytes(link,64)
 
+class BoundSetupTests(unittest.TestCase):
+    setUp=Tests.setUp
+    host_backend=Tests.host_backend
+    command=Tests.command
+    run_case=Tests.run_case
+    def test_bound_cached_name_mode_keeps_exact_B_public_service_and_single_removal(self):
+        base=dict(Address='88:A2:9E:0A:9D:8A',AddressType='public',Name='retained-cache-name',UUIDs=[runner.UUIDS['service']],Connected=False)
+        backend,path=self.host_backend(base);backend.prepare_new_pair(base['Address'],expected_address=base['Address']);self.assertEqual(backend._async.call_count,1)
+        before=[x.args[0] for x in backend.emit.call_args_list if x.args[0]['kind']=='fresh_host_peer_before'][0];self.assertEqual(before['actual_name'],base['Name']);self.assertFalse(before['fresh_advertisement_proven'])
+        backend,path=self.host_backend(base)
+        with self.assertRaises(ValueError):backend.prepare_new_pair(base['Address'])
+        backend._async.assert_not_called()
+        for changed in ({'Connected':True},{'AddressType':'random'},{'UUIDs':[]},{'Address':'88:A2:9E:0A:60:E0'}):
+            backend,path=self.host_backend(dict(base,**changed))
+            with self.subTest(changed=changed),self.assertRaises(ValueError):backend.prepare_new_pair(base['Address'],expected_address=base['Address'])
+            backend._async.assert_not_called()
+    def test_exact_actual_gatt_identity_and_USB_bookend_precede_field_write(self):
+        for identity in ({'device_id':'3'*32,'generation':6},{'device_id':runner.DEVICE,'generation':7},{'device_id':runner.DEVICE,'generation':True}):
+            self.setUp();self.client.connect=lambda *a,**kw:identity
+            with self.subTest(identity=identity),self.assertRaises(ValueError):self.run_case()
+            self.assertNotIn('authorize',self.client.actions);self.assertNotIn('apply',self.client.actions)
+        self.setUp();events=[]
+        def command(value):
+            if value=='INFO' and 'connect' in self.client.actions:
+                self.assertNotIn('authorize',self.client.actions) if not events else None
+            return self.command(value)
+        with patch('phase12_recovery_device.resource_health'):
+            runner.setup('1'*40,'2'*32,6,'88:A2:9E:0A:9D:8A',self.profile,'wspr-0a60df',command,self.client,clock=self.clock,event=events.append)
+        row=next(v for v in events if v.get('action')=='gatt_identity_verified_before_field_write');self.assertEqual(row['device_id'],runner.DEVICE);self.assertEqual(row['generation'],6);self.assertEqual(row['usb_boot_id'],'2'*32)
+
 if __name__=='__main__':unittest.main()

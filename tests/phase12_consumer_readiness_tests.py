@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Cold-checkpoint warm readiness failure paths and actual isolated helper closure."""
-import contextlib,copy,hashlib,json,os,shutil,subprocess,sys,tempfile,unittest
+import ast,contextlib,copy,hashlib,json,os,shutil,subprocess,sys,tempfile,unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
+import phase12_consumer_readiness_ap as ap
 import phase12_consumer_readiness as body
 import phase12_consumer_readiness_dispatch as dispatch
 import phase12_consumer_readiness_fixture as fixture
@@ -368,5 +369,162 @@ class ParentFailureTests(unittest.TestCase):
         self.assertEqual(result['status'],'STOPPED');self.assertEqual(result['error']['message'],'original staging failure')
         self.assertEqual(calls,['setup','final-restoration.bin','stable','cleanup'])
         self.assertEqual(result['submit_attempts'],0);self.assertEqual(result['restoration']['stability']['samples'],5)
+
+write=ap.write
+binding=SimpleNamespace(SOURCE='a'*40,AUTHORITY='USER_AUTHORIZED_UNATTENDED_PHASE12',require=parent.require)
+
+class OfflineCycle(unittest.TestCase):
+ def test_real_same_uuid_down_up_preserves_disabled_time_and_originals(self):
+  with tempfile.TemporaryDirectory() as tmp:
+   root=Path(tmp)/('phase12-recovery-'+'a'*32);root.mkdir();uuid='11111111-2222-3333-4444-555555555555';name='p12-engineering-'+root.name.rsplit('-',1)[1]
+   roles=dict(host_ap='wlan2');managed=dict(addresses=[],defaults=[]);responder=dict(pid=123)
+   request=dict(root=str(root),case='network',generation=8,inputs={},boot_id='new')
+   receipt=dict(root=str(root),case='network',generation=8,inputs={},activation_attempts=1,deadline_monotonic_s=300,management_before=managed,ntp_identity=responder,ap=dict(connection=name))
+   write(root/'readiness-ap-ready-before-boot.json',receipt);request['ap_ready_sha256']=hashlib.sha256((root/'readiness-ap-ready-before-boot.json').read_bytes()).hexdigest()
+   calls=[];events=[];active=[True]
+   class Evidence:
+    def record(self,label,**values):events.append((label,values))
+   def runner(argv,**kwargs):
+    calls.append(argv)
+    if 'connection.uuid' in argv:raw=(uuid+'\n').encode()
+    elif 'GENERAL.STATE' in argv:raw=b'30 (disconnected)\n'
+    elif 'down' in argv:active[0]=False;raw=b'Connection successfully deactivated\n'
+    elif 'up' in argv:active[0]=True;raw=b'Connection successfully activated\n'
+    else:raise AssertionError(argv)
+    return subprocess.CompletedProcess(argv,0,raw,b'')
+   def reuse(*args,**kwargs):self.assertTrue(active[0]);return receipt
+   with patch.object(ap,'inputs',return_value=(roles,{})),patch.object(ap,'reuse',side_effect=reuse):
+    for operation in ('down','up'):
+     result=ap.station_cycle(request,operation,Evidence(),110,clock=lambda:2,runner=runner,managed=lambda _:managed,disabled=lambda *_:responder)
+     self.assertFalse(result['ntp_enabled']);self.assertEqual(result['connection_uuid'],uuid)
+    self.assertEqual(result['total_activation_attempts'],2)
+    self.assertEqual([a for a in calls if a[0]=='sudo'],[['sudo','-n','nmcli','--wait','9','connection','down','uuid',uuid],['sudo','-n','nmcli','--wait','9','connection','up','uuid',uuid]])
+    with self.assertRaisesRegex(ValueError,'never replayed'):ap.station_cycle(request,'up',Evidence(),110,clock=lambda:2,runner=runner,managed=lambda _:managed,disabled=lambda *_:responder)
+   originals=[v for k,v in events if k=='station_cycle_command']
+   self.assertEqual(len(originals),len(calls));self.assertTrue(all('stdout_hex' in row and 'stderr_hex' in row for row in originals))
+ def test_observed_join_loss_then_sixty_seconds_uses_same_association_end(self):
+  now=[0.];links=iter((3,1,1));observations=[];events=[]
+  class Evidence:
+   def record(self,label,**values):events.append((label,values))
+  def observe(*args,**kwargs):observations.append((now[0],args[2]));return dict(network=dict(link_status=next(links)))
+  with patch.object(ap,'offline_info',side_effect=observe):
+   result=ap.controlled_loss(dict(boot_id='new',generation=8),None,Evidence(),110,clock=lambda:now[0],sleeper=lambda duration:now.__setitem__(0,now[0]+duration))
+  self.assertEqual(now[0],60.5);self.assertEqual(result['network']['link_status'],1)
+  self.assertEqual(observations,[(0.,60.),(.5,60.),(60.5,110)])
+  self.assertEqual(events[-1][1]['held_seconds'],60.)
+ def test_fallback_hold_is_refused_if_original_association_has_no_room(self):
+  with patch.object(ap,'offline_info',return_value=dict(network=dict(link_status=1))):
+   with self.assertRaisesRegex(ValueError,'within original110'):ap.controlled_loss(dict(boot_id='new',generation=8),None,None,60,clock=lambda:0,sleeper=lambda _:self.fail('no hold outside original deadline'))
+
+class OwnedLossOrderingTests(unittest.TestCase):
+ def sequence(self,broken=False):
+   with tempfile.TemporaryDirectory() as tmp:
+    root=Path(tmp).resolve();calls=[];request=dict(root='/home/pi/phase12-recovery-'+'a'*32,case='station',roles_sha256='r',source_commit=binding.SOURCE,generation=7,checkpoint_sha256='c',prior_boot_id='old',inputs={'x':'y'})
+    receipt=dict(status='AP_READY_SNTP_DISABLED_BEFORE_BOOT',root=request['root'],case='station',roles_sha256='r',source_commit=binding.SOURCE,generation=7,checkpoint_sha256='c',prior_boot_id='old',inputs={'x':'y'},activation_attempts=1,beacon=dict(status='INDEPENDENT_BEACON_READY',ap_interface='wlan2',observer_interface='wlan0'),started_monotonic_s=1,ready_monotonic_s=2,deadline_monotonic_s=301)
+    if broken:receipt['beacon']['status']='FAILED'
+    raw=json.dumps(receipt).encode();(root/'readiness-ap-ready-before-boot.json').write_bytes(raw);(root/'readiness-ap-ready-before-boot.json').chmod(0o600)
+    class Backend:
+     campaign=root
+     def restore(self,saved,name):
+      calls.append('deploy');self.assert_ready=(root/'ap-ready-before-deployment.json').exists()
+      if not self.assert_ready:raise RuntimeError('unretained AP readiness')
+      return dict(info=dict(status=dict(boot_id='new'),local_suffix='suffix'))
+    class Remote:
+     def invoke(self,script,payload,args=(),**kw):calls.append(('prepare',script,args));return dict(status=receipt['status'],receipt=receipt,receipt_sha256=hashlib.sha256(raw).hexdigest())
+     def collect(self,names):calls.append(('retain',names))
+    if broken:
+     with self.assertRaisesRegex(ValueError,'fresh beacon'):parent.deploy_after_ready(Backend(),Remote(),request,{},clock=lambda:3,deadline=340)
+     self.assertNotIn('deploy',calls)
+    else:
+     parent.deploy_after_ready(Backend(),Remote(),request,{},clock=lambda:3,deadline=340)
+     self.assertEqual(calls,[('prepare','phase12_consumer_readiness_ap.py',('--prepare-ap',)),('retain',('readiness-ap-ready-before-boot.json',)),'deploy'])
+     self.assertEqual(request['boot_id'],'new')
+ def test_actual_parent_retains_ap_ready_before_one_deploy(self):self.sequence()
+ def test_no_deploy_without_fresh_beacon(self):self.sequence(True)
+ def test_real_dispatcher_resumes_owned_uuid_before_station_proof_and_time(self):
+   tree=ast.parse(Path(dispatch.__file__).read_bytes())
+   run=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='run');enable=next(n for n in run.body if isinstance(n,ast.FunctionDef) and n.name=='enable_time')
+   calls=[]
+   with tempfile.TemporaryDirectory() as tmp:
+    root=Path(tmp).resolve();roles=dict(host_ap='wlan2');request=dict(root=str(root),authority=binding.AUTHORITY,source_commit=binding.SOURCE,generation=7,time_server='192.168.84.1',ap_ready_sha256='r')
+    class Evidence:
+     def record(self,*a,**k):pass
+    value=dict(network=dict(link_status=3,ipv4='192.168.84.3'),status=dict(boot_id='new'))
+    def fixture(req):
+     calls.append(req['action'])
+     if req['action']=='start_ap':raise AssertionError('second AP activation')
+     return dict(status='TARGET_ASSOCIATION_VERIFIED',station_ipv4='192.168.84.3')
+    def offline(*args,**kwargs):calls.append('offline_info');return value
+    def cycle(*args,**kwargs):calls.append('up');return dict(connection_uuid='actual-uuid')
+    namespace=dict(owned_loss=True,root=root,roles=roles,request=request,deadline=300,info=lambda:value,fixture_action=fixture,evidence=Evidence(),offline_info=offline,station_cycle=cycle,require=binding.require,json=json,os=os,time=type('Time',(),dict(monotonic=staticmethod(lambda:1),sleep=staticmethod(lambda _:None))),min=min)
+    # Remove only enclosing-function nonlocal declarations for exact AST callback.
+    node=copy.deepcopy(enable);node.body=[x for x in node.body if not isinstance(x,ast.Nonlocal)]
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[node],type_ignores=[])),'actual-readiness-enable','exec'),namespace)
+    namespace['enable_time']();self.assertEqual(calls,['offline_info','up','offline_info','prove_target','bind_peer','sntp_on'])
+    with self.assertRaisesRegex(ValueError,'never replayed'):namespace['enable_time']()
+    self.assertEqual(calls,['offline_info','up','offline_info','prove_target','bind_peer','sntp_on'])
+
+ def test_owned_loss_station_refused_before_any_inspection_or_setup(self):
+  with patch.object(parent,'accepted_checkpoint') as inspect:
+   with self.assertRaisesRegex(ValueError,'network/pending only'):
+    parent.execute({},'artifacts','campaign','inspector','native','checkpoint','station',owned_loss=True)
+   inspect.assert_not_called()
+
+class PendingProofOrderingTests(unittest.TestCase):
+ def proof(self,case):
+  calls=[];root=Path('/private/synthetic-readiness')
+  class Backend:
+   def snapshot(self,name):calls.append(('native',name));return dict(path=name)
+  class Remote:
+   def collect(self,names):calls.append(('collect',tuple(names)))
+  def time_proof(*args):calls.append('time_proof');return dict(status='time')
+  def cold_proof(*args):calls.append('native_tls_proof');return dict(status='native')
+  with patch.object(parent,'read_json',return_value={}),patch.object(parent,'private_read',return_value=b'original'),patch.object(parent,'time_evidence',side_effect=time_proof),patch.object(parent,'assess',side_effect=cold_proof):
+   result=parent.completed_readiness_proofs(case,Backend(),Remote(),root,{},b'seed',('original-archive',))
+  self.assertEqual(result['time_evidence']['status'],'time')
+  return calls
+ def test_pending_native_precedes_only_four_mandatory_files_and_both_proofs(self):
+  self.assertEqual(self.proof('pending-tls'),[('native','after-readiness.bin'),('collect',parent.PENDING_REQUIRED_NAMES),'time_proof','native_tls_proof'])
+  self.assertEqual(len(parent.PENDING_REQUIRED_NAMES),4)
+ def test_accepted_network_order_is_unchanged(self):
+  self.assertEqual(self.proof('network'),[('collect',('original-archive',)),'time_proof',('native','after-readiness.bin'),'native_tls_proof'])
+
+ def test_pending_native_failure_still_archives_originals_then_restores(self):
+  raw=bytes(4194304);digest=hashlib.sha256(raw).hexdigest();calls=[]
+  profile=dict(network=dict(ssid='synthetic',password='synthetic-password',time_server='192.168.84.1'),station={})
+  class Backend:
+   def __init__(self,plan,manifest,artifacts,root,inspector):self.remote='/home/pi/phase12-recovery-'+plan['campaign_id'];self.root=root
+   def setup(self):return {}
+   def snapshot(self,name):
+    calls.append(('snapshot',name))
+    if name=='after-readiness.bin':raise ValueError('original pending native failure')
+    (self.root/name).write_bytes(raw);(self.root/name).chmod(0o600)
+    return dict(path=name,sha256=digest,inspection={})
+   def restore(self,saved,name):
+    calls.append(('restore',name));return dict(readback={'sha256':digest},info={'status':{'boot_id':'b'*32},'local_suffix':'000000'})
+   def stable_restore(self,*args):return {'samples':5}
+   def cleanup(self):calls.append('cleanup')
+  class Remote:
+   def __init__(self,root):self.root=root
+   def stage(self,path,name):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+   def invoke(self,script,request,**kwargs):
+    if script=='phase12_consumer_readiness_dispatch.py':return dict(status='CONSUMER_READINESS_REVIEW_REQUIRED',submit_attempts=0,rf_jobs=0)
+    return {}
+   def collect(self,names):
+    calls.append(('collect',tuple(names)))
+    if names==('final-restoration.bin',):(self.root/'final-restoration.bin').write_bytes(raw);(self.root/'final-restoration.bin').chmod(0o600)
+  with tempfile.TemporaryDirectory() as directory:
+   directory=Path(directory);image=directory/'restore.uf2';image.write_bytes(b'image');seed_path=directory/'seed.bin';seed_path.write_bytes(raw);seed_path.chmod(0o600)
+   manifest=dict(source_commit='a'*40,candidates=[dict(role='restore',uf2={'path':'restore.uf2'})])
+   seed=dict(path=seed_path,sha256=digest,inspection={'profile_payload':json.dumps(profile),'profile_sequence':8},original_result_sha256='c'*64)
+   with patch.object(parent,'accepted_checkpoint',return_value=seed),patch.object(parent,'prepare_pending',return_value=seed),patch.object(parent,'safe_info'),patch.object(parent,'verify_image'):
+    result=parent.execute(manifest,directory,directory/'campaign','inspector','native',seed_path,'pending-tls',backend_factory=Backend,remote_factory=Remote)
+  self.assertEqual(result['error']['message'],'original pending native failure')
+  self.assertEqual(result['status'],'STOPPED')
+  self.assertEqual(calls.count(('snapshot','after-readiness.bin')),1)
+  self.assertIn(('collect',parent.PENDING_ARCHIVAL_NAMES),calls)
+  self.assertNotIn(('collect',parent.PENDING_REQUIRED_NAMES),calls)
+  self.assertLess(calls.index(('collect',parent.PENDING_ARCHIVAL_NAMES)),calls.index(('restore','final-restoration.bin')))
+  self.assertEqual(calls[-1],'cleanup')
 
 if __name__=='__main__':unittest.main()

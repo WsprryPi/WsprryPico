@@ -12,7 +12,7 @@ from phase12_recovery_device import strict,verify_image
 from phase12_recovery_orchestrator import Backend,Ledger,private_write,safe_info,sha,require,DEVICE,SIZE,RESERVED
 from phase12_engineering_fixture import ntp_reply
 
-STAGED_HELPERS=SHARED_HELPERS+('phase12_consumer_readiness.py','phase12_consumer_readiness_dispatch.py','phase12_consumer_readiness_fixture.py')
+STAGED_HELPERS=SHARED_HELPERS+('phase12_consumer_readiness.py','phase12_consumer_readiness_dispatch.py','phase12_consumer_readiness_fixture.py','phase12_consumer_readiness_ap.py')
 BODY_SECONDS=340
 TOTAL_SECONDS=900
 
@@ -122,13 +122,57 @@ def time_evidence(case,root,result):
     return dict(status='ORIGINAL_TIME_RESPONDER_EVIDENCE_BOUND',peer=peer,evidence_sha256=sha(path),
         query_scope='raw query/reply' if case=='network' else 'original query hash and raw reply')
 
+def deploy_after_ready(backend,remote,request,saved,*,clock=time.monotonic,deadline):
+    require(clock()<deadline,'original body before AP preparation')
+    ready=remote.invoke('phase12_consumer_readiness_ap.py',request,args=('--prepare-ap',),timeout=min(110,deadline-clock()),keepalive=True)
+    private_write(backend.campaign/'ap-preparation-response.json',ready)
+    remote.collect(('readiness-ap-ready-before-boot.json',))
+    raw=private_read(backend.campaign/'readiness-ap-ready-before-boot.json',2097152);receipt=strict(raw)
+    require(hashlib.sha256(raw).hexdigest()==ready['receipt_sha256'] and receipt==ready['receipt'] and
+            ready['status']=='AP_READY_SNTP_DISABLED_BEFORE_BOOT' and receipt['activation_attempts']==1 and
+            receipt['prior_boot_id']==request['prior_boot_id'] and receipt['checkpoint_sha256']==request['checkpoint_sha256'] and
+            receipt['source_commit']==request['source_commit'] and receipt['generation']==request['generation'] and
+            receipt['case']==request['case'] and receipt['root']==request['root'] and receipt['inputs']==request['inputs'] and
+            receipt['roles_sha256']==request['roles_sha256'] and receipt['beacon']['status']=='INDEPENDENT_BEACON_READY' and
+            receipt['beacon']['ap_interface']=='wlan2' and receipt['beacon']['observer_interface']=='wlan0' and
+            receipt['deadline_monotonic_s']==receipt['started_monotonic_s']+300 and
+            receipt['started_monotonic_s']<receipt['ready_monotonic_s']<receipt['deadline_monotonic_s'] and clock()<deadline,
+            'one actual fresh beacon/disabled-time receipt retained before deployment')
+    request['ap_ready_sha256']=hashlib.sha256(raw).hexdigest()
+    private_write(backend.campaign/'ap-ready-before-deployment.json',dict(ap_ready_sha256=request['ap_ready_sha256'],deployment_attempts=0))
+    deployed=backend.restore(saved,'checkpoint-deployment.bin')
+    # Retain the actual producer bytes/result before any projected guard.
+    private_write(backend.campaign/'checkpoint-deployment.json',deployed)
+    private_write(backend.campaign/'checkpoint-deployment-info.json',deployed['info'])
+    require(clock()<deadline and deployed['info']['status']['boot_id']!=request['prior_boot_id'],'single fresh checkpoint boot follows AP-ready')
+    request.update(boot_id=deployed['info']['status']['boot_id'],suffix=deployed['info']['local_suffix'])
+    return deployed
+
+PENDING_REQUIRED_NAMES=('consumer-readiness-result.json','ntp-peer.json','ntp-metrics.json','ntp-stopped.json')
+PENDING_ARCHIVAL_NAMES=('consumer-readiness-wire.jsonl','consumer-readiness-result.json','readiness-time-wire.jsonl','ntp-metrics.json','ntp-ready.json','ntp-pid.json','ntp-peer.json','ntp-stopped.json','readiness-alias-ready.json','readiness-alias-cleanup.json','owned-ap-beacon-readiness.json','target-ap-proof-warm.json','readiness-station-down-attempt.json','readiness-station-down.json','readiness-station-up-attempt.json','readiness-station-up.json')
+
+def completed_readiness_proofs(case,backend,remote,root,seed,seed_bytes,names):
+    # Pending materialization has a second cold boot. Preserve native proof
+    # before optional archival transfers consume its existing body deadline.
+    if case=='pending-tls':
+        observed=backend.snapshot('after-readiness.bin')
+        remote.collect(PENDING_REQUIRED_NAMES)
+    else:remote.collect(names)
+    result=read_json(root/'consumer-readiness-result.json')
+    time_proof=time_evidence(case,root,result)
+    if case!='pending-tls':observed=backend.snapshot('after-readiness.bin')
+    evaluation=assess(case,seed,observed,seed_bytes,private_read(root/observed['path'],SIZE),result,root)
+    evaluation['time_evidence']=time_proof
+    return evaluation
+
 class BoundedBackend(Backend):
     def call(self,action,*,transport_timeout=270,**args):
         maximum=80 if action=='snapshot' else 220 if action in ('restore','deploy') else 60 if action=='reboot_original' else 6
         return super().call(action,transport_timeout=min(transport_timeout,maximum,self.deadline-time.monotonic()),**args)
 
 def execute(manifest,artifacts,root,inspector,native,checkpoint_path,case,*,backend_factory=BoundedBackend,
-            remote_factory=RemoteAdapters,clock=time.monotonic,fixture_roles='engineering'):
+            remote_factory=RemoteAdapters,clock=time.monotonic,fixture_roles='engineering',owned_loss=False):
+    require(type(owned_loss) is bool and (not owned_loss or case in ('network','pending-tls')),'owned offline loss is explicit network/pending only')
     require(fixture_roles=='engineering','readiness target AP proof requires engineering radio roles')
     checkpoint=accepted_checkpoint(Path(checkpoint_path),case,inspector)
     identity=uuid.uuid4().hex;roles=role_map(fixture_roles,identity)
@@ -140,13 +184,13 @@ def execute(manifest,artifacts,root,inspector,native,checkpoint_path,case,*,back
     binding=hashlib.sha256(json.dumps(manifest,sort_keys=True,separators=(',',':')).encode()).hexdigest()
     private_write(root/'campaign-config.json',dict(campaign_id=identity,manifest_sha256=binding,source_commit=manifest['source_commit'],
         max_seconds=TOTAL_SECONDS,max_body_seconds=BODY_SECONDS,case=case,checkpoint_sha256=checkpoint['sha256'],
-        checkpoint_result_sha256=checkpoint['original_result_sha256'],valid_saves=0,rf_jobs=0,fixture_roles=roles))
+        checkpoint_result_sha256=checkpoint['original_result_sha256'],valid_saves=0,rf_jobs=0,fixture_roles=roles,owned_loss=owned_loss))
     def event(kind,**args):
         try:ledger.record(kind,**args)
         except BaseException as error:host_cleanup.append(dict(scope='ledger:'+kind,error_type=type(error).__name__))
     try:
         with tranche_deadline(BODY_SECONDS):
-            safe_info(backend.setup(),manifest['source_commit'][:12],0,False)
+            before=backend.setup();safe_info(before,manifest['source_commit'][:12],0,False)
             baseline=backend.snapshot('baseline.bin')
             private_write(root/'baseline-receipt.json',dict(path='baseline.bin',sha256=baseline['sha256'],manifest_sha256=binding))
             private_write(root/'manifest.json',manifest);private_write(root/'fixture-roles.json',roles)
@@ -156,23 +200,30 @@ def execute(manifest,artifacts,root,inspector,native,checkpoint_path,case,*,back
             seed=prepare_pending(checkpoint,root/'pending-fixture',inspector,native) if case=='pending-tls' else checkpoint
             profile=strict(seed['inspection']['profile_payload']);network=profile['network']
             inputs.update(stage_network(root,remote,network))
-            remote.stage(seed['path'],'checkpoint.bin');saved=dict(path='checkpoint.bin',sha256=seed['sha256'],inspection=seed['inspection'])
-            deployed=backend.restore(saved,'checkpoint-deployment.bin');private_write(root/'checkpoint-deployment.json',deployed)
+            checkpoint_digest=remote.stage(seed['path'],'checkpoint.bin')
+            if owned_loss:require(checkpoint_digest==seed['sha256'],'same staged checkpoint digest before preactivation')
+            saved=dict(path='checkpoint.bin',sha256=seed['sha256'],inspection=seed['inspection'])
             request=dict(root=backend.remote,authority='USER_AUTHORIZED_UNATTENDED_PHASE12',roles_sha256=roles['sha256'],
                 manifest_sha256=sha(root/'manifest.json'),network_sha256=inputs['readiness-network.json'],
                 populated_network_sha256=inputs['populated-network.json'],source_commit=manifest['source_commit'],
-                case=case,generation=seed['inspection']['profile_sequence'],boot_id=deployed['info']['status']['boot_id'],
-                station=profile['station'],time_server=network['time_server'],suffix=deployed['info']['local_suffix'])
+                case=case,generation=seed['inspection']['profile_sequence'],
+                station=profile['station'],time_server=network['time_server'],owned_loss=owned_loss)
+            if owned_loss:
+                inputs['checkpoint.bin']=sha(seed['path'])
+                request.update(checkpoint_sha256=seed['sha256'],prior_boot_id=before['status']['boot_id'],inputs=inputs)
+                private_write(root/'preboot-request.json',request)
+                deploy_after_ready(backend,remote,request,saved,clock=clock,deadline=started+BODY_SECONDS)
+            else:
+                deployed=backend.restore(saved,'checkpoint-deployment.bin');private_write(root/'checkpoint-deployment.json',deployed)
+                request.update(boot_id=deployed['info']['status']['boot_id'],suffix=deployed['info']['local_suffix'])
+            private_write(root/'readiness-request.json',request)
             body=remote.invoke('phase12_consumer_readiness_dispatch.py',request,timeout=min(330,BODY_SECONDS-(clock()-started)),keepalive=True)
             require(body['status']=='CONSUMER_READINESS_REVIEW_REQUIRED' and body['submit_attempts']==0 and body['rf_jobs']==0,'finite GET-only continuation')
+            if owned_loss:require(body['initial_activation_attempts']==1 and body['owned_down_attempts']==body['owned_up_attempts']==1 and body['activation_attempts']==2 and body['ap_ready_sha256']==request['ap_ready_sha256'],'one declared owned down/up and two total activations')
             names=('consumer-readiness-wire.jsonl','consumer-readiness-result.json','readiness-time-wire.jsonl','ntp-metrics.json',
                    'ntp-ready.json','ntp-pid.json','ntp-peer.json','ntp-stopped.json','readiness-alias-ready.json','readiness-alias-cleanup.json')
-            remote.collect(names)
-            result=read_json(root/'consumer-readiness-result.json')
-            time_proof=time_evidence(case,root,result)
-            observed=backend.snapshot('after-readiness.bin')
-            evaluation=assess(case,seed,observed,private_read(seed['path'],SIZE),private_read(root/observed['path'],SIZE),result,root)
-            evaluation['time_evidence']=time_proof
+            if owned_loss:names+=('readiness-ap-ready-before-boot.json','owned-ap-beacon-readiness.json','readiness-station-down-attempt.json','readiness-station-down.json','readiness-station-up-attempt.json','readiness-station-up.json')
+            evaluation=completed_readiness_proofs(case,backend,remote,root,seed,private_read(seed['path'],SIZE),names)
             private_write(root/'readiness-assessment.json',evaluation);event('consumer_readiness_complete',assessment=evaluation)
     except BaseException as error:primary=dict(type=type(error).__name__,message=str(error));event('campaign_failed',error=primary)
     finally:
@@ -182,11 +233,18 @@ def execute(manifest,artifacts,root,inspector,native,checkpoint_path,case,*,back
                     for script,action,timeout in (('phase12_consumer_readiness_fixture.py','stop',35),('phase12_engineering_fixture.py','finish',45)):
                         try:remote.invoke(script,dict(root=backend.remote,authority='USER_AUTHORIZED_UNATTENDED_PHASE12',roles_sha256=roles['sha256'],action=action),timeout=timeout)
                         except BaseException as error:host_cleanup.append(dict(scope=script,error_type=type(error).__name__))
+                if staged and case=='pending-tls':
+                    try:remote.collect(PENDING_ARCHIVAL_NAMES)
+                    except BaseException as error:host_cleanup.append(dict(scope='pending_originals',error_type=type(error).__name__))
+                if staged and owned_loss:
+                    try:remote.collect(('consumer-readiness-wire.jsonl','readiness-ap-ready-before-boot.json','owned-ap-beacon-readiness.json','readiness-station-down-attempt.json','readiness-station-down.json','readiness-station-up-attempt.json','readiness-station-up.json'))
+                    except BaseException as error:host_cleanup.append(dict(scope='owned_loss_originals',error_type=type(error).__name__))
                 if baseline:
                     restoration=backend.restore(baseline,'final-restoration.bin')
                     remote.collect(('final-restoration.bin',));raw=private_read(root/'final-restoration.bin',SIZE)
                     require(hashlib.sha256(raw).hexdigest()==restoration['readback']['sha256'] and
                             raw[RESERVED:]==private_read(root/'baseline.bin',SIZE)[RESERVED:],'independent final reserved/E10 copy')
+                    if owned_loss:require(raw==private_read(root/'baseline.bin',SIZE),'exact whole baseline after owned offline loss')
                     role=next(c for c in manifest['candidates'] if c['role']=='restore');verify_image(raw,(Path(artifacts)/role['uf2']['path']).read_bytes())
                     restoration['stability']=backend.stable_restore(baseline,'final-stable-info.json')
                     event('final_restoration_pass',readback=restoration['readback'],stability=restoration['stability'])
@@ -203,10 +261,13 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('manifest','artifact-root','campaign','inspector','native','checkpoint'):parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--case',choices=CASES,required=True);parser.add_argument('--fixture-roles',choices=('engineering',),default='engineering')
-    parser.add_argument('--run',action='store_true');args=parser.parse_args();manifest=read_json(args.manifest);verify(manifest,args.artifact_root)
+    parser.add_argument('--owned-loss',action='store_true',help='network/pending only: preactivate AP, then one same-UUID offline loss cycle')
+    parser.add_argument('--run',action='store_true');args=parser.parse_args()
+    require(not args.owned_loss or args.case in ('network','pending-tls'),'owned offline loss is explicit network/pending only')
+    manifest=read_json(args.manifest);verify(manifest,args.artifact_root)
     checkpoint=accepted_checkpoint(args.checkpoint,args.case,args.inspector)
-    if not args.run:print(json.dumps(dict(status='VALIDATED_NO_DEVICE_ACTION',case=args.case,generation=checkpoint['inspection']['profile_sequence'],max_seconds=TOTAL_SECONDS,submit_attempts=0,rf_jobs=0)));return
+    if not args.run:print(json.dumps(dict(status='VALIDATED_NO_DEVICE_ACTION',case=args.case,generation=checkpoint['inspection']['profile_sequence'],max_seconds=TOTAL_SECONDS,owned_loss=args.owned_loss,submit_attempts=0,rf_jobs=0)));return
     os.umask(0o077);signal.signal(signal.SIGTERM,lambda *_:(_ for _ in ()).throw(KeyboardInterrupt('parent interrupted')))
-    result=execute(manifest,args.artifact_root,args.campaign,args.inspector,args.native,args.checkpoint,args.case,fixture_roles=args.fixture_roles)
+    result=execute(manifest,args.artifact_root,args.campaign,args.inspector,args.native,args.checkpoint,args.case,fixture_roles=args.fixture_roles,owned_loss=args.owned_loss)
     print(json.dumps(dict(status=result['status'],case=args.case,rf_jobs=0)));raise SystemExit(0 if result['status']=='CONSUMER_READINESS_COMPLETE_REVIEW_REQUIRED' else 1)
 if __name__=='__main__':main()

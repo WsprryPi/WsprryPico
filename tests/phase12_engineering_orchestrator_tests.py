@@ -606,4 +606,27 @@ class RadioComparisonTests(unittest.TestCase):
    with patch.object(sys,'argv',argv+['--scope','sessions','--fixture-roles','swapped']),patch.object(run,'read_json',side_effect=AssertionError('input')):
     with self.assertRaises(ValueError):run.main()
 
+class BoundParentTests(unittest.TestCase):
+    def test_actual_fresh_USB_bookends_bracket_discovery_and_refuse_drift(self):
+        import inspect,textwrap
+        source=inspect.getsource(run.execute);begin=source.index("        generation=counter(info['provisioning_generation']");end=source.index('        clearance_path=',begin)
+        block=compile(textwrap.dedent(source[begin:end]),'<actual execute discovery block>','exec')
+        info=dict(device_id=run.DEVICE,provisioning_source='unprovisioned',provisioning_generation=1,status=dict(boot_id='2'*32))
+        for drift in (False,True):
+            actions=[];fresh=dict(info,status=dict(boot_id='3'*32 if drift else '2'*32))
+            def read():actions.append('INFO');return fresh
+            def fixture(action,args):actions.append(action);self.assertEqual(args['expected_address'],'88:A2:9E:0A:9D:8A');return dict(address=args['expected_address'],matching_bound_addresses=1,selection_mode='bound_public_address',fresh_advertisement_proven=False)
+            namespace=dict(info=info,backend=SimpleNamespace(info=read),bound_ble_address='88:A2:9E:0A:9D:8A',root=Path('/inert'),counter=run.counter,private_write=MagicMock(),safe_info=MagicMock(),preparation=dict(source_commit='1'*40),require=run.require,DEVICE=run.DEVICE,fixture=fixture)
+            if drift:
+                with self.assertRaisesRegex(ValueError,'before discovery'):exec(block,namespace)
+                self.assertEqual(actions,['INFO'])
+            else:
+                exec(block,namespace);self.assertEqual(actions,['INFO','discover_ble','INFO']);self.assertEqual(namespace['private_write'].call_count,3)
+    def test_other_board_bound_address_refuses_before_any_backend_or_campaign(self):
+        with tempfile.TemporaryDirectory() as d,patch.object(run,'Backend',side_effect=AssertionError('no backend')):
+            target=Path(d)/'unstarted'
+            with self.assertRaisesRegex(ValueError,'explicit verified B address only'):
+                run.execute({}, {},Path(d),target,Path(d)/'native',{},fixture=lambda *a:None,provision=lambda *a:None,cases=lambda *a:None,bound_ble_address='88:A2:9E:0A:60:E0')
+            self.assertFalse(target.exists())
+
 if __name__=='__main__':unittest.main()

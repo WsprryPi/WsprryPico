@@ -95,6 +95,13 @@ class Tests(unittest.TestCase):
     def test_malformed_arguments(self):
         result=subprocess.run([FIXTURE,'--backup',str(self.files['backup'])],capture_output=True)
         self.assertNotEqual(result.returncode,0);self.assertFalse(self.files['output'].exists())
+    def test_reset_intent_refuses_without_actual_one_bond_runtime_checkpoint(self):
+        result=subprocess.run([FIXTURE,'--backup',str(self.files['backup']),
+            '--prepare-reset-intent','yes','--request-sha256','a'*64,
+            '--output',str(self.files['output'])],capture_output=True)
+        self.assertNotEqual(result.returncode,0);self.assertFalse(self.files['output'].exists())
+        self.assertEqual(self.files['backup'].read_bytes(),self.original)
+        self.assertNotIn(b'private-test-password',result.stdout+result.stderr)
     def test_rollover_preparation_uses_unchanged_disabled_config_and_preserves_other_regions(self):
         self.assertEqual(self.run_tool().returncode,0)
         seeded=self.files['output'].read_bytes();self.files['output'].unlink();self.write('backup',seeded)

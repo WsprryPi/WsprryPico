@@ -452,20 +452,31 @@ class ApplicationResourceTests(unittest.TestCase):
         with self.assertRaises(ValueError):run.busy_application_resources(late,baseline,self.plan,lambda:None,self.emit,clock=lambda:now[0])
         self.assertEqual(sum(k=='application_busy_unchanged' for k,_ in self.events),0)
 class ApplicationHTTPTests(unittest.TestCase):
-    def exchange(self,raw,*,late=False):
-        events=[];sent=[];now=[0]
+    def exchange(self,raw,*,late=False,port=443,chunks=None,times=None,log_error=None,close_error=None,no_eof=False):
+        events=[];sent=[];now=[0];raw_chunks=list(chunks if chunks is not None else [raw])
         class Stream:
-            closed=False
+            closed=False;reads=0
             def settimeout(self,value):pass
             def sendall(self,value):sent.append(value)
             def recv(self,size):
                 if late:now[0]=4
-                if raw_chunks:return raw_chunks.pop(0)
+                if times:now[0]=times[min(self.reads,len(times)-1)]
+                self.reads+=1
+                if raw_chunks:
+                    value=raw_chunks.pop(0)
+                    if isinstance(value,BaseException):raise value
+                    return value
+                if no_eof:raise TimeoutError('EOF has not arrived')
                 return b''
-            def close(self):self.closed=True
-        stream=Stream();raw_chunks=[raw]
-        evidence=SimpleNamespace(record=lambda k,v:events.append((k,v)))
-        args=SimpleNamespace(hostname='wsprrypico.test',port=443)
+            def close(self):
+                self.closed=True
+                if close_error:raise close_error
+        stream=Stream()
+        def record(kind,value):
+            events.append((kind,value))
+            if log_error and kind=='private_application_https_finish':raise log_error
+        evidence=SimpleNamespace(record=record)
+        args=SimpleNamespace(hostname='wsprrypico.test',port=port)
         def invoke():
             with patch.object(run,'connect',return_value=stream) as connect,patch.object(run,'context'),patch.object(run.time,'monotonic',side_effect=lambda:now[0]):
                 try:return run.resource_http(args,evidence,'PUT','/api/v1/station',{'target':'known'},'"'+'a'*64+'"')
@@ -478,8 +489,8 @@ class ApplicationHTTPTests(unittest.TestCase):
         self.assertEqual(invoke(),(409,{'error':{'code':'busy'}},'"'+'a'*64+'"'))
         self.assertTrue(stream.closed);self.assertEqual(len(sent),1)
         self.assertIn(b'If-Match: "'+b'a'*64+b'"\r\n',sent[0])
-        self.assertEqual(bytes.fromhex(events[0][1]['hex']),sent[0])
-        self.assertEqual(bytes.fromhex(events[1][1]['hex']),raw)
+        self.assertEqual(bytes.fromhex(next(v for k,v in events if k=='private_application_https_tx')['hex']),sent[0])
+        self.assertEqual(bytes.fromhex(next(v for k,v in events if k=='private_application_https_rx')['hex']),raw)
     def test_incomplete_extra_or_chunked_response_never_qualifies(self):
         for headers,body in ((b'Content-Length: 3',b'{}'),(b'Content-Length: 2',b'{}x'),
                 (b'Content-Length: 2\r\nContent-Length: 3',b'{}'),
@@ -491,7 +502,8 @@ class ApplicationHTTPTests(unittest.TestCase):
                 invoke,stream,sent,events=self.exchange(b'HTTP/1.1 200 OK\r\n'+headers+b'\r\n\r\n'+body)
                 with self.assertRaises(ValueError):invoke()
                 self.assertTrue(stream.closed);self.assertEqual(len(sent),1)
-                self.assertEqual(len(events),2)
+                self.assertEqual(sum(k=='private_application_https_tx' for k,_ in events),1)
+                self.assertEqual(sum(k=='private_application_https_finish' for k,_ in events),1)
     def test_duplicate_json_or_expired_transport_never_retries(self):
         body=b'{"x":1,"x":2}'
         raw=b'HTTP/1.1 200 OK\r\nContent-Length: '+str(len(body)).encode()+b'\r\n\r\n'+body
@@ -500,6 +512,48 @@ class ApplicationHTTPTests(unittest.TestCase):
                 invoke,stream,sent,events=self.exchange(raw,late=late)
                 with self.assertRaises(ValueError):invoke()
                 self.assertTrue(stream.closed);self.assertEqual(len(sent),1)
+    def test_complete_content_length_does_not_wait_for_eof(self):
+        raw=b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}'
+        invoke,stream,sent,events=self.exchange(raw,no_eof=True)
+        self.assertEqual(invoke(),(200,{},None));self.assertEqual(stream.reads,1)
+        self.assertTrue(stream.closed);self.assertEqual(len(sent),1)
+        self.assertEqual(next(v for k,v in events if k=='private_application_https_finish')['phase'],'complete')
+    def test_default_and_nondefault_ports_send_canonical_authority(self):
+        raw=b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}'
+        for port,authority in ((443,'wsprrypico.test'),(8443,'wsprrypico.test:8443')):
+            with self.subTest(port=port):
+                invoke,stream,sent,events=self.exchange(raw,port=port)
+                invoke();self.assertIn(('Host: '+authority+'\r\n').encode(),sent[0])
+                self.assertIn(('Origin: https://'+authority+'\r\n').encode(),sent[0])
+                self.assertEqual(len(sent),1);self.assertTrue(stream.closed)
+    def test_fragmented_complete_body_has_exact_original_and_no_eof_read(self):
+        raw=b'HTTP/1.1 200 OK\r\nContent-Length: 11\r\n\r\n{"ok":true}'
+        chunks=[raw[:9],raw[9:-3],raw[-3:]]
+        invoke,stream,sent,events=self.exchange(raw,chunks=chunks,no_eof=True)
+        self.assertEqual(invoke(),(200,{'ok':True},None));self.assertEqual(stream.reads,3)
+        self.assertEqual(bytes.fromhex(next(v for k,v in events if k=='private_application_https_rx')['hex']),raw)
+    def test_partial_reply_preserves_first_error_through_logger_and_close(self):
+        raw=b'HTTP/1.1 200 OK\r\nContent-Length: 11\r\n\r\n{"ok"'
+        original=TimeoutError('original partial receive timeout')
+        invoke,stream,sent,events=self.exchange(raw,chunks=[raw,original],
+            log_error=OSError('evidence write failed'),close_error=RuntimeError('close failed'))
+        with self.assertRaises(TimeoutError) as caught:invoke()
+        self.assertIs(caught.exception,original);self.assertTrue(stream.closed);self.assertEqual(len(sent),1)
+        final=next(v for k,v in events if k=='private_application_https_finish')
+        self.assertEqual(bytes.fromhex(final['hex']),raw);self.assertEqual(final['phase'],'receive')
+        self.assertEqual(final['error_type'],'TimeoutError')
+    def test_complete_response_at_original_deadline_cannot_qualify(self):
+        raw=b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}'
+        for at in (2.999,3,3.001):
+            with self.subTest(at=at):
+                invoke,stream,sent,events=self.exchange(raw,times=[at])
+                if at<3:self.assertEqual(invoke(),(200,{},None))
+                else:
+                    with self.assertRaises(ValueError):invoke()
+                self.assertTrue(stream.closed);self.assertEqual(len(sent),1)
+                final=next(v for k,v in events if k=='private_application_https_finish')
+                self.assertEqual(final['deadline_s'],3);self.assertEqual(final['bytes'],len(raw))
+
 class FramingWitnessTests(unittest.TestCase):
     def test_partial_advisory_requires_fresh_endpoint_close_and_actual_peer_close(self):
         headers=struct.pack('>4sBBHII',b'WTPF',1,1,0,65537,0)*3

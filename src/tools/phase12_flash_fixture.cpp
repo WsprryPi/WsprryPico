@@ -1,6 +1,7 @@
 // Offline fixture construction through production journals. Never accesses a device.
 #include "provisioning/access.hpp"
 #include "provisioning/consumer_profile.hpp"
+#include "provisioning/reset.hpp"
 #include "provisioning/storage.hpp"
 #include "standalone/storage.hpp"
 
@@ -117,6 +118,25 @@ struct Operational : standalone::Flash {
         return m.program(o, b);
     }
 };
+// begin() only writes the durable intent. No reset effects are permitted here;
+// the separately deployed target consumes the intent before starting its stack.
+struct IntentTargets final : provisioning::ResetTargets {
+    provisioning::Activity activity() const override {
+        return {};
+    }
+    bool erase_operational() override {
+        return false;
+    }
+    bool operational_erased() const override {
+        return false;
+    }
+    bool erase_bonds() override {
+        return false;
+    }
+    bool bonds_erased() const override {
+        return false;
+    }
+};
 std::string text(const std::vector<std::uint8_t>& value) {
     return {value.begin(), value.end()};
 }
@@ -168,6 +188,66 @@ int main(int argc, char** argv) {
         check(argc >= 3 && argc % 2 == 1);
         for (int i = 1; i < argc; i += 2)
             check(args.emplace(argv[i], argv[i + 1]).second);
+        if (args.contains("--prepare-reset-intent")) {
+            check(args.size() == 4 && args.at("--prepare-reset-intent") == "yes" &&
+                  args.contains("--backup") && args.contains("--output") &&
+                  args.contains("--request-sha256"));
+            const auto& hex = args.at("--request-sha256");
+            check(hex.size() == 64 && std::all_of(hex.begin(), hex.end(), [](char c) {
+                      return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+                  }));
+            wtp::PayloadDigest digest{};
+            for (std::size_t i = 0; i < digest.size(); ++i) {
+                unsigned byte = 0;
+                const auto parsed =
+                    std::from_chars(hex.data() + 2 * i, hex.data() + 2 * i + 2, byte, 16);
+                check(parsed.ec == std::errc{} && parsed.ptr == hex.data() + 2 * i + 2);
+                digest[i] = static_cast<std::uint8_t>(byte);
+            }
+            auto bytes = read(args.at("--backup"), flash_size);
+            check(bytes.size() == flash_size);
+            const auto original = bytes;
+            Access access_media(bytes);
+            Profile profile_media(bytes);
+            Operational operational_media(bytes);
+            provisioning::AccessStore access(access_media);
+            provisioning::ProfileStore profiles(profile_media);
+            standalone::Store operational(operational_media);
+            check(access.load() && access.record() && !access.record()->reset.pending() &&
+                  !access.record()->ble_disabled && access.record()->bond_count == 1 &&
+                  profiles.load() &&
+                  profiles.source() == provisioning::ProfileSource::RuntimeProfile &&
+                  operational.load() && (!operational.config() || !operational.config()->enabled));
+            auto profile = provisioning::parse_profile(profiles.data());
+            check(profile && profile->device_id == device);
+            provisioning::scrub(*profile);
+            auto old = *access.record();
+            const auto sequence = access.sequence();
+            IntentTargets targets;
+            // The identity is unused by begin(); the target derives its own
+            // physical identity when it performs the later reset recovery.
+            provisioning::ResetCoordinator reset(access, profiles, targets, {});
+            check(reset.begin(provisioning::ResetLevel::Provisioning,
+                              provisioning::ProfileSource::Unprovisioned,
+                              digest) == provisioning::ResetResult::Pending);
+            provisioning::AccessStore verified(access_media);
+            check(verified.load() && verified.record() && verified.sequence() == sequence + 1);
+            auto actual = *verified.record();
+            check(actual.reset.level == provisioning::ResetLevel::Provisioning &&
+                  actual.reset.phase == provisioning::ResetPhase::Intent &&
+                  actual.reset.target_source == provisioning::ProfileSource::Unprovisioned &&
+                  actual.reset.request_digest == digest);
+            actual.reset = old.reset;
+            check(actual == old &&
+                  std::equal(bytes.begin(), bytes.begin() + 0x3f3000, original.begin()) &&
+                  std::equal(bytes.begin() + 0x3f5000, bytes.end(), original.begin() + 0x3f5000));
+            provisioning::scrub(actual);
+            provisioning::scrub(old);
+            publish(args.at("--output"), bytes);
+            std::cout << "{\"status\":\"OFFLINE_PROVISIONING_RESET_INTENT_READY\","
+                         "\"reset_level\":2,\"reset_phase\":1,\"target_source\":2,\"rf_jobs\":0}\n";
+            return 0;
+        }
         if (args.contains("--enable-field-mode")) {
             check(args.size() == 3 && args.at("--enable-field-mode") == "yes" &&
                   args.contains("--backup") && args.contains("--output"));

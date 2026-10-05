@@ -180,8 +180,24 @@ def stop_ntp(root):
     require(not process.exists() or (root/'ntp-stopped.json').exists(),'server stop unconfirmed')
 
 
-def discover(name, root=None):
+def discovery_selection(devices,name,expected_address=None):
+    from wsprrypico_ble import UUIDS,normalize_address
+    service=lambda v:UUIDS['service'] in [str(u).lower() for u in v.get('UUIDs',[])]
+    named=[v for v in devices if str(v.get('Name',''))==name and service(v)]
+    if expected_address is None:return named
+    require(normalize_address(expected_address)=='88:A2:9E:0A:9D:8A' and name=='WsprryPico-0a9d89','explicit verified B discovery address/name')
+    require(all(normalize_address(str(v.get('Address','')))==expected_address for v in named),'distinct named address ambiguity')
+    selected=[v for v in devices if str(v.get('Address','')).upper()==expected_address and service(v)]
+    require(len(selected)<=1,'duplicate bound address ambiguity')
+    require(all(str(v.get('AddressType',''))=='public' for v in selected),'bound public address required')
+    return selected
+
+
+def discover(name, root=None, expected_address=None):
     from wsprrypico_ble import BluezBackend,UUIDS,normalize_address
+    if expected_address is not None:
+        expected_address=normalize_address(expected_address)
+        require(expected_address=='88:A2:9E:0A:9D:8A' and name=='WsprryPico-0a9d89','explicit verified B discovery address/name')
     backend=BluezBackend('hci0');objects=backend._objects()
     require(backend.adapter_path in objects,'adapter missing')
     adapter=backend.dbus.Interface(backend.bus.get_object(backend.BLUEZ,backend.adapter_path),backend.ADAPTER)
@@ -204,16 +220,15 @@ def discover(name, root=None):
             'UUIDs':backend.dbus.Array([backend.dbus.String(UUIDS['service'])],signature='s')})
         discovery_attempted=True
         adapter.StartDiscovery();deadline=time.monotonic()+15
-        retain('discovery_started',expected_name=name)
+        retain('discovery_started',expected_name=name,expected_address=expected_address,selection_mode='bound_public_address' if expected_address is not None else 'legacy_name',fresh_advertisement_proven=False)
         matches=[]
         while time.monotonic()<deadline:
             backend.pump(.2)
             devices=[dict(v[backend.DEVICE]) for p,v in backend._objects().items()
                      if p.startswith(backend.adapter_path+'/') and backend.DEVICE in v]
-            matches=[v for v in devices if str(v.get('Name',''))==name and
-                     UUIDS['service'] in [str(u).lower() for u in v.get('UUIDs',[])]]
+            matches=discovery_selection(devices,name,expected_address)
             candidates=[dict(address=str(v.get('Address','')),name_matches=str(v.get('Name',''))==name,
-                name_present=bool(v.get('Name')),service_matches=UUIDS['service'] in [str(u).lower() for u in v.get('UUIDs',[])],
+                name_present=bool(v.get('Name')),actual_name=str(v.get('Name','')),address_type=str(v.get('AddressType','')),object_provenance='cached_BlueZ_Device1_not_fresh_advertisement',service_matches=UUIDS['service'] in [str(u).lower() for u in v.get('UUIDs',[])],
                 paired=bool(v.get('Paired',False)),connected=bool(v.get('Connected',False)))
                 for v in devices if str(v.get('Name',''))==name or UUIDS['service'] in [str(u).lower() for u in v.get('UUIDs',[])]]
             retain('original_objects',device_count=len(devices),matching_count=len(matches),candidate_count=len(candidates),
@@ -222,7 +237,7 @@ def discover(name, root=None):
                 require(time.monotonic()<deadline,'fresh named BLE discovery deadline')
                 break
         require(len(matches)==1,'fresh named BLE candidate not unique')
-        result=dict(address=normalize_address(str(matches[0]['Address'])),matching_names=1)
+        result=dict(address=normalize_address(str(matches[0]['Address'])),matching_names=int(str(matches[0].get('Name',''))==name),matching_bound_addresses=1 if expected_address is not None else None,actual_name=str(matches[0].get('Name','')),selection_mode='bound_public_address' if expected_address is not None else 'legacy_name',fresh_advertisement_proven=False)
         retain('discovery_candidate',**result)
     except BaseException as error:
         primary=error;retain('discovery_failed',error_type=type(error).__name__);raise
@@ -620,7 +635,7 @@ def _action(request,roles):
                     independent_beacon_verified=beacon is not None,bssid=ap['bssid'] if beacon is None else beacon['bssid'],frequency_mhz=2422 if beacon is None else beacon['frequency_mhz'])
     if operation=='discover_ble':
         require(request['expected_name']=='WsprryPico-0a9d89','exact B advertising name')
-        return discover(request['expected_name'],root)
+        return discover(request['expected_name'],root,request.get('expected_address'))
     if operation=='bind_peer':
         if (root/'fixture-ap-proof.json').exists():
             proof=strict((root/'target-ap-proof-warm.json').read_bytes());require(proof['status']=='TARGET_ASSOCIATION_VERIFIED' and proof['roles_sha256']==roles['sha256'] and proof['station_ipv4']==request['address'],'target proof required before responder binding')

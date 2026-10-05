@@ -74,9 +74,10 @@ def setup(source, boot, generation, address, profile, password, command, client,
         event({'action':'enrollment_opened'})
         bound()
         identity = client.connect(address, DEVICE, allow_pairing=True)
-        require(identity['device_id'] == DEVICE and identity['generation'] == generation,
+        require(identity['device_id'] == DEVICE and type(identity['generation']) is int and identity['generation'] == generation,
                 'BLE generation/device mismatch')
-        bound()
+        bound();guard(command('INFO'))
+        event({'action':'gatt_identity_verified_before_field_write','address':address,'device_id':identity['device_id'],'generation':identity['generation'],'usb_boot_id':boot,'fresh_advertisement_proven':False})
         client.authorize(password)
         bound()
         client.synchronize_time()
@@ -112,9 +113,10 @@ class RecordedBackend(BluezBackend):
     def _async(self,interface,method,timeout,code,*arguments):
         self._diagnostic_sink=self.emit
         return super()._async(interface,method,timeout,code,*arguments)
-    def prepare_new_pair(self,address):
+    def prepare_new_pair(self,address,expected_address=None):
         require(self.adapter_path=='/org/bluez/hci0' and
                 normalize_address(address)=='88:A2:9E:0A:9D:8A','exact B host pairing cache')
+        if expected_address is not None:require(normalize_address(expected_address)==address=='88:A2:9E:0A:9D:8A','explicit verified B pairing address')
         path=self.adapter_path+'/dev_'+address.upper().replace(':','_')
         objects=self._objects();properties=objects.get(path,{}).get(self.DEVICE)
         if properties is None:
@@ -122,12 +124,12 @@ class RecordedBackend(BluezBackend):
             return
         require(str(properties.get('Address','')).upper()==address and
                 str(properties.get('AddressType',''))=='public' and
-                str(properties.get('Name',''))=='WsprryPico-0a9d89' and
+                (expected_address is not None or str(properties.get('Name',''))=='WsprryPico-0a9d89') and
                 UUIDS['service'] in [str(v).lower() for v in properties.get('UUIDs',[])],
                 'exact previously identified B host peer')
         require(not bool(properties.get('Connected',True)),'connected host peer cannot be removed')
         before={key:bool(properties[key]) for key in ('Paired','Bonded','Connected','ServicesResolved') if key in properties}
-        self.emit({'kind':'fresh_host_peer_before','address':address,'path':path,'properties':before})
+        self.emit({'kind':'fresh_host_peer_before','address':address,'path':path,'properties':before,'actual_name':str(properties.get('Name','')),'address_type':str(properties.get('AddressType','')),'service_uuids':[str(v) for v in properties.get('UUIDs',[])],'selection_mode':'bound_public_address' if expected_address is not None else 'legacy_name','fresh_advertisement_proven':False})
         self.emit({'kind':'one_host_peer_removal_attempt','path':path})
         adapter=self.dbus.Interface(self.bus.get_object(self.BLUEZ,self.adapter_path),self.ADAPTER)
         self._async(adapter,'RemoveDevice',10,'host_peer_removal_failed',self.dbus.ObjectPath(path))
@@ -184,6 +186,7 @@ def main():
     p.add_argument('--generation', type=int, required=True)
     p.add_argument('--address', required=True)
     p.add_argument('--adapter', default='hci0')
+    p.add_argument('--bound-ble-address',choices=('88:A2:9E:0A:9D:8A',))
     p.add_argument('--console', required=True)
     p.add_argument('--profile', type=Path, required=True)
     p.add_argument('--profile-sha256', required=True)
@@ -196,6 +199,7 @@ def main():
     if not a.run: p.error('explicit --run and separately authorized setup required')
     require(a.console == CONSOLE, 'exact B console required')
     address = normalize_address(a.address)
+    require(a.bound_ble_address is None or a.bound_ble_address==address,'bound GATT target address')
     raw = private_bytes(a.profile, 7168)
     require(re.fullmatch('[0-9a-f]{64}', a.profile_sha256) and
             hashlib.sha256(raw).hexdigest() == a.profile_sha256, 'exact profile hash required')
@@ -237,7 +241,7 @@ def main():
             try:
                 result = setup(a.source_commit, a.boot_id, a.generation, address,
                                profile, password, console, client, event=emit,
-                               prepare_pair=client.backend.prepare_new_pair)
+                               prepare_pair=lambda target:client.backend.prepare_new_pair(target,expected_address=a.bound_ble_address))
                 emit(result)
             except Exception as error:
                 emit({'status':'STOPPED_RESULT_UNKNOWN_NO_RETRY', 'error_type':type(error).__name__,

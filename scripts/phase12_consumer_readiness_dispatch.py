@@ -13,6 +13,7 @@ from phase12_fixture_roles import load_roles
 from phase12_recovery_device import strict,require
 from phase12_serial_observer import Observer
 from check_standalone_image import validate_uf2
+from phase12_consumer_readiness_ap import reuse,station_cycle,offline_info,controlled_loss
 
 def load_network(root,request):
     """Both production readers must consume the exact parent-staged bytes."""
@@ -27,6 +28,8 @@ def load_network(root,request):
     return network
 
 def run(request):
+    owned_loss=request.get('owned_loss',False)
+    require(type(owned_loss) is bool and (not owned_loss or request['case'] in ('network','pending-tls')),'owned offline loss is explicit network/pending only')
     require(request['authority']=='USER_AUTHORIZED_UNATTENDED_PHASE12','readiness authority')
     root=Path(request['root']);require(re.fullmatch('/home/pi/phase12-recovery-[0-9a-f]{32}',str(root)) and root.is_dir() and not root.is_symlink(),'private readiness root')
     roles=load_roles(root);require(roles['selection']=='engineering' and request['roles_sha256']==roles['sha256'],
@@ -39,9 +42,10 @@ def run(request):
             candidate['session_deadline_fixture'] is False and candidate['lan_mode']=='plain' and
             hashlib.sha256(image).hexdigest()==candidate['uf2']['sha256'],'ordinary inhibited image binding')
     network=load_network(root,request)
+    preactivated=reuse(request) if owned_loss else None
     evidence=Evidence(root/'consumer-readiness-wire.jsonl');observer=Observer();http=HTTP();http.interface=roles['observer']
     before_management=management();before_identity=management_identity();name='p12-observer-'+root.name.rsplit('-',1)[1];ssid='WsprryPico-'+request['suffix']
-    deadline=time.monotonic()+300;created=False;fixture_attempted=False;alias_attempted=False
+    deadline=preactivated['deadline_monotonic_s'] if owned_loss else time.monotonic()+300;created=False;fixture_attempted=owned_loss;alias_attempted=False
     def info():
         started=time.monotonic_ns();value,raw=observer();ended=time.monotonic_ns()
         require(strict(raw)==value,'original readiness INFO bytes');bound_info(value,request)
@@ -58,10 +62,22 @@ def run(request):
     def enable_time():
         nonlocal fixture_attempted,alias_attempted
         fixture_attempted=True
-        receipt=fixture_action(dict(root=str(root),authority=request['authority'],action='start_ap',
-            interface=roles['host_ap'],proof_mode='target',ssid=network['ssid'],password=network['password'],time_server='192.168.84.1'))
-        evidence.record('owned_station_carrier_start',receipt=receipt)
         until=min(deadline,time.monotonic()+130)
+        if owned_loss:
+            require(not (root/'readiness-time-enable-attempt.json').exists(),'one time enable never replayed')
+            offline_info(request,info,until)
+            with (root/'readiness-time-enable-attempt.json').open('x') as marker:
+                os.chmod(marker.name,0o600);json.dump(dict(attempts=1,ap_ready_sha256=request['ap_ready_sha256']),marker)
+            resumed=station_cycle(request,'up',evidence,until)
+            offline_info(request,info,until)
+            evidence.record('owned_station_carrier_reused',ap_ready_sha256=request['ap_ready_sha256'],
+                initial_activation_attempts=1,down_attempts=1,up_attempts=1,activation_attempts=2,
+                connection_uuid=resumed['connection_uuid'])
+        else:
+            receipt=fixture_action(dict(root=str(root),authority=request['authority'],action='start_ap',
+                interface=roles['host_ap'],proof_mode='target',ssid=network['ssid'],password=network['password'],time_server='192.168.84.1'))
+            evidence.record('owned_station_carrier_start',receipt=receipt)
+            until=min(deadline,time.monotonic()+130)
         while True:
             require(time.monotonic()<until,'readiness original station association deadline');value=info()
             if value['network']['link_status']==3:
@@ -83,12 +99,23 @@ def run(request):
         owned.write_text(json.dumps(dict(name=name)));owned.chmod(0o600);created=True
         command('sudo','-n','nmcli','connection','add','type','wifi','ifname',roles['observer'],'con-name',name,'ssid',ssid,
             'connection.autoconnect','no','ipv4.method','manual','ipv4.addresses','192.168.4.3/24','ipv4.never-default','yes','ipv6.method','disabled')
-        associate_observer(name,ssid,min(deadline,time.monotonic()+110),evidence,interface=roles['observer'])
+        if owned_loss:
+            association_end=min(deadline,time.monotonic()+110)
+            offline_info(request,info,association_end)
+            station_cycle(request,'down',evidence,association_end)
+            controlled_loss(request,info,evidence,association_end)
+            associate_observer(name,ssid,association_end,evidence,interface=roles['observer'])
+            offline=offline_info(request,info,association_end)
+            require(offline['network']['link_status']!=3,'same offline loss after actual B AP association')
+        else:associate_observer(name,ssid,min(deadline,time.monotonic()+110),evidence,interface=roles['observer'])
         require(management()[1]==before_management[1] and management_identity()==before_identity,'management default routes/identities unchanged')
         result=exercise(request,info,public_status,enable_time,evidence,deadline=deadline)
+        if owned_loss:result.update(ap_ready_sha256=request['ap_ready_sha256'],ap_ready_before_boot=True,initial_activation_attempts=1,owned_down_attempts=1,owned_up_attempts=1,activation_attempts=2)
         private=root/'consumer-readiness-result.json';private.write_text(json.dumps(result)+'\n');private.chmod(0o600)
-        return dict(status=result['status'],case=request['case'],generation=result['generation'],boot_id=result['boot_id'],
+        response=dict(status=result['status'],case=request['case'],generation=result['generation'],boot_id=result['boot_id'],
                     public_ready_observed=result['public_ready_observed'],submit_attempts=0,rf_jobs=0)
+        if owned_loss:response.update({key:result[key] for key in ('ap_ready_sha256','ap_ready_before_boot','initial_activation_attempts','owned_down_attempts','owned_up_attempts','activation_attempts')})
+        return response
     finally:
         primary=sys.exc_info()[1]
         for label,callback in (('alias',lambda:alias('stop') if alias_attempted else None),

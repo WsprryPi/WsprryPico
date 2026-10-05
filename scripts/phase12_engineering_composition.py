@@ -88,14 +88,22 @@ def wave_job(job):
 
 
 def resource_http(args, evidence, method, path, body=None, revision=None, *, deadline=None):
-    """One exact TLS/HTTPS exchange, retaining original private request/reply bytes."""
+    """One strictly framed TLS/HTTPS exchange inside the original three seconds."""
     require(method in ('GET','PUT') and path in ('/api/v1/application','/api/v1/config',
             '/api/v1/station','/api/v1/hardware'),'bounded application route')
     require(revision is None or re.fullmatch('"[0-9a-f]{64}"',revision),'canonical revision')
-    deadline=min(deadline if deadline is not None else time.monotonic()+3,time.monotonic()+3)
-    stream=connect(args,context(args,True),'http/1.1',evidence,observer_deadline=deadline)
+    started=time.monotonic()
+    deadline=min(deadline if deadline is not None else started+3,started+3)
+    raw=bytearray();stream=None;primary=None;result=None;phase='connect'
+    marks={'started_s':started,'deadline_s':deadline}
     try:
-        authority=args.hostname+':'+str(args.port)
+        evidence.record('private_application_https_attempt',dict(method=method,path=path,**marks))
+        marks['context_started_s']=time.monotonic();ctx=context(args,True)
+        marks['context_finished_s']=time.monotonic();require(marks['context_finished_s']<deadline,'application context deadline')
+        marks['connect_started_s']=time.monotonic()
+        stream=connect(args,ctx,'http/1.1',evidence,observer_deadline=deadline)
+        marks['tls_finished_s']=time.monotonic();require(marks['tls_finished_s']<deadline,'application TLS deadline')
+        authority=args.hostname+('' if args.port==443 else ':'+str(args.port))
         payload=b'' if body is None else json.dumps(body,separators=(',',':')).encode()
         require(len(payload)<=1024,'application request bound')
         headers=(f'{method} {path} HTTP/1.1\r\nHost: {authority}\r\n'
@@ -103,31 +111,57 @@ def resource_http(args, evidence, method, path, body=None, revision=None, *, dea
                  'X-WsprryPico-Request: 1\r\nConnection: close\r\n'+
                  (f'If-Match: {revision}\r\n' if revision is not None else '')+
                  f'Content-Length: {len(payload)}\r\n\r\n').encode()
-        wire=headers+payload
+        wire=headers+payload;phase='send'
         evidence.record('private_application_https_tx',dict(method=method,path=path,hex=wire.hex()))
-        remaining=deadline-time.monotonic();require(remaining>0,'application send deadline')
+        marks['send_started_s']=time.monotonic();remaining=deadline-marks['send_started_s'];require(remaining>0,'application send deadline')
         stream.settimeout(remaining);stream.sendall(wire)
-        raw=bytearray()
+        marks['send_finished_s']=time.monotonic();require(marks['send_finished_s']<deadline,'application send completion deadline')
+        phase='receive';response=None;expected=None
         while True:
             remaining=deadline-time.monotonic();require(remaining>0,'application reply deadline')
             stream.settimeout(remaining);chunk=stream.recv(4096)
-            if not chunk:break
-            raw.extend(chunk);require(len(raw)<=6144,'application response bound')
+            raw.extend(chunk)
+            require(len(raw)<=6144,'application response bound')
+            marks['last_receive_s']=time.monotonic();require(marks['last_receive_s']<deadline,'application reply completion deadline')
+            if response is None and b'\r\n\r\n' in raw:
+                header,_,_=bytes(raw).partition(b'\r\n\r\n')
+                class Buffered:
+                    def makefile(self,mode):return io.BytesIO(header+b'\r\n\r\n')
+                response=http.client.HTTPResponse(Buffered());response.begin()
+                lengths=[value for name,value in response.getheaders() if name.lower()=='content-length']
+                transfers=[value for name,value in response.getheaders() if name.lower()=='transfer-encoding']
+                require(len(lengths)==1 and re.fullmatch('0|[1-9][0-9]*',lengths[0]) and not transfers,
+                        'single canonical application content length')
+                require(not response.chunked and response.length==int(lengths[0]) and response.length<=4096,
+                        'bounded exact application content length')
+                expected=len(header)+4+response.length
+            if expected is not None:
+                require(len(raw)<=expected,'application response trailer/extra bytes')
+                if len(raw)==expected:break
+            require(chunk,'incomplete application response')
+        phase='parse'
         evidence.record('private_application_https_rx',dict(method=method,path=path,hex=raw.hex()))
-        class Buffered:
-            def makefile(self,mode):return io.BytesIO(raw)
-        response=http.client.HTTPResponse(Buffered());response.begin()
-        _,separator,raw_body=bytes(raw).partition(b'\r\n\r\n')
-        lengths=[value for name,value in response.getheaders() if name.lower()=='content-length']
-        transfers=[value for name,value in response.getheaders() if name.lower()=='transfer-encoding']
-        require(len(lengths)==1 and re.fullmatch('0|[1-9][0-9]*',lengths[0]) and not transfers,
-                'single canonical application content length')
-        require(separator and not response.chunked and response.length==int(lengths[0]) and
-                response.length<=4096 and len(raw_body)==response.length,
-                'exact application content length')
-        payload=response.read(4097);require(len(payload)<=4096,'application body budget')
-        return response.status,loads_strict(payload.decode()),response.getheader('ETag')
-    finally:stream.close()
+        payload=bytes(raw).split(b'\r\n\r\n',1)[1]
+        result=(response.status,loads_strict(payload.decode()),response.getheader('ETag'))
+        require(time.monotonic()<deadline,'application parse deadline')
+        phase='complete'
+    except BaseException as error:primary=error
+    finally:
+        # Keep the bounded original, including partial bytes, before reporting
+        # failure. Evidence/close failure cannot replace the first error.
+        try:
+            evidence.record('private_application_https_finish',dict(method=method,path=path,phase=phase,
+                hex=bytes(raw[:6144]).hex(),bytes=len(raw),truncated=len(raw)>6144,error_type=type(primary).__name__ if primary else None,
+                finished_s=time.monotonic(),**marks))
+        except BaseException as error:
+            if primary is None:primary=error
+        try:
+            if stream is not None:stream.close()
+        except BaseException as error:
+            if primary is None:primary=error
+    if primary is not None:raise primary
+    require(time.monotonic()<deadline,'application final completion deadline')
+    return result
 
 
 def application_readback(http,plan,*,deadline=None):
