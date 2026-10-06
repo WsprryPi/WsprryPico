@@ -1211,6 +1211,25 @@ void runtime_policy() {
     CHECK(!led.writes.back());
     CHECK(indicator.identify("disabled", device, true, true, 11'300) ==
           provisioning::IndicatorCode::Invalid);
+
+    Led failed_led;
+    failed_led.result = false;
+    provisioning::IndicatorController failed_indicator(failed_led, std::string(device));
+    failed_indicator.softap_ready(true);
+    failed_indicator.poll(0);
+    CHECK(failed_indicator.status(0).output_fault);
+    CHECK(!failed_indicator.status(0).output_on);
+    CHECK(failed_indicator.status(0).pattern == provisioning::IndicatorPattern::SoftApReady);
+    failed_indicator.poll(100);
+    CHECK(failed_led.writes.size() == 2); // An unverified write is retried, not cached as success.
+    failed_led.result = true;
+    failed_indicator.poll(100);
+    CHECK(failed_indicator.status(100).output_on);
+    CHECK(failed_indicator.status(100).output_fault); // Recovery does not hide the latched failure.
+    failed_indicator.softap_ready(false);
+    failed_indicator.poll(101);
+    CHECK(!failed_indicator.status(101).output_on);
+    CHECK(failed_indicator.status(101).pattern == provisioning::IndicatorPattern::Off);
 }
 
 void button_action_policy() {

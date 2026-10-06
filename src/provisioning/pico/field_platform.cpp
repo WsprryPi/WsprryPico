@@ -97,8 +97,7 @@ bool PicoIndicatorOutput::write(bool on) {
         gpio_put(gp, on == pins_.indicator_active_high);
         return true;
     }
-    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, on);
-    return true;
+    return cyw43_gpio_set(&cyw43_state, CYW43_WL_GPIO_LED_PIN, on) == 0;
 }
 
 namespace {

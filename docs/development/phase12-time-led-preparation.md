@@ -1,10 +1,28 @@
 # Phase 12 time and indicator cases
 
-Status: **PREPARED SPECIMENS / NOT AUTHORIZED / NOT EXECUTED**. Use the clean
+Status: historical time specimens remain **PREPARED / NOT EXECUTED**. The current
+LED execution checkpoint and authorized L4 packet below supersede this earlier
+preparation boundary for LED work only. For historical time specimens use the clean
 `engineering` inhibited candidate in the exact manifest, Candidate B only,
 and separately approved engineering credentials/controllers. No RF, flash,
 reset or system-clock alteration is authorized here. These cases use the
 existing Field-GATT/1 exchange and WTP/1 simulator, not firmware fault commands.
+
+## Current LED checkpoint — 2026-10-06
+
+A at `6c7b143` passes the current two-flash setup cue and Identify priority/
+nonextension: one accepted request, one competing busy response and one exact
+accepted duplicate, with unchanged boot, profile and job state. The operator's
+240 fps recording confirms five three-flash cycles, 150–158 ms pulses and
+roughly two-second periods, followed by the two-flash setup cue. Only the
+success summary is retained in the repository; no video or derived frames.
+
+The operator now has GP14 buttons on both Picos and selects direct visual
+observations for future LED checks. Further videos are not required. LED off after
+setup withdrawal is also operator-confirmed for five seconds. The
+[success record](phase12-led-physical-result.json) retains only these results.
+The checked-output failure test retains its own scope. Exact GP14 edge timing
+during erase/program remains a separate measurement or evidence-backed disposition.
 
 ## Verified surfaces and constants
 
@@ -121,12 +139,12 @@ TLS field transport or an ordinary quiet-soak interval.
 
 ## Independent indicator timing
 
-Use one independently timed video/photodetector record at **>=100 samples/s**,
-with a recorded uncertainty budget of at most20ms for each edge. The target
-pattern constants are desired timings, not already qualified physical timing.
-Propose acceptance: each150ms pulse within20ms and two-second repetition within
-40ms, separately report actual error and capture resolution. Changing these
-proposed tolerances needs explicit review before measurement.
+The earlier proposed video/photodetector requirement was used for the accepted
+2026-10-06 recording. Its pulse/period tolerances were 20/40 ms, with 4.17 ms
+capture resolution and a conservative two-frame measurement allowance. The
+operator has now selected live visual observation for subsequent Phase 12 LED
+checks; further recordings are not required. Use the current waveform and
+report only the physical behavior actually observed.
 
 | Case | Finite stimulus and expected desired waveform |
 | --- | --- |
@@ -140,12 +158,42 @@ and `indicator_fault`. INFO/status before/after prove no jobs or leases changed.
 Each case <=5min; ordinary Identify CLI can demonstrate L1/L2 onset but a
 same-session protocol driver is required for exact duplicate/nonextension.
 
-**Fault cue remains a separate preparation gate.** `IndicatorController`
-exposes an output-fault latch, not a distinct blinking fault pattern; the
-current Pico adapter calls CYW43 LED write and returns success. None of the ten
-reset/profile interruption stages injects a checked LED-write failure. Do not
-label a journal fault, intentional watchdog reboot or APready blinking as LED
-output-fault acceptance. A separately reviewed inhibited adapter-error fixture,
-exact affected cue/status contract, healthy/fault comparison, hashes and finite
-approval are required before L4 can be executed. No runtime fault endpoint or
-memory corruption is proposed here. This honest gap remains B12L open.
+## L4 checked-output error packet — 2026-10-06
+
+The normal Pico adapter now returns the CYW43 driver's result instead of the
+SDK's void convenience wrapper. `IndicatorController` latches a failed write,
+retries its unknown output, and retains the fault after a successful retry;
+there is no distinct blinking fault pattern. The affected portable regression
+passes on wspr5. Target cross-link and image/storage checks precede use.
+
+The isolated, default-off `WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE` wraps
+only the checked LED driver call in the inhibited target and returns one error.
+Later writes use the real driver. Fixture-only INFO counters report calls,
+injection, successful real-driver writes and the controller latch; normal and RF images omit the wrapper and
+these fields. No runtime fault endpoint or memory corruption is introduced.
+
+The operator's existing A/B operation grant and step-1 continuation cover one
+B fixture boot followed by one repaired normal engineering boot. B is Pico 2 W /
+RP2350, serial `CDDBF8767C506C07`, device
+`29f20b7342051ef947aa56cb9d4fab42`. Preflight is inhibited `c0d2bd53e4bd`,
+provisioned generation 2, healthy/empty/disabled/inactive. A stays on its accepted
+portal image. Bind the clean source, both images and retained SDK/toolchain
+hashes before use; keep GP14 disabled, profile fault stage zero and other fault
+fixtures off.
+
+Acquire B's exclusion/action locks; verify fresh INFO and a recoverable private
+backup with onboard indicator routing. Load and verify only application pages;
+reserved journals and E10 must remain exact. Within 120 seconds of fixture
+boot collect two original INFO responses: injection count one, latched output
+fault, at least two driver calls, at least one successful real-driver write
+and recovered Off output, same boot, healthy
+empty/inactive authority and unchanged configuration/profile. No jobs or saves.
+A stopped or uncertain destructive action is never replayed.
+
+Finish with the repaired normal engineering image and verify exact image pages,
+reserved/E10 preservation, healthy disabled/empty/inactive state and fixture
+absence. Retain that working image and release B's locks. This accepts adapter
+error propagation and retry integration, not a physical failed LED or a blinking
+fault waveform. The pinned lower-level CYW43 GPIO routine does not report every
+IOCTL failure; acceptance covers its exposed return-code path, not complete
+physical LED failure detection. No further operator video is required.

@@ -47,10 +47,20 @@ target_compile_definitions(WsprryPico PRIVATE
 
 # Finite fault fixtures affect only the inhibited target. A stage is selected at
 # build time; no arbitrary memory corruption or remotely writable fault switch.
+option(WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE
+    "Inhibited indicator fixture: one checked CYW43 LED-write error" OFF)
+if(WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE)
+    target_sources(WsprryPico PRIVATE ../src/provisioning/pico/indicator_fault_fixture.cpp)
+    target_compile_definitions(WsprryPico PRIVATE WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE=1)
+    target_link_options(WsprryPico PRIVATE "LINKER:--wrap=cyw43_gpio_set")
+    set_source_files_properties(../src/provisioning/pico/indicator_fault_fixture.cpp PROPERTIES
+        COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;-Werror;-fstack-usage")
+endif()
 set(WSPRRY_PICO_PHASE12_FAULT_STAGE "0" CACHE STRING "Phase12 inhibited fault stage 0..10")
 if(NOT WSPRRY_PICO_PHASE12_FAULT_STAGE MATCHES "^([0-9]|10)$")
     message(FATAL_ERROR "Phase12 fault stage must be 0..10")
 endif()
+
 if(NOT WSPRRY_PICO_PHASE12_FAULT_STAGE STREQUAL "0")
     target_sources(WsprryPico PRIVATE ../src/provisioning/pico/phase12_fault_fixture.cpp)
     target_compile_definitions(WsprryPico PRIVATE
@@ -593,6 +603,14 @@ if(WSPRRY_PICO_GP14_ROBUSTNESS)
 endif()
 
 # Fault cases are isolated from other deliberate reset/flash experiments.
+if(WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE AND
+   (NOT WSPRRY_PICO_PHASE12_FAULT_STAGE STREQUAL "0" OR
+    WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC OR WSPRRY_PICO_GP14_RUNTIME_BUTTON OR
+    WSPRRY_PICO_GP14_FLASH_PROBE OR WSPRRY_PICO_GP14_RF_ACCEPTANCE OR
+    WSPRRY_PICO_GP14_BUTTON_DIAGNOSTIC OR WSPRRY_PICO_GP14_DIAG_INJECT_WATCHDOG OR
+    WSPRRY_PICO_GP14_ROBUSTNESS OR WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE))
+    message(FATAL_ERROR "Indicator fault fixture requires an isolated inhibited configuration")
+endif()
 if(NOT WSPRRY_PICO_PHASE12_FAULT_STAGE STREQUAL "0" AND
    (WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC OR WSPRRY_PICO_GP14_RUNTIME_BUTTON OR
     WSPRRY_PICO_GP14_FLASH_PROBE OR WSPRRY_PICO_GP14_RF_ACCEPTANCE OR

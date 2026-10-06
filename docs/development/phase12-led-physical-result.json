@@ -1,0 +1,48 @@
+{
+  "schema": "phase12-led-physical-result/1",
+  "date": "2026-10-06",
+  "result": "PASS",
+  "scope": [
+    "L1 current two-flash setup-ready timing",
+    "L2 Identify priority and nonextension, five cycles then two flashes",
+    "Same-boot profile and job preservation",
+    "L3 LED off for five seconds after setup withdrawal; operator-confirmed"
+  ],
+  "firmware": "6c7b14321003",
+  "board_serial": "0BF4B4AEC9FFB344",
+  "boot_id": "85e164b089a940450aaf38035612df63",
+  "generation": 5,
+  "rf_jobs": 0,
+  "measurements": {
+    "pulse_width_ms": [
+      150.0,
+      158.33333333333334
+    ],
+    "ap_period_ms": [
+      2000.0,
+      2000.0
+    ],
+    "identify_period_ms": [
+      1995.8333333333371,
+      2004.1666666666629
+    ],
+    "identify_cycles": 5,
+    "returns_to_two_flash": true
+  },
+  "accepted_tolerances_ms": {
+    "pulse": 20,
+    "period": 40
+  },
+  "protocol_http_statuses": [
+    200,
+    409,
+    200
+  ],
+  "cleanup": "PASS: owned observer network profile/process and A lock removed",
+  "operator_future_observer": "Direct operator LED observation; further videos not required by operator direction.",
+  "video_policy": "No video or derived frames retained in the repository as test evidence; success summary only.",
+  "remaining_step1": [
+    "Checked LED-output failure fixture/adapter return-code repair",
+    "Exact GP14 erase/program edge evidence or evidence-backed disposition"
+  ]
+}

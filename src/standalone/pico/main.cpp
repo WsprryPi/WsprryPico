@@ -22,6 +22,9 @@
 #include "provisioning/pico/consumer_tls_validator.hpp"
 #include "provisioning/pico/credential_validator.hpp"
 #include "provisioning/pico/field_platform.hpp"
+#ifdef WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE
+#include "provisioning/pico/indicator_fault_fixture.hpp"
+#endif
 #include "runtime/activity_trace.hpp"
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
 #include "provisioning/button_runtime.hpp"
@@ -845,6 +848,22 @@ int main() {
             result +=
                 access_store.record() && access_store.record()->default_password ? "true" : "false";
             result += ",\"ble_running\":" + std::string(gatt.running() ? "true" : "false");
+#ifdef WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE
+            const auto led_fixture_status = indicator.status(time_us_64() / 1000ULL);
+            result += ",\"indicator_fault_fixture\":true";
+            number_field(result, "indicator_fixture_calls",
+                         wsprrypico::provisioning::indicator_fault_fixture_calls());
+            number_field(result, "indicator_fixture_injected",
+                         wsprrypico::provisioning::indicator_fault_fixture_injected());
+            number_field(result, "indicator_fixture_successful_writes",
+                         wsprrypico::provisioning::indicator_fault_fixture_successful_writes());
+            result += ",\"indicator_output_fault\":";
+            result += led_fixture_status.output_fault ? "true" : "false";
+            result += ",\"indicator_output_on\":";
+            result += led_fixture_status.output_on ? "true" : "false";
+            number_field(result, "indicator_pattern",
+                         static_cast<unsigned>(led_fixture_status.pattern));
+#endif
             result += ",\"ble_enrollment_open\":" +
                       std::string(local_access.enrollment_open(time_us_64() / 1000ULL) ? "true"
                                                                                        : "false");
