@@ -931,3 +931,53 @@ The prior failed attempt and its charge remain retained. The private corrected
 launcher must bind the explicit grant, original seventeen-attempt history,
 new source/image and one-use Ready, while leaving the public runner's original
 17/12 ceiling unchanged.
+
+## Corrected attempt stopped before RF — 2026-10-06
+
+Run `run-5aeeadd5864a4947ac3c0afb173a564b` is
+**FAILED_STOP_CAMPAIGN**, with zero charged jobs and no physical action cue,
+SDR capture, CLAIM, LOAD or ARM. The only events are initial INFO and the
+non-output cue-ready response. Connecting the raw WTP peer to port 31417
+returned `ConnectionRefusedError: [Errno 111] Connection refused`.
+The acquisition-attempt record and one-use Ready are retained. Cumulative
+accounting is **18 acquisition attempts / 12 charged jobs**, against the
+operator-approved 18/13 ceiling. No automatic retry is permitted; the unused
+thirteenth job allowance does not admit another acquisition attempt.
+
+The preparation incorrectly labeled both new images Plain LAN. Their actual
+target-main compiler definitions and prepared INFO select TLS on port 443.
+The retained `verify_compile` check rejects the original false Plain metadata
+and accepts an explicitly corrected TLS copy for each target. The false
+manifest, packet, private launcher and original run remain unchanged. This is
+a preparation defect, not a demonstrated firmware or physical GP14 failure.
+
+The public runner now checks actual INFO mode, integer port and readiness at
+bound-preflight admission, preflight verification and fresh acquisition
+admission. A TLS listener or a wrong port is refused before LAN connection,
+receiver capture or ownership actions. This guard does not alter historical
+or post-cut AP checks. The affected regressions pass **38/38** in normal and
+optimized Python on Linux; independent source and original-run review pass.
+No source test promotes the stopped attempt to acceptance.
+
+B retains the source-bound RF image `8fdb6ef13448`, UF2 SHA-256
+`1b2a5a30bfbed2e1299e8f4109b2a8ed254160859ac3fe8d8221697a78014fc3`,
+boot `1952970f25d388d386c97bc4f1bc58d1`, consumer generation 3. The one
+candidate deployment matched its application pages and preserved the entire
+current reserved/native/E10 state. The post-stop observation is on that same
+boot: scheduler disabled, empty/inactive, storage healthy, GP14 released,
+zero BLE/network connections and unchanged profile/access. No test ownership
+was acquired. The installed fleet assignment remains paused. The owned AP
+observer profile was deleted and board/action locks released. No routine
+reflash or restart followed the stop; Ethernet and timing services were untouched.
+
+Retained private bindings:
+
+| Original | SHA-256 |
+| --- | --- |
+| Eighteenth attempt | `ff8543621aab2ad221c9454c58b8129bc7651c9d7dc6763286ee52dffd4aa942` |
+| Eighteenth event stream | `239a290bc75cf0307bc446d869adfdd5c859982c24edd61d7b159a5bccb916cd` |
+| Actual target compile database | `c49c66b3132249e1e439be80b53f65b0dd247bae4d2cbe0b847f79197e1ddcd5` |
+
+Five RF rows remain accepted. Long-held RF-to-usable-portal and conditional
+GP14 default enablement remain open. The other proposed physical/BLE/fleet
+dispositions are still unapproved; Phase 12 remains `OPEN_PARTIAL`.

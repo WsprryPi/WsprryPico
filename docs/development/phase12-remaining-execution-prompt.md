@@ -22,7 +22,7 @@ Phase 12 remains `OPEN_PARTIAL`. B12L is CLOSED_SCOPED: L4 passed and exact GP14
 physical interoperability. The Phase 13 feature backlog and Phase 14 final
 qualification are separate work.
 
-The final `long_ap` attempt on B at `c0d2bd53e4bd`, consumer generation 3,
+The earlier final `long_ap` attempt on B at `c0d2bd53e4bd`, consumer generation 3,
 boot `99396fc326f6bd51e5b49bab033842c3`, failed when INFO exceeded the Console
 queue before the action cue. Owned ABORT/RELEASE left empty/unowned/inactive
 authority; the later page was identity-only recovery, not usable setup.
@@ -36,10 +36,19 @@ is not loaded and grants no physical acceptance.
 The operator confirms both boards
 are connected and directs reuse of the established setup without further
 path, attenuation or antenna questions. Explicit Ready is only for coordinating
-the button action. Accounting is now **17 acquisitions/12 charged jobs**;
-the authorized ceiling is exhausted. Preserve the failed run and prepare the
-demonstrated Console/portal repairs. Any further acquisition needs an explicit
-additional budget for this same row; no automatic retry or default enablement.
+the button action. The operator subsequently authorized one corrected attempt,
+raising the ceiling to 18/13. That attempt stopped before cue, capture or WTP
+ownership/job actions: preparation incorrectly labeled the actual TLS/443
+image as Plain/31417. Current accounting is **18 acquisition attempts/12
+charged jobs**, exhausting the acquisition ceiling. Preserve both failures.
+The source listener guard now refuses that mismatch at preflight and fresh
+admission; any future candidate must bind actual main compile definitions
+and actual mode/port/readiness before calling the operator. B retains RF
+`8fdb6ef13448`, boot `1952970f25d388d386c97bc4f1bc58d1`, profile generation 3,
+healthy, disabled/empty/inactive and released, with no test ownership acquired.
+The owned AP profile is deleted and board/action locks released. Another
+attempt requires explicit additional budget for this same row; no automatic
+retry or default enablement. See the [latest RF record](phase12-gp14-rf-review.md#corrected-attempt-stopped-before-rf--2026-10-06).
 Human power-cut coordination
 has no expiry; the later fixture repair does not change the original stopped
 receipt or authorize a retry.
@@ -116,7 +125,7 @@ repair or discriminating setup change. Do not invent unrelated failure paths.
    unsupported scope accurately; neither host-populated fixtures nor one Pi
    BLE peer qualify the broader physical matrix.
 6. **G7/F12: conditional RF hold/AP proof.** The final authorized attempt failed;
-   current accounting is 17/12. The demonstrated repairs, named normal recovery and reassessment are
+   current accounting is 18 attempts/12 jobs against an exhausted 18/13 acquisition ceiling. The corrected attempt stopped before RF at a mislabeled TLS/443 listener. The demonstrated repairs, named normal recovery and reassessment are
    accepted; obtain an explicit additional budget or scope disposition. Any approved continuation is limited to this same row: one
    20-second Tone, one 40-second capture, 12–15 seconds held, actual AP/HTTP and
    usable portal proof within 90 seconds after release, independent cutoff and

@@ -194,6 +194,7 @@ def bind_preflight(packet, packet_bytes, ready, campaign, info_path, flash_path,
     require(json.loads(info_raw) == info and json.loads(prior_raw) == prior,
             'preflight INFO originals changed while reading')
     check_info(info, packet)
+    check_lan_listener(info, packet)
     require(prior['device_id'] == DEVICE and prior['status']['output_active'] is False and
             prior['status']['enabled'] is False and
             re.fullmatch('[0-9a-f]{32}', prior['status']['boot_id']) and
@@ -270,6 +271,7 @@ def check_preflight(path, packet_bytes, ready, campaign):
             'preflight original INFO/boot binding')
     packet = json.loads(packet_bytes)
     check_info(info, packet, value['boot_id'])
+    check_lan_listener(info, packet)
     check_native_pins(read_json(originals/'native.json', 131072))
     raw = (originals/'readback.bin').read_bytes()
     require(len(raw) == 4194304, 'preflight original complete readback')
@@ -392,6 +394,15 @@ def check_long_ap_initial(info):
     require(info.get('gp14_stop_verified') is False and
             info.get('gp14_softap_manual_lease_active') is False,
             'prior stop/manual AP lease')
+
+
+def check_lan_listener(info, packet):
+    """The raw WTP peer requires the actual ready Plain LAN listener."""
+    require(info.get('lan_wtp_mode') == 'plain' and
+            type(info.get('lan_wtp_port')) is int and
+            info['lan_wtp_port'] == packet['port'] and
+            info.get('lan_wtp_ready') is True,
+            'actual LAN listener does not match the Plain WTP packet')
 
 
 def check_long_ap_final(info):
@@ -751,6 +762,7 @@ def _acquire_locked(packet, case, campaign, retry_no_input_run=None, wait_for_bu
     try:
         initial = console()
         check_info(initial, packet, preflight['boot_id'])
+        check_lan_listener(initial, packet)
         require(initial['network']['ipv4'] == preflight['address'] and
                 initial['network']['link_status'] == 3 and
                 initial['status']['clock_state'] == 'synchronized' and

@@ -172,6 +172,41 @@ fleet simulator job and one failed RF acquisition/charged job. The cumulative
 RF totals remain 17/12. No test of an accepted RF row, new soak or additional
 acceptance group was added.
 
+## Corrected G7 continuation stopped before RF (2026-10-06)
+
+The operator authorized one corrected `long_ap` attempt to an 18/13 ceiling
+and received the explicit three-flash/14-second hold instruction. Source
+`8fdb6ef13448` repairs only acceptance-image cue priority; the actual Linux
+pulse-edge/expiry checks pass in normal and optimized Python, and both target
+links and image/resource checks pass. One source-bound RF deployment preserves
+all current reserved/native/E10 bytes and the consumer profile. No accepted
+LED or RF row was repeated.
+
+The named corrected attempt stopped at the raw WTP connection: the preparation
+manifest said Plain/31417 while actual target compiler definitions and INFO
+select TLS/443. It contains only initial INFO and cue-ready events, with no
+action cue, SDR capture, CLAIM, LOAD or ARM. The original record remains
+FAILED_STOP_CAMPAIGN with zero charged jobs. Accounting is **18 acquisition
+attempts / 12 charged jobs**; the acquisition ceiling is exhausted.
+The [RF record](phase12-gp14-rf-review.md#corrected-attempt-stopped-before-rf--2026-10-06)
+binds the exact attempt, events, source, image, boot and compiled transport.
+The original false manifest/packet and both failed runs are preserved.
+
+The public runner now refuses actual mode/port/readiness mismatches before
+connecting or launching a receiver. Bound-preflight and fresh-admission
+regressions pass **38/38 normal and 38/38 optimized on Linux**, with independent
+review. Historical and post-cut checks are unchanged. This fixes preparation;
+it supplies no new physical G7 evidence and does not authorize another attempt.
+
+The same-boot post-stop B observation retains `8fdb6ef13448`, boot
+`1952970f25d388d386c97bc4f1bc58d1`, consumer generation 3: healthy,
+disabled/empty/inactive, GP14 released, saved profile/access unchanged and zero
+BLE/network connections. No test ownership was acquired. The installed fleet
+assignment is paused, the owned AP profile deleted and board/action locks
+released. A is untouched. Useful RF firmware is retained, with no routine
+restore/restart or timing-service changes. G7/default enablement and the other
+unapproved physical/BLE/fleet dispositions remain open.
+
 ## Completed in this continuation
 
 - Corrected HTTPS authority formatting in the maintained network and

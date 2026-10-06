@@ -48,6 +48,7 @@ def current_info(value):
                 allocator_failures='0', saved_consumer_profile={}, access_state='healthy',
                 access_generation=1, access_default_password=False, provisioning_source='consumer_preclock',
                 provisioning_generation=5, lan_wtp_ready=True,
+                lan_wtp_mode='plain', lan_wtp_port=value['port'],
                 network=dict(link_status=3, ipv4='192.168.1.77'),
                 status=dict(boot_id='b'*32, engine='pio-dma-gp2', state='empty', clock_state='synchronized',
                             enabled=False, storage_healthy=True, output_active=False, reboot_required=False),
@@ -145,6 +146,27 @@ class OrchestrationTests(unittest.TestCase):
         usb.assert_not_called(); lan.assert_not_called(); receiver.assert_not_called()
         self.assertEqual(set(self.root.iterdir()), before)
 
+    def test_preflight_rejects_the_observed_tls_listener_before_native_io(self):
+        for changes in ({'lan_wtp_mode': 'tls', 'lan_wtp_port': 443},
+                        {'lan_wtp_mode': 'plain', 'lan_wtp_port': 443},
+                        {'lan_wtp_mode': 'plain', 'lan_wtp_port': '31417'},
+                        {'lan_wtp_mode': 'plain', 'lan_wtp_ready': False},
+                        {'lan_wtp_mode': None}):
+            with self.subTest(changes=changes):
+                info = dict(self.info, **changes)
+                write_json(self.root/'post-flash-info.json', info)
+                ready, _, _ = self.ready()
+                with patch.object(p.subprocess, 'run') as native:
+                    with self.assertRaisesRegex(RuntimeError, 'actual LAN listener'):
+                        p.bind_preflight(self.packet, (self.root/'packet.json').read_bytes(),
+                                         ready, self.root, self.root/'post-flash-info.json',
+                                         self.root/'post-flash-readback.bin',
+                                         self.root/'prior-info.json')
+                native.assert_not_called()
+                self.assertFalse(Path(str(ready)+'.consumed').exists())
+                self.assertFalse((self.root/('preflight-'+json.loads(ready.read_text())['ready_id'])).exists())
+                self.assertEqual(len(list(self.root.glob('run-*/attempt.json'))), 16)
+
     def test_missing_ready_refuses_before_io_or_charge(self):
         with patch.object(p, 'console') as usb, patch.object(p.subprocess, 'Popen') as receiver:
             with self.assertRaises(RuntimeError): p.acquire(self.packet, 'long_ap', self.root, led_cue=True)
@@ -239,6 +261,21 @@ class OrchestrationTests(unittest.TestCase):
         self.assertEqual((len(attempts), sum(a['charged_jobs'] for a in attempts)), (17, 11))
         self.assertEqual(attempts.count(next(a for a in attempts if a.get('status') == 'FAILED_STOP_CAMPAIGN')), 1)
         with self.assertRaises(RuntimeError): p.campaign_budget(self.root)
+
+    def test_listener_change_after_preflight_stops_before_lan_or_receiver(self):
+        ready, _, _ = self.ready(); receipt = self.bind(ready)
+        changed = dict(self.info, lan_wtp_mode='tls', lan_wtp_port=443)
+        with patch.object(p, 'console', return_value=changed), \
+                patch.object(p.socket, 'create_connection') as lan, \
+                patch.object(p.subprocess, 'Popen') as receiver:
+            with self.assertRaisesRegex(RuntimeError, 'actual LAN listener'):
+                self.execute(ready, receipt)
+        lan.assert_not_called(); receiver.assert_not_called()
+        attempts = [json.loads(path.read_text()) for path in self.root.glob('run-*/attempt.json')]
+        stopped = next(a for a in attempts if a.get('status') == 'FAILED_STOP_CAMPAIGN')
+        self.assertEqual((len(attempts), sum(a['charged_jobs'] for a in attempts)), (17, 11))
+        self.assertEqual(stopped['charged_jobs'], 0)
+        self.assertFalse(stopped['independent_rf_pass'])
 
     def test_stale_image_wrong_case_and_preparation_mixed_with_run_refuse(self):
         bad = copy.deepcopy(self.packet); bad['source_revision'] = '6'*40; bad['revision'] = '6'*12
