@@ -16,6 +16,23 @@ authority and host-cleanup gate, rather than a fifth workstream. The latest
 operator instruction leaves working test state loaded instead of repeating
 standard restoration. Keep operator-dependent physical work at the end.
 
+Completed execution checkpoint on 2026-10-05: all four declared automatic
+workstreams are closed under independent original-data review. B12J journals,
+R11P reset/old-peer refusal, B12C carrier/API composition and B12R resources
+plus consumer Save/STATUS overlap are complete within their automatic scopes.
+Both three-case waves, the full 7,200-second/241-sample resource capture, final
+authority and owned-host cleanup pass. The original immediate post-TLS-close
+quiet-check STOP remains recorded; the later original parent INFO passes all
+strict predicates within the existing cleanup allowance. The minimal private
+bounded reclamation repair passes normal/optimized controls and independent
+reassessment without another target operation or workload replay.
+
+Retain the accepted originals. Future continuation begins with the remaining
+operator/physical work; completed automatic procedures below are historical
+execution instructions. Repeat a completed check only for a demonstrated
+source impact. Phase 12 remains OPEN_PARTIAL; these automatic results do not
+grant broader physical, interoperability or RF qualification.
+
 A failed fixture or transport prerequisite is a problem to diagnose and repair,
 not the end of this execution. Leave B on the working test candidate and
 checkpoint between stages, reconcile owner/job state and clean completed owned
@@ -81,6 +98,10 @@ bindings only. Preserve and exclude these preexisting user paths:
 - `docs/implementation-plan.md`
 - `docs/development/si5351-transmission-backlog.md`
 - `docs/development/transmit-led-backlog.md`
+
+The subsequent request to show progress in the Phase 12 plan authorizes its
+new dated progress section and the historical-section boundary heading. Preserve
+the complete preexisting plan body and exclude its earlier user edits from staging.
 
 Inspect branch, HEAD, remote ancestry and working changes before edits and
 publication. Other repository contents and unrelated host services remain outside this task.
@@ -181,7 +202,9 @@ If production changes are necessary, first run affected Linux/host validation
 and independent source review. Create a reviewed source checkpoint on `devel`
 when needed for firmware built from exact committed source. Build and bind only
 the required source-bound test candidates with the retained pinned firmware tools. Do not
-install dependencies or repair the Mac compiler. Final publication follows
+install dependencies incidentally or repair the Mac compiler. The documented
+BLE runtime on the selected Linux controller host is a validation prerequisite;
+add it only when required to run that existing client directly. Final publication follows
 target validation and the complete adversarial assessment.
 
 ### 2. Complete B12J, then R11P

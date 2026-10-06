@@ -499,6 +499,87 @@ class ClientTests(unittest.TestCase):
         self.assertTrue(backend.closed)
 
 
+class ExchangeDeadlineTests(unittest.TestCase):
+    def connected(self, now, write_s, reply_s):
+        class TimedBackend(FakeBackend):
+            def __init__(self):
+                super().__init__()
+                self.sent = []
+                self.notifications = []
+
+            def start_notify(self, uuid, callback):
+                self.callbacks[uuid] = lambda value: self.notifications.append(
+                    (now[0] + reply_s, callback, bytes(value))
+                )
+
+            def write(self, uuid, value, response=True):
+                self.sent.append((uuid, bytes(value), response))
+                now[0] += write_s
+                super().write(uuid, value, response)
+
+            def pump(self, seconds):
+                now[0] += seconds
+                ready = [item for item in self.notifications if item[0] <= now[0]]
+                self.notifications = [item for item in self.notifications if item[0] > now[0]]
+                for _, callback, value in ready:
+                    callback(value)
+
+        backend = TimedBackend()
+        client = ble.Client(backend, timeout=1)
+        client.connect(ADDRESS, DEVICE)
+        client.authorized = True
+        client.wtp_session = "b" * 32
+        backend.start_notify(ble.UUIDS["wtpStatus"], client._on_wtp_status)
+        return backend, client
+
+    def test_fragment_writes_cannot_continue_past_original_exchange_end(self):
+        for kind in ("field", "wtp"):
+            with self.subTest(kind=kind):
+                now = [0.0]
+                backend, client = self.connected(now, 0.25, 0)
+                with patch.object(ble.time, "monotonic", side_effect=lambda: now[0]):
+                    with self.assertRaisesRegex(ble.ClientError, "^" + ("timeout" if kind == "field" else "wtp_timeout") + "$"):
+                        if kind == "field":
+                            client.exchange(dict(version=1, operation="identify", request_id="a" * 32, padding="x" * 300))
+                        else:
+                            client.wtp_exchange("STATUS", dict(padding="x" * 300))
+                self.assertEqual(len(backend.sent), 4)
+                self.assertEqual(now[0], 1)
+                self.assertTrue(all(response is True for _, _, response in backend.sent))
+                self.assertEqual(backend.operations, [])
+                self.assertFalse(client._field_pending or client._wtp_pending)
+                self.assertEqual(client._field_responses, {})
+                self.assertEqual(client._wtp_responses, {})
+
+    def test_reply_wait_uses_remaining_write_budget_with_adjacent_success(self):
+        request = dict(version=1, operation="identify", request_id="a" * 32)
+        field_frames = [bytes(value) for value in ble.gatt_frames(json.dumps(request, separators=(",", ":")).encode())]
+        wtp_request = dict(type="request", protocol="WTP/1", session_id="b" * 32,
+                           request_id="c" * 32, op="STATUS", body={})
+        wtp_frame = ble.wtp_frame(wtp_request)
+        wtp_frames = [bytes(wtp_frame[offset:offset + ble.WTP_SEGMENT_BYTES])
+                      for offset in range(0, len(wtp_frame), ble.WTP_SEGMENT_BYTES)]
+        for kind, frames in (("field", field_frames), ("wtp", wtp_frames)):
+            for reply_s, succeeds in ((0.5, True), (0.65, False)):
+                with self.subTest(kind=kind, reply_s=reply_s):
+                    now = [0.0]
+                    backend, client = self.connected(now, 0.4 / len(frames), reply_s)
+                    with (patch.object(ble.time, "monotonic", side_effect=lambda: now[0]),
+                          patch.object(ble.secrets, "token_hex", return_value="c" * 32)):
+                        action = (lambda: client.exchange(request)) if kind == "field" else (lambda: client.wtp_exchange("STATUS", {}))
+                        if succeeds:
+                            result = action()
+                            self.assertTrue(result.get("identified", result.get("state") == "empty"))
+                            self.assertLess(now[0], 1)
+                        else:
+                            with self.assertRaisesRegex(ble.ClientError, "^" + ("timeout" if kind == "field" else "wtp_timeout") + "$"):
+                                action()
+                            self.assertEqual(now[0], 1)
+                    expected_uuid = ble.UUIDS["command" if kind == "field" else "wtpCommand"]
+                    self.assertEqual(backend.sent, [(expected_uuid, value, True) for value in frames])
+                    self.assertFalse(client._field_pending or client._wtp_pending)
+
+
 class ProfileFileTests(unittest.TestCase):
     def test_canonical_validation_and_device_binding(self):
         encoded = ble.canonical_profile(profile())
@@ -572,8 +653,9 @@ class BluezCharacteristicProxyTests(unittest.TestCase):
             def __init__(self, path):
                 self.path = path
 
-            def WriteValue(self, value, options):
+            def WriteValue(self, value, options, **keywords):
                 writes.append((self.path, bytes(value), dict(options)))
+                backend._test_write_timeouts.append(keywords)
 
             def Disconnect(self):
                 pass
@@ -592,7 +674,34 @@ class BluezCharacteristicProxyTests(unittest.TestCase):
         backend._objects = lambda: objects
         backend._property = lambda path, interface, name: True
         backend._wait = lambda predicate, timeout, code: self.assertTrue(predicate())
+        backend._test_write_timeouts = []
         return backend, paths, calls, writes, interfaces
+
+    def test_bounded_write_clips_dbus_timeout_and_preserves_recording_override(self):
+        backend, paths, calls, writes, _ = self.backend()
+        backend.connect(ADDRESS, ble.UUIDS["service"], 5, allow_pairing=False)
+        observed = []
+        original_write = backend.write
+        def record(uuid, value, response=True):
+            observed.append((uuid, bytes(value), response))
+            return original_write(uuid, value, response)
+        backend.write = record
+        uuid = ble.UUIDS["command"]
+        with patch.object(ble.time, "monotonic", return_value=10):
+            backend._write_before(uuid, b"first", 11.5, response=True)
+        self.assertEqual(observed, [(uuid, b"first", True)])
+        self.assertEqual(writes, [(paths[uuid], b"first", {"type": "request"})])
+        self.assertEqual(backend._test_write_timeouts, [{"timeout": 1.5}])
+        self.assertFalse(hasattr(backend, "_write_deadline"))
+        with patch.object(ble.time, "monotonic", return_value=12):
+            with self.assertRaisesRegex(ble.ClientError, "^timeout$"):
+                backend._write_before(uuid, b"expired", 12, response=False)
+        self.assertEqual(len(writes), 1)
+        self.assertFalse(hasattr(backend, "_write_deadline"))
+        backend.write(uuid, b"ordinary", response=False)
+        self.assertEqual(backend._test_write_timeouts[-1], {})
+        self.assertEqual(writes[-1], (paths[uuid], b"ordinary", {"type": "command"}))
+        self.assertEqual(calls.count(paths[uuid]), 1)
 
     def test_fragmented_acknowledged_writes_reuse_one_validated_proxy(self):
         backend, paths, calls, writes, interfaces = self.backend()

@@ -16,6 +16,47 @@ Its product recommendations and finite physical limits are proposals pending
 selection/approval, not new acceptance or hardware authority. P12.9 remains
 closed; GP14 remains default-off; Phase 12 remains `OPEN_PARTIAL`.
 
+## Closeout progress — 2026-10-05
+
+All four declared automatic workstreams are complete within their reviewed
+scopes: credential journals, reset/old-peer refusal, engineering carrier/API
+composition and engineering resources plus consumer Save/STATUS overlap.
+Accepted proofs are retained. There is no remaining automatic workload;
+repeat a completed check only for a demonstrated source impact. The detailed
+evidence and limits are in the
+[current closeout results](phase12-orchestratable-closeout-results.md).
+
+| Area | Verified progress | Still required |
+| --- | --- | --- |
+| Consumer commissioning and recovery | P12.9 remains closed. Seventeen named recovery cases, seven AP claim negative paths, two populated reset cases and two populated offline saves were already accepted. | Remaining physical commissioning and offline browser checks with the available two iOS devices. |
+| Time and readiness | Automatic T5 launch-admission, C8T/R11F readiness and R11A scopes are accepted. The permanent SNTP restriction on wspr5 has been removed as approved, and the Mac query succeeds. | Independent physical timing and any conditional RF assertions. |
+| B12J: credential journal — automatic scope closed | Cases 0, 8, 9 and 10, the corruption cases and healthy-C recovery pass independent review. Stage 9 retained B/generation 3; stage 10 selected C/generation 4. Fresh TLS authority and exact unrelated-state/E10 preservation pass. | Arbitrary physical cuts and stale-time datagrams gain no new credit from this journal scope; physical observations remain at the end. |
+| R11P: reset and retained peer — automatic scope closed | The supported reset cleared both bonds and rotated its security roots. The exact retained wspr4 key was rejected twice with PIN_OR_KEY_MISSING; no pairing traffic was captured. The post-attempt flash is byte-for-byte unchanged. Settings, cursor/watermark and E10 remain intact; generation 3 to 5 is the defined save/purge transition. A supported Pair/C apply and later same-boot observations supplied the resource context. | Physical cuts remain at the end. The original USB reboot-gap STOP is retained without separate warm-loop credit. |
+| B12C: engineering carriers and API — automatic scope closed | Idle API, one engineering Save/cold persistence, controller-local BLE, BLE/TLS disconnect leases and maximum inbound BLE framing pass. Both loaded/armed/running waves independently pass all six declared cases: shared state, foreign refusal, application BUSY with unchanged readbacks, profile BUSY/cancellation and final same-job running observations. Final raw TLS authority is empty/unowned/inactive; the later quiet readback and owned-host cleanup pass. | Broader physical peer/fleet/interoperability and conditional RF assertions remain in the operator scope. No maximum-size outbound response or RF qualification is claimed. |
+| B12R: resource return and Save responsiveness — automatic scope closed | A's one Save, all 20 STATUS replies, two overlapping intervals and cold preservation pass. Engineering resource review accepts 241 samples over 7,200 seconds and six simulator cases. Heap returned 144 bytes below baseline, every measured pool returned, minimum guarded stack margin was 22,128 bytes, and measured Bluetooth credits returned fully. The later quiet readback passes within the existing cleanup allowance; original STOP results are preserved. | No remaining assertion in the declared automatic scope. Physical observations remain at the end. |
+| Operator observations and exit | Both Picos are authorized on the connected SDR bench; B has GP14 wiring. Working test states are retained without routine restoration. | LED/GP14 observation, physical interruption and remaining physical/fleet/RF assertions are deferred to the end. Each tranche ends with brief current-state checks and owned-host cleanup. |
+
+**Remaining automatic groups: zero.** B12J, R11P, B12C and B12R are closed
+within their declared automatic scopes after adversarial review and repair.
+Operator-dependent and broader qualification gates remain open. The immediate
+post-TLS-close child snapshot still had one connection; the later original
+parent snapshot passes every quiet predicate 23.346 seconds later. The private
+fixture now bounds that reclamation check within the existing cleanup budget.
+The original stopped runner results are retained; acceptance uses the complete
+originals and independent assessments.
+P12.1–P12.5 retain their accepted hardware-free scopes; P12.3 remains
+`CLOSED_SCOPED`; P12.9 remains closed. Final qualification/release remains in
+Phase 14.
+
+The [current closeout prompt](phase12-orchestratable-closeout-prompt.md) and
+[results](phase12-orchestratable-closeout-results.md) record the approved bench
+policy, which supersedes historical restoration and RF-inhibition instructions
+below. The operator has authorized
+A and B, including transmission on the reported connected rigs. That
+authority does not turn simulator results into RF qualification.
+
+## Historical plan and checkpoints
+
 **Historical continuation (2026-09-27):** the separate approved blank-device
 Wi-Fi-only encrypted transaction is implemented on `devel` at `fb091f8` and
 its physical iPhone/network target acceptance remains open. The operator

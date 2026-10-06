@@ -485,8 +485,11 @@ class Client:
         request_id: str,
         code: str,
         timeout: float | None = None,
+        *,
+        deadline: float | None = None,
     ) -> dict[str, Any]:
-        deadline = time.monotonic() + (self.timeout if timeout is None else timeout)
+        if deadline is None:
+            deadline = time.monotonic() + (self.timeout if timeout is None else timeout)
         while time.monotonic() < deadline:
             if self._fatal:
                 error, self._fatal = self._fatal, None
@@ -495,6 +498,20 @@ class Client:
                 return responses.pop(request_id)
             self.backend.pump(min(0.05, max(0.0, deadline - time.monotonic())))
         fail(code)
+
+    def _write_before(
+        self, uuid: str, value: bytes | bytearray, deadline: float, code: str,
+        response: bool = True,
+    ) -> None:
+        if time.monotonic() >= deadline:
+            fail(code)
+        bounded = getattr(self.backend, "_write_before", None)
+        if bounded is None:
+            self.backend.write(uuid, value, response=response)
+        else:
+            bounded(uuid, value, deadline, response=response)
+        if time.monotonic() >= deadline:
+            fail(code)
 
     def exchange(
         self,
@@ -507,6 +524,7 @@ class Client:
             fail("request_id")
         if self._field_pending:
             fail("busy")
+        deadline = time.monotonic() + (self.timeout if timeout is None else timeout)
         encoded = bytearray(json.dumps(message, separators=(",", ":")).encode("utf-8"))
         frames: list[bytearray] = []
         self._field_pending = request_id
@@ -515,9 +533,13 @@ class Client:
                 fail("command_oversize")
             frames = gatt_frames(encoded)
             for frame in frames:
-                self.backend.write(UUIDS["command"], frame, response=not without_response)
-            response = self._wait(self._field_responses, request_id, "timeout", timeout)
+                self._write_before(
+                    UUIDS["command"], frame, deadline, "timeout", response=not without_response
+                )
+            response = self._wait(self._field_responses, request_id, "timeout", deadline=deadline)
             if response["ok"]:
+                if time.monotonic() >= deadline:
+                    fail("timeout")
                 return response
             fail(remote_error(response.get("error")))
         finally:
@@ -608,6 +630,7 @@ class Client:
             fail("wtp_request")
         if self._wtp_pending:
             fail("wtp_busy")
+        deadline = time.monotonic() + self.timeout
         request_id = secrets.token_hex(16)
         frame = wtp_frame({
             "type": "request",
@@ -621,13 +644,16 @@ class Client:
         self._wtp_pending_op = operation
         try:
             for offset in range(0, len(frame), WTP_SEGMENT_BYTES):
-                self.backend.write(
-                    UUIDS["wtpCommand"], frame[offset : offset + WTP_SEGMENT_BYTES]
+                self._write_before(
+                    UUIDS["wtpCommand"], frame[offset : offset + WTP_SEGMENT_BYTES],
+                    deadline, "wtp_timeout",
                 )
-            response = self._wait(self._wtp_responses, request_id, "wtp_timeout")
+            response = self._wait(self._wtp_responses, request_id, "wtp_timeout", deadline=deadline)
             if response.get("op") != operation:
                 fail("wtp_response_mismatch")
             if response["ok"] and isinstance(response.get("body"), dict):
+                if time.monotonic() >= deadline:
+                    fail("wtp_timeout")
                 return response["body"]
             error = response.get("error")
             code = error.get("code") if isinstance(error, dict) else None
@@ -1089,13 +1115,37 @@ class BluezBackend:
 
     def write(self, uuid: str, value: bytes | bytearray, response: bool = True) -> None:
         _, characteristic = self._characteristic(uuid)
+        keywords = {}
+        deadline = getattr(self, "_write_deadline", None)
+        if deadline is not None:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                fail("timeout")
+            keywords["timeout"] = remaining
         try:
             characteristic.WriteValue(
                 self.dbus.Array([self.dbus.Byte(byte) for byte in value], signature="y"),
                 {"type": self.dbus.String("request" if response else "command")},
+                **keywords,
             )
         except Exception:
             fail("gatt_write")
+
+    def _write_before(
+        self, uuid: str, value: bytes | bytearray, deadline: float,
+        response: bool = True,
+    ) -> None:
+        # Dispatch through self.write so recording adapters observe the exact
+        # original bytes/order/ack mode. Only the DBus call timeout is clipped.
+        previous = getattr(self, "_write_deadline", None)
+        self._write_deadline = deadline
+        try:
+            self.write(uuid, value, response=response)
+        finally:
+            if previous is None:
+                del self._write_deadline
+            else:
+                self._write_deadline = previous
 
     def start_notify(self, uuid: str, callback: Callable[[bytes], None]) -> None:
         path, characteristic = self._characteristic(uuid)
