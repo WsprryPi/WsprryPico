@@ -57,6 +57,11 @@ authority does not turn simulator results into RF qualification.
 
 ## Historical plan and checkpoints
 
+The [current roadmap](../implementation-plan.md#phase-13-feature-backlog)
+assigns feature completion to Phase 13 and final qualification/release to
+Phase 14. Historical checkpoint references below to Phase 13 qualification
+retain their original numbering and mean the current Phase 14.
+
 **Historical continuation (2026-09-27):** the separate approved blank-device
 Wi-Fi-only encrypted transaction is implemented on `devel` at `fb091f8` and
 its physical iPhone/network target acceptance remains open. The operator
@@ -101,14 +106,14 @@ its consumer rules.
 This plan does not authorize target, radio, service, trust-store, certificate-installation or RF
 operations.
 
-| Roadmap slice | Current position |
+| Roadmap slice | Historical checkpoint position |
 | --- | --- |
 | P12.1-P12.2: profile journal and provisioning state machine | Accepted in their hardware-free scope. |
 | P12.3: Pico adapter source | **CLOSED_SCOPED** for source, deterministic tests and RP2350 cross-links; not physical acceptance. |
 | P12.4-P12.5: commands, delivery-safe activation and admission | Implemented and accepted in their hardware-free scope. |
 | P12.6: production integration | **Partial.** BLE provisioning/local control and the SoftAP browser path are production-wired. The Field-GATT/1 engineering source contract is versioned and vector-checked; it is not a product release freeze. If consumer BLE returns, use a dedicated iPhone app. Candidate A has bounded RF-inhibited native-Pi maximum-profile and repaired Bluefy prepared-file activation evidence through a normal generation-3 restart, BLE readback and positive mTLS/WTP/HTTPS readback. The engineering path works; the consumer commissioning, recovery and broad target-acceptance milestones below remain open. |
 | Physical Stage A | **Partial.** Candidate identity, adoption, preserved settings, BLE advertising, exact iPhone/iOS/Bluefy identity, retained-bond authorization, one authenticated phone-time exchange, Identify LED/field status, Bluefy read-only `HELLO`/`STATUS`, native-Pi BLE/SoftAP subsets, and bounded profile activation passed within their recorded limits. Consumer first-run commissioning, offline reuse, owner enrollment/replacement, recovery, broader BLE controls, time/LED, fault/trust/resource/soak and stable-station AP-withdrawal matrices remain open. |
-| Physical Stage B / RF output | Not authorized or performed. Phase 13 remains separate. |
+| Physical Stage B / RF output | Not authorized or performed at this checkpoint. The current matrix records the later five bounded GP14 RF rows and remaining conditional RF work; Phase 14 final qualification remains separate. |
 
 ## Scope and starting point
 
@@ -869,5 +874,5 @@ Complete the remaining RF-inhibited matrix after the consumer flow is stable:
 Phase 12 closes only after the acceptance ledger maps every required Stage A
 row to exact source, image, device, client and result evidence and a final
 adversarial review finds no actionable issue. Stage B RF coexistence remains
-separately authorized work, and Phase 13 remains the separate broad
+separately authorized work, and Phase 14 remains the separate broad
 band-by-mode-by-clock RF qualification phase.

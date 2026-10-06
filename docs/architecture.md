@@ -39,11 +39,13 @@ Use WsprryPico for project, repository and application naming; firmware artifact
   Production RF cutoff integration and default enablement remain open and are
   parked while portal/recovery acceptance continues.
   Safari is one possible
-  browser, not a required step. Source implementation exists, while target
-  acceptance remains open. The earlier
+  browser, not a required step. Source implementation and bounded target
+  acceptance exist; remaining operator commissioning and interoperability
+  checks are recorded in the
+  [current closure matrix](development/phase12-closure-matrix.md). The earlier
   [Phase 12 field-access contract](development/phase12-field-access-contract.md)
-  still describes the running engineering authority until consumer mode is
-  implemented and accepted.
+  continues to describe engineering-profile authority; consumer commissioning
+  follows the revised open setup contract.
 - All RF timing is local on RP2350. USB and network connections load and arm complete jobs; packet arrival never sets symbol boundaries.
 
 Preserve WsprryPi encoder and scheduler concepts while adapting platform dependencies. RP1 DKMS, kernel interfaces and RP1 register programming are not ported.
@@ -121,7 +123,7 @@ writes coordinate both cores using SDK lockout. See the
 schedules retain one ownership and execution authority. Network control defaults
 off. Phase 12 field-access contention/coexistence still requires its physical
 plan; broader mode/band/clock and production release qualification remain Phase
-13 work.
+14 work.
 
 Phase 12 keeps provisioning outside that job-control protocol. A portable
 manager and access controller own bounded profile replacement, local authority

@@ -328,13 +328,14 @@ The current physical image services RF on core 1; core 0 owns authority and
 transports. When the TLS listener is available, Wi-Fi remains polled through
 Armed/Running for network control. Without a listener, the earlier armed/running
 Wi-Fi deferral remains. The accepted clock observation ages locally and USB WTP
-remains serviced, including ABORT. Future BTstack, SoftAP and controller-time
-adapters remain on core 0; only the core-0 IndicatorController may write the
-CYW43 LED. The earlier RF/wall-power campaign qualified only its recorded
-image/path; it does not qualify this concurrent network or future field-access
-image. Phase 12 field-access contention/coexistence remains subject to the
-RF-inhibited-first physical plan and separately authorized affected revalidation.
-Broader mode/band/clock and release qualification remain Phase 13 work.
+remains serviced, including ABORT. BTstack, SoftAP and controller-time adapters
+remain on core 0; the shared IndicatorController owns the boot-selected onboard
+or external LED. The earlier RF/wall-power campaign qualified only its recorded
+image/path. The later [automatic closeout](phase12-orchestratable-closeout-results.md)
+accepts its declared simulator carrier/resource scopes; broader physical RF
+coexistence remains open in the [current matrix](phase12-closure-matrix.md).
+Target work follows its approved bench policy and intended-test authority.
+Broader mode/band/clock and release qualification remain Phase 14 work.
 
 ## Reproduction and evidence
 

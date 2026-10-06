@@ -22,7 +22,7 @@ treated as long-term product documentation.
    Wi-Fi loss/reconnection and recovery controls, plus recurring standalone RF
    frames independently decoded after a wall-power boot without a USB host.
    This is bounded functional acceptance; final RF/reliability qualification
-   remains in Phase 13.
+   remains in Phase 14.
 10. **Complete:** WsprryPi client/backend integration, published operator manual,
     installed Linux release and bounded joint USB/conducted acceptance. Repaired
     physical timing, streaming, clock-refresh and launch-status findings were
@@ -31,7 +31,7 @@ treated as long-term product documentation.
     recorded 135500 Hz conducted setup. Final inhibited clock-loss, cancellation
     and USB reconciliation checks passed; inhibited firmware and original host
     services are restored. This is functional integration acceptance, with
-    broader qualification retained in Phase 13. See the
+    broader qualification retained in Phase 14. See the
     [target review](development/phase10-target-review.md) and
     [host acceptance guide](development/phase10-host-acceptance.md).
 11. **Complete within documented scope:** optional mutually authenticated
@@ -67,7 +67,7 @@ treated as long-term product documentation.
     Phase 11.5 at 6/6 families for that configuration.
     An alternative clock selected during 11.6 must repeat affected 11.5 checks.
     The systematic band x mode x clock comparison, final supported configurations,
-    filters, spectral qualification and release firmware belong to Phase 13.
+    filters, spectral qualification and release firmware belong to Phase 14.
 12. **Current:** Phase 12 provisioning/local control and consumer commissioning.
     The [Phase 12 plan](development/phase12-plan.md), operator-selected
     [field contract](development/phase12-field-access-contract.md) and
@@ -76,8 +76,11 @@ treated as long-term product documentation.
     [Field-GATT/1 contract](protocol/Field-GATT.md) and
     [conformance vectors](protocol/Field-GATT-v1-vectors.json) bind the custom
     BLE wire surface across firmware, Bluefy, the native-Pi client and host
-    tests. Physical profile activation and broader end-user acceptance remain
-    open P12.6 work.
+    tests. Bounded profile activation and the later
+    [automatic closeout](development/phase12-orchestratable-closeout-results.md)
+    are accepted within their recorded scopes. All four declared automatic
+    workstreams are complete; operator and broader end-user acceptance remain
+    open P12.6–P12.12 work.
 
     P12.1/P12.2 provide the portable profile journal and provisioning state
     machine. P12.4/P12.5 provide strict command decoding, delivery-safe
@@ -101,19 +104,53 @@ treated as long-term product documentation.
     and selected-iPhone network-only generation-one reboot readback passed;
     final phone-page and AP-return rows remain open in the
     [target record](development/phase12-wifi-only-physical-result.md).
-    On 2026-09-27 the operator selected Safari and SoftAP only for the
-    P12.7–P12.12 consumer path. The complete design was approved in the
-    [P12.7 decision](development/phase12-7-decision.md), while P12.8 source and
-    later target acceptance remain open. The earlier
-    BLE/Bluefy evidence remains bounded engineering evidence. Full profile
-    commissioning, owner recovery, broader BLE controls, time/LED, trust,
-    fault/concurrency/resource soak and the rest of the RF-inhibited Stage A
-    matrix remain open. Phase 12 is active and `OPEN_PARTIAL`; Stage B and
-    Phase 13 remain separate.
+    The 2026-09-27 Safari/SoftAP selection and
+    [P12.7 physical-owner decision](development/phase12-7-decision.md) are
+    historical. The [revised open setup contract](development/phase12-safari-open-setup-revision.md)
+    selects Wi-Fi first and optional station details without a retained phone
+    owner or button ceremony. P12.9 is closed under its selected manual
+    fixed-address portal gate; remaining consumer acceptance is in the current
+    matrix. The earlier
+    BLE/Bluefy evidence remains bounded engineering evidence. The later
+    automatic closeout accepts credential-journal recovery, reset/old-peer
+    refusal, engineering carrier/API composition, the two-hour resource capture
+    and consumer Save/STATUS overlap. Browser/offline commissioning, independent
+    time/LED/GP14 observations, physical cuts, peer/fleet interoperability and
+    conditional RF assertions remain open in the
+    [current matrix](development/phase12-closure-matrix.md). Phase 12 remains
+    `OPEN_PARTIAL`; Stage B and
+    Phases 13 and 14 remain separate.
 
-13. **Planned:** final hardware qualification and release, including the output
+13. **Planned:** feature completion before final qualification: complete
+    solid RF-active transmit LED acceptance using the existing source wiring,
+    and implement external Si5351 transmission support.
+    This phase is open for additional user-selected features; see the
+    [Phase 13 feature backlog](#phase-13-feature-backlog).
+14. **Planned:** final hardware qualification and release, including the output
     network and filters, calibrated GPIO-edge timing, supported mode/band
     combinations and a reproducible release UF2.
+
+## Phase 13 feature backlog
+
+Selected on 2026-10-05 to follow Phase 12 and precede final qualification.
+The existing indicator controller already has solid RF-active source wiring;
+P13.1 must reuse it and complete applicable acceptance or demonstrated gaps.
+External Si5351 implementation remains deferred. Additional features can be
+added here as the user identifies them; no further feature scope is selected.
+
+| Milestone | Selected work | Status |
+| --- | --- | --- |
+| P13.1 — Transmit LED | [Solid TX indication](development/transmit-led-backlog.md) throughout actual RF activity, including RF-producing warmup and cleanup; reuse shared indicator ownership and priority over AP/Identify blinking. | Source foundation present; completion/acceptance planned |
+| P13.2 — Si5351 engine | [External Si5351 transmission](development/si5351-transmission-backlog.md) through the shared job service for standalone and WsprryPi-controlled jobs, with local RP2350 timing, exclusive I²C ownership and engine failure/shutdown handling. | Planned |
+
+Each feature includes its implementation and applicable behavior/target
+acceptance. Phase 14 retains the final supported engine/mode/band/clock matrix,
+calibrated timing, RF, reliability, filters and release qualification.
+
+Numbering changed on 2026-10-05: the former Phase 13 qualification/release work
+is now Phase 14. Historical acceptance records and execution prompts retain
+their original numbering; their references to Phase 13 qualification mean
+the current Phase 14.
 
 <a id="planned-qrss-group-message-and-duration-limits"></a>
 
@@ -122,7 +159,7 @@ treated as long-term product documentation.
 Decision: selected by the user on 2026-09-13. Implemented in Pico source
 `7d183978d08d` and Pi companion `bba4024`. Phase 11.5 later accepted the limits
 within its recorded 138 MHz/divider-1 physical scope; wider reliability and
-configuration qualification remain in Phase 13.
+configuration qualification remain in Phase 14.
 
 - Apply one uniform maximum message length of **32 characters, including
   spaces**, to QRSS, FSKCW and DFCW. Every supported character counts equally;
@@ -144,7 +181,7 @@ configuration qualification remain in Phase 13.
 - Validate 32/33-character and 60-minute duration boundaries, worst-case Morse
   expansion, completion, cancellation, disconnect handling and sustained resource
   use. Hardware-free checks precede separately authorized physical acceptance;
-  long-duration endurance qualification remains in Phase 13.
+  long-duration endurance qualification remains in Phase 14.
 
 The implemented RF profile advertises 512 events and 3,600 seconds. The compact
 message compiler expands finite repeats within both bounds; it never streams
@@ -324,7 +361,7 @@ independently decoded recurring frames without USB job commands, a physical
 separate-power boot, USB-host absence, and retained configuration/watermark.
 This closes Phase 9's bounded functional acceptance. Calibrated timing,
 output/filter performance, wider network compatibility and endurance remain
-Phase 13 qualification work.
+Phase 14 qualification work.
 
 ## Subsequent slices
 
@@ -334,7 +371,11 @@ Phase 13 qualification work.
 2. Phase 12: finish the accepted BLE/SoftAP engineering boundary and the
    separately gated Safari/SoftAP consumer contract, offline controller UTC,
    indicator behavior and recovery acceptance.
-3. Phase 13: qualify supported engine/mode/band/clock combinations, timing, RF
+3. Phase 13: complete transmit LED acceptance using existing source and
+   implement/accept the external Si5351 engine;
+   collect additional user-selected features in the
+   [feature backlog](#phase-13-feature-backlog).
+4. Phase 14: qualify supported engine/mode/band/clock combinations, timing, RF
    and reliability; finish output networks/filters and release a reproducible
    WsprryPico-x.y.z.uf2.
 
@@ -348,5 +389,5 @@ and Mac. Bounded RF bench transmissions, UTC-scheduled WTP integration and CPU
 timing measurements are now recorded. Phase 11 adds its bounded inhibited,
 resource/contention and scoped conducted-RF acceptance. Final supported
 mode/band/clock combinations, calibrated timing and release engine promotion
-remain open in Phase 13. WTP/1 schemas are
+remain open in Phase 14. WTP/1 schemas are
 normative; changes to them require an explicit protocol-contract revision.

@@ -3,8 +3,14 @@
 Phase 11 is closed within its documented software, bounded physical and scoped
 conducted-RF acceptance. The authoritative [Phase 11.7 joint review](phase11-7-review.md)
 binds its source pair, assertion-level applicability, host regressions and
-retained limitations. Phase 12 is current: its
-versioned [Field-GATT/1 engineering protocol](../protocol/Field-GATT.md)
+retained limitations. Phase 12 remains `OPEN_PARTIAL`, with zero declared
+automatic workstreams remaining after the
+[automatic closeout](phase12-orchestratable-closeout-results.md). The current
+[closure matrix](phase12-closure-matrix.md) and
+[operator continuation](phase12-remaining-execution-prompt.md) retain the
+browser/offline, indicator/GP14, physical interruption, peer/fleet and conditional
+RF gates. The source and historical evidence below keep their recorded scopes.
+Its versioned [Field-GATT/1 engineering protocol](../protocol/Field-GATT.md)
 and [conformance vectors](../protocol/Field-GATT-v1-vectors.json),
 [implementation plan](phase12-plan.md),
 [revised captive SoftAP decision](phase12-safari-open-setup-revision.md),
@@ -66,12 +72,18 @@ admission, same-connection controller time, local status and
 `HELLO`/`CLAIM`/`RELEASE`. A later bounded iPhone 17 Pro Max/iOS 27.0/
 Bluefy 3.9.3 continuation accepts retained-bond authorization, one authenticated
 phone-time exchange, Identify LED/field status and WTP `HELLO` plus read-only
-`STATUS`. Bluefy/iOS offline reuse, fresh-password/new-pairing behavior, full
-provisioning/activation, arbitrary BLE job control, broader time/LED matrices,
+`STATUS`. At that phone checkpoint, Bluefy/iOS offline reuse,
+fresh-password/new-pairing behavior, full provisioning/activation, arbitrary
+BLE job control, broader time/LED matrices,
 broader captive HTTP, healthy-station AP withdrawal and station-loss/manual
 reopening, reset controls and most Stage
-A rows remain open. P12.3 remains CLOSED_SCOPED within its historical boundary.
-Phase 13 broad hardware/release qualification remains open.
+A rows remained open. The later automatic closeout above supersedes that
+checkpoint's automatic journal, carrier, recovery and resource gaps. P12.3
+remains CLOSED_SCOPED within its historical boundary.
+The [Phase 13 feature backlog](../implementation-plan.md#phase-13-feature-backlog)
+contains transmit LED and external Si5351 work, with room for further
+user-selected features. Phase 14 broad hardware/release qualification remains
+open.
 
 On macOS, run `bash scripts/check_host.sh` from the repository root for host
 configure, build and CTest. It selects full Xcode for the test subprocesses.

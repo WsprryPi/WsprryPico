@@ -1,9 +1,17 @@
 # Phase 12 remaining acceptance execution review
 
-Status: **EXECUTED / OPEN_PARTIAL**. This record executes the
-[remaining acceptance prompt](phase12-remaining-execution-prompt.md) on `devel`
+Status: **HISTORICAL EXECUTED CHECKPOINT / OPEN_PARTIAL**. The subsequent
+[automatic closeout](phase12-orchestratable-closeout-results.md) completes the
+four workstreams left by this record. Zero declared automatic groups remain;
+operator-dependent and broader qualification work stays open in the
+[current matrix](phase12-closure-matrix.md). The failures, restoration evidence
+and acceptance below retain their original checkpoint scope.
+
+This record executed the then-current
+[remaining acceptance prompt](phase12-remaining-execution-prompt.md), retained
+in Git at `dd419af`, on `devel`
 from `10d66719c775209f328d66fdc08603f1e2ed6a56`. Six automatic workstreams were
-open at the starting checkpoint; four remain after the complete narrow
+open at the starting checkpoint; four remained after the complete narrow
 C8T/R11F readiness and R11A automatic assessments below. The earlier automatic B12T/T5
 acceptance is retained. The fourteen existing closure-matrix IDs and physical
 gates are unchanged.
@@ -666,9 +674,9 @@ Private original and review bindings:
   consumer host-binding reassessment
   `237e27035e285f1ba12e675c8b1bd8aff57064ec7644e32fb18f2f78b1841074`.
 
-## Remaining execution and exit
+## Historical remaining execution and exit
 
-Four automatic workstreams remain after C8T/R11F readiness and R11A automatic
+Four automatic workstreams remained after C8T/R11F readiness and R11A automatic
 criteria pass; the declared running-cookie grace subset is also retained. Operator
 commissioning/offline browser use, independent indicator/GP14 timing, physical
 power interruption, additional-peer capacity and RF/conditional production
@@ -682,7 +690,12 @@ parity. The eventual commit hash is recorded outside this document.
 F12 remains the recurring exit gate and is excluded from the four-workstream
 count.
 
-## One operator block after automatic work
+## Historical proposed operator block
+
+The current [operator prompt](phase12-remaining-execution-prompt.md) supersedes
+the earlier restoration and device-scope instructions in this block. Its named
+physical evidence requirements are retained; the completed automatic work is
+not repeated as setup.
 
 Use the selected phone, iPad, laptop and B's existing GP14 wiring after fresh
 F12. Root prepares the exact fixtures, observers and restoration first;

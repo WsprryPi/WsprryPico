@@ -28,7 +28,7 @@ RP2350.
 
 Merely connecting, pairing, authorizing, reading status or synchronizing time
 does not authorize RF output. The standard Phase 12 image is RF-inhibited.
-Phase 13 RF and release qualification remains separate.
+Phase 14 RF and release qualification remains separate.
 
 Two application streams share one encrypted BLE connection:
 
@@ -49,7 +49,8 @@ defined separately by the
 
 Open the repository-owned page from the project-approved HTTPS origin in
 Bluefy. The page verifies its release assets before enabling the picker. The
-page is the selected iPhone client; there is no native WsprryPico iOS app.
+page is the engineering iPhone client; there is no native WsprryPico iOS app.
+Consumer commissioning uses the separately selected open SoftAP portal.
 
 Bluefy uses the field command/status characteristics for authorization,
 provisioning and local controls. When the operator requests WTP status, the page
@@ -66,8 +67,10 @@ application paths implement the frozen source contract. Profile application
 re-prompts for the current local password, performs bound `profile_step_up`,
 waits for required USB-local confirmation and reuses the bound request ID for
 `apply`. It selects an exact Bluetooth address, verifies the full device ID and
-does not set the BlueZ `Trusted` property. Physical native-Pi profile acceptance
-remains open.
+does not set the BlueZ `Trusted` property. Bounded native-Pi profile application
+and later carrier/resource results are recorded in the
+[automatic closeout](../development/phase12-orchestratable-closeout-results.md).
+Broader phone and physical interoperability acceptance remains open.
 
 ### Generic GATT tools
 

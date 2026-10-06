@@ -56,12 +56,14 @@ application parity is not claimed.
   runtime BOOTSEL sampler failed a physical long-hold check and remains
   withdrawn. The earlier
   [P12.7 physical-owner decision](docs/development/phase12-7-decision.md) is
-  historical; the revised portal is source-linked but not physically accepted.
+  historical; bounded portal acceptance exists, while broader physical consumer
+  commissioning remains open in the [current matrix](docs/development/phase12-closure-matrix.md).
   The native [Raspberry Pi/Linux BlueZ client](docs/development/raspberry-pi-ble-client.md)
   is an additional supported local/bench client; it does not qualify the
-  selected iPhone consumer acceptance path. Its profile-apply command is
-  source/host conforming to Field-GATT/1; native-Pi physical profile activation
-  remains unaccepted.
+  consumer iOS-browser acceptance path. Its profile-apply command is
+  source/host conforming to Field-GATT/1. Bounded native-Pi profile activation
+  is recorded in the [automatic closeout](docs/development/phase12-orchestratable-closeout-results.md).
+  Broader phone and physical interoperability acceptance remains open.
 - Every job-control path uses the same JobService and loads and arms complete
   jobs. RP2350 owns execution and symbol timing.
 - WTP is device-neutral and independently versioned. Its specification is

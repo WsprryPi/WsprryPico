@@ -60,10 +60,19 @@ software and bounded physical scopes. The authoritative
 within that scope, including the 11.4 inhibited matrix/eight-hour soak, 11.5 at
 138 MHz/divider 1 and the explicitly reduced 11.6 conducted matrix. Network
 control still defaults off. Broader mode/band/clock, timing, spectra, filtering,
-reliability and release qualification remain in Phase 13.
+reliability and release qualification remain in Phase 14. The
+[Phase 13 feature backlog](docs/implementation-plan.md#phase-13-feature-backlog)
+places transmit LED completion and external Si5351 work before final qualification and
+remains open for additional user-selected features.
 
-[Phase 12 provisioning](docs/development/phase12-plan.md) is current. Its
-hardware-free P12.1-P12.5 slices retain their documented scope. The P12.6
+[Phase 12 provisioning](docs/development/phase12-plan.md) remains `OPEN_PARTIAL`.
+The [automatic closeout](docs/development/phase12-orchestratable-closeout-results.md)
+closes all four declared automatic workstreams: credential journals, reset/old-
+peer refusal, engineering carrier/API composition and resources plus consumer
+Save/STATUS overlap. No automatic group remains. Operator browser/offline,
+indicator/GP14, physical interruption, peer/fleet and conditional RF checks
+remain open; these results do not close Phase 12 or qualify RF/release behavior.
+Its hardware-free P12.1-P12.5 slices retain their documented scope. The P12.6
 production tranche now starts provisioning-only encrypted GATT in the standard
 RF-inhibited image from healthy adopted access state, constructs a network-only
 delivery-safe activator and indicator, and publishes a deterministic
@@ -104,7 +113,7 @@ runtime candidate connects these controls in source; the default image
 leaves GP14 disabled. Its first Candidate B load failed closed on a DMA
 count-mode error. The repaired image passed bounded idle, short-hold and
 long-hold event checks; [read-only SoftAP telemetry](docs/development/phase12-gp14-runtime-review.md)
-is loaded on A and B and passed bounded idle continuity checks. On B, it also
+was loaded on A and B and passed bounded idle continuity checks. On B, it also
 reports AP/service readiness during a 49.557-second hold and for 60.7 seconds
 after release. The operator then confirmed B's phone setup page showed
 “Saved and connected”; post-reboot readback verified profile generation 2
