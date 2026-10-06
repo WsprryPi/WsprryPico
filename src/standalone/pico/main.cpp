@@ -1591,7 +1591,16 @@ int main() {
                                    : softap_name_ready && server.listening());
         softap_coordinator.ready(softap_service_ready);
         indicator.softap_ready(softap_coordinator.status(field_now_ms).ready);
+#ifdef WSPRRY_PICO_GP14_RF_ACCEPTANCE
+        // The operator's local action cue must remain visible while the test
+        // Tone is active. Only this acceptance image gives Identify priority
+        // over the ordinary steady transmit indication.
+        indicator.transmitting(engine.output_active() &&
+                               indicator.status(field_now_ms).pattern !=
+                                   wsprrypico::provisioning::IndicatorPattern::Identify);
+#else
         indicator.transmitting(engine.output_active());
+#endif
         indicator.poll(field_now_ms);
         service.poll();
         const auto clock_now = service.clock_snapshot();

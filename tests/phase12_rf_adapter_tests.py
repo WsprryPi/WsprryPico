@@ -24,6 +24,64 @@ def block(source, anchor):
 
 @unittest.skipUnless(sys.platform.startswith('linux'), 'retained Linux C++ validation')
 class AdapterTests(unittest.TestCase):
+    def test_actual_acceptance_cue_has_priority_during_rf(self):
+        main = (ROOT / 'src/standalone/pico/main.cpp').read_text()
+        begin = main.index('#ifdef WSPRRY_PICO_GP14_RF_ACCEPTANCE',
+                           main.index('indicator.softap_ready('))
+        end = main.index('indicator.poll(field_now_ms);', begin)
+        cue = main[begin:end]
+        field = (ROOT / 'src/provisioning/field_runtime.cpp').read_text()
+        elapsed_begin, elapsed_end = block(field, 'bool elapsed(')
+        elapsed = field[field.index('bool elapsed('):elapsed_end]
+        actual = field[field.index('IndicatorCode IndicatorController::identify('):
+                       field.rindex('} // namespace')]
+        program = r'''
+#include "provisioning/field_runtime.hpp"
+#include <array>
+#include <stdexcept>
+namespace wsprrypico::provisioning { ELAPSED ACTUAL }
+using Pattern=wsprrypico::provisioning::IndicatorPattern;
+struct Engine { bool active=false; bool output_active()const{return active;} } engine;
+struct Output:wsprrypico::provisioning::IndicatorOutput {
+ bool value=false; bool write(bool v)override{value=v;return true;}
+} output;
+wsprrypico::provisioning::IndicatorController indicator(output,"device");
+void update(std::uint64_t field_now_ms){
+CUE
+ indicator.poll(field_now_ms);
+}
+int main(){
+ engine.active=true;indicator.softap_ready(true);
+ if(indicator.identify("cue","device",true,true,0)!=wsprrypico::provisioning::IndicatorCode::Ok)
+  throw std::runtime_error("cue refused");
+ for(auto tick:std::array<std::uint64_t,16>{0,149,150,299,300,449,450,599,600,749,750,1999,2000,9999,10000,10150}){
+  update(tick);
+#ifdef WSPRRY_PICO_GP14_RF_ACCEPTANCE
+  const auto phase=tick%2000;
+  const bool expected=tick>=10000||phase<150||(phase>=300&&phase<450)||(phase>=600&&phase<750);
+#else
+  const bool expected=true;
+#endif
+  if(output.value!=expected) throw std::runtime_error("acceptance cue masked or wrong edge");
+ }
+ engine.active=false;update(10600);
+ if(output.value||indicator.status(10600).pattern!=Pattern::SoftApReady)
+  throw std::runtime_error("expired cue did not return to setup pattern");
+}
+'''.replace('CUE', cue).replace('ELAPSED', elapsed).replace('ACTUAL', actual)
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory)
+            (path / 'cue.cpp').write_text(program)
+            for definitions in ([], ['-DWSPRRY_PICO_STANDALONE_RF=1'],
+                                ['-DWSPRRY_PICO_STANDALONE_RF=1',
+                                 '-DWSPRRY_PICO_GP14_RF_ACCEPTANCE=1']):
+                built = subprocess.run(['c++', '-std=c++20', '-Wall', '-Wextra', '-Werror',
+                                '-I' + str(ROOT / 'src'),
+                                str(path / 'cue.cpp'), '-o', str(path / 'cue'), *definitions],
+                               capture_output=True, text=True, timeout=60)
+                self.assertEqual(built.returncode, 0, built.stderr)
+                subprocess.run([str(path / 'cue')], check=True, capture_output=True, timeout=10)
+
     def test_actual_dispatch_gate_and_console_batch(self):
         source = (ROOT / 'src/network/pico/bootstrap_server.cpp').read_text()
         header = (ROOT / 'src/network/pico/bootstrap_server.hpp').read_text()

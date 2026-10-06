@@ -901,3 +901,33 @@ their source/target validation are recorded in the
 They do not grant physical G7 acceptance. Actual recovery is authorized for
 the broken Console/portal path; another acquisition needs explicit additional
 budget for this same row or an explicit scope disposition.
+
+## One corrected long-ap attempt authorized — 2026-10-06
+
+After the explanation of the remaining G7 assertion, the operator authorized
+one corrected attempt. The cumulative ceiling is now **18 acquisitions / 13
+charged jobs**; actual totals remain **17/12** until that attempt starts.
+This authorizes only the existing `long_ap` row, without an automatic retry or
+replay of any accepted row. Other proposed physical/BLE/fleet scope dispositions
+remain unapproved.
+
+The operator requested a clearer local action signal. Source inspection found
+that the ordinary steady transmit indication masked Identify during active
+RF. The acceptance image now gives its existing Identify cue priority while
+that cue is active. It displays three 150 ms flashes, starting 300 ms apart,
+then pauses; the group repeats every two seconds for ten seconds. Ordinary
+inhibited and RF-production indication policy is unchanged. The actual main
+branch and actual IndicatorController regression checks the pulse edges,
+ten-second expiry and all three build variants on Linux; target link and
+stack/storage/UF2 checks pass. This is cue preparation, not a new physical LED
+acceptance claim or G7 pass.
+
+The operator action is to press B's GP14 on the onset of the three-flash cue,
+hold for fourteen seconds and release even if the LED pattern changes. Ready
+is requested after the candidate and observers are prepared; waiting for that
+human response has no expiry. The existing 12–15-second contact range and
+90-second post-release usable-portal assertion remain the case's bounds.
+The prior failed attempt and its charge remain retained. The private corrected
+launcher must bind the explicit grant, original seventeen-attempt history,
+new source/image and one-use Ready, while leaving the public runner's original
+17/12 ceiling unchanged.
