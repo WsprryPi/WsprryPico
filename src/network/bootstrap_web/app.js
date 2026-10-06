@@ -18,6 +18,7 @@ const host = 'http://192.168.4.1';
 let deviceId, pending, started, sealed, expectedGeneration, currentGeneration;
 let polling = false, acknowledging = false, completed = false, saving = false;
 let postAccepted = false, responseLost = false;
+let formEdited = false;
 let lastTimeHintMs;
 const hexId = (value) => typeof value === 'string' && /^[0-9a-f]{32}$/.test(value);
 const hasSavedNetwork = (status) =>
@@ -69,6 +70,25 @@ async function startWhenAvailable(body) {
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
   }
+}
+
+async function fillSavedNetwork() {
+  try {
+    const status = await json('/api/owner/v1/public-status');
+    if (formEdited || saving || sealed || completed || status.version !== 1 ||
+        status.device_id !== deviceId || !hexId(status.boot_id) ||
+        !hasSavedNetwork(status) ||
+        status.profile_source !== (status.source === 'consumer' ? 5 : 4) ||
+        typeof status.generation !== 'string' || !/^[1-9][0-9]*$/.test(status.generation) ||
+        BigInt(status.generation) > 0xffffffffffffffffn ||
+        typeof status.network?.ssid !== 'string' ||
+        !/^[\x20-\x7e]{1,32}$/.test(status.network.ssid) ||
+        typeof status.network.time_server !== 'string' ||
+        !validTimeServer(status.network.time_server)) return;
+    $('ssid').value = status.network.ssid;
+    $('time-server').value = status.network.time_server;
+    // The saved password is never returned by the public endpoint.
+  } catch { /* Prefill is optional; the form remains usable after a failed read. */ }
 }
 
 async function hintTime() {
@@ -292,6 +312,7 @@ async function boot() {
   $('interrupted-button').addEventListener('click', () => location.reload());
   $('unknown-button').addEventListener('click', () => location.reload());
   $('wifi-form').addEventListener('submit', submit);
+  $('wifi-form').addEventListener('input', () => { formEdited = true; });
   if (location.origin !== host || typeof fetch !== 'function' ||
       typeof AbortController !== 'function' || !available()) {
     show('browser');
@@ -313,6 +334,7 @@ async function boot() {
     deviceId = identity.device_id;
     $('device').textContent = 'Pico ' + deviceId.slice(-6);
     show('credentials');
+    await fillSavedNetwork();
     update();
   } catch {
     show('interrupted');

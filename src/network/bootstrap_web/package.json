@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "esbuild app.js --bundle --minify --format=iife --target=es2020 --legal-comments=eof --outfile=bundle.js && esbuild owner-key.js --bundle --minify --format=iife --target=es2020 --legal-comments=eof --outfile=owner-key-bundle.js && esbuild owner-app.js --bundle --minify --format=iife --target=es2020 --legal-comments=eof --outfile=owner-bundle.js && esbuild recovery-app.js --bundle --minify --format=iife --target=es2020 --legal-comments=eof --outfile=recovery-bundle.js",
-    "test": "node --test crypto.test.mjs app.test.mjs owner-claim.test.mjs owner-app.test.mjs recovery-app.test.mjs"
+    "test": "node --test crypto.test.mjs app.test.mjs app-prefill.test.mjs owner-claim.test.mjs owner-app.test.mjs recovery-app.test.mjs"
   },
   "dependencies": {
     "@noble/ciphers": "2.3.0",

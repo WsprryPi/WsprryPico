@@ -830,6 +830,9 @@ HttpResponse PicoBootstrapServer::owner_status(bool claim_status) {
     body += ",\"station\":" + (healthy && runtime_ok
                                    ? owner_saved_station_json(*profile_, *runtime_, device_)
                                    : std::string("null"));
+    body += ",\"network\":" + (healthy && runtime_ok
+                                   ? owner_saved_network_json(*profile_, *runtime_, device_)
+                                   : std::string("null"));
     body += '}';
     return json(std::move(body));
 }

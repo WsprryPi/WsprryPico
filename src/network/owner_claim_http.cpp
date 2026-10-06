@@ -105,6 +105,33 @@ std::string owner_saved_station_json(const provisioning::ProfileStore& store,
            ",\"power_dbm\":" + std::to_string(saved->power_dbm) + "}";
 }
 
+std::string owner_saved_network_json(const provisioning::ProfileStore& store,
+                                     const provisioning::RuntimeProfile& runtime,
+                                     std::string_view device_id) {
+    if (!store.healthy() || !store.sequence() || runtime.generation() != store.sequence())
+        return "null";
+    std::string_view ssid, time_server;
+    if (store.source() == provisioning::ProfileSource::ConsumerProfile &&
+        runtime.source() == provisioning::RuntimeSource::ConsumerPreClock) {
+        const auto* saved = runtime.consumer_profile();
+        if (!saved || saved->device_id != device_id)
+            return "null";
+        ssid = saved->ssid;
+        time_server = saved->time_server;
+    } else if (store.source() == provisioning::ProfileSource::NetworkOnly &&
+               runtime.source() == provisioning::RuntimeSource::NetworkOnly) {
+        const auto* saved = runtime.network_profile();
+        if (!saved || saved->device_id != device_id)
+            return "null";
+        ssid = saved->ssid;
+        time_server = saved->time_server;
+    } else {
+        return "null";
+    }
+    return "{\"ssid\":" + wtp::json::quote(ssid) +
+           ",\"time_server\":" + wtp::json::quote(time_server) + "}";
+}
+
 std::optional<OwnerIdentifyRequest> parse_owner_identify(const HttpRequest& request) {
     if (!common(request, "/api/owner/v1/identify", true))
         return {};

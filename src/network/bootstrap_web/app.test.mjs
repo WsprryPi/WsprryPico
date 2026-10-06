@@ -39,6 +39,8 @@ let failNextTimeHint = false;
 globalThis.fetch = async (url, options = {}) => {
   const path = new URL(url).pathname;
   if (path === '/local/v1/identity') return {ok: true, json: async () => ({device_id: device})};
+  if (path === '/api/owner/v1/public-status')
+    return {ok: true, json: async () => ({version: 1, device_id: device, source: 'unprovisioned', network: null})};
   if (path === '/api/bootstrap/v1/status') {
     if (dropStatus) throw new Error('setup Wi-Fi disconnected');
     const snapshot = status;

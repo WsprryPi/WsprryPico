@@ -49,6 +49,10 @@ bool owner_public_get_admitted(const HttpRequest& request, std::string_view rout
 std::string owner_saved_station_json(const provisioning::ProfileStore& store,
                                      const provisioning::RuntimeProfile& runtime,
                                      std::string_view device_id);
+// Public AP readback of SSID and time server only; never returns credentials.
+std::string owner_saved_network_json(const provisioning::ProfileStore& store,
+                                     const provisioning::RuntimeProfile& runtime,
+                                     std::string_view device_id);
 std::optional<OwnerIdentifyRequest> parse_owner_identify(const HttpRequest& request);
 std::optional<OwnerClaimStartRequest> parse_owner_claim_start(const HttpRequest& request);
 std::optional<OwnerClaimSubmitRequest> parse_owner_claim_submit(const HttpRequest& request);

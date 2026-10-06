@@ -4,6 +4,7 @@
 #include "provisioning/network_profile.hpp"
 #include "provisioning/runtime.hpp"
 #include "provisioning/storage.hpp"
+#include "wtp/json.hpp"
 
 #include <algorithm>
 #include <array>
@@ -96,6 +97,12 @@ int main() {
     assert(!preclock.profile() && !preclock.network_profile());
     const auto station = network::owner_saved_station_json(direct_readback, preclock, device);
     assert(station == "{\"callsign\":\"K1ABC\",\"locator\":\"FN20\",\"power_dbm\":30}");
+    const auto saved_network = network::owner_saved_network_json(direct_readback, preclock, device);
+    assert(saved_network == "{\"ssid\":\"Home Net\",\"time_server\":\"time.example.org\"}");
+    assert(saved_network.find("password") == std::string::npos);
+    assert(saved_network.find("PRIVATE KEY") == std::string::npos);
+    assert(network::owner_saved_network_json(direct_readback, preclock,
+                                             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa") == "null");
     assert(network::owner_saved_station_json(direct_readback, preclock,
                                              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa") == "null");
     // A new journal generation must not be paired with the old boot's fields.
@@ -108,10 +115,13 @@ int main() {
     assert(direct_readback.select(provisioning::ProfileSource::ConsumerProfile,
                                   provisioning::serialize_consumer_profile(changed_station)));
     assert(network::owner_saved_station_json(direct_readback, preclock, device) == "null");
+    assert(network::owner_saved_network_json(direct_readback, preclock, device) == "null");
     provisioning::RuntimeProfile updated_runtime;
     assert(updated_runtime.load(direct_readback, device, provisioning::BuildBundleState::Absent));
     assert(network::owner_saved_station_json(direct_readback, updated_runtime, device) ==
            "{\"callsign\":\"AA0NT/P\",\"locator\":\"EM18AA\",\"power_dbm\":20}");
+    assert(network::owner_saved_network_json(direct_readback, updated_runtime, device) ==
+           saved_network);
     const standalone::Config empty_config{};
     const auto selected = preclock.overlay(empty_config);
     assert(selected && selected->ssid == "Home Net" && selected->password == "test-password");
@@ -132,6 +142,7 @@ int main() {
     assert(wrong_device.fault() == provisioning::RuntimeFault::WrongDevice);
     assert(!wrong_device.consumer_profile());
     assert(network::owner_saved_station_json(direct_readback, wrong_device, device) == "null");
+    assert(network::owner_saved_network_json(direct_readback, wrong_device, device) == "null");
 
     MemoryMedia after_reset;
     provisioning::ProfileStore tombstone(after_reset);
@@ -142,6 +153,7 @@ int main() {
     assert(preclock.source() == provisioning::RuntimeSource::Unprovisioned);
     assert(!preclock.consumer_profile() && !preclock.overlay(empty_config));
     assert(network::owner_saved_station_json(tombstone, preclock, device) == "null");
+    assert(network::owner_saved_network_json(tombstone, preclock, device) == "null");
     assert(tombstone.select(provisioning::ProfileSource::ConsumerProfile, payload));
     assert(tombstone.sequence() == 2);
     assert(preclock.load(tombstone, device, provisioning::BuildBundleState::Absent));
@@ -156,6 +168,9 @@ int main() {
     provisioning::RuntimeProfile network_runtime;
     assert(network_runtime.load(initial, device, provisioning::BuildBundleState::Absent));
     assert(network::owner_saved_station_json(initial, network_runtime, device) == "null");
+    assert(network::owner_saved_network_json(initial, network_runtime, device) ==
+           "{\"ssid\":\"Home Net\",\"time_server\":" +
+               wtp::json::quote(standalone::default_time_server) + "}");
     // Re-entering the same Wi-Fi settings is still a distinct browser save.
     MemoryMedia repeat_media;
     provisioning::ProfileStore repeat(repeat_media);

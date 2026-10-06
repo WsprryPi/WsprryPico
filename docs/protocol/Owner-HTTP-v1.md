@@ -232,6 +232,15 @@ readback for the requested form prefill; station **changes** remain encrypted.
 A source-5 update awaiting activation is unavailable for a new claim, so a
 transient null station cannot be mistaken for an empty saved station.
 
+Both endpoints also return `network`: either `null` or an object containing
+only `ssid` and `time_server`. Healthy network-only and consumer selections
+return these fields only when the runtime device and generation match the
+committed journal; other selections return `null`. Passwords, TLS material,
+owners and clients are never included. On a fresh Wi-Fi page, one read fills
+the saved network name and time server without phone storage or a Save. The
+password stays blank. An input event protects the current draft from a late
+read; a failed read leaves the form usable. Wi-Fi changes remain encrypted.
+
 On every fresh page, including browser privacy refresh, the form reads those
 values from the Pico without phone storage or a Save. Later polling can refresh
 an untouched form for a new committed generation. Any input/change protects
