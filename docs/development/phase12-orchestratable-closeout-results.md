@@ -8,6 +8,170 @@ complete original evidence and independent assessments.
 The execution direction is in
 [the closeout prompt](phase12-orchestratable-closeout-prompt.md).
 
+## Final four-group continuation (2026-10-06)
+
+The current continuation retains the fourteen closure IDs and the four-group
+scope in the [remaining execution prompt](phase12-remaining-execution-prompt.md).
+B12L is closed within the checked-driver scope and the operator explicitly
+accepted the two narrow timing exclusions: an exact GP14 edge inside the
+8.524–8.648 ms erase/program interval, and physical power loss inside such a
+pulse. These exclusions do not replace the two selected physical cuts at
+completed, deliberately paused boundaries.
+
+One fresh physical wspr5 peer completed Pair, authorization and identity-bound
+HELLO/STATUS. A phone reported the matching B identity and empty/inactive
+STATUS; its passive observer exceeded its limit, so the complete observer case
+is retained as STOP. The initially reported iPad BLE success was withdrawn by
+the operator; its corrected attempt failed during Connect with
+`operation_failed`. Existing iPad consumer/offline commissioning remains
+accepted. B's changed-state native readback contains three authorized bonds;
+this proves neither the four-peer limit nor fifth-peer refusal.
+
+Both one-slot contention tranches preserved the connected wspr4 incumbent and
+its same-boot authority, but wspr5 failed to connect after release. The second
+tranche settled its native callback before the post-release operation, and a
+separate fresh-LE-discovery control also failed. All remain STOP. A bounded
+native HCI diagnostic places the failure before encryption or ATT: connection
+completion succeeded, then remote-feature exchange and disconnect reported
+`0x3e Connection Failed to be Established`. No password, stale-key or firmware
+defect is established. The current wspr5 host LTK matches B's selected bond.
+The HCI text SHA-256 is
+`e8aa0606144f40cfa616413dd134a9ac3d2cd28b2cc92bb8d43e11f668d2679c`.
+
+The first stage-9 physical-cut preparation stopped before Apply or any power
+cut when that BLE prerequisite failed. Its named normal app-only exit passed
+independent raw application/reserved/E10 comparison. The retained wspr4 peer
+then completed the selected profile cut: one Apply, one physical USB power
+removal 34.911 seconds after the completed-header cue, and one cold recovery.
+The incomplete sequence-3 header/payload had an erased commit marker; the
+complete sequence-2 profile and all three original bonds were selected
+unchanged. Access/BT, operational state and E10 were preserved. The named normal
+application exit preserved the entire current reserved region. Independent
+review accepts this completed precommit-boundary cut; it proves no in-pulse
+power loss. Original result SHA-256:
+`d25d12a8eaa6a73d07f4b592b696b222e86df39921da3bdf518ec5d540d0ee71`.
+
+The reset-intent cut remains STOP. Two preparations stopped before reset or
+power removal. The one actual reset submission reached the stage-1 cue, but
+USB disappearance was observed 119.028 seconds later, outside its original
+90-second guard and too close to the old 120-second watchdog continuation.
+The operator unplugged/reconnected B; that is the second actual physical cut
+attempt, but only the profile cut is qualified. Later cold recovery completed
+the reset: both profile banks and all bonds were cleared, security roots
+rotated to epoch 4, settings/E10 preserved, and the deliberate fixture removed.
+Independent review accepts this reset/recovery/clearing result, not the missing
+timed intent-cut claim. The original STOP and named recovery remain retained;
+no reset retry occurred. Recovery result SHA-256:
+`2f9c01056c0242fb95c23574f14a2763aed766bba7cba17e72184d64d03fddb6`.
+
+At the operator's direction, the opt-in physical-cut fixture and private
+controller now wait without an operator deadline, continue USB service and
+watchdog maintenance, and exclude that wait from the machine budget. They
+still stop on a dead/failed observer and retain bounded machine cleanup. Four
+actual-source fixture variants pass on Linux in normal and optimized Python;
+the updated fixture cross-links and passes stack/storage/UF2 checks. It was
+not deployed for another cut, and does not alter the two original receipts.
+
+One useful consumer transition installed the retained inhibited Plain LAN
+`c0d2bd53e4bd` application and a profile-only TLS-pending journal derived from
+B's retained network/station settings. It preserved the current epoch-4,
+zero-bond security state and all bytes outside the profile journal; no old
+TLS material, owners or clients were restored. The ordinary firmware created
+fresh TLS material and advanced generation 2 to 3. Independent review matches
+all 7,097 application pages and the exact admitted reserved/native state.
+
+The installed WsprryPi fleet application then completed one five-second
+inhibited Tone on B through its existing Plain LAN assignment. Original
+Complete/ARM/STATUS evidence binds device, boot, job and owner; ownership was
+released, output inactive, and the original paused schedule and all other
+assignments preserved. Consumer USB WTP is intentionally disabled; the first
+unsupported USB observation stopped before any mutation and is retained.
+This accepts one actual supported member/application path, not an eight-output
+fleet or the remaining BLE capacity boundaries. Independent reassessment is
+required before final closure.
+
+The one final `long_ap` attempt is **FAILED_STOP_CAMPAIGN**. Run
+`run-380467fbc52d47ef9ebb4ec53bd3c063` used B's source-bound `c0d2bd53e4bd`
+RF image, boot `99396fc326f6bd51e5b49bab033842c3`, one acquisition and one
+successfully armed job. At launch, INFO exceeded the fixed 8,192-byte Console
+queue and returned `console_response_capacity`. No physical LED action cue was
+sent. Owned ABORT/RELEASE completed and original WTP STATUS was
+empty/unowned/inactive. The independent receiver completed its 10,000,000-sample
+capture without overflow; this does not supply a qualifying button cutoff.
+The subsequent operator visit showed the identity-only recovery page, with
+Wi-Fi setup unavailable. It does not satisfy usable setup or the same-boot
+90-second portal assertion. No qualifying hold/release bracket or RF cutoff is
+claimed. The attempt SHA-256 is
+`4e4825694624e550363a851ad85e841e4c98d4d245febadc911ac3dab4872907`;
+the original event stream SHA-256 is
+`a9cda9c35242b46f7c386f967400ed7060472d42cae8e8c9c547f18029c1d19f`.
+Captures and the operator's screenshot remain private.
+
+Accounting is now **17 acquisitions / 12 charged jobs**, exhausting the
+authorized ceiling. G7 remains open, with no automatic retry or GP14 default
+enablement. The demonstrated source defects are repaired by streaming one
+bounded Console reply in 64-byte slices and admitting the existing setup
+portal in the RF image only after verified shutdown, both inhibition latches,
+healthy capture/storage, an active accepted long-hold lease and unowned,
+inactive local authority. Empty authority has no job; acknowledged terminal
+Aborted/Complete/Missed authority may retain its job and evidence. The actual
+JobService stop path retains Aborted rather than becoming Empty immediately;
+the gate and exact-job latch observer preserve this evidence. Withdrawal blocks setup dispatch and transaction
+advancement. The normal image retains its existing setup policy. Linux USB and
+field-access tests, actual adapter dispatch/poll/Console-loop checks in normal
+and optimized Python, network source contracts, both target links and linked
+stack/storage/UF2 checks pass. Source/build validation does not promote the
+failed physical result.
+
+One normal-image recovery is now independently accepted. The first Plain LAN
+preflight reset its connection and stopped with zero BOOTSEL/load/reboot. The
+supported small `ACTIVITYTRACE READ 0` then bound B/source/boot; the original
+firmware's atomic BOOTSEL guard verified unowned/inactive authority and actual
+engine disable. One source-bound normal UF2 load and one reboot preserved all
+current reserved/native/E10 bytes and matched **7,133 application pages**.
+The image SHA-256 is
+`8ce8bb663008ca316b4ef48167ec1604b00be1d3c81c1263fd9c4776ccbe76dc`;
+its working-source revision is honestly `3fed9d1f8e00-dirty`, retained with
+content bindings. Final boot `fad4cf9b1fdac5fd1321b013ba9f8f43` is inhibited,
+healthy, disabled/empty/inactive, GP14 released, source-5 generation 3,
+epoch 4 and zero bonds. Fixture controls are absent and INFO works again.
+The recovery result SHA-256 is
+`32eba32278c7c08738328b02967ad1ad5b9e4f3e669ed0e5d69ee7ed791e0918`;
+raw readback SHA-256 is
+`cba0b323ff7256bcf0d213a682270d4551007843a2bfbc72418cd4da03eed976`.
+No prior security roots or bonds were restored and no RF job was submitted.
+
+The later RF-only terminal-gate correction passes the real JobService core
+selection **46/46**, field access **1/1**, and orchestration **36/36** in both
+Python modes. The final RF link and stack/storage/UF2 checks pass. Independent
+reassessment finds no remaining actionable source or recovery finding. Its
+RF candidate SHA-256 is
+`12fe1773931021bc60fcaef7318f29ee4f6dad25485f0ae49b0fe64fd2312885`;
+it has not been loaded or transmitted. The operator decision on additional
+budget or G7 disposition is pending, as are the remaining physical/BLE/fleet
+scope limits. Phase 12 remains OPEN_PARTIAL.
+
+The brief final INFO records retain A at `6c7b14321003`, boot
+`85e164b089a940450aaf38035612df63`, generation 5 and station IP
+`192.168.1.47`; B retains the normal recovery image/boot above at
+`192.168.1.53`. Both are inhibited, healthy, disabled/empty/inactive, GP14
+released and zero BLE/network connections. A is unsynchronized; B is
+synchronized. No routine restart or SNTP wait was added. B's atomic recovery
+entry and the failed RF run's original WTP cleanup verified unowned authority;
+the final INFO is a current empty/inactive observation, not an additional WTP
+ownership exchange. The installed B fleet assignment is paused; its original
+schedule and every other assignment are exact, with only B's legitimate job
+last-start timestamp advanced. The owned wspr5 engineering AP profile is
+removed and its absence verified. Its initial privilege-refused cleanup
+receipt is retained alongside successful privileged cleanup. Board/action
+locks are released. Ethernet management and timing services were untouched.
+
+This continuation used one checked-LED fixture boot, two actual physical
+power-removal attempts (one qualified completed precommit cut), one installed
+fleet simulator job and one failed RF acquisition/charged job. The cumulative
+RF totals remain 17/12. No test of an accepted RF row, new soak or additional
+acceptance group was added.
+
 ## Completed in this continuation
 
 - Corrected HTTPS authority formatting in the maintained network and

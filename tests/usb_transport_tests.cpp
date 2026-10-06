@@ -1,6 +1,7 @@
 #include "tusb.h"
-#include "usb/roles.h"
+#include "usb/console_reply.hpp"
 #include "usb/reply_priority.hpp"
+#include "usb/roles.h"
 #include "usb/transport.hpp"
 #include "wtp/frame_parser.hpp"
 
@@ -117,6 +118,34 @@ int main() {
     CHECK(ports[1].delivered.empty());
     CHECK(!console_output_pending());
     // Software queue empty, but TinyUSB still has a packet to drain.
+    // The RF INFO snapshot crosses the former whole-reply 8 KiB limit when
+    // launch/refill counters populate. Keep the real queue fixed and drain a
+    // larger UTF-8 reply through short writes without blocking WTP.
+    const std::string info = "{\"diagnostic\":\"" + std::string(9'000, 'x') + "π\"}\n";
+    ConsoleReply reply;
+    CHECK(reply.begin(info));
+    CHECK(!reply.begin("must not replace a pending reply\n"));
+    ports[0].capacity = 0;
+    for (unsigned i = 0; i < 200; ++i) {
+        reply.poll(console_write);
+        service();
+    }
+    CHECK(reply.pending());
+    ports[0].capacity = 7;
+    for (unsigned i = 0; i < 2'000; ++i) {
+        reply.poll(console_write);
+        service();
+    }
+    CHECK(!reply.pending() && !console_output_pending());
+    CHECK(std::string(ports[0].delivered.begin(), ports[0].delivered.end()) == banner + info);
+    CHECK(ports[1].delivered.empty());
+    CHECK(!reply.begin(std::string(65'537, 'x')));
+    CHECK(!reply.pending());
+    CHECK(reply.begin(info));
+    reply.reset();
+    CHECK(!reply.pending() && reply.begin("fresh session\n"));
+    reply.reset();
+    ports[0].delivered.assign(banner.begin(), banner.end());
     ports[0].pending.push_back('x');
     CHECK(console_output_pending());
     ports[0].pending.clear();

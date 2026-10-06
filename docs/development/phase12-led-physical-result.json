@@ -41,8 +41,36 @@
   "cleanup": "PASS: owned observer network profile/process and A lock removed",
   "operator_future_observer": "Direct operator LED observation; further videos not required by operator direction.",
   "video_policy": "No video or derived frames retained in the repository as test evidence; success summary only.",
-  "remaining_step1": [
-    "Checked LED-output failure fixture/adapter return-code repair",
-    "Exact GP14 erase/program edge evidence or evidence-backed disposition"
-  ]
+  "remaining_step1": [],
+  "checked_driver_case": {
+    "result": "PASS",
+    "board_serial": "CDDBF8767C506C07",
+    "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+    "source_commit": "db7911f55915a23026a3d2b0bfbc0a69cfc7a9d1",
+    "fixture_uf2_sha256": "cf7eaf241c5f678c14485294be7bf23dd344b5cf54a185b20437f2ee4d691362",
+    "normal_uf2_sha256": "f221462fd611518334421c076eba550e2047866914fb2adea1c64fce24aae82c",
+    "fixture_boot_id": "f596d6bde15b7c51976ea5680b9e738c",
+    "info_span_seconds": 2.253,
+    "injected_errors": 1,
+    "driver_calls": 2,
+    "successful_real_driver_returns": 1,
+    "controller_fault_latched": true,
+    "recovered_desired_output": "Off",
+    "profile_generation": 2,
+    "reserved_exact": true,
+    "E10_sha256": "f47a8ec3e9aff2318d896942282ad4fe37d6391c82914f54a5da8a37de1300c6",
+    "normal_image_retained": true,
+    "normal_fixture_fields_absent": true,
+    "final_boot_id": "e400ffd4ebfb06511df66df20c4ae323",
+    "rf_jobs": 0,
+    "independent_original_review": "PASS: application pages and reserved/E10 bytes independently checked in all three private 4 MiB originals",
+    "limitation": "Exposed checked-driver return and controller retry integration only; pinned driver does not propagate every IOCTL failure.",
+    "normal_retention_scope": "Retained at the L4 case exit; later selected cases transitioned B to consumer/RF firmware."
+  },
+  "scope_disposition": {
+    "operator_accepted": true,
+    "date": "2026-10-06",
+    "excluded_unmeasured_claim": "Exact GP14 edge coincidence with the measured 8.524-8.648 ms erase/program interval",
+    "retained_scope": "Accepted two-second flash-safe pause; exact coincidence is excluded, not passed."
+  }
 }

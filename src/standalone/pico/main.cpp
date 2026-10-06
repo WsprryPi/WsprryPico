@@ -77,7 +77,9 @@ extern "C" char __HeapLimit, __end__, __StackLimit, __StackTop;
 static_assert(WSPRRY_PICO_RF_OUTPUT_DISABLED == 1);
 #endif
 #include "provisioning/pico/bootsel_sampler.hpp"
+#include "provisioning/rf_setup_gate.hpp"
 #include "runtime/allocation_fault.h"
+#include "usb/console_reply.hpp"
 
 #include <array>
 #include <charconv>
@@ -523,11 +525,9 @@ int main() {
     static wsprrypico::provisioning::PicoConsumerClaimPlatform claim_platform(
         access_store, network, service, time_arbiter, local_identity.hostname);
     indicator.enabled(boot_pins.indicator != wsprrypico::hardware::PinPlan::Indicator::Disabled);
-#ifndef WSPRRY_PICO_STANDALONE_RF
     bootstrap.configure(service.status().boot_id, access_store, profile_store, random_source,
                         indicator, network, runtime_profile, claim_platform,
                         local_identity.default_password);
-#endif
     bootstrap.configure_recovery(service.status().boot_id, access_store, random_source);
     // A Wi-Fi-only source has not generated its TLS identity yet. Do not turn
     // that pending state into a permanent mDNS identity failure.
@@ -540,6 +540,9 @@ int main() {
     std::array<char, wsprrypico::standalone::max_config_bytes + 7> line{};
     std::size_t length = 0;
     bool overflow = false;
+    wsprrypico::usb::ConsoleReply console_reply;
+    std::array<std::uint8_t, 64> console_input{};
+    std::size_t console_input_size = 0, console_input_offset = 0;
     std::uint64_t reboot_at = 0;
     bool bootloader = false, browser_reboot = false;
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
@@ -1566,7 +1569,22 @@ int main() {
         const bool softap_name_ready = network.softap_name(softap.ready(), local_identity.hostname);
         const bool bootstrap_active = bootstrap_started && softap.ready();
         // The open AP accepts encrypted Wi-Fi setup before optional station setup.
-        bootstrap.poll(bootstrap_active, claim_platform.safe_to_commit());
+        bool setup_admitted = true;
+#ifdef WSPRRY_PICO_STANDALONE_RF
+        setup_admitted = false;
+#ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
+        const auto setup_authority = service.status();
+        setup_admitted = wsprrypico::provisioning::rf_setup_allowed(
+            {gp14_runtime.stop_verified(), gp14_runtime.setup_accepts() != 0,
+             softap_coordinator.status(field_now_ms).manual_setup, service.output_inhibited(),
+             engine.safety_inhibited(), gp14_capture_ready && !gp14_button.fault(),
+             scheduler.idle(), store.healthy() && profile_store.healthy() && access_store.healthy(),
+             recovery || reboot_at != 0 || reset_coordinator.pending(), setup_authority.state,
+             setup_authority.owner_id.has_value(), setup_authority.job_id.has_value(),
+             setup_authority.output_active});
+#endif
+#endif
+        bootstrap.poll(bootstrap_active, claim_platform.safe_to_commit(), setup_admitted);
         const bool softap_service_ready =
             softap.ready() && (surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly
                                    ? bootstrap.listening()
@@ -1684,16 +1702,22 @@ int main() {
         if (wsprrypico::usb::take_console_reset()) {
             length = 0;
             overflow = false;
+            console_reply.reset();
+            console_input_size = console_input_offset = 0;
         }
-        std::array<std::uint8_t, 64> console{};
-        const auto count = reboot_at ? 0 : wsprrypico::usb::console_transport_read(console);
-        for (std::size_t i = 0; i < count; ++i) {
-            const auto b = console[i];
+        console_reply.poll(wsprrypico::usb::console_write);
+        if (!reboot_at && !console_reply.pending() && console_input_offset == console_input_size) {
+            console_input_size = wsprrypico::usb::console_transport_read(console_input);
+            console_input_offset = 0;
+        }
+        while (!reboot_at && !console_reply.pending() &&
+               console_input_offset < console_input_size) {
+            const auto b = console_input[console_input_offset++];
             if (b == '\n') {
-                const auto response = overflow ? "{\"ok\":false,\"error\":\"line_too_long\"}\n"
-                                               : command(std::string_view(line.data(), length));
-                if (!wsprrypico::usb::console_write(response))
-                    (void)wsprrypico::usb::console_write(
+                auto response = overflow ? "{\"ok\":false,\"error\":\"line_too_long\"}\n"
+                                         : command(std::string_view(line.data(), length));
+                if (!console_reply.begin(std::move(response)))
+                    (void)console_reply.begin(
                         "{\"ok\":false,\"error\":\"console_response_capacity\"}\n");
                 std::fill(line.begin(), line.end(), 0);
                 length = 0;

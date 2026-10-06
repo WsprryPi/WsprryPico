@@ -18,10 +18,31 @@ runner results remain recorded alongside the later strict quiet exit proof.
 Do not replay the completed soak, Save, reset or journal assertions merely as
 preparation for a physical case.
 
-Phase 12 remains `OPEN_PARTIAL`. Independent indicator/GP14 timing, physical
-cuts, peer/fleet interoperability and conditional RF work remain open. Simulator evidence does not qualify RF output or general
+Phase 12 remains `OPEN_PARTIAL`. B12L is CLOSED_SCOPED: L4 passed and exact GP14 coincidence is explicitly excluded. The representative profile power cut and one installed fleet simulator job pass. The reset-intent cut remains STOP; its timed assertion and the remaining physical peer/full-fleet boundaries await an explicit disposition. The final long-hold RF-to-portal case remains open. Simulator evidence does not qualify RF output or general
 physical interoperability. The Phase 13 feature backlog and Phase 14 final
 qualification are separate work.
+
+The final `long_ap` attempt on B at `c0d2bd53e4bd`, consumer generation 3,
+boot `99396fc326f6bd51e5b49bab033842c3`, failed when INFO exceeded the Console
+queue before the action cue. Owned ABORT/RELEASE left empty/unowned/inactive
+authority; the later page was identity-only recovery, not usable setup.
+One reviewed normal recovery now retains inhibited `3fed9d1f8e00-dirty`,
+image `8ce8bb663008…`, boot `fad4cf9b1fdac5fd1321b013ba9f8f43`,
+generation 3/epoch 4/zero bonds, disabled/empty/inactive and healthy with
+exact current reserved/native/E10 preservation. Its private source binding
+records the working-source identity accurately. The repaired RF-only terminal
+gate and exact-job observer pass reassessment; candidate `12fe17739310…`
+is not loaded and grants no physical acceptance.
+The operator confirms both boards
+are connected and directs reuse of the established setup without further
+path, attenuation or antenna questions. Explicit Ready is only for coordinating
+the button action. Accounting is now **17 acquisitions/12 charged jobs**;
+the authorized ceiling is exhausted. Preserve the failed run and prepare the
+demonstrated Console/portal repairs. Any further acquisition needs an explicit
+additional budget for this same row; no automatic retry or default enablement.
+Human power-cut coordination
+has no expiry; the later fixture repair does not change the original stopped
+receipt or authorize a retry.
 
 Read `AGENTS.md`, `README.md`, `CONTRACT.md`, `docs/architecture.md`,
 `docs/development/README.md`, the current matrix, relevant acceptance contracts
@@ -82,24 +103,24 @@ repair or discriminating setup change. Do not invent unrelated failure paths.
    this result; offline Bluefy remains unsupported and is not required.
 3. **B12L/GP14: finish the remaining assertions.** Readiness timing, Identify
    priority/nonextension/return and Off now pass on A; preserve those results.
-   Execute only the reviewed one-error checked-output fixture on B. Exact GP14 coincidence with
-   erase/program needs independent physical evidence or an explicit
-   evidence-backed disposition; an extended flash-safe pause is not that proof.
-4. **R11P/B12J: physical interruption.** Execute only the prepared finite
-   power-cut/torn-write cases still missing physical evidence. Preserve exact
-   durable selection, security-root/bond and unrelated-state/E10 proofs. The
-   completed automatic reset and journal stages are not a replay queue.
+   The one-error checked-output fixture and named repaired normal exit passed on B; do not replay them. The operator explicitly excludes exact GP14 coincidence during erase/program, while retaining the narrower extended flash-safe-pause evidence. See the [LED result](phase12-led-physical-result.json).
+4. **R11P/B12J: physical interruption.** The selected completed-header/precommit
+   profile power cut passes; preserve it without replay. The reset-intent cut
+   remains STOP, with its later reset/clearing recovery accepted. Its timed
+   physical assertion awaits an explicit disposition; no automatic retry is
+   authorized. The operator excludes power loss inside an erase/program pulse.
+   Preserve the original selection, security-root/bond and unrelated-state/E10
+   proofs; completed-boundary evidence does not qualify an in-pulse cut.
 5. **Engineering peers/fleet.** Use the available clients for the remaining
    actual bond/connection-capacity and interoperability assertions. Record
    unsupported scope accurately; neither host-populated fixtures nor one Pi
    BLE peer qualify the broader physical matrix.
-6. **G7/F12: conditional RF hold/AP proof.** When the operator is Ready at the
-   reported bench, perform the reviewed long-hold stop and same-boot AP/phone
-   case: one 20-second Tone, one 40-second capture, 12–15 seconds held and AP
-   proof within 90 seconds after release, with independent cutoff and latch
-   refusal evidence. No retry. Historical accounting is sixteen acquisitions
-   and eleven charged jobs; the old 17/12 packet is not standalone authority.
-   Bind the intended case to current setup, authorization and finite budget.
+6. **G7/F12: conditional RF hold/AP proof.** The final authorized attempt failed;
+   current accounting is 17/12. The demonstrated repairs, named normal recovery and reassessment are
+   accepted; obtain an explicit additional budget or scope disposition. Any approved continuation is limited to this same row: one
+   20-second Tone, one 40-second capture, 12–15 seconds held, actual AP/HTTP and
+   usable portal proof within 90 seconds after release, independent cutoff and
+   latch refusal. No automatic retry or replay of the five accepted rows.
    Production candidate qualification follows only a supported pass.
 
 Do not substitute mock, telemetry-only or host evidence for required physical

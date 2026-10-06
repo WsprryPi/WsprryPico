@@ -502,6 +502,29 @@ class LongApTests(unittest.TestCase):
             with self.assertRaises(RuntimeError, msg=key): p.check_latched_refusal(peer, 'boot')
             self.assertEqual(peer.request.call_count, 1)
 
+    def test_latch_probe_retains_exact_acknowledged_terminal_job(self):
+        for state in ('aborted', 'complete', 'missed'):
+            status = dict(boot_id='boot', output_active=False, owner_id=None,
+                          job_id='stopped-job', state=state,
+                          terminal_records=[dict(job_id='stopped-job', state=state,
+                                                 output_active=False)])
+            peer = Mock()
+            peer.request.return_value = status
+            p.check_latched_refusal(peer, 'boot', 'stopped-job')
+            self.assertEqual([call.args[0] for call in peer.request.call_args_list],
+                             ['STATUS', 'CLAIM'])
+            self.assertEqual(peer.request.call_args_list[-1].kwargs, dict(expected_error='BUSY'))
+            for change in ('foreign_job', 'missing_record', 'active_record', 'running'):
+                bad = copy.deepcopy(status)
+                if change == 'foreign_job': bad['job_id'] = 'foreign'
+                elif change == 'missing_record': bad['terminal_records'] = []
+                elif change == 'active_record': bad['terminal_records'][0]['output_active'] = True
+                else: bad['state'] = 'running'
+                peer.reset_mock(); peer.request.return_value = bad
+                with self.assertRaises(RuntimeError, msg=change):
+                    p.check_latched_refusal(peer, 'boot', 'stopped-job')
+                self.assertEqual(peer.request.call_count, 1)
+
 
 class HistoricalResolutionTests(unittest.TestCase):
     def setUp(self):

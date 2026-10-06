@@ -215,3 +215,23 @@ error propagation and retry integration, not a physical failed LED or a blinking
 fault waveform. The pinned lower-level CYW43 GPIO routine does not report every
 IOCTL failure; acceptance covers its exposed return-code path, not complete
 physical LED failure detection. No further operator video is required.
+
+## L4 accepted result and GP14 disposition — 2026-10-06
+
+One B fixture boot passed two same-boot INFO observations over 2.253 seconds:
+one injected error, two checked calls, one subsequent successful real-driver
+return, latched controller fault and recovered desired Off. The named repaired
+normal exit passed 7,109 application-page comparisons, unchanged profile
+generation 2, exact reserved/E10 preservation and fixture-field absence; that
+image was retained at the L4 case exit. Later selected cases transitioned B to consumer/RF firmware. Independent review checked the original binaries and
+protocol receipts. See the [result binding](phase12-led-physical-result.json).
+The first private preflight stopped before any backup/load because a helper
+expected a boolean where production emits numeric fault zero. Its corrected
+strict type/value guard passes recorded-schema and cleanup controls in normal
+and optimized Python; the original STOP remains retained.
+
+The operator explicitly accepted excluding exact GP14 coincidence within the
+measured 8.524–8.648 ms erase/program interval. That claim remains unmeasured;
+the accepted two-second flash-safe pause remains narrower evidence. B12L is
+CLOSED_SCOPED for the retained visual results, checked-driver integration and
+this disposition. No complete physical LED-failure detection is claimed.

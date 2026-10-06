@@ -466,6 +466,12 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME standalone_image_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/standalone_image_tests.py)
     add_test(NAME rf_renderer_image_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_renderer_image_tests.py)
     add_test(NAME standalone_console_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/standalone_console_tests.py)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        add_test(NAME phase12_rf_adapter_tests COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/phase12_rf_adapter_tests.py)
+        add_test(NAME phase12_physical_cut_fixture_tests COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/phase12_physical_cut_fixture_tests.py)
+    endif()
     add_test(NAME phase11_5_r2_modes_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_r2_modes_tests.py)
     add_test(NAME phase11_5_r2_oom_recovery_tests COMMAND ${Python3_EXECUTABLE}

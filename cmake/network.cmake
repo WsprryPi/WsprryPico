@@ -50,7 +50,7 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
     target_link_libraries(${image} PRIVATE pico_mbedtls)
 endforeach()
 
-# Common main requires these adapters; the RF bootstrap remains read-only.
+# Both images share these adapters; RF setup admission requires verified shutdown.
 foreach(image WsprryPico WsprryPico-StandaloneRF)
     target_sources(${image} PRIVATE
         ${PICO_MBEDTLS_PATH}/library/x509write.c

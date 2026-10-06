@@ -3,6 +3,15 @@
 #include "hardware/structs/watchdog.h"
 #include "hardware/watchdog.h"
 #include "pico/platform.h"
+#ifdef WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE
+#include "pico/time.h"
+#include "tusb.h"
+#include "usb/roles.h"
+#include "usb/transport.hpp"
+#if WSPRRY_PICO_PHASE12_FAULT_STAGE != 1 && WSPRRY_PICO_PHASE12_FAULT_STAGE != 9
+#error "Physical cut pause requires completed reset intent or precommit profile header"
+#endif
+#endif
 
 #if !defined(WSPRRY_PICO_PHASE12_FAULT_STAGE) || WSPRRY_PICO_PHASE12_FAULT_STAGE < 1 ||            \
     WSPRRY_PICO_PHASE12_FAULT_STAGE > 10
@@ -22,6 +31,25 @@ void checkpoint(unsigned stage) {
     watchdog_hw->scratch[0] = marker;
     // Cut only outside the flash safe zone, after the real durable write.
     // A deliberate reboot never authorizes another destructive request.
+#ifdef WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE
+    // The observer opens Console before the one mutation. Service USB delivery,
+    // never command dispatch, while the operator removes all power. Human
+    // readiness and power removal have no expiry; machine checks are bounded
+    // by the controller outside this wait.
+    constexpr auto cue = WSPRRY_PICO_PHASE12_FAULT_STAGE == 1
+                             ? "{\"phase12_physical_cut_ready\":1}\n"
+                             : "{\"phase12_physical_cut_ready\":9}\n";
+    bool queued = false;
+    while (true) {
+        tud_task();
+        usb::service();
+        if (!queued && usb::console_connected())
+            queued = usb::console_write(cue);
+        // No WTP, Console or network request is dispatched during the pause.
+        watchdog_update();
+        tight_loop_contents();
+    }
+#endif
     watchdog_reboot(0, 0, 1);
     while (true)
         tight_loop_contents();

@@ -855,3 +855,49 @@ with Python optimization; WTP contract, changed-file whitespace and 84 local
 Markdown links/anchors pass. These are current affected checks, not new full
 host-suite or firmware cross-build claims. All six unrelated files retain their
 pre-turn content hashes and are excluded from this commit.
+
+## Final long-ap attempt failed — 2026-10-06
+
+The operator confirmed the established connected setup and answered Ready.
+The final named `long_ap` run,
+`run-380467fbc52d47ef9ebb4ec53bd3c063`, used Pico B
+`CDDBF8767C506C07` / `29f20b7342051ef947aa56cb9d4fab42`, source
+`c0d2bd53e4bde67af64d9528e3ee89efce51b87a`, RF UF2 SHA-256
+`5b4774af6bfe507b098cb8ff86ffd67040fab718240ab0bf4834ac10496c03c8`
+and boot `99396fc326f6bd51e5b49bab033842c3`. The engine was `pio-dma-gp2`,
+GP2 output, GP14 button, 138 MHz, with one 20-second Tone at 3.5701 MHz and
+the retained RSP1B `2404058C60` capture settings/metric. No path inventory or
+further path questions were required.
+
+One acquisition and one successfully armed job were charged. At launch the
+Console INFO grew beyond its 8,192-byte queue and returned
+`console_response_capacity`. The run sent **no physical LED action cue** and
+stopped. Owned ABORT/RELEASE passed; final original WTP STATUS showed the
+same boot, empty/unowned/inactive authority and the aborted job's terminal
+record. The receiver retained 10,000,000 CF32 samples/80,000,000 bytes without
+overflow and verified stream/device cleanup. Its successful capture is not
+a qualifying physical-button cutoff.
+
+The operator's subsequent visit showed the identity-only recovery page, with
+Wi-Fi setup explicitly unavailable. Its device ID matches B. The private
+screenshot corroborates the reported unusable portal and is not repository
+content. There is no qualified 12–15-second hold/release bracket, independent
+cutoff assessment, same-boot AP/HTTP proof within 90 seconds, or usable-portal
+pass. Preserve `FAILED_STOP_CAMPAIGN`; do not relabel the later hold as a pass.
+
+Original attempt SHA-256:
+`4e4825694624e550363a851ad85e841e4c98d4d245febadc911ac3dab4872907`.
+Original events SHA-256:
+`a9cda9c35242b46f7c386f967400ed7060472d42cae8e8c9c547f18029c1d19f`.
+Capture SHA-256:
+`4848bf199909023fc9a4556683b6cf8371d0309afecb7dc9f9c0e7094a54b8ee`.
+The failed originals and capture remain private on wspr5 and the Mac.
+
+**Five of six RF rows remain accepted; accounting is now 17 acquisitions / 12
+charged jobs. The authorized ceiling is exhausted.** No automatic retry or
+GP14 default enablement follows. The demonstrated Console/portal repairs and
+their source/target validation are recorded in the
+[four-group results](phase12-orchestratable-closeout-results.md#final-four-group-continuation-2026-10-06).
+They do not grant physical G7 acceptance. Actual recovery is authorized for
+the broken Console/portal path; another acquisition needs explicit additional
+budget for this same row or an explicit scope disposition.

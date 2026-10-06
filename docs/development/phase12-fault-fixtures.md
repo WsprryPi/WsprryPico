@@ -89,3 +89,46 @@ races, TLS pool pressure, LED cues or exact GP14/flash coincidence. Those remain
 explicit target acceptance assertions; do not report these ten stages as
 closing every fault boundary. The separate session-deadline fixture exercises
 an accelerated admission deadline and does not accelerate clocks or RF timing.
+
+## Selected physical checkpoint continuation — 2026-10-06
+
+The operator explicitly excludes exact GP14 edge coincidence and power loss
+inside erase/program pulses from Phase 12 acceptance. These remain unmeasured;
+the accepted extended safe-pause and automatic reset/journal evidence is retained.
+Two representative physical cuts are selected under R11P/B12J, not new groups.
+
+`WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE` defaults off and is restricted to
+stages 1 (completed reset intent) and 9 (completed profile header before commit).
+It pauses **after** the verified durable write, emits the checkpoint number on
+the existing Console CDC, services USB output and the watchdog, and dispatches
+no Console, WTP or network requests. At the operator's subsequent direction,
+human readiness and power removal have no expiry. The fixture keeps waiting
+until power is removed; it cannot turn a missed human window into a watchdog
+reboot. The observer must open Console before the one mutation. Machine
+preparation and recovery checks retain their finite limits.
+
+Before starting, prepare the source/image-bound observer and obtain operator
+readiness; waiting beforehand consumes no case time. Each case has one complete
+USB-only power removal, a five-minute machine-work limit excluding human waits,
+and at most two reset resume/completion boots. Fixture removal has a separate
+named normal application exit.
+Require the original checkpoint cue, confirmed power removal, a cold-boot
+marker rather than watchdog consumption, the correct old/new/fail-closed durable
+selection, and private operational/security-root/bond/E10 comparisons. No
+physical case has passed merely because these candidates build.
+
+Affected hook behavior is checked on Linux with the actual C++ fixture and
+SDK/USB doubles, including both selected stages, default behavior, backpressure,
+the default automatic watchdog/consumption behavior, and physical waits beyond
+the former 120-second limit without automatic continuation:
+
+```sh
+python3 tests/phase12_physical_cut_fixture_tests.py
+python3 -O tests/phase12_physical_cut_fixture_tests.py
+```
+
+These checks neither operate the target nor qualify flash-pulse interruption.
+The two actual cut attempts retained the earlier timed image binding. Stage 9
+passes; stage 1 remains STOP outside its original observer guard. The later
+no-expiry source repair does not retroactively change either result or
+authorize another reset/cut attempt.

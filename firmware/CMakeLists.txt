@@ -60,6 +60,12 @@ set(WSPRRY_PICO_PHASE12_FAULT_STAGE "0" CACHE STRING "Phase12 inhibited fault st
 if(NOT WSPRRY_PICO_PHASE12_FAULT_STAGE MATCHES "^([0-9]|10)$")
     message(FATAL_ERROR "Phase12 fault stage must be 0..10")
 endif()
+option(WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE
+    "Pause a completed inhibited stage 1 or 9 for one physical power cut" OFF)
+if(WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE AND
+   NOT WSPRRY_PICO_PHASE12_FAULT_STAGE MATCHES "^(1|9)$")
+    message(FATAL_ERROR "Physical cut fixture requires completed checkpoint 1 or 9")
+endif()
 
 if(NOT WSPRRY_PICO_PHASE12_FAULT_STAGE STREQUAL "0")
     target_sources(WsprryPico PRIVATE ../src/provisioning/pico/phase12_fault_fixture.cpp)
@@ -67,6 +73,9 @@ if(NOT WSPRRY_PICO_PHASE12_FAULT_STAGE STREQUAL "0")
         WSPRRY_PICO_PHASE12_FAULT_FIXTURE=1)
     set_source_files_properties(../src/provisioning/pico/phase12_fault_fixture.cpp PROPERTIES
         COMPILE_DEFINITIONS WSPRRY_PICO_PHASE12_FAULT_STAGE=${WSPRRY_PICO_PHASE12_FAULT_STAGE})
+    if(WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE)
+        target_compile_definitions(WsprryPico PRIVATE WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE=1)
+    endif()
 endif()
 
 set(WSPRRY_PICO_CONSUMER_LAN_MODE "plain" CACHE STRING

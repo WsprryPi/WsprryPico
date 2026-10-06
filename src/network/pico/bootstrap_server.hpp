@@ -1,13 +1,9 @@
 #pragma once
 
 #include "lwip/tcp.h"
-#include "network/bootstrap_slot.hpp"
-#include "network/http.hpp"
-#include "network/pico/recovery_crypto.hpp"
-#include "provisioning/reset.hpp"
-#ifndef WSPRRY_PICO_STANDALONE_RF
 #include "network/bootstrap_join.hpp"
 #include "network/bootstrap_slot.hpp"
+#include "network/http.hpp"
 #include "network/owner_claim_http.hpp"
 #include "network/pico/bootstrap_crypto.hpp"
 #include "network/pico/owner_claim_crypto.hpp"
@@ -16,7 +12,6 @@
 #include "provisioning/consumer_claim_commit.hpp"
 #include "provisioning/network_profile.hpp"
 #include "provisioning/reset.hpp"
-#endif
 
 #include <array>
 #include <string>
@@ -36,7 +31,8 @@ namespace wsprrypico::network {
 
 // One-connection AP-local plaintext server. The standard RF-inhibited image
 // admits one encrypted setup transaction from the open AP; the RF worker
-// build remains read-only. Static bodies stream from
+// build admits the same portal only after verified long-hold output shutdown.
+// Static bodies stream from
 // flash in bounded chunks.
 class PicoBootstrapServer {
   public:
@@ -48,19 +44,23 @@ class PicoBootstrapServer {
     ~PicoBootstrapServer();
     bool start();
     void stop();
-    void poll(bool active, bool mutation_safe = false);
+#ifdef WSPRRY_PICO_STANDALONE_RF
+    static constexpr bool default_setup_admission = false;
+#else
+    static constexpr bool default_setup_admission = true;
+#endif
+    void poll(bool active, bool mutation_safe = false,
+              bool setup_admitted = default_setup_admission);
     void restart_control(bool (*restart)(void*), void* context) {
         restart_ = restart;
         restart_context_ = context;
     }
-#ifndef WSPRRY_PICO_STANDALONE_RF
     void configure(std::string boot_id, provisioning::AccessStore& access,
                    provisioning::ProfileStore& profile, provisioning::RandomSource& random,
                    provisioning::IndicatorController& indicator, standalone::PicoNetwork& network,
                    provisioning::RuntimeProfile& runtime,
                    provisioning::PicoConsumerClaimPlatform& claim_platform,
                    std::string default_password);
-#endif
     void configure_recovery(std::string boot, provisioning::AccessStore& access,
                             provisioning::RandomSource& random) {
         recovery_boot_id_ = std::move(boot);
@@ -77,13 +77,9 @@ class PicoBootstrapServer {
         return listener_ != nullptr;
     }
     bool owner_claim_pending() const {
-#ifndef WSPRRY_PICO_STANDALONE_RF
         return owner_reconcile_ || owner_restart_pending_ ||
                (owner_slot_.state() != provisioning::ConsumerClaimState::None &&
                 owner_slot_.state() != provisioning::ConsumerClaimState::Terminal);
-#else
-        return false;
-#endif
     }
     struct Resources {
         bool connected = false;
@@ -101,21 +97,15 @@ class PicoBootstrapServer {
         result.recovery_pending = reset_pending_;
         result.recovery_slot_state = static_cast<unsigned>(recovery_slot_.state());
         result.pending_tcp_bytes = pending_bytes_;
-#ifndef WSPRRY_PICO_STANDALONE_RF
         result.network_slot_state = static_cast<unsigned>(slot_.state());
         result.owner_slot_state = static_cast<unsigned>(owner_slot_.state());
-#endif
         return result;
     }
     bool setup_pending() const {
         if (recovery_slot_.state() != BootstrapSlotState::None || reset_pending_)
             return true;
-#ifndef WSPRRY_PICO_STANDALONE_RF
         return slot_.state() != BootstrapSlotState::None || bootstrap_restart_pending_ ||
                owner_claim_pending() || owner_restart_pending_;
-#else
-        return false;
-#endif
     }
 
   private:
@@ -135,7 +125,6 @@ class PicoBootstrapServer {
     static void error(void*, err_t);
     void close(bool peer_finished = false);
     void dispatch();
-#ifndef WSPRRY_PICO_STANDALONE_RF
     HttpResponse mutation(const HttpRequest& request);
     HttpResponse status() const;
     HttpResponse owner_status(bool claim_status);
@@ -165,6 +154,7 @@ class PicoBootstrapServer {
     provisioning::NetworkProfile bootstrap_previous_network_;
     std::array<std::uint8_t, 32> ack_verifier_{};
     bool mutation_safe_ = false;
+    bool setup_admitted_ = default_setup_admission;
     provisioning::ConsumerClaimSlot owner_slot_;
     PicoOwnerClaimCrypto owner_crypto_;
     OwnerClaimCredentials owner_trial_;
@@ -182,7 +172,6 @@ class PicoBootstrapServer {
     bool bootstrap_trial_start_pending_ = false, bootstrap_submit_delivered_ = false;
     std::uint64_t bootstrap_submit_delivered_ms_ = 0;
     std::uint64_t bootstrap_committed_ms_ = 0;
-#endif
 
     std::string device_;
     std::string firmware_;

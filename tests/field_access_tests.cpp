@@ -5,6 +5,7 @@
 #include "provisioning/gatt_framing.hpp"
 #include "provisioning/local_access.hpp"
 #include "provisioning/reset.hpp"
+#include "provisioning/rf_setup_gate.hpp"
 #include "provisioning/softap_http.hpp"
 #include "time/controller_time.hpp"
 
@@ -1528,6 +1529,45 @@ void browser_time_hint_policy() {
 } // namespace
 
 int main() {
+    using provisioning::rf_setup_allowed;
+    using provisioning::RfSetupAdmission;
+    CHECK(!rf_setup_allowed({}));
+    const RfSetupAdmission stopped_setup{true,  true,  true, true,  true,
+                                         true,  true,  true, false, wtp::State::Empty,
+                                         false, false, false};
+    CHECK(rf_setup_allowed(stopped_setup));
+    for (const auto field :
+         {&RfSetupAdmission::stop_verified, &RfSetupAdmission::setup_accepted,
+          &RfSetupAdmission::manual_lease, &RfSetupAdmission::service_inhibited,
+          &RfSetupAdmission::worker_inhibited, &RfSetupAdmission::capture_healthy,
+          &RfSetupAdmission::scheduler_idle, &RfSetupAdmission::stores_healthy}) {
+        auto refused = stopped_setup;
+        refused.*field = false;
+        CHECK(!rf_setup_allowed(refused));
+    }
+    for (const auto field : {&RfSetupAdmission::operation_pending, &RfSetupAdmission::owned,
+                             &RfSetupAdmission::job_present, &RfSetupAdmission::output_active}) {
+        auto refused = stopped_setup;
+        refused.*field = true;
+        CHECK(!rf_setup_allowed(refused));
+    }
+    for (const auto state :
+         {wtp::State::Loaded, wtp::State::Armed, wtp::State::Running, wtp::State::Failed}) {
+        auto refused = stopped_setup;
+        refused.state = state;
+        CHECK(!rf_setup_allowed(refused));
+    }
+    for (const auto state : {wtp::State::Complete, wtp::State::Aborted, wtp::State::Missed}) {
+        auto terminal = stopped_setup;
+        terminal.state = state;
+        terminal.job_present = true;
+        CHECK(rf_setup_allowed(terminal));
+        terminal.owned = true;
+        CHECK(!rf_setup_allowed(terminal));
+        terminal.owned = false;
+        terminal.output_active = true;
+        CHECK(!rf_setup_allowed(terminal));
+    }
     identity_and_journal();
     profile_selection();
     accelerated_session_deadlines();

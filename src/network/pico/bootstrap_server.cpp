@@ -3,13 +3,9 @@
 #include "network/bootstrap_codec.hpp"
 #include "network/bootstrap_http.hpp"
 #include "network/bootstrap_wire.hpp"
-#include "provisioning/access.hpp"
-#include "provisioning/local_access.hpp"
-#include "wtp/json.hpp"
-#ifndef WSPRRY_PICO_STANDALONE_RF
-#include "network/bootstrap_wire.hpp"
 #include "network/owner_claim_http.hpp"
 #include "network/owner_wire.hpp"
+#include "pico/time.h"
 #include "provisioning/access.hpp"
 #include "provisioning/field_runtime.hpp"
 #include "provisioning/local_access.hpp"
@@ -18,8 +14,6 @@
 #include "provisioning/storage.hpp"
 #include "standalone/pico/adapters.hpp"
 #include "wtp/json.hpp"
-#endif
-#include "pico/time.h"
 
 #include <algorithm>
 #include <cstring>
@@ -31,9 +25,7 @@ namespace {
 HttpResponse json(std::string body);
 template <std::size_t N> bool decode_hex(std::string_view, std::array<std::uint8_t, N>&);
 template <std::size_t N> bool decode_b64(std::string_view, std::array<std::uint8_t, N>&);
-#ifndef WSPRRY_PICO_STANDALONE_RF
 void erase(std::array<std::uint8_t, 32>& bytes);
-#endif
 } // namespace
 
 PicoBootstrapServer::~PicoBootstrapServer() {
@@ -124,7 +116,6 @@ err_t PicoBootstrapServer::sent(void* context, tcp_pcb*, u16_t count) {
 
 void PicoBootstrapServer::error(void* context, err_t) {
     auto& self = *static_cast<PicoBootstrapServer*>(context);
-#ifndef WSPRRY_PICO_STANDALONE_RF
     const bool submit_response = self.bootstrap_trial_start_pending_ &&
                                  !self.bootstrap_submit_delivered_ && self.parser_.ready() &&
                                  self.parser_.request().path == "/api/bootstrap/v1/submit" &&
@@ -136,28 +127,25 @@ void PicoBootstrapServer::error(void* context, err_t) {
         self.bootstrap_submit_delivered_ = true;
         self.bootstrap_submit_delivered_ms_ = time_us_64() / 1000;
     }
-#endif
     self.client_ = nullptr;
     self.parser_.reset_secure();
     self.parser_ = {};
     self.response_ = {};
     self.headers_.clear();
     self.header_offset_ = self.body_offset_ = self.pending_bytes_ = 0;
-#ifndef WSPRRY_PICO_STANDALONE_RF
     if (submit_response && !delivered_submit)
         self.cancel_slot();
-#endif
 }
 
 void PicoBootstrapServer::dispatch() {
-#ifndef WSPRRY_PICO_STANDALONE_RF
     owner_status_committed_reply_ = false;
-#endif
     if (parser_.failed())
         response_ = http_error(400, "invalid_http");
     else if (parser_.request().path.starts_with("/api/recovery/v1/"))
         response_ = recovery(parser_.request());
-#ifndef WSPRRY_PICO_STANDALONE_RF
+    else if (!setup_admitted_ && (parser_.request().path.starts_with("/api/bootstrap/v1/") ||
+                                  parser_.request().path.starts_with("/api/owner/v1/")))
+        response_ = http_error(409, "setup_unavailable");
     else if (parser_.request().path == "/api/bootstrap/v1/status")
         response_ =
             parser_.request().method == "GET" && parser_.request().header("host") == "192.168.4.1"
@@ -179,22 +167,14 @@ void PicoBootstrapServer::dispatch() {
     else if (parser_.request().path == "/api/owner/v1/identify" ||
              parser_.request().path.starts_with("/api/owner/v1/claim/"))
         response_ = owner_mutation(parser_.request());
-#endif
     else
         response_ = bootstrap_http_response(parser_.request(), device_, firmware_,
-#ifndef WSPRRY_PICO_STANDALONE_RF
-                                            active_, active_,
-#else
-                                            false, false,
-#endif
+                                            active_ && setup_admitted_, active_ && setup_admitted_,
                                             active_ && reset_begin_);
     headers_ = response_.wire_headers();
 }
 
 void PicoBootstrapServer::close(bool peer_finished) {
-#ifdef WSPRRY_PICO_STANDALONE_RF
-    (void)peer_finished;
-#else
     const bool submit_response = bootstrap_trial_start_pending_ && !bootstrap_submit_delivered_ &&
                                  parser_.ready() &&
                                  parser_.request().path == "/api/bootstrap/v1/submit" &&
@@ -206,7 +186,6 @@ void PicoBootstrapServer::close(bool peer_finished) {
         bootstrap_submit_delivered_ = true;
         bootstrap_submit_delivered_ms_ = time_us_64() / 1000;
     }
-#endif
     if (client_) {
         tcp_arg(client_, nullptr);
         tcp_recv(client_, nullptr);
@@ -220,10 +199,8 @@ void PicoBootstrapServer::close(bool peer_finished) {
     response_ = {};
     headers_.clear();
     header_offset_ = body_offset_ = pending_bytes_ = 0;
-#ifndef WSPRRY_PICO_STANDALONE_RF
     if (submit_response && !delivered_submit)
         cancel_slot();
-#endif
 }
 
 HttpResponse PicoBootstrapServer::recovery(const HttpRequest& request) {
@@ -318,162 +295,169 @@ void PicoBootstrapServer::stop() {
     }
 }
 
-void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
+void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admitted) {
     active_ = active;
+    setup_admitted_ = setup_admitted;
     recovery_slot_.expire(time_us_64() / 1000);
     if (!active_ && !reset_pending_)
         recovery_slot_.cancel();
     if (recovery_slot_.state() == BootstrapSlotState::None)
         recovery_crypto_.clear();
 
-#ifdef WSPRRY_PICO_STANDALONE_RF
-    (void)mutation_safe;
-#endif
-#ifndef WSPRRY_PICO_STANDALONE_RF
-    mutation_safe_ = mutation_safe;
-    const auto now_ms = time_us_64() / 1000;
-    // AP/STA channel changes may briefly remove the captive listener after
-    // submit. Keep the consumed trial alive until it commits or expires.
-    if (!active_ && (owner_slot_.state() == provisioning::ConsumerClaimState::Identify ||
-                     owner_slot_.state() == provisioning::ConsumerClaimState::Granted))
-        cancel_owner_slot(true);
-    if (slot_.state() != BootstrapSlotState::None &&
-        slot_.state() != BootstrapSlotState::Terminal && bootstrap_commit_.cancellation_allowed() &&
-        (!mutation_safe_ || !network_setup_authority()))
-        cancel_slot();
-    const auto before_expiry = slot_.state();
-    if (bootstrap_commit_.cancellation_allowed())
-        slot_.expire(now_ms);
-    if (before_expiry != BootstrapSlotState::None && slot_.state() == BootstrapSlotState::None) {
-        if (before_expiry == BootstrapSlotState::Trial) {
-            restore_bootstrap_network();
-            join_.finish();
+    mutation_safe_ = mutation_safe && setup_admitted_;
+    if (!setup_admitted_) {
+        if (bootstrap_commit_.cancellation_allowed())
+            cancel_slot();
+        if (!owner_reconcile_ && !owner_restart_pending_)
+            cancel_owner_slot(true);
+    } else {
+        const auto now_ms = time_us_64() / 1000;
+        // AP/STA channel changes may briefly remove the captive listener after
+        // submit. Keep the consumed trial alive until it commits or expires.
+        if (!active_ && (owner_slot_.state() == provisioning::ConsumerClaimState::Identify ||
+                         owner_slot_.state() == provisioning::ConsumerClaimState::Granted))
+            cancel_owner_slot(true);
+        if (slot_.state() != BootstrapSlotState::None &&
+            slot_.state() != BootstrapSlotState::Terminal &&
+            bootstrap_commit_.cancellation_allowed() &&
+            (!mutation_safe_ || !network_setup_authority()))
+            cancel_slot();
+        const auto before_expiry = slot_.state();
+        if (bootstrap_commit_.cancellation_allowed())
+            slot_.expire(now_ms);
+        if (before_expiry != BootstrapSlotState::None &&
+            slot_.state() == BootstrapSlotState::None) {
+            if (before_expiry == BootstrapSlotState::Trial) {
+                restore_bootstrap_network();
+                join_.finish();
+            }
+            cancel_slot();
         }
-        cancel_slot();
-    }
-    if (slot_.state() == BootstrapSlotState::None) {
-        crypto_.clear();
-        slot_digest_.clear();
-    }
-    // Leave the AP on long enough for the browser to render the accepted POST
-    // result. A station channel change can otherwise destroy that response.
-    if (bootstrap_trial_start_pending_ && bootstrap_submit_delivered_ && !client_ &&
-        now_ms >= bootstrap_submit_delivered_ms_ &&
-        now_ms - bootstrap_submit_delivered_ms_ >= 3'000)
-        start_bootstrap_trial(now_ms);
-    const auto old_owner_state = owner_slot_.state();
-    owner_slot_.expire(now_ms);
-    if (old_owner_state != provisioning::ConsumerClaimState::None &&
-        owner_slot_.state() == provisioning::ConsumerClaimState::None)
-        cancel_owner_slot(true);
-    if (owner_trial_start_pending_ && !client_ &&
-        (owner_submit_delivered_ ||
-         (now_ms >= owner_submit_ms_ && now_ms - owner_submit_ms_ >= 10'000))) {
-        owner_trial_start_pending_ = false;
-        claim_platform_->begin_station_trial();
-        // Set before stopping the station: a failed start must restore it too.
-        owner_trial_switched_network_ = true;
-        network_->stop_network_only_trial();
-        if (network_->start_network_only(owner_trial_.ssid, owner_trial_.password,
-                                         previous_network_.time_server))
-            owner_trial_active_ = true;
-        else
-            end_owner_trial(false, now_ms);
-    }
-    if (owner_trial_active_ && owner_slot_.state() == provisioning::ConsumerClaimState::Trial &&
-        claim_platform_ && claim_platform_->station_ready(owner_trial_.ssid)) {
-        const auto* binding = owner_slot_.binding();
-        const auto result = binding && profile_ && runtime_
-                                ? provisioning::commit_consumer_claim(
-                                      *profile_, owner_slot_, *binding,
-                                      {owner_request_id_, owner_trial_.ssid, owner_trial_.password,
-                                       owner_trial_.callsign, owner_trial_.locator,
-                                       owner_trial_.power_dbm, previous_network_.time_server},
-                                      *claim_platform_, runtime_->source(), now_ms)
-                                : provisioning::ConsumerCommitResult{};
-        owner_reconcile_ = result.state == provisioning::ConsumerCommitState::Reconcile;
-        if (owner_reconcile_) {
-            const auto digest = owner_request_digest_;
-            cancel_owner_slot(false);
-            owner_request_digest_ = digest;
-            owner_result_restart_.begin(profile_->sequence(), owner_request_digest_,
-                                        time_us_64() / 1000);
-            owner_restart_pending_ = true;
-        } else {
-            end_owner_trial(result.state == provisioning::ConsumerCommitState::Committed, now_ms);
-            if (result.state == provisioning::ConsumerCommitState::Committed) {
+        if (slot_.state() == BootstrapSlotState::None) {
+            crypto_.clear();
+            slot_digest_.clear();
+        }
+        // Leave the AP on long enough for the browser to render the accepted POST
+        // result. A station channel change can otherwise destroy that response.
+        if (bootstrap_trial_start_pending_ && bootstrap_submit_delivered_ && !client_ &&
+            now_ms >= bootstrap_submit_delivered_ms_ &&
+            now_ms - bootstrap_submit_delivered_ms_ >= 3'000)
+            start_bootstrap_trial(now_ms);
+        const auto old_owner_state = owner_slot_.state();
+        owner_slot_.expire(now_ms);
+        if (old_owner_state != provisioning::ConsumerClaimState::None &&
+            owner_slot_.state() == provisioning::ConsumerClaimState::None)
+            cancel_owner_slot(true);
+        if (owner_trial_start_pending_ && !client_ &&
+            (owner_submit_delivered_ ||
+             (now_ms >= owner_submit_ms_ && now_ms - owner_submit_ms_ >= 10'000))) {
+            owner_trial_start_pending_ = false;
+            claim_platform_->begin_station_trial();
+            // Set before stopping the station: a failed start must restore it too.
+            owner_trial_switched_network_ = true;
+            network_->stop_network_only_trial();
+            if (network_->start_network_only(owner_trial_.ssid, owner_trial_.password,
+                                             previous_network_.time_server))
+                owner_trial_active_ = true;
+            else
+                end_owner_trial(false, now_ms);
+        }
+        if (owner_trial_active_ && owner_slot_.state() == provisioning::ConsumerClaimState::Trial &&
+            claim_platform_ && claim_platform_->station_ready(owner_trial_.ssid)) {
+            const auto* binding = owner_slot_.binding();
+            const auto result =
+                binding && profile_ && runtime_
+                    ? provisioning::commit_consumer_claim(
+                          *profile_, owner_slot_, *binding,
+                          {owner_request_id_, owner_trial_.ssid, owner_trial_.password,
+                           owner_trial_.callsign, owner_trial_.locator, owner_trial_.power_dbm,
+                           previous_network_.time_server},
+                          *claim_platform_, runtime_->source(), now_ms)
+                    : provisioning::ConsumerCommitResult{};
+            owner_reconcile_ = result.state == provisioning::ConsumerCommitState::Reconcile;
+            if (owner_reconcile_) {
+                const auto digest = owner_request_digest_;
+                cancel_owner_slot(false);
+                owner_request_digest_ = digest;
                 owner_result_restart_.begin(profile_->sequence(), owner_request_digest_,
                                             time_us_64() / 1000);
                 owner_restart_pending_ = true;
+            } else {
+                end_owner_trial(result.state == provisioning::ConsumerCommitState::Committed,
+                                now_ms);
+                if (result.state == provisioning::ConsumerCommitState::Committed) {
+                    owner_result_restart_.begin(profile_->sequence(), owner_request_digest_,
+                                                time_us_64() / 1000);
+                    owner_restart_pending_ = true;
+                }
             }
         }
-    }
-    if (slot_.state() == BootstrapSlotState::Trial && !bootstrap_trial_start_pending_ &&
-        bootstrap_commit_.trial_allowed()) {
-        const bool linked = network_ && network_->link_up();
-        const auto address = linked ? network_->ipv4() : std::string{};
-        const auto result = join_.trial(now_ms, linked, !address.empty() && address != "0.0.0.0");
-        if (result == BootstrapJoinResult::Ready && profile_ && network_setup_authority()) {
-            const auto source = profile_->source();
-            std::string payload;
-            if (source == provisioning::ProfileSource::NetworkOnly || blank_authority()) {
-                trial_.request_sha256 = slot_.request_id_digest();
-                payload = provisioning::serialize_network_profile(trial_);
-            } else if (source == provisioning::ProfileSource::ConsumerProfile)
-                payload = provisioning::replace_consumer_network(
-                    profile_->data(), device_, trial_.ssid, trial_.password, trial_.time_server,
-                    slot_.request_id_digest());
-            const auto target_source = source == provisioning::ProfileSource::ConsumerProfile
-                                           ? provisioning::ProfileSource::ConsumerProfile
-                                           : provisioning::ProfileSource::NetworkOnly;
-            const auto committed =
-                bootstrap_commit_.commit(*profile_, target_source, payload, now_ms);
-            volatile char* bytes = payload.empty() ? nullptr : payload.data();
-            for (std::size_t i = 0; i < payload.size(); ++i)
-                bytes[i] = 0;
-            if (committed == provisioning::SetupCommitResult::Committed)
-                end_trial(true, now_ms);
-            else if (committed == provisioning::SetupCommitResult::NotCommitted)
+        if (slot_.state() == BootstrapSlotState::Trial && !bootstrap_trial_start_pending_ &&
+            bootstrap_commit_.trial_allowed()) {
+            const bool linked = network_ && network_->link_up();
+            const auto address = linked ? network_->ipv4() : std::string{};
+            const auto result =
+                join_.trial(now_ms, linked, !address.empty() && address != "0.0.0.0");
+            if (result == BootstrapJoinResult::Ready && profile_ && network_setup_authority()) {
+                const auto source = profile_->source();
+                std::string payload;
+                if (source == provisioning::ProfileSource::NetworkOnly || blank_authority()) {
+                    trial_.request_sha256 = slot_.request_id_digest();
+                    payload = provisioning::serialize_network_profile(trial_);
+                } else if (source == provisioning::ProfileSource::ConsumerProfile)
+                    payload = provisioning::replace_consumer_network(
+                        profile_->data(), device_, trial_.ssid, trial_.password, trial_.time_server,
+                        slot_.request_id_digest());
+                const auto target_source = source == provisioning::ProfileSource::ConsumerProfile
+                                               ? provisioning::ProfileSource::ConsumerProfile
+                                               : provisioning::ProfileSource::NetworkOnly;
+                const auto committed =
+                    bootstrap_commit_.commit(*profile_, target_source, payload, now_ms);
+                volatile char* bytes = payload.empty() ? nullptr : payload.data();
+                for (std::size_t i = 0; i < payload.size(); ++i)
+                    bytes[i] = 0;
+                if (committed == provisioning::SetupCommitResult::Committed)
+                    end_trial(true, now_ms);
+                else if (committed == provisioning::SetupCommitResult::NotCommitted)
+                    end_trial(false, now_ms);
+                else {
+                    // The flash may contain a durable replacement. Do not roll back,
+                    // retry a save, or announce failure until reboot/readback resolves it.
+                    bootstrap_restart_pending_ = true;
+                    bootstrap_ack_delivered_ = false;
+                    bootstrap_committed_ms_ = now_ms;
+                    join_.finish();
+                    provisioning::scrub(trial_);
+                    provisioning::scrub(bootstrap_previous_network_);
+                    bootstrap_trial_switched_network_ = false;
+                    erase(ack_verifier_);
+                    crypto_.clear();
+                }
+            } else if (result == BootstrapJoinResult::TimedOut)
                 end_trial(false, now_ms);
-            else {
-                // The flash may contain a durable replacement. Do not roll back,
-                // retry a save, or announce failure until reboot/readback resolves it.
-                bootstrap_restart_pending_ = true;
-                bootstrap_ack_delivered_ = false;
-                bootstrap_committed_ms_ = now_ms;
-                join_.finish();
-                provisioning::scrub(trial_);
-                provisioning::scrub(bootstrap_previous_network_);
-                bootstrap_trial_switched_network_ = false;
-                erase(ack_verifier_);
-                crypto_.clear();
-            }
-        } else if (result == BootstrapJoinResult::TimedOut)
-            end_trial(false, now_ms);
+        }
+        const auto restart_now_ms = time_us_64() / 1000;
+        if (!client_ && bootstrap_restart_pending_ && restart_ &&
+            (bootstrap_commit_.reconcile()
+                 ? bootstrap_commit_.restart_due(restart_now_ms)
+                 : (bootstrap_ack_delivered_ ||
+                    (restart_now_ms >= bootstrap_committed_ms_ &&
+                     restart_now_ms - bootstrap_committed_ms_ >= 60'000)))) {
+            if (restart_(restart_context_) && !bootstrap_commit_.reconcile())
+                bootstrap_restart_pending_ = false;
+        }
+        if (!client_ && owner_restart_pending_ && restart_ &&
+            owner_result_restart_.ready(restart_now_ms)) {
+            // Keep setup admission blocked until the actual reboot. A scheduled
+            // restart may be cancelled by a newly accepted job; retry when safe.
+            (void)restart_(restart_context_);
+        }
     }
-    const auto restart_now_ms = time_us_64() / 1000;
-    if (!client_ && bootstrap_restart_pending_ && restart_ &&
-        (bootstrap_commit_.reconcile() ? bootstrap_commit_.restart_due(restart_now_ms)
-                                       : (bootstrap_ack_delivered_ ||
-                                          (restart_now_ms >= bootstrap_committed_ms_ &&
-                                           restart_now_ms - bootstrap_committed_ms_ >= 60'000)))) {
-        if (restart_(restart_context_) && !bootstrap_commit_.reconcile())
-            bootstrap_restart_pending_ = false;
-    }
-    if (!client_ && owner_restart_pending_ && restart_ &&
-        owner_result_restart_.ready(restart_now_ms)) {
-        // Keep setup admission blocked until the actual reboot. A scheduled
-        // restart may be cancelled by a newly accepted job; retry when safe.
-        (void)restart_(restart_context_);
-    }
-#endif
     if (!active_) {
         // Do not leave a wildcard port-80 listener on the station interface
         // if the AP stops or the service is otherwise unavailable.
-#ifndef WSPRRY_PICO_STANDALONE_RF
         if (bootstrap_trial_start_pending_)
             cancel_slot();
-#endif
         stop();
         return;
     }
@@ -512,7 +496,6 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
         pending_bytes_ += count;
         (void)tcp_output(client_);
     } else if (!pending_bytes_) {
-#ifndef WSPRRY_PICO_STANDALONE_RF
         const bool delivered_owner_status =
             parser_.ready() && parser_.request().method == "GET" &&
             parser_.request().path == "/api/owner/v1/claim/status" && response_.status == 200 &&
@@ -529,7 +512,6 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
                                              parser_.request().method == "POST" &&
                                              parser_.request().path == "/api/bootstrap/v1/ack" &&
                                              response_.status == 200 && bootstrap_restart_pending_;
-#endif
         auto* completed = client_;
         client_ = nullptr;
         tcp_arg(completed, nullptr);
@@ -543,7 +525,6 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
         response_ = {};
         headers_.clear();
         header_offset_ = body_offset_ = 0;
-#ifndef WSPRRY_PICO_STANDALONE_RF
         if (delivered_owner_status)
             owner_result_restart_.delivered(true, time_us_64() / 1000);
         if (delivered_owner_submit)
@@ -554,7 +535,6 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe) {
         }
         if (delivered_bootstrap_ack)
             bootstrap_ack_delivered_ = true;
-#endif
     }
 }
 
@@ -573,7 +553,6 @@ HttpResponse json(std::string body) {
     return {200, std::move(body), "application/json", {}};
 }
 } // namespace
-#ifndef WSPRRY_PICO_STANDALONE_RF
 namespace {
 std::string_view slot_name(BootstrapSlotState state) {
     switch (state) {
@@ -1210,7 +1189,5 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
     }
     return http_error(404, "not_found");
 }
-
-#endif
 
 } // namespace wsprrypico::network

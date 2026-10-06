@@ -411,11 +411,18 @@ def check_long_ap_final(info):
             'long-AP service readiness unavailable')
 
 
-def check_latched_refusal(peer, boot):
+def check_latched_refusal(peer, boot, job_id=None):
     status = peer.request('STATUS', {})
     require(status['boot_id'] == boot and status['output_active'] is False and
-            status['owner_id'] is None and status['job_id'] is None and
-            status['state'] == 'empty', 'post-stop empty/unowned authority')
+            status['owner_id'] is None, 'post-stop unowned/inactive authority')
+    if status['state'] == 'empty':
+        require(status['job_id'] is None, 'empty authority retains an execution job')
+    else:
+        require(job_id is not None and status['job_id'] == job_id and
+                status['state'] in ('aborted', 'complete', 'missed') and
+                any(record['job_id'] == job_id and record['state'] == status['state'] and
+                    record['output_active'] is False for record in status['terminal_records']),
+                'post-stop acknowledged terminal job required')
     # A rejected CLAIM admits no new job; never LOAD/ARM to test the latch.
     peer.request('CLAIM', dict(owner_id=uuid.uuid4().hex, lease_ms=5000), expected_error='BUSY')
 
@@ -904,7 +911,7 @@ def _acquire_locked(packet, case, campaign, retry_no_input_run=None, wait_for_bu
                 peer.request('CLAIM', dict(owner_id=uuid.uuid4().hex, lease_ms=5000), expected_error='BUSY')
             else:
                 check_long_ap_final(final)
-                check_latched_refusal(peer, boot)
+                check_latched_refusal(peer, boot, job['job_id'])
                 attempt.update(ap_interface_proof='PENDING', phone_observation='PENDING',
                                ap_request_order_proof='TARGET_OBSERVATION_ONLY',
                                target_hold_duration_us=str(final['gp14_last_duration_us']))

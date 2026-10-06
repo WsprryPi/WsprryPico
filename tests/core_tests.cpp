@@ -1,4 +1,5 @@
 #include "encoding/morse.hpp"
+#include "provisioning/rf_setup_gate.hpp"
 #include "runtime/activity_trace.hpp"
 #include "time/usb_time_source.hpp"
 #include "time/utc_discipline.hpp"
@@ -1977,9 +1978,28 @@ void test_physical_output_inhibit() {
                                    'd'))
                 .error == ErrorCode::Busy); // Prior success replay.
         CHECK(service.handle(request("STATUS", {}, 'f')).ok);
+        const auto stopped = service.status();
+        const wsprrypico::provisioning::RfSetupAdmission setup{!fail_disable,
+                                                               true,
+                                                               true,
+                                                               service.output_inhibited(),
+                                                               !fail_disable,
+                                                               true,
+                                                               !stopped.owner_id &&
+                                                                   !stopped.output_active,
+                                                               true,
+                                                               false,
+                                                               stopped.state,
+                                                               stopped.owner_id.has_value(),
+                                                               stopped.job_id.has_value(),
+                                                               stopped.output_active};
+        CHECK(wsprrypico::provisioning::rf_setup_allowed(setup) == !fail_disable);
         if (!fail_disable) {
             CHECK(!engine.output_active());
             CHECK(!service.status().owner_id);
+            CHECK(stopped.state == State::Aborted && stopped.job_id == id('3'));
+            CHECK(stopped.terminal_records.front().job_id == id('3') &&
+                  stopped.terminal_records.front().state == State::Aborted);
             service.reset();
             CHECK(service.output_inhibited());
             CHECK(service.handle(request("CLAIM", ClaimBody{id('2'), 10'000}, 'a')).error ==
