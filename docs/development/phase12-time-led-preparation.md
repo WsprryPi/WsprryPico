@@ -24,6 +24,24 @@ setup withdrawal is also operator-confirmed for five seconds. The
 The checked-output failure test retains its own scope. Exact GP14 edge timing
 during erase/program remains a separate measurement or evidence-backed disposition.
 
+## Reviewed repair and current exit
+
+Repair `db7911f` propagates the checked driver's return code. Independent
+adversarial review found and closed the fixture's missing successful-return
+proof; source reassessment is clear. The affected Linux `field_access_tests`
+passes **1/1**. Clean inhibited fixture and normal images plus the normal RF
+image cross-link; stack/storage/UF2 checks pass, and normal/RF symbol checks
+prove the fixture wrapper and INFO fields are absent. These builds do not
+constitute a live L4 pass.
+
+**L4 has not been executed.** A remains on the accepted `6c7b143` portal image
+with generation 5; B's last readback remains inhibited `c0d2bd53e4bd`,
+provisioned generation 2, healthy/empty/disabled/inactive. No B flash or fixture
+boot occurred in this LED repair tranche. The one-case driver and its failure
+cleanup are private preparation; finish their independent reassessment before
+hardware use. At the operator's commit-and-report checkpoint, only L1–L3 are
+physically accepted. No new host network fixture or board-lock holder remains.
+
 ## Verified surfaces and constants
 
 The source contracts are [Field-GATT controller time](../protocol/Field-GATT.md#controller-time-time_challenge-and-time_submit),
