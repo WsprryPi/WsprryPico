@@ -18,9 +18,8 @@ runner results remain recorded alongside the later strict quiet exit proof.
 Do not replay the completed soak, Save, reset or journal assertions merely as
 preparation for a physical case.
 
-Phase 12 remains `OPEN_PARTIAL`. Browser/offline commissioning, independent
-indicator/GP14 timing, physical cuts, peer/fleet interoperability and conditional
-RF work remain open. Simulator evidence does not qualify RF output or general
+Phase 12 remains `OPEN_PARTIAL`. Independent indicator/GP14 timing, physical
+cuts, peer/fleet interoperability and conditional RF work remain open. Simulator evidence does not qualify RF output or general
 physical interoperability. The Phase 13 feature backlog and Phase 14 final
 qualification are separate work.
 
@@ -41,8 +40,9 @@ SDR rigs, and trusts the local wspr hosts and Mac. This supersedes the earlier
 B-only/wspr4-excluded scope and blanket inhibited-image/restoration instructions.
 Default production firmware behavior and intended-test limits remain unchanged.
 
-Use the available phone, iPad and laptop; B has GP14 wiring. Do not request
-another phone inventory or unnecessary purchases. Complete source-bound
+Use the available phone, iPad and laptop; the GP14 harness is temporarily on A
+for the completed iPad session and may be moved back to B for its next case.
+Do not request another phone inventory or unnecessary purchases. Complete source-bound
 preparation, protocol collection and analysis automatically, and gather the
 remaining physical actions into one practical operator session.
 
@@ -73,15 +73,13 @@ for the operator does not start a case timer. Preserve original finite limits;
 select a new target attempt only for an untested required assertion, demonstrated
 repair or discriminating setup change. Do not invent unrelated failure paths.
 
-1. **C8: second iOS-client commissioning.** Use the available second iOS client
-   for network and station saves, saved-field prefill, one activation/reboot per
-   save, exact readback and unrelated-state preservation. Two predetermined
-   saves, at most ten minutes each. Earlier accepted phone saves are retained.
-2. **C10O: offline browser operation.** With cellular disabled and the local
-   field network isolated, verify device-served portal assets, origin and
-   cryptography. One portal visit, at most ten minutes once the operator is
-   present. Bluefy does not maintain the required offline cache; offline Bluefy
-   is unsupported and is not a closeout requirement.
+1. **C8: complete for the second iOS client.** A's two iPad Saves, exact
+   generation3→4→5/unrelated-state preservation and final read-only prefill
+   confirmation pass. Repair `6c7b143` fixes saved Wi-Fi prefill and recovery-link
+   alignment; the operator confirmed both pages. Preserve these results.
+2. **C10O: complete for the non-cellular iPad.** Device-served portal loading
+   and encrypted setup without Internet passed in the same session. Preserve
+   this result; offline Bluefy remains unsupported and is not required.
 3. **B12L/GP14: independent observations.** Observe the current readiness,
    Identify and fault cues, priority and absence of job side effects. One
    sequence per required cue, at most five minutes. Exact GP14 coincidence with

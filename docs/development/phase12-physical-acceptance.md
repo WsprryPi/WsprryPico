@@ -37,6 +37,65 @@ not authorized. The Field-GATT/1 source contract is now frozen and conforming
 across firmware, Bluefy and the native-Pi client; that result does not replace
 the open physical profile-activation and failure-cleanup rows in this plan.
 
+<a id="ipad-commissioning-2026-10-06"></a>
+
+## iPad commissioning (2026-10-06)
+
+**C8 and C10O CLOSED_SCOPED.** The available second iOS device is an iPad without cellular. It
+joined A's open `WsprryPico-0a60df` setup network, loaded the local portal at
+`http://192.168.4.1` without Internet and completed encrypted Wi-Fi setup. The
+operator reported “Saved and connected.” The screenshot shows the iOS Captive
+Wi-Fi window; the later station visit used “use without Internet” and the
+manually opened portal. No exact model/OS inventory or offline Bluefy pass is
+claimed.
+
+A is Pico 2 W / RP2350, serial `0BF4B4AEC9FFB344`, device
+`fd6127d11d6aca42a9905fa3fb1bf1d5`. The network Save on `133ca93cc2a1` selected
+generation3→4 and Bohica, restarted once, and acquired `192.168.1.47`.
+Native cold readback matches the committed request digest and confirms all
+non-network profile fields plus every byte outside the profile journal/E10
+were preserved. The existing reviewed GP14-enabled consumer image
+`c0d2bd53e4bd` was then loaded with generation4 and every reserved byte intact;
+the operator temporarily moved B's GP14/ground wires to A and opened setup.
+The station form prefilled N0CALL / EM48 / 27 dBm, while Wi-Fi fields were blank.
+
+One station Save selected generation4→5 with AA0NT / EM18 / 20 dBm. The
+operator reported that the portal closed and believed the Pico had rejoined
+Bohica; original INFO confirms the new boot, selected station, Bohica and
+`192.168.1.47`. Native cold inspection confirms the exact station, committed
+digest, unchanged network/security/profile fields apart from station and
+request digest, and exact operational/access/bond/cursor/watermark/E10 bytes.
+The retained generation5 snapshot SHA-256 is
+`8df87739c065cb89b946cdd08b2e5d6f5edbfa3805118f68fd6c063c713a6814`.
+
+The blank network prefill and recovery link outside the centered content are
+demonstrated defects. Repair `6c7b143210032aa7ce55d5e32a858386bc8d8c01` adds
+public SSID/time-server readback without passwords, protects typed drafts from
+a late response, and puts both setup recovery links inside the existing main
+layout. Six browser suites and the two affected Linux C++ tests pass. The
+source assessment and reassessment leave no actionable findings. The retained
+SDK2.3.1/GNU Arm15.3.1 cross-build and linked memory/storage checks pass.
+
+The repaired consumer GP14 image, UF2 SHA-256
+`3fe5aa6a6d5cfabe3165d612cb23dde07faf1b0038cd1100b085af1b3ad80cbf`, is installed
+on A. Readback matches all 7,127 programmed application pages and every
+reserved byte, preserving generation5. Its boot is
+`85e164b089a940450aaf38035612df63`. The final read-only reload passed: the operator confirmed both pages correct,
+including saved network/station prefill and recovery-link alignment. An
+interface-bound HTTP read independently confirms generation5, Bohica and the
+selected station, with only SSID/time-server network fields and no password.
+Neither successful Save was repeated. Scheduling remains disabled, the job is empty,
+and output is inactive. This session adds zero RF jobs or acquisitions.
+
+Private originals, native inspections, snapshots, tool receipts and review are
+retained under ignored `build/phase12-ipad-20261006` and the same named private
+wspr5 directory. The old owned station fixture is back in service; final owned
+observer removal and board-lock release pass. Management Ethernet/Wi-Fi and
+the old station fixture remain active; A retains the working candidate with
+empty/disabled/inactive output. GP14 wires remain temporarily on A. These are
+bounded commissioning/offline passes, not all of Phase 12. The redacted
+[result](phase12-ipad-physical-result.json) binds the private originals.
+
 ## Purpose and evidence boundary
 
 This procedure qualifies Phase 12 transport and credential behavior only after

@@ -1,0 +1,105 @@
+{
+  "schema": "phase12-ipad-physical-result/1",
+  "date": "2026-10-06",
+  "phase12_status": "OPEN_PARTIAL",
+  "acceptance": {
+    "C8": "CLOSED_SCOPED",
+    "C10O": "CLOSED_SCOPED"
+  },
+  "board": {
+    "name": "Pico A",
+    "target": "Pico 2 W / RP2350",
+    "serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5"
+  },
+  "operator_client": {
+    "device": "available iPad",
+    "cellular": false,
+    "first_view": "iOS Captive Wi-Fi window",
+    "later_view": "manually opened portal after use without Internet",
+    "inventory_not_requested": true
+  },
+  "network_save": {
+    "revision": "133ca93cc2a1",
+    "generation_before": 3,
+    "generation_after": 4,
+    "restart_boot": "de6119416e31bba689ac5f85f2354470",
+    "request_sha256": "a105952ac663a7de2e806b98c231024b4ccb46c712e62edb10ab849ff057b579",
+    "operator_result": "Saved and connected",
+    "native_info_digest_match": true,
+    "non_network_profile_and_outside_profile_preserved": true
+  },
+  "station_save": {
+    "revision": "c0d2bd53e4bd",
+    "generation_before": 4,
+    "generation_after": 5,
+    "restart_boot": "3d0d0c173675558a64f2681db62a75ce",
+    "request_sha256": "a03aaa81a1791f289395e73497d7064155bcb6ff5c979e32ca55729ac3c16a44",
+    "station": {
+      "callsign": "AA0NT",
+      "locator": "EM18",
+      "power_dbm": 20
+    },
+    "operator_result": "Portal closed; believed station rejoined",
+    "native_info_digest_match": true,
+    "network_security_and_outside_profile_preserved": true
+  },
+  "repair": {
+    "source": "6c7b143210032aa7ce55d5e32a858386bc8d8c01",
+    "uf2_sha256": "3fe5aa6a6d5cfabe3165d612cb23dde07faf1b0038cd1100b085af1b3ad80cbf",
+    "application_pages_verified": 7127,
+    "reserved_exact": true,
+    "E10_sha256": "f47a8ec3e9aff2318d896942282ad4fe37d6391c82914f54a5da8a37de1300c6"
+  },
+  "operator_final_confirmation": {
+    "result": "Both pages correct",
+    "network_prefill": true,
+    "station_prefill": true,
+    "recovery_alignment": true,
+    "no_additional_saves": true
+  },
+  "target_read_only": {
+    "boot_id": "85e164b089a940450aaf38035612df63",
+    "generation": 5,
+    "network_metadata_only": true,
+    "station_matches": true,
+    "password_returned": false
+  },
+  "validation": {
+    "browser_suites_passed": 6,
+    "linux_affected_cpp_tests_passed": 2,
+    "cross_build": "PASS; retained SDK 2.3.1 / GNU Arm 15.3.1",
+    "linked_storage_layout": "PASS",
+    "source_adversarial_review": "PASS after enum binding correction; delayed draft protection verified",
+    "evidence_reassessment": "PASS; originals hashed and native/INFO digests match",
+    "html_detector": "DEGRADED regex scan; operator confirmed alignment on target"
+  },
+  "cleanup": {
+    "observer_removed": true,
+    "management_eth0_wlan1_preserved": true,
+    "old_fixture_up": true,
+    "board_lock_released": true,
+    "working_firmware_retained": true,
+    "saved_generation": 5,
+    "rf_jobs": 0
+  },
+  "scope_limits": [
+    "Two successful Saves total; final repair check read-only.",
+    "No additional RF jobs or acquisitions.",
+    "GP14 harness remains temporarily on A.",
+    "Independent LED/GP14 timing, physical cuts, broader peers/fleet and conditional RF remain open."
+  ],
+  "private_evidence": {
+    "root": "build/phase12-ipad-20261006",
+    "original_files": 137,
+    "archive_sha256": "8e6121d584522f9b62d3e3cbb26cc286567d4b16b462d65016e6237812a6649c",
+    "essential_original_sha256": {
+      "network-preservation-PASS-1791285115233886062.json": "d8d47d44d92efb9d26958b9ea6fe8dc302b71c96f52e535c9c8d8624962b7eab",
+      "station-preservation-PASS-1791286962101533847.json": "199b038dc4fde55462b70ac4293b70774b7846ab8b132125ad9186d69e814ca5",
+      "portal-image-load-PASS-1791287324198194677.json": "6ceac0b7f1731f7b6b8bd40f21d1a4825ace7cea817cf239d0007d6a70f63bfb",
+      "cleanup-PASS-1791287514904824814.json": "392e58f9775922ef5ce2c0fc5418ad3e203770c3b795edbc91dec78b947ede29",
+      "operator-final-confirmation-1791287495142049324.json": "600cf25baabcadf7327871b6c74a67601cd496545b7f6946dd0fd666b7c7a8a7",
+      "repaired-public-status.json": "0a9d4f957d102871a6d73c249183cdd8450ca229bcce748826d44f2c0c5449e5"
+    }
+  }
+}
