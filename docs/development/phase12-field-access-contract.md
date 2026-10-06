@@ -9,6 +9,12 @@ and all physical acceptance remain open.
 This document grants no authority to operate hardware, enable a
 radio, alter a trust store, flash firmware or emit RF.
 
+**2026-10-06 offline-scope correction:** Bluefy does not maintain an offline
+cache. Offline Bluefy is unsupported and its earlier acceptance requirement
+is withdrawn. Offline setup acceptance applies to the device-served SoftAP
+portal only; see the [current matrix](phase12-closure-matrix.md). Historical
+offline Bluefy proposals and unaccepted rows are not current closure gates.
+
 This is the canonical implemented engineering policy for Phase 12. The
 accepted [P12.7 Safari/SoftAP decision](phase12-7-decision.md) supersedes the
 consumer rules identified in the amendment below; it is not yet implemented.
@@ -709,11 +715,12 @@ terminal failure. Persistent flash is not claimed confidential.
 
 ## Bluefy page and offline operation
 
-The repository-owned Web Bluetooth page is the selected iPhone client and no
-native app is planned. Its version/integrity identity must be visible; it may
+The repository-owned Web Bluetooth page is the engineering iPhone client. Its
+version/integrity identity must be visible; it may
 not load unapproved remote scripts, analytics or credential services. It must
-clear temporary secrets and work from an integrity-controlled offline delivery
-or cache on the accepted Bluefy/iOS pair.
+clear temporary secrets. Bluefy does not maintain the required offline cache;
+offline Bluefy operation is unsupported and is not an acceptance gate. Release
+assets and host cache-policy checks do not establish browser offline support.
 
 The repository also supplies a native Raspberry Pi/Linux BlueZ command-line
 client as an additional local/bench controller. It selects an exact Bluetooth
@@ -721,13 +728,13 @@ address, verifies the full encrypted device identity, uses the same Just Works
 enrollment, retained-bond and application-password policy, and reuses the exact
 provisioning and WTP GATT characteristics. It must not set the BlueZ device
 globally trusted or accept passwords through arguments/environment variables.
-Its host or live-Pi evidence is independent of, and cannot substitute for, the
-selected Bluefy/iOS offline acceptance rows.
+Its host or live-Pi evidence is independent of phone/browser interoperability
+and consumer portal offline acceptance.
 
-Physical acceptance disables infrastructure Wi-Fi and cellular data and proves
-the exact page remains usable. If reliable offline delivery cannot be proven,
-BLE is not accepted as the sole field path; the independent SoftAP/Safari path
-must still work. Selecting Bluefy does not authorize host trust-store changes.
+Offline physical acceptance isolates the Pico field network from Internet,
+disables cellular data and proves the device-served setup portal remains
+usable. Keep Wi-Fi enabled for the connection to the Pico. Bluefy is not the
+offline field path. Selecting Bluefy does not authorize host trust-store changes.
 
 ## Accepted limitations and completion gate
 
@@ -741,7 +748,7 @@ security appliance.
 
 Implementation must still prove MAC-read/suffix-collision/wrong-device failure,
 bond promotion/deletion/capacity/epoch/revocation, default/custom password and
-step-up behavior, SoftAP session-token expiry/resume, offline Bluefy, limited
+step-up behavior, SoftAP session-token expiry/resume, offline portal use, limited
 generic bootstrap and 60-second fallback, phone refresh/source disagreement,
 page suspension, profile-source tombstones, trust replacement, all three reset
 levels, exact LED patterns/priority, full WTP framing, resource reclamation and
@@ -751,7 +758,7 @@ alone do not close these gates.
 
 The remaining implementation details are the exact physical gestures,
 production GATT/SoftAP/HTTPS/local-control and live-activation wiring, the
-offline page delivery mechanism and target resource/coexistence tuning. The
+device-served portal delivery and target resource/coexistence tuning. The
 exact pinned BTstack source now cross-links the candidate adapter, but that is
 not physical interoperability evidence. Remaining work may not weaken this
 contract; a discovered incompatibility returns for an explicit policy decision.

@@ -79,7 +79,9 @@ delivery-safe activator and indicator, and publishes a deterministic
 repository-owned Bluefy page. A later
 [BLE local-control continuation](docs/development/phase12-ble-local-control-review.md)
 connects authenticated controller time, Identify/status and an unchanged WTP/1
-stream to that production GATT service and extends the offline page. The
+stream to that production GATT service and extends the browser page. Bluefy
+offline reuse is unsupported; the device-served SoftAP portal provides the
+selected offline setup path. The
 supported [Raspberry Pi/Linux BlueZ client](docs/development/raspberry-pi-ble-client.md)
 adds the same identity-bound local engineering workflow. Bluefy was the
 historical engineering iPhone client; the open SoftAP portal is the selected

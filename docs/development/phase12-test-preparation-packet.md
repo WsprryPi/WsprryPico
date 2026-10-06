@@ -1,14 +1,24 @@
 # Phase 12 proposed hardware packet
 
-Status: **CURRENT RF-INHIBITED CLOSEOUT AUTHORIZED; PHYSICAL/RF GATES OPEN**.
-The current user execution request authorizes B-only backups/readback, inhibited
+**Historical preparation packet.** The
+[current matrix](phase12-closure-matrix.md) and
+[operator continuation](phase12-remaining-execution-prompt.md) supersede the
+device scope, routine restoration and remaining-work instructions below.
+All four declared automatic workstreams are complete. As corrected on
+2026-10-06, Bluefy offline/cache reuse is unsupported and is not a required
+operator case; offline setup acceptance applies only to the device-served portal.
+Historical candidate bindings, limits and failed results retain their scope.
+
+Status at preparation checkpoint: **RF-INHIBITED CLOSEOUT AUTHORIZED;
+PHYSICAL/RF GATES OPEN**.
+The then-current user execution request authorized B-only backups/readback, inhibited
 flashing, simulator jobs, temporary provisioning/reset/credentials/bonds,
 restoration, source repairs and scoped commit/push. Earlier preparation-only
 restrictions below describe historical packets; they do not revoke this current
 approval. RF work still requires a current candidate/setup-bound authorization
 and actual operator Ready. Keep all retained finite limits and failures.
 
-Current operator order: finish autonomous validation and restoration first.
+Operator order at that checkpoint: finish autonomous validation and restoration first.
 Group the phone/iPad, LED observation, physical GP14 and power-interruption
 steps at the end. Prepare their exact candidates and finite procedures while
 automatic work runs. If the operator is unavailable, retain the prepared
@@ -192,10 +202,10 @@ consume an active case timer. Passing a source test does not pass a target row.
 
 | Phase / closure rows | Finite actions and expected evidence | Bound |
 | --- | --- | --- |
-| Consumer / C8, C8T, C10O, R11F | Physical phone/iPad commissioning is distinct from accepted populated offline saves. For automatic deferred readiness, restore the accepted generation-7 station and generation-8 network checkpoints and warm each without another SUBMIT; separately prove absent-TLS materialization. Prove exact digest/generation, readiness transition and unchanged populated trust/clients and unrelated records. Cellular-disabled offline portal/Bluefy observation remains a separate operator case. | Remaining physical commissioning: two saves, each <=10 min; checkpoint warming uses its existing bounded automatic runner with zero saves; offline visit <=10 min. |
+| Consumer / C8, C8T, C10O, R11F | Physical phone/iPad commissioning is distinct from accepted populated offline saves. For automatic deferred readiness, restore the accepted generation-7 station and generation-8 network checkpoints and warm each without another SUBMIT; separately prove absent-TLS materialization. Prove exact digest/generation, readiness transition and unchanged populated trust/clients and unrelated records. Cellular-disabled device-served offline portal observation remains a separate operator case; offline Bluefy is unsupported. | Remaining physical commissioning: two saves, each <=10 min; checkpoint warming uses its existing bounded automatic runner with zero saves; offline portal visit <=10 min. |
 | Historical accepted negatives / C10N | Do not replay: one named request per wrong-device, competing, expired, replayed, malformed and cancelled boundary. Record exact generation/digest/authority unchanged. One deliberate lost-response case reconciles durable result without resubmitting. | Seven cases, <=5 min each; no duplicate POST retry. Lost response is a declared client-side observation/interruption, not arbitrary packet manipulation. |
 | Recovery / R11A | One controlled saved-station loss and reconnect using only the approved existing wspr5 fixture. Prove 60 s loss fallback, local offline portal and 30 s stable withdrawal, including one pending reply/transaction retention observation. Keep management route recoverable. | One cycle <=15 min; no router/unrelated network operations. |
-| Engineering / B12J, B12C | Use `engineering` with declared authenticated clients; prove USB/BLE/TLS-WTP/HTTPS principals share one JobService, no fallback to plain. One declared credential A→B→C sequence proves obsolete trust cannot resurrect and generation callbacks cannot cross activation. Offline Bluefy visit is separate from consumer portal. | Three approved inhibited credential deployments, <=10 min each; one offline visit <=10 min. Restore original intended trust; no public secrets. |
+| Engineering / B12J, B12C | Use `engineering` with declared authenticated clients; prove USB/BLE/TLS-WTP/HTTPS principals share one JobService, no fallback to plain. One declared credential A→B→C sequence proves obsolete trust cannot resurrect and generation callbacks cannot cross activation. Offline Bluefy is unsupported and excluded from the required scope. | Historical three approved inhibited credential deployments, <=10 min each. Preserve originals; the current automatic scope is closed. |
 | Remaining engineering composition / B12C, B12R | The consumer ordinary soak is accepted without replay. Separate consumer and engineering plans with the [composition procedure](phase12-composition-preparation.md), five directed pressure boundaries plus associated prior fault evidence, maximum framing/session refusal, loaded/armed/running competing admissions, disconnect and provisioning scrub. INFO observer samples exact identity/resources; independently retained wire evidence proves actual carriers. | Remaining engineering soak: 2 h; 241 samples at 30 s cadence, gap <=45 s, <=12 simulated jobs per composition and <=60 s per job, RF jobs zero, observer flash cycles zero. Reserve 16 min network/BLE quiet and final 20 min disconnect/resource return. |
 | Ordinary flash/concurrency / B12R | Engineering CONFIG/USB-BLE-TLS serialization is accepted under its original binding and is not replayed. Consumer encrypted-portal/profile-journal save with concurrent STATUS remains open; prove original overlap, exact digest/generation/preservation and adapter/resource return. Offline populated-save preservation does not qualify concurrent overlap. | Remaining consumer case: one save, <=10 min, <=20 STATUS per carrier at >=100 ms spacing, no retry/RF, then exact metadata restoration. |
 | Remaining running-cookie / B12R | Accelerated inactivity/absolute expiry and loaded/armed owner grace are accepted without replay. Prove expired-cookie ownership behavior during one running inhibited job, including bounded same-owner STATUS/cancel grace and authority/resource reclamation. | One 45 s job in a 260 s body, RF zero; retain existing 15 s/60 s fixture limits, then restore ordinary 15 min/12 h settings. This does not measure twelve real hours. |

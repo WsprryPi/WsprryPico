@@ -15,9 +15,9 @@ arbitration and cross-linked Pico BLE/SoftAP/LED candidates. P12.4/P12.5 provide
 strict command decoding, shared PSA ownership and delivery-safe activation
 coordination. P12.6 enables encrypted GATT, the network-only live activator,
 controller-time/Identify/status and unchanged WTP/1 local control in the
-RF-inhibited production image and builds the deterministic offline page. The
+RF-inhibited production image and builds the deterministic browser page. The
 native Raspberry Pi/Linux client reuses that GATT service. SoftAP, physical
-BLE/Bluefy/Linux interoperability, offline-page acceptance and most physical
+BLE/Bluefy/Linux interoperability, consumer portal offline acceptance and most physical
 acceptance remain open. A later hardware-free continuation connects the
 production SoftAP DHCP/mDNS, blank HTTP, provisioned HTTPS and browser/local
 control path; it has no target or Safari acceptance.
@@ -193,8 +193,13 @@ source, deterministic policy/API tests, an RP2350 cross-build and bounded
 native-Pi Candidate A evidence for the provisioned
 WPA2/DHCP/mDNS/HTTPS/time/local-control path. Complete profile transfer and
 activation, blank generic HTTP, stable-station AP withdrawal, physical
-Safari/Bluefy/iOS offline operation and the broader physical matrix remain
+consumer portal offline operation and the broader physical matrix remain
 open. E1 identity/trust acceptance does not qualify end-user setup.
+
+Bluefy does not maintain an offline cache. Its offline reuse is unsupported and
+the earlier requirement is withdrawn; current offline acceptance applies only
+to the device-served SoftAP setup portal in the
+[closure matrix](phase12-closure-matrix.md).
 
 ### Renewal and compromised credentials
 

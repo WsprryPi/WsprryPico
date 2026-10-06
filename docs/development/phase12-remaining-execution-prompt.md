@@ -79,8 +79,9 @@ repair or discriminating setup change. Do not invent unrelated failure paths.
    saves, at most ten minutes each. Earlier accepted phone saves are retained.
 2. **C10O: offline browser operation.** With cellular disabled and the local
    field network isolated, verify device-served portal assets, origin and
-   cryptography. Verify supported offline Bluefy separately. At most ten
-   minutes per visit once the operator is present.
+   cryptography. One portal visit, at most ten minutes once the operator is
+   present. Bluefy does not maintain the required offline cache; offline Bluefy
+   is unsupported and is not a closeout requirement.
 3. **B12L/GP14: independent observations.** Observe the current readiness,
    Identify and fault cues, priority and absence of job side effects. One
    sequence per required cue, at most five minutes. Exact GP14 coincidence with

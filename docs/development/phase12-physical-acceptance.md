@@ -14,13 +14,19 @@ then ended disconnected, empty, unowned and output inactive with healthy
 journals.
 
 For current required assertions and explicit historical-row classifications,
-use the [2026-10-02 closure matrix](phase12-closure-matrix.md). The historical
+use the [current closure matrix](phase12-closure-matrix.md). The historical
 Stage A rows below retain supported engineering obligations and evidence; their
 superseded consumer owner/BOOTSEL/password ceremony is not a commissioning
 requirement. No new physical result or hardware authority is recorded by this
 software follow-up.
 
-Offline-cache reuse, fresh-password/new-pairing behavior, complete profile
+**2026-10-06 scope correction:** offline Bluefy/cache reuse is unsupported and
+withdrawn from required acceptance. Offline setup is the device-served SoftAP
+portal only. Earlier unaccepted offline Bluefy proposals below are historical,
+not remaining operator actions; the other supported engineering assertions
+retain their scope.
+
+Consumer portal offline use, fresh-password/new-pairing behavior, complete profile
 provisioning/activation, arbitrary BLE job control, the broader phone-time and
 LED matrices, the remaining SoftAP matrix, reset/gesture, trust/fault/resource
 and soak acceptance remain open. A bounded native-Pi BLE exercise separately
@@ -858,8 +864,8 @@ Bound each case and retain failures rather than replacing them with retries.
    512-byte commands, 256-byte status notifications, ordered fragments, the
    30-second no-progress timeout and eight replay digests retained five minutes.
    Verify staged secrets are scrubbed after every terminal path.
-4. With station Wi-Fi and cellular data disabled, load the exact offline Bluefy
-   artifact. On the client/evidence side verify its approved origin, hash and
+4. The earlier offline Bluefy artifact/cache check is withdrawn as unsupported.
+   For ordinary online engineering Bluefy use, verify its approved origin, hash and
    visible version, absence of unapproved remote scripts/analytics/credential
    services and clearing of temporary secrets; do not claim the Pico can observe
    browser provenance. On the target, reject unsupported wire-protocol versions

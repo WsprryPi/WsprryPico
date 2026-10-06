@@ -216,7 +216,7 @@ and optional station setup path, broader
 authenticated phone-time accuracy/disagreement/recovery acceptance, accepted
 reset controls, broader captive HTTP, healthy-station AP withdrawal and
 station-loss/manual AP return, physical
-Bluefy offline reuse and broader interoperability evidence, live profile
+broader engineering-client interoperability evidence, live profile
 activation and broader target resource/coexistence tuning. The wired
 SoftAP/HTTPS surface has only the bounded native-Pi target acceptance recorded
 above; the current production review separately records the bounded iPhone/
