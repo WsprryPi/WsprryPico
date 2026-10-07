@@ -320,7 +320,10 @@ int main() {
     const auto boot_pins = store.config() ? store.config()->pins : wsprrypico::hardware::PinPlan{};
     // Both adapters claim PIO/DMA resources through the SDK allocator.
 #ifdef WSPRRY_PICO_STANDALONE_RF
-    auto& engine = wsprrypico::rf::start_worker(clock, boot_pins, store_loaded && store.healthy());
+    static wsprrypico::rf::IndicatorGate tx_indicator_gate(
+        boot_pins.indicator != wsprrypico::hardware::PinPlan::Indicator::Disabled);
+    auto& engine = wsprrypico::rf::start_worker(clock, boot_pins, store_loaded && store.healthy(),
+                                                tx_indicator_gate);
 #else
     static wsprrypico::standalone::DryRunEngine engine;
 #endif
@@ -519,12 +522,26 @@ int main() {
     bool plain_start_attempted = false;
     std::uint64_t tls_retry_at_ms = 0;
     std::uint64_t plain_retry_at_ms = 0;
-    static wsprrypico::provisioning::PicoIndicatorOutput indicator_output(boot_pins);
-    static wsprrypico::provisioning::IndicatorController indicator(indicator_output,
-                                                                   identities.device_id());
+    static wsprrypico::provisioning::PicoIndicatorOutput indicator_output(
+        boot_pins, wsprrypico::provisioning::PicoIndicatorOutput::Role::Operational);
+    static wsprrypico::provisioning::PicoIndicatorOutput transmit_indicator_output(boot_pins);
+    static wsprrypico::provisioning::IndicatorController indicator(
+        indicator_output, identities.device_id(),
+        boot_pins.indicator == wsprrypico::hardware::PinPlan::Indicator::External
+            ? &transmit_indicator_output
+            : nullptr);
     static wsprrypico::provisioning::PicoConsumerClaimPlatform claim_platform(
         access_store, network, service, time_arbiter, local_identity.hostname);
     indicator.enabled(boot_pins.indicator != wsprrypico::hardware::PinPlan::Indicator::Disabled);
+    const auto poll_indicator = [&]() {
+        const auto now_ms = time_us_64() / 1000ULL;
+#ifdef WSPRRY_PICO_STANDALONE_RF
+        indicator.poll_transmit(tx_indicator_gate, now_ms);
+#else
+        indicator.transmitting(false); // Dry-run activity never requests solid TX.
+        indicator.poll(now_ms);
+#endif
+    };
     bootstrap.configure(service.status().boot_id, access_store, profile_store, random_source,
                         indicator, network, runtime_profile, claim_platform,
                         local_identity.default_password);
@@ -851,8 +868,28 @@ int main() {
             result +=
                 access_store.record() && access_store.record()->default_password ? "true" : "false";
             result += ",\"ble_running\":" + std::string(gatt.running() ? "true" : "false");
+            const auto led_status = indicator.status(time_us_64() / 1000ULL);
+            result += ",\"indicator_output_fault\":";
+            result += led_status.output_fault ? "true" : "false";
+            result += ",\"indicator_output_on\":";
+            result += led_status.output_on ? "true" : "false";
+            result += ",\"indicator_output_known\":";
+            result += led_status.output_known ? "true" : "false";
+            result += ",\"indicator_operational_on\":";
+            result += led_status.operational_on ? "true" : "false";
+            result += ",\"indicator_operational_known\":";
+            result += led_status.operational_known ? "true" : "false";
+            result += ",\"indicator_operational_fault\":";
+            result += led_status.operational_fault ? "true" : "false";
+#ifdef WSPRRY_PICO_STANDALONE_RF
+            result += ",\"tx_indicator_requested\":";
+            result += tx_indicator_gate.requested() ? "true" : "false";
+            result += ",\"tx_indicator_ready\":";
+            result += tx_indicator_gate.ready() ? "true" : "false";
+#else
+            result += ",\"tx_indicator_requested\":false,\"tx_indicator_ready\":false";
+#endif
 #ifdef WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE
-            const auto led_fixture_status = indicator.status(time_us_64() / 1000ULL);
             result += ",\"indicator_fault_fixture\":true";
             number_field(result, "indicator_fixture_calls",
                          wsprrypico::provisioning::indicator_fault_fixture_calls());
@@ -860,12 +897,7 @@ int main() {
                          wsprrypico::provisioning::indicator_fault_fixture_injected());
             number_field(result, "indicator_fixture_successful_writes",
                          wsprrypico::provisioning::indicator_fault_fixture_successful_writes());
-            result += ",\"indicator_output_fault\":";
-            result += led_fixture_status.output_fault ? "true" : "false";
-            result += ",\"indicator_output_on\":";
-            result += led_fixture_status.output_on ? "true" : "false";
-            number_field(result, "indicator_pattern",
-                         static_cast<unsigned>(led_fixture_status.pattern));
+            number_field(result, "indicator_pattern", static_cast<unsigned>(led_status.pattern));
 #endif
             result += ",\"ble_enrollment_open\":" +
                       std::string(local_access.enrollment_open(time_us_64() / 1000ULL) ? "true"
@@ -1427,6 +1459,7 @@ int main() {
         return scheduler.command(text);
     };
     while (true) {
+        poll_indicator(); // Also service the indicator on reset/recovery paths.
         if (reset_coordinator.blocks_admission() || recovery_reset_at) {
             // Intent closes every output/control admission while the reset
             // response drains on the independent plaintext recovery listener.
@@ -1591,17 +1624,7 @@ int main() {
                                    : softap_name_ready && server.listening());
         softap_coordinator.ready(softap_service_ready);
         indicator.softap_ready(softap_coordinator.status(field_now_ms).ready);
-#ifdef WSPRRY_PICO_GP14_RF_ACCEPTANCE
-        // The operator's local action cue must remain visible while the test
-        // Tone is active. Only this acceptance image gives Identify priority
-        // over the ordinary steady transmit indication.
-        indicator.transmitting(engine.output_active() &&
-                               indicator.status(field_now_ms).pattern !=
-                                   wsprrypico::provisioning::IndicatorPattern::Identify);
-#else
-        indicator.transmitting(engine.output_active());
-#endif
-        indicator.poll(field_now_ms);
+        poll_indicator();
         service.poll();
         const auto clock_now = service.clock_snapshot();
         const bool local_wtp_time_ready =

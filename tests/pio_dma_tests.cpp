@@ -1,6 +1,9 @@
+#include "provisioning/field_runtime.hpp"
 #include "rf/pio_dma_sink.hpp"
+#include "time/utc_discipline.hpp"
 
 #include <algorithm>
+#include <functional>
 #include <iostream>
 #include <stdexcept>
 
@@ -22,6 +25,7 @@ class Hardware final : public rf::PioDmaHardware {
     bool launch_on_unlock = false;
     bool enabled = false, busy = false, repeat = false, txstall = false;
     bool fail_open = false, fail_dma = false, fail_alarm = false, fail_halt = false;
+    bool unsafe_halt = false;
     unsigned opened = 0, launches = 0, alarm_requests = 0, depth = 0;
     const std::uint32_t* data = nullptr;
     std::uint32_t count = 0;
@@ -55,7 +59,8 @@ class Hardware final : public rf::PioDmaHardware {
     }
     bool halt(std::uint64_t) override {
         CHECK(depth > 0);
-        enabled = false;
+        if (!unsafe_halt)
+            enabled = false;
         if (fail_halt) {
             return false;
         }
@@ -86,6 +91,9 @@ class Hardware final : public rf::PioDmaHardware {
         ++alarm_requests;
         last_alarm = start;
         return !fail_alarm;
+    }
+    bool retry_alarm(std::uint64_t when, std::uint64_t epoch) override {
+        return alarm(when, epoch);
     }
     std::uint64_t launch_observed_ns() const override {
         return launch_observed_override.value_or(time);
@@ -708,6 +716,251 @@ void refill_test(bool missing_tail = false, bool delayed_final_data = false) {
     CHECK(engine.disable(hw.time));
 }
 
+class Led final : public provisioning::IndicatorOutput {
+  public:
+    bool on = false, succeeds = true;
+    std::vector<bool> writes;
+    std::function<void()> during_write;
+    bool write(bool value) override {
+        writes.push_back(value);
+        if (during_write) {
+            auto callback = std::move(during_write);
+            callback();
+        }
+        if (succeeds)
+            on = value;
+        return succeeds;
+    }
+};
+
+void indicator_launch_and_shutdown() {
+    Hardware hw;
+    rf::IndicatorGate gate;
+    rf::PioDmaSink sink(hw, &gate);
+    Led led;
+    provisioning::IndicatorController indicator(led, "device");
+    indicator.softap_ready(true);
+    CHECK(indicator.identify("one", "device", true, true, 0) == provisioning::IndicatorCode::Ok);
+    indicator.poll_transmit(gate, 1'200); // Neither Identify nor AP is on here.
+    CHECK(!led.on && !gate.requested());
+    std::array<std::uint32_t, 32> words{};
+    words.fill(0xaaaaaaaa);
+    CHECK(sink.submit(1, 0, words, words.size() * 32));
+    const auto start = hw.time + 1'000'000;
+    CHECK(sink.arm(1, start, words.size() * 32, {nullptr, nullptr, start + 1'000'000'000}));
+    indicator.poll_transmit(gate, 1'200);
+    CHECK(!led.on && !gate.requested() && !hw.enabled);
+    hw.time = start - 200'000;
+    hw.alarm_event(1);
+    CHECK(hw.last_alarm == start && !gate.requested() && !hw.enabled);
+    hw.time = start;
+    hw.alarm_event(1);
+    CHECK(gate.requested() && !gate.ready() && !hw.enabled && hw.launches == 0);
+    // An arbitrarily delayed management owner cannot start RF without the LED.
+    for (unsigned i = 0; i < 10; ++i) {
+        hw.time += 100'000;
+        hw.alarm_event(1);
+        CHECK(!hw.enabled && !led.on);
+    }
+    led.succeeds = false;
+    indicator.poll_transmit(gate, 1'200);
+    CHECK(!gate.ready() && !indicator.status(1'200).output_known &&
+          indicator.status(1'200).output_fault);
+    hw.time += 100'000;
+    hw.alarm_event(1);
+    CHECK(!hw.enabled);
+    led.succeeds = true;
+    indicator.poll_transmit(gate, 1'200);
+    CHECK(led.on && gate.ready() && indicator.status(1'200).output_fault);
+    hw.time += 100'000;
+    hw.alarm_event(1);
+    CHECK(hw.enabled && hw.launches == 1);
+    const auto writes = led.writes.size();
+    for (unsigned ms = 1'200; ms <= 15'200; ms += 50) {
+        indicator.poll_transmit(gate, ms);
+        CHECK(led.on); // Identify expires without interrupting solid TX.
+    }
+    CHECK(led.writes.size() == writes);
+    hw.fail_halt = hw.unsafe_halt = true;
+    CHECK(!sink.stop(hw.time));
+    CHECK(hw.enabled && gate.requested());
+    indicator.poll_transmit(gate, 15'200);
+    CHECK(led.on);
+    hw.fail_halt = false; // A lying success is also rejected while output stays active.
+    CHECK(!sink.stop(hw.time) && gate.requested());
+    CHECK(sink.poll(hw.time).state == wtp::EngineState::Failed);
+    hw.enabled = false; // Independently confirmed late physical stop.
+    (void)sink.poll(hw.time);
+    CHECK(!gate.requested());
+    hw.fail_halt = hw.unsafe_halt = false;
+    CHECK(sink.stop(hw.time));
+    CHECK(!hw.enabled && !gate.requested());
+    led.succeeds = false;
+    indicator.poll_transmit(gate, 15'200);
+    CHECK(led.on && !indicator.status(15'200).output_known);
+    CHECK(indicator.status(15'200).output_on); // Last checked value, not fabricated off.
+    led.succeeds = true;
+    indicator.poll_transmit(gate, 15'200);
+    CHECK(!led.on && indicator.status(15'200).output_known);
+}
+
+void indicator_stale_ack_and_timeout() {
+    rf::IndicatorGate gate;
+    CHECK(!gate.request_launch());
+    const auto old = gate.requested();
+    gate.inactive();
+    CHECK(!gate.request_launch());
+    const auto current = gate.requested();
+    CHECK(old != current);
+    gate.acknowledge(old); // An on write completed after cancel/rearm.
+    CHECK(!gate.ready() && !gate.request_launch());
+    gate.acknowledge(current);
+    CHECK(gate.ready() && gate.request_launch());
+    gate.inactive();
+    gate.acknowledge(current); // Delayed acknowledgement cannot revive a cancelled job.
+    CHECK(!gate.requested() && !gate.ready());
+
+    // Cancel/rearm on the RF owner during a slow indicator write. The real
+    // controller acknowledges only the old ticket that it sampled before I/O.
+    Led led;
+    provisioning::IndicatorController indicator(led, "device");
+    CHECK(!gate.request_launch());
+    led.during_write = [&] {
+        gate.inactive();
+        CHECK(!gate.request_launch());
+    };
+    indicator.poll_transmit(gate, 0);
+    CHECK(led.on && !gate.ready());
+    indicator.poll_transmit(gate, 1);
+    CHECK(gate.ready());
+    gate.inactive();
+
+    for (const bool broken_alarm : {false, true}) {
+        Hardware hw;
+        rf::IndicatorGate pending;
+        rf::PioDmaSink sink(hw, &pending);
+        std::array<std::uint32_t, 32> words{};
+        CHECK(sink.submit(1, 0, words, words.size() * 32));
+        const auto start = hw.time + 1'000'000, deadline = start + 1'000'000;
+        CHECK(sink.arm(1, start, words.size() * 32, {nullptr, nullptr, deadline}));
+        hw.time = start;
+        hw.fail_alarm = broken_alarm;
+        hw.alarm_event(1);
+        if (!broken_alarm) {
+            CHECK(pending.requested() && !hw.enabled);
+            hw.time = deadline;
+            hw.alarm_event(1);
+        }
+        CHECK(sink.poll(hw.time).state == wtp::EngineState::Missed);
+        CHECK(!pending.requested() && !hw.enabled && hw.launches == 0);
+        CHECK(sink.stop(hw.time));
+    }
+}
+
+void indicator_cancel_before_launch() {
+    for (const bool clock_rejected : {false, true}) {
+        Hardware hw;
+        rf::IndicatorGate gate;
+        rf::PioDmaSink sink(hw, &gate);
+        Led led;
+        provisioning::IndicatorController indicator(led, "device");
+        std::array<std::uint32_t, 32> words{};
+        CHECK(sink.submit(1, 0, words, words.size() * 32));
+        const auto start = hw.time + 1'000'000;
+        struct Projection {
+            std::uint64_t start;
+            bool valid = true;
+        } projection{start};
+        rf::LaunchGuard guard{[](void* value) {
+                                  const auto& p = *static_cast<Projection*>(value);
+                                  return rf::LaunchTarget{p.valid, p.start};
+                              },
+                              &projection, start + 1'000'000'000};
+        CHECK(sink.arm(1, start, words.size() * 32, guard));
+        hw.time = start;
+        hw.alarm_event(1);
+        indicator.poll_transmit(gate, 1'200);
+        CHECK(led.on && gate.ready() && !hw.enabled);
+        if (clock_rejected) {
+            projection.valid = false;
+            hw.time += 100'000;
+            hw.alarm_event(1);
+            CHECK(sink.poll(hw.time).state == wtp::EngineState::Missed);
+        } else {
+            CHECK(sink.stop(hw.time)); // Abort/STOP during indicator activation.
+            hw.alarm_event(1);         // A cancelled alarm cannot revive the job.
+        }
+        CHECK(!gate.requested() && !hw.enabled && hw.launches == 0);
+        indicator.poll_transmit(gate, 1'200);
+        CHECK(!led.on);
+    }
+}
+
+void indicator_modes_and_tail() {
+    // RF-producing warmup is an ordinary tone through this same launch gate.
+    // Synthetic plans exercise engine gating; existing encoder/service tests
+    // separately establish each mode's full job shape and content.
+    for (const auto mode : {"tone", "wspr", "qrss", "fskcw", "dfcw"}) {
+        for (const bool enabled : {true, false}) {
+            Hardware hw;
+            rf::IndicatorGate gate(enabled);
+            rf::PioDmaSink sink(hw, &gate);
+            rf::StreamEngine engine(sink);
+            Led led;
+            provisioning::IndicatorController indicator(led, "device");
+            indicator.enabled(enabled);
+            indicator.poll_transmit(gate, 1'200);
+            auto payload = job(3 * rf::block_samples);
+            payload.mode = mode;
+            if (payload.mode == "qrss" || payload.mode == "dfcw") {
+                const auto block_ns = ns_at(rf::block_samples);
+                payload.events = {{0, block_ns, true, rf::base_nhz},
+                                  {block_ns, block_ns, false, {}},
+                                  {2 * block_ns, block_ns, true, rf::base_nhz}};
+                payload.total_duration_ns = 3 * block_ns;
+            }
+            CHECK(engine.prepare(payload).accepted);
+            CHECK(!gate.requested() && !led.on); // LOAD/preparation never requests TX.
+            const auto start = hw.time + 1'000'000;
+            // Production uses the existing one-second WTP launch window.
+            time::UtcDiscipline clock([](void* p) { return static_cast<Hardware*>(p)->time; }, &hw);
+            CHECK(clock.observe(1'800'000'000'000'000'000ULL, hw.time, 1'000,
+                                wtp::LeapState::Normal));
+            CHECK(engine.schedule(
+                payload, start,
+                {&clock, clock.snapshot().utc_now_ns + 1'000'000, 1'000'000, 0, 0}));
+            CHECK(!gate.requested() && !led.on);
+            hw.time = start;
+            hw.alarm_event(1);
+            if (enabled) {
+                CHECK(!hw.enabled && gate.requested());
+                indicator.poll_transmit(gate, 1'200);
+                CHECK(led.on);
+                hw.time += 100'000;
+                hw.alarm_event(1);
+            }
+            CHECK(hw.enabled && hw.launches == 1);
+            const auto launched = hw.time;
+            CHECK(engine.poll(hw.time).state == wtp::EngineState::Running);
+            for (unsigned block = 0; block < 3; ++block) {
+                hw.complete();
+                hw.time = launched + ((ns_at((block + 1) * rf::block_samples) + 999) / 1000) * 1000;
+                CHECK(engine.poll(hw.time).state == wtp::EngineState::Running);
+                indicator.poll_transmit(gate, 1'200);
+                CHECK(hw.enabled && led.on == enabled); // Includes zero-rendered mode gaps.
+            }
+            CHECK(hw.repeat);
+            hw.stop_tail_before_irq();
+            // Hardware stopped first; delayed tail IRQ cannot extend RF/retain TX.
+            CHECK(engine.poll(hw.time).state == wtp::EngineState::Complete);
+            CHECK(!gate.requested());
+            indicator.poll_transmit(gate, 1'200);
+            CHECK(!led.on);
+            hw.deliver_completion_irq();
+            CHECK(engine.disable(hw.time));
+        }
+    }
+}
 } // namespace
 int main() {
     try {
@@ -725,6 +978,10 @@ int main() {
         refill_test(true);
         refill_test(false, true);
         refill_test(true, true);
+        indicator_launch_and_shutdown();
+        indicator_stale_ack_and_timeout();
+        indicator_cancel_before_launch();
+        indicator_modes_and_tail();
         std::cout << "PIO/DMA checks passed\n";
     } catch (const std::exception& e) {
         std::cerr << e.what() << '\n';

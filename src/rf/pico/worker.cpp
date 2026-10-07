@@ -41,11 +41,11 @@ void run() {
 }
 } // namespace
 WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& pins,
-                           bool storage_healthy) {
+                           bool storage_healthy, IndicatorGate& indicator) {
     if (!hardware::operational(pins))
         failure();
     static PicoPioDma hardware(*pins.rf);
-    static PioDmaSink sink(hardware);
+    static PioDmaSink sink(hardware, &indicator);
     static StreamEngine engine(sink);
     static WorkerEngine proxy(engine, clock, now, wait, failure, save_and_disable_interrupts,
                               restore_interrupts);

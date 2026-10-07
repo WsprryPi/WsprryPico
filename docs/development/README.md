@@ -86,6 +86,12 @@ The [Phase 13 feature backlog](../implementation-plan.md#phase-13-feature-backlo
 contains transmit LED and external Si5351 work, with room for further
 user-selected features. Phase 14 broad hardware/release qualification remains
 open.
+The [P13.1 LED execution/review](phase13-1-transmit-led-review.md) implements a
+checked local launch handshake, TX-only external indication and retained
+onboard operational cues. Deterministic checks and both firmware cross-links
+pass within the recorded scope; the full host suite retains two independently
+reproduced baseline failures. The [physical packet](phase13-1-transmit-led-physical-packet.md)
+is prepared with untimed operator gates and remains unexecuted.
 
 On macOS, run `bash scripts/check_host.sh` from the repository root for host
 configure, build and CTest. It selects full Xcode for the test subprocesses.

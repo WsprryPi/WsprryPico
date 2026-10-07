@@ -2,7 +2,6 @@
 
 #include "btstack.h"
 #include "hardware/flash.h"
-#include "hardware/gpio.h"
 #include "hardware/regs/addressmap.h"
 #include "lwip/netif.h"
 #include "pico/cyw43_arch.h"
@@ -79,25 +78,6 @@ bool PicoBondStore::erase_reset_storage() {
         if (bytes[i] != 255)
             return false;
     return true;
-}
-
-bool PicoIndicatorOutput::write(bool on) {
-    if (pins_.indicator == hardware::PinPlan::Indicator::Disabled)
-        return true;
-    if (pins_.indicator == hardware::PinPlan::Indicator::External) {
-        if (!hardware::operational(pins_) || !pins_.indicator_gp)
-            return false;
-        const auto gp = *pins_.indicator_gp;
-        if (!initialized_) {
-            gpio_init(gp);
-            gpio_put(gp, !pins_.indicator_active_high);
-            gpio_set_dir(gp, GPIO_OUT);
-            initialized_ = true;
-        }
-        gpio_put(gp, on == pins_.indicator_active_high);
-        return true;
-    }
-    return cyw43_gpio_set(&cyw43_state, CYW43_WL_GPIO_LED_PIN, on) == 0;
 }
 
 namespace {

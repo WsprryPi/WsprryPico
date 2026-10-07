@@ -122,8 +122,6 @@ bool IndicatorController::desired(std::uint64_t now_ms) const {
     if (!enabled_)
         return false;
     const auto active = pattern(now_ms);
-    if (transmitting_)
-        return true;
     if (active == IndicatorPattern::Off)
         return false;
     const auto offset = active == IndicatorPattern::Identify
@@ -137,19 +135,42 @@ bool IndicatorController::desired(std::uint64_t now_ms) const {
 void IndicatorController::poll(std::uint64_t now_ms) {
     if (identify_active_ && elapsed(now_ms, identify_started_ms_, 10'000))
         identify_active_ = false;
-    const bool value = desired(now_ms);
-    if (output_known_ && output_on_ == value)
+    if (transmit_output_) {
+        // External selection is TX-only. Operational cues stay onboard.
+        update(output_, desired(now_ms), operational_);
+        update(*transmit_output_, enabled_ && transmitting_, selected_);
+    } else {
+        update(output_, enabled_ && (transmitting_ || desired(now_ms)), selected_);
+    }
+}
+
+void IndicatorController::update(IndicatorOutput& output, bool value, OutputState& state) {
+    if (state.known && state.on == value)
         return;
-    if (!output_.write(value)) {
-        output_fault_ = true;
-        output_known_ = false;
+    if (!output.write(value)) {
+        state.fault = true;
+        state.known = false;
         return;
     }
-    output_on_ = value;
-    output_known_ = true;
+    state.on = value;
+    state.known = true;
+}
+
+void IndicatorController::poll_transmit(rf::IndicatorGate& gate, std::uint64_t now_ms) {
+    const auto ticket = gate.requested();
+    transmitting(ticket != 0);
+    poll(now_ms);
+    if (enabled_ && selected_.known && selected_.on)
+        gate.acknowledge(ticket);
 }
 
 IndicatorStatus IndicatorController::status(std::uint64_t now_ms) const {
-    return {pattern(now_ms), output_on_, output_fault_};
+    return {pattern(now_ms),
+            selected_.on,
+            selected_.fault || operational_.fault,
+            selected_.known,
+            transmit_output_ ? operational_.on : selected_.on,
+            transmit_output_ ? operational_.known : selected_.known,
+            transmit_output_ ? operational_.fault : selected_.fault};
 }
 } // namespace wsprrypico::provisioning

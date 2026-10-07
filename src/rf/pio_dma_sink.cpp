@@ -4,12 +4,22 @@
 
 namespace wsprrypico::rf {
 
+bool PioDmaSink::halt_output(std::uint64_t deadline_ns) {
+    const bool stopped = hw_.halt(deadline_ns);
+    const bool inactive = !hw_.active();
+    if (indicator_ && inactive)
+        indicator_->inactive();
+    return stopped && inactive;
+}
+
 bool PioDmaSink::stop(std::uint64_t deadline_ns) {
     Guard lock(hw_);
-    if ((opened_ && !hw_.halt(deadline_ns)) || hw_.active()) {
+    if ((opened_ && !halt_output(deadline_ns)) || hw_.active()) {
         state_ = wtp::EngineState::Failed;
         return false;
     }
+    if (indicator_)
+        indicator_->inactive();
     state_ = wtp::EngineState::Idle;
     queue_ = {};
     head_ = queued_ = 0;
@@ -109,7 +119,7 @@ void PioDmaSink::fault(const char* reason) {
     if (!*failure_)
         failure_ = reason;
     state_ = wtp::EngineState::Failed;
-    (void)hw_.halt(hw_.now_ns());
+    (void)halt_output(hw_.now_ns());
 }
 
 void PioDmaSink::dispatch(void* context, DriverEvent event) {
@@ -129,13 +139,27 @@ void PioDmaSink::event(DriverEvent event) {
         const auto deadline = guard_.deadline_ns ? guard_.deadline_ns : start_ + 1;
         const auto target = guard_.target(start_);
         if (!target.admissible || target.monotonic_ns >= deadline) {
-            state_ = hw_.halt(hw_.now_ns()) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
+            state_ =
+                halt_output(hw_.now_ns()) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
             return;
         }
         start_ = target.monotonic_ns;
+        if (indicator_ && indicator_->enabled()) {
+            const auto now = hw_.now_ns();
+            // ARM and early alarm entry retain the non-TX cue. Only a valid
+            // attempt at/after the local start requests the checked on write.
+            if (now < start_ || !indicator_->request_launch()) {
+                constexpr std::uint64_t retry_ns = 100'000;
+                const auto wake = now < start_ ? start_ : now + retry_ns;
+                if (wake < now || wake >= deadline || !hw_.retry_alarm(wake, epoch_))
+                    state_ = halt_output(now) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
+                return;
+            }
+        }
         const auto launch = hw_.launch(start_, deadline);
         if (launch == LaunchResult::Rejected) {
-            state_ = hw_.halt(hw_.now_ns()) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
+            state_ =
+                halt_output(hw_.now_ns()) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
         } else if (launch == LaunchResult::Launched) {
             const auto observed = hw_.launch_observed_ns();
             if (observed < start_ || observed >= deadline) {
@@ -160,7 +184,7 @@ void PioDmaSink::event(DriverEvent event) {
         // including the OSR word, has drained and a zero word has been emitted. No
         // frequency-bearing tail remains.
         if (state_ != wtp::EngineState::Running || dma_samples_ != total_ ||
-            !hw_.halt(hw_.now_ns())) {
+            !halt_output(hw_.now_ns())) {
             fault("tail_completion");
             return;
         }
@@ -201,6 +225,10 @@ SinkReport PioDmaSink::poll(std::uint64_t) {
     if (state_ == wtp::EngineState::Running && tail_ && !hw_.active()) {
         state_ = wtp::EngineState::Complete;
     }
+    // A failed stop may later become verifiably inactive. Pending activation
+    // is the exception: Armed retains its request while waiting for the LED.
+    if (indicator_ && state_ != wtp::EngineState::Armed && !hw_.active())
+        indicator_->inactive();
     if (state_ == wtp::EngineState::Complete) {
         return {state_, epoch_, submitted_, total_, now_ns, hw_.active(), launch_ns_};
     }

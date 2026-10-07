@@ -116,7 +116,8 @@ Exactly one indicator selection is active:
 
 - **Onboard LED:** default; uses the CYW43439 LED resource and consumes no exposed
   RP2350 GPIO.
-- **External GPIO:** reserves one eligible GPIO with configurable active polarity.
+- **External GPIO:** reserves one eligible GPIO with configurable active polarity
+  for TX only. AP-ready and Identify indications remain on the onboard LED.
 - **Disabled:** reserves no resource.
 
 The onboard resource must be identified explicitly, for example `onboard_led`,
@@ -126,6 +127,10 @@ rather than compete for the onboard resource.
 
 The TX indication follows the application's RF-active state. It is not an
 independent measurement of RF emission.
+When no external indicator is selected, the onboard LED supplies transmission
+indication with solid TX priority over its operational blink cues. The explicit
+disabled selection suppresses indication. One controller owns both physical
+outputs when an external TX LED is selected.
 
 ## Electrical state and local execution
 

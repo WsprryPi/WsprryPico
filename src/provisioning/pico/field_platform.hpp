@@ -5,6 +5,7 @@
 #include "provisioning/local_access.hpp"
 #include "provisioning/pico/captive_dns.h"
 #include "provisioning/pico/dhcp_server.h"
+#include "provisioning/pico/indicator_output.hpp"
 
 #include <string>
 
@@ -20,16 +21,6 @@ class PicoBondStore final : public BondStore {
     bool erase(std::uint64_t peer) override;
     bool erase_all() override;
     bool erase_reset_storage();
-};
-
-class PicoIndicatorOutput final : public IndicatorOutput {
-  public:
-    explicit PicoIndicatorOutput(const hardware::PinPlan& pins = {}) : pins_(pins) {}
-    bool write(bool on) override;
-
-  private:
-    hardware::PinPlan pins_;
-    bool initialized_ = false;
 };
 
 class PicoSoftAp {

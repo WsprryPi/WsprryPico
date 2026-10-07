@@ -235,6 +235,14 @@ bool PicoPioDma::alarm(std::uint64_t start_ns, std::uint64_t epoch) {
     return !hardware_alarm_set_target(static_cast<unsigned>(alarm_), from_us_since_boot(target));
 }
 
+bool PicoPioDma::retry_alarm(std::uint64_t when_ns, std::uint64_t epoch) {
+    if (!installed_ || get_core_num() != core_ || when_ns % 1000 != 0 || when_ns <= now_ns())
+        return false;
+    alarm_epoch_ = epoch;
+    return !hardware_alarm_set_target(static_cast<unsigned>(alarm_),
+                                      from_us_since_boot(when_ns / 1000));
+}
+
 LaunchResult PicoPioDma::launch(std::uint64_t start_ns, std::uint64_t deadline_ns) {
     const auto target_us = start_ns / 1000;
     auto observed_us = time_us_64();

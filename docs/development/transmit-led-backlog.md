@@ -1,11 +1,13 @@
 # Transmit LED backlog
 
-Recorded: 2026-10-03. Updated: 2026-10-05.
-Status: selected requirement; source foundation present, completion/acceptance deferred.
+Recorded: 2026-10-03. Updated: 2026-10-07.
+Status: source implementation and deterministic acceptance complete;
+physical acceptance open.
 Roadmap assignment: **Phase 13 / P13.1**, selected on 2026-10-05; see the
 [feature backlog](../implementation-plan.md#phase-13-feature-backlog).
 Final hardware/release qualification follows in Phase 14.
-This entry authorizes documentation only, not firmware changes or hardware tests.
+The operator authorized P13.1 implementation, review, commit and push on
+2026-10-07. Hardware actions still require the separately prepared authorization.
 
 Whenever the transmitter is hot (RF output active), the selected TX LED must
 light solid for the entire active interval. This includes RF-producing warmup,
@@ -15,17 +17,20 @@ or armed work alone must not assert the TX indication. Follow actual local
 RF-output activity, including any mode gaps that deactivate output, rather than
 assuming that a running job is continuously hot.
 
-Solid TX indication takes priority over AP-ready and Identify blink patterns.
-After confirmed RF inactivity, the existing non-TX pattern may resume. Use one
-indicator owner so competing writers cannot blink or extinguish the LED during
-active output. The LED reports application/engine output state; it is not an
+When onboard TX is selected, solid TX takes priority over AP-ready and Identify
+blink patterns; after confirmed inactivity the applicable cue may resume.
+The operator clarified on 2026-10-07 that a selected external LED is **TX only**:
+AP-ready and Identify continue on the onboard LED, never on the external pin.
+Without an external selection, the current onboard LED supplies TX indication.
+One controller owns both outputs so operational writes cannot blink or extinguish
+external TX. The LED reports application/engine output state; it is not an
 independent RF measurement. Do not show a simulated or RF-inhibited job as hot.
 
 Preserve the [pin-assignment contract](../pin-assignment-contract.md): onboard
 LED by default, configurable external GPIO/polarity, or explicitly disabled.
 The solid indication requirement applies when the TX indicator is enabled.
 
-## Current source finding
+## Historical foundation
 
 At reviewed `devel` commit `dd419af`, `IndicatorController::desired()` in
 `src/provisioning/field_runtime.cpp` returns solid on while `transmitting_`
@@ -37,23 +42,32 @@ and disabled-indicator behavior checks. These are current source observations;
 this documentation review does not run or newly qualify those tests.
 
 The earlier note that solid indication and its production wiring were absent
-is superseded. Phase 13 must reuse this foundation and assess the full selected
-RF-active interval, engine/mode coverage, write-failure behavior and physical
-timing. Source wiring alone does not establish complete target/RF acceptance.
+is superseded. The P13.1 execution found an activation gap in this polling-only
+foundation and an acceptance-only Identify-over-TX exception.
 
-## Deferred implementation and acceptance
+## Implemented source behavior
 
-- Recheck the current source before implementation; reuse any implementation
-  added since this review rather than introduce another LED owner.
-- Verify the existing shared indicator owner follows authoritative local
-  RF-output state across standalone and all job-control transports, including
-  warmup and cleanup; repair any demonstrated gaps.
-- Add deterministic checks for active/inactive transitions, queued/armed work,
-  inhibited/simulated execution, mode gaps, stop/abort/failure cleanup, LED write
-  failures and priority over simultaneous AP/Identify patterns. Never report
-  successful shutdown solely because the LED was switched off.
-- Verify the existing onboard and external active-high/active-low selection
-  and exclusive pin ownership across the selected acceptance cases.
-- Separately authorize opt-in target/RF verification. Record exact board,
-  firmware, engine, clock, mode and setup; host checks alone cannot qualify
-  physical LED timing or RF cutoff.
+`WsprryPico-StandaloneRF` now requests a unique indicator acknowledgement only
+at a valid local launch attempt. The selected TX output must have a checked
+on state before PIO activation. Missing/failed writes keep RF inactive and
+expire inside the existing start window. Disabled selection bypasses the gate.
+The RF owner never writes CYW43 or waits on USB/network symbol delivery.
+
+The request holds solid TX across the active engine interval and is released
+only after checked physical inactivity, including delayed hardware completion
+and failed shutdown. The normal onboard cue may resume at the next core-0
+poll, so indication can briefly lead activation and lag confirmed inactivity.
+Onboard and external checked state/faults are tracked separately; an onboard
+AP flash cannot acknowledge external TX. Faults remain latched after retry
+recovery. GPIO polarity and requested-level preload are host-tested through
+the actual Pico indicator adapter. The standard simulator never requests TX.
+
+The [execution prompt](phase13-1-transmit-led-prompt.md),
+[adversarial review and validation](phase13-1-transmit-led-review.md),
+[proposed physical packet](phase13-1-transmit-led-physical-packet.md) and
+[complete finite jobs](phase13-1-transmit-led-cases.json) record this slice.
+Physical acceptance remains open. Legacy single-core RFBench/RFWTP diagnostic
+images are outside this application indicator graph; their historical warmup
+captures do not qualify the new application LED. External wiring, physical
+edge timing and broader engine/mode/band/clock qualification require recorded
+target evidence, with final release qualification remaining Phase 14.

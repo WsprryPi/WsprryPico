@@ -136,14 +136,15 @@ treated as long-term product documentation.
 ## Phase 13 feature backlog
 
 Selected on 2026-10-05 to follow Phase 12 and precede final qualification.
-The existing indicator controller already has solid RF-active source wiring;
-P13.1 must reuse it and complete applicable acceptance or demonstrated gaps.
+P13.1 now has a checked launch handshake and TX-only external routing through
+the shared indicator owner. Its source/host validation is complete;
+[physical acceptance](development/phase13-1-transmit-led-physical-packet.md) is open.
 External Si5351 implementation remains deferred. Additional features can be
 added here as the user identifies them; no further feature scope is selected.
 
 | Milestone | Selected work | Status |
 | --- | --- | --- |
-| P13.1 — Transmit LED | [Solid TX indication](development/transmit-led-backlog.md) throughout actual RF activity, including RF-producing warmup and cleanup; reuse shared indicator ownership and priority over AP/Identify blinking. | Source foundation present; completion/acceptance planned |
+| P13.1 — Transmit LED | [Solid TX indication](development/transmit-led-backlog.md) across RF activation and cleanup; selected external LED is TX-only with operational cues onboard, or shared onboard TX takes priority over blinking. | Source/host complete; physical acceptance open |
 | P13.2 — Si5351 engine | [External Si5351 transmission](development/si5351-transmission-backlog.md) through the shared job service for standalone and WsprryPi-controlled jobs, with local RP2350 timing, exclusive I²C ownership and engine failure/shutdown handling. | Planned |
 
 Each feature includes its implementation and applicable behavior/target

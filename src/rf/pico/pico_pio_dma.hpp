@@ -30,6 +30,7 @@ class PicoPioDma final : public PioDmaHardware {
     bool dma(const std::uint32_t* data, std::uint32_t words, bool increment, std::uint64_t epoch,
              std::uint64_t sequence) override;
     bool alarm(std::uint64_t start_ns, std::uint64_t epoch) override;
+    bool retry_alarm(std::uint64_t when_ns, std::uint64_t epoch) override;
     LaunchResult launch(std::uint64_t start_ns, std::uint64_t deadline_ns) override;
     std::uint64_t launch_observed_ns() const override {
         return launch_boundary_ns_;

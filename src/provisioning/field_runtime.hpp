@@ -1,6 +1,7 @@
 #pragma once
 
 #include "provisioning/access.hpp"
+#include "rf/indicator_gate.hpp"
 
 #include <cstdint>
 #include <string>
@@ -93,12 +94,17 @@ struct IndicatorStatus {
     IndicatorPattern pattern = IndicatorPattern::Off;
     bool output_on = false;
     bool output_fault = false;
+    bool output_known = false;
+    bool operational_on = false;
+    bool operational_known = false;
+    bool operational_fault = false;
 };
 
 class IndicatorController {
   public:
-    IndicatorController(IndicatorOutput& output, std::string device_id)
-        : output_(output), device_id_(std::move(device_id)) {}
+    IndicatorController(IndicatorOutput& output, std::string device_id,
+                        IndicatorOutput* transmit_output = nullptr)
+        : output_(output), transmit_output_(transmit_output), device_id_(std::move(device_id)) {}
     IndicatorCode identify(std::string_view request_id, std::string_view requested_device,
                            bool authenticated, bool local, std::uint64_t now_ms);
     void enabled(bool enabled) {
@@ -111,12 +117,18 @@ class IndicatorController {
         softap_ready_ = ready;
     }
     void poll(std::uint64_t now_ms);
+    void poll_transmit(rf::IndicatorGate& gate, std::uint64_t now_ms);
     IndicatorStatus status(std::uint64_t now_ms) const;
 
   private:
+    struct OutputState {
+        bool on = false, known = false, fault = false;
+    };
+    static void update(IndicatorOutput& output, bool on, OutputState& state);
     bool desired(std::uint64_t now_ms) const;
     IndicatorPattern pattern(std::uint64_t now_ms) const;
     IndicatorOutput& output_;
+    IndicatorOutput* transmit_output_;
     std::string device_id_;
     std::string identify_request_;
     std::uint64_t identify_started_ms_ = 0;
@@ -124,8 +136,6 @@ class IndicatorController {
     bool softap_ready_ = false;
     bool transmitting_ = false;
     bool enabled_ = true;
-    bool output_on_ = false;
-    bool output_known_ = false;
-    bool output_fault_ = false;
+    OutputState selected_, operational_;
 };
 } // namespace wsprrypico::provisioning

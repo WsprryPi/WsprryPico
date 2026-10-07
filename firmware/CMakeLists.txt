@@ -476,6 +476,7 @@ if(TARGET pico_btstack_ble AND TARGET pico_btstack_cyw43)
             ${CMAKE_SOURCE_DIR}/src/provisioning/pico/captive_dns.c
             ${CMAKE_SOURCE_DIR}/src/provisioning/pico/dhcp_server.c
             ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_platform.cpp
+            ${CMAKE_SOURCE_DIR}/src/provisioning/pico/indicator_output.cpp
             ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gatt_transport.cpp)
         target_include_directories(${image} PRIVATE
             ${CMAKE_SOURCE_DIR}/src/provisioning/pico
@@ -490,6 +491,7 @@ if(TARGET pico_btstack_ble AND TARGET pico_btstack_cyw43)
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/captive_dns.c
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/dhcp_server.c
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_platform.cpp
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/indicator_output.cpp
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gatt_transport.cpp
         PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;-Werror;-fstack-usage")
 
@@ -498,6 +500,7 @@ if(TARGET pico_btstack_ble AND TARGET pico_btstack_cyw43)
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/captive_dns.c
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/dhcp_server.c
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/field_platform.cpp
+        ${CMAKE_SOURCE_DIR}/src/provisioning/pico/indicator_output.cpp
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/gatt_transport.cpp)
     target_link_libraries(field_access_pico_linkcheck PRIVATE
         wsprrypico_core pico_stdlib pico_rand pico_btstack_ble pico_btstack_cyw43

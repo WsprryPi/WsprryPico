@@ -1,5 +1,6 @@
 #pragma once
 
+#include "rf/indicator_gate.hpp"
 #include "rf/stream_engine.hpp"
 
 namespace wsprrypico::rf {
@@ -24,6 +25,8 @@ class PioDmaHardware {
     virtual bool dma(const std::uint32_t* data, std::uint32_t words, bool increment,
                      std::uint64_t epoch, std::uint64_t sequence) = 0;
     virtual bool alarm(std::uint64_t start_ns, std::uint64_t epoch) = 0;
+    // Exact wakeup, without the prelaunch advance used by alarm().
+    virtual bool retry_alarm(std::uint64_t when_ns, std::uint64_t epoch) = 0;
     // Waits only inside the short prelaunch window; deadline is exclusive.
     virtual LaunchResult launch(std::uint64_t start_ns, std::uint64_t deadline_ns) = 0;
     [[nodiscard]] virtual std::uint64_t launch_observed_ns() const = 0;
@@ -34,7 +37,8 @@ class PioDmaHardware {
 
 class PioDmaSink final : public BlockSink {
   public:
-    explicit PioDmaSink(PioDmaHardware& hardware) : hw_(hardware) {}
+    explicit PioDmaSink(PioDmaHardware& hardware, IndicatorGate* indicator = nullptr)
+        : hw_(hardware), indicator_(indicator) {}
     PioDmaSink(const PioDmaSink&) = delete;
     PioDmaSink& operator=(const PioDmaSink&) = delete;
     [[nodiscard]] std::string_view diagnostic() const override {
@@ -73,8 +77,10 @@ class PioDmaSink final : public BlockSink {
     static void dispatch(void* context, DriverEvent event);
     void event(DriverEvent event);
     bool queue_tail();
+    bool halt_output(std::uint64_t deadline_ns);
     void fault(const char* reason);
     PioDmaHardware& hw_;
+    IndicatorGate* indicator_;
     std::array<Block, 2> queue_{};
     std::size_t head_ = 0, queued_ = 0;
     bool opened_ = false, tail_ = false, tail_submitted_ = false;

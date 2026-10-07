@@ -71,11 +71,14 @@ Store reload rejects invalid or unsupported pin data even with a valid journal
 CRC. An unhealthy Store boot inhibits the RF worker; it must not generate RF on
 a default fallback pin. Recovery remains through the existing recovery paths.
 
-The indicator's one controller routes to onboard or external GPIO, or suppresses
-output when disabled. TX-active holds it on ahead of Identify/SoftAP patterns.
+The indicator's one controller uses the selected external GPIO exclusively for
+TX, with Identify/SoftAP cues remaining on the onboard LED. Without an external
+selection, TX holds the onboard LED solid ahead of those cues. Disabled selection
+suppresses indication. The P13.1 launch handshake checks the selected TX output
+before activation; an onboard AP flash cannot acknowledge an external TX write.
 Field-GATT keeps its existing cue-pattern vocabulary; that pattern describes the
 provisioning cue rather than an independent RF measurement. External active-low
-and active-high outputs are initialized inactive before direction is enabled.
+and active-high outputs preload the requested level before enabling direction.
 
 ## Reproduction
 

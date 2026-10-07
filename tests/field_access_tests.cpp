@@ -1233,6 +1233,54 @@ void runtime_policy() {
     CHECK(failed_indicator.status(101).pattern == provisioning::IndicatorPattern::Off);
 }
 
+void external_transmit_only_indicator() {
+    Led onboard, external;
+    provisioning::IndicatorController indicator(onboard, std::string(device), &external);
+    rf::IndicatorGate gate;
+    indicator.softap_ready(true);
+    for (unsigned ms = 0; ms < 2'000; ms += 50) {
+        indicator.poll_transmit(gate, ms);
+        CHECK(!external.writes.back());
+    }
+    CHECK(indicator.identify("external-identify", device, true, true, 2'000) ==
+          provisioning::IndicatorCode::Ok);
+    for (unsigned ms = 2'000; ms < 4'000; ms += 50) {
+        indicator.poll_transmit(gate, ms);
+        CHECK(!external.writes.back()); // Identify can only blink onboard.
+    }
+    CHECK(!gate.request_launch());
+    external.result = false;
+    indicator.poll_transmit(gate, 4'000);
+    CHECK(onboard.writes.back() && !gate.ready()); // AP/Identify on cannot acknowledge TX.
+    CHECK(!indicator.status(4'000).output_known && indicator.status(4'000).output_fault);
+    external.result = true;
+    indicator.poll_transmit(gate, 4'000);
+    CHECK(external.writes.back() && gate.ready());
+    const auto tx_writes = external.writes.size();
+    indicator.poll_transmit(gate, 4'200);
+    CHECK(!onboard.writes.back() && external.writes.back());
+    onboard.result = false;
+    indicator.poll_transmit(gate, 4'300);
+    CHECK(!indicator.status(4'300).operational_known);
+    CHECK(indicator.status(4'300).operational_fault && gate.ready());
+    // A cue fault cannot pretend the selected external output is unknown/off.
+    CHECK(indicator.status(4'300).output_known && indicator.status(4'300).output_on);
+    onboard.result = true;
+    for (unsigned ms = 4'400; ms < 14'000; ms += 50) {
+        indicator.poll_transmit(gate, ms);
+        CHECK(external.writes.back());
+    }
+    CHECK(external.writes.size() == tx_writes);
+    gate.inactive();
+    indicator.poll_transmit(gate, 14'000);
+    CHECK(!external.writes.back() && onboard.writes.back());
+    indicator.poll_transmit(gate, 14'200);
+    CHECK(!external.writes.back() && !onboard.writes.back());
+    indicator.enabled(false);
+    indicator.poll_transmit(gate, 14'300);
+    CHECK(!external.writes.back() && !onboard.writes.back());
+}
+
 void button_action_policy() {
     using provisioning::ButtonAction;
     provisioning::ButtonControl short_press;
@@ -1579,6 +1627,7 @@ int main() {
     framing_policy();
     softap_http_policy();
     runtime_policy();
+    external_transmit_only_indicator();
     button_action_policy();
     ambiguous_reset_intent();
     reset_policy();
