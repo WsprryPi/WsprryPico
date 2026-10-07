@@ -11,6 +11,13 @@ fixture. Equipment availability, physical labels/accessories, wiring,
 released-voltage evidence and optical capture remain unconfirmed. No operator
 response deadline applies. Steps 3–6 remain open.
 
+The later [untimed onboard visual subset](phase13-1-step2-manual-onboard.md)
+passed B's OFF/ON/OFF plateaus while A remained OFF. B's ordinary inhibited
+restoration, original retained bytes and post-boot settings comparison passed.
+The operator is awaiting external LEDs; the full wiring/recording setup remains
+pending. This bounded result does not close RF timing, external indications or
+the full step-2 setup.
+
 ## Actual setup preparation
 
 Control host `wspr5` reported Linux `6.18.34+rpt-rpi-2712`, approximately
@@ -170,3 +177,14 @@ released-level evidence cannot be manufactured remotely. Exact RF/LED edge
 qualification additionally needs appropriate independent measurement; missing
 equipment or an unaccepted timing scope remains explicit. There is no countdown
 or request to observe a transient signal while a test runs.
+
+The manual continuation additionally retained a target STOP caused by reusing
+A's idle control connection across B's flash/startup. The helper was corrected
+to reconnect A afresh; a separate RF-free optical attempt and independent
+held-state reread passed. The operator confirmed ON and return to OFF without
+deadlines. Final restoration refused the test command, verified ordinary
+inhibition and preserved every original reserved byte plus the checked
+post-boot settings. The [manual record](phase13-1-step2-manual-onboard.md)
+contains exact identities, source, clocks, final boots and final adversarial
+assessment; no finding remains in that completed visual subset. Zero RF jobs
+were admitted. The remaining full-matrix physical prerequisites stay open.

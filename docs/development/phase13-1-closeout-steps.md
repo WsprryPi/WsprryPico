@@ -11,11 +11,11 @@ exception if automated device control fails, not a scheduled operator step.
 | Step | Work | Operator | Status |
 | --- | --- | --- | --- |
 | 1 | Finish the runner, finite test cases, candidate checks and automated evidence collection. | No | Complete: engineering preparation |
-| 2 | Identify the connected Pico/SDR setup; connect external LED fixtures for both polarities; prepare LED recording and the physical-stop fixture. | Yes, untimed setup | In progress: both onboard OFF baselines visually confirmed; untimed onboard checks proceeding; external LEDs not yet available; full wiring/recording pending |
+| 2 | Identify the connected Pico/SDR setup; connect external LED fixtures for both polarities; prepare LED recording and the physical-stop fixture. | Yes, untimed setup | Onboard visual subset passed: B OFF/ON/OFF, A stayed OFF; ordinary inhibited restoration verified. External LEDs, full wiring and recording remain pending |
 | 3 | Run onboard tests: warmup, all five modes, completion, active abort, armed cancellation and inhibited behavior. | No, after setup | Pending |
 | 4 | Verify onboard TX priority over AP/Identify; external TX-only behavior, both polarities and disabled indication. | No, with fixtures prepared in step 2 | Pending |
 | 5 | Exercise standalone STOP, GP14 cutoff and controlled failure cases. | No, with an automated stop stimulus | Pending |
-| 6 | Restore firmware/settings, assess evidence, repair findings, rerun affected checks and publish closeout. | No under normal conditions | Pending |
+| 6 | Restore firmware/settings, assess evidence, repair findings, rerun affected checks and publish closeout. | No under normal conditions | Full matrix pending; manual visual subset restored, repaired and reviewed |
 
 Finish engineering preparation before the step-2 session. Prepare both external
 polarity fixtures and the automatic GP14 stimulus up front, so later steps need

@@ -1,20 +1,22 @@
 # Step 2: one untimed physical setup
 
-Status: **prepared; physical setup not yet confirmed**. This sheet executes the
+Status: **onboard visual subset passed; full fixture/recording setup pending**. This sheet executes the
 [step-2 prompt](phase13-1-step2-prompt.md). Take as long as needed. No transmission
 is left running while waiting, and no action requires catching a timed LED cue.
 
 The operator subsequently reported that the external LEDs have not arrived and
 selected [untimed onboard visual checks](phase13-1-step2-manual-onboard.md).
-Both installed-firmware onboard LEDs were visually confirmed OFF. The isolated
-inhibited lamp check may proceed without external wiring or a camera; it accepts
-only observed optical plateaus. The remaining wiring/recording requirements
-below still apply to the full autonomous RF/LED matrix.
+Both installed-firmware onboard LEDs were visually confirmed OFF; B was then
+confirmed steadily ON while A stayed OFF, followed by both OFF. B's ordinary
+inhibited firmware and saved settings have been restored and verified. These
+checks accept only observed optical plateaus. The remaining wiring/recording
+requirements below still apply to the full autonomous RF/LED matrix.
 
 The proposed arrangement is **Pico B as the device under test (DUT), Pico A as
 the automatic stop fixture**. Software identity and saved default pin plans have
-been checked; physical labels, existing attachments and the actual RF path need
-operator confirmation. Either board can be selected instead, but swap every
+been checked, and the operator's B-ON/A-OFF observation matches the board labels.
+Existing attachments and the actual RF-path details still need confirmation.
+Either board can be selected instead, but swap every
 board role consistently before wiring or freezing the private setup record.
 
 | Board | USB serial | Device ID | Proposed role |
@@ -123,8 +125,9 @@ requiring a surprise operator visit in step 6.
 
 ## What to confirm to finish this session
 
-- Physical A/B labels, the unchanged conducted path/attenuation and any existing
-  accessory connections on the four GPIOs used here.
+- The unchanged conducted path/attenuation and any existing accessory
+  connections on the four GPIOs used here; A/B labels were matched by the
+  onboard visual check.
 - Actual LEDs/resistor values, both final LED circuits, common ground, stop
   connection and stable released GP14 voltage.
 - Connected recording equipment and its view of the three DUT LEDs; available
