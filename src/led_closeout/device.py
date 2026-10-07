@@ -14,11 +14,65 @@ import uuid
 from led_closeout.capture import Captures
 from led_closeout.plan import BOARDS, IMAGES, RECEIVER
 from led_closeout.runner import admit, quiescent, require, save_json, sha256
-from phase11_5_inventory import exclusive_port, exchange
+from phase11_5_inventory import exclusive_port, exchange, validate_inventory
 from check_standalone_image import validate_uf2
 from validate_wtp_contract import frame, SchemaValidator
 
 FLASH_SIZE, RESERVED, E10 = 4194304, 0x3f3000, 0x3ff000
+
+
+def inventory(backend, evidence, board, fixture=None):
+    """Record every named board without claiming authority or changing device state."""
+    summaries, errors = [], []
+    boards = list(filter(None, (board, fixture)))
+    finished = False
+    evidence.state.update(result='INVENTORY_RUNNING', cleanup='UNCHANGED')
+    evidence.save()
+    try:
+        backend.lock_boards(board, fixture)
+        for key in boards:
+            summary = dict(board=key, result='UNAVAILABLE')
+            try:
+                info = backend.console(key, 'INFO')
+                require(info.get('ok') is True and info.get('device_id') == BOARDS[key]['device_id'],
+                        'inventory Console identity')
+                summary.update(device_id=info['device_id'], revision=info['revision'],
+                               status=info['status'], info=info)
+                evidence.event('inventory_console', dict(board=key, info=info))
+                peer = backend.peer(key)
+                responses = {}
+                for op in ('HELLO', 'CAPS', 'GET_CLOCK', 'STATUS', 'PING'):
+                    body = (dict(versions=['WTP/1'], client_name='LED-closeout', client_version='1')
+                            if op == 'HELLO' else {})
+                    responses[op] = peer.request(op, body)
+                    evidence.event('inventory_wtp', dict(board=key, op=op, body=responses[op]))
+                validate_inventory(info, responses, BOARDS[key]['device_id'])
+                summary.update(result='COMPLETE', responses=responses)
+            except Exception as error:
+                summary['error'] = dict(type=type(error).__name__, message=str(error))
+                if getattr(error, '__notes__', None):
+                    summary['error']['notes'] = error.__notes__
+                evidence.event('inventory_unavailable', summary)
+            summaries.append(summary)
+            evidence.state['inventory'] = summaries
+            evidence.save()
+        finished = True
+    except BaseException as error:
+        errors.append(dict(stage='inventory', type=type(error).__name__, message=str(error)))
+        if not isinstance(error, Exception):
+            raise
+    finally:
+        try:
+            backend.close()
+        except Exception as error:
+            errors.append(dict(stage='transport_cleanup', type=type(error).__name__, message=str(error)))
+        complete = (finished and len(summaries) == len(boards) and
+                    all(s['result'] == 'COMPLETE' for s in summaries) and not errors)
+        evidence.state.update(result='READ_ONLY_INVENTORY' if complete else 'READ_ONLY_INVENTORY_PARTIAL',
+                              inventory=summaries, errors=errors,
+                              transport_cleanup='FAILED' if any(e['stage'] == 'transport_cleanup' for e in errors) else 'CLOSED')
+        evidence.save()
+    return complete
 
 
 def tool(argv, timeout=45):
@@ -156,6 +210,8 @@ class Device:
                 require(info['lan_wtp_mode'] == 'plain' and
                         type(info['lan_wtp_port']) is int and 1 <= info['lan_wtp_port'] <= 65535,
                         'consumer image needs its ordinary Plain LAN WTP listener')
+                require(info.get('lan_wtp_ready') is True,
+                        'consumer Plain LAN WTP unavailable: listener/time not ready')
                 address = str(ipaddress.IPv4Address(info['network']['ipv4']))
                 require(address != '0.0.0.0', 'consumer station address unavailable')
                 connection = socket.create_connection((address, info['lan_wtp_port']), timeout=3)
@@ -163,24 +219,34 @@ class Device:
                 context = contextlib.closing(connection)
                 context.__enter__()
                 fd = connection.fileno()
-                self.e.event('transport', dict(board=board, kind='plain-lan', address=address,
-                                               port=info['lan_wtp_port']))
+                transport = dict(board=board, kind='plain-lan', address=address,
+                                 port=info['lan_wtp_port'])
             else:
                 context = exclusive_port(Path(self.base(board)+'-if02'))
                 fd = context.__enter__()
-                self.e.event('transport', dict(board=board, kind='usb-cdc'))
+                transport = dict(board=board, kind='usb-cdc')
             self.peer_contexts[board] = context
-            self.peers[board] = Peer(fd, self.e, self.root)
-            hello = self.peers[board].request('HELLO', dict(versions=['WTP/1'],
-                client_name='LED-closeout', client_version='1'))
-            require(hello['device_id'] == BOARDS[board]['device_id'], 'WTP device identity')
+            try:
+                self.e.event('transport', transport)
+                peer = Peer(fd, self.e, self.root)
+                hello = peer.request('HELLO', dict(versions=['WTP/1'],
+                    client_name='LED-closeout', client_version='1'))
+                require(hello['device_id'] == BOARDS[board]['device_id'], 'WTP device identity')
+            except BaseException as error:
+                try:
+                    self.close_peer(board)
+                except Exception as cleanup_error:
+                    error.add_note('transport cleanup also failed: ' + repr(cleanup_error))
+                raise
+            self.peers[board] = peer
         return self.peers[board]
 
     def close_peer(self, board):
         self.peers.pop(board, None)
-        context = self.peer_contexts.pop(board, None)
+        context = self.peer_contexts.get(board)
         if context:
             context.__exit__(None, None, None)
+            self.peer_contexts.pop(board, None)
 
     def info(self, board):
         for _ in range(3):
@@ -350,7 +416,7 @@ class Device:
     def close(self):
         errors=[]
         try:
-            for board in list(self.peers):
+            for board in list(self.peer_contexts):
                 try:
                     self.close_peer(board)
                 except OSError as error:

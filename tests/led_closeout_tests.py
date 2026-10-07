@@ -12,7 +12,7 @@ sys.path[:0] = [str(ROOT/'src'), str(ROOT/'scripts')]
 from led_closeout.plan import BOARDS, IMAGES, make_plan, validate_plan
 from led_closeout.candidates import pins
 from led_closeout.runner import Evidence, Runner, admit, quiescent, save_json
-from led_closeout.device import Device, Peer, validate_manifest, validate_setup
+from led_closeout.device import Device, Peer, inventory, validate_manifest, validate_setup
 from led_closeout.capture import Captures
 from validate_wtp_contract import loads_strict, SchemaValidator
 
@@ -280,7 +280,7 @@ class RunnerTests(unittest.TestCase):
         connection=unittest.mock.Mock()
         connection.fileno.return_value=42
         obj.console=lambda *a:dict(device_id=BOARDS['A']['device_id'],
-            provisioning_source='consumer_preclock',lan_wtp_mode='plain',lan_wtp_port=31417,
+            provisioning_source='consumer_preclock',lan_wtp_mode='plain',lan_wtp_port=31417,lan_wtp_ready=True,
             network=dict(ipv4='192.168.1.47'))
         with patch('led_closeout.device.socket.create_connection',return_value=connection) as connect,              patch('led_closeout.device.exclusive_port') as usb,              patch('led_closeout.device.Peer') as peer:
             peer.return_value.request.return_value=dict(device_id=BOARDS['A']['device_id'])
@@ -289,6 +289,127 @@ class RunnerTests(unittest.TestCase):
             usb.assert_not_called()
             obj.close_peer('A')
             connection.close.assert_called_once()
+
+    def test_unready_inventory_records_both_boards_without_inventing_authority(self):
+        e,_,_=self.exercise()
+        obj=Device({},e,ROOT)
+        obj.lock_boards=unittest.mock.Mock()
+        def console(board,command):
+            self.assertEqual(command,'INFO')
+            return dict(ok=True,device_id=BOARDS[board]['device_id'],revision='installed',
+                provisioning_source='consumer_preclock',lan_wtp_mode='plain',lan_wtp_port=31417,
+                lan_wtp_ready=False,network=dict(ipv4='192.168.1.47'),
+                status=dict(boot_id=board,state='empty',output_active=False,clock_state='unsynchronized'))
+        obj.console=console
+        with patch('led_closeout.device.socket.create_connection') as connect, patch('led_closeout.device.exclusive_port') as usb:
+            self.assertFalse(inventory(obj,e,'A','B'))
+            connect.assert_not_called();usb.assert_not_called()
+        stored=json.loads((e.root/'state.json').read_text())
+        self.assertEqual(stored['result'],'READ_ONLY_INVENTORY_PARTIAL')
+        self.assertEqual(stored['transport_cleanup'],'CLOSED')
+        self.assertEqual(stored['cleanup'],'UNCHANGED')
+        self.assertEqual([s['board'] for s in stored['inventory']],['A','B'])
+        for summary in stored['inventory']:
+            self.assertIn('listener/time not ready',summary['error']['message'])
+            self.assertNotIn('owner_id',summary['status'])
+            self.assertNotIn('responses',summary)
+        self.assertEqual((stored['jobs'],stored['rf_ns']),(0,0))
+
+    def test_inventory_binds_boot_and_engine_and_continues_after_mismatch(self):
+        from types import SimpleNamespace
+        e,_,_=self.exercise()
+        calls=[]
+        def info(board,command):
+            self.assertEqual(command,'INFO')
+            return dict(ok=True,device_id=BOARDS[board]['device_id'],revision='installed',
+                        status=dict(boot_id=board,engine='inhibited',output_active=False))
+        def peer(board):
+            def request(op,body):
+                calls.append((board,op))
+                return {'HELLO':dict(device_id=BOARDS[board]['device_id'],boot_id=board),
+                        'CAPS':dict(engine='inhibited'), 'GET_CLOCK':dict(state='unsynchronized'),
+                        'STATUS':dict(boot_id='other' if board=='A' else board,output_active=False),
+                        'PING':{}}[op]
+            return SimpleNamespace(request=request)
+        obj=SimpleNamespace(console=info,peer=peer,lock_boards=lambda *a:None,close=unittest.mock.Mock())
+        self.assertFalse(inventory(obj,e,'A','B'))
+        self.assertEqual([s['result'] for s in e.state['inventory']],['UNAVAILABLE','COMPLETE'])
+        self.assertIn('Boot mismatch',e.state['inventory'][0]['error']['message'])
+        self.assertEqual({op for _,op in calls},{'HELLO','CAPS','GET_CLOCK','STATUS','PING'})
+        self.assertEqual(len(calls),10)
+        obj.close.assert_called_once()
+        calls.clear()
+        self.assertTrue(inventory(obj,e,'B'))
+        self.assertEqual(e.state['result'],'READ_ONLY_INVENTORY')
+
+    def test_inventory_lock_and_cleanup_failures_remain_partial(self):
+        from types import SimpleNamespace
+        e,_,_=self.exercise()
+        obj=SimpleNamespace(lock_boards=unittest.mock.Mock(side_effect=OSError('occupied')),
+            console=unittest.mock.Mock(),peer=unittest.mock.Mock(),
+            close=unittest.mock.Mock(side_effect=OSError('close failed')))
+        self.assertFalse(inventory(obj,e,'A','B'))
+        obj.console.assert_not_called();obj.peer.assert_not_called()
+        self.assertEqual(e.state['transport_cleanup'],'FAILED')
+        self.assertEqual([v['stage'] for v in e.state['errors']],['inventory','transport_cleanup'])
+        self.assertEqual(e.state['inventory'],[])
+
+    def test_failed_hello_closes_transport_and_does_not_cache_peer(self):
+        e,_,_=self.exercise()
+        obj=Device({},e,ROOT)
+        connection=unittest.mock.Mock()
+        connection.fileno.return_value=42
+        obj.console=lambda *a:dict(device_id=BOARDS['A']['device_id'],
+            provisioning_source='consumer_preclock',lan_wtp_mode='plain',lan_wtp_port=31417,
+            lan_wtp_ready=True,network=dict(ipv4='192.168.1.47'))
+        with patch('led_closeout.device.socket.create_connection',return_value=connection), patch('led_closeout.device.Peer') as peer:
+            peer.return_value.request.side_effect=ConnectionResetError('reset')
+            with self.assertRaises(ConnectionResetError):obj.peer('A')
+        connection.close.assert_called_once()
+        self.assertEqual(obj.peers,{})
+        self.assertEqual(obj.peer_contexts,{})
+
+    def test_inventory_interruption_is_not_a_complete_result(self):
+        from types import SimpleNamespace
+        e,_,_=self.exercise()
+        obj=SimpleNamespace(lock_boards=lambda *a:None,
+            console=unittest.mock.Mock(side_effect=KeyboardInterrupt()),close=unittest.mock.Mock())
+        with self.assertRaises(KeyboardInterrupt):inventory(obj,e,'A','B')
+        stored=json.loads((e.root/'state.json').read_text())
+        self.assertEqual(stored['result'],'READ_ONLY_INVENTORY_PARTIAL')
+        self.assertEqual(stored['errors'][0]['type'],'KeyboardInterrupt')
+        obj.close.assert_called_once()
+
+    def test_transport_event_failure_closes_open_connection(self):
+        e,_,_=self.exercise()
+        obj=Device({},e,ROOT)
+        connection=unittest.mock.Mock()
+        connection.fileno.return_value=42
+        obj.console=lambda *a:dict(device_id=BOARDS['A']['device_id'],
+            provisioning_source='consumer_preclock',lan_wtp_mode='plain',lan_wtp_port=31417,
+            lan_wtp_ready=True,network=dict(ipv4='192.168.1.47'))
+        with patch('led_closeout.device.socket.create_connection',return_value=connection), patch.object(e,'event',side_effect=OSError('evidence unavailable')):
+            with self.assertRaisesRegex(OSError,'evidence unavailable'):obj.peer('A')
+        connection.close.assert_called_once()
+        self.assertEqual(obj.peer_contexts,{})
+
+    def test_failed_peer_cleanup_retains_primary_error_and_retries_close(self):
+        e,_,_=self.exercise()
+        obj=Device({},e,ROOT)
+        connection=unittest.mock.Mock()
+        connection.fileno.return_value=42
+        connection.close.side_effect=[OSError('close uncertain'),None]
+        obj.console=lambda *a:dict(device_id=BOARDS['A']['device_id'],
+            provisioning_source='consumer_preclock',lan_wtp_mode='plain',lan_wtp_port=31417,
+            lan_wtp_ready=True,network=dict(ipv4='192.168.1.47'))
+        with patch('led_closeout.device.socket.create_connection',return_value=connection), patch('led_closeout.device.Peer') as peer:
+            peer.return_value.request.side_effect=ConnectionResetError('reset')
+            with self.assertRaisesRegex(ConnectionResetError,'reset') as caught:obj.peer('A')
+        self.assertIn('close uncertain',caught.exception.__notes__[0])
+        self.assertIn('A',obj.peer_contexts)
+        obj.close()
+        self.assertEqual(connection.close.call_count,2)
+        self.assertEqual(obj.peer_contexts,{})
 
     def test_manifest_rejects_wrong_hash_role_and_dirty_source(self):
         from led_closeout.runner import sha256

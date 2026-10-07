@@ -141,6 +141,15 @@ policy. Fresh synchronized time must become available autonomously within a
 finite readiness allowance before ARM; failure retains STOP. This timeout
 never requests an operator response.
 
+Read-only inventory always attempts both named boards after acquiring their
+locks. It preserves Console INFO independently of WTP availability and records
+HELLO/CAPS/GET_CLOCK/STATUS/PING only when the supported transport is ready.
+Consumer `lan_wtp_ready=false` is an explicit unavailable result; inventory
+does not alter the clock, enable USB WTP or bypass LAN admission. Legacy Console
+responses without owner/job IDs retain that unknown authority. Partial results
+are durably recorded as `READ_ONLY_INVENTORY_PARTIAL` with exit code 2, including
+transport cleanup status. They do not satisfy live WTP or RF preflight.
+
 Before candidate deployment, the runner checks both board authorities and
 schedules, enters ROM by serial, saves full 4 MiB flash, checks the actual
 standalone journal's CRC/sequence and disabled pin configuration, and durably

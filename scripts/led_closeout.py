@@ -33,25 +33,14 @@ def main():
     if args.inventory:
         require(not args.run and args.recover is None and args.fixture != args.board and args.output and sys.platform.startswith('linux') and
                 os.geteuid() == 0, 'inventory needs Linux exclusive ownership and a private output')
-        from led_closeout.device import Device
+        from led_closeout.device import Device, inventory
         os.umask(0o077)
         e=Evidence(args.output,plan,args.board,args.fixture)
         backend=Device({},e,ROOT)
-        try:
-            backend.lock_boards(args.board,args.fixture)
-            summaries=[]
-            for b in filter(None,(args.board,args.fixture)):
-                info=backend.info(b)
-                caps=backend.peer(b).request('CAPS',{})
-                clock=backend.peer(b).request('GET_CLOCK',{})
-                e.event('inventory',dict(board=b,info=info,caps=caps,clock=clock))
-                summaries.append(dict(board=b,device_id=info['device_id'],revision=info['revision'],
-                    status=info['status'],clock=clock))
-            e.state.update(result='READ_ONLY_INVENTORY',cleanup='UNCHANGED')
-            e.save()
-        finally:
-            backend.close()
-        print(json.dumps(summaries,sort_keys=True))
+        complete=inventory(backend,e,args.board,args.fixture)
+        print(json.dumps(e.state,sort_keys=True))
+        if not complete:
+            raise SystemExit(2)
         return
     if not args.run:
         require(args.recover is None, 'recovery requires --run')

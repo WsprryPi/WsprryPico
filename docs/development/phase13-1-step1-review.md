@@ -130,5 +130,67 @@ specific authorization to export that payload to that destination. The rejected
 command did not execute. Local checks and already-present read-only tools were
 used; no indirect transfer workaround was attempted. This tool-policy export
 boundary is separate from the user's RF/USB authorization and the repository's
-connected-device rule. New-adapter live inventory is therefore deferred pending
-that transfer permission. Step 2 still groups the normal operator setup.
+connected-device rule. The user subsequently approved that exact bundle's
+transfer and read-only inventory. The continuation below supersedes the pending
+transfer disposition. Step 2 still groups the normal operator setup.
+
+## Approved live inventory continuation
+
+The approved 13-file archive from commit
+`2c2fac40c7cb3778f4194e2db0c7d4841e5b45c3` was transferred to
+`/tmp/phase13-led-step1-2c2fac4-20261007` on wspr5. Its archive SHA-256
+`00a83f1609cd3e57e611b87357c9af941dd01c080e2234fef8a624ede0101ae6`
+and every extracted source-file hash were verified before execution. The exact
+approved runner was executed first for A/B, then separately for B because the
+original inventory stopped at A's unavailable WTP handshake.
+
+| Board | Observation UTC, 2026-10-07 | Installed revision | Boot | Console result | LAN WTP |
+| --- | --- | --- | --- | --- | --- |
+| A | 15:39:26 | `6c7b14321003` | `85e164b089a940450aaf38035612df63` | Inhibited, empty/inactive, schedules disabled | Not ready, unsynchronized; HELLO connection reset |
+| B | 15:44:13 | `58afb2735c23` | `4345b097ce98a6889fcb42498c943386` | PIO GP2, empty/inactive, schedules disabled; safety latch retained | Not ready, unsynchronized; HELLO connection reset |
+
+Device/serial identities match the preceding table. Both clocks had expired;
+the existing station LAN gate correctly rejects unsynchronized connections.
+There is no CAPS/GET_CLOCK/STATUS result from either run, and the installed
+legacy Console does not expose owner/job IDs. Do not infer unowned authority,
+live WTP qualification or physical LED acceptance from these observations.
+Zero RF jobs were submitted; no firmware, settings, GPIO or clock changes were
+performed. Original installed revisions and boots were observed on both boards.
+
+Private evidence stays ignored under `build/phase13-led-reviewed-runner/`:
+`inventory-summary.json`, both process logs, and the unmodified remote evidence
+archive `inventory-approved.tar.gz`, SHA-256
+`095db515c2affcd5dc6517c86cb8cc281f19c4ada827ec698a9a8a650db60d2b`.
+The remote original state files retain PREPARING, demonstrating the old failure
+reporting gap; the derived summary explicitly records Console-only evidence.
+No capture or generated firmware is committed.
+
+The live failure prompted a bounded repair: attempt and retain every named
+board's inventory, record unavailable transports and cleanup failures durably,
+return exit code 2 for partial results, check consumer readiness before opening
+LAN, and bind complete results to matching device/boot/engine observations.
+Inventory uses only INFO and HELLO/CAPS/GET_CLOCK/STATUS/PING; normal RF
+preflight continues to reject unknown owner authority.
+
+Adversarial review then found two related cleanup issues: a failed HELLO could
+cache an unverified peer, and a failed evidence write after opening a transport
+could leak it. Register the context before emitting its event, close it on every
+construction/handshake failure, and cache only an identity-checked peer. Also
+record interruption as partial and preserve the primary cleanup error. New
+tests cover both unavailable boards without fabricated owner IDs, boot mismatch
+with continued B inspection, occupied locks, cleanup failures, interruption,
+failed HELLO, uncertain close retry and evidence failure after opening LAN.
+**26 runner tests passed**;
+the affected CTest group passed **7/7**, and normative WTP validation passed.
+Offline packet generation and whitespace checks also passed. A second review
+found no remaining actionable issue in this reporting/cleanup slice.
+
+The repaired 13-file worktree archive was staged at
+`/tmp/phase13-led-step1-reassessed-20261007`, but automatic approval review
+rejected its verification/execution because the user's approval named the
+original archive, not the modified payload. That rejected command did not
+execute; no indirect execution workaround was used. The repaired live rerun
+therefore awaits approval of its final reviewed bundle. Fresh accepted time is
+also required for complete consumer WTP inspection and later RF preflight;
+inventory does not repair SNTP or alter the station setup. Steps 2–6 remain open,
+with only step 2 normally requiring an operator.
