@@ -59,7 +59,8 @@ indicator cue input, **not network AP availability**. Identify uses the actual
 controller. The write fixture rejects ON for at most 80 seconds, covering bounded preparation delays, permits real
 OFF writes, and establishes checked OFF before fault injection. It never
 simulates failed active shutdown by leaving RF running. The scheduler fixture
-preserves the retained station/network/pins, admits one finite occurrence and
+preserves the retained station/network/pins, uses a separate real scheduler in
+explicit test images so ordinary consumer suspension stays intact, admits one finite occurrence and
 uses actual `Scheduler::command("STOP")`; DISABLE then removes the temporary
 schedule before restoration. GP14 remains off in ordinary builds.
 

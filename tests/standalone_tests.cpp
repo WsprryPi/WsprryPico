@@ -1,3 +1,4 @@
+#include "provisioning/led_schedule_fixture.hpp"
 #include "standalone/dry_run_engine.hpp"
 #include "standalone/heap_probe.hpp"
 #include "standalone/scheduler.hpp"
@@ -735,6 +736,36 @@ void campaign_controls_test() {
     config.expires_utc_s = std::numeric_limits<std::uint64_t>::max();
     CHECK(!standalone::parse_config(standalone::serialize_config(config)));
 }
+void consumer_led_schedule_test() {
+    constexpr auto ns = 1'000'000'000ULL;
+    MemoryFlash flash;
+    standalone::Store store(flash);
+    auto config = *standalone::parse_config(example);
+    config.enabled = false;
+    CHECK(store.load() && store.save(config));
+    Clock clock;
+    clock.advance(116 * ns);
+    Engine engine;
+    Identity identity;
+    wtp::JobService service(clock, engine, identity);
+    standalone::Scheduler ordinary(store, service);
+    CHECK(ordinary.command("STOP").find("\"ok\":true") != std::string::npos);
+    provisioning::LedScheduleFixture fixture;
+    CHECK(fixture.begin(store, service));
+    ordinary.poll();
+    CHECK(engine.prepared == 0);
+    fixture.poll();
+    CHECK(engine.prepared == 1 && service.status().state == wtp::State::Armed);
+    CHECK(ordinary.status().find("\"suspended\":true") != std::string::npos);
+    CHECK(fixture.stop()->find("\"ok\":true") != std::string::npos);
+    CHECK(!service.status().owner_id && !engine.output_active());
+    CHECK(!fixture.begin(store, service));
+    clock.advance(120 * ns);
+    fixture.poll();
+    CHECK(engine.prepared == 1);
+    CHECK(store.config()->callsign == config.callsign && store.config()->pins == config.pins &&
+          store.config()->ssid == config.ssid && store.config()->password == config.password);
+}
 void autonomous_test() {
     constexpr auto ns = 1'000'000'000ULL;
     std::uint64_t mono = 0;
@@ -837,5 +868,6 @@ int main() {
     sntp_poll_schedule_test();
     autonomous_test();
     campaign_controls_test();
+    consumer_led_schedule_test();
     std::cout << "standalone tests passed\n";
 }

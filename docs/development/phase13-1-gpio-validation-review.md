@@ -47,7 +47,7 @@ disabled schedules, released ownership, preserved settings and hardware OFF.
 
 Validation: seven affected CTests passed (indicator adapter/acceptance,
 field access, RF worker, PIO/DMA, standalone and runner); three affected
-ASan/UBSan CTests passed; 41 deterministic runner/setup checks passed;
+ASan/UBSan CTests passed; 42 deterministic runner/setup checks passed;
 two synthetic RF-presence tests passed; WTP contract validation passed.
 The prior two unrelated full-suite baseline failures remain outside this
 slice; this record does not claim a new full-suite pass.
@@ -101,7 +101,26 @@ restoration and a matching terminal event for every unconfirmed admission;
 an ambiguous admission refuses repeat. Tests cover refusal and retained charges.
 A complete reviewed repeat plus the other cases reserves **14 admissions /
 430.184002784 seconds** across runs, within 18/600; no reservation is refunded.
-Final target execution remains pending. The selected cases are warmup, WSPR, QRSS, FSKCW,
+The continued target run passed eleven cases: all five modes, active abort,
+armed cancellation, inhibited behavior, AP/Identify priority and disabled
+indication. The standalone fixture saved its finite schedule but admitted no
+job during the full 130-second window: ConsumerPreClock intentionally suspends
+the ordinary scheduler. Cleanup restored inhibited firmware and settings.
+
+The repair creates a separate real Scheduler only in explicit test images;
+ordinary consumer suspension remains intact. The fixture preserves station,
+network and pins, permits one finite daily occurrence with expiry, polls the
+actual scheduler and sends STOP to the same instance that admitted its job.
+A real Scheduler test covers boot suspension, admission, STOP, no second
+occurrence and preserved settings; its normal and ASan/UBSan runs pass.
+The no-admission budget exception is bound to exact pre-fix firmware `de06bc3`,
+matching device/revision/profile and a full-window immutable suspension trace.
+Other unknown or ambiguous admissions still refuse continuation.
+
+Standalone STOP and controlled launch failure remain to execute with rebuilt
+cue/restoration images. Their reservations bring the aggregate to **15
+admissions / 541.776002676 seconds**, with all prior charges retained. No
+external or GP14 case is added. The selected cases are warmup, WSPR, QRSS, FSKCW,
 DFCW, active abort, armed cancellation, inhibited behavior, onboard AP,
 onboard Identify, disabled indication, standalone STOP and controlled
 ON-write launch failure. External high/low and physical GP14 cutoff remain

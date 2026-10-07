@@ -3,6 +3,7 @@
 #include "hardware/sync.h"
 #include "pico/time.h"
 #include "provisioning/led_acceptance.hpp"
+#include "provisioning/led_schedule_fixture.hpp"
 namespace wsprrypico::provisioning {
 LedAcceptance led_acceptance;
 }
@@ -383,6 +384,9 @@ int main() {
     static wsprrypico::wtp::Endpoint ble_endpoint(service, identities.device_id(),
                                                   wsprrypico::firmware::kFirmwareVersion);
     static wsprrypico::standalone::Scheduler scheduler(store, service);
+#ifdef WSPRRY_PICO_LED_ACCEPTANCE
+    static wsprrypico::provisioning::LedScheduleFixture led_schedule;
+#endif
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
     static wsprrypico::provisioning::PicoGp14Capture gp14_button(boot_pins.button);
     bool gp14_fault_handled = false;
@@ -1374,6 +1378,8 @@ int main() {
                     indicator.enabled(true);
                 }
             } else if (command == "STOP") {
+                if (const auto stopped = led_schedule.stop())
+                    return *stopped;
                 return scheduler.command("STOP"); // Actual standalone ownership/stop path.
             } else if (command == "DISABLE" && !current.output_active && !current.owned &&
                        store.config()) {
@@ -1382,20 +1388,7 @@ int main() {
                 ok = store.save(off);
             } else if (command == "SCHEDULE" && scheduler.idle() && store.config() &&
                        !store.config()->enabled && fixture.schedule()) {
-                const auto clock = service.clock_snapshot();
-                if (clock.state == wsprrypico::wtp::ClockState::Synchronized &&
-                    clock.leap == wsprrypico::wtp::LeapState::Normal &&
-                    clock.uncertainty_ns <= 500'000'000) {
-                    auto one = *store.config();
-                    const auto boundary = (clock.utc_now_ns / 120'000'000'000ULL + 1) * 120;
-                    one.enabled = true;
-                    one.expires_utc_s = boundary + 113;
-                    one.schedules = {{86400, static_cast<std::uint32_t>(boundary % 86400)}};
-                    // Preserve station, network and pin settings. Validate the same contract.
-                    const auto checked = wsprrypico::standalone::parse_config(
-                        wsprrypico::standalone::serialize_config(one));
-                    ok = checked && store.save(*checked);
-                }
+                ok = led_schedule.begin(store, service);
 #ifndef WSPRRY_PICO_STANDALONE_RF
             } else if (command == "HOLD" && scheduler.idle() && !current.owned &&
                        !current.output_active &&
@@ -1696,8 +1689,12 @@ int main() {
 #endif
         // Core 1 owns physical refills/launch. Core 0 reconciles authority and
         // services all transports; packet arrival never times waveform events.
-        if (!reset_coordinator.pending())
+        if (!reset_coordinator.pending()) {
             scheduler.poll();
+#ifdef WSPRRY_PICO_LED_ACCEPTANCE
+            led_schedule.poll();
+#endif
+        }
 #ifdef WSPRRY_PICO_STANDALONE_RF
         if (measuring)
             maximum(max_refill_us, loop_us);

@@ -175,6 +175,24 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(new.state['rf_ns'],2*case['charge_ns'])
         self.assertEqual(new.state['prior_budget']['jobs'],1)
 
+    def test_suspended_scheduler_full_window_proves_no_admission_without_refund(self):
+        from led_closeout.runner import carry_budget
+        old,_,_=self.exercise();case=next(c for c in make_plan()['cases'] if c['id']=='standalone_stop')
+        old.charge(case,'1'*32);old.state.update(result='STOP',cleanup='VERIFIED_INHIBITED');old.save()
+        info=dict(revision='de06bc3f60da',provisioning_source='consumer_preclock',device_id=BOARDS['A']['device_id'],
+                  status=dict(boot_id='1'*32,enabled=True,suspended=True,state='empty',
+                              output_active=False,owner_id=None,job_id=None))
+        save_json(old.root/'manifest.json',dict(source_commit='de06bc3f60da4bb15e0c42baaa5aab5c76db9f7d'))
+        events=[dict(kind='info',monotonic_ns=t,data=info) for t in (0,121_000_000_000)]
+        (old.root/'events.jsonl').write_text('\n'.join(json.dumps(v) for v in events)+'\n')
+        new=Evidence(old.root.parent/'no-admission-continuation',make_plan(),'A',None)
+        carry_budget(new,old.root)
+        self.assertEqual(new.state['jobs'],1);self.assertEqual(new.state['rf_ns'],case['charge_ns'])
+        self.assertEqual(new.state['prior_budget']['verified_no_schedule_admission'],['standalone_stop'])
+        info['status']['suspended']=False
+        (old.root/'events.jsonl').write_text('\n'.join(json.dumps(v) for v in events)+'\n')
+        with self.assertRaisesRegex(ValueError,'ambiguous'):carry_budget(new,old.root)
+
     def test_clock_listener_readiness_retries_but_identity_error_stops_before_admission(self):
         e,fake,_=self.exercise('boot_clock_listener')
         Runner(make_plan(),manifest(),'A',fake,e,cases=['warmup']).run()

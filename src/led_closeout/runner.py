@@ -86,17 +86,39 @@ def carry_budget(evidence, previous):
             old['jobs'] >= len(old['attempts']) and
             old['rf_ns'] >= sum(a['charge_ns'] for a in old['attempts']), 'previous budget/cleanup invalid')
     events = [json.loads(line) for line in (previous/'events.jsonl').read_text().splitlines()]
+    no_schedule = []
     for attempt in old['attempts']:
         if attempt['result'].startswith('PASS_GPIO_FUNCTIONAL'):
             continue
         matched = [v['data']['body'] for v in events if v['kind'] == 'stale_wtp_message' and
                    v['data'].get('event') == 'JOB_STATE' and v['data'].get('boot_id') == attempt['boot_id'] and
                    v['data']['body'].get('job_id') == attempt['job_id']]
+        if not matched and attempt['case'] == 'standalone_stop':
+            # Consumer boot suspension cannot clear itself. Full-window Console
+            # evidence on this exact pre-fix firmware proves no job was admitted.
+            manifest_path = previous/'manifest.json'
+            known_firmware = 'de06bc3f60da4bb15e0c42baaa5aab5c76db9f7d'
+            frozen = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
+            observed = [v for v in events if v['kind'] == 'info' and
+                        v['data']['status']['boot_id'] == attempt['boot_id'] and
+                        v['data']['status'].get('enabled') is True]
+            if frozen.get('source_commit') == known_firmware and len(observed) >= 2 and observed[-1]['monotonic_ns']-observed[0]['monotonic_ns'] >= 120_000_000_000 and all(
+                    v['data'].get('revision') == known_firmware[:12] and
+                    v['data'].get('provisioning_source') == 'consumer_preclock' and
+                    v['data'].get('device_id') == BOARDS[old['board']]['device_id'] and
+                    v['data']['status'].get('suspended') is True and
+                    v['data']['status']['state'] == 'empty' and
+                    v['data']['status']['output_active'] is False and
+                    v['data']['status'].get('owner_id') is None and
+                    v['data']['status'].get('job_id') is None for v in observed):
+                no_schedule.append(attempt['case'])
+                continue
         require(matched and matched[-1]['state'] in ('complete','aborted','missed','failed') and
                 matched[-1]['output_active'] is False, 'previous admission ambiguous; no repeat')
     evidence.state.update(jobs=old['jobs'], rf_ns=old['rf_ns'],
         prior_budget=dict(directory=str(previous), state_sha256=sha256(previous/'state.json'),
                           jobs=old['jobs'], rf_ns=old['rf_ns'], attempts=old['attempts']))
+    evidence.state['prior_budget']['verified_no_schedule_admission'] = no_schedule
     evidence.save()
 
 
