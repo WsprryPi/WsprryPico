@@ -90,6 +90,17 @@ The next assessment found and closed these actionable issues:
    low activation/timer installation; release input immediately on allocation
    failure. Keep one hold per boot and default-off inhibited-only linkage.
 
+A final delay-focused assessment reproduced an erroneous RENEW after a slow
+GP14 response had cleared ownership. Stop renewing once the stimulus is sent;
+verify the actual safety latch and terminal inactivity instead. Also renew
+between preparation RPCs with a finite 20-second lease/22-second cleanup
+allowance, account for GET_CLOCK response age in the future ARM
+target, reassert finite AP cues while Running and leave a finite 90-second
+capture allowance for control overhead. Keep the bounded ON-write rejection
+active for 80 seconds so slow preparation cannot outlast the intended fault. Slow fixture and 2.5-second transport
+response regressions now exercise the actual orchestration. Rebuild candidates
+against the repaired clean commit before final use.
+
 A subsequent assessment of the repaired source, evidence authority, bounds,
 crash recovery, selected/operational separation, process cleanup and restoration
 found no remaining actionable source finding in this slice. Affected tests were

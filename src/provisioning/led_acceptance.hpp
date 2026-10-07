@@ -16,7 +16,7 @@ class LedAcceptance {
         if (fault_used_)
             return false;
         fault_used_ = true;
-        fault_until_ = now + 15'000;
+        fault_until_ = now + 80'000;
         return true;
     }
     bool ap_active(std::uint64_t now) const {

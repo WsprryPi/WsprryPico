@@ -321,7 +321,7 @@ class Device:
                 # A latched Failed state refuses local ABORT. Lease expiry is
                 # bounded and cannot be renewed by this stopped runner.
                 pass
-            end = self.now()+12
+            end = self.now()+22
             while True:
                 status = self.info(board)['status']
                 if not status['output_active'] and status['owner_id'] is None:

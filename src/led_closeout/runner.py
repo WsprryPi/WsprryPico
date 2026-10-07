@@ -128,7 +128,7 @@ class Runner:
     def renew(self):
         if self.backend.now() >= self.lease_at:
             self.backend.request('RENEW' if self.lease_at else 'CLAIM',
-                                 dict(owner_id=self.owner, lease_ms=10000))
+                                 dict(owner_id=self.owner, lease_ms=20000))
             self.lease_at = self.backend.now() + 2
 
     def wait(self, image, until, predicate, *, lease=True):
@@ -144,7 +144,7 @@ class Runner:
     def cues(self, case, active=False):
         if case['cue']:
             for command in case['cue'].split('_'):
-                if (command == 'IDENTIFY') == active:
+                if active or command == 'AP':
                     self.backend.command(self.board, command)
 
     def execute_case(self, case):
@@ -166,7 +166,7 @@ class Runner:
         case_root = self.e.root / case['id']
         case_root.mkdir(mode=0o700)
         # Standalone may wait up to one 120-second boundary, then a finite WSPR job.
-        duration = 260 if case['action'] == 'standalone' else int(case['job']['total_duration_ns']) / 1e9 + 35
+        duration = 260 if case['action'] == 'standalone' else int(case['job']['total_duration_ns']) / 1e9 + 90
         self.backend.start_captures(case_root, duration)
         try:
             if case['action'] == 'standalone':
@@ -188,6 +188,7 @@ class Runner:
                 self.renew()
                 loaded = self.backend.request('LOAD', case['job'])
                 require(loaded['job_id'] == case['job']['job_id'], 'LOAD job identity')
+                self.renew() # Keep preparation RPCs within the finite lease.
                 # Loaded is explicitly non-RF; cue tests also observe external OFF here.
                 self.cues(case)
                 loaded_info, loaded_status = self.observe(image)
@@ -200,10 +201,13 @@ class Runner:
                     require(loaded_info['indicator_output_known'] and not loaded_info['indicator_output_on'],
                             'external LED used for a non-TX cue')
                 self.backend.sleep(1)
+                self.renew()
+                clock_requested = self.backend.now()
                 clock = self.backend.request('GET_CLOCK', {})
                 require(clock['state'] == 'synchronized' and clock['leap'] == 'normal' and
                         int(clock['uncertainty_ns']) <= 500000000, 'accepted clock required')
-                target = (int(clock['utc_now_ns']) + 5_000_000_999) // 1000 * 1000
+                clock_age_ns = int((self.backend.now()-clock_requested)*1e9+.999)
+                target = (int(clock['utc_now_ns']) + clock_age_ns + 5_000_000_999) // 1000 * 1000
                 self.e.charge(case, self.boot)
                 self.backend.request('ARM', dict(job_id=case['job']['job_id'], start_utc_ns=str(target),
                                                 max_start_uncertainty_ns='500000000'))
@@ -218,7 +222,8 @@ class Runner:
                 terminal = None
                 end = armed_at + duration - 8
                 while self.backend.now() < end:
-                    self.renew()
+                    if not (action == 'gp14' and acted):
+                        self.renew() # GP14 may have already cleared the owner.
                     info, s = self.observe(image)
                     require((s['owner_id'] == self.owner or action == 'gp14' and acted and s['owner_id'] is None) and
                             s['job_id'] == case['job']['job_id'], 'case ownership changed')
@@ -272,7 +277,7 @@ class Runner:
                     require(info.get('rf_safety_inhibited') is True and acted, 'missing GP14 safety latch')
                 if action != 'fail' and terminal['owner_id'] is not None:
                     self.backend.request('RELEASE', {})
-                self.wait(image, self.backend.now() + 12,
+                self.wait(image, self.backend.now() + 22,
                     lambda i, s: not s['output_active'] and s['owner_id'] is None and
                     (image['selection'] == 3 or not i['tx_indicator_requested']), lease=False)
             if case['action'] == 'complete':

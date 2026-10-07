@@ -50,7 +50,7 @@ int main() {
     assert(operational.write(true)); // The TX fault never corrupts operational cues.
     assert(!selected.write(true));
     assert(selected.write(false));
-    now_us = 15'000'000;
+    now_us = 80'000'000;
     assert(selected.write(true) && onboard.write(true)); // Local expiration, no USB needed.
     p.indicator = hardware::PinPlan::Indicator::Disabled;
     provisioning::PicoIndicatorOutput disabled(p);

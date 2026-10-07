@@ -1316,7 +1316,8 @@ int main() {
             auto& fixture = wsprrypico::provisioning::led_acceptance;
             bool ok = false;
             if (command == "AP") {
-                ok = fixture.ap(now); // Cue input only, not network/AP qualification.
+                ok =
+                    fixture.ap_active(now) || fixture.ap(now); // Existing finite cue is idempotent.
             } else if (command == "IDENTIFY") {
                 ok = indicator.identify(std::string(text) + std::to_string(now),
                                         identities.device_id(), true, true,

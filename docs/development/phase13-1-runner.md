@@ -45,7 +45,7 @@ The selection override is test-only and changes only the selected LED; it
 preserves normal GPIO ownership checks. External operational AP/Identify
 writes still use the onboard output. AP commands exercise the actual shared
 indicator cue input, **not network AP availability**. Identify uses the actual
-controller. The write fixture rejects ON for at most 15 seconds, permits real
+controller. The write fixture rejects ON for at most 80 seconds, covering bounded preparation delays, permits real
 OFF writes, and establishes checked OFF before fault injection. It never
 simulates failed active shutdown by leaving RF running. The scheduler fixture
 preserves the retained station/network/pins, admits one finite occurrence and

@@ -88,19 +88,26 @@ class Fake:
         if command == 'HOLD':
             if self.fault == 'fixture': raise TimeoutError('fixture timeout')
             self.states[self.dut]='aborted';self.gp14=True;self.owner=None
+            if self.fault == 'slow_fixture':self.t+=3
     def request(self, op, body):
-        if op == 'CLAIM': self.owner=body['owner_id'];self.lease_end=self.t+10
+        clock_snapshot=int(self.t*1e9)
+        if self.fault == 'slow_transport':
+            if self.owner and clock_snapshot/1e9 >= self.lease_end:self.owner=None
+            self.t+=2.5
+        if op == 'CLAIM': self.owner=body['owner_id'];self.lease_end=clock_snapshot/1e9+body['lease_ms']/1000
         if op == 'RENEW':
+            if self.owner is None:raise ValueError('owner already cleared')
             if self.fault == 'lease' and self.started is not None: raise TimeoutError('lost renewal')
-            self.renewals += 1;self.lease_end=self.t+10
+            self.renewals += 1;self.lease_end=clock_snapshot/1e9+body['lease_ms']/1000
         if op == 'LOAD':
             self.job=body;self.states[self.dut]='loaded'
             return dict(job_id=body['job_id'])
-        if op == 'GET_CLOCK': return dict(state='unsynchronized' if self.fault == 'clock' else 'synchronized', leap='normal', uncertainty_ns='1000', utc_now_ns=str(int(self.t*1e9)))
+        if op == 'GET_CLOCK': return dict(state='unsynchronized' if self.fault == 'clock' else 'synchronized', leap='normal', uncertainty_ns='1000', utc_now_ns=str(clock_snapshot))
         if op == 'ARM':
             assert self.e.state['jobs'] > self.admissions
             self.admissions += 1
             self.started=int(body['start_utc_ns'])/1e9
+            if self.fault == 'slow_transport' and self.started <= self.t:raise ValueError('start already passed')
             self.states[self.dut]='armed'
             if self.fault == 'arm': raise TimeoutError('ambiguous ARM')
             if self.fault == 'premature_never_ran': self.states[self.dut]='completed'
@@ -150,6 +157,16 @@ class RunnerTests(unittest.TestCase):
 
     def test_hardware_completion_before_foreground_status_reconciles(self):
         e,fake,runner=self.exercise('transient_stop',steps=(3,))
+        runner.run()
+        self.assertEqual(e.state['result'],'AUTOMATION_PASS_PHYSICAL_REVIEW_PENDING')
+
+    def test_slow_fixture_reply_does_not_renew_cleared_owner(self):
+        e,fake,runner=self.exercise('slow_fixture',steps=(5,))
+        runner.run()
+        self.assertEqual(e.state['result'],'AUTOMATION_PASS_PHYSICAL_REVIEW_PENDING')
+
+    def test_bounded_transport_delay_preserves_lease_and_future_start(self):
+        e,fake,runner=self.exercise('slow_transport')
         runner.run()
         self.assertEqual(e.state['result'],'AUTOMATION_PASS_PHYSICAL_REVIEW_PENDING')
 
