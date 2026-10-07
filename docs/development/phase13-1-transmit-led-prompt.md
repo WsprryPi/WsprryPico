@@ -71,12 +71,15 @@ and limitations. Fix failures attributable to this change and rerun affected che
 
 ## Physical preparation and operator interaction
 
-No flashing, USB device control, debugger, GPIO or RF action is authorized by
-this software prompt. Complete source changes, deterministic checks, candidate
-cross-links, hashes, review and a concrete physical packet before requesting
-the exact necessary authorization. Historical RF budgets do not authorize
-new tests. Prepare identity checks, backup, idle/admission gates, a finite RF
-budget, automatic output cutoff, independent observation and restoration.
+Hardware-test authorization follows `AGENTS.md`: the user's statement that a
+named Pico is connected to the SDR authorizes RF testing on that board for this
+task, including the routine device-control and restoration steps needed for
+the tests. Proceed without a separate hardware/RF approval prompt when that
+setup statement is present. Complete source changes, deterministic checks,
+candidate cross-links, hashes, review and a concrete physical packet first.
+Respect current user limits and stops. Prepare identity checks, backup,
+idle/admission gates, finite tests, automatic output cutoff, independent
+observation and restoration.
 
 All operator gates are untimed: await readiness before a case, never require
 a response within a countdown or a precisely timed button press. Automate
@@ -84,10 +87,11 @@ stimulus/collection and retain results for later inspection. Physical onset,
 warmup, gaps and cutoff continuity need recorded optical/electrical evidence
 if the operator cannot continuously observe them. Offer a visual plateau-only
 scope with explicit edge/timing exclusions. A missed observation is incomplete,
-not a pass or permission for another RF job. Do not keep RF running while
-waiting for an operator reply. External configurations require exact wiring
-and pin/polarity approval. Restore the prior inhibited firmware and retained
-settings, verify output inactive and record restoration before reporting.
+not a pass; plan any follow-up within the task's finite scope. Do not keep RF
+running while waiting for an operator reply. External configurations require
+verified wiring and pin/polarity matching the user's selected setup. Restore
+the prior inhibited firmware and retained settings, verify output inactive and
+record restoration before reporting.
 
 ## Adversarial review and disposition
 

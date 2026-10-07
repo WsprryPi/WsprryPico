@@ -40,9 +40,17 @@
 
 - Default validation is deterministic and hardware-free. Test behavior and
   failure paths appropriate to each change; avoid tests that merely mirror code.
-- Keep hardware tests opt-in. Flashing, USB device control, debugger access,
-  GPIO changes and RF output require explicit authorization for the intended action.
-- Never infer live RF authority from permission to build firmware or run unit tests.
+- Infer hardware-test authorization from the user's task and setup statements.
+  A statement such as "Pico A is connected to the SDR", "Pico B is connected
+  to the SDR", or both named Picos being connected authorizes RF testing on
+  those boards for the current task. This includes the routine firmware loads,
+  USB device control, debugger/GPIO operations and restoration needed to run
+  the tests. Proceed without separate hardware/RF approval or per-job prompts.
+- Follow the user's current setup statements and any stated limits or stop
+  instructions, including when older prompts or packets request separate
+  authorization. Keep tests finite, verify device/setup identity, preserve
+  settings and restore the setup. Permission to build or run unit tests alone
+  does not establish a connected RF-test setup.
 - Record exact board, firmware, engine, clock, mode and setup for hardware evidence.
   Mock or host results do not qualify target timing or RF output.
 - Do not invent working build/test commands. Current development status and

@@ -7,7 +7,9 @@ Roadmap assignment: **Phase 13 / P13.1**, selected on 2026-10-05; see the
 [feature backlog](../implementation-plan.md#phase-13-feature-backlog).
 Final hardware/release qualification follows in Phase 14.
 The operator authorized P13.1 implementation, review, commit and push on
-2026-10-07. Hardware actions still require the separately prepared authorization.
+2026-10-07. Live testing follows the current [project instructions](../../AGENTS.md):
+the user's statement that a named Pico is connected to the SDR authorizes RF
+testing and the routine device-control/restoration steps needed for this task.
 
 Whenever the transmitter is hot (RF output active), the selected TX LED must
 light solid for the entire active interval. This includes RF-producing warmup,

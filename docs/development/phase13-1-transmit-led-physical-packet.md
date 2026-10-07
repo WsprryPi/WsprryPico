@@ -1,6 +1,9 @@
 # P13.1 proposed physical acceptance packet
 
-Prepared 2026-10-07. **NOT AUTHORIZED / NOT RUN.** The
+Prepared 2026-10-07. **NOT RUN.** Hardware authorization follows the user's
+current setup statements under `AGENTS.md`: a named Pico connected to the SDR
+authorizes RF tests and their necessary device-control/restoration steps.
+No separate hardware/RF or per-job approval is required. The
 [execution prompt](phase13-1-transmit-led-prompt.md) and
 [software review](phase13-1-transmit-led-review.md) cover preparation only.
 The [seven complete job bodies](phase13-1-transmit-led-cases.json) carry no
@@ -15,14 +18,15 @@ the earlier setup are CF32, 250 ksample/s, 200 kHz bandwidth, center 3.550 MHz,
 gain 20 dB, channel 0, AGC/bias tee off and the retained 60 dB Pico attenuation.
 These are proposed identities/settings, not a current inventory. Before any
 mutation, independently confirm the exact connected devices, RF path, input
-levels, absence of an antenna and receiver configuration against operator approval.
+levels, absence of an antenna and receiver configuration against the user's stated setup.
 
 The proposed candidate is `WsprryPico-StandaloneRF`, 138 MHz/divider 1, direct
 GP2, onboard indicator, consumer Plain LAN, no fault fixtures, and GP14 disabled.
 Only USB WTP job control is proposed. Do not adopt credentials, enable schedules,
 change security roots, fabricate clock authority or operate another Pico.
 Use accepted SNTP through the ordinary station path; if it is unavailable,
-stop before ARM and prepare a separately approved time-source action.
+stop before ARM and prepare an appropriate time-source action within the task
+and the user's selected setup.
 
 The inhibited restoration target is the matching standard `WsprryPico` image.
 Both ELF/UF2 candidates are under ignored `build/phase13-1-pico/firmware/`.
@@ -33,11 +37,13 @@ commit image. Run `check_standalone_image.py` on both ELFs before loading.
 
 ## Untimed operator gates and finite accounting
 
-The operator may respond whenever convenient. First await authorization for
-the board/path, backup, two firmware loads (RF candidate and inhibited restore),
-USB control, receiver capture, and the exact seven-job/240-second maximum RF
-budget. Then await an explicit readiness response after the independent recorder
-is running. No countdown, short-lived Ready token or timed button action is used.
+The operator may respond whenever convenient. Once the user states that the
+named Pico is connected to the SDR, proceed with the backup, two firmware loads
+(RF candidate and inhibited restore), USB control and receiver capture. Use
+the finite seven-job/240-second ceiling in this packet unless the user changes
+the scope. Await recorder readiness only if operator action is needed to start
+it; do not ask for RF authorization again. No countdown, short-lived Ready token
+or timed button action is used.
 The cases are autonomous; the operator need not watch their execution.
 
 An optical recording of the onboard LED must cover activation and cutoff.
@@ -65,11 +71,12 @@ never resend it as new work. A missed recording is incomplete, not a pass.
    retain credentials only under ignored private `build/` storage. B's last
    recorded Phase 12 state was an RF image with a latched safety stop, so
    neither current inhibition nor an earlier restoration is assumed.
-2. Load the exact approved RF candidate without erasing journals. Re-identify
+2. Load the exact manifest-bound RF candidate without erasing journals. Re-identify
    serial/device/source/image/boot and verify GP2/onboard/138 MHz, healthy
    retained settings, schedules disabled, empty/inactive authority, and usable
    SNTP. Await recorder readiness with output inactive. This preparation packet
-   does not implement or authorize a live campaign runner.
+   does not implement a live campaign runner; task/setup instructions supply
+   execution authority.
 3. Use the repository's `rf_wtp.WtpPeer` framing/request implementation and the
    prepared complete job bodies. Establish HELLO/CAPS and identity before
    CLAIM/LOAD. LOAD must not assert `tx_indicator_requested`. Schedule complete
@@ -101,7 +108,7 @@ never resend it as new work. A missed recording is incomplete, not a pass.
    transport ambiguity or settings drift. No further jobs follow a STOP.
 8. In a cleanup path that also runs after failure, request ABORT when identity
    and ownership permit, confirm independent output inactivity, release the
-   lease, and load the approved inhibited restoration image. Preserve journals
+   lease, and load the manifest-bound inhibited restoration image. Preserve journals
    and compare settings/security/profile/watermark readbacks with backup.
    Verify inhibited engine, inactive output, disabled schedules, no owner/job,
    final firmware/boot identity and receiver/host restoration. If device control
@@ -116,7 +123,8 @@ edge timing, spectra, broad mode/band/clock combinations, other transports or
 fleet operation. Standalone scheduler STOP, GP14 cutoff and real hardware
 fault injection are not exercised by this packet; deterministic checks cover
 their shared engine-stop behavior. External configuration changes, GP14 stimuli
-or injected failures require a separate prepared/approved finite packet.
+or injected failures need a prepared finite packet matching the user's selected
+setup and task scope, without a redundant authorization prompt.
 
 Record each requested physical assertion as PASS, FAIL, INCOMPLETE or EXCLUDED,
 with the exact evidence scope. Physical P13.1 remains open until the operator

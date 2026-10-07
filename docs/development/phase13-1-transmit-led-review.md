@@ -7,6 +7,13 @@ The operator authorized execution, iterative adversarial review, commit and
 push of the [comprehensive prompt](phase13-1-transmit-led-prompt.md).
 No device control, flashing, GPIO action or RF was performed.
 
+The operator subsequently revised the hardware-authorization policy: stating
+that a named Pico is connected to the SDR authorizes RF testing for the task,
+including necessary routine device control and restoration. `AGENTS.md`, the
+execution prompt and physical packet now follow that rule; the earlier
+separate-approval request is superseded. This policy change adds no physical
+test result.
+
 ## Implemented behavior and evidence boundary
 
 The application already had solid TX arbitration, but a main-loop snapshot
