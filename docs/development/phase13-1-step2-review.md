@@ -74,6 +74,33 @@ disabled. Clock snapshots were synchronized, leap normal, with uncertainties
 106,122,789 ns (A) and 77,988,888 ns (B). This closes the immediate stale-clock
 inventory blocker for those observations, not long-term SNTP reliability.
 
+After publication, an independent GitHub metadata check reported
+`WsprryPi/WsprryPico` as public (`private=false`) and remote `devel` matched
+`e7b07ee226d96fec4dbcbcde8bf99c4b33bddf76`. The 13 diagnostic files were
+byte-checked against that commit. This new evidence and the current explicit
+step-2 task were presented to automatic approval review; transfer and execution
+of the published diagnostic subset were allowed without another operator
+approval. The archive SHA-256 was
+`0ad225fb25d5e38246733ff8497973c44ed1ea6778620f65c347e6fdd6a4de8b`.
+The archive and every extracted file were verified on wspr5 before execution.
+
+The repaired read-only inventory completed on both B and A from persistent
+`/home/pi/phase13-led-step2-e7b07ee-source`. INFO and schema-checked
+HELLO/CAPS/GET_CLOCK/STATUS/PING bound matching devices/boots/engines; final
+result was `READ_ONLY_INVENTORY`, zero RF jobs and `transport_cleanup=CLOSED`.
+Both reported null owner/job and inactive output. Clock uncertainties were
+204,444,930 ns (B) and 88,934,948 ns (A), synchronized/leap normal. The diagnostic
+source did not load firmware, alter GPIO, claim a job or start captures.
+`public-source-inventory.json` and its private remote events retain this result.
+This supersedes the earlier modified-source inventory deferral for the now
+publicly published diagnostic subset; the previously rejected worktree archive
+was not executed indirectly. Full RF execution still requires a clean complete
+source checkout, bound images and the actual physical setup.
+
+The retained wspr5 encoder also produced a three-second synthetic FFV1/bgr0
+clip. ffprobe decoded 90 frames at 640×480/30 fps with the declared pixel format.
+This verifies encoding support only; it is not an optical camera or LED test.
+
 Private local evidence is under ignored `build/phase13-led-step2/`, including
 Console inventory, flash readback summary, receiver metadata/logs, independent
 IQ checks and the after-reboot inventory. Raw full-flash backups and IQ remain

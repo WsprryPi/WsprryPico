@@ -194,3 +194,10 @@ therefore awaits approval of its final reviewed bundle. Fresh accepted time is
 also required for complete consumer WTP inspection and later RF preflight;
 inventory does not repair SNTP or alter the station setup. Steps 2–6 remain open,
 with only step 2 normally requiring an operator.
+
+The later [step-2 preparation record](phase13-1-step2-review.md) supersedes the
+read-only inventory deferral: guarded original-image reboots restored fresh
+time, and the publicly published repaired diagnostic subset completed both-board
+inventory after automatic approval review accepted the new public-source
+evidence/current step-2 authorization. The rejected private worktree archive was
+not executed as a workaround. Physical wiring/recording and steps 3–6 remain open.
