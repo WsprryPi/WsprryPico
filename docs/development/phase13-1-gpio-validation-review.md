@@ -47,15 +47,26 @@ disabled schedules, released ownership, preserved settings and hardware OFF.
 
 Validation: seven affected CTests passed (indicator adapter/acceptance,
 field access, RF worker, PIO/DMA, standalone and runner); three affected
-ASan/UBSan CTests passed; 36 deterministic runner/setup checks passed;
+ASan/UBSan CTests passed; 37 deterministic runner/setup checks passed;
 two synthetic RF-presence tests passed; WTP contract validation passed.
 The prior two unrelated full-suite baseline failures remain outside this
 slice; this record does not claim a new full-suite pass.
 
 ## Target disposition
 
-Clean firmware build and the 13-case target run are pending at the source
-publication checkpoint. The selected cases are warmup, WSPR, QRSS, FSKCW,
+Four clean candidates passed linked-image/UF2/fixture checks. The first
+launch stopped at control-host directory permissions before device mutation.
+The subsequent runner stopped after deploying onboard firmware, before any
+RF admission: the ownership tool reports a missing post-reboot endpoint as
+a validation error. Immediate cleanup also encountered re-enumeration, leaving
+STOP_UNCERTAIN. A fresh read identified the correct B, idle, schedules disabled,
+RF inactive and actual GPIO OFF.
+
+The repair distinguishes absent/disappearing Console endpoints (retryable
+boot readiness) from an existing occupied endpoint (still an immediate STOP).
+Three adverse endpoint checks pass. Existing failed records are retained;
+zero RF admissions were charged. Recovery and a rebuilt clean-source run are
+pending. No ambiguous ARM will be replayed. The selected cases are warmup, WSPR, QRSS, FSKCW,
 DFCW, active abort, armed cancellation, inhibited behavior, onboard AP,
 onboard Identify, disabled indication, standalone STOP and controlled
 ON-write launch failure. External high/low and physical GP14 cutoff remain

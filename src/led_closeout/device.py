@@ -237,8 +237,18 @@ class Device:
         return '/dev/serial/by-id/usb-WsprryPi_WsprryPico_' + BOARDS[board]['serial']
 
     def console(self, board, command):
-        with exclusive_port(Path(self.base(board)+'-if00')) as fd:
-            result = exchange(fd, (command+'\n').encode(), self.now()+3, self.e.event, False)
+        path = Path(self.base(board)+'-if00')
+        if not path.exists():
+            raise FileNotFoundError('Console endpoint not yet enumerated')
+        try:
+            with exclusive_port(path) as fd:
+                result = exchange(fd, (command+'\n').encode(), self.now()+3, self.e.event, False)
+        except ValueError as error:
+            # A missing endpoint makes fuser report an ownership-check error.
+            # Retry only disappearance; an existing occupied endpoint still stops.
+            if str(error) == 'Endpoint occupied or ownership check unavailable' and not path.exists():
+                raise FileNotFoundError('Console endpoint disappeared') from error
+            raise
         require(result.get('ok') is True, 'Console command rejected: ' + command.split()[0])
         return result
 

@@ -143,6 +143,17 @@ class Fake:
 
 
 class RunnerTests(unittest.TestCase):
+    def test_reboot_endpoint_absence_is_retryable_but_occupied_endpoint_is_not(self):
+        obj=Device.__new__(Device)
+        message='Endpoint occupied or ownership check unavailable'
+        with patch('led_closeout.device.Path.exists',return_value=False), patch('led_closeout.device.exclusive_port') as port:
+            with self.assertRaises(FileNotFoundError):obj.console('B','INFO')
+            port.assert_not_called()
+        with patch('led_closeout.device.Path.exists',return_value=True), patch('led_closeout.device.exclusive_port',side_effect=ValueError(message)):
+            with self.assertRaisesRegex(ValueError,'Endpoint occupied'):obj.console('B','INFO')
+        with patch('led_closeout.device.Path.exists',side_effect=[True,False]), patch('led_closeout.device.exclusive_port',side_effect=ValueError(message)):
+            with self.assertRaises(FileNotFoundError):obj.console('B','INFO')
+
     def test_onboard_gpio_subset_has_no_external_or_stop_fixture_dependency(self):
         directory=tempfile.TemporaryDirectory();self.addCleanup(directory.cleanup)
         plan=make_plan();e=Evidence(Path(directory.name)/'run',plan,'B',None)
