@@ -50,11 +50,11 @@ class Fake:
         state = self.states[board]
         if self.started is not None:
             if state == 'armed' and self.t >= self.started:
-                state = 'failed' if self.fail_on else 'running'
+                state = ('missed' if self.fault == 'launch_missed' else 'failed') if self.fail_on else 'running'
             if state == 'running' and self.t >= self.started+int(self.job['total_duration_ns'])/1e9:
-                state = 'completed'
+                state = 'complete'
             if self.fault == 'premature' and state == 'running' and self.t >= self.started+.2:
-                state = 'completed'
+                state = 'complete'
             self.states[board] = state
         if self.owner and self.t >= self.lease_end and self.owner != 'e'*32:
             self.owner = None
@@ -64,7 +64,7 @@ class Fake:
         active = state == 'running' and image['engine'] == 'pio-dma-gp2'
         if self.fault == 'transient_stop' and self.started is not None and self.job and self.t >= self.started+int(self.job['total_duration_ns'])/1e9:
             active=False
-        if self.fault == 'active_terminal' and state == 'completed': active = True
+        if self.fault == 'active_terminal' and state == 'complete': active = True
         boot = self.boots[board] if self.fault != 'boot' or state != 'running' else 'rebooted'
         return dict(ok=True, system_clock_hz=138000000, device_id=BOARDS[board]['device_id'], revision=image['revision'],
             led_boot_pins=image['pins'], led_acceptance=image['acceptance'], led_selection=image['selection'],
@@ -124,7 +124,7 @@ class Fake:
             if self.fault == 'slow_transport' and self.started <= self.t:raise ValueError('start already passed')
             self.states[self.dut]='armed'
             if self.fault == 'arm': raise TimeoutError('ambiguous ARM')
-            if self.fault == 'premature_never_ran': self.states[self.dut]='completed'
+            if self.fault == 'premature_never_ran': self.states[self.dut]='complete'
         if op == 'ABORT': self.states[self.dut]='aborted'
         if op == 'RELEASE': self.owner=None;self.job=None;self.states[self.dut]='empty'
         return {}
@@ -150,6 +150,31 @@ class Fake:
 
 
 class RunnerTests(unittest.TestCase):
+    def test_controlled_launch_miss_is_a_non_rf_failure(self):
+        e,fake,_=self.exercise('launch_missed')
+        Runner(make_plan(),manifest(),'A',fake,e,cases=['led_write_launch_failure']).run()
+        self.assertEqual(e.state['jobs'],1)
+        self.assertEqual(e.state['cleanup'],'VERIFIED_INHIBITED')
+        self.assertEqual(e.state['attempts'][0]['result'],'AUTOMATION_PASS_PHYSICAL_REVIEW_PENDING')
+
+    def test_budget_continuation_requires_definite_terminal_and_keeps_spent_charge(self):
+        from led_closeout.runner import carry_budget
+        old,fake,_=self.exercise();case=make_plan()['cases'][0];boot='1'*32
+        old.charge(case,boot);old.state.update(result='STOP',cleanup='VERIFIED_INHIBITED');old.save()
+        old.event('stale_wtp_message',dict(event='JOB_STATE',boot_id=boot,
+                 body=dict(job_id=case['job']['job_id'],state='running',output_active=True)))
+        new=Evidence(old.root.parent/'continuation',make_plan(),'A',None)
+        with self.assertRaisesRegex(ValueError,'ambiguous'):carry_budget(new,old.root)
+        self.assertEqual(new.state['jobs'],0)
+        old.event('stale_wtp_message',dict(event='JOB_STATE',boot_id=boot,
+                 body=dict(job_id=case['job']['job_id'],state='complete',output_active=False)))
+        carry_budget(new,old.root)
+        backend=Fake(new)
+        Runner(make_plan(),manifest(),'A',backend,new,cases=['warmup']).run()
+        self.assertEqual(new.state['jobs'],2)
+        self.assertEqual(new.state['rf_ns'],2*case['charge_ns'])
+        self.assertEqual(new.state['prior_budget']['jobs'],1)
+
     def test_clock_listener_readiness_retries_but_identity_error_stops_before_admission(self):
         e,fake,_=self.exercise('boot_clock_listener')
         Runner(make_plan(),manifest(),'A',fake,e,cases=['warmup']).run()

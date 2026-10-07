@@ -72,6 +72,34 @@ class Evidence:
         return attempt
 
 
+def carry_budget(evidence, previous):
+    """Carry spent reservations; permit repeat only after definite terminal cleanup."""
+    from phase11_5_inventory import loads_console
+    previous = Path(previous)
+    require(previous.is_absolute(), 'previous budget directory must be absolute')
+    old = loads_console((previous/'state.json').read_text())
+    validate_plan(loads_console((previous/'plan.json').read_text()))
+    require(old['board'] == evidence.state['board'] and old['cleanup'] == 'VERIFIED_INHIBITED' and
+            old['result'] not in ('RUNNING', 'PREPARING') and
+            type(old['jobs']) is int and 0 <= old['jobs'] <= MAX_JOBS and
+            type(old['rf_ns']) is int and 0 <= old['rf_ns'] <= MAX_RF_NS and
+            old['jobs'] >= len(old['attempts']) and
+            old['rf_ns'] >= sum(a['charge_ns'] for a in old['attempts']), 'previous budget/cleanup invalid')
+    events = [json.loads(line) for line in (previous/'events.jsonl').read_text().splitlines()]
+    for attempt in old['attempts']:
+        if attempt['result'].startswith('PASS_GPIO_FUNCTIONAL'):
+            continue
+        matched = [v['data']['body'] for v in events if v['kind'] == 'stale_wtp_message' and
+                   v['data'].get('event') == 'JOB_STATE' and v['data'].get('boot_id') == attempt['boot_id'] and
+                   v['data']['body'].get('job_id') == attempt['job_id']]
+        require(matched and matched[-1]['state'] in ('complete','aborted','missed','failed') and
+                matched[-1]['output_active'] is False, 'previous admission ambiguous; no repeat')
+    evidence.state.update(jobs=old['jobs'], rf_ns=old['rf_ns'],
+        prior_budget=dict(directory=str(previous), state_sha256=sha256(previous/'state.json'),
+                          jobs=old['jobs'], rf_ns=old['rf_ns'], attempts=old['attempts']))
+    evidence.save()
+
+
 def admit(info, identity, image=None, boot=None):
     require(info.get('ok') is True and info.get('device_id') == identity['device_id'], 'DUT identity')
     status = info['status']
@@ -93,7 +121,7 @@ def admit(info, identity, image=None, boot=None):
 def quiescent(info, identity, image=None):
     status = admit(info, identity, image)
     require(status['output_active'] is False and status['enabled'] is False and
-            status['state'] in ('empty', 'completed', 'aborted') and
+            status['state'] in ('empty', 'complete', 'aborted') and
             not status.get('owner_id') and
             (status['state'] != 'empty' or not status.get('job_id')), 'DUT not quiescent')
     require(status['storage_healthy'] is True and info['access_state'] in ('healthy', 'erased') and
@@ -289,14 +317,14 @@ class Runner:
                                 self.backend.request('ABORT', dict(job_id=case['job']['job_id']))
                             else:
                                 self.backend.command(self.fixture, 'HOLD')
-                    if s['state'] in ('completed', 'aborted', 'failed'):
+                    if s['state'] in ('complete', 'aborted', 'failed', 'missed'):
                         terminal = s
                         break
                     self.backend.sleep(.1)
                 require(terminal is not None, 'missing terminal state')
-                expected = 'failed' if action == 'fail' else 'aborted' if action in ('cancel', 'abort', 'gp14') else 'completed'
-                require(terminal['state'] == expected, 'unexpected terminal state')
-                if expected == 'completed' and ran:
+                expected = ('failed','missed') if action == 'fail' else ('aborted',) if action in ('cancel', 'abort', 'gp14') else ('complete',)
+                require(terminal['state'] in expected, 'unexpected terminal state')
+                if terminal['state'] == 'complete' and ran:
                     require(self.backend.now()-running_at >= int(case['job']['total_duration_ns'])/1e9-3,
                             'premature completion')
                 require(not terminal['output_active'], 'terminal engine still active')

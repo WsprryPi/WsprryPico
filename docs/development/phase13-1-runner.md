@@ -30,7 +30,12 @@ The packet charges **469.184002784 seconds**, including a one-second allowance
 per admission, against **18 admissions / 600 seconds**. Cancellation, inhibited
 execution and rejected launches receive no refund. No automatic retry or RF
 resume is implemented. An interrupted run is recovered by restoration only.
-Do not start a fresh run directory to conceal or retry a stopped attempt.
+Do not start a fresh run directory to conceal or retry an ambiguous attempt.
+`--budget-from /absolute/previous-run` carries every spent reservation into a
+reviewed continuation. It requires verified inhibited restoration and matching
+terminal WTP evidence for any admission without a recorded pass. An ambiguous
+admission refuses repeat. The frozen prior state hash, counters and attempts
+are retained in the new ledger; budgets never reset or receive refunds.
 
 After committing reviewed sources, build the eight candidates with retained
 pinned dependencies:

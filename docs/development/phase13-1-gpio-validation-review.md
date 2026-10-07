@@ -47,7 +47,7 @@ disabled schedules, released ownership, preserved settings and hardware OFF.
 
 Validation: seven affected CTests passed (indicator adapter/acceptance,
 field access, RF worker, PIO/DMA, standalone and runner); three affected
-ASan/UBSan CTests passed; 39 deterministic runner/setup checks passed;
+ASan/UBSan CTests passed; 41 deterministic runner/setup checks passed;
 two synthetic RF-presence tests passed; WTP contract validation passed.
 The prior two unrelated full-suite baseline failures remain outside this
 slice; this record does not claim a new full-suite pass.
@@ -86,7 +86,22 @@ and firmware commits permit reuse of the four verified images. Git comparison
 rejects any changed firmware/CMake/protocol/dependency input; that rejection is
 tested. Image revisions and hashes remain bound to the actual firmware commit.
 The third stopped run also restored automatically with zero RF admissions.
-No ambiguous ARM is replayed. The repaired target run remains pending. The selected cases are warmup, WSPR, QRSS, FSKCW,
+No ambiguous ARM is replayed. Live LOAD/ABORT/RELEASE then passed on ordinary inhibited B, with actual GPIO
+OFF and unchanged settings. The next run admitted one 15-second tone and
+recorded 26 actual active-ON observations, followed by actual OFF. It stopped
+because the harness expected `completed`; both Console and WTP use normative
+`complete`. The model and runner are corrected to that real state. A controlled
+launch failure also accepts a verified `missed` deadline as well as `failed`,
+requiring no Running/RF observation, rejected ON writes and actual OFF.
+
+The stopped tone is definitively complete: its matching WTP JOB_STATE event
+has the charged boot/job and inactive output; cleanup is VERIFIED_INHIBITED.
+Its 16-second reservation remains spent. Budget continuation requires verified
+restoration and a matching terminal event for every unconfirmed admission;
+an ambiguous admission refuses repeat. Tests cover refusal and retained charges.
+A complete reviewed repeat plus the other cases reserves **14 admissions /
+430.184002784 seconds** across runs, within 18/600; no reservation is refunded.
+Final target execution remains pending. The selected cases are warmup, WSPR, QRSS, FSKCW,
 DFCW, active abort, armed cancellation, inhibited behavior, onboard AP,
 onboard Identify, disabled indication, standalone STOP and controlled
 ON-write launch failure. External high/low and physical GP14 cutoff remain

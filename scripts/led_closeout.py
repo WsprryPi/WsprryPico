@@ -26,8 +26,11 @@ def main():
     p.add_argument('--fixture', choices=BOARDS)
     p.add_argument('--steps', nargs='+', type=int, choices=(3,4,5), default=(3,4,5))
     p.add_argument('--cases', nargs='+', help='Canonical case IDs; omit unavailable external/stop fixtures')
+    p.add_argument('--budget-from', type=Path, help='Carry spent budget from a restored, definitively terminal run')
     p.add_argument('--output', type=Path)
     args = p.parse_args()
+    require(args.budget_from is None or args.run and not args.recover and not args.inventory,
+            'budget continuation requires a new live run')
     for target in filter(None, (args.output, args.recover)):
         require(target.resolve().is_relative_to((ROOT/'build').resolve()), 'private evidence must stay under build/')
     plan = validate_plan(loads_console(args.plan.read_text()) if args.plan else make_plan())
@@ -108,6 +111,9 @@ def main():
         require(not errors, 'recovery uncertain')
     else:
         e = Evidence(args.output, plan, args.board, args.fixture)
+        if args.budget_from:
+            from led_closeout.runner import carry_budget
+            carry_budget(e, args.budget_from)
         backend = Device(setup, e, ROOT)
         try:
             Runner(plan, manifest, args.board, backend, e, fixture=args.fixture, steps=args.steps,
