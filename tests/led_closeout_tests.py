@@ -498,6 +498,50 @@ class RunnerTests(unittest.TestCase):
                     with self.assertRaises(ValueError):validate_manifest(changed,ROOT)
                 value['clean']=False
                 with self.assertRaises(ValueError):validate_manifest(value,ROOT)
+                value['clean']=True;value['runner_commit']='b'*40
+                def current(argv):
+                    if argv[-1]=='HEAD':return value['runner_commit']
+                    if '--verify' in argv:return commit
+                    if 'diff' in argv:return 'src/led_closeout/device.py\ndocs/development/phase13-1-runner.md'
+                    return ''
+                with patch('led_closeout.device.tool',side_effect=current):validate_manifest(value,ROOT)
+                def changed_input(argv):
+                    return 'src/rf/pio_dma_sink.cpp' if 'diff' in argv else current(argv)
+                with patch('led_closeout.device.tool',side_effect=changed_input):
+                    with self.assertRaisesRegex(ValueError,'firmware inputs changed'):validate_manifest(value,ROOT)
+
+    def test_real_peer_coalesced_and_fragmented_events_keep_response_identity(self):
+        import socket,threading,struct
+        from validate_wtp_contract import frame
+        a,b=socket.socketpair();a.setblocking(False);b.settimeout(3)
+        self.addCleanup(a.close);self.addCleanup(b.close)
+        e,_,_=self.exercise();peer=Peer(a.fileno(),e,ROOT);peer.boot='1'*32
+        errors=[]
+        def responder():
+            try:
+                for index in range(2):
+                    raw=bytearray()
+                    while len(raw)<16 or len(raw)<16+struct.unpack('>I',raw[8:12])[0]:
+                        raw.extend(b.recv(4096))
+                    req=json.loads(raw[16:]);response=dict(req,type='response',ok=True,body={'token':str(index)})
+                    event=dict(type='event',protocol='WTP/1',session_id=req['session_id'],boot_id='1'*32,
+                               event_id=str(index+2),event='JOB_STATE',body=dict(job_id=None,state='empty',output_active=False))
+                    event_bytes=frame(json.dumps(event).encode())
+                    if index==0:
+                        b.sendall(frame(json.dumps(response).encode())+event_bytes[:23])
+                        tail=event_bytes[23:]
+                    else:b.sendall(tail+event_bytes+frame(json.dumps(response).encode()))
+            except BaseException as error:errors.append(error)
+        thread=threading.Thread(target=responder);thread.start()
+        self.assertEqual(peer.request('PING',{})['token'],'0')
+        self.assertEqual(peer.request('PING',{})['token'],'1')
+        thread.join(3);self.assertFalse(thread.is_alive());self.assertFalse(errors)
+        self.assertEqual(len(peer.received),0)
+        event=dict(type='event',protocol='WTP/1',session_id=peer.session,boot_id='2'*32,
+                   event_id='3',event='JOB_STATE',body=dict(job_id=None,state='empty',output_active=False))
+        with self.assertRaisesRegex(ValueError,'boot changed'):peer.emit('stale_wtp_message',event)
+        event['boot_id']=peer.boot;event['session_id']='4'*32
+        with self.assertRaisesRegex(ValueError,'schema/session'):peer.emit('stale_wtp_message',event)
 
     def test_usb_real_peer_rejects_invalid_schema_and_no_arm_retry(self):
         e,_,_=self.exercise()

@@ -99,9 +99,11 @@ def exclusive_port(path):
                 primary_error.add_note('USB cleanup also failed: ' + repr(error))
 
 
-def exchange(fd, data, deadline, emit, framed, expected=None):
+def exchange(fd, data, deadline, emit, framed, expected=None, receive_buffer=None):
     emit('tx', {'hex': data.hex()})
-    pending, received = data, bytearray()
+    pending = data
+    received = bytearray() if receive_buffer is None else receive_buffer
+    response = None
     skipped = 0
     while True:
         left = deadline - time.monotonic()
@@ -141,7 +143,8 @@ def exchange(fd, data, deadline, emit, framed, expected=None):
                     and 1 <= size <= 65536, 'WTP header')
             if len(received) < 16 + size:
                 break
-            require(not pending, 'Response before request completed')
+            if receive_buffer is None:
+                require(not pending, 'Response before request completed')
             payload = bytes(received[16:16 + size])
             del received[:16 + size]
             require(crc32c(payload) == crc, 'WTP CRC')
@@ -152,11 +155,18 @@ def exchange(fd, data, deadline, emit, framed, expected=None):
             if (value.get('type') == 'response'
                     and all(value.get(key) == expected[key]
                             for key in ('session_id', 'request_id', 'op'))):
-                require(not received, 'WTP response suffix')
-                return value
+                require(not pending, 'Response before request completed')
+                if receive_buffer is None:
+                    require(not received, 'WTP response suffix')
+                    return value
+                require(response is None, 'Duplicate WTP response')
+                response = value
+                continue
             skipped += 1
             require(skipped <= 32, 'Excess stale WTP messages')
             emit('stale_wtp_message', value)
+        if response is not None:
+            return response
 
 
 def main():

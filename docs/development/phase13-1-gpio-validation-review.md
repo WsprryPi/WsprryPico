@@ -47,7 +47,7 @@ disabled schedules, released ownership, preserved settings and hardware OFF.
 
 Validation: seven affected CTests passed (indicator adapter/acceptance,
 field access, RF worker, PIO/DMA, standalone and runner); three affected
-ASan/UBSan CTests passed; 38 deterministic runner/setup checks passed;
+ASan/UBSan CTests passed; 39 deterministic runner/setup checks passed;
 two synthetic RF-presence tests passed; WTP contract validation passed.
 The prior two unrelated full-suite baseline failures remain outside this
 slice; this record does not claim a new full-suite pass.
@@ -72,7 +72,21 @@ and restored automatically. The repair retries only the two explicit listener/
 station-readiness messages within the existing finite clock wait; identity
 validation errors still stop before ARM. Behavioral checks cover both transient
 messages and identity rejection. All stopped ledgers are retained and have zero
-charged RF. A clean-source target run remains pending. No ambiguous ARM is replayed. The selected cases are warmup, WSPR, QRSS, FSKCW,
+charged RF. A subsequent run reached LOAD, whose valid reply was coalesced with JOB_STATE.
+The inventory decoder rejected the response suffix. The repaired LED peer
+retains partial frames, decodes coalesced messages, validates event schema,
+session and boot identity, and preserves command reply identity/CRC checks.
+A real socket test covers fragmented events across two commands and coalesced
+events before/after replies; wrong session/boot events fail. All seven existing
+inventory regression checks still pass in their default strict mode.
+
+These are host-adapter changes; all firmware inputs match clean source
+`de06bc3f60da4bb15e0c42baaa5aab5c76db9f7d`. Explicit separate clean runner
+and firmware commits permit reuse of the four verified images. Git comparison
+rejects any changed firmware/CMake/protocol/dependency input; that rejection is
+tested. Image revisions and hashes remain bound to the actual firmware commit.
+The third stopped run also restored automatically with zero RF admissions.
+No ambiguous ARM is replayed. The repaired target run remains pending. The selected cases are warmup, WSPR, QRSS, FSKCW,
 DFCW, active abort, armed cancellation, inhibited behavior, onboard AP,
 onboard Identify, disabled indication, standalone STOP and controlled
 ON-write launch failure. External high/low and physical GP14 cutoff remain

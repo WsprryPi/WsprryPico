@@ -144,7 +144,14 @@ Use a clean checkout of the exact manifest commit on wspr5. Candidate ELF/UF2
 files may be copied to its ignored `build/` directory; update only their absolute
 paths in the manifest, retaining exact hashes/source identity. The runner
 requires exclusive named-device locks, serial-selected picotool and root-level
-endpoint-user inspection. Run output, snapshots and captures stay private.
+endpoint-user inspection. For a host-adapter-only repair, an explicit
+`runner_commit` may identify a different clean checkout from the firmware's
+`source_commit`. The exact firmware Git object must be present and every
+changed path must be under `docs/`, `src/led_closeout/` or one of the narrowly
+listed host inventory/runner/test files. Any firmware, CMake, dependency,
+protocol or other input change rejects reuse and requires rebuilt images.
+The actual compiled revision and every image hash remain bound to the
+firmware commit; neither revision is relabeled. Run output, snapshots and captures stay private.
 
 ```sh
 sudo python3 scripts/led_closeout.py --inventory --board B --fixture A \

@@ -142,15 +142,26 @@ def validate_manifest(manifest, root):
             manifest['picotool_commit'] == '6f6458d792b93685a11423b244a585eaa99eafcf',
             'clean candidate manifest')
     commit = tool(['git', '-C', str(root), 'rev-parse', 'HEAD']).strip()
-    require(commit == manifest['source_commit'] and
+    runner_commit = manifest.get('runner_commit', manifest['source_commit'])
+    require(commit == runner_commit and
             not tool(['git', '-C', str(root), 'status', '--porcelain', '--untracked-files=normal']),
             'source checkout differs from candidate')
+    if runner_commit != manifest['source_commit']:
+        firmware_commit = manifest['source_commit']
+        require(all(c in '0123456789abcdef' for c in firmware_commit) and
+                tool(['git','-C',str(root),'rev-parse','--verify',firmware_commit+'^{commit}']).strip() == firmware_commit,
+                'exact firmware source object required')
+        changed = tool(['git','-C',str(root),'diff','--name-only','--no-renames',firmware_commit,runner_commit,'--']).splitlines()
+        host_only = {'scripts/led_closeout.py', 'scripts/phase11_5_inventory.py',
+                     'tests/led_closeout_tests.py', 'tests/led_rf_presence_tests.py'}
+        require(all(p.startswith(('docs/', 'src/led_closeout/')) or p in host_only for p in changed),
+                'firmware inputs changed; rebuild candidates')
     for key, image in manifest['images'].items():
         rf, acceptance, selection, gp14 = IMAGES[key]
         require(image['acceptance'] is acceptance and image['selection'] == selection and
                 image['gp14'] is gp14 and image['engine'] ==
                 ('pio-dma-gp2' if rf else 'inhibited-standalone-simulator') and
-                image['revision'] == commit[:12], 'candidate role: ' + key)
+                image['revision'] == manifest['source_commit'][:12], 'candidate role: ' + key)
         require(sha256(image['uf2']) == image['uf2_sha256'] and
                 sha256(image['elf']) == image['elf_sha256'], 'candidate hash: ' + key)
         validate_uf2(Path(image['uf2']).read_bytes())
@@ -204,15 +215,32 @@ class Peer:
         self.fd, self.e, self.session = fd, evidence, uuid.uuid4().hex
         self.schema = json.loads((Path(root)/'docs/protocol/wtp-1.schema.json').read_text())
         self.validator = SchemaValidator(self.schema)
+        self.received, self.boot, self.event_boots = bytearray(), None, set()
+
+    def emit(self, kind, value):
+        if kind == 'stale_wtp_message':
+            require(not self.validator.errors(value, self.schema) and
+                    value.get('session_id') == self.session, 'WTP event/stale response schema/session')
+            if value.get('type') == 'event':
+                require(self.boot is None or value['boot_id'] == self.boot, 'WTP event boot changed')
+                self.event_boots.add(value['boot_id'])
+                require(value['event'] != 'SESSION_REPLACED', 'WTP session replaced')
+        self.e.event(kind, value)
 
     def request(self, op, body):
         request = dict(type='request', protocol='WTP/1', session_id=self.session,
                        request_id=uuid.uuid4().hex, op=op, body=body)
         response = exchange(self.fd, frame(json.dumps(request, separators=(',', ':')).encode()),
-                            time.monotonic()+3, self.e.event, True, expected=request)
+                            time.monotonic()+3, self.emit, True, expected=request,
+                            receive_buffer=self.received)
         require(not self.validator.errors(response, self.schema), 'WTP response schema')
         require(response.get('ok') is True, 'WTP ' + op + ' rejected')
         require(response.get('protocol') == 'WTP/1', 'WTP version')
+        if op == 'HELLO':
+            require(self.boot is None or self.boot == response['body']['boot_id'], 'WTP HELLO boot changed')
+            require(not self.event_boots or self.event_boots == {response['body']['boot_id']},
+                    'WTP pre-HELLO event boot changed')
+            self.boot = response['body']['boot_id']
         return response['body']
 
 
