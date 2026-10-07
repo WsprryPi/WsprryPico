@@ -160,6 +160,8 @@ std::string Scheduler::status() const {
            ",\"enabled\":" + (store_.config() && store_.config()->enabled ? "true" : "false") +
            ",\"suspended\":" + (suspended_ ? "true" : "false") + ",\"expires_utc_s\":" +
            std::to_string(store_.config() ? store_.config()->expires_utc_s : 0) +
+           ",\"owner_id\":" + (s.owner_id ? wtp::json::quote(*s.owner_id) : "null") +
+           ",\"job_id\":" + (s.job_id ? wtp::json::quote(*s.job_id) : "null") +
            ",\"boot_id\":" + wtp::json::quote(s.boot_id) + ",\"utc_now_ns\":\"" +
            std::to_string(clock.utc_now_ns) + "\"" + ",\"monotonic_now_ns\":\"" +
            std::to_string(clock.monotonic_now_ns) + "\"" + ",\"sync_age_ns\":\"" +

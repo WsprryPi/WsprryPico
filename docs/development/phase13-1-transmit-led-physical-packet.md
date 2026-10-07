@@ -1,3 +1,10 @@
+> Step-1 update: the [six-step closeout](phase13-1-closeout-steps.md) and
+> [unattended runner](phase13-1-runner.md) now provide the executable 16-case
+> packet, eight checked candidate roles and automatic captures/restoration.
+> The seven jobs below remain the historical onboard preparation subset;
+> their older proposed transport/board description does not constrain the new
+> identity-bound USB/Plain-LAN runner. Physical acceptance remains unexecuted.
+
 # P13.1 proposed physical acceptance packet
 
 Prepared 2026-10-07. **NOT RUN.** Hardware authorization follows the user's

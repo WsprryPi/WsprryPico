@@ -91,7 +91,11 @@ checked local launch handshake, TX-only external indication and retained
 onboard operational cues. Deterministic checks and both firmware cross-links
 pass within the recorded scope; the full host suite retains two independently
 reproduced baseline failures. The [physical packet](phase13-1-transmit-led-physical-packet.md)
-is prepared with untimed operator gates and remains unexecuted.
+is prepared with untimed operator gates and remains unexecuted. The fixed
+[six-step closeout](phase13-1-closeout-steps.md) groups the sole normal operator
+session at step 2. Step 1 prepares the [finite unattended runner](phase13-1-runner.md),
+[execution prompt](phase13-1-step1-prompt.md) and
+[adversarial review](phase13-1-step1-review.md).
 
 On macOS, run `bash scripts/check_host.sh` from the repository root for host
 configure, build and CTest. It selects full Xcode for the test subprocesses.

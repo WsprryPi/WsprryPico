@@ -316,8 +316,7 @@ void live_config_tests() {
     wtp::JobService service(clock, engine, identities);
     standalone::Scheduler scheduler(store, service);
     const auto storage = scheduler.command("STORAGE");
-    CHECK(storage.find("\"config\":{\"sequence\":\"1\",\"latest_offset\":0,") !=
-          std::string::npos);
+    CHECK(storage.find("\"config\":{\"sequence\":\"1\",\"latest_offset\":0,") != std::string::npos);
     CHECK(storage.find("\"watermark\":{\"sequence\":\"0\",\"latest_offset\":0,") !=
           std::string::npos);
     auto current = *store.config();
@@ -421,12 +420,10 @@ void scheduler_tests() {
     CHECK(engine.prepared == 1 && engine.job.events.size() == 162);
     CHECK(engine.job.total_duration_ns == 110'592'000'000ULL);
     CHECK(engine.job.events[0].frequency_nhz ==
-          std::uint64_t{WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ} * ns +
-              1'464'843'750ULL);
+          std::uint64_t{WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ} * ns + 1'464'843'750ULL);
     CHECK(scheduler.status().find(
               "\"schedule_base_frequency_nhz\":\"" +
-              std::to_string(
-                  std::uint64_t{WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ} * ns) +
+              std::to_string(std::uint64_t{WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ} * ns) +
               "\"") != std::string::npos);
     CHECK(scheduler.command("CONFIG " + example).find("busy") != std::string::npos);
     for (int i = 0; i < 10; ++i)
@@ -550,6 +547,8 @@ void scheduler_tests() {
     CHECK(sched.command("CONFIG " + example).find("busy") != std::string::npos);
     CHECK(sched.command("STOP").find("external_owner") != std::string::npos);
     CHECK(svc.status().owner_id == std::string(32, 'b'));
+    CHECK(sched.status().find("\"owner_id\":\"" + std::string(32, 'b') + "\"") !=
+          std::string::npos);
     CHECK(!sched.reset_permitted());
     clk.advance(61 * ns);
     svc.poll();

@@ -227,6 +227,24 @@ pico_set_program_version(WsprryPico-RFWTP "${WSPRRY_PICO_FIRMWARE_VERSION}")
 pico_set_program_description(WsprryPico-RFWTP "WTP GP2 integration ${WSPRRY_PICO_GIT_REVISION}")
 pico_add_extra_outputs(WsprryPico-RFWTP)
 
+# LED qualification adapters are absent from ordinary images.
+option(WSPRRY_PICO_LED_ACCEPTANCE "Finite LED closeout commands and selected-pin test override" OFF)
+set(WSPRRY_PICO_LED_SELECTION "0" CACHE STRING "LED test selection: 0 onboard, 1 GP15 high, 2 GP16 low, 3 disabled")
+if(NOT WSPRRY_PICO_LED_SELECTION MATCHES "^[0-3]$")
+    message(FATAL_ERROR "LED test selection must be 0..3")
+endif()
+if(NOT WSPRRY_PICO_LED_ACCEPTANCE AND NOT WSPRRY_PICO_LED_SELECTION STREQUAL "0")
+    message(FATAL_ERROR "LED test selection requires the acceptance image")
+endif()
+if(WSPRRY_PICO_LED_ACCEPTANCE AND (WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE OR
+   NOT WSPRRY_PICO_PHASE12_FAULT_STAGE STREQUAL "0" OR WSPRRY_PICO_GP14_RF_ACCEPTANCE OR
+   WSPRRY_PICO_GP14_FLASH_PROBE OR WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC OR
+   WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE OR WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE OR
+   WSPRRY_PICO_GP14_BUTTON_DIAGNOSTIC OR WSPRRY_PICO_GP14_DIAG_INJECT_WATCHDOG OR
+   WSPRRY_PICO_GP14_ROBUSTNESS))
+    message(FATAL_ERROR "LED acceptance requires an isolated configuration")
+endif()
+
 # Standalone time and storage integration. WTP and RF bench targets stay separate.
 target_include_directories(WsprryPico PRIVATE ${CMAKE_SOURCE_DIR}/src/standalone/pico)
 set_source_files_properties(../src/standalone/pico/main.cpp ../src/standalone/pico/adapters.cpp
@@ -243,6 +261,12 @@ target_compile_definitions(WsprryPico-StandaloneRF PRIVATE
     PICO_PANIC_FUNCTION=wsprrypico_panic PICO_CORE1_STACK_SIZE=0)
 target_sources(WsprryPico-StandaloneRF PRIVATE ../src/rf/pico/worker.cpp
     ../src/standalone/pico/net_trace.cpp)
+if(WSPRRY_PICO_LED_ACCEPTANCE)
+    foreach(image WsprryPico WsprryPico-StandaloneRF)
+        target_compile_definitions(${image} PRIVATE WSPRRY_PICO_LED_ACCEPTANCE=1
+            WSPRRY_PICO_LED_SELECTION=${WSPRRY_PICO_LED_SELECTION})
+    endforeach()
+endif()
 if(WSPRRY_PICO_GP14_RF_ACCEPTANCE)
     target_compile_definitions(WsprryPico-StandaloneRF PRIVATE WSPRRY_PICO_GP14_RF_ACCEPTANCE=1)
 endif()

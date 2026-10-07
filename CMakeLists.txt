@@ -340,6 +340,15 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(field_access_tests PRIVATE wsprrypico_core)
     target_compile_options(field_access_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME field_access_tests COMMAND field_access_tests)
+    add_test(NAME led_closeout_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/led_closeout_tests.py)
+    add_executable(led_acceptance_tests tests/led_acceptance_tests.cpp
+        src/provisioning/pico/indicator_output.cpp)
+    target_include_directories(led_acceptance_tests PRIVATE tests/indicator_mock)
+    target_compile_definitions(led_acceptance_tests PRIVATE WSPRRY_PICO_LED_ACCEPTANCE=1)
+    target_link_libraries(led_acceptance_tests PRIVATE wsprrypico_core)
+    target_compile_options(led_acceptance_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME led_acceptance_tests COMMAND led_acceptance_tests)
     add_executable(indicator_output_tests tests/indicator_output_tests.cpp
         src/provisioning/pico/indicator_output.cpp)
     target_include_directories(indicator_output_tests PRIVATE tests/indicator_mock)

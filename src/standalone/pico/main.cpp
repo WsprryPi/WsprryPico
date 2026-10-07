@@ -1,3 +1,20 @@
+#ifdef WSPRRY_PICO_LED_ACCEPTANCE
+#include "hardware/gpio.h"
+#include "hardware/sync.h"
+#include "pico/time.h"
+#include "provisioning/led_acceptance.hpp"
+namespace wsprrypico::provisioning {
+LedAcceptance led_acceptance;
+}
+#ifndef WSPRRY_PICO_STANDALONE_RF
+namespace {
+int64_t led_release_hold(alarm_id_t, void*) {
+    gpio_set_dir(15, GPIO_IN);
+    return 0;
+}
+} // namespace
+#endif
+#endif
 #include "firmware_identity.hpp"
 #include "hardware/clocks.h"
 #include "hardware/structs/watchdog.h"
@@ -317,7 +334,20 @@ int main() {
         access_store.state() != wsprrypico::provisioning::AccessStoreState::Healthy ||
         (access_store.record() && access_store.record()->reset.pending());
     const bool boot_recovery = recovery || access_recovery;
-    const auto boot_pins = store.config() ? store.config()->pins : wsprrypico::hardware::PinPlan{};
+    auto boot_pins = store.config() ? store.config()->pins : wsprrypico::hardware::PinPlan{};
+#ifdef WSPRRY_PICO_LED_ACCEPTANCE
+    // Only the selected indicator differs; all pin ownership checks still apply.
+    boot_pins.indicator_gp.reset();
+#if WSPRRY_PICO_LED_SELECTION == 1 || WSPRRY_PICO_LED_SELECTION == 2
+    boot_pins.indicator = wsprrypico::hardware::PinPlan::Indicator::External;
+    boot_pins.indicator_gp = WSPRRY_PICO_LED_SELECTION == 1 ? 15 : 16;
+    boot_pins.indicator_active_high = WSPRRY_PICO_LED_SELECTION == 1;
+#elif WSPRRY_PICO_LED_SELECTION == 3
+    boot_pins.indicator = wsprrypico::hardware::PinPlan::Indicator::Disabled;
+#else
+    boot_pins.indicator = wsprrypico::hardware::PinPlan::Indicator::Onboard;
+#endif
+#endif
     // Both adapters claim PIO/DMA resources through the SDK allocator.
 #ifdef WSPRRY_PICO_STANDALONE_RF
     static wsprrypico::rf::IndicatorGate tx_indicator_gate(
@@ -868,6 +898,15 @@ int main() {
             result +=
                 access_store.record() && access_store.record()->default_password ? "true" : "false";
             result += ",\"ble_running\":" + std::string(gatt.running() ? "true" : "false");
+            result += ",\"led_boot_pins\":" + wsprrypico::hardware::serialize_plan(boot_pins);
+#ifdef WSPRRY_PICO_LED_ACCEPTANCE
+            result += ",\"led_acceptance\":true";
+            number_field(result, "led_selection", WSPRRY_PICO_LED_SELECTION);
+            number_field(result, "led_rejected_writes",
+                         wsprrypico::provisioning::led_acceptance.rejected());
+#else
+            result += ",\"led_acceptance\":false";
+#endif
             const auto led_status = indicator.status(time_us_64() / 1000ULL);
             result += ",\"indicator_output_fault\":";
             result += led_status.output_fault ? "true" : "false";
@@ -1263,6 +1302,74 @@ int main() {
             return result;
         }
 #endif
+#ifdef WSPRRY_PICO_LED_ACCEPTANCE
+        if (text.starts_with("LED TEST ")) {
+            const auto args = text.substr(9);
+            const auto split = args.find(' ');
+            const auto command =
+                split == std::string_view::npos ? std::string_view{} : args.substr(split + 1);
+            const auto current = service.activity();
+            const auto now = time_us_64() / 1000ULL;
+            if (args.substr(0, split) != identities.device_id() || boot_recovery || reboot_at ||
+                !wsprrypico::hardware::operational(boot_pins))
+                return "{\"ok\":false,\"error\":\"led_test_refused\"}\n";
+            auto& fixture = wsprrypico::provisioning::led_acceptance;
+            bool ok = false;
+            if (command == "AP") {
+                ok = fixture.ap(now); // Cue input only, not network/AP qualification.
+            } else if (command == "IDENTIFY") {
+                ok = indicator.identify(std::string(text) + std::to_string(now),
+                                        identities.device_id(), true, true,
+                                        now) == wsprrypico::provisioning::IndicatorCode::Ok;
+            } else if (command == "FAIL" && !current.output_active && !current.owned &&
+                       scheduler.idle()) {
+                ok = fixture.fail(now); // Reject ON only; OFF always uses the real driver.
+                if (ok) {
+                    indicator.enabled(false);
+                    indicator.poll(now); // Establish checked OFF before injecting launch failure.
+                    indicator.enabled(true);
+                }
+            } else if (command == "STOP") {
+                return scheduler.command("STOP"); // Actual standalone ownership/stop path.
+            } else if (command == "DISABLE" && !current.output_active && !current.owned &&
+                       store.config()) {
+                auto off = *store.config();
+                off.enabled = false;
+                ok = store.save(off);
+            } else if (command == "SCHEDULE" && scheduler.idle() && store.config() &&
+                       !store.config()->enabled && fixture.schedule()) {
+                const auto clock = service.clock_snapshot();
+                if (clock.state == wsprrypico::wtp::ClockState::Synchronized &&
+                    clock.leap == wsprrypico::wtp::LeapState::Normal &&
+                    clock.uncertainty_ns <= 500'000'000) {
+                    auto one = *store.config();
+                    const auto boundary = (clock.utc_now_ns / 120'000'000'000ULL + 1) * 120;
+                    one.enabled = true;
+                    one.expires_utc_s = boundary + 113;
+                    one.schedules = {{86400, static_cast<std::uint32_t>(boundary % 86400)}};
+                    // Preserve station, network and pin settings. Validate the same contract.
+                    const auto checked = wsprrypico::standalone::parse_config(
+                        wsprrypico::standalone::serialize_config(one));
+                    ok = checked && store.save(*checked);
+                }
+#ifndef WSPRRY_PICO_STANDALONE_RF
+            } else if (command == "HOLD" && scheduler.idle() && !current.owned &&
+                       !current.output_active &&
+                       wsprrypico::hardware::validate(boot_pins).owners[15].empty() &&
+                       fixture.hold()) {
+                gpio_init(15);
+                gpio_put(15, false);
+                const auto irq_state = save_and_disable_interrupts();
+                gpio_set_dir(15, GPIO_OUT); // Low only, never drive high.
+                ok = add_alarm_in_ms(250, led_release_hold, nullptr, false) > 0;
+                if (!ok)
+                    gpio_set_dir(15, GPIO_IN);
+                restore_interrupts(irq_state); // Alarm releases even if the main loop stalls.
+#endif
+            }
+            return ok ? "{\"ok\":true}\n" : "{\"ok\":false,\"error\":\"led_test_refused\"}\n";
+        }
+#endif
         if ((consumer_source_selected() || bootstrap.owner_claim_pending() ||
              !runtime_profile_loaded) &&
             text != "ABORT" && text != "REBOOT" && text != "BOOTSEL")
@@ -1623,7 +1730,11 @@ int main() {
                                    ? bootstrap.listening()
                                    : softap_name_ready && server.listening());
         softap_coordinator.ready(softap_service_ready);
-        indicator.softap_ready(softap_coordinator.status(field_now_ms).ready);
+        indicator.softap_ready(softap_coordinator.status(field_now_ms).ready
+#ifdef WSPRRY_PICO_LED_ACCEPTANCE
+                               || wsprrypico::provisioning::led_acceptance.ap_active(field_now_ms)
+#endif
+        );
         poll_indicator();
         service.poll();
         const auto clock_now = service.clock_snapshot();

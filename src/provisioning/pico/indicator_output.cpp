@@ -1,12 +1,21 @@
 #include "provisioning/pico/indicator_output.hpp"
 
 #include "hardware/gpio.h"
+#ifdef WSPRRY_PICO_LED_ACCEPTANCE
+#include "pico/time.h"
+#include "provisioning/led_acceptance.hpp"
+#endif
 #include "pico/cyw43_arch.h"
 
 namespace wsprrypico::provisioning {
 bool PicoIndicatorOutput::write(bool on) {
     if (pins_.indicator == hardware::PinPlan::Indicator::Disabled)
         return true;
+#ifdef WSPRRY_PICO_LED_ACCEPTANCE
+    if ((pins_.indicator != hardware::PinPlan::Indicator::External || role_ == Role::Selected) &&
+        led_acceptance.reject_on(time_us_64() / 1000ULL, on))
+        return false;
+#endif
     if (!hardware::operational(pins_))
         return false;
     if (pins_.indicator == hardware::PinPlan::Indicator::External && role_ == Role::Selected) {
