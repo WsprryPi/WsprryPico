@@ -25,6 +25,7 @@ def main():
     p.add_argument('--board', choices=BOARDS, default='A')
     p.add_argument('--fixture', choices=BOARDS)
     p.add_argument('--steps', nargs='+', type=int, choices=(3,4,5), default=(3,4,5))
+    p.add_argument('--cases', nargs='+', help='Canonical case IDs; omit unavailable external/stop fixtures')
     p.add_argument('--output', type=Path)
     args = p.parse_args()
     for target in filter(None, (args.output, args.recover)):
@@ -83,7 +84,10 @@ def main():
             for b, snapshot in backend.snapshots.items():
                 require(b in (state['board'], state['fixture']) and
                         snapshot['serial'] == BOARDS[b]['serial'] and
-                        Path(snapshot['path']).resolve().is_relative_to(e.root.resolve()) and
+                        (Path(snapshot['path']).resolve().is_relative_to(e.root.resolve()) or
+                         isinstance(setup.get('retained_snapshots'), dict) and
+                         snapshot['path'] == setup['retained_snapshots'][b]['path'] and
+                         snapshot['sha256'] == setup['retained_snapshots'][b]['sha256']) and
                         Path(snapshot['path']).stat().st_size == FLASH_SIZE and
                         sha256(snapshot['path']) == snapshot['sha256'], 'recovery backup identity/hash')
             # Reacquire named locks without entering the normal snapshot path.
@@ -106,7 +110,8 @@ def main():
         e = Evidence(args.output, plan, args.board, args.fixture)
         backend = Device(setup, e, ROOT)
         try:
-            Runner(plan, manifest, args.board, backend, e, fixture=args.fixture, steps=args.steps).run()
+            Runner(plan, manifest, args.board, backend, e, fixture=args.fixture, steps=args.steps,
+                   cases=args.cases).run()
         finally:
             backend.close()
     print(json.dumps(e.state, sort_keys=True))

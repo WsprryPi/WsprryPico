@@ -31,6 +31,7 @@ class Fake:
         self.owner, self.job, self.started, self.lease_end = None, None, None, 0
         self.capture_active, self.admissions, self.renewals = False, 0, 0
         self.fail_on, self.gp14, self.loaded_at = False, False, 0
+        self.setup = {}
 
     def now(self): return self.t
     def sleep(self, seconds): self.t += seconds
@@ -68,6 +69,12 @@ class Fake:
             led_boot_pins=image['pins'], led_acceptance=image['acceptance'], led_selection=image['selection'],
             access_state='healthy', rf_safety_inhibited=self.gp14, led_rejected_writes=int(self.fail_on),
             indicator_output_known=True, indicator_output_on=active and image["selection"] != 3,
+            indicator_pin_readback_known=self.fault != 'gpio_unknown' and image['selection'] != 3,
+            indicator_pin_readback_error=-1 if self.fault == 'gpio_unknown' or image['selection'] == 3 else 0,
+            indicator_pin_readback_on=None if self.fault == 'gpio_unknown' or image['selection'] == 3 else
+                (active and self.fault != 'gpio_mismatch'),
+            indicator_onboard_readback_known=True, indicator_onboard_readback_error=0,
+            indicator_onboard_readback_on=active and image['selection'] != 3,
             tx_indicator_ready=active and image["selection"] != 3,
             tx_indicator_requested=active and image["selection"] != 3, status=dict(boot_id=boot, output_active=active,
             enabled=False, storage_healthy=True, state=state, engine=image['engine'],
@@ -136,6 +143,37 @@ class Fake:
 
 
 class RunnerTests(unittest.TestCase):
+    def test_onboard_gpio_subset_has_no_external_or_stop_fixture_dependency(self):
+        directory=tempfile.TemporaryDirectory();self.addCleanup(directory.cleanup)
+        plan=make_plan();e=Evidence(Path(directory.name)/'run',plan,'B',None)
+        fake=Fake(e);fake.setup={'evidence_mode':'gpio-readback'}
+        chosen=[c['id'] for c in plan['cases'] if c['id'] not in ('external_high','external_low','gp14_cutoff')]
+        result=Runner(plan,manifest(),'B',fake,e,cases=chosen).run()
+        self.assertEqual(result['jobs'],13)
+        self.assertEqual(result['result'],'PASS_GPIO_FUNCTIONAL_RF_REVIEW_PENDING')
+        self.assertEqual(fake.restored,['B'])
+        self.assertTrue(all(a['result']=='PASS_GPIO_FUNCTIONAL' for a in result['attempts']))
+
+    def test_gpio_mismatch_and_unknown_stop_without_false_pass(self):
+        for failure in ('gpio_mismatch','gpio_unknown'):
+            e,fake,_=self.exercise(failure,steps=(3,))
+            fake.setup={'evidence_mode':'gpio-readback'}
+            runner=Runner(make_plan(),manifest(),'A',fake,e,cases=['warmup'])
+            with self.assertRaisesRegex(ValueError,'GPIO readback'):
+                runner.run()
+            self.assertEqual(e.state['result'],'STOP')
+            self.assertEqual(fake.restored,['A'])
+            self.assertNotEqual(e.state['attempts'][-1]['result'] if e.state['attempts'] else None,
+                                'PASS_GPIO_FUNCTIONAL')
+
+    def test_case_selection_rejects_unknown_duplicates_empty_and_missing_image(self):
+        e,fake,_=self.exercise()
+        for cases in ([],['bad'],['warmup','warmup'],['gp14_cutoff']):
+            with self.assertRaises(ValueError):Runner(make_plan(),manifest(),'A',fake,e,cases=cases)
+        m=manifest();del m['images']['onboard']
+        with self.assertRaises(ValueError):Runner(make_plan(),m,'A',fake,e,cases=['warmup'])
+        self.assertEqual(fake.engaged,[])
+
     def exercise(self, fault=None, steps=(3,4,5)):
         directory=tempfile.TemporaryDirectory();self.addCleanup(directory.cleanup)
         plan=make_plan();e=Evidence(Path(directory.name)/'run',plan,'A','B')
@@ -461,6 +499,70 @@ class SetupTests(unittest.TestCase):
                 changed['camera']['rois']['external_high']=region
                 with self.assertRaises(ValueError):validate_setup(changed)
 
+    def test_gpio_setup_needs_no_camera_or_external_fixture_for_onboard_cases(self):
+        value=copy.deepcopy(self.setup)
+        value.update(evidence_mode='gpio-readback',camera=None,fixtures={},retained_snapshots={})
+        del value['ffmpeg']
+        cases=[c for c in make_plan()['cases'] if c['id'] not in ('external_high','external_low','gp14_cutoff')]
+        validate_setup(value,cases=cases)
+        with self.assertRaisesRegex(ValueError,'fixture roles'):validate_setup(value)
+        value['evidence_mode']='invalid'
+        with self.assertRaisesRegex(ValueError,'evidence mode'):validate_setup(value,cases=cases)
+
+    def test_reused_snapshot_preflight_never_enters_rom_or_saves_flash(self):
+        from types import SimpleNamespace
+        from led_closeout.device import retained_settings, FLASH_SIZE
+        from led_closeout.runner import sha256
+        import struct,zlib
+        folder=Path(self.directory.name)
+        data=bytearray(b'\xff'*FLASH_SIZE);record=bytearray(b'\xff'*2048)
+        config=json.dumps(dict(version=1,enabled=False,pins=pins(0))).encode()
+        struct.pack_into('<QQI',record,0,0x32524f5453505757,1,len(config))
+        record[32:32+len(config)]=config
+        struct.pack_into('<I',record,2044,zlib.crc32(record[:-4]))
+        data[0x3fb000:0x3fb800]=record
+        retained=folder/'retained.bin';retained.write_bytes(data)
+        info=dict(ok=True,device_id=BOARDS['B']['device_id'],revision='entry',access_state='healthy',
+                  access_generation=1,access_default_password=True,provisioning_generation=1,
+                  provisioning_source='consumer_preclock',
+                  status=dict(output_active=False,enabled=False,state='empty',storage_healthy=True,
+                              owner_id=None,job_id=None,configured=True,expires_utc_s=None,
+                              schedule_base_frequency_nhz=3570100000000000,schedules=[],station={},
+                              watermark_utc_ns='0',last_job=None))
+        value=copy.deepcopy(self.setup)
+        value.update(evidence_mode='gpio-readback',camera=None,fixtures={},retained_snapshots={
+            'B':dict(path=str(retained),serial=BOARDS['B']['serial'],sha256=sha256(retained),
+                     settings=retained_settings(info))})
+        e=Evidence(folder/'reuse-run',make_plan(),'B',None);obj=Device(value,e,ROOT)
+        obj.select_cases([make_plan()['cases'][0]])
+        obj.info=lambda b:copy.deepcopy(info);obj.lock_boards=unittest.mock.Mock()
+        obj.rom=unittest.mock.Mock();obj.pt=unittest.mock.Mock()
+        with patch('led_closeout.device.validate_manifest'), patch('led_closeout.device.shutil.disk_usage',return_value=SimpleNamespace(free=10**12)):
+            obj.preflight({},'B',None)
+        obj.rom.assert_not_called();obj.pt.assert_not_called()
+        self.assertEqual(obj.snapshots['B']['state'],'REUSED')
+        self.assertEqual(obj.snapshots['B']['path'],str(retained))
+        uf2=folder/'candidate.uf2';uf2.write_bytes(b'checked-image')
+        image=dict(uf2=str(uf2),uf2_sha256=sha256(uf2))
+        booted=copy.deepcopy(info);booted['status']['boot_id']='new-boot'
+        obj.wait_info=lambda b:booted
+        with patch('led_closeout.device.quiescent'):
+            obj.deploy('B',image)
+        commands=[c.args[1] for c in obj.pt.call_args_list]
+        self.assertEqual([c[0] for c in commands],['load','load','verify','reboot'])
+        self.assertEqual(commands[2],['verify',str(retained),'-t','bin','-r','0x103f3000','0x10400000'])
+        booted['provisioning_generation']=2
+        with patch('led_closeout.device.quiescent'):
+            with self.assertRaisesRegex(ValueError,'settings drift'):obj.deploy('B',image)
+        obj.close()
+        e=Evidence(folder/'stale-run',make_plan(),'B',None);obj=Device(value,e,ROOT)
+        obj.select_cases([make_plan()['cases'][0]]);info['provisioning_generation']=2
+        obj.info=lambda b:copy.deepcopy(info);obj.lock_boards=unittest.mock.Mock();obj.rom=unittest.mock.Mock()
+        with patch('led_closeout.device.validate_manifest'), patch('led_closeout.device.shutil.disk_usage',return_value=SimpleNamespace(free=10**12)):
+            with self.assertRaisesRegex(ValueError,'settings changed'):obj.preflight({},'B',None)
+        obj.rom.assert_not_called();self.assertEqual(obj.snapshots,{})
+        obj.close()
+
     def test_fixture_boolean_and_tool_hashes_cannot_be_substituted(self):
         with patch('led_closeout.device.Path.exists',return_value=True):
             changed=copy.deepcopy(self.setup);changed['fixtures']['open_drain']=1
@@ -491,6 +593,24 @@ class SetupTests(unittest.TestCase):
 
 
 class CaptureAndFlashTests(unittest.TestCase):
+    def test_gpio_capture_starts_only_receiver_and_marks_optics_unselected(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            cfg=dict(evidence_mode='gpio-readback',capture_helper={'path':'sdr'},receiver_serial='2404058C60')
+            def start(*a,**k):
+                (root/'capture.cf32.incomplete').write_bytes(b'x'*65536)
+                return SimpleNamespace(pid=123,poll=lambda:None)
+            c=Captures(cfg,SimpleNamespace(event=lambda *a:None))
+            with patch('led_closeout.capture.subprocess.Popen',side_effect=start) as launch:
+                c.start(root,10)
+            self.assertEqual(launch.call_count,1)
+            self.assertEqual(len(c.processes),1)
+            for f in c.logs:f.close()
+            binding=json.loads((root/'capture-binding.json').read_text())
+            self.assertIsNone(binding['camera'])
+            self.assertEqual(binding['optical_assessment'],'NOT_SELECTED')
+            self.assertIsNone(binding['optical_pixel_format'])
     def test_capture_start_failure_terminates_previous_process(self):
         class Process:
             pid=123

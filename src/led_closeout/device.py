@@ -13,7 +13,7 @@ import time
 import uuid
 
 from led_closeout.capture import Captures, storage_reserve
-from led_closeout.plan import BOARDS, IMAGES, RECEIVER
+from led_closeout.plan import BOARDS, IMAGES, RECEIVER, make_plan
 from led_closeout.runner import admit, quiescent, require, save_json, sha256
 from phase11_5_inventory import exclusive_port, exchange, validate_inventory
 from check_standalone_image import validate_uf2
@@ -82,14 +82,32 @@ def tool(argv, timeout=45):
     return result.stdout.decode(errors='strict')
 
 
-def validate_setup(setup, *, recovery=False):
+def validate_setup(setup, *, recovery=False, cases=None):
     require(setup['schema'] == 'phase13.1-led-setup/1' and setup['receiver_serial'] == RECEIVER,
             'setup/receiver identity')
-    for name in (('picotool',) if recovery else ('capture_helper', 'ffmpeg', 'picotool')):
+    mode = setup.get('evidence_mode', 'optical')
+    require(mode in ('optical', 'gpio-readback'), 'unknown LED evidence mode')
+    names = ('picotool',) if recovery else (('capture_helper', 'picotool') if mode == 'gpio-readback'
+                                           else ('capture_helper', 'ffmpeg', 'picotool'))
+    for name in names:
         item = setup[name]
         require(Path(item['path']).is_absolute() and sha256(item['path']) == item['sha256'],
                 'setup executable hash: ' + name)
     if recovery:
+        return
+    if mode == 'gpio-readback':
+        require(setup.get('camera') is None, 'GPIO mode does not use a camera')
+        require(isinstance(setup['rf_path'], str) and 1 <= len(setup['rf_path']) <= 512,
+                'physical path description')
+        selected = make_plan()['cases'] if cases is None else cases
+        roles = {}
+        if any(c['image'] == 'high' for c in selected): roles['external_high_gp'] = 15
+        if any(c['image'] == 'low' for c in selected): roles['external_low_gp'] = 16
+        if any(c['action'] == 'gp14' for c in selected):
+            roles.update(stimulus_gp=15, dut_stop_gp=14, open_drain=True)
+        require(json.dumps(setup.get('fixtures', {}), sort_keys=True) == json.dumps(roles, sort_keys=True),
+                'selected GPIO fixture roles')
+        require(isinstance(setup.get('retained_snapshots'), dict), 'retained recovery data required; no new backups')
         return
     cam = setup['camera']
     require(cam['device'].startswith('/dev/video') and Path(cam['device']).exists() and
@@ -117,7 +135,8 @@ def validate_setup(setup, *, recovery=False):
 
 def validate_manifest(manifest, root):
     require(manifest['schema'] == 'phase13.1-led-candidates/2' and manifest['clean'] is True and
-            len(manifest['source_commit']) == 40 and set(manifest['images']) == set(IMAGES) and
+            len(manifest['source_commit']) == 40 and 'restore' in manifest['images'] and
+            set(manifest['images']) <= set(IMAGES) and
             manifest['board'] == 'pico2_w' and manifest['sample_rate_hz'] == 138000000 and
             manifest['sdk_commit'] == '079c6f39023649b154152db30f1d781e884879bc' and
             manifest['picotool_commit'] == '6f6458d792b93685a11423b244a585eaa99eafcf',
@@ -170,6 +189,16 @@ def snapshot_config(data):
     return config
 
 
+def retained_settings(info):
+    """Stable public readback used to reject stale recovery data; never log secrets."""
+    top = ('device_id', 'access_state', 'access_generation', 'access_default_password',
+           'provisioning_generation', 'provisioning_source')
+    config = ('configured', 'enabled', 'expires_utc_s', 'schedule_base_frequency_nhz',
+              'schedules', 'station', 'watermark_utc_ns', 'last_job')
+    return dict(identity={k:info[k] for k in top},
+                config={k:info['status'][k] for k in config})
+
+
 class Peer:
     def __init__(self, fd, evidence, root):
         self.fd, self.e, self.session = fd, evidence, uuid.uuid4().hex
@@ -195,6 +224,9 @@ class Device:
         self.dut = None
         self.capture = Captures(setup, evidence)
         self.snapshot_path = evidence.root/'snapshots.json'
+        self.cases = make_plan()['cases']
+
+    def select_cases(self, cases): self.cases = cases
 
     @staticmethod
     def now(): return time.monotonic()
@@ -302,33 +334,38 @@ class Device:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
     def preflight(self, manifest, board, fixture):
-        validate_setup(self.setup)
+        validate_setup(self.setup, cases=self.cases)
         validate_manifest(manifest, self.root)
-        require(shutil.disk_usage(self.e.root).free >= storage_reserve(self.setup),
+        require(shutil.disk_usage(self.e.root).free >= storage_reserve(self.setup, self.cases),
                 'capture storage reserve unavailable; use persistent build/')
         self.dut = board
+        require(isinstance(self.setup.get('retained_snapshots'), dict),
+                'retained recovery data required; new backups are disabled')
         self.lock_boards(board, fixture)
         # Check BOTH entries before any board transitions to ROM.
         entries = {b: self.info(b) for b in filter(None, (board, fixture))}
         for b, info in entries.items():
             quiescent(info, BOARDS[b])
-        for b, info in entries.items():
-            # Persist identity/ROM intent before the first device mutation.
-            backup = self.e.root/(b+'-entry.bin')
-            self.snapshots[b] = dict(board=b, serial=BOARDS[b]['serial'], path=str(backup),
-                sha256=None, entry_revision=info['revision'], state='SNAPSHOT_PENDING')
+        if self.setup.get('retained_snapshots') is not None:
+            reused = {}
+            for b, info in entries.items():
+                saved = self.setup['retained_snapshots'][b]
+                path = Path(saved['path'])
+                require(saved['serial'] == BOARDS[b]['serial'] and path.is_absolute() and
+                        path.stat().st_size == FLASH_SIZE and sha256(path) == saved['sha256'],
+                        'retained snapshot identity/hash')
+                snapshot_config(path.read_bytes())
+                require(json.dumps(retained_settings(info), sort_keys=True) ==
+                        json.dumps(saved['settings'], sort_keys=True), 'retained settings changed; refuse stale restore')
+                reused[b] = dict(board=b, serial=saved['serial'], path=str(path), sha256=saved['sha256'],
+                                 entry_revision=info['revision'], state='REUSED', settings=saved['settings'])
+            self.snapshots = reused
             self.journal()
-            self.rom(b)
-            self.pt(b, ['save', '-a', '-v', str(backup), '-t', 'bin'])
-            os.chmod(backup, 0o600)
-            require(backup.stat().st_size == FLASH_SIZE, 'entry full-flash size')
-            retained = snapshot_config(backup.read_bytes())
-            self.e.event('retained_config_checked', dict(board=b, pins=retained.get('pins'), enabled=False))
-            self.snapshots[b].update(sha256=sha256(backup), state='SNAPSHOTTED')
-            self.journal()
-        if fixture:
-            self.deploy(fixture, manifest['images']['stimulus'])
-            quiescent(self.info(fixture), BOARDS[fixture], manifest['images']['stimulus'])
+            self.e.event('retained_recovery_reused', dict(boards=list(reused), new_backups=0))
+            if fixture:
+                self.close_peer(fixture) # Do not keep an idle peer across the DUT flash.
+                self.deploy(fixture, manifest['images']['stimulus'])
+            return
 
     def wait_info(self, board):
         deadline = self.now()+90
@@ -336,6 +373,11 @@ class Device:
             try:
                 return self.info(board)
             except (OSError, TimeoutError):
+                self.close_peer(board)
+                self.sleep(.3)
+            except ValueError as error:
+                require(str(error) in ('consumer Plain LAN WTP unavailable: listener/time not ready',
+                                       'consumer station address unavailable'), 'unexpected boot validation: '+str(error))
                 self.close_peer(board)
                 self.sleep(.3)
         raise TimeoutError('board boot/readiness deadline')
@@ -370,14 +412,16 @@ class Device:
         os.chmod(reserved, 0o600)
         self.pt(board, ['load', '-v', str(reserved), '-t', 'bin', '-o', hex(0x10000000+RESERVED)])
         self.pt(board, ['load', '-v', image['uf2']])
-        readback = self.e.root/(board+'-'+uuid.uuid4().hex+'-readback.bin')
-        self.pt(board, ['save', '-a', '-v', str(readback), '-t', 'bin'])
-        os.chmod(readback, 0o600)
-        self.verify(board, image, readback, snapshot)
-        self.e.event('flash_verified', dict(board=board, image=image, sha256=sha256(readback)))
+        self.pt(board, ['verify', snapshot['path'], '-t', 'bin', '-r',
+                        hex(0x10000000+RESERVED), hex(0x10000000+FLASH_SIZE)])
+        self.e.event('flash_verified', dict(board=board, image=image,
+            verification='picotool-load-verify-and-reserved-range', new_backups=0))
         self.pt(board, ['reboot'])
         info = self.wait_info(board)
         quiescent(info, BOARDS[board], image)
+        if self.setup.get('evidence_mode') == 'gpio-readback':
+            require(json.dumps(retained_settings(info), sort_keys=True) ==
+                    json.dumps(snapshot['settings'], sort_keys=True), 'post-boot retained settings drift')
         require(info['status']['boot_id'] != snapshot.get('last_boot'), 'stale deployment boot')
         snapshot.update(state='DEPLOYED', last_boot=info['status']['boot_id'])
         self.journal()
@@ -414,6 +458,10 @@ class Device:
         self.deploy(board, image)
         info = self.info(board)
         quiescent(info, BOARDS[board], image)
+        if self.setup.get('evidence_mode') == 'gpio-readback':
+            require(info.get('indicator_onboard_readback_known') is True and
+                    info.get('indicator_onboard_readback_error') == 0 and
+                    info.get('indicator_onboard_readback_on') is False, 'restored LED pin unknown/on')
         self.snapshots[board]['state'] = 'VERIFIED_INHIBITED'
         self.journal()
         self.close_peer(board)
@@ -422,6 +470,12 @@ class Device:
     def start_captures(self, root, duration): self.capture.start(root, duration)
     def captures_healthy(self): self.capture.healthy()
     def finish_captures(self): self.capture.finish()
+    def assess_rf(self, case, root):
+        from led_closeout.rf_check import check_capture
+        result = check_capture(root/'capture.cf32', case['action'] not in ('cancel','fail','inhibited'))
+        save_json(root/'rf-presence.json',result)
+        self.e.event('independent_rf_presence',dict(case=case['id'],result=result))
+        require(result['passed'], 'independent RF presence/tail does not match case')
     def stop_captures(self): self.capture.stop()
     def close(self):
         errors=[]

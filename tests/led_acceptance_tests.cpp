@@ -14,6 +14,7 @@ cyw43_t cyw43_state;
 namespace {
 std::uint64_t now_us = 0;
 unsigned writes = 0;
+bool onboard_level = false, external_level = false;
 struct LampOutput : wsprrypico::provisioning::IndicatorOutput {
     bool on = false, fail_on = false, fail_off = false;
     unsigned calls = 0;
@@ -30,12 +31,21 @@ std::uint64_t time_us_64() {
     return now_us;
 }
 void gpio_init(unsigned) {}
-void gpio_put(unsigned, bool) {
+void gpio_put(unsigned, bool value) {
+    external_level = value;
     ++writes;
 }
 void gpio_set_dir(unsigned, bool) {}
-int cyw43_gpio_set(cyw43_t*, int, bool) {
+int cyw43_gpio_set(cyw43_t*, int, bool value) {
+    onboard_level = value;
     ++writes;
+    return 0;
+}
+bool gpio_get(unsigned) {
+    return external_level;
+}
+int cyw43_gpio_get(cyw43_t*, int, bool* value) {
+    *value = onboard_level;
     return 0;
 }
 

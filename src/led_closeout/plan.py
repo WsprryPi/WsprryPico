@@ -31,7 +31,7 @@ def make_plan():
                       duration_ns=seconds * 1_000_000_000, message='ET')
         cases.append(dict(id=name, step=step, image=image, action=action, cue=cue,
                           job=job, charge_ns=int(job['total_duration_ns']) + 1_000_000_000,
-                          optical='independent recording required',
+                          optical='optional when optical evidence is selected',
                           rf='independent SDR recording required'))
     add('warmup', 3, 'onboard', seconds=15)
     for mode in ('WSPR', 'QRSS', 'FSKCW', 'DFCW'):

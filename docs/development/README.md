@@ -105,7 +105,11 @@ The operator subsequently selected [untimed onboard visual checks](phase13-1-ste
 while awaiting the external LEDs. Both installed-firmware OFF baselines were
 confirmed. B's OFF/ON/OFF visual subset subsequently passed and ordinary
 inhibited firmware/settings restoration was verified; RF edges, external LED
-fixtures, recording and stop wiring remain open.
+fixtures and stop wiring remain open. The operator then declined camera setup
+and selected actual hardware GPIO readback. The [GPIO validation prompt](phase13-1-gpio-validation-prompt.md)
+and [execution/review](phase13-1-gpio-validation-review.md) cover 13 available
+cases, autonomous SDR evidence and restoration using existing retained recovery
+data, with no new backups or operator recording setup.
 
 On macOS, run `bash scripts/check_host.sh` from the repository root for host
 configure, build and CTest. It selects full Xcode for the test subprocesses.

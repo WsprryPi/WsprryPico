@@ -5,6 +5,12 @@ Step 2 is the single untimed operator setup. Steps 3–5 then run without button
 presses, rewiring or operator response deadlines; step 6 assesses the independent
 observations and publishes the actual qualification disposition.
 
+The operator subsequently selected hardware GPIO readback plus autonomous SDR
+capture, with no camera setup. Use `evidence_mode: "gpio-readback"`, `camera: null`,
+and only the fixtures required by selected cases. The optical configuration
+below remains optional for a separately selected optical scope. No calibrated
+optical edge timing is claimed by the GPIO mode.
+
 ## Prepared cases and candidates
 
 `python3 scripts/led_closeout.py` is hardware-free by default. It prints the
@@ -148,6 +154,10 @@ sudo python3 scripts/led_closeout.py --run --board B --fixture A \
   --output build/led-run
 ```
 
+`--cases warmup wspr ...` selects canonical cases; `--roles restore onboard cue disabled`
+builds just their candidate roles. Selected cases must all have images. No
+external/GP14 fixture is required by the 13 onboard/disabled cases.
+
 `--steps 3`, `--steps 4` or `--steps 5` selects a reviewed subset, each still
 restoring on exit. This is not an approval prompt or permission expiry.
 For consumer profiles the adapter uses their ordinary Plain LAN WTP listener,
@@ -166,16 +176,34 @@ responses without owner/job IDs retain that unknown authority. Partial results
 are durably recorded as `READ_ONLY_INVENTORY_PARTIAL` with exit code 2, including
 transport cleanup status. They do not satisfy live WTP or RF preflight.
 
-Before candidate deployment, the runner checks both board authorities and
-schedules, enters ROM by serial, saves full 4 MiB flash, checks the actual
-standalone journal's CRC/sequence and disabled pin configuration, and durably
-records snapshot identity/hash. Every deployment restores the original journal
-region and verifies full readback against the image and original reserved/E10
-bytes. Console status exposes actual owner/job authority so restoration checks do not
-depend on LAN or time availability. Final restoration deliberately uses the ordinary inhibited candidate
-with exact original journals/settings; original application bytes remain in
-the private full-flash backup. Both boards are attempted even if one fails.
-Unconfirmed restoration is STOP_UNCERTAIN.
+Before candidate deployment, the runner checks each participating board's
+authority and disabled schedules against existing retained recovery data.
+`retained_snapshots` maps each board to its existing absolute `path`, SHA-256,
+USB `serial` and stable public `settings` from the verified prior restoration.
+Settings cover access/provisioning generations and source, station, schedules,
+expiry, base frequency, watermark and last job. A changed setting, damaged
+retained file or missing record stops before ROM. No new backup is created.
+The retained standalone journal's CRC/sequence and disabled pin configuration
+are also checked.
+
+Every deployment restores the retained journals, verifies application loads
+with picotool `load -v` and compares only the 53,248-byte reserved/E10 range
+with `verify -r`. It never saves another full-flash readback. GPIO-mode
+post-boot settings must match the prepared retained record. Final restoration
+uses the ordinary inhibited candidate with exact retained journals/settings
+and requires known hardware onboard OFF. Console status exposes actual
+owner/job authority independently of LAN readiness. Both participating boards
+are attempted even if one fails. Unconfirmed restoration is STOP_UNCERTAIN.
+
+GPIO mode checks actual selected pin reads during Running and actual OFF for
+uncued Loaded/terminal states; disabled mode checks the independent onboard
+pin. Read errors and unknown values cannot pass. The SDR check compares the
+expected band with neighboring noise and inactive ends, retains its result
+before rejecting a mismatch, and requires an inactive tail. This is
+uncalibrated RF presence evidence, not calibrated optical/RF edge timing.
+Use `python3 tests/led_rf_presence_tests.py` with an already available NumPy
+installation for its synthetic burst, idle, persistent carrier and invalid
+capture checks. No tools are installed by this workflow.
 
 After interruption, retain the directory and recover without admitting jobs:
 
@@ -194,5 +222,5 @@ or damaged backup retains STOP and its exact failure; it cannot be invented.
 Software runner/fixture checks and cross-links do not qualify physical LED,
 GPIO stimulus, camera, RF edge timing, network AP operation or electrical wiring.
 The engineering [review](phase13-1-step1-review.md) records actual validation and
-any execution blockers. Step 2 supplies fixtures/recording; steps 3–6 retain
+any execution blockers. Step 2 supplies remaining external/stop fixtures; steps 3–6 retain
 physical acceptance and final evidence assessment.

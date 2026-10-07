@@ -28,8 +28,27 @@ bool PicoIndicatorOutput::write(bool on) {
         } else {
             gpio_put(gp, on == pins_.indicator_active_high);
         }
-        return true;
+        bool actual = false;
+        return read(actual) == 0 && actual == on;
     }
-    return cyw43_gpio_set(&cyw43_state, CYW43_WL_GPIO_LED_PIN, on) == 0;
+    bool actual = false;
+    return cyw43_gpio_set(&cyw43_state, CYW43_WL_GPIO_LED_PIN, on) == 0 &&
+           read_onboard(actual) == 0 && actual == on;
+}
+
+int PicoIndicatorOutput::read(bool& on) const {
+    if (!hardware::operational(pins_) || pins_.indicator == hardware::PinPlan::Indicator::Disabled)
+        return -1;
+    if (pins_.indicator == hardware::PinPlan::Indicator::External && role_ == Role::Selected) {
+        if (!initialized_)
+            return -1;
+        on = gpio_get(*pins_.indicator_gp) == pins_.indicator_active_high;
+        return 0;
+    }
+    return read_onboard(on);
+}
+
+int PicoIndicatorOutput::read_onboard(bool& on) {
+    return cyw43_gpio_get(&cyw43_state, CYW43_WL_GPIO_LED_PIN, &on);
 }
 } // namespace wsprrypico::provisioning

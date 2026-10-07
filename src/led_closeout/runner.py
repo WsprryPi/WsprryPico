@@ -104,17 +104,34 @@ def quiescent(info, identity, image=None):
 
 class Runner:
     """The backend owns locks, verified flash, transport, clock and capture handles."""
-    def __init__(self, plan, manifest, board, backend, evidence, *, fixture=None, steps=(3, 4, 5)):
+    def __init__(self, plan, manifest, board, backend, evidence, *, fixture=None, steps=(3, 4, 5), cases=None):
         self.plan = validate_plan(plan)
         require(board in BOARDS and (fixture is None or fixture in BOARDS and fixture != board),
                 'named distinct boards required')
         require(set(steps) <= {3, 4, 5} and bool(steps), 'invalid autonomous steps')
-        require(not any(c['action'] == 'gp14' and c['step'] in steps for c in plan['cases']) or fixture,
+        available = [c for c in plan['cases'] if c['step'] in steps]
+        if cases is not None:
+            require(bool(cases) and len(cases) == len(set(cases)) and
+                    set(cases) <= {c['id'] for c in available}, 'invalid canonical case selection')
+            available = [c for c in available if c['id'] in cases]
+        require(available and all(c['image'] in manifest['images'] for c in available),
+                'selected case image unavailable')
+        self.cases = available
+        require(not any(c['action'] == 'gp14' for c in available) or fixture,
                 'GP14 needs a prepared second Pico fixture')
         self.manifest, self.board, self.backend, self.e = manifest, board, backend, evidence
         self.identity, self.fixture, self.steps = BOARDS[board], fixture, steps
         self.owner, self.boot = uuid.uuid4().hex, None
         self.lease_at = 0
+        self.gpio = getattr(backend, 'setup', {}).get('evidence_mode') == 'gpio-readback'
+
+    def checked_pin(self, info, image, on):
+        if not self.gpio:
+            return
+        prefix = 'indicator_onboard' if image['selection'] == 3 else 'indicator_pin'
+        require(info.get(prefix+'_readback_known') is True and
+                type(info.get(prefix+'_readback_error')) is int and info[prefix+'_readback_error'] == 0 and
+                info.get(prefix+'_readback_on') is on, 'hardware LED GPIO readback mismatch/unknown')
 
     def observe(self, image):
         self.backend.captures_healthy()
@@ -166,7 +183,7 @@ class Runner:
         case_root = self.e.root / case['id']
         case_root.mkdir(mode=0o700)
         # Standalone may wait up to one 120-second boundary, then a finite WSPR job.
-        duration = 260 if case['action'] == 'standalone' else int(case['job']['total_duration_ns']) / 1e9 + 90
+        duration = 260 if case['action'] == 'standalone' else int(case['job']['total_duration_ns']) / 1e9 + (25 if self.gpio else 90)
         self.backend.start_captures(case_root, duration)
         try:
             if case['action'] == 'standalone':
@@ -175,12 +192,15 @@ class Runner:
                 info, status = self.wait(image, self.backend.now() + 130,
                     lambda i, s: s['state'] == 'running' and s['output_active'], lease=False)
                 require(status['owner_id'] == 'e' * 32 and status['job_id'], 'standalone owner')
+                self.checked_pin(info, image, True)
                 self.backend.sleep(1)
                 self.backend.command(self.board, 'STOP')
                 self.backend.command(self.board, 'DISABLE')
                 self.wait(image, self.backend.now() + 5,
                           lambda i, s: s['state'] == 'empty' and not s['output_active'] and
                           s['owner_id'] is None and s['job_id'] is None, lease=False)
+                final_info, _ = self.observe(image)
+                self.checked_pin(final_info, image, False)
             else:
                 if case['action'] == 'fail':
                     self.backend.command(self.board, 'FAIL')
@@ -197,6 +217,8 @@ class Runner:
                 require(loaded_status['owner_id'] == self.owner and loaded_status['job_id'] == case['job']['job_id'],
                         'loaded ownership changed')
                 require(not loaded_info['tx_indicator_requested'], 'LOAD requested a TX indication')
+                if not case['cue']:
+                    self.checked_pin(loaded_info, image, False)
                 if image['selection'] in (1,2):
                     require(loaded_info['indicator_output_known'] and not loaded_info['indicator_output_on'],
                             'external LED used for a non-TX cue')
@@ -247,12 +269,15 @@ class Runner:
                             if image['selection'] != 3:
                                 require(info['indicator_output_known'] and info['indicator_output_on'] and
                                         info['tx_indicator_ready'], 'active TX lacks checked indicator')
+                                self.checked_pin(info, image, True)
                             else:
                                 require(not info['tx_indicator_requested'] and not info['indicator_output_on'],
                                         'disabled indication requested an output')
+                                self.checked_pin(info, image, False)
                         else:
                             require(not s['output_active'] and not info['tx_indicator_requested'],
                                     'inhibited job requested RF indication')
+                            self.checked_pin(info, image, False)
                         if not acted and action in ('abort', 'gp14') and self.backend.now() - running_at >= 1:
                             acted = True
                             if action == 'abort':
@@ -280,11 +305,17 @@ class Runner:
                 self.wait(image, self.backend.now() + 22,
                     lambda i, s: not s['output_active'] and s['owner_id'] is None and
                     (image['selection'] == 3 or not i['tx_indicator_requested']), lease=False)
+                if not case['cue']:
+                    final_info, _ = self.observe(image)
+                    self.checked_pin(final_info, image, False)
             if case['action'] == 'complete':
                 self.cues(case, active=True) # Independent post-TX Identify observation.
             self.backend.sleep(3) # Capture post-stop cues/tail; no operator response needed.
             self.backend.finish_captures()
-            self.e.state['attempts'][-1]['result'] = 'AUTOMATION_PASS_PHYSICAL_REVIEW_PENDING'
+            if self.gpio and hasattr(self.backend, 'assess_rf'):
+                self.backend.assess_rf(case, case_root)
+            self.e.state['attempts'][-1]['result'] = ('PASS_GPIO_FUNCTIONAL' if self.gpio else
+                                                    'AUTOMATION_PASS_PHYSICAL_REVIEW_PENDING')
             self.e.save()
         except BaseException as error:
             self.e.event('case_failure', dict(case=case['id'], type=type(error).__name__, message=str(error)))
@@ -298,13 +329,17 @@ class Runner:
         failure = None
         try:
             save_json(self.e.root/'manifest.json', self.manifest)
+            if hasattr(self.backend, 'select_cases'):
+                self.backend.select_cases(self.cases)
+            self.e.state.update(selected_cases=[c['id'] for c in self.cases],
+                                evidence_mode='gpio-readback' if self.gpio else 'optical')
             self.backend.preflight(self.manifest, self.board, self.fixture)
             self.e.state['result'] = 'RUNNING'
             self.e.save()
-            for case in self.plan['cases']:
-                if case['step'] in self.steps:
-                    self.execute_case(case)
-            self.e.state['result'] = 'AUTOMATION_PASS_PHYSICAL_REVIEW_PENDING'
+            for case in self.cases:
+                self.execute_case(case)
+            self.e.state['result'] = ('PASS_GPIO_FUNCTIONAL_RF_REVIEW_PENDING' if self.gpio else
+                                      'AUTOMATION_PASS_PHYSICAL_REVIEW_PENDING')
         except BaseException as error:
             failure = error
             self.e.state['result'] = 'STOP'

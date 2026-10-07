@@ -15,7 +15,7 @@ def pins(selection):
                 indicator_active_high=selection != 2)
 
 
-def build(root, build_dir, destination, *, prepare=False):
+def build(root, build_dir, destination, *, prepare=False, roles=None):
     root, build_dir, destination = map(lambda p: Path(p).resolve(), (root, build_dir, destination))
     def output(argv):
         return subprocess.check_output(argv, cwd=root, text=True).strip()
@@ -34,7 +34,11 @@ def build(root, build_dir, destination, *, prepare=False):
     manifest = dict(schema='phase13.1-led-candidates/2', source_commit=commit, clean=clean,
                     sdk_commit=sdk_commit, picotool_commit=pt_commit, board='pico2_w',
                     sample_rate_hz=138000000, physical_acceptance='NOT_RUN', images={})
-    groups = [('restore', 'onboard'), ('cue', 'stimulus'), ('high',), ('low',), ('disabled',), ('gp14',)]
+    requested = set(IMAGES if roles is None else roles)
+    require(requested and requested <= set(IMAGES) and 'restore' in requested, 'candidate role subset')
+    groups = [tuple(k for k in group if k in requested) for group in
+              [('restore', 'onboard'), ('cue', 'stimulus'), ('high',), ('low',), ('disabled',), ('gp14',)]]
+    groups = [group for group in groups if group]
     for keys in groups:
         rf, acceptance, selection, gp14 = IMAGES[keys[0]]
         args = ['cmake', '-S', str(root), '-B', str(build_dir), '-G', 'Ninja',

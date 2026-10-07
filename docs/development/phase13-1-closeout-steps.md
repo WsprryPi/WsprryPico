@@ -11,7 +11,7 @@ exception if automated device control fails, not a scheduled operator step.
 | Step | Work | Operator | Status |
 | --- | --- | --- | --- |
 | 1 | Finish the runner, finite test cases, candidate checks and automated evidence collection. | No | Complete: engineering preparation |
-| 2 | Identify the connected Pico/SDR setup; connect external LED fixtures for both polarities; prepare LED recording and the physical-stop fixture. | Yes, untimed setup | Onboard visual subset passed: B OFF/ON/OFF, A stayed OFF; ordinary inhibited restoration verified. External LEDs, full wiring and recording remain pending |
+| 2 | Identify the connected Pico/SDR setup; connect external LED fixtures for both polarities; prepare the physical-stop fixture. | Yes, untimed setup | Onboard visual subset passed: B OFF/ON/OFF, A stayed OFF; ordinary inhibited restoration verified. External LEDs and stop wiring remain pending; operator chose hardware GPIO readback with no camera |
 | 3 | Run onboard tests: warmup, all five modes, completion, active abort, armed cancellation and inhibited behavior. | No, after setup | Pending |
 | 4 | Verify onboard TX priority over AP/Identify; external TX-only behavior, both polarities and disabled indication. | No, with fixtures prepared in step 2 | Pending |
 | 5 | Exercise standalone STOP, GP14 cutoff and controlled failure cases. | No, with an automated stop stimulus | Pending |
@@ -19,8 +19,7 @@ exception if automated device control fails, not a scheduled operator step.
 
 Finish engineering preparation before the step-2 session. Prepare both external
 polarity fixtures and the automatic GP14 stimulus up front, so later steps need
-no rewiring or timed button press. Capture automatically and retain recordings
-for later review. Never require a response within a countdown or leave RF on
+no rewiring or timed button press. Collect GPIO readback and autonomous SDR evidence for later review. Never require a response within a countdown or leave RF on
 while awaiting the operator.
 
 The original seven onboard jobs are only part of the complete closeout matrix.
@@ -32,5 +31,9 @@ steps 3–6.
 Step 2 has its own [execution prompt](phase13-1-step2-prompt.md),
 [untimed operator wiring sheet](phase13-1-step2-operator-setup.md) and
 [execution/review record](phase13-1-step2-review.md). Operator confirmations
-and recording/measurement prerequisites remain pending until actually supplied
-and checked; they are not implied by the connected-SDR authorization.
+and external/stop wiring remain pending until actually supplied and checked.
+The operator subsequently declined camera setup and selected command results,
+actual hardware GPIO reads and autonomous SDR evidence. The [GPIO prompt](phase13-1-gpio-validation-prompt.md)
+executes 13 available cases without external fixtures. No camera or further
+onboard visual confirmation is required for that functional scope. Optical
+edge measurements are outside this selected scope.

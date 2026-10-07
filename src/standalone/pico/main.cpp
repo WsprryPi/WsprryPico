@@ -931,6 +931,20 @@ int main() {
             result += led_status.operational_known ? "true" : "false";
             result += ",\"indicator_operational_fault\":";
             result += led_status.operational_fault ? "true" : "false";
+            bool led_pin_on = false, onboard_pin_on = false;
+            const auto led_pin_error = transmit_indicator_output.read(led_pin_on);
+            const auto onboard_pin_error =
+                wsprrypico::provisioning::PicoIndicatorOutput::read_onboard(onboard_pin_on);
+            result += ",\"indicator_pin_readback_known\":";
+            result += led_pin_error == 0 ? "true" : "false";
+            result += ",\"indicator_pin_readback_on\":";
+            result += led_pin_error != 0 ? "null" : led_pin_on ? "true" : "false";
+            result += ",\"indicator_pin_readback_error\":" + std::to_string(led_pin_error);
+            result += ",\"indicator_onboard_readback_known\":";
+            result += onboard_pin_error == 0 ? "true" : "false";
+            result += ",\"indicator_onboard_readback_on\":";
+            result += onboard_pin_error != 0 ? "null" : onboard_pin_on ? "true" : "false";
+            result += ",\"indicator_onboard_readback_error\":" + std::to_string(onboard_pin_error);
 #ifdef WSPRRY_PICO_STANDALONE_RF
             result += ",\"tx_indicator_requested\":";
             result += tx_indicator_gate.requested() ? "true" : "false";
