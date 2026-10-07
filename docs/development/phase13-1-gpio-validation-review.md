@@ -47,7 +47,7 @@ disabled schedules, released ownership, preserved settings and hardware OFF.
 
 Validation: seven affected CTests passed (indicator adapter/acceptance,
 field access, RF worker, PIO/DMA, standalone and runner); three affected
-ASan/UBSan CTests passed; 37 deterministic runner/setup checks passed;
+ASan/UBSan CTests passed; 38 deterministic runner/setup checks passed;
 two synthetic RF-presence tests passed; WTP contract validation passed.
 The prior two unrelated full-suite baseline failures remain outside this
 slice; this record does not claim a new full-suite pass.
@@ -65,8 +65,14 @@ RF inactive and actual GPIO OFF.
 The repair distinguishes absent/disappearing Console endpoints (retryable
 boot readiness) from an existing occupied endpoint (still an immediate STOP).
 Three adverse endpoint checks pass. Existing failed records are retained;
-zero RF admissions were charged. Recovery and a rebuilt clean-source run are
-pending. No ambiguous ARM will be replayed. The selected cases are warmup, WSPR, QRSS, FSKCW,
+zero RF admissions were charged. Recovery succeeded with verified inhibited restoration and zero admissions.
+A rebuilt run then identified a second readiness race: Console is available
+before the consumer Plain LAN clock listener. That run stopped before admission
+and restored automatically. The repair retries only the two explicit listener/
+station-readiness messages within the existing finite clock wait; identity
+validation errors still stop before ARM. Behavioral checks cover both transient
+messages and identity rejection. All stopped ledgers are retained and have zero
+charged RF. A clean-source target run remains pending. No ambiguous ARM is replayed. The selected cases are warmup, WSPR, QRSS, FSKCW,
 DFCW, active abort, armed cancellation, inhibited behavior, onboard AP,
 onboard Identify, disabled indication, standalone STOP and controlled
 ON-write launch failure. External high/low and physical GP14 cutoff remain

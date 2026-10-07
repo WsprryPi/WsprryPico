@@ -32,6 +32,7 @@ class Fake:
         self.capture_active, self.admissions, self.renewals = False, 0, 0
         self.fail_on, self.gp14, self.loaded_at = False, False, 0
         self.setup = {}
+        self.clock_reads = 0
 
     def now(self): return self.t
     def sleep(self, seconds): self.t += seconds
@@ -98,6 +99,12 @@ class Fake:
             if self.fault == 'slow_fixture':self.t+=3
     def request(self, op, body):
         clock_snapshot=int(self.t*1e9)
+        if op == 'GET_CLOCK':
+            self.clock_reads += 1
+            if self.fault == 'boot_clock_listener' and self.clock_reads <= 2:
+                raise ValueError(('consumer Plain LAN WTP unavailable: listener/time not ready',
+                                  'consumer station address unavailable')[self.clock_reads-1])
+            if self.fault == 'clock_identity':raise ValueError('WTP device identity')
         if self.fault == 'slow_transport':
             if self.owner and clock_snapshot/1e9 >= self.lease_end:self.owner=None
             self.t+=2.5
@@ -143,6 +150,18 @@ class Fake:
 
 
 class RunnerTests(unittest.TestCase):
+    def test_clock_listener_readiness_retries_but_identity_error_stops_before_admission(self):
+        e,fake,_=self.exercise('boot_clock_listener')
+        Runner(make_plan(),manifest(),'A',fake,e,cases=['warmup']).run()
+        self.assertEqual(e.state['jobs'],1)
+        self.assertEqual(fake.admissions,1)
+        e,fake,_=self.exercise('clock_identity')
+        with self.assertRaisesRegex(ValueError,'unexpected clock readiness'):
+            Runner(make_plan(),manifest(),'A',fake,e,cases=['warmup']).run()
+        self.assertEqual(e.state['jobs'],0)
+        self.assertEqual(fake.admissions,0)
+        self.assertEqual(e.state['cleanup'],'VERIFIED_INHIBITED')
+
     def test_reboot_endpoint_absence_is_retryable_but_occupied_endpoint_is_not(self):
         obj=Device.__new__(Device)
         message='Endpoint occupied or ownership check unavailable'

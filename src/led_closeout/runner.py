@@ -175,6 +175,11 @@ class Runner:
                 clock = self.backend.request('GET_CLOCK', {})
             except (OSError, TimeoutError):
                 clock = dict(state='unavailable')
+            except ValueError as error:
+                require(str(error) in ('consumer Plain LAN WTP unavailable: listener/time not ready',
+                                       'consumer station address unavailable'),
+                        'unexpected clock readiness validation: '+str(error))
+                clock = dict(state='unavailable')
             if clock['state'] == 'synchronized' and clock['leap'] == 'normal' and int(clock['uncertainty_ns']) <= 500000000:
                 break
             require(self.backend.now() < clock_deadline, 'clock readiness deadline')
