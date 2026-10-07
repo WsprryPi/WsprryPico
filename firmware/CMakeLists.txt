@@ -228,7 +228,7 @@ pico_set_program_description(WsprryPico-RFWTP "WTP GP2 integration ${WSPRRY_PICO
 pico_add_extra_outputs(WsprryPico-RFWTP)
 
 # LED qualification adapters are absent from ordinary images.
-option(WSPRRY_PICO_LED_ACCEPTANCE "Finite LED closeout commands and selected-pin test override" OFF)
+option(WSPRRY_PICO_LED_ACCEPTANCE "LED closeout fixtures; untimed optical lamp only in inhibited image" OFF)
 set(WSPRRY_PICO_LED_SELECTION "0" CACHE STRING "LED test selection: 0 onboard, 1 GP15 high, 2 GP16 low, 3 disabled")
 if(NOT WSPRRY_PICO_LED_SELECTION MATCHES "^[0-3]$")
     message(FATAL_ERROR "LED test selection must be 0..3")

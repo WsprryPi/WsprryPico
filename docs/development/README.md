@@ -101,6 +101,9 @@ session at step 2. Step 1 prepares the [finite unattended runner](phase13-1-runn
 [preparation/review record](phase13-1-step2-review.md). Connected devices,
 default pin journals and receiver recording have been checked; physical LED,
 stop wiring and actual camera setup remain pending operator confirmation.
+The operator subsequently selected [untimed onboard visual checks](phase13-1-step2-manual-onboard.md)
+while awaiting the external LEDs. Both installed-firmware OFF baselines were
+confirmed; the isolated RF-inhibited lamp check does not qualify RF edges.
 
 On macOS, run `bash scripts/check_host.sh` from the repository root for host
 configure, build and CTest. It selects full Xcode for the test subprocesses.

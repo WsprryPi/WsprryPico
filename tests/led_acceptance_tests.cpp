@@ -14,6 +14,17 @@ cyw43_t cyw43_state;
 namespace {
 std::uint64_t now_us = 0;
 unsigned writes = 0;
+struct LampOutput : wsprrypico::provisioning::IndicatorOutput {
+    bool on = false, fail_on = false, fail_off = false;
+    unsigned calls = 0;
+    bool write(bool value) override {
+        ++calls;
+        if ((value && fail_on) || (!value && fail_off))
+            return false;
+        on = value;
+        return true;
+    }
+};
 } // namespace
 std::uint64_t time_us_64() {
     return now_us;
@@ -30,6 +41,52 @@ int cyw43_gpio_set(cyw43_t*, int, bool) {
 
 int main() {
     using namespace wsprrypico;
+    {
+        using Lamp = provisioning::LedAcceptance::Lamp;
+        provisioning::LedAcceptance fixture;
+        LampOutput output;
+        provisioning::IndicatorController indicator(output, "DUT");
+        indicator.softap_ready(true);
+        assert(indicator.identify("identify", "DUT", true, true, 0) ==
+               provisioning::IndicatorCode::Ok);
+        assert(fixture.lamp(indicator, Lamp::On, 0) && output.on);
+        for (const auto now : {1'000ULL, 20'000ULL, 864'000'000ULL}) {
+            assert(fixture.poll_lamp(indicator, now) && output.on);
+        }
+        const auto calls = output.calls;
+        assert(fixture.lamp(indicator, Lamp::On, 864'000'000ULL));
+        assert(output.calls == calls); // Repeating ON neither expires nor pulses the lamp.
+        assert(!fixture.ap(1) && !fixture.fail(1) && !fixture.schedule() && !fixture.hold());
+        assert(fixture.lamp(indicator, Lamp::Off, 864'000'001ULL) && !output.on);
+        assert(fixture.poll_lamp(indicator, 1'728'000'000ULL) && !output.on);
+        assert(fixture.lamp(indicator, Lamp::Normal, 1'728'000'000ULL));
+        assert(!fixture.lamp_active() && output.on); // Normal AP cue resumes.
+        assert(fixture.fail(1'728'000'001ULL));
+        assert(!fixture.lamp(indicator, Lamp::On, 1'728'000'002ULL));
+    }
+    {
+        provisioning::LedAcceptance fixture;
+        LampOutput output;
+        provisioning::IndicatorController indicator(output, "DUT");
+        assert(fixture.lamp(indicator, provisioning::LedAcceptance::Lamp::On, 0));
+        output.fail_off = true;
+        assert(!fixture.lamp(indicator, provisioning::LedAcceptance::Lamp::Off, 1));
+        assert(output.on && !indicator.status(1).output_known);
+        output.fail_off = false;
+        assert(!fixture.poll_lamp(indicator, 2)); // Fault remains latched even after OFF succeeds.
+        assert(!output.on && indicator.status(2).output_known);
+        assert(indicator.status(2).output_fault);
+    }
+    {
+        provisioning::LedAcceptance fixture;
+        LampOutput output;
+        output.fail_on = true;
+        provisioning::IndicatorController indicator(output, "DUT");
+        assert(!fixture.lamp(indicator, provisioning::LedAcceptance::Lamp::On, 0));
+        assert(!output.on && output.calls == 2);
+        assert(fixture.lamp() == provisioning::LedAcceptance::Lamp::Off);
+        assert(indicator.status(0).output_known && indicator.status(0).output_fault);
+    }
     {
         provisioning::ButtonDiagnostic input;
         provisioning::ButtonSafety worker;

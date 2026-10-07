@@ -568,6 +568,12 @@ int main() {
 #ifdef WSPRRY_PICO_STANDALONE_RF
         indicator.poll_transmit(tx_indicator_gate, now_ms);
 #else
+#ifdef WSPRRY_PICO_LED_ACCEPTANCE
+        if (wsprrypico::provisioning::led_acceptance.lamp_active()) {
+            (void)wsprrypico::provisioning::led_acceptance.poll_lamp(indicator, now_ms);
+            return; // Only the inhibited test image can hold an optical lamp state.
+        }
+#endif
         indicator.transmitting(false); // Dry-run activity never requests solid TX.
         indicator.poll(now_ms);
 #endif
@@ -904,6 +910,11 @@ int main() {
             number_field(result, "led_selection", WSPRRY_PICO_LED_SELECTION);
             number_field(result, "led_rejected_writes",
                          wsprrypico::provisioning::led_acceptance.rejected());
+#ifndef WSPRRY_PICO_STANDALONE_RF
+            result += ",\"led_lamp_supported\":true";
+            number_field(result, "led_lamp_state",
+                         static_cast<unsigned>(wsprrypico::provisioning::led_acceptance.lamp()));
+#endif
 #else
             result += ",\"led_acceptance\":false";
 #endif
@@ -1315,6 +1326,24 @@ int main() {
                 return "{\"ok\":false,\"error\":\"led_test_refused\"}\n";
             auto& fixture = wsprrypico::provisioning::led_acceptance;
             bool ok = false;
+#ifndef WSPRRY_PICO_STANDALONE_RF
+            if (command == "LAMP ON" || command == "LAMP OFF" || command == "LAMP RELEASE") {
+                if (current.output_active || current.owned || !scheduler.idle() ||
+                    !store.healthy() || !profile_store.healthy() || !access_store.healthy() ||
+                    !store.config() || store.config()->enabled ||
+                    boot_pins.indicator != wsprrypico::hardware::PinPlan::Indicator::Onboard)
+                    return "{\"ok\":false,\"error\":\"led_test_refused\"}\n";
+                using Lamp = wsprrypico::provisioning::LedAcceptance::Lamp;
+                ok = fixture.lamp(indicator,
+                                  command == "LAMP ON"    ? Lamp::On
+                                  : command == "LAMP OFF" ? Lamp::Off
+                                                          : Lamp::Normal,
+                                  now);
+                return ok ? "{\"ok\":true}\n" : "{\"ok\":false,\"error\":\"led_test_refused\"}\n";
+            }
+#endif
+            if (fixture.lamp_active())
+                return "{\"ok\":false,\"error\":\"led_test_refused\"}\n";
             if (command == "AP") {
                 ok =
                     fixture.ap_active(now) || fixture.ap(now); // Existing finite cue is idempotent.
