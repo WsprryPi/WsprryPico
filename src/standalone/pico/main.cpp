@@ -1388,7 +1388,7 @@ int main() {
                 ok = store.save(off);
             } else if (command == "SCHEDULE" && scheduler.idle() && store.config() &&
                        !store.config()->enabled && fixture.schedule()) {
-                ok = led_schedule.begin(store, service);
+                ok = led_schedule.begin(store, service, scheduler);
 #ifndef WSPRRY_PICO_STANDALONE_RF
             } else if (command == "HOLD" && scheduler.idle() && !current.owned &&
                        !current.output_active &&

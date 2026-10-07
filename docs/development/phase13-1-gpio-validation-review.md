@@ -111,7 +111,11 @@ The repair creates a separate real Scheduler only in explicit test images;
 ordinary consumer suspension remains intact. The fixture preserves station,
 network and pins, permits one finite daily occurrence with expiry, polls the
 actual scheduler and sends STOP to the same instance that admitted its job.
-A real Scheduler test covers boot suspension, admission, STOP, no second
+Adversarial review also identified competition from an unsuspended engineering
+scheduler and setup too close to a boundary. The fixture now suspends the
+ordinary scheduler before saving its occurrence and skips a boundary that
+lacks arm margin. A real Scheduler test covers both consumer/engineering
+suspension, a near-boundary setup, unsynchronized refusal, admission, STOP, no second
 occurrence and preserved settings; its normal and ASan/UBSan runs pass.
 The no-admission budget exception is bound to exact pre-fix firmware `de06bc3`,
 matching device/revision/profile and a full-window immutable suspension trace.
