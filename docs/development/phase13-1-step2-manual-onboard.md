@@ -128,3 +128,13 @@ remain private on wspr5 under the diagnostic source's `build/`. The first STOP
 is preserved separately. Firmware evidence is bound to source `882964a`; later
 documentation commits do not change those tested images. Rebuild current-head
 candidates before starting the full autonomous RF matrix.
+
+## Continuation constraint
+
+After this subset, the operator requested: **“Stop with the backups - they
+waste time.”** Do not take new full-flash backups as routine test preparation.
+The recovery images and retained snapshots already collected are available;
+preserve current settings and perform the necessary identity/inactivity checks.
+The existing runner's automatic snapshot path must be revised before using it
+for further tests under this instruction. No further backup operation was
+started after the request.
