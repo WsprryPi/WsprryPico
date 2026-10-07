@@ -3,13 +3,15 @@
 Phase 11 is closed within its documented software, bounded physical and scoped
 conducted-RF acceptance. The authoritative [Phase 11.7 joint review](phase11-7-review.md)
 binds its source pair, assertion-level applicability, host regressions and
-retained limitations. Phase 12 remains `OPEN_PARTIAL`, with zero declared
-automatic workstreams remaining after the
-[automatic closeout](phase12-orchestratable-closeout-results.md). The current
-[closure matrix](phase12-closure-matrix.md) and
-[operator continuation](phase12-remaining-execution-prompt.md) retain the
-browser/offline, indicator/GP14, physical interruption, peer/fleet and conditional
-RF gates. The source and historical evidence below keep their recorded scopes.
+retained limitations. Phase 12 is **CLOSED_SCOPED** after the operator accepted
+the final 2026-10-06 dispositions in the [closure matrix](phase12-closure-matrix.md).
+The [closeout](phase12-orchestratable-closeout-results.md) retains automatic and
+selected physical results, final 19-attempt/13-job RF accounting and unchanged
+failed originals. Strict final 50 ms/90 s RF assertions and specified physical
+peer/fleet boundaries remain unqualified; GP14 production default enablement
+is deferred. The [completed operator prompt](phase12-remaining-execution-prompt.md)
+has no remaining action queue. Source and historical evidence below keep their
+recorded scopes; Phase 14 qualification remains separate.
 Its versioned [Field-GATT/1 engineering protocol](../protocol/Field-GATT.md)
 and [conformance vectors](../protocol/Field-GATT-v1-vectors.json),
 [implementation plan](phase12-plan.md),
@@ -103,8 +105,9 @@ provisional session. The source/host contract also has bounded RF-inhibited
 native-Pi maximum-profile and Bluefy/iPhone prepared-file activation evidence
 on Candidate A; see the [activation record](phase12-profile-activation-attempt.md).
 The repaired Bluefy apply reached generation 3 and a normal restart with BLE
-readback. Later positive generation-3 mTLS/WTP and HTTPS readback also passed;
-broader commissioning remains open.
+readback. Later positive generation-3 mTLS/WTP and HTTPS readback also passed.
+The final selected commissioning scope and broader unqualified boundaries are
+recorded in the current closure matrix.
 
 The supported [Raspberry Pi/Linux BLE client](raspberry-pi-ble-client.md) adds a
 native BlueZ local/bench workflow using the same production GATT contract.

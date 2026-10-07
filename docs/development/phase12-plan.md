@@ -1,6 +1,10 @@
 # Phase 12 provisioning implementation and acceptance plan
 
-Status: active and **OPEN_PARTIAL**. P12.1-P12.5 remain accepted within their
+Status: **CLOSED_SCOPED** by explicit operator disposition (2026-10-06).
+The frozen fourteen-ID acceptance scope is complete through earned results and
+documented exclusions; broad RF/interoperability/release qualification remains
+separate. GP14 production default enablement is deferred.
+P12.1-P12.5 remain accepted within their
 documented hardware-free scopes. P12.6 production-enables BLE provisioning,
 authenticated controller time, Identify/status, an unchanged WTP/1 stream, the
 network-only live activator and indicator, a deterministic offline-capable
@@ -10,13 +14,13 @@ the SoftAP path included the bounded project-owned DHCP server on
 provisioned pre-clock/normal HTTPS, password/cookie admission,
 controller time and the existing browser/`JobService` API.
 
-The [current closure matrix](phase12-closure-matrix.md) reconciles required
-consumer and supported engineering assertions for the 2026-10-02 follow-up.
-Its product recommendations and finite physical limits are proposals pending
-selection/approval, not new acceptance or hardware authority. P12.9 remains
-closed; GP14 remains default-off; Phase 12 remains `OPEN_PARTIAL`.
+The [current closure matrix](phase12-closure-matrix.md) records the final
+accepted consumer and supported engineering assertions and exact exclusions.
+Earlier proposals and remaining-work lists below retain their historical
+checkpoint scope; they are not a new execution queue. P12.9 remains closed;
+GP14 remains default-off. Final RF accounting is **19 attempts / 13 charged jobs**.
 
-## Closeout progress — 2026-10-05
+## Final closeout — 2026-10-06
 
 All four declared automatic workstreams are complete within their reviewed
 scopes: credential journals, reset/old-peer refusal, engineering carrier/API
@@ -26,19 +30,20 @@ repeat a completed check only for a demonstrated source impact. The detailed
 evidence and limits are in the
 [current closeout results](phase12-orchestratable-closeout-results.md).
 
-| Area | Verified progress | Still required |
+| Area | Verified progress | Final disposition |
 | --- | --- | --- |
-| Consumer commissioning and recovery | P12.9 remains closed. Existing recovery, negative, populated-reset and offline-save results remain accepted. The non-cellular iPad now passes offline portal use (C10O), network3→4 and station4→5 saves on A with unrelated-state preservation. | C8 and C10O are **CLOSED_SCOPED** after the operator confirmed both repaired pages without another Save; remaining independent physical/fleet/RF assertions are separate. See the [iPad record](phase12-physical-acceptance.md#ipad-commissioning-2026-10-06). |
-| Time and readiness | Automatic T5 launch-admission, C8T/R11F readiness and R11A scopes are accepted. The permanent SNTP restriction on wspr5 has been removed as approved, and the Mac query succeeds. | Independent physical timing and any conditional RF assertions. |
+| Consumer commissioning and recovery | P12.9 remains closed. Existing recovery, negative, populated-reset and offline-save results remain accepted. The non-cellular iPad now passes offline portal use (C10O), network3→4 and station4→5 saves on A with unrelated-state preservation. | C8 and C10O are **CLOSED_SCOPED** after the operator confirmed both repaired pages without another Save; the other frozen groups are closed as recorded below. See the [iPad record](phase12-physical-acceptance.md#ipad-commissioning-2026-10-06). |
+| Time and readiness | Automatic T5 launch-admission, C8T/R11F readiness and R11A scopes are accepted. The permanent SNTP restriction on wspr5 has been removed as approved, and the Mac query succeeds. | Accepted declared time/readiness scope retained; broad physical timing/RF qualification is separate. |
 | B12J: credential journal — automatic scope closed | Cases 0, 8, 9 and 10, the corruption cases and healthy-C recovery pass independent review. Stage 9 retained B/generation 3; stage 10 selected C/generation 4. Fresh TLS authority and exact unrelated-state/E10 preservation pass. | The selected precommit physical cut now passes with exact old-profile/bond and unrelated-state/E10 preservation. In-pulse power loss is explicitly excluded; retained automatic proofs remain accepted. |
-| R11P: reset and retained peer — automatic scope closed | The supported reset cleared both bonds and rotated its security roots. The exact retained wspr4 key was rejected twice with PIN_OR_KEY_MISSING; no pairing traffic was captured. The post-attempt flash is byte-for-byte unchanged. Settings, cursor/watermark and E10 remain intact; generation 3 to 5 is the defined save/purge transition. A supported Pair/C apply and later same-boot observations supplied the resource context. | The selected profile cut passes. The reset-intent cut remains STOP with later reset/clearing recovery accepted; its timed assertion awaits an explicit disposition, with no automatic retry. The original USB reboot-gap STOP is retained. |
-| B12C: engineering carriers and API — automatic scope closed | Idle API, one engineering Save/cold persistence, controller-local BLE, BLE/TLS disconnect leases and maximum inbound BLE framing pass. Both loaded/armed/running waves independently pass all six declared cases: shared state, foreign refusal, application BUSY with unchanged readbacks, profile BUSY/cancellation and final same-job running observations. Final raw TLS authority is empty/unowned/inactive; the later quiet readback and owned-host cleanup pass. | Broader physical peer/fleet/interoperability and conditional RF assertions remain in the operator scope. No maximum-size outbound response or RF qualification is claimed. |
-| B12R: resource return and Save responsiveness — automatic scope closed | A's one Save, all 20 STATUS replies, two overlapping intervals and cold preservation pass. Engineering resource review accepts 241 samples over 7,200 seconds and six simulator cases. Heap returned 144 bytes below baseline, every measured pool returned, minimum guarded stack margin was 22,128 bytes, and measured Bluetooth credits returned fully. The later quiet readback passes within the existing cleanup allowance; original STOP results are preserved. | No remaining assertion in the declared automatic scope. Physical observations remain at the end. |
-| Operator observations and exit | Both Picos have GP14 buttons. A’s visible LED observations and B’s one checked-driver fixture boot/named normal exit pass; B12L is CLOSED_SCOPED with the accepted exact-coincidence exclusion. The selected profile cut and one installed fleet simulator job pass independent review. | The reset-intent timed claim and unqualified physical-peer/full-fleet boundaries await an explicit disposition. One corrected G7 attempt was authorized to 18/13, then stopped before action cue/capture/ownership/job because actual TLS/443 was mislabeled Plain/31417. Accounting is 18 attempts/12 jobs; no automatic retry or default enablement. The listener guard passes affected Linux checks and review. B retains healthy RF source `8fdb6ef13448`, disabled/empty/inactive with saved state preserved and locks released. Another attempt requires explicit additional budget. The two accepted timing exclusions and all prior accepted results remain unchanged. See the [latest RF record](phase12-gp14-rf-review.md#corrected-attempt-stopped-before-rf--2026-10-06). |
+| R11P: reset and retained peer — automatic scope closed | The supported reset cleared both bonds and rotated its security roots. The exact retained wspr4 key was rejected twice with PIN_OR_KEY_MISSING; no pairing traffic was captured. The post-attempt flash is byte-for-byte unchanged. Settings, cursor/watermark and E10 remain intact; generation 3 to 5 is the defined save/purge transition. A supported Pair/C apply and later same-boot observations supplied the resource context. | The selected profile cut passes. The reset-intent cut remains STOP with later reset/clearing recovery accepted; the operator explicitly excludes its timed assertion, with no automatic retry. The original USB reboot-gap STOP is retained. |
+| B12C: engineering carriers and API — automatic scope closed | Idle API, one engineering Save/cold persistence, controller-local BLE, BLE/TLS disconnect leases and maximum inbound BLE framing pass. Both loaded/armed/running waves independently pass all six declared cases: shared state, foreign refusal, application BUSY with unchanged readbacks, profile BUSY/cancellation and final same-job running observations. Final raw TLS authority is empty/unowned/inactive; the later quiet readback and owned-host cleanup pass. | One actual installed member/application simulator job is accepted. Four-bond/fifth-peer, iPad engineering BLE, wspr5 post-release connection and simultaneous/full eight-member fleet are explicitly excluded; advertised limits remain unchanged. No maximum-size outbound response or RF qualification is claimed. |
+| B12R: resource return and Save responsiveness — automatic scope closed | A's one Save, all 20 STATUS replies, two overlapping intervals and cold preservation pass. Engineering resource review accepts 241 samples over 7,200 seconds and six simulator cases. Heap returned 144 bytes below baseline, every measured pool returned, minimum guarded stack margin was 22,128 bytes, and measured Bluetooth credits returned fully. The later quiet readback passes within the existing cleanup allowance; original STOP results are preserved. | No remaining assertion in the declared automatic scope; no soak replay. |
+| Operator observations and exit | Both Picos have GP14 buttons. A’s accepted LED observations and B’s checked-driver fixture boot/named normal exit are retained. The physical profile cut and one installed fleet simulator job pass independent review. The nineteenth G7 attempt records independent cutoff, timely AP association and later same-boot usable portal/latch refusal. | **CLOSED_SCOPED.** The operator accepted the documented timing/peer/fleet dispositions. G7 is 1.261 ms nominal/54.828 ms conservative; strict 50 ms and HTTP/operator-within-90 s remain unqualified. Actual 16.111 s hold accepted; original STOP unchanged. Final accounting **19/13**, no retry, GP14 default deferred. B retains healthy `58afb2735c23`, disabled/Aborted/inactive/safety-latched; A is unchanged. Owned host fixtures/connections/locks are cleaned. See the [final results](phase12-orchestratable-closeout-results.md#final-scoped-closeout-and-exit-2026-10-06). |
 
 **Remaining automatic groups: zero.** B12J, R11P, B12C and B12R are closed
 within their declared automatic scopes after adversarial review and repair.
-Operator-dependent and broader qualification gates remain open. The immediate
+No operator-dependent assertion remains in the accepted frozen scope; broader
+qualification remains separate. The immediate
 post-TLS-close child snapshot still had one connection; the later original
 parent snapshot passes every quiet predicate 23.346 seconds later. The private
 fixture now bounds that reclamation check within the existing cleanup budget.
@@ -492,12 +497,12 @@ layout; a cross-build is not BLE, Wi-Fi, timing or RF evidence.
 | 11.6 conducted RF | No row is changed or promoted by host work | After adapters, repeat only source-impact-affected coexistence rows under new finite authority; preserve all excluded rows |
 | 11.7 closure | Remains the Phase 11 record, not Phase 12 evidence | New Phase 12 review and ledger must cite, not rewrite, Phase 11 artifacts |
 
-## Remaining Phase 12 roadmap
+## Final Phase 12 milestone disposition
 
 The existing
 [field-access and security contract](phase12-field-access-contract.md) remains
-the implemented engineering baseline until the first milestone below replaces
-its user-facing commissioning rules. Its fail-closed storage, identity,
+the implemented engineering baseline; the revised open setup contract
+supersedes its user-facing commissioning rules. Its fail-closed storage, identity,
 ownership, transactional activation and RF-authority boundaries remain in
 force. The roadmap does not expose those mechanisms as an acceptable consumer
 workflow.
@@ -512,19 +517,24 @@ build now defaults to station-only Plain LAN WTP on TCP port 31417, with
 explicit build-time `off` and `tls` modes. Plain LAN requires no per-boot TLS
 identity for a Wi-Fi-only profile. Engineering mTLS stays intact. WsprryPi has
 an explicit Plain LAN transport that can learn the Pico device ID from `HELLO`
-when no ID is configured. Host and cross-build checks do not qualify new-image
-physical interoperability or RF operation.
+when no ID is configured. The installed member/application path later passed
+a bounded simulator check. Host/cross-build checks and that one-member result
+do not qualify full fleet interoperability or RF operation.
 The [Plain LAN source review](phase12-plain-lan-review.md) records the repaired
-findings, host checks and remaining physical gate.
+findings and host checks; the current matrix records final physical scope.
 
-| Milestone | Status | Outcome required to advance |
+| Milestone | Final status | Accepted outcome and retained limits |
 | --- | --- | --- |
-| P12.7 — Consumer commissioning contract | **GP14 INHIBITED SCOPE ACCEPTED; FIVE OF SIX RF ROWS ACCEPTED; PRODUCTION GATE OPEN** | The [current decision](phase12-safari-open-setup-revision.md) keeps immediate Wi-Fi fields, optional station details later and no press to save. GP14 pin 19 requests reset on a debounced release under 0.4 seconds, transmission stop on release from 0.4 to under 0.9 seconds or at 0.9 seconds held, and setup AP at 9 seconds held after confirmed shutdown. B's [bounded integrated closeout](phase12-gp14-integrated-acceptance.md) accepts its inhibited scope. Production integration/worker safety pass source gates; conducted active stop, armed cancellation, active/armed cancellation while core 0 is busy, and the [fresh-Ready quick reset](phase12-gp14-rf-review.md#quick-release-rf-reset-accepted-2026-10-02) pass their operational bounds. Quick reset records a 328 ms contact, distinct healthy boot, preserved settings and a 39.463 ms conservative cutoff estimate, not calibrated timing. Long-held RF-to-AP availability remains open. All attempts remain recorded: **18 acquisition attempts/12 charged jobs**, exhausting the approved 18/13 acquisition ceiling. The [corrected attempt](phase12-gp14-rf-review.md#corrected-attempt-stopped-before-rf--2026-10-06) stopped before cue/capture/job because actual TLS/443 was mislabeled Plain/31417; the listener guard now passes source checks and review. The [final long-ap attempt](phase12-gp14-rf-review.md#final-long-ap-attempt-failed-2026-10-06) failed on Console capacity before the action cue; the subsequent page was identity-only recovery. The demonstrated Console/portal repairs pass source/build validation without a physical pass. Another acquisition requires explicit additional budget. GP14 default enablement stays off. Exact input coincidence with erase/program is unmeasured and explicitly excluded. The BOOTSEL policy and failed sampler are historical. |
-| P12.8 — Commissioning foundation | **TARGET CORE ACCEPTED; FULL GATE OPEN** | One-use encrypted Wi-Fi setup has bounded A/B target evidence; B also has a later network-only update to generation 2. The [station continuation](phase12-physical-acceptance.md#b-station-update-accepted-in-duckduckgo-2026-09-30) records first consumer generation 3 and an operator-accepted same-iPhone DuckDuckGo update to generation 4 with fresh SNTP admission, one activation restart, 61-second continuity and journal proof of preserved network/TLS and empty client list, without retained owners. [Saved station prefill](phase12-physical-acceptance.md#saved-station-form-prefill-continuation-2026-09-30) is phone-confirmed and closed. Privacy refresh prevented the earlier Save's final browser confirmation; extended AP/clock readiness has a retained gap. Different-phone, populated-client preservation, negative/reconcile and the full foundation remain open. |
-| P12.9 — Guided captive SoftAP setup | **CLOSED — WI-FI-FIRST GUIDED SETUP** | The operator accepted the successful retry after B's interrupted second attempt. A and B completed phone-driven, no-button Wi-Fi setup with durable generation-1 readback; B's wrong-password attempt left generation 0. Opening `http://192.168.4.1/` manually is an accepted entry path. The [retry/style repair](phase12-safari-open-setup-review.md) is installed and browser/host tested; its phone retest and automatic launch are tracked as robustness observations, not P12.9 exit gates. Optional station settings retain their P12.10 physical gate. |
-| P12.10 — RF-inhibited commissioning acceptance | **NETWORK/STATION PHONE CORE ACCEPTED; FULL GATE OPEN** | The recorded A/B phone runs saved network-only generation 1, station addresses and accepted NTP time with inactive output. B later completed a GP14-opened phone network update to generation 2 with a reported "Saved and connected" page and durable readback in the [runtime review](phase12-gp14-runtime-review.md). B optional station setup and its later source-5 update are now accepted in the [DuckDuckGo packet](phase12-physical-acceptance.md#b-station-update-accepted-in-duckduckgo-2026-09-30), with operator acceptance of the privacy-refresh limitation, durable journal comparison and positive plain LAN readback. The same phone also confirmed [saved station prefill](phase12-physical-acceptance.md#saved-station-form-prefill-continuation-2026-09-30); that row is closed. A different-phone update, offline capability, negative/concurrency and extended AP/time rows remain open. The [current consumer packet](phase12-physical-acceptance.md#current-consumer-portal-and-recovery-continuation-2026-09-30) starts with station details on the existing saved network. |
-| P12.11 — Recovery and fallback | **OPEN; BOUNDED GP14 INHIBITED ROWS ACCEPTED** | Preserve the GP14 closeout above. Prove different-phone replacement, failed-update recovery, station-loss portal return, field-network operation and selected provisioning/full erase behavior. Manual-lease withdrawal on a healthy station passed on B; broader automatic withdrawal/reconnect remains open. No retained-owner recovery is required. Production GP14 source integration and five bounded RF rows, including quick-release reset, are accepted in the [RF review](phase12-gp14-rf-review.md#quick-release-rf-reset-accepted-2026-10-02). Long-held RF-to-AP availability and default enablement remain open. Counts are now **18 attempts/12 jobs**, exhausting the approved 18/13 acquisition ceiling. The earlier final attempt failed on Console capacity; its later identity-only page was unusable for setup. The corrected attempt stopped before RF at the mislabeled TLS/443 listener; the actual-listener guard passes affected checks and review. The source repairs do not close this physical gate. No automatic retry or default enablement is permitted; explicit additional budget or disposition is required. |
-| P12.12 — Stage A robustness and closure | **OPEN** | Close fault, trust, resource, concurrency, soak, controller-time, LED and restoration rows and complete the final adversarial review. |
+| P12.7 — Consumer commissioning contract | **CLOSED_SCOPED; GP14 DEFAULT DEFERRED** | Revised Wi-Fi-first contract and inhibited GP14 scope remain accepted. Five strict RF rows pass. Final G7 retains measured cutoff, timely AP association and later usable same-boot portal/latch refusal by explicit disposition; strict 50 ms/90 s claims remain unqualified. Actual 16.111 s hold accepted, original STOP unchanged; final counts 19/13. Exact GP14/flash-pulse coincidence excluded. See the [final RF record](phase12-gp14-rf-review.md#final-long-ap-scoped-disposition--2026-10-06). |
+| P12.8 — Commissioning foundation | **CLOSED_SCOPED** | C8/C8T/C10N retain phone/iPad saves, repaired-page confirmation, populated trust preservation, readiness/materialization and failure/reconcile evidence in the [matrix](phase12-closure-matrix.md). Historical privacy-refresh and stopped prerequisite records remain unchanged. |
+| P12.9 — Guided captive SoftAP setup | **CLOSED — WI-FI-FIRST GUIDED SETUP** | Existing accepted A/B phone-driven setup, durable generation-one readbacks and wrong-password refusal remain closed. Manual `http://192.168.4.1/` entry is accepted; automatic captive opening is not required. |
+| P12.10 — RF-inhibited commissioning acceptance | **CLOSED_SCOPED** | Selected phone/iPad network/station saves, device-served offline setup and repaired-page confirmation pass. C10O excludes unsupported offline Bluefy; no additional phone or Save is required. |
+| P12.11 — Recovery and fallback | **CLOSED_SCOPED** | R11A/R11F automatic recovery/readiness and R11P reset/old-peer proofs remain accepted. One physical precommit cut and later reset clearing/recovery pass; timed reset-intent cut and in-pulse power loss are explicitly excluded. G7 strict limits/default deferral are as above. |
+| P12.12 — Stage A robustness and closure | **CLOSED_SCOPED** | B12J/B12C/B12T/B12L/B12R and F12 retain independently reviewed trust, time, checked LED, resource/concurrency and exit evidence. Explicit physical peer/fleet exclusions are in the existing matrix; no new acceptance group, soak or full-fleet credit. |
+
+The milestone details below preserve design decisions and earlier checkpoint
+requirements. The current matrix and final dispositions govern closure; old
+remaining lists do not reopen accepted or excluded assertions.
 
 ### Deferred station-network web page
 

@@ -1,9 +1,95 @@
 # P12.7 GP14 RF integration review
 
-Status: **source gates passed; five RF rows accepted; long-held AP open;
-continuation stopped; B restored inhibited** (2026-10-02).
-Executes the [authorized brief](phase12-gp14-rf-execution.md). GP14 remains
-opt-in pending the required target rows. Phase 12 remains active.
+Status: **G7 CLOSED_SCOPED by explicit operator disposition; five strict RF
+rows accepted; final strict long-ap STOP retained** (2026-10-06).
+Final accounting is **19 acquisition attempts / 13 charged jobs**. GP14 remains
+opt-in; production default enablement is deferred. The final measured and
+functional components below close the selected Phase 12 scope without qualifying
+the strict 50 ms/90 s claims. Earlier open statuses and restored images below
+are historical checkpoints of the [authorized brief](phase12-gp14-rf-execution.md).
+
+## Final long-ap scoped disposition — 2026-10-06
+
+After the retained eighteenth preparation STOP, the operator explicitly granted
+one attempt at **19/13**. Clean source `58afb2735c232484b0f4cfbe0364016fb56d28e4`
+produced Plain LAN/31417 images with GP14 enabled. Actual compiler definitions,
+payload/UF2/E10 checks and both target links passed; actual B HELLO/STATUS
+proved the listener and unowned/empty/inactive identity before the fresh Ready.
+The grant-bound private launcher admitted the complete eighteen-attempt history,
+all twelve prior charges and one use only. The public runner's original 17/12
+limits were unchanged.
+
+B is Pico 2 W/RP2350, serial `CDDBF8767C506C07`, device
+`29f20b7342051ef947aa56cb9d4fab42`, RF source `58afb2735c23`, UF2 SHA-256
+`00e7b12556ee9440ce50806de222b63a8b99d11f40d02aac5b8b1847c709c7a1`.
+One deployment preserved current reserved/native/E10 state; its boot is
+`4345b097ce98a6889fcb42498c943386`, consumer profile 3, epoch 4, zero bonds.
+The established connected SDR rig and retained receiver/metric were reused;
+the engine is `pio-dma-gp2`, system clock 138 MHz, and timing after ARM is local
+to RP2350. The Tone requests 3.5701 MHz on GP2; receiver serial `2404058C60`
+uses CF32 at 250 ksample/s, 200 kHz bandwidth, 3.55 MHz center, channel 0 and
+20 dB gain, with AGC/bias tee off. The source/image-bound packet retains the
+exact RF/receiver settings. Prepared target UTC was synchronized with
+126.268057 ms reported uncertainty; the later exit clock is separately recorded
+as unsynchronized without an additional SNTP wait.
+
+Run `run-b277f9f9609143a1a7c46bb64990edf9` charged one configured 20-second Tone,
+job `4a90868a8be646159f88620709bf9e4c`, and sent one visible three-flash cue.
+The contact measured **16.111 seconds**. The original runner stopped because
+that exceeded its 12–15-second range; **FAILED_STOP_CAMPAIGN remains unchanged**.
+The operator subsequently accepted the longer hold. One shutdown, one AP
+request/acceptance and no reset/repetition are retained on the same boot.
+
+The independent capture is complete: 10,000,000 CF32 samples/80,000,000 bytes,
+40.020 seconds wall span, no overflow/timeout/clipping and verified receiver
+cleanup. The 20/30/40 dB threshold sweep yields the same single carrier interval
+from 5,248 to 10,403 ms. Subtracting the target's 5,153.739 ms decision relative
+to launch from the 5,155 ms carrier duration gives **1.261 ms nominal cutoff**.
+The unchanged 1% scale allowance (51.550 ms), 2 ms edge allowance and 0.017 ms
+launch allowance total **53.567 ms uncertainty**, yielding **54.828 ms upper
+estimate**. This does **not** pass the original 50 ms bound and is not calibrated
+absolute timing. Carrier/baseline contrast is 62.456 dB; no reactivation is
+observed for the remaining 29.597 nominal seconds. The 134 microsecond worker
+acknowledgement is target telemetry, not the independent RF cutoff measurement.
+
+Actual observer AP association completed **8.660998 seconds** after the
+conservative release bracket. The operator confirmed **“portal usable”** at
+165.818 seconds. Separate same-boot interface/SSID/BSSID/identity and HTTP-200
+proof shows the actual setup form; the complete functional/latch proof finished
+at 332.401 seconds. Actual HELLO/STATUS/CLAIM returned BUSY with unowned Aborted
+authority and inactive output; no LOAD, ARM, new acquisition or new RF job was
+used. Profile/access remained unchanged. These observations prove timely AP
+association and later usable setup/latch refusal, **not** HTTP/operator
+confirmation within 90 seconds. The strict analyzer still rejects the original
+STOP; a separate component/supplement records both original claims as false.
+
+The operator explicitly accepted scoped Phase 12 closure retaining these
+components, leaving strict **50 ms** cutoff and **90-second** HTTP/operator
+confirmation unqualified. Five earlier strict RF rows stay accepted; this
+is not a sixth strict pass. **GP14 production default enablement remains
+deferred.** Final totals are **19 attempts / 13 charged RF jobs**, exhausting
+the explicitly extended ceiling; no automatic retry follows.
+
+Independent source/original-data review and reassessment support these limited
+claims. The private supplemental collector's timeout cleanup and unexpected
+CLAIM nonce handling were repaired and pass six actual-function controls in
+both Python modes on Mac/Linux. The original collected helper remains retained;
+no new hardware operation followed those file-only fixes. See the
+[final state and cleanup](phase12-orchestratable-closeout-results.md#final-scoped-closeout-and-exit-2026-10-06).
+
+Essential private bindings (originals and separate supplements remain ignored):
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Nineteenth original attempt | `5fc6a427da888714cb014fc7af323a414ccc1a37858440ee0a1189a516f97f59` |
+| Original event stream | `4663b5c63e31eac9736c55e7bcf9ade0527ee66c2c78dc12c95e8fc5adb1dd4f` |
+| One-use packet | `fab1cde3689438a82f4a42ba3c1f34f06c1058520526a8b2921f18e90553db99` |
+| Independent capture | `070adf80391d748b47f99706ad9566c74bb59004e1e62549420fc5bea5a3fa58` |
+| Capture metadata | `c6b521735bb2415c083a1c3ef307d3d5c7699ef7866d445cb7b1a3f3b9c50164` |
+| Cutoff component assessment | `c4a3aff4454dd1114f54e582b2a91e090e783debe04605a1c115aa75584c4b0a` |
+| Same-boot functional supplement | `761effceab7656c13ca84a758810a1ed5bc095f7f1db1f1b0c65df4ae20ea2b6` |
+| Operator usable-portal receipt | `77c58259d6c55e9b132f3c5c3cf67bf097547bcca7246d28158031bce5616d37` |
+| Final identity/state/cleanup summary | `115db06d2cb5d2961e91788d05dfbdaafd422230ac543903089134bc3afa9e26` |
 
 ## Changes
 

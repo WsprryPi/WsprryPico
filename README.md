@@ -37,8 +37,8 @@ authentication. The standard consumer image defaults to Plain LAN on station
 port 31417 after infrastructure Wi-Fi and accepted SNTP; no certificates are
 needed for its Wi-Fi-only profile. Build-time `off` and `tls` choices remain.
 Plain LAN admits any client that can reach the port on the local network.
-WsprryPi has a matching explicit Plain LAN host connection; new-image physical
-interoperability remains open.
+WsprryPi has a matching explicit Plain LAN host connection with bounded
+one-member application evidence; full fleet interoperability remains unqualified.
 The HTTPS browser API and operator UI are implemented
 and include bounded QRSS/FSKCW/DFCW message entry: 32 characters including spaces,
 up to 60 minutes per complete job, subject to the independent 512-event capacity.
@@ -65,13 +65,14 @@ reliability and release qualification remain in Phase 14. The
 places transmit LED completion and external Si5351 work before final qualification and
 remains open for additional user-selected features.
 
-[Phase 12 provisioning](docs/development/phase12-plan.md) remains `OPEN_PARTIAL`.
-The [automatic closeout](docs/development/phase12-orchestratable-closeout-results.md)
-closes all four declared automatic workstreams: credential journals, reset/old-
-peer refusal, engineering carrier/API composition and resources plus consumer
-Save/STATUS overlap. No automatic group remains. Operator browser/offline,
-indicator/GP14, physical interruption, peer/fleet and conditional RF checks
-remain open; these results do not close Phase 12 or qualify RF/release behavior.
+[Phase 12 provisioning](docs/development/phase12-plan.md) is `CLOSED_SCOPED`
+by the operator's 2026-10-06 acceptance of the frozen matrix and documented
+dispositions. The [closeout](docs/development/phase12-orchestratable-closeout-results.md)
+retains all four automatic workstreams and the later selected physical results.
+The [matrix](docs/development/phase12-closure-matrix.md) states the excluded
+timing, peer and fleet claims. Final RF accounting is 19 acquisition attempts
+and 13 charged jobs; the strict final `long_ap` STOP remains. GP14 production
+default enablement is deferred. Broad RF and release qualification remain separate.
 Its hardware-free P12.1-P12.5 slices retain their documented scope. The P12.6
 production tranche now starts provisioning-only encrypted GATT in the standard
 RF-inhibited image from healthy adopted access state, constructs a network-only
@@ -123,8 +124,10 @@ and a station address. A 218 ms GP14 tap also verified an actual normal reset,
 retained settings and Wi-Fi return. This accepts those bounded B behaviors.
 The later [integrated closeout](docs/development/phase12-gp14-integrated-acceptance.md)
 accepts B's bounded long-held AP availability, release lease expiry, recurring
-DMA renewal, recovery and settings preservation. Actual RF cutoff and default
-enablement remain open and are parked while portal/recovery acceptance continues.
+DMA renewal, recovery and settings preservation. The later
+[RF record](docs/development/phase12-gp14-rf-review.md) accepts five strict rows
+and scoped final long-hold components. Strict final 50 ms/90 s assertions remain
+unqualified; GP14 production default enablement is deferred.
 Capture during an extended flash-safe pause passed; exact coincidence with the
 short erase/program operation was not measured. The previous
 runtime BOOTSEL sampler was unsafe and has been removed; do not use BOOTSEL to
@@ -141,8 +144,8 @@ challenge. A fresh browser observation can satisfy the job clock limit under
 the assumed 250 ms phone-clock error; station SNTP replaces it when available.
 The Wi-Fi form includes a prefilled `pool.ntp.org` time-server field. The
 [new image booted on Candidate A](docs/development/phase12-wifi-first-flash.md);
-the later bounded B phone setup result is recorded above, with broader phone
-flow acceptance still open. The
+the later bounded B phone setup result is recorded above. The current matrix
+closes selected phone/iPad commissioning with its documented limits. The
 [source review](docs/development/phase12-safari-open-setup-review.md) records
 the fixes and remaining target gates. The earlier
 [physical-owner contract](docs/development/phase12-7-decision.md) and failed
@@ -164,14 +167,11 @@ and repaired Bluefy prepared-file activation through generation 3, a normal
 restart, and post-restart BLE readback; see the
 [target activation record](docs/development/phase12-profile-activation-attempt.md).
 The later generation-3 positive mTLS/WTP and HTTPS readback also passed on the
-Mac. Offline reuse, fresh-password/new-pairing behavior, full commissioning,
-broader blank
-SoftAP HTTP, station-loss AP fallback and a safe manual opening path, the broader physical BLE job-
-control/local-management, controller-time and LED matrices, reset controls and
-most of the
-[RF-inhibited-first physical plan](docs/development/phase12-physical-acceptance.md)
-remain open. Phase 12 is therefore active; the scoped source closeout is not
-full physical or end-user acceptance.
+Mac. Those earlier checkpoints left consumer, recovery and physical assertions
+open in the [physical plan](docs/development/phase12-physical-acceptance.md).
+The current [closure matrix](docs/development/phase12-closure-matrix.md)
+supersedes their historical remaining-work lists with the selected accepted
+results and explicit exclusions; broader interoperability is still unqualified.
 
 The blank SoftAP now has a source-tested
 [best-effort captive landing](docs/development/phase12-blank-captive-landing-review.md)
@@ -193,11 +193,12 @@ During the Wi-Fi-only physical run, Candidate A ran the exact `fb091f8`
 RF-inhibited image. The selected iPhone
 submitted station credentials, and a separately approved USB reboot/readback
 proved network-only generation 1 and station address `192.168.1.47`; the final
-phone page and AP return after station loss remain open. A newer source change
+phone page and AP return after station loss were still open at that historical
+checkpoint. A newer source change
 temporarily kept the network-only AP available after station join for later
-setup upgrade. The current candidate instead withdraws it on a healthy station
-and uses station-loss fallback; a safe connected-station opening path remains
-to be selected. It still needs a
+setup upgrade. The revised candidate instead withdraws it on a healthy station
+and uses station-loss fallback; the selected GP14 path and its scoped acceptance
+are recorded above. That earlier candidate still needed a
 repeat target acceptance run. See the
 [target record](docs/development/phase12-wifi-only-physical-result.md).
 
@@ -209,8 +210,8 @@ exercised this path; it is not full commissioning acceptance.
 The versioned engineering [Field-GATT/1 contract](docs/protocol/Field-GATT.md)
 and [machine-readable vectors](docs/protocol/Field-GATT-v1-vectors.json) now
 keep firmware, both clients and host conformance checks aligned through the
-7,168-byte profile limit; broader physical profile-activation qualification
-remains open. Bluefy also
+7,168-byte profile limit; broader physical interoperability remains unqualified
+beyond the current matrix. Bluefy also
 has a test-only prepared-JSON-file import for operator-assisted acceptance. It
 does not create or deliver a profile and is not an end-user commissioning flow;
 the revised captive-portal flow is tracked in P12.7–P12.12.

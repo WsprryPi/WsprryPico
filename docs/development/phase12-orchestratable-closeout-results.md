@@ -1,16 +1,97 @@
 # Phase 12 orchestratable closeout continuation
 
-Status: **DECLARED AUTOMATIC WORK COMPLETE**. All four requested automatic
-workstreams are closed within their independently reviewed scopes on `devel`.
-Phase 12 remains `OPEN_PARTIAL` for operator-dependent and broader qualification
-work. Original stopped runner results are retained; scoped acceptance uses the
-complete original evidence and independent assessments.
+Status: **PHASE 12 CLOSED_SCOPED** (2026-10-06). All four automatic workstreams
+remain accepted; the final frozen four-group continuation is closed by earned
+results and the operator's explicit scope dispositions. Original stopped runner
+results remain unchanged. Broad interoperability, RF and release qualification
+are not claimed. The [matrix](phase12-closure-matrix.md#final-accepted-scope-dispositions--2026-10-06)
+is the authoritative acceptance boundary; older remaining-work statements below
+describe their recorded checkpoints.
 The execution direction is in
 [the closeout prompt](phase12-orchestratable-closeout-prompt.md).
 
+## Final scoped closeout and exit (2026-10-06)
+
+The operator explicitly answered **“Accept this scoped Phase 12 closeout”**.
+This retains the checked LED error/retry integration and named normal exit,
+one qualified physical completed-header/precommit profile cut, actual native-Pi
+peer evidence and one installed fleet member/application simulator job.
+The original reset-intent physical cut remains STOP; its later clearing/recovery
+is accepted. Exact GP14/flash-pulse coincidence, in-pulse power loss, the timed
+reset-intent cut, four-bond/fifth-peer boundary, iPad engineering BLE, wspr5
+post-release connection and simultaneous/full eight-member fleet are excluded.
+Existing limits and the fourteen matrix IDs are unchanged.
+
+The operator separately authorized one final G7 attempt at **19/13**, after
+attempt 18 stopped before RF. Clean source `58afb2735c23` produced the actual
+Plain/31417 candidates; target compiler definitions, image checks and actual
+HELLO/STATUS identity were verified before the fresh Ready. One RF deployment
+preserved the entire current reserved/native/E10 state using a compatible
+retained backup and one necessary after-readback. The normal fallback was not
+loaded. No accepted LED or RF row was repeated.
+
+Run `run-b277f9f9609143a1a7c46bb64990edf9` used one configured 20-second Tone,
+one three-flash action cue and one complete independent 40.020-second capture.
+Its original **FAILED_STOP_CAMPAIGN** on a measured 16.111-second hold remains
+unchanged; the operator subsequently accepted that longer hold. Original
+capture analysis independently measures **1.261 ms nominal cutoff and
+54.828 ms conservative upper estimate**, with no carrier reactivation for
+29.597 nominal seconds. The unchanged uncertainty definition does **not**
+qualify the strict 50 ms bound. AP association completed at 8.661 seconds after
+the conservative release bracket. The operator's usable-portal confirmation
+arrived at 165.818 seconds; the later same-boot HTTP/setup-form and actual WTP
+latch-refusal proof completed at 332.401 seconds. Neither qualifies HTTP/operator
+confirmation within 90 seconds. The operator explicitly accepted these measured
+and functional components while leaving the strict 50 ms/90 s claims unqualified.
+The [final RF record](phase12-gp14-rf-review.md#final-long-ap-scoped-disposition--2026-10-06)
+binds originals, metric, source/image/device and the separate supplement.
+
+Final accounting is **19 acquisition attempts / 13 charged RF jobs**. This
+continuation used one checked-LED fixture boot, two actual physical power
+removals (one qualified cut), one installed fleet simulator job and three G7
+attempts/two charged RF jobs. All failed/stopped attempts remain retained.
+The five prior strict RF rows remain accepted; the last row gains only the
+explicitly scoped acceptance above. **GP14 production default enablement is
+deferred.** There is no automatic retry or further physical action queue.
+
+Source/evidence adversarial review accepts the earned components and preserved
+STOP boundaries. The listener guard passes Linux 38/38 checks in both normal
+and optimized Python; actual cue adapter checks pass 2/2 per mode. The private
+supplement helper's owned-profile timeout cleanup and unexpected-CLAIM nonce
+reconciliation findings were repaired; six actual-function controls pass per
+mode on Mac and Linux, with independent reassessment. Its original successful
+collected version is retained separately; the fixes were not retroactively
+claimed as the version used on hardware. Both retained target links and
+stack/storage/UF2 checks passed. Final publication changes are documentation only.
+
+Final independent documentation review and reassessment pass after repairing
+two stale current/historical source labels. All ten changed paths are Markdown;
+the exact fourteen matrix IDs are unchanged, all 454 local links/anchors resolve,
+essential final artifact hashes match their ignored originals, and whitespace
+checks pass. No actionable review finding remains.
+
+Final retained states are:
+
+| Device | Identity / firmware / boot | Authority, output and health |
+| --- | --- | --- |
+| A, serial `0BF4B4AEC9FFB344` | `fd6127d11d6aca42a9905fa3fb1bf1d5`; `6c7b14321003`; boot `85e164b089a940450aaf38035612df63`; profile 5. | Inhibited standalone simulator, empty/inactive, scheduler disabled, storage healthy, GP14 released, clock unsynchronized, zero BLE/network connections. A was unchanged in the final RF tranche. |
+| B, serial `CDDBF8767C506C07` | `29f20b7342051ef947aa56cb9d4fab42`; RF `58afb2735c23`, UF2 `00e7b12556ee9440ce50806de222b63a8b99d11f40d02aac5b8b1847c709c7a1`; boot `4345b097ce98a6889fcb42498c943386`; profile 3, epoch 4, zero bonds. | `pio-dma-gp2`, retained Aborted job `4a90868a8be646159f88620709bf9e4c`, output inactive and safety latched, scheduler disabled, storage healthy, GP14 released, clock unsynchronized, zero BLE/network connections. Unowned at the same-boot functional proof, with no later ownership mutation. |
+
+An extra read-only B exit HELLO was reset by the device: that probe remains
+STOP with zero mutation. The fresh final INFO and prior exact same-boot
+authority proof are retained without claiming a successful fresh exit WTP
+exchange. No SNTP wait, restart, reflash or RF job was added to improve exit.
+Owned observer profiles are absent, receiver/owned connections/processes are
+closed, and board/action locks released. The B fleet assignment remains paused
+with its original schedule and other assignments preserved. Ethernet management
+and GPS/PPS/timing services were untouched. Credentials, backups, capture,
+generated firmware and the operator's screenshot remain private and ignored.
+Final state/cleanup summary SHA-256:
+`115db06d2cb5d2961e91788d05dfbdaafd422230ac543903089134bc3afa9e26`.
+
 ## Final four-group continuation (2026-10-06)
 
-The current continuation retains the fourteen closure IDs and the four-group
+This earlier checkpoint retains the fourteen closure IDs and the four-group
 scope in the [remaining execution prompt](phase12-remaining-execution-prompt.md).
 B12L is closed within the checked-driver scope and the operator explicitly
 accepted the two narrow timing exclusions: an exact GP14 edge inside the

@@ -68,7 +68,7 @@ treated as long-term product documentation.
     An alternative clock selected during 11.6 must repeat affected 11.5 checks.
     The systematic band x mode x clock comparison, final supported configurations,
     filters, spectral qualification and release firmware belong to Phase 14.
-12. **Current:** Phase 12 provisioning/local control and consumer commissioning.
+12. **Closed within selected scope:** Phase 12 provisioning/local control and consumer commissioning.
     The [Phase 12 plan](development/phase12-plan.md), operator-selected
     [field contract](development/phase12-field-access-contract.md) and
     [production review](development/phase12-production-acceptance-review.md)
@@ -79,8 +79,9 @@ treated as long-term product documentation.
     tests. Bounded profile activation and the later
     [automatic closeout](development/phase12-orchestratable-closeout-results.md)
     are accepted within their recorded scopes. All four declared automatic
-    workstreams are complete; operator and broader end-user acceptance remain
-    open P12.6–P12.12 work.
+    workstreams are complete. The operator accepted the final frozen scope
+    dispositions on 2026-10-06; the phase is **CLOSED_SCOPED**. Broader
+    interoperability and RF/release qualification remain unqualified.
 
     P12.1/P12.2 provide the portable profile journal and provisioning state
     machine. P12.4/P12.5 provide strict command decoding, delivery-safe
@@ -102,24 +103,26 @@ treated as long-term product documentation.
     The separate blank-device Wi-Fi-only encrypted SoftAP transaction is
     implemented at `fb091f8`; its RF-inhibited Candidate A open-AP preflight
     and selected-iPhone network-only generation-one reboot readback passed;
-    final phone-page and AP-return rows remain open in the
+    final phone-page and AP-return rows were open at that checkpoint in the
     [target record](development/phase12-wifi-only-physical-result.md).
     The 2026-09-27 Safari/SoftAP selection and
     [P12.7 physical-owner decision](development/phase12-7-decision.md) are
     historical. The [revised open setup contract](development/phase12-safari-open-setup-revision.md)
     selects Wi-Fi first and optional station details without a retained phone
     owner or button ceremony. P12.9 is closed under its selected manual
-    fixed-address portal gate; remaining consumer acceptance is in the current
+    fixed-address portal gate; final consumer acceptance is in the current
     matrix. The earlier
     BLE/Bluefy evidence remains bounded engineering evidence. The later
     automatic closeout accepts credential-journal recovery, reset/old-peer
     refusal, engineering carrier/API composition, the two-hour resource capture
-    and consumer Save/STATUS overlap. Browser/offline commissioning, independent
-    time/LED/GP14 observations, physical cuts, peer/fleet interoperability and
-    conditional RF assertions remain open in the
-    [current matrix](development/phase12-closure-matrix.md). Phase 12 remains
-    `OPEN_PARTIAL`; Stage B and
-    Phases 13 and 14 remain separate.
+    and consumer Save/STATUS overlap. The later selected commissioning, LED,
+    physical-cut and member results are retained in the
+    [current matrix](development/phase12-closure-matrix.md), together with the
+    operator's explicit timing/peer/fleet exclusions. Final RF accounting is
+    19 acquisition attempts/13 charged jobs. G7 retains a measured cutoff and
+    later same-boot usable portal; strict 50 ms/90 s assertions remain unqualified
+    and GP14 production default enablement is deferred. Stage B and Phases 13
+    and 14 remain separate; this closeout starts no new feature work.
 
 13. **Planned:** feature completion before final qualification: complete
     solid RF-active transmit LED acceptance using the existing source wiring,

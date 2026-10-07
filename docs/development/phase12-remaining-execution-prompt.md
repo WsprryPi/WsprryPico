@@ -1,64 +1,42 @@
-# Phase 12 remaining operator acceptance prompt
+# Phase 12 completed operator acceptance continuation
 
-Work in `/Users/lbussy/GitHub/WsprryPico` on `devel`. The four declared
-automatic workstreams are complete. Continue only the remaining operator and
-physical acceptance work in the [current matrix](phase12-closure-matrix.md).
-Preserve accepted results, resolve demonstrated findings, review affected
-changes and evidence, then commit and push when requested by the operator.
+Status: **CLOSED_SCOPED** (2026-10-06). The operator explicitly accepted the
+final documented scope dispositions. Work on `devel` in
+`/Users/lbussy/GitHub/WsprryPico` has completed the frozen fourteen-ID matrix;
+**there is no remaining operator or device-action queue**. The
+[current matrix](phase12-closure-matrix.md#final-accepted-scope-dispositions--2026-10-06)
+and [final results](phase12-orchestratable-closeout-results.md#final-scoped-closeout-and-exit-2026-10-06)
+record the earned assertions and exact exclusions. Earlier continuation
+instructions below are retained policy/history, not authority for another trial.
 
-## Current checkpoint
+## Final checkpoint
 
-The [automatic closeout](phase12-orchestratable-closeout-results.md), published
-at `dd419af`, closes B12J credential journals, R11P reset/old-peer refusal,
-B12C engineering carrier/API composition and B12R resources plus consumer
-Save/STATUS overlap. **Zero declared automatic groups remain.** Read its exact
-scopes and review bindings before selecting work. Both case waves and the
-7,200-second/241-sample resource capture are accepted; their original STOPPED
-runner results remain recorded alongside the later strict quiet exit proof.
-Do not replay the completed soak, Save, reset or journal assertions merely as
-preparation for a physical case.
+All four original automatic groups remain accepted: B12J credential journals,
+R11P reset/old-peer refusal, B12C engineering carrier/API composition and B12R
+resources/consumer Save overlap. C8/C10O commissioning on the selected phone/iPad
+and A’s visible LED checks remain accepted. Offline Bluefy is unsupported and
+excluded. No accepted soak, Save, LED, reset, journal or RF row was replayed.
 
-Phase 12 remains `OPEN_PARTIAL`. B12L is CLOSED_SCOPED: L4 passed and exact GP14 coincidence is explicitly excluded. The representative profile power cut and one installed fleet simulator job pass. The reset-intent cut remains STOP; its timed assertion and the remaining physical peer/full-fleet boundaries await an explicit disposition. The final long-hold RF-to-portal case remains open. Simulator evidence does not qualify RF output or general
-physical interoperability. The Phase 13 feature backlog and Phase 14 final
-qualification are separate work.
+The final four groups are closed by the results and explicit dispositions
+below. Final RF totals are **19 acquisition attempts / 13 charged jobs**, at
+an exhausted operator-approved 19/13 ceiling. Attempts 17 and 18 remain STOP;
+the nineteenth original also remains FAILED_STOP_CAMPAIGN. The accepted longer
+16.111-second hold and separate measured/functional components do not change
+that strict original. **GP14 production default enablement remains deferred.**
 
-The earlier final `long_ap` attempt on B at `c0d2bd53e4bd`, consumer generation 3,
-boot `99396fc326f6bd51e5b49bab033842c3`, failed when INFO exceeded the Console
-queue before the action cue. Owned ABORT/RELEASE left empty/unowned/inactive
-authority; the later page was identity-only recovery, not usable setup.
-One reviewed normal recovery now retains inhibited `3fed9d1f8e00-dirty`,
-image `8ce8bb663008…`, boot `fad4cf9b1fdac5fd1321b013ba9f8f43`,
-generation 3/epoch 4/zero bonds, disabled/empty/inactive and healthy with
-exact current reserved/native/E10 preservation. Its private source binding
-records the working-source identity accurately. The repaired RF-only terminal
-gate and exact-job observer pass reassessment; candidate `12fe17739310…`
-is not loaded and grants no physical acceptance.
-The operator confirms both boards
-are connected and directs reuse of the established setup without further
-path, attenuation or antenna questions. Explicit Ready is only for coordinating
-the button action. The operator subsequently authorized one corrected attempt,
-raising the ceiling to 18/13. That attempt stopped before cue, capture or WTP
-ownership/job actions: preparation incorrectly labeled the actual TLS/443
-image as Plain/31417. Current accounting is **18 acquisition attempts/12
-charged jobs**, exhausting the acquisition ceiling. Preserve both failures.
-The source listener guard now refuses that mismatch at preflight and fresh
-admission; any future candidate must bind actual main compile definitions
-and actual mode/port/readiness before calling the operator. B retains RF
-`8fdb6ef13448`, boot `1952970f25d388d386c97bc4f1bc58d1`, profile generation 3,
-healthy, disabled/empty/inactive and released, with no test ownership acquired.
-The owned AP profile is deleted and board/action locks released. Another
-attempt requires explicit additional budget for this same row; no automatic
-retry or default enablement. See the [latest RF record](phase12-gp14-rf-review.md#corrected-attempt-stopped-before-rf--2026-10-06).
-Human power-cut coordination
-has no expiry; the later fixture repair does not change the original stopped
-receipt or authorize a retry.
+A retains `6c7b14321003`, profile 5, inhibited/empty/inactive. B retains RF
+`58afb2735c23`, boot `4345b097ce98a6889fcb42498c943386`, profile 3, epoch 4,
+zero bonds, disabled/Aborted/inactive/safety-latched. Both are storage healthy,
+GP14 released, clocks unsynchronized, and have zero BLE/network connections.
+B is unowned at the retained same-boot functional proof with no later authority
+mutation; the extra read-only exit HELLO reset remains STOP. The installed B
+fleet assignment is paused, owned profiles/processes/connections are cleaned,
+locks released, management and timing services preserved. Useful test images
+remain installed; no routine exit reflash/restart/SNTP wait was added.
 
-Read `AGENTS.md`, `README.md`, `CONTRACT.md`, `docs/architecture.md`,
-`docs/development/README.md`, the current matrix, relevant acceptance contracts
-and the selected case's retained plan. Inspect branch, HEAD, remote and working
-changes. Preserve unrelated work and other repositories. Use current committed
-source, source-bound images/helpers and private originals; keep credentials,
-bonds, backups, captures, generated firmware and local SDK paths ignored.
+Read project instructions and the current matrix before any separately requested
+future work. Preserve unrelated changes. Credentials, bonds, backups, captures,
+generated firmware, screenshots and local SDK paths remain private and ignored.
 
 <a id="operator-direction-20261005"></a>
 
@@ -73,15 +51,17 @@ Default production firmware behavior and intended-test limits remain unchanged.
 Use the available phone, iPad and laptop. The operator now has GP14 buttons
 on both A and B; no wire transfer is needed.
 Do not request another phone inventory or unnecessary purchases. Complete source-bound
-preparation, protocol collection and analysis automatically, and gather the
-remaining physical actions into one practical operator session.
+preparation, protocol collection and analysis automatically, and gather
+necessary physical actions into one practical operator session.
+That session is complete; this recorded policy does not reopen it.
 
 - B: Pico 2 W / RP2350, USB serial `CDDBF8767C506C07`, device
   `29f20b7342051ef947aa56cb9d4fab42`.
 - A: Pico 2 W / RP2350, USB serial `0BF4B4AEC9FFB344`, device
   `fd6127d11d6aca42a9905fa3fb1bf1d5`.
 
-The closeout retained B on engineering source `c0d2bd53e4bd`, profile generation
+The earlier automatic closeout retained B on engineering source
+`c0d2bd53e4bd`, profile generation
 2 and operational generation 5, and A on consumer diagnostic source
 `133ca93cc2a1`, durable profile generation 3. These are recorded exit states,
 not substitutes for checking identity and applicable source before a new case.
@@ -96,46 +76,36 @@ E10/settings comparisons, AP withdrawal and cutoff evidence remain part of
 cases that require them. Never repeat an uncertain destructive request simply
 because its reply was lost.
 
-## Remaining physical session
+## Completed frozen four-group session
 
-Confirm operator availability and the setup actually used by each case. Waiting
-for the operator does not start a case timer. Preserve original finite limits;
-select a new target attempt only for an untested required assertion, demonstrated
-repair or discriminating setup change. Do not invent unrelated failure paths.
+1. **B12L checked LED error and GP14 overlap:** one checked-driver error/retry
+   fixture boot and one named repaired normal exit pass. Direct visual checks
+   stay accepted. Exact GP14/erase-program coincidence is unmeasured and
+   explicitly excluded; the narrower two-second flash-safe pause is retained.
+   Complete physical LED-failure detection is not claimed.
+2. **R11P/B12J physical interruption:** one completed-header/precommit USB power
+   cut passes exact old-profile/bond/security-root/settings/E10 selection. The
+   second actual cut’s timed reset-intent assertion remains STOP and is now
+   explicitly excluded; later clearing/recovery passes. In-pulse power loss is
+   also excluded. Two actual cuts occurred; one is qualified, with no retry.
+3. **B12C actual peers and interoperability:** actual native-Pi peer and one
+   installed fleet member/application simulator job pass. Three actual bonds
+   do not qualify the four-bond/fifth-peer boundary. That boundary, iPad
+   engineering BLE, wspr5 post-release connection and simultaneous/full
+   eight-member fleet are explicitly excluded; compiled/advertised limits and
+   one JobService/ownership authority are unchanged.
+4. **G7 long RF hold to portal/F12 exit:** the nineteenth attempt retains one
+   independent 40.020-second capture, 1.261 ms nominal/54.828 ms conservative
+   cutoff, no reactivation, AP association at 8.661 seconds and later same-boot
+   usable setup/latch refusal. The operator accepted the measured 16.111-second
+   hold and final scoped closure. Strict 50 ms cutoff and HTTP/operator
+   confirmation within 90 seconds remain unqualified; original STOP is retained.
+   Five earlier strict rows stay accepted. Default enablement is deferred;
+   no automatic retry, new RF job or additional physical action follows.
 
-1. **C8: complete for the second iOS client.** A's two iPad Saves, exact
-   generation3→4→5/unrelated-state preservation and final read-only prefill
-   confirmation pass. Repair `6c7b143` fixes saved Wi-Fi prefill and recovery-link
-   alignment; the operator confirmed both pages. Preserve these results.
-2. **C10O: complete for the non-cellular iPad.** Device-served portal loading
-   and encrypted setup without Internet passed in the same session. Preserve
-   this result; offline Bluefy remains unsupported and is not required.
-3. **B12L/GP14: finish the remaining assertions.** Readiness timing, Identify
-   priority/nonextension/return and Off now pass on A; preserve those results.
-   The one-error checked-output fixture and named repaired normal exit passed on B; do not replay them. The operator explicitly excludes exact GP14 coincidence during erase/program, while retaining the narrower extended flash-safe-pause evidence. See the [LED result](phase12-led-physical-result.json).
-4. **R11P/B12J: physical interruption.** The selected completed-header/precommit
-   profile power cut passes; preserve it without replay. The reset-intent cut
-   remains STOP, with its later reset/clearing recovery accepted. Its timed
-   physical assertion awaits an explicit disposition; no automatic retry is
-   authorized. The operator excludes power loss inside an erase/program pulse.
-   Preserve the original selection, security-root/bond and unrelated-state/E10
-   proofs; completed-boundary evidence does not qualify an in-pulse cut.
-5. **Engineering peers/fleet.** Use the available clients for the remaining
-   actual bond/connection-capacity and interoperability assertions. Record
-   unsupported scope accurately; neither host-populated fixtures nor one Pi
-   BLE peer qualify the broader physical matrix.
-6. **G7/F12: conditional RF hold/AP proof.** The final authorized attempt failed;
-   current accounting is 18 attempts/12 jobs against an exhausted 18/13 acquisition ceiling. The corrected attempt stopped before RF at a mislabeled TLS/443 listener. The demonstrated repairs, named normal recovery and reassessment are
-   accepted; obtain an explicit additional budget or scope disposition. Any approved continuation is limited to this same row: one
-   20-second Tone, one 40-second capture, 12–15 seconds held, actual AP/HTTP and
-   usable portal proof within 90 seconds after release, independent cutoff and
-   latch refusal. No automatic retry or replay of the five accepted rows.
-   Production candidate qualification follows only a supported pass.
-
-Do not substitute mock, telemetry-only or host evidence for required physical
-observations. Use the accepted trustworthy time setup without changing job/RF
-admission. Preserve management connectivity and GPS/PPS services; inspect unused
-hardware or a control library only if the selected case actually needs it.
+The Phase 13 feature backlog and Phase 14 final qualification remain separate.
+The selected closeout does not qualify broad RF performance, reliability or
+full fleet interoperability.
 
 ## Exit, review and publication
 
@@ -154,8 +124,8 @@ Review actual changes, exercised behavior, original evidence and acceptance
 claims. Repair actionable findings, rerun affected checks and reassess. Update
 the matrix and existing result records with only earned scope; preserve failed
 originals. Commit/push when requested, independently verify remote parity, and
-report completed assertions, remaining operator work and actual repository/
-device state. Phase 12 closes only after its required physical gates pass.
+report completed assertions, approved exclusions and actual repository/device
+state. Phase 12 is closed within the scope explicitly accepted by the operator.
 
 ## Historical automatic checkpoint
 

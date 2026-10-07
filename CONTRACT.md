@@ -12,8 +12,9 @@ This contract summarizes durable boundaries. The normative WTP/1 contract is
 [Field-GATT/1 contract](docs/protocol/Field-GATT.md) and
 [conformance vectors](docs/protocol/Field-GATT-v1-vectors.json) define the
 custom BLE wire surface without changing WTP/1. Incompatible changes require a
-new Field-GATT protocol version. Physical interoperability and end-user
-acceptance remain Phase 12 gates.
+new Field-GATT protocol version. The selected Phase 12 acceptance scope is
+[closed with explicit dispositions](docs/development/phase12-closure-matrix.md);
+broader physical interoperability remains unqualified.
 The independently versioned [browser API v1](docs/browser-api.md) records the
 implemented Pico surface. WsprryPi's compatible adapter is independently
 maintained; full shared application/configuration parity remains future work.
@@ -35,8 +36,9 @@ application parity is not claimed.
   Wi-Fi and accepted SNTP; build-time `off` and `tls` selections remain. Plain
   LAN has no automatic TLS fallback and no browser API. Any client that can
   reach the local port can submit WTP commands under the shared LAN principal.
-  WsprryPi supports an explicit Plain LAN connection; new-image physical
-  interoperability remains open.
+  WsprryPi supports an explicit Plain LAN connection; one installed fleet
+  member/application path has bounded Phase 12 acceptance. Full fleet
+  interoperability remains unqualified.
 - The implemented engineering provisioning and field-control path uses
   BLE/Bluefy under the
   [Phase 12 field-access contract](docs/development/phase12-field-access-contract.md).
@@ -52,18 +54,21 @@ application parity is not claimed.
   A release from 0.4 to under 0.9 seconds requests shutdown. These
   actions have bounded acceptance in the opt-in RF-inhibited B runtime; see
   the [integrated closeout](docs/development/phase12-gp14-integrated-acceptance.md).
-  Production RF cutoff integration and default enablement remain open. The
+  Production RF cutoff integration has five accepted strict rows and a scoped
+  final long-hold disposition; strict final 50 ms/90 s assertions remain
+  unqualified and GP14 default enablement is deferred. The
   runtime BOOTSEL sampler failed a physical long-hold check and remains
   withdrawn. The earlier
   [P12.7 physical-owner decision](docs/development/phase12-7-decision.md) is
-  historical; bounded portal acceptance exists, while broader physical consumer
-  commissioning remains open in the [current matrix](docs/development/phase12-closure-matrix.md).
+  historical; selected phone/iPad commissioning is accepted within the
+  [current matrix](docs/development/phase12-closure-matrix.md).
   The native [Raspberry Pi/Linux BlueZ client](docs/development/raspberry-pi-ble-client.md)
   is an additional supported local/bench client; it does not qualify the
   consumer iOS-browser acceptance path. Its profile-apply command is
   source/host conforming to Field-GATT/1. Bounded native-Pi profile activation
   is recorded in the [automatic closeout](docs/development/phase12-orchestratable-closeout-results.md).
-  Broader phone and physical interoperability acceptance remains open.
+  Specified peer/capacity exclusions and broader unqualified interoperability
+  are retained in that matrix.
 - Every job-control path uses the same JobService and loads and arms complete
   jobs. RP2350 owns execution and symbol timing.
 - WTP is device-neutral and independently versioned. Its specification is
@@ -126,8 +131,9 @@ confidentiality claim.
 Production SoftAP DHCP/mDNS/HTTP/HTTPS, password/cookie admission,
 controller-time and browser/local control are now wired to the same
 `JobService` in the RF-inhibited standard image. SoftAP credential
-provisioning, reset administration, exact gestures, offline-page qualification
-and most physical acceptance remain open. The provisioned SoftAP path now has
+provisioning, reset administration, gestures and offline-page qualification
+have selected acceptance in the current Phase 12 matrix. The earlier
+provisioned SoftAP checkpoint had
 bounded native-Pi Candidate A evidence for WPA2/DHCP/mDNS/TLS,
 password/cookie admission, controller time and basic local ownership, but no
 phone/Safari/Bluefy or provisioning acceptance. BLE provisioning,
@@ -135,15 +141,17 @@ controller-time, Identify/status, unchanged WTP/1 and the network-only live
 activator are also wired. BLE profile apply now requires a fresh password proof
 bound to the exact staged bytes, applying request and generation; the public
 default additionally requires an identity-bound USB-local confirmation within
-the 30-second staging session. Those profile controls are host-tested but their
-phone and target acceptance remains open. A separate bounded iPhone 17 Pro
+the 30-second staging session. Those profile controls were initially host-tested;
+subsequent bounded activation evidence is recorded in the current matrix.
+A separate iPhone 17 Pro
 Max/iOS 27.0/Bluefy 3.9.3 exercise accepts retained-bond authorization, one
 authenticated controller-time exchange, Identify LED/field status and WTP
 `HELLO` plus read-only `STATUS`. It does not accept offline reuse, fresh pairing,
 profile activation, arbitrary WTP job control or the broader time/LED matrices.
 P12.3 is
 closed only for its documented hardware-free
-source/cross-link boundary; Phase 12 is not yet an accepted end-user path.
+source/cross-link boundary; final selected end-user acceptance is bounded by
+the current matrix and its explicit exclusions.
 
 The operator separately approved a
 [Wi-Fi-only blank-device bootstrap](docs/development/phase12-wifi-only-bootstrap-proposal.md)
@@ -154,7 +162,8 @@ The `fb091f8` RF-inhibited image admits the bounded encrypted transaction on a
 blank AP. Candidate A passed selected-iPhone submission and post-reboot
 network-only generation-1/station-address readback within the
 [recorded setup](docs/development/phase12-wifi-only-physical-result.md). The
-final phone page and AP return after station loss remain open. This grants no
+final phone page and AP return after station loss were open at that checkpoint;
+later selected consumer acceptance is in the current matrix. This grants no
 owner, station API, TLS, job or RF authority.
 
 Host tests, target execution and RF qualification are distinct evidence classes.

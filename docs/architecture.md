@@ -36,12 +36,13 @@ Use WsprryPico for project, repository and application naming; firmware artifact
   The opt-in RF-inhibited runtime has bounded B target acceptance for reset,
   shutdown requests, AP retention/expiry, DMA renewal, recovery and settings
   preservation; see the [integrated closeout](development/phase12-gp14-integrated-acceptance.md).
-  Production RF cutoff integration and default enablement remain open and are
-  parked while portal/recovery acceptance continues.
+  Production RF cutoff integration retains five strict accepted rows and a
+  scoped final long-hold disposition. Strict final 50 ms/90 s assertions remain
+  unqualified and GP14 production default enablement is deferred.
   Safari is one possible
   browser, not a required step. Source implementation and bounded target
-  acceptance exist; remaining operator commissioning and interoperability
-  checks are recorded in the
+  acceptance exist; final selected commissioning results and explicit
+  interoperability/timing exclusions are recorded in the
   [current closure matrix](development/phase12-closure-matrix.md). The earlier
   [Phase 12 field-access contract](development/phase12-field-access-contract.md)
   continues to describe engineering-profile authority; consumer commissioning
@@ -121,9 +122,9 @@ An independently owned UTC discipline copy ages on the RF core; idle-only flash
 writes coordinate both cores using SDK lockout. See the
 [11.2 ownership and acceptance record](development/phase11-2-review.md). USB, WTP/TCP, browser jobs and standalone
 schedules retain one ownership and execution authority. Network control defaults
-off. Phase 12 field-access contention/coexistence still requires its physical
-plan; broader mode/band/clock and production release qualification remain Phase
-14 work.
+off. Phase 12 field-access contention/coexistence retains its accepted scope
+and explicit exclusions in the current matrix; broader mode/band/clock and
+production release qualification remain Phase 14 work.
 
 Phase 12 keeps provisioning outside that job-control protocol. A portable
 manager and access controller own bounded profile replacement, local authority
@@ -131,7 +132,8 @@ and recovery while all RF/job control remains in the one existing JobService.
 The implemented engineering field contract uses BLE/Bluefy and a SoftAP
 fallback. The revised consumer contract selects an open SoftAP portal with
 Wi-Fi first, optional station details later, and no persistent phone owner;
-physical acceptance and recovery remain open.
+selected physical acceptance and recovery are closed within the current matrix
+and its explicit dispositions.
 
 The scoped P12.3 implementation reserves the access journal at
 `0x3f3000`–`0x3f4fff`, BTstack at
@@ -154,8 +156,9 @@ permits a one-use, physically granted encrypted credential submission
 from that blank AP and commit a device-bound network-only generation 1. It
 adds no owner, station API, scheduler or RF authority. The `fb091f8`
 RF-inhibited image passed selected-iPhone submission and generation-one
-station readback on Candidate A; the final phone page and AP-return rows
-remain open in the [target record](development/phase12-wifi-only-physical-result.md).
+station readback on Candidate A; the final phone page and AP-return rows were
+open in that historical [target record](development/phase12-wifi-only-physical-result.md).
+Later selected consumer acceptance is recorded in the current matrix.
 
 The portable access layer implements exact request-bound proofs, enrollment,
 bond capacity/revocation, SoftAP cookies and expiry, field mode, reset levels,
@@ -211,16 +214,13 @@ adds the portable controller/SNTP arbiter and routes production SNTP, BLE and
 SoftAP controller observations through it. Physical phone-time accuracy remains
 unqualified.
 
-Remaining Phase 12 details include physical acceptance of the captive Wi-Fi
-and optional station setup path, broader
-authenticated phone-time accuracy/disagreement/recovery acceptance, accepted
-reset controls, broader captive HTTP, healthy-station AP withdrawal and
-station-loss/manual AP return, physical
-broader engineering-client interoperability evidence, live profile
-activation and broader target resource/coexistence tuning. The wired
-SoftAP/HTTPS surface has only the bounded native-Pi target acceptance recorded
-above; the current production review separately records the bounded iPhone/
-Bluefy retained-bond, time, Identify/status and read-only WTP subset.
+The selected Phase 12 commissioning, recovery, time-policy, reset, resource
+and indicator assertions are closed within the
+[current matrix](development/phase12-closure-matrix.md). Its explicit physical
+timing/peer/fleet exclusions remain unqualified; neither the closed scope nor
+the one-member application check establishes broad interoperability. GP14
+production default enablement is deferred. Earlier native-Pi and iPhone/Bluefy
+records retain their exact source/image/evidence scope.
 The [pin-assignment contract](pin-assignment-contract.md) selects the eligible
 GPIO set, exclusive role allocations and fixed I²C pairs. Clock calibration and
 production RF engine/pin qualification remain open. WsprryPi has an
