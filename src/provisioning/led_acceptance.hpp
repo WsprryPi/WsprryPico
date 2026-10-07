@@ -6,6 +6,8 @@ namespace wsprrypico::provisioning {
 // Test-image state only. Expiration is local; USB cannot extend an active fault.
 class LedAcceptance {
   public:
+    // Cross the held-stop threshold, then release without reset or setup gestures.
+    static constexpr std::uint32_t hold_duration_ms = 1'200;
     bool ap(std::uint64_t now) {
         if (now < ap_until_)
             return false;

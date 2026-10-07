@@ -53,7 +53,9 @@ uses actual `Scheduler::command("STOP")`; DISABLE then removes the temporary
 schedule before restoration. GP14 remains off in ordinary builds.
 
 The second Pico's HOLD command exists only in the inhibited stimulus image.
-Its unallocated GP15 pulls low for 250 ms, then an alarm releases it to input.
+Its unallocated GP15 pulls low for 1.2 seconds, then an alarm releases it to input.
+This crosses the actual 0.9-second held-stop threshold without requesting reset
+on a short release or reaching the 9-second setup gesture.
 It never drives high. The timer is installed with interrupts masked around
 activation, and GPIO resets to input on reboot. A failed timer allocation
 immediately releases input. Each boot permits one hold.
@@ -115,6 +117,20 @@ must report actual frames before ARM. Both streams must continue progressing. Vi
 before a successful collection result. Both processes have finite deadlines,
 logs and hashes; any early exit stops the test. Media results always remain
 physical-review-pending until independently assessed.
+
+Recording explicitly uses 8-bit `bgr0` FFV1. Before any device control, preflight
+reserves space for the entire retained matrix using uncompressed video/IQ
+sizes plus 10% and 256 MiB for overhead/readbacks. At 640×480/30 fps the reserve
+is about 78 GiB. IQ alone is 3,912,000,000 bytes; the 2 GiB `/tmp` filesystem on
+wspr5 is too small. Put the clean source checkout and its private `build/`
+evidence on persistent storage, not the temporary inventory staging directory.
+Camera precision is the declared 8-bit recording scope, not calibrated photometry.
+
+The [step-2 operator sheet](phase13-1-step2-operator-setup.md) specifies the
+proposed B-DUT/A-stimulus wiring, current limiting, inactive bias, actual camera
+and measurement checks. The three camera regions must be separate; overlap and
+integer substitution for the `open_drain` Boolean are rejected. A private
+preparation draft with unknown inputs is not the executable setup schema.
 
 ## Run and recover
 

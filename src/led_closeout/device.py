@@ -6,12 +6,13 @@ import os
 from pathlib import Path
 import struct
 import socket
+import shutil
 import ipaddress
 import subprocess
 import time
 import uuid
 
-from led_closeout.capture import Captures
+from led_closeout.capture import Captures, storage_reserve
 from led_closeout.plan import BOARDS, IMAGES, RECEIVER
 from led_closeout.runner import admit, quiescent, require, save_json, sha256
 from phase11_5_inventory import exclusive_port, exchange, validate_inventory
@@ -100,8 +101,15 @@ def validate_setup(setup, *, recovery=False):
         require(len(roi) == 4 and all(type(v) is int and v >= 0 for v in roi) and
                 roi[2] > 0 and roi[3] > 0 and roi[0]+roi[2] <= cam['width'] and
                 roi[1]+roi[3] <= cam['height'], 'prepared camera ROI: ' + name)
-    require(setup['fixtures'] == {'external_high_gp': 15, 'external_low_gp': 16,
-                                 'stimulus_gp': 15, 'dut_stop_gp': 14, 'open_drain': True},
+    regions = [cam['rois'][name] for name in ('onboard', 'external_high', 'external_low')]
+    for index, a in enumerate(regions):
+        for b in regions[index+1:]:
+            overlap = (a[0] < b[0]+b[2] and b[0] < a[0]+a[2] and
+                       a[1] < b[1]+b[3] and b[1] < a[1]+a[3])
+            require(not overlap, 'camera LED regions must be separate')
+    require(json.dumps(setup['fixtures'], sort_keys=True) == json.dumps(
+                {'external_high_gp': 15, 'external_low_gp': 16,
+                 'stimulus_gp': 15, 'dut_stop_gp': 14, 'open_drain': True}, sort_keys=True),
             'prepared fixture roles')
     require(isinstance(setup['rf_path'], str) and 1 <= len(setup['rf_path']) <= 512,
             'physical path description')
@@ -296,6 +304,8 @@ class Device:
     def preflight(self, manifest, board, fixture):
         validate_setup(self.setup)
         validate_manifest(manifest, self.root)
+        require(shutil.disk_usage(self.e.root).free >= storage_reserve(self.setup),
+                'capture storage reserve unavailable; use persistent build/')
         self.dut = board
         self.lock_boards(board, fixture)
         # Check BOTH entries before any board transitions to ROM.

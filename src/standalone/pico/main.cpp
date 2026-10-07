@@ -1362,7 +1362,8 @@ int main() {
                 gpio_put(15, false);
                 const auto irq_state = save_and_disable_interrupts();
                 gpio_set_dir(15, GPIO_OUT); // Low only, never drive high.
-                ok = add_alarm_in_ms(250, led_release_hold, nullptr, false) > 0;
+                ok =
+                    add_alarm_in_ms(fixture.hold_duration_ms, led_release_hold, nullptr, false) > 0;
                 if (!ok)
                     gpio_set_dir(15, GPIO_IN);
                 restore_interrupts(irq_state); // Alarm releases even if the main loop stalls.

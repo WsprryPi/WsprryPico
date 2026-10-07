@@ -1,4 +1,6 @@
 #include "pico/cyw43_arch.h"
+#include "provisioning/button_runtime.hpp"
+#include "provisioning/button_safety.hpp"
 #include "provisioning/led_acceptance.hpp"
 #include "provisioning/pico/indicator_output.hpp"
 
@@ -28,6 +30,33 @@ int cyw43_gpio_set(cyw43_t*, int, bool) {
 
 int main() {
     using namespace wsprrypico;
+    {
+        provisioning::ButtonDiagnostic input;
+        provisioning::ButtonSafety worker;
+        unsigned stops = 0, resets = 0, setups = 0;
+        const auto stop = [&]() {
+            ++stops;
+            return true;
+        };
+        const auto setup = [&](std::uint64_t, bool) {
+            ++setups;
+            return true;
+        };
+        auto runtime =
+            provisioning::ButtonRuntime{stop, setup, [](std::uint64_t) {}, [&]() { ++resets; }};
+        const auto release_ms = 10 + provisioning::LedAcceptance::hold_duration_ms;
+        for (std::uint32_t ms = 0; ms <= release_ms + 110; ++ms) {
+            const bool held = ms >= 10 && ms < release_ms;
+            const auto event = input.observe(ms * 1000ULL, held);
+            runtime.observe(event, ms, held);
+            (void)worker.observe(ms * 1000ULL, held);
+        }
+        assert(stops == 1 && resets == 0 && setups == 0);
+        assert(runtime.stop_verified() && runtime.reset_events() == 0);
+        assert(worker.inhibited() && !worker.reset() && !worker.fault());
+        assert(worker.duration_us() >= provisioning::ButtonDiagnostic::stop_limit_us);
+        assert(worker.requested_at_us() < release_ms * 1000ULL);
+    }
     auto& f = provisioning::led_acceptance;
     assert(f.ap(10));
     assert(!f.ap(11));

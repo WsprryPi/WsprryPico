@@ -1,11 +1,25 @@
 """Finite managed captures; independent media never become a telemetry pass."""
 import os
+import math
 from pathlib import Path
 import signal
 import subprocess
 import time
 
 from led_closeout.runner import require, save_json, sha256
+from led_closeout.plan import make_plan
+
+
+def storage_reserve(setup):
+    """Reserve the whole retained matrix, not one case, before device changes."""
+    seconds = sum(260 if case['action'] == 'standalone' else
+                  math.ceil(int(case['job']['total_duration_ns']) / 1e9 + 90)
+                  for case in make_plan()['cases'])
+    cam = setup['camera']
+    # Explicit 8-bit bgr0 recording has four bytes/pixel before FFV1 coding.
+    # Add 10% plus 256 MiB for container/ledger/flash-readback overhead.
+    per_second = 250000 * 8 + cam['width'] * cam['height'] * cam['fps'] * 4
+    return math.ceil(seconds * per_second * 1.1) + 256 * 1024 * 1024
 
 
 class Captures:
@@ -28,11 +42,11 @@ class Captures:
         video = [cfg['ffmpeg']['path'], '-nostdin', '-hide_banner', '-loglevel', 'info',
                  '-f', 'v4l2', '-framerate', str(cam['fps']), '-video_size',
                  str(cam['width']) + 'x' + str(cam['height']), '-i', cam['device'],
-                 '-t', str(duration), '-an', '-c:v', 'ffv1', '-f', 'matroska',
+                 '-t', str(duration), '-an', '-pix_fmt', 'bgr0', '-c:v', 'ffv1', '-f', 'matroska',
                  '-progress', str(self.root/'video.progress'), '-n', str(self.root/'led.mkv')]
         save_json(self.root/'capture-binding.json', dict(setup=cfg, duration_s=duration,
             receiver=sdr, camera=video, optical_assessment='PENDING',
-            edge_timing='UNQUALIFIED_WITHOUT_INDEPENDENT_SYNCHRONIZATION',
+            edge_timing='UNQUALIFIED_WITHOUT_INDEPENDENT_SYNCHRONIZATION', optical_pixel_format='bgr0',
             host_monotonic_start_ns=time.monotonic_ns(), host_utc_start_ns=time.time_ns()))
         self.deadline = self.now() + duration + 12
         self.progress, self.changed = None, self.now()

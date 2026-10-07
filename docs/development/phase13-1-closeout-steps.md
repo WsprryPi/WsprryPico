@@ -11,7 +11,7 @@ exception if automated device control fails, not a scheduled operator step.
 | Step | Work | Operator | Status |
 | --- | --- | --- | --- |
 | 1 | Finish the runner, finite test cases, candidate checks and automated evidence collection. | No | Complete: engineering preparation |
-| 2 | Identify the connected Pico/SDR setup; connect external LED fixtures for both polarities; prepare LED recording and the physical-stop fixture. | Yes, one untimed setup session | Pending |
+| 2 | Identify the connected Pico/SDR setup; connect external LED fixtures for both polarities; prepare LED recording and the physical-stop fixture. | Yes, one untimed setup session | In progress: devices, backups, default pins and receiver capture checked; physical wiring/recording awaiting operator |
 | 3 | Run onboard tests: warmup, all five modes, completion, active abort, armed cancellation and inhibited behavior. | No, after setup | Pending |
 | 4 | Verify onboard TX priority over AP/Identify; external TX-only behavior, both polarities and disabled indication. | No, with fixtures prepared in step 2 | Pending |
 | 5 | Exercise standalone STOP, GP14 cutoff and controlled failure cases. | No, with an automated stop stimulus | Pending |
@@ -28,3 +28,9 @@ The [step-1 prompt](phase13-1-step1-prompt.md) prepares the subsequent cases and
 their actual adapters. Source, simulated evidence and physical acceptance
 remain separate; neither step-1 completion nor connected hardware closes
 steps 3–6.
+
+Step 2 has its own [execution prompt](phase13-1-step2-prompt.md),
+[untimed operator wiring sheet](phase13-1-step2-operator-setup.md) and
+[execution/review record](phase13-1-step2-review.md). Operator confirmations
+and recording/measurement prerequisites remain pending until actually supplied
+and checked; they are not implied by the connected-SDR authorization.

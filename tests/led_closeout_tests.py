@@ -13,7 +13,7 @@ from led_closeout.plan import BOARDS, IMAGES, make_plan, validate_plan
 from led_closeout.candidates import pins
 from led_closeout.runner import Evidence, Runner, admit, quiescent, save_json
 from led_closeout.device import Device, Peer, inventory, validate_manifest, validate_setup
-from led_closeout.capture import Captures
+from led_closeout.capture import Captures, storage_reserve
 from validate_wtp_contract import loads_strict, SchemaValidator
 
 
@@ -438,6 +438,58 @@ class RunnerTests(unittest.TestCase):
             with self.assertRaises(ValueError):peer.request('ARM',{})
 
 
+class SetupTests(unittest.TestCase):
+    def setUp(self):
+        from led_closeout.runner import sha256
+        self.directory=tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        tool=Path(self.directory.name)/'tool';tool.write_bytes(b'fixture tool bytes')
+        self.setup=dict(schema='phase13.1-led-setup/1',receiver_serial='2404058C60',
+            camera=dict(device='/dev/video0',fps=30,width=640,height=480,
+                rois=dict(onboard=[0,0,20,20],external_high=[20,0,20,20],external_low=[40,0,20,20])),
+            fixtures=dict(external_high_gp=15,external_low_gp=16,stimulus_gp=15,dut_stop_gp=14,open_drain=True),
+            rf_path='operator-confirmed test path')
+        for name in ('picotool','capture_helper','ffmpeg'):
+            self.setup[name]=dict(path=str(tool),sha256=sha256(tool))
+
+    def test_led_regions_are_distinct_and_adjacent_regions_are_allowed(self):
+        # Inject only device-node existence, retaining actual file hash checks.
+        with patch('led_closeout.device.Path.exists',return_value=True):
+            validate_setup(self.setup)
+            for region in ([0,0,20,20],[19,0,20,20],[True,0,20,20],[630,0,20,20],[20,0,0,20]):
+                changed=copy.deepcopy(self.setup)
+                changed['camera']['rois']['external_high']=region
+                with self.assertRaises(ValueError):validate_setup(changed)
+
+    def test_fixture_boolean_and_tool_hashes_cannot_be_substituted(self):
+        with patch('led_closeout.device.Path.exists',return_value=True):
+            changed=copy.deepcopy(self.setup);changed['fixtures']['open_drain']=1
+            with self.assertRaisesRegex(ValueError,'fixture roles'):validate_setup(changed)
+            changed=copy.deepcopy(self.setup);changed['capture_helper']['sha256']='wrong'
+            with self.assertRaisesRegex(ValueError,'executable hash'):validate_setup(changed)
+
+    def test_preparation_draft_is_not_a_runnable_setup_and_recovery_ignores_camera(self):
+        changed=copy.deepcopy(self.setup)
+        changed.update(schema='phase13.1-led-step2-preparation/1',camera=None,ready=False)
+        with self.assertRaisesRegex(ValueError,'setup/receiver identity'):validate_setup(changed)
+        changed=copy.deepcopy(self.setup);changed['camera']=None
+        validate_setup(changed,recovery=True)
+
+    def test_insufficient_matrix_storage_refuses_before_device_mutation(self):
+        from types import SimpleNamespace
+        reserve=storage_reserve(self.setup)
+        self.assertGreater(reserve,3912000000)
+        faster=copy.deepcopy(self.setup);faster['camera']['fps']=60
+        self.assertGreater(storage_reserve(faster),reserve)
+        e=Evidence(Path(self.directory.name)/'run',make_plan(),'B','A')
+        obj=Device(self.setup,e,ROOT)
+        obj.lock_boards=unittest.mock.Mock();obj.info=unittest.mock.Mock();obj.rom=unittest.mock.Mock()
+        with patch('led_closeout.device.Path.exists',return_value=True), patch('led_closeout.device.validate_manifest'), patch('led_closeout.device.shutil.disk_usage',return_value=SimpleNamespace(free=2*1024**3)):
+            with self.assertRaisesRegex(ValueError,'storage reserve'):obj.preflight({},'B','A')
+        obj.lock_boards.assert_not_called();obj.info.assert_not_called();obj.rom.assert_not_called()
+        self.assertEqual(obj.snapshots,{})
+
+
 class CaptureAndFlashTests(unittest.TestCase):
     def test_capture_start_failure_terminates_previous_process(self):
         class Process:
@@ -458,6 +510,8 @@ class CaptureAndFlashTests(unittest.TestCase):
                 self.assertFalse(process.running)
             binding=json.loads((root/'capture-binding.json').read_text())
             self.assertEqual(binding['receiver'][5],str(10*250000))
+            self.assertEqual(binding['optical_pixel_format'],'bgr0')
+            self.assertEqual(binding['camera'][binding['camera'].index('-pix_fmt')+1],'bgr0')
 
     def test_live_process_with_stalled_media_stops(self):
         from types import SimpleNamespace

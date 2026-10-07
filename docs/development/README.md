@@ -95,7 +95,12 @@ is prepared with untimed operator gates and remains unexecuted. The fixed
 [six-step closeout](phase13-1-closeout-steps.md) groups the sole normal operator
 session at step 2. Step 1 prepares the [finite unattended runner](phase13-1-runner.md),
 [execution prompt](phase13-1-step1-prompt.md) and
-[adversarial review](phase13-1-step1-review.md).
+[adversarial review](phase13-1-step1-review.md). Step 2 adds the
+[operator setup prompt](phase13-1-step2-prompt.md),
+[untimed wiring sheet](phase13-1-step2-operator-setup.md) and
+[preparation/review record](phase13-1-step2-review.md). Connected devices,
+default pin journals and receiver recording have been checked; physical LED,
+stop wiring and actual camera setup remain pending operator confirmation.
 
 On macOS, run `bash scripts/check_host.sh` from the repository root for host
 configure, build and CTest. It selects full Xcode for the test subprocesses.
