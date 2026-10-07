@@ -99,8 +99,8 @@ session at step 2. Step 1 prepares the [finite unattended runner](phase13-1-runn
 [operator setup prompt](phase13-1-step2-prompt.md),
 [untimed wiring sheet](phase13-1-step2-operator-setup.md) and
 [preparation/review record](phase13-1-step2-review.md). Connected devices,
-default pin journals and receiver recording have been checked; physical LED,
-stop wiring and actual camera setup remain pending operator confirmation.
+default pin journals and receiver capture have been checked; external LED and
+stop wiring remain pending operator setup. Camera setup is not required.
 The operator subsequently selected [untimed onboard visual checks](phase13-1-step2-manual-onboard.md)
 while awaiting the external LEDs. Both installed-firmware OFF baselines were
 confirmed. B's OFF/ON/OFF visual subset subsequently passed and ordinary
@@ -109,7 +109,11 @@ fixtures and stop wiring remain open. The operator then declined camera setup
 and selected actual hardware GPIO readback. The [GPIO validation prompt](phase13-1-gpio-validation-prompt.md)
 and [execution/review](phase13-1-gpio-validation-review.md) cover 13 available
 cases, autonomous SDR evidence and restoration using existing retained recovery
-data, with no new backups or operator recording setup.
+data, with no new backups or operator recording setup. Twelve full GPIO/RF
+checks passed; standalone STOP has partial target evidence and open terminal/
+job-ID checker findings. B was restored inhibited; external/GP14 fixtures and
+full standalone acceptance remain open. Further runner work stopped after
+the operator raised cost/time concerns.
 
 On macOS, run `bash scripts/check_host.sh` from the repository root for host
 configure, build and CTest. It selects full Xcode for the test subprocesses.

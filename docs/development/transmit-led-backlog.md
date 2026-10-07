@@ -1,8 +1,9 @@
 # Transmit LED backlog
 
 Recorded: 2026-10-03. Updated: 2026-10-07.
-Status: source implementation and deterministic acceptance complete;
-physical acceptance open.
+Status: source implementation and deterministic acceptance complete; twelve
+target GPIO/RF cases passed. Standalone STOP has partial evidence and open
+checker findings; external LED and GP14 fixture acceptance remains open.
 Roadmap assignment: **Phase 13 / P13.1**, selected on 2026-10-05; see the
 [feature backlog](../implementation-plan.md#phase-13-feature-backlog).
 Final hardware/release qualification follows in Phase 14.
@@ -73,3 +74,7 @@ images are outside this application indicator graph; their historical warmup
 captures do not qualify the new application LED. External wiring, physical
 edge timing and broader engine/mode/band/clock qualification require recorded
 target evidence, with final release qualification remaining Phase 14.
+
+The [GPIO execution record](phase13-1-gpio-validation-review.md) records actual
+onboard readback, RF results, retained failed ledgers and restoration. No camera
+or new backup is required for the operator-selected functional scope.

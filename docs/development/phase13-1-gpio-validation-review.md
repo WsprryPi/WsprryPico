@@ -6,6 +6,11 @@ visual observations. The [executed prompt](phase13-1-gpio-validation-prompt.md)
 uses no camera, repeats no visual operator check and creates no new backups.
 Both named Picos retain RF authorization. B is the DUT; A stays unchanged.
 
+**Final disposition: twelve full GPIO/RF cases passed; standalone STOP has
+partial target evidence and an open checker finding.** External LED polarity
+and GP14 fixture tests remain open. This round stopped after restoration;
+no additional runner development or RF repetition was performed.
+
 ## Reviewed implementation
 
 The pinned SDK's `cyw43_gpio_get` issues `WLC_GET_VAR` for `ccgpioin`, reading
@@ -121,12 +126,66 @@ The no-admission budget exception is bound to exact pre-fix firmware `de06bc3`,
 matching device/revision/profile and a full-window immutable suspension trace.
 Other unknown or ambiguous admissions still refuse continuation.
 
-Standalone STOP and controlled launch failure remain to execute with rebuilt
-cue/restoration images. Their reservations bring the aggregate to **15
-admissions / 541.776002676 seconds**, with all prior charges retained. No
-external or GP14 case is added. The selected cases are warmup, WSPR, QRSS, FSKCW,
-DFCW, active abort, armed cancellation, inhibited behavior, onboard AP,
-onboard Identify, disabled indication, standalone STOP and controlled
-ON-write launch failure. External high/low and physical GP14 cutoff remain
-pending their fixtures. No calibrated optical edge timing is claimed or
-required for the operator-selected GPIO functional scope.
+## Final target results and assessment
+
+| Cases | Target result |
+| --- | --- |
+| Warmup/tone, WSPR, QRSS, FSKCW, DFCW | PASS: actual selected GPIO ON while RF active, OFF after completion; independent RF presence and inactive tail |
+| Active abort, armed cancellation, inhibited behavior | PASS: expected RF activity/absence, checked GPIO and terminal cleanup |
+| Onboard AP, onboard Identify, disabled indication | PASS: TX priority or independently checked onboard OFF for disabled selection; expected RF evidence |
+| Controlled ON-write launch failure | PASS: 55 rejected writes, terminal `missed`, no active RF, actual GPIO OFF; independent RF absence and inactive tail |
+| Standalone STOP | PARTIAL: scheduled job reached Running with actual GPIO ON; STOP produced `aborted`, owner released, RF inactive and actual GPIO OFF. Checker expected `empty` and timed out; full case remains open |
+| External high/low, GP14 cutoff | NOT RUN: fixtures unavailable |
+
+The eleven-case run used runner `c84c3b6178b0caecc6d7de02c1dbb1bc9f7bae0f`
+and firmware `de06bc3f60da4bb15e0c42baaa5aab5c76db9f7d`. The standalone and
+failure runs used clean runner/firmware
+`66da06e8522ca00dc0a4d62da741fd40d8e5e8c8`. The later acceptance-fixture
+portability fixes at `cacdd75` passed host/sanitizer checks; those fixes were
+not rebuilt or flashed during this final round.
+
+B is serial `CDDBF8767C506C07`, device
+`29f20b7342051ef947aa56cb9d4fab42`. Active candidates used RP2350 at 138 MHz,
+PIO/DMA RF on GP2 and onboard CYW43 GPIO 0. The conducted receiver was RSP1B
+`2404058C60`, CF32 at 250 ksps, center 3.55 MHz, 200 kHz bandwidth, gain 20,
+channel 0, AGC/bias off; test frequency 3.5701 MHz. These observations establish
+functional GPIO and uncalibrated RF presence, without optical edge claims.
+
+Private original ledgers remain on `wspr5`:
+
+- `/home/pi/phase13-led-gpio-c84c3b6/build/gpio-run`: eleven PASS rows;
+  overall STOP on the earlier suspended-scheduler fixture; VERIFIED_INHIBITED.
+- `/home/pi/phase13-led-gpio-66da06e/build/gpio-run`: standalone STOP partial;
+  overall STOP on terminal predicate; VERIFIED_INHIBITED. Its stopped
+  236,630,016-byte SDR fragment detects RF followed by an inactive tail using
+  the existing analyzer. The capture is explicitly incomplete and does not
+  qualify full case acceptance.
+- `/home/pi/phase13-led-gpio-66da06e/build/gpio-failure-only`: failure case
+  PASS_GPIO_FUNCTIONAL; final RF review passed; VERIFIED_INHIBITED.
+
+Aggregate reservations are **15 admissions / 541.776002676 seconds**, within
+18/600. The final one-case run adds 1/11 to the preceding cumulative 14/
+530.776002676 ledger; it does not reset or refund the aggregate. No ambiguous
+admission was replayed. No new backups, external cases, GP14 cases or operator
+recording were added.
+
+Final adversarial assessment preserves two related automation gaps for
+standalone STOP: accept the actual terminal `aborted` state with inactive RF
+and released owner, and bind the charged attempt to the scheduler's actual
+job ID rather than the unused template ID. The retained attempt remains
+ADMISSION_PENDING, not retroactively PASS. These findings are open; further
+runner work and target repetition stopped in response to the operator's
+cost/time concern. A full standalone repeat exceeds the remaining RF
+reservation, so no such repeat was attempted.
+
+Final read-only inventory at
+`/home/pi/phase13-led-gpio-66da06e/build/final-inventory-ready` completed for
+both boards and closed transport ownership. B is ordinary inhibited revision
+`66da06e8522c`, boot `7b64397af68aae0a6a7bd847de04516f`, 150 MHz, schedules
+disabled, RF inactive, actual onboard GPIO known OFF with error zero and stable
+settings matching the retained entry. A retains revision `6c7b14321003`, boot
+`e83cac69de154245a974a3efdf5fc8af`, 150 MHz and identical stable settings;
+it was not flashed. The immediate earlier inventory was partial only because
+B's LAN listener was still starting; its successful Console restoration
+read and the later complete inventory are both retained. Final inventory state
+SHA-256: `076bf264413018d5249f67da0be477dd2d32437e346be823e0354bf9271effdd`.
