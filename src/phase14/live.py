@@ -34,12 +34,24 @@ class Evidence:
 
 
 class Rig:
-    def __init__(self,root,source):
+    def __init__(self,root,source,*,board=None,receiver=True,reference=False):
         self.e=Evidence(root)
         self.device=Device({'picotool':dict(path=PICOTOOL),'evidence_mode':'gpio-readback'},self.e,source)
-        self.device.lock_boards('A','B')
-        self.lock=open('/tmp/wsprrypico-phase14-receiver.lock','a')
-        fcntl.flock(self.lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        self.lock=None
+        self.reference_before=None
+        try:
+            self.device.lock_boards(board or 'A',None if board else 'B')
+            if receiver:
+                self.lock=open('/tmp/wsprrypico-phase14-receiver.lock','a')
+                fcntl.flock(self.lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            if reference:
+                require(receiver,'reference requires receiver ownership')
+                from phase14_reference import gps
+                self.reference_before=gps()
+                require(self.reference_before['out1'] and not self.reference_before['pps1'],'GPSDO output 1 RF readiness')
+        except BaseException:
+            self.close()
+            raise
     def info(self,board):
         value=self.device.info(board)
         require(value['device_id']==BOARDS[board][1], 'named device mismatch')
@@ -71,9 +83,9 @@ class Rig:
         require(value['revision']==commit[:12] and value['status']['engine']=='pio-dma-gp2', 'candidate source/engine')
         require(retained_settings(before)==retained_settings(value), 'firmware load changed retained settings')
         self.e.event('deployment_verified',dict(board=board,uf2=str(image),sha256=self.image_hash,info=value))
-    def inventory(self):
+    def inventory(self,boards=BOARDS):
         values={}
-        for board in BOARDS:
+        for board in boards:
             value=self.idle(board)
             peer=self.device.peer(board)
             responses={op:peer.request(op,{}) for op in ('CAPS','GET_CLOCK','STATUS','PING')}
@@ -87,6 +99,12 @@ class Rig:
         root.mkdir(mode=0o700)
         before=self.idle(board);peer=self.device.peer(board)
         require(before['system_clock_hz']==clock and before['status']['engine']=='pio-dma-gp2','RF clock/engine mismatch')
+        reference=None
+        if self.reference_before:
+            from phase14_reference import gps
+            reference=gps(BANDS[band]-40000)
+            require(all(reference[k]==self.reference_before[k] for k in ('out1','out2','pps1','f2','out1low','out2low')),
+                    'unrelated reference settings changed')
         # Every capture has one attributable Pico and an inactive peer board.
         other='B' if board=='A' else 'A';self.idle(other)
         value=job(mode,band,clock,uuid.uuid4().hex,duration)
@@ -102,9 +120,9 @@ class Rig:
             device_id=BOARDS[board][1],source_revision=before['revision'],boot_id=peer.boot,
             firmware_sha256=image_hash,clock_hz=clock,divider=1,engine='pio-dma-gp2',rf_gp=2,
             session_id=peer.session,
-            band=band,mode=mode,job=value,receiver_command=argv,receiver_helper_sha256=sha256(CAPTURE),
+            band=band,mode=mode,job=value,reference=reference,receiver_command=argv,receiver_helper_sha256=sha256(CAPTURE),
             receiver_settings=settings,action=action,result='PENDING',status=[],before=before,
-            path='each source -20 dB -> combiner -> -40 dB -> RSP1B; no antenna; no characterized filter')
+            path='each source -20 dB -> combiner -> -40 dB -> RSP1B; no antenna; no LPF; operator-owned filtering')
         save(root/'physical.json',record)
         process=None;claimed=False;owner=uuid.uuid4().hex;terminal=None
         with (root/'receiver.log').open('x') as log:
@@ -202,4 +220,14 @@ class Rig:
         print(json.dumps(dict(path=str(root),result=record['result'],board=board,clock=clock,band=band,mode=mode)),flush=True)
         return root
     def close(self):
-        self.device.close();self.lock.close();self.e.events.close()
+        try:
+            if self.reference_before:
+                from phase14_reference import gps
+                restored=gps(self.reference_before['f1'])
+                require(restored==self.reference_before,'GPSDO settings restoration')
+                self.e.event('reference_restored',restored)
+                self.reference_before=None
+        finally:
+            self.device.close()
+            if self.lock:self.lock.close()
+            self.e.events.close()

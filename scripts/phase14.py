@@ -28,6 +28,7 @@ def main():
             p.add_argument('--modes',nargs='+',choices=MODES,default=['TONE','WSPR'])
             p.add_argument('--repetitions',type=int,choices=range(1,25),default=1)
             p.add_argument('--duration',type=int)
+            p.add_argument('--reference',action='store_true')
             p.add_argument('--action',choices=('complete','abort','disconnect'),default='complete')
     args=parser.parse_args()
     if args.op=='matrix':print(json.dumps(matrix(),indent=2));return
@@ -60,12 +61,12 @@ def main():
         signal.signal(signum,signal.SIG_IGN)
         raise InterruptedError('signal '+str(signum))
     signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupted)
-    rig=Rig(args.output,ROOT)
+    rig=Rig(args.output,ROOT,board=getattr(args,'board',None),receiver=args.op=='run',reference=getattr(args,'reference',False))
     try:
         if args.op=='inventory':print(json.dumps(rig.inventory()))
         elif args.op=='deploy':
             rig.image_hash=image['sha256'];rig.deploy(args.board,uf2,manifest['source_commit'])
-            print(json.dumps(rig.inventory()))
+            print(json.dumps(rig.inventory([args.board])))
         else:
             sequence=0
             for band in args.bands:
@@ -76,7 +77,7 @@ def main():
                         if before['revision']!=manifest['source_commit'][:12]:raise ValueError('installed candidate source mismatch')
                         rig.execute(args.board,args.clock,band,mode,sequence,duration=args.duration,
                                     action=args.action,image_hash=image['sha256'])
-            print(json.dumps(rig.inventory()))
+            print(json.dumps(rig.inventory([args.board])))
     finally:rig.close()
 
 

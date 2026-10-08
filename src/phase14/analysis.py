@@ -22,7 +22,9 @@ def analyze(directory):
     frequency=BANDS[physical['band']];mode=physical['mode'];job=physical['accepted_job']
     output=directory/'analysis';output.mkdir(mode=0o700)
     if mode=='TONE':
-        report=measure(iq,rate,center,duration_s=int(job['total_duration_ns'])/1e9,base_hz=frequency)
+        reference=physical.get('reference')
+        report=measure(iq,rate,center,duration_s=int(job['total_duration_ns'])/1e9,base_hz=frequency,
+                       reference_hz=reference['f1'] if reference else None)
         result=dict(passed=report['relative_checks_passed'],measurement=report)
     elif mode=='WSPR':
         # Existing decoder and waveform are independent. Do not correct RF drift,
